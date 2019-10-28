@@ -12,7 +12,6 @@ from .logging import ColoredFormatter
 
 
 class ToolConfigurationError(Exception):
-
     def __init__(self, message):
         # Call the base class constructor with the parameters it needs
         self.message = message
@@ -100,12 +99,17 @@ class Tool(Application):
 
     """
 
-    config_file = Unicode('', help=("name of a configuration file with "
-                                    "parameters to load in addition to "
-                                    "command-line parameters")).tag(config=True)
+    config_file = Unicode(
+        "",
+        help=(
+            "name of a configuration file with "
+            "parameters to load in addition to "
+            "command-line parameters"
+        ),
+    ).tag(config=True)
     log_format = Unicode(
-        '%(levelname)s [%(name)s] (%(module)s/%(funcName)s): %(message)s',
-        help='The Logging format template'
+        "%(levelname)s [%(name)s] (%(module)s/%(funcName)s): %(message)s",
+        help="The Logging format template",
     ).tag(config=True)
 
     _log_formatter_cls = ColoredFormatter
@@ -113,20 +117,25 @@ class Tool(Application):
     def __init__(self, **kwargs):
         # make sure there are some default aliases in all Tools:
         if self.aliases:
-            self.aliases['log-level'] = 'Application.log_level'
-            self.aliases['config'] = 'Tool.config_file'
+            self.aliases["log-level"] = "Application.log_level"
+            self.aliases["config"] = "Tool.config_file"
 
         super().__init__(**kwargs)
         self.log_level = logging.INFO
         self.is_setup = False
         self._registered_components = []
+        self.version = version
+        self.raise_config_file_errors = True  # override traitlets.Application default
 
     def initialize(self, argv=None):
         """ handle config and any other low-level setup """
         self.parse_command_line(argv)
-        if self.config_file != '':
+        if self.config_file != "":
             self.log.debug(f"Loading config from '{self.config_file}'")
-            self.load_config_file(self.config_file)
+            try:
+                self.load_config_file(self.config_file)
+            except Exception as err:
+                raise ToolConfigurationError(f"Couldn't read config file: {err}")
         self.log.info(f"ctapipe version {self.version_string}")
 
     def add_component(self, component_instance):
@@ -148,8 +157,8 @@ class Tool(Application):
             the same component instance that was passed in, so that the call
             can be chained.
 
-        Example
-        -------
+        Examples
+        --------
         .. code-block:: python3
 
             self.mycomp = self.add_component(MyComponent(parent=self))
@@ -201,23 +210,24 @@ class Tool(Application):
             self.log.info(f"Finished: {self.name}")
             Provenance().finish_activity(activity_name=self.name)
         except ToolConfigurationError as err:
-            self.log.error(f'{err}.  Use --help for more info')
+            self.log.error(f"{err}.  Use --help for more info")
         except RuntimeError as err:
-            self.log.error(f'Caught unexpected exception: {err}')
+            self.log.error(f"Caught unexpected exception: {err}")
             self.finish()
-            Provenance().finish_activity(activity_name=self.name,
-                                         status='error')
+            Provenance().finish_activity(activity_name=self.name, status="error")
+            raise
         except KeyboardInterrupt:
             self.log.warning("WAS INTERRUPTED BY CTRL-C")
             self.finish()
-            Provenance().finish_activity(activity_name=self.name,
-                                         status='interrupted')
+            Provenance().finish_activity(activity_name=self.name, status="interrupted")
         finally:
             for activity in Provenance().finished_activities:
-                output_str = ' '.join([x['url'] for x in activity.output])
+                output_str = " ".join([x["url"] for x in activity.output])
                 self.log.info("Output: %s", output_str)
 
             self.log.debug("PROVENANCE: '%s'", Provenance().as_json(indent=3))
+            with open("provenance.log", mode="w+") as provlog:
+                provlog.write(Provenance().as_json(indent=3))
 
     @property
     def version_string(self):
@@ -249,7 +259,7 @@ class Tool(Application):
         ]
         for key, val in self.get_current_config()[name].items():
             default = traits[key].default_value
-            thehelp = f'{traits[key].help} (default: {default})'
+            thehelp = f"{traits[key].help} (default: {default})"
             lines.append(f"<tr><th>{key}</th>")
             if val != default:
                 lines.append(f"<td><span style='color:blue'>{val}</span></td>")
@@ -294,26 +304,25 @@ def export_tool_config_to_commented_yaml(tool_instance: Tool, classes=None):
         )
 
     # section header
-    breaker = '#' + '-' * 78
-    parent_classes = ', '.join(
-        p.__name__ for p in tool.__bases__
-        if issubclass(p, Configurable)
+    breaker = "#" + "-" * 78
+    parent_classes = ", ".join(
+        p.__name__ for p in tool.__bases__ if issubclass(p, Configurable)
     )
 
     section_header = f"# {tool.__name__}({parent_classes}) configuration"
 
     lines = [breaker, section_header]
     # get the description trait
-    desc = tool.class_traits().get('description')
+    desc = tool.class_traits().get("description")
     if desc:
         desc = desc.default_value
     if not desc:
         # no description from trait, use __doc__
-        desc = getattr(tool, '__doc__', '')
+        desc = getattr(tool, "__doc__", "")
     if desc:
         lines.append(commented(desc, indent_level=0))
     lines.append(breaker)
-    lines.append(f'{tool.__name__}:')
+    lines.append(f"{tool.__name__}:")
 
     for name, trait in sorted(tool.class_traits(config=True).items()):
         default_repr = trait.default_value_repr()
@@ -329,17 +338,16 @@ def export_tool_config_to_commented_yaml(tool_instance: Tool, classes=None):
             # cls owns the trait, show full help
             if trait.help:
                 lines.append(commented(trait.help))
-            if 'Enum' in type(trait).__name__:
+            if "Enum" in type(trait).__name__:
                 # include Enum choices
-                lines.append(commented(f'Choices: {trait.info()}'))
-            lines.append(commented(f'Default: {default_repr}'))
+                lines.append(commented(f"Choices: {trait.info()}"))
+            lines.append(commented(f"Default: {default_repr}"))
         else:
             # Trait appears multiple times and isn't defined here.
             # Truncate help to first line + "See also Original.trait"
             if trait.help:
-                lines.append(commented(trait.help.split('\n', 1)[0]))
-            lines.append(
-                f'    # See also: {defining_class.__name__}.{name}')
-        lines.append(f'    {name}: {current_repr}')
-        lines.append('')
-    return '\n'.join(lines)
+                lines.append(commented(trait.help.split("\n", 1)[0]))
+            lines.append(f"    # See also: {defining_class.__name__}.{name}")
+        lines.append(f"    {name}: {current_repr}")
+        lines.append("")
+    return "\n".join(lines)

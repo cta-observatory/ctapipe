@@ -19,6 +19,7 @@ from eventio.simtel.simtelfile import SimTelFile
 from eventio.file_types import is_eventio
 from gzip import GzipFile
 from io import BufferedReader
+from pathlib import Path
 
 __all__ = ['SimTelEventSource']
 
@@ -72,7 +73,7 @@ class SimTelEventSource(EventSource):
         # but eventio treats an emty set as "no telescopes allowed"
         # so we explicitly pass None in that case
         self.file_ = SimTelFile(
-            self.input_url,
+            Path(self.input_url).expanduser(),
             allowed_telescopes=set(self.allowed_tels) if self.allowed_tels else None,
             skip_calibration=self.skip_calibration_events,
             zcat=not self.back_seekable,
@@ -156,7 +157,7 @@ class SimTelEventSource(EventSource):
 
     @staticmethod
     def is_compatible(file_path):
-        return is_eventio(file_path)
+        return is_eventio(Path(file_path).expanduser())
 
     def _generator(self):
         if self.file_.tell() > self.start_pos:
@@ -194,14 +195,16 @@ class SimTelEventSource(EventSource):
             obs_id = self.file_.header['run']
             tels_with_data = set(array_event['telescope_events'].keys())
             data.count = counter
-            data.r0.obs_id = obs_id
-            data.r0.event_id = event_id
+            data.index.obs_id = obs_id
+            data.index.event_id = event_id
+            data.r0.obs_id = obs_id  # deprecated
+            data.r0.event_id = event_id  # deprecated
             data.r0.tels_with_data = tels_with_data
-            data.r1.obs_id = obs_id
-            data.r1.event_id = event_id
+            data.r1.obs_id = obs_id  # deprecated
+            data.r1.event_id = event_id  # deprecated
             data.r1.tels_with_data = tels_with_data
-            data.dl0.obs_id = obs_id
-            data.dl0.event_id = event_id
+            data.dl0.obs_id = obs_id  # deprecated
+            data.dl0.event_id = event_id  # deprecated
             data.dl0.tels_with_data = tels_with_data
 
             # handle telescope filtering by taking the intersection of

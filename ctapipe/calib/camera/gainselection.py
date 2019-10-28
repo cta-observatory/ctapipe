@@ -113,4 +113,4 @@ class ThresholdGainSelector(GainSelector):
     ).tag(config=True)
 
     def select_channel(self, waveforms):
-        return (waveforms[0] > self.threshold).any(axis=1).astype(int)
+        return (waveforms[0] > self.threshold).any(axis=1).astype(np.int8)

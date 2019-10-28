@@ -12,11 +12,6 @@ import itertools
 import pytest
 
 
-def quantity_approx(actual, expected, **kwargs):
-    unit = expected.unit
-    return actual.to_value(unit) == approx(expected.to_value(unit), **kwargs)
-
-
 def create_sample_image(
         psi='-30d',
         x=0.2 * u.m,
@@ -146,11 +141,11 @@ def test_with_toy():
 
             result = hillas_parameters(geom, signal)
 
-            assert quantity_approx(result.x, x, rel=0.1)
-            assert quantity_approx(result.y, y, rel=0.1)
+            assert u.isclose(result.x, x, rtol=0.1)
+            assert u.isclose(result.y, y, rtol=0.1)
 
-            assert quantity_approx(result.width, width, rel=0.1)
-            assert quantity_approx(result.length, length, rel=0.1)
+            assert u.isclose(result.width, width, rtol=0.1)
+            assert u.isclose(result.length, length, rtol=0.1)
             assert (
                 (result.psi.to_value(u.deg) == approx(psi.deg, abs=2))
                 or abs(result.psi.to_value(u.deg) - psi.deg) == approx(180.0, abs=2)
@@ -189,11 +184,11 @@ def test_skewness():
 
         result = hillas_parameters(geom, signal)
 
-        assert quantity_approx(result.x, x, rel=0.1)
-        assert quantity_approx(result.y, y, rel=0.1)
+        assert u.isclose(result.x, x, rtol=0.1)
+        assert u.isclose(result.y, y, rtol=0.1)
 
-        assert quantity_approx(result.width, width, rel=0.1)
-        assert quantity_approx(result.length, length, rel=0.1)
+        assert u.isclose(result.width, width, rtol=0.1)
+        assert u.isclose(result.length, length, rtol=0.1)
 
         psi_same = result.psi.to_value(u.deg) == approx(psi.deg, abs=3)
         psi_opposite = abs(result.psi.to_value(u.deg) - psi.deg) == approx(180.0, abs=3)

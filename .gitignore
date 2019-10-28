@@ -84,3 +84,5 @@ target
 
 examples/notebooks/*.html
 examples/notebooks/*.png
+
+provenance.log
