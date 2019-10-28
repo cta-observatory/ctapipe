@@ -878,7 +878,7 @@ class MonitoringCameraContainer(Container):
     pixel_status = Field(
         PixelStatusContainer(), "Container for masks with pixel status"
     )
-    calibration = Field(
+    calibration = DeprecatedField(
         WaveformCalibrationContainer(), "Container for calibration coefficients"
     )
     dl1 = Field(
