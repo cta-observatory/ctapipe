@@ -137,22 +137,21 @@ class DL1CameraCalibrationContainer(Container):
     Storage of DL1 calibration parameters for the current event
     """
 
-    absolute = Field(
-        None,
-        "Coefficients for the absolute calibration of extracted charge into "
-        "physical units (e.g. photoelectrons or photons) for each pixel"
-    )
     pedestal = Field(
         None,
         "Coefficients for the pedestal calibration of extracted charge "
         "for each pixel"
     )
+    absolute = Field(
+        None,
+        "Coefficients for the absolute calibration of extracted charge into "
+        "physical units (e.g. photoelectrons or photons) for each pixel"
+    )
     relative = Field(
         None,
-        "Coefficients for the relative calibration of extracted charge "
-        "for each pixel. These are the short-timescale corrections to correct "
-        "for the deviations from the conditions at which the absolute "
-        "calibration was calculated (changes in temperature, NSB, etc.)"
+        "Coefficients for the relative correction between pixels to achieve a "
+        "uniform charge response from a uniform illumination, following the "
+        "application of the absolute calibration."
     )
     time = Field(
         None,
