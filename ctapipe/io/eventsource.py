@@ -194,7 +194,7 @@ class EventSource(Component):
     @abstractmethod
     def subarray(self):
         """
-        Obtain the subarray from the file
+        Obtain the subarray from the EventSource
 
         Returns
         -------
