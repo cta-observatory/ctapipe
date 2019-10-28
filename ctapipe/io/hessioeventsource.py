@@ -150,15 +150,15 @@ class HESSIOEventSource(EventSource):
                     mc.pedestal = pedestal
                     r0.num_trig_pix = file.get_num_trig_pixels(tel_id)
                     r0.trig_pix_id = file.get_trig_pixels(tel_id)
-                    mc.reference_pulse_shape = (file.get_ref_shapes(tel_id))
+                    mc.reference_pulse_shape = file.get_ref_shapes(tel_id)
 
                     # load the data per telescope/pixel
                     hessio_mc_npe = file.get_mc_number_photon_electron(tel_id)
                     mc.photo_electron_image = hessio_mc_npe
-                    mc.meta['refstep'] = (file.get_ref_step(tel_id))
-                    mc.time_slice = (file.get_time_slice(tel_id))
-                    mc.azimuth_raw = (file.get_azimuth_raw(tel_id))
-                    mc.altitude_raw = (file.get_altitude_raw(tel_id))
+                    mc.meta['refstep'] = file.get_ref_step(tel_id)
+                    mc.time_slice = file.get_time_slice(tel_id)
+                    mc.azimuth_raw = file.get_azimuth_raw(tel_id)
+                    mc.altitude_raw = file.get_altitude_raw(tel_id)
                     azimuth_cor = file.get_azimuth_cor(tel_id)
                     altitude_cor = file.get_altitude_cor(tel_id)
 
