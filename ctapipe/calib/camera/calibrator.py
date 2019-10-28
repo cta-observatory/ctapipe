@@ -235,8 +235,6 @@ class CameraCalibrator(Component):
         event.dl1.tel[telid].image = calibrated_charge
         event.dl1.tel[telid].pulse_time = pulse_time
 
-        # TODO: Add charge calibration
-
     def __call__(self, event):
         """
         Perform the full camera calibration from R1 to DL1. Any calibration
