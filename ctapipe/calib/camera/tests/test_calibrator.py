@@ -2,11 +2,13 @@ from ctapipe.calib.camera.calibrator import (
     CameraCalibrator,
     integration_correction,
 )
-from ctapipe.io.containers import DataContainer
-from ctapipe.image.extractor import LocalPeakWindowSum
+from ctapipe.instrument import CameraGeometry
+from ctapipe.io.containers import DataContainer, EventAndMonDataContainer
+from ctapipe.image.extractor import LocalPeakWindowSum, FullWaveformSum
 from traitlets.config.configurable import Config
 import pytest
 import numpy as np
+from scipy.stats import norm
 
 
 def test_camera_calibrator(example_event):
@@ -114,3 +116,44 @@ def test_check_dl0_empty(example_event):
 
     assert calibrator._check_dl0_empty(None) is True
     assert calibrator._check_dl0_empty(waveform) is False
+
+
+def test_dl1_charge_calib():
+    camera = CameraGeometry.from_name("CHEC")
+    n_pixels = camera.n_pixels
+    n_samples = 96
+    mid = n_samples // 2
+    pulse_sigma = 6
+    random = np.random.RandomState(1)
+    x = np.arange(n_samples)
+
+    # Randomize times and create pulses
+    time_offset = random.uniform(mid - 10, mid + 10, n_pixels)[:, np.newaxis]
+    y = norm.pdf(x, time_offset, pulse_sigma)
+
+    # Define absolute calibration coefficients
+    absolute = random.uniform(100, 1000, n_pixels)
+    y *= absolute[:, np.newaxis]
+
+    # Define relative coefficients
+    relative = random.normal(1, 0.01, n_pixels)
+    y /= relative[:, np.newaxis]
+
+    # Define pedestal
+    pedestal = random.uniform(-4, 4, n_pixels)
+    y += pedestal[:, np.newaxis]
+
+    event = EventAndMonDataContainer()
+    telid = 0
+    event.r1.tel[telid].waveform = y[np.newaxis, ...]
+    event.mon.tel[telid].dl1.time = time_offset
+    event.mon.tel[telid].dl1.pedestal = pedestal * n_samples
+    event.mon.tel[telid].dl1.absolute = absolute
+    event.mon.tel[telid].dl1.relative = relative
+
+    # Test without need for timing corrections
+    calibrator = CameraCalibrator(image_extractor=FullWaveformSum())
+    calibrator(event)
+    np.testing.assert_allclose(event.dl1.tel[telid].image, 1)
+
+    # TODO: Test with timing corrections
