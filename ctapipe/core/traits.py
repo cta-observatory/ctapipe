@@ -42,7 +42,7 @@ __all__ = [
     "enum_trait",
     "classes_with_traits",
     "has_traits",
-    "TelescopeParameterList",
+    "TelescopeParameterLookup",
     "TelescopeParameter",
     "FloatTelescopeParameter",
     "IntTelescopeParameter",
@@ -138,9 +138,20 @@ def has_traits(cls, ignore=("config", "parent")):
     return bool(set(cls.class_trait_names()) - set(ignore))
 
 
-class TelescopeParameterList(list):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class TelescopeParameterLookup:
+    def __init__(self, telecope_parameter_list=None):
+        """
+        Handles the lookup of corresponding configuration value from a list of
+        tuples for a telid.
+
+        Parameters
+        ----------
+        telecope_parameter_list : list
+            List of tuples in the form `[(command, argument, value), ...]`
+        """
+        if telecope_parameter_list is None:
+            telecope_parameter_list = []
+        self._telecope_parameter_list = telecope_parameter_list
         self._value_for_tel_id = None
 
     def attach_subarray(self, subarray):
@@ -155,7 +166,7 @@ class TelescopeParameterList(list):
             (includes mapping of tel_id to tel_type)
         """
         self._value_for_tel_id = {}
-        for command, arg, value in self:
+        for command, arg, value in self._telecope_parameter_list:
             if command == "type":
                 matched_tel_types = [
                     str(t) for t in subarray.telescope_types
@@ -182,19 +193,27 @@ class TelescopeParameterList(list):
         """
         if self._value_for_tel_id is None:
             raise ValueError(
-                "TelescopeParameterList: No subarray attached, call "
+                "TelescopeParameterLookup: No subarray attached, call "
                 "`attach_subarray` first before calling `resolve`"
             )
         try:
             return self._value_for_tel_id[tel_id]
         except KeyError:
             raise KeyError(
-                f"TelescopeParameterList: no "
+                f"TelescopeParameterLookup: no "
                 f"parameter value was set for telescope with tel_id="
                 f"{tel_id}. Please set it explicitly, "
                 f"or by telescope type or '*'."
             )
 
+    def append(self, *args, **kwargs):
+        self._telecope_parameter_list.append(*args, **kwargs)
+
+    def __iter__(self):
+        return self._telecope_parameter_list.__iter__()
+
+    def __len__(self):
+        return self._telecope_parameter_list.__len__()
 
 
 class TelescopeParameter(List):
@@ -230,7 +249,7 @@ class TelescopeParameter(List):
     tel_param = 4.0  # sets this value for all telescopes
 
     """
-    klass = TelescopeParameterList
+    klass = TelescopeParameterLookup
 
     def __init__(self, dtype=float, **kwargs):
         super().__init__(**kwargs)
@@ -239,17 +258,17 @@ class TelescopeParameter(List):
         self._dtype = dtype
 
     def validate(self, obj, value):
-        # Convert normal list into TelescopeParameterList
+        # Convert normal list into TelescopeParameterLookup
         if isinstance(value, list):
-            value = TelescopeParameterList(value)
+            value = TelescopeParameterLookup(value)
 
         # support a single value for all (convert into a default value)
         if isinstance(value, self._dtype):
-            value = TelescopeParameterList([("type", "*", value)])
+            value = TelescopeParameterLookup([("type", "*", value)])
 
         # check that it is a list
         super().validate(obj, value)
-        normalized_value = TelescopeParameterList()
+        normalized_value = TelescopeParameterLookup()
 
         for pattern in value:
             # now check for the standard 3-tuple of )command, argument, value)
