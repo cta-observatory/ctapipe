@@ -209,11 +209,11 @@ class TelescopeParameterLookup:
     def append(self, *args, **kwargs):
         self._telecope_parameter_list.append(*args, **kwargs)
 
-    def __iter__(self):
-        return self._telecope_parameter_list.__iter__()
+    def __iter__(self, *args, **kwargs):
+        return self._telecope_parameter_list.__iter__(*args, **kwargs)
 
-    def __len__(self):
-        return self._telecope_parameter_list.__len__()
+    def __len__(self, *args, **kwargs):
+        return self._telecope_parameter_list.__len__(*args, **kwargs)
 
 
 class TelescopeParameter(List):
