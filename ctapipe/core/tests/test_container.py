@@ -1,6 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import pytest
-from ctapipe.core import Container, Field, Map
+from ctapipe.core import Container, Field, Map, DeprecatedField
 
 
 def test_prefix():
@@ -8,45 +8,44 @@ def test_prefix():
         pass
 
     # make sure the default prefix is class name without container
-    assert AwesomeContainer.container_prefix == 'awesome'
-    assert AwesomeContainer().prefix == 'awesome'
+    assert AwesomeContainer.container_prefix == "awesome"
+    assert AwesomeContainer().prefix == "awesome"
 
     # make sure we can set the class level prefix at definition time
     class ReallyAwesomeContainer(Container):
-        container_prefix = 'test'
+        container_prefix = "test"
 
-    assert ReallyAwesomeContainer.container_prefix == 'test'
+    assert ReallyAwesomeContainer.container_prefix == "test"
     r = ReallyAwesomeContainer()
-    assert r.prefix == 'test'
+    assert r.prefix == "test"
 
-    ReallyAwesomeContainer.container_prefix = 'test2'
+    ReallyAwesomeContainer.container_prefix = "test2"
     # new instance should have the old prefix, old instance
     # the one it was created with
-    assert ReallyAwesomeContainer().prefix == 'test2'
-    assert r.prefix == 'test'
+    assert ReallyAwesomeContainer().prefix == "test2"
+    assert r.prefix == "test"
 
     # Make sure we can set the class level prefix at runtime
-    ReallyAwesomeContainer.container_prefix = 'foo'
-    assert ReallyAwesomeContainer().prefix == 'foo'
+    ReallyAwesomeContainer.container_prefix = "foo"
+    assert ReallyAwesomeContainer().prefix == "foo"
 
     # make sure we can assign instance level prefixes
     c1 = ReallyAwesomeContainer()
     c2 = ReallyAwesomeContainer()
-    c2.prefix = 'c2'
+    c2.prefix = "c2"
 
-    assert c1.prefix == 'foo'
-    assert c2.prefix == 'c2'
+    assert c1.prefix == "foo"
+    assert c2.prefix == "c2"
 
 
 def test_inheritance():
-
     class ExampleContainer(Container):
         a = Field(None)
 
     class SubclassContainer(ExampleContainer):
         b = Field(None)
 
-    assert 'a' in SubclassContainer.fields
+    assert "a" in SubclassContainer.fields
 
     c = SubclassContainer()
     assert c.a is None
@@ -60,7 +59,6 @@ def test_inheritance():
 
 
 def test_multiple_inheritance():
-
     class ContainerA(Container):
         a = Field(None)
 
@@ -70,12 +68,11 @@ def test_multiple_inheritance():
     class ContainerC(ContainerB):
         c = Field(None)
 
-    assert 'a' in ContainerC.fields
-    assert 'b' in ContainerC.fields
+    assert "a" in ContainerC.fields
+    assert "b" in ContainerC.fields
 
 
 def test_override_inheritance():
-
     class ContainerA(Container):
         a = Field(1)
 
@@ -90,7 +87,6 @@ def test_override_inheritance():
 
 
 def test_container():
-
     class ExampleContainer(Container):
         x = Field(-1, "x value")
         y = Field(-1, "y value")
@@ -117,8 +113,8 @@ def test_container():
     assert cont.x == -1
 
     # test adding metadata
-    cont.meta['stuff'] = 'things'
-    assert 'stuff' in cont.meta and cont.meta['stuff'] == 'things'
+    cont.meta["stuff"] = "things"
+    assert "stuff" in cont.meta and cont.meta["stuff"] == "things"
 
 
 def test_child_containers():
@@ -134,7 +130,6 @@ def test_child_containers():
 
 
 def test_map_containers():
-
     class ChildContainer(Container):
         z = Field(1, "sub-item")
 
@@ -154,7 +149,6 @@ def test_map_containers():
 
 
 def test_container_as_dict():
-
     class ChildContainer(Container):
         z = Field(1, "sub-item")
 
@@ -167,18 +161,25 @@ def test_container_as_dict():
     the_flat_dict = cont.as_dict(recursive=True, flatten=True)
     the_dict = cont.as_dict(recursive=True, flatten=False)
 
-    assert 'child_z' in the_flat_dict
-    assert 'child' in the_dict and 'z' in the_dict['child']
+    assert "child_z" in the_flat_dict
+    assert "child" in the_dict and "z" in the_dict["child"]
 
 
 def test_container_brackets():
-
-    class TestContainer(Container):
+    class ExampleContainer(Container):
         answer = Field(-1, "The answer to all questions")
 
-    t = TestContainer()
+    t = ExampleContainer()
 
-    t['answer'] = 42
+    t["answer"] = 42
 
     with pytest.raises(AttributeError):
-        t['foo'] = 5
+        t["foo"] = 5
+
+def test_deprecated_field():
+    class ExampleContainer(Container):
+        answer = DeprecatedField(-1, "The answer to all questions", reason="because")
+
+    cont = ExampleContainer()
+    cont.answer = 6
+

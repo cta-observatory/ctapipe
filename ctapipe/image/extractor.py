@@ -79,46 +79,7 @@ def sum_samples_around_peak(waveforms, peak_index, width, shift, ret):
 
 
 @njit(parallel=True)
-def neighbor_average_waveform_jit_3d(waveforms, neighbors, lwt):
-    """
-    # TODO: deprecate
-    Obtain the average waveform built from the neighbors of each pixel
-
-    Parameters
-    ----------
-    waveforms : ndarray
-        Waveforms stored in a numpy array.
-        Shape: (n_chan, n_pix, n_samples)
-    neighbors : ndarray
-        2D array where each row is [pixel index, one neighbor of that pixel].
-        Changes per telescope.
-        Can be obtained from
-        `ctapipe.instrument.CameraGeometry.neighbor_matrix_where`.
-    lwt: int
-        Weight of the local pixel (0: peak from neighbors only,
-        1: local pixel counts as much as any neighbor)
-
-    Returns
-    -------
-    average_wf : ndarray
-        Average of neighbor waveforms for each pixel.
-        Shape: (n_pix, n_samples)
-
-    """
-    n_neighbors = neighbors.shape[0]
-    sum_ = waveforms * lwt
-    n = np.zeros(waveforms.shape, dtype=np.int32)
-    for i in prange(n_neighbors):
-        pixel = neighbors[i, 0]
-        neighbor = neighbors[i, 1]
-        for channel in range(waveforms.shape[0]):
-            sum_[channel, pixel] += waveforms[channel, neighbor]
-            n[channel, pixel] += 1
-    return sum_ / n
-
-
-@njit(parallel=True)
-def neighbor_average_waveform_jit(waveforms, neighbors, lwt):
+def neighbor_average_waveform(waveforms, neighbors, lwt):
     """
     Obtain the average waveform built from the neighbors of each pixel
 
@@ -152,19 +113,6 @@ def neighbor_average_waveform_jit(waveforms, neighbors, lwt):
         sum_[pixel] += waveforms[neighbor]
         n[pixel] += 1
     return sum_ / n
-
-
-def neighbor_average_waveform(waveforms, neighbors, lwt):
-    if waveforms.ndim == 3:
-        warnings.warn(
-            "A 3 dimensional waveforms array was passed "
-            "to neighbor_average_waveform. "
-            "Waveforms should be shape (n_pixels, n_samples). "
-            "This will raise an error in future versions.",
-            DeprecationWarning
-        )
-        return neighbor_average_waveform_jit_3d(waveforms, neighbors, lwt)
-    return neighbor_average_waveform_jit(waveforms, neighbors, lwt)
 
 
 @guvectorize(
@@ -218,7 +166,7 @@ def extract_pulse_time_around_peak(waveforms, peak_index, width, shift, ret):
     num = 0
     den = 0
     for isample in prange(start, end):
-        if 0 <= isample < n_samples:
+        if (0 <= isample < n_samples) & (waveforms[isample] > 0):
             num += waveforms[isample] * isample
             den += waveforms[isample]
 
@@ -383,15 +331,6 @@ class GlobalPeakWindowSum(ImageExtractor):
 
     def __call__(self, waveforms):
         peak_index = waveforms.mean(axis=-2).argmax(axis=-1)
-        if waveforms.ndim == 3:
-            warnings.warn(
-                "A 3 dimensional waveforms array was passed "
-                "to GlobalPeakWindowSum. "
-                "Waveforms should be shape (n_pixels, n_samples). "
-                "This will raise an error in future versions.",
-                DeprecationWarning
-            )
-            peak_index = peak_index[:, np.newaxis]
         charge = sum_samples_around_peak(
             waveforms, peak_index,
             self.window_width, self.window_shift

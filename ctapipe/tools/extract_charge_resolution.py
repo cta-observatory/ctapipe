@@ -25,7 +25,7 @@ class ChargeResolutionGenerator(Tool):
     )
 
     telescopes = List(
-        Int,
+        Int(),
         None,
         allow_none=True,
         help="Telescopes to include from the event file. Default = All telescopes",
