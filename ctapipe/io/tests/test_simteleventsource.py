@@ -63,6 +63,8 @@ def compare_sources(input_url):
                 assert h.mc.tel[tel_id].time_slice == s.mc.tel[tel_id].time_slice
                 assert h.mc.tel[tel_id].azimuth_raw == s.mc.tel[tel_id].azimuth_raw
                 assert h.mc.tel[tel_id].altitude_raw == s.mc.tel[tel_id].altitude_raw
+                assert h.pointing[tel_id].altitude == s.pointing[tel_id].altitude
+                assert h.pointing[tel_id].azimuth == s.pointing[tel_id].azimuth
 
 
 def test_compare_event_hessio_and_simtel():
