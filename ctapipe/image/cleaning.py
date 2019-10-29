@@ -210,7 +210,7 @@ def number_of_islands(geom, mask):
         Total number of clusters
     island_labels: ndarray
         Contains cluster membership of each pixel.
-        Dimesion equals input mask.
+        Dimension equals input geometry.
         Entries range from 0 (not in the pixel mask) to num_islands.
     """
     # compress sparse neighbor matrix
@@ -375,6 +375,12 @@ def largest_island(islands_labels):
 
     islands_labels : array
         A boolean mask created from the input labels and filtered for the largest island.
+        If no islands survived the cleaning the array is all False.
 
     """
-    return islands_labels == np.argmax(np.bincount(islands_labels[islands_labels > 0]))
+    if np.count_nonzero(islands_labels) == 0:
+        return np.zeros(islands_labels.shape, dtype="bool")
+    else:
+        return islands_labels == np.argmax(
+            np.bincount(islands_labels[islands_labels > 0])
+        )
