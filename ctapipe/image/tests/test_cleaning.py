@@ -236,7 +236,7 @@ def test_number_of_islands():
 
 
 def test_largest_island():
-    """Test selection of largest island in an image for given cleaning mask."""
+    """Test selection of largest island in imagea with given cleaning masks."""
 
     # Create a simple rectangular camera made of 17 pixels
     camera = CameraGeometry.make_rectangular(17, 1)
@@ -247,24 +247,39 @@ def test_largest_island():
     # - picture_threshold = 2 photoelectrons,
     # - boundary_threshold = 1 photoelectron,
     # - min_number_picture_neighbors = 0
-
-    # 4 islands left after cleaning:
+    # There will be 4 islands left after cleaning:
     clean_mask = np.zeros(camera.n_pixels).astype("bool")  # initialization
     clean_mask[[0, 1]] = 1
     clean_mask[[4, 5, 6, 7]] = 2  # this is the biggest
     clean_mask[[9, 10]] = 3
     clean_mask[[14, 15, 16]] = 4
-
     # Label islands (their number is not important here)
     _, islands_labels = cleaning.number_of_islands(camera, clean_mask)
-
     # Create the true mask which takes into account only the biggest island
-    true_mask_largest = np.zeros(camera.n_pixels).astype("bool")  # initialization
+    # Pixels with no signal are labelled with a 0
+    true_mask_largest = np.zeros(camera.n_pixels).astype("bool")
     true_mask_largest[[4, 5, 6, 7]] = 1
-
     # Apply the function to test
     mask_largest = cleaning.largest_island(islands_labels)
-    # Check if the function recovers the ground truth
+
+    # Now the degenerate case of only one island surviving
+    # Same process as before
+    clean_mask_one = np.zeros(camera.n_pixels).astype("bool")
+    clean_mask_one[[0, 1]] = 1
+    _, islands_labels_one = cleaning.number_of_islands(camera, clean_mask_one)
+    true_mask_largest_one = np.zeros(camera.n_pixels).astype("bool")
+    true_mask_largest_one[[0, 1]] = 1
+    mask_largest_one = cleaning.largest_island(islands_labels_one)
+
+    # Last the case of no islands surviving
+    clean_mask_0 = np.zeros(camera.n_pixels).astype("bool")
+    _, islands_labels_0 = cleaning.number_of_islands(camera, clean_mask_0)
+    true_mask_largest_0 = np.zeros(camera.n_pixels).astype("bool")
+    mask_largest_0 = cleaning.largest_island(islands_labels_0)
+
+    # Check if the function recovers the ground truth in all of the three cases
+    assert (mask_largest_one == true_mask_largest_one).all()
+    assert (mask_largest_0 == true_mask_largest_0).all()
     assert_allclose(mask_largest, true_mask_largest)
 
 
