@@ -394,7 +394,7 @@ class Stage1Process(Tool):
     description = __doc__
     examples = """
     ctapipe-stage1-process --config stage1_config.json --progress 
-    """.strip()
+    """
 
     output_filename = Unicode(
         help="DL1 output filename", default_value="events.dl1.h5"
