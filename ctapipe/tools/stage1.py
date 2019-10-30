@@ -42,7 +42,6 @@ from ctapipe.io.containers import (
 from tqdm.autonotebook import tqdm
 
 PROV = Provenance()
-RangeTuple = namedtuple("RangeTuple", "min,max")
 
 
 def write_core_provenance(output_filename, obs_id, subarray):
@@ -78,7 +77,7 @@ def write_core_provenance(output_filename, obs_id, subarray):
         "CTA PRODUCT DATA TYPE": "Event",
         "CTA PRODUCT DATA ASSOCIATION": "Subarray",
         "CTA PRODUCT DATA MODEL NAME": "DL1/Event",
-        "CTA PRODUCT DATA MODEL VERSION": "v1.0.1",
+        "CTA PRODUCT DATA MODEL VERSION": "v2.0.0",
         "CTA PRODUCT DATA MODEL URL": "",
         "CTA PRODUCT FORMAT": "hdf5",
         "CTA PROCESS TYPE": "simulation",
@@ -556,7 +555,7 @@ class Stage1Process(Tool):
         extramc = ExtraMCInfo()
         extramc.obs_id = event.index.obs_id
         event.mcheader.prefix = ""
-        writer.write("simulation/run_config", [extramc, event.mcheader])
+        writer.write("configuration/simulation/run_config", [extramc, event.mcheader])
 
     def _write_simulation_histograms(self, writer: HDF5TableWriter):
         """ Write the distribution of thrown showers
@@ -608,7 +607,7 @@ class Stage1Process(Tool):
                 if hist["id"] == 6:
                     fill_from_simtel(self._cur_obs_id, hist, hist_container)
                     writer.write(
-                        table_name="simulation/shower_distribution",
+                        table_name="configuration/simulation/shower_distribution",
                         containers=hist_container,
                     )
 
@@ -625,13 +624,13 @@ class Stage1Process(Tool):
 
         subarray.to_table().write(
             self.output_filename,
-            path="/instrument/subarray/layout",
+            path="/configuration/instrument/subarray/layout",
             serialize_meta=serialize_meta,
             append=True,
         )
         subarray.to_table(kind="optics").write(
             self.output_filename,
-            path="/instrument/telescope/optics",
+            path="/configuration/instrument/telescope/optics",
             append=True,
             serialize_meta=serialize_meta,
         )
@@ -642,7 +641,7 @@ class Stage1Process(Tool):
                 camera = subarray.tel[tel_id].camera
                 camera.to_table().write(
                     self.output_filename,
-                    path=f"/instrument/telescope/camera/{camera}",
+                    path=f"/configuration/instrument/telescope/camera/{camera}",
                     append=True,
                     serialize_meta=serialize_meta,
                 )
