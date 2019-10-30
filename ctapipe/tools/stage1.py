@@ -2,7 +2,6 @@
 Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
 """
 import hashlib
-from collections import namedtuple
 from functools import partial
 from os.path import expandvars
 from pathlib import Path
@@ -10,6 +9,8 @@ from pathlib import Path
 import numpy as np
 import tables.filters
 from astropy import units as u
+from tqdm.autonotebook import tqdm
+
 from ctapipe.calib.camera import CameraCalibrator, GainSelector
 from ctapipe.core import Component, Container, Field, Tool, ToolConfigurationError
 from ctapipe.core import Provenance
@@ -39,7 +40,6 @@ from ctapipe.io.containers import (
     SimulatedShowerDistribution,
     MorphologyContainer,
 )
-from tqdm.autonotebook import tqdm
 
 PROV = Provenance()
 
@@ -226,9 +226,6 @@ class DataChecker(Component):
         self._counts = np.zeros(len(self._selectors), dtype=np.int)
         self._cum_counts = np.zeros(len(self._selectors), dtype=np.int)
 
-        # generate a Container that we can use for output somehow...
-        self._container = Container()
-
     def __len__(self):
         return self._counts[0]
 
@@ -294,13 +291,18 @@ class DataChecker(Component):
 
 class ImageDataChecker(DataChecker):
     """ for configuring image-wise data checks """
-    pass
+    selection_functions = Dict(
+        help=(
+            "dict of '<cut name>' : lambda function in string format to accept ("
+            "select) a given data value.  E.g. `{'mycut': 'lambda x: x > 3'}` "
+        ),
+        default_value=dict(
+            enough_pixels="lambda im: np.count_nonzero(im) > 2",
+            enough_charge_pe="lambda im: im.sum() > 80",
+        ),
+    ).tag(config=True)
 
 
-class EventDataChecker(DataChecker):
-    """ for configuring event-wise data checks """
-
-    pass
 
 
 def expand_tel_list(tel_list, max_tels, index_map):
@@ -399,9 +401,10 @@ class Stage1Process(Tool):
     name = "ctapipe-stage1-process"
     description = __doc__ + f" This currently writes {DL1_DATA_MODEL_VERSION} DL1 data"
     examples = """
+    To process data with all default values:
     > ctapipe-stage1-process --input events.simtel.gz --output events.dl1.h5 --progress
     
-    Or use an external configuration file:
+    Or use an external configuration file, where you can specify all options:
     > ctapipe-stage1-process --config stage1_config.json --progress 
     
     The config file should be in JSON or python format (see traitlets docs). For an 
