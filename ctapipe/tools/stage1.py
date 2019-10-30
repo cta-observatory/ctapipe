@@ -50,46 +50,7 @@ PROV = Provenance()
 # - increase the minor number if new columns or datasets are added
 # - increase the patch number if there is a small bugfix to the model.
 DL1_DATA_MODEL_VERSION = "v2.0.0"
-EXAMPLE_CONFIG = """
-{
-    "Stage1Process": {
-        "config_file": "",
-        "output_filename": "lapalma_proton_small.h5",
-        "overwrite": true,
-        "write_images": true,
-        "image_extractor_type": "NeighborPeakWindowSum",
-        "image_cleaner_type": "TailcutsImageCleaner"
-    },
-    "EventSource": {
-        "allowed_tels": [],
-        "input_url": "~/Data/CTA/Prod3/LaPalmaRefSim/proton_20deg_180deg_run18___cta-prod3-demo-2147m-LaPalma-baseline.simtel.gz",
-        "skip_calibration_events": true
-    },
-    "TailcutsImageCleaner": {
-        "boundary_threshold_pe": [
-            ["type","*", 5.0],
-            ["type", "LST*", 3.0],
-            ["type", "MST*", 4.0]
-        ],
-        "min_picture_neighbors":[
-            ["type","*",2]
-        ]
-    ,
-        "picture_threshold_pe":  [
-                ["type", "*", 10.0],
-                ["type", "LST_LST_LSTCam", 6.0],
-                ["type", "MST_MST_NectarCam", 6.0],
-                ["id", 12, 15.0]
-        ]
-    },
-    "ImageDataChecker": {
-        "selection_functions": {
-            "enough_pixels": "lambda im: np.count_nonzero(im) > 2",
-            "enough_charge": "lambda im: im.sum() > 100"
-        }
-    }
-}
-"""
+
 
 def write_core_provenance(output_filename, obs_id, subarray):
     """
