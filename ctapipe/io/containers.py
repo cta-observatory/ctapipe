@@ -20,6 +20,8 @@ __all__ = [
     "DL0CameraContainer",
     "DL1Container",
     "DL1CameraContainer",
+    "EventCameraCalibrationContainer",
+    "EventCalibrationContainer",
     "SST1MContainer",
     "SST1MCameraContainer",
     "MCEventContainer",
@@ -41,7 +43,7 @@ __all__ = [
     "FlatFieldContainer",
     "PedestalContainer",
     "PixelStatusContainer",
-    "CameraCalibrationContainer",
+    "WaveformCalibrationContainer",
     "MonitoringCameraContainer",
     "MonitoringContainer",
     "EventAndMonDataContainer",
@@ -493,7 +495,7 @@ class TelescopePointingContainer(Container):
 
 class EventCameraCalibrationContainer(Container):
     """
-    Container for the calibration coefficients
+    Container for the calibration coefficients for the current event and camera
     """
     dl1 = Field(
         DL1CameraCalibrationContainer(), "Container for DL1 calibration coefficients"
@@ -502,7 +504,7 @@ class EventCameraCalibrationContainer(Container):
 
 class EventCalibrationContainer(Container):
     """
-    Root container for monitoring data (MON)
+    Container for calibration coefficients for the current event
     """
 
     tels_with_data = Field([], "list of telescopes with data")
@@ -512,6 +514,7 @@ class EventCalibrationContainer(Container):
         Map(EventCameraCalibrationContainer),
         "map of tel_id to EventCameraCalibrationContainer"
     )
+
 
 class DataContainer(Container):
     """ Top-level container for all event information """
@@ -880,9 +883,7 @@ class WaveformCalibrationContainer(Container):
         "np array of average pedestal value per sample (digital count) (n_chan, n_pix)",
     )
 
-    time_correction = Field(
-        None, "np array of time correction values (n_chan, n_pix)"
-    )
+    time_correction = Field(None, "np array of time correction values (n_chan, n_pix)")
 
     n_pe = Field(
         None, "np array of photo-electrons in calibration signal (n_chan, n_pix)"
