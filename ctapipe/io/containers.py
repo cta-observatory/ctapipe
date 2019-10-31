@@ -491,6 +491,28 @@ class TelescopePointingContainer(Container):
     altitude = Field(nan * u.rad, "Altitude", unit=u.rad)
 
 
+class EventCameraCalibrationContainer(Container):
+    """
+    Container for the calibration coefficients
+    """
+    dl1 = Field(
+        DL1CameraCalibrationContainer(), "Container for DL1 calibration coefficients"
+    )
+
+
+class EventCalibrationContainer(Container):
+    """
+    Root container for monitoring data (MON)
+    """
+
+    tels_with_data = Field([], "list of telescopes with data")
+
+    # create the camera container
+    tel = Field(
+        Map(EventCameraCalibrationContainer),
+        "map of tel_id to EventCameraCalibrationContainer"
+    )
+
 class DataContainer(Container):
     """ Top-level container for all event information """
 
@@ -511,6 +533,10 @@ class DataContainer(Container):
         reason="will be separated from event structure in future version",
     )
     pointing = Field(Map(TelescopePointingContainer), "Telescope pointing positions")
+    calibration = Field(
+        EventCalibrationContainer(),
+        "Container for calibration coefficients for the current event"
+    )
 
 
 class SST1MDataContainer(DataContainer):
@@ -833,42 +859,38 @@ class PixelStatusContainer(Container):
     )
 
 
-class CameraCalibrationContainer(Container):
+class WaveformCalibrationContainer(Container):
     """
-    Container for the calibration coefficients
+    Container for the pixel calibration coefficients
     """
-    time = DeprecatedField(0, "Time associated to the calibration event", unit=u.s)
-    time_range = DeprecatedField(
+    time = Field(0, "Time associated to the calibration event", unit=u.s)
+    time_range = Field(
         [],
         "Range of time of validity for the calibration event [t_min, t_max]",
         unit=u.s,
     )
 
-    dc_to_pe = DeprecatedField(
+    dc_to_pe = Field(
         None,
         "np array of (digital count) to (photon electron) coefficients (n_chan, n_pix)",
     )
 
-    pedestal_per_sample = DeprecatedField(
+    pedestal_per_sample = Field(
         None,
         "np array of average pedestal value per sample (digital count) (n_chan, n_pix)",
     )
 
-    time_correction = DeprecatedField(
+    time_correction = Field(
         None, "np array of time correction values (n_chan, n_pix)"
     )
 
-    n_pe = DeprecatedField(
+    n_pe = Field(
         None, "np array of photo-electrons in calibration signal (n_chan, n_pix)"
     )
 
-    unusable_pixels = DeprecatedField(
+    unusable_pixels = Field(
         None,
         "Boolean np array of final calibration data analysis, True = failing pixels (n_chan, n_pix)",
-    )
-
-    dl1 = Field(
-        DL1CameraCalibrationContainer(), "Container for DL1 calibration coefficients"
     )
 
 
@@ -883,7 +905,7 @@ class MonitoringCameraContainer(Container):
         PixelStatusContainer(), "Container for masks with pixel status"
     )
     calibration = Field(
-        CameraCalibrationContainer(), "Container for calibration coefficients"
+        WaveformCalibrationContainer(), "Container for calibration coefficients"
     )
 
 

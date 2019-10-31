@@ -227,14 +227,10 @@ class CameraCalibrator(Component):
             charge = charge * correction
 
         # Calibrate extracted charge
-        try:
-            pedestal = event.mon.tel[telid].calibration.dl1.pedestal_offset
-            absolute = event.mon.tel[telid].calibration.dl1.absolute_factor
-            relative = event.mon.tel[telid].calibration.dl1.relative_factor
-            charge = (charge - pedestal) * relative / absolute
-        except AttributeError:
-            pass
-            # TODO: Switch to EventAndMonDataContainer for mon
+        pedestal = event.calibration.tel[telid].dl1.pedestal_offset
+        absolute = event.calibration.tel[telid].dl1.absolute_factor
+        relative = event.calibration.tel[telid].dl1.relative_factor
+        charge = (charge - pedestal) * relative / absolute
 
         event.dl1.tel[telid].image = charge
         event.dl1.tel[telid].pulse_time = pulse_time
