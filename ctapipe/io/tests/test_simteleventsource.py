@@ -215,11 +215,33 @@ def test_instrument():
     assert subarray.tel[1].optics.num_mirrors == 1
 
 
-def test_apply_simtel_r1_calibration():
-    n_channels = 2
+def test_apply_simtel_r1_calibration_1_channel():
+    n_channels = 1
     n_pixels = 2048
     n_samples = 128
 
+    r0_waveforms = np.zeros((n_channels, n_pixels, n_samples))
+    pedestal = np.full((n_channels, n_pixels), 20 * n_samples)
+    dc_to_pe = np.full((n_channels, n_pixels), 0.5)
+
+    gain_selector = ThresholdGainSelector(threshold=90)
+    r1_waveforms, selected_gain_channel = apply_simtel_r1_calibration(
+        r0_waveforms, pedestal, dc_to_pe, gain_selector
+    )
+
+    assert (selected_gain_channel == 0).all()
+    assert r1_waveforms.ndim == 2
+    assert r1_waveforms.shape == (n_pixels, n_samples)
+
+    ped = pedestal / n_samples
+    assert r1_waveforms[0, 0] == (r0_waveforms[0, 0, 0] - ped[0, 0]) * dc_to_pe[0, 0]
+    assert r1_waveforms[1, 0] == (r0_waveforms[0, 1, 0] - ped[0, 1]) * dc_to_pe[0, 1]
+
+
+def test_apply_simtel_r1_calibration_2_channel():
+    n_channels = 2
+    n_pixels = 2048
+    n_samples = 128
 
     r0_waveforms = np.zeros((n_channels, n_pixels, n_samples))
     r0_waveforms[0, 0, :] = 100
@@ -246,3 +268,4 @@ def test_apply_simtel_r1_calibration():
     ped = pedestal / n_samples
     assert r1_waveforms[0, 0] == (r0_waveforms[1, 0, 0] - ped[1, 0]) * dc_to_pe[1, 0]
     assert r1_waveforms[1, 0] == (r0_waveforms[0, 1, 0] - ped[0, 1]) * dc_to_pe[0, 1]
+

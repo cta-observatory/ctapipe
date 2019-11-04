@@ -59,7 +59,7 @@ def apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe, gain_selector)
     gain = dc_to_pe[..., np.newaxis]
     r1_waveforms = (r0_waveforms - ped) * gain
     if n_channels == 1:
-        selected_gain_channel = 0
+        selected_gain_channel = np.zeros(n_pixels)
         r1_waveforms = r1_waveforms[0]
     else:
         selected_gain_channel = gain_selector(r0_waveforms)
