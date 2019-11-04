@@ -100,7 +100,7 @@ class ThresholdGainSelector(GainSelector):
     Select gain channel according to a maximum threshold value.
     """
     threshold = traits.Float(
-        default_value=1000,
+        default_value=4000,
         help="Threshold value in waveform sample units. If a waveform "
              "contains a sample above this threshold, use the low gain "
              "channel for that pixel."
