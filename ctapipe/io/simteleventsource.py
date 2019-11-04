@@ -54,6 +54,38 @@ def build_camera_geometry(cam_settings, telescope):
 
 
 def apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe, gain_selector):
+    """
+    Perform the R1 calibration for R0 simtel waveforms. This includes:
+        - Gain selection
+        - Pedestal subtraction
+        - Conversion of samples into units proportional to photoelectrons
+          (If the full signal in the waveform was integrated, then the resulting
+          value would be in photoelectrons.)
+          (Also applies flat-fielding)
+
+    Parameters
+    ----------
+    r0_waveforms : ndarray
+        Raw ADC waveforms from a simtel file. All gain channels available.
+        Shape: (n_channels, n_pixels, n_samples)
+    pedestal : ndarray
+        Pedestal stored in the simtel file for each gain channel
+        Shape: (n_channels, n_pixels)
+    dc_to_pe : ndarray
+        Conversion factor between R0 waveform samples and ~p.e., stored in the
+        simtel file for each gain channel
+        Shape: (n_channels, n_pixels)
+    gain_selector : ctapipe.calib.camera.gainselection.GainSelector
+
+    Returns
+    -------
+    r1_waveforms : ndarray
+        Calibrated waveforms
+        Shape: (n_pixels, n_samples)
+    selected_gain_channel : ndarray
+        The gain channel selected for each pixel
+        Shape: (n_pixels)
+    """
     n_channels, n_pixels, n_samples = r0_waveforms.shape
     ped = pedestal[..., np.newaxis] / n_samples
     gain = dc_to_pe[..., np.newaxis]
