@@ -13,6 +13,7 @@ from ctapipe.instrument import (
 )
 from ctapipe.instrument.camera import UnknownPixelShapeWarning
 from ctapipe.instrument.guess import guess_telescope, UNKNOWN_TELESCOPE
+from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 from traitlets import Bool
 
 from eventio.simtel.simtelfile import SimTelFile
@@ -52,6 +53,20 @@ def build_camera_geometry(cam_settings, telescope):
     return camera
 
 
+def apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe, gain_selector):
+    n_channels, n_pixels, n_samples = r0_waveforms.shape
+    ped = pedestal[..., np.newaxis] / n_samples
+    gain = dc_to_pe[..., np.newaxis]
+    r1_waveforms = (r0_waveforms - ped) * gain
+    if n_channels == 1:
+        selected_gain_channel = 0
+        r1_waveforms = r1_waveforms[0]
+    else:
+        selected_gain_channel = gain_selector(r0_waveforms)
+        r1_waveforms = r1_waveforms[selected_gain_channel, np.arange(n_pixels)]
+    return r1_waveforms, selected_gain_channel
+
+
 class SimTelEventSource(EventSource):
     skip_calibration_events = Bool(True, help='Skip calibration events').tag(config=True)
     back_seekable = Bool(
@@ -63,7 +78,25 @@ class SimTelEventSource(EventSource):
         )
     ).tag(config=True)
 
-    def __init__(self, config=None, parent=None, **kwargs):
+    def __init__(self, config=None, parent=None, gain_selector=None, **kwargs):
+        """
+        EventSource for simtelarray files using the pyeventio library.
+
+        Parameters
+        ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        gain_selector : ctapipe.calib.camera.gainselection.GainSelector
+            The GainSelector to use. If None, then ManualGainSelector will be
+            used, which by default selects the high/first gain channel.
+        kwargs
+        """
         super().__init__(config=config, parent=parent, **kwargs)
         self.metadata['is_simulation'] = True
         self._camera_cache = {}
@@ -86,6 +119,12 @@ class SimTelEventSource(EventSource):
             self.file_.header
         )
         self.start_pos = self.file_.tell()
+
+        # Waveforms from simtelarray have both gain channels
+        # Gain selection is performed by this EventSource to produce R1 waveforms
+        if gain_selector is None:
+            gain_selector = ThresholdGainSelector(parent=self)
+        self.gain_selector = gain_selector
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
@@ -275,13 +314,12 @@ class SimTelEventSource(EventSource):
                 else:
                     data.pointing[tel_id].altitude = u.Quantity(mc.altitude_cor, u.rad)
 
-
                 r0 = data.r0.tel[tel_id]
                 r1 = data.r1.tel[tel_id]
                 r0.waveform = adc_samples
-                ped = mc.pedestal[..., np.newaxis] / n_samples
-                gain = mc.dc_to_pe[..., np.newaxis]
-                r1.waveform = (adc_samples - ped) * gain
+                r1.waveform, r1.selected_gain_channel = apply_simtel_r1_calibration(
+                    adc_samples, mc.pedestal, mc.dc_to_pe, self.gain_selector
+                )
 
                 pixel_lists = telescope_event['pixel_lists']
                 r0.num_trig_pix = pixel_lists.get(0, {'pixels': 0})['pixels']
