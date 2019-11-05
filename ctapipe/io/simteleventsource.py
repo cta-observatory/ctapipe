@@ -125,8 +125,7 @@ class SimTelEventSource(EventSource):
             Passes the correct logger to the component.
             Set to None if no Tool to pass.
         gain_selector : ctapipe.calib.camera.gainselection.GainSelector
-            The GainSelector to use. If None, then ManualGainSelector will be
-            used, which by default selects the high/first gain channel.
+            The GainSelector to use. If None, then ThresholdGainSelector will be used.
         kwargs
         """
         super().__init__(config=config, parent=parent, **kwargs)
