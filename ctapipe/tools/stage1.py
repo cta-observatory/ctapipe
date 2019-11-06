@@ -522,11 +522,9 @@ class Stage1Process(Tool):
         self.gain_selector = self.add_component(
             GainSelector.from_name(self.gain_selector_type, parent=self)
         )
-
         self.event_source = self.add_component(
             EventSource.from_config(parent=self, gain_selector=self.gain_selector)
         )
-
         self.image_extractor = self.add_component(
             ImageExtractor.from_name(self.image_extractor_type, parent=self)
         )
