@@ -137,6 +137,7 @@ class Tool(Application):
             except Exception as err:
                 raise ToolConfigurationError(f"Couldn't read config file: {err}")
         self.log.info(f"ctapipe version {self.version_string}")
+        self.parse_command_line(argv)  # command-line takes precedence
 
     def add_component(self, component_instance):
         """
