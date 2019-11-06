@@ -291,6 +291,7 @@ class DataChecker(Component):
 
 class ImageDataChecker(DataChecker):
     """ for configuring image-wise data checks """
+
     selection_functions = Dict(
         help=(
             "dict of '<cut name>' : lambda function in string format to accept ("
@@ -301,8 +302,6 @@ class ImageDataChecker(DataChecker):
             enough_charge_pe="lambda im: im.sum() > 80",
         ),
     ).tag(config=True)
-
-
 
 
 def expand_tel_list(tel_list, max_tels, index_map):
@@ -520,20 +519,19 @@ class Stage1Process(Tool):
 
         # setup components:
 
-        self.event_source = self.add_component(EventSource.from_config(parent=self))
-
         self.gain_selector = self.add_component(
             GainSelector.from_name(self.gain_selector_type, parent=self)
         )
+
+        self.event_source = self.add_component(
+            EventSource.from_config(parent=self, gain_selector=self.gain_selector)
+        )
+
         self.image_extractor = self.add_component(
             ImageExtractor.from_name(self.image_extractor_type, parent=self)
         )
         self.calibrate = self.add_component(
-            CameraCalibrator(
-                parent=self,
-                image_extractor=self.image_extractor,
-                gain_selector=self.gain_selector,
-            )
+            CameraCalibrator(parent=self, image_extractor=self.image_extractor)
         )
         self.clean = self.add_component(
             ImageCleaner.from_name(self.image_cleaner_type, parent=self)
