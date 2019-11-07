@@ -23,6 +23,7 @@ expert or developer!
 
 * Code: https://github.com/cta-observatory/ctapipe
 * Docs: https://cta-observatory.github.io/ctapipe/
+* Slack: Contact Karl Kosack for invite
 
 Citing this software
 --------------------

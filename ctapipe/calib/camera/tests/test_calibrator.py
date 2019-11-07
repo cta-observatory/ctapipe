@@ -21,31 +21,6 @@ def test_camera_calibrator(example_event):
     assert pulse_time.shape == (1764,)
 
 
-def test_select_gain():
-    n_channels = 2
-    n_pixels = 2048
-    n_samples = 128
-    telid = 0
-
-    calibrator = CameraCalibrator()
-
-    event = DataContainer()
-    event.r1.tel[telid].waveform = np.ones((n_channels, n_pixels, n_samples))
-    calibrator._calibrate_dl0(event, telid)
-    assert event.dl0.tel[telid].waveform.shape == (n_pixels, n_samples)
-
-    event = DataContainer()
-    event.r1.tel[telid].waveform = np.ones((n_pixels, n_samples))
-    with pytest.raises(ValueError):
-        calibrator._calibrate_dl0(event, telid)
-
-    event = DataContainer()
-    event.r1.tel[telid].waveform = np.ones((n_pixels, n_samples))
-    event.r1.tel[telid].selected_gain_channel = np.zeros(n_pixels)
-    calibrator._calibrate_dl0(event, telid)
-    assert event.dl0.tel[telid].waveform.shape == (n_pixels, n_samples)
-
-
 def test_manual_extractor():
     calibrator = CameraCalibrator(image_extractor=LocalPeakWindowSum())
     assert isinstance(calibrator.image_extractor, LocalPeakWindowSum)
