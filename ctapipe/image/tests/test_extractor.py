@@ -117,7 +117,7 @@ def test_extract_pulse_time_within_range():
     _, pulse_time = extract_around_peak(
         y[np.newaxis, :], 12, 10, 0
     )
-    assert (pulse_time > 0).all() & (pulse_time < x.size).all()
+    assert (pulse_time >= 0).all() & (pulse_time < x.size).all()
 
 
 def test_baseline_subtractor(camera_waveforms):

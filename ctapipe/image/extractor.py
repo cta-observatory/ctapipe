@@ -82,7 +82,7 @@ def extract_around_peak(waveforms, peak_index, width, shift, sum, pulse_time):
     time_num = 0
     time_den = 0
     for isample in prange(start, end):
-        if 0 <= isample < n_samples:
+        if (0 <= isample < n_samples) & (waveforms[isample] > 0):
             sum[0] += waveforms[isample]
             time_num += waveforms[isample] * isample
             time_den += waveforms[isample]
