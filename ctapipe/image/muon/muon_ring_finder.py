@@ -7,7 +7,6 @@ from iminuit import Minuit
 
 __all__ = ['MuonRingFitter']
 
-
 class MuonRingFitter(Component):
     """Different ring fit algorithms for muon rings
     """
@@ -16,32 +15,32 @@ class MuonRingFitter(Component):
         default_value='chaudhuri_kundu'
     ).tag(config=True)
 
-    tel_type = traits.CaselessStrEnum(
-        ['LST_LST_LSTCam', 'MST_MST_NectarCam', 'MST_MST_FlashCam', 'MST_SCT_SCTCam',
-         'SST_1M_DigiCam', 'SST_GCT_CHEC', 'SST_ASTRI_ASTRICam', 'SST_ASTRI_CHEC'],
-        default_value='LST_LST_LSTCam'
-    ).tag(config=True)
-
-    def __init__(self, config=None, parent=None, **kwargs):
+    def __init__(self, teldes, config=None, parent=None, **kwargs):
+        """
+        teldes: telescope description
+                in form of event.inst.subarray.tel[telid]
+        """
         super().__init__(config, parent, **kwargs)
+        self.teldes = teldes
 
     def fitFormula(self, xc, yc, r):
-        '''taubin fit formula
+        """taubin fit formula
         reference : Barcelona_Muons_TPA_final.pdf (slide 6)
-        '''
-        upper_term = sum(
+        """
+        upper_term = (
             (
                     (np.array(self.x) - xc) ** 2 +
                     (np.array(self.y) - yc) ** 2
                     - r ** 2
             ) ** 2
-        )
-        lower_term = sum(
+        ).sum()
+
+        lower_term = (
             (
                     (np.array(self.x) - xc) ** 2 +
                     (np.array(self.y) - yc) ** 2
             )
-        )
+        ).sum()
 
         return np.abs(upper_term) / np.abs(lower_term)
 
@@ -49,40 +48,32 @@ class MuonRingFitter(Component):
         """ initialization for taubin_fit with the
         initial default values, errors, and limits
         """
-        names = ['LST_LST_LSTCam', 'MST_MST_NectarCam', 'MST_MST_FlashCam', 'MST_SCT_SCTCam',
-                 'SST_1M_DigiCam', 'SST_GCT_CHEC', 'SST_ASTRI_ASTRICam', 'SST_ASTRI_CHEC']
-        taubin_r_initial = [0.02, 0.03, 0.03, 0.03, 0.03, 0.02, 0.04, 0.02]
-        taubin_error = [0.003, 0.005, 0.005, 0.005, 0.006, 0.004, 0.007, 0.004]
-        taubin_limit = [(-0.0365, 0.0365), (-0.0640, 0.0640), (-0.0625, 0.0625), (-0.0646, 0.0646),
-                        (-0.0719, 0.0719), (-0.0462, 0.0462), (-0.0848, 0.0848)]
-        taubin_params = {'Name': names, 'rInitial': taubin_r_initial,
-                         'error': taubin_error, 'limit': taubin_limit}
-        taubin_dictIndex = taubin_params['Name'].index(self.tel_type)
-        radius = taubin_params['rInitial'][taubin_dictIndex]
-        error = taubin_params['error'][taubin_dictIndex]
-        limit = taubin_params['limit'][taubin_dictIndex]
+        focal_length = self.teldes.optics.equivalent_focal_length / u.m
+        taubin_r_initial = 0.5 / focal_length
+        taubin_error = 0.1 / focal_length
+        taubin_limit = (-(1 / focal_length), 1 / focal_length)
         xc = 0
         yc = 0
         init_params = {
             'xc': xc,
             'yc': yc,
-            'r': radius,
+            'r': taubin_r_initial,
         }
 
         init_errs = {
-            'error_xc': error,
-            'error_yc': error,
-            'error_r': error,
+            'error_xc': taubin_error,
+            'error_yc': taubin_error,
+            'error_r': taubin_error,
         }
 
         init_limits = {
-            'limit_xc': limit,
-            'limit_yc': limit,
+            'limit_xc': taubin_limit,
+            'limit_yc': taubin_limit,
         }
         return init_params, init_errs, init_limits
 
     def taubin_fit(self, x, y, weight=None, times=None):
-        '''
+        """
         Parameters
         ----------
         px: array
@@ -96,7 +87,7 @@ class MuonRingFitter(Component):
         xc: x coordinate of fitted ring center
         yc: y coordinate of fitted ring center
         r: radius of fitted ring
-       '''
+       """
         init_params, init_errs, init_limits = self.initialization()
         print("initparams", init_params, init_errs, init_limits)
         # minimization method
