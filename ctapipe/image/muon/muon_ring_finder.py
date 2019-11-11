@@ -48,7 +48,7 @@ class MuonRingFitter(Component):
         """ initialization for taubin_fit with the
         initial default values, errors, and limits
         """
-        focal_length = self.teldes.optics.equivalent_focal_length / u.m
+        focal_length = self.teldes.optics.equivalent_focal_length.to_value(u.m)
         taubin_r_initial = 0.5 / focal_length
         taubin_error = 0.1 / focal_length
         taubin_limit = (-(1 / focal_length), 1 / focal_length)
