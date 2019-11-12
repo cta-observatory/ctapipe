@@ -20,12 +20,14 @@ __all__ = [
     "DL0CameraContainer",
     "DL1Container",
     "DL1CameraContainer",
+    "EventCameraCalibrationContainer",
+    "EventCalibrationContainer",
     "SST1MContainer",
     "SST1MCameraContainer",
     "MCEventContainer",
     "MCHeaderContainer",
     "MCCameraEventContainer",
-    "CameraCalibrationContainer",
+    "DL1CameraCalibrationContainer",
     "CentralTriggerContainer",
     "ReconstructedContainer",
     "ReconstructedShowerContainer",
@@ -126,19 +128,38 @@ class DL1CameraContainer(Container):
     )
 
 
-class CameraCalibrationContainer(Container):
-    """
-    Storage of externally calculated calibration parameters (not per-event)
-    """
-
-    dc_to_pe = Field(None, "DC/PE calibration arrays from MC file")
-    pedestal = Field(None, "pedestal calibration arrays from MC file")
-
-
 class DL1Container(Container):
     """ DL1 Calibrated Camera Images and associated data"""
 
     tel = Field(Map(DL1CameraContainer), "map of tel_id to DL1CameraContainer")
+
+
+class DL1CameraCalibrationContainer(Container):
+    """
+    Storage of DL1 calibration parameters for the current event
+    """
+
+    pedestal_offset = Field(
+        0,
+        "Additive coefficients for the pedestal calibration of extracted charge "
+        "for each pixel"
+    )
+    absolute_factor = Field(
+        1,
+        "Multiplicative coefficients for the absolute calibration of extracted charge into "
+        "physical units (e.g. photoelectrons or photons) for each pixel"
+    )
+    relative_factor = Field(
+        1,
+        "Multiplicative Coefficients for the relative correction between pixels to achieve a "
+        "uniform charge response (post absolute calibration) from a "
+        "uniform illumination."
+    )
+    time_shift = Field(
+        0,
+        "Additive coefficients for the timing correction before charge extraction "
+        "for each pixel"
+    )
 
 
 class R0CameraContainer(Container):
@@ -472,6 +493,29 @@ class TelescopePointingContainer(Container):
     altitude = Field(nan * u.rad, "Altitude", unit=u.rad)
 
 
+class EventCameraCalibrationContainer(Container):
+    """
+    Container for the calibration coefficients for the current event and camera
+    """
+    dl1 = Field(
+        DL1CameraCalibrationContainer(), "Container for DL1 calibration coefficients"
+    )
+
+
+class EventCalibrationContainer(Container):
+    """
+    Container for calibration coefficients for the current event
+    """
+
+    tels_with_data = Field([], "list of telescopes with data")
+
+    # create the camera container
+    tel = Field(
+        Map(EventCameraCalibrationContainer),
+        "map of tel_id to EventCameraCalibrationContainer"
+    )
+
+
 class DataContainer(Container):
     """ Top-level container for all event information """
 
@@ -492,6 +536,10 @@ class DataContainer(Container):
         reason="will be separated from event structure in future version",
     )
     pointing = Field(Map(TelescopePointingContainer), "Telescope pointing positions")
+    calibration = Field(
+        EventCalibrationContainer(),
+        "Container for calibration coefficients for the current event"
+    )
 
 
 class SST1MDataContainer(DataContainer):
@@ -818,7 +866,6 @@ class WaveformCalibrationContainer(Container):
     """
     Container for the pixel calibration coefficients
     """
-
     time = Field(0, "Time associated to the calibration event", unit=u.s)
     time_range = Field(
         [],
