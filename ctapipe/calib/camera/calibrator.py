@@ -183,24 +183,29 @@ class CameraCalibrator(Component):
             #   - Read into dl1 container directly?
             #   - Don't do anything if dl1 container already filled
             #   - Update on SST review decision
-            corrected_charge = waveforms[..., 0]
+            charge = waveforms[..., 0]
             pulse_time = np.zeros(n_pixels)
         else:
             # TODO: pass camera to ImageExtractor.__init__
             if self.image_extractor.requires_neighbors():
                 camera = event.inst.subarray.tel[telid].camera
                 self.image_extractor.neighbors = camera.neighbor_matrix_where
+            # TODO: apply timing correction to waveforms before charge extraction
             charge, pulse_time = self.image_extractor(waveforms)
 
             # Apply integration correction
             # TODO: Remove integration correction
             correction = self._get_correction(event, telid)
-            corrected_charge = charge * correction
+            charge = charge * correction
 
-        event.dl1.tel[telid].image = corrected_charge
+        # Calibrate extracted charge
+        pedestal = event.calibration.tel[telid].dl1.pedestal_offset
+        absolute = event.calibration.tel[telid].dl1.absolute_factor
+        relative = event.calibration.tel[telid].dl1.relative_factor
+        charge = (charge - pedestal) * relative / absolute
+
+        event.dl1.tel[telid].image = charge
         event.dl1.tel[telid].pulse_time = pulse_time
-
-        # TODO: Add charge calibration
 
     def __call__(self, event):
         """
