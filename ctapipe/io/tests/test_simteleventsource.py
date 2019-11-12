@@ -6,6 +6,7 @@ from ctapipe.io.simteleventsource import SimTelEventSource, apply_simtel_r1_cali
 from ctapipe.io.hessioeventsource import HESSIOEventSource
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 from itertools import zip_longest
+from copy import deepcopy
 
 gamma_test_large_path = get_dataset_path("gamma_test_large.simtel.gz")
 gamma_test_path = get_dataset_path("gamma_test.simtel.gz")
@@ -218,6 +219,16 @@ def test_instrument():
     assert subarray.tel[1].optics.num_mirrors == 1
 
 
+def test_subarray_property():
+    source = SimTelEventSource(input_url=gamma_test_large_path)
+    subarray = deepcopy(source.subarray)
+    event = next(iter(source))
+    subarray_event = event.inst.subarray
+    assert subarray.tel.keys() == subarray_event.tel.keys()
+    assert (subarray.tel[1].camera.pix_x ==
+            subarray_event.tel[1].camera.pix_x).all()
+
+
 def test_apply_simtel_r1_calibration_1_channel():
     n_channels = 1
     n_pixels = 2048
@@ -271,4 +282,3 @@ def test_apply_simtel_r1_calibration_2_channel():
     ped = pedestal / n_samples
     assert r1_waveforms[0, 0] == (r0_waveforms[1, 0, 0] - ped[1, 0]) * dc_to_pe[1, 0]
     assert r1_waveforms[1, 0] == (r0_waveforms[0, 1, 0] - ped[0, 1]) * dc_to_pe[0, 1]
-

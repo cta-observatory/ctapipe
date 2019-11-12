@@ -73,6 +73,12 @@ class HESSIOEventSource(EventSource):
         '''This class should never be chosen in event_source()'''
         return False
 
+    @property
+    def subarray(self):
+        with self.pyhessio.open_hessio(self.input_url) as file:
+            next(file.move_to_next_event())
+            return self._build_subarray_info(file)
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         HESSIOEventSource._count -= 1
         self.pyhessio.close_file()

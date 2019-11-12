@@ -232,6 +232,10 @@ class SimTelEventSource(EventSource):
     def is_compatible(file_path):
         return is_eventio(Path(file_path).expanduser())
 
+    @property
+    def subarray(self):
+        return self._subarray_info
+
     def _generator(self):
         if self.file_.tell() > self.start_pos:
             self.file_._next_header_pos = 0
