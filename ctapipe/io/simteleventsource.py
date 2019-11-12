@@ -25,7 +25,7 @@ from pathlib import Path
 __all__ = ['SimTelEventSource']
 
 
-def build_camera_geometry(cam_settings, telescope):
+def build_camera_geometry(cam_settings, pixel_settings, telescope):
     pixel_shape = cam_settings['pixel_shape'][0]
     try:
         pix_type, pix_rotation = CameraGeometry.simtel_shape_to_type(pixel_shape)
@@ -44,10 +44,10 @@ def build_camera_geometry(cam_settings, telescope):
         pix_y=u.Quantity(cam_settings['pixel_y'], u.m),
         pix_area=u.Quantity(cam_settings['pixel_area'], u.m**2),
         pix_type=pix_type,
+        sampling_rate=u.Quantity(1 / pixel_settings['time_slice'], u.GHz),
         pix_rotation=pix_rotation,
         cam_rotation=-Angle(cam_settings['cam_rot'], u.rad),
         apply_derotation=True,
-
     )
 
     return camera
@@ -190,6 +190,7 @@ class SimTelEventSource(EventSource):
 
         for tel_id, telescope_description in telescope_descriptions.items():
             cam_settings = telescope_description['camera_settings']
+            pixel_settings = telescope_description['pixel_settings']
 
             n_pixels = cam_settings['n_pixels']
             focal_length = u.Quantity(cam_settings['focal_length'], u.m)
@@ -201,7 +202,9 @@ class SimTelEventSource(EventSource):
 
             camera = self._camera_cache.get(telescope.camera_name)
             if camera is None:
-                camera = build_camera_geometry(cam_settings, telescope)
+                camera = build_camera_geometry(
+                    cam_settings, pixel_settings, telescope
+                )
                 self._camera_cache[telescope.camera_name] = camera
 
             optics = OpticsDescription(
