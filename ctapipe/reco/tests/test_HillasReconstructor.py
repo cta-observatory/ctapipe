@@ -113,8 +113,8 @@ def test_reconstruction():
 
             geom = event.inst.subarray.tel[tel_id].camera
 
-            telescope_pointings[tel_id] = SkyCoord(alt=event.mc.tel[tel_id].altitude_raw * u.rad,
-                                                   az=event.mc.tel[tel_id].azimuth_raw * u.rad,
+            telescope_pointings[tel_id] = SkyCoord(alt=event.pointing[tel_id].altitude,
+                                                   az=event.pointing[tel_id].azimuth,
                                                    frame=horizon_frame)
             pmt_signal = event.r0.tel[tel_id].waveform[0].sum(axis=1)
 
@@ -182,8 +182,8 @@ def test_invalid_events():
         for tel_id in event.dl0.tels_with_data:
 
             geom = event.inst.subarray.tel[tel_id].camera
-            tel_azimuth[tel_id] = event.mc.tel[tel_id].azimuth_raw * u.rad
-            tel_altitude[tel_id] = event.mc.tel[tel_id].altitude_raw * u.rad
+            tel_azimuth[tel_id] = event.pointing[tel_id].azimuth
+            tel_altitude[tel_id] = event.pointing[tel_id].altitude
 
             pmt_signal = event.r0.tel[tel_id].waveform[0].sum(axis=1)
 

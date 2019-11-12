@@ -11,10 +11,10 @@ from ctapipe.core.traits import (
     classes_with_traits,
     enum_trait,
     has_traits,
+    TelescopeParameterLookup,
     TelescopeParameter,
     FloatTelescopeParameter,
     IntTelescopeParameter,
-    TelescopeParameterResolver,
 )
 from ctapipe.image import ImageExtractor
 
@@ -117,6 +117,37 @@ def test_has_traits():
     assert has_traits(WithATrait)
 
 
+def test_telescope_parameter_lookup():
+    subarray = MagicMock()
+    subarray.tel_ids = [1, 2, 3, 4]
+    subarray.get_tel_ids_for_type = (
+        lambda x: [3, 4] if x == "LST_LST_LSTCam" else [1, 2]
+    )
+    subarray.telescope_types = [
+        "LST_LST_LSTCam",
+        "MST_MST_NectarCam",
+        "MST_MST_FlashCam",
+    ]
+
+    telparam_list = TelescopeParameterLookup(
+        [("type", "*", 10), ("type", "LST*", 100)]
+    )
+
+    with pytest.raises(ValueError):
+        telparam_list[1]
+
+    telparam_list.attach_subarray(subarray)
+    assert telparam_list[1] == 10
+    assert telparam_list[3] == 100
+
+    with pytest.raises(KeyError):
+        telparam_list[200]
+
+    with pytest.raises(ValueError):
+        bad_config = TelescopeParameterLookup([("unknown", "a", 15.0)])
+        bad_config.attach_subarray(subarray)
+
+
 def test_telescope_parameter_patterns():
     """ Test validation of TelescopeParameters"""
 
@@ -131,7 +162,7 @@ def test_telescope_parameter_patterns():
 
     # single value allowed (converted to ("default","",val) )
     comp.tel_param = 4.5
-    assert comp.tel_param[0][2] == 4.5
+    assert list(comp.tel_param)[0][2] == 4.5
 
     comp.tel_param = [("type", "*", 1.0), ("type", "*LSTCam", 16.0), ("id", 16, 10.0)]
 
@@ -193,31 +224,26 @@ def test_telescope_parameter_resolver():
         "MST_MST_FlashCam",
     ]
 
-    resolver1 = TelescopeParameterResolver(subarray=subarray, tel_param=comp.tel_param1)
-    resolver2 = TelescopeParameterResolver(subarray=subarray, tel_param=comp.tel_param2)
-    resolver3 = TelescopeParameterResolver(subarray=subarray, tel_param=comp.tel_param3)
+    print(type(comp.tel_param1))
 
-    assert resolver1.value_for_tel_id(1) == 10
-    assert resolver1.value_for_tel_id(3) == 100
+    comp.tel_param1.attach_subarray(subarray)
+    comp.tel_param2.attach_subarray(subarray)
+    comp.tel_param3.attach_subarray(subarray)
 
-    assert list(map(resolver2.value_for_tel_id, [1, 2, 3, 4])) == [
+    assert comp.tel_param1[1] == 10
+    assert comp.tel_param1[3] == 100
+
+    assert list(map(comp.tel_param2.__getitem__, [1, 2, 3, 4])) == [
         10.0,
         10.0,
         200.0,
         100.0,
     ]
 
-    assert list(map(resolver3.value_for_tel_id, [1, 2, 3, 4, 100])) == [
+    assert list(map(comp.tel_param3.__getitem__, [1, 2, 3, 4, 100])) == [
         200.0,
         200.0,
         200.0,
         200.0,
         300.0,
     ]
-
-    with pytest.raises(KeyError):
-        resolver1.value_for_tel_id(200)
-
-    with pytest.raises(ValueError):
-        bad_config = [("unknown", "a", 15.0)]
-        TelescopeParameterResolver(subarray=subarray, tel_param=bad_config)
