@@ -65,7 +65,7 @@ setup(name=PACKAGENAME,
       install_requires=[
           'astropy~=3.0',
           'bokeh~=1.0',
-          'eventio>=0.20.1,<0.21',
+          'eventio~=1.0',
           'iminuit>=1.3',
           'joblib',
           'matplotlib~=3.0',
