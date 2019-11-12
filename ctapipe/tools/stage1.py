@@ -224,7 +224,7 @@ class DataChecker(Component):
 
         # arrays for recording overall statistics
         self._counts = np.zeros(len(self._selectors), dtype=np.int)
-        self._cum_counts = np.zeros(len(self._selectors), dtype=np.int)
+        self._cumulative_counts = np.zeros(len(self._selectors), dtype=np.int)
 
     def __len__(self):
         return self._counts[0]
@@ -260,7 +260,7 @@ class DataChecker(Component):
         cols = {
             "criteria": self.criteria_names,
             "counts": self._counts,
-            "cum_counts": self._cum_counts,
+            "cumulative_counts": self._cumulative_counts,
         }
         if functions:
             cols["func"] = self.selection_function_strings
@@ -285,7 +285,7 @@ class DataChecker(Component):
         """
         result = np.array(list(map(lambda f: f(value), self._selectors.values())))
         self._counts += result.astype(int)
-        self._cum_counts += result.cumprod()
+        self._cumulative_counts += result.cumprod()
         return result
 
 
@@ -730,6 +730,7 @@ class Stage1Process(Tool):
         tel_index = TelEventIndexContainer()
         event_index = EventIndexContainer()
         is_initialized = False
+        self.event_source.subarray.info(printer=self.log.debug)
 
         for event in tqdm(
             self.event_source,
@@ -762,8 +763,7 @@ class Stage1Process(Tool):
                     col_name="tels_with_trigger",
                     transform=tel_list_transform,
                 )
-                self.subarray = event.inst.subarray
-                event.inst.subarray.info(printer=self.log.debug)
+
                 self._write_simulation_configuration(writer, event)
                 self._write_instrument_configuration(event.inst.subarray)
                 is_initialized = True
@@ -891,7 +891,7 @@ class Stage1Process(Tool):
 
         write_core_provenance(
             output_filename=self.output_filename,
-            subarray=self.subarray,
+            subarray=self.event_source.subarray,
             obs_id=self._cur_obs_id,
         )
 
