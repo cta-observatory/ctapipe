@@ -28,8 +28,6 @@ from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.utils.template_network_interpolator import TemplateNetworkInterpolator, \
     TimeGradientInterpolator
 
-import matplotlib.pyplot as plt
-
 __all__ = ['ImPACTReconstructor', 'energy_prior', 'xmax_prior', 'guess_shower_depth']
 
 
@@ -137,14 +135,13 @@ class ImPACTReconstructor(Reconstructor):
         self.peak_x, self.peak_y, self.peak_amp = None, None, None
         self.hillas_parameters, self.ped = None, None
 
-        self._prev_phi, self._prev_x, self._prev_y = 0, 0, 0
-
         self.prediction = dict()
         self.time_prediction = dict()
         self.rms_prediction = dict()
 
         self.array_direction = None
         self.array_return = False
+        self.nominal_frame = None
 
         # For now these factors are required to fix problems in templates
         self.template_scale = template_scale
@@ -278,8 +275,8 @@ class ImPACTReconstructor(Reconstructor):
 
         return x_max + self.xmax_offset
 
-    def rotate_translate(self, pixel_pos_x, pixel_pos_y, x_trans, y_trans, phi,
-                         small_angle_validity=0.35):
+    @staticmethod
+    def rotate_translate(pixel_pos_x, pixel_pos_y, x_trans, y_trans, phi):
         """
         Function to perform rotation and translation of pixel lists
 
@@ -301,20 +298,15 @@ class ImPACTReconstructor(Reconstructor):
             ndarray,ndarray: Transformed pixel x and y coordinates
 
         """
-        #print(phi*57.3, x_trans*57.3, y_trans*57.3)
 
         cosine_angle = np.cos(phi[..., np.newaxis])
         sin_angle = np.sin(phi[..., np.newaxis])
-        #print(cosine_angle, sin_angle)
-        #print("x4", pixel_pos_x, cosine_angle, x_trans)
 
-        pixel_pos_trans_x = ((pixel_pos_x - x_trans) * cosine_angle) - \
-                            ((pixel_pos_y - y_trans) * sin_angle)
+        pixel_pos_trans_x = (x_trans - pixel_pos_x ) * cosine_angle - \
+                            (y_trans - pixel_pos_y ) * sin_angle
 
-        pixel_pos_trans_y = ((pixel_pos_x - x_trans) * sin_angle) + \
-                            ((pixel_pos_y - y_trans) * cosine_angle)
-
-        #print("x3", pixel_pos_trans_x)
+        pixel_pos_trans_y = (pixel_pos_x - x_trans) * sin_angle + \
+                            (pixel_pos_y - y_trans) * cosine_angle
         return pixel_pos_trans_x, pixel_pos_trans_y
 
     def image_prediction(self, tel_type, zenith, azimuth, energy, impact, x_max,
@@ -452,8 +444,8 @@ class ImPACTReconstructor(Reconstructor):
         x_max_bin = x_max - x_max_exp
 
         # Check for range
-        if x_max_bin > 150:
-            x_max_bin = 150
+        if x_max_bin > 200:
+            x_max_bin = 200
         if x_max_bin < -100:
             x_max_bin = -100
 
@@ -464,27 +456,13 @@ class ImPACTReconstructor(Reconstructor):
         phi = np.arctan2((self.tel_pos_x - core_x),
                          (self.tel_pos_y - core_y)) * u.rad
 
-        #print("x1", self.pixel_x)
         # Rotate and translate all pixels such that they match the
         # template orientation
-        #pix_x_rot, pix_y_rot = self.rotate_translate(
-        #    self.pixel_x, self.pixel_y,
-        #    source_x - self._prev_x,
-        #    source_y - self._prev_y, phi - self._prev_phi
-        #)
-        pix_x_rot, pix_y_rot = self.rotate_translate(
-            self.pixel_x, self.pixel_y,
-            source_x,
-            source_y, phi
+        pix_y_rot, pix_x_rot = self.rotate_translate(
+            self.pixel_x,
+            self.pixel_y,
+            source_x, source_y, phi
         )
-
-        # OK lets use the small angle approx here if we can
-        #self.pixel_x = pix_x_rot
-        #self.pixel_y = pix_y_rot
-
-        self._prev_phi = phi
-        self._prev_x, self._prev_y = source_x, source_y
-        #print("x2", self.pixel_x)
 
         # In the interpolator class we can gain speed advantages by using masked arrays
         # so we need to make sure here everything is masked
@@ -502,12 +480,11 @@ class ImPACTReconstructor(Reconstructor):
         for tel_type in np.unique(self.tel_types).tolist():
             type_mask = self.tel_types == tel_type
             prediction[type_mask] = \
-                self.image_prediction(tel_type, zenith * (180 / math.pi),
-                                      azimuth.to(u.deg).value, energy *
+                self.image_prediction(tel_type, energy *
                                       np.ones_like(impact[type_mask]),
                                       impact[type_mask], x_max_bin *
                                       np.ones_like(impact[type_mask]),
-                                      pix_x_rot[type_mask] * (180 / math.pi)*-1,
+                                      pix_x_rot[type_mask] * (180 / math.pi) * -1,
                                       pix_y_rot[type_mask] * (180 / math.pi))
 
             if self.use_shower_variance:
@@ -522,10 +499,9 @@ class ImPACTReconstructor(Reconstructor):
             if self.use_time_gradient:
                 time_gradients[type_mask] = \
                     self.predict_time(tel_type,
-                                              energy * np.ones_like(impact[type_mask]),
-                                              impact[type_mask],
-                                               x_max_bin * np.ones_like(impact[
-                                                                            type_mask]))
+                                      energy * np.ones_like(impact[type_mask]),
+                                      impact[type_mask],
+                                      x_max_bin * np.ones_like(impact[type_mask]))
 
         if self.use_time_gradient:
             time_mask = np.logical_and(np.invert(ma.getmask(self.image)),
@@ -544,8 +520,6 @@ class ImPACTReconstructor(Reconstructor):
             time_fit /= -1 * (180 / math.pi)
             chi2 = -2 * np.log(rv.pdf((time_fit - time_gradients.T[0])/
                                         time_gradients.T[1]))
-
-
 
         # Likelihood function will break if we find a NaN or a 0
         prediction[np.isnan(prediction)] = 1e-8
@@ -647,20 +621,25 @@ class ImPACTReconstructor(Reconstructor):
 
         Parameters
         ----------
-        image: dictionary
+        image: dict
             Amplitude of pixels in camera images
-        pixel_x: dictionary
+        time: dict
+            Time information per each pixel in camera images
+        pixel_x: dict
             X position of pixels in nominal system
-        pixel_y: dictionary
+        pixel_y: dict
             Y position of pixels in nominal system
-        pixel_area: dictionary
-            Area of pixel in each telescope type
-        type_tel: dictionary
+        type_tel: dict
             Type of telescope
-        tel_x: dictionary
-            X position of telescope
-        tel_y: dictionary
-            Y position of telescope
+        tel_x: dict
+            X position of telescope in TiltedGroundFrame
+        tel_y: dict
+            Y position of telescope in TiltedGroundFrame
+        array_direction: SkyCoord[AltAz]
+            Array pointing direction in the AltAz Frame
+        hillas: dict
+            dictionary with telescope IDs as key and
+            HillasParametersContainer instances as values
 
         Returns
         -------
@@ -723,13 +702,25 @@ class ImPACTReconstructor(Reconstructor):
         self.image[mask] = ma.masked
         self.time[mask] = ma.masked
 
+        self.array_direction = array_direction
+        self.nominal_frame = NominalFrame(origin=self.array_direction)
+
         # Finally run some functions to get ready for the event
         self.get_hillas_mean()
         self.initialise_templates(type_tel)
-        self.array_direction = array_direction
+
+    def reset_interpolator(self):
+        """
+        This function is needed in order to reset some variables in the interpolator
+        at each new event. Without this reset, a new event starts with information
+        from the previous event.
+        """
+        list(self.prediction.values())[0].reset()
 
     def predict(self, shower_seed, energy_seed):
-        """
+        """Predict method for the ImPACT reconstructor.
+        Used to calculate the reconstructed ImPACT shower geometry and energy.
+
         Parameters
         ----------
         shower_seed: ReconstructedShowerContainer
@@ -740,19 +731,16 @@ class ImPACTReconstructor(Reconstructor):
         Returns
         -------
         ReconstructedShowerContainer, ReconstructedEnergyContainer:
-        Reconstructed ImPACT shower geometry and energy
         """
+        self.reset_interpolator()
 
         horizon_seed = SkyCoord(
             az=shower_seed.az, alt=shower_seed.alt, frame=AltAz()
         )
-        nominal_seed = horizon_seed.transform_to(
-            NominalFrame(origin=self.array_direction)
-        )
+        nominal_seed = horizon_seed.transform_to(self.nominal_frame)
 
-        source_x = nominal_seed.delta_alt.to_value(u.rad)
-        source_y = nominal_seed.delta_az.to_value(u.rad)
-
+        source_x = nominal_seed.delta_az.to_value(u.rad)
+        source_y = nominal_seed.delta_alt.to_value(u.rad)
         ground = GroundFrame(x=shower_seed.core_x,
                              y=shower_seed.core_y, z=0 * u.m)
         tilted = ground.transform_to(
@@ -762,22 +750,16 @@ class ImPACTReconstructor(Reconstructor):
         tilt_y = tilted.y.to(u.m).value
         zenith = 90 * u.deg - self.array_direction.alt
 
-        if len(self.hillas_parameters) > 3:
-            shift = [1]
-        else:
-            shift = [1.5, 1, 0.5, 0, -0.5, -1, -1.5]
+        seeds = spread_line_seed(self.hillas_parameters,
+                                 self.tel_pos_x, self.tel_pos_y,
+                                 source_x, source_y, tilt_x, tilt_y,
+                                 energy_seed.energy.value,
+                                 shift_frac=[1])[0]
 
-        seed_list = spread_line_seed(self.hillas_parameters,
-                                     self.tel_pos_x, self.tel_pos_y,
-                                     source_x, source_y, tilt_x, tilt_y,
-                                     energy_seed.energy.value,
-                                     shift_frac = shift)
-
-        chosen_seed = self.choose_seed(seed_list)
         # Perform maximum likelihood fit
-        fit_params, errors, like = self.minimise(params=chosen_seed[0],
-                                                 step=chosen_seed[1],
-                                                 limits=chosen_seed[2],
+        fit_params, errors, like = self.minimise(params=seeds[0],
+                                                 step=seeds[1],
+                                                 limits=seeds[2],
                                                  minimiser_name=self.minimiser_name)
         self.get_likelihood(fit_params[0], fit_params[1],
                             fit_params[2], fit_params[3],
@@ -790,9 +772,9 @@ class ImPACTReconstructor(Reconstructor):
         # Convert the best fits direction and core to Horizon and ground systems and
         # copy to the shower container
         nominal = SkyCoord(
-            delta_alt=fit_params[0] * u.rad,
-            delta_az=fit_params[1] * u.rad,
-            frame=NominalFrame(origin=self.array_direction)
+            delta_az=fit_params[0] * u.rad,
+            delta_alt=fit_params[1] * u.rad,
+            frame=self.nominal_frame
         )
         horizon = nominal.transform_to(AltAz())
 
@@ -809,7 +791,7 @@ class ImPACTReconstructor(Reconstructor):
 
         shower_result.is_valid = True
 
-        # Currently no errors not availible to copy NaN
+        # Currently no errors not available to copy NaN
         shower_result.alt_uncert = np.nan
         shower_result.az_uncert = np.nan
         shower_result.core_uncert = np.nan
@@ -834,18 +816,6 @@ class ImPACTReconstructor(Reconstructor):
         energy_result.is_valid = True
 
         return shower_result, energy_result
-
-    def choose_seed(self, seed_list):
-
-        like = list()
-        for seed in seed_list:
-            #like.append(self.get_likelihood_min(seed[0]))
-            like.append(self.minimise(seed[0], seed[1], seed[2],
-                                      minimiser_name="nlopt",
-                                      max_calls=1)[2])
-
-        print("Choosing seed", np.argmin(like), like)
-        return seed_list[np.argmin(like)]
 
     def minimise(self, params, step, limits, minimiser_name="minuit", max_calls=0):
         """
@@ -938,7 +908,6 @@ class ImPACTReconstructor(Reconstructor):
 
             return np.array(min.x), (0, 0, 0, 0, 0, 0), self.get_likelihood_min(min.x)
 
-
 def spread_line_seed(hillas, tel_x, tel_y, source_x, source_y, tilt_x, tilt_y, energy,
                      shift_frac = [2, 1.5, 1, 0.5, 0 ,-0.5, -1, -1.5]):
     """
@@ -1029,7 +998,7 @@ def create_seed(source_x, source_y, tilt_x, tilt_y, energy):
             tilt_y, en_seed, 1)
 
     # Take a reasonable first guess at step size
-    step = [0.01 / 57.3, 0.01 / 57.3, 2, 2, en_seed * 0.02, 0.05]
+    step = [0.04 / 57.3, 0.04 / 57.3, 5, 5, en_seed * 0.1, 0.05]
     # And some sensible limits of the fit range
     limits = [[source_x - 0.1, source_x + 0.1],
               [source_y - 0.1, source_y + 0.1],

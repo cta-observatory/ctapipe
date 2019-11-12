@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from astropy import units as u
 from astropy.coordinates.angle_utilities import angular_separation
+from astropy.coordinates import SkyCoord, AltAz
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.image import hillas_parameters
@@ -20,7 +21,7 @@ from ctapipe.utils import datasets
 if len(sys.argv) >= 2:
     filename = sys.argv[1]
 else:
-    # importing data from avaiable datasets in ctapipe
+    # importing data from available datasets in ctapipe
     filename = datasets.get_dataset_path("gamma_test_large.simtel.gz")
 
 
@@ -29,6 +30,9 @@ source = event_source(filename, allowed_tels={1, 2, 3, 4})
 
 reco = HillasReconstructor()
 calib = CameraCalibrator()
+
+horizon_frame = AltAz()
+
 off_angles = []
 
 for event in source:
@@ -38,16 +42,17 @@ for event in source:
     hillas_params = {}
     subarray = event.inst.subarray
 
-    # pointing direction of the telescopes
-    point_azimuth = {}
-    point_altitude = {}
+    # dictionary for the pointing directions of the telescopes
+    telescope_pointings = {}
 
     for tel_id in event.dl0.tels_with_data:
 
-        # telescope pointing direction
-        point_azimuth[tel_id] = event.mc.tel[tel_id].azimuth_raw * u.rad
-        point_altitude[tel_id] = event.mc.tel[tel_id].altitude_raw * u.rad
-        #        print(point_azimuth,point_altitude)
+        # telescope pointing direction as dictionary of SkyCoord
+        telescope_pointings[tel_id] = SkyCoord(
+            alt=event.mc.tel[tel_id].altitude_raw * u.rad,
+            az=event.mc.tel[tel_id].azimuth_raw * u.rad,
+            frame=horizon_frame
+        )
 
         # Camera Geometry required for hillas parametrization
         camgeom = subarray.tel[tel_id].camera
@@ -64,17 +69,23 @@ for event in source:
         # set all rejected pixels to zero
         cleaned_image[~cleanmask] = 0
 
-        # Calulate hillas parameters
+        # Calculate hillas parameters
         # It fails for empty pixels
         try:
             hillas_params[tel_id] = hillas_parameters(camgeom, cleaned_image)
         except:
             pass
 
+    array_pointing = SkyCoord(
+        az=event.mcheader.run_array_direction[0],
+        alt=event.mcheader.run_array_direction[1],
+        frame=horizon_frame
+    )
+
     if len(hillas_params) < 2:
         continue
 
-    reco_result = reco.predict(hillas_params, event.inst, point_altitude, point_azimuth)
+    reco_result = reco.predict(hillas_params, event.inst, array_pointing, telescope_pointings)
 
     # get angular offset between reconstructed shower direction and MC
     # generated shower direction
@@ -93,8 +104,8 @@ off_angles = np.array(off_angles)
 thetasquare = off_angles[np.isfinite(off_angles)]**2
 
 # To plot thetasquare The number of events in th data files for LSTCam is not
-#  significantly high to give a nice thetasquare plot for gammas One can use
-# deedicated MC file for LST get nice plot
+# significantly high to give a nice thetasquare plot for gammas One can use
+# dedicated MC file for LST get nice plot
 plt.figure(figsize=(10, 8))
 plt.hist(thetasquare, bins=np.linspace(0, 1, 50))
 plt.title(r'$\theta^2$ plot')

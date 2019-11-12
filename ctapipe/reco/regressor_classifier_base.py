@@ -257,7 +257,7 @@ class RegressorClassifierBase:
 
         """
 
-        from sklearn.externals import joblib
+        import joblib
         for cam_id, model in self.model_dict.items():
             try:
                 # assume that there is a `{cam_id}` keyword to replace
@@ -297,7 +297,7 @@ class RegressorClassifierBase:
             trained for
 
         """
-        from sklearn.externals import joblib
+        import joblib
 
         # need to get an instance of this class `cam_id_list=None`
         # prevents `.__init__` to initialise `.model_dict` itself,

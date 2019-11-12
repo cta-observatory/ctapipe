@@ -9,19 +9,16 @@ def test_tailcuts_clean_simple():
     image = np.zeros_like(geom.pix_id, dtype=np.float)
 
     num_pix = 40
-    some_neighs = geom.neighbors[num_pix][0:3]  # pick 4 neighbors
+    some_neighs = geom.neighbors[num_pix][0:3]  # pick 3 neighbors
     image[num_pix] = 5.0  # set a single image pixel
     image[some_neighs] = 3.0  # make some boundaries that are neighbors
     image[10] = 3.0  # a boundary that is not a neighbor
 
     mask = cleaning.tailcuts_clean(geom, image, picture_thresh=4.5, boundary_thresh=2.5)
 
-    print((mask > 0).sum(), "clean pixels")
-    print(geom.pix_id[mask])
-
     assert 10 not in geom.pix_id[mask]
     assert set(some_neighs).union({num_pix}) == set(geom.pix_id[mask])
-    assert (mask > 0).sum() == 4
+    assert np.count_nonzero(mask) == 4
 
 
 def test_dilate():
@@ -29,19 +26,19 @@ def test_dilate():
     mask = np.zeros_like(geom.pix_id, dtype=bool)
 
     mask[100] = True  # a single pixel far from a border is true.
-    assert mask.sum() == 1
+    assert np.count_nonzero(mask) == 1
 
     # dilate a single row
     dmask = cleaning.dilate(geom, mask)
-    assert dmask.sum() == 1 + 6
+    assert np.count_nonzero(dmask) == 1 + 6
 
     # dilate a second row
     dmask = cleaning.dilate(geom, dmask)
-    assert dmask.sum() == 1 + 6 + 12
+    assert np.count_nonzero(dmask) == 1 + 6 + 12
 
     # dilate a third row
     dmask = cleaning.dilate(geom, dmask)
-    assert dmask.sum() == 1 + 6 + 12 + 18
+    assert np.count_nonzero(dmask) == 1 + 6 + 12 + 18
 
 
 def test_tailcuts_clean():
@@ -235,6 +232,7 @@ def test_number_of_islands():
     n_islands_true = 5
     assert n_islands == n_islands_true
     assert_allclose(island_mask, island_mask_true)
+    assert island_mask.dtype == np.int32
 
 
 def test_fact_image_cleaning():

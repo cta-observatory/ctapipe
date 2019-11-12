@@ -1,9 +1,9 @@
 import os
+from fnmatch import fnmatch
 
 from traitlets import (
     Bool,
     CaselessStrEnum,
-    CRegExp,
     Dict,
     Enum,
     Float,
@@ -15,6 +15,8 @@ from traitlets import (
     TraitType,
     Unicode,
     observe,
+    Set,
+    CRegExp,
 )
 from traitlets.config import boolean_flag as flag
 
@@ -30,6 +32,7 @@ __all__ = [
     "Long",
     "List",
     "Bool",
+    "Set",
     "CRegExp",
     "Dict",
     "flag",
@@ -39,24 +42,33 @@ __all__ = [
     "enum_trait",
     "classes_with_traits",
     "has_traits",
+    "TelescopeParameterList",
+    "TelescopeParameter",
+    "FloatTelescopeParameter",
+    "IntTelescopeParameter",
 ]
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Path(TraitType):
+    """
+    A path Trait for input/output files.
+
+    Parameters
+    ----------
+    exists: boolean or None
+        If True, path must exist, if False path must not exist
+
+    directory_ok: boolean
+        If False, path must not be a directory
+    file_ok: boolean
+        If False, path must not be a file
+    """
+
     def __init__(self, exists=None, directory_ok=True, file_ok=True):
-        """
-        A path Trait for input/output files.
-
-        Parameters
-        ----------
-        exists: boolean or None
-            If True, path must exist, if False path must not exist
-
-        directory_ok: boolean
-            If False, path must not be a directory
-        file_ok: boolean
-            If False, path must not be a file
-        """
         super().__init__()
         self.exists = exists
         self.directory_ok = directory_ok
@@ -124,3 +136,155 @@ def has_traits(cls, ignore=("config", "parent")):
     here.
     """
     return bool(set(cls.class_trait_names()) - set(ignore))
+
+
+class TelescopeParameterList(list):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._value_for_tel_id = None
+
+    def attach_subarray(self, subarray):
+        """
+        Prepare the TelescopeParameter by informing it of the
+        subarray description
+
+        Parameters
+        ----------
+        subarray: ctapipe.instrument.SubarrayDescription
+            Description of the subarray
+            (includes mapping of tel_id to tel_type)
+        """
+        self._value_for_tel_id = {}
+        for command, arg, value in self:
+            if command == "type":
+                matched_tel_types = [
+                    str(t) for t in subarray.telescope_types
+                    if fnmatch(str(t), arg)
+                ]
+                logger.debug(f"argument '{arg}' matched: {matched_tel_types}")
+                if len(matched_tel_types) == 0:
+                    logger.warning(
+                        "TelescopeParameter type argument '%s' did not match "
+                        "any known telescope types",
+                        arg,
+                    )
+                for tel_type in matched_tel_types:
+                    for tel_id in subarray.get_tel_ids_for_type(tel_type):
+                        self._value_for_tel_id[tel_id] = value
+            elif command == "id":
+                self._value_for_tel_id[int(arg)] = value
+            else:
+                raise ValueError(f"Unrecognized command: {command}")
+
+    def __getitem__(self, tel_id: int):
+        """
+        Returns the resolved parameter for the given telescope id
+        """
+        if self._value_for_tel_id is None:
+            raise ValueError(
+                "TelescopeParameterList: No subarray attached, call "
+                "`attach_subarray` first before calling `resolve`"
+            )
+        try:
+            return self._value_for_tel_id[tel_id]
+        except KeyError:
+            raise KeyError(
+                f"TelescopeParameterList: no "
+                f"parameter value was set for telescope with tel_id="
+                f"{tel_id}. Please set it explicitly, "
+                f"or by telescope type or '*'."
+            )
+
+
+
+class TelescopeParameter(List):
+    """
+    Allow a parameter value to be specified as a simple value (of type *dtype*),
+    or as a list of patterns that match different telescopes.
+    The patterns are given as a list of 3-tuples in in the
+    form: `[(command, argument, value), ...]`.
+
+    Command can be one of:
+    - 'type': argument is then a telescope type  string (e.g.
+       `('type', 'SST_ASTRI_CHEC', 4.0)` to apply to all telescopes of that type,
+       or use a wildcard like "LST*", or "*" to set a pure default value for all
+       telescopes.
+    - 'id':  argument is a specific telescope ID `['id', 89, 5.0]`)
+
+    These are evaluated in-order, so you can first set a default value, and then set
+    values for specific telescopes or types to override them.
+
+    Examples
+    --------
+
+    .. code-block: python
+    tel_param = [
+        ('type', '*', 5.0),                       # default for all
+        ('type', 'LST_*', 5.2),
+        ('type', 'MST_MST_NectarCam', 4.0),
+        ('type', 'MST_MST_FlashCam', 4.5),
+        ('id', 34, 4.0),                   # override telescope 34 specifically
+    ]
+
+    .. code-block: python
+    tel_param = 4.0  # sets this value for all telescopes
+
+    """
+    klass = TelescopeParameterList
+
+    def __init__(self, dtype=float, **kwargs):
+        super().__init__(**kwargs)
+        if not isinstance(dtype, type):
+            raise ValueError("dtype should be a type")
+        self._dtype = dtype
+
+    def validate(self, obj, value):
+        # Convert normal list into TelescopeParameterList
+        if isinstance(value, list):
+            value = TelescopeParameterList(value)
+
+        # support a single value for all (convert into a default value)
+        if isinstance(value, self._dtype):
+            value = TelescopeParameterList([("type", "*", value)])
+
+        # check that it is a list
+        super().validate(obj, value)
+        normalized_value = TelescopeParameterList()
+
+        for pattern in value:
+            # now check for the standard 3-tuple of )command, argument, value)
+            if len(pattern) != 3:
+                raise TraitError(
+                    "pattern should be a tuple of (command, argument, value)"
+                )
+            command, arg, val = pattern
+            if not isinstance(val, self._dtype):
+                raise TraitError(f"Value should be a {self._dtype}")
+            if not isinstance(command, str):
+                raise TraitError("command must be a string")
+            if command not in ["type", "id"]:
+                raise TraitError("command must be one of: '*', 'type', 'id'")
+            if command == "type":
+                if not isinstance(arg, str):
+                    raise TraitError("'type' argument should be a string")
+            if command == "id":
+                arg = int(arg)
+
+            val = self._dtype(val)
+            normalized_value.append((command, arg, val))
+
+        return normalized_value
+
+
+class FloatTelescopeParameter(TelescopeParameter):
+    """ a `TelescopeParameter` with float type (see docs for `TelescopeParameter`)"""
+
+    def __init__(self, **kwargs):
+        super().__init__(dtype=float, **kwargs)
+
+
+class IntTelescopeParameter(TelescopeParameter):
+    """ a `TelescopeParameter` with int type (see docs for `TelescopeParameter`)"""
+
+    def __init__(self, **kwargs):
+        super().__init__(dtype=int, **kwargs)

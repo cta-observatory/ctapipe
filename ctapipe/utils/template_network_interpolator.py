@@ -21,6 +21,13 @@ class BaseTemplate:
         self.values = None
         self.bounds = None
 
+    def reset(self):
+        """
+        Reset method to delete some saved results from the previous event
+        """
+        if self.interpolator:
+            self.interpolator.reset()
+
     def _create_table_matrix(self, keys, values):
         """
         Create the array of interpolators to be used for all combinations of zenith and

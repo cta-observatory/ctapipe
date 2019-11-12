@@ -141,7 +141,7 @@ def test_view_camera(example_event):
 
     cam = viewer.cameras[0]
     cam.view = 'r1'
-    assert (cam.image == example_event.r1.tel[t].waveform[0, :, 0]).all()
+    assert (cam.image == example_event.r1.tel[t].waveform[:, 0]).all()
 
     with pytest.raises(ValueError):
         cam.view = 'q'
@@ -159,7 +159,7 @@ def test_view_wf(example_event):
 
     wf = viewer.waveforms[0]
     wf.view = 'r1'
-    assert (wf.waveform == example_event.r1.tel[t].waveform[0, 0, :]).all()
+    assert (wf.waveform == example_event.r1.tel[t].waveform[0, :]).all()
 
     with pytest.raises(ValueError):
         wf.view = 'q'

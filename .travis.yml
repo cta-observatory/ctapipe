@@ -1,57 +1,51 @@
 language: generic
 
+env:
+    global: 
+        - PYTHONIOENCODING=UTF8
+        - MPLBACKEND=Agg
+
 matrix:
   include:
     - os: linux
-      python: 3.6
+      language: generic
       env:
         - PYTHON_VERSION=3.6
+        - CONDA=true
+
     - os: linux
-      python: 3.7
+      language: generic
       env:
         - PYTHON_VERSION=3.7
-    # - os: osx
-    #   python: 3.6
-    #   env:
-    #     - PYTHON_VERSION=3.6
-    # - os: osx
-    #   python: 3.7
-    #   env:
-    #     - PYTHON_VERSION=3.7
+        - CONDA=true
+
+    - os: linux
+      language: python
+      python: 3.6
+      addons:
+        apt:
+          packages:
+            - pandoc
+            - graphviz
+
+    - os: linux
+      language: python
+      python: 3.7
+      addons:
+        apt:
+          packages:
+            - pandoc
+            - graphviz
 
 
 before_install:
-
-    # Use utf8 encoding. Should be default, but this is insurance
-    # against future changes
-
-    - export PYTHONIOENCODING=UTF8
-    - export MPLBACKEND=Agg
-
-    # Install miniconda following instructions at
-    # http://conda.pydata.org/docs/travis.html
-    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-        wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-      fi
-    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-        wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh;
-      fi
-    - bash miniconda.sh -b -p $HOME/miniconda
-    - export PATH="$HOME/miniconda/bin:$PATH"
-    - hash -r
-    - conda config --set always_yes yes --set changeps1 no
-    - conda update -q conda  # get latest conda version
-    # Useful for debugging any issues with conda
-    - conda info -a
     - git fetch --tags
 
 install:
-    - conda create --name cta-dev python=$PYTHON_VERSION
-    - travis_wait 20 conda env update -n cta-dev --file py${PYTHON_VERSION}_env.yaml
-    - source activate cta-dev
+    - source ci/install.sh
+    - python --version
     - ulimit -s 16000  # increase stack size limit, for libhessio
-    - pip install travis-sphinx
-    - pip install codecov
+    - pip install travis-sphinx codecov pytest-cov
     - python setup.py develop
 
 script:
@@ -60,7 +54,9 @@ script:
     - travis-sphinx -v --outdir=docbuild build --source=docs/
 
 after_script:
-    - source deactivate
+    - if [[ "$CONDA" == "true" ]];then
+          conda deactivate
+      fi
 
 after_success:
     - travis-sphinx -v --outdir=docbuild deploy
