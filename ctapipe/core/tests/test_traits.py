@@ -11,7 +11,7 @@ from ctapipe.core.traits import (
     classes_with_traits,
     enum_trait,
     has_traits,
-    TelescopeParameterList,
+    TelescopeParameterLookup,
     TelescopeParameter,
     FloatTelescopeParameter,
     IntTelescopeParameter,
@@ -117,7 +117,7 @@ def test_has_traits():
     assert has_traits(WithATrait)
 
 
-def test_telescope_parameter_list():
+def test_telescope_parameter_lookup():
     subarray = MagicMock()
     subarray.tel_ids = [1, 2, 3, 4]
     subarray.get_tel_ids_for_type = (
@@ -129,7 +129,7 @@ def test_telescope_parameter_list():
         "MST_MST_FlashCam",
     ]
 
-    telparam_list = TelescopeParameterList(
+    telparam_list = TelescopeParameterLookup(
         [("type", "*", 10), ("type", "LST*", 100)]
     )
 
@@ -144,7 +144,7 @@ def test_telescope_parameter_list():
         telparam_list[200]
 
     with pytest.raises(ValueError):
-        bad_config = TelescopeParameterList([("unknown", "a", 15.0)])
+        bad_config = TelescopeParameterLookup([("unknown", "a", 15.0)])
         bad_config.attach_subarray(subarray)
 
 
