@@ -196,19 +196,19 @@ def test_telescope_parameter_scalar_default():
         "MST_MST_FlashCam",
     ]
 
-    class SomeComponent(Component):
-        tel_param_int = IntTelescopeParameter(default_value=1)
+    class SomeComponentInt(Component):
+        tel_param = IntTelescopeParameter(default_value=1)
 
-    comp = SomeComponent()
-    comp.tel_param_int.attach_subarray(subarray)
-    assert comp.tel_param_int[1] == 1
+    comp_int = SomeComponentInt()
+    comp_int.tel_param.attach_subarray(subarray)
+    assert comp_int.tel_param[1] == 1
 
-    class SomeComponent(Component):
-        tel_param_int = FloatTelescopeParameter(default_value=1.5)
+    class SomeComponentFloat(Component):
+        tel_param = FloatTelescopeParameter(default_value=1.5)
 
-    comp = SomeComponent()
-    comp.tel_param_int.attach_subarray(subarray)
-    assert comp.tel_param_int[1] == 1.5
+    comp_float = SomeComponentFloat()
+    comp_float.tel_param.attach_subarray(subarray)
+    assert comp_float.tel_param[1] == 1.5
 
 
 def test_telescope_parameter_resolver():
