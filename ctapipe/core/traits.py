@@ -1,6 +1,6 @@
 import os
 from fnmatch import fnmatch
-
+from typing import Optional
 from traitlets import (
     Bool,
     CaselessStrEnum,
@@ -153,6 +153,10 @@ class TelescopeParameterLookup:
             telecope_parameter_list = []
         self._telecope_parameter_list = telecope_parameter_list
         self._value_for_tel_id = None
+        self._global_value = None
+        for param in telecope_parameter_list:
+            if param[1] == "*":
+                self._global_value = param[2]
 
     def attach_subarray(self, subarray):
         """
@@ -187,10 +191,15 @@ class TelescopeParameterLookup:
             else:
                 raise ValueError(f"Unrecognized command: {command}")
 
-    def __getitem__(self, tel_id: int):
+    def __getitem__(self, tel_id: Optional[int]):
         """
         Returns the resolved parameter for the given telescope id
         """
+        if tel_id is None:
+            if self._global_value is not None:
+                return self._global_value
+            else:
+                raise KeyError("No global value set for TelescopeParamter")
         if self._value_for_tel_id is None:
             raise ValueError(
                 "TelescopeParameterLookup: No subarray attached, call "
@@ -271,7 +280,7 @@ class TelescopeParameter(List):
         normalized_value = TelescopeParameterLookup()
 
         for pattern in value:
-            # now check for the standard 3-tuple of )command, argument, value)
+            # now check for the standard 3-tuple of (command, argument, value)
             if len(pattern) != 3:
                 raise TraitError(
                     "pattern should be a tuple of (command, argument, value)"
