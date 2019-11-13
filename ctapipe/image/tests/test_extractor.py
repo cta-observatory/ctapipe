@@ -56,6 +56,11 @@ def test_extract_around_peak(camera_waveforms):
     assert_allclose(charge[0], 1.0, rtol=1e-3)
     assert_allclose(pulse_time[0], 41.2, rtol=1e-3)
 
+    # Test negative amplitude
+    y_offset = y - y.max() / 2
+    charge, pulse_time = extract_around_peak(y_offset[np.newaxis, :], 0, x.size, 0)
+    assert_allclose(charge, y_offset.sum(), rtol=1e-3)
+
 
 def test_extract_around_peak_charge_expected(camera_waveforms):
     waveforms, _ = camera_waveforms
