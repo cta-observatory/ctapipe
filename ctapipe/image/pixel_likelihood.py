@@ -37,10 +37,14 @@ from scipy.integrate import quad
 from scipy.special import factorial
 
 __all__ = [
-    'poisson_likelihood_gaussian', 'poisson_likelihood_full',
-    'poisson_likelihood', 'mean_poisson_likelihood_gaussian',
-    'mean_poisson_likelihood_full', 'shower_fluctuation_likelihood_gaussian',
-    'PixelLikelihoodError', 'chi_squared'
+    "poisson_likelihood_gaussian",
+    "poisson_likelihood_full",
+    "poisson_likelihood",
+    "mean_poisson_likelihood_gaussian",
+    "mean_poisson_likelihood_full",
+    "shower_fluctuation_likelihood_gaussian",
+    "PixelLikelihoodError",
+    "chi_squared",
 ]
 
 
@@ -73,12 +77,11 @@ def poisson_likelihood_gaussian(image, prediction, spe_width, ped):
     spe_width = np.asarray(spe_width)
     ped = np.asarray(ped)
 
-    sq = 1. / np.sqrt(
-        2 * math.pi *
-        (np.power(ped, 2) + prediction * (1 + np.power(spe_width, 2)))
+    sq = 1.0 / np.sqrt(
+        2 * math.pi * (np.power(ped, 2) + prediction * (1 + np.power(spe_width, 2)))
     )
 
-    diff = np.power(image - prediction, 2.)
+    diff = np.power(image - prediction, 2.0)
     denom = 2 * (np.power(ped, 2) + prediction * (1 + np.power(spe_width, 2)))
     expo = np.asarray(np.exp(-1 * diff / denom))
 
@@ -89,8 +92,9 @@ def poisson_likelihood_gaussian(image, prediction, spe_width, ped):
     return -2 * np.log(sq * expo)
 
 
-def poisson_likelihood_full(image, prediction, spe_width, ped,
-                            width_fac=3, dtype=np.float32):
+def poisson_likelihood_full(
+    image, prediction, spe_width, ped, width_fac=3, dtype=np.float32
+):
     """
     Calculate likelihood of prediction given the measured signal,
     full numerical integration from de Naurois et al 2009.
@@ -127,9 +131,11 @@ def poisson_likelihood_full(image, prediction, spe_width, ped,
 
     if image.shape != prediction.shape:
         raise PixelLikelihoodError(
-            ("Image and prediction arrays"
-             " have different dimensions"), "Image shape: ", image.shape[0],
-            "Prediction shape: ", prediction.shape[0]
+            ("Image and prediction arrays" " have different dimensions"),
+            "Image shape: ",
+            image.shape[0],
+            "Prediction shape: ",
+            prediction.shape[0],
         )
     max_val = np.max(image)
     width = ped * ped + max_val * spe_width * spe_width
@@ -142,15 +148,11 @@ def poisson_likelihood_full(image, prediction, spe_width, ped,
     pe_summed = np.arange(max_sum)  # Need to decide how range is determined
     pe_factorial = factorial(pe_summed)
 
-    first_term = (
-        np.power(prediction, pe_summed[:, np.newaxis]) *
-        np.exp(-1 * prediction)
+    first_term = np.power(prediction, pe_summed[:, np.newaxis]) * np.exp(
+        -1 * prediction
     )
-    first_term /= (
-        pe_factorial[:, np.newaxis] * np.sqrt(
-            math.pi * 2 *
-            (ped * ped + pe_summed[:, np.newaxis] * spe_width * spe_width)
-        )
+    first_term /= pe_factorial[:, np.newaxis] * np.sqrt(
+        math.pi * 2 * (ped * ped + pe_summed[:, np.newaxis] * spe_width * spe_width)
     )
 
     # Throw error if we get NaN in likelihood
@@ -165,9 +167,8 @@ def poisson_likelihood_full(image, prediction, spe_width, ped,
         )
 
     # Should not have any porblems here with NaN that have not bee seens
-    second_term = (
-        (image - pe_summed[:, np.newaxis]) *
-        (image - pe_summed[:, np.newaxis])
+    second_term = (image - pe_summed[:, np.newaxis]) * (
+        image - pe_summed[:, np.newaxis]
     )
     second_term_denom = 2 * (
         ped * ped + spe_width * spe_width * pe_summed[:, np.newaxis]
@@ -192,7 +193,7 @@ def poisson_likelihood(
     ped,
     pedestal_safety=1.5,
     width_fac=3,
-    dtype=np.float32
+    dtype=np.float32,
 ):
     """
     Safe implementation of the poissonian likelihood implementation,
@@ -245,8 +246,12 @@ def poisson_likelihood(
 
     if np.any(poisson_pix):
         like[poisson_pix] = poisson_likelihood_full(
-            image[poisson_pix], prediction[poisson_pix], spe_width, ped,
-            width_fac, dtype
+            image[poisson_pix],
+            prediction[poisson_pix],
+            spe_width,
+            ped,
+            width_fac,
+            dtype,
         )
     if np.any(gaus_pix):
         like[gaus_pix] = poisson_likelihood_gaussian(
@@ -328,15 +333,13 @@ def mean_poisson_likelihood_full(prediction, spe_width, ped):
     width = np.sqrt(width)
 
     for p in range(len(prediction)):
-        int_range = (
-            prediction[p] - 10 * width[p], prediction[p] + 10 * width[p]
-        )
+        int_range = (prediction[p] - 10 * width[p], prediction[p] + 10 * width[p])
         mean_like[p] = quad(
             _integral_poisson_likelihood_full,
             int_range[0],
             int_range[1],
             args=(prediction[p], spe_width[p], ped[p]),
-            epsrel=0.05
+            epsrel=0.05,
         )[0]
     return mean_like
 
@@ -368,13 +371,12 @@ def chi_squared(image, prediction, ped, error_factor=2.9):
     if image.shape is not prediction.shape:
         PixelLikelihoodError(
             "Image and prediction arrays have different dimensions Image "
-            "shape: {} Prediction shape: {}"
-            .format(image.shape, prediction.shape)
+            "shape: {} Prediction shape: {}".format(image.shape, prediction.shape)
         )
 
     chi_square = (image - prediction) * (image - prediction)
     chi_square /= ped + 0.5 * (image - prediction)
-    chi_square *= 1. / error_factor
+    chi_square *= 1.0 / error_factor
 
     return chi_square
 
@@ -405,9 +407,9 @@ def shower_fluctuation_likelihood_gaussian(image, prediction, shower_rms, ped):
     ped = np.asarray(ped)
 
     shower_rms[shower_rms == 0] = 0.01
-    sq = 1. / np.sqrt(2 * math.pi * (np.power(ped, 2) + np.power(shower_rms, 2)))
+    sq = 1.0 / np.sqrt(2 * math.pi * (np.power(ped, 2) + np.power(shower_rms, 2)))
 
-    diff = np.power(image - prediction, 2.)
+    diff = np.power(image - prediction, 2.0)
     denomination = 2 * (np.power(ped, 2) + np.power(shower_rms, 2))
     expo = np.asarray(np.exp(-1 * diff / denomination))
 

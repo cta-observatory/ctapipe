@@ -87,7 +87,7 @@ class BaseTemplate:
 
             index_upper = index
             # Unless we are the edge of the range the boundary should be above this value
-            if index != len(self.zeniths)-1 and index != 0:
+            if index != len(self.zeniths) - 1 and index != 0:
                 index_upper += 1
 
             # If we are not at the edge we need to reduce the index by one
@@ -139,14 +139,16 @@ class BaseTemplate:
         azimuth = self.azimuths[azimuth_bin]
 
         # Select these values from our range of keys
-        selection = np.logical_and(self.keys.T[0] == zenith,
-                                   self.keys.T[1] == azimuth)
+        selection = np.logical_and(self.keys.T[0] == zenith, self.keys.T[1] == azimuth)
 
         # Create interpolator using this selection
         print(self.bounds)
-        self.interpolator[zenith_bin][azimuth_bin] = \
-            UnstructuredInterpolator(self.keys[selection].T[2:].T, self.values[selection],
-                                     remember_last=True, bounds=self.bounds)
+        self.interpolator[zenith_bin][azimuth_bin] = UnstructuredInterpolator(
+            self.keys[selection].T[2:].T,
+            self.values[selection],
+            remember_last=True,
+            bounds=self.bounds,
+        )
 
         # We can now remove these entries.
         self.keys = self.keys[np.invert(selection)]
@@ -175,44 +177,54 @@ class BaseTemplate:
         # First lower azimuth bound
         if self.interpolator[zenith_lower][azimuth_lower] is None:
             self._create_interpolator(zenith_lower, azimuth_lower)
-        evaluate_azimuth_lower1 = self.interpolator[zenith_lower][azimuth_lower]\
-            (interpolation_array, points)
+        evaluate_azimuth_lower1 = self.interpolator[zenith_lower][azimuth_lower](
+            interpolation_array, points
+        )
 
         if len(self.zeniths) == 1 and len(self.zeniths) == 1:
             return evaluate_azimuth_lower1
 
         if self.interpolator[zenith_upper][azimuth_lower] is None:
             self._create_interpolator(zenith_upper, azimuth_lower)
-        evaluate_azimuth_lower2 = self.interpolator[zenith_upper][azimuth_lower]\
-            (interpolation_array, points)
+        evaluate_azimuth_lower2 = self.interpolator[zenith_upper][azimuth_lower](
+            interpolation_array, points
+        )
 
-        evaluate_azimuth_lower = self._linear_interpolation(zenith,
-                                                            self.zeniths[zenith_lower],
-                                                            self.zeniths[zenith_upper],
-                                                            evaluate_azimuth_lower1,
-                                                            evaluate_azimuth_lower2)
+        evaluate_azimuth_lower = self._linear_interpolation(
+            zenith,
+            self.zeniths[zenith_lower],
+            self.zeniths[zenith_upper],
+            evaluate_azimuth_lower1,
+            evaluate_azimuth_lower2,
+        )
         # Then the upper
         if self.interpolator[zenith_lower][azimuth_upper] is None:
             self._create_interpolator(zenith_lower, azimuth_upper)
-        evaluate_azimuth_upper1 = self.interpolator[zenith_lower][azimuth_upper] \
-            (interpolation_array, points)
+        evaluate_azimuth_upper1 = self.interpolator[zenith_lower][azimuth_upper](
+            interpolation_array, points
+        )
 
         if self.interpolator[zenith_upper][azimuth_upper] is None:
             self._create_interpolator(zenith_upper, azimuth_upper)
-        evaluate_azimuth_upper2 = self.interpolator[zenith_upper][azimuth_upper] \
-            (interpolation_array, points)
+        evaluate_azimuth_upper2 = self.interpolator[zenith_upper][azimuth_upper](
+            interpolation_array, points
+        )
 
-        evaluate_azimuth_upper = self._linear_interpolation(zenith,
-                                                            self.zeniths[zenith_lower],
-                                                            self.zeniths[zenith_upper],
-                                                            evaluate_azimuth_upper1,
-                                                            evaluate_azimuth_upper2)
+        evaluate_azimuth_upper = self._linear_interpolation(
+            zenith,
+            self.zeniths[zenith_lower],
+            self.zeniths[zenith_upper],
+            evaluate_azimuth_upper1,
+            evaluate_azimuth_upper2,
+        )
         # And finally interpolate between the azimuths
-        result = self._linear_interpolation(azimuth,
-                                            self.azimuths[azimuth_lower],
-                                            self.azimuths[azimuth_upper],
-                                            evaluate_azimuth_lower,
-                                            evaluate_azimuth_upper)
+        result = self._linear_interpolation(
+            azimuth,
+            self.azimuths[azimuth_lower],
+            self.azimuths[azimuth_upper],
+            evaluate_azimuth_lower,
+            evaluate_azimuth_upper,
+        )
 
         return result
 
@@ -250,6 +262,7 @@ class TemplateNetworkInterpolator(BaseTemplate):
     """
     Class for interpolating between the the predictions
     """
+
     def __init__(self, template_file, bounds=((-5, 1), (-1.5, 1.5))):
         """
 
@@ -274,8 +287,9 @@ class TemplateNetworkInterpolator(BaseTemplate):
             self._create_table_matrix(keys, values)
         else:
             # If not we work as before
-            self.interpolator = UnstructuredInterpolator(keys, values, remember_last=True,
-                                                         bounds=bounds)
+            self.interpolator = UnstructuredInterpolator(
+                keys, values, remember_last=True, bounds=bounds
+            )
             self.no_zenaz = True
 
     def __call__(self, zenith, azimuth, energy, impact, xmax, xb, yb):
@@ -305,7 +319,9 @@ class TemplateNetworkInterpolator(BaseTemplate):
         if self.no_zenaz:
             interpolated_value = self.interpolator(array, points)
         else:
-            interpolated_value = self.perform_interpolation(zenith, azimuth, array, points)
+            interpolated_value = self.perform_interpolation(
+                zenith, azimuth, array, points
+            )
 
         interpolated_value[interpolated_value < 0] = 0
         interpolated_value = interpolated_value
@@ -317,6 +333,7 @@ class TimeGradientInterpolator:
     """
     Class for interpolating between the time gradient predictions
     """
+
     def __init__(self, template_file):
         """
 
