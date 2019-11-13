@@ -73,10 +73,18 @@ def test_check_r1_empty(example_event):
     with pytest.warns(UserWarning):
         example_event.r1.tel[telid].waveform = None
         calibrator._calibrate_dl0(example_event, telid)
-        assert example_event.dl0.tel[telid].waveform == None
+        assert example_event.dl0.tel[telid].waveform is None
 
     assert calibrator._check_r1_empty(None) is True
     assert calibrator._check_r1_empty(waveform) is False
+
+    calibrator = CameraCalibrator(image_extractor=FullWaveformSum())
+    event = DataContainer()
+    event.dl0.tel[telid].waveform = np.full((2048, 128), 2)
+    with pytest.warns(UserWarning):
+        calibrator(event)
+    assert (event.dl0.tel[telid].waveform == 2).all()
+    assert (event.dl1.tel[telid].image == 2*128).all()
 
 
 def test_check_dl0_empty(example_event):
@@ -87,10 +95,17 @@ def test_check_dl0_empty(example_event):
     with pytest.warns(UserWarning):
         example_event.dl0.tel[telid].waveform = None
         calibrator._calibrate_dl1(example_event, telid)
-        assert example_event.dl1.tel[telid].image == None
+        assert example_event.dl1.tel[telid].image is None
 
     assert calibrator._check_dl0_empty(None) is True
     assert calibrator._check_dl0_empty(waveform) is False
+
+    calibrator = CameraCalibrator()
+    event = DataContainer()
+    event.dl1.tel[telid].image = np.full(2048, 2)
+    with pytest.warns(UserWarning):
+        calibrator(event)
+    assert (event.dl1.tel[telid].image == 2).all()
 
 
 def test_dl1_charge_calib():
