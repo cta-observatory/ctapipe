@@ -120,7 +120,7 @@ def test_dl1_charge_calib():
 
     event = DataContainer()
     telid = 0
-    event.r1.tel[telid].waveform = y[np.newaxis, ...]
+    event.dl0.tel[telid].waveform = y
 
     # Test default
     calibrator = CameraCalibrator(image_extractor=FullWaveformSum())
