@@ -184,6 +184,33 @@ def test_telescope_parameter_patterns():
         comp.tel_param_int = [(12, "", 5)]  # command not string
 
 
+def test_telescope_parameter_scalar_default():
+    subarray = MagicMock()
+    subarray.tel_ids = [1, 2, 3, 4]
+    subarray.get_tel_ids_for_type = (
+        lambda x: [3, 4] if x == "LST_LST_LSTCam" else [1, 2]
+    )
+    subarray.telescope_types = [
+        "LST_LST_LSTCam",
+        "MST_MST_NectarCam",
+        "MST_MST_FlashCam",
+    ]
+
+    class SomeComponent(Component):
+        tel_param_int = IntTelescopeParameter(default_value=1)
+
+    comp = SomeComponent()
+    comp.tel_param_int.attach_subarray(subarray)
+    assert comp.tel_param_int[1] == 1
+
+    class SomeComponent(Component):
+        tel_param_int = FloatTelescopeParameter(default_value=1.5)
+
+    comp = SomeComponent()
+    comp.tel_param_int.attach_subarray(subarray)
+    assert comp.tel_param_int[1] == 1.5
+
+
 def test_telescope_parameter_resolver():
     """ check that you can resolve the rules specified in a
     TelescopeParameter trait"""
@@ -223,8 +250,6 @@ def test_telescope_parameter_resolver():
         "MST_MST_NectarCam",
         "MST_MST_FlashCam",
     ]
-
-    print(type(comp.tel_param1))
 
     comp.tel_param1.attach_subarray(subarray)
     comp.tel_param2.attach_subarray(subarray)
