@@ -239,7 +239,11 @@ class ImageExtractor(Component):
         """
         super().__init__(config=config, parent=parent, **kwargs)
         self.subarray = subarray
-        self.traits()
+        for trait in self.traits().values():
+            try:
+                trait.attach_subarray(subarray)
+            except AttributeError:
+                pass
 
     @abstractmethod
     def __call__(self, waveforms, telid):
@@ -291,11 +295,6 @@ class FixedWindowSum(ImageExtractor):
         help='Define the width of the integration window'
     ).tag(config=True)
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.window_start.attach_subarray(self.subarray)
-        self.window_width.attach_subarray(self.subarray)
-
     def __call__(self, waveforms, telid):
         charge, pulse_time = extract_around_peak(
             waveforms, self.window_start[telid], self.window_width[telid], 0
@@ -317,11 +316,6 @@ class GlobalPeakWindowSum(ImageExtractor):
         help='Define the shift of the integration window from the peak_index '
              '(peak_index - shift)'
     ).tag(config=True)
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.window_width.attach_subarray(self.subarray)
-        self.window_shift.attach_subarray(self.subarray)
 
     def __call__(self, waveforms, telid):
         peak_index = waveforms.mean(axis=-2).argmax(axis=-1)
@@ -345,11 +339,6 @@ class LocalPeakWindowSum(ImageExtractor):
         help='Define the shift of the integration window'
              'from the peak_index (peak_index - shift)'
     ).tag(config=True)
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.window_width.attach_subarray(self.subarray)
-        self.window_shift.attach_subarray(self.subarray)
 
     def __call__(self, waveforms, telid):
         peak_index = waveforms.argmax(axis=-1).astype(np.int)
@@ -378,12 +367,6 @@ class NeighborPeakWindowSum(ImageExtractor):
         help='Weight of the local pixel (0: peak from neighbors only, '
              '1: local pixel counts as much as any neighbor)'
     ).tag(config=True)
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.window_width.attach_subarray(self.subarray)
-        self.window_shift.attach_subarray(self.subarray)
-        self.lwt.attach_subarray(self.subarray)
 
     def __call__(self, waveforms, telid):
         neighbors = self.subarray.tel[telid].camera.neighbor_matrix_where
