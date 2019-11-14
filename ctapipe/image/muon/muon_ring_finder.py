@@ -89,7 +89,6 @@ class MuonRingFitter(Component):
         r: radius of fitted ring
        """
         init_params, init_errs, init_limits = self.initialization()
-        print("initparams", init_params, init_errs, init_limits)
         # minimization method
         m = Minuit(self.fitFormula,
                    **init_params,

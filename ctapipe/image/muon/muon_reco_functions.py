@@ -14,7 +14,7 @@ from ctapipe.image.muon.features import ring_completeness
 from ctapipe.image.muon.features import npix_above_threshold
 from ctapipe.image.muon.features import npix_composing_ring
 from ctapipe.image.muon.muon_integrator import MuonLineIntegrate
-from ctapipe.image.muon.muon_ring_finder import ChaudhuriKunduRingFitter
+from ctapipe.image.muon.muon_ring_finder import MuonRingFitter
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +124,7 @@ def analyze_muon_event(event):
         else:
             img = image
 
-        muonring = ChaudhuriKunduRingFitter(None)
+        muonring = MuonRingFitter(teldes = None, fit_method="chaudhuri_kundu")
 
         logger.debug("img: %s mask: %s, x=%s y= %s", np.sum(image),
                      np.sum(clean_mask), x, y)
