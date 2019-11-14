@@ -1,4 +1,3 @@
-import numpy as np
 import astropy.units as u
 from ctapipe.instrument import CameraGeometry
 from ctapipe.image.muon import MuonRingFitter
@@ -17,7 +16,6 @@ def test_chaudhuri_kundu_fitter():
     )
     #testing with flashcam
     geom = CameraGeometry.from_name("FlashCam")
-    focal_length = u.Quantity(16, u.m)
     image, _, _ = muon_model.generate_image(
         geom, intensity=1000, nsb_level_pe=5,
     )
