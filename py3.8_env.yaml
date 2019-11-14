@@ -1,0 +1,44 @@
+name: cta-dev
+channels:
+  - default
+  - cta-observatory
+dependencies:
+  - python=3.8
+  - astropy
+  - bokeh
+  - conda-forge::nbsphinx
+  - ctapipe-extra=0.2.18
+  - cython
+  - graphviz
+  - iminuit
+  - ipython
+  - ipywidgets
+  - joblib
+  - jupyter
+  - matplotlib
+  - numba
+  - numpy>=1.15.4
+  - numpydoc
+  - pandas
+  - psutil
+  - pytables
+  - pytest
+  - pytest-cov
+  - pytest-runner
+  - pyyaml
+  - scikit-learn
+  - scipy
+  - setuptools
+  - sphinx
+  - sphinx-automodapi
+  - sphinx_rtd_theme
+  - tqdm
+  - traitlets
+  - wheel
+  - xz
+  - zlib
+  - pyhessio=2.1
+  - nbconvert>=5.4
+  - pip
+  - pip:
+    - eventio~=1.0

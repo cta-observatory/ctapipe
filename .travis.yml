@@ -20,6 +20,12 @@ matrix:
         - CONDA=true
 
     - os: linux
+      language: generic
+      env:
+        - PYTHON_VERSION=3.8
+        - CONDA=true
+
+    - os: linux
       language: python
       python: 3.6
       addons:
@@ -31,6 +37,15 @@ matrix:
     - os: linux
       language: python
       python: 3.7
+      addons:
+        apt:
+          packages:
+            - pandoc
+            - graphviz
+
+    - os: linux
+      language: python
+      python: 3.8
       addons:
         apt:
           packages:
