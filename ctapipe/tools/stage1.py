@@ -340,18 +340,15 @@ class TailcutsImageCleaner(ImageCleaner):
     """
 
     picture_threshold_pe = FloatTelescopeParameter(
-        help="top-level threshold in photoelectrons",
-        default_value=[("type", "*", 10.0)],
+        help="top-level threshold in photoelectrons", default_value=10.0,
     ).tag(config=True)
 
     boundary_threshold_pe = FloatTelescopeParameter(
-        help="second-level threshold in photoelectrons",
-        default_value=[("type", "*", 5.0)],
+        help="second-level threshold in photoelectrons", default_value=5.0,
     ).tag(config=True)
 
     min_picture_neighbors = IntTelescopeParameter(
-        help="Minimum number of neighbors above threshold to consider",
-        default_value=[("type", "*", 2)],
+        help="Minimum number of neighbors above threshold to consider", default_value=2,
     ).tag(config=True)
 
     def __init__(self, config=None, parent=None, **kwargs):
@@ -424,6 +421,12 @@ class Stage1Process(Tool):
 
     compression_level = Int(
         help="compression level, 0=None, 9=maximum", default_value=5, min=0, max=9
+    ).tag(config=True)
+
+    split_datasets_by = CaselessStrEnum(
+        values=["tel_id", "tel_type"],
+        default_value="tel_id",
+        help="Splitting level for the parameters and images datasets",
     ).tag(config=True)
 
     compression_type = CaselessStrEnum(
@@ -797,6 +800,8 @@ class Stage1Process(Tool):
             tel_type = str(telescope)
             tel_index.tel_id = np.int16(tel_id)
             tel_index.tel_type_id = tel_type_string_to_int(tel_type)
+            table_name = f"tel_{tel_id:03d}" if self.split_datasets_by == 'tel_id' else \
+                tel_type
 
             extra = ExtraImageContainer(
                 mc_photo_electron_image=event.mc.tel[tel_id].photo_electron_image,
@@ -831,9 +836,10 @@ class Stage1Process(Tool):
                     False if params.hillas.intensity is np.nan else True
                 )
 
+
                 if parameters_were_computed:
                     writer.write(
-                        table_name=f"dl1/event/telescope/parameters/{tel_type}",
+                        table_name=f"dl1/event/telescope/parameters/{table_name}",
                         containers=containers_to_write,
                     )
                 extra.image_mask = image_mask
@@ -843,7 +849,7 @@ class Stage1Process(Tool):
                 # criteria are not met (those are only to determine if the parameters
                 # can be computed).
                 writer.write(
-                    table_name=f"dl1/event/telescope/images/{tel_type}",
+                    table_name=f"dl1/event/telescope/images/{table_name}",
                     containers=[tel_index, data, extra],
                 )
 
