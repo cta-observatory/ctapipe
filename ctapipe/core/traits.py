@@ -251,10 +251,12 @@ class TelescopeParameter(List):
     """
     klass = TelescopeParameterLookup
 
-    def __init__(self, dtype=float, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, dtype=float, default_value=None, **kwargs):
         if not isinstance(dtype, type):
             raise ValueError("dtype should be a type")
+        if isinstance(default_value, dtype):
+            default_value = [("type", "*", default_value)]
+        super().__init__(default_value=default_value, **kwargs)
         self._dtype = dtype
 
     def validate(self, obj, value):
