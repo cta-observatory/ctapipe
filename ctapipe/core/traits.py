@@ -199,7 +199,7 @@ class TelescopeParameterLookup:
             if self._subarray_global_value is not None:
                 return self._subarray_global_value
             else:
-                raise KeyError("No global value set for TelescopeParamter")
+                raise KeyError("No subarray global value set for TelescopeParameter")
         if self._value_for_tel_id is None:
             raise ValueError(
                 "TelescopeParameterLookup: No subarray attached, call "
