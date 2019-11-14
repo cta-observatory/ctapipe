@@ -15,15 +15,15 @@ def test_chaudhuri_kundu_fitter():
         radius=ring_radius,
         sigma=ring_width,
     )
-
+    #testing with flashcam
     geom = CameraGeometry.from_name("FlashCam")
-    flashcam_focal_length = u.Quantity(16, u.m)
+    focal_length = u.Quantity(16, u.m)
     image, _, _ = muon_model.generate_image(
         geom, intensity=1000, nsb_level_pe=5,
     )
     mask = tailcuts_clean(geom, image, 10, 12)
-    x = (geom.pix_x / flashcam_focal_length) * u.rad
-    y = (geom.pix_y / flashcam_focal_length) * u.rad
+    x = (geom.pix_x / focal_length) * u.rad
+    y = (geom.pix_y / focal_length) * u.rad
     img = image * mask
 
     #call specific method with fit_method, teldes needed for Taubin fit
@@ -33,9 +33,9 @@ def test_chaudhuri_kundu_fitter():
     yc_fit = muon_ring_parameters.ring_center_y
     r_fit = muon_ring_parameters.ring_radius
 
-    assert np.isclose(xc_fit * flashcam_focal_length / u.m / u.rad, center_xs / u.m, 1e-1)
-    assert np.isclose(yc_fit * flashcam_focal_length / u.m / u.rad, center_ys / u.m, 1e-1)
-    assert np.isclose(r_fit * flashcam_focal_length / u.m / u.rad, ring_radius / u.m, 1e-1)
+    assert u.isclose((xc_fit * focal_length).to_value(u.m*u.rad), center_xs.to_value(u.m), 1e-1)
+    assert u.isclose((yc_fit * focal_length).to_value(u.m*u.rad), center_ys.to_value(u.m), 1e-1)
+    assert u.isclose((r_fit * focal_length).to_value(u.m*u.rad), ring_radius.to_value(u.m), 1e-1)
 
 
 if __name__ == '__main__':
