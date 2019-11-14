@@ -22,8 +22,8 @@ def test_chaudhuri_kundu_fitter():
         geom, intensity=1000, nsb_level_pe=5,
     )
     mask = tailcuts_clean(geom, image, 10, 12)
-    x = (geom.pix_x / focal_length) * u.rad
-    y = (geom.pix_y / focal_length) * u.rad
+    x = geom.pix_x
+    y = geom.pix_y
     img = image * mask
 
     #call specific method with fit_method, teldes needed for Taubin fit
@@ -33,9 +33,9 @@ def test_chaudhuri_kundu_fitter():
     yc_fit = muon_ring_parameters.ring_center_y
     r_fit = muon_ring_parameters.ring_radius
 
-    assert u.isclose((xc_fit * focal_length).to_value(u.m*u.rad), center_xs.to_value(u.m), 1e-1)
-    assert u.isclose((yc_fit * focal_length).to_value(u.m*u.rad), center_ys.to_value(u.m), 1e-1)
-    assert u.isclose((r_fit * focal_length).to_value(u.m*u.rad), ring_radius.to_value(u.m), 1e-1)
+    assert u.isclose(xc_fit, center_xs, 1e-1)
+    assert u.isclose(yc_fit, center_ys, 1e-1)
+    assert u.isclose(r_fit, ring_radius, 1e-1)
 
 
 if __name__ == '__main__':
