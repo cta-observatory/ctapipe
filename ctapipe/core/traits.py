@@ -1,6 +1,6 @@
 import os
 from fnmatch import fnmatch
-
+from typing import Optional
 from traitlets import (
     Bool,
     CaselessStrEnum,
@@ -153,6 +153,10 @@ class TelescopeParameterLookup:
             telecope_parameter_list = []
         self._telecope_parameter_list = telecope_parameter_list
         self._value_for_tel_id = None
+        self._subarray_global_value = None
+        for param in telecope_parameter_list:
+            if param[1] == "*":
+                self._subarray_global_value = param[2]
 
     def attach_subarray(self, subarray):
         """
@@ -187,10 +191,15 @@ class TelescopeParameterLookup:
             else:
                 raise ValueError(f"Unrecognized command: {command}")
 
-    def __getitem__(self, tel_id: int):
+    def __getitem__(self, tel_id: Optional[int]):
         """
         Returns the resolved parameter for the given telescope id
         """
+        if tel_id is None:
+            if self._subarray_global_value is not None:
+                return self._subarray_global_value
+            else:
+                raise KeyError("No subarray global value set for TelescopeParameter")
         if self._value_for_tel_id is None:
             raise ValueError(
                 "TelescopeParameterLookup: No subarray attached, call "
@@ -251,10 +260,12 @@ class TelescopeParameter(List):
     """
     klass = TelescopeParameterLookup
 
-    def __init__(self, dtype=float, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, dtype=float, default_value=None, **kwargs):
         if not isinstance(dtype, type):
             raise ValueError("dtype should be a type")
+        if isinstance(default_value, dtype):
+            default_value = [("type", "*", default_value)]
+        super().__init__(default_value=default_value, **kwargs)
         self._dtype = dtype
 
     def validate(self, obj, value):
@@ -271,7 +282,7 @@ class TelescopeParameter(List):
         normalized_value = TelescopeParameterLookup()
 
         for pattern in value:
-            # now check for the standard 3-tuple of )command, argument, value)
+            # now check for the standard 3-tuple of (command, argument, value)
             if len(pattern) != 3:
                 raise TraitError(
                     "pattern should be a tuple of (command, argument, value)"

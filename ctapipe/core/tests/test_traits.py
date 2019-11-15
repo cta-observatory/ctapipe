@@ -136,9 +136,12 @@ def test_telescope_parameter_lookup():
     with pytest.raises(ValueError):
         telparam_list[1]
 
+    assert telparam_list[None] == 10
+
     telparam_list.attach_subarray(subarray)
     assert telparam_list[1] == 10
     assert telparam_list[3] == 100
+    assert telparam_list[None] == 10
 
     with pytest.raises(KeyError):
         telparam_list[200]
@@ -146,6 +149,12 @@ def test_telescope_parameter_lookup():
     with pytest.raises(ValueError):
         bad_config = TelescopeParameterLookup([("unknown", "a", 15.0)])
         bad_config.attach_subarray(subarray)
+
+    telparam_list2 = TelescopeParameterLookup(
+        [("type", "LST*", 100)]
+    )
+    with pytest.raises(KeyError):
+        telparam_list2[None]
 
 
 def test_telescope_parameter_patterns():
@@ -182,6 +191,33 @@ def test_telescope_parameter_patterns():
 
     with pytest.raises(TraitError):
         comp.tel_param_int = [(12, "", 5)]  # command not string
+
+
+def test_telescope_parameter_scalar_default():
+    subarray = MagicMock()
+    subarray.tel_ids = [1, 2, 3, 4]
+    subarray.get_tel_ids_for_type = (
+        lambda x: [3, 4] if x == "LST_LST_LSTCam" else [1, 2]
+    )
+    subarray.telescope_types = [
+        "LST_LST_LSTCam",
+        "MST_MST_NectarCam",
+        "MST_MST_FlashCam",
+    ]
+
+    class SomeComponentInt(Component):
+        tel_param = IntTelescopeParameter(default_value=1)
+
+    comp_int = SomeComponentInt()
+    comp_int.tel_param.attach_subarray(subarray)
+    assert comp_int.tel_param[1] == 1
+
+    class SomeComponentFloat(Component):
+        tel_param = FloatTelescopeParameter(default_value=1.5)
+
+    comp_float = SomeComponentFloat()
+    comp_float.tel_param.attach_subarray(subarray)
+    assert comp_float.tel_param[1] == 1.5
 
 
 def test_telescope_parameter_resolver():
@@ -223,8 +259,6 @@ def test_telescope_parameter_resolver():
         "MST_MST_NectarCam",
         "MST_MST_FlashCam",
     ]
-
-    print(type(comp.tel_param1))
 
     comp.tel_param1.attach_subarray(subarray)
     comp.tel_param2.attach_subarray(subarray)
