@@ -3,17 +3,19 @@ from ctapipe.instrument import CameraGeometry, TelescopeDescription
 from ctapipe.image.muon import MuonRingFitter
 from ctapipe.image import tailcuts_clean, toymodel
 
+
 def test_chaudhuri_kundu_fitter():
     # flashCam example
-    center_xs = 0.3
-    center_ys = 0.6
-    ring_radius = 0.3
-    ring_width = 0.05
+    center_xs = 0.3 * u.m
+    center_ys = 0.6 * u.m
+    ring_radius = 0.3 * u.m
+    ring_width = 0.05 * u.m
+
     muon_model = toymodel.RingGaussian(
-        x=center_xs * u.m,
-        y=center_ys * u.m,
-        radius=ring_radius * u.m,
-        sigma=ring_width * u.m,
+        x=center_xs,
+        y=center_ys,
+        radius=ring_radius,
+        sigma=ring_width,
     )
 
     #testing with flashcam
@@ -22,56 +24,54 @@ def test_chaudhuri_kundu_fitter():
         geom, intensity=1000, nsb_level_pe=5,
     )
     mask = tailcuts_clean(geom, image, 10, 12)
-    x = geom.pix_x.to_value(u.m)
-    y = geom.pix_y.to_value(u.m)
+    x = geom.pix_x
+    y = geom.pix_y
     img = image * mask
 
     #call specific method with fit_method
-    muonfit = MuonRingFitter(teldes = None, fit_method="chaudhuri_kundu")
-    muon_ring_parameters = muonfit.fit(x, y, img)
-    xc_fit = muon_ring_parameters.ring_center_x
-    yc_fit = muon_ring_parameters.ring_center_y
-    r_fit = muon_ring_parameters.ring_radius
+    muonfit = MuonRingFitter(fit_method="chaudhuri_kundu")
+    fit_result = muonfit(x, y, img)
 
-    assert u.isclose(xc_fit, center_xs, 1e-1)
-    assert u.isclose(yc_fit, center_ys, 1e-1)
-    assert u.isclose(r_fit, ring_radius, 1e-1)
+    print(fit_result)
+    print(center_xs, center_ys, ring_radius)
+
+    assert u.isclose(fit_result.ring_center_x, center_xs, 5e-2)
+    assert u.isclose(fit_result.ring_center_y, center_ys, 5e-2)
+    assert u.isclose(fit_result.ring_radius, ring_radius, 5e-2)
 
 
 def test_taubin_fitter():
-    center_xs = 0.3
-    center_ys = 0.6
-    ring_radius = 0.3
-    ring_width = 0.05
+    center_xs = 0.3 * u.m
+    center_ys = 0.6 * u.m
+    ring_radius = 0.3 * u.m
+    ring_width = 0.05 * u.m
+
     muon_model = toymodel.RingGaussian(
-        x=center_xs* u.m,
-        y=center_ys* u.m,
-        radius=ring_radius* u.m,
-        sigma=ring_width* u.m,
+        x=center_xs,
+        y=center_ys,
+        radius=ring_radius,
+        sigma=ring_width,
     )
-    geom = CameraGeometry.from_name("FlashCam")
     # teldes needed for Taubin fit
-    teldes = TelescopeDescription.from_name('MST', 'FlashCam')
-    focal_length = teldes.optics.equivalent_focal_length.to_value(u.m)
+    geom = CameraGeometry.from_name("FlashCam")
     image, _, _ = muon_model.generate_image(
         geom, intensity=1000, nsb_level_pe=5,
     )
     mask = tailcuts_clean(geom, image, 10, 12)
-    x = geom.pix_x.to_value(u.m)/focal_length
-    y = geom.pix_y.to_value(u.m)/focal_length
-    img = image * mask
+    x = geom.pix_x
+    y = geom.pix_y
 
-    muonfit = MuonRingFitter(teldes=teldes, fit_method="taubin")
-    muon_ring_parameters = muonfit.fit(x[mask], y[mask], img)
-    xc_fit = muon_ring_parameters.ring_center_x * focal_length
-    yc_fit = muon_ring_parameters.ring_center_y * focal_length
-    r_fit = muon_ring_parameters.ring_radius * focal_length
+    muonfit = MuonRingFitter(geom=geom, fit_method="taubin")
+    fit_result = muonfit(x[mask], y[mask], None)
 
+    print(fit_result)
+    print(center_xs, center_ys, ring_radius)
 
-    assert u.isclose(xc_fit, center_xs, 1e-1)
-    assert u.isclose(yc_fit, center_ys, 1e-1)
-    assert u.isclose(r_fit, ring_radius, 1e-1)
+    assert u.isclose(fit_result.ring_center_x, center_xs, 5e-2)
+    assert u.isclose(fit_result.ring_center_y, center_ys, 5e-2)
+    assert u.isclose(fit_result.ring_radius, ring_radius, 5e-2)
+
 
 if __name__ == '__main__':
-    test_chaudhuri_kundu_fitter(),
+    test_chaudhuri_kundu_fitter()
     test_taubin_fitter()
