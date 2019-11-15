@@ -4,6 +4,11 @@ from ctapipe.image.muon import MuonRingFitter
 from ctapipe.image import tailcuts_clean, toymodel
 
 
+def my_tailcuts_clean(geom, charge, *args, **kwargs):
+    survivors = tailcuts_clean(geom, charge, *args, **kwargs)
+    return geom, charge, survivors
+
+
 def test_chaudhuri_kundu_fitter():
     # flashCam example
     center_xs = 0.3 * u.m
@@ -20,17 +25,13 @@ def test_chaudhuri_kundu_fitter():
 
     #testing with flashcam
     geom = CameraGeometry.from_name("FlashCam")
-    image, _, _ = muon_model.generate_image(
+    charge, _, _ = muon_model.generate_image(
         geom, intensity=1000, nsb_level_pe=5,
     )
-    mask = tailcuts_clean(geom, image, 10, 12)
-    x = geom.pix_x
-    y = geom.pix_y
-    img = image * mask
+    cleaned_image = my_tailcuts_clean(geom, charge, 10, 12)
 
-    #call specific method with fit_method
     muonfit = MuonRingFitter(fit_method="chaudhuri_kundu")
-    fit_result = muonfit(x, y, img)
+    fit_result = muonfit(*cleaned_image)
 
     print(fit_result)
     print(center_xs, center_ys, ring_radius)
@@ -54,15 +55,14 @@ def test_taubin_fitter():
     )
     # teldes needed for Taubin fit
     geom = CameraGeometry.from_name("FlashCam")
-    image, _, _ = muon_model.generate_image(
+    charge, _, _ = muon_model.generate_image(
         geom, intensity=1000, nsb_level_pe=5,
     )
-    mask = tailcuts_clean(geom, image, 10, 12)
-    x = geom.pix_x
-    y = geom.pix_y
+    cleaned_image = my_tailcuts_clean(geom, charge, 10, 12)
 
-    muonfit = MuonRingFitter(geom=geom, fit_method="taubin")
-    fit_result = muonfit(x[mask], y[mask], None)
+
+    muonfit = MuonRingFitter(fit_method="taubin")
+    fit_result = muonfit(*cleaned_image)
 
     print(fit_result)
     print(center_xs, center_ys, ring_radius)
