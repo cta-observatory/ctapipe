@@ -103,9 +103,9 @@ class MuonRingFitter(Component):
         r_fit = fitparams['r']
 
         output = MuonRingParameter()
-        output.ring_center_x = xc_fit * u.rad
-        output.ring_center_y = yc_fit * u.rad
-        output.ring_radius = r_fit * u.rad
+        output.ring_center_x = xc_fit
+        output.ring_center_y = yc_fit
+        output.ring_radius = r_fit
         output.ring_fit_method = "Taubin"
 
         return output
