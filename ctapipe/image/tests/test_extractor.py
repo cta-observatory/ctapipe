@@ -2,7 +2,8 @@ import pytest
 import numpy as np
 from scipy.stats import norm
 from numpy.testing import assert_allclose, assert_equal
-from ctapipe.instrument import CameraGeometry
+import astropy.units as u
+from ctapipe.instrument import SubarrayDescription, TelescopeDescription
 from ctapipe.image.extractor import (
     extract_around_peak,
     neighbor_average_waveform,
@@ -19,9 +20,15 @@ from ctapipe.image.extractor import (
 
 @pytest.fixture(scope='module')
 def camera_waveforms():
-    camera = CameraGeometry.from_name("CHEC")
+    subarray = SubarrayDescription(
+        "test array",
+        tel_positions={1: np.zeros(3) * u.m},
+        tel_descriptions={1: TelescopeDescription.from_name(
+            optics_name="SST-ASTRI", camera_name="CHEC"
+        )}
+    )
 
-    n_pixels = camera.n_pixels
+    n_pixels = subarray.tel[1].camera.n_pixels
     n_samples = 96
     mid = n_samples // 2
     pulse_sigma = 6
@@ -38,7 +45,7 @@ def camera_waveforms():
     # Randomize amplitudes
     y *= random.uniform(100, 1000, n_pixels)[:, np.newaxis]
 
-    return y, camera
+    return y, subarray
 
 
 def test_extract_around_peak(camera_waveforms):
@@ -105,8 +112,8 @@ def test_extract_around_peak_charge_expected(camera_waveforms):
 
 
 def test_neighbor_average_waveform(camera_waveforms):
-    waveforms, camera = camera_waveforms
-    nei = camera.neighbor_matrix_where
+    waveforms, subarray = camera_waveforms
+    nei = subarray.tel[1].camera.neighbor_matrix_where
     average_wf = neighbor_average_waveform(waveforms, nei, 0)
     assert_allclose(average_wf[0, 48], 28.690154, rtol=1e-3)
 
@@ -169,26 +176,22 @@ def test_local_peak_window_sum(camera_waveforms):
 
 
 def test_neighbor_peak_window_sum(camera_waveforms):
-    waveforms, camera = camera_waveforms
-    nei = camera.neighbor_matrix_where
-    extractor = NeighborPeakWindowSum()
-    extractor.neighbors = nei
-    charge, pulse_time = extractor(waveforms)
+    waveforms, subarray = camera_waveforms
+    extractor = NeighborPeakWindowSum(subarray=subarray)
+    charge, pulse_time = extractor(waveforms, telid=1)
     assert_allclose(charge[0], 94.671, rtol=1e-3)
     assert_allclose(pulse_time[0], 54.116092, rtol=1e-3)
 
     extractor.lwt = 4
-    charge, pulse_time = extractor(waveforms)
+    charge, pulse_time = extractor(waveforms, telid=1)
     assert_allclose(charge[0], 220.418657, rtol=1e-3)
     assert_allclose(pulse_time[0], 48.717848, rtol=1e-3)
 
 
 def test_baseline_subtracted_neighbor_peak_window_sum(camera_waveforms):
-    waveforms, camera = camera_waveforms
-    nei = camera.neighbor_matrix_where
-    extractor = BaselineSubtractedNeighborPeakWindowSum()
-    extractor.neighbors = nei
-    charge, pulse_time = extractor(waveforms)
+    waveforms, subarray = camera_waveforms
+    extractor = BaselineSubtractedNeighborPeakWindowSum(subarray=subarray)
+    charge, pulse_time = extractor(waveforms, telid=1)
     assert_allclose(charge[0], 94.671, rtol=1e-3)
     assert_allclose(pulse_time[0], 54.116092, rtol=1e-3)
 
@@ -217,8 +220,8 @@ def test_waveform_extractor_factory_args():
         'LocalPeakWindowSum',
         config=config,
     )
-    assert extractor.window_width == 20
-    assert extractor.window_shift == 3
+    assert extractor.window_width[None] == 20
+    assert extractor.window_shift[None] == 3
 
     with pytest.warns(UserWarning):
         ImageExtractor.from_name(
