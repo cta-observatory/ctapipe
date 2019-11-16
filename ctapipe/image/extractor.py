@@ -32,7 +32,7 @@ from numba import njit, prange, guvectorize, float64, float32, int64
     '(s),(),(),()->(),()',
     nopython=True,
 )
-def extract_around_peak(waveforms, peak_index, width, shift, sum, pulse_time):
+def extract_around_peak(waveforms, peak_index, width, shift, sum_, pulse_time):
     """
     This function performs the following operations:
 
@@ -62,7 +62,7 @@ def extract_around_peak(waveforms, peak_index, width, shift, sum, pulse_time):
         Window size of integration window for each pixel.
     shift : ndarray or int
         Window size of integration window for each pixel.
-    sum : ndarray
+    sum_ : ndarray
         Return argument for ufunc (ignore)
         Returns the sum
     pulse_time : ndarray
@@ -79,12 +79,12 @@ def extract_around_peak(waveforms, peak_index, width, shift, sum, pulse_time):
     n_samples = waveforms.size
     start = peak_index - shift
     end = start + width
-    sum[0] = 0
+    sum_[0] = 0
     time_num = 0
     time_den = 0
     for isample in prange(start, end):
         if 0 <= isample < n_samples:
-            sum[0] += waveforms[isample]
+            sum_[0] += waveforms[isample]
             if waveforms[isample] > 0:
                 time_num += waveforms[isample] * isample
                 time_den += waveforms[isample]
