@@ -16,16 +16,22 @@ from ctapipe.image.extractor import (
     NeighborPeakWindowSum,
     BaselineSubtractedNeighborPeakWindowSum,
 )
+from traitlets.config.loader import Config
 
 
 @pytest.fixture(scope='module')
 def camera_waveforms():
     subarray = SubarrayDescription(
         "test array",
-        tel_positions={1: np.zeros(3) * u.m},
-        tel_descriptions={1: TelescopeDescription.from_name(
-            optics_name="SST-ASTRI", camera_name="CHEC"
-        )}
+        tel_positions={1: np.zeros(3) * u.m, 2: np.ones(3) * u.m},
+        tel_descriptions={
+            1: TelescopeDescription.from_name(
+                optics_name="SST-ASTRI", camera_name="CHEC"
+            ),
+            2: TelescopeDescription.from_name(
+                optics_name="SST-ASTRI", camera_name="CHEC"
+            ),
+        }
     )
 
     n_pixels = subarray.tel[1].camera.n_pixels
@@ -206,7 +212,6 @@ def test_waveform_extractor_factory_args():
     """
     Config is supposed to be created by a `Tool`
     """
-    from traitlets.config.loader import Config
     config = Config(
         {
             'ImageExtractor': {
@@ -228,3 +233,38 @@ def test_waveform_extractor_factory_args():
             'FullWaveformSum',
             config=config,
         )
+
+
+def test_extractor_tel_param(camera_waveforms):
+    waveforms, subarray = camera_waveforms
+    _, n_samples = waveforms.shape
+
+    config = Config({
+        'ImageExtractor': {
+            'window_width': [("type", "*", n_samples), ("id", "2", n_samples//2)],
+            'window_start': 0,
+        }
+    })
+
+    waveforms, subarray = camera_waveforms
+    n_pixels, n_samples = waveforms.shape
+    extractor = ImageExtractor.from_name("FixedWindowSum", config=config)
+
+    with pytest.raises(KeyError):
+        assert extractor.window_width[1] == n_samples
+
+    with pytest.raises(KeyError):
+        assert extractor.window_width[2] == n_samples // 2
+
+    assert extractor.window_start[None] == 0
+    assert extractor.window_width[None] == n_samples
+
+    extractor = ImageExtractor.from_name(
+        "FixedWindowSum", config=config, subarray=subarray
+    )
+
+    assert extractor.window_start[1] == 0
+    assert extractor.window_start[2] == 0
+    assert extractor.window_width[None] == n_samples
+    assert extractor.window_width[1] == n_samples
+    assert extractor.window_width[2] == n_samples // 2
