@@ -274,3 +274,26 @@ def test_telescope_parameter_resolver():
         200.0,
         300.0,
     ]
+
+
+def test_telescope_parameter_component_arg(mock_subarray):
+    class SomeComponent(Component):
+        tel_param1 = IntTelescopeParameter(
+            default_value=[("type", "*", 10), ("type", "LST*", 100)]
+        )
+
+    comp = SomeComponent(tel_param1=[("type", "*", 2), ("type", "LST*", 4)])
+    comp.tel_param1.attach_subarray(mock_subarray)
+    assert comp.tel_param1[1] == 2
+    assert comp.tel_param1[3] == 4
+    assert comp.tel_param1[None] == 2
+
+    comp = SomeComponent(tel_param1=200)
+    comp.tel_param1.attach_subarray(mock_subarray)
+    assert comp.tel_param1[1] == 200
+    assert comp.tel_param1[3] == 200
+    assert comp.tel_param1[None] == 200
+
+    comp = SomeComponent(tel_param1=300)
+    assert comp.tel_param1[None] == 300
+
