@@ -246,7 +246,7 @@ class ImageExtractor(Component):
                 pass
 
     @abstractmethod
-    def __call__(self, waveforms, telid):
+    def __call__(self, waveforms, telid=None):
         """
         Call the relevant functions to fully extract the charge and time
         for the particular extractor.
@@ -258,6 +258,7 @@ class ImageExtractor(Component):
             (n_pix, n_samples).
         telid : int
             The telescope id. Used to obtain to correct traitlet configuration
+            If None, the subarray global default value is used
 
         Returns
         -------
@@ -275,7 +276,7 @@ class FullWaveformSum(ImageExtractor):
     Extractor that sums the entire waveform.
     """
 
-    def __call__(self, waveforms, telid):
+    def __call__(self, waveforms, telid=None):
         charge, pulse_time = extract_around_peak(
             waveforms, 0, waveforms.shape[-1], 0
         )
@@ -295,7 +296,7 @@ class FixedWindowSum(ImageExtractor):
         help='Define the width of the integration window'
     ).tag(config=True)
 
-    def __call__(self, waveforms, telid):
+    def __call__(self, waveforms, telid=None):
         charge, pulse_time = extract_around_peak(
             waveforms, self.window_start[telid], self.window_width[telid], 0
         )
@@ -317,7 +318,7 @@ class GlobalPeakWindowSum(ImageExtractor):
              '(peak_index - shift)'
     ).tag(config=True)
 
-    def __call__(self, waveforms, telid):
+    def __call__(self, waveforms, telid=None):
         peak_index = waveforms.mean(axis=-2).argmax(axis=-1)
         charge, pulse_time = extract_around_peak(
             waveforms, peak_index, self.window_width[telid], self.window_shift[telid]
@@ -340,7 +341,7 @@ class LocalPeakWindowSum(ImageExtractor):
              'from the peak_index (peak_index - shift)'
     ).tag(config=True)
 
-    def __call__(self, waveforms, telid):
+    def __call__(self, waveforms, telid=None):
         peak_index = waveforms.argmax(axis=-1).astype(np.int)
         charge, pulse_time = extract_around_peak(
             waveforms, peak_index, self.window_width[telid], self.window_shift[telid]
@@ -368,7 +369,7 @@ class NeighborPeakWindowSum(ImageExtractor):
              '1: local pixel counts as much as any neighbor)'
     ).tag(config=True)
 
-    def __call__(self, waveforms, telid):
+    def __call__(self, waveforms, telid=None):
         neighbors = self.subarray.tel[telid].camera.neighbor_matrix_where
         average_wfs = neighbor_average_waveform(
             waveforms, neighbors, self.lwt[telid]
@@ -392,7 +393,7 @@ class BaselineSubtractedNeighborPeakWindowSum(NeighborPeakWindowSum):
         10, help='End sample for baseline estimation'
     ).tag(config=True)
 
-    def __call__(self, waveforms, telid):
+    def __call__(self, waveforms, telid=None):
         baseline_corrected = subtract_baseline(
             waveforms, self.baseline_start, self.baseline_end
         )
