@@ -19,6 +19,21 @@ from ctapipe.core.traits import (
 from ctapipe.image import ImageExtractor
 
 
+@pytest.fixture(scope='module')
+def mock_subarray():
+    subarray = MagicMock()
+    subarray.tel_ids = [1, 2, 3, 4]
+    subarray.get_tel_ids_for_type = (
+        lambda x: [3, 4] if x == "LST_LST_LSTCam" else [1, 2]
+    )
+    subarray.telescope_types = [
+        "LST_LST_LSTCam",
+        "MST_MST_NectarCam",
+        "MST_MST_FlashCam",
+    ]
+    return subarray
+
+
 def test_path_exists():
     """ require existence of path """
 
@@ -117,18 +132,7 @@ def test_has_traits():
     assert has_traits(WithATrait)
 
 
-def test_telescope_parameter_lookup():
-    subarray = MagicMock()
-    subarray.tel_ids = [1, 2, 3, 4]
-    subarray.get_tel_ids_for_type = (
-        lambda x: [3, 4] if x == "LST_LST_LSTCam" else [1, 2]
-    )
-    subarray.telescope_types = [
-        "LST_LST_LSTCam",
-        "MST_MST_NectarCam",
-        "MST_MST_FlashCam",
-    ]
-
+def test_telescope_parameter_lookup(mock_subarray):
     telparam_list = TelescopeParameterLookup(
         [("type", "*", 10), ("type", "LST*", 100)]
     )
@@ -138,7 +142,7 @@ def test_telescope_parameter_lookup():
 
     assert telparam_list[None] == 10
 
-    telparam_list.attach_subarray(subarray)
+    telparam_list.attach_subarray(mock_subarray)
     assert telparam_list[1] == 10
     assert telparam_list[3] == 100
     assert telparam_list[None] == 10
@@ -148,7 +152,7 @@ def test_telescope_parameter_lookup():
 
     with pytest.raises(ValueError):
         bad_config = TelescopeParameterLookup([("unknown", "a", 15.0)])
-        bad_config.attach_subarray(subarray)
+        bad_config.attach_subarray(mock_subarray)
 
     telparam_list2 = TelescopeParameterLookup(
         [("type", "LST*", 100)]
@@ -193,30 +197,19 @@ def test_telescope_parameter_patterns():
         comp.tel_param_int = [(12, "", 5)]  # command not string
 
 
-def test_telescope_parameter_scalar_default():
-    subarray = MagicMock()
-    subarray.tel_ids = [1, 2, 3, 4]
-    subarray.get_tel_ids_for_type = (
-        lambda x: [3, 4] if x == "LST_LST_LSTCam" else [1, 2]
-    )
-    subarray.telescope_types = [
-        "LST_LST_LSTCam",
-        "MST_MST_NectarCam",
-        "MST_MST_FlashCam",
-    ]
-
+def test_telescope_parameter_scalar_default(mock_subarray):
     class SomeComponentInt(Component):
         tel_param = IntTelescopeParameter(default_value=1)
 
     comp_int = SomeComponentInt()
-    comp_int.tel_param.attach_subarray(subarray)
+    comp_int.tel_param.attach_subarray(mock_subarray)
     assert comp_int.tel_param[1] == 1
 
     class SomeComponentFloat(Component):
         tel_param = FloatTelescopeParameter(default_value=1.5)
 
     comp_float = SomeComponentFloat()
-    comp_float.tel_param.attach_subarray(subarray)
+    comp_float.tel_param.attach_subarray(mock_subarray)
     assert comp_float.tel_param[1] == 1.5
 
 
