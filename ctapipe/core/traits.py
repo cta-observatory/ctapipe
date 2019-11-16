@@ -139,7 +139,7 @@ def has_traits(cls, ignore=("config", "parent")):
 
 
 class TelescopeParameterLookup:
-    def __init__(self, telecope_parameter_list=None):
+    def __init__(self, telecope_parameter_list):
         """
         Handles the lookup of corresponding configuration value from a list of
         tuples for a telid.
@@ -149,8 +149,6 @@ class TelescopeParameterLookup:
         telecope_parameter_list : list
             List of tuples in the form `[(command, argument, value), ...]`
         """
-        if telecope_parameter_list is None:
-            telecope_parameter_list = []
         self._telecope_parameter_list = telecope_parameter_list
         self._value_for_tel_id = None
         self._subarray_global_value = None
