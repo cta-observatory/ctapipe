@@ -75,6 +75,7 @@ class CameraCalibrator(Component):
     def __init__(self, config=None, parent=None,
                  data_volume_reducer=None,
                  image_extractor=None,
+                 subarray=None,
                  **kwargs):
         """
         Parameters
@@ -106,7 +107,7 @@ class CameraCalibrator(Component):
         self.data_volume_reducer = data_volume_reducer
 
         if image_extractor is None:
-            image_extractor = NeighborPeakWindowSum(parent=self)
+            image_extractor = NeighborPeakWindowSum(parent=self, subarray=subarray)
         self.image_extractor = image_extractor
 
     def _get_correction(self, event, telid):
@@ -127,8 +128,8 @@ class CameraCalibrator(Component):
         """
         try:
             selected_gain_channel = event.r1.tel[telid].selected_gain_channel
-            shift = self.image_extractor.window_shift
-            width = self.image_extractor.window_width
+            shift = self.image_extractor.window_shift[None]
+            width = self.image_extractor.window_width[None]
             shape = event.mc.tel[telid].reference_pulse_shape
             n_chan = shape.shape[0]
             step = event.mc.tel[telid].meta['refstep']
@@ -186,12 +187,8 @@ class CameraCalibrator(Component):
             charge = waveforms[..., 0]
             pulse_time = np.zeros(n_pixels)
         else:
-            # TODO: pass camera to ImageExtractor.__init__
-            if self.image_extractor.requires_neighbors():
-                camera = event.inst.subarray.tel[telid].camera
-                self.image_extractor.neighbors = camera.neighbor_matrix_where
             # TODO: apply timing correction to waveforms before charge extraction
-            charge, pulse_time = self.image_extractor(waveforms)
+            charge, pulse_time = self.image_extractor(waveforms, telid=telid)
 
             # Apply integration correction
             # TODO: Remove integration correction
