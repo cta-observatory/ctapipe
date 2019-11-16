@@ -269,18 +269,12 @@ class TelescopeParameter(List):
         self._dtype = dtype
 
     def validate(self, obj, value):
-        # Convert normal list into TelescopeParameterLookup
-        if isinstance(value, list):
-            value = TelescopeParameterLookup(value)
-
-        # support a single value for all (convert into a default value)
+        # Support a single value for all (convert into a default value)
         if isinstance(value, self._dtype):
-            value = TelescopeParameterLookup([("type", "*", value)])
+            value = [("type", "*", value)]
 
-        # check that it is a list
-        super().validate(obj, value)
-        normalized_value = TelescopeParameterLookup()
-
+        # Check each value of list
+        normalized_value = []
         for pattern in value:
             # now check for the standard 3-tuple of (command, argument, value)
             if len(pattern) != 3:
@@ -302,6 +296,12 @@ class TelescopeParameter(List):
 
             val = self._dtype(val)
             normalized_value.append((command, arg, val))
+
+        # Convert to TelescopeParameterLookup
+        normalized_value = TelescopeParameterLookup(normalized_value)
+
+        # Validate with super method
+        super().validate(obj, normalized_value)
 
         return normalized_value
 
