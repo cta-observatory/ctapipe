@@ -151,6 +151,7 @@ class TelescopeParameterLookup:
         """
         self._telecope_parameter_list = telecope_parameter_list
         self._value_for_tel_id = None
+        self._subarray = None
         self._subarray_global_value = None
         for param in telecope_parameter_list:
             if param[1] == "*":
@@ -167,6 +168,7 @@ class TelescopeParameterLookup:
             Description of the subarray
             (includes mapping of tel_id to tel_type)
         """
+        self._subarray = subarray
         self._value_for_tel_id = {}
         for command, arg, value in self._telecope_parameter_list:
             if command == "type":
@@ -302,6 +304,17 @@ class TelescopeParameter(List):
         super().validate(obj, normalized_value)
 
         return normalized_value
+
+    def set(self, obj, value):
+        # Retain existing subarray description
+        # when setting new value for TelescopeParameter
+        try:
+            old_value = obj._trait_values[self.name]
+        except KeyError:
+            old_value = self.default_value
+        super().set(obj, value)
+        if getattr(old_value, '_subarray', None) is not None:
+            obj._trait_values[self.name].attach_subarray(old_value._subarray)
 
 
 class FloatTelescopeParameter(TelescopeParameter):
