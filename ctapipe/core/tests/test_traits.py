@@ -297,3 +297,20 @@ def test_telescope_parameter_component_arg(mock_subarray):
     comp = SomeComponent(tel_param1=300)
     assert comp.tel_param1[None] == 300
 
+
+def test_telescope_parameter_set_retain_subarray(mock_subarray):
+    class SomeComponent(Component):
+        tel_param1 = IntTelescopeParameter(
+            default_value=[("type", "*", 10), ("type", "LST*", 100)]
+        )
+
+    comp = SomeComponent()
+    comp.tel_param1.attach_subarray(mock_subarray)
+    assert comp.tel_param1[1] == 10
+    assert comp.tel_param1[3] == 100
+    assert comp.tel_param1[None] == 10
+
+    comp.tel_param1 = 5
+    assert comp.tel_param1[1] == 5
+    assert comp.tel_param1[3] == 5
+    assert comp.tel_param1[None] == 5
