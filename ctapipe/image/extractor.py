@@ -239,10 +239,10 @@ class ImageExtractor(Component):
         """
         super().__init__(config=config, parent=parent, **kwargs)
         self.subarray = subarray
-        for trait in self.traits().values():
+        for trait in list(self.class_traits()):
             try:
-                trait.attach_subarray(subarray)
-            except AttributeError:
+                getattr(self, trait).attach_subarray(subarray)
+            except (AttributeError, TypeError):
                 pass
 
     @abstractmethod
