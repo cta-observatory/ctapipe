@@ -22,7 +22,7 @@ def cherenkov_integral(lambda1, lambda2):
 
 def kundu_chaudhuri_circle_fit(x, y, weights):
     """
-    Fast, analytic calculation of circle center and radius for 
+    Fast, analytic calculation of circle center and radius for
     weighted data using method given in [chaudhuri93]_
 
     Parameters
@@ -53,7 +53,7 @@ def kundu_chaudhuri_circle_fit(x, y, weights):
     center_y = (a2 * c1 - a1 * c2) / (a2 * b1 - a1 * b2)
 
     radius = np.sqrt(np.sum(
-        weights * ((center_x - x)**2 + (center_y - y)**2),
+        weights * ((center_x - x)**2 + (center_y - y)**2)
     ) / weights_sum)
 
     return radius, center_x, center_y
@@ -251,7 +251,7 @@ def radial_light_intensity(
 ):
     """
     Amount of photons per azimuthal angle phi on the muon ring as given in
-    formula (5) of [vacanti94]_ 
+    formula (5) of [vacanti94]_
 
     Parameters
     ----------
@@ -372,7 +372,7 @@ def efficiency_fit(
 
     1. fit r, x, y and width with the psf_likelihood_fit
     2. fit impact parameter with impact_parameter_chisq_fit
-    3. calculate the theoretically expected light contents for each pixel 
+    3. calculate the theoretically expected light contents for each pixel
        for the estimated parameters
     4. calculate the ratio between the observed and the expected number
        of photons.
