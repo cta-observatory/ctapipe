@@ -35,14 +35,32 @@ class Field:
         return desc
 
 
-class DeprecatedField(Field):
-    """ used to mark which fields may be removed in next version """
-    def __init__(self, default, description="", unit=None, ucd=None, reason=""):
-        super().__init__(default=default, description=description, unit=unit, ucd=ucd)
-        warnings.warn(f"Field {self} is deprecated. {reason}", DeprecationWarning)
+class Deprecated:
+    ''' A class using the descriptor protocol to emit warnings when a
+    member is used.
+    '''
+    def __init__(self, attr, reason):
+        self.attr = attr
         self.reason = reason
 
+    def __set_name__(self, owner, name):
+        self.owner = owner
+        self.name = name
+        self.private_name = '_' + name
 
+    def __set__(self, obj, value):
+        warnings.warn(f'Using {self.owner.__name__}.{self.name} is deprecated. {self.reason}')
+        setattr(obj, self.private_name, value)
+
+    def __get__(self, obj, objtype=None):
+        warnings.warn(f'Using {self.owner.__name__}.{self.name} is deprecated. {self.reason}')
+        return getattr(obj, self.private_name)
+
+    def __repr__(self):
+        return f'Deprecated({self.attr!r})'
+
+    def __str__(self):
+        return f'Deprecated({self.attr})'
 
 
 class ContainerMeta(type):
@@ -59,7 +77,9 @@ class ContainerMeta(type):
 
     def __new__(cls, name, bases, dct):
         field_names = [k for k, v in dct.items() if isinstance(v, Field)]
-        dct["__slots__"] = tuple(field_names + ["meta", "prefix"])
+        deprecated_names = ['_' + k for k, v in dct.items() if isinstance(v, Deprecated)]
+
+        dct["__slots__"] = tuple(field_names + deprecated_names + ["meta", "prefix"])
         dct["fields"] = {}
 
         # inherit fields from baseclasses
