@@ -136,9 +136,12 @@ def test_telescope_parameter_lookup():
     with pytest.raises(ValueError):
         telparam_list[1]
 
+    assert telparam_list[None] == 10
+
     telparam_list.attach_subarray(subarray)
     assert telparam_list[1] == 10
     assert telparam_list[3] == 100
+    assert telparam_list[None] == 10
 
     with pytest.raises(KeyError):
         telparam_list[200]
@@ -146,6 +149,12 @@ def test_telescope_parameter_lookup():
     with pytest.raises(ValueError):
         bad_config = TelescopeParameterLookup([("unknown", "a", 15.0)])
         bad_config.attach_subarray(subarray)
+
+    telparam_list2 = TelescopeParameterLookup(
+        [("type", "LST*", 100)]
+    )
+    with pytest.raises(KeyError):
+        telparam_list2[None]
 
 
 def test_telescope_parameter_patterns():
