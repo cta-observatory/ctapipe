@@ -139,7 +139,7 @@ def has_traits(cls, ignore=("config", "parent")):
 
 
 class TelescopeParameterLookup:
-    def __init__(self, telecope_parameter_list=None):
+    def __init__(self, telecope_parameter_list):
         """
         Handles the lookup of corresponding configuration value from a list of
         tuples for a telid.
@@ -149,10 +149,9 @@ class TelescopeParameterLookup:
         telecope_parameter_list : list
             List of tuples in the form `[(command, argument, value), ...]`
         """
-        if telecope_parameter_list is None:
-            telecope_parameter_list = []
         self._telecope_parameter_list = telecope_parameter_list
         self._value_for_tel_id = None
+        self._subarray = None
         self._subarray_global_value = None
         for param in telecope_parameter_list:
             if param[1] == "*":
@@ -169,6 +168,7 @@ class TelescopeParameterLookup:
             Description of the subarray
             (includes mapping of tel_id to tel_type)
         """
+        self._subarray = subarray
         self._value_for_tel_id = {}
         for command, arg, value in self._telecope_parameter_list:
             if command == "type":
@@ -269,18 +269,12 @@ class TelescopeParameter(List):
         self._dtype = dtype
 
     def validate(self, obj, value):
-        # Convert normal list into TelescopeParameterLookup
-        if isinstance(value, list):
-            value = TelescopeParameterLookup(value)
-
-        # support a single value for all (convert into a default value)
+        # Support a single value for all (convert into a default value)
         if isinstance(value, self._dtype):
-            value = TelescopeParameterLookup([("type", "*", value)])
+            value = [("type", "*", value)]
 
-        # check that it is a list
-        super().validate(obj, value)
-        normalized_value = TelescopeParameterLookup()
-
+        # Check each value of list
+        normalized_value = []
         for pattern in value:
             # now check for the standard 3-tuple of (command, argument, value)
             if len(pattern) != 3:
@@ -303,7 +297,24 @@ class TelescopeParameter(List):
             val = self._dtype(val)
             normalized_value.append((command, arg, val))
 
+        # Convert to TelescopeParameterLookup
+        normalized_value = TelescopeParameterLookup(normalized_value)
+
+        # Validate with super method
+        super().validate(obj, normalized_value)
+
         return normalized_value
+
+    def set(self, obj, value):
+        # Retain existing subarray description
+        # when setting new value for TelescopeParameter
+        try:
+            old_value = obj._trait_values[self.name]
+        except KeyError:
+            old_value = self.default_value
+        super().set(obj, value)
+        if getattr(old_value, '_subarray', None) is not None:
+            obj._trait_values[self.name].attach_subarray(old_value._subarray)
 
 
 class FloatTelescopeParameter(TelescopeParameter):
