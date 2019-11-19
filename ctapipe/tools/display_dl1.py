@@ -183,7 +183,9 @@ class DisplayDL1Calib(Tool):
             )
         )
 
-        self.calibrator = self.add_component(CameraCalibrator(parent=self))
+        self.calibrator = self.add_component(CameraCalibrator(
+            parent=self, subarray=self.eventsource.subarray
+        ))
         self.plotter = self.add_component(ImagePlotter(parent=self))
 
     def start(self):
