@@ -95,6 +95,8 @@ class CameraCalibrator(Component):
         image_extractor : ctapipe.image.extractor.ImageExtractor
             The ImageExtractor to use. If None, then NeighborPeakWindowSum
             will be used by default.
+        subarray: ctapipe.instrument.SubarrayDescription
+            Description of the subarray
         kwargs
         """
         super().__init__(config=config, parent=parent, **kwargs)
