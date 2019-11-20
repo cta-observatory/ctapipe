@@ -124,7 +124,7 @@ def analyze_muon_event(event):
         else:
             img = image
 
-        muonring = MuonRingFitter(teldes = None, fit_method="chaudhuri_kundu")
+        muonring = MuonRingFitter(fit_method="chaudhuri_kundu")
 
         logger.debug("img: %s mask: %s, x=%s y= %s", np.sum(image),
                      np.sum(clean_mask), x, y)
@@ -132,22 +132,22 @@ def analyze_muon_event(event):
         if not sum(img):  # Nothing left after tail cuts
             continue
 
-        muonringparam = muonring.fit(x, y, image * clean_mask)
+        muonringparam = muonring(x, y, image, clean_mask)
 
-        dist = np.sqrt(np.power(x - muonringparam. ring_center_x, 2)
+        dist = np.sqrt(np.power(x - muonringparam.ring_center_x, 2)
                        + np.power(y - muonringparam.ring_center_y, 2))
         ring_dist = np.abs(dist - muonringparam.ring_radius)
 
-        muonringparam = muonring.fit(
-            x, y, img * (ring_dist < muonringparam.ring_radius * 0.4)
+        muonringparam = muonring(
+            x, y, img, (ring_dist < muonringparam.ring_radius * 0.4)
         )
 
         dist = np.sqrt(np.power(x - muonringparam.ring_center_x, 2) +
                        np.power(y - muonringparam.ring_center_y, 2))
         ring_dist = np.abs(dist - muonringparam.ring_radius)
 
-        muonringparam = muonring.fit(
-            x, y, img * (ring_dist < muonringparam.ring_radius * 0.4)
+        muonringparam = muonring(
+            x, y, img, (ring_dist < muonringparam.ring_radius * 0.4)
         )
 
         muonringparam.tel_id = telid

@@ -30,7 +30,7 @@ def test_MuonRingFitter():
     for method in ["chaudhuri_kundu", "taubin"]:
 
         muonfit = MuonRingFitter(fit_method=method)
-        fit_result = muonfit(geom, charge, survivors)
+        fit_result = muonfit(geom.pix_x, geom.pix_y, charge, survivors)
 
         print(fit_result)
         print(center_xs, center_ys, ring_radius)

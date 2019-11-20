@@ -19,13 +19,10 @@ class MuonRingFitter(Component):
         super().__init__(config, parent, **kwargs)
 
 
-    def __call__(self, geom, img, mask):
+    def __call__(self, x, y, img, mask):
         """allows any fit to be called in form of
             MuonRingFitter(fit_method = "name of the fit")
         """
-        x = geom.pix_x
-        y = geom.pix_y
-
         if self.fit_method == 'taubin':
             radius, center_x, center_y = taubin_circle_fit(x, y, mask)
         else:
