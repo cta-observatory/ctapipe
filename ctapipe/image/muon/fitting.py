@@ -487,8 +487,10 @@ def taubin_circle_fit(
     x_masked = x[mask]
     y_masked = y[mask]
 
-    taubin_r_initial = x.max() / 2
-    taubin_error = taubin_r_initial * 0.1
+    R = x.max()  # x.max() just happens to be identical with R in many cases.
+
+    taubin_r_initial = R / 2
+    taubin_error = R * 0.1
     xc = 0
     yc = 0
 
@@ -501,9 +503,9 @@ def taubin_circle_fit(
         error_xc=taubin_error,
         error_yc=taubin_error,
         error_r=taubin_error,
-        limit_xc=(x.min(), x.max()),
-        limit_yc=(y.min(), y.max()),
-        limit_r=(0, 2*x.max()),
+        limit_xc=(-2*R, 2*R),
+        limit_yc=(-2*R, 2*R),
+        limit_r=(0, R),
         pedantic=False
     )
     fit.migrad()
