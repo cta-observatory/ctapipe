@@ -1,11 +1,13 @@
 import numpy as np
 from scipy.optimize import minimize
+from iminuit import Minuit
 import scipy.constants as const
 from scipy.stats import norm
 from astropy.units import Quantity
 
 __all__ = [
     'kundu_chaudhuri_circle_fit',
+    'taubin_circle_fit',
     'psf_likelihood_fit',
     'impact_parameter_chisq_fit',
     'mirror_integration_distance',
@@ -22,8 +24,10 @@ def cherenkov_integral(lambda1, lambda2):
 
 def kundu_chaudhuri_circle_fit(x, y, weights):
     """
-    Fast, analytic calculation of circle center and radius for
-    weighted data using method given in [chaudhuri93]_
+    Fast and reliable analytical circle fitting method previously used
+    in the H.E.S.S. experiment for muon identification
+
+    Implementation based on [chaudhuri93]_
 
     Parameters
     ----------
@@ -83,6 +87,15 @@ def _psf_neg_log_likelihood(params, x, y, weights):
         (np.log(sigma) + 0.5 * ((pixel_distance - radius) / sigma)**2) * weights
     )
 
+def foo(x, y):
+    x = Quantity(x).decompose()
+    y = Quantity(y).decompose()
+    assert x.unit == y.unit
+    unit = x.unit
+    x = x.value
+    y = y.value
+
+    return x, y, unit
 
 def psf_likelihood_fit(x, y, weights):
     """
@@ -114,12 +127,7 @@ def psf_likelihood_fit(x, y, weights):
         standard deviation of the gaussian profile (indictor for the ring width)
     """
 
-    x = Quantity(x).decompose()
-    y = Quantity(y).decompose()
-    assert x.unit == y.unit
-    unit = x.unit
-    x = x.value
-    y = y.value
+    x, y, unit = foo(x, y)
 
     start_r, start_x, start_y = kundu_chaudhuri_circle_fit(x, y, weights)
 
@@ -453,3 +461,80 @@ def _impact_parameter_chisq(params, phi, hist, mirror_radius):
     theory = mirror_integration_distance(phi, phi_max, imp_par, mirror_radius)
 
     return np.sum((hist - scale * theory)**2)
+
+
+
+def taubin_circle_fit(
+    x,
+    y,
+    mask
+):
+    """
+    reference : Barcelona_Muons_TPA_final.pdf (slide 6)
+
+    Parameters
+    ----------
+    x: array-like or astropy quantity
+        x coordinates of the points
+    y: array-like or astropy quantity
+        y coordinates of the points
+    mask: array-like boolean
+        true for pixels surviving the cleaning
+    """
+    x, y, orinal_unit = foo(x, y)
+
+    x_masked = x[mask]
+    y_masked = y[mask]
+
+    taubin_r_initial = x.max() / 2
+    taubin_error = taubin_r_initial * 0.1
+    xc = 0
+    yc = 0
+
+    # minimization method
+    fit = Minuit(
+        make_taubin_loss_function(x_masked, y_masked),
+        xc=xc,
+        yc=yc,
+        r=taubin_r_initial,
+        error_xc=taubin_error,
+        error_yc=taubin_error,
+        error_r=taubin_error,
+        limit_xc=(x.min(), x.max()),
+        limit_yc=(y.min(), y.max()),
+        limit_r=(0, 2*x.max()),
+        pedantic=False
+    )
+    fit.migrad()
+
+    radius = fit.values['r'] * orinal_unit
+    center_x = fit.values['xc'] * orinal_unit
+    center_y = fit.values['yc'] * orinal_unit
+
+    return radius, center_x, center_y
+
+
+def make_taubin_loss_function(x, y):
+
+    def taubin_loss_function(xc, yc, r):
+        """taubin fit formula
+        reference : Barcelona_Muons_TPA_final.pdf (slide 6)
+        """
+        upper_term = (
+            (
+                (x - xc) ** 2 +
+                (y - yc) ** 2
+                - r ** 2
+            ) ** 2
+        ).sum()
+
+        lower_term = (
+            (
+                (x - xc) ** 2 +
+                (y - yc) ** 2
+            )
+        ).sum()
+
+        return np.abs(upper_term) / np.abs(lower_term)
+
+    return taubin_loss_function
