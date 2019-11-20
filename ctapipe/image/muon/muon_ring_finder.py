@@ -2,7 +2,11 @@ import numpy as np
 import astropy.units as u
 from ctapipe.core import Component
 from ctapipe.io.containers import MuonRingParameter
-from .fitting import kundu_chaudhuri_circle_fit, taubin_circle_fit
+from .fitting import (
+    kundu_chaudhuri_circle_fit,
+    taubin_circle_fit,
+    hough_circle_fit,
+)
 import traitlets as traits
 
 # the fit methods do not expose the same interface, so we
@@ -14,14 +18,31 @@ def kundu_chaudhuri(x, y, weights, mask):
     weights = weights * mask
     return kundu_chaudhuri_circle_fit(x, y, weights)
 
+
 def taubin(x, y, weights, mask):
     '''taubin_circle_fit with x, y, weights, mask interface'''
     return taubin_circle_fit(x, y, mask)
 
 
+def hough(x, y, weights, mask):
+    '''hough_circle_fit with x, y, weights, mask interface'''
+
+    # we need to get the typical pixel distance from the geom object
+    # for epsilon in the hough fit.
+    squared_distanced = (x[0] - x[1:])**2 + (y[0] - y[1:])**2
+    minimal_pixel_distance = np.sqrt(squared_distanced.min())
+    return hough_circle_fit(
+        x,
+        y,
+        mask,
+        # epsilon is not the pix distance, but more like the typical ring width.
+        epsilon=3 * minimal_pixel_distance,
+    )
+
+
 FIT_METHOD_BY_NAME = {
     m.__name__: m for m in
-    [kundu_chaudhuri, taubin]
+    [kundu_chaudhuri, taubin, hough]
 }
 
 __all__ = ['MuonRingFitter']

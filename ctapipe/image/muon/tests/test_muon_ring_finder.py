@@ -28,7 +28,6 @@ def test_MuonRingFitter():
     survivors = tailcuts_clean(geom, charge, 10, 12)
 
     for method in  MuonRingFitter.fit_method.values:
-
         muonfit = MuonRingFitter(fit_method=method)
         fit_result = muonfit(geom.pix_x, geom.pix_y, charge, survivors)
 
