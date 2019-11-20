@@ -6,10 +6,12 @@ from scipy.stats import norm
 from astropy.units import Quantity
 
 from ctapipe.utils.quantities import all_to_value
+from circlehough.hough import main as hough_main
 
 __all__ = [
     'kundu_chaudhuri_circle_fit',
     'taubin_circle_fit',
+    'hough_circle_fit',
     'psf_likelihood_fit',
     'impact_parameter_chisq_fit',
     'mirror_integration_distance',
@@ -534,3 +536,30 @@ def make_taubin_loss_function(x, y):
         return np.abs(upper_term) / np.abs(lower_term)
 
     return taubin_loss_function
+
+
+def hough_circle_fit(
+    x,
+    y,
+    mask,
+    epsilon
+):
+    x, y, orinal_unit = strip_unit_savely(x, y)
+    R = x.max()  # x.max() just happens to be identical with R in many cases.
+
+    point_cloud = np.array([x[mask], y[mask]]).T # shape is: (N_pixel, 2)
+
+    hough_cx, hough_cy, hough_r = hough_main(
+        guessed_cx=0,
+        guessed_cy=0,
+        guessed_r=R / 2,
+        point_cloud=point_cloud,
+        uncertainty=R,
+        epsilon=epsilon.value,
+    )
+
+    return (
+        hough_r * orinal_unit,
+        hough_cx * orinal_unit,
+        hough_cy * orinal_unit,
+    )
