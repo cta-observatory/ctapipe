@@ -41,5 +41,4 @@ def test_MuonRingFitter():
 
 
 if __name__ == '__main__':
-    test_fill_output_container()
     test_MuonRingFitter()
