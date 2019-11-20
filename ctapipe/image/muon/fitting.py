@@ -87,7 +87,8 @@ def _psf_neg_log_likelihood(params, x, y, weights):
         (np.log(sigma) + 0.5 * ((pixel_distance - radius) / sigma)**2) * weights
     )
 
-def foo(x, y):
+def strip_unit_savely(x, y):
+    '''takes quantities or simple np.array, forces into quantity and strips unit'''
     x = Quantity(x).decompose()
     y = Quantity(y).decompose()
     assert x.unit == y.unit
@@ -127,7 +128,7 @@ def psf_likelihood_fit(x, y, weights):
         standard deviation of the gaussian profile (indictor for the ring width)
     """
 
-    x, y, unit = foo(x, y)
+    x, y, unit = strip_unit_savely(x, y)
 
     start_r, start_x, start_y = kundu_chaudhuri_circle_fit(x, y, weights)
 
@@ -481,7 +482,7 @@ def taubin_circle_fit(
     mask: array-like boolean
         true for pixels surviving the cleaning
     """
-    x, y, orinal_unit = foo(x, y)
+    x, y, orinal_unit = strip_unit_savely(x, y)
 
     x_masked = x[mask]
     y_masked = y[mask]
