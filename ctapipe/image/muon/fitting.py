@@ -518,6 +518,12 @@ def taubin_circle_fit(
 
 
 def make_taubin_loss_function(x, y):
+    '''closure around taubin_loss_function to make
+    surviving pixel positions availaboe inside.
+
+    x, y: positions of pixels surviving the cleaning
+        should not be quantities
+    '''
 
     def taubin_loss_function(xc, yc, r):
         """taubin fit formula
