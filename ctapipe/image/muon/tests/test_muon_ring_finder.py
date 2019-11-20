@@ -1,12 +1,9 @@
+import numpy as np
 import astropy.units as u
 from ctapipe.instrument import CameraGeometry, TelescopeDescription
 from ctapipe.image.muon import MuonRingFitter
+from ctapipe.image.muon.muon_ring_finder import fill_output_container
 from ctapipe.image import tailcuts_clean, toymodel
-
-
-def my_tailcuts_clean(geom, charge, *args, **kwargs):
-    survivors = tailcuts_clean(geom, charge, *args, **kwargs)
-    return geom, charge, survivors
 
 
 def test_chaudhuri_kundu_fitter():
@@ -28,10 +25,10 @@ def test_chaudhuri_kundu_fitter():
     charge, _, _ = muon_model.generate_image(
         geom, intensity=1000, nsb_level_pe=5,
     )
-    cleaned_image = my_tailcuts_clean(geom, charge, 10, 12)
+    survivors = tailcuts_clean(geom, charge, 10, 12)
 
     muonfit = MuonRingFitter(fit_method="chaudhuri_kundu")
-    fit_result = muonfit(*cleaned_image)
+    fit_result = muonfit(geom, charge, survivors)
 
     print(fit_result)
     print(center_xs, center_ys, ring_radius)
@@ -58,11 +55,10 @@ def test_taubin_fitter():
     charge, _, _ = muon_model.generate_image(
         geom, intensity=1000, nsb_level_pe=5,
     )
-    cleaned_image = my_tailcuts_clean(geom, charge, 10, 12)
-
+    survivors = tailcuts_clean(geom, charge, 10, 12)
 
     muonfit = MuonRingFitter(fit_method="taubin")
-    fit_result = muonfit(*cleaned_image)
+    fit_result = muonfit(geom, charge, survivors)
 
     print(fit_result)
     print(center_xs, center_ys, ring_radius)
@@ -72,6 +68,21 @@ def test_taubin_fitter():
     assert u.isclose(fit_result.ring_radius, ring_radius, 5e-2)
 
 
+def test_fill_output_container():
+    radius = 0.3 * u.m
+    center_x = 0.0 * u.m
+    center_y = -0.25 * u.m
+
+    output = fill_output_container(radius, center_x, center_y)
+
+    assert output.ring_center_x == center_x
+    assert output.ring_center_y == center_y
+    assert output.ring_radius == radius
+    assert output.ring_phi == np.arctan2(center_y, center_x)
+    assert output.ring_inclination == np.sqrt(center_x ** 2. + center_y ** 2.)
+
+
 if __name__ == '__main__':
+    test_fill_output_container()
     test_chaudhuri_kundu_fitter()
     test_taubin_fitter()
