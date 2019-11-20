@@ -1,6 +1,6 @@
 import numpy as np
 import astropy.units as u
-from ctapipe.instrument import CameraGeometry, TelescopeDescription
+from ctapipe.instrument import CameraGeometry
 from ctapipe.image.muon import MuonRingFitter
 from ctapipe.image.muon.muon_ring_finder import fill_output_container
 from ctapipe.image import tailcuts_clean, toymodel
