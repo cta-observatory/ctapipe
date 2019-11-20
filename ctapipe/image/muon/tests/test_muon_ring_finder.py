@@ -40,21 +40,6 @@ def test_MuonRingFitter():
         assert u.isclose(fit_result.ring_radius, ring_radius, 5e-2)
 
 
-def test_fill_output_container():
-    '''test fill_output_container()'''
-    radius = 0.3 * u.m
-    center_x = 0.0 * u.m
-    center_y = -0.25 * u.m
-
-    output = fill_output_container(radius, center_x, center_y)
-
-    assert output.ring_center_x == center_x
-    assert output.ring_center_y == center_y
-    assert output.ring_radius == radius
-    assert output.ring_phi == np.arctan2(center_y, center_x)
-    assert output.ring_inclination == np.sqrt(center_x ** 2. + center_y ** 2.)
-
-
 if __name__ == '__main__':
     test_fill_output_container()
     test_MuonRingFitter()
