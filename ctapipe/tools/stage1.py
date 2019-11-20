@@ -1,5 +1,7 @@
 """ 
 Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
+
+# TODO: add event time per telescope!
 """
 import hashlib
 from functools import partial
@@ -52,7 +54,7 @@ PROV = Provenance()
 DL1_DATA_MODEL_VERSION = "v2.0.0"
 
 
-def write_core_provenance(output_filename, obs_id, subarray):
+def write_core_provenance(output_filename, obs_id, subarray, writer):
     """
     Attaches Core Provenence headers to an output HDF5 file.
     Right now this is hard-coded for use with the ctapipe-stage1-process tool
@@ -67,6 +69,8 @@ def write_core_provenance(output_filename, obs_id, subarray):
         observation ID
     subarray:
         SubarrayDescription to get metadata from
+    writer: HDF5TableWriter
+        output
     """
     import uuid
 
@@ -105,9 +109,8 @@ def write_core_provenance(output_filename, obs_id, subarray):
         "CTA INSTRUMENT ID": str(subarray),
     }
 
-    with tables.open_file(output_filename, mode="a") as h5file:
-        for key, value in metadata.items():
-            h5file.root._v_attrs[key] = value
+    for key, value in metadata.items():
+        writer._h5file.root._v_attrs[key] = value
 
 
 def morphology(geom, image_mask) -> MorphologyContainer:
@@ -871,11 +874,11 @@ class Stage1Process(Tool):
                 # recurse
                 self._generate_table_indices(h5file, node)
 
-    def _generate_indices(self,):
-        with tables.open_file(self.output_filename, mode="a") as h5file:
-            if self.write_images:
-                self._generate_table_indices(h5file, "/dl1/event/telescope/images")
-            self._generate_table_indices(h5file, "/dl1/event/subarray")
+    def _generate_indices(self,writer):
+
+        if self.write_images:
+            self._generate_table_indices(writer._h5file, "/dl1/event/telescope/images")
+        self._generate_table_indices(writer._h5file, "/dl1/event/subarray")
 
     def start(self):
 
@@ -890,16 +893,17 @@ class Stage1Process(Tool):
 
             self._process_events(writer)
             self._write_simulation_histograms(writer)
-            self._write_processing_statistics()
+            #self._write_processing_statistics()
 
-        if self.write_index_tables:
-            self._generate_indices()
+            if self.write_index_tables:
+                self._generate_indices(writer)
 
-        write_core_provenance(
-            output_filename=self.output_filename,
-            subarray=self.event_source.subarray,
-            obs_id=self._cur_obs_id,
-        )
+            write_core_provenance(
+                output_filename=self.output_filename,
+                subarray=self.event_source.subarray,
+                obs_id=self._cur_obs_id,
+                writer=writer
+            )
 
     def finish(self):
         pass

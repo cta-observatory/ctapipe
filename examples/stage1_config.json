@@ -1,7 +1,7 @@
 {
     "Stage1Process": {
         "config_file": "",
-        "output_filename": "lapalma_proton_small.h5",
+        "output_filename": "lapalma_proton_small.dl1.h5",
         "overwrite": true,
         "write_images": true,
         "image_extractor_type": "NeighborPeakWindowSum",
