@@ -41,6 +41,7 @@ def test_MuonRingFitter():
 
 
 def test_fill_output_container():
+    '''test fill_output_container()'''
     radius = 0.3 * u.m
     center_x = 0.0 * u.m
     center_y = -0.25 * u.m
