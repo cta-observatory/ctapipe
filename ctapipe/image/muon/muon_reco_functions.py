@@ -60,17 +60,24 @@ def analyze_muon_event(event):
     cleaning = True
 
 
-{'picture_thresh': 5, 'boundary_thresh': 7}
+
     muon_cuts = {'Name': names, 'tail_cuts': tail_cuts, 'Impact': impact,
                  'RingWidth': ringwidth, 'total_pix': total_pix,
                  'min_pix': min_pix, 'CamRad': cam_rad, 'SecRad': sec_rad,
                  'SCT': sct, 'AngPixW': ang_pixel_width, 'HoleRad': hole_rad}
 
     muon_cuts_list_of_dicts = [
-        {k:v for k,v in zip(keys, x)}
-        for x in zip(*muon_cuts.values())
+        {k:v for k,v in zip(keys, values)}
+        for values in zip(*muon_cuts.values())
     ]
     muon_cuts_by_name = {mc['Name']:mc for mc in muon_cuts_list_of_dicts}
+
+    # replace tail_cuts tuples with more descriptive dicts.
+    for muon_cut in muon_cuts_by_name.values():
+        muon_cut['tail_cuts'] = {
+            'picture_thresh': muon_cut['tail_cuts'][0],
+            'boundary_thresh': muon_cut['tail_cuts'][1],
+        }
 
     logger.debug(muon_cuts)
 
