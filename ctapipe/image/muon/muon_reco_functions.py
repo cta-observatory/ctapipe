@@ -130,16 +130,20 @@ def analyze_muon_event(event):
 
         muonringparam = muon_ring_fit(x, y, image, clean_mask)
 
-        dist = np.sqrt(np.power(x - muonringparam.ring_center_x, 2)
-                       + np.power(y - muonringparam.ring_center_y, 2))
+        dist = np.sqrt(
+            np.power(x - muonringparam.ring_center_x, 2) +
+            np.power(y - muonringparam.ring_center_y, 2)
+        )
         ring_dist = np.abs(dist - muonringparam.ring_radius)
 
         muonringparam = muon_ring_fit(
             x, y, img, (ring_dist < muonringparam.ring_radius * 0.4)
         )
 
-        dist = np.sqrt(np.power(x - muonringparam.ring_center_x, 2) +
-                       np.power(y - muonringparam.ring_center_y, 2))
+        dist = np.sqrt(
+            np.power(x - muonringparam.ring_center_x, 2) +
+            np.power(y - muonringparam.ring_center_y, 2)
+        )
         ring_dist = np.abs(dist - muonringparam.ring_radius)
 
         muonringparam = muon_ring_fit(
@@ -149,11 +153,15 @@ def analyze_muon_event(event):
         muonringparam.tel_id = telid
         muonringparam.obs_id = event.dl0.obs_id
         muonringparam.event_id = event.dl0.event_id
-        dist_mask = np.abs(dist - muonringparam.
-                           ring_radius) < muonringparam.ring_radius * 0.4
+        dist_mask = (
+            np.abs(dist - muonringparam.ring_radius)
+            < muonringparam.ring_radius * 0.4
+        )
         pix_im = image * dist_mask
-        nom_dist = np.sqrt(np.power(muonringparam.ring_center_x,
-                                    2) + np.power(muonringparam.ring_center_y, 2))
+        nom_dist = np.sqrt(
+            np.power(muonringparam.ring_center_x, 2) +
+            np.power(muonringparam.ring_center_y, 2)
+        )
 
         minpix = muon_cut['min_pix']
 
