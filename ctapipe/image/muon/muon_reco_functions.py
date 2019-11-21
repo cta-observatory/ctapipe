@@ -86,14 +86,13 @@ def analyze_muon_event(event):
     cleaning = True
 
 
-
     muon_cuts = {'Name': names, 'tail_cuts': tail_cuts, 'Impact': impact,
                  'RingWidth': ringwidth, 'total_pix': total_pix,
                  'min_pix': min_pix, 'CamRad': cam_rad, 'SecRad': sec_rad,
                  'SCT': sct, 'AngPixW': ang_pixel_width, 'HoleRad': hole_rad}
 
     muon_cuts_list_of_dicts = [
-        {k:v for k,v in zip(keys, values)}
+        {k:v for k,v in zip(muon_cuts.keys(), values)}
         for values in zip(*muon_cuts.values())
     ]
     muon_cuts_by_name = {mc['Name']:mc for mc in muon_cuts_list_of_dicts}
@@ -156,7 +155,7 @@ def analyze_muon_event(event):
 
         minpix = muon_cut['min_pix']
 
-        mir_rad = np.sqrt(teldes.optics.mirror_area.to("m2") / np.pi)
+        mirror_radius = np.sqrt(teldes.optics.mirror_area.to("m2") / np.pi)
 
         # Camera containment radius -  better than nothing - guess pixel
         # diameter of 0.11, all cameras are perfectly circular   cam_rad =
@@ -173,21 +172,26 @@ def analyze_muon_event(event):
                 ring_fit.ring_radius,
                 muon_cut['CamRad'],
                 ring_fit.ring_center_x,
-                ring_fit.ring_center_y)
+                ring_fit.ring_center_y
+            )
 
             ctel = MuonLineIntegrate(
-                mir_rad, hole_radius=muon_cut['HoleRad'],
+                mirror_radius,
+                hole_radius=muon_cut['HoleRad'],
                 pixel_width=muon_cut['AngPixW'],
                 sct_flag=muon_cut['SCT'],
                 secondary_radius=muon_cut['SecRad'],
             )
 
             if image.shape[0] == muon_cut['total_pix']:
-                muonintensityoutput = ctel.fit_muon(ring_fit.ring_center_x,
-                                                    ring_fit.ring_center_y,
-                                                    ring_fit.ring_radius,
-                                                    x[dist_mask], y[dist_mask],
-                                                    image[dist_mask])
+                muonintensityoutput = ctel.fit_muon(
+                    ring_fit.ring_center_x,
+                    ring_fit.ring_center_y,
+                    ring_fit.ring_radius,
+                    x[dist_mask],
+                    y[dist_mask],
+                    image[dist_mask]
+                )
 
                 muonintensityoutput.tel_id = telid
                 muonintensityoutput.obs_id = event.dl0.obs_id
@@ -196,7 +200,9 @@ def analyze_muon_event(event):
 
                 idx_ring = np.nonzero(pix_im)
                 muonintensityoutput.ring_completeness = ring_completeness(
-                    x[idx_ring], y[idx_ring], pix_im[idx_ring],
+                    x[idx_ring],
+                    y[idx_ring],
+                    pix_im[idx_ring],
                     ring_fit.ring_radius,
                     ring_fit.ring_center_x,
                     ring_fit.ring_center_y,
@@ -208,20 +214,21 @@ def analyze_muon_event(event):
                 pix_ringwidth_im = image * dist_ringwidth_mask
                 idx_ringwidth = np.nonzero(pix_ringwidth_im)
 
-                muonintensityoutput.ring_pix_completeness = npix_above_threshold(
-                    pix_ringwidth_im[idx_ringwidth], tailcuts['picture_thresh']) / len(
-                    pix_im[idx_ringwidth])
+                muonintensityoutput.ring_pix_completeness = (
+                    npix_above_threshold(pix_ringwidth_im[idx_ringwidth], tailcuts['picture_thresh'])
+                    / len(pix_im[idx_ringwidth])
+                )
 
-                logger.debug("Tel %d Impact parameter = %s mir_rad=%s "
+                logger.debug("Tel %d Impact parameter = %s mirror_radius=%s "
                              "ring_width=%s", telid,
-                             muonintensityoutput.impact_parameter, mir_rad,
+                             muonintensityoutput.impact_parameter, mirror_radius,
                              muonintensityoutput.ring_width)
                 conditions = [
                     muonintensityoutput.impact_parameter <
-                    muon_cut['Impact'][1] * mir_rad,
+                    muon_cut['Impact'][1] * mirror_radius,
 
                     muonintensityoutput.impact_parameter
-                    > muon_cut['Impact'][0] * mir_rad,
+                    > muon_cut['Impact'][0] * mirror_radius,
 
                     muonintensityoutput.ring_width
                     < muon_cut['RingWidth'][1],
@@ -229,10 +236,6 @@ def analyze_muon_event(event):
                     muonintensityoutput.ring_width
                     > muon_cut['RingWidth'][0]
                 ]
-
-                if all(conditions):
-                    logger.debug("Muon found in tel %d,  tels in event=%d",
-                                 telid, len(event.dl0.tels_with_data))
 
 
         ring_fit.tel_id = telid
@@ -243,6 +246,7 @@ def analyze_muon_event(event):
             'MuonRingParams': ring_fit,
             'MuonIntensityParams': muonintensityoutput,
             'muon_found': all(conditions),
+            'mirror_radius': mirror_radius,
         })
 
     return muon_event_param
