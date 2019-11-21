@@ -142,23 +142,23 @@ class DL1CameraCalibrationContainer(Container):
     pedestal_offset = Field(
         0,
         "Additive coefficients for the pedestal calibration of extracted charge "
-        "for each pixel"
+        "for each pixel",
     )
     absolute_factor = Field(
         1,
         "Multiplicative coefficients for the absolute calibration of extracted charge into "
-        "physical units (e.g. photoelectrons or photons) for each pixel"
+        "physical units (e.g. photoelectrons or photons) for each pixel",
     )
     relative_factor = Field(
         1,
         "Multiplicative Coefficients for the relative correction between pixels to achieve a "
         "uniform charge response (post absolute calibration) from a "
-        "uniform illumination."
+        "uniform illumination.",
     )
     time_shift = Field(
         0,
         "Additive coefficients for the timing correction before charge extraction "
-        "for each pixel"
+        "for each pixel",
     )
 
 
@@ -497,6 +497,7 @@ class EventCameraCalibrationContainer(Container):
     """
     Container for the calibration coefficients for the current event and camera
     """
+
     dl1 = Field(
         DL1CameraCalibrationContainer(), "Container for DL1 calibration coefficients"
     )
@@ -512,8 +513,105 @@ class EventCalibrationContainer(Container):
     # create the camera container
     tel = Field(
         Map(EventCameraCalibrationContainer),
-        "map of tel_id to EventCameraCalibrationContainer"
+        "map of tel_id to EventCameraCalibrationContainer",
     )
+
+
+class HillasParametersContainer(Container):
+    container_prefix = "hillas"
+
+    intensity = Field(nan, "total intensity (size)")
+
+    x = Field(nan, "centroid x coordinate")
+    y = Field(nan, "centroid x coordinate")
+    r = Field(nan, "radial coordinate of centroid")
+    phi = Field(nan, "polar coordinate of centroid", unit=u.deg)
+
+    length = Field(nan, "RMS spread along the major-axis")
+    width = Field(nan, "RMS spread along the minor-axis")
+    psi = Field(nan, "rotation angle of ellipse", unit=u.deg)
+
+    skewness = Field(nan, "measure of the asymmetry")
+    kurtosis = Field(nan, "measure of the tailedness")
+
+
+class LeakageContainer(Container):
+    """
+    Fraction of signal in 1 or 2-pixel width border from the edge of the
+    camera, measured in number of signal pixels or in intensity.
+    """
+
+    container_prefix = "leakage"
+
+    pixels_width_1 = Field(
+        nan, "fraction of pixels after cleaning that are in camera border of width=1"
+    )
+    pixels_width_2 = Field(
+        nan, "fraction of pixels after cleaning that are in camera border of width=2"
+    )
+    intensity_width_1 = Field(
+        nan,
+        "Intensity in photo-electrons after cleaning"
+        " that are in the camera border of width=1 pixel",
+    )
+    intensity_width_2 = Field(
+        nan,
+        "Intensity in photo-electrons after cleaning"
+        " that are in the camera border of width=2 pixels",
+    )
+
+
+class ConcentrationContainer(Container):
+    """
+    Concentrations are ratios between light amount
+    in certain areas of the image and the full image.
+    """
+
+    container_prefix = "concentration"
+    cog = Field(
+        nan, "Percentage of photo-electrons in the three pixels closest to the cog"
+    )
+    core = Field(nan, "Percentage of photo-electrons inside the hillas ellipse")
+    pixel = Field(nan, "Percentage of photo-electrons in the brightest pixel")
+
+
+class TimingParametersContainer(Container):
+    """
+    Slope and Intercept of a linear regression of the arrival times
+    along the shower main axis
+    """
+
+    container_prefix = "timing"
+    slope = Field(nan, "Slope of arrival times along main shower axis")
+    slope_err = Field(nan, "Uncertainty `slope`")
+    intercept = Field(nan, "intercept of arrival times along main shower axis")
+    intercept_err = Field(nan, "Uncertainty `intercept`")
+    deviation = Field(
+        nan,
+        "Root-mean-square deviation of the pulse times "
+        "with respect to the predicted time",
+    )
+
+
+class MorphologyContainer(Container):
+    """ Parameters related to pixels surviving image cleaning """
+
+    num_pixels = Field(np.nan, "Number of usable pixels")
+    num_islands = Field(np.nan, "Number of distinct islands in the image")
+    num_small_islands = Field(np.nan, "Number of <= 2 pixel islands")
+    num_medium_islands = Field(np.nan, "Number of 2-50 pixel islands")
+    num_large_islands = Field(np.nan, "Number of > 10 pixel islands")
+
+
+class ImageParametersContainer(Container):
+    """ Collection of image parameters """
+
+    container_prefix = "params"
+    hillas = Field(HillasParametersContainer(), "Hillas Parameters")
+    timing = Field(TimingParametersContainer(), "Timing Parameters")
+    leakage = Field(LeakageContainer(), "Leakage Parameters")
+    concentration = Field(ConcentrationContainer(), "Concentration Parameters")
+    morphology = Field(MorphologyContainer(), "Morphology Parameters")
 
 
 class DataContainer(Container):
@@ -525,6 +623,9 @@ class DataContainer(Container):
     r1 = Field(R1Container(), "R1 Calibrated Data")
     dl0 = Field(DL0Container(), "DL0 Data Volume Reduced Data")
     dl1 = Field(DL1Container(), "DL1 Calibrated image")
+    imageparameters = Field(
+        Map(ImageParametersContainer), "Image Parameters for Reconstruction"
+    )
     dl2 = Field(ReconstructedContainer(), "Reconstructed Shower Information")
     mc = Field(MCEventContainer(), "Monte-Carlo data")
     mcheader = Field(MCHeaderContainer(), "Monte-Carlo run header data")
@@ -538,7 +639,7 @@ class DataContainer(Container):
     pointing = Field(Map(TelescopePointingContainer), "Telescope pointing positions")
     calibration = Field(
         EventCalibrationContainer(),
-        "Container for calibration coefficients for the current event"
+        "Container for calibration coefficients for the current event",
     )
 
 
@@ -663,103 +764,6 @@ class MuonIntensityParameter(Container):
     inputfile = Field("", "input file")
 
 
-class HillasParametersContainer(Container):
-    container_prefix = "hillas"
-
-    intensity = Field(nan, "total intensity (size)")
-
-    x = Field(nan, "centroid x coordinate")
-    y = Field(nan, "centroid x coordinate")
-    r = Field(nan, "radial coordinate of centroid")
-    phi = Field(nan, "polar coordinate of centroid", unit=u.deg)
-
-    length = Field(nan, "RMS spread along the major-axis")
-    width = Field(nan, "RMS spread along the minor-axis")
-    psi = Field(nan, "rotation angle of ellipse", unit=u.deg)
-
-    skewness = Field(nan, "measure of the asymmetry")
-    kurtosis = Field(nan, "measure of the tailedness")
-
-
-class LeakageContainer(Container):
-    """
-    Fraction of signal in 1 or 2-pixel width border from the edge of the
-    camera, measured in number of signal pixels or in intensity.
-    """
-
-    container_prefix = "leakage"
-
-    pixels_width_1 = Field(
-        nan, "fraction of pixels after cleaning that are in camera border of width=1"
-    )
-    pixels_width_2 = Field(
-        nan, "fraction of pixels after cleaning that are in camera border of width=2"
-    )
-    intensity_width_1 = Field(
-        nan,
-        "Intensity in photo-electrons after cleaning"
-        " that are in the camera border of width=1 pixel",
-    )
-    intensity_width_2 = Field(
-        nan,
-        "Intensity in photo-electrons after cleaning"
-        " that are in the camera border of width=2 pixels",
-    )
-
-
-class ConcentrationContainer(Container):
-    """
-    Concentrations are ratios between light amount
-    in certain areas of the image and the full image.
-    """
-
-    container_prefix = "concentration"
-    cog = Field(
-        nan, "Percentage of photo-electrons in the three pixels closest to the cog"
-    )
-    core = Field(nan, "Percentage of photo-electrons inside the hillas ellipse")
-    pixel = Field(nan, "Percentage of photo-electrons in the brightest pixel")
-
-
-class TimingParametersContainer(Container):
-    """
-    Slope and Intercept of a linear regression of the arrival times
-    along the shower main axis
-    """
-
-    container_prefix = "timing"
-    slope = Field(nan, "Slope of arrival times along main shower axis")
-    slope_err = Field(nan, "Uncertainty `slope`")
-    intercept = Field(nan, "intercept of arrival times along main shower axis")
-    intercept_err = Field(nan, "Uncertainty `intercept`")
-    deviation = Field(
-        nan,
-        "Root-mean-square deviation of the pulse times "
-        "with respect to the predicted time",
-    )
-
-
-class MorphologyContainer(Container):
-    """ Parameters related to pixels surviving image cleaning """
-
-    num_pixels = Field(np.nan, "Number of usable pixels")
-    num_islands = Field(np.nan, "Number of distinct islands in the image")
-    num_small_islands = Field(np.nan, "Number of <= 2 pixel islands")
-    num_medium_islands = Field(np.nan, "Number of 2-50 pixel islands")
-    num_large_islands = Field(np.nan, "Number of > 10 pixel islands")
-
-
-class ImageParametersContainer(Container):
-    """ Collection of image parameters """
-
-    container_prefix = "params"
-    hillas = Field(HillasParametersContainer(), "Hillas Parameters")
-    timing = Field(TimingParametersContainer(), "Timing Parameters")
-    leakage = Field(LeakageContainer(), "Leakage Parameters")
-    concentration = Field(ConcentrationContainer(), "Concentration Parameters")
-    morphology = Field(MorphologyContainer(), "Morphology Parameters")
-
-
 class FlatFieldContainer(Container):
     """
     Container for flat-field parameters obtained from a set of
@@ -866,6 +870,7 @@ class WaveformCalibrationContainer(Container):
     """
     Container for the pixel calibration coefficients
     """
+
     time = Field(0, "Time associated to the calibration event", unit=u.s)
     time_range = Field(
         [],
