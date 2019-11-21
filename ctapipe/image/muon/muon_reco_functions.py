@@ -249,9 +249,8 @@ def analyze_muon_event(event):
                 ]
 
                 if all(conditions):
-                    muonintensityparam = muonintensityoutput
                     idx = tellist.index(telid)
-                    muonintensitylist[idx] = muonintensityparam
+                    muonintensitylist[idx] = muonintensityoutput
                     logger.debug("Muon found in tel %d,  tels in event=%d",
                                  telid, len(event.dl0.tels_with_data))
                 else:
