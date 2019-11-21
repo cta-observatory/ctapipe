@@ -43,6 +43,11 @@ from ctapipe.io.containers import (
     MorphologyContainer,
 )
 
+
+import tables
+
+tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many datasets
+
 PROV = Provenance()
 
 # define the version of the DL1 data model written here. This should be updated
@@ -803,8 +808,9 @@ class Stage1Process(Tool):
             tel_type = str(telescope)
             tel_index.tel_id = np.int16(tel_id)
             tel_index.tel_type_id = tel_type_string_to_int(tel_type)
-            table_name = f"tel_{tel_id:03d}" if self.split_datasets_by == 'tel_id' else \
-                tel_type
+            table_name = (
+                f"tel_{tel_id:03d}" if self.split_datasets_by == "tel_id" else tel_type
+            )
 
             extra = ExtraImageContainer(
                 mc_photo_electron_image=event.mc.tel[tel_id].photo_electron_image,
@@ -838,7 +844,6 @@ class Stage1Process(Tool):
                 parameters_were_computed = (
                     False if params.hillas.intensity is np.nan else True
                 )
-
 
                 if parameters_were_computed:
                     writer.write(
@@ -874,7 +879,7 @@ class Stage1Process(Tool):
                 # recurse
                 self._generate_table_indices(h5file, node)
 
-    def _generate_indices(self,writer):
+    def _generate_indices(self, writer):
 
         if self.write_images:
             self._generate_table_indices(writer._h5file, "/dl1/event/telescope/images")
@@ -893,7 +898,7 @@ class Stage1Process(Tool):
 
             self._process_events(writer)
             self._write_simulation_histograms(writer)
-            #self._write_processing_statistics()
+            # self._write_processing_statistics()
 
             if self.write_index_tables:
                 self._generate_indices(writer)
@@ -902,7 +907,7 @@ class Stage1Process(Tool):
                 output_filename=self.output_filename,
                 subarray=self.event_source.subarray,
                 obs_id=self._cur_obs_id,
-                writer=writer
+                writer=writer,
             )
 
     def finish(self):
