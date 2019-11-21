@@ -35,6 +35,16 @@ def transform_pixel_coords_from_meter_to_deg(x, y, foc_len, fast_but_bad=False):
 
     return delta_az, delta_alt
 
+def calc_dist_and_ring_dist(x, y, ring_fit, parameter=0.4):
+    dist = np.sqrt(
+        (x - ring_fit.ring_center_x)**2 +
+        (y - ring_fit.ring_center_y)**2
+    )
+    ring_dist = np.abs(dist - ring_fit.ring_radius)
+    dist_mask = ring_dist < ring_fit.ring_radius * parameter
+
+    return dist, ring_dist, dist_mask
+
 def analyze_muon_event(event):
     """
     Generic muon event analyzer.
@@ -46,7 +56,7 @@ def analyze_muon_event(event):
 
     Returns
     -------
-    muonringparam, muonintensityparam : MuonRingParameter
+    ring_fit, muonintensityparam : MuonRingParameter
     and MuonIntensityParameter container event
 
     """
@@ -128,39 +138,20 @@ def analyze_muon_event(event):
         if not sum(img):  # Nothing left after tail cuts
             continue
 
-        muonringparam = muon_ring_fit(x, y, image, clean_mask)
+        # 1st fit
+        ring_fit = muon_ring_fit(x, y, image, clean_mask)
+        dist, ring_dist, dist_mask = calc_dist_and_ring_dist(x, y, ring_fit)
 
-        dist = np.sqrt(
-            np.power(x - muonringparam.ring_center_x, 2) +
-            np.power(y - muonringparam.ring_center_y, 2)
-        )
-        ring_dist = np.abs(dist - muonringparam.ring_radius)
+        # 2nd fit
+        ring_fit = muon_ring_fit(x, y, img, dist_mask)
+        dist, ring_dist, dist_mask = calc_dist_and_ring_dist(x, y, ring_fit)
 
-        muonringparam = muon_ring_fit(
-            x, y, img, (ring_dist < muonringparam.ring_radius * 0.4)
-        )
-
-        dist = np.sqrt(
-            np.power(x - muonringparam.ring_center_x, 2) +
-            np.power(y - muonringparam.ring_center_y, 2)
-        )
-        ring_dist = np.abs(dist - muonringparam.ring_radius)
-
-        muonringparam = muon_ring_fit(
-            x, y, img, (ring_dist < muonringparam.ring_radius * 0.4)
-        )
-
-        muonringparam.tel_id = telid
-        muonringparam.obs_id = event.dl0.obs_id
-        muonringparam.event_id = event.dl0.event_id
-        dist_mask = (
-            np.abs(dist - muonringparam.ring_radius)
-            < muonringparam.ring_radius * 0.4
-        )
+        # 3rd fit
+        ring_fit = muon_ring_fit(x, y, img, dist_mask)
         pix_im = image * dist_mask
         nom_dist = np.sqrt(
-            np.power(muonringparam.ring_center_x, 2) +
-            np.power(muonringparam.ring_center_y, 2)
+            (ring_fit.ring_center_x)**2 +
+            (ring_fit.ring_center_y)**2
         )
 
         minpix = muon_cut['min_pix']
@@ -175,14 +166,14 @@ def analyze_muon_event(event):
             npix_above_threshold(pix_im, tailcuts['picture_thresh']) > 0.1 * minpix
             and npix_composing_ring(pix_im) > minpix
             and nom_dist < muon_cut['CamRad']
-            and muonringparam.ring_radius < 1.5 * u.deg
-            and muonringparam.ring_radius > 1. * u.deg
+            and ring_fit.ring_radius < 1.5 * u.deg
+            and ring_fit.ring_radius > 1. * u.deg
         ):
-            muonringparam.ring_containment = ring_containment(
-                muonringparam.ring_radius,
+            ring_fit.ring_containment = ring_containment(
+                ring_fit.ring_radius,
                 muon_cut['CamRad'],
-                muonringparam.ring_center_x,
-                muonringparam.ring_center_y)
+                ring_fit.ring_center_x,
+                ring_fit.ring_center_y)
 
             ctel = MuonLineIntegrate(
                 mir_rad, hole_radius=muon_cut['HoleRad'],
@@ -192,9 +183,9 @@ def analyze_muon_event(event):
             )
 
             if image.shape[0] == muon_cut['total_pix']:
-                muonintensityoutput = ctel.fit_muon(muonringparam.ring_center_x,
-                                                    muonringparam.ring_center_y,
-                                                    muonringparam.ring_radius,
+                muonintensityoutput = ctel.fit_muon(ring_fit.ring_center_x,
+                                                    ring_fit.ring_center_y,
+                                                    ring_fit.ring_radius,
                                                     x[dist_mask], y[dist_mask],
                                                     image[dist_mask])
 
@@ -206,15 +197,14 @@ def analyze_muon_event(event):
                 idx_ring = np.nonzero(pix_im)
                 muonintensityoutput.ring_completeness = ring_completeness(
                     x[idx_ring], y[idx_ring], pix_im[idx_ring],
-                    muonringparam.ring_radius,
-                    muonringparam.ring_center_x,
-                    muonringparam.ring_center_y,
+                    ring_fit.ring_radius,
+                    ring_fit.ring_center_x,
+                    ring_fit.ring_center_y,
                     threshold=30,
                     bins=30)
                 muonintensityoutput.ring_size = np.sum(pix_im)
 
-                dist_ringwidth_mask = np.abs(dist - muonringparam.ring_radius
-                                             ) < (muonintensityoutput.ring_width)
+                dist_ringwidth_mask = ring_dist < muonintensityoutput.ring_width
                 pix_ringwidth_im = image * dist_ringwidth_mask
                 idx_ringwidth = np.nonzero(pix_ringwidth_im)
 
@@ -245,8 +235,12 @@ def analyze_muon_event(event):
                                  telid, len(event.dl0.tels_with_data))
 
 
+        ring_fit.tel_id = telid
+        ring_fit.obs_id = event.dl0.obs_id
+        ring_fit.event_id = event.dl0.event_id
+
         output.append({
-            'MuonRingParams': muonringparam,
+            'MuonRingParams': ring_fit,
             'MuonIntensityParams': muonintensityoutput,
             'muon_found': all(conditions),
         })
