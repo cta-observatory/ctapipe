@@ -7,7 +7,7 @@ from astropy import units as u
 from astropy.coordinates import Angle, SkyCoord, AltAz
 from astropy.utils.decorators import deprecated
 
-from ctapipe.coordinates import CameraFrame, NominalFrame
+from ctapipe.coordinates import CameraFrame, TelescopeFrame
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.muon.features import ring_containment
 from ctapipe.image.muon.features import ring_completeness
@@ -18,6 +18,22 @@ from ctapipe.image.muon.muon_ring_finder import MuonRingFitter
 
 logger = logging.getLogger(__name__)
 
+
+def transform_pixel_coords_from_meter_to_deg(x, y, foc_len, fast_but_bad=False):
+    if fast_but_bad:
+        delta_alt = np.rad2deg((x / foc_len).values) * u.deg
+        delta_az = np.rad2deg((y / foc_len).values) * u.deg
+
+    else:
+        pixel_coords_in_telescope_frame = SkyCoord(
+            x=x,
+            y=y,
+            frame=CameraFrame(focal_length=foc_len)
+        ).transform_to(TelescopeFrame())
+        delta_az = pixel_coords_in_telescope_frame.delta_az.deg
+        delta_alt = pixel_coords_in_telescope_frame.delta_alt.deg
+
+    return delta_az, delta_alt
 
 def analyze_muon_event(event):
     """
@@ -87,6 +103,7 @@ def analyze_muon_event(event):
         image = event.dl1.tel[telid].image
 
         teldes = event.inst.subarray.tel[telid]
+        foc_len = teldes.optics.equivalent_focal_length
         geom = teldes.camera
         x, y = geom.pix_x, geom.pix_y
 
@@ -95,31 +112,8 @@ def analyze_muon_event(event):
         logger.debug("Tailcuts are %s", tailcuts)
         clean_mask = tailcuts_clean(geom, image, **tailcuts)
 
-        # TODO: correct this hack for values over 90
-        altval = event.mcheader.run_array_direction[1]
-        if altval > Angle(90, unit=u.deg):
-            warnings.warn('Altitude over 90 degrees')
-            altval = Angle(90, unit=u.deg)
-
-        telescope_pointing = SkyCoord(
-            alt=altval,
-            az=event.mcheader.run_array_direction[0],
-            frame=AltAz()
-        )
-        camera_coord = SkyCoord(
-            x=x, y=y,
-            frame=CameraFrame(
-                focal_length=teldes.optics.equivalent_focal_length,
-                rotation=geom.pix_rotation,
-                telescope_pointing=telescope_pointing,
-            )
-        )
-
-        nom_coord = camera_coord.transform_to(
-            NominalFrame(origin=telescope_pointing)
-        )
-        x = nom_coord.delta_az.to(u.deg)
-        y = nom_coord.delta_alt.to(u.deg)
+        x, y = transform_pixel_coords_from_meter_to_deg(
+            x, y, foc_len, fast_but_bad=True)
 
         if(cleaning):
             img = image * clean_mask
