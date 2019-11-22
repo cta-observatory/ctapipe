@@ -87,7 +87,7 @@ def _psf_neg_log_likelihood(params, x, y, weights):
         (np.log(sigma) + 0.5 * ((pixel_distance - radius) / sigma)**2) * weights
     )
 
-def strip_unit_savely(*args):
+def all_to_value(*args, unit):
     '''strips unit if all args are convertible to the same unit.
 
     - does not copy the data
@@ -98,19 +98,10 @@ def strip_unit_savely(*args):
 
     Returns: (*args_without_unit, unit)
     '''
-    if not args:
-        return
-
-    first = args[0]
-    first = Quantity(first, copy=False)
-    first, unit = first.value, first.unit
-
-    others = (
+    return tuple(
         Quantity(arg, copy=False).to_value(unit)
-        for arg in args[1:]
+        for arg in args
     )
-
-    return (first, *others, unit)
 
 
 
@@ -143,8 +134,8 @@ def psf_likelihood_fit(x, y, weights):
     std: astropy-quantity
         standard deviation of the gaussian profile (indictor for the ring width)
     """
-
-    x, y, unit = strip_unit_savely(x, y)
+    unit = x.unit
+    x, y= all_to_value(x, y, unit=unit)
 
     start_r, start_x, start_y = kundu_chaudhuri_circle_fit(x, y, weights)
 
@@ -498,7 +489,8 @@ def taubin_circle_fit(
     mask: array-like boolean
         true for pixels surviving the cleaning
     """
-    x, y, orinal_unit = strip_unit_savely(x, y)
+    orinal_unit = x.unit
+    x, y = all_to_value(x, y, unit=orinal_unit)
 
     x_masked = x[mask]
     y_masked = y[mask]
