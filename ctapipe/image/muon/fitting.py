@@ -87,16 +87,32 @@ def _psf_neg_log_likelihood(params, x, y, weights):
         (np.log(sigma) + 0.5 * ((pixel_distance - radius) / sigma)**2) * weights
     )
 
-def strip_unit_savely(x, y):
-    '''takes quantities or simple np.array, forces into quantity and strips unit'''
-    x = Quantity(x).decompose()
-    y = Quantity(y).decompose()
-    assert x.unit == y.unit
-    unit = x.unit
-    x = x.value
-    y = y.value
+def strip_unit_savely(*args):
+    '''strips unit if all args are convertible to the same unit.
 
-    return x, y, unit
+    - does not copy the data
+    - the unit returned, will be the one of the 1st arg
+    - makes sure all args are convertible to the same unit
+    - return the values of all args and the unit
+    - Raise a meaningful error in case the args are not of a convertible unit.
+
+    Returns: (*args_without_unit, unit)
+    '''
+    if not args:
+        return
+
+    first = args[0]
+    first = u.Quantitity(first, copy=False)
+    first, unit = first.value, first.unit
+
+    others = (
+        u.Quantity(arg, copy=False).to_value(unit)
+        for arg in args[1:]:
+    )
+
+    return (first, *others, unit)
+
+
 
 def psf_likelihood_fit(x, y, weights):
     """
