@@ -98,15 +98,15 @@ def generate_muon_cuts_by_telescope_name():
 
     return muon_cuts_by_name
 
-def is_something_good(pix_im, ring_fit, muon_cut):
+def is_something_good(cleaned_image, ring_fit, muon_cut):
     '''this is testing something on the image and the fit,
     but I do not really get it.
     '''
     return (
         npix_above_threshold(
-            pix_im, muon_cut['tail_cuts']['picture_thresh']
+            cleaned_image, muon_cut['tail_cuts']['picture_thresh']
         ) > 0.1 * muon_cut['min_pix']
-        and npix_composing_ring(pix_im) > muon_cut['min_pix']
+        and npix_composing_ring(cleaned_image) > muon_cut['min_pix']
         and calc_nom_dist(ring_fit) < muon_cut['CamRad']
         and ring_fit.ring_radius < 1.5 * u.deg
         and ring_fit.ring_radius > 1. * u.deg
@@ -127,8 +127,40 @@ def do_multi_ring_fit(x, y, image, clean_mask):
     mask *= dist_mask
 
     return ring_fit, mask
-    pix_im = image * mask
 
+def calc_muon_intensity_parameters(x, y, image, mask, ring_fit):
+
+    muonintensityoutput = ctel.fit_muon(
+        ring_fit.ring_center_x,
+        ring_fit.ring_center_y,
+        ring_fit.ring_radius,
+        x[mask],
+        y[mask],
+        image[mask]
+    )
+
+    muonintensityoutput.mask = mask
+
+    muonintensityoutput.ring_completeness = ring_completeness(
+        x[mask],
+        y[mask],
+        image[mask],
+        ring_fit.ring_radius,
+        ring_fit.ring_center_x,
+        ring_fit.ring_center_y,
+        threshold=30,
+        bins=30)
+    muonintensityoutput.ring_size = np.sum(mask)
+
+    dist_ringwidth_mask = ring_dist < muonintensityoutput.ring_width
+    pix_ringwidth_im = image * dist_ringwidth_mask
+
+    muonintensityoutput.ring_pix_completeness = (
+        (pix_ringwidth_im[dist_ringwidth_mask] > tailcuts['picture_thresh']).sum()
+        / dist_ringwidth_mask.sum()
+    )
+
+    return muonintensityoutput
 
 def analyze_muon_event(event):
     """
@@ -147,13 +179,9 @@ def analyze_muon_event(event):
     """
     muon_cuts_by_name = generate_muon_cuts_by_telescope_name()
 
-    logger.debug(muon_cuts)
-
     output = []
     for telid in event.dl0.tels_with_data:
-        logger.debug("Analysing muon event for tel %d", telid)
         image = event.dl1.tel[telid].image
-
         teldes = event.inst.subarray.tel[telid]
         foc_len = teldes.optics.equivalent_focal_length
         geom = teldes.camera
@@ -163,24 +191,27 @@ def analyze_muon_event(event):
 
         muon_cut = muon_cuts_by_name[str(teldes)]
         tailcuts = muon_cut['tail_cuts']
-        logger.debug("Tailcuts are %s", tailcuts)
         clean_mask = tailcuts_clean(geom, image, **tailcuts)
 
         x, y = transform_pixel_coords_from_meter_to_deg(
             x, y, foc_len, fast_but_bad=True)
 
         muon_ring_fit = MuonRingFitter(fit_method="chaudhuri_kundu")
+        ctel = MuonLineIntegrate(
+            mirror_radius,
+            hole_radius=muon_cut['HoleRad'],
+            pixel_width=muon_cut['AngPixW'],
+            sct_flag=muon_cut['SCT'],
+            secondary_radius=muon_cut['SecRad'],
+        )
 
-        logger.debug("img: %s mask: %s, x=%s y= %s", np.sum(image),
-                     np.sum(clean_mask), x, y)
 
         if not np.any(clean_mask):  # early bail out - safes time
             continue
 
         ring_fit, mask = do_multi_ring_fit(x, y, image, clean_mask)
-        pix_im = image * mask
 
-        if is_something_good(pix_im, ring_fit, muon_cut)
+        if is_something_good(image * mask, ring_fit, muon_cut)
             ring_fit.ring_containment = ring_containment(
                 ring_fit.ring_radius,
                 muon_cut['CamRad'],
@@ -188,50 +219,10 @@ def analyze_muon_event(event):
                 ring_fit.ring_center_y
             )
 
-            ctel = MuonLineIntegrate(
-                mirror_radius,
-                hole_radius=muon_cut['HoleRad'],
-                pixel_width=muon_cut['AngPixW'],
-                sct_flag=muon_cut['SCT'],
-                secondary_radius=muon_cut['SecRad'],
+            muonintensityoutput = calc_muon_intensity_parameters(
+                x, y, image, mask, ring_fit
             )
 
-            muonintensityoutput = ctel.fit_muon(
-                ring_fit.ring_center_x,
-                ring_fit.ring_center_y,
-                ring_fit.ring_radius,
-                x[mask],
-                y[mask],
-                image[mask]
-            )
-
-            muonintensityoutput.mask = mask
-
-            idx_ring = np.nonzero(pix_im)
-            muonintensityoutput.ring_completeness = ring_completeness(
-                x[idx_ring],
-                y[idx_ring],
-                pix_im[idx_ring],
-                ring_fit.ring_radius,
-                ring_fit.ring_center_x,
-                ring_fit.ring_center_y,
-                threshold=30,
-                bins=30)
-            muonintensityoutput.ring_size = np.sum(pix_im)
-
-            dist_ringwidth_mask = ring_dist < muonintensityoutput.ring_width
-            pix_ringwidth_im = image * dist_ringwidth_mask
-            idx_ringwidth = np.nonzero(pix_ringwidth_im)
-
-            muonintensityoutput.ring_pix_completeness = (
-                npix_above_threshold(pix_ringwidth_im[idx_ringwidth], tailcuts['picture_thresh'])
-                / len(pix_im[idx_ringwidth])
-            )
-
-            logger.debug("Tel %d Impact parameter = %s mirror_radius=%s "
-                         "ring_width=%s", telid,
-                         muonintensityoutput.impact_parameter, mirror_radius,
-                         muonintensityoutput.ring_width)
             conditions = [
                 muonintensityoutput.impact_parameter <
                 muon_cut['Impact'][1] * mirror_radius,
