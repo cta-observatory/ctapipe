@@ -196,59 +196,58 @@ def analyze_muon_event(event):
                 secondary_radius=muon_cut['SecRad'],
             )
 
-            if image.shape[0] == muon_cut['total_pix']:
-                muonintensityoutput = ctel.fit_muon(
-                    ring_fit.ring_center_x,
-                    ring_fit.ring_center_y,
-                    ring_fit.ring_radius,
-                    x[mask],
-                    y[mask],
-                    image[mask]
-                )
+            muonintensityoutput = ctel.fit_muon(
+                ring_fit.ring_center_x,
+                ring_fit.ring_center_y,
+                ring_fit.ring_radius,
+                x[mask],
+                y[mask],
+                image[mask]
+            )
 
-                muonintensityoutput.tel_id = telid
-                muonintensityoutput.obs_id = event.dl0.obs_id
-                muonintensityoutput.event_id = event.dl0.event_id
-                muonintensityoutput.mask = mask
+            muonintensityoutput.tel_id = telid
+            muonintensityoutput.obs_id = event.dl0.obs_id
+            muonintensityoutput.event_id = event.dl0.event_id
+            muonintensityoutput.mask = mask
 
-                idx_ring = np.nonzero(pix_im)
-                muonintensityoutput.ring_completeness = ring_completeness(
-                    x[idx_ring],
-                    y[idx_ring],
-                    pix_im[idx_ring],
-                    ring_fit.ring_radius,
-                    ring_fit.ring_center_x,
-                    ring_fit.ring_center_y,
-                    threshold=30,
-                    bins=30)
-                muonintensityoutput.ring_size = np.sum(pix_im)
+            idx_ring = np.nonzero(pix_im)
+            muonintensityoutput.ring_completeness = ring_completeness(
+                x[idx_ring],
+                y[idx_ring],
+                pix_im[idx_ring],
+                ring_fit.ring_radius,
+                ring_fit.ring_center_x,
+                ring_fit.ring_center_y,
+                threshold=30,
+                bins=30)
+            muonintensityoutput.ring_size = np.sum(pix_im)
 
-                dist_ringwidth_mask = ring_dist < muonintensityoutput.ring_width
-                pix_ringwidth_im = image * dist_ringwidth_mask
-                idx_ringwidth = np.nonzero(pix_ringwidth_im)
+            dist_ringwidth_mask = ring_dist < muonintensityoutput.ring_width
+            pix_ringwidth_im = image * dist_ringwidth_mask
+            idx_ringwidth = np.nonzero(pix_ringwidth_im)
 
-                muonintensityoutput.ring_pix_completeness = (
-                    npix_above_threshold(pix_ringwidth_im[idx_ringwidth], tailcuts['picture_thresh'])
-                    / len(pix_im[idx_ringwidth])
-                )
+            muonintensityoutput.ring_pix_completeness = (
+                npix_above_threshold(pix_ringwidth_im[idx_ringwidth], tailcuts['picture_thresh'])
+                / len(pix_im[idx_ringwidth])
+            )
 
-                logger.debug("Tel %d Impact parameter = %s mirror_radius=%s "
-                             "ring_width=%s", telid,
-                             muonintensityoutput.impact_parameter, mirror_radius,
-                             muonintensityoutput.ring_width)
-                conditions = [
-                    muonintensityoutput.impact_parameter <
-                    muon_cut['Impact'][1] * mirror_radius,
+            logger.debug("Tel %d Impact parameter = %s mirror_radius=%s "
+                         "ring_width=%s", telid,
+                         muonintensityoutput.impact_parameter, mirror_radius,
+                         muonintensityoutput.ring_width)
+            conditions = [
+                muonintensityoutput.impact_parameter <
+                muon_cut['Impact'][1] * mirror_radius,
 
-                    muonintensityoutput.impact_parameter
-                    > muon_cut['Impact'][0] * mirror_radius,
+                muonintensityoutput.impact_parameter
+                > muon_cut['Impact'][0] * mirror_radius,
 
-                    muonintensityoutput.ring_width
-                    < muon_cut['RingWidth'][1],
+                muonintensityoutput.ring_width
+                < muon_cut['RingWidth'][1],
 
-                    muonintensityoutput.ring_width
-                    > muon_cut['RingWidth'][0]
-                ]
+                muonintensityoutput.ring_width
+                > muon_cut['RingWidth'][0]
+            ]
 
 
         ring_fit.tel_id = telid
