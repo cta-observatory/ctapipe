@@ -88,7 +88,7 @@ def _psf_neg_log_likelihood(params, x, y, weights):
     )
 
 def all_to_value(*args, unit):
-    '''strips unit if all args are convertible to the same unit.
+    '''converts all args to value if convertible to the same unit.
 
     - does not copy the data
     - the unit returned, will be the one of the 1st arg
@@ -96,7 +96,7 @@ def all_to_value(*args, unit):
     - return the values of all args and the unit
     - Raise a meaningful error in case the args are not of a convertible unit.
 
-    Returns: (*args_without_unit, unit)
+    Returns: *args_without_unit
     '''
     return tuple(
         Quantity(arg, copy=False).to_value(unit)
