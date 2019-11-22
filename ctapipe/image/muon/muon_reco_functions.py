@@ -263,12 +263,11 @@ def analyze_muon_event(event):
             ring_fit.ring_center_x,
             ring_fit.ring_center_y
         )
-        if not is_ring_good(image * mask, ring_fit, muon_cut):
-            output.append({
-                'MuonRingParams': ring_fit,
-                'mirror_radius': mirror_radius,
-            })
-        else:
+        result = {
+            'MuonRingParams': ring_fit,
+            'mirror_radius': mirror_radius,
+        }
+        if is_ring_good(image * mask, ring_fit, muon_cut):
 
             muonintensityoutput = calc_muon_intensity_parameters(
                 x, y, image, mask, ring_fit
@@ -291,11 +290,11 @@ def analyze_muon_event(event):
                 > muon_cut['RingWidth'][0]
             ]
 
-            output.append({
-                'MuonRingParams': ring_fit,
+            result.update({
                 'MuonIntensityParams': muonintensityoutput,
                 'muon_found': all(conditions),
-                'mirror_radius': mirror_radius,
             })
+
+        output.append(result)
 
     return output
