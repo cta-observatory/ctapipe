@@ -1,7 +1,10 @@
+import pytest
 import numpy as np
 import astropy.units as u
 
 from ctapipe.image.muon import kundu_chaudhuri_circle_fit
+from ctapipe.image.muon.fitting import strip_unit_savely
+
 
 np.random.seed(0)
 
@@ -45,3 +48,35 @@ def test_kundu_chaudhuri_with_units():
     assert fit_x.unit == center_x.unit
     assert fit_y.unit == center_y.unit
     assert fit_radius.unit == radius.unit
+
+def test_strip_unit_savely():
+    x_m = np.arange(5) * u.m
+    y_mm = np.arange(5) * 1000 * u.mm
+    z_km = np.arange(5) * 1e-3 * u.km
+    nono_deg = np.arange(5) * 1000 * u.deg
+
+    # one argument
+    x, unit = strip_unit_savely(x_m)
+    assert u.isclose(x, np.arange(5)).all()
+    assert (x == np.arange(5)).all()  # wow even this works
+    assert unit == u.m
+
+    # two arguments
+    x, y, unit = strip_unit_savely(x_m, y_mm)
+    assert u.isclose(x, np.arange(5)).all()
+    assert (x == np.arange(5)).all()  # wow even this works
+    assert unit == u.m
+    assert u.isclose(y, np.arange(5)).all()
+    assert (y == np.arange(5)).all()  # wow even this works
+
+    x, y, z, unit = strip_unit_savely(x_m, y_mm, z_km)
+    assert u.isclose(x, np.arange(5)).all()
+    assert (x == np.arange(5)).all()  # wow even this works
+    assert unit == u.m
+    assert u.isclose(y, np.arange(5)).all()
+    assert (y == np.arange(5)).all()  # wow even this works
+    assert u.isclose(z, np.arange(5)).all()
+    assert (z == np.arange(5)).all()  # wow even this works
+
+    with pytest.raises(u.UnitConversionError):
+        strip_unit_savely(x_m, nono_deg)

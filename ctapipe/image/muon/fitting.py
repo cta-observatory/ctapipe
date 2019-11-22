@@ -102,12 +102,12 @@ def strip_unit_savely(*args):
         return
 
     first = args[0]
-    first = u.Quantitity(first, copy=False)
+    first = Quantity(first, copy=False)
     first, unit = first.value, first.unit
 
     others = (
-        u.Quantity(arg, copy=False).to_value(unit)
-        for arg in args[1:]:
+        Quantity(arg, copy=False).to_value(unit)
+        for arg in args[1:]
     )
 
     return (first, *others, unit)
