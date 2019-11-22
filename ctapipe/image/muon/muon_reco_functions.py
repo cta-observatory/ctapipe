@@ -35,6 +35,13 @@ def transform_pixel_coords_from_meter_to_deg(x, y, foc_len, fast_but_bad=False):
 
     return delta_az, delta_alt
 
+def calc_nom_dist(ring_fit):
+    nom_dist = np.sqrt(
+        (ring_fit.ring_center_x)**2 +
+        (ring_fit.ring_center_y)**2
+    )
+    return nom_dist
+
 def calc_dist_and_ring_dist(x, y, ring_fit, parameter=0.4):
     dist = np.sqrt(
         (x - ring_fit.ring_center_x)**2 +
@@ -69,8 +76,6 @@ def generate_muon_cuts_by_telescope_name():
     sec_rad = [0. * u.m, 0. * u.m, 0. * u.m, 2.7 * u.m,
                0. * u.m, 1. * u.m, 1.8 * u.m, 1.8 * u.m]
     sct = [False, False, False, True, False, True, True, True]
-    # Added cleaning here. All these options should go to an input card
-    cleaning = True
 
 
     muon_cuts = {'Name': names, 'tail_cuts': tail_cuts, 'Impact': impact,
@@ -102,7 +107,7 @@ def is_something_good(pix_im, ring_fit, muon_cut):
             pix_im, muon_cut['tail_cuts']['picture_thresh']
         ) > 0.1 * muon_cut['min_pix']
         and npix_composing_ring(pix_im) > muon_cut['min_pix']
-        and nom_dist < muon_cut['CamRad']
+        and calc_nom_dist(ring_fit) < muon_cut['CamRad']
         and ring_fit.ring_radius < 1.5 * u.deg
         and ring_fit.ring_radius > 1. * u.deg
     )
@@ -135,6 +140,8 @@ def analyze_muon_event(event):
         teldes = event.inst.subarray.tel[telid]
         foc_len = teldes.optics.equivalent_focal_length
         geom = teldes.camera
+        optics = teldes.optics
+        mirror_radius = optics.mirror_radius
         x, y = geom.pix_x, geom.pix_y
 
         muon_cut = muon_cuts_by_name[str(teldes)]
@@ -145,36 +152,27 @@ def analyze_muon_event(event):
         x, y = transform_pixel_coords_from_meter_to_deg(
             x, y, foc_len, fast_but_bad=True)
 
-        if(cleaning):
-            img = image * clean_mask
-        else:
-            img = image
-
         muon_ring_fit = MuonRingFitter(fit_method="chaudhuri_kundu")
 
         logger.debug("img: %s mask: %s, x=%s y= %s", np.sum(image),
                      np.sum(clean_mask), x, y)
 
-        if not sum(img):  # Nothing left after tail cuts
+        if not np.any(clean_mask):  # Nothing left after tail cuts
             continue
 
         # 1st fit
         ring_fit = muon_ring_fit(x, y, image, clean_mask)
         dist, ring_dist, dist_mask = calc_dist_and_ring_dist(x, y, ring_fit)
-
+        mask = clean_mask * dist_mask
         # 2nd fit
-        ring_fit = muon_ring_fit(x, y, img, dist_mask)
+        ring_fit = muon_ring_fit(x, y, image, mask)
         dist, ring_dist, dist_mask = calc_dist_and_ring_dist(x, y, ring_fit)
-
+        mask *= dist_mask
         # 3rd fit
-        ring_fit = muon_ring_fit(x, y, img, dist_mask)
-        pix_im = image * dist_mask
-        nom_dist = np.sqrt(
-            (ring_fit.ring_center_x)**2 +
-            (ring_fit.ring_center_y)**2
-        )
-
-        mirror_radius = np.sqrt(teldes.optics.mirror_area.to("m2") / np.pi)
+        ring_fit = muon_ring_fit(x, y, image, mask)
+        dist, ring_dist, dist_mask = calc_dist_and_ring_dist(x, y, ring_fit)
+        mask *= dist_mask
+        pix_im = image * mask
 
         # Camera containment radius -  better than nothing - guess pixel
         # diameter of 0.11, all cameras are perfectly circular   cam_rad =
