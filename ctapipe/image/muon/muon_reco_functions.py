@@ -233,13 +233,13 @@ def analyze_muon_event(event):
 
         ring_fit, mask = do_multi_ring_fit(x, y, image, clean_mask)
 
+        ring_fit.ring_containment = ring_containment(
+            ring_fit.ring_radius,
+            muon_cut['CamRad'],
+            ring_fit.ring_center_x,
+            ring_fit.ring_center_y
+        )
         if is_ring_good(image * mask, ring_fit, muon_cut)
-            ring_fit.ring_containment = ring_containment(
-                ring_fit.ring_radius,
-                muon_cut['CamRad'],
-                ring_fit.ring_center_x,
-                ring_fit.ring_center_y
-            )
 
             muonintensityoutput = calc_muon_intensity_parameters(
                 x, y, image, mask, ring_fit
