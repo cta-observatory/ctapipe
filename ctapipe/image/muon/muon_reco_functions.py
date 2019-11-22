@@ -93,6 +93,20 @@ def generate_muon_cuts_by_telescope_name():
 
     return muon_cuts_by_name
 
+def is_something_good(pix_im, ring_fit, muon_cut):
+    '''this is testing something on the image and the fit,
+    but I do not really get it.
+    '''
+    return (
+        npix_above_threshold(
+            pix_im, muon_cut['tail_cuts']['picture_thresh']
+        ) > 0.1 * muon_cut['min_pix']
+        and npix_composing_ring(pix_im) > muon_cut['min_pix']
+        and nom_dist < muon_cut['CamRad']
+        and ring_fit.ring_radius < 1.5 * u.deg
+        and ring_fit.ring_radius > 1. * u.deg
+    )
+
 
 def analyze_muon_event(event):
     """
@@ -160,21 +174,13 @@ def analyze_muon_event(event):
             (ring_fit.ring_center_y)**2
         )
 
-        minpix = muon_cut['min_pix']
-
         mirror_radius = np.sqrt(teldes.optics.mirror_area.to("m2") / np.pi)
 
         # Camera containment radius -  better than nothing - guess pixel
         # diameter of 0.11, all cameras are perfectly circular   cam_rad =
         # np.sqrt(numpix*0.11/(2.*np.pi))
 
-        if (
-            npix_above_threshold(pix_im, tailcuts['picture_thresh']) > 0.1 * minpix
-            and npix_composing_ring(pix_im) > minpix
-            and nom_dist < muon_cut['CamRad']
-            and ring_fit.ring_radius < 1.5 * u.deg
-            and ring_fit.ring_radius > 1. * u.deg
-        ):
+        if is_something_good(pix_im, ring_fit, muon_cut)
             ring_fit.ring_containment = ring_containment(
                 ring_fit.ring_radius,
                 muon_cut['CamRad'],
