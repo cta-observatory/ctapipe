@@ -148,10 +148,9 @@ def ring_containment(
     angle_ring = np.linspace(0, 2 * np.pi, 360)
     ring_x = cring_x + ring_radius * np.cos(angle_ring)
     ring_y = cring_y + ring_radius * np.sin(angle_ring)
-    d = np.sqrt(np.power(ring_x, 2) + np.power(ring_y, 2))
+    d_squared = ring_x**2 + ring_y**2
 
-    ringcontainment = len(d[d < cam_rad]) / len(d)
-
+    ringcontainment = np.mean(d < cam_rad**2)
     return ringcontainment
 
 
