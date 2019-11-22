@@ -112,6 +112,23 @@ def is_something_good(pix_im, ring_fit, muon_cut):
         and ring_fit.ring_radius > 1. * u.deg
     )
 
+def do_multi_ring_fit(x, y, image, clean_mask):
+    # 1st fit
+    ring_fit = muon_ring_fit(x, y, image, clean_mask)
+    dist, ring_dist, dist_mask = calc_dist_and_ring_dist(x, y, ring_fit)
+    mask = clean_mask * dist_mask
+    # 2nd fit
+    ring_fit = muon_ring_fit(x, y, image, mask)
+    dist, ring_dist, dist_mask = calc_dist_and_ring_dist(x, y, ring_fit)
+    mask *= dist_mask
+    # 3rd fit
+    ring_fit = muon_ring_fit(x, y, image, mask)
+    dist, ring_dist, dist_mask = calc_dist_and_ring_dist(x, y, ring_fit)
+    mask *= dist_mask
+
+    return ring_fit, mask
+    pix_im = image * mask
+
 
 def analyze_muon_event(event):
     """
@@ -157,26 +174,11 @@ def analyze_muon_event(event):
         logger.debug("img: %s mask: %s, x=%s y= %s", np.sum(image),
                      np.sum(clean_mask), x, y)
 
-        if not np.any(clean_mask):  # Nothing left after tail cuts
+        if not np.any(clean_mask):  # early bail out - safes time
             continue
 
-        # 1st fit
-        ring_fit = muon_ring_fit(x, y, image, clean_mask)
-        dist, ring_dist, dist_mask = calc_dist_and_ring_dist(x, y, ring_fit)
-        mask = clean_mask * dist_mask
-        # 2nd fit
-        ring_fit = muon_ring_fit(x, y, image, mask)
-        dist, ring_dist, dist_mask = calc_dist_and_ring_dist(x, y, ring_fit)
-        mask *= dist_mask
-        # 3rd fit
-        ring_fit = muon_ring_fit(x, y, image, mask)
-        dist, ring_dist, dist_mask = calc_dist_and_ring_dist(x, y, ring_fit)
-        mask *= dist_mask
+        ring_fit, mask = do_multi_ring_fit(x, y, image, clean_mask)
         pix_im = image * mask
-
-        # Camera containment radius -  better than nothing - guess pixel
-        # diameter of 0.11, all cameras are perfectly circular   cam_rad =
-        # np.sqrt(numpix*0.11/(2.*np.pi))
 
         if is_something_good(pix_im, ring_fit, muon_cut)
             ring_fit.ring_containment = ring_containment(
@@ -199,15 +201,15 @@ def analyze_muon_event(event):
                     ring_fit.ring_center_x,
                     ring_fit.ring_center_y,
                     ring_fit.ring_radius,
-                    x[dist_mask],
-                    y[dist_mask],
-                    image[dist_mask]
+                    x[mask],
+                    y[mask],
+                    image[mask]
                 )
 
                 muonintensityoutput.tel_id = telid
                 muonintensityoutput.obs_id = event.dl0.obs_id
                 muonintensityoutput.event_id = event.dl0.event_id
-                muonintensityoutput.mask = dist_mask
+                muonintensityoutput.mask = mask
 
                 idx_ring = np.nonzero(pix_im)
                 muonintensityoutput.ring_completeness = ring_completeness(
