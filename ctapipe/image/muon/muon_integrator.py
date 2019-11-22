@@ -432,11 +432,12 @@ class MuonLineIntegrate:
         fit_params = minuit.values
 
         fitoutput.impact_parameter = fit_params['impact_parameter'] * u.m
-        # fitoutput.phi = fit_params['phi']*u.rad
-        fitoutput.impact_parameter_pos_x = fit_params['impact_parameter'] * np.cos(
-            fit_params['phi'] * u.rad) * u.m
-        fitoutput.impact_parameter_pos_y = fit_params['impact_parameter'] * np.sin(
-            fit_params['phi'] * u.rad) * u.m
+        fitoutput.impact_parameter_pos_x = (
+            fit_params['impact_parameter'] * np.cos(fit_params['phi']) * u.m
+        )
+        fitoutput.impact_parameter_pos_y = (
+            fit_params['impact_parameter'] * np.sin(fit_params['phi']) * u.m
+        )
         fitoutput.ring_width = fit_params['ring_width'] * self.unit
         fitoutput.optical_efficiency_muon = fit_params['optical_efficiency_muon']
 
