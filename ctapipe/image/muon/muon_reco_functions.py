@@ -45,21 +45,8 @@ def calc_dist_and_ring_dist(x, y, ring_fit, parameter=0.4):
 
     return dist, ring_dist, dist_mask
 
-def analyze_muon_event(event):
-    """
-    Generic muon event analyzer.
 
-    Parameters
-    ----------
-    event : ctapipe dl1 event container
-
-
-    Returns
-    -------
-    ring_fit, muonintensityparam : MuonRingParameter
-    and MuonIntensityParameter container event
-
-    """
+def generate_muon_cuts_by_telescope_name():
     names = ['LST_LST_LSTCam', 'MST_MST_NectarCam', 'MST_MST_FlashCam', 'MST_SCT_SCTCam',
              'SST_1M_DigiCam', 'SST_GCT_CHEC', 'SST_ASTRI_ASTRICam', 'SST_ASTRI_CHEC']
     tail_cuts = [(5, 7), (5, 7), (10, 12), (5, 7),
@@ -103,6 +90,26 @@ def analyze_muon_event(event):
             'picture_thresh': muon_cut['tail_cuts'][0],
             'boundary_thresh': muon_cut['tail_cuts'][1],
         }
+
+    return muon_cuts_by_name
+
+
+def analyze_muon_event(event):
+    """
+    Generic muon event analyzer.
+
+    Parameters
+    ----------
+    event : ctapipe dl1 event container
+
+
+    Returns
+    -------
+    ring_fit, muonintensityparam : MuonRingParameter
+    and MuonIntensityParameter container event
+
+    """
+    muon_cuts_by_name = generate_muon_cuts_by_telescope_name()
 
     logger.debug(muon_cuts)
 
