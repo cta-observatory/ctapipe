@@ -79,38 +79,36 @@ class MuonDisplayerTool(Tool):
         for event in tqdm(self.source, desc='detecting muons'):
 
             self.calib(event)
-            muon_evt = analyze_muon_event(event)
+            muon_evts = analyze_muon_event(event)
 
             if numev == 0:
                 _exclude_some_columns(event.inst.subarray, self.writer)
 
             numev += 1
 
-            if not muon_evt['MuonIntensityParams']:
-                # No telescopes  contained a good muon
+            if not muon_evts: # No telescopes contained a good muon
                 continue
-            else:
-                if self.display:
-                    plot_muon_event(event, muon_evt)
 
-                for tel_id in muon_evt['TelIds']:
-                    idx = muon_evt['TelIds'].index(tel_id)
-                    intens_params = muon_evt['MuonIntensityParams'][idx]
+            if self.display:
+                plot_muon_event(event, muon_evts)
 
-                    if intens_params is not None:
-                        ring_params = muon_evt['MuonRingParams'][idx]
-                        cam_id = str(event.inst.subarray.tel[tel_id].camera)
-                        self.num_muons_found[cam_id] += 1
-                        self.log.debug("INTENSITY: %s", intens_params)
-                        self.log.debug("RING: %s", ring_params)
-                        self.writer.write(table_name=cam_id,
-                                          containers=[intens_params,
-                                                      ring_params])
+            for muon_evt in muon_evts:
+                if 'MuonIntensityParams' in muon_evt:
+                    intens_params = muon_evt['MuonIntensityParams']
+                    ring_params = muon_evt['MuonRingParams']
+                    tel_id = ring_params.tel_id
+                    cam_id = str(event.inst.subarray.tel[tel_id].camera)
+                    self.num_muons_found[cam_id] += 1
+                    self.log.debug("INTENSITY: %s", intens_params)
+                    self.log.debug("RING: %s", ring_params)
+                    self.writer.write(table_name=cam_id,
+                                      containers=[intens_params,
+                                                  ring_params])
 
-                self.log.info(
-                    "Event Number: %d, found %s muons",
-                    numev, dict(self.num_muons_found)
-                )
+            self.log.info(
+                "Event Number: %d, found %s muons",
+                numev, dict(self.num_muons_found)
+            )
 
     def finish(self):
         Provenance().add_output_file(self.outfile,
