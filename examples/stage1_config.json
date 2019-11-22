@@ -29,7 +29,7 @@
                 ["id", 12, 15.0]
         ]
     },
-    "ImageDataChecker": {
+    "ImageSelector": {
         "selection_functions": {
             "enough_pixels": "lambda im: np.count_nonzero(im) > 2",
             "enough_charge": "lambda im: im.sum() > 100"

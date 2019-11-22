@@ -202,7 +202,7 @@ def tel_type_string_to_int(tel_type):
     )
 
 
-class DataChecker(Component):
+class Selector(Component):
     """
     Manages a set of selection criteria that operate on the same type of input.
     Each time it is called, it returns a boolean array of whether or not each
@@ -297,7 +297,7 @@ class DataChecker(Component):
         return result
 
 
-class ImageDataChecker(DataChecker):
+class ImageSelector(Selector):
     """ for configuring image-wise data checks """
 
     selection_functions = Dict(
@@ -504,7 +504,7 @@ class Stage1Process(Tool):
     }
 
     classes = List(
-        [EventSource, CameraCalibrator, ImageDataChecker]
+        [EventSource, CameraCalibrator, ImageSelector]
         + classes_with_traits(ImageCleaner)
         + classes_with_traits(ImageExtractor)
         + classes_with_traits(GainSelector)
@@ -545,7 +545,7 @@ class Stage1Process(Tool):
         self.clean = self.add_component(
             ImageCleaner.from_name(self.image_cleaner_type, parent=self)
         )
-        self.check_image = self.add_component(ImageDataChecker(parent=self))
+        self.check_image = self.add_component(ImageSelector(parent=self))
 
         # check component setup
         if self.event_source.max_events and self.event_source.max_events > 0:
