@@ -205,9 +205,6 @@ def analyze_muon_event(event):
                 image[mask]
             )
 
-            muonintensityoutput.tel_id = telid
-            muonintensityoutput.obs_id = event.dl0.obs_id
-            muonintensityoutput.event_id = event.dl0.event_id
             muonintensityoutput.mask = mask
 
             idx_ring = np.nonzero(pix_im)
@@ -249,10 +246,14 @@ def analyze_muon_event(event):
                 > muon_cut['RingWidth'][0]
             ]
 
-
+        # this is just copying information from event to these
+        # containers. would be nice if not needed at all. copying is lame
         ring_fit.tel_id = telid
         ring_fit.obs_id = event.dl0.obs_id
         ring_fit.event_id = event.dl0.event_id
+        muonintensityoutput.tel_id = telid
+        muonintensityoutput.obs_id = event.dl0.obs_id
+        muonintensityoutput.event_id = event.dl0.event_id
 
         output.append({
             'MuonRingParams': ring_fit,
