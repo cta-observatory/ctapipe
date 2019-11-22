@@ -74,7 +74,7 @@ class OpticsDescription:
         """Make this hashable, so it can be used as dict keys or in sets"""
         return hash(self) == hash(other)
 
-    @parameter
+    @property
     def mirror_radius(self):
         return np.sqrt(self.mirror_area.to("m2") / np.pi)
 

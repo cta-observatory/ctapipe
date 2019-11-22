@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 
 def transform_pixel_coords_from_meter_to_deg(x, y, foc_len, fast_but_bad=False):
     if fast_but_bad:
-        delta_alt = np.rad2deg((x / foc_len).values) * u.deg
-        delta_az = np.rad2deg((y / foc_len).values) * u.deg
+        delta_alt = np.rad2deg((x / foc_len).value) * u.deg
+        delta_az = np.rad2deg((y / foc_len).value) * u.deg
 
     else:
         pixel_coords_in_telescope_frame = SkyCoord(
@@ -134,7 +134,7 @@ def is_ring_good(cleaned_image, ring_fit, muon_cut):
     )
 
 
-def do_multi_ring_fit(x, y, image, clean_mask):
+def do_multi_ring_fit(muon_ring_fit, x, y, image, clean_mask):
     # 1st fit
     ring_fit = muon_ring_fit(x, y, image, clean_mask)
     dist, ring_dist, dist_mask = calc_dist_and_ring_dist(x, y, ring_fit)
@@ -250,7 +250,12 @@ def analyze_muon_event(event):
         if not np.any(clean_mask):  # early bail out - safes time
             continue
 
-        ring_fit, mask = do_multi_ring_fit(x, y, image, clean_mask)
+        ring_fit, mask = do_multi_ring_fit(
+            muon_ring_fit, x, y, image, clean_mask
+        )
+        ring_fit.tel_id = telid
+        ring_fit.obs_id = event.dl0.obs_id
+        ring_fit.event_id = event.dl0.event_id
 
         ring_fit.ring_containment = ring_containment(
             ring_fit.ring_radius,
@@ -258,11 +263,19 @@ def analyze_muon_event(event):
             ring_fit.ring_center_x,
             ring_fit.ring_center_y
         )
-        if is_ring_good(image * mask, ring_fit, muon_cut)
+        if not is_ring_good(image * mask, ring_fit, muon_cut):
+            output.append({
+                'MuonRingParams': ring_fit,
+                'mirror_radius': mirror_radius,
+            })
+        else:
 
             muonintensityoutput = calc_muon_intensity_parameters(
                 x, y, image, mask, ring_fit
             )
+            muonintensityoutput.tel_id = telid
+            muonintensityoutput.obs_id = event.dl0.obs_id
+            muonintensityoutput.event_id = event.dl0.event_id
 
             conditions = [
                 muonintensityoutput.impact_parameter <
@@ -278,20 +291,11 @@ def analyze_muon_event(event):
                 > muon_cut['RingWidth'][0]
             ]
 
-        # this is just copying information from event to these
-        # containers. would be nice if not needed at all. copying is lame
-        ring_fit.tel_id = telid
-        ring_fit.obs_id = event.dl0.obs_id
-        ring_fit.event_id = event.dl0.event_id
-        muonintensityoutput.tel_id = telid
-        muonintensityoutput.obs_id = event.dl0.obs_id
-        muonintensityoutput.event_id = event.dl0.event_id
+            output.append({
+                'MuonRingParams': ring_fit,
+                'MuonIntensityParams': muonintensityoutput,
+                'muon_found': all(conditions),
+                'mirror_radius': mirror_radius,
+            })
 
-        output.append({
-            'MuonRingParams': ring_fit,
-            'MuonIntensityParams': muonintensityoutput,
-            'muon_found': all(conditions),
-            'mirror_radius': mirror_radius,
-        })
-
-    return muon_event_param
+    return output

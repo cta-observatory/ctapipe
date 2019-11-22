@@ -150,7 +150,7 @@ def ring_containment(
     ring_y = cring_y + ring_radius * np.sin(angle_ring)
     d_squared = ring_x**2 + ring_y**2
 
-    ringcontainment = np.mean(d < cam_rad**2)
+    ringcontainment = np.mean(d_squared < cam_rad**2)
     return ringcontainment
 
 
