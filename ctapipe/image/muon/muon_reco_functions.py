@@ -150,7 +150,26 @@ def do_multi_ring_fit(x, y, image, clean_mask):
 
     return ring_fit, mask
 
-def calc_muon_intensity_parameters(x, y, image, mask, ring_fit):
+def calc_muon_intensity_parameters(x, y, image, mask, ring_fit, ctel):
+    '''
+    Parameters
+    ----------
+
+    x: ndarray in degrees
+        x-position of the pixels in the camera
+    y: ndarray in degrees
+        y-position of the pixels in the camera
+    image: ndarray 1D
+        charge of the pixels in the camera
+    mask: ndarray boolean, shape like image
+        true if pixel is likely to be on muon ring
+
+    ring_fit: MuonParameterContainer
+        result of previous ring fit
+
+    ctel: MuonLineIntegrate
+        to be used in here.
+    '''
 
     muonintensityoutput = ctel.fit_muon(
         ring_fit.ring_center_x,
@@ -276,31 +295,3 @@ def analyze_muon_event(event):
         })
 
     return muon_event_param
-
-
-@deprecated('0.6')
-def analyze_muon_source(source):
-    """
-    Generator for analyzing all the muon events
-
-    Parameters
-    ----------
-    source : ctapipe.io.EventSource
-        input event source
-
-    Returns
-    -------
-    analyzed_muon : container
-    A ctapipe event container (MuonParameter) with muon information
-
-    """
-    log.info(f"[FUNCTION] {__name__}")
-
-    if geom_dict is None:
-        geom_dict = {}
-    numev = 0
-    for event in source:  # Put a limit on number of events
-        numev += 1
-        analyzed_muon = analyze_muon_event(event)
-
-        yield analyzed_muon
