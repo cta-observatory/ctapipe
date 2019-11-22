@@ -98,19 +98,41 @@ def generate_muon_cuts_by_telescope_name():
 
     return muon_cuts_by_name
 
-def is_something_good(cleaned_image, ring_fit, muon_cut):
-    '''this is testing something on the image and the fit,
-    but I do not really get it.
+def is_ring_good(cleaned_image, ring_fit, muon_cut):
+    '''this is applying some cuts
+    I have no idea, if all of these cuts are equally important
+    for what follows after these cuts, I hope they are.
+
+    I also do not know if these thresholds need to be user
+    configurable or if they are somehow fundamental.
+
+    I have the feeling this part here is a problem.
     '''
-    return (
-        npix_above_threshold(
-            cleaned_image, muon_cut['tail_cuts']['picture_thresh']
-        ) > 0.1 * muon_cut['min_pix']
-        and npix_composing_ring(cleaned_image) > muon_cut['min_pix']
-        and calc_nom_dist(ring_fit) < muon_cut['CamRad']
-        and ring_fit.ring_radius < 1.5 * u.deg
-        and ring_fit.ring_radius > 1. * u.deg
+    number_of_pixels_above_picture_thresh = npix_above_threshold(
+        cleaned_image, muon_cut['tail_cuts']['picture_thresh']
     )
+
+    is_enough_pixels_over_picture_thresh = (
+        number_of_pixels_above_picture_thresh > 0.1 * muon_cut['min_pix']
+    )
+
+    number_of_non_zero_pixels = npix_composing_ring(cleaned_image)
+    is_enough_pixels_in_cleaned_image = (
+        number_of_non_zero_pixels > muon_cut['min_pix']
+    )
+
+    is_ring_center_inside_camera = (
+        calc_nom_dist(ring_fit) < muon_cut['CamRad']
+    )
+
+    return (
+        is_enough_pixels_over_picture_thresh and
+        is_enough_pixels_in_cleaned_image and
+        is_ring_center_inside_camera and
+        ring_fit.ring_radius > 1. * u.deg and
+        ring_fit.ring_radius < 1.5 * u.deg
+    )
+
 
 def do_multi_ring_fit(x, y, image, clean_mask):
     # 1st fit
@@ -211,7 +233,7 @@ def analyze_muon_event(event):
 
         ring_fit, mask = do_multi_ring_fit(x, y, image, clean_mask)
 
-        if is_something_good(image * mask, ring_fit, muon_cut)
+        if is_ring_good(image * mask, ring_fit, muon_cut)
             ring_fit.ring_containment = ring_containment(
                 ring_fit.ring_radius,
                 muon_cut['CamRad'],
