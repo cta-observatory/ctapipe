@@ -14,7 +14,7 @@ def test_basic_muon_reco(example_event):
 
     """
 
-    calib = CameraCalibrator()
+    calib = CameraCalibrator(subarray=example_event.inst.subarray)
     calib(example_event)
 
     muon_params = muon.analyze_muon_event(example_event)

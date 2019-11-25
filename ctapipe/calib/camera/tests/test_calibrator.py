@@ -13,7 +13,7 @@ from scipy.stats import norm
 
 def test_camera_calibrator(example_event):
     telid = list(example_event.r0.tel)[0]
-    calibrator = CameraCalibrator()
+    calibrator = CameraCalibrator(subarray=example_event.inst.subarray)
     calibrator(example_event)
     image = example_event.dl1.tel[telid].image
     pulse_time = example_event.dl1.tel[telid].pulse_time
@@ -39,8 +39,8 @@ def test_config():
         image_extractor=LocalPeakWindowSum(config=config),
         config=config
     )
-    assert calibrator.image_extractor.window_shift == window_shift
-    assert calibrator.image_extractor.window_width == window_width
+    assert calibrator.image_extractor.window_shift[None] == window_shift
+    assert calibrator.image_extractor.window_width[None] == window_width
 
 
 def test_integration_correction(example_event):
