@@ -139,35 +139,60 @@ class CameraGeometry:
             The coordinate frame to transform to.
         '''
         if self.frame is None:
+            # I think this does not work, when we want to transform to a
+            # TelescopeFrame next:
+            # In that case we have to say:
+            # self.frame = CameraFrame(focal_length=<something_meaningful_here>)
             self.frame = CameraFrame()
 
         coord = SkyCoord(x=self.pix_x, y=self.pix_y, frame=self.frame)
         trans = coord.transform_to(frame)
 
         # also transform the unit vectors, to get rotation / mirroring
-        uv = SkyCoord(x=[1, 0], y=[0, 1], unit=u.m, frame=self.frame)
+        uv = SkyCoord(x=[1, 0], y=[0, 1], unit=self.pix_x.unit, frame=self.frame)
         uv_trans = uv.transform_to(frame)
-        rot = np.arctan2(uv_trans[0].y, uv_trans[1].y)
-        det = np.linalg.det([uv_trans.x.value, uv_trans.y.value])
+        try:
+            rot = np.arctan2(uv_trans[0].y, uv_trans[1].y)
+            det = np.linalg.det([uv_trans.x.value, uv_trans.y.value])
+        except AttributeError:
+            rot = np.arctan2(uv_trans[0].delta_az, uv_trans[1].delta_az)
+            det = np.linalg.det([uv_trans.delta_alt.value, uv_trans.delta_az.value])
 
         cam_rotation = rot + det * self.cam_rotation
         pix_rotation = rot + det * self.pix_rotation
 
-        return CameraGeometry(
-            cam_id=self.cam_id,
-            pix_id=self.pix_id,
-            pix_x=trans.x,
-            pix_y=trans.y,
-            pix_area=self.pix_area,
-            pix_type=self.pix_type,
-            sampling_rate=self.sampling_rate,
-            pix_rotation=pix_rotation,
-            cam_rotation=cam_rotation,
-            neighbors=None,
-            apply_derotation=False,
-            frame=frame,
-        )
-
+        try:
+            return CameraGeometry(
+                cam_id=self.cam_id,
+                pix_id=self.pix_id,
+                pix_x=trans.x,
+                pix_y=trans.y,
+                pix_area=self.pix_area,
+                pix_type=self.pix_type,
+                sampling_rate=self.sampling_rate,
+                pix_rotation=pix_rotation,
+                cam_rotation=cam_rotation,
+                neighbors=None,
+                apply_derotation=False,
+                frame=frame,
+            )
+        except AttributeError:
+            return CameraGeometry(
+                cam_id=self.cam_id,
+                pix_id=self.pix_id,
+                pix_x=trans.delta_alt,
+                pix_y=trans.delta_az,
+                pix_area=CameraGeometry._calc_pixel_area(
+                    trans.delta_alt, trans.delta_az, self.pix_type
+                ),
+                pix_type=self.pix_type,
+                sampling_rate=self.sampling_rate,
+                pix_rotation=pix_rotation,
+                cam_rotation=cam_rotation,
+                neighbors=None,
+                apply_derotation=False,
+                frame=frame,
+            )
     def __hash__(self):
         return hash((
             self.cam_id,
@@ -202,7 +227,7 @@ class CameraGeometry:
         Note this will not work on cameras with varying pixel sizes.
         """
 
-        dist = np.min(np.sqrt((pix_x - pix_x[0])**2 + (pix_y - pix_y[0])**2))
+        dist = np.min(np.sqrt((pix_x[1:] - pix_x[0])**2 + (pix_y[1:] - pix_y[0])**2))
 
         if pix_type.startswith('hex'):
             rad = dist / np.sqrt(3)  # radius to vertex of hexagon
