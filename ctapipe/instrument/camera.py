@@ -67,9 +67,22 @@ class CameraGeometry:
 
     _geometry_cache = {}  # dictionary CameraGeometry instances for speed
 
-    def __init__(self, cam_id, pix_id, pix_x, pix_y, pix_area, pix_type,
-                 sampling_rate, pix_rotation="0d", cam_rotation="0d",
-                 neighbors=None, apply_derotation=True, frame=None):
+    def __init__(
+        self,
+        cam_id,
+        pix_id,
+        pix_x,
+        pix_y,
+        pix_area,
+        pix_type,
+        sampling_rate,
+        pix_rotation="0d",
+        cam_rotation="0d",
+        neighbors=None,
+        apply_derotation=True,
+        frame=None,
+        equivalent_focal_length=None,
+    ):
 
         if pix_x.ndim != 1 or pix_y.ndim != 1:
             raise ValueError(f'Pixel coordinates must be 1 dimensional, got {pix_x.ndim}')
@@ -87,6 +100,7 @@ class CameraGeometry:
         self.sampling_rate = sampling_rate
         self._neighbors = neighbors
         self.frame = frame
+        self.equivalent_focal_length = equivalent_focal_length
 
         if neighbors is not None:
             if isinstance(neighbors, list):
@@ -143,7 +157,12 @@ class CameraGeometry:
             # TelescopeFrame next:
             # In that case we have to say:
             # self.frame = CameraFrame(focal_length=<something_meaningful_here>)
-            self.frame = CameraFrame()
+            if self.equivalent_focal_length is not None:
+                self.frame = CameraFrame(
+                    focal_length=self.equivalent_focal_length
+                )
+            else:
+                self.frame = CameraFrame()
 
         coord = SkyCoord(x=self.pix_x, y=self.pix_y, frame=self.frame)
         trans = coord.transform_to(frame)
