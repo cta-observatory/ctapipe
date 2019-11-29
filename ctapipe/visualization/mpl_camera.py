@@ -104,7 +104,7 @@ class CameraDisplay:
         self._active_pixel = None
         self._active_pixel_label = None
         self._axes_overlays = []
-
+        self.norm = norm
         self.geom = geometry
 
         if title is None:
@@ -113,34 +113,23 @@ class CameraDisplay:
         # initialize the plot and generate the pixels as a
         # RegularPolyCollection
 
-        patches = []
-
         if not hasattr(self.geom, "mask"):
             self.geom.mask = np.ones_like(self.geom.pix_x.value, dtype=bool)
 
         pix_x = self.geom.pix_x.value[self.geom.mask]
         pix_y = self.geom.pix_y.value[self.geom.mask]
         pix_area = self.geom.pix_area.value[self.geom.mask]
+        orientation = self.geom.pix_rotation.to_value(u.rad)
 
-        for x, y, area in zip(pix_x, pix_y, pix_area):
-            if self.geom.pix_type.startswith("hex"):
-                r = sqrt(area * 2 / 3 / sqrt(3)) + 2 * PIXEL_EPSILON
-                poly = RegularPolygon(
-                    (x, y), 6, radius=r,
-                    orientation=self.geom.pix_rotation.to_value(u.rad),
-                    fill=True,
-                )
-            else:
-                r = sqrt(area) + PIXEL_EPSILON
-                poly = Rectangle(
-                    (x - r / 2, y - r / 2),
-                    width=r,
-                    height=r,
-                    angle=self.geom.pix_rotation.to_value(u.deg),
-                    fill=True,
-                )
+        if self.geom.pix_type.startswith("hex"):
+            make_poly = make_hexagon
+        else:
+            make_poly = make_rectangle
 
-            patches.append(poly)
+        patches = [
+            make_poly(x, y, area, orientation)
+            for x, y, area in zip(pix_x, pix_y, pix_area)
+        ]
 
         self.pixels = PatchCollection(patches, cmap=cmap, linewidth=0)
         self.axes.add_collection(self.pixels)
@@ -185,8 +174,6 @@ class CameraDisplay:
             self.image = image
         else:
             self.image = np.zeros_like(self.geom.pix_id, dtype=np.float)
-
-        self.norm = norm
 
     def highlight_pixels(self, pixels, color='g', linewidth=1, alpha=0.75):
         """
@@ -454,3 +441,22 @@ class CameraDisplay:
         self.axes.figure.show()
 
 
+def make_hexagon(x, y, area, orientation):
+    radius = sqrt(area * 2 / 3 / sqrt(3)) + 2 * PIXEL_EPSILON
+    poly = RegularPolygon(
+        (x, y), 6, radius=radius,
+        orientation=orientation,
+        fill=True,
+    )
+    return poly
+
+def make_rectangle(x, y, area, orientation):
+    r = sqrt(area) + PIXEL_EPSILON
+    poly = Rectangle(
+        (x - r / 2, y - r / 2),
+        width=r,
+        height=r,
+        angle=orientation,
+        fill=True,
+    )
+    return poly
