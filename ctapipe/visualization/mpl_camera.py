@@ -103,7 +103,7 @@ class CameraDisplay:
         self._active_pixel = None
         self._active_pixel_label = None
         self._axes_overlays = []
-        self.norm = norm
+
         self.geom = geometry
 
         if title is None:
@@ -173,6 +173,8 @@ class CameraDisplay:
             self.image = image
         else:
             self.image = np.zeros_like(self.geom.pix_id, dtype=np.float)
+
+        self.norm = norm
 
     def highlight_pixels(self, pixels, color='g', linewidth=1, alpha=0.75):
         """
