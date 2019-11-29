@@ -11,6 +11,7 @@ from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.colors import Normalize, LogNorm, SymLogNorm
 from matplotlib.patches import Ellipse, RegularPolygon, Rectangle
+from numpy import sqrt
 
 __all__ = ['CameraDisplay']
 
@@ -112,23 +113,34 @@ class CameraDisplay:
         # initialize the plot and generate the pixels as a
         # RegularPolyCollection
 
+        patches = []
+
         if not hasattr(self.geom, "mask"):
             self.geom.mask = np.ones_like(self.geom.pix_x.value, dtype=bool)
 
         pix_x = self.geom.pix_x.value[self.geom.mask]
         pix_y = self.geom.pix_y.value[self.geom.mask]
         pix_area = self.geom.pix_area.value[self.geom.mask]
-        orientation = self.geom.pix_rotation.to_value(u.rad)
 
-        if self.geom.pix_type.startswith("hex"):
-            make_poly = make_hexagon
-        else:
-            make_poly = make_rectangle
+        for x, y, area in zip(pix_x, pix_y, pix_area):
+            if self.geom.pix_type.startswith("hex"):
+                r = sqrt(area * 2 / 3 / sqrt(3)) + 2 * PIXEL_EPSILON
+                poly = RegularPolygon(
+                    (x, y), 6, radius=r,
+                    orientation=self.geom.pix_rotation.to_value(u.rad),
+                    fill=True,
+                )
+            else:
+                r = sqrt(area) + PIXEL_EPSILON
+                poly = Rectangle(
+                    (x - r / 2, y - r / 2),
+                    width=r,
+                    height=r,
+                    angle=self.geom.pix_rotation.to_value(u.deg),
+                    fill=True,
+                )
 
-        patches = [
-            make_poly(x, y, area, orientation)
-            for x, y, area in zip(pix_x, pix_y, pix_area)
-        ]
+            patches.append(poly)
 
         self.pixels = PatchCollection(patches, cmap=cmap, linewidth=0)
         self.axes.add_collection(self.pixels)
@@ -204,9 +216,8 @@ class CameraDisplay:
     def enable_pixel_picker(self):
         """ enable ability to click on pixels """
         self.pixels.set_picker(True)  # enable click
-        self.pixels.set_pickradius(
-            np.sqrt(u.Quantity(self.geom.pix_area[0]).value) / np.pi
-        )
+        self.pixels.set_pickradius(sqrt(u.Quantity(self.geom.pix_area[0])
+                                        .value) / np.pi)
         self.pixels.set_snap(True)  # snap cursor to pixel center
         self.axes.figure.canvas.mpl_connect('pick_event', self._on_pick)
 
@@ -423,7 +434,7 @@ class CameraDisplay:
         if self.geom.pix_type.startswith("hex"):
             self._active_pixel.xy = (xx, yy)
         else:
-            rr = np.sqrt(aa)
+            rr = sqrt(aa)
             self._active_pixel.xy = (xx - rr / 2., yy - rr / 2.)
         self._active_pixel.set_visible(True)
         self._active_pixel_label.set_x(xx)
@@ -443,22 +454,3 @@ class CameraDisplay:
         self.axes.figure.show()
 
 
-def make_hexagon(x, y, area, orientation):
-    radius = np.sqrt(area * 2 / 3 / np.sqrt(3)) + 2 * PIXEL_EPSILON
-    poly = RegularPolygon(
-        (x, y), 6, radius=radius,
-        orientation=orientation,
-        fill=True,
-    )
-    return poly
-
-def make_rectangle(x, y, area, orientation):
-    r = np.sqrt(area) + PIXEL_EPSILON
-    poly = Rectangle(
-        (x - r / 2, y - r / 2),
-        width=r,
-        height=r,
-        angle=orientation,
-        fill=True,
-    )
-    return poly
