@@ -1,4 +1,6 @@
+import pytest
 import numpy as np
+import astropy.units as u
 
 from ctapipe.utils.quantities import all_to_value
 
