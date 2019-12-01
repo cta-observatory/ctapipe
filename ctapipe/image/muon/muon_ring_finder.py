@@ -6,13 +6,20 @@ from ctapipe.io.containers import MuonRingParameter
 from .fitting import kundu_chaudhuri_circle_fit, taubin_circle_fit
 import traitlets as traits
 
-FIT_METHODS = [kundu_chaudhuri_circle_fit, taubin_circle_fit]
-SUFFIX = '_circle_fit'
+# the fit methods do not expose the same interface, so we
+# force the same interface onto them, here.
+# we also modify their names slightly, since the names are
+# exposed to the user via the string traitlet `fit_method`
+def kundu_chaudhuri(x, y, weights, mask):
+    weights = weights * mask
+    return kundu_chaudhuri_circle_fit(x, y, weights)
+
+def taubin(x, y, weights, mask):
+    return taubin_circle_fit(x, y, mask)
+
+FIT_METHODS = [kundu_chaudhuri, taubin]
 FIT_METHOD_BY_NAME = {m.__name__: m for m in FIT_METHODS}
-FIT_METHOD_NAMES = [
-    m.__name__[0:-len(SUFFIX)]
-    for m in FIT_METHODS
-]
+FIT_METHOD_NAMES = list(FIT_METHOD_BY_NAME.keys())
 
 __all__ = ['MuonRingFitter']
 
@@ -28,13 +35,8 @@ class MuonRingFitter(Component):
         """allows any fit to be called in form of
             MuonRingFitter(fit_method = "name of the fit")
         """
-        fit_function = FIT_METHOD_BY_NAME[self.fit_method + SUFFIX]
-        radius, center_x, center_y = fit_function(
-            x=x,
-            y=y,
-            weights=img,
-            mask=mask
-        )
+        fit_function = FIT_METHOD_BY_NAME[self.fit_method]
+        radius, center_x, center_y = fit_function(x, y, img, mask)
 
         output = MuonRingParameter()
         output.ring_center_x = center_x
