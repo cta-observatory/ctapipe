@@ -24,7 +24,7 @@ def cherenkov_integral(lambda1, lambda2):
     return 1 / lambda1 - 1 / lambda2
 
 
-def kundu_chaudhuri_circle_fit(x, y, weights, mask=None):
+def kundu_chaudhuri_circle_fit(x, y, weights):
     """
     Fast and reliable analytical circle fitting method previously used
     in the H.E.S.S. experiment for muon identification
@@ -41,8 +41,6 @@ def kundu_chaudhuri_circle_fit(x, y, weights, mask=None):
         weights of the points
 
     """
-    if mask is not None:
-        weights = weights * mask
 
     weights_sum = np.sum(weights)
     mean_x = np.sum(x * weights) / weights_sum
@@ -457,13 +455,9 @@ def _impact_parameter_chisq(params, phi, hist, mirror_radius):
     return np.sum((hist - scale * theory)**2)
 
 
-def taubin_circle_fit(x, y, weights, mask):
+def taubin_circle_fit(x, y, mask):
     """
     reference : Barcelona_Muons_TPA_final.pdf (slide 6)
-
-    Note:
-        weights parameter is ignored, but _circle_fit functions should
-        all provide the same interface
 
     Parameters
     ----------
