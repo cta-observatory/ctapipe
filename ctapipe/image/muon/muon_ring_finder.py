@@ -1,3 +1,4 @@
+import inspect
 import numpy as np
 import astropy.units as u
 from ctapipe.core import Component
@@ -5,28 +6,35 @@ from ctapipe.io.containers import MuonRingParameter
 from .fitting import kundu_chaudhuri_circle_fit, taubin_circle_fit
 import traitlets as traits
 
+FIT_METHODS = [kundu_chaudhuri_circle_fit, taubin_circle_fit]
+SUFFIX = '_circle_fit'
+FIT_METHOD_BY_NAME = {m.__name__: m for m in FIT_METHODS}
+FIT_METHOD_NAMES = [
+    m.__name__[0:-len(SUFFIX)]
+    for m in FIT_METHODS
+]
+
 __all__ = ['MuonRingFitter']
 
 class MuonRingFitter(Component):
     """Different ring fit algorithms for muon rings
     """
     fit_method = traits.CaselessStrEnum(
-        ['taubin', 'chaudhuri_kundu'],
-        default_value='chaudhuri_kundu'
+        FIT_METHOD_NAMES,
+        default_value=FIT_METHOD_NAMES[0]
     ).tag(config=True)
-
-    def __init__(self, config=None, parent=None, **kwargs):
-        super().__init__(config, parent, **kwargs)
-
 
     def __call__(self, x, y, img, mask):
         """allows any fit to be called in form of
             MuonRingFitter(fit_method = "name of the fit")
         """
-        if self.fit_method == 'taubin':
-            radius, center_x, center_y = taubin_circle_fit(x, y, mask)
-        else:
-            radius, center_x, center_y = kundu_chaudhuri_circle_fit(x, y, img * mask)
+        fit_function = FIT_METHOD_BY_NAME[self.fit_method + SUFFIX]
+        radius, center_x, center_y = fit_function(
+            x=x,
+            y=y,
+            weights=img,
+            mask=mask
+        )
 
         output = MuonRingParameter()
         output.ring_center_x = center_x

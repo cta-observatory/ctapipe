@@ -124,7 +124,7 @@ def analyze_muon_event(event):
         else:
             img = image
 
-        muon_ring_fit = MuonRingFitter(fit_method="chaudhuri_kundu")
+        muon_ring_fit = MuonRingFitter(fit_method="kundu_chaudhuri")
 
         logger.debug("img: %s mask: %s, x=%s y= %s", np.sum(image),
                      np.sum(clean_mask), x, y)
