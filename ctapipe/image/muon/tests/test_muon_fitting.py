@@ -1,13 +1,9 @@
-import pytest
 import numpy as np
 import astropy.units as u
 
 from ctapipe.image.muon import kundu_chaudhuri_circle_fit
-from ctapipe.image.muon.fitting import all_to_value
-
 
 np.random.seed(0)
-
 
 def test_kundu_chaudhuri():
 
