@@ -455,12 +455,7 @@ def _impact_parameter_chisq(params, phi, hist, mirror_radius):
     return np.sum((hist - scale * theory)**2)
 
 
-
-def taubin_circle_fit(
-    x,
-    y,
-    mask
-):
+def taubin_circle_fit(x, y, mask):
     """
     reference : Barcelona_Muons_TPA_final.pdf (slide 6)
 
