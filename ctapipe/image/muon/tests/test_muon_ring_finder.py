@@ -6,6 +6,7 @@ from ctapipe.image import tailcuts_clean, toymodel
 
 
 def test_MuonRingFitter():
+    '''test MuonRingFitter'''
     # flashCam example
     center_xs = 0.3 * u.m
     center_ys = 0.6 * u.m
