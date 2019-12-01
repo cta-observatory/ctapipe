@@ -11,10 +11,12 @@ import traitlets as traits
 # we also modify their names slightly, since the names are
 # exposed to the user via the string traitlet `fit_method`
 def kundu_chaudhuri(x, y, weights, mask):
+    '''kundu_chaudhuri_circle_fit with x, y, weights, mask interface'''
     weights = weights * mask
     return kundu_chaudhuri_circle_fit(x, y, weights)
 
 def taubin(x, y, weights, mask):
+    '''taubin_circle_fit with x, y, weights, mask interface'''
     return taubin_circle_fit(x, y, mask)
 
 FIT_METHODS = [kundu_chaudhuri, taubin]
