@@ -38,3 +38,22 @@ def example_event(_global_example_event):
 
     """
     return deepcopy(_global_example_event)
+
+
+
+@pytest.fixture(scope='function')
+def calibrated_event(example_event):
+    """
+    Use this fixture anywhere you need a test event read from a MC file. For
+    example:
+
+    .. code-block::
+        def test_my_thing(calibrated_event):
+            assert len(calibrated_event.r0.tels_with_data)>0
+
+    """
+    from ctapipe.calib import CameraCalibrator
+    calib = CameraCalibrator()
+    calib(example_event)
+
+    return deepcopy(example_event)
