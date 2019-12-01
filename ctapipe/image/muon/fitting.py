@@ -544,7 +544,8 @@ def hough_circle_fit(
     mask,
     epsilon
 ):
-    x, y, orinal_unit = strip_unit_savely(x, y)
+    orinal_unit = x.unit
+    x, y, epsilon = all_to_value(x, y, epsilon, unit=orinal_unit)
     R = x.max()  # x.max() just happens to be identical with R in many cases.
 
     point_cloud = np.array([x[mask], y[mask]]).T # shape is: (N_pixel, 2)
@@ -554,8 +555,10 @@ def hough_circle_fit(
         guessed_cy=0,
         guessed_r=R / 2,
         point_cloud=point_cloud,
+        # we choose a huge uncertainty here .. this can be optimized for
+        # speed I think.
         uncertainty=R,
-        epsilon=epsilon.value,
+        epsilon=epsilon,
     )
 
     return (
