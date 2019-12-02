@@ -120,7 +120,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
             )
 
     @classmethod
-    def from_name(cls, name, config=None, parent=None):
+    def from_name(cls, name, config=None, parent=None, **kwargs):
         """
         Obtain an instance of a subclass via its name
 
@@ -138,6 +138,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
             Passes the correct logger and configuration to the component.
             This argument is typically only specified when using this method
             from within a Tool (config need not be passed if parent is used).
+        kwargs
 
         Returns
         -------
@@ -151,7 +152,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         }
         requested_subclass = subclasses[name]
 
-        return requested_subclass(config=config, parent=parent)
+        return requested_subclass(config=config, parent=parent, **kwargs)
 
     def get_current_config(self):
         """ return the current configuration as a dict (e.g. the values

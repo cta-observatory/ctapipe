@@ -39,11 +39,13 @@ class GroundFrame(BaseCoordinateFrame):
     cartesian frame describing the 3 dimensional position of objects
     compared to the array ground level in relation to the nomial
     centre of the array.  Typically this frame will be used for
-    describing the position on telescopes and equipment
+    describing the position on telescopes and equipment.
+    In this frame x points north, y points west and z is meters above array center.
 
     Frame attributes: None
 
     """
+
     default_representation = CartesianRepresentation
 
 

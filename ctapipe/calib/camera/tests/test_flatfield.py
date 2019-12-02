@@ -2,6 +2,8 @@ import numpy as np
 from ctapipe.calib.camera.flatfield import *
 from ctapipe.io.containers import EventAndMonDataContainer
 from traitlets.config.loader import Config
+import astropy.units as u
+from ctapipe.instrument import SubarrayDescription, TelescopeDescription
 
 
 def test_flasherflatfieldcalculator():
@@ -12,15 +14,29 @@ def test_flasherflatfieldcalculator():
     n_pixels = 1855
     ff_level = 10000
 
+    subarray = SubarrayDescription(
+        "test array",
+        tel_positions={0: np.zeros(3) * u.m},
+        tel_descriptions={
+            0: TelescopeDescription.from_name(
+                optics_name="SST-ASTRI", camera_name="CHEC"
+            ),
+        }
+    )
+
     config = Config({
         "FixedWindowSum": {
             "window_start": 15,
             "window_width": 10
         }
     })
-    ff_calculator = FlasherFlatFieldCalculator(charge_product="FixedWindowSum",
-                                               sample_size=n_events,
-                                               tel_id=tel_id, config=config)
+    ff_calculator = FlasherFlatFieldCalculator(
+        subarray=subarray,
+        charge_product="FixedWindowSum",
+        sample_size=n_events,
+        tel_id=tel_id,
+        config=config
+    )
     # create one event
     data = EventAndMonDataContainer()
     data.meta['origin'] = 'test'

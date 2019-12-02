@@ -339,6 +339,8 @@ class CameraDisplay:
                 'There is already a colorbar attached to this CameraDisplay'
             )
         else:
+            if 'ax' not in kwargs:
+                kwargs['ax'] = self.axes
             self.colorbar = self.axes.figure.colorbar(self.pixels, **kwargs)
         self.update()
 
