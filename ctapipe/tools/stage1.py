@@ -478,33 +478,33 @@ class Stage1ProcessorTool(Tool):
 
     aliases = {
         "input": "EventSource.input_url",
-        "output": "Stage1Process.output_filename",
+        "output": "Stage1ProcessorTool.output_filename",
         "allowed-tels": "EventSource.allowed_tels",
         "max-events": "EventSource.max_events",
-        "image-extractor-type": "Stage1Process.image_extractor_type",
-        "gain-selector-type": "Stage1Process.gain_selector_type",
-        "image-cleaner-type": "Stage1Process.image_cleaner_type",
+        "image-extractor-type": "Stage1ProcessorTool.image_extractor_type",
+        "gain-selector-type": "Stage1ProcessorTool.gain_selector_type",
+        "image-cleaner-type": "Stage1ProcessorTool.image_cleaner_type",
     }
 
     flags = {
         "write-images": (
-            {"Stage1Process": {"write_images": True}},
+            {"Stage1ProcessorTool": {"write_images": True}},
             "store DL1/Event/Telescope images in output",
         ),
         "write-parameters": (
-            {"Stage1Process": {"write_images": True}},
+            {"Stage1ProcessorTool": {"write_images": True}},
             "store DL1/Event/Telescope parameters in output",
         ),
         "write-index-tables": (
-            {"Stage1Process": {"write_index_tables": True}},
+            {"Stage1ProcessorTool": {"write_index_tables": True}},
             "generate PyTables index tables for the parameter and image datasets",
         ),
         "overwrite": (
-            {"Stage1Process": {"overwrite": True}},
+            {"Stage1ProcessorTool": {"overwrite": True}},
             "Overwrite output file if it exists",
         ),
         "progress": (
-            {"Stage1Process": {"progress_bar": True}},
+            {"Stage1ProcessorTool": {"progress_bar": True}},
             "show a progress bar during event processing",
         ),
     }

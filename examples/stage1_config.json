@@ -1,5 +1,5 @@
 {
-    "Stage1Process": {
+    "Stage1ProcessorTool": {
         "config_file": "",
         "output_filename": "lapalma_proton_small.dl1.h5",
         "overwrite": true,
