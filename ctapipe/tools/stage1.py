@@ -339,6 +339,10 @@ def create_tel_id_to_tel_index_transform(sub):
 
 
 class ImageCleaner(Component):
+    """
+     Abstract class for all configurable Image Cleaning algorithms.   Use
+    `ImageCleaner.from_name()` to construct an instance of a particular algorithm
+     """
     pass
 
 
@@ -387,6 +391,8 @@ class TailcutsImageCleaner(ImageCleaner):
             boolean mask of pixels passing cleaning
         """
         if not self._subarray_initialized:
+            # If this is the first time we call it, setup the `TelescopeParameters`
+            # so that they use the user-selected value for each telescope/type:
             self.picture_threshold_pe.attach_subarray(subarray)
             self.boundary_threshold_pe.attach_subarray(subarray)
             self.min_picture_neighbors.attach_subarray(subarray)
@@ -401,7 +407,7 @@ class TailcutsImageCleaner(ImageCleaner):
         )
 
 
-class Stage1Process(Tool):
+class Stage1ProcessorTool(Tool):
     name = "ctapipe-stage1-process"
     description = __doc__ + f" This currently writes {DL1_DATA_MODEL_VERSION} DL1 data"
     examples = """
@@ -537,7 +543,8 @@ class Stage1Process(Tool):
             EventSource.from_config(parent=self, gain_selector=self.gain_selector)
         )
         self.image_extractor = self.add_component(
-            ImageExtractor.from_name(self.image_extractor_type, parent=self)
+            ImageExtractor.from_name(self.image_extractor_type, parent=self,
+                                     subarray=self.event_source.subarray)
         )
         self.calibrate = self.add_component(
             CameraCalibrator(parent=self, image_extractor=self.image_extractor)
@@ -915,7 +922,7 @@ class Stage1Process(Tool):
 
 
 def main():
-    tool = Stage1Process()
+    tool = Stage1ProcessorTool()
     tool.run()
 
 
