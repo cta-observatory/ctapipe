@@ -18,9 +18,11 @@ def taubin(x, y, weights, mask):
     '''taubin_circle_fit with x, y, weights, mask interface'''
     return taubin_circle_fit(x, y, mask)
 
-FIT_METHODS = [kundu_chaudhuri, taubin]
-FIT_METHOD_BY_NAME = {m.__name__: m for m in FIT_METHODS}
-FIT_METHOD_NAMES = list(FIT_METHOD_BY_NAME.keys())
+
+FIT_METHOD_BY_NAME = {
+    m.__name__: m for m in
+    [kundu_chaudhuri, taubin]
+}
 
 __all__ = ['MuonRingFitter']
 
@@ -28,8 +30,8 @@ class MuonRingFitter(Component):
     """Different ring fit algorithms for muon rings
     """
     fit_method = traits.CaselessStrEnum(
-        FIT_METHOD_NAMES,
-        default_value=FIT_METHOD_NAMES[0]
+        list(FIT_METHOD_BY_NAME.keys()),
+        default_value=list(FIT_METHOD_BY_NAME.keys())[0]
     ).tag(config=True)
 
     def __call__(self, x, y, img, mask):
