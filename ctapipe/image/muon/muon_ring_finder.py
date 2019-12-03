@@ -45,8 +45,8 @@ class MuonRingFitter(Component):
         output.ring_center_x = center_x
         output.ring_center_y = center_y
         output.ring_radius = radius
-        output.ring_phi = np.arctan2(center_y, center_x)
-        output.ring_inclination = np.sqrt(center_x ** 2. + center_y ** 2.)
+        output.ring_center_phi = np.arctan2(center_y, center_x)
+        output.ring_center_distance = np.sqrt(center_x ** 2. + center_y ** 2.)
         output.ring_fit_method = self.fit_method
 
         return output
