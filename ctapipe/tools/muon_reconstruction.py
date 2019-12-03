@@ -72,19 +72,17 @@ class MuonDisplayerTool(Tool):
 
 
     def start(self):
-
-        numev = 0
         self.num_muons_found = defaultdict(int)
 
-        for event in tqdm(self.source, desc='detecting muons'):
+        for event_number, event in enumerate(tqdm(
+            self.source, desc='detecting muons'
+        )):
 
             self.calib(event)
             muon_evts = analyze_muon_event(event)
 
-            if numev == 0:
+            if event_number == 0:
                 _exclude_some_columns(event.inst.subarray, self.writer)
-
-            numev += 1
 
             if not muon_evts: # No telescopes contained a good muon
                 continue
@@ -107,7 +105,7 @@ class MuonDisplayerTool(Tool):
 
             self.log.info(
                 "Event Number: %d, found %s muons",
-                numev, dict(self.num_muons_found)
+                event_number, dict(self.num_muons_found)
             )
 
     def finish(self):
