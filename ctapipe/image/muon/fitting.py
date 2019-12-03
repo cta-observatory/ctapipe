@@ -139,7 +139,7 @@ def psf_likelihood_fit(x, y, weights):
     if not result.success:
         result.x = np.full_like(result.x, np.nan)
 
-    return result.x * unit
+    return Quantity(result.x, unit)
 
 
 def impact_parameter_chisq_fit(
@@ -468,8 +468,8 @@ def taubin_circle_fit(x, y, mask):
     mask: array-like boolean
         true for pixels surviving the cleaning
     """
-    orinal_unit = x.unit
-    x, y = all_to_value(x, y, unit=orinal_unit)
+    original_unit = x.unit
+    x, y = all_to_value(x, y, unit=original_unit)
 
     x_masked = x[mask]
     y_masked = y[mask]
@@ -497,9 +497,9 @@ def taubin_circle_fit(x, y, mask):
     )
     fit.migrad()
 
-    radius = fit.values['r'] * orinal_unit
-    center_x = fit.values['xc'] * orinal_unit
-    center_y = fit.values['yc'] * orinal_unit
+    radius = Quantity(fit.values['r'], original_unit)
+    center_x = Quantity(fit.values['xc'], original_unit)
+    center_y = Quantity(fit.values['yc'], original_unit)
 
     return radius, center_x, center_y
 
