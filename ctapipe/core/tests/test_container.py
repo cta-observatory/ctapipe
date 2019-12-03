@@ -1,6 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import pytest
-from ctapipe.core import Container, Field, Map, DeprecatedField
+from ctapipe.core import Container, Field, Map, Deprecated
 
 
 def test_prefix():
@@ -178,8 +178,19 @@ def test_container_brackets():
 
 def test_deprecated_field():
     class ExampleContainer(Container):
-        answer = DeprecatedField(-1, "The answer to all questions", reason="because")
+        answer = Deprecated(
+            Field(-1, "The answer to all questions"),
+            reason="because"
+        )
 
     cont = ExampleContainer()
-    cont.answer = 6
+
+    # getting deprecated value warns, but works nonetheless
+    with pytest.warns(UserWarning):
+        assert cont.answer == -1
+
+    # setting deprecated value warns, but works nonetheless
+    with pytest.warns(UserWarning):
+        cont.answer = 6
+        assert cont.answer == 6
 
