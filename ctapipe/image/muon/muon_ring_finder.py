@@ -1,5 +1,6 @@
 import numpy as np
-import astropy.units as u
+import traitlets as traits
+
 from ctapipe.core import Component
 from ctapipe.io.containers import MuonRingParameter
 from .fitting import (
@@ -7,7 +8,6 @@ from .fitting import (
     taubin_circle_fit,
     hough_circle_fit,
 )
-import traitlets as traits
 
 # the fit methods do not expose the same interface, so we
 # force the same interface onto them, here.
