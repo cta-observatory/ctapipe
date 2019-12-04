@@ -562,7 +562,7 @@ def hough_circle_fit(
     )
 
     return (
-        hough_r * orinal_unit,
-        hough_cx * orinal_unit,
-        hough_cy * orinal_unit,
+        Quantity(hough_r, orinal_unit),
+        Quantity(hough_cx, orinal_unit),
+        Quantity(hough_cy, orinal_unit),
     )

@@ -18,11 +18,9 @@ def kundu_chaudhuri(x, y, weights, mask):
     weights = weights * mask
     return kundu_chaudhuri_circle_fit(x, y, weights)
 
-
 def taubin(x, y, weights, mask):
     '''taubin_circle_fit with x, y, weights, mask interface'''
     return taubin_circle_fit(x, y, mask)
-
 
 def hough(x, y, weights, mask):
     '''hough_circle_fit with x, y, weights, mask interface'''
