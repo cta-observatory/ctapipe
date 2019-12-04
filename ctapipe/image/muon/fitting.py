@@ -541,8 +541,7 @@ def make_taubin_loss_function(x, y):
 def hough_circle_fit(
     x,
     y,
-    mask,
-    epsilon
+    mask
 ):
     """
     reference : https://github.com/Laurits7/circlehough
@@ -555,12 +554,15 @@ def hough_circle_fit(
         y coordinates of the points
     mask: array-like boolean
         true for pixels surviving the cleaning
-    epsilon: float
-        typical ringh width
     """
     orinal_unit = x.unit
-    x, y, epsilon = all_to_value(x, y, epsilon, unit=orinal_unit)
+    x, y = all_to_value(x, y, unit=orinal_unit)
     R = x.max()  # x.max() just happens to be identical with R in many cases.
+
+    # we need to get the typical pixel distance from the geom object
+    # for epsilon in the hough fit.
+    squared_distanced = (x[0] - x[1:])**2 + (y[0] - y[1:])**2
+    minimal_pixel_distance = np.sqrt(squared_distanced.min())
 
     point_cloud = np.array([x[mask], y[mask]]).T # shape is: (N_pixel, 2)
 
@@ -572,7 +574,7 @@ def hough_circle_fit(
         # we choose a huge uncertainty here .. this can be optimized for
         # speed I think.
         uncertainty=R,
-        epsilon=epsilon,
+        epsilon=minimal_pixel_distance,
     )
 
     return (

@@ -24,18 +24,7 @@ def taubin(x, y, weights, mask):
 
 def hough(x, y, weights, mask):
     '''hough_circle_fit with x, y, weights, mask interface'''
-
-    # we need to get the typical pixel distance from the geom object
-    # for epsilon in the hough fit.
-    squared_distanced = (x[0] - x[1:])**2 + (y[0] - y[1:])**2
-    minimal_pixel_distance = np.sqrt(squared_distanced.min())
-    return hough_circle_fit(
-        x,
-        y,
-        mask,
-        # epsilon is not the pix distance, but more like the typical ring width.
-        epsilon=3 * minimal_pixel_distance,
-    )
+    return hough_circle_fit(x, y, mask)
 
 
 FIT_METHOD_BY_NAME = {
