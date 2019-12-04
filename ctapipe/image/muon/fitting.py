@@ -544,6 +544,20 @@ def hough_circle_fit(
     mask,
     epsilon
 ):
+    """
+    reference : https://github.com/Laurits7/circlehough
+
+    Parameters
+    ----------
+    x: array-like or astropy quantity
+        x coordinates of the points
+    y: array-like or astropy quantity
+        y coordinates of the points
+    mask: array-like boolean
+        true for pixels surviving the cleaning
+    epsilon: float
+        typical ringh width
+    """
     orinal_unit = x.unit
     x, y, epsilon = all_to_value(x, y, epsilon, unit=orinal_unit)
     R = x.max()  # x.max() just happens to be identical with R in many cases.
