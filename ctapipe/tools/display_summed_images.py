@@ -72,7 +72,7 @@ class ImageSumDisplayerTool(Tool):
         )
         self.log.info(f"SELECTED TELESCOPES:{self._selected_tels}")
 
-        self.calibrator = CameraCalibrator(parent=self)
+        self.calibrator = CameraCalibrator(parent=self, subarray=self.reader.subarray)
 
         self.reader.allowed_tels = self._selected_tels
 

@@ -13,6 +13,7 @@ from ctapipe.instrument import (
 )
 from ctapipe.instrument.camera import UnknownPixelShapeWarning
 from ctapipe.instrument.guess import guess_telescope, UNKNOWN_TELESCOPE
+from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 from traitlets import Bool
 
 from eventio.simtel.simtelfile import SimTelFile
@@ -24,7 +25,7 @@ from pathlib import Path
 __all__ = ['SimTelEventSource']
 
 
-def build_camera_geometry(cam_settings, telescope):
+def build_camera_geometry(cam_settings, pixel_settings, telescope):
     pixel_shape = cam_settings['pixel_shape'][0]
     try:
         pix_type, pix_rotation = CameraGeometry.simtel_shape_to_type(pixel_shape)
@@ -43,13 +44,59 @@ def build_camera_geometry(cam_settings, telescope):
         pix_y=u.Quantity(cam_settings['pixel_y'], u.m),
         pix_area=u.Quantity(cam_settings['pixel_area'], u.m**2),
         pix_type=pix_type,
+        sampling_rate=u.Quantity(1 / pixel_settings['time_slice'], u.GHz),
         pix_rotation=pix_rotation,
         cam_rotation=-Angle(cam_settings['cam_rot'], u.rad),
         apply_derotation=True,
-
     )
 
     return camera
+
+
+def apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe, gain_selector):
+    """
+    Perform the R1 calibration for R0 simtel waveforms. This includes:
+        - Gain selection
+        - Pedestal subtraction
+        - Conversion of samples into units proportional to photoelectrons
+          (If the full signal in the waveform was integrated, then the resulting
+          value would be in photoelectrons.)
+          (Also applies flat-fielding)
+
+    Parameters
+    ----------
+    r0_waveforms : ndarray
+        Raw ADC waveforms from a simtel file. All gain channels available.
+        Shape: (n_channels, n_pixels, n_samples)
+    pedestal : ndarray
+        Pedestal stored in the simtel file for each gain channel
+        Shape: (n_channels, n_pixels)
+    dc_to_pe : ndarray
+        Conversion factor between R0 waveform samples and ~p.e., stored in the
+        simtel file for each gain channel
+        Shape: (n_channels, n_pixels)
+    gain_selector : ctapipe.calib.camera.gainselection.GainSelector
+
+    Returns
+    -------
+    r1_waveforms : ndarray
+        Calibrated waveforms
+        Shape: (n_pixels, n_samples)
+    selected_gain_channel : ndarray
+        The gain channel selected for each pixel
+        Shape: (n_pixels)
+    """
+    n_channels, n_pixels, n_samples = r0_waveforms.shape
+    ped = pedestal[..., np.newaxis] / n_samples
+    gain = dc_to_pe[..., np.newaxis]
+    r1_waveforms = (r0_waveforms - ped) * gain
+    if n_channels == 1:
+        selected_gain_channel = np.zeros(n_pixels, dtype=np.int8)
+        r1_waveforms = r1_waveforms[0]
+    else:
+        selected_gain_channel = gain_selector(r0_waveforms)
+        r1_waveforms = r1_waveforms[selected_gain_channel, np.arange(n_pixels)]
+    return r1_waveforms, selected_gain_channel
 
 
 class SimTelEventSource(EventSource):
@@ -63,7 +110,24 @@ class SimTelEventSource(EventSource):
         )
     ).tag(config=True)
 
-    def __init__(self, config=None, parent=None, **kwargs):
+    def __init__(self, config=None, parent=None, gain_selector=None, **kwargs):
+        """
+        EventSource for simtelarray files using the pyeventio library.
+
+        Parameters
+        ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        gain_selector : ctapipe.calib.camera.gainselection.GainSelector
+            The GainSelector to use. If None, then ThresholdGainSelector will be used.
+        kwargs
+        """
         super().__init__(config=config, parent=parent, **kwargs)
         self.metadata['is_simulation'] = True
         self._camera_cache = {}
@@ -86,6 +150,12 @@ class SimTelEventSource(EventSource):
             self.file_.header
         )
         self.start_pos = self.file_.tell()
+
+        # Waveforms from simtelarray have both gain channels
+        # Gain selection is performed by this EventSource to produce R1 waveforms
+        if gain_selector is None:
+            gain_selector = ThresholdGainSelector(parent=self)
+        self.gain_selector = gain_selector
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
@@ -120,6 +190,7 @@ class SimTelEventSource(EventSource):
 
         for tel_id, telescope_description in telescope_descriptions.items():
             cam_settings = telescope_description['camera_settings']
+            pixel_settings = telescope_description['pixel_settings']
 
             n_pixels = cam_settings['n_pixels']
             focal_length = u.Quantity(cam_settings['focal_length'], u.m)
@@ -131,7 +202,9 @@ class SimTelEventSource(EventSource):
 
             camera = self._camera_cache.get(telescope.camera_name)
             if camera is None:
-                camera = build_camera_geometry(cam_settings, telescope)
+                camera = build_camera_geometry(
+                    cam_settings, pixel_settings, telescope
+                )
                 self._camera_cache[telescope.camera_name] = camera
 
             optics = OpticsDescription(
@@ -158,6 +231,10 @@ class SimTelEventSource(EventSource):
     @staticmethod
     def is_compatible(file_path):
         return is_eventio(Path(file_path).expanduser())
+
+    @property
+    def subarray(self):
+        return self._subarray_info
 
     def _generator(self):
         if self.file_.tell() > self.start_pos:
@@ -264,15 +341,23 @@ class SimTelEventSource(EventSource):
                 tracking_position = tracking_positions[tel_id]
                 mc.azimuth_raw = tracking_position['azimuth_raw']
                 mc.altitude_raw = tracking_position['altitude_raw']
-                mc.azimuth_cor = tracking_position.get('azimuth_cor', 0)
-                mc.altitude_cor = tracking_position.get('altitude_cor', 0)
+                mc.azimuth_cor = tracking_position.get('azimuth_cor', np.nan)
+                mc.altitude_cor = tracking_position.get('altitude_cor', np.nan)
+                if np.isnan(mc.azimuth_cor):
+                    data.pointing[tel_id].azimuth = u.Quantity(mc.azimuth_raw, u.rad)
+                else:
+                    data.pointing[tel_id].azimuth = u.Quantity(mc.azimuth_cor, u.rad)
+                if np.isnan(mc.altitude_cor):
+                    data.pointing[tel_id].altitude = u.Quantity(mc.altitude_raw, u.rad)
+                else:
+                    data.pointing[tel_id].altitude = u.Quantity(mc.altitude_cor, u.rad)
 
                 r0 = data.r0.tel[tel_id]
                 r1 = data.r1.tel[tel_id]
                 r0.waveform = adc_samples
-                ped = mc.pedestal[..., np.newaxis] / n_samples
-                gain = mc.dc_to_pe[..., np.newaxis]
-                r1.waveform = (adc_samples - ped) * gain
+                r1.waveform, r1.selected_gain_channel = apply_simtel_r1_calibration(
+                    adc_samples, mc.pedestal, mc.dc_to_pe, self.gain_selector
+                )
 
                 pixel_lists = telescope_event['pixel_lists']
                 r0.num_trig_pix = pixel_lists.get(0, {'pixels': 0})['pixels']

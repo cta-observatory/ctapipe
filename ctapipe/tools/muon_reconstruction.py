@@ -67,7 +67,10 @@ class MuonDisplayerTool(Tool):
         )
         if self.source.input_url == '':
             raise ToolConfigurationError("please specify --input <events file>")
-        self.calib = self.add_component(CameraCalibrator(parent=self))
+        self.calib = self.add_component(CameraCalibrator(
+            parent=self,
+            subarray=self.source.subarray
+        ))
         self.writer = self.add_component(HDF5TableWriter(self.outfile, "muons"))
 
 

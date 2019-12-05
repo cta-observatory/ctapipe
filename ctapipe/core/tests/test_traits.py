@@ -11,12 +11,27 @@ from ctapipe.core.traits import (
     classes_with_traits,
     enum_trait,
     has_traits,
+    TelescopeParameterLookup,
     TelescopeParameter,
     FloatTelescopeParameter,
     IntTelescopeParameter,
-    TelescopeParameterResolver,
 )
 from ctapipe.image import ImageExtractor
+
+
+@pytest.fixture(scope='module')
+def mock_subarray():
+    subarray = MagicMock()
+    subarray.tel_ids = [1, 2, 3, 4]
+    subarray.get_tel_ids_for_type = (
+        lambda x: [3, 4] if x == "LST_LST_LSTCam" else [1, 2]
+    )
+    subarray.telescope_types = [
+        "LST_LST_LSTCam",
+        "MST_MST_NectarCam",
+        "MST_MST_FlashCam",
+    ]
+    return subarray
 
 
 def test_path_exists():
@@ -117,6 +132,35 @@ def test_has_traits():
     assert has_traits(WithATrait)
 
 
+def test_telescope_parameter_lookup(mock_subarray):
+    telparam_list = TelescopeParameterLookup(
+        [("type", "*", 10), ("type", "LST*", 100)]
+    )
+
+    with pytest.raises(ValueError):
+        telparam_list[1]
+
+    assert telparam_list[None] == 10
+
+    telparam_list.attach_subarray(mock_subarray)
+    assert telparam_list[1] == 10
+    assert telparam_list[3] == 100
+    assert telparam_list[None] == 10
+
+    with pytest.raises(KeyError):
+        telparam_list[200]
+
+    with pytest.raises(ValueError):
+        bad_config = TelescopeParameterLookup([("unknown", "a", 15.0)])
+        bad_config.attach_subarray(mock_subarray)
+
+    telparam_list2 = TelescopeParameterLookup(
+        [("type", "LST*", 100)]
+    )
+    with pytest.raises(KeyError):
+        telparam_list2[None]
+
+
 def test_telescope_parameter_patterns():
     """ Test validation of TelescopeParameters"""
 
@@ -131,7 +175,7 @@ def test_telescope_parameter_patterns():
 
     # single value allowed (converted to ("default","",val) )
     comp.tel_param = 4.5
-    assert comp.tel_param[0][2] == 4.5
+    assert list(comp.tel_param)[0][2] == 4.5
 
     comp.tel_param = [("type", "*", 1.0), ("type", "*LSTCam", 16.0), ("id", 16, 10.0)]
 
@@ -151,6 +195,22 @@ def test_telescope_parameter_patterns():
 
     with pytest.raises(TraitError):
         comp.tel_param_int = [(12, "", 5)]  # command not string
+
+
+def test_telescope_parameter_scalar_default(mock_subarray):
+    class SomeComponentInt(Component):
+        tel_param = IntTelescopeParameter(default_value=1)
+
+    comp_int = SomeComponentInt()
+    comp_int.tel_param.attach_subarray(mock_subarray)
+    assert comp_int.tel_param[1] == 1
+
+    class SomeComponentFloat(Component):
+        tel_param = FloatTelescopeParameter(default_value=1.5)
+
+    comp_float = SomeComponentFloat()
+    comp_float.tel_param.attach_subarray(mock_subarray)
+    assert comp_float.tel_param[1] == 1.5
 
 
 def test_telescope_parameter_resolver():
@@ -193,21 +253,21 @@ def test_telescope_parameter_resolver():
         "MST_MST_FlashCam",
     ]
 
-    resolver1 = TelescopeParameterResolver(subarray=subarray, tel_param=comp.tel_param1)
-    resolver2 = TelescopeParameterResolver(subarray=subarray, tel_param=comp.tel_param2)
-    resolver3 = TelescopeParameterResolver(subarray=subarray, tel_param=comp.tel_param3)
+    comp.tel_param1.attach_subarray(subarray)
+    comp.tel_param2.attach_subarray(subarray)
+    comp.tel_param3.attach_subarray(subarray)
 
-    assert resolver1.value_for_tel_id(1) == 10
-    assert resolver1.value_for_tel_id(3) == 100
+    assert comp.tel_param1[1] == 10
+    assert comp.tel_param1[3] == 100
 
-    assert list(map(resolver2.value_for_tel_id, [1, 2, 3, 4])) == [
+    assert list(map(comp.tel_param2.__getitem__, [1, 2, 3, 4])) == [
         10.0,
         10.0,
         200.0,
         100.0,
     ]
 
-    assert list(map(resolver3.value_for_tel_id, [1, 2, 3, 4, 100])) == [
+    assert list(map(comp.tel_param3.__getitem__, [1, 2, 3, 4, 100])) == [
         200.0,
         200.0,
         200.0,
@@ -215,9 +275,42 @@ def test_telescope_parameter_resolver():
         300.0,
     ]
 
-    with pytest.raises(KeyError):
-        resolver1.value_for_tel_id(200)
 
-    with pytest.raises(ValueError):
-        bad_config = [("unknown", "a", 15.0)]
-        TelescopeParameterResolver(subarray=subarray, tel_param=bad_config)
+def test_telescope_parameter_component_arg(mock_subarray):
+    class SomeComponent(Component):
+        tel_param1 = IntTelescopeParameter(
+            default_value=[("type", "*", 10), ("type", "LST*", 100)]
+        )
+
+    comp = SomeComponent(tel_param1=[("type", "*", 2), ("type", "LST*", 4)])
+    comp.tel_param1.attach_subarray(mock_subarray)
+    assert comp.tel_param1[1] == 2
+    assert comp.tel_param1[3] == 4
+    assert comp.tel_param1[None] == 2
+
+    comp = SomeComponent(tel_param1=200)
+    comp.tel_param1.attach_subarray(mock_subarray)
+    assert comp.tel_param1[1] == 200
+    assert comp.tel_param1[3] == 200
+    assert comp.tel_param1[None] == 200
+
+    comp = SomeComponent(tel_param1=300)
+    assert comp.tel_param1[None] == 300
+
+
+def test_telescope_parameter_set_retain_subarray(mock_subarray):
+    class SomeComponent(Component):
+        tel_param1 = IntTelescopeParameter(
+            default_value=[("type", "*", 10), ("type", "LST*", 100)]
+        )
+
+    comp = SomeComponent()
+    comp.tel_param1.attach_subarray(mock_subarray)
+    assert comp.tel_param1[1] == 10
+    assert comp.tel_param1[3] == 100
+    assert comp.tel_param1[None] == 10
+
+    comp.tel_param1 = 5
+    assert comp.tel_param1[1] == 5
+    assert comp.tel_param1[3] == 5
+    assert comp.tel_param1[None] == 5
