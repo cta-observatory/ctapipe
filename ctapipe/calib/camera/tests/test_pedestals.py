@@ -1,6 +1,8 @@
 import numpy as np
 from ctapipe.calib.camera.pedestals import *
 from ctapipe.io.containers import EventAndMonDataContainer
+import astropy.units as u
+from ctapipe.instrument import SubarrayDescription, TelescopeDescription
 
 
 def test_pedestal_calculator():
@@ -12,9 +14,22 @@ def test_pedestal_calculator():
     n_pixels = 1855
     ped_level = 300
 
-    ped_calculator = PedestalIntegrator(charge_product="FixedWindowSum",
-                                        sample_size=n_events,
-                                        tel_id=tel_id)
+    subarray = SubarrayDescription(
+        "test array",
+        tel_positions={0: np.zeros(3) * u.m},
+        tel_descriptions={
+            0: TelescopeDescription.from_name(
+                optics_name="SST-ASTRI", camera_name="CHEC"
+            ),
+        }
+    )
+
+    ped_calculator = PedestalIntegrator(
+        subarray=subarray,
+        charge_product="FixedWindowSum",
+        sample_size=n_events,
+        tel_id=tel_id
+    )
     # create one event
     data = EventAndMonDataContainer()
     data.meta['origin'] = 'test'
@@ -28,7 +43,7 @@ def test_pedestal_calculator():
         if ped_calculator.calculate_pedestals(data):
             assert data.mon.tel[tel_id].pedestal
             assert np.mean(data.mon.tel[tel_id].pedestal.charge_median) == (
-                    ped_calculator.extractor.window_width * ped_level)
+                    ped_calculator.extractor.window_width[0] * ped_level)
             assert np.mean(data.mon.tel[tel_id].pedestal.charge_std) == 0
 
 

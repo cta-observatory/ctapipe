@@ -190,6 +190,18 @@ class EventSource(Component):
         """
         return False
 
+    @property
+    @abstractmethod
+    def subarray(self):
+        """
+        Obtain the subarray from the EventSource
+
+        Returns
+        -------
+        ctapipe.instrument.SubarrayDecription
+
+        """
+
     @abstractmethod
     def _generator(self):
         """

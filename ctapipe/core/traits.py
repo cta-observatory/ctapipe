@@ -1,6 +1,6 @@
 import os
 from fnmatch import fnmatch
-
+from typing import Optional
 from traitlets import (
     Bool,
     CaselessStrEnum,
@@ -42,10 +42,10 @@ __all__ = [
     "enum_trait",
     "classes_with_traits",
     "has_traits",
+    "TelescopeParameterLookup",
     "TelescopeParameter",
     "FloatTelescopeParameter",
     "IntTelescopeParameter",
-    "TelescopeParameterResolver",
 ]
 
 import logging
@@ -138,6 +138,93 @@ def has_traits(cls, ignore=("config", "parent")):
     return bool(set(cls.class_trait_names()) - set(ignore))
 
 
+class TelescopeParameterLookup:
+    def __init__(self, telecope_parameter_list):
+        """
+        Handles the lookup of corresponding configuration value from a list of
+        tuples for a telid.
+
+        Parameters
+        ----------
+        telecope_parameter_list : list
+            List of tuples in the form `[(command, argument, value), ...]`
+        """
+        self._telecope_parameter_list = telecope_parameter_list
+        self._value_for_tel_id = None
+        self._subarray = None
+        self._subarray_global_value = None
+        for param in telecope_parameter_list:
+            if param[1] == "*":
+                self._subarray_global_value = param[2]
+
+    def attach_subarray(self, subarray):
+        """
+        Prepare the TelescopeParameter by informing it of the
+        subarray description
+
+        Parameters
+        ----------
+        subarray: ctapipe.instrument.SubarrayDescription
+            Description of the subarray
+            (includes mapping of tel_id to tel_type)
+        """
+        self._subarray = subarray
+        self._value_for_tel_id = {}
+        for command, arg, value in self._telecope_parameter_list:
+            if command == "type":
+                matched_tel_types = [
+                    str(t) for t in subarray.telescope_types
+                    if fnmatch(str(t), arg)
+                ]
+                logger.debug(f"argument '{arg}' matched: {matched_tel_types}")
+                if len(matched_tel_types) == 0:
+                    logger.warning(
+                        "TelescopeParameter type argument '%s' did not match "
+                        "any known telescope types",
+                        arg,
+                    )
+                for tel_type in matched_tel_types:
+                    for tel_id in subarray.get_tel_ids_for_type(tel_type):
+                        self._value_for_tel_id[tel_id] = value
+            elif command == "id":
+                self._value_for_tel_id[int(arg)] = value
+            else:
+                raise ValueError(f"Unrecognized command: {command}")
+
+    def __getitem__(self, tel_id: Optional[int]):
+        """
+        Returns the resolved parameter for the given telescope id
+        """
+        if tel_id is None:
+            if self._subarray_global_value is not None:
+                return self._subarray_global_value
+            else:
+                raise KeyError("No subarray global value set for TelescopeParameter")
+        if self._value_for_tel_id is None:
+            raise ValueError(
+                "TelescopeParameterLookup: No subarray attached, call "
+                "`attach_subarray` first before calling `resolve`"
+            )
+        try:
+            return self._value_for_tel_id[tel_id]
+        except KeyError:
+            raise KeyError(
+                f"TelescopeParameterLookup: no "
+                f"parameter value was set for telescope with tel_id="
+                f"{tel_id}. Please set it explicitly, "
+                f"or by telescope type or '*'."
+            )
+
+    def append(self, *args, **kwargs):
+        self._telecope_parameter_list.append(*args, **kwargs)
+
+    def __iter__(self, *args, **kwargs):
+        return self._telecope_parameter_list.__iter__(*args, **kwargs)
+
+    def __len__(self, *args, **kwargs):
+        return self._telecope_parameter_list.__len__(*args, **kwargs)
+
+
 class TelescopeParameter(List):
     """
     Allow a parameter value to be specified as a simple value (of type *dtype*),
@@ -171,24 +258,25 @@ class TelescopeParameter(List):
     tel_param = 4.0  # sets this value for all telescopes
 
     """
+    klass = TelescopeParameterLookup
 
-    def __init__(self, dtype=float, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, dtype=float, default_value=None, **kwargs):
         if not isinstance(dtype, type):
             raise ValueError("dtype should be a type")
+        if isinstance(default_value, dtype):
+            default_value = [("type", "*", default_value)]
+        super().__init__(default_value=default_value, **kwargs)
         self._dtype = dtype
 
     def validate(self, obj, value):
-        # support a single value for all (convert into a default value)
+        # Support a single value for all (convert into a default value)
         if isinstance(value, self._dtype):
             value = [("type", "*", value)]
 
-        # check that it is a list
-        super().validate(obj, value)
+        # Check each value of list
         normalized_value = []
-
         for pattern in value:
-            # now check for the standard 3-tuple of )command, argument, value)
+            # now check for the standard 3-tuple of (command, argument, value)
             if len(pattern) != 3:
                 raise TraitError(
                     "pattern should be a tuple of (command, argument, value)"
@@ -209,7 +297,24 @@ class TelescopeParameter(List):
             val = self._dtype(val)
             normalized_value.append((command, arg, val))
 
+        # Convert to TelescopeParameterLookup
+        normalized_value = TelescopeParameterLookup(normalized_value)
+
+        # Validate with super method
+        super().validate(obj, normalized_value)
+
         return normalized_value
+
+    def set(self, obj, value):
+        # Retain existing subarray description
+        # when setting new value for TelescopeParameter
+        try:
+            old_value = obj._trait_values[self.name]
+        except KeyError:
+            old_value = self.default_value
+        super().set(obj, value)
+        if getattr(old_value, '_subarray', None) is not None:
+            obj._trait_values[self.name].attach_subarray(old_value._subarray)
 
 
 class FloatTelescopeParameter(TelescopeParameter):
@@ -224,61 +329,3 @@ class IntTelescopeParameter(TelescopeParameter):
 
     def __init__(self, **kwargs):
         super().__init__(dtype=int, **kwargs)
-
-
-class TelescopeParameterResolver:
-    def __init__(
-        self,
-        subarray: "ctapipe.instrument.SubarrayDescription",
-        tel_param: "TelescopeParameter",
-    ):
-        """
-        Handles looking up a parameter by telescope_id, given a TelescopeParameter
-        trait (which maps a parameter to a set of telescopes by type, id, or other
-        selection criteria).
-
-        Parameters
-        ----------
-        name: str
-            name of the mapped parameter
-        subarray: ctapipe.instrument.SubarrayDescription
-            description of the subarray (includes mapping of tel_id to tel_type)
-        tel_param: TelescopeParameter trait
-            the parameter definitions
-        """
-
-        # build dictionary mapping tel_id to parameter:
-        self._value_for_tel_id = {}
-
-        for command, argument, value in tel_param:
-            if command == "type":
-                matched_tel_types = [
-                    t for t in subarray.telescope_types if fnmatch(t, argument)
-                ]
-                logger.debug(f"argument '{argument}' matched: {matched_tel_types}")
-                if len(matched_tel_types) == 0:
-                    logger.warning(
-                        "TelescopeParameter type argument '%s' did not match "
-                        "any known telescope types",
-                        argument,
-                    )
-                for tel_type in matched_tel_types:
-                    for tel_id in subarray.get_tel_ids_for_type(tel_type):
-                        self._value_for_tel_id[tel_id] = value
-            elif command == "id":
-                self._value_for_tel_id[int(argument)] = value
-            else:
-                raise ValueError(f"Unrecognized command: {command}")
-
-    def value_for_tel_id(self, tel_id: int):
-        """
-        returns the resolved parameter for the given telescope id
-        """
-        try:
-            return self._value_for_tel_id[tel_id]
-        except KeyError:
-            raise KeyError(
-                f"TelescopeParameterResolver: no "
-                f"parameter value was set for telescope with tel_id="
-                f"{tel_id}. Please set it explicitly, or by telescope type or '*'."
-            )
