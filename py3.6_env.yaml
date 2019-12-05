@@ -42,3 +42,4 @@ dependencies:
   - pip
   - pip:
     - eventio~=1.0
+    - https://github.com/Laurits7/circlehough/archive/master.tar.gz
