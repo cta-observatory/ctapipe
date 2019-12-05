@@ -64,7 +64,7 @@ setup(name=PACKAGENAME,
       install_requires=[
           'astropy~=3.0',
           'bokeh~=1.0',
-          'circlehough',
+          'circlehough @ https://github.com/Laurits7/circlehough/archive/master.tar.gz',
           'eventio>=0.20.1,<0.21',
           'iminuit>=1.3',
           'joblib',
