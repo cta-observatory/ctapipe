@@ -366,11 +366,9 @@ def fact_image_cleaning(
 
 class ImageCleaner(TelescopeComponent):
     """
-     Abstract class for all configurable Image Cleaning algorithms.   Use
+    Abstract class for all configurable Image Cleaning algorithms.   Use
     `ImageCleaner.from_name()` to construct an instance of a particular algorithm
-
-     All subclasses should define __call__(tel__id, image, arrival_times)
-     """
+    """
 
     @abstractmethod
     def __call__(
@@ -432,6 +430,9 @@ class TailcutsImageCleaner(ImageCleaner):
 
 
 class MARSImageCleaner(TailcutsImageCleaner):
+    """
+    1st-pass MARS-like Image cleaner (See `ctapipe.image.mars_cleaning_1st_pass`)
+    """
     def __call__(
         self, tel_id: int, image: np.ndarray, arrival_times=None
     ) -> np.ndarray:
