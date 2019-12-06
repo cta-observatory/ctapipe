@@ -9,10 +9,15 @@ __all__ = [
     "fact_image_cleaning",
     "apply_time_delta_cleaning",
     "number_of_islands",
+    "ImageCleaner",
+    "TailcutsImageCleaner",
 ]
 
 import numpy as np
 from scipy.sparse.csgraph import connected_components
+
+from ..core import Component
+from ..core.traits import FloatTelescopeParameter, IntTelescopeParameter
 
 
 def tailcuts_clean(
@@ -217,7 +222,7 @@ def number_of_islands(geom, mask):
     # compress sparse neighbor matrix
     neighbor_matrix_compressed = geom.neighbor_matrix_sparse[mask][:, mask]
     # pixels in no cluster have label == 0
-    island_labels = np.zeros(geom.n_pixels, dtype='int32')
+    island_labels = np.zeros(geom.n_pixels, dtype="int32")
 
     num_islands, island_labels_compressed = connected_components(
         neighbor_matrix_compressed, directed=False
@@ -230,7 +235,7 @@ def number_of_islands(geom, mask):
 
 
 def apply_time_delta_cleaning(
-        geom, mask, arrival_times, min_number_neighbors, time_limit
+    geom, mask, arrival_times, min_number_neighbors, time_limit
 ):
     """
     Identify all pixels from selection that have less than N
@@ -356,3 +361,73 @@ def fact_image_cleaning(
         geom, pixels_to_keep, arrival_times, min_number_neighbors, time_limit
     )
     return pixels_to_keep
+
+
+class ImageCleaner(Component):
+    """
+     Abstract class for all configurable Image Cleaning algorithms.   Use
+    `ImageCleaner.from_name()` to construct an instance of a particular algorithm
+     """
+
+    pass
+
+
+class TailcutsImageCleaner(ImageCleaner):
+    """
+    Apply Image Cleaning to a set of telescope images
+    """
+
+    picture_threshold_pe = FloatTelescopeParameter(
+        help="top-level threshold in photoelectrons", default_value=10.0,
+    ).tag(config=True)
+
+    boundary_threshold_pe = FloatTelescopeParameter(
+        help="second-level threshold in photoelectrons", default_value=5.0,
+    ).tag(config=True)
+
+    min_picture_neighbors = IntTelescopeParameter(
+        help="Minimum number of neighbors above threshold to consider", default_value=2,
+    ).tag(config=True)
+
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config, parent, **kwargs)
+        self._subarray_initialized = False
+
+    def __call__(
+        self,
+        tel_id: int,
+        subarray: "ctapipe.instrument.SubarrayDescription",
+        image: np.ndarray,
+    ) -> np.ndarray:
+        """ Apply image cleaning
+
+        Parameters
+        ----------
+        tel_id: int
+            which telescope id in the subarray is being used (determines
+            which cut is used)
+        image : np.ndarray
+            image pixel data corresponding to the camera geometry
+        subarray: ctapipe.image.SubarrayDescription
+            subarray definition (for mapping tel type to tel_id)
+
+        Returns
+        -------
+        np.ndarray
+            boolean mask of pixels passing cleaning
+        """
+        if not self._subarray_initialized:
+            # If this is the first time we call it, setup the `TelescopeParameters`
+            # so that they use the user-selected value for each telescope/type:
+            self.picture_threshold_pe.attach_subarray(subarray)
+            self.boundary_threshold_pe.attach_subarray(subarray)
+            self.min_picture_neighbors.attach_subarray(subarray)
+            self._subarray_initialized = True
+
+        return tailcuts_clean(
+            subarray.tel[tel_id].camera,
+            image,
+            picture_thresh=self.picture_threshold_pe[tel_id],
+            boundary_thresh=self.boundary_threshold_pe[tel_id],
+            min_number_picture_neighbors=self.min_picture_neighbors[tel_id],
+        )
