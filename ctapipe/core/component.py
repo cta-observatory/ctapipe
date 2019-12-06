@@ -8,6 +8,8 @@ from traitlets.config import Configurable
 
 from ctapipe.core.plugins import detect_and_import_io_plugins
 
+__all__ = ["non_abstract_children", "Component", "TelescopeComponent"]
+
 
 def non_abstract_children(base):
     """
@@ -24,8 +26,7 @@ def non_abstract_children(base):
         dict of all non-abstract subclasses
      """
     subclasses = base.__subclasses__() + [
-        g for s in base.__subclasses__()
-        for g in non_abstract_children(s)
+        g for s in base.__subclasses__() for g in non_abstract_children(s)
     ]
     non_abstract = [g for g in subclasses if not isabstract(g)]
 
@@ -37,6 +38,7 @@ class AbstractConfigurableMeta(type(Configurable), ABCMeta):
     Metaclass to be able to make Component abstract
     see: http://stackoverflow.com/a/7314847/3838691
     """
+
     pass
 
 
@@ -100,9 +102,9 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         """
         if parent is not None and config is not None:
             raise ValueError(
-                'Only one of `config` or `parent` allowed'
-                ' If you create a Component as part of another, give `parent=self`'
-                ' and not `config`'
+                "Only one of `config` or `parent` allowed"
+                " If you create a Component as part of another, give `parent=self`"
+                " and not `config`"
             )
         super().__init__(parent=parent, config=config, **kwargs)
 
@@ -116,7 +118,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
             self.log = self.parent.log.getChild(self.__class__.__name__)
         else:
             self.log = getLogger(
-                self.__class__.__module__ + '.' + self.__class__.__name__
+                self.__class__.__module__ + "." + self.__class__.__name__
             )
 
     @classmethod
@@ -146,10 +148,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
             Instance of subclass to this class
         """
         detect_and_import_io_plugins()
-        subclasses = {
-            base.__name__: base
-            for base in non_abstract_children(cls)
-        }
+        subclasses = {base.__name__: base for base in non_abstract_children(cls)}
         requested_subclass = subclasses[name]
 
         return requested_subclass(config=config, parent=parent, **kwargs)
@@ -171,10 +170,10 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         lines = [
             f"<b>{name}</b>",
             f"<p> {self.__class__.__doc__ or 'Undocumented!'} </p>",
-            "<table>"
+            "<table>",
         ]
         for key, val in self.get_current_config()[name].items():
-            thehelp = f'{traits[key].help} (default: {traits[key].default_value})'
+            thehelp = f"{traits[key].help} (default: {traits[key].default_value})"
             lines.append(f"<tr><th>{key}</th>")
             if val != traits[key].default_value:
                 lines.append(f"<td><span style='color:blue'>{val}</span></td>")
@@ -183,3 +182,21 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
             lines.append(f'<td style="text-align:left"><i>{thehelp}</i></td></tr>')
         lines.append("</table>")
         return "\n".join(lines)
+
+
+class TelescopeComponent(Component):
+    """
+    A component that needs a SubarrayDescription to be constructed, and which
+    contains configurable `TelescopeParameters` that must be configured on construction.
+    """
+
+    def __init__(self, subarray, config=None, parent=None, **kwargs):
+        super().__init__(config, parent, **kwargs)
+
+        self.subarray = subarray
+        # configure all of the TelescopeParameters
+        for trait in list(self.class_traits()):
+            try:
+                getattr(self, trait).attach_subarray(subarray)
+            except (AttributeError, TypeError):
+                pass
