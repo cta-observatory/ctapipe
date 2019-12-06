@@ -1,29 +1,49 @@
-from ctapipe.image import ImageCleaner
-from ctapipe.instrument import TelescopeDescription, SubarrayDescription
-from traitlets.config import Config
 import numpy as np
 import pytest
+from traitlets.config import Config
 
-@pytest.mark.parametrize("method", ['TailcutsImageCleaner',])
+from ctapipe.image import ImageCleaner
+from ctapipe.instrument import TelescopeDescription, SubarrayDescription
+
+
+@pytest.mark.parametrize(
+    "method", ["TailcutsImageCleaner", "MARSImageCleaner", "FACTImageCleaner"]
+)
 def test_image_cleaner(method):
     """ Test that we can construct and use a component-based ImageCleaner"""
 
-    config = Config({
-        "TailcutsImageCleaner": {"boundary_threshold": 5.0, "picture_threshold": 10.0},
-    })
+    config = Config(
+        {
+            "TailcutsImageCleaner": {
+                "boundary_threshold_pe": 5.0,
+                "picture_threshold_pe": 10.0,
+            },
+            "MARSImageCleaner": {
+                "boundary_threshold_pe": 5.0,
+                "picture_threshold_pe": 10.0,
+            },
+            "FACTImageCleaner": {
+                "boundary_threshold_pe": 5.0,
+                "picture_threshold_pe": 10.0,
+                "time_limit_ns": 6.0,
+            },
+        }
+    )
 
     tel = TelescopeDescription.from_name("MST", "NectarCam")
     subarray = SubarrayDescription(
         name="test", tel_positions={1: None}, tel_descriptions={1: tel}
     )
 
-
-    clean = ImageCleaner.from_name(method, config)
+    clean = ImageCleaner.from_name(method, config=config, subarray=subarray)
 
     image = np.zeros_like(tel.camera.pix_x.value, dtype=np.float)
     image[10:30] = 20.0
     image[31:40] = 8.0
+    times = np.linspace(-5, 10, image.shape[0])
 
-    mask = clean(tel_id=1, subarray=subarray, image=image)
+    mask = clean(tel_id=1, image=image, arrival_times=times)
 
-    assert np.count_nonzero(mask) == 22
+    # we're not testing the algorithm here, just that it does something (for the
+    # algorithm tests, see test_cleaning.py
+    assert np.count_nonzero(mask) > 0
