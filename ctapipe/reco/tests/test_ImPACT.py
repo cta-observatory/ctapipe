@@ -7,7 +7,7 @@ from ctapipe.io.containers import (ReconstructedShowerContainer,
                                    ReconstructedEnergyContainer)
 from ctapipe.reco.ImPACT import ImPACTReconstructor
 from ctapipe.io.containers import HillasParametersContainer
-from astropy.coordinates import Angle
+from astropy.coordinates import Angle, AltAz, SkyCoord
 
 
 class TestImPACT():
@@ -15,6 +15,8 @@ class TestImPACT():
     @classmethod
     def setup_class(self):
         self.impact_reco = ImPACTReconstructor(root_dir=".")
+        self.horizon_frame = AltAz()
+
         self.h1 = HillasParametersContainer(x=1 * u.deg, y=1 * u.deg,
                                             r=1 * u.deg, phi=Angle(0 * u.rad),
                                             intensity=100,
@@ -33,13 +35,16 @@ class TestImPACT():
         pixel_x = np.array([0., 1., 0., -1.]) * u.deg
         pixel_y = np.array([-1., 0., 1., 0.]) * u.deg
 
+        array_pointing = SkyCoord(alt=0 * u.deg,
+                                  az=0 * u.deg,
+                                  frame=self.horizon_frame)
+
         self.impact_reco.set_event_properties({1: image}, {1: image},
-                                              {1: pixel_x},{1: pixel_y},
+                                              {1: pixel_x}, {1: pixel_y},
                                               {1: "DUMMY"}, {1: 0 * u.m},
                                               {1: 0 * u.m},
-                                              array_direction=[0 * u.deg,
-                                                               0 * u.deg],
-                                              hillas={1:self.h1})
+                                              array_direction=array_pointing,
+                                              hillas={1: self.h1})
 
         self.impact_reco.get_hillas_mean()
 
@@ -77,12 +82,15 @@ class TestImPACT():
         pixel_x = np.array([1, 1, 1]) * u.deg
         pixel_y = np.array([1, 1, 1]) * u.deg
 
+        array_pointing = SkyCoord(alt=0 * u.deg,
+                                  az=0 * u.deg,
+                                  frame=self.horizon_frame)
+
         self.impact_reco.set_event_properties({1: image}, {1: image},
                                               {1: pixel_x},{1: pixel_y},
                                               {1: "DUMMY"}, {1: 0 * u.m},
                                               {1: 0 * u.m},
-                                              array_direction=[0 * u.deg,
-                                                               0 * u.deg],
+                                              array_direction=array_pointing,
                                               hillas={1:self.h1})
 
         shower_max = self.impact_reco.get_shower_max(0, 0, 0, 100, 0)

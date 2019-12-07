@@ -2,6 +2,7 @@ from collections import defaultdict
 from copy import deepcopy
 from pprint import pformat
 from textwrap import wrap
+import warnings
 
 
 class Field:
@@ -28,10 +29,20 @@ class Field:
         self.ucd = ucd
 
     def __repr__(self):
-        desc = f'{self.description}'
+        desc = f"{self.description}"
         if self.unit is not None:
-            desc += f' [{self.unit}]'
+            desc += f" [{self.unit}]"
         return desc
+
+
+class DeprecatedField(Field):
+    """ used to mark which fields may be removed in next version """
+    def __init__(self, default, description="", unit=None, ucd=None, reason=""):
+        super().__init__(default=default, description=description, unit=unit, ucd=ucd)
+        warnings.warn(f"Field {self} is deprecated. {reason}", DeprecationWarning)
+        self.reason = reason
+
+
 
 
 class ContainerMeta(type):
@@ -47,27 +58,24 @@ class ContainerMeta(type):
     """
 
     def __new__(cls, name, bases, dct):
-        field_names = [
-            k for k, v in dct.items()
-            if isinstance(v, Field)
-        ]
-        dct['__slots__'] = tuple(field_names + ['meta', 'prefix'])
-        dct['fields'] = {}
+        field_names = [k for k, v in dct.items() if isinstance(v, Field)]
+        dct["__slots__"] = tuple(field_names + ["meta", "prefix"])
+        dct["fields"] = {}
 
         # inherit fields from baseclasses
         for b in bases:
             if issubclass(b, Container):
                 for k, v in b.fields.items():
-                    dct['fields'][k] = v
+                    dct["fields"][k] = v
 
         for k in field_names:
-            dct['fields'][k] = dct.pop(k)
+            dct["fields"][k] = dct.pop(k)
 
         new_cls = type.__new__(cls, name, bases, dct)
 
         # if prefix was not set as a class variable, build a default one
-        if 'container_prefix' not in dct:
-            new_cls.container_prefix = name.lower().replace('container', '')
+        if "container_prefix" not in dct:
+            new_cls.container_prefix = name.lower().replace("container", "")
 
         return new_cls
 
@@ -142,10 +150,10 @@ class Container(metaclass=ContainerMeta):
 
     def items(self, add_prefix=False):
         """Generator over (key, value) pairs for the items"""
-        if not add_prefix or self.prefix == '':
+        if not add_prefix or self.prefix == "":
             return ((k, getattr(self, k)) for k in self.fields.keys())
 
-        return ((self.prefix + '_' + k, getattr(self, k)) for k in self.fields.keys())
+        return ((self.prefix + "_" + k, getattr(self, k)) for k in self.fields.keys())
 
     def keys(self):
         """Get the keys of the container"""
@@ -176,13 +184,14 @@ class Container(metaclass=ContainerMeta):
             for key, val in self.items(add_prefix=add_prefix):
                 if isinstance(val, Container) or isinstance(val, Map):
                     if flatten:
-                        d.update({
-                            f"{key}_{k}": v
-                            for k, v in val.as_dict(
-                                recursive,
-                                add_prefix=add_prefix
-                            ).items()
-                        })
+                        d.update(
+                            {
+                                f"{key}_{k}": v
+                                for k, v in val.as_dict(
+                                    recursive, add_prefix=add_prefix
+                                ).items()
+                            }
+                        )
                     else:
                         d[key] = val.as_dict(
                             recursive=recursive, flatten=flatten, add_prefix=add_prefix
@@ -220,7 +229,7 @@ class Container(metaclass=ContainerMeta):
             if isinstance(getattr(self, name), Map):
                 extra = "[*]"
             desc = "{:>30s}: {}".format(name + extra, repr(item))
-            lines = wrap(desc, 80, subsequent_indent=' ' * 32)
+            lines = wrap(desc, 80, subsequent_indent=" " * 32)
             text.extend(lines)
         return "\n".join(text)
 
@@ -239,17 +248,17 @@ class Map(defaultdict):
             for key, val in self.items():
                 if isinstance(val, Container) or isinstance(val, Map):
                     if flatten:
-                        d.update({
-                            f"{key}_{k}": v
-                            for k, v in val.as_dict(
-                                recursive, add_prefix=add_prefix
-                            ).items()
-                        })
+                        d.update(
+                            {
+                                f"{key}_{k}": v
+                                for k, v in val.as_dict(
+                                    recursive, add_prefix=add_prefix
+                                ).items()
+                            }
+                        )
                     else:
                         d[key] = val.as_dict(
-                            recursive=recursive,
-                            flatten=flatten,
-                            add_prefix=add_prefix,
+                            recursive=recursive, flatten=flatten, add_prefix=add_prefix
                         )
                     continue
                 d[key] = val

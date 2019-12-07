@@ -68,9 +68,9 @@ class ImagePlotter(Component):
         return event.inst.subarray.tel[telid].camera
 
     def plot(self, event, telid):
-        chan = 0
-        image = event.dl1.tel[telid].image[chan]
-        pulse_time = event.dl1.tel[telid].pulse_time[chan]
+        image = event.dl1.tel[telid].image
+        pulse_time = event.dl1.tel[telid].pulse_time
+        print("plot", image.shape, pulse_time.shape)
 
         if self._current_tel != telid:
             self._current_tel = telid
@@ -83,7 +83,7 @@ class ImagePlotter(Component):
             self.c_intensity = CameraDisplay(geom, ax=self.ax_intensity)
             self.c_pulse_time = CameraDisplay(geom, ax=self.ax_pulse_time)
 
-            tmaxmin = event.dl0.tel[telid].waveform.shape[2]
+            tmaxmin = event.dl0.tel[telid].waveform.shape[1]
             t_chargemax = pulse_time[image.argmax()]
             cmap_time = colors.LinearSegmentedColormap.from_list(
                 "cmap_t",
@@ -183,7 +183,9 @@ class DisplayDL1Calib(Tool):
             )
         )
 
-        self.calibrator = self.add_component(CameraCalibrator(parent=self))
+        self.calibrator = self.add_component(CameraCalibrator(
+            parent=self, subarray=self.eventsource.subarray
+        ))
         self.plotter = self.add_component(ImagePlotter(parent=self))
 
     def start(self):

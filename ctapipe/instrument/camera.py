@@ -6,7 +6,7 @@ import logging
 
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import Angle
+from astropy.coordinates import Angle, SkyCoord
 from astropy.table import Table
 from astropy.utils import lazyproperty
 from scipy.spatial import cKDTree as KDTree
@@ -15,6 +15,7 @@ import warnings
 
 from ctapipe.utils import get_table_dataset, find_all_matching_datasets
 from ctapipe.utils.linalg import rotation_matrix_2d
+from ctapipe.coordinates import CameraFrame
 
 
 __all__ = ['CameraGeometry']
@@ -67,8 +68,8 @@ class CameraGeometry:
     _geometry_cache = {}  # dictionary CameraGeometry instances for speed
 
     def __init__(self, cam_id, pix_id, pix_x, pix_y, pix_area, pix_type,
-                 pix_rotation="0d", cam_rotation="0d",
-                 neighbors=None, apply_derotation=True):
+                 sampling_rate, pix_rotation="0d", cam_rotation="0d",
+                 neighbors=None, apply_derotation=True, frame=None):
 
         if pix_x.ndim != 1 or pix_y.ndim != 1:
             raise ValueError(f'Pixel coordinates must be 1 dimensional, got {pix_x.ndim}')
@@ -83,7 +84,9 @@ class CameraGeometry:
         self.pix_type = pix_type
         self.pix_rotation = Angle(pix_rotation)
         self.cam_rotation = Angle(cam_rotation)
+        self.sampling_rate = sampling_rate
         self._neighbors = neighbors
+        self.frame = frame
 
         if neighbors is not None:
             if isinstance(neighbors, list):
@@ -125,6 +128,46 @@ class CameraGeometry:
             (self.pix_y == other.pix_y).all(),
         ])
 
+    def transform_to(self, frame):
+        '''
+        Transform the pixel coordinates stored in this geometry
+        and the pixel and camera rotations to another camera coordinate frame.
+
+        Parameters
+        ----------
+        frame: ctapipe.coordinates.CameraFrame
+            The coordinate frame to transform to.
+        '''
+        if self.frame is None:
+            self.frame = CameraFrame()
+
+        coord = SkyCoord(x=self.pix_x, y=self.pix_y, frame=self.frame)
+        trans = coord.transform_to(frame)
+
+        # also transform the unit vectors, to get rotation / mirroring
+        uv = SkyCoord(x=[1, 0], y=[0, 1], unit=u.m, frame=self.frame)
+        uv_trans = uv.transform_to(frame)
+        rot = np.arctan2(uv_trans[0].y, uv_trans[1].y)
+        det = np.linalg.det([uv_trans.x.value, uv_trans.y.value])
+
+        cam_rotation = rot + det * self.cam_rotation
+        pix_rotation = rot + det * self.pix_rotation
+
+        return CameraGeometry(
+            cam_id=self.cam_id,
+            pix_id=self.pix_id,
+            pix_x=trans.x,
+            pix_y=trans.y,
+            pix_area=self.pix_area,
+            pix_type=self.pix_type,
+            sampling_rate=self.sampling_rate,
+            pix_rotation=pix_rotation,
+            cam_rotation=cam_rotation,
+            neighbors=None,
+            apply_derotation=False,
+            frame=frame,
+        )
+
     def __hash__(self):
         return hash((
             self.cam_id,
@@ -145,6 +188,7 @@ class CameraGeometry:
             pix_y=self.pix_y[slice_],
             pix_area=self.pix_area[slice_],
             pix_type=self.pix_type,
+            sampling_rate=self.sampling_rate,
             pix_rotation=self.pix_rotation,
             cam_rotation=self.cam_rotation,
             neighbors=None,
@@ -266,8 +310,9 @@ class CameraGeometry:
                      names=['pix_id', 'pix_x', 'pix_y', 'pix_area'],
                      meta=dict(PIX_TYPE=self.pix_type,
                                TAB_TYPE='ctapipe.instrument.CameraGeometry',
-                               TAB_VER='1.0',
+                               TAB_VER='1.1',
                                CAM_ID=self.cam_id,
+                               SAMPFREQ=self.sampling_rate,
                                PIX_ROT=self.pix_rotation.deg,
                                CAM_ROT=self.cam_rotation.deg,
                                ))
@@ -293,6 +338,12 @@ class CameraGeometry:
         if not isinstance(url_or_table, Table):
             tab = Table.read(url_or_table, **kwargs)
 
+        try:
+            sampling_rate = u.Quantity(tab.meta["SAMPFREQ"], u.GHz)
+        except KeyError:
+            logger.warn("Sampling rate is not in file, defaulting to 1.0 GHz")
+            sampling_rate = u.Quantity(1, u.GHz)
+
         return cls(
             cam_id=tab.meta.get('CAM_ID', 'Unknown'),
             pix_id=tab['pix_id'],
@@ -300,6 +351,7 @@ class CameraGeometry:
             pix_y=tab['pix_y'].quantity,
             pix_area=tab['pix_area'].quantity,
             pix_type=tab.meta['PIX_TYPE'],
+            sampling_rate=sampling_rate,
             pix_rotation=Angle(tab.meta['PIX_ROT'] * u.deg),
             cam_rotation=Angle(tab.meta['CAM_ROT'] * u.deg),
         )
@@ -520,7 +572,8 @@ class CameraGeometry:
                    pix_y=yy,
                    pix_area=(2 * rr) ** 2,
                    neighbors=None,
-                   pix_type='rectangular')
+                   pix_type='rectangular',
+                   sampling_rate=u.Quantity(1, u.GHz))
 
     def get_border_pixel_mask(self, width=1):
         '''

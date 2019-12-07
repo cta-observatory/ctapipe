@@ -4,44 +4,41 @@ channels:
   - default
   - cta-observatory
 dependencies:
-  - zeromq
-  - pyzmq>=17  # needed for correct function of notebooks on OSX
   - astropy
   - bokeh
+  - conda-forge::nbsphinx
+  - ctapipe-extra=0.2.18
   - cython
-  - conda-forge::gammapy
   - graphviz
-  - h5py
   - iminuit
   - ipython
   - ipywidgets
+  - joblib
   - jupyter
   - matplotlib
   - numba
   - numpy>=1.15.4
   - numpydoc
   - pandas
+  - psutil
+  - pytables
   - pytest
   - pytest-cov
-  - psutil
+  - pytest-runner
+  - pyyaml
   - scikit-learn
   - scipy
   - setuptools
   - sphinx
-  - sphinx_rtd_theme
   - sphinx-automodapi
+  - sphinx_rtd_theme
+  - tqdm
   - traitlets
   - wheel
   - xz
-  - pyyaml
   - zlib
-  - iminuit
-  - pytables
-  - tqdm
-  - conda-forge::nbsphinx
-  - ctapipe-extra=0.2.17
-  - pytest-runner
+  - pip
   - pip:
-    - eventio~=0.20.1
+    - eventio~=1.0
 
 

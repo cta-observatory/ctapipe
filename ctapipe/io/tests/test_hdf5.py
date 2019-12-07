@@ -56,10 +56,10 @@ def test_prefix(tmp_path):
     )
 
     leakage_container = LeakageContainer(
-        leakage1_pixel=0.1,
-        leakage2_pixel=0.1,
-        leakage1_intensity=0.1,
-        leakage2_intensity=0.1,
+        pixels_width_1=0.1,
+        pixels_width_2=0.1,
+        intensity_width_1=0.1,
+        intensity_width_2=0.1,
     )
 
     with HDF5TableWriter(tmp_file.name, group_name="blabla", add_prefix=True) as writer:
@@ -67,7 +67,7 @@ def test_prefix(tmp_path):
 
     df = pd.read_hdf(tmp_file.name, key="/blabla/events")
     assert "hillas_x" in df.columns
-    assert "leakage2_pixel" in df.columns
+    assert "leakage_pixels_width_1" in df.columns
 
 
 def test_write_containers(temp_h5_file):
@@ -108,6 +108,25 @@ def test_write_bool():
                 expected = (i % 2) == 0
                 assert isinstance(cur.boolean, np.bool_)
                 assert cur.boolean == expected
+
+
+def test_write_large_integer():
+    class C(Container):
+        value = Field(True, 'Integer value')
+
+    exps = [15, 31, 63]
+    with tempfile.NamedTemporaryFile() as f:
+        with HDF5TableWriter(f.name, "test") as writer:
+            for exp in exps:
+                c = C(value=2**exp - 1)
+                writer.write("c", c)
+
+        c = C()
+        with HDF5TableReader(f.name) as reader:
+            c_reader = reader.read('/test/c', c)
+            for exp in exps:
+                cur = next(c_reader)
+                assert cur.value == 2**exp - 1
 
 
 def test_read_container(temp_h5_file):

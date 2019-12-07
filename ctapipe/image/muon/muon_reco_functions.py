@@ -76,7 +76,7 @@ def analyze_muon_event(event):
     for telid in event.dl0.tels_with_data:
 
         logger.debug("Analysing muon event for tel %d", telid)
-        image = event.dl1.tel[telid].image[0]
+        image = event.dl1.tel[telid].image
 
         # Get geometry
         teldes = event.inst.subarray.tel[telid]

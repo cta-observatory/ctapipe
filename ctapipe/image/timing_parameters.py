@@ -3,7 +3,7 @@ Image timing-based shower image parametrization.
 """
 
 import numpy as np
-from numpy.polynomial.polynomial import polyfit, polyval
+from numpy.polynomial.polynomial import polyval
 from ctapipe.io.containers import TimingParametersContainer
 from .hillas import camera_to_shower_coordinates
 
@@ -13,9 +13,9 @@ __all__ = [
 ]
 
 
-def timing_parameters(geom, image, pulse_time, hillas_parameters):
+def timing_parameters(geom, image, pulse_time, hillas_parameters, cleaning_mask=None):
     """
-    Function to extract timing parameters from a cleaned image
+    Function to extract timing parameters from a cleaned image.
 
     Parameters
     ----------
@@ -27,6 +27,9 @@ def timing_parameters(geom, image, pulse_time, hillas_parameters):
         Time of the pulse extracted from each pixels waveform
     hillas_parameters: ctapipe.io.containers.HillasParametersContainer
         Result of hillas_parameters
+    cleaning_mask: optionnal, array, dtype=bool
+        The pixels that survived cleaning, e.g. tailcuts_clean
+        The non-masked pixels must verify signal > 0
 
     Returns
     -------
@@ -35,13 +38,16 @@ def timing_parameters(geom, image, pulse_time, hillas_parameters):
 
     unit = geom.pix_x.unit
 
-    # select only the pixels in the cleaned image that are greater than zero.
-    # we need to exclude possible pixels with zero signal after cleaning.
-    greater_than_0 = image > 0
-    pix_x = geom.pix_x[greater_than_0]
-    pix_y = geom.pix_y[greater_than_0]
-    image = image[greater_than_0]
-    pulse_time = pulse_time[greater_than_0]
+    if cleaning_mask is not None:
+        image = image[cleaning_mask]
+        geom = geom[cleaning_mask]
+        pulse_time = pulse_time[cleaning_mask]
+
+    if (image < 0).any():
+        raise ValueError("The non-masked pixels must verify signal >= 0")
+
+    pix_x = geom.pix_x
+    pix_y = geom.pix_y
 
     longi, trans = camera_to_shower_coordinates(
         pix_x,
@@ -50,9 +56,10 @@ def timing_parameters(geom, image, pulse_time, hillas_parameters):
         hillas_parameters.y,
         hillas_parameters.psi
     )
-    intercept, slope = polyfit(
-        longi.value, pulse_time, deg=1, w=np.sqrt(image)
+    (slope, intercept), cov = np.polyfit(
+        longi.value, pulse_time, deg=1, w=np.sqrt(image), cov=True,
     )
+    slope_err, intercept_err = np.sqrt(np.diag(cov))
     predicted_time = polyval(longi.value, (intercept, slope))
     deviation = np.sqrt(
         np.sum((pulse_time - predicted_time)**2) / pulse_time.size
@@ -62,4 +69,6 @@ def timing_parameters(geom, image, pulse_time, hillas_parameters):
         slope=slope / unit,
         intercept=intercept,
         deviation=deviation,
+        slope_err=slope_err,
+        intercept_err=intercept_err,
     )

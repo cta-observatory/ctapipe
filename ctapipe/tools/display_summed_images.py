@@ -72,7 +72,7 @@ class ImageSumDisplayerTool(Tool):
         )
         self.log.info(f"SELECTED TELESCOPES:{self._selected_tels}")
 
-        self.calibrator = CameraCalibrator(parent=self)
+        self.calibrator = CameraCalibrator(parent=self, subarray=self.reader.subarray)
 
         self.reader.allowed_tels = self._selected_tels
 
@@ -97,7 +97,7 @@ class ImageSumDisplayerTool(Tool):
 
             imsum[:] = 0
             for telid in event.dl0.tels_with_data:
-                imsum += event.dl1.tel[telid].image[0]
+                imsum += event.dl1.tel[telid].image
 
             self.log.info(
                 "event={} ntels={} energy={}".format(

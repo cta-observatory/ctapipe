@@ -113,7 +113,7 @@ def plot_muon_event(event, muonparams):
             # from the calibration
             ax1 = fig.add_subplot(1, npads, 1)
             plotter = CameraPlotter(event)
-            image = event.dl1.tel[tel_id].image[0]
+            image = event.dl1.tel[tel_id].image
             geom = event.inst.subarray.tel[tel_id].camera
 
             tailcuts = (5., 7.)

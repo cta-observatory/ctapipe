@@ -18,10 +18,10 @@ from ctapipe.visualization import CameraDisplay
 
 def plot(event, telid, chan, extractor_name):
     # Extract required images
-    dl0 = event.dl0.tel[telid].waveform[chan]
+    dl0 = event.dl0.tel[telid].waveform
 
     t_pe = event.mc.tel[telid].photo_electron_image
-    dl1 = event.dl1.tel[telid].image[chan]
+    dl1 = event.dl1.tel[telid].image
     max_time = np.unravel_index(np.argmax(dl0), dl0.shape)[1]
     max_charges = np.max(dl0, axis=1)
     max_pix = int(np.argmax(max_charges))
@@ -262,12 +262,12 @@ class DisplayIntegrator(Tool):
 
         event_source = self.add_component(EventSource.from_config(parent=self))
         self.eventseeker = self.add_component(EventSeeker(event_source, parent=self))
-        self.extractor = self.add_component(
-            ImageExtractor.from_name(self.extractor_product, parent=self)
-        )
-        self.calibrate = self.add_component(
-            CameraCalibrator(parent=self, image_extractor=self.extractor)
-        )
+        self.extractor = self.add_component(ImageExtractor.from_name(
+            self.extractor_product, parent=self, subarray=event_source.subarray
+        ))
+        self.calibrate = self.add_component(CameraCalibrator(
+            parent=self, image_extractor=self.extractor, subarray=event_source.subarray
+        ))
 
     def start(self):
         event_num = self.event_index

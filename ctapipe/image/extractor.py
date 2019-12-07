@@ -10,9 +10,8 @@ __all__ = [
     'LocalPeakWindowSum',
     'NeighborPeakWindowSum',
     'BaselineSubtractedNeighborPeakWindowSum',
-    'sum_samples_around_peak',
+    'extract_around_peak',
     'neighbor_average_waveform',
-    'extract_pulse_time_around_peak',
     'subtract_baseline',
 ]
 
@@ -20,22 +19,27 @@ __all__ = [
 from abc import abstractmethod
 import numpy as np
 from traitlets import Int
+from ctapipe.core.traits import IntTelescopeParameter
 from ctapipe.core import Component
-from numba import njit, prange, guvectorize, float64, float32, int64, int32
+from numba import njit, prange, guvectorize, float64, float32, int64
 
 
 @guvectorize(
     [
-        (float64[:], int64, int64, int64, float64[:]),
-        (float32[:], int64, int64, int64, float64[:]),
+        (float64[:], int64, int64, int64, float64[:], float64[:]),
+        (float32[:], int64, int64, int64, float64[:], float64[:]),
     ],
-    '(s),(),(),()->()',
+    '(s),(),(),()->(),()',
     nopython=True,
 )
-def sum_samples_around_peak(waveforms, peak_index, width, shift, ret):
+def extract_around_peak(waveforms, peak_index, width, shift, sum_, pulse_time):
     """
-    Sum the samples from the waveform using the window defined by a
+    This function performs the following operations:
+
+    - Sum the samples from the waveform using the window defined by a
     peak position, window width, and window shift.
+    - Obtain the pulse time within a window defined by a peak finding
+    algorithm, using the weighted average of the samples.
 
     This function is a numpy universal function which defines the operation
     applied on the waveform for every channel and pixel. Therefore in the
@@ -51,38 +55,45 @@ def sum_samples_around_peak(waveforms, peak_index, width, shift, ret):
     ----------
     waveforms : ndarray
         Waveforms stored in a numpy array.
-        Shape: (n_chan, n_pix, n_samples)
+        Shape: (n_pix, n_samples)
     peak_index : ndarray or int
         Peak index for each pixel.
     width : ndarray or int
         Window size of integration window for each pixel.
     shift : ndarray or int
         Window size of integration window for each pixel.
-    ret : ndarray
+    sum_ : ndarray
         Return argument for ufunc (ignore)
+        Returns the sum
+    pulse_time : ndarray
+        Return argument for ufunc (ignore)
+        Returns the pulse_time
 
     Returns
     -------
     charge : ndarray
         Extracted charge.
-        Shape: (n_chan, n_pix)
+        Shape: (n_pix)
 
     """
     n_samples = waveforms.size
     start = peak_index - shift
     end = start + width
-    ret[0] = 0
-    for sample in prange(start, end):
-        if 0 <= sample < n_samples:
-            ret[0] += waveforms[sample]
+    sum_[0] = 0
+    time_num = 0
+    time_den = 0
+    for isample in prange(start, end):
+        if 0 <= isample < n_samples:
+            sum_[0] += waveforms[isample]
+            if waveforms[isample] > 0:
+                time_num += waveforms[isample] * isample
+                time_den += waveforms[isample]
+
+    # TODO: Return pulse time in units of ns instead of isample
+    pulse_time[0] = time_num / time_den if time_den > 0 else peak_index
 
 
-@njit([
-    float64[:, :, :](float64[:, :, :], int64[:, :], int64),
-    float64[:, :, :](float64[:, :, :], int32[:, :], int64),
-    float64[:, :, :](float32[:, :, :], int32[:, :], int64),
-    float64[:, :, :](float32[:, :, :], int64[:, :], int64),
-], parallel=True)
+@njit(parallel=True)
 def neighbor_average_waveform(waveforms, neighbors, lwt):
     """
     Obtain the average waveform built from the neighbors of each pixel
@@ -91,7 +102,7 @@ def neighbor_average_waveform(waveforms, neighbors, lwt):
     ----------
     waveforms : ndarray
         Waveforms stored in a numpy array.
-        Shape: (n_chan, n_pix, n_samples)
+        Shape: (n_pix, n_samples)
     neighbors : ndarray
         2D array where each row is [pixel index, one neighbor of that pixel].
         Changes per telescope.
@@ -105,18 +116,17 @@ def neighbor_average_waveform(waveforms, neighbors, lwt):
     -------
     average_wf : ndarray
         Average of neighbor waveforms for each pixel.
-        Shape: (n_chan, n_pix, n_samples)
+        Shape: (n_pix, n_samples)
 
     """
     n_neighbors = neighbors.shape[0]
     sum_ = waveforms * lwt
-    n = np.zeros(waveforms.shape)
+    n = np.zeros(waveforms.shape, dtype=np.int32)
     for i in prange(n_neighbors):
         pixel = neighbors[i, 0]
         neighbor = neighbors[i, 1]
-        for channel in range(waveforms.shape[0]):
-            sum_[channel, pixel] += waveforms[channel, neighbor]
-            n[channel, pixel] += 1
+        sum_[pixel] += waveforms[neighbor]
+        n[pixel] += 1
     return sum_ / n
 
 
@@ -147,7 +157,7 @@ def extract_pulse_time_around_peak(waveforms, peak_index, width, shift, ret):
     ----------
     waveforms : ndarray
         Waveforms stored in a numpy array.
-        Shape: (n_chan, n_pix, n_samples)
+        Shape: (n_pix, n_samples)
     peak_index : ndarray or int
         Peak index in waveform for each pixel.
     width : ndarray or int
@@ -161,7 +171,7 @@ def extract_pulse_time_around_peak(waveforms, peak_index, width, shift, ret):
     -------
     pulse_time : ndarray
         Floating point pulse time in each pixel
-        Shape: (n_chan, n_pix)
+        Shape: (n_pix)
 
     """
     n_samples = waveforms.size
@@ -171,7 +181,7 @@ def extract_pulse_time_around_peak(waveforms, peak_index, width, shift, ret):
     num = 0
     den = 0
     for isample in prange(start, end):
-        if 0 <= isample < n_samples:
+        if (0 <= isample < n_samples) & (waveforms[isample] > 0):
             num += waveforms[isample] * isample
             den += waveforms[isample]
 
@@ -188,7 +198,7 @@ def subtract_baseline(waveforms, baseline_start, baseline_end):
     ----------
     waveforms : ndarray
         Waveforms stored in a numpy array.
-        Shape: (n_chan, n_pix, n_samples)
+        Shape: (n_pix, n_samples)
     baseline_start : int
         Sample where the baseline window starts
     baseline_end : int
@@ -200,7 +210,7 @@ def subtract_baseline(waveforms, baseline_start, baseline_end):
         Waveform with the baseline subtracted
     """
     baseline_corrected = waveforms - np.mean(
-        waveforms[..., baseline_start:baseline_end], axis=2
+        waveforms[..., baseline_start:baseline_end], axis=-1
     )[..., None]
 
     return baseline_corrected
@@ -208,19 +218,10 @@ def subtract_baseline(waveforms, baseline_start, baseline_end):
 
 class ImageExtractor(Component):
 
-    def __init__(self, config=None, parent=None, **kwargs):
+    def __init__(self, config=None, parent=None, subarray=None, **kwargs):
         """
         Base component to handle the extraction of charge and pulse time
         from an image cube (waveforms).
-
-        Attributes
-        ----------
-        neighbors : ndarray
-            2D array where each row is [pixel index, one neighbor
-            of that pixel].
-            Changes per telescope.
-            Can be obtained from
-            `ctapipe.instrument.CameraGeometry.neighbor_matrix_where`.
 
         Parameters
         ----------
@@ -232,40 +233,20 @@ class ImageExtractor(Component):
             Tool executable that is calling this component.
             Passes the correct logger to the component.
             Set to None if no Tool to pass.
+        subarray: ctapipe.instrument.SubarrayDescription
+            Description of the subarray
         kwargs
         """
         super().__init__(config=config, parent=parent, **kwargs)
-
-        self.neighbors = None
-
-    @staticmethod
-    def requires_neighbors():
-        """
-        Method used for callers of the ImageExtractor to know if the
-        extractor requires knowledge of the pixel neighbors
-
-        Returns
-        -------
-        bool
-        """
-        return False
-
-    def check_neighbor_set(self):
-        """
-        Check if the pixel neighbors has been set for the extractor
-
-        Raises
-        -------
-        ValueError
-            If neighbors has not been set
-        """
-        if self.requires_neighbors():
-            if self.neighbors is None:
-                self.log.exception("neighbors attribute must be set")
-                raise ValueError()
+        self.subarray = subarray
+        for trait in list(self.class_traits()):
+            try:
+                getattr(self, trait).attach_subarray(subarray)
+            except (AttributeError, TypeError):
+                pass
 
     @abstractmethod
-    def __call__(self, waveforms):
+    def __call__(self, waveforms, telid=None):
         """
         Call the relevant functions to fully extract the charge and time
         for the particular extractor.
@@ -274,16 +255,19 @@ class ImageExtractor(Component):
         ----------
         waveforms : ndarray
             Waveforms stored in a numpy array of shape
-            (n_chan, n_pix, n_samples).
+            (n_pix, n_samples).
+        telid : int
+            The telescope id. Used to obtain to correct traitlet configuration
+            If None, the subarray global default value is used
 
         Returns
         -------
         charge : ndarray
             Extracted charge.
-            Shape: (n_chan, n_pix)
+            Shape: (n_pix)
         pulse_time : ndarray
             Floating point pulse time in each pixel.
-            Shape: (n_chan, n_pix)
+            Shape: (n_pix)
         """
 
 
@@ -292,9 +276,8 @@ class FullWaveformSum(ImageExtractor):
     Extractor that sums the entire waveform.
     """
 
-    def __call__(self, waveforms):
-        charge = waveforms.sum(2)
-        pulse_time = extract_pulse_time_around_peak(
+    def __call__(self, waveforms, telid=None):
+        charge, pulse_time = extract_around_peak(
             waveforms, 0, waveforms.shape[-1], 0
         )
         return charge, pulse_time
@@ -304,19 +287,18 @@ class FixedWindowSum(ImageExtractor):
     """
     Extractor that sums within a fixed window defined by the user.
     """
-    window_start = Int(
-        0, help='Define the start position for the integration window'
+    window_start = IntTelescopeParameter(
+        default_value=0,
+        help='Define the start position for the integration window'
     ).tag(config=True)
-    window_width = Int(
-        7, help='Define the width of the integration window'
+    window_width = IntTelescopeParameter(
+        default_value=7,
+        help='Define the width of the integration window'
     ).tag(config=True)
 
-    def __call__(self, waveforms):
-        start = self.window_start
-        end = self.window_start + self.window_width
-        charge = waveforms[..., start:end].sum(2)
-        pulse_time = extract_pulse_time_around_peak(
-            waveforms, self.window_start, self.window_width, 0
+    def __call__(self, waveforms, telid=None):
+        charge, pulse_time = extract_around_peak(
+            waveforms, self.window_start[telid], self.window_width[telid], 0
         )
         return charge, pulse_time
 
@@ -326,23 +308,20 @@ class GlobalPeakWindowSum(ImageExtractor):
     Extractor which sums in a window about the
     peak from the global average waveform.
     """
-    window_width = Int(
-        7, help='Define the width of the integration window'
+    window_width = IntTelescopeParameter(
+        default_value=7,
+        help='Define the width of the integration window'
     ).tag(config=True)
-    window_shift = Int(
-        3, help='Define the shift of the integration window '
-                'from the peak_index (peak_index - shift)'
+    window_shift = IntTelescopeParameter(
+        default_value=3,
+        help='Define the shift of the integration window from the peak_index '
+             '(peak_index - shift)'
     ).tag(config=True)
 
-    def __call__(self, waveforms):
-        peak_index = waveforms.mean(1).argmax(1)
-        charge = sum_samples_around_peak(
-            waveforms, peak_index[:, np.newaxis],
-            self.window_width, self.window_shift
-        )
-        pulse_time = extract_pulse_time_around_peak(
-            waveforms, peak_index[:, np.newaxis],
-            self.window_width, self.window_shift
+    def __call__(self, waveforms, telid=None):
+        peak_index = waveforms.mean(axis=-2).argmax(axis=-1)
+        charge, pulse_time = extract_around_peak(
+            waveforms, peak_index, self.window_width[telid], self.window_shift[telid]
         )
         return charge, pulse_time
 
@@ -352,21 +331,20 @@ class LocalPeakWindowSum(ImageExtractor):
     Extractor which sums in a window about the
     peak in each pixel's waveform.
     """
-    window_width = Int(
-        7, help='Define the width of the integration window'
+    window_width = IntTelescopeParameter(
+        default_value=7,
+        help='Define the width of the integration window'
     ).tag(config=True)
-    window_shift = Int(
-        3, help='Define the shift of the integration window '
-                'from the peak_index (peak_index - shift)'
+    window_shift = IntTelescopeParameter(
+        default_value=3,
+        help='Define the shift of the integration window'
+             'from the peak_index (peak_index - shift)'
     ).tag(config=True)
 
-    def __call__(self, waveforms):
-        peak_index = waveforms.argmax(2).astype(np.int)
-        charge = sum_samples_around_peak(
-            waveforms, peak_index, self.window_width, self.window_shift
-        )
-        pulse_time = extract_pulse_time_around_peak(
-            waveforms, peak_index, self.window_width, self.window_shift
+    def __call__(self, waveforms, telid=None):
+        peak_index = waveforms.argmax(axis=-1).astype(np.int)
+        charge, pulse_time = extract_around_peak(
+            waveforms, peak_index, self.window_width[telid], self.window_shift[telid]
         )
         return charge, pulse_time
 
@@ -376,31 +354,29 @@ class NeighborPeakWindowSum(ImageExtractor):
     Extractor which sums in a window about the
     peak defined by the wavefroms in neighboring pixels.
     """
-    window_width = Int(
-        7, help='Define the width of the integration window'
+    window_width = IntTelescopeParameter(
+        default_value=7,
+        help='Define the width of the integration window'
     ).tag(config=True)
-    window_shift = Int(
-        3, help='Define the shift of the integration window '
-                'from the peak_index (peak_index - shift)'
+    window_shift = IntTelescopeParameter(
+        default_value=3,
+        help='Define the shift of the integration window '
+             'from the peak_index (peak_index - shift)'
     ).tag(config=True)
-    lwt = Int(
-        0, help='Weight of the local pixel (0: peak from neighbors only, '
-                '1: local pixel counts as much as any neighbor)'
+    lwt = IntTelescopeParameter(
+        default_value=0,
+        help='Weight of the local pixel (0: peak from neighbors only, '
+             '1: local pixel counts as much as any neighbor)'
     ).tag(config=True)
 
-    def requires_neighbors(self):
-        return True
-
-    def __call__(self, waveforms):
+    def __call__(self, waveforms, telid=None):
+        neighbors = self.subarray.tel[telid].camera.neighbor_matrix_where
         average_wfs = neighbor_average_waveform(
-            waveforms, self.neighbors, self.lwt
+            waveforms, neighbors, self.lwt[telid]
         )
-        peak_index = average_wfs.argmax(2)
-        charge = sum_samples_around_peak(
-            waveforms, peak_index, self.window_width, self.window_shift
-        )
-        pulse_time = extract_pulse_time_around_peak(
-            waveforms, peak_index, self.window_width, self.window_shift
+        peak_index = average_wfs.argmax(axis=-1)
+        charge, pulse_time = extract_around_peak(
+            waveforms, peak_index, self.window_width[telid], self.window_shift[telid]
         )
         return charge, pulse_time
 
@@ -417,8 +393,8 @@ class BaselineSubtractedNeighborPeakWindowSum(NeighborPeakWindowSum):
         10, help='End sample for baseline estimation'
     ).tag(config=True)
 
-    def __call__(self, waveforms):
+    def __call__(self, waveforms, telid=None):
         baseline_corrected = subtract_baseline(
             waveforms, self.baseline_start, self.baseline_end
         )
-        return super().__call__(baseline_corrected)
+        return super().__call__(baseline_corrected, telid)

@@ -25,7 +25,7 @@ class ChargeResolutionGenerator(Tool):
     )
 
     telescopes = List(
-        Int,
+        Int(),
         None,
         allow_none=True,
         help="Telescopes to include from the event file. Default = All telescopes",
@@ -60,13 +60,17 @@ class ChargeResolutionGenerator(Tool):
 
         self.eventsource = self.add_component(SimTelEventSource(parent=self))
 
-        extractor = self.add_component(
-            ImageExtractor.from_name(self.extractor_product, parent=self)
-        )
+        extractor = self.add_component(ImageExtractor.from_name(
+            self.extractor_product,
+            parent=self,
+            subarray=self.eventsource.subarray,
+        ))
 
-        self.calibrator = self.add_component(
-            CameraCalibrator(parent=self, image_extractor=extractor)
-        )
+        self.calibrator = self.add_component(CameraCalibrator(
+            parent=self,
+            image_extractor=extractor,
+            subarray=self.eventsource.subarray,
+        ))
         self.calculator = ChargeResolutionCalculator()
 
     def start(self):
@@ -86,7 +90,7 @@ class ChargeResolutionGenerator(Tool):
 
             for mc, dl1 in zip(event.mc.tel.values(), event.dl1.tel.values()):
                 true_charge = mc.photo_electron_image
-                measured_charge = dl1.image[0]
+                measured_charge = dl1.image
                 pixels = np.arange(measured_charge.size)
                 self.calculator.add(pixels, true_charge, measured_charge)
 

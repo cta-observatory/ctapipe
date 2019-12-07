@@ -10,9 +10,9 @@ def test_concentration():
 
     conc = concentration(geom, image, hillas)
 
-    assert 0.1 <= conc.concentration_cog <= 0.3
-    assert 0.05 <= conc.concentration_pixel <= 0.2
-    assert 0.3 <= conc.concentration_core <= 0.6
+    assert 0.1 <= conc.cog <= 0.3
+    assert 0.05 <= conc.pixel <= 0.2
+    assert 0.3 <= conc.core <= 0.6
 
 
 if __name__ == '__main__':

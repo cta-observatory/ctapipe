@@ -17,7 +17,7 @@ ctapipe/_version_cache.py
 # Other generated files
 */cython_version.py
 htmlcov
-.coverage
+.coverage*
 MANIFEST
 
 # Sphinx
@@ -84,3 +84,5 @@ target
 
 examples/notebooks/*.html
 examples/notebooks/*.png
+
+provenance.log

@@ -91,7 +91,7 @@ class SimpleEventWriter(Tool):
                 dl1_tel = event.dl1.tel[tel_id]
 
                 # Image cleaning
-                image = dl1_tel.image[0]  # Waiting for automatic gain selection
+                image = dl1_tel.image  # Waiting for automatic gain selection
                 mask = tailcuts_clean(camera, image, picture_thresh=10, boundary_thresh=5)
                 cleaned = image.copy()
                 cleaned[~mask] = 0
