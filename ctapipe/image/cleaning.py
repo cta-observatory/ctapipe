@@ -374,7 +374,24 @@ class ImageCleaner(TelescopeComponent):
     def __call__(
         self, tel_id: int, image: np.ndarray, arrival_times: np.ndarray = None
     ) -> np.ndarray:
-        """ return a cleaned image """
+        """
+        Identify pixels with signal, and reject those with pure noise.
+
+        Parameters
+        ----------
+        tel_id: int
+            which telescope id in the subarray is being used (determines
+            which cut is used)
+        image : np.ndarray
+            image pixel data corresponding to the camera geometry
+        arrival_times: np.ndarray
+            image of arrival time (not used in this method)
+
+        Returns
+        -------
+        np.ndarray
+            boolean mask of pixels passing cleaning
+        """
         pass
 
 
@@ -399,24 +416,8 @@ class TailcutsImageCleaner(ImageCleaner):
     def __call__(
         self, tel_id: int, image: np.ndarray, arrival_times=None
     ) -> np.ndarray:
-        """ Apply image cleaning
-
-        Parameters
-        ----------
-        tel_id: int
-            which telescope id in the subarray is being used (determines
-            which cut is used)
-        image : np.ndarray
-            image pixel data corresponding to the camera geometry
-        subarray: ctapipe.image.SubarrayDescription
-            subarray definition (for mapping tel type to tel_id)
-        arrival_times: np.ndarray
-            image of arrival time (not used in this method)
-
-        Returns
-        -------
-        np.ndarray
-            boolean mask of pixels passing cleaning
+        """
+        Apply standard picture-boundary cleaning. See `ImageCleaner.__call__()`
         """
 
         return tailcuts_clean(
@@ -436,22 +437,8 @@ class MARSImageCleaner(TailcutsImageCleaner):
     def __call__(
         self, tel_id: int, image: np.ndarray, arrival_times=None
     ) -> np.ndarray:
-        """ Apply image cleaning
-
-        Parameters
-        ----------
-        tel_id: int
-            which telescope id in the subarray is being used (determines
-            which cut is used)
-        image : np.ndarray
-            image pixel data corresponding to the camera geometry
-        arrival_times: np.ndarray
-            image of arrival time (not used in this method)
-
-        Returns
-        -------
-        np.ndarray
-            boolean mask of pixels passing cleaning
+        """
+        Apply MARS-style image cleaning. See `ImageCleaner.__call__()`
         """
 
         return mars_cleaning_1st_pass(
@@ -477,6 +464,7 @@ class FACTImageCleaner(TailcutsImageCleaner):
     def __call__(
         self, tel_id: int, image: np.ndarray, arrival_times=None
     ) -> np.ndarray:
+        """ Apply FACT-style image cleaning. see ImageCleaner.__call__()"""
         return fact_image_cleaning(
             geom=self.subarray.tel[tel_id].camera,
             image=image,
