@@ -9,7 +9,7 @@ from ctapipe.image import tailcuts_clean, toymodel
 def test_MuonRingFitter_has_methods():
     # just to make sure, the test below is running for at least 2 methods
     # basically making sure, we do not test no method at all and always pass
-    assert len(MuonRingFitter.fit_method.values) > 2
+    assert len(MuonRingFitter.fit_method.values) >= 2
 
 
 @pytest.mark.parametrize("method", MuonRingFitter.fit_method.values)
