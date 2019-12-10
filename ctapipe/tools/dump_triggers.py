@@ -124,7 +124,7 @@ class DumpTriggersTool(Tool):
 
             Provenance().add_output_file(self.outfile)
         except IOError as err:
-            self.log.warn("Couldn't write output (%s)", err)
+            self.log.warning("Couldn't write output (%s)", err)
 
         self.log.info('\n %s', self.events)
 
