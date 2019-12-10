@@ -292,6 +292,15 @@ def test_help_changed_default():
     assert "Default: 199.0" in help_msg
     ExampleComponent.param.default_value = old_default
 
+def test_non_abstract_subclasses():
+    """non_abstract_subclasses() is a helper function:
+    it might just be nice, in case a person wants to see the subclasses
+    in a python session.
+
+    Can also be helpful in parametrized tests, to make sure all
+    sublcasses are being tested.
+    """
+    assert "ExampleSubclass1" in ExampleComponent.non_abstract_subclasses()
 
 def test_from_name():
     """ Make sure one can construct a Component subclass by name"""
