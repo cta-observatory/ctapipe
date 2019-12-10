@@ -7,7 +7,7 @@ from ctapipe.instrument import TelescopeDescription, SubarrayDescription
 
 
 @pytest.mark.parametrize(
-    "method", ["TailcutsImageCleaner", "MARSImageCleaner", "FACTImageCleaner"]
+    "method", ImageCleaner.non_abstract_subclasses().keys()
 )
 def test_image_cleaner(method):
     """ Test that we can construct and use a component-based ImageCleaner"""
