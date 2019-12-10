@@ -158,12 +158,8 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         """
         detect_and_import_io_plugins()
 
-        subclasses = {
-            base.__name__: base
-            for base in non_abstract_children(cls)
-        }
+        subclasses = {base.__name__: base for base in non_abstract_children(cls)}
         return subclasses
-
 
     def get_current_config(self):
         """ return the current configuration as a dict (e.g. the values
