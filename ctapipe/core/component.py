@@ -147,11 +147,23 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         instace
             Instance of subclass to this class
         """
-        detect_and_import_io_plugins()
-        subclasses = {base.__name__: base for base in non_abstract_children(cls)}
-        requested_subclass = subclasses[name]
-
+        requested_subclass = cls.non_abstract_subclasses()[name]
         return requested_subclass(config=config, parent=parent, **kwargs)
+
+    @classmethod
+    def non_abstract_subclasses(cls):
+        """
+        get dict{name: cls} of non abstract subclasses,
+        subclasses can possibly be definded in plugins
+        """
+        detect_and_import_io_plugins()
+
+        subclasses = {
+            base.__name__: base
+            for base in non_abstract_children(cls)
+        }
+        return subclasses
+
 
     def get_current_config(self):
         """ return the current configuration as a dict (e.g. the values
