@@ -23,8 +23,7 @@ if [[ "$CONDA" == "true" ]]; then
 	# Useful for debugging any issues with conda
 	conda info -a
 
-	conda create --name cta-dev python=$PYTHON_VERSION
-	travis_wait 20 conda env update -n cta-dev --file ci/py${PYTHON_VERSION}_env.yaml
+	travis_wait 20 conda env create -n cta-dev --file ci/py${PYTHON_VERSION}_env.yaml
 	conda activate cta-dev
 else
 	pip install -U pip
