@@ -6,9 +6,7 @@ from ctapipe.image import ImageCleaner
 from ctapipe.instrument import TelescopeDescription, SubarrayDescription
 
 
-@pytest.mark.parametrize(
-    "method", ImageCleaner.non_abstract_subclasses().keys()
-)
+@pytest.mark.parametrize("method", ImageCleaner.non_abstract_subclasses().keys())
 def test_image_cleaner(method):
     """ Test that we can construct and use a component-based ImageCleaner"""
 
@@ -47,3 +45,9 @@ def test_image_cleaner(method):
     # we're not testing the algorithm here, just that it does something (for the
     # algorithm tests, see test_cleaning.py
     assert np.count_nonzero(mask) > 0
+
+
+@pytest.mark.parametrize("method", ImageCleaner.non_abstract_subclasses().keys())
+def test_image_cleaner_no_subarray(method):
+    with pytest.raises(TypeError):
+        ImageCleaner.from_name(method)
