@@ -56,7 +56,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
     All components also contain a `logger` instance in their `log`
     attribute, that you must use to output info, debugging data,
     warnings, etc (do not use `print()` statements, instead use
-    `self.log.info()`, `self.log.warn()`, `self.log.debug()`, etc).
+    `self.log.info()`, `self.log.warning()`, `self.log.debug()`, etc).
 
     Components are generally used within `ctapipe.core.Tool`
     subclasses, which provide configuration handling and command-line
