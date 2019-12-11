@@ -341,7 +341,7 @@ class CameraGeometry:
         try:
             sampling_rate = u.Quantity(tab.meta["SAMPFREQ"], u.GHz)
         except KeyError:
-            logger.warn("Sampling rate is not in file, defaulting to 1.0 GHz")
+            logger.warning("Sampling rate is not in file, defaulting to 1.0 GHz")
             sampling_rate = u.Quantity(1, u.GHz)
 
         return cls(
