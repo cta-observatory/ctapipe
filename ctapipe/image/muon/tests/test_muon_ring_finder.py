@@ -6,7 +6,7 @@ from ctapipe.image import tailcuts_clean, toymodel
 
 
 def test_MuonRingFitter():
-    '''test MuonRingFitter'''
+    """test MuonRingFitter"""
     # flashCam example
     center_xs = 0.3 * u.m
     center_ys = 0.6 * u.m
@@ -14,20 +14,15 @@ def test_MuonRingFitter():
     ring_width = 0.05 * u.m
 
     muon_model = toymodel.RingGaussian(
-        x=center_xs,
-        y=center_ys,
-        radius=ring_radius,
-        sigma=ring_width,
+        x=center_xs, y=center_ys, radius=ring_radius, sigma=ring_width,
     )
 
-    #testing with flashcam
+    # testing with flashcam
     geom = CameraGeometry.from_name("FlashCam")
-    charge, _, _ = muon_model.generate_image(
-        geom, intensity=1000, nsb_level_pe=5,
-    )
+    charge, _, _ = muon_model.generate_image(geom, intensity=1000, nsb_level_pe=5,)
     survivors = tailcuts_clean(geom, charge, 10, 12)
 
-    for method in  MuonRingFitter.fit_method.values:
+    for method in MuonRingFitter.fit_method.values:
         muonfit = MuonRingFitter(fit_method=method)
         fit_result = muonfit(geom.pix_x, geom.pix_y, charge, survivors)
 
@@ -39,5 +34,5 @@ def test_MuonRingFitter():
         assert u.isclose(fit_result.ring_radius, ring_radius, 5e-2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_MuonRingFitter()

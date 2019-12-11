@@ -1,12 +1,13 @@
-'''tests for ctapipe.utils.quantities'''
+"""tests for ctapipe.utils.quantities"""
 import pytest
 import numpy as np
 import astropy.units as u
 
 from ctapipe.utils.quantities import all_to_value
 
+
 def test_all_to_value():
-    '''test all_to_value'''
+    """test all_to_value"""
     x_m = np.arange(5) * u.m
     y_mm = np.arange(5) * 1000 * u.mm
     z_km = np.arange(5) * 1e-3 * u.km

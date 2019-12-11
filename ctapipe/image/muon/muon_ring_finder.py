@@ -14,32 +14,33 @@ from .fitting import (
 # we also modify their names slightly, since the names are
 # exposed to the user via the string traitlet `fit_method`
 def kundu_chaudhuri(x, y, weights, mask):
-    '''kundu_chaudhuri_circle_fit with x, y, weights, mask interface'''
+    """kundu_chaudhuri_circle_fit with x, y, weights, mask interface"""
     weights = weights * mask
     return kundu_chaudhuri_circle_fit(x, y, weights)
 
+
 def taubin(x, y, weights, mask):
-    '''taubin_circle_fit with x, y, weights, mask interface'''
+    """taubin_circle_fit with x, y, weights, mask interface"""
     return taubin_circle_fit(x, y, mask)
 
+
 def hough(x, y, weights, mask):
-    '''hough_circle_fit with x, y, weights, mask interface'''
+    """hough_circle_fit with x, y, weights, mask interface"""
     return hough_circle_fit(x, y, mask)
 
 
-FIT_METHOD_BY_NAME = {
-    m.__name__: m for m in
-    [kundu_chaudhuri, taubin, hough]
-}
+FIT_METHOD_BY_NAME = {m.__name__: m for m in [kundu_chaudhuri, taubin, hough]}
 
-__all__ = ['MuonRingFitter']
+__all__ = ["MuonRingFitter"]
+
 
 class MuonRingFitter(Component):
     """Different ring fit algorithms for muon rings
     """
+
     fit_method = traits.CaselessStrEnum(
         list(FIT_METHOD_BY_NAME.keys()),
-        default_value=list(FIT_METHOD_BY_NAME.keys())[0]
+        default_value=list(FIT_METHOD_BY_NAME.keys())[0],
     ).tag(config=True)
 
     def __call__(self, x, y, img, mask):
@@ -54,7 +55,7 @@ class MuonRingFitter(Component):
         output.ring_center_y = center_y
         output.ring_radius = radius
         output.ring_center_phi = np.arctan2(center_y, center_x)
-        output.ring_center_distance = np.sqrt(center_x ** 2. + center_y ** 2.)
+        output.ring_center_distance = np.sqrt(center_x ** 2.0 + center_y ** 2.0)
         output.ring_fit_method = self.fit_method
 
         return output
