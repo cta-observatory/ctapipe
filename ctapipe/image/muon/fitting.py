@@ -8,14 +8,14 @@ from astropy.units import Quantity
 from ctapipe.utils.quantities import all_to_value
 
 __all__ = [
-    'kundu_chaudhuri_circle_fit',
-    'taubin_circle_fit',
-    'psf_likelihood_fit',
-    'impact_parameter_chisq_fit',
-    'mirror_integration_distance',
-    'expected_pixel_light_content',
-    'radial_light_intensity',
-    'efficiency_fit',
+    "kundu_chaudhuri_circle_fit",
+    "taubin_circle_fit",
+    "psf_likelihood_fit",
+    "impact_parameter_chisq_fit",
+    "mirror_integration_distance",
+    "expected_pixel_light_content",
+    "radial_light_intensity",
+    "efficiency_fit",
 ]
 
 
@@ -52,15 +52,15 @@ def kundu_chaudhuri_circle_fit(x, y, weights):
     b1 = np.sum(weights * (x - mean_x) * y)
     b2 = np.sum(weights * (y - mean_y) * y)
 
-    c1 = 0.5 * np.sum(weights * (x - mean_x) * (x**2 + y**2))
-    c2 = 0.5 * np.sum(weights * (y - mean_y) * (x**2 + y**2))
+    c1 = 0.5 * np.sum(weights * (x - mean_x) * (x ** 2 + y ** 2))
+    c2 = 0.5 * np.sum(weights * (y - mean_y) * (x ** 2 + y ** 2))
 
     center_x = (b2 * c1 - b1 * c2) / (a1 * b2 - a2 * b1)
     center_y = (a2 * c1 - a1 * c2) / (a2 * b1 - a1 * b2)
 
-    radius = np.sqrt(np.sum(
-        weights * ((center_x - x)**2 + (center_y - y)**2)
-    ) / weights_sum)
+    radius = np.sqrt(
+        np.sum(weights * ((center_x - x) ** 2 + (center_y - y) ** 2)) / weights_sum
+    )
 
     return radius, center_x, center_y
 
@@ -83,11 +83,12 @@ def _psf_neg_log_likelihood(params, x, y, weights):
     This will usually be x and y coordinates and pe charges of camera pixels
     """
     radius, center_x, center_y, sigma = params
-    pixel_distance = np.sqrt((center_x - x)**2 + (center_y - y)**2)
+    pixel_distance = np.sqrt((center_x - x) ** 2 + (center_y - y) ** 2)
 
     return np.sum(
-        (np.log(sigma) + 0.5 * ((pixel_distance - radius) / sigma)**2) * weights
+        (np.log(sigma) + 0.5 * ((pixel_distance - radius) / sigma) ** 2) * weights
     )
+
 
 def psf_likelihood_fit(x, y, weights):
     """
@@ -119,7 +120,7 @@ def psf_likelihood_fit(x, y, weights):
         standard deviation of the gaussian profile (indictor for the ring width)
     """
     unit = x.unit
-    x, y= all_to_value(x, y, unit=unit)
+    x, y = all_to_value(x, y, unit=unit)
 
     start_r, start_x, start_y = kundu_chaudhuri_circle_fit(x, y, weights)
 
@@ -127,12 +128,12 @@ def psf_likelihood_fit(x, y, weights):
         _psf_neg_log_likelihood,
         x0=(start_r, start_x, start_y, 5e-3),
         args=(x, y, weights),
-        method='L-BFGS-B',
+        method="L-BFGS-B",
         bounds=[
-            (0, None),      # radius should be positive
+            (0, None),  # radius should be positive
             (None, None),
             (None, None),
-            (0, None),      # std should be positive
+            (0, None),  # std should be positive
         ],
     )
 
@@ -143,14 +144,7 @@ def psf_likelihood_fit(x, y, weights):
 
 
 def impact_parameter_chisq_fit(
-        pixel_x,
-        pixel_y,
-        weights,
-        radius,
-        center_x,
-        center_y,
-        mirror_radius,
-        bins=30,
+    pixel_x, pixel_y, weights, radius, center_x, center_y, mirror_radius, bins=30,
 ):
     """
     Impact parameter calculation for a ring fit before.
@@ -185,11 +179,11 @@ def impact_parameter_chisq_fit(
         _impact_parameter_chisq,
         x0=(mirror_radius / 2, bin_centers[np.argmax(hist)], 1),
         args=(bin_centers, hist, mirror_radius),
-        method='L-BFGS-B',
+        method="L-BFGS-B",
         bounds=[
-            (0, None),         # impact parameter should be positive
-            (-np.pi, np.pi),   # orientation angle should be in -pi to pi
-            (0, None),         # scale should be positive
+            (0, None),  # impact parameter should be positive
+            (-np.pi, np.pi),  # orientation angle should be in -pi to pi
+            (0, None),  # scale should be positive
         ],
     )
 
@@ -223,14 +217,11 @@ def mirror_integration_distance(phi, phi_max, impact_parameter, mirror_radius):
     """
     phi = phi - phi_max
     ratio = impact_parameter / mirror_radius
-    radicant = 1 - ratio**2 * np.sin(phi)**2
+    radicant = 1 - ratio ** 2 * np.sin(phi) ** 2
 
     if impact_parameter > mirror_radius:
         distance = np.empty_like(phi)
-        mask = np.logical_and(
-            phi < np.arcsin(1 / ratio),
-            phi > -np.arcsin(1 / ratio)
-        )
+        mask = np.logical_and(phi < np.arcsin(1 / ratio), phi > -np.arcsin(1 / ratio))
         distance[np.logical_not(mask)] = 0
         distance[mask] = 2 * mirror_radius * np.sqrt(radicant[mask])
     else:
@@ -240,14 +231,14 @@ def mirror_integration_distance(phi, phi_max, impact_parameter, mirror_radius):
 
 
 def radial_light_intensity(
-        phi,
-        phi_max,
-        cherenkov_angle,
-        impact_parameter,
-        pixel_fov,
-        mirror_radius,
-        lambda1=300e-9,
-        lambda2=900e-9,
+    phi,
+    phi_max,
+    cherenkov_angle,
+    impact_parameter,
+    pixel_fov,
+    mirror_radius,
+    lambda1=300e-9,
+    lambda2=900e-9,
 ):
     """
     Amount of photons per azimuthal angle phi on the muon ring as given in
@@ -277,29 +268,31 @@ def radial_light_intensity(
     """
 
     return (
-        0.5 * const.fine_structure *
-        cherenkov_integral(lambda1, lambda2) *
-        pixel_fov / cherenkov_angle *
-        np.sin(2 * cherenkov_angle) *
-        mirror_integration_distance(phi, phi_max, impact_parameter, mirror_radius)
+        0.5
+        * const.fine_structure
+        * cherenkov_integral(lambda1, lambda2)
+        * pixel_fov
+        / cherenkov_angle
+        * np.sin(2 * cherenkov_angle)
+        * mirror_integration_distance(phi, phi_max, impact_parameter, mirror_radius)
     )
 
 
 def expected_pixel_light_content(
-        pixel_x,
-        pixel_y,
-        center_x,
-        center_y,
-        phi_max,
-        cherenkov_angle,
-        impact_parameter,
-        sigma_psf,
-        pixel_fov,
-        pixel_diameter,
-        mirror_radius,
-        focal_length,
-        lambda1=300e-9,
-        lambda2=900e-9,
+    pixel_x,
+    pixel_y,
+    center_x,
+    center_y,
+    phi_max,
+    cherenkov_angle,
+    impact_parameter,
+    sigma_psf,
+    pixel_fov,
+    pixel_diameter,
+    mirror_radius,
+    focal_length,
+    lambda1=300e-9,
+    lambda2=900e-9,
 ):
     """
     Calculate the expected light content of each pixel for a muon ring with the
@@ -342,13 +335,18 @@ def expected_pixel_light_content(
         number of photons for each pixel given in pixel_x, pixel_y
     """
     phi = np.arctan2(pixel_y - center_y, pixel_x - center_x)
-    pixel_r = np.sqrt((pixel_x - center_x)**2 + (pixel_y - center_y)**2)
+    pixel_r = np.sqrt((pixel_x - center_x) ** 2 + (pixel_y - center_y) ** 2)
     ring_radius = cherenkov_angle * focal_length
 
     light = radial_light_intensity(
-        phi, phi_max,
-        cherenkov_angle, impact_parameter,
-        pixel_fov, mirror_radius, lambda1, lambda2
+        phi,
+        phi_max,
+        cherenkov_angle,
+        impact_parameter,
+        pixel_fov,
+        mirror_radius,
+        lambda1,
+        lambda2,
     )
 
     result = light * pixel_diameter * norm.pdf(pixel_r, ring_radius, sigma_psf)
@@ -356,15 +354,15 @@ def expected_pixel_light_content(
 
 
 def efficiency_fit(
-        pe_charge,
-        pixel_x,
-        pixel_y,
-        pixel_fov,
-        pixel_diameter,
-        mirror_radius,
-        focal_length,
-        lambda1=300e-9,
-        lambda2=900e-9,
+    pe_charge,
+    pixel_x,
+    pixel_y,
+    pixel_fov,
+    pixel_diameter,
+    mirror_radius,
+    focal_length,
+    lambda1=300e-9,
+    lambda2=900e-9,
 ):
     """
     Estimate optical efficiency for a muon ring using method of [mitchell15]_.
@@ -452,7 +450,7 @@ def _impact_parameter_chisq(params, phi, hist, mirror_radius):
     imp_par, phi_max, scale = params
     theory = mirror_integration_distance(phi, phi_max, imp_par, mirror_radius)
 
-    return np.sum((hist - scale * theory)**2)
+    return np.sum((hist - scale * theory) ** 2)
 
 
 def taubin_circle_fit(x, y, mask):
@@ -490,46 +488,35 @@ def taubin_circle_fit(x, y, mask):
         error_xc=taubin_error,
         error_yc=taubin_error,
         error_r=taubin_error,
-        limit_xc=(-2*R, 2*R),
-        limit_yc=(-2*R, 2*R),
+        limit_xc=(-2 * R, 2 * R),
+        limit_yc=(-2 * R, 2 * R),
         limit_r=(0, R),
-        pedantic=False
+        pedantic=False,
     )
     fit.migrad()
 
-    radius = Quantity(fit.values['r'], original_unit)
-    center_x = Quantity(fit.values['xc'], original_unit)
-    center_y = Quantity(fit.values['yc'], original_unit)
+    radius = Quantity(fit.values["r"], original_unit)
+    center_x = Quantity(fit.values["xc"], original_unit)
+    center_y = Quantity(fit.values["yc"], original_unit)
 
     return radius, center_x, center_y
 
 
 def make_taubin_loss_function(x, y):
-    '''closure around taubin_loss_function to make
+    """closure around taubin_loss_function to make
     surviving pixel positions availaboe inside.
 
     x, y: positions of pixels surviving the cleaning
         should not be quantities
-    '''
+    """
 
     def taubin_loss_function(xc, yc, r):
         """taubin fit formula
         reference : Barcelona_Muons_TPA_final.pdf (slide 6)
         """
-        upper_term = (
-            (
-                (x - xc) ** 2 +
-                (y - yc) ** 2
-                - r ** 2
-            ) ** 2
-        ).sum()
+        upper_term = (((x - xc) ** 2 + (y - yc) ** 2 - r ** 2) ** 2).sum()
 
-        lower_term = (
-            (
-                (x - xc) ** 2 +
-                (y - yc) ** 2
-            )
-        ).sum()
+        lower_term = (((x - xc) ** 2 + (y - yc) ** 2)).sum()
 
         return np.abs(upper_term) / np.abs(lower_term)
 

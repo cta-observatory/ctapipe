@@ -14,7 +14,7 @@ def test_MuonRingFitter_has_methods():
 
 @pytest.mark.parametrize("method", MuonRingFitter.fit_method.values)
 def test_MuonRingFitter(method):
-    '''test MuonRingFitter'''
+    """test MuonRingFitter"""
     # flashCam example
     center_xs = 0.3 * u.m
     center_ys = 0.6 * u.m
@@ -22,17 +22,12 @@ def test_MuonRingFitter(method):
     ring_width = 0.05 * u.m
 
     muon_model = toymodel.RingGaussian(
-        x=center_xs,
-        y=center_ys,
-        radius=ring_radius,
-        sigma=ring_width,
+        x=center_xs, y=center_ys, radius=ring_radius, sigma=ring_width,
     )
 
-    #testing with flashcam
+    # testing with flashcam
     geom = CameraGeometry.from_name("FlashCam")
-    charge, _, _ = muon_model.generate_image(
-        geom, intensity=1000, nsb_level_pe=5,
-    )
+    charge, _, _ = muon_model.generate_image(geom, intensity=1000, nsb_level_pe=5,)
     survivors = tailcuts_clean(geom, charge, 10, 12)
 
     muonfit = MuonRingFitter(fit_method=method)

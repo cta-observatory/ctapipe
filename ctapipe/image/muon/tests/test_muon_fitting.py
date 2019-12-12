@@ -5,6 +5,7 @@ from ctapipe.image.muon import kundu_chaudhuri_circle_fit
 
 np.random.seed(0)
 
+
 def test_kundu_chaudhuri():
 
     num_tests = 10
