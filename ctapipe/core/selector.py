@@ -10,9 +10,11 @@ import numpy as np
 
 class Selector(Component):
     """
-    Manages a set of selection criteria that operate on the same type of input.
-    Each time it is called, it returns a boolean array of whether or not each
-    criterion passed.
+    Manages a set of user-configurable (at runtime or in a config file) selection
+    criteria that operate on the same type of input. Each time it is called, it
+    returns a boolean array of whether or not each criterion passed. It  also keeps
+    track of the total number of times each criterium is passed, as well as a
+    cumulative product of criterium (i.e. the criteria applied in-order)
     """
 
     selection_functions = Dict(
