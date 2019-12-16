@@ -9,7 +9,7 @@ def test_selector():
         selection_functions = Dict(
             default_value=dict(
                 high_enough="lambda x: x > 3",
-                not_too_high="lambda x: x < 100",
+                a_value_not_too_high="lambda x: x < 100",
                 smallish="lambda x: x < 10",
             ),
         ).tag(config=True)
@@ -35,7 +35,7 @@ def test_selector():
 
     assert tab["criteria"][0] == "TOTAL"
     assert tab["criteria"][1] == "high_enough"
-    assert tab["criteria"][2] == "not_too_high"
+    assert tab["criteria"][2] == "a_value_not_too_high"
     assert tab["criteria"][3] == "smallish"
 
     assert tab["counts"][0] == 4
@@ -52,7 +52,12 @@ def test_selector():
     assert tab["cumulative_counts"][2] == 2
     assert tab["cumulative_counts"][3] == 1
 
+    # check that the order is preserved
     assert select.criteria_names[1] == "high_enough"
+    assert select.criteria_names[2] == 'a_value_not_too_high'
+    assert select.criteria_names[3] == 'smallish'
+
+    # check we can get back the correct function string:
     assert select.selection_function_strings[1] == "lambda x: x > 3"
 
     assert len(select) == 4 # 4 events counted
