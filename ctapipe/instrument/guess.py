@@ -25,7 +25,6 @@ TELESCOPE_NAMES = {
     GuessingKey(11328, 5.59): GuessingResult("MST", "SCT", "SCTCam", 1),
     # Non-CTA Telescopes
     GuessingKey(1039, 16.97): GuessingResult("LST", "MAGIC", "MAGICCam", 1),
-    GuessingKey(1039, 0.0): GuessingResult('LST', 'MAGIC', 'MAGICCamMars', 1),
     GuessingKey(960, 15.0): GuessingResult("MST", "HESS-I", "HESS-I", 1),
     GuessingKey(2048, 36.0): GuessingResult("LST", "HESS-II", "HESS-II", 1),
     GuessingKey(1440, 4.998): GuessingResult("SST", "FACT", "FACT", 1),
