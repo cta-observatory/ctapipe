@@ -9,6 +9,7 @@ from os.path import expandvars
 from pathlib import Path
 
 import numpy as np
+import tables
 import tables.filters
 from astropy import units as u
 from tqdm.autonotebook import tqdm
@@ -28,13 +29,14 @@ from ctapipe.core.traits import (
     IntTelescopeParameter,
     FloatTelescopeParameter,
 )
-from ctapipe.image import hillas_parameters, tailcuts_clean, number_of_islands
-from ctapipe.image.concentration import concentration
-from ctapipe.image.extractor import ImageExtractor
-from ctapipe.image.leakage import leakage
-from ctapipe.image.timing_parameters import timing_parameters
-from ctapipe.io import EventSource, HDF5TableWriter, SimTelEventSource
-from ctapipe.io.containers import (
+from ..image import ImageCleaner
+from ..image import hillas_parameters, tailcuts_clean, number_of_islands
+from ..image.concentration import concentration
+from ..image.extractor import ImageExtractor
+from ..image.leakage import leakage
+from ..image.timing_parameters import timing_parameters
+from ..io import EventSource, HDF5TableWriter, SimTelEventSource
+from ..io.containers import (
     DL1CameraContainer,
     EventIndexContainer,
     ImageParametersContainer,
@@ -42,9 +44,6 @@ from ctapipe.io.containers import (
     SimulatedShowerDistribution,
     MorphologyContainer,
 )
-
-
-import tables
 
 tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many datasets
 
@@ -338,75 +337,6 @@ def create_tel_id_to_tel_index_transform(sub):
     return partial(expand_tel_list, max_tels=len(sub.tel) + 1, index_map=idx)
 
 
-class ImageCleaner(Component):
-    """
-     Abstract class for all configurable Image Cleaning algorithms.   Use
-    `ImageCleaner.from_name()` to construct an instance of a particular algorithm
-     """
-    pass
-
-
-class TailcutsImageCleaner(ImageCleaner):
-    """
-    Apply Image Cleaning to a set of telescope images
-    """
-
-    picture_threshold_pe = FloatTelescopeParameter(
-        help="top-level threshold in photoelectrons", default_value=10.0,
-    ).tag(config=True)
-
-    boundary_threshold_pe = FloatTelescopeParameter(
-        help="second-level threshold in photoelectrons", default_value=5.0,
-    ).tag(config=True)
-
-    min_picture_neighbors = IntTelescopeParameter(
-        help="Minimum number of neighbors above threshold to consider", default_value=2,
-    ).tag(config=True)
-
-    def __init__(self, config=None, parent=None, **kwargs):
-        super().__init__(config, parent, **kwargs)
-        self._subarray_initialized = False
-
-    def __call__(
-        self,
-        tel_id: int,
-        subarray: "ctapipe.instrument.SubarrayDescription",
-        image: np.ndarray,
-    ) -> np.ndarray:
-        """ Apply image cleaning
-        
-        Parameters
-        ----------
-        tel_id: int
-            which telescope id in the subarray is being used (determines
-            which cut is used)
-        image : np.ndarray
-            image pixel data corresponding to the camera geometry
-        subarray: ctapipe.image.SubarrayDescription
-            subarray definition (for mapping tel type to tel_id)
-        
-        Returns
-        -------
-        np.ndarray
-            boolean mask of pixels passing cleaning
-        """
-        if not self._subarray_initialized:
-            # If this is the first time we call it, setup the `TelescopeParameters`
-            # so that they use the user-selected value for each telescope/type:
-            self.picture_threshold_pe.attach_subarray(subarray)
-            self.boundary_threshold_pe.attach_subarray(subarray)
-            self.min_picture_neighbors.attach_subarray(subarray)
-            self._subarray_initialized = True
-
-        return tailcuts_clean(
-            subarray.tel[tel_id].camera,
-            image,
-            picture_thresh=self.picture_threshold_pe[tel_id],
-            boundary_thresh=self.boundary_threshold_pe[tel_id],
-            min_number_picture_neighbors=self.min_picture_neighbors[tel_id],
-        )
-
-
 class Stage1ProcessorTool(Tool):
     name = "ctapipe-stage1-process"
     description = __doc__ + f" This currently writes {DL1_DATA_MODEL_VERSION} DL1 data"
@@ -543,14 +473,21 @@ class Stage1ProcessorTool(Tool):
             EventSource.from_config(parent=self, gain_selector=self.gain_selector)
         )
         self.image_extractor = self.add_component(
-            ImageExtractor.from_name(self.image_extractor_type, parent=self,
-                                     subarray=self.event_source.subarray)
+            ImageExtractor.from_name(
+                self.image_extractor_type,
+                parent=self,
+                subarray=self.event_source.subarray,
+            )
         )
         self.calibrate = self.add_component(
             CameraCalibrator(parent=self, image_extractor=self.image_extractor)
         )
         self.clean = self.add_component(
-            ImageCleaner.from_name(self.image_cleaner_type, parent=self)
+            ImageCleaner.from_name(
+                self.image_cleaner_type,
+                parent=self,
+                subarray=self.event_source.subarray,
+            )
         )
         self.check_image = self.add_component(ImageSelector(parent=self))
 
@@ -708,7 +645,7 @@ class Stage1ProcessorTool(Tool):
 
         # apply cleaning
 
-        mask = self.clean(subarray=subarray, image=data.image, tel_id=tel_id)
+        mask = self.clean(tel_id=tel_id, image=data.image)
 
         clean_image = data.image.copy()
         clean_image[~mask] = 0
