@@ -66,6 +66,8 @@ def test_selector():
     assert len(select) == 4  # 4 events counted
 
 def test_bad_selector():
+    """ ensure failure if a selector function is not a function or can't be evaluated"""
+
     with pytest.raises(SelectionFunctionError):
         s = Selector(
             selection_functions=dict(
