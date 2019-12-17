@@ -2,11 +2,17 @@
 Data Quality selection
 """
 
-__all__ = ["Selector"]
+__all__ = ["Selector", "SelectionFunctionError"]
+
+from collections import Callable
+
+import numpy as np
 
 from .component import Component
 from .traits import Dict
-import numpy as np
+
+class SelectionFunctionError(TypeError):
+    pass
 
 class Selector(Component):
     """
@@ -33,24 +39,35 @@ class Selector(Component):
 
         self.selection_functions = selection_functions  # update
 
-        # generate real functions from the selection function strings
-        self._selectors = {
-            name: eval(func_str) for name, func_str in selection_functions.items()
-        }
+        try:# generate real functions from the selection function strings
+            self._selectors = {
+                name: eval(func_str) for name, func_str in selection_functions.items()
+            }
+        except NameError as err:
+            raise SelectionFunctionError("Couldn't evaluate one of the selection "
+                                         "function strings")
+
+        for name, func in self._selectors.items():
+            if not isinstance(func, Callable):
+                raise SelectionFunctionError(f"Selection criterion '{name}' is not a function")
+
 
         # arrays for recording overall statistics
         self._counts = np.zeros(len(self._selectors), dtype=np.int)
         self._cumulative_counts = np.zeros(len(self._selectors), dtype=np.int)
 
     def __len__(self):
+        """ return number of events processed"""
         return self._counts[0]
 
     @property
     def criteria_names(self):
+        """ list of names of criteria to be considered """
         return list(self._selectors.keys())
 
     @property
     def selection_function_strings(self):
+        """ list of criteria function strings"""
         return list(self.selection_functions.values())
 
     def to_table(self, functions=False):

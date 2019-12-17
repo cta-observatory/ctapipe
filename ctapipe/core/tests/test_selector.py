@@ -1,4 +1,7 @@
-from ctapipe.core.selector import Selector
+""" Tests of Selectors """
+import pytest
+
+from ctapipe.core.selector import Selector, SelectionFunctionError
 from ctapipe.core.traits import Dict
 
 
@@ -61,3 +64,25 @@ def test_selector():
     assert select.selection_function_strings[1] == "lambda x: x > 3"
 
     assert len(select) == 4  # 4 events counted
+
+def test_bad_selector():
+    with pytest.raises(SelectionFunctionError):
+        s = Selector(
+            selection_functions=dict(
+                high_enough="lambda x: x > 3",
+                not_good="3",
+                smallish="lambda x: x < 10",
+            )
+        )
+        assert s
+
+    with pytest.raises(SelectionFunctionError):
+        s = Selector(
+            selection_functions=dict(
+                high_enough="lambda x: x > 3",
+                not_good="x == 3",
+                smallish="lambda x: x < 10",
+            )
+        )
+        assert s
+
