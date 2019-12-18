@@ -4,7 +4,7 @@ Data Quality selection
 
 __all__ = ["Selector", "SelectionFunctionError"]
 
-from collections import Callable
+from collections.abc import Callable
 
 import numpy as np
 
