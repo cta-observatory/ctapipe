@@ -51,6 +51,7 @@ __all__ = [
     "TelEventIndexContainer",
     "ImageParametersContainer",
     "SimulatedShowerDistribution",
+    "WeatherContainer",
 ]
 
 
@@ -127,6 +128,11 @@ class DL1CameraContainer(Container):
         "Shape: (n_pixel, n_samples)",
     )
 
+class WeatherContainer(Container):
+    """Storage of event-wise weather information (MAGIC implementation)."""
+    air_temperature = Field(None, "Outside air temperature")
+    air_pressure = Field(None, "Outside air pressure")
+    air_humidity = Field(None, "Outside air humidity")
 
 class DL1Container(Container):
     """ DL1 Calibrated Camera Images and associated data"""
@@ -540,6 +546,8 @@ class DataContainer(Container):
         EventCalibrationContainer(),
         "Container for calibration coefficients for the current event"
     )
+    weather = Field(Map(WeatherContainer),
+                    'Outside weather conditions at the observatory')
 
 
 class SST1MDataContainer(DataContainer):
