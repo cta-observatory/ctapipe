@@ -212,12 +212,12 @@ class CutFlow:
             specified otherwise
         """
         print(self.name)
-        t = self.get_table(*args, **kwargs)
+        t = self.get_table()
         print(t)
         return t
 
     def get_table(
-        self, base_cut=None, sort_column=None, sort_reverse=False, format="5.3f"
+        self, base_cut=None, sort_column=None, sort_reverse=False, value_format="5.3f"
     ):
         """
         creates an astropy table of the cut names, counted events and
@@ -235,7 +235,7 @@ class CutFlow:
             (index 0: cut name, index 1: number of passed events, index 2: efficiency)
         sort_reverse : bool, optional (default: False)
             if true, revert the order of the entries
-        format : string, optional (default: '5.3f')
+        value_format : string, optional (default: '5.3f')
             formatting string for the efficiency column
 
         Returns
@@ -265,7 +265,7 @@ class CutFlow:
             ],
             names=["Cut Name", "selected Events", "Efficiency"],
         )
-        t["Efficiency"].format = format
+        t["Efficiency"].format = value_format
 
         if sort_column is not None:
             t.sort(t.colnames[sort_column])

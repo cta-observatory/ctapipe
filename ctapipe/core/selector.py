@@ -11,8 +11,10 @@ import numpy as np
 from .component import Component
 from .traits import Dict
 
+
 class SelectionFunctionError(TypeError):
     pass
+
 
 class Selector(Component):
     """
@@ -39,18 +41,20 @@ class Selector(Component):
 
         self.selection_functions = selection_functions  # update
 
-        try:# generate real functions from the selection function strings
+        try:  # generate real functions from the selection function strings
             self._selectors = {
                 name: eval(func_str) for name, func_str in selection_functions.items()
             }
         except NameError as err:
-            raise SelectionFunctionError("Couldn't evaluate one of the selection "
-                                         "function strings")
+            raise SelectionFunctionError(
+                f"Couldn't evaluate one of the selection function strings: {err}"
+            )
 
         for name, func in self._selectors.items():
             if not isinstance(func, Callable):
-                raise SelectionFunctionError(f"Selection criterion '{name}' is not a function")
-
+                raise SelectionFunctionError(
+                    f"Selection criterion '{name}' is not a function"
+                )
 
         # arrays for recording overall statistics
         self._counts = np.zeros(len(self._selectors), dtype=np.int)
