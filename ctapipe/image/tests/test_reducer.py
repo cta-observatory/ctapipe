@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
 from scipy.stats import norm
-from ctapipe.image.extractor import NeighborPeakWindowSum
+from ctapipe.image.extractor import LocalPeakWindowSum
 from ctapipe.instrument import CameraGeometry
 from ctapipe.image.reducer import (
     NullDataVolumeReducer,
@@ -12,12 +12,14 @@ from ctapipe.image.reducer import (
 def test_null_data_volume_reducer():
     waveforms = np.random.uniform(0, 1, (2048, 96))
     reducer = NullDataVolumeReducer()
-    reduced_waveforms = reducer(waveforms)
+    mask = reducer(waveforms)
+    reduced_waveforms = waveforms.copy()
+    reduced_waveforms[~mask] = 0
     assert_array_equal(waveforms, reduced_waveforms)
 
 
 def test_tailcuts_data_volume_reducer():
-    # Create waveforms like 'test_extractor'
+    # Create waveforms like in 'test_extractor'
     camera = CameraGeometry.from_name("LSTCam")
     n_pixels = camera.n_pixels
     n_samples = 30
@@ -37,9 +39,8 @@ def test_tailcuts_data_volume_reducer():
     waveforms_values *= random.uniform(100, 1000, n_pixels)[:, np.newaxis]
 
     # to test the used image_extractor in TailcutsDataVolumeReducer
-    image_extractor = NeighborPeakWindowSum()
-    image_extractor.neighbors = camera.neighbor_matrix_where
-    charge, pulse_time = image_extractor(waveforms_values)
+    image_extractor = LocalPeakWindowSum()
+    charge, _ = image_extractor(waveforms_values)
 
     # create image
     waveforms = np.zeros_like(waveforms_values, dtype=np.float)
@@ -63,14 +64,17 @@ def test_tailcuts_data_volume_reducer():
     reducer = TailCutsDataVolumeReducer()
     reducer.camera_geom = camera
     reducer.picture_thresh = 400
-    reducer.boundary_thresh = 100
+    reducer.boundary_thresh = 150
     reducer.end_dilates = 1
     reducer.keep_isolated_pixels = True
     reducer.min_number_picture_neighbors = 0
-    reduced_waveforms = reducer(waveforms)
+
+    reduced_waveforms = waveforms.copy()
+    reduced_waveforms_mask = reducer(waveforms)
+    reduced_waveforms[~reduced_waveforms_mask] = 0
 
     assert (reduced_waveforms != 0).sum() == 19 * n_samples
-    assert_allclose(charge[0], 191.6570529, rtol=1e-3)
-    assert_allclose(charge[2], 65.61672762, rtol=1e-3)
-    assert_allclose(charge[3], 404.559261, rtol=1e-3)
+    assert_allclose(charge[0], 241.823127, rtol=1e-3)
+    assert_allclose(charge[2], 102.594038, rtol=1e-3)
+    assert_allclose(charge[3], 410.0855599, rtol=1e-3)
     assert_array_equal(expected_waveforms, reduced_waveforms)

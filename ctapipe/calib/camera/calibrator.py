@@ -171,8 +171,9 @@ class CameraCalibrator(Component):
         if self._check_r1_empty(waveforms):
             return
 
-        reduced_waveforms = self.data_volume_reducer(waveforms)
-        event.dl0.tel[telid].waveform = reduced_waveforms
+        reduced_waveforms_mask = self.data_volume_reducer(waveforms)
+        waveforms[~reduced_waveforms_mask] = 0
+        event.dl0.tel[telid].waveform = waveforms
 
     def _calibrate_dl1(self, event, telid):
         waveforms = event.dl0.tel[telid].waveform

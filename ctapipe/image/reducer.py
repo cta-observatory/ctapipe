@@ -1,12 +1,10 @@
 """
 Algorithms for the data volume reduction.
 """
-
 from abc import abstractmethod
-
 import numpy as np
 from ctapipe.core import Component, traits
-from ctapipe.image.extractor import NeighborPeakWindowSum
+from ctapipe.image.extractor import LocalPeakWindowSum
 from ctapipe.image.cleaning import (
     tailcuts_clean,
     dilate
@@ -37,11 +35,11 @@ class DataVolumeReducer(Component):
 
         Returns
         -------
-        reduced_waveforms : masked array
-            Masked array of selected pixels.
+        mask : array
+            Mask of selected pixels.
         """
-        reduced_waveforms = self.select_pixels(waveforms)
-        return reduced_waveforms
+        mask = self.select_pixels(waveforms)
+        return mask
 
     @abstractmethod
     def select_pixels(self, waveforms):
@@ -58,8 +56,8 @@ class DataVolumeReducer(Component):
 
         Returns
         -------
-        reduced_waveforms : masked array
-            Masked array of selected pixels.
+        mask : array
+            Mask of selected pixels.
         """
 
 
@@ -69,12 +67,13 @@ class NullDataVolumeReducer(DataVolumeReducer):
     """
 
     def select_pixels(self, waveforms):
-        return waveforms
+        mask = waveforms != 0
+        return mask
 
 
 class TailCutsDataVolumeReducer(DataVolumeReducer):
     """
-    Reduce a time integrated shower image in 3 Steps:
+    Reduce the time integrated shower image in 3 Steps:
 
     1) Select pixels with tailcuts_clean.
     2) Add iteratively all pixels with Signal S >= boundary_thresh
@@ -90,12 +89,12 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         help="Number of how many times to dilate at the end."
     ).tag(config=True)
     picture_thresh = traits.Float(
-        default_value=7,
+        default_value=10,
         help="Picture threshold for the first tailcuts_clean step. All "
              "pixels above are selected."
     ).tag(config=True)
     boundary_thresh = traits.Float(
-        default_value=3,
+        default_value=5,
         help="Boundary threshold for the first tailcuts_clean step and "
              "also for the second iteration step."
     ).tag(config=True)
@@ -125,7 +124,7 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
             Camera geometry information
         picture_thresh: float
             threshold for tailcuts_clean. All pixels above are retained
-        boundary_thresh: float or array.
+        boundary_thresh: float
             1)Threshold for tailcuts_clean. All pixels above are retained if
             they have a neighbor already above the picture_thresh.
             2)Threshold for the iteration step 2). All pixels above are
@@ -140,15 +139,15 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
             in case keep_isolated_pixels is True
         end_dilates: int
             Number of how many times to dilate at the end in Step 3).
+
         Returns
         -------
-        reduced_waveforms : masked array
-                Masked array of selected pixels.
+        mask : array
+            Mask of selected pixels.
         """
-        #  Pulse-integrate waveforms
-        image_extractor = NeighborPeakWindowSum()
-        image_extractor.neighbors = self.camera_geom.neighbor_matrix_where
-        charge, pulse_time = image_extractor(waveforms)
+        # Pulse-integrate waveforms
+        image_extractor = LocalPeakWindowSum()
+        charge, _ = image_extractor(waveforms)
 
         # 1) Step: TailcutCleaning at first
         mask = tailcuts_clean(
@@ -172,7 +171,4 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         for _ in range(self.end_dilates):
             mask = dilate(self.camera_geom, mask)
 
-        waveforms_copy = waveforms.copy()
-        waveforms_copy[~mask] = 0
-
-        return waveforms_copy
+        return mask
