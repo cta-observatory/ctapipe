@@ -105,7 +105,7 @@ class CameraCalibrator(Component):
         self._dl0_empty_warn = False
 
         if data_volume_reducer is None:
-            data_volume_reducer = NullDataVolumeReducer(parent=self)
+            data_volume_reducer = NullDataVolumeReducer(parent=self, subarray=subarray)
         self.data_volume_reducer = data_volume_reducer
 
         if image_extractor is None:
@@ -171,9 +171,10 @@ class CameraCalibrator(Component):
         if self._check_r1_empty(waveforms):
             return
 
-        reduced_waveforms_mask = self.data_volume_reducer(waveforms)
-        waveforms[~reduced_waveforms_mask] = 0
-        event.dl0.tel[telid].waveform = waveforms
+        reduced_waveforms_mask = self.data_volume_reducer(waveforms, telid=telid)
+        waveforms_copy = waveforms.copy()
+        waveforms_copy[~reduced_waveforms_mask] = 0
+        event.dl0.tel[telid].waveform = waveforms_copy
 
     def _calibrate_dl1(self, event, telid):
         waveforms = event.dl0.tel[telid].waveform

@@ -22,7 +22,26 @@ class DataVolumeReducer(Component):
     Base component for data volume reducers.
     """
 
-    def __call__(self, waveforms):
+    def __init__(self, config=None, parent=None, subarray=None, **kwargs):
+        """
+        Parameters
+        ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool : ctapipe.core.Tool or None
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        subarray: ctapipe.instrument.SubarrayDescription
+            Description of the subarray
+        kwargs
+        """
+        super().__init__(config=config, parent=parent, **kwargs)
+        self.subarray = subarray
+
+    def __call__(self, waveforms, telid=None):
         """
         Call the relevant functions to perform data volume reduction on the
         waveforms.
@@ -38,11 +57,11 @@ class DataVolumeReducer(Component):
         mask : array
             Mask of selected pixels.
         """
-        mask = self.select_pixels(waveforms)
+        mask = self.select_pixels(waveforms, telid=telid)
         return mask
 
     @abstractmethod
-    def select_pixels(self, waveforms):
+    def select_pixels(self, waveforms, telid=None):
         """
         Abstract method to be defined by a DataVolumeReducer subclass.
 
@@ -66,7 +85,7 @@ class NullDataVolumeReducer(DataVolumeReducer):
     Perform no data volume reduction
     """
 
-    def select_pixels(self, waveforms):
+    def select_pixels(self, waveforms, telid=None):
         mask = waveforms != 0
         return mask
 
@@ -80,10 +99,6 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
        with ctapipe module dilate until no new pixels were added.
     3) Adding new pixels with dilate to get more conservative.
     """
-    camera_geom = traits.Any(
-        help="Get camera geometry information from "
-             "ctapipe.instrument.CameraGeometry."
-    ).tag(config=True)
     end_dilates = traits.Integer(
         default_value=1,
         help="Number of how many times to dilate at the end."
@@ -111,47 +126,15 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
              "in case keep_isolated_pixels is True."
     ).tag(config=True)
 
-    def select_pixels(self, waveforms):
-        """
-        Parameters
-        ----------
-        waveforms : ndarray
-                Waveforms stored in a numpy array of shape
-                (n_pix, n_samples).
-
-        Traitlets:
-        camera_geom: 'ctapipe.instrument.CameraGeometry'
-            Camera geometry information
-        picture_thresh: float
-            threshold for tailcuts_clean. All pixels above are retained
-        boundary_thresh: float
-            1)Threshold for tailcuts_clean. All pixels above are retained if
-            they have a neighbor already above the picture_thresh.
-            2)Threshold for the iteration step 2). All pixels above are
-            selected.
-        keep_isolated_pixels: bool
-            For tailcuts_clean: If True, pixels above the picture threshold
-            will be included always, if not they are only included if a
-            neighbor is in the picture or boundary.
-        min_number_picture_neighbors: int
-            For tailcuts_clean: A picture pixel survives cleaning only if it
-            has at least this number of picture neighbors. This has no effect
-            in case keep_isolated_pixels is True
-        end_dilates: int
-            Number of how many times to dilate at the end in Step 3).
-
-        Returns
-        -------
-        mask : array
-            Mask of selected pixels.
-        """
+    def select_pixels(self, waveforms, telid=None):
+        camera_geom = self.subarray.tel[telid].camera
         # Pulse-integrate waveforms
-        image_extractor = LocalPeakWindowSum()
-        charge, _ = image_extractor(waveforms)
+        image_extractor = LocalPeakWindowSum(subarray=self.subarray)
+        charge, _ = image_extractor(waveforms, telid=telid)
 
         # 1) Step: TailcutCleaning at first
         mask = tailcuts_clean(
-            geom=self.camera_geom,
+            geom=camera_geom,
             image=charge,
             picture_thresh=self.picture_thresh,
             boundary_thresh=self.boundary_thresh,
@@ -165,10 +148,10 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         #          'dilate' until no new pixels were added.
         while not np.array_equal(mask, mask_in_loop):
             mask_in_loop = mask
-            mask = dilate(self.camera_geom, mask) & pixels_above_boundary_thresh
+            mask = dilate(camera_geom, mask) & pixels_above_boundary_thresh
 
         # 3) Step: Adding Pixels with 'dilate' to get more conservative.
         for _ in range(self.end_dilates):
-            mask = dilate(self.camera_geom, mask)
+            mask = dilate(camera_geom, mask)
 
         return mask
