@@ -11,7 +11,7 @@ from ctapipe.image.reducer import (
 
 
 @pytest.fixture(scope='module')
-def camera_waveforms():
+def camera_waveforms_lst():
     subarray = SubarrayDescription(
         "test array",
         tel_positions={1: np.zeros(3) * u.m, 2: np.ones(3) * u.m},
@@ -45,8 +45,8 @@ def camera_waveforms():
     return waveforms, subarray, n_samples
 
 
-def test_null_data_volume_reducer(camera_waveforms):
-    waveforms, _, _ = camera_waveforms
+def test_null_data_volume_reducer(camera_waveforms_lst):
+    waveforms, _, _ = camera_waveforms_lst
     reducer = NullDataVolumeReducer()
     reduced_waveforms_mask = reducer(waveforms)
     reduced_waveforms = waveforms.copy()
@@ -54,8 +54,8 @@ def test_null_data_volume_reducer(camera_waveforms):
     assert_array_equal(waveforms, reduced_waveforms)
 
 
-def test_tailcuts_data_volume_reducer(camera_waveforms):
-    waveforms, subarray, n_samples = camera_waveforms
+def test_tailcuts_data_volume_reducer(camera_waveforms_lst):
+    waveforms, subarray, n_samples = camera_waveforms_lst
 
     # create signal out of waveforms
     waveforms_signal = np.zeros_like(waveforms, dtype=np.float)
