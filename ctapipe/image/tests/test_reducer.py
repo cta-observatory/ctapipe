@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose
+from numpy.testing import assert_array_equal
 from scipy.stats import norm
 import astropy.units as u
 from ctapipe.instrument import SubarrayDescription, TelescopeDescription
