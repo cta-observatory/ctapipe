@@ -1,4 +1,3 @@
-import pytest
 import numpy as np
 from numpy.testing import assert_array_equal
 from scipy.stats import norm
@@ -10,8 +9,16 @@ from ctapipe.image.reducer import (
 )
 
 
-@pytest.fixture(scope='module')
-def camera_waveforms_lst():
+def test_null_data_volume_reducer():
+    waveforms = np.random.uniform(0, 1, (2048, 96))
+    reducer = NullDataVolumeReducer()
+    reduced_waveforms_mask = reducer(waveforms)
+    reduced_waveforms = waveforms.copy()
+    reduced_waveforms[~reduced_waveforms_mask] = 0
+    assert_array_equal(waveforms, reduced_waveforms)
+
+
+def test_tailcuts_data_volume_reducer():
     subarray = SubarrayDescription(
         "test array lst",
         tel_positions={1: np.zeros(3) * u.m, 2: np.ones(3) * u.m},
@@ -41,21 +48,6 @@ def camera_waveforms_lst():
 
     # Randomize amplitudes
     waveforms *= random.uniform(100, 1000, n_pixels)[:, np.newaxis]
-
-    return waveforms, subarray, n_samples
-
-
-def test_null_data_volume_reducer(camera_waveforms_lst):
-    waveforms, _, _ = camera_waveforms_lst
-    reducer = NullDataVolumeReducer()
-    reduced_waveforms_mask = reducer(waveforms)
-    reduced_waveforms = waveforms.copy()
-    reduced_waveforms[~reduced_waveforms_mask] = 0
-    assert_array_equal(waveforms, reduced_waveforms)
-
-
-def test_tailcuts_data_volume_reducer(camera_waveforms_lst):
-    waveforms, subarray, n_samples = camera_waveforms_lst
 
     # create signal out of waveforms
     waveforms_signal = np.zeros_like(waveforms, dtype=np.float)
