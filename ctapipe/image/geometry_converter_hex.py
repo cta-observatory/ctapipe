@@ -4,7 +4,6 @@ import logging
 
 import numpy as np
 from astropy import units as u
-from numba import jit
 
 from ctapipe.instrument import CameraGeometry
 
@@ -210,7 +209,6 @@ def reskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg,
     return rot_x, rot_y
 
 
-@jit
 def reskew_hex_pixel_from_orthogonal_edges(x_edges, y_edges, square_mask):
     """extracts and skews the pixel coordinates from a 2D orthogonal
     histogram (i.e. the bin-edges) and skews them into the hexagonal
@@ -240,7 +238,6 @@ def reskew_hex_pixel_from_orthogonal_edges(x_edges, y_edges, square_mask):
     return unrot_x, unrot_y
 
 
-@jit
 def get_orthogonal_grid_edges(pix_x, pix_y, scale_aspect=True):
     """calculate the bin edges of the slanted, orthogonal pixel grid to
     resample the pixel signals with np.histogramdd right after.
@@ -249,6 +246,7 @@ def get_orthogonal_grid_edges(pix_x, pix_y, scale_aspect=True):
     ----------
     pix_x, pix_y : 1D numpy arrays
         the list of x and y coordinates of the slanted, orthogonal pixel grid
+        units should be in meters, and stripped off
     scale_aspect : boolean (default: True)
         if True, rescales the x-coordinates to create square pixels
         (instead of rectangular ones)
@@ -262,8 +260,9 @@ def get_orthogonal_grid_edges(pix_x, pix_y, scale_aspect=True):
     """
 
     # finding the size of the square patches
-    d_x = 99 * u.meter  # TODO: @jit may have troubles interpreting astropy.Quantities
-    d_y = 99 * u.meter
+
+    d_x = 99
+    d_y = 99
     x_base = pix_x[0]
     y_base = pix_y[0]
     for x, y in zip(pix_x, pix_y):
@@ -284,13 +283,12 @@ def get_orthogonal_grid_edges(pix_x, pix_y, scale_aspect=True):
 
     # with the maximal extension of the axes and the size of the pixels,
     # determine the number of bins in each direction
-    n_bins_x = (np.around(abs(max(pix_x) - min(pix_x)) / d_x) + 2).astype(int)
-    n_bins_y = (np.around(abs(max(pix_y) - min(pix_y)) / d_y) + 2).astype(int)
-    x_edges = np.linspace(min(pix_x).value, max(pix_x).value, n_bins_x)
-    y_edges = np.linspace(min(pix_y).value, max(pix_y).value, n_bins_y)
+    n_bins_x = int(np.round_(np.abs(np.max(pix_x) - np.min(pix_x)) / d_x) + 2)
+    n_bins_y = int(np.round_(np.abs(np.max(pix_y) - np.min(pix_y)) / d_y) + 2)
+    x_edges = np.linspace(pix_x.min(), pix_x.max(), n_bins_x)
+    y_edges = np.linspace(pix_y.min(), pix_y.max(), n_bins_y)
 
-    return x_edges, y_edges, x_scale
-
+    return (x_edges, y_edges, x_scale)
 
 rot_buffer = {}
 
@@ -361,14 +359,15 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
 
         # with all the coordinate points, we can define the bin edges
         # of a 2D histogram
-        x_edges, y_edges, x_scale = get_orthogonal_grid_edges(rot_x, rot_y)
+        x_edges, y_edges, x_scale = get_orthogonal_grid_edges(rot_x.to_value(u.m),
+                                                              rot_y.to_value(u.m))
 
         # this histogram will introduce bins that do not correspond to
         # any pixel from the original geometry. so we create a mask to
         # remember the true camera pixels by simply throwing all pixel
         # positions into numpy.histogramdd: proper pixels contain the
         # value 1, false pixels the value 0.
-        square_mask = np.histogramdd([rot_y, rot_x],
+        square_mask = np.histogramdd([rot_y.to_value(u.m), rot_x.to_value(u.m)],
                                      bins=(y_edges, x_edges))[0].astype(bool)
 
         # to be consistent with the pixel intensity, instead of saving
@@ -408,7 +407,7 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
         new_geom.mask = square_mask
 
         # create a transfer map by enumerating all pixel positions in a 2D histogram
-        hex_to_rect_map = np.histogramdd([rot_y, rot_x],
+        hex_to_rect_map = np.histogramdd([rot_y.to_value(u.m), rot_x.to_value(u.m)],
                                          bins=(y_edges, x_edges),
                                          weights=np.arange(len(signal)))[
             0].astype(int)
@@ -527,8 +526,9 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None,
     # even if there is no time; if we'd use `axis=-1` instead, in cas of no time
     # dimensions, we would rotate the x and y axes, resulting in a mirrored image
     # `squeeze` reduces the added axis again in the no-time-slices cases
-    unrot_img[hex_square_map[..., new_geom.mask]] = \
+    unrot_img[hex_square_map[..., new_geom.mask]] = (
         np.squeeze(np.rollaxis(np.atleast_3d(signal), 2, 0))[..., new_geom.mask]
+    )
 
     # if `signal` has a third dimension, that is the time
     # and we need to roll some axes again...
