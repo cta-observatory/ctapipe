@@ -149,7 +149,7 @@ class ArrayDisplay:
         if self._quiver is None:
             coords = self.tel_coords
             self._quiver = self.axes.quiver(
-                coords.x, coords.y,
+                coords.x.value, coords.y.value,
                 u, v,
                 color=c,
                 scale_units='xy',
