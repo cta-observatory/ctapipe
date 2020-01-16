@@ -9,14 +9,10 @@ from ctapipe.instrument import CameraGeometry
 
 logger = logging.getLogger(__name__)
 
-__all__ = [
-    "convert_geometry_hex1d_to_rect2d",
-    "convert_geometry_rect2d_back_to_hexe1d"
-]
+__all__ = ["convert_geometry_hex1d_to_rect2d", "convert_geometry_rect2d_back_to_hexe1d"]
 
 
-def unskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg,
-                          base_angle=60 * u.deg):
+def unskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg, base_angle=60 * u.deg):
     r"""transform the pixel coordinates of a hexagonal image into an
     orthogonal image
 
@@ -99,9 +95,11 @@ def unskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg,
         # (x') = (   1    0) * (cos -sin) * (x) = (    cos         -sin    ) * (x)
         # (y')   (-1/tan  1)   (sin  cos)   (y)   (sin-cos/tan  sin/tan+cos) * (y)
         rot_mat = np.array(
-            [[cos_angle, -sin_angle],
-             [sin_angle - cos_angle / tan_angle,
-              sin_angle / tan_angle + cos_angle]])
+            [
+                [cos_angle, -sin_angle],
+                [sin_angle - cos_angle / tan_angle, sin_angle / tan_angle + cos_angle],
+            ]
+        )
 
     else:
         # if we don't rotate the camera, only perform the sheer
@@ -113,8 +111,7 @@ def unskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg,
     return rot_x, rot_y
 
 
-def reskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg,
-                          base_angle=60 * u.deg):
+def reskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg, base_angle=60 * u.deg):
     r"""skews the orthogonal coordinates back to the hexagonal ones
 
     Parameters
@@ -196,8 +193,11 @@ def reskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg,
         # (y)   (-sin cos)   (1/tan  1)   (y')   (cos/tan-sin  cos)   (y')
 
         rot_mat = np.array(
-            [[cos_angle + sin_angle / tan_angle, sin_angle],
-             [cos_angle / tan_angle - sin_angle, cos_angle]])
+            [
+                [cos_angle + sin_angle / tan_angle, sin_angle],
+                [cos_angle / tan_angle - sin_angle, cos_angle],
+            ]
+        )
 
     else:
         # if we don't rotate the camera, only perform the sheer
@@ -290,6 +290,7 @@ def get_orthogonal_grid_edges(pix_x, pix_y, scale_aspect=True):
 
     return (x_edges, y_edges, x_scale)
 
+
 rot_buffer = {}
 
 
@@ -354,28 +355,32 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
         logger.debug(f"geom={geom}")
         logger.debug(f"rot={rot_angle}, extra={extra_rot}")
 
-        rot_x, rot_y = unskew_hex_pixel_grid(geom.pix_x, geom.pix_y,
-                                             cam_angle=rot_angle)
+        rot_x, rot_y = unskew_hex_pixel_grid(
+            geom.pix_x, geom.pix_y, cam_angle=rot_angle
+        )
 
         # with all the coordinate points, we can define the bin edges
         # of a 2D histogram
-        x_edges, y_edges, x_scale = get_orthogonal_grid_edges(rot_x.to_value(u.m),
-                                                              rot_y.to_value(u.m))
+        x_edges, y_edges, x_scale = get_orthogonal_grid_edges(
+            rot_x.to_value(u.m), rot_y.to_value(u.m)
+        )
 
         # this histogram will introduce bins that do not correspond to
         # any pixel from the original geometry. so we create a mask to
         # remember the true camera pixels by simply throwing all pixel
         # positions into numpy.histogramdd: proper pixels contain the
         # value 1, false pixels the value 0.
-        square_mask = np.histogramdd([rot_y.to_value(u.m), rot_x.to_value(u.m)],
-                                     bins=(y_edges, x_edges))[0].astype(bool)
+        square_mask = np.histogramdd(
+            [rot_y.to_value(u.m), rot_x.to_value(u.m)], bins=(y_edges, x_edges)
+        )[0].astype(bool)
 
         # to be consistent with the pixel intensity, instead of saving
         # only the rotated positions of the true pixels (rot_x and
         # rot_y), create 2D arrays of all x and y positions (also the
         # false ones).
-        grid_x, grid_y = np.meshgrid((x_edges[:-1] + x_edges[1:]) / 2.,
-                                     (y_edges[:-1] + y_edges[1:]) / 2.)
+        grid_x, grid_y = np.meshgrid(
+            (x_edges[:-1] + x_edges[1:]) / 2.0, (y_edges[:-1] + y_edges[1:]) / 2.0
+        )
 
         ids = []
         # instead of blindly enumerating all pixels, let's instead
@@ -388,29 +393,32 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
 
         # the area of the pixels (note that this is still a deformed
         # image)
-        pix_area = (np.ones_like(grid_x)
-                    * (x_edges[1] - x_edges[0])
-                    * (y_edges[1] - y_edges[0]))
+        pix_area = (
+            np.ones_like(grid_x) * (x_edges[1] - x_edges[0]) * (y_edges[1] - y_edges[0])
+        )
 
         # creating a new geometry object with the attributes we just determined
         new_geom = CameraGeometry(
             cam_id=geom.cam_id + "_rect",
             pix_id=ids,  # this is a list of all the valid coordinate pairs now
-            pix_x=u.Quantity(grid_x.ravel(),  u.meter),
-            pix_y=u.Quantity(grid_y.ravel(),  u.meter),
+            pix_x=u.Quantity(grid_x.ravel(), u.meter),
+            pix_y=u.Quantity(grid_y.ravel(), u.meter),
             pix_area=pix_area * u.meter ** 2,
             neighbors=geom.neighbors,
             sampling_rate=geom.sampling_rate,
-            pix_type='rectangular', apply_derotation=False)
+            pix_type="rectangular",
+            apply_derotation=False,
+        )
 
         # storing the pixel mask for later use
         new_geom.mask = square_mask
 
         # create a transfer map by enumerating all pixel positions in a 2D histogram
-        hex_to_rect_map = np.histogramdd([rot_y.to_value(u.m), rot_x.to_value(u.m)],
-                                         bins=(y_edges, x_edges),
-                                         weights=np.arange(len(signal)))[
-            0].astype(int)
+        hex_to_rect_map = np.histogramdd(
+            [rot_y.to_value(u.m), rot_x.to_value(u.m)],
+            bins=(y_edges, x_edges),
+            weights=np.arange(len(signal)),
+        )[0].astype(int)
         # bins that do not correspond to the original image get an entry of `-1`
         hex_to_rect_map[~square_mask] = -1
 
@@ -453,8 +461,7 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
     return new_geom, rot_img
 
 
-def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None,
-                                           add_rot=None):
+def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None, add_rot=None):
     """reverts the geometry distortion performed by convert_geometry_hexe1d_to_rect_2d
     back to a hexagonal grid stored in 1D arrays
 
@@ -503,16 +510,18 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None,
         # here ATTENTION assumes the original cam_id can be inferred from the
         #  given, modified one by by `geom.cam_id.split('_')[0]`
         try:
-            orig_geom = CameraGeometry.from_name(geom.cam_id.split('_')[0])
+            orig_geom = CameraGeometry.from_name(geom.cam_id.split("_")[0])
         except:
             raise ValueError(
                 "could not deduce `CameraGeometry` from given `geom`...\n"
                 "please provide a `geom`, so that "
-                "`geom.cam_id.split('_')[0]` is a known `cam_id`")
+                "`geom.cam_id.split('_')[0]` is a known `cam_id`"
+            )
 
         orig_signal = np.zeros(len(orig_geom.pix_x))
-        convert_geometry_hex1d_to_rect2d(geom=orig_geom, signal=orig_signal,
-                                         key=key, add_rot=add_rot)
+        convert_geometry_hex1d_to_rect2d(
+            geom=orig_geom, signal=orig_signal, key=key, add_rot=add_rot
+        )
 
     (old_geom, new_geom, hex_square_map) = rot_buffer[key]
 
@@ -526,9 +535,9 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None,
     # even if there is no time; if we'd use `axis=-1` instead, in cas of no time
     # dimensions, we would rotate the x and y axes, resulting in a mirrored image
     # `squeeze` reduces the added axis again in the no-time-slices cases
-    unrot_img[hex_square_map[..., new_geom.mask]] = (
-        np.squeeze(np.rollaxis(np.atleast_3d(signal), 2, 0))[..., new_geom.mask]
-    )
+    unrot_img[hex_square_map[..., new_geom.mask]] = np.squeeze(
+        np.rollaxis(np.atleast_3d(signal), 2, 0)
+    )[..., new_geom.mask]
 
     # if `signal` has a third dimension, that is the time
     # and we need to roll some axes again...
@@ -538,8 +547,9 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None,
 
         # reshape the image so that the time is the first axis
         # and then roll the time to the back
-        unrot_img = unrot_img.reshape((signal.shape[2],
-                                       np.count_nonzero(new_geom.mask)))
+        unrot_img = unrot_img.reshape(
+            (signal.shape[2], np.count_nonzero(new_geom.mask))
+        )
         unrot_img = np.rollaxis(unrot_img, -1, 0)
     # else:
     #     unrot_img[hex_square_map[new_geom.mask]] = \
