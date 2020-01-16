@@ -48,9 +48,17 @@ class ArrayDisplay:
         is taken from the telescope's mirror size.
     """
 
-    def __init__(self, subarray, axes=None, autoupdate=True,
-                 tel_scale=2.0, alpha=0.7, title=None,
-                 radius=None, frame=GroundFrame()):
+    def __init__(
+        self,
+        subarray,
+        axes=None,
+        autoupdate=True,
+        tel_scale=2.0,
+        alpha=0.7,
+        title=None,
+        radius=None,
+        frame=GroundFrame(),
+    ):
 
         self.frame = frame
         self.subarray = subarray
@@ -63,14 +71,16 @@ class ArrayDisplay:
         tel_types = [str(tel) for tel in subarray.tels.values()]
         if radius is None:
             # set radius to the mirror radius (so big tels appear big)
-            radius = [np.sqrt(tel.optics.mirror_area.to("m2").value) * tel_scale
-                      for tel in subarray.tel.values()]
+            radius = [
+                np.sqrt(tel.optics.mirror_area.to("m2").value) * tel_scale
+                for tel in subarray.tel.values()
+            ]
 
         if title is None:
             title = subarray.name
 
         # get default matplotlib color cycle (depends on the current style)
-        color_cycle = cycle(plt.rcParams['axes.prop_cycle'].by_key()['color'])
+        color_cycle = cycle(plt.rcParams["axes.prop_cycle"].by_key()["color"])
 
         # map a color to each telescope type:
         tel_type_to_color = {}
@@ -80,18 +90,14 @@ class ArrayDisplay:
         tel_color = [tel_type_to_color[ttype] for ttype in tel_types]
 
         patches = []
-        for x, y, r, c in zip(list(self.tel_coords.x.value),
-                              list(self.tel_coords.y.value),
-                              list(radius),
-                              tel_color):
+        for x, y, r, c in zip(
+            list(self.tel_coords.x.to_value("m")),
+            list(self.tel_coords.y.to_value("m")),
+            list(radius),
+            tel_color,
+        ):
             patches.append(
-                Circle(
-                    xy=(x, y),
-                    radius=r,
-                    fill=True,
-                    color=c,
-                    alpha=alpha,
-                )
+                Circle(xy=(x, y), radius=r, fill=True, color=c, alpha=alpha,)
             )
 
         # build the legend:
@@ -99,9 +105,16 @@ class ArrayDisplay:
         for ttype in list(set(tel_types)):
             color = tel_type_to_color[ttype]
             legend_elements.append(
-                Line2D([0], [0], marker='o', color=color,
-                       label=ttype, markersize=10, alpha=alpha,
-                       linewidth=0)
+                Line2D(
+                    [0],
+                    [0],
+                    marker="o",
+                    color=color,
+                    label=ttype,
+                    markersize=10,
+                    alpha=alpha,
+                    linewidth=0,
+                )
             )
         plt.legend(handles=legend_elements)
 
@@ -129,14 +142,14 @@ class ArrayDisplay:
         self.telescopes.set_array(np.ma.masked_invalid(values))
         self._update()
 
-    def set_vector_uv(self, u, v, c=None, **kwargs):
+    def set_vector_uv(self, uu, vv, c=None, **kwargs):
         """ sets the vector field U,V and color for all telescopes
 
         Parameters
         ----------
-        u: array[num_tels]
+        uu: array[num_tels]
             x-component of direction vector
-        v: array[num_tels]
+        vv: array[num_tels]
             y-component of direction vector
         c: color or list of colors
             vector color for each telescope (or one for all)
@@ -149,16 +162,20 @@ class ArrayDisplay:
         if self._quiver is None:
             coords = self.tel_coords
             self._quiver = self.axes.quiver(
-                coords.x.value, coords.y.value,
-                u, v,
+                coords.x.to_value("m"),
+                coords.y.to_value("m"),
+                u.Quantity(uu).to_value("m"),
+                u.Quantity(vv).to_value("m"),
                 color=c,
-                scale_units='xy',
-                angles='xy',
+                scale_units="xy",
+                angles="xy",
                 scale=1,
                 **kwargs
             )
         else:
-            self._quiver.set_UVC(u, v)
+            self._quiver.set_UVC(
+                u.Quantity(uu).to_value("m"), u.Quantity(vv).to_value("m")
+            )
 
     def set_vector_rho_phi(self, rho, phi, c=None, **kwargs):
         """sets the vector field using R, Phi for each telescope
@@ -173,8 +190,8 @@ class ArrayDisplay:
             vector color for each telescope (or one for all)
         """
         phi = Angle(phi).rad
-        u, v = polar_to_cart(rho, phi)
-        self.set_vector_uv(u, v, c=c, **kwargs)
+        uu, vv = polar_to_cart(rho, phi)
+        self.set_vector_uv(uu, vv, c=c, **kwargs)
 
     def set_vector_hillas(self, hillas_dict, length, time_gradient, angle_offset):
         """
@@ -207,7 +224,7 @@ class ArrayDisplay:
 
         for tel_id, params in hillas_dict.items():
             idx = self.subarray.tel_indices[tel_id]
-            rho[idx] = length * u.m
+            rho[idx] = u.Quantity(length, u.m)
 
             if time_gradient[tel_id] > 0.01:
                 params.psi = Angle(params.psi)
@@ -248,8 +265,8 @@ class ArrayDisplay:
             self.axes.scatter(x_0, y_0, color=c[idx])
 
     def add_labels(self):
-        px = self.tel_coords.x.value
-        py = self.tel_coords.y.value
+        px = self.tel_coords.x.to_value("m")
+        py = self.tel_coords.y.to_value("m")
         for tel, x, y in zip(self.subarray.tels, px, py):
             name = str(tel)
             lab = self.axes.text(x, y, name, fontsize=8, clip_on=True)
