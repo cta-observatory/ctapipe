@@ -46,7 +46,7 @@ setup(
     # don't need to list the sub-dependencies like numpy, since
     # astropy already depends on it)
     install_requires=[
-        'astropy~=3.0',
+        'astropy>=3,<5',
         'bokeh~=1.0',
         'eventio~=1.0',
         'iminuit>=1.3',
