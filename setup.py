@@ -53,7 +53,7 @@ setup(
         'joblib',
         'matplotlib~=3.0',
         'numba>=0.43',
-        'numpy~=1.11',
+        'numpy~=1.16',
         'pandas>=0.24.0',
         'psutil',
         'scikit-learn',
