@@ -46,14 +46,14 @@ setup(
     # don't need to list the sub-dependencies like numpy, since
     # astropy already depends on it)
     install_requires=[
-        'astropy~=3.0',
+        'astropy>=3,<5',
         'bokeh~=1.0',
         'eventio~=1.0',
         'iminuit>=1.3',
         'joblib',
         'matplotlib~=3.0',
         'numba>=0.43',
-        'numpy~=1.11',
+        'numpy~=1.16',
         'pandas>=0.24.0',
         'psutil',
         'scikit-learn',

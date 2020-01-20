@@ -27,5 +27,6 @@ if [[ "$CONDA" == "true" ]]; then
 	travis_wait 20 conda env update -n cta-dev --file py${PYTHON_VERSION}_env.yaml
 	conda activate cta-dev
 else
-	pip install -e .[all]
+	pip install -U pip
+	pip install -U -e .[all]
 fi
