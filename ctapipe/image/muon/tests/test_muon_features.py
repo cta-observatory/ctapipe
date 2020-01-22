@@ -6,6 +6,7 @@ from ctapipe.image.muon.features import ring_completeness
 from ctapipe.image.muon.features import npix_above_threshold
 from ctapipe.image.muon.features import npix_composing_ring
 
+
 def test_ring_containment():
 
     ring_radius = 1. * u.m
@@ -22,7 +23,7 @@ def test_ring_containment():
 
 def test_ring_completeness():
 
-    angle_ring = np.linspace(0, 2 * math.pi, 360.)
+    angle_ring = np.linspace(0, 2 * math.pi, 360)
     x = np.cos(angle_ring) * u.m
     y = np.sin(angle_ring) * u.m
     pe = np.random.uniform(0, 100, len(x))
