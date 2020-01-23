@@ -2,9 +2,11 @@ import numpy as np
 import pytest
 import copy
 from ctapipe.utils import get_dataset_path
-from ctapipe.io.simteleventsource import SimTelEventSource
+from ctapipe.io.simteleventsource import SimTelEventSource, apply_simtel_r1_calibration
 from ctapipe.io.hessioeventsource import HESSIOEventSource
+from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 from itertools import zip_longest
+from copy import deepcopy
 
 gamma_test_large_path = get_dataset_path("gamma_test_large.simtel.gz")
 gamma_test_path = get_dataset_path("gamma_test.simtel.gz")
@@ -53,6 +55,7 @@ def compare_sources(input_url):
                 assert h.r0.tel[tel_id].waveform.shape == s.r0.tel[tel_id].waveform.shape
                 assert h.r1.tel[tel_id].waveform.shape == s.r1.tel[tel_id].waveform.shape
                 assert np.allclose(h.r0.tel[tel_id].waveform, s.r0.tel[tel_id].waveform)
+                assert np.allclose(h.r1.tel[tel_id].waveform, s.r1.tel[tel_id].waveform)
 
                 assert h.r0.tel[tel_id].num_trig_pix == s.r0.tel[tel_id].num_trig_pix
                 assert (h.r0.tel[tel_id].trig_pix_id == s.r0.tel[tel_id].trig_pix_id).all()
@@ -63,6 +66,11 @@ def compare_sources(input_url):
                 assert h.mc.tel[tel_id].time_slice == s.mc.tel[tel_id].time_slice
                 assert h.mc.tel[tel_id].azimuth_raw == s.mc.tel[tel_id].azimuth_raw
                 assert h.mc.tel[tel_id].altitude_raw == s.mc.tel[tel_id].altitude_raw
+                assert h.pointing[tel_id].altitude == s.pointing[tel_id].altitude
+                assert h.pointing[tel_id].azimuth == s.pointing[tel_id].azimuth
+
+                assert (h.inst.subarray.tel[tel_id].camera.sampling_rate ==
+                        s.inst.subarray.tel[tel_id].camera.sampling_rate)
 
 
 def test_compare_event_hessio_and_simtel():
@@ -209,3 +217,68 @@ def test_instrument():
     event = next(iter(source))
     subarray = event.inst.subarray
     assert subarray.tel[1].optics.num_mirrors == 1
+
+
+def test_subarray_property():
+    source = SimTelEventSource(input_url=gamma_test_large_path)
+    subarray = deepcopy(source.subarray)
+    event = next(iter(source))
+    subarray_event = event.inst.subarray
+    assert subarray.tel.keys() == subarray_event.tel.keys()
+    assert (subarray.tel[1].camera.pix_x ==
+            subarray_event.tel[1].camera.pix_x).all()
+
+
+def test_apply_simtel_r1_calibration_1_channel():
+    n_channels = 1
+    n_pixels = 2048
+    n_samples = 128
+
+    r0_waveforms = np.zeros((n_channels, n_pixels, n_samples))
+    pedestal = np.full((n_channels, n_pixels), 20 * n_samples)
+    dc_to_pe = np.full((n_channels, n_pixels), 0.5)
+
+    gain_selector = ThresholdGainSelector(threshold=90)
+    r1_waveforms, selected_gain_channel = apply_simtel_r1_calibration(
+        r0_waveforms, pedestal, dc_to_pe, gain_selector
+    )
+
+    assert (selected_gain_channel == 0).all()
+    assert r1_waveforms.ndim == 2
+    assert r1_waveforms.shape == (n_pixels, n_samples)
+
+    ped = pedestal / n_samples
+    assert r1_waveforms[0, 0] == (r0_waveforms[0, 0, 0] - ped[0, 0]) * dc_to_pe[0, 0]
+    assert r1_waveforms[1, 0] == (r0_waveforms[0, 1, 0] - ped[0, 1]) * dc_to_pe[0, 1]
+
+
+def test_apply_simtel_r1_calibration_2_channel():
+    n_channels = 2
+    n_pixels = 2048
+    n_samples = 128
+
+    r0_waveforms = np.zeros((n_channels, n_pixels, n_samples))
+    r0_waveforms[0, 0, :] = 100
+    r0_waveforms[1, :, :] = 1
+
+    pedestal = np.zeros((n_channels, n_pixels))
+    pedestal[0] = 90 * n_samples
+    pedestal[1] = 0.9 * n_samples
+
+    dc_to_pe = np.zeros((n_channels, n_pixels))
+    dc_to_pe[0] = 0.01
+    dc_to_pe[1] = 0.1
+
+    gain_selector = ThresholdGainSelector(threshold=90)
+    r1_waveforms, selected_gain_channel = apply_simtel_r1_calibration(
+        r0_waveforms, pedestal, dc_to_pe, gain_selector
+    )
+
+    assert selected_gain_channel[0] == 1
+    assert (selected_gain_channel[np.arange(1, 2048)] == 0).all()
+    assert r1_waveforms.ndim == 2
+    assert r1_waveforms.shape == (n_pixels, n_samples)
+
+    ped = pedestal / n_samples
+    assert r1_waveforms[0, 0] == (r0_waveforms[1, 0, 0] - ped[1, 0]) * dc_to_pe[1, 0]
+    assert r1_waveforms[1, 0] == (r0_waveforms[0, 1, 0] - ped[0, 1]) * dc_to_pe[0, 1]

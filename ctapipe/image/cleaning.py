@@ -9,10 +9,16 @@ __all__ = [
     "fact_image_cleaning",
     "apply_time_delta_cleaning",
     "number_of_islands",
+    "ImageCleaner",
+    "TailcutsImageCleaner",
 ]
 
 import numpy as np
 from scipy.sparse.csgraph import connected_components
+from abc import abstractmethod
+
+from ..core.component import TelescopeComponent
+from ..core.traits import FloatTelescopeParameter, IntTelescopeParameter
 
 
 def tailcuts_clean(
@@ -366,14 +372,12 @@ def largest_island(islands_labels):
 
     Parameters
     ----------
-
     islands_labels : array
         Flattened array containing a list of labelled islands from a cleaned image.
-        Second returned value of the function 'number_of_islands'.
+        Second value returned by the function 'number_of_islands'.
 
     Returns
     -------
-
     islands_labels : array
         A boolean mask created from the input labels and filtered for the largest island.
         If no islands survived the cleaning the array is all False.
@@ -384,4 +388,117 @@ def largest_island(islands_labels):
     else:
         return islands_labels == np.argmax(
             np.bincount(islands_labels[islands_labels > 0])
+        )
+
+
+class ImageCleaner(TelescopeComponent):
+    """
+    Abstract class for all configurable Image Cleaning algorithms.   Use
+    `ImageCleaner.from_name()` to construct an instance of a particular algorithm
+    """
+
+    @abstractmethod
+    def __call__(
+        self, tel_id: int, image: np.ndarray, arrival_times: np.ndarray = None
+    ) -> np.ndarray:
+        """
+        Identify pixels with signal, and reject those with pure noise.
+
+        Parameters
+        ----------
+        tel_id: int
+            which telescope id in the subarray is being used (determines
+            which cut is used)
+        image : np.ndarray
+            image pixel data corresponding to the camera geometry
+        arrival_times: np.ndarray
+            image of arrival time (not used in this method)
+
+        Returns
+        -------
+        np.ndarray
+            boolean mask of pixels passing cleaning
+        """
+        pass
+
+
+class TailcutsImageCleaner(ImageCleaner):
+    """
+    Clean images using the standard picture/boundary technique. See
+    `ctapipe.image.tailcuts_clean`
+    """
+
+    picture_threshold_pe = FloatTelescopeParameter(
+        help="top-level threshold in photoelectrons", default_value=10.0
+    ).tag(config=True)
+
+    boundary_threshold_pe = FloatTelescopeParameter(
+        help="second-level threshold in photoelectrons", default_value=5.0
+    ).tag(config=True)
+
+    min_picture_neighbors = IntTelescopeParameter(
+        help="Minimum number of neighbors above threshold to consider", default_value=2
+    ).tag(config=True)
+
+    def __call__(
+        self, tel_id: int, image: np.ndarray, arrival_times=None
+    ) -> np.ndarray:
+        """
+        Apply standard picture-boundary cleaning. See `ImageCleaner.__call__()`
+        """
+
+        return tailcuts_clean(
+            self.subarray.tel[tel_id].camera,
+            image,
+            picture_thresh=self.picture_threshold_pe[tel_id],
+            boundary_thresh=self.boundary_threshold_pe[tel_id],
+            min_number_picture_neighbors=self.min_picture_neighbors[tel_id],
+            keep_isolated_pixels=False,
+        )
+
+
+class MARSImageCleaner(TailcutsImageCleaner):
+    """
+    1st-pass MARS-like Image cleaner (See `ctapipe.image.mars_cleaning_1st_pass`)
+    """
+
+    def __call__(
+        self, tel_id: int, image: np.ndarray, arrival_times=None
+    ) -> np.ndarray:
+        """
+        Apply MARS-style image cleaning. See `ImageCleaner.__call__()`
+        """
+
+        return mars_cleaning_1st_pass(
+            self.subarray.tel[tel_id].camera,
+            image,
+            picture_thresh=self.picture_threshold_pe[tel_id],
+            boundary_thresh=self.boundary_threshold_pe[tel_id],
+            min_number_picture_neighbors=self.min_picture_neighbors[tel_id],
+            keep_isolated_pixels=False,
+        )
+
+
+class FACTImageCleaner(TailcutsImageCleaner):
+    """
+    Clean images using the FACT technique. See `ctapipe.image.fact_image_cleaning`
+    for algorithm details
+    """
+
+    time_limit_ns = FloatTelescopeParameter(
+        help="arrival time limit for neighboring " "pixels, in ns", default_value=5.0
+    ).tag(config=True)
+
+    def __call__(
+        self, tel_id: int, image: np.ndarray, arrival_times=None
+    ) -> np.ndarray:
+        """ Apply FACT-style image cleaning. see ImageCleaner.__call__()"""
+        return fact_image_cleaning(
+            geom=self.subarray.tel[tel_id].camera,
+            image=image,
+            arrival_times=arrival_times,
+            picture_threshold=self.picture_threshold_pe[tel_id],
+            boundary_threshold=self.boundary_threshold_pe[tel_id],
+            min_number_neighbors=self.min_picture_neighbors[tel_id],
+            time_limit=self.time_limit_ns[tel_id],
         )

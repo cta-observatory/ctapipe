@@ -73,7 +73,7 @@ default_role = 'py:obj'
 
 # General information about the project.
 
-project = setup_cfg['package_name']
+project = setup_cfg['name']
 author = setup_cfg['author']
 copyright = '{}.  Last updated {}'.format(
     setup_cfg['author'], datetime.datetime.now().strftime('%d %b %Y %H:%M'), )

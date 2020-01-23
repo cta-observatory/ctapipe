@@ -20,12 +20,14 @@ __all__ = [
     "DL0CameraContainer",
     "DL1Container",
     "DL1CameraContainer",
+    "EventCameraCalibrationContainer",
+    "EventCalibrationContainer",
     "SST1MContainer",
     "SST1MCameraContainer",
     "MCEventContainer",
     "MCHeaderContainer",
     "MCCameraEventContainer",
-    "CameraCalibrationContainer",
+    "DL1CameraCalibrationContainer",
     "CentralTriggerContainer",
     "ReconstructedContainer",
     "ReconstructedShowerContainer",
@@ -126,19 +128,38 @@ class DL1CameraContainer(Container):
     )
 
 
-class CameraCalibrationContainer(Container):
-    """
-    Storage of externally calculated calibration parameters (not per-event)
-    """
-
-    dc_to_pe = Field(None, "DC/PE calibration arrays from MC file")
-    pedestal = Field(None, "pedestal calibration arrays from MC file")
-
-
 class DL1Container(Container):
     """ DL1 Calibrated Camera Images and associated data"""
 
     tel = Field(Map(DL1CameraContainer), "map of tel_id to DL1CameraContainer")
+
+
+class DL1CameraCalibrationContainer(Container):
+    """
+    Storage of DL1 calibration parameters for the current event
+    """
+
+    pedestal_offset = Field(
+        0,
+        "Additive coefficients for the pedestal calibration of extracted charge "
+        "for each pixel"
+    )
+    absolute_factor = Field(
+        1,
+        "Multiplicative coefficients for the absolute calibration of extracted charge into "
+        "physical units (e.g. photoelectrons or photons) for each pixel"
+    )
+    relative_factor = Field(
+        1,
+        "Multiplicative Coefficients for the relative correction between pixels to achieve a "
+        "uniform charge response (post absolute calibration) from a "
+        "uniform illumination."
+    )
+    time_shift = Field(
+        0,
+        "Additive coefficients for the timing correction before charge extraction "
+        "for each pixel"
+    )
 
 
 class R0CameraContainer(Container):
@@ -180,7 +201,7 @@ class R1CameraContainer(Container):
         None,
         (
             "numpy array containing a set of images, one per ADC sample"
-            "Shape: (n_channels, n_pixels, n_samples)"
+            "Shape: (n_pixels, n_samples)"
         ),
     )
     selected_gain_channel = Field(
@@ -472,6 +493,29 @@ class TelescopePointingContainer(Container):
     altitude = Field(nan * u.rad, "Altitude", unit=u.rad)
 
 
+class EventCameraCalibrationContainer(Container):
+    """
+    Container for the calibration coefficients for the current event and camera
+    """
+    dl1 = Field(
+        DL1CameraCalibrationContainer(), "Container for DL1 calibration coefficients"
+    )
+
+
+class EventCalibrationContainer(Container):
+    """
+    Container for calibration coefficients for the current event
+    """
+
+    tels_with_data = Field([], "list of telescopes with data")
+
+    # create the camera container
+    tel = Field(
+        Map(EventCameraCalibrationContainer),
+        "map of tel_id to EventCameraCalibrationContainer"
+    )
+
+
 class DataContainer(Container):
     """ Top-level container for all event information """
 
@@ -492,6 +536,10 @@ class DataContainer(Container):
         reason="will be separated from event structure in future version",
     )
     pointing = Field(Map(TelescopePointingContainer), "Telescope pointing positions")
+    calibration = Field(
+        EventCalibrationContainer(),
+        "Container for calibration coefficients for the current event"
+    )
 
 
 class SST1MDataContainer(DataContainer):
@@ -511,7 +559,7 @@ class MuonRingParameter(Container):
         event number
     tel_id : int
         telescope ID
-    ring_center_x, ring_center_y, ring_radius, ring_phi, ring_inclination:
+    ring_center_x, ring_center_y, ring_radius, ring_center_phi, ring_center_distance:
         center position, radius, orientation and inlination of the fitted ring
     ring_chi2_fit:
         chi squared of the ring fit
@@ -527,8 +575,8 @@ class MuonRingParameter(Container):
     ring_center_x = Field(0.0, "centre (x) of the fitted muon ring")
     ring_center_y = Field(0.0, "centre (y) of the fitted muon ring")
     ring_radius = Field(0.0, "radius of the fitted muon ring")
-    ring_phi = Field(0.0, "Orientation of fitted ring")
-    ring_inclination = Field(0.0, "Inclination of fitted ring")
+    ring_center_phi = Field(0.0, "Angle of ring center within camera plane")
+    ring_center_distance = Field(0.0, "Distance of ring center from camera center")
     ring_chi2_fit = Field(0.0, "chisquare of the muon ring fit")
     ring_cov_matrix = Field(0.0, "covariance matrix of the muon ring fit")
     ring_containment = Field(0.0, "containment of the ring inside the camera")
@@ -818,7 +866,6 @@ class WaveformCalibrationContainer(Container):
     """
     Container for the pixel calibration coefficients
     """
-
     time = Field(0, "Time associated to the calibration event", unit=u.s)
     time_range = Field(
         [],

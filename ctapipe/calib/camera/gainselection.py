@@ -24,8 +24,7 @@ class GainChannel(IntEnum):
 
 class GainSelector(Component):
     """
-    Base class for algorithms that reduce a 2-gain-channel waveform to a
-    single waveform.
+    Base class for algorithms that decide on the gain channel to use
     """
 
     def __call__(self, waveforms):
@@ -40,24 +39,19 @@ class GainSelector(Component):
 
         Returns
         -------
-        reduced_waveforms : ndarray
-            Waveform with a single channel
-            Shape: (n_pix, n_samples)
+        selected_gain_channel : ndarray
+            Gain channel to use for each pixel
+            Shape: n_pix
+            Dtype: int8
         """
-        if waveforms.ndim == 2:  # Return if already gain selected
-            selected_gain_channel = None  # Provided by EventSource
-            return waveforms, selected_gain_channel
+        if waveforms.ndim == 2:  # Return None if already gain selected
+            return None
         elif waveforms.ndim == 3:
             n_channels, n_pixels, _ = waveforms.shape
-            if n_channels == 1:  # Reduce if already single channel
-                selected_gain_channel = np.zeros(n_pixels, dtype=int)
-                return waveforms[0], selected_gain_channel
+            if n_channels == 1:  # Must be first channel if only one channel
+                return np.zeros(n_pixels, dtype=np.int8)
             else:
-                selected_gain_channel = self.select_channel(waveforms)
-                selected_gain_waveforms = waveforms[
-                    selected_gain_channel, np.arange(n_pixels)
-                ]
-                return selected_gain_waveforms, selected_gain_channel
+                return self.select_channel(waveforms)
         else:
             raise ValueError(
                 f"Cannot handle waveform array of shape: {waveforms.ndim}"
@@ -82,7 +76,7 @@ class GainSelector(Component):
         selected_gain_channel : ndarray
             Gain channel to use for each pixel
             Shape: n_pix
-            Dtype: int
+            Dtype: int8
         """
 
 
@@ -106,7 +100,7 @@ class ThresholdGainSelector(GainSelector):
     Select gain channel according to a maximum threshold value.
     """
     threshold = traits.Float(
-        default_value=1000,
+        default_value=4000,
         help="Threshold value in waveform sample units. If a waveform "
              "contains a sample above this threshold, use the low gain "
              "channel for that pixel."

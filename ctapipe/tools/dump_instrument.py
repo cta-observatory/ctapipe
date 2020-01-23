@@ -1,7 +1,7 @@
 """
-Dump instrumental descriptions in a monte-carlo (simtelarray) input file to 
-FITS files that can be loaded independently (e.g. with 
-CameraGeometry.from_table()).  The name of the output files are 
+Dump instrumental descriptions in a monte-carlo (simtelarray) input file to
+FITS files that can be loaded independently (e.g. with
+CameraGeometry.from_table()).  The name of the output files are
 automatically generated.
 """
 
@@ -90,8 +90,10 @@ class DumpInstrumentTool(Tool):
                 table.write(filename, **args)
                 Provenance().add_output_file(filename, 'dl0.tel.svc.camera')
             except IOError as err:
-                self.log.warn("couldn't write camera definition '%s' because: "
-                              "%s", filename, err)
+                self.log.warning(
+                    "couldn't write camera definition '%s' because: %s",
+                    filename, err
+                )
 
     def write_optics_descriptions(self):
         sub = self.inst.subarray
@@ -104,8 +106,10 @@ class DumpInstrumentTool(Tool):
             tab.write(filename, **args)
             Provenance().add_output_file(filename, 'dl0.sub.svc.optics')
         except IOError as err:
-            self.log.warn("couldn't write optics description '%s' because: "
-                          "%s", filename, err)
+            self.log.warning(
+                "couldn't write optics description '%s' because: %s",
+                filename, err
+            )
 
     def write_subarray_description(self):
         sub = self.inst.subarray
@@ -118,8 +122,10 @@ class DumpInstrumentTool(Tool):
             tab.write(filename, **args)
             Provenance().add_output_file(filename, 'dl0.sub.svc.subarray')
         except IOError as err:
-            self.log.warn("couldn't write subarray description '%s' because: "
-                          "%s", filename, err)
+            self.log.warning(
+                "couldn't write subarray description '%s' because: %s",
+                filename, err
+            )
 
 
 

@@ -45,4 +45,3 @@ def test_kundu_chaudhuri_with_units():
     assert fit_x.unit == center_x.unit
     assert fit_y.unit == center_y.unit
     assert fit_radius.unit == radius.unit
-
