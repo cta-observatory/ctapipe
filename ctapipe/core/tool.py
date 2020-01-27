@@ -10,6 +10,8 @@ from ctapipe import __version__ as version
 from . import Provenance
 from .logging import ColoredFormatter
 
+import sys
+
 
 class ToolConfigurationError(Exception):
     def __init__(self, message):
@@ -201,6 +203,8 @@ class Tool(Application):
         # return codes are taken from:
         #  http://tldp.org/LDP/abs/html/exitcodes.html
 
+        exit_status = 0
+
         try:
             self.initialize(argv)
             self.log.info(f"Starting: {self.name}")
@@ -214,20 +218,18 @@ class Tool(Application):
             self.log.info(f"Finished: {self.name}")
             Provenance().finish_activity(activity_name=self.name)
         except ToolConfigurationError as err:
-            self.log.error(f'{err}.  Use --help for more info')
-            return 2  # wrong cmd line parameter
+            self.log.error(f"{err}.  Use --help for more info")
+            exit_status = 2  # wrong cmd line parameter
         except RuntimeError as err:
             self.log.error(f"Caught unexpected exception: {err}")
             self.finish()
-            Provenance().finish_activity(activity_name=self.name,
-                                         status='error')
-            return 1  # any other error
+            Provenance().finish_activity(activity_name=self.name, status="error")
+            exit_status=1  # any other error
         except KeyboardInterrupt:
             self.log.warning("WAS INTERRUPTED BY CTRL-C")
             self.finish()
-            Provenance().finish_activity(activity_name=self.name,
-                                         status='interrupted')
-            return 130  # Script terminated by Control-C
+            Provenance().finish_activity(activity_name=self.name, status="interrupted")
+            exit_status=130  # Script terminated by Control-C
         finally:
             for activity in Provenance().finished_activities:
                 output_str = " ".join([x["url"] for x in activity.output])
@@ -237,7 +239,8 @@ class Tool(Application):
             with open("provenance.log", mode="w+") as provlog:
                 provlog.write(Provenance().as_json(indent=3))
 
-        return 0  # ok
+        sys.exit(exit_status)
+
 
     @property
     def version_string(self):
