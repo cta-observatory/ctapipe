@@ -51,8 +51,8 @@ def test_reconstructors(reconstructors):
 
             geom = event.inst.subarray.tel[tel_id].camera
 
-            telescope_pointings[tel_id] = SkyCoord(alt=event.mc.tel[tel_id].altitude_raw * u.rad,
-                                                   az=event.mc.tel[tel_id].azimuth_raw * u.rad,
+            telescope_pointings[tel_id] = SkyCoord(alt=event.pointing[tel_id].altitude,
+                                                   az=event.pointing[tel_id].azimuth,
                                                    frame=horizon_frame)
             pmt_signal = event.r0.tel[tel_id].waveform[0].sum(axis=1)
 

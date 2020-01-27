@@ -3,19 +3,21 @@
 Core functionality of ctapipe
 """
 
-from .component import Component, non_abstract_children
-from .container import Container, Field, Map
+from .component import Component, TelescopeComponent, non_abstract_children
+from .container import Container, Field, DeprecatedField, Map
 from .provenance import Provenance, get_module_version
 from .tool import Tool, ToolConfigurationError
 
 __all__ = [
-    'Component',
-    'Container',
-    'Tool',
-    'Field',
-    'Map',
-    'Provenance',
-    'ToolConfigurationError',
-    'non_abstract_children',
-    'get_module_version',
+    "Component",
+    "TelescopeComponent",
+    "Container",
+    "Tool",
+    "Field",
+    "DeprecatedField",
+    "Map",
+    "Provenance",
+    "ToolConfigurationError",
+    "non_abstract_children",
+    "get_module_version",
 ]

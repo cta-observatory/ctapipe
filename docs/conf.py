@@ -53,7 +53,7 @@ extensions = ['sphinx.ext.autodoc',
               'numpydoc']
 
 numpydoc_show_class_members = False
-nbsphinx_timeout = 120  # allow max 2 minutes to build each notebook
+nbsphinx_timeout = 200  # allow max 2 minutes to build each notebook
 
 
 # Add any paths that contain templates here, relative to this directory.
@@ -73,7 +73,7 @@ default_role = 'py:obj'
 
 # General information about the project.
 
-project = setup_cfg['package_name']
+project = setup_cfg['name']
 author = setup_cfg['author']
 copyright = '{}.  Last updated {}'.format(
     setup_cfg['author'], datetime.datetime.now().strftime('%d %b %Y %H:%M'), )

@@ -68,7 +68,7 @@ class CameraGeometry:
     _geometry_cache = {}  # dictionary CameraGeometry instances for speed
 
     def __init__(self, cam_id, pix_id, pix_x, pix_y, pix_area, pix_type,
-                 pix_rotation="0d", cam_rotation="0d",
+                 sampling_rate, pix_rotation="0d", cam_rotation="0d",
                  neighbors=None, apply_derotation=True, frame=None):
 
         if pix_x.ndim != 1 or pix_y.ndim != 1:
@@ -84,6 +84,7 @@ class CameraGeometry:
         self.pix_type = pix_type
         self.pix_rotation = Angle(pix_rotation)
         self.cam_rotation = Angle(cam_rotation)
+        self.sampling_rate = sampling_rate
         self._neighbors = neighbors
         self.frame = frame
 
@@ -159,6 +160,7 @@ class CameraGeometry:
             pix_y=trans.y,
             pix_area=self.pix_area,
             pix_type=self.pix_type,
+            sampling_rate=self.sampling_rate,
             pix_rotation=pix_rotation,
             cam_rotation=cam_rotation,
             neighbors=None,
@@ -186,6 +188,7 @@ class CameraGeometry:
             pix_y=self.pix_y[slice_],
             pix_area=self.pix_area[slice_],
             pix_type=self.pix_type,
+            sampling_rate=self.sampling_rate,
             pix_rotation=self.pix_rotation,
             cam_rotation=self.cam_rotation,
             neighbors=None,
@@ -307,8 +310,9 @@ class CameraGeometry:
                      names=['pix_id', 'pix_x', 'pix_y', 'pix_area'],
                      meta=dict(PIX_TYPE=self.pix_type,
                                TAB_TYPE='ctapipe.instrument.CameraGeometry',
-                               TAB_VER='1.0',
+                               TAB_VER='1.1',
                                CAM_ID=self.cam_id,
+                               SAMPFREQ=self.sampling_rate,
                                PIX_ROT=self.pix_rotation.deg,
                                CAM_ROT=self.cam_rotation.deg,
                                ))
@@ -334,6 +338,12 @@ class CameraGeometry:
         if not isinstance(url_or_table, Table):
             tab = Table.read(url_or_table, **kwargs)
 
+        try:
+            sampling_rate = u.Quantity(tab.meta["SAMPFREQ"], u.GHz)
+        except KeyError:
+            logger.warning("Sampling rate is not in file, defaulting to 1.0 GHz")
+            sampling_rate = u.Quantity(1, u.GHz)
+
         return cls(
             cam_id=tab.meta.get('CAM_ID', 'Unknown'),
             pix_id=tab['pix_id'],
@@ -341,6 +351,7 @@ class CameraGeometry:
             pix_y=tab['pix_y'].quantity,
             pix_area=tab['pix_area'].quantity,
             pix_type=tab.meta['PIX_TYPE'],
+            sampling_rate=sampling_rate,
             pix_rotation=Angle(tab.meta['PIX_ROT'] * u.deg),
             cam_rotation=Angle(tab.meta['CAM_ROT'] * u.deg),
         )
@@ -561,7 +572,8 @@ class CameraGeometry:
                    pix_y=yy,
                    pix_area=(2 * rr) ** 2,
                    neighbors=None,
-                   pix_type='rectangular')
+                   pix_type='rectangular',
+                   sampling_rate=u.Quantity(1, u.GHz))
 
     def get_border_pixel_mask(self, width=1):
         '''

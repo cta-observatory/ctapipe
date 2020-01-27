@@ -75,7 +75,7 @@ class SingleTelEventDisplay(Tool):
         self.event_source.allowed_tels = {self.tel, }
 
         self.calibrator = self.add_component(
-            CameraCalibrator(parent=self)
+            CameraCalibrator(parent=self, subarray=self.event_source.subarray)
         )
 
         self.log.info(f'SELECTING EVENTS FROM TELESCOPE {self.tel}')

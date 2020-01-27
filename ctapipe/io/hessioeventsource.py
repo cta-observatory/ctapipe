@@ -2,6 +2,7 @@ from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.time import Time
 from ctapipe.io.eventsource import EventSource
+from ctapipe.io.simteleventsource import apply_simtel_r1_calibration
 from ctapipe.io.containers import DataContainer
 from ctapipe.instrument import (
     TelescopeDescription,
@@ -11,6 +12,7 @@ from ctapipe.instrument import (
 )
 from ctapipe.instrument.camera import UnknownPixelShapeWarning
 from ctapipe.instrument.guess import guess_telescope, UNKNOWN_TELESCOPE
+from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 import numpy as np
 import warnings
 
@@ -18,15 +20,29 @@ __all__ = ['HESSIOEventSource']
 
 
 class HESSIOEventSource(EventSource):
-    """
-    EventSource for the hessio file format.
-
-    This class utilises `pyhessio` to read the hessio file, and stores the
-    information into the event containers.
-    """
     _count = 0
 
-    def __init__(self, config=None, parent=None, **kwargs):
+    def __init__(self, config=None, parent=None, gain_selector=None, **kwargs):
+        """
+        EventSource for the hessio file format.
+
+        This class utilises `pyhessio` to read the hessio file, and stores the
+        information into the event containers.
+
+        Parameters
+        ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        gain_selector : ctapipe.calib.camera.gainselection.GainSelector
+            The GainSelector to use. If None, then ThresholdGainSelector will be used.
+        kwargs
+        """
         super().__init__(config=config, parent=parent, **kwargs)
 
         try:
@@ -46,10 +62,22 @@ class HESSIOEventSource(EventSource):
 
         self.metadata['is_simulation'] = True
 
+        # Waveforms from simtelarray have both gain channels
+        # Gain selection is performed by this EventSource to produce R1 waveforms
+        if gain_selector is None:
+            gain_selector = ThresholdGainSelector(parent=self)
+        self.gain_selector = gain_selector
+
     @staticmethod
     def is_compatible(file_path):
         '''This class should never be chosen in event_source()'''
         return False
+
+    @property
+    def subarray(self):
+        with self.pyhessio.open_hessio(self.input_url) as file:
+            next(file.move_to_next_event())
+            return self._build_subarray_info(file)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         HESSIOEventSource._count -= 1
@@ -130,41 +158,52 @@ class HESSIOEventSource(EventSource):
 
                 for tel_id in tels_with_data:
 
-                    # event.mc.tel[tel_id] = MCCameraContainer()
+                    mc = data.mc.tel[tel_id]
+                    r0 = data.r0.tel[tel_id]
+                    r1 = data.r1.tel[tel_id]
+                    pointing = data.pointing[tel_id]
 
                     adc_samples = file.get_adc_sample(tel_id)
                     if adc_samples.size == 0:
                         adc_samples = file.get_adc_sum(tel_id)[..., None]
                     dc_to_pe = file.get_calibration(tel_id)
                     pedestal = file.get_pedestal(tel_id)
-                    data.r0.tel[tel_id].waveform = adc_samples
-                    data.r1.tel[tel_id].waveform = (
-                            (adc_samples - pedestal[..., np.newaxis])
-                            * dc_to_pe[..., np.newaxis]
+                    r0.waveform = adc_samples
+                    r1.waveform, r1.selected_gain_channel = apply_simtel_r1_calibration(
+                        adc_samples, pedestal, dc_to_pe, self.gain_selector
                     )
 
-                    data.mc.tel[tel_id].dc_to_pe = dc_to_pe
-                    data.mc.tel[tel_id].pedestal = pedestal
-                    data.r0.tel[tel_id].num_trig_pix = file.get_num_trig_pixels(tel_id)
-                    data.r0.tel[tel_id].trig_pix_id = file.get_trig_pixels(tel_id)
-                    data.mc.tel[tel_id].reference_pulse_shape = (file.
-                                                                 get_ref_shapes(tel_id))
+                    mc.dc_to_pe = dc_to_pe
+                    mc.pedestal = pedestal
+                    r0.num_trig_pix = file.get_num_trig_pixels(tel_id)
+                    r0.trig_pix_id = file.get_trig_pixels(tel_id)
+                    mc.reference_pulse_shape = file.get_ref_shapes(tel_id)
 
                     # load the data per telescope/pixel
                     hessio_mc_npe = file.get_mc_number_photon_electron(tel_id)
-                    data.mc.tel[tel_id].photo_electron_image = hessio_mc_npe
-                    data.mc.tel[tel_id].meta['refstep'] = (file.
-                                                           get_ref_step(tel_id))
-                    data.mc.tel[tel_id].time_slice = (file.
-                                                      get_time_slice(tel_id))
-                    data.mc.tel[tel_id].azimuth_raw = (file.
-                                                       get_azimuth_raw(tel_id))
-                    data.mc.tel[tel_id].altitude_raw = (file.
-                                                        get_altitude_raw(tel_id))
-                    data.mc.tel[tel_id].azimuth_cor = (file.
-                                                       get_azimuth_cor(tel_id))
-                    data.mc.tel[tel_id].altitude_cor = (file.
-                                                        get_altitude_cor(tel_id))
+                    mc.photo_electron_image = hessio_mc_npe
+                    mc.meta['refstep'] = file.get_ref_step(tel_id)
+                    mc.time_slice = file.get_time_slice(tel_id)
+                    mc.azimuth_raw = file.get_azimuth_raw(tel_id)
+                    mc.altitude_raw = file.get_altitude_raw(tel_id)
+                    azimuth_cor = file.get_azimuth_cor(tel_id)
+                    altitude_cor = file.get_altitude_cor(tel_id)
+
+                    # hessioeventsource pass 0 if there is no altitude/azimuth correction
+                    if azimuth_cor == 0 and mc.azimuth_raw != 0:
+                        mc.azimuth_cor = np.nan
+                        pointing.azimuth = u.Quantity(mc.azimuth_raw, u.rad)
+                    else:
+                        mc.azimuth_cor = azimuth_cor
+                        pointing.azimuth = u.Quantity(azimuth_cor, u.rad)
+
+                    if altitude_cor == 0 and mc.altitude_raw != 0:
+                        mc.altitude_cor = np.nan
+                        pointing.altitude = u.Quantity(mc.altitude_raw, u.rad)
+                    else:
+                        mc.altitude_cor = altitude_cor
+                        pointing.altitude = u.Quantity(mc.altitude_cor, u.rad)
+
                 yield data
                 counter += 1
 
@@ -226,6 +265,7 @@ class HESSIOEventSource(EventSource):
         num_tiles = file.get_mirror_number(tel_id)
         cam_rot = file.get_camera_rotation_angle(tel_id)
         num_mirrors = file.get_mirror_number(tel_id)
+        sampling_rate = u.Quantity(1 / file.get_time_slice(tel_id), u.GHz)
 
         camera = CameraGeometry(
             telescope.camera_name,
@@ -234,6 +274,7 @@ class HESSIOEventSource(EventSource):
             pix_y=pix_y,
             pix_area=pix_area,
             pix_type=pix_type,
+            sampling_rate=sampling_rate,
             pix_rotation=pix_rot,
             cam_rotation=-Angle(cam_rot, u.rad),
             apply_derotation=True,

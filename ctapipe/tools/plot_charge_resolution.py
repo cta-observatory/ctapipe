@@ -14,7 +14,7 @@ class ChargeResolutionViewer(Tool):
                    "ChargeResolutionCalculator.")
 
     input_files = List(
-        Unicode, None,
+        Unicode(), None,
         help='Input HDF5 files produced by ChargeResolutionCalculator'
     ).tag(config=True)
 

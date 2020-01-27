@@ -20,6 +20,10 @@ class DummyReader(EventSource):
     def is_compatible(file_path):
         return False
 
+    @property
+    def subarray(self):
+        return None
+
 
 def test_can_be_implemented():
     dataset = get_dataset_path("gamma_test_large.simtel.gz")
