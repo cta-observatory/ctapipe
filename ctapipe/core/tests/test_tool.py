@@ -16,7 +16,9 @@ def test_tool_simple():
     tool.userparam = 1.0
     tool.log_level = 'DEBUG'
     tool.log.info("test")
-    tool.run([])
+    with pytest.raises(SystemExit) as exc:
+        tool.run([])
+    assert exc.value.code == 0
 
     # test parameters changes:
     tool.userparam = 4.0
