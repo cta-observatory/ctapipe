@@ -324,4 +324,6 @@ def test_telescope_parameter_to_config(mock_subarray):
     component = SomeComponent(subarray=mock_subarray)
     component.tel_param1 = 6.0
     config = component.get_current_config()
-    assert config["SomeComponent"]["tel_param1"] == [("type", "*", 6.0),]
+    assert config["SomeComponent"]["tel_param1"] == [
+        ("type", "*", 6.0),
+    ]

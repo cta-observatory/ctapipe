@@ -1,8 +1,9 @@
-import numpy as np
-from ctapipe.calib.camera.pedestals import *
-from ctapipe.io.containers import EventAndMonDataContainer
 import astropy.units as u
+import numpy as np
+
+from ctapipe.calib.camera.pedestals import *
 from ctapipe.instrument import SubarrayDescription, TelescopeDescription
+from ctapipe.io.containers import EventAndMonDataContainer
 
 
 def test_pedestal_calculator():
@@ -21,29 +22,32 @@ def test_pedestal_calculator():
             0: TelescopeDescription.from_name(
                 optics_name="SST-ASTRI", camera_name="CHEC"
             ),
-        }
+        },
     )
 
     ped_calculator = PedestalIntegrator(
         subarray=subarray,
         charge_product="FixedWindowSum",
         sample_size=n_events,
-        tel_id=tel_id
+        tel_id=tel_id,
     )
     # create one event
     data = EventAndMonDataContainer()
-    data.meta['origin'] = 'test'
+    data.meta["origin"] = "test"
 
     # fill the values necessary for the pedestal calculation
-    data.mon.tel[tel_id].pixel_status.hardware_failing_pixels = np.zeros((n_gain, n_pixels), dtype=bool)
+    data.mon.tel[tel_id].pixel_status.hardware_failing_pixels = np.zeros(
+        (n_gain, n_pixels), dtype=bool
+    )
     data.r1.tel[tel_id].waveform = np.full((2, n_pixels, 40), ped_level)
     data.r1.tel[tel_id].trigger_time = 1000
 
-    while ped_calculator.num_events_seen < n_events :
+    while ped_calculator.num_events_seen < n_events:
         if ped_calculator.calculate_pedestals(data):
             assert data.mon.tel[tel_id].pedestal
             assert np.mean(data.mon.tel[tel_id].pedestal.charge_median) == (
-                    ped_calculator.extractor.window_width[0] * ped_level)
+                ped_calculator.extractor.window_width.get(0) * ped_level
+            )
             assert np.mean(data.mon.tel[tel_id].pedestal.charge_std) == 0
 
 

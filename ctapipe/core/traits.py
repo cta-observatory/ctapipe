@@ -1,7 +1,8 @@
 import os
+from collections import UserList
 from fnmatch import fnmatch
 from typing import Optional
-from collections import UserList
+
 from traitlets import (
     Bool,
     CaselessStrEnum,
@@ -150,7 +151,7 @@ class TelescopePatternList(UserList):
         self._old_getitem = self.__getitem__
         self._subarray = None
 
-    def get(self, tel_id):
+    def get(self, tel_id=None):
         """ return lookup value for telescope id"""
         if self.lookup:
             return self.lookup[tel_id]
@@ -158,7 +159,7 @@ class TelescopePatternList(UserList):
             raise RuntimeError("No TelescopeParameterLookup was registered")
 
     def attach_subarray(self, subarray):
-        self._subarray=subarray
+        self._subarray = subarray
         self.lookup.attach_subarray(subarray)
 
 
