@@ -149,7 +149,7 @@ class TelescopeParameterLookup:
         telecope_parameter_list : list
             List of tuples in the form `[(command, argument, value), ...]`
         """
-        self._telecope_parameter_list = telecope_parameter_list
+        self._telescope_parameter_list = telecope_parameter_list
         self._value_for_tel_id = None
         self._subarray = None
         self._subarray_global_value = None
@@ -170,7 +170,7 @@ class TelescopeParameterLookup:
         """
         self._subarray = subarray
         self._value_for_tel_id = {}
-        for command, arg, value in self._telecope_parameter_list:
+        for command, arg, value in self._telescope_parameter_list:
             if command == "type":
                 matched_tel_types = [
                     str(t) for t in subarray.telescope_types
@@ -216,13 +216,13 @@ class TelescopeParameterLookup:
             )
 
     def append(self, *args, **kwargs):
-        self._telecope_parameter_list.append(*args, **kwargs)
+        self._telescope_parameter_list.append(*args, **kwargs)
 
     def __iter__(self, *args, **kwargs):
-        return self._telecope_parameter_list.__iter__(*args, **kwargs)
+        return self._telescope_parameter_list.__iter__(*args, **kwargs)
 
     def __len__(self, *args, **kwargs):
-        return self._telecope_parameter_list.__len__(*args, **kwargs)
+        return self._telescope_parameter_list.__len__(*args, **kwargs)
 
 
 class TelescopeParameter(List):
