@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 import pytest
 from traitlets import CaselessStrEnum, HasTraits, Int
 
-from ctapipe.core import Component
+from ctapipe.core import Component, TelescopeComponent
 from ctapipe.core.traits import (
     Path,
     TraitError,
@@ -19,7 +19,7 @@ from ctapipe.core.traits import (
 from ctapipe.image import ImageExtractor
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def mock_subarray():
     subarray = MagicMock()
     subarray.tel_ids = [1, 2, 3, 4]
@@ -133,9 +133,7 @@ def test_has_traits():
 
 
 def test_telescope_parameter_lookup(mock_subarray):
-    telparam_list = TelescopeParameterLookup(
-        [("type", "*", 10), ("type", "LST*", 100)]
-    )
+    telparam_list = TelescopeParameterLookup([("type", "*", 10), ("type", "LST*", 100)])
 
     with pytest.raises(ValueError):
         telparam_list[1]
@@ -154,9 +152,7 @@ def test_telescope_parameter_lookup(mock_subarray):
         bad_config = TelescopeParameterLookup([("unknown", "a", 15.0)])
         bad_config.attach_subarray(mock_subarray)
 
-    telparam_list2 = TelescopeParameterLookup(
-        [("type", "LST*", 100)]
-    )
+    telparam_list2 = TelescopeParameterLookup([("type", "LST*", 100)])
     with pytest.raises(KeyError):
         telparam_list2[None]
 
@@ -314,3 +310,18 @@ def test_telescope_parameter_set_retain_subarray(mock_subarray):
     assert comp.tel_param1[1] == 5
     assert comp.tel_param1[3] == 5
     assert comp.tel_param1[None] == 5
+
+
+def test_telescope_parameter_to_config(mock_subarray):
+    """
+    test that the config can be read back from a component with a TelescopeParameter 
+    (see Issue #1216)
+    """
+
+    class SomeComponent(TelescopeComponent):
+        tel_param1 = FloatTelescopeParameter(default_value=6.0).tag(config=True)
+
+    component = SomeComponent(subarray=mock_subarray)
+    component.tel_param1 = 6.0
+    config = component.get_current_config()
+    assert config["SomeComponent"]["tel_param1"] == (["type", "*", 6.0])
