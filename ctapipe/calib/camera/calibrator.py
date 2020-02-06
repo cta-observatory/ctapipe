@@ -1,3 +1,8 @@
+"""
+Definition of the `CameraCalibrator` class, providing all steps needed to apply
+calibration and image extraction, as well as supporting algorithms.
+"""
+
 import warnings
 
 import numpy as np

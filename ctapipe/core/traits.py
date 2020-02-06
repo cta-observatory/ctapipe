@@ -159,7 +159,11 @@ class TelescopePatternList(UserList):
         else:
             raise RuntimeError("No TelescopeParameterLookup was registered")
 
-    def attach_subarray(self, subarray):
+    def attach_subarray(self, subarray: "ctapipe.instrument.SubarrayDescription"):
+        """
+        Register a SubarrayDescription so that the user-specified values can be
+        looked up by tel_id. This must be done before using the `.tel[x]` property
+        """
         self._subarray = subarray
         self._lookup.attach_subarray(subarray)
 

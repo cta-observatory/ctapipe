@@ -1,3 +1,6 @@
+"""
+Tests for CameraCalibrator and related functions
+"""
 import numpy as np
 import pytest
 from scipy.stats import norm

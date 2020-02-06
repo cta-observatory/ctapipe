@@ -1,3 +1,6 @@
+"""
+Tests for pedestal calculator functionality
+"""
 import astropy.units as u
 import numpy as np
 
@@ -46,7 +49,7 @@ def test_pedestal_calculator():
         if ped_calculator.calculate_pedestals(data):
             assert data.mon.tel[tel_id].pedestal
             assert np.mean(data.mon.tel[tel_id].pedestal.charge_median) == (
-                    ped_calculator.extractor.window_width.tel[0] * ped_level
+                ped_calculator.extractor.window_width.tel[0] * ped_level
             )
             assert np.mean(data.mon.tel[tel_id].pedestal.charge_std) == 0
 
