@@ -1,6 +1,6 @@
-=======
+=========================================================
 ctapipe |teststatus| |codacy| |coverage| |conda| |doiv07|
-=======
+=========================================================
 
 .. |teststatus| image:: https://travis-ci.org/cta-observatory/ctapipe.svg?branch=master
     :target: https://travis-ci.org/cta-observatory/ctapipe
