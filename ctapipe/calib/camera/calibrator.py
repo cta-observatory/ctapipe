@@ -138,8 +138,8 @@ class CameraCalibrator(Component):
         """
         try:
             selected_gain_channel = event.r1.tel[telid].selected_gain_channel
-            shift = self.image_extractor.window_shift.get(None)
-            width = self.image_extractor.window_width.get(None)
+            shift = self.image_extractor.window_shift.tel[None]
+            width = self.image_extractor.window_width.tel[None]
             shape = event.mc.tel[telid].reference_pulse_shape
             n_chan = shape.shape[0]
             step = event.mc.tel[telid].meta["refstep"]

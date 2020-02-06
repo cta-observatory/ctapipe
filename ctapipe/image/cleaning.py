@@ -424,9 +424,9 @@ class TailcutsImageCleaner(ImageCleaner):
         return tailcuts_clean(
             self.subarray.tel[tel_id].camera,
             image,
-            picture_thresh=self.picture_threshold_pe.get(tel_id),
-            boundary_thresh=self.boundary_threshold_pe.get(tel_id),
-            min_number_picture_neighbors=self.min_picture_neighbors.get(tel_id),
+            picture_thresh=self.picture_threshold_pe.tel[tel_id],
+            boundary_thresh=self.boundary_threshold_pe.tel[tel_id],
+            min_number_picture_neighbors=self.min_picture_neighbors.tel[tel_id],
             keep_isolated_pixels=False,
         )
 
@@ -446,9 +446,9 @@ class MARSImageCleaner(TailcutsImageCleaner):
         return mars_cleaning_1st_pass(
             self.subarray.tel[tel_id].camera,
             image,
-            picture_thresh=self.picture_threshold_pe.get(tel_id),
-            boundary_thresh=self.boundary_threshold_pe.get(tel_id),
-            min_number_picture_neighbors=self.min_picture_neighbors.get(tel_id),
+            picture_thresh=self.picture_threshold_pe.tel[tel_id],
+            boundary_thresh=self.boundary_threshold_pe.tel[tel_id],
+            min_number_picture_neighbors=self.min_picture_neighbors.tel[tel_id],
             keep_isolated_pixels=False,
         )
 
@@ -471,8 +471,8 @@ class FACTImageCleaner(TailcutsImageCleaner):
             geom=self.subarray.tel[tel_id].camera,
             image=image,
             arrival_times=arrival_times,
-            picture_threshold=self.picture_threshold_pe.get(tel_id),
-            boundary_threshold=self.boundary_threshold_pe.get(tel_id),
-            min_number_neighbors=self.min_picture_neighbors.get(tel_id),
-            time_limit=self.time_limit_ns.get(tel_id),
+            picture_threshold=self.picture_threshold_pe.tel[tel_id],
+            boundary_threshold=self.boundary_threshold_pe.tel[tel_id],
+            min_number_neighbors=self.min_picture_neighbors.tel[tel_id],
+            time_limit=self.time_limit_ns.tel[tel_id],
         )

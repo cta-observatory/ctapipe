@@ -214,8 +214,8 @@ def test_waveform_extractor_factory_args():
     config = Config({"ImageExtractor": {"window_width": 20, "window_shift": 3,}})
 
     extractor = ImageExtractor.from_name("LocalPeakWindowSum", config=config,)
-    assert extractor.window_width.get() == 20
-    assert extractor.window_shift.get() == 3
+    assert extractor.window_width.tel[None] == 20
+    assert extractor.window_shift.tel[None] == 3
 
     with pytest.warns(UserWarning):
         ImageExtractor.from_name(
@@ -241,20 +241,20 @@ def test_extractor_tel_param(camera_waveforms):
     extractor = ImageExtractor.from_name("FixedWindowSum", config=config)
 
     with pytest.raises(KeyError):
-        assert extractor.window_width.get(1) == n_samples
+        assert extractor.window_width.tel[1] == n_samples
 
     with pytest.raises(KeyError):
-        assert extractor.window_width.get(2) == n_samples // 2
+        assert extractor.window_width.tel[2] == n_samples // 2
 
-    assert extractor.window_start.get() == 0
-    assert extractor.window_width.get() == n_samples
+    assert extractor.window_start.tel[None] == 0
+    assert extractor.window_width.tel[None] == n_samples
 
     extractor = ImageExtractor.from_name(
         "FixedWindowSum", config=config, subarray=subarray
     )
 
-    assert extractor.window_start.get(1) == 0
-    assert extractor.window_start.get(2) == 0
-    assert extractor.window_width.get() == n_samples
-    assert extractor.window_width.get(1) == n_samples
-    assert extractor.window_width.get(2) == n_samples // 2
+    assert extractor.window_start.tel[1] == 0
+    assert extractor.window_start.tel[2] == 0
+    assert extractor.window_width.tel[None] == n_samples
+    assert extractor.window_width.tel[1] == n_samples
+    assert extractor.window_width.tel[2] == n_samples // 2

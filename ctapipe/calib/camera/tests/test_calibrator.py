@@ -43,8 +43,8 @@ def test_config():
     calibrator = CameraCalibrator(
         image_extractor=LocalPeakWindowSum(config=config), config=config
     )
-    assert calibrator.image_extractor.window_shift.get() == window_shift
-    assert calibrator.image_extractor.window_width.get() == window_width
+    assert calibrator.image_extractor.window_shift.tel[None] == window_shift
+    assert calibrator.image_extractor.window_width.tel[None] == window_width
 
 
 def test_integration_correction(example_event):

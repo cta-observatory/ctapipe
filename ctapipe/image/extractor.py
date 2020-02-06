@@ -295,7 +295,7 @@ class FixedWindowSum(ImageExtractor):
 
     def __call__(self, waveforms, telid=None):
         charge, pulse_time = extract_around_peak(
-            waveforms, self.window_start.get(telid), self.window_width.get(telid), 0
+            waveforms, self.window_start.tel[telid], self.window_width.tel[telid], 0
         )
         return charge, pulse_time
 
@@ -318,7 +318,10 @@ class GlobalPeakWindowSum(ImageExtractor):
     def __call__(self, waveforms, telid=None):
         peak_index = waveforms.mean(axis=-2).argmax(axis=-1)
         charge, pulse_time = extract_around_peak(
-            waveforms, peak_index, self.window_width.get(telid), self.window_shift.get(telid)
+            waveforms,
+            peak_index,
+            self.window_width.tel[telid],
+            self.window_shift.tel[telid],
         )
         return charge, pulse_time
 
@@ -341,7 +344,10 @@ class LocalPeakWindowSum(ImageExtractor):
     def __call__(self, waveforms, telid=None):
         peak_index = waveforms.argmax(axis=-1).astype(np.int)
         charge, pulse_time = extract_around_peak(
-            waveforms, peak_index, self.window_width.get(telid), self.window_shift.get(telid)
+            waveforms,
+            peak_index,
+            self.window_width.tel[telid],
+            self.window_shift.tel[telid],
         )
         return charge, pulse_time
 
@@ -369,14 +375,14 @@ class NeighborPeakWindowSum(ImageExtractor):
     def __call__(self, waveforms, telid=None):
         neighbors = self.subarray.tel[telid].camera.neighbor_matrix_where
         average_wfs = neighbor_average_waveform(
-            waveforms, neighbors, self.lwt.get(telid)
+            waveforms, neighbors, self.lwt.tel[telid]
         )
         peak_index = average_wfs.argmax(axis=-1)
         charge, pulse_time = extract_around_peak(
             waveforms,
             peak_index,
-            self.window_width.get(telid),
-            self.window_shift.get(telid),
+            self.window_width.tel[telid],
+            self.window_shift.tel[telid],
         )
         return charge, pulse_time
 

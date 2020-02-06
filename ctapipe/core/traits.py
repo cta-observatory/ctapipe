@@ -147,20 +147,21 @@ class TelescopePatternList(UserList):
 
     def __init__(self, *args):
         super().__init__(*args)
-        self.lookup = None
+        self._lookup = None
         self._old_getitem = self.__getitem__
         self._subarray = None
 
-    def get(self, tel_id=None):
-        """ return lookup value for telescope id"""
-        if self.lookup:
-            return self.lookup[tel_id]
+    @property
+    def tel(self):
+        """ access the value per telescope_id, e.g. `param.tel[2]`"""
+        if self._lookup:
+            return self._lookup
         else:
             raise RuntimeError("No TelescopeParameterLookup was registered")
 
     def attach_subarray(self, subarray):
         self._subarray = subarray
-        self.lookup.attach_subarray(subarray)
+        self._lookup.attach_subarray(subarray)
 
 
 class TelescopeParameterLookup:
@@ -322,7 +323,7 @@ class TelescopeParameter(List):
 
                 val = self._dtype(val)
                 normalized_value.append((command, arg, val))
-                normalized_value.lookup = TelescopeParameterLookup(normalized_value)
+                normalized_value._lookup = TelescopeParameterLookup(normalized_value)
 
         else:
             raise TraitError(f"Value should be a {self._dtype}")
