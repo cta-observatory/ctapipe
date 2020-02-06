@@ -45,7 +45,7 @@ def barrel_distortion(x, y, alpha=0):
 
     M.Peresano, K.Kosack, 2020
     """
-    r = np.hypot(x, y).value  # pixel-wise radii
+    r = np.hypot(x, y)  # pixel-wise radii
     xp = x / (1.0 - alpha * r)
     yp = y / (1.0 - alpha * r)
     return xp, yp
@@ -86,7 +86,7 @@ def apply_coma_correction(pix_x, pix_y, alpha=0):
     M.Peresano, K.Kosack, 2020
     """
     # Take the original pixel-coordinates and correct them
-    x_coma, y_coma = barrel_distortion(pix_x, pix_y, alpha=alpha)
+    x_coma, y_coma = barrel_distortion(pix_x.value, pix_y.value, alpha=alpha) * u.m
     return x_coma, y_coma
 
 
