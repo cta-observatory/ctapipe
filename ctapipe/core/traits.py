@@ -298,7 +298,7 @@ class TelescopeParameter(List):
         normalized_value = TelescopePatternList(None)
         if isinstance(value, self._dtype):
             value = [("type", "*", value)]
-        if isinstance(value, UserList) or isinstance(value, list):
+        if isinstance(value, (UserList, list)):
             for pattern in value:
                 # now check for the standard 3-tuple of (command, argument, value)
                 if len(pattern) != 3:
@@ -316,7 +316,12 @@ class TelescopeParameter(List):
                     if not isinstance(arg, str):
                         raise TraitError("'type' argument should be a string")
                 if command == "id":
-                    arg = int(arg)
+                    try:
+                        arg = int(arg)
+                    except ValueError:
+                        raise TraitError(
+                            f"Argument of 'id' should be an int (got '{arg}')"
+                        )
 
                 val = self._dtype(val)
                 normalized_value.append((command, arg, val))
