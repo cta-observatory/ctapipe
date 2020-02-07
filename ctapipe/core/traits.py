@@ -163,7 +163,6 @@ class TelescopePatternList(UserList):
         Register a SubarrayDescription so that the user-specified values can be
         looked up by tel_id. This must be done before using the `.tel[x]` property
         """
-        self._subarray = subarray
         self._lookup.attach_subarray(subarray)
 
 
