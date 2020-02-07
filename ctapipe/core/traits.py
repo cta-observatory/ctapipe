@@ -148,8 +148,6 @@ class TelescopePatternList(UserList):
     def __init__(self, *args):
         super().__init__(*args)
         self._lookup = None
-        self._old_getitem = self.__getitem__
-        self._subarray = None
 
     @property
     def tel(self):
