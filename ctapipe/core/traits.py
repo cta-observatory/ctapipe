@@ -2,6 +2,7 @@ import os
 from collections import UserList
 from fnmatch import fnmatch
 from typing import Optional
+import copy
 
 from traitlets import (
     Bool,
@@ -177,7 +178,7 @@ class TelescopeParameterLookup:
         telescope_parameter_list : list
             List of tuples in the form `[(command, argument, value), ...]`
         """
-        self._telescope_parameter_list = telescope_parameter_list
+        self._telescope_parameter_list = copy.deepcopy(telescope_parameter_list)
         self._value_for_tel_id = None
         self._subarray = None
         self._subarray_global_value = None
@@ -241,12 +242,6 @@ class TelescopeParameterLookup:
                 f"{tel_id}. Please set it explicitly, "
                 f"or by telescope type or '*'."
             )
-
-    def __iter__(self, *args, **kwargs):
-        return self._telescope_parameter_list.__iter__(*args, **kwargs)
-
-    def __len__(self, *args, **kwargs):
-        return self._telescope_parameter_list.__len__(*args, **kwargs)
 
 
 class TelescopeParameter(List):
