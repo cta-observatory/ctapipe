@@ -149,6 +149,7 @@ class TelescopePatternList(UserList):
     def __init__(self, *args):
         super().__init__(*args)
         self._lookup = None
+        self._subarray = None
 
     @property
     def tel(self):
@@ -156,13 +157,17 @@ class TelescopePatternList(UserList):
         if self._lookup:
             return self._lookup
         else:
-            raise RuntimeError("No TelescopeParameterLookup was registered")
+            raise RuntimeError(
+                "No TelescopeParameterLookup was registered. You must "
+                "call attach_subarray() first"
+            )
 
     def attach_subarray(self, subarray: "ctapipe.instrument.SubarrayDescription"):
         """
         Register a SubarrayDescription so that the user-specified values can be
         looked up by tel_id. This must be done before using the `.tel[x]` property
         """
+        self._subarray = subarray
         self._lookup.attach_subarray(subarray)
 
 
@@ -177,6 +182,7 @@ class TelescopeParameterLookup:
         telescope_parameter_list : list
             List of tuples in the form `[(command, argument, value), ...]`
         """
+        # self._telescope_parameter_list = copy.deepcopy(telescope_parameter_list)
         self._telescope_parameter_list = copy.deepcopy(telescope_parameter_list)
         self._value_for_tel_id = None
         self._subarray = None
@@ -230,7 +236,7 @@ class TelescopeParameterLookup:
         if self._value_for_tel_id is None:
             raise ValueError(
                 "TelescopeParameterLookup: No subarray attached, call "
-                "`attach_subarray` first before calling `resolve`"
+                "`attach_subarray` first before trying to access a value by tel_id"
             )
         try:
             return self._value_for_tel_id[tel_id]
@@ -289,7 +295,6 @@ class TelescopeParameter(List):
 
     def validate(self, obj, value):
         # Support a single value for all (convert into a default value)
-        print(f"VALIDATE: obj={obj}, value={value} ({type(value)}")
         if isinstance(value, self._dtype):
             value = [("type", "*", value)]
 
@@ -325,6 +330,12 @@ class TelescopeParameter(List):
                 val = self._dtype(val)
                 normalized_value.append((command, arg, val))
                 normalized_value._lookup = TelescopeParameterLookup(normalized_value)
+
+                if (
+                    isinstance(value, TelescopePatternList)
+                    and value._subarray is not None
+                ):
+                    normalized_value.attach_subarray(value._subarray)
 
         else:
             raise TraitError(f"Value should be a {self._dtype}")
