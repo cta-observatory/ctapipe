@@ -1,14 +1,22 @@
-import numpy as np
-from ctapipe.core import Component
-from ctapipe.image.reducer import NullDataVolumeReducer
-from ctapipe.image.extractor import NeighborPeakWindowSum
+"""
+Definition of the `CameraCalibrator` class, providing all steps needed to apply
+calibration and image extraction, as well as supporting algorithms.
+"""
+
 import warnings
 
-__all__ = ['CameraCalibrator']
+import numpy as np
+
+from ctapipe.core import Component
+from ctapipe.image.extractor import NeighborPeakWindowSum
+from ctapipe.image.reducer import NullDataVolumeReducer
+
+__all__ = ["CameraCalibrator"]
 
 
-def integration_correction(n_chan, pulse_shape, refstep, time_slice,
-                           window_width, window_shift):
+def integration_correction(
+    n_chan, pulse_shape, refstep, time_slice, window_width, window_shift
+):
     """
     Obtain the integration correction for the window specified.
 
@@ -72,11 +80,16 @@ class CameraCalibrator(Component):
     Calibrator to handle the full camera calibration chain, in order to fill
     the DL1 data level in the event container.
     """
-    def __init__(self, config=None, parent=None,
-                 data_volume_reducer=None,
-                 image_extractor=None,
-                 subarray=None,
-                 **kwargs):
+
+    def __init__(
+        self,
+        config=None,
+        parent=None,
+        data_volume_reducer=None,
+        image_extractor=None,
+        subarray=None,
+        **kwargs
+    ):
         """
         Parameters
         ----------
@@ -130,14 +143,15 @@ class CameraCalibrator(Component):
         """
         try:
             selected_gain_channel = event.r1.tel[telid].selected_gain_channel
-            shift = self.image_extractor.window_shift[None]
-            width = self.image_extractor.window_width[None]
+            shift = self.image_extractor.window_shift.tel[None]
+            width = self.image_extractor.window_width.tel[None]
             shape = event.mc.tel[telid].reference_pulse_shape
             n_chan = shape.shape[0]
-            step = event.mc.tel[telid].meta['refstep']
+            step = event.mc.tel[telid].meta["refstep"]
             time_slice = event.mc.tel[telid].time_slice
-            correction = integration_correction(n_chan, shape, step,
-                                                time_slice, width, shift)
+            correction = integration_correction(
+                n_chan, shape, step, time_slice, width, shift
+            )
             pixel_correction = correction[selected_gain_channel]
             return pixel_correction
         except (AttributeError, KeyError):
@@ -149,8 +163,10 @@ class CameraCalibrator(Component):
     def _check_r1_empty(self, waveforms):
         if waveforms is None:
             if not self._r1_empty_warn:
-                warnings.warn("Encountered an event with no R1 data. "
-                              "DL0 is unchanged in this circumstance.")
+                warnings.warn(
+                    "Encountered an event with no R1 data. "
+                    "DL0 is unchanged in this circumstance."
+                )
                 self._r1_empty_warn = True
             return True
         else:
@@ -159,8 +175,10 @@ class CameraCalibrator(Component):
     def _check_dl0_empty(self, waveforms):
         if waveforms is None:
             if not self._dl0_empty_warn:
-                warnings.warn("Encountered an event with no DL0 data. "
-                              "DL1 is unchanged in this circumstance.")
+                warnings.warn(
+                    "Encountered an event with no DL0 data. "
+                    "DL1 is unchanged in this circumstance."
+                )
                 self._dl0_empty_warn = True
             return True
         else:

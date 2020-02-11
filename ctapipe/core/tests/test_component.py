@@ -18,15 +18,15 @@ def test_non_abstract_children():
 
     class Child1(AbstractBase):
         def method(self):
-            print('method of Child1')
+            print("method of Child1")
 
     class Child2(AbstractBase):
         def method(self):
-            print('method of Child2')
+            print("method of Child2")
 
     class GrandChild(Child2):
         def method(self):
-            print('method of GrandChild')
+            print("method of GrandChild")
 
     class AbstractChild(AbstractBase):
         pass
@@ -40,25 +40,27 @@ def test_non_abstract_children():
 
 class ExampleComponent(Component):
     """ An Example Component, this is the help text"""
-    param = Float(default_value=1.0,
-                  help="float parameter").tag(config=True)
+
+    param = Float(default_value=1.0, help="float parameter").tag(config=True)
 
 
 class ExampleSubclass1(ExampleComponent):
     """ a subclass of ExampleComponent"""
+
     pass
+
 
 class ExampleSubclass2(ExampleComponent):
     """ Another ExampleComponent """
+
     description = "A shorter description"
-    param = Float(default_value=3.0,
-                  help="float parameter").tag(config=True)
-    extra = Float(default_value=5.0,
-                  help="float parameter").tag(config=True)
+    param = Float(default_value=3.0, help="float parameter").tag(config=True)
+    extra = Float(default_value=5.0, help="float parameter").tag(config=True)
 
 
 def test_component_is_abstract():
     """ check that we can make an abstract component """
+
     class AbstractComponent(Component):
         @abstractmethod
         def test(self):
@@ -75,7 +77,7 @@ def test_component_simple():
     """
     comp = ExampleComponent()
 
-    assert comp.has_trait('param') is True
+    assert comp.has_trait("param") is True
     comp.param = 1.2
 
     with pytest.raises(TraitError):
@@ -105,123 +107,123 @@ def test_help():
 def test_config():
     """ check that components can be constructed by config dict """
     config = Config()
-    config['ExampleComponent'] = Config()
-    config['ExampleComponent']['param'] = 199.
+    config["ExampleComponent"] = Config()
+    config["ExampleComponent"]["param"] = 199.0
     comp = ExampleComponent(config=config)
-    assert comp.param == 199.
+    assert comp.param == 199.0
 
 
 def test_config_baseclass():
     """ check that parent and subclass configuration works """
     config = Config()
-    config['ExampleComponent'] = Config()
-    config['ExampleComponent']['param'] = 199.
+    config["ExampleComponent"] = Config()
+    config["ExampleComponent"]["param"] = 199.0
     comp1 = ExampleSubclass1(config=config)
-    assert comp1.param == 199.
+    assert comp1.param == 199.0
     comp2 = ExampleSubclass2(config=config)
-    assert comp2.param == 199.
+    assert comp2.param == 199.0
 
 
 def test_config_subclass1():
     """check sub-class config"""
     config = Config()
-    config['ExampleSubclass1'] = Config()
-    config['ExampleSubclass1']['param'] = 199.
+    config["ExampleSubclass1"] = Config()
+    config["ExampleSubclass1"]["param"] = 199.0
     comp = ExampleComponent(config=config)
-    assert comp.param == 1.
+    assert comp.param == 1.0
 
 
 def test_config_subclass2():
     """check another sub-class config"""
     config = Config()
-    config['ExampleSubclass2'] = Config()
-    config['ExampleSubclass2']['param'] = 199.
+    config["ExampleSubclass2"] = Config()
+    config["ExampleSubclass2"]["param"] = 199.0
     comp = ExampleComponent(config=config)
-    assert comp.param == 1.
+    assert comp.param == 1.0
 
 
 def test_config_sibling1():
     """ check sibling config """
     config = Config()
-    config['ExampleSubclass1'] = Config()
-    config['ExampleSubclass1']['param'] = 199.
+    config["ExampleSubclass1"] = Config()
+    config["ExampleSubclass1"]["param"] = 199.0
     comp1 = ExampleSubclass1(config=config)
-    assert comp1.param == 199.
+    assert comp1.param == 199.0
     comp2 = ExampleSubclass2(config=config)
-    assert comp2.param == 3.
+    assert comp2.param == 3.0
 
 
 def test_config_sibling2():
     """ check sibling config """
     config = Config()
-    config['ExampleSubclass2'] = Config()
-    config['ExampleSubclass2']['param'] = 199.
+    config["ExampleSubclass2"] = Config()
+    config["ExampleSubclass2"]["param"] = 199.0
     comp1 = ExampleSubclass1(config=config)
-    assert comp1.param == 1.
+    assert comp1.param == 1.0
     comp2 = ExampleSubclass2(config=config)
-    assert comp2.param == 199.
+    assert comp2.param == 199.0
 
 
 def test_config_baseclass_then_subclass():
     """ check base and subclass config """
     config = Config()
-    config['ExampleComponent'] = Config()
-    config['ExampleComponent']['param'] = 199.
-    config['ExampleSubclass1'] = Config()
-    config['ExampleSubclass1']['param'] = 229.
+    config["ExampleComponent"] = Config()
+    config["ExampleComponent"]["param"] = 199.0
+    config["ExampleSubclass1"] = Config()
+    config["ExampleSubclass1"]["param"] = 229.0
     comp = ExampleSubclass1(config=config)
-    assert comp.param == 229.
+    assert comp.param == 229.0
 
 
 def test_config_subclass_then_baseclass():
     """ check subclass and base config """
     config = Config()
-    config['ExampleSubclass1'] = Config()
-    config['ExampleSubclass1']['param'] = 229.
-    config['ExampleComponent'] = Config()
-    config['ExampleComponent']['param'] = 199.
+    config["ExampleSubclass1"] = Config()
+    config["ExampleSubclass1"]["param"] = 229.0
+    config["ExampleComponent"] = Config()
+    config["ExampleComponent"]["param"] = 199.0
     comp = ExampleSubclass1(config=config)
-    assert comp.param == 229.
+    assert comp.param == 229.0
 
 
 def test_config_override():
     """ check that we can override a trait set in the config """
     config = Config()
-    config['ExampleComponent'] = Config()
-    config['ExampleComponent']['param'] = 199.
-    comp = ExampleComponent(config=config, param=229.)
-    assert comp.param == 229.
+    config["ExampleComponent"] = Config()
+    config["ExampleComponent"]["param"] = 199.0
+    comp = ExampleComponent(config=config, param=229.0)
+    assert comp.param == 229.0
 
 
 def test_config_override_subclass():
     """ check that we can override a trait set in the config """
     config = Config()
-    config['ExampleComponent'] = Config()
-    config['ExampleComponent']['param'] = 199.
-    comp = ExampleSubclass1(config=config, param=229.)
-    assert comp.param == 229.
+    config["ExampleComponent"] = Config()
+    config["ExampleComponent"]["param"] = 199.0
+    comp = ExampleSubclass1(config=config, param=229.0)
+    assert comp.param == 229.0
 
 
 def test_extra():
     """ check that traits are settable """
-    comp = ExampleSubclass2(extra=229.)
-    assert comp.has_trait('extra') is True
-    assert comp.extra == 229.
+    comp = ExampleSubclass2(extra=229.0)
+    assert comp.has_trait("extra") is True
+    assert comp.extra == 229.0
 
 
 def test_extra_config():
     """ check setting trait via config """
     config = Config()
-    config['ExampleSubclass2'] = Config()
-    config['ExampleSubclass2']['extra'] = 229.
+    config["ExampleSubclass2"] = Config()
+    config["ExampleSubclass2"]["extra"] = 229.0
     comp = ExampleSubclass2(config=config)
-    assert comp.extra == 229.
+    assert comp.extra == 229.0
 
 
 def test_extra_missing():
     """ check that setting an incorrect trait raises an exception """
     with pytest.raises(TraitError):
-        ExampleSubclass1(extra=229.)
+        ExampleSubclass1(extra=229.0)
 
 
 def test_extra_config_missing():
@@ -230,67 +232,68 @@ def test_extra_config_missing():
     an exception
     """
     config = Config()
-    config['ExampleSubclass1'] = Config()
-    config['ExampleSubclass1']['extra'] = 199.
+    config["ExampleSubclass1"] = Config()
+    config["ExampleSubclass1"]["extra"] = 199.0
     with pytest.warns(UserWarning):
         comp = ExampleSubclass1(config=config)
-    assert comp.has_trait('extra') is False
+    assert comp.has_trait("extra") is False
     with pytest.raises(AttributeError):
-        assert comp.extra == 229.
+        assert comp.extra == 229.0
 
 
 def test_default():
     """ check default values work"""
     comp = ExampleComponent()
-    assert comp.param == 1.
+    assert comp.param == 1.0
 
 
 def test_default_subclass():
     """ check default values work in subclasses"""
     comp = ExampleSubclass1()
-    assert comp.param == 1.
+    assert comp.param == 1.0
 
 
 def test_default_subclass_override():
     """ check overrides work in subclasses"""
     comp = ExampleSubclass2()
-    assert comp.param == 3.
+    assert comp.param == 3.0
 
 
 def test_change_default():
     """ check we can change a default value"""
     old_default = ExampleComponent.param.default_value
-    ExampleComponent.param.default_value = 199.
+    ExampleComponent.param.default_value = 199.0
     comp = ExampleComponent()
-    assert comp.param == 199.
+    assert comp.param == 199.0
     ExampleComponent.param.default_value = old_default
 
 
 def test_change_default_subclass():
     """ check we can change a default value in subclass """
     old_default = ExampleComponent.param.default_value
-    ExampleComponent.param.default_value = 199.
+    ExampleComponent.param.default_value = 199.0
     comp = ExampleSubclass1()
-    assert comp.param == 199.
+    assert comp.param == 199.0
     ExampleComponent.param.default_value = old_default
 
 
 def test_change_default_subclass_override():
     """ check override default value  """
     old_default = ExampleComponent.param.default_value
-    ExampleComponent.param.default_value = 199.
+    ExampleComponent.param.default_value = 199.0
     comp = ExampleSubclass2()
-    assert comp.param == 3.  # No change as it is a seperate traitlet object
+    assert comp.param == 3.0  # No change as it is a seperate traitlet object
     ExampleComponent.param.default_value = old_default
 
 
 def test_help_changed_default():
     """ check that the help text is updated if the default is changed """
     old_default = ExampleComponent.param.default_value
-    ExampleComponent.param.default_value = 199.
+    ExampleComponent.param.default_value = 199.0
     help_msg = ExampleComponent.class_get_help()
     assert "Default: 199.0" in help_msg
     ExampleComponent.param.default_value = old_default
+
 
 def test_non_abstract_subclasses():
     """non_abstract_subclasses() is a helper function:
@@ -302,6 +305,7 @@ def test_non_abstract_subclasses():
     """
     assert "ExampleSubclass1" in ExampleComponent.non_abstract_subclasses()
 
+
 def test_from_name():
     """ Make sure one can construct a Component subclass by name"""
     subclass = ExampleComponent.from_name("ExampleSubclass1")
@@ -312,9 +316,9 @@ def test_from_name():
 
 def test_from_name_config():
     """ make sure one can construct a Component subclass by name + config"""
-    config = Config({'ExampleComponent': {'param': 229.}})
+    config = Config({"ExampleComponent": {"param": 229.0}})
     subclass = ExampleComponent.from_name("ExampleSubclass1", config=config)
-    assert subclass.param == 229.
+    assert subclass.param == 229.0
 
 
 def test_component_current_config():
@@ -322,8 +326,8 @@ def test_component_current_config():
     comp = ExampleComponent()
     full_config = comp.get_current_config()
     assert "ExampleComponent" in full_config
-    assert 'param' in full_config['ExampleComponent']
-    assert full_config["ExampleComponent"]['param'] == 1.0
+    assert "param" in full_config["ExampleComponent"]
+    assert full_config["ExampleComponent"]["param"] == 1.0
 
 
 def test_component_html_repr():
