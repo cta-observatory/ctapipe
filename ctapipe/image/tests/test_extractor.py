@@ -1,9 +1,10 @@
-import pytest
-import numpy as np
-from scipy.stats import norm
-from numpy.testing import assert_allclose, assert_equal
 import astropy.units as u
-from ctapipe.instrument import SubarrayDescription, TelescopeDescription
+import numpy as np
+import pytest
+from numpy.testing import assert_allclose, assert_equal
+from scipy.stats import norm
+from traitlets.config.loader import Config
+
 from ctapipe.image.extractor import (
     extract_around_peak,
     neighbor_average_waveform,
@@ -16,10 +17,10 @@ from ctapipe.image.extractor import (
     NeighborPeakWindowSum,
     BaselineSubtractedNeighborPeakWindowSum,
 )
-from traitlets.config.loader import Config
+from ctapipe.instrument import SubarrayDescription, TelescopeDescription
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def camera_waveforms():
     subarray = SubarrayDescription(
         "test array",
@@ -31,7 +32,7 @@ def camera_waveforms():
             2: TelescopeDescription.from_name(
                 optics_name="SST-ASTRI", camera_name="CHEC"
             ),
-        }
+        },
     )
 
     n_pixels = subarray.tel[1].camera.n_pixels
@@ -111,7 +112,7 @@ def test_extract_around_peak_charge_expected(camera_waveforms):
     assert_equal(charge, 10)
 
     peak_index = 0
-    width = n_samples*3
+    width = n_samples * 3
     shift = n_samples
     charge, _ = extract_around_peak(waveforms, peak_index, width, shift)
     assert_equal(charge, n_samples)
@@ -132,9 +133,7 @@ def test_extract_pulse_time_within_range():
     # Generic waveform that goes from positive to negative in window
     # Can cause extreme values with incorrect handling of weighted average
     y = -1.2 * x + 20
-    _, pulse_time = extract_around_peak(
-        y[np.newaxis, :], 12, 10, 0
-    )
+    _, pulse_time = extract_around_peak(y[np.newaxis, :], 12, 10, 0)
     assert (pulse_time >= 0).all() & (pulse_time < x.size).all()
 
 
@@ -204,7 +203,7 @@ def test_baseline_subtracted_neighbor_peak_window_sum(camera_waveforms):
 
 def test_waveform_extractor_factory(camera_waveforms):
     waveforms, _ = camera_waveforms
-    extractor = ImageExtractor.from_name('LocalPeakWindowSum')
+    extractor = ImageExtractor.from_name("LocalPeakWindowSum")
     extractor(waveforms)
 
 
@@ -212,26 +211,15 @@ def test_waveform_extractor_factory_args():
     """
     Config is supposed to be created by a `Tool`
     """
-    config = Config(
-        {
-            'ImageExtractor': {
-                'window_width': 20,
-                'window_shift': 3,
-            }
-        }
-    )
+    config = Config({"ImageExtractor": {"window_width": 20, "window_shift": 3,}})
 
-    extractor = ImageExtractor.from_name(
-        'LocalPeakWindowSum',
-        config=config,
-    )
-    assert extractor.window_width[None] == 20
-    assert extractor.window_shift[None] == 3
+    extractor = ImageExtractor.from_name("LocalPeakWindowSum", config=config,)
+    assert extractor.window_width.tel[None] == 20
+    assert extractor.window_shift.tel[None] == 3
 
     with pytest.warns(UserWarning):
         ImageExtractor.from_name(
-            'FullWaveformSum',
-            config=config,
+            "FullWaveformSum", config=config,
         )
 
 
@@ -239,32 +227,34 @@ def test_extractor_tel_param(camera_waveforms):
     waveforms, subarray = camera_waveforms
     _, n_samples = waveforms.shape
 
-    config = Config({
-        'ImageExtractor': {
-            'window_width': [("type", "*", n_samples), ("id", "2", n_samples//2)],
-            'window_start': 0,
+    config = Config(
+        {
+            "ImageExtractor": {
+                "window_width": [("type", "*", n_samples), ("id", "2", n_samples // 2)],
+                "window_start": 0,
+            }
         }
-    })
+    )
 
     waveforms, subarray = camera_waveforms
     n_pixels, n_samples = waveforms.shape
     extractor = ImageExtractor.from_name("FixedWindowSum", config=config)
 
     with pytest.raises(KeyError):
-        assert extractor.window_width[1] == n_samples
+        assert extractor.window_width.tel[1] == n_samples
 
     with pytest.raises(KeyError):
-        assert extractor.window_width[2] == n_samples // 2
+        assert extractor.window_width.tel[2] == n_samples // 2
 
-    assert extractor.window_start[None] == 0
-    assert extractor.window_width[None] == n_samples
+    assert extractor.window_start.tel[None] == 0
+    assert extractor.window_width.tel[None] == n_samples
 
     extractor = ImageExtractor.from_name(
         "FixedWindowSum", config=config, subarray=subarray
     )
 
-    assert extractor.window_start[1] == 0
-    assert extractor.window_start[2] == 0
-    assert extractor.window_width[None] == n_samples
-    assert extractor.window_width[1] == n_samples
-    assert extractor.window_width[2] == n_samples // 2
+    assert extractor.window_start.tel[1] == 0
+    assert extractor.window_start.tel[2] == 0
+    assert extractor.window_width.tel[None] == n_samples
+    assert extractor.window_width.tel[1] == n_samples
+    assert extractor.window_width.tel[2] == n_samples // 2
