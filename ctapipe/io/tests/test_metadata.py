@@ -49,3 +49,9 @@ def test_construct_and_write_metadata(tmp_path):
     table.meta = ref_dict
     for file_name in [tmp_path / "test.fits", tmp_path / "test.ecsv"]:
         table.write(file_name)
+
+    # write to pytables file
+
+    import tables
+    with tables.open_file(tmp_path / "test.h5", mode="w") as h5file:
+        meta.write_to_hdf5(ref_dict, h5file)
