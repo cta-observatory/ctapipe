@@ -13,6 +13,7 @@ import tables
 import tables.filters
 from astropy import units as u
 from tqdm.autonotebook import tqdm
+from astropy.time import Time
 
 from ctapipe.calib.camera import CameraCalibrator, GainSelector
 from ctapipe.core import Component, Container, Field, Tool, ToolConfigurationError
@@ -81,14 +82,14 @@ def write_core_provenance(output_filename, obs_id, subarray, writer):
     activity = PROV.current_activity.provenance
 
     metadata = {
-        "CTA METADATA VERSION ": "2",
+        "CTA REFERENCE VERSION ": "1",
         "CTA CONTACT ORGANIZATION": "CTA Consortium",
         "CTA CONTACT NAME": "K. Kosack",
         "CTA CONTACT EMAIL": "karl.kosack@cea.fr",
         "CTA PRODUCT DESCRIPTION": "DL1 Event List",
-        "CTA PRODUCT CREATION_TIME": "2018-11-10 15:30:00",
+        "CTA PRODUCT CREATION_TIME": Time.now().iso,
         "CTA PRODUCT ID": str(uuid.uuid4()),
-        "CTA PRODUCT DATA CATEGORY": "MC",
+        "CTA PRODUCT DATA CATEGORY": "S",
         "CTA PRODUCT DATA LEVEL": "DL1",
         "CTA PRODUCT DATA TYPE": "Event",
         "CTA PRODUCT DATA ASSOCIATION": "Subarray",
