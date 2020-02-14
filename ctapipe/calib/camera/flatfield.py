@@ -68,10 +68,7 @@ class FlatFieldCalculator(Component):
         help='Name of the charge extractor to be used'
     ).tag(config=True)
 
-    def __init__(
-        self,
-        **kwargs
-    ):
+    def __init__(self, subarray, **kwargs):
 
         """
         Parent class for the flat-field calculators.
@@ -84,6 +81,8 @@ class FlatFieldCalculator(Component):
 
         Parameters
         ----------
+        subarray: ctapipe.instrument.SubarrayDescription
+            Description of the subarray
         tel_id : int
               id of the telescope (default 0)
         sample_duration : int
@@ -107,7 +106,8 @@ class FlatFieldCalculator(Component):
         # load the waveform charge extractor
         self.extractor = ImageExtractor.from_name(
             self.charge_product,
-            config=self.config
+            config=self.config,
+            subarray=subarray,
         )
 
         self.log.info(f"extractor {self.extractor}")
@@ -198,11 +198,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         charge = 0
         peak_pos = 0
         if self.extractor:
-            if self.extractor.requires_neighbors():
-                camera = event.inst.subarray.tel[self.tel_id].camera
-                self.extractor.neighbours = camera.neighbor_matrix_where
-
-            charge, peak_pos = self.extractor(waveforms)
+            charge, peak_pos = self.extractor(waveforms, self.tel_id)
 
         return charge, peak_pos
 

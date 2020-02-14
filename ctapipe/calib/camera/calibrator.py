@@ -1,15 +1,22 @@
-import numpy as np
-from ctapipe.core import Component
-from ctapipe.calib.camera.gainselection import ManualGainSelector
-from ctapipe.image.reducer import NullDataVolumeReducer
-from ctapipe.image.extractor import NeighborPeakWindowSum
+"""
+Definition of the `CameraCalibrator` class, providing all steps needed to apply
+calibration and image extraction, as well as supporting algorithms.
+"""
+
 import warnings
 
-__all__ = ['CameraCalibrator']
+import numpy as np
+
+from ctapipe.core import Component
+from ctapipe.image.extractor import NeighborPeakWindowSum
+from ctapipe.image.reducer import NullDataVolumeReducer
+
+__all__ = ["CameraCalibrator"]
 
 
-def integration_correction(n_chan, pulse_shape, refstep, time_slice,
-                           window_width, window_shift):
+def integration_correction(
+    n_chan, pulse_shape, refstep, time_slice, window_width, window_shift
+):
     """
     Obtain the integration correction for the window specified.
 
@@ -73,11 +80,16 @@ class CameraCalibrator(Component):
     Calibrator to handle the full camera calibration chain, in order to fill
     the DL1 data level in the event container.
     """
-    def __init__(self, config=None, parent=None,
-                 gain_selector=None,
-                 data_volume_reducer=None,
-                 image_extractor=None,
-                 **kwargs):
+
+    def __init__(
+        self,
+        config=None,
+        parent=None,
+        data_volume_reducer=None,
+        image_extractor=None,
+        subarray=None,
+        **kwargs
+    ):
         """
         Parameters
         ----------
@@ -89,9 +101,6 @@ class CameraCalibrator(Component):
             Tool executable that is calling this component.
             Passes the correct logger to the component.
             Set to None if no Tool to pass.
-        gain_selector : ctapipe.calib.camera.gainselection.GainSelector
-            The GainSelector to use. If None, then ManualGainSelector will be
-            used, which by default selects the high/first gain channel.
         data_volume_reducer : ctapipe.image.reducer.DataVolumeReducer
             The DataVolumeReducer to use. If None, then
             NullDataVolumeReducer will be used by default, and waveforms
@@ -99,6 +108,8 @@ class CameraCalibrator(Component):
         image_extractor : ctapipe.image.extractor.ImageExtractor
             The ImageExtractor to use. If None, then NeighborPeakWindowSum
             will be used by default.
+        subarray: ctapipe.instrument.SubarrayDescription
+            Description of the subarray
         kwargs
         """
         super().__init__(config=config, parent=parent, **kwargs)
@@ -106,16 +117,12 @@ class CameraCalibrator(Component):
         self._r1_empty_warn = False
         self._dl0_empty_warn = False
 
-        if gain_selector is None:
-            gain_selector = ManualGainSelector(parent=self)
-        self.gain_selector = gain_selector
-
         if data_volume_reducer is None:
             data_volume_reducer = NullDataVolumeReducer(parent=self)
         self.data_volume_reducer = data_volume_reducer
 
         if image_extractor is None:
-            image_extractor = NeighborPeakWindowSum(parent=self)
+            image_extractor = NeighborPeakWindowSum(parent=self, subarray=subarray)
         self.image_extractor = image_extractor
 
     def _get_correction(self, event, telid):
@@ -136,14 +143,15 @@ class CameraCalibrator(Component):
         """
         try:
             selected_gain_channel = event.r1.tel[telid].selected_gain_channel
-            shift = self.image_extractor.window_shift
-            width = self.image_extractor.window_width
+            shift = self.image_extractor.window_shift.tel[None]
+            width = self.image_extractor.window_width.tel[None]
             shape = event.mc.tel[telid].reference_pulse_shape
             n_chan = shape.shape[0]
-            step = event.mc.tel[telid].meta['refstep']
+            step = event.mc.tel[telid].meta["refstep"]
             time_slice = event.mc.tel[telid].time_slice
-            correction = integration_correction(n_chan, shape, step,
-                                                time_slice, width, shift)
+            correction = integration_correction(
+                n_chan, shape, step, time_slice, width, shift
+            )
             pixel_correction = correction[selected_gain_channel]
             return pixel_correction
         except (AttributeError, KeyError):
@@ -155,8 +163,10 @@ class CameraCalibrator(Component):
     def _check_r1_empty(self, waveforms):
         if waveforms is None:
             if not self._r1_empty_warn:
-                warnings.warn("Encountered an event with no R1 data. "
-                              "DL0 is unchanged in this circumstance.")
+                warnings.warn(
+                    "Encountered an event with no R1 data. "
+                    "DL0 is unchanged in this circumstance."
+                )
                 self._r1_empty_warn = True
             return True
         else:
@@ -165,8 +175,10 @@ class CameraCalibrator(Component):
     def _check_dl0_empty(self, waveforms):
         if waveforms is None:
             if not self._dl0_empty_warn:
-                warnings.warn("Encountered an event with no DL0 data. "
-                              "DL1 is unchanged in this circumstance.")
+                warnings.warn(
+                    "Encountered an event with no DL0 data. "
+                    "DL1 is unchanged in this circumstance."
+                )
                 self._dl0_empty_warn = True
             return True
         else:
@@ -177,26 +189,7 @@ class CameraCalibrator(Component):
         if self._check_r1_empty(waveforms):
             return
 
-        # Perform gain selection. This is typically not the responsibility of
-        # ctapipe; DL0 (and R1) waveforms are aleady gain selected and
-        # therefore single channel. However, the waveforms read from
-        # simtelarray do not have the gain selection applied, and so must be
-        # done as part of the calibration step to ensure the correct
-        # waveform dimensions.
-        waveforms_gs, selected_gain_channel = self.gain_selector(waveforms)
-        if selected_gain_channel is not None:
-            event.r1.tel[telid].selected_gain_channel = selected_gain_channel
-        else:
-            # If pixel_channel is None, then waveforms has already been
-            # pre-gainselected, and presumably the selected_gain_channel
-            # container is filled by the EventSource
-            if event.r1.tel[telid].selected_gain_channel is None:
-                raise ValueError(
-                    "EventSource is loading pre-gainselected waveforms "
-                    "without filling the selected_gain_channel container"
-                )
-
-        reduced_waveforms = self.data_volume_reducer(waveforms_gs)
+        reduced_waveforms = self.data_volume_reducer(waveforms)
         event.dl0.tel[telid].waveform = reduced_waveforms
 
     def _calibrate_dl1(self, event, telid):
@@ -211,24 +204,25 @@ class CameraCalibrator(Component):
             #   - Read into dl1 container directly?
             #   - Don't do anything if dl1 container already filled
             #   - Update on SST review decision
-            corrected_charge = waveforms[..., 0]
+            charge = waveforms[..., 0]
             pulse_time = np.zeros(n_pixels)
         else:
-            # TODO: pass camera to ImageExtractor.__init__
-            if self.image_extractor.requires_neighbors():
-                camera = event.inst.subarray.tel[telid].camera
-                self.image_extractor.neighbors = camera.neighbor_matrix_where
-            charge, pulse_time = self.image_extractor(waveforms)
+            # TODO: apply timing correction to waveforms before charge extraction
+            charge, pulse_time = self.image_extractor(waveforms, telid=telid)
 
             # Apply integration correction
             # TODO: Remove integration correction
             correction = self._get_correction(event, telid)
-            corrected_charge = charge * correction
+            charge = charge * correction
 
-        event.dl1.tel[telid].image = corrected_charge
+        # Calibrate extracted charge
+        pedestal = event.calibration.tel[telid].dl1.pedestal_offset
+        absolute = event.calibration.tel[telid].dl1.absolute_factor
+        relative = event.calibration.tel[telid].dl1.relative_factor
+        charge = (charge - pedestal) * relative / absolute
+
+        event.dl1.tel[telid].image = charge
         event.dl1.tel[telid].pulse_time = pulse_time
-
-        # TODO: Add charge calibration
 
     def __call__(self, event):
         """
@@ -242,6 +236,7 @@ class CameraCalibrator(Component):
             A `ctapipe` event container
         """
         # TODO: How to handle different calibrations depending on telid?
-        for telid in event.r1.tel.keys():
+        tel = event.r1.tel or event.dl0.tel or event.dl1.tel
+        for telid in tel.keys():
             self._calibrate_dl0(event, telid)
             self._calibrate_dl1(event, telid)

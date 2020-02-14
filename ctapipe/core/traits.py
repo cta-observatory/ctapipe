@@ -1,5 +1,8 @@
 import os
+from collections import UserList
 from fnmatch import fnmatch
+from typing import Optional
+import copy
 
 from traitlets import (
     Bool,
@@ -42,7 +45,6 @@ __all__ = [
     "enum_trait",
     "classes_with_traits",
     "has_traits",
-    "TelescopeParameterList",
     "TelescopeParameter",
     "FloatTelescopeParameter",
     "IntTelescopeParameter",
@@ -138,10 +140,56 @@ def has_traits(cls, ignore=("config", "parent")):
     return bool(set(cls.class_trait_names()) - set(ignore))
 
 
-class TelescopeParameterList(list):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class TelescopePatternList(UserList):
+    """
+    Representation for a list of telescope pattern tuples. This is a helper class
+    used  by the Trait TelescopeParameter as its value type
+    """
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self._lookup = None
+        self._subarray = None
+
+    @property
+    def tel(self):
+        """ access the value per telescope_id, e.g. `param.tel[2]`"""
+        if self._lookup:
+            return self._lookup
+        else:
+            raise RuntimeError(
+                "No TelescopeParameterLookup was registered. You must "
+                "call attach_subarray() first"
+            )
+
+    def attach_subarray(self, subarray: "ctapipe.instrument.SubarrayDescription"):
+        """
+        Register a SubarrayDescription so that the user-specified values can be
+        looked up by tel_id. This must be done before using the `.tel[x]` property
+        """
+        self._subarray = subarray
+        self._lookup.attach_subarray(subarray)
+
+
+class TelescopeParameterLookup:
+    def __init__(self, telescope_parameter_list):
+        """
+        Handles the lookup of corresponding configuration value from a list of
+        tuples for a telid.
+
+        Parameters
+        ----------
+        telescope_parameter_list : list
+            List of tuples in the form `[(command, argument, value), ...]`
+        """
+        # self._telescope_parameter_list = copy.deepcopy(telescope_parameter_list)
+        self._telescope_parameter_list = copy.deepcopy(telescope_parameter_list)
         self._value_for_tel_id = None
+        self._subarray = None
+        self._subarray_global_value = None
+        for param in telescope_parameter_list:
+            if param[1] == "*":
+                self._subarray_global_value = param[2]
 
     def attach_subarray(self, subarray):
         """
@@ -154,12 +202,12 @@ class TelescopeParameterList(list):
             Description of the subarray
             (includes mapping of tel_id to tel_type)
         """
+        self._subarray = subarray
         self._value_for_tel_id = {}
-        for command, arg, value in self:
+        for command, arg, value in self._telescope_parameter_list:
             if command == "type":
                 matched_tel_types = [
-                    str(t) for t in subarray.telescope_types
-                    if fnmatch(str(t), arg)
+                    str(t) for t in subarray.telescope_types if fnmatch(str(t), arg)
                 ]
                 logger.debug(f"argument '{arg}' matched: {matched_tel_types}")
                 if len(matched_tel_types) == 0:
@@ -176,25 +224,29 @@ class TelescopeParameterList(list):
             else:
                 raise ValueError(f"Unrecognized command: {command}")
 
-    def __getitem__(self, tel_id: int):
+    def __getitem__(self, tel_id: Optional[int]):
         """
         Returns the resolved parameter for the given telescope id
         """
+        if tel_id is None:
+            if self._subarray_global_value is not None:
+                return self._subarray_global_value
+            else:
+                raise KeyError("No subarray global value set for TelescopeParameter")
         if self._value_for_tel_id is None:
             raise ValueError(
-                "TelescopeParameterList: No subarray attached, call "
-                "`attach_subarray` first before calling `resolve`"
+                "TelescopeParameterLookup: No subarray attached, call "
+                "`attach_subarray` first before trying to access a value by tel_id"
             )
         try:
             return self._value_for_tel_id[tel_id]
         except KeyError:
             raise KeyError(
-                f"TelescopeParameterList: no "
+                f"TelescopeParameterLookup: no "
                 f"parameter value was set for telescope with tel_id="
                 f"{tel_id}. Please set it explicitly, "
                 f"or by telescope type or '*'."
             )
-
 
 
 class TelescopeParameter(List):
@@ -230,50 +282,76 @@ class TelescopeParameter(List):
     tel_param = 4.0  # sets this value for all telescopes
 
     """
-    klass = TelescopeParameterList
 
-    def __init__(self, dtype=float, **kwargs):
-        super().__init__(**kwargs)
+    klass = TelescopePatternList
+
+    def __init__(self, dtype=float, default_value=None, **kwargs):
         if not isinstance(dtype, type):
             raise ValueError("dtype should be a type")
+        if isinstance(default_value, dtype):
+            default_value = [("type", "*", default_value)]
+        super().__init__(default_value=default_value, **kwargs)
         self._dtype = dtype
 
     def validate(self, obj, value):
-        # Convert normal list into TelescopeParameterList
-        if isinstance(value, list):
-            value = TelescopeParameterList(value)
-
-        # support a single value for all (convert into a default value)
+        # Support a single value for all (convert into a default value)
         if isinstance(value, self._dtype):
-            value = TelescopeParameterList([("type", "*", value)])
+            value = [("type", "*", value)]
 
-        # check that it is a list
-        super().validate(obj, value)
-        normalized_value = TelescopeParameterList()
+        # Check each value of list
+        normalized_value = TelescopePatternList(None)
+        if isinstance(value, self._dtype):
+            value = [("type", "*", value)]
+        if isinstance(value, (UserList, list)):
+            for pattern in value:
+                # now check for the standard 3-tuple of (command, argument, value)
+                if len(pattern) != 3:
+                    raise TraitError(
+                        "pattern should be a tuple of (command, argument, value)"
+                    )
+                command, arg, val = pattern
+                if not isinstance(val, self._dtype):
+                    raise TraitError(f"Value should be a {self._dtype}")
+                if not isinstance(command, str):
+                    raise TraitError("command must be a string")
+                if command not in ["type", "id"]:
+                    raise TraitError("command must be one of: '*', 'type', 'id'")
+                if command == "type":
+                    if not isinstance(arg, str):
+                        raise TraitError("'type' argument should be a string")
+                if command == "id":
+                    try:
+                        arg = int(arg)
+                    except ValueError:
+                        raise TraitError(
+                            f"Argument of 'id' should be an int (got '{arg}')"
+                        )
 
-        for pattern in value:
-            # now check for the standard 3-tuple of )command, argument, value)
-            if len(pattern) != 3:
-                raise TraitError(
-                    "pattern should be a tuple of (command, argument, value)"
-                )
-            command, arg, val = pattern
-            if not isinstance(val, self._dtype):
-                raise TraitError(f"Value should be a {self._dtype}")
-            if not isinstance(command, str):
-                raise TraitError("command must be a string")
-            if command not in ["type", "id"]:
-                raise TraitError("command must be one of: '*', 'type', 'id'")
-            if command == "type":
-                if not isinstance(arg, str):
-                    raise TraitError("'type' argument should be a string")
-            if command == "id":
-                arg = int(arg)
+                val = self._dtype(val)
+                normalized_value.append((command, arg, val))
+                normalized_value._lookup = TelescopeParameterLookup(normalized_value)
 
-            val = self._dtype(val)
-            normalized_value.append((command, arg, val))
+                if (
+                    isinstance(value, TelescopePatternList)
+                    and value._subarray is not None
+                ):
+                    normalized_value.attach_subarray(value._subarray)
+
+        else:
+            raise TraitError(f"Value should be a {self._dtype}")
 
         return normalized_value
+
+    def set(self, obj, value):
+        # Retain existing subarray description
+        # when setting new value for TelescopeParameter
+        try:
+            old_value = obj._trait_values[self.name]
+        except KeyError:
+            old_value = self.default_value
+        super().set(obj, value)
+        if getattr(old_value, "_subarray", None) is not None:
+            obj._trait_values[self.name].attach_subarray(old_value._subarray)
 
 
 class FloatTelescopeParameter(TelescopeParameter):

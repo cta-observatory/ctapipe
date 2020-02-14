@@ -1,71 +1,52 @@
 import numpy as np
 import astropy.units as u
-from ctapipe.image.muon.ring_fitter import RingFitter
+from ctapipe.core import Component
 from ctapipe.io.containers import MuonRingParameter
+from .fitting import kundu_chaudhuri_circle_fit, taubin_circle_fit
+import traitlets as traits
 
-__all__ = ['ChaudhuriKunduRingFitter']
+# the fit methods do not expose the same interface, so we
+# force the same interface onto them, here.
+# we also modify their names slightly, since the names are
+# exposed to the user via the string traitlet `fit_method`
+def kundu_chaudhuri(x, y, weights, mask):
+    """kundu_chaudhuri_circle_fit with x, y, weights, mask interface"""
+    weights = weights * mask
+    return kundu_chaudhuri_circle_fit(x, y, weights)
 
 
-class ChaudhuriKunduRingFitter(RingFitter):
+def taubin(x, y, weights, mask):
+    """taubin_circle_fit with x, y, weights, mask interface"""
+    return taubin_circle_fit(x, y, mask)
 
-    @u.quantity_input
-    def fit(self, x: u.deg, y: u.deg, weight, times=None):
-        """Fast and reliable analytical circle fitting method previously used
-        in the H.E.S.S.  experiment for muon identification
 
-        Implementation based on [chaudhuri93]_
+FIT_METHOD_BY_NAME = {m.__name__: m for m in [kundu_chaudhuri, taubin]}
 
-        Parameters
-        ----------
-        x: ndarray 
-            X position of pixel
-        y: ndarray
-            Y position of pixel
-        weight: ndarray
-            weighting of pixel in fit 
+__all__ = ["MuonRingFitter"]
 
-        Returns
-        -------
-        X position, Y position, radius, orientation and inclination of circle
+
+class MuonRingFitter(Component):
+    """Different ring fit algorithms for muon rings
+    """
+
+    fit_method = traits.CaselessStrEnum(
+        list(FIT_METHOD_BY_NAME.keys()),
+        default_value=list(FIT_METHOD_BY_NAME.keys())[0],
+    ).tag(config=True)
+
+    def __call__(self, x, y, img, mask):
+        """allows any fit to be called in form of
+            MuonRingFitter(fit_method = "name of the fit")
         """
-        # First calculate the weighted average positions of the pixels
-        sum_weight = np.sum(weight)
-        av_weighted_pos_x = np.sum(x * weight) / sum_weight
-        av_weighted_pos_y = np.sum(y * weight) / sum_weight
-
-        # The following notation is a bit ugly but directly references the paper notation
-        factor = x**2 + y**2
-
-        a = np.sum(weight * (x - av_weighted_pos_x) * x)
-        a_prime = np.sum(weight * (y - av_weighted_pos_y) * x)
-
-        b = np.sum(weight * (x - av_weighted_pos_x) * y)
-        b_prime = np.sum(weight * (y - av_weighted_pos_y) * y)
-
-        c = np.sum(weight * (x - av_weighted_pos_x) * factor) * 0.5
-        c_prime = np.sum(weight * (y - av_weighted_pos_y) * factor) * 0.5
-
-        nom_0 = ((a * b_prime) - (a_prime * b))
-        nom_1 = ((a_prime * b) - (a * b_prime))
-
-        # Calculate circle centre and radius
-        centre_x = ((b_prime * c) - (b * c_prime)) / nom_0
-        centre_y = ((a_prime * c) - (a * c_prime)) / nom_1
-
-        radius = np.sqrt(
-            # np.sum(weight * ((x - centre_x*u.deg)**2 +
-            # (y - centre_y*u.deg)**2)) / # centre * u.deg ???
-            np.sum(weight * ((x - centre_x)**2 + (y - centre_y)**2)) /
-            sum_weight
-        )
+        fit_function = FIT_METHOD_BY_NAME[self.fit_method]
+        radius, center_x, center_y = fit_function(x, y, img, mask)
 
         output = MuonRingParameter()
-        output.ring_center_x = centre_x  # *u.deg
-        output.ring_center_y = centre_y  # *u.deg
-        output.ring_radius = radius  # *u.deg
-        output.ring_phi = np.arctan(centre_y / centre_x)
-        output.ring_inclination = np.sqrt(centre_x ** 2. + centre_y ** 2.)
-        # output.meta.ring_fit_method = "ChaudhuriKundu"
-        output.ring_fit_method = "ChaudhuriKundu"
+        output.ring_center_x = center_x
+        output.ring_center_y = center_y
+        output.ring_radius = radius
+        output.ring_center_phi = np.arctan2(center_y, center_x)
+        output.ring_center_distance = np.sqrt(center_x ** 2.0 + center_y ** 2.0)
+        output.ring_fit_method = self.fit_method
 
         return output

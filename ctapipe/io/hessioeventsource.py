@@ -2,6 +2,7 @@ from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.time import Time
 from ctapipe.io.eventsource import EventSource
+from ctapipe.io.simteleventsource import apply_simtel_r1_calibration
 from ctapipe.io.containers import DataContainer
 from ctapipe.instrument import (
     TelescopeDescription,
@@ -11,6 +12,7 @@ from ctapipe.instrument import (
 )
 from ctapipe.instrument.camera import UnknownPixelShapeWarning
 from ctapipe.instrument.guess import guess_telescope, UNKNOWN_TELESCOPE
+from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 import numpy as np
 import warnings
 
@@ -18,15 +20,29 @@ __all__ = ['HESSIOEventSource']
 
 
 class HESSIOEventSource(EventSource):
-    """
-    EventSource for the hessio file format.
-
-    This class utilises `pyhessio` to read the hessio file, and stores the
-    information into the event containers.
-    """
     _count = 0
 
-    def __init__(self, config=None, parent=None, **kwargs):
+    def __init__(self, config=None, parent=None, gain_selector=None, **kwargs):
+        """
+        EventSource for the hessio file format.
+
+        This class utilises `pyhessio` to read the hessio file, and stores the
+        information into the event containers.
+
+        Parameters
+        ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        gain_selector : ctapipe.calib.camera.gainselection.GainSelector
+            The GainSelector to use. If None, then ThresholdGainSelector will be used.
+        kwargs
+        """
         super().__init__(config=config, parent=parent, **kwargs)
 
         try:
@@ -46,10 +62,22 @@ class HESSIOEventSource(EventSource):
 
         self.metadata['is_simulation'] = True
 
+        # Waveforms from simtelarray have both gain channels
+        # Gain selection is performed by this EventSource to produce R1 waveforms
+        if gain_selector is None:
+            gain_selector = ThresholdGainSelector(parent=self)
+        self.gain_selector = gain_selector
+
     @staticmethod
     def is_compatible(file_path):
         '''This class should never be chosen in event_source()'''
         return False
+
+    @property
+    def subarray(self):
+        with self.pyhessio.open_hessio(self.input_url) as file:
+            next(file.move_to_next_event())
+            return self._build_subarray_info(file)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         HESSIOEventSource._count -= 1
@@ -141,9 +169,8 @@ class HESSIOEventSource(EventSource):
                     dc_to_pe = file.get_calibration(tel_id)
                     pedestal = file.get_pedestal(tel_id)
                     r0.waveform = adc_samples
-                    r1.waveform = (
-                            (adc_samples - pedestal[..., np.newaxis])
-                            * dc_to_pe[..., np.newaxis]
+                    r1.waveform, r1.selected_gain_channel = apply_simtel_r1_calibration(
+                        adc_samples, pedestal, dc_to_pe, self.gain_selector
                     )
 
                     mc.dc_to_pe = dc_to_pe
@@ -238,6 +265,7 @@ class HESSIOEventSource(EventSource):
         num_tiles = file.get_mirror_number(tel_id)
         cam_rot = file.get_camera_rotation_angle(tel_id)
         num_mirrors = file.get_mirror_number(tel_id)
+        sampling_rate = u.Quantity(1 / file.get_time_slice(tel_id), u.GHz)
 
         camera = CameraGeometry(
             telescope.camera_name,
@@ -246,6 +274,7 @@ class HESSIOEventSource(EventSource):
             pix_y=pix_y,
             pix_area=pix_area,
             pix_type=pix_type,
+            sampling_rate=sampling_rate,
             pix_rotation=pix_rot,
             cam_rotation=-Angle(cam_rot, u.rad),
             apply_derotation=True,
