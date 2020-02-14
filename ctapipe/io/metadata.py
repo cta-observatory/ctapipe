@@ -1,6 +1,7 @@
 """
 Management of CTA Reference Metadata, as defined in the CTA Top-Level Data Model
-document, version 1A. This information is required to be attached to the header of any
+document _[ctatopleveldatamodel] , version 1A. This information is required to be
+attached to the header of any
 files generated.
 
 The class Reference collects all required reference metadata, and can be turned into a
@@ -121,8 +122,23 @@ class Activity(HasTraits):
 class Instrument(HasTraits):
     """ Instrumental Context """
 
-    site = Enum(["CTA-North", "CTA-South", "SDMC", "HQ", "Other"], "Other",
-                help="Which site of CTA this instrument is associated with")
+    site = Enum(
+        [
+            "CTA-North",
+            "CTA-South",
+            "SDMC",
+            "HQ",
+            "MAGIC",
+            "HESS",
+            "VERITAS",
+            "FACT",
+            "Whipple",
+            "Other",
+        ],
+        "Other",
+        help="Which site of CTA (or external telescope) "
+             "this instrument is associated with",
+    )
     _class = Enum(
         [
             "Array",
