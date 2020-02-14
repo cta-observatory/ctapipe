@@ -121,21 +121,22 @@ class Activity(HasTraits):
 class Instrument(HasTraits):
     """ Instrumental Context """
 
-    site = Enum(["CTA-North", "CTA-South", "Other"], "Other")
+    site = Enum(["CTA-North", "CTA-South", "SDMC", "HQ", "Other"], "Other",
+                help="Which site of CTA this instrument is associated with")
     _class = Enum(
         [
-            "array",
-            "subarray",
-            "telescope",
-            "camera",
-            "optics",
-            "mirror",
-            "photosensor",
-            "module",
-            "part",
-            "other",
+            "Array",
+            "Subarray",
+            "Telescope",
+            "Camera",
+            "Optics",
+            "Mirror",
+            "Photo-sensor",
+            "Module",
+            "Part",
+            "Other",
         ],
-        "other",
+        "Other",
     )
     _type = Unicode("unspecified")
     subtype = Unicode("unspecified")
