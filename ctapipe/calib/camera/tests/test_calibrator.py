@@ -1,14 +1,18 @@
+"""
+Tests for CameraCalibrator and related functions
+"""
+import numpy as np
+import pytest
+from scipy.stats import norm
+from traitlets.config.configurable import Config
+
 from ctapipe.calib.camera.calibrator import (
     CameraCalibrator,
     integration_correction,
 )
-from ctapipe.instrument import CameraGeometry
-from ctapipe.io.containers import DataContainer, EventAndMonDataContainer
 from ctapipe.image.extractor import LocalPeakWindowSum, FullWaveformSum
-from traitlets.config.configurable import Config
-import pytest
-import numpy as np
-from scipy.stats import norm
+from ctapipe.instrument import CameraGeometry
+from ctapipe.io.containers import DataContainer
 
 
 def test_camera_calibrator(example_event):
@@ -31,16 +35,19 @@ def test_manual_extractor():
 def test_config():
     window_shift = 3
     window_width = 9
-    config = Config({"LocalPeakWindowSum": {
-        "window_shift": window_shift,
-        "window_width": window_width,
-    }})
-    calibrator = CameraCalibrator(
-        image_extractor=LocalPeakWindowSum(config=config),
-        config=config
+    config = Config(
+        {
+            "LocalPeakWindowSum": {
+                "window_shift": window_shift,
+                "window_width": window_width,
+            }
+        }
     )
-    assert calibrator.image_extractor.window_shift[None] == window_shift
-    assert calibrator.image_extractor.window_width[None] == window_width
+    calibrator = CameraCalibrator(
+        image_extractor=LocalPeakWindowSum(config=config), config=config
+    )
+    assert calibrator.image_extractor.window_shift.tel[None] == window_shift
+    assert calibrator.image_extractor.window_width.tel[None] == window_width
 
 
 def test_integration_correction(example_event):
@@ -50,16 +57,15 @@ def test_integration_correction(example_event):
     shift = 3
     shape = example_event.mc.tel[telid].reference_pulse_shape
     n_chan = shape.shape[0]
-    step = example_event.mc.tel[telid].meta['refstep']
+    step = example_event.mc.tel[telid].meta["refstep"]
     time_slice = example_event.mc.tel[telid].time_slice
-    correction = integration_correction(n_chan, shape, step,
-                                        time_slice, width, shift)
+    correction = integration_correction(n_chan, shape, step, time_slice, width, shift)
     assert correction is not None
 
 
 def test_integration_correction_no_ref_pulse(example_event):
     telid = list(example_event.r0.tel)[0]
-    delattr(example_event, 'mc')
+    delattr(example_event, "mc")
     calibrator = CameraCalibrator()
     calibrator._calibrate_dl0(example_event, telid)
     correction = calibrator._get_correction(example_event, telid)
@@ -84,7 +90,7 @@ def test_check_r1_empty(example_event):
     with pytest.warns(UserWarning):
         calibrator(event)
     assert (event.dl0.tel[telid].waveform == 2).all()
-    assert (event.dl1.tel[telid].image == 2*128).all()
+    assert (event.dl1.tel[telid].image == 2 * 128).all()
 
 
 def test_check_dl0_empty(example_event):
