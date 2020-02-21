@@ -20,7 +20,7 @@ __all__ = [
 from abc import abstractmethod
 import numpy as np
 from traitlets import Int
-from ctapipe.core.traits import IntTelescopeParameter
+from ctapipe.core.traits import IntTelescopeParameter, FloatTelescopeParameter
 from ctapipe.core import Component
 from numba import njit, prange, guvectorize, float64, float32, int64
 
@@ -451,6 +451,18 @@ class TwoPassWindowSum(ImageExtractor):
 
     """
 
+    # Get thresholds for core-pixels depending on telescope type.
+    # WARNING: default values are not yet optimized
+    core_threshold = FloatTelescopeParameter(
+        default_value=[
+            ("type", "*", 6.0),
+            ("type", "LST*", 6.0),
+            ("type", "MST*", 8.0),
+            ("type", "SST*", 4.0),
+        ],
+        help="Picture threshold for internal tail-cuts pass",
+    ).tag(config=True)
+
     def __call__(self, waveforms, telid=None):
         """
         Call this ImageExtractor.
@@ -512,17 +524,9 @@ class TwoPassWindowSum(ImageExtractor):
 
         # STEP 2
 
-        # Set thresholds for core-pixels depending on telescope type.
+        # Set thresholds for core-pixels depending on telescope
+        core_th = self.core_threshold.tel[telid]
         # Boundary thresholds will be half of core thresholds.
-        # WARNING: these values should be read from a configuration file
-        # à-la-protopipe and they will depend in principle also on camera type.
-        subarray = self.subarray
-        if subarray.tel[telid].type == "LST":
-            core_th = 6  # (not yet optimized)
-        if subarray.tel[telid].type == "MST":
-            core_th = 8  # (not yet optimized)
-        if subarray.tel[telid].type == "SST":
-            core_th = 4  # (not yet optimized)
 
         # Preliminary image cleaning with simple two-level tail-cut
         camera = self.subarray.tel[telid].camera
