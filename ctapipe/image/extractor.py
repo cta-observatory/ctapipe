@@ -222,26 +222,26 @@ def subtract_baseline(waveforms, baseline_start, baseline_end):
     return baseline_corrected
 
 
-def slide_window(waveform, window_width):
-    """Smooth a pixel's waveform with a kernel of certain size via convolution.
+def slide_window(waveform, width):
+    """Smooth a pixel's waveform (or a slice of it) with a kernel of certain
+     size via convolution.
 
     Parameters
     ----------
-    waveforms : array_like
-        DL0-level waveforms of one event.
-        Shape: (n_samples)
-    window_width : int
+    waveform : array_like
+        DL0-level waveform (or slice of it) of one event.
+        Shape: max (n_samples)
+    width : int
         Size of the smoothing kernel.
 
     Returns
     -------
     sum : array_like
         Array containing the sums for each of the kernel positions.
-        Shape: (n_samples - window_width - 1)
+        Shape: max (n_samples - (window_width - 1))
 
-    Dr. Michele Peresano, 2019
     """
-    sums = np.convolve(waveform, np.ones(window_width, dtype=int), "valid")
+    sums = np.convolve(waveform, np.ones(width, dtype=int), "valid")
     return sums
 
 
