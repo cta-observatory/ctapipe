@@ -427,10 +427,10 @@ class TwoPassWindowSum(ImageExtractor):
     time-gradient linear fit. This is in particular the CTA-MARS version.
 
     Procedure:
-    1) Find waveform peak from maximum sum of three consecutive samples;
-       add 1 sample on each side and integrate charge in 5-sample window;
-       time is obtained as charge-weighted average of the sample numbers for
-       the 5 integrated samples;
+    1) slide a 3-samples window through the waveform, finding max counts sum;
+       the range of the sliding is the one allowing extension from 3 to 5;
+       add 1 sample on each side and integrate charge in the 5-sample window;
+       time is obtained as a charge-weighted average of the sample numbers;
        No information from neighboouring pixels is used.
     2) Preliminary image cleaning via simple tailcut with minimum number
        of core neighbours set at 1,
@@ -438,8 +438,9 @@ class TwoPassWindowSum(ImageExtractor):
     4) Parametrize following Hillas approach only if the resulting image has 3
        or more pixels.
     5) Do a linear fit of pulse time vs. distance along major image axis
-       (missing equivalent of CTA-MARS-ROOT "robust" fit option,
-       aka Least Trimmed Squares, to get rid of far outliers).
+       (CTA-MARS uses ROOT "robust" fit option,
+       aka Least Trimmed Squares, to get rid of far outliers - this should
+       be implemented in 'timing_parameters', e.g scipy.stats.siegelslopes).
     6) For all pixels except the core ones in the main island, integrate
        the waveform once more, in a fixed window of 5 samples set at the time
        "predicted" by the linear time fit.
@@ -448,7 +449,6 @@ class TwoPassWindowSum(ImageExtractor):
     7) The result is an image with main-island core pixels calibrated with a
        1st pass and non-core pixels re-calibrated with a 2nd pass.
 
-    Dr. Michele Peresano, 2019
     """
 
     def __call__(self, waveforms, telid=None):
@@ -475,44 +475,40 @@ class TwoPassWindowSum(ImageExtractor):
 
         # Starting from DL0, the channel is already selected (if more than one)
         # event.dl0.tel[tel_id].waveform object has shape (N_pixels, N_samples)
-        # For each pixel, we slide a 3-samples window through the whole
-        # waveform, summing each time the ADC counts contained within it.
 
-        # 'window1_width' could be configurable in a generalized version
-        # because right now it is optimized for LSTCam and NectarCam
-        window1_width = 3
-        sums = np.apply_along_axis(slide_window, 1, waveforms, window1_width)
-        # 'sums' has still the same shape of 'waveforms'
+        # For each pixel, we slide a 3-samples window through the
+        # waveform without touching the extremes (so later we can increase it
+        # to 5), summing each time the ADC counts contained within it.
 
-        # For each pixel, in each of the (N_samples - 2) positions, check when
-        # the window encountered the maximum number of ADC counts and its index
-        # will correspond to the start (1st sample) of the 3-samples window
-        startWindows = np.apply_along_axis(np.argmax, 1, sums)  # (N_pixels)
+        # 'width' could be configurable in a generalized version
+        # Right now this image extractor is optimized for LSTCam and NectarCam
+        width = 3
+        sums = np.apply_along_axis(slide_window, 1, waveforms[:, 1:-1], width)
+        # Note that the input waveforms are clipped at the extremes because
+        # we want to extend this 3-samples window to 5 samples
+        # 'sums' has now the shape of (N_pixels, N_samples-4)
 
-        # Build 'width' and 'shift' arrays that adapt on the position of the
-        # window along each waveform
-        window_1_at_start = startWindows == 1
-        window_1_at_end = startWindows == (waveforms.shape[1] - window1_width)
+        # For each pixel, in each of the (N_samples - 4) positions, we check
+        # where the window encountered the maximum number of ADC counts
+        startWindows = np.apply_along_axis(np.argmax, 1, sums)
+        # Now startWindows has the shape of (N_pixels).
+        # Note that the index values stored in startWindows come from 'sums'
+        # of which the first index (0) corresponds of index 1 of each waveform
+        # since we clipped them before.
 
         # Since we have to add 1 sample on each side, window_shift will always
-        # be (-)1, while window_width will always be window1_width + 2
-        window_widths = np.full_like(startWindows, window1_width + 2)
+        # be (-)1, while window_width will always be window1_width + 1
+        # so we the final 5-samples window will be 1+3+1
+        window_widths = np.full_like(startWindows, width + 1)
         window_shifts = np.full_like(startWindows, 1)
 
-        # BUT, if the resulting 5-samples window falls outside of the readout
-        # window then we take the first (or last) 5 samples
-        window_widths[window_1_at_start] = window1_width + 2
-        window_widths[window_1_at_end] = window1_width
-        window_shifts[window_1_at_start] = 0
-        window_shifts[window_1_at_end] = -2
-
-        # the 'peak_index' argument of 'extract_around_peak' has no sense in
-        # this case, it's simply the start of the 3-samples window
-        preliminary_charges, preliminary_pulse_times = extract_around_peak(
-            waveforms, startWindows, window_widths, window_shifts
+        # the 'peak_index' argument of 'extract_around_peak' has a different
+        # meaning here: it's the start of the 3-samples window.
+        # Since since the "sums" arrays started from index 1 of each waveform,
+        # then each peak index has to be increased by one
+        charge_1stpass, pulse_time_1stpass = extract_around_peak(
+            waveforms, startWindows + 1, window_widths, window_shifts
         )
-
-        first_dl1_image = preliminary_charges
 
         # STEP 2
 
@@ -522,23 +518,23 @@ class TwoPassWindowSum(ImageExtractor):
         # à-la-protopipe and they will depend in principle also on camera type.
         subarray = self.subarray
         if subarray.tel[telid].type == "LST":
-            core_th = 6  # core threshold (not yet optimized)
+            core_th = 6  # (not yet optimized)
         if subarray.tel[telid].type == "MST":
-            core_th = 8  # core threshold (not yet optimized)
+            core_th = 8  # (not yet optimized)
         if subarray.tel[telid].type == "SST":
-            core_th = 4  # core threshold (not yet optimized)
+            core_th = 4  # (not yet optimized)
 
         # Preliminary image cleaning with simple two-level tail-cut
         camera = self.subarray.tel[telid].camera
         mask_1 = tailcuts_clean(
             camera,
-            first_dl1_image,
+            charge_1stpass,
             picture_thresh=core_th,
             boundary_thresh=core_th / 2,
             keep_isolated_pixels=False,
             min_number_picture_neighbors=1,
         )
-        image_1 = first_dl1_image
+        image_1 = charge_1stpass
         image_1[~mask_1] = 0
 
         # STEP 3
@@ -559,57 +555,79 @@ class TwoPassWindowSum(ImageExtractor):
 
         # STEP 4
 
-        # if the resulting image has 3 or more pixels do the 2nd pass
-        # otherwise stop here with what you've got
+        # if the resulting image has less then 3 pixels
         if np.count_nonzero(image_2) < 3:
-            charge = image_2  # main cluster image
-            pulse_time = preliminary_pulse_times  # 1st pass pulse times
-        else:
+            # we return the 1st pass information
+            return charge_1stpass, pulse_time_1stpass
+        else:  # otherwise we proceed by parametrizing the image
             hillas = hillas_parameters(camera, image_2)
+            # at the end there should be a "quality label" variable to record
+            # if a image had less then 3 pixels OR more than three but
+            # patologically placed such that width gets parametrized either as
+            # 0 or NaN
+            # This is what I do in protopipe.
 
             # STEP 5
 
             # linear fit of pulse time vs. distance along major image axis
-            timing = timing_parameters(camera, image_2, preliminary_pulse_times, hillas)
+            timing = timing_parameters(camera, image_2, pulse_time_1stpass, hillas)
 
             long, trans = camera_to_shower_coordinates(
                 camera.pix_x, camera.pix_y, hillas.x, hillas.y, hillas.psi
             )
 
+            # WARNING: for LSTCam and NectarCam sample = ns, but not for other
+            # cameras
+            # Here each pulse time is treated as sample,
+            # but a general method should scale it depending on each cam_id
             predicted_pulse_times = (
                 timing.slope * long[nonCore_pixels_ids] + timing.intercept
             )
             predicted_peaks = np.zeros(len(predicted_pulse_times))
 
             # Approximate to nearest integer then cast to int64
-            # otherwise 'extract_around_peak' complaints
+            # otherwise 'extract_around_peak' complains
             np.rint(predicted_pulse_times.value, predicted_peaks)
             predicted_peaks = predicted_peaks.astype(np.int64)
 
-            # set sample to 1 if predicted time is < 1
-            predicted_peaks[predicted_peaks < 1] = 1
-            # set sample to max if predicted time is > max
-            predicted_peaks[predicted_peaks > waveforms.shape[1]] = waveforms.shape[1]
+            # Due to the fit these peak indexes can now be also outside of the
+            # readout window.
 
             # STEP 6
 
-            # select only the waveforms correspondent to non-core pixels
+            # select only the waveforms correspondent to the non-core pixels
+            # of the main island survived from the 1st pass image cleaning
             nonCore_waveforms = waveforms[nonCore_pixels_ids]
 
             # Build 'width' and 'shift' arrays that adapt on the position of the
             # window along each waveform
 
-            # Since we have to add 1 sample on each side, window_shift should
-            # be (-)1, while window_width will always be first_window_width + 2
-            window_widths = np.full_like(predicted_peaks, 5, dtype=np.int64)
+            # Now the definition of peak_index is really the peak.
+            # We have to add 2 samples each side, so the shist will always
+            # be (-)2, while width will always end 4 samples to the right.
+            # This "always" refers to a 5-samples window of course
+            window_widths = np.full_like(predicted_peaks, 4, dtype=np.int64)
             window_shifts = np.full_like(predicted_peaks, 2, dtype=np.int64)
 
             # BUT, if the resulting 5-samples window falls outside of the readout
-            # window then we always take the first (or last) 5 samples
-            window_widths[predicted_peaks == 1] = 5
-            window_shifts[predicted_peaks == 1] = 0
-            window_widths[predicted_peaks == waveforms.shape[1]] = 5
-            window_shifts[predicted_peaks == waveforms.shape[1]] = 5
+            # window then we take the first (or last) 5 samples
+            window_widths[predicted_peaks < 0] = 4
+            window_shifts[predicted_peaks < 0] = 0
+            window_widths[predicted_peaks > (waveforms.shape[1] - 1)] = 4
+            window_shifts[predicted_peaks > (waveforms.shape[1] - 1)] = 4
+
+            # Now we can also (re)define the patological predicted times
+            # because (we needed them to define the corrispective widths
+            # and shifts)
+
+            # set sample to 0 (beginning of the waveform) if predicted time
+            # falls before
+            predicted_peaks[predicted_peaks < 0] = 0
+            # set sample to max-1 (first sample has index 0)
+            # if predicted time falls after
+            predicted_peaks[predicted_peaks > (waveforms.shape[1] - 1)] = (
+                waveforms.shape[1] - 1
+            )
 
             # re-calibrate non-core pixels using the fixed 5-samples window
             charge_noCore, pulse_times_noCore = extract_around_peak(
@@ -619,9 +637,11 @@ class TwoPassWindowSum(ImageExtractor):
             # STEP 7
 
             # combine core and non-core pixels in the final output
-            charge = image_2  # core + non-core pixels
-            charge[nonCore_pixels_mask] = charge_noCore  # non-core pixels
-            pulse_time = preliminary_pulse_times  # core + non-core pixels
-            pulse_time[nonCore_pixels_mask] = pulse_times_noCore  # non-core pixels
+            charge_2npass = image_2  # core + non-core pixels
+            charge_2npass[nonCore_pixels_mask] = charge_noCore  # non-core pixels
+            pulse_time_2npass = pulse_time_1stpass  # core + non-core pixels
+            pulse_time_2npass[
+                nonCore_pixels_mask
+            ] = pulse_times_noCore  # non-core pixels
 
-        return charge, pulse_time
+            return charge_2npass, pulse_time_2npass
