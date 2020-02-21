@@ -534,7 +534,7 @@ class TwoPassWindowSum(ImageExtractor):
             keep_isolated_pixels=False,
             min_number_picture_neighbors=1,
         )
-        image_1 = charge_1stpass
+        image_1 = charge_1stpass.copy()
         image_1[~mask_1] = 0
 
         # STEP 3
@@ -542,11 +542,11 @@ class TwoPassWindowSum(ImageExtractor):
         # find all islands using this cleaning
         num_islands, labels = number_of_islands(camera, mask_1)
         if num_islands == 0:
-            image_2 = image_1  # no islands = image unchanged
+            image_2 = image_1.copy()  # no islands = image unchanged
         else:
             # ...find the biggest one
             mask_biggest = largest_island(labels)
-            image_2 = image_1
+            image_2 = image_1.copy()
             image_2[~mask_biggest] = 0
 
         # Indexes of pixels that will need the 2nd pass
@@ -637,7 +637,7 @@ class TwoPassWindowSum(ImageExtractor):
             # STEP 7
 
             # combine core and non-core pixels in the final output
-            charge_2npass = image_2  # core + non-core pixels
+            charge_2npass = image_2.copy()  # core + non-core pixels
             charge_2npass[nonCore_pixels_mask] = charge_noCore  # non-core pixels
             pulse_time_2npass = pulse_time_1stpass  # core + non-core pixels
             pulse_time_2npass[
