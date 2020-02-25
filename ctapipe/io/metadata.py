@@ -71,17 +71,21 @@ class Product(HasTraits):
     data_model_url = Unicode("unknown")
     format = Unicode()
 
+    # pylint: disable=no-self-use
     @default("creation_time")
     def default_time(self):
+        """ return current time by default """
         return Time.now().iso
 
     @validate("creation_time")
-    def valid_time(selfs, proposal):
+    def valid_time(self, proposal):
+        """ check that time is in astropy allowable format """
         thetime = Time(proposal["value"])
         return thetime.iso
 
     @default("id_")
     def default_product_id(self):
+        """ default id is a UUID """
         return str(uuid.uuid4())
 
 
@@ -97,7 +101,8 @@ class Activity(HasTraits):
     """ Activity (tool) information """
 
     @classmethod
-    def from_provenance(cls, activity: "ActivityProvenance"):
+    def from_provenance(cls, activity: "ctapipe.core.provenance.ActivityProvenance"):
+        """ construct Activity metadata from existing ActivityProvenance object"""
         return Activity(
             name=activity["activity_name"],
             type_="software",
@@ -114,8 +119,10 @@ class Activity(HasTraits):
     software_name = Unicode("unknown")
     software_version = Unicode("unknown")
 
+    # pylint: disable=no-self-use
     @default("start_time")
     def default_time(self):
+        """ default time is now """
         return Time.now().iso
 
 
@@ -137,7 +144,7 @@ class Instrument(HasTraits):
         ],
         "Other",
         help="Which site of CTA (or external telescope) "
-             "this instrument is associated with",
+        "this instrument is associated with",
     )
     class_ = Enum(
         [
@@ -160,13 +167,15 @@ class Instrument(HasTraits):
     id_ = Unicode("unspecified")
 
 
-def _to_dict(x, prefix=""):
+def _to_dict(hastraits_instance, prefix=""):
     """ helper to convert a HasTraits to a dict with keys
     in the required CTA format (upper-case, space separated)
     """
     return {
-        (prefix + k.upper().replace("_", " ")).replace("  ", " ").strip(): tr.get(x)
-        for k, tr in x.traits().items()
+        (prefix + k.upper().replace("_", " "))
+        .replace("  ", " ")
+        .strip(): tr.get(hastraits_instance)
+        for k, tr in hastraits_instance.traits().items()
     }
 
 
@@ -181,6 +190,7 @@ class Reference(HasTraits):
     instrument = Instance(Instrument)
 
     def to_dict(self):
+        """ convert Reference metadata to a flat dict"""
         meta = OrderedDict({"CTA REFERENCE VERSION": "1"})
         meta.update(_to_dict(self.contact, prefix="CTA CONTACT "))
         meta.update(_to_dict(self.product, prefix="CTA PRODUCT "))
@@ -202,4 +212,4 @@ def write_to_hdf5(metadata, h5file):
         pytables filehandle
     """
     for key, value in metadata.items():
-        h5file.root._v_attrs[key] = value
+        h5file.root._v_attrs[key] = value  # pylint: disable=protected-access

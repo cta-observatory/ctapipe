@@ -1,8 +1,13 @@
+"""
+Test CTA Reference metadata functionality
+"""
+
 from ctapipe.io import metadata as meta
 from ctapipe.core.provenance import Provenance
 
 
 def test_construct_and_write_metadata(tmp_path):
+    """ basic test of making a Reference object and writing it"""
 
     prov = Provenance()
     prov.start_activity("test")
@@ -38,12 +43,12 @@ def test_construct_and_write_metadata(tmp_path):
     ref_dict = reference.to_dict()
     assert ref_dict["CTA PRODUCT FORMAT"] == "hdf5"
 
-    import uuid
+    import uuid # pylint: disable=import-outside-toplevel
     assert str(uuid.UUID(ref_dict["CTA PRODUCT ID"])) == ref_dict["CTA PRODUCT ID"]
 
     # check that we can write this to the header of a typical table file in multiple
     # formats:
-    from astropy.table import Table
+    from astropy.table import Table # pylint: disable=import-outside-toplevel
 
     table = Table(dict(x=[1, 2, 3], y=[15.2, 15.2, 14.5]))
     table.meta = ref_dict
@@ -52,6 +57,6 @@ def test_construct_and_write_metadata(tmp_path):
 
     # write to pytables file
 
-    import tables
+    import tables # pylint: disable=import-outside-toplevel
     with tables.open_file(tmp_path / "test.h5", mode="w") as h5file:
         meta.write_to_hdf5(ref_dict, h5file)
