@@ -60,7 +60,7 @@ class Product(HasTraits):
 
     description = Unicode("unknown")
     creation_time = Unicode()
-    _id = Unicode(help="leave unspecified to automatically generate a UUID")
+    id_ = Unicode(help="leave unspecified to automatically generate a UUID")
     data_category = Enum(["S", "A", "B", "C", "Other"], "Other")
     data_level = Enum(
         ["R0", "R1", "DL0", "DL1", "DL2", "DL3", "DL4", "DL5", "DL6", "Other"], "Other"
@@ -80,7 +80,7 @@ class Product(HasTraits):
         thetime = Time(proposal["value"])
         return thetime.iso
 
-    @default("_id")
+    @default("id_")
     def default_product_id(self):
         return str(uuid.uuid4())
 
@@ -88,9 +88,9 @@ class Product(HasTraits):
 class Process(HasTraits):
     """ Process (top-level workflow) information """
 
-    _type = Enum(["Observation", "Simulation", "Other"], "Other")
+    type_ = Enum(["Observation", "Simulation", "Other"], "Other")
     subtype = Unicode("")
-    _id = Int()
+    id_ = Int()
 
 
 class Activity(HasTraits):
@@ -100,16 +100,16 @@ class Activity(HasTraits):
     def from_provenance(cls, activity: "ActivityProvenance"):
         return Activity(
             name=activity["activity_name"],
-            _type="software",
-            _id=activity["activity_uuid"],
+            type_="software",
+            id_=activity["activity_uuid"],
             start=activity["start"]["time_utc"],
             software_name="ctapipe",
             software_version=activity["system"]["ctapipe_version"],
         )
 
     name = Unicode()
-    _type = Unicode("software")
-    _id = Unicode()
+    type_ = Unicode("software")
+    id_ = Unicode()
     start_time = Unicode()
     software_name = Unicode("unknown")
     software_version = Unicode("unknown")
@@ -139,7 +139,7 @@ class Instrument(HasTraits):
         help="Which site of CTA (or external telescope) "
              "this instrument is associated with",
     )
-    _class = Enum(
+    class_ = Enum(
         [
             "Array",
             "Subarray",
@@ -154,10 +154,10 @@ class Instrument(HasTraits):
         ],
         "Other",
     )
-    _type = Unicode("unspecified")
+    type_ = Unicode("unspecified")
     subtype = Unicode("unspecified")
     version = Unicode("unspecified")
-    _id = Unicode("unspecified")
+    id_ = Unicode("unspecified")
 
 
 def _to_dict(x, prefix=""):
@@ -165,7 +165,7 @@ def _to_dict(x, prefix=""):
     in the required CTA format (upper-case, space separated)
     """
     return {
-        (prefix + k.upper().replace("_", " ")).replace("  ", " "): tr.get(x)
+        (prefix + k.upper().replace("_", " ")).replace("  ", " ").strip(): tr.get(x)
         for k, tr in x.traits().items()
     }
 

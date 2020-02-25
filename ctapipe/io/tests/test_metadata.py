@@ -28,10 +28,10 @@ def test_construct_and_write_metadata(tmp_path):
         activity=meta.Activity.from_provenance(prov_activity.provenance),
         instrument=meta.Instrument(
             site="CTA-North",
-            _class="array",
-            _type="Layout H1B",
+            class_="Array",
+            type_="Layout H1B",
             version="1.0",
-            _id="threshold",
+            id_="threshold",
         ),
     )
 
