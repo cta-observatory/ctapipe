@@ -36,6 +36,8 @@ from traitlets import (
     validate,
 )
 
+from ctapipe.core.provenance import _ActivityProvenance
+
 __all__ = [
     "Reference",
     "Contact",
@@ -101,7 +103,7 @@ class Activity(HasTraits):
     """ Activity (tool) information """
 
     @classmethod
-    def from_provenance(cls, activity: "ctapipe.core.provenance.ActivityProvenance"):
+    def from_provenance(cls, activity: _ActivityProvenance):
         """ construct Activity metadata from existing ActivityProvenance object"""
         return Activity(
             name=activity["activity_name"],
