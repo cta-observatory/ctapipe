@@ -43,12 +43,13 @@ def test_construct_and_write_metadata(tmp_path):
     ref_dict = reference.to_dict()
     assert ref_dict["CTA PRODUCT FORMAT"] == "hdf5"
 
-    import uuid # pylint: disable=import-outside-toplevel
+    import uuid  # pylint: disable=import-outside-toplevel
+
     assert str(uuid.UUID(ref_dict["CTA PRODUCT ID"])) == ref_dict["CTA PRODUCT ID"]
 
     # check that we can write this to the header of a typical table file in multiple
     # formats:
-    from astropy.table import Table # pylint: disable=import-outside-toplevel
+    from astropy.table import Table  # pylint: disable=import-outside-toplevel
 
     table = Table(dict(x=[1, 2, 3], y=[15.2, 15.2, 14.5]))
     table.meta = ref_dict
@@ -57,6 +58,7 @@ def test_construct_and_write_metadata(tmp_path):
 
     # write to pytables file
 
-    import tables # pylint: disable=import-outside-toplevel
+    import tables  # pylint: disable=import-outside-toplevel
+
     with tables.open_file(tmp_path / "test.h5", mode="w") as h5file:
         meta.write_to_hdf5(ref_dict, h5file)
