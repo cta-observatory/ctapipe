@@ -385,10 +385,7 @@ def largest_island(islands_labels):
     """
     if np.count_nonzero(islands_labels) == 0:
         return np.zeros(islands_labels.shape, dtype="bool")
-    else:
-        return islands_labels == np.argmax(
-            np.bincount(islands_labels[islands_labels > 0])
-        )
+    return islands_labels == np.argmax(np.bincount(islands_labels[islands_labels > 0]))
 
 
 class ImageCleaner(TelescopeComponent):
