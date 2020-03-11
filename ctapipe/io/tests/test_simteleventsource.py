@@ -45,10 +45,6 @@ def compare_sources(input_url):
 
             tels_with_data = s.r0.tels_with_data
             for tel_id in tels_with_data:
-
-                assert type(h.mc.tel[tel_id].meta['refstep']) is type(s.mc.tel[tel_id].meta['refstep'])
-                assert type(h.mc.tel[tel_id].time_slice) is type(s.mc.tel[tel_id].time_slice)
-
                 assert (h.mc.tel[tel_id].dc_to_pe == s.mc.tel[tel_id].dc_to_pe).all()
                 assert (h.mc.tel[tel_id].pedestal == s.mc.tel[tel_id].pedestal).all()
                 assert h.r0.tel[tel_id].waveform.shape == s.r0.tel[tel_id].waveform.shape
