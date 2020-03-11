@@ -352,13 +352,13 @@ class CameraGeometry:
             logger.warning("Sampling rate is not in file, defaulting to 1.0 GHz")
             sampling_rate = u.Quantity(1, u.GHz)
 
-        logger.warning("Reference pulse shape is not in file, defaulting to unit pulse shape")
+        logger.warning("Reference pulse shape is not in file, defaulting to unit")
         reference_pulse_shape = np.ones(1)
 
         try:
             reference_pulse_step = u.Quantity(tab.meta['REF_STEP'], u.ns)
         except KeyError:
-            logger.warning("Reference pulse shape step is not in file, defaulting to 1.0 ns")
+            logger.warning("Reference pulse shape step is not in file, default: 1.0 ns")
             reference_pulse_step = u.Quantity(1, u.ns)
 
         return cls(

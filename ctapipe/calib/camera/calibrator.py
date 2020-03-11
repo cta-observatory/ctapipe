@@ -150,7 +150,7 @@ class CameraCalibrator(Component):
             shape = self.subarray.tel[telid].camera.reference_pulse_shape
             n_chan = shape.shape[0]
             step = self.subarray.tel[telid].camera.reference_pulse_step.to_value(u.ns)
-            time_slice = (1 / self.subarray.tel[telid].camera.sampling_rate).to_value(u.ns)
+            time_slice = (1/self.subarray.tel[telid].camera.sampling_rate).to_value(u.ns)
             correction = integration_correction(
                 n_chan, shape, step, time_slice, width, shift
             )
