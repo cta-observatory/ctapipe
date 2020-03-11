@@ -352,14 +352,14 @@ class CameraGeometry:
             logger.warning("Sampling rate is not in file, defaulting to 1.0 GHz")
             sampling_rate = u.Quantity(1, u.GHz)
 
-        logger.warning("Reference pulse shape is not in file, defaulting to unit")
-        reference_pulse_shape = np.ones(1)
+        logger.warning("Reference pulse shape is not in file, defaulting None")
+        reference_pulse_shape = None
 
         try:
             reference_pulse_step = u.Quantity(tab.meta['REF_STEP'], u.ns)
         except KeyError:
             logger.warning("Reference pulse shape step is not in file, default: 1.0 ns")
-            reference_pulse_step = u.Quantity(1, u.ns)
+            reference_pulse_step = None
 
         return cls(
             cam_id=tab.meta.get('CAM_ID', 'Unknown'),
@@ -593,8 +593,8 @@ class CameraGeometry:
                    neighbors=None,
                    pix_type='rectangular',
                    sampling_rate=u.Quantity(1, u.GHz),
-                   reference_pulse_shape=np.ones(1),
-                   reference_pulse_step=u.Quantity(1, u.ns),
+                   reference_pulse_shape=None,
+                   reference_pulse_step=None,
                    )
 
     def get_border_pixel_mask(self, width=1):

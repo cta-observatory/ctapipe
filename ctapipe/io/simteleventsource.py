@@ -48,7 +48,7 @@ def build_camera_geometry(cam_settings, pixel_settings, telescope):
         pix_rotation=pix_rotation,
         cam_rotation=-Angle(cam_settings['cam_rot'], u.rad),
         apply_derotation=True,
-        reference_pulse_shape=pixel_settings['ref_shape'].astype('float64'),
+        reference_pulse_shape=pixel_settings['ref_shape'].astype('float64', copy=False),
         reference_pulse_step=u.Quantity(pixel_settings['ref_step'], u.ns),
     )
 
