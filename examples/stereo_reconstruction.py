@@ -25,7 +25,7 @@ cleaning_level = {
 input_url = get_dataset_path('gamma_test_large.simtel.gz')
 event_source = event_source(input_url)
 
-calibrator = CameraCalibrator()
+calibrator = CameraCalibrator(subarray=event_source.subarray)
 horizon_frame = AltAz()
 
 reco = HillasReconstructor()
