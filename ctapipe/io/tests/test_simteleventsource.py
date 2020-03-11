@@ -71,6 +71,10 @@ def compare_sources(input_url):
 
                 assert (h.inst.subarray.tel[tel_id].camera.sampling_rate ==
                         s.inst.subarray.tel[tel_id].camera.sampling_rate)
+                assert (h.inst.subarray.tel[tel_id].camera.reference_pulse_shape ==
+                        s.inst.subarray.tel[tel_id].camera.reference_pulse_shape)
+                assert (h.inst.subarray.tel[tel_id].camera.reference_pulse_step ==
+                        s.inst.subarray.tel[tel_id].camera.reference_pulse_step)
 
 
 def test_compare_event_hessio_and_simtel():

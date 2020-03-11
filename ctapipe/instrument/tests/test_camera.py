@@ -16,6 +16,8 @@ def test_construct():
                           pix_area=x * u.m**2,
                           pix_type='rectangular',
                           sampling_rate=u.Quantity(1, u.GHz),
+                          reference_pulse_shape=np.ones(1),
+                          reference_pulse_step=u.Quantity(1, u.ns),
                           pix_rotation="10d",
                           cam_rotation="12d")
 
@@ -74,6 +76,8 @@ def test_find_neighbor_pixels():
         pix_y=y.ravel(),
         pix_type='rectangular',
         sampling_rate=u.Quantity(1, u.GHz),
+        reference_pulse_shape=np.ones(1),
+        reference_pulse_step=u.Quantity(1, u.ns),
     )
 
     neigh = geom.neighbors
@@ -121,6 +125,8 @@ def test_calc_pixel_neighbors_square():
         pix_y=u.Quantity(y.ravel(), u.cm),
         pix_area=u.Quantity(np.ones(400), u.cm**2),
         sampling_rate=u.Quantity(1, u.GHz),
+        reference_pulse_shape=np.ones(1),
+        reference_pulse_step=u.Quantity(1, u.ns),
     )
 
     assert set(cam.neighbors[0]) == {1, 20}
@@ -142,6 +148,8 @@ def test_calc_pixel_neighbors_square_diagonal():
         pix_y=u.Quantity(y.ravel(), u.cm),
         pix_area=u.Quantity(np.ones(400), u.cm**2),
         sampling_rate=u.Quantity(1, u.GHz),
+        reference_pulse_shape=np.ones(1),
+        reference_pulse_step=u.Quantity(1, u.ns),
     )
 
     cam._neighbors = cam.calc_pixel_neighbors(diagonal=True)
@@ -160,6 +168,8 @@ def test_to_and_from_table():
     assert (geom.pix_area == geom2.pix_area).all()
     assert geom.pix_type == geom2.pix_type
     assert geom.sampling_rate == geom2.sampling_rate
+    assert geom.reference_pulse_shape == geom2.reference_pulse_shape
+    assert geom.reference_pulse_step == geom2.reference_pulse_step
     
 
 def test_write_read(tmpdir):
@@ -167,6 +177,12 @@ def test_write_read(tmpdir):
     filename = str(tmpdir.join('testcamera.fits.gz'))
 
     geom = CameraGeometry.from_name("LSTCam")
+
+    # Non-default to check they are correctly written and read
+    geom.sampling_rate = u.Quantity(2, u.GHz)
+    geom.reference_pulse_shape = np.arange(3).astype(np.float)
+    geom.reference_pulse_step = u.Quantity(0.5, u.ns)
+
     geom.to_table().write(filename, overwrite=True)
     geom2 = geom.from_table(filename)
 
@@ -176,6 +192,9 @@ def test_write_read(tmpdir):
     assert (geom.pix_area == geom2.pix_area).all()
     assert geom.pix_type == geom2.pix_type
     assert geom.sampling_rate == geom2.sampling_rate
+    # TODO: Reference pulse shape cannot be stored to file currently (variable length)
+    # assert np.array_equal(geom.reference_pulse_shape, geom2.reference_pulse_shape)
+    assert geom.reference_pulse_step == geom2.reference_pulse_step
 
 
 def test_precal_neighbors():
@@ -193,6 +212,8 @@ def test_precal_neighbors():
                           ],
                           pix_type='rectangular',
                           sampling_rate=u.Quantity(1, u.GHz),
+                          reference_pulse_shape=np.ones(1),
+                          reference_pulse_step=u.Quantity(1, u.ns),
                           pix_rotation="0deg",
                           cam_rotation="0deg")
 
@@ -251,6 +272,8 @@ def test_rectangle_patch_neighbors():
         pix_area=None,
         pix_type='rectangular',
         sampling_rate=u.Quantity(1, u.GHz),
+        reference_pulse_shape=np.ones(1),
+        reference_pulse_step=u.Quantity(1, u.ns),
     )
 
     assert np.all(cam.neighbor_matrix.T == cam.neighbor_matrix)

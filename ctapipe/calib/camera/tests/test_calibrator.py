@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 from scipy.stats import norm
 from traitlets.config.configurable import Config
+from astropy import units as u
 
 from ctapipe.calib.camera.calibrator import (
     CameraCalibrator,
@@ -52,21 +53,29 @@ def test_config():
 
 def test_integration_correction(example_event):
     telid = list(example_event.r0.tel)[0]
+    subarray = example_event.inst.subarray
 
     width = 7
     shift = 3
-    shape = example_event.mc.tel[telid].reference_pulse_shape
-    n_chan = shape.shape[0]
-    step = example_event.mc.tel[telid].meta["refstep"]
-    time_slice = example_event.mc.tel[telid].time_slice
-    correction = integration_correction(n_chan, shape, step, time_slice, width, shift)
+    pulse_shape = subarray.tel[telid].camera.reference_pulse_shape
+    n_chan = pulse_shape.shape[0]
+    step = subarray.tel[telid].camera.reference_pulse_step.to_value(u.ns)
+    time_slice = (1 / subarray.tel[telid].camera.sampling_rate).to_value(u.ns)
+    correction = integration_correction(
+        n_chan, pulse_shape, step, time_slice, width, shift
+    )
     assert correction is not None
+
+    calibrator = CameraCalibrator(subarray=example_event.inst.subarray)
+    calibrator._calibrate_dl0(example_event, telid)
+    correction2 = calibrator._get_correction(example_event, telid)
+    assert (correction == correction2).all()
 
 
 def test_integration_correction_no_ref_pulse(example_event):
     telid = list(example_event.r0.tel)[0]
-    delattr(example_event, "mc")
-    calibrator = CameraCalibrator()
+    delattr(example_event.inst.subarray.tel[telid].camera, "reference_pulse_shape")
+    calibrator = CameraCalibrator(subarray=example_event.inst.subarray)
     calibrator._calibrate_dl0(example_event, telid)
     correction = calibrator._get_correction(example_event, telid)
     assert (correction == 1).all()
