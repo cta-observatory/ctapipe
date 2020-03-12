@@ -7,7 +7,6 @@ from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.lines import Line2D
 from matplotlib.patches import Circle
-from matplotlib.colors import to_rgba
 
 from ctapipe.coordinates import GroundFrame
 from ctapipe.visualization.mpl_camera import polar_to_cart
@@ -160,9 +159,10 @@ class ArrayDisplay:
         coords = self.tel_coords
         uu = u.Quantity(uu).to_value("m")
         vv = u.Quantity(vv).to_value("m")
-
         N = len(coords.x)
 
+        # matplotlib since 3.2 does not allow scalars anymore 
+        # if quiver was already created with a certain number of arrows
         if np.isscalar(uu):
             uu = np.full(N, uu)
         if np.isscalar(vv):
@@ -178,8 +178,10 @@ class ArrayDisplay:
         ]
 
         if c is None:
+            # use colors by telescope type if the user did not provide any
             kwargs['color'] = kwargs.get('color', self.tel_colors)
         else:
+            # same as above, enable use of scalar to set all values at once
             if np.isscalar(c):
                 c = np.full(N, c)
             args.append(c)
