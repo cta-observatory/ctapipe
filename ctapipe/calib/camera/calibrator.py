@@ -15,7 +15,7 @@ __all__ = ["CameraCalibrator"]
 
 
 def integration_correction(
-    n_chan, pulse_shape, refstep, time_slice, window_width, window_shift
+    reference_pulse_shape, reference_pulse_step, sampled_step, window_width, window_shift
 ):
     """
     Obtain the integration correction for the window specified.
@@ -46,31 +46,26 @@ def integration_correction(
         Value of the integration correction for this telescope for each
         channel.
     """
-    correction = np.ones(n_chan)
-    for chan in range(n_chan):
-        pshape = pulse_shape[chan]
-        if pshape.all() is False or time_slice == 0 or refstep == 0:
+    n_channels = len(reference_pulse_shape)
+    correction = np.ones(n_channels, dtype=np.float)
+    for ichannel, pulse_shape in enumerate(reference_pulse_shape):
+        pulse_max_sample = pulse_shape.size * reference_pulse_step
+        pulse_shape_x = np.arange(0, pulse_max_sample, reference_pulse_step)
+        sampled_edges = np.arange(0, pulse_max_sample, sampled_step)
+
+        sampled_pulse, _ = np.histogram(
+            pulse_shape_x, sampled_edges, weights=pulse_shape, density=True
+        )
+        n_samples = sampled_pulse.size
+        start = sampled_pulse.argmax() - window_shift
+        start = start if start >= 0 else 0
+        end = start + window_width
+        end = end if end < n_samples else n_samples
+        if start >= end:
             continue
 
-        ref_x = np.arange(0, pshape.size * refstep, refstep)
-        edges = np.arange(0, pshape.size * refstep + 1, time_slice)
-
-        sampled, sampled_edges = np.histogram(
-            ref_x, edges, weights=pshape, density=True
-        )
-        n_samples = sampled.size
-        start = sampled.argmax() - window_shift
-        end = start + window_width
-
-        if window_width > n_samples:
-            window_width = n_samples
-        if start < 0:
-            start = 0
-        if start + window_width > n_samples:
-            start = n_samples - window_width
-
-        integration = np.diff(sampled_edges)[start:end] * sampled[start:end]
-        correction[chan] = 1 / np.sum(integration)
+        integration = sampled_pulse[start:end] * sampled_step
+        correction[ichannel] = 1.0 / np.sum(integration)
 
     return correction
 
@@ -149,9 +144,7 @@ class CameraCalibrator(Component):
             n_chan = shape.shape[0]
             step = event.mc.tel[telid].meta["refstep"]
             time_slice = event.mc.tel[telid].time_slice
-            correction = integration_correction(
-                n_chan, shape, step, time_slice, width, shift
-            )
+            correction = integration_correction(shape, step, time_slice, width, shift)
             pixel_correction = correction[selected_gain_channel]
             return pixel_correction
         except (AttributeError, KeyError):

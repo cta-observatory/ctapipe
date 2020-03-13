@@ -86,7 +86,7 @@ def test_integration_correction(reference_pulse, sampled_reference_pulse):
             window_width = window_end - window_start
             window_shift = sampled_pulse_fc.argmax() - window_start
             correction = integration_correction(
-                len(reference_pulse_shape), reference_pulse_shape,
+                reference_pulse_shape,
                 reference_pulse_step, sampled_step,
                 window_width, window_shift
             )[0]
@@ -103,11 +103,11 @@ def test_integration_correction_outofbounds(reference_pulse, sampled_reference_p
     full_integral = np.sum(sampled_pulse[0] * sampled_step)
 
     for window_start in range(0, sampled_pulse_fc.size):
-        for window_end in range(sampled_pulse_fc.size-1, sampled_pulse_fc.size*2):
+        for window_end in range(sampled_pulse_fc.size, sampled_pulse_fc.size+20):
             window_width = window_end - window_start
             window_shift = sampled_pulse_fc.argmax() - window_start
             correction = integration_correction(
-                len(reference_pulse_shape), reference_pulse_shape,
+                reference_pulse_shape,
                 reference_pulse_step, sampled_step,
                 window_width, window_shift
             )[0]
