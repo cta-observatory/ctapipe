@@ -18,23 +18,26 @@ def integration_correction(
     reference_pulse_shape, reference_pulse_step, sampled_step, window_width, window_shift
 ):
     """
-    Obtain the integration correction for the window specified.
+    Obtain the correction for the integration window specified.
 
-    This correction accounts for the cherenkov signal that may be missed due
-    to a smaller integration window by looking at the reference pulse shape.
+    For any integration window applied to a noise-less unit pulse, the
+    correction (returned by this function) multiplied by the integration
+    result should equal 1.
 
-    Provides the same result as set_integration_correction from readhess.
+    This correction therefore corrects for the Cherenkov signal that may be
+    outside the integration window, and removes any dependence of the resulting
+    image on the window_width and window_shift parameters. However, the width
+    and shift of the window should still be optimised for the pulse finding and
+    to minimise the noise included in the integration.
 
     Parameters
     ----------
-    n_chan : int
-        Number of gain channels for the telescope
-    pulse_shape : ndarray
-        Numpy array containing the pulse shape for each channel.
-    refstep : int
+    reference_pulse_shape : ndarray
+        Numpy array containing the pulse shape for each gain channel
+    reference_pulse_step : float
         The step in time for each sample of the reference pulse shape
-    time_slice : int
-        The step in time for each sample of the waveforms
+    sampled_step : int
+        The step in time for each sample of the sampled waveforms
     window_width : int
         Width of the integration window.
     window_shift : int
@@ -42,9 +45,8 @@ def integration_correction(
 
     Returns
     -------
-    correction : list[2]
-        Value of the integration correction for this telescope for each
-        channel.
+    correction : ndarray
+        Value of the integration correction for each gain channel
     """
     n_channels = len(reference_pulse_shape)
     correction = np.ones(n_channels, dtype=np.float)
