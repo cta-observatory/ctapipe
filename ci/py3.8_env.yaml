@@ -7,7 +7,7 @@ dependencies:
   - astropy
   - bokeh
   - conda-forge::nbsphinx
-  - ctapipe-extra=0.2.18
+  - ctapipe-extra=0.2.19
   - cython
   - graphviz
   - iminuit
