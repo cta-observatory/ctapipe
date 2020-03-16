@@ -149,32 +149,32 @@ def test_baseline_subtractor(camera_waveforms):
 
 
 def test_full_waveform_sum(camera_waveforms):
-    waveforms, _ = camera_waveforms
-    extractor = FullWaveformSum()
+    waveforms, subarray = camera_waveforms
+    extractor = FullWaveformSum(subarray=subarray)
     charge, pulse_time = extractor(waveforms)
     assert_allclose(charge[0], 545.945, rtol=1e-3)
     assert_allclose(pulse_time[0], 46.34044, rtol=1e-3)
 
 
 def test_fixed_window_sum(camera_waveforms):
-    waveforms, _ = camera_waveforms
-    extractor = FixedWindowSum(window_start=45)
+    waveforms, subarray = camera_waveforms
+    extractor = FixedWindowSum(subarray=subarray, window_start=45)
     charge, pulse_time = extractor(waveforms)
     assert_allclose(charge[0], 232.559, rtol=1e-3)
     assert_allclose(pulse_time[0], 47.823488, rtol=1e-3)
 
 
 def test_global_peak_window_sum(camera_waveforms):
-    waveforms, _ = camera_waveforms
-    extractor = GlobalPeakWindowSum()
+    waveforms, subarray = camera_waveforms
+    extractor = GlobalPeakWindowSum(subarray=subarray)
     charge, pulse_time = extractor(waveforms)
     assert_allclose(charge[0], 232.559, rtol=1e-3)
     assert_allclose(pulse_time[0], 47.823488, rtol=1e-3)
 
 
 def test_local_peak_window_sum(camera_waveforms):
-    waveforms, _ = camera_waveforms
-    extractor = LocalPeakWindowSum()
+    waveforms, subarray = camera_waveforms
+    extractor = LocalPeakWindowSum(subarray=subarray)
     charge, pulse_time = extractor(waveforms)
     assert_allclose(charge[0], 240.3, rtol=1e-3)
     assert_allclose(pulse_time[0], 46.036266, rtol=1e-3)
@@ -202,24 +202,30 @@ def test_baseline_subtracted_neighbor_peak_window_sum(camera_waveforms):
 
 
 def test_waveform_extractor_factory(camera_waveforms):
-    waveforms, _ = camera_waveforms
-    extractor = ImageExtractor.from_name("LocalPeakWindowSum")
+    waveforms, subarray = camera_waveforms
+    extractor = ImageExtractor.from_name("LocalPeakWindowSum", subarray=subarray)
     extractor(waveforms)
 
 
-def test_waveform_extractor_factory_args():
+def test_waveform_extractor_factory_args(camera_waveforms):
     """
     Config is supposed to be created by a `Tool`
     """
+    _, subarray = camera_waveforms
     config = Config({"ImageExtractor": {"window_width": 20, "window_shift": 3,}})
 
-    extractor = ImageExtractor.from_name("LocalPeakWindowSum", config=config,)
+    extractor = ImageExtractor.from_name(
+        "LocalPeakWindowSum",
+        subarray=subarray,
+        config=config,
+    )
     assert extractor.window_width.tel[None] == 20
     assert extractor.window_shift.tel[None] == 3
 
     with pytest.warns(UserWarning):
         ImageExtractor.from_name(
             "FullWaveformSum", config=config,
+            subarray=subarray
         )
 
 
@@ -238,21 +244,13 @@ def test_extractor_tel_param(camera_waveforms):
 
     waveforms, subarray = camera_waveforms
     n_pixels, n_samples = waveforms.shape
-    extractor = ImageExtractor.from_name("FixedWindowSum", config=config)
-
-    with pytest.raises(KeyError):
-        assert extractor.window_width.tel[1] == n_samples
-
-    with pytest.raises(KeyError):
-        assert extractor.window_width.tel[2] == n_samples // 2
-
-    assert extractor.window_start.tel[None] == 0
-    assert extractor.window_width.tel[None] == n_samples
-
     extractor = ImageExtractor.from_name(
-        "FixedWindowSum", config=config, subarray=subarray
+        "FixedWindowSum",
+        subarray=subarray,
+        config=config,
     )
 
+    assert extractor.window_start.tel[None] == 0
     assert extractor.window_start.tel[1] == 0
     assert extractor.window_start.tel[2] == 0
     assert extractor.window_width.tel[None] == n_samples

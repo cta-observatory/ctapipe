@@ -84,16 +84,20 @@ class CameraCalibrator(Component):
 
     def __init__(
         self,
+        subarray,
         config=None,
         parent=None,
         data_volume_reducer=None,
         image_extractor=None,
-        subarray=None,
         **kwargs
     ):
         """
         Parameters
         ----------
+        subarray: ctapipe.instrument.SubarrayDescription
+            Description of the subarray. Provides information about the
+            camera which are useful in calibration. Also required for
+            configuring the TelescopeParameter traitlets.
         config : traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
