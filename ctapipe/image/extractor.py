@@ -159,13 +159,18 @@ def subtract_baseline(waveforms, baseline_start, baseline_end):
 
 
 class ImageExtractor(Component):
-    def __init__(self, config=None, parent=None, subarray=None, **kwargs):
+    def __init__(self, subarray, config=None, parent=None, **kwargs):
         """
         Base component to handle the extraction of charge and pulse time
         from an image cube (waveforms).
 
         Parameters
         ----------
+        subarray: ctapipe.instrument.SubarrayDescription
+            Description of the subarray. Provides information about the
+            camera which are useful in charge extraction, such as reference
+            pulse shape, sampling rate, neighboring pixels. Also required for
+            configuring the TelescopeParameter traitlets.
         config : traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
@@ -174,8 +179,6 @@ class ImageExtractor(Component):
             Tool executable that is calling this component.
             Passes the correct logger to the component.
             Set to None if no Tool to pass.
-        subarray: ctapipe.instrument.SubarrayDescription
-            Description of the subarray
         kwargs
         """
         super().__init__(config=config, parent=parent, **kwargs)

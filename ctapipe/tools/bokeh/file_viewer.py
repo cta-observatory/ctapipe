@@ -89,9 +89,9 @@ class BokehFileViewer(Tool):
             subarray=self.reader.subarray,
         )
         self.calibrator = CameraCalibrator(
+            subarray=self.reader.subarray,
             parent=self,
             image_extractor=self.extractor,
-            subarray=self.reader.subarray,
         )
 
         self.viewer = BokehEventViewer(parent=self)
@@ -232,6 +232,7 @@ class BokehFileViewer(Tool):
         self.extractor = extractor
 
         self.calibrator = CameraCalibrator(
+            subarray=self.reader.subarray,
             parent=self,
             image_extractor=self.extractor,
         )
