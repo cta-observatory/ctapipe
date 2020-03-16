@@ -15,7 +15,8 @@ __all__ = ["CameraCalibrator"]
 
 
 def integration_correction(
-    reference_pulse_shape, reference_pulse_step, sample_width, window_width, window_shift
+    reference_pulse_shape, reference_pulse_step, sample_width_ns,
+    window_width, window_shift
 ):
     """
     Obtain the correction for the integration window specified.
@@ -36,7 +37,7 @@ def integration_correction(
         Numpy array containing the pulse shape for each gain channel
     reference_pulse_step : float
         The step in time for each sample of the reference pulse shape in ns
-    sample_width : float
+    sample_width_ns : float
         The width of the waveform sample time bin in ns
     window_width : int
         Width of the integration window (in units of n_samples)
@@ -54,7 +55,7 @@ def integration_correction(
     for ichannel, pulse_shape in enumerate(reference_pulse_shape):
         pulse_max_sample = pulse_shape.size * reference_pulse_step
         pulse_shape_x = np.arange(0, pulse_max_sample, reference_pulse_step)
-        sampled_edges = np.arange(0, pulse_max_sample, sample_width)
+        sampled_edges = np.arange(0, pulse_max_sample, sample_width_ns)
 
         sampled_pulse, _ = np.histogram(
             pulse_shape_x, sampled_edges, weights=pulse_shape, density=True
@@ -67,7 +68,7 @@ def integration_correction(
         if start >= end:
             continue
 
-        integration = sampled_pulse[start:end] * sample_width
+        integration = sampled_pulse[start:end] * sample_width_ns
         correction[ichannel] = 1.0 / np.sum(integration)
 
     return correction
@@ -148,7 +149,6 @@ class CameraCalibrator(Component):
             shift = self.image_extractor.window_shift.tel[None]
             width = self.image_extractor.window_width.tel[None]
             shape = event.mc.tel[telid].reference_pulse_shape
-            n_chan = shape.shape[0]
             step = event.mc.tel[telid].meta["refstep"]
             time_slice = event.mc.tel[telid].time_slice
             correction = integration_correction(shape, step, time_slice, width, shift)
