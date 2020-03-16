@@ -15,7 +15,7 @@ __all__ = ["CameraCalibrator"]
 
 
 def integration_correction(
-    reference_pulse_shape, reference_pulse_step, sampled_step, window_width, window_shift
+    reference_pulse_shape, reference_pulse_step, sample_width, window_width, window_shift
 ):
     """
     Obtain the correction for the integration window specified.
@@ -35,13 +35,14 @@ def integration_correction(
     reference_pulse_shape : ndarray
         Numpy array containing the pulse shape for each gain channel
     reference_pulse_step : float
-        The step in time for each sample of the reference pulse shape
-    sampled_step : int
-        The step in time for each sample of the sampled waveforms
+        The step in time for each sample of the reference pulse shape in ns
+    sample_width : float
+        The width of the waveform sample time bin in ns
     window_width : int
-        Width of the integration window.
+        Width of the integration window (in units of n_samples)
     window_shift : int
-        Shift to before the peak for the start of the integration window.
+        Shift to before the peak for the start of the integration window
+        (in units of n_samples)
 
     Returns
     -------
@@ -53,7 +54,7 @@ def integration_correction(
     for ichannel, pulse_shape in enumerate(reference_pulse_shape):
         pulse_max_sample = pulse_shape.size * reference_pulse_step
         pulse_shape_x = np.arange(0, pulse_max_sample, reference_pulse_step)
-        sampled_edges = np.arange(0, pulse_max_sample, sampled_step)
+        sampled_edges = np.arange(0, pulse_max_sample, sample_width)
 
         sampled_pulse, _ = np.histogram(
             pulse_shape_x, sampled_edges, weights=pulse_shape, density=True
@@ -66,7 +67,7 @@ def integration_correction(
         if start >= end:
             continue
 
-        integration = sampled_pulse[start:end] * sampled_step
+        integration = sampled_pulse[start:end] * sample_width
         correction[ichannel] = 1.0 / np.sum(integration)
 
     return correction
