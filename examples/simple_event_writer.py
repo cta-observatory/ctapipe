@@ -46,7 +46,7 @@ class SimpleEventWriter(Tool):
         )
 
         self.calibrator = self.add_component(
-            CameraCalibrator(parent=self)
+            CameraCalibrator(subarray=self.event_source.subarray, parent=self)
         )
 
         self.writer = self.add_component(

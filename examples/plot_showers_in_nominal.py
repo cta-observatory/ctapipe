@@ -21,7 +21,7 @@ input_url = get_dataset_path('gamma_test_large.simtel.gz')
 
 
 with event_source(input_url=input_url) as source:
-    calibrator = CameraCalibrator()
+    calibrator = CameraCalibrator(subarray=source.subarray)
 
     for event in source:
 
