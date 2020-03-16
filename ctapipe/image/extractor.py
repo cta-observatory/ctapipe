@@ -130,65 +130,6 @@ def neighbor_average_waveform(waveforms, neighbors, lwt):
     return sum_ / n
 
 
-@guvectorize(
-    [
-        (float64[:], int64, int64, int64, float64[:]),
-        (float32[:], int64, int64, int64, float64[:]),
-    ],
-    "(s),(),(),()->()",
-    nopython=True,
-)
-def extract_pulse_time_around_peak(waveforms, peak_index, width, shift, ret):
-    """
-    Obtain the pulse time within a window defined by a peak finding algorithm,
-    using the weighted average of the samples.
-
-    This function is a numpy universal function which defines the operation
-    applied on the waveform for every channel and pixel. Therefore in the
-    code body of this function:
-        - waveforms is a 1D array of size n_samples.
-        - Peakpos, width and shift are integers, corresponding to the correct
-            value for the current pixel
-
-    The ret argument is required by numpy to create the numpy array which is
-    returned. It can be ignored when calling this function.
-
-    Parameters
-    ----------
-    waveforms : ndarray
-        Waveforms stored in a numpy array.
-        Shape: (n_pix, n_samples)
-    peak_index : ndarray or int
-        Peak index in waveform for each pixel.
-    width : ndarray or int
-        Window size of integration window for each pixel.
-    shift : ndarray or int
-        Window size of integration window for each pixel.
-    ret : ndarray
-        Return argument for ufunc (ignore)
-
-    Returns
-    -------
-    pulse_time : ndarray
-        Floating point pulse time in each pixel
-        Shape: (n_pix)
-
-    """
-    n_samples = waveforms.size
-    start = peak_index - shift
-    end = start + width
-
-    num = 0
-    den = 0
-    for isample in prange(start, end):
-        if (0 <= isample < n_samples) & (waveforms[isample] > 0):
-            num += waveforms[isample] * isample
-            den += waveforms[isample]
-
-    # TODO: Return pulse time in units of ns instead of isample
-    ret[0] = num / den if den > 0 else peak_index
-
-
 def subtract_baseline(waveforms, baseline_start, baseline_end):
     """
     Subtracts the waveform baseline, estimated as the mean waveform value
@@ -218,13 +159,18 @@ def subtract_baseline(waveforms, baseline_start, baseline_end):
 
 
 class ImageExtractor(Component):
-    def __init__(self, config=None, parent=None, subarray=None, **kwargs):
+    def __init__(self, subarray, config=None, parent=None, **kwargs):
         """
         Base component to handle the extraction of charge and pulse time
         from an image cube (waveforms).
 
         Parameters
         ----------
+        subarray: ctapipe.instrument.SubarrayDescription
+            Description of the subarray. Provides information about the
+            camera which are useful in charge extraction, such as reference
+            pulse shape, sampling rate, neighboring pixels. Also required for
+            configuring the TelescopeParameter traitlets.
         config : traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
@@ -233,8 +179,6 @@ class ImageExtractor(Component):
             Tool executable that is calling this component.
             Passes the correct logger to the component.
             Set to None if no Tool to pass.
-        subarray: ctapipe.instrument.SubarrayDescription
-            Description of the subarray
         kwargs
         """
         super().__init__(config=config, parent=parent, **kwargs)
