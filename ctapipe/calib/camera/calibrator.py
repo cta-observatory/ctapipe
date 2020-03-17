@@ -15,62 +15,61 @@ __all__ = ["CameraCalibrator"]
 
 
 def integration_correction(
-    n_chan, pulse_shape, refstep, time_slice, window_width, window_shift
+    reference_pulse_shape, reference_pulse_step, sample_width_ns,
+    window_width, window_shift
 ):
     """
-    Obtain the integration correction for the window specified.
+    Obtain the correction for the integration window specified.
 
-    This correction accounts for the cherenkov signal that may be missed due
-    to a smaller integration window by looking at the reference pulse shape.
+    For any integration window applied to a noise-less unit pulse, the
+    correction (returned by this function) multiplied by the integration
+    result should equal 1.
 
-    Provides the same result as set_integration_correction from readhess.
+    This correction therefore corrects for the Cherenkov signal that may be
+    outside the integration window, and removes any dependence of the resulting
+    image on the window_width and window_shift parameters. However, the width
+    and shift of the window should still be optimised for the pulse finding and
+    to minimise the noise included in the integration.
 
     Parameters
     ----------
-    n_chan : int
-        Number of gain channels for the telescope
-    pulse_shape : ndarray
-        Numpy array containing the pulse shape for each channel.
-    refstep : int
-        The step in time for each sample of the reference pulse shape
-    time_slice : int
-        The step in time for each sample of the waveforms
+    reference_pulse_shape : ndarray
+        Numpy array containing the pulse shape for each gain channel
+    reference_pulse_step : float
+        The step in time for each sample of the reference pulse shape in ns
+    sample_width_ns : float
+        The width of the waveform sample time bin in ns
     window_width : int
-        Width of the integration window.
+        Width of the integration window (in units of n_samples)
     window_shift : int
-        Shift to before the peak for the start of the integration window.
+        Shift to before the peak for the start of the integration window
+        (in units of n_samples)
 
     Returns
     -------
-    correction : list[2]
-        Value of the integration correction for this telescope for each
-        channel.
+    correction : ndarray
+        Value of the integration correction for each gain channel
     """
-    correction = np.ones(n_chan)
-    for chan in range(n_chan):
-        pshape = pulse_shape[chan]
-        if pshape.all() is False or time_slice == 0 or refstep == 0:
+    n_channels = len(reference_pulse_shape)
+    correction = np.ones(n_channels, dtype=np.float)
+    for ichannel, pulse_shape in enumerate(reference_pulse_shape):
+        pulse_max_sample = pulse_shape.size * reference_pulse_step
+        pulse_shape_x = np.arange(0, pulse_max_sample, reference_pulse_step)
+        sampled_edges = np.arange(0, pulse_max_sample, sample_width_ns)
+
+        sampled_pulse, _ = np.histogram(
+            pulse_shape_x, sampled_edges, weights=pulse_shape, density=True
+        )
+        n_samples = sampled_pulse.size
+        start = sampled_pulse.argmax() - window_shift
+        start = start if start >= 0 else 0
+        end = start + window_width
+        end = end if end < n_samples else n_samples
+        if start >= end:
             continue
 
-        ref_x = np.arange(0, pshape.size * refstep, refstep)
-        edges = np.arange(0, pshape.size * refstep + 1, time_slice)
-
-        sampled, sampled_edges = np.histogram(
-            ref_x, edges, weights=pshape, density=True
-        )
-        n_samples = sampled.size
-        start = sampled.argmax() - window_shift
-        end = start + window_width
-
-        if window_width > n_samples:
-            window_width = n_samples
-        if start < 0:
-            start = 0
-        if start + window_width > n_samples:
-            start = n_samples - window_width
-
-        integration = np.diff(sampled_edges)[start:end] * sampled[start:end]
-        correction[chan] = 1 / np.sum(integration)
+        integration = sampled_pulse[start:end] * sample_width_ns
+        correction[ichannel] = 1.0 / np.sum(integration)
 
     return correction
 
@@ -150,12 +149,9 @@ class CameraCalibrator(Component):
             shift = self.image_extractor.window_shift.tel[None]
             width = self.image_extractor.window_width.tel[None]
             shape = event.mc.tel[telid].reference_pulse_shape
-            n_chan = shape.shape[0]
             step = event.mc.tel[telid].meta["refstep"]
             time_slice = event.mc.tel[telid].time_slice
-            correction = integration_correction(
-                n_chan, shape, step, time_slice, width, shift
-            )
+            correction = integration_correction(shape, step, time_slice, width, shift)
             pixel_correction = correction[selected_gain_channel]
             return pixel_correction
         except (AttributeError, KeyError):
