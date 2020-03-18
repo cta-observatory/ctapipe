@@ -224,12 +224,12 @@ class Tool(Application):
             self.log.error(f"Caught unexpected exception: {err}")
             self.finish()
             Provenance().finish_activity(activity_name=self.name, status="error")
-            exit_status=1  # any other error
+            exit_status = 1  # any other error
         except KeyboardInterrupt:
             self.log.warning("WAS INTERRUPTED BY CTRL-C")
             self.finish()
             Provenance().finish_activity(activity_name=self.name, status="interrupted")
-            exit_status=130  # Script terminated by Control-C
+            exit_status = 130  # Script terminated by Control-C
         finally:
             for activity in Provenance().finished_activities:
                 output_str = " ".join([x["url"] for x in activity.output])
@@ -239,8 +239,7 @@ class Tool(Application):
             with open("provenance.log", mode="w+") as provlog:
                 provlog.write(Provenance().as_json(indent=3))
 
-        sys.exit(exit_status)
-
+        self.exit(exit_status)
 
     @property
     def version_string(self):
