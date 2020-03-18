@@ -21,6 +21,31 @@ def subarray(example_event):
     return example_event.inst.subarray
 
 
+@pytest.fixture('module')
+def reference_pulse():
+    reference_pulse_step = 0.09
+    n_reference_pulse_samples = 1280
+    reference_pulse_shape = np.array([
+        norm.pdf(np.arange(n_reference_pulse_samples), 600, 100) * 1.7,
+        norm.pdf(np.arange(n_reference_pulse_samples), 700, 100) * 1.7,
+    ])
+    return reference_pulse_shape, reference_pulse_step
+
+
+@pytest.fixture('module')
+def sampled_reference_pulse(reference_pulse):
+    reference_pulse_shape, reference_pulse_step = reference_pulse
+    n_channels, n_reference_pulse_samples = reference_pulse_shape.shape
+    pulse_max_sample = n_reference_pulse_samples * reference_pulse_step
+    sample_width_ns = 2
+    pulse_shape_x = np.arange(0, pulse_max_sample, reference_pulse_step)
+    sampled_edges = np.arange(0, pulse_max_sample, sample_width_ns)
+    sampled_pulse = np.array([np.histogram(
+        pulse_shape_x, sampled_edges, weights=reference_pulse_shape[ichan], density=True
+    )[0] for ichan in range(n_channels)])
+    return sampled_pulse, sample_width_ns
+
+
 def test_camera_calibrator(example_event, subarray):
     telid = list(example_event.r0.tel)[0]
     calibrator = CameraCalibrator(subarray=subarray)
@@ -61,25 +86,46 @@ def test_config(subarray):
     assert calibrator.image_extractor.window_width.tel[None] == window_width
 
 
-def test_integration_correction(example_event):
-    telid = list(example_event.r0.tel)[0]
-    subarray = example_event.inst.subarray
+def test_integration_correction(reference_pulse, sampled_reference_pulse):
+    reference_pulse_shape, reference_pulse_step = reference_pulse
+    sampled_pulse, sample_width_ns = sampled_reference_pulse
+    sampled_pulse_fc = sampled_pulse[0]  # Test first channel
+    full_integral = np.sum(sampled_pulse[0] * sample_width_ns)
 
-    width = 7
-    shift = 3
-    pulse_shape = subarray.tel[telid].camera.reference_pulse_shape
-    n_chan = pulse_shape.shape[0]
-    step = subarray.tel[telid].camera.reference_pulse_step.to_value(u.ns)
-    time_slice = (1 / subarray.tel[telid].camera.sampling_rate).to_value(u.ns)
-    correction = integration_correction(
-        n_chan, pulse_shape, step, time_slice, width, shift
-    )
-    assert correction is not None
+    for window_start in range(0, sampled_pulse_fc.size):
+        for window_end in range(window_start+1, sampled_pulse_fc.size):
+            window_width = window_end - window_start
+            window_shift = sampled_pulse_fc.argmax() - window_start
+            correction = integration_correction(
+                reference_pulse_shape,
+                reference_pulse_step, sample_width_ns,
+                window_width, window_shift
+            )[0]
+            window_integral = np.sum(
+                sampled_pulse_fc[window_start:window_end] * sample_width_ns
+            )
+            np.testing.assert_allclose(full_integral, window_integral * correction)
 
-    calibrator = CameraCalibrator(subarray=example_event.inst.subarray)
-    calibrator._calibrate_dl0(example_event, telid)
-    correction2 = calibrator._get_correction(example_event, telid)
-    assert (correction == correction2).all()
+
+def test_integration_correction_outofbounds(reference_pulse, sampled_reference_pulse):
+    reference_pulse_shape, reference_pulse_step = reference_pulse
+    sampled_pulse, sample_width_ns = sampled_reference_pulse
+    sampled_pulse_fc = sampled_pulse[0]  # Test first channel
+    full_integral = np.sum(sampled_pulse[0] * sample_width_ns)
+
+    for window_start in range(0, sampled_pulse_fc.size):
+        for window_end in range(sampled_pulse_fc.size, sampled_pulse_fc.size+20):
+            window_width = window_end - window_start
+            window_shift = sampled_pulse_fc.argmax() - window_start
+            correction = integration_correction(
+                reference_pulse_shape,
+                reference_pulse_step, sample_width_ns,
+                window_width, window_shift
+            )[0]
+            window_integral = np.sum(
+                sampled_pulse_fc[window_start:window_end] * sample_width_ns
+            )
+            np.testing.assert_allclose(full_integral, window_integral * correction)
 
 
 def test_integration_correction_no_ref_pulse(example_event, subarray):
