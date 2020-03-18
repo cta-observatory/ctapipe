@@ -80,3 +80,23 @@ def test_tool_current_config():
 
     assert conf1['MyTool']['userparam'] == 5.0
     assert conf2['MyTool']['userparam'] == -1.0
+
+
+def test_tool_exit_code():
+    """ Check that we can get the full instance configuration """
+    class MyTool(Tool):
+
+        description = "test"
+        userparam = Float(5.0, help="parameter").tag(config=True)
+
+    tool = MyTool()
+
+    with pytest.raises(SystemExit) as exc:
+        tool.run(['--non-existent-option'])
+
+    assert exc.value.code == 1
+
+    with pytest.raises(SystemExit) as exc:
+        tool.run(['--MyTool.userparam=foo'])
+
+    assert exc.value.code == 1
