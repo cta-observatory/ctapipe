@@ -10,6 +10,7 @@ import matplotlib as mpl
 import pytest
 
 from ctapipe.utils import get_dataset_path
+from ctapipe.core import run_tool
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 
@@ -17,28 +18,23 @@ GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 def test_muon_reconstruction(tmpdir):
     from ctapipe.tools.muon_reconstruction import MuonDisplayerTool
 
-    with pytest.raises(SystemExit) as exc:
-        MuonDisplayerTool().run(
-            argv=shlex.split(f"--input={GAMMA_TEST_LARGE} " "--max_events=2 ")
-        )
-    assert exc.value.code == 0
-
-    with pytest.raises(SystemExit):
-        MuonDisplayerTool().run(["--help-all"])
+    assert run_tool(
+        MuonDisplayerTool(),
+        argv=shlex.split(f"--input={GAMMA_TEST_LARGE} " "--max_events=2 ")
+    ) == 0
+    assert run_tool(MuonDisplayerTool(), ["--help-all"]) == 0
 
 
 def test_display_summed_images(tmpdir):
     from ctapipe.tools.display_summed_images import ImageSumDisplayerTool
 
     mpl.use("Agg")
-    with pytest.raises(SystemExit) as exc:
-        ImageSumDisplayerTool().run(
-            argv=shlex.split(f"--infile={GAMMA_TEST_LARGE} " "--max-events=2 ")
-        )
-    assert exc.value.code == 0
+    assert run_tool(
+        ImageSumDisplayerTool(),
+        argv=shlex.split(f"--infile={GAMMA_TEST_LARGE} " "--max-events=2 ")
+    ) == 0
 
-    with pytest.raises(SystemExit):
-        ImageSumDisplayerTool().run(["--help-all"])
+    assert run_tool(ImageSumDisplayerTool(), ["--help-all"]) == 0
 
 
 def test_display_integrator(tmpdir):
@@ -46,14 +42,12 @@ def test_display_integrator(tmpdir):
 
     mpl.use("Agg")
 
-    with pytest.raises(SystemExit) as exc:
-        DisplayIntegrator().run(
-            argv=shlex.split(f"--f={GAMMA_TEST_LARGE} " "--max_events=1 ")
-        )
-    assert exc.value.code == 0
+    assert run_tool(
+        DisplayIntegrator(),
+        argv=shlex.split(f"--f={GAMMA_TEST_LARGE} " "--max_events=1 ")
+    ) == 0
 
-    with pytest.raises(SystemExit):
-        DisplayIntegrator().run(["--help-all"])
+    assert run_tool(DisplayIntegrator(), ["--help-all"]) == 0
 
 
 def test_display_events_single_tel(tmpdir):
@@ -61,18 +55,16 @@ def test_display_events_single_tel(tmpdir):
 
     mpl.use("Agg")
 
-    with pytest.raises(SystemExit) as exc:
-        SingleTelEventDisplay().run(
-            argv=shlex.split(
-                f"--infile={GAMMA_TEST_LARGE} "
-                "--tel=11 "
-                "--max-events=2 "  # <--- inconsistent!!!
-            )
+    assert run_tool(
+        SingleTelEventDisplay(),
+        argv=shlex.split(
+            f"--infile={GAMMA_TEST_LARGE} "
+            "--tel=11 "
+            "--max-events=2 "  # <--- inconsistent!!!
         )
-    assert exc.value.code == 0
+    ) == 0
 
-    with pytest.raises(SystemExit):
-        SingleTelEventDisplay().run(["--help-all"])
+    assert run_tool(SingleTelEventDisplay(), ["--help-all"]) == 0
 
 
 def test_display_dl1(tmpdir):
@@ -80,12 +72,12 @@ def test_display_dl1(tmpdir):
 
     mpl.use("Agg")
 
-    with pytest.raises(SystemExit) as exc:
-        DisplayDL1Calib().run(argv=shlex.split("--max_events=1 " "--telescope=11 "))
-    assert exc.value.code == 0
+    assert run_tool(
+        DisplayDL1Calib(),
+        argv=shlex.split("--max_events=1 " "--telescope=11 ")
+    ) == 0
 
-    with pytest.raises(SystemExit):
-        DisplayDL1Calib().run(["--help-all"])
+    assert run_tool(DisplayDL1Calib(), ["--help-all"]) == 0
 
 
 def test_info():
@@ -101,13 +93,10 @@ def test_dump_triggers(tmpdir):
     outfile = tmpdir.join("triggers.fits")
     tool = DumpTriggersTool(infile=GAMMA_TEST_LARGE, outfile=str(outfile))
 
-    with pytest.raises(SystemExit) as exc:
-        tool.run()
+    assert run_too(tool) == 0
 
-    assert exc.value.code == 0
     assert outfile.exists()
-    with pytest.raises(SystemExit):
-        tool.run(["--help-all"])
+    assert run_tool(tool, ["--help-all"]) == 0
 
 
 def test_dump_instrument(tmpdir):
@@ -118,14 +107,9 @@ def test_dump_instrument(tmpdir):
 
     tool = DumpInstrumentTool(infile=GAMMA_TEST_LARGE,)
 
-    with pytest.raises(SystemExit) as exc:
-        tool.run(argv=[])
-    assert exc.value.code == 0
-    print(tmpdir.listdir())
+    assert run_tool(tool) == 0
     assert tmpdir.join("FlashCam.camgeom.fits.gz").exists()
-
-    with pytest.raises(SystemExit):
-        tool.run(["--help-all"])
+    assert run_tool(tool, ["--help-all"]) == 0
 
 
 def test_camdemo():
@@ -136,12 +120,9 @@ def test_camdemo():
     tool.num_events = 10
     tool.cleanframes = 2
     tool.display = False
-    with pytest.raises(SystemExit) as exc:
-        tool.run(argv=[])
-    assert exc.value.code == 0
 
-    with pytest.raises(SystemExit):
-        tool.run(["--help-all"])
+    assert run_tool(tool) == 0
+    assert run_tool(tool, ["--help-all"]) == 0
 
 
 def test_bokeh_file_viewer():
@@ -149,13 +130,9 @@ def test_bokeh_file_viewer():
 
     sys.argv = ["bokeh_file_viewer"]
     tool = BokehFileViewer(disable_server=True)
-    with pytest.raises(SystemExit) as exc:
-        tool.run()
-    assert exc.value.code == 0
+    assert run_tool(tool)
     assert tool.reader.input_url == get_dataset_path("gamma_test_large.simtel.gz")
-
-    with pytest.raises(SystemExit):
-        tool.run(["--help-all"])
+    assert run_tool(tool, ["--help-all"]) == 0
 
 
 def test_extract_charge_resolution(tmpdir):
@@ -163,15 +140,10 @@ def test_extract_charge_resolution(tmpdir):
 
     output_path = os.path.join(str(tmpdir), "cr.h5")
     tool = ChargeResolutionGenerator()
-    with pytest.raises(KeyError):
-        tool.run(
-            ["-f", GAMMA_TEST_LARGE, "-O", output_path]
-        )
+    assert run_tool(tool, ["-f", GAMMA_TEST_LARGE, "-O", output_path]) == 1
     # TODO: Test files do not contain true charge, cannot test tool fully
     # assert os.path.exists(output_path)
-
-    with pytest.raises(SystemExit):
-        tool.run(["--help-all"])
+    assert run_tool(tool, ["--help-all"]) == 0
 
 
 def test_plot_charge_resolution(tmpdir):
@@ -182,12 +154,7 @@ def test_plot_charge_resolution(tmpdir):
 
     output_path = os.path.join(str(tmpdir), "cr.pdf")
     tool = ChargeResolutionViewer()
-    with pytest.raises(SystemExit) as exc:
-        tool.run(
-            ["-f", [path], "-o", output_path]
-        )
-    assert exc.value.code == 0
-    assert os.path.exists(output_path)
 
-    with pytest.raises(SystemExit):
-        tool.run(["--help-all"])
+    assert run_tool(tool, ["-f", [path], "-o", output_path])
+    assert os.path.exists(output_path)
+    assert run_tool(tool, ["--help-all"]) == 0

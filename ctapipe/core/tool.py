@@ -10,8 +10,6 @@ from ctapipe import __version__ as version
 from . import Provenance
 from .logging import ColoredFormatter
 
-import sys
-
 
 class ToolConfigurationError(Exception):
     def __init__(self, message):
@@ -363,3 +361,18 @@ def export_tool_config_to_commented_yaml(tool_instance: Tool, classes=None):
         lines.append(f"    {name}: {current_repr}")
         lines.append("")
     return "\n".join(lines)
+
+
+def run_tool(tool: Tool, argv=None):
+    '''
+    Utility run a certain tool in a python session without exitinig
+
+    Returns
+    -------
+    exit_code: int
+        The return code of the tool, 0 indicates success, everything else an error
+    '''
+    try:
+        tool.run(argv or [])
+    except SystemExit as e:
+        return e.code

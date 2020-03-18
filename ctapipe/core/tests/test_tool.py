@@ -84,6 +84,8 @@ def test_tool_current_config():
 
 def test_tool_exit_code():
     """ Check that we can get the full instance configuration """
+    from ctapipe.core.tool import run_tool
+
     class MyTool(Tool):
 
         description = "test"
@@ -100,3 +102,6 @@ def test_tool_exit_code():
         tool.run(['--MyTool.userparam=foo'])
 
     assert exc.value.code == 1
+
+    assert run_tool(tool, ['--help']) == 0
+    assert run_tool(tool, ['--non-existent-option']) == 1
