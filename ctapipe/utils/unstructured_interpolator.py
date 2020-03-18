@@ -86,7 +86,7 @@ class UnstructuredInterpolator:
 
         # First find simplexes that contain interpolated points
         # In
-        if self._remember and self._previous_v is not 0:
+        if self._remember and self._previous_v != 0:
 
             previous_keys = self.keys[self._previous_v.ravel()]
             hull = Delaunay(previous_keys)
