@@ -4,6 +4,7 @@ env:
     global: 
         - PYTHONIOENCODING=UTF8
         - MPLBACKEND=Agg
+        - PYTEST_ADDOPTS='--color=yes'
 
 matrix:
   include:
