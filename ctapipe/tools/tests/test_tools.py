@@ -150,7 +150,7 @@ def test_bokeh_file_viewer():
     sys.argv = ["bokeh_file_viewer"]
     tool = BokehFileViewer(disable_server=True)
     with pytest.raises(SystemExit) as exc:
-        return_code = tool.run()
+        tool.run()
     assert exc.value.code == 0
     assert tool.reader.input_url == get_dataset_path("gamma_test_large.simtel.gz")
 
@@ -165,7 +165,7 @@ def test_extract_charge_resolution(tmpdir):
     tool = ChargeResolutionGenerator()
     with pytest.raises(KeyError):
         tool.run(
-            ["-f", GAMMA_TEST_LARGE, "-O", output_path,]
+            ["-f", GAMMA_TEST_LARGE, "-O", output_path]
         )
     # TODO: Test files do not contain true charge, cannot test tool fully
     # assert os.path.exists(output_path)
@@ -184,7 +184,7 @@ def test_plot_charge_resolution(tmpdir):
     tool = ChargeResolutionViewer()
     with pytest.raises(SystemExit) as exc:
         tool.run(
-            ["-f", [path], "-o", output_path,]
+            ["-f", [path], "-o", output_path]
         )
     assert exc.value.code == 0
     assert os.path.exists(output_path)
