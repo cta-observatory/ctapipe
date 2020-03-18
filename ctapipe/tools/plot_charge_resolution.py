@@ -48,7 +48,7 @@ class ChargeResolutionViewer(Tool):
 
 def main():
     exe = ChargeResolutionViewer()
-    return exe.run()
+    exe.run()
 
 
 if __name__ == '__main__':

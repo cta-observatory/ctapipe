@@ -300,4 +300,4 @@ class DisplayIntegrator(Tool):
 
 def main():
     exe = DisplayIntegrator()
-    return exe.run()
+    exe.run()

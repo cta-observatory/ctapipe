@@ -122,4 +122,4 @@ class MuonDisplayerTool(Tool):
 
 def main():
     tool = MuonDisplayerTool()
-    return tool.run()
+    tool.run()

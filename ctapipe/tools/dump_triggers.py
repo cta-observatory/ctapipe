@@ -131,4 +131,4 @@ class DumpTriggersTool(Tool):
 
 def main():
     tool = DumpTriggersTool()
-    return tool.run()
+    tool.run()

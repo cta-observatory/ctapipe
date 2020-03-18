@@ -112,7 +112,7 @@ class ChargeResolutionGenerator(Tool):
 
 def main():
     exe = ChargeResolutionGenerator()
-    return exe.run()
+    exe.run()
 
 
 if __name__ == "__main__":

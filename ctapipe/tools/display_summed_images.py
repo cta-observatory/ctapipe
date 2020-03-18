@@ -118,4 +118,4 @@ class ImageSumDisplayerTool(Tool):
 
 def main():
     tool = ImageSumDisplayerTool()
-    return tool.run()
+    tool.run()

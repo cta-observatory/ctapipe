@@ -170,4 +170,4 @@ class SingleTelEventDisplay(Tool):
 
 def main():
     tool = SingleTelEventDisplay()
-    return tool.run()
+    tool.run()

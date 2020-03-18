@@ -207,4 +207,4 @@ class DisplayDL1Calib(Tool):
 
 def main():
     exe = DisplayDL1Calib()
-    return exe.run()
+    exe.run()
