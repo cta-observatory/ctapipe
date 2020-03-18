@@ -218,16 +218,16 @@ class Tool(Application):
         except ToolConfigurationError as err:
             self.log.error(f"{err}.  Use --help for more info")
             exit_status = 2  # wrong cmd line parameter
-        except RuntimeError as err:
-            self.log.error(f"Caught unexpected exception: {err}")
-            self.finish()
-            Provenance().finish_activity(activity_name=self.name, status="error")
-            exit_status = 1  # any other error
         except KeyboardInterrupt:
             self.log.warning("WAS INTERRUPTED BY CTRL-C")
             self.finish()
             Provenance().finish_activity(activity_name=self.name, status="interrupted")
             exit_status = 130  # Script terminated by Control-C
+        except Exception as err:
+            self.log.exception(f"Caught unexpected exception: {err}")
+            self.finish()
+            Provenance().finish_activity(activity_name=self.name, status="error")
+            exit_status = 1  # any other error
         finally:
             for activity in Provenance().finished_activities:
                 output_str = " ".join([x["url"] for x in activity.output])
