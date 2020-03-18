@@ -7,7 +7,6 @@ import shlex
 import sys
 
 import matplotlib as mpl
-import pytest
 
 from ctapipe.utils import get_dataset_path
 from ctapipe.core import run_tool

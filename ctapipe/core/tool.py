@@ -372,5 +372,6 @@ def run_tool(tool: Tool, argv=None):
     '''
     try:
         tool.run(argv or [])
+        return 0
     except SystemExit as e:
         return e.code
