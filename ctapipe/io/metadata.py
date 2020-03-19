@@ -1,6 +1,6 @@
 """
 Management of CTA Reference Metadata, as defined in the CTA Top-Level Data Model
-document _[ctatopleveldatamodel] , version 1A. This information is required to be
+document [ctatopleveldatamodel]_ , version 1A. This information is required to be
 attached to the header of any
 files generated.
 
