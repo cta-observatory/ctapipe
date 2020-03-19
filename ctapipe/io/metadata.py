@@ -24,6 +24,7 @@ them (as in `Activity.from_provenance()`)
 """
 import uuid
 from collections import OrderedDict
+import warnings
 
 from astropy.time import Time
 from traitlets import (
@@ -213,5 +214,9 @@ def write_to_hdf5(metadata, h5file):
     h5file: tables.file.File
         pytables filehandle
     """
-    for key, value in metadata.items():
-        h5file.root._v_attrs[key] = value  # pylint: disable=protected-access
+    from tables import NaturalNameWarning
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", NaturalNameWarning)
+        for key, value in metadata.items():
+            h5file.root._v_attrs[key] = value  # pylint: disable=protected-access
