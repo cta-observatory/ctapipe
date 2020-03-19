@@ -70,13 +70,16 @@ class Path(TraitType):
         If False, path must not be a file
     """
 
-    def __init__(self, exists=None, directory_ok=True, file_ok=True):
-        super().__init__()
+    def __init__(self, *args, exists=None, directory_ok=True, file_ok=True, **kwargs):
+        super().__init__(*args, **kwargs)
         self.exists = exists
         self.directory_ok = directory_ok
         self.file_ok = file_ok
 
     def validate(self, obj, value):
+
+        if value is None:
+            return None
 
         if isinstance(value, str):
             value = os.path.abspath(value)
