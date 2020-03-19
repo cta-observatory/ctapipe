@@ -6,6 +6,7 @@ calibration and image extraction, as well as supporting algorithms.
 import warnings
 
 import numpy as np
+from astropy import units as u
 
 from ctapipe.core import Component
 from ctapipe.image.extractor import NeighborPeakWindowSum
@@ -116,6 +117,7 @@ class CameraCalibrator(Component):
         kwargs
         """
         super().__init__(config=config, parent=parent, **kwargs)
+        self.subarray = subarray
 
         self._r1_empty_warn = False
         self._dl0_empty_warn = False
@@ -148,10 +150,14 @@ class CameraCalibrator(Component):
             selected_gain_channel = event.r1.tel[telid].selected_gain_channel
             shift = self.image_extractor.window_shift.tel[None]
             width = self.image_extractor.window_width.tel[None]
-            shape = event.mc.tel[telid].reference_pulse_shape
-            step = event.mc.tel[telid].meta["refstep"]
-            time_slice = event.mc.tel[telid].time_slice
-            correction = integration_correction(shape, step, time_slice, width, shift)
+            shape = self.subarray.tel[telid].camera.reference_pulse_shape
+            step_ns = self.subarray.tel[telid].camera.reference_pulse_step.to_value(u.ns)
+            sample_width_ns = (
+                    1/self.subarray.tel[telid].camera.sampling_rate
+            ).to_value(u.ns)
+            correction = integration_correction(
+                shape, step_ns, sample_width_ns, width, shift
+            )
             pixel_correction = correction[selected_gain_channel]
             return pixel_correction
         except (AttributeError, KeyError):
