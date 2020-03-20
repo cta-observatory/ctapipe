@@ -236,4 +236,4 @@ def test_straight_line_width_0():
                     cov = np.cov(x, y, aweights=img)
                     print('cov', repr(cov))
                     print('eig', repr(np.linalg.eigh(cov)[0]))
-                assert np.isclose(result.width, 0)
+                assert np.isclose(result.width.value, 0)
