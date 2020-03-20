@@ -80,9 +80,9 @@ def test_result():
     charge_res.add(0, true, measured)
     df_p, df_c = charge_res.finish()
     resolution = df_p['charge_resolution'].values[0]
-    assert (resolution == chargeres.rmse(true, sum_, n))
+    assert (resolution == charge_res.rmse(true, sum_, n))
     resolution_abs = df_p['charge_resolution_abs'].values[0]
-    assert (resolution_abs == chargeres.rmse_abs(sum_, n))
+    assert (resolution_abs == charge_res.rmse_abs(sum_, n))
 
 
 def test_result_mc_true():
