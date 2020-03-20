@@ -73,7 +73,7 @@ class ChargeResolutionCalculator:
         measured : ndarray
             1D array containing the measured charge for each entry
         """
-        diff2 = np.power(measured - true, 2)
+        diff2 = (measured - true)**2
         df = pd.DataFrame(dict(
             pixel=pixel,
             true=true,
