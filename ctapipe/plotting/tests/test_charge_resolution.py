@@ -4,7 +4,7 @@ import os
 import numpy as np
 import pandas as pd
 from ..charge_resolution import (
-    sum_errors, bin_dataframe,
+    root_mean_square, bin_dataframe,
     ChargeResolutionPlotter, ChargeResolutionWRRPlotter
 )
 from numpy.testing import assert_almost_equal
@@ -26,9 +26,9 @@ def create_temp_cr_file(directory):
     return output_path
 
 
-def test_sum_errors():
+def test_root_mean_square():
     errors = np.array([2, 5, 6, 7])
-    assert_almost_equal(sum_errors(errors), 5.339, 3)
+    assert_almost_equal(root_mean_square(errors), 5.339, 3)
 
 
 def test_bin_dataframe():
