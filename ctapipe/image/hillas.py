@@ -11,6 +11,9 @@ from astropy.units import Quantity
 from ..io.containers import HillasParametersContainer
 
 
+HILLAS_ATOL = np.finfo(np.float64).eps
+
+
 __all__ = [
     'hillas_parameters',
     'HillasParameterizationError',
@@ -138,7 +141,7 @@ def hillas_parameters(geom, image):
     eig_vals, eig_vecs = np.linalg.eigh(cov)
 
     # round eig_vals to get rid of nans when eig val is something like -8.47032947e-22
-    near_zero = np.isclose(eig_vals, 0)
+    near_zero = np.isclose(eig_vals, 0, atol=HILLAS_ATOL)
     eig_vals[near_zero] = 0
 
     # width and length are eigen values of the PCA
