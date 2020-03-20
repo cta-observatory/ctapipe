@@ -202,3 +202,38 @@ def test_skewness():
             assert result.skewness == approx(-skew, abs=0.3)
 
         assert signal.sum() == result.intensity
+
+
+def test_straight_line_width_0():
+    ''' Test that hillas_parameters.width is 0 for a straight line of pixels '''
+    # three pixels in a straight line
+    long = np.array([0, 1, 2]) * 0.01
+    trans = np.zeros(len(long))
+    pix_id = np.arange(len(long))
+
+    for dx in (-1, 0, 1):
+        for dy in (-1, 0, 1):
+            for psi in np.linspace(0, np.pi, 20):
+                x = dx + np.cos(psi) * long + np.sin(psi) * trans
+                y = dy - np.sin(psi) * long + np.cos(psi) * trans
+
+                geom = CameraGeometry(
+                    cam_id='testcam',
+                    pix_id=pix_id,
+                    pix_x=x * u.m,
+                    pix_y=y * u.m,
+                    pix_type='hexagonal',
+                    pix_area=1 * u.m**2,
+                    sampling_rate=u.Quantity(1, u.GHz),
+                    reference_pulse_shape=np.ones(1),
+                    reference_pulse_step=u.Quantity(1, u.ns),
+                )
+
+                img = np.random.poisson(5, size=len(long))
+                result = hillas_parameters(geom, img)
+                if np.isnan(result.width):
+                    print('img', img)
+                    cov = np.cov(x, y, aweights=img)
+                    print('cov', repr(cov))
+                    print('eig', repr(np.linalg.eigh(cov)[0]))
+                assert np.isclose(result.width, 0)
