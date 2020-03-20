@@ -30,7 +30,8 @@ def test_memory_limit():
     chargeres = ChargeResolutionCalculator()
     chargeres._max_bytes = 1
     true_charge = np.arange(100)
-    measured_charge = np.arange(100) chargeres.add(0, true_charge, measured_charge)
+    measured_charge = np.arange(100)
+    chargeres.add(0, true_charge, measured_charge)
     assert len(chargeres._df_list) == 0
     chargeres.add(0, true_charge, measured_charge)
     assert len(chargeres._df_list) == 0
