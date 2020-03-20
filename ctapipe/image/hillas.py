@@ -137,6 +137,10 @@ def hillas_parameters(geom, image):
     cov = np.cov(delta_x, delta_y, aweights=image, ddof=0)
     eig_vals, eig_vecs = np.linalg.eigh(cov)
 
+    # round eig_vals to get rid of nans when eig val is something like -8.47032947e-22
+    near_zero = np.isclose(eig_vals, 0)
+    eig_vals[near_zero] = 0
+
     # width and length are eigen values of the PCA
     width, length = np.sqrt(eig_vals)
 
