@@ -211,6 +211,8 @@ def test_straight_line_width_0():
     trans = np.zeros(len(long))
     pix_id = np.arange(len(long))
 
+    np.random.seed(0)
+
     for dx in (-1, 0, 1):
         for dy in (-1, 0, 1):
             for psi in np.linspace(0, np.pi, 20):
@@ -231,9 +233,4 @@ def test_straight_line_width_0():
 
                 img = np.random.poisson(5, size=len(long))
                 result = hillas_parameters(geom, img)
-                if np.isnan(result.width):
-                    print('img', img)
-                    cov = np.cov(x, y, aweights=img)
-                    print('cov', repr(cov))
-                    print('eig', repr(np.linalg.eigh(cov)[0]))
-                assert np.isclose(result.width.value, 0)
+                assert result.width.value == 0
