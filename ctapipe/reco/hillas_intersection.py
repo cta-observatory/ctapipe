@@ -501,11 +501,9 @@ def get_shower_height(source_x, source_y, cog_x, cog_y,
     """
 
     # Calculate displacement of image centroid from source position (in rad)
-    disp = np.sqrt(np.power(cog_x - source_x, 2) +
-                   np.power(cog_y - source_y, 2))
+    disp = np.sqrt((cog_x - source_x)**2 + (cog_y - source_y)**2)
     # Calculate impact parameter of the shower
-    impact = np.sqrt(np.power(tel_pos_x - core_x, 2) +
-                     np.power(tel_pos_y - core_y, 2))
+    impact = np.sqrt((tel_pos_x - core_x)**2 + (tel_pos_y - core_y)**2)
 
     # Distance above telescope is ration of these two (small angle)
     height = impact / disp

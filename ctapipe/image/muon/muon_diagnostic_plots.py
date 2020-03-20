@@ -170,11 +170,12 @@ def plot_muon_event(event, muonparams):
 
             px = nom_coord.delta_az.to(u.deg)
             py = nom_coord.delta_alt.to(u.deg)
-            dist = np.sqrt(np.power(px - muonparams['MuonRingParams'][idx].ring_center_x,
-                                    2) + np.power(py - muonparams['MuonRingParams'][idx].
-                                                  ring_center_y, 2))
-            ring_dist = np.abs(dist - muonparams['MuonRingParams'][idx].ring_radius)
-            pix_rmask = ring_dist < muonparams['MuonRingParams'][idx].ring_radius * 0.4
+
+            ring = muonparams['MuonRingParams'][idx]
+            dist = np.sqrt((px - ring.ring_center_x)**2 + (py - ring.ring_center_y)**2)
+
+            ring_dist = np.abs(dist - ring.ring_radius)
+            pix_rmask = ring_dist < ring.ring_radius * 0.4
 
             if muonparams['MuonIntensityParams'][idx] is not None:
                 signals *= muonparams['MuonIntensityParams'][idx].mask
