@@ -251,7 +251,7 @@ def test_reconstruction():
 
         for tel_id in event.dl0.tels_with_data:
 
-            geom = event.inst.subarray.tel[tel_id].camera
+            geom = event.inst.subarray.tel[tel_id].camera.geometry
 
             telescope_pointings[tel_id] = SkyCoord(alt=event.pointing[tel_id].altitude,
                                                    az=event.pointing[tel_id].azimuth,

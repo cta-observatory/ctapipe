@@ -405,9 +405,6 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
             pix_y=u.Quantity(grid_y.ravel(), u.meter),
             pix_area=pix_area * u.meter ** 2,
             neighbors=geom.neighbors,
-            sampling_rate=geom.sampling_rate,
-            reference_pulse_shape=geom.reference_pulse_shape,
-            reference_pulse_step=geom.reference_pulse_step,
             pix_type="rectangular",
             apply_derotation=False,
         )

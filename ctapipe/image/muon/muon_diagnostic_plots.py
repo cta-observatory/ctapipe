@@ -114,7 +114,7 @@ def plot_muon_event(event, muonparams):
             ax1 = fig.add_subplot(1, npads, 1)
             plotter = CameraPlotter(event)
             image = event.dl1.tel[tel_id].image
-            geom = event.inst.subarray.tel[tel_id].camera
+            geom = event.inst.subarray.tel[tel_id].camera.geometry
 
             tailcuts = (5., 7.)
             # Try a higher threshold for
@@ -153,8 +153,8 @@ def plot_muon_event(event, muonparams):
             radius = muonparams['MuonRingParams'][idx].ring_radius
             ringrad_camcoord = 2 * radius.to(u.rad) * flen  # But not FC?
 
-            px = subarray.tel[tel_id].camera.pix_x
-            py = subarray.tel[tel_id].camera.pix_y
+            px = subarray.tel[tel_id].camera.geometry.pix_x
+            py = subarray.tel[tel_id].camera.geometry.pix_y
             camera_coord = SkyCoord(
                 x=px,
                 y=py,

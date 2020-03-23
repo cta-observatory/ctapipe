@@ -317,7 +317,7 @@ class NeighborPeakWindowSum(ImageExtractor):
     ).tag(config=True)
 
     def __call__(self, waveforms, telid=None):
-        neighbors = self.subarray.tel[telid].camera.neighbor_matrix_where
+        neighbors = self.subarray.tel[telid].camera.geometry.neighbor_matrix_where
         average_wfs = neighbor_average_waveform(
             waveforms, neighbors, self.lwt.tel[telid]
         )

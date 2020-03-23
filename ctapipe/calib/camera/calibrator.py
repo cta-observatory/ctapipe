@@ -150,11 +150,10 @@ class CameraCalibrator(Component):
             selected_gain_channel = event.r1.tel[telid].selected_gain_channel
             shift = self.image_extractor.window_shift.tel[None]
             width = self.image_extractor.window_width.tel[None]
-            shape = self.subarray.tel[telid].camera.reference_pulse_shape
-            step_ns = self.subarray.tel[telid].camera.reference_pulse_step.to_value(u.ns)
-            sample_width_ns = (
-                    1/self.subarray.tel[telid].camera.sampling_rate
-            ).to_value(u.ns)
+            camera = self.subarray.tel[telid].camera
+            shape = camera.readout.reference_pulse_shape
+            step_ns = camera.readout.reference_pulse_step.to_value(u.ns)
+            sample_width_ns = (1/camera.readout.sampling_rate).to_value(u.ns)
             correction = integration_correction(
                 shape, step_ns, sample_width_ns, width, shift
             )

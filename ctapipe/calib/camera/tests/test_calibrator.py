@@ -130,7 +130,10 @@ def test_integration_correction_outofbounds(reference_pulse, sampled_reference_p
 
 def test_integration_correction_no_ref_pulse(example_event, subarray):
     telid = list(example_event.r0.tel)[0]
-    delattr(example_event.inst.subarray.tel[telid].camera, "reference_pulse_shape")
+    delattr(
+        example_event.inst.subarray.tel[telid].camera.readout,
+        "reference_pulse_shape"
+    )
     calibrator = CameraCalibrator(subarray=subarray)
     calibrator._calibrate_dl0(example_event, telid)
     correction = calibrator._get_correction(example_event, telid)

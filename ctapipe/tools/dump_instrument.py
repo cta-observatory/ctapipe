@@ -25,7 +25,7 @@ def get_camera_types(subarray):
     cam_types = defaultdict(list)
 
     for telid in subarray.tel:
-        geom = subarray.tel[telid].camera
+        geom = subarray.tel[telid].camera.geometry
         cam_types[geom.cam_id].append(telid)
 
     return cam_types
@@ -81,7 +81,7 @@ class DumpInstrumentTool(Tool):
 
             self.log.debug(f"writing {cam_name}")
             tel_id = cam_types[cam_name].pop()
-            geom = self.inst.subarray.tel[tel_id].camera
+            geom = self.inst.subarray.tel[tel_id].camera.geometry
             table = geom.to_table()
             table.meta['SOURCE'] = self.infile
             filename = f"{cam_name}.camgeom.{ext}"

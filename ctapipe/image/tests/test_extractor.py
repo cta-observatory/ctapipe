@@ -35,7 +35,7 @@ def camera_waveforms():
         },
     )
 
-    n_pixels = subarray.tel[1].camera.n_pixels
+    n_pixels = subarray.tel[1].camera.geometry.n_pixels
     n_samples = 96
     mid = n_samples // 2
     pulse_sigma = 6
@@ -120,7 +120,7 @@ def test_extract_around_peak_charge_expected(camera_waveforms):
 
 def test_neighbor_average_waveform(camera_waveforms):
     waveforms, subarray = camera_waveforms
-    nei = subarray.tel[1].camera.neighbor_matrix_where
+    nei = subarray.tel[1].camera.geometry.neighbor_matrix_where
     average_wf = neighbor_average_waveform(waveforms, nei, 0)
     assert_allclose(average_wf[0, 48], 28.690154, rtol=1e-3)
 

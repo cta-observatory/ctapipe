@@ -9,12 +9,12 @@ from ctapipe.image.geometry_converter import (
     array_2d_to_chec,
 )
 from ctapipe.image.hillas import hillas_parameters
-from ctapipe.instrument import CameraGeometry
+from ctapipe.instrument import CameraDescription, CameraGeometry
 from ctapipe.image.toymodel import Gaussian
 import astropy.units as u
 
 
-cam_ids = CameraGeometry.get_known_camera_names()
+cam_ids = CameraDescription.get_known_camera_names()
 
 
 def create_mock_image(geom):

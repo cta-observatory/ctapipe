@@ -138,7 +138,7 @@ def analyze_muon_event(event):
 
         # Get geometry
         teldes = event.inst.subarray.tel[telid]
-        geom = teldes.camera
+        geom = teldes.camera.geometry
         x, y = geom.pix_x, geom.pix_y
 
         dict_index = muon_cuts["Name"].index(str(teldes))

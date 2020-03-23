@@ -422,7 +422,7 @@ class TailcutsImageCleaner(ImageCleaner):
         """
 
         return tailcuts_clean(
-            self.subarray.tel[tel_id].camera,
+            self.subarray.tel[tel_id].camera.geometry,
             image,
             picture_thresh=self.picture_threshold_pe.tel[tel_id],
             boundary_thresh=self.boundary_threshold_pe.tel[tel_id],
@@ -444,7 +444,7 @@ class MARSImageCleaner(TailcutsImageCleaner):
         """
 
         return mars_cleaning_1st_pass(
-            self.subarray.tel[tel_id].camera,
+            self.subarray.tel[tel_id].camera.geometry,
             image,
             picture_thresh=self.picture_threshold_pe.tel[tel_id],
             boundary_thresh=self.boundary_threshold_pe.tel[tel_id],
@@ -468,7 +468,7 @@ class FACTImageCleaner(TailcutsImageCleaner):
     ) -> np.ndarray:
         """ Apply FACT-style image cleaning. see ImageCleaner.__call__()"""
         return fact_image_cleaning(
-            geom=self.subarray.tel[tel_id].camera,
+            geom=self.subarray.tel[tel_id].camera.geometry,
             image=image,
             arrival_times=arrival_times,
             picture_threshold=self.picture_threshold_pe.tel[tel_id],

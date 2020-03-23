@@ -55,7 +55,7 @@ for event in source:
         )
 
         # Camera Geometry required for hillas parametrization
-        camgeom = subarray.tel[tel_id].camera
+        camgeom = subarray.tel[tel_id].camera.geometry
 
         # note the [0] is for channel 0 which is high-gain channel
         image = event.dl1.tel[tel_id].image

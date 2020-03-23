@@ -87,12 +87,12 @@ class SimpleEventWriter(Tool):
             for tel_id in event.dl0.tels_with_data:
                 self.image_cutflow.count('no_sel')
 
-                camera = event.inst.subarray.tel[tel_id].camera
+                geom = event.inst.subarray.tel[tel_id].camera.geometry
                 dl1_tel = event.dl1.tel[tel_id]
 
                 # Image cleaning
                 image = dl1_tel.image  # Waiting for automatic gain selection
-                mask = tailcuts_clean(camera, image, picture_thresh=10, boundary_thresh=5)
+                mask = tailcuts_clean(geom, image, picture_thresh=10, boundary_thresh=5)
                 cleaned = image.copy()
                 cleaned[~mask] = 0
 
@@ -103,10 +103,10 @@ class SimpleEventWriter(Tool):
                     continue
 
                 # Image parametrisation
-                params = hillas_parameters(camera, cleaned)
+                params = hillas_parameters(geom, cleaned)
 
                 # Save Ids, MC infos and Hillas informations
-                self.writer.write(camera.cam_id, [event.r0, event.mc, params])
+                self.writer.write(geom.cam_id, [event.r0, event.mc, params])
 
     def finish(self):
         self.log.info('End of job.')

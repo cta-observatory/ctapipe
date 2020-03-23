@@ -86,7 +86,7 @@ class ImageSumDisplayerTool(Tool):
             self.calibrator(event)
 
             if geom is None:
-                geom = event.inst.subarray.tel[self._base_tel].camera
+                geom = event.inst.subarray.tel[self._base_tel].camera.geometry
                 imsum = np.zeros(shape=geom.pix_x.shape, dtype=np.float)
                 disp = CameraDisplay(geom, title=geom.cam_id)
                 disp.add_colorbar()

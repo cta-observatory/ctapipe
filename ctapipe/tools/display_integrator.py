@@ -27,7 +27,7 @@ def plot(event, telid, chan, extractor_name):
     max_pix = int(np.argmax(max_charges))
     min_pix = int(np.argmin(max_charges))
 
-    geom = event.inst.subarray.tel[telid].camera
+    geom = event.inst.subarray.tel[telid].camera.geometry
     nei = geom.neighbors
 
     # Get Neighbours
