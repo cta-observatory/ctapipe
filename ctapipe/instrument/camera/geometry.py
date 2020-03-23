@@ -68,7 +68,6 @@ class CameraGeometry:
     _geometry_cache = {}  # dictionary CameraGeometry instances for speed
 
     def __init__(self, cam_id, pix_id, pix_x, pix_y, pix_area, pix_type,
-                 sampling_rate, reference_pulse_shape, reference_pulse_step,
                  pix_rotation="0d", cam_rotation="0d",
                  neighbors=None, apply_derotation=True, frame=None):
 
@@ -85,9 +84,6 @@ class CameraGeometry:
         self.pix_type = pix_type
         self.pix_rotation = Angle(pix_rotation)
         self.cam_rotation = Angle(cam_rotation)
-        self.sampling_rate = sampling_rate
-        self.reference_pulse_shape = reference_pulse_shape
-        self.reference_pulse_step = reference_pulse_step
         self._neighbors = neighbors
         self.frame = frame
 
@@ -163,9 +159,6 @@ class CameraGeometry:
             pix_y=trans.y,
             pix_area=self.pix_area,
             pix_type=self.pix_type,
-            sampling_rate=self.sampling_rate,
-            reference_pulse_shape=self.reference_pulse_shape,
-            reference_pulse_step=self.reference_pulse_step,
             pix_rotation=pix_rotation,
             cam_rotation=cam_rotation,
             neighbors=None,
@@ -193,9 +186,6 @@ class CameraGeometry:
             pix_y=self.pix_y[slice_],
             pix_area=self.pix_area[slice_],
             pix_type=self.pix_type,
-            sampling_rate=self.sampling_rate,
-            reference_pulse_shape=self.reference_pulse_shape,
-            reference_pulse_step=self.reference_pulse_step,
             pix_rotation=self.pix_rotation,
             cam_rotation=self.cam_rotation,
             neighbors=None,
@@ -264,21 +254,6 @@ class CameraGeometry:
         return ~np.any(~np.isclose(self.pix_area.value, self.pix_area[0].value), axis=0)
 
     @classmethod
-    def get_known_camera_names(cls):
-        """
-        Returns a list of camera_ids that are registered in
-        `ctapipe_resources`. These are all the camera-ids that can be
-        instantiated by the `from_name` method
-
-        Returns
-        -------
-        list(str)
-        """
-
-        pattern = r'(.*)\.camgeom\.fits(\.gz)?'
-        return find_all_matching_datasets(pattern, regexp_group=1)
-
-    @classmethod
     def from_name(cls, camera_id='NectarCam', version=None):
         """
         Construct a CameraGeometry using the name of the camera and array.
@@ -311,7 +286,7 @@ class CameraGeometry:
 
     def to_table(self):
         """ convert this to an `astropy.table.Table` """
-        # currently the neighbor list and reference pulse shape is not supported, since
+        # currently the neighbor list is not supported, since
         # var-length arrays are not supported by astropy.table.Table
         return Table([self.pix_id, self.pix_x, self.pix_y, self.pix_area],
                      names=['pix_id', 'pix_x', 'pix_y', 'pix_area'],
@@ -319,8 +294,6 @@ class CameraGeometry:
                                TAB_TYPE='ctapipe.instrument.CameraGeometry',
                                TAB_VER='1.1',
                                CAM_ID=self.cam_id,
-                               SAMPFREQ=self.sampling_rate.to_value(u.GHz),
-                               REF_STEP=self.reference_pulse_step.to_value(u.ns),
                                PIX_ROT=self.pix_rotation.deg,
                                CAM_ROT=self.cam_rotation.deg,
                                ))
@@ -346,21 +319,6 @@ class CameraGeometry:
         if not isinstance(url_or_table, Table):
             tab = Table.read(url_or_table, **kwargs)
 
-        try:
-            sampling_rate = u.Quantity(tab.meta["SAMPFREQ"], u.GHz)
-        except KeyError:
-            logger.warning("Sampling rate is not in file, defaulting to 1.0 GHz")
-            sampling_rate = u.Quantity(1, u.GHz)
-
-        logger.warning("Reference pulse shape is not in file, defaulting None")
-        reference_pulse_shape = None
-
-        try:
-            reference_pulse_step = u.Quantity(tab.meta['REF_STEP'], u.ns)
-        except KeyError:
-            logger.warning("Reference pulse shape step is not in file, default: 1.0 ns")
-            reference_pulse_step = None
-
         return cls(
             cam_id=tab.meta.get('CAM_ID', 'Unknown'),
             pix_id=tab['pix_id'],
@@ -368,9 +326,6 @@ class CameraGeometry:
             pix_y=tab['pix_y'].quantity,
             pix_area=tab['pix_area'].quantity,
             pix_type=tab.meta['PIX_TYPE'],
-            sampling_rate=sampling_rate,
-            reference_pulse_shape=reference_pulse_shape,
-            reference_pulse_step=reference_pulse_step,
             pix_rotation=Angle(tab.meta['PIX_ROT'] * u.deg),
             cam_rotation=Angle(tab.meta['CAM_ROT'] * u.deg),
         )
@@ -592,9 +547,6 @@ class CameraGeometry:
                    pix_area=(2 * rr) ** 2,
                    neighbors=None,
                    pix_type='rectangular',
-                   sampling_rate=u.Quantity(1, u.GHz),
-                   reference_pulse_shape=None,
-                   reference_pulse_step=None,
                    )
 
     def get_border_pixel_mask(self, width=1):

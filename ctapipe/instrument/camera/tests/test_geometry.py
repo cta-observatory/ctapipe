@@ -1,10 +1,10 @@
 """ Tests for CameraGeometry """
 import numpy as np
 from astropy import units as u
-from ctapipe.instrument import CameraGeometry
+from ctapipe.instrument import CameraDescription, CameraGeometry
 import pytest
 
-cam_ids = CameraGeometry.get_known_camera_names()
+cam_ids = CameraDescription.get_known_camera_names()
 
 
 def test_construct():
@@ -15,9 +15,6 @@ def test_construct():
                           pix_x=x * u.m, pix_y=y * u.m,
                           pix_area=x * u.m**2,
                           pix_type='rectangular',
-                          sampling_rate=u.Quantity(1, u.GHz),
-                          reference_pulse_shape=np.ones(1),
-                          reference_pulse_step=u.Quantity(1, u.ns),
                           pix_rotation="10d",
                           cam_rotation="12d")
 
@@ -25,18 +22,6 @@ def test_construct():
     assert geom.pix_area is not None
     assert (geom.pix_rotation.deg - 10) < 1e-5
     assert (geom.cam_rotation.deg - 10) < 1e-5
-
-
-def test_known_camera_names():
-    """ Check that we can get a list of known camera names """
-    cams = CameraGeometry.get_known_camera_names()
-    assert len(cams) > 4
-    assert 'FlashCam' in cams
-    assert 'NectarCam' in cams
-
-    for cam in cams:
-        geom = CameraGeometry.from_name(cam)
-        geom.info()
 
 
 def test_make_rectangular_camera_geometry():
@@ -75,9 +60,6 @@ def test_find_neighbor_pixels():
         pix_x=x.ravel(),
         pix_y=y.ravel(),
         pix_type='rectangular',
-        sampling_rate=u.Quantity(1, u.GHz),
-        reference_pulse_shape=np.ones(1),
-        reference_pulse_step=u.Quantity(1, u.ns),
     )
 
     neigh = geom.neighbors
@@ -124,9 +106,6 @@ def test_calc_pixel_neighbors_square():
         pix_x=u.Quantity(x.ravel(), u.cm),
         pix_y=u.Quantity(y.ravel(), u.cm),
         pix_area=u.Quantity(np.ones(400), u.cm**2),
-        sampling_rate=u.Quantity(1, u.GHz),
-        reference_pulse_shape=np.ones(1),
-        reference_pulse_step=u.Quantity(1, u.ns),
     )
 
     assert set(cam.neighbors[0]) == {1, 20}
@@ -147,9 +126,6 @@ def test_calc_pixel_neighbors_square_diagonal():
         pix_x=u.Quantity(x.ravel(), u.cm),
         pix_y=u.Quantity(y.ravel(), u.cm),
         pix_area=u.Quantity(np.ones(400), u.cm**2),
-        sampling_rate=u.Quantity(1, u.GHz),
-        reference_pulse_shape=np.ones(1),
-        reference_pulse_step=u.Quantity(1, u.ns),
     )
 
     cam._neighbors = cam.calc_pixel_neighbors(diagonal=True)
@@ -160,11 +136,6 @@ def test_to_and_from_table():
     """ Check converting to and from an astropy Table """
     geom = CameraGeometry.from_name("LSTCam")
 
-    # Non-default to check they are correctly written and read
-    geom.sampling_rate = u.Quantity(2, u.GHz)
-    geom.reference_pulse_shape = np.arange(3).astype(np.float)
-    geom.reference_pulse_step = u.Quantity(0.5, u.ns)
-
     tab = geom.to_table()
     geom2 = geom.from_table(tab)
 
@@ -173,10 +144,6 @@ def test_to_and_from_table():
     assert (geom.pix_y == geom2.pix_y).all()
     assert (geom.pix_area == geom2.pix_area).all()
     assert geom.pix_type == geom2.pix_type
-    assert geom.sampling_rate == geom2.sampling_rate
-    # TODO: Reference pulse shape cannot be stored to table currently (variable length)
-    # assert np.array_equal(geom.reference_pulse_shape, geom2.reference_pulse_shape)
-    assert geom.reference_pulse_step == geom2.reference_pulse_step
     
 
 def test_write_read(tmpdir):
@@ -184,11 +151,6 @@ def test_write_read(tmpdir):
     filename = str(tmpdir.join('testcamera.fits.gz'))
 
     geom = CameraGeometry.from_name("LSTCam")
-
-    # Non-default to check they are correctly written and read
-    geom.sampling_rate = u.Quantity(2, u.GHz)
-    geom.reference_pulse_shape = np.arange(3).astype(np.float)
-    geom.reference_pulse_step = u.Quantity(0.5, u.ns)
 
     geom.to_table().write(filename, overwrite=True)
     geom2 = geom.from_table(filename)
@@ -198,10 +160,6 @@ def test_write_read(tmpdir):
     assert (geom.pix_y == geom2.pix_y).all()
     assert (geom.pix_area == geom2.pix_area).all()
     assert geom.pix_type == geom2.pix_type
-    assert geom.sampling_rate == geom2.sampling_rate
-    # TODO: Reference pulse shape cannot be stored to file currently (variable length)
-    # assert np.array_equal(geom.reference_pulse_shape, geom2.reference_pulse_shape)
-    assert geom.reference_pulse_step == geom2.reference_pulse_step
 
 
 def test_precal_neighbors():
@@ -218,9 +176,6 @@ def test_precal_neighbors():
                               [1, ], [0, 2], [1, ]
                           ],
                           pix_type='rectangular',
-                          sampling_rate=u.Quantity(1, u.GHz),
-                          reference_pulse_shape=np.ones(1),
-                          reference_pulse_step=u.Quantity(1, u.ns),
                           pix_rotation="0deg",
                           cam_rotation="0deg")
 
@@ -278,9 +233,6 @@ def test_rectangle_patch_neighbors():
         pix_y=pix_y,
         pix_area=None,
         pix_type='rectangular',
-        sampling_rate=u.Quantity(1, u.GHz),
-        reference_pulse_shape=np.ones(1),
-        reference_pulse_step=u.Quantity(1, u.ns),
     )
 
     assert np.all(cam.neighbor_matrix.T == cam.neighbor_matrix)
@@ -326,14 +278,14 @@ def test_hashing():
     assert len(set([cam1, cam2, cam3])) == 2
 
 
-@pytest.mark.parametrize("camera_name", CameraGeometry.get_known_camera_names())
+@pytest.mark.parametrize("camera_name", cam_ids)
 def test_camera_from_name(camera_name):
     """ check we can construct all cameras from name"""
     camera = CameraGeometry.from_name(camera_name)
     assert str(camera) == camera_name
 
 
-@pytest.mark.parametrize("camera_name", CameraGeometry.get_known_camera_names())
+@pytest.mark.parametrize("camera_name", cam_ids)
 def test_camera_coordinate_transform(camera_name):
     '''test conversion of the coordinates stored in a camera frame'''
     from ctapipe.coordinates import EngineeringCameraFrame
