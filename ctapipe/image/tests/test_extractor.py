@@ -5,6 +5,7 @@ from numpy.testing import assert_allclose, assert_equal
 from scipy.stats import norm
 from traitlets.config.loader import Config
 
+from ctapipe.core import non_abstract_children
 from ctapipe.image.extractor import (
     extract_around_peak,
     neighbor_average_waveform,
@@ -19,6 +20,10 @@ from ctapipe.image.extractor import (
     BaselineSubtractedNeighborPeakWindowSum,
 )
 from ctapipe.instrument import SubarrayDescription, TelescopeDescription
+
+extractors = non_abstract_children(ImageExtractor)
+# FixedWindowSum has no peak finding and need to be set manually
+extractors.remove(FixedWindowSum)
 
 
 @pytest.fixture(scope="module")
@@ -46,7 +51,7 @@ def camera_waveforms():
     x = np.arange(n_samples)
 
     # Randomize times
-    t_pulse = random.uniform(mid - 2, mid + 2, n_pixels)[:, np.newaxis]
+    t_pulse = random.uniform(mid - 1, mid + 1, n_pixels)[:, np.newaxis]
 
     # Create pulses
     y = norm.pdf(x, t_pulse, pulse_sigma)
@@ -97,7 +102,7 @@ def test_extract_around_peak(camera_waveforms):
     rand = np.random.RandomState(1)
     peak_index = rand.uniform(0, n_samples, n_pixels).astype(np.int)
     charge, pulse_time = extract_around_peak(waveforms, peak_index, 7, 3, 1)
-    assert_allclose(charge[0], 115.838406, rtol=1e-3)
+    assert_allclose(charge[0], 112.184183, rtol=1e-3)
     assert_allclose(pulse_time[0], 40.789745, rtol=1e-3)
 
     x = np.arange(100)
@@ -180,10 +185,10 @@ def test_neighbor_average_waveform(camera_waveforms):
     waveforms, subarray, telid, selected_gain_channel, true_charge = camera_waveforms
     nei = subarray.tel[1].camera.neighbor_matrix_where
     average_wf = neighbor_average_waveform(waveforms, nei, 0)
-    assert_allclose(average_wf[0, 48], 50.069126, rtol=1e-3)
+    assert_allclose(average_wf[0, 48], 51.089826, rtol=1e-3)
 
     average_wf = neighbor_average_waveform(waveforms, nei, 4)
-    assert_allclose(average_wf[0, 48], 122.558372, rtol=1e-3)
+    assert_allclose(average_wf[0, 48], 123.662305, rtol=1e-3)
 
 
 def test_extract_pulse_time_within_range():
@@ -248,57 +253,30 @@ def test_integration_correction_outofbounds(reference_pulse, sampled_reference_p
             np.testing.assert_allclose(full_integral, window_integral * correction)
 
 
-def test_full_waveform_sum(camera_waveforms):
+@pytest.mark.parametrize("Extractor", extractors)
+def test_extractors(Extractor, camera_waveforms):
     waveforms, subarray, telid, selected_gain_channel, true_charge = camera_waveforms
-    extractor = FullWaveformSum(subarray=subarray)
+    extractor = Extractor(subarray=subarray)
     charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
-    assert_allclose(charge[0], true_charge[0], rtol=0.1)
-    assert_allclose(pulse_time[0], 46.34044, rtol=0.1)
+    assert_allclose(charge, true_charge, rtol=0.1)
+    assert_allclose(pulse_time, waveforms.shape[1]//2, rtol=0.1)
 
 
 def test_fixed_window_sum(camera_waveforms):
     waveforms, subarray, telid, selected_gain_channel, true_charge = camera_waveforms
-    extractor = FixedWindowSum(subarray=subarray, window_start=47)
+    extractor = FixedWindowSum(subarray=subarray, window_start=48)
     charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
-    assert_allclose(charge[0], true_charge[0], rtol=0.1)
-    assert_allclose(pulse_time[0], 47.823488, rtol=0.1)
+    assert_allclose(charge, true_charge, rtol=0.1)
+    assert_allclose(pulse_time, waveforms.shape[1]//2, rtol=0.1)
 
 
-def test_global_peak_window_sum(camera_waveforms):
+def test_neighbor_peak_window_sum_lwt(camera_waveforms):
     waveforms, subarray, telid, selected_gain_channel, true_charge = camera_waveforms
-    extractor = GlobalPeakWindowSum(subarray=subarray)
+    extractor = NeighborPeakWindowSum(subarray=subarray, lwt=4)
+    assert extractor.lwt.tel[telid] == 4
     charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
-    assert_allclose(charge[0], true_charge[0], rtol=0.1)
-    assert_allclose(pulse_time[0], 47.823488, rtol=0.1)
-
-
-def test_local_peak_window_sum(camera_waveforms):
-    waveforms, subarray, telid, selected_gain_channel, true_charge = camera_waveforms
-    extractor = LocalPeakWindowSum(subarray=subarray)
-    charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
-    assert_allclose(charge[0], true_charge[0], rtol=0.1)
-    assert_allclose(pulse_time[0], 46.036266, rtol=0.1)
-
-
-def test_neighbor_peak_window_sum(camera_waveforms):
-    waveforms, subarray, telid, selected_gain_channel, true_charge = camera_waveforms
-    extractor = NeighborPeakWindowSum(subarray=subarray)
-    charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
-    assert_allclose(charge[0], true_charge[0], rtol=0.1)
-    assert_allclose(pulse_time[0], 54.116092, rtol=0.1)
-
-    extractor.lwt = 4
-    charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
-    assert_allclose(charge[0], true_charge[0], rtol=0.1)
-    assert_allclose(pulse_time[0], 48.717848, rtol=0.1)
-
-
-def test_baseline_subtracted_neighbor_peak_window_sum(camera_waveforms):
-    waveforms, subarray, telid, selected_gain_channel, true_charge = camera_waveforms
-    extractor = BaselineSubtractedNeighborPeakWindowSum(subarray=subarray)
-    charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
-    assert_allclose(charge[0], true_charge[0], rtol=0.1)
-    assert_allclose(pulse_time[0], 54.116092, rtol=0.1)
+    assert_allclose(charge, true_charge, rtol=0.1)
+    assert_allclose(pulse_time, waveforms.shape[1]//2, rtol=0.1)
 
 
 def test_waveform_extractor_factory(camera_waveforms):
