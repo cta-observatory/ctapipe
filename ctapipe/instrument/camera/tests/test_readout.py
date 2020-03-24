@@ -26,19 +26,27 @@ def test_construct():
     assert readout.reference_pulse_sample_width == reference_pulse_sample_width
 
 
-def test_to_and_from_table():
-    """ Check converting to and from an astropy Table """
+@pytest.fixture(scope='module')
+def readout():
     cam_id = 0
     sampling_rate = u.Quantity(2, u.GHz)
     reference_pulse_shape = np.ones((2, 20)).astype(np.float)
     reference_pulse_sample_width = u.Quantity(0.5, u.ns)
-    readout = CameraReadout(
+    return CameraReadout(
         cam_id=cam_id,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
         reference_pulse_sample_width=reference_pulse_sample_width
     )
 
+
+def test_reference_pulse_sample_time(readout):
+    sample_time = u.Quantity(np.arange(0, 10, 0.5), u.ns)
+    assert (readout.reference_pulse_sample_time == sample_time).all()
+
+
+def test_to_and_from_table(readout):
+    """ Check converting to and from an astropy Table """
     tab = readout.to_table()
     readout2 = readout.from_table(tab)
 
@@ -48,20 +56,9 @@ def test_to_and_from_table():
     assert readout.reference_pulse_sample_width == readout2.reference_pulse_sample_width
 
 
-def test_write_read(tmpdir):
+def test_write_read(tmpdir, readout):
     """ Check that serialization to disk doesn't lose info """
     filename = str(tmpdir.join('testcamera.fits.gz'))
-
-    cam_id = 0
-    sampling_rate = u.Quantity(2, u.GHz)
-    reference_pulse_shape = np.ones((2, 20)).astype(np.float)
-    reference_pulse_sample_width = u.Quantity(0.5, u.ns)
-    readout = CameraReadout(
-        cam_id=cam_id,
-        sampling_rate=sampling_rate,
-        reference_pulse_shape=reference_pulse_shape,
-        reference_pulse_sample_width=reference_pulse_sample_width
-    )
 
     readout.to_table().write(filename, overwrite=True)
     readout2 = readout.from_table(filename)

@@ -69,6 +69,17 @@ class CameraReadout:
     def __len__(self):
         return self.reference_pulse_shape.size
 
+    @property
+    def reference_pulse_sample_time(self):
+        """
+        Time axis for the reference pulse
+        """
+        n_channels, n_samples = self.reference_pulse_shape.shape
+        sample_width_ns = self.reference_pulse_sample_width.to_value(u.ns)
+        pulse_max_sample = n_samples * sample_width_ns
+        sample_time = np.arange(0, pulse_max_sample, sample_width_ns)
+        return u.Quantity(sample_time, u.ns)
+
     @classmethod
     def from_name(cls, camera_id='NectarCam', version=None):
         """
@@ -115,14 +126,24 @@ class CameraReadout:
 
     def to_table(self):
         """ convert this to an `astropy.table.Table` """
-        return Table([self.reference_pulse_shape],
-                     names=['reference_pulse_shape'],
-                     meta=dict(TAB_TYPE='ctapipe.instrument.CameraReadout',
-                               TAB_VER='1.0',
-                               CAM_ID=self.cam_id,
-                               SAMPFREQ=self.sampling_rate.to_value(u.GHz),
-                               REF_WIDTH=self.reference_pulse_sample_width.to_value(u.ns),
-                               ))
+        n_channels = len(self.reference_pulse_shape)
+        tables = [
+            *[self.reference_pulse_shape[i] for i in range(n_channels)],
+            self.reference_pulse_sample_time
+        ]
+        names = [
+            *[f"reference_pulse_shape_channel{i}" for i in range(n_channels)],
+            "reference_pulse_sample_time"
+        ]
+
+        return Table(tables, names=names, meta=dict(
+            TAB_TYPE='ctapipe.instrument.CameraReadout',
+            TAB_VER='1.0',
+            CAM_ID=self.cam_id,
+            NCHAN=n_channels,
+            SAMPFREQ=self.sampling_rate.to_value(u.GHz),
+            REF_WIDTH=self.reference_pulse_sample_width.to_value(u.ns),
+        ))
 
     @classmethod
     def from_table(cls, url_or_table, **kwargs):
@@ -144,11 +165,19 @@ class CameraReadout:
         if not isinstance(url_or_table, Table):
             tab = Table.read(url_or_table, **kwargs)
 
+        cam_id = tab.meta.get('CAM_ID', 'Unknown')
+        n_channels = tab.meta['NCHAN']
+        sampling_rate = u.Quantity(tab.meta["SAMPFREQ"], u.GHz)
+        reference_pulse_sample_width = u.Quantity(tab.meta['REF_WIDTH'], u.ns)
+        reference_pulse_shape = np.array(
+            [tab[f'reference_pulse_shape_channel{i}'] for i in range(n_channels)]
+        )
+
         return cls(
-            cam_id=tab.meta.get('CAM_ID', 'Unknown'),
-            sampling_rate=u.Quantity(tab.meta["SAMPFREQ"], u.GHz),
-            reference_pulse_shape=tab['reference_pulse_shape'],
-            reference_pulse_sample_width=u.Quantity(tab.meta['REF_WIDTH'], u.ns),
+            cam_id=cam_id,
+            sampling_rate=sampling_rate,
+            reference_pulse_shape=reference_pulse_shape,
+            reference_pulse_sample_width=reference_pulse_sample_width,
         )
 
     def __repr__(self):
