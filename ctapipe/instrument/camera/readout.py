@@ -11,7 +11,7 @@ from astropy.table import Table
 from astropy.utils import lazyproperty
 from scipy.spatial import cKDTree as KDTree
 from scipy.sparse import lil_matrix, csr_matrix
-
+from scipy.stats import norm
 from ctapipe.utils import get_table_dataset, find_all_matching_datasets
 from ctapipe.coordinates import CameraFrame
 
@@ -31,9 +31,15 @@ class CameraReadout:
         description
     cam_id: camera id name or number
         camera identification string
-    sampling_rate
-    reference_pulse_shape
-    reference_pulse_step
+    sampling_rate : float
+        Sampling rate of the waveform
+    reference_pulse_shape : ndarray
+        Expected pulse shape for a signal in the waveform. 2 dimensional,
+        first dimension is gain channel.
+    reference_pulse_step : float
+        The step in time for each sample of the reference pulse shape (the
+        corresponding step in time for each item in the second dimension of
+        reference_pulse_shape)
     """
 
     def __init__(self, cam_id, sampling_rate, reference_pulse_shape, reference_pulse_step):
@@ -94,10 +100,23 @@ class CameraReadout:
         else:
             verstr = f"-{version:03d}"
 
-        tabname = "{camera_id}{verstr}.camreadout".format(camera_id=camera_id,
-                                                       verstr=verstr)
-        table = get_table_dataset(tabname, role='dl0.tel.svc.camera')
-        return CameraReadout.from_table(table)
+        try:
+            tabname = "{camera_id}{verstr}.camreadout".format(
+                camera_id=camera_id, verstr=verstr
+            )
+            table = get_table_dataset(tabname, role='dl0.tel.svc.camera')
+            return CameraReadout.from_table(table)
+        except FileNotFoundError:
+            # TODO: remove case when files have been generated
+            logger.warning(f"Resorting to default CameraReadout,"
+                           f" File does not exist: ({tabname})")
+            reference_pulse_shape = norm.pdf(np.arange(96), 48, 6)
+            return cls(
+                cam_id=camera_id,
+                sampling_rate=u.Quantity(1, u.GHz),
+                reference_pulse_shape=reference_pulse_shape,
+                reference_pulse_step=u.Quantity(1, u.ns),
+            )
 
     def to_table(self):
         """ convert this to an `astropy.table.Table` """

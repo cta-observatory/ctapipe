@@ -2,6 +2,7 @@
 import numpy as np
 from astropy import units as u
 from ctapipe.instrument import CameraDescription, CameraReadout
+import pytest
 
 cam_ids = CameraDescription.get_known_camera_names()
 
@@ -143,9 +144,9 @@ def test_hashing():
 
     assert len({readout1, readout2, readout3}) == 2
 
-# TODO: Requires camreadout files to be generated
-# @pytest.mark.parametrize("camera_name", cam_ids)
-# def test_camera_from_name(camera_name):
-#     """ check we can construct all cameras from name"""
-#     camera = CameraReadout.from_name(camera_name)
-#     assert str(camera) == camera_name
+
+@pytest.mark.parametrize("camera_name", cam_ids)
+def test_camera_from_name(camera_name):
+    """ check we can construct all cameras from name"""
+    camera = CameraReadout.from_name(camera_name)
+    assert str(camera) == camera_name
