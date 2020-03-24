@@ -199,7 +199,9 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         charge = 0
         peak_pos = 0
         if self.extractor:
-            charge, peak_pos = self.extractor(waveforms, self.tel_id, selected_gain_channel)
+            charge, peak_pos = self.extractor(
+                waveforms, self.tel_id, selected_gain_channel
+            )
 
         return charge, peak_pos
 

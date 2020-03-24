@@ -282,7 +282,9 @@ def test_neighbor_peak_window_sum_lwt(camera_waveforms):
 def test_waveform_extractor_factory(camera_waveforms):
     waveforms, subarray, telid, selected_gain_channel, true_charge = camera_waveforms
     extractor = ImageExtractor.from_name("LocalPeakWindowSum", subarray=subarray)
-    extractor(waveforms, telid, selected_gain_channel)
+    charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
+    assert_allclose(charge, true_charge, rtol=0.1)
+    assert_allclose(pulse_time, waveforms.shape[1]//2, rtol=0.1)
 
 
 def test_waveform_extractor_factory_args(camera_waveforms):

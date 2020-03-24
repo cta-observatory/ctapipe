@@ -231,7 +231,8 @@ class ImageExtractor(Component):
     def __init__(self, subarray, config=None, parent=None, **kwargs):
         """
         Base component to handle the extraction of charge and pulse time
-        from an image cube (waveforms), taking into account the sampling rate of the waveform.
+        from an image cube (waveforms), taking into account the sampling rate
+        of the waveform.
 
         Assuming a waveform with sample units X and containing a noise-less unit
         pulse, the aim of the ImageExtractor is to return 1 X*ns.
