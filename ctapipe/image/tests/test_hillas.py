@@ -226,9 +226,6 @@ def test_straight_line_width_0():
                     pix_y=y * u.m,
                     pix_type='hexagonal',
                     pix_area=1 * u.m**2,
-                    sampling_rate=u.Quantity(1, u.GHz),
-                    reference_pulse_shape=np.ones(1),
-                    reference_pulse_step=u.Quantity(1, u.ns),
                 )
 
                 img = np.random.poisson(5, size=len(long))
