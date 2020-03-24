@@ -6,14 +6,9 @@ import logging
 
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import Angle, SkyCoord
 from astropy.table import Table
-from astropy.utils import lazyproperty
-from scipy.spatial import cKDTree as KDTree
-from scipy.sparse import lil_matrix, csr_matrix
 from scipy.stats import norm
-from ctapipe.utils import get_table_dataset, find_all_matching_datasets
-from ctapipe.coordinates import CameraFrame
+from ctapipe.utils import get_table_dataset
 
 
 __all__ = ['CameraReadout']
@@ -36,17 +31,17 @@ class CameraReadout:
     reference_pulse_shape : ndarray
         Expected pulse shape for a signal in the waveform. 2 dimensional,
         first dimension is gain channel.
-    reference_pulse_step : float
-        The step in time for each sample of the reference pulse shape (the
-        corresponding step in time for each item in the second dimension of
-        reference_pulse_shape)
+    reference_pulse_sample_width : float
+        The amount of time corresponding to each sample in the 2nd
+        dimension of reference_pulse_shape
     """
 
-    def __init__(self, cam_id, sampling_rate, reference_pulse_shape, reference_pulse_step):
+    def __init__(self, cam_id, sampling_rate, reference_pulse_shape,
+                 reference_pulse_sample_width):
         self.cam_id = cam_id
         self.sampling_rate = sampling_rate
         self.reference_pulse_shape = reference_pulse_shape
-        self.reference_pulse_step = reference_pulse_step
+        self.reference_pulse_sample_width = reference_pulse_sample_width
 
     def __eq__(self, other):
         if self.cam_id != other.cam_id:
@@ -58,7 +53,7 @@ class CameraReadout:
         if (self.reference_pulse_shape != other.reference_pulse_shape).all():
             return False
 
-        if self.reference_pulse_step != other.reference_pulse_step:
+        if self.reference_pulse_sample_width != other.reference_pulse_sample_width:
             return False
 
         return True
@@ -68,7 +63,7 @@ class CameraReadout:
             self.cam_id,
             self.sampling_rate.to_value(u.GHz),
             self.reference_pulse_shape.size,
-            self.reference_pulse_step.to_value(u.ns),
+            self.reference_pulse_sample_width.to_value(u.ns),
         ))
 
     def __len__(self):
@@ -115,7 +110,7 @@ class CameraReadout:
                 cam_id=camera_id,
                 sampling_rate=u.Quantity(1, u.GHz),
                 reference_pulse_shape=reference_pulse_shape,
-                reference_pulse_step=u.Quantity(1, u.ns),
+                reference_pulse_sample_width=u.Quantity(1, u.ns),
             )
 
     def to_table(self):
@@ -126,7 +121,7 @@ class CameraReadout:
                                TAB_VER='1.0',
                                CAM_ID=self.cam_id,
                                SAMPFREQ=self.sampling_rate.to_value(u.GHz),
-                               REF_STEP=self.reference_pulse_step.to_value(u.ns),
+                               REF_WIDTH=self.reference_pulse_sample_width.to_value(u.ns),
                                ))
 
     @classmethod
@@ -153,17 +148,17 @@ class CameraReadout:
             cam_id=tab.meta.get('CAM_ID', 'Unknown'),
             sampling_rate=u.Quantity(tab.meta["SAMPFREQ"], u.GHz),
             reference_pulse_shape=tab['reference_pulse_shape'],
-            reference_pulse_step=u.Quantity(tab.meta['REF_STEP'], u.ns),
+            reference_pulse_sample_width=u.Quantity(tab.meta['REF_WIDTH'], u.ns),
         )
 
     def __repr__(self):
         return (
             "CameraReadout(cam_id='{cam_id}', sampling_rate='{sampling_rate}', "
-            "reference_pulse_step={reference_pulse_step})"
+            "reference_pulse_sample_width={reference_pulse_sample_width})"
         ).format(
             cam_id=self.cam_id,
             sampling_rate=self.sampling_rate,
-            reference_pulse_step=self.reference_pulse_step,
+            reference_pulse_sample_width=self.reference_pulse_sample_width,
         )
 
     def __str__(self):

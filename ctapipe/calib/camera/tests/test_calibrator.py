@@ -23,22 +23,22 @@ def subarray(example_event):
 
 @pytest.fixture('module')
 def reference_pulse():
-    reference_pulse_step = 0.09
+    reference_pulse_sample_width = 0.09
     n_reference_pulse_samples = 1280
     reference_pulse_shape = np.array([
         norm.pdf(np.arange(n_reference_pulse_samples), 600, 100) * 1.7,
         norm.pdf(np.arange(n_reference_pulse_samples), 700, 100) * 1.7,
     ])
-    return reference_pulse_shape, reference_pulse_step
+    return reference_pulse_shape, reference_pulse_sample_width
 
 
 @pytest.fixture('module')
 def sampled_reference_pulse(reference_pulse):
-    reference_pulse_shape, reference_pulse_step = reference_pulse
+    reference_pulse_shape, reference_pulse_sample_width = reference_pulse
     n_channels, n_reference_pulse_samples = reference_pulse_shape.shape
-    pulse_max_sample = n_reference_pulse_samples * reference_pulse_step
+    pulse_max_sample = n_reference_pulse_samples * reference_pulse_sample_width
     sample_width_ns = 2
-    pulse_shape_x = np.arange(0, pulse_max_sample, reference_pulse_step)
+    pulse_shape_x = np.arange(0, pulse_max_sample, reference_pulse_sample_width)
     sampled_edges = np.arange(0, pulse_max_sample, sample_width_ns)
     sampled_pulse = np.array([np.histogram(
         pulse_shape_x, sampled_edges, weights=reference_pulse_shape[ichan], density=True
@@ -87,7 +87,7 @@ def test_config(subarray):
 
 
 def test_integration_correction(reference_pulse, sampled_reference_pulse):
-    reference_pulse_shape, reference_pulse_step = reference_pulse
+    reference_pulse_shape, reference_pulse_sample_width = reference_pulse
     sampled_pulse, sample_width_ns = sampled_reference_pulse
     sampled_pulse_fc = sampled_pulse[0]  # Test first channel
     full_integral = np.sum(sampled_pulse[0] * sample_width_ns)
@@ -98,7 +98,7 @@ def test_integration_correction(reference_pulse, sampled_reference_pulse):
             window_shift = sampled_pulse_fc.argmax() - window_start
             correction = integration_correction(
                 reference_pulse_shape,
-                reference_pulse_step, sample_width_ns,
+                reference_pulse_sample_width, sample_width_ns,
                 window_width, window_shift
             )[0]
             window_integral = np.sum(
@@ -108,7 +108,7 @@ def test_integration_correction(reference_pulse, sampled_reference_pulse):
 
 
 def test_integration_correction_outofbounds(reference_pulse, sampled_reference_pulse):
-    reference_pulse_shape, reference_pulse_step = reference_pulse
+    reference_pulse_shape, reference_pulse_sample_width = reference_pulse
     sampled_pulse, sample_width_ns = sampled_reference_pulse
     sampled_pulse_fc = sampled_pulse[0]  # Test first channel
     full_integral = np.sum(sampled_pulse[0] * sample_width_ns)
@@ -119,7 +119,7 @@ def test_integration_correction_outofbounds(reference_pulse, sampled_reference_p
             window_shift = sampled_pulse_fc.argmax() - window_start
             correction = integration_correction(
                 reference_pulse_shape,
-                reference_pulse_step, sample_width_ns,
+                reference_pulse_sample_width, sample_width_ns,
                 window_width, window_shift
             )[0]
             window_integral = np.sum(

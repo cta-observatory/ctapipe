@@ -16,7 +16,7 @@ __all__ = ["CameraCalibrator"]
 
 
 def integration_correction(
-    reference_pulse_shape, reference_pulse_step, sample_width_ns,
+    reference_pulse_shape, reference_pulse_sample_width_ns, sample_width_ns,
     window_width, window_shift
 ):
     """
@@ -36,8 +36,8 @@ def integration_correction(
     ----------
     reference_pulse_shape : ndarray
         Numpy array containing the pulse shape for each gain channel
-    reference_pulse_step : float
-        The step in time for each sample of the reference pulse shape in ns
+    reference_pulse_sample_width_ns : float
+        The width of the reference pulse sample time bin in ns
     sample_width_ns : float
         The width of the waveform sample time bin in ns
     window_width : int
@@ -54,8 +54,8 @@ def integration_correction(
     n_channels = len(reference_pulse_shape)
     correction = np.ones(n_channels, dtype=np.float)
     for ichannel, pulse_shape in enumerate(reference_pulse_shape):
-        pulse_max_sample = pulse_shape.size * reference_pulse_step
-        pulse_shape_x = np.arange(0, pulse_max_sample, reference_pulse_step)
+        pulse_max_sample = pulse_shape.size * reference_pulse_sample_width_ns
+        pulse_shape_x = np.arange(0, pulse_max_sample, reference_pulse_sample_width_ns)
         sampled_edges = np.arange(0, pulse_max_sample, sample_width_ns)
 
         sampled_pulse, _ = np.histogram(
@@ -152,10 +152,10 @@ class CameraCalibrator(Component):
             width = self.image_extractor.window_width.tel[None]
             camera = self.subarray.tel[telid].camera
             shape = camera.readout.reference_pulse_shape
-            step_ns = camera.readout.reference_pulse_step.to_value(u.ns)
+            ref_width_ns = camera.readout.reference_pulse_sample_width.to_value(u.ns)
             sample_width_ns = (1/camera.readout.sampling_rate).to_value(u.ns)
             correction = integration_correction(
-                shape, step_ns, sample_width_ns, width, shift
+                shape, ref_width_ns, sample_width_ns, width, shift
             )
             pixel_correction = correction[selected_gain_channel]
             return pixel_correction

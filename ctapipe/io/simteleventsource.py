@@ -54,7 +54,7 @@ def build_camera(cam_settings, pixel_settings, telescope):
         telescope.camera_name,
         sampling_rate=u.Quantity(1 / pixel_settings['time_slice'], u.GHz),
         reference_pulse_shape=pixel_settings['ref_shape'].astype('float64', copy=False),
-        reference_pulse_step=u.Quantity(pixel_settings['ref_step'], u.ns),
+        reference_pulse_sample_width=u.Quantity(pixel_settings['ref_step'], u.ns),
     )
 
     return CameraDescription(

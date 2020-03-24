@@ -62,14 +62,15 @@ def compare_sources(input_url):
                 assert h.pointing[tel_id].altitude == s.pointing[tel_id].altitude
                 assert h.pointing[tel_id].azimuth == s.pointing[tel_id].azimuth
 
-                assert (h.inst.subarray.tel[tel_id].camera.readout.sampling_rate ==
-                        s.inst.subarray.tel[tel_id].camera.readout.sampling_rate)
+                h_camera = h.inst.subarray.tel[tel_id].camera
+                s_camera = s.inst.subarray.tel[tel_id].camera
+                assert h_camera.readout.sampling_rate == s_camera.readout.sampling_rate
                 assert np.array_equal(
-                    h.inst.subarray.tel[tel_id].camera.readout.reference_pulse_shape,
-                    s.inst.subarray.tel[tel_id].camera.readout.reference_pulse_shape
+                    h_camera.readout.reference_pulse_shape,
+                    s_camera.readout.reference_pulse_shape
                 )
-                assert (h.inst.subarray.tel[tel_id].camera.readout.reference_pulse_step ==
-                        s.inst.subarray.tel[tel_id].camera.readout.reference_pulse_step)
+                assert (h_camera.readout.reference_pulse_sample_width ==
+                        s_camera.readout.reference_pulse_sample_width)
 
 
 def test_compare_event_hessio_and_simtel():

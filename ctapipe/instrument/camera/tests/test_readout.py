@@ -12,18 +12,18 @@ def test_construct():
     cam_id = 0
     sampling_rate = u.Quantity(2, u.GHz)
     reference_pulse_shape = np.ones((2, 20)).astype(np.float)
-    reference_pulse_step = u.Quantity(0.5, u.ns)
+    reference_pulse_sample_width = u.Quantity(0.5, u.ns)
     readout = CameraReadout(
         cam_id=cam_id,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
-        reference_pulse_step=reference_pulse_step
+        reference_pulse_sample_width=reference_pulse_sample_width
     )
 
     assert readout.cam_id == cam_id
     assert readout.sampling_rate == sampling_rate
     assert (readout.reference_pulse_shape == reference_pulse_shape).all()
-    assert readout.reference_pulse_step == reference_pulse_step
+    assert readout.reference_pulse_sample_width == reference_pulse_sample_width
 
 
 def test_to_and_from_table():
@@ -31,12 +31,12 @@ def test_to_and_from_table():
     cam_id = 0
     sampling_rate = u.Quantity(2, u.GHz)
     reference_pulse_shape = np.ones((2, 20)).astype(np.float)
-    reference_pulse_step = u.Quantity(0.5, u.ns)
+    reference_pulse_sample_width = u.Quantity(0.5, u.ns)
     readout = CameraReadout(
         cam_id=cam_id,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
-        reference_pulse_step=reference_pulse_step
+        reference_pulse_sample_width=reference_pulse_sample_width
     )
 
     tab = readout.to_table()
@@ -45,7 +45,7 @@ def test_to_and_from_table():
     assert readout.cam_id == readout2.cam_id
     assert readout.sampling_rate == readout2.sampling_rate
     assert np.array_equal(readout.reference_pulse_shape, readout2.reference_pulse_shape)
-    assert readout.reference_pulse_step == readout2.reference_pulse_step
+    assert readout.reference_pulse_sample_width == readout2.reference_pulse_sample_width
 
 
 def test_write_read(tmpdir):
@@ -55,12 +55,12 @@ def test_write_read(tmpdir):
     cam_id = 0
     sampling_rate = u.Quantity(2, u.GHz)
     reference_pulse_shape = np.ones((2, 20)).astype(np.float)
-    reference_pulse_step = u.Quantity(0.5, u.ns)
+    reference_pulse_sample_width = u.Quantity(0.5, u.ns)
     readout = CameraReadout(
         cam_id=cam_id,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
-        reference_pulse_step=reference_pulse_step
+        reference_pulse_sample_width=reference_pulse_sample_width
     )
 
     readout.to_table().write(filename, overwrite=True)
@@ -69,7 +69,7 @@ def test_write_read(tmpdir):
     assert readout.cam_id == readout2.cam_id
     assert readout.sampling_rate == readout2.sampling_rate
     assert np.array_equal(readout.reference_pulse_shape, readout2.reference_pulse_shape)
-    assert readout.reference_pulse_step == readout2.reference_pulse_step
+    assert readout.reference_pulse_sample_width == readout2.reference_pulse_sample_width
 
 
 def test_equals():
@@ -77,33 +77,33 @@ def test_equals():
     cam_id = 0
     sampling_rate = u.Quantity(2, u.GHz)
     reference_pulse_shape = np.ones((2, 20)).astype(np.float)
-    reference_pulse_step = u.Quantity(0.5, u.ns)
+    reference_pulse_sample_width = u.Quantity(0.5, u.ns)
     readout1 = CameraReadout(
         cam_id=cam_id,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
-        reference_pulse_step=reference_pulse_step
+        reference_pulse_sample_width=reference_pulse_sample_width
     )
 
     readout2 = CameraReadout(
         cam_id=cam_id,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
-        reference_pulse_step=reference_pulse_step
+        reference_pulse_sample_width=reference_pulse_sample_width
     )
 
     readout3 = CameraReadout(
         cam_id=4,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
-        reference_pulse_step=reference_pulse_step
+        reference_pulse_sample_width=reference_pulse_sample_width
     )
 
     readout4 = CameraReadout(
         cam_id=cam_id,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
-        reference_pulse_step=u.Quantity(1, u.ns)
+        reference_pulse_sample_width=u.Quantity(1, u.ns)
     )
 
     assert readout1 is not readout2
@@ -120,26 +120,26 @@ def test_hashing():
     cam_id = 0
     sampling_rate = u.Quantity(2, u.GHz)
     reference_pulse_shape = np.ones((2, 20)).astype(np.float)
-    reference_pulse_step = u.Quantity(0.5, u.ns)
+    reference_pulse_sample_width = u.Quantity(0.5, u.ns)
     readout1 = CameraReadout(
         cam_id=cam_id,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
-        reference_pulse_step=reference_pulse_step
+        reference_pulse_sample_width=reference_pulse_sample_width
     )
 
     readout2 = CameraReadout(
         cam_id=cam_id,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
-        reference_pulse_step=reference_pulse_step
+        reference_pulse_sample_width=reference_pulse_sample_width
     )
 
     readout3 = CameraReadout(
         cam_id=4,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
-        reference_pulse_step=reference_pulse_step
+        reference_pulse_sample_width=reference_pulse_sample_width
     )
 
     assert len({readout1, readout2, readout3}) == 2

@@ -266,7 +266,7 @@ class HESSIOEventSource(EventSource):
         num_mirrors = file.get_mirror_number(tel_id)
         sampling_rate = u.Quantity(1 / file.get_time_slice(tel_id), u.GHz)
         reference_pulse_shape = file.get_ref_shapes(tel_id)
-        reference_pulse_step = u.Quantity(file.get_ref_step(tel_id), u.ns)
+        reference_pulse_sample_width = u.Quantity(file.get_ref_step(tel_id), u.ns)
 
         geometry = CameraGeometry(
             telescope.camera_name,
@@ -283,7 +283,7 @@ class HESSIOEventSource(EventSource):
             telescope.camera_name,
             sampling_rate=sampling_rate,
             reference_pulse_shape=reference_pulse_shape,
-            reference_pulse_step=reference_pulse_step,
+            reference_pulse_sample_width=reference_pulse_sample_width,
         )
         camera = CameraDescription(
             camera_name=telescope.camera_name,
