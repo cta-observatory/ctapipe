@@ -21,6 +21,7 @@ from pkg_resources import get_distribution
 
 import ctapipe
 from .support import Singleton
+from collections import UserList
 
 log = logging.getLogger(__name__)
 
@@ -161,6 +162,8 @@ class Provenance(metaclass=Singleton):
         def set_default(obj):
             """ handle sets (not part of JSON) by converting to list"""
             if isinstance(obj, set):
+                return list(obj)
+            if isinstance(obj, UserList):
                 return list(obj)
 
         return json.dumps(self.provenance, default=set_default, **kwargs)

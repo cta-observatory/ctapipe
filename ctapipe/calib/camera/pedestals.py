@@ -223,12 +223,15 @@ class PedestalIntegrator(PedestalCalculator):
         """
 
         waveforms = event.r1.tel[self.tel_id].waveform
+        selected_gain_channel = event.r1.tel[self.tel_id].selected_gain_channel
 
         # Extract charge and time
         charge = 0
         peak_pos = 0
         if self.extractor:
-            charge, peak_pos = self.extractor(waveforms, self.tel_id)
+            charge, peak_pos = self.extractor(
+                waveforms, self.tel_id, selected_gain_channel
+            )
 
         return charge, peak_pos
 

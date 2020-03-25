@@ -266,11 +266,6 @@ class MCCameraEventContainer(Container):
     photo_electron_image = Field(
         Map(), "reference image in pure photoelectrons, with no noise"
     )
-    # todo: move to instrument (doesn't change per event)
-    reference_pulse_shape = Field(None, "reference pulse shape for each channel")
-    # todo: move to instrument or a static MC container (don't change per
-    # event)
-    time_slice = Field(0, "width of time slice", unit=u.ns)
     dc_to_pe = Field(None, "DC/PE calibration arrays from MC file")
     pedestal = Field(None, "pedestal calibration arrays from MC file")
     azimuth_raw = Field(0, "Raw azimuth angle [radians from N->E] for the telescope")

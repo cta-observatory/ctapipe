@@ -73,12 +73,12 @@ def poisson_likelihood_gaussian(image, prediction, spe_width, ped):
     ped = np.asarray(ped)
 
     sq = 1. / np.sqrt(
-        2 * math.pi *
-        (np.power(ped, 2) + prediction * (1 + np.power(spe_width, 2)))
+        2 * np.pi
+        * (ped**2 + prediction * (1 + spe_width**2))
     )
 
-    diff = np.power(image - prediction, 2.)
-    denom = 2 * (np.power(ped, 2) + prediction * (1 + np.power(spe_width, 2)))
+    diff = (image - prediction)**2
+    denom = 2 * (ped**2 + prediction * (1 + spe_width**2))
     expo = np.asarray(np.exp(-1 * diff / denom))
 
     # If we are outside of the range of datatype, fix to lower bound
@@ -142,13 +142,13 @@ def poisson_likelihood_full(image, prediction, spe_width, ped,
     pe_factorial = factorial(pe_summed)
 
     first_term = (
-        np.power(prediction, pe_summed[:, np.newaxis]) *
-        np.exp(-1 * prediction)
+        prediction**pe_summed[:, np.newaxis]
+        * np.exp(-1 * prediction)
     )
     first_term /= (
         pe_factorial[:, np.newaxis] * np.sqrt(
-            math.pi * 2 *
-            (ped * ped + pe_summed[:, np.newaxis] * spe_width * spe_width)
+            math.pi * 2
+            * (ped * ped + pe_summed[:, np.newaxis] * spe_width * spe_width)
         )
     )
 

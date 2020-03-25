@@ -7,7 +7,7 @@ from ctapipe.core import Component, Provenance
 from traitlets import Unicode, Int
 
 
-def sum_errors(array):
+def root_mean_square(array):
     """
     Simple sum of squares to combine errors
 
@@ -19,7 +19,7 @@ def sum_errors(array):
     -------
     float
     """
-    return np.sqrt(np.sum(np.power(array, 2)) / array.size)
+    return np.sqrt(np.mean(array**2))
 
 
 def bin_dataframe(df, n_bins):
@@ -43,8 +43,8 @@ def bin_dataframe(df, n_bins):
     min_ = true.min()
     max_ = true.max()
     bins = np.geomspace(min_, max_, n_bins)
-    bins = np.append(bins, 10**(np.log10(bins[-1]) +
-                                np.diff(np.log10(bins))[0]))
+    log_bin_width = np.diff(np.log10(bins))[0]
+    bins = np.append(bins, 10**(np.log10(bins[-1]) + log_bin_width))
     df['bin'] = np.digitize(true, bins, right=True) - 1
 
     return df
