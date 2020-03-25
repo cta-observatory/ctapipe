@@ -116,7 +116,7 @@ class CameraReadout:
             # TODO: remove case when files have been generated
             logger.warning(f"Resorting to default CameraReadout,"
                            f" File does not exist: ({tabname})")
-            reference_pulse_shape = norm.pdf(np.arange(96), 48, 6)
+            reference_pulse_shape = np.array([norm.pdf(np.arange(96), 48, 6)])
             return cls(
                 cam_id=camera_id,
                 sampling_rate=u.Quantity(1, u.GHz),

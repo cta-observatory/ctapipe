@@ -59,8 +59,8 @@ def camera_waveforms():
     # Create reference pulse
     x_ref = np.arange(n_samples*2)
     reference_pulse = norm.pdf(x_ref, n_samples, pulse_sigma*2)
-    subarray.tel[telid].camera.reference_pulse_shape = [reference_pulse]
-    subarray.tel[telid].camera.reference_pulse_step = u.Quantity(0.5, u.ns)
+    subarray.tel[telid].camera.readout.reference_pulse_shape = np.array([reference_pulse])
+    subarray.tel[telid].camera.readout.reference_pulse_sample_width = u.Quantity(0.5, u.ns)
 
     # Randomize amplitudes
     charge = random.uniform(100, 1000, n_pixels)
