@@ -83,19 +83,20 @@ class ImagePlotter(Component):
             self.c_intensity = CameraDisplay(geom, ax=self.ax_intensity)
             self.c_pulse_time = CameraDisplay(geom, ax=self.ax_pulse_time)
 
-            tmaxmin = event.dl0.tel[telid].waveform.shape[1]
-            t_chargemax = pulse_time[image.argmax()]
-            cmap_time = colors.LinearSegmentedColormap.from_list(
-                "cmap_t",
-                [
-                    (0 / tmaxmin, "darkgreen"),
-                    (0.6 * t_chargemax / tmaxmin, "green"),
-                    (t_chargemax / tmaxmin, "yellow"),
-                    (1.4 * t_chargemax / tmaxmin, "blue"),
-                    (1, "darkblue"),
-                ],
-            )
-            self.c_pulse_time.pixels.set_cmap(cmap_time)
+            if (pulse_time != 0.).all():
+                tmaxmin = event.dl0.tel[telid].waveform.shape[1]
+                t_chargemax = pulse_time[image.argmax()]
+                cmap_time = colors.LinearSegmentedColormap.from_list(
+                    "cmap_t",
+                    [
+                        (0 / tmaxmin, "darkgreen"),
+                        (0.6 * t_chargemax / tmaxmin, "green"),
+                        (t_chargemax / tmaxmin, "yellow"),
+                        (1.4 * t_chargemax / tmaxmin, "blue"),
+                        (1, "darkblue"),
+                    ],
+                )
+                self.c_pulse_time.pixels.set_cmap(cmap_time)
 
             if not self.cb_intensity:
                 self.c_intensity.add_colorbar(

@@ -7,10 +7,7 @@ from scipy.stats import norm
 from traitlets.config.configurable import Config
 from astropy import units as u
 
-from ctapipe.calib.camera.calibrator import (
-    CameraCalibrator,
-    integration_correction,
-)
+from ctapipe.calib.camera.calibrator import CameraCalibrator
 from ctapipe.image.extractor import LocalPeakWindowSum, FullWaveformSum
 from ctapipe.instrument import CameraGeometry
 from ctapipe.io.containers import DataContainer
@@ -19,31 +16,6 @@ from ctapipe.io.containers import DataContainer
 @pytest.fixture(scope="function")
 def subarray(example_event):
     return example_event.inst.subarray
-
-
-@pytest.fixture('module')
-def reference_pulse():
-    reference_pulse_sample_width = 0.09
-    n_reference_pulse_samples = 1280
-    reference_pulse_shape = np.array([
-        norm.pdf(np.arange(n_reference_pulse_samples), 600, 100) * 1.7,
-        norm.pdf(np.arange(n_reference_pulse_samples), 700, 100) * 1.7,
-    ])
-    return reference_pulse_shape, reference_pulse_sample_width
-
-
-@pytest.fixture('module')
-def sampled_reference_pulse(reference_pulse):
-    reference_pulse_shape, reference_pulse_sample_width = reference_pulse
-    n_channels, n_reference_pulse_samples = reference_pulse_shape.shape
-    pulse_max_sample = n_reference_pulse_samples * reference_pulse_sample_width
-    sample_width_ns = 2
-    pulse_shape_x = np.arange(0, pulse_max_sample, reference_pulse_sample_width)
-    sampled_edges = np.arange(0, pulse_max_sample, sample_width_ns)
-    sampled_pulse = np.array([np.histogram(
-        pulse_shape_x, sampled_edges, weights=reference_pulse_shape[ichan], density=True
-    )[0] for ichan in range(n_channels)])
-    return sampled_pulse, sample_width_ns
 
 
 def test_camera_calibrator(example_event, subarray):
@@ -86,60 +58,6 @@ def test_config(subarray):
     assert calibrator.image_extractor.window_width.tel[None] == window_width
 
 
-def test_integration_correction(reference_pulse, sampled_reference_pulse):
-    reference_pulse_shape, reference_pulse_sample_width = reference_pulse
-    sampled_pulse, sample_width_ns = sampled_reference_pulse
-    sampled_pulse_fc = sampled_pulse[0]  # Test first channel
-    full_integral = np.sum(sampled_pulse[0] * sample_width_ns)
-
-    for window_start in range(0, sampled_pulse_fc.size):
-        for window_end in range(window_start+1, sampled_pulse_fc.size):
-            window_width = window_end - window_start
-            window_shift = sampled_pulse_fc.argmax() - window_start
-            correction = integration_correction(
-                reference_pulse_shape,
-                reference_pulse_sample_width, sample_width_ns,
-                window_width, window_shift
-            )[0]
-            window_integral = np.sum(
-                sampled_pulse_fc[window_start:window_end] * sample_width_ns
-            )
-            np.testing.assert_allclose(full_integral, window_integral * correction)
-
-
-def test_integration_correction_outofbounds(reference_pulse, sampled_reference_pulse):
-    reference_pulse_shape, reference_pulse_sample_width = reference_pulse
-    sampled_pulse, sample_width_ns = sampled_reference_pulse
-    sampled_pulse_fc = sampled_pulse[0]  # Test first channel
-    full_integral = np.sum(sampled_pulse[0] * sample_width_ns)
-
-    for window_start in range(0, sampled_pulse_fc.size):
-        for window_end in range(sampled_pulse_fc.size, sampled_pulse_fc.size+20):
-            window_width = window_end - window_start
-            window_shift = sampled_pulse_fc.argmax() - window_start
-            correction = integration_correction(
-                reference_pulse_shape,
-                reference_pulse_sample_width, sample_width_ns,
-                window_width, window_shift
-            )[0]
-            window_integral = np.sum(
-                sampled_pulse_fc[window_start:window_end] * sample_width_ns
-            )
-            np.testing.assert_allclose(full_integral, window_integral * correction)
-
-
-def test_integration_correction_no_ref_pulse(example_event, subarray):
-    telid = list(example_event.r0.tel)[0]
-    delattr(
-        example_event.inst.subarray.tel[telid].camera.readout,
-        "reference_pulse_shape"
-    )
-    calibrator = CameraCalibrator(subarray=subarray)
-    calibrator._calibrate_dl0(example_event, telid)
-    correction = calibrator._get_correction(example_event, telid)
-    assert (correction == 1).all()
-
-
 def test_check_r1_empty(example_event, subarray):
     calibrator = CameraCalibrator(subarray=subarray)
     telid = list(example_event.r0.tel)[0]
@@ -161,10 +79,11 @@ def test_check_r1_empty(example_event, subarray):
     with pytest.warns(UserWarning):
         calibrator(event)
     assert (event.dl0.tel[telid].waveform == 2).all()
-    assert (event.dl1.tel[telid].image == 2 * 128).all()
+    sampling_rate = subarray.tel[telid].camera.sampling_rate.to_value('GHz')
+    assert (event.dl1.tel[telid].image == 2 * 128 / sampling_rate).all()
 
 
-def test_check_dl0_empty(example_event):
+def test_check_dl0_empty(example_event, subarray):
     calibrator = CameraCalibrator(subarray=subarray)
     telid = list(example_event.r0.tel)[0]
     calibrator._calibrate_dl0(example_event, telid)
@@ -185,7 +104,7 @@ def test_check_dl0_empty(example_event):
     assert (event.dl1.tel[telid].image == 2).all()
 
 
-def test_dl1_charge_calib():
+def test_dl1_charge_calib(subarray):
     camera = CameraGeometry.from_name("CHEC")
     n_pixels = camera.n_pixels
     n_samples = 96
@@ -211,7 +130,7 @@ def test_dl1_charge_calib():
     y += pedestal[:, np.newaxis]
 
     event = DataContainer()
-    telid = 0
+    telid = list(subarray.tel.keys())[0]
     event.dl0.tel[telid].waveform = y
 
     # Test default
