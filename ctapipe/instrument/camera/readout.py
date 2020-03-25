@@ -74,7 +74,7 @@ class CameraReadout:
         """
         Time axis for the reference pulse
         """
-        n_channels, n_samples = self.reference_pulse_shape.shape
+        _, n_samples = self.reference_pulse_shape.shape
         sample_width_ns = self.reference_pulse_sample_width.to_value(u.ns)
         pulse_max_sample = n_samples * sample_width_ns
         sample_time = np.arange(0, pulse_max_sample, sample_width_ns)

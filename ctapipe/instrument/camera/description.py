@@ -4,7 +4,7 @@ Classes pertaining to the description of a Cherenkov camera
 
 from .geometry import CameraGeometry
 from .readout import CameraReadout
-from ctapipe.utils import get_table_dataset, find_all_matching_datasets
+from ctapipe.utils import find_all_matching_datasets
 
 
 class CameraDescription:
