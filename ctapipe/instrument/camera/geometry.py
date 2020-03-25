@@ -18,7 +18,10 @@ from ctapipe.utils.linalg import rotation_matrix_2d
 from ctapipe.coordinates import CameraFrame
 
 
-__all__ = ['CameraGeometry']
+__all__ = [
+    "CameraGeometry",
+    "UnknownPixelShapeWarning"
+]
 
 logger = logging.getLogger(__name__)
 
