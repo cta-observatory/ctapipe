@@ -29,7 +29,7 @@ else:
 source = event_source(filename, allowed_tels={1, 2, 3, 4})
 
 reco = HillasReconstructor()
-calib = CameraCalibrator()
+calib = CameraCalibrator(subarray=source.subarray)
 
 horizon_frame = AltAz()
 

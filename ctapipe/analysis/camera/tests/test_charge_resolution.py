@@ -58,7 +58,7 @@ def test_calculation():
     true = 3
     n = measured.size
 
-    sum_ = np.sum(np.power(measured - true, 2))
+    sum_ = np.sum((measured - true)**2)
     assert_almost_equal(sum_, 0.34, 3)
     assert_almost_equal(chargeres.rmse_abs(sum_, n), 0.412, 3)
     assert_almost_equal(chargeres.rmse(true, sum_, n), 0.137, 3)
@@ -71,18 +71,18 @@ def test_calculation():
 
 
 def test_result():
-    chargeres = ChargeResolutionCalculator(mc_true=False)
+    charge_res = ChargeResolutionCalculator(mc_true=False)
     measured = np.array([3.5, 2.7])
     true = 3
     n = measured.size
-    sum_ = np.sum(np.power(measured - true, 2))
+    sum_ = np.sum((measured - true)**2)
 
-    chargeres.add(0, true, measured)
-    df_p, df_c = chargeres.finish()
-    assert (df_p['charge_resolution'].values[0] ==
-            chargeres.rmse(true, sum_, n))
-    assert (df_p['charge_resolution_abs'].values[0] ==
-            chargeres.rmse_abs(sum_, n))
+    charge_res.add(0, true, measured)
+    df_p, df_c = charge_res.finish()
+    resolution = df_p['charge_resolution'].values[0]
+    assert (resolution == charge_res.rmse(true, sum_, n))
+    resolution_abs = df_p['charge_resolution_abs'].values[0]
+    assert (resolution_abs == charge_res.rmse_abs(sum_, n))
 
 
 def test_result_mc_true():
@@ -90,7 +90,7 @@ def test_result_mc_true():
     measured = np.array([3.5, 2.7])
     true = 3
     n = measured.size
-    sum_ = np.sum(np.power(measured - true, 2))
+    sum_ = np.sum((measured - true)**2)
 
     chargeres.add(0, true, measured)
     df_p, df_c = chargeres.finish()
