@@ -5,12 +5,13 @@ Data Quality selection
 __all__ = ["Selector", "SelectionFunctionError"]
 
 from collections.abc import Callable
+from copy import copy
 
 import astropy.units as u  # for use in selection functions
 import numpy as np  # for use in selection functions
 
 from .component import Component
-from .traits import Dict
+from .traits import List
 
 # the following are what are allowed to be used
 # in selection functions (passed to eval())
@@ -33,11 +34,12 @@ class Selector(Component):
     cumulative product of criterium (i.e. the criteria applied in-order)
     """
 
-    selection_functions = Dict(
+    selection_criteria = List(
         help=(
-            "dict of '<cut name>' : lambda function in string format to accept ("
-            "select) a given data value.  E.g. `{'mycut': 'lambda x: x > 3'}`. You may "
-            "use `numpy` as `np` and `astropy.units` as `u`, but no other modules."
+            "list of tuples of ('<description', 'function string') to accept "
+            "(select) a given data value.  E.g. `[('mycut', 'lambda x: x > 3'),]. "
+            "You may use `numpy` as `np` and `astropy.units` as `u`, but no other"
+            " modules."
         )
     ).tag(config=True)
 
@@ -45,25 +47,31 @@ class Selector(Component):
         super().__init__(config=config, parent=parent, **kwargs)
 
         # add a selection to count all entries and make it the first one
-        selection_functions = {"TOTAL": "lambda x: True"}
-        selection_functions.update(self.selection_functions)
+        self.selection_criteria.insert(0, ("TOTAL", "lambda x: True"))
+        self.criteria_names = []
+        self.selection_function_strings = []
+        self._selectors = []
 
-        self.selection_functions = selection_functions  # update
+        for name, func_str in self.selection_criteria:
+            try:  # generate real functions from the selection function strings
+                self.criteria_names.append(name)
+                self.selection_function_strings.append(func_str)
 
-        try:  # generate real functions from the selection function strings
-            self._selectors = {
-                name: eval(func_str, ALLOWED_GLOBALS)
-                for name, func_str in selection_functions.items()
-            }
-        except NameError as err:
-            raise SelectionFunctionError(
-                f"Couldn't evaluate one of the selection function strings: {err}"
-            )
+                func = eval(func_str, ALLOWED_GLOBALS)
+                if not isinstance(func, Callable):
+                    raise SelectionFunctionError(
+                        f"Selection criterion '{name}' cannot be evaluated because "
+                        f" '{func_str}' is not a callable function"
+                    )
+                self._selectors.append(func)
 
-        for name, func in self._selectors.items():
-            if not isinstance(func, Callable):
+            except NameError as err:
+                # catch functions that cannot be defined. Note that this cannot check
+                # that the function can run, that only happens the first time it's
+                # called.
                 raise SelectionFunctionError(
-                    f"Selection criterion '{name}' is not a function"
+                    f"Couldn't evaluate selection function '{name}' -> '{func_str}' "
+                    f"because: {err}"
                 )
 
         # arrays for recording overall statistics
@@ -73,16 +81,6 @@ class Selector(Component):
     def __len__(self):
         """ return number of events processed"""
         return self._counts[0]
-
-    @property
-    def criteria_names(self):
-        """ list of names of criteria to be considered """
-        return list(self._selectors.keys())
-
-    @property
-    def selection_function_strings(self):
-        """ list of criteria function strings"""
-        return list(self.selection_functions.values())
 
     def to_table(self, functions=False):
         """
@@ -130,7 +128,7 @@ class Selector(Component):
         np.ndarray:
             array of booleans with results of each selection criterion in order
         """
-        result = np.array(list(map(lambda f: f(value), self._selectors.values())))
+        result = np.array(list(map(lambda f: f(value), self._selectors)))
         self._counts += result.astype(int)
         self._cumulative_counts += result.cumprod()
         return result[1:]

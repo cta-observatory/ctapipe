@@ -2,19 +2,19 @@
 import pytest
 
 from ctapipe.core.selector import Selector, SelectionFunctionError
-from ctapipe.core.traits import Dict
+from ctapipe.core.traits import List
 
 
 def test_selector():
     """ test the functionality of an example Selector subclass"""
 
     class ExampleSelector(Selector):
-        selection_functions = Dict(
-            default_value=dict(
-                high_enough="lambda x: x > 3",
-                a_value_not_too_high="lambda x: x < 100",
-                smallish="lambda x: x < np.sqrt(100)",
-            ),
+        selection_criteria = List(
+            default_value=[
+                ("high_enough", "lambda x: x > 3"),
+                ("a_value_not_too_high", "lambda x: x < 100"),
+                ("smallish", "lambda x: x < np.sqrt(100)"),
+            ],
         ).tag(config=True)
 
     select = ExampleSelector()
@@ -71,21 +71,21 @@ def test_bad_selector():
 
     with pytest.raises(SelectionFunctionError):
         s = Selector(
-            selection_functions=dict(
-                high_enough="lambda x: x > 3",
-                not_good="3",
-                smallish="lambda x: x < 10",
-            )
+            selection_criteria=[
+                ("high_enough", "lambda x: x > 3"),
+                ("not_good", "3"),
+                ("smallish", "lambda x: x < 10"),
+            ]
         )
         assert s
 
     with pytest.raises(SelectionFunctionError):
         s = Selector(
-            selection_functions=dict(
-                high_enough="lambda x: x > 3",
-                not_good="x == 3",
-                smallish="lambda x: x < 10",
-            )
+            selection_criteria=[
+                ("high_enough", "lambda x: x > 3"),
+                ("not_good", "x == 3"),
+                ("smallish", "lambda x: x < 10"),
+            ]
         )
         assert s
 
@@ -94,5 +94,5 @@ def test_bad_selector():
     # ALLOWED_GLOBALS list, but which is imported in selector.py
     # and see if it works in a function
     with pytest.raises(NameError):
-        s = Selector(selection_functions=dict(dangerous="lambda x: Component()",))
-        s._selectors["dangerous"](10)
+        s = Selector(selection_criteria=[("dangerous", "lambda x: Component()")])
+        s(10)
