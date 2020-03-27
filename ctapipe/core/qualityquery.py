@@ -2,7 +2,7 @@
 Data Quality selection
 """
 
-__all__ = ["Selector", "SelectionFunctionError"]
+__all__ = ["QualityQuery", "QualityCriteriaError"]
 
 from collections.abc import Callable
 
@@ -20,13 +20,13 @@ ALLOWED_GLOBALS = {
 }
 
 
-class SelectionFunctionError(TypeError):
+class QualityCriteriaError(TypeError):
     """ Signal a problem with a user-defined selection criteria function"""
 
     pass
 
 
-class Selector(Component):
+class QualityQuery(Component):
     """
     Manages a set of user-configurable (at runtime or in a config file) selection
     criteria that operate on the same type of input. Each time it is called, it
@@ -35,7 +35,7 @@ class Selector(Component):
     cumulative product of criterium (i.e. the criteria applied in-order)
     """
 
-    selection_criteria = List(
+    quality_criteria = List(
         help=(
             "list of tuples of ('<description', 'function string') to accept "
             "(select) a given data value.  E.g. `[('mycut', 'lambda x: x > 3'),]. "
@@ -48,19 +48,19 @@ class Selector(Component):
         super().__init__(config=config, parent=parent, **kwargs)
 
         # add a selection to count all entries and make it the first one
-        self.selection_criteria.insert(0, ("TOTAL", "lambda x: True"))
+        self.quality_criteria.insert(0, ("TOTAL", "lambda x: True"))
         self.criteria_names = []
         self.selection_function_strings = []
         self._selectors = []
 
-        for name, func_str in self.selection_criteria:
+        for name, func_str in self.quality_criteria:
             try:  # generate real functions from the selection function strings
                 self.criteria_names.append(name)
                 self.selection_function_strings.append(func_str)
 
                 func = eval(func_str, ALLOWED_GLOBALS)
                 if not isinstance(func, Callable):
-                    raise SelectionFunctionError(
+                    raise QualityCriteriaError(
                         f"Selection criterion '{name}' cannot be evaluated because "
                         f" '{func_str}' is not a callable function"
                     )
@@ -70,7 +70,7 @@ class Selector(Component):
                 # catch functions that cannot be defined. Note that this cannot check
                 # that the function can run, that only happens the first time it's
                 # called.
-                raise SelectionFunctionError(
+                raise QualityCriteriaError(
                     f"Couldn't evaluate selection function '{name}' -> '{func_str}' "
                     f"because: {err}"
                 )
