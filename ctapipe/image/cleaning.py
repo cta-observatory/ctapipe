@@ -218,7 +218,7 @@ def number_of_islands(geom, mask):
         Total number of clusters
     island_labels: ndarray
         Contains cluster membership of each pixel.
-        Dimesion equals input mask.
+        Dimension equals input geometry.
         Entries range from 0 (not in the pixel mask) to num_islands.
     """
     # compress sparse neighbor matrix
@@ -365,6 +365,30 @@ def fact_image_cleaning(
     return pixels_to_keep
 
 
+def largest_island(islands_labels):
+    """Find the biggest island and filter it from the image.
+
+    This function takes a list of islands in an image and isolates the largest one
+    for later parametrization.
+
+    Parameters
+    ----------
+    islands_labels : array
+        Flattened array containing a list of labelled islands from a cleaned image.
+        Second value returned by the function 'number_of_islands'.
+
+    Returns
+    -------
+    islands_labels : array
+        A boolean mask created from the input labels and filtered for the largest island.
+        If no islands survived the cleaning the array is all False.
+
+    """
+    if np.count_nonzero(islands_labels) == 0:
+        return np.zeros(islands_labels.shape, dtype="bool")
+    return islands_labels == np.argmax(np.bincount(islands_labels[islands_labels > 0]))
+
+
 class ImageCleaner(TelescopeComponent):
     """
     Abstract class for all configurable Image Cleaning algorithms.   Use
@@ -403,15 +427,15 @@ class TailcutsImageCleaner(ImageCleaner):
     """
 
     picture_threshold_pe = FloatTelescopeParameter(
-        help="top-level threshold in photoelectrons", default_value=10.0,
+        help="top-level threshold in photoelectrons", default_value=10.0
     ).tag(config=True)
 
     boundary_threshold_pe = FloatTelescopeParameter(
-        help="second-level threshold in photoelectrons", default_value=5.0,
+        help="second-level threshold in photoelectrons", default_value=5.0
     ).tag(config=True)
 
     min_picture_neighbors = IntTelescopeParameter(
-        help="Minimum number of neighbors above threshold to consider", default_value=2,
+        help="Minimum number of neighbors above threshold to consider", default_value=2
     ).tag(config=True)
 
     def __call__(
