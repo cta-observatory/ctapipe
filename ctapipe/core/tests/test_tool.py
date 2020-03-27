@@ -111,3 +111,4 @@ def test_tool_command_line_precedence():
 
     tool.run(argv=["--component_param", "20.0"])
     assert tool.sub.component_param == 20.0
+    assert tool.userparam == 12.0
