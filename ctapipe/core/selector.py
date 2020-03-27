@@ -5,7 +5,6 @@ Data Quality selection
 __all__ = ["Selector", "SelectionFunctionError"]
 
 from collections.abc import Callable
-from copy import copy
 
 import astropy.units as u  # for use in selection functions
 import numpy as np  # for use in selection functions
@@ -22,6 +21,8 @@ ALLOWED_GLOBALS = {
 
 
 class SelectionFunctionError(TypeError):
+    """ Signal a problem with a user-defined selection criteria function"""
+
     pass
 
 
@@ -112,6 +113,7 @@ class Selector(Component):
         return Table(cols)
 
     def _repr_html_(self):
+        """display nicely in Jupyter notebooks"""
         return self.to_table()._repr_html_()
 
     def __call__(self, value) -> np.ndarray:
@@ -131,4 +133,4 @@ class Selector(Component):
         result = np.array(list(map(lambda f: f(value), self._selectors)))
         self._counts += result.astype(int)
         self._cumulative_counts += result.cumprod()
-        return result[1:]
+        return result[1:]  # strip off TOTAL criterion, since redundant
