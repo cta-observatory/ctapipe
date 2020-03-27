@@ -1,7 +1,7 @@
 import warnings
 import numpy as np
 from ctapipe.io.eventsource import EventSource
-from ctapipe.io.containers import DataContainer
+from ctapipe.io.containers import EventAndMonDataContainer
 from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.time import Time
@@ -48,6 +48,8 @@ def build_camera_geometry(cam_settings, pixel_settings, telescope):
         pix_rotation=pix_rotation,
         cam_rotation=-Angle(cam_settings['cam_rot'], u.rad),
         apply_derotation=True,
+        reference_pulse_shape=pixel_settings['ref_shape'].astype('float64', copy=False),
+        reference_pulse_step=u.Quantity(pixel_settings['ref_step'], u.ns),
     )
 
     return camera
@@ -251,7 +253,7 @@ class SimTelEventSource(EventSource):
             warnings.warn(msg)
 
     def __generator(self):
-        data = DataContainer()
+        data = EventAndMonDataContainer()
         data.meta['origin'] = 'hessio'
         data.meta['input_url'] = self.input_url
         data.meta['max_events'] = self.max_events
@@ -317,20 +319,15 @@ class SimTelEventSource(EventSource):
             tracking_positions = array_event['tracking_positions']
             for tel_id, telescope_event in telescope_events.items():
                 tel_index = self.file_.header['tel_id'].tolist().index(tel_id)
-                telescope_description = self.file_.telescope_descriptions[tel_id]
 
                 adc_samples = telescope_event.get('adc_samples')
                 if adc_samples is None:
                     adc_samples = telescope_event['adc_sums'][:, :, np.newaxis]
                 _, n_pixels, n_samples = adc_samples.shape
-                pixel_settings = telescope_description['pixel_settings']
 
                 mc = data.mc.tel[tel_id]
                 mc.dc_to_pe = array_event['laser_calibrations'][tel_id]['calib']
                 mc.pedestal = array_event['camera_monitorings'][tel_id]['pedestal']
-                mc.reference_pulse_shape = pixel_settings['ref_shape'].astype('float64')
-                mc.meta['refstep'] = float(pixel_settings['ref_step'])
-                mc.time_slice = float(pixel_settings['time_slice'])
                 mc.photo_electron_image = (
                     array_event
                     .get('photoelectrons', {})

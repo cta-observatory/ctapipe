@@ -169,7 +169,7 @@ class CameraDisplay:
         self._active_pixels = listval
 
         palette = palettes.Set1[9]
-        palette = [palette[0]] + palette[3:]
+        palette = tuple([palette[0]] + list(palette[3:]))
         self.active_colors = [palette[i % (len(palette))]
                               for i in range(len(listval))]
         self.highlight_pixels()

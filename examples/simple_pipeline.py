@@ -14,7 +14,7 @@ if __name__ == '__main__':
 
     source = event_source(filename, max_events=None)
 
-    cal = CameraCalibrator()
+    cal = CameraCalibrator(subarray=source.subarray)
 
     for ii, event in enumerate(source):
 

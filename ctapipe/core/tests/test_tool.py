@@ -81,6 +81,7 @@ def test_tool_current_config():
     tool.userparam = -1.0
     conf2 = tool.get_current_config()
 
+
     assert conf1["MyTool"]["userparam"] == 5.0
     assert conf2["MyTool"]["userparam"] == -1.0
 
@@ -111,3 +112,17 @@ def test_tool_command_line_precedence():
 
     tool.run(argv=["--component_param", "20.0"])
     assert tool.sub.component_param == 20.0
+
+    assert conf1['MyTool']['userparam'] == 5.0
+    assert conf2['MyTool']['userparam'] == -1.0
+
+
+def test_tool_config_file():
+    """ Check that we can get the full instance configuration """
+
+    class MyTool(Tool):
+        pass
+
+    tool = MyTool()
+    with pytest.raises(TraitError):
+        tool.config_file = '/some/nonexistent/path'

@@ -31,15 +31,13 @@ if __name__ == '__main__':
     point_azimuth = {}
     point_altitude = {}
 
-    calib = CameraCalibrator()
+    subarray = source.subarray
+    calib = CameraCalibrator(subarray=subarray)
     off_angles = []
     first_event = True
     markers = None
 
     for event in source:
-
-        subarray = event.inst.subarray
-
         if first_event:
             fig, ax = plt.subplots(1, 1, figsize=(10, 8))
             array_disp = ArrayDisplay(subarray, axes=ax, tel_scale=1.0)

@@ -235,6 +235,54 @@ def test_number_of_islands():
     assert island_mask.dtype == np.int32
 
 
+def test_largest_island():
+    """Test selection of largest island in imagea with given cleaning masks."""
+
+    # Create a simple rectangular camera made of 17 pixels
+    camera = CameraGeometry.make_rectangular(17, 1)
+
+    # Assume a simple image (flattened array) made of 0, 1 or 2 photoelectrons
+    # [2, 1, 1, 1, 1, 2, 2, 1, 0, 2, 1, 1, 1, 0, 2, 2, 2]
+    # Assume a virtual tailcut cleaning that requires:
+    # - picture_threshold = 2 photoelectrons,
+    # - boundary_threshold = 1 photoelectron,
+    # - min_number_picture_neighbors = 0
+    # There will be 4 islands left after cleaning:
+    clean_mask = np.zeros(camera.n_pixels).astype("bool")  # initialization
+    clean_mask[[0, 1]] = 1
+    clean_mask[[4, 5, 6, 7]] = 2  # this is the biggest
+    clean_mask[[9, 10]] = 3
+    clean_mask[[14, 15, 16]] = 4
+    # Label islands (their number is not important here)
+    _, islands_labels = cleaning.number_of_islands(camera, clean_mask)
+    # Create the true mask which takes into account only the biggest island
+    # Pixels with no signal are labelled with a 0
+    true_mask_largest = np.zeros(camera.n_pixels).astype("bool")
+    true_mask_largest[[4, 5, 6, 7]] = 1
+    # Apply the function to test
+    mask_largest = cleaning.largest_island(islands_labels)
+
+    # Now the degenerate case of only one island surviving
+    # Same process as before
+    clean_mask_one = np.zeros(camera.n_pixels).astype("bool")
+    clean_mask_one[[0, 1]] = 1
+    _, islands_labels_one = cleaning.number_of_islands(camera, clean_mask_one)
+    true_mask_largest_one = np.zeros(camera.n_pixels).astype("bool")
+    true_mask_largest_one[[0, 1]] = 1
+    mask_largest_one = cleaning.largest_island(islands_labels_one)
+
+    # Last the case of no islands surviving
+    clean_mask_0 = np.zeros(camera.n_pixels).astype("bool")
+    _, islands_labels_0 = cleaning.number_of_islands(camera, clean_mask_0)
+    true_mask_largest_0 = np.zeros(camera.n_pixels).astype("bool")
+    mask_largest_0 = cleaning.largest_island(islands_labels_0)
+
+    # Check if the function recovers the ground truth in all of the three cases
+    assert (mask_largest_one == true_mask_largest_one).all()
+    assert (mask_largest_0 == true_mask_largest_0).all()
+    assert_allclose(mask_largest, true_mask_largest)
+
+
 def test_fact_image_cleaning():
     # use LST pixel geometry
     geom = CameraGeometry.from_name("LSTCam")
@@ -279,11 +327,7 @@ def test_apply_time_delta_cleaning():
 
     # Test unchanged
     td_mask = cleaning.apply_time_delta_cleaning(
-        geom,
-        mask,
-        pulse_time,
-        min_number_neighbors=1,
-        time_limit=5,
+        geom, mask, pulse_time, min_number_neighbors=1, time_limit=5
     )
     test_mask = mask.copy()
     assert (test_mask == td_mask).all()
@@ -292,11 +336,7 @@ def test_apply_time_delta_cleaning():
     noise_neighbour = neighbours[0]
     pulse_time[noise_neighbour] += 10
     td_mask = cleaning.apply_time_delta_cleaning(
-        geom,
-        mask,
-        pulse_time,
-        min_number_neighbors=1,
-        time_limit=5,
+        geom, mask, pulse_time, min_number_neighbors=1, time_limit=5
     )
     test_mask = mask.copy()
     test_mask[noise_neighbour] = 0
@@ -304,11 +344,7 @@ def test_apply_time_delta_cleaning():
 
     # Test min_number_neighbours
     td_mask = cleaning.apply_time_delta_cleaning(
-        geom,
-        mask,
-        pulse_time,
-        min_number_neighbors=4,
-        time_limit=5,
+        geom, mask, pulse_time, min_number_neighbors=4, time_limit=5
     )
     test_mask = mask.copy()
     test_mask[neighbours] = 0
