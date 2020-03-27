@@ -6,10 +6,18 @@ __all__ = ["Selector", "SelectionFunctionError"]
 
 from collections.abc import Callable
 
-import numpy as np
+import astropy.units as u  # for use in selection functions
+import numpy as np  # for use in selection functions
 
 from .component import Component
 from .traits import Dict
+
+# the following are what are allowed to be used
+# in selection functions (passed to eval())
+ALLOWED_GLOBALS = {
+    "u": u,  # astropy units
+    "np": np,  # numpy
+}
 
 
 class SelectionFunctionError(TypeError):
@@ -28,7 +36,8 @@ class Selector(Component):
     selection_functions = Dict(
         help=(
             "dict of '<cut name>' : lambda function in string format to accept ("
-            "select) a given data value.  E.g. `{'mycut': 'lambda x: x > 3'}` "
+            "select) a given data value.  E.g. `{'mycut': 'lambda x: x > 3'}`. You may "
+            "use `numpy` as `np` and `astropy.units` as `u`, but no other modules."
         )
     ).tag(config=True)
 
@@ -43,7 +52,8 @@ class Selector(Component):
 
         try:  # generate real functions from the selection function strings
             self._selectors = {
-                name: eval(func_str) for name, func_str in selection_functions.items()
+                name: eval(func_str, ALLOWED_GLOBALS)
+                for name, func_str in selection_functions.items()
             }
         except NameError as err:
             raise SelectionFunctionError(

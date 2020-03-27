@@ -13,7 +13,7 @@ def test_selector():
             default_value=dict(
                 high_enough="lambda x: x > 3",
                 a_value_not_too_high="lambda x: x < 100",
-                smallish="lambda x: x < 10",
+                smallish="lambda x: x < np.sqrt(100)",
             ),
         ).tag(config=True)
 
@@ -65,6 +65,7 @@ def test_selector():
 
     assert len(select) == 4  # 4 events counted
 
+
 def test_bad_selector():
     """ ensure failure if a selector function is not a function or can't be evaluated"""
 
@@ -88,3 +89,10 @@ def test_bad_selector():
         )
         assert s
 
+    # ensure we can't run arbitrary code.
+    # try to construct something that is not in the
+    # ALLOWED_GLOBALS list, but which is imported in selector.py
+    # and see if it works in a function
+    with pytest.raises(NameError):
+        s = Selector(selection_functions=dict(dangerous="lambda x: Component()",))
+        s._selectors["dangerous"](10)
