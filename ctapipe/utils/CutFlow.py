@@ -212,7 +212,7 @@ class CutFlow:
             specified otherwise
         """
         print(self.name)
-        t = self.get_table()
+        t = self.get_table(*args, **kwargs)
         print(t)
         return t
 
