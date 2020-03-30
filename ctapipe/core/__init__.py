@@ -7,6 +7,7 @@ from .component import Component, TelescopeComponent, non_abstract_children
 from .container import Container, Field, DeprecatedField, Map
 from .provenance import Provenance, get_module_version
 from .tool import Tool, ToolConfigurationError
+from .qualityquery import QualityQuery, QualityCriteriaError
 
 __all__ = [
     "Component",
@@ -20,4 +21,6 @@ __all__ = [
     "ToolConfigurationError",
     "non_abstract_children",
     "get_module_version",
+    "QualityQuery",
+    "QualityCriteriaError",
 ]
