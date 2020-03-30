@@ -1,7 +1,8 @@
 import numpy as np
 from ctapipe.instrument import CameraGeometry
+from ctapipe.image.toymodel import obtain_time_image, WaveformModel
 from pytest import approx
-from scipy.stats import poisson, skewnorm
+from scipy.stats import poisson, skewnorm, norm
 import astropy.units as u
 
 
@@ -92,3 +93,99 @@ def test_compare():
     signal_normal = normal.expected_signal(geom, intensity=intensity)
 
     assert np.isclose(signal_skewed, signal_normal).all()
+
+
+def test_obtain_time_image():
+    geom = CameraGeometry.from_name("CHEC")
+    centroid_x = u.Quantity(0.05, u.m)
+    centroid_y = u.Quantity(0.05, u.m)
+    psi = u.Quantity(70, u.deg)
+
+    time_gradient = u.Quantity(0, u.ns/u.m)
+    time_intercept = u.Quantity(0, u.ns)
+    time = obtain_time_image(
+        geom.pix_x, geom.pix_y, centroid_x, centroid_y, psi, time_gradient, time_intercept
+    )
+    np.testing.assert_allclose(time, 0)
+
+    time_gradient = u.Quantity(0, u.ns/u.m)
+    time_intercept = u.Quantity(40, u.ns)
+    time = obtain_time_image(
+        geom.pix_x, geom.pix_y, centroid_x, centroid_y, psi, time_gradient, time_intercept
+    )
+    np.testing.assert_allclose(time, 40)
+
+    time_gradient = u.Quantity(20, u.ns/u.m)
+    time_intercept = u.Quantity(40, u.ns)
+    time = obtain_time_image(
+        geom.pix_x, geom.pix_y, centroid_x, centroid_y, psi, time_gradient, time_intercept
+    )
+    np.testing.assert_allclose(time.std(), 1.710435)
+
+    time_gradient = u.Quantity(20, u.ns/u.m)
+    time_intercept = u.Quantity(40, u.ns)
+    time = obtain_time_image(
+        centroid_x, centroid_y, centroid_x, centroid_y, psi, time_gradient, time_intercept
+    )
+    np.testing.assert_allclose(time, 40)
+
+
+def test_waveform_model():
+    from ctapipe.image.toymodel import Gaussian
+    geom = CameraGeometry.from_name('CHEC')
+
+    ref_duration = 67
+    n_ref_samples = 100
+    pulse_sigma = 3
+    ref_x_norm = np.linspace(0, ref_duration, n_ref_samples)
+    ref_y_norm = norm.pdf(ref_x_norm, ref_duration/2, pulse_sigma)
+
+    geom.reference_pulse_shape = ref_y_norm
+    geom.reference_pulse_step = u.Quantity(ref_x_norm[1] - ref_x_norm[0], u.ns)
+    geom.sampling_rate = u.Quantity(2, u.GHz)
+
+    centroid_x = u.Quantity(0.05, u.m)
+    centroid_y = u.Quantity(0.05, u.m)
+    length = u.Quantity(0.03, u.m)
+    width = u.Quantity(0.008, u.m)
+    psi = u.Quantity(70, u.deg)
+    time_gradient = u.Quantity(50, u.ns/u.m)
+    time_intercept = u.Quantity(20, u.ns)
+
+    _, charge, _ = Gaussian(
+        x=centroid_x, y=centroid_y, width=width,
+        length=length, psi=psi
+    ).generate_image(geom, 10000)
+    time = obtain_time_image(
+        geom.pix_x, geom.pix_y, centroid_x, centroid_y, psi, time_gradient, time_intercept
+    )
+    time[charge == 0] = 0
+
+    waveform_model = WaveformModel.from_camera(geom)
+    waveform = waveform_model.get_waveform(charge, time, 96)
+    np.testing.assert_allclose(
+        waveform.sum(axis=1) / geom.sampling_rate.to_value(u.GHz),
+        charge,
+        rtol=1e-3
+    )
+    np.testing.assert_allclose(
+        waveform.argmax(axis=1) / geom.sampling_rate.to_value(u.GHz),
+        time,
+        rtol=1e-1
+    )
+
+    time_2 = time + 1
+    time_2[charge == 0] = 0
+    waveform_2 = waveform_model.get_waveform(charge, time_2, 96)
+    np.testing.assert_allclose(
+        waveform_2.sum(axis=1) / geom.sampling_rate.to_value(u.GHz),
+        charge,
+        rtol=1e-3
+    )
+    np.testing.assert_allclose(
+        waveform_2.argmax(axis=1) / geom.sampling_rate.to_value(u.GHz),
+        time_2,
+        rtol=1e-1
+    )
+    assert (waveform_2.argmax(axis=1)[charge != 0] >
+            waveform.argmax(axis=1)[charge != 0]).all()
