@@ -26,7 +26,7 @@ def get_camera_types(subarray):
 
     for telid in subarray.tel:
         geom = subarray.tel[telid].camera.geometry
-        cam_types[geom.cam_id].append(telid)
+        cam_types[geom.camera_name].append(telid)
 
     return cam_types
 

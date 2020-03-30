@@ -118,7 +118,7 @@ def plot_muon_event(event, muonparams):
 
             tailcuts = (5., 7.)
             # Try a higher threshold for
-            if geom.cam_id == 'FlashCam':
+            if geom.camera_name == 'FlashCam':
                 tailcuts = (10., 12.)
 
             clean_mask = tailcuts_clean(geom, image,
@@ -129,7 +129,7 @@ def plot_muon_event(event, muonparams):
 
             rotr_angle = geom.pix_rotation
 # The following two lines have been commented out to avoid a rotation error.
-#            if geom.cam_id == 'LSTCam' or geom.cam_id == 'NectarCam':
+#            if geom.camera_name == 'LSTCam' or geom.camera_name == 'NectarCam':
 
 #                rotr_angle = 0. * u.deg
 

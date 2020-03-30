@@ -329,7 +329,7 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
     --------
     camera = event.inst.subarray.tel[tel_id].camera
     image = event.r0.tel[tel_id].image[0]
-    key = camera.cam_id
+    key = camera.camera_name
     square_geom, square_image = convert_geometry_hex1d_to_rect2d(camera, image, key=key)
     """
 
@@ -399,7 +399,7 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
 
         # creating a new geometry object with the attributes we just determined
         new_geom = CameraGeometry(
-            cam_id=geom.cam_id + "_rect",
+            camera_name=geom.camera_name + "_rect",
             pix_id=ids,  # this is a list of all the valid coordinate pairs now
             pix_x=u.Quantity(grid_x.ravel(), u.meter),
             pix_y=u.Quantity(grid_y.ravel(), u.meter),
@@ -490,14 +490,14 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None, add_rot=None)
     was produced in the first conversion). If `key` is not found in said buffer, this
     function tries to perform a mock conversion. For this, it needs a `CameraGeometry`
     instance of the original camera layout, which it tries to load by name (i.e.
-    the `cam_id`). The function assumes the original `cam_id` can be inferred from the
-    given, modified one by: `geom.cam_id.split('_')[0]`.
+    the `camera_name`). The function assumes the original `camera_name` can be inferred from the
+    given, modified one by: `geom.camera_name.split('_')[0]`.
 
     Examples
     --------
     camera = event.inst.subarray.tel[tel_id].camera
     image = event.r0.tel[tel_id].image[0]
-    key = camera.cam_id
+    key = camera.camera_name
     square_geom, square_image = convert_geometry_hex1d_to_rect2d(camera, image, key=key)
     hex_geom, hex_image = convert_geometry_rect2d_back_to_hexe1d(square_geom,
     square_image, key = key)
@@ -506,15 +506,15 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None, add_rot=None)
     if key not in rot_buffer:
         # if the key is not in the buffer from the initial conversion (maybe
         # because you did it in another process?), perform a mock conversion
-        # here ATTENTION assumes the original cam_id can be inferred from the
-        #  given, modified one by by `geom.cam_id.split('_')[0]`
+        # here ATTENTION assumes the original camera_name can be inferred from the
+        #  given, modified one by by `geom.camera_name.split('_')[0]`
         try:
-            orig_geom = CameraGeometry.from_name(geom.cam_id.split("_")[0])
+            orig_geom = CameraGeometry.from_name(geom.camera_name.split("_")[0])
         except:
             raise ValueError(
                 "could not deduce `CameraGeometry` from given `geom`...\n"
                 "please provide a `geom`, so that "
-                "`geom.cam_id.split('_')[0]` is a known `cam_id`"
+                "`geom.camera_name.split('_')[0]` is a known `camera_name`"
             )
 
         orig_signal = np.zeros(len(orig_geom.pix_x))

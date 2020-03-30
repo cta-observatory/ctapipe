@@ -203,7 +203,7 @@ def plot(event, telid, chan, extractor_name):
     )
 
     fig_waveforms.suptitle(f"Integrator = {extractor_name}")
-    fig_camera.suptitle(f"Camera = {geom.cam_id}")
+    fig_camera.suptitle(f"Camera = {geom.camera_name}")
 
     plt.show()
 

@@ -220,7 +220,7 @@ def test_straight_line_width_0():
                 y = dy - np.sin(psi) * long + np.cos(psi) * trans
 
                 geom = CameraGeometry(
-                    cam_id='testcam',
+                    camera_name='testcam',
                     pix_id=pix_id,
                     pix_x=x * u.m,
                     pix_y=y * u.m,

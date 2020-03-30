@@ -4,21 +4,21 @@ from astropy import units as u
 from ctapipe.instrument import CameraDescription, CameraGeometry
 import pytest
 
-cam_ids = CameraDescription.get_known_camera_names()
+camera_names = CameraDescription.get_known_camera_names()
 
 
 def test_construct():
     """ Check we can make a CameraGeometry from scratch """
     x = np.linspace(-10, 10, 100)
     y = np.linspace(-10, 10, 100)
-    geom = CameraGeometry(cam_id=0, pix_id=np.arange(100),
+    geom = CameraGeometry(camera_name="Unknown", pix_id=np.arange(100),
                           pix_x=x * u.m, pix_y=y * u.m,
                           pix_area=x * u.m**2,
                           pix_type='rectangular',
                           pix_rotation="10d",
                           cam_rotation="12d")
 
-    assert geom.cam_id == 0
+    assert geom.camera_name == "Unknown"
     assert geom.pix_area is not None
     assert (geom.pix_rotation.deg - 10) < 1e-5
     assert (geom.cam_rotation.deg - 10) < 1e-5
@@ -66,15 +66,15 @@ def test_find_neighbor_pixels():
     assert set(neigh[11]) == {16, 6, 10, 12}
 
 
-@pytest.mark.parametrize("cam_id", cam_ids)
-def test_neighbor_pixels(cam_id):
+@pytest.mark.parametrize("camera_name", camera_names)
+def test_neighbor_pixels(camera_name):
     """
     test if each camera has a reasonable number of neighbor pixels (4 for
     rectangular, and 6 for hexagonal.  Other than edge pixels, the majority
     should have the same value
     """
 
-    geom = CameraGeometry.from_name(cam_id)
+    geom = CameraGeometry.from_name(camera_name)
     n_pix = len(geom.pix_id)
     n_neighbors = [len(x) for x in geom.neighbors]
 
@@ -90,7 +90,7 @@ def test_neighbor_pixels(cam_id):
 
     # whipple has inhomogenious pixels that mess with pixel neighborhood
     # calculation
-    if cam_id != 'Whipple490':
+    if camera_name != 'Whipple490':
         assert np.all(geom.neighbor_matrix == geom.neighbor_matrix.T)
         assert n_neighbors.count(1) == 0  # no pixel should have a single neighbor
 
@@ -100,7 +100,7 @@ def test_calc_pixel_neighbors_square():
     x, y = np.meshgrid(np.arange(20), np.arange(20))
 
     cam = CameraGeometry(
-        cam_id='test',
+        camera_name='test',
         pix_id=np.arange(400),
         pix_type='rectangular',
         pix_x=u.Quantity(x.ravel(), u.cm),
@@ -120,7 +120,7 @@ def test_calc_pixel_neighbors_square_diagonal():
     x, y = np.meshgrid(np.arange(20), np.arange(20))
 
     cam = CameraGeometry(
-        cam_id='test',
+        camera_name='test',
         pix_id=np.arange(400),
         pix_type='rectangular',
         pix_x=u.Quantity(x.ravel(), u.cm),
@@ -139,7 +139,7 @@ def test_to_and_from_table():
     tab = geom.to_table()
     geom2 = geom.from_table(tab)
 
-    assert geom.cam_id == geom2.cam_id
+    assert geom.camera_name == geom2.camera_name
     assert (geom.pix_x == geom2.pix_x).all()
     assert (geom.pix_y == geom2.pix_y).all()
     assert (geom.pix_area == geom2.pix_area).all()
@@ -155,7 +155,7 @@ def test_write_read(tmpdir):
     geom.to_table().write(filename, overwrite=True)
     geom2 = geom.from_table(filename)
 
-    assert geom.cam_id == geom2.cam_id
+    assert geom.camera_name == geom2.camera_name
     assert (geom.pix_x == geom2.pix_x).all()
     assert (geom.pix_y == geom2.pix_y).all()
     assert (geom.pix_area == geom2.pix_area).all()
@@ -167,7 +167,7 @@ def test_precal_neighbors():
     test that pre-calculated neighbor lists don't get
     overwritten by automatic ones
     """
-    geom = CameraGeometry(cam_id="TestCam",
+    geom = CameraGeometry(camera_name="TestCam",
                           pix_id=np.arange(3),
                           pix_x=np.arange(3) * u.deg,
                           pix_y=np.arange(3) * u.deg,
@@ -203,10 +203,10 @@ def test_slicing():
     assert len(sliced2.pix_x) == 5
 
 
-@pytest.mark.parametrize("cam_id", cam_ids)
-def test_slicing_rotation(cam_id):
+@pytest.mark.parametrize("camera_name", camera_names)
+def test_slicing_rotation(camera_name):
     """ Check that we can rotate and slice """
-    cam = CameraGeometry.from_name(cam_id)
+    cam = CameraGeometry.from_name(camera_name)
     cam.rotate('25d')
 
     sliced1 = cam[5:10]
@@ -227,7 +227,7 @@ def test_rectangle_patch_neighbors():
         -0.9, -1, -1.1
     ]) * u.m
     cam = CameraGeometry(
-        cam_id='testcam',
+        camera_name='testcam',
         pix_id=np.arange(pix_x.size),
         pix_x=pix_x,
         pix_y=pix_y,
@@ -278,14 +278,14 @@ def test_hashing():
     assert len(set([cam1, cam2, cam3])) == 2
 
 
-@pytest.mark.parametrize("camera_name", cam_ids)
+@pytest.mark.parametrize("camera_name", camera_names)
 def test_camera_from_name(camera_name):
     """ check we can construct all cameras from name"""
     camera = CameraGeometry.from_name(camera_name)
     assert str(camera) == camera_name
 
 
-@pytest.mark.parametrize("camera_name", cam_ids)
+@pytest.mark.parametrize("camera_name", camera_names)
 def test_camera_coordinate_transform(camera_name):
     '''test conversion of the coordinates stored in a camera frame'''
     from ctapipe.coordinates import EngineeringCameraFrame

@@ -106,7 +106,7 @@ class SimpleEventWriter(Tool):
                 params = hillas_parameters(geom, cleaned)
 
                 # Save Ids, MC infos and Hillas informations
-                self.writer.write(geom.cam_id, [event.r0, event.mc, params])
+                self.writer.write(geom.camera_name, [event.r0, event.mc, params])
 
     def finish(self):
         self.log.info('End of job.')

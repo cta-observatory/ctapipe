@@ -49,8 +49,8 @@ class CameraGeometry:
     ----------
     self: type
         description
-    cam_id: camera id name or number
-        camera identification string
+    camera_name: str
+         Camera name (e.g. NectarCam, LSTCam, ...)
     pix_id: array(int)
         pixels id numbers
     pix_x: array with units
@@ -70,7 +70,7 @@ class CameraGeometry:
 
     _geometry_cache = {}  # dictionary CameraGeometry instances for speed
 
-    def __init__(self, cam_id, pix_id, pix_x, pix_y, pix_area, pix_type,
+    def __init__(self, camera_name, pix_id, pix_x, pix_y, pix_area, pix_type,
                  pix_rotation="0d", cam_rotation="0d",
                  neighbors=None, apply_derotation=True, frame=None):
 
@@ -79,7 +79,7 @@ class CameraGeometry:
 
         assert len(pix_x) == len(pix_y), 'pix_x and pix_y must have same length'
         self.n_pixels = len(pix_x)
-        self.cam_id = cam_id
+        self.camera_name = camera_name
         self.pix_id = pix_id
         self.pix_x = pix_x
         self.pix_y = pix_y
@@ -113,7 +113,7 @@ class CameraGeometry:
         self.border_cache = {}
 
     def __eq__(self, other):
-        if self.cam_id != other.cam_id:
+        if self.camera_name != other.camera_name:
             return False
 
         if self.n_pixels != other.n_pixels:
@@ -156,7 +156,7 @@ class CameraGeometry:
         pix_rotation = rot + det * self.pix_rotation
 
         return CameraGeometry(
-            cam_id=self.cam_id,
+            camera_name=self.camera_name,
             pix_id=self.pix_id,
             pix_x=trans.x,
             pix_y=trans.y,
@@ -171,7 +171,7 @@ class CameraGeometry:
 
     def __hash__(self):
         return hash((
-            self.cam_id,
+            self.camera_name,
             self.pix_x[0].to_value(u.m),
             self.pix_y[0].to_value(u.m),
             self.pix_type,
@@ -183,7 +183,7 @@ class CameraGeometry:
 
     def __getitem__(self, slice_):
         return CameraGeometry(
-            cam_id=" ".join([self.cam_id, " sliced"]),
+            camera_name=" ".join([self.camera_name, " sliced"]),
             pix_id=self.pix_id[slice_],
             pix_x=self.pix_x[slice_],
             pix_y=self.pix_y[slice_],
@@ -257,7 +257,7 @@ class CameraGeometry:
         return ~np.any(~np.isclose(self.pix_area.value, self.pix_area[0].value), axis=0)
 
     @classmethod
-    def from_name(cls, camera_id='NectarCam', version=None):
+    def from_name(cls, camera_name='NectarCam', version=None):
         """
         Construct a CameraGeometry using the name of the camera and array.
 
@@ -267,10 +267,10 @@ class CameraGeometry:
 
         Parameters
         ----------
-        camera_id: str
-           name of camera (e.g. 'NectarCam', 'LSTCam', 'GCT', 'SST-1M')
+        camera_name: str
+            Camera name (e.g. NectarCam, LSTCam, ...)
         version:
-           camera version id (currently unused)
+            camera version id (currently unused)
 
         Returns
         -------
@@ -282,8 +282,9 @@ class CameraGeometry:
         else:
             verstr = f"-{version:03d}"
 
-        tabname = "{camera_id}{verstr}.camgeom".format(camera_id=camera_id,
-                                                       verstr=verstr)
+        tabname = "{camera_name}{verstr}.camgeom".format(
+            camera_name=camera_name, verstr=verstr
+        )
         table = get_table_dataset(tabname, role='dl0.tel.svc.camera')
         return CameraGeometry.from_table(table)
 
@@ -296,7 +297,7 @@ class CameraGeometry:
                      meta=dict(PIX_TYPE=self.pix_type,
                                TAB_TYPE='ctapipe.instrument.CameraGeometry',
                                TAB_VER='1.1',
-                               CAM_ID=self.cam_id,
+                               CAM_ID=self.camera_name,
                                PIX_ROT=self.pix_rotation.deg,
                                CAM_ROT=self.cam_rotation.deg,
                                ))
@@ -323,7 +324,7 @@ class CameraGeometry:
             tab = Table.read(url_or_table, **kwargs)
 
         return cls(
-            cam_id=tab.meta.get('CAM_ID', 'Unknown'),
+            camera_name=tab.meta.get('CAM_ID', 'Unknown'),
             pix_id=tab['pix_id'],
             pix_x=tab['pix_x'].quantity,
             pix_y=tab['pix_y'].quantity,
@@ -335,10 +336,10 @@ class CameraGeometry:
 
     def __repr__(self):
         return (
-            "CameraGeometry(cam_id='{cam_id}', pix_type='{pix_type}', "
+            "CameraGeometry(camera_name='{camera_name}', pix_type='{pix_type}', "
             "npix={npix}, cam_rot={camrot}, pix_rot={pixrot})"
         ).format(
-            cam_id=self.cam_id,
+            camera_name=self.camera_name,
             pix_type=self.pix_type,
             npix=len(self.pix_id),
             pixrot=self.pix_rotation,
@@ -346,7 +347,7 @@ class CameraGeometry:
         )
 
     def __str__(self):
-        return self.cam_id
+        return self.camera_name
 
     @lazyproperty
     def neighbors(self):
@@ -543,7 +544,7 @@ class CameraGeometry:
         ids = np.arange(npix_x * npix_y)
         rr = np.ones_like(xx).value * (xx[1] - xx[0]) / 2.0
 
-        return cls(cam_id=-1,
+        return cls(camera_name=-1,
                    pix_id=ids,
                    pix_x=xx,
                    pix_y=yy,

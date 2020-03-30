@@ -108,7 +108,7 @@ class SingleTelEventDisplay(Tool):
             # display the event
             disp.axes.set_title(
                 'CT{:03d} ({}), event {:06d}'.format(
-                    self.tel, geom.cam_id, event.r0.event_id
+                    self.tel, geom.camera_name, event.r0.event_id
                 )
             )
 

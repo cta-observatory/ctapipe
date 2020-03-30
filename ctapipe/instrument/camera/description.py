@@ -19,7 +19,7 @@ class CameraDescription:
     Parameters
     ----------
     camera_name: str
-        Camera name
+        Camera name (e.g. NectarCam, LSTCam, ...)
     geometry: CameraGeometry
        The pixel geometry of this camera
     readout: CameraReadout
@@ -43,8 +43,8 @@ class CameraDescription:
     @classmethod
     def get_known_camera_names(cls):
         """
-        Returns a list of camera_ids that are registered in
-        `ctapipe_resources`. These are all the camera-ids that can be
+        Returns a list of camera names that are registered in
+        `ctapipe_resources`. These are all the camera names that can be
         instantiated by the `from_name` method
 
         Returns
@@ -63,7 +63,7 @@ class CameraDescription:
         Parameters
         ----------
         camera_name: str
-           camera name
+            Camera name (e.g. NectarCam, LSTCam, ...)
 
         Returns
         -------

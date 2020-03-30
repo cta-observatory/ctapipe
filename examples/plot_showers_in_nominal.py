@@ -52,7 +52,7 @@ with event_source(input_url=input_url) as source:
                 telescope_pointing=telescope_pointing, focal_length=focal_length
             )
 
-            boundary, picture, min_neighbors = cleaning_level[geom.cam_id]
+            boundary, picture, min_neighbors = cleaning_level[geom.camera_name]
             clean = tailcuts_clean(
                 geom,
                 image,

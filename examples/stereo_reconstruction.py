@@ -46,7 +46,7 @@ for event in event_source:
         peakpos = dl1.pulse_time
 
         # cleaning
-        boundary, picture, min_neighbors = cleaning_level[geom.cam_id]
+        boundary, picture, min_neighbors = cleaning_level[geom.camera_name]
         clean = tailcuts_clean(
             geom,
             image,
@@ -73,11 +73,11 @@ for event in event_source:
 
         # store timegradients for plotting
         # ASTRI has no timing in PROD3b, so we use skewness instead
-        if geom.cam_id != 'ASTRICam':
+        if geom.camera_name != 'ASTRICam':
             time_gradients[telescope_id] = timing_c.slope.value
         else:
             time_gradients[telescope_id] = hillas_c.skewness
-        print(geom.cam_id, time_gradients[telescope_id])
+        print(geom.camera_name, time_gradients[telescope_id])
 
         # make sure each telescope get's an arrow
         if abs(time_gradients[telescope_id]) < 0.2:

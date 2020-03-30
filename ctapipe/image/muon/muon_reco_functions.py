@@ -142,7 +142,7 @@ def analyze_muon_event(event):
         x, y = geom.pix_x, geom.pix_y
 
         dict_index = muon_cuts["Name"].index(str(teldes))
-        logger.debug("found an index of %d for camera %d", dict_index, geom.cam_id)
+        logger.debug("found an index of %d for camera %d", dict_index, geom.camera_name)
 
         tailcuts = muon_cuts["tail_cuts"][dict_index]
         logger.debug("Tailcuts are %s", tailcuts)

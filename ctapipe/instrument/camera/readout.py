@@ -24,8 +24,8 @@ class CameraReadout:
     ----------
     self: type
         description
-    cam_id: camera id name or number
-        camera identification string
+    camera_name: str
+         Camera name (e.g. NectarCam, LSTCam, ...)
     sampling_rate : float
         Sampling rate of the waveform
     reference_pulse_shape : ndarray
@@ -36,15 +36,15 @@ class CameraReadout:
         dimension of reference_pulse_shape
     """
 
-    def __init__(self, cam_id, sampling_rate, reference_pulse_shape,
+    def __init__(self, camera_name, sampling_rate, reference_pulse_shape,
                  reference_pulse_sample_width):
-        self.cam_id = cam_id
+        self.camera_name = camera_name
         self.sampling_rate = sampling_rate
         self.reference_pulse_shape = reference_pulse_shape
         self.reference_pulse_sample_width = reference_pulse_sample_width
 
     def __eq__(self, other):
-        if self.cam_id != other.cam_id:
+        if self.camera_name != other.camera_name:
             return False
 
         if self.sampling_rate != other.sampling_rate:
@@ -60,7 +60,7 @@ class CameraReadout:
 
     def __hash__(self):
         return hash((
-            self.cam_id,
+            self.camera_name,
             self.sampling_rate.to_value(u.GHz),
             self.reference_pulse_shape.size,
             self.reference_pulse_sample_width.to_value(u.ns),
@@ -81,7 +81,7 @@ class CameraReadout:
         return u.Quantity(sample_time, u.ns)
 
     @classmethod
-    def from_name(cls, camera_id='NectarCam', version=None):
+    def from_name(cls, camera_name='NectarCam', version=None):
         """
         Construct a CameraReadout using the name of the camera and array.
 
@@ -91,8 +91,8 @@ class CameraReadout:
 
         Parameters
         ----------
-        camera_id: str
-           name of camera (e.g. 'NectarCam', 'LSTCam', 'GCT', 'SST-1M')
+        camera_name: str
+             Camera name (e.g. NectarCam, LSTCam, ...)
         version:
            camera version id (currently unused)
 
@@ -107,8 +107,8 @@ class CameraReadout:
             verstr = f"-{version:03d}"
 
         try:
-            tabname = "{camera_id}{verstr}.camreadout".format(
-                camera_id=camera_id, verstr=verstr
+            tabname = "{camera_name}{verstr}.camreadout".format(
+                camera_name=camera_name, verstr=verstr
             )
             table = get_table_dataset(tabname, role='dl0.tel.svc.camera')
             return CameraReadout.from_table(table)
@@ -118,7 +118,7 @@ class CameraReadout:
                            f" File does not exist: ({tabname})")
             reference_pulse_shape = np.array([norm.pdf(np.arange(96), 48, 6)])
             return cls(
-                cam_id=camera_id,
+                camera_name=camera_name,
                 sampling_rate=u.Quantity(1, u.GHz),
                 reference_pulse_shape=reference_pulse_shape,
                 reference_pulse_sample_width=u.Quantity(1, u.ns),
@@ -139,7 +139,7 @@ class CameraReadout:
         return Table(tables, names=names, meta=dict(
             TAB_TYPE='ctapipe.instrument.CameraReadout',
             TAB_VER='1.0',
-            CAM_ID=self.cam_id,
+            CAM_ID=self.camera_name,
             NCHAN=n_channels,
             SAMPFREQ=self.sampling_rate.to_value(u.GHz),
             REF_WIDTH=self.reference_pulse_sample_width.to_value(u.ns),
@@ -165,7 +165,7 @@ class CameraReadout:
         if not isinstance(url_or_table, Table):
             tab = Table.read(url_or_table, **kwargs)
 
-        cam_id = tab.meta.get('CAM_ID', 'Unknown')
+        camera_name = tab.meta.get('CAM_ID', 'Unknown')
         n_channels = tab.meta['NCHAN']
         sampling_rate = u.Quantity(tab.meta["SAMPFREQ"], u.GHz)
         reference_pulse_sample_width = u.Quantity(tab.meta['REF_WIDTH'], u.ns)
@@ -174,7 +174,7 @@ class CameraReadout:
         )
 
         return cls(
-            cam_id=cam_id,
+            camera_name=camera_name,
             sampling_rate=sampling_rate,
             reference_pulse_shape=reference_pulse_shape,
             reference_pulse_sample_width=reference_pulse_sample_width,
@@ -182,13 +182,13 @@ class CameraReadout:
 
     def __repr__(self):
         return (
-            "CameraReadout(cam_id='{cam_id}', sampling_rate='{sampling_rate}', "
+            "CameraReadout(camera_name='{camera_name}', sampling_rate='{sampling_rate}', "
             "reference_pulse_sample_width={reference_pulse_sample_width})"
         ).format(
-            cam_id=self.cam_id,
+            camera_name=self.camera_name,
             sampling_rate=self.sampling_rate,
             reference_pulse_sample_width=self.reference_pulse_sample_width,
         )
 
     def __str__(self):
-        return self.cam_id
+        return self.camera_name
