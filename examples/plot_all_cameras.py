@@ -1,14 +1,14 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from ctapipe.instrument import CameraGeometry
+from ctapipe.instrument import CameraDescription, CameraGeometry
 from ctapipe.visualization import CameraDisplay
 
 if __name__ == '__main__':
 
     plt.style.use("bmh")
 
-    camera_names = CameraGeometry.get_known_camera_names()
+    camera_names = CameraDescription.get_known_camera_names()
     n_tels = len(camera_names)
     n_rows = np.trunc(np.sqrt(n_tels)).astype(int)
     n_cols = np.ceil(n_tels / n_rows).astype(int)

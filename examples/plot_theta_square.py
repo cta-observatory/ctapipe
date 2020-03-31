@@ -29,7 +29,7 @@ else:
 source = event_source(filename, allowed_tels={1, 2, 3, 4})
 
 reco = HillasReconstructor()
-calib = CameraCalibrator()
+calib = CameraCalibrator(subarray=source.subarray)
 
 horizon_frame = AltAz()
 
@@ -55,7 +55,7 @@ for event in source:
         )
 
         # Camera Geometry required for hillas parametrization
-        camgeom = subarray.tel[tel_id].camera
+        camgeom = subarray.tel[tel_id].camera.geometry
 
         # note the [0] is for channel 0 which is high-gain channel
         image = event.dl1.tel[tel_id].image

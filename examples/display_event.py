@@ -46,7 +46,7 @@ def display_event(event):
         nn = int(ceil(sqrt(ntels)))
         ax = plt.subplot(nn, nn, ii + 1)
 
-        geom = event.inst.subarray.tel[tel_id].camera
+        geom = event.inst.subarray.tel[tel_id].camera.geometry
         disp = CameraDisplay(geom, ax=ax, title=f"CT{tel_id}")
         disp.pixels.set_antialiaseds(False)
         disp.autoupdate = False
@@ -114,7 +114,7 @@ if __name__ == '__main__':
                 subarray = event.inst.subarray
                 for tel_id in sorted(event.r0.tel):
                     for chan in event.r0.tel[tel_id].waveform:
-                        npix = len(subarray.tel[tel_id].camera.pix_x)
+                        npix = len(subarray.tel[tel_id].camera.geometry.pix_x)
                         nsamp = event.r0.tel[tel_id].num_samples
                         print(
                             "CT{:4d} ch{} pixels,samples:{}"

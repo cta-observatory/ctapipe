@@ -59,6 +59,14 @@ def test_path_exists():
         c2.thepath = f.name
 
 
+def test_path_none():
+    class C1(Component):
+        thepath = Path(exists=False)
+
+    c1 = C1()
+    c1.thepath = None
+
+
 def test_path_directory_ok():
     """ test path is a directory """
 

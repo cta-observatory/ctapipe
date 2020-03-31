@@ -1,6 +1,7 @@
 from astropy.table import Table
 
 from collections import OrderedDict
+from warnings import warn
 
 
 class UndefinedCut(Exception):
@@ -25,6 +26,11 @@ class CutFlow:
         """
         self.cuts = OrderedDict()
         self.name = name
+        warn(
+            "CutFlow is deprecated. Use ctapipe.core.Selector for similar "
+            "functionality",
+            FutureWarning,
+        )
 
     def count(self, cut, weight=1):
         """
@@ -110,11 +116,12 @@ class CutFlow:
 
         if cut not in self.cuts:
             raise UndefinedCut(
-                "unknown cut '{}' -- only know: {}"
-                .format(cut, [a for a in self.cuts.keys()]))
+                "unknown cut '{}' -- only know: {}".format(
+                    cut, [a for a in self.cuts.keys()]
+                )
+            )
         elif self.cuts[cut][0] is None:
-            raise PureCountingCut(
-                f"'{cut}' has no function associated")
+            raise PureCountingCut(f"'{cut}' has no function associated")
 
     def cut(self, cut, *args, weight=1, **kwargs):
         """
@@ -209,8 +216,9 @@ class CutFlow:
         print(t)
         return t
 
-    def get_table(self, base_cut=None, sort_column=None,
-                  sort_reverse=False, format='5.3f'):
+    def get_table(
+        self, base_cut=None, sort_column=None, sort_reverse=False, value_format="5.3f"
+    ):
         """
         creates an astropy table of the cut names, counted events and
         selection efficiencies
@@ -227,7 +235,7 @@ class CutFlow:
             (index 0: cut name, index 1: number of passed events, index 2: efficiency)
         sort_reverse : bool, optional (default: False)
             if true, revert the order of the entries
-        format : string, optional (default: '5.3f')
+        value_format : string, optional (default: '5.3f')
             formatting string for the efficiency column
 
         Returns
@@ -242,16 +250,22 @@ class CutFlow:
             base_value = max([a[1] for a in self.cuts.values()])
         elif base_cut not in self.cuts:
             raise UndefinedCut(
-                "unknown cut '{}' -- only know: {}"
-                .format(base_cut, [a for a in self.cuts.keys()]))
+                "unknown cut '{}' -- only know: {}".format(
+                    base_cut, [a for a in self.cuts.keys()]
+                )
+            )
         else:
             base_value = self.cuts[base_cut][1]
 
-        t = Table([[cut for cut in self.cuts.keys()],
-                   [self.cuts[cut][1] for cut in self.cuts.keys()],
-                   [self.cuts[cut][1] / base_value for cut in self.cuts.keys()]],
-                  names=['Cut Name', 'selected Events', 'Efficiency'])
-        t['Efficiency'].format = format
+        t = Table(
+            [
+                [cut for cut in self.cuts.keys()],
+                [self.cuts[cut][1] for cut in self.cuts.keys()],
+                [self.cuts[cut][1] / base_value for cut in self.cuts.keys()],
+            ],
+            names=["Cut Name", "selected Events", "Efficiency"],
+        )
+        t["Efficiency"].format = value_format
 
         if sort_column is not None:
             t.sort(t.colnames[sort_column])

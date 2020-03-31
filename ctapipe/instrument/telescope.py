@@ -13,7 +13,7 @@ Todo:
   telescope :-))
 
 """
-from .camera import CameraGeometry
+from .camera import CameraDescription
 from .guess import UNKNOWN_TELESCOPE, guess_telescope
 from .optics import OpticsDescription
 
@@ -21,7 +21,7 @@ from .optics import OpticsDescription
 class TelescopeDescription:
     """
     Describes a Cherenkov Telescope and it's associated `OpticsDescription` and
-    `CameraGeometry`
+    `CameraDescription`
 
     The string representation is a combination of the optics and
     camera, separated by a colon: "optics:camera" (e.g. "SST-1m:DigiCam")
@@ -37,11 +37,12 @@ class TelescopeDescription:
         Telescope type
     optics: OpticsDescription
        the optics associated with this telescope
-    camera: CameraGeometry
+    camera: CameraDescription
        the camera associated with this telescope
     """
 
-    def __init__(self, name, tel_type, optics: OpticsDescription, camera: CameraGeometry):
+    def __init__(self, name, tel_type, optics: OpticsDescription,
+                 camera: CameraDescription):
 
         self.name = name
         self.type = tel_type
@@ -76,11 +77,13 @@ class TelescopeDescription:
 
         """
 
-        camera = CameraGeometry.from_name(camera_name)
+        camera = CameraDescription.from_name(camera_name)
         optics = OpticsDescription.from_name(optics_name)
 
         try:
-            result = guess_telescope(camera.n_pixels, optics.equivalent_focal_length)
+            result = guess_telescope(
+                camera.geometry.n_pixels, optics.equivalent_focal_length
+            )
         except ValueError:
             result = UNKNOWN_TELESCOPE
 
