@@ -36,7 +36,7 @@ with event_source(input_url=input_url) as source:
         photons = []
 
         for tel_id, dl1 in event.dl1.tel.items():
-            camera = event.inst.subarray.tels[tel_id].camera
+            geom = event.inst.subarray.tels[tel_id].camera.geometry
             focal_length = event.inst.subarray.tels[tel_id].optics.equivalent_focal_length
             image = dl1.image
 
@@ -52,9 +52,9 @@ with event_source(input_url=input_url) as source:
                 telescope_pointing=telescope_pointing, focal_length=focal_length
             )
 
-            boundary, picture, min_neighbors = cleaning_level[camera.cam_id]
+            boundary, picture, min_neighbors = cleaning_level[geom.camera_name]
             clean = tailcuts_clean(
-                camera,
+                geom,
                 image,
                 boundary_thresh=boundary,
                 picture_thresh=picture,
@@ -62,8 +62,8 @@ with event_source(input_url=input_url) as source:
             )
 
             cam_coords = SkyCoord(
-                camera.pix_x[clean],
-                camera.pix_y[clean],
+                geom.pix_x[clean],
+                geom.pix_y[clean],
                 frame=camera_frame
             )
             nom = cam_coords.transform_to(nominal_frame)

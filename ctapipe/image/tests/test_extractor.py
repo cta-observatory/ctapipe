@@ -42,7 +42,7 @@ def camera_waveforms():
         },
     )
 
-    n_pixels = subarray.tel[1].camera.n_pixels
+    n_pixels = subarray.tel[1].camera.geometry.n_pixels
     n_samples = 96
     mid = n_samples // 2
     pulse_sigma = 6
@@ -59,8 +59,9 @@ def camera_waveforms():
     # Create reference pulse
     x_ref = np.arange(n_samples*2)
     reference_pulse = norm.pdf(x_ref, n_samples, pulse_sigma*2)
-    subarray.tel[telid].camera.reference_pulse_shape = [reference_pulse]
-    subarray.tel[telid].camera.reference_pulse_step = u.Quantity(0.5, u.ns)
+    readout = subarray.tel[telid].camera.readout
+    readout.reference_pulse_shape = np.array([reference_pulse])
+    readout.reference_pulse_sample_width = u.Quantity(0.5, u.ns)
 
     # Randomize amplitudes
     charge = random.uniform(100, 1000, n_pixels)
@@ -183,7 +184,7 @@ def test_extract_around_peak_charge_expected(camera_waveforms):
 
 def test_neighbor_average_waveform(camera_waveforms):
     waveforms, subarray, telid, selected_gain_channel, true_charge = camera_waveforms
-    nei = subarray.tel[1].camera.neighbor_matrix_where
+    nei = subarray.tel[1].camera.geometry.neighbor_matrix_where
     average_wf = neighbor_average_waveform(waveforms, nei, 0)
     assert_allclose(average_wf[0, 48], 51.089826, rtol=1e-3)
 

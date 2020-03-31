@@ -27,7 +27,7 @@ def plot(event, telid, chan, extractor_name):
     max_pix = int(np.argmax(max_charges))
     min_pix = int(np.argmin(max_charges))
 
-    geom = event.inst.subarray.tel[telid].camera
+    geom = event.inst.subarray.tel[telid].camera.geometry
     nei = geom.neighbors
 
     # Get Neighbours
@@ -203,7 +203,7 @@ def plot(event, telid, chan, extractor_name):
     )
 
     fig_waveforms.suptitle(f"Integrator = {extractor_name}")
-    fig_camera.suptitle(f"Camera = {geom.cam_id}")
+    fig_camera.suptitle(f"Camera = {geom.camera_name}")
 
     plt.show()
 

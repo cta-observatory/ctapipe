@@ -33,7 +33,7 @@ class CameraPlotter:
         self.cameradisplay_dict = {}
 
     def get_geometry(self, tel):
-        return self.event.inst.subarray.tel[tel].camera
+        return self.event.inst.subarray.tel[tel].camera.geometry
 
     def draw_camera(self, tel, data, axes=None):
         """
