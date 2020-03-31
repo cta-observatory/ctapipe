@@ -48,7 +48,6 @@ matrix:
             - pandoc
             - graphviz
 
-
 before_install:
     - git fetch --tags
 
