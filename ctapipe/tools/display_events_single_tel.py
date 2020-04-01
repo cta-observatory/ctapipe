@@ -97,7 +97,7 @@ class SingleTelEventDisplay(Tool):
             self.calibrator(event)
 
             if disp is None:
-                geom = event.inst.subarray.tel[self.tel].camera
+                geom = event.inst.subarray.tel[self.tel].camera.geometry
                 self.log.info(geom)
                 disp = CameraDisplay(geom)
                 # disp.enable_pixel_picker()
@@ -108,7 +108,7 @@ class SingleTelEventDisplay(Tool):
             # display the event
             disp.axes.set_title(
                 'CT{:03d} ({}), event {:06d}'.format(
-                    self.tel, geom.cam_id, event.r0.event_id
+                    self.tel, geom.camera_name, event.r0.event_id
                 )
             )
 

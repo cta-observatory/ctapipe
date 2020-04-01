@@ -182,7 +182,7 @@ class SubarrayDescription:
             num_mirrors = [t.optics.num_mirrors for t in self.tels.values()]
             tel_names = [t.name for t in self.tels.values()]
             tel_types = [t.type for t in self.tels.values()]
-            cam_types = [t.camera.cam_id for t in self.tels.values()]
+            cam_types = [t.camera.camera_name for t in self.tels.values()]
             tel_coords = self.tel_coords
 
             tab = Table(

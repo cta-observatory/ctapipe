@@ -62,14 +62,15 @@ def compare_sources(input_url):
                 assert h.pointing[tel_id].altitude == s.pointing[tel_id].altitude
                 assert h.pointing[tel_id].azimuth == s.pointing[tel_id].azimuth
 
-                assert (h.inst.subarray.tel[tel_id].camera.sampling_rate ==
-                        s.inst.subarray.tel[tel_id].camera.sampling_rate)
+                h_camera = h.inst.subarray.tel[tel_id].camera
+                s_camera = s.inst.subarray.tel[tel_id].camera
+                assert h_camera.readout.sampling_rate == s_camera.readout.sampling_rate
                 assert np.array_equal(
-                    h.inst.subarray.tel[tel_id].camera.reference_pulse_shape,
-                    s.inst.subarray.tel[tel_id].camera.reference_pulse_shape
+                    h_camera.readout.reference_pulse_shape,
+                    s_camera.readout.reference_pulse_shape
                 )
-                assert (h.inst.subarray.tel[tel_id].camera.reference_pulse_step ==
-                        s.inst.subarray.tel[tel_id].camera.reference_pulse_step)
+                assert (h_camera.readout.reference_pulse_sample_width ==
+                        s_camera.readout.reference_pulse_sample_width)
 
 
 def test_compare_event_hessio_and_simtel():
@@ -224,8 +225,8 @@ def test_subarray_property():
     event = next(iter(source))
     subarray_event = event.inst.subarray
     assert subarray.tel.keys() == subarray_event.tel.keys()
-    assert (subarray.tel[1].camera.pix_x ==
-            subarray_event.tel[1].camera.pix_x).all()
+    assert (subarray.tel[1].camera.geometry.pix_x ==
+            subarray_event.tel[1].camera.geometry.pix_x).all()
 
 
 def test_apply_simtel_r1_calibration_1_channel():

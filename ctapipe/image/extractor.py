@@ -174,7 +174,7 @@ def subtract_baseline(waveforms, baseline_start, baseline_end):
 
 def integration_correction(
     reference_pulse_shape,
-    reference_pulse_step,
+    reference_pulse_sample_width_ns,
     sample_width_ns,
     window_width,
     window_shift,
@@ -196,8 +196,8 @@ def integration_correction(
     ----------
     reference_pulse_shape : ndarray
         Numpy array containing the pulse shape for each gain channel
-    reference_pulse_step : float
-        The step in time for each sample of the reference pulse shape in ns
+    reference_pulse_sample_width_ns : float
+        The width of the reference pulse sample time bin in ns
     sample_width_ns : float
         The width of the waveform sample time bin in ns
     window_width : int
@@ -214,8 +214,8 @@ def integration_correction(
     n_channels = len(reference_pulse_shape)
     correction = np.ones(n_channels, dtype=np.float)
     for ichannel, pulse_shape in enumerate(reference_pulse_shape):
-        pulse_max_sample = pulse_shape.size * reference_pulse_step
-        pulse_shape_x = np.arange(0, pulse_max_sample, reference_pulse_step)
+        pulse_max_sample = pulse_shape.size * reference_pulse_sample_width_ns
+        pulse_shape_x = np.arange(0, pulse_max_sample, reference_pulse_sample_width_ns)
         sampled_edges = np.arange(0, pulse_max_sample, sample_width_ns)
 
         sampled_pulse, _ = np.histogram(
@@ -294,7 +294,7 @@ class ImageExtractor(Component):
                 pass
 
         self.sampling_rate = {
-            telid: telescope.camera.sampling_rate.to_value("GHz")
+            telid: telescope.camera.readout.sampling_rate.to_value("GHz")
             for telid, telescope in subarray.tel.items()
         }
 
@@ -385,10 +385,11 @@ class FixedWindowSum(ImageExtractor):
         Assuming the pulse is centered in the manually defined integration
         window, the integration_correction with a shift=0 is correct
         """
+        readout = self.subarray.tel[telid].camera.readout
         return integration_correction(
-            self.subarray.tel[telid].camera.reference_pulse_shape,
-            self.subarray.tel[telid].camera.reference_pulse_step.to_value("ns"),
-            (1 / self.subarray.tel[telid].camera.sampling_rate).to_value("ns"),
+            readout.reference_pulse_shape,
+            readout.reference_pulse_sample_width.to_value("ns"),
+            (1 / readout.sampling_rate).to_value("ns"),
             self.window_width.tel[telid],
             0,
         )
@@ -422,10 +423,11 @@ class GlobalPeakWindowSum(ImageExtractor):
 
     @lru_cache(maxsize=128)
     def _calculate_correction(self, telid):
+        readout = self.subarray.tel[telid].camera.readout
         return integration_correction(
-            self.subarray.tel[telid].camera.reference_pulse_shape,
-            self.subarray.tel[telid].camera.reference_pulse_step.to_value("ns"),
-            (1 / self.subarray.tel[telid].camera.sampling_rate).to_value("ns"),
+            readout.reference_pulse_shape,
+            readout.reference_pulse_sample_width.to_value("ns"),
+            (1 / readout.sampling_rate).to_value("ns"),
             self.window_width.tel[telid],
             self.window_shift.tel[telid],
         )
@@ -460,10 +462,11 @@ class LocalPeakWindowSum(ImageExtractor):
 
     @lru_cache(maxsize=128)
     def _calculate_correction(self, telid):
+        readout = self.subarray.tel[telid].camera.readout
         return integration_correction(
-            self.subarray.tel[telid].camera.reference_pulse_shape,
-            self.subarray.tel[telid].camera.reference_pulse_step.to_value("ns"),
-            (1 / self.subarray.tel[telid].camera.sampling_rate).to_value("ns"),
+            readout.reference_pulse_shape,
+            readout.reference_pulse_sample_width.to_value("ns"),
+            (1 / readout.sampling_rate).to_value("ns"),
             self.window_width.tel[telid],
             self.window_shift.tel[telid],
         )
@@ -503,16 +506,17 @@ class NeighborPeakWindowSum(ImageExtractor):
 
     @lru_cache(maxsize=128)
     def _calculate_correction(self, telid):
+        readout = self.subarray.tel[telid].camera.readout
         return integration_correction(
-            self.subarray.tel[telid].camera.reference_pulse_shape,
-            self.subarray.tel[telid].camera.reference_pulse_step.to_value("ns"),
-            (1 / self.subarray.tel[telid].camera.sampling_rate).to_value("ns"),
+            readout.reference_pulse_shape,
+            readout.reference_pulse_sample_width.to_value("ns"),
+            (1 / readout.sampling_rate).to_value("ns"),
             self.window_width.tel[telid],
             self.window_shift.tel[telid],
         )
 
     def __call__(self, waveforms, telid, selected_gain_channel):
-        neighbors = self.subarray.tel[telid].camera.neighbor_matrix_where
+        neighbors = self.subarray.tel[telid].camera.geometry.neighbor_matrix_where
         average_wfs = neighbor_average_waveform(
             waveforms, neighbors, self.lwt.tel[telid]
         )

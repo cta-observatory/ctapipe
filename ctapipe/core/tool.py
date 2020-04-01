@@ -141,6 +141,9 @@ class Tool(Application):
                 raise ToolConfigurationError(f"Couldn't read config file: {err}")
         self.log.info(f"ctapipe version {self.version_string}")
 
+        # ensure command-line takes precedence over config file options:
+        self.update_config(self.cli_config)
+
     def add_component(self, component_instance):
         """
         constructs and adds a component to the list of registered components,

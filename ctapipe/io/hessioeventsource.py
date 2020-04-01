@@ -8,7 +8,9 @@ from ctapipe.instrument import (
     TelescopeDescription,
     SubarrayDescription,
     OpticsDescription,
+    CameraDescription,
     CameraGeometry,
+    CameraReadout
 )
 from ctapipe.instrument.camera import UnknownPixelShapeWarning
 from ctapipe.instrument.guess import guess_telescope, UNKNOWN_TELESCOPE
@@ -264,21 +266,29 @@ class HESSIOEventSource(EventSource):
         num_mirrors = file.get_mirror_number(tel_id)
         sampling_rate = u.Quantity(1 / file.get_time_slice(tel_id), u.GHz)
         reference_pulse_shape = file.get_ref_shapes(tel_id)
-        reference_pulse_step = u.Quantity(file.get_ref_step(tel_id), u.ns)
+        reference_pulse_sample_width = u.Quantity(file.get_ref_step(tel_id), u.ns)
 
-        camera = CameraGeometry(
+        geometry = CameraGeometry(
             telescope.camera_name,
             pix_id=np.arange(n_pixels),
             pix_x=pix_x,
             pix_y=pix_y,
             pix_area=pix_area,
             pix_type=pix_type,
-            sampling_rate=sampling_rate,
             pix_rotation=pix_rot,
             cam_rotation=-Angle(cam_rot, u.rad),
             apply_derotation=True,
+        )
+        readout = CameraReadout(
+            telescope.camera_name,
+            sampling_rate=sampling_rate,
             reference_pulse_shape=reference_pulse_shape,
-            reference_pulse_step=reference_pulse_step,
+            reference_pulse_sample_width=reference_pulse_sample_width,
+        )
+        camera = CameraDescription(
+            camera_name=telescope.camera_name,
+            geometry=geometry,
+            readout=readout
         )
 
         optics = OpticsDescription(

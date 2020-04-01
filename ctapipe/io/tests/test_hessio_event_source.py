@@ -61,5 +61,5 @@ def test_subarray_property():
     event = next(iter(source))
     subarray_event = event.inst.subarray
     assert subarray.tel.keys() == subarray_event.tel.keys()
-    assert (subarray.tel[1].camera.pix_x ==
-            subarray_event.tel[1].camera.pix_x).all()
+    assert (subarray.tel[1].camera.geometry.pix_x ==
+            subarray_event.tel[1].camera.geometry.pix_x).all()
