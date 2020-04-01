@@ -6,7 +6,7 @@ Telescope Description
 =====================
 
 The `TelescopeDescription` class holds info about a complete telescope,
-namely it's `OpticsDescription` and `CameraGeometry` (though other aspects
+namely it's `OpticsDescription` and `CameraDescription` (though other aspects
 may be added)
 
 

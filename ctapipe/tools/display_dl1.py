@@ -65,7 +65,7 @@ class ImagePlotter(Component):
 
     @staticmethod
     def get_geometry(event, telid):
-        return event.inst.subarray.tel[telid].camera
+        return event.inst.subarray.tel[telid].camera.geometry
 
     def plot(self, event, telid):
         image = event.dl1.tel[telid].image
