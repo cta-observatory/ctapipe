@@ -24,16 +24,18 @@ from scipy.stats import multivariate_normal, skewnorm, norm
 from scipy.ndimage import convolve1d
 from abc import ABCMeta, abstractmethod
 
-__all__ = [
-    'Gaussian',
-    'SkewedGaussian',
-    'ImageModel',
-    'obtain_time_image'
-]
+__all__ = ["Gaussian", "SkewedGaussian", "ImageModel", "obtain_time_image"]
 
 
-@u.quantity_input(x=u.m, y=u.m, centroid_x=u.m, centroid_y=u.m, psi=u.deg,
-                  time_gradient=u.ns/u.m, time_intercept=u.ns)
+@u.quantity_input(
+    x=u.m,
+    y=u.m,
+    centroid_x=u.m,
+    centroid_y=u.m,
+    psi=u.deg,
+    time_gradient=u.ns / u.m,
+    time_intercept=u.ns,
+)
 def obtain_time_image(x, y, centroid_x, centroid_y, psi, time_gradient, time_intercept):
     """
     Create a pulse time image for a toymodel shower. Assumes the time development
@@ -64,11 +66,9 @@ def obtain_time_image(x, y, centroid_x, centroid_y, psi, time_gradient, time_int
     float or ndarray
         Pulse time in nanoseconds at (x, y)
     """
-    longitudinal, _ = camera_to_shower_coordinates(
-        x, y, centroid_x, centroid_y, psi
-    )
+    longitudinal, _ = camera_to_shower_coordinates(x, y, centroid_x, centroid_y, psi)
     longitudinal_m = longitudinal.to_value(u.m)
-    time_gradient_ns_m = time_gradient.to_value(u.ns/u.m)
+    time_gradient_ns_m = time_gradient.to_value(u.ns / u.m)
     time_intercept_ns = time_intercept.to_value(u.ns)
     return longitudinal_m * time_gradient_ns_m + time_intercept_ns
 
@@ -103,7 +103,7 @@ class WaveformModel:
         self.ref_interp_y = np.interp(
             self.ref_interp_x, reference_pulse_x, reference_pulse
         )
-        self.ref_interp_y /= (self.ref_interp_y.sum() * self.ref_width_ns)
+        self.ref_interp_y /= self.ref_interp_y.sum() * self.ref_width_ns
         self.origin = self.ref_interp_y.argmax() - self.ref_interp_y.size // 2
 
     def get_waveform(self, charge, time, n_samples):
@@ -137,12 +137,14 @@ class WaveformModel:
         charge[outofrange] = 0
         waveform[np.arange(n_pixels), sample] = charge
         convolved = convolve1d(
-            waveform, self.ref_interp_y,
-            mode='constant', origin=self.origin
+            waveform, self.ref_interp_y, mode="constant", origin=self.origin
         )
-        downsampled = convolved.reshape((
-            n_pixels, convolved.shape[-1]//self.upsampling, self.upsampling
-        )).sum(-1) / self.upsampling
+        downsampled = (
+            convolved.reshape(
+                (n_pixels, convolved.shape[-1] // self.upsampling, self.upsampling)
+            ).sum(-1)
+            / self.upsampling
+        )
         return downsampled
 
     @classmethod
@@ -161,18 +163,17 @@ class WaveformModel:
         return cls(
             readout.reference_pulse_shape,
             readout.reference_pulse_sample_width,
-            (1/readout.sampling_rate).to(u.ns)
+            (1 / readout.sampling_rate).to(u.ns),
         )
 
 
 class ImageModel(metaclass=ABCMeta):
-
     @u.quantity_input(x=u.m, y=u.m)
     @abstractmethod
     def pdf(self, x, y):
-        '''
+        """
         Probability density function
-        '''
+        """
         pass
 
     def generate_image(self, camera, intensity=50, nsb_level_pe=20):
@@ -207,7 +208,7 @@ class ImageModel(metaclass=ABCMeta):
         return image, signal, noise
 
     def expected_signal(self, camera, intensity):
-        '''
+        """
         Expected signal in each pixel for the given camera
         and total intensity.
 
@@ -221,7 +222,7 @@ class ImageModel(metaclass=ABCMeta):
         Returns
         -------
         image: array with length n_pixels containing the image
-        '''
+        """
         pdf = self.pdf(camera.pix_x, camera.pix_y)
         return pdf * intensity * camera.pix_area.value
 
@@ -256,25 +257,24 @@ class Gaussian(ImageModel):
 
     @u.quantity_input(x=u.m, y=u.m)
     def pdf(self, x, y):
-        '''2d probability for photon electrons in the camera plane'''
-        aligned_covariance = np.array([
-            [self.length.to_value(u.m)**2, 0],
-            [0, self.width.to_value(u.m)**2]
-        ])
+        """2d probability for photon electrons in the camera plane"""
+        aligned_covariance = np.array(
+            [[self.length.to_value(u.m) ** 2, 0], [0, self.width.to_value(u.m) ** 2]]
+        )
         # rotate by psi angle: C' = R C R+
         rotation = linalg.rotation_matrix_2d(self.psi)
         rotated_covariance = rotation @ aligned_covariance @ rotation.T
 
         return multivariate_normal(
-            mean=[self.x.to_value(u.m), self.y.to_value(u.m)],
-            cov=rotated_covariance,
+            mean=[self.x.to_value(u.m), self.y.to_value(u.m)], cov=rotated_covariance,
         ).pdf(np.column_stack([x.to_value(u.m), y.to_value(u.m)]))
 
 
 class SkewedGaussian(ImageModel):
-    '''
+    """
     A shower image that has a skewness along the major axis
-    '''
+    """
+
     @u.quantity_input(x=u.m, y=u.m, length=u.m, width=u.m)
     def __init__(self, x, y, length, width, psi, skewness):
         """Create 2D skewed Gaussian model for a shower image in a camera.
@@ -308,22 +308,21 @@ class SkewedGaussian(ImageModel):
         self.skewness = skewness
 
     def _moments_to_parameters(self):
-        '''returns loc and scale from mean, std and skewnewss'''
+        """returns loc and scale from mean, std and skewnewss"""
         # see https://en.wikipedia.org/wiki/Skew_normal_distribution#Estimation
-        skew23 = np.abs(self.skewness)**(2 / 3)
+        skew23 = np.abs(self.skewness) ** (2 / 3)
         delta = np.sign(self.skewness) * np.sqrt(
-            (np.pi / 2 * skew23)
-            / (skew23 + (0.5 * (4 - np.pi))**(2 / 3))
+            (np.pi / 2 * skew23) / (skew23 + (0.5 * (4 - np.pi)) ** (2 / 3))
         )
-        a = delta / np.sqrt(1 - delta**2)
-        scale = self.length.to_value(u.m) / np.sqrt(1 - 2 * delta**2 / np.pi)
-        loc = - scale * delta * np.sqrt(2 / np.pi)
+        a = delta / np.sqrt(1 - delta ** 2)
+        scale = self.length.to_value(u.m) / np.sqrt(1 - 2 * delta ** 2 / np.pi)
+        loc = -scale * delta * np.sqrt(2 / np.pi)
 
         return a, loc, scale
 
     @u.quantity_input(x=u.m, y=u.m)
     def pdf(self, x, y):
-        '''2d probability for photon electrons in the camera plane'''
+        """2d probability for photon electrons in the camera plane"""
         mu = u.Quantity([self.x, self.y]).to_value(u.m)
 
         rotation = linalg.rotation_matrix_2d(-Angle(self.psi))
@@ -338,10 +337,11 @@ class SkewedGaussian(ImageModel):
 
 
 class RingGaussian(ImageModel):
-    '''
+    """
     A shower image consisting of a ring with gaussian radial profile.
     Simplified model for a muon ring.
-    '''
+    """
+
     @u.quantity_input(x=u.m, y=u.m, radius=u.m, sigma=u.m)
     def __init__(self, x, y, radius, sigma):
         self.x = x
@@ -351,11 +351,8 @@ class RingGaussian(ImageModel):
 
     @u.quantity_input(x=u.m, y=u.m)
     def pdf(self, x, y):
-        '''2d probability for photon electrons in the camera plane'''
+        """2d probability for photon electrons in the camera plane"""
 
-        r = np.sqrt((x - self.x)**2 + (y - self.y)**2)
+        r = np.sqrt((x - self.x) ** 2 + (y - self.y) ** 2)
 
-        return norm(
-            self.radius.to_value(u.m),
-            self.sigma.to_value(u.m),
-        ).pdf(r)
+        return norm(self.radius.to_value(u.m), self.sigma.to_value(u.m),).pdf(r)
