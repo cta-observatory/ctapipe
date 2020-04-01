@@ -26,12 +26,12 @@ class CameraReadout:
         description
     camera_name: str
          Camera name (e.g. NectarCam, LSTCam, ...)
-    sampling_rate : float
+    sampling_rate : u.Quantity[frequency]
         Sampling rate of the waveform
     reference_pulse_shape : ndarray
         Expected pulse shape for a signal in the waveform. 2 dimensional,
         first dimension is gain channel.
-    reference_pulse_sample_width : float
+    reference_pulse_sample_width : u.Quantity[time]
         The amount of time corresponding to each sample in the 2nd
         dimension of reference_pulse_shape
     """

@@ -146,22 +146,22 @@ class WaveformModel:
         return downsampled
 
     @classmethod
-    def from_camera(cls, camera):
+    def from_camera_readout(cls, readout):
         """
-        Create class  from a `ctapipe.instrument.CameraGeometry`
+        Create class from a `ctapipe.instrument.CameraReadout`
 
         Parameters
         ----------
-        camera : `ctapipe.instrument.CameraGeometry`
+        readout : `ctapipe.instrument.CameraReadout`
 
         Returns
         -------
         WaveformModel
         """
         return cls(
-            camera.reference_pulse_shape,
-            camera.reference_pulse_step,
-            (1/camera.sampling_rate).to(u.ns)
+            readout.reference_pulse_shape,
+            readout.reference_pulse_sample_width,
+            (1/readout.sampling_rate).to(u.ns)
         )
 
 
