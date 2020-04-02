@@ -21,7 +21,7 @@ def test_intensity():
     # make a toymodel shower model
     model = Gaussian(x=x, y=y, width=width, length=length, psi=psi)
 
-    image, signal, noise = model.generate_image(
+    image, signal, _ = model.generate_image(
         geom, intensity=intensity, nsb_level_pe=5,
     )
 
@@ -31,7 +31,7 @@ def test_intensity():
 
     # test if signal reproduces given width/length values
     cov = np.cov(geom.pix_x.value, geom.pix_y.value, aweights=signal)
-    eigvals, eigvecs = np.linalg.eigh(cov)
+    eigvals, _ = np.linalg.eigh(cov)
 
     assert np.sqrt(eigvals[0]) == approx(width.to_value(u.m), rel=0.15)
     assert np.sqrt(eigvals[1]) == approx(length.to_value(u.m), rel=0.15)

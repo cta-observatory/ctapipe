@@ -37,8 +37,7 @@ __all__ = ["Gaussian", "SkewedGaussian", "ImageModel", "obtain_time_image"]
     time_intercept=u.ns,
 )
 def obtain_time_image(x, y, centroid_x, centroid_y, psi, time_gradient, time_intercept):
-    """
-    Create a pulse time image for a toymodel shower. Assumes the time development
+    """Create a pulse time image for a toymodel shower. Assumes the time development
     occurs only along the longitudinal (major) axis of the shower, and scales
     linearly with distance along the axis
 
@@ -174,7 +173,6 @@ class ImageModel(metaclass=ABCMeta):
         """
         Probability density function
         """
-        pass
 
     def generate_image(self, camera, intensity=50, nsb_level_pe=20):
         """
@@ -245,9 +243,7 @@ class Gaussian(ImageModel):
 
         Returns
         -------
-
         a `scipy.stats` object
-
         """
         self.x = x
         self.y = y
@@ -296,9 +292,7 @@ class SkewedGaussian(ImageModel):
 
         Returns
         -------
-
         a `scipy.stats` object
-
         """
         self.x = x
         self.y = y
@@ -308,7 +302,7 @@ class SkewedGaussian(ImageModel):
         self.skewness = skewness
 
     def _moments_to_parameters(self):
-        """returns loc and scale from mean, std and skewnewss"""
+        """Returns loc and scale from mean, std and skewnewss."""
         # see https://en.wikipedia.org/wiki/Skew_normal_distribution#Estimation
         skew23 = np.abs(self.skewness) ** (2 / 3)
         delta = np.sign(self.skewness) * np.sqrt(
@@ -322,7 +316,7 @@ class SkewedGaussian(ImageModel):
 
     @u.quantity_input(x=u.m, y=u.m)
     def pdf(self, x, y):
-        """2d probability for photon electrons in the camera plane"""
+        """2d probability for photon electrons in the camera plane."""
         mu = u.Quantity([self.x, self.y]).to_value(u.m)
 
         rotation = linalg.rotation_matrix_2d(-Angle(self.psi))
