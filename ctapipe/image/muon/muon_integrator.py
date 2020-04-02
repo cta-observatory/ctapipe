@@ -257,7 +257,7 @@ class MuonLineIntegrate:
         # get total number of photons per pixel
         photval = self.photemit
         # ^ would be per radian, but no need to put it here, would anyway cancel out below
-        
+
         pred *= 0.5 * photval
         pred *= (self.pixel_width.value / radius)
         # multiply by angle (in radians) subtended by pixel width as seen from ring center
