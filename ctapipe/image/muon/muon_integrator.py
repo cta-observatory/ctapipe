@@ -245,28 +245,38 @@ class MuonLineIntegrate:
         ang_prof, profile = self.plot_pos(impact_parameter, radius, phi)
         # Produce gaussian weight for each pixel given ring width
         radial_dist = np.sqrt((pixel_x - centre_x)**2 + (pixel_y - centre_y)**2)
-        # The weight is the integral of the ring's radial gaussian profile inside the ring's width
+        # The weight is the integral of the ring's radial gaussian profile inside the
+        # ring's width
         gauss = norm.cdf(radial_dist+0.5*self.pixel_width.value, radius, ring_width) - \
                 norm.cdf(radial_dist-0.5*self.pixel_width.value, radius, ring_width)
 
         # interpolate profile to find prediction for each pixel
         pred = np.interp(ang, ang_prof, profile) * u.m
 
-        # Multiply by integrated emissivity between 300 and 600 nm, and rest of factors to get total number of photons per pixel
-        photval = self.photemit # would be per radian, but no need to put it here, would anyway cancel out below
+        # Multiply by integrated emissivity between 300 and 600 nm, and rest of factors to
+        # get total number of photons per pixel
+        photval = self.photemit
+        # ^ would be per radian, but no need to put it here, would anyway cancel out below
+        
         pred *= 0.5 * photval
-        pred *= (self.pixel_width.value / radius) # multiply by angle (in radians) subtended by pixel width as seen from ring center
+        pred *= (self.pixel_width.value / radius)
+        # multiply by angle (in radians) subtended by pixel width as seen from ring center
+
         pred *= np.sin(2 * (radius*u.deg).to_value(u.rad))
 
-        # multiply by gaussian weight, to account for "fraction of muon ring" which falls within the pixel
+        # multiply by gaussian weight, to account for "fraction of muon ring" which falls
+        # within the pixel
         pred *= gauss
 
-        # Now it would be the total light in an area S delimited by: two radii of the ring, tangent to the sides of the pixel in question,
-        # and two circles concentric with the ring, also tangent to the sides of the pixel.
-        # A rough correction, assuming pixel is round, is introduced here: [pi*(pixel_width/2)**2]/ S. Actually, for the large rings (relative to
-        # pixel size) we are concerned with, a good enough approximation is the ratio between a circle's area and that of the square whose side
-        # is equal to the circle's diameter. In any case, since in the end we do a data-MC comparison of the muon ting analysis outputs, it is not
-        # critical that this value is exact.
+        # Now it would be the total light in an area S delimited by: two radii of the
+        # ring, tangent to the sides of the pixel in question, and two circles concentric
+        # with the ring, also tangent to the sides of the pixel.
+        # A rough correction, assuming pixel is round, is introduced here:
+        # [pi*(pixel_width/2)**2]/ S. Actually, for the large rings (relative to pixel
+        # size) we are concerned with, a good enough approximation is the ratio between a
+        # circle's area and that of the square whose side is equal to the circle's
+        # diameter. In any case, since in the end we do a data-MC comparison of the muon
+        # ring analysis outputs, it is not critical that this value is exact.
         pred *= 0.7854
 
         return pred
@@ -315,7 +325,8 @@ class MuonLineIntegrate:
             self.pixel_y.value,
         )
 
-        # TEST: extra scaling factor, HESS style (ang pix size /2piR) # NOTE: not needed! (after changes introduced in 20200331)
+        # TEST: extra scaling factor, HESS style (ang pix size /2piR) # NOTE: not needed!
+        # (after changes introduced in 20200331)
         # scalenpix = self.pixel_width / (2.*np.pi * radius)
         # self.prediction *= scalenpix.value
 
@@ -418,7 +429,8 @@ class MuonLineIntegrate:
         init_constrain['fix_centre_x'] = True
         init_constrain['fix_centre_y'] = True
         init_constrain['limit_ring_width'] = (0., 1.)
-        #init_constrain['limit_optical_efficiency_muon'] = (0., 1.) # Unneeded constraint - and misleading in case of changes leading to >1 values!
+        #init_constrain['limit_optical_efficiency_muon'] = (0., 1.)
+        # ^Unneeded constraint - and misleading in case of changes leading to >1 values!
 
         logger.debug("radius = %3.3f pre migrad", radius)
 
