@@ -58,7 +58,7 @@ def test_skewed():
     model = SkewedGaussian(
         x=x, y=y, width=width, length=length, psi=psi, skewness=skewness
     )
-    image, signal, _ = model.generate_image(geom, intensity=intensity, nsb_level_pe=5,)
+    _, _, _ = model.generate_image(geom, intensity=intensity, nsb_level_pe=5,)
 
     a, loc, scale = model._moments_to_parameters()
     mean, var, skew = skewnorm(a=a, loc=loc, scale=scale).stats(moments="mvs")
