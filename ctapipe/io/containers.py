@@ -542,77 +542,26 @@ class SST1MDataContainer(DataContainer):
 
 
 class MuonRingParameter(Container):
-    """
-    Storage of muon ring fit output
-
-    Parameters
-    ----------
-    ring_center_x, ring_center_y, ring_radius, ring_center_phi, ring_center_distance:
-        center position, radius, orientation and inlination of the fitted ring
-    ring_chi2_fit:
-        chi squared of the ring fit
-    ring_cov_matrix:
-        covariance matrix of ring parameters
-    ring_containment:
-        angular containment of the ring
-    """
-    ring_center_x = Field(nan * u.deg, "center (x) of the fitted muon ring", unit=u.deg)
+    ring_center_x = Field(
+        nan * u.deg, "center (x) of the fitted muon ring", unit=u.deg
+    )
     ring_center_y = Field(nan * u.deg, "center (y) of the fitted muon ring", unit=u.deg)
     ring_radius = Field(nan * u.deg, "radius of the fitted muon ring", unit=u.deg)
-    ring_center_phi = Field(nan * u.deg, "Angle of ring center within camera plane", unit=u.deg)
-    ring_center_distance = Field(nan * u.deg, "Distance of ring center from camera center", unit=u.deg)
+    ring_center_phi = Field(
+        nan * u.deg, "Angle of ring center within camera plane", unit=u.deg
+    )
+    ring_center_distance = Field(
+        nan * u.deg, "Distance of ring center from camera center", unit=u.deg
+    )
     ring_chi2_fit = Field(nan, "chisquare of the muon ring fit", unit=u.deg)
-    ring_cov_matrix = Field(np.full((3, 3), nan), "covariance matrix of the muon ring fit")
+    ring_cov_matrix = Field(
+        np.full((3, 3), nan), "covariance matrix of the muon ring fit"
+    )
     ring_containment = Field(nan, "containment of the ring inside the camera")
     ring_fit_method = Field(None, "fitting method used for the muon ring")
 
 
 class MuonIntensityParameter(Container):
-    """
-    Storage of muon intensity fit output
-
-    Parameters
-    ----------
-
-    obs_id : int
-        run number
-    event_id : int
-        event number
-    tel_id : int
-        telescope ID
-    impact_parameter: float
-        reconstructed impact parameter
-    impact_parameter_chi2:
-        chi squared impact parameter
-    intensity_cov_matrix:
-        Covariance matrix of impact parameters or alternatively:
-        full 5x5 covariance matrix for the complete fit (ring + impact)
-    impact_parameter_pos_x, impact_parameter_pos_y:
-        position on the mirror of the muon impact
-    COG_x, COG_y:
-        center of gravity
-    optical_efficiency_muon:
-        optical muon efficiency from intensity fit
-    ring_completeness:
-        completeness of the ring
-    ring_pix_completeness:
-        pixel completeness of the ring
-    ring_num_pixel: int
-        Number of pixels composing the ring
-    ring_size:
-        ring size
-    off_ring_size:
-        size outside of the ring
-    ring_width:
-        ring width
-    ring_time_width:
-        standard deviation of the photons time arrival
-    prediction: dict
-        ndarray of the predicted charge in all pixels
-    mask:
-        ndarray of the mask used on the image for fitting
-
-    """
     ring_completeness = Field(nan, "fraction of ring present")
     ring_pix_completeness = Field(nan, "fraction of pixels present in the ring")
     ring_num_pixel = Field(-1, "number of pixels in the ring image")
@@ -645,8 +594,8 @@ class HillasParametersContainer(Container):
     r = Field(nan, "radial coordinate of centroid")
     phi = Field(nan, "polar coordinate of centroid", unit=u.deg)
 
-    length = Field(nan, "RMS spread along the major-axis")
-    width = Field(nan, "RMS spread along the minor-axis")
+    length = Field(nan, "standard deviation along the major-axis")
+    width = Field(nan, "stndardad spread along the minor-axis")
     psi = Field(nan, "rotation angle of ellipse", unit=u.deg)
 
     skewness = Field(nan, "measure of the asymmetry")
