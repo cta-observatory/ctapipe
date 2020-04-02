@@ -558,7 +558,6 @@ class MuonRingParameter(Container):
         np.full((3, 3), nan), "covariance matrix of the muon ring fit"
     )
     ring_containment = Field(nan, "containment of the ring inside the camera")
-    ring_fit_method = Field(None, "fitting method used for the muon ring")
 
 
 class MuonIntensityParameter(Container):
@@ -581,7 +580,6 @@ class MuonIntensityParameter(Container):
     prediction = Field(None, "image prediction")
     mask = Field(None, "image pixel mask")
     optical_efficiency_muon = Field(nan, "optical efficiency muon")
-    intensity_fit_method = Field("", "intensity fit method")
 
 
 class HillasParametersContainer(Container):
