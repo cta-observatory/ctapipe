@@ -57,3 +57,8 @@ Developers should follow the development install instructions found in the
 `documentation <https://cta-observatory.github
 .io/ctapipe/getting_started>`_.
 
+
+
+.. image:: https://api.codacy.com/project/badge/Grade/b773673bd0d747d4bdfb9362e5275c6b
+   :alt: Codacy Badge
+   :target: https://app.codacy.com/gh/cta-observatory/ctapipe?utm_source=github.com&utm_medium=referral&utm_content=cta-observatory/ctapipe&utm_campaign=Badge_Grade_Dashboard
