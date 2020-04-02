@@ -39,7 +39,7 @@ __all__ = ["Gaussian", "SkewedGaussian", "ImageModel", "obtain_time_image"]
 def obtain_time_image(x, y, centroid_x, centroid_y, psi, time_gradient, time_intercept):
     """Create a pulse time image for a toymodel shower. Assumes the time development
     occurs only along the longitudinal (major) axis of the shower, and scales
-    linearly with distance along the axis
+    linearly with distance along the axis.
 
     Parameters
     ----------
@@ -64,6 +64,7 @@ def obtain_time_image(x, y, centroid_x, centroid_y, psi, time_gradient, time_int
     -------
     float or ndarray
         Pulse time in nanoseconds at (x, y)
+
     """
     longitudinal, _ = camera_to_shower_coordinates(x, y, centroid_x, centroid_y, psi)
     longitudinal_m = longitudinal.to_value(u.m)
@@ -75,8 +76,7 @@ def obtain_time_image(x, y, centroid_x, centroid_y, psi, time_gradient, time_int
 class WaveformModel:
     @u.quantity_input(reference_pulse_sample_width=u.ns, sample_width=u.ns)
     def __init__(self, reference_pulse, reference_pulse_sample_width, sample_width):
-        """
-        Generate a toy model waveform using the reference pulse shape of a
+        """Generate a toy model waveform using the reference pulse shape of a
         camera. Useful for testing image extraction algorithms.
 
         Does not include the electronic noise and the Excess Noise Factor of
@@ -91,6 +91,7 @@ class WaveformModel:
             Reference pulse shape
         sample_width : u.Quantity[time]
             Sample width of the waveform
+
         """
         self.upsampling = 10
         reference_pulse_sample_width = reference_pulse_sample_width.to_value(u.ns)
@@ -106,8 +107,7 @@ class WaveformModel:
         self.origin = self.ref_interp_y.argmax() - self.ref_interp_y.size // 2
 
     def get_waveform(self, charge, time, n_samples):
-        """
-        Obtain the waveform toy model
+        """Obtain the waveform toy model.
 
         Parameters
         ----------
@@ -125,6 +125,7 @@ class WaveformModel:
         waveform : ndarray
             Toy model waveform
             Shape (n_pixels, n_samples)
+
         """
         n_pixels = charge.size
         n_upsampled_samples = n_samples * self.upsampling
@@ -148,8 +149,7 @@ class WaveformModel:
 
     @classmethod
     def from_camera_readout(cls, readout):
-        """
-        Create class from a `ctapipe.instrument.CameraReadout`
+        """Create class from a `ctapipe.instrument.CameraReadout`.
 
         Parameters
         ----------
@@ -158,6 +158,7 @@ class WaveformModel:
         Returns
         -------
         WaveformModel
+
         """
         return cls(
             readout.reference_pulse_shape,
@@ -170,13 +171,11 @@ class ImageModel(metaclass=ABCMeta):
     @u.quantity_input(x=u.m, y=u.m)
     @abstractmethod
     def pdf(self, x, y):
-        """
-        Probability density function
+        """Probability density function.
         """
 
     def generate_image(self, camera, intensity=50, nsb_level_pe=20):
-        """
-        Generate a randomized DL1 shower image.
+        """Generate a randomized DL1 shower image.
         For the signal, poisson random numbers are drawn from
         the expected signal distribution for each pixel.
         For the background, for each pixel a poisson random number
@@ -196,6 +195,7 @@ class ImageModel(metaclass=ABCMeta):
         image: array with length n_pixels containing the image
         signal: only the signal part of image
         noise: only the noise part of image
+
         """
         expected_signal = self.expected_signal(camera, intensity)
 
@@ -206,8 +206,7 @@ class ImageModel(metaclass=ABCMeta):
         return image, signal, noise
 
     def expected_signal(self, camera, intensity):
-        """
-        Expected signal in each pixel for the given camera
+        """Expected signal in each pixel for the given camera
         and total intensity.
 
         Parameters
@@ -220,6 +219,7 @@ class ImageModel(metaclass=ABCMeta):
         Returns
         -------
         image: array with length n_pixels containing the image
+
         """
         pdf = self.pdf(camera.pix_x, camera.pix_y)
         return pdf * intensity * camera.pix_area.value
@@ -244,6 +244,7 @@ class Gaussian(ImageModel):
         Returns
         -------
         a `scipy.stats` object
+
         """
         self.x = x
         self.y = y
@@ -267,8 +268,7 @@ class Gaussian(ImageModel):
 
 
 class SkewedGaussian(ImageModel):
-    """
-    A shower image that has a skewness along the major axis
+    """A shower image that has a skewness along the major axis.
     """
 
     @u.quantity_input(x=u.m, y=u.m, length=u.m, width=u.m)
@@ -277,7 +277,7 @@ class SkewedGaussian(ImageModel):
         Skewness is only applied along the main shower axis.
         See https://en.wikipedia.org/wiki/Skew_normal_distribution and
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.skewnorm.html
-        for details
+        for details.
 
         Parameters
         ----------
@@ -293,6 +293,7 @@ class SkewedGaussian(ImageModel):
         Returns
         -------
         a `scipy.stats` object
+
         """
         self.x = x
         self.y = y
@@ -331,9 +332,9 @@ class SkewedGaussian(ImageModel):
 
 
 class RingGaussian(ImageModel):
-    """
-    A shower image consisting of a ring with gaussian radial profile.
+    """A shower image consisting of a ring with gaussian radial profile.
     Simplified model for a muon ring.
+
     """
 
     @u.quantity_input(x=u.m, y=u.m, radius=u.m, sigma=u.m)
@@ -345,7 +346,7 @@ class RingGaussian(ImageModel):
 
     @u.quantity_input(x=u.m, y=u.m)
     def pdf(self, x, y):
-        """2d probability for photon electrons in the camera plane"""
+        """2d probability for photon electrons in the camera plane."""
 
         r = np.sqrt((x - self.x) ** 2 + (y - self.y) ** 2)
 

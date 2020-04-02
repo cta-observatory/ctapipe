@@ -21,7 +21,7 @@ def test_intensity():
     # make a toymodel shower model
     model = Gaussian(x=x, y=y, width=width, length=length, psi=psi)
 
-    image, signal, _ = model.generate_image(
+    _, signal, _ = model.generate_image(
         geom, intensity=intensity, nsb_level_pe=5,
     )
 
