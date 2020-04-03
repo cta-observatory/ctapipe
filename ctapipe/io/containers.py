@@ -569,14 +569,14 @@ class MuonIntensityParameter(Container):
     ring_width = Field(nan, "width of the muon ring in degrees")
     ring_time_width = Field(nan, "duration of the ring image sequence")
     impact_parameter = Field(
-        nan, "distance of muon impact position from centre of mirror"
+        nan, "distance of muon impact position from center of mirror"
     )
     impact_parameter_chi2 = Field(nan, "impact parameter chi squared")
     intensity_cov_matrix = Field(nan, "covariance matrix of intensity")
     impact_parameter_pos_x = Field(nan, "impact parameter x position")
     impact_parameter_pos_y = Field(nan, "impact parameter y position")
-    cog_x = Field(nan, "Centre of Gravity x")
-    cog_y = Field(nan, "Centre of Gravity y")
+    cog_x = Field(nan, "Center of Gravity x")
+    cog_y = Field(nan, "Center of Gravity y")
     prediction = Field(None, "image prediction")
     mask = Field(None, "image pixel mask")
     optical_efficiency_muon = Field(nan, "optical efficiency muon")
@@ -593,7 +593,7 @@ class HillasParametersContainer(Container):
     phi = Field(nan, "polar coordinate of centroid", unit=u.deg)
 
     length = Field(nan, "standard deviation along the major-axis")
-    width = Field(nan, "stndardad spread along the minor-axis")
+    width = Field(nan, "standard spread along the minor-axis")
     psi = Field(nan, "rotation angle of ellipse", unit=u.deg)
 
     skewness = Field(nan, "measure of the asymmetry")
