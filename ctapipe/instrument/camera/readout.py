@@ -17,27 +17,25 @@ logger = logging.getLogger(__name__)
 
 
 class CameraReadout:
-    """
-    Stores properties related to the readout of a Cherenkov Camera
-
-    Parameters
-    ----------
-    self: type
-        description
-    camera_name: str
-         Camera name (e.g. NectarCam, LSTCam, ...)
-    sampling_rate : float
-        Sampling rate of the waveform
-    reference_pulse_shape : ndarray
-        Expected pulse shape for a signal in the waveform. 2 dimensional,
-        first dimension is gain channel.
-    reference_pulse_sample_width : float
-        The amount of time corresponding to each sample in the 2nd
-        dimension of reference_pulse_shape
-    """
 
     def __init__(self, camera_name, sampling_rate, reference_pulse_shape,
                  reference_pulse_sample_width):
+        """Stores properties related to the readout of a Cherenkov Camera.
+
+        Parameters
+        ----------
+        camera_name: str
+             Camera name (e.g. NectarCam, LSTCam, ...)
+        sampling_rate : u.Quantity[frequency]
+            Sampling rate of the waveform
+        reference_pulse_shape : ndarray
+            Expected pulse shape for a signal in the waveform. 2 dimensional,
+            first dimension is gain channel.
+        reference_pulse_sample_width : u.Quantity[time]
+            The amount of time corresponding to each sample in the 2nd
+            dimension of reference_pulse_shape
+
+        """
         self.camera_name = camera_name
         self.sampling_rate = sampling_rate
         self.reference_pulse_shape = reference_pulse_shape
@@ -82,12 +80,11 @@ class CameraReadout:
 
     @classmethod
     def from_name(cls, camera_name='NectarCam', version=None):
-        """
-        Construct a CameraReadout using the name of the camera and array.
+        """Construct a CameraReadout using the name of the camera and array.
 
         This expects that there is a resource in the `ctapipe_resources` module
         called "[array]-[camera].camreadout.fits.gz" or "[array]-[camera]-[
-        version].camgeom.fits.gz"
+        version].camgeom.fits.gz".
 
         Parameters
         ----------
@@ -99,6 +96,7 @@ class CameraReadout:
         Returns
         -------
         new CameraReadout
+
         """
 
         if version is None:
@@ -125,7 +123,7 @@ class CameraReadout:
             )
 
     def to_table(self):
-        """ convert this to an `astropy.table.Table` """
+        """Convert this to an `astropy.table.Table`."""
         n_channels = len(self.reference_pulse_shape)
         tables = [
             *[self.reference_pulse_shape[i] for i in range(n_channels)],
@@ -147,9 +145,8 @@ class CameraReadout:
 
     @classmethod
     def from_table(cls, url_or_table, **kwargs):
-        """
-        Load a CameraReadout from an `astropy.table.Table` instance or a
-        file that is readable by `astropy.table.Table.read()`
+        """Load a CameraReadout from an `astropy.table.Table` instance or a
+        file that is readable by `astropy.table.Table.read()`.
 
         Parameters
         ----------
@@ -158,7 +155,6 @@ class CameraReadout:
         kwargs: extra keyword arguments
             extra arguments passed to `astropy.table.read()`, depending on
             file type (e.g. format, hdu, path)
-
 
         """
         tab = url_or_table
