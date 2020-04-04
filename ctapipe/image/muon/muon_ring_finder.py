@@ -9,10 +9,11 @@ import traitlets as traits
 # force the same interface onto them, here.
 # we also modify their names slightly, since the names are
 # exposed to the user via the string traitlet `fit_method`
+
+
 def kundu_chaudhuri(x, y, weights, mask):
     """kundu_chaudhuri_circle_fit with x, y, weights, mask interface"""
-    weights = weights * mask
-    return kundu_chaudhuri_circle_fit(x, y, weights)
+    return kundu_chaudhuri_circle_fit(x[mask], y[mask], weights[mask])
 
 
 def taubin(x, y, weights, mask):
@@ -26,8 +27,7 @@ __all__ = ["MuonRingFitter"]
 
 
 class MuonRingFitter(Component):
-    """Different ring fit algorithms for muon rings
-    """
+    """Different ring fit algorithms for muon rings"""
 
     fit_method = traits.CaselessStrEnum(
         list(FIT_METHOD_BY_NAME.keys()),
@@ -41,11 +41,10 @@ class MuonRingFitter(Component):
         fit_function = FIT_METHOD_BY_NAME[self.fit_method]
         radius, center_x, center_y = fit_function(x, y, img, mask)
 
-        output = MuonRingParameter()
-        output.ring_center_x = center_x
-        output.ring_center_y = center_y
-        output.ring_radius = radius
-        output.ring_center_phi = np.arctan2(center_y, center_x)
-        output.ring_center_distance = np.sqrt(center_x ** 2.0 + center_y ** 2.0)
-
-        return output
+        return MuonRingParameter(
+            center_x=center_x,
+            center_y=center_y,
+            radius=radius,
+            center_phi=np.arctan2(center_y, center_x),
+            center_distance=np.sqrt(center_x**2 + center_y**2),
+        )
