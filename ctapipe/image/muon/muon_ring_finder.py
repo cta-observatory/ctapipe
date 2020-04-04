@@ -1,9 +1,9 @@
 import numpy as np
-import astropy.units as u
 from ctapipe.core import Component
 from ctapipe.io.containers import MuonRingParameter
 from .fitting import kundu_chaudhuri_circle_fit, taubin_circle_fit
 import traitlets as traits
+
 
 # the fit methods do not expose the same interface, so we
 # force the same interface onto them, here.
@@ -47,6 +47,5 @@ class MuonRingFitter(Component):
         output.ring_radius = radius
         output.ring_center_phi = np.arctan2(center_y, center_x)
         output.ring_center_distance = np.sqrt(center_x ** 2.0 + center_y ** 2.0)
-        output.ring_fit_method = self.fit_method
 
         return output
