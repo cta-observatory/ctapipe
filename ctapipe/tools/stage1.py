@@ -481,7 +481,11 @@ class Stage1ProcessorTool(Tool):
             )
         )
         self.calibrate = self.add_component(
-            CameraCalibrator(parent=self, image_extractor=self.image_extractor)
+            CameraCalibrator(
+                parent=self,
+                subarray=self.event_source.subarray,
+                image_extractor=self.image_extractor,
+            )
         )
         self.clean = self.add_component(
             ImageCleaner.from_name(
@@ -607,9 +611,15 @@ class Stage1ProcessorTool(Tool):
             if len(ids) > 0:  # only write if there is a telescope with this camera
                 tel_id = list(ids)[0]
                 camera = subarray.tel[tel_id].camera
-                camera.to_table().write(
+                camera.geometry.to_table().write(
                     self.output_filename,
-                    path=f"/configuration/instrument/telescope/camera/{camera}",
+                    path=f"/configuration/instrument/telescope/camera/geometry_{camera}",
+                    append=True,
+                    serialize_meta=serialize_meta,
+                )
+                camera.readout.to_table().write(
+                    self.output_filename,
+                    path=f"/configuration/instrument/telescope/camera/readout_{camera}",
                     append=True,
                     serialize_meta=serialize_meta,
                 )
@@ -663,20 +673,24 @@ class Stage1ProcessorTool(Tool):
 
         # parameterize the event if all criteria pass:
         if all(image_criteria):
-            params.hillas = hillas_parameters(geom=tel.camera, image=clean_image)
+            params.hillas = hillas_parameters(
+                geom=tel.camera.geometry, image=clean_image
+            )
             params.timing = timing_parameters(
-                geom=tel.camera,
+                geom=tel.camera.geometry,
                 image=clean_image,
                 pulse_time=data.pulse_time,
                 hillas_parameters=params.hillas,
             )
             params.leakage = leakage(
-                geom=tel.camera, image=data.image, cleaning_mask=mask
+                geom=tel.camera.geometry, image=data.image, cleaning_mask=mask
             )
             params.concentration = concentration(
-                geom=tel.camera, image=clean_image, hillas_parameters=params.hillas
+                geom=tel.camera.geometry,
+                image=clean_image,
+                hillas_parameters=params.hillas,
             )
-            params.morphology = morphology(geom=tel.camera, image_mask=mask)
+            params.morphology = morphology(geom=tel.camera.geometry, image_mask=mask)
             params.intensity = intensity_statistics(image=clean_image)
 
         return mask, params
