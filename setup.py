@@ -4,8 +4,12 @@
 # import ah_bootstrap
 from setuptools import setup, find_packages
 
-# Get the long description from the package's docstring
-import ctapipe
+import sys
+import os
+# pep 517 builds do not have cwd in PATH by default
+sys.path.insert(0, os.path.dirname(__file__))
+# Get the long and version description from the package's docstring
+import ctapipe  # noqa
 
 
 # Define entry points for command-line scripts

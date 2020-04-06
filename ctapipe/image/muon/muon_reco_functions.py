@@ -2,10 +2,8 @@ import logging
 import warnings
 
 import numpy as np
-from astropy import log
 from astropy import units as u
 from astropy.coordinates import Angle, SkyCoord, AltAz
-from astropy.utils.decorators import deprecated
 
 from ctapipe.coordinates import CameraFrame, NominalFrame
 from ctapipe.image.cleaning import tailcuts_clean
@@ -201,9 +199,6 @@ def analyze_muon_event(event):
                 x, y, img, (ring_dist < muonringparam.ring_radius * 0.4)
             )
 
-        muonringparam.tel_id = telid
-        muonringparam.obs_id = event.dl0.obs_id
-        muonringparam.event_id = event.dl0.event_id
         dist_mask = (
             np.abs(dist - muonringparam.ring_radius) < muonringparam.ring_radius * 0.4
         )
