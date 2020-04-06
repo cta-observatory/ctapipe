@@ -12,26 +12,23 @@ import numpy as np
 import tables
 import tables.filters
 from astropy import units as u
-from tqdm.autonotebook import tqdm
 from astropy.time import Time
+from tqdm.autonotebook import tqdm
 
-from ctapipe.calib.camera import CameraCalibrator, GainSelector
-from ctapipe.core import Component, Container, Field, Tool, ToolConfigurationError
-from ctapipe.core import Provenance
-from ctapipe.core.traits import (
+from ..calib.camera import CameraCalibrator, GainSelector
+from ..core import Provenance
+from ..core import QualityQuery, Container, Field, Tool, ToolConfigurationError
+from ..core.traits import (
     Bool,
     CaselessStrEnum,
-    Dict,
     Int,
     List,
     Unicode,
     enum_trait,
     classes_with_traits,
-    IntTelescopeParameter,
-    FloatTelescopeParameter,
 )
 from ..image import ImageCleaner
-from ..image import hillas_parameters, tailcuts_clean, number_of_islands
+from ..image import hillas_parameters, number_of_islands
 from ..image.concentration import concentration
 from ..image.extractor import ImageExtractor
 from ..image.leakage import leakage
@@ -202,114 +199,9 @@ def tel_type_string_to_int(tel_type):
     )
 
 
-class Selector(Component):
-    """
-    Manages a set of selection criteria that operate on the same type of input.
-    Each time it is called, it returns a boolean array of whether or not each
-    criterion passed.
-    """
-
-    selection_functions = Dict(
-        help=(
-            "dict of '<cut name>' : lambda function in string format to accept ("
-            "select) a given data value.  E.g. `{'mycut': 'lambda x: x > 3'}` "
-        )
-    ).tag(config=True)
-
-    def __init__(self, config=None, parent=None, **kwargs):
-        super().__init__(config=config, parent=parent, **kwargs)
-
-        # add a selection to count all entries and make it the first one
-        selection_functions = {"TOTAL": "lambda x: True"}
-        selection_functions.update(self.selection_functions)
-
-        self.selection_functions = selection_functions  # update
-
-        # generate real functions from the selection function strings
-        self._selectors = {
-            name: eval(func_str) for name, func_str in selection_functions.items()
-        }
-
-        # arrays for recording overall statistics
-        self._counts = np.zeros(len(self._selectors), dtype=np.int)
-        self._cumulative_counts = np.zeros(len(self._selectors), dtype=np.int)
-
-    def __len__(self):
-        return self._counts[0]
-
-    @property
-    def criteria_names(self):
-        return list(self._selectors.keys())
-
-    @property
-    def selection_function_strings(self):
-        return list(self.selection_functions.values())
-
-    def to_table(self, functions=False):
-        """
-        Return a tabular view of the latest quality summary
-
-        The columns are
-        - *criteria*: name of each criterion
-        - *counts*: counts of each criterion independently
-        - *cum_counts*: counts of cumulative application of each criterion in order
-
-        Parameters
-        ----------
-        functions: bool:
-            include the function string as a column
-
-        Returns
-        -------
-        astropy.table.Table
-        """
-        from astropy.table import Table
-
-        cols = {
-            "criteria": self.criteria_names,
-            "counts": self._counts,
-            "cumulative_counts": self._cumulative_counts,
-        }
-        if functions:
-            cols["func"] = self.selection_function_strings
-        return Table(cols)
-
-    def _repr_html_(self):
-        return self.to_table()._repr_html_()
-
-    def __call__(self, value):
-        """
-        Test that value passes all cuts
-
-        Parameters
-        ----------
-        value:
-            the value to pass to each selection function
-
-        Returns
-        -------
-        np.ndarray:
-            array of booleans with results of each selection criterion in order
-        """
-        result = np.array(list(map(lambda f: f(value), self._selectors.values())))
-        self._counts += result.astype(int)
-        self._cumulative_counts += result.cumprod()
-        return result
-
-
-class ImageSelector(Selector):
+class ImageQualityQuery(QualityQuery):
     """ for configuring image-wise data checks """
-
-    selection_functions = Dict(
-        help=(
-            "dict of '<cut name>' : lambda function in string format to accept ("
-            "select) a given data value.  E.g. `{'mycut': 'lambda x: x > 3'}` "
-        ),
-        default_value=dict(
-            enough_pixels="lambda im: np.count_nonzero(im) > 2",
-            enough_charge_pe="lambda im: im.sum() > 80",
-        ),
-    ).tag(config=True)
+    pass
 
 
 def expand_tel_list(tel_list, max_tels, index_map):
@@ -441,7 +333,7 @@ class Stage1ProcessorTool(Tool):
     }
 
     classes = List(
-        [EventSource, CameraCalibrator, ImageSelector]
+        [EventSource, CameraCalibrator, ImageQualityQuery]
         + classes_with_traits(ImageCleaner)
         + classes_with_traits(ImageExtractor)
         + classes_with_traits(GainSelector)
@@ -494,7 +386,7 @@ class Stage1ProcessorTool(Tool):
                 subarray=self.event_source.subarray,
             )
         )
-        self.check_image = self.add_component(ImageSelector(parent=self))
+        self.check_image = self.add_component(ImageQualityQuery(parent=self))
 
         # check component setup
         if self.event_source.max_events and self.event_source.max_events > 0:
@@ -668,7 +560,7 @@ class Stage1ProcessorTool(Tool):
         image_criteria = self.check_image(clean_image)
         self.log.debug(
             "image_criteria: %s",
-            list(zip(self.check_image.criteria_names, image_criteria)),
+            list(zip(self.check_image.criteria_names[1:], image_criteria)),
         )
 
         # parameterize the event if all criteria pass:

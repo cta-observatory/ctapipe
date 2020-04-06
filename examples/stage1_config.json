@@ -29,10 +29,10 @@
                 ["id", 12, 15.0]
         ]
     },
-    "ImageSelector": {
-        "selection_functions": {
-            "enough_pixels": "lambda im: np.count_nonzero(im) > 2",
-            "enough_charge": "lambda im: im.sum() > 100"
-        }
+    "ImageQualityQuery": {
+        "quality_criteria": [
+            ["enough_pixels", "lambda im: np.count_nonzero(im) > 2"],
+            ["enough_charge", "lambda im: im.sum() > 100"]
+        ]
     }
 }
