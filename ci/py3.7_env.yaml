@@ -3,11 +3,11 @@ channels:
   - default
   - cta-observatory
 dependencies:
-  - python=3.6 # nail the python version, so conda does not try upgrading / dowgrading
+  - python=3.7
   - astropy
   - bokeh
   - conda-forge::nbsphinx
-  - ctapipe-extra=0.2.18
+  - ctapipe-extra=0.2.19
   - cython
   - graphviz
   - iminuit
@@ -17,7 +17,7 @@ dependencies:
   - jupyter
   - matplotlib
   - numba
-  - numpy>=1.15.4
+  - numpy>=1.16.0
   - numpydoc
   - pandas
   - psutil
