@@ -266,11 +266,6 @@ class MCCameraEventContainer(Container):
     photo_electron_image = Field(
         Map(), "reference image in pure photoelectrons, with no noise"
     )
-    # todo: move to instrument (doesn't change per event)
-    reference_pulse_shape = Field(None, "reference pulse shape for each channel")
-    # todo: move to instrument or a static MC container (don't change per
-    # event)
-    time_slice = Field(0, "width of time slice", unit=u.ns)
     dc_to_pe = Field(None, "DC/PE calibration arrays from MC file")
     pedestal = Field(None, "pedestal calibration arrays from MC file")
     azimuth_raw = Field(0, "Raw azimuth angle [radians from N->E] for the telescope")
@@ -320,52 +315,52 @@ class MCHeaderContainer(Container):
             "[0]=R.A., [1]=Declination in mode 1."
         ),
     )
-    corsika_version = Field(np.nan, "CORSIKA version * 1000")
-    simtel_version = Field(np.nan, "sim_telarray version * 1000")
+    corsika_version = Field(nan, "CORSIKA version * 1000")
+    simtel_version = Field(nan, "sim_telarray version * 1000")
     energy_range_min = Field(
-        np.nan, "Lower limit of energy range " "of primary particle", unit=u.TeV
+        nan, "Lower limit of energy range " "of primary particle", unit=u.TeV
     )
     energy_range_max = Field(
-        np.nan, "Upper limit of energy range " "of primary particle", unit=u.TeV
+        nan, "Upper limit of energy range " "of primary particle", unit=u.TeV
     )
-    prod_site_B_total = Field(np.nan, "total geomagnetic field", unit=u.uT)
-    prod_site_B_declination = Field(np.nan, "magnetic declination", unit=u.rad)
-    prod_site_B_inclination = Field(np.nan, "magnetic inclination", unit=u.rad)
-    prod_site_alt = Field(np.nan, "height of observation level", unit=u.m)
+    prod_site_B_total = Field(nan, "total geomagnetic field", unit=u.uT)
+    prod_site_B_declination = Field(nan, "magnetic declination", unit=u.rad)
+    prod_site_B_inclination = Field(nan, "magnetic inclination", unit=u.rad)
+    prod_site_alt = Field(nan, "height of observation level", unit=u.m)
     prod_site_array = Field("None", "site array")
     prod_site_coord = Field("None", "site (long., lat.) coordinates")
     prod_site_subarray = Field("None", "site subarray")
-    spectral_index = Field(np.nan, "Power-law spectral index of spectrum")
+    spectral_index = Field(nan, "Power-law spectral index of spectrum")
     shower_prog_start = Field(
-        np.nan,
+        nan,
         """Time when shower simulation started,
                               CORSIKA: only date""",
     )
-    shower_prog_id = Field(np.nan, "CORSIKA=1, ALTAI=2, KASCADE=3, MOCCA=4")
-    detector_prog_start = Field(np.nan, "Time when detector simulation started")
-    detector_prog_id = Field(np.nan, "simtelarray=1")
-    num_showers = Field(np.nan, "Number of showers simulated")
-    shower_reuse = Field(np.nan, "Numbers of uses of each shower")
-    max_alt = Field(np.nan, "Maximimum shower altitude", unit=u.rad)
-    min_alt = Field(np.nan, "Minimum shower altitude", unit=u.rad)
-    max_az = Field(np.nan, "Maximum shower azimuth", unit=u.rad)
-    min_az = Field(np.nan, "Minimum shower azimuth", unit=u.rad)
-    diffuse = Field(np.nan, "Diffuse Mode On/Off")
-    max_viewcone_radius = Field(np.nan, "Maximum viewcone radius", unit=u.deg)
-    min_viewcone_radius = Field(np.nan, "Minimum viewcone radius", unit=u.deg)
-    max_scatter_range = Field(np.nan, "Maximum scatter range", unit=u.m)
-    min_scatter_range = Field(np.nan, "Minimum scatter range", unit=u.m)
-    core_pos_mode = Field(np.nan, "Core Position Mode (fixed/circular/...)")
-    injection_height = Field(np.nan, "Height of particle injection", unit=u.m)
-    atmosphere = Field(np.nan, "Atmospheric model number")
-    corsika_iact_options = Field(np.nan, "Detector MC information")
-    corsika_low_E_model = Field(np.nan, "Detector MC information")
-    corsika_high_E_model = Field(np.nan, "Detector MC information")
-    corsika_bunchsize = Field(np.nan, "Number of photons per bunch")
-    corsika_wlen_min = Field(np.nan, "Minimum wavelength of cherenkov light", unit=u.nm)
-    corsika_wlen_max = Field(np.nan, "Maximum wavelength of cherenkov light", unit=u.nm)
-    corsika_low_E_detail = Field(np.nan, "Detector MC information")
-    corsika_high_E_detail = Field(np.nan, "Detector MC information")
+    shower_prog_id = Field(nan, "CORSIKA=1, ALTAI=2, KASCADE=3, MOCCA=4")
+    detector_prog_start = Field(nan, "Time when detector simulation started")
+    detector_prog_id = Field(nan, "simtelarray=1")
+    num_showers = Field(nan, "Number of showers simulated")
+    shower_reuse = Field(nan, "Numbers of uses of each shower")
+    max_alt = Field(nan, "Maximimum shower altitude", unit=u.rad)
+    min_alt = Field(nan, "Minimum shower altitude", unit=u.rad)
+    max_az = Field(nan, "Maximum shower azimuth", unit=u.rad)
+    min_az = Field(nan, "Minimum shower azimuth", unit=u.rad)
+    diffuse = Field(nan, "Diffuse Mode On/Off")
+    max_viewcone_radius = Field(nan, "Maximum viewcone radius", unit=u.deg)
+    min_viewcone_radius = Field(nan, "Minimum viewcone radius", unit=u.deg)
+    max_scatter_range = Field(nan, "Maximum scatter range", unit=u.m)
+    min_scatter_range = Field(nan, "Minimum scatter range", unit=u.m)
+    core_pos_mode = Field(nan, "Core Position Mode (fixed/circular/...)")
+    injection_height = Field(nan, "Height of particle injection", unit=u.m)
+    atmosphere = Field(nan, "Atmospheric model number")
+    corsika_iact_options = Field(nan, "Detector MC information")
+    corsika_low_E_model = Field(nan, "Detector MC information")
+    corsika_high_E_model = Field(nan, "Detector MC information")
+    corsika_bunchsize = Field(nan, "Number of photons per bunch")
+    corsika_wlen_min = Field(nan, "Minimum wavelength of cherenkov light", unit=u.nm)
+    corsika_wlen_max = Field(nan, "Maximum wavelength of cherenkov light", unit=u.nm)
+    corsika_low_E_detail = Field(nan, "Detector MC information")
+    corsika_high_E_detail = Field(nan, "Detector MC information")
 
 
 class CentralTriggerContainer(Container):
@@ -547,120 +542,44 @@ class SST1MDataContainer(DataContainer):
 
 
 class MuonRingParameter(Container):
-    """
-    Storage of muon ring fit output
-
-    Parameters
-    ----------
-
-    obs_id : int
-        run number
-    event_id : int
-        event number
-    tel_id : int
-        telescope ID
-    ring_center_x, ring_center_y, ring_radius, ring_center_phi, ring_center_distance:
-        center position, radius, orientation and inlination of the fitted ring
-    ring_chi2_fit:
-        chi squared of the ring fit
-    ring_cov_matrix:
-        covariance matrix of ring parameters
-    ring_containment:
-        angular containment of the ring
-    """
-
-    obs_id = Field(0, "run identification number")
-    event_id = Field(0, "event identification number")
-    tel_id = Field(0, "telescope identification number")
-    ring_center_x = Field(0.0, "centre (x) of the fitted muon ring")
-    ring_center_y = Field(0.0, "centre (y) of the fitted muon ring")
-    ring_radius = Field(0.0, "radius of the fitted muon ring")
-    ring_center_phi = Field(0.0, "Angle of ring center within camera plane")
-    ring_center_distance = Field(0.0, "Distance of ring center from camera center")
-    ring_chi2_fit = Field(0.0, "chisquare of the muon ring fit")
-    ring_cov_matrix = Field(0.0, "covariance matrix of the muon ring fit")
-    ring_containment = Field(0.0, "containment of the ring inside the camera")
-    ring_fit_method = Field("", "fitting method used for the muon ring")
-    inputfile = Field("", "input file")
+    ring_center_x = Field(
+        nan * u.deg, "center (x) of the fitted muon ring", unit=u.deg
+    )
+    ring_center_y = Field(nan * u.deg, "center (y) of the fitted muon ring", unit=u.deg)
+    ring_radius = Field(nan * u.deg, "radius of the fitted muon ring", unit=u.deg)
+    ring_center_phi = Field(
+        nan * u.deg, "Angle of ring center within camera plane", unit=u.deg
+    )
+    ring_center_distance = Field(
+        nan * u.deg, "Distance of ring center from camera center", unit=u.deg
+    )
+    ring_chi2_fit = Field(nan, "chisquare of the muon ring fit", unit=u.deg)
+    ring_cov_matrix = Field(
+        np.full((3, 3), nan), "covariance matrix of the muon ring fit"
+    )
+    ring_containment = Field(nan, "containment of the ring inside the camera")
 
 
 class MuonIntensityParameter(Container):
-    """
-    Storage of muon intensity fit output
-
-    Parameters
-    ----------
-
-    obs_id : int
-        run number
-    event_id : int
-        event number
-    tel_id : int
-        telescope ID
-    impact_parameter: float
-        reconstructed impact parameter
-    impact_parameter_chi2:
-        chi squared impact parameter
-    intensity_cov_matrix:
-        Covariance matrix of impact parameters or alternatively:
-        full 5x5 covariance matrix for the complete fit (ring + impact)
-    impact_parameter_pos_x, impact_parameter_pos_y:
-        position on the mirror of the muon impact
-    COG_x, COG_y:
-        center of gravity
-    optical_efficiency_muon:
-        optical muon efficiency from intensity fit
-    ring_completeness:
-        completeness of the ring
-    ring_pix_completeness:
-        pixel completeness of the ring
-    ring_num_pixel: int
-        Number of pixels composing the ring
-    ring_size:
-        ring size
-    off_ring_size:
-        size outside of the ring
-    ring_width:
-        ring width
-    ring_time_width:
-        standard deviation of the photons time arrival
-    prediction: dict
-        ndarray of the predicted charge in all pixels
-    mask:
-        ndarray of the mask used on the image for fitting
-
-    """
-
-    obs_id = DeprecatedField(
-        0, "run identification number", reason="moved to event.index"
-    )
-    event_id = DeprecatedField(
-        0, "event identification number", reason="moved to event.index"
-    )
-    tel_id = DeprecatedField(
-        0, "telescope identification number", reason="moved to event.index"
-    )
-    ring_completeness = Field(0.0, "fraction of ring present")
-    ring_pix_completeness = Field(0.0, "fraction of pixels present in the ring")
-    ring_num_pixel = Field(0, "number of pixels in the ring image")
-    ring_size = Field(0.0, "size of the ring in pe")
-    off_ring_size = Field(0.0, "image size outside of ring in pe")
-    ring_width = Field(0.0, "width of the muon ring in degrees")
-    ring_time_width = Field(0.0, "duration of the ring image sequence")
+    ring_completeness = Field(nan, "fraction of ring present")
+    ring_pix_completeness = Field(nan, "fraction of pixels present in the ring")
+    ring_num_pixel = Field(-1, "number of pixels in the ring image")
+    ring_size = Field(nan, "size of the ring in pe")
+    off_ring_size = Field(nan, "image size outside of ring in pe")
+    ring_width = Field(nan, "width of the muon ring in degrees")
+    ring_time_width = Field(nan, "duration of the ring image sequence")
     impact_parameter = Field(
-        0.0, "distance of muon impact position from centre of mirror"
+        nan, "distance of muon impact position from center of mirror"
     )
-    impact_parameter_chi2 = Field(0.0, "impact parameter chi squared")
-    intensity_cov_matrix = Field(0.0, "covariance matrix of intensity")
-    impact_parameter_pos_x = Field(0.0, "impact parameter x position")
-    impact_parameter_pos_y = Field(0.0, "impact parameter y position")
-    COG_x = Field(0.0, "Centre of Gravity x")
-    COG_y = Field(0.0, "Centre of Gravity y")
-    prediction = Field([], "image prediction")
-    mask = Field([], "image pixel mask")
-    optical_efficiency_muon = Field(0.0, "optical efficiency muon")
-    intensity_fit_method = Field("", "intensity fit method")
-    inputfile = Field("", "input file")
+    impact_parameter_chi2 = Field(nan, "impact parameter chi squared")
+    intensity_cov_matrix = Field(nan, "covariance matrix of intensity")
+    impact_parameter_pos_x = Field(nan, "impact parameter x position")
+    impact_parameter_pos_y = Field(nan, "impact parameter y position")
+    cog_x = Field(nan, "Center of Gravity x")
+    cog_y = Field(nan, "Center of Gravity y")
+    prediction = Field(None, "image prediction")
+    mask = Field(None, "image pixel mask")
+    optical_efficiency_muon = Field(nan, "optical efficiency muon")
 
 
 class HillasParametersContainer(Container):
@@ -673,8 +592,8 @@ class HillasParametersContainer(Container):
     r = Field(nan, "radial coordinate of centroid")
     phi = Field(nan, "polar coordinate of centroid", unit=u.deg)
 
-    length = Field(nan, "RMS spread along the major-axis")
-    width = Field(nan, "RMS spread along the minor-axis")
+    length = Field(nan, "standard deviation along the major-axis")
+    width = Field(nan, "standard spread along the minor-axis")
     psi = Field(nan, "rotation angle of ellipse", unit=u.deg)
 
     skewness = Field(nan, "measure of the asymmetry")
@@ -742,11 +661,11 @@ class TimingParametersContainer(Container):
 class MorphologyContainer(Container):
     """ Parameters related to pixels surviving image cleaning """
 
-    num_pixels = Field(np.nan, "Number of usable pixels")
-    num_islands = Field(np.nan, "Number of distinct islands in the image")
-    num_small_islands = Field(np.nan, "Number of <= 2 pixel islands")
-    num_medium_islands = Field(np.nan, "Number of 2-50 pixel islands")
-    num_large_islands = Field(np.nan, "Number of > 10 pixel islands")
+    num_pixels = Field(nan, "Number of usable pixels")
+    num_islands = Field(nan, "Number of distinct islands in the image")
+    num_small_islands = Field(nan, "Number of <= 2 pixel islands")
+    num_medium_islands = Field(nan, "Number of 2-50 pixel islands")
+    num_large_islands = Field(nan, "Number of > 10 pixel islands")
 
 
 class ImageParametersContainer(Container):

@@ -114,11 +114,11 @@ def plot_muon_event(event, muonparams):
             ax1 = fig.add_subplot(1, npads, 1)
             plotter = CameraPlotter(event)
             image = event.dl1.tel[tel_id].image
-            geom = event.inst.subarray.tel[tel_id].camera
+            geom = event.inst.subarray.tel[tel_id].camera.geometry
 
             tailcuts = (5., 7.)
             # Try a higher threshold for
-            if geom.cam_id == 'FlashCam':
+            if geom.camera_name == 'FlashCam':
                 tailcuts = (10., 12.)
 
             clean_mask = tailcuts_clean(geom, image,
@@ -129,7 +129,7 @@ def plot_muon_event(event, muonparams):
 
             rotr_angle = geom.pix_rotation
 # The following two lines have been commented out to avoid a rotation error.
-#            if geom.cam_id == 'LSTCam' or geom.cam_id == 'NectarCam':
+#            if geom.camera_name == 'LSTCam' or geom.camera_name == 'NectarCam':
 
 #                rotr_angle = 0. * u.deg
 
@@ -153,8 +153,8 @@ def plot_muon_event(event, muonparams):
             radius = muonparams['MuonRingParams'][idx].ring_radius
             ringrad_camcoord = 2 * radius.to(u.rad) * flen  # But not FC?
 
-            px = subarray.tel[tel_id].camera.pix_x
-            py = subarray.tel[tel_id].camera.pix_y
+            px = subarray.tel[tel_id].camera.geometry.pix_x
+            py = subarray.tel[tel_id].camera.geometry.pix_y
             camera_coord = SkyCoord(
                 x=px,
                 y=py,
@@ -170,11 +170,12 @@ def plot_muon_event(event, muonparams):
 
             px = nom_coord.delta_az.to(u.deg)
             py = nom_coord.delta_alt.to(u.deg)
-            dist = np.sqrt(np.power(px - muonparams['MuonRingParams'][idx].ring_center_x,
-                                    2) + np.power(py - muonparams['MuonRingParams'][idx].
-                                                  ring_center_y, 2))
-            ring_dist = np.abs(dist - muonparams['MuonRingParams'][idx].ring_radius)
-            pix_rmask = ring_dist < muonparams['MuonRingParams'][idx].ring_radius * 0.4
+
+            ring = muonparams['MuonRingParams'][idx]
+            dist = np.sqrt((px - ring.ring_center_x)**2 + (py - ring.ring_center_y)**2)
+
+            ring_dist = np.abs(dist - ring.ring_radius)
+            pix_rmask = ring_dist < ring.ring_radius * 0.4
 
             if muonparams['MuonIntensityParams'][idx] is not None:
                 signals *= muonparams['MuonIntensityParams'][idx].mask

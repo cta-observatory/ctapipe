@@ -45,11 +45,6 @@ def compare_sources(input_url):
 
             tels_with_data = s.r0.tels_with_data
             for tel_id in tels_with_data:
-
-                assert h.mc.tel[tel_id].reference_pulse_shape.dtype == s.mc.tel[tel_id].reference_pulse_shape.dtype
-                assert type(h.mc.tel[tel_id].meta['refstep']) is type(s.mc.tel[tel_id].meta['refstep'])
-                assert type(h.mc.tel[tel_id].time_slice) is type(s.mc.tel[tel_id].time_slice)
-
                 assert (h.mc.tel[tel_id].dc_to_pe == s.mc.tel[tel_id].dc_to_pe).all()
                 assert (h.mc.tel[tel_id].pedestal == s.mc.tel[tel_id].pedestal).all()
                 assert h.r0.tel[tel_id].waveform.shape == s.r0.tel[tel_id].waveform.shape
@@ -59,18 +54,23 @@ def compare_sources(input_url):
 
                 assert h.r0.tel[tel_id].num_trig_pix == s.r0.tel[tel_id].num_trig_pix
                 assert (h.r0.tel[tel_id].trig_pix_id == s.r0.tel[tel_id].trig_pix_id).all()
-                assert (h.mc.tel[tel_id].reference_pulse_shape == s.mc.tel[tel_id].reference_pulse_shape).all()
 
                 assert (h.mc.tel[tel_id].photo_electron_image == s.mc.tel[tel_id].photo_electron_image).all()
                 assert h.mc.tel[tel_id].meta == s.mc.tel[tel_id].meta
-                assert h.mc.tel[tel_id].time_slice == s.mc.tel[tel_id].time_slice
                 assert h.mc.tel[tel_id].azimuth_raw == s.mc.tel[tel_id].azimuth_raw
                 assert h.mc.tel[tel_id].altitude_raw == s.mc.tel[tel_id].altitude_raw
                 assert h.pointing[tel_id].altitude == s.pointing[tel_id].altitude
                 assert h.pointing[tel_id].azimuth == s.pointing[tel_id].azimuth
 
-                assert (h.inst.subarray.tel[tel_id].camera.sampling_rate ==
-                        s.inst.subarray.tel[tel_id].camera.sampling_rate)
+                h_camera = h.inst.subarray.tel[tel_id].camera
+                s_camera = s.inst.subarray.tel[tel_id].camera
+                assert h_camera.readout.sampling_rate == s_camera.readout.sampling_rate
+                assert np.array_equal(
+                    h_camera.readout.reference_pulse_shape,
+                    s_camera.readout.reference_pulse_shape
+                )
+                assert (h_camera.readout.reference_pulse_sample_width ==
+                        s_camera.readout.reference_pulse_sample_width)
 
 
 def test_compare_event_hessio_and_simtel():
@@ -225,8 +225,8 @@ def test_subarray_property():
     event = next(iter(source))
     subarray_event = event.inst.subarray
     assert subarray.tel.keys() == subarray_event.tel.keys()
-    assert (subarray.tel[1].camera.pix_x ==
-            subarray_event.tel[1].camera.pix_x).all()
+    assert (subarray.tel[1].camera.geometry.pix_x ==
+            subarray_event.tel[1].camera.geometry.pix_x).all()
 
 
 def test_apply_simtel_r1_calibration_1_channel():

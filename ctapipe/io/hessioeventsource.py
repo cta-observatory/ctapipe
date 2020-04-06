@@ -8,7 +8,9 @@ from ctapipe.instrument import (
     TelescopeDescription,
     SubarrayDescription,
     OpticsDescription,
+    CameraDescription,
     CameraGeometry,
+    CameraReadout
 )
 from ctapipe.instrument.camera import UnknownPixelShapeWarning
 from ctapipe.instrument.guess import guess_telescope, UNKNOWN_TELESCOPE
@@ -177,13 +179,10 @@ class HESSIOEventSource(EventSource):
                     mc.pedestal = pedestal
                     r0.num_trig_pix = file.get_num_trig_pixels(tel_id)
                     r0.trig_pix_id = file.get_trig_pixels(tel_id)
-                    mc.reference_pulse_shape = file.get_ref_shapes(tel_id)
 
                     # load the data per telescope/pixel
                     hessio_mc_npe = file.get_mc_number_photon_electron(tel_id)
                     mc.photo_electron_image = hessio_mc_npe
-                    mc.meta['refstep'] = file.get_ref_step(tel_id)
-                    mc.time_slice = file.get_time_slice(tel_id)
                     mc.azimuth_raw = file.get_azimuth_raw(tel_id)
                     mc.altitude_raw = file.get_altitude_raw(tel_id)
                     azimuth_cor = file.get_azimuth_cor(tel_id)
@@ -266,18 +265,30 @@ class HESSIOEventSource(EventSource):
         cam_rot = file.get_camera_rotation_angle(tel_id)
         num_mirrors = file.get_mirror_number(tel_id)
         sampling_rate = u.Quantity(1 / file.get_time_slice(tel_id), u.GHz)
+        reference_pulse_shape = file.get_ref_shapes(tel_id)
+        reference_pulse_sample_width = u.Quantity(file.get_ref_step(tel_id), u.ns)
 
-        camera = CameraGeometry(
+        geometry = CameraGeometry(
             telescope.camera_name,
             pix_id=np.arange(n_pixels),
             pix_x=pix_x,
             pix_y=pix_y,
             pix_area=pix_area,
             pix_type=pix_type,
-            sampling_rate=sampling_rate,
             pix_rotation=pix_rot,
             cam_rotation=-Angle(cam_rot, u.rad),
             apply_derotation=True,
+        )
+        readout = CameraReadout(
+            telescope.camera_name,
+            sampling_rate=sampling_rate,
+            reference_pulse_shape=reference_pulse_shape,
+            reference_pulse_sample_width=reference_pulse_sample_width,
+        )
+        camera = CameraDescription(
+            camera_name=telescope.camera_name,
+            geometry=geometry,
+            readout=readout
         )
 
         optics = OpticsDescription(

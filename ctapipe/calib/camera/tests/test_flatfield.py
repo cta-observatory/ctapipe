@@ -23,6 +23,8 @@ def test_flasherflatfieldcalculator():
             ),
         }
     )
+    subarray.tel[0].camera.readout.reference_pulse_shape = np.ones((1, 2))
+    subarray.tel[0].camera.readout.reference_pulse_step = u.Quantity(1, u.ns)
 
     config = Config({
         "FixedWindowSum": {

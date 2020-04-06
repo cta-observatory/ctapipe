@@ -40,15 +40,15 @@ for event in event_source:
     time_gradients = {}
 
     for telescope_id, dl1 in event.dl1.tel.items():
-        camera = event.inst.subarray.tels[telescope_id].camera
+        geom = event.inst.subarray.tels[telescope_id].camera.geometry
 
         image = dl1.image
         peakpos = dl1.pulse_time
 
         # cleaning
-        boundary, picture, min_neighbors = cleaning_level[camera.cam_id]
+        boundary, picture, min_neighbors = cleaning_level[geom.camera_name]
         clean = tailcuts_clean(
-            camera,
+            geom,
             image,
             boundary_thresh=boundary,
             picture_thresh=picture,
@@ -60,12 +60,12 @@ for event in event_source:
             continue
 
         # image parameters
-        hillas_c = hillas_parameters(camera[clean], image[clean])
-        leakage_c = leakage(camera, image, clean)
-        n_islands, island_ids = number_of_islands(camera, clean)
+        hillas_c = hillas_parameters(geom[clean], image[clean])
+        leakage_c = leakage(geom, image, clean)
+        n_islands, island_ids = number_of_islands(geom, clean)
 
         timing_c = timing_parameters(
-            camera[clean], image[clean], peakpos[clean], hillas_c, clean,
+            geom[clean], image[clean], peakpos[clean], hillas_c, clean,
         )
 
         # store parameters for stereo reconstruction
@@ -73,11 +73,11 @@ for event in event_source:
 
         # store timegradients for plotting
         # ASTRI has no timing in PROD3b, so we use skewness instead
-        if camera.cam_id != 'ASTRICam':
+        if geom.camera_name != 'ASTRICam':
             time_gradients[telescope_id] = timing_c.slope.value
         else:
             time_gradients[telescope_id] = hillas_c.skewness
-        print(camera.cam_id, time_gradients[telescope_id])
+        print(geom.camera_name, time_gradients[telescope_id])
 
         # make sure each telescope get's an arrow
         if abs(time_gradients[telescope_id]) < 0.2:

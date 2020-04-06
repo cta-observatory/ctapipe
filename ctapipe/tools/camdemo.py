@@ -13,8 +13,7 @@ from matplotlib.animation import FuncAnimation
 from ctapipe.core import Tool, traits
 from ctapipe.image import toymodel, tailcuts_clean, dilate, \
     hillas_parameters, HillasParameterizationError
-from ctapipe.instrument import TelescopeDescription, CameraGeometry, \
-    OpticsDescription
+from ctapipe.instrument import TelescopeDescription, OpticsDescription, CameraDescription
 from ctapipe.visualization import CameraDisplay
 
 
@@ -31,7 +30,7 @@ class CameraDemo(Tool):
                                    'much faster but may cause some draw '
                                    'artifacts)').tag(config=True)
     camera = traits.CaselessStrEnum(
-        CameraGeometry.get_known_camera_names(),
+        CameraDescription.get_known_camera_names(),
         default_value='NectarCam',
         help='Name of camera to display').tag(config=True)
 
@@ -74,7 +73,7 @@ class CameraDemo(Tool):
         # load the camera
         tel = TelescopeDescription.from_name(optics_name=self.optics,
                                              camera_name=self.camera)
-        geom = tel.camera
+        geom = tel.camera.geometry
 
         # poor-man's coordinate transform from telscope to camera frame (it's
         # better to use ctapipe.coordiantes when they are stable)

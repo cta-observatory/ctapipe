@@ -8,7 +8,9 @@ from astropy.time import Time
 from ctapipe.instrument import (
     TelescopeDescription,
     SubarrayDescription,
+    CameraDescription,
     CameraGeometry,
+    CameraReadout,
     OpticsDescription,
 )
 from ctapipe.instrument.camera import UnknownPixelShapeWarning
@@ -25,7 +27,7 @@ from pathlib import Path
 __all__ = ['SimTelEventSource']
 
 
-def build_camera_geometry(cam_settings, pixel_settings, telescope):
+def build_camera(cam_settings, pixel_settings, telescope):
     pixel_shape = cam_settings['pixel_shape'][0]
     try:
         pix_type, pix_rotation = CameraGeometry.simtel_shape_to_type(pixel_shape)
@@ -37,20 +39,27 @@ def build_camera_geometry(cam_settings, pixel_settings, telescope):
         pix_type = 'hexagon'
         pix_rotation = '0d'
 
-    camera = CameraGeometry(
+    geometry = CameraGeometry(
         telescope.camera_name,
         pix_id=np.arange(cam_settings['n_pixels']),
         pix_x=u.Quantity(cam_settings['pixel_x'], u.m),
         pix_y=u.Quantity(cam_settings['pixel_y'], u.m),
         pix_area=u.Quantity(cam_settings['pixel_area'], u.m**2),
         pix_type=pix_type,
-        sampling_rate=u.Quantity(1 / pixel_settings['time_slice'], u.GHz),
         pix_rotation=pix_rotation,
         cam_rotation=-Angle(cam_settings['cam_rot'], u.rad),
         apply_derotation=True,
     )
+    readout = CameraReadout(
+        telescope.camera_name,
+        sampling_rate=u.Quantity(1 / pixel_settings['time_slice'], u.GHz),
+        reference_pulse_shape=pixel_settings['ref_shape'].astype('float64', copy=False),
+        reference_pulse_sample_width=u.Quantity(pixel_settings['ref_step'], u.ns),
+    )
 
-    return camera
+    return CameraDescription(
+        camera_name=telescope.camera_name, geometry=geometry, readout=readout
+    )
 
 
 def apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe, gain_selector):
@@ -202,7 +211,7 @@ class SimTelEventSource(EventSource):
 
             camera = self._camera_cache.get(telescope.camera_name)
             if camera is None:
-                camera = build_camera_geometry(
+                camera = build_camera(
                     cam_settings, pixel_settings, telescope
                 )
                 self._camera_cache[telescope.camera_name] = camera
@@ -317,20 +326,15 @@ class SimTelEventSource(EventSource):
             tracking_positions = array_event['tracking_positions']
             for tel_id, telescope_event in telescope_events.items():
                 tel_index = self.file_.header['tel_id'].tolist().index(tel_id)
-                telescope_description = self.file_.telescope_descriptions[tel_id]
 
                 adc_samples = telescope_event.get('adc_samples')
                 if adc_samples is None:
                     adc_samples = telescope_event['adc_sums'][:, :, np.newaxis]
                 _, n_pixels, n_samples = adc_samples.shape
-                pixel_settings = telescope_description['pixel_settings']
 
                 mc = data.mc.tel[tel_id]
                 mc.dc_to_pe = array_event['laser_calibrations'][tel_id]['calib']
                 mc.pedestal = array_event['camera_monitorings'][tel_id]['pedestal']
-                mc.reference_pulse_shape = pixel_settings['ref_shape'].astype('float64')
-                mc.meta['refstep'] = float(pixel_settings['ref_step'])
-                mc.time_slice = float(pixel_settings['time_slice'])
                 mc.photo_electron_image = (
                     array_event
                     .get('photoelectrons', {})

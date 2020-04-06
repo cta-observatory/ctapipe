@@ -22,7 +22,7 @@ if __name__ == '__main__':
 
     # load the camera
     tel = TelescopeDescription.from_name("SST-1M", "DigiCam")
-    geom = tel.camera
+    geom = tel.camera.geometry
 
     fov = 0.3
     maxwid = 0.05
