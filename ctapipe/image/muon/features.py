@@ -1,5 +1,5 @@
 import numpy as np
-import math as mt
+from ...utils.quantities import all_to_value
 
 
 def mean_squared_error(pixel_x, pixel_y, weights, radius, center_x, center_y):
@@ -113,40 +113,46 @@ def ring_completeness(
     return np.sum(bins_above_threshold) / bins
 
 
-def ring_containment(
-        ring_radius,
-        cam_rad,
-        cring_x,
-        cring_y,
-        ):
+def ring_containment(radius, center_x, center_y, camera_radius):
 
     """
     Estimate angular containment of a ring inside the camera
     (camera center is (0,0))
+
     Improve: include the case of an arbitrary
     center for the camera
 
+    See https://stackoverflow.com/questions/3349125/circle-circle-intersection-points
+
     Parameters
     ----------
-    ring_radius: float
+    radius: float or quantity
         radius of the muon ring
-    cam_rad: float
-        radius of the camera
-    cring_x: float
+    center_x: float or quantity
         x coordinate of the center of the muon ring
-    cring_y: float
+    center_y: float or quantity
         y coordinate of the center of the muon ring
+    camera_radius: float or quantity
+        radius of the camera
 
     Returns
     ------
     ringcontainment: float
         the ratio of ring inside the camera
     """
-    angle_ring = np.linspace(0, 2 * mt.pi, 360)
-    ring_x = cring_x + ring_radius * np.cos(angle_ring)
-    ring_y = cring_y + ring_radius * np.sin(angle_ring)
-    d = np.sqrt(ring_x**2 + ring_y**2)
+    if hasattr(radius, 'unit'):
+        radius, center_x, center_y, camera_radius = all_to_value(
+            radius, center_x, center_y, camera_radius, unit=radius.unit
+        )
+    d = np.sqrt(center_x**2 + center_y**2)
 
-    ringcontainment = len(d[d < cam_rad]) / len(d)
+    # one circle fully contained in the other
+    if d <= np.abs(radius - camera_radius):
+        return 1.0
 
-    return ringcontainment
+    # no intersection
+    if d > (radius + camera_radius):
+        return 0.0
+
+    a = (radius**2 - camera_radius**2 + d**2) / (2 * d)
+    return np.arccos(a / radius) / np.pi
