@@ -7,12 +7,6 @@ from numpy import nan
 
 from ..core import Container, Field, DeprecatedField, Map
 from ..instrument import SubarrayDescription
-from ..image.hillas import HillasParametersContainer
-from ..image.timing_parameters import TimingParametersContainer
-from ..image.concentration import ConcentrationContainer
-from ..image.leakage import LeakageContainer
-from ..image.muon.containers import MuonIntensityParameter, MuonRingParameter
-
 
 
 __all__ = [
@@ -40,11 +34,6 @@ __all__ = [
     "ParticleClassificationContainer",
     "DataContainer",
     "SST1MDataContainer",
-    "HillasParametersContainer",
-    "LeakageContainer",
-    "ConcentrationContainer",
-    "MorphologyContainer",
-    "TimingParametersContainer",
     "FlatFieldContainer",
     "PedestalContainer",
     "PixelStatusContainer",
@@ -54,10 +43,7 @@ __all__ = [
     "EventAndMonDataContainer",
     "EventIndexContainer",
     "TelEventIndexContainer",
-    "ImageParametersContainer",
     "SimulatedShowerDistribution",
-    "MuonIntensityParameter",
-    "MuonRingParameter",
 ]
 
 
@@ -547,28 +533,6 @@ class DataContainer(Container):
 class SST1MDataContainer(DataContainer):
     sst1m = Field(SST1MContainer(), "optional SST1M Specific Information")
 
-
-
-
-class MorphologyContainer(Container):
-    """ Parameters related to pixels surviving image cleaning """
-
-    num_pixels = Field(nan, "Number of usable pixels")
-    num_islands = Field(nan, "Number of distinct islands in the image")
-    num_small_islands = Field(nan, "Number of <= 2 pixel islands")
-    num_medium_islands = Field(nan, "Number of 2-50 pixel islands")
-    num_large_islands = Field(nan, "Number of > 10 pixel islands")
-
-
-class ImageParametersContainer(Container):
-    """ Collection of image parameters """
-
-    container_prefix = "params"
-    hillas = Field(HillasParametersContainer(), "Hillas Parameters")
-    timing = Field(TimingParametersContainer(), "Timing Parameters")
-    leakage = Field(LeakageContainer(), "Leakage Parameters")
-    concentration = Field(ConcentrationContainer(), "Concentration Parameters")
-    morphology = Field(MorphologyContainer(), "Morphology Parameters")
 
 
 class FlatFieldContainer(Container):
