@@ -6,7 +6,7 @@ from numpy.testing import assert_allclose
 from ctapipe.io.containers import (ReconstructedShowerContainer,
                                    ReconstructedEnergyContainer)
 from ctapipe.reco.ImPACT import ImPACTReconstructor
-from ctapipe.io.containers import HillasParametersContainer
+from ctapipe.image.containers import HillasParametersContainer
 from astropy.coordinates import Angle, AltAz, SkyCoord
 
 

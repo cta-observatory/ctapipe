@@ -3,7 +3,7 @@ import numpy as np
 import astropy.units as u
 from numpy.testing import assert_allclose
 from ctapipe.instrument.camera import CameraGeometry
-from ctapipe.io.containers import HillasParametersContainer
+from ctapipe.image.containers import HillasParametersContainer
 
 
 def test_psi_0():

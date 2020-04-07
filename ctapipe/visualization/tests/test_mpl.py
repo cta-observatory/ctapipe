@@ -8,7 +8,7 @@ import pytest
 plt = pytest.importorskip("matplotlib.pyplot")
 
 from ctapipe.instrument import CameraGeometry, SubarrayDescription, TelescopeDescription
-from ctapipe.io.containers import HillasParametersContainer
+from ctapipe.image.containers import HillasParametersContainer
 from numpy import ones
 from astropy import units as u
 

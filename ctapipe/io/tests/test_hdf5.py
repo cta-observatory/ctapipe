@@ -11,6 +11,8 @@ from ctapipe.core.container import Container, Field
 from ctapipe.io.containers import (
     R0CameraContainer,
     MCEventContainer,
+)
+from ctapipe.image.containers import (
     HillasParametersContainer,
     LeakageContainer,
 )

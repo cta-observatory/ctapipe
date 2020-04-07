@@ -4,7 +4,7 @@ from numpy.testing import assert_allclose
 import numpy as np
 from astropy.coordinates import SkyCoord
 from ctapipe.coordinates import NominalFrame, AltAz, CameraFrame
-from ctapipe.io.containers import HillasParametersContainer
+from ctapipe.image.containers import HillasParametersContainer
 
 from ctapipe.io import event_source
 
