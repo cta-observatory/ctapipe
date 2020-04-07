@@ -1,5 +1,6 @@
 import astropy.units as u
 import numpy as np
+import pytest
 
 
 def test_chord_length():
@@ -77,6 +78,27 @@ def test_muon_efficiency_fit():
     assert u.isclose(result['impact_parameter'], impact_parameter, rtol=0.05)
     assert u.isclose(result['ring_width'], ring_width, rtol=0.05)
     assert u.isclose(result['optical_efficiency_muon'], efficiency, rtol=0.05)
+
+
+def test_scts():
+    from ctapipe.instrument import TelescopeDescription, SubarrayDescription
+    from ctapipe.image.muon.intensity_fit import  MuonIntensityFitter
+
+    telescope = TelescopeDescription.from_name('SST-ASTRI', 'CHEC')
+    subarray = SubarrayDescription(
+        'ssts', {0: [0, 0, 0] * u.m}, {0: telescope},
+    )
+
+    fitter = MuonIntensityFitter(subarray=subarray)
+    with pytest.raises(NotImplementedError):
+        fitter.fit(
+            tel_id=0,
+            center_x=0 * u.deg,
+            center_y=2 * u.deg,
+            radius=1.3 * u.deg,
+            image=np.zeros(telescope.camera.geometry.n_pixels),
+            pedestal=np.zeros(telescope.camera.geometry.n_pixels)
+        )
 
 
 if __name__ == '__main__':

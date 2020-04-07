@@ -463,6 +463,11 @@ class MuonIntensityFitter(TelescopeComponent):
         MuonIntensityParameters
         """
         telescope = self.subarray.tel[tel_id]
+        if telescope.optics.num_mirrors != 1:
+            raise NotImplementedError(
+                f'Currently only single telescopes are supported in {self.__class__.__name__}'
+            )
+
         negative_log_likelihood = build_negative_log_likelihood(
             image, telescope,
             oversampling=self.oversampling.tel[tel_id],
