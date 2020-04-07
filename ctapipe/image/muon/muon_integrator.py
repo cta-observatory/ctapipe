@@ -12,8 +12,9 @@ from scipy.ndimage.filters import correlate1d
 from iminuit import Minuit
 from astropy import units as u
 from astropy.constants import alpha
-from ...io.containers import MuonIntensityParameter
 from scipy.stats import norm
+
+from .containers import MuonIntensityParameter
 
 import logging
 

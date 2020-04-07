@@ -1,6 +1,22 @@
 import numpy as np
-from ..io.containers import ConcentrationContainer
+from numpy import nan
+
 from .hillas import camera_to_shower_coordinates
+from ..core import Container, Field
+
+
+class ConcentrationContainer(Container):
+    """
+    Concentrations are ratios between light amount
+    in certain areas of the image and the full image.
+    """
+
+    container_prefix = "concentration"
+    cog = Field(
+        nan, "Percentage of photo-electrons in the three pixels closest to the cog"
+    )
+    core = Field(nan, "Percentage of photo-electrons inside the hillas ellipse")
+    pixel = Field(nan, "Percentage of photo-electrons in the brightest pixel")
 
 
 def concentration(geom, image, hillas_parameters):

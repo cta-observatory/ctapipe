@@ -1,8 +1,6 @@
 """
 Container structures for data that should be read or written to disk
 """
-
-import numpy as np
 from astropy import units as u
 from astropy.time import Time
 from numpy import nan
@@ -11,6 +9,10 @@ from ..core import Container, Field, DeprecatedField, Map
 from ..instrument import SubarrayDescription
 from ..image.hillas import HillasParametersContainer
 from ..image.timing_parameters import TimingParametersContainer
+from ..image.concentration import ConcentrationContainer
+from ..image.leakage import LeakageContainer
+from ..image.muon.containers import MuonIntensityParameter, MuonRingParameter
+
 
 
 __all__ = [
@@ -54,6 +56,8 @@ __all__ = [
     "TelEventIndexContainer",
     "ImageParametersContainer",
     "SimulatedShowerDistribution",
+    "MuonIntensityParameter",
+    "MuonRingParameter",
 ]
 
 
@@ -544,103 +548,6 @@ class SST1MDataContainer(DataContainer):
     sst1m = Field(SST1MContainer(), "optional SST1M Specific Information")
 
 
-class MuonRingParameter(Container):
-    ring_center_x = Field(
-        nan * u.deg, "center (x) of the fitted muon ring", unit=u.deg
-    )
-    ring_center_y = Field(nan * u.deg, "center (y) of the fitted muon ring", unit=u.deg)
-    ring_radius = Field(nan * u.deg, "radius of the fitted muon ring", unit=u.deg)
-    ring_center_phi = Field(
-        nan * u.deg, "Angle of ring center within camera plane", unit=u.deg
-    )
-    ring_center_distance = Field(
-        nan * u.deg, "Distance of ring center from camera center", unit=u.deg
-    )
-    ring_chi2_fit = Field(nan, "chisquare of the muon ring fit", unit=u.deg)
-    ring_cov_matrix = Field(
-        np.full((3, 3), nan), "covariance matrix of the muon ring fit"
-    )
-    ring_containment = Field(nan, "containment of the ring inside the camera")
-
-
-class MuonIntensityParameter(Container):
-    ring_completeness = Field(nan, "fraction of ring present")
-    ring_pix_completeness = Field(nan, "fraction of pixels present in the ring")
-    ring_num_pixel = Field(-1, "number of pixels in the ring image")
-    ring_size = Field(nan, "size of the ring in pe")
-    off_ring_size = Field(nan, "image size outside of ring in pe")
-    ring_width = Field(nan, "width of the muon ring in degrees")
-    ring_time_width = Field(nan, "duration of the ring image sequence")
-    impact_parameter = Field(
-        nan, "distance of muon impact position from center of mirror"
-    )
-    impact_parameter_chi2 = Field(nan, "impact parameter chi squared")
-    intensity_cov_matrix = Field(nan, "covariance matrix of intensity")
-    impact_parameter_pos_x = Field(nan, "impact parameter x position")
-    impact_parameter_pos_y = Field(nan, "impact parameter y position")
-    cog_x = Field(nan, "Center of Gravity x")
-    cog_y = Field(nan, "Center of Gravity y")
-    prediction = Field(None, "image prediction")
-    mask = Field(None, "image pixel mask")
-    optical_efficiency_muon = Field(nan, "optical efficiency muon")
-
-
-class LeakageContainer(Container):
-    """
-    Fraction of signal in 1 or 2-pixel width border from the edge of the
-    camera, measured in number of signal pixels or in intensity.
-    """
-
-    container_prefix = "leakage"
-
-    pixels_width_1 = Field(
-        nan, "fraction of pixels after cleaning that are in camera border of width=1"
-    )
-    pixels_width_2 = Field(
-        nan, "fraction of pixels after cleaning that are in camera border of width=2"
-    )
-    intensity_width_1 = Field(
-        nan,
-        "Intensity in photo-electrons after cleaning"
-        " that are in the camera border of width=1 pixel",
-    )
-    intensity_width_2 = Field(
-        nan,
-        "Intensity in photo-electrons after cleaning"
-        " that are in the camera border of width=2 pixels",
-    )
-
-
-class ConcentrationContainer(Container):
-    """
-    Concentrations are ratios between light amount
-    in certain areas of the image and the full image.
-    """
-
-    container_prefix = "concentration"
-    cog = Field(
-        nan, "Percentage of photo-electrons in the three pixels closest to the cog"
-    )
-    core = Field(nan, "Percentage of photo-electrons inside the hillas ellipse")
-    pixel = Field(nan, "Percentage of photo-electrons in the brightest pixel")
-
-
-class TimingParametersContainer(Container):
-    """
-    Slope and Intercept of a linear regression of the arrival times
-    along the shower main axis
-    """
-
-    container_prefix = "timing"
-    slope = Field(nan, "Slope of arrival times along main shower axis")
-    slope_err = Field(nan, "Uncertainty `slope`")
-    intercept = Field(nan, "intercept of arrival times along main shower axis")
-    intercept_err = Field(nan, "Uncertainty `intercept`")
-    deviation = Field(
-        nan,
-        "Root-mean-square deviation of the pulse times "
-        "with respect to the predicted time",
-    )
 
 
 class MorphologyContainer(Container):

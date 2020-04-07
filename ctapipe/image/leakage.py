@@ -1,12 +1,38 @@
 """
 Leakage calculation
 """
-
 import numpy as np
-from ..io.containers import LeakageContainer
+from ..core import Container, Field
+
 
 
 __all__ = ["leakage"]
+
+
+class LeakageContainer(Container):
+    """
+    Fraction of signal in 1 or 2-pixel width border from the edge of the
+    camera, measured in number of signal pixels or in intensity.
+    """
+
+    container_prefix = "leakage"
+
+    pixels_width_1 = Field(
+        np.nan, "fraction of pixels after cleaning that are in camera border of width=1"
+    )
+    pixels_width_2 = Field(
+        np.nan, "fraction of pixels after cleaning that are in camera border of width=2"
+    )
+    intensity_width_1 = Field(
+        np.nan,
+        "Intensity in photo-electrons after cleaning"
+        " that are in the camera border of width=1 pixel",
+    )
+    intensity_width_2 = Field(
+        np.nan,
+        "Intensity in photo-electrons after cleaning"
+        " that are in the camera border of width=2 pixels",
+    )
 
 
 def leakage(geom, image, cleaning_mask):
