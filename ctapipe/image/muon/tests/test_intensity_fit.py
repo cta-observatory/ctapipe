@@ -3,7 +3,7 @@ import numpy as np
 
 
 def test_chord_length():
-    from ctapipe.image.muon.intensity_fit import chord_length
+    from ctapipe.image.muon.intensity_fitter import chord_length
 
     radius = 12
     rho = 0.0
@@ -19,9 +19,14 @@ def test_chord_length():
 
 
 def test_muon_efficiency_fit():
-    from ctapipe.instrument import TelescopeDescription
+    from ctapipe.instrument import TelescopeDescription, SubarrayDescription
     from ctapipe.coordinates import TelescopeFrame, CameraFrame
-    from ctapipe.image.muon.intensity_fitter import image_prediction, fit_muon
+    from ctapipe.image.muon.intensity_fitter import image_prediction, MuonIntensityFitter
+
+    telescope = TelescopeDescription.from_name('LST', 'LSTCam')
+    subarray = SubarrayDescription(
+        'LSTMono', {0: [0, 0, 0] * u.m}, {0: telescope},
+    )
 
     center_x = 0.8 * u.deg
     center_y = 0.4 * u.deg
@@ -31,7 +36,6 @@ def test_muon_efficiency_fit():
     phi = 0 * u.rad
     efficiency = 0.3
 
-    telescope = TelescopeDescription.from_name('LST', 'LSTCam')
     focal_length = telescope.optics.equivalent_focal_length
     geom = telescope.camera.geometry
     mirror_radius = np.sqrt(telescope.optics.mirror_area / np.pi)
@@ -60,7 +64,15 @@ def test_muon_efficiency_fit():
         pixel_diameter=pixel_diameter[0]
     )
 
-    result = fit_muon(center_x, center_y, radius, image * efficiency, telescope)
+    fitter = MuonIntensityFitter(subarray=subarray)
+    result = fitter.fit(
+        tel_id=0,
+        center_x=center_x,
+        center_y=center_y,
+        radius=radius,
+        image=image * efficiency,
+        pedestal=np.full_like(image, 1.1)
+    )
 
     assert u.isclose(result['impact_parameter'], impact_parameter, rtol=0.05)
     assert u.isclose(result['ring_width'], ring_width, rtol=0.05)

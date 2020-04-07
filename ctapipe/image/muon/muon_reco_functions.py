@@ -11,7 +11,7 @@ from ctapipe.image.muon.features import ring_containment
 from ctapipe.image.muon.features import ring_completeness
 from ctapipe.image.muon.features import npix_above_threshold
 from ctapipe.image.muon.features import npix_composing_ring
-from ctapipe.image.muon.intensity_fit import fit_muon
+from ctapipe.image.muon.intensity_fit import MuonIntensityFitter
 from ctapipe.image.muon.muon_ring_finder import MuonRingFitter
 
 logger = logging.getLogger(__name__)
@@ -129,6 +129,8 @@ def analyze_muon_event(event):
         "MuonIntensityParams": muonintensitylist,
     }
 
+    intensity_fitter = MuonIntensityFitter(event.inst.subarray)
+
     for telid in event.dl0.tels_with_data:
 
         logger.debug("Analysing muon event for tel %d", telid)
@@ -245,7 +247,7 @@ def analyze_muon_event(event):
             muonintensitylist.append(None)
 
             if image.shape[0] == muon_cuts["total_pix"][dict_index]:
-                muonintensityoutput = fit_muon(
+                muonintensityoutput = intensity_fitter.fit(
                     muonringparam.ring_center_x,
                     muonringparam.ring_center_y,
                     muonringparam.ring_radius,

@@ -17,6 +17,8 @@ from astropy.coordinates import SkyCoord
 
 from ...containers import MuonIntensityParameter
 from ...coordinates import CameraFrame, TelescopeFrame
+from ...core import TelescopeComponent
+from ...core.traits import FloatTelescopeParameter, IntTelescopeParameter
 
 
 # ratio of the areas of the unit circle and a square of side lengths 2
@@ -264,7 +266,7 @@ def calc_likelihood(image, pred, spe_width, ped):
     pred: ndarray
         Predicted pixel amplitudes from model
     spe_width: ndarray
-        width of single p.e. distributio
+        width of single p.e. distribution
     ped: ndarray
         width of pedestal
 
@@ -413,89 +415,106 @@ def create_initial_guess(center_x, center_y, radius, telescope_description):
     return initial_guess
 
 
-def fit_muon(
-    center_x,
-    center_y,
-    radius,
-    image,
-    telescope_description,
-    oversampling=3,
-    spe_width=0.5,
-    pedestal=1.1,
-    min_lambda=300 * u.nm,
-    max_lambda=600 * u.nm,
-):
-    """
+class MuonIntensityFitter(TelescopeComponent):
+    spe_width = FloatTelescopeParameter(
+        help="Width of a single photo electron distribution", default_value=0.5
+    ).tag(config=True)
 
-    Parameters
-    ----------
-    center_x: Angle quantity
-        Initial guess for muon ring center in telescope frame
-    center_y: Angle quantity
-        Initial guess for muon ring center in telescope frame
-    radius: Angle quantity
-        Radius of muon ring from circle fitting
-    pixel_x: ndarray
-        X position of pixels in image from circle fitting
-    pixel_y: ndarray
-        Y position of pixel in image from circle fitting
-    image: ndarray
-        Amplitude of image pixels
+    min_lambda = FloatTelescopeParameter(
+        help="Minimum wavelength for Cherenkov light in m", default_value=300e-9,
+    ).tag(config=True)
 
-    Returns
-    -------
-    MuonIntensityParameters
-    """
-    negative_log_likelihood = build_negative_log_likelihood(
-        image, telescope_description, oversampling=oversampling,
-        min_lambda=min_lambda, max_lambda=max_lambda,
-        spe_width=spe_width,
-        pedestal=pedestal,
-    )
+    max_lambda = FloatTelescopeParameter(
+        help="Minimum wavelength for Cherenkov light in m", default_value=600e-9,
+    ).tag(config=True)
 
-    initial_guess = create_initial_guess(
-        center_x, center_y, radius, telescope_description,
-    )
+    oversampling = IntTelescopeParameter(
+        help='Oversampling for the line integration', default_value=3
+    ).tag(config=True)
 
-    step_sizes = {}
-    step_sizes['error_impact_parameter'] = 0.5
-    step_sizes['error_phi'] = np.deg2rad(0.5)
-    step_sizes['error_ring_width'] = 0.001 * radius.to_value(u.rad)
-    step_sizes['error_optical_efficiency_muon'] = 0.05
+    def fit(
+        self,
+        tel_id,
+        center_x,
+        center_y,
+        radius,
+        image,
+        pedestal,
+    ):
+        """
 
-    constraints = {}
-    constraints['limit_impact_parameter'] = (0, None)
-    constraints['limit_phi'] = (-np.pi, np.pi)
-    constraints['fix_radius'] = True
-    constraints['fix_center_x'] = True
-    constraints['fix_center_y'] = True
-    constraints['limit_ring_width'] = (0., None)
-    constraints['limit_optical_efficiency_muon'] = (0., None)
+        Parameters
+        ----------
+        center_x: Angle quantity
+            Initial guess for muon ring center in telescope frame
+        center_y: Angle quantity
+            Initial guess for muon ring center in telescope frame
+        radius: Angle quantity
+            Radius of muon ring from circle fitting
+        pixel_x: ndarray
+            X position of pixels in image from circle fitting
+        pixel_y: ndarray
+            Y position of pixel in image from circle fitting
+        image: ndarray
+            Amplitude of image pixels
 
-    # Create Minuit object with first guesses at parameters
-    # strip away the units as Minuit doesnt like them
+        Returns
+        -------
+        MuonIntensityParameters
+        """
+        telescope = self.subarray.tel[tel_id]
+        negative_log_likelihood = build_negative_log_likelihood(
+            image, telescope,
+            oversampling=self.oversampling.tel[tel_id],
+            min_lambda=self.min_lambda.tel[tel_id] * u.m,
+            max_lambda=self.max_lambda.tel[tel_id] * u.m,
+            spe_width=self.spe_width.tel[tel_id],
+            pedestal=pedestal,
+        )
 
-    minuit = Minuit(
-        negative_log_likelihood,
-        # forced_parameters=parameter_names,
-        **initial_guess,
-        **step_sizes,
-        **constraints,
-        errordef=0.5,
-        print_level=0,
-        pedantic=True,
-    )
+        initial_guess = create_initial_guess(
+            center_x, center_y, radius, telescope,
+        )
 
-    # Perform minimisation
-    minuit.migrad()
+        step_sizes = {}
+        step_sizes['error_impact_parameter'] = 0.5
+        step_sizes['error_phi'] = np.deg2rad(0.5)
+        step_sizes['error_ring_width'] = 0.001 * radius.to_value(u.rad)
+        step_sizes['error_optical_efficiency_muon'] = 0.05
 
-    # Get fitted values
-    result = minuit.values
+        constraints = {}
+        constraints['limit_impact_parameter'] = (0, None)
+        constraints['limit_phi'] = (-np.pi, np.pi)
+        constraints['fix_radius'] = True
+        constraints['fix_center_x'] = True
+        constraints['fix_center_y'] = True
+        constraints['limit_ring_width'] = (0., None)
+        constraints['limit_optical_efficiency_muon'] = (0., None)
 
-    return MuonIntensityParameter(
-        impact_parameter=result['impact_parameter'] * u.m,
-        impact_parameter_pos_x=result['impact_parameter'] * np.cos(result['phi'] * u.rad) * u.m,
-        impact_parameter_pos_y=result['impact_parameter'] * np.sin(result['phi'] * u.rad) * u.m,
-        ring_width=u.Quantity(np.rad2deg(result['ring_width']), u.deg),
-        optical_efficiency_muon=result['optical_efficiency_muon'],
-    )
+        # Create Minuit object with first guesses at parameters
+        # strip away the units as Minuit doesnt like them
+
+        minuit = Minuit(
+            negative_log_likelihood,
+            # forced_parameters=parameter_names,
+            **initial_guess,
+            **step_sizes,
+            **constraints,
+            errordef=0.5,
+            print_level=0,
+            pedantic=True,
+        )
+
+        # Perform minimisation
+        minuit.migrad()
+
+        # Get fitted values
+        result = minuit.values
+
+        return MuonIntensityParameter(
+            impact_parameter=result['impact_parameter'] * u.m,
+            impact_parameter_pos_x=result['impact_parameter'] * np.cos(result['phi'] * u.rad) * u.m,
+            impact_parameter_pos_y=result['impact_parameter'] * np.sin(result['phi'] * u.rad) * u.m,
+            ring_width=u.Quantity(np.rad2deg(result['ring_width']), u.deg),
+            optical_efficiency_muon=result['optical_efficiency_muon'],
+        )
