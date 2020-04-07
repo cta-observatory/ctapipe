@@ -1,20 +1,21 @@
 import astropy.units as u
+import numpy as np
 
 
 def test_chord_length():
     from ctapipe.image.muon.muon_integrator import chord_length
 
-    radius = 12 * u.m
+    radius = 12
     rho = 0.0
-    phi = 0 * u.deg
+    phi = 0
 
     length = chord_length(radius, rho, phi)
     assert length == radius
 
     rho = 1
-    phi = 90 * u.deg
+    phi = np.deg2rad(90)
     length = chord_length(radius, rho, phi)
-    assert u.isclose(length, 0 * u.m, atol=1e-15 * u.m)
+    assert np.isclose(length, 0, atol=1e-15)
 
 
 if __name__ == '__main__':

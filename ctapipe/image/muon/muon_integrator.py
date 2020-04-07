@@ -34,7 +34,7 @@ def chord_length(radius, rho, phi):
         radius of circle
     rho: float
         fractional distance of impact point from circle center
-    phi: ndarray in radians or angle Quantity
+    phi: ndarray in radians
         rotation angles to calculate length
 
     Returns
@@ -42,7 +42,7 @@ def chord_length(radius, rho, phi):
     ndarray: chord length
     """
     scalar = np.isscalar(phi)
-    phi = u.Quantity(phi, ndmin=1, copy=False)
+    phi = np.array(phi, ndmin=1, copy=False)
 
     chord = 1 - (rho**2 * np.sin(phi)**2)
 
