@@ -6,4 +6,5 @@ from .reducer import *
 from .muon import *
 from .geometry_converter import *
 from .leakage import *
-from .concentration import concentration
+from .concentration import concentration, ConcentrationContainer
+from .containers import ImageParametersContainer, MorphologyContainer
