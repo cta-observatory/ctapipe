@@ -11,7 +11,7 @@ from ctapipe.image.muon.features import ring_containment
 from ctapipe.image.muon.features import ring_completeness
 from ctapipe.image.muon.features import npix_above_threshold
 from ctapipe.image.muon.features import npix_composing_ring
-from ctapipe.image.muon.muon_integrator import MuonLineIntegrate
+from ctapipe.image.muon.intensity_fit import fit_muon
 from ctapipe.image.muon.muon_ring_finder import MuonRingFitter
 
 logger = logging.getLogger(__name__)
@@ -244,16 +244,8 @@ def analyze_muon_event(event):
             muonringlist.append(muonringparam)
             muonintensitylist.append(None)
 
-            ctel = MuonLineIntegrate(
-                mir_rad,
-                hole_radius=muon_cuts["HoleRad"][dict_index],
-                pixel_width=muon_cuts["AngPixW"][dict_index],
-                sct_flag=muon_cuts["SCT"][dict_index],
-                secondary_radius=muon_cuts["SecRad"][dict_index],
-            )
-
             if image.shape[0] == muon_cuts["total_pix"][dict_index]:
-                muonintensityoutput = ctel.fit_muon(
+                muonintensityoutput = fit_muon(
                     muonringparam.ring_center_x,
                     muonringparam.ring_center_y,
                     muonringparam.ring_radius,

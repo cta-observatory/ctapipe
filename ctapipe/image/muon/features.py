@@ -29,8 +29,8 @@ def mean_squared_error(pixel_x, pixel_y, weights, radius, center_x, center_y):
 
 
 def photon_ratio_inside_ring(
-        pixel_x, pixel_y, weights, radius, center_x, center_y, width
-        ):
+    pixel_x, pixel_y, weights, radius, center_x, center_y, width
+):
     """
     Calculate the ratio of the photons inside a given ring with
     coordinates (center_x, center_y), radius and width.
@@ -69,15 +69,15 @@ def photon_ratio_inside_ring(
 
 
 def ring_completeness(
-        pixel_x,
-        pixel_y,
-        weights,
-        radius,
-        center_x,
-        center_y,
-        threshold=30,
-        bins=30,
-        ):
+    pixel_x,
+    pixel_y,
+    weights,
+    radius,
+    center_x,
+    center_y,
+    threshold=30,
+    bins=30,
+):
     """
     Estimate how complete a ring is.
     Bin the light distribution along the the ring and apply a threshold to the
