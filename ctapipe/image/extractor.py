@@ -551,9 +551,9 @@ class BaselineSubtractedNeighborPeakWindowSum(NeighborPeakWindowSum):
 
 
 class TwoPassWindowSum(ImageExtractor):
-    """Extractor based on [1] which integrates the waveform a second time using
+    """Extractor based on [1]_ which integrates the waveform a second time using
     a time-gradient linear fit. This is in particular the version implemented
-    in the CTA-MARS analysis pipeline [2].
+    in the CTA-MARS analysis pipeline [2]_.
 
     Procedure:
     1) slide a 3-samples window through the waveform, finding max counts sum;
@@ -578,10 +578,10 @@ class TwoPassWindowSum(ImageExtractor):
     7) The result is an image with main-island core pixels calibrated with a
        1st pass and non-core pixels re-calibrated with a 2nd pass.
 
-    See Also
+    References
     ----------
-    - [1] J. Holder et al., Astroparticle Physics, 25, 6, 391 (2006)
-    - [2] https://forge.in2p3.fr/projects/step-by-step-reference-mars-analysis/wiki
+    .. [1] J. Holder et al., Astroparticle Physics, 25, 6, 391 (2006)
+    .. [2] https://forge.in2p3.fr/projects/step-by-step-reference-mars-analysis/wiki
 
     """
 
