@@ -3,14 +3,32 @@ Image timing-based shower image parametrization.
 """
 
 import numpy as np
+from numpy import nan
 from numpy.polynomial.polynomial import polyval
-from ctapipe.io.containers import TimingParametersContainer
 from .hillas import camera_to_shower_coordinates
+from ..core import Container, Field
 
 
 __all__ = [
     'timing_parameters'
 ]
+
+
+class TimingParametersContainer(Container):
+    """
+    Slope and Intercept of a linear regression of the arrival times
+    along the shower main axis
+    """
+    container_prefix = "timing"
+    slope = Field(nan, "Slope of arrival times along main shower axis")
+    slope_err = Field(nan, "Uncertainty `slope`")
+    intercept = Field(nan, "intercept of arrival times along main shower axis")
+    intercept_err = Field(nan, "Uncertainty `intercept`")
+    deviation = Field(
+        nan,
+        "Root-mean-square deviation of the pulse times "
+        "with respect to the predicted time",
+    )
 
 
 def timing_parameters(geom, image, pulse_time, hillas_parameters, cleaning_mask=None):

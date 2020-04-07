@@ -9,6 +9,9 @@ from numpy import nan
 
 from ..core import Container, Field, DeprecatedField, Map
 from ..instrument import SubarrayDescription
+from ..image.hillas import HillasParametersContainer
+from ..image.timing_parameters import TimingParametersContainer
+
 
 __all__ = [
     "InstrumentContainer",
@@ -580,24 +583,6 @@ class MuonIntensityParameter(Container):
     prediction = Field(None, "image prediction")
     mask = Field(None, "image pixel mask")
     optical_efficiency_muon = Field(nan, "optical efficiency muon")
-
-
-class HillasParametersContainer(Container):
-    container_prefix = "hillas"
-
-    intensity = Field(nan, "total intensity (size)")
-
-    x = Field(nan, "centroid x coordinate")
-    y = Field(nan, "centroid x coordinate")
-    r = Field(nan, "radial coordinate of centroid")
-    phi = Field(nan, "polar coordinate of centroid", unit=u.deg)
-
-    length = Field(nan, "standard deviation along the major-axis")
-    width = Field(nan, "standard spread along the minor-axis")
-    psi = Field(nan, "rotation angle of ellipse", unit=u.deg)
-
-    skewness = Field(nan, "measure of the asymmetry")
-    kurtosis = Field(nan, "measure of the tailedness")
 
 
 class LeakageContainer(Container):

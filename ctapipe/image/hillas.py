@@ -6,9 +6,11 @@ Hillas-style moment-based shower image parametrization.
 
 import astropy.units as u
 import numpy as np
+from numpy import nan
 from astropy.coordinates import Angle
 from astropy.units import Quantity
-from ..io.containers import HillasParametersContainer
+
+from ..core import Container, Field
 
 
 HILLAS_ATOL = np.finfo(np.float64).eps
@@ -18,6 +20,24 @@ __all__ = [
     'hillas_parameters',
     'HillasParameterizationError',
 ]
+
+
+class HillasParametersContainer(Container):
+    container_prefix = "hillas"
+
+    intensity = Field(np.nan, "total intensity (size)")
+
+    x = Field(nan, "centroid x coordinate")
+    y = Field(nan, "centroid x coordinate")
+    r = Field(nan, "radial coordinate of centroid")
+    phi = Field(nan, "polar coordinate of centroid", unit=u.deg)
+
+    length = Field(nan, "standard deviation along the major-axis")
+    width = Field(nan, "standard spread along the minor-axis")
+    psi = Field(nan, "rotation angle of ellipse", unit=u.deg)
+
+    skewness = Field(nan, "measure of the asymmetry")
+    kurtosis = Field(nan, "measure of the tailedness")
 
 
 def camera_to_shower_coordinates(x, y, cog_x, cog_y, psi):
