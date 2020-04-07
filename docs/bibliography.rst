@@ -10,9 +10,6 @@ References
 	atmospheric Cherenkov telescopes". Astroparticle Physics
 	32.5, (2009)
 
-.. [vacanti94] G. Vacanti et. al., Astroparticle Physics 2, 1994, 1-11
-
-
 .. [mitchell15] A Generic Algorithm for IACT Optical Efficiency
     Calibration using Muons, Allison Mitchell et al. arXiv:
     1509.04258v1
