@@ -228,7 +228,7 @@ class SimTelEventSource(EventSource):
                     raise RuntimeError(
                         f"the SimTelEventSource option 'focal_length_choice' was set to "
                         f"{self.focal_length_choice}, but the effective focal length "
-                        f"was not present in the file."
+                        f"was not present in the file. ({err})"
                     )
 
             try:
