@@ -1,7 +1,7 @@
 import warnings
 import numpy as np
 from ctapipe.io.eventsource import EventSource
-from ctapipe.io.containers import EventAndMonDataContainer
+from ctapipe.containers import EventAndMonDataContainer
 from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.time import Time

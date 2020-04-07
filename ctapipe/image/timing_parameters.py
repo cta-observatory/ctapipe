@@ -4,7 +4,7 @@ Image timing-based shower image parametrization.
 
 import numpy as np
 from numpy.polynomial.polynomial import polyval
-from ctapipe.io.containers import TimingParametersContainer
+from ctapipe.containers import TimingParametersContainer
 from .hillas import camera_to_shower_coordinates
 
 
@@ -25,7 +25,7 @@ def timing_parameters(geom, image, pulse_time, hillas_parameters, cleaning_mask=
         Pixel values
     pulse_time : array_like
         Time of the pulse extracted from each pixels waveform
-    hillas_parameters: ctapipe.io.containers.HillasParametersContainer
+    hillas_parameters: ctapipe.containers.HillasParametersContainer
         Result of hillas_parameters
     cleaning_mask: optionnal, array, dtype=bool
         The pixels that survived cleaning, e.g. tailcuts_clean

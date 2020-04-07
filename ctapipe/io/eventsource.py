@@ -207,7 +207,7 @@ class EventSource(Component):
         """
         Abstract method to be defined in child class.
 
-        Generator where the filling of the `ctapipe.io.containers` occurs.
+        Generator where the filling of the `ctapipe.containers` occurs.
 
         Returns
         -------
