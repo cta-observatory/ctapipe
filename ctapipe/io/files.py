@@ -16,13 +16,13 @@ def get_file_type(filename):
 
     """
     root, ext = os.path.splitext(filename)
-    if ext in ['.gz', '.bz2']:
+    if ext in [".gz", ".bz2"]:
         ext = os.path.splitext(root)[1]
 
     ext = ext[1:]  # strip off leading '.'
 
     # special cases:
-    if ext in ['fit', 'FITS', 'FIT']:
-        ext = 'fits'
+    if ext in ["fit", "FITS", "FIT"]:
+        ext = "fits"
 
     return ext

@@ -37,12 +37,11 @@ class Field:
 
 class DeprecatedField(Field):
     """ used to mark which fields may be removed in next version """
+
     def __init__(self, default, description="", unit=None, ucd=None, reason=""):
         super().__init__(default=default, description=description, unit=unit, ucd=ucd)
         warnings.warn(f"Field {self} is deprecated. {reason}", DeprecationWarning)
         self.reason = reason
-
-
 
 
 class ContainerMeta(type):

@@ -97,7 +97,7 @@ def test_tool_command_line_precedence():
         description = "test"
         userparam = Float(5.0, help="parameter").tag(config=True)
 
-        classes = List([SubComponent,])
+        classes = List([SubComponent])
         aliases = Dict({"component_param": "SubComponent.component_param"})
 
         def setup(self):

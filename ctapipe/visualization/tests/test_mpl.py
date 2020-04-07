@@ -101,10 +101,7 @@ def test_array_display():
         hillas_parameters=hillas,
         cleaning_mask=ones(geom.n_pixels, dtype=bool),
     )
-    gradient_dict = {
-        1: timing_rot20.slope.value,
-        2: timing_rot20.slope.value,
-    }
+    gradient_dict = {1: timing_rot20.slope.value, 2: timing_rot20.slope.value}
     ad.set_vector_hillas(
         hillas_dict=hillas_dict,
         length=500,

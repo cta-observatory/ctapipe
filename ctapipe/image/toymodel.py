@@ -263,7 +263,7 @@ class Gaussian(ImageModel):
         rotated_covariance = rotation @ aligned_covariance @ rotation.T
 
         return multivariate_normal(
-            mean=[self.x.to_value(u.m), self.y.to_value(u.m)], cov=rotated_covariance,
+            mean=[self.x.to_value(u.m), self.y.to_value(u.m)], cov=rotated_covariance
         ).pdf(np.column_stack([x.to_value(u.m), y.to_value(u.m)]))
 
 
@@ -350,4 +350,4 @@ class RingGaussian(ImageModel):
 
         r = np.sqrt((x - self.x) ** 2 + (y - self.y) ** 2)
 
-        return norm(self.radius.to_value(u.m), self.sigma.to_value(u.m),).pdf(r)
+        return norm(self.radius.to_value(u.m), self.sigma.to_value(u.m)).pdf(r)

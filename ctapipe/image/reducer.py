@@ -6,10 +6,7 @@ from abc import abstractmethod
 
 from ctapipe.core import Component
 
-__all__ = [
-    'DataVolumeReducer',
-    'NullDataVolumeReducer',
-]
+__all__ = ["DataVolumeReducer", "NullDataVolumeReducer"]
 
 
 class DataVolumeReducer(Component):

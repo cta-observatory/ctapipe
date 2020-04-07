@@ -8,7 +8,7 @@ import sys
 from ctapipe.calib import CameraCalibrator
 from ctapipe.io import event_source
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     filename = sys.argv[1]
 
@@ -20,8 +20,7 @@ if __name__ == '__main__':
 
         print(
             "{} EVENT_ID: {}, ENERGY: {:.2f}, NTELS:{}".format(
-                ii,
-                event.r0.event_id, event.mc.energy, len(event.dl0.tels_with_data)
+                ii, event.r0.event_id, event.mc.energy, len(event.dl0.tels_with_data)
             )
         )
 

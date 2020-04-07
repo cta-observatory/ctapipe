@@ -14,14 +14,11 @@ from ..io.containers import HillasParametersContainer
 HILLAS_ATOL = np.finfo(np.float64).eps
 
 
-__all__ = [
-    'hillas_parameters',
-    'HillasParameterizationError',
-]
+__all__ = ["hillas_parameters", "HillasParameterizationError"]
 
 
 def camera_to_shower_coordinates(x, y, cog_x, cog_y, psi):
-    '''
+    """
     Return longitudinal and transverse coordinates for x and y
     for a given set of hillas parameters
 
@@ -44,7 +41,7 @@ def camera_to_shower_coordinates(x, y, cog_x, cog_y, psi):
         longitudinal coordinates (along the shower axis)
     transverse: astropy.units.Quantity
         transverse coordinates (perpendicular to the shower axis)
-    '''
+    """
     cos_psi = np.cos(psi)
     sin_psi = np.sin(psi)
 
@@ -112,15 +109,13 @@ def hillas_parameters(geom, image):
     pix_y = Quantity(np.asanyarray(geom.pix_y, dtype=np.float64)).value
     image = np.asanyarray(image, dtype=np.float64)
     image = np.ma.filled(image, 0)
-    msg = 'Image and pixel shape do not match'
+    msg = "Image and pixel shape do not match"
     assert pix_x.shape == pix_y.shape == image.shape, msg
 
     size = np.sum(image)
 
     if size == 0.0:
-        raise HillasParameterizationError(
-            'size=0, cannot calculate HillasParameters'
-        )
+        raise HillasParameterizationError("size=0, cannot calculate HillasParameters")
 
     # calculate the cog as the mean of the coordinates weighted with the image
     cog_x = np.average(pix_x, weights=image)
@@ -153,11 +148,11 @@ def hillas_parameters(geom, image):
     # calculate higher order moments along shower axes
     longitudinal = delta_x * np.cos(psi) + delta_y * np.sin(psi)
 
-    m3_long = np.average(longitudinal**3, weights=image)
-    skewness_long = m3_long / length**3
+    m3_long = np.average(longitudinal ** 3, weights=image)
+    skewness_long = m3_long / length ** 3
 
-    m4_long = np.average(longitudinal**4, weights=image)
-    kurtosis_long = m4_long / length**4
+    m4_long = np.average(longitudinal ** 4, weights=image)
+    kurtosis_long = m4_long / length ** 4
 
     return HillasParametersContainer(
         x=u.Quantity(cog_x, unit),

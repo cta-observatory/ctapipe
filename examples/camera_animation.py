@@ -15,7 +15,7 @@ from ctapipe.image import toymodel
 from ctapipe.instrument import TelescopeDescription
 from ctapipe.visualization import CameraDisplay
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     plt.style.use("ggplot")
     fig, ax = plt.subplots()
@@ -29,7 +29,7 @@ if __name__ == '__main__':
     maxlen = 0.1
 
     disp = CameraDisplay(geom, ax=ax)
-    disp.cmap = 'inferno'
+    disp.cmap = "inferno"
     disp.add_colorbar(ax=ax)
 
     def update(frame):
@@ -46,11 +46,7 @@ if __name__ == '__main__':
             length=length * u.m,
             psi=angle * u.deg,
         )
-        image, _, _ = model.generate_image(
-            geom,
-            intensity=intens,
-            nsb_level_pe=5,
-        )
+        image, _, _ = model.generate_image(geom, intensity=intens, nsb_level_pe=5)
         disp.image = image
 
     anim = FuncAnimation(fig, update, interval=500)

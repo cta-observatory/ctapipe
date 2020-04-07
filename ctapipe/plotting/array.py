@@ -28,16 +28,24 @@ class NominalPlotter:
         self.cen_y = [i.y.to(u.deg).value for i in hillas_parameters.values()]
 
         self.centre = (0, 0)
-        self.array = ArrayDisplay(telx=np.asarray(self.cen_x),
-                                  tely=np.asarray(self.cen_y),
-                                  tel_type=np.ones(len(self.cen_y)),
-                                  axes=self.axes)
+        self.array = ArrayDisplay(
+            telx=np.asarray(self.cen_x),
+            tely=np.asarray(self.cen_y),
+            tel_type=np.ones(len(self.cen_y)),
+            axes=self.axes,
+        )
 
         self.hillas = hillas_parameters
         scale_fac = 57.3 * 2
 
-        self.array.overlay_moments(hillas_parameters, (self.cen_x, self.cen_y), scale_fac,
-                                   cmap="Greys", alpha=0.5, **kwargs)
+        self.array.overlay_moments(
+            hillas_parameters,
+            (self.cen_x, self.cen_y),
+            scale_fac,
+            cmap="Greys",
+            alpha=0.5,
+            **kwargs,
+        )
 
         if draw_axes:
             self.array.overlay_axis(hillas_parameters, (self.cen_x, self.cen_y))
@@ -65,10 +73,12 @@ class NominalPlotter:
         self.axes.contour(x, y, background, **kwargs)
 
         # Annoyingly we need to redraw everything
-        self.array = ArrayDisplay(telx=np.asarray(self.cen_x),
-                                  tely=np.asarray(self.cen_y),
-                                  tel_type=np.ones(len(self.cen_y)),
-                                  axes=self.axes)
+        self.array = ArrayDisplay(
+            telx=np.asarray(self.cen_x),
+            tely=np.asarray(self.cen_y),
+            tel_type=np.ones(len(self.cen_y)),
+            axes=self.axes,
+        )
 
     def draw_array(self, coord_range=((-4, 4), (-4, 4))):
         """
@@ -84,10 +94,12 @@ class NominalPlotter:
         None
         """
 
-        self.array.axes.set_xlim((self.centre[0] + coord_range[0][0],
-                                  coord_range[0][1] + self.centre[0]))
-        self.array.axes.set_ylim((self.centre[1] + coord_range[1][0],
-                                  coord_range[1][1] + self.centre[1]))
+        self.array.axes.set_xlim(
+            (self.centre[0] + coord_range[0][0], coord_range[0][1] + self.centre[0])
+        )
+        self.array.axes.set_ylim(
+            (self.centre[1] + coord_range[1][0], coord_range[1][1] + self.centre[1])
+        )
 
         # self.axes.tight_layout()
         # self.axes.show()
@@ -112,8 +124,11 @@ class NominalPlotter:
         -------
         None
         """
-        self.array.add_polygon(centroid=(source_x.to(u.deg).value,
-                                         source_y.to(u.deg).value),
-                               radius=0.1, nsides=3, **kwargs)
+        self.array.add_polygon(
+            centroid=(source_x.to(u.deg).value, source_y.to(u.deg).value),
+            radius=0.1,
+            nsides=3,
+            **kwargs,
+        )
         if use_centre:
             self.centre = (source_x.value, source_y.value)

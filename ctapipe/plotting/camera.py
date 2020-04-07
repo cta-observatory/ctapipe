@@ -82,7 +82,7 @@ class CameraPlotter:
         for pix in pixels:
             x = u.Quantity(geom.pix_x).value[pix]
             y = u.Quantity(geom.pix_y).value[pix]
-            axes.text(x, y, pix, fontsize=2, ha='center')
+            axes.text(x, y, pix, fontsize=2, ha="center")
 
     def draw_camera_pixel_annotation(self, tel, p0, p1, axes=None):
         """
@@ -103,20 +103,26 @@ class CameraPlotter:
 
         geom = self.get_geometry(tel)
         axes = axes if axes is not None else plt.gca()
-        axes.annotate(f"Pixel: {p0}",
-                      xy=(u.Quantity(geom.pix_x).value[p0],
-                          u.Quantity(geom.pix_y).value[p0]),
-                      xycoords='data', xytext=(0.05, 0.98),
-                      textcoords='axes fraction',
-                      arrowprops=dict(facecolor='red', width=2, alpha=0.4),
-                      horizontalalignment='left', verticalalignment='top')
-        axes.annotate(f"Pixel: {p1}",
-                      xy=(u.Quantity(geom.pix_x).value[p1],
-                          u.Quantity(geom.pix_y).value[p1]),
-                      xycoords='data', xytext=(0.05, 0.94),
-                      textcoords='axes fraction',
-                      arrowprops=dict(facecolor='orange', width=2, alpha=0.4),
-                      horizontalalignment='left', verticalalignment='top')
+        axes.annotate(
+            f"Pixel: {p0}",
+            xy=(u.Quantity(geom.pix_x).value[p0], u.Quantity(geom.pix_y).value[p0]),
+            xycoords="data",
+            xytext=(0.05, 0.98),
+            textcoords="axes fraction",
+            arrowprops=dict(facecolor="red", width=2, alpha=0.4),
+            horizontalalignment="left",
+            verticalalignment="top",
+        )
+        axes.annotate(
+            f"Pixel: {p1}",
+            xy=(u.Quantity(geom.pix_x).value[p1], u.Quantity(geom.pix_y).value[p1]),
+            xycoords="data",
+            xytext=(0.05, 0.94),
+            textcoords="axes fraction",
+            arrowprops=dict(facecolor="orange", width=2, alpha=0.4),
+            horizontalalignment="left",
+            verticalalignment="top",
+        )
 
     @staticmethod
     def draw_waveform(data, axes=None):
@@ -160,5 +166,5 @@ class CameraPlotter:
 
         """
         axes = axes if axes is not None else plt.gca()
-        line, = axes.plot([t, t], axes.get_ylim(), color='r', alpha=1)
+        line, = axes.plot([t, t], axes.get_ylim(), color="r", alpha=1)
         return line

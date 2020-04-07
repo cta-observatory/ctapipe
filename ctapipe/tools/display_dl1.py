@@ -83,7 +83,7 @@ class ImagePlotter(Component):
             self.c_intensity = CameraDisplay(geom, ax=self.ax_intensity)
             self.c_pulse_time = CameraDisplay(geom, ax=self.ax_pulse_time)
 
-            if (pulse_time != 0.).all():
+            if (pulse_time != 0.0).all():
                 tmaxmin = event.dl0.tel[telid].waveform.shape[1]
                 t_chargemax = pulse_time[image.argmax()]
                 cmap_time = colors.LinearSegmentedColormap.from_list(
@@ -184,9 +184,9 @@ class DisplayDL1Calib(Tool):
             )
         )
 
-        self.calibrator = self.add_component(CameraCalibrator(
-            parent=self, subarray=self.eventsource.subarray
-        ))
+        self.calibrator = self.add_component(
+            CameraCalibrator(parent=self, subarray=self.eventsource.subarray)
+        )
         self.plotter = self.add_component(ImagePlotter(parent=self))
 
     def start(self):

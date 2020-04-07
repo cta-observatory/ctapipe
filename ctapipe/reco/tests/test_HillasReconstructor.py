@@ -6,7 +6,10 @@ from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.io import event_source
 from ctapipe.reco.HillasReconstructor import HillasReconstructor, HillasPlane
-from ctapipe.reco.reco_algorithms import TooFewTelescopesException, InvalidWidthException
+from ctapipe.reco.reco_algorithms import (
+    TooFewTelescopesException,
+    InvalidWidthException,
+)
 from ctapipe.utils import get_dataset_path
 from astropy.coordinates import SkyCoord, AltAz
 
@@ -100,11 +103,7 @@ def test_reconstruction():
     reconstructed_events = 0
 
     for event in source:
-        array_pointing = SkyCoord(
-            az=event.mc.az,
-            alt=event.mc.alt,
-            frame=horizon_frame
-        )
+        array_pointing = SkyCoord(az=event.mc.az, alt=event.mc.alt, frame=horizon_frame)
 
         hillas_dict = {}
         telescope_pointings = {}
@@ -113,13 +112,16 @@ def test_reconstruction():
 
             geom = event.inst.subarray.tel[tel_id].camera.geometry
 
-            telescope_pointings[tel_id] = SkyCoord(alt=event.pointing[tel_id].altitude,
-                                                   az=event.pointing[tel_id].azimuth,
-                                                   frame=horizon_frame)
+            telescope_pointings[tel_id] = SkyCoord(
+                alt=event.pointing[tel_id].altitude,
+                az=event.pointing[tel_id].azimuth,
+                frame=horizon_frame,
+            )
             pmt_signal = event.r0.tel[tel_id].waveform[0].sum(axis=1)
 
-            mask = tailcuts_clean(geom, pmt_signal,
-                                  picture_thresh=10., boundary_thresh=5.)
+            mask = tailcuts_clean(
+                geom, pmt_signal, picture_thresh=10.0, boundary_thresh=5.0
+            )
             pmt_signal[mask == 0] = 0
 
             try:
@@ -139,7 +141,9 @@ def test_reconstruction():
         fit_result_parall = fit.predict(hillas_dict, event.inst, array_pointing)
 
         fit = HillasReconstructor()
-        fit_result_tel_point = fit.predict(hillas_dict, event.inst, array_pointing, telescope_pointings)
+        fit_result_tel_point = fit.predict(
+            hillas_dict, event.inst, array_pointing, telescope_pointings
+        )
 
         for key in fit_result_parall.keys():
             print(key, fit_result_parall[key], fit_result_tel_point[key])
@@ -187,8 +191,9 @@ def test_invalid_events():
 
             pmt_signal = event.r0.tel[tel_id].waveform[0].sum(axis=1)
 
-            mask = tailcuts_clean(geom, pmt_signal,
-                                  picture_thresh=10., boundary_thresh=5.)
+            mask = tailcuts_clean(
+                geom, pmt_signal, picture_thresh=10.0, boundary_thresh=5.0
+            )
             pmt_signal[mask == 0] = 0
 
             try:
@@ -197,23 +202,23 @@ def test_invalid_events():
             except HillasParameterizationError as e:
                 continue
 
-        # construct a dict only containing the last telescope events 
+        # construct a dict only containing the last telescope events
         # (#telescopes < 2)
         hillas_dict_only_one_tel = dict()
         hillas_dict_only_one_tel[tel_id] = hillas_dict[tel_id]
         with pytest.raises(TooFewTelescopesException):
             fit.predict(hillas_dict_only_one_tel, event.inst, tel_azimuth, tel_altitude)
 
-        # construct a hillas dict with the width of the last event set to 0 
+        # construct a hillas dict with the width of the last event set to 0
         # (any width == 0)
         hillas_dict_zero_width = hillas_dict.copy()
-        hillas_dict_zero_width[tel_id]['width'] = 0 * u.m
+        hillas_dict_zero_width[tel_id]["width"] = 0 * u.m
         with pytest.raises(InvalidWidthException):
             fit.predict(hillas_dict_zero_width, event.inst, tel_azimuth, tel_altitude)
 
-        # construct a hillas dict with the width of the last event set to np.nan 
+        # construct a hillas dict with the width of the last event set to np.nan
         # (any width == nan)
         hillas_dict_nan_width = hillas_dict.copy()
-        hillas_dict_zero_width[tel_id]['width'] = np.nan * u.m
+        hillas_dict_zero_width[tel_id]["width"] = np.nan * u.m
         with pytest.raises(InvalidWidthException):
             fit.predict(hillas_dict_nan_width, event.inst, tel_azimuth, tel_altitude)

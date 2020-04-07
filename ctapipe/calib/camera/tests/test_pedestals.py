@@ -24,7 +24,7 @@ def test_pedestal_calculator():
         tel_descriptions={
             0: TelescopeDescription.from_name(
                 optics_name="SST-ASTRI", camera_name="CHEC"
-            ),
+            )
         },
     )
     subarray.tel[0].camera.readout.reference_pulse_shape = np.ones((1, 2))

@@ -4,7 +4,7 @@ from ctapipe.image.concentration import concentration
 
 
 def test_concentration():
-    geom, image, clean_mask = create_sample_image('30d')
+    geom, image, clean_mask = create_sample_image("30d")
 
     hillas = hillas_parameters(geom[clean_mask], image[clean_mask])
 
@@ -15,5 +15,5 @@ def test_concentration():
     assert 0.3 <= conc.core <= 0.6
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_concentration()

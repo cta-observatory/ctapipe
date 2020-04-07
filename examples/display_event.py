@@ -22,8 +22,14 @@ logging.basicConfig(level=logging.DEBUG)
 
 fig = plt.figure(figsize=(12, 8))
 cmaps = [
-    plt.cm.jet, plt.cm.winter, plt.cm.ocean, plt.cm.bone, plt.cm.gist_earth,
-    plt.cm.hot, plt.cm.cool, plt.cm.coolwarm
+    plt.cm.jet,
+    plt.cm.winter,
+    plt.cm.ocean,
+    plt.cm.bone,
+    plt.cm.gist_earth,
+    plt.cm.hot,
+    plt.cm.cool,
+    plt.cm.coolwarm,
 ]
 
 
@@ -73,7 +79,7 @@ def get_input():
     return input("Choice: ")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     if len(sys.argv) > 1:
         filename = sys.argv.pop(1)
@@ -89,8 +95,12 @@ if __name__ == '__main__':
     for event in source:
 
         print(
-            "EVENT_ID: ", event.r0.event_id, "TELS: ", event.r0.tels_with_data,
-            "MC Energy:", event.mc.energy
+            "EVENT_ID: ",
+            event.r0.event_id,
+            "TELS: ",
+            event.r0.tels_with_data,
+            "MC Energy:",
+            event.mc.energy,
         )
 
         while True:
@@ -110,23 +120,24 @@ if __name__ == '__main__':
                     print(teldata)
             elif response == "" or response.startswith("n"):
                 break
-            elif response.startswith('i'):
+            elif response.startswith("i"):
                 subarray = event.inst.subarray
                 for tel_id in sorted(event.r0.tel):
                     for chan in event.r0.tel[tel_id].waveform:
                         npix = len(subarray.tel[tel_id].camera.geometry.pix_x)
                         nsamp = event.r0.tel[tel_id].num_samples
                         print(
-                            "CT{:4d} ch{} pixels,samples:{}"
-                            .format(tel_id, chan, npix, nsamp)
+                            "CT{:4d} ch{} pixels,samples:{}".format(
+                                tel_id, chan, npix, nsamp
+                            )
                         )
-            elif response.startswith('s'):
+            elif response.startswith("s"):
                 filename = f"event_{event.r0.event_id:010d}.png"
                 print("Saving to", filename)
                 plt.savefig(filename)
 
-            elif response.startswith('q'):
+            elif response.startswith("q"):
                 break
 
-        if response.startswith('q'):
+        if response.startswith("q"):
             break

@@ -14,8 +14,9 @@ from .containers import DataContainer
 logger = logging.getLogger(__name__)
 
 
-def toymodel_event_source(geoms, max_events=100, single_tel=False, n_channels=1,
-                          n_samples=25, p_trigger=0.3):
+def toymodel_event_source(
+    geoms, max_events=100, single_tel=False, n_channels=1, n_samples=25, p_trigger=0.3
+):
     """
     An event source that produces array
     Parameters
@@ -33,8 +34,8 @@ def toymodel_event_source(geoms, max_events=100, single_tel=False, n_channels=1,
     """
     n_telescopes = len(geoms)
     container = DataContainer()
-    container.meta['toymodel__max_events'] = max_events
-    container.meta['source'] = "toymodel"
+    container.meta["toymodel__max_events"] = max_events
+    container.meta["source"] = "toymodel"
     tel_ids = np.arange(n_telescopes)
 
     for event_id in range(max_events):
@@ -53,7 +54,7 @@ def toymodel_event_source(geoms, max_events=100, single_tel=False, n_channels=1,
         if single_tel:
             if single_tel not in container.r0.tels_with_data:
                 continue
-            container.r0.tels_with_data = [single_tel, ]
+            container.r0.tels_with_data = [single_tel]
 
         container.r0.tel.reset()  # clear the previous telescopes
         t = np.arange(n_samples)
@@ -63,10 +64,7 @@ def toymodel_event_source(geoms, max_events=100, single_tel=False, n_channels=1,
 
             # fill pixel position dictionary, if not already done:
             if tel_id not in container.inst.pixel_pos:
-                container.inst.pixel_pos[tel_id] = (
-                    geom.pix_x.value,
-                    geom.pix_y.value,
-                )
+                container.inst.pixel_pos[tel_id] = (geom.pix_x.value, geom.pix_y.value)
 
             x, y = np.random.uniform(geom.pix_x.min(), geom.pix_y.max(), 2)
             length = np.random.uniform(0.02, 0.2)
@@ -78,12 +76,9 @@ def toymodel_event_source(geoms, max_events=100, single_tel=False, n_channels=1,
                 y=y * u.m,
                 length=length * u.m,
                 width=width * u.m,
-                psi=f'{psi}d',
+                psi=f"{psi}d",
             )
-            image, _, _ = model.generate_image(
-                geom,
-                intensity,
-            )
+            image, _, _ = model.generate_image(geom, intensity)
 
             # container.r0.tel[tel_id] = R0CameraContainer()
             container.inst.num_channels[tel_id] = n_channels

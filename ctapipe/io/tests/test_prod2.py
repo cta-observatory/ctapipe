@@ -8,7 +8,7 @@ dataset = get_dataset_path("gamma_test.simtel.gz")
 
 
 def test_pyhessio_prod2():
-    pytest.importorskip('pyhessio')
+    pytest.importorskip("pyhessio")
 
     with pytest.warns(UnknownPixelShapeWarning):
         with HESSIOEventSource(input_url=dataset) as reader:

@@ -3,11 +3,10 @@ from gzip import open as gzip_open
 from astropy.io import fits
 from pickle import load
 
-__all__ = ['PickleSource', 'FITSSource']
+__all__ = ["PickleSource", "FITSSource"]
 
 
 class Source(ABC):
-
     def __init__(self, filename):
         self.infile = filename
         self.file_object = None
@@ -38,7 +37,7 @@ class PickleSource(Source):
              full path input file name
         """
         super().__init__(filename)
-        self.file_object = gzip_open(filename, 'rb')
+        self.file_object = gzip_open(filename, "rb")
 
     def __enter__(self):
         return self

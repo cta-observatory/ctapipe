@@ -11,13 +11,13 @@ from ctapipe.coordinates import CameraFrame, NominalFrame
 
 
 cleaning_level = {
-    'LSTCam': (3.5, 7.5, 2),  # ?? (3, 6) for Abelardo...
-    'FlashCam': (4, 8, 2),  # there is some scaling missing?
-    'ASTRICam': (5, 7, 2),
+    "LSTCam": (3.5, 7.5, 2),  # ?? (3, 6) for Abelardo...
+    "FlashCam": (4, 8, 2),  # there is some scaling missing?
+    "ASTRICam": (5, 7, 2),
 }
 
 
-input_url = get_dataset_path('gamma_test_large.simtel.gz')
+input_url = get_dataset_path("gamma_test_large.simtel.gz")
 
 
 with event_source(input_url=input_url) as source:
@@ -37,16 +37,19 @@ with event_source(input_url=input_url) as source:
 
         for tel_id, dl1 in event.dl1.tel.items():
             geom = event.inst.subarray.tels[tel_id].camera.geometry
-            focal_length = event.inst.subarray.tels[tel_id].optics.equivalent_focal_length
+            focal_length = event.inst.subarray.tels[
+                tel_id
+            ].optics.equivalent_focal_length
             image = dl1.image
 
             # telescope mc info
             mc_tel = event.mc.tel[tel_id]
 
             telescope_pointing = SkyCoord(
-                alt=mc_tel['altitude_raw'],
-                az=mc_tel['azimuth_raw'],
-                unit='rad', frame=AltAz(),
+                alt=mc_tel["altitude_raw"],
+                az=mc_tel["azimuth_raw"],
+                unit="rad",
+                frame=AltAz(),
             )
             camera_frame = CameraFrame(
                 telescope_pointing=telescope_pointing, focal_length=focal_length
@@ -58,13 +61,11 @@ with event_source(input_url=input_url) as source:
                 image,
                 boundary_thresh=boundary,
                 picture_thresh=picture,
-                min_number_picture_neighbors=min_neighbors
+                min_number_picture_neighbors=min_neighbors,
             )
 
             cam_coords = SkyCoord(
-                geom.pix_x[clean],
-                geom.pix_y[clean],
-                frame=camera_frame
+                geom.pix_x[clean], geom.pix_y[clean], frame=camera_frame
             )
             nom = cam_coords.transform_to(nominal_frame)
             nom_delta_az.append(nom.delta_az.to_value(u.deg))
@@ -79,7 +80,7 @@ with event_source(input_url=input_url) as source:
         nom_delta_alt = np.repeat(nom_delta_alt, photons.astype(int))
 
         plt.hexbin(nom_delta_az, nom_delta_alt, gridsize=50, extent=[-5, 5, -5, 5])
-        plt.xlabel('delta_az / deg')
-        plt.ylabel('delta_alt / deg')
+        plt.xlabel("delta_az / deg")
+        plt.ylabel("delta_alt / deg")
         plt.gca().set_aspect(1)
         plt.show()

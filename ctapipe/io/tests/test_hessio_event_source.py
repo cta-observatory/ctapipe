@@ -6,7 +6,7 @@ from copy import deepcopy
 
 dataset = get_dataset_path("gamma_test_large.simtel.gz")
 
-pytest.importorskip('pyhessio')
+pytest.importorskip("pyhessio")
 
 
 def test_hessio_file_reader():
@@ -31,9 +31,7 @@ def test_hessio_file_reader():
 
     # test that the allowed_tels mask works:
     with HESSIOEventSource(
-            input_url=dataset,
-            allowed_tels={3, 4},
-            max_events=max_events,
+        input_url=dataset, allowed_tels={3, 4}, max_events=max_events
     ) as reader:
         for event in reader:
             assert event.r0.tels_with_data.issubset(reader.allowed_tels)
@@ -61,5 +59,7 @@ def test_subarray_property():
     event = next(iter(source))
     subarray_event = event.inst.subarray
     assert subarray.tel.keys() == subarray_event.tel.keys()
-    assert (subarray.tel[1].camera.geometry.pix_x ==
-            subarray_event.tel[1].camera.geometry.pix_x).all()
+    assert (
+        subarray.tel[1].camera.geometry.pix_x
+        == subarray_event.tel[1].camera.geometry.pix_x
+    ).all()

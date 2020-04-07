@@ -144,7 +144,7 @@ def psf_likelihood_fit(x, y, weights):
 
 
 def impact_parameter_chisq_fit(
-    pixel_x, pixel_y, weights, radius, center_x, center_y, mirror_radius, bins=30,
+    pixel_x, pixel_y, weights, radius, center_x, center_y, mirror_radius, bins=30
 ):
     """
     Impact parameter calculation for a ring fit before.

@@ -8,7 +8,7 @@ Contact: Tino Michael <Tino.Michael@cea.fr>
 from ctapipe.reco.reco_algorithms import (
     Reconstructor,
     InvalidWidthException,
-    TooFewTelescopesException
+    TooFewTelescopesException,
 )
 from ctapipe.io.containers import ReconstructedShowerContainer
 from itertools import combinations
@@ -32,7 +32,7 @@ import numpy as np
 
 from astropy import units as u
 
-__all__ = ['HillasReconstructor', 'HillasPlane']
+__all__ = ["HillasReconstructor", "HillasPlane"]
 
 
 def angle(v1, v2):
@@ -106,7 +106,7 @@ class HillasReconstructor(Reconstructor):
         self.divergent_mode = False
         self.corrected_angle_dict = {}
 
-    def predict(self, hillas_dict, inst,  array_pointing, telescopes_pointings=None):
+    def predict(self, hillas_dict, inst, array_pointing, telescopes_pointings=None):
         """
         The function you want to call for the reconstruction of the
         event. It takes care of setting up the event and consecutively
@@ -135,35 +135,36 @@ class HillasReconstructor(Reconstructor):
         """
 
         # filter warnings for missing obs time. this is needed because MC data has no obs time
-        warnings.filterwarnings(action='ignore', category=MissingFrameAttributeWarning)
+        warnings.filterwarnings(action="ignore", category=MissingFrameAttributeWarning)
 
         # stereoscopy needs at least two telescopes
         if len(hillas_dict) < 2:
             raise TooFewTelescopesException(
-                "need at least two telescopes, have {}"
-                .format(len(hillas_dict)))
+                "need at least two telescopes, have {}".format(len(hillas_dict))
+            )
 
         # check for np.nan or 0 width's as these screw up weights
-        if any([np.isnan(hillas_dict[tel]['width'].value) for tel in hillas_dict]):
+        if any([np.isnan(hillas_dict[tel]["width"].value) for tel in hillas_dict]):
             raise InvalidWidthException(
-                "A HillasContainer contains an ellipse of width==np.nan")
+                "A HillasContainer contains an ellipse of width==np.nan"
+            )
 
-        if any([hillas_dict[tel]['width'].value == 0 for tel in hillas_dict]):
+        if any([hillas_dict[tel]["width"].value == 0 for tel in hillas_dict]):
             raise InvalidWidthException(
-                "A HillasContainer contains an ellipse of width==0")
+                "A HillasContainer contains an ellipse of width==0"
+            )
 
         # use the single telescope pointing also for parallel pointing: code is more general
         if telescopes_pointings is None:
-            telescopes_pointings = {tel_id: array_pointing for tel_id in hillas_dict.keys()}
+            telescopes_pointings = {
+                tel_id: array_pointing for tel_id in hillas_dict.keys()
+            }
         else:
             self.divergent_mode = True
             self.corrected_angle_dict = {}
 
         self.initialize_hillas_planes(
-            hillas_dict,
-            inst.subarray,
-            telescopes_pointings,
-            array_pointing
+            hillas_dict, inst.subarray, telescopes_pointings, array_pointing
         )
 
         # algebraic direction estimate
@@ -201,11 +202,7 @@ class HillasReconstructor(Reconstructor):
         return result
 
     def initialize_hillas_planes(
-            self,
-            hillas_dict,
-            subarray,
-            telescopes_pointings,
-            array_pointing
+        self, hillas_dict, subarray, telescopes_pointings, array_pointing
     ):
         """
         Creates a dictionary of :class:`.HillasPlane` from a dictionary of
@@ -239,15 +236,10 @@ class HillasReconstructor(Reconstructor):
             )
 
             camera_frame = CameraFrame(
-                focal_length=focal_length,
-                telescope_pointing=pointing
+                focal_length=focal_length, telescope_pointing=pointing
             )
 
-            cog_coord = SkyCoord(
-                x=moments.x,
-                y=moments.y,
-                frame=camera_frame,
-            )
+            cog_coord = SkyCoord(x=moments.x, y=moments.y, frame=camera_frame)
             cog_coord = cog_coord.transform_to(horizon_frame)
 
             p2_coord = SkyCoord(x=p2_x, y=p2_y, frame=camera_frame)
@@ -257,13 +249,14 @@ class HillasReconstructor(Reconstructor):
             # then recalculate the psi angle
             if self.divergent_mode:
                 camera_frame_parallel = CameraFrame(
-                    focal_length=focal_length,
-                    telescope_pointing=array_pointing
+                    focal_length=focal_length, telescope_pointing=array_pointing
                 )
                 cog_sky_to_parallel = cog_coord.transform_to(camera_frame_parallel)
                 p2_sky_to_parallel = p2_coord.transform_to(camera_frame_parallel)
-                angle_psi_corr = np.arctan2(cog_sky_to_parallel.y - p2_sky_to_parallel.y,
-                                            cog_sky_to_parallel.x - p2_sky_to_parallel.x)
+                angle_psi_corr = np.arctan2(
+                    cog_sky_to_parallel.y - p2_sky_to_parallel.y,
+                    cog_sky_to_parallel.x - p2_sky_to_parallel.x,
+                )
                 self.corrected_angle_dict[tel_id] = angle_psi_corr
 
             circle = HillasPlane(
@@ -306,8 +299,7 @@ class HillasReconstructor(Reconstructor):
         off_angles = [angle(result, cross) for cross in crossings] * u.rad
 
         err_est_dir = np.average(
-            off_angles,
-            weights=[len(cross) for cross in crossings]
+            off_angles, weights=[len(cross) for cross in crossings]
         )
 
         return result, err_est_dir
@@ -354,9 +346,7 @@ class HillasReconstructor(Reconstructor):
         core_position = line_line_intersection_3d(uvw_vectors, positions)
 
         core_pos_tilted = SkyCoord(
-            x=core_position[0] * u.m,
-            y=core_position[1] * u.m,
-            frame=tilted_frame
+            x=core_position[0] * u.m, y=core_position[1] * u.m, frame=tilted_frame
         )
 
         core_pos = project_to_ground(core_pos_tilted)

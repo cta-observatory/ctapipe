@@ -31,7 +31,5 @@ def concentration(geom, image, hillas_parameters):
     concentration_pixel = image.max() / h.intensity
 
     return ConcentrationContainer(
-        cog=conc_cog,
-        core=conc_core,
-        pixel=concentration_pixel,
+        cog=conc_cog, core=conc_core, pixel=concentration_pixel
     )

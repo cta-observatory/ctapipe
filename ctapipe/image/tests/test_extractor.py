@@ -57,8 +57,8 @@ def camera_waveforms():
     y = norm.pdf(x, t_pulse, pulse_sigma)
 
     # Create reference pulse
-    x_ref = np.arange(n_samples*2)
-    reference_pulse = norm.pdf(x_ref, n_samples, pulse_sigma*2)
+    x_ref = np.arange(n_samples * 2)
+    reference_pulse = norm.pdf(x_ref, n_samples, pulse_sigma * 2)
     readout = subarray.tel[telid].camera.readout
     readout.reference_pulse_shape = np.array([reference_pulse])
     readout.reference_pulse_sample_width = u.Quantity(0.5, u.ns)
@@ -72,18 +72,20 @@ def camera_waveforms():
     return y, subarray, telid, selected_gain_channel, charge
 
 
-@pytest.fixture('module')
+@pytest.fixture("module")
 def reference_pulse():
     reference_pulse_step = 0.09
     n_reference_pulse_samples = 1280
-    reference_pulse_shape = np.array([
-        norm.pdf(np.arange(n_reference_pulse_samples), 600, 100) * 1.7,
-        norm.pdf(np.arange(n_reference_pulse_samples), 700, 100) * 1.7,
-    ])
+    reference_pulse_shape = np.array(
+        [
+            norm.pdf(np.arange(n_reference_pulse_samples), 600, 100) * 1.7,
+            norm.pdf(np.arange(n_reference_pulse_samples), 700, 100) * 1.7,
+        ]
+    )
     return reference_pulse_shape, reference_pulse_step
 
 
-@pytest.fixture('module')
+@pytest.fixture("module")
 def sampled_reference_pulse(reference_pulse):
     reference_pulse_shape, reference_pulse_step = reference_pulse
     n_channels, n_reference_pulse_samples = reference_pulse_shape.shape
@@ -91,9 +93,17 @@ def sampled_reference_pulse(reference_pulse):
     sample_width_ns = 2
     pulse_shape_x = np.arange(0, pulse_max_sample, reference_pulse_step)
     sampled_edges = np.arange(0, pulse_max_sample, sample_width_ns)
-    sampled_pulse = np.array([np.histogram(
-        pulse_shape_x, sampled_edges, weights=reference_pulse_shape[ichan], density=True
-    )[0] for ichan in range(n_channels)])
+    sampled_pulse = np.array(
+        [
+            np.histogram(
+                pulse_shape_x,
+                sampled_edges,
+                weights=reference_pulse_shape[ichan],
+                density=True,
+            )[0]
+            for ichan in range(n_channels)
+        ]
+    )
     return sampled_pulse, sample_width_ns
 
 
@@ -219,13 +229,15 @@ def test_integration_correction(reference_pulse, sampled_reference_pulse):
     full_integral = np.sum(sampled_pulse[0] * sample_width_ns)
 
     for window_start in range(0, sampled_pulse_fc.size):
-        for window_end in range(window_start+1, sampled_pulse_fc.size):
+        for window_end in range(window_start + 1, sampled_pulse_fc.size):
             window_width = window_end - window_start
             window_shift = sampled_pulse_fc.argmax() - window_start
             correction = integration_correction(
                 reference_pulse_shape,
-                reference_pulse_step, sample_width_ns,
-                window_width, window_shift
+                reference_pulse_step,
+                sample_width_ns,
+                window_width,
+                window_shift,
             )[0]
             window_integral = np.sum(
                 sampled_pulse_fc[window_start:window_end] * sample_width_ns
@@ -240,13 +252,15 @@ def test_integration_correction_outofbounds(reference_pulse, sampled_reference_p
     full_integral = np.sum(sampled_pulse[0] * sample_width_ns)
 
     for window_start in range(0, sampled_pulse_fc.size):
-        for window_end in range(sampled_pulse_fc.size, sampled_pulse_fc.size+20):
+        for window_end in range(sampled_pulse_fc.size, sampled_pulse_fc.size + 20):
             window_width = window_end - window_start
             window_shift = sampled_pulse_fc.argmax() - window_start
             correction = integration_correction(
                 reference_pulse_shape,
-                reference_pulse_step, sample_width_ns,
-                window_width, window_shift
+                reference_pulse_step,
+                sample_width_ns,
+                window_width,
+                window_shift,
             )[0]
             window_integral = np.sum(
                 sampled_pulse_fc[window_start:window_end] * sample_width_ns
@@ -260,7 +274,7 @@ def test_extractors(Extractor, camera_waveforms):
     extractor = Extractor(subarray=subarray)
     charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
     assert_allclose(charge, true_charge, rtol=0.1)
-    assert_allclose(pulse_time, waveforms.shape[1]//2, rtol=0.1)
+    assert_allclose(pulse_time, waveforms.shape[1] // 2, rtol=0.1)
 
 
 def test_fixed_window_sum(camera_waveforms):
@@ -268,7 +282,7 @@ def test_fixed_window_sum(camera_waveforms):
     extractor = FixedWindowSum(subarray=subarray, window_start=48)
     charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
     assert_allclose(charge, true_charge, rtol=0.1)
-    assert_allclose(pulse_time, waveforms.shape[1]//2, rtol=0.1)
+    assert_allclose(pulse_time, waveforms.shape[1] // 2, rtol=0.1)
 
 
 def test_neighbor_peak_window_sum_lwt(camera_waveforms):
@@ -277,7 +291,7 @@ def test_neighbor_peak_window_sum_lwt(camera_waveforms):
     assert extractor.lwt.tel[telid] == 4
     charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
     assert_allclose(charge, true_charge, rtol=0.1)
-    assert_allclose(pulse_time, waveforms.shape[1]//2, rtol=0.1)
+    assert_allclose(pulse_time, waveforms.shape[1] // 2, rtol=0.1)
 
 
 def test_waveform_extractor_factory(camera_waveforms):
@@ -285,7 +299,7 @@ def test_waveform_extractor_factory(camera_waveforms):
     extractor = ImageExtractor.from_name("LocalPeakWindowSum", subarray=subarray)
     charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
     assert_allclose(charge, true_charge, rtol=0.1)
-    assert_allclose(pulse_time, waveforms.shape[1]//2, rtol=0.1)
+    assert_allclose(pulse_time, waveforms.shape[1] // 2, rtol=0.1)
 
 
 def test_waveform_extractor_factory_args(camera_waveforms):
@@ -293,21 +307,16 @@ def test_waveform_extractor_factory_args(camera_waveforms):
     Config is supposed to be created by a `Tool`
     """
     _, subarray, _, _, _ = camera_waveforms
-    config = Config({"ImageExtractor": {"window_width": 20, "window_shift": 3,}})
+    config = Config({"ImageExtractor": {"window_width": 20, "window_shift": 3}})
 
     extractor = ImageExtractor.from_name(
-        "LocalPeakWindowSum",
-        subarray=subarray,
-        config=config,
+        "LocalPeakWindowSum", subarray=subarray, config=config
     )
     assert extractor.window_width.tel[None] == 20
     assert extractor.window_shift.tel[None] == 3
 
     with pytest.warns(UserWarning):
-        ImageExtractor.from_name(
-            "FullWaveformSum", config=config,
-            subarray=subarray
-        )
+        ImageExtractor.from_name("FullWaveformSum", config=config, subarray=subarray)
 
 
 def test_extractor_tel_param(camera_waveforms):
@@ -326,9 +335,7 @@ def test_extractor_tel_param(camera_waveforms):
     waveforms, subarray, _, _, _ = camera_waveforms
     n_pixels, n_samples = waveforms.shape
     extractor = ImageExtractor.from_name(
-        "FixedWindowSum",
-        subarray=subarray,
-        config=config,
+        "FixedWindowSum", subarray=subarray, config=config
     )
 
     assert extractor.window_start.tel[None] == 0

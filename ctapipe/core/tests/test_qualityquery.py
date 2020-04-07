@@ -14,7 +14,7 @@ def test_selector():
                 ("high_enough", "lambda x: x > 3"),
                 ("a_value_not_too_high", "lambda x: x < 100"),
                 ("smallish", "lambda x: x < np.sqrt(100)"),
-            ],
+            ]
         ).tag(config=True)
 
     query = ExampleQualityQuery()

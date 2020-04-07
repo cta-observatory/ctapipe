@@ -10,7 +10,7 @@ from ctapipe.instrument import (
     OpticsDescription,
     CameraDescription,
     CameraGeometry,
-    CameraReadout
+    CameraReadout,
 )
 from ctapipe.instrument.camera import UnknownPixelShapeWarning
 from ctapipe.instrument.guess import guess_telescope, UNKNOWN_TELESCOPE
@@ -18,7 +18,7 @@ from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 import numpy as np
 import warnings
 
-__all__ = ['HESSIOEventSource']
+__all__ = ["HESSIOEventSource"]
 
 
 class HESSIOEventSource(EventSource):
@@ -57,12 +57,14 @@ class HESSIOEventSource(EventSource):
         self.pyhessio = pyhessio
 
         if HESSIOEventSource._count > 0:
-            self.log.warning("Only one pyhessio event_source allowed at a time. "
-                             "Previous hessio file will be closed.")
+            self.log.warning(
+                "Only one pyhessio event_source allowed at a time. "
+                "Previous hessio file will be closed."
+            )
             self.pyhessio.close_file()
         HESSIOEventSource._count += 1
 
-        self.metadata['is_simulation'] = True
+        self.metadata["is_simulation"] = True
 
         # Waveforms from simtelarray have both gain channels
         # Gain selection is performed by this EventSource to produce R1 waveforms
@@ -72,7 +74,7 @@ class HESSIOEventSource(EventSource):
 
     @staticmethod
     def is_compatible(file_path):
-        '''This class should never be chosen in event_source()'''
+        """This class should never be chosen in event_source()"""
         return False
 
     @property
@@ -92,11 +94,11 @@ class HESSIOEventSource(EventSource):
             counter = 0
             eventstream = file.move_to_next_event()
             data = DataContainer()
-            data.meta['origin'] = "hessio"
+            data.meta["origin"] = "hessio"
 
             # some hessio_event_source specific parameters
-            data.meta['input_url'] = self.input_url
-            data.meta['max_events'] = self.max_events
+            data.meta["input_url"] = self.input_url
+            data.meta["max_events"] = self.max_events
 
             for event_id in eventstream:
 
@@ -128,11 +130,11 @@ class HESSIOEventSource(EventSource):
                     data.r1.tels_with_data = selected
                     data.dl0.tels_with_data = selected
 
-                data.trig.tels_with_trigger = (file.
-                                               get_central_event_teltrg_list())
+                data.trig.tels_with_trigger = file.get_central_event_teltrg_list()
                 time_s, time_ns = file.get_central_event_gps_time()
-                data.trig.gps_time = Time(time_s * u.s, time_ns * u.ns,
-                                          format='unix', scale='utc')
+                data.trig.gps_time = Time(
+                    time_s * u.s, time_ns * u.ns, format="unix", scale="utc"
+                )
                 data.mc.energy = file.get_mc_shower_energy() * u.TeV
                 data.mc.alt = Angle(file.get_mc_shower_altitude(), u.rad)
                 data.mc.az = Angle(file.get_mc_shower_azimuth(), u.rad)
@@ -140,7 +142,7 @@ class HESSIOEventSource(EventSource):
                 data.mc.core_y = file.get_mc_event_ycore() * u.m
                 first_int = file.get_mc_shower_h_first_int() * u.m
                 data.mc.h_first_int = first_int
-                data.mc.x_max = file.get_mc_shower_xmax() * u.g / (u.cm**2)
+                data.mc.x_max = file.get_mc_shower_xmax() * u.g / (u.cm ** 2)
                 data.mc.shower_primary_id = file.get_mc_shower_primary_id()
 
                 # mc run header data
@@ -252,15 +254,15 @@ class HESSIOEventSource(EventSource):
             pix_type, pix_rot = CameraGeometry.simtel_shape_to_type(pixel_shape)
         except ValueError:
             warnings.warn(
-                f'Unkown pixel_shape {pixel_shape} for tel_id {tel_id}',
+                f"Unkown pixel_shape {pixel_shape} for tel_id {tel_id}",
                 UnknownPixelShapeWarning,
             )
-            pix_type = 'hexagon'
-            pix_rot = '0d'
+            pix_type = "hexagon"
+            pix_rot = "0d"
 
-        pix_area = u.Quantity(file.get_pixel_area(tel_id), u.m**2)
+        pix_area = u.Quantity(file.get_pixel_area(tel_id), u.m ** 2)
 
-        mirror_area = u.Quantity(file.get_mirror_area(tel_id), u.m**2)
+        mirror_area = u.Quantity(file.get_mirror_area(tel_id), u.m ** 2)
         num_tiles = file.get_mirror_number(tel_id)
         cam_rot = file.get_camera_rotation_angle(tel_id)
         num_mirrors = file.get_mirror_number(tel_id)
@@ -286,9 +288,7 @@ class HESSIOEventSource(EventSource):
             reference_pulse_sample_width=reference_pulse_sample_width,
         )
         camera = CameraDescription(
-            camera_name=telescope.camera_name,
-            geometry=geometry,
-            readout=readout
+            camera_name=telescope.camera_name, geometry=geometry, readout=readout
         )
 
         optics = OpticsDescription(
@@ -299,5 +299,6 @@ class HESSIOEventSource(EventSource):
             num_mirror_tiles=num_tiles,
         )
 
-        return TelescopeDescription(name=telescope.name, tel_type=telescope.type,
-                                    optics=optics, camera=camera)
+        return TelescopeDescription(
+            name=telescope.name, tel_type=telescope.type, optics=optics, camera=camera
+        )

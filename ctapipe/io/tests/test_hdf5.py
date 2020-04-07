@@ -92,7 +92,7 @@ def test_write_containers(temp_h5_file):
 
 def test_write_bool():
     class C(Container):
-        boolean = Field(True, 'Boolean value')
+        boolean = Field(True, "Boolean value")
 
     with tempfile.NamedTemporaryFile() as f:
         with HDF5TableWriter(f.name, "test") as writer:
@@ -102,7 +102,7 @@ def test_write_bool():
 
         c = C()
         with HDF5TableReader(f.name) as reader:
-            c_reader = reader.read('/test/c', c)
+            c_reader = reader.read("/test/c", c)
             for i in range(2):
                 cur = next(c_reader)
                 expected = (i % 2) == 0
@@ -112,21 +112,21 @@ def test_write_bool():
 
 def test_write_large_integer():
     class C(Container):
-        value = Field(True, 'Integer value')
+        value = Field(True, "Integer value")
 
     exps = [15, 31, 63]
     with tempfile.NamedTemporaryFile() as f:
         with HDF5TableWriter(f.name, "test") as writer:
             for exp in exps:
-                c = C(value=2**exp - 1)
+                c = C(value=2 ** exp - 1)
                 writer.write("c", c)
 
         c = C()
         with HDF5TableReader(f.name) as reader:
-            c_reader = reader.read('/test/c', c)
+            c_reader = reader.read("/test/c", c)
             for exp in exps:
                 cur = next(c_reader)
-                assert cur.value == 2**exp - 1
+                assert cur.value == 2 ** exp - 1
 
 
 def test_read_container(temp_h5_file):

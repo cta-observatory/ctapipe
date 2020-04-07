@@ -190,8 +190,8 @@ def analyze_muon_event(event):
 
         for i in range(2):
             dist = np.sqrt(
-                (x - muonringparam.ring_center_x)**2
-                + (y - muonringparam.ring_center_y)**2
+                (x - muonringparam.ring_center_x) ** 2
+                + (y - muonringparam.ring_center_y) ** 2
             )
             ring_dist = np.abs(dist - muonringparam.ring_radius)
 
@@ -204,8 +204,7 @@ def analyze_muon_event(event):
         )
         pix_im = image * dist_mask
         nom_dist = np.sqrt(
-            (muonringparam.ring_center_x)**2
-            + (muonringparam.ring_center_y)**2
+            (muonringparam.ring_center_x) ** 2 + (muonringparam.ring_center_y) ** 2
         )
 
         minpix = muon_cuts["min_pix"][dict_index]  # 0.06*numpix #or 8%

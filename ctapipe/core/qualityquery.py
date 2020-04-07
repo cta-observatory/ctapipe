@@ -14,10 +14,7 @@ from .traits import List
 
 # the following are what are allowed to be used
 # in selection functions (passed to eval())
-ALLOWED_GLOBALS = {
-    "u": u,  # astropy units
-    "np": np,  # numpy
-}
+ALLOWED_GLOBALS = {"u": u, "np": np}  # astropy units  # numpy
 
 
 class QualityCriteriaError(TypeError):

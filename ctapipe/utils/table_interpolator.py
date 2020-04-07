@@ -61,16 +61,18 @@ class TableInterpolator:
         grid, bins, template = self.parse_fits_table(filename)
         x_bins, y_bins = bins
 
-        self.interpolator = interpolate.LinearNDInterpolator(grid, template, fill_value=0)
+        self.interpolator = interpolate.LinearNDInterpolator(
+            grid, template, fill_value=0
+        )
         self.nearest_interpolator = interpolate.NearestNDInterpolator(grid, template)
 
-        self.grid_interp = interpolate.RegularGridInterpolator((x_bins, y_bins),
-                                                               np.zeros([x_bins.shape[0],
-                                                                         y_bins.shape[
-                                                                             0]]),
-                                                               method="linear",
-                                                               bounds_error=False,
-                                                               fill_value=0)
+        self.grid_interp = interpolate.RegularGridInterpolator(
+            (x_bins, y_bins),
+            np.zeros([x_bins.shape[0], y_bins.shape[0]]),
+            method="linear",
+            bounds_error=False,
+            fill_value=0,
+        )
 
     def parse_fits_table(self, filename):
         """

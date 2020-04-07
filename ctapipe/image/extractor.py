@@ -13,7 +13,7 @@ __all__ = [
     "extract_around_peak",
     "neighbor_average_waveform",
     "subtract_baseline",
-    "integration_correction"
+    "integration_correction",
 ]
 
 
@@ -35,7 +35,7 @@ from numba import njit, prange, guvectorize, float64, float32, int64
     nopython=True,
 )
 def extract_around_peak(
-        waveforms, peak_index, width, shift, sampling_rate_ghz, sum_, pulse_time
+    waveforms, peak_index, width, shift, sampling_rate_ghz, sum_, pulse_time
 ):
     """
     This function performs the following operations:
@@ -168,8 +168,11 @@ def subtract_baseline(waveforms, baseline_start, baseline_end):
 
 
 def integration_correction(
-    reference_pulse_shape, reference_pulse_sample_width_ns, sample_width_ns,
-    window_width, window_shift
+    reference_pulse_shape,
+    reference_pulse_sample_width_ns,
+    sample_width_ns,
+    window_width,
+    window_shift,
 ):
     """
     Obtain the correction for the integration window specified.
@@ -263,7 +266,7 @@ class ImageExtractor(Component):
                 pass
 
         self.sampling_rate = {
-            telid: telescope.camera.readout.sampling_rate.to_value('GHz')
+            telid: telescope.camera.readout.sampling_rate.to_value("GHz")
             for telid, telescope in subarray.tel.items()
         }
 
@@ -357,16 +360,19 @@ class FixedWindowSum(ImageExtractor):
         readout = self.subarray.tel[telid].camera.readout
         return integration_correction(
             readout.reference_pulse_shape,
-            readout.reference_pulse_sample_width.to_value('ns'),
-            (1/readout.sampling_rate).to_value('ns'),
+            readout.reference_pulse_sample_width.to_value("ns"),
+            (1 / readout.sampling_rate).to_value("ns"),
             self.window_width.tel[telid],
             0,
         )
 
     def __call__(self, waveforms, telid, selected_gain_channel):
         charge, pulse_time = extract_around_peak(
-            waveforms, self.window_start.tel[telid], self.window_width.tel[telid], 0,
-            self.sampling_rate[telid]
+            waveforms,
+            self.window_start.tel[telid],
+            self.window_width.tel[telid],
+            0,
+            self.sampling_rate[telid],
         )
         correction = self._calculate_correction(telid=telid)[selected_gain_channel]
         return charge * correction, pulse_time
@@ -392,8 +398,8 @@ class GlobalPeakWindowSum(ImageExtractor):
         readout = self.subarray.tel[telid].camera.readout
         return integration_correction(
             readout.reference_pulse_shape,
-            readout.reference_pulse_sample_width.to_value('ns'),
-            (1/readout.sampling_rate).to_value('ns'),
+            readout.reference_pulse_sample_width.to_value("ns"),
+            (1 / readout.sampling_rate).to_value("ns"),
             self.window_width.tel[telid],
             self.window_shift.tel[telid],
         )
@@ -405,7 +411,7 @@ class GlobalPeakWindowSum(ImageExtractor):
             peak_index,
             self.window_width.tel[telid],
             self.window_shift.tel[telid],
-            self.sampling_rate[telid]
+            self.sampling_rate[telid],
         )
         correction = self._calculate_correction(telid=telid)[selected_gain_channel]
         return charge * correction, pulse_time
@@ -431,8 +437,8 @@ class LocalPeakWindowSum(ImageExtractor):
         readout = self.subarray.tel[telid].camera.readout
         return integration_correction(
             readout.reference_pulse_shape,
-            readout.reference_pulse_sample_width.to_value('ns'),
-            (1/readout.sampling_rate).to_value('ns'),
+            readout.reference_pulse_sample_width.to_value("ns"),
+            (1 / readout.sampling_rate).to_value("ns"),
             self.window_width.tel[telid],
             self.window_shift.tel[telid],
         )
@@ -444,7 +450,7 @@ class LocalPeakWindowSum(ImageExtractor):
             peak_index,
             self.window_width.tel[telid],
             self.window_shift.tel[telid],
-            self.sampling_rate[telid]
+            self.sampling_rate[telid],
         )
         correction = self._calculate_correction(telid=telid)[selected_gain_channel]
         return charge * correction, pulse_time
@@ -475,8 +481,8 @@ class NeighborPeakWindowSum(ImageExtractor):
         readout = self.subarray.tel[telid].camera.readout
         return integration_correction(
             readout.reference_pulse_shape,
-            readout.reference_pulse_sample_width.to_value('ns'),
-            (1/readout.sampling_rate).to_value('ns'),
+            readout.reference_pulse_sample_width.to_value("ns"),
+            (1 / readout.sampling_rate).to_value("ns"),
             self.window_width.tel[telid],
             self.window_shift.tel[telid],
         )
@@ -492,7 +498,7 @@ class NeighborPeakWindowSum(ImageExtractor):
             peak_index,
             self.window_width.tel[telid],
             self.window_shift.tel[telid],
-            self.sampling_rate[telid]
+            self.sampling_rate[telid],
         )
         correction = self._calculate_correction(telid=telid)[selected_gain_channel]
         return charge * correction, pulse_time

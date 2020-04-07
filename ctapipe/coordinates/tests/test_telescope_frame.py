@@ -22,7 +22,7 @@ def test_telescope_to_horizontal_alt0_az0():
         delta_az=-1 * u.deg, delta_alt=0 * u.deg, frame=telescope_frame
     )
     horizon_coord = telescope_coord.transform_to(horizon_frame)
-    assert horizon_coord.az.wrap_at('180d').deg == -1.0
+    assert horizon_coord.az.wrap_at("180d").deg == -1.0
     assert horizon_coord.alt.deg == 0.0
 
     telescope_coord = SkyCoord(

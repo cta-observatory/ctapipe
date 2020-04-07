@@ -4,7 +4,7 @@ from scipy import ndimage
 from astropy.io import fits
 from astropy.wcs import WCS
 
-__all__ = ['Histogram']
+__all__ = ["Histogram"]
 
 
 class Histogram:
@@ -60,8 +60,7 @@ class Histogram:
 
     """
 
-    def __init__(self, nbins=None, ranges=None, name="Histogram",
-                 axis_names=None):
+    def __init__(self, nbins=None, ranges=None, name="Histogram", axis_names=None):
         """ Initialize an unfilled histogram (need to call fill()  put data into it)
 
         see also
@@ -85,8 +84,11 @@ class Histogram:
         if self.ndims < 1:
             raise ValueError("No dimensions specified")
         if self.ndims != len(self._ranges):
-            raise ValueError("Dimensions of ranges {} don't match bins {}"
-                             .format(len(self._ranges), self.ndims))
+            raise ValueError(
+                "Dimensions of ranges {} don't match bins {}".format(
+                    len(self._ranges), self.ndims
+                )
+            )
 
         if self.axis_names is not None:  # ensure the array is size ndims
             self.axis_names = np.array(self.axis_names)
@@ -95,10 +97,15 @@ class Histogram:
             self.axis_names = [f"axis{x}" for x in range(self.ndims)]
 
     def __str__(self,):
-        return ("Histogram(name='{name}', axes={axnames}, "
-                "nbins={nbins}, ranges={ranges})"
-                .format(name=self.name, ranges=self._ranges,
-                        nbins=self._nbins, axnames=self.axis_names))
+        return (
+            "Histogram(name='{name}', axes={axnames}, "
+            "nbins={nbins}, ranges={ranges})".format(
+                name=self.name,
+                ranges=self._ranges,
+                nbins=self._nbins,
+                axnames=self.axis_names,
+            )
+        )
 
     @property
     def bin_lower_edges(self):
@@ -108,10 +115,12 @@ class Histogram:
         use in vector operations
         """
         if self._bin_lower_edges is None:
-            self._bin_lower_edges = [np.linspace(self._ranges[ii][0],
-                                                 self._ranges[ii][-1],
-                                                 self._nbins[ii] + 1)
-                                     for ii in range(self.ndims)]
+            self._bin_lower_edges = [
+                np.linspace(
+                    self._ranges[ii][0], self._ranges[ii][-1], self._nbins[ii] + 1
+                )
+                for ii in range(self.ndims)
+            ]
         return self._bin_lower_edges
 
     @property
@@ -150,8 +159,9 @@ class Histogram:
             creating the histogram
         """
 
-        hist, __ = np.histogramdd(datapoints, bins=self._nbins,
-                                  range=self._ranges, **kwargs)
+        hist, __ = np.histogramdd(
+            datapoints, bins=self._nbins, range=self._ranges, **kwargs
+        )
 
         self.data += hist
         self._numsamples += len(datapoints)
@@ -160,8 +170,9 @@ class Histogram:
         """
         returns array of bin centers for the given index
         """
-        return 0.5 * (self.bin_lower_edges[index][1:] +
-                      self.bin_lower_edges[index][0:-1])
+        return 0.5 * (
+            self.bin_lower_edges[index][1:] + self.bin_lower_edges[index][0:-1]
+        )
 
     def to_fits(self):
         """
@@ -216,8 +227,9 @@ class Histogram:
         if self.value_zero:
             ohdu.header.set("BZERO", float(self.value_zero))
 
-        ohdu.header.set("NSAMP", self._numsamples, "Number of samples "
-                                                   "originally filled")
+        ohdu.header.set(
+            "NSAMP", self._numsamples, "Number of samples " "originally filled"
+        )
 
         return ohdu
 
@@ -306,9 +318,12 @@ class Histogram:
         world = np.array(coords, ndmin=2)  # at least 2D
         ndims = len(self._nbins)
 
-        bins = np.array([np.digitize(world[:, ii],
-                                     self.bin_lower_edges[ii][1:])
-                         for ii in range(ndims)])
+        bins = np.array(
+            [
+                np.digitize(world[:, ii], self.bin_lower_edges[ii][1:])
+                for ii in range(ndims)
+            ]
+        )
 
         maxbin = np.array(self.data.shape)
 
@@ -343,9 +358,12 @@ class Histogram:
         if len(dims) != 2:
             raise ValueError("dims must be a length-2 integer array")
 
-        pyplot.pcolormesh(self.bin_lower_edges[dims[0]],
-                          self.bin_lower_edges[dims[1]],
-                          self.data, **kwargs)
+        pyplot.pcolormesh(
+            self.bin_lower_edges[dims[0]],
+            self.bin_lower_edges[dims[1]],
+            self.data,
+            **kwargs,
+        )
         pyplot.title(self.name)
         pyplot.xlabel(self.axis_names[dims[0]])
         pyplot.ylabel(self.axis_names[dims[1]])
@@ -354,8 +372,7 @@ class Histogram:
         from matplotlib import pyplot
 
         # todo fix this to work properly with dim argument!
-        pyplot.plot(self.bin_centers(dim), self.data, drawstyle='steps-mid',
-                    **kwargs)
+        pyplot.plot(self.bin_centers(dim), self.data, drawstyle="steps-mid", **kwargs)
 
     def resample_inplace(self, nbins):
         """
@@ -375,8 +392,9 @@ class Histogram:
         # iold = np.indices(oldbins)
         inew = np.indices(nbins)
 
-        coords = np.array([inew[X] * (oldbins[X]) / float(nbins[X])
-                           for X in range(len(nbins))])
+        coords = np.array(
+            [inew[X] * (oldbins[X]) / float(nbins[X]) for X in range(len(nbins))]
+        )
 
         self._nbins = nbins
         self.data = ndimage.map_coordinates(self.data, coords)

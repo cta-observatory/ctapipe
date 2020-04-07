@@ -5,7 +5,7 @@ Handles seeking to a particular event in a
 from copy import deepcopy
 from ctapipe.core import Component
 
-__all__ = ['EventSeeker', ]
+__all__ = ["EventSeeker"]
 
 
 class EventSeeker(Component):
@@ -92,8 +92,10 @@ class EventSeeker(Component):
         super().__init__(config=config, parent=parent, **kwargs)
 
         if reader.is_stream:
-            raise IOError("Reader is not compatible as input to the "
-                          "event_source is a stream (seeking not possible)")
+            raise IOError(
+                "Reader is not compatible as input to the "
+                "event_source is a stream (seeking not possible)"
+            )
 
         self._reader = reader
 
@@ -144,8 +146,7 @@ class EventSeeker(Component):
             if item < 0:
                 item = len(self) + item
                 if item < 0 or item >= len(self):
-                    msg = ("Event index {} out of range [0, {}]"
-                           .format(item, len(self)))
+                    msg = "Event index {} out of range [0, {}]".format(item, len(self))
                     raise IndexError(msg)
         elif isinstance(item, str):
             item = int(item)
@@ -173,8 +174,9 @@ class EventSeeker(Component):
         # Check we are within max_events range
         max_events = self._reader.max_events
         if not use_event_id and max_events and item >= max_events:
-            msg = ("Event index {} outside of specified max_events {}"
-                   .format(item, max_events))
+            msg = "Event index {} outside of specified max_events {}".format(
+                item, max_events
+            )
             raise IndexError(msg)
 
         try:
@@ -184,8 +186,10 @@ class EventSeeker(Component):
                 event = self._reader._get_event_by_id(item)
         except AttributeError:
             if self._getevent_warn:
-                self.log.warning("Seeking to event by looping through "
-                                 "events... (potentially long process)")
+                self.log.warning(
+                    "Seeking to event by looping through "
+                    "events... (potentially long process)"
+                )
                 self._getevent_warn = False
             if not use_event_id:
                 event = self._get_event_by_index(item)
@@ -264,8 +268,10 @@ class EventSeeker(Component):
             try:
                 count = len(self._reader)
             except TypeError:
-                self.log.warning("Obtaining length of file by looping through "
-                                 "all events... (potentially long process)")
+                self.log.warning(
+                    "Obtaining length of file by looping through "
+                    "all events... (potentially long process)"
+                )
                 count = 0
                 for _ in self:
                     count += 1

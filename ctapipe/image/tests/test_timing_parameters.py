@@ -27,7 +27,7 @@ def test_psi_0():
         image=np.ones(geom.n_pixels),
         pulse_time=pulse_time,
         hillas_parameters=hillas,
-        cleaning_mask=np.ones(geom.n_pixels, dtype=bool)
+        cleaning_mask=np.ones(geom.n_pixels, dtype=bool),
     )
 
     # Test we get the values we put in back out again
@@ -48,8 +48,9 @@ def test_psi_20():
     hillas = HillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=psi)
 
     random = np.random.RandomState(1)
-    pulse_time = intercept + grad * (np.cos(psi) * geom.pix_x.value
-                                     + np.sin(psi) * geom.pix_y.value)
+    pulse_time = intercept + grad * (
+        np.cos(psi) * geom.pix_x.value + np.sin(psi) * geom.pix_y.value
+    )
     pulse_time += random.normal(0, deviation, geom.n_pixels)
 
     timing = timing_parameters(
@@ -57,7 +58,7 @@ def test_psi_20():
         image=np.ones(geom.n_pixels),
         pulse_time=pulse_time,
         hillas_parameters=hillas,
-        cleaning_mask=np.ones(geom.n_pixels, dtype=bool)
+        cleaning_mask=np.ones(geom.n_pixels, dtype=bool),
     )
 
     # Test we get the values we put in back out again

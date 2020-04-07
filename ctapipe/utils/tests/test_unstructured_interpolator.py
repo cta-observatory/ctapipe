@@ -3,25 +3,22 @@ import numpy as np
 from scipy.interpolate import LinearNDInterpolator, RegularGridInterpolator
 import numpy.ma as ma
 
+
 def test_simple_interpolation():
     """
     Simple test function to asses the basic funtionality of the unstructured
     interpolator, check if we just spread points on a grid
     """
 
-    interpolation_points = {(0, 0): 0.,
-                            (0, 1): 0.,
-                            (1, 0): 1.,
-                            (1, 1): 1.}
+    interpolation_points = {(0, 0): 0.0, (0, 1): 0.0, (1, 0): 1.0, (1, 1): 1.0}
 
     interpolator = UnstructuredInterpolator(interpolation_points)
 
     # OK lets first just check we get the values at the grid points back out again...
-    interpolated_point = interpolator([[0, 0], [0, 1],
-                                       [1, 0], [1, 1]])
-    assert np.all(interpolated_point == [0., 0., 1., 1.])
+    interpolated_point = interpolator([[0, 0], [0, 1], [1, 0], [1, 1]])
+    assert np.all(interpolated_point == [0.0, 0.0, 1.0, 1.0])
 
-    interpolated_point = interpolator([[0., 0.5], [0.5, 0.5], [1, 0.5]])
+    interpolated_point = interpolator([[0.0, 0.5], [0.5, 0.5], [1, 0.5]])
     assert np.all(interpolated_point == [0, 0.5, 1])
 
 
@@ -32,15 +29,18 @@ def test_linear_nd():
     """
 
     # First set up 4 grid points and fill them randomly
-    interpolation_points = {(0, 0): np.random.rand(2, 2),
-                            (0, 1): np.random.rand(2, 2),
-                            (1, 0): np.random.rand(2, 2),
-                            (1, 1): np.random.rand(2, 2)}
+    interpolation_points = {
+        (0, 0): np.random.rand(2, 2),
+        (0, 1): np.random.rand(2, 2),
+        (1, 0): np.random.rand(2, 2),
+        (1, 1): np.random.rand(2, 2),
+    }
 
     # Create UnstructuredInterpolator and LinearNDInterpolator with these points
     interpolator = UnstructuredInterpolator(interpolation_points)
-    linear_nd = LinearNDInterpolator(list(interpolation_points.keys()),
-                                     list(interpolation_points.values()))
+    linear_nd = LinearNDInterpolator(
+        list(interpolation_points.keys()), list(interpolation_points.values())
+    )
 
     # Create some random coordinates in this space
     points = np.random.rand(10, 2)
@@ -58,18 +58,19 @@ def test_remember_last():
     """
 
     # First set up 4 grid points and fill them randomly
-    interpolation_points = {(0, 0): np.random.rand(2, 2),
-                            (0, 1): np.random.rand(2, 2),
-                            (1, 0): np.random.rand(2, 2),
-                            (1, 1): np.random.rand(2, 2)}
+    interpolation_points = {
+        (0, 0): np.random.rand(2, 2),
+        (0, 1): np.random.rand(2, 2),
+        (1, 0): np.random.rand(2, 2),
+        (1, 1): np.random.rand(2, 2),
+    }
 
     # Create UnstructuredInterpolator and LinearNDInterpolator with these points
     interpolator = UnstructuredInterpolator(interpolation_points, remember_last=True)
 
     # Create some random coordinates in this space
     random_nums = np.random.rand(2, 2)
-    points_mask = ma.masked_array(random_nums, mask=[[True, False],
-                                                     [True, False]])
+    points_mask = ma.masked_array(random_nums, mask=[[True, False], [True, False]])
 
     # And interpolate...
     interpolated_points = interpolator(random_nums).T[0]
@@ -85,15 +86,18 @@ def test_masked_input():
     """
 
     # First set up 4 grid points and fill them randomly
-    interpolation_points = {(0, 0): np.random.rand(2, 2),
-                            (0, 1): np.random.rand(2, 2),
-                            (1, 0): np.random.rand(2, 2),
-                            (1, 1): np.random.rand(2, 2)}
+    interpolation_points = {
+        (0, 0): np.random.rand(2, 2),
+        (0, 1): np.random.rand(2, 2),
+        (1, 0): np.random.rand(2, 2),
+        (1, 1): np.random.rand(2, 2),
+    }
 
     # Create UnstructuredInterpolator and LinearNDInterpolator with these points
     interpolator = UnstructuredInterpolator(interpolation_points, remember_last=True)
-    linear_nd = LinearNDInterpolator(list(interpolation_points.keys()),
-                                     list(interpolation_points.values()))
+    linear_nd = LinearNDInterpolator(
+        list(interpolation_points.keys()), list(interpolation_points.values())
+    )
 
     # Create some random coordinates in this space
     points = np.random.rand(10, 2)
@@ -120,10 +124,12 @@ def test_class_output():
     rand_numbers = np.random.rand(4, 11, 11)
 
     # Create input for UnstructuredInterpolator
-    interpolation_points = {(0, 0): RegularGridInterpolator((x, x), rand_numbers[0]),
-                            (0, 1): RegularGridInterpolator((x, x), rand_numbers[1]),
-                            (1, 0): RegularGridInterpolator((x, x), rand_numbers[2]),
-                            (1, 1): RegularGridInterpolator((x, x), rand_numbers[3])}
+    interpolation_points = {
+        (0, 0): RegularGridInterpolator((x, x), rand_numbers[0]),
+        (0, 1): RegularGridInterpolator((x, x), rand_numbers[1]),
+        (1, 0): RegularGridInterpolator((x, x), rand_numbers[2]),
+        (1, 1): RegularGridInterpolator((x, x), rand_numbers[3]),
+    }
 
     # Create some random points to evaluate our interpolators
     pts1 = np.random.rand(1, 2)
@@ -132,14 +138,17 @@ def test_class_output():
     interpolator = UnstructuredInterpolator(interpolation_points)
     unsort_value = interpolator(pts1, pts2)
 
-    interpolation_points = {(0, 0): rand_numbers[0],
-                            (0, 1): rand_numbers[1],
-                            (1, 0): rand_numbers[2],
-                            (1, 1): rand_numbers[3]}
+    interpolation_points = {
+        (0, 0): rand_numbers[0],
+        (0, 1): rand_numbers[1],
+        (1, 0): rand_numbers[2],
+        (1, 1): rand_numbers[3],
+    }
 
     # Perform the same operation by interpolating the values of the full numpy array
-    linear_nd = LinearNDInterpolator(list(interpolation_points.keys()),
-                                     list(interpolation_points.values()))
+    linear_nd = LinearNDInterpolator(
+        list(interpolation_points.keys()), list(interpolation_points.values())
+    )
     array_out = linear_nd(pts1)
     # Then interpolate on this grid
     reg_interpolator = RegularGridInterpolator((x, x), array_out[0])
@@ -155,21 +164,17 @@ def test_out_of_bounds():
     the interpolations bounds
     """
 
-    interpolation_points = {(0, 0): 0.,
-                            (0, 1): 0.,
-                            (1, 0): 1.,
-                            (1, 1): 1.}
+    interpolation_points = {(0, 0): 0.0, (0, 1): 0.0, (1, 0): 1.0, (1, 1): 1.0}
 
     interpolator = UnstructuredInterpolator(interpolation_points)
 
-    interpolated_point = interpolator([[0,2],[1,2],[2,2]])
-    assert np.all(interpolated_point == [0., 1., 2.])
+    interpolated_point = interpolator([[0, 2], [1, 2], [2, 2]])
+    assert np.all(interpolated_point == [0.0, 1.0, 2.0])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     test_simple_interpolation()
     test_linear_nd()
     test_class_output()
     test_out_of_bounds()
-

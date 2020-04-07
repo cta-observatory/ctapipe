@@ -22,10 +22,12 @@ def test_nominal_to_horizontal_alt0_az0():
         delta_az=-1 * u.deg, delta_alt=0 * u.deg, frame=nominal_frame
     )
     horizon_coord = nominal_coord.transform_to(horizon_frame)
-    assert horizon_coord.az.wrap_at('180d').deg == -1.0
+    assert horizon_coord.az.wrap_at("180d").deg == -1.0
     assert horizon_coord.alt.deg == 0.0
 
-    nominal_coord = SkyCoord(delta_az=0 * u.deg, delta_alt=1 * u.deg, frame=nominal_frame)
+    nominal_coord = SkyCoord(
+        delta_az=0 * u.deg, delta_alt=1 * u.deg, frame=nominal_frame
+    )
     horizon_coord = nominal_coord.transform_to(horizon_frame)
     assert horizon_coord.az.deg == 0.0
     assert horizon_coord.alt.deg == 1.0

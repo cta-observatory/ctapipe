@@ -39,7 +39,6 @@ def test_CutFlow():
                 except:
                     pass
 
-
     t = flow(sort_column=1)
     assert np.all(t["selected Events"] == [4, 3, 2, 1])
 
@@ -54,32 +53,30 @@ def test_set_cuts_clear():
     flow = CutFlow("TestFlow")
     flow.set_cut("smaller5", smaller5)
 
-    flow.set_cuts(OrderedDict([
-        ("smaller3", smaller3),
-        ("smaller2", smaller2)
-    ]), clear=True)
+    flow.set_cuts(
+        OrderedDict([("smaller3", smaller3), ("smaller2", smaller2)]), clear=True
+    )
 
-    assert flow.cuts == OrderedDict([
-        ("smaller3", [smaller3, 0]),
-        ("smaller2", [smaller2, 0])
-    ])
+    assert flow.cuts == OrderedDict(
+        [("smaller3", [smaller3, 0]), ("smaller2", [smaller2, 0])]
+    )
 
 
 def test_set_cuts_no_clear():
     flow = CutFlow("TestFlow")
     flow.set_cut("smaller5", smaller5)
 
-    flow.set_cuts(OrderedDict([
-        ("smaller3", smaller3),
-        ("smaller2", smaller2)
-    ]), clear=False)
+    flow.set_cuts(
+        OrderedDict([("smaller3", smaller3), ("smaller2", smaller2)]), clear=False
+    )
 
-
-    assert flow.cuts == OrderedDict([
-        ("smaller5", [smaller5, 0]),
-        ("smaller3", [smaller3, 0]),
-        ("smaller2", [smaller2, 0])
-    ])
+    assert flow.cuts == OrderedDict(
+        [
+            ("smaller5", [smaller5, 0]),
+            ("smaller3", [smaller3, 0]),
+            ("smaller2", [smaller2, 0]),
+        ]
+    )
 
 
 if __name__ == "__main__":

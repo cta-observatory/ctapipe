@@ -214,8 +214,7 @@ class DisplayIntegrator(Tool):
 
     event_index = Int(0, help="Event index to view.").tag(config=True)
     use_event_id = Bool(
-        False,
-        help="event_index will obtain an event using event_id instead of index.",
+        False, help="event_index will obtain an event using event_id instead of index."
     ).tag(config=True)
     telescope = Int(
         None,
@@ -262,12 +261,18 @@ class DisplayIntegrator(Tool):
 
         event_source = self.add_component(EventSource.from_config(parent=self))
         self.eventseeker = self.add_component(EventSeeker(event_source, parent=self))
-        self.extractor = self.add_component(ImageExtractor.from_name(
-            self.extractor_product, parent=self, subarray=event_source.subarray
-        ))
-        self.calibrate = self.add_component(CameraCalibrator(
-            parent=self, image_extractor=self.extractor, subarray=event_source.subarray
-        ))
+        self.extractor = self.add_component(
+            ImageExtractor.from_name(
+                self.extractor_product, parent=self, subarray=event_source.subarray
+            )
+        )
+        self.calibrate = self.add_component(
+            CameraCalibrator(
+                parent=self,
+                image_extractor=self.extractor,
+                subarray=event_source.subarray,
+            )
+        )
 
     def start(self):
         event_num = self.event_index

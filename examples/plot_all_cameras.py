@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 from ctapipe.instrument import CameraDescription, CameraGeometry
 from ctapipe.visualization import CameraDisplay
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     plt.style.use("bmh")
 
@@ -20,7 +20,7 @@ if __name__ == '__main__':
         ax = plt.subplot(n_rows, n_cols, ii + 1)
         disp = CameraDisplay(geom)
         disp.image = np.random.uniform(size=geom.pix_id.shape)
-        disp.cmap = 'viridis'
+        disp.cmap = "viridis"
         plt.xlabel("")
         plt.ylabel("")
 

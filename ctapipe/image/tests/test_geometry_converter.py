@@ -32,12 +32,12 @@ def create_mock_image(geom):
     )
 
     _, image, _ = model.generate_image(
-        geom, intensity=0.5 * geom.n_pixels, nsb_level_pe=3,
+        geom, intensity=0.5 * geom.n_pixels, nsb_level_pe=3
     )
     return image
 
 
-@pytest.mark.parametrize("rot", [3,])
+@pytest.mark.parametrize("rot", [3])
 @pytest.mark.parametrize("camera_name", camera_names)
 def test_convert_geometry(camera_name, rot):
 
@@ -81,7 +81,7 @@ def test_convert_geometry(camera_name, rot):
     # TODO: test other parameters
 
 
-@pytest.mark.parametrize("rot", [3,])
+@pytest.mark.parametrize("rot", [3])
 @pytest.mark.parametrize("camera_name", camera_names)
 def test_convert_geometry_mock(camera_name, rot):
     """here we use a different key for the back conversion to trigger the mock conversion

@@ -16,13 +16,13 @@ from ctapipe.visualization import ArrayDisplay
 # unoptimized cleaning levels, copied from
 # https://github.com/tudo-astroparticlephysics/cta_preprocessing
 cleaning_level = {
-    'LSTCam': (3.5, 7.5, 2),  # ?? (3, 6) for Abelardo...
-    'FlashCam': (4, 8, 2),  # there is some scaling missing?
-    'ASTRICam': (5, 7, 2),
+    "LSTCam": (3.5, 7.5, 2),  # ?? (3, 6) for Abelardo...
+    "FlashCam": (4, 8, 2),  # there is some scaling missing?
+    "ASTRICam": (5, 7, 2),
 }
 
 
-input_url = get_dataset_path('gamma_test_large.simtel.gz')
+input_url = get_dataset_path("gamma_test_large.simtel.gz")
 event_source = event_source(input_url)
 
 calibrator = CameraCalibrator(subarray=event_source.subarray)
@@ -31,7 +31,7 @@ horizon_frame = AltAz()
 reco = HillasReconstructor()
 
 for event in event_source:
-    print('Event', event.count)
+    print("Event", event.count)
     calibrator(event)
 
     # mapping of telescope_id to parameters for stereo reconstruction
@@ -52,7 +52,7 @@ for event in event_source:
             image,
             boundary_thresh=boundary,
             picture_thresh=picture,
-            min_number_picture_neighbors=min_neighbors
+            min_number_picture_neighbors=min_neighbors,
         )
 
         # ignore images with less than 5 pixels after cleaning
@@ -65,7 +65,7 @@ for event in event_source:
         n_islands, island_ids = number_of_islands(geom, clean)
 
         timing_c = timing_parameters(
-            geom[clean], image[clean], peakpos[clean], hillas_c, clean,
+            geom[clean], image[clean], peakpos[clean], hillas_c, clean
         )
 
         # store parameters for stereo reconstruction
@@ -73,7 +73,7 @@ for event in event_source:
 
         # store timegradients for plotting
         # ASTRI has no timing in PROD3b, so we use skewness instead
-        if geom.camera_name != 'ASTRICam':
+        if geom.camera_name != "ASTRICam":
             time_gradients[telescope_id] = timing_c.slope.value
         else:
             time_gradients[telescope_id] = hillas_c.skewness
@@ -89,13 +89,9 @@ for event in event_source:
     array_pointing = SkyCoord(
         az=event.mcheader.run_array_direction[0],
         alt=event.mcheader.run_array_direction[1],
-        frame=horizon_frame
+        frame=horizon_frame,
     )
-    stereo = reco.predict(
-        hillas_containers,
-        event.inst,
-        array_pointing,
-    )
+    stereo = reco.predict(hillas_containers, event.inst, array_pointing)
 
     plt.figure()
     angle_offset = event.mcheader.run_array_direction[0]
@@ -105,15 +101,13 @@ for event in event_source:
         hillas_containers,
         time_gradient=time_gradients,
         angle_offset=angle_offset,
-        length=500
+        length=500,
     )
     plt.scatter(
-        event.mc.core_x, event.mc.core_y,
-        s=200, c='k', marker='x', label='True Impact',
+        event.mc.core_x, event.mc.core_y, s=200, c="k", marker="x", label="True Impact"
     )
     plt.scatter(
-        stereo.core_x, stereo.core_y,
-        s=200, c='r', marker='x', label='Estimated Impact',
+        stereo.core_x, stereo.core_y, s=200, c="r", marker="x", label="Estimated Impact"
     )
 
     plt.legend()

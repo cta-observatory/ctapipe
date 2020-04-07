@@ -51,7 +51,7 @@ for event in source:
         telescope_pointings[tel_id] = SkyCoord(
             alt=event.mc.tel[tel_id].altitude_raw * u.rad,
             az=event.mc.tel[tel_id].azimuth_raw * u.rad,
-            frame=horizon_frame
+            frame=horizon_frame,
         )
 
         # Camera Geometry required for hillas parametrization
@@ -63,9 +63,7 @@ for event in source:
         # Cleaning  of the image
         cleaned_image = image
         # create a clean mask of pixels above the threshold
-        cleanmask = tailcuts_clean(
-            camgeom, image, picture_thresh=10, boundary_thresh=5
-        )
+        cleanmask = tailcuts_clean(camgeom, image, picture_thresh=10, boundary_thresh=5)
         # set all rejected pixels to zero
         cleaned_image[~cleanmask] = 0
 
@@ -79,21 +77,20 @@ for event in source:
     array_pointing = SkyCoord(
         az=event.mcheader.run_array_direction[0],
         alt=event.mcheader.run_array_direction[1],
-        frame=horizon_frame
+        frame=horizon_frame,
     )
 
     if len(hillas_params) < 2:
         continue
 
-    reco_result = reco.predict(hillas_params, event.inst, array_pointing, telescope_pointings)
+    reco_result = reco.predict(
+        hillas_params, event.inst, array_pointing, telescope_pointings
+    )
 
     # get angular offset between reconstructed shower direction and MC
     # generated shower direction
     off_angle = angular_separation(
-        event.mc.az,
-        event.mc.alt,
-        reco_result.az,
-        reco_result.alt
+        event.mc.az, event.mc.alt, reco_result.az, reco_result.alt
     )
 
     # Appending all estimated off angles
@@ -101,14 +98,14 @@ for event in source:
 
 # calculate theta square for angles which are not nan
 off_angles = np.array(off_angles)
-thetasquare = off_angles[np.isfinite(off_angles)]**2
+thetasquare = off_angles[np.isfinite(off_angles)] ** 2
 
 # To plot thetasquare The number of events in th data files for LSTCam is not
 # significantly high to give a nice thetasquare plot for gammas One can use
 # dedicated MC file for LST get nice plot
 plt.figure(figsize=(10, 8))
 plt.hist(thetasquare, bins=np.linspace(0, 1, 50))
-plt.title(r'$\theta^2$ plot')
-plt.xlabel(r'$\theta^2$ (deg)')
-plt.ylabel('# of events')
+plt.title(r"$\theta^2$ plot")
+plt.xlabel(r"$\theta^2$ (deg)")
+plt.ylabel("# of events")
 plt.show()

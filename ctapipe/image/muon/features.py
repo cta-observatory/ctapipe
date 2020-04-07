@@ -24,13 +24,13 @@ def mean_squared_error(pixel_x, pixel_y, weights, radius, center_x, center_y):
     center_y: float
         y coordinate of the ring center
     """
-    r = np.sqrt((center_x - pixel_x)**2 + (center_y - pixel_y)**2)
-    return np.average((r - radius)**2, weights=weights)
+    r = np.sqrt((center_x - pixel_x) ** 2 + (center_y - pixel_y) ** 2)
+    return np.average((r - radius) ** 2, weights=weights)
 
 
 def photon_ratio_inside_ring(
-        pixel_x, pixel_y, weights, radius, center_x, center_y, width
-        ):
+    pixel_x, pixel_y, weights, radius, center_x, center_y, width
+):
     """
     Calculate the ratio of the photons inside a given ring with
     coordinates (center_x, center_y), radius and width.
@@ -57,10 +57,9 @@ def photon_ratio_inside_ring(
 
     total = np.sum(weights)
 
-    pixel_r = np.sqrt((center_x - pixel_x)**2 + (center_y - pixel_y)**2)
+    pixel_r = np.sqrt((center_x - pixel_x) ** 2 + (center_y - pixel_y) ** 2)
     mask = np.logical_and(
-        pixel_r >= radius - 0.5 * width,
-        pixel_r <= radius + 0.5 * width
+        pixel_r >= radius - 0.5 * width, pixel_r <= radius + 0.5 * width
     )
 
     inside = np.sum(weights[mask])
@@ -69,15 +68,8 @@ def photon_ratio_inside_ring(
 
 
 def ring_completeness(
-        pixel_x,
-        pixel_y,
-        weights,
-        radius,
-        center_x,
-        center_y,
-        threshold=30,
-        bins=30,
-        ):
+    pixel_x, pixel_y, weights, radius, center_x, center_y, threshold=30, bins=30
+):
     """
     Estimate how complete a ring is.
     Bin the light distribution along the the ring and apply a threshold to the
@@ -117,12 +109,7 @@ def ring_completeness(
     return np.sum(bins_above_threshold) / bins
 
 
-def ring_containment(
-        ring_radius,
-        cam_rad,
-        cring_x,
-        cring_y,
-        ):
+def ring_containment(ring_radius, cam_rad, cring_x, cring_y):
 
     """
     Estimate angular containment of a ring inside the camera
@@ -149,7 +136,7 @@ def ring_containment(
     angle_ring = np.linspace(0, 2 * mt.pi, 360)
     ring_x = cring_x + ring_radius * np.cos(angle_ring)
     ring_y = cring_y + ring_radius * np.sin(angle_ring)
-    d = np.sqrt(ring_x**2 + ring_y**2)
+    d = np.sqrt(ring_x ** 2 + ring_y ** 2)
 
     ringcontainment = len(d[d < cam_rad]) / len(d)
 

@@ -8,9 +8,7 @@ from ctapipe.io.containers import TimingParametersContainer
 from .hillas import camera_to_shower_coordinates
 
 
-__all__ = [
-    'timing_parameters'
-]
+__all__ = ["timing_parameters"]
 
 
 def timing_parameters(geom, image, pulse_time, hillas_parameters, cleaning_mask=None):
@@ -50,20 +48,14 @@ def timing_parameters(geom, image, pulse_time, hillas_parameters, cleaning_mask=
     pix_y = geom.pix_y
 
     longi, trans = camera_to_shower_coordinates(
-        pix_x,
-        pix_y,
-        hillas_parameters.x,
-        hillas_parameters.y,
-        hillas_parameters.psi
+        pix_x, pix_y, hillas_parameters.x, hillas_parameters.y, hillas_parameters.psi
     )
     (slope, intercept), cov = np.polyfit(
-        longi.value, pulse_time, deg=1, w=np.sqrt(image), cov=True,
+        longi.value, pulse_time, deg=1, w=np.sqrt(image), cov=True
     )
     slope_err, intercept_err = np.sqrt(np.diag(cov))
     predicted_time = polyval(longi.value, (intercept, slope))
-    deviation = np.sqrt(
-        np.sum((pulse_time - predicted_time)**2) / pulse_time.size
-    )
+    deviation = np.sqrt(np.sum((pulse_time - predicted_time) ** 2) / pulse_time.size)
 
     return TimingParametersContainer(
         slope=slope / unit,

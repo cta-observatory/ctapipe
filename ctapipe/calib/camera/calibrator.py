@@ -25,7 +25,7 @@ class CameraCalibrator(Component):
         parent=None,
         data_volume_reducer=None,
         image_extractor=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Parameters

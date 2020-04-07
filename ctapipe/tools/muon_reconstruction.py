@@ -32,54 +32,47 @@ def _exclude_some_columns(subarray, writer):
     """
     all_camids = {str(x.camera) for x in subarray.tel.values()}
     for cam in all_camids:
-        writer.exclude(cam, 'prediction')
-        writer.exclude(cam, 'mask')
+        writer.exclude(cam, "prediction")
+        writer.exclude(cam, "mask")
 
 
 class MuonDisplayerTool(Tool):
-    name = 'ctapipe-reconstruct-muons'
+    name = "ctapipe-reconstruct-muons"
     description = t.Unicode(__doc__)
 
-    outfile = t.Unicode(
-        "muons.hdf5",
-        help='HDF5 output file name'
-    ).tag(config=True)
+    outfile = t.Unicode("muons.hdf5", help="HDF5 output file name").tag(config=True)
 
-    display = t.Bool(
-        help='display the camera events', default=False
-    ).tag(config=True)
+    display = t.Bool(help="display the camera events", default=False).tag(config=True)
 
-    classes = t.List([
-        CameraCalibrator, EventSource
-    ])
+    classes = t.List([CameraCalibrator, EventSource])
 
-    aliases = t.Dict({
-        'input': 'EventSource.input_url',
-        'outfile': 'MuonDisplayerTool.outfile',
-        'display': 'MuonDisplayerTool.display',
-        'max_events': 'EventSource.max_events',
-        'allowed_tels': 'EventSource.allowed_tels',
-    })
+    aliases = t.Dict(
+        {
+            "input": "EventSource.input_url",
+            "outfile": "MuonDisplayerTool.outfile",
+            "display": "MuonDisplayerTool.display",
+            "max_events": "EventSource.max_events",
+            "allowed_tels": "EventSource.allowed_tels",
+        }
+    )
 
     def setup(self):
         self.source: EventSource = self.add_component(
             EventSource.from_config(parent=self)
         )
-        if self.source.input_url == '':
+        if self.source.input_url == "":
             raise ToolConfigurationError("please specify --input <events file>")
-        self.calib = self.add_component(CameraCalibrator(
-            parent=self,
-            subarray=self.source.subarray
-        ))
+        self.calib = self.add_component(
+            CameraCalibrator(parent=self, subarray=self.source.subarray)
+        )
         self.writer = self.add_component(HDF5TableWriter(self.outfile, "muons"))
-
 
     def start(self):
 
         numev = 0
         self.num_muons_found = defaultdict(int)
 
-        for event in tqdm(self.source, desc='detecting muons'):
+        for event in tqdm(self.source, desc="detecting muons"):
 
             self.calib(event)
             muon_evt = analyze_muon_event(event)
@@ -89,35 +82,35 @@ class MuonDisplayerTool(Tool):
 
             numev += 1
 
-            if not muon_evt['MuonIntensityParams']:
+            if not muon_evt["MuonIntensityParams"]:
                 # No telescopes  contained a good muon
                 continue
             else:
                 if self.display:
                     plot_muon_event(event, muon_evt)
 
-                for tel_id in muon_evt['TelIds']:
-                    idx = muon_evt['TelIds'].index(tel_id)
-                    intens_params = muon_evt['MuonIntensityParams'][idx]
+                for tel_id in muon_evt["TelIds"]:
+                    idx = muon_evt["TelIds"].index(tel_id)
+                    intens_params = muon_evt["MuonIntensityParams"][idx]
 
                     if intens_params is not None:
-                        ring_params = muon_evt['MuonRingParams'][idx]
+                        ring_params = muon_evt["MuonRingParams"][idx]
                         cam_id = str(event.inst.subarray.tel[tel_id].camera)
                         self.num_muons_found[cam_id] += 1
                         self.log.debug("INTENSITY: %s", intens_params)
                         self.log.debug("RING: %s", ring_params)
-                        self.writer.write(table_name=cam_id,
-                                          containers=[intens_params,
-                                                      ring_params])
+                        self.writer.write(
+                            table_name=cam_id, containers=[intens_params, ring_params]
+                        )
 
                 self.log.info(
                     "Event Number: %d, found %s muons",
-                    numev, dict(self.num_muons_found)
+                    numev,
+                    dict(self.num_muons_found),
                 )
 
     def finish(self):
-        Provenance().add_output_file(self.outfile,
-                                     role='dl1.tel.evt.muon')
+        Provenance().add_output_file(self.outfile, role="dl1.tel.evt.muon")
         self.writer.close()
 
 
