@@ -597,7 +597,65 @@ class TwoPassWindowSum(ImageExtractor):
         help="Picture threshold for internal tail-cuts pass",
     ).tag(config=True)
 
-    def __call__(self, waveforms, telid=None):
+    def _calculate_correction(self, telid, widths, shifts, selected_gain_channel):
+        """Obtain the correction for the integration window specified for each
+        pixel.
+
+        The TwoPassWindowSum image extractor applies potentially different
+        parameters for the integration window to each pixel, depending on the
+        position of the peak. It has been decided to apply gain selection
+        directly here. For basic definitions look at the documentation of
+        `integration_correction`.
+
+        Parameters
+        ----------
+        telid : int
+            Index of the telescope in use.
+        window_width : int
+            Width of the integration window (in units of n_samples)
+        shifts : array
+            Values of the window shifts per pixel.
+
+        Returns
+        -------
+        correction : ndarray
+            Value of the pixel-wise gain-selected integration correction.
+
+        """
+        readout = self.subarray.tel[telid].camera.readout
+        geometry = self.subarray.tel[telid].camera.geometry
+        # Calculate correction of first pixel for both channels
+        correction = integration_correction(
+            readout.reference_pulse_shape,
+            readout.reference_pulse_sample_width.to_value("ns"),
+            (1 / readout.sampling_rate).to_value("ns"),
+            widths[0],
+            shifts[0],
+        )
+        # then do the same for each remaining pixel and attach the result as
+        # a column containing information from both channels
+        for pixel in range(1, geometry.n_pixels):
+            new_pixel_both_channels = integration_correction(
+                readout.reference_pulse_shape,
+                readout.reference_pulse_sample_width.to_value("ns"),
+                (1 / readout.sampling_rate).to_value("ns"),
+                widths[pixel],
+                shifts[pixel],
+            )
+            # stack the columns (i.e pixels) so the final correction array
+            # is N_channels X N_pixels
+            correction = np.column_stack((correction, new_pixel_both_channels))
+
+        # select the right channel per pixel
+        correction = np.asarray(
+            [
+                correction[:, pix_id][selected_gain_channel[pix_id]]
+                for pix_id in range(len(selected_gain_channel))
+            ]
+        )
+        return correction
+
+    def __call__(self, waveforms, telid, selected_gain_channel):
         """
         Call this ImageExtractor.
 
@@ -653,7 +711,16 @@ class TwoPassWindowSum(ImageExtractor):
         # Since since the "sums" arrays started from index 1 of each waveform,
         # then each peak index has to be increased by one
         charge_1stpass, pulse_time_1stpass = extract_around_peak(
-            waveforms, startWindows + 1, window_widths, window_shifts
+            waveforms,
+            startWindows + 1,
+            window_widths,
+            window_shifts,
+            self.sampling_rate[telid],
+        )
+
+        # Get integration correction factors
+        correction = self._calculate_correction(
+            telid, window_widths, window_shifts, selected_gain_channel
         )
 
         # STEP 2
@@ -663,9 +730,9 @@ class TwoPassWindowSum(ImageExtractor):
         # Boundary thresholds will be half of core thresholds.
 
         # Preliminary image cleaning with simple two-level tail-cut
-        camera = self.subarray.tel[telid].camera
+        camera_geometry = self.subarray.tel[telid].camera.geometry
         mask_1 = tailcuts_clean(
-            camera,
+            camera_geometry,
             charge_1stpass,
             picture_thresh=core_th,
             boundary_thresh=core_th / 2,
@@ -678,7 +745,7 @@ class TwoPassWindowSum(ImageExtractor):
         # STEP 3
 
         # find all islands using this cleaning
-        num_islands, labels = number_of_islands(camera, mask_1)
+        num_islands, labels = number_of_islands(camera_geometry, mask_1)
         if num_islands == 0:
             image_2 = image_1.copy()  # no islands = image unchanged
         else:
@@ -694,24 +761,30 @@ class TwoPassWindowSum(ImageExtractor):
         # STEP 4
 
         # if the resulting image has less then 3 pixels
-        if np.count_nonzero(image_2) < 3:
+        # or there are more than 3 pixels but all contain a number of
+        # photoelectrons above the core threshold
+        if (np.count_nonzero(image_2) < 3) or len(nonCore_pixels_ids) == 0:
             # we return the 1st pass information
-            return charge_1stpass, pulse_time_1stpass
+            return charge_1stpass * correction, pulse_time_1stpass
         else:  # otherwise we proceed by parametrizing the image
-            hillas = hillas_parameters(camera, image_2)
-            # at the end there should be a "quality label" variable to record
-            # if a image had less then 3 pixels OR more than three but
-            # patologically placed such that width gets parametrized either as
-            # 0 or NaN
-            # This is what I do in protopipe.
+            hillas = hillas_parameters(camera_geometry, image_2)
 
             # STEP 5
 
             # linear fit of pulse time vs. distance along major image axis
-            timing = timing_parameters(camera, image_2, pulse_time_1stpass, hillas)
+            # using only the main island surviving the preliminary
+            # image cleaning
+            timing = timing_parameters(
+                camera_geometry, image_2, pulse_time_1stpass, hillas
+            )
 
+            # get projected distances along main image axis
             long, trans = camera_to_shower_coordinates(
-                camera.pix_x, camera.pix_y, hillas.x, hillas.y, hillas.psi
+                camera_geometry.pix_x,
+                camera_geometry.pix_y,
+                hillas.x,
+                hillas.y,
+                hillas.psi,
             )
 
             # WARNING: for LSTCam and NectarCam sample = ns, but not for other
@@ -721,6 +794,7 @@ class TwoPassWindowSum(ImageExtractor):
             predicted_pulse_times = (
                 timing.slope * long[nonCore_pixels_ids] + timing.intercept
             )
+
             predicted_peaks = np.zeros(len(predicted_pulse_times))
 
             # Approximate to nearest integer then cast to int64
@@ -769,8 +843,18 @@ class TwoPassWindowSum(ImageExtractor):
 
             # re-calibrate non-core pixels using the fixed 5-samples window
             charge_noCore, pulse_times_noCore = extract_around_peak(
-                nonCore_waveforms, predicted_peaks, window_widths, window_shifts
+                nonCore_waveforms,
+                predicted_peaks,
+                window_widths,
+                window_shifts,
+                self.sampling_rate[telid],
             )
+
+            # Modify integration correction factors only for non-core pixels
+            correction_2ndPass = self._calculate_correction(
+                telid, window_widths, window_shifts, selected_gain_channel
+            )[nonCore_pixels_ids]
+            np.put(correction, [nonCore_pixels_ids], correction_2ndPass)
 
             # STEP 7
 
@@ -782,4 +866,4 @@ class TwoPassWindowSum(ImageExtractor):
                 nonCore_pixels_mask
             ] = pulse_times_noCore  # non-core pixels
 
-            return charge_2npass, pulse_time_2npass
+            return charge_2npass * correction, pulse_time_2npass
