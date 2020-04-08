@@ -1,5 +1,4 @@
 import pytest
-import numpy as np
 import astropy.units as u
 from ctapipe.instrument import CameraGeometry
 from ctapipe.image.muon import MuonRingFitter
