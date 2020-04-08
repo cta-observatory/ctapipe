@@ -6,13 +6,13 @@ from astropy import units as u
 from astropy.coordinates import Angle, SkyCoord, AltAz
 
 from ctapipe.coordinates import CameraFrame, NominalFrame
-from ctapipe.image.cleaning import tailcuts_clean
-from ctapipe.image.muon.features import ring_containment
-from ctapipe.image.muon.features import ring_completeness
-from ctapipe.image.muon.features import npix_above_threshold
-from ctapipe.image.muon.features import npix_composing_ring
-from ctapipe.image.muon.muon_integrator import MuonLineIntegrate
-from ctapipe.image.muon.muon_ring_finder import MuonRingFitter
+from ..cleaning import tailcuts_clean
+from .features import ring_containment
+from .features import ring_completeness
+from .features import npix_above_threshold
+from .features import npix_composing_ring
+from .muon_integrator import MuonLineIntegrate
+from .ring_fitter import MuonRingFitter
 
 logger = logging.getLogger(__name__)
 
