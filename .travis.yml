@@ -7,13 +7,15 @@ env:
 
 matrix:
   include:
-    - os: linux
+    - name: conda python 3.6
+      os: linux
       language: generic
       env:
         - PYTHON_VERSION=3.6
         - CONDA=true
 
-    - os: linux
+    - name: conda python 3.7
+      os: linux
       language: generic
       env:
         - PYTHON_VERSION=3.7
@@ -37,6 +39,14 @@ matrix:
             - pandoc
             - graphviz
 
+    - os: linux
+      language: python
+      python: 3.8
+      addons:
+        apt:
+          packages:
+            - pandoc
+            - graphviz
 
 before_install:
     - git fetch --tags

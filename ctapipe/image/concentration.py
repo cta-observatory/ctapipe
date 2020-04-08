@@ -1,5 +1,5 @@
 import numpy as np
-from ..io.containers import ConcentrationContainer
+from ..containers import ConcentrationContainer
 from .hillas import camera_to_shower_coordinates
 
 

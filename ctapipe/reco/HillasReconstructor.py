@@ -10,7 +10,7 @@ from ctapipe.reco.reco_algorithms import (
     InvalidWidthException,
     TooFewTelescopesException
 )
-from ctapipe.io.containers import ReconstructedShowerContainer
+from ctapipe.containers import ReconstructedShowerContainer
 from itertools import combinations
 
 from ctapipe.coordinates import (
