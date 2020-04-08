@@ -116,6 +116,7 @@ def test_tool_command_line_precedence():
     """
     ensure command-line has higher priority than config file
     """
+    from ctapipe.core.tool import run_tool
 
     class SubComponent(Component):
         component_param = Float(10.0, help="some parameter").tag(config=True)
@@ -136,6 +137,6 @@ def test_tool_command_line_precedence():
 
     tool = MyTool(config=config)  # sets component_param to 15.0
 
-    tool.run(argv=["--component_param", "20.0"])
+    run_tool(tool, ["--component_param", "20.0"])
     assert tool.sub.component_param == 20.0
     assert tool.userparam == 12.0
