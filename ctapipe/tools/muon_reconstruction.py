@@ -5,43 +5,29 @@ intensity parameters to an output table.
 The resulting output can be read e.g. using for example
 `pandas.read_hdf(filename, 'muons/LSTCam')`
 """
-
-import warnings
-from collections import defaultdict
-
 from tqdm import tqdm
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Provenance
 from ctapipe.core import Tool, ToolConfigurationError
 from ctapipe.core import traits as t
-from ctapipe.image.muon.muon_diagnostic_plots import plot_muon_event
-from ctapipe.image.muon.muon_reco_functions import analyze_muon_event
 from ctapipe.io import EventSource
 from ctapipe.io import HDF5TableWriter
+from ctapipe.image.cleaning import TailcutsImageCleaner
+from ctapipe.coordinates import TelescopeFrame, CameraFrame
+from ctapipe.image.muon import MuonRingFitter, MuonIntensityFitter
+import numpy as np
 
-warnings.filterwarnings("ignore")  # Supresses iminuit warnings
-
-
-def _exclude_some_columns(subarray, writer):
-    """ a hack to exclude some columns of all output tables here we exclude
-    the prediction and mask quantities, since they are arrays and thus not
-    readable by pandas.  Also, prediction currently is a variable-length
-    quantity (need to change it to be fixed-length), so it cannot be written
-    to a fixed-length table.
-    """
-    all_camids = {str(x.camera) for x in subarray.tel.values()}
-    for cam in all_camids:
-        writer.exclude(cam, 'prediction')
-        writer.exclude(cam, 'mask')
+from astropy.coordinates import SkyCoord
 
 
-class MuonDisplayerTool(Tool):
+class MuonAnalysis(Tool):
     name = 'ctapipe-reconstruct-muons'
     description = t.Unicode(__doc__)
 
     outfile = t.Unicode(
-        "muons.hdf5",
+        None,
+        allow_none=True,
         help='HDF5 output file name'
     ).tag(config=True)
 
@@ -55,72 +41,108 @@ class MuonDisplayerTool(Tool):
 
     aliases = t.Dict({
         'input': 'EventSource.input_url',
-        'outfile': 'MuonDisplayerTool.outfile',
-        'display': 'MuonDisplayerTool.display',
+        'outfile': 'MuonAnalysis.outfile',
         'max_events': 'EventSource.max_events',
         'allowed_tels': 'EventSource.allowed_tels',
     })
 
     def setup(self):
-        self.source: EventSource = self.add_component(
-            EventSource.from_config(parent=self)
-        )
-        if self.source.input_url == '':
-            raise ToolConfigurationError("please specify --input <events file>")
+        self.source = self.add_component(EventSource.from_config(parent=self))
         self.calib = self.add_component(CameraCalibrator(
             parent=self,
             subarray=self.source.subarray
         ))
-        self.writer = self.add_component(HDF5TableWriter(self.outfile, "muons"))
-
+        self.ring_fitter = self.add_component(MuonRingFitter(
+            parent=self,
+        ))
+        self.intensity_fitter = self.add_component(MuonIntensityFitter(
+            parent=self,
+            subarray=self.source.subarray,
+        ))
+        self.cleaning = self.add_component(
+            TailcutsImageCleaner(
+                parent=self,
+                subarray=self.source.subarray,
+            )
+        )
+        if self.outfile:
+            self.writer = self.add_component(HDF5TableWriter(
+                self.outfile, "muons", add_prefix=True
+            ))
+        self.pixels_in_tel_frame = {}
 
     def start(self):
+        for event in self.source:
+            self.analyze_array_event(event)
 
-        numev = 0
-        self.num_muons_found = defaultdict(int)
+    def analyze_array_event(self, event):
+        self.calib(event)
+        for tel_id, dl1 in event.dl1.tel.items():
+            self.log.debug(f'Processing event {event.index.event_id}, telescope {tel_id}')
+            image = dl1.image
+            clean_mask = self.cleaning(tel_id, image)
 
-        for event in tqdm(self.source, desc='detecting muons'):
+            if tel_id not in self.pixels_in_tel_frame:
+                self.pixels_in_tel_frame[tel_id] = self.pixel_to_telescope_frame(tel_id)
 
-            self.calib(event)
-            muon_evt = analyze_muon_event(event)
+            pixel_coords = self.pixels_in_tel_frame[tel_id]
+            x = pixel_coords.delta_az
+            y = pixel_coords.delta_alt
 
-            if numev == 0:
-                _exclude_some_columns(event.inst.subarray, self.writer)
+            mask = clean_mask
+            for i in range(3):
+                ring = self.ring_fitter(x, y, image, mask)
+                self.log.debug(
+                    f'It {i}: r={ring.ring_radius:.2f}'
+                    f', x={ring.ring_center_x:.2f}'
+                    f', y={ring.ring_center_y:.2f}')
 
-            numev += 1
+                dist = np.sqrt((x - ring.ring_center_x)**2 + (y - ring.ring_center_y)**2)
+                mask = np.abs(dist - ring.ring_radius) / ring.ring_radius < 0.4
 
-            if not muon_evt['MuonIntensityParams']:
-                # No telescopes  contained a good muon
-                continue
-            else:
-                if self.display:
-                    plot_muon_event(event, muon_evt)
+            # intensity_fitter does not support a mask yet, set ignored pixels to 0
+            image[~mask] = 0
 
-                for tel_id in muon_evt['TelIds']:
-                    idx = muon_evt['TelIds'].index(tel_id)
-                    intens_params = muon_evt['MuonIntensityParams'][idx]
+            result = self.intensity_fitter.fit(
+                tel_id,
+                ring.ring_center_x,
+                ring.ring_center_y,
+                ring.ring_radius,
+                image,
+                pedestal=1.1,
+            )
 
-                    if intens_params is not None:
-                        ring_params = muon_evt['MuonRingParams'][idx]
-                        cam_id = str(event.inst.subarray.tel[tel_id].camera)
-                        self.num_muons_found[cam_id] += 1
-                        self.log.debug("INTENSITY: %s", intens_params)
-                        self.log.debug("RING: %s", ring_params)
-                        self.writer.write(table_name=cam_id,
-                                          containers=[intens_params,
-                                                      ring_params])
+            self.log.info(
+                f'Muon fit: r={ring.ring_radius:.2f}'
+                f', width={result.ring_width}'
+                f', efficiency={result.optical_efficiency_muon}',
+            )
 
-                self.log.info(
-                    "Event Number: %d, found %s muons",
-                    numev, dict(self.num_muons_found)
-                )
+            self.writer.write(f'tel_{tel_id}', [event.index, ring, result])
+
+    def pixel_to_telescope_frame(self, tel_id):
+        telescope = self.source.subarray.tel[tel_id]
+        cam = telescope.camera.geometry
+        camera_frame = CameraFrame(
+            focal_length=telescope.optics.equivalent_focal_length,
+            rotation=cam.cam_rotation,
+        )
+        cam_coords = SkyCoord(x=cam.pix_x, y=cam.pix_y, frame=camera_frame)
+        return cam_coords.transform_to(TelescopeFrame())
 
     def finish(self):
-        Provenance().add_output_file(self.outfile,
-                                     role='dl1.tel.evt.muon')
-        self.writer.close()
+        if self.outfile:
+            Provenance().add_output_file(
+                self.outfile,
+                role='dl1.tel.evt.muon',
+            )
+            self.writer.close()
 
 
 def main():
-    tool = MuonDisplayerTool()
+    tool = MuonAnalysis()
     tool.run()
+
+
+if __name__ == '__main__':
+    main()
