@@ -34,7 +34,7 @@ from ..image.extractor import ImageExtractor
 from ..image.leakage import leakage
 from ..image.timing_parameters import timing_parameters
 from ..io import EventSource, HDF5TableWriter, SimTelEventSource
-from ..io.containers import (
+from ..containers import (
     DL1CameraContainer,
     EventIndexContainer,
     ImageParametersContainer,
