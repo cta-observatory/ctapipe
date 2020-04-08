@@ -70,7 +70,7 @@ class BokehEventViewerCamera(CameraDisplay):
         if e:
             # Check if geom actually needs to be changed
             if not t == self._geom_tel:
-                self.geom = e.inst.subarray.tel[t].camera
+                self.geom = e.inst.subarray.tel[t].camera.geometry
                 self._geom_tel = t
         else:
             self.event_viewer.log.warning("No event has been provided")

@@ -4,74 +4,12 @@ calibration and image extraction, as well as supporting algorithms.
 """
 
 import warnings
-
 import numpy as np
-
 from ctapipe.core import Component
 from ctapipe.image.extractor import NeighborPeakWindowSum
 from ctapipe.image.reducer import NullDataVolumeReducer
 
 __all__ = ["CameraCalibrator"]
-
-
-def integration_correction(
-    reference_pulse_shape, reference_pulse_step, sample_width_ns,
-    window_width, window_shift
-):
-    """
-    Obtain the correction for the integration window specified.
-
-    For any integration window applied to a noise-less unit pulse, the
-    correction (returned by this function) multiplied by the integration
-    result should equal 1.
-
-    This correction therefore corrects for the Cherenkov signal that may be
-    outside the integration window, and removes any dependence of the resulting
-    image on the window_width and window_shift parameters. However, the width
-    and shift of the window should still be optimised for the pulse finding and
-    to minimise the noise included in the integration.
-
-    Parameters
-    ----------
-    reference_pulse_shape : ndarray
-        Numpy array containing the pulse shape for each gain channel
-    reference_pulse_step : float
-        The step in time for each sample of the reference pulse shape in ns
-    sample_width_ns : float
-        The width of the waveform sample time bin in ns
-    window_width : int
-        Width of the integration window (in units of n_samples)
-    window_shift : int
-        Shift to before the peak for the start of the integration window
-        (in units of n_samples)
-
-    Returns
-    -------
-    correction : ndarray
-        Value of the integration correction for each gain channel
-    """
-    n_channels = len(reference_pulse_shape)
-    correction = np.ones(n_channels, dtype=np.float)
-    for ichannel, pulse_shape in enumerate(reference_pulse_shape):
-        pulse_max_sample = pulse_shape.size * reference_pulse_step
-        pulse_shape_x = np.arange(0, pulse_max_sample, reference_pulse_step)
-        sampled_edges = np.arange(0, pulse_max_sample, sample_width_ns)
-
-        sampled_pulse, _ = np.histogram(
-            pulse_shape_x, sampled_edges, weights=pulse_shape, density=True
-        )
-        n_samples = sampled_pulse.size
-        start = sampled_pulse.argmax() - window_shift
-        start = start if start >= 0 else 0
-        end = start + window_width
-        end = end if end < n_samples else n_samples
-        if start >= end:
-            continue
-
-        integration = sampled_pulse[start:end] * sample_width_ns
-        correction[ichannel] = 1.0 / np.sum(integration)
-
-    return correction
 
 
 class CameraCalibrator(Component):
@@ -116,6 +54,7 @@ class CameraCalibrator(Component):
         kwargs
         """
         super().__init__(config=config, parent=parent, **kwargs)
+        self.subarray = subarray
 
         self._r1_empty_warn = False
         self._dl0_empty_warn = False
@@ -127,38 +66,6 @@ class CameraCalibrator(Component):
         if image_extractor is None:
             image_extractor = NeighborPeakWindowSum(parent=self, subarray=subarray)
         self.image_extractor = image_extractor
-
-    def _get_correction(self, event, telid):
-        """
-        Obtain the integration correction for this telescope.
-
-        Parameters
-        ----------
-        event : container
-            A `ctapipe` event container
-        telid : int
-            The telescope id.
-            The integration correction is calculated once per telescope.
-
-        Returns
-        -------
-        ndarray
-        """
-        try:
-            selected_gain_channel = event.r1.tel[telid].selected_gain_channel
-            shift = self.image_extractor.window_shift.tel[None]
-            width = self.image_extractor.window_width.tel[None]
-            shape = event.mc.tel[telid].reference_pulse_shape
-            step = event.mc.tel[telid].meta["refstep"]
-            time_slice = event.mc.tel[telid].time_slice
-            correction = integration_correction(shape, step, time_slice, width, shift)
-            pixel_correction = correction[selected_gain_channel]
-            return pixel_correction
-        except (AttributeError, KeyError):
-            # Don't apply correction when window_shift or window_width
-            # does not exist in extractor, or when container does not have
-            # a reference pulse shape
-            return np.ones(event.dl0.tel[telid].waveform.shape[0])
 
     def _check_r1_empty(self, waveforms):
         if waveforms is None:
@@ -194,6 +101,7 @@ class CameraCalibrator(Component):
 
     def _calibrate_dl1(self, event, telid):
         waveforms = event.dl0.tel[telid].waveform
+        selected_gain_channel = event.r1.tel[telid].selected_gain_channel
         if self._check_dl0_empty(waveforms):
             return
         n_pixels, n_samples = waveforms.shape
@@ -207,13 +115,9 @@ class CameraCalibrator(Component):
             charge = waveforms[..., 0]
             pulse_time = np.zeros(n_pixels)
         else:
-            # TODO: apply timing correction to waveforms before charge extraction
-            charge, pulse_time = self.image_extractor(waveforms, telid=telid)
-
-            # Apply integration correction
-            # TODO: Remove integration correction
-            correction = self._get_correction(event, telid)
-            charge = charge * correction
+            charge, pulse_time = self.image_extractor(
+                waveforms, telid=telid, selected_gain_channel=selected_gain_channel
+            )
 
         # Calibrate extracted charge
         pedestal = event.calibration.tel[telid].dl1.pedestal_offset

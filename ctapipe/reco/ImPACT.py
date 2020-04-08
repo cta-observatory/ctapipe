@@ -20,7 +20,7 @@ from ctapipe.coordinates import (
 )
 from ctapipe.image import poisson_likelihood_gaussian, mean_poisson_likelihood_gaussian
 from ctapipe.instrument import get_atmosphere_profile_functions
-from ctapipe.io.containers import (ReconstructedShowerContainer,
+from ctapipe.containers import (ReconstructedShowerContainer,
                                    ReconstructedEnergyContainer)
 from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.utils.template_network_interpolator import TemplateNetworkInterpolator, \
@@ -50,7 +50,7 @@ def guess_shower_depth(energy):
 
 
 def energy_prior(energy, index=-1):
-    return -2 * np.log(np.power(energy, index))
+    return -2 * np.log(energy**index)
 
 
 def xmax_prior(energy, xmax, width=100):
@@ -232,11 +232,11 @@ class ImPACTReconstructor(Reconstructor):
 
         # Calculate displacement of image centroid from source position (in
         # rad)
-        disp = np.sqrt(np.power(self.peak_x - source_x, 2) +
-                       np.power(self.peak_y - source_y, 2))
+        disp = np.sqrt((self.peak_x - source_x)**2 +
+                       (self.peak_y - source_y)**2)
         # Calculate impact parameter of the shower
-        impact = np.sqrt(np.power(self.tel_pos_x - core_x, 2) +
-                         np.power(self.tel_pos_y - core_y, 2))
+        impact = np.sqrt((self.tel_pos_x - core_x)**2 +
+                         (self.tel_pos_y - core_y)**2)
         # Distance above telescope is ratio of these two (small angle)
 
         height = impact / disp
@@ -398,11 +398,14 @@ class ImPACTReconstructor(Reconstructor):
             x_max_bin = -100
 
         # Calculate impact distance for all telescopes
-        impact = np.sqrt(np.power(self.tel_pos_x - core_x, 2)
-                         + np.power(self.tel_pos_y - core_y, 2))
+        impact = np.sqrt(
+            (self.tel_pos_x - core_x)**2 + (self.tel_pos_y - core_y)**2
+        )
         # And the expected rotation angle
-        phi = np.arctan2((self.tel_pos_x - core_x),
-                         (self.tel_pos_y - core_y)) * u.rad
+        phi = np.arctan2(
+            (self.tel_pos_x - core_x),
+            (self.tel_pos_y - core_y)
+        ) * u.rad
 
         # Rotate and translate all pixels such that they match the
         # template orientation
@@ -417,25 +420,26 @@ class ImPACTReconstructor(Reconstructor):
         prediction = ma.zeros(self.image.shape)
         prediction.mask = ma.getmask(self.image)
 
-        time_gradients = np.zeros((self.image.shape[0],2))
+        time_gradients = np.zeros((self.image.shape[0], 2))
 
         # Loop over all telescope types and get prediction
         for tel_type in np.unique(self.tel_types).tolist():
             type_mask = self.tel_types == tel_type
-            prediction[type_mask] = \
-                self.image_prediction(tel_type, energy *
-                                      np.ones_like(impact[type_mask]),
-                                      impact[type_mask], x_max_bin *
-                                      np.ones_like(impact[type_mask]),
-                                      pix_x_rot[type_mask] * (180 / math.pi) * -1,
-                                      pix_y_rot[type_mask] * (180 / math.pi))
+            prediction[type_mask] = self.image_prediction(
+                tel_type, energy * np.ones_like(impact[type_mask]),
+                impact[type_mask],
+                x_max_bin * np.ones_like(impact[type_mask]),
+                -np.rad2deg(pix_x_rot[type_mask]),
+                np.rad2deg(pix_y_rot[type_mask]),
+            )
 
             if self.use_time_gradient:
-                time_gradients[type_mask] = \
-                    self.predict_time(tel_type,
-                                      energy * np.ones_like(impact[type_mask]),
-                                      impact[type_mask],
-                                      x_max_bin * np.ones_like(impact[type_mask]))
+                time_gradients[type_mask] = self.predict_time(
+                    tel_type,
+                    energy * np.ones_like(impact[type_mask]),
+                    impact[type_mask],
+                    x_max_bin * np.ones_like(impact[type_mask]),
+                )
 
         if self.use_time_gradient:
             time_mask = np.logical_and(np.invert(ma.getmask(self.image)),
@@ -452,8 +456,9 @@ class ImPACTReconstructor(Reconstructor):
             time_fit = (weight.sum(axis=1) * sxy.sum(axis=1) - sx.sum(axis=1) * sy.sum(
                 axis=1)) / d
             time_fit /= -1 * (180 / math.pi)
-            chi2 = -2 * np.log(rv.pdf((time_fit - time_gradients.T[0])/
-                                        time_gradients.T[1]))
+            chi2 = -2 * np.log(
+                rv.pdf((time_fit - time_gradients.T[0]) / time_gradients.T[1])
+            )
 
         # Likelihood function will break if we find a NaN or a 0
         prediction[np.isnan(prediction)] = 1e-8
@@ -487,7 +492,7 @@ class ImPACTReconstructor(Reconstructor):
 
         final_sum = array_like.sum()
         if self.use_time_gradient:
-            final_sum += chi2.sum() #* np.sum(ma.getmask(self.image))
+            final_sum += chi2.sum()  # * np.sum(ma.getmask(self.image))
 
         return final_sum
 
@@ -566,11 +571,12 @@ class ImPACTReconstructor(Reconstructor):
         # in minimisation For most values this is simply copying
         self.image = image
 
-        self.tel_pos_x, self.tel_pos_y, self.ped = \
-            np.zeros(len(tel_x)), np.zeros(len(tel_x)), np.zeros(len(tel_x))
+        self.tel_pos_x = np.zeros(len(tel_x))
+        self.tel_pos_y = np.zeros(len(tel_x))
+        self.ped = np.zeros(len(tel_x))
         self.tel_types, self.tel_id = list(), list()
 
-        max_pix_x, max_pix_y = 0, 0
+        max_pix_x = 0
         px, py, pa, pt = list(), list(), list(), list()
         self.hillas_parameters = list()
 

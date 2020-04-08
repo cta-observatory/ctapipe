@@ -8,7 +8,7 @@ import pandas as pd
 from astropy import units as u
 
 from ctapipe.core.container import Container, Field
-from ctapipe.io.containers import (
+from ctapipe.containers import (
     R0CameraContainer,
     MCEventContainer,
     HillasParametersContainer,

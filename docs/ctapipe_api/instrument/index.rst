@@ -24,14 +24,22 @@ Hierarchy of InstrumentDescription Classes
   * `TelescopeDescription` (describes a single telescope)
 
     * `OpticsDescription` (describes the optical support structure and mirror)
-    * `CameraGeometry` (describes the geometrical aspects of the camera, e.g.
-      only that which is needed by reconstruction methods)
-    * [to come: classes to hold more detailed hardware-level info about a
-      camera]
+
+    * `CameraDescription` (describes the camera)
+
+        * `CameraGeometry` (describes the geometrical aspects of the camera, e.g.
+          only that which is needed by reconstruction methods)
+
+        * `CameraReadout` (describes the aspects related to the waveform
+          readout e.g. sampling rate and reference pulse shape.geometrical
+          aspects of the camera, e.g.
+
+        * [to come: classes to hold more detailed hardware-level info about a
+          camera]
 
 
 .. toctree::
-  :maxdepth: 2
+  :maxdepth: 1
 
   subarray
   telescope
@@ -49,7 +57,7 @@ Atmosphere Profiles
 With the instrument module you can also load standard atmosphere profiles,
 which are read from tables located in `ctapipe_resources` by default
 
-The function `get_atmosphere_profile_functions()` returns two inerpolation
+The function `get_atmosphere_profile_functions()` returns two interpolation
 functions that convert between height and atmosphere thickness.
 
 Reference/API
