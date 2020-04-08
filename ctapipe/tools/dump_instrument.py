@@ -128,8 +128,6 @@ class DumpInstrumentTool(Tool):
             )
 
 
-
-
 def main():
     tool = DumpInstrumentTool()
     tool.run()
