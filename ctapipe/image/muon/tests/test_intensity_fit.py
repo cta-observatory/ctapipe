@@ -82,7 +82,7 @@ def test_muon_efficiency_fit():
 
 def test_scts():
     from ctapipe.instrument import TelescopeDescription, SubarrayDescription
-    from ctapipe.image.muon.intensity_fit import  MuonIntensityFitter
+    from ctapipe.image.muon.intensity_fitter import  MuonIntensityFitter
 
     telescope = TelescopeDescription.from_name('SST-ASTRI', 'CHEC')
     subarray = SubarrayDescription(

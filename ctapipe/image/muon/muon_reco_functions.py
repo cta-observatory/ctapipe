@@ -11,7 +11,7 @@ from ctapipe.image.muon.features import ring_containment
 from ctapipe.image.muon.features import ring_completeness
 from ctapipe.image.muon.features import npix_above_threshold
 from ctapipe.image.muon.features import npix_composing_ring
-from ctapipe.image.muon.intensity_fit import MuonIntensityFitter
+from ctapipe.image.muon.intensity_fitter import MuonIntensityFitter
 from ctapipe.image.muon.muon_ring_finder import MuonRingFitter
 
 logger = logging.getLogger(__name__)
