@@ -254,6 +254,7 @@ def analyze_muon_event(event):
                     x[dist_mask],
                     y[dist_mask],
                     image[dist_mask],
+                    pedestal=1.1,
                 )
 
                 muonintensityoutput.tel_id = telid
