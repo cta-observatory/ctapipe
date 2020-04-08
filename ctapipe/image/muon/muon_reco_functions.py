@@ -190,22 +190,22 @@ def analyze_muon_event(event):
 
         for i in range(2):
             dist = np.sqrt(
-                (x - muonringparam.ring_center_x)**2
-                + (y - muonringparam.ring_center_y)**2
+                (x - muonringparam.center_x)**2
+                + (y - muonringparam.center_y)**2
             )
-            ring_dist = np.abs(dist - muonringparam.ring_radius)
+            ring_dist = np.abs(dist - muonringparam.radius)
 
             muonringparam = muon_ring_fit(
-                x, y, img, (ring_dist < muonringparam.ring_radius * 0.4)
+                x, y, img, (ring_dist < muonringparam.radius * 0.4)
             )
 
         dist_mask = (
-            np.abs(dist - muonringparam.ring_radius) < muonringparam.ring_radius * 0.4
+            np.abs(dist - muonringparam.radius) < muonringparam.radius * 0.4
         )
         pix_im = image * dist_mask
         nom_dist = np.sqrt(
-            (muonringparam.ring_center_x)**2
-            + (muonringparam.ring_center_y)**2
+            (muonringparam.center_x)**2
+            + (muonringparam.center_y)**2
         )
 
         minpix = muon_cuts["min_pix"][dict_index]  # 0.06*numpix #or 8%
@@ -220,14 +220,14 @@ def analyze_muon_event(event):
             npix_above_threshold(pix_im, tailcuts[0]) > 0.1 * minpix
             and npix_composing_ring(pix_im) > minpix
             and nom_dist < muon_cuts["CamRad"][dict_index]
-            and muonringparam.ring_radius < 1.5 * u.deg
-            and muonringparam.ring_radius > 1.0 * u.deg
+            and muonringparam.radius < 1.5 * u.deg
+            and muonringparam.radius > 1.0 * u.deg
         ):
-            muonringparam.ring_containment = ring_containment(
-                muonringparam.ring_radius,
+            muonringparam.containment = ring_containment(
+                muonringparam.radius,
                 muon_cuts["CamRad"][dict_index],
-                muonringparam.ring_center_x,
-                muonringparam.ring_center_y,
+                muonringparam.center_x,
+                muonringparam.center_y,
             )
 
             # Guess HESS is 0.16
@@ -254,9 +254,9 @@ def analyze_muon_event(event):
 
             if image.shape[0] == muon_cuts["total_pix"][dict_index]:
                 muonintensityoutput = ctel.fit_muon(
-                    muonringparam.ring_center_x,
-                    muonringparam.ring_center_y,
-                    muonringparam.ring_radius,
+                    muonringparam.center_x,
+                    muonringparam.center_y,
+                    muonringparam.radius,
                     x[dist_mask],
                     y[dist_mask],
                     image[dist_mask],
@@ -272,15 +272,15 @@ def analyze_muon_event(event):
                     x[idx_ring],
                     y[idx_ring],
                     pix_im[idx_ring],
-                    muonringparam.ring_radius,
-                    muonringparam.ring_center_x,
-                    muonringparam.ring_center_y,
+                    muonringparam.radius,
+                    muonringparam.center_x,
+                    muonringparam.center_y,
                     threshold=30,
                     bins=30,
                 )
                 muonintensityoutput.ring_size = np.sum(pix_im)
 
-                dist_ringwidth_mask = np.abs(dist - muonringparam.ring_radius) < (
+                dist_ringwidth_mask = np.abs(dist - muonringparam.radius) < (
                     muonintensityoutput.ring_width
                 )
                 pix_ringwidth_im = image * dist_ringwidth_mask

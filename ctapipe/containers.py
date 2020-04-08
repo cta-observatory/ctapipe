@@ -540,22 +540,22 @@ class SST1MDataContainer(DataContainer):
 
 
 class MuonRingParameter(Container):
-    ring_center_x = Field(
+    center_x = Field(
         nan * u.deg, "center (x) of the fitted muon ring", unit=u.deg
     )
-    ring_center_y = Field(nan * u.deg, "center (y) of the fitted muon ring", unit=u.deg)
-    ring_radius = Field(nan * u.deg, "radius of the fitted muon ring", unit=u.deg)
-    ring_center_phi = Field(
+    center_y = Field(nan * u.deg, "center (y) of the fitted muon ring", unit=u.deg)
+    radius = Field(nan * u.deg, "radius of the fitted muon ring", unit=u.deg)
+    center_phi = Field(
         nan * u.deg, "Angle of ring center within camera plane", unit=u.deg
     )
-    ring_center_distance = Field(
+    center_distance = Field(
         nan * u.deg, "Distance of ring center from camera center", unit=u.deg
     )
-    ring_chi2_fit = Field(nan, "chisquare of the muon ring fit", unit=u.deg)
-    ring_cov_matrix = Field(
+    chi2_fit = Field(nan, "chisquare of the muon ring fit", unit=u.deg)
+    cov_matrix = Field(
         np.full((3, 3), nan), "covariance matrix of the muon ring fit"
     )
-    ring_containment = Field(nan, "containment of the ring inside the camera")
+    containment = Field(nan, "containment of the ring inside the camera")
 
 
 class MuonIntensityParameter(Container):
