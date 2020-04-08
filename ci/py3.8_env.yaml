@@ -1,9 +1,9 @@
-# A conda environment with all useful package for ctapipe developers
 name: cta-dev
 channels:
   - default
   - cta-observatory
 dependencies:
+  - python=3.8
   - astropy
   - bokeh
   - conda-forge::nbsphinx
@@ -17,7 +17,7 @@ dependencies:
   - jupyter
   - matplotlib
   - numba
-  - numpy>=1.15.4
+  - numpy>=1.16.0
   - numpydoc
   - pandas
   - psutil
@@ -37,8 +37,8 @@ dependencies:
   - wheel
   - xz
   - zlib
+  - pyhessio=2.1
+  - nbconvert>=5.4
   - pip
   - pip:
     - eventio~=1.0
-
-

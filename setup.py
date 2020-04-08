@@ -32,7 +32,7 @@ entry_points['console_scripts'] = [
 ]
 tests_require = [
     'pytest',
-    'ctapipe-extra @ https://github.com/cta-observatory/ctapipe-extra/archive/v0.2.18.tar.gz',
+    'ctapipe-extra @ https://github.com/cta-observatory/ctapipe-extra/archive/v0.2.19.tar.gz',
     'pyhessio @ https://github.com/cta-observatory/pyhessio/archive/v2.1.1.tar.gz',
 ]
 docs_require = [

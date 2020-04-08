@@ -1,7 +1,7 @@
 from ctapipe.instrument import CameraGeometry
 from ctapipe.image import tailcuts_clean, toymodel
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
-from ctapipe.io.containers import HillasParametersContainer
+from ctapipe.containers import HillasParametersContainer
 from astropy.coordinates import Angle
 from astropy import units as u
 import numpy as np

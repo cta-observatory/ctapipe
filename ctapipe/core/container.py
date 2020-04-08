@@ -116,7 +116,7 @@ class Container(metaclass=ContainerMeta):
     `Containers`, to allow for a hierarchy of containers, and can also
     contain a `Map` for the case where one wants e.g. a set of
     sub-classes indexed by a value like the `telescope_id`. Examples
-    of this can be found in `ctapipe.io.containers`
+    of this can be found in `ctapipe.containers`
 
     `Containers` work by shadowing all class variables (which must be
     instances of `Field`) with instance variables of the same name the

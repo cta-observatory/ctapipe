@@ -3,7 +3,7 @@ Leakage calculation
 """
 
 import numpy as np
-from ..io.containers import LeakageContainer
+from ..containers import LeakageContainer
 
 
 __all__ = ["leakage"]

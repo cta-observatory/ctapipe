@@ -20,7 +20,7 @@ from ctapipe.coordinates import (
 )
 from ctapipe.image import poisson_likelihood_gaussian, mean_poisson_likelihood_gaussian
 from ctapipe.instrument import get_atmosphere_profile_functions
-from ctapipe.io.containers import (ReconstructedShowerContainer,
+from ctapipe.containers import (ReconstructedShowerContainer,
                                    ReconstructedEnergyContainer)
 from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.utils.template_network_interpolator import TemplateNetworkInterpolator, \
