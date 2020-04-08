@@ -7,8 +7,9 @@ from astropy import units as u
 from astropy.time import Time
 from numpy import nan
 
-from ..core import Container, Field, DeprecatedField, Map
-from ..instrument import SubarrayDescription
+from .core import Container, Field, DeprecatedField, Map
+from .instrument import SubarrayDescription
+
 
 __all__ = [
     "InstrumentContainer",
@@ -90,9 +91,6 @@ class SST1MCameraContainer(Container):
 class SST1MContainer(Container):
     tels_with_data = Field([], "list of telescopes with data")
     tel = Field(Map(SST1MCameraContainer), "map of tel_id to SST1MCameraContainer")
-
-
-# todo: change some of these Maps to be just 3D NDarrays?
 
 
 class InstrumentContainer(Container):

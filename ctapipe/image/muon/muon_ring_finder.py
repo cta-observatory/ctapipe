@@ -1,6 +1,6 @@
 import numpy as np
 from ctapipe.core import Component
-from ctapipe.io.containers import MuonRingParameter
+from ctapipe.containers import MuonRingParameter
 from .fitting import kundu_chaudhuri_circle_fit, taubin_circle_fit
 import traitlets as traits
 
