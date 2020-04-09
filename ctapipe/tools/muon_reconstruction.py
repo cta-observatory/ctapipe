@@ -107,7 +107,7 @@ class MuonAnalysis(Tool):
                 dist = np.sqrt((x - ring.ring_center_x)**2 + (y - ring.ring_center_y)**2)
                 mask = np.abs(dist - ring.ring_radius) / ring.ring_radius < 0.4
 
-            if np.isnan([ring.radius, ring.ring_center_x, ring.ring_center_y]).any():
+            if np.isnan([ring.ring_radius, ring.ring_center_x, ring.ring_center_y]).any():
                 self.log.info(f'Skipping event {event_id}-{tel_id}: Ring fit did not succeed')
                 continue
 
