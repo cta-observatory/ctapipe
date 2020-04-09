@@ -73,7 +73,7 @@ class MuonAnalysis(Tool):
         )
         if self.outfile:
             self.writer = self.add_component(HDF5TableWriter(
-                self.outfile, "muons", add_prefix=True
+                self.outfile, "/", add_prefix=True
             ))
         self.pixels_in_tel_frame = {}
         self.min_pixels.attach_subarray(self.source.subarray)
@@ -87,6 +87,9 @@ class MuonAnalysis(Tool):
         for tel_id, dl1 in event.dl1.tel.items():
             self.process_telescope_event(event.index, tel_id, dl1)
 
+        if self.outfile:
+            self.writer.write('array_events', [event.index, event.mc])
+
     def process_telescope_event(self, event_index, tel_id, dl1):
         event_id = event_index.event_id
 
@@ -97,7 +100,7 @@ class MuonAnalysis(Tool):
         if np.count_nonzero(clean_mask) <= self.min_pixels.tel[tel_id]:
             self.log.info(
                 f'Skipping event {event_id}-{tel_id}:'
-                ' has less then {self.min_pixels.tel[tel_id]} pixels after cleaning'
+                f' has less then {self.min_pixels.tel[tel_id]} pixels after cleaning'
             )
             return
 
@@ -150,7 +153,7 @@ class MuonAnalysis(Tool):
         )
 
         if self.outfile:
-            self.writer.write(f'tel_{tel_id}', [event_index, ring, result])
+            self.writer.write(f'telescope_events/tel_{tel_id}', [event_index, ring, result])
 
     def pixel_to_telescope_frame(self, tel_id):
         telescope = self.source.subarray.tel[tel_id]
