@@ -441,7 +441,7 @@ class MuonIntensityFitter(TelescopeComponent):
             ('type', 'MST_*', 0.244),
             ('type', 'SST_1M_*', 0.130),
         ]
-    )
+    ).tag(config=True)
 
     oversampling = IntTelescopeParameter(
         help='Oversampling for the line integration', default_value=3
