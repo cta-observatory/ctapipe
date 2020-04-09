@@ -73,7 +73,7 @@ class MuonAnalysis(Tool):
         )
         if self.outfile:
             self.writer = self.add_component(HDF5TableWriter(
-                self.outfile, "/", add_prefix=True
+                self.outfile, "dl1", add_prefix=True
             ))
         self.pixels_in_tel_frame = {}
         self.min_pixels.attach_subarray(self.source.subarray)
@@ -88,7 +88,7 @@ class MuonAnalysis(Tool):
             self.process_telescope_event(event.index, tel_id, dl1)
 
         if self.outfile:
-            self.writer.write('array_events', [event.index, event.mc])
+            self.writer.write('mc', [event.index, event.mc])
 
     def process_telescope_event(self, event_index, tel_id, dl1):
         event_id = event_index.event_id
@@ -98,7 +98,7 @@ class MuonAnalysis(Tool):
         clean_mask = self.cleaning(tel_id, image)
 
         if np.count_nonzero(clean_mask) <= self.min_pixels.tel[tel_id]:
-            self.log.info(
+            self.log.debug(
                 f'Skipping event {event_id}-{tel_id}:'
                 f' has less then {self.min_pixels.tel[tel_id]} pixels after cleaning'
             )
@@ -114,24 +114,18 @@ class MuonAnalysis(Tool):
         mask = clean_mask
         for i in range(3):
             ring = self.ring_fitter(x, y, image, mask)
-            self.log.debug(
-                f'It {i}: r={ring.ring_radius:.2f}'
-                f', x={ring.ring_center_x:.2f}'
-                f', y={ring.ring_center_y:.2f}'
-            )
-
             dist = np.sqrt((x - ring.ring_center_x)**2 + (y - ring.ring_center_y)**2)
             mask = np.abs(dist - ring.ring_radius) / ring.ring_radius < 0.4
 
         if np.count_nonzero(mask) <= self.min_pixels.tel[tel_id]:
-            self.log.info(
+            self.log.debug(
                 f'Skipping event {event_id}-{tel_id}:'
                 f' Less then {self.min_pixels.tel[tel_id]} pixels on ring'
             )
             return
 
         if np.isnan([ring.ring_radius.value, ring.ring_center_x.value, ring.ring_center_y.value]).any():
-            self.log.info(f'Skipping event {event_id}-{tel_id}: Ring fit did not succeed')
+            self.log.debug(f'Skipping event {event_id}-{tel_id}: Ring fit did not succeed')
             return
 
         # intensity_fitter does not support a mask yet, set ignored pixels to 0
@@ -153,7 +147,9 @@ class MuonAnalysis(Tool):
         )
 
         if self.outfile:
-            self.writer.write(f'telescope_events/tel_{tel_id}', [event_index, ring, result])
+            self.writer.write(
+                f'muons/tel_{tel_id:03d}', [event_index, ring, result]
+            )
 
     def pixel_to_telescope_frame(self, tel_id):
         telescope = self.source.subarray.tel[tel_id]
@@ -169,7 +165,7 @@ class MuonAnalysis(Tool):
         if self.outfile:
             Provenance().add_output_file(
                 self.outfile,
-                role='dl1.tel.evt.muon',
+                role='muon_efficiency_parameters',
             )
             self.writer.close()
 
