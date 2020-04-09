@@ -5,12 +5,10 @@ intensity parameters to an output table.
 The resulting output can be read e.g. using for example
 `pandas.read_hdf(filename, 'muons/LSTCam')`
 """
-from tqdm import tqdm
-
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Provenance
-from ctapipe.core import Tool, ToolConfigurationError
-from ctapipe.core import traits as t
+from ctapipe.core import Tool
+from ctapipe.core.traits import Unicode, Bool, IntTelescopeParameter
 from ctapipe.io import EventSource
 from ctapipe.io import HDF5TableWriter
 from ctapipe.image.cleaning import TailcutsImageCleaner
@@ -23,28 +21,36 @@ from astropy.coordinates import SkyCoord
 
 class MuonAnalysis(Tool):
     name = 'ctapipe-reconstruct-muons'
-    description = t.Unicode(__doc__)
+    description = Unicode(__doc__)
 
-    outfile = t.Unicode(
+    outfile = Unicode(
         None,
         allow_none=True,
         help='HDF5 output file name'
     ).tag(config=True)
 
-    display = t.Bool(
+    display = Bool(
         help='display the camera events', default=False
     ).tag(config=True)
 
-    classes = t.List([
-        CameraCalibrator, EventSource
-    ])
+    min_pixels = IntTelescopeParameter(
+        help=(
+            'Minimum number of pixels after cleaning and ring finding'
+            'required to process an event'
+        ),
+        default_value=10,
+    ).tag(config=True)
 
-    aliases = t.Dict({
+    classes = [
+        CameraCalibrator, EventSource, MuonRingFitter, MuonIntensityFitter,
+    ]
+
+    aliases = {
         'input': 'EventSource.input_url',
         'outfile': 'MuonAnalysis.outfile',
         'max_events': 'EventSource.max_events',
         'allowed_tels': 'EventSource.allowed_tels',
-    })
+    }
 
     def setup(self):
         self.source = self.add_component(EventSource.from_config(parent=self))
@@ -70,70 +76,75 @@ class MuonAnalysis(Tool):
                 self.outfile, "muons", add_prefix=True
             ))
         self.pixels_in_tel_frame = {}
+        self.min_pixels.attach_subarray(self.source.subarray)
 
     def start(self):
         for event in self.source:
-            self.analyze_array_event(event)
+            self.process_array_event(event)
 
-    def analyze_array_event(self, event):
+    def process_array_event(self, event):
         self.calib(event)
         for tel_id, dl1 in event.dl1.tel.items():
-            event_id = event.index.event_id
+            self.process_telescope_event(event.index, tel_id, dl1)
 
-            self.log.debug(f'Processing event {event_id}, telescope {tel_id}')
-            image = dl1.image
-            clean_mask = self.cleaning(tel_id, image)
+    def process_telescope_event(self, event_index, tel_id, dl1):
+        event_id = event_index.event_id
 
-            if np.count_nonzero(clean_mask) <= 5:
-                self.log.info(f'Skipping event {event_id}-{tel_id}: has less then 5 pixels after cleaning')
-                continue
+        self.log.debug(f'Processing event {event_id}, telescope {tel_id}')
+        image = dl1.image
+        clean_mask = self.cleaning(tel_id, image)
 
-            if tel_id not in self.pixels_in_tel_frame:
-                self.pixels_in_tel_frame[tel_id] = self.pixel_to_telescope_frame(tel_id)
+        if np.count_nonzero(clean_mask) <= self.min_pixels.tel[tel_id]:
+            self.log.info(f'Skipping event {event_id}-{tel_id}: has less then 5 pixels after cleaning')
+            return
 
-            pixel_coords = self.pixels_in_tel_frame[tel_id]
-            x = pixel_coords.delta_az
-            y = pixel_coords.delta_alt
+        if tel_id not in self.pixels_in_tel_frame:
+            self.pixels_in_tel_frame[tel_id] = self.pixel_to_telescope_frame(tel_id)
 
-            mask = clean_mask
-            for i in range(3):
-                ring = self.ring_fitter(x, y, image, mask)
-                self.log.debug(
-                    f'It {i}: r={ring.ring_radius:.2f}'
-                    f', x={ring.ring_center_x:.2f}'
-                    f', y={ring.ring_center_y:.2f}'
-                )
+        pixel_coords = self.pixels_in_tel_frame[tel_id]
+        x = pixel_coords.delta_az
+        y = pixel_coords.delta_alt
 
-                dist = np.sqrt((x - ring.ring_center_x)**2 + (y - ring.ring_center_y)**2)
-                mask = np.abs(dist - ring.ring_radius) / ring.ring_radius < 0.4
-
-            if np.isnan([ring.ring_radius.value, ring.ring_center_x.value, ring.ring_center_y.value]).any():
-                self.log.info(f'Skipping event {event_id}-{tel_id}: Ring fit did not succeed')
-                continue
-
-            if np.count_nonzero(mask) <= 5:
-                self.log.info(f'Skipping event {event_id}-{tel_id}: Less then 5 pixels on ring')
-                continue
-
-            # intensity_fitter does not support a mask yet, set ignored pixels to 0
-            image[~mask] = 0
-
-            result = self.intensity_fitter.fit(
-                tel_id,
-                ring.ring_center_x,
-                ring.ring_center_y,
-                ring.ring_radius,
-                image,
-                pedestal=1.1,
+        mask = clean_mask
+        for i in range(3):
+            ring = self.ring_fitter(x, y, image, mask)
+            self.log.debug(
+                f'It {i}: r={ring.ring_radius:.2f}'
+                f', x={ring.ring_center_x:.2f}'
+                f', y={ring.ring_center_y:.2f}'
             )
 
-            self.log.info(
-                f'Muon fit: r={ring.ring_radius:.2f}'
-                f', width={result.ring_width:.4f}'
-                f', efficiency={result.optical_efficiency_muon:.2%}',
-            )
+            dist = np.sqrt((x - ring.ring_center_x)**2 + (y - ring.ring_center_y)**2)
+            mask = np.abs(dist - ring.ring_radius) / ring.ring_radius < 0.4
 
-            self.writer.write(f'tel_{tel_id}', [event.index, ring, result])
+        if np.count_nonzero(mask) <= self.min_pixels.tel[tel_id]:
+            self.log.info(f'Skipping event {event_id}-{tel_id}: Less then 5 pixels on ring')
+            return
+
+        if np.isnan([ring.ring_radius.value, ring.ring_center_x.value, ring.ring_center_y.value]).any():
+            self.log.info(f'Skipping event {event_id}-{tel_id}: Ring fit did not succeed')
+            return
+
+        # intensity_fitter does not support a mask yet, set ignored pixels to 0
+        image[~mask] = 0
+
+        result = self.intensity_fitter.fit(
+            tel_id,
+            ring.ring_center_x,
+            ring.ring_center_y,
+            ring.ring_radius,
+            image,
+            pedestal=1.1,
+        )
+
+        self.log.info(
+            f'Muon fit: r={ring.ring_radius:.2f}'
+            f', width={result.ring_width:.4f}'
+            f', efficiency={result.optical_efficiency_muon:.2%}',
+        )
+
+        if self.outfile:
+            self.writer.write(f'tel_{tel_id}', [event_index, ring, result])
 
     def pixel_to_telescope_frame(self, tel_id):
         telescope = self.source.subarray.tel[tel_id]
