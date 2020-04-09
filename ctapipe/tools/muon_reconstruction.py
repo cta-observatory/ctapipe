@@ -78,12 +78,14 @@ class MuonAnalysis(Tool):
     def analyze_array_event(self, event):
         self.calib(event)
         for tel_id, dl1 in event.dl1.tel.items():
-            self.log.debug(f'Processing event {event.index.event_id}, telescope {tel_id}')
+            event_id = event.index.event_id
+
+            self.log.debug(f'Processing event {event_id}, telescope {tel_id}')
             image = dl1.image
             clean_mask = self.cleaning(tel_id, image)
 
             if np.count_nonzero(clean_mask) <= 5:
-                self.log.info(f'Skipping event {event.index.event_id}, has less then 5 pixels after cleaning')
+                self.log.info(f'Skipping event {event_id}-{tel_id}: has less then 5 pixels after cleaning')
                 continue
 
             if tel_id not in self.pixels_in_tel_frame:
@@ -99,10 +101,19 @@ class MuonAnalysis(Tool):
                 self.log.debug(
                     f'It {i}: r={ring.ring_radius:.2f}'
                     f', x={ring.ring_center_x:.2f}'
-                    f', y={ring.ring_center_y:.2f}')
+                    f', y={ring.ring_center_y:.2f}'
+                )
 
                 dist = np.sqrt((x - ring.ring_center_x)**2 + (y - ring.ring_center_y)**2)
                 mask = np.abs(dist - ring.ring_radius) / ring.ring_radius < 0.4
+
+            if np.isnan([ring.radius, ring.ring_center_x, ring.ring_center_y]).any():
+                self.log.info(f'Skipping event {event_id}-{tel_id}: Ring fit did not succeed')
+                continue
+
+            if np.count_nonzero(mask) <= 5:
+                self.log.info(f'Skipping event {event_id}-{tel_id}: Less then 5 pixels on ring')
+                continue
 
             # intensity_fitter does not support a mask yet, set ignored pixels to 0
             image[~mask] = 0
