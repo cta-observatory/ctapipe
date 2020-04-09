@@ -299,6 +299,7 @@ def build_negative_log_likelihood(
     max_lambda,
     spe_width,
     pedestal,
+    hole_radius=0 * u.m,
 ):
     '''Create an efficient negative log_likelihood function that does
     not rely on astropy units internally by defining needed values as closures
@@ -325,6 +326,8 @@ def build_negative_log_likelihood(
 
     min_lambda = min_lambda.to_value(u.m)
     max_lambda = max_lambda.to_value(u.m)
+
+    hole_radius_m = hole_radius.to_value(u.m)
 
     def negative_log_likelihood(
         impact_parameter,
@@ -367,7 +370,7 @@ def build_negative_log_likelihood(
         # Generate model prediction
         prediction = image_prediction_no_units(
             mirror_radius_m=mirror_radius,
-            hole_radius_m=0,
+            hole_radius_m=hole_radius_m,
             impact_parameter_m=impact_parameter,
             phi_rad=phi,
             center_x_rad=center_x,
@@ -431,6 +434,15 @@ class MuonIntensityFitter(TelescopeComponent):
         help="Minimum wavelength for Cherenkov light in m", default_value=600e-9,
     ).tag(config=True)
 
+    hole_radius_m = FloatTelescopeParameter(
+        help="Hole radius of the reflector in m",
+        default_value=[
+            ('type', 'LST_*', 0.308),
+            ('type', 'MST_*', 0.244),
+            ('type', 'SST_1M_*', 0.130),
+        ]
+    )
+
     oversampling = IntTelescopeParameter(
         help='Oversampling for the line integration', default_value=3
     ).tag(config=True)
@@ -478,6 +490,7 @@ class MuonIntensityFitter(TelescopeComponent):
             max_lambda=self.max_lambda_m.tel[tel_id] * u.m,
             spe_width=self.spe_width.tel[tel_id],
             pedestal=pedestal,
+            hole_radius=self.hole_radius_m.tel[tel_id] * u.m,
         )
 
         initial_guess = create_initial_guess(
