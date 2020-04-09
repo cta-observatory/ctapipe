@@ -95,7 +95,10 @@ class MuonAnalysis(Tool):
         clean_mask = self.cleaning(tel_id, image)
 
         if np.count_nonzero(clean_mask) <= self.min_pixels.tel[tel_id]:
-            self.log.info(f'Skipping event {event_id}-{tel_id}: has less then 5 pixels after cleaning')
+            self.log.info(
+                f'Skipping event {event_id}-{tel_id}:'
+                ' has less then {self.min_pixels.tel[tel_id]} pixels after cleaning'
+            )
             return
 
         if tel_id not in self.pixels_in_tel_frame:
@@ -118,7 +121,10 @@ class MuonAnalysis(Tool):
             mask = np.abs(dist - ring.ring_radius) / ring.ring_radius < 0.4
 
         if np.count_nonzero(mask) <= self.min_pixels.tel[tel_id]:
-            self.log.info(f'Skipping event {event_id}-{tel_id}: Less then 5 pixels on ring')
+            self.log.info(
+                f'Skipping event {event_id}-{tel_id}:'
+                f' Less then {self.min_pixels.tel[tel_id]} pixels on ring'
+            )
             return
 
         if np.isnan([ring.ring_radius.value, ring.ring_center_x.value, ring.ring_center_y.value]).any():
