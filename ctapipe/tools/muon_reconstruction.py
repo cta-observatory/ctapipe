@@ -5,6 +5,10 @@ intensity parameters to an output table.
 The resulting output can be read e.g. using for example
 `pandas.read_hdf(filename, 'muons/LSTCam')`
 """
+from tqdm import tqdm
+import numpy as np
+from astropy.coordinates import SkyCoord
+
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Provenance
 from ctapipe.core import Tool
@@ -14,9 +18,7 @@ from ctapipe.io import HDF5TableWriter
 from ctapipe.image.cleaning import TailcutsImageCleaner
 from ctapipe.coordinates import TelescopeFrame, CameraFrame
 from ctapipe.image.muon import MuonRingFitter, MuonIntensityFitter
-import numpy as np
 
-from astropy.coordinates import SkyCoord
 
 
 class MuonAnalysis(Tool):
@@ -79,7 +81,7 @@ class MuonAnalysis(Tool):
         self.min_pixels.attach_subarray(self.source.subarray)
 
     def start(self):
-        for event in self.source:
+        for event in tqdm(self.source, desc='Processing events: '):
             self.process_array_event(event)
 
     def process_array_event(self, event):
