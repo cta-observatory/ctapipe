@@ -555,27 +555,29 @@ class TwoPassWindowSum(ImageExtractor):
     a time-gradient linear fit. This is in particular the version implemented
     in the CTA-MARS analysis pipeline [2]_.
 
-    Procedure:
-    1) slide a 3-samples window through the waveform, finding max counts sum;
+    Notes
+    -----
+
+    #. slide a 3-samples window through the waveform, finding max counts sum;
        the range of the sliding is the one allowing extension from 3 to 5;
        add 1 sample on each side and integrate charge in the 5-sample window;
        time is obtained as a charge-weighted average of the sample numbers;
        No information from neighboouring pixels is used.
-    2) Preliminary image cleaning via simple tailcut with minimum number
+    #. Preliminary image cleaning via simple tailcut with minimum number
        of core neighbours set at 1,
-    3) Only the biggest cluster of pixels is kept.
-    4) Parametrize following Hillas approach only if the resulting image has 3
+    #. Only the biggest cluster of pixels is kept.
+    #. Parametrize following Hillas approach only if the resulting image has 3
        or more pixels.
-    5) Do a linear fit of pulse time vs. distance along major image axis
+    #. Do a linear fit of pulse time vs. distance along major image axis
        (CTA-MARS uses ROOT "robust" fit option,
        aka Least Trimmed Squares, to get rid of far outliers - this should
        be implemented in 'timing_parameters', e.g scipy.stats.siegelslopes).
-    6) For all pixels except the core ones in the main island, integrate
+    #. For all pixels except the core ones in the main island, integrate
        the waveform once more, in a fixed window of 5 samples set at the time
        "predicted" by the linear time fit.
        If the predicted time for a pixel leads to a window outside the readout
        window, then integrate the last (or first) 5 samples.
-    7) The result is an image with main-island core pixels calibrated with a
+    #. The result is an image with main-island core pixels calibrated with a
        1st pass and non-core pixels re-calibrated with a 2nd pass.
 
     References
