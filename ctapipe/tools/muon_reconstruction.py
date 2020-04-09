@@ -82,6 +82,10 @@ class MuonAnalysis(Tool):
             image = dl1.image
             clean_mask = self.cleaning(tel_id, image)
 
+            if np.count_nonzero(clean_mask) <= 5:
+                self.log.info(f'Skipping event {event.index.event_id}, has less then 5 pixels after cleaning')
+                continue
+
             if tel_id not in self.pixels_in_tel_frame:
                 self.pixels_in_tel_frame[tel_id] = self.pixel_to_telescope_frame(tel_id)
 
@@ -114,8 +118,8 @@ class MuonAnalysis(Tool):
 
             self.log.info(
                 f'Muon fit: r={ring.ring_radius:.2f}'
-                f', width={result.ring_width}'
-                f', efficiency={result.optical_efficiency_muon}',
+                f', width={result.ring_width:.4f}'
+                f', efficiency={result.optical_efficiency_muon:.2%}',
             )
 
             self.writer.write(f'tel_{tel_id}', [event.index, ring, result])
