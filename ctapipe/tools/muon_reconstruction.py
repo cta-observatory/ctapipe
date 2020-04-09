@@ -116,8 +116,8 @@ class MuonAnalysis(Tool):
         mask = clean_mask
         for i in range(3):
             ring = self.ring_fitter(x, y, image, mask)
-            dist = np.sqrt((x - ring.ring_center_x)**2 + (y - ring.ring_center_y)**2)
-            mask = np.abs(dist - ring.ring_radius) / ring.ring_radius < 0.4
+            dist = np.sqrt((x - ring.center_x)**2 + (y - ring.center_y)**2)
+            mask = np.abs(dist - ring.radius) / ring.radius < 0.4
 
         if np.count_nonzero(mask) <= self.min_pixels.tel[tel_id]:
             self.log.debug(
@@ -126,7 +126,7 @@ class MuonAnalysis(Tool):
             )
             return
 
-        if np.isnan([ring.ring_radius.value, ring.ring_center_x.value, ring.ring_center_y.value]).any():
+        if np.isnan([ring.radius.value, ring.center_x.value, ring.center_y.value]).any():
             self.log.debug(f'Skipping event {event_id}-{tel_id}: Ring fit did not succeed')
             return
 
@@ -135,15 +135,15 @@ class MuonAnalysis(Tool):
 
         result = self.intensity_fitter(
             tel_id,
-            ring.ring_center_x,
-            ring.ring_center_y,
-            ring.ring_radius,
+            ring.center_x,
+            ring.center_y,
+            ring.radius,
             image,
             pedestal=1.1,
         )
 
         self.log.info(
-            f'Muon fit: r={ring.ring_radius:.2f}'
+            f'Muon fit: r={ring.radius:.2f}'
             f', width={result.ring_width:.4f}'
             f', efficiency={result.optical_efficiency_muon:.2%}',
         )
