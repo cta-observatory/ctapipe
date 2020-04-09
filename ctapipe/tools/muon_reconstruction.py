@@ -38,7 +38,7 @@ class MuonAnalysis(Tool):
             'Minimum number of pixels after cleaning and ring finding'
             'required to process an event'
         ),
-        default_value=10,
+        default_value=100,
     ).tag(config=True)
 
     classes = [
