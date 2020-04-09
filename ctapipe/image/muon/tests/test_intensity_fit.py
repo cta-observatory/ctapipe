@@ -66,7 +66,7 @@ def test_muon_efficiency_fit():
     )
 
     fitter = MuonIntensityFitter(subarray=subarray)
-    result = fitter.fit(
+    result = fitter(
         tel_id=0,
         center_x=center_x,
         center_y=center_y,

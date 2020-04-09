@@ -435,7 +435,7 @@ class MuonIntensityFitter(TelescopeComponent):
         help='Oversampling for the line integration', default_value=3
     ).tag(config=True)
 
-    def fit(
+    def __call__(
         self,
         tel_id,
         center_x,

@@ -134,7 +134,7 @@ class MuonAnalysis(Tool):
         # intensity_fitter does not support a mask yet, set ignored pixels to 0
         image[~mask] = 0
 
-        result = self.intensity_fitter.fit(
+        result = self.intensity_fitter(
             tel_id,
             ring.ring_center_x,
             ring.ring_center_y,
