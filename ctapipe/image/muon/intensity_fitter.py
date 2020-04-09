@@ -186,20 +186,20 @@ def image_prediction(
 
 
 def image_prediction_no_units(
-    mirror_radius,
-    hole_radius,
-    impact_parameter,
-    phi,
-    center_x,
-    center_y,
-    radius,
-    ring_width,
-    pixel_x,
-    pixel_y,
-    pixel_diameter,
+    mirror_radius_m,
+    hole_radius_m,
+    impact_parameter_m,
+    phi_rad,
+    center_x_rad,
+    center_y_rad,
+    radius_rad,
+    ring_width_rad,
+    pixel_x_rad,
+    pixel_y_rad,
+    pixel_diameter_rad,
     oversampling=3,
-    min_lambda=300e-9,
-    max_lambda=600e-9
+    min_lambda_m=300e-9,
+    max_lambda_m=600e-9
 ):
     """Function for producing the expected image for a given set of trial
     muon parameters without using astropy units but expecting the input to
@@ -207,21 +207,24 @@ def image_prediction_no_units(
     """
 
     # First produce angular position of each pixel w.r.t muon center
-    ang = np.arctan2(pixel_y - center_y, pixel_x - center_x)
+    dx = pixel_x_rad - center_x_rad
+    dy = pixel_y_rad - center_y_rad
+    ang = np.arctan2(dy, dx)
     # Add muon rotation angle
-    ang += phi
+    ang += phi_rad
 
     # Produce smoothed muon profile
     ang_prof, profile = create_profile(
-        mirror_radius, hole_radius, impact_parameter, radius, phi, pixel_diameter, oversampling=oversampling,
+        mirror_radius_m, hole_radius_m, impact_parameter_m,
+        radius_rad, phi_rad, pixel_diameter_rad, oversampling=oversampling,
     )
 
     # Produce gaussian weight for each pixel given ring width
-    radial_dist = np.sqrt((pixel_x - center_x)**2 + (pixel_y - center_y)**2)
+    radial_dist = np.sqrt(dx**2 + dy**2)
     # The weight is the integral of the ring's radial gaussian profile inside the
     # ring's width
-    delta = pixel_diameter / 2
-    cdfs = norm.cdf([radial_dist + delta, radial_dist - delta], radius, ring_width)
+    delta = pixel_diameter_rad / 2
+    cdfs = norm.cdf([radial_dist + delta, radial_dist - delta], radius_rad, ring_width_rad)
     gauss = cdfs[0] - cdfs[1]
 
     # interpolate profile to find prediction for each pixel
@@ -231,11 +234,11 @@ def image_prediction_no_units(
     # get total number of photons per pixel
     # ^ would be per radian, but no need to put it here, would anyway cancel out below
 
-    pred *= alpha * (min_lambda**-1 - max_lambda**-1)
-    pred *= pixel_diameter / radius
+    pred *= alpha * (min_lambda_m**-1 - max_lambda_m**-1)
+    pred *= pixel_diameter_rad / radius_rad
     # multiply by angle (in radians) subtended by pixel width as seen from ring center
 
-    pred *= np.sin(2 * radius)
+    pred *= np.sin(2 * radius_rad)
 
     # multiply by gaussian weight, to account for "fraction of muon ring" which falls
     # within the pixel
@@ -363,20 +366,20 @@ def build_negative_log_likelihood(
 
         # Generate model prediction
         prediction = image_prediction_no_units(
-            mirror_radius=mirror_radius,
-            hole_radius=0,
-            impact_parameter=impact_parameter,
-            phi=phi,
-            center_x=center_x,
-            center_y=center_y,
-            radius=radius,
-            ring_width=ring_width,
-            pixel_x=pixel_x,
-            pixel_y=pixel_y,
-            pixel_diameter=pixel_diameter,
+            mirror_radius_m=mirror_radius,
+            hole_radius_m=0,
+            impact_parameter_m=impact_parameter,
+            phi_rad=phi,
+            center_x_rad=center_x,
+            center_y_rad=center_y,
+            radius_rad=radius,
+            ring_width_rad=ring_width,
+            pixel_x_rad=pixel_x,
+            pixel_y_rad=pixel_y,
+            pixel_diameter_rad=pixel_diameter,
             oversampling=oversampling,
-            min_lambda=min_lambda,
-            max_lambda=max_lambda,
+            min_lambda_m=min_lambda,
+            max_lambda_m=max_lambda,
         )
 
         # scale prediction by optical efficiency of array
@@ -420,11 +423,11 @@ class MuonIntensityFitter(TelescopeComponent):
         help="Width of a single photo electron distribution", default_value=0.5
     ).tag(config=True)
 
-    min_lambda = FloatTelescopeParameter(
+    min_lambda_m = FloatTelescopeParameter(
         help="Minimum wavelength for Cherenkov light in m", default_value=300e-9,
     ).tag(config=True)
 
-    max_lambda = FloatTelescopeParameter(
+    max_lambda_m = FloatTelescopeParameter(
         help="Minimum wavelength for Cherenkov light in m", default_value=600e-9,
     ).tag(config=True)
 
@@ -471,8 +474,8 @@ class MuonIntensityFitter(TelescopeComponent):
         negative_log_likelihood = build_negative_log_likelihood(
             image, telescope,
             oversampling=self.oversampling.tel[tel_id],
-            min_lambda=self.min_lambda.tel[tel_id] * u.m,
-            max_lambda=self.max_lambda.tel[tel_id] * u.m,
+            min_lambda=self.min_lambda_m.tel[tel_id] * u.m,
+            max_lambda=self.max_lambda_m.tel[tel_id] * u.m,
             spe_width=self.spe_width.tel[tel_id],
             pedestal=pedestal,
         )
