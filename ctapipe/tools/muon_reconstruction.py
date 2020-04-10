@@ -13,7 +13,7 @@ from ctapipe.containers import TelEventIndexContainer
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Provenance
 from ctapipe.core import Tool, ToolConfigurationError
-from ctapipe.core.traits import Unicode, IntTelescopeParameter
+from ctapipe.core.traits import Unicode, IntTelescopeParameter, FloatTelescopeParameter
 from ctapipe.io import EventSource
 from ctapipe.io import HDF5TableWriter
 from ctapipe.image.cleaning import TailcutsImageCleaner
@@ -39,6 +39,11 @@ class MuonAnalysis(Tool):
         default_value=100,
     ).tag(config=True)
 
+    pedestal = FloatTelescopeParameter(
+        help='Pedestal noise rms',
+        default_value=1.1,
+    ).tag(config=True)
+
     classes = [
         CameraCalibrator, EventSource, MuonRingFitter, MuonIntensityFitter,
     ]
@@ -48,8 +53,8 @@ class MuonAnalysis(Tool):
         'input': 'EventSource.input_url',
         'o': 'MuonAnalysis.output',
         'output': 'MuonAnalysis.output',
-        'max_events': 'EventSource.max_events',
-        'allowed_tels': 'EventSource.allowed_tels',
+        'max-events': 'EventSource.max_events',
+        'allowed-tels': 'EventSource.allowed_tels',
     }
 
     def setup(self):
@@ -80,6 +85,7 @@ class MuonAnalysis(Tool):
         self.pixels_in_tel_frame = {}
         self.field_of_view = {}
         self.min_pixels.attach_subarray(self.source.subarray)
+        self.pedestal.attach_subarray(self.source.subarray)
 
         self.tel_type_ids = {
             tid: hash(str(tel)) for tid, tel in self.source.subarray.tel.items()
@@ -162,7 +168,7 @@ class MuonAnalysis(Tool):
             ring.center_y,
             ring.radius,
             image,
-            pedestal=1.1,
+            pedestal=self.pedestal.tel[tel_id],
         )
 
         self.log.info(
