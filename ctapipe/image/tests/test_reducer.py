@@ -1,3 +1,5 @@
+
+import pytest
 import numpy as np
 from numpy.testing import assert_array_equal
 from scipy.stats import norm
@@ -9,18 +11,11 @@ from ctapipe.image.reducer import (
 )
 
 
-def test_null_data_volume_reducer():
-    waveforms = np.random.uniform(0, 1, (2048, 96))
-    reducer = NullDataVolumeReducer()
-    reduced_waveforms_mask = reducer(waveforms)
-    reduced_waveforms = waveforms.copy()
-    reduced_waveforms[~reduced_waveforms_mask] = 0
-    assert_array_equal(waveforms, reduced_waveforms)
-
-
-def test_tailcuts_data_volume_reducer():
+@pytest.fixture(scope='module')
+def subarray_lst():
+    telid = 1
     subarray = SubarrayDescription(
-        "test array lst",
+        "test array",
         tel_positions={1: np.zeros(3) * u.m, 2: np.ones(3) * u.m},
         tel_descriptions={
             1: TelescopeDescription.from_name(
@@ -29,57 +24,59 @@ def test_tailcuts_data_volume_reducer():
             2: TelescopeDescription.from_name(
                 optics_name="LST", camera_name="LSTCam"
             ),
-        }
+        },
     )
 
-    n_pixels = subarray.tel[1].camera.n_pixels
+    n_pixels = subarray.tel[telid].camera.geometry.n_pixels
     n_samples = 30
-    mid = n_samples // 2
-    pulse_sigma = 6
-    random = np.random.RandomState(1)
+    selected_gain_channel = np.zeros(n_pixels, dtype=np.int)
 
-    x = np.arange(n_samples)
+    return subarray, telid, selected_gain_channel, n_pixels, n_samples
 
-    # Randomize times
-    t_pulse = random.uniform(mid - 10, mid + 10, n_pixels)[:, np.newaxis]
 
-    # Create pulses
-    waveforms = norm.pdf(x, t_pulse, pulse_sigma)
+def test_null_data_volume_reducer(subarray_lst):
+    subarray, telid, selected_gain_channel, _, _ = subarray_lst
+    waveforms = np.random.uniform(0, 1, (2048, 96))
+    reducer = NullDataVolumeReducer(subarray=subarray)
+    reduced_waveforms_mask = reducer(waveforms)
+    reduced_waveforms = waveforms.copy()
+    reduced_waveforms[~reduced_waveforms_mask] = 0
+    assert_array_equal(waveforms, reduced_waveforms)
 
-    # Randomize amplitudes
-    waveforms *= random.uniform(100, 1000, n_pixels)[:, np.newaxis]
 
-    # create signal out of waveforms
-    waveforms_signal = np.zeros_like(waveforms, dtype=np.float)
+def test_tailcuts_data_volume_reducer(subarray_lst):
+    subarray, telid, selected_gain_channel, n_pixels, n_samples = subarray_lst
 
-    # created set of pixels are connected in one line, not in a blob
+    # create signal
+    waveforms_signal = np.zeros((n_pixels, n_samples), dtype=np.float)
+
     # Should be selected as core-pixel from Step 1) tailcuts_clean
-    waveforms_signal[9] = waveforms[3]
-    # waveforms[3] ~ 410.08pe after LocalPeakWindowSum
+    waveforms_signal[9] = 100
 
     # 10 and 8 as boundary-pixel from Step 1) tailcuts_clean
     # 6 and 5 as iteration-pixel in Step 2)
-    waveforms_signal[[10, 8, 6, 5]] = waveforms[0]
-    # waveforms[0] ~ 241.82pe after LocalPeakWindowSum
+    waveforms_signal[[10, 8, 6, 5]] = 50
 
     # pixels from dilate at the end in Step 3)
     waveforms_signal[[0, 1, 4, 7, 11, 13, 121, 122,
-                      136, 137, 257, 258, 267, 272]] = waveforms[2]
-    # waveforms[2] ~ 102.59pe after LocalPeakWindowSum
+                      136, 137, 257, 258, 267, 272]] = 25
+
     expected_waveforms = waveforms_signal.copy()
 
     # add some random pixels, which should not be selected
-    waveforms_signal[[50, 51, 135, 138, 54, 170, 210, 400]] = waveforms[2]
+    waveforms_signal[[50, 51, 135, 138, 54, 170, 210, 400]] = 25
 
     reducer = TailCutsDataVolumeReducer(subarray=subarray)
-    reducer.picture_thresh = 400
-    reducer.boundary_thresh = 200
+    reducer.picture_thresh = 700
+    reducer.boundary_thresh = 350
     reducer.end_dilates = 1
     reducer.keep_isolated_pixels = True
     reducer.min_number_picture_neighbors = 0
 
     reduced_waveforms = waveforms_signal.copy()
-    reduced_waveforms_mask = reducer(waveforms_signal, telid=1)
+    reduced_waveforms_mask = reducer(
+        waveforms_signal, telid=telid, selected_gain_channel=selected_gain_channel
+    )
     reduced_waveforms[~reduced_waveforms_mask] = 0
 
     assert (reduced_waveforms != 0).sum() == (1 + 4 + 14) * n_samples
