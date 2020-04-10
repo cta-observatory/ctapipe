@@ -6,10 +6,12 @@ import numpy as np
 from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.time import Time
+from ctapipe.eventsource import EventSource
 from eventio.file_types import is_eventio
 from eventio.simtel.simtelfile import SimTelFile
 
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
+from ctapipe.containers import EventAndMonDataContainer
 from ctapipe.core.traits import Bool, CaselessStrEnum
 from ctapipe.instrument import (
     TelescopeDescription,
@@ -21,8 +23,6 @@ from ctapipe.instrument import (
 )
 from ctapipe.instrument.camera import UnknownPixelShapeWarning
 from ctapipe.instrument.guess import guess_telescope, UNKNOWN_TELESCOPE
-from ctapipe.io.containers import EventAndMonDataContainer
-from ctapipe.io.eventsource import EventSource
 from io import BufferedReader
 
 __all__ = ["SimTelEventSource"]
