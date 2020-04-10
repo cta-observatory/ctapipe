@@ -168,7 +168,7 @@ class MuonAnalysis(Tool):
         self.log.info(
             f'Muon fit: r={ring.radius:.2f}'
             f', width={result.ring_width:.4f}'
-            f', efficiency={result.optical_efficiency_muon:.2%}',
+            f', efficiency={result.optical_efficiency:.2%}',
         )
 
         tel_event_index = TelEventIndexContainer(
