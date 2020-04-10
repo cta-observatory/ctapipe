@@ -135,5 +135,5 @@ Reference/API
 
 ------------------------------
 
-.. automodapi:: ctapipe.io.containers
+.. automodapi:: ctapipe.containers
     :no-inheritance-diagram:

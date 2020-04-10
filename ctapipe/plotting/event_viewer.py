@@ -98,7 +98,7 @@ class EventViewer(Component):
         # Loop over camera images of all telescopes and create plots
         for ii, tel_id in zip(range(ntels), tel_list):
             ax = plt.subplot(camera_grid[ii])
-            geom = event.inst.subarray.tel[tel_id].camera
+            geom = event.inst.subarray.tel[tel_id].camera.geometry
             self.get_camera_view(tel_id,
                                  image=images.tel[tel_id].image,
                                  axis=ax,

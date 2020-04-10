@@ -4,7 +4,7 @@ from numpy.testing import assert_allclose
 import numpy as np
 from astropy.coordinates import SkyCoord
 from ctapipe.coordinates import NominalFrame, AltAz, CameraFrame
-from ctapipe.io.containers import HillasParametersContainer
+from ctapipe.containers import HillasParametersContainer
 
 from ctapipe.io import event_source
 
@@ -251,7 +251,7 @@ def test_reconstruction():
 
         for tel_id in event.dl0.tels_with_data:
 
-            geom = event.inst.subarray.tel[tel_id].camera
+            geom = event.inst.subarray.tel[tel_id].camera.geometry
 
             telescope_pointings[tel_id] = SkyCoord(alt=event.pointing[tel_id].altitude,
                                                    az=event.pointing[tel_id].azimuth,

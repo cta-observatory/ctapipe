@@ -108,19 +108,21 @@ class CameraDisplay:
         self.geom = geometry
 
         if title is None:
-            title = geometry.cam_id
+            title = geometry.camera_name
 
         # initialize the plot and generate the pixels as a
         # RegularPolyCollection
 
         patches = []
 
-        if not hasattr(self.geom, "mask"):
-            self.geom.mask = np.ones_like(self.geom.pix_x.value, dtype=bool)
+        if hasattr(self.geom, "mask"):
+            self.mask = self.geom.mask
+        else:
+            self.mask = np.ones_like(self.geom.pix_x.value, dtype=bool)
 
-        pix_x = self.geom.pix_x.value[self.geom.mask]
-        pix_y = self.geom.pix_y.value[self.geom.mask]
-        pix_area = self.geom.pix_area.value[self.geom.mask]
+        pix_x = self.geom.pix_x.value[self.mask]
+        pix_y = self.geom.pix_y.value[self.mask]
+        pix_area = self.geom.pix_area.value[self.mask]
 
         for x, y, area in zip(pix_x, pix_y, pix_area):
             if self.geom.pix_type.startswith("hex"):
@@ -306,7 +308,7 @@ class CameraDisplay:
                 "given CameraGeometry {}"
             ).format(image.shape, self.geom.pix_x.shape))
 
-        self.pixels.set_array(np.ma.masked_invalid(image[self.geom.mask]))
+        self.pixels.set_array(np.ma.masked_invalid(image[self.mask]))
         self.pixels.changed()
         if self.autoscale:
             self.pixels.autoscale()

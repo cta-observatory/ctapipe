@@ -73,7 +73,6 @@ class MuonDisplayerTool(Tool):
         ))
         self.writer = self.add_component(HDF5TableWriter(self.outfile, "muons"))
 
-
     def start(self):
 
         numev = 0

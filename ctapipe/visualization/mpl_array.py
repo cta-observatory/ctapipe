@@ -156,26 +156,46 @@ class ArrayDisplay:
         kwargs:
             extra args passed to plt.quiver(), ignored on subsequent updates
         """
+        coords = self.tel_coords
+        uu = u.Quantity(uu).to_value("m")
+        vv = u.Quantity(vv).to_value("m")
+        N = len(coords.x)
+
+        # matplotlib since 3.2 does not allow scalars anymore 
+        # if quiver was already created with a certain number of arrows
+        if np.isscalar(uu):
+            uu = np.full(N, uu)
+        if np.isscalar(vv):
+            vv = np.full(N, vv)
+
+        # passing in None for C does not work, we need to provide
+        # a variadic number of arguments
+        args = [
+            coords.x.to_value("m"),
+            coords.y.to_value("m"),
+            uu,
+            vv,
+        ]
+
         if c is None:
-            c = self.tel_colors
+            # use colors by telescope type if the user did not provide any
+            kwargs['color'] = kwargs.get('color', self.tel_colors)
+        else:
+            # same as above, enable use of scalar to set all values at once
+            if np.isscalar(c):
+                c = np.full(N, c)
+            args.append(c)
 
         if self._quiver is None:
-            coords = self.tel_coords
             self._quiver = self.axes.quiver(
-                coords.x.to_value("m"),
-                coords.y.to_value("m"),
-                u.Quantity(uu).to_value("m"),
-                u.Quantity(vv).to_value("m"),
-                color=c,
+                *args,
                 scale_units="xy",
                 angles="xy",
                 scale=1,
                 **kwargs
             )
         else:
-            self._quiver.set_UVC(
-                u.Quantity(uu).to_value("m"), u.Quantity(vv).to_value("m")
-            )
+            self._quiver.set_UVC(uu, vv, c)
 
     def set_vector_rho_phi(self, rho, phi, c=None, **kwargs):
         """sets the vector field using R, Phi for each telescope

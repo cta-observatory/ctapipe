@@ -1,7 +1,7 @@
 """ Tests for TelescopeDescriptions """
 import pytest
 
-from ctapipe.instrument.camera import CameraGeometry
+from ctapipe.instrument.camera import CameraDescription
 from ctapipe.instrument.optics import OpticsDescription
 from ctapipe.instrument.telescope import TelescopeDescription
 
@@ -19,7 +19,7 @@ def test_hash():
             telescopes.append(
                 TelescopeDescription(name=name, tel_type=type,
                                      optics=OpticsDescription.from_name(name),
-                                     camera=CameraGeometry.from_name(camera))
+                                     camera=CameraDescription.from_name(camera))
             )
 
     assert len(telescopes) == 9
@@ -27,7 +27,7 @@ def test_hash():
 
 
 OPTICS_NAMES = OpticsDescription.get_known_optics_names()
-CAMERA_NAMES = CameraGeometry.get_known_camera_names()
+CAMERA_NAMES = CameraDescription.get_known_camera_names()
 
 
 @pytest.mark.parametrize("camera_name", CAMERA_NAMES)
@@ -37,6 +37,6 @@ def test_telescope_from_name(optics_name, camera_name):
     tel = TelescopeDescription.from_name(optics_name, camera_name)
     assert optics_name in str(tel)
     assert camera_name in str(tel)
-    assert tel.camera.pix_x.shape[0] > 0
+    assert tel.camera.geometry.pix_x.shape[0] > 0
     assert tel.optics.equivalent_focal_length.to("m") > 0
     assert tel.type in ["MST", "SST", "LST", "UNKNOWN"]

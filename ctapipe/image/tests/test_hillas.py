@@ -1,7 +1,7 @@
 from ctapipe.instrument import CameraGeometry
 from ctapipe.image import tailcuts_clean, toymodel
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
-from ctapipe.io.containers import HillasParametersContainer
+from ctapipe.containers import HillasParametersContainer
 from astropy.coordinates import Angle
 from astropy import units as u
 import numpy as np
@@ -202,3 +202,32 @@ def test_skewness():
             assert result.skewness == approx(-skew, abs=0.3)
 
         assert signal.sum() == result.intensity
+
+
+def test_straight_line_width_0():
+    ''' Test that hillas_parameters.width is 0 for a straight line of pixels '''
+    # three pixels in a straight line
+    long = np.array([0, 1, 2]) * 0.01
+    trans = np.zeros(len(long))
+    pix_id = np.arange(len(long))
+
+    np.random.seed(0)
+
+    for dx in (-1, 0, 1):
+        for dy in (-1, 0, 1):
+            for psi in np.linspace(0, np.pi, 20):
+                x = dx + np.cos(psi) * long + np.sin(psi) * trans
+                y = dy - np.sin(psi) * long + np.cos(psi) * trans
+
+                geom = CameraGeometry(
+                    camera_name='testcam',
+                    pix_id=pix_id,
+                    pix_x=x * u.m,
+                    pix_y=y * u.m,
+                    pix_type='hexagonal',
+                    pix_area=1 * u.m**2,
+                )
+
+                img = np.random.poisson(5, size=len(long))
+                result = hillas_parameters(geom, img)
+                assert result.width.value == 0
