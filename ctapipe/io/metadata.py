@@ -37,6 +37,8 @@ from traitlets import (
     validate,
 )
 
+from ctapipe.core.traits import DateTime
+
 from ctapipe.core.provenance import _ActivityProvenance
 
 __all__ = [
@@ -62,7 +64,7 @@ class Product(HasTraits):
     """Data product information"""
 
     description = Unicode("unknown")
-    creation_time = Unicode()
+    creation_time = DateTime()
     id_ = Unicode(help="leave unspecified to automatically generate a UUID")
     data_category = Enum(["S", "A", "B", "C", "Other"], "Other")
     data_level = Enum(
@@ -79,12 +81,6 @@ class Product(HasTraits):
     def default_time(self):
         """ return current time by default """
         return Time.now().iso
-
-    @validate("creation_time")
-    def valid_time(self, proposal):
-        """ check that time is in astropy allowable format """
-        thetime = Time(proposal["value"])
-        return thetime.iso
 
     @default("id_")
     def default_product_id(self):
@@ -118,7 +114,7 @@ class Activity(HasTraits):
     name = Unicode()
     type_ = Unicode("software")
     id_ = Unicode()
-    start_time = Unicode()
+    start_time = DateTime()
     software_name = Unicode("unknown")
     software_version = Unicode("unknown")
 

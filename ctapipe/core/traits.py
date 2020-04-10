@@ -3,6 +3,7 @@ from collections import UserList
 from fnmatch import fnmatch
 from typing import Optional
 import copy
+from astropy.time import Time
 
 from traitlets import (
     Bool,
@@ -48,11 +49,26 @@ __all__ = [
     "TelescopeParameter",
     "FloatTelescopeParameter",
     "IntTelescopeParameter",
+    "DateTime"
 ]
 
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+class DateTime(TraitType):
+    """ A trait representing a point in Time, as understood by `astropy.time`"""
+    def validate(self, obj, value):
+        """ try to parse and return an ISO time string """
+        try:
+            the_time = Time(value)
+            return the_time.iso
+        except ValueError as err:
+            raise TraitError(
+                f"Time values should be in a format understandable by astropy.time ("
+                f"{err})"
+            )
 
 
 class Path(TraitType):
