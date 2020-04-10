@@ -540,9 +540,9 @@ class MuonIntensityFitter(TelescopeComponent):
         result = minuit.values
 
         return MuonIntensityParameter(
-            impact_parameter=result['impact_parameter'] * u.m,
-            impact_parameter_pos_x=result['impact_parameter'] * np.cos(result['phi'] * u.rad) * u.m,
-            impact_parameter_pos_y=result['impact_parameter'] * np.sin(result['phi'] * u.rad) * u.m,
+            impact=result['impact_parameter'] * u.m,
+            impact_x=result['impact_parameter'] * np.cos(result['phi']) * u.m,
+            impact_y=result['impact_parameter'] * np.sin(result['phi']) * u.m,
             ring_width=u.Quantity(np.rad2deg(result['ring_width']), u.deg),
-            optical_efficiency_muon=result['optical_efficiency_muon'],
+            optical_efficiency=result['optical_efficiency_muon'],
         )
