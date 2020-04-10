@@ -1,10 +1,3 @@
-"""
-Detect and extract muon ring parameters, and write the muon ring and
-intensity parameters to an output table.
-
-The resulting output can be read e.g. using for example
-`pandas.read_hdf(filename, 'muons/LSTCam')`
-"""
 from tqdm import tqdm
 import numpy as np
 from astropy.coordinates import SkyCoord
@@ -22,6 +15,13 @@ from ctapipe.image.muon import MuonRingFitter, MuonIntensityFitter, ring_contain
 
 
 class MuonAnalysis(Tool):
+    """
+    Detect and extract muon ring parameters, and write the muon ring and
+    intensity parameters to an output table.
+
+    The resulting output can be read e.g. using for example
+    `pandas.read_hdf(filename, 'dl1/event/telescope/parameters/muon')`
+    """
     name = 'ctapipe-reconstruct-muons'
     description = Unicode(__doc__)
 
@@ -101,7 +101,7 @@ class MuonAnalysis(Tool):
         for tel_id, dl1 in event.dl1.tel.items():
             self.process_telescope_event(event.index, tel_id, dl1)
 
-        self.writer.write('sim/event/subarray', [event.index, event.mc])
+        self.writer.write('sim/event/subarray/shower', [event.index, event.mc])
 
     def process_telescope_event(self, event_index, tel_id, dl1):
         event_id = event_index.event_id
@@ -182,7 +182,7 @@ class MuonAnalysis(Tool):
         )
 
         self.writer.write(
-            f'dl1/event/telescope/parameters/muons',
+            'dl1/event/telescope/parameters/muons',
             [event_index, tel_event_index, ring, result]
         )
 
