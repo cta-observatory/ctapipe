@@ -551,10 +551,6 @@ class MuonRingParameter(Container):
     center_distance = Field(
         nan * u.deg, "Distance of ring center from camera center", unit=u.deg
     )
-    chi2_fit = Field(nan, "chisquare of the muon ring fit", unit=u.deg)
-    cov_matrix = Field(
-        np.full((3, 3), nan), "covariance matrix of the muon ring fit"
-    )
     containment = Field(nan, "containment of the ring inside the camera")
 
 

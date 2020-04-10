@@ -8,6 +8,7 @@ The resulting output can be read e.g. using for example
 from tqdm import tqdm
 import numpy as np
 from astropy.coordinates import SkyCoord
+from ctapipe.containers import TelEventIndexContainer
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Provenance
@@ -17,7 +18,7 @@ from ctapipe.io import EventSource
 from ctapipe.io import HDF5TableWriter
 from ctapipe.image.cleaning import TailcutsImageCleaner
 from ctapipe.coordinates import TelescopeFrame, CameraFrame
-from ctapipe.image.muon import MuonRingFitter, MuonIntensityFitter
+from ctapipe.image.muon import MuonRingFitter, MuonIntensityFitter, ring_containment
 
 
 class MuonAnalysis(Tool):
@@ -74,10 +75,15 @@ class MuonAnalysis(Tool):
             )
         )
         self.writer = self.add_component(HDF5TableWriter(
-            self.output, "dl1", add_prefix=True
+            self.output, "", add_prefix=True
         ))
         self.pixels_in_tel_frame = {}
+        self.field_of_view = {}
         self.min_pixels.attach_subarray(self.source.subarray)
+
+        self.tel_type_ids = {
+            tid: hash(str(tel)) for tid, tel in self.source.subarray.tel.items()
+        }
 
     def start(self):
         for event in tqdm(self.source, desc='Processing events: '):
@@ -89,7 +95,7 @@ class MuonAnalysis(Tool):
         for tel_id, dl1 in event.dl1.tel.items():
             self.process_telescope_event(event.index, tel_id, dl1)
 
-        self.writer.write('mc', [event.index, event.mc])
+        self.writer.write('sim/event/subarray', [event.index, event.mc])
 
     def process_telescope_event(self, event_index, tel_id, dl1):
         event_id = event_index.event_id
@@ -112,13 +118,16 @@ class MuonAnalysis(Tool):
             )
             return
 
-        if tel_id not in self.pixels_in_tel_frame:
-            self.pixels_in_tel_frame[tel_id] = self.pixel_to_telescope_frame(tel_id)
+        pixel_coords = self.get_pixel_coords(tel_id)
+        fov_radius = self.get_fov(tel_id)
 
         pixel_coords = self.pixels_in_tel_frame[tel_id]
         x = pixel_coords.delta_az
         y = pixel_coords.delta_alt
 
+        # iterative ring fit. First use cleaning pixels,
+        # then pixels closes to the ring
+        # three iterations to be enought for most rings
         mask = clean_mask
         for i in range(3):
             ring = self.ring_fitter(x, y, image, mask)
@@ -135,6 +144,14 @@ class MuonAnalysis(Tool):
         if np.isnan([ring.radius.value, ring.center_x.value, ring.center_y.value]).any():
             self.log.debug(f'Skipping event {event_id}-{tel_id}: Ring fit did not succeed')
             return
+
+        # add ring containment, not filled in fit
+        ring.containment = ring_containment(
+            ring.radius,
+            fov_radius,
+            ring.center_x,
+            ring.center_y,
+        )
 
         # intensity_fitter does not support a mask yet, set ignored pixels to 0
         image[~mask] = 0
@@ -154,19 +171,44 @@ class MuonAnalysis(Tool):
             f', efficiency={result.optical_efficiency_muon:.2%}',
         )
 
-        self.writer.write(
-            f'muons/tel_{tel_id:03d}', [event_index, ring, result]
+        tel_event_index = TelEventIndexContainer(
+            tel_id=tel_id, tel_type_id=self.tel_type_ids[tel_id]
         )
 
-    def pixel_to_telescope_frame(self, tel_id):
-        telescope = self.source.subarray.tel[tel_id]
-        cam = telescope.camera.geometry
-        camera_frame = CameraFrame(
-            focal_length=telescope.optics.equivalent_focal_length,
-            rotation=cam.cam_rotation,
+        self.writer.write(
+            f'dl1/event/telescope/parameters/muons',
+            [event_index, tel_event_index, ring, result]
         )
-        cam_coords = SkyCoord(x=cam.pix_x, y=cam.pix_y, frame=camera_frame)
-        return cam_coords.transform_to(TelescopeFrame())
+
+    def get_fov(self, tel_id):
+        '''Guesstimate fov radius for telescope with id `tel_id`'''
+        # memoize fov calculation
+        if tel_id not in self.field_of_view:
+            cam = self.source.subarray.tel[tel_id].camera.geometry
+            border = cam.get_border_pixel_mask()
+
+            pixel_coords = self.get_pixel_coords(tel_id)[border]
+            self.field_of_view[tel_id] = np.sqrt(
+                pixel_coords.delta_alt**2 + pixel_coords.delta_az**2
+            ).mean()
+
+        return self.field_of_view[tel_id]
+
+    def get_pixel_coords(self, tel_id):
+        '''Get pixel coords in telescope frame for telescope with id `tel_id`'''
+        # memoize transformation
+        if tel_id not in self.pixels_in_tel_frame:
+            telescope = self.source.subarray.tel[tel_id]
+            cam = telescope.camera.geometry
+            camera_frame = CameraFrame(
+                focal_length=telescope.optics.equivalent_focal_length,
+                rotation=cam.cam_rotation,
+            )
+            cam_coords = SkyCoord(x=cam.pix_x, y=cam.pix_y, frame=camera_frame)
+            tel_coord = cam_coords.transform_to(TelescopeFrame())
+            self.pixels_in_tel_frame[tel_id] = tel_coord
+
+        return self.pixels_in_tel_frame[tel_id]
 
     def finish(self):
         Provenance().add_output_file(

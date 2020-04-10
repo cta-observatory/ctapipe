@@ -14,6 +14,7 @@ from astropy import units as u
 from scipy.constants import alpha
 from scipy.stats import norm
 from astropy.coordinates import SkyCoord
+from functools import lru_cache
 
 from ...containers import MuonIntensityParameter
 from ...coordinates import CameraFrame, TelescopeFrame
@@ -98,6 +99,11 @@ def pixels_on_ring(radius, pixel_diameter):
     return int(n_pixels.to_value(u.dimensionless_unscaled))
 
 
+@lru_cache(maxsize=1000)
+def linspace_two_pi(n_points):
+    return np.linspace(-np.pi, np.pi, n_points)
+
+
 def create_profile(mirror_radius, hole_radius, impact_parameter, radius, phi, pixel_diameter, oversampling=3):
     """
     Perform intersection over all angles and return length
@@ -119,7 +125,7 @@ def create_profile(mirror_radius, hole_radius, impact_parameter, radius, phi, pi
     circumference = 2 * np.pi * radius
     pixels_on_circle = int(circumference / pixel_diameter)
 
-    ang = phi + np.linspace(-np.pi, np.pi, pixels_on_circle * oversampling)
+    ang = phi + linspace_two_pi(pixels_on_circle * oversampling)
 
     length = intersect_circle(mirror_radius, impact_parameter, ang, hole_radius)
     length = correlate1d(length, np.ones(oversampling), mode='wrap', axis=0)
@@ -480,7 +486,8 @@ class MuonIntensityFitter(TelescopeComponent):
         telescope = self.subarray.tel[tel_id]
         if telescope.optics.num_mirrors != 1:
             raise NotImplementedError(
-                f'Currently only single telescopes are supported in {self.__class__.__name__}'
+                'Currently only single mirror telescopes'
+                f' are supported in {self.__class__.__name__}'
             )
 
         negative_log_likelihood = build_negative_log_likelihood(
