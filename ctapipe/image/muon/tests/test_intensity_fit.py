@@ -35,7 +35,7 @@ def test_muon_efficiency_fit():
     ring_width = 0.05 * u.deg
     impact_parameter = 5 * u.m
     phi = 0 * u.rad
-    efficiency = 0.3
+    efficiency = 0.5
 
     focal_length = telescope.optics.equivalent_focal_length
     geom = telescope.camera.geometry
@@ -75,9 +75,11 @@ def test_muon_efficiency_fit():
         pedestal=np.full_like(image, 1.1)
     )
 
-    assert u.isclose(result['impact_parameter'], impact_parameter, rtol=0.05)
+    print(result)
+
+    assert u.isclose(result['impact'], impact_parameter, rtol=0.05)
     assert u.isclose(result['ring_width'], ring_width, rtol=0.05)
-    assert u.isclose(result['optical_efficiency_muon'], efficiency, rtol=0.05)
+    assert u.isclose(result['optical_efficiency'], efficiency, rtol=0.05)
 
 
 def test_scts():
@@ -91,7 +93,7 @@ def test_scts():
 
     fitter = MuonIntensityFitter(subarray=subarray)
     with pytest.raises(NotImplementedError):
-        fitter.fit(
+        fitter(
             tel_id=0,
             center_x=0 * u.deg,
             center_y=2 * u.deg,

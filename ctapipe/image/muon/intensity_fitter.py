@@ -186,8 +186,8 @@ def image_prediction(
         pixel_y.to_value(u.rad),
         pixel_diameter.to_value(u.rad),
         oversampling=oversampling,
-        min_lambda=min_lambda.to_value(u.m),
-        max_lambda=max_lambda.to_value(u.m),
+        min_lambda_m=min_lambda.to_value(u.m),
+        max_lambda_m=max_lambda.to_value(u.m),
     )
 
 
