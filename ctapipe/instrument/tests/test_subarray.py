@@ -4,7 +4,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 
 from ctapipe.instrument import (
-    CameraGeometry,
+    CameraDescription,
     OpticsDescription,
     SubarrayDescription,
     TelescopeDescription,
@@ -40,7 +40,7 @@ def test_subarray_description():
     assert sub.tel[1].camera is not None
     assert 0 not in sub.tel  # check that there is no tel 0 (1 is first above)
     assert len(sub.camera_types) == 1  # only 1 camera type
-    assert isinstance(sub.camera_types[0], CameraGeometry)
+    assert isinstance(sub.camera_types[0], CameraDescription)
     assert isinstance(sub.telescope_types[0], TelescopeDescription)
     assert isinstance(sub.optics_types[0], OpticsDescription)
     assert len(sub.telescope_types) == 1  # only have one type in this array

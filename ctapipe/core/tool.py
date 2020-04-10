@@ -6,7 +6,8 @@ from abc import abstractmethod
 from traitlets import Unicode
 from traitlets.config import Application, Configurable
 
-from ctapipe import __version__ as version
+from .. import __version__ as version
+from .traits import Path
 from . import Provenance
 from .logging import ColoredFormatter
 
@@ -99,8 +100,10 @@ class Tool(Application):
 
     """
 
-    config_file = Unicode(
-        "",
+    config_file = Path(
+        None,
+        exists=True,
+        directory_ok=False,
         help=(
             "name of a configuration file with "
             "parameters to load in addition to "
@@ -130,13 +133,16 @@ class Tool(Application):
     def initialize(self, argv=None):
         """ handle config and any other low-level setup """
         self.parse_command_line(argv)
-        if self.config_file != "":
+        if self.config_file is not None:
             self.log.debug(f"Loading config from '{self.config_file}'")
             try:
                 self.load_config_file(self.config_file)
             except Exception as err:
                 raise ToolConfigurationError(f"Couldn't read config file: {err}")
         self.log.info(f"ctapipe version {self.version_string}")
+
+        # ensure command-line takes precedence over config file options:
+        self.update_config(self.cli_config)
 
     def add_component(self, component_instance):
         """
@@ -197,6 +203,12 @@ class Tool(Application):
             command-line arguments, or None to get them
             from sys.argv automatically
         """
+
+        # return codes are taken from:
+        #  http://tldp.org/LDP/abs/html/exitcodes.html
+
+        exit_status = 0
+
         try:
             self.initialize(argv)
             self.log.info(f"Starting: {self.name}")
@@ -211,15 +223,15 @@ class Tool(Application):
             Provenance().finish_activity(activity_name=self.name)
         except ToolConfigurationError as err:
             self.log.error(f"{err}.  Use --help for more info")
-        except RuntimeError as err:
-            self.log.error(f"Caught unexpected exception: {err}")
-            self.finish()
-            Provenance().finish_activity(activity_name=self.name, status="error")
-            raise
+            exit_status = 2  # wrong cmd line parameter
         except KeyboardInterrupt:
             self.log.warning("WAS INTERRUPTED BY CTRL-C")
-            self.finish()
             Provenance().finish_activity(activity_name=self.name, status="interrupted")
+            exit_status = 130  # Script terminated by Control-C
+        except Exception as err:
+            self.log.exception(f"Caught unexpected exception: {err}")
+            Provenance().finish_activity(activity_name=self.name, status="error")
+            exit_status = 1  # any other error
         finally:
             for activity in Provenance().finished_activities:
                 output_str = " ".join([x["url"] for x in activity.output])
@@ -228,6 +240,8 @@ class Tool(Application):
             self.log.debug("PROVENANCE: '%s'", Provenance().as_json(indent=3))
             with open("provenance.log", mode="w+") as provlog:
                 provlog.write(Provenance().as_json(indent=3))
+
+        self.exit(exit_status)
 
     @property
     def version_string(self):
@@ -351,3 +365,19 @@ def export_tool_config_to_commented_yaml(tool_instance: Tool, classes=None):
         lines.append(f"    {name}: {current_repr}")
         lines.append("")
     return "\n".join(lines)
+
+
+def run_tool(tool: Tool, argv=None):
+    '''
+    Utility run a certain tool in a python session without exitinig
+
+    Returns
+    -------
+    exit_code: int
+        The return code of the tool, 0 indicates success, everything else an error
+    '''
+    try:
+        tool.run(argv or [])
+        return 0
+    except SystemExit as e:
+        return e.code

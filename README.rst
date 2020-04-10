@@ -1,13 +1,12 @@
-=======
+=========================================================
 ctapipe |teststatus| |codacy| |coverage| |conda| |doiv07|
-=======
+=========================================================
 
 .. |teststatus| image:: https://travis-ci.org/cta-observatory/ctapipe.svg?branch=master
     :target: https://travis-ci.org/cta-observatory/ctapipe
     :alt: Test Status
-.. |codacy| image:: https://api.codacy.com/project/badge/Grade/d4f525fcb5d1421eb3a93dfa4eb5573d
-    :target: https://www.codacy.com/app/karl.kosack/ctapipe?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=cta-observatory/ctapipe&amp;utm_campaign=Badge_Grade
-    :alt: Code Quality
+.. |codacy|  image:: https://api.codacy.com/project/badge/Grade/6192b471956b4cc684130c80c8214115   
+  :target: https://www.codacy.com/gh/cta-observatory/ctapipe?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=cta-observatory/ctapipe&amp;utm_campaign=Badge_Grade
 .. |conda| image:: https://anaconda.org/cta-observatory/ctapipe/badges/installer/conda.svg
 .. |coverage| image:: https://codecov.io/gh/cta-observatory/ctapipe/branch/master/graph/badge.svg
   :target: https://codecov.io/gh/cta-observatory/ctapipe

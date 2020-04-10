@@ -1,6 +1,6 @@
 import numpy as np
 from ctapipe.calib.camera.flatfield import *
-from ctapipe.io.containers import EventAndMonDataContainer
+from ctapipe.containers import EventAndMonDataContainer
 from traitlets.config.loader import Config
 import astropy.units as u
 from ctapipe.instrument import SubarrayDescription, TelescopeDescription
@@ -23,6 +23,8 @@ def test_flasherflatfieldcalculator():
             ),
         }
     )
+    subarray.tel[0].camera.readout.reference_pulse_shape = np.ones((1, 2))
+    subarray.tel[0].camera.readout.reference_pulse_step = u.Quantity(1, u.ns)
 
     config = Config({
         "FixedWindowSum": {

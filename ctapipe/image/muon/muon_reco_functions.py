@@ -2,19 +2,17 @@ import logging
 import warnings
 
 import numpy as np
-from astropy import log
 from astropy import units as u
 from astropy.coordinates import Angle, SkyCoord, AltAz
-from astropy.utils.decorators import deprecated
 
 from ctapipe.coordinates import CameraFrame, NominalFrame
-from ctapipe.image.cleaning import tailcuts_clean
-from ctapipe.image.muon.features import ring_containment
-from ctapipe.image.muon.features import ring_completeness
-from ctapipe.image.muon.features import npix_above_threshold
-from ctapipe.image.muon.features import npix_composing_ring
-from ctapipe.image.muon.muon_integrator import MuonLineIntegrate
-from ctapipe.image.muon.muon_ring_finder import MuonRingFitter
+from ..cleaning import tailcuts_clean
+from .features import ring_containment
+from .features import ring_completeness
+from .features import npix_above_threshold
+from .features import npix_composing_ring
+from .muon_integrator import MuonLineIntegrate
+from .ring_fitter import MuonRingFitter
 
 logger = logging.getLogger(__name__)
 
@@ -138,11 +136,11 @@ def analyze_muon_event(event):
 
         # Get geometry
         teldes = event.inst.subarray.tel[telid]
-        geom = teldes.camera
+        geom = teldes.camera.geometry
         x, y = geom.pix_x, geom.pix_y
 
         dict_index = muon_cuts["Name"].index(str(teldes))
-        logger.debug("found an index of %d for camera %d", dict_index, geom.cam_id)
+        logger.debug("found an index of %d for camera %d", dict_index, geom.camera_name)
 
         tailcuts = muon_cuts["tail_cuts"][dict_index]
         logger.debug("Tailcuts are %s", tailcuts)
@@ -185,41 +183,29 @@ def analyze_muon_event(event):
             "img: %s mask: %s, x=%s y= %s", np.sum(image), np.sum(clean_mask), x, y
         )
 
-        if not sum(img):  # Nothing left after tail cuts
+        if img.sum() <= 0:  # Nothing left after tail cuts
             continue
 
         muonringparam = muon_ring_fit(x, y, image, clean_mask)
 
-        dist = np.sqrt(
-            np.power(x - muonringparam.ring_center_x, 2)
-            + np.power(y - muonringparam.ring_center_y, 2)
-        )
-        ring_dist = np.abs(dist - muonringparam.ring_radius)
+        for i in range(2):
+            dist = np.sqrt(
+                (x - muonringparam.center_x)**2
+                + (y - muonringparam.center_y)**2
+            )
+            ring_dist = np.abs(dist - muonringparam.radius)
 
-        muonringparam = muon_ring_fit(
-            x, y, img, (ring_dist < muonringparam.ring_radius * 0.4)
-        )
+            muonringparam = muon_ring_fit(
+                x, y, img, (ring_dist < muonringparam.radius * 0.4)
+            )
 
-        dist = np.sqrt(
-            np.power(x - muonringparam.ring_center_x, 2)
-            + np.power(y - muonringparam.ring_center_y, 2)
-        )
-        ring_dist = np.abs(dist - muonringparam.ring_radius)
-
-        muonringparam = muon_ring_fit(
-            x, y, img, (ring_dist < muonringparam.ring_radius * 0.4)
-        )
-
-        muonringparam.tel_id = telid
-        muonringparam.obs_id = event.dl0.obs_id
-        muonringparam.event_id = event.dl0.event_id
         dist_mask = (
-            np.abs(dist - muonringparam.ring_radius) < muonringparam.ring_radius * 0.4
+            np.abs(dist - muonringparam.radius) < muonringparam.radius * 0.4
         )
         pix_im = image * dist_mask
         nom_dist = np.sqrt(
-            np.power(muonringparam.ring_center_x, 2)
-            + np.power(muonringparam.ring_center_y, 2)
+            (muonringparam.center_x)**2
+            + (muonringparam.center_y)**2
         )
 
         minpix = muon_cuts["min_pix"][dict_index]  # 0.06*numpix #or 8%
@@ -234,14 +220,14 @@ def analyze_muon_event(event):
             npix_above_threshold(pix_im, tailcuts[0]) > 0.1 * minpix
             and npix_composing_ring(pix_im) > minpix
             and nom_dist < muon_cuts["CamRad"][dict_index]
-            and muonringparam.ring_radius < 1.5 * u.deg
-            and muonringparam.ring_radius > 1.0 * u.deg
+            and muonringparam.radius < 1.5 * u.deg
+            and muonringparam.radius > 1.0 * u.deg
         ):
-            muonringparam.ring_containment = ring_containment(
-                muonringparam.ring_radius,
+            muonringparam.containment = ring_containment(
+                muonringparam.radius,
                 muon_cuts["CamRad"][dict_index],
-                muonringparam.ring_center_x,
-                muonringparam.ring_center_y,
+                muonringparam.center_x,
+                muonringparam.center_y,
             )
 
             # Guess HESS is 0.16
@@ -268,9 +254,9 @@ def analyze_muon_event(event):
 
             if image.shape[0] == muon_cuts["total_pix"][dict_index]:
                 muonintensityoutput = ctel.fit_muon(
-                    muonringparam.ring_center_x,
-                    muonringparam.ring_center_y,
-                    muonringparam.ring_radius,
+                    muonringparam.center_x,
+                    muonringparam.center_y,
+                    muonringparam.radius,
                     x[dist_mask],
                     y[dist_mask],
                     image[dist_mask],
@@ -286,15 +272,15 @@ def analyze_muon_event(event):
                     x[idx_ring],
                     y[idx_ring],
                     pix_im[idx_ring],
-                    muonringparam.ring_radius,
-                    muonringparam.ring_center_x,
-                    muonringparam.ring_center_y,
+                    muonringparam.radius,
+                    muonringparam.center_x,
+                    muonringparam.center_y,
                     threshold=30,
                     bins=30,
                 )
                 muonintensityoutput.ring_size = np.sum(pix_im)
 
-                dist_ringwidth_mask = np.abs(dist - muonringparam.ring_radius) < (
+                dist_ringwidth_mask = np.abs(dist - muonringparam.radius) < (
                     muonintensityoutput.ring_width
                 )
                 pix_ringwidth_im = image * dist_ringwidth_mask
@@ -335,31 +321,3 @@ def analyze_muon_event(event):
                     continue
 
     return muon_event_param
-
-
-@deprecated("0.6")
-def analyze_muon_source(source):
-    """
-    Generator for analyzing all the muon events
-
-    Parameters
-    ----------
-    source : ctapipe.io.EventSource
-        input event source
-
-    Returns
-    -------
-    analyzed_muon : container
-    A ctapipe event container (MuonParameter) with muon information
-
-    """
-    log.info(f"[FUNCTION] {__name__}")
-
-    if geom_dict is None:
-        geom_dict = {}
-    numev = 0
-    for event in source:  # Put a limit on number of events
-        numev += 1
-        analyzed_muon = analyze_muon_event(event)
-
-        yield analyzed_muon

@@ -1,27 +1,16 @@
 #!/usr/bin/env python
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-import sys
 
 # import ah_bootstrap
 from setuptools import setup, find_packages
 
-# Get some values from the setup.cfg
-from configparser import RawConfigParser
-conf = RawConfigParser()
-conf.read(['setup.cfg'])
-metadata = dict(conf.items('metadata'))
+import sys
+import os
+# pep 517 builds do not have cwd in PATH by default
+sys.path.insert(0, os.path.dirname(__file__))
+# Get the long and version description from the package's docstring
+import ctapipe  # noqa
 
-PACKAGENAME = metadata['package_name']
-DESCRIPTION = metadata['description']
-AUTHOR = metadata['author']
-AUTHOR_EMAIL = metadata['author_email']
-LICENSE = metadata['license']
-URL = metadata['url']
-
-# Get the long description from the package's docstring
-__import__(PACKAGENAME)
-package = sys.modules[PACKAGENAME]
-LONG_DESCRIPTION = package.__doc__
 
 # Define entry points for command-line scripts
 # TODO: this shuold be automated (e.g. look for main functions and
@@ -43,7 +32,7 @@ entry_points['console_scripts'] = [
 ]
 tests_require = [
     'pytest',
-    'ctapipe-extra @ https://github.com/cta-observatory/ctapipe-extra/archive/v0.2.18.tar.gz',
+    'ctapipe-extra @ https://github.com/cta-observatory/ctapipe-extra/archive/v0.2.19.tar.gz',
     'pyhessio @ https://github.com/cta-observatory/pyhessio/archive/v2.1.1.tar.gz',
 ]
 docs_require = [
@@ -51,58 +40,54 @@ docs_require = [
     'jupyter', 'notebook', 'travis-sphinx', 'graphviz',
 ]
 
-package.version.update_release_version()
+ctapipe.version.update_release_version()
 
-setup(name=PACKAGENAME,
-      packages=find_packages(),
-      version=package.version.get_version(pep440=True),
-      description=DESCRIPTION,
-      python_requires='>=3.6',
-      # these should be minimum list of what is needed to run (note
-      # don't need to list the sub-dependencies like numpy, since
-      # astropy already depends on it)
-      install_requires=[
-          'astropy~=3.0',
-          'bokeh~=1.0',
-          'eventio~=1.0',
-          'iminuit>=1.3',
-          'joblib',
-          'matplotlib~=3.0',
-          'numba>=0.43',
-          'numpy~=1.11',
-          'pandas>=0.24.0',
-          'psutil',
-          'scikit-learn',
-          'scipy~=1.2',
-          'tables~=3.4',
-          'tqdm>=4.32',
-          'traitlets>=4.1,<5.0',
-      ],
-      # here are optional dependencies (as "tag" : "dependency spec")
-      extras_require={
-          'all': tests_require + docs_require,
-          'tests': tests_require,
-          'docs': docs_require,
-      },
-      tests_require=tests_require,
-      setup_requires=['pytest_runner'],
-      author=AUTHOR,
-      author_email=AUTHOR_EMAIL,
-      license=LICENSE,
-      url=URL,
-      long_description=LONG_DESCRIPTION,
-      classifiers=[
-          'Intended Audience :: Science/Research',
-          'License :: OSI Approved :: BSD License',
-          'Programming Language :: Python :: 3',
-          'Programming Language :: Python :: Implementation :: CPython',
-          'Topic :: Scientific/Engineering :: Astronomy',
-          'Development Status :: 3 - Alpha',
-      ],
-      zip_safe=False,
-      use_2to3=False,
-      entry_points=entry_points,
-      package_data={
-          '': ['tools/bokeh/*.yaml', 'tools/bokeh/templates/*.html'],
-      }
-      )
+setup(
+    packages=find_packages(),
+    version=ctapipe.version.get_version(pep440=True),
+    python_requires='>=3.6',
+    # these should be minimum list of what is needed to run (note
+    # don't need to list the sub-dependencies like numpy, since
+    # astropy already depends on it)
+    install_requires=[
+        'astropy>=3,<5',
+        'bokeh~=1.0',
+        'eventio~=1.0',
+        'iminuit>=1.3',
+        'joblib',
+        'matplotlib~=3.0',
+        'numba>=0.43',
+        'numpy~=1.16',
+        'pandas>=0.24.0',
+        'psutil',
+        'scikit-learn',
+        'scipy~=1.2',
+        'tables~=3.4',
+        'tqdm>=4.32',
+        'traitlets>=4.1,<5.0',
+    ],
+    # here are optional dependencies (as "tag" : "dependency spec")
+    extras_require={
+        'all': tests_require + docs_require,
+        'tests': tests_require,
+        'docs': docs_require,
+    },
+    tests_require=tests_require,
+    setup_requires=['pytest_runner'],
+    classifiers=[
+        'Intended Audience :: Science/Research',
+        'License :: OSI Approved :: BSD License',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: Implementation :: CPython',
+        'Topic :: Scientific/Engineering :: Astronomy',
+        'Development Status :: 3 - Alpha',
+    ],
+    zip_safe=False,
+    use_2to3=False,
+    entry_points=entry_points,
+    package_data={
+        '': ['tools/bokeh/*.yaml', 'tools/bokeh/templates/*.html'],
+    },
+)
