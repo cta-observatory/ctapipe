@@ -94,6 +94,13 @@ class MuonAnalysis(Tool):
     def process_telescope_event(self, event_index, tel_id, dl1):
         event_id = event_index.event_id
 
+        if self.source.subarray.tel[tel_id].optics.num_mirrors != 1:
+            self.log.warn(
+                f'Skipping non-single mirror telescope {tel_id}'
+                ' set --allowed_tels to get rid of this warning'
+            )
+            return
+
         self.log.debug(f'Processing event {event_id}, telescope {tel_id}')
         image = dl1.image
         clean_mask = self.cleaning(tel_id, image)
