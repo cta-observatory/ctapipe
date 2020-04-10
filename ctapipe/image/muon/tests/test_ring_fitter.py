@@ -1,5 +1,4 @@
 import pytest
-import numpy as np
 import astropy.units as u
 from ctapipe.instrument import CameraGeometry
 from ctapipe.image.muon import MuonRingFitter
@@ -18,11 +17,11 @@ def test_MuonRingFitter(method):
     # flashCam example
     center_xs = 0.3 * u.m
     center_ys = 0.6 * u.m
-    ring_radius = 0.3 * u.m
-    ring_width = 0.05 * u.m
+    radius = 0.3 * u.m
+    width = 0.05 * u.m
 
     muon_model = toymodel.RingGaussian(
-        x=center_xs, y=center_ys, radius=ring_radius, sigma=ring_width,
+        x=center_xs, y=center_ys, radius=radius, sigma=width,
     )
 
     # testing with flashcam
@@ -34,8 +33,8 @@ def test_MuonRingFitter(method):
     fit_result = muonfit(geom.pix_x, geom.pix_y, charge, survivors)
 
     print(fit_result)
-    print(center_xs, center_ys, ring_radius)
+    print(center_xs, center_ys, radius)
 
-    assert u.isclose(fit_result.ring_center_x, center_xs, 5e-2)
-    assert u.isclose(fit_result.ring_center_y, center_ys, 5e-2)
-    assert u.isclose(fit_result.ring_radius, ring_radius, 5e-2)
+    assert u.isclose(fit_result.center_x, center_xs, 5e-2)
+    assert u.isclose(fit_result.center_y, center_ys, 5e-2)
+    assert u.isclose(fit_result.radius, radius, 5e-2)

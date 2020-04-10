@@ -7,8 +7,9 @@ from astropy import units as u
 from astropy.time import Time
 from numpy import nan
 
-from ..core import Container, Field, DeprecatedField, Map
-from ..instrument import SubarrayDescription
+from .core import Container, Field, DeprecatedField, Map
+from .instrument import SubarrayDescription
+
 
 __all__ = [
     "InstrumentContainer",
@@ -90,9 +91,6 @@ class SST1MCameraContainer(Container):
 class SST1MContainer(Container):
     tels_with_data = Field([], "list of telescopes with data")
     tel = Field(Map(SST1MCameraContainer), "map of tel_id to SST1MCameraContainer")
-
-
-# todo: change some of these Maps to be just 3D NDarrays?
 
 
 class InstrumentContainer(Container):
@@ -542,22 +540,22 @@ class SST1MDataContainer(DataContainer):
 
 
 class MuonRingParameter(Container):
-    ring_center_x = Field(
+    center_x = Field(
         nan * u.deg, "center (x) of the fitted muon ring", unit=u.deg
     )
-    ring_center_y = Field(nan * u.deg, "center (y) of the fitted muon ring", unit=u.deg)
-    ring_radius = Field(nan * u.deg, "radius of the fitted muon ring", unit=u.deg)
-    ring_center_phi = Field(
+    center_y = Field(nan * u.deg, "center (y) of the fitted muon ring", unit=u.deg)
+    radius = Field(nan * u.deg, "radius of the fitted muon ring", unit=u.deg)
+    center_phi = Field(
         nan * u.deg, "Angle of ring center within camera plane", unit=u.deg
     )
-    ring_center_distance = Field(
+    center_distance = Field(
         nan * u.deg, "Distance of ring center from camera center", unit=u.deg
     )
-    ring_chi2_fit = Field(nan, "chisquare of the muon ring fit", unit=u.deg)
-    ring_cov_matrix = Field(
+    chi2_fit = Field(nan, "chisquare of the muon ring fit", unit=u.deg)
+    cov_matrix = Field(
         np.full((3, 3), nan), "covariance matrix of the muon ring fit"
     )
-    ring_containment = Field(nan, "containment of the ring inside the camera")
+    containment = Field(nan, "containment of the ring inside the camera")
 
 
 class MuonIntensityParameter(Container):

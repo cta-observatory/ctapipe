@@ -17,7 +17,9 @@ def test_tool_simple():
     tool.userparam = 1.0
     tool.log_level = "DEBUG"
     tool.log.info("test")
-    tool.run([])
+    with pytest.raises(SystemExit) as exc:
+        tool.run([])
+    assert exc.value.code == 0
 
     # test parameters changes:
     tool.userparam = 4.0
@@ -81,14 +83,40 @@ def test_tool_current_config():
     tool.userparam = -1.0
     conf2 = tool.get_current_config()
 
-    assert conf1["MyTool"]["userparam"] == 5.0
-    assert conf2["MyTool"]["userparam"] == -1.0
+    assert conf1['MyTool']['userparam'] == 5.0
+    assert conf2['MyTool']['userparam'] == -1.0
+
+
+def test_tool_exit_code():
+    """ Check that we can get the full instance configuration """
+    from ctapipe.core.tool import run_tool
+
+    class MyTool(Tool):
+
+        description = "test"
+        userparam = Float(5.0, help="parameter").tag(config=True)
+
+    tool = MyTool()
+
+    with pytest.raises(SystemExit) as exc:
+        tool.run(['--non-existent-option'])
+
+    assert exc.value.code == 1
+
+    with pytest.raises(SystemExit) as exc:
+        tool.run(['--MyTool.userparam=foo'])
+
+    assert exc.value.code == 1
+
+    assert run_tool(tool, ['--help']) == 0
+    assert run_tool(tool, ['--non-existent-option']) == 1
 
 
 def test_tool_command_line_precedence():
     """
     ensure command-line has higher priority than config file
     """
+    from ctapipe.core.tool import run_tool
 
     class SubComponent(Component):
         component_param = Float(10.0, help="some parameter").tag(config=True)
@@ -109,6 +137,6 @@ def test_tool_command_line_precedence():
 
     tool = MyTool(config=config)  # sets component_param to 15.0
 
-    tool.run(argv=["--component_param", "20.0"])
+    run_tool(tool, ["--component_param", "20.0"])
     assert tool.sub.component_param == 20.0
     assert tool.userparam == 12.0

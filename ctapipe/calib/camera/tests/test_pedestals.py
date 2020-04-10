@@ -6,7 +6,7 @@ import numpy as np
 
 from ctapipe.calib.camera.pedestals import *
 from ctapipe.instrument import SubarrayDescription, TelescopeDescription
-from ctapipe.io.containers import EventAndMonDataContainer
+from ctapipe.containers import EventAndMonDataContainer
 
 
 def test_pedestal_calculator():

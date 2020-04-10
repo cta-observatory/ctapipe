@@ -173,15 +173,14 @@ class DisplayDL1Calib(Tool):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.config.EventSource.input_url = get_dataset_path('gamma_test_large.simtel.gz')
         self.eventsource = None
         self.calibrator = None
         self.plotter = None
 
     def setup(self):
         self.eventsource = self.add_component(
-            EventSource.from_url(
-                get_dataset_path("gamma_test_large.simtel.gz"), parent=self
-            )
+            EventSource.from_config(parent=self)
         )
 
         self.calibrator = self.add_component(CameraCalibrator(

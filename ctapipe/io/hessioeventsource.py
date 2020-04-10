@@ -3,7 +3,7 @@ from astropy.coordinates import Angle
 from astropy.time import Time
 from ctapipe.io.eventsource import EventSource
 from ctapipe.io.simteleventsource import apply_simtel_r1_calibration
-from ctapipe.io.containers import DataContainer
+from ctapipe.containers import DataContainer
 from ctapipe.instrument import (
     TelescopeDescription,
     SubarrayDescription,

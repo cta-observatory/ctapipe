@@ -1,6 +1,6 @@
 import numpy as np
 from ctapipe.calib.camera.flatfield import *
-from ctapipe.io.containers import EventAndMonDataContainer
+from ctapipe.containers import EventAndMonDataContainer
 from traitlets.config.loader import Config
 import astropy.units as u
 from ctapipe.instrument import SubarrayDescription, TelescopeDescription

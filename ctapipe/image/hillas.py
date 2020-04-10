@@ -8,7 +8,7 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import Angle
 from astropy.units import Quantity
-from ..io.containers import HillasParametersContainer
+from ..containers import HillasParametersContainer
 
 
 HILLAS_ATOL = np.finfo(np.float64).eps
