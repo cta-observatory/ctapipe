@@ -11,8 +11,8 @@ from astropy.coordinates import SkyCoord
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Provenance
-from ctapipe.core import Tool
-from ctapipe.core.traits import Unicode, Bool, IntTelescopeParameter
+from ctapipe.core import Tool, ToolConfigurationError
+from ctapipe.core.traits import Unicode, IntTelescopeParameter
 from ctapipe.io import EventSource
 from ctapipe.io import HDF5TableWriter
 from ctapipe.image.cleaning import TailcutsImageCleaner
@@ -20,19 +20,14 @@ from ctapipe.coordinates import TelescopeFrame, CameraFrame
 from ctapipe.image.muon import MuonRingFitter, MuonIntensityFitter
 
 
-
 class MuonAnalysis(Tool):
     name = 'ctapipe-reconstruct-muons'
     description = Unicode(__doc__)
 
-    outfile = Unicode(
-        None,
+    output = Unicode(
+        default_value=None,
         allow_none=True,
         help='HDF5 output file name'
-    ).tag(config=True)
-
-    display = Bool(
-        help='display the camera events', default=False
     ).tag(config=True)
 
     min_pixels = IntTelescopeParameter(
@@ -48,13 +43,18 @@ class MuonAnalysis(Tool):
     ]
 
     aliases = {
+        'i': 'EventSource.input_url',
         'input': 'EventSource.input_url',
-        'outfile': 'MuonAnalysis.outfile',
+        'o': 'MuonAnalysis.output',
+        'output': 'MuonAnalysis.output',
         'max_events': 'EventSource.max_events',
         'allowed_tels': 'EventSource.allowed_tels',
     }
 
     def setup(self):
+        if self.output is None:
+            raise ToolConfigurationError('You need to provide an --output file')
+
         self.source = self.add_component(EventSource.from_config(parent=self))
         self.calib = self.add_component(CameraCalibrator(
             parent=self,
@@ -73,10 +73,9 @@ class MuonAnalysis(Tool):
                 subarray=self.source.subarray,
             )
         )
-        if self.outfile:
-            self.writer = self.add_component(HDF5TableWriter(
-                self.outfile, "dl1", add_prefix=True
-            ))
+        self.writer = self.add_component(HDF5TableWriter(
+            self.output, "dl1", add_prefix=True
+        ))
         self.pixels_in_tel_frame = {}
         self.min_pixels.attach_subarray(self.source.subarray)
 
@@ -86,11 +85,11 @@ class MuonAnalysis(Tool):
 
     def process_array_event(self, event):
         self.calib(event)
+
         for tel_id, dl1 in event.dl1.tel.items():
             self.process_telescope_event(event.index, tel_id, dl1)
 
-        if self.outfile:
-            self.writer.write('mc', [event.index, event.mc])
+        self.writer.write('mc', [event.index, event.mc])
 
     def process_telescope_event(self, event_index, tel_id, dl1):
         event_id = event_index.event_id
@@ -148,10 +147,9 @@ class MuonAnalysis(Tool):
             f', efficiency={result.optical_efficiency_muon:.2%}',
         )
 
-        if self.outfile:
-            self.writer.write(
-                f'muons/tel_{tel_id:03d}', [event_index, ring, result]
-            )
+        self.writer.write(
+            f'muons/tel_{tel_id:03d}', [event_index, ring, result]
+        )
 
     def pixel_to_telescope_frame(self, tel_id):
         telescope = self.source.subarray.tel[tel_id]
@@ -164,12 +162,11 @@ class MuonAnalysis(Tool):
         return cam_coords.transform_to(TelescopeFrame())
 
     def finish(self):
-        if self.outfile:
-            Provenance().add_output_file(
-                self.outfile,
-                role='muon_efficiency_parameters',
-            )
-            self.writer.close()
+        Provenance().add_output_file(
+            self.output,
+            role='muon_efficiency_parameters',
+        )
+        self.writer.close()
 
 
 def main():
