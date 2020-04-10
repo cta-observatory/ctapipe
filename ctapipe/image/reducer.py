@@ -4,7 +4,7 @@ Algorithms for the data volume reduction.
 from abc import abstractmethod
 import numpy as np
 from ctapipe.core import Component, traits
-from ctapipe.image.extractor import LocalPeakWindowSum
+from ctapipe.image.extractor import NeighborPeakWindowSum
 from ctapipe.image.cleaning import (
     tailcuts_clean,
     dilate
@@ -22,60 +22,90 @@ class DataVolumeReducer(Component):
     Base component for data volume reducers.
     """
 
-    def __init__(self, config=None, parent=None, subarray=None, **kwargs):
+    def __init__(
+        self,
+        config=None,
+        parent=None,
+        subarray=None,
+        image_extractor=None,
+        **kwargs
+    ):
         """
         Parameters
         ----------
-        config : traitlets.loader.Config
+        config: traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
             Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool or None
+        tool: ctapipe.core.Tool or None
             Tool executable that is calling this component.
             Passes the correct logger to the component.
             Set to None if no Tool to pass.
         subarray: ctapipe.instrument.SubarrayDescription
             Description of the subarray
+        image_extractor: ctapipe.image.extractor.ImageExtractor
+            The ImageExtractor to use for 'TailCutsDataVolumeReducer'.
+            If None, then NeighborPeakWindowSum will be used by default.
         kwargs
         """
+
         super().__init__(config=config, parent=parent, **kwargs)
         self.subarray = subarray
 
-    def __call__(self, waveforms, telid=None):
+        if image_extractor is None:
+            image_extractor = NeighborPeakWindowSum(parent=self, subarray=subarray)
+        self.image_extractor = image_extractor
+
+    def __call__(self, waveforms, telid=None, selected_gain_channel=None):
         """
         Call the relevant functions to perform data volume reduction on the
         waveforms.
 
         Parameters
         ----------
-        waveforms : ndarray
+        waveforms: ndarray
             Waveforms stored in a numpy array of shape
             (n_pix, n_samples).
+        telid: int
+            The telescope id. Required for the 'image_extractor' and
+            'camera.geometry' in 'TailCutsDataVolumeReducer'.
+        selected_gain_channel: ndarray
+            The channel selected in the gain selection, per pixel. Required for
+            the 'image_extractor' in 'TailCutsDataVolumeReducer'.
+            extraction.
 
         Returns
         -------
-        mask : array
+        mask: array
             Mask of selected pixels.
         """
-        mask = self.select_pixels(waveforms, telid=telid)
+
+        mask = self.select_pixels(
+            waveforms, telid=telid, selected_gain_channel=selected_gain_channel
+        )
         return mask
 
     @abstractmethod
-    def select_pixels(self, waveforms, telid=None):
+    def select_pixels(self, waveforms, telid=None, selected_gain_channel=None):
         """
         Abstract method to be defined by a DataVolumeReducer subclass.
-
         Call the relevant functions for the required pixel selection.
 
         Parameters
         ----------
-        waveforms : ndarray
+        waveforms: ndarray
             Waveforms stored in a numpy array of shape
             (n_pix, n_samples).
+        telid: int
+            The telescope id. Required for the 'image_extractor' and
+            'camera.geometry' in 'TailCutsDataVolumeReducer'.
+        selected_gain_channel: ndarray
+            The channel selected in the gain selection, per pixel. Required for
+            the 'image_extractor' in 'TailCutsDataVolumeReducer'.
 
         Returns
         -------
-        mask : array
+        mask: array
             Mask of selected pixels.
         """
 
@@ -85,7 +115,7 @@ class NullDataVolumeReducer(DataVolumeReducer):
     Perform no data volume reduction
     """
 
-    def select_pixels(self, waveforms, telid=None):
+    def select_pixels(self, waveforms, telid=None, selected_gain_channel=None):
         mask = waveforms != 0
         return mask
 
@@ -126,11 +156,12 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
              "in case keep_isolated_pixels is True."
     ).tag(config=True)
 
-    def select_pixels(self, waveforms, telid=None):
-        camera_geom = self.subarray.tel[telid].camera
+    def select_pixels(self, waveforms, telid=None, selected_gain_channel=None):
+        camera_geom = self.subarray.tel[telid].camera.geometry
         # Pulse-integrate waveforms
-        image_extractor = LocalPeakWindowSum(subarray=self.subarray)
-        charge, _ = image_extractor(waveforms, telid=telid)
+        charge, _ = self.image_extractor(
+            waveforms, telid=telid, selected_gain_channel=selected_gain_channel
+        )
 
         # 1) Step: TailcutCleaning at first
         mask = tailcuts_clean(
