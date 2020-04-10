@@ -178,12 +178,14 @@ class MuonAnalysis(Tool):
         )
 
         tel_event_index = TelEventIndexContainer(
-            tel_id=tel_id, tel_type_id=self.tel_type_ids[tel_id]
+            **event_index,
+            tel_id=tel_id,
+            tel_type_id=self.tel_type_ids[tel_id],
         )
 
         self.writer.write(
             'dl1/event/telescope/parameters/muons',
-            [event_index, tel_event_index, ring, result]
+            [tel_event_index, ring, result]
         )
 
     def get_fov(self, tel_id):
