@@ -2,8 +2,8 @@
 import pytest
 import numpy as np
 from numpy.testing import assert_array_equal
-from scipy.stats import norm
 import astropy.units as u
+from traitlets.config import Config
 from ctapipe.instrument import SubarrayDescription, TelescopeDescription
 from ctapipe.image.reducer import (
     NullDataVolumeReducer,
@@ -15,7 +15,7 @@ from ctapipe.image.reducer import (
 def subarray_lst():
     telid = 1
     subarray = SubarrayDescription(
-        "test array",
+        "test array lst",
         tel_positions={1: np.zeros(3) * u.m, 2: np.ones(3) * u.m},
         tel_descriptions={
             1: TelescopeDescription.from_name(
@@ -35,7 +35,7 @@ def subarray_lst():
 
 
 def test_null_data_volume_reducer(subarray_lst):
-    subarray, telid, selected_gain_channel, _, _ = subarray_lst
+    subarray, _, _, _, _ = subarray_lst
     waveforms = np.random.uniform(0, 1, (2048, 96))
     reducer = NullDataVolumeReducer(subarray=subarray)
     reduced_waveforms_mask = reducer(waveforms)
@@ -66,13 +66,18 @@ def test_tailcuts_data_volume_reducer(subarray_lst):
     # add some random pixels, which should not be selected
     waveforms_signal[[50, 51, 135, 138, 54, 170, 210, 400]] = 25
 
-    reducer = TailCutsDataVolumeReducer(subarray=subarray)
-    reducer.picture_thresh = 700
-    reducer.boundary_thresh = 350
-    reducer.end_dilates = 1
-    reducer.keep_isolated_pixels = True
-    reducer.min_number_picture_neighbors = 0
-
+    # Reduction parameters
+    reduction_param = Config({
+        "TailCutsDataVolumeReducer": {
+            "picture_thresh": 700.0,
+            "boundary_thresh": 350.0,
+            "min_number_picture_neighbors": 0,
+            "end_dilates": 1,
+        }
+    })
+    reducer = TailCutsDataVolumeReducer(
+        config=reduction_param, subarray=subarray
+    )
     reduced_waveforms = waveforms_signal.copy()
     reduced_waveforms_mask = reducer(
         waveforms_signal, telid=telid, selected_gain_channel=selected_gain_channel

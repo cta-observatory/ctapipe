@@ -3,7 +3,8 @@ Algorithms for the data volume reduction.
 """
 from abc import abstractmethod
 import numpy as np
-from ctapipe.core import Component, traits
+from ctapipe.core.component import TelescopeComponent
+from ctapipe.core.traits import FloatTelescopeParameter, IntTelescopeParameter
 from ctapipe.image.extractor import NeighborPeakWindowSum
 from ctapipe.image.cleaning import (
     tailcuts_clean,
@@ -17,7 +18,7 @@ __all__ = [
 ]
 
 
-class DataVolumeReducer(Component):
+class DataVolumeReducer(TelescopeComponent):
     """
     Base component for data volume reducers.
     """
@@ -49,7 +50,7 @@ class DataVolumeReducer(Component):
         kwargs
         """
 
-        super().__init__(config=config, parent=parent, **kwargs)
+        super().__init__(config=config, parent=parent, subarray=subarray, **kwargs)
         self.subarray = subarray
 
         if image_extractor is None:
@@ -129,27 +130,21 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
        with ctapipe module dilate until no new pixels were added.
     3) Adding new pixels with dilate to get more conservative.
     """
-    end_dilates = traits.Integer(
+    end_dilates = IntTelescopeParameter(
         default_value=1,
         help="Number of how many times to dilate at the end."
     ).tag(config=True)
-    picture_thresh = traits.Float(
-        default_value=10,
+    picture_thresh = FloatTelescopeParameter(
+        default_value=8.0,
         help="Picture threshold for the first tailcuts_clean step. All "
              "pixels above are selected."
     ).tag(config=True)
-    boundary_thresh = traits.Float(
-        default_value=5,
+    boundary_thresh = FloatTelescopeParameter(
+        default_value=4.0,
         help="Boundary threshold for the first tailcuts_clean step and "
              "also for the second iteration step."
     ).tag(config=True)
-    keep_isolated_pixels = traits.Bool(
-        default_value=True,
-        help="If True, pixels above the picture threshold will be included "
-             "always, if not they are only included if a neighbor is in "
-             "the picture or boundary."
-    ).tag(config=True)
-    min_number_picture_neighbors = traits.Integer(
+    min_number_picture_neighbors = IntTelescopeParameter(
         default_value=0,
         help="A picture pixel survives tailcuts_clean only if it has at "
              "least this number of picture neighbors. This has no effect "
@@ -167,12 +162,12 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         mask = tailcuts_clean(
             geom=camera_geom,
             image=charge,
-            picture_thresh=self.picture_thresh,
-            boundary_thresh=self.boundary_thresh,
-            keep_isolated_pixels=self.keep_isolated_pixels,
-            min_number_picture_neighbors=self.min_number_picture_neighbors
+            picture_thresh=self.picture_thresh.tel[telid],
+            boundary_thresh=self.boundary_thresh.tel[telid],
+            min_number_picture_neighbors=self.min_number_picture_neighbors.tel[telid],
+            keep_isolated_pixels=False
         )
-        pixels_above_boundary_thresh = charge >= self.boundary_thresh
+        pixels_above_boundary_thresh = charge >= self.boundary_thresh.tel[telid]
         mask_in_loop = np.array([])
         # 2) Step: Add iteratively all pixels with Signal
         #          S > boundary_thresh with ctapipe module
@@ -182,7 +177,7 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
             mask = dilate(camera_geom, mask) & pixels_above_boundary_thresh
 
         # 3) Step: Adding Pixels with 'dilate' to get more conservative.
-        for _ in range(self.end_dilates):
+        for _ in range(self.end_dilates.tel[telid]):
             mask = dilate(camera_geom, mask)
 
         return mask
