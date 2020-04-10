@@ -23,8 +23,8 @@ them (as in `Activity.from_provenance()`)
 
 """
 import uuid
-from collections import OrderedDict
 import warnings
+from collections import OrderedDict
 
 from astropy.time import Time
 from traitlets import (
@@ -34,12 +34,10 @@ from traitlets import (
     HasTraits,
     default,
     Instance,
-    validate,
 )
 
-from ctapipe.core.traits import DateTime
-
 from ctapipe.core.provenance import _ActivityProvenance
+from ctapipe.core.traits import DateTime
 
 __all__ = [
     "Reference",
