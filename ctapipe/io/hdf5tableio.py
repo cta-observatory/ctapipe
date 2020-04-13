@@ -18,6 +18,7 @@ PYTABLES_TYPE_MAP = {
     "float": tables.Float64Col,
     "float64": tables.Float64Col,
     "float32": tables.Float32Col,
+    "float16": tables.Float16Col,
     "int8": tables.Int8Col,
     "int16": tables.Int16Col,
     "int32": tables.Int32Col,
