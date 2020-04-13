@@ -90,7 +90,7 @@ def test_extract_around_peak(subarray, toymodel):
 
     # Test negative amplitude
     y_offset = y - y.max() / 2
-    charge, pulse_time = extract_around_peak(y_offset[np.newaxis, :], 0, x.size, 0, 1)
+    charge, _ = extract_around_peak(y_offset[np.newaxis, :], 0, x.size, 0, 1)
     assert_allclose(charge, y_offset.sum(), rtol=1e-3)
 
 
@@ -150,7 +150,7 @@ def test_extract_around_peak_charge_expected(toymodel):
 
 
 def test_neighbor_average_waveform(toymodel):
-    waveforms, subarray, telid, selected_gain_channel, _, _ = toymodel
+    waveforms, subarray, telid, _, _, _ = toymodel
     nei = subarray.tel[telid].camera.geometry.neighbor_matrix_where
     average_wf = neighbor_average_waveform(waveforms, nei, 0)
 
