@@ -95,7 +95,7 @@ def test_extract_around_peak(subarray, toymodel):
 
 
 def test_extract_around_peak_charge_expected(toymodel):
-    waveforms, subarray, telid, selected_gain_channel, true_charge, _ = toymodel
+    waveforms, subarray, telid, selected_gain_channel, _, _ = toymodel
     waveforms = np.ones(waveforms.shape)
     n_samples = waveforms.shape[-1]
     sampling_rate_ghz = 1
@@ -272,7 +272,7 @@ def test_waveform_extractor_factory_args(subarray):
     """
     Config is supposed to be created by a `Tool`
     """
-    config = Config({"ImageExtractor": {"window_width": 20, "window_shift": 3,}})
+    config = Config({"ImageExtractor": {"window_width": 20, "window_shift": 3}})
 
     extractor = ImageExtractor.from_name(
         "LocalPeakWindowSum",
