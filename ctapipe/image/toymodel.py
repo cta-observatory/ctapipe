@@ -129,23 +129,22 @@ class WaveformModel:
         """
         n_pixels = charge.size
         n_upsampled_samples = n_samples * self.upsampling
-        waveform = np.zeros((n_pixels, n_upsampled_samples))
+        readout = np.zeros((n_pixels, n_upsampled_samples))
 
         sample = (time / self.ref_width_ns).astype(np.int)
         outofrange = (sample < 0) | (sample >= n_upsampled_samples)
         sample[outofrange] = 0
         charge[outofrange] = 0
-        waveform[np.arange(n_pixels), sample] = charge
+        readout[np.arange(n_pixels), sample] = charge
         convolved = convolve1d(
-            waveform, self.ref_interp_y, mode="constant", origin=self.origin
+            readout, self.ref_interp_y, mode="constant", origin=self.origin
         )
-        downsampled = (
+        sampled = (
             convolved.reshape(
                 (n_pixels, convolved.shape[-1] // self.upsampling, self.upsampling)
-            ).sum(-1)
-            / self.upsampling
+            ).sum(-1) * self.ref_width_ns  # Waveform units: p.e.
         )
-        return downsampled
+        return sampled
 
     @classmethod
     def from_camera_readout(cls, readout):
