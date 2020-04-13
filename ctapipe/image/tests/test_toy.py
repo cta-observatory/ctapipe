@@ -159,7 +159,7 @@ def test_waveform_model():
     ref_x_norm = np.linspace(0, ref_duration, n_ref_samples)
     ref_y_norm = norm.pdf(ref_x_norm, ref_duration / 2, pulse_sigma)
 
-    readout.reference_pulse_shape = ref_y_norm
+    readout.reference_pulse_shape = ref_y_norm[np.newaxis, :]
     readout.reference_pulse_sample_width = u.Quantity(
         ref_x_norm[1] - ref_x_norm[0], u.ns
     )

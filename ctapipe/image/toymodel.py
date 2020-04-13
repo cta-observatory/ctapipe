@@ -24,7 +24,13 @@ from scipy.stats import multivariate_normal, skewnorm, norm
 from scipy.ndimage import convolve1d
 from abc import ABCMeta, abstractmethod
 
-__all__ = ["Gaussian", "SkewedGaussian", "ImageModel", "obtain_time_image"]
+__all__ = [
+    "WaveformModel",
+    "Gaussian",
+    "SkewedGaussian",
+    "ImageModel",
+    "obtain_time_image"
+]
 
 
 @u.quantity_input(
@@ -147,12 +153,14 @@ class WaveformModel:
         return sampled
 
     @classmethod
-    def from_camera_readout(cls, readout):
+    def from_camera_readout(cls, readout, gain_channel=0):
         """Create class from a `ctapipe.instrument.CameraReadout`.
 
         Parameters
         ----------
         readout : `ctapipe.instrument.CameraReadout`
+        gain_channel : int
+            The reference pulse gain channel to use
 
         Returns
         -------
@@ -160,7 +168,7 @@ class WaveformModel:
 
         """
         return cls(
-            readout.reference_pulse_shape,
+            readout.reference_pulse_shape[gain_channel],
             readout.reference_pulse_sample_width,
             (1 / readout.sampling_rate).to(u.ns),
         )
