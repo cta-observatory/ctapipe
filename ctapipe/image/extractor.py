@@ -129,7 +129,7 @@ def neighbor_average_waveform(waveforms, neighbors, lwt):
     """
     n_neighbors = neighbors.shape[0]
     sum_ = waveforms * lwt
-    n = np.zeros(waveforms.shape, dtype=np.int32) + lwt
+    n = np.full(waveforms.shape, lwt, dtype=np.int32)
     for i in prange(n_neighbors):
         pixel = neighbors[i, 0]
         neighbor = neighbors[i, 1]
