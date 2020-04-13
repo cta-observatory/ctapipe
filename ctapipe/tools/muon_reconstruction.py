@@ -131,9 +131,9 @@ class MuonAnalysis(Tool):
         x = pixel_coords.delta_az
         y = pixel_coords.delta_alt
 
-        # iterative ring fit. First use cleaning pixels,
-        # then pixels closes to the ring
-        # three iterations to be enought for most rings
+        # iterative ring fit.
+        # First use cleaning pixels, then only pixels close to the ring
+        # three iterations seems to be enough for most rings
         mask = clean_mask
         for i in range(3):
             ring = self.ring_fitter(x, y, image, mask)
