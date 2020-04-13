@@ -15,7 +15,7 @@ from ctapipe.core.traits import (
     TelescopeParameter,
     FloatTelescopeParameter,
     IntTelescopeParameter,
-    DateTime
+    AstroTime
 )
 from ctapipe.image import ImageExtractor
 
@@ -338,17 +338,18 @@ def test_telescope_parameter_to_config(mock_subarray):
 
 
 def test_datetimes():
-    from astropy.time import Time
+    from astropy import time as t
 
     class SomeComponentWithTimeTrait(Component):
-        time = DateTime()
+        time = AstroTime()
 
     component = SomeComponentWithTimeTrait()
     component.time = "2019-10-15 12:00:00.234"
+    assert str(component.time) == "2019-10-15 12:00:00.234"
     component.time = "2019-10-15T12:15:12"
-    assert component.time == "2019-10-15 12:15:12.000"
-    component.time = Time.now()
-    assert isinstance(component.time, str)
+    assert component.time.iso == "2019-10-15 12:15:12.000"
+    component.time = t.Time.now()
+    assert isinstance(component.time, t.Time)
 
     with pytest.raises(TraitError):
         component.time = "garbage"

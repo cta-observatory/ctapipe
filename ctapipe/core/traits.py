@@ -49,7 +49,7 @@ __all__ = [
     "TelescopeParameter",
     "FloatTelescopeParameter",
     "IntTelescopeParameter",
-    "DateTime"
+    "AstroTime"
 ]
 
 import logging
@@ -57,13 +57,12 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class DateTime(TraitType):
+class AstroTime(TraitType):
     """ A trait representing a point in Time, as understood by `astropy.time`"""
     def validate(self, obj, value):
         """ try to parse and return an ISO time string """
         try:
-            the_time = Time(value)
-            return the_time.iso
+            return Time(value)
         except ValueError as err:
             raise TraitError(
                 f"Time values should be in a format understandable by astropy.time ("
