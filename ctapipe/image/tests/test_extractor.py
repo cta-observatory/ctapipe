@@ -73,8 +73,8 @@ def toymodel(subarray):
     return waveform, subarray, telid, selected_gain_channel, charge, time
 
 
-def test_extract_around_peak(subarray, toymodel):
-    waveforms, subarray, telid, selected_gain_channel, true_charge, _ = toymodel
+def test_extract_around_peak(toymodel):
+    waveforms, _, _, _, _, _ = toymodel
     n_pixels, n_samples = waveforms.shape
     rand = np.random.RandomState(1)
     peak_index = rand.uniform(0, n_samples, n_pixels).astype(np.int)
@@ -95,8 +95,7 @@ def test_extract_around_peak(subarray, toymodel):
 
 
 def test_extract_around_peak_charge_expected(toymodel):
-    waveforms, subarray, telid, selected_gain_channel, _, _ = toymodel
-    waveforms = np.ones(waveforms.shape)
+    waveforms = np.ones((2048, 96))
     n_samples = waveforms.shape[-1]
     sampling_rate_ghz = 1
 
