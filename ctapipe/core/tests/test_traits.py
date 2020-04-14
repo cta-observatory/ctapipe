@@ -347,7 +347,7 @@ def test_datetimes():
     component.time = "2019-10-15 12:00:00.234"
     assert str(component.time) == "2019-10-15 12:00:00.234"
     component.time = "2019-10-15T12:15:12"
-    assert component.time.iso == "2019-10-15 12:15:12.000"
+    assert str(component.time) == "2019-10-15 12:15:12.000"
     component.time = t.Time.now()
     assert isinstance(component.time, t.Time)
 

@@ -62,7 +62,9 @@ class AstroTime(TraitType):
     def validate(self, obj, value):
         """ try to parse and return an ISO time string """
         try:
-            return Time(value)
+            the_time = Time(value)
+            the_time.format = 'iso'
+            return the_time
         except ValueError as err:
             raise TraitError(
                 f"Time values should be in a format understandable by astropy.time ("
