@@ -19,7 +19,9 @@ import numpy as np
 from scipy.sparse.csgraph import connected_components
 
 from ..core.component import TelescopeComponent
-from ..core.traits import FloatTelescopeParameter, IntTelescopeParameter
+from ..core.traits import (
+    FloatTelescopeParameter, IntTelescopeParameter, BoolTelescopeParameter,
+)
 
 
 def tailcuts_clean(
@@ -427,16 +429,24 @@ class TailcutsImageCleaner(ImageCleaner):
     """
 
     picture_threshold_pe = FloatTelescopeParameter(
-        help="top-level threshold in photoelectrons", default_value=10.0
+        default_value=10.0,
+        help="top-level threshold in photoelectrons",
     ).tag(config=True)
 
     boundary_threshold_pe = FloatTelescopeParameter(
-        help="second-level threshold in photoelectrons", default_value=5.0
+        default_value=5.0,
+        help="second-level threshold in photoelectrons",
     ).tag(config=True)
 
     min_picture_neighbors = IntTelescopeParameter(
-        help="Minimum number of neighbors above threshold to consider", default_value=2
+        default_value=2,
+        help="Minimum number of neighbors above threshold to consider",
     ).tag(config=True)
+
+    keep_isolated_pixels = BoolTelescopeParameter(
+        default_value=False,
+        help="If False, pixels with less neighbors than ``min_picture_neighbors`` are removed",
+    )
 
     def __call__(
         self, tel_id: int, image: np.ndarray, arrival_times=None
@@ -451,7 +461,7 @@ class TailcutsImageCleaner(ImageCleaner):
             picture_thresh=self.picture_threshold_pe.tel[tel_id],
             boundary_thresh=self.boundary_threshold_pe.tel[tel_id],
             min_number_picture_neighbors=self.min_picture_neighbors.tel[tel_id],
-            keep_isolated_pixels=False,
+            keep_isolated_pixels=self.keep_isolated_pixels.tel[tel_id],
         )
 
 
