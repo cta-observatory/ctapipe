@@ -22,7 +22,7 @@ from functools import lru_cache
 import numpy as np
 from traitlets import Int
 from ctapipe.core.traits import IntTelescopeParameter
-from ctapipe.core import Component
+from ctapipe.core import TelescopeComponent
 from numba import njit, prange, guvectorize, float64, float32, int64
 
 
@@ -226,7 +226,7 @@ def integration_correction(
     return correction
 
 
-class ImageExtractor(Component):
+class ImageExtractor(TelescopeComponent):
     def __init__(self, subarray, config=None, parent=None, **kwargs):
         """
         Base component to handle the extraction of charge and pulse time
@@ -253,13 +253,7 @@ class ImageExtractor(Component):
             Set to None if no Tool to pass.
         kwargs
         """
-        super().__init__(config=config, parent=parent, **kwargs)
-        self.subarray = subarray
-        for trait in list(self.class_traits()):
-            try:
-                getattr(self, trait).attach_subarray(subarray)
-            except (AttributeError, TypeError):
-                pass
+        super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
 
         self.sampling_rate = {
             telid: telescope.camera.readout.sampling_rate.to_value('GHz')
