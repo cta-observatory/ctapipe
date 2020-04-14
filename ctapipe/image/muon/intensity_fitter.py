@@ -47,16 +47,16 @@ def chord_length(radius, rho, phi):
     phi = np.array(phi, ndmin=1, copy=False)
 
     chord = 1 - (rho**2 * np.sin(phi)**2)
+    valid = chord >= 0
 
     if rho <= 1.0:
         # muon has hit the mirror
-        chord = radius * (np.sqrt(chord) + rho * np.cos(phi))
+        chord[valid] = radius * (np.sqrt(chord[valid]) + rho * np.cos(phi[valid]))
     else:
         # muon did not hit the mirror
-        chord = 2 * radius * np.sqrt(chord)
+        chord[valid] = 2 * radius * np.sqrt(chord[valid])
 
-    chord[np.isnan(chord)] = 0
-    chord[chord < 0] = 0
+    chord[~valid] = 0
 
     if scalar:
         return chord[0]
