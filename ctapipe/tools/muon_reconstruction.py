@@ -6,12 +6,13 @@ from ctapipe.containers import TelEventIndexContainer
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Provenance
 from ctapipe.core import Tool, ToolConfigurationError
-from ctapipe.core.traits import Unicode, IntTelescopeParameter, FloatTelescopeParameter
+from ctapipe.core import traits
 from ctapipe.io import EventSource
 from ctapipe.io import HDF5TableWriter
 from ctapipe.image.cleaning import TailcutsImageCleaner
 from ctapipe.coordinates import TelescopeFrame, CameraFrame
 from ctapipe.image.muon import MuonRingFitter, MuonIntensityFitter, ring_containment
+from ctapipe.image import ImageExtractor
 
 
 class MuonAnalysis(Tool):
@@ -23,15 +24,15 @@ class MuonAnalysis(Tool):
     `pandas.read_hdf(filename, 'dl1/event/telescope/parameters/muon')`
     """
     name = 'ctapipe-reconstruct-muons'
-    description = Unicode(__doc__)
+    description = traits.Unicode(__doc__)
 
-    output = Unicode(
+    output = traits.Unicode(
         default_value=None,
         allow_none=True,
         help='HDF5 output file name'
     ).tag(config=True)
 
-    min_pixels = IntTelescopeParameter(
+    min_pixels = traits.IntTelescopeParameter(
         help=(
             'Minimum number of pixels after cleaning and ring finding'
             'required to process an event'
@@ -39,14 +40,24 @@ class MuonAnalysis(Tool):
         default_value=100,
     ).tag(config=True)
 
-    pedestal = FloatTelescopeParameter(
+    pedestal = traits.FloatTelescopeParameter(
         help='Pedestal noise rms',
         default_value=1.1,
     ).tag(config=True)
 
+    extractor_name = traits.enum_trait(
+        ImageExtractor,
+        default='GlobalPeakWindowSum',
+        help_str='Name of the ImageExtractor class to be used',
+    ).tag(config=True)
+
     classes = [
-        CameraCalibrator, EventSource, MuonRingFitter, MuonIntensityFitter,
-    ]
+        CameraCalibrator,
+        TailcutsImageCleaner,
+        EventSource,
+        MuonRingFitter,
+        MuonIntensityFitter,
+    ] + traits.classes_with_traits(ImageExtractor)
 
     aliases = {
         'i': 'EventSource.input_url',
@@ -62,23 +73,23 @@ class MuonAnalysis(Tool):
             raise ToolConfigurationError('You need to provide an --output file')
 
         self.source = self.add_component(EventSource.from_config(parent=self))
+        self.extractor = self.add_component(ImageExtractor.from_name(
+            self.extractor_name, parent=self, subarray=self.source.subarray
+        ))
         self.calib = self.add_component(CameraCalibrator(
-            parent=self,
-            subarray=self.source.subarray
+            subarray=self.source.subarray, parent=self,
+            image_extractor=self.extractor,
         ))
         self.ring_fitter = self.add_component(MuonRingFitter(
             parent=self,
         ))
         self.intensity_fitter = self.add_component(MuonIntensityFitter(
+            subarray=self.source.subarray, parent=self,
+        ))
+        self.cleaning = self.add_component(TailcutsImageCleaner(
             parent=self,
             subarray=self.source.subarray,
         ))
-        self.cleaning = self.add_component(
-            TailcutsImageCleaner(
-                parent=self,
-                subarray=self.source.subarray,
-            )
-        )
         self.writer = self.add_component(HDF5TableWriter(
             self.output, "", add_prefix=True
         ))
