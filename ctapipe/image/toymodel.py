@@ -24,7 +24,13 @@ from scipy.stats import multivariate_normal, skewnorm, norm
 from scipy.ndimage import convolve1d
 from abc import ABCMeta, abstractmethod
 
-__all__ = ["Gaussian", "SkewedGaussian", "ImageModel", "obtain_time_image"]
+__all__ = [
+    "WaveformModel",
+    "Gaussian",
+    "SkewedGaussian",
+    "ImageModel",
+    "obtain_time_image"
+]
 
 
 @u.quantity_input(
@@ -129,31 +135,32 @@ class WaveformModel:
         """
         n_pixels = charge.size
         n_upsampled_samples = n_samples * self.upsampling
-        waveform = np.zeros((n_pixels, n_upsampled_samples))
+        readout = np.zeros((n_pixels, n_upsampled_samples))
 
         sample = (time / self.ref_width_ns).astype(np.int)
         outofrange = (sample < 0) | (sample >= n_upsampled_samples)
         sample[outofrange] = 0
         charge[outofrange] = 0
-        waveform[np.arange(n_pixels), sample] = charge
+        readout[np.arange(n_pixels), sample] = charge
         convolved = convolve1d(
-            waveform, self.ref_interp_y, mode="constant", origin=self.origin
+            readout, self.ref_interp_y, mode="constant", origin=self.origin
         )
-        downsampled = (
+        sampled = (
             convolved.reshape(
                 (n_pixels, convolved.shape[-1] // self.upsampling, self.upsampling)
-            ).sum(-1)
-            / self.upsampling
+            ).sum(-1) * self.ref_width_ns  # Waveform units: p.e.
         )
-        return downsampled
+        return sampled
 
     @classmethod
-    def from_camera_readout(cls, readout):
+    def from_camera_readout(cls, readout, gain_channel=0):
         """Create class from a `ctapipe.instrument.CameraReadout`.
 
         Parameters
         ----------
         readout : `ctapipe.instrument.CameraReadout`
+        gain_channel : int
+            The reference pulse gain channel to use
 
         Returns
         -------
@@ -161,7 +168,7 @@ class WaveformModel:
 
         """
         return cls(
-            readout.reference_pulse_shape,
+            readout.reference_pulse_shape[gain_channel],
             readout.reference_pulse_sample_width,
             (1 / readout.sampling_rate).to(u.ns),
         )
