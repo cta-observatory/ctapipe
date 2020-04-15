@@ -48,6 +48,8 @@ __all__ = [
     "write_to_hdf5",
 ]
 
+from astropy.time import Time
+
 
 class Contact(HasTraits):
     """ Contact information """
@@ -77,7 +79,7 @@ class Product(HasTraits):
     @default("creation_time")
     def default_time(self):
         """ return current time by default """
-        return AstroTime.now().iso
+        return Time.now().iso
 
     @default("id_")
     def default_product_id(self):
@@ -119,7 +121,7 @@ class Activity(HasTraits):
     @default("start_time")
     def default_time(self):
         """ default time is now """
-        return AstroTime.now().iso
+        return Time.now().iso
 
 
 class Instrument(HasTraits):
