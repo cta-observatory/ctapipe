@@ -79,8 +79,7 @@ def test_check_r1_empty(example_event, subarray):
     with pytest.warns(UserWarning):
         calibrator(event)
     assert (event.dl0.tel[telid].waveform == 2).all()
-    sampling_rate = subarray.tel[telid].camera.readout.sampling_rate.to_value(u.GHz)
-    assert (event.dl1.tel[telid].image == 2 * 128 / sampling_rate).all()
+    assert (event.dl1.tel[telid].image == 2 * 128).all()
 
 
 def test_check_dl0_empty(example_event, subarray):

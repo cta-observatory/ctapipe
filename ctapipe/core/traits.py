@@ -369,3 +369,10 @@ class IntTelescopeParameter(TelescopeParameter):
 
     def __init__(self, **kwargs):
         super().__init__(dtype=int, **kwargs)
+
+
+class BoolTelescopeParameter(TelescopeParameter):
+    """ a `TelescopeParameter` with int type (see docs for `TelescopeParameter`)"""
+
+    def __init__(self, **kwargs):
+        super().__init__(dtype=bool, **kwargs)
