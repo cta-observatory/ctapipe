@@ -67,14 +67,20 @@ def test_tailcuts_data_volume_reducer(subarray_lst):
     waveforms_signal[[50, 51, 135, 138, 54, 170, 210, 400]] = 25
 
     # Reduction parameters
-    reduction_param = Config({
-        "TailCutsDataVolumeReducer": {
-            "picture_thresh": 700.0,
-            "boundary_thresh": 350.0,
-            "min_number_picture_neighbors": 0,
-            "end_dilates": 1,
+    reduction_param = Config(
+        {
+            "TailCutsDataVolumeReducer": {
+                "TailcutsImageCleaner": {
+                    "picture_threshold_pe": 700.0,
+                    "boundary_threshold_pe": 350.0,
+                    "min_picture_neighbors": 0,
+                    "keep_isolated_pixels": True
+                },
+                "end_dilates": 1,
+                "iteration_steps": True
+            }
         }
-    })
+    )
     reducer = TailCutsDataVolumeReducer(
         config=reduction_param, subarray=subarray
     )

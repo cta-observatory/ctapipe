@@ -3,8 +3,9 @@ Algorithms for the data volume reduction.
 """
 from abc import abstractmethod
 import numpy as np
-from ctapipe.core.component import TelescopeComponent
-from ctapipe.core.traits import FloatTelescopeParameter, IntTelescopeParameter
+from ctapipe.image import TailcutsImageCleaner
+from ctapipe.core import TelescopeComponent
+from ctapipe.core.traits import IntTelescopeParameter, BoolTelescopeParameter
 from ctapipe.image.extractor import NeighborPeakWindowSum
 from ctapipe.image.cleaning import (
     tailcuts_clean,
@@ -50,12 +51,14 @@ class DataVolumeReducer(TelescopeComponent):
         kwargs
         """
 
-        super().__init__(config=config, parent=parent, subarray=subarray, **kwargs)
         self.subarray = subarray
+        super().__init__(config=config, parent=parent, subarray=subarray, **kwargs)
 
         if image_extractor is None:
             image_extractor = NeighborPeakWindowSum(parent=self, subarray=subarray)
         self.image_extractor = image_extractor
+
+        self.cleaner = TailcutsImageCleaner(parent=self, subarray=subarray)
 
     def __call__(self, waveforms, telid=None, selected_gain_channel=None):
         """
@@ -134,21 +137,10 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         default_value=1,
         help="Number of how many times to dilate at the end."
     ).tag(config=True)
-    picture_thresh = FloatTelescopeParameter(
-        default_value=8.0,
-        help="Picture threshold for the first tailcuts_clean step. All "
-             "pixels above are selected."
-    ).tag(config=True)
-    boundary_thresh = FloatTelescopeParameter(
-        default_value=4.0,
-        help="Boundary threshold for the first tailcuts_clean step and "
-             "also for the second iteration step."
-    ).tag(config=True)
-    min_number_picture_neighbors = IntTelescopeParameter(
-        default_value=0,
-        help="A picture pixel survives tailcuts_clean only if it has at "
-             "least this number of picture neighbors. This has no effect "
-             "in case keep_isolated_pixels is True."
+    iteration_steps = BoolTelescopeParameter(
+        default_value=True,
+        help="If set to 'False', the iteration_steps in 2) are skipped and"
+        "normal TailcutCleaning is used."
     ).tag(config=True)
 
     def select_pixels(self, waveforms, telid=None, selected_gain_channel=None):
@@ -159,20 +151,18 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         )
 
         # 1) Step: TailcutCleaning at first
-        mask = tailcuts_clean(
-            geom=camera_geom,
-            image=charge,
-            picture_thresh=self.picture_thresh.tel[telid],
-            boundary_thresh=self.boundary_thresh.tel[telid],
-            min_number_picture_neighbors=self.min_number_picture_neighbors.tel[telid],
-            keep_isolated_pixels=False
+        mask = self.cleaner(telid, charge)
+        pixels_above_boundary_thresh = (
+            charge >= self.cleaner.boundary_threshold_pe.tel[telid]
         )
-        pixels_above_boundary_thresh = charge >= self.boundary_thresh.tel[telid]
         mask_in_loop = np.array([])
         # 2) Step: Add iteratively all pixels with Signal
         #          S > boundary_thresh with ctapipe module
         #          'dilate' until no new pixels were added.
-        while not np.array_equal(mask, mask_in_loop):
+        while (
+            not np.array_equal(mask, mask_in_loop)
+            and self.iteration_steps.tel[telid]
+        ):
             mask_in_loop = mask
             mask = dilate(camera_geom, mask) & pixels_above_boundary_thresh
 
