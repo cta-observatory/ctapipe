@@ -42,6 +42,7 @@ from ..containers import (
     SimulatedShowerDistribution,
     MorphologyContainer,
 )
+from ctapipe.io import metadata as meta
 
 tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many datasets
 
@@ -56,12 +57,10 @@ PROV = Provenance()
 DL1_DATA_MODEL_VERSION = "v1.0.0"
 
 
-def write_core_provenance(output_filename, obs_id, subarray, writer):
+def write_reference_metadata_headers(output_filename, obs_id, subarray, writer):
     """
     Attaches Core Provenence headers to an output HDF5 file.
     Right now this is hard-coded for use with the ctapipe-stage1-process tool
-
-    TODO: generalize, and move to ctapipe.io
 
     Parameters
     ----------
@@ -78,41 +77,35 @@ def write_core_provenance(output_filename, obs_id, subarray, writer):
 
     activity = PROV.current_activity.provenance
 
-    metadata = {
-        "CTA REFERENCE VERSION ": "1",
-        "CTA CONTACT ORGANIZATION": "CTA Consortium",
-        "CTA CONTACT NAME": "K. Kosack",
-        "CTA CONTACT EMAIL": "karl.kosack@cea.fr",
-        "CTA PRODUCT DESCRIPTION": "DL1 Event List",
-        "CTA PRODUCT CREATION_TIME": Time.now().iso,
-        "CTA PRODUCT ID": str(uuid.uuid4()),
-        "CTA PRODUCT DATA CATEGORY": "S",
-        "CTA PRODUCT DATA LEVEL": "DL1",
-        "CTA PRODUCT DATA TYPE": "Event",
-        "CTA PRODUCT DATA ASSOCIATION": "Subarray",
-        "CTA PRODUCT DATA MODEL NAME": "DL1/Event",
-        "CTA PRODUCT DATA MODEL VERSION": DL1_DATA_MODEL_VERSION,
-        "CTA PRODUCT DATA MODEL URL": "",
-        "CTA PRODUCT FORMAT": "hdf5",
-        "CTA PROCESS TYPE": "simulation",
-        "CTA PROCESS SUBTYPE": "",
-        "CTA PROCESS ID": str(obs_id),
-        "CTA ACTIVITY NAME": activity["activity_name"],
-        "CTA ACTIVITY TYPE": "software",
-        "CTA ACTIVITY ID": activity["activity_uuid"],
-        "CTA ACTIVITY START": activity["start"]["time_utc"],
-        "CTA ACTIVITY SOFTWARE NAME": "ctapipe",
-        "CTA ACTIVITY SOFTWARE VERSION": activity["system"]["ctapipe_version"],
-        "CTA INSTRUMENT SITE": "unknown",
-        "CTA INSTRUMENT CLASS": "subarray",
-        "CTA INSTRUMENT TYPE": "",
-        "CTA INSTRUMENT SUBTYPE": "",
-        "CTA INSTRUMENT VERSION": "",
-        "CTA INSTRUMENT ID": str(subarray),
-    }
+    reference = meta.Reference(
+        contact=meta.Contact(
+            name="", email="", organization="CTA Consortium"                                               "Consortium"
+        ),
+        product=meta.Product(
+            description="DL1 Data Product",
+            data_category="S",
+            data_level="DL1",
+            data_association="Subarray",
+            data_model_name="ASWG DL1",
+            data_model_version=DL1_DATA_MODEL_VERSION,
+            data_model_url="",
+            format="hdf5",
+        ),
+        process=meta.Process(_type="Simulation", subtype="", _id=str(obs_id), ),
+        activity=meta.Activity.from_provenance(activity),
+        instrument=meta.Instrument(
+            site="Other", # need a way to detect site...
+            class_="Subarray",
+            type_="unknown",
+            version="unknown",
+            id_=subarray.name,
+        ),
+    )
 
-    for key, value in metadata.items():
-        writer._h5file.root._v_attrs[key] = value
+    # convert all values to strings, since hdf5 can't handle Times, etc.:
+    # TODO: add activity_stop_time?
+    headers = {k:str(v) for k,v in reference.to_dict().items()}
+    meta.write_to_hdf5(headers, writer._h5file)
 
 
 def morphology(geom, image_mask) -> MorphologyContainer:
@@ -754,7 +747,7 @@ class Stage1ProcessorTool(Tool):
             if self.write_index_tables:
                 self._generate_indices(writer)
 
-            write_core_provenance(
+            write_reference_metadata_headers(
                 output_filename=self.output_filename,
                 subarray=self.event_source.subarray,
                 obs_id=self._cur_obs_id,
