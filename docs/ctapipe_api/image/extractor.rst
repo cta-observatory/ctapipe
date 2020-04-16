@@ -1,8 +1,8 @@
 .. _image_charge_extractors:
 
-==================================
+#########################################
 Image Extraction (waveform cube to image)
-==================================
+#########################################
 
 The main operation in the event processing from DL0 to Dl1 is the reducing of the
 waveforms into per-pixel signal-summarising parameters, from which image analysis
@@ -25,8 +25,10 @@ signal contained in the waveform with two parameters:
 
 * The position (time) of the signal with the waveform.
 
+
+************************
 Image Extraction Methods
-========================
+************************
 
 The field of signal processing is very widespread, and many common
 techniques are applicable to the waveforms from Cherenkov cameras. The large
@@ -52,8 +54,10 @@ another.
 
 See below for the currently existing `ImageExtractor` classes.
 
+
+***********************
 Units and Normalisation
-=======================
+***********************
 
 An `ImageExtractor` should preserve the units of the waveform samples when
 extracting the charge. I.e. if the samples are already calibrated into
