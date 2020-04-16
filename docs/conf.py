@@ -40,17 +40,19 @@ needs_sphinx = '1.5'
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.autodoc',
-              'sphinx.ext.intersphinx',
-              'sphinx.ext.todo',
-              'sphinx.ext.coverage',
-              'sphinx.ext.viewcode',
-              'sphinx.ext.githubpages',
-              'sphinx.ext.mathjax',
-              'sphinx_automodapi.automodapi',
-              'nbsphinx',
-              'matplotlib.sphinxext.plot_directive',
-              'numpydoc']
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.todo',
+    'sphinx.ext.coverage',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.githubpages',
+    'sphinx.ext.mathjax',
+    'sphinx_automodapi.automodapi',
+    'nbsphinx',
+    'matplotlib.sphinxext.plot_directive',
+    'numpydoc',
+]
 
 numpydoc_show_class_members = False
 nbsphinx_timeout = 200  # allow max 2 minutes to build each notebook
@@ -70,6 +72,10 @@ master_doc = 'index'
 
 # have all links automatically associated with the right domain.
 default_role = 'py:obj'
+
+suppress_warnings = [
+    'ref.citation',  # ignore citation not referenced warnings
+]
 
 # General information about the project.
 

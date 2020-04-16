@@ -22,7 +22,7 @@ from functools import lru_cache
 import numpy as np
 from traitlets import Int
 from ctapipe.core.traits import IntTelescopeParameter
-from ctapipe.core import Component
+from ctapipe.core import TelescopeComponent
 from numba import njit, prange, guvectorize, float64, float32, int64
 
 
@@ -71,7 +71,7 @@ def extract_around_peak(
         Astropy units should have to_value('GHz') applied before being passed
     sum_ : ndarray
         Return argument for ufunc (ignore)
-        Returns the sum (integration) of the waveforms in units "waveform_units * ns"
+        Returns the sum of the waveform samples
     pulse_time : ndarray
         Return argument for ufunc (ignore)
         Returns the pulse_time in units "ns"
@@ -98,7 +98,6 @@ def extract_around_peak(
     pulse_time[0] = time_num / time_den if time_den > 0 else peak_index
 
     # Convert to units of ns
-    sum_[0] /= sampling_rate_ghz
     pulse_time[0] /= sampling_rate_ghz
 
 
@@ -130,7 +129,7 @@ def neighbor_average_waveform(waveforms, neighbors, lwt):
     """
     n_neighbors = neighbors.shape[0]
     sum_ = waveforms * lwt
-    n = np.zeros(waveforms.shape, dtype=np.int32)
+    n = np.full(waveforms.shape, lwt, dtype=np.int32)
     for i in prange(n_neighbors):
         pixel = neighbors[i, 0]
         neighbor = neighbors[i, 1]
@@ -227,7 +226,7 @@ def integration_correction(
     return correction
 
 
-class ImageExtractor(Component):
+class ImageExtractor(TelescopeComponent):
     def __init__(self, subarray, config=None, parent=None, **kwargs):
         """
         Base component to handle the extraction of charge and pulse time
@@ -254,13 +253,7 @@ class ImageExtractor(Component):
             Set to None if no Tool to pass.
         kwargs
         """
-        super().__init__(config=config, parent=parent, **kwargs)
-        self.subarray = subarray
-        for trait in list(self.class_traits()):
-            try:
-                getattr(self, trait).attach_subarray(subarray)
-            except (AttributeError, TypeError):
-                pass
+        super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
 
         self.sampling_rate = {
             telid: telescope.camera.readout.sampling_rate.to_value('GHz')

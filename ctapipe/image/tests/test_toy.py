@@ -159,7 +159,7 @@ def test_waveform_model():
     ref_x_norm = np.linspace(0, ref_duration, n_ref_samples)
     ref_y_norm = norm.pdf(ref_x_norm, ref_duration / 2, pulse_sigma)
 
-    readout.reference_pulse_shape = ref_y_norm
+    readout.reference_pulse_shape = ref_y_norm[np.newaxis, :]
     readout.reference_pulse_sample_width = u.Quantity(
         ref_x_norm[1] - ref_x_norm[0], u.ns
     )
@@ -189,9 +189,7 @@ def test_waveform_model():
 
     waveform_model = WaveformModel.from_camera_readout(readout)
     waveform = waveform_model.get_waveform(charge, time, 96)
-    np.testing.assert_allclose(
-        waveform.sum(axis=1) / readout.sampling_rate.to_value(u.GHz), charge, rtol=1e-3
-    )
+    np.testing.assert_allclose(waveform.sum(axis=1), charge, rtol=1e-3)
     np.testing.assert_allclose(
         waveform.argmax(axis=1) / readout.sampling_rate.to_value(u.GHz), time, rtol=1e-1
     )
@@ -199,11 +197,7 @@ def test_waveform_model():
     time_2 = time + 1
     time_2[charge == 0] = 0
     waveform_2 = waveform_model.get_waveform(charge, time_2, 96)
-    np.testing.assert_allclose(
-        waveform_2.sum(axis=1) / readout.sampling_rate.to_value(u.GHz),
-        charge,
-        rtol=1e-3,
-    )
+    np.testing.assert_allclose(waveform_2.sum(axis=1), charge, rtol=1e-3)
     np.testing.assert_allclose(
         waveform_2.argmax(axis=1) / readout.sampling_rate.to_value(u.GHz),
         time_2,
