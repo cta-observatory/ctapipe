@@ -7,10 +7,7 @@ from ctapipe.image import TailcutsImageCleaner
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import IntTelescopeParameter, BoolTelescopeParameter
 from ctapipe.image.extractor import NeighborPeakWindowSum
-from ctapipe.image.cleaning import (
-    tailcuts_clean,
-    dilate
-)
+from ctapipe.image.cleaning import dilate
 
 __all__ = [
     'DataVolumeReducer',
