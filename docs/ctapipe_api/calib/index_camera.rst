@@ -21,8 +21,9 @@ CameraCalibrator
 
 The primary class in this module is the `CameraCalibrator`. This class handles
 two data level transition stages for the event:
-    * R1 -> DL0 (:ref:`image_reducers`)
-    * DL0 -> DL1 (:ref:`image_charge_extractors`)
+
+* R1 -> DL0 (:ref:`image_reducers`)
+* DL0 -> DL1 (:ref:`image_charge_extractors`)
 
 The class takes a ctapipe event container, and fills the
 next data level containers with the calibrated information.
