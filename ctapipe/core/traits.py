@@ -1,9 +1,10 @@
-import os
 from collections import UserList
 from fnmatch import fnmatch
 from typing import Optional
 import copy
 from astropy.time import Time
+import pathlib
+from urllib.parse import urlparse
 
 from traitlets import (
     Bool,
@@ -98,19 +99,35 @@ class Path(TraitType):
         if value is None:
             return None
 
+        if not isinstance(value, (str, bytes, pathlib.Path)):
+            return self.error(obj, value)
+
         if isinstance(value, str):
-            value = os.path.abspath(value)
+            try:
+                url = urlparse(value)
+            except ValueError:
+                return self.error(obj, value)
+
+            if url.scheme not in ('', 'file'):
+                return self.error(obj, value)
+
+            value = pathlib.Path(url.netloc, url.path)
+
+        if isinstance(value, pathlib.Path):
+            value = value.absolute()
+
+            exists = value.exists()
             if self.exists is not None:
-                if os.path.exists(value) != self.exists:
+                if exists != self.exists:
                     raise TraitError(
                         'Path "{}" {} exist'.format(
                             value, "does not" if self.exists else "must"
                         )
                     )
-            if os.path.exists(value):
-                if os.path.isdir(value) and not self.directory_ok:
+            if exists:
+                if not self.directory_ok and value.is_dir():
                     raise TraitError(f'Path "{value}" must not be a directory')
-                if os.path.isfile(value) and not self.file_ok:
+                if not self.file_ok and value.is_file():
                     raise TraitError(f'Path "{value}" must not be a file')
 
             return value
