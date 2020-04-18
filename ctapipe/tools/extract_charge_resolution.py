@@ -8,7 +8,7 @@ import os
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from traitlets import Dict, Int, List, Unicode
+from traitlets import Dict, Int, List, Path
 
 from ctapipe.analysis.camera.charge_resolution import ChargeResolutionCalculator
 from ctapipe.calib import CameraCalibrator
@@ -30,8 +30,10 @@ class ChargeResolutionGenerator(Tool):
         allow_none=True,
         help="Telescopes to include from the event file. Default = All telescopes",
     ).tag(config=True)
-    output_path = Unicode(
-        "charge_resolution.h5", help="Path to store the output HDF5 file"
+    output_path = Path(
+        default_value="charge_resolution.h5",
+        directory_ok=False,
+        help="Path to store the output HDF5 file"
     ).tag(config=True)
     extractor_product = traits.enum_trait(
         ImageExtractor, default="NeighborPeakWindowSum"

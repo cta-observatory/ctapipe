@@ -4,6 +4,7 @@ from matplotlib.ticker import FuncFormatter
 from matplotlib import pyplot as plt
 import os
 from ctapipe.core import Component, Provenance
+from ctapipe.core.traits import Path
 from traitlets import Unicode, Int
 
 
@@ -52,8 +53,8 @@ def bin_dataframe(df, n_bins):
 
 class ChargeResolutionPlotter(Component):
 
-    output_path = Unicode(
-        '', help='Output path to save the plot.'
+    output_path = Path(
+        help='Output path to save the plot.'
     ).tag(config=True)
 
     n_bins = Int(

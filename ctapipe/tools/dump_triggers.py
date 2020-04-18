@@ -9,7 +9,7 @@ from astropy.table import Table
 
 from ctapipe.io import event_source
 from ctapipe.core import Provenance, ToolConfigurationError
-from ctapipe.core.traits import (Unicode, Dict, Bool)
+from ctapipe.core.traits import Unicode, Dict, Bool, Path
 from ..core import Tool
 
 MAX_TELS = 1000
@@ -23,10 +23,14 @@ class DumpTriggersTool(Tool):
     # configuration parameters:
     # =============================================
 
-    infile = Unicode(help='input simtelarray file').tag(config=True)
+    infile = Path(
+        exists=True, directory_ok=False, help='input simtelarray file'
+    ).tag(config=True)
 
-    outfile = Unicode('triggers.fits',
-                      help='output filename (*.fits, *.h5)').tag(config=True)
+    outfile = Path(
+        default_value='triggers.fits', directory_ok=False,
+        help='output filename (*.fits, *.h5)',
+    ).tag(config=True)
 
     overwrite = Bool(False,
                      help="overwrite existing output file"

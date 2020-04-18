@@ -53,7 +53,6 @@ class MyTool(Tool):
     name = Unicode("myapp")
     running = Bool(False, help="Is the app running?").tag(config=True)
     classes = List([BComponent, AComponent])
-    config_file = Unicode("", help="Load this config file").tag(config=True)
 
     aliases = Dict(
         dict(
