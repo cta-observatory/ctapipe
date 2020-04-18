@@ -66,6 +66,12 @@ def test_path_none():
         thepath = Path(exists=False)
 
     c1 = C1()
+    with pytest.raises(TraitError):
+        c1.thepath = None
+
+    class C1(Component):
+        thepath = Path(exists=False, allow_none=True)
+
     c1.thepath = None
 
 

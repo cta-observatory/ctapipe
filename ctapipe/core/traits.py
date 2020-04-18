@@ -89,20 +89,26 @@ class Path(TraitType):
     """
 
     def __init__(self, *args, exists=None, directory_ok=True, file_ok=True, **kwargs):
-        super().__init__(*args, **kwargs)
+        default_value = kwargs.pop('default_value', None)
+        super().__init__(*args, default_value=default_value, **kwargs)
         self.exists = exists
         self.directory_ok = directory_ok
         self.file_ok = file_ok
 
     def validate(self, obj, value):
-
         if value is None:
-            return None
+            if self.allow_none is True:
+                return None
+            else:
+                return self.error(obj, value)
 
         if not isinstance(value, (str, bytes, pathlib.Path)):
             return self.error(obj, value)
 
         if isinstance(value, str):
+            if value == '':
+                return self.error(obj, value)
+
             try:
                 url = urlparse(value)
             except ValueError:
