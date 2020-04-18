@@ -14,7 +14,7 @@ class DummyReader(EventSource):
     """
 
     def _generator(self):
-        return range(len(self.input_url))
+        return range(5)
 
     @staticmethod
     def is_compatible(file_path):

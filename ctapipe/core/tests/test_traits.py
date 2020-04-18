@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from traitlets import CaselessStrEnum, HasTraits, Int
+import pathlib
 
 from ctapipe.core import Component, TelescopeComponent
 from ctapipe.core.traits import (
@@ -18,6 +19,7 @@ from ctapipe.core.traits import (
     AstroTime
 )
 from ctapipe.image import ImageExtractor
+
 
 @pytest.fixture(scope="module")
 def mock_subarray():
@@ -103,6 +105,33 @@ def test_path_file_ok():
     with tempfile.NamedTemporaryFile() as f:
         with pytest.raises(TraitError):
             c.thepath = f.name
+
+
+def test_path_pathlib():
+    class C(Component):
+        thepath = Path()
+
+    c = C()
+    c.thepath = pathlib.Path()
+    assert c.thepath == pathlib.Path().absolute()
+
+
+def test_path_url():
+    class C(Component):
+        thepath = Path()
+
+    c = C()
+    # test relative
+    c.thepath = 'file://foo.hdf5'
+    assert c.thepath == (pathlib.Path() / 'foo.hdf5').absolute()
+
+    # test absolute
+    c.thepath = 'file:///foo.hdf5'
+    assert c.thepath == pathlib.Path('/foo.hdf5')
+
+    # test not other shemes raise trailet errors
+    with pytest.raises(TraitError):
+        c.thepath = 'https://example.org/test.hdf5'
 
 
 def test_enum_trait_default_is_right():
