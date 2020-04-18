@@ -288,6 +288,12 @@ class EventSource(Component):
         instance
             Instance of a compatible EventSource subclass
         """
+        if config is None and parent is None:
+            raise ValueError('One of config or parent must be provided')
+
+        if config is not None and parent is not None:
+            raise ValueError('Only one of config or parent must be provided')
+
         if config is None:
             config = parent.config
 
