@@ -96,10 +96,6 @@ class Path(TraitType):
     """
 
     def __init__(self, *args, exists=None, directory_ok=True, file_ok=True, **kwargs):
-        # this is a hack to make checking for None work at runtime
-        # by using a dynamic default instead of just None, the
-        # check is only performed at __init__ after kwargs are parsed
-        # and not during __new__ for the None default
         default_value = kwargs.pop('default_value', None)
 
         super().__init__(*args, default_value=default_value, allow_none=True, **kwargs)
