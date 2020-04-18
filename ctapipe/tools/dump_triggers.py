@@ -118,11 +118,12 @@ class DumpTriggersTool(Tool):
         """
         # write out the final table
         try:
-            if self.outfile.endswith('fits') or self.outfile.endswith('fits.gz'):
+            if '.fits' in self.outfile.suffixes:
                 self.events.write(self.outfile, overwrite=self.overwrite)
-            elif self.outfile.endswith('h5'):
-                self.events.write(self.outfile, path='/events',
-                                  overwrite=self.overwrite)
+            elif self.outfile.suffix in ('.hdf5', '.h5', '.hdf'):
+                self.events.write(
+                    self.outfile, path='/events', overwrite=self.overwrite
+                )
             else:
                 self.events.write(self.outfile)
 

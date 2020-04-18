@@ -103,7 +103,6 @@ class Tool(Application):
     config_file = Path(
         exists=True,
         directory_ok=False,
-        allow_none=True,
         help=(
             "name of a configuration file with "
             "parameters to load in addition to "

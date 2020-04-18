@@ -8,7 +8,8 @@ import os
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from traitlets import Dict, Int, List, Path
+from traitlets import Dict, Int, List
+from ctapipe.core.traits import Path
 
 from ctapipe.analysis.camera.charge_resolution import ChargeResolutionCalculator
 from ctapipe.calib import CameraCalibrator

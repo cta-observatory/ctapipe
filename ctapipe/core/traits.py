@@ -22,6 +22,7 @@ from traitlets import (
     observe,
     Set,
     CRegExp,
+    Undefined
 )
 from traitlets.config import boolean_flag as flag
 
@@ -72,6 +73,12 @@ class AstroTime(TraitType):
                 f"{err})"
             )
 
+    def info(self):
+        info = 'an iso datestring'
+        if self.allow_none:
+            info += 'or None'
+        return info
+
 
 class Path(TraitType):
     """
@@ -89,18 +96,41 @@ class Path(TraitType):
     """
 
     def __init__(self, *args, exists=None, directory_ok=True, file_ok=True, **kwargs):
+        # this is a hack to make checking for None work at runtime
+        # by using a dynamic default instead of just None, the
+        # check is only performed at __init__ after kwargs are parsed
+        # and not during __new__ for the None default
         default_value = kwargs.pop('default_value', None)
-        super().__init__(*args, default_value=default_value, **kwargs)
+
+        super().__init__(*args, default_value=default_value, allow_none=True, **kwargs)
         self.exists = exists
         self.directory_ok = directory_ok
         self.file_ok = file_ok
 
+    def info(self):
+        info = 'a pathlib.Path or non-empty str for '
+        if self.exists is True:
+            info += 'an existing'
+        elif self.exists is False:
+            info += 'a not existing'
+        else:
+            info += 'a'
+
+        if self.directory_ok and self.file_ok:
+            info += ' directory or file'
+        else:
+            if self.file_ok:
+                info += ' file'
+            if self.directory_ok:
+                info += 'directory'
+        if self.allow_none:
+            info += ' or None'
+
+        return info
+
     def validate(self, obj, value):
         if value is None:
-            if self.allow_none is True:
-                return None
-            else:
-                return self.error(obj, value)
+            return None
 
         if not isinstance(value, (str, bytes, pathlib.Path)):
             return self.error(obj, value)
