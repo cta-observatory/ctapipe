@@ -61,11 +61,33 @@ def test_path_exists():
         c2.thepath = f.name
 
 
+def test_path_invalid():
+    class C1(Component):
+        p = Path(exists=False)
+
+    c1 = C1()
+    with pytest.raises(TraitError):
+        c1.p = 5
+
+    with pytest.raises(TraitError):
+        c1.p = ''
+
+
+def test_bytes():
+    class C1(Component):
+        p = Path(exists=False)
+
+    c1 = C1()
+    c1.p = b'/home/foo'
+    assert c1.p == pathlib.Path('/home/foo')
+
+
 def test_path_none():
     class C1(Component):
         thepath = Path(exists=False)
 
     c1 = C1()
+    c1.thepath = 'foo'
     c1.thepath = None
 
 

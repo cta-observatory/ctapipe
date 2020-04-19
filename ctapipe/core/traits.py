@@ -5,6 +5,7 @@ import copy
 from astropy.time import Time
 import pathlib
 from urllib.parse import urlparse
+import os
 
 from traitlets import (
     Bool,
@@ -125,10 +126,10 @@ class Path(TraitType):
         return info
 
     def validate(self, obj, value):
-        if value is None:
-            return None
+        if isinstance(value, bytes):
+            value = os.fsdecode(value)
 
-        if not isinstance(value, (str, bytes, pathlib.Path)):
+        if not isinstance(value, (str, pathlib.Path)):
             return self.error(obj, value)
 
         if isinstance(value, str):
@@ -145,26 +146,22 @@ class Path(TraitType):
 
             value = pathlib.Path(url.netloc, url.path)
 
-        if isinstance(value, pathlib.Path):
-            value = value.absolute()
-
-            exists = value.exists()
-            if self.exists is not None:
-                if exists != self.exists:
-                    raise TraitError(
-                        'Path "{}" {} exist'.format(
-                            value, "does not" if self.exists else "must"
-                        )
+        value = value.absolute()
+        exists = value.exists()
+        if self.exists is not None:
+            if exists != self.exists:
+                raise TraitError(
+                    'Path "{}" {} exist'.format(
+                        value, "does not" if self.exists else "must"
                     )
-            if exists:
-                if not self.directory_ok and value.is_dir():
-                    raise TraitError(f'Path "{value}" must not be a directory')
-                if not self.file_ok and value.is_file():
-                    raise TraitError(f'Path "{value}" must not be a file')
+                )
+        if exists:
+            if not self.directory_ok and value.is_dir():
+                raise TraitError(f'Path "{value}" must not be a directory')
+            if not self.file_ok and value.is_file():
+                raise TraitError(f'Path "{value}" must not be a file')
 
-            return value
-
-        return self.error(obj, value)
+        return value
 
 
 def enum_trait(base_class, default, help_str=None):
