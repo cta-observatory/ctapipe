@@ -404,3 +404,18 @@ def test_datetimes():
 
     with pytest.raises(TraitError):
         component.time = "garbage"
+
+
+def test_time_none():
+    class SomeComponentWithTimeTrait(Component):
+        time = AstroTime(default_value=None, allow_none=True)
+
+    c = SomeComponentWithTimeTrait()
+    c.time = None
+
+    class SomeComponentWithTimeTrait(Component):
+        time = AstroTime(default_value='2012-01-01T20:00', allow_none=False)
+
+    c = SomeComponentWithTimeTrait()
+    with pytest.raises(TraitError):
+        c.time = None

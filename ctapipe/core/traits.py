@@ -23,7 +23,6 @@ from traitlets import (
     observe,
     Set,
     CRegExp,
-    Undefined
 )
 from traitlets.config import boolean_flag as flag
 
@@ -68,14 +67,11 @@ class AstroTime(TraitType):
             the_time = Time(value)
             the_time.format = 'iso'
             return the_time
-        except ValueError as err:
-            raise TraitError(
-                f"Time values should be in a format understandable by astropy.time ("
-                f"{err})"
-            )
+        except ValueError:
+            return self.error(obj, value)
 
     def info(self):
-        info = 'an iso datestring'
+        info = 'an ISO8601 datestring or Time instance'
         if self.allow_none:
             info += 'or None'
         return info
