@@ -669,7 +669,6 @@ class Stage1ProcessorTool(Tool):
                 )
 
                 self.log.debug("params: %s", params.as_dict(recursive=True))
-                self.log.debug("Writing! ******")
 
                 containers_to_write = [
                     tel_index,
