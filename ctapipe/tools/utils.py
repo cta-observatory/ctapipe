@@ -2,7 +2,6 @@
 """Utils to create scripts and command-line tools"""
 import argparse
 import importlib
-import re
 from collections import OrderedDict
 
 __all__ = ['ArgparseFormatter',

@@ -111,7 +111,7 @@ class ImageSumDisplayerTool(Tool):
             disp.image = imsum
             plt.pause(0.1)
 
-            if self.output_suffix is not "":
+            if self.output_suffix != "":
                 filename = "{:020d}{}".format(
                     event.r0.event_id, self.output_suffix
                 )

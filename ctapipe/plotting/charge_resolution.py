@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 import os
 from ctapipe.core import Component, Provenance
 from ctapipe.core.traits import Path
-from traitlets import Unicode, Int
+from traitlets import Int
 
 
 def root_mean_square(array):

@@ -407,15 +407,15 @@ def test_datetimes():
 
 
 def test_time_none():
-    class SomeComponentWithTimeTrait(Component):
+    class AllowNone(Component):
         time = AstroTime(default_value=None, allow_none=True)
 
-    c = SomeComponentWithTimeTrait()
+    c = AllowNone()
     c.time = None
 
-    class SomeComponentWithTimeTrait(Component):
+    class NoNone(Component):
         time = AstroTime(default_value='2012-01-01T20:00', allow_none=False)
 
-    c = SomeComponentWithTimeTrait()
+    c = NoNone()
     with pytest.raises(TraitError):
         c.time = None
