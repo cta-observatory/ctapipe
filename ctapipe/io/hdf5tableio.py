@@ -205,7 +205,7 @@ class HDF5TableWriter(TableWriter):
         meta["CTAPIPE_VERSION"] = ctapipe.__version__
         return meta
 
-    def _setup_new_table(self, table_name, containers):
+    def _setup_new_table(self, table_name, containers, **kwargs):
         """ set up the table. This is called the first time `write()`
         is called on a new table """
         self.log.debug("Initializing table '%s' in group '%s'", table_name, self._group)
@@ -229,6 +229,7 @@ class HDF5TableWriter(TableWriter):
             ),
             description=self._schemas[table_name],
             createparents=True,
+            **kwargs
         )
         self.log.debug("CREATED TABLE: %s", table)
         for key, val in meta.items():
@@ -256,7 +257,7 @@ class HDF5TableWriter(TableWriter):
                 row[colname] = value
         row.append()
 
-    def write(self, table_name, containers):
+    def write(self, table_name, containers, **kwargs):
         """
         Write the contents of the given container or containers to a table.
         The first call to write  will create a schema and initialize the table
@@ -270,12 +271,17 @@ class HDF5TableWriter(TableWriter):
             name of table to write to
         containers: `ctapipe.core.Container` or `Iterable[ctapipe.core.Container]`
             container to write
+        **kwargs
+            If the table is not yet created, these kwargs are passed
+            to ``create_table`` of the hdf5 file.
+            e.g. to set the compression level to 7 pass:
+            `filters=tables.Filters( complevel=7)`
         """
         if isinstance(containers, Container):
             containers = (containers,)
 
         if table_name not in self._schemas:
-            self._setup_new_table(table_name, containers)
+            self._setup_new_table(table_name, containers, **kwargs)
 
         self._append_row(table_name, containers)
 
