@@ -274,7 +274,9 @@ class HDF5TableWriter(TableWriter):
         **kwargs
             If the table is not yet created, these kwargs are passed
             to ``create_table`` of the hdf5 file.
-            e.g. to set the compression level to 7 pass:
+            If the table already exists, **kwargs are ignored and the options
+            of the existing table are used.
+            This can be used to e.g. set the compression level:
             `filters=tables.Filters( complevel=7)`
         """
         if isinstance(containers, Container):
