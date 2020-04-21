@@ -2,47 +2,8 @@ from collections import defaultdict
 from copy import deepcopy
 from pprint import pformat
 from textwrap import wrap
-import warnings
 
-
-class Field:
-    """
-    Class for storing data in `Containers`.
-
-    Parameters
-    ----------
-    default:
-        default value of the item (this will be set when the `Container`
-        is constructed, as well as when  `Container.reset()` is called
-    description: str
-        Help text associated with the item
-    unit: `astropy.units.Quantity`
-        unit to convert to when writing output, or None for no conversion
-    ucd: str
-        universal content descriptor (see Virtual Observatory standards)
-    """
-
-    def __init__(self, default, description="", unit=None, ucd=None):
-        self.default = default
-        self.description = description
-        self.unit = unit
-        self.ucd = ucd
-
-    def __repr__(self):
-        desc = f"{self.description}"
-        if self.unit is not None:
-            desc += f" [{self.unit}]"
-        return desc
-
-
-class DeprecatedField(Field):
-    """ used to mark which fields may be removed in next version """
-    def __init__(self, default, description="", unit=None, ucd=None, reason=""):
-        super().__init__(default=default, description=description, unit=unit, ucd=ucd)
-        warnings.warn(f"Field {self} is deprecated. {reason}", DeprecationWarning)
-        self.reason = reason
-
-
+from .fields import Field
 
 
 class ContainerMeta(type):
