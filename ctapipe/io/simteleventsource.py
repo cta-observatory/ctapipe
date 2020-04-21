@@ -8,6 +8,7 @@ from astropy.coordinates import Angle
 from astropy.time import Time
 from eventio.file_types import is_eventio
 from eventio.simtel.simtelfile import SimTelFile
+from traitlets import observe
 
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 from ctapipe.containers import EventAndMonDataContainer
@@ -24,6 +25,7 @@ from ctapipe.instrument.camera import UnknownPixelShapeWarning
 from ctapipe.instrument.guess import guess_telescope, UNKNOWN_TELESCOPE
 from ctapipe.io.eventsource import EventSource
 from io import BufferedReader
+
 
 __all__ = ["SimTelEventSource"]
 
@@ -180,6 +182,13 @@ class SimTelEventSource(EventSource):
         if gain_selector is None:
             gain_selector = ThresholdGainSelector(parent=self)
         self.gain_selector = gain_selector
+
+    @observe('allowed_tels')
+    def _observe_allowed_tels(self, change):
+        # this can run in __init__ before file_ is created
+        if hasattr(self, 'file_'):
+            allowed_tels = set(self.allowed_tels) if self.allowed_tels else None
+            self.file_.allowed_telescopes = allowed_tels
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()

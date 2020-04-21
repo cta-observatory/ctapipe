@@ -219,6 +219,19 @@ def test_allowed_telescopes():
             assert event.r1.tels_with_data.issubset(allowed_tels)
             assert event.dl0.tels_with_data.issubset(allowed_tels)
 
+    # test that updating the allowed_tels mask works
+    new_allowed_tels = {1, 2}
+    with SimTelEventSource(
+        input_url=gamma_test_large_path, allowed_tels=allowed_tels
+    ) as reader:
+
+        # change allowed_tels after __init__
+        reader.allowed_tels = new_allowed_tels
+        for event in reader:
+            assert event.r0.tels_with_data.issubset(new_allowed_tels)
+            assert event.r1.tels_with_data.issubset(new_allowed_tels)
+            assert event.dl0.tels_with_data.issubset(new_allowed_tels)
+
 
 def test_calibration_events():
     with SimTelEventSource(
