@@ -101,7 +101,6 @@ class Tool(Application):
     """
 
     config_file = Path(
-        None,
         exists=True,
         directory_ok=False,
         help=(

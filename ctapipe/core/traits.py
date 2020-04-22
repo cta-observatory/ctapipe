@@ -1,9 +1,11 @@
-import os
 from collections import UserList
 from fnmatch import fnmatch
 from typing import Optional
 import copy
 from astropy.time import Time
+import pathlib
+from urllib.parse import urlparse
+import os
 
 from traitlets import (
     Bool,
@@ -65,11 +67,14 @@ class AstroTime(TraitType):
             the_time = Time(value)
             the_time.format = 'iso'
             return the_time
-        except ValueError as err:
-            raise TraitError(
-                f"Time values should be in a format understandable by astropy.time ("
-                f"{err})"
-            )
+        except ValueError:
+            return self.error(obj, value)
+
+    def info(self):
+        info = 'an ISO8601 datestring or Time instance'
+        if self.allow_none:
+            info += 'or None'
+        return info
 
 
 class Path(TraitType):
@@ -88,34 +93,71 @@ class Path(TraitType):
     """
 
     def __init__(self, *args, exists=None, directory_ok=True, file_ok=True, **kwargs):
-        super().__init__(*args, **kwargs)
+        default_value = kwargs.pop('default_value', None)
+
+        super().__init__(*args, default_value=default_value, allow_none=True, **kwargs)
         self.exists = exists
         self.directory_ok = directory_ok
         self.file_ok = file_ok
 
-    def validate(self, obj, value):
+    def info(self):
+        info = 'a pathlib.Path or non-empty str for '
+        if self.exists is True:
+            info += 'an existing'
+        elif self.exists is False:
+            info += 'a not existing'
+        else:
+            info += 'a'
 
-        if value is None:
-            return None
+        if self.directory_ok and self.file_ok:
+            info += ' directory or file'
+        else:
+            if self.file_ok:
+                info += ' file'
+            if self.directory_ok:
+                info += 'directory'
+        if self.allow_none:
+            info += ' or None'
+
+        return info
+
+    def validate(self, obj, value):
+        if isinstance(value, bytes):
+            value = os.fsdecode(value)
+
+        if not isinstance(value, (str, pathlib.Path)):
+            return self.error(obj, value)
 
         if isinstance(value, str):
-            value = os.path.abspath(value)
-            if self.exists is not None:
-                if os.path.exists(value) != self.exists:
-                    raise TraitError(
-                        'Path "{}" {} exist'.format(
-                            value, "does not" if self.exists else "must"
-                        )
+            if value == '':
+                return self.error(obj, value)
+
+            try:
+                url = urlparse(value)
+            except ValueError:
+                return self.error(obj, value)
+
+            if url.scheme not in ('', 'file'):
+                return self.error(obj, value)
+
+            value = pathlib.Path(url.netloc, url.path)
+
+        value = value.absolute()
+        exists = value.exists()
+        if self.exists is not None:
+            if exists != self.exists:
+                raise TraitError(
+                    'Path "{}" {} exist'.format(
+                        value, "does not" if self.exists else "must"
                     )
-            if os.path.exists(value):
-                if os.path.isdir(value) and not self.directory_ok:
-                    raise TraitError(f'Path "{value}" must not be a directory')
-                if os.path.isfile(value) and not self.file_ok:
-                    raise TraitError(f'Path "{value}" must not be a file')
+                )
+        if exists:
+            if not self.directory_ok and value.is_dir():
+                raise TraitError(f'Path "{value}" must not be a directory')
+            if not self.file_ok and value.is_file():
+                raise TraitError(f'Path "{value}" must not be a file')
 
-            return value
-
-        return self.error(obj, value)
+        return value
 
 
 def enum_trait(base_class, default, help_str=None):

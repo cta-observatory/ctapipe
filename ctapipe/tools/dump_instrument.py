@@ -8,7 +8,7 @@ automatically generated.
 from collections import defaultdict
 
 from ctapipe.core import Tool, Provenance
-from ctapipe.core.traits import (Unicode, Dict, Enum)
+from ctapipe.core.traits import Unicode, Dict, Enum, Path
 from ctapipe.io import event_source
 
 
@@ -35,7 +35,7 @@ class DumpInstrumentTool(Tool):
     description = Unicode(__doc__)
     name = 'ctapipe-dump-instrument'
 
-    infile = Unicode(help='input simtelarray file').tag(config=True)
+    infile = Path(exists=True, help='input simtelarray file').tag(config=True)
     format = Enum(['fits', 'ecsv', 'hdf5'],
                   default_value='fits',
                   help='Format of output file',

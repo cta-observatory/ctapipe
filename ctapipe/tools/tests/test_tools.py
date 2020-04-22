@@ -130,7 +130,7 @@ def test_bokeh_file_viewer():
     sys.argv = ["bokeh_file_viewer"]
     tool = BokehFileViewer(disable_server=True)
     assert run_tool(tool) == 0
-    assert tool.reader.input_url == get_dataset_path("gamma_test_large.simtel.gz")
+    assert str(tool.reader.input_url) == get_dataset_path("gamma_test_large.simtel.gz")
     assert run_tool(tool, ["--help-all"]) == 0
 
 

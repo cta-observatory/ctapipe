@@ -10,14 +10,14 @@ def test_factory():
     dataset = get_dataset_path("gamma_test_large.simtel.gz")
     reader = event_source(input_url=dataset)
     assert isinstance(reader, SimTelEventSource)
-    assert reader.input_url == dataset
+    assert str(reader.input_url) == dataset
 
 
 def test_factory_different_file():
     dataset = get_dataset_path("gamma_test_large.simtel.gz")
     reader = event_source(input_url=dataset)
     assert isinstance(reader, SimTelEventSource)
-    assert reader.input_url == dataset
+    assert str(reader.input_url) == dataset
 
 
 def test_factory_incompatible_file():
@@ -37,7 +37,7 @@ def test_from_config():
     config = Config({'EventSource': {'input_url': dataset}})
     reader = EventSource.from_config(config=config, parent=None)
     assert isinstance(reader, SimTelEventSource)
-    assert reader.input_url == dataset
+    assert str(reader.input_url) == dataset
 
 
 def test_from_config_default():
@@ -47,7 +47,7 @@ def test_from_config_default():
     config = Config()
     reader = EventSource.from_config(config=config, parent=None)
     assert isinstance(reader, SimTelEventSource)
-    assert reader.input_url == dataset
+    assert str(reader.input_url) == dataset
     EventSource.input_url.default_value = old_default
 
 
@@ -65,7 +65,7 @@ def test_event_source_config():
     config = Config({'EventSource': {'input_url': dataset1}})
     reader = event_source(dataset2, config=config)
     assert isinstance(reader, SimTelEventSource)
-    assert reader.input_url == dataset2
+    assert str(reader.input_url) == dataset2
 
 
 def test_event_source_input_url_config_override():
@@ -74,7 +74,7 @@ def test_event_source_input_url_config_override():
     config = Config({'EventSource': {'input_url': dataset1}})
     reader = event_source(input_url=dataset2, config=config)
     assert isinstance(reader, SimTelEventSource)
-    assert reader.input_url == dataset2
+    assert str(reader.input_url) == dataset2
 
 
 def test_factory_max_events():
