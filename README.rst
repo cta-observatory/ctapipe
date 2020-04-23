@@ -2,8 +2,8 @@
 ctapipe |teststatus| |codacy| |coverage| |conda| |doiv07|
 =========================================================
 
-.. |teststatus| image:: https://travis-ci.org/cta-observatory/ctapipe.svg?branch=master
-    :target: https://travis-ci.org/cta-observatory/ctapipe
+.. |teststatus| image:: https://travis-ci.com/cta-observatory/ctapipe.svg?branch=master
+    :target: https://travis-ci.com/cta-observatory/ctapipe
     :alt: Test Status
 .. |codacy|  image:: https://api.codacy.com/project/badge/Grade/6192b471956b4cc684130c80c8214115   
   :target: https://www.codacy.com/gh/cta-observatory/ctapipe?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=cta-observatory/ctapipe&amp;utm_campaign=Badge_Grade
