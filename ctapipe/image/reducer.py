@@ -126,13 +126,13 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
        with ctapipe module dilate until no new pixels were added.
     3) Adding new pixels with dilate to get more conservative.
     """
-    end_dilates = IntTelescopeParameter(
+    n_end_dilates = IntTelescopeParameter(
         default_value=1,
         help="Number of how many times to dilate at the end."
     ).tag(config=True)
-    iteration_steps = BoolTelescopeParameter(
+    do_boundary_dilation = BoolTelescopeParameter(
         default_value=True,
-        help="If set to 'False', the iteration_steps in 2) are skipped and"
+        help="If set to 'False', the iteration steps in 2) are skipped and"
         "normal TailcutCleaning is used."
     ).tag(config=True)
 
@@ -154,13 +154,13 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         #          'dilate' until no new pixels were added.
         while (
             not np.array_equal(mask, mask_in_loop)
-            and self.iteration_steps.tel[telid]
+            and self.do_boundary_dilation.tel[telid]
         ):
             mask_in_loop = mask
             mask = dilate(camera_geom, mask) & pixels_above_boundary_thresh
 
         # 3) Step: Adding Pixels with 'dilate' to get more conservative.
-        for _ in range(self.end_dilates.tel[telid]):
+        for _ in range(self.n_end_dilates.tel[telid]):
             mask = dilate(camera_geom, mask)
 
         return mask
