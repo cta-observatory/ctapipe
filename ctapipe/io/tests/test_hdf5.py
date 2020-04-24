@@ -411,8 +411,8 @@ def test_column_transforms(tmp_path):
             assert np.allclose(data.value, [6.0, 6.0, 6.0])
 
 
-def test_write_kwargs():
-    from tables import Filters
+def test_filters():
+    from tables import Filters, open_file
 
     class TestContainer(Container):
         value = Field(-1, 'test')
@@ -425,15 +425,19 @@ def test_write_kwargs():
             assert writer._h5file.filters.complevel == 0
 
             c = TestContainer(value=5)
-            writer.write('zstd', c, filters=zstd)
-            writer.write('nocomp', c, filters=no_comp)
             writer.write('default', c)
 
-            assert writer._h5file.root.data.zstd.filters.complevel == 5
-            assert writer._h5file.root.data.zstd.filters.complib == 'blosc:zstd'
+            writer.filters = zstd
+            writer.write('zstd', c)
 
-            assert writer._h5file.root.data.nocomp.filters.complevel == 0
-            assert writer._h5file.root.data.default.filters.complevel == 0
+            writer.filters = no_comp
+            writer.write('nocomp', c)
+
+        with open_file(f.name) as h5file:
+            assert h5file.root.data.default.filters.complevel == 0
+            assert h5file.root.data.zstd.filters.complevel == 5
+            assert h5file.root.data.zstd.filters.complib == 'blosc:zstd'
+            assert h5file.root.data.nocomp.filters.complevel == 0
 
 
 if __name__ == "__main__":

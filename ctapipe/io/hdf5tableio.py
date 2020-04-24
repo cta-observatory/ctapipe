@@ -32,6 +32,13 @@ PYTABLES_TYPE_MAP = {
 }
 
 
+DEFAULT_FILTERS = tables.Filters(
+    complevel=5,           # compression medium, tradeoff between speed and compression
+    complib='blosc:zstd',  # use modern zstd algorithm
+    fletcher32=True,       # add checksums to data chunks
+)
+
+
 class HDF5TableWriter(TableWriter):
     """
     A very basic table writer that can take a container (or more than one)
@@ -74,11 +81,11 @@ class HDF5TableWriter(TableWriter):
         'a' if you want to append data to the file
     root_uep : str
         root location of the `group_name`
+    filters: pytables.Filters
+        A set of filters (compression settings) to be used for
+        all datasets created by this writer.
     kwargs:
         any other arguments that will be passed through to `pytables.open()`.
-        e.g. to set the compression level to 7 pass : `filters=tables.Filters(
-        complevel=7)`
-
     """
 
     def __init__(
@@ -88,6 +95,7 @@ class HDF5TableWriter(TableWriter):
         add_prefix=False,
         mode="w",
         root_uep="/",
+        filters=DEFAULT_FILTERS,
         **kwargs,
     ):
 
@@ -96,22 +104,21 @@ class HDF5TableWriter(TableWriter):
         self._tables = {}
 
         if mode not in ["a", "w", "r+"]:
-            raise IOError(f"The mode {mode} is not supported for writing")
+            raise IOError(f"The mode '{mode}' is not supported for writing")
 
-        kwargs.update(mode=mode, root_uep=root_uep)
+        kwargs.update(mode=mode, root_uep=root_uep, filters=filters)
 
         self.open(filename, **kwargs)
         self._group = "/" + group_name
+        self.filters = filters
 
         self.log.debug("h5file: %s", self._h5file)
 
     def open(self, filename, **kwargs):
-
         self.log.debug("kwargs for tables.open_file: %s", kwargs)
         self._h5file = tables.open_file(filename, **kwargs)
 
     def close(self):
-
         self._h5file.close()
 
     def _create_hdf5_table_schema(self, table_name, containers):
@@ -205,7 +212,7 @@ class HDF5TableWriter(TableWriter):
         meta["CTAPIPE_VERSION"] = ctapipe.__version__
         return meta
 
-    def _setup_new_table(self, table_name, containers, **kwargs):
+    def _setup_new_table(self, table_name, containers):
         """ set up the table. This is called the first time `write()`
         is called on a new table """
         self.log.debug("Initializing table '%s' in group '%s'", table_name, self._group)
@@ -229,7 +236,7 @@ class HDF5TableWriter(TableWriter):
             ),
             description=self._schemas[table_name],
             createparents=True,
-            **kwargs
+            filters=self.filters,
         )
         self.log.debug("CREATED TABLE: %s", table)
         for key, val in meta.items():
@@ -257,7 +264,7 @@ class HDF5TableWriter(TableWriter):
                 row[colname] = value
         row.append()
 
-    def write(self, table_name, containers, **kwargs):
+    def write(self, table_name, containers):
         """
         Write the contents of the given container or containers to a table.
         The first call to write  will create a schema and initialize the table
@@ -271,19 +278,12 @@ class HDF5TableWriter(TableWriter):
             name of table to write to
         containers: `ctapipe.core.Container` or `Iterable[ctapipe.core.Container]`
             container to write
-        **kwargs
-            If the table is not yet created, these kwargs are passed
-            to ``create_table`` of the hdf5 file.
-            If the table already exists, **kwargs are ignored and the options
-            of the existing table are used.
-            This can be used to e.g. set the compression level:
-            `filters=tables.Filters( complevel=7)`
         """
         if isinstance(containers, Container):
             containers = (containers,)
 
         if table_name not in self._schemas:
-            self._setup_new_table(table_name, containers, **kwargs)
+            self._setup_new_table(table_name, containers)
 
         self._append_row(table_name, containers)
 
