@@ -76,8 +76,8 @@ def test_tailcuts_data_volume_reducer(subarray_lst):
                     "min_picture_neighbors": 0,
                     "keep_isolated_pixels": True
                 },
-                "end_dilates": 1,
-                "iteration_steps": True
+                "n_end_dilates": 1,
+                "do_boundary_dilation": True
             }
         }
     )
