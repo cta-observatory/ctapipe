@@ -36,10 +36,6 @@ class DataVolumeReducer(TelescopeComponent):
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
             Set to None if no configuration to pass.
-        tool: ctapipe.core.Tool or None
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
         subarray: ctapipe.instrument.SubarrayDescription
             Description of the subarray
         image_extractor: ctapipe.image.extractor.ImageExtractor
