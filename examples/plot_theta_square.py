@@ -85,7 +85,10 @@ for event in source:
     if len(hillas_params) < 2:
         continue
 
-    reco_result = reco.predict(hillas_params, event.inst, array_pointing, telescope_pointings)
+    reco_result = reco.predict(
+        hillas_params, source.subarray,
+        array_pointing, telescope_pointings
+    )
 
     # get angular offset between reconstructed shower direction and MC
     # generated shower direction
