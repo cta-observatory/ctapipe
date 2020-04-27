@@ -94,7 +94,7 @@ class BokehFileViewer(Tool):
             image_extractor=self.extractor,
         )
 
-        self.viewer = BokehEventViewer(parent=self)
+        self.viewer = BokehEventViewer(parent=self, subarray=self.reader.subarray)
 
         # Setup widgets
         self.viewer.create()

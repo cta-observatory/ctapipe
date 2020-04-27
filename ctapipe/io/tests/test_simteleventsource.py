@@ -21,6 +21,20 @@ def compare_sources(input_url):
         input_url=input_url
     ) as hessio_source:
 
+        assert simtel_source.subarray.keys() == hessio_source.subarray.keys()
+        for tel_id, tel_desc in simtel_source.subarray.items():
+            h_camera = tel_desc.camera
+            s_camera = tel_desc.camera
+            assert h_camera.readout.sampling_rate == s_camera.readout.sampling_rate
+            assert np.array_equal(
+                h_camera.readout.reference_pulse_shape,
+                s_camera.readout.reference_pulse_shape,
+            )
+            assert (
+                h_camera.readout.reference_pulse_sample_width
+                == s_camera.readout.reference_pulse_sample_width
+            )
+
         for s, h in zip_longest(simtel_source, hessio_source):
 
             assert s is not None
@@ -74,18 +88,6 @@ def compare_sources(input_url):
                 assert h.mc.tel[tel_id].altitude_raw == s.mc.tel[tel_id].altitude_raw
                 assert h.pointing[tel_id].altitude == s.pointing[tel_id].altitude
                 assert h.pointing[tel_id].azimuth == s.pointing[tel_id].azimuth
-
-                h_camera = h.inst.subarray.tel[tel_id].camera
-                s_camera = s.inst.subarray.tel[tel_id].camera
-                assert h_camera.readout.sampling_rate == s_camera.readout.sampling_rate
-                assert np.array_equal(
-                    h_camera.readout.reference_pulse_shape,
-                    s_camera.readout.reference_pulse_shape,
-                )
-                assert (
-                    h_camera.readout.reference_pulse_sample_width
-                    == s_camera.readout.reference_pulse_sample_width
-                )
 
 
 def test_compare_event_hessio_and_simtel():
@@ -220,29 +222,15 @@ def test_calibration_events():
 def test_camera_caching():
     """Test if same telescope types share a single instance of CameraGeometry"""
     source = SimTelEventSource(input_url=gamma_test_large_path)
-    event = next(iter(source))
-    subarray = event.inst.subarray
+    subarray = source.subarray
     assert subarray.tel[1].camera is subarray.tel[2].camera
 
 
 def test_instrument():
     """Test if same telescope types share a single instance of CameraGeometry"""
     source = SimTelEventSource(input_url=gamma_test_large_path)
-    event = next(iter(source))
-    subarray = event.inst.subarray
+    subarray = source.subarray
     assert subarray.tel[1].optics.num_mirrors == 1
-
-
-def test_subarray_property():
-    source = SimTelEventSource(input_url=gamma_test_large_path)
-    subarray = deepcopy(source.subarray)
-    event = next(iter(source))
-    subarray_event = event.inst.subarray
-    assert subarray.tel.keys() == subarray_event.tel.keys()
-    assert (
-        subarray.tel[1].camera.geometry.pix_x
-        == subarray_event.tel[1].camera.geometry.pix_x
-    ).all()
 
 
 def test_apply_simtel_r1_calibration_1_channel():

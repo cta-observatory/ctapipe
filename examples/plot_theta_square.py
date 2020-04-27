@@ -40,7 +40,7 @@ for event in source:
     # calibrating the event
     calib(event)
     hillas_params = {}
-    subarray = event.inst.subarray
+    subarray = source.subarray
 
     # dictionary for the pointing directions of the telescopes
     telescope_pointings = {}

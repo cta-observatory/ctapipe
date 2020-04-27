@@ -89,7 +89,7 @@ def plot_muon_efficiency(outputpath):
         plt.show()
 
 
-def plot_muon_event(event, muonparams):
+def plot_muon_event(subarray, event, muonparams):
     if muonparams['MuonRingParams'] is not None:
 
         # Plot the muon event and overlay muon parameters
@@ -97,8 +97,6 @@ def plot_muon_event(event, muonparams):
 
         colorbar = None
         colorbar2 = None
-
-        subarray = event.inst.subarray
 
         # for tel_id in event.dl0.tels_with_data:
         for tel_id in muonparams['TelIds']:
@@ -112,9 +110,9 @@ def plot_muon_event(event, muonparams):
             # Only create two pads if there is timing information extracted
             # from the calibration
             ax1 = fig.add_subplot(1, npads, 1)
-            plotter = CameraPlotter(event)
+            plotter = CameraPlotter(event=event, subarray=subarray)
             image = event.dl1.tel[tel_id].image
-            geom = event.inst.subarray.tel[tel_id].camera.geometry
+            geom = subarray.tel[tel_id].camera.geometry
 
             tailcuts = (5., 7.)
             # Try a higher threshold for

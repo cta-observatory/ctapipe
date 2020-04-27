@@ -35,9 +35,11 @@ with event_source(input_url=input_url) as source:
         nom_delta_alt = []
         photons = []
 
+        subarray = source.subarray
+
         for tel_id, dl1 in event.dl1.tel.items():
-            geom = event.inst.subarray.tels[tel_id].camera.geometry
-            focal_length = event.inst.subarray.tels[tel_id].optics.equivalent_focal_length
+            geom = subarray.tels[tel_id].camera.geometry
+            focal_length = subarray.tels[tel_id].optics.equivalent_focal_length
             image = dl1.image
 
             # telescope mc info

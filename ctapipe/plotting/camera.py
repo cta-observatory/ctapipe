@@ -22,7 +22,7 @@ class CameraPlotter:
         A `ctapipe` event container
     """
 
-    def __init__(self, event):
+    def __init__(self, event, subarray):
         """
         Parameters
         ----------
@@ -30,10 +30,11 @@ class CameraPlotter:
             A `ctapipe` event container
         """
         self.event = event
+        self.subarray = subarray
         self.cameradisplay_dict = {}
 
     def get_geometry(self, tel):
-        return self.event.inst.subarray.tel[tel].camera.geometry
+        return self.subarray.tel[tel].camera.geometry
 
     def draw_camera(self, tel, data, axes=None):
         """
