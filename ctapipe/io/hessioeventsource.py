@@ -62,7 +62,7 @@ class HESSIOEventSource(EventSource):
             self.pyhessio.close_file()
         HESSIOEventSource._count += 1
 
-        self.subarray = self.read_subarray()
+        self._subarray = self.read_subarray()
         self.metadata['is_simulation'] = True
 
         # Waveforms from simtelarray have both gain channels
@@ -70,6 +70,10 @@ class HESSIOEventSource(EventSource):
         if gain_selector is None:
             gain_selector = ThresholdGainSelector(parent=self)
         self.gain_selector = gain_selector
+
+    @property
+    def subarray(self):
+        return self._subarray
 
     @staticmethod
     def is_compatible(file_path):

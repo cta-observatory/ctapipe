@@ -21,8 +21,8 @@ def compare_sources(input_url):
         input_url=input_url
     ) as hessio_source:
 
-        assert simtel_source.subarray.keys() == hessio_source.subarray.keys()
-        for tel_id, tel_desc in simtel_source.subarray.items():
+        assert simtel_source.subarray.tel.keys() == hessio_source.subarray.tel.keys()
+        for tel_id, tel_desc in simtel_source.subarray.tel.items():
             h_camera = tel_desc.camera
             s_camera = tel_desc.camera
             assert h_camera.readout.sampling_rate == s_camera.readout.sampling_rate
