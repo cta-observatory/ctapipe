@@ -180,7 +180,7 @@ def test_additional_meta_data_from_mc_header():
         )
 
 
-def test_hessio_file_reader():
+def test_gamma_file():
     dataset = gamma_test_path
 
     with SimTelEventSource(input_url=dataset) as reader:
@@ -196,17 +196,41 @@ def test_hessio_file_reader():
                 break
 
     # test that max_events works:
+
+
+def test_max_events():
     max_events = 5
-    with SimTelEventSource(input_url=dataset, max_events=max_events) as reader:
+    with SimTelEventSource(input_url=gamma_test_path, max_events=max_events) as reader:
         count = 0
         for _ in reader:
             count += 1
         assert count == max_events
 
+
+def test_allowed_telescopes():
     # test that the allowed_tels mask works:
-    with SimTelEventSource(input_url=dataset, allowed_tels={3, 4}) as reader:
+    allowed_tels = {3, 4}
+    with SimTelEventSource(
+        input_url=gamma_test_large_path, allowed_tels=allowed_tels
+    ) as reader:
+
         for event in reader:
-            assert event.r0.tels_with_data.issubset(reader.allowed_tels)
+            assert event.r0.tels_with_data.issubset(allowed_tels)
+            assert event.r1.tels_with_data.issubset(allowed_tels)
+            assert event.dl0.tels_with_data.issubset(allowed_tels)
+
+    # test that updating the allowed_tels mask works
+    new_allowed_tels = {1, 2}
+    with SimTelEventSource(
+        input_url=gamma_test_large_path, allowed_tels=allowed_tels
+    ) as reader:
+
+        # change allowed_tels after __init__
+        reader.allowed_tels = new_allowed_tels
+        for event in reader:
+            assert event.r0.tels_with_data.issubset(new_allowed_tels)
+            assert event.r1.tels_with_data.issubset(new_allowed_tels)
+            assert event.dl0.tels_with_data.issubset(new_allowed_tels)
 
 
 def test_calibration_events():

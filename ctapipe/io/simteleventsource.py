@@ -8,6 +8,7 @@ from astropy.coordinates import Angle
 from astropy.time import Time
 from eventio.file_types import is_eventio
 from eventio.simtel.simtelfile import SimTelFile
+from traitlets import observe
 
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 from ctapipe.containers import EventAndMonDataContainer
@@ -24,6 +25,7 @@ from ctapipe.instrument.camera import UnknownPixelShapeWarning
 from ctapipe.instrument.guess import guess_telescope, UNKNOWN_TELESCOPE
 from ctapipe.io.eventsource import EventSource
 from io import BufferedReader
+
 
 __all__ = ["SimTelEventSource"]
 
@@ -159,7 +161,7 @@ class SimTelEventSource(EventSource):
 
         # traitlets creates an empty set as default,
         # which ctapipe treats as no restriction on the telescopes
-        # but eventio treats an emty set as "no telescopes allowed"
+        # but eventio treats an empty set as "no telescopes allowed"
         # so we explicitly pass None in that case
         self.file_ = SimTelFile(
             Path(self.input_url).expanduser(),
@@ -180,6 +182,13 @@ class SimTelEventSource(EventSource):
         if gain_selector is None:
             gain_selector = ThresholdGainSelector(parent=self)
         self.gain_selector = gain_selector
+
+    @observe('allowed_tels')
+    def _observe_allowed_tels(self, change):
+        # this can run in __init__ before file_ is created
+        if hasattr(self, 'file_'):
+            allowed_tels = set(self.allowed_tels) if self.allowed_tels else None
+            self.file_.allowed_telescopes = allowed_tels
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
@@ -320,16 +329,6 @@ class SimTelEventSource(EventSource):
             data.dl0.obs_id = obs_id  # deprecated
             data.dl0.event_id = event_id  # deprecated
             data.dl0.tels_with_data = tels_with_data
-
-            # handle telescope filtering by taking the intersection of
-            # tels_with_data and allowed_tels
-            if len(self.allowed_tels) > 0:
-                selected = tels_with_data & self.allowed_tels
-                if len(selected) == 0:
-                    continue  # skip event
-                data.r0.tels_with_data = selected
-                data.r1.tels_with_data = selected
-                data.dl0.tels_with_data = selected
 
             trigger_information = array_event["trigger_information"]
 
