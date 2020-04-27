@@ -23,8 +23,6 @@ __all__ = [
     "DL1CameraContainer",
     "EventCameraCalibrationContainer",
     "EventCalibrationContainer",
-    "SST1MContainer",
-    "SST1MCameraContainer",
     "MCEventContainer",
     "MCHeaderContainer",
     "MCCameraEventContainer",
@@ -35,7 +33,6 @@ __all__ = [
     "ReconstructedEnergyContainer",
     "ParticleClassificationContainer",
     "DataContainer",
-    "SST1MDataContainer",
     "HillasParametersContainer",
     "LeakageContainer",
     "ConcentrationContainer",
@@ -74,23 +71,6 @@ class TelEventIndexContainer(EventIndexContainer):
 
     tel_id = Field(0, "telescope identifier")
     tel_type_id = Field(0, "telescope type id number (integer)")
-
-
-class SST1MCameraContainer(Container):
-    pixel_flags = Field(None, "numpy array containing pixel flags")
-    digicam_baseline = Field(None, "Baseline computed by DigiCam")
-    local_camera_clock = Field(float, "camera timestamp")
-    gps_time = Field(float, "gps timestamp")
-    camera_event_type = Field(int, "camera event type")
-    array_event_type = Field(int, "array event type")
-    trigger_input_traces = Field(None, "trigger patch trace (n_patches)")
-    trigger_output_patch7 = Field(None, "trigger 7 patch cluster trace (n_clusters)")
-    trigger_output_patch19 = Field(None, "trigger 19 patch cluster trace (n_clusters)")
-
-
-class SST1MContainer(Container):
-    tels_with_data = Field([], "list of telescopes with data")
-    tel = Field(Map(SST1MCameraContainer), "map of tel_id to SST1MCameraContainer")
 
 
 class InstrumentContainer(Container):
@@ -533,10 +513,6 @@ class DataContainer(Container):
         EventCalibrationContainer(),
         "Container for calibration coefficients for the current event"
     )
-
-
-class SST1MDataContainer(DataContainer):
-    sst1m = Field(SST1MContainer(), "optional SST1M Specific Information")
 
 
 class MuonRingParameter(Container):
