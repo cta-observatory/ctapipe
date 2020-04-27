@@ -8,19 +8,18 @@ performance
 - Make intersect_lines code more readable
 
 """
-import numpy as np
+import copy
+import warnings
 import itertools
-import astropy.units as u
-from ctapipe.reco.reco_algorithms import (
-    Reconstructor,
-    InvalidWidthException,
-    TooFewTelescopesException
-)
-from ctapipe.containers import ReconstructedShowerContainer
-from ctapipe.instrument import get_atmosphere_profile_functions
 
+import numpy as np
+import astropy.units as u
 from astropy.coordinates import SkyCoord
-from ctapipe.coordinates import (
+
+from ..core import Component, traits
+from ..containers import ReconstructedShowerContainer
+from ..instrument import get_atmosphere_profile_functions
+from ..coordinates import (
     NominalFrame,
     CameraFrame,
     TiltedGroundFrame,
@@ -28,15 +27,13 @@ from ctapipe.coordinates import (
     GroundFrame,
     MissingFrameAttributeWarning
 )
-import copy
-import warnings
+from .exceptions import InvalidWidth, TooFewTelescopes
 
-from ctapipe.core import traits
 
 __all__ = ['HillasIntersection']
 
 
-class HillasIntersection(Reconstructor):
+class HillasIntersection(Component):
     """
     This class is a simple re-implementation of Hillas parameter based event
     reconstruction. e.g. https://arxiv.org/abs/astro-ph/0607333
@@ -83,7 +80,7 @@ class HillasIntersection(Reconstructor):
         if self.weighting == "Konrad":
             self._weight_method = self.weight_konrad
 
-    def predict(self, hillas_dict, inst, array_pointing, telescopes_pointings=None):
+    def __call__(self, hillas_dict, inst, array_pointing, telescopes_pointings=None):
         """
 
         Parameters
@@ -109,21 +106,21 @@ class HillasIntersection(Reconstructor):
 
         # stereoscopy needs at least two telescopes
         if len(hillas_dict) < 2:
-            raise TooFewTelescopesException(
-                "need at least two telescopes, have {}"
-                .format(len(hillas_dict)))
+            raise TooFewTelescopes(
+                f"need at least two telescopes, have {len(hillas_dict)}"
+            )
 
         # check for np.nan or 0 width's as these screw up weights
         if any([np.isnan(hillas_dict[tel]['width'].value) for tel in hillas_dict]):
-            raise InvalidWidthException(
-                "A HillasContainer contains an ellipse of width==np.nan")
+            raise InvalidWidth("A HillasContainer contains an ellipse of width==np.nan")
 
         if any([hillas_dict[tel]['width'].value == 0 for tel in hillas_dict]):
-            raise InvalidWidthException(
-                "A HillasContainer contains an ellipse of width==0")
+            raise InvalidWidth("A HillasContainer contains an ellipse of width==0")
 
         if telescopes_pointings is None:
-            telescopes_pointings = {tel_id: array_pointing for tel_id in hillas_dict.keys()}
+            telescopes_pointings = {
+                tel_id: array_pointing for tel_id in hillas_dict.keys()
+            }
 
         tilted_frame = TiltedGroundFrame(pointing_direction=array_pointing)
 
@@ -134,8 +131,8 @@ class HillasIntersection(Reconstructor):
 
         tilt_coord = grd_coord.transform_to(tilted_frame)
 
-        tel_x = {tel_id: tilt_coord.x[tel_id-1] for tel_id in list(hillas_dict.keys())}
-        tel_y = {tel_id: tilt_coord.y[tel_id-1] for tel_id in list(hillas_dict.keys())}
+        tel_x = {tel_id: tilt_coord.x[tel_id - 1] for tel_id in list(hillas_dict.keys())}
+        tel_y = {tel_id: tilt_coord.y[tel_id - 1] for tel_id in list(hillas_dict.keys())}
 
         nom_frame = NominalFrame(origin=array_pointing)
 

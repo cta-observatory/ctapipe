@@ -1,36 +1,29 @@
 """
 Line-intersection-based fitting.
-
-Contact: Tino Michael <Tino.Michael@cea.fr>
 """
-
-
-from ctapipe.reco.reco_algorithms import (
-    Reconstructor,
-    InvalidWidthException,
-    TooFewTelescopesException
-)
-from ctapipe.containers import ReconstructedShowerContainer
+import warnings
 from itertools import combinations
 
-from ctapipe.coordinates import (
+import numpy as np
+from astropy import units as u
+from astropy.coordinates import (
+    SkyCoord,
+    spherical_to_cartesian,
+    cartesian_to_spherical,
+)
+
+from ..coordinates import (
     CameraFrame,
     GroundFrame,
     TiltedGroundFrame,
     project_to_ground,
     MissingFrameAttributeWarning,
 )
-from astropy.coordinates import (
-    SkyCoord,
-    spherical_to_cartesian,
-    cartesian_to_spherical,
-    AltAz,
+from ..containers import ReconstructedShowerContainer
+from .exceptions import (
+    InvalidWidth,
+    TooFewTelescopes
 )
-import warnings
-
-import numpy as np
-
-from astropy import units as u
 
 __all__ = ['HillasReconstructor', 'HillasPlane']
 
@@ -106,7 +99,7 @@ class HillasReconstructor(Reconstructor):
         self.divergent_mode = False
         self.corrected_angle_dict = {}
 
-    def predict(self, hillas_dict, inst,  array_pointing, telescopes_pointings=None):
+    def __call__(self, hillas_dict, inst,  array_pointing, telescopes_pointings=None):
         """
         The function you want to call for the reconstruction of the
         event. It takes care of setting up the event and consecutively
@@ -128,9 +121,9 @@ class HillasReconstructor(Reconstructor):
 
         Raises
         ------
-        TooFewTelescopesException
+        TooFewTelescopes
             if len(hillas_dict) < 2
-        InvalidWidthException
+        InvalidWidth
             if any width is np.nan or 0
         """
 
@@ -139,22 +132,23 @@ class HillasReconstructor(Reconstructor):
 
         # stereoscopy needs at least two telescopes
         if len(hillas_dict) < 2:
-            raise TooFewTelescopesException(
-                "need at least two telescopes, have {}"
-                .format(len(hillas_dict)))
+            raise TooFewTelescopes(
+                f"need at least two telescopes, have {len(hillas_dict)}"
+            )
 
         # check for np.nan or 0 width's as these screw up weights
         if any([np.isnan(hillas_dict[tel]['width'].value) for tel in hillas_dict]):
-            raise InvalidWidthException(
-                "A HillasContainer contains an ellipse of width==np.nan")
+            raise InvalidWidth("A HillasContainer contains an ellipse of width==np.nan")
 
         if any([hillas_dict[tel]['width'].value == 0 for tel in hillas_dict]):
-            raise InvalidWidthException(
-                "A HillasContainer contains an ellipse of width==0")
+            raise InvalidWidth("A HillasContainer contains an ellipse of width==0")
 
         # use the single telescope pointing also for parallel pointing: code is more general
         if telescopes_pointings is None:
-            telescopes_pointings = {tel_id: array_pointing for tel_id in hillas_dict.keys()}
+            telescopes_pointings = {
+                tel_id: array_pointing
+                for tel_id in hillas_dict.keys()
+            }
         else:
             self.divergent_mode = True
             self.corrected_angle_dict = {}
