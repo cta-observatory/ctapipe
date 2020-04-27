@@ -49,8 +49,8 @@ for event in source:
 
         # telescope pointing direction as dictionary of SkyCoord
         telescope_pointings[tel_id] = SkyCoord(
-            alt=event.mc.tel[tel_id].altitude_raw * u.rad,
-            az=event.mc.tel[tel_id].azimuth_raw * u.rad,
+            alt=event.pointing[tel_id].altitude,
+            az=event.pointing[tel_id].azimuth,
             frame=horizon_frame
         )
 
