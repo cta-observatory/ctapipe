@@ -10,18 +10,25 @@ import matplotlib as mpl
 
 from ctapipe.utils import get_dataset_path
 from ctapipe.core import run_tool
+import tempfile
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 
 
 def test_muon_reconstruction(tmpdir):
-    from ctapipe.tools.muon_reconstruction import MuonDisplayerTool
+    from ctapipe.tools.muon_reconstruction import MuonAnalysis
 
-    assert run_tool(
-        MuonDisplayerTool(),
-        argv=shlex.split(f"--input={GAMMA_TEST_LARGE} " "--max_events=2 ")
-    ) == 0
-    assert run_tool(MuonDisplayerTool(), ["--help-all"]) == 0
+    with tempfile.NamedTemporaryFile(suffix='.hdf5') as f:
+        assert run_tool(
+            MuonAnalysis(),
+            argv=[
+                f"--input={GAMMA_TEST_LARGE}",
+                f"--output={f.name}",
+                "--max_events=10",
+                "--allowed_tels=[1, 2, 3, 4, 5, 6]"
+            ]
+        ) == 0
+    assert run_tool(MuonAnalysis(), ["--help-all"]) == 0
 
 
 def test_display_summed_images(tmpdir):
@@ -130,7 +137,7 @@ def test_bokeh_file_viewer():
     sys.argv = ["bokeh_file_viewer"]
     tool = BokehFileViewer(disable_server=True)
     assert run_tool(tool) == 0
-    assert tool.reader.input_url == get_dataset_path("gamma_test_large.simtel.gz")
+    assert str(tool.reader.input_url) == get_dataset_path("gamma_test_large.simtel.gz")
     assert run_tool(tool, ["--help-all"]) == 0
 
 

@@ -11,7 +11,7 @@ import numpy as np
 from tqdm import tqdm
 
 from ctapipe.core import Tool
-from ctapipe.core.traits import Unicode, List, Dict, Bool
+from ctapipe.core.traits import Path, Unicode, List, Dict, Bool
 from ctapipe.io import EventSource, HDF5TableWriter
 
 from ctapipe.calib import CameraCalibrator
@@ -23,8 +23,12 @@ class SimpleEventWriter(Tool):
     name = 'ctapipe-simple-event-writer'
     description = Unicode(__doc__)
 
-    infile = Unicode(help='input file to read', default='').tag(config=True)
-    outfile = Unicode(help='output file name', default_value='output.h5').tag(config=True)
+    infile = Path(
+        help='input file to read', directory_ok=False, exists=True,
+    ).tag(config=True)
+    outfile = Path(
+        help='output file name', directory_ok=False, default_value='output.h5'
+    ).tag(config=True)
     progress = Bool(help='display progress bar', default_value=True).tag(config=True)
 
     aliases = Dict({
@@ -40,7 +44,6 @@ class SimpleEventWriter(Tool):
 
         self.event_source = self.add_component(
             EventSource.from_config(
-                config=self.config,
                 parent=self
             )
         )

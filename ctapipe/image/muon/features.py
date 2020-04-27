@@ -29,8 +29,8 @@ def mean_squared_error(pixel_x, pixel_y, weights, radius, center_x, center_y):
 
 
 def photon_ratio_inside_ring(
-        pixel_x, pixel_y, weights, radius, center_x, center_y, width
-        ):
+    pixel_x, pixel_y, weights, radius, center_x, center_y, width
+):
     """
     Calculate the ratio of the photons inside a given ring with
     coordinates (center_x, center_y), radius and width.
@@ -69,15 +69,15 @@ def photon_ratio_inside_ring(
 
 
 def ring_completeness(
-        pixel_x,
-        pixel_y,
-        weights,
-        radius,
-        center_x,
-        center_y,
-        threshold=30,
-        bins=30,
-        ):
+    pixel_x,
+    pixel_y,
+    weights,
+    radius,
+    center_x,
+    center_y,
+    threshold=30,
+    bins=30,
+):
     """
     Estimate how complete a ring is.
     Bin the light distribution along the the ring and apply a threshold to the
@@ -154,41 +154,3 @@ def ring_containment(
     ringcontainment = len(d[d < cam_rad]) / len(d)
 
     return ringcontainment
-
-
-def npix_above_threshold(pix, thr):
-    """
-    Calculate number of pixels above a given threshold
-
-    Parameters
-    ----------
-    pix: array-like
-        array with pixel content, usually pe
-    thr: float
-        threshold for the pixels to be counted
-
-    Returns
-    ------
-    npix_above_threshold: float
-        Number of pixels above threshold
-    """
-
-    return (pix > thr).sum()
-
-
-def npix_composing_ring(pix):
-    """
-    Calculate number of pixels composing a ring
-
-    Parameters
-    ----------
-    pix: array-like
-        array with pixel content, usually pe
-
-    Returns
-    ------
-    npix_composing ring: float
-        Number of pixels composing a ring
-    """
-
-    return np.count_nonzero(pix)

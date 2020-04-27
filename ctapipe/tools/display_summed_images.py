@@ -9,18 +9,21 @@ from matplotlib import pyplot as plt
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Tool
-from ctapipe.core.traits import Unicode, Integer, Dict, List
+from ctapipe.core.traits import Unicode, Integer, Dict, List, Path
 from ctapipe.io import SimTelEventSource
 from ctapipe.visualization import CameraDisplay
+from ctapipe.utils import get_dataset_path
 
 
 class ImageSumDisplayerTool(Tool):
     description = Unicode(__doc__)
     name = "ctapipe-display-imagesum"
 
-    infile = Unicode(
+    infile = Path(
         help='input simtelarray file',
-        default="/Users/kosack/Data/CTA/Prod3/gamma.simtel.gz"
+        default_value=get_dataset_path('gamma_test_large.simtel.gz'),
+        exists=True,
+        directory_ok=False,
     ).tag(config=True)
 
     telgroup = Integer(
@@ -108,7 +111,7 @@ class ImageSumDisplayerTool(Tool):
             disp.image = imsum
             plt.pause(0.1)
 
-            if self.output_suffix is not "":
+            if self.output_suffix != "":
                 filename = "{:020d}{}".format(
                     event.r0.event_id, self.output_suffix
                 )

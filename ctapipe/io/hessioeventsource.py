@@ -77,7 +77,7 @@ class HESSIOEventSource(EventSource):
 
     @property
     def subarray(self):
-        with self.pyhessio.open_hessio(self.input_url) as file:
+        with self.pyhessio.open_hessio(str(self.input_url)) as file:
             next(file.move_to_next_event())
             return self._build_subarray_info(file)
 
@@ -86,7 +86,7 @@ class HESSIOEventSource(EventSource):
         self.pyhessio.close_file()
 
     def _generator(self):
-        with self.pyhessio.open_hessio(self.input_url) as file:
+        with self.pyhessio.open_hessio(str(self.input_url)) as file:
             # the container is initialized once, and data is replaced within
             # it after each yield
             counter = 0
