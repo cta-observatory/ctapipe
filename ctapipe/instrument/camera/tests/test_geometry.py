@@ -323,3 +323,11 @@ def test_guess_area():
         pix_type='hexagonal',
     )
     assert u.allclose(geom.pix_area, 2 * np.sqrt(3) * (0.5 * u.cm)**2)
+
+
+def test_guess_radius():
+    lst_cam = CameraGeometry.from_name('LSTCam')
+    assert u.isclose(lst_cam.guess_radius(), 1.1 * u.m, rtol=0.05)
+
+    lst_cam = CameraGeometry.from_name('CHEC')
+    assert u.isclose(lst_cam.guess_radius(), 0.16 * u.m, rtol=0.05)
