@@ -3,8 +3,6 @@ import numpy as np
 import math
 from ctapipe.image.muon.features import ring_containment
 from ctapipe.image.muon.features import ring_completeness
-from ctapipe.image.muon.features import npix_above_threshold
-from ctapipe.image.muon.features import npix_composing_ring
 
 
 def test_ring_containment():
@@ -38,22 +36,3 @@ def test_ring_completeness():
         30, 30)
 
     assert(ring_comp <= 1. and ring_comp >= 0.)
-
-
-def test_npix_above_threshold():
-    len_array = 100
-    thr = 5.
-    pix = np.random.uniform(0, 100, len_array)
-
-    npix = npix_above_threshold(pix, thr)
-
-    assert((npix >= 0) and (npix <= len_array))
-
-
-def test_npix_composing_ring():
-    len_array = 100
-    pix = np.random.uniform(0, 100, len_array)
-
-    npix = npix_composing_ring(pix)
-
-    assert((npix >= 0) and (npix <= len_array))
