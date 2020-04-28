@@ -6,7 +6,6 @@ from ctapipe.io.simteleventsource import SimTelEventSource, apply_simtel_r1_cali
 from ctapipe.io.hessioeventsource import HESSIOEventSource
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 from itertools import zip_longest
-from copy import deepcopy
 from astropy.utils.data import download_file
 
 gamma_test_large_path = get_dataset_path("gamma_test_large.simtel.gz")
@@ -41,8 +40,8 @@ def compare_sources(input_url):
             assert h is not None
 
             assert h.count == s.count
-            assert h.r0.obs_id == s.r0.obs_id
-            assert h.r0.event_id == s.r0.event_id
+            assert h.index.obs_id == s.index.obs_id
+            assert h.index.event_id == s.index.event_id
             assert h.r0.tels_with_data == s.r0.tels_with_data
 
             assert (h.trig.tels_with_trigger == s.trig.tels_with_trigger).all()
@@ -140,7 +139,7 @@ def test_that_event_is_not_modified_after_loop():
         # Unfortunately this does not work:
         #      assert last_event == event
         # So for the moment we just compare event ids
-        assert event.r0.event_id == last_event.r0.event_id
+        assert event.index.event_id == last_event.index.event_id
 
 
 def test_additional_meta_data_from_mc_header():

@@ -18,7 +18,7 @@ def test_eventseeker():
         assert event.count == 0
 
         event = seeker['31007']
-        assert event.r0.event_id == 31007
+        assert event.index.event_id == 31007
 
         events = seeker[0:2]
 
@@ -33,7 +33,7 @@ def test_eventseeker():
         events = seeker[ids]
 
         for i, event in zip(ids, events):
-            assert event.r0.event_id == int(i)
+            assert event.index.event_id == int(i)
 
         with pytest.raises(IndexError):
             event = seeker[200]

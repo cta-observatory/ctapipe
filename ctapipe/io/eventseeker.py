@@ -241,7 +241,7 @@ class EventSeeker(Component):
 
         """
         for event in self:  # Event Ids may not be in order
-            if event.r0.event_id == event_id:
+            if event.index.event_id == event_id:
                 return event
         raise IndexError(f"Event id {event_id} not found in file")
 
