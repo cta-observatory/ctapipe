@@ -320,14 +320,8 @@ class SimTelEventSource(EventSource):
             data.count = counter
             data.index.obs_id = obs_id
             data.index.event_id = event_id
-            data.r0.obs_id = obs_id  # deprecated
-            data.r0.event_id = event_id  # deprecated
             data.r0.tels_with_data = tels_with_data
-            data.r1.obs_id = obs_id  # deprecated
-            data.r1.event_id = event_id  # deprecated
             data.r1.tels_with_data = tels_with_data
-            data.dl0.obs_id = obs_id  # deprecated
-            data.dl0.event_id = event_id  # deprecated
             data.dl0.tels_with_data = tels_with_data
 
             trigger_information = array_event["trigger_information"]

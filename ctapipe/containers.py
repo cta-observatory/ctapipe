@@ -182,9 +182,6 @@ class R0Container(Container):
     """
     Storage of a Merged Raw Data Event
     """
-
-    obs_id = DeprecatedField(-1, "observation ID", reason="moved to event.index")
-    event_id = DeprecatedField(-1, "event id number", reason="moved to event.index")
     tels_with_data = Field([], "list of telescopes with data")
     tel = Field(Map(R0CameraContainer), "map of tel_id to R0CameraContainer")
 
@@ -218,8 +215,6 @@ class R1Container(Container):
     Storage of a r1 calibrated Data Event
     """
 
-    obs_id = DeprecatedField(-1, "observation ID", reason="moved to event.index")
-    event_id = DeprecatedField(-1, "event id number", reason="moved to event.index")
     tels_with_data = Field([], "list of telescopes with data")
     tel = Field(Map(R1CameraContainer), "map of tel_id to R1CameraContainer")
 
@@ -255,13 +250,6 @@ class DL0Container(Container):
     """
     Storage of a data volume reduced Event
     """
-
-    obs_id = DeprecatedField(
-        -1, "observation ID", reason="moved to event.index"
-    )  # use event.index.obs_id
-    event_id = DeprecatedField(
-        -1, "event id number", reason="moved to event.index"
-    )  # use event.index.event_id
     tels_with_data = Field([], "list of telescopes with data")
     tel = Field(Map(DL0CameraContainer), "map of tel_id to DL0CameraContainer")
 
@@ -270,10 +258,6 @@ class MCCameraEventContainer(Container):
     """
     Storage of mc data for a single telescope that change per event
     """
-
-    photo_electron_image = Field(
-        Map(), "reference image in pure photoelectrons, with no noise"
-    )
     dc_to_pe = Field(None, "DC/PE calibration arrays from MC file")
     pedestal = Field(None, "pedestal calibration arrays from MC file")
     azimuth_raw = Field(0, "Raw azimuth angle [radians from N->E] for the telescope")
@@ -290,6 +274,7 @@ class MCEventContainer(Container):
     """
     Monte-Carlo
     """
+    container_prefix = "true"
 
     energy = Field(0.0, "Monte-Carlo Energy", unit=u.TeV)
     alt = Field(0.0, "Monte-carlo altitude", unit=u.deg)
