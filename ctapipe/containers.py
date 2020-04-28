@@ -8,11 +8,9 @@ from astropy.time import Time
 from numpy import nan
 
 from .core import Container, Field, DeprecatedField, Map
-from .instrument import SubarrayDescription
 
 
 __all__ = [
-    "InstrumentContainer",
     "R0Container",
     "R0CameraContainer",
     "R1Container",
@@ -71,21 +69,6 @@ class TelEventIndexContainer(EventIndexContainer):
 
     tel_id = Field(0, "telescope identifier")
     tel_type_id = Field(0, "telescope type id number (integer)")
-
-
-class InstrumentContainer(Container):
-    """Storage of header info that does not change with event. This is a
-    temporary hack until the Instrument module and database is fully
-    implemented.  Eventually static information like this will not be
-    part of the data stream, but be loaded and accessed from
-    functions.
-
-    """
-
-    subarray = Field(
-        SubarrayDescription("MonteCarloArray"),
-        "SubarrayDescription from the instrument module",
-    )
 
 
 class DL1CameraContainer(Container):
@@ -519,11 +502,6 @@ class DataContainer(Container):
     mcheader = Field(MCHeaderContainer(), "Monte-Carlo run header data")
     trig = Field(CentralTriggerContainer(), "central trigger information")
     count = Field(0, "number of events processed")
-    inst = DeprecatedField(
-        InstrumentContainer(),
-        "instrumental information ",
-        reason="will be separated from event structure in future version",
-    )
     pointing = Field(Map(TelescopePointingContainer), "Telescope pointing positions")
     calibration = Field(
         EventCalibrationContainer(),

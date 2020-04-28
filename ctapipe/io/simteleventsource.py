@@ -313,8 +313,6 @@ class SimTelEventSource(EventSource):
             else:
                 event_id = array_event["event_id"]
 
-            data.inst.subarray = self._subarray_info
-
             obs_id = self.file_.header["run"]
             tels_with_data = set(array_event["telescope_events"].keys())
             data.count = counter

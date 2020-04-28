@@ -29,7 +29,7 @@ class ImagePlotter(Component):
         ),
     ).tag(config=True)
 
-    def __init__(self, config=None, parent=None, **kwargs):
+    def __init__(self, subarray, config=None, parent=None, **kwargs):
         """
         Plotter for camera images.
 
@@ -52,6 +52,7 @@ class ImagePlotter(Component):
         self.cb_intensity = None
         self.cb_pulse_time = None
         self.pdf = None
+        self.subarray = subarray
 
         self._init_figure()
 
@@ -62,10 +63,6 @@ class ImagePlotter(Component):
         if self.output_path:
             self.log.info(f"Creating PDF: {self.output_path}")
             self.pdf = PdfPages(self.output_path)
-
-    @staticmethod
-    def get_geometry(event, telid):
-        return event.inst.subarray.tel[telid].camera.geometry
 
     def plot(self, event, telid):
         image = event.dl1.tel[telid].image
@@ -79,7 +76,7 @@ class ImagePlotter(Component):
             self.ax_pulse_time.cla()
 
             # Redraw camera
-            geom = self.get_geometry(event, telid)
+            geom = self.subarray.tel[telid].camera.geometry
             self.c_intensity = CameraDisplay(geom, ax=self.ax_intensity)
             self.c_pulse_time = CameraDisplay(geom, ax=self.ax_pulse_time)
 
@@ -186,7 +183,9 @@ class DisplayDL1Calib(Tool):
         self.calibrator = self.add_component(CameraCalibrator(
             parent=self, subarray=self.eventsource.subarray
         ))
-        self.plotter = self.add_component(ImagePlotter(parent=self))
+        self.plotter = self.add_component(ImagePlotter(
+            subarray=self.eventsource.subarray, parent=self
+        ))
 
     def start(self):
         for event in self.eventsource:

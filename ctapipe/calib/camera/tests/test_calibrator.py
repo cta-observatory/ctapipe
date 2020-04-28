@@ -13,14 +13,9 @@ from ctapipe.instrument import CameraGeometry
 from ctapipe.containers import DataContainer
 
 
-@pytest.fixture(scope="function")
-def subarray(example_event):
-    return example_event.inst.subarray
-
-
-def test_camera_calibrator(example_event, subarray):
+def test_camera_calibrator(example_event, example_subarray):
     telid = list(example_event.r0.tel)[0]
-    calibrator = CameraCalibrator(subarray=subarray)
+    calibrator = CameraCalibrator(subarray=example_subarray)
     calibrator(example_event)
     image = example_event.dl1.tel[telid].image
     pulse_time = example_event.dl1.tel[telid].peak_time
@@ -30,15 +25,15 @@ def test_camera_calibrator(example_event, subarray):
     assert pulse_time.shape == (1764,)
 
 
-def test_manual_extractor(subarray):
+def test_manual_extractor(example_subarray):
     calibrator = CameraCalibrator(
-        subarray=subarray,
-        image_extractor=LocalPeakWindowSum(subarray=subarray)
+        subarray=example_subarray,
+        image_extractor=LocalPeakWindowSum(subarray=example_subarray)
     )
     assert isinstance(calibrator.image_extractor, LocalPeakWindowSum)
 
 
-def test_config(subarray):
+def test_config(example_subarray):
     window_shift = 3
     window_width = 9
     config = Config(
@@ -50,16 +45,16 @@ def test_config(subarray):
         }
     )
     calibrator = CameraCalibrator(
-        subarray=subarray,
-        image_extractor=LocalPeakWindowSum(subarray=subarray, config=config),
+        subarray=example_subarray,
+        image_extractor=LocalPeakWindowSum(subarray=example_subarray, config=config),
         config=config
     )
     assert calibrator.image_extractor.window_shift.tel[None] == window_shift
     assert calibrator.image_extractor.window_width.tel[None] == window_width
 
 
-def test_check_r1_empty(example_event, subarray):
-    calibrator = CameraCalibrator(subarray=subarray)
+def test_check_r1_empty(example_event, example_subarray):
+    calibrator = CameraCalibrator(subarray=example_subarray)
     telid = list(example_event.r0.tel)[0]
     waveform = example_event.r1.tel[telid].waveform.copy()
     with pytest.warns(UserWarning):
@@ -71,8 +66,8 @@ def test_check_r1_empty(example_event, subarray):
     assert calibrator._check_r1_empty(waveform) is False
 
     calibrator = CameraCalibrator(
-        subarray=subarray,
-        image_extractor=FullWaveformSum(subarray=subarray)
+        subarray=example_subarray,
+        image_extractor=FullWaveformSum(subarray=example_subarray)
     )
     event = DataContainer()
     event.dl0.tel[telid].waveform = np.full((2048, 128), 2)
@@ -82,8 +77,8 @@ def test_check_r1_empty(example_event, subarray):
     assert (event.dl1.tel[telid].image == 2 * 128).all()
 
 
-def test_check_dl0_empty(example_event, subarray):
-    calibrator = CameraCalibrator(subarray=subarray)
+def test_check_dl0_empty(example_event, example_subarray):
+    calibrator = CameraCalibrator(subarray=example_subarray)
     telid = list(example_event.r0.tel)[0]
     calibrator._calibrate_dl0(example_event, telid)
     waveform = example_event.dl0.tel[telid].waveform.copy()
@@ -95,7 +90,7 @@ def test_check_dl0_empty(example_event, subarray):
     assert calibrator._check_dl0_empty(None) is True
     assert calibrator._check_dl0_empty(waveform) is False
 
-    calibrator = CameraCalibrator(subarray=subarray)
+    calibrator = CameraCalibrator(subarray=example_subarray)
     event = DataContainer()
     event.dl1.tel[telid].image = np.full(2048, 2)
     with pytest.warns(UserWarning):
@@ -103,7 +98,7 @@ def test_check_dl0_empty(example_event, subarray):
     assert (event.dl1.tel[telid].image == 2).all()
 
 
-def test_dl1_charge_calib(subarray):
+def test_dl1_charge_calib(example_subarray):
     camera = CameraGeometry.from_name("CHEC")
     n_pixels = camera.n_pixels
     n_samples = 96
@@ -129,13 +124,13 @@ def test_dl1_charge_calib(subarray):
     y += pedestal[:, np.newaxis]
 
     event = DataContainer()
-    telid = list(subarray.tel.keys())[0]
+    telid = list(example_subarray.tel.keys())[0]
     event.dl0.tel[telid].waveform = y
 
     # Test default
     calibrator = CameraCalibrator(
-        subarray=subarray,
-        image_extractor=FullWaveformSum(subarray=subarray)
+        subarray=example_subarray,
+        image_extractor=FullWaveformSum(subarray=example_subarray)
     )
     calibrator(event)
     np.testing.assert_allclose(event.dl1.tel[telid].image, y.sum(1))
@@ -147,8 +142,8 @@ def test_dl1_charge_calib(subarray):
 
     # Test without need for timing corrections
     calibrator = CameraCalibrator(
-        subarray=subarray,
-        image_extractor=FullWaveformSum(subarray=subarray)
+        subarray=example_subarray,
+        image_extractor=FullWaveformSum(subarray=example_subarray)
     )
     calibrator(event)
     np.testing.assert_allclose(event.dl1.tel[telid].image, 1)

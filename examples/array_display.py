@@ -20,7 +20,7 @@ if __name__ == "__main__":
     event = next(iter(source))
 
     # display the array
-    subarray = event.inst.subarray
+    subarray = source.subarray
     ad = ArrayDisplay(subarray, tel_scale=3.0)
 
     print("Now setting vectors")
