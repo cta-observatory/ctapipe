@@ -1,6 +1,7 @@
 """
 Container structures for data that should be read or written to disk
 """
+import enum
 
 from astropy import units as u
 from astropy.time import Time
@@ -46,7 +47,15 @@ __all__ = [
     "TelEventIndexContainer",
     "ImageParametersContainer",
     "SimulatedShowerDistribution",
+    "EventType",
 ]
+
+
+class EventType(enum.Enum):
+    """ note these will evolve once CTA has standardized them """
+
+    data = 0  # standard physics event
+    calibration = 1  # event from calibration system
 
 
 class EventIndexContainer(Container):
@@ -56,6 +65,7 @@ class EventIndexContainer(Container):
 
     event_id = Field(0, "event identifier")
     obs_id = Field(0, "observation identifier")
+    event_type = Field(EventType.data, "Event type")
 
 
 class TelEventIndexContainer(EventIndexContainer):
@@ -68,6 +78,7 @@ class TelEventIndexContainer(EventIndexContainer):
 
     tel_id = Field(0, "telescope identifier")
     tel_type_id = Field(0, "telescope type id number (integer)")
+
 
 class HillasParametersContainer(Container):
     container_prefix = "hillas"
@@ -164,7 +175,6 @@ class ImageParametersContainer(Container):
     leakage = Field(LeakageContainer(), "Leakage Parameters")
     concentration = Field(ConcentrationContainer(), "Concentration Parameters")
     morphology = Field(MorphologyContainer(), "Morphology Parameters")
-
 
 
 class DL1CameraContainer(Container):
@@ -599,7 +609,6 @@ class EventCalibrationContainer(Container):
 class DataContainer(Container):
     """ Top-level container for all event information """
 
-    event_type = Field("data", "Event type")
     index = Field(EventIndexContainer(), "event indexing information")
     r0 = Field(R0Container(), "Raw Data")
     r1 = Field(R1Container(), "R1 Calibrated Data")
@@ -636,8 +645,6 @@ class MuonIntensityParameter(Container):
     impact_x = Field(nan, "impact parameter x position")
     impact_y = Field(nan, "impact parameter y position")
     optical_efficiency = Field(nan, "optical efficiency muon")
-
-
 
 
 class FlatFieldContainer(Container):

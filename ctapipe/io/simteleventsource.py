@@ -11,7 +11,7 @@ from eventio.simtel.simtelfile import SimTelFile
 from traitlets import observe
 
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
-from ctapipe.containers import EventAndMonDataContainer
+from ctapipe.containers import EventAndMonDataContainer, EventType
 from ctapipe.core.traits import Bool, CaselessStrEnum
 from ctapipe.instrument import (
     TelescopeDescription,
@@ -183,10 +183,10 @@ class SimTelEventSource(EventSource):
             gain_selector = ThresholdGainSelector(parent=self)
         self.gain_selector = gain_selector
 
-    @observe('allowed_tels')
+    @observe("allowed_tels")
     def _observe_allowed_tels(self, change):
         # this can run in __init__ before file_ is created
-        if hasattr(self, 'file_'):
+        if hasattr(self, "file_"):
             allowed_tels = set(self.allowed_tels) if self.allowed_tels else None
             self.file_.allowed_telescopes = allowed_tels
 
@@ -305,10 +305,10 @@ class SimTelEventSource(EventSource):
         for counter, array_event in enumerate(self.file_):
             # next lines are just for debugging
             self.array_event = array_event
-            data.event_type = array_event["type"]
+            data.index.event_type = EventType[array_event["type"]]
 
             # calibration events do not have an event id
-            if data.event_type == "calibration":
+            if data.index.event_type == EventType.calibration:
                 event_id = -1
             else:
                 event_id = array_event["event_id"]
@@ -330,7 +330,7 @@ class SimTelEventSource(EventSource):
                 time_s * u.s, time_ns * u.ns, format="unix", scale="utc"
             )
 
-            if data.event_type == "data":
+            if data.index.event_type == EventType.data:
                 self.fill_mc_information(data, array_event)
 
             # this should be done in a nicer way to not re-allocate the
