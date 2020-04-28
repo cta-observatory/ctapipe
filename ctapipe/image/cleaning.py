@@ -430,23 +430,24 @@ class TailcutsImageCleaner(ImageCleaner):
 
     picture_threshold_pe = FloatTelescopeParameter(
         default_value=10.0,
-        help="top-level threshold in photoelectrons",
+        help="top-level threshold in photoelectrons"
     ).tag(config=True)
 
     boundary_threshold_pe = FloatTelescopeParameter(
         default_value=5.0,
-        help="second-level threshold in photoelectrons",
+        help="second-level threshold in photoelectrons"
     ).tag(config=True)
 
     min_picture_neighbors = IntTelescopeParameter(
         default_value=2,
-        help="Minimum number of neighbors above threshold to consider",
+        help="Minimum number of neighbors above threshold to consider"
     ).tag(config=True)
 
     keep_isolated_pixels = BoolTelescopeParameter(
         default_value=False,
-        help="If False, pixels with less neighbors than ``min_picture_neighbors`` are removed",
-    )
+        help="If False, pixels with less neighbors than ``min_picture_neighbors`` are"
+        "removed."
+    ).tag(config=True)
 
     def __call__(
         self, tel_id: int, image: np.ndarray, arrival_times=None
@@ -494,7 +495,8 @@ class FACTImageCleaner(TailcutsImageCleaner):
     """
 
     time_limit_ns = FloatTelescopeParameter(
-        help="arrival time limit for neighboring " "pixels, in ns", default_value=5.0
+        default_value=5.0,
+        help="arrival time limit for neighboring " "pixels, in ns"
     ).tag(config=True)
 
     def __call__(

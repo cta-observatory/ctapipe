@@ -32,6 +32,13 @@ PYTABLES_TYPE_MAP = {
 }
 
 
+DEFAULT_FILTERS = tables.Filters(
+    complevel=5,           # compression medium, tradeoff between speed and compression
+    complib='blosc:zstd',  # use modern zstd algorithm
+    fletcher32=True,       # add checksums to data chunks
+)
+
+
 class HDF5TableWriter(TableWriter):
     """
     A very basic table writer that can take a container (or more than one)
@@ -74,11 +81,11 @@ class HDF5TableWriter(TableWriter):
         'a' if you want to append data to the file
     root_uep : str
         root location of the `group_name`
+    filters: pytables.Filters
+        A set of filters (compression settings) to be used for
+        all datasets created by this writer.
     kwargs:
         any other arguments that will be passed through to `pytables.open()`.
-        e.g. to set the compression level to 7 pass : `filters=tables.Filters(
-        complevel=7)`
-
     """
 
     def __init__(
@@ -88,6 +95,7 @@ class HDF5TableWriter(TableWriter):
         add_prefix=False,
         mode="w",
         root_uep="/",
+        filters=DEFAULT_FILTERS,
         **kwargs,
     ):
 
@@ -96,22 +104,21 @@ class HDF5TableWriter(TableWriter):
         self._tables = {}
 
         if mode not in ["a", "w", "r+"]:
-            raise IOError(f"The mode {mode} is not supported for writing")
+            raise IOError(f"The mode '{mode}' is not supported for writing")
 
-        kwargs.update(mode=mode, root_uep=root_uep)
+        kwargs.update(mode=mode, root_uep=root_uep, filters=filters)
 
         self.open(filename, **kwargs)
         self._group = "/" + group_name
+        self.filters = filters
 
         self.log.debug("h5file: %s", self._h5file)
 
     def open(self, filename, **kwargs):
-
         self.log.debug("kwargs for tables.open_file: %s", kwargs)
         self._h5file = tables.open_file(filename, **kwargs)
 
     def close(self):
-
         self._h5file.close()
 
     def _create_hdf5_table_schema(self, table_name, containers):
@@ -229,6 +236,7 @@ class HDF5TableWriter(TableWriter):
             ),
             description=self._schemas[table_name],
             createparents=True,
+            filters=self.filters,
         )
         self.log.debug("CREATED TABLE: %s", table)
         for key, val in meta.items():

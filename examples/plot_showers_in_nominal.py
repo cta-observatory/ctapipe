@@ -42,13 +42,10 @@ with event_source(input_url=input_url) as source:
             focal_length = subarray.tels[tel_id].optics.equivalent_focal_length
             image = dl1.image
 
-            # telescope mc info
-            mc_tel = event.mc.tel[tel_id]
-
             telescope_pointing = SkyCoord(
-                alt=mc_tel['altitude_raw'],
-                az=mc_tel['azimuth_raw'],
-                unit='rad', frame=AltAz(),
+                alt=event.pointing[tel_id].altitude,
+                az=event.pointing[tel_id].azimuth,
+                frame=AltAz(),
             )
             camera_frame = CameraFrame(
                 telescope_pointing=telescope_pointing, focal_length=focal_length

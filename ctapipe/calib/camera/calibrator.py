@@ -59,13 +59,15 @@ class CameraCalibrator(Component):
         self._r1_empty_warn = False
         self._dl0_empty_warn = False
 
-        if data_volume_reducer is None:
-            data_volume_reducer = NullDataVolumeReducer(parent=self)
-        self.data_volume_reducer = data_volume_reducer
-
         if image_extractor is None:
             image_extractor = NeighborPeakWindowSum(parent=self, subarray=subarray)
         self.image_extractor = image_extractor
+
+        if data_volume_reducer is None:
+            data_volume_reducer = NullDataVolumeReducer(
+                parent=self, image_extractor=self.image_extractor
+            )
+        self.data_volume_reducer = data_volume_reducer
 
     def _check_r1_empty(self, waveforms):
         if waveforms is None:
@@ -93,11 +95,16 @@ class CameraCalibrator(Component):
 
     def _calibrate_dl0(self, event, telid):
         waveforms = event.r1.tel[telid].waveform
+        selected_gain_channel = event.r1.tel[telid].selected_gain_channel
         if self._check_r1_empty(waveforms):
             return
 
-        reduced_waveforms = self.data_volume_reducer(waveforms)
-        event.dl0.tel[telid].waveform = reduced_waveforms
+        reduced_waveforms_mask = self.data_volume_reducer(
+            waveforms, telid=telid, selected_gain_channel=selected_gain_channel)
+
+        waveforms_copy = waveforms.copy()
+        waveforms_copy[~reduced_waveforms_mask] = 0
+        event.dl0.tel[telid].waveform = waveforms_copy
 
     def _calibrate_dl1(self, event, telid):
         waveforms = event.dl0.tel[telid].waveform
