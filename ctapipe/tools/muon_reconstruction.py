@@ -139,8 +139,8 @@ class MuonAnalysis(Tool):
         fov_radius = self.get_fov(tel_id)
 
         pixel_coords = self.pixels_in_tel_frame[tel_id]
-        x = pixel_coords.delta_az
-        y = pixel_coords.delta_alt
+        x = pixel_coords.fov_lon
+        y = pixel_coords.fov_lat
 
         # iterative ring fit.
         # First use cleaning pixels, then only pixels close to the ring
@@ -208,7 +208,7 @@ class MuonAnalysis(Tool):
 
             pixel_coords = self.get_pixel_coords(tel_id)[border]
             self.field_of_view[tel_id] = np.sqrt(
-                pixel_coords.delta_alt**2 + pixel_coords.delta_az**2
+                pixel_coords.fov_lat**2 + pixel_coords.fov_lon**2
             ).mean()
 
         return self.field_of_view[tel_id]
