@@ -2,13 +2,11 @@
 Container structures for data that should be read or written to disk
 """
 
-import numpy as np
 from astropy import units as u
 from astropy.time import Time
 from numpy import nan
 
-from .core import Container, Field, DeprecatedField, Map
-
+from .core import Container, Field, Map
 
 __all__ = [
     "R0Container",
@@ -19,6 +17,7 @@ __all__ = [
     "DL0CameraContainer",
     "DL1Container",
     "DL1CameraContainer",
+    "MCDL1CameraContainer",
     "EventCameraCalibrationContainer",
     "EventCalibrationContainer",
     "MCEventContainer",
@@ -96,7 +95,7 @@ class DL1CameraContainer(Container):
     parameters = Field(ImageParametersContainer(), "Parameters derived from images")
 
 
-class SimulatedDL1CameraContainer(DL1CameraContainer):
+class MCDL1CameraContainer(DL1CameraContainer):
     """ Contains all fields of the DL1CameraContainer, but adds fields for simulated
     DL1 image information."""
 
