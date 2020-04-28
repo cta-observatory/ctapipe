@@ -12,10 +12,18 @@ import numpy as np
 import tables
 import tables.filters
 from astropy import units as u
-from astropy.time import Time
 from tqdm.autonotebook import tqdm
 
+from ctapipe.io import metadata as meta
 from ..calib.camera import CameraCalibrator, GainSelector
+from ..containers import (
+    DL1CameraContainer,
+    EventIndexContainer,
+    ImageParametersContainer,
+    TelEventIndexContainer,
+    SimulatedShowerDistribution,
+    MorphologyContainer,
+)
 from ..core import Provenance
 from ..core import QualityQuery, Container, Field, Tool, ToolConfigurationError
 from ..core.traits import (
@@ -34,15 +42,6 @@ from ..image.extractor import ImageExtractor
 from ..image.leakage import leakage
 from ..image.timing_parameters import timing_parameters
 from ..io import EventSource, HDF5TableWriter, SimTelEventSource
-from ..containers import (
-    DL1CameraContainer,
-    EventIndexContainer,
-    ImageParametersContainer,
-    TelEventIndexContainer,
-    SimulatedShowerDistribution,
-    MorphologyContainer,
-)
-from ctapipe.io import metadata as meta
 
 tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many datasets
 
@@ -73,7 +72,6 @@ def write_reference_metadata_headers(output_filename, obs_id, subarray, writer):
     writer: HDF5TableWriter
         output
     """
-    import uuid
 
     activity = PROV.current_activity.provenance
 
@@ -164,7 +162,7 @@ class ExtraImageContainer(Container):
 
     container_prefix = ""
 
-    mc_photo_electron_image = Field(
+    true_image = Field(
         None, "Monte-carlo image of photo electrons on the camera plane, without noise"
     )
 
@@ -571,8 +569,8 @@ class Stage1ProcessorTool(Tool):
                 geom=tel.camera.geometry, image=data.image, cleaning_mask=mask
             )
             params.concentration = concentration(
-                geom=tel.camera.geometry,
-                image=clean_image,
+                geom=tel.camera.geometry[mask],
+                image=clean_image[mask],
                 hillas_parameters=params.hillas,
             )
             params.morphology = morphology(geom=tel.camera.geometry, image_mask=mask)
@@ -657,7 +655,7 @@ class Stage1ProcessorTool(Tool):
             )
 
             extra = ExtraImageContainer(
-                mc_photo_electron_image=event.mc.tel[tel_id].photo_electron_image,
+                true_image=event.mc.tel[tel_id].photo_electron_image,
                 selected_gain_channel=event.r1.tel[tel_id].selected_gain_channel,
                 image_mask=None,  # added later, if computed only
             )
