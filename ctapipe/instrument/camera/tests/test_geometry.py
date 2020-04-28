@@ -78,7 +78,6 @@ def test_neighbor_pixels(camera_name):
     n_pix = len(geom.pix_id)
     n_neighbors = [len(x) for x in geom.neighbors]
 
-
     if geom.pix_type.startswith('hex'):
         assert n_neighbors.count(6) > 0.5 * n_pix
         assert n_neighbors.count(6) > n_neighbors.count(4)
@@ -144,7 +143,7 @@ def test_to_and_from_table():
     assert (geom.pix_y == geom2.pix_y).all()
     assert (geom.pix_area == geom2.pix_area).all()
     assert geom.pix_type == geom2.pix_type
-    
+
 
 def test_write_read(tmpdir):
     """ Check that serialization to disk doesn't lose info """
@@ -323,6 +322,13 @@ def test_guess_area():
         pix_type='hexagonal',
     )
     assert u.allclose(geom.pix_area, 2 * np.sqrt(3) * (0.5 * u.cm)**2)
+
+
+def test_guess_pixel_size():
+    x = u.Quantity([0, 1, 2], u.cm)
+    y = u.Quantity([0, 0, 0], u.cm)
+
+    assert u.allclose(CameraGeometry._calc_pixel_size(x, y), [1.0, 1.0, 1.0] * u.cm)
 
 
 def test_guess_radius():

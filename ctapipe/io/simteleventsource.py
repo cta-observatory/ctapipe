@@ -45,9 +45,10 @@ def build_camera(cam_settings, pixel_settings, telescope):
     geometry = CameraGeometry(
         telescope.camera_name,
         pix_id=np.arange(cam_settings["n_pixels"]),
-        pix_x=u.Quantity(cam_settings["pixel_x"], u.m),
-        pix_y=u.Quantity(cam_settings["pixel_y"], u.m),
-        pix_area=u.Quantity(cam_settings["pixel_area"], u.m ** 2),
+        pix_x=u.Quantity(cam_settings["pixel_x"], u.m, copy=False),
+        pix_y=u.Quantity(cam_settings["pixel_y"], u.m, copy=False),
+        pix_area=u.Quantity(cam_settings["pixel_area"], u.m**2, copy=False),
+        pix_size=u.Quantity(cam_settings["pixel_size"], u.m, copy=False),
         pix_type=pix_type,
         pix_rotation=pix_rotation,
         cam_rotation=-Angle(cam_settings["cam_rot"], u.rad),

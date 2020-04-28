@@ -13,7 +13,7 @@ from scipy.spatial import cKDTree as KDTree
 from scipy.sparse import lil_matrix, csr_matrix
 import warnings
 
-from ctapipe.utils import get_table_dataset, find_all_matching_datasets
+from ctapipe.utils import get_table_dataset
 from ctapipe.utils.linalg import rotation_matrix_2d
 from ctapipe.coordinates import CameraFrame
 
@@ -53,10 +53,13 @@ class CameraGeometry:
          Camera name (e.g. NectarCam, LSTCam, ...)
     pix_id: array(int)
         pixels id numbers
-    pix_x: array with units
+    pix_x: u.Quantity[length]
         position of each pixel (x-coordinate)
-    pix_y: array with units
+    pix_y: u.Quantity[length]
         position of each pixel (y-coordinate)
+    pix_size: u.Quantity[length]
+        Diameter for circular pixels, flat-to-flat distance for hexagons,
+        edge lengths for square pixels.
     pix_area: array(float)
         surface area of each pixel, if None will be calculated
     neighbors: list(arrays)
@@ -70,9 +73,21 @@ class CameraGeometry:
 
     _geometry_cache = {}  # dictionary CameraGeometry instances for speed
 
-    def __init__(self, camera_name, pix_id, pix_x, pix_y, pix_area, pix_type,
-                 pix_rotation="0d", cam_rotation="0d",
-                 neighbors=None, apply_derotation=True, frame=None):
+    def __init__(
+        self,
+        camera_name,
+        pix_id,
+        pix_x,
+        pix_y,
+        pix_type,
+        pix_area=None,
+        pix_size=None,
+        pix_rotation="0d",
+        cam_rotation="0d",
+        neighbors=None,
+        apply_derotation=True,
+        frame=None
+    ):
 
         if pix_x.ndim != 1 or pix_y.ndim != 1:
             raise ValueError(f'Pixel coordinates must be 1 dimensional, got {pix_x.ndim}')
@@ -84,6 +99,7 @@ class CameraGeometry:
         self.pix_x = pix_x
         self.pix_y = pix_y
         self.pix_area = pix_area
+        self.pix_size = pix_size
         self.pix_type = pix_type
         self.pix_rotation = Angle(pix_rotation)
         self.cam_rotation = Angle(cam_rotation)
@@ -99,8 +115,11 @@ class CameraGeometry:
             else:
                 self._neighbors = csr_matrix(neighbors)
 
+        if self.pix_size is None:
+            self.pix_size = self._calc_pixel_size(pix_x, pix_y)
+
         if self.pix_area is None:
-            self.pix_area = CameraGeometry._calc_pixel_area(
+            self.pix_area = self._calc_pixel_area(
                 pix_x, pix_y, pix_type
             )
 
@@ -210,13 +229,22 @@ class CameraGeometry:
         )
 
     @staticmethod
-    def _calc_pixel_area(pix_x, pix_y, pix_type):
+    def _calc_pixel_size(pix_x, pix_y):
+        """ recalculate pixel area based on the pixel type and layout
+
+        Note this will not work on cameras with varying pixel sizes.
+        """
+        dist = np.min(np.sqrt((pix_x[1:] - pix_x[0])**2 + (pix_y[1:] - pix_y[0])**2))
+        return u.Quantity(np.full(len(pix_x), dist.value), dist.unit, copy=False)
+
+    @classmethod
+    def _calc_pixel_area(cls, pix_x, pix_y, pix_type):
         """ recalculate pixel area based on the pixel type and layout
 
         Note this will not work on cameras with varying pixel sizes.
         """
 
-        dist = np.min(np.sqrt((pix_x[1:] - pix_x[0])**2 + (pix_y[1:] - pix_y[0])**2))
+        dist = cls._calc_pixel_size(pix_x, pix_y)
 
         if pix_type.startswith('hex'):
             rad = dist / np.sqrt(3)  # radius to vertex of hexagon
