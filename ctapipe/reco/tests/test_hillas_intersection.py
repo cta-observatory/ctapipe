@@ -13,7 +13,6 @@ from ctapipe.utils import get_dataset_path
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 
-import pytest
 
 def test_intersect():
     """
@@ -251,7 +250,7 @@ def test_reconstruction():
 
         for tel_id in event.dl0.tels_with_data:
 
-            geom = event.inst.subarray.tel[tel_id].camera.geometry
+            geom = source.subarray.tel[tel_id].camera.geometry
 
             telescope_pointings[tel_id] = SkyCoord(alt=event.pointing[tel_id].altitude,
                                                    az=event.pointing[tel_id].azimuth,
@@ -275,7 +274,7 @@ def test_reconstruction():
             reconstructed_events += 1
 
         # divergent mode put to on even though the file has parallel pointing.
-        fit_result = fit.predict(hillas_dict, event.inst, array_pointing, telescope_pointings)
+        fit_result = fit.predict(hillas_dict, source.subarray, array_pointing, telescope_pointings)
 
         print(fit_result)
         print(event.mc.core_x, event.mc.core_y)

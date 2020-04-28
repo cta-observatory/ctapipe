@@ -83,7 +83,7 @@ class HillasIntersection(Reconstructor):
         if self.weighting == "Konrad":
             self._weight_method = self.weight_konrad
 
-    def predict(self, hillas_dict, inst, array_pointing, telescopes_pointings=None):
+    def predict(self, hillas_dict, subarray, array_pointing, telescopes_pointings=None):
         """
 
         Parameters
@@ -127,7 +127,7 @@ class HillasIntersection(Reconstructor):
 
         tilted_frame = TiltedGroundFrame(pointing_direction=array_pointing)
 
-        ground_positions = inst.subarray.tel_coords
+        ground_positions = subarray.tel_coords
         grd_coord = GroundFrame(x=ground_positions.x,
                                 y=ground_positions.y,
                                 z=ground_positions.z)
@@ -145,7 +145,7 @@ class HillasIntersection(Reconstructor):
             # prevent from using rads instead of meters as inputs
             assert hillas.x.to(u.m).unit == u.Unit('m')
 
-            focal_length = inst.subarray.tel[tel_id].optics.equivalent_focal_length
+            focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
 
             camera_frame = CameraFrame(
                 telescope_pointing=telescopes_pointings[tel_id],

@@ -46,9 +46,7 @@ class DumpInstrumentTool(Tool):
 
     def setup(self):
         with event_source(self.infile) as source:
-            data = next(iter(source))  # get one event, so the instrument table is there
-
-        self.inst = data.inst  # keep a reference to the instrument stuff
+            self.subarray = source.subarray
 
     def start(self):
         self.write_camera_geometries()
@@ -72,8 +70,8 @@ class DumpInstrumentTool(Tool):
             raise NameError("format not supported")
 
     def write_camera_geometries(self):
-        cam_types = get_camera_types(self.inst.subarray)
-        self.inst.subarray.info(printer=self.log.info)
+        cam_types = get_camera_types(self.subarray)
+        self.subarray.info(printer=self.log.info)
         for cam_name in cam_types:
             ext, args = self._get_file_format_info(self.format,
                                                    'CAMGEOM',
@@ -81,7 +79,7 @@ class DumpInstrumentTool(Tool):
 
             self.log.debug(f"writing {cam_name}")
             tel_id = cam_types[cam_name].pop()
-            geom = self.inst.subarray.tel[tel_id].camera.geometry
+            geom = self.subarray.tel[tel_id].camera.geometry
             table = geom.to_table()
             table.meta['SOURCE'] = self.infile
             filename = f"{cam_name}.camgeom.{ext}"
@@ -96,7 +94,7 @@ class DumpInstrumentTool(Tool):
                 )
 
     def write_optics_descriptions(self):
-        sub = self.inst.subarray
+        sub = self.subarray
         ext, args = self._get_file_format_info(self.format, sub.name, 'optics')
 
         tab = sub.to_table(kind='optics')
@@ -112,7 +110,7 @@ class DumpInstrumentTool(Tool):
             )
 
     def write_subarray_description(self):
-        sub = self.inst.subarray
+        sub = self.subarray
         ext, args = self._get_file_format_info(self.format, sub.name,
                                                'subarray')
         tab = sub.to_table(kind='subarray')

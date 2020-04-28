@@ -169,7 +169,7 @@ class SubarrayDescription:
         """
 
         meta = {
-            "ORIGIN": "ctapipe.inst.SubarrayDescription",
+            "ORIGIN": "ctapipe.instrument.SubarrayDescription",
             "SUBARRAY": self.name,
             "SOFT_VER": ctapipe.__version__,
             "TAB_TYPE": kind,

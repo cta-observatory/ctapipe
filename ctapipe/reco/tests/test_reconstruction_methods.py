@@ -49,7 +49,7 @@ def test_reconstructors(reconstructors):
 
         for tel_id in event.dl0.tels_with_data:
 
-            geom = event.inst.subarray.tel[tel_id].camera.geometry
+            geom = source.subarray.tel[tel_id].camera.geometry
 
             telescope_pointings[tel_id] = SkyCoord(alt=event.pointing[tel_id].altitude,
                                                    az=event.pointing[tel_id].azimuth,
@@ -73,7 +73,9 @@ def test_reconstructors(reconstructors):
         for count, reco_method in enumerate(reconstructors):
             reconstructed_events[count] += 1
             reconstructor = reco_method()
-            reconstructor_out = reconstructor.predict(hillas_dict, event.inst, array_pointing, telescope_pointings)
+            reconstructor_out = reconstructor.predict(
+                hillas_dict, source.subarray, array_pointing, telescope_pointings
+            )
 
             reconstructor_out.alt.to(u.deg)
             reconstructor_out.az.to(u.deg)

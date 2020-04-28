@@ -327,7 +327,7 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
 
     Examples
     --------
-    camera = event.inst.subarray.tel[tel_id].camera
+    camera = subarray.tel[tel_id].camera
     image = event.r0.tel[tel_id].image[0]
     key = camera.camera_name
     square_geom, square_image = convert_geometry_hex1d_to_rect2d(camera, image, key=key)
@@ -495,7 +495,7 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None, add_rot=None)
 
     Examples
     --------
-    camera = event.inst.subarray.tel[tel_id].camera
+    camera = subarray.tel[tel_id].camera
     image = event.r0.tel[tel_id].image[0]
     key = camera.camera_name
     square_geom, square_image = convert_geometry_hex1d_to_rect2d(camera, image, key=key)
