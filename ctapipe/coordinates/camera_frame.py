@@ -143,8 +143,14 @@ def camera_to_telescope(camera_coord, telescope_frame):
     # as an Attribute of `CameraFrame` that maps f(r, focal_length) -> theta,
     # where theta is the angle to the optical axis and r is the distance
     # to the camera center in the focal plane
-    fov_lat = u.Quantity((x_rotated / focal_length).to_value(u.dimensionless_unscaled), u.rad)
-    fov_lon = u.Quantity((y_rotated / focal_length).to_value(u.dimensionless_unscaled), u.rad)
+    fov_lat = u.Quantity(
+        (x_rotated / focal_length).to_value(u.dimensionless_unscaled),
+        u.rad, copy=False,
+    )
+    fov_lon = u.Quantity(
+        (y_rotated / focal_length).to_value(u.dimensionless_unscaled),
+        u.rad, copy=False,
+    )
 
     representation = UnitSphericalRepresentation(lat=fov_lat, lon=fov_lon)
 
