@@ -22,26 +22,26 @@ class ToyEventSource(EventSource, TelescopeComponent):
 
     trigger_probability = traits.FloatTelescopeParameter(
         default_value=0.5, help='Probability that the telescope has an event',
-    )
+    ).tag(config=True)
 
     min_length_m = traits.FloatTelescopeParameter(
         default_value=0.05, help='Minimum length m',
-    )
+    ).tag(config=True)
     max_length_m = traits.FloatTelescopeParameter(
         default_value=0.3, help='Maximum length in m',
-    )
+    ).tag(config=True)
     min_eccentricity = traits.FloatTelescopeParameter(
         default_value=0.8, help='Minimum eccentricity = sqrt(1 - width**2/length**2)',
-    )
+    ).tag(config=True)
     max_eccentricity = traits.FloatTelescopeParameter(
         default_value=0.98, help='Maximum eccentricity = sqrt(1 - width**2/length**2)',
-    )
+    ).tag(config=True)
     min_skewness = traits.FloatTelescopeParameter(
         default_value=0.1, help='Minimum skewness',
-    )
+    ).tag(config=True)
     max_skewness = traits.FloatTelescopeParameter(
         default_value=0.5, help='Maximum skewness',
-    )
+    ).tag(config=True)
 
     def __init__(self, subarray, config=None, parent=None, **kwargs):
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
