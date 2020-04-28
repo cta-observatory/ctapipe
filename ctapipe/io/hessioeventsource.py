@@ -161,7 +161,7 @@ class HESSIOEventSource(EventSource):
                     mc = data.mc.tel[tel_id]
                     r0 = data.r0.tel[tel_id]
                     r1 = data.r1.tel[tel_id]
-                    pointing = data.pointing[tel_id]
+                    pointing = data.pointing.tel[tel_id]
 
                     adc_samples = file.get_adc_sample(tel_id)
                     if adc_samples.size == 0:

@@ -7,6 +7,7 @@ from ctapipe.io.hessioeventsource import HESSIOEventSource
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 from itertools import zip_longest
 from copy import deepcopy
+import astropy.units as u
 from astropy.utils.data import download_file
 
 gamma_test_large_path = get_dataset_path("gamma_test_large.simtel.gz")
@@ -86,8 +87,8 @@ def compare_sources(input_url):
                 assert h.mc.tel[tel_id].meta == s.mc.tel[tel_id].meta
                 assert h.mc.tel[tel_id].azimuth_raw == s.mc.tel[tel_id].azimuth_raw
                 assert h.mc.tel[tel_id].altitude_raw == s.mc.tel[tel_id].altitude_raw
-                assert h.pointing[tel_id].altitude == s.pointing[tel_id].altitude
-                assert h.pointing[tel_id].azimuth == s.pointing[tel_id].azimuth
+                assert h.pointing.tel[tel_id].altitude == s.pointing.tel[tel_id].altitude
+                assert h.pointing.tel[tel_id].azimuth == s.pointing.tel[tel_id].azimuth
 
 
 def test_compare_event_hessio_and_simtel():
@@ -207,6 +208,15 @@ def test_max_events():
         for _ in reader:
             count += 1
         assert count == max_events
+
+
+def test_pointing():
+    with SimTelEventSource(input_url=gamma_test_large_path, max_events=3) as reader:
+        for e in reader:
+            assert np.isclose(e.pointing.array_altitude.to_value(u.deg), 70)
+            assert np.isclose(e.pointing.array_azimuth.to_value(u.deg), 0)
+            assert np.isnan(e.pointing.array_ra)
+            assert np.isnan(e.pointing.array_dec)
 
 
 def test_allowed_telescopes():
