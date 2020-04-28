@@ -61,10 +61,10 @@ def test_telescope_separation():
 
     telescope_frame = TelescopeFrame(telescope_pointing=telescope_pointing)
     tel1 = SkyCoord(
-        delta_az=0 * u.deg, delta_alt=0 * u.deg, frame=telescope_frame
+        fov_lon=0 * u.deg, fov_lat=0 * u.deg, frame=telescope_frame
     )
     tel2 = SkyCoord(
-        delta_az=0 * u.deg, delta_alt=1 * u.deg, frame=telescope_frame
+        fov_lon=0 * u.deg, fov_lat=1 * u.deg, frame=telescope_frame
     )
 
     assert tel1.separation(tel2) == u.Quantity(1, u.deg)
@@ -114,12 +114,12 @@ def test_cam_to_tel():
     # making sure to give the required values for the conversion
     # (these are not checked yet)
     telescope_coord = camera_coord.transform_to(TelescopeFrame())
-    assert telescope_coord.delta_az[0] == (1 / 15) * u.rad
+    assert telescope_coord.fov_lon[0] == (1 / 15) * u.rad
 
     # check rotation
     camera_coord = SkyCoord(pix_x, pix_y, frame=camera_frame)
     telescope_coord_rot = camera_coord.transform_to(TelescopeFrame())
-    assert telescope_coord_rot.delta_alt[0] - (1 / 15) * u.rad < 1e-6 * u.rad
+    assert telescope_coord_rot.fov_lat[0] - (1 / 15) * u.rad < 1e-6 * u.rad
 
     # The Transform back
     camera_coord2 = telescope_coord.transform_to(camera_frame)
