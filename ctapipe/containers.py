@@ -56,6 +56,9 @@ class EventType(enum.Enum):
 
     data = 0  # standard physics event
     calibration = 1  # event from calibration system
+    dark = 2
+    pedestal = 3
+    lasercalibration=4
 
 
 class EventIndexContainer(Container):
@@ -174,7 +177,7 @@ class ImageParametersContainer(Container):
     timing = Field(TimingParametersContainer(), "Timing Parameters")
     leakage = Field(LeakageContainer(), "Leakage Parameters")
     concentration = Field(ConcentrationContainer(), "Concentration Parameters")
-    morphology = Field(MorphologyContainer(), "Morphology Parameters")
+    morphology = Field(MorphologyContainer(), "Image Morphology Parameters")
 
 
 class DL1CameraContainer(Container):
@@ -272,7 +275,7 @@ class R0Container(Container):
     Storage of a Merged Raw Data Event
     """
 
-    tels_with_data = Field([], "list of telescopes with data")
+    tels_with_data = Field([], "set of tel_ids for telescopes with data")
     tel = Field(Map(R0CameraContainer), "map of tel_id to R0CameraContainer")
 
 
@@ -305,7 +308,7 @@ class R1Container(Container):
     Storage of a r1 calibrated Data Event
     """
 
-    tels_with_data = Field([], "list of telescopes with data")
+    tels_with_data = Field([], "set of tel_ids for telescopes with data")
     tel = Field(Map(R1CameraContainer), "map of tel_id to R1CameraContainer")
 
 
@@ -341,7 +344,7 @@ class DL0Container(Container):
     Storage of a data volume reduced Event
     """
 
-    tels_with_data = Field([], "list of telescopes with data")
+    tels_with_data = Field([], "set of tel_ids for telescopes with data")
     tel = Field(Map(DL0CameraContainer), "map of tel_id to DL0CameraContainer")
 
 
@@ -597,7 +600,7 @@ class EventCalibrationContainer(Container):
     Container for calibration coefficients for the current event
     """
 
-    tels_with_data = Field([], "list of telescopes with data")
+    tels_with_data = Field([], "set of tel_ids for telescopes with data")
 
     # create the camera container
     tel = Field(
