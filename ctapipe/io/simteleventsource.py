@@ -355,7 +355,7 @@ class SimTelEventSource(EventSource):
                 mc = data.mc.tel[tel_id]
                 mc.dc_to_pe = array_event["laser_calibrations"][tel_id]["calib"]
                 mc.pedestal = array_event["camera_monitorings"][tel_id]["pedestal"]
-                mc.photo_electron_image = (
+                mc.true_image = (
                     array_event.get("photoelectrons", {})
                     .get(tel_index, {})
                     .get("photoelectrons", np.zeros(n_pixels, dtype="float32"))
