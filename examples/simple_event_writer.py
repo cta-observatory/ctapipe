@@ -90,7 +90,7 @@ class SimpleEventWriter(Tool):
             for tel_id in event.dl0.tels_with_data:
                 self.image_cutflow.count('no_sel')
 
-                geom = event.inst.subarray.tel[tel_id].camera.geometry
+                geom = self.event_source.subarray.tel[tel_id].camera.geometry
                 dl1_tel = event.dl1.tel[tel_id]
 
                 # Image cleaning

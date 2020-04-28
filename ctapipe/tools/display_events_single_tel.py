@@ -97,7 +97,7 @@ class SingleTelEventDisplay(Tool):
             self.calibrator(event)
 
             if disp is None:
-                geom = event.inst.subarray.tel[self.tel].camera.geometry
+                geom = self.event_source.subarray.tel[self.tel].camera.geometry
                 self.log.info(geom)
                 disp = CameraDisplay(geom)
                 # disp.enable_pixel_picker()

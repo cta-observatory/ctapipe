@@ -111,7 +111,7 @@ def test_reconstruction():
 
         for tel_id in event.dl0.tels_with_data:
 
-            geom = event.inst.subarray.tel[tel_id].camera.geometry
+            geom = source.subarray.tel[tel_id].camera.geometry
 
             telescope_pointings[tel_id] = SkyCoord(alt=event.pointing[tel_id].altitude,
                                                    az=event.pointing[tel_id].azimuth,
@@ -136,10 +136,10 @@ def test_reconstruction():
 
         # The three reconstructions below gives the same results
         fit = HillasReconstructor()
-        fit_result_parall = fit.predict(hillas_dict, event.inst, array_pointing)
+        fit_result_parall = fit.predict(hillas_dict, source.subarray, array_pointing)
 
         fit = HillasReconstructor()
-        fit_result_tel_point = fit.predict(hillas_dict, event.inst, array_pointing, telescope_pointings)
+        fit_result_tel_point = fit.predict(hillas_dict, source.subarray, array_pointing, telescope_pointings)
 
         for key in fit_result_parall.keys():
             print(key, fit_result_parall[key], fit_result_tel_point[key])
@@ -175,13 +175,14 @@ def test_invalid_events():
     tel_altitude = {}
 
     source = event_source(filename, max_events=10)
+    subarray = source.subarray
 
     for event in source:
 
         hillas_dict = {}
         for tel_id in event.dl0.tels_with_data:
 
-            geom = event.inst.subarray.tel[tel_id].camera.geometry
+            geom = source.subarray.tel[tel_id].camera.geometry
             tel_azimuth[tel_id] = event.pointing[tel_id].azimuth
             tel_altitude[tel_id] = event.pointing[tel_id].altitude
 
@@ -202,18 +203,18 @@ def test_invalid_events():
         hillas_dict_only_one_tel = dict()
         hillas_dict_only_one_tel[tel_id] = hillas_dict[tel_id]
         with pytest.raises(TooFewTelescopesException):
-            fit.predict(hillas_dict_only_one_tel, event.inst, tel_azimuth, tel_altitude)
+            fit.predict(hillas_dict_only_one_tel, subarray, tel_azimuth, tel_altitude)
 
         # construct a hillas dict with the width of the last event set to 0 
         # (any width == 0)
         hillas_dict_zero_width = hillas_dict.copy()
         hillas_dict_zero_width[tel_id]['width'] = 0 * u.m
         with pytest.raises(InvalidWidthException):
-            fit.predict(hillas_dict_zero_width, event.inst, tel_azimuth, tel_altitude)
+            fit.predict(hillas_dict_zero_width, subarray, tel_azimuth, tel_altitude)
 
         # construct a hillas dict with the width of the last event set to np.nan 
         # (any width == nan)
         hillas_dict_nan_width = hillas_dict.copy()
         hillas_dict_zero_width[tel_id]['width'] = np.nan * u.m
         with pytest.raises(InvalidWidthException):
-            fit.predict(hillas_dict_nan_width, event.inst, tel_azimuth, tel_altitude)
+            fit.predict(hillas_dict_nan_width, subarray, tel_azimuth, tel_altitude)

@@ -2,7 +2,6 @@ import copy
 import pytest
 from ctapipe.utils import get_dataset_path
 from ctapipe.io.hessioeventsource import HESSIOEventSource
-from copy import deepcopy
 
 dataset = get_dataset_path("gamma_test_large.simtel.gz")
 
@@ -55,11 +54,7 @@ def test_that_event_is_not_modified_after_loop():
 
 
 def test_subarray_property():
+    from ctapipe.instrument import SubarrayDescription
     dataset = get_dataset_path("gamma_test_large.simtel.gz")
     source = HESSIOEventSource(input_url=dataset)
-    subarray = deepcopy(source.subarray)
-    event = next(iter(source))
-    subarray_event = event.inst.subarray
-    assert subarray.tel.keys() == subarray_event.tel.keys()
-    assert (subarray.tel[1].camera.geometry.pix_x ==
-            subarray_event.tel[1].camera.geometry.pix_x).all()
+    assert isinstance(source.subarray, SubarrayDescription)

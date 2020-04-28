@@ -70,7 +70,7 @@ class BokehEventViewerCamera(CameraDisplay):
         if e:
             # Check if geom actually needs to be changed
             if not t == self._geom_tel:
-                self.geom = e.inst.subarray.tel[t].camera.geometry
+                self.geom = self.event_viewer.subarray.tel[t].camera.geometry
                 self._geom_tel = t
         else:
             self.event_viewer.log.warning("No event has been provided")
@@ -289,6 +289,7 @@ class BokehEventViewerWaveform(WaveformDisplay):
 class BokehEventViewer(Component):
     def __init__(
         self,
+        subarray,
         config=None,
         parent=None,
         num_cameras=1,
@@ -331,6 +332,7 @@ class BokehEventViewer(Component):
         self.camera_layouts = []
         self.waveforms = []
         self.waveform_layouts = []
+        self.subarray = subarray
 
         self.layout = None
 

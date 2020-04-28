@@ -50,7 +50,7 @@ class HESSIOEventSource(EventSource):
         try:
             import pyhessio
         except ImportError:
-            msg = "The `pyhessio` python module is required to access MC data"
+            msg = "The `pyhessio` module is required to access use this eventsource"
             self.log.error(msg)
             raise
 
@@ -62,6 +62,7 @@ class HESSIOEventSource(EventSource):
             self.pyhessio.close_file()
         HESSIOEventSource._count += 1
 
+        self._subarray = self.read_subarray()
         self.metadata['is_simulation'] = True
 
         # Waveforms from simtelarray have both gain channels
@@ -70,13 +71,16 @@ class HESSIOEventSource(EventSource):
             gain_selector = ThresholdGainSelector(parent=self)
         self.gain_selector = gain_selector
 
+    @property
+    def subarray(self):
+        return self._subarray
+
     @staticmethod
     def is_compatible(file_path):
         '''This class should never be chosen in event_source()'''
         return False
 
-    @property
-    def subarray(self):
+    def read_subarray(self):
         with self.pyhessio.open_hessio(str(self.input_url)) as file:
             next(file.move_to_next_event())
             return self._build_subarray_info(file)
@@ -99,12 +103,6 @@ class HESSIOEventSource(EventSource):
             data.meta['max_events'] = self.max_events
 
             for event_id in eventstream:
-
-                if counter == 0:
-                    # subarray info is only available when an event is loaded,
-                    # so load it on the first event.
-                    data.inst.subarray = self._build_subarray_info(file)
-
                 obs_id = file.get_run_number()
                 tels_with_data = set(file.get_teldata_list())
                 data.count = counter

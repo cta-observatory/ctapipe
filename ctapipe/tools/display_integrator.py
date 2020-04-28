@@ -16,7 +16,7 @@ from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.visualization import CameraDisplay
 
 
-def plot(event, telid, chan, extractor_name):
+def plot(subarray, event, telid, chan, extractor_name):
     # Extract required images
     dl0 = event.dl0.tel[telid].waveform
 
@@ -27,7 +27,7 @@ def plot(event, telid, chan, extractor_name):
     max_pix = int(np.argmax(max_charges))
     min_pix = int(np.argmin(max_charges))
 
-    geom = event.inst.subarray.tel[telid].camera.geometry
+    geom = subarray.tel[telid].camera.geometry
     nei = geom.neighbors
 
     # Get Neighbours
@@ -261,12 +261,13 @@ class DisplayIntegrator(Tool):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
 
         event_source = self.add_component(EventSource.from_config(parent=self))
+        self.subarray = event_source.subarray
         self.eventseeker = self.add_component(EventSeeker(event_source, parent=self))
         self.extractor = self.add_component(ImageExtractor.from_name(
-            self.extractor_product, parent=self, subarray=event_source.subarray
+            self.extractor_product, parent=self, subarray=self.subarray
         ))
         self.calibrate = self.add_component(CameraCalibrator(
-            parent=self, image_extractor=self.extractor, subarray=event_source.subarray
+            parent=self, image_extractor=self.extractor, subarray=self.subarray
         ))
 
     def start(self):
@@ -292,7 +293,7 @@ class DisplayIntegrator(Tool):
 
         extractor_name = self.extractor.__class__.__name__
 
-        plot(event, telid, self.channel, extractor_name)
+        plot(self.subarray, event, telid, self.channel, extractor_name)
 
     def finish(self):
         pass
