@@ -151,7 +151,7 @@ class EventSeeker(Component):
             item = int(item)
             use_event_id = True
             if self._current_event:
-                current = self._current_event.r0.event_id
+                current = self._current_event.index.event_id
         elif isinstance(item, slice):
             it = range(item.start or 0, item.stop or len(self), item.step or 1)
             events = [self[i] for i in it]
