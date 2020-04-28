@@ -12,7 +12,6 @@ import numpy as np
 import tables
 import tables.filters
 from astropy import units as u
-from astropy.time import Time
 from tqdm.autonotebook import tqdm
 
 from ..calib.camera import CameraCalibrator, GainSelector
@@ -35,7 +34,6 @@ from ..image.leakage import leakage
 from ..image.timing_parameters import timing_parameters
 from ..io import EventSource, HDF5TableWriter, SimTelEventSource
 from ..containers import (
-    DL1CameraContainer,
     EventIndexContainer,
     ImageParametersContainer,
     TelEventIndexContainer,
