@@ -1,4 +1,4 @@
-""" 
+"""
 Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
 
 # TODO: add event time per telescope!
@@ -71,8 +71,6 @@ def write_reference_metadata_headers(output_filename, obs_id, subarray, writer):
     writer: HDF5TableWriter
         output
     """
-    import uuid
-
     activity = PROV.current_activity.provenance
 
     reference = meta.Reference(
@@ -89,7 +87,7 @@ def write_reference_metadata_headers(output_filename, obs_id, subarray, writer):
             data_model_url="",
             format="hdf5",
         ),
-        process=meta.Process(_type="Simulation", subtype="", _id=str(obs_id), ),
+        process=meta.Process(type_="Simulation", subtype="", id_=int(obs_id)),
         activity=meta.Activity.from_provenance(activity),
         instrument=meta.Instrument(
             site="Other", # need a way to detect site...
@@ -197,7 +195,7 @@ class ImageQualityQuery(QualityQuery):
 
 def expand_tel_list(tel_list, max_tels, index_map):
     """
-    un-pack var-length list of tel_ids into 
+    un-pack var-length list of tel_ids into
     fixed-width bit pattern by tel_index
 
     TODO: use index_map to index by tel_index rather than tel_id so this can be a
@@ -227,12 +225,12 @@ class Stage1ProcessorTool(Tool):
     examples = """
     To process data with all default values:
     > ctapipe-stage1-process --input events.simtel.gz --output events.dl1.h5 --progress
-    
+
     Or use an external configuration file, where you can specify all options:
-    > ctapipe-stage1-process --config stage1_config.json --progress 
-    
-    The config file should be in JSON or python format (see traitlets docs). For an 
-    example, see ctapipe/examples/stage1_config.json in the main code repo. 
+    > ctapipe-stage1-process --config stage1_config.json --progress
+
+    The config file should be in JSON or python format (see traitlets docs). For an
+    example, see ctapipe/examples/stage1_config.json in the main code repo.
     """
 
     output_filename = Unicode(
@@ -306,7 +304,7 @@ class Stage1ProcessorTool(Tool):
             "store DL1/Event/Telescope images in output",
         ),
         "write-parameters": (
-            {"Stage1ProcessorTool": {"write_images": True}},
+            {"Stage1ProcessorTool": {"write_parameters": True}},
             "store DL1/Event/Telescope parameters in output",
         ),
         "write-index-tables": (
@@ -396,8 +394,8 @@ class Stage1ProcessorTool(Tool):
 
     def _write_simulation_configuration(self, writer, event):
         """
-        Write the simulation headers to a single row of a table. Later 
-        if this file is merged with others, that table will grow. 
+        Write the simulation headers to a single row of a table. Later
+        if this file is merged with others, that table will grow.
 
         Note that this function should be run first
         """
@@ -468,11 +466,11 @@ class Stage1ProcessorTool(Tool):
 
     def _write_instrument_configuration(self, subarray):
         """write the SubarrayDescription
-        
+
         Parameters
         ----------
         subarray : ctapipe.instrument.SubarrayDescription
-            subarray description 
+            subarray description
         """
         self.log.debug("Writing instrument configuration")
         serialize_meta = True
@@ -518,8 +516,8 @@ class Stage1ProcessorTool(Tool):
         )
 
     def _parameterize_image(self, subarray, data, tel_id):
-        """Apply Image Cleaning
-       
+        """Apply image cleaning and calculate image features
+
         Parameters
         ----------
         subarray : SubarrayDescription
@@ -528,27 +526,24 @@ class Stage1ProcessorTool(Tool):
             calibrated camera data
         tel_id: int
             which telescope is being cleaned
-        
+
         Returns
         -------
-        np.ndarray, ImageParametersContainer: 
+        np.ndarray, ImageParametersContainer:
             cleaning mask, parameters
         """
 
         tel = subarray.tel[tel_id]
+        geometry = tel.camera.geometry
 
         # apply cleaning
-
-        mask = self.clean(tel_id=tel_id, image=data.image)
-
-        clean_image = data.image.copy()
-        clean_image[~mask] = 0
+        signal_pixels = self.clean(tel_id=tel_id, image=data.image)
+        image_selected = data.image[signal_pixels]
 
         params = ExtendedImageParametersContainer()
 
         # check if image can be parameterized:
-
-        image_criteria = self.check_image(clean_image)
+        image_criteria = self.check_image(image_selected)
         self.log.debug(
             "image_criteria: %s",
             list(zip(self.check_image.criteria_names[1:], image_criteria)),
@@ -556,27 +551,31 @@ class Stage1ProcessorTool(Tool):
 
         # parameterize the event if all criteria pass:
         if all(image_criteria):
+            geom_selected = geometry[signal_pixels]
+
             params.hillas = hillas_parameters(
-                geom=tel.camera.geometry, image=clean_image
+                geom=geom_selected, image=image_selected,
             )
             params.timing = timing_parameters(
-                geom=tel.camera.geometry,
-                image=clean_image,
-                pulse_time=data.pulse_time,
+                geom=geom_selected,
+                image=image_selected,
+                pulse_time=data.pulse_time[signal_pixels],
                 hillas_parameters=params.hillas,
             )
             params.leakage = leakage(
-                geom=tel.camera.geometry, image=data.image, cleaning_mask=mask
+                geom=geometry, image=data.image, cleaning_mask=signal_pixels
             )
             params.concentration = concentration(
-                geom=tel.camera.geometry,
-                image=clean_image,
+                geom=geom_selected,
+                image=image_selected,
                 hillas_parameters=params.hillas,
             )
-            params.morphology = morphology(geom=tel.camera.geometry, image_mask=mask)
-            params.intensity = intensity_statistics(image=clean_image)
+            params.morphology = morphology(
+                geom=geometry, image_mask=signal_pixels
+            )
+            params.intensity = intensity_statistics(image=image_selected)
 
-        return mask, params
+        return signal_pixels, params
 
     def _process_events(self, writer):
         self.log.debug("Writing DL1/Event data")
