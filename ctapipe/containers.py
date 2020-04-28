@@ -107,18 +107,24 @@ class DL1CameraContainer(Container):
     image_mask = Field(
         None,
         "Boolean numpy array where True means the pixel has passed cleaning. Shape: ("
-        "n_pixel)"
+        "n_pixel)",
     )
 
-    
+    parameters = Field(ImageParametersContainer(), "Parameters derived from images")
+
 
 class SimulatedDL1CameraContainer(DL1CameraContainer):
     """ Contains all fields of the DL1CameraContainer, but adds fields for simulated
     DL1 image information."""
+
     true_image = Field(
         None,
         "Numpy array of camera image in PE as simulated before noise has been added. "
         "Shape: (n_pixel)",
+    )
+
+    true_parameters = Field(
+        ImageParametersContainer(), "Parameters derived from the true_image"
     )
 
 
@@ -136,23 +142,23 @@ class DL1CameraCalibrationContainer(Container):
     pedestal_offset = Field(
         0,
         "Additive coefficients for the pedestal calibration of extracted charge "
-        "for each pixel"
+        "for each pixel",
     )
     absolute_factor = Field(
         1,
         "Multiplicative coefficients for the absolute calibration of extracted charge into "
-        "physical units (e.g. photoelectrons or photons) for each pixel"
+        "physical units (e.g. photoelectrons or photons) for each pixel",
     )
     relative_factor = Field(
         1,
         "Multiplicative Coefficients for the relative correction between pixels to achieve a "
         "uniform charge response (post absolute calibration) from a "
-        "uniform illumination."
+        "uniform illumination.",
     )
     time_shift = Field(
         0,
         "Additive coefficients for the timing correction before charge extraction "
-        "for each pixel"
+        "for each pixel",
     )
 
 
@@ -494,6 +500,7 @@ class EventCameraCalibrationContainer(Container):
     """
     Container for the calibration coefficients for the current event and camera
     """
+
     dl1 = Field(
         DL1CameraCalibrationContainer(), "Container for DL1 calibration coefficients"
     )
@@ -509,7 +516,7 @@ class EventCalibrationContainer(Container):
     # create the camera container
     tel = Field(
         Map(EventCameraCalibrationContainer),
-        "map of tel_id to EventCameraCalibrationContainer"
+        "map of tel_id to EventCameraCalibrationContainer",
     )
 
 
@@ -535,14 +542,12 @@ class DataContainer(Container):
     pointing = Field(Map(TelescopePointingContainer), "Telescope pointing positions")
     calibration = Field(
         EventCalibrationContainer(),
-        "Container for calibration coefficients for the current event"
+        "Container for calibration coefficients for the current event",
     )
 
 
 class MuonRingParameter(Container):
-    center_x = Field(
-        nan * u.deg, "center (x) of the fitted muon ring", unit=u.deg
-    )
+    center_x = Field(nan * u.deg, "center (x) of the fitted muon ring", unit=u.deg)
     center_y = Field(nan * u.deg, "center (y) of the fitted muon ring", unit=u.deg)
     radius = Field(nan * u.deg, "radius of the fitted muon ring", unit=u.deg)
     center_phi = Field(
@@ -556,9 +561,7 @@ class MuonRingParameter(Container):
 
 class MuonIntensityParameter(Container):
     ring_width = Field(nan, "width of the muon ring in degrees")
-    impact = Field(
-        nan, "distance of muon impact position from center of mirror"
-    )
+    impact = Field(nan, "distance of muon impact position from center of mirror")
     impact_x = Field(nan, "impact parameter x position")
     impact_y = Field(nan, "impact parameter y position")
     optical_efficiency = Field(nan, "optical efficiency muon")
@@ -767,6 +770,7 @@ class WaveformCalibrationContainer(Container):
     """
     Container for the pixel calibration coefficients
     """
+
     time = Field(0, "Time associated to the calibration event", unit=u.s)
     time_range = Field(
         [],
