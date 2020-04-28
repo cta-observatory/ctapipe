@@ -69,7 +69,7 @@ class ImagePlotter(Component):
 
     def plot(self, event, telid):
         image = event.dl1.tel[telid].image
-        pulse_time = event.dl1.tel[telid].pulse_time
+        pulse_time = event.dl1.tel[telid].peak_time
         print("plot", image.shape, pulse_time.shape)
 
         if self._current_tel != telid:

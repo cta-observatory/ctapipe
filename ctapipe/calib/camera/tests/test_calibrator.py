@@ -23,7 +23,7 @@ def test_camera_calibrator(example_event, subarray):
     calibrator = CameraCalibrator(subarray=subarray)
     calibrator(example_event)
     image = example_event.dl1.tel[telid].image
-    pulse_time = example_event.dl1.tel[telid].pulse_time
+    pulse_time = example_event.dl1.tel[telid].peak_time
     assert image is not None
     assert pulse_time is not None
     assert image.shape == (1764,)

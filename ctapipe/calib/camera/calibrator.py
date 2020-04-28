@@ -105,6 +105,7 @@ class CameraCalibrator(Component):
         waveforms_copy = waveforms.copy()
         waveforms_copy[~reduced_waveforms_mask] = 0
         event.dl0.tel[telid].waveform = waveforms_copy
+        event.dl0.tel[telid].selected_gain_channel = selected_gain_channel
 
     def _calibrate_dl1(self, event, telid):
         waveforms = event.dl0.tel[telid].waveform
@@ -133,7 +134,7 @@ class CameraCalibrator(Component):
         charge = (charge - pedestal) * relative / absolute
 
         event.dl1.tel[telid].image = charge
-        event.dl1.tel[telid].pulse_time = pulse_time
+        event.dl1.tel[telid].peak_time = pulse_time
 
     def __call__(self, event):
         """

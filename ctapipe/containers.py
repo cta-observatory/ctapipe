@@ -98,11 +98,27 @@ class DL1CameraContainer(Container):
         None,
         "Numpy array of camera image, after waveform extraction." "Shape: (n_pixel)",
     )
-    pulse_time = Field(
+    peak_time = Field(
         None,
-        "Numpy array containing position of the pulse as determined by "
-        "the extractor."
-        "Shape: (n_pixel, n_samples)",
+        "Numpy array containing position of the peak of the pulse as determined by "
+        "the extractor. Shape: (n_pixel)",
+    )
+
+    image_mask = Field(
+        None,
+        "Boolean numpy array where True means the pixel has passed cleaning. Shape: ("
+        "n_pixel)"
+    )
+
+    
+
+class SimulatedDL1CameraContainer(DL1CameraContainer):
+    """ Contains all fields of the DL1CameraContainer, but adds fields for simulated
+    DL1 image information."""
+    true_image = Field(
+        None,
+        "Numpy array of camera image in PE as simulated before noise has been added. "
+        "Shape: (n_pixel)",
     )
 
 
@@ -217,6 +233,14 @@ class DL0CameraContainer(Container):
             "p.e. samples"
             "(n_pixels, n_samples). Note this may be a masked array, "
             "if pixels or time slices are zero-suppressed"
+        ),
+    )
+
+    selected_gain_channel = Field(
+        None,
+        (
+            "Numpy array containing the gain channel chosen for each pixel. "
+            "Shape: (n_pixels)"
         ),
     )
 
