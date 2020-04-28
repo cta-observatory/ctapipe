@@ -61,7 +61,6 @@ class ToyEventSource(EventSource, TelescopeComponent):
         self._subarray = value
 
     @staticmethod
-    @classmethod
     def is_compatible(file_path):
         return False
 
