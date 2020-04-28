@@ -22,7 +22,7 @@ def test_stage_1():
     from ctapipe.tools.stage1 import Stage1ProcessorTool
 
     with tempfile.NamedTemporaryFile(suffix='.hdf5') as f:
-        run_tool(
+        assert run_tool(
             Stage1ProcessorTool(),
             argv=[
                 '--config=./examples/stage1_config.json',
