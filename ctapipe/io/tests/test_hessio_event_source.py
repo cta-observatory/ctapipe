@@ -50,7 +50,7 @@ def test_that_event_is_not_modified_after_loop():
         # Unfortunately this does not work:
         #      assert last_event == event
         # So for the moment we just compare event ids
-        assert event.r0.event_id == last_event.r0.event_id
+        assert event.index.event_id == last_event.index.event_id
 
 
 def test_subarray_property():
