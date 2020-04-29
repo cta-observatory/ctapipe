@@ -22,9 +22,9 @@ class Field:
         is constructed, as well as when  `Container.reset()` is called
     description: str
         Help text associated with the item
-    unit: `astropy.units.Quantity`
+    unit: str or astropy.units.core.UnitBase
         unit to convert to when writing output, or None for no conversion
-    ucd: str or astropy.unit
+    ucd: str
         universal content descriptor (see Virtual Observatory standards)
     dtype: str or np.dtype
         expected data type of the value, None to ignore in validation.
