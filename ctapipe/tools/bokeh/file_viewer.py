@@ -208,7 +208,7 @@ class BokehFileViewer(Tool):
         self.viewer.event = val
 
         self._event_index = val.count
-        self._event_id = val.r0.event_id
+        self._event_id = val.index.event_id
         self.update_event_index_widget()
         self.update_event_id_widget()
 

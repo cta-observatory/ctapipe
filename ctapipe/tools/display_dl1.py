@@ -118,7 +118,7 @@ class ImagePlotter(Component):
 
         self.fig.suptitle(
             "Event_index={}  Event_id={}  Telescope={}".format(
-                event.count, event.r0.event_id, telid
+                event.count, event.index.event_id, telid
             )
         )
 
