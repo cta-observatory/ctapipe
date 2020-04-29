@@ -611,7 +611,7 @@ class Stage1ProcessorTool(Tool):
             # we can write the configuration data.
             if event.count == 0:
                 tel_list_transform = create_tel_id_to_tel_index_transform(
-                    event.inst.subarray
+                    self.event_source.subarray
                 )
                 writer.add_column_transform(
                     table_name="dl1/event/subarray/trigger",
@@ -620,7 +620,7 @@ class Stage1ProcessorTool(Tool):
                 )
 
                 self._write_simulation_configuration(writer, event)
-                self._write_instrument_configuration(event.inst.subarray)
+                self._write_instrument_configuration(self.event_source.subarray)
                 is_initialized = True
 
             # write the subarray tables
@@ -648,7 +648,7 @@ class Stage1ProcessorTool(Tool):
         for tel_id, data in event.dl1.tel.items():
 
             data.prefix = ""  # don't want a prefix for this container
-            telescope = event.inst.subarray.tel[tel_id]
+            telescope = self.event_source.subarray.tel[tel_id]
             tel_type = str(telescope)
             tel_index.tel_id = np.int16(tel_id)
             tel_index.tel_type_id = tel_type_string_to_int(tel_type)
@@ -665,7 +665,7 @@ class Stage1ProcessorTool(Tool):
             if self.write_parameters:
 
                 image_mask, params = self._parameterize_image(
-                    event.inst.subarray, data, tel_id=tel_id
+                    self.event_source.subarray, data, tel_id=tel_id
                 )
 
                 self.log.debug("params: %s", params.as_dict(recursive=True))
