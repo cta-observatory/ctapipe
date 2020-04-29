@@ -30,7 +30,7 @@ class BokehEventViewerCamera(CameraDisplay):
             'r1': lambda e, t, c, time: e.r1.tel[t].waveform[:, time],
             'dl0': lambda e, t, c, time: e.dl0.tel[t].waveform[:, time],
             'dl1': lambda e, t, c, time: e.dl1.tel[t].image[:],
-            'pulse_time': lambda e, t, c, time: e.dl1.tel[t].peak_time[:],
+            'peak_time': lambda e, t, c, time: e.dl1.tel[t].peak_time[:],
         }
 
         self.w_view = None
