@@ -106,14 +106,10 @@ class HESSIOEventSource(EventSource):
                 obs_id = file.get_run_number()
                 tels_with_data = set(file.get_teldata_list())
                 data.count = counter
-                data.r0.obs_id = obs_id
-                data.r0.event_id = event_id
-                data.r0.tels_with_data = tels_with_data
-                data.r1.obs_id = obs_id
-                data.r1.event_id = event_id
+                data.index.obs_id = obs_id
+                data.index.event_id = event_id
+                data.index.tels_with_data = tels_with_data
                 data.r1.tels_with_data = tels_with_data
-                data.dl0.obs_id = obs_id
-                data.dl0.event_id = event_id
                 data.dl0.tels_with_data = tels_with_data
 
                 # handle telescope filtering by taking the intersection of
