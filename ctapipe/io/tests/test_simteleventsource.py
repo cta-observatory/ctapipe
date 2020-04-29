@@ -1,98 +1,15 @@
-import numpy as np
-import pytest
 import copy
-from ctapipe.utils import get_dataset_path
-from ctapipe.io.simteleventsource import SimTelEventSource, apply_simtel_r1_calibration
-from ctapipe.io.hessioeventsource import HESSIOEventSource
-from ctapipe.calib.camera.gainselection import ThresholdGainSelector
-from itertools import zip_longest
-from copy import deepcopy
-import astropy.units as u
+
+import numpy as np
 from astropy.utils.data import download_file
+
+from ctapipe.calib.camera.gainselection import ThresholdGainSelector
+from ctapipe.io.simteleventsource import SimTelEventSource, apply_simtel_r1_calibration
+from ctapipe.utils import get_dataset_path
 
 gamma_test_large_path = get_dataset_path("gamma_test_large.simtel.gz")
 gamma_test_path = get_dataset_path("gamma_test.simtel.gz")
 calib_events_path = get_dataset_path("calib_events.simtel.gz")
-
-
-def compare_sources(input_url):
-    pytest.importorskip("pyhessio")
-
-    with SimTelEventSource(input_url=input_url) as simtel_source, HESSIOEventSource(
-        input_url=input_url
-    ) as hessio_source:
-
-        assert simtel_source.subarray.tel.keys() == hessio_source.subarray.tel.keys()
-        for tel_id, tel_desc in simtel_source.subarray.tel.items():
-            h_camera = tel_desc.camera
-            s_camera = tel_desc.camera
-            assert h_camera.readout.sampling_rate == s_camera.readout.sampling_rate
-            assert np.array_equal(
-                h_camera.readout.reference_pulse_shape,
-                s_camera.readout.reference_pulse_shape,
-            )
-            assert (
-                h_camera.readout.reference_pulse_sample_width
-                == s_camera.readout.reference_pulse_sample_width
-            )
-
-        for s, h in zip_longest(simtel_source, hessio_source):
-
-            assert s is not None
-            assert h is not None
-
-            assert h.count == s.count
-            assert h.r0.obs_id == s.r0.obs_id
-            assert h.r0.event_id == s.r0.event_id
-            assert h.r0.tels_with_data == s.r0.tels_with_data
-
-            assert (h.trig.tels_with_trigger == s.trig.tels_with_trigger).all()
-            assert h.trig.gps_time == s.trig.gps_time
-
-            assert h.mc.energy == s.mc.energy
-            assert h.mc.alt == s.mc.alt
-            assert h.mc.az == s.mc.az
-            assert h.mc.core_x == s.mc.core_x
-            assert h.mc.core_y == s.mc.core_y
-
-            assert h.mc.h_first_int == s.mc.h_first_int
-            assert h.mc.x_max == s.mc.x_max
-            assert h.mc.shower_primary_id == s.mc.shower_primary_id
-            assert (
-                h.mcheader.run_array_direction == s.mcheader.run_array_direction
-            ).all()
-
-            tels_with_data = s.r0.tels_with_data
-            for tel_id in tels_with_data:
-                assert (h.mc.tel[tel_id].dc_to_pe == s.mc.tel[tel_id].dc_to_pe).all()
-                assert (h.mc.tel[tel_id].pedestal == s.mc.tel[tel_id].pedestal).all()
-                assert (
-                    h.r0.tel[tel_id].waveform.shape == s.r0.tel[tel_id].waveform.shape
-                )
-                assert (
-                    h.r1.tel[tel_id].waveform.shape == s.r1.tel[tel_id].waveform.shape
-                )
-                assert np.allclose(h.r0.tel[tel_id].waveform, s.r0.tel[tel_id].waveform)
-                assert np.allclose(h.r1.tel[tel_id].waveform, s.r1.tel[tel_id].waveform)
-
-                assert h.r0.tel[tel_id].num_trig_pix == s.r0.tel[tel_id].num_trig_pix
-                assert (
-                    h.r0.tel[tel_id].trig_pix_id == s.r0.tel[tel_id].trig_pix_id
-                ).all()
-
-                assert (
-                    h.mc.tel[tel_id].photo_electron_image
-                    == s.mc.tel[tel_id].photo_electron_image
-                ).all()
-                assert h.mc.tel[tel_id].meta == s.mc.tel[tel_id].meta
-                assert h.mc.tel[tel_id].azimuth_raw == s.mc.tel[tel_id].azimuth_raw
-                assert h.mc.tel[tel_id].altitude_raw == s.mc.tel[tel_id].altitude_raw
-                assert h.pointing.tel[tel_id].altitude == s.pointing.tel[tel_id].altitude
-                assert h.pointing.tel[tel_id].azimuth == s.pointing.tel[tel_id].azimuth
-
-
-def test_compare_event_hessio_and_simtel():
-    compare_sources(gamma_test_large_path)
 
 
 def test_simtel_event_source_on_gamma_test_one_event():
