@@ -20,7 +20,7 @@ def plot(subarray, event, telid, chan, extractor_name):
     # Extract required images
     dl0 = event.dl0.tel[telid].waveform
 
-    t_pe = event.mc.tel[telid].photo_electron_image
+    t_pe = event.mc.tel[telid].true_image
     dl1 = event.dl1.tel[telid].image
     max_time = np.unravel_index(np.argmax(dl0), dl0.shape)[1]
     max_charges = np.max(dl0, axis=1)

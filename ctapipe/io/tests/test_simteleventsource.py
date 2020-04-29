@@ -79,8 +79,8 @@ def compare_sources(input_url):
                 ).all()
 
                 assert (
-                    h.mc.tel[tel_id].photo_electron_image
-                    == s.mc.tel[tel_id].photo_electron_image
+                    h.mc.tel[tel_id].true_image
+                    == s.mc.tel[tel_id].true_image
                 ).all()
                 assert h.mc.tel[tel_id].meta == s.mc.tel[tel_id].meta
                 assert h.mc.tel[tel_id].azimuth_raw == s.mc.tel[tel_id].azimuth_raw
