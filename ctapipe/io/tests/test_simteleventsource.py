@@ -218,6 +218,11 @@ def test_pointing():
             assert np.isnan(e.pointing.array_ra)
             assert np.isnan(e.pointing.array_dec)
 
+            # normal run, alle telescopes point to the array direction
+            for pointing in e.pointing.tel.values():
+                assert u.isclose(e.pointing.array_azimuth, pointing.azimuth)
+                assert u.isclose(e.pointing.array_altitude, pointing.altitude)
+
 
 def test_allowed_telescopes():
     # test that the allowed_tels mask works:
