@@ -57,12 +57,12 @@ def test_flasherflatfieldcalculator():
     # First test: good event
     while ff_calculator.num_events_seen < n_events:
         if ff_calculator.calculate_relative_gain(data):
-            assert data.mon.tel[tel_id].flatfield
+            assert data.mon.tel[tel_id].FLATFIELD
 
-            print(data.mon.tel[tel_id].flatfield)
-            assert np.mean(data.mon.tel[tel_id].flatfield.charge_median) == ff_level
-            assert np.mean(data.mon.tel[tel_id].flatfield.relative_gain_median) == 1
-            assert np.mean(data.mon.tel[tel_id].flatfield.relative_gain_std) == 0
+            print(data.mon.tel[tel_id].FLATFIELD)
+            assert np.mean(data.mon.tel[tel_id].FLATFIELD.charge_median) == ff_level
+            assert np.mean(data.mon.tel[tel_id].FLATFIELD.relative_gain_median) == 1
+            assert np.mean(data.mon.tel[tel_id].FLATFIELD.relative_gain_std) == 0
 
     # Second test: introduce some failing pixels
     failing_pixels_id = np.array([10, 20, 30, 40])
@@ -73,8 +73,8 @@ def test_flasherflatfieldcalculator():
         if ff_calculator.calculate_relative_gain(data):
 
             # working pixel have good gain
-            assert (data.mon.tel[tel_id].flatfield.relative_gain_median[0, 0] == 1)
+            assert (data.mon.tel[tel_id].FLATFIELD.relative_gain_median[0, 0] == 1)
 
             # bad pixels do non influence the gain
-            assert np.mean(data.mon.tel[tel_id].flatfield.relative_gain_std) == 0
+            assert np.mean(data.mon.tel[tel_id].FLATFIELD.relative_gain_std) == 0
 

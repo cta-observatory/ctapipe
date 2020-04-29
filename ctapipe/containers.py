@@ -52,13 +52,28 @@ __all__ = [
 
 
 class EventType(enum.Enum):
-    """ note these will evolve once CTA has standardized them """
+    """ These numbers come from  the document *CTA R1/Event Data Model Specification*
+    version 1 revision C.  They may be updated in future revisions """
 
-    data = 0  # standard physics event
-    calibration = 1  # event from calibration system
-    dark = 2
-    pedestal = 3
-    lasercalibration=4
+    # calibrations are 0-15
+    FLATFIELD = 0
+    SINGLE_PE = 1
+    SKY_PEDESTAL = 2
+    DARK_PEDESTAL = 3
+    ELECTRONIC_PEDESTAL = 4
+    OTHER_CALIBRATION = 15
+
+    # For mono-telescope triggers (not used in MC)
+    MUON = 16
+    HARDWARE_STEREO = 17
+
+    # ACADA (DAQ) software trigger
+    DAQ = 24
+
+    # Standard Physics  stereo trigger
+    SUBARRAY = 32
+
+    UNKNOWN = 255
 
 
 class EventIndexContainer(Container):
@@ -68,7 +83,7 @@ class EventIndexContainer(Container):
 
     event_id = Field(0, "event identifier")
     obs_id = Field(0, "observation identifier")
-    event_type = Field(EventType.data, "Event type")
+    event_type = Field(EventType.SUBARRAY, "Event type")
 
 
 class TelEventIndexContainer(EventIndexContainer):

@@ -218,7 +218,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
 
         # initialize the np array at each cycle
         waveform = event.r1.tel[self.tel_id].waveform
-        container = event.mon.tel[self.tel_id].flatfield
+        container = event.mon.tel[self.tel_id].FLATFIELD
 
         # re-initialize counter
         if self.num_events_seen == self.sample_size:

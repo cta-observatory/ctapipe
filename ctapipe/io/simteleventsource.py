@@ -26,8 +26,17 @@ from ctapipe.instrument.guess import guess_telescope, UNKNOWN_TELESCOPE
 from ctapipe.io.eventsource import EventSource
 from io import BufferedReader
 
-
 __all__ = ["SimTelEventSource"]
+
+# Mapping of SimTelArray Calibration trigger types to EventType:
+# from simtelarray: type Dark (0), pedestal (1), in-lid LED (2) or laser/LED (3+) data.
+SIMTEL_TO_CTA_EVENT_TYPE = {
+    0: EventType.DARK_PEDESTAL,
+    1: EventType.SKY_PEDESTAL,
+    2: EventType.SINGLE_PE,
+    3: EventType.FLATFIELD,
+    -1: EventType.OTHER_CALIBRATION,
+}
 
 
 def build_camera(cam_settings, pixel_settings, telescope):
@@ -303,12 +312,21 @@ class SimTelEventSource(EventSource):
         data.meta["max_events"] = self.max_events
 
         for counter, array_event in enumerate(self.file_):
-            # next lines are just for debugging
-            self.array_event = array_event
-            data.index.event_type = EventType[array_event["type"]]
+            self.array_event = array_event  # for debugging
 
-            # calibration events do not have an event id
-            if data.index.event_type == EventType.calibration:
+            if array_event["type"] == "data":
+                data.index.event_type = EventType.SUBARRAY
+            elif array_event["type"] == "calibration":
+                # if using eventio >= 1.1.1, we can use the calibration_type
+                data.index.event_type = SIMTEL_TO_CTA_EVENT_TYPE.get(
+                    array_event.get("calibration_type", -1), EventType.OTHER_CALIBRATION
+                )
+
+            else:
+                data.index.event_type = EventType.UNKNOWN
+
+            if data.index.event_type != EventType.SUBARRAY:
+                # calibration events do not have an event id
                 event_id = -1
             else:
                 event_id = array_event["event_id"]
@@ -330,7 +348,7 @@ class SimTelEventSource(EventSource):
                 time_s * u.s, time_ns * u.ns, format="unix", scale="utc"
             )
 
-            if data.index.event_type == EventType.data:
+            if data.index.event_type == EventType.SUBARRAY:
                 self.fill_mc_information(data, array_event)
 
             # this should be done in a nicer way to not re-allocate the
