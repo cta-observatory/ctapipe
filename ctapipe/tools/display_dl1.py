@@ -104,17 +104,17 @@ class ImagePlotter(Component):
                 self.c_intensity.colorbar = self.cb_intensity
                 self.c_intensity.update(True)
             if not self.cb_peak_time:
-                self.c_pulse_time.add_colorbar(
-                    ax=self.ax_pulse_time, label="Pulse Time (ns)"
+                self.c_peak_time.add_colorbar(
+                    ax=self.ax_peak_time, label="Pulse Time (ns)"
                 )
-                self.cb_pulse_time = self.c_pulse_time.colorbar
+                self.cb_peak_time = self.c_peak_time.colorbar
             else:
-                self.c_pulse_time.colorbar = self.cb_pulse_time
-                self.c_pulse_time.update(True)
+                self.c_peak_time.colorbar = self.cb_peak_time
+                self.c_peak_time.update(True)
 
         self.c_intensity.image = image
-        if pulse_time is not None:
-            self.c_pulse_time.image = pulse_time
+        if peak_time is not None:
+            self.c_peak_time.image = peak_time
 
         self.fig.suptitle(
             "Event_index={}  Event_id={}  Telescope={}".format(
