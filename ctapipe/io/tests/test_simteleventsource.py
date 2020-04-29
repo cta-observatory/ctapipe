@@ -2,10 +2,12 @@ import copy
 
 import numpy as np
 from astropy.utils.data import download_file
+import astropy.units as u
 
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 from ctapipe.io.simteleventsource import SimTelEventSource, apply_simtel_r1_calibration
 from ctapipe.utils import get_dataset_path
+
 
 gamma_test_large_path = get_dataset_path("gamma_test_large.simtel.gz")
 gamma_test_path = get_dataset_path("gamma_test.simtel.gz")
