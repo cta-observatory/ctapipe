@@ -176,7 +176,7 @@ class HESSIOEventSource(EventSource):
 
                     # load the data per telescope/pixel
                     hessio_mc_npe = file.get_mc_number_photon_electron(tel_id)
-                    mc.photo_electron_image = hessio_mc_npe
+                    mc.true_image = hessio_mc_npe
                     mc.azimuth_raw = file.get_azimuth_raw(tel_id)
                     mc.altitude_raw = file.get_altitude_raw(tel_id)
                     azimuth_cor = file.get_azimuth_cor(tel_id)
