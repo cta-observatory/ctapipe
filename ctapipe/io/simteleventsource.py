@@ -311,6 +311,15 @@ class SimTelEventSource(EventSource):
         data.meta["input_url"] = self.input_url
         data.meta["max_events"] = self.max_events
 
+        if self.file_.header['tracking_mode'] == 0:
+            az, alt = self.file_.header['direction']
+            data.pointing.array_altitude = u.Quantity(alt, u.rad)
+            data.pointing.array_azimuth = u.Quantity(az, u.rad)
+        else:
+            ra, dec = self.file_.header['direction']
+            data.pointing.array_ra = u.Quantity(ra, u.rad)
+            data.pointing.array_dec = u.Quantity(dec, u.rad)
+
         for counter, array_event in enumerate(self.file_):
             self.array_event = array_event  # for debugging
 
@@ -358,7 +367,9 @@ class SimTelEventSource(EventSource):
             data.r1.tel.clear()
             data.dl0.tel.clear()
             data.dl1.tel.clear()
-            data.mc.tel.clear()  # clear the previous telescopes
+            data.mc.tel.clear()
+            data.pointing.tel.clear()
+
 
             telescope_events = array_event["telescope_events"]
             tracking_positions = array_event["tracking_positions"]
@@ -384,14 +395,15 @@ class SimTelEventSource(EventSource):
                 mc.altitude_raw = tracking_position["altitude_raw"]
                 mc.azimuth_cor = tracking_position.get("azimuth_cor", np.nan)
                 mc.altitude_cor = tracking_position.get("altitude_cor", np.nan)
+
                 if np.isnan(mc.azimuth_cor):
-                    data.pointing[tel_id].azimuth = u.Quantity(mc.azimuth_raw, u.rad)
+                    data.pointing.tel[tel_id].azimuth = u.Quantity(mc.azimuth_raw, u.rad)
                 else:
-                    data.pointing[tel_id].azimuth = u.Quantity(mc.azimuth_cor, u.rad)
+                    data.pointing.tel[tel_id].azimuth = u.Quantity(mc.azimuth_cor, u.rad)
                 if np.isnan(mc.altitude_cor):
-                    data.pointing[tel_id].altitude = u.Quantity(mc.altitude_raw, u.rad)
+                    data.pointing.tel[tel_id].altitude = u.Quantity(mc.altitude_raw, u.rad)
                 else:
-                    data.pointing[tel_id].altitude = u.Quantity(mc.altitude_cor, u.rad)
+                    data.pointing.tel[tel_id].altitude = u.Quantity(mc.altitude_cor, u.rad)
 
                 r0 = data.r0.tel[tel_id]
                 r1 = data.r1.tel[tel_id]

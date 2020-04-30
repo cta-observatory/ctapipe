@@ -600,6 +600,14 @@ class TelescopePointingContainer(Container):
     altitude = Field(nan * u.rad, "Altitude", unit=u.rad)
 
 
+class PointingContainer(Container):
+    tel = Field(Map(TelescopePointingContainer), "Telescope pointing positions")
+    array_azimuth = Field(nan * u.rad, "Array pointing azimuth", unit=u.rad)
+    array_altitude = Field(nan * u.rad, "Array pointing altitude", unit=u.rad)
+    array_ra = Field(nan * u.rad, "Array pointing right ascension", unit=u.rad)
+    array_dec = Field(nan * u.rad, "Array pointing declination", unit=u.rad)
+
+
 class EventCameraCalibrationContainer(Container):
     """
     Container for the calibration coefficients for the current event and camera
@@ -637,7 +645,7 @@ class DataContainer(Container):
     mcheader = Field(MCHeaderContainer(), "Monte-Carlo run header data")
     trig = Field(CentralTriggerContainer(), "central trigger information")
     count = Field(0, "number of events processed")
-    pointing = Field(Map(TelescopePointingContainer), "Telescope pointing positions")
+    pointing = Field(PointingContainer(), "Array and telescope pointing positions")
     calibration = Field(
         EventCalibrationContainer(),
         "Container for calibration coefficients for the current event",

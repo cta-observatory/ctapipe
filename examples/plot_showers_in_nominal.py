@@ -43,8 +43,8 @@ with event_source(input_url=input_url) as source:
             image = dl1.image
 
             telescope_pointing = SkyCoord(
-                alt=event.pointing[tel_id].altitude,
-                az=event.pointing[tel_id].azimuth,
+                alt=event.pointing.tel[tel_id].altitude,
+                az=event.pointing.tel[tel_id].azimuth,
                 frame=AltAz(),
             )
             camera_frame = CameraFrame(
