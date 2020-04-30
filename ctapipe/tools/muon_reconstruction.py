@@ -45,10 +45,9 @@ class MuonAnalysis(Tool):
         default_value=1.1,
     ).tag(config=True)
 
-    extractor_name = traits.enum_trait(
+    extractor_name = traits.create_class_enum_trait(
         ImageExtractor,
-        default='GlobalPeakWindowSum',
-        help_str='Name of the ImageExtractor class to be used',
+        default_value='GlobalPeakWindowSum',
     ).tag(config=True)
 
     classes = [

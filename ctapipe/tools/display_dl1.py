@@ -143,8 +143,8 @@ class DisplayDL1Calib(Tool):
         help="Telescope to view. Set to None to display all telescopes.",
     ).tag(config=True)
 
-    extractor_product = traits.enum_trait(
-        ImageExtractor, default="NeighborPeakWindowSum"
+    extractor_product = traits.create_enum_trait(
+        ImageExtractor, default_value="NeighborPeakWindowSum"
     )
 
     aliases = Dict(
