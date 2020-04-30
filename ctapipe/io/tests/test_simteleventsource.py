@@ -2,10 +2,12 @@ import copy
 
 import numpy as np
 from astropy.utils.data import download_file
+import astropy.units as u
 
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 from ctapipe.io.simteleventsource import SimTelEventSource, apply_simtel_r1_calibration
 from ctapipe.utils import get_dataset_path
+
 
 gamma_test_large_path = get_dataset_path("gamma_test_large.simtel.gz")
 gamma_test_path = get_dataset_path("gamma_test.simtel.gz")
@@ -125,6 +127,20 @@ def test_max_events():
         for _ in reader:
             count += 1
         assert count == max_events
+
+
+def test_pointing():
+    with SimTelEventSource(input_url=gamma_test_large_path, max_events=3) as reader:
+        for e in reader:
+            assert np.isclose(e.pointing.array_altitude.to_value(u.deg), 70)
+            assert np.isclose(e.pointing.array_azimuth.to_value(u.deg), 0)
+            assert np.isnan(e.pointing.array_ra)
+            assert np.isnan(e.pointing.array_dec)
+
+            # normal run, alle telescopes point to the array direction
+            for pointing in e.pointing.tel.values():
+                assert u.isclose(e.pointing.array_azimuth, pointing.azimuth)
+                assert u.isclose(e.pointing.array_altitude, pointing.altitude)
 
 
 def test_allowed_telescopes():
