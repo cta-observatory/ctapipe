@@ -113,9 +113,11 @@ def test_reconstruction():
 
             geom = source.subarray.tel[tel_id].camera.geometry
 
-            telescope_pointings[tel_id] = SkyCoord(alt=event.pointing[tel_id].altitude,
-                                                   az=event.pointing[tel_id].azimuth,
-                                                   frame=horizon_frame)
+            telescope_pointings[tel_id] = SkyCoord(
+                alt=event.pointing.tel[tel_id].altitude,
+                az=event.pointing.tel[tel_id].azimuth,
+                frame=horizon_frame,
+            )
             pmt_signal = event.r0.tel[tel_id].waveform[0].sum(axis=1)
 
             mask = tailcuts_clean(geom, pmt_signal,
@@ -183,8 +185,8 @@ def test_invalid_events():
         for tel_id in event.dl0.tels_with_data:
 
             geom = source.subarray.tel[tel_id].camera.geometry
-            tel_azimuth[tel_id] = event.pointing[tel_id].azimuth
-            tel_altitude[tel_id] = event.pointing[tel_id].altitude
+            tel_azimuth[tel_id] = event.pointing.tel[tel_id].azimuth
+            tel_altitude[tel_id] = event.pointing.tel[tel_id].altitude
 
             pmt_signal = event.r0.tel[tel_id].waveform[0].sum(axis=1)
 
