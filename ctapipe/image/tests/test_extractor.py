@@ -264,12 +264,12 @@ def test_neighbor_peak_window_sum_lwt(toymodel):
     assert_allclose(pulse_time, true_time, rtol=0.1)
 
 
-def test_two_pass_window_sum(camera_waveforms):
-    waveforms, subarray, telid, selected_gain_channel, true_charge = camera_waveforms
+def test_two_pass_window_sum(toymodel):
+    waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
     extractor = TwoPassWindowSum(subarray=subarray)
     charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
     assert_allclose(charge, true_charge, rtol=0.1)
-    assert_allclose(pulse_time, waveforms.shape[1] // 2, rtol=0.1)
+    assert_allclose(pulse_time, true_time, rtol=0.1)
 
 
 def test_waveform_extractor_factory(toymodel):

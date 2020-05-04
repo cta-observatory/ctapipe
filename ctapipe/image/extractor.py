@@ -22,7 +22,7 @@ from abc import abstractmethod
 from functools import lru_cache
 import numpy as np
 from traitlets import Int
-from ctapipe.core.traits import IntTelescopeParameter
+from ctapipe.core.traits import IntTelescopeParameter, FloatTelescopeParameter
 from ctapipe.core import TelescopeComponent
 from numba import njit, prange, guvectorize, float64, float32, int64
 
