@@ -77,22 +77,7 @@ def get_test_toymodel(subarray, minCharge=100, maxCharge=1000):
 
 @pytest.fixture(scope="module")
 def toymodel(subarray):
-    telid = list(subarray.tel.keys())[0]
-    n_pixels = subarray.tel[telid].camera.geometry.n_pixels
-    n_samples = 96
-    readout = subarray.tel[telid].camera.readout
-
-    random = np.random.RandomState(1)
-    charge = random.uniform(100, 1000, n_pixels)
-    mid = (n_samples // 2) / readout.sampling_rate.to_value(u.GHz)
-    time = random.uniform(mid - 1, mid + 1, n_pixels)
-
-    waveform_model = WaveformModel.from_camera_readout(readout)
-    waveform = waveform_model.get_waveform(charge, time, n_samples)
-
-    selected_gain_channel = np.zeros(charge.size, dtype=np.int)
-
-    return waveform, subarray, telid, selected_gain_channel, charge, time
+    return get_test_toymodel(subarray)
 
 
 def test_extract_around_peak(toymodel):
