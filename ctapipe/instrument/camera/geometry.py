@@ -130,6 +130,20 @@ class CameraGeometry:
             (self.pix_y == other.pix_y).all(),
         ])
 
+    def guess_radius(self):
+        '''
+        Guess the camera radius as mean distance of the border pixels from
+        the center pixel
+        '''
+        border = self.get_border_pixel_mask()
+        cx = self.pix_x.mean()
+        cy = self.pix_y.mean()
+
+        return np.sqrt(
+            (self.pix_x[border] - cx)**2
+            + (self.pix_y[border] - cy)**2
+        ).mean()
+
     def transform_to(self, frame):
         '''
         Transform the pixel coordinates stored in this geometry
@@ -202,7 +216,7 @@ class CameraGeometry:
         Note this will not work on cameras with varying pixel sizes.
         """
 
-        dist = np.min(np.sqrt((pix_x - pix_x[0])**2 + (pix_y - pix_y[0])**2))
+        dist = np.min(np.sqrt((pix_x[1:] - pix_x[0])**2 + (pix_y[1:] - pix_y[0])**2))
 
         if pix_type.startswith('hex'):
             rad = dist / np.sqrt(3)  # radius to vertex of hexagon

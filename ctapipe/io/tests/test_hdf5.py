@@ -411,6 +411,35 @@ def test_column_transforms(tmp_path):
             assert np.allclose(data.value, [6.0, 6.0, 6.0])
 
 
+def test_filters():
+    from tables import Filters, open_file
+
+    class TestContainer(Container):
+        value = Field(-1, 'test')
+
+    no_comp = Filters(complevel=0)
+    zstd = Filters(complevel=5, complib='blosc:zstd')
+
+    with tempfile.NamedTemporaryFile(suffix='.hdf5') as f:
+        with HDF5TableWriter(f.name, group_name='data', mode='w', filters=no_comp) as writer:
+            assert writer._h5file.filters.complevel == 0
+
+            c = TestContainer(value=5)
+            writer.write('default', c)
+
+            writer.filters = zstd
+            writer.write('zstd', c)
+
+            writer.filters = no_comp
+            writer.write('nocomp', c)
+
+        with open_file(f.name) as h5file:
+            assert h5file.root.data.default.filters.complevel == 0
+            assert h5file.root.data.zstd.filters.complevel == 5
+            assert h5file.root.data.zstd.filters.complib == 'blosc:zstd'
+            assert h5file.root.data.nocomp.filters.complevel == 0
+
+
 if __name__ == "__main__":
 
     import logging

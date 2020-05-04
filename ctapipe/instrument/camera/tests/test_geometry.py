@@ -296,3 +296,38 @@ def test_camera_coordinate_transform(camera_name):
     unit = geom.pix_x.unit
     assert np.allclose(geom.pix_x.to_value(unit), -trans_geom.pix_y.to_value(unit))
     assert np.allclose(geom.pix_y.to_value(unit), -trans_geom.pix_x.to_value(unit))
+
+
+def test_guess_area():
+    x = u.Quantity([0, 1, 2], u.cm)
+    y = u.Quantity([0, 0, 0], u.cm)
+    n_pixels = len(x)
+
+    geom = CameraGeometry(
+        'test',
+        pix_id=np.arange(n_pixels),
+        pix_area=None,
+        pix_x=x,
+        pix_y=y,
+        pix_type='rect',
+    )
+
+    assert np.all(geom.pix_area == 1 * u.cm**2)
+
+    geom = CameraGeometry(
+        'test',
+        pix_id=np.arange(n_pixels),
+        pix_area=None,
+        pix_x=x,
+        pix_y=y,
+        pix_type='hexagonal',
+    )
+    assert u.allclose(geom.pix_area, 2 * np.sqrt(3) * (0.5 * u.cm)**2)
+
+
+def test_guess_radius():
+    lst_cam = CameraGeometry.from_name('LSTCam')
+    assert u.isclose(lst_cam.guess_radius(), 1.1 * u.m, rtol=0.05)
+
+    lst_cam = CameraGeometry.from_name('CHEC')
+    assert u.isclose(lst_cam.guess_radius(), 0.16 * u.m, rtol=0.05)

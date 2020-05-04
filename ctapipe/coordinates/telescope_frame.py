@@ -33,7 +33,14 @@ class TelescopeFrame(BaseCoordinateFrame):
     A Frame using a UnitSphericalRepresentation.
     This is basically the same as a HorizonCoordinate, but the
     origin is at the telescope's pointing direction.
-    This is what astropy calls a SkyOffsetCoordinate
+
+    This is used to specify coordinates in the field of view of a
+    telescope that is independent of the optical properties of the telescope.
+
+    ``fov_lon`` is aligned with azimuth and ``fov_lat`` is aligned with altitude
+    of the horizontal coordinate frame as implemented in ``astropy.coordinates.AltAz``.
+
+    This is what astropy calls a SkyOffsetCoordinate.
 
     Attributes
     ----------
@@ -47,8 +54,8 @@ class TelescopeFrame(BaseCoordinateFrame):
     '''
     frame_specific_representation_info = {
         UnitSphericalRepresentation: [
-            RepresentationMapping('lon', 'delta_az'),
-            RepresentationMapping('lat', 'delta_alt'),
+            RepresentationMapping('lon', 'fov_lon'),
+            RepresentationMapping('lat', 'fov_lat'),
         ]
     }
     default_representation = UnitSphericalRepresentation

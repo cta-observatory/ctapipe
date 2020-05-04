@@ -71,7 +71,7 @@ class TableWriter(Component, metaclass=ABCMeta):
         )
 
     @abstractmethod
-    def write(self, table_name, containers):
+    def write(self, table_name, containers, **kwargs):
         """
         Write the contents of the given container or containers to a table.
         The first call to write  will create a schema and initialize the table
@@ -85,6 +85,8 @@ class TableWriter(Component, metaclass=ABCMeta):
             name of table to write to
         container: `ctapipe.core.Container`
             container to write
+        **kwargs:
+            may be passed to a lower level implementation to set options
         """
         pass
 

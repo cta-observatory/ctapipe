@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from traitlets import CaselessStrEnum, HasTraits, Int
+import pathlib
 
 from ctapipe.core import Component, TelescopeComponent
 from ctapipe.core.traits import (
@@ -15,6 +16,7 @@ from ctapipe.core.traits import (
     TelescopeParameter,
     FloatTelescopeParameter,
     IntTelescopeParameter,
+    AstroTime
 )
 from ctapipe.image import ImageExtractor
 
@@ -59,11 +61,33 @@ def test_path_exists():
         c2.thepath = f.name
 
 
+def test_path_invalid():
+    class C1(Component):
+        p = Path(exists=False)
+
+    c1 = C1()
+    with pytest.raises(TraitError):
+        c1.p = 5
+
+    with pytest.raises(TraitError):
+        c1.p = ''
+
+
+def test_bytes():
+    class C1(Component):
+        p = Path(exists=False)
+
+    c1 = C1()
+    c1.p = b'/home/foo'
+    assert c1.p == pathlib.Path('/home/foo')
+
+
 def test_path_none():
     class C1(Component):
         thepath = Path(exists=False)
 
     c1 = C1()
+    c1.thepath = 'foo'
     c1.thepath = None
 
 
@@ -103,6 +127,33 @@ def test_path_file_ok():
     with tempfile.NamedTemporaryFile() as f:
         with pytest.raises(TraitError):
             c.thepath = f.name
+
+
+def test_path_pathlib():
+    class C(Component):
+        thepath = Path()
+
+    c = C()
+    c.thepath = pathlib.Path()
+    assert c.thepath == pathlib.Path().absolute()
+
+
+def test_path_url():
+    class C(Component):
+        thepath = Path()
+
+    c = C()
+    # test relative
+    c.thepath = 'file://foo.hdf5'
+    assert c.thepath == (pathlib.Path() / 'foo.hdf5').absolute()
+
+    # test absolute
+    c.thepath = 'file:///foo.hdf5'
+    assert c.thepath == pathlib.Path('/foo.hdf5')
+
+    # test not other shemes raise trailet errors
+    with pytest.raises(TraitError):
+        c.thepath = 'https://example.org/test.hdf5'
 
 
 def test_enum_trait_default_is_right():
@@ -335,3 +386,36 @@ def test_telescope_parameter_to_config(mock_subarray):
     assert config["SomeComponent"]["tel_param1"] == [
         ("type", "*", 6.0),
     ]
+
+
+def test_datetimes():
+    from astropy import time as t
+
+    class SomeComponentWithTimeTrait(Component):
+        time = AstroTime()
+
+    component = SomeComponentWithTimeTrait()
+    component.time = "2019-10-15 12:00:00.234"
+    assert str(component.time) == "2019-10-15 12:00:00.234"
+    component.time = "2019-10-15T12:15:12"
+    assert str(component.time) == "2019-10-15 12:15:12.000"
+    component.time = t.Time.now()
+    assert isinstance(component.time, t.Time)
+
+    with pytest.raises(TraitError):
+        component.time = "garbage"
+
+
+def test_time_none():
+    class AllowNone(Component):
+        time = AstroTime(default_value=None, allow_none=True)
+
+    c = AllowNone()
+    c.time = None
+
+    class NoNone(Component):
+        time = AstroTime(default_value='2012-01-01T20:00', allow_none=False)
+
+    c = NoNone()
+    with pytest.raises(TraitError):
+        c.time = None

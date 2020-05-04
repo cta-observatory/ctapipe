@@ -9,7 +9,7 @@ from astropy.table import Table
 
 from ctapipe.io import event_source
 from ctapipe.core import Provenance, ToolConfigurationError
-from ctapipe.core.traits import (Unicode, Dict, Bool)
+from ctapipe.core.traits import Unicode, Dict, Bool, Path
 from ..core import Tool
 
 MAX_TELS = 1000
@@ -23,10 +23,14 @@ class DumpTriggersTool(Tool):
     # configuration parameters:
     # =============================================
 
-    infile = Unicode(help='input simtelarray file').tag(config=True)
+    infile = Path(
+        exists=True, directory_ok=False, help='input simtelarray file'
+    ).tag(config=True)
 
-    outfile = Unicode('triggers.fits',
-                      help='output filename (*.fits, *.h5)').tag(config=True)
+    outfile = Path(
+        default_value='triggers.fits', directory_ok=False,
+        help='output filename (*.fits, *.h5)',
+    ).tag(config=True)
 
     overwrite = Bool(False,
                      help="overwrite existing output file"
@@ -114,11 +118,12 @@ class DumpTriggersTool(Tool):
         """
         # write out the final table
         try:
-            if self.outfile.endswith('fits') or self.outfile.endswith('fits.gz'):
+            if '.fits' in self.outfile.suffixes:
                 self.events.write(self.outfile, overwrite=self.overwrite)
-            elif self.outfile.endswith('h5'):
-                self.events.write(self.outfile, path='/events',
-                                  overwrite=self.overwrite)
+            elif self.outfile.suffix in ('.hdf5', '.h5', '.hdf'):
+                self.events.write(
+                    self.outfile, path='/events', overwrite=self.overwrite
+                )
             else:
                 self.events.write(self.outfile)
 

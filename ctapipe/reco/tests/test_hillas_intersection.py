@@ -13,7 +13,6 @@ from ctapipe.utils import get_dataset_path
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 
-import pytest
 
 def test_intersect():
     """
@@ -90,8 +89,8 @@ def test_intersection_xmax_reco():
     }
 
     x_max = hill_inter.reconstruct_xmax(
-        source_x=nom_pos_reco.delta_az,
-        source_y=nom_pos_reco.delta_alt,
+        source_x=nom_pos_reco.fov_lon,
+        source_y=nom_pos_reco.fov_lat,
         core_x=0 * u.m,
         core_y=0 * u.m,
         hillas_parameters=hillas_dict,
@@ -190,18 +189,18 @@ def test_intersection_nominal_reconstruction():
     cog_coords_nom_3 = cog_coords_camera_3.transform_to(nominal_frame)
 
     #  x-axis is along the altitude and y-axis is along the azimuth
-    hillas_1 = HillasParametersContainer(x=cog_coords_nom_1.delta_alt,
-                                         y=cog_coords_nom_1.delta_az,
+    hillas_1 = HillasParametersContainer(x=cog_coords_nom_1.fov_lat,
+                                         y=cog_coords_nom_1.fov_lon,
                                          intensity=100,
                                          psi=0 * u.deg)
 
-    hillas_2 = HillasParametersContainer(x=cog_coords_nom_2.delta_alt,
-                                         y=cog_coords_nom_2.delta_az,
+    hillas_2 = HillasParametersContainer(x=cog_coords_nom_2.fov_lat,
+                                         y=cog_coords_nom_2.fov_lon,
                                          intensity=100,
                                          psi=45 * u.deg)
 
-    hillas_3 = HillasParametersContainer(x=cog_coords_nom_3.delta_alt,
-                                         y=cog_coords_nom_3.delta_az,
+    hillas_3 = HillasParametersContainer(x=cog_coords_nom_3.fov_lat,
+                                         y=cog_coords_nom_3.fov_lon,
                                          intensity=100,
                                          psi=90 * u.deg)
 
@@ -210,8 +209,8 @@ def test_intersection_nominal_reconstruction():
     reco_nominal = hill_inter.reconstruct_nominal(hillas_parameters=hillas_dict)
 
     nominal_pos = SkyCoord(
-        delta_az=u.Quantity(reco_nominal[0], u.rad),
-        delta_alt=u.Quantity(reco_nominal[1], u.rad),
+        fov_lon=u.Quantity(reco_nominal[0], u.rad),
+        fov_lat=u.Quantity(reco_nominal[1], u.rad),
         frame=nominal_frame
     )
 
@@ -251,11 +250,13 @@ def test_reconstruction():
 
         for tel_id in event.dl0.tels_with_data:
 
-            geom = event.inst.subarray.tel[tel_id].camera.geometry
+            geom = source.subarray.tel[tel_id].camera.geometry
 
-            telescope_pointings[tel_id] = SkyCoord(alt=event.pointing[tel_id].altitude,
-                                                   az=event.pointing[tel_id].azimuth,
-                                                   frame=horizon_frame)
+            telescope_pointings[tel_id] = SkyCoord(
+                alt=event.pointing.tel[tel_id].altitude,
+                az=event.pointing.tel[tel_id].azimuth,
+                frame=horizon_frame
+            )
             pmt_signal = event.r0.tel[tel_id].waveform[0].sum(axis=1)
 
             mask = tailcuts_clean(geom, pmt_signal,
@@ -275,7 +276,7 @@ def test_reconstruction():
             reconstructed_events += 1
 
         # divergent mode put to on even though the file has parallel pointing.
-        fit_result = fit.predict(hillas_dict, event.inst, array_pointing, telescope_pointings)
+        fit_result = fit.predict(hillas_dict, source.subarray, array_pointing, telescope_pointings)
 
         print(fit_result)
         print(event.mc.core_x, event.mc.core_y)

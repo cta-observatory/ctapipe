@@ -11,7 +11,7 @@ import numpy as np
 from tqdm import tqdm
 
 from ctapipe.core import Tool
-from ctapipe.core.traits import Unicode, List, Dict, Bool
+from ctapipe.core.traits import Path, Unicode, List, Dict, Bool
 from ctapipe.io import EventSource, HDF5TableWriter
 
 from ctapipe.calib import CameraCalibrator
@@ -23,8 +23,12 @@ class SimpleEventWriter(Tool):
     name = 'ctapipe-simple-event-writer'
     description = Unicode(__doc__)
 
-    infile = Unicode(help='input file to read', default='').tag(config=True)
-    outfile = Unicode(help='output file name', default_value='output.h5').tag(config=True)
+    infile = Path(
+        help='input file to read', directory_ok=False, exists=True,
+    ).tag(config=True)
+    outfile = Path(
+        help='output file name', directory_ok=False, default_value='output.h5'
+    ).tag(config=True)
     progress = Bool(help='display progress bar', default_value=True).tag(config=True)
 
     aliases = Dict({
@@ -40,7 +44,6 @@ class SimpleEventWriter(Tool):
 
         self.event_source = self.add_component(
             EventSource.from_config(
-                config=self.config,
                 parent=self
             )
         )
@@ -87,7 +90,7 @@ class SimpleEventWriter(Tool):
             for tel_id in event.dl0.tels_with_data:
                 self.image_cutflow.count('no_sel')
 
-                geom = event.inst.subarray.tel[tel_id].camera.geometry
+                geom = self.event_source.subarray.tel[tel_id].camera.geometry
                 dl1_tel = event.dl1.tel[tel_id]
 
                 # Image cleaning

@@ -2,13 +2,12 @@
 Handles reading of different event/waveform containing files
 """
 from abc import abstractmethod
-from pathlib import Path
+from traitlets.config.loader import LazyConfigValue
 
 from ctapipe.core import Component, non_abstract_children, ToolConfigurationError
 from ctapipe.core import Provenance
 from ctapipe.core.plugins import detect_and_import_io_plugins
-from ctapipe.core.traits import Unicode, Int, Set, TraitError
-from traitlets.config.loader import LazyConfigValue
+from ctapipe.core.traits import Path, Int, Set, TraitError
 
 __all__ = ["EventSource", "event_source"]
 
@@ -106,9 +105,12 @@ class EventSource(Component):
         * Observation ID
     """
 
-    input_url = Unicode("", help="Path to the input file containing events.").tag(
-        config=True
-    )
+    input_url = Path(
+        directory_ok=False,
+        exists=True,
+        help="Path to the input file containing events."
+    ).tag(config=True)
+
     max_events = Int(
         None,
         allow_none=True,
@@ -144,16 +146,12 @@ class EventSource(Component):
         super().__init__(config=config, parent=parent, **kwargs)
 
         self.metadata = dict(is_simulation=False)
-        input_url: Path = Path(self.input_url).expanduser()
-
-        if not input_url.exists:
-            raise FileNotFoundError(f"file path does not exist: '{input_url}'")
-        self.log.info(f"INPUT PATH = {input_url}")
+        self.log.info(f"INPUT PATH = {self.input_url}")
 
         if self.max_events:
             self.log.info(f"Max events being read = {self.max_events}")
 
-        Provenance().add_input_file(input_url, role="DL0/Event")
+        Provenance().add_input_file(str(self.input_url), role="DL0/Event")
 
     @staticmethod
     @abstractmethod
@@ -290,6 +288,12 @@ class EventSource(Component):
         instance
             Instance of a compatible EventSource subclass
         """
+        if config is None and parent is None:
+            raise ValueError('One of config or parent must be provided')
+
+        if config is not None and parent is not None:
+            raise ValueError('Only one of config or parent must be provided')
+
         if config is None:
             config = parent.config
 

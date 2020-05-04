@@ -8,11 +8,9 @@ from astropy.time import Time
 from numpy import nan
 
 from .core import Container, Field, DeprecatedField, Map
-from .instrument import SubarrayDescription
 
 
 __all__ = [
-    "InstrumentContainer",
     "R0Container",
     "R0CameraContainer",
     "R1Container",
@@ -23,8 +21,6 @@ __all__ = [
     "DL1CameraContainer",
     "EventCameraCalibrationContainer",
     "EventCalibrationContainer",
-    "SST1MContainer",
-    "SST1MCameraContainer",
     "MCEventContainer",
     "MCHeaderContainer",
     "MCCameraEventContainer",
@@ -35,7 +31,6 @@ __all__ = [
     "ReconstructedEnergyContainer",
     "ParticleClassificationContainer",
     "DataContainer",
-    "SST1MDataContainer",
     "HillasParametersContainer",
     "LeakageContainer",
     "ConcentrationContainer",
@@ -74,38 +69,6 @@ class TelEventIndexContainer(EventIndexContainer):
 
     tel_id = Field(0, "telescope identifier")
     tel_type_id = Field(0, "telescope type id number (integer)")
-
-
-class SST1MCameraContainer(Container):
-    pixel_flags = Field(None, "numpy array containing pixel flags")
-    digicam_baseline = Field(None, "Baseline computed by DigiCam")
-    local_camera_clock = Field(float, "camera timestamp")
-    gps_time = Field(float, "gps timestamp")
-    camera_event_type = Field(int, "camera event type")
-    array_event_type = Field(int, "array event type")
-    trigger_input_traces = Field(None, "trigger patch trace (n_patches)")
-    trigger_output_patch7 = Field(None, "trigger 7 patch cluster trace (n_clusters)")
-    trigger_output_patch19 = Field(None, "trigger 19 patch cluster trace (n_clusters)")
-
-
-class SST1MContainer(Container):
-    tels_with_data = Field([], "list of telescopes with data")
-    tel = Field(Map(SST1MCameraContainer), "map of tel_id to SST1MCameraContainer")
-
-
-class InstrumentContainer(Container):
-    """Storage of header info that does not change with event. This is a
-    temporary hack until the Instrument module and database is fully
-    implemented.  Eventually static information like this will not be
-    part of the data stream, but be loaded and accessed from
-    functions.
-
-    """
-
-    subarray = Field(
-        SubarrayDescription("MonteCarloArray"),
-        "SubarrayDescription from the instrument module",
-    )
 
 
 class DL1CameraContainer(Container):
@@ -486,6 +449,14 @@ class TelescopePointingContainer(Container):
     altitude = Field(nan * u.rad, "Altitude", unit=u.rad)
 
 
+class PointingContainer(Container):
+    tel = Field(Map(TelescopePointingContainer), "Telescope pointing positions")
+    array_azimuth = Field(nan * u.rad, "Array pointing azimuth", unit=u.rad)
+    array_altitude = Field(nan * u.rad, "Array pointing altitude", unit=u.rad)
+    array_ra = Field(nan * u.rad, "Array pointing right ascension", unit=u.rad)
+    array_dec = Field(nan * u.rad, "Array pointing declination", unit=u.rad)
+
+
 class EventCameraCalibrationContainer(Container):
     """
     Container for the calibration coefficients for the current event and camera
@@ -523,61 +494,36 @@ class DataContainer(Container):
     mcheader = Field(MCHeaderContainer(), "Monte-Carlo run header data")
     trig = Field(CentralTriggerContainer(), "central trigger information")
     count = Field(0, "number of events processed")
-    inst = DeprecatedField(
-        InstrumentContainer(),
-        "instrumental information ",
-        reason="will be separated from event structure in future version",
-    )
-    pointing = Field(Map(TelescopePointingContainer), "Telescope pointing positions")
+    pointing = Field(PointingContainer(), "Array and telescope pointing positions")
     calibration = Field(
         EventCalibrationContainer(),
         "Container for calibration coefficients for the current event"
     )
 
 
-class SST1MDataContainer(DataContainer):
-    sst1m = Field(SST1MContainer(), "optional SST1M Specific Information")
-
-
 class MuonRingParameter(Container):
-    ring_center_x = Field(
+    center_x = Field(
         nan * u.deg, "center (x) of the fitted muon ring", unit=u.deg
     )
-    ring_center_y = Field(nan * u.deg, "center (y) of the fitted muon ring", unit=u.deg)
-    ring_radius = Field(nan * u.deg, "radius of the fitted muon ring", unit=u.deg)
-    ring_center_phi = Field(
+    center_y = Field(nan * u.deg, "center (y) of the fitted muon ring", unit=u.deg)
+    radius = Field(nan * u.deg, "radius of the fitted muon ring", unit=u.deg)
+    center_phi = Field(
         nan * u.deg, "Angle of ring center within camera plane", unit=u.deg
     )
-    ring_center_distance = Field(
+    center_distance = Field(
         nan * u.deg, "Distance of ring center from camera center", unit=u.deg
     )
-    ring_chi2_fit = Field(nan, "chisquare of the muon ring fit", unit=u.deg)
-    ring_cov_matrix = Field(
-        np.full((3, 3), nan), "covariance matrix of the muon ring fit"
-    )
-    ring_containment = Field(nan, "containment of the ring inside the camera")
+    containment = Field(nan, "containment of the ring inside the camera")
 
 
 class MuonIntensityParameter(Container):
-    ring_completeness = Field(nan, "fraction of ring present")
-    ring_pix_completeness = Field(nan, "fraction of pixels present in the ring")
-    ring_num_pixel = Field(-1, "number of pixels in the ring image")
-    ring_size = Field(nan, "size of the ring in pe")
-    off_ring_size = Field(nan, "image size outside of ring in pe")
     ring_width = Field(nan, "width of the muon ring in degrees")
-    ring_time_width = Field(nan, "duration of the ring image sequence")
-    impact_parameter = Field(
+    impact = Field(
         nan, "distance of muon impact position from center of mirror"
     )
-    impact_parameter_chi2 = Field(nan, "impact parameter chi squared")
-    intensity_cov_matrix = Field(nan, "covariance matrix of intensity")
-    impact_parameter_pos_x = Field(nan, "impact parameter x position")
-    impact_parameter_pos_y = Field(nan, "impact parameter y position")
-    cog_x = Field(nan, "Center of Gravity x")
-    cog_y = Field(nan, "Center of Gravity y")
-    prediction = Field(None, "image prediction")
-    mask = Field(None, "image pixel mask")
-    optical_efficiency_muon = Field(nan, "optical efficiency muon")
+    impact_x = Field(nan, "impact parameter x position")
+    impact_y = Field(nan, "impact parameter y position")
+    optical_efficiency = Field(nan, "optical efficiency muon")
 
 
 class HillasParametersContainer(Container):

@@ -1,84 +1,23 @@
-import numpy as np
-import pytest
 import copy
-from ctapipe.utils import get_dataset_path
-from ctapipe.io.simteleventsource import SimTelEventSource, apply_simtel_r1_calibration
-from ctapipe.io.hessioeventsource import HESSIOEventSource
+
+import numpy as np
+from astropy.utils.data import download_file
+import astropy.units as u
+
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
-from itertools import zip_longest
-from copy import deepcopy
+from ctapipe.io.simteleventsource import SimTelEventSource, apply_simtel_r1_calibration
+from ctapipe.utils import get_dataset_path
+
 
 gamma_test_large_path = get_dataset_path("gamma_test_large.simtel.gz")
 gamma_test_path = get_dataset_path("gamma_test.simtel.gz")
-calib_events_path = get_dataset_path('calib_events.simtel.gz')
-
-
-def compare_sources(input_url):
-    pytest.importorskip('pyhessio')
-
-    with SimTelEventSource(input_url=input_url) as simtel_source, \
-            HESSIOEventSource(input_url=input_url) as hessio_source:
-
-        for s, h in zip_longest(simtel_source, hessio_source):
-
-            assert s is not None
-            assert h is not None
-
-            assert h.count == s.count
-            assert h.r0.obs_id == s.r0.obs_id
-            assert h.r0.event_id == s.r0.event_id
-            assert h.r0.tels_with_data == s.r0.tels_with_data
-
-            assert (h.trig.tels_with_trigger == s.trig.tels_with_trigger).all()
-            assert h.trig.gps_time == s.trig.gps_time
-
-            assert h.mc.energy == s.mc.energy
-            assert h.mc.alt == s.mc.alt
-            assert h.mc.az == s.mc.az
-            assert h.mc.core_x == s.mc.core_x
-            assert h.mc.core_y == s.mc.core_y
-
-            assert h.mc.h_first_int == s.mc.h_first_int
-            assert h.mc.x_max == s.mc.x_max
-            assert h.mc.shower_primary_id == s.mc.shower_primary_id
-            assert (h.mcheader.run_array_direction == s.mcheader.run_array_direction).all()
-
-            tels_with_data = s.r0.tels_with_data
-            for tel_id in tels_with_data:
-                assert (h.mc.tel[tel_id].dc_to_pe == s.mc.tel[tel_id].dc_to_pe).all()
-                assert (h.mc.tel[tel_id].pedestal == s.mc.tel[tel_id].pedestal).all()
-                assert h.r0.tel[tel_id].waveform.shape == s.r0.tel[tel_id].waveform.shape
-                assert h.r1.tel[tel_id].waveform.shape == s.r1.tel[tel_id].waveform.shape
-                assert np.allclose(h.r0.tel[tel_id].waveform, s.r0.tel[tel_id].waveform)
-                assert np.allclose(h.r1.tel[tel_id].waveform, s.r1.tel[tel_id].waveform)
-
-                assert h.r0.tel[tel_id].num_trig_pix == s.r0.tel[tel_id].num_trig_pix
-                assert (h.r0.tel[tel_id].trig_pix_id == s.r0.tel[tel_id].trig_pix_id).all()
-
-                assert (h.mc.tel[tel_id].photo_electron_image == s.mc.tel[tel_id].photo_electron_image).all()
-                assert h.mc.tel[tel_id].meta == s.mc.tel[tel_id].meta
-                assert h.mc.tel[tel_id].azimuth_raw == s.mc.tel[tel_id].azimuth_raw
-                assert h.mc.tel[tel_id].altitude_raw == s.mc.tel[tel_id].altitude_raw
-                assert h.pointing[tel_id].altitude == s.pointing[tel_id].altitude
-                assert h.pointing[tel_id].azimuth == s.pointing[tel_id].azimuth
-
-                h_camera = h.inst.subarray.tel[tel_id].camera
-                s_camera = s.inst.subarray.tel[tel_id].camera
-                assert h_camera.readout.sampling_rate == s_camera.readout.sampling_rate
-                assert np.array_equal(
-                    h_camera.readout.reference_pulse_shape,
-                    s_camera.readout.reference_pulse_shape
-                )
-                assert (h_camera.readout.reference_pulse_sample_width ==
-                        s_camera.readout.reference_pulse_sample_width)
-
-
-def test_compare_event_hessio_and_simtel():
-    compare_sources(gamma_test_large_path)
+calib_events_path = get_dataset_path("calib_events.simtel.gz")
 
 
 def test_simtel_event_source_on_gamma_test_one_event():
-    with SimTelEventSource(input_url=gamma_test_large_path, back_seekable=True) as reader:
+    with SimTelEventSource(
+        input_url=gamma_test_large_path, back_seekable=True
+    ) as reader:
         assert reader.is_compatible(gamma_test_large_path)
         assert not reader.is_stream
 
@@ -93,7 +32,9 @@ def test_simtel_event_source_on_gamma_test_one_event():
 
     # test that max_events works:
     max_events = 5
-    with SimTelEventSource(input_url=gamma_test_large_path, max_events=max_events) as reader:
+    with SimTelEventSource(
+        input_url=gamma_test_large_path, max_events=max_events
+    ) as reader:
         count = 0
         for _ in reader:
             count += 1
@@ -101,8 +42,7 @@ def test_simtel_event_source_on_gamma_test_one_event():
 
     # test that the allowed_tels mask works:
     with SimTelEventSource(
-        input_url=gamma_test_large_path,
-        allowed_tels={3, 4}
+        input_url=gamma_test_large_path, allowed_tels={3, 4}
     ) as reader:
         for event in reader:
             assert event.r0.tels_with_data.issubset(reader.allowed_tels)
@@ -140,18 +80,17 @@ def test_additional_meta_data_from_mc_header():
 
     # value read by hand from input card
     name_expectation = {
-        'energy_range_min': u.Quantity(3.0e-03, u.TeV),
-        'energy_range_max': u.Quantity(3.3e+02, u.TeV),
-        'prod_site_B_total': u.Quantity(23.11772346496582, u.uT),
-        'prod_site_B_declination': Angle(0.0 * u.rad),
-        'prod_site_B_inclination': Angle(-0.39641156792640686 * u.rad),
-        'prod_site_alt': 2150.0 * u.m,
-        'max_scatter_range': 3000.0 * u.m,
-        'min_az': 0.0 * u.rad,
-        'min_alt': 1.2217305 * u.rad,
-        'max_viewcone_radius': 10.0 * u.deg,
-        'corsika_wlen_min': 240 * u.nm,
-
+        "energy_range_min": u.Quantity(3.0e-03, u.TeV),
+        "energy_range_max": u.Quantity(3.3e02, u.TeV),
+        "prod_site_B_total": u.Quantity(23.11772346496582, u.uT),
+        "prod_site_B_declination": Angle(0.0 * u.rad),
+        "prod_site_B_inclination": Angle(-0.39641156792640686 * u.rad),
+        "prod_site_alt": 2150.0 * u.m,
+        "max_scatter_range": 3000.0 * u.m,
+        "min_az": 0.0 * u.rad,
+        "min_alt": 1.2217305 * u.rad,
+        "max_viewcone_radius": 10.0 * u.deg,
+        "corsika_wlen_min": 240 * u.nm,
     }
 
     for name, expectation in name_expectation.items():
@@ -159,12 +98,11 @@ def test_additional_meta_data_from_mc_header():
 
         assert value.unit == expectation.unit
         assert np.isclose(
-            value.to_value(expectation.unit),
-            expectation.to_value(expectation.unit)
+            value.to_value(expectation.unit), expectation.to_value(expectation.unit)
         )
 
 
-def test_hessio_file_reader():
+def test_gamma_file():
     dataset = gamma_test_path
 
     with SimTelEventSource(input_url=dataset) as reader:
@@ -175,58 +113,82 @@ def test_hessio_file_reader():
             if event.count == 0:
                 assert event.r0.tels_with_data == {38, 47}
             elif event.count == 1:
-                assert event.r0.tels_with_data == {11, 21, 24, 26, 61, 63, 118,
-                                                   119}
+                assert event.r0.tels_with_data == {11, 21, 24, 26, 61, 63, 118, 119}
             else:
                 break
 
     # test that max_events works:
+
+
+def test_max_events():
     max_events = 5
-    with SimTelEventSource(input_url=dataset, max_events=max_events) as reader:
+    with SimTelEventSource(input_url=gamma_test_path, max_events=max_events) as reader:
         count = 0
         for _ in reader:
             count += 1
         assert count == max_events
 
+
+def test_pointing():
+    with SimTelEventSource(input_url=gamma_test_large_path, max_events=3) as reader:
+        for e in reader:
+            assert np.isclose(e.pointing.array_altitude.to_value(u.deg), 70)
+            assert np.isclose(e.pointing.array_azimuth.to_value(u.deg), 0)
+            assert np.isnan(e.pointing.array_ra)
+            assert np.isnan(e.pointing.array_dec)
+
+            # normal run, alle telescopes point to the array direction
+            for pointing in e.pointing.tel.values():
+                assert u.isclose(e.pointing.array_azimuth, pointing.azimuth)
+                assert u.isclose(e.pointing.array_altitude, pointing.altitude)
+
+
+def test_allowed_telescopes():
     # test that the allowed_tels mask works:
-    with SimTelEventSource(input_url=dataset, allowed_tels={3, 4}) as reader:
+    allowed_tels = {3, 4}
+    with SimTelEventSource(
+        input_url=gamma_test_large_path, allowed_tels=allowed_tels
+    ) as reader:
+
         for event in reader:
-            assert event.r0.tels_with_data.issubset(reader.allowed_tels)
+            assert event.r0.tels_with_data.issubset(allowed_tels)
+            assert event.r1.tels_with_data.issubset(allowed_tels)
+            assert event.dl0.tels_with_data.issubset(allowed_tels)
+
+    # test that updating the allowed_tels mask works
+    new_allowed_tels = {1, 2}
+    with SimTelEventSource(
+        input_url=gamma_test_large_path, allowed_tels=allowed_tels
+    ) as reader:
+
+        # change allowed_tels after __init__
+        reader.allowed_tels = new_allowed_tels
+        for event in reader:
+            assert event.r0.tels_with_data.issubset(new_allowed_tels)
+            assert event.r1.tels_with_data.issubset(new_allowed_tels)
+            assert event.dl0.tels_with_data.issubset(new_allowed_tels)
 
 
 def test_calibration_events():
     with SimTelEventSource(
-            input_url=calib_events_path,
-            skip_calibration_events=False,
+        input_url=calib_events_path, skip_calibration_events=False,
     ) as reader:
         for e in reader:
             pass
 
 
 def test_camera_caching():
-    '''Test if same telescope types share a single instance of CameraGeometry'''
+    """Test if same telescope types share a single instance of CameraGeometry"""
     source = SimTelEventSource(input_url=gamma_test_large_path)
-    event = next(iter(source))
-    subarray = event.inst.subarray
+    subarray = source.subarray
     assert subarray.tel[1].camera is subarray.tel[2].camera
 
 
 def test_instrument():
-    '''Test if same telescope types share a single instance of CameraGeometry'''
+    """Test if same telescope types share a single instance of CameraGeometry"""
     source = SimTelEventSource(input_url=gamma_test_large_path)
-    event = next(iter(source))
-    subarray = event.inst.subarray
+    subarray = source.subarray
     assert subarray.tel[1].optics.num_mirrors == 1
-
-
-def test_subarray_property():
-    source = SimTelEventSource(input_url=gamma_test_large_path)
-    subarray = deepcopy(source.subarray)
-    event = next(iter(source))
-    subarray_event = event.inst.subarray
-    assert subarray.tel.keys() == subarray_event.tel.keys()
-    assert (subarray.tel[1].camera.geometry.pix_x ==
-            subarray_event.tel[1].camera.geometry.pix_x).all()
 
 
 def test_apply_simtel_r1_calibration_1_channel():
@@ -282,3 +244,30 @@ def test_apply_simtel_r1_calibration_2_channel():
     ped = pedestal / n_samples
     assert r1_waveforms[0, 0] == (r0_waveforms[1, 0, 0] - ped[1, 0]) * dc_to_pe[1, 0]
     assert r1_waveforms[1, 0] == (r0_waveforms[0, 1, 0] - ped[0, 1]) * dc_to_pe[0, 1]
+
+
+def test_effective_focal_length():
+    test_file_url = (
+        "https://github.com/cta-observatory/pyeventio/raw/master/tests"
+        "/resources/prod4_pixelsettings_v3.gz"
+    )
+    test_file = download_file(test_file_url)
+
+    focal_length_nominal = 0
+    focal_length_effective = 0
+
+    with SimTelEventSource(
+        input_url=test_file, focal_length_choice="nominal"
+    ) as source:
+        subarray = source.subarray
+        focal_length_nominal = subarray.tel[1].optics.equivalent_focal_length
+
+    with SimTelEventSource(
+        input_url=test_file, focal_length_choice="effective"
+    ) as source:
+        subarray = source.subarray
+        focal_length_effective = subarray.tel[1].optics.equivalent_focal_length
+
+    assert focal_length_nominal > 0
+    assert focal_length_effective > 0
+    assert focal_length_nominal != focal_length_effective
