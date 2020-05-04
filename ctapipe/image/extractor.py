@@ -259,7 +259,7 @@ def slide_window(waveform, width):
 
 
 class ImageExtractor(Component):
-    def __init__(self, config=None, parent=None, subarray=None, **kwargs):
+    def __init__(self, subarray, config=None, parent=None, **kwargs):
         """
         Base component to handle the extraction of charge and pulse time
         from an image cube (waveforms), taking into account the sampling rate
