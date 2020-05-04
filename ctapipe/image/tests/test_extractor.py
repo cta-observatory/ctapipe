@@ -283,12 +283,19 @@ def test_neighbor_peak_window_sum_lwt(toymodel):
     assert_allclose(pulse_time, true_time, rtol=0.1)
 
 
-def test_two_pass_window_sum(toymodel):
-    waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
+def test_two_pass_window_sum(subarray):
     extractor = TwoPassWindowSum(subarray=subarray)
-    charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
-    assert_allclose(charge, true_charge, rtol=0.1)
-    assert_allclose(pulse_time, true_time, rtol=0.1)
+    min_charges = [1, 10, 100]
+    max_charges = [10, 100, 1000]
+    for minCharge, maxCharge in zip(min_charges, max_charges):
+        print(f"testing for charges between {minCharge} and {maxCharge}")
+        toymodel = get_test_toymodel(subarray, minCharge=1, maxCharge=10)
+        waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = (
+            toymodel
+        )
+        charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
+        assert_allclose(charge, true_charge, rtol=0.1)
+        assert_allclose(pulse_time, true_time, rtol=0.1)
 
 
 def test_waveform_extractor_factory(toymodel):
