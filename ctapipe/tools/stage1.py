@@ -38,7 +38,12 @@ from ..core.traits import (
     classes_with_traits,
 )
 from ..image import ImageCleaner
-from ..image import hillas_parameters, number_of_islands, descriptive_statistics
+from ..image import (
+    hillas_parameters,
+    number_of_islands,
+    number_of_island_sizes,
+    descriptive_statistics,
+)
 from ..image.concentration import concentration
 from ..image.extractor import ImageExtractor
 from ..image.leakage import leakage
@@ -124,9 +129,14 @@ def morphology(geom, image_mask) -> MorphologyContainer:
 
     num_islands, island_labels = number_of_islands(geom=geom, mask=image_mask)
 
+    n_small, n_medium, n_large = number_of_island_sizes(island_labels)
+
     return MorphologyContainer(
         num_pixels=np.count_nonzero(image_mask),
-        num_islands=num_islands
+        num_islands=num_islands,
+        num_small_islands=n_small,
+        num_medium_islands=n_medium,
+        num_large_islands=n_large,
     )
 
 

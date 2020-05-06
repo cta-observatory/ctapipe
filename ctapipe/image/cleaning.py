@@ -9,6 +9,7 @@ __all__ = [
     "fact_image_cleaning",
     "apply_time_delta_cleaning",
     "number_of_islands",
+    "number_of_island_sizes",
     "ImageCleaner",
     "TailcutsImageCleaner",
 ]
@@ -236,6 +237,39 @@ def number_of_islands(geom, mask):
     island_labels[mask] = island_labels_compressed + 1
 
     return num_islands, island_labels
+
+
+def number_of_island_sizes(island_labels):
+    '''
+    Return number of small, medium and large islands
+
+    Parameters
+    ----------
+    island_labels: array[int]
+        Array with island labels, (second return value of ``number_of_islands``)
+
+    Returns
+    -------
+    n_small: int
+        number of islands with less than 3 pixels
+    n_medium: int
+        number of islands with 3 <= n_pixels <= 50
+    n_large: int
+        number of islands with more than 50 pixels
+    '''
+
+    # count number of pixels in each island, remove 0 = no island
+    island_sizes = np.bincount(island_labels)[1:]
+
+    # remove islands of size 0 (if labels are not consecutive)
+    # should not happen, but easy to check
+    island_sizes = island_sizes[island_sizes > 0]
+
+    small = island_sizes <= 2
+    large = island_sizes > 50
+    n_medium = np.count_nonzero(~(small | large))
+
+    return np.count_nonzero(small), n_medium, np.count_nonzero(large)
 
 
 def apply_time_delta_cleaning(

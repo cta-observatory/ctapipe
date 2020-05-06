@@ -609,7 +609,7 @@ class MorphologyContainer(Container):
     num_islands = Field(nan, "Number of distinct islands in the image")
     num_small_islands = Field(nan, "Number of <= 2 pixel islands")
     num_medium_islands = Field(nan, "Number of 2-50 pixel islands")
-    num_large_islands = Field(nan, "Number of > 10 pixel islands")
+    num_large_islands = Field(nan, "Number of > 50 pixel islands")
 
 
 class StatisticsContainer(Container):

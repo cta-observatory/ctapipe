@@ -235,6 +235,29 @@ def test_number_of_islands():
     assert island_mask.dtype == np.int32
 
 
+def test_number_of_island_sizes():
+    from ctapipe.image.cleaning import number_of_island_sizes
+
+    island_labels = np.array(
+        100 * [0]
+        + 2 * [1]
+        + 2 * [2]
+        + 3 * [3]
+        + 49 * [4]
+        + 51 * [5]
+        + 3 * [6]
+        + 100 * [7]
+        + [8]
+        + 2 * [9]
+        + [12]
+    )
+
+    n_small, n_medium, n_large = number_of_island_sizes(island_labels)
+    assert n_small == 5
+    assert n_medium == 3
+    assert n_large == 2
+
+
 def test_largest_island():
     """Test selection of largest island in imagea with given cleaning masks."""
 
