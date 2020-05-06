@@ -157,6 +157,7 @@ class HDF5TableWriter(TableWriter):
 
                 if col_name in Schema.columns:
                     self.log.warning(f'Found duplicated column {col_name}, skipping')
+                    continue
 
                 # apply any user-defined transforms first
                 value = self._apply_col_transform(table_name, col_name, value)
