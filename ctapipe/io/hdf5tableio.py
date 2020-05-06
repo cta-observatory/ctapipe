@@ -440,7 +440,7 @@ class HDF5TableReader(TableReader):
 
 
 def tr_convert_and_strip_unit(quantity, unit):
-    return quantity.to(unit).value
+    return quantity.to_value(unit)
 
 
 def tr_list_to_mask(thelist, length):
@@ -455,4 +455,4 @@ def tr_time_to_float(thetime):
 
 
 def tr_add_unit(value, unitname):
-    return Quantity(value, unitname)
+    return Quantity(value, unitname, copy=False)
