@@ -190,32 +190,6 @@ class ImageQualityQuery(QualityQuery):
     pass
 
 
-def expand_tel_list(tel_list, max_tels, index_map):
-    """
-    un-pack var-length list of tel_ids into
-    fixed-width bit pattern by tel_index
-
-    TODO: use index_map to index by tel_index rather than tel_id so this can be a
-    shorter array of bools.
-    """
-    pattern = np.zeros(max_tels).astype(bool)
-    pattern[tel_list] = 1
-    return pattern
-
-
-def create_tel_id_to_tel_index_transform(sub):
-    """
-    build a mapping of tel_id back to tel_index:
-    (note this should be part of SubarrayDescription)
-    """
-    idx = np.zeros(max(sub.tel_indices) + 1)
-    for key, val in sub.tel_indices.items():
-        idx[key] = val
-
-    # the final transform then needs the mapping and the number of telescopes
-    return partial(expand_tel_list, max_tels=len(sub.tel) + 1, index_map=idx)
-
-
 class Stage1ProcessorTool(Tool):
     name = "ctapipe-stage1-process"
     description = __doc__ + f" This currently writes {DL1_DATA_MODEL_VERSION} DL1 data"
@@ -737,13 +711,10 @@ class Stage1ProcessorTool(Tool):
             self.output_path, mode="a", add_prefix=True, filters=self._hdf5_filters
         ) as writer:
 
-            tel_list_transform = create_tel_id_to_tel_index_transform(
-                self.event_source.subarray
-            )
             writer.add_column_transform(
                 table_name="dl1/event/subarray/trigger",
                 col_name="tels_with_trigger",
-                transform=tel_list_transform,
+                transform=self.event_source.subarray.tel_ids_to_mask,
             )
             if self.write_parameters is False:
                 # don't need to write out the image mask if no parameters are computed,
