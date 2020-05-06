@@ -292,27 +292,6 @@ class ImageExtractor(TelescopeComponent):
         }
 
     @abstractmethod
-    def _calculate_correction(self, telid):
-        """
-        Calculate the correction for the extracted change such that the value
-        returned would equal 1 for a noise-less unit pulse.
-
-        Decorate this method with @lru_cache to ensure it is only calculated
-        once per telescope
-
-        Parameters
-        ----------
-        telid : int
-
-        Returns
-        -------
-        correction : ndarray
-        The correction to apply to an extracted charge using this ImageExtractor
-        Has size n_channels, as a different correction value might be required
-        for different gain channels
-        """
-
-    @abstractmethod
     def __call__(self, waveforms, telid, selected_gain_channel):
         """
         Call the relevant functions to fully extract the charge and time
@@ -347,12 +326,6 @@ class FullWaveformSum(ImageExtractor):
     Extractor that sums the entire waveform.
     """
 
-    def _calculate_correction(self, telid):
-        """
-        No correction is required, as the full pulse has been integrated.
-        """
-        return 1
-
     def __call__(self, waveforms, telid, selected_gain_channel):
         charge, pulse_time = extract_around_peak(
             waveforms, 0, waveforms.shape[-1], 0, self.sampling_rate[telid]
@@ -375,8 +348,24 @@ class FixedWindowSum(ImageExtractor):
     @lru_cache(maxsize=128)
     def _calculate_correction(self, telid):
         """
+        Calculate the correction for the extracted change such that the value
+        returned would equal 1 for a noise-less unit pulse.
+
         Assuming the pulse is centered in the manually defined integration
-        window, the integration_correction with a shift=0 is correct
+        window, the integration_correction with a shift=0 is correct.
+        This method is decorated with @lru_cache to ensure it is only
+        calculated once per telescope.
+
+        Parameters
+        ----------
+        telid : int
+
+        Returns
+        -------
+        correction : ndarray
+        The correction to apply to an extracted charge using this ImageExtractor
+        Has size n_channels, as a different correction value might be required
+        for different gain channels.
         """
         readout = self.subarray.tel[telid].camera.readout
         return integration_correction(
@@ -416,6 +405,24 @@ class GlobalPeakWindowSum(ImageExtractor):
 
     @lru_cache(maxsize=128)
     def _calculate_correction(self, telid):
+        """
+        Calculate the correction for the extracted change such that the value
+        returned would equal 1 for a noise-less unit pulse.
+
+        This method is decorated with @lru_cache to ensure it is only
+        calculated once per telescope.
+
+        Parameters
+        ----------
+        telid : int
+
+        Returns
+        -------
+        correction : ndarray
+        The correction to apply to an extracted charge using this ImageExtractor
+        Has size n_channels, as a different correction value might be required
+        for different gain channels.
+        """
         readout = self.subarray.tel[telid].camera.readout
         return integration_correction(
             readout.reference_pulse_shape,
@@ -455,6 +462,24 @@ class LocalPeakWindowSum(ImageExtractor):
 
     @lru_cache(maxsize=128)
     def _calculate_correction(self, telid):
+        """
+        Calculate the correction for the extracted change such that the value
+        returned would equal 1 for a noise-less unit pulse.
+
+        This method is decorated with @lru_cache to ensure it is only
+        calculated once per telescope.
+
+        Parameters
+        ----------
+        telid : int
+
+        Returns
+        -------
+        correction : ndarray
+        The correction to apply to an extracted charge using this ImageExtractor
+        Has size n_channels, as a different correction value might be required
+        for different gain channels.
+        """
         readout = self.subarray.tel[telid].camera.readout
         return integration_correction(
             readout.reference_pulse_shape,
