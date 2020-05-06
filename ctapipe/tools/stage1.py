@@ -595,6 +595,10 @@ class Stage1ProcessorTool(Tool):
             disable=not self.progress_bar,
         ):
 
+            if not is_initialized:
+                self._write_simulation_configuration(writer, event)
+                is_initialized = True
+
             self.log.log(9, "Writing event_id=%s", event.index.event_id)
 
             self.calibrate(event)
@@ -602,22 +606,6 @@ class Stage1ProcessorTool(Tool):
             event.mc.prefix = "mc"
             event.trig.prefix = ""
             self._cur_obs_id = event.index.obs_id
-
-            # On the first event, we now have a subarray loaded, and other info, so
-            # we can write the configuration data.
-            if event.count == 0:
-                tel_list_transform = create_tel_id_to_tel_index_transform(
-                    self.event_source.subarray
-                )
-                writer.add_column_transform(
-                    table_name="dl1/event/subarray/trigger",
-                    col_name="tels_with_trigger",
-                    transform=tel_list_transform,
-                )
-
-                self._write_simulation_configuration(writer, event)
-                self._write_instrument_configuration(self.event_source.subarray)
-                is_initialized = True
 
             # write the subarray tables
             writer.write(
@@ -731,10 +719,25 @@ class Stage1ProcessorTool(Tool):
 
     def start(self):
 
+        # FIXME: this uses astropy tables hdf5 io, internally using h5py,
+        # and must thus be done before the table writer opens the file or it might lead
+        # to "Resource temporary unavailable" if h5py and tables are not linked
+        # against the same libhdf (happens when using the pre-build pip wheels)
+        # should be replaced by writing the table using tables
+        self._write_instrument_configuration(self.event_source.subarray)
+
         with HDF5TableWriter(
             self.output_filename, mode="a", add_prefix=True, filters=self._hdf5_filters
         ) as writer:
 
+            tel_list_transform = create_tel_id_to_tel_index_transform(
+                self.event_source.subarray
+            )
+            writer.add_column_transform(
+                table_name="dl1/event/subarray/trigger",
+                col_name="tels_with_trigger",
+                transform=tel_list_transform,
+            )
             if self.write_parameters is False:
                 # don't need to write out the image mask if no parameters are computed,
                 # since we don't do image cleaning in that case.
