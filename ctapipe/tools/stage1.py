@@ -536,7 +536,7 @@ class Stage1ProcessorTool(Tool):
 
         # apply cleaning
         signal_pixels = self.clean(
-            tel_id=tel_id, image=data.image, arrival_times=data.pulse_time
+            tel_id=tel_id, image=data.image, arrival_times=data.peak_time
         )
         image_selected = data.image[signal_pixels]
 
@@ -559,7 +559,7 @@ class Stage1ProcessorTool(Tool):
             params.timing = timing_parameters(
                 geom=geom_selected,
                 image=image_selected,
-                pulse_time=data.pulse_time[signal_pixels],
+                peak_time=data.peak_time[signal_pixels],
                 hillas_parameters=params.hillas,
             )
             params.leakage = leakage(
@@ -577,7 +577,7 @@ class Stage1ProcessorTool(Tool):
                 image_selected, container_class=IntensityStatisticsContainer
             )
             params.peak_time_statistics = descriptive_statistics(
-                data.pulse_time[signal_pixels],
+                data.peak_time[signal_pixels],
                 container_class=PeakTimeStatisticsContainer,
             )
 
@@ -585,8 +585,6 @@ class Stage1ProcessorTool(Tool):
 
     def _process_events(self, writer):
         self.log.debug("Writing DL1/Event data")
-        tel_index = TelEventIndexContainer()
-        event_index = EventIndexContainer()
         is_initialized = False
         self.event_source.subarray.info(printer=self.log.debug)
 
@@ -598,16 +596,12 @@ class Stage1ProcessorTool(Tool):
             disable=not self.progress_bar,
         ):
 
-            self.log.log(9, "Writing event_id=%s", event.dl0.event_id)
+            self.log.log(9, "Writing event_id=%s", event.index.event_id)
 
             self.calibrate(event)
 
             event.mc.prefix = "mc"
             event.trig.prefix = ""
-            event_index.event_id = event.index.event_id
-            event_index.obs_id = event.index.obs_id
-            tel_index.event_id = event.index.event_id
-            tel_index.obs_id = event.index.obs_id
             self._cur_obs_id = event.index.obs_id
 
             # On the first event, we now have a subarray loaded, and other info, so
@@ -629,19 +623,19 @@ class Stage1ProcessorTool(Tool):
             # write the subarray tables
             writer.write(
                 table_name="dl1/event/subarray/mc_shower",
-                containers=[event_index, event.mc],
+                containers=[event.index, event.mc],
             )
             writer.write(
                 table_name="dl1/event/subarray/trigger",
-                containers=[event_index, event.trig],
+                containers=[event.index, event.trig],
             )
             # write the telescope tables
-            self._write_telescope_event(writer, event, tel_index)
+            self._write_telescope_event(writer, event)
 
         if is_initialized is False:
             raise ValueError(f"No events found in file: {self.event_source.input_url}")
 
-    def _write_telescope_event(self, writer, event, tel_index):
+    def _write_telescope_event(self, writer, event):
         """
         add entries to the event/telescope tables for each telescope in a single
         event
@@ -653,14 +647,18 @@ class Stage1ProcessorTool(Tool):
             data.prefix = ""  # don't want a prefix for this container
             telescope = self.event_source.subarray.tel[tel_id]
             tel_type = str(telescope)
-            tel_index.tel_id = np.int16(tel_id)
-            tel_index.tel_type_id = tel_type_string_to_int(tel_type)
+
+            tel_index = TelEventIndexContainer(
+                **event.index,
+                tel_id=np.int16(tel_id),
+                tel_type_id=tel_type_string_to_int(tel_type)
+            )
             table_name = (
                 f"tel_{tel_id:03d}" if self.split_datasets_by == "tel_id" else tel_type
             )
 
             extra = ExtraImageContainer(
-                true_image=event.mc.tel[tel_id].photo_electron_image,
+                true_image=event.mc.tel[tel_id].true_image,
                 selected_gain_channel=event.r1.tel[tel_id].selected_gain_channel,
                 image_mask=None,  # added later, if computed only
             )
