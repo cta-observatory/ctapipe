@@ -17,9 +17,6 @@ from tqdm.autonotebook import tqdm
 from ctapipe.io import metadata as meta
 from ..calib.camera import CameraCalibrator, GainSelector
 from ..containers import (
-    DL1CameraContainer,
-)
-from ..containers import (
     EventIndexContainer,
     ImageParametersContainer,
     TelEventIndexContainer,
@@ -34,7 +31,7 @@ from ..core.traits import (
     Int,
     List,
     Unicode,
-    enum_trait,
+    create_class_enum_trait,
     classes_with_traits,
 )
 from ..image import ImageCleaner
@@ -267,18 +264,18 @@ class Stage1ProcessorTool(Tool):
         default_value="zlib",
     ).tag(config=True)
 
-    image_extractor_type = enum_trait(
+    image_extractor_type = create_class_enum_trait(
         base_class=ImageExtractor,
-        default="NeighborPeakWindowSum",
-        help_str="Method to use to turn a waveform into a single charge value",
+        default_value="NeighborPeakWindowSum",
+        help="Method to use to turn a waveform into a single charge value",
     ).tag(config=True)
 
-    gain_selector_type = enum_trait(
-        base_class=GainSelector, default="ThresholdGainSelector"
+    gain_selector_type = create_class_enum_trait(
+        base_class=GainSelector, default_value="ThresholdGainSelector"
     ).tag(config=True)
 
-    image_cleaner_type = enum_trait(
-        base_class=ImageCleaner, default="TailcutsImageCleaner"
+    image_cleaner_type = create_class_enum_trait(
+        base_class=ImageCleaner, default_value="TailcutsImageCleaner"
     )
 
     write_index_tables = Bool(
