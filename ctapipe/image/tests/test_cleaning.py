@@ -235,6 +235,29 @@ def test_number_of_islands():
     assert island_mask.dtype == np.int32
 
 
+def test_number_of_island_sizes():
+    from ctapipe.image.cleaning import number_of_island_sizes
+
+    island_labels = np.array(
+        100 * [0]
+        + 2 * [1]
+        + 2 * [2]
+        + 3 * [3]
+        + 49 * [4]
+        + 51 * [5]
+        + 3 * [6]
+        + 100 * [7]
+        + [8]
+        + 2 * [9]
+        + [12]
+    )
+
+    n_small, n_medium, n_large = number_of_island_sizes(island_labels)
+    assert n_small == 5
+    assert n_medium == 3
+    assert n_large == 2
+
+
 def test_largest_island():
     """Test selection of largest island in imagea with given cleaning masks."""
 
@@ -317,26 +340,26 @@ def test_fact_image_cleaning():
 
 def test_apply_time_delta_cleaning():
     geom = CameraGeometry.from_name("LSTCam")
-    pulse_time = np.zeros(geom.n_pixels, dtype=np.float)
+    peak_time = np.zeros(geom.n_pixels, dtype=np.float)
 
     pixel = 40
     neighbours = geom.neighbors[pixel]
-    pulse_time[neighbours] = 32.0
-    pulse_time[pixel] = 30.0
-    mask = pulse_time > 0
+    peak_time[neighbours] = 32.0
+    peak_time[pixel] = 30.0
+    mask = peak_time > 0
 
     # Test unchanged
     td_mask = cleaning.apply_time_delta_cleaning(
-        geom, mask, pulse_time, min_number_neighbors=1, time_limit=5
+        geom, mask, peak_time, min_number_neighbors=1, time_limit=5
     )
     test_mask = mask.copy()
     assert (test_mask == td_mask).all()
 
     # Test time_limit
     noise_neighbour = neighbours[0]
-    pulse_time[noise_neighbour] += 10
+    peak_time[noise_neighbour] += 10
     td_mask = cleaning.apply_time_delta_cleaning(
-        geom, mask, pulse_time, min_number_neighbors=1, time_limit=5
+        geom, mask, peak_time, min_number_neighbors=1, time_limit=5
     )
     test_mask = mask.copy()
     test_mask[noise_neighbour] = 0
@@ -344,7 +367,7 @@ def test_apply_time_delta_cleaning():
 
     # Test min_number_neighbours
     td_mask = cleaning.apply_time_delta_cleaning(
-        geom, mask, pulse_time, min_number_neighbors=4, time_limit=5
+        geom, mask, peak_time, min_number_neighbors=4, time_limit=5
     )
     test_mask = mask.copy()
     test_mask[neighbours] = 0

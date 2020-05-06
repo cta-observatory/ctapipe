@@ -40,7 +40,7 @@ for event in source:
     # calibrating the event
     calib(event)
     hillas_params = {}
-    subarray = event.inst.subarray
+    subarray = source.subarray
 
     # dictionary for the pointing directions of the telescopes
     telescope_pointings = {}
@@ -49,8 +49,8 @@ for event in source:
 
         # telescope pointing direction as dictionary of SkyCoord
         telescope_pointings[tel_id] = SkyCoord(
-            alt=event.pointing[tel_id].altitude,
-            az=event.pointing[tel_id].azimuth,
+            alt=event.pointing.tel[tel_id].altitude,
+            az=event.pointing.tel[tel_id].azimuth,
             frame=horizon_frame
         )
 
@@ -85,7 +85,10 @@ for event in source:
     if len(hillas_params) < 2:
         continue
 
-    reco_result = reco.predict(hillas_params, event.inst, array_pointing, telescope_pointings)
+    reco_result = reco.predict(
+        hillas_params, source.subarray,
+        array_pointing, telescope_pointings
+    )
 
     # get angular offset between reconstructed shower direction and MC
     # generated shower direction

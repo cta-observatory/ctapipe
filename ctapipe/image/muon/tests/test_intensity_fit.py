@@ -48,8 +48,8 @@ def test_muon_efficiency_fit():
         focal_length=focal_length,
         rotation=geom.cam_rotation,
     ).transform_to(TelescopeFrame())
-    x = tel.delta_az
-    y = tel.delta_alt
+    x = tel.fov_lon
+    y = tel.fov_lat
 
     image = image_prediction(
         mirror_radius,

@@ -151,7 +151,7 @@ class EventSeeker(Component):
             item = int(item)
             use_event_id = True
             if self._current_event:
-                current = self._current_event.r0.event_id
+                current = self._current_event.index.event_id
         elif isinstance(item, slice):
             it = range(item.start or 0, item.stop or len(self), item.step or 1)
             events = [self[i] for i in it]
@@ -241,7 +241,7 @@ class EventSeeker(Component):
 
         """
         for event in self:  # Event Ids may not be in order
-            if event.r0.event_id == event_id:
+            if event.index.event_id == event_id:
                 return event
         raise IndexError(f"Event id {event_id} not found in file")
 

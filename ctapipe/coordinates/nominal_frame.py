@@ -50,8 +50,8 @@ class NominalFrame(BaseCoordinateFrame):
     '''
     frame_specific_representation_info = {
         UnitSphericalRepresentation: [
-            RepresentationMapping('lon', 'delta_az'),
-            RepresentationMapping('lat', 'delta_alt'),
+            RepresentationMapping('lon', 'fov_lon'),
+            RepresentationMapping('lat', 'fov_lat'),
         ]
     }
     default_representation = UnitSphericalRepresentation

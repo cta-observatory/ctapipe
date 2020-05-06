@@ -28,9 +28,9 @@ class BokehFileViewer(Tool):
     default_url = get_dataset_path("gamma_test_large.simtel.gz")
     EventSource.input_url.default_value = default_url
 
-    extractor_product = traits.enum_trait(
+    extractor_product = traits.create_class_enum_trait(
         ImageExtractor,
-        default='NeighborPeakWindowSum'
+        default_value='NeighborPeakWindowSum'
     )
 
     aliases = Dict(dict(
@@ -94,7 +94,7 @@ class BokehFileViewer(Tool):
             image_extractor=self.extractor,
         )
 
-        self.viewer = BokehEventViewer(parent=self)
+        self.viewer = BokehEventViewer(parent=self, subarray=self.reader.subarray)
 
         # Setup widgets
         self.viewer.create()
@@ -208,7 +208,7 @@ class BokehFileViewer(Tool):
         self.viewer.event = val
 
         self._event_index = val.count
-        self._event_id = val.r0.event_id
+        self._event_id = val.index.event_id
         self.update_event_index_widget()
         self.update_event_id_widget()
 

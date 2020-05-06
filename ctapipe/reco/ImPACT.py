@@ -661,8 +661,8 @@ class ImPACTReconstructor(Reconstructor):
         )
         nominal_seed = horizon_seed.transform_to(self.nominal_frame)
 
-        source_x = nominal_seed.delta_az.to_value(u.rad)
-        source_y = nominal_seed.delta_alt.to_value(u.rad)
+        source_x = nominal_seed.fov_lon.to_value(u.rad)
+        source_y = nominal_seed.fov_lat.to_value(u.rad)
         ground = GroundFrame(x=shower_seed.core_x,
                              y=shower_seed.core_y, z=0 * u.m)
         tilted = ground.transform_to(
@@ -690,8 +690,8 @@ class ImPACTReconstructor(Reconstructor):
         # Convert the best fits direction and core to Horizon and ground systems and
         # copy to the shower container
         nominal = SkyCoord(
-            delta_az=fit_params[0] * u.rad,
-            delta_alt=fit_params[1] * u.rad,
+            fov_lon=fit_params[0] * u.rad,
+            fov_lat=fit_params[1] * u.rad,
             frame=self.nominal_frame
         )
         horizon = nominal.transform_to(AltAz())

@@ -24,7 +24,6 @@ from astropy.coordinates import (
     SkyCoord,
     spherical_to_cartesian,
     cartesian_to_spherical,
-    AltAz,
 )
 import warnings
 
@@ -106,7 +105,7 @@ class HillasReconstructor(Reconstructor):
         self.divergent_mode = False
         self.corrected_angle_dict = {}
 
-    def predict(self, hillas_dict, inst,  array_pointing, telescopes_pointings=None):
+    def predict(self, hillas_dict, subarray, array_pointing, telescopes_pointings=None):
         """
         The function you want to call for the reconstruction of the
         event. It takes care of setting up the event and consecutively
@@ -161,7 +160,7 @@ class HillasReconstructor(Reconstructor):
 
         self.initialize_hillas_planes(
             hillas_dict,
-            inst.subarray,
+            subarray,
             telescopes_pointings,
             array_pointing
         )

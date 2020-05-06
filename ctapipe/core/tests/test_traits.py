@@ -10,7 +10,6 @@ from ctapipe.core.traits import (
     Path,
     TraitError,
     classes_with_traits,
-    enum_trait,
     has_traits,
     TelescopeParameterLookup,
     TelescopeParameter,
@@ -158,13 +157,19 @@ def test_path_url():
 
 def test_enum_trait_default_is_right():
     """ check default value of enum trait """
+    from ctapipe.core.traits import create_class_enum_trait
+
     with pytest.raises(ValueError):
-        enum_trait(ImageExtractor, default="name_of_default_choice")
+        create_class_enum_trait(
+            ImageExtractor, default_value="name_of_default_choice"
+        )
 
 
 def test_enum_trait():
     """ check that enum traits are constructable from a complex class """
-    trait = enum_trait(ImageExtractor, default="NeighborPeakWindowSum")
+    from ctapipe.core.traits import create_class_enum_trait
+
+    trait = create_class_enum_trait(ImageExtractor, default_value="NeighborPeakWindowSum")
     assert isinstance(trait, CaselessStrEnum)
 
 

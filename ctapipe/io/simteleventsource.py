@@ -11,7 +11,7 @@ from eventio.simtel.simtelfile import SimTelFile
 from traitlets import observe
 
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
-from ctapipe.containers import EventAndMonDataContainer
+from ctapipe.containers import EventAndMonDataContainer, EventType
 from ctapipe.core.traits import Bool, CaselessStrEnum
 from ctapipe.instrument import (
     TelescopeDescription,
@@ -26,8 +26,17 @@ from ctapipe.instrument.guess import guess_telescope, UNKNOWN_TELESCOPE
 from ctapipe.io.eventsource import EventSource
 from io import BufferedReader
 
-
 __all__ = ["SimTelEventSource"]
+
+# Mapping of SimTelArray Calibration trigger types to EventType:
+# from simtelarray: type Dark (0), pedestal (1), in-lid LED (2) or laser/LED (3+) data.
+SIMTEL_TO_CTA_EVENT_TYPE = {
+    0: EventType.DARK_PEDESTAL,
+    1: EventType.SKY_PEDESTAL,
+    2: EventType.SINGLE_PE,
+    3: EventType.FLATFIELD,
+    -1: EventType.OTHER_CALIBRATION,
+}
 
 
 def build_camera(cam_settings, pixel_settings, telescope):
@@ -183,10 +192,10 @@ class SimTelEventSource(EventSource):
             gain_selector = ThresholdGainSelector(parent=self)
         self.gain_selector = gain_selector
 
-    @observe('allowed_tels')
+    @observe("allowed_tels")
     def _observe_allowed_tels(self, change):
         # this can run in __init__ before file_ is created
-        if hasattr(self, 'file_'):
+        if hasattr(self, "file_"):
             allowed_tels = set(self.allowed_tels) if self.allowed_tels else None
             self.file_.allowed_telescopes = allowed_tels
 
@@ -302,32 +311,42 @@ class SimTelEventSource(EventSource):
         data.meta["input_url"] = self.input_url
         data.meta["max_events"] = self.max_events
 
-        for counter, array_event in enumerate(self.file_):
-            # next lines are just for debugging
-            self.array_event = array_event
-            data.event_type = array_event["type"]
+        if self.file_.header['tracking_mode'] == 0:
+            az, alt = self.file_.header['direction']
+            data.pointing.array_altitude = u.Quantity(alt, u.rad)
+            data.pointing.array_azimuth = u.Quantity(az, u.rad)
+        else:
+            ra, dec = self.file_.header['direction']
+            data.pointing.array_ra = u.Quantity(ra, u.rad)
+            data.pointing.array_dec = u.Quantity(dec, u.rad)
 
-            # calibration events do not have an event id
-            if data.event_type == "calibration":
+        for counter, array_event in enumerate(self.file_):
+            self.array_event = array_event  # for debugging
+
+            if array_event["type"] == "data":
+                data.index.event_type = EventType.SUBARRAY
+            elif array_event["type"] == "calibration":
+                # if using eventio >= 1.1.1, we can use the calibration_type
+                data.index.event_type = SIMTEL_TO_CTA_EVENT_TYPE.get(
+                    array_event.get("calibration_type", -1), EventType.OTHER_CALIBRATION
+                )
+
+            else:
+                data.index.event_type = EventType.UNKNOWN
+
+            if data.index.event_type != EventType.SUBARRAY:
+                # calibration events do not have an event id
                 event_id = -1
             else:
                 event_id = array_event["event_id"]
-
-            data.inst.subarray = self._subarray_info
 
             obs_id = self.file_.header["run"]
             tels_with_data = set(array_event["telescope_events"].keys())
             data.count = counter
             data.index.obs_id = obs_id
             data.index.event_id = event_id
-            data.r0.obs_id = obs_id  # deprecated
-            data.r0.event_id = event_id  # deprecated
             data.r0.tels_with_data = tels_with_data
-            data.r1.obs_id = obs_id  # deprecated
-            data.r1.event_id = event_id  # deprecated
             data.r1.tels_with_data = tels_with_data
-            data.dl0.obs_id = obs_id  # deprecated
-            data.dl0.event_id = event_id  # deprecated
             data.dl0.tels_with_data = tels_with_data
 
             trigger_information = array_event["trigger_information"]
@@ -338,7 +357,7 @@ class SimTelEventSource(EventSource):
                 time_s * u.s, time_ns * u.ns, format="unix", scale="utc"
             )
 
-            if data.event_type == "data":
+            if data.index.event_type == EventType.SUBARRAY:
                 self.fill_mc_information(data, array_event)
 
             # this should be done in a nicer way to not re-allocate the
@@ -348,7 +367,9 @@ class SimTelEventSource(EventSource):
             data.r1.tel.clear()
             data.dl0.tel.clear()
             data.dl1.tel.clear()
-            data.mc.tel.clear()  # clear the previous telescopes
+            data.mc.tel.clear()
+            data.pointing.tel.clear()
+
 
             telescope_events = array_event["telescope_events"]
             tracking_positions = array_event["tracking_positions"]
@@ -363,7 +384,7 @@ class SimTelEventSource(EventSource):
                 mc = data.mc.tel[tel_id]
                 mc.dc_to_pe = array_event["laser_calibrations"][tel_id]["calib"]
                 mc.pedestal = array_event["camera_monitorings"][tel_id]["pedestal"]
-                mc.photo_electron_image = (
+                mc.true_image = (
                     array_event.get("photoelectrons", {})
                     .get(tel_index, {})
                     .get("photoelectrons", np.zeros(n_pixels, dtype="float32"))
@@ -374,14 +395,15 @@ class SimTelEventSource(EventSource):
                 mc.altitude_raw = tracking_position["altitude_raw"]
                 mc.azimuth_cor = tracking_position.get("azimuth_cor", np.nan)
                 mc.altitude_cor = tracking_position.get("altitude_cor", np.nan)
+
                 if np.isnan(mc.azimuth_cor):
-                    data.pointing[tel_id].azimuth = u.Quantity(mc.azimuth_raw, u.rad)
+                    data.pointing.tel[tel_id].azimuth = u.Quantity(mc.azimuth_raw, u.rad)
                 else:
-                    data.pointing[tel_id].azimuth = u.Quantity(mc.azimuth_cor, u.rad)
+                    data.pointing.tel[tel_id].azimuth = u.Quantity(mc.azimuth_cor, u.rad)
                 if np.isnan(mc.altitude_cor):
-                    data.pointing[tel_id].altitude = u.Quantity(mc.altitude_raw, u.rad)
+                    data.pointing.tel[tel_id].altitude = u.Quantity(mc.altitude_raw, u.rad)
                 else:
-                    data.pointing[tel_id].altitude = u.Quantity(mc.altitude_cor, u.rad)
+                    data.pointing.tel[tel_id].altitude = u.Quantity(mc.altitude_cor, u.rad)
 
                 r0 = data.r0.tel[tel_id]
                 r1 = data.r1.tel[tel_id]

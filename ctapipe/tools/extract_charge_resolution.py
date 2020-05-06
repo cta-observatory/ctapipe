@@ -36,8 +36,8 @@ class ChargeResolutionGenerator(Tool):
         directory_ok=False,
         help="Path to store the output HDF5 file"
     ).tag(config=True)
-    extractor_product = traits.enum_trait(
-        ImageExtractor, default="NeighborPeakWindowSum"
+    extractor_product = traits.create_class_enum_trait(
+        ImageExtractor, default_value="NeighborPeakWindowSum"
     )
 
     aliases = Dict(
@@ -84,7 +84,7 @@ class ChargeResolutionGenerator(Tool):
             # Check events have true charge included
             if event.count == 0:
                 try:
-                    pe = list(event.mc.tel.values())[0].photo_electron_image
+                    pe = list(event.mc.tel.values())[0].true_image
                     if np.all(pe == 0):
                         raise KeyError
                 except KeyError:
@@ -92,7 +92,7 @@ class ChargeResolutionGenerator(Tool):
                     raise
 
             for mc, dl1 in zip(event.mc.tel.values(), event.dl1.tel.values()):
-                true_charge = mc.photo_electron_image
+                true_charge = mc.true_image
                 measured_charge = dl1.image
                 pixels = np.arange(measured_charge.size)
                 self.calculator.add(pixels, true_charge, measured_charge)

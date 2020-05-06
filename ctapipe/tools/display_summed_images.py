@@ -53,7 +53,7 @@ class ImageSumDisplayerTool(Tool):
 
     def setup(self):
         # load up the telescope types table (need to first open a file, a bit of
-        # a hack until a proper insturment module exists) and select only the
+        # a hack until a proper instrument module exists) and select only the
         # telescopes with the same camera type
         # make sure gzip files are seekable
 
@@ -61,17 +61,15 @@ class ImageSumDisplayerTool(Tool):
             input_url=self.infile, max_events=self.max_events, back_seekable=True
         )
 
-        for event in self.reader:
-            camtypes = event.inst.subarray.to_table().group_by('camera_type')
-            event.inst.subarray.info(printer=self.log.info)
-            break
+        camtypes = self.reader.subarray.to_table().group_by('camera_type')
+        self.reader.subarray.info(printer=self.log.info)
 
         group = camtypes.groups[self.telgroup]
         self._selected_tels = list(group['tel_id'].data)
         self._base_tel = self._selected_tels[0]
         self.log.info(
             "Telescope group %d: %s", self.telgroup,
-            str(event.inst.subarray.tel[self._selected_tels[0]])
+            str(self.reader.subarray.tel[self._selected_tels[0]])
         )
         self.log.info(f"SELECTED TELESCOPES:{self._selected_tels}")
 
@@ -89,7 +87,7 @@ class ImageSumDisplayerTool(Tool):
             self.calibrator(event)
 
             if geom is None:
-                geom = event.inst.subarray.tel[self._base_tel].camera.geometry
+                geom = self.reader.subarray.tel[self._base_tel].camera.geometry
                 imsum = np.zeros(shape=geom.pix_x.shape, dtype=np.float)
                 disp = CameraDisplay(geom, title=geom.camera_name)
                 disp.add_colorbar()
@@ -104,7 +102,7 @@ class ImageSumDisplayerTool(Tool):
 
             self.log.info(
                 "event={} ntels={} energy={}".format(
-                    event.r0.event_id, len(event.dl0.tels_with_data),
+                    event.index.event_id, len(event.dl0.tels_with_data),
                     event.mc.energy
                 )
             )
@@ -113,7 +111,7 @@ class ImageSumDisplayerTool(Tool):
 
             if self.output_suffix != "":
                 filename = "{:020d}{}".format(
-                    event.r0.event_id, self.output_suffix
+                    event.index.event_id, self.output_suffix
                 )
                 self.log.info(f"saving: '{filename}'")
                 plt.savefig(filename)

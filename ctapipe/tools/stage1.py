@@ -11,20 +11,19 @@ from pathlib import Path
 import numpy as np
 import tables
 import tables.filters
+
 from astropy import units as u
 from tqdm.autonotebook import tqdm
 
 from ctapipe.io import metadata as meta
 from ..calib.camera import CameraCalibrator, GainSelector
 from ..containers import (
-    DL1CameraContainer,
-)
-from ..containers import (
-    EventIndexContainer,
     ImageParametersContainer,
     TelEventIndexContainer,
     SimulatedShowerDistribution,
     MorphologyContainer,
+    IntensityStatisticsContainer,
+    PeakTimeStatisticsContainer,
 )
 from ..core import Provenance
 from ..core import QualityQuery, Container, Field, Tool, ToolConfigurationError
@@ -34,11 +33,16 @@ from ..core.traits import (
     Int,
     List,
     Unicode,
-    enum_trait,
+    create_class_enum_trait,
     classes_with_traits,
 )
 from ..image import ImageCleaner
-from ..image import hillas_parameters, number_of_islands
+from ..image import (
+    hillas_parameters,
+    number_of_islands,
+    number_of_island_sizes,
+    descriptive_statistics,
+)
 from ..image.concentration import concentration
 from ..image.extractor import ImageExtractor
 from ..image.leakage import leakage
@@ -124,22 +128,14 @@ def morphology(geom, image_mask) -> MorphologyContainer:
 
     num_islands, island_labels = number_of_islands(geom=geom, mask=image_mask)
 
-    return MorphologyContainer(num_pixels=image_mask.sum(), num_islands=num_islands)
+    n_small, n_medium, n_large = number_of_island_sizes(island_labels)
 
-
-class IntensityContainer(Container):
-    """ Store statistics on the intensity distribution of images """
-
-    max = Field(np.nan, "value of pixel with maximum intensity")
-    min = Field(np.nan, "value of pixel with minimum intensity")
-    mean = Field(np.nan, "mean intensity")
-    std = Field(np.nan, "standard deviation of intensity")
-
-
-def intensity_statistics(image) -> IntensityContainer:
-    """ compute intensity statistics of an image  """
-    return IntensityContainer(
-        max=image.max(), min=image[image > 0].min(), mean=image.mean(), std=image.std()
+    return MorphologyContainer(
+        num_pixels=np.count_nonzero(image_mask),
+        num_islands=num_islands,
+        num_small_islands=n_small,
+        num_medium_islands=n_medium,
+        num_large_islands=n_large,
     )
 
 
@@ -149,9 +145,7 @@ class ExtendedImageParametersContainer(ImageParametersContainer):
 
     TODO: should eventually just move to ImageParametersContainer.
     """
-
-    intensity = Field(IntensityContainer(), "intensity statistics")
-    mc_intensity = Field(IntensityContainer(), "MC intensity statistics")
+    mc_intensity = Field(IntensityStatisticsContainer(), "MC intensity statistics")
 
 
 class ExtraImageContainer(Container):
@@ -264,18 +258,18 @@ class Stage1ProcessorTool(Tool):
         default_value="zlib",
     ).tag(config=True)
 
-    image_extractor_type = enum_trait(
+    image_extractor_type = create_class_enum_trait(
         base_class=ImageExtractor,
-        default="NeighborPeakWindowSum",
-        help_str="Method to use to turn a waveform into a single charge value",
+        default_value="NeighborPeakWindowSum",
+        help="Method to use to turn a waveform into a single charge value",
     ).tag(config=True)
 
-    gain_selector_type = enum_trait(
-        base_class=GainSelector, default="ThresholdGainSelector"
+    gain_selector_type = create_class_enum_trait(
+        base_class=GainSelector, default_value="ThresholdGainSelector"
     ).tag(config=True)
 
-    image_cleaner_type = enum_trait(
-        base_class=ImageCleaner, default="TailcutsImageCleaner"
+    image_cleaner_type = create_class_enum_trait(
+        base_class=ImageCleaner, default_value="TailcutsImageCleaner"
     )
 
     write_index_tables = Bool(
@@ -540,7 +534,9 @@ class Stage1ProcessorTool(Tool):
         geometry = tel.camera.geometry
 
         # apply cleaning
-        signal_pixels = self.clean(tel_id=tel_id, image=data.image)
+        signal_pixels = self.clean(
+            tel_id=tel_id, image=data.image, arrival_times=data.peak_time
+        )
         image_selected = data.image[signal_pixels]
 
         params = ExtendedImageParametersContainer()
@@ -562,7 +558,7 @@ class Stage1ProcessorTool(Tool):
             params.timing = timing_parameters(
                 geom=geom_selected,
                 image=image_selected,
-                pulse_time=data.pulse_time[signal_pixels],
+                peak_time=data.peak_time[signal_pixels],
                 hillas_parameters=params.hillas,
             )
             params.leakage = leakage(
@@ -576,14 +572,18 @@ class Stage1ProcessorTool(Tool):
             params.morphology = morphology(
                 geom=geometry, image_mask=signal_pixels
             )
-            params.intensity = intensity_statistics(image=image_selected)
+            params.intensity_statistics = descriptive_statistics(
+                image_selected, container_class=IntensityStatisticsContainer
+            )
+            params.peak_time_statistics = descriptive_statistics(
+                data.peak_time[signal_pixels],
+                container_class=PeakTimeStatisticsContainer,
+            )
 
         return signal_pixels, params
 
     def _process_events(self, writer):
         self.log.debug("Writing DL1/Event data")
-        tel_index = TelEventIndexContainer()
-        event_index = EventIndexContainer()
         is_initialized = False
         self.event_source.subarray.info(printer=self.log.debug)
 
@@ -595,50 +595,34 @@ class Stage1ProcessorTool(Tool):
             disable=not self.progress_bar,
         ):
 
-            self.log.log(9, "Writing event_id=%s", event.dl0.event_id)
+            if not is_initialized:
+                self._write_simulation_configuration(writer, event)
+                is_initialized = True
+
+            self.log.log(9, "Writing event_id=%s", event.index.event_id)
 
             self.calibrate(event)
 
             event.mc.prefix = "mc"
             event.trig.prefix = ""
-            event_index.event_id = event.index.event_id
-            event_index.obs_id = event.index.obs_id
-            tel_index.event_id = event.index.event_id
-            tel_index.obs_id = event.index.obs_id
             self._cur_obs_id = event.index.obs_id
-
-            # On the first event, we now have a subarray loaded, and other info, so
-            # we can write the configuration data.
-            if event.count == 0:
-                tel_list_transform = create_tel_id_to_tel_index_transform(
-                    self.event_source.subarray
-                )
-                writer.add_column_transform(
-                    table_name="dl1/event/subarray/trigger",
-                    col_name="tels_with_trigger",
-                    transform=tel_list_transform,
-                )
-
-                self._write_simulation_configuration(writer, event)
-                self._write_instrument_configuration(self.event_source.subarray)
-                is_initialized = True
 
             # write the subarray tables
             writer.write(
                 table_name="dl1/event/subarray/mc_shower",
-                containers=[event_index, event.mc],
+                containers=[event.index, event.mc],
             )
             writer.write(
                 table_name="dl1/event/subarray/trigger",
-                containers=[event_index, event.trig],
+                containers=[event.index, event.trig],
             )
             # write the telescope tables
-            self._write_telescope_event(writer, event, tel_index)
+            self._write_telescope_event(writer, event)
 
         if is_initialized is False:
             raise ValueError(f"No events found in file: {self.event_source.input_url}")
 
-    def _write_telescope_event(self, writer, event, tel_index):
+    def _write_telescope_event(self, writer, event):
         """
         add entries to the event/telescope tables for each telescope in a single
         event
@@ -650,14 +634,18 @@ class Stage1ProcessorTool(Tool):
             data.prefix = ""  # don't want a prefix for this container
             telescope = self.event_source.subarray.tel[tel_id]
             tel_type = str(telescope)
-            tel_index.tel_id = np.int16(tel_id)
-            tel_index.tel_type_id = tel_type_string_to_int(tel_type)
+
+            tel_index = TelEventIndexContainer(
+                **event.index,
+                tel_id=np.int16(tel_id),
+                tel_type_id=tel_type_string_to_int(tel_type)
+            )
             table_name = (
                 f"tel_{tel_id:03d}" if self.split_datasets_by == "tel_id" else tel_type
             )
 
             extra = ExtraImageContainer(
-                true_image=event.mc.tel[tel_id].photo_electron_image,
+                true_image=event.mc.tel[tel_id].true_image,
                 selected_gain_channel=event.r1.tel[tel_id].selected_gain_channel,
                 image_mask=None,  # added later, if computed only
             )
@@ -677,7 +665,8 @@ class Stage1ProcessorTool(Tool):
                     params.leakage,
                     params.concentration,
                     params.morphology,
-                    params.intensity,
+                    params.intensity_statistics,
+                    params.peak_time_statistics,
                 ]
 
                 # currently the HDF5TableWriter has problems if the first event
@@ -730,10 +719,25 @@ class Stage1ProcessorTool(Tool):
 
     def start(self):
 
+        # FIXME: this uses astropy tables hdf5 io, internally using h5py,
+        # and must thus be done before the table writer opens the file or it might lead
+        # to "Resource temporary unavailable" if h5py and tables are not linked
+        # against the same libhdf (happens when using the pre-build pip wheels)
+        # should be replaced by writing the table using tables
+        self._write_instrument_configuration(self.event_source.subarray)
+
         with HDF5TableWriter(
             self.output_filename, mode="a", add_prefix=True, filters=self._hdf5_filters
         ) as writer:
 
+            tel_list_transform = create_tel_id_to_tel_index_transform(
+                self.event_source.subarray
+            )
+            writer.add_column_transform(
+                table_name="dl1/event/subarray/trigger",
+                col_name="tels_with_trigger",
+                transform=tel_list_transform,
+            )
             if self.write_parameters is False:
                 # don't need to write out the image mask if no parameters are computed,
                 # since we don't do image cleaning in that case.

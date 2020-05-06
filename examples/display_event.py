@@ -27,7 +27,7 @@ cmaps = [
 ]
 
 
-def display_event(event):
+def display_event(event, subarray):
     """an extremely inefficient display. It creates new instances of
     CameraDisplay for every event and every camera, and also new axes
     for each event. It's hacked, but it works
@@ -37,7 +37,7 @@ def display_event(event):
     ntels = len(event.r0.tels_with_data)
     fig.clear()
 
-    plt.suptitle(f"EVENT {event.r0.event_id}")
+    plt.suptitle(f"EVENT {event.index.event_id}")
 
     disps = []
 
@@ -46,7 +46,7 @@ def display_event(event):
         nn = int(ceil(sqrt(ntels)))
         ax = plt.subplot(nn, nn, ii + 1)
 
-        geom = event.inst.subarray.tel[tel_id].camera.geometry
+        geom = subarray.tel[tel_id].camera.geometry
         disp = CameraDisplay(geom, ax=ax, title=f"CT{tel_id}")
         disp.pixels.set_antialiaseds(False)
         disp.autoupdate = False
@@ -85,18 +85,19 @@ if __name__ == '__main__':
 
     # loop over events and display menu at each event:
     source = event_source(filename)
+    subarray = source.subarray
 
     for event in source:
 
         print(
-            "EVENT_ID: ", event.r0.event_id, "TELS: ", event.r0.tels_with_data,
+            "EVENT_ID: ", event.index.event_id, "TELS: ", event.r0.tels_with_data,
             "MC Energy:", event.mc.energy
         )
 
         while True:
             response = get_input()
             if response.startswith("d"):
-                disps = display_event(event)
+                disps = display_event(event, source.subarray)
                 plt.pause(0.1)
             elif response.startswith("p"):
                 print("--event-------------------")
@@ -111,7 +112,6 @@ if __name__ == '__main__':
             elif response == "" or response.startswith("n"):
                 break
             elif response.startswith('i'):
-                subarray = event.inst.subarray
                 for tel_id in sorted(event.r0.tel):
                     for chan in event.r0.tel[tel_id].waveform:
                         npix = len(subarray.tel[tel_id].camera.geometry.pix_x)
@@ -121,7 +121,7 @@ if __name__ == '__main__':
                             .format(tel_id, chan, npix, nsamp)
                         )
             elif response.startswith('s'):
-                filename = f"event_{event.r0.event_id:010d}.png"
+                filename = f"event_{event.index.event_id:010d}.png"
                 print("Saving to", filename)
                 plt.savefig(filename)
 

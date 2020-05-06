@@ -97,7 +97,7 @@ class SingleTelEventDisplay(Tool):
             self.calibrator(event)
 
             if disp is None:
-                geom = event.inst.subarray.tel[self.tel].camera.geometry
+                geom = self.event_source.subarray.tel[self.tel].camera.geometry
                 self.log.info(geom)
                 disp = CameraDisplay(geom)
                 # disp.enable_pixel_picker()
@@ -108,7 +108,7 @@ class SingleTelEventDisplay(Tool):
             # display the event
             disp.axes.set_title(
                 'CT{:03d} ({}), event {:06d}'.format(
-                    self.tel, geom.camera_name, event.r0.event_id
+                    self.tel, geom.camera_name, event.index.event_id
                 )
             )
 
@@ -123,7 +123,7 @@ class SingleTelEventDisplay(Tool):
                         plt.pause(self.delay)
                     if self.write:
                         plt.savefig(
-                            f'CT{self.tel:03d}_EV{event.r0.event_id:10d}'
+                            f'CT{self.tel:03d}_EV{event.index.event_id:10d}'
                             f'_S{ii:02d}.png'
                         )
             else:
@@ -155,7 +155,7 @@ class SingleTelEventDisplay(Tool):
                     plt.pause(self.delay)
                 if self.write:
                     plt.savefig(
-                        f'CT{self.tel:03d}_EV{event.r0.event_id:010d}.png'
+                        f'CT{self.tel:03d}_EV{event.index.event_id:010d}.png'
                     )
 
         self.log.info("FINISHED READING DATA FILE")

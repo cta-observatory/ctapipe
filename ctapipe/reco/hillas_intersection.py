@@ -83,7 +83,7 @@ class HillasIntersection(Reconstructor):
         if self.weighting == "Konrad":
             self._weight_method = self.weight_konrad
 
-    def predict(self, hillas_dict, inst, array_pointing, telescopes_pointings=None):
+    def predict(self, hillas_dict, subarray, array_pointing, telescopes_pointings=None):
         """
 
         Parameters
@@ -127,7 +127,7 @@ class HillasIntersection(Reconstructor):
 
         tilted_frame = TiltedGroundFrame(pointing_direction=array_pointing)
 
-        ground_positions = inst.subarray.tel_coords
+        ground_positions = subarray.tel_coords
         grd_coord = GroundFrame(x=ground_positions.x,
                                 y=ground_positions.y,
                                 z=ground_positions.z)
@@ -145,7 +145,7 @@ class HillasIntersection(Reconstructor):
             # prevent from using rads instead of meters as inputs
             assert hillas.x.to(u.m).unit == u.Unit('m')
 
-            focal_length = inst.subarray.tel[tel_id].optics.equivalent_focal_length
+            focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
 
             camera_frame = CameraFrame(
                 telescope_pointing=telescopes_pointings[tel_id],
@@ -153,8 +153,8 @@ class HillasIntersection(Reconstructor):
             )
             cog_coords = SkyCoord(x=hillas.x, y=hillas.y, frame=camera_frame)
             cog_coords_nom = cog_coords.transform_to(nom_frame)
-            hillas.x = cog_coords_nom.delta_alt
-            hillas.y = cog_coords_nom.delta_az
+            hillas.x = cog_coords_nom.fov_lat
+            hillas.y = cog_coords_nom.fov_lon
 
         src_x, src_y, err_x, err_y = self.reconstruct_nominal(hillas_dict_mod)
         core_x, core_y, core_err_x, core_err_y = self.reconstruct_tilted(
@@ -164,8 +164,8 @@ class HillasIntersection(Reconstructor):
         err_y *= u.rad
 
         nom = SkyCoord(
-            delta_az=src_x * u.rad,
-            delta_alt=src_y * u.rad,
+            fov_lon=src_x * u.rad,
+            fov_lat=src_y * u.rad,
             frame=nom_frame
         )
         # nom = sky_pos.transform_to(nom_frame)
@@ -185,8 +185,8 @@ class HillasIntersection(Reconstructor):
         result.core_y = grd.y
 
         x_max = self.reconstruct_xmax(
-            nom.delta_az,
-            nom.delta_alt,
+            nom.fov_lon,
+            nom.fov_lat,
             tilt.x, tilt.y,
             hillas_dict_mod,
             tel_x, tel_y,

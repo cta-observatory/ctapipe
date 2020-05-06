@@ -324,8 +324,8 @@ def build_negative_log_likelihood(
     cam_coords = SkyCoord(x=cam.pix_x, y=cam.pix_y, frame=camera_frame)
     tel_coords = cam_coords.transform_to(TelescopeFrame())
 
-    pixel_x = tel_coords.delta_az.to_value(u.rad)
-    pixel_y = tel_coords.delta_alt.to_value(u.rad)
+    pixel_x = tel_coords.fov_lon.to_value(u.rad)
+    pixel_y = tel_coords.fov_lat.to_value(u.rad)
     pixel_diameter = 2 * (
         np.sqrt(cam.pix_area[0] / np.pi) / focal_length * u.rad
     ).to_value(u.rad)

@@ -40,10 +40,10 @@ for event in event_source:
     time_gradients = {}
 
     for telescope_id, dl1 in event.dl1.tel.items():
-        geom = event.inst.subarray.tels[telescope_id].camera.geometry
+        geom = event_source.subarray.tels[telescope_id].camera.geometry
 
         image = dl1.image
-        peakpos = dl1.pulse_time
+        peakpos = dl1.peak_time
 
         # cleaning
         boundary, picture, min_neighbors = cleaning_level[geom.camera_name]
@@ -93,13 +93,13 @@ for event in event_source:
     )
     stereo = reco.predict(
         hillas_containers,
-        event.inst,
+        event_source.subarray,
         array_pointing,
     )
 
     plt.figure()
     angle_offset = event.mcheader.run_array_direction[0]
-    disp = ArrayDisplay(event.inst.subarray)
+    disp = ArrayDisplay(event_source.subarray)
 
     disp.set_vector_hillas(
         hillas_containers,
