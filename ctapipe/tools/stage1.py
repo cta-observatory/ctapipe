@@ -412,7 +412,7 @@ class Stage1ProcessorTool(Tool):
         extramc = ExtraMCInfo()
         extramc.obs_id = event.index.obs_id
         event.mcheader.prefix = ""
-        writer.write("configuration/simulation/run_config", [extramc, event.mcheader])
+        writer.write("simulation/run/config", [extramc, event.mcheader])
 
     def _write_simulation_histograms(self, writer: HDF5TableWriter):
         """ Write the distribution of thrown showers
@@ -464,7 +464,7 @@ class Stage1ProcessorTool(Tool):
                 if hist["id"] == 6:
                     fill_from_simtel(self._cur_obs_id, hist, hist_container)
                     writer.write(
-                        table_name="configuration/simulation/shower_distribution",
+                        table_name="simulation/run/shower_distribution",
                         containers=hist_container,
                     )
 
@@ -616,7 +616,7 @@ class Stage1ProcessorTool(Tool):
 
             # write the subarray tables
             writer.write(
-                table_name="dl1/event/subarray/mc_shower",
+                table_name="simulation/event/subarray/shower",
                 containers=[event.index, event.mc],
             )
             writer.write(
