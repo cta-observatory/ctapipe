@@ -13,6 +13,7 @@ import tables
 import tables.filters
 from astropy import units as u
 from tqdm.autonotebook import tqdm
+from scipy.stats import skew, kurtosis
 
 from ctapipe.io import metadata as meta
 from ..calib.camera import CameraCalibrator, GainSelector
@@ -127,19 +128,26 @@ def morphology(geom, image_mask) -> MorphologyContainer:
     )
 
 
-class IntensityContainer(Container):
+class IntensityStatisticsContainer(Container):
     """ Store statistics on the intensity distribution of images """
 
     max = Field(np.nan, "value of pixel with maximum intensity")
     min = Field(np.nan, "value of pixel with minimum intensity")
     mean = Field(np.nan, "mean intensity")
     std = Field(np.nan, "standard deviation of intensity")
+    skewness = Field(np.nan, "skewness of intensity")
+    kurtosis = Field(np.nan, "kurtosis of intensity")
 
 
-def intensity_statistics(image) -> IntensityContainer:
+def intensity_statistics(image) -> IntensityStatisticsContainer:
     """ compute intensity statistics of an image  """
-    return IntensityContainer(
-        max=image.max(), min=image[image > 0].min(), mean=image.mean(), std=image.std()
+    return IntensityStatisticsContainer(
+        max=image.max(),
+        min=image.min(),
+        mean=image.mean(),
+        std=image.std(),
+        skewness=skew(image),
+        kurtosis=kurtosis(image),
     )
 
 
@@ -150,8 +158,8 @@ class ExtendedImageParametersContainer(ImageParametersContainer):
     TODO: should eventually just move to ImageParametersContainer.
     """
 
-    intensity = Field(IntensityContainer(), "intensity statistics")
-    mc_intensity = Field(IntensityContainer(), "MC intensity statistics")
+    intensity = Field(IntensityStatisticsContainer(), "intensity statistics")
+    mc_intensity = Field(IntensityStatisticsContainer(), "MC intensity statistics")
 
 
 class ExtraImageContainer(Container):
