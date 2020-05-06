@@ -66,6 +66,7 @@ setup(
         'tables~=3.4',
         'tqdm>=4.32',
         'traitlets>=4.1,<5.0',
+        'h5py',  # for astropy.tables hdf io
     ],
     # here are optional dependencies (as "tag" : "dependency spec")
     extras_require={

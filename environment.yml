@@ -4,8 +4,10 @@ channels:
   - default
   - cta-observatory
 dependencies:
+  - python=3.7
   - astropy
   - bokeh
+  - h5py
   - conda-forge::nbsphinx
   - ctapipe-extra=0.2.19
   - cython
@@ -40,5 +42,3 @@ dependencies:
   - pip
   - pip:
     - eventio~=1.0
-
-
