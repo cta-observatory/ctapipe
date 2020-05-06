@@ -15,11 +15,11 @@ def plot_peds(peds, pedvars):
     pixid = np.arange(len(peds))
     plt.subplot(1, 2, 1)
     plt.scatter(pixid, peds)
-    plt.title(f"Pedestals for event {event.r0.event_id}")
+    plt.title(f"Pedestals for event {event.index.event_id}")
 
     plt.subplot(1, 2, 2)
     plt.scatter(pixid, pedvars)
-    plt.title(f"Ped Variances for event {event.r0.event_id}")
+    plt.title(f"Ped Variances for event {event.index.event_id}")
 
 
 if __name__ == '__main__':

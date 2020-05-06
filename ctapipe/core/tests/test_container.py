@@ -1,6 +1,9 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import pytest
-from ctapipe.core import Container, Field, Map, DeprecatedField
+from ctapipe.core import Container, Field, Map, DeprecatedField, FieldValidationError
+import numpy as np
+import warnings
+from astropy import units as u
 
 
 def test_prefix():
@@ -176,10 +179,84 @@ def test_container_brackets():
     with pytest.raises(AttributeError):
         t["foo"] = 5
 
+
 def test_deprecated_field():
-    class ExampleContainer(Container):
-        answer = DeprecatedField(-1, "The answer to all questions", reason="because")
 
-    cont = ExampleContainer()
-    cont.answer = 6
+    with warnings.catch_warnings(record=True) as warning:
 
+        class ExampleContainer(Container):
+            answer = DeprecatedField(
+                -1, "The answer to all questions", reason="because"
+            )
+
+        cont = ExampleContainer()
+        cont.answer = 6
+        assert len(warning) == 1
+        assert issubclass(warning[-1].category, DeprecationWarning)
+        assert "deprecated" in str(warning[-1].message)
+
+
+def test_field_validation():
+
+    # test units
+    field_u = Field(None, "float with units", unit="m")
+    field_u.validate(3.0 * u.m)
+    field_u.validate(3.0 * u.km)
+    with pytest.raises(FieldValidationError):
+        field_u.validate(3.0)
+
+    # test numpy arrays
+
+    field_f = Field(None, "float array", dtype=np.float64, ndim=2)
+    field_f.validate(np.ones((2, 2), dtype=np.float64))
+
+    #   test dtype
+    with pytest.raises(FieldValidationError):
+        field_f.validate(np.ones((2, 2), dtype=np.int32))
+
+    #   test ndims
+    with pytest.raises(FieldValidationError):
+        field_f.validate(np.ones((2), dtype=np.float32))
+
+    # test scalars
+    with pytest.raises(FieldValidationError):
+        field_f.validate(7.0)
+
+    field_s = Field(None, "scalar with type", dtype="int32")
+    field_s.validate(np.int32(3))
+
+    field_s2 = Field(None, "scalar with type", dtype="float32")
+    field_s2.validate(np.float32(3.2))
+    with pytest.raises(FieldValidationError):
+        field_s2.validate(3.3)
+
+    # test scalars with units and dtypes:
+    field_s3 = Field(1.0, "scalar with dtype and unit", dtype='float32', unit='m')
+    field_s3.validate(np.float32(6)*u.m)
+
+    # test with no restrictions:
+    field_all = Field(None, "stuff")
+    field_all.validate(3.0)
+    field_all.validate(np.ones((3, 3, 3)))
+    field_all.validate(3.0 * u.kg)
+
+    # test allow_none:
+    field_n = Field(None, "test", allow_none=True, dtype="float32", ndim=6)
+    field_n.validate(None)
+
+    field_n2 = Field(None, "test", allow_none=False, dtype="float32")
+    with pytest.raises(FieldValidationError):
+        field_n2.validate(None)
+
+
+def test_container_validation():
+    """ check that we can validate all fields in a container"""
+
+    class MyContainer(Container):
+        x = Field(3.2, "test", unit="m")
+        z = Field(np.int64(1), "sub-item", dtype="int64")
+
+    with pytest.raises(FieldValidationError):
+        MyContainer().validate()  # fails since 3.2 has no units
+
+    MyContainer(x=6.4 * u.m).validate()  # works

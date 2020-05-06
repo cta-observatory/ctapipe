@@ -80,7 +80,7 @@ class DumpTriggersTool(Tool):
         # to 1
 
         # insert the row into the table
-        self.events.add_row((event.dl0.event_id, relative_time.sec, delta_t.sec,
+        self.events.add_row((event.index.event_id, relative_time.sec, delta_t.sec,
                              len(trigtels),
                              self._current_trigpattern))
 
