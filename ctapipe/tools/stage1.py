@@ -5,8 +5,8 @@ Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
 """
 import hashlib
 from functools import partial
-from os.path import expandvars
-from pathlib import Path
+import sys
+import pathlib
 
 import numpy as np
 import tables
@@ -32,7 +32,7 @@ from ..core.traits import (
     CaselessStrEnum,
     Int,
     List,
-    Unicode,
+    Path,
     create_class_enum_trait,
     classes_with_traits,
 )
@@ -62,14 +62,14 @@ PROV = Provenance()
 DL1_DATA_MODEL_VERSION = "v1.0.0"
 
 
-def write_reference_metadata_headers(output_filename, obs_id, subarray, writer):
+def write_reference_metadata_headers(output_path, obs_id, subarray, writer):
     """
     Attaches Core Provenence headers to an output HDF5 file.
     Right now this is hard-coded for use with the ctapipe-stage1-process tool
 
     Parameters
     ----------
-    output_filename: str
+    output_path: pathlib.Path
         output HDF5 file
     obs_id: int
         observation ID
@@ -230,8 +230,8 @@ class Stage1ProcessorTool(Tool):
     example, see ctapipe/examples/stage1_config.json in the main code repo.
     """
 
-    output_filename = Unicode(
-        help="DL1 output filename", default_value="events.dl1.h5"
+    output_path = Path(
+        help="DL1 output filename", default_value=pathlib.Path("events.dl1.h5")
     ).tag(config=True)
 
     write_images = Bool(
@@ -287,7 +287,7 @@ class Stage1ProcessorTool(Tool):
 
     aliases = {
         "input": "EventSource.input_url",
-        "output": "Stage1ProcessorTool.output_filename",
+        "output": "Stage1ProcessorTool.output_path",
         "allowed-tels": "EventSource.allowed_tels",
         "max-events": "EventSource.max_events",
         "image-extractor-type": "Stage1ProcessorTool.image_extractor_type",
@@ -328,12 +328,19 @@ class Stage1ProcessorTool(Tool):
     def setup(self):
 
         # prepare output path:
+        self.output_path = self.output_path.expanduser()
+        if self.output_path.exists():
+            if self.overwrite:
+                self.log.warning(f"Overwriting {self.output_path}")
+                self.output_path.unlink()
+            else:
+                self.log.critical(
+                    f'Output file {self.output_path} exists'
+                    ', use `--overwrite` to overwrite '
+                )
+                sys.exit(1)
 
-        output_path = Path(expandvars(self.output_filename)).expanduser()
-        if output_path.exists() and self.overwrite:
-            self.log.warning(f"Overwriting {output_path}")
-            output_path.unlink()
-        PROV.add_output_file(str(output_path), role="DL1/Event")
+        PROV.add_output_file(str(self.output_path), role="DL1/Event")
 
         # check that options make sense:
         if self.write_parameters is False and self.write_images is False:
@@ -473,13 +480,13 @@ class Stage1ProcessorTool(Tool):
         serialize_meta = True
 
         subarray.to_table().write(
-            self.output_filename,
+            self.output_path,
             path="/configuration/instrument/subarray/layout",
             serialize_meta=serialize_meta,
             append=True,
         )
         subarray.to_table(kind="optics").write(
-            self.output_filename,
+            self.output_path,
             path="/configuration/instrument/telescope/optics",
             append=True,
             serialize_meta=serialize_meta,
@@ -490,13 +497,13 @@ class Stage1ProcessorTool(Tool):
                 tel_id = list(ids)[0]
                 camera = subarray.tel[tel_id].camera
                 camera.geometry.to_table().write(
-                    self.output_filename,
+                    self.output_path,
                     path=f"/configuration/instrument/telescope/camera/geometry_{camera}",
                     append=True,
                     serialize_meta=serialize_meta,
                 )
                 camera.readout.to_table().write(
-                    self.output_filename,
+                    self.output_path,
                     path=f"/configuration/instrument/telescope/camera/readout_{camera}",
                     append=True,
                     serialize_meta=serialize_meta,
@@ -506,7 +513,7 @@ class Stage1ProcessorTool(Tool):
         """ write out the event selection stats, etc. """
         image_stats = self.check_image.to_table(functions=True)
         image_stats.write(
-            self.output_filename,
+            self.output_path,
             path="/dl1/service/image_statistics",
             append=True,
             serialize_meta=True,
@@ -727,7 +734,7 @@ class Stage1ProcessorTool(Tool):
         self._write_instrument_configuration(self.event_source.subarray)
 
         with HDF5TableWriter(
-            self.output_filename, mode="a", add_prefix=True, filters=self._hdf5_filters
+            self.output_path, mode="a", add_prefix=True, filters=self._hdf5_filters
         ) as writer:
 
             tel_list_transform = create_tel_id_to_tel_index_transform(
@@ -751,7 +758,7 @@ class Stage1ProcessorTool(Tool):
                 self._generate_indices(writer)
 
             write_reference_metadata_headers(
-                output_filename=self.output_filename,
+                output_path=self.output_path,
                 subarray=self.event_source.subarray,
                 obs_id=self._cur_obs_id,
                 writer=writer,
