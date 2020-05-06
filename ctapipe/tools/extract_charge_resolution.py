@@ -36,8 +36,8 @@ class ChargeResolutionGenerator(Tool):
         directory_ok=False,
         help="Path to store the output HDF5 file"
     ).tag(config=True)
-    extractor_product = traits.enum_trait(
-        ImageExtractor, default="NeighborPeakWindowSum"
+    extractor_product = traits.create_class_enum_trait(
+        ImageExtractor, default_value="NeighborPeakWindowSum"
     )
 
     aliases = Dict(
