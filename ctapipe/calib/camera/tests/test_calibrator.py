@@ -18,11 +18,11 @@ def test_camera_calibrator(example_event, example_subarray):
     calibrator = CameraCalibrator(subarray=example_subarray)
     calibrator(example_event)
     image = example_event.dl1.tel[telid].image
-    pulse_time = example_event.dl1.tel[telid].pulse_time
+    peak_time = example_event.dl1.tel[telid].peak_time
     assert image is not None
-    assert pulse_time is not None
+    assert peak_time is not None
     assert image.shape == (1764,)
-    assert pulse_time.shape == (1764,)
+    assert peak_time.shape == (1764,)
 
 
 def test_manual_extractor(example_subarray):

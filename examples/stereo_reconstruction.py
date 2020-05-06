@@ -43,7 +43,7 @@ for event in event_source:
         geom = event_source.subarray.tels[telescope_id].camera.geometry
 
         image = dl1.image
-        peakpos = dl1.pulse_time
+        peakpos = dl1.peak_time
 
         # cleaning
         boundary, picture, min_neighbors = cleaning_level[geom.camera_name]

@@ -21,7 +21,7 @@ if __name__ == '__main__':
         print(
             "{} EVENT_ID: {}, ENERGY: {:.2f}, NTELS:{}".format(
                 ii,
-                event.r0.event_id, event.mc.energy, len(event.dl0.tels_with_data)
+                event.index.event_id, event.mc.energy, len(event.dl0.tels_with_data)
             )
         )
 
