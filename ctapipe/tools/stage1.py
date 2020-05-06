@@ -11,9 +11,9 @@ from pathlib import Path
 import numpy as np
 import tables
 import tables.filters
+
 from astropy import units as u
 from tqdm.autonotebook import tqdm
-from scipy.stats import skew, kurtosis
 
 from ctapipe.io import metadata as meta
 from ..calib.camera import CameraCalibrator, GainSelector
@@ -23,6 +23,8 @@ from ..containers import (
     TelEventIndexContainer,
     SimulatedShowerDistribution,
     MorphologyContainer,
+    IntensityStatisticsContainer,
+    PeakTimeStatisticsContainer,
 )
 from ..core import Provenance
 from ..core import QualityQuery, Container, Field, Tool, ToolConfigurationError
@@ -36,7 +38,7 @@ from ..core.traits import (
     classes_with_traits,
 )
 from ..image import ImageCleaner
-from ..image import hillas_parameters, number_of_islands
+from ..image import hillas_parameters, number_of_islands, descriptive_statistics
 from ..image.concentration import concentration
 from ..image.extractor import ImageExtractor
 from ..image.leakage import leakage
@@ -128,37 +130,12 @@ def morphology(geom, image_mask) -> MorphologyContainer:
     )
 
 
-class IntensityStatisticsContainer(Container):
-    """ Store statistics on the intensity distribution of images """
-
-    max = Field(np.nan, "value of pixel with maximum intensity")
-    min = Field(np.nan, "value of pixel with minimum intensity")
-    mean = Field(np.nan, "mean intensity")
-    std = Field(np.nan, "standard deviation of intensity")
-    skewness = Field(np.nan, "skewness of intensity")
-    kurtosis = Field(np.nan, "kurtosis of intensity")
-
-
-def intensity_statistics(image) -> IntensityStatisticsContainer:
-    """ compute intensity statistics of an image  """
-    return IntensityStatisticsContainer(
-        max=image.max(),
-        min=image.min(),
-        mean=image.mean(),
-        std=image.std(),
-        skewness=skew(image),
-        kurtosis=kurtosis(image),
-    )
-
-
 class ExtendedImageParametersContainer(ImageParametersContainer):
     """
     Extra parameters to add to the ImageParametersContainer
 
     TODO: should eventually just move to ImageParametersContainer.
     """
-
-    intensity = Field(IntensityStatisticsContainer(), "intensity statistics")
     mc_intensity = Field(IntensityStatisticsContainer(), "MC intensity statistics")
 
 
@@ -548,7 +525,9 @@ class Stage1ProcessorTool(Tool):
         geometry = tel.camera.geometry
 
         # apply cleaning
-        signal_pixels = self.clean(tel_id=tel_id, image=data.image)
+        signal_pixels = self.clean(
+            tel_id=tel_id, image=data.image, arrival_times=data.pulse_time
+        )
         image_selected = data.image[signal_pixels]
 
         params = ExtendedImageParametersContainer()
@@ -584,7 +563,13 @@ class Stage1ProcessorTool(Tool):
             params.morphology = morphology(
                 geom=geometry, image_mask=signal_pixels
             )
-            params.intensity = intensity_statistics(image=image_selected)
+            params.intensity_statistics = descriptive_statistics(
+                image_selected, container_class=IntensityStatisticsContainer
+            )
+            params.peak_time_statistics = descriptive_statistics(
+                data.pulse_time[signal_pixels],
+                container_class=PeakTimeStatisticsContainer,
+            )
 
         return signal_pixels, params
 
@@ -685,7 +670,8 @@ class Stage1ProcessorTool(Tool):
                     params.leakage,
                     params.concentration,
                     params.morphology,
-                    params.intensity,
+                    params.intensity_statistics,
+                    params.peak_time_statistics,
                 ]
 
                 # currently the HDF5TableWriter has problems if the first event

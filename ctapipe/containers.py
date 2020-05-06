@@ -2,7 +2,6 @@
 Container structures for data that should be read or written to disk
 """
 
-import numpy as np
 from astropy import units as u
 from astropy.time import Time
 from numpy import nan
@@ -613,6 +612,25 @@ class MorphologyContainer(Container):
     num_large_islands = Field(nan, "Number of > 10 pixel islands")
 
 
+class StatisticsContainer(Container):
+    """Store descriptive statistics"""
+
+    max = Field(nan, "value of pixel with maximum intensity")
+    min = Field(nan, "value of pixel with minimum intensity")
+    mean = Field(nan, "mean intensity")
+    std = Field(nan, "standard deviation of intensity")
+    skewness = Field(nan, "skewness of intensity")
+    kurtosis = Field(nan, "kurtosis of intensity")
+
+
+class IntensityStatisticsContainer(StatisticsContainer):
+    container_prefix = 'intensity'
+
+
+class PeakTimeStatisticsContainer(StatisticsContainer):
+    container_prefix = 'peak_time'
+
+
 class ImageParametersContainer(Container):
     """ Collection of image parameters """
 
@@ -622,6 +640,12 @@ class ImageParametersContainer(Container):
     leakage = Field(LeakageContainer(), "Leakage Parameters")
     concentration = Field(ConcentrationContainer(), "Concentration Parameters")
     morphology = Field(MorphologyContainer(), "Morphology Parameters")
+    intensity_statistics = Field(
+        IntensityStatisticsContainer(), "Intensity image statistics"
+    )
+    peak_time_statistics = Field(
+        PeakTimeStatisticsContainer(), "Peak time image statistics"
+    )
 
 
 class FlatFieldContainer(Container):
