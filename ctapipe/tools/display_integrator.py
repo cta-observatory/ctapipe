@@ -225,8 +225,8 @@ class DisplayIntegrator(Tool):
     ).tag(config=True)
     channel = Enum([0, 1], 0, help="Channel to view").tag(config=True)
 
-    extractor_product = traits.enum_trait(
-        ImageExtractor, default="NeighborPeakWindowSum"
+    extractor_product = traits.create_class_enum_trait(
+        ImageExtractor, default_value="NeighborPeakWindowSum"
     )
 
     aliases = Dict(

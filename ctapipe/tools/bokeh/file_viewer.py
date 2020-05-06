@@ -28,9 +28,9 @@ class BokehFileViewer(Tool):
     default_url = get_dataset_path("gamma_test_large.simtel.gz")
     EventSource.input_url.default_value = default_url
 
-    extractor_product = traits.enum_trait(
+    extractor_product = traits.create_class_enum_trait(
         ImageExtractor,
-        default='NeighborPeakWindowSum'
+        default_value='NeighborPeakWindowSum'
     )
 
     aliases = Dict(dict(
