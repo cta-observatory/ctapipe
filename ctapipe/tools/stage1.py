@@ -18,7 +18,6 @@ from tqdm.autonotebook import tqdm
 from ctapipe.io import metadata as meta
 from ..calib.camera import CameraCalibrator, GainSelector
 from ..containers import (
-    EventIndexContainer,
     ImageParametersContainer,
     TelEventIndexContainer,
     SimulatedShowerDistribution,
