@@ -7,7 +7,7 @@ from traitlets import Unicode
 from traitlets.config import Application, Configurable
 
 from .. import __version__ as version
-from .traits import Path
+from .traits import Path, Bool
 from . import Provenance
 from .logging import ColoredFormatter
 
@@ -114,6 +114,8 @@ class Tool(Application):
         help="The Logging format template",
     ).tag(config=True)
 
+    quiet = Bool(False).tag(config=True)
+
     _log_formatter_cls = ColoredFormatter
 
     def __init__(self, **kwargs):
@@ -121,6 +123,12 @@ class Tool(Application):
         if self.aliases:
             self.aliases["log-level"] = "Application.log_level"
             self.aliases["config"] = "Tool.config_file"
+
+        flags = {
+            "quiet": ({"Tool": {"quiet": True}}, "suppress command line output"),
+            "q": ({"Tool": {"quiet": True}}, "shortname for --quiet"),
+        }
+        self.flags.update(flags)
 
         super().__init__(**kwargs)
         self.log_level = logging.INFO
@@ -138,6 +146,11 @@ class Tool(Application):
                 self.load_config_file(self.config_file)
             except Exception as err:
                 raise ToolConfigurationError(f"Couldn't read config file: {err}")
+
+        if self.quiet:
+            for hdlr in self.log.handlers:
+                hdlr.setLevel(60)
+
         self.log.info(f"ctapipe version {self.version_string}")
 
         # ensure command-line takes precedence over config file options:
