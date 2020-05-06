@@ -124,7 +124,10 @@ def morphology(geom, image_mask) -> MorphologyContainer:
 
     num_islands, island_labels = number_of_islands(geom=geom, mask=image_mask)
 
-    return MorphologyContainer(num_pixels=image_mask.sum(), num_islands=num_islands)
+    return MorphologyContainer(
+        num_pixels=np.count_nonzero(image_mask),
+        num_islands=num_islands
+    )
 
 
 class IntensityContainer(Container):
