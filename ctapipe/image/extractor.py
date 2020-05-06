@@ -524,6 +524,24 @@ class NeighborPeakWindowSum(ImageExtractor):
 
     @lru_cache(maxsize=128)
     def _calculate_correction(self, telid):
+        """
+        Calculate the correction for the extracted change such that the value
+        returned would equal 1 for a noise-less unit pulse.
+
+        This method is decorated with @lru_cache to ensure it is only
+        calculated once per telescope.
+
+        Parameters
+        ----------
+        telid : int
+
+        Returns
+        -------
+        correction : ndarray
+        The correction to apply to an extracted charge using this ImageExtractor
+        Has size n_channels, as a different correction value might be required
+        for different gain channels.
+        """
         readout = self.subarray.tel[telid].camera.readout
         return integration_correction(
             readout.reference_pulse_shape,
@@ -799,7 +817,7 @@ class TwoPassWindowSum(ImageExtractor):
             )
 
             # get projected distances along main image axis
-            long, trans = camera_to_shower_coordinates(
+            long, _ = camera_to_shower_coordinates(
                 camera_geometry.pix_x,
                 camera_geometry.pix_y,
                 hillas.x,
