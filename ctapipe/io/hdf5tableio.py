@@ -144,6 +144,7 @@ class HDF5TableWriter(TableWriter):
         meta = {}  # any extra meta-data generated here (like units, etc)
 
         # create pytables schema description for the given container
+        pos = 0
         for container in containers:
             for col_name, value in container.items(add_prefix=self.add_prefix):
 
@@ -153,6 +154,9 @@ class HDF5TableWriter(TableWriter):
                 if self._is_column_excluded(table_name, col_name):
                     self.log.debug("excluded column: %s/%s", table_name, col_name)
                     continue
+
+                if col_name in Schema.columns:
+                    self.log.warning(f'Found duplicated column {col_name}, skipping')
 
                 # apply any user-defined transforms first
                 value = self._apply_col_transform(table_name, col_name, value)
@@ -188,18 +192,27 @@ class HDF5TableWriter(TableWriter):
                     typename = value.dtype.name
                     coltype = PYTABLES_TYPE_MAP[typename]
                     shape = value.shape
-                    Schema.columns[col_name] = coltype(shape=shape)
+                    Schema.columns[col_name] = coltype(shape=shape, pos=pos)
 
-                if isinstance(value, Time):
+                elif isinstance(value, Time):
                     # TODO: really should use MET, but need a func for that
-                    Schema.columns[col_name] = tables.Float64Col()
+                    Schema.columns[col_name] = tables.Float64Col(pos=pos)
                     self.add_column_transform(table_name, col_name, tr_time_to_float)
 
                 elif type(value).__name__ in PYTABLES_TYPE_MAP:
                     typename = type(value).__name__
                     coltype = PYTABLES_TYPE_MAP[typename]
-                    Schema.columns[col_name] = coltype()
+                    Schema.columns[col_name] = coltype(pos=pos)
 
+                else:
+                    self.log.warning(
+                        f'Column {col_name} of'
+                        f' container {container.__class__.__name__}'
+                        'not writable, skipping'
+                    )
+                    continue
+
+                pos += 1
                 self.log.debug(
                     "Table %s: added col: %s type: %s shape: %s",
                     table_name,
