@@ -863,122 +863,123 @@ class TwoPassWindowSum(ImageExtractor):
             # NOTE: In this case, even if this is 1st pass information,
             # the image is actually very bright! We should label it as "good"!
             return charge_1stpass, pulse_time_1stpass
-        else:  # otherwise we proceed by parametrizing the image
-            hillas = hillas_parameters(camera_geometry, image_2)
 
-            # STEP 5
+        # otherwise we proceed by parametrizing the image
+        hillas = hillas_parameters(camera_geometry, image_2)
 
-            # linear fit of pulse time vs. distance along major image axis
-            # using only the main island surviving the preliminary
-            # image cleaning
-            # WARNING: in case of outliers, the fit can perform better if
-            # it is a robust algorithm.
-            timing = timing_parameters(
-                camera_geometry, image_2, pulse_time_1stpass, hillas
-            )
+        # STEP 5
 
-            # get projected distances along main image axis
-            long, _ = camera_to_shower_coordinates(
-                camera_geometry.pix_x,
-                camera_geometry.pix_y,
-                hillas.x,
-                hillas.y,
-                hillas.psi,
-            )
+        # linear fit of pulse time vs. distance along major image axis
+        # using only the main island surviving the preliminary
+        # image cleaning
+        # WARNING: in case of outliers, the fit can perform better if
+        # it is a robust algorithm.
+        timing = timing_parameters(
+            camera_geometry, image_2, pulse_time_1stpass, hillas
+        )
 
-            # get the predicted times as a linear relation
-            predicted_pulse_times = (
-                timing.slope * long[nonCore_pixels_ids] + timing.intercept
-            )
+        # get projected distances along main image axis
+        long, _ = camera_to_shower_coordinates(
+            camera_geometry.pix_x,
+            camera_geometry.pix_y,
+            hillas.x,
+            hillas.y,
+            hillas.psi,
+        )
 
-            predicted_peaks = np.zeros(len(predicted_pulse_times))
+        # get the predicted times as a linear relation
+        predicted_pulse_times = (
+            timing.slope * long[nonCore_pixels_ids] + timing.intercept
+        )
 
-            # Convert time in ns to sample index using the sampling rate from
-            # the readout.
-            # Approximate the value obtained to nearest integer, then cast to
-            # int64 otherwise 'extract_around_peak' complains.
-            sampling_rate = self.sampling_rate[telid]
-            np.rint(predicted_pulse_times.value * sampling_rate, predicted_peaks)
-            predicted_peaks = predicted_peaks.astype(np.int64)
+        predicted_peaks = np.zeros(len(predicted_pulse_times))
 
-            # Due to the fit these peak indexes can now be also outside of the
-            # readout window, so later we check for this.
+        # Convert time in ns to sample index using the sampling rate from
+        # the readout.
+        # Approximate the value obtained to nearest integer, then cast to
+        # int64 otherwise 'extract_around_peak' complains.
+        sampling_rate = self.sampling_rate[telid]
+        np.rint(predicted_pulse_times.value * sampling_rate, predicted_peaks)
+        predicted_peaks = predicted_peaks.astype(np.int64)
 
-            # STEP 6
+        # Due to the fit these peak indexes can now be also outside of the
+        # readout window, so later we check for this.
 
-            # select only the waveforms correspondent to the non-core pixels
-            # of the main island survived from the 1st pass image cleaning
-            nonCore_waveforms = waveforms[nonCore_pixels_ids]
+        # STEP 6
 
-            # Build 'width' and 'shift' arrays that adapt on the position of the
-            # window along each waveform
+        # select only the waveforms correspondent to the non-core pixels
+        # of the main island survived from the 1st pass image cleaning
+        nonCore_waveforms = waveforms[nonCore_pixels_ids]
 
-            # Now the definition of peak_index is really the peak.
-            # We have to add 2 samples each side, so the shist will always
-            # be (-)2, while width will always end 4 samples to the right.
-            # This "always" refers to a 5-samples window of course
-            window_widths = np.full_like(predicted_peaks, 4, dtype=np.int64)
-            window_shifts = np.full_like(predicted_peaks, 2, dtype=np.int64)
+        # Build 'width' and 'shift' arrays that adapt on the position of the
+        # window along each waveform
 
-            # BUT, if the resulting 5-samples window falls outside of the readout
-            # window then we take the first (or last) 5 samples
-            window_widths[predicted_peaks < 0] = 4
-            window_shifts[predicted_peaks < 0] = 0
-            window_widths[predicted_peaks > (waveforms.shape[1] - 1)] = 4
-            window_shifts[predicted_peaks > (waveforms.shape[1] - 1)] = 4
+        # Now the definition of peak_index is really the peak.
+        # We have to add 2 samples each side, so the shist will always
+        # be (-)2, while width will always end 4 samples to the right.
+        # This "always" refers to a 5-samples window of course
+        window_widths = np.full_like(predicted_peaks, 4, dtype=np.int64)
+        window_shifts = np.full_like(predicted_peaks, 2, dtype=np.int64)
 
-            # Now we can also (re)define the patological predicted times
-            # because (we needed them to define the corrispective widths
-            # and shifts)
+        # BUT, if the resulting 5-samples window falls outside of the readout
+        # window then we take the first (or last) 5 samples
+        window_widths[predicted_peaks < 0] = 4
+        window_shifts[predicted_peaks < 0] = 0
+        window_widths[predicted_peaks > (waveforms.shape[1] - 1)] = 4
+        window_shifts[predicted_peaks > (waveforms.shape[1] - 1)] = 4
 
-            # set sample to 0 (beginning of the waveform) if predicted time
-            # falls before
-            predicted_peaks[predicted_peaks < 0] = 0
-            # set sample to max-1 (first sample has index 0)
-            # if predicted time falls after
-            predicted_peaks[predicted_peaks > (waveforms.shape[1] - 1)] = (
-                waveforms.shape[1] - 1
-            )
+        # Now we can also (re)define the patological predicted times
+        # because (we needed them to define the corrispective widths
+        # and shifts)
 
-            # re-calibrate non-core pixels using the fixed 5-samples window
-            charge_noCore, pulse_times_noCore = extract_around_peak(
-                nonCore_waveforms,
-                predicted_peaks,
-                window_widths,
-                window_shifts,
-                self.sampling_rate[telid],
-            )
+        # set sample to 0 (beginning of the waveform) if predicted time
+        # falls before
+        predicted_peaks[predicted_peaks < 0] = 0
+        # set sample to max-1 (first sample has index 0)
+        # if predicted time falls after
+        predicted_peaks[predicted_peaks > (waveforms.shape[1] - 1)] = (
+            waveforms.shape[1] - 1
+        )
 
-            # Modify integration correction factors only for non-core pixels
-            correction_2ndPass = self._calculate_correction(
-                telid,
-                window_widths,
-                window_shifts,
-                selected_gain_channel[nonCore_pixels_ids],
-            )
-            np.put(correction, [nonCore_pixels_ids], correction_2ndPass)
+        # re-calibrate non-core pixels using the fixed 5-samples window
+        charge_noCore, pulse_times_noCore = extract_around_peak(
+            nonCore_waveforms,
+            predicted_peaks,
+            window_widths,
+            window_shifts,
+            self.sampling_rate[telid],
+        )
 
-            # STEP 7
+        # Modify integration correction factors only for non-core pixels
+        correction_2ndPass = self._calculate_correction(
+            telid,
+            window_widths,
+            window_shifts,
+            selected_gain_channel[nonCore_pixels_ids],
+        )
+        np.put(correction, [nonCore_pixels_ids], correction_2ndPass)
 
-            # Combine core and non-core pixels in the final output
+        # STEP 7
 
-            # this is the biggest cluster from the cleaned image
-            # it contains the core pixels (which we leave untouched)
-            # plus possibly some non-core pixels
-            charge_2ndpass = image_2.copy()
-            # Now we overwrite the charges of all non-core pixels in the camera
-            # plus all those pixels which didn't survive the preliminary
-            # cleaning.
-            # We apply also their corrections.
-            charge_2ndpass[nonCore_pixels_mask] = charge_noCore * correction_2ndPass
+        # Combine core and non-core pixels in the final output
 
-            # Same approach for the pulse times
-            pulse_time_2npass = pulse_time_1stpass  # core + non-core pixels
-            pulse_time_2npass[
-                nonCore_pixels_mask
-            ] = pulse_times_noCore  # non-core pixels
+        # this is the biggest cluster from the cleaned image
+        # it contains the core pixels (which we leave untouched)
+        # plus possibly some non-core pixels
+        charge_2ndpass = image_2.copy()
+        # Now we overwrite the charges of all non-core pixels in the camera
+        # plus all those pixels which didn't survive the preliminary
+        # cleaning.
+        # We apply also their corrections.
+        charge_2ndpass[nonCore_pixels_mask] = charge_noCore * correction_2ndPass
 
-            return charge_2ndpass, pulse_time_2npass
+        # Same approach for the pulse times
+        pulse_time_2npass = pulse_time_1stpass  # core + non-core pixels
+        pulse_time_2npass[
+            nonCore_pixels_mask
+        ] = pulse_times_noCore  # non-core pixels
+
+        return charge_2ndpass, pulse_time_2npass
 
     def __call__(self, waveforms, telid, selected_gain_channel):
         """
@@ -1010,13 +1011,13 @@ class TwoPassWindowSum(ImageExtractor):
 
         if self.disable_second_pass:
             return charge1 * correction1, pulse_time1
-        else:
-            charge2, pulse_time2 = self._apply_second_pass(
-                waveforms,
-                telid,
-                selected_gain_channel,
-                charge1,
-                pulse_time1,
-                correction1,
-            )
-            return charge2, pulse_time2
+
+        charge2, pulse_time2 = self._apply_second_pass(
+            waveforms,
+            telid,
+            selected_gain_channel,
+            charge1,
+            pulse_time1,
+            correction1,
+        )
+        return charge2, pulse_time2
