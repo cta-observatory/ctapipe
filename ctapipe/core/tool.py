@@ -115,6 +115,12 @@ class Tool(Application):
     ).tag(config=True)
 
     quiet = Bool(False).tag(config=True)
+    logfile = Path(
+        default_value=None,
+        exists=None,
+        directory_ok=False,
+        help="Filename for the log",
+    ).tag(config=True)
 
     _log_formatter_cls = ColoredFormatter
 
@@ -123,6 +129,7 @@ class Tool(Application):
         if self.aliases:
             self.aliases["log-level"] = "Application.log_level"
             self.aliases["config"] = "Tool.config_file"
+            self.aliases["logfile"] = "Tool.logfile"
 
         flags = {
             "quiet": ({"Tool": {"quiet": True}}, "suppress command line output"),
@@ -150,6 +157,12 @@ class Tool(Application):
         if self.quiet:
             for hdlr in self.log.handlers:
                 hdlr.setLevel(60)
+
+        if self.logfile is not None:
+            hdlr = logging.FileHandler(self.logfile)
+            fmtr = logging.Formatter(self.log_format)
+            hdlr.setFormatter(fmtr)
+            self.log.addHandler(hdlr)
 
         self.log.info(f"ctapipe version {self.version_string}")
 
