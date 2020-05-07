@@ -96,10 +96,12 @@ class HDF5TableWriter(TableWriter):
         mode="w",
         root_uep="/",
         filters=DEFAULT_FILTERS,
+        parent=None,
+        config=None,
         **kwargs,
     ):
 
-        super().__init__(add_prefix=add_prefix)
+        super().__init__(add_prefix=add_prefix, parent=None, config=None)
         self._schemas = {}
         self._tables = {}
 
