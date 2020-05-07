@@ -3,11 +3,12 @@ import copy
 import numpy as np
 from astropy.utils.data import download_file
 import astropy.units as u
+import pytest
 
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 from ctapipe.io.simteleventsource import SimTelEventSource, apply_simtel_r1_calibration
 from ctapipe.utils import get_dataset_path
-from ctapipe.containers import MCHeaderContainer
+from ctapipe.io import DataLevel
 
 
 gamma_test_large_path = get_dataset_path("gamma_test_large.simtel.gz")
@@ -26,10 +27,11 @@ def test_simtel_event_source_on_gamma_test_one_event():
             if event.count > 1:
                 break
 
-        for event in reader:
-            # Check generator has restarted from beginning
-            assert event.count == 0
-            break
+        with pytest.warns(UserWarning):
+            for event in reader:
+                # Check generator has restarted from beginning
+                assert event.count == 0
+                break
 
     # test that max_events works:
     max_events = 5
@@ -108,7 +110,7 @@ def test_properties():
 
     assert source.is_simulation
     assert source.mc_header.corsika_version == 6990
-    assert source.datalevels == ('R0', 'R1', 'DL0')
+    assert source.datalevels == (DataLevel.R0, DataLevel.R1, DataLevel.DL0)
     assert source.obs_id == 7514
 
 

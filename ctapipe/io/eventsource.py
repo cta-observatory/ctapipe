@@ -216,7 +216,7 @@ class EventSource(Component):
 
         Returns
         -------
-        tuple[str]
+        tuple[ctapipe.io.DataLevel]
         """
 
     @property

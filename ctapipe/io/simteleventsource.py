@@ -26,6 +26,7 @@ from ..instrument.camera import UnknownPixelShapeWarning
 from ..instrument.guess import guess_telescope, UNKNOWN_TELESCOPE
 from ..containers import MCHeaderContainer
 from .eventsource import EventSource
+from .datalevels import DataLevel
 
 X_MAX_UNIT = u.g / (u.cm ** 2)
 
@@ -212,7 +213,7 @@ class SimTelEventSource(EventSource):
 
     @property
     def datalevels(self):
-        return ('R0', 'R1', 'DL0')
+        return (DataLevel.R0, DataLevel.R1, DataLevel.DL0)
 
     @property
     def obs_id(self):
