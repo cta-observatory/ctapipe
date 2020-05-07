@@ -9,7 +9,6 @@ dependencies:
   - astropy
   - bokeh
   - conda-forge::nbsphinx
-  - ctapipe-extra=0.2.19
   - cython
   - graphviz
   - iminuit
@@ -42,3 +41,4 @@ dependencies:
   - pip:
     - eventio~=1.0
     - zstandard
+    - https://github.com/cta-observatory/ctapipe-extra/archive/v0.3.0.tar.gz
