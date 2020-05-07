@@ -28,5 +28,4 @@ if [[ "$CONDA" == "true" ]]; then
     conda activate cta-dev
 else
     pip install -U pip
-    pip install -U -e .[all]
 fi

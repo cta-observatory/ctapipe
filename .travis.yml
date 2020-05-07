@@ -55,9 +55,8 @@ before_install:
 install:
     - source ci/install.sh
     - python --version
-    - ulimit -s 16000  # increase stack size limit, for libhessio
     - pip install travis-sphinx codecov pytest-cov
-    - python setup.py develop
+    - pip install -e .[all]
 
 script:
     - pytest --cov=ctapipe
