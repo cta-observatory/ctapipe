@@ -41,3 +41,4 @@ dependencies:
   - zlib
   - pip:
     - eventio~=1.0
+    - zstandard

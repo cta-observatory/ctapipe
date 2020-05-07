@@ -33,7 +33,6 @@ entry_points['console_scripts'] = [
 tests_require = [
     'pytest',
     'ctapipe-extra @ https://github.com/cta-observatory/ctapipe-extra/archive/v0.3.0.tar.gz',
-    'pyhessio @ https://github.com/cta-observatory/pyhessio/archive/v2.1.1.tar.gz',
 ]
 docs_require = [
     'sphinx_rtd_theme', 'sphinx_automodapi', 'sphinx', 'nbsphinx', 'numpydoc',
@@ -52,7 +51,7 @@ setup(
     install_requires=[
         'astropy>=3,<5',
         'bokeh~=1.0',
-        'eventio~=1.0',
+        'eventio>=1.1.1,<2.0.0a0',  # at least 1.1.1, but not 2
         'iminuit>=1.3',
         'joblib',
         'matplotlib~=3.0',
@@ -65,6 +64,7 @@ setup(
         'tables~=3.4',
         'tqdm>=4.32',
         'traitlets>=4.1,<5.0',
+        'zstandard',
     ],
     # here are optional dependencies (as "tag" : "dependency spec")
     extras_require={
