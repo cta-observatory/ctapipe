@@ -273,8 +273,7 @@ def test_two_pass_window_sum(subarray):
     min_charges = [1, 10, 100]
     max_charges = [10, 100, 1000]
     for minCharge, maxCharge in zip(min_charges, max_charges):
-        print(f"testing for charges between {minCharge} and {maxCharge}")
-        toymodel = get_test_toymodel(subarray, minCharge=1, maxCharge=10)
+        toymodel = get_test_toymodel(subarray, minCharge, maxCharge)
         waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = (
             toymodel
         )
