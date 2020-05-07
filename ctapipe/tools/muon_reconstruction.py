@@ -90,7 +90,7 @@ class MuonAnalysis(Tool):
             subarray=self.source.subarray,
         ))
         self.writer = self.add_component(HDF5TableWriter(
-            self.output, "", add_prefix=True
+            self.output, "", add_prefix=True, parent=self,
         ))
         self.pixels_in_tel_frame = {}
         self.field_of_view = {}
