@@ -14,6 +14,7 @@ from ..core import traits
 from ..core import TelescopeComponent
 from ..image import toymodel
 from .eventsource import EventSource
+from .datalevels import DataLevel
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,18 @@ class ToyEventSource(EventSource, TelescopeComponent):
     @property
     def subarray(self):
         return self._subarray
+
+    @property
+    def obs_id(self):
+        return -1
+
+    @property
+    def is_simulation(self):
+        return True
+
+    @property
+    def datalevels(self):
+        return (DataLevel.DL1a, )
 
     @subarray.setter
     def subarray(self, value):
