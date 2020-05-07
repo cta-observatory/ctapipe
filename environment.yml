@@ -4,6 +4,8 @@ channels:
   - default
   - cta-observatory
 dependencies:
+  - python=3.7
+  - pip
   - astropy
   - bokeh
   - conda-forge::nbsphinx
@@ -17,7 +19,7 @@ dependencies:
   - jupyter
   - matplotlib
   - numba
-  - numpy>=1.15.4
+  - numpy>=1.17
   - numpydoc
   - pandas
   - psutil
@@ -37,8 +39,5 @@ dependencies:
   - wheel
   - xz
   - zlib
-  - pip
   - pip:
     - eventio~=1.0
-
-
