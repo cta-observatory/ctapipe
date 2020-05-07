@@ -40,11 +40,7 @@ from .hillas import hillas_parameters, camera_to_shower_coordinates
     nopython=True,
 )
 def extract_around_peak(
-<<<<<<< HEAD
-    waveforms, peak_index, width, shift, sampling_rate_ghz, sum_, pulse_time
-=======
         waveforms, peak_index, width, shift, sampling_rate_ghz, sum_, peak_time
->>>>>>> master
 ):
     """
     This function performs the following operations:
@@ -381,18 +377,9 @@ class FixedWindowSum(ImageExtractor):
         )
 
     def __call__(self, waveforms, telid, selected_gain_channel):
-<<<<<<< HEAD
-        charge, pulse_time = extract_around_peak(
-            waveforms,
-            self.window_start.tel[telid],
-            self.window_width.tel[telid],
-            0,
-            self.sampling_rate[telid],
-=======
         charge, peak_time = extract_around_peak(
             waveforms, self.window_start.tel[telid], self.window_width.tel[telid], 0,
             self.sampling_rate[telid]
->>>>>>> master
         )
         correction = self._calculate_correction(telid=telid)[selected_gain_channel]
         return charge * correction, peak_time
