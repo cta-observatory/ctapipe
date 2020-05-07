@@ -7,6 +7,7 @@ import astropy.units as u
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 from ctapipe.io.simteleventsource import SimTelEventSource, apply_simtel_r1_calibration
 from ctapipe.utils import get_dataset_path
+from ctapipe.containers import MCHeaderContainer
 
 
 gamma_test_large_path = get_dataset_path("gamma_test_large.simtel.gz")
@@ -100,6 +101,15 @@ def test_additional_meta_data_from_mc_header():
         assert np.isclose(
             value.to_value(expectation.unit), expectation.to_value(expectation.unit)
         )
+
+
+def test_properties():
+    source = SimTelEventSource(input_url=gamma_test_large_path)
+
+    assert source.is_simulation
+    assert source.mc_header.corsika_version == 6990
+    assert source.datalevels == ('R0', 'R1', 'DL0')
+    assert source.obs_id == 7514
 
 
 def test_gamma_file():
