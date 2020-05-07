@@ -854,7 +854,7 @@ class TwoPassWindowSum(ImageExtractor):
         # if the resulting image has less then 3 pixels
         # or there are more than 3 pixels but all contain a number of
         # photoelectrons above the core threshold
-        if (np.count_nonzero(image_2) < 3):
+        if np.count_nonzero(image_2) < 3:
             # we return the 1st pass information
             # NOTE: In this case, the image was not bright enough!
             # We should label it as "bad and NOT use it"
@@ -957,7 +957,7 @@ class TwoPassWindowSum(ImageExtractor):
                 telid,
                 window_widths,
                 window_shifts,
-                selected_gain_channel[nonCore_pixels_ids]
+                selected_gain_channel[nonCore_pixels_ids],
             )
             np.put(correction, [nonCore_pixels_ids], correction_2ndPass)
 
@@ -1020,6 +1020,6 @@ class TwoPassWindowSum(ImageExtractor):
                 selected_gain_channel,
                 charge1,
                 pulse_time1,
-                correction1
+                correction1,
             )
             return charge2, pulse_time2
