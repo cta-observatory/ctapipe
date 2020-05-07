@@ -11,8 +11,18 @@ from ctapipe.io import EventSource
 from ctapipe.io import HDF5TableWriter
 from ctapipe.image.cleaning import TailcutsImageCleaner
 from ctapipe.coordinates import TelescopeFrame, CameraFrame
-from ctapipe.image.muon import MuonRingFitter, MuonIntensityFitter, ring_containment
 from ctapipe.image import ImageExtractor
+from ctapipe.containers import MuonImageParameters
+from ctapipe.instrument import CameraGeometry
+
+from ctapipe.image.muon import (
+    MuonRingFitter,
+    MuonIntensityFitter,
+    ring_containment,
+    ring_completeness,
+    intensity_ratio_inside_ring,
+    mean_squared_error
+)
 
 
 class MuonAnalysis(Tool):
@@ -30,6 +40,19 @@ class MuonAnalysis(Tool):
         default_value=None,
         allow_none=True,
         help='HDF5 output file name'
+    ).tag(config=True)
+
+    completeness_threshold = traits.FloatTelescopeParameter(
+        default_value=30.0,
+        help='Threshold for calculating the ``ring_completeness``',
+    ).tag(config=True)
+
+    ratio_width = traits.FloatTelescopeParameter(
+        default_value=1.5,
+        help=(
+            'Ring width for intensity ratio'
+            ' computation as multiple of pixel diameter'
+        )
     ).tag(config=True)
 
     min_pixels = traits.IntTelescopeParameter(
@@ -94,8 +117,10 @@ class MuonAnalysis(Tool):
         ))
         self.pixels_in_tel_frame = {}
         self.field_of_view = {}
-        self.min_pixels.attach_subarray(self.source.subarray)
-        self.pedestal.attach_subarray(self.source.subarray)
+        self.pixel_widths = {}
+
+        for p in ['min_pixels', 'pedestal', 'ratio_width', 'completeness_threshold']:
+            getattr(self, p).attach_subarray(self.source.subarray)
 
         self.tel_type_ids = {
             tid: hash(str(tel)) for tid, tel in self.source.subarray.tel.items()
@@ -134,12 +159,7 @@ class MuonAnalysis(Tool):
             )
             return
 
-        pixel_coords = self.get_pixel_coords(tel_id)
-        fov_radius = self.get_fov(tel_id)
-
-        pixel_coords = self.pixels_in_tel_frame[tel_id]
-        x = pixel_coords.fov_lon
-        y = pixel_coords.fov_lat
+        x, y = self.get_pixel_coords(tel_id)
 
         # iterative ring fit.
         # First use cleaning pixels, then only pixels close to the ring
@@ -161,13 +181,7 @@ class MuonAnalysis(Tool):
             self.log.debug(f'Skipping event {event_id}-{tel_id}: Ring fit did not succeed')
             return
 
-        # add ring containment, not filled in fit
-        ring.containment = ring_containment(
-            ring.radius,
-            fov_radius,
-            ring.center_x,
-            ring.center_y,
-        )
+        parameters = self.calculate_muon_parameters(tel_id, image, clean_mask, ring)
 
         # intensity_fitter does not support a mask yet, set ignored pixels to 0
         image[~mask] = 0
@@ -183,7 +197,7 @@ class MuonAnalysis(Tool):
 
         self.log.info(
             f'Muon fit: r={ring.radius:.2f}'
-            f', width={result.ring_width:.4f}'
+            f', width={result.width:.4f}'
             f', efficiency={result.optical_efficiency:.2%}',
         )
 
@@ -195,7 +209,45 @@ class MuonAnalysis(Tool):
 
         self.writer.write(
             'dl1/event/telescope/parameters/muons',
-            [tel_event_index, ring, result]
+            [tel_event_index, ring, parameters, result]
+        )
+
+    def calculate_muon_parameters(self, tel_id, image, clean_mask, ring):
+        fov_radius = self.get_fov(tel_id)
+        x, y = self.get_pixel_coords(tel_id)
+
+        # add ring containment, not filled in fit
+        containment = ring_containment(
+            ring.radius,
+            fov_radius,
+            ring.center_x,
+            ring.center_y,
+        )
+
+        completeness = ring_completeness(
+            x, y, image,
+            ring.radius, ring.center_x, ring.center_y,
+            threshold=self.completeness_threshold.tel[tel_id],
+        )
+
+        pixel_width = self.get_pixel_width(tel_id)
+        intensity_ratio = intensity_ratio_inside_ring(
+            x[clean_mask], y[clean_mask],
+            image[clean_mask],
+            ring.radius, ring.center_x, ring.center_y,
+            width=self.ratio_width.tel[tel_id] * pixel_width,
+        )
+
+        mse = mean_squared_error(
+            x[clean_mask], y[clean_mask], image[clean_mask],
+            ring.radius, ring.center_x, ring.center_y
+        )
+
+        return MuonImageParameters(
+            containment=containment,
+            completeness=completeness,
+            intensity_ratio=intensity_ratio,
+            mean_squared_error=mse,
         )
 
     def get_fov(self, tel_id):
@@ -205,12 +257,19 @@ class MuonAnalysis(Tool):
             cam = self.source.subarray.tel[tel_id].camera.geometry
             border = cam.get_border_pixel_mask()
 
-            pixel_coords = self.get_pixel_coords(tel_id)[border]
-            self.field_of_view[tel_id] = np.sqrt(
-                pixel_coords.fov_lat**2 + pixel_coords.fov_lon**2
-            ).mean()
+            x, y = self.get_pixel_coords(tel_id)
+            self.field_of_view[tel_id] = np.sqrt(x[border]**2 + y[border]**2).mean()
 
         return self.field_of_view[tel_id]
+
+    def get_pixel_width(self, tel_id):
+        '''Guesstimate fov radius for telescope with id `tel_id`'''
+        # memoize fov calculation
+        if tel_id not in self.pixel_widths:
+            x, y = self.get_pixel_coords(tel_id)
+            self.pixel_widths[tel_id] = CameraGeometry.guess_pixel_width(x, y)
+
+        return self.pixel_widths[tel_id]
 
     def get_pixel_coords(self, tel_id):
         '''Get pixel coords in telescope frame for telescope with id `tel_id`'''
@@ -226,7 +285,8 @@ class MuonAnalysis(Tool):
             tel_coord = cam_coords.transform_to(TelescopeFrame())
             self.pixels_in_tel_frame[tel_id] = tel_coord
 
-        return self.pixels_in_tel_frame[tel_id]
+        coords = self.pixels_in_tel_frame[tel_id]
+        return coords.fov_lon, coords.fov_lat
 
     def finish(self):
         Provenance().add_output_file(
