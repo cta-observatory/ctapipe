@@ -194,6 +194,14 @@ def test_calibration_events():
             assert event.index.event_type is expected_type
 
 
+def test_true_image():
+    with SimTelEventSource(input_url=calib_events_path) as reader:
+
+        for e in reader:
+            for tel in e.mc.tel.values():
+                assert np.count_nonzero(tel.true_image) > 0
+
+
 def test_camera_caching():
     """Test if same telescope types share a single instance of CameraGeometry"""
     source = SimTelEventSource(input_url=gamma_test_large_path)
