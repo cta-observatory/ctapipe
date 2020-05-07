@@ -144,7 +144,7 @@ def test_to_and_from_table():
     assert (geom.pix_y == geom2.pix_y).all()
     assert (geom.pix_area == geom2.pix_area).all()
     assert geom.pix_type == geom2.pix_type
-    
+
 
 def test_write_read(tmpdir):
     """ Check that serialization to disk doesn't lose info """
@@ -323,6 +323,37 @@ def test_guess_area():
         pix_type='hexagonal',
     )
     assert u.allclose(geom.pix_area, 2 * np.sqrt(3) * (0.5 * u.cm)**2)
+
+
+def test_guess_width():
+    x = u.Quantity([0, 1, 2], u.cm)
+    y = u.Quantity([0, 0, 0], u.cm)
+
+    assert u.isclose(CameraGeometry.guess_pixel_width(x, y), 1 * u.cm)
+
+
+def test_pixel_width():
+    geom = CameraGeometry(
+        'test',
+        pix_id=[1],
+        pix_area=[2] * u.cm**2,
+        pix_x=[0] * u.m,
+        pix_y=[0] * u.m,
+        pix_type='hex',
+    )
+
+    assert np.isclose(geom.pixel_width.to_value(u.cm), [2 * np.sqrt(1 / np.sqrt(3))])
+
+    geom = CameraGeometry(
+        'test',
+        pix_id=[1],
+        pix_area=[2] * u.cm**2,
+        pix_x=[0] * u.m,
+        pix_y=[0] * u.m,
+        pix_type='rect',
+    )
+
+    assert np.isclose(geom.pixel_width.to_value(u.cm), [np.sqrt(2)])
 
 
 def test_guess_radius():

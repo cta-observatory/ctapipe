@@ -13,7 +13,7 @@ from scipy.spatial import cKDTree as KDTree
 from scipy.sparse import lil_matrix, csr_matrix
 import warnings
 
-from ctapipe.utils import get_table_dataset, find_all_matching_datasets
+from ctapipe.utils import get_table_dataset
 from ctapipe.utils.linalg import rotation_matrix_2d
 from ctapipe.coordinates import CameraFrame
 
@@ -100,7 +100,7 @@ class CameraGeometry:
                 self._neighbors = csr_matrix(neighbors)
 
         if self.pix_area is None:
-            self.pix_area = CameraGeometry._calc_pixel_area(
+            self.pix_area = self.guess_pixel_area(
                 pix_x, pix_y, pix_type
             )
 
@@ -209,24 +209,49 @@ class CameraGeometry:
             apply_derotation=False,
         )
 
-    @staticmethod
-    def _calc_pixel_area(pix_x, pix_y, pix_type):
+    @classmethod
+    def guess_pixel_area(cls, pix_x, pix_y, pix_type):
         """ recalculate pixel area based on the pixel type and layout
 
         Note this will not work on cameras with varying pixel sizes.
         """
 
-        dist = np.min(np.sqrt((pix_x[1:] - pix_x[0])**2 + (pix_y[1:] - pix_y[0])**2))
+        dist = cls.guess_pixel_width(pix_x, pix_y)
 
         if pix_type.startswith('hex'):
-            rad = dist / np.sqrt(3)  # radius to vertex of hexagon
-            area = rad ** 2 * (3 * np.sqrt(3) / 2.0)  # area of hexagon
+            area = 2 * np.sqrt(3) * (dist / 2)**2
         elif pix_type.startswith('rect'):
             area = dist ** 2
         else:
             raise KeyError("unsupported pixel type")
 
         return np.ones(pix_x.shape) * area
+
+    @lazyproperty
+    def pixel_width(self):
+        '''
+        Calculate pixel width
+
+        in-circle diameter for hexagons, edge width for square pixels
+        '''
+
+        if self.pix_type.startswith('hex'):
+            width = 2 * np.sqrt(self.pix_area / (2 * np.sqrt(3)))
+        elif self.pix_type.startswith('rect'):
+            width = np.sqrt(self.pix_area)
+        else:
+            raise KeyError("unsupported pixel type")
+
+        return width
+
+    @staticmethod
+    def guess_pixel_width(pix_x, pix_y):
+        """
+        Calculate pixel diameter by looking at the minimum distance between pixels
+
+        Note this will not work on cameras with varying pixel sizes or gaps
+        """
+        return np.min(np.sqrt((pix_x[1:] - pix_x[0])**2 + (pix_y[1:] - pix_y[0])**2))
 
     @lazyproperty
     def _pixel_circumferences(self):
