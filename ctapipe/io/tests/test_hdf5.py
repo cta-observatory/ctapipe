@@ -440,6 +440,49 @@ def test_filters():
             assert h5file.root.data.nocomp.filters.complevel == 0
 
 
+def test_column_order():
+    ''' Test that columns are written in the order the containers define them'''
+
+    class Container1(Container):
+        b = Field(1, 'b')
+        a = Field(2, 'a')
+
+    class Container2(Container):
+        d = Field(3, 'd')
+        c = Field(4, 'c')
+
+    # test with single container
+    with tempfile.NamedTemporaryFile(suffix='.hdf5') as f:
+        with HDF5TableWriter(f.name, mode='w') as writer:
+            c = Container1()
+            writer.write('foo', c)
+
+        with tables.open_file(f.name, 'r') as f:
+            assert f.root.foo[:].dtype.names == ('b', 'a')
+
+    # test with two containers
+    with tempfile.NamedTemporaryFile(suffix='.hdf5') as f:
+        with HDF5TableWriter(f.name, mode='w') as writer:
+            c1 = Container1()
+            c2 = Container2()
+            writer.write('foo', [c2, c1])
+            writer.write('bar', [c1, c2])
+
+        with tables.open_file(f.name, 'r') as f:
+            assert f.root.foo[:].dtype.names == ('d', 'c', 'b', 'a')
+            assert f.root.bar[:].dtype.names == ('b', 'a', 'd', 'c')
+
+
+def test_writing_nan_defaults():
+    from ctapipe.containers import ImageParametersContainer
+
+    params = ImageParametersContainer()
+
+    with tempfile.NamedTemporaryFile(suffix='.hdf5') as f:
+        with HDF5TableWriter(f.name, mode='w') as writer:
+            writer.write('params', params.values())
+
+
 if __name__ == "__main__":
 
     import logging

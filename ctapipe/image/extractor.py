@@ -40,7 +40,11 @@ from .hillas import hillas_parameters, camera_to_shower_coordinates
     nopython=True,
 )
 def extract_around_peak(
+<<<<<<< HEAD
     waveforms, peak_index, width, shift, sampling_rate_ghz, sum_, pulse_time
+=======
+        waveforms, peak_index, width, shift, sampling_rate_ghz, sum_, peak_time
+>>>>>>> master
 ):
     """
     This function performs the following operations:
@@ -77,9 +81,9 @@ def extract_around_peak(
     sum_ : ndarray
         Return argument for ufunc (ignore)
         Returns the sum of the waveform samples
-    pulse_time : ndarray
+    peak_time : ndarray
         Return argument for ufunc (ignore)
-        Returns the pulse_time in units "ns"
+        Returns the peak_time in units "ns"
 
     Returns
     -------
@@ -100,10 +104,10 @@ def extract_around_peak(
             if waveforms[isample] > 0:
                 time_num += waveforms[isample] * isample
                 time_den += waveforms[isample]
-    pulse_time[0] = time_num / time_den if time_den > 0 else peak_index
+    peak_time[0] = time_num / time_den if time_den > 0 else peak_index
 
     # Convert to units of ns
-    pulse_time[0] /= sampling_rate_ghz
+    peak_time[0] /= sampling_rate_ghz
 
 
 @njit(parallel=True)
@@ -315,7 +319,7 @@ class ImageExtractor(TelescopeComponent):
         charge : ndarray
             Charge extracted from the waveform in "waveform_units * ns"
             Shape: (n_pix)
-        pulse_time : ndarray
+        peak_time : ndarray
             Floating point pulse time in each pixel in units "ns"
             Shape: (n_pix)
         """
@@ -327,10 +331,10 @@ class FullWaveformSum(ImageExtractor):
     """
 
     def __call__(self, waveforms, telid, selected_gain_channel):
-        charge, pulse_time = extract_around_peak(
+        charge, peak_time = extract_around_peak(
             waveforms, 0, waveforms.shape[-1], 0, self.sampling_rate[telid]
         )
-        return charge, pulse_time
+        return charge, peak_time
 
 
 class FixedWindowSum(ImageExtractor):
@@ -377,15 +381,21 @@ class FixedWindowSum(ImageExtractor):
         )
 
     def __call__(self, waveforms, telid, selected_gain_channel):
+<<<<<<< HEAD
         charge, pulse_time = extract_around_peak(
             waveforms,
             self.window_start.tel[telid],
             self.window_width.tel[telid],
             0,
             self.sampling_rate[telid],
+=======
+        charge, peak_time = extract_around_peak(
+            waveforms, self.window_start.tel[telid], self.window_width.tel[telid], 0,
+            self.sampling_rate[telid]
+>>>>>>> master
         )
         correction = self._calculate_correction(telid=telid)[selected_gain_channel]
-        return charge * correction, pulse_time
+        return charge * correction, peak_time
 
 
 class GlobalPeakWindowSum(ImageExtractor):
@@ -434,7 +444,7 @@ class GlobalPeakWindowSum(ImageExtractor):
 
     def __call__(self, waveforms, telid, selected_gain_channel):
         peak_index = waveforms.mean(axis=-2).argmax(axis=-1)
-        charge, pulse_time = extract_around_peak(
+        charge, peak_time = extract_around_peak(
             waveforms,
             peak_index,
             self.window_width.tel[telid],
@@ -442,7 +452,7 @@ class GlobalPeakWindowSum(ImageExtractor):
             self.sampling_rate[telid],
         )
         correction = self._calculate_correction(telid=telid)[selected_gain_channel]
-        return charge * correction, pulse_time
+        return charge * correction, peak_time
 
 
 class LocalPeakWindowSum(ImageExtractor):
@@ -491,7 +501,7 @@ class LocalPeakWindowSum(ImageExtractor):
 
     def __call__(self, waveforms, telid, selected_gain_channel):
         peak_index = waveforms.argmax(axis=-1).astype(np.int)
-        charge, pulse_time = extract_around_peak(
+        charge, peak_time = extract_around_peak(
             waveforms,
             peak_index,
             self.window_width.tel[telid],
@@ -499,7 +509,7 @@ class LocalPeakWindowSum(ImageExtractor):
             self.sampling_rate[telid],
         )
         correction = self._calculate_correction(telid=telid)[selected_gain_channel]
-        return charge * correction, pulse_time
+        return charge * correction, peak_time
 
 
 class NeighborPeakWindowSum(ImageExtractor):
@@ -557,7 +567,7 @@ class NeighborPeakWindowSum(ImageExtractor):
             waveforms, neighbors, self.lwt.tel[telid]
         )
         peak_index = average_wfs.argmax(axis=-1)
-        charge, pulse_time = extract_around_peak(
+        charge, peak_time = extract_around_peak(
             waveforms,
             peak_index,
             self.window_width.tel[telid],
@@ -565,7 +575,7 @@ class NeighborPeakWindowSum(ImageExtractor):
             self.sampling_rate[telid],
         )
         correction = self._calculate_correction(telid=telid)[selected_gain_channel]
-        return charge * correction, pulse_time
+        return charge * correction, peak_time
 
 
 class BaselineSubtractedNeighborPeakWindowSum(NeighborPeakWindowSum):

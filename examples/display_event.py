@@ -37,7 +37,7 @@ def display_event(event, subarray):
     ntels = len(event.r0.tels_with_data)
     fig.clear()
 
-    plt.suptitle(f"EVENT {event.r0.event_id}")
+    plt.suptitle(f"EVENT {event.index.event_id}")
 
     disps = []
 
@@ -90,7 +90,7 @@ if __name__ == '__main__':
     for event in source:
 
         print(
-            "EVENT_ID: ", event.r0.event_id, "TELS: ", event.r0.tels_with_data,
+            "EVENT_ID: ", event.index.event_id, "TELS: ", event.r0.tels_with_data,
             "MC Energy:", event.mc.energy
         )
 
@@ -121,7 +121,7 @@ if __name__ == '__main__':
                             .format(tel_id, chan, npix, nsamp)
                         )
             elif response.startswith('s'):
-                filename = f"event_{event.r0.event_id:010d}.png"
+                filename = f"event_{event.index.event_id:010d}.png"
                 print("Saving to", filename)
                 plt.savefig(filename)
 

@@ -85,15 +85,15 @@ def test_extract_around_peak(toymodel):
     n_pixels, n_samples = waveforms.shape
     rand = np.random.RandomState(1)
     peak_index = rand.uniform(0, n_samples, n_pixels).astype(np.int)
-    charge, pulse_time = extract_around_peak(waveforms, peak_index, 7, 3, 1)
+    charge, peak_time = extract_around_peak(waveforms, peak_index, 7, 3, 1)
     assert (charge >= 0).all()
-    assert (pulse_time >= 0).all() and (pulse_time <= n_samples).all()
+    assert (peak_time >= 0).all() and (peak_time <= n_samples).all()
 
     x = np.arange(100)
     y = norm.pdf(x, 41.2, 6)
-    charge, pulse_time = extract_around_peak(y[np.newaxis, :], 0, x.size, 0, 1)
+    charge, peak_time = extract_around_peak(y[np.newaxis, :], 0, x.size, 0, 1)
     assert_allclose(charge[0], 1.0, rtol=1e-3)
-    assert_allclose(pulse_time[0], 41.2, rtol=1e-3)
+    assert_allclose(peak_time[0], 41.2, rtol=1e-3)
 
     # Test negative amplitude
     y_offset = y - y.max() / 2
@@ -174,13 +174,13 @@ def test_neighbor_average_waveform(toymodel):
     assert_allclose(average_wf[pixel], expected_average, rtol=1e-3)
 
 
-def test_extract_pulse_time_within_range():
+def test_extract_peak_time_within_range():
     x = np.arange(100)
     # Generic waveform that goes from positive to negative in window
     # Can cause extreme values with incorrect handling of weighted average
     y = -1.2 * x + 20
-    _, pulse_time = extract_around_peak(y[np.newaxis, :], 12, 10, 0, 1)
-    assert (pulse_time >= 0).all() & (pulse_time < x.size).all()
+    _, peak_time = extract_around_peak(y[np.newaxis, :], 12, 10, 0, 1)
+    assert (peak_time >= 0).all() & (peak_time < x.size).all()
 
 
 def test_baseline_subtractor(toymodel):
@@ -246,26 +246,26 @@ def test_integration_correction_outofbounds(subarray):
 def test_extractors(Extractor, toymodel):
     waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
     extractor = Extractor(subarray=subarray)
-    charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
+    charge, peak_time = extractor(waveforms, telid, selected_gain_channel)
     assert_allclose(charge, true_charge, rtol=0.1)
-    assert_allclose(pulse_time, true_time, rtol=0.1)
+    assert_allclose(peak_time, true_time, rtol=0.1)
 
 
 def test_fixed_window_sum(toymodel):
     waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
     extractor = FixedWindowSum(subarray=subarray, window_start=47)
-    charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
+    charge, peak_time = extractor(waveforms, telid, selected_gain_channel)
     assert_allclose(charge, true_charge, rtol=0.1)
-    assert_allclose(pulse_time, true_time, rtol=0.1)
+    assert_allclose(peak_time, true_time, rtol=0.1)
 
 
 def test_neighbor_peak_window_sum_lwt(toymodel):
     waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
     extractor = NeighborPeakWindowSum(subarray=subarray, lwt=4)
     assert extractor.lwt.tel[telid] == 4
-    charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
+    charge, peak_time = extractor(waveforms, telid, selected_gain_channel)
     assert_allclose(charge, true_charge, rtol=0.1)
-    assert_allclose(pulse_time, true_time, rtol=0.1)
+    assert_allclose(peak_time, true_time, rtol=0.1)
 
 
 def test_two_pass_window_sum(subarray):
@@ -285,9 +285,9 @@ def test_two_pass_window_sum(subarray):
 def test_waveform_extractor_factory(toymodel):
     waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
     extractor = ImageExtractor.from_name("LocalPeakWindowSum", subarray=subarray)
-    charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
+    charge, peak_time = extractor(waveforms, telid, selected_gain_channel)
     assert_allclose(charge, true_charge, rtol=0.1)
-    assert_allclose(pulse_time, true_time, rtol=0.1)
+    assert_allclose(peak_time, true_time, rtol=0.1)
 
 
 def test_waveform_extractor_factory_args(subarray):

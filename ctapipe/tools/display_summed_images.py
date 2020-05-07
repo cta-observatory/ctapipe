@@ -102,7 +102,7 @@ class ImageSumDisplayerTool(Tool):
 
             self.log.info(
                 "event={} ntels={} energy={}".format(
-                    event.r0.event_id, len(event.dl0.tels_with_data),
+                    event.index.event_id, len(event.dl0.tels_with_data),
                     event.mc.energy
                 )
             )
@@ -111,7 +111,7 @@ class ImageSumDisplayerTool(Tool):
 
             if self.output_suffix != "":
                 filename = "{:020d}{}".format(
-                    event.r0.event_id, self.output_suffix
+                    event.index.event_id, self.output_suffix
                 )
                 self.log.info(f"saving: '{filename}'")
                 plt.savefig(filename)

@@ -19,13 +19,13 @@ def test_psi_0():
     hillas = HillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=0 * u.deg)
 
     random = np.random.RandomState(1)
-    pulse_time = intercept + grad * geom.pix_x.value
-    pulse_time += random.normal(0, deviation, geom.n_pixels)
+    peak_time = intercept + grad * geom.pix_x.value
+    peak_time += random.normal(0, deviation, geom.n_pixels)
 
     timing = timing_parameters(
         geom,
         image=np.ones(geom.n_pixels),
-        pulse_time=pulse_time,
+        peak_time=peak_time,
         hillas_parameters=hillas,
         cleaning_mask=np.ones(geom.n_pixels, dtype=bool)
     )
@@ -48,14 +48,14 @@ def test_psi_20():
     hillas = HillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=psi)
 
     random = np.random.RandomState(1)
-    pulse_time = intercept + grad * (np.cos(psi) * geom.pix_x.value
+    peak_time = intercept + grad * (np.cos(psi) * geom.pix_x.value
                                      + np.sin(psi) * geom.pix_y.value)
-    pulse_time += random.normal(0, deviation, geom.n_pixels)
+    peak_time += random.normal(0, deviation, geom.n_pixels)
 
     timing = timing_parameters(
         geom,
         image=np.ones(geom.n_pixels),
-        pulse_time=pulse_time,
+        peak_time=peak_time,
         hillas_parameters=hillas,
         cleaning_mask=np.ones(geom.n_pixels, dtype=bool)
     )
@@ -75,8 +75,8 @@ def test_ignore_negative():
     hillas = HillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=0 * u.deg)
 
     random = np.random.RandomState(1)
-    pulse_time = intercept + grad * geom.pix_x.value
-    pulse_time += random.normal(0, deviation, geom.n_pixels)
+    peak_time = intercept + grad * geom.pix_x.value
+    peak_time += random.normal(0, deviation, geom.n_pixels)
 
     image = np.ones(geom.n_pixels)
     image[5:10] = -1.0
@@ -86,7 +86,7 @@ def test_ignore_negative():
     timing = timing_parameters(
         geom,
         image,
-        pulse_time=pulse_time,
+        peak_time=peak_time,
         hillas_parameters=hillas,
         cleaning_mask=cleaning_mask,
     )
