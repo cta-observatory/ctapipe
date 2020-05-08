@@ -79,6 +79,20 @@ def test_tel_indexing(example_subarray):
     assert np.all(sub.tel_ids_to_indices([1, 2, 3]) == np.array([0, 1, 2]))
 
 
+def test_tel_ids_to_mask(example_subarray):
+    lst = TelescopeDescription.from_name('LST', 'LSTCam')
+    subarray = SubarrayDescription(
+        'someone_counted_in_binary',
+        tel_positions={1: [0, 0, 0] * u.m, 10: [50, 0, 0] * u.m},
+        tel_descriptions={1: lst, 10: lst}
+    )
+
+    assert np.all(subarray.tel_ids_to_mask([]) == [False, False])
+    assert np.all(subarray.tel_ids_to_mask([1, ]) == [True, False])
+    assert np.all(subarray.tel_ids_to_mask([10]) == [False, True])
+    assert np.all(subarray.tel_ids_to_mask([1, 10]) == [True, True])
+
+
 def test_get_tel_ids_for_type(example_subarray):
     """
     check that we can get a list of telescope ids by a telescope type, which can

@@ -5,8 +5,8 @@ Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
 """
 import hashlib
 from functools import partial
-from os.path import expandvars
-from pathlib import Path
+import sys
+import pathlib
 
 import numpy as np
 import tables
@@ -32,7 +32,7 @@ from ..core.traits import (
     CaselessStrEnum,
     Int,
     List,
-    Unicode,
+    Path,
     create_class_enum_trait,
     classes_with_traits,
 )
@@ -62,14 +62,14 @@ PROV = Provenance()
 DL1_DATA_MODEL_VERSION = "v1.0.0"
 
 
-def write_reference_metadata_headers(output_filename, obs_id, subarray, writer):
+def write_reference_metadata_headers(output_path, obs_id, subarray, writer):
     """
     Attaches Core Provenence headers to an output HDF5 file.
     Right now this is hard-coded for use with the ctapipe-stage1-process tool
 
     Parameters
     ----------
-    output_filename: str
+    output_path: pathlib.Path
         output HDF5 file
     obs_id: int
         observation ID
@@ -190,32 +190,6 @@ class ImageQualityQuery(QualityQuery):
     pass
 
 
-def expand_tel_list(tel_list, max_tels, index_map):
-    """
-    un-pack var-length list of tel_ids into
-    fixed-width bit pattern by tel_index
-
-    TODO: use index_map to index by tel_index rather than tel_id so this can be a
-    shorter array of bools.
-    """
-    pattern = np.zeros(max_tels).astype(bool)
-    pattern[tel_list] = 1
-    return pattern
-
-
-def create_tel_id_to_tel_index_transform(sub):
-    """
-    build a mapping of tel_id back to tel_index:
-    (note this should be part of SubarrayDescription)
-    """
-    idx = np.zeros(max(sub.tel_indices) + 1)
-    for key, val in sub.tel_indices.items():
-        idx[key] = val
-
-    # the final transform then needs the mapping and the number of telescopes
-    return partial(expand_tel_list, max_tels=len(sub.tel) + 1, index_map=idx)
-
-
 class Stage1ProcessorTool(Tool):
     name = "ctapipe-stage1-process"
     description = __doc__ + f" This currently writes {DL1_DATA_MODEL_VERSION} DL1 data"
@@ -230,8 +204,8 @@ class Stage1ProcessorTool(Tool):
     example, see ctapipe/examples/stage1_config.json in the main code repo.
     """
 
-    output_filename = Unicode(
-        help="DL1 output filename", default_value="events.dl1.h5"
+    output_path = Path(
+        help="DL1 output filename", default_value=pathlib.Path("events.dl1.h5")
     ).tag(config=True)
 
     write_images = Bool(
@@ -287,7 +261,7 @@ class Stage1ProcessorTool(Tool):
 
     aliases = {
         "input": "EventSource.input_url",
-        "output": "Stage1ProcessorTool.output_filename",
+        "output": "Stage1ProcessorTool.output_path",
         "allowed-tels": "EventSource.allowed_tels",
         "max-events": "EventSource.max_events",
         "image-extractor-type": "Stage1ProcessorTool.image_extractor_type",
@@ -328,12 +302,19 @@ class Stage1ProcessorTool(Tool):
     def setup(self):
 
         # prepare output path:
+        self.output_path = self.output_path.expanduser()
+        if self.output_path.exists():
+            if self.overwrite:
+                self.log.warning(f"Overwriting {self.output_path}")
+                self.output_path.unlink()
+            else:
+                self.log.critical(
+                    f'Output file {self.output_path} exists'
+                    ', use `--overwrite` to overwrite '
+                )
+                sys.exit(1)
 
-        output_path = Path(expandvars(self.output_filename)).expanduser()
-        if output_path.exists() and self.overwrite:
-            self.log.warning(f"Overwriting {output_path}")
-            output_path.unlink()
-        PROV.add_output_file(str(output_path), role="DL1/Event")
+        PROV.add_output_file(str(self.output_path), role="DL1/Event")
 
         # check that options make sense:
         if self.write_parameters is False and self.write_images is False:
@@ -405,7 +386,7 @@ class Stage1ProcessorTool(Tool):
         extramc = ExtraMCInfo()
         extramc.obs_id = event.index.obs_id
         event.mcheader.prefix = ""
-        writer.write("configuration/simulation/run_config", [extramc, event.mcheader])
+        writer.write("simulation/run/config", [extramc, event.mcheader])
 
     def _write_simulation_histograms(self, writer: HDF5TableWriter):
         """ Write the distribution of thrown showers
@@ -457,7 +438,7 @@ class Stage1ProcessorTool(Tool):
                 if hist["id"] == 6:
                     fill_from_simtel(self._cur_obs_id, hist, hist_container)
                     writer.write(
-                        table_name="configuration/simulation/shower_distribution",
+                        table_name="simulation/run/shower_distribution",
                         containers=hist_container,
                     )
 
@@ -473,13 +454,13 @@ class Stage1ProcessorTool(Tool):
         serialize_meta = True
 
         subarray.to_table().write(
-            self.output_filename,
+            self.output_path,
             path="/configuration/instrument/subarray/layout",
             serialize_meta=serialize_meta,
             append=True,
         )
         subarray.to_table(kind="optics").write(
-            self.output_filename,
+            self.output_path,
             path="/configuration/instrument/telescope/optics",
             append=True,
             serialize_meta=serialize_meta,
@@ -490,13 +471,13 @@ class Stage1ProcessorTool(Tool):
                 tel_id = list(ids)[0]
                 camera = subarray.tel[tel_id].camera
                 camera.geometry.to_table().write(
-                    self.output_filename,
+                    self.output_path,
                     path=f"/configuration/instrument/telescope/camera/geometry_{camera}",
                     append=True,
                     serialize_meta=serialize_meta,
                 )
                 camera.readout.to_table().write(
-                    self.output_filename,
+                    self.output_path,
                     path=f"/configuration/instrument/telescope/camera/readout_{camera}",
                     append=True,
                     serialize_meta=serialize_meta,
@@ -506,7 +487,7 @@ class Stage1ProcessorTool(Tool):
         """ write out the event selection stats, etc. """
         image_stats = self.check_image.to_table(functions=True)
         image_stats.write(
-            self.output_filename,
+            self.output_path,
             path="/dl1/service/image_statistics",
             append=True,
             serialize_meta=True,
@@ -609,7 +590,7 @@ class Stage1ProcessorTool(Tool):
 
             # write the subarray tables
             writer.write(
-                table_name="dl1/event/subarray/mc_shower",
+                table_name="simulation/event/subarray/shower",
                 containers=[event.index, event.mc],
             )
             writer.write(
@@ -727,16 +708,13 @@ class Stage1ProcessorTool(Tool):
         self._write_instrument_configuration(self.event_source.subarray)
 
         with HDF5TableWriter(
-            self.output_filename, mode="a", add_prefix=True, filters=self._hdf5_filters
+            self.output_path, mode="a", add_prefix=True, filters=self._hdf5_filters
         ) as writer:
 
-            tel_list_transform = create_tel_id_to_tel_index_transform(
-                self.event_source.subarray
-            )
             writer.add_column_transform(
                 table_name="dl1/event/subarray/trigger",
                 col_name="tels_with_trigger",
-                transform=tel_list_transform,
+                transform=self.event_source.subarray.tel_ids_to_mask,
             )
             if self.write_parameters is False:
                 # don't need to write out the image mask if no parameters are computed,
@@ -751,7 +729,7 @@ class Stage1ProcessorTool(Tool):
                 self._generate_indices(writer)
 
             write_reference_metadata_headers(
-                output_filename=self.output_filename,
+                output_path=self.output_path,
                 subarray=self.event_source.subarray,
                 obs_id=self._cur_obs_id,
                 writer=writer,

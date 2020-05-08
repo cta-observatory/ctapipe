@@ -79,23 +79,24 @@ class EventType(enum.Enum):
 
 class EventIndexContainer(Container):
     """ index columns to include in event lists, common to all data levels"""
-
     container_prefix = ""  # don't want to prefix these
 
-    event_id = Field(0, "event identifier")
     obs_id = Field(0, "observation identifier")
+    event_id = Field(0, "event identifier")
     event_type = Field(EventType.SUBARRAY, "Event type")
 
 
-class TelEventIndexContainer(EventIndexContainer):
+class TelEventIndexContainer(Container):
     """
     index columns to include in telescope-wise event lists, common to all data
     levels that have telescope-wise information
     """
-
     container_prefix = ""  # don't want to prefix these
 
+    obs_id = Field(0, "observation identifier")
+    event_id = Field(0, "event identifier")
     tel_id = Field(0, "telescope identifier")
+    event_type = Field(EventType.SUBARRAY, "Event type")
     tel_type_id = Field(0, "telescope type id number (integer)")
 
 
