@@ -2,41 +2,49 @@
 
 import logging
 
+default_logging_format = "%(levelname)s [%(name)s] (%(module)s/%(funcName)s): %(message)s"
+
 
 def create_log_config(name, log_level, log_file, log_file_level):
-    log_config = {
-        "version": 1,
-        "formatters": {
-            "default": {
-                "format": "%(levelname)s [%(name)s] (%(module)s/%(funcName)s): %(message)s",
-            },
+    log_config = {"version": 1}
+
+    formatters = {
+        "file": {
+            "()": PlainFormatter,
+            "fmt": default_logging_format,
+        },
+        "console": {
+            "()": FancyFormatter,
+            "fmt": default_logging_format,
         },
     }
 
-    c_handler = {
+    console_handler = {
         "class": "logging.StreamHandler",
-        "formatter": "default",
+        "formatter": "console",
         "level": log_level,
         "stream": "ext://sys.stdout",
     }
 
-    handlers = {"c_handler": c_handler}
+    handlers = {"console_handler": console_handler}
 
-    loggers = {name: {"handlers": ["c_handler"], "level": logging.DEBUG}}
+    loggers = {name: {"handlers": ["console_handler"], "level": logging.DEBUG}}
 
     if log_file is not None:
-        f_handler = {
+        file_handler = {
             "class": "logging.FileHandler",
-            "formatter": "default",
+            "formatter": "file",
             "level": log_file_level,
             "filename": log_file,
         }
 
-        handlers.update({"f_handler": f_handler})
+        handlers.update({"file_handler": file_handler})
 
-        loggers[name]["handlers"].append("f_handler")
+        loggers[name]["handlers"].append("file_handler")
 
-    log_config.update({"loggers": loggers, "handlers": handlers})
+    log_config.update(
+        {"loggers": loggers, "handlers": handlers, "formatters": formatters},
+    )
 
     return log_config
 
