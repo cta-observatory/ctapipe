@@ -29,7 +29,9 @@ class SingleTelEventDisplay(Tool):
     name = "ctapipe-display-televents"
     description = Unicode(__doc__)
 
-    infile = Path(help="input file to read", exists=True, dir_ok=False).tag(config=True)
+    infile = Path(
+        help="input file to read", exists=True, directory_ok=False
+    ).tag(config=True)
     tel = Int(help='Telescope ID to display', default=0).tag(config=True)
     write = Bool(
         help="Write out images to PNG files", default=False
