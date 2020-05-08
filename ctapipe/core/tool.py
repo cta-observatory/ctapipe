@@ -214,7 +214,7 @@ class Tool(Application):
             Provenance().start_activity(self.name)
             self.setup()
             self.is_setup = True
-            self.log.info(f"CONFIG: {self.get_current_config()}")
+            self.log.debug(f"CONFIG: {self.get_current_config()}")
             Provenance().add_config(self.get_current_config())
             self.start()
             self.finish()

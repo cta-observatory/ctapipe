@@ -10,6 +10,7 @@ import numpy as np
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.table import Table
+from astropy.utils import lazyproperty
 
 import ctapipe
 
@@ -99,7 +100,7 @@ class SubarrayDescription:
                 )
             )
 
-    @property
+    @lazyproperty
     def tel_coords(self):
         """ returns telescope positions as astropy.coordinates.SkyCoord"""
 
@@ -109,18 +110,18 @@ class SubarrayDescription:
 
         return SkyCoord(x=pos_x, y=pos_y, z=pos_z, frame=GroundFrame())
 
-    @property
+    @lazyproperty
     def tel_ids(self):
         """ telescope IDs as an array"""
         return np.array(list(self.tel.keys()))
 
-    @property
+    @lazyproperty
     def tel_indices(self):
         """ returns dict mapping tel_id to tel_index, useful for unpacking
         lists based on tel_ids into fixed-length arrays"""
         return {tel_id: ii for ii, tel_id in enumerate(self.tels.keys())}
 
-    @property
+    @lazyproperty
     def tel_index_array(self):
         """
         returns an expanded array that maps tel_id to tel_index. I.e. for a given
@@ -147,9 +148,29 @@ class SubarrayDescription:
         np.array:
             array of corresponding tel indices
         """
-        tel_ids = np.asanyarray(tel_ids).ravel()
-        index_map = self.tel_index_array
-        return index_map[tel_ids]
+        tel_ids = np.array(tel_ids, dtype=int, copy=False).ravel()
+        return self.tel_index_array[tel_ids]
+
+    def tel_ids_to_mask(self, tel_ids):
+        '''Convert a list of telescope ids to a boolean mask
+        of length ``num_tels`` where the **index** of the telescope
+        is set to ``True`` for each tel_id in tel_ids
+
+        Parameters
+        ----------
+        tel_ids : int or List[int]
+            array of tel IDs
+
+        Returns
+        -------
+        np.array[dtype=bool]:
+            Boolean array of length ``num_tels`` with indices of the
+            telescopes in ``tel_ids`` set to True.
+        '''
+        mask = np.zeros(self.num_tels, dtype=bool)
+        indices = self.tel_ids_to_indices(tel_ids)
+        mask[indices] = True
+        return mask
 
     @property
     def footprint(self):
