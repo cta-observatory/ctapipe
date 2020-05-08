@@ -4,7 +4,6 @@ Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
 # TODO: add event time per telescope!
 """
 import hashlib
-from functools import partial
 import sys
 import pathlib
 
@@ -21,9 +20,9 @@ from ..containers import (
     ImageParametersContainer,
     TelEventIndexContainer,
     SimulatedShowerDistribution,
-    MorphologyContainer,
     IntensityStatisticsContainer,
     PeakTimeStatisticsContainer,
+    MCDL1CameraContainer,
 )
 from ..core import Provenance
 from ..core import QualityQuery, Container, Field, Tool, ToolConfigurationError
@@ -39,14 +38,13 @@ from ..core.traits import (
 from ..image import ImageCleaner
 from ..image import (
     hillas_parameters,
-    number_of_islands,
-    number_of_island_sizes,
     descriptive_statistics,
+    concentration as concentration_parameters,
+    timing_parameters,
+    leakage as leakage_parameters,
+    morphology_parameters,
 )
-from ..image.concentration import concentration
 from ..image.extractor import ImageExtractor
-from ..image.leakage import leakage
-from ..image.timing_parameters import timing_parameters
 from ..io import EventSource, HDF5TableWriter, SimTelEventSource
 
 tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many datasets
@@ -82,7 +80,8 @@ def write_reference_metadata_headers(output_path, obs_id, subarray, writer):
 
     reference = meta.Reference(
         contact=meta.Contact(
-            name="", email="", organization="CTA Consortium"                                               "Consortium"
+            name="", email="",
+            organization="CTA Consortium",
         ),
         product=meta.Product(
             description="DL1 Data Product",
@@ -97,7 +96,7 @@ def write_reference_metadata_headers(output_path, obs_id, subarray, writer):
         process=meta.Process(type_="Simulation", subtype="", id_=int(obs_id)),
         activity=meta.Activity.from_provenance(activity),
         instrument=meta.Instrument(
-            site="Other", # need a way to detect site...
+            site="Other",  # need a way to detect site...
             class_="Subarray",
             type_="unknown",
             version="unknown",
@@ -107,62 +106,8 @@ def write_reference_metadata_headers(output_path, obs_id, subarray, writer):
 
     # convert all values to strings, since hdf5 can't handle Times, etc.:
     # TODO: add activity_stop_time?
-    headers = {k:str(v) for k,v in reference.to_dict().items()}
+    headers = {k: str(v) for k, v in reference.to_dict().items()}
     meta.write_to_hdf5(headers, writer._h5file)
-
-
-def morphology(geom, image_mask) -> MorphologyContainer:
-    """
-    Compute image morphology parameters
-    Parameters
-    ----------
-    geom: ctapipe.instrument.camera.CameraGeometry
-        camera description
-    image_mask: np.ndarray(bool)
-        image of pixels surviving cleaning (True=survives)
-    Returns
-    -------
-    MorphologyContainer:
-        parameters related to the morphology
-    """
-
-    num_islands, island_labels = number_of_islands(geom=geom, mask=image_mask)
-
-    n_small, n_medium, n_large = number_of_island_sizes(island_labels)
-
-    return MorphologyContainer(
-        num_pixels=np.count_nonzero(image_mask),
-        num_islands=num_islands,
-        num_small_islands=n_small,
-        num_medium_islands=n_medium,
-        num_large_islands=n_large,
-    )
-
-
-class ExtendedImageParametersContainer(ImageParametersContainer):
-    """
-    Extra parameters to add to the ImageParametersContainer
-
-    TODO: should eventually just move to ImageParametersContainer.
-    """
-    mc_intensity = Field(IntensityStatisticsContainer(), "MC intensity statistics")
-
-
-class ExtraImageContainer(Container):
-    """
-    Extra information to attach to the image dataset
-
-    TODO: update MCCameraEventContainer and DL1TelescopeContainer; remove this
-    """
-
-    container_prefix = ""
-
-    true_image = Field(
-        None, "Monte-carlo image of photo electrons on the camera plane, without noise"
-    )
-
-    image_mask = Field(None, "Boolean array of pixels, True=used in parameterization")
-    selected_gain_channel = Field(None, "Array [n_pix] of gain channel used")
 
 
 def tel_type_string_to_int(tel_type):
@@ -493,7 +438,7 @@ class Stage1ProcessorTool(Tool):
             serialize_meta=True,
         )
 
-    def _parameterize_image(self, subarray, data, tel_id):
+    def _parameterize_image(self, tel_id, dl1_camera):
         """Apply image cleaning and calculate image features
 
         Parameters
@@ -511,16 +456,16 @@ class Stage1ProcessorTool(Tool):
             cleaning mask, parameters
         """
 
-        tel = subarray.tel[tel_id]
+        tel = self.event_source.subarray.tel[tel_id]
         geometry = tel.camera.geometry
 
         # apply cleaning
         signal_pixels = self.clean(
-            tel_id=tel_id, image=data.image, arrival_times=data.peak_time
+            tel_id=tel_id,
+            image=dl1_camera.image,
+            arrival_times=dl1_camera.peak_time
         )
-        image_selected = data.image[signal_pixels]
-
-        params = ExtendedImageParametersContainer()
+        image_selected = dl1_camera.image[signal_pixels]
 
         # check if image can be parameterized:
         image_criteria = self.check_image(image_selected)
@@ -533,35 +478,101 @@ class Stage1ProcessorTool(Tool):
         if all(image_criteria):
             geom_selected = geometry[signal_pixels]
 
-            params.hillas = hillas_parameters(
+            hillas = hillas_parameters(
                 geom=geom_selected, image=image_selected,
             )
-            params.timing = timing_parameters(
+            timing = timing_parameters(
                 geom=geom_selected,
                 image=image_selected,
-                peak_time=data.peak_time[signal_pixels],
-                hillas_parameters=params.hillas,
+                peak_time=dl1_camera.peak_time[signal_pixels],
+                hillas_parameters=hillas,
             )
-            params.leakage = leakage(
-                geom=geometry, image=data.image, cleaning_mask=signal_pixels
+            leakage = leakage_parameters(
+                geom=geometry, image=dl1_camera.image, cleaning_mask=signal_pixels
             )
-            params.concentration = concentration(
+            concentration = concentration_parameters(
                 geom=geom_selected,
                 image=image_selected,
-                hillas_parameters=params.hillas,
+                hillas_parameters=hillas,
             )
-            params.morphology = morphology(
+            morphology = morphology_parameters(
                 geom=geometry, image_mask=signal_pixels
             )
-            params.intensity_statistics = descriptive_statistics(
+            intensity_statistics = descriptive_statistics(
                 image_selected, container_class=IntensityStatisticsContainer
             )
-            params.peak_time_statistics = descriptive_statistics(
-                data.peak_time[signal_pixels],
+            peak_time_statistics = descriptive_statistics(
+                dl1_camera.peak_time[signal_pixels],
                 container_class=PeakTimeStatisticsContainer,
             )
 
-        return signal_pixels, params
+            return signal_pixels, ImageParametersContainer(
+                hillas=hillas,
+                timing=timing,
+                leakage=leakage,
+                morphology=morphology,
+                concentration=concentration,
+                intensity_statistics=intensity_statistics,
+                peak_time_statistics=peak_time_statistics,
+            )
+
+        # return the default container (containing nan values) for no
+        # parameterization
+        return signal_pixels, ImageParametersContainer()
+
+    def _parameterize_true_image(self, tel_id, true_image):
+        """Apply image cleaning and calculate image features
+
+        Parameters
+        ----------
+        subarray : SubarrayDescription
+           subarray description
+        data : DL1CameraContainer
+            calibrated camera data
+        tel_id: int
+            which telescope is being cleaned
+
+        Returns
+        -------
+        np.ndarray, ImageParametersContainer:
+            cleaning mask, parameters
+        """
+
+        tel = self.event_source.subarray.tel[tel_id]
+        geometry = tel.camera.geometry
+
+        # apply cleaning
+        signal_pixels = true_image > 0
+        image_selected = true_image[signal_pixels]
+
+        # parameterize the event if all criteria pass:
+        geom_selected = geometry[signal_pixels]
+
+        hillas = hillas_parameters(
+            geom=geom_selected, image=image_selected,
+        )
+        leakage = leakage_parameters(
+            geom=geometry, image=true_image, cleaning_mask=signal_pixels
+        )
+        concentration = concentration_parameters(
+            geom=geom_selected,
+            image=image_selected,
+            hillas_parameters=hillas,
+        )
+        morphology = morphology_parameters(
+            geom=geometry, image_mask=signal_pixels
+        )
+        intensity_statistics = descriptive_statistics(
+            image_selected, container_class=IntensityStatisticsContainer
+        )
+
+        return ImageParametersContainer(
+            hillas=hillas,
+            leakage=leakage,
+            morphology=morphology,
+            concentration=concentration,
+            intensity_statistics=intensity_statistics,
+        )
 
     def _process_events(self, writer):
         self.log.debug("Writing DL1/Event data")
@@ -610,9 +621,9 @@ class Stage1ProcessorTool(Tool):
         """
 
         # write the telescope tables
-        for tel_id, data in event.dl1.tel.items():
+        for tel_id, dl1_camera in event.dl1.tel.items():
 
-            data.prefix = ""  # don't want a prefix for this container
+            dl1_camera.prefix = ""  # don't want a prefix for this container
             telescope = self.event_source.subarray.tel[tel_id]
             tel_type = str(telescope)
 
@@ -625,45 +636,33 @@ class Stage1ProcessorTool(Tool):
                 f"tel_{tel_id:03d}" if self.split_datasets_by == "tel_id" else tel_type
             )
 
-            extra = ExtraImageContainer(
-                true_image=event.mc.tel[tel_id].true_image,
-                selected_gain_channel=event.r1.tel[tel_id].selected_gain_channel,
-                image_mask=None,  # added later, if computed only
-            )
+            true_image = event.mc.tel[tel_id].true_image
+            has_true_image = true_image is not None and np.count_nonzero(true_image) > 0
+
+            if has_true_image:
+                mcdl1 = MCDL1CameraContainer(true_image=true_image, true_parameters=None)
+                mcdl1.prefix = ''
 
             if self.write_parameters:
-
                 image_mask, params = self._parameterize_image(
-                    self.event_source.subarray, data, tel_id=tel_id
+                    tel_id=tel_id,
+                    dl1_camera=dl1_camera,
                 )
 
                 self.log.debug("params: %s", params.as_dict(recursive=True))
-
-                containers_to_write = [
-                    tel_index,
-                    params.hillas,
-                    params.timing,
-                    params.leakage,
-                    params.concentration,
-                    params.morphology,
-                    params.intensity_statistics,
-                    params.peak_time_statistics,
-                ]
-
-                # currently the HDF5TableWriter has problems if the first event
-                # has NaN as values, since it can't infer the data types.
-                # that implies we need to specify them in the Fields, rather than
-                # infer from first event, perhaps.  For now we skip them.
-                parameters_were_computed = (
-                    False if params.hillas.intensity is np.nan else True
+                writer.write(
+                    table_name=f"dl1/event/telescope/parameters/{table_name}",
+                    containers=[tel_index, *params.values()],
                 )
 
-                if parameters_were_computed:
-                    writer.write(
-                        table_name=f"dl1/event/telescope/parameters/{table_name}",
-                        containers=containers_to_write,
+                if has_true_image:
+                    mcdl1.true_parameters = self._parameterize_true_image(
+                        tel_id, true_image
                     )
-                extra.image_mask = image_mask
+                    writer.write(
+                        f'simulation/event/telescope/parameters/{table_name}',
+                        [tel_index, *mcdl1.true_parameters.values()],
+                    )
 
             if self.write_images:
                 # note that we always write the image, even if the image quality
@@ -671,8 +670,14 @@ class Stage1ProcessorTool(Tool):
                 # can be computed).
                 writer.write(
                     table_name=f"dl1/event/telescope/images/{table_name}",
-                    containers=[tel_index, data, extra],
+                    containers=[tel_index, dl1_camera],
                 )
+
+                if has_true_image:
+                    writer.write(
+                        f'simulation/event/telescope/images/{table_name}',
+                        [tel_index, mcdl1],
+                    )
 
     def _generate_table_indices(self, h5file, start_node):
 
