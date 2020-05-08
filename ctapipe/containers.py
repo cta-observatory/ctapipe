@@ -104,14 +104,14 @@ class HillasParametersContainer(Container):
 
     intensity = Field(nan, "total intensity (size)")
 
-    x = Field(nan, "centroid x coordinate")
-    y = Field(nan, "centroid x coordinate")
-    r = Field(nan, "radial coordinate of centroid")
-    phi = Field(nan, "polar coordinate of centroid", unit=u.deg)
+    x = Field(nan * u.m, "centroid x coordinate", unit=u.m)
+    y = Field(nan * u.m, "centroid x coordinate", unit=u.m)
+    r = Field(nan * u.m, "radial coordinate of centroid", unit=u.m)
+    phi = Field(nan * u.deg, "polar coordinate of centroid", unit=u.deg)
 
-    length = Field(nan, "standard deviation along the major-axis")
-    width = Field(nan, "standard spread along the minor-axis")
-    psi = Field(nan, "rotation angle of ellipse", unit=u.deg)
+    length = Field(nan * u.m, "standard deviation along the major-axis", unit=u.m)
+    width = Field(nan * u.m, "standard spread along the minor-axis", unit=u.m)
+    psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
 
     skewness = Field(nan, "measure of the asymmetry")
     kurtosis = Field(nan, "measure of the tailedness")
@@ -164,8 +164,8 @@ class TimingParametersContainer(Container):
     """
 
     container_prefix = "timing"
-    slope = Field(nan, "Slope of arrival times along main shower axis")
-    slope_err = Field(nan, "Uncertainty `slope`")
+    slope = Field(nan / u.m, "Slope of arrival times along main shower axis", unit=1/u.m)
+    slope_err = Field(nan / u.m, "Uncertainty `slope`", unit=1/u.m)
     intercept = Field(nan, "intercept of arrival times along main shower axis")
     intercept_err = Field(nan, "Uncertainty `intercept`")
     deviation = Field(

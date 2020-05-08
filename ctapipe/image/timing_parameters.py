@@ -69,6 +69,6 @@ def timing_parameters(geom, image, peak_time, hillas_parameters, cleaning_mask=N
         slope=slope / unit,
         intercept=intercept,
         deviation=deviation,
-        slope_err=slope_err,
+        slope_err=slope_err / unit,
         intercept_err=intercept_err,
     )

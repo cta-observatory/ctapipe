@@ -96,10 +96,12 @@ class HDF5TableWriter(TableWriter):
         mode="w",
         root_uep="/",
         filters=DEFAULT_FILTERS,
+        parent=None,
+        config=None,
         **kwargs,
     ):
 
-        super().__init__(add_prefix=add_prefix)
+        super().__init__(add_prefix=add_prefix, parent=None, config=None)
         self._schemas = {}
         self._tables = {}
 
@@ -209,7 +211,7 @@ class HDF5TableWriter(TableWriter):
                     self.log.warning(
                         f'Column {col_name} of'
                         f' container {container.__class__.__name__}'
-                        'not writable, skipping'
+                        ' not writable, skipping'
                     )
                     continue
 
@@ -273,9 +275,15 @@ class HDF5TableWriter(TableWriter):
             )
             for colname, value in selected_fields:
 
-                value = self._apply_col_transform(table_name, colname, value)
-
-                row[colname] = value
+                try:
+                    value = self._apply_col_transform(table_name, colname, value)
+                    row[colname] = value
+                except Exception:
+                    self.log.error(
+                        f'Error writing col "{colname}" of'
+                        f' container "{container.__class__.__name__}"'
+                    )
+                    raise
         row.append()
 
     def write(self, table_name, containers):

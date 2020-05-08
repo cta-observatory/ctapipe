@@ -60,4 +60,3 @@ def get_bright_stars(pointing=None, radius=None, magnitude_cut=None):
     catalog.remove_columns(['RAJ2000', 'DEJ2000'])
 
     return catalog
-
