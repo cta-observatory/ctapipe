@@ -127,16 +127,13 @@ class Tool(Application):
 
     def __init__(self, **kwargs):
         # make sure there are some default aliases in all Tools:
-        if self.aliases:
-            self.aliases["log-level"] = "Application.log_level"
-            self.aliases["config"] = "Tool.config_file"
-            self.aliases["logfile"] = "Tool.logfile"
-
-        flags = {
-            "quiet": ({"Tool": {"quiet": True}}, "suppress command line output"),
-            "q": ({"Tool": {"quiet": True}}, "shortname for --quiet"),
+        aliases = {
+            "config": "Tool.config_file",
+            "log-level": "Tool.log_level",
+            "log-file": "Tool.log_file",
+            "log-file-level": "Tool.log_file_level",
         }
-        self.flags.update(flags)
+        self.aliases.update(aliases)
 
         super().__init__(**kwargs)
         self.is_setup = False
