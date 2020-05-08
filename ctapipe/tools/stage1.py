@@ -132,7 +132,12 @@ def tel_type_string_to_int(tel_type):
 
 class ImageQualityQuery(QualityQuery):
     """ for configuring image-wise data checks """
-    pass
+    quality_criteria = List(
+        default_value=[
+            ('size_greater_0', 'lambda image_selected: image_selected.sum() > 0'),
+        ],
+        help=QualityQuery.quality_criteria.help,
+    ).tag(config=True)
 
 
 class Stage1ProcessorTool(Tool):
