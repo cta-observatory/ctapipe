@@ -109,20 +109,21 @@ class Tool(Application):
             "command-line parameters"
         ),
     ).tag(config=True)
-    log_format = Unicode(
-        "%(levelname)s [%(name)s] (%(module)s/%(funcName)s): %(message)s",
-        help="The Logging format template",
-    ).tag(config=True)
 
-    quiet = Bool(False).tag(config=True)
-    logfile = Path(
-        default_value=None,
-        exists=None,
-        directory_ok=False,
+    log_level = Enum(
+        values=log_levels,
+        default_value="INFO",
+        help="Logging Level",
+    ).tag(config=True)
+    log_file = Path(
+        default_value=None, exists=None, directory_ok=False,
         help="Filename for the log",
     ).tag(config=True)
-
-    _log_formatter_cls = ColoredFormatter
+    log_file_level = Enum(
+        values=log_levels,
+        default_value="DEBUG",
+        help="Logging Level for File Logging",
+    ).tag(config=True)
 
     def __init__(self, **kwargs):
         # make sure there are some default aliases in all Tools:
@@ -138,7 +139,6 @@ class Tool(Application):
         self.flags.update(flags)
 
         super().__init__(**kwargs)
-        self.log_level = logging.INFO
         self.is_setup = False
         self._registered_components = []
         self.version = version
@@ -154,20 +154,23 @@ class Tool(Application):
             except Exception as err:
                 raise ToolConfigurationError(f"Couldn't read config file: {err}")
 
-        if self.quiet:
-            for hdlr in self.log.handlers:
-                hdlr.setLevel(60)
-
-        if self.logfile is not None:
-            hdlr = logging.FileHandler(self.logfile)
-            fmtr = logging.Formatter(self.log_format)
-            hdlr.setFormatter(fmtr)
-            self.log.addHandler(hdlr)
-
-        self.log.info(f"ctapipe version {self.version_string}")
-
         # ensure command-line takes precedence over config file options:
         self.update_config(self.cli_config)
+
+        log_config["handlers"]["console"]["level"] = self.log_level
+
+        if self.log_file is not None:
+            log_config["handlers"]["file"]["filename"] = self.log_file
+            log_config["handlers"]["file"]["level"] = self.log_file_level
+            logger = "Both"
+        else:
+            logger = "Console"
+
+        logging.config.dictConfig(log_config)
+        self.log = logging.getLogger(logger)
+        self.log.name = self.name
+
+        self.log.info(f"ctapipe version {self.version_string}")
 
     def add_component(self, component_instance):
         """
