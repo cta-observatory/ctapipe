@@ -49,6 +49,45 @@ def create_log_config(name, log_level, log_file, log_file_level):
     return log_config
 
 
+class PlainFormatter(logging.Formatter):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+class FancyFormatter(logging.Formatter):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def format(self, record):
+        rec = record.__dict__.copy()
+
+        rec["levelname"] = self.apply_colors(record.levelname)
+        rec["message"] = record.getMessage()
+
+        return self._fmt % rec
+
+    def apply_colors(self, levelname):
+        black, red, green, yellow, blue, magenta, cyan, white = range(8)
+        reset_seq = "\033[0m"
+        color_seq = "\033[1;%dm"
+        colors = {
+            'INFO': green,
+            'DEBUG': blue,
+            'WARNING': yellow,
+            'CRITICAL': magenta,
+            'ERROR': red
+        }
+
+        if levelname in colors:
+            levelname_color = (
+                color_seq % (30 + colors[levelname])
+                + levelname + reset_seq
+            )
+        return levelname_color
+
+
 class ColoredFormatter(logging.Formatter):
     """
     Custom logging.Formatter that adds colors in addition to the original
