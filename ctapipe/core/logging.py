@@ -3,46 +3,43 @@
 import logging
 
 
-log_config = {
-    "version": 1,
-    "formatters": {
-        "default": {
-            "format": "%(levelname)s [%(name)s] (%(module)s/%(funcName)s): %(message)s",
+def create_log_config(name, log_level, log_file, log_file_level):
+    log_config = {
+        "version": 1,
+        "formatters": {
+            "default": {
+                "format": "%(levelname)s [%(name)s] (%(module)s/%(funcName)s): %(message)s",
+            },
         },
-    },
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "default",
-            "level": "INFO",
-            "stream": "ext://sys.stdout",
-        },
-        "file": {
+    }
+
+    c_handler = {
+        "class": "logging.StreamHandler",
+        "formatter": "default",
+        "level": log_level,
+        "stream": "ext://sys.stdout",
+    }
+
+    handlers = {"c_handler": c_handler}
+
+    loggers = {name: {"handlers": ["c_handler"], "level": logging.DEBUG}}
+
+    if log_file is not None:
+        f_handler = {
             "class": "logging.FileHandler",
             "formatter": "default",
-            "level": "DEBUG",
-            "filename": "/tmp/ctapipe-log",
-        },
-    },
-    "loggers": {
-        "Console": {
-            "level": "DEBUG",
-            "handlers": ["console"],
-        },
-        "Both": {
-            "level": "DEBUG",
-            "handlers": ["console", "file"],
-        },
-    },
-}
+            "level": log_file_level,
+            "filename": log_file,
+        }
 
-log_levels = [
-    logging.DEBUG, "DEBUG",
-    logging.INFO, "INFO",
-    logging.WARN, "WARN", "WARNING",
-    logging.ERROR, "ERROR",
-    logging.CRITICAL, "CRITICAL",
-]
+        handlers.update({"f_handler": f_handler})
+
+        loggers[name]["handlers"].append("f_handler")
+
+    log_config.update({"loggers": loggers, "handlers": handlers})
+
+    return log_config
+
 
 class ColoredFormatter(logging.Formatter):
     """

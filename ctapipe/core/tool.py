@@ -9,7 +9,7 @@ from traitlets.config import Application, Configurable
 from .. import __version__ as version
 from .traits import Path, Enum
 from . import Provenance
-from .logging import log_config, log_levels
+from .logging import create_log_config
 
 
 class ToolConfigurationError(Exception):
@@ -111,7 +111,7 @@ class Tool(Application):
     ).tag(config=True)
 
     log_level = Enum(
-        values=log_levels,
+        values=Application.log_level.values,
         default_value="INFO",
         help="Logging Level",
     ).tag(config=True)
@@ -120,7 +120,7 @@ class Tool(Application):
         help="Filename for the log",
     ).tag(config=True)
     log_file_level = Enum(
-        values=log_levels,
+        values=Application.log_level.values,
         default_value="DEBUG",
         help="Logging Level for File Logging",
     ).tag(config=True)
@@ -154,18 +154,10 @@ class Tool(Application):
         # ensure command-line takes precedence over config file options:
         self.update_config(self.cli_config)
 
-        log_config["handlers"]["console"]["level"] = self.log_level
-
-        if self.log_file is not None:
-            log_config["handlers"]["file"]["filename"] = self.log_file
-            log_config["handlers"]["file"]["level"] = self.log_file_level
-            logger = "Both"
-        else:
-            logger = "Console"
+        log_config = create_log_config(self.name, self.log_level, self.log_file, self.log_file_level)
 
         logging.config.dictConfig(log_config)
-        self.log = logging.getLogger(logger)
-        self.log.name = self.name
+        self.log = logging.getLogger(self.name)
 
         self.log.info(f"ctapipe version {self.version_string}")
 
