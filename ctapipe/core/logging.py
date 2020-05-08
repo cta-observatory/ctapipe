@@ -3,6 +3,47 @@
 import logging
 
 
+log_config = {
+    "version": 1,
+    "formatters": {
+        "default": {
+            "format": "%(levelname)s [%(name)s] (%(module)s/%(funcName)s): %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "default",
+            "level": "INFO",
+            "stream": "ext://sys.stdout",
+        },
+        "file": {
+            "class": "logging.FileHandler",
+            "formatter": "default",
+            "level": "DEBUG",
+            "filename": "/tmp/ctapipe-log",
+        },
+    },
+    "loggers": {
+        "Console": {
+            "level": "DEBUG",
+            "handlers": ["console"],
+        },
+        "Both": {
+            "level": "DEBUG",
+            "handlers": ["console", "file"],
+        },
+    },
+}
+
+log_levels = [
+    logging.DEBUG, "DEBUG",
+    logging.INFO, "INFO",
+    logging.WARN, "WARN", "WARNING",
+    logging.ERROR, "ERROR",
+    logging.CRITICAL, "CRITICAL",
+]
+
 class ColoredFormatter(logging.Formatter):
     """
     Custom logging.Formatter that adds colors in addition to the original
