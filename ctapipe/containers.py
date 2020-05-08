@@ -247,7 +247,7 @@ class DL1CameraContainer(Container):
     parameters = Field(ImageParametersContainer(), "Parameters derived from images")
 
 
-class MCDL1CameraContainer(DL1CameraContainer):
+class MCDL1CameraContainer(Container):
     """ Contains all fields of the DL1CameraContainer, but adds fields for simulated
     DL1 image information."""
 
