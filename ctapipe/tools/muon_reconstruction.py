@@ -26,9 +26,9 @@ class MuonAnalysis(Tool):
     name = 'ctapipe-reconstruct-muons'
     description = traits.Unicode(__doc__)
 
-    output = traits.Unicode(
-        default_value=None,
-        allow_none=True,
+    output = traits.Path(
+        exists=False,
+        dir_ok=False,
         help='HDF5 output file name'
     ).tag(config=True)
 
