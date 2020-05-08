@@ -1,15 +1,15 @@
 """ Classes to handle configurable command-line user interfaces """
 import logging
+import logging.config
 import textwrap
 from abc import abstractmethod
 
-from traitlets import Unicode
 from traitlets.config import Application, Configurable
 
 from .. import __version__ as version
-from .traits import Path, Bool
+from .traits import Path, Enum
 from . import Provenance
-from .logging import ColoredFormatter
+from .logging import log_config, log_levels
 
 
 class ToolConfigurationError(Exception):
