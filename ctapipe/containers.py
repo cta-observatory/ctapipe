@@ -679,6 +679,7 @@ class DataContainer(Container):
 
 
 class MuonRingParameter(Container):
+    '''Container for the result of a ring fit, center_x, center_y'''
     center_x = Field(nan * u.deg, "center (x) of the fitted muon ring", unit=u.deg)
     center_y = Field(nan * u.deg, "center (y) of the fitted muon ring", unit=u.deg)
     radius = Field(nan * u.deg, "radius of the fitted muon ring", unit=u.deg)
@@ -688,15 +689,28 @@ class MuonRingParameter(Container):
     center_distance = Field(
         nan * u.deg, "Distance of ring center from camera center", unit=u.deg
     )
-    containment = Field(nan, "containment of the ring inside the camera")
 
 
 class MuonIntensityParameter(Container):
-    ring_width = Field(nan, "width of the muon ring in degrees")
+    width = Field(nan, "width of the muon ring in degrees")
     impact = Field(nan, "distance of muon impact position from center of mirror")
     impact_x = Field(nan, "impact parameter x position")
     impact_y = Field(nan, "impact parameter y position")
     optical_efficiency = Field(nan, "optical efficiency muon")
+
+
+class MuonImageParameters(Container):
+    containment = Field(nan, "containment of the ring inside the camera")
+    completeness = Field(
+        nan,
+        "Complenetess of the muon ring"
+        ", estimated by dividing the ring into segments"
+        " and counting segments above a threshold"
+    )
+    intensity_ratio = Field(nan, 'Intensity ratio of pixels in the ring to all pixels')
+    mean_squared_error = Field(
+        nan, 'MSE of the deviation of all pixels after cleaning from the ring fit'
+    )
 
 
 class FlatFieldContainer(Container):

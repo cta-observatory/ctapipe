@@ -75,16 +75,14 @@ def test_muon_efficiency_fit():
         pedestal=np.full_like(image, 1.1)
     )
 
-    print(result)
-
-    assert u.isclose(result['impact'], impact_parameter, rtol=0.05)
-    assert u.isclose(result['ring_width'], ring_width, rtol=0.05)
-    assert u.isclose(result['optical_efficiency'], efficiency, rtol=0.05)
+    assert u.isclose(result.impact, impact_parameter, rtol=0.05)
+    assert u.isclose(result.width, ring_width, rtol=0.05)
+    assert u.isclose(result.optical_efficiency, efficiency, rtol=0.05)
 
 
 def test_scts():
     from ctapipe.instrument import TelescopeDescription, SubarrayDescription
-    from ctapipe.image.muon.intensity_fitter import  MuonIntensityFitter
+    from ctapipe.image.muon.intensity_fitter import MuonIntensityFitter
 
     telescope = TelescopeDescription.from_name('SST-ASTRI', 'CHEC')
     subarray = SubarrayDescription(
