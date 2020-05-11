@@ -148,7 +148,7 @@ class Path(TraitType):
             if exists != self.exists:
                 raise TraitError(
                     'Path "{}" {} exist'.format(
-                        value, "does not" if self.exists else "must"
+                        value, "does not" if self.exists else "must not"
                     )
                 )
         if exists:
