@@ -63,6 +63,7 @@ setup(
         'tqdm>=4.32',
         'traitlets>=4.1,<5.0',
         'zstandard',
+        'h5py',
     ],
     # here are optional dependencies (as "tag" : "dependency spec")
     extras_require={
