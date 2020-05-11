@@ -3,7 +3,8 @@ import copy
 import numpy as np
 from astropy.utils.data import download_file
 import astropy.units as u
-import pytest
+from itertools import zip_longest
+
 
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 from ctapipe.io.simteleventsource import SimTelEventSource, apply_simtel_r1_calibration
@@ -13,7 +14,7 @@ from ctapipe.io import DataLevel
 
 gamma_test_large_path = get_dataset_path("gamma_test_large.simtel.gz")
 gamma_test_path = get_dataset_path("gamma_test.simtel.gz")
-calib_events_path = get_dataset_path("calib_events.simtel.gz")
+calib_events_path = get_dataset_path("lst_prod3_calibration_and_mcphotons.simtel.zst")
 
 
 def test_simtel_event_source_on_gamma_test_one_event():
@@ -182,11 +183,35 @@ def test_allowed_telescopes():
 
 
 def test_calibration_events():
+    from ctapipe.containers import EventType
+
+    # this test file as two of each of these types
+    expected_types = [
+        EventType.DARK_PEDESTAL,
+        EventType.DARK_PEDESTAL,
+        EventType.SKY_PEDESTAL,
+        EventType.SKY_PEDESTAL,
+        EventType.SINGLE_PE,
+        EventType.SINGLE_PE,
+        EventType.FLATFIELD,
+        EventType.FLATFIELD,
+        EventType.SUBARRAY,
+        EventType.SUBARRAY,
+    ]
     with SimTelEventSource(
         input_url=calib_events_path, skip_calibration_events=False,
     ) as reader:
+
+        for event, expected_type in zip_longest(reader, expected_types):
+            assert event.index.event_type is expected_type
+
+
+def test_true_image():
+    with SimTelEventSource(input_url=calib_events_path) as reader:
+
         for e in reader:
-            pass
+            for tel in e.mc.tel.values():
+                assert np.count_nonzero(tel.true_image) > 0
 
 
 def test_camera_caching():

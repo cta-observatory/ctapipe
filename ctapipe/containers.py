@@ -103,14 +103,14 @@ class HillasParametersContainer(Container):
 
     intensity = Field(nan, "total intensity (size)")
 
-    x = Field(nan, "centroid x coordinate")
-    y = Field(nan, "centroid x coordinate")
-    r = Field(nan, "radial coordinate of centroid")
-    phi = Field(nan, "polar coordinate of centroid", unit=u.deg)
+    x = Field(nan * u.m, "centroid x coordinate", unit=u.m)
+    y = Field(nan * u.m, "centroid x coordinate", unit=u.m)
+    r = Field(nan * u.m, "radial coordinate of centroid", unit=u.m)
+    phi = Field(nan * u.deg, "polar coordinate of centroid", unit=u.deg)
 
-    length = Field(nan, "standard deviation along the major-axis")
-    width = Field(nan, "standard spread along the minor-axis")
-    psi = Field(nan, "rotation angle of ellipse", unit=u.deg)
+    length = Field(nan * u.m, "standard deviation along the major-axis", unit=u.m)
+    width = Field(nan * u.m, "standard spread along the minor-axis", unit=u.m)
+    psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
 
     skewness = Field(nan, "measure of the asymmetry")
     kurtosis = Field(nan, "measure of the tailedness")
@@ -163,8 +163,8 @@ class TimingParametersContainer(Container):
     """
 
     container_prefix = "timing"
-    slope = Field(nan, "Slope of arrival times along main shower axis")
-    slope_err = Field(nan, "Uncertainty `slope`")
+    slope = Field(nan / u.m, "Slope of arrival times along main shower axis", unit=1/u.m)
+    slope_err = Field(nan / u.m, "Uncertainty `slope`", unit=1/u.m)
     intercept = Field(nan, "intercept of arrival times along main shower axis")
     intercept_err = Field(nan, "Uncertainty `intercept`")
     deviation = Field(
@@ -653,6 +653,7 @@ class DataContainer(Container):
 
 
 class MuonRingParameter(Container):
+    '''Container for the result of a ring fit, center_x, center_y'''
     center_x = Field(nan * u.deg, "center (x) of the fitted muon ring", unit=u.deg)
     center_y = Field(nan * u.deg, "center (y) of the fitted muon ring", unit=u.deg)
     radius = Field(nan * u.deg, "radius of the fitted muon ring", unit=u.deg)
@@ -662,15 +663,28 @@ class MuonRingParameter(Container):
     center_distance = Field(
         nan * u.deg, "Distance of ring center from camera center", unit=u.deg
     )
-    containment = Field(nan, "containment of the ring inside the camera")
 
 
 class MuonIntensityParameter(Container):
-    ring_width = Field(nan, "width of the muon ring in degrees")
+    width = Field(nan, "width of the muon ring in degrees")
     impact = Field(nan, "distance of muon impact position from center of mirror")
     impact_x = Field(nan, "impact parameter x position")
     impact_y = Field(nan, "impact parameter y position")
     optical_efficiency = Field(nan, "optical efficiency muon")
+
+
+class MuonImageParameters(Container):
+    containment = Field(nan, "containment of the ring inside the camera")
+    completeness = Field(
+        nan,
+        "Complenetess of the muon ring"
+        ", estimated by dividing the ring into segments"
+        " and counting segments above a threshold"
+    )
+    intensity_ratio = Field(nan, 'Intensity ratio of pixels in the ring to all pixels')
+    mean_squared_error = Field(
+        nan, 'MSE of the deviation of all pixels after cleaning from the ring fit'
+    )
 
 
 class FlatFieldContainer(Container):
