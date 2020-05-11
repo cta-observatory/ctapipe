@@ -24,6 +24,7 @@ def test_muon_reconstruction(tmpdir):
             argv=[
                 f"--input={GAMMA_TEST_LARGE}",
                 f"--output={f.name}",
+                '--overwrite',
                 "--max_events=10",
                 "--allowed_tels=[1, 2, 3, 4, 5, 6]"
             ]

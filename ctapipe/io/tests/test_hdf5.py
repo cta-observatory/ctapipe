@@ -473,6 +473,16 @@ def test_column_order():
             assert f.root.bar[:].dtype.names == ('b', 'a', 'd', 'c')
 
 
+def test_writing_nan_defaults():
+    from ctapipe.containers import ImageParametersContainer
+
+    params = ImageParametersContainer()
+
+    with tempfile.NamedTemporaryFile(suffix='.hdf5') as f:
+        with HDF5TableWriter(f.name, mode='w') as writer:
+            writer.write('params', params.values())
+
+
 if __name__ == "__main__":
 
     import logging

@@ -36,9 +36,8 @@ class MuonAnalysis(Tool):
     name = 'ctapipe-reconstruct-muons'
     description = traits.Unicode(__doc__)
 
-    output = traits.Unicode(
-        default_value=None,
-        allow_none=True,
+    output = traits.Path(
+        directory_ok=False,
         help='HDF5 output file name'
     ).tag(config=True)
 
@@ -53,6 +52,10 @@ class MuonAnalysis(Tool):
             'Ring width for intensity ratio'
             ' computation as multiple of pixel diameter'
         )
+    ).tag(config=True)
+    
+    overwrite = traits.Bool(
+        default_value=False, help='If true, overwrite outputfile without asking'
     ).tag(config=True)
 
     min_pixels = traits.IntTelescopeParameter(
@@ -90,9 +93,18 @@ class MuonAnalysis(Tool):
         'allowed-tels': 'EventSource.allowed_tels',
     }
 
+    flags = {
+        'overwrite': ({'MuonAnalysis': {'overwrite': True}}, 'overwrite output file')
+    }
+
     def setup(self):
         if self.output is None:
             raise ToolConfigurationError('You need to provide an --output file')
+
+        if self.output.exists() and not self.overwrite:
+            raise ToolConfigurationError(
+                'Outputfile {self.output} already exists, use `--overwrite` to overwrite'
+            )
 
         self.source = self.add_component(EventSource.from_config(parent=self))
         self.extractor = self.add_component(ImageExtractor.from_name(
@@ -113,7 +125,8 @@ class MuonAnalysis(Tool):
             subarray=self.source.subarray,
         ))
         self.writer = self.add_component(HDF5TableWriter(
-            self.output, "", add_prefix=True
+            self.output, "", add_prefix=True, parent=self,
+            mode='w',
         ))
         self.pixels_in_tel_frame = {}
         self.field_of_view = {}
