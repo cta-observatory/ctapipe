@@ -29,7 +29,7 @@ def test_number_of_islands():
 
 
 def test_number_of_island_sizes():
-    from ctapipe.image.cleaning import number_of_island_sizes
+    from ctapipe.image import number_of_island_sizes
 
     island_labels = np.array(
         100 * [0]

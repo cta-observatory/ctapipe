@@ -522,7 +522,7 @@ class Stage1ProcessorTool(Tool):
 
         # return the default container (containing nan values) for no
         # parameterization
-        return signal_pixels, ImageParametersContainer()
+        return ImageParametersContainer()
 
     def _process_events(self, writer):
         self.log.debug("Writing DL1/Event data")
