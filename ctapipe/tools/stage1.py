@@ -337,7 +337,7 @@ class Stage1ProcessorTool(Tool):
         extramc = ExtraMCInfo()
         extramc.obs_id = event.index.obs_id
         event.mcheader.prefix = ""
-        writer.write("simulation/run/config", [extramc, event.mcheader])
+        writer.write("configuration/simulation/run", [extramc, event.mcheader])
 
     def _write_simulation_histograms(self, writer: HDF5TableWriter):
         """ Write the distribution of thrown showers
@@ -675,7 +675,7 @@ class Stage1ProcessorTool(Tool):
         self._write_instrument_configuration(self.event_source.subarray)
 
         with HDF5TableWriter(
-            self.output_path, mode="a", add_prefix=True, filters=self._hdf5_filters
+            self.output_path, parent=self, mode="a", add_prefix=True, filters=self._hdf5_filters,
         ) as writer:
 
             writer.add_column_transform(
