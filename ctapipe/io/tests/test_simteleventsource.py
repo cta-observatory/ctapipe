@@ -4,6 +4,7 @@ import numpy as np
 from astropy.utils.data import download_file
 import astropy.units as u
 from itertools import zip_longest
+import pytest
 
 
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
