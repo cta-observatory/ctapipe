@@ -154,7 +154,12 @@ class Tool(Application):
         # ensure command-line takes precedence over config file options:
         self.update_config(self.cli_config)
 
-        log_config = create_log_config(self.name, self.log_level, self.log_file, self.log_file_level)
+        log_config = create_log_config(
+            name=self.name,
+            log_level=self.log_level,
+            log_file=self.log_file,
+            log_file_level=self.log_file_level,
+        )
 
         logging.config.dictConfig(log_config)
         self.log = logging.getLogger(self.name)
