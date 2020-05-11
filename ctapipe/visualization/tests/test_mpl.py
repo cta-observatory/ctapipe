@@ -59,7 +59,7 @@ def test_camera_display_multiple():
 def test_array_display():
     """ check that we can do basic array display functionality """
     from ctapipe.visualization.mpl_array import ArrayDisplay
-    from ctapipe.image.timing_parameters import timing_parameters
+    from ctapipe.image import timing_parameters
 
     # build a test subarray:
     tels = dict()
