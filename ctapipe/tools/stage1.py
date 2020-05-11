@@ -680,10 +680,20 @@ class Stage1ProcessorTool(Tool):
                 col_name="tels_with_trigger",
                 transform=self.event_source.subarray.tel_ids_to_mask,
             )
-            if self.write_parameters is False:
-                # don't need to write out the image mask if no parameters are computed,
-                # since we don't do image cleaning in that case.
-                writer.exclude("/dl1/event/telescope/images", "image_mask")
+
+            # exclude some columns that are not writable
+            for tel_id, telescope in self.event_source.subarray.tel.items():
+                tel_type = str(telescope)
+                if self.split_datasets_by == 'tel_id':
+                    table_name = f"tel_{tel_id:03d}"
+                else:
+                    table_name = tel_type
+
+                if self.write_parameters is False:
+                    writer.exclude(f"/dl1/event/telescope/images/{table_name}", 'image_mask')
+                writer.exclude(f"/dl1/event/telescope/images/{table_name}", 'parameters')
+                writer.exclude(f"/simulation/event/telescope/images/{table_name}", 'true_parameters')
+                writer.exclude(f"/simulation/event/subarray/shower", 'mc_tel')
 
             self._process_events(writer)
             self._write_simulation_histograms(writer)
