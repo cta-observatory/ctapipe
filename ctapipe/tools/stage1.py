@@ -690,7 +690,7 @@ class Stage1ProcessorTool(Tool):
 
             self._process_events(writer)
             self._write_simulation_histograms(writer)
-            # self._write_processing_statistics()
+            self._write_processing_statistics()
 
             if self.write_index_tables:
                 self._generate_indices(writer)
