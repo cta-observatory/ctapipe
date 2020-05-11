@@ -404,7 +404,8 @@ class SimTelEventSource(EventSource):
 
             yield data
 
-    def _fill_event_pointing(self, pointing, mc, tracking_position):
+    @staticmethod
+    def _fill_event_pointing(pointing, mc, tracking_position):
         mc.azimuth_raw = tracking_position["azimuth_raw"]
         mc.altitude_raw = tracking_position["altitude_raw"]
         mc.azimuth_cor = tracking_position.get("azimuth_cor", np.nan)
@@ -422,7 +423,8 @@ class SimTelEventSource(EventSource):
         else:
             pointing.altitude = u.Quantity(mc.altitude_cor, u.rad)
 
-    def _fill_event_type(self, data, array_event):
+    @staticmethod
+    def _fill_event_type(data, array_event):
         if array_event["type"] == "data":
             data.index.event_type = EventType.SUBARRAY
 
@@ -492,7 +494,8 @@ class SimTelEventSource(EventSource):
             run_array_direction=Angle(self.file_.header["direction"] * u.rad),
         )
 
-    def _fill_mc_event_information(self, data, array_event):
+    @staticmethod
+    def _fill_mc_event_information(data, array_event):
         mc_event = array_event["mc_event"]
         mc_shower = array_event["mc_shower"]
 
