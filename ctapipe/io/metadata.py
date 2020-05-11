@@ -105,7 +105,7 @@ class Activity(HasTraits):
             name=activity["activity_name"],
             type_="software",
             id_=activity["activity_uuid"],
-            start=activity["start"]["time_utc"],
+            start_time=activity["start"]["time_utc"],
             software_name="ctapipe",
             software_version=activity["system"]["ctapipe_version"],
         )
