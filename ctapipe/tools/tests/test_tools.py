@@ -28,6 +28,7 @@ def test_muon_reconstruction(tmpdir):
             argv=[
                 f"--input={LST_MUONS}",
                 f"--output={f.name}",
+                '--overwrite',
             ]
         ) == 0
 
