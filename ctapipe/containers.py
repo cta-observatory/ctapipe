@@ -465,9 +465,6 @@ class MCHeaderContainer(Container):
     prod_site_B_declination = Field(nan, "magnetic declination", unit=u.rad)
     prod_site_B_inclination = Field(nan, "magnetic inclination", unit=u.rad)
     prod_site_alt = Field(nan, "height of observation level", unit=u.m)
-    prod_site_array = Field("None", "site array")
-    prod_site_coord = Field("None", "site (long., lat.) coordinates")
-    prod_site_subarray = Field("None", "site subarray")
     spectral_index = Field(nan, "Power-law spectral index of spectrum")
     shower_prog_start = Field(
         nan,
