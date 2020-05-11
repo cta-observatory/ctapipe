@@ -33,8 +33,7 @@ entry_points['console_scripts'] = [
 ]
 tests_require = [
     'pytest',
-    'ctapipe-extra @ https://github.com/cta-observatory/ctapipe-extra/archive/v0.2.19.tar.gz',
-    'pyhessio @ https://github.com/cta-observatory/pyhessio/archive/v2.1.1.tar.gz',
+    'ctapipe-extra @ https://github.com/cta-observatory/ctapipe-extra/archive/v0.3.0.tar.gz',
 ]
 docs_require = [
     'sphinx_rtd_theme', 'sphinx_automodapi', 'sphinx', 'nbsphinx', 'numpydoc',
@@ -47,13 +46,10 @@ setup(
     packages=find_packages(),
     version=ctapipe.version.get_version(pep440=True),
     python_requires='>=3.6',
-    # these should be minimum list of what is needed to run (note
-    # don't need to list the sub-dependencies like numpy, since
-    # astropy already depends on it)
     install_requires=[
         'astropy>=3,<5',
         'bokeh~=1.0',
-        'eventio~=1.0',
+        'eventio>=1.1.1,<2.0.0a0',  # at least 1.1.1, but not 2
         'iminuit>=1.3',
         'joblib',
         'matplotlib~=3.0',
@@ -66,7 +62,7 @@ setup(
         'tables~=3.4',
         'tqdm>=4.32',
         'traitlets>=4.1,<5.0',
-        'h5py',  # for astropy.tables hdf io
+        'zstandard',
     ],
     # here are optional dependencies (as "tag" : "dependency spec")
     extras_require={
@@ -82,12 +78,12 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: Implementation :: CPython',
         'Topic :: Scientific/Engineering :: Astronomy',
         'Development Status :: 3 - Alpha',
     ],
     zip_safe=False,
-    use_2to3=False,
     entry_points=entry_points,
     package_data={
         '': ['tools/bokeh/*.yaml', 'tools/bokeh/templates/*.html'],

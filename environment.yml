@@ -5,11 +5,11 @@ channels:
   - cta-observatory
 dependencies:
   - python=3.7
+  - pip
   - astropy
   - bokeh
   - h5py
   - conda-forge::nbsphinx
-  - ctapipe-extra=0.2.19
   - cython
   - graphviz
   - iminuit
@@ -19,7 +19,7 @@ dependencies:
   - jupyter
   - matplotlib
   - numba
-  - numpy>=1.15.4
+  - numpy>=1.17
   - numpydoc
   - pandas
   - psutil
@@ -39,6 +39,7 @@ dependencies:
   - wheel
   - xz
   - zlib
-  - pip
+  - zstandard
   - pip:
     - eventio~=1.0
+    - https://github.com/cta-observatory/ctapipe-extra/archive/v0.3.0.tar.gz

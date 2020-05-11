@@ -24,7 +24,6 @@ _optional_dependencies = sorted([
     'ctapipe_resources',
     'pytest',
     'graphviz',
-    'pyhessio',
     'targetio',
     'matplotlib'
 ])

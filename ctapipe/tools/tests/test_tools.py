@@ -14,8 +14,13 @@ import tables
 
 from ctapipe.utils import get_dataset_path
 from ctapipe.core import run_tool
+import tempfile
+import tables
+import numpy as np
+
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
+LST_MUONS = get_dataset_path('lst_muons.simtel.zst')
 
 
 def test_stage_1():
@@ -84,13 +89,17 @@ def test_muon_reconstruction(tmpdir):
         assert run_tool(
             MuonAnalysis(),
             argv=[
-                f"--input={GAMMA_TEST_LARGE}",
+                f"--input={LST_MUONS}",
                 f"--output={f.name}",
                 '--overwrite',
-                "--max_events=10",
-                "--allowed_tels=[1, 2, 3, 4, 5, 6]"
             ]
         ) == 0
+
+        t = tables.open_file(f.name)
+        table = t.root.dl1.event.telescope.parameters.muons[:]
+        assert len(table) > 20
+        assert np.count_nonzero(np.isnan(table['muonringparameter_radius'])) == 0
+
     assert run_tool(MuonAnalysis(), ["--help-all"]) == 0
 
 
