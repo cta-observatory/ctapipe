@@ -1,10 +1,10 @@
 language: generic
 
 env:
-    global: 
-        - PYTHONIOENCODING=UTF8
-        - MPLBACKEND=Agg
-        - PYTEST_ADDOPTS='--color=yes'
+  global:
+    - PYTHONIOENCODING=UTF8
+    - MPLBACKEND=Agg
+    - PYTEST_ADDOPTS='--color=yes'
 
 matrix:
   include:
@@ -50,27 +50,27 @@ matrix:
             - graphviz
 
 before_install:
-    - git fetch --tags
+  - git fetch --tags
 
 install:
-    - source ci/install.sh
-    - python --version
-    - pip install travis-sphinx codecov pytest-cov
-    - pip install -e .[all]
+  - source ci/install.sh
+  - python --version
+  - pip install travis-sphinx codecov pytest-cov
+  - pip install -e .[all]
 
 script:
-    - pytest --cov=ctapipe
-    - ctapipe-info --version # print out the version string
-    - travis-sphinx -v --outdir=docbuild build --source=docs/
+  - pytest --cov=ctapipe
+  - ctapipe-info --version
+  - travis-sphinx -v --outdir=docbuild build --source=docs/
 
 after_script:
-    - if [[ "$CONDA" == "true" ]];then
-          conda deactivate
-      fi
+  - if [[ "$CONDA" == "true" ]];then
+        conda deactivate
+    fi
 
 after_success:
-    - travis-sphinx -v --outdir=docbuild deploy
-    - codecov
+  - travis-sphinx -v --outdir=docbuild deploy
+  - codecov
 
 deploy:
   provider: pypi
