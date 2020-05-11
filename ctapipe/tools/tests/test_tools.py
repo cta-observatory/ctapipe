@@ -28,7 +28,6 @@ def test_stage_1():
                 '--config=./examples/stage1_config.json',
                 f"--input={GAMMA_TEST_LARGE}",
                 f'--output={f.name}',
-                '--write-images',
                 '--write-parameters',
             ]
         ) == 0
@@ -51,6 +50,31 @@ def test_stage_1():
         )
         for feature in features:
             assert feature in dl1_features.columns
+
+    with tempfile.NamedTemporaryFile(suffix='.hdf5') as f:
+        assert run_tool(
+            Stage1ProcessorTool(),
+            argv=[
+                '--config=./examples/stage1_config.json',
+                f"--input={GAMMA_TEST_LARGE}",
+                f'--output={f.name}',
+                '--write-images',
+            ]
+        ) == 0
+
+        with tables.open_file(f.name, mode='r') as tf:
+            assert tf.root.dl1
+            assert tf.root.dl1.event.telescope
+            assert tf.root.dl1.event.subarray
+            assert tf.root.configuration.instrument.subarray.layout
+            assert tf.root.configuration.instrument.telescope.optics
+            assert tf.root.configuration.instrument.telescope.camera.geometry_LSTCam
+            assert tf.root.configuration.instrument.telescope.camera.readout_LSTCam
+            assert tf.root.dl1.event.telescope.images.tel_001
+            dl1_image = tf.root.dl1.event.telescope.images.tel_001
+            assert 'image_mask' in dl1_image.dtype.names
+            assert 'image' in dl1_image.dtype.names
+            assert 'peak_time' in dl1_image.dtype.names
 
 
 def test_muon_reconstruction(tmpdir):
