@@ -211,7 +211,10 @@ class CameraGeometry:
 
     @classmethod
     def guess_pixel_area(cls, pix_x, pix_y, pix_type):
-        """ recalculate pixel area based on the pixel type and layout
+        """
+        Guess pixel area based on the pixel type and layout.
+        This first uses `guess_pixel_width` and then calculates
+        area from the given pixel type.
 
         Note this will not work on cameras with varying pixel sizes.
         """
@@ -230,9 +233,9 @@ class CameraGeometry:
     @lazyproperty
     def pixel_width(self):
         '''
-        Calculate pixel width
-
         in-circle diameter for hexagons, edge width for square pixels
+
+        This is calculated from the pixel area.
         '''
 
         if self.pix_type.startswith('hex'):
@@ -250,6 +253,10 @@ class CameraGeometry:
         Calculate pixel diameter by looking at the minimum distance between pixels
 
         Note this will not work on cameras with varying pixel sizes or gaps
+
+        Returns
+        -------
+            in-circle diameter for hexagons, edge width for square pixels
         """
         return np.min(np.sqrt((pix_x[1:] - pix_x[0])**2 + (pix_y[1:] - pix_y[0])**2))
 
