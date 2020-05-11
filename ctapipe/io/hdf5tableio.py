@@ -101,7 +101,7 @@ class HDF5TableWriter(TableWriter):
         **kwargs,
     ):
 
-        super().__init__(add_prefix=add_prefix, parent=None, config=None)
+        super().__init__(add_prefix=add_prefix, parent=parent, config=config)
         self._schemas = {}
         self._tables = {}
 
