@@ -63,7 +63,7 @@ setup(
         'tqdm>=4.32',
         'traitlets>=4.1,<5.0',
         'zstandard',
-        'h5py',
+        'h5py',  # needed for astropy hdf5 io
     ],
     # here are optional dependencies (as "tag" : "dependency spec")
     extras_require={

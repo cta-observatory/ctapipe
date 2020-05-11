@@ -14,8 +14,6 @@ import tables
 
 from ctapipe.utils import get_dataset_path
 from ctapipe.core import run_tool
-import tempfile
-import tables
 import numpy as np
 
 
@@ -34,6 +32,7 @@ def test_stage_1():
                 f"--input={GAMMA_TEST_LARGE}",
                 f'--output={f.name}',
                 '--write-parameters',
+                '--overwrite',
             ]
         ) == 0
 
@@ -64,6 +63,7 @@ def test_stage_1():
                 f"--input={GAMMA_TEST_LARGE}",
                 f'--output={f.name}',
                 '--write-images',
+                '--overwrite',
             ]
         ) == 0
 

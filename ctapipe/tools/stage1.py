@@ -690,7 +690,6 @@ class Stage1ProcessorTool(Tool):
 
             self._process_events(writer)
             self._write_simulation_histograms(writer)
-            self._write_processing_statistics()
 
             if self.write_index_tables:
                 self._generate_indices(writer)
@@ -701,6 +700,7 @@ class Stage1ProcessorTool(Tool):
                 obs_id=self._cur_obs_id,
                 writer=writer,
             )
+        self._write_processing_statistics()
 
     def finish(self):
         pass
