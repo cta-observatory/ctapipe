@@ -147,7 +147,7 @@ def ring_containment(radius, center_x, center_y, camera_radius):
     d = np.sqrt(center_x**2 + center_y**2)
 
     # one circle fully contained in the other
-    if d <= np.abs(radius - camera_radius):
+    if d <= np.abs(camera_radius - radius):
         return 1.0
 
     # no intersection
