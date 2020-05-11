@@ -280,7 +280,6 @@ def _get_system_provenance():
     return dict(
         ctapipe_version=ctapipe.__version__,
         ctapipe_resources_version=get_module_version('ctapipe_resources'),
-        pyhessio_version=get_module_version('pyhessio'),
         eventio_version=get_module_version('eventio'),
         ctapipe_svc_path=os.getenv("CTAPIPE_SVC_PATH"),
         executable=sys.executable,
