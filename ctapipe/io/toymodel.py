@@ -67,7 +67,7 @@ class ToyEventSource(EventSource, TelescopeComponent):
 
     @property
     def datalevels(self):
-        return (DataLevel.DL1a, )
+        return (DataLevel.DL1_IMAGES, )
 
     @subarray.setter
     def subarray(self, value):
