@@ -1,4 +1,4 @@
-""" Classes to handle configurable command-line user interfaces """
+"""Classes to handle configurable command-line user interfaces."""
 import logging
 import logging.config
 import textwrap
