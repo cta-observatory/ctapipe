@@ -4,13 +4,12 @@ Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
 # TODO: add event time per telescope!
 """
 import hashlib
-import sys
 import pathlib
+import sys
 
 import numpy as np
 import tables
 import tables.filters
-
 from astropy import units as u
 from tqdm.autonotebook import tqdm
 
@@ -80,10 +79,7 @@ def write_reference_metadata_headers(output_path, obs_id, subarray, writer):
     activity = PROV.current_activity.provenance
 
     reference = meta.Reference(
-        contact=meta.Contact(
-            name="", email="",
-            organization="CTA Consortium",
-        ),
+        contact=meta.Contact(name="", email="", organization="CTA Consortium",),
         product=meta.Product(
             description="DL1 Data Product",
             data_category="S",
@@ -133,9 +129,10 @@ def tel_type_string_to_int(tel_type):
 
 class ImageQualityQuery(QualityQuery):
     """ for configuring image-wise data checks """
+
     quality_criteria = List(
         default_value=[
-            ('size_greater_0', 'lambda image_selected: image_selected.sum() > 0'),
+            ("size_greater_0", "lambda image_selected: image_selected.sum() > 0"),
         ],
         help=QualityQuery.quality_criteria.help,
     ).tag(config=True)
@@ -260,8 +257,8 @@ class Stage1ProcessorTool(Tool):
                 self.output_path.unlink()
             else:
                 self.log.critical(
-                    f'Output file {self.output_path} exists'
-                    ', use `--overwrite` to overwrite '
+                    f"Output file {self.output_path} exists"
+                    ", use `--overwrite` to overwrite "
                 )
                 sys.exit(1)
 
@@ -337,7 +334,7 @@ class Stage1ProcessorTool(Tool):
         extramc = ExtraMCInfo()
         extramc.obs_id = event.index.obs_id
         event.mcheader.prefix = ""
-        writer.write("configuration/simulation/service", [extramc, event.mcheader])
+        writer.write("configuration/simulation/run", [extramc, event.mcheader])
 
     def _write_simulation_histograms(self, writer: HDF5TableWriter):
         """ Write the distribution of thrown showers
@@ -389,7 +386,7 @@ class Stage1ProcessorTool(Tool):
                 if hist["id"] == 6:
                     fill_from_simtel(self._cur_obs_id, hist, hist_container)
                     writer.write(
-                        table_name="simulation/run/shower_distribution",
+                        table_name="simulation/service/shower_distribution",
                         containers=hist_container,
                     )
 
@@ -477,20 +474,14 @@ class Stage1ProcessorTool(Tool):
         if all(image_criteria):
             geom_selected = geometry[signal_pixels]
 
-            hillas = hillas_parameters(
-                geom=geom_selected, image=image_selected,
-            )
+            hillas = hillas_parameters(geom=geom_selected, image=image_selected,)
             leakage = leakage_parameters(
                 geom=geometry, image=image, cleaning_mask=signal_pixels
             )
             concentration = concentration_parameters(
-                geom=geom_selected,
-                image=image_selected,
-                hillas_parameters=hillas,
+                geom=geom_selected, image=image_selected, hillas_parameters=hillas,
             )
-            morphology = morphology_parameters(
-                geom=geometry, image_mask=signal_pixels
-            )
+            morphology = morphology_parameters(geom=geometry, image_mask=signal_pixels)
             intensity_statistics = descriptive_statistics(
                 image_selected, container_class=IntensityStatisticsContainer
             )
@@ -580,7 +571,7 @@ class Stage1ProcessorTool(Tool):
             tel_index = TelEventIndexContainer(
                 **event.index,
                 tel_id=np.int16(tel_id),
-                tel_type_id=tel_type_string_to_int(tel_type)
+                tel_type_id=tel_type_string_to_int(tel_type),
             )
             table_name = (
                 f"tel_{tel_id:03d}" if self.split_datasets_by == "tel_id" else tel_type
@@ -590,15 +581,17 @@ class Stage1ProcessorTool(Tool):
             has_true_image = true_image is not None and np.count_nonzero(true_image) > 0
 
             if has_true_image:
-                mcdl1 = MCDL1CameraContainer(true_image=true_image, true_parameters=None)
-                mcdl1.prefix = ''
+                mcdl1 = MCDL1CameraContainer(
+                    true_image=true_image, true_parameters=None
+                )
+                mcdl1.prefix = ""
 
             if self.write_parameters:
                 # apply cleaning
                 dl1_camera.image_mask = self.clean(
                     tel_id=tel_id,
                     image=dl1_camera.image,
-                    arrival_times=dl1_camera.peak_time
+                    arrival_times=dl1_camera.peak_time,
                 )
 
                 params = self._parameterize_image(
@@ -619,10 +612,10 @@ class Stage1ProcessorTool(Tool):
                         tel_id,
                         image=true_image,
                         signal_pixels=true_image > 0,
-                        peak_time=None  # true image from mc has no peak time
+                        peak_time=None,  # true image from mc has no peak time
                     )
                     writer.write(
-                        f'simulation/event/telescope/parameters/{table_name}',
+                        f"simulation/event/telescope/parameters/{table_name}",
                         [tel_index, *mcdl1.true_parameters.values()],
                     )
 
@@ -637,7 +630,7 @@ class Stage1ProcessorTool(Tool):
 
                 if has_true_image:
                     writer.write(
-                        f'simulation/event/telescope/images/{table_name}',
+                        f"simulation/event/telescope/images/{table_name}",
                         [tel_index, mcdl1],
                     )
 
@@ -675,7 +668,11 @@ class Stage1ProcessorTool(Tool):
         self._write_instrument_configuration(self.event_source.subarray)
 
         with HDF5TableWriter(
-            self.output_path, parent=self, mode="a", add_prefix=True, filters=self._hdf5_filters,
+            self.output_path,
+            parent=self,
+            mode="a",
+            add_prefix=True,
+            filters=self._hdf5_filters,
         ) as writer:
 
             writer.add_column_transform(
