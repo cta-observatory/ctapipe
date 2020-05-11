@@ -100,16 +100,17 @@ def largest_island(islands_labels):
 def morphology_parameters(geom, image_mask) -> MorphologyContainer:
     """
     Compute image morphology parameters
+
     Parameters
     ----------
     geom: ctapipe.instrument.camera.CameraGeometry
         camera description
     image_mask: np.ndarray(bool)
-        image of pixels surviving cleaning (True=survives)
+       image of pixels surviving cleaning (True=survives)
+
     Returns
     -------
-    MorphologyContainer:
-        parameters related to the morphology
+    MorphologyContainer: parameters related to the morphology
     """
 
     num_islands, island_labels = number_of_islands(geom=geom, mask=image_mask)
