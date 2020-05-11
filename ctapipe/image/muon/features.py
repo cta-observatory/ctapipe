@@ -1,8 +1,5 @@
 import numpy as np
-import logging
 import math as mt
-
-log = logging.getLogger(__name__)
 
 
 def mean_squared_error(pixel_x, pixel_y, weights, radius, center_x, center_y):
@@ -28,7 +25,7 @@ def mean_squared_error(pixel_x, pixel_y, weights, radius, center_x, center_y):
     return np.average((r - radius)**2, weights=weights)
 
 
-def photon_ratio_inside_ring(
+def intensity_ratio_inside_ring(
     pixel_x, pixel_y, weights, radius, center_x, center_y, width
 ):
     """
@@ -55,15 +52,14 @@ def photon_ratio_inside_ring(
         width of the ring
     """
 
-    total = np.sum(weights)
-
     pixel_r = np.sqrt((center_x - pixel_x)**2 + (center_y - pixel_y)**2)
     mask = np.logical_and(
         pixel_r >= radius - 0.5 * width,
         pixel_r <= radius + 0.5 * width
     )
 
-    inside = np.sum(weights[mask])
+    inside = weights[mask].sum()
+    total = weights.sum()
 
     return inside / total
 
