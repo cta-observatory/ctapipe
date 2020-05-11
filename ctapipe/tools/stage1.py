@@ -23,6 +23,7 @@ from ..containers import (
     IntensityStatisticsContainer,
     PeakTimeStatisticsContainer,
     MCDL1CameraContainer,
+    TimingParametersContainer,
 )
 from ..core import Provenance
 from ..core import QualityQuery, Container, Field, Tool, ToolConfigurationError
@@ -336,7 +337,7 @@ class Stage1ProcessorTool(Tool):
         extramc = ExtraMCInfo()
         extramc.obs_id = event.index.obs_id
         event.mcheader.prefix = ""
-        writer.write("simulation/run/config", [extramc, event.mcheader])
+        writer.write("configuration/simulation/run", [extramc, event.mcheader])
 
     def _write_simulation_histograms(self, writer: HDF5TableWriter):
         """ Write the distribution of thrown showers
@@ -443,7 +444,7 @@ class Stage1ProcessorTool(Tool):
             serialize_meta=True,
         )
 
-    def _parameterize_image(self, tel_id, dl1_camera):
+    def _parameterize_image(self, tel_id, image, signal_pixels, peak_time=None):
         """Apply image cleaning and calculate image features
 
         Parameters
@@ -463,14 +464,7 @@ class Stage1ProcessorTool(Tool):
 
         tel = self.event_source.subarray.tel[tel_id]
         geometry = tel.camera.geometry
-
-        # apply cleaning
-        signal_pixels = self.clean(
-            tel_id=tel_id,
-            image=dl1_camera.image,
-            arrival_times=dl1_camera.peak_time
-        )
-        image_selected = dl1_camera.image[signal_pixels]
+        image_selected = image[signal_pixels]
 
         # check if image can be parameterized:
         image_criteria = self.check_image(image_selected)
@@ -486,14 +480,8 @@ class Stage1ProcessorTool(Tool):
             hillas = hillas_parameters(
                 geom=geom_selected, image=image_selected,
             )
-            timing = timing_parameters(
-                geom=geom_selected,
-                image=image_selected,
-                peak_time=dl1_camera.peak_time[signal_pixels],
-                hillas_parameters=hillas,
-            )
             leakage = leakage_parameters(
-                geom=geometry, image=dl1_camera.image, cleaning_mask=signal_pixels
+                geom=geometry, image=image, cleaning_mask=signal_pixels
             )
             concentration = concentration_parameters(
                 geom=geom_selected,
@@ -506,12 +494,23 @@ class Stage1ProcessorTool(Tool):
             intensity_statistics = descriptive_statistics(
                 image_selected, container_class=IntensityStatisticsContainer
             )
-            peak_time_statistics = descriptive_statistics(
-                dl1_camera.peak_time[signal_pixels],
-                container_class=PeakTimeStatisticsContainer,
-            )
 
-            return signal_pixels, ImageParametersContainer(
+            if peak_time is not None:
+                timing = timing_parameters(
+                    geom=geom_selected,
+                    image=image_selected,
+                    peak_time=peak_time[signal_pixels],
+                    hillas_parameters=hillas,
+                )
+                peak_time_statistics = descriptive_statistics(
+                    peak_time[signal_pixels],
+                    container_class=PeakTimeStatisticsContainer,
+                )
+            else:
+                timing = TimingParametersContainer()
+                peak_time_statistics = PeakTimeStatisticsContainer()
+
+            return ImageParametersContainer(
                 hillas=hillas,
                 timing=timing,
                 leakage=leakage,
@@ -523,61 +522,7 @@ class Stage1ProcessorTool(Tool):
 
         # return the default container (containing nan values) for no
         # parameterization
-        return signal_pixels, ImageParametersContainer()
-
-    def _parameterize_true_image(self, tel_id, true_image):
-        """Apply image cleaning and calculate image features
-
-        Parameters
-        ----------
-        subarray : SubarrayDescription
-           subarray description
-        data : DL1CameraContainer
-            calibrated camera data
-        tel_id: int
-            which telescope is being cleaned
-
-        Returns
-        -------
-        np.ndarray, ImageParametersContainer:
-            cleaning mask, parameters
-        """
-
-        tel = self.event_source.subarray.tel[tel_id]
-        geometry = tel.camera.geometry
-
-        # apply cleaning
-        signal_pixels = true_image > 0
-        image_selected = true_image[signal_pixels]
-
-        # parameterize the event if all criteria pass:
-        geom_selected = geometry[signal_pixels]
-
-        hillas = hillas_parameters(
-            geom=geom_selected, image=image_selected,
-        )
-        leakage = leakage_parameters(
-            geom=geometry, image=true_image, cleaning_mask=signal_pixels
-        )
-        concentration = concentration_parameters(
-            geom=geom_selected,
-            image=image_selected,
-            hillas_parameters=hillas,
-        )
-        morphology = morphology_parameters(
-            geom=geometry, image_mask=signal_pixels
-        )
-        intensity_statistics = descriptive_statistics(
-            image_selected, container_class=IntensityStatisticsContainer
-        )
-
-        return ImageParametersContainer(
-            hillas=hillas,
-            leakage=leakage,
-            morphology=morphology,
-            concentration=concentration,
-            intensity_statistics=intensity_statistics,
-        )
+        return ImageParametersContainer()
 
     def _process_events(self, writer):
         self.log.debug("Writing DL1/Event data")
@@ -649,9 +594,18 @@ class Stage1ProcessorTool(Tool):
                 mcdl1.prefix = ''
 
             if self.write_parameters:
-                image_mask, params = self._parameterize_image(
+                # apply cleaning
+                dl1_camera.image_mask = self.clean(
                     tel_id=tel_id,
-                    dl1_camera=dl1_camera,
+                    image=dl1_camera.image,
+                    arrival_times=dl1_camera.peak_time
+                )
+
+                params = self._parameterize_image(
+                    tel_id=tel_id,
+                    image=dl1_camera.image,
+                    signal_pixels=dl1_camera.image_mask,
+                    peak_time=dl1_camera.peak_time,
                 )
 
                 self.log.debug("params: %s", params.as_dict(recursive=True))
@@ -661,8 +615,11 @@ class Stage1ProcessorTool(Tool):
                 )
 
                 if has_true_image:
-                    mcdl1.true_parameters = self._parameterize_true_image(
-                        tel_id, true_image
+                    mcdl1.true_parameters = self._parameterize_image(
+                        tel_id,
+                        image=true_image,
+                        signal_pixels=true_image > 0,
+                        peak_time=None  # true image from mc has no peak time
                     )
                     writer.write(
                         f'simulation/event/telescope/parameters/{table_name}',
@@ -718,7 +675,7 @@ class Stage1ProcessorTool(Tool):
         self._write_instrument_configuration(self.event_source.subarray)
 
         with HDF5TableWriter(
-            self.output_path, mode="a", add_prefix=True, filters=self._hdf5_filters
+            self.output_path, parent=self, mode="a", add_prefix=True, filters=self._hdf5_filters,
         ) as writer:
 
             writer.add_column_transform(

@@ -9,6 +9,7 @@ from .morphology import (
     number_of_islands,
     number_of_island_sizes,
     morphology_parameters,
+    largest_island,
 )
 
 from .cleaning import *
