@@ -26,8 +26,8 @@ from ctapipe.core.traits import IntTelescopeParameter, FloatTelescopeParameter
 from ctapipe.core import TelescopeComponent
 from numba import njit, prange, guvectorize, float64, float32, int64
 
-from .cleaning import number_of_islands, largest_island, tailcuts_clean
-from .timing_parameters import timing_parameters
+from . import number_of_islands, largest_island, tailcuts_clean
+from .timing import timing_parameters
 from .hillas import hillas_parameters, camera_to_shower_coordinates
 
 
