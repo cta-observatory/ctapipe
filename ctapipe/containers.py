@@ -178,12 +178,11 @@ class TimingParametersContainer(Container):
 
 class MorphologyContainer(Container):
     """ Parameters related to pixels surviving image cleaning """
-
-    num_pixels = Field(nan, "Number of usable pixels")
-    num_islands = Field(nan, "Number of distinct islands in the image")
-    num_small_islands = Field(nan, "Number of <= 2 pixel islands")
-    num_medium_islands = Field(nan, "Number of 2-50 pixel islands")
-    num_large_islands = Field(nan, "Number of > 50 pixel islands")
+    num_pixels = Field(-1, "Number of usable pixels")
+    num_islands = Field(-1, "Number of distinct islands in the image")
+    num_small_islands = Field(-1, "Number of <= 2 pixel islands")
+    num_medium_islands = Field(-1, "Number of 2-50 pixel islands")
+    num_large_islands = Field(-1, "Number of > 50 pixel islands")
 
 
 class StatisticsContainer(Container):
@@ -247,7 +246,7 @@ class DL1CameraContainer(Container):
     parameters = Field(ImageParametersContainer(), "Parameters derived from images")
 
 
-class MCDL1CameraContainer(DL1CameraContainer):
+class MCDL1CameraContainer(Container):
     """ Contains all fields of the DL1CameraContainer, but adds fields for simulated
     DL1 image information."""
 

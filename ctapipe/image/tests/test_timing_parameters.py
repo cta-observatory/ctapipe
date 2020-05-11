@@ -1,4 +1,3 @@
-from ctapipe.image.timing_parameters import timing_parameters
 import numpy as np
 import astropy.units as u
 from numpy.testing import assert_allclose
@@ -7,6 +6,7 @@ from ctapipe.containers import HillasParametersContainer
 
 
 def test_psi_0():
+    from ctapipe.image import timing_parameters
     """
     Simple test that gradient fitting gives expected answers for perfect
     gradient
@@ -37,6 +37,7 @@ def test_psi_0():
 
 
 def test_psi_20():
+    from ctapipe.image import timing_parameters
 
     # Then try a different rotation angle
     grad = 2
@@ -67,6 +68,7 @@ def test_psi_20():
 
 
 def test_ignore_negative():
+    from ctapipe.image import timing_parameters
     grad = 2.0
     intercept = 1.0
     deviation = 0.1

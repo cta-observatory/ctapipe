@@ -8,8 +8,6 @@ __all__ = [
     "mars_cleaning_1st_pass",
     "fact_image_cleaning",
     "apply_time_delta_cleaning",
-    "number_of_islands",
-    "number_of_island_sizes",
     "ImageCleaner",
     "TailcutsImageCleaner",
 ]
@@ -17,7 +15,6 @@ __all__ = [
 from abc import abstractmethod
 
 import numpy as np
-from scipy.sparse.csgraph import connected_components
 
 from ..core.component import TelescopeComponent
 from ..core.traits import (
@@ -203,75 +200,6 @@ def dilate(geom, mask):
     return mask | geom.neighbor_matrix_sparse.dot(mask)
 
 
-def number_of_islands(geom, mask):
-    """
-    Search a given pixel mask for connected clusters.
-    This can be used to seperate between gamma and hadronic showers.
-
-    Parameters
-    ----------
-    geom: `~ctapipe.instrument.CameraGeometry`
-        Camera geometry information
-    mask: ndarray
-        input mask (array of booleans)
-
-    Returns
-    -------
-    num_islands: int
-        Total number of clusters
-    island_labels: ndarray
-        Contains cluster membership of each pixel.
-        Dimension equals input geometry.
-        Entries range from 0 (not in the pixel mask) to num_islands.
-    """
-    # compress sparse neighbor matrix
-    neighbor_matrix_compressed = geom.neighbor_matrix_sparse[mask][:, mask]
-    # pixels in no cluster have label == 0
-    island_labels = np.zeros(geom.n_pixels, dtype="int32")
-
-    num_islands, island_labels_compressed = connected_components(
-        neighbor_matrix_compressed, directed=False
-    )
-
-    # count clusters from 1 onwards
-    island_labels[mask] = island_labels_compressed + 1
-
-    return num_islands, island_labels
-
-
-def number_of_island_sizes(island_labels):
-    '''
-    Return number of small, medium and large islands
-
-    Parameters
-    ----------
-    island_labels: array[int]
-        Array with island labels, (second return value of ``number_of_islands``)
-
-    Returns
-    -------
-    n_small: int
-        number of islands with less than 3 pixels
-    n_medium: int
-        number of islands with 3 <= n_pixels <= 50
-    n_large: int
-        number of islands with more than 50 pixels
-    '''
-
-    # count number of pixels in each island, remove 0 = no island
-    island_sizes = np.bincount(island_labels)[1:]
-
-    # remove islands of size 0 (if labels are not consecutive)
-    # should not happen, but easy to check
-    island_sizes = island_sizes[island_sizes > 0]
-
-    small = island_sizes <= 2
-    large = island_sizes > 50
-    n_medium = np.count_nonzero(~(small | large))
-
-    return np.count_nonzero(small), n_medium, np.count_nonzero(large)
-
-
 def apply_time_delta_cleaning(
     geom, mask, arrival_times, min_number_neighbors, time_limit
 ):
@@ -399,30 +327,6 @@ def fact_image_cleaning(
         geom, pixels_to_keep, arrival_times, min_number_neighbors, time_limit
     )
     return pixels_to_keep
-
-
-def largest_island(islands_labels):
-    """Find the biggest island and filter it from the image.
-
-    This function takes a list of islands in an image and isolates the largest one
-    for later parametrization.
-
-    Parameters
-    ----------
-    islands_labels : array
-        Flattened array containing a list of labelled islands from a cleaned image.
-        Second value returned by the function 'number_of_islands'.
-
-    Returns
-    -------
-    islands_labels : array
-        A boolean mask created from the input labels and filtered for the largest island.
-        If no islands survived the cleaning the array is all False.
-
-    """
-    if np.count_nonzero(islands_labels) == 0:
-        return np.zeros(islands_labels.shape, dtype="bool")
-    return islands_labels == np.argmax(np.bincount(islands_labels[islands_labels > 0]))
 
 
 class ImageCleaner(TelescopeComponent):
