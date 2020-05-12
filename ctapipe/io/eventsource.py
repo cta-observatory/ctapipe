@@ -97,12 +97,6 @@ class EventSource(Component):
         Path to the input event file.
     max_events : int
         Maximum number of events to loop through in generator
-    metadata : dict
-        A dictionary containing the metadata of the file. This could include:
-        * is_simulation (bool indicating if the file contains simulated events)
-        * Telescope:Camera names (list if file contains multiple)
-        * Information in the file header
-        * Observation ID
     """
 
     input_url = Path(
@@ -118,9 +112,11 @@ class EventSource(Component):
     ).tag(config=True)
 
     allowed_tels = Set(
+        default_value=None,
+        allow_none=True,
         help=(
             "list of allowed tel_ids, others will be ignored. "
-            "If left empty, all telescopes in the input stream "
+            "If None, all telescopes in the input stream "
             "will be included"
         )
     ).tag(config=True)
@@ -198,6 +194,40 @@ class EventSource(Component):
         -------
         ctapipe.instrument.SubarrayDecription
 
+        """
+
+    @property
+    @abstractmethod
+    def is_simulation(self):
+        """
+        Weither the currently opened file is simulated
+
+        Returns
+        -------
+        bool
+
+        """
+
+    @property
+    @abstractmethod
+    def datalevels(self):
+        """
+        The datalevels provided by this event source
+
+        Returns
+        -------
+        tuple[ctapipe.io.DataLevel]
+        """
+
+    @property
+    @abstractmethod
+    def obs_id(self):
+        """
+        The current observation id
+
+        Returns
+        -------
+        int
         """
 
     @abstractmethod

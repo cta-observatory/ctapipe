@@ -1,6 +1,7 @@
 import pytest
 from ctapipe.utils import get_dataset_path
 from ctapipe.io.eventsource import EventSource
+from ctapipe.io import DataLevel
 
 
 def test_construct():
@@ -23,6 +24,18 @@ class DummyReader(EventSource):
     @property
     def subarray(self):
         return None
+
+    @property
+    def is_simulation(self):
+        return False
+
+    @property
+    def obs_id(self):
+        return 1
+
+    @property
+    def datalevels(self):
+        return (DataLevel.R0, )
 
 
 def test_can_be_implemented():

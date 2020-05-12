@@ -53,7 +53,7 @@ class MuonAnalysis(Tool):
             ' computation as multiple of pixel diameter'
         )
     ).tag(config=True)
-    
+
     overwrite = traits.Bool(
         default_value=False, help='If true, overwrite outputfile without asking'
     ).tag(config=True)
@@ -232,9 +232,9 @@ class MuonAnalysis(Tool):
         # add ring containment, not filled in fit
         containment = ring_containment(
             ring.radius,
-            fov_radius,
             ring.center_x,
             ring.center_y,
+            fov_radius,
         )
 
         completeness = ring_completeness(
