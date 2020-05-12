@@ -68,7 +68,7 @@ def test_function_incompatible_file():
 
 
 def test_function_nonexistant_file():
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises(TraitError):
         dataset = "/fake_path/fake_file.fake_extension"
         event_source(input_url=dataset)
 
