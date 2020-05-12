@@ -60,7 +60,7 @@ PROV = Provenance()
 DL1_DATA_MODEL_VERSION = "v1.0.0"
 
 
-def write_reference_metadata_headers(output_path, obs_id, subarray, writer):
+def write_reference_metadata_headers(obs_id, subarray, writer):
     """
     Attaches Core Provenence headers to an output HDF5 file.
     Right now this is hard-coded for use with the ctapipe-stage1-process tool
@@ -241,7 +241,8 @@ class Stage1ProcessorTool(Tool):
     }
 
     classes = List(
-        [EventSource, CameraCalibrator, ImageQualityQuery]
+        [CameraCalibrator, ImageQualityQuery]
+        + classes_with_traits(EventSource)
         + classes_with_traits(ImageCleaner)
         + classes_with_traits(ImageExtractor)
         + classes_with_traits(GainSelector)
@@ -722,7 +723,6 @@ class Stage1ProcessorTool(Tool):
                 self._generate_indices(writer)
 
             write_reference_metadata_headers(
-                output_path=self.output_path,
                 subarray=self.event_source.subarray,
                 obs_id=self._cur_obs_id,
                 writer=writer,
