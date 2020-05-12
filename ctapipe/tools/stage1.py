@@ -12,6 +12,7 @@ import tables
 import tables.filters
 from astropy import units as u
 from tqdm.autonotebook import tqdm
+from collections import defaultdict
 
 from ctapipe.io import metadata as meta
 from ..calib.camera import CameraCalibrator, GainSelector
@@ -228,7 +229,6 @@ class Stage1ProcessorTool(Tool):
     )
 
     def setup(self):
-
         # prepare output path:
         self.output_path = self.output_path.expanduser()
         if self.output_path.exists():
@@ -297,6 +297,9 @@ class Stage1ProcessorTool(Tool):
             complib=self.compression_type,
             fletcher32=True,  # attach a checksum to each chunk for error correction
         )
+
+        # store unique pointing positions per telescope
+        self._pointings = defaultdict(set)
 
     def _write_simulation_configuration(self, writer):
         """
@@ -516,6 +519,11 @@ class Stage1ProcessorTool(Tool):
             event.mc.prefix = "mc"
             event.trigger.prefix = ""
 
+            p = event.pointing
+            if (p.array_azimuth, p.array_altitude) not in self._pointings['array']:
+                writer.write('monitoring/subarray/pointing', [event.index, p])
+                self._pointings['array'].add((p.array_azimuth, p.array_altitude))
+
             # write the subarray tables
             writer.write(
                 table_name="simulation/event/subarray/shower",
@@ -536,7 +544,6 @@ class Stage1ProcessorTool(Tool):
 
         # write the telescope tables
         for tel_id, dl1_camera in event.dl1.tel.items():
-
             dl1_camera.prefix = ""  # don't want a prefix for this container
             telescope = self.event_source.subarray.tel[tel_id]
             tel_type = str(telescope)
@@ -546,6 +553,13 @@ class Stage1ProcessorTool(Tool):
                 event_id=event.index.event_id,
                 tel_id=np.int16(tel_id),
             )
+
+            p = event.pointing.tel[tel_id]
+            if (p.azimuth, p.altitude) not in self._pointings[tel_id]:
+                p.prefix = ''
+                writer.write('monitoring/telescope/pointing', [tel_index, p])
+                self._pointings[tel_id].add((p.azimuth, p.altitude))
+
             table_name = (
                 f"tel_{tel_id:03d}" if self.split_datasets_by == "tel_id" else tel_type
             )
