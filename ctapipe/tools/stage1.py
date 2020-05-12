@@ -684,6 +684,15 @@ class Stage1ProcessorTool(Tool):
                 f"/simulation/event/telescope/images/{table_name}",
                 'true_parameters'
             )
+            # no timing information yet for true images
+            writer.exclude(
+                f"/simulation/event/telescope/parameters/{table_name}",
+                r'peak_time_.*'
+            )
+            writer.exclude(
+                f"/simulation/event/telescope/parameters/{table_name}",
+                r'timing_.*'
+            )
             writer.exclude(f"/simulation/event/subarray/shower", 'mc_tel')
 
     def start(self):
