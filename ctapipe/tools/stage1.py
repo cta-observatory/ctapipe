@@ -318,7 +318,7 @@ class Stage1ProcessorTool(Tool):
             fletcher32=True,  # attach a checksum to each chunk for error correction
         )
 
-    def _write_simulation_configuration(self, writer, event):
+    def _write_simulation_configuration(self, writer):
         """
         Write the simulation headers to a single row of a table. Later
         if this file is merged with others, that table will grow.
@@ -332,9 +332,12 @@ class Stage1ProcessorTool(Tool):
             obs_id = Field(0, "MC Run Identifier")
 
         extramc = ExtraMCInfo()
-        extramc.obs_id = event.index.obs_id
-        event.mcheader.prefix = ""
-        writer.write("configuration/simulation/run", [extramc, event.mcheader])
+        extramc.obs_id = self.event_source.obs_id
+        self.event_source.mc_header.prefix = ""
+        writer.write(
+            "configuration/simulation/run",
+            [extramc, self.event_source.mc_header]
+        )
 
     def _write_simulation_histograms(self, writer: HDF5TableWriter):
         """ Write the distribution of thrown showers
@@ -349,6 +352,9 @@ class Stage1ProcessorTool(Tool):
           histograms will be found.
         """
         self.log.debug("Writing simulation histograms")
+
+        if not isinstance(self.event_source, SimTelEventSource):
+            return
 
         def fill_from_simtel(
             obs_id, eventio_hist, container: SimulatedShowerDistribution
@@ -374,9 +380,6 @@ class Stage1ProcessorTool(Tool):
             container.meta["hist_title"] = eventio_hist["title"]
             container.meta["x_label"] = "Log10 E (TeV)"
             container.meta["y_label"] = "3D Core Distance (m)"
-
-        if type(self.event_source) is not SimTelEventSource:
-            return
 
         hists = self.event_source.file_.histograms
         if hists is not None:
@@ -517,7 +520,6 @@ class Stage1ProcessorTool(Tool):
 
     def _process_events(self, writer):
         self.log.debug("Writing DL1/Event data")
-        is_initialized = False
         self.event_source.subarray.info(printer=self.log.debug)
 
         for event in tqdm(
@@ -527,10 +529,6 @@ class Stage1ProcessorTool(Tool):
             unit="ev",
             disable=not self.progress_bar,
         ):
-
-            if not is_initialized:
-                self._write_simulation_configuration(writer, event)
-                is_initialized = True
 
             self.log.log(9, "Writing event_id=%s", event.index.event_id)
 
@@ -551,9 +549,6 @@ class Stage1ProcessorTool(Tool):
             )
             # write the telescope tables
             self._write_telescope_event(writer, event)
-
-        if is_initialized is False:
-            raise ValueError(f"No events found in file: {self.event_source.input_url}")
 
     def _write_telescope_event(self, writer, event):
         """
@@ -577,14 +572,19 @@ class Stage1ProcessorTool(Tool):
                 f"tel_{tel_id:03d}" if self.split_datasets_by == "tel_id" else tel_type
             )
 
-            true_image = event.mc.tel[tel_id].true_image
-            has_true_image = true_image is not None and np.count_nonzero(true_image) > 0
-
-            if has_true_image:
-                mcdl1 = MCDL1CameraContainer(
-                    true_image=true_image, true_parameters=None
+            if self.event_source.is_simulation:
+                true_image = event.mc.tel[tel_id].true_image
+                has_true_image = (
+                    true_image is not None and np.count_nonzero(true_image) > 0
                 )
-                mcdl1.prefix = ""
+
+                if has_true_image:
+                    mcdl1 = MCDL1CameraContainer(
+                        true_image=true_image, true_parameters=None
+                    )
+                    mcdl1.prefix = ""
+            else:
+                has_true_image = False
 
             if self.write_parameters:
                 # apply cleaning
@@ -607,7 +607,7 @@ class Stage1ProcessorTool(Tool):
                     containers=[tel_index, *params.values()],
                 )
 
-                if has_true_image:
+                if self.event_source.is_simulation and has_true_image:
                     mcdl1.true_parameters = self._parameterize_image(
                         tel_id,
                         image=true_image,
@@ -680,20 +680,21 @@ class Stage1ProcessorTool(Tool):
             writer.exclude(
                 f"/dl1/event/telescope/images/{table_name}", 'parameters'
             )
-            writer.exclude(
-                f"/simulation/event/telescope/images/{table_name}",
-                'true_parameters'
-            )
-            # no timing information yet for true images
-            writer.exclude(
-                f"/simulation/event/telescope/parameters/{table_name}",
-                r'peak_time_.*'
-            )
-            writer.exclude(
-                f"/simulation/event/telescope/parameters/{table_name}",
-                r'timing_.*'
-            )
-            writer.exclude(f"/simulation/event/subarray/shower", 'mc_tel')
+            if self.event_source.is_simulation:
+                writer.exclude(
+                    f"/simulation/event/telescope/images/{table_name}",
+                    'true_parameters'
+                )
+                # no timing information yet for true images
+                writer.exclude(
+                    f"/simulation/event/telescope/parameters/{table_name}",
+                    r'peak_time_.*'
+                )
+                writer.exclude(
+                    f"/simulation/event/telescope/parameters/{table_name}",
+                    r'timing_.*'
+                )
+                writer.exclude(f"/simulation/event/subarray/shower", 'mc_tel')
 
     def start(self):
 
@@ -712,9 +713,14 @@ class Stage1ProcessorTool(Tool):
             filters=self._hdf5_filters,
         ) as writer:
 
+            if self.event_source.is_simulation:
+                self._write_simulation_configuration(writer)
+
             self._setup_writer(writer)
             self._process_events(writer)
-            self._write_simulation_histograms(writer)
+
+            if self.event_source.is_simulation:
+                self._write_simulation_histograms(writer)
 
             if self.write_index_tables:
                 self._generate_indices(writer)
