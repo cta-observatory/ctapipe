@@ -6,6 +6,7 @@ import astropy.units as u
 from itertools import zip_longest
 import pytest
 from astropy.time import Time
+from pathlib import Path
 
 
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
@@ -17,6 +18,11 @@ from ctapipe.io import DataLevel
 gamma_test_large_path = get_dataset_path("gamma_test_large.simtel.gz")
 gamma_test_path = get_dataset_path("gamma_test.simtel.gz")
 calib_events_path = get_dataset_path("lst_prod3_calibration_and_mcphotons.simtel.zst")
+
+
+def test_positional_input():
+    source = SimTelEventSource(gamma_test_large_path)
+    assert source.input_url == Path(gamma_test_large_path)
 
 
 def test_simtel_event_source_on_gamma_test_one_event():
