@@ -9,7 +9,6 @@ from numpy import nan
 
 from .core import Container, Field, Map
 
-
 __all__ = [
     "R0Container",
     "R0CameraContainer",
@@ -79,6 +78,7 @@ class EventType(enum.Enum):
 
 class EventIndexContainer(Container):
     """ index columns to include in event lists, common to all data levels"""
+
     container_prefix = ""  # don't want to prefix these
 
     obs_id = Field(0, "observation identifier")
@@ -91,6 +91,7 @@ class TelEventIndexContainer(Container):
     index columns to include in telescope-wise event lists, common to all data
     levels that have telescope-wise information
     """
+
     container_prefix = ""  # don't want to prefix these
 
     obs_id = Field(0, "observation identifier")
@@ -165,8 +166,10 @@ class TimingParametersContainer(Container):
     """
 
     container_prefix = "timing"
-    slope = Field(nan / u.m, "Slope of arrival times along main shower axis", unit=1/u.m)
-    slope_err = Field(nan / u.m, "Uncertainty `slope`", unit=1/u.m)
+    slope = Field(
+        nan / u.m, "Slope of arrival times along main shower axis", unit=1 / u.m
+    )
+    slope_err = Field(nan / u.m, "Uncertainty `slope`", unit=1 / u.m)
     intercept = Field(nan, "intercept of arrival times along main shower axis")
     intercept_err = Field(nan, "Uncertainty `intercept`")
     deviation = Field(
@@ -178,6 +181,7 @@ class TimingParametersContainer(Container):
 
 class MorphologyContainer(Container):
     """ Parameters related to pixels surviving image cleaning """
+
     num_pixels = Field(-1, "Number of usable pixels")
     num_islands = Field(-1, "Number of distinct islands in the image")
     num_small_islands = Field(-1, "Number of <= 2 pixel islands")
@@ -197,11 +201,11 @@ class StatisticsContainer(Container):
 
 
 class IntensityStatisticsContainer(StatisticsContainer):
-    container_prefix = 'intensity'
+    container_prefix = "intensity"
 
 
 class PeakTimeStatisticsContainer(StatisticsContainer):
-    container_prefix = 'peak_time'
+    container_prefix = "peak_time"
 
 
 class ImageParametersContainer(Container):
@@ -676,7 +680,8 @@ class DataContainer(Container):
 
 
 class MuonRingParameter(Container):
-    '''Container for the result of a ring fit, center_x, center_y'''
+    """Container for the result of a ring fit, center_x, center_y"""
+
     center_x = Field(nan * u.deg, "center (x) of the fitted muon ring", unit=u.deg)
     center_y = Field(nan * u.deg, "center (y) of the fitted muon ring", unit=u.deg)
     radius = Field(nan * u.deg, "radius of the fitted muon ring", unit=u.deg)
@@ -702,11 +707,11 @@ class MuonImageParameters(Container):
         nan,
         "Complenetess of the muon ring"
         ", estimated by dividing the ring into segments"
-        " and counting segments above a threshold"
+        " and counting segments above a threshold",
     )
-    intensity_ratio = Field(nan, 'Intensity ratio of pixels in the ring to all pixels')
+    intensity_ratio = Field(nan, "Intensity ratio of pixels in the ring to all pixels")
     mean_squared_error = Field(
-        nan, 'MSE of the deviation of all pixels after cleaning from the ring fit'
+        nan, "MSE of the deviation of all pixels after cleaning from the ring fit"
     )
 
 

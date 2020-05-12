@@ -335,8 +335,7 @@ class Stage1ProcessorTool(Tool):
         extramc.obs_id = self.event_source.obs_id
         self.event_source.mc_header.prefix = ""
         writer.write(
-            "configuration/simulation/run",
-            [extramc, self.event_source.mc_header]
+            "configuration/simulation/run", [extramc, self.event_source.mc_header]
         )
 
     def _write_simulation_histograms(self, writer: HDF5TableWriter):
@@ -668,33 +667,30 @@ class Stage1ProcessorTool(Tool):
         # exclude some columns that are not writable
         for tel_id, telescope in self.event_source.subarray.tel.items():
             tel_type = str(telescope)
-            if self.split_datasets_by == 'tel_id':
+            if self.split_datasets_by == "tel_id":
                 table_name = f"tel_{tel_id:03d}"
             else:
                 table_name = tel_type
 
             if self.write_parameters is False:
                 writer.exclude(
-                    f"/dl1/event/telescope/images/{table_name}", 'image_mask'
+                    f"/dl1/event/telescope/images/{table_name}", "image_mask"
                 )
-            writer.exclude(
-                f"/dl1/event/telescope/images/{table_name}", 'parameters'
-            )
+            writer.exclude(f"/dl1/event/telescope/images/{table_name}", "parameters")
             if self.event_source.is_simulation:
                 writer.exclude(
                     f"/simulation/event/telescope/images/{table_name}",
-                    'true_parameters'
+                    "true_parameters",
                 )
                 # no timing information yet for true images
                 writer.exclude(
                     f"/simulation/event/telescope/parameters/{table_name}",
-                    r'peak_time_.*'
+                    r"peak_time_.*",
                 )
                 writer.exclude(
-                    f"/simulation/event/telescope/parameters/{table_name}",
-                    r'timing_.*'
+                    f"/simulation/event/telescope/parameters/{table_name}", r"timing_.*"
                 )
-                writer.exclude(f"/simulation/event/subarray/shower", 'mc_tel')
+                writer.exclude(f"/simulation/event/subarray/shower", "mc_tel")
 
     def start(self):
 
