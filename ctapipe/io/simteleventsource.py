@@ -9,11 +9,12 @@ from astropy.time import Time
 from eventio.file_types import is_eventio
 from eventio.simtel.simtelfile import SimTelFile
 from traitlets import observe
+from io import BufferedReader
 
-from ctapipe.calib.camera.gainselection import ThresholdGainSelector
-from ctapipe.containers import EventAndMonDataContainer, EventType
-from ctapipe.core.traits import Bool, CaselessStrEnum
-from ctapipe.instrument import (
+from ..calib.camera.gainselection import ThresholdGainSelector
+from ..containers import EventAndMonDataContainer, EventType
+from ..core.traits import Bool, CaselessStrEnum
+from ..instrument import (
     TelescopeDescription,
     SubarrayDescription,
     CameraDescription,
@@ -21,10 +22,14 @@ from ctapipe.instrument import (
     CameraReadout,
     OpticsDescription,
 )
-from ctapipe.instrument.camera import UnknownPixelShapeWarning
-from ctapipe.instrument.guess import guess_telescope, UNKNOWN_TELESCOPE
-from ctapipe.io.eventsource import EventSource
-from io import BufferedReader
+from ..instrument.camera import UnknownPixelShapeWarning
+from ..instrument.guess import guess_telescope, UNKNOWN_TELESCOPE
+from ..containers import MCHeaderContainer
+from .eventsource import EventSource
+from .datalevels import DataLevel
+
+X_MAX_UNIT = u.g / (u.cm ** 2)
+
 
 __all__ = ["SimTelEventSource"]
 
@@ -165,16 +170,11 @@ class SimTelEventSource(EventSource):
         kwargs
         """
         super().__init__(config=config, parent=parent, **kwargs)
-        self.metadata["is_simulation"] = True
         self._camera_cache = {}
 
-        # traitlets creates an empty set as default,
-        # which ctapipe treats as no restriction on the telescopes
-        # but eventio treats an empty set as "no telescopes allowed"
-        # so we explicitly pass None in that case
         self.file_ = SimTelFile(
-            Path(self.input_url).expanduser(),
-            allowed_telescopes=set(self.allowed_tels) if self.allowed_tels else None,
+            self.input_url.expanduser(),
+            allowed_telescopes=self.allowed_tels,
             skip_calibration=self.skip_calibration_events,
             zcat=not self.back_seekable,
         )
@@ -184,12 +184,14 @@ class SimTelEventSource(EventSource):
         self._subarray_info = self.prepare_subarray_info(
             self.file_.telescope_descriptions, self.file_.header
         )
+        self._mc_header = self._parse_mc_header()
         self.start_pos = self.file_.tell()
 
         # Waveforms from simtelarray have both gain channels
         # Gain selection is performed by this EventSource to produce R1 waveforms
         if gain_selector is None:
             gain_selector = ThresholdGainSelector(parent=self)
+
         self.gain_selector = gain_selector
 
     @observe("allowed_tels")
@@ -204,6 +206,22 @@ class SimTelEventSource(EventSource):
 
     def close(self):
         self.file_.close()
+
+    @property
+    def is_simulation(self):
+        return True
+
+    @property
+    def datalevels(self):
+        return (DataLevel.R0, DataLevel.R1, DataLevel.DL0)
+
+    @property
+    def obs_id(self):
+        return self.file_.header['run']
+
+    @property
+    def mc_header(self):
+        return self._mc_header
 
     @property
     def is_stream(self):
@@ -297,7 +315,7 @@ class SimTelEventSource(EventSource):
             warnings.warn("Backseeking to start of file.")
 
         try:
-            yield from self.__generator()
+            yield from self._generate_events()
         except EOFError:
             msg = 'EOFError reading from "{input_url}". Might be truncated'.format(
                 input_url=self.input_url
@@ -305,41 +323,19 @@ class SimTelEventSource(EventSource):
             self.log.warning(msg)
             warnings.warn(msg)
 
-    def __generator(self):
+    def _generate_events(self):
         data = EventAndMonDataContainer()
         data.meta["origin"] = "hessio"
         data.meta["input_url"] = self.input_url
         data.meta["max_events"] = self.max_events
+        data.mcheader = self._mc_header
 
-        if self.file_.header['tracking_mode'] == 0:
-            az, alt = self.file_.header['direction']
-            data.pointing.array_altitude = u.Quantity(alt, u.rad)
-            data.pointing.array_azimuth = u.Quantity(az, u.rad)
-        else:
-            ra, dec = self.file_.header['direction']
-            data.pointing.array_ra = u.Quantity(ra, u.rad)
-            data.pointing.array_dec = u.Quantity(dec, u.rad)
+        self._fill_array_pointing(data)
 
         for counter, array_event in enumerate(self.file_):
-            self.array_event = array_event  # for debugging
+            self._fill_event_type(data, array_event)
 
-            if array_event["type"] == "data":
-                data.index.event_type = EventType.SUBARRAY
-            elif array_event["type"] == "calibration":
-                # if using eventio >= 1.1.1, we can use the calibration_type
-                data.index.event_type = SIMTEL_TO_CTA_EVENT_TYPE.get(
-                    array_event.get("calibration_type", -1), EventType.OTHER_CALIBRATION
-                )
-
-            else:
-                data.index.event_type = EventType.UNKNOWN
-
-            if data.index.event_type != EventType.SUBARRAY:
-                # calibration events do not have an event id
-                event_id = -1
-            else:
-                event_id = array_event["event_id"]
-
+            event_id = array_event.get('event_id', -1)
             obs_id = self.file_.header["run"]
             tels_with_data = set(array_event["telescope_events"].keys())
             data.count = counter
@@ -350,7 +346,6 @@ class SimTelEventSource(EventSource):
             data.dl0.tels_with_data = tels_with_data
 
             trigger_information = array_event["trigger_information"]
-
             data.trig.tels_with_trigger = trigger_information["triggered_telescopes"]
             time_s, time_ns = trigger_information["gps_time"]
             data.trig.gps_time = Time(
@@ -358,7 +353,7 @@ class SimTelEventSource(EventSource):
             )
 
             if data.index.event_type == EventType.SUBARRAY:
-                self.fill_mc_information(data, array_event)
+                self._fill_mc_event_information(data, array_event)
 
             # this should be done in a nicer way to not re-allocate the
             # data each time (right now it's just deleted and garbage
@@ -370,7 +365,6 @@ class SimTelEventSource(EventSource):
             data.mc.tel.clear()
             data.pointing.tel.clear()
 
-
             telescope_events = array_event["telescope_events"]
             tracking_positions = array_event["tracking_positions"]
             for tel_id, telescope_event in telescope_events.items():
@@ -379,7 +373,7 @@ class SimTelEventSource(EventSource):
                 adc_samples = telescope_event.get("adc_samples")
                 if adc_samples is None:
                     adc_samples = telescope_event["adc_sums"][:, :, np.newaxis]
-                _, n_pixels, n_samples = adc_samples.shape
+                n_gains, n_pixels, n_samples = adc_samples.shape
 
                 mc = data.mc.tel[tel_id]
                 mc.dc_to_pe = array_event["laser_calibrations"][tel_id]["calib"]
@@ -390,20 +384,11 @@ class SimTelEventSource(EventSource):
                     .get("photoelectrons", np.zeros(n_pixels, dtype="float32"))
                 )
 
-                tracking_position = tracking_positions[tel_id]
-                mc.azimuth_raw = tracking_position["azimuth_raw"]
-                mc.altitude_raw = tracking_position["altitude_raw"]
-                mc.azimuth_cor = tracking_position.get("azimuth_cor", np.nan)
-                mc.altitude_cor = tracking_position.get("altitude_cor", np.nan)
-
-                if np.isnan(mc.azimuth_cor):
-                    data.pointing.tel[tel_id].azimuth = u.Quantity(mc.azimuth_raw, u.rad)
-                else:
-                    data.pointing.tel[tel_id].azimuth = u.Quantity(mc.azimuth_cor, u.rad)
-                if np.isnan(mc.altitude_cor):
-                    data.pointing.tel[tel_id].altitude = u.Quantity(mc.altitude_raw, u.rad)
-                else:
-                    data.pointing.tel[tel_id].altitude = u.Quantity(mc.altitude_cor, u.rad)
+                self._fill_event_pointing(
+                    data.pointing.tel[tel_id],
+                    mc,
+                    tracking_positions[tel_id],
+                )
 
                 r0 = data.r0.tel[tel_id]
                 r1 = data.r1.tel[tel_id]
@@ -419,61 +404,107 @@ class SimTelEventSource(EventSource):
 
             yield data
 
-    def fill_mc_information(self, data, array_event):
+    @staticmethod
+    def _fill_event_pointing(pointing, mc, tracking_position):
+        mc.azimuth_raw = tracking_position["azimuth_raw"]
+        mc.altitude_raw = tracking_position["altitude_raw"]
+        mc.azimuth_cor = tracking_position.get("azimuth_cor", np.nan)
+        mc.altitude_cor = tracking_position.get("altitude_cor", np.nan)
+
+        # take pointing corrected position if available
+        if np.isnan(mc.azimuth_cor):
+            pointing.azimuth = u.Quantity(mc.azimuth_raw, u.rad)
+        else:
+            pointing.azimuth = u.Quantity(mc.azimuth_cor, u.rad)
+
+        # take pointing corrected position if available
+        if np.isnan(mc.altitude_cor):
+            pointing.altitude = u.Quantity(mc.altitude_raw, u.rad)
+        else:
+            pointing.altitude = u.Quantity(mc.altitude_cor, u.rad)
+
+    @staticmethod
+    def _fill_event_type(data, array_event):
+        if array_event["type"] == "data":
+            data.index.event_type = EventType.SUBARRAY
+
+        elif array_event["type"] == "calibration":
+            # if using eventio >= 1.1.1, we can use the calibration_type
+            data.index.event_type = SIMTEL_TO_CTA_EVENT_TYPE.get(
+                array_event.get("calibration_type", -1),
+                EventType.OTHER_CALIBRATION
+            )
+
+        else:
+            data.index.event_type = EventType.UNKNOWN
+
+    def _fill_array_pointing(self, data):
+        if self.file_.header['tracking_mode'] == 0:
+            az, alt = self.file_.header['direction']
+            data.pointing.array_altitude = u.Quantity(alt, u.rad)
+            data.pointing.array_azimuth = u.Quantity(az, u.rad)
+        else:
+            ra, dec = self.file_.header['direction']
+            data.pointing.array_ra = u.Quantity(ra, u.rad)
+            data.pointing.array_dec = u.Quantity(dec, u.rad)
+
+    def _parse_mc_header(self):
+        mc_run_head = self.file_.mc_run_headers[-1]
+
+        return MCHeaderContainer(
+            corsika_version=mc_run_head["shower_prog_vers"],
+            simtel_version=mc_run_head["detector_prog_vers"],
+            energy_range_min=mc_run_head["E_range"][0] * u.TeV,
+            energy_range_max=mc_run_head["E_range"][1] * u.TeV,
+            prod_site_B_total=mc_run_head["B_total"] * u.uT,
+            prod_site_B_declination=Angle(
+                mc_run_head["B_declination"], u.rad,
+            ),
+            prod_site_B_inclination=Angle(
+                mc_run_head["B_inclination"], u.rad,
+            ),
+            prod_site_alt=mc_run_head["obsheight"] * u.m,
+            spectral_index=mc_run_head["spectral_index"],
+            shower_prog_start=mc_run_head["shower_prog_start"],
+            shower_prog_id=mc_run_head["shower_prog_id"],
+            detector_prog_start=mc_run_head["detector_prog_start"],
+            detector_prog_id=mc_run_head["detector_prog_id"],
+            num_showers=mc_run_head["n_showers"],
+            shower_reuse=mc_run_head["n_use"],
+            max_alt=mc_run_head["alt_range"][1] * u.rad,
+            min_alt=mc_run_head["alt_range"][0] * u.rad,
+            max_az=mc_run_head["az_range"][1] * u.rad,
+            min_az=mc_run_head["az_range"][0] * u.rad,
+            diffuse=mc_run_head["diffuse"],
+            max_viewcone_radius=mc_run_head["viewcone"][1] * u.deg,
+            min_viewcone_radius=mc_run_head["viewcone"][0] * u.deg,
+            max_scatter_range=mc_run_head["core_range"][1] * u.m,
+            min_scatter_range=mc_run_head["core_range"][0] * u.m,
+            core_pos_mode=mc_run_head["core_pos_mode"],
+            injection_height=mc_run_head["injection_height"] * u.m,
+            atmosphere=mc_run_head["atmosphere"],
+            corsika_iact_options=mc_run_head["corsika_iact_options"],
+            corsika_low_E_model=mc_run_head["corsika_low_E_model"],
+            corsika_high_E_model=mc_run_head["corsika_high_E_model"],
+            corsika_bunchsize=mc_run_head["corsika_bunchsize"],
+            corsika_wlen_min=mc_run_head["corsika_wlen_min"] * u.nm,
+            corsika_wlen_max=mc_run_head["corsika_wlen_max"] * u.nm,
+            corsika_low_E_detail=mc_run_head["corsika_low_E_detail"],
+            corsika_high_E_detail=mc_run_head["corsika_high_E_detail"],
+            run_array_direction=Angle(self.file_.header["direction"] * u.rad),
+        )
+
+    @staticmethod
+    def _fill_mc_event_information(data, array_event):
         mc_event = array_event["mc_event"]
         mc_shower = array_event["mc_shower"]
 
-        data.mc.energy = mc_shower["energy"] * u.TeV
+        data.mc.energy = u.Quantity(mc_shower["energy"], u.TeV)
         data.mc.alt = Angle(mc_shower["altitude"], u.rad)
         data.mc.az = Angle(mc_shower["azimuth"], u.rad)
-        data.mc.core_x = mc_event["xcore"] * u.m
-        data.mc.core_y = mc_event["ycore"] * u.m
-        first_int = mc_shower["h_first_int"] * u.m
+        data.mc.core_x = u.Quantity(mc_event["xcore"], u.m)
+        data.mc.core_y = u.Quantity(mc_event["ycore"], u.m)
+        first_int = u.Quantity(mc_shower["h_first_int"], u.m)
         data.mc.h_first_int = first_int
-        data.mc.x_max = mc_shower["xmax"] * u.g / (u.cm ** 2)
+        data.mc.x_max = u.Quantity(mc_shower["xmax"], X_MAX_UNIT)
         data.mc.shower_primary_id = mc_shower["primary_id"]
-
-        # mc run header data
-        data.mcheader.run_array_direction = Angle(
-            self.file_.header["direction"] * u.rad
-        )
-        mc_run_head = self.file_.mc_run_headers[-1]
-        data.mcheader.corsika_version = mc_run_head["shower_prog_vers"]
-        data.mcheader.simtel_version = mc_run_head["detector_prog_vers"]
-        data.mcheader.energy_range_min = mc_run_head["E_range"][0] * u.TeV
-        data.mcheader.energy_range_max = mc_run_head["E_range"][1] * u.TeV
-        data.mcheader.prod_site_B_total = mc_run_head["B_total"] * u.uT
-        data.mcheader.prod_site_B_declination = Angle(
-            mc_run_head["B_declination"] * u.rad
-        )
-        data.mcheader.prod_site_B_inclination = Angle(
-            mc_run_head["B_inclination"] * u.rad
-        )
-        data.mcheader.prod_site_alt = mc_run_head["obsheight"] * u.m
-        data.mcheader.spectral_index = mc_run_head["spectral_index"]
-        data.mcheader.shower_prog_start = mc_run_head["shower_prog_start"]
-        data.mcheader.shower_prog_id = mc_run_head["shower_prog_id"]
-        data.mcheader.detector_prog_start = mc_run_head["detector_prog_start"]
-        data.mcheader.detector_prog_id = mc_run_head["detector_prog_id"]
-        data.mcheader.num_showers = mc_run_head["n_showers"]
-        data.mcheader.shower_reuse = mc_run_head["n_use"]
-        data.mcheader.max_alt = mc_run_head["alt_range"][1] * u.rad
-        data.mcheader.min_alt = mc_run_head["alt_range"][0] * u.rad
-        data.mcheader.max_az = mc_run_head["az_range"][1] * u.rad
-        data.mcheader.min_az = mc_run_head["az_range"][0] * u.rad
-        data.mcheader.diffuse = mc_run_head["diffuse"]
-        data.mcheader.max_viewcone_radius = mc_run_head["viewcone"][1] * u.deg
-        data.mcheader.min_viewcone_radius = mc_run_head["viewcone"][0] * u.deg
-        data.mcheader.max_scatter_range = mc_run_head["core_range"][1] * u.m
-        data.mcheader.min_scatter_range = mc_run_head["core_range"][0] * u.m
-        data.mcheader.core_pos_mode = mc_run_head["core_pos_mode"]
-        data.mcheader.injection_height = mc_run_head["injection_height"] * u.m
-        data.mcheader.atmosphere = mc_run_head["atmosphere"]
-        data.mcheader.corsika_iact_options = mc_run_head["corsika_iact_options"]
-        data.mcheader.corsika_low_E_model = mc_run_head["corsika_low_E_model"]
-        data.mcheader.corsika_high_E_model = mc_run_head["corsika_high_E_model"]
-        data.mcheader.corsika_bunchsize = mc_run_head["corsika_bunchsize"]
-        data.mcheader.corsika_wlen_min = mc_run_head["corsika_wlen_min"] * u.nm
-        data.mcheader.corsika_wlen_max = mc_run_head["corsika_wlen_max"] * u.nm
-        data.mcheader.corsika_low_E_detail = mc_run_head["corsika_low_E_detail"]
-        data.mcheader.corsika_high_E_detail = mc_run_head["corsika_high_E_detail"]
