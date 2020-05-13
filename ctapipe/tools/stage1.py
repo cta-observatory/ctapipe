@@ -140,7 +140,7 @@ class ImageQualityQuery(QualityQuery):
 
 class Stage1ProcessorTool(Tool):
     name = "ctapipe-stage1-process"
-    description = __doc__ + f" This currently writes {DL1_DATA_MODEL_VERSION} DL1 data"
+    description = __doc__ + " This currently writes {DL1_DATA_MODEL_VERSION} DL1 data"
     examples = """
     To process data with all default values:
     > ctapipe-stage1-process --input events.simtel.gz --output events.dl1.h5 --progress
@@ -241,8 +241,7 @@ class Stage1ProcessorTool(Tool):
     }
 
     classes = List(
-        [CameraCalibrator, ImageQualityQuery]
-        + classes_with_traits(EventSource)
+        [CameraCalibrator, ImageQualityQuery, EventSource]
         + classes_with_traits(ImageCleaner)
         + classes_with_traits(ImageExtractor)
         + classes_with_traits(GainSelector)
