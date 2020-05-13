@@ -386,7 +386,7 @@ class Stage1ProcessorTool(Tool):
             hist_container.prefix = ""
             for hist in hists:
                 if hist["id"] == 6:
-                    fill_from_simtel(self._cur_obs_id, hist, hist_container)
+                    fill_from_simtel(self.event_source.obs_id, hist, hist_container)
                     writer.write(
                         table_name="simulation/service/shower_distribution",
                         containers=hist_container,
@@ -535,7 +535,6 @@ class Stage1ProcessorTool(Tool):
 
             event.mc.prefix = "mc"
             event.trig.prefix = ""
-            self._cur_obs_id = event.index.obs_id
 
             # write the subarray tables
             writer.write(
@@ -723,7 +722,7 @@ class Stage1ProcessorTool(Tool):
 
             write_reference_metadata_headers(
                 subarray=self.event_source.subarray,
-                obs_id=self._cur_obs_id,
+                obs_id=self.event_source.obs_id,
                 writer=writer,
             )
         self._write_processing_statistics()
