@@ -6,6 +6,7 @@ import enum
 from astropy import units as u
 from astropy.time import Time
 from numpy import nan
+import numpy as np
 
 from .core import Container, Field, Map
 
@@ -25,7 +26,7 @@ __all__ = [
     "MCHeaderContainer",
     "MCCameraEventContainer",
     "DL1CameraCalibrationContainer",
-    "CentralTriggerContainer",
+    "TriggerContainer",
     "ReconstructedContainer",
     "ReconstructedShowerContainer",
     "ReconstructedEnergyContainer",
@@ -49,6 +50,10 @@ __all__ = [
     "SimulatedShowerDistribution",
     "EventType",
 ]
+
+
+# see https://github.com/astropy/astropy/issues/6509
+NAN_TIME = Time(np.ma.masked_array(nan, mask=True), format='mjd')
 
 
 class EventType(enum.Enum):
@@ -83,7 +88,6 @@ class EventIndexContainer(Container):
 
     event_id = Field(0, "event identifier")
     obs_id = Field(0, "observation identifier")
-    event_type = Field(EventType.SUBARRAY, "Event type")
 
 
 class TelEventIndexContainer(EventIndexContainer):
@@ -93,9 +97,7 @@ class TelEventIndexContainer(EventIndexContainer):
     """
 
     container_prefix = ""  # don't want to prefix these
-
     tel_id = Field(0, "telescope identifier")
-    tel_type_id = Field(0, "telescope type id number (integer)")
 
 
 class HillasParametersContainer(Container):
@@ -475,9 +477,15 @@ class MCHeaderContainer(Container):
     corsika_high_E_detail = Field(nan, "Detector MC information")
 
 
-class CentralTriggerContainer(Container):
-    gps_time = Field(Time, "central average time stamp")
-    tels_with_trigger = Field([], "list of telescopes with data")
+class TelescopeTriggerContainer(Container):
+    time = Field(NAN_TIME, 'Telescope trigger time')
+
+
+class TriggerContainer(Container):
+    time = Field(NAN_TIME, "central average time stamp")
+    tels_with_trigger = Field([], "list of telescope ids with data")
+    event_type = Field(EventType.SUBARRAY, "Event type")
+    tel = Field(Map(TelescopeTriggerContainer), 'telescope-wise trigger information')
 
 
 class ReconstructedShowerContainer(Container):
@@ -643,7 +651,7 @@ class DataContainer(Container):
     dl2 = Field(ReconstructedContainer(), "Reconstructed Shower Information")
     mc = Field(MCEventContainer(), "Monte-Carlo data")
     mcheader = Field(MCHeaderContainer(), "Monte-Carlo run header data")
-    trig = Field(CentralTriggerContainer(), "central trigger information")
+    trigger = Field(TriggerContainer(), "central trigger information")
     count = Field(0, "number of events processed")
     pointing = Field(PointingContainer(), "Array and telescope pointing positions")
     calibration = Field(

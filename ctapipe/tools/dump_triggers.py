@@ -59,17 +59,17 @@ class DumpTriggersTool(Tool):
         """
         add the current hessio event to a row in the `self.events` table
         """
-        gpstime = event.trig.gps_time
+        time = event.trigger.time
 
-        if self._prev_gpstime is None:
-            self._prev_gpstime = gpstime
+        if self._prev_time is None:
+            self._prev_time = time
 
         if self._current_starttime is None:
-            self._current_starttime = gpstime
+            self._current_starttime = time
 
-        relative_time = gpstime - self._current_starttime
-        delta_t = gpstime - self._prev_gpstime
-        self._prev_gpstime = gpstime
+        relative_time = time - self._current_starttime
+        delta_t = time - self._prev_time
+        self._prev_time = time
 
         # build the trigger pattern as a fixed-length array
         # (better for storage in FITS format)
@@ -103,7 +103,7 @@ class DumpTriggersTool(Tool):
 
         self._current_trigpattern = np.zeros(MAX_TELS)
         self._current_starttime = None
-        self._prev_gpstime = None
+        self._prev_time = None
 
     def start(self):
         """ main event loop """

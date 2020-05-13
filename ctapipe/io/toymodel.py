@@ -90,7 +90,7 @@ class ToyEventSource(EventSource, TelescopeComponent):
 
         event = DataContainer(
             index=EventIndexContainer(obs_id=1, event_id=self.event_id),
-            trig=None,
+            trigger=None,
             r0=None,
             dl0=None,
             dl2=None,

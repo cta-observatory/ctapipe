@@ -27,7 +27,7 @@ class ImageSumDisplayerTool(Tool):
     ).tag(config=True)
 
     telgroup = Integer(
-        help='telescope group number', default=1
+        help='telescope group number', default_value=1
     ).tag(config=True)
 
     max_events = Integer(

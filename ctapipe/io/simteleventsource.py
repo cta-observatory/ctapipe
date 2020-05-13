@@ -44,6 +44,14 @@ SIMTEL_TO_CTA_EVENT_TYPE = {
 }
 
 
+def parse_simtel_time(simtel_time):
+    return Time(
+        u.Quantity(simtel_time[0], u.s),
+        u.Quantity(simtel_time[1], u.ns),
+        format="unix", scale="utc",
+    )
+
+
 def build_camera(cam_settings, pixel_settings, telescope):
     pixel_shape = cam_settings["pixel_shape"][0]
     try:
@@ -333,7 +341,6 @@ class SimTelEventSource(EventSource):
         self._fill_array_pointing(data)
 
         for counter, array_event in enumerate(self.file_):
-            self._fill_event_type(data, array_event)
 
             event_id = array_event.get('event_id', -1)
             obs_id = self.file_.header["run"]
@@ -345,14 +352,9 @@ class SimTelEventSource(EventSource):
             data.r1.tels_with_data = tels_with_data
             data.dl0.tels_with_data = tels_with_data
 
-            trigger_information = array_event["trigger_information"]
-            data.trig.tels_with_trigger = trigger_information["triggered_telescopes"]
-            time_s, time_ns = trigger_information["gps_time"]
-            data.trig.gps_time = Time(
-                time_s * u.s, time_ns * u.ns, format="unix", scale="utc"
-            )
+            self._fill_trigger_info(data, array_event)
 
-            if data.index.event_type == EventType.SUBARRAY:
+            if data.trigger.event_type == EventType.SUBARRAY:
                 self._fill_mc_event_information(data, array_event)
 
             # this should be done in a nicer way to not re-allocate the
@@ -424,19 +426,28 @@ class SimTelEventSource(EventSource):
             pointing.altitude = u.Quantity(mc.altitude_cor, u.rad)
 
     @staticmethod
-    def _fill_event_type(data, array_event):
+    def _fill_trigger_info(data, array_event):
+        trigger = array_event["trigger_information"]
+
         if array_event["type"] == "data":
-            data.index.event_type = EventType.SUBARRAY
+            data.trigger.event_type = EventType.SUBARRAY
 
         elif array_event["type"] == "calibration":
             # if using eventio >= 1.1.1, we can use the calibration_type
-            data.index.event_type = SIMTEL_TO_CTA_EVENT_TYPE.get(
+            data.trigger.event_type = SIMTEL_TO_CTA_EVENT_TYPE.get(
                 array_event.get("calibration_type", -1),
                 EventType.OTHER_CALIBRATION
             )
 
         else:
-            data.index.event_type = EventType.UNKNOWN
+            data.trigger.event_type = EventType.UNKNOWN
+
+        data.trigger.tels_with_trigger = trigger["triggered_telescopes"]
+        data.trigger.time = parse_simtel_time(trigger['gps_time'])
+
+        for tel_id, time in zip(trigger['triggered_telescopes'], trigger['trigger_times']):
+            # time is relative to central trigger in nano seconds
+            data.trigger.tel[tel_id].time = data.trigger.time + u.Quantity(time, u.ns)
 
     def _fill_array_pointing(self, data):
         if self.file_.header['tracking_mode'] == 0:
