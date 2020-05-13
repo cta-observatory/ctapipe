@@ -107,26 +107,6 @@ def write_reference_metadata_headers(obs_id, subarray, writer):
     meta.write_to_hdf5(headers, writer._h5file)
 
 
-def tel_type_string_to_int(tel_type):
-    """
-    convert a telescope type string (str(TelescopeDescription)) into an integer that
-    can be stored.
-
-    Parameters
-    ----------
-    tel_type: str
-        telescope type string like "SST_ASTRI_CHEC"
-
-    Returns
-    -------
-    int:
-        hash value
-    """
-    return np.int32(
-        int(hashlib.sha1(tel_type.encode("utf8")).hexdigest(), 16) % (10 ** 8)
-    )
-
-
 class ImageQualityQuery(QualityQuery):
     """ for configuring image-wise data checks """
 
@@ -140,7 +120,7 @@ class ImageQualityQuery(QualityQuery):
 
 class Stage1ProcessorTool(Tool):
     name = "ctapipe-stage1-process"
-    description = __doc__ + " This currently writes {DL1_DATA_MODEL_VERSION} DL1 data"
+    description = __doc__ + f" This currently writes {DL1_DATA_MODEL_VERSION} DL1 data"
     examples = """
     To process data with all default values:
     > ctapipe-stage1-process --input events.simtel.gz --output events.dl1.h5 --progress
@@ -386,7 +366,7 @@ class Stage1ProcessorTool(Tool):
             hist_container.prefix = ""
             for hist in hists:
                 if hist["id"] == 6:
-                    fill_from_simtel(self._cur_obs_id, hist, hist_container)
+                    fill_from_simtel(self.event_source.obs_id, hist, hist_container)
                     writer.write(
                         table_name="simulation/service/shower_distribution",
                         containers=hist_container,
@@ -534,8 +514,7 @@ class Stage1ProcessorTool(Tool):
             self.calibrate(event)
 
             event.mc.prefix = "mc"
-            event.trig.prefix = ""
-            self._cur_obs_id = event.index.obs_id
+            event.trigger.prefix = ""
 
             # write the subarray tables
             writer.write(
@@ -544,7 +523,7 @@ class Stage1ProcessorTool(Tool):
             )
             writer.write(
                 table_name="dl1/event/subarray/trigger",
-                containers=[event.index, event.trig],
+                containers=[event.index, event.trigger],
             )
             # write the telescope tables
             self._write_telescope_event(writer, event)
@@ -563,12 +542,17 @@ class Stage1ProcessorTool(Tool):
             tel_type = str(telescope)
 
             tel_index = TelEventIndexContainer(
-                **event.index,
+                obs_id=event.index.obs_id,
+                event_id=event.index.event_id,
                 tel_id=np.int16(tel_id),
-                tel_type_id=tel_type_string_to_int(tel_type),
             )
             table_name = (
                 f"tel_{tel_id:03d}" if self.split_datasets_by == "tel_id" else tel_type
+            )
+
+            writer.write(
+                'dl1/event/telescope/trigger',
+                [tel_index, event.trigger.tel[tel_id]]
             )
 
             if self.event_source.is_simulation:
@@ -677,6 +661,7 @@ class Stage1ProcessorTool(Tool):
                     f"/dl1/event/telescope/images/{table_name}", "image_mask"
                 )
             writer.exclude(f"/dl1/event/telescope/images/{table_name}", "parameters")
+            writer.exclude("dl1/event/subarray/trigger", 'tel')
             if self.event_source.is_simulation:
                 writer.exclude(
                     f"/simulation/event/telescope/images/{table_name}",
@@ -723,7 +708,7 @@ class Stage1ProcessorTool(Tool):
 
             write_reference_metadata_headers(
                 subarray=self.event_source.subarray,
-                obs_id=self._cur_obs_id,
+                obs_id=self.event_source.obs_id,
                 writer=writer,
             )
         self._write_processing_statistics()

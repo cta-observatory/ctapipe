@@ -135,10 +135,6 @@ class MuonAnalysis(Tool):
         for p in ['min_pixels', 'pedestal', 'ratio_width', 'completeness_threshold']:
             getattr(self, p).attach_subarray(self.source.subarray)
 
-        self.tel_type_ids = {
-            tid: hash(str(tel)) for tid, tel in self.source.subarray.tel.items()
-        }
-
     def start(self):
         for event in tqdm(self.source, desc='Processing events: '):
             self.process_array_event(event)
@@ -217,7 +213,6 @@ class MuonAnalysis(Tool):
         tel_event_index = TelEventIndexContainer(
             **event_index,
             tel_id=tel_id,
-            tel_type_id=self.tel_type_ids[tel_id],
         )
 
         self.writer.write(

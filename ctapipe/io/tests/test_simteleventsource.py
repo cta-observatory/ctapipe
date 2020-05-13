@@ -5,6 +5,7 @@ from astropy.utils.data import download_file
 import astropy.units as u
 from itertools import zip_longest
 import pytest
+from astropy.time import Time
 from pathlib import Path
 
 
@@ -210,7 +211,20 @@ def test_calibration_events():
     ) as reader:
 
         for event, expected_type in zip_longest(reader, expected_types):
-            assert event.index.event_type is expected_type
+            assert event.trigger.event_type is expected_type
+
+
+def test_trigger_times():
+
+    source = SimTelEventSource(input_url=calib_events_path)
+    t0 = Time('2020-05-06T15:30:00')
+    t1 = Time('2020-05-06T15:40:00')
+
+    for event in source:
+        assert t0 <= event.trigger.time <= t1
+        for tel_id, trigger in event.trigger.tel.items():
+            # test single telescope events triggered within 50 ns
+            assert 0 <= (trigger.time - event.trigger.time).to_value(u.ns) <= 50
 
 
 def test_true_image():
