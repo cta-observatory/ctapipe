@@ -93,7 +93,7 @@ class SingleTelEventDisplay(Tool):
                 disable=~self.progress
         ):
 
-            self.log.debug(event.trig)
+            self.log.debug(event.trigger)
             self.log.debug(f"Energy: {event.mc.energy}")
 
             self.calibrator(event)

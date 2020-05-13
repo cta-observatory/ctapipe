@@ -107,26 +107,6 @@ def write_reference_metadata_headers(obs_id, subarray, writer):
     meta.write_to_hdf5(headers, writer._h5file)
 
 
-def tel_type_string_to_int(tel_type):
-    """
-    convert a telescope type string (str(TelescopeDescription)) into an integer that
-    can be stored.
-
-    Parameters
-    ----------
-    tel_type: str
-        telescope type string like "SST_ASTRI_CHEC"
-
-    Returns
-    -------
-    int:
-        hash value
-    """
-    return np.int32(
-        int(hashlib.sha1(tel_type.encode("utf8")).hexdigest(), 16) % (10 ** 8)
-    )
-
-
 class ImageQualityQuery(QualityQuery):
     """ for configuring image-wise data checks """
 
@@ -534,7 +514,7 @@ class Stage1ProcessorTool(Tool):
             self.calibrate(event)
 
             event.mc.prefix = "mc"
-            event.trig.prefix = ""
+            event.trigger.prefix = ""
 
             # write the subarray tables
             writer.write(
@@ -543,7 +523,7 @@ class Stage1ProcessorTool(Tool):
             )
             writer.write(
                 table_name="dl1/event/subarray/trigger",
-                containers=[event.index, event.trig],
+                containers=[event.index, event.trigger],
             )
             # write the telescope tables
             self._write_telescope_event(writer, event)
@@ -562,9 +542,9 @@ class Stage1ProcessorTool(Tool):
             tel_type = str(telescope)
 
             tel_index = TelEventIndexContainer(
-                **event.index,
+                obs_id=event.index.obs_id,
+                event_id=event.index.event_id,
                 tel_id=np.int16(tel_id),
-                tel_type_id=tel_type_string_to_int(tel_type),
             )
             table_name = (
                 f"tel_{tel_id:03d}" if self.split_datasets_by == "tel_id" else tel_type
@@ -676,6 +656,7 @@ class Stage1ProcessorTool(Tool):
                     f"/dl1/event/telescope/images/{table_name}", "image_mask"
                 )
             writer.exclude(f"/dl1/event/telescope/images/{table_name}", "parameters")
+            writer.exclude("dl1/event/subarray/trigger", 'tel')
             if self.event_source.is_simulation:
                 writer.exclude(
                     f"/simulation/event/telescope/images/{table_name}",
