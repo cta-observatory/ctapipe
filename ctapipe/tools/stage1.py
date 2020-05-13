@@ -298,8 +298,8 @@ class Stage1ProcessorTool(Tool):
             fletcher32=True,  # attach a checksum to each chunk for error correction
         )
 
-        # store unique pointing positions per telescope
-        self._pointings = defaultdict(set)
+        # store last pointing to only write unique poitings
+        self._last_pointing_tel = defaultdict(lambda : (np.nan * u.deg, np.nan * u.deg))
 
     def _write_simulation_configuration(self, writer):
         """
@@ -504,6 +504,9 @@ class Stage1ProcessorTool(Tool):
         self.log.debug("Writing DL1/Event data")
         self.event_source.subarray.info(printer=self.log.debug)
 
+        # initial value for last known pointing position
+        last_pointing = (np.nan * u.deg, np.nan * u.deg)
+
         for event in tqdm(
             self.event_source,
             desc=self.event_source.__class__.__name__,
@@ -520,9 +523,11 @@ class Stage1ProcessorTool(Tool):
             event.trigger.prefix = ""
 
             p = event.pointing
-            if (p.array_azimuth, p.array_altitude) not in self._pointings['array']:
+            current_pointing = (p.array_azimuth, p.array_altitude)
+            if current_pointing != last_pointing:
+                p.prefix = ''
                 writer.write('monitoring/subarray/pointing', [event.index, p])
-                self._pointings['array'].add((p.array_azimuth, p.array_altitude))
+                last_pointing = current_pointing
 
             # write the subarray tables
             writer.write(
@@ -555,10 +560,11 @@ class Stage1ProcessorTool(Tool):
             )
 
             p = event.pointing.tel[tel_id]
-            if (p.azimuth, p.altitude) not in self._pointings[tel_id]:
+            current_pointing = (p.azimuth, p.altitude)
+            if current_pointing != self._last_pointing_tel[tel_id]:
                 p.prefix = ''
                 writer.write('monitoring/telescope/pointing', [tel_index, p])
-                self._pointings[tel_id].add((p.azimuth, p.altitude))
+                self._last_pointing_tel[tel_id] = current_pointing
 
             table_name = (
                 f"tel_{tel_id:03d}" if self.split_datasets_by == "tel_id" else tel_type
@@ -676,6 +682,7 @@ class Stage1ProcessorTool(Tool):
                 )
             writer.exclude(f"/dl1/event/telescope/images/{table_name}", "parameters")
             writer.exclude("dl1/event/subarray/trigger", 'tel')
+            writer.exclude("/monitoring/subarray/pointing", 'tel')
             if self.event_source.is_simulation:
                 writer.exclude(
                     f"/simulation/event/telescope/images/{table_name}",
