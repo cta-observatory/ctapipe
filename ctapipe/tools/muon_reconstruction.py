@@ -12,7 +12,7 @@ from ctapipe.io import HDF5TableWriter
 from ctapipe.image.cleaning import TailcutsImageCleaner
 from ctapipe.coordinates import TelescopeFrame, CameraFrame
 from ctapipe.image import ImageExtractor
-from ctapipe.containers import MuonImageParameters
+from ctapipe.containers import MuonParametersContainer
 from ctapipe.instrument import CameraGeometry
 
 from ctapipe.image.muon import (
@@ -251,7 +251,7 @@ class MuonAnalysis(Tool):
             ring.radius, ring.center_x, ring.center_y
         )
 
-        return MuonImageParameters(
+        return MuonParametersContainer(
             containment=containment,
             completeness=completeness,
             intensity_ratio=intensity_ratio,

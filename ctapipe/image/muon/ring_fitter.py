@@ -1,6 +1,6 @@
 import numpy as np
 from ctapipe.core import Component
-from ctapipe.containers import MuonRingParameter
+from ctapipe.containers import MuonRingContainer
 from .fitting import kundu_chaudhuri_circle_fit, taubin_circle_fit
 import traitlets as traits
 
@@ -41,7 +41,7 @@ class MuonRingFitter(Component):
         fit_function = FIT_METHOD_BY_NAME[self.fit_method]
         radius, center_x, center_y = fit_function(x, y, img, mask)
 
-        return MuonRingParameter(
+        return MuonRingContainer(
             center_x=center_x,
             center_y=center_y,
             radius=radius,

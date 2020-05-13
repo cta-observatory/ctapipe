@@ -16,7 +16,7 @@ from scipy.stats import norm
 from astropy.coordinates import SkyCoord
 from functools import lru_cache
 
-from ...containers import MuonIntensityParameter
+from ...containers import MuonEfficiencyContainer
 from ...coordinates import CameraFrame, TelescopeFrame
 from ...core import TelescopeComponent
 from ...core.traits import FloatTelescopeParameter, IntTelescopeParameter
@@ -481,7 +481,7 @@ class MuonIntensityFitter(TelescopeComponent):
 
         Returns
         -------
-        MuonIntensityParameters
+        MuonEfficiencyContainer
         """
         telescope = self.subarray.tel[tel_id]
         if telescope.optics.num_mirrors != 1:
@@ -539,7 +539,7 @@ class MuonIntensityFitter(TelescopeComponent):
         # Get fitted values
         result = minuit.values
 
-        return MuonIntensityParameter(
+        return MuonEfficiencyContainer(
             impact=result['impact_parameter'] * u.m,
             impact_x=result['impact_parameter'] * np.cos(result['phi']) * u.m,
             impact_y=result['impact_parameter'] * np.sin(result['phi']) * u.m,
