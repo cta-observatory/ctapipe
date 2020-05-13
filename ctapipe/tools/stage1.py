@@ -550,6 +550,11 @@ class Stage1ProcessorTool(Tool):
                 f"tel_{tel_id:03d}" if self.split_datasets_by == "tel_id" else tel_type
             )
 
+            writer.write(
+                'dl1/event/telescope/trigger',
+                [tel_index, event.trigger.tel[tel_id]]
+            )
+
             if self.event_source.is_simulation:
                 true_image = event.mc.tel[tel_id].true_image
                 has_true_image = (
