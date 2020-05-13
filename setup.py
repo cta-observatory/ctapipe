@@ -58,6 +58,7 @@ setup(
         "astropy>=3,<5",
         "bokeh~=1.0",
         "eventio>=1.1.1,<2.0.0a0",  # at least 1.1.1, but not 2
+        "h5py",  # needed for astropy hdf5 io
         "iminuit>=1.3",
         "joblib",
         "matplotlib~=3.0",
@@ -67,11 +68,11 @@ setup(
         "psutil",
         "scikit-learn",
         "scipy~=1.2",
+        "sortedcontainers",
         "tables~=3.4",
         "tqdm>=4.32",
         "traitlets>=4.1,<5.0",
         "zstandard",
-        "h5py",  # needed for astropy hdf5 io
     ],
     # here are optional dependencies (as "tag" : "dependency spec")
     extras_require={
