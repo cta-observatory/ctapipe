@@ -526,7 +526,7 @@ class Stage1ProcessorTool(Tool):
             current_pointing = (p.array_azimuth, p.array_altitude)
             if current_pointing != last_pointing:
                 p.prefix = ''
-                writer.write('monitoring/subarray/pointing', [event.index, p])
+                writer.write('dl1/monitoring/subarray/pointing', [event.index, p])
                 last_pointing = current_pointing
 
             # write the subarray tables
@@ -563,7 +563,7 @@ class Stage1ProcessorTool(Tool):
             current_pointing = (p.azimuth, p.altitude)
             if current_pointing != self._last_pointing_tel[tel_id]:
                 p.prefix = ''
-                writer.write('monitoring/telescope/pointing', [tel_index, p])
+                writer.write('dl1/monitoring/telescope/pointing', [tel_index, p])
                 self._last_pointing_tel[tel_id] = current_pointing
 
             table_name = (
