@@ -1,7 +1,6 @@
 import pytest
 import numpy as np
 from astropy.time import Time
-import astropy.units as u
 
 
 @pytest.fixture
@@ -12,6 +11,26 @@ def mon_int():
     values = 5 * indices + 2
 
     return MonitoringData(zip(indices, values))
+
+
+def test_few():
+    from ctapipe.monitoring import MonitoringData
+
+    mon = MonitoringData()
+    with pytest.raises(KeyError):
+        mon.closest(0)
+
+    with pytest.raises(KeyError):
+        mon.after(0)
+
+    with pytest.raises(KeyError):
+        mon.before(0)
+
+    mon[1] = 2
+    mon.closest(0) == (1, 2)
+
+    with pytest.raises(KeyError):
+        mon.interpolate_linear(0.5)
 
 
 def test_int_before(mon_int):
@@ -43,6 +62,8 @@ def test_int_closest(mon_int):
     assert mon_int.closest(2.0) == (2, 12)
     assert mon_int.closest(2.4) == (2, 12)
     assert mon_int.closest(2.5) == (2, 12)
+
+    assert mon_int.closest(4.5) == (4, 22)
 
 
 def test_int_interpolate(mon_int):
