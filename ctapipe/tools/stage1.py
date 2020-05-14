@@ -3,7 +3,6 @@ Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
 
 # TODO: add event time per telescope!
 """
-import hashlib
 import pathlib
 import sys
 
@@ -526,7 +525,7 @@ class Stage1ProcessorTool(Tool):
             current_pointing = (p.array_azimuth, p.array_altitude)
             if current_pointing != last_pointing:
                 p.prefix = ''
-                writer.write('dl1/monitoring/subarray/pointing', [event.index, p])
+                writer.write('dl1/monitoring/subarray/pointing', [event.trigger, p])
                 last_pointing = current_pointing
 
             # write the subarray tables
@@ -563,7 +562,10 @@ class Stage1ProcessorTool(Tool):
             current_pointing = (p.azimuth, p.altitude)
             if current_pointing != self._last_pointing_tel[tel_id]:
                 p.prefix = ''
-                writer.write('dl1/monitoring/telescope/pointing', [tel_index, p])
+                writer.write(
+                    f'dl1/monitoring/telescope/pointing/tel_{tel_id:03d}',
+                    [event.trigger.tel[tel_id], p]
+                )
                 self._last_pointing_tel[tel_id] = current_pointing
 
             table_name = (
@@ -669,6 +671,9 @@ class Stage1ProcessorTool(Tool):
         )
 
         # exclude some columns that are not writable
+        writer.exclude("dl1/event/subarray/trigger", 'tel')
+        writer.exclude("dl1/monitoring/subarray/pointing", 'tel')
+        writer.exclude("dl1/monitoring/subarray/pointing", 'event_type')
         for tel_id, telescope in self.event_source.subarray.tel.items():
             tel_type = str(telescope)
             if self.split_datasets_by == "tel_id":
@@ -681,8 +686,7 @@ class Stage1ProcessorTool(Tool):
                     f"/dl1/event/telescope/images/{table_name}", "image_mask"
                 )
             writer.exclude(f"/dl1/event/telescope/images/{table_name}", "parameters")
-            writer.exclude("dl1/event/subarray/trigger", 'tel')
-            writer.exclude("/monitoring/subarray/pointing", 'tel')
+            writer.exclude(f"/dl1/monitoring/event/pointing/tel_{tel_id:03d}", 'event_type')
             if self.event_source.is_simulation:
                 writer.exclude(
                     f"/simulation/event/telescope/images/{table_name}",
