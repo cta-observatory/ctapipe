@@ -683,9 +683,8 @@ class DataContainer(Container):
     )
 
 
-class MuonRingParameter(Container):
-    """Container for the result of a ring fit, center_x, center_y"""
-
+class MuonRingContainer(Container):
+    '''Container for the result of a ring fit, center_x, center_y'''
     center_x = Field(nan * u.deg, "center (x) of the fitted muon ring", unit=u.deg)
     center_y = Field(nan * u.deg, "center (y) of the fitted muon ring", unit=u.deg)
     radius = Field(nan * u.deg, "radius of the fitted muon ring", unit=u.deg)
@@ -697,7 +696,7 @@ class MuonRingParameter(Container):
     )
 
 
-class MuonIntensityParameter(Container):
+class MuonEfficiencyContainer(Container):
     width = Field(nan, "width of the muon ring in degrees")
     impact = Field(nan, "distance of muon impact position from center of mirror")
     impact_x = Field(nan, "impact parameter x position")
@@ -705,7 +704,7 @@ class MuonIntensityParameter(Container):
     optical_efficiency = Field(nan, "optical efficiency muon")
 
 
-class MuonImageParameters(Container):
+class MuonParametersContainer(Container):
     containment = Field(nan, "containment of the ring inside the camera")
     completeness = Field(
         nan,

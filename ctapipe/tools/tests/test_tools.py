@@ -98,7 +98,7 @@ def test_muon_reconstruction(tmpdir):
         t = tables.open_file(f.name)
         table = t.root.dl1.event.telescope.parameters.muons[:]
         assert len(table) > 20
-        assert np.count_nonzero(np.isnan(table['muonringparameter_radius'])) == 0
+        assert np.count_nonzero(np.isnan(table['muonring_radius'])) == 0
 
     assert run_tool(MuonAnalysis(), ["--help-all"]) == 0
 
