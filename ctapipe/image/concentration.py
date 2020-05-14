@@ -28,7 +28,7 @@ def concentration(geom, image, hillas_parameters):
         mask_core = (longi ** 2 / h.length ** 2) + (trans ** 2 / h.width ** 2) <= 1.0
         conc_core = image[mask_core].sum() / h.intensity
     else:
-        conc_core = 0
+        conc_core = 0.0
 
     concentration_pixel = image.max() / h.intensity
 
