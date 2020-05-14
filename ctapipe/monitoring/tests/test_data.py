@@ -27,7 +27,7 @@ def test_few():
         mon.before(0)
 
     mon[1] = 2
-    mon.closest(0) == (1, 2)
+    assert mon.closest(0) == (1, 2)
 
     with pytest.raises(KeyError):
         mon.interpolate_linear(0.5)
