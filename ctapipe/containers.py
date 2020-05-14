@@ -501,6 +501,7 @@ class MCHeaderContainer(Container):
 
 
 class TelescopeTriggerContainer(Container):
+    container_prefix = ''
     time = Field(NAN_TIME, 'Telescope trigger time')
 
 
