@@ -157,7 +157,7 @@ class Stage1ProcessorTool(Tool):
     compression_type = CaselessStrEnum(
         values=["blosc:zstd", "zlib"],
         help="compressor algorithm to use. ",
-        default_value="zlib",
+        default_value="blosc:zstd",
     ).tag(config=True)
 
     image_extractor_type = create_class_enum_trait(
