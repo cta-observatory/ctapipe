@@ -204,6 +204,7 @@ def test_skewness():
         assert signal.sum() == result.intensity
 
 
+@pytest.mark.filterwarnings("error")
 def test_straight_line_width_0():
     ''' Test that hillas_parameters.width is 0 for a straight line of pixels '''
     # three pixels in a straight line
@@ -233,6 +234,7 @@ def test_straight_line_width_0():
                 assert result.width.value == 0
 
 
+@pytest.mark.filterwarnings("error")
 def test_single_pixel():
     x = y = np.arange(3)
     x, y = np.meshgrid(x, y)
