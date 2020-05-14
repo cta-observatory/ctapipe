@@ -148,16 +148,25 @@ def hillas_parameters(geom, image):
     width, length = np.sqrt(eig_vals)
 
     # psi is the angle of the eigenvector to length to the x-axis
-    psi = np.arctan(eig_vecs[1, 1] / eig_vecs[0, 1])
+    vx, vy = eig_vecs[0, 1], eig_vecs[1, 1]
 
-    # calculate higher order moments along shower axes
-    longitudinal = delta_x * np.cos(psi) + delta_y * np.sin(psi)
+    # avoid divide by 0 warnings
+    if length == 0:
+        psi = skewness_long = kurtosis_long = np.nan
+    else:
+        if vx != 0:
+            psi = np.arctan(vy / vx)
+        else:
+            psi = np.pi / 2
 
-    m3_long = np.average(longitudinal**3, weights=image)
-    skewness_long = m3_long / length**3
+        # calculate higher order moments along shower axes
+        longitudinal = delta_x * np.cos(psi) + delta_y * np.sin(psi)
 
-    m4_long = np.average(longitudinal**4, weights=image)
-    kurtosis_long = m4_long / length**4
+        m3_long = np.average(longitudinal**3, weights=image)
+        skewness_long = m3_long / length**3
+
+        m4_long = np.average(longitudinal**4, weights=image)
+        kurtosis_long = m4_long / length**4
 
     return HillasParametersContainer(
         x=u.Quantity(cog_x, unit),
