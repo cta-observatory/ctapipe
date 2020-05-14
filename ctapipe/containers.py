@@ -53,7 +53,7 @@ __all__ = [
 
 
 # see https://github.com/astropy/astropy/issues/6509
-NAN_TIME = Time(np.ma.masked_array(nan, mask=True), format='mjd')
+NAN_TIME = Time(np.ma.masked_array(nan, mask=True), format="mjd")
 
 
 class EventType(enum.Enum):
@@ -165,8 +165,10 @@ class TimingParametersContainer(Container):
     """
 
     container_prefix = "timing"
-    slope = Field(nan / u.m, "Slope of arrival times along main shower axis", unit=1/u.m)
-    slope_err = Field(nan / u.m, "Uncertainty `slope`", unit=1/u.m)
+    slope = Field(
+        nan / u.m, "Slope of arrival times along main shower axis", unit=1 / u.m
+    )
+    slope_err = Field(nan / u.m, "Uncertainty `slope`", unit=1 / u.m)
     intercept = Field(nan, "intercept of arrival times along main shower axis")
     intercept_err = Field(nan, "Uncertainty `intercept`")
     deviation = Field(
@@ -206,17 +208,23 @@ class DL1CameraContainer(Container):
     image = Field(
         None,
         "Numpy array of camera image, after waveform extraction." "Shape: (n_pixel)",
+        dtype=np.float32,
+        ndim=1,
     )
     peak_time = Field(
         None,
         "Numpy array containing position of the peak of the pulse as determined by "
         "the extractor. Shape: (n_pixel)",
+        dtype=np.float32,
+        ndim=1,
     )
 
     image_mask = Field(
         None,
         "Boolean numpy array where True means the pixel has passed cleaning. Shape: ("
         "n_pixel)",
+        dtype=np.bool,
+        ndim=1,
     )
 
     parameters = Field(ImageParametersContainer(), "Parameters derived from images")
@@ -230,6 +238,8 @@ class MCDL1CameraContainer(DL1CameraContainer):
         None,
         "Numpy array of camera image in PE as simulated before noise has been added. "
         "Shape: (n_pixel)",
+        dtype=np.float32,
+        ndim=1,
     )
 
     true_parameters = Field(
@@ -478,14 +488,14 @@ class MCHeaderContainer(Container):
 
 
 class TelescopeTriggerContainer(Container):
-    time = Field(NAN_TIME, 'Telescope trigger time')
+    time = Field(NAN_TIME, "Telescope trigger time")
 
 
 class TriggerContainer(Container):
     time = Field(NAN_TIME, "central average time stamp")
     tels_with_trigger = Field([], "list of telescope ids with data")
     event_type = Field(EventType.SUBARRAY, "Event type")
-    tel = Field(Map(TelescopeTriggerContainer), 'telescope-wise trigger information')
+    tel = Field(Map(TelescopeTriggerContainer), "telescope-wise trigger information")
 
 
 class ReconstructedShowerContainer(Container):
@@ -661,7 +671,8 @@ class DataContainer(Container):
 
 
 class MuonRingContainer(Container):
-    '''Container for the result of a ring fit, center_x, center_y'''
+    """Container for the result of a ring fit, center_x, center_y"""
+
     center_x = Field(nan * u.deg, "center (x) of the fitted muon ring", unit=u.deg)
     center_y = Field(nan * u.deg, "center (y) of the fitted muon ring", unit=u.deg)
     radius = Field(nan * u.deg, "radius of the fitted muon ring", unit=u.deg)
@@ -687,11 +698,11 @@ class MuonParametersContainer(Container):
         nan,
         "Complenetess of the muon ring"
         ", estimated by dividing the ring into segments"
-        " and counting segments above a threshold"
+        " and counting segments above a threshold",
     )
-    intensity_ratio = Field(nan, 'Intensity ratio of pixels in the ring to all pixels')
+    intensity_ratio = Field(nan, "Intensity ratio of pixels in the ring to all pixels")
     mean_squared_error = Field(
-        nan, 'MSE of the deviation of all pixels after cleaning from the ring fit'
+        nan, "MSE of the deviation of all pixels after cleaning from the ring fit"
     )
 
 
