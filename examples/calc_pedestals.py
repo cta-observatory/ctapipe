@@ -5,7 +5,7 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ctapipe.calib import pedestals
+from ctapipe.calib.camera import pedestals
 from ctapipe.io import event_source
 from ctapipe.utils import get_dataset_path
 
