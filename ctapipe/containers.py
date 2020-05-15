@@ -503,15 +503,15 @@ class ReconstructedShowerContainer(Container):
     Standard output of algorithms reconstructing shower geometry
     """
 
-    alt = Field(0.0 * u.deg, "reconstructed altitude", unit=u.deg)
-    alt_uncert = Field(0.0 * u.deg, "reconstructed altitude uncertainty", unit=u.deg)
-    az = Field(0.0 * u.deg, "reconstructed azimuth", unit=u.deg)
-    az_uncert = Field(0.0 * u.deg, "reconstructed azimuth uncertainty", unit=u.deg)
-    core_x = Field(0.0 * u.m, "reconstructed x coordinate of the core position", unit=u.m)
-    core_y = Field(0.0 * u.m, "reconstructed y coordinate of the core position", unit=u.m)
-    core_uncert = Field(0.0 * u.m, "uncertainty of the reconstructed core position", unit=u.m)
-    h_max = Field(0.0 * u.m, "reconstructed height of the shower maximum", unit=u.m)
-    h_max_uncert = Field(0.0 * u.m, "uncertainty of h_max", unit=u.m)
+    alt = Field(nan * u.deg, "reconstructed altitude", unit=u.deg)
+    alt_uncert = Field(nan * u.deg, "reconstructed altitude uncertainty", unit=u.deg)
+    az = Field(nan * u.deg, "reconstructed azimuth", unit=u.deg)
+    az_uncert = Field(nan * u.deg, "reconstructed azimuth uncertainty", unit=u.deg)
+    core_x = Field(nan * u.m, "reconstructed x coordinate of the core position", unit=u.m)
+    core_y = Field(nan * u.m, "reconstructed y coordinate of the core position", unit=u.m)
+    core_uncert = Field(nan * u.m, "uncertainty of the reconstructed core position", unit=u.m)
+    h_max = Field(nan * u.m, "reconstructed height of the shower maximum", unit=u.m)
+    h_max_uncert = Field(nan * u.m, "uncertainty of h_max", unit=u.m)
     is_valid = Field(
         False,
         (
@@ -523,9 +523,9 @@ class ReconstructedShowerContainer(Container):
         [], ("list of the telescope ids used in the" " reconstruction of the shower")
     )
     average_intensity = Field(
-        0.0, "average intensity of the intensities used for reconstruction"
+        nan, "average intensity of the intensities used for reconstruction"
     )
-    goodness_of_fit = Field(0.0, "measure of algorithm success (if fit)")
+    goodness_of_fit = Field(nan, "measure of algorithm success (if fit)")
 
 
 class ReconstructedEnergyContainer(Container):

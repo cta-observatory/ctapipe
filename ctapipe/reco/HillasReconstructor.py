@@ -172,7 +172,6 @@ class HillasReconstructor(Reconstructor):
         core_pos = self.estimate_core_position(hillas_dict, array_pointing)
 
         # container class for reconstructed showers
-        result = ReconstructedShowerContainer()
         _, lat, lon = cartesian_to_spherical(*direction)
 
         # estimate max height of shower
@@ -180,22 +179,18 @@ class HillasReconstructor(Reconstructor):
 
         # astropy's coordinates system rotates counter-clockwise.
         # Apparently we assume it to be clockwise.
-        result.alt, result.az = lat, -lon
-        result.core_x = core_pos[0]
-        result.core_y = core_pos[1]
-        result.core_uncert = np.nan
-
-        result.tel_ids = [h for h in hillas_dict.keys()]
-        result.average_intensity = np.mean([h.intensity for h in hillas_dict.values()])
-        result.is_valid = True
-
-        result.alt_uncert = err_est_dir
-        result.az_uncert = np.nan
-
-        result.h_max = h_max
-        result.h_max_uncert = np.nan
-
-        result.goodness_of_fit = np.nan
+        # that's why lon get's a sign
+        result = ReconstructedShowerContainer(
+            alt=lat,
+            az=-lon,
+            core_x=core_pos[0],
+            core_y=core_pos[1],
+            tel_ids=[h for h in hillas_dict.keys()],
+            average_intensity=np.mean([h.intensity for h in hillas_dict.values()]),
+            is_valid=True,
+            alt_uncert=err_est_dir,
+            h_max=h_max
+        )
 
         return result
 
