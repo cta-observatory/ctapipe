@@ -204,6 +204,7 @@ def test_skewness():
         assert signal.sum() == result.intensity
 
 
+@pytest.mark.filterwarnings("error")
 def test_straight_line_width_0():
     ''' Test that hillas_parameters.width is 0 for a straight line of pixels '''
     # three pixels in a straight line
@@ -231,3 +232,28 @@ def test_straight_line_width_0():
                 img = np.random.poisson(5, size=len(long))
                 result = hillas_parameters(geom, img)
                 assert result.width.value == 0
+
+
+@pytest.mark.filterwarnings("error")
+def test_single_pixel():
+    x = y = np.arange(3)
+    x, y = np.meshgrid(x, y)
+
+    geom = CameraGeometry(
+        camera_name='testcam',
+        pix_id=np.arange(9),
+        pix_x=x.ravel() * u.cm,
+        pix_y=y.ravel() * u.cm,
+        pix_type='rectangular',
+        pix_area=1 * u.cm**2,
+    )
+
+    image = np.zeros((3, 3))
+    image[1, 1] = 10
+    image = image.ravel()
+
+    hillas = hillas_parameters(geom, image)
+
+    assert hillas.length.value == 0
+    assert hillas.width.value == 0
+    assert np.isnan(hillas.psi)
