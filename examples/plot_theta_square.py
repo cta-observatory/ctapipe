@@ -72,9 +72,14 @@ for event in source:
         # Calculate hillas parameters
         # It fails for empty pixels
         try:
-            hillas_params[tel_id] = hillas_parameters(camgeom, cleaned_image)
+            params = hillas_parameters(camgeom, cleaned_image)
         except:
-            pass
+            continue
+
+        if params.width > 0:
+            hillas_params[tel_id] = params
+
+
 
     array_pointing = SkyCoord(
         az=event.mcheader.run_array_direction[0],
