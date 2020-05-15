@@ -33,8 +33,8 @@ from .hillas import hillas_parameters, camera_to_shower_coordinates
 
 @guvectorize(
     [
-        (float64[:], int64, int64, int64, float64, float64[:], float64[:]),
-        (float32[:], int64, int64, int64, float64, float64[:], float64[:]),
+        (float64[:], int64, int64, int64, float64, float32[:], float32[:]),
+        (float32[:], int64, int64, int64, float64, float32[:], float32[:]),
     ],
     "(s),(),(),(),()->(),()",
     nopython=True,
