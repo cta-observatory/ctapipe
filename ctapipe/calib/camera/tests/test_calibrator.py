@@ -109,10 +109,10 @@ def test_dl1_charge_calib(example_subarray):
 
     # Randomize times and create pulses
     time_offset = random.uniform(mid - 10, mid + 10, n_pixels)[:, np.newaxis]
-    y = norm.pdf(x, time_offset, pulse_sigma)
+    y = norm.pdf(x, time_offset, pulse_sigma).astype('float32')
 
     # Define absolute calibration coefficients
-    absolute = random.uniform(100, 1000, n_pixels)
+    absolute = random.uniform(100, 1000, n_pixels).astype('float32')
     y *= absolute[:, np.newaxis]
 
     # Define relative coefficients
