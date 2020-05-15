@@ -10,6 +10,7 @@ __pycache__
 
 # ignore version cache file (generated automatically when setup.py is run)
 ctapipe/_version_cache.py
+ctapipe/version.py
 
 # Ignore .c files by default to avoid including generated code. If you want to
 # add a non-generated .c extension, use `git add -f filename.c`.
