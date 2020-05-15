@@ -133,7 +133,7 @@ def test_dl1_charge_calib(example_subarray):
         image_extractor=FullWaveformSum(subarray=example_subarray)
     )
     calibrator(event)
-    np.testing.assert_allclose(event.dl1.tel[telid].image, y.sum(1))
+    np.testing.assert_allclose(event.dl1.tel[telid].image, y.sum(1), rtol=1e-4)
 
     event.calibration.tel[telid].dl1.time_shift = time_offset
     event.calibration.tel[telid].dl1.pedestal_offset = pedestal * n_samples
@@ -146,6 +146,6 @@ def test_dl1_charge_calib(example_subarray):
         image_extractor=FullWaveformSum(subarray=example_subarray)
     )
     calibrator(event)
-    np.testing.assert_allclose(event.dl1.tel[telid].image, 1)
+    np.testing.assert_allclose(event.dl1.tel[telid].image, 1, rtol=1e-5)
 
     # TODO: Test with timing corrections
