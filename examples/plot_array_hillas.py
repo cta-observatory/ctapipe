@@ -10,7 +10,7 @@ from astropy.coordinates import SkyCoord, AltAz
 from astropy import units as u
 
 from ctapipe.calib import CameraCalibrator
-from ctapipe.coordinates import TiltedGroundFrame
+from ctapipe.coordinates import TiltedGroundFrame, MissingFrameAttributeWarning
 from ctapipe.image import (
     hillas_parameters, tailcuts_clean, HillasParameterizationError
 )
@@ -18,8 +18,10 @@ from ctapipe.image.timing_parameters import timing_parameters
 from ctapipe.io import event_source
 from ctapipe.utils import datasets
 from ctapipe.visualization import ArrayDisplay
+import warnings
 
 if __name__ == '__main__':
+    warnings.filterwarnings('ignore', category=MissingFrameAttributeWarning)
 
     # importing data from avaiable datasets in ctapipe
     filename = datasets.get_dataset_path("gamma_test_large.simtel.gz")
