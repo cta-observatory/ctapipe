@@ -456,5 +456,3 @@ class CameraDisplay:
 
     def show(self):
         self.axes.figure.show()
-
-
