@@ -1,75 +1,10 @@
 """Helpers for better logging."""
 
 import logging
+import logging.config
+from yaml import load, FullLoader
 
-DEFAULT_LOGGING_FORMAT = "%(levelname)s [%(name)s] (%(module)s/%(funcName)s): %(message)s"
-
-
-def create_log_config(name, log_level, log_file, log_file_level):
-    """Create logging configuration based on `logging.config.dictConfig`.
-
-    The configuration dictionary scheme is documented here:
-    https://docs.python.org/3/library/logging.config.html#logging-config-dictschema
-
-
-    Parameters
-    ----------
-    name : str
-        Name of the Logger object.
-
-    log_level : int / str
-        Console logging level.
-
-    log_file : str / Path
-    log_file_level : int / str
-        File logging level.
-
-    Returns
-    -------
-    dict
-
-    """
-    log_config = {"version": 1}
-
-    formatters = {
-        "file": {
-            "()": PlainFormatter,
-            "fmt": DEFAULT_LOGGING_FORMAT,
-        },
-        "console": {
-            "()": FancyFormatter,
-            "fmt": DEFAULT_LOGGING_FORMAT,
-        },
-    }
-
-    console_handler = {
-        "class": "logging.StreamHandler",
-        "formatter": "console",
-        "level": log_level,
-        "stream": "ext://sys.stdout",
-    }
-
-    handlers = {"console_handler": console_handler}
-
-    loggers = {name: {"handlers": ["console_handler"], "level": logging.DEBUG}}
-
-    if log_file is not None:
-        file_handler = {
-            "class": "logging.FileHandler",
-            "formatter": "file",
-            "level": log_file_level,
-            "filename": log_file,
-        }
-
-        handlers.update({"file_handler": file_handler})
-
-        loggers[name]["handlers"].append("file_handler")
-
-    log_config.update(
-        {"loggers": loggers, "handlers": handlers, "formatters": formatters},
-    )
-
-    return log_config
+DEFAULT_LOGGING_FORMAT = "%(asctime)s %(levelname)s [%(name)s] (%(module)s.%(funcName)s): %(message)s"
 
 
 class PlainFormatter(logging.Formatter):
@@ -83,6 +18,7 @@ class FancyFormatter(logging.Formatter):
         """Format the LogRecord."""
         rec = record.__dict__.copy()
 
+        rec["asctime"] = self.formatTime(record, self.datefmt)
         rec["levelname"] = apply_colors(record.levelname)
         rec["message"] = record.getMessage()
 
@@ -108,3 +44,75 @@ def apply_colors(levelname):
             + levelname + reset_seq
         )
     return levelname_color
+
+
+def update_logging_config(config: dict, log_level=None, log_file=None, log_file_level=None):
+    """Update logging level for console and file according to CLI arguments."""
+    if log_level is not None:
+        config["handlers"]["console"]["level"] = log_level
+
+    if log_file is not None and log_file_level is not None:
+        config["handlers"].update(
+            {
+                "file": {
+                    "class": "logging.FileHandler",
+                    "formatter": "file",
+                    "filename": log_file,
+                    "level": log_file_level,
+                },
+            }
+        )
+        config["loggers"]["ctapipe"]["handlers"].append("file")
+
+    return config
+
+
+def set_logging_config_from_file(filename):
+    """Open logging config file.
+
+    Parameters
+    ----------
+    filename : str
+
+    Returns
+    -------
+    dict
+    """
+
+    with open(filename, "r") as f:
+        config = load(f, Loader=FullLoader)
+        if config is None:  # empty file
+            config = {}
+
+    return config
+
+
+DEFAULT_LOGGING = {
+    "version": 1,
+    "root": {"level": "WARN", "handlers": ["console"]},
+    "disable_existing_loggers": False,
+    "formatters": {
+        "file": {
+            "()": PlainFormatter,
+            "fmt": DEFAULT_LOGGING_FORMAT,
+        },
+        "console": {
+            "()": FancyFormatter,
+            "fmt": DEFAULT_LOGGING_FORMAT,
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "console",
+            "stream": "ext://sys.stdout",
+        },
+    },
+    "loggers": {
+        "ctapipe": {
+            "level": "DEBUG",  # needs to be lowest level to support higher level handlers
+            "handlers": ["console"],
+            "propagate": False,
+        },
+    },
+}
