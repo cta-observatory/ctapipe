@@ -15,7 +15,7 @@ from ctapipe.core.traits import Path, Unicode, List, Dict, Bool
 from ctapipe.io import EventSource, HDF5TableWriter
 
 from ctapipe.calib import CameraCalibrator
-from ctapipe.utils.CutFlow import CutFlow
+from ctapipe.utils import get_dataset_path
 from ctapipe.image import hillas_parameters, tailcuts_clean
 
 
@@ -24,6 +24,7 @@ class SimpleEventWriter(Tool):
     description = Unicode(__doc__)
 
     infile = Path(
+        default_value=get_dataset_path('lst_prod3_calibration_and_mcphotons.simtel.zst'),
         help='input file to read', directory_ok=False, exists=True,
     ).tag(config=True)
     outfile = Path(
@@ -37,13 +38,14 @@ class SimpleEventWriter(Tool):
         'max-events': 'EventSource.max_events',
         'progress': 'SimpleEventWriter.progress'
     })
-    classes = List([EventSource, CameraCalibrator, CutFlow])
+    classes = List([EventSource, CameraCalibrator])
 
     def setup(self):
         self.log.info('Configure EventSource...')
 
         self.event_source = self.add_component(
-            EventSource.from_config(
+            EventSource.from_url(
+                self.infile,
                 parent=self
             )
         )
@@ -60,21 +62,6 @@ class SimpleEventWriter(Tool):
             )
         )
 
-        # Define Pre-selection for images
-        preselcuts = self.config['Preselect']
-        self.image_cutflow = CutFlow('Image preselection')
-        self.image_cutflow.set_cuts(dict(
-            no_sel=None,
-            n_pixel=lambda s: np.count_nonzero(s) < preselcuts['n_pixel']['min'],
-            image_amplitude=lambda q: q < preselcuts['image_amplitude']['min']
-        ))
-
-        # Define Pre-selection for events
-        self.event_cutflow = CutFlow('Event preselection')
-        self.event_cutflow.set_cuts(dict(
-            no_sel=None
-        ))
-
     def start(self):
         self.log.info('Loop on events...')
 
@@ -84,11 +71,9 @@ class SimpleEventWriter(Tool):
                 total=self.event_source.max_events,
                 disable=~self.progress):
 
-            self.event_cutflow.count('no_sel')
             self.calibrator(event)
 
             for tel_id in event.dl0.tels_with_data:
-                self.image_cutflow.count('no_sel')
 
                 geom = self.event_source.subarray.tel[tel_id].camera.geometry
                 dl1_tel = event.dl1.tel[tel_id]
@@ -99,12 +84,6 @@ class SimpleEventWriter(Tool):
                 cleaned = image.copy()
                 cleaned[~mask] = 0
 
-                # Preselection cuts
-                if self.image_cutflow.cut('n_pixel', cleaned):
-                    continue
-                if self.image_cutflow.cut('image_amplitude', np.sum(cleaned)):
-                    continue
-
                 # Image parametrisation
                 params = hillas_parameters(geom, cleaned)
 
@@ -113,9 +92,6 @@ class SimpleEventWriter(Tool):
 
     def finish(self):
         self.log.info('End of job.')
-
-        self.image_cutflow()
-        self.event_cutflow()
         self.writer.close()
 
 

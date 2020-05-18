@@ -6,8 +6,12 @@ from ctapipe.calib import CameraCalibrator
 from ctapipe.utils.datasets import get_dataset_path
 import matplotlib.pyplot as plt
 import numpy as np
+import warnings
 
-from ctapipe.coordinates import CameraFrame, NominalFrame
+from ctapipe.coordinates import CameraFrame, NominalFrame, MissingFrameAttributeWarning
+
+
+warnings.filterwarnings('ignore', category=MissingFrameAttributeWarning)
 
 
 cleaning_level = {

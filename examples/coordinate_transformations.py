@@ -32,7 +32,7 @@ def cam_to_tel():
     # first define the camera frame
     camera_frame = CameraFrame(focal_length=15 * u.m)
     # create a coordinate in that frame
-    camera_coord = SkyCoord(pix_x, pix_y, frame=camera_frame)
+    camera_coord = SkyCoord(x=pix_x, y=pix_y, frame=camera_frame)
 
     # then use transform to function to convert to a new system making sure
     # to give the required values for the conversion (these are not checked
@@ -80,8 +80,8 @@ def cam_to_nom():
 def nominal_to_altaz():
 
     nom = SkyCoord(
-        x=0 * u.deg,
-        y=0 * u.deg,
+        fov_lon=0 * u.deg,
+        fov_lat=0 * u.deg,
         frame=NominalFrame(origin=AltAz(alt=75 * u.deg, az=180 * u.deg))
     )
     alt_az = nom.transform_to(AltAz())

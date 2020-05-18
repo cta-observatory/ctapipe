@@ -5,7 +5,7 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ctapipe.calib import pedestals
+from ctapipe.calib.camera import pedestals
 from ctapipe.io import event_source
 from ctapipe.utils import get_dataset_path
 
@@ -47,6 +47,10 @@ if __name__ == '__main__':
                 print(f"CT{telid} chan {chan}:")
 
                 traces = event.r0.tel[telid].waveform[chan, ...]
+
+                # skip telescopes without timeseries data
+                if traces.shape[1] == 1:
+                    continue
 
                 peds, pedvars = pedestals.calc_pedestals_from_traces(
                     traces, start, end

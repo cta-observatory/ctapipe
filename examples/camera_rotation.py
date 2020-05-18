@@ -18,3 +18,6 @@ if __name__ == '__main__':
         plt.subplot(1, N, ii + 1)
         geom.rotate(ii * (geom.pix_rotation + 30 * u.deg))
         d2 = CameraDisplay(geom, image=image, cmap='viridis')
+
+    plt.tight_layout()
+    plt.show()
