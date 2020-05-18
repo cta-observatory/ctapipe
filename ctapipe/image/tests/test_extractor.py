@@ -332,3 +332,17 @@ def test_extractor_tel_param(toymodel):
     assert extractor.window_width.tel[None] == n_samples
     assert extractor.window_width.tel[1] == n_samples
     assert extractor.window_width.tel[2] == n_samples // 2
+
+
+@pytest.mark.parametrize('Extractor', non_abstract_children(ImageExtractor))
+def test_dtype(Extractor, subarray):
+
+    tel_id = 1
+    n_pixels = subarray.tel[tel_id].camera.geometry.n_pixels
+    selected_gain_channel = np.zeros(n_pixels, dtype=int)
+
+    waveforms = np.ones((n_pixels, 50), dtype='float64')
+    extractor = Extractor(subarray=subarray)
+    charge, peak_time = extractor(waveforms, tel_id, selected_gain_channel)
+    assert charge.dtype == np.float32
+    assert peak_time.dtype == np.float32
