@@ -40,7 +40,7 @@ from .hillas import hillas_parameters, camera_to_shower_coordinates
     nopython=True,
 )
 def extract_around_peak(
-        waveforms, peak_index, width, shift, sampling_rate_ghz, sum_, peak_time
+    waveforms, peak_index, width, shift, sampling_rate_ghz, sum_, peak_time
 ):
     """
     This function performs the following operations:
@@ -91,12 +91,6 @@ def extract_around_peak(
     n_samples = waveforms.size
     start = peak_index - shift
     end = start + width
-
-    # whole range invalid
-    if end <= 0:
-        peak_time[0] = peak_index / sampling_rate_ghz
-        sum_[0] = 0
-        return
 
     # reduce to valid range
     start = max(0, start)
