@@ -131,7 +131,8 @@ class CameraCalibrator(Component):
         pedestal = event.calibration.tel[telid].dl1.pedestal_offset
         absolute = event.calibration.tel[telid].dl1.absolute_factor
         relative = event.calibration.tel[telid].dl1.relative_factor
-        charge = (charge - pedestal) * relative / absolute
+        charge -= pedestal
+        charge *= relative / absolute
 
         event.dl1.tel[telid].image = charge
         event.dl1.tel[telid].peak_time = peak_time

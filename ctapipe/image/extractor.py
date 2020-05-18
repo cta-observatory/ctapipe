@@ -387,8 +387,8 @@ class FixedWindowSum(ImageExtractor):
             waveforms, self.window_start.tel[telid], self.window_width.tel[telid], 0,
             self.sampling_rate[telid]
         )
-        correction = self._calculate_correction(telid=telid)[selected_gain_channel]
-        return charge * correction, peak_time
+        charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
+        return charge, peak_time
 
 
 class GlobalPeakWindowSum(ImageExtractor):
@@ -444,8 +444,8 @@ class GlobalPeakWindowSum(ImageExtractor):
             self.window_shift.tel[telid],
             self.sampling_rate[telid],
         )
-        correction = self._calculate_correction(telid=telid)[selected_gain_channel]
-        return charge * correction, peak_time
+        charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
+        return charge, peak_time
 
 
 class LocalPeakWindowSum(ImageExtractor):
@@ -501,8 +501,8 @@ class LocalPeakWindowSum(ImageExtractor):
             self.window_shift.tel[telid],
             self.sampling_rate[telid],
         )
-        correction = self._calculate_correction(telid=telid)[selected_gain_channel]
-        return charge * correction, peak_time
+        charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
+        return charge, peak_time
 
 
 class NeighborPeakWindowSum(ImageExtractor):
@@ -567,8 +567,8 @@ class NeighborPeakWindowSum(ImageExtractor):
             self.window_shift.tel[telid],
             self.sampling_rate[telid],
         )
-        correction = self._calculate_correction(telid=telid)[selected_gain_channel]
-        return charge * correction, peak_time
+        charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
+        return charge, peak_time
 
 
 class BaselineSubtractedNeighborPeakWindowSum(NeighborPeakWindowSum):
@@ -1015,8 +1015,9 @@ class TwoPassWindowSum(ImageExtractor):
             waveforms, telid, selected_gain_channel
         )
 
+        # FIXME: properly make sure that output is 32Bit instead of downcasting here
         if self.disable_second_pass:
-            return charge1 * correction1, pulse_time1
+            return (charge1 * correction1).astype('float32'), pulse_time1.astype('float32')
 
         charge2, pulse_time2 = self._apply_second_pass(
             waveforms,
@@ -1026,4 +1027,5 @@ class TwoPassWindowSum(ImageExtractor):
             pulse_time1,
             correction1,
         )
-        return charge2, pulse_time2
+        # FIXME: properly make sure that output is 32Bit instead of downcasting here
+        return charge2.astype('float32'), pulse_time2.astype('float32')
