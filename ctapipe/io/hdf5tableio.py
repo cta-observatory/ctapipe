@@ -148,6 +148,9 @@ class HDF5TableWriter(TableWriter):
         # create pytables schema description for the given container
         pos = 0
         for container in containers:
+
+            container.validate()  # ensure the data are complete
+
             for col_name, value in container.items(add_prefix=self.add_prefix):
 
                 typename = ""

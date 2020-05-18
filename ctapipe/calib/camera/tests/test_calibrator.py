@@ -109,10 +109,10 @@ def test_dl1_charge_calib(example_subarray):
 
     # Randomize times and create pulses
     time_offset = random.uniform(mid - 10, mid + 10, n_pixels)[:, np.newaxis]
-    y = norm.pdf(x, time_offset, pulse_sigma)
+    y = norm.pdf(x, time_offset, pulse_sigma).astype('float32')
 
     # Define absolute calibration coefficients
-    absolute = random.uniform(100, 1000, n_pixels)
+    absolute = random.uniform(100, 1000, n_pixels).astype('float32')
     y *= absolute[:, np.newaxis]
 
     # Define relative coefficients
@@ -133,7 +133,7 @@ def test_dl1_charge_calib(example_subarray):
         image_extractor=FullWaveformSum(subarray=example_subarray)
     )
     calibrator(event)
-    np.testing.assert_allclose(event.dl1.tel[telid].image, y.sum(1))
+    np.testing.assert_allclose(event.dl1.tel[telid].image, y.sum(1), rtol=1e-4)
 
     event.calibration.tel[telid].dl1.time_shift = time_offset
     event.calibration.tel[telid].dl1.pedestal_offset = pedestal * n_samples
@@ -146,6 +146,6 @@ def test_dl1_charge_calib(example_subarray):
         image_extractor=FullWaveformSum(subarray=example_subarray)
     )
     calibrator(event)
-    np.testing.assert_allclose(event.dl1.tel[telid].image, 1)
+    np.testing.assert_allclose(event.dl1.tel[telid].image, 1, rtol=1e-5)
 
     # TODO: Test with timing corrections
