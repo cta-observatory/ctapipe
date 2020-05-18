@@ -23,7 +23,7 @@ class CameraDemo(Tool):
 
     delay = traits.Int(50, help="Frame delay in ms", min=20).tag(config=True)
     cleanframes = traits.Int(20, help="Number of frames between turning on "
-                                       "cleaning", min=0).tag(config=True)
+                                      "cleaning", min=0).tag(config=True)
     autoscale = traits.Bool(False, help='scale each frame to max if '
                                         'True').tag(config=True)
     blit = traits.Bool(False, help='use blit operation to draw on screen ('
