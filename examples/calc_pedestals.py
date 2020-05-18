@@ -48,6 +48,10 @@ if __name__ == '__main__':
 
                 traces = event.r0.tel[telid].waveform[chan, ...]
 
+                # skip telescopes without timeseries data
+                if traces.shape[1] == 1:
+                    continue
+
                 peds, pedvars = pedestals.calc_pedestals_from_traces(
                     traces, start, end
                 )
