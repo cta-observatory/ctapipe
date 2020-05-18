@@ -9,7 +9,7 @@ from traitlets.config import Application, Configurable
 from .. import __version__ as version
 from .traits import Path, Enum
 from . import Provenance
-from .logging import create_log_config
+from .logging import DEFAULT_LOGGING, update_logging_config, set_logging_config_from_file
 
 
 class ToolConfigurationError(Exception):
@@ -110,10 +110,14 @@ class Tool(Application):
         ),
     ).tag(config=True)
 
+    log_config = Path(
+        default_value=None, exists=True, directory_ok=False,
+        help="Filename of Logging Configuration",
+    ).tag(config=True)
     log_level = Enum(
         values=Application.log_level.values,
         default_value="INFO",
-        help="Logging Level",
+        help="Logging Level for Console Logging",
     ).tag(config=True)
     log_file = Path(
         default_value=None, exists=None, directory_ok=False,
@@ -129,6 +133,7 @@ class Tool(Application):
         # make sure there are some default aliases in all Tools:
         aliases = {
             "config": "Tool.config_file",
+            "log-config": "Tool.log_config",
             "log-level": "Tool.log_level",
             "log-file": "Tool.log_file",
             "log-file-level": "Tool.log_file_level",
@@ -154,14 +159,20 @@ class Tool(Application):
         # ensure command-line takes precedence over config file options:
         self.update_config(self.cli_config)
 
-        log_config = create_log_config(
-            name=self.name,
+        cfg = update_logging_config(
+            config=DEFAULT_LOGGING,
             log_level=self.log_level,
             log_file=self.log_file,
             log_file_level=self.log_file_level,
         )
 
-        logging.config.dictConfig(log_config)
+        if self.log_config is not None:
+            cfg = set_logging_config_from_file(
+                filename=self.log_config,
+            )
+
+        logging.config.dictConfig(cfg)
+
         self.log = logging.getLogger(self.name)
 
         self.log.info(f"ctapipe version {self.version_string}")
