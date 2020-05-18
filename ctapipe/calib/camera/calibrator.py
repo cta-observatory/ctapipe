@@ -120,7 +120,7 @@ class CameraCalibrator(Component):
             #   - Read into dl1 container directly?
             #   - Don't do anything if dl1 container already filled
             #   - Update on SST review decision
-            charge = waveforms[..., 0]
+            charge = waveforms[..., 0].as_type(np.float32)
             peak_time = np.zeros(n_pixels, dtype=np.float32)
         else:
             charge, peak_time = self.image_extractor(
