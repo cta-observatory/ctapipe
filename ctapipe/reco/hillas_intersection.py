@@ -170,20 +170,12 @@ class HillasIntersection(Reconstructor):
         )
         # nom = sky_pos.transform_to(nom_frame)
         sky_pos = nom.transform_to(array_pointing.frame)
-
-        result = ReconstructedShowerContainer()
-        result.alt = sky_pos.altaz.alt.to(u.rad)
-        result.az = sky_pos.altaz.az.to(u.rad)
-
         tilt = SkyCoord(
             x=core_x * u.m,
             y=core_y * u.m,
             frame=tilted_frame,
         )
         grd = project_to_ground(tilt)
-        result.core_x = grd.x
-        result.core_y = grd.y
-
         x_max = self.reconstruct_xmax(
             nom.fov_lon,
             nom.fov_lat,
@@ -193,18 +185,23 @@ class HillasIntersection(Reconstructor):
             90 * u.deg - array_pointing.alt,
         )
 
-        result.core_uncert = np.sqrt(core_err_x**2 + core_err_y**2) * u.m
-
-        result.tel_ids = [h for h in hillas_dict_mod.keys()]
-        result.average_intensity = np.mean([h.intensity for h in hillas_dict_mod.values()])
-        result.is_valid = True
-
         src_error = np.sqrt(err_x**2 + err_y**2)
-        result.alt_uncert = src_error.to(u.rad)
-        result.az_uncert = src_error.to(u.rad)
-        result.h_max = x_max
-        result.h_max_uncert = np.nan
-        result.goodness_of_fit = np.nan
+
+        result = ReconstructedShowerContainer(
+            alt=sky_pos.altaz.alt.to(u.rad),
+            az=sky_pos.altaz.az.to(u.rad),
+            core_x=grd.x,
+            core_y=grd.y,
+            core_uncert=u.Quantity(np.sqrt(core_err_x**2 + core_err_y**2), u.m),
+            tel_ids=[h for h in hillas_dict_mod.keys()],
+            average_intensity=np.mean([h.intensity for h in hillas_dict_mod.values()]),
+            is_valid=True,
+            alt_uncert=src_error.to(u.rad),
+            az_uncert=src_error.to(u.rad),
+            h_max=x_max,
+            h_max_uncert=u.Quantity(np.nan * x_max.unit),
+            goodness_of_fit=np.nan,
+        )
 
         return result
 

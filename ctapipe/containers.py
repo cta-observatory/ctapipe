@@ -53,7 +53,7 @@ __all__ = [
 
 
 # see https://github.com/astropy/astropy/issues/6509
-NAN_TIME = Time(np.ma.masked_array(nan, mask=True), format='mjd')
+NAN_TIME = Time(np.ma.masked_array(nan, mask=True), format="mjd")
 
 
 class EventType(enum.Enum):
@@ -165,8 +165,10 @@ class TimingParametersContainer(Container):
     """
 
     container_prefix = "timing"
-    slope = Field(nan / u.m, "Slope of arrival times along main shower axis", unit=1/u.m)
-    slope_err = Field(nan / u.m, "Uncertainty `slope`", unit=1/u.m)
+    slope = Field(
+        nan / u.m, "Slope of arrival times along main shower axis", unit=1 / u.m
+    )
+    slope_err = Field(nan / u.m, "Uncertainty `slope`", unit=1 / u.m)
     intercept = Field(nan, "intercept of arrival times along main shower axis")
     intercept_err = Field(nan, "Uncertainty `intercept`")
     deviation = Field(
@@ -206,17 +208,23 @@ class DL1CameraContainer(Container):
     image = Field(
         None,
         "Numpy array of camera image, after waveform extraction." "Shape: (n_pixel)",
+        dtype=np.float32,
+        ndim=1,
     )
     peak_time = Field(
         None,
         "Numpy array containing position of the peak of the pulse as determined by "
         "the extractor. Shape: (n_pixel)",
+        dtype=np.float32,
+        ndim=1,
     )
 
     image_mask = Field(
         None,
         "Boolean numpy array where True means the pixel has passed cleaning. Shape: ("
         "n_pixel)",
+        dtype=np.bool,
+        ndim=1,
     )
 
     parameters = Field(ImageParametersContainer(), "Parameters derived from images")
@@ -230,6 +238,8 @@ class MCDL1CameraContainer(DL1CameraContainer):
         None,
         "Numpy array of camera image in PE as simulated before noise has been added. "
         "Shape: (n_pixel)",
+        dtype=np.float32,
+        ndim=1,
     )
 
     true_parameters = Field(
@@ -397,15 +407,15 @@ class MCEventContainer(Container):
 
     container_prefix = "true"
 
-    energy = Field(0.0, "Monte-Carlo Energy", unit=u.TeV)
-    alt = Field(0.0, "Monte-carlo altitude", unit=u.deg)
-    az = Field(0.0, "Monte-Carlo azimuth", unit=u.deg)
-    core_x = Field(0.0, "MC core position", unit=u.m)
-    core_y = Field(0.0, "MC core position", unit=u.m)
-    h_first_int = Field(0.0, "Height of first interaction")
-    x_max = Field(0.0, "MC Xmax value", unit=u.g / (u.cm ** 2))
+    energy = Field(nan * u.TeV, "Monte-Carlo Energy", unit=u.TeV)
+    alt = Field(nan * u.deg, "Monte-carlo altitude", unit=u.deg)
+    az = Field(nan * u.deg, "Monte-Carlo azimuth", unit=u.deg)
+    core_x = Field(nan * u.m, "MC core position", unit=u.m)
+    core_y = Field(nan * u.m, "MC core position", unit=u.m)
+    h_first_int = Field(nan * u.m, "Height of first interaction", unit=u.m)
+    x_max = Field(nan * u.g / (u.cm**2), "MC Xmax value", unit=u.g / (u.cm ** 2))
     shower_primary_id = Field(
-        None,
+        -1,
         "MC shower primary ID 0 (gamma), 1(e-),"
         "2(mu-), 100*A+Z for nucleons and nuclei,"
         "negative for antimatter.",
@@ -432,15 +442,15 @@ class MCHeaderContainer(Container):
     corsika_version = Field(nan, "CORSIKA version * 1000")
     simtel_version = Field(nan, "sim_telarray version * 1000")
     energy_range_min = Field(
-        nan, "Lower limit of energy range " "of primary particle", unit=u.TeV
+        nan * u.TeV, "Lower limit of energy range " "of primary particle", unit=u.TeV
     )
     energy_range_max = Field(
-        nan, "Upper limit of energy range " "of primary particle", unit=u.TeV
+        nan * u.TeV, "Upper limit of energy range " "of primary particle", unit=u.TeV
     )
-    prod_site_B_total = Field(nan, "total geomagnetic field", unit=u.uT)
-    prod_site_B_declination = Field(nan, "magnetic declination", unit=u.rad)
-    prod_site_B_inclination = Field(nan, "magnetic inclination", unit=u.rad)
-    prod_site_alt = Field(nan, "height of observation level", unit=u.m)
+    prod_site_B_total = Field(nan * u.uT, "total geomagnetic field", unit=u.uT)
+    prod_site_B_declination = Field(nan * u.rad, "magnetic declination", unit=u.rad)
+    prod_site_B_inclination = Field(nan * u.rad, "magnetic inclination", unit=u.rad)
+    prod_site_alt = Field(nan * u.m, "height of observation level", unit=u.m)
     prod_site_array = Field("None", "site array")
     prod_site_coord = Field("None", "site (long., lat.) coordinates")
     prod_site_subarray = Field("None", "site subarray")
@@ -455,37 +465,37 @@ class MCHeaderContainer(Container):
     detector_prog_id = Field(nan, "simtelarray=1")
     num_showers = Field(nan, "Number of showers simulated")
     shower_reuse = Field(nan, "Numbers of uses of each shower")
-    max_alt = Field(nan, "Maximimum shower altitude", unit=u.rad)
-    min_alt = Field(nan, "Minimum shower altitude", unit=u.rad)
-    max_az = Field(nan, "Maximum shower azimuth", unit=u.rad)
-    min_az = Field(nan, "Minimum shower azimuth", unit=u.rad)
-    diffuse = Field(nan, "Diffuse Mode On/Off")
-    max_viewcone_radius = Field(nan, "Maximum viewcone radius", unit=u.deg)
-    min_viewcone_radius = Field(nan, "Minimum viewcone radius", unit=u.deg)
-    max_scatter_range = Field(nan, "Maximum scatter range", unit=u.m)
-    min_scatter_range = Field(nan, "Minimum scatter range", unit=u.m)
+    max_alt = Field(nan * u.rad, "Maximimum shower altitude", unit=u.rad)
+    min_alt = Field(nan * u.rad, "Minimum shower altitude", unit=u.rad)
+    max_az = Field(nan * u.rad, "Maximum shower azimuth", unit=u.rad)
+    min_az = Field(nan * u.rad, "Minimum shower azimuth", unit=u.rad)
+    diffuse = Field(False, "Diffuse Mode On/Off")
+    max_viewcone_radius = Field(nan * u.deg, "Maximum viewcone radius", unit=u.deg)
+    min_viewcone_radius = Field(nan * u.deg, "Minimum viewcone radius", unit=u.deg)
+    max_scatter_range = Field(nan * u.m, "Maximum scatter range", unit=u.m)
+    min_scatter_range = Field(nan * u.m, "Minimum scatter range", unit=u.m)
     core_pos_mode = Field(nan, "Core Position Mode (fixed/circular/...)")
-    injection_height = Field(nan, "Height of particle injection", unit=u.m)
-    atmosphere = Field(nan, "Atmospheric model number")
+    injection_height = Field(nan * u.m, "Height of particle injection", unit=u.m)
+    atmosphere = Field(nan * u.m, "Atmospheric model number")
     corsika_iact_options = Field(nan, "Detector MC information")
     corsika_low_E_model = Field(nan, "Detector MC information")
     corsika_high_E_model = Field(nan, "Detector MC information")
     corsika_bunchsize = Field(nan, "Number of photons per bunch")
-    corsika_wlen_min = Field(nan, "Minimum wavelength of cherenkov light", unit=u.nm)
-    corsika_wlen_max = Field(nan, "Maximum wavelength of cherenkov light", unit=u.nm)
+    corsika_wlen_min = Field(nan * u.m, "Minimum wavelength of cherenkov light", unit=u.nm)
+    corsika_wlen_max = Field(nan * u.m, "Maximum wavelength of cherenkov light", unit=u.nm)
     corsika_low_E_detail = Field(nan, "Detector MC information")
     corsika_high_E_detail = Field(nan, "Detector MC information")
 
 
 class TelescopeTriggerContainer(Container):
-    time = Field(NAN_TIME, 'Telescope trigger time')
+    time = Field(NAN_TIME, "Telescope trigger time")
 
 
 class TriggerContainer(Container):
     time = Field(NAN_TIME, "central average time stamp")
     tels_with_trigger = Field([], "list of telescope ids with data")
     event_type = Field(EventType.SUBARRAY, "Event type")
-    tel = Field(Map(TelescopeTriggerContainer), 'telescope-wise trigger information')
+    tel = Field(Map(TelescopeTriggerContainer), "telescope-wise trigger information")
 
 
 class ReconstructedShowerContainer(Container):
@@ -493,15 +503,15 @@ class ReconstructedShowerContainer(Container):
     Standard output of algorithms reconstructing shower geometry
     """
 
-    alt = Field(0.0, "reconstructed altitude", unit=u.deg)
-    alt_uncert = Field(0.0, "reconstructed altitude uncertainty", unit=u.deg)
-    az = Field(0.0, "reconstructed azimuth", unit=u.deg)
-    az_uncert = Field(0.0, "reconstructed azimuth uncertainty", unit=u.deg)
-    core_x = Field(0.0, "reconstructed x coordinate of the core position", unit=u.m)
-    core_y = Field(0.0, "reconstructed y coordinate of the core position", unit=u.m)
-    core_uncert = Field(0.0, "uncertainty of the reconstructed core position", unit=u.m)
-    h_max = Field(0.0, "reconstructed height of the shower maximum")
-    h_max_uncert = Field(0.0, "uncertainty of h_max")
+    alt = Field(nan * u.deg, "reconstructed altitude", unit=u.deg)
+    alt_uncert = Field(nan * u.deg, "reconstructed altitude uncertainty", unit=u.deg)
+    az = Field(nan * u.deg, "reconstructed azimuth", unit=u.deg)
+    az_uncert = Field(nan * u.deg, "reconstructed azimuth uncertainty", unit=u.deg)
+    core_x = Field(nan * u.m, "reconstructed x coordinate of the core position", unit=u.m)
+    core_y = Field(nan * u.m, "reconstructed y coordinate of the core position", unit=u.m)
+    core_uncert = Field(nan * u.m, "uncertainty of the reconstructed core position", unit=u.m)
+    h_max = Field(nan * u.m, "reconstructed height of the shower maximum", unit=u.m)
+    h_max_uncert = Field(nan * u.m, "uncertainty of h_max", unit=u.m)
     is_valid = Field(
         False,
         (
@@ -513,9 +523,9 @@ class ReconstructedShowerContainer(Container):
         [], ("list of the telescope ids used in the" " reconstruction of the shower")
     )
     average_intensity = Field(
-        0.0, "average intensity of the intensities used for reconstruction"
+        nan, "average intensity of the intensities used for reconstruction"
     )
-    goodness_of_fit = Field(0.0, "measure of algorithm success (if fit)")
+    goodness_of_fit = Field(nan, "measure of algorithm success (if fit)")
 
 
 class ReconstructedEnergyContainer(Container):
@@ -523,8 +533,8 @@ class ReconstructedEnergyContainer(Container):
     Standard output of algorithms estimating energy
     """
 
-    energy = Field(-1.0, "reconstructed energy", unit=u.TeV)
-    energy_uncert = Field(-1.0, "reconstructed energy uncertainty", unit=u.TeV)
+    energy = Field(nan * u.TeV, "reconstructed energy", unit=u.TeV)
+    energy_uncert = Field(nan * u.TeV, "reconstructed energy uncertainty", unit=u.TeV)
     is_valid = Field(
         False,
         (
@@ -661,7 +671,8 @@ class DataContainer(Container):
 
 
 class MuonRingContainer(Container):
-    '''Container for the result of a ring fit, center_x, center_y'''
+    """Container for the result of a ring fit, center_x, center_y"""
+
     center_x = Field(nan * u.deg, "center (x) of the fitted muon ring", unit=u.deg)
     center_y = Field(nan * u.deg, "center (y) of the fitted muon ring", unit=u.deg)
     radius = Field(nan * u.deg, "radius of the fitted muon ring", unit=u.deg)
@@ -687,11 +698,11 @@ class MuonParametersContainer(Container):
         nan,
         "Complenetess of the muon ring"
         ", estimated by dividing the ring into segments"
-        " and counting segments above a threshold"
+        " and counting segments above a threshold",
     )
-    intensity_ratio = Field(nan, 'Intensity ratio of pixels in the ring to all pixels')
+    intensity_ratio = Field(nan, "Intensity ratio of pixels in the ring to all pixels")
     mean_squared_error = Field(
-        nan, 'MSE of the deviation of all pixels after cleaning from the ring fit'
+        nan, "MSE of the deviation of all pixels after cleaning from the ring fit"
     )
 
 
@@ -701,9 +712,12 @@ class FlatFieldContainer(Container):
     [n_events] flat-field events
     """
 
-    sample_time = Field(0, "Time associated to the flat-field event set ", unit=u.s)
-    sample_time_range = Field(
-        [], "Range of time of the flat-field events [t_min, t_max]", unit=u.s
+    sample_time = Field(0 * u.s, "Time associated to the flat-field event set ", unit=u.s)
+    sample_time_min = Field(
+        nan * u.s, "Minimum time of the flat-field events", unit=u.s
+    )
+    sample_time_max = Field(
+        nan * u.s, "Maximum time of the flat-field events", unit=u.s
     )
     n_events = Field(0, "Number of events used for statistics")
 
@@ -753,10 +767,13 @@ class PedestalContainer(Container):
     [n_pedestal] pedestal events
     """
 
-    n_events = Field(0, "Number of events used for statistics")
-    sample_time = Field(0, "Time associated to the pedestal event set", unit=u.s)
-    sample_time_range = Field(
-        [], "Range of time of the pedestal events [t_min, t_max]", unit=u.s
+    n_events = Field(-1, "Number of events used for statistics")
+    sample_time = Field(nan * u.s, "Time associated to the pedestal event set", unit=u.s)
+    sample_time_min = Field(
+        nan * u.s, "Time of first pedestal event", unit=u.s
+    )
+    sample_time_max = Field(
+        nan * u.s, "Time of last pedestal event", unit=u.s
     )
     charge_mean = Field(None, "np array of pedestal average (n_chan, n_pix)")
     charge_median = Field(None, "np array of the pedestal  median (n_chan, n_pix)")
@@ -802,10 +819,15 @@ class WaveformCalibrationContainer(Container):
     Container for the pixel calibration coefficients
     """
 
-    time = Field(0, "Time associated to the calibration event", unit=u.s)
-    time_range = Field(
-        [],
-        "Range of time of validity for the calibration event [t_min, t_max]",
+    time = Field(nan * u.s, "Time associated to the calibration event", unit=u.s)
+    time_min = Field(
+        nan * u.s,
+        "Earliest time of validity for the calibration event",
+        unit=u.s,
+    )
+    time_max = Field(
+        nan * u.s,
+        "Latest time of validity for the calibration event",
         unit=u.s,
     )
 

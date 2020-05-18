@@ -33,14 +33,14 @@ from .hillas import hillas_parameters, camera_to_shower_coordinates
 
 @guvectorize(
     [
-        (float64[:], int64, int64, int64, float64, float64[:], float64[:]),
-        (float32[:], int64, int64, int64, float64, float64[:], float64[:]),
+        (float64[:], int64, int64, int64, float64, float32[:], float32[:]),
+        (float32[:], int64, int64, int64, float64, float32[:], float32[:]),
     ],
     "(s),(),(),(),()->(),()",
     nopython=True,
 )
 def extract_around_peak(
-        waveforms, peak_index, width, shift, sampling_rate_ghz, sum_, peak_time
+    waveforms, peak_index, width, shift, sampling_rate_ghz, sum_, peak_time
 ):
     """
     This function performs the following operations:
@@ -91,19 +91,25 @@ def extract_around_peak(
     n_samples = waveforms.size
     start = peak_index - shift
     end = start + width
-    sum_[0] = 0
-    time_num = 0
-    time_den = 0
-    for isample in prange(start, end):
-        if 0 <= isample < n_samples:
-            sum_[0] += waveforms[isample]
-            if waveforms[isample] > 0:
-                time_num += waveforms[isample] * isample
-                time_den += waveforms[isample]
-    peak_time[0] = time_num / time_den if time_den > 0 else peak_index
 
+    # reduce to valid range
+    start = max(0, start)
+    end = min(end, n_samples)
+
+    i_sum = float64(0.0)
+    time_num = float64(0.0)
+    time_den = float64(0.0)
+
+    for isample in prange(start, end):
+        i_sum += waveforms[isample]
+        if waveforms[isample] > 0:
+            time_num += waveforms[isample] * isample
+            time_den += waveforms[isample]
+
+    peak_time[0] = time_num / time_den if time_den > 0 else peak_index
     # Convert to units of ns
     peak_time[0] /= sampling_rate_ghz
+    sum_[0] = i_sum
 
 
 @njit(parallel=True)

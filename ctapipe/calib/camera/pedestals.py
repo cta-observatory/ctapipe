@@ -339,14 +339,17 @@ def calculate_time_results(
 ):
     """Calculate and return the sample time"""
     return {
-        'sample_time': (trigger_time - time_start) / 2 * u.s,
-        'sample_time_range': [time_start, trigger_time] * u.s,
+        # FIXME Why divided by two here?
+        'sample_time': u.Quantity((trigger_time - time_start) / 2, u.s),
+        'sample_time_min': u.Quantity(time_start, u.s),
+        'sample_time_max': u.Quantity(trigger_time, u.s),
     }
 
 
-def calculate_pedestal_results(self,
-                               trace_integral,
-                               masked_pixels_of_sample,
+def calculate_pedestal_results(
+    self,
+    trace_integral,
+    masked_pixels_of_sample,
 ):
     """Calculate and return the sample statistics"""
     masked_trace_integral = np.ma.array(

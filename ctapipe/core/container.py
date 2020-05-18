@@ -88,7 +88,7 @@ class Field:
             if not isinstance(value, Quantity):
                 raise FieldValidationError(
                     f"{errorstr} Should have units of {self.unit}"
-                )
+                ) from None
             try:
                 value.to(self.unit)
             except UnitConversionError as err:

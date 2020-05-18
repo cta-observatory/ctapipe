@@ -8,6 +8,7 @@ import pandas as pd
 from astropy import units as u
 
 from ctapipe.core.container import Container, Field
+from ctapipe import containers
 from ctapipe.containers import (
     R0CameraContainer,
     MCEventContainer,
@@ -481,6 +482,32 @@ def test_writing_nan_defaults():
     with tempfile.NamedTemporaryFile(suffix='.hdf5') as f:
         with HDF5TableWriter(f.name, mode='w') as writer:
             writer.write('params', params.values())
+
+
+ALL_CONTAINERS = []
+for name in dir(containers):
+    try:
+        obj = getattr(containers, name)
+        if issubclass(obj, Container):
+            ALL_CONTAINERS.append(obj)
+    except TypeError:
+        pass
+
+
+@pytest.mark.parametrize('cls', ALL_CONTAINERS)
+def test_write_default_container(cls):
+
+    with tempfile.NamedTemporaryFile(suffix='.hdf5') as f:
+        with HDF5TableWriter(f.name, mode='w') as writer:
+            try:
+                writer.write('params', cls())
+            except ValueError as e:
+                # some containers do not have writable members,
+                # only subcontainers. For now, ignore them.
+                if 'cannot create an empty data type' in str(e):
+                    pytest.xfail()
+                else:
+                    raise
 
 
 if __name__ == "__main__":

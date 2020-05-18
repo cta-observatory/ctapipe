@@ -42,7 +42,7 @@ def test_path_exists():
         thepath = Path(exists=False)
 
     c1 = C1()
-    c1.thepath = "test"
+    c1.thepath = "non-existent-path-that-should-never-exist-not-even-by-accident"
 
     with tempfile.NamedTemporaryFile() as f:
         with pytest.raises(TraitError):

@@ -343,14 +343,15 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
                                              pixel_median > self.time_cut_outliers[1])
 
         return {
-            'sample_time': (trigger_time - time_start) / 2 * u.s,
-            'sample_time_range': [time_start, trigger_time] * u.s,
+            # FIXME Why divided by two here?
+            'sample_time': u.Quantity((trigger_time - time_start) / 2, u.s),
+            'sample_time_min': u.Quantity(time_start, u.s),
+            'sample_time_max': u.Quantity(trigger_time, u.s),
             'time_mean': np.ma.getdata(pixel_mean),
             'time_median': np.ma.getdata(pixel_median),
             'time_std': np.ma.getdata(pixel_std),
             'relative_time_median': np.ma.getdata(relative_median),
             'time_median_outliers': np.ma.getdata(time_median_outliers),
-
         }
 
     def calculate_relative_gain_results(
