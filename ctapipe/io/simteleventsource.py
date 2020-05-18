@@ -370,8 +370,6 @@ class SimTelEventSource(EventSource):
             telescope_events = array_event["telescope_events"]
             tracking_positions = array_event["tracking_positions"]
             for tel_id, telescope_event in telescope_events.items():
-                tel_index = self.file_.header["tel_id"].tolist().index(tel_id)
-
                 adc_samples = telescope_event.get("adc_samples")
                 if adc_samples is None:
                     adc_samples = telescope_event["adc_sums"][:, :, np.newaxis]
@@ -382,7 +380,7 @@ class SimTelEventSource(EventSource):
                 mc.pedestal = array_event["camera_monitorings"][tel_id]["pedestal"]
                 mc.true_image = (
                     array_event.get("photoelectrons", {})
-                    .get(tel_index, {})
+                    .get(tel_id - 1, {})
                     .get("photoelectrons", np.zeros(n_pixels, dtype="float32"))
                 )
 
