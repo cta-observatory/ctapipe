@@ -121,7 +121,7 @@ class CameraCalibrator(Component):
             #   - Don't do anything if dl1 container already filled
             #   - Update on SST review decision
             charge = waveforms[..., 0]
-            peak_time = np.zeros(n_pixels)
+            peak_time = np.zeros(n_pixels, dtype=np.float32)
         else:
             charge, peak_time = self.image_extractor(
                 waveforms, telid=telid, selected_gain_channel=selected_gain_channel
