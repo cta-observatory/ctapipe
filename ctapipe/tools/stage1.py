@@ -1,7 +1,5 @@
 """
 Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
-
-# TODO: add event time per telescope!
 """
 import pathlib
 import sys
