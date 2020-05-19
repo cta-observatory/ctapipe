@@ -10,6 +10,7 @@ matrix:
   include:
     - name: conda python 3.6
       os: linux
+      dist: bionic
       language: generic
       env:
         - PYTHON_VERSION=3.6
@@ -17,12 +18,14 @@ matrix:
 
     - name: conda python 3.7
       os: linux
+      dist: bionic
       language: generic
       env:
         - PYTHON_VERSION=3.7
         - CONDA=true
 
     - os: linux
+      dist: bionic
       language: python
       python: 3.6
       addons:
@@ -32,6 +35,7 @@ matrix:
             - graphviz
 
     - os: linux
+      dist: bionic
       language: python
       python: 3.7
       addons:
@@ -41,6 +45,7 @@ matrix:
             - graphviz
 
     - os: linux
+      dist: bionic
       language: python
       python: 3.8
       addons:
