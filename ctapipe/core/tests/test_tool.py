@@ -3,7 +3,7 @@ from traitlets import Float, TraitError, List, Dict
 from traitlets.config import Config
 
 from .. import Tool, Component
-from ..tool import export_tool_config_to_commented_yaml
+from ..tool import export_tool_config_to_commented_yaml, run_tool
 
 
 def test_tool_simple():
@@ -89,7 +89,6 @@ def test_tool_current_config():
 
 def test_tool_exit_code():
     """ Check that we can get the full instance configuration """
-    from ctapipe.core.tool import run_tool
 
     class MyTool(Tool):
 
@@ -116,7 +115,6 @@ def test_tool_command_line_precedence():
     """
     ensure command-line has higher priority than config file
     """
-    from ctapipe.core.tool import run_tool
 
     class SubComponent(Component):
         component_param = Float(10.0, help="some parameter").tag(config=True)
