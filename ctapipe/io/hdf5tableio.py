@@ -188,8 +188,9 @@ class HDF5TableWriter(TableWriter):
                         tr = partial(tr_convert_and_strip_unit, unit=req_unit)
                         meta[f"{col_name}_UNIT"] = req_unit.to_string('fits')
                     else:
-                        tr = lambda x: x.value
-                        meta[f"{col_name}_UNIT"] = value.to_string('fits')
+                        unit = value.unit
+                        tr = lambda x: x.to_value(unit)
+                        meta[f"{col_name}_UNIT"] = unit.to_string('fits')
 
                     value = tr(value)
                     self.add_column_transform(table_name, col_name, tr)

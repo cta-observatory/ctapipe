@@ -47,7 +47,7 @@ class Field:
 
         self.default = default
         self.description = description
-        self.unit = Unit(unit)
+        self.unit = Unit(unit) if unit is not None else None
         self.ucd = ucd
         self.dtype = np.dtype(dtype) if dtype is not None else None
         self.ndim = ndim

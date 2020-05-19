@@ -71,6 +71,25 @@ def test_prefix(tmp_path):
     assert "leakage_pixels_width_1" in df.columns
 
 
+def test_units():
+    class WithUnits(Container):
+        inverse_length = Field(5 / u.m, 'foo')
+        time = Field(1 * u.s, 'bar', unit=u.s)
+        grammage = Field(2 * u.g / u.cm**2, 'baz', unit=u.g / u.cm**2)
+
+    c = WithUnits()
+
+    with tempfile.NamedTemporaryFile() as f:
+        with HDF5TableWriter(f.name, "data") as writer:
+            writer.write('units', c)
+
+        with tables.open_file(f.name, 'r') as f:
+
+            assert f.root.data.units.attrs['inverse_length_UNIT'] == 'm-1'
+            assert f.root.data.units.attrs['time_UNIT'] == 's'
+            assert f.root.data.units.attrs['grammage_UNIT'] == 'cm-2 g'
+
+
 def test_write_containers(temp_h5_file):
     class C1(Container):
         a = Field(None, "a")
