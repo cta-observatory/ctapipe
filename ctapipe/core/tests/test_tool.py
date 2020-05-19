@@ -138,3 +138,16 @@ def test_tool_command_line_precedence():
     run_tool(tool, ["--component_param", "20.0"])
     assert tool.sub.component_param == 20.0
     assert tool.userparam == 12.0
+
+
+def test_tool_logging():
+
+    class MyTool(Tool):
+        name = "ctapipe.test"
+
+    tool = MyTool()
+    run_tool(tool, ["--log-level", "WARN"])
+
+    assert tool.log_level == 30
+    assert tool.log_file is None
+    assert tool.log.hasHandlers()
