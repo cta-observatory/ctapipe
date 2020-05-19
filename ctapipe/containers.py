@@ -83,20 +83,19 @@ class EventType(enum.Enum):
 
 class EventIndexContainer(Container):
     """ index columns to include in event lists, common to all data levels"""
-
     container_prefix = ""  # don't want to prefix these
-
-    event_id = Field(0, "event identifier")
     obs_id = Field(0, "observation identifier")
+    event_id = Field(0, "event identifier")
 
 
-class TelEventIndexContainer(EventIndexContainer):
+class TelEventIndexContainer(Container):
     """
     index columns to include in telescope-wise event lists, common to all data
     levels that have telescope-wise information
     """
-
     container_prefix = ""  # don't want to prefix these
+    obs_id = Field(0, "observation identifier")
+    event_id = Field(0, "event identifier")
     tel_id = Field(0, "telescope identifier")
 
 
@@ -181,11 +180,30 @@ class TimingParametersContainer(Container):
 class MorphologyContainer(Container):
     """ Parameters related to pixels surviving image cleaning """
 
-    num_pixels = Field(nan, "Number of usable pixels")
-    num_islands = Field(nan, "Number of distinct islands in the image")
-    num_small_islands = Field(nan, "Number of <= 2 pixel islands")
-    num_medium_islands = Field(nan, "Number of 2-50 pixel islands")
-    num_large_islands = Field(nan, "Number of > 10 pixel islands")
+    num_pixels = Field(-1, "Number of usable pixels")
+    num_islands = Field(-1, "Number of distinct islands in the image")
+    num_small_islands = Field(-1, "Number of <= 2 pixel islands")
+    num_medium_islands = Field(-1, "Number of 2-50 pixel islands")
+    num_large_islands = Field(-1, "Number of > 50 pixel islands")
+
+
+class StatisticsContainer(Container):
+    """Store descriptive statistics"""
+
+    max = Field(nan, "value of pixel with maximum intensity")
+    min = Field(nan, "value of pixel with minimum intensity")
+    mean = Field(nan, "mean intensity")
+    std = Field(nan, "standard deviation of intensity")
+    skewness = Field(nan, "skewness of intensity")
+    kurtosis = Field(nan, "kurtosis of intensity")
+
+
+class IntensityStatisticsContainer(StatisticsContainer):
+    container_prefix = "intensity"
+
+
+class PeakTimeStatisticsContainer(StatisticsContainer):
+    container_prefix = "peak_time"
 
 
 class ImageParametersContainer(Container):
@@ -197,6 +215,12 @@ class ImageParametersContainer(Container):
     leakage = Field(LeakageContainer(), "Leakage Parameters")
     concentration = Field(ConcentrationContainer(), "Concentration Parameters")
     morphology = Field(MorphologyContainer(), "Image Morphology Parameters")
+    intensity_statistics = Field(
+        IntensityStatisticsContainer(), "Intensity image statistics"
+    )
+    peak_time_statistics = Field(
+        PeakTimeStatisticsContainer(), "Peak time image statistics"
+    )
 
 
 class DL1CameraContainer(Container):
@@ -230,7 +254,7 @@ class DL1CameraContainer(Container):
     parameters = Field(ImageParametersContainer(), "Parameters derived from images")
 
 
-class MCDL1CameraContainer(DL1CameraContainer):
+class MCDL1CameraContainer(Container):
     """ Contains all fields of the DL1CameraContainer, but adds fields for simulated
     DL1 image information."""
 

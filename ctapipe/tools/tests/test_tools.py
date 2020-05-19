@@ -8,15 +8,78 @@ import sys
 
 import matplotlib as mpl
 
+import tempfile
+import pandas as pd
+import tables
+
 from ctapipe.utils import get_dataset_path
 from ctapipe.core import run_tool
-import tempfile
-import tables
 import numpy as np
 
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 LST_MUONS = get_dataset_path('lst_muons.simtel.zst')
+
+
+def test_stage_1():
+    from ctapipe.tools.stage1 import Stage1ProcessorTool
+
+    with tempfile.NamedTemporaryFile(suffix='.hdf5') as f:
+        assert run_tool(
+            Stage1ProcessorTool(),
+            argv=[
+                '--config=./examples/stage1_config.json',
+                f"--input={GAMMA_TEST_LARGE}",
+                f'--output={f.name}',
+                '--write-parameters',
+                '--overwrite',
+            ]
+        ) == 0
+
+        # check tables were written
+        with tables.open_file(f.name, mode='r') as tf:
+            assert tf.root.dl1
+            assert tf.root.dl1.event.telescope
+            assert tf.root.dl1.event.subarray
+            assert tf.root.configuration.instrument.subarray.layout
+            assert tf.root.configuration.instrument.telescope.optics
+            assert tf.root.configuration.instrument.telescope.camera.geometry_LSTCam
+            assert tf.root.configuration.instrument.telescope.camera.readout_LSTCam
+
+        # check we can read telescope parametrs
+        dl1_features = pd.read_hdf(f.name, '/dl1/event/telescope/parameters/tel_001')
+        features = (
+            'obs_id', 'event_id', 'tel_id',
+            'hillas_intensity', 'concentration_cog', 'leakage_pixels_width_1'
+        )
+        for feature in features:
+            assert feature in dl1_features.columns
+
+    with tempfile.NamedTemporaryFile(suffix='.hdf5') as f:
+        assert run_tool(
+            Stage1ProcessorTool(),
+            argv=[
+                '--config=./examples/stage1_config.json',
+                f"--input={GAMMA_TEST_LARGE}",
+                f'--output={f.name}',
+                '--write-images',
+                '--overwrite',
+            ]
+        ) == 0
+
+        with tables.open_file(f.name, mode='r') as tf:
+            assert tf.root.dl1
+            assert tf.root.dl1.event.telescope
+            assert tf.root.dl1.event.subarray
+            assert tf.root.configuration.instrument.subarray.layout
+            assert tf.root.configuration.instrument.telescope.optics
+            assert tf.root.configuration.instrument.telescope.camera.geometry_LSTCam
+            assert tf.root.configuration.instrument.telescope.camera.readout_LSTCam
+            assert tf.root.dl1.event.telescope.images.tel_001
+            dl1_image = tf.root.dl1.event.telescope.images.tel_001
+            assert 'image_mask' in dl1_image.dtype.names
+            assert 'image' in dl1_image.dtype.names
+            assert 'peak_time' in dl1_image.dtype.names
 
 
 def test_muon_reconstruction(tmpdir):

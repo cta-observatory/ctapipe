@@ -214,6 +214,7 @@ class HDF5TableWriter(TableWriter):
                     self.log.warning(
                         f'Column {col_name} of'
                         f' container {container.__class__.__name__}'
+                        f' in table {table_name}'
                         ' not writable, skipping'
                     )
                     continue

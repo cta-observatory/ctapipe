@@ -29,6 +29,7 @@ entry_points['console_scripts'] = [
     'ctapipe-reconstruct-muons = ctapipe.tools.muon_reconstruction:main',
     'ctapipe-display-integration = ctapipe.tools.display_integrator:main',
     'ctapipe-display-dl1 = ctapipe.tools.display_dl1:main',
+    'ctapipe-stage1-process = ctapipe.tools.stage1:main',
 ]
 tests_require = [
     'pytest',
@@ -62,6 +63,7 @@ setup(
         'tqdm>=4.32',
         'traitlets>=4.1,<5.0',
         'zstandard',
+        'h5py',  # needed for astropy hdf5 io
     ],
     # here are optional dependencies (as "tag" : "dependency spec")
     extras_require={

@@ -14,7 +14,7 @@ from ctapipe.coordinates import TiltedGroundFrame, MissingFrameAttributeWarning
 from ctapipe.image import (
     hillas_parameters, tailcuts_clean, HillasParameterizationError
 )
-from ctapipe.image.timing_parameters import timing_parameters
+from ctapipe.image import timing_parameters
 from ctapipe.io import event_source
 from ctapipe.utils import datasets
 from ctapipe.visualization import ArrayDisplay
@@ -100,7 +100,6 @@ if __name__ == '__main__':
             # note the [0] is for channel 0 which is high-gain channel
             image = event.dl1.tel[tel_id].image
             time = event.dl1.tel[tel_id].peak_time
-
 
             # Cleaning  of the image
             cleaned_image = image.copy()
