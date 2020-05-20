@@ -28,8 +28,12 @@ def skewness(data, mean=None, std=None):
     skewness: float
         computed skewness
     """
-    mean = mean or np.mean(data)
-    std = std or np.std(data)
+    if mean is None:
+        mean = np.mean(data)
+
+    if std is None:
+        std = np.std(data)
+
     return np.mean(((data - mean) / std) ** 3)
 
 
@@ -60,8 +64,12 @@ def kurtosis(data, mean=None, std=None, fisher=True):
     kurtosis: float
         kurtosis
     """
-    mean = mean or np.mean(data)
-    std = std or np.std(data)
+    if mean is None:
+        mean = np.mean(data)
+
+    if std is None:
+        std = np.std(data)
+
     kurt = np.mean(((data - mean) / std) ** 4)
     if fisher is True:
         kurt -= 3.0
