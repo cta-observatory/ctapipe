@@ -36,6 +36,7 @@ dependencies:
   - sphinx_rtd_theme
   - tqdm
   - traitlets
+  - vitables
   - wheel
   - xz
   - zlib
