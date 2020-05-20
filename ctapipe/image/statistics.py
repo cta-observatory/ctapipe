@@ -8,7 +8,7 @@ def skewness(data, mean=None, std=None):
     with allowing precomputed mean and std.
 
     With precomputed mean and std, this is ~10x faster than scipy.stats.skew
-    for our use case (1D arrays woth ~100-1000 elements)
+    for our use case (1D arrays with ~100-1000 elements)
 
     Parameters
     ----------
@@ -34,7 +34,7 @@ def kurtosis(data, mean=None, std=None, fisher=True):
     with allowing precomputed mean and std.
 
     With precomputed mean and std, this is ~10x faster than scipy.stats.skew
-    for our use case (1D arrays woth ~100-1000 elements)
+    for our use case (1D arrays with ~100-1000 elements)
 
     Parameters
     ----------
