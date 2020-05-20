@@ -22,6 +22,7 @@ dependencies:
   - numpy>=1.17
   - numpydoc
   - pandas
+  - pre-commit
   - psutil
   - pytables
   - pytest
