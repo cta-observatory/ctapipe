@@ -182,14 +182,10 @@ class HDF5TableWriter(TableWriter):
                         key = col_name.replace(container.prefix + "_", "")
                     else:
                         key = col_name
-                    req_unit = container.fields[key].unit
 
-                    if req_unit is not None:
-                        tr = partial(tr_convert_and_strip_unit, unit=req_unit)
-                        meta[f"{col_name}_UNIT"] = str(req_unit)
-                    else:
-                        tr = lambda x: x.value
-                        meta[f"{col_name}_UNIT"] = str(value.unit)
+                    unit = container.fields[key].unit or value.unit
+                    tr = partial(tr_convert_and_strip_unit, unit=unit)
+                    meta[f"{col_name}_UNIT"] = unit.to_string('vounit')
 
                     value = tr(value)
                     self.add_column_transform(table_name, col_name, tr)

@@ -4,7 +4,7 @@ from pprint import pformat
 from textwrap import wrap
 import warnings
 import numpy as np
-from astropy.units import UnitConversionError, Quantity
+from astropy.units import UnitConversionError, Quantity, Unit
 
 
 class FieldValidationError(ValueError):
@@ -47,7 +47,7 @@ class Field:
 
         self.default = default
         self.description = description
-        self.unit = unit
+        self.unit = Unit(unit) if unit is not None else None
         self.ucd = ucd
         self.dtype = np.dtype(dtype) if dtype is not None else None
         self.ndim = ndim
