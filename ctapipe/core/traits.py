@@ -51,7 +51,7 @@ __all__ = [
     "TelescopeParameter",
     "FloatTelescopeParameter",
     "IntTelescopeParameter",
-    "AstroTime"
+    "AstroTime",
 ]
 
 import logging
@@ -61,19 +61,20 @@ logger = logging.getLogger(__name__)
 
 class AstroTime(TraitType):
     """ A trait representing a point in Time, as understood by `astropy.time`"""
+
     def validate(self, obj, value):
         """ try to parse and return an ISO time string """
         try:
             the_time = Time(value)
-            the_time.format = 'iso'
+            the_time.format = "iso"
             return the_time
         except ValueError:
             return self.error(obj, value)
 
     def info(self):
-        info = 'an ISO8601 datestring or Time instance'
+        info = "an ISO8601 datestring or Time instance"
         if self.allow_none:
-            info += 'or None'
+            info += "or None"
         return info
 
 
@@ -93,7 +94,7 @@ class Path(TraitType):
     """
 
     def __init__(self, *args, exists=None, directory_ok=True, file_ok=True, **kwargs):
-        default_value = kwargs.pop('default_value', None)
+        default_value = kwargs.pop("default_value", None)
 
         super().__init__(*args, default_value=default_value, allow_none=True, **kwargs)
         self.exists = exists
@@ -101,23 +102,23 @@ class Path(TraitType):
         self.file_ok = file_ok
 
     def info(self):
-        info = 'a pathlib.Path or non-empty str for '
+        info = "a pathlib.Path or non-empty str for "
         if self.exists is True:
-            info += 'an existing'
+            info += "an existing"
         elif self.exists is False:
-            info += 'a not existing'
+            info += "a not existing"
         else:
-            info += 'a'
+            info += "a"
 
         if self.directory_ok and self.file_ok:
-            info += ' directory or file'
+            info += " directory or file"
         else:
             if self.file_ok:
-                info += ' file'
+                info += " file"
             if self.directory_ok:
-                info += 'directory'
+                info += "directory"
         if self.allow_none:
-            info += ' or None'
+            info += " or None"
 
         return info
 
@@ -129,7 +130,7 @@ class Path(TraitType):
             return self.error(obj, value)
 
         if isinstance(value, str):
-            if value == '':
+            if value == "":
                 return self.error(obj, value)
 
             try:
@@ -137,7 +138,7 @@ class Path(TraitType):
             except ValueError:
                 return self.error(obj, value)
 
-            if url.scheme not in ('', 'file'):
+            if url.scheme not in ("", "file"):
                 return self.error(obj, value)
 
             value = pathlib.Path(url.netloc, url.path)
@@ -178,10 +179,7 @@ def create_class_enum_trait(base_class, default_value, help=None):
         raise ValueError(f"{default_value} is not in choices: {choices}")
 
     return CaselessStrEnum(
-        choices,
-        default_value=default_value,
-        allow_none=False,
-        help=help,
+        choices, default_value=default_value, allow_none=False, help=help,
     ).tag(config=True)
 
 

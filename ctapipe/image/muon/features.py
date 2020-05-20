@@ -21,8 +21,8 @@ def mean_squared_error(pixel_x, pixel_y, weights, radius, center_x, center_y):
     center_y: float
         y coordinate of the ring center
     """
-    r = np.sqrt((center_x - pixel_x)**2 + (center_y - pixel_y)**2)
-    return np.average((r - radius)**2, weights=weights)
+    r = np.sqrt((center_x - pixel_x) ** 2 + (center_y - pixel_y) ** 2)
+    return np.average((r - radius) ** 2, weights=weights)
 
 
 def intensity_ratio_inside_ring(
@@ -52,10 +52,9 @@ def intensity_ratio_inside_ring(
         width of the ring
     """
 
-    pixel_r = np.sqrt((center_x - pixel_x)**2 + (center_y - pixel_y)**2)
+    pixel_r = np.sqrt((center_x - pixel_x) ** 2 + (center_y - pixel_y) ** 2)
     mask = np.logical_and(
-        pixel_r >= radius - 0.5 * width,
-        pixel_r <= radius + 0.5 * width
+        pixel_r >= radius - 0.5 * width, pixel_r <= radius + 0.5 * width
     )
 
     inside = weights[mask].sum()
@@ -65,14 +64,7 @@ def intensity_ratio_inside_ring(
 
 
 def ring_completeness(
-    pixel_x,
-    pixel_y,
-    weights,
-    radius,
-    center_x,
-    center_y,
-    threshold=30,
-    bins=30,
+    pixel_x, pixel_y, weights, radius, center_x, center_y, threshold=30, bins=30,
 ):
     """
     Estimate how complete a ring is.
@@ -140,11 +132,11 @@ def ring_containment(radius, center_x, center_y, camera_radius):
     ringcontainment: float
         the ratio of ring inside the camera
     """
-    if hasattr(radius, 'unit'):
+    if hasattr(radius, "unit"):
         radius, center_x, center_y, camera_radius = all_to_value(
             radius, center_x, center_y, camera_radius, unit=radius.unit
         )
-    d = np.sqrt(center_x**2 + center_y**2)
+    d = np.sqrt(center_x ** 2 + center_y ** 2)
 
     # one circle fully contained in the other
     if d <= np.abs(camera_radius - radius):
@@ -154,5 +146,5 @@ def ring_containment(radius, center_x, center_y, camera_radius):
     if d > (radius + camera_radius):
         return 0.0
 
-    a = (radius**2 - camera_radius**2 + d**2) / (2 * d)
+    a = (radius ** 2 - camera_radius ** 2 + d ** 2) / (2 * d)
     return np.arccos(a / radius) / np.pi

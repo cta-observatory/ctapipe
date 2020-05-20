@@ -25,21 +25,21 @@ from collections import UserList
 
 log = logging.getLogger(__name__)
 
-__all__ = ['Provenance']
+__all__ = ["Provenance"]
 
 _interesting_env_vars = [
-    'CONDA_DEFAULT_ENV',
-    'CONDA_PREFIX',
-    'CONDA_PYTHON_EXE',
-    'CONDA_EXE',
-    'CONDA_PROMPT_MODIFIER',
-    'CONDA_SHLVL',
-    'PATH',
-    'LD_LIBRARY_PATH',
-    'DYLD_LIBRARY_PATH',
-    'USER',
-    'HOME',
-    'SHELL',
+    "CONDA_DEFAULT_ENV",
+    "CONDA_PREFIX",
+    "CONDA_PYTHON_EXE",
+    "CONDA_EXE",
+    "CONDA_PROMPT_MODIFIER",
+    "CONDA_SHLVL",
+    "PATH",
+    "LD_LIBRARY_PATH",
+    "DYLD_LIBRARY_PATH",
+    "USER",
+    "HOME",
+    "SHELL",
 ]
 
 
@@ -51,9 +51,9 @@ def get_module_version(name):
         try:
             return get_distribution(name).version
         except:
-            return 'unknown'
+            return "unknown"
     except ImportError:
-        return 'not installed'
+        return "not installed"
 
 
 class Provenance(metaclass=Singleton):
@@ -91,8 +91,11 @@ class Provenance(metaclass=Singleton):
             role this input file satisfies (optional)
         """
         self.current_activity.register_input(abspath(filename), role=role)
-        log.debug("added input entity '{}' to activity: '{}'".format(
-            filename, self.current_activity.name))
+        log.debug(
+            "added input entity '{}' to activity: '{}'".format(
+                filename, self.current_activity.name
+            )
+        )
 
     def add_output_file(self, filename, role=None):
         """
@@ -107,8 +110,11 @@ class Provenance(metaclass=Singleton):
 
         """
         self.current_activity.register_output(abspath(filename), role=role)
-        log.debug("added output entity '{}' to activity: '{}'".format(
-            filename, self.current_activity.name))
+        log.debug(
+            "added output entity '{}' to activity: '{}'".format(
+                filename, self.current_activity.name
+            )
+        )
 
     def add_config(self, config):
         """
@@ -121,12 +127,14 @@ class Provenance(metaclass=Singleton):
         """
         self.current_activity.register_config(config)
 
-    def finish_activity(self, status='completed', activity_name=None):
+    def finish_activity(self, status="completed", activity_name=None):
         """ end the current activity """
         activity = self._activities.pop()
         if activity_name is not None and activity_name != activity.name:
-            raise ValueError("Tried to end activity '{}', but '{}' is current "
-                             "activity".format(activity_name, activity.name))
+            raise ValueError(
+                "Tried to end activity '{}', but '{}' is current "
+                "activity".format(activity_name, activity.name)
+            )
 
         activity.finish(status)
         self._finished_activities.append(activity)
@@ -191,13 +199,13 @@ class _ActivityProvenance:
 
     def __init__(self, activity_name=sys.executable):
         self._prov = {
-            'activity_name': activity_name,
-            'activity_uuid': str(uuid.uuid4()),
-            'start': {},
-            'stop': {},
-            'system': {},
-            'input': [],
-            'output': []
+            "activity_name": activity_name,
+            "activity_uuid": str(uuid.uuid4()),
+            "start": {},
+            "stop": {},
+            "system": {},
+            "input": [],
+            "output": [],
         }
         self.name = activity_name
 
@@ -205,8 +213,8 @@ class _ActivityProvenance:
         """ begin recording provenance for this activity. Set's up the system
         and startup provenance data. Generally should be called at start of a
         program."""
-        self._prov['start'].update(_sample_cpu_and_memory())
-        self._prov['system'].update(_get_system_provenance())
+        self._prov["start"].update(_sample_cpu_and_memory())
+        self._prov["system"].update(_get_system_provenance())
 
     def register_input(self, url, role=None):
         """
@@ -220,7 +228,7 @@ class _ActivityProvenance:
         role: str
             role name that this input satisfies
         """
-        self._prov['input'].append(dict(url=url, role=role))
+        self._prov["input"].append(dict(url=url, role=role))
 
     def register_output(self, url, role=None):
         """
@@ -234,37 +242,37 @@ class _ActivityProvenance:
         role: str
             role name that this output satisfies
         """
-        self._prov['output'].append(dict(url=url, role=role))
+        self._prov["output"].append(dict(url=url, role=role))
 
     def register_config(self, config):
         """ add a dictionary of configuration parameters to this activity"""
-        self._prov['config'] = config
+        self._prov["config"] = config
 
-    def finish(self, status='completed'):
+    def finish(self, status="completed"):
         """ record final provenance information, normally called at shutdown."""
-        self._prov['stop'].update(_sample_cpu_and_memory())
+        self._prov["stop"].update(_sample_cpu_and_memory())
 
         # record the duration (wall-clock) for this activity
-        t_start = Time(self._prov['start']['time_utc'], format='isot')
-        t_stop = Time(self._prov['stop']['time_utc'], format='isot')
-        self._prov['status'] = status
-        self._prov['duration_min'] = (t_stop - t_start).to('min').value
+        t_start = Time(self._prov["start"]["time_utc"], format="isot")
+        t_stop = Time(self._prov["stop"]["time_utc"], format="isot")
+        self._prov["status"] = status
+        self._prov["duration_min"] = (t_stop - t_start).to("min").value
 
     @property
     def output(self):
-        return self._prov.get('output', None)
+        return self._prov.get("output", None)
 
     @property
     def input(self):
-        return self._prov.get('input', None)
+        return self._prov.get("input", None)
 
     def sample_cpu_and_memory(self):
         """
         Record a snapshot of current CPU and memory information.
         """
-        if 'samples' not in self._prov:
-            self._prov['samples'] = []
-        self._prov['samples'].append(_sample_cpu_and_memory())
+        if "samples" not in self._prov:
+            self._prov["samples"] = []
+        self._prov["samples"].append(_sample_cpu_and_memory())
 
     @property
     def provenance(self):
@@ -279,8 +287,8 @@ def _get_system_provenance():
 
     return dict(
         ctapipe_version=ctapipe.__version__,
-        ctapipe_resources_version=get_module_version('ctapipe_resources'),
-        eventio_version=get_module_version('eventio'),
+        ctapipe_resources_version=get_module_version("ctapipe_resources"),
+        eventio_version=get_module_version("eventio"),
         ctapipe_svc_path=os.getenv("CTAPIPE_SVC_PATH"),
         executable=sys.executable,
         platform=dict(
@@ -294,7 +302,7 @@ def _get_system_provenance():
             release=platform.release(),
             libcver=platform.libc_ver(),
             num_cpus=psutil.cpu_count(),
-            boot_time=Time(psutil.boot_time(), format='unix').isot,
+            boot_time=Time(psutil.boot_time(), format="unix").isot,
         ),
         python=dict(
             version_string=sys.version,

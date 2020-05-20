@@ -6,7 +6,7 @@ import pytest
 
 
 def test_concentration():
-    geom, image, clean_mask = create_sample_image('30d')
+    geom, image, clean_mask = create_sample_image("30d")
 
     hillas = hillas_parameters(geom[clean_mask], image[clean_mask])
 
@@ -19,7 +19,7 @@ def test_concentration():
 
 @pytest.mark.filterwarnings("error")
 def test_width_0():
-    geom, image, clean_mask = create_sample_image('30d')
+    geom, image, clean_mask = create_sample_image("30d")
 
     hillas = hillas_parameters(geom[clean_mask], image[clean_mask])
     hillas.width = 0 * u.m
@@ -28,5 +28,5 @@ def test_width_0():
     assert conc.core == 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_concentration()

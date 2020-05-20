@@ -140,11 +140,11 @@ def test_view_camera(example_event, example_subarray):
     t = list(example_event.r0.tels_with_data)[0]
 
     cam = viewer.cameras[0]
-    cam.view = 'r1'
+    cam.view = "r1"
     assert (cam.image == example_event.r1.tel[t].waveform[:, 0]).all()
 
     with pytest.raises(ValueError):
-        cam.view = 'q'
+        cam.view = "q"
 
 
 def test_view_wf(example_event, example_subarray):
@@ -158,8 +158,8 @@ def test_view_wf(example_event, example_subarray):
     t = list(example_event.r0.tels_with_data)[0]
 
     wf = viewer.waveforms[0]
-    wf.view = 'r1'
+    wf.view = "r1"
     assert (wf.waveform == example_event.r1.tel[t].waveform[0, :]).all()
 
     with pytest.raises(ValueError):
-        wf.view = 'q'
+        wf.view = "q"

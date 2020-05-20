@@ -80,15 +80,15 @@ def test_tel_indexing(example_subarray):
 
 
 def test_tel_ids_to_mask(example_subarray):
-    lst = TelescopeDescription.from_name('LST', 'LSTCam')
+    lst = TelescopeDescription.from_name("LST", "LSTCam")
     subarray = SubarrayDescription(
-        'someone_counted_in_binary',
+        "someone_counted_in_binary",
         tel_positions={1: [0, 0, 0] * u.m, 10: [50, 0, 0] * u.m},
-        tel_descriptions={1: lst, 10: lst}
+        tel_descriptions={1: lst, 10: lst},
     )
 
     assert np.all(subarray.tel_ids_to_mask([]) == [False, False])
-    assert np.all(subarray.tel_ids_to_mask([1, ]) == [True, False])
+    assert np.all(subarray.tel_ids_to_mask([1,]) == [True, False])
     assert np.all(subarray.tel_ids_to_mask([10]) == [False, True])
     assert np.all(subarray.tel_ids_to_mask([1, 10]) == [True, True])
 

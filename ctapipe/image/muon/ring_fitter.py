@@ -46,5 +46,5 @@ class MuonRingFitter(Component):
             center_y=center_y,
             radius=radius,
             center_phi=np.arctan2(center_y, center_x),
-            center_distance=np.sqrt(center_x**2 + center_y**2),
+            center_distance=np.sqrt(center_x ** 2 + center_y ** 2),
         )

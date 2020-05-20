@@ -41,8 +41,9 @@ class TelescopeDescription:
        the camera associated with this telescope
     """
 
-    def __init__(self, name, tel_type, optics: OpticsDescription,
-                 camera: CameraDescription):
+    def __init__(
+        self, name, tel_type, optics: OpticsDescription, camera: CameraDescription
+    ):
 
         self.name = name
         self.type = tel_type

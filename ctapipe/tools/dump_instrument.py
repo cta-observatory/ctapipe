@@ -33,16 +33,19 @@ def get_camera_types(subarray):
 
 class DumpInstrumentTool(Tool):
     description = Unicode(__doc__)
-    name = 'ctapipe-dump-instrument'
+    name = "ctapipe-dump-instrument"
 
-    infile = Path(exists=True, help='input simtelarray file').tag(config=True)
-    format = Enum(['fits', 'ecsv', 'hdf5'],
-                  default_value='fits',
-                  help='Format of output file',
-                  config=True)
+    infile = Path(exists=True, help="input simtelarray file").tag(config=True)
+    format = Enum(
+        ["fits", "ecsv", "hdf5"],
+        default_value="fits",
+        help="Format of output file",
+        config=True,
+    )
 
-    aliases = Dict(dict(infile='DumpInstrumentTool.infile',
-                        format='DumpInstrumentTool.format'))
+    aliases = Dict(
+        dict(infile="DumpInstrumentTool.infile", format="DumpInstrumentTool.format")
+    )
 
     def setup(self):
         with event_source(self.infile) as source:
@@ -60,12 +63,12 @@ class DumpInstrumentTool(Tool):
     def _get_file_format_info(format_name, table_type, table_name):
         """ returns file extension + dict of required parameters for
         Table.write"""
-        if format_name == 'fits':
-            return 'fits.gz', dict()
-        elif format_name == 'ecsv':
-            return 'ecsv.txt', dict(format='ascii.ecsv')
-        elif format_name == 'hdf5':
-            return 'h5', dict(path="/" + table_type + "/" + table_name)
+        if format_name == "fits":
+            return "fits.gz", dict()
+        elif format_name == "ecsv":
+            return "ecsv.txt", dict(format="ascii.ecsv")
+        elif format_name == "hdf5":
+            return "h5", dict(path="/" + table_type + "/" + table_name)
         else:
             raise NameError("format not supported")
 
@@ -73,56 +76,50 @@ class DumpInstrumentTool(Tool):
         cam_types = get_camera_types(self.subarray)
         self.subarray.info(printer=self.log.info)
         for cam_name in cam_types:
-            ext, args = self._get_file_format_info(self.format,
-                                                   'CAMGEOM',
-                                                   cam_name)
+            ext, args = self._get_file_format_info(self.format, "CAMGEOM", cam_name)
 
             self.log.debug(f"writing {cam_name}")
             tel_id = cam_types[cam_name].pop()
             geom = self.subarray.tel[tel_id].camera.geometry
             table = geom.to_table()
-            table.meta['SOURCE'] = self.infile
+            table.meta["SOURCE"] = self.infile
             filename = f"{cam_name}.camgeom.{ext}"
 
             try:
                 table.write(filename, **args)
-                Provenance().add_output_file(filename, 'dl0.tel.svc.camera')
+                Provenance().add_output_file(filename, "dl0.tel.svc.camera")
             except IOError as err:
                 self.log.warning(
-                    "couldn't write camera definition '%s' because: %s",
-                    filename, err
+                    "couldn't write camera definition '%s' because: %s", filename, err
                 )
 
     def write_optics_descriptions(self):
         sub = self.subarray
-        ext, args = self._get_file_format_info(self.format, sub.name, 'optics')
+        ext, args = self._get_file_format_info(self.format, sub.name, "optics")
 
-        tab = sub.to_table(kind='optics')
-        tab.meta['SOURCE'] = self.infile
-        filename = f'{sub.name}.optics.{ext}'
+        tab = sub.to_table(kind="optics")
+        tab.meta["SOURCE"] = self.infile
+        filename = f"{sub.name}.optics.{ext}"
         try:
             tab.write(filename, **args)
-            Provenance().add_output_file(filename, 'dl0.sub.svc.optics')
+            Provenance().add_output_file(filename, "dl0.sub.svc.optics")
         except IOError as err:
             self.log.warning(
-                "couldn't write optics description '%s' because: %s",
-                filename, err
+                "couldn't write optics description '%s' because: %s", filename, err
             )
 
     def write_subarray_description(self):
         sub = self.subarray
-        ext, args = self._get_file_format_info(self.format, sub.name,
-                                               'subarray')
-        tab = sub.to_table(kind='subarray')
-        tab.meta['SOURCE'] = self.infile
-        filename = f'{sub.name}.subarray.{ext}'
+        ext, args = self._get_file_format_info(self.format, sub.name, "subarray")
+        tab = sub.to_table(kind="subarray")
+        tab.meta["SOURCE"] = self.infile
+        filename = f"{sub.name}.subarray.{ext}"
         try:
             tab.write(filename, **args)
-            Provenance().add_output_file(filename, 'dl0.sub.svc.subarray')
+            Provenance().add_output_file(filename, "dl0.sub.svc.subarray")
         except IOError as err:
             self.log.warning(
-                "couldn't write subarray description '%s' because: %s",
-                filename, err
+                "couldn't write subarray description '%s' because: %s", filename, err
             )
 
 
@@ -131,5 +128,5 @@ def main():
     tool.run()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

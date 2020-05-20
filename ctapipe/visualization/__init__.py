@@ -10,4 +10,4 @@ except ImportError:
     pass
 
 
-__all__ = ['CameraDisplay', 'ArrayDisplay']
+__all__ = ["CameraDisplay", "ArrayDisplay"]

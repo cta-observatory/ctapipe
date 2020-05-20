@@ -24,7 +24,9 @@ def concentration(geom, image, hillas_parameters):
 
     if hillas_parameters.width != 0:
         # get all pixels inside the hillas ellipse
-        longi, trans = camera_to_shower_coordinates(geom.pix_x, geom.pix_y, h.x, h.y, h.psi)
+        longi, trans = camera_to_shower_coordinates(
+            geom.pix_x, geom.pix_y, h.x, h.y, h.psi
+        )
         mask_core = (longi ** 2 / h.length ** 2) + (trans ** 2 / h.width ** 2) <= 1.0
         conc_core = image[mask_core].sum() / h.intensity
     else:
@@ -33,7 +35,5 @@ def concentration(geom, image, hillas_parameters):
     concentration_pixel = image.max() / h.intensity
 
     return ConcentrationContainer(
-        cog=conc_cog,
-        core=conc_core,
-        pixel=concentration_pixel,
+        cog=conc_cog, core=conc_core, pixel=concentration_pixel,
     )

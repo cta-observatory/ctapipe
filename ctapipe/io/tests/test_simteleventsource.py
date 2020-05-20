@@ -217,8 +217,8 @@ def test_calibration_events():
 def test_trigger_times():
 
     source = SimTelEventSource(input_url=calib_events_path)
-    t0 = Time('2020-05-06T15:30:00')
-    t1 = Time('2020-05-06T15:40:00')
+    t0 = Time("2020-05-06T15:30:00")
+    t1 = Time("2020-05-06T15:40:00")
 
     for event in source:
         assert t0 <= event.trigger.time <= t1

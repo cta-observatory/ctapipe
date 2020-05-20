@@ -8,6 +8,7 @@ class ColoredFormatter(logging.Formatter):
     Custom logging.Formatter that adds colors in addition to the original
     Application logger functionality from LevelFormatter (in application.py)
     """
+
     highlevel_limit = logging.WARN
     highlevel_format = " %(levelname)s |"
 
@@ -16,18 +17,17 @@ class ColoredFormatter(logging.Formatter):
         reset_seq = "\033[0m"
         color_seq = "\033[1;%dm"
         colors = {
-            'INFO': green,
-            'DEBUG': blue,
-            'WARNING': yellow,
-            'CRITICAL': magenta,
-            'ERROR': red
+            "INFO": green,
+            "DEBUG": blue,
+            "WARNING": yellow,
+            "CRITICAL": magenta,
+            "ERROR": red,
         }
 
         levelname = record.levelname
         if levelname in colors:
             levelname_color = (
-                color_seq % (30 + colors[levelname])
-                + levelname + reset_seq
+                color_seq % (30 + colors[levelname]) + levelname + reset_seq
             )
             record.levelname = levelname_color
 

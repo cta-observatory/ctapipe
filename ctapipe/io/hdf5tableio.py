@@ -33,9 +33,9 @@ PYTABLES_TYPE_MAP = {
 
 
 DEFAULT_FILTERS = tables.Filters(
-    complevel=5,           # compression medium, tradeoff between speed and compression
-    complib='blosc:zstd',  # use modern zstd algorithm
-    fletcher32=True,       # add checksums to data chunks
+    complevel=5,  # compression medium, tradeoff between speed and compression
+    complib="blosc:zstd",  # use modern zstd algorithm
+    fletcher32=True,  # add checksums to data chunks
 )
 
 
@@ -161,7 +161,7 @@ class HDF5TableWriter(TableWriter):
                     continue
 
                 if col_name in Schema.columns:
-                    self.log.warning(f'Found duplicated column {col_name}, skipping')
+                    self.log.warning(f"Found duplicated column {col_name}, skipping")
                     continue
 
                 # apply any user-defined transforms first
@@ -185,7 +185,7 @@ class HDF5TableWriter(TableWriter):
 
                     unit = container.fields[key].unit or value.unit
                     tr = partial(tr_convert_and_strip_unit, unit=unit)
-                    meta[f"{col_name}_UNIT"] = unit.to_string('vounit')
+                    meta[f"{col_name}_UNIT"] = unit.to_string("vounit")
 
                     value = tr(value)
                     self.add_column_transform(table_name, col_name, tr)
@@ -208,10 +208,10 @@ class HDF5TableWriter(TableWriter):
 
                 else:
                     self.log.warning(
-                        f'Column {col_name} of'
-                        f' container {container.__class__.__name__}'
-                        f' in table {table_name}'
-                        ' not writable, skipping'
+                        f"Column {col_name} of"
+                        f" container {container.__class__.__name__}"
+                        f" in table {table_name}"
+                        " not writable, skipping"
                     )
                     continue
 

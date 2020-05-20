@@ -28,8 +28,15 @@ class UnstructuredInterpolator:
     In the case that a numpy array is passed as the interpolation values this class will
     behave exactly the same as the scipy LinearNDInterpolator
     """
-    def __init__(self, interpolation_points, function_name=None, remember_last=False,
-                 bounds=None, dtype=None):
+
+    def __init__(
+        self,
+        interpolation_points,
+        function_name=None,
+        remember_last=False,
+        bounds=None,
+        dtype=None,
+    ):
         """
         Parameters
         ----------
@@ -54,9 +61,9 @@ class UnstructuredInterpolator:
 
         # OK this code is horrid and will need fixing
         self._numpy_input = (
-            isinstance(self.values[0], np.ndarray) or
-            issubclass(type(self.values[0]), np.float) or
-            issubclass(type(self.values[0]), np.int)
+            isinstance(self.values[0], np.ndarray)
+            or issubclass(type(self.values[0]), np.float)
+            or issubclass(type(self.values[0]), np.int)
         )
 
         if self._numpy_input is False and function_name is None:
@@ -118,14 +125,16 @@ class UnstructuredInterpolator:
             if np.all(eval_points is not None):
                 self._previous_shape = eval_points.shape
 
-
         # Here comes some serious numpy magic, it could be done with a loop but would
         # be pretty inefficient I had to rip this from stack overflow - RDP
         # For each interpolated point, take the the transform matrix and multiply it by
         # the vector p-r, where r=m[:,n,:] is one of the simplex vertices to which
         # the matrix m is related to
-        b = np.einsum('ijk,ik->ij', m[:, :self._num_dimensions, :self._num_dimensions],
-                      points - m[:, self._num_dimensions, :])
+        b = np.einsum(
+            "ijk,ik->ij",
+            m[:, : self._num_dimensions, : self._num_dimensions],
+            points - m[:, self._num_dimensions, :],
+        )
 
         # Use the above array to get the weights for the vertices; `b` contains an
         # n-dimensional vector with weights for all but the last vertices of the simplex
@@ -143,8 +152,8 @@ class UnstructuredInterpolator:
             selected_points = self._call_class_function(v, eval_points)
 
         # Multiply point values by weight
-        p_values = np.einsum('ij...,ij...->i...', selected_points, w)
-        #print(time.time() - t)
+        p_values = np.einsum("ij...,ij...->i...", selected_points, w)
+        # print(time.time() - t)
 
         return p_values
 
@@ -169,9 +178,8 @@ class UnstructuredInterpolator:
 
         three_dim = False
         if len(eval_points.shape) > 2:
-            first_index = (
-                np.arange(point_num.shape[0])[..., np.newaxis] *
-                np.ones_like(point_num)
+            first_index = np.arange(point_num.shape[0])[..., np.newaxis] * np.ones_like(
+                point_num
             )
             first_index = first_index.ravel()
             three_dim = True
@@ -219,8 +227,7 @@ class UnstructuredInterpolator:
         it = np.repeat(it, eval_points.shape[1], axis=0)
 
         eval_points = eval_points.reshape(
-            eval_points.shape[0] * eval_points.shape[1],
-            eval_points.shape[-1]
+            eval_points.shape[0] * eval_points.shape[1], eval_points.shape[-1]
         )
 
         scaled_points = eval_points.T
@@ -231,12 +238,12 @@ class UnstructuredInterpolator:
 
         it = ma.masked_array(it, mask)
         scaled_points[0] = (
-            (scaled_points[0] - (self._bounds[0][0])) /
-            (self._bounds[0][1] - self._bounds[0][0])
+            (scaled_points[0] - (self._bounds[0][0]))
+            / (self._bounds[0][1] - self._bounds[0][0])
         ) * (vals.shape[-2] - 1)
         scaled_points[1] += (
-            (scaled_points[1] - (self._bounds[1][0])) /
-            (self._bounds[1][1] - self._bounds[1][0])
+            (scaled_points[1] - (self._bounds[1][0]))
+            / (self._bounds[1][1] - self._bounds[1][0])
         ) * (vals.shape[-1] - 1)
         scaled_points = np.vstack((it, scaled_points))
 

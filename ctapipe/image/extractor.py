@@ -384,8 +384,11 @@ class FixedWindowSum(ImageExtractor):
 
     def __call__(self, waveforms, telid, selected_gain_channel):
         charge, peak_time = extract_around_peak(
-            waveforms, self.window_start.tel[telid], self.window_width.tel[telid], 0,
-            self.sampling_rate[telid]
+            waveforms,
+            self.window_start.tel[telid],
+            self.window_width.tel[telid],
+            0,
+            self.sampling_rate[telid],
         )
         charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
         return charge, peak_time
@@ -880,9 +883,7 @@ class TwoPassWindowSum(ImageExtractor):
         # image cleaning
         # WARNING: in case of outliers, the fit can perform better if
         # it is a robust algorithm.
-        timing = timing_parameters(
-            camera_geometry, image_2, pulse_time_1stpass, hillas
-        )
+        timing = timing_parameters(camera_geometry, image_2, pulse_time_1stpass, hillas)
 
         # get projected distances along main image axis
         long, _ = camera_to_shower_coordinates(
@@ -981,9 +982,7 @@ class TwoPassWindowSum(ImageExtractor):
 
         # Same approach for the pulse times
         pulse_time_2npass = pulse_time_1stpass  # core + non-core pixels
-        pulse_time_2npass[
-            nonCore_pixels_mask
-        ] = pulse_times_noCore  # non-core pixels
+        pulse_time_2npass[nonCore_pixels_mask] = pulse_times_noCore  # non-core pixels
 
         return charge_2ndpass, pulse_time_2npass
 
@@ -1017,15 +1016,13 @@ class TwoPassWindowSum(ImageExtractor):
 
         # FIXME: properly make sure that output is 32Bit instead of downcasting here
         if self.disable_second_pass:
-            return (charge1 * correction1).astype('float32'), pulse_time1.astype('float32')
+            return (
+                (charge1 * correction1).astype("float32"),
+                pulse_time1.astype("float32"),
+            )
 
         charge2, pulse_time2 = self._apply_second_pass(
-            waveforms,
-            telid,
-            selected_gain_channel,
-            charge1,
-            pulse_time1,
-            correction1,
+            waveforms, telid, selected_gain_channel, charge1, pulse_time1, correction1,
         )
         # FIXME: properly make sure that output is 32Bit instead of downcasting here
-        return charge2.astype('float32'), pulse_time2.astype('float32')
+        return charge2.astype("float32"), pulse_time2.astype("float32")

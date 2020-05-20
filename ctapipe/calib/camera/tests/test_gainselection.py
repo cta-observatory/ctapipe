@@ -1,6 +1,10 @@
 import numpy as np
-from ctapipe.calib.camera.gainselection import ManualGainSelector, \
-    ThresholdGainSelector, GainChannel, GainSelector
+from ctapipe.calib.camera.gainselection import (
+    ManualGainSelector,
+    ThresholdGainSelector,
+    GainChannel,
+    GainSelector,
+)
 
 
 class DummyGainSelector(GainSelector):

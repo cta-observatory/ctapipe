@@ -102,7 +102,7 @@ class EventSource(Component):
     input_url = Path(
         directory_ok=False,
         exists=True,
-        help="Path to the input file containing events."
+        help="Path to the input file containing events.",
     ).tag(config=True)
 
     max_events = Int(
@@ -118,7 +118,7 @@ class EventSource(Component):
             "list of allowed tel_ids, others will be ignored. "
             "If None, all telescopes in the input stream "
             "will be included"
-        )
+        ),
     ).tag(config=True)
 
     def __init__(self, input_url=None, config=None, parent=None, **kwargs):
@@ -323,10 +323,10 @@ class EventSource(Component):
             Instance of a compatible EventSource subclass
         """
         if config is None and parent is None:
-            raise ValueError('One of config or parent must be provided')
+            raise ValueError("One of config or parent must be provided")
 
         if config is not None and parent is not None:
-            raise ValueError('Only one of config or parent must be provided')
+            raise ValueError("Only one of config or parent must be provided")
 
         if config is None:
             config = parent.config

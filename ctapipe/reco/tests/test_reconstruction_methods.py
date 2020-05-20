@@ -38,11 +38,7 @@ def test_reconstructors(reconstructors):
     reconstructed_events = np.zeros((len(reconstructors)))
 
     for event in source:
-        array_pointing = SkyCoord(
-            az=event.mc.az,
-            alt=event.mc.alt,
-            frame=horizon_frame
-        )
+        array_pointing = SkyCoord(az=event.mc.az, alt=event.mc.alt, frame=horizon_frame)
 
         hillas_dict = {}
         telescope_pointings = {}
@@ -54,12 +50,13 @@ def test_reconstructors(reconstructors):
             telescope_pointings[tel_id] = SkyCoord(
                 alt=event.pointing.tel[tel_id].altitude,
                 az=event.pointing.tel[tel_id].azimuth,
-                frame=horizon_frame
+                frame=horizon_frame,
             )
             pmt_signal = event.r0.tel[tel_id].waveform[0].sum(axis=1)
 
-            mask = tailcuts_clean(geom, pmt_signal,
-                                  picture_thresh=10., boundary_thresh=5.)
+            mask = tailcuts_clean(
+                geom, pmt_signal, picture_thresh=10.0, boundary_thresh=5.0
+            )
             pmt_signal[mask == 0] = 0
 
             try:
@@ -84,4 +81,6 @@ def test_reconstructors(reconstructors):
             reconstructor_out.core_x.to(u.m)
             assert reconstructor_out.is_valid
 
-    np.testing.assert_array_less(np.zeros_like(reconstructed_events), reconstructed_events)
+    np.testing.assert_array_less(
+        np.zeros_like(reconstructed_events), reconstructed_events
+    )

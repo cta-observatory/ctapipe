@@ -83,8 +83,8 @@ def test_tool_current_config():
     tool.userparam = -1.0
     conf2 = tool.get_current_config()
 
-    assert conf1['MyTool']['userparam'] == 5.0
-    assert conf2['MyTool']['userparam'] == -1.0
+    assert conf1["MyTool"]["userparam"] == 5.0
+    assert conf2["MyTool"]["userparam"] == -1.0
 
 
 def test_tool_exit_code():
@@ -99,17 +99,17 @@ def test_tool_exit_code():
     tool = MyTool()
 
     with pytest.raises(SystemExit) as exc:
-        tool.run(['--non-existent-option'])
+        tool.run(["--non-existent-option"])
 
     assert exc.value.code == 1
 
     with pytest.raises(SystemExit) as exc:
-        tool.run(['--MyTool.userparam=foo'])
+        tool.run(["--MyTool.userparam=foo"])
 
     assert exc.value.code == 1
 
-    assert run_tool(tool, ['--help']) == 0
-    assert run_tool(tool, ['--non-existent-option']) == 1
+    assert run_tool(tool, ["--help"]) == 0
+    assert run_tool(tool, ["--non-existent-option"]) == 1
 
 
 def test_tool_command_line_precedence():

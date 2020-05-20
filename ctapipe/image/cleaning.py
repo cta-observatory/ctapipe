@@ -18,7 +18,9 @@ import numpy as np
 
 from ..core.component import TelescopeComponent
 from ..core.traits import (
-    FloatTelescopeParameter, IntTelescopeParameter, BoolTelescopeParameter,
+    FloatTelescopeParameter,
+    IntTelescopeParameter,
+    BoolTelescopeParameter,
 )
 
 
@@ -367,24 +369,21 @@ class TailcutsImageCleaner(ImageCleaner):
     """
 
     picture_threshold_pe = FloatTelescopeParameter(
-        default_value=10.0,
-        help="top-level threshold in photoelectrons"
+        default_value=10.0, help="top-level threshold in photoelectrons"
     ).tag(config=True)
 
     boundary_threshold_pe = FloatTelescopeParameter(
-        default_value=5.0,
-        help="second-level threshold in photoelectrons"
+        default_value=5.0, help="second-level threshold in photoelectrons"
     ).tag(config=True)
 
     min_picture_neighbors = IntTelescopeParameter(
-        default_value=2,
-        help="Minimum number of neighbors above threshold to consider"
+        default_value=2, help="Minimum number of neighbors above threshold to consider"
     ).tag(config=True)
 
     keep_isolated_pixels = BoolTelescopeParameter(
         default_value=False,
         help="If False, pixels with less neighbors than ``min_picture_neighbors`` are"
-        "removed."
+        "removed.",
     ).tag(config=True)
 
     def __call__(
@@ -433,8 +432,7 @@ class FACTImageCleaner(TailcutsImageCleaner):
     """
 
     time_limit_ns = FloatTelescopeParameter(
-        default_value=5.0,
-        help="arrival time limit for neighboring " "pixels, in ns"
+        default_value=5.0, help="arrival time limit for neighboring " "pixels, in ns"
     ).tag(config=True)
 
     def __call__(

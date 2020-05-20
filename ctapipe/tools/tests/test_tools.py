@@ -18,26 +18,29 @@ import numpy as np
 
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
-LST_MUONS = get_dataset_path('lst_muons.simtel.zst')
+LST_MUONS = get_dataset_path("lst_muons.simtel.zst")
 
 
 def test_stage_1():
     from ctapipe.tools.stage1 import Stage1ProcessorTool
 
-    with tempfile.NamedTemporaryFile(suffix='.hdf5') as f:
-        assert run_tool(
-            Stage1ProcessorTool(),
-            argv=[
-                '--config=./examples/stage1_config.json',
-                f"--input={GAMMA_TEST_LARGE}",
-                f'--output={f.name}',
-                '--write-parameters',
-                '--overwrite',
-            ]
-        ) == 0
+    with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
+        assert (
+            run_tool(
+                Stage1ProcessorTool(),
+                argv=[
+                    "--config=./examples/stage1_config.json",
+                    f"--input={GAMMA_TEST_LARGE}",
+                    f"--output={f.name}",
+                    "--write-parameters",
+                    "--overwrite",
+                ],
+            )
+            == 0
+        )
 
         # check tables were written
-        with tables.open_file(f.name, mode='r') as tf:
+        with tables.open_file(f.name, mode="r") as tf:
             assert tf.root.dl1
             assert tf.root.dl1.event.telescope
             assert tf.root.dl1.event.subarray
@@ -47,27 +50,34 @@ def test_stage_1():
             assert tf.root.configuration.instrument.telescope.camera.readout_LSTCam
 
         # check we can read telescope parametrs
-        dl1_features = pd.read_hdf(f.name, '/dl1/event/telescope/parameters/tel_001')
+        dl1_features = pd.read_hdf(f.name, "/dl1/event/telescope/parameters/tel_001")
         features = (
-            'obs_id', 'event_id', 'tel_id',
-            'hillas_intensity', 'concentration_cog', 'leakage_pixels_width_1'
+            "obs_id",
+            "event_id",
+            "tel_id",
+            "hillas_intensity",
+            "concentration_cog",
+            "leakage_pixels_width_1",
         )
         for feature in features:
             assert feature in dl1_features.columns
 
-    with tempfile.NamedTemporaryFile(suffix='.hdf5') as f:
-        assert run_tool(
-            Stage1ProcessorTool(),
-            argv=[
-                '--config=./examples/stage1_config.json',
-                f"--input={GAMMA_TEST_LARGE}",
-                f'--output={f.name}',
-                '--write-images',
-                '--overwrite',
-            ]
-        ) == 0
+    with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
+        assert (
+            run_tool(
+                Stage1ProcessorTool(),
+                argv=[
+                    "--config=./examples/stage1_config.json",
+                    f"--input={GAMMA_TEST_LARGE}",
+                    f"--output={f.name}",
+                    "--write-images",
+                    "--overwrite",
+                ],
+            )
+            == 0
+        )
 
-        with tables.open_file(f.name, mode='r') as tf:
+        with tables.open_file(f.name, mode="r") as tf:
             assert tf.root.dl1
             assert tf.root.dl1.event.telescope
             assert tf.root.dl1.event.subarray
@@ -77,28 +87,27 @@ def test_stage_1():
             assert tf.root.configuration.instrument.telescope.camera.readout_LSTCam
             assert tf.root.dl1.event.telescope.images.tel_001
             dl1_image = tf.root.dl1.event.telescope.images.tel_001
-            assert 'image_mask' in dl1_image.dtype.names
-            assert 'image' in dl1_image.dtype.names
-            assert 'peak_time' in dl1_image.dtype.names
+            assert "image_mask" in dl1_image.dtype.names
+            assert "image" in dl1_image.dtype.names
+            assert "peak_time" in dl1_image.dtype.names
 
 
 def test_muon_reconstruction(tmpdir):
     from ctapipe.tools.muon_reconstruction import MuonAnalysis
 
-    with tempfile.NamedTemporaryFile(suffix='.hdf5') as f:
-        assert run_tool(
-            MuonAnalysis(),
-            argv=[
-                f"--input={LST_MUONS}",
-                f"--output={f.name}",
-                '--overwrite',
-            ]
-        ) == 0
+    with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
+        assert (
+            run_tool(
+                MuonAnalysis(),
+                argv=[f"--input={LST_MUONS}", f"--output={f.name}", "--overwrite",],
+            )
+            == 0
+        )
 
         t = tables.open_file(f.name)
         table = t.root.dl1.event.telescope.parameters.muons[:]
         assert len(table) > 20
-        assert np.count_nonzero(np.isnan(table['muonring_radius'])) == 0
+        assert np.count_nonzero(np.isnan(table["muonring_radius"])) == 0
 
     assert run_tool(MuonAnalysis(), ["--help-all"]) == 0
 
@@ -107,10 +116,13 @@ def test_display_summed_images(tmpdir):
     from ctapipe.tools.display_summed_images import ImageSumDisplayerTool
 
     mpl.use("Agg")
-    assert run_tool(
-        ImageSumDisplayerTool(),
-        argv=shlex.split(f"--infile={GAMMA_TEST_LARGE} " "--max-events=2 ")
-    ) == 0
+    assert (
+        run_tool(
+            ImageSumDisplayerTool(),
+            argv=shlex.split(f"--infile={GAMMA_TEST_LARGE} " "--max-events=2 "),
+        )
+        == 0
+    )
 
     assert run_tool(ImageSumDisplayerTool(), ["--help-all"]) == 0
 
@@ -120,10 +132,13 @@ def test_display_integrator(tmpdir):
 
     mpl.use("Agg")
 
-    assert run_tool(
-        DisplayIntegrator(),
-        argv=shlex.split(f"--f={GAMMA_TEST_LARGE} " "--max_events=1 ")
-    ) == 0
+    assert (
+        run_tool(
+            DisplayIntegrator(),
+            argv=shlex.split(f"--f={GAMMA_TEST_LARGE} " "--max_events=1 "),
+        )
+        == 0
+    )
 
     assert run_tool(DisplayIntegrator(), ["--help-all"]) == 0
 
@@ -133,14 +148,17 @@ def test_display_events_single_tel(tmpdir):
 
     mpl.use("Agg")
 
-    assert run_tool(
-        SingleTelEventDisplay(),
-        argv=shlex.split(
-            f"--infile={GAMMA_TEST_LARGE} "
-            "--tel=11 "
-            "--max-events=2 "  # <--- inconsistent!!!
+    assert (
+        run_tool(
+            SingleTelEventDisplay(),
+            argv=shlex.split(
+                f"--infile={GAMMA_TEST_LARGE} "
+                "--tel=11 "
+                "--max-events=2 "  # <--- inconsistent!!!
+            ),
         )
-    ) == 0
+        == 0
+    )
 
     assert run_tool(SingleTelEventDisplay(), ["--help-all"]) == 0
 
@@ -150,10 +168,12 @@ def test_display_dl1(tmpdir):
 
     mpl.use("Agg")
 
-    assert run_tool(
-        DisplayDL1Calib(),
-        argv=shlex.split("--max_events=1 " "--telescope=11 ")
-    ) == 0
+    assert (
+        run_tool(
+            DisplayDL1Calib(), argv=shlex.split("--max_events=1 " "--telescope=11 ")
+        )
+        == 0
+    )
 
     assert run_tool(DisplayDL1Calib(), ["--help-all"]) == 0
 
@@ -233,6 +253,6 @@ def test_plot_charge_resolution(tmpdir):
     output_path = os.path.join(str(tmpdir), "cr.pdf")
     tool = ChargeResolutionViewer()
 
-    assert run_tool(tool, ["-f", [path], "-o", output_path])  == 0
+    assert run_tool(tool, ["-f", [path], "-o", output_path]) == 0
     assert os.path.exists(output_path)
     assert run_tool(tool, ["--help-all"]) == 0

@@ -231,8 +231,8 @@ def test_field_validation():
         field_s2.validate(3.3)
 
     # test scalars with units and dtypes:
-    field_s3 = Field(1.0, "scalar with dtype and unit", dtype='float32', unit='m')
-    field_s3.validate(np.float32(6)*u.m)
+    field_s3 = Field(1.0, "scalar with dtype and unit", dtype="float32", unit="m")
+    field_s3.validate(np.float32(6) * u.m)
 
     # test with no restrictions:
     field_all = Field(None, "stuff")
