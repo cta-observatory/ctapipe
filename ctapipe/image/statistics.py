@@ -3,6 +3,7 @@ from numba import njit
 
 from ..containers import StatisticsContainer
 
+
 @njit()
 def skewness(data, mean=None, std=None):
     '''Calculate skewnewss (normalized third central moment)
@@ -10,6 +11,8 @@ def skewness(data, mean=None, std=None):
 
     With precomputed mean and std, this is ~10x faster than scipy.stats.skew
     for our use case (1D arrays with ~100-1000 elements)
+
+    njit provides ~10% improvement over the non-jitted function.
 
     Parameters
     ----------
@@ -37,6 +40,8 @@ def kurtosis(data, mean=None, std=None, fisher=True):
 
     With precomputed mean and std, this is ~10x faster than scipy.stats.skew
     for our use case (1D arrays with ~100-1000 elements)
+
+    njit provides ~10% improvement over the non-jitted function.
 
     Parameters
     ----------
