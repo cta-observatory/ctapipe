@@ -10,10 +10,7 @@ from ctapipe.image.extractor import ImageExtractor
 from ctapipe.core.traits import Int, Unicode, List
 
 
-__all__ = [
-    'FlatFieldCalculator',
-    'FlasherFlatFieldCalculator'
-]
+__all__ = ["FlatFieldCalculator", "FlasherFlatFieldCalculator"]
 
 
 class FlatFieldCalculator(Component):
@@ -48,24 +45,13 @@ class FlatFieldCalculator(Component):
     """
 
     tel_id = Int(
-        0,
-        help='id of the telescope to calculate the flat-field coefficients'
+        0, help="id of the telescope to calculate the flat-field coefficients"
     ).tag(config=True)
-    sample_duration = Int(
-        60,
-        help='sample duration in seconds'
-    ).tag(config=True)
-    sample_size = Int(
-        10000,
-        help='sample size'
-    ).tag(config=True)
-    n_channels = Int(
-        2,
-        help='number of channels to be treated'
-    ).tag(config=True)
+    sample_duration = Int(60, help="sample duration in seconds").tag(config=True)
+    sample_size = Int(10000, help="sample size").tag(config=True)
+    n_channels = Int(2, help="number of channels to be treated").tag(config=True)
     charge_product = Unicode(
-        'LocalPeakWindowSum',
-        help='Name of the charge extractor to be used'
+        "LocalPeakWindowSum", help="Name of the charge extractor to be used"
     ).tag(config=True)
 
     def __init__(self, subarray, **kwargs):
@@ -105,9 +91,7 @@ class FlatFieldCalculator(Component):
         super().__init__(**kwargs)
         # load the waveform charge extractor
         self.extractor = ImageExtractor.from_name(
-            self.charge_product,
-            config=self.config,
-            subarray=subarray,
+            self.charge_product, config=self.config, subarray=subarray,
         )
 
         self.log.info(f"extractor {self.extractor}")
@@ -147,11 +131,10 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
 
     charge_cut_outliers = List(
         [-0.3, 0.3],
-        help='Interval of accepted charge values (fraction with respect to camera median value)'
+        help="Interval of accepted charge values (fraction with respect to camera median value)",
     ).tag(config=True)
     time_cut_outliers = List(
-        [0, 60],
-        help='Interval (in waveform samples) of accepted time values'
+        [0, 60], help="Interval (in waveform samples) of accepted time values"
     ).tag(config=True)
 
     def __init__(self, **kwargs):
@@ -225,14 +208,16 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
             self.num_events_seen = 0
 
         # real data
-        if event.meta['origin'] != 'hessio':
+        if event.meta["origin"] != "hessio":
             trigger_time = event.r1.tel[self.tel_id].trigger_time
             hardware_or_pedestal_mask = np.logical_or(
                 event.mon.tel[self.tel_id].pixel_status.hardware_failing_pixels,
-                event.mon.tel[self.tel_id].pixel_status.pedestal_failing_pixels)
+                event.mon.tel[self.tel_id].pixel_status.pedestal_failing_pixels,
+            )
             pixel_mask = np.logical_or(
                 hardware_or_pedestal_mask,
-                event.mon.tel[self.tel_id].pixel_status.flatfield_failing_pixels)
+                event.mon.tel[self.tel_id].pixel_status.flatfield_failing_pixels,
+            )
 
         else:  # patches for MC data
             if event.trig.tels_with_trigger:
@@ -260,19 +245,17 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
             or self.num_events_seen == self.sample_size
         ):
             relative_gain_results = self.calculate_relative_gain_results(
-                self.charge_medians,
-                self.charges,
-                self.sample_masked_pixels
+                self.charge_medians, self.charges, self.sample_masked_pixels
             )
             time_results = self.calculate_time_results(
                 self.arrival_times,
                 self.sample_masked_pixels,
                 self.time_start,
-                trigger_time
+                trigger_time,
             )
 
             result = {
-                'n_events': self.num_events_seen,
+                "n_events": self.num_events_seen,
                 **relative_gain_results,
                 **time_results,
             }
@@ -313,17 +296,10 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         self.num_events_seen += 1
 
     def calculate_time_results(
-        self,
-        trace_time,
-        masked_pixels_of_sample,
-        time_start,
-        trigger_time,
+        self, trace_time, masked_pixels_of_sample, time_start, trigger_time,
     ):
         """Calculate and return the time results """
-        masked_trace_time = np.ma.array(
-            trace_time,
-            mask=masked_pixels_of_sample
-        )
+        masked_trace_time = np.ma.array(trace_time, mask=masked_pixels_of_sample)
 
         # median over the sample per pixel
         pixel_median = np.ma.median(masked_trace_time, axis=0)
@@ -339,31 +315,29 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
 
         # time outliers from median
         relative_median = pixel_median - median_of_pixel_median[:, np.newaxis]
-        time_median_outliers = np.logical_or(pixel_median < self.time_cut_outliers[0],
-                                             pixel_median > self.time_cut_outliers[1])
+        time_median_outliers = np.logical_or(
+            pixel_median < self.time_cut_outliers[0],
+            pixel_median > self.time_cut_outliers[1],
+        )
 
         return {
             # FIXME Why divided by two here?
-            'sample_time': u.Quantity((trigger_time - time_start) / 2, u.s),
-            'sample_time_min': u.Quantity(time_start, u.s),
-            'sample_time_max': u.Quantity(trigger_time, u.s),
-            'time_mean': np.ma.getdata(pixel_mean),
-            'time_median': np.ma.getdata(pixel_median),
-            'time_std': np.ma.getdata(pixel_std),
-            'relative_time_median': np.ma.getdata(relative_median),
-            'time_median_outliers': np.ma.getdata(time_median_outliers),
+            "sample_time": u.Quantity((trigger_time - time_start) / 2, u.s),
+            "sample_time_min": u.Quantity(time_start, u.s),
+            "sample_time_max": u.Quantity(trigger_time, u.s),
+            "time_mean": np.ma.getdata(pixel_mean),
+            "time_median": np.ma.getdata(pixel_median),
+            "time_std": np.ma.getdata(pixel_std),
+            "relative_time_median": np.ma.getdata(relative_median),
+            "time_median_outliers": np.ma.getdata(time_median_outliers),
         }
 
     def calculate_relative_gain_results(
-        self,
-        event_median,
-        trace_integral,
-        masked_pixels_of_sample,
+        self, event_median, trace_integral, masked_pixels_of_sample,
     ):
         """Calculate and return the sample statistics"""
         masked_trace_integral = np.ma.array(
-            trace_integral,
-            mask=masked_pixels_of_sample
+            trace_integral, mask=masked_pixels_of_sample
         )
 
         # median over the sample per pixel
@@ -384,17 +358,23 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         # outliers from median
         charge_deviation = pixel_median - median_of_pixel_median[:, np.newaxis]
 
-        charge_median_outliers = (
-            np.logical_or(charge_deviation < self.charge_cut_outliers[0] * median_of_pixel_median[:,np.newaxis],
-                          charge_deviation > self.charge_cut_outliers[1] * median_of_pixel_median[:,np.newaxis]))
+        charge_median_outliers = np.logical_or(
+            charge_deviation
+            < self.charge_cut_outliers[0] * median_of_pixel_median[:, np.newaxis],
+            charge_deviation
+            > self.charge_cut_outliers[1] * median_of_pixel_median[:, np.newaxis],
+        )
 
         return {
-            'relative_gain_median': np.ma.getdata(np.ma.median(relative_gain_event, axis=0)),
-            'relative_gain_mean': np.ma.getdata(np.ma.mean(relative_gain_event, axis=0)),
-            'relative_gain_std': np.ma.getdata(np.ma.std(relative_gain_event, axis=0)),
-            'charge_median': np.ma.getdata(pixel_median),
-            'charge_mean': np.ma.getdata(pixel_mean),
-            'charge_std': np.ma.getdata(pixel_std),
-            'charge_median_outliers': np.ma.getdata(charge_median_outliers),
+            "relative_gain_median": np.ma.getdata(
+                np.ma.median(relative_gain_event, axis=0)
+            ),
+            "relative_gain_mean": np.ma.getdata(
+                np.ma.mean(relative_gain_event, axis=0)
+            ),
+            "relative_gain_std": np.ma.getdata(np.ma.std(relative_gain_event, axis=0)),
+            "charge_median": np.ma.getdata(pixel_median),
+            "charge_mean": np.ma.getdata(pixel_mean),
+            "charge_std": np.ma.getdata(pixel_std),
+            "charge_median_outliers": np.ma.getdata(charge_median_outliers),
         }
-

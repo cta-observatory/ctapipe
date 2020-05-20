@@ -152,7 +152,7 @@ class SubarrayDescription:
         return self.tel_index_array[tel_ids]
 
     def tel_ids_to_mask(self, tel_ids):
-        '''Convert a list of telescope ids to a boolean mask
+        """Convert a list of telescope ids to a boolean mask
         of length ``num_tels`` where the **index** of the telescope
         is set to ``True`` for each tel_id in tel_ids
 
@@ -166,7 +166,7 @@ class SubarrayDescription:
         np.array[dtype=bool]:
             Boolean array of length ``num_tels`` with indices of the
             telescopes in ``tel_ids`` set to True.
-        '''
+        """
         mask = np.zeros(self.num_tels, dtype=bool)
         indices = self.tel_ids_to_indices(tel_ids)
         mask[indices] = True

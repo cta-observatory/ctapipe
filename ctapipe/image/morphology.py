@@ -41,7 +41,7 @@ def number_of_islands(geom, mask):
 
 
 def number_of_island_sizes(island_labels):
-    '''
+    """
     Return number of small, medium and large islands
 
     Parameters
@@ -57,7 +57,7 @@ def number_of_island_sizes(island_labels):
         number of islands with 3 <= n_pixels <= 50
     n_large: int
         number of islands with more than 50 pixels
-    '''
+    """
 
     # count number of pixels in each island, remove 0 = no island
     island_sizes = np.bincount(island_labels)[1:]

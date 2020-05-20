@@ -275,9 +275,14 @@ def test_two_pass_window_sum(subarray):
     max_charges = [10, 100, 1000]
     for minCharge, maxCharge in zip(min_charges, max_charges):
         toymodel = get_test_toymodel(subarray, minCharge, maxCharge)
-        waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = (
-            toymodel
-        )
+        (
+            waveforms,
+            subarray,
+            telid,
+            selected_gain_channel,
+            true_charge,
+            true_time,
+        ) = toymodel
         charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
         assert_allclose(charge, true_charge, rtol=0.07)
         assert_allclose(pulse_time, true_time, rtol=0.07)
@@ -334,14 +339,14 @@ def test_extractor_tel_param(toymodel):
     assert extractor.window_width.tel[2] == n_samples // 2
 
 
-@pytest.mark.parametrize('Extractor', non_abstract_children(ImageExtractor))
+@pytest.mark.parametrize("Extractor", non_abstract_children(ImageExtractor))
 def test_dtype(Extractor, subarray):
 
     tel_id = 1
     n_pixels = subarray.tel[tel_id].camera.geometry.n_pixels
     selected_gain_channel = np.zeros(n_pixels, dtype=int)
 
-    waveforms = np.ones((n_pixels, 50), dtype='float64')
+    waveforms = np.ones((n_pixels, 50), dtype="float64")
     extractor = Extractor(subarray=subarray)
     charge, peak_time = extractor(waveforms, tel_id, selected_gain_channel)
     assert charge.dtype == np.float32

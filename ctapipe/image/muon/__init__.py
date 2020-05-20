@@ -5,7 +5,7 @@ from .intensity_fitter import MuonIntensityFitter
 
 
 __all__ = [
-    'MuonIntensityFitter',
-    'MuonRingFitter',
-    'kundu_chaudhuri_circle_fit',
+    "MuonIntensityFitter",
+    "MuonRingFitter",
+    "kundu_chaudhuri_circle_fit",
 ]

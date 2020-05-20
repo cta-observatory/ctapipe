@@ -20,34 +20,37 @@ from ctapipe.image import hillas_parameters, tailcuts_clean
 
 
 class SimpleEventWriter(Tool):
-    name = 'ctapipe-simple-event-writer'
+    name = "ctapipe-simple-event-writer"
     description = Unicode(__doc__)
 
     infile = Path(
-        default_value=get_dataset_path('lst_prod3_calibration_and_mcphotons.simtel.zst'),
-        help='input file to read', directory_ok=False, exists=True,
+        default_value=get_dataset_path(
+            "lst_prod3_calibration_and_mcphotons.simtel.zst"
+        ),
+        help="input file to read",
+        directory_ok=False,
+        exists=True,
     ).tag(config=True)
     outfile = Path(
-        help='output file name', directory_ok=False, default_value='output.h5'
+        help="output file name", directory_ok=False, default_value="output.h5"
     ).tag(config=True)
-    progress = Bool(help='display progress bar', default_value=True).tag(config=True)
+    progress = Bool(help="display progress bar", default_value=True).tag(config=True)
 
-    aliases = Dict({
-        'infile': 'EventSource.input_url',
-        'outfile': 'SimpleEventWriter.outfile',
-        'max-events': 'EventSource.max_events',
-        'progress': 'SimpleEventWriter.progress'
-    })
+    aliases = Dict(
+        {
+            "infile": "EventSource.input_url",
+            "outfile": "SimpleEventWriter.outfile",
+            "max-events": "EventSource.max_events",
+            "progress": "SimpleEventWriter.progress",
+        }
+    )
     classes = List([EventSource, CameraCalibrator])
 
     def setup(self):
-        self.log.info('Configure EventSource...')
+        self.log.info("Configure EventSource...")
 
         self.event_source = self.add_component(
-            EventSource.from_url(
-                self.infile,
-                parent=self
-            )
+            EventSource.from_url(self.infile, parent=self)
         )
 
         self.calibrator = self.add_component(
@@ -56,20 +59,19 @@ class SimpleEventWriter(Tool):
 
         self.writer = self.add_component(
             HDF5TableWriter(
-                filename=self.outfile,
-                group_name='image_infos',
-                overwrite=True
+                filename=self.outfile, group_name="image_infos", overwrite=True
             )
         )
 
     def start(self):
-        self.log.info('Loop on events...')
+        self.log.info("Loop on events...")
 
         for event in tqdm(
-                self.event_source,
-                desc='EventWriter',
-                total=self.event_source.max_events,
-                disable=~self.progress):
+            self.event_source,
+            desc="EventWriter",
+            total=self.event_source.max_events,
+            disable=~self.progress,
+        ):
 
             self.calibrator(event)
 
@@ -91,11 +93,10 @@ class SimpleEventWriter(Tool):
                 self.writer.write(geom.camera_name, [event.r0, event.mc, params])
 
     def finish(self):
-        self.log.info('End of job.')
+        self.log.info("End of job.")
         self.writer.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     tool = SimpleEventWriter()
     tool.run()
-

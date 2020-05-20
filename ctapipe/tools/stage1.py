@@ -296,7 +296,7 @@ class Stage1ProcessorTool(Tool):
         )
 
         # store last pointing to only write unique poitings
-        self._last_pointing_tel = defaultdict(lambda : (np.nan * u.deg, np.nan * u.deg))
+        self._last_pointing_tel = defaultdict(lambda: (np.nan * u.deg, np.nan * u.deg))
 
     def _write_simulation_configuration(self, writer):
         """
@@ -521,8 +521,8 @@ class Stage1ProcessorTool(Tool):
             p = event.pointing
             current_pointing = (p.array_azimuth, p.array_altitude)
             if current_pointing != last_pointing:
-                p.prefix = ''
-                writer.write('dl1/monitoring/subarray/pointing', [event.trigger, p])
+                p.prefix = ""
+                writer.write("dl1/monitoring/subarray/pointing", [event.trigger, p])
                 last_pointing = current_pointing
 
             # write the subarray tables
@@ -558,10 +558,10 @@ class Stage1ProcessorTool(Tool):
             p = event.pointing.tel[tel_id]
             current_pointing = (p.azimuth, p.altitude)
             if current_pointing != self._last_pointing_tel[tel_id]:
-                p.prefix = ''
+                p.prefix = ""
                 writer.write(
-                    f'dl1/monitoring/telescope/pointing/tel_{tel_id:03d}',
-                    [event.trigger.tel[tel_id], p]
+                    f"dl1/monitoring/telescope/pointing/tel_{tel_id:03d}",
+                    [event.trigger.tel[tel_id], p],
                 )
                 self._last_pointing_tel[tel_id] = current_pointing
 
@@ -570,8 +570,7 @@ class Stage1ProcessorTool(Tool):
             )
 
             writer.write(
-                'dl1/event/telescope/trigger',
-                [tel_index, event.trigger.tel[tel_id]]
+                "dl1/event/telescope/trigger", [tel_index, event.trigger.tel[tel_id]]
             )
 
             if self.event_source.is_simulation:
@@ -668,9 +667,9 @@ class Stage1ProcessorTool(Tool):
         )
 
         # exclude some columns that are not writable
-        writer.exclude("dl1/event/subarray/trigger", 'tel')
-        writer.exclude("dl1/monitoring/subarray/pointing", 'tel')
-        writer.exclude("dl1/monitoring/subarray/pointing", 'event_type')
+        writer.exclude("dl1/event/subarray/trigger", "tel")
+        writer.exclude("dl1/monitoring/subarray/pointing", "tel")
+        writer.exclude("dl1/monitoring/subarray/pointing", "event_type")
         for tel_id, telescope in self.event_source.subarray.tel.items():
             tel_type = str(telescope)
             if self.split_datasets_by == "tel_id":
@@ -683,7 +682,9 @@ class Stage1ProcessorTool(Tool):
                     f"/dl1/event/telescope/images/{table_name}", "image_mask"
                 )
             writer.exclude(f"/dl1/event/telescope/images/{table_name}", "parameters")
-            writer.exclude(f"/dl1/monitoring/event/pointing/tel_{tel_id:03d}", 'event_type')
+            writer.exclude(
+                f"/dl1/monitoring/event/pointing/tel_{tel_id:03d}", "event_type"
+            )
             if self.event_source.is_simulation:
                 writer.exclude(
                     f"/simulation/event/telescope/images/{table_name}",

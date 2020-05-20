@@ -2,7 +2,8 @@ from enum import Enum, auto
 
 
 class DataLevel(Enum):
-    '''Enum of the different Data Levels'''
+    """Enum of the different Data Levels"""
+
     R0 = auto()
     R1 = auto()
     R2 = auto()

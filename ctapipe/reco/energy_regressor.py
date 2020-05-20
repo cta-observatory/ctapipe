@@ -38,10 +38,10 @@ class EnergyRegressor(RegressorClassifierBase):
 
     """
 
-    def __init__(self, regressor=RandomForestRegressor,
-                 cam_id_list="cam", unit=u.TeV, **kwargs):
-        super().__init__(model=regressor, cam_id_list=cam_id_list,
-                         unit=unit, **kwargs)
+    def __init__(
+        self, regressor=RandomForestRegressor, cam_id_list="cam", unit=u.TeV, **kwargs
+    ):
+        super().__init__(model=regressor, cam_id_list=cam_id_list, unit=unit, **kwargs)
 
     def predict_by_event(self, event_list):
         """expects a list of events where every "event" is a dictionary
@@ -83,8 +83,11 @@ class EnergyRegressor(RegressorClassifierBase):
                     # QUESTION if there is no trained classifier for
                     # `cam_id`, raise an error or just pass this
                     # camera type?
-                    raise KeyError("cam_id '{}' in event_list but no model defined: {}"
-                                   .format(cam_id, [k for k in self.model_dict]))
+                    raise KeyError(
+                        "cam_id '{}' in event_list but no model defined: {}".format(
+                            cam_id, [k for k in self.model_dict]
+                        )
+                    )
 
                 try:
                     # if a `namedtuple` is provided, we can weight the different images
@@ -98,9 +101,11 @@ class EnergyRegressor(RegressorClassifierBase):
             predict_median.append(np.median(predicts))
             predict_std.append(np.std(predicts))
 
-        return {"mean": np.array(predict_mean) * self.unit,
-                "median": np.array(predict_median) * self.unit,
-                "std": np.array(predict_std) * self.unit}
+        return {
+            "mean": np.array(predict_mean) * self.unit,
+            "median": np.array(predict_median) * self.unit,
+            "std": np.array(predict_std) * self.unit,
+        }
 
     def predict_by_telescope_type(self, event_list):
         """same as `predict_dict` only that it returns a list of dictionaries

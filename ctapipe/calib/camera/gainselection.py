@@ -7,10 +7,10 @@ import numpy as np
 from ctapipe.core import Component, traits
 
 __all__ = [
-    'GainChannel',
-    'GainSelector',
-    'ManualGainSelector',
-    'ThresholdGainSelector',
+    "GainChannel",
+    "GainSelector",
+    "ManualGainSelector",
+    "ThresholdGainSelector",
 ]
 
 
@@ -18,6 +18,7 @@ class GainChannel(IntEnum):
     """
     Possible gain channels
     """
+
     HIGH = 0
     LOW = 1
 
@@ -53,9 +54,7 @@ class GainSelector(Component):
             else:
                 return self.select_channel(waveforms)
         else:
-            raise ValueError(
-                f"Cannot handle waveform array of shape: {waveforms.ndim}"
-            )
+            raise ValueError(f"Cannot handle waveform array of shape: {waveforms.ndim}")
 
     @abstractmethod
     def select_channel(self, waveforms):
@@ -84,10 +83,9 @@ class ManualGainSelector(GainSelector):
     """
     Manually choose a gain channel.
     """
+
     channel = traits.CaselessStrEnum(
-        ["HIGH", "LOW"],
-        default_value="HIGH",
-        help="Which gain channel to retain"
+        ["HIGH", "LOW"], default_value="HIGH", help="Which gain channel to retain"
     ).tag(config=True)
 
     def select_channel(self, waveforms):
@@ -99,11 +97,12 @@ class ThresholdGainSelector(GainSelector):
     """
     Select gain channel according to a maximum threshold value.
     """
+
     threshold = traits.Float(
         default_value=4000,
         help="Threshold value in waveform sample units. If a waveform "
-             "contains a sample above this threshold, use the low gain "
-             "channel for that pixel."
+        "contains a sample above this threshold, use the low gain "
+        "channel for that pixel.",
     ).tag(config=True)
 
     def select_channel(self, waveforms):

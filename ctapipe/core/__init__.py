@@ -24,5 +24,5 @@ __all__ = [
     "run_tool",
     "QualityQuery",
     "QualityCriteriaError",
-    "FieldValidationError"
+    "FieldValidationError",
 ]

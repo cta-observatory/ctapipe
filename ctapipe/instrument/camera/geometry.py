@@ -18,10 +18,7 @@ from ctapipe.utils.linalg import rotation_matrix_2d
 from ctapipe.coordinates import CameraFrame
 
 
-__all__ = [
-    "CameraGeometry",
-    "UnknownPixelShapeWarning"
-]
+__all__ = ["CameraGeometry", "UnknownPixelShapeWarning"]
 
 logger = logging.getLogger(__name__)
 
@@ -70,14 +67,27 @@ class CameraGeometry:
 
     _geometry_cache = {}  # dictionary CameraGeometry instances for speed
 
-    def __init__(self, camera_name, pix_id, pix_x, pix_y, pix_area, pix_type,
-                 pix_rotation="0d", cam_rotation="0d",
-                 neighbors=None, apply_derotation=True, frame=None):
+    def __init__(
+        self,
+        camera_name,
+        pix_id,
+        pix_x,
+        pix_y,
+        pix_area,
+        pix_type,
+        pix_rotation="0d",
+        cam_rotation="0d",
+        neighbors=None,
+        apply_derotation=True,
+        frame=None,
+    ):
 
         if pix_x.ndim != 1 or pix_y.ndim != 1:
-            raise ValueError(f'Pixel coordinates must be 1 dimensional, got {pix_x.ndim}')
+            raise ValueError(
+                f"Pixel coordinates must be 1 dimensional, got {pix_x.ndim}"
+            )
 
-        assert len(pix_x) == len(pix_y), 'pix_x and pix_y must have same length'
+        assert len(pix_x) == len(pix_y), "pix_x and pix_y must have same length"
         self.n_pixels = len(pix_x)
         self.camera_name = camera_name
         self.pix_id = pix_id
@@ -100,9 +110,7 @@ class CameraGeometry:
                 self._neighbors = csr_matrix(neighbors)
 
         if self.pix_area is None:
-            self.pix_area = self.guess_pixel_area(
-                pix_x, pix_y, pix_type
-            )
+            self.pix_area = self.guess_pixel_area(pix_x, pix_y, pix_type)
 
         if apply_derotation:
             # todo: this should probably not be done, but need to fix
@@ -125,27 +133,25 @@ class CameraGeometry:
         if self.pix_rotation != other.pix_rotation:
             return False
 
-        return all([
-            (self.pix_x == other.pix_x).all(),
-            (self.pix_y == other.pix_y).all(),
-        ])
+        return all(
+            [(self.pix_x == other.pix_x).all(), (self.pix_y == other.pix_y).all(),]
+        )
 
     def guess_radius(self):
-        '''
+        """
         Guess the camera radius as mean distance of the border pixels from
         the center pixel
-        '''
+        """
         border = self.get_border_pixel_mask()
         cx = self.pix_x.mean()
         cy = self.pix_y.mean()
 
         return np.sqrt(
-            (self.pix_x[border] - cx)**2
-            + (self.pix_y[border] - cy)**2
+            (self.pix_x[border] - cx) ** 2 + (self.pix_y[border] - cy) ** 2
         ).mean()
 
     def transform_to(self, frame):
-        '''
+        """
         Transform the pixel coordinates stored in this geometry
         and the pixel and camera rotations to another camera coordinate frame.
 
@@ -153,7 +159,7 @@ class CameraGeometry:
         ----------
         frame: ctapipe.coordinates.CameraFrame
             The coordinate frame to transform to.
-        '''
+        """
         if self.frame is None:
             self.frame = CameraFrame()
 
@@ -184,13 +190,15 @@ class CameraGeometry:
         )
 
     def __hash__(self):
-        return hash((
-            self.camera_name,
-            self.pix_x[0].to_value(u.m),
-            self.pix_y[0].to_value(u.m),
-            self.pix_type,
-            self.pix_rotation.deg,
-        ))
+        return hash(
+            (
+                self.camera_name,
+                self.pix_x[0].to_value(u.m),
+                self.pix_y[0].to_value(u.m),
+                self.pix_type,
+                self.pix_rotation.deg,
+            )
+        )
 
     def __len__(self):
         return self.n_pixels
@@ -221,9 +229,9 @@ class CameraGeometry:
 
         dist = cls.guess_pixel_width(pix_x, pix_y)
 
-        if pix_type.startswith('hex'):
-            area = 2 * np.sqrt(3) * (dist / 2)**2
-        elif pix_type.startswith('rect'):
+        if pix_type.startswith("hex"):
+            area = 2 * np.sqrt(3) * (dist / 2) ** 2
+        elif pix_type.startswith("rect"):
             area = dist ** 2
         else:
             raise KeyError("unsupported pixel type")
@@ -232,15 +240,15 @@ class CameraGeometry:
 
     @lazyproperty
     def pixel_width(self):
-        '''
+        """
         in-circle diameter for hexagons, edge width for square pixels
 
         This is calculated from the pixel area.
-        '''
+        """
 
-        if self.pix_type.startswith('hex'):
+        if self.pix_type.startswith("hex"):
             width = 2 * np.sqrt(self.pix_area / (2 * np.sqrt(3)))
-        elif self.pix_type.startswith('rect'):
+        elif self.pix_type.startswith("rect"):
             width = np.sqrt(self.pix_area)
         else:
             raise KeyError("unsupported pixel type")
@@ -258,7 +266,9 @@ class CameraGeometry:
         -------
             in-circle diameter for hexagons, edge width for square pixels
         """
-        return np.min(np.sqrt((pix_x[1:] - pix_x[0])**2 + (pix_y[1:] - pix_y[0])**2))
+        return np.min(
+            np.sqrt((pix_x[1:] - pix_x[0]) ** 2 + (pix_y[1:] - pix_y[0]) ** 2)
+        )
 
     @lazyproperty
     def _pixel_circumferences(self):
@@ -266,9 +276,9 @@ class CameraGeometry:
 
         """
 
-        if self.pix_type.startswith('hex'):
+        if self.pix_type.startswith("hex"):
             circum_rad = np.sqrt(2.0 * self.pix_area / 3.0 / np.sqrt(3))
-        elif self.pix_type.startswith('rect'):
+        elif self.pix_type.startswith("rect"):
             circum_rad = np.sqrt(self.pix_area / 2.0)
         else:
             raise KeyError("unsupported pixel type")
@@ -286,8 +296,9 @@ class CameraGeometry:
 
         """
 
-        pixel_centers = np.column_stack([self.pix_x.to_value(u.m),
-                                         self.pix_y.to_value(u.m)])
+        pixel_centers = np.column_stack(
+            [self.pix_x.to_value(u.m), self.pix_y.to_value(u.m)]
+        )
         return KDTree(pixel_centers)
 
     @lazyproperty
@@ -303,7 +314,7 @@ class CameraGeometry:
         return ~np.any(~np.isclose(self.pix_area.value, self.pix_area[0].value), axis=0)
 
     @classmethod
-    def from_name(cls, camera_name='NectarCam', version=None):
+    def from_name(cls, camera_name="NectarCam", version=None):
         """
         Construct a CameraGeometry using the name of the camera and array.
 
@@ -324,29 +335,32 @@ class CameraGeometry:
         """
 
         if version is None:
-            verstr = ''
+            verstr = ""
         else:
             verstr = f"-{version:03d}"
 
         tabname = "{camera_name}{verstr}.camgeom".format(
             camera_name=camera_name, verstr=verstr
         )
-        table = get_table_dataset(tabname, role='dl0.tel.svc.camera')
+        table = get_table_dataset(tabname, role="dl0.tel.svc.camera")
         return CameraGeometry.from_table(table)
 
     def to_table(self):
         """ convert this to an `astropy.table.Table` """
         # currently the neighbor list is not supported, since
         # var-length arrays are not supported by astropy.table.Table
-        return Table([self.pix_id, self.pix_x, self.pix_y, self.pix_area],
-                     names=['pix_id', 'pix_x', 'pix_y', 'pix_area'],
-                     meta=dict(PIX_TYPE=self.pix_type,
-                               TAB_TYPE='ctapipe.instrument.CameraGeometry',
-                               TAB_VER='1.1',
-                               CAM_ID=self.camera_name,
-                               PIX_ROT=self.pix_rotation.deg,
-                               CAM_ROT=self.cam_rotation.deg,
-                               ))
+        return Table(
+            [self.pix_id, self.pix_x, self.pix_y, self.pix_area],
+            names=["pix_id", "pix_x", "pix_y", "pix_area"],
+            meta=dict(
+                PIX_TYPE=self.pix_type,
+                TAB_TYPE="ctapipe.instrument.CameraGeometry",
+                TAB_VER="1.1",
+                CAM_ID=self.camera_name,
+                PIX_ROT=self.pix_rotation.deg,
+                CAM_ROT=self.cam_rotation.deg,
+            ),
+        )
 
     @classmethod
     def from_table(cls, url_or_table, **kwargs):
@@ -370,14 +384,14 @@ class CameraGeometry:
             tab = Table.read(url_or_table, **kwargs)
 
         return cls(
-            camera_name=tab.meta.get('CAM_ID', 'Unknown'),
-            pix_id=tab['pix_id'],
-            pix_x=tab['pix_x'].quantity,
-            pix_y=tab['pix_y'].quantity,
-            pix_area=tab['pix_area'].quantity,
-            pix_type=tab.meta['PIX_TYPE'],
-            pix_rotation=Angle(tab.meta['PIX_ROT'] * u.deg),
-            cam_rotation=Angle(tab.meta['CAM_ROT'] * u.deg),
+            camera_name=tab.meta.get("CAM_ID", "Unknown"),
+            pix_id=tab["pix_id"],
+            pix_x=tab["pix_x"].quantity,
+            pix_y=tab["pix_y"].quantity,
+            pix_area=tab["pix_area"].quantity,
+            pix_type=tab.meta["PIX_TYPE"],
+            pix_rotation=Angle(tab.meta["PIX_ROT"] * u.deg),
+            cam_rotation=Angle(tab.meta["CAM_ROT"] * u.deg),
         )
 
     def __repr__(self):
@@ -389,7 +403,7 @@ class CameraGeometry:
             pix_type=self.pix_type,
             npix=len(self.pix_id),
             pixrot=self.pix_rotation,
-            camrot=self.cam_rotation
+            camrot=self.cam_rotation,
         )
 
     def __str__(self):
@@ -397,7 +411,7 @@ class CameraGeometry:
 
     @lazyproperty
     def neighbors(self):
-        '''A list of the neighbors pixel_ids for each pixel'''
+        """A list of the neighbors pixel_ids for each pixel"""
         return [np.where(r)[0].tolist() for r in self.neighbor_matrix]
 
     @lazyproperty
@@ -412,7 +426,7 @@ class CameraGeometry:
             return self.calc_pixel_neighbors(diagonal=False)
 
     def calc_pixel_neighbors(self, diagonal=False):
-        '''
+        """
         Calculate the neighbors of pixels using
         a kdtree for nearest neighbor lookup.
 
@@ -420,10 +434,10 @@ class CameraGeometry:
         ----------
         diagonal: bool
             If rectangular geometry, also add diagonal neighbors
-        '''
+        """
         neighbors = lil_matrix((self.n_pixels, self.n_pixels), dtype=bool)
 
-        if self.pix_type.startswith('hex'):
+        if self.pix_type.startswith("hex"):
             max_neighbors = 6
             # on a hexgrid, the closest pixel in the second circle is
             # the diameter of the hexagon plus the inradius away
@@ -465,10 +479,10 @@ class CameraGeometry:
         # scipy still uses np.matrix in scipy.sparse, but we do not
         # explicitly use any feature of np.matrix, so we can ignore this here
         with warnings.catch_warnings():
-            warnings.filterwarnings('ignore', category=PendingDeprecationWarning)
+            warnings.filterwarnings("ignore", category=PendingDeprecationWarning)
             if (neighbors.T != neighbors).sum() > 0:
                 warnings.warn(
-                    'Neighbor matrix is not symmetric. Is camera geometry irregular?'
+                    "Neighbor matrix is not symmetric. Is camera geometry irregular?"
                 )
 
         return neighbors.tocsr()
@@ -514,11 +528,24 @@ class CameraGeometry:
         x = self.pix_x.value
         y = self.pix_y.value
 
-        return np.row_stack([x, y,
-                             x ** 2, x * y, y ** 2,
-                             x ** 3, x ** 2 * y, x * y ** 2, y ** 3,
-                             x ** 4, x ** 3 * y, x ** 2 * y ** 2, x * y ** 3,
-                             y ** 4])
+        return np.row_stack(
+            [
+                x,
+                y,
+                x ** 2,
+                x * y,
+                y ** 2,
+                x ** 3,
+                x ** 2 * y,
+                x * y ** 2,
+                y ** 3,
+                x ** 4,
+                x ** 3 * y,
+                x ** 2 * y ** 2,
+                x * y ** 3,
+                y ** 4,
+            ]
+        )
 
     def rotate(self, angle):
         """rotate the camera coordinates about the center of the camera by
@@ -552,15 +579,16 @@ class CameraGeometry:
     def info(self, printer=print):
         """ print detailed info about this camera """
         printer(f'CameraGeometry: "{self}"')
-        printer('   - num-pixels: {}'.format(len(self.pix_id)))
-        printer(f'   - pixel-type: {self.pix_type}')
-        printer('   - sensitive-area: {}'.format(self.pix_area.sum()))
-        printer(f'   - pix-rotation: {self.pix_rotation}')
-        printer(f'   - cam-rotation: {self.cam_rotation}')
+        printer("   - num-pixels: {}".format(len(self.pix_id)))
+        printer(f"   - pixel-type: {self.pix_type}")
+        printer("   - sensitive-area: {}".format(self.pix_area.sum()))
+        printer(f"   - pix-rotation: {self.pix_rotation}")
+        printer(f"   - cam-rotation: {self.cam_rotation}")
 
     @classmethod
-    def make_rectangular(cls, npix_x=40, npix_y=40, range_x=(-0.5, 0.5),
-                         range_y=(-0.5, 0.5)):
+    def make_rectangular(
+        cls, npix_x=40, npix_y=40, range_x=(-0.5, 0.5), range_y=(-0.5, 0.5)
+    ):
         """Generate a simple camera with 2D rectangular geometry.
 
         Used for testing.
@@ -590,17 +618,18 @@ class CameraGeometry:
         ids = np.arange(npix_x * npix_y)
         rr = np.ones_like(xx).value * (xx[1] - xx[0]) / 2.0
 
-        return cls(camera_name=-1,
-                   pix_id=ids,
-                   pix_x=xx,
-                   pix_y=yy,
-                   pix_area=(2 * rr) ** 2,
-                   neighbors=None,
-                   pix_type='rectangular',
-                   )
+        return cls(
+            camera_name=-1,
+            pix_id=ids,
+            pix_x=xx,
+            pix_y=yy,
+            pix_area=(2 * rr) ** 2,
+            neighbors=None,
+            pix_type="rectangular",
+        )
 
     def get_border_pixel_mask(self, width=1):
-        '''
+        """
         Get a mask for pixels at the border of the camera of arbitrary width
 
         Parameters
@@ -612,7 +641,7 @@ class CameraGeometry:
         -------
         mask: array
             A boolean mask, True if pixel is in the border of the specified width
-        '''
+        """
         if width in self.border_cache:
             return self.border_cache[width]
 
@@ -620,7 +649,7 @@ class CameraGeometry:
         # scipy still uses np.matrix in scipy.sparse, but we do not
         # explicitly use any feature of np.matrix, so we can ignore this here
         with warnings.catch_warnings():
-            warnings.filterwarnings('ignore', category=PendingDeprecationWarning)
+            warnings.filterwarnings("ignore", category=PendingDeprecationWarning)
 
             if width == 1:
                 n_neighbors = self.neighbor_matrix_sparse.sum(axis=1).A1
@@ -634,7 +663,7 @@ class CameraGeometry:
         return mask
 
     def position_to_pix_index(self, x, y):
-        '''
+        """
         Return the index of a camera pixel which contains a given position (x,y)
         in the camera frame. The (x,y) coordinates can be arrays (of equal length),
         for which the methods returns an array of pixel ids. A warning is raised if the
@@ -649,15 +678,19 @@ class CameraGeometry:
         -------
         pix_indices: Pixel index or array of pixel indices. Returns -1 if position falls
                     outside camera
-        '''
+        """
 
         if not self._all_pixel_areas_equal:
-            logger.warning(" Method not implemented for cameras with varying pixel sizes")
+            logger.warning(
+                " Method not implemented for cameras with varying pixel sizes"
+            )
 
         points_searched = np.dstack([x.to_value(u.m), y.to_value(u.m)])
         circum_rad = self._pixel_circumferences[0].to_value(u.m)
         kdtree = self._kdtree
-        dist, pix_indices = kdtree.query(points_searched, distance_upper_bound=circum_rad)
+        dist, pix_indices = kdtree.query(
+            points_searched, distance_upper_bound=circum_rad
+        )
         del dist
         pix_indices = pix_indices.flatten()
 
@@ -683,38 +716,45 @@ class CameraGeometry:
             for borderpix_index in borderpix_indices_in_list:
                 index = np.where(pix_indices == borderpix_index)[0][0]
                 # compare with inside pixel:
-                xprime = (points_searched[0][index, 0]
-                          - self.pix_x[borderpix_index].to_value(u.m)
-                          + self.pix_x[insidepix_index].to_value(u.m))
-                yprime = (points_searched[0][index, 1]
-                          - self.pix_y[borderpix_index].to_value(u.m)
-                          + self.pix_y[insidepix_index].to_value(u.m))
-                dist_check, index_check = kdtree.query([xprime, yprime],
-                                                       distance_upper_bound=circum_rad)
+                xprime = (
+                    points_searched[0][index, 0]
+                    - self.pix_x[borderpix_index].to_value(u.m)
+                    + self.pix_x[insidepix_index].to_value(u.m)
+                )
+                yprime = (
+                    points_searched[0][index, 1]
+                    - self.pix_y[borderpix_index].to_value(u.m)
+                    + self.pix_y[insidepix_index].to_value(u.m)
+                )
+                dist_check, index_check = kdtree.query(
+                    [xprime, yprime], distance_upper_bound=circum_rad
+                )
                 del dist_check
                 if index_check != insidepix_index:
                     pix_indices[index] = -1
 
         # print warning:
         for index in np.where(pix_indices == -1)[0]:
-            logger.warning(" Coordinate ({} m, {} m) lies outside camera"
-                           .format(points_searched[0][index, 0],
-                                   points_searched[0][index, 1]))
+            logger.warning(
+                " Coordinate ({} m, {} m) lies outside camera".format(
+                    points_searched[0][index, 0], points_searched[0][index, 1]
+                )
+            )
 
         return pix_indices if len(pix_indices) > 1 else pix_indices[0]
 
     @staticmethod
     def simtel_shape_to_type(pixel_shape):
         if pixel_shape == 1:
-            return 'hexagonal', Angle(0, u.deg)
+            return "hexagonal", Angle(0, u.deg)
 
         if pixel_shape == 2:
-            return 'rectangular', Angle(0, u.deg)
+            return "rectangular", Angle(0, u.deg)
 
         if pixel_shape == 3:
-            return 'hexagonal', Angle(30, u.deg)
+            return "hexagonal", Angle(30, u.deg)
 
-        raise ValueError(f'Unknown pixel_shape {pixel_shape}')
+        raise ValueError(f"Unknown pixel_shape {pixel_shape}")
 
 
 class UnknownPixelShapeWarning(UserWarning):

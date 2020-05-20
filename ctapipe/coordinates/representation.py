@@ -27,32 +27,32 @@ class PlanarRepresentation(BaseRepresentation):
         If True arrays will be copied rather than referenced.
 
     """
-    attr_classes = OrderedDict([('x', u.Quantity),
-                                ('y', u.Quantity)])
+
+    attr_classes = OrderedDict([("x", u.Quantity), ("y", u.Quantity)])
 
     def __init__(self, x, y, copy=True, **kwargs):
 
         if x is None or y is None:
             raise ValueError(
-                'x and y are required to instantiate CartesianRepresentation'
+                "x and y are required to instantiate CartesianRepresentation"
             )
 
-        if not isinstance(x, self.attr_classes['x']):
-            raise TypeError('x should be a {}'.format(self.attr_classes['x'].__name__))
+        if not isinstance(x, self.attr_classes["x"]):
+            raise TypeError("x should be a {}".format(self.attr_classes["x"].__name__))
 
-        if not isinstance(y, self.attr_classes['y']):
-            raise TypeError('y should be a {}'.format(self.attr_classes['y'].__name__))
+        if not isinstance(y, self.attr_classes["y"]):
+            raise TypeError("y should be a {}".format(self.attr_classes["y"].__name__))
 
-        x = self.attr_classes['x'](x, copy=copy)
-        y = self.attr_classes['y'](y, copy=copy)
+        x = self.attr_classes["x"](x, copy=copy)
+        y = self.attr_classes["y"](y, copy=copy)
 
         if not (x.unit.physical_type == y.unit.physical_type):
-            raise u.UnitsError('x and y should have matching physical types')
+            raise u.UnitsError("x and y should have matching physical types")
 
         try:
             x, y = broadcast_arrays(x, y, subok=True)
         except ValueError:
-            raise ValueError('Input parameters x and y cannot be broadcast')
+            raise ValueError("Input parameters x and y cannot be broadcast")
 
         self._x = x
         self._y = y
@@ -82,10 +82,8 @@ class PlanarRepresentation(BaseRepresentation):
         return cls(x=cartesian.x, y=cartesian.y)
 
     def to_cartesian(self):
-        return CartesianRepresentation(
-            x=self._x, y=self._y, z=0 * self._x.unit
-        )
+        return CartesianRepresentation(x=self._x, y=self._y, z=0 * self._x.unit)
 
     @property
     def components(self):
-        return 'x', 'y'
+        return "x", "y"

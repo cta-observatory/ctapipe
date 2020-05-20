@@ -28,7 +28,7 @@ def test_camera_calibrator(example_event, example_subarray):
 def test_manual_extractor(example_subarray):
     calibrator = CameraCalibrator(
         subarray=example_subarray,
-        image_extractor=LocalPeakWindowSum(subarray=example_subarray)
+        image_extractor=LocalPeakWindowSum(subarray=example_subarray),
     )
     assert isinstance(calibrator.image_extractor, LocalPeakWindowSum)
 
@@ -47,7 +47,7 @@ def test_config(example_subarray):
     calibrator = CameraCalibrator(
         subarray=example_subarray,
         image_extractor=LocalPeakWindowSum(subarray=example_subarray, config=config),
-        config=config
+        config=config,
     )
     assert calibrator.image_extractor.window_shift.tel[None] == window_shift
     assert calibrator.image_extractor.window_width.tel[None] == window_width
@@ -67,7 +67,7 @@ def test_check_r1_empty(example_event, example_subarray):
 
     calibrator = CameraCalibrator(
         subarray=example_subarray,
-        image_extractor=FullWaveformSum(subarray=example_subarray)
+        image_extractor=FullWaveformSum(subarray=example_subarray),
     )
     event = DataContainer()
     event.dl0.tel[telid].waveform = np.full((2048, 128), 2)
@@ -109,10 +109,10 @@ def test_dl1_charge_calib(example_subarray):
 
     # Randomize times and create pulses
     time_offset = random.uniform(mid - 10, mid + 10, n_pixels)[:, np.newaxis]
-    y = norm.pdf(x, time_offset, pulse_sigma).astype('float32')
+    y = norm.pdf(x, time_offset, pulse_sigma).astype("float32")
 
     # Define absolute calibration coefficients
-    absolute = random.uniform(100, 1000, n_pixels).astype('float32')
+    absolute = random.uniform(100, 1000, n_pixels).astype("float32")
     y *= absolute[:, np.newaxis]
 
     # Define relative coefficients
@@ -130,7 +130,7 @@ def test_dl1_charge_calib(example_subarray):
     # Test default
     calibrator = CameraCalibrator(
         subarray=example_subarray,
-        image_extractor=FullWaveformSum(subarray=example_subarray)
+        image_extractor=FullWaveformSum(subarray=example_subarray),
     )
     calibrator(event)
     np.testing.assert_allclose(event.dl1.tel[telid].image, y.sum(1), rtol=1e-4)
@@ -143,7 +143,7 @@ def test_dl1_charge_calib(example_subarray):
     # Test without need for timing corrections
     calibrator = CameraCalibrator(
         subarray=example_subarray,
-        image_extractor=FullWaveformSum(subarray=example_subarray)
+        image_extractor=FullWaveformSum(subarray=example_subarray),
     )
     calibrator(event)
     np.testing.assert_allclose(event.dl1.tel[telid].image, 1, rtol=1e-5)

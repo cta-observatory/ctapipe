@@ -80,7 +80,7 @@ class ImagePlotter(Component):
             self.c_intensity = CameraDisplay(geom, ax=self.ax_intensity)
             self.c_peak_time = CameraDisplay(geom, ax=self.ax_peak_time)
 
-            if (peak_time != 0.).all():
+            if (peak_time != 0.0).all():
                 tmaxmin = event.dl0.tel[telid].waveform.shape[1]
                 t_chargemax = peak_time[image.argmax()]
                 cmap_time = colors.LinearSegmentedColormap.from_list(
@@ -170,22 +170,22 @@ class DisplayDL1Calib(Tool):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.config.EventSource.input_url = get_dataset_path('gamma_test_large.simtel.gz')
+        self.config.EventSource.input_url = get_dataset_path(
+            "gamma_test_large.simtel.gz"
+        )
         self.eventsource = None
         self.calibrator = None
         self.plotter = None
 
     def setup(self):
-        self.eventsource = self.add_component(
-            EventSource.from_config(parent=self)
-        )
+        self.eventsource = self.add_component(EventSource.from_config(parent=self))
 
-        self.calibrator = self.add_component(CameraCalibrator(
-            parent=self, subarray=self.eventsource.subarray
-        ))
-        self.plotter = self.add_component(ImagePlotter(
-            subarray=self.eventsource.subarray, parent=self
-        ))
+        self.calibrator = self.add_component(
+            CameraCalibrator(parent=self, subarray=self.eventsource.subarray)
+        )
+        self.plotter = self.add_component(
+            ImagePlotter(subarray=self.eventsource.subarray, parent=self)
+        )
 
     def start(self):
         for event in self.eventsource:

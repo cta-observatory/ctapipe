@@ -21,9 +21,7 @@ def test_intensity():
     # make a toymodel shower model
     model = Gaussian(x=x, y=y, width=width, length=length, psi=psi)
 
-    _, signal, _ = model.generate_image(
-        geom, intensity=intensity, nsb_level_pe=5,
-    )
+    _, signal, _ = model.generate_image(geom, intensity=intensity, nsb_level_pe=5,)
 
     # test if signal reproduces given cog values
     assert np.average(geom.pix_x.to_value(u.m), weights=signal) == approx(0.2, rel=0.15)
@@ -58,7 +56,9 @@ def test_skewed():
     model = SkewedGaussian(
         x=x, y=y, width=width, length=length, psi=psi, skewness=skewness
     )
-    model.generate_image(geom, intensity=intensity, nsb_level_pe=5,)
+    model.generate_image(
+        geom, intensity=intensity, nsb_level_pe=5,
+    )
 
     a, loc, scale = model._moments_to_parameters()
     mean, var, skew = skewnorm(a=a, loc=loc, scale=scale).stats(moments="mvs")

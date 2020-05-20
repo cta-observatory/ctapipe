@@ -48,7 +48,8 @@ def parse_simtel_time(simtel_time):
     return Time(
         u.Quantity(simtel_time[0], u.s),
         u.Quantity(simtel_time[1], u.ns),
-        format="unix", scale="utc",
+        format="unix",
+        scale="utc",
     )
 
 
@@ -159,7 +160,9 @@ class SimTelEventSource(EventSource):
         ),
     ).tag(config=True)
 
-    def __init__(self, input_url, config=None, parent=None, gain_selector=None, **kwargs):
+    def __init__(
+        self, input_url, config=None, parent=None, gain_selector=None, **kwargs
+    ):
         """
         EventSource for simtelarray files using the pyeventio library.
 
@@ -225,7 +228,7 @@ class SimTelEventSource(EventSource):
 
     @property
     def obs_id(self):
-        return self.file_.header['run']
+        return self.file_.header["run"]
 
     @property
     def mc_header(self):
@@ -342,7 +345,7 @@ class SimTelEventSource(EventSource):
 
         for counter, array_event in enumerate(self.file_):
 
-            event_id = array_event.get('event_id', -1)
+            event_id = array_event.get("event_id", -1)
             obs_id = self.file_.header["run"]
             tels_with_data = set(array_event["telescope_events"].keys())
             data.count = counter
@@ -385,9 +388,7 @@ class SimTelEventSource(EventSource):
                 )
 
                 self._fill_event_pointing(
-                    data.pointing.tel[tel_id],
-                    mc,
-                    tracking_positions[tel_id],
+                    data.pointing.tel[tel_id], mc, tracking_positions[tel_id],
                 )
 
                 r0 = data.r0.tel[tel_id]
@@ -433,27 +434,28 @@ class SimTelEventSource(EventSource):
         elif array_event["type"] == "calibration":
             # if using eventio >= 1.1.1, we can use the calibration_type
             data.trigger.event_type = SIMTEL_TO_CTA_EVENT_TYPE.get(
-                array_event.get("calibration_type", -1),
-                EventType.OTHER_CALIBRATION
+                array_event.get("calibration_type", -1), EventType.OTHER_CALIBRATION
             )
 
         else:
             data.trigger.event_type = EventType.UNKNOWN
 
         data.trigger.tels_with_trigger = trigger["triggered_telescopes"]
-        data.trigger.time = parse_simtel_time(trigger['gps_time'])
+        data.trigger.time = parse_simtel_time(trigger["gps_time"])
 
-        for tel_id, time in zip(trigger['triggered_telescopes'], trigger['trigger_times']):
+        for tel_id, time in zip(
+            trigger["triggered_telescopes"], trigger["trigger_times"]
+        ):
             # time is relative to central trigger in nano seconds
             data.trigger.tel[tel_id].time = data.trigger.time + u.Quantity(time, u.ns)
 
     def _fill_array_pointing(self, data):
-        if self.file_.header['tracking_mode'] == 0:
-            az, alt = self.file_.header['direction']
+        if self.file_.header["tracking_mode"] == 0:
+            az, alt = self.file_.header["direction"]
             data.pointing.array_altitude = u.Quantity(alt, u.rad)
             data.pointing.array_azimuth = u.Quantity(az, u.rad)
         else:
-            ra, dec = self.file_.header['direction']
+            ra, dec = self.file_.header["direction"]
             data.pointing.array_ra = u.Quantity(ra, u.rad)
             data.pointing.array_dec = u.Quantity(dec, u.rad)
 
@@ -466,12 +468,8 @@ class SimTelEventSource(EventSource):
             energy_range_min=mc_run_head["E_range"][0] * u.TeV,
             energy_range_max=mc_run_head["E_range"][1] * u.TeV,
             prod_site_B_total=mc_run_head["B_total"] * u.uT,
-            prod_site_B_declination=Angle(
-                mc_run_head["B_declination"], u.rad,
-            ),
-            prod_site_B_inclination=Angle(
-                mc_run_head["B_inclination"], u.rad,
-            ),
+            prod_site_B_declination=Angle(mc_run_head["B_declination"], u.rad,),
+            prod_site_B_inclination=Angle(mc_run_head["B_inclination"], u.rad,),
             prod_site_alt=mc_run_head["obsheight"] * u.m,
             spectral_index=mc_run_head["spectral_index"],
             shower_prog_start=mc_run_head["shower_prog_start"],

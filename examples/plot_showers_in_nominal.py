@@ -11,17 +11,17 @@ import warnings
 from ctapipe.coordinates import CameraFrame, NominalFrame, MissingFrameAttributeWarning
 
 
-warnings.filterwarnings('ignore', category=MissingFrameAttributeWarning)
+warnings.filterwarnings("ignore", category=MissingFrameAttributeWarning)
 
 
 cleaning_level = {
-    'LSTCam': (3.5, 7.5, 2),  # ?? (3, 6) for Abelardo...
-    'FlashCam': (4, 8, 2),  # there is some scaling missing?
-    'ASTRICam': (5, 7, 2),
+    "LSTCam": (3.5, 7.5, 2),  # ?? (3, 6) for Abelardo...
+    "FlashCam": (4, 8, 2),  # there is some scaling missing?
+    "ASTRICam": (5, 7, 2),
 }
 
 
-input_url = get_dataset_path('gamma_test_large.simtel.gz')
+input_url = get_dataset_path("gamma_test_large.simtel.gz")
 
 
 with event_source(input_url=input_url) as source:
@@ -61,13 +61,11 @@ with event_source(input_url=input_url) as source:
                 image,
                 boundary_thresh=boundary,
                 picture_thresh=picture,
-                min_number_picture_neighbors=min_neighbors
+                min_number_picture_neighbors=min_neighbors,
             )
 
             cam_coords = SkyCoord(
-                geom.pix_x[clean],
-                geom.pix_y[clean],
-                frame=camera_frame
+                geom.pix_x[clean], geom.pix_y[clean], frame=camera_frame
             )
             nom = cam_coords.transform_to(nominal_frame)
             nom_fov_lon.append(nom.fov_lon.to_value(u.deg))
@@ -82,7 +80,7 @@ with event_source(input_url=input_url) as source:
         nom_fov_lat = np.repeat(nom_fov_lat, photons.astype(int))
 
         plt.hexbin(nom_fov_lon, nom_fov_lat, gridsize=50, extent=[-5, 5, -5, 5])
-        plt.xlabel('fov_lon / deg')
-        plt.ylabel('fov_lat / deg')
+        plt.xlabel("fov_lon / deg")
+        plt.ylabel("fov_lat / deg")
         plt.gca().set_aspect(1)
         plt.show()

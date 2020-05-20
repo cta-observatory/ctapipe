@@ -28,9 +28,9 @@ from numpy import cos, sin
 from .representation import PlanarRepresentation
 
 __all__ = [
-    'GroundFrame',
-    'TiltedGroundFrame',
-    'project_to_ground',
+    "GroundFrame",
+    "TiltedGroundFrame",
+    "project_to_ground",
 ]
 
 
@@ -62,6 +62,7 @@ class TiltedGroundFrame(BaseCoordinateFrame):
         Alt,Az direction of the tilted reference plane
 
     """
+
     default_representation = PlanarRepresentation
     # Pointing direction of the tilted system (alt,az),
     # could be the telescope pointing direction or the reconstructed shower
@@ -102,14 +103,13 @@ def get_shower_trans_matrix(azimuth, altitude):
     trans[2][1] = -sin_z * sin_az
 
     trans[0][2] = -sin_z
-    trans[1][2] = 0.
+    trans[1][2] = 0.0
     trans[2][2] = cos_z
 
     return trans
 
 
-@frame_transform_graph.transform(FunctionTransform, GroundFrame,
-                                 TiltedGroundFrame)
+@frame_transform_graph.transform(FunctionTransform, GroundFrame, TiltedGroundFrame)
 def ground_to_tilted(ground_coord, tilted_frame):
     """
     Transformation from ground system to tilted ground system
@@ -141,8 +141,7 @@ def ground_to_tilted(ground_coord, tilted_frame):
     return tilted_frame.realize_frame(representation)
 
 
-@frame_transform_graph.transform(FunctionTransform, TiltedGroundFrame,
-                                 GroundFrame)
+@frame_transform_graph.transform(FunctionTransform, TiltedGroundFrame, GroundFrame)
 def tilted_to_ground(tilted_coord, ground_frame):
     """
     Transformation from tilted ground system to  ground system
@@ -200,8 +199,9 @@ def project_to_ground(tilt_system):
     y_initial = ground_system.y.value
     z_initial = ground_system.z.value
 
-    trans = get_shower_trans_matrix(tilt_system.pointing_direction.az,
-                                    tilt_system.pointing_direction.alt)
+    trans = get_shower_trans_matrix(
+        tilt_system.pointing_direction.az, tilt_system.pointing_direction.alt
+    )
 
     x_projected = x_initial - trans[2][0] * z_initial / trans[2][2]
     y_projected = y_initial - trans[2][1] * z_initial / trans[2][2]

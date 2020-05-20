@@ -17,7 +17,7 @@ def test_construct():
         camera_name=camera_name,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
-        reference_pulse_sample_width=reference_pulse_sample_width
+        reference_pulse_sample_width=reference_pulse_sample_width,
     )
 
     assert readout.camera_name == camera_name
@@ -26,7 +26,7 @@ def test_construct():
     assert readout.reference_pulse_sample_width == reference_pulse_sample_width
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def readout():
     camera_name = "Unknown"
     sampling_rate = u.Quantity(2, u.GHz)
@@ -36,7 +36,7 @@ def readout():
         camera_name=camera_name,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
-        reference_pulse_sample_width=reference_pulse_sample_width
+        reference_pulse_sample_width=reference_pulse_sample_width,
     )
 
 
@@ -58,7 +58,7 @@ def test_to_and_from_table(readout):
 
 def test_write_read(tmpdir, readout):
     """ Check that serialization to disk doesn't lose info """
-    filename = str(tmpdir.join('testcamera.fits.gz'))
+    filename = str(tmpdir.join("testcamera.fits.gz"))
 
     readout.to_table().write(filename, overwrite=True)
     readout2 = readout.from_table(filename)
@@ -79,28 +79,28 @@ def test_equals():
         camera_name=camera_name,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
-        reference_pulse_sample_width=reference_pulse_sample_width
+        reference_pulse_sample_width=reference_pulse_sample_width,
     )
 
     readout2 = CameraReadout(
         camera_name=camera_name,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
-        reference_pulse_sample_width=reference_pulse_sample_width
+        reference_pulse_sample_width=reference_pulse_sample_width,
     )
 
     readout3 = CameraReadout(
         camera_name=4,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
-        reference_pulse_sample_width=reference_pulse_sample_width
+        reference_pulse_sample_width=reference_pulse_sample_width,
     )
 
     readout4 = CameraReadout(
         camera_name=camera_name,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
-        reference_pulse_sample_width=u.Quantity(1, u.ns)
+        reference_pulse_sample_width=u.Quantity(1, u.ns),
     )
 
     assert readout1 is not readout2
@@ -122,21 +122,21 @@ def test_hashing():
         camera_name=camera_name,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
-        reference_pulse_sample_width=reference_pulse_sample_width
+        reference_pulse_sample_width=reference_pulse_sample_width,
     )
 
     readout2 = CameraReadout(
         camera_name=camera_name,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
-        reference_pulse_sample_width=reference_pulse_sample_width
+        reference_pulse_sample_width=reference_pulse_sample_width,
     )
 
     readout3 = CameraReadout(
         camera_name=4,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
-        reference_pulse_sample_width=reference_pulse_sample_width
+        reference_pulse_sample_width=reference_pulse_sample_width,
     )
 
     assert len({readout1, readout2, readout3}) == 2

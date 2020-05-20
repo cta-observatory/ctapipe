@@ -25,7 +25,7 @@ class CameraCalibrator(Component):
         parent=None,
         data_volume_reducer=None,
         image_extractor=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Parameters
@@ -100,7 +100,8 @@ class CameraCalibrator(Component):
             return
 
         reduced_waveforms_mask = self.data_volume_reducer(
-            waveforms, telid=telid, selected_gain_channel=selected_gain_channel)
+            waveforms, telid=telid, selected_gain_channel=selected_gain_channel
+        )
 
         waveforms_copy = waveforms.copy()
         waveforms_copy[~reduced_waveforms_mask] = 0

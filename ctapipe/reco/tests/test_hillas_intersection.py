@@ -64,14 +64,14 @@ def test_intersection_xmax_reco():
     horizon_frame = AltAz()
     zen_pointing = 10 * u.deg
 
-    array_direction = SkyCoord(alt=90*u.deg - zen_pointing,
-                               az=0 * u.deg,
-                               frame=horizon_frame)
+    array_direction = SkyCoord(
+        alt=90 * u.deg - zen_pointing, az=0 * u.deg, frame=horizon_frame
+    )
     nom_frame = NominalFrame(origin=array_direction)
 
-    source_sky_pos_reco = SkyCoord(alt=90 * u.deg - zen_pointing,
-                                   az=0 * u.deg,
-                                   frame=horizon_frame)
+    source_sky_pos_reco = SkyCoord(
+        alt=90 * u.deg - zen_pointing, az=0 * u.deg, frame=horizon_frame
+    )
 
     nom_pos_reco = source_sky_pos_reco.transform_to(nom_frame)
     delta = 1.0 * u.m
@@ -80,12 +80,16 @@ def test_intersection_xmax_reco():
     focal_length = 28 * u.m
 
     hillas_dict = {
-        1: HillasParametersContainer(x=-(delta/focal_length)*u.rad,
-                                     y=((0 * u.m)/focal_length) * u.rad,
-                                     intensity=1),
-        2: HillasParametersContainer(x=((0 * u.m)/focal_length) * u.rad,
-                                     y=-(delta/focal_length) * u.rad,
-                                     intensity=1)
+        1: HillasParametersContainer(
+            x=-(delta / focal_length) * u.rad,
+            y=((0 * u.m) / focal_length) * u.rad,
+            intensity=1,
+        ),
+        2: HillasParametersContainer(
+            x=((0 * u.m) / focal_length) * u.rad,
+            y=-(delta / focal_length) * u.rad,
+            intensity=1,
+        ),
     }
 
     x_max = hill_inter.reconstruct_xmax(
@@ -96,7 +100,7 @@ def test_intersection_xmax_reco():
         hillas_parameters=hillas_dict,
         tel_x={1: (150 * u.m), 2: (0 * u.m)},
         tel_y={1: (0 * u.m), 2: (150 * u.m)},
-        zen=zen_pointing
+        zen=zen_pointing,
     )
     print(x_max)
 
@@ -116,13 +120,11 @@ def test_intersection_reco_impact_point_tilted():
     hillas_dict = {
         1: HillasParametersContainer(intensity=100, psi=-90 * u.deg),
         2: HillasParametersContainer(intensity=100, psi=-45 * u.deg),
-        3: HillasParametersContainer(intensity=100, psi=0 * u.deg)
+        3: HillasParametersContainer(intensity=100, psi=0 * u.deg),
     }
 
     reco_konrad = hill_inter.reconstruct_tilted(
-        hillas_parameters=hillas_dict,
-        tel_x=tel_x_dict,
-        tel_y=tel_y_dict
+        hillas_parameters=hillas_dict, tel_x=tel_x_dict, tel_y=tel_y_dict
     )
 
     np.testing.assert_allclose(reco_konrad[0], delta.to_value(u.m), atol=1e-8)
@@ -143,13 +145,11 @@ def test_intersection_weighting_spoiled_parameters():
     hillas_dict = {
         1: HillasParametersContainer(intensity=10000, psi=-90 * u.deg),
         2: HillasParametersContainer(intensity=1, psi=45 * u.deg),
-        3: HillasParametersContainer(intensity=10000, psi=0 * u.deg)
+        3: HillasParametersContainer(intensity=10000, psi=0 * u.deg),
     }
 
     reco_konrad_spoiled = hill_inter.reconstruct_tilted(
-        hillas_parameters=hillas_dict,
-        tel_x=tel_x_dict,
-        tel_y=tel_y_dict
+        hillas_parameters=hillas_dict, tel_x=tel_x_dict, tel_y=tel_y_dict
     )
 
     np.testing.assert_allclose(reco_konrad_spoiled[0], delta.to_value(u.m), atol=1e-1)
@@ -169,16 +169,15 @@ def test_intersection_nominal_reconstruction():
     altitude = 70 * u.deg
     azimuth = 10 * u.deg
 
-    array_direction = SkyCoord(alt=altitude,
-                               az=azimuth,
-                               frame=horizon_frame)
+    array_direction = SkyCoord(alt=altitude, az=azimuth, frame=horizon_frame)
 
     nominal_frame = NominalFrame(origin=array_direction)
 
     focal_length = 28 * u.m
 
-    camera_frame = CameraFrame(focal_length=focal_length,
-                               telescope_pointing=array_direction)
+    camera_frame = CameraFrame(
+        focal_length=focal_length, telescope_pointing=array_direction
+    )
 
     cog_coords_camera_1 = SkyCoord(x=delta, y=0 * u.m, frame=camera_frame)
     cog_coords_camera_2 = SkyCoord(x=delta / 0.7, y=delta / 0.7, frame=camera_frame)
@@ -189,20 +188,26 @@ def test_intersection_nominal_reconstruction():
     cog_coords_nom_3 = cog_coords_camera_3.transform_to(nominal_frame)
 
     #  x-axis is along the altitude and y-axis is along the azimuth
-    hillas_1 = HillasParametersContainer(x=cog_coords_nom_1.fov_lat,
-                                         y=cog_coords_nom_1.fov_lon,
-                                         intensity=100,
-                                         psi=0 * u.deg)
+    hillas_1 = HillasParametersContainer(
+        x=cog_coords_nom_1.fov_lat,
+        y=cog_coords_nom_1.fov_lon,
+        intensity=100,
+        psi=0 * u.deg,
+    )
 
-    hillas_2 = HillasParametersContainer(x=cog_coords_nom_2.fov_lat,
-                                         y=cog_coords_nom_2.fov_lon,
-                                         intensity=100,
-                                         psi=45 * u.deg)
+    hillas_2 = HillasParametersContainer(
+        x=cog_coords_nom_2.fov_lat,
+        y=cog_coords_nom_2.fov_lon,
+        intensity=100,
+        psi=45 * u.deg,
+    )
 
-    hillas_3 = HillasParametersContainer(x=cog_coords_nom_3.fov_lat,
-                                         y=cog_coords_nom_3.fov_lon,
-                                         intensity=100,
-                                         psi=90 * u.deg)
+    hillas_3 = HillasParametersContainer(
+        x=cog_coords_nom_3.fov_lat,
+        y=cog_coords_nom_3.fov_lon,
+        intensity=100,
+        psi=90 * u.deg,
+    )
 
     hillas_dict = {1: hillas_1, 2: hillas_2, 3: hillas_3}
 
@@ -211,11 +216,15 @@ def test_intersection_nominal_reconstruction():
     nominal_pos = SkyCoord(
         fov_lon=u.Quantity(reco_nominal[0], u.rad),
         fov_lat=u.Quantity(reco_nominal[1], u.rad),
-        frame=nominal_frame
+        frame=nominal_frame,
     )
 
-    np.testing.assert_allclose(nominal_pos.altaz.az.to_value(u.deg), azimuth.to_value(u.deg), atol=1e-8)
-    np.testing.assert_allclose(nominal_pos.altaz.alt.to_value(u.deg), altitude.to_value(u.deg), atol=1e-8)
+    np.testing.assert_allclose(
+        nominal_pos.altaz.az.to_value(u.deg), azimuth.to_value(u.deg), atol=1e-8
+    )
+    np.testing.assert_allclose(
+        nominal_pos.altaz.alt.to_value(u.deg), altitude.to_value(u.deg), atol=1e-8
+    )
 
 
 def test_reconstruction():
@@ -239,11 +248,7 @@ def test_reconstruction():
     reconstructed_events = 0
 
     for event in source:
-        array_pointing = SkyCoord(
-            az=event.mc.az,
-            alt=event.mc.alt,
-            frame=horizon_frame
-        )
+        array_pointing = SkyCoord(az=event.mc.az, alt=event.mc.alt, frame=horizon_frame)
 
         hillas_dict = {}
         telescope_pointings = {}
@@ -255,12 +260,13 @@ def test_reconstruction():
             telescope_pointings[tel_id] = SkyCoord(
                 alt=event.pointing.tel[tel_id].altitude,
                 az=event.pointing.tel[tel_id].azimuth,
-                frame=horizon_frame
+                frame=horizon_frame,
             )
             pmt_signal = event.r0.tel[tel_id].waveform[0].sum(axis=1)
 
-            mask = tailcuts_clean(geom, pmt_signal,
-                                  picture_thresh=10., boundary_thresh=5.)
+            mask = tailcuts_clean(
+                geom, pmt_signal, picture_thresh=10.0, boundary_thresh=5.0
+            )
             pmt_signal[mask == 0] = 0
 
             try:
@@ -276,7 +282,9 @@ def test_reconstruction():
             reconstructed_events += 1
 
         # divergent mode put to on even though the file has parallel pointing.
-        fit_result = fit.predict(hillas_dict, source.subarray, array_pointing, telescope_pointings)
+        fit_result = fit.predict(
+            hillas_dict, source.subarray, array_pointing, telescope_pointings
+        )
 
         print(fit_result)
         print(event.mc.core_x, event.mc.core_y)

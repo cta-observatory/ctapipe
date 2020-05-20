@@ -10,9 +10,9 @@ from ctapipe.image.extractor import NeighborPeakWindowSum
 from ctapipe.image.cleaning import dilate
 
 __all__ = [
-    'DataVolumeReducer',
-    'NullDataVolumeReducer',
-    'TailCutsDataVolumeReducer',
+    "DataVolumeReducer",
+    "NullDataVolumeReducer",
+    "TailCutsDataVolumeReducer",
 ]
 
 
@@ -22,12 +22,7 @@ class DataVolumeReducer(TelescopeComponent):
     """
 
     def __init__(
-        self,
-        config=None,
-        parent=None,
-        subarray=None,
-        image_extractor=None,
-        **kwargs
+        self, config=None, parent=None, subarray=None, image_extractor=None, **kwargs
     ):
         """
         Parameters
@@ -126,14 +121,14 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
        with ctapipe module dilate until no new pixels were added.
     3) Adding new pixels with dilate to get more conservative.
     """
+
     n_end_dilates = IntTelescopeParameter(
-        default_value=1,
-        help="Number of how many times to dilate at the end."
+        default_value=1, help="Number of how many times to dilate at the end."
     ).tag(config=True)
     do_boundary_dilation = BoolTelescopeParameter(
         default_value=True,
         help="If set to 'False', the iteration steps in 2) are skipped and"
-        "normal TailcutCleaning is used."
+        "normal TailcutCleaning is used.",
     ).tag(config=True)
 
     def select_pixels(self, waveforms, telid=None, selected_gain_channel=None):

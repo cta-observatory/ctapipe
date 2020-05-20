@@ -1,29 +1,21 @@
-
 import pytest
 import numpy as np
 from numpy.testing import assert_array_equal
 import astropy.units as u
 from traitlets.config import Config
 from ctapipe.instrument import SubarrayDescription, TelescopeDescription
-from ctapipe.image.reducer import (
-    NullDataVolumeReducer,
-    TailCutsDataVolumeReducer
-)
+from ctapipe.image.reducer import NullDataVolumeReducer, TailCutsDataVolumeReducer
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def subarray_lst():
     telid = 1
     subarray = SubarrayDescription(
         "test array lst",
         tel_positions={1: np.zeros(3) * u.m, 2: np.ones(3) * u.m},
         tel_descriptions={
-            1: TelescopeDescription.from_name(
-                optics_name="LST", camera_name="LSTCam"
-            ),
-            2: TelescopeDescription.from_name(
-                optics_name="LST", camera_name="LSTCam"
-            ),
+            1: TelescopeDescription.from_name(optics_name="LST", camera_name="LSTCam"),
+            2: TelescopeDescription.from_name(optics_name="LST", camera_name="LSTCam"),
         },
     )
 
@@ -58,8 +50,7 @@ def test_tailcuts_data_volume_reducer(subarray_lst):
     waveforms_signal[[10, 8, 6, 5]] = 50
 
     # pixels from dilate at the end in Step 3)
-    waveforms_signal[[0, 1, 4, 7, 11, 13, 121, 122,
-                      136, 137, 257, 258, 267, 272]] = 25
+    waveforms_signal[[0, 1, 4, 7, 11, 13, 121, 122, 136, 137, 257, 258, 267, 272]] = 25
 
     expected_waveforms = waveforms_signal.copy()
 
@@ -74,16 +65,14 @@ def test_tailcuts_data_volume_reducer(subarray_lst):
                     "picture_threshold_pe": 700.0,
                     "boundary_threshold_pe": 350.0,
                     "min_picture_neighbors": 0,
-                    "keep_isolated_pixels": True
+                    "keep_isolated_pixels": True,
                 },
                 "n_end_dilates": 1,
-                "do_boundary_dilation": True
+                "do_boundary_dilation": True,
             }
         }
     )
-    reducer = TailCutsDataVolumeReducer(
-        config=reduction_param, subarray=subarray
-    )
+    reducer = TailCutsDataVolumeReducer(config=reduction_param, subarray=subarray)
     reduced_waveforms = waveforms_signal.copy()
     reduced_waveforms_mask = reducer(
         waveforms_signal, telid=telid, selected_gain_channel=selected_gain_channel

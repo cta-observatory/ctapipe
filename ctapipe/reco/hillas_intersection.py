@@ -14,7 +14,7 @@ import astropy.units as u
 from ctapipe.reco.reco_algorithms import (
     Reconstructor,
     InvalidWidthException,
-    TooFewTelescopesException
+    TooFewTelescopesException,
 )
 from ctapipe.containers import ReconstructedShowerContainer
 from ctapipe.instrument import get_atmosphere_profile_functions
@@ -26,14 +26,14 @@ from ctapipe.coordinates import (
     TiltedGroundFrame,
     project_to_ground,
     GroundFrame,
-    MissingFrameAttributeWarning
+    MissingFrameAttributeWarning,
 )
 import copy
 import warnings
 
 from ctapipe.core import traits
 
-__all__ = ['HillasIntersection']
+__all__ = ["HillasIntersection"]
 
 
 class HillasIntersection(Reconstructor):
@@ -57,15 +57,11 @@ class HillasIntersection(Reconstructor):
     """
 
     atmosphere_profile_name = traits.CaselessStrEnum(
-        ['paranal', ],
-        default_value="paranal",
-        help="name of atmosphere profile to use"
+        ["paranal",], default_value="paranal", help="name of atmosphere profile to use"
     ).tag(config=True)
 
     weighting = traits.CaselessStrEnum(
-        ['Konrad', 'hess'],
-        default_value='Konrad',
-        help='Weighting Method name'
+        ["Konrad", "hess"], default_value="Konrad", help="Weighting Method name"
     ).tag(config=True)
 
     def __init__(self, config=None, parent=None, **kwargs):
@@ -105,37 +101,45 @@ class HillasIntersection(Reconstructor):
         """
 
         # filter warnings for missing obs time. this is needed because MC data has no obs time
-        warnings.filterwarnings(action='ignore', category=MissingFrameAttributeWarning)
+        warnings.filterwarnings(action="ignore", category=MissingFrameAttributeWarning)
 
         # stereoscopy needs at least two telescopes
         if len(hillas_dict) < 2:
             raise TooFewTelescopesException(
-                "need at least two telescopes, have {}"
-                .format(len(hillas_dict)))
+                "need at least two telescopes, have {}".format(len(hillas_dict))
+            )
 
         # check for np.nan or 0 width's as these screw up weights
-        if any([np.isnan(hillas_dict[tel]['width'].value) for tel in hillas_dict]):
+        if any([np.isnan(hillas_dict[tel]["width"].value) for tel in hillas_dict]):
             raise InvalidWidthException(
-                "A HillasContainer contains an ellipse of width==np.nan")
+                "A HillasContainer contains an ellipse of width==np.nan"
+            )
 
-        if any([hillas_dict[tel]['width'].value == 0 for tel in hillas_dict]):
+        if any([hillas_dict[tel]["width"].value == 0 for tel in hillas_dict]):
             raise InvalidWidthException(
-                "A HillasContainer contains an ellipse of width==0")
+                "A HillasContainer contains an ellipse of width==0"
+            )
 
         if telescopes_pointings is None:
-            telescopes_pointings = {tel_id: array_pointing for tel_id in hillas_dict.keys()}
+            telescopes_pointings = {
+                tel_id: array_pointing for tel_id in hillas_dict.keys()
+            }
 
         tilted_frame = TiltedGroundFrame(pointing_direction=array_pointing)
 
         ground_positions = subarray.tel_coords
-        grd_coord = GroundFrame(x=ground_positions.x,
-                                y=ground_positions.y,
-                                z=ground_positions.z)
+        grd_coord = GroundFrame(
+            x=ground_positions.x, y=ground_positions.y, z=ground_positions.z
+        )
 
         tilt_coord = grd_coord.transform_to(tilted_frame)
 
-        tel_x = {tel_id: tilt_coord.x[tel_id-1] for tel_id in list(hillas_dict.keys())}
-        tel_y = {tel_id: tilt_coord.y[tel_id-1] for tel_id in list(hillas_dict.keys())}
+        tel_x = {
+            tel_id: tilt_coord.x[tel_id - 1] for tel_id in list(hillas_dict.keys())
+        }
+        tel_y = {
+            tel_id: tilt_coord.y[tel_id - 1] for tel_id in list(hillas_dict.keys())
+        }
 
         nom_frame = NominalFrame(origin=array_pointing)
 
@@ -143,7 +147,7 @@ class HillasIntersection(Reconstructor):
 
         for tel_id, hillas in hillas_dict_mod.items():
             # prevent from using rads instead of meters as inputs
-            assert hillas.x.to(u.m).unit == u.Unit('m')
+            assert hillas.x.to(u.m).unit == u.Unit("m")
 
             focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
 
@@ -158,41 +162,36 @@ class HillasIntersection(Reconstructor):
 
         src_x, src_y, err_x, err_y = self.reconstruct_nominal(hillas_dict_mod)
         core_x, core_y, core_err_x, core_err_y = self.reconstruct_tilted(
-            hillas_dict_mod, tel_x, tel_y)
+            hillas_dict_mod, tel_x, tel_y
+        )
 
         err_x *= u.rad
         err_y *= u.rad
 
-        nom = SkyCoord(
-            fov_lon=src_x * u.rad,
-            fov_lat=src_y * u.rad,
-            frame=nom_frame
-        )
+        nom = SkyCoord(fov_lon=src_x * u.rad, fov_lat=src_y * u.rad, frame=nom_frame)
         # nom = sky_pos.transform_to(nom_frame)
         sky_pos = nom.transform_to(array_pointing.frame)
-        tilt = SkyCoord(
-            x=core_x * u.m,
-            y=core_y * u.m,
-            frame=tilted_frame,
-        )
+        tilt = SkyCoord(x=core_x * u.m, y=core_y * u.m, frame=tilted_frame,)
         grd = project_to_ground(tilt)
         x_max = self.reconstruct_xmax(
             nom.fov_lon,
             nom.fov_lat,
-            tilt.x, tilt.y,
+            tilt.x,
+            tilt.y,
             hillas_dict_mod,
-            tel_x, tel_y,
+            tel_x,
+            tel_y,
             90 * u.deg - array_pointing.alt,
         )
 
-        src_error = np.sqrt(err_x**2 + err_y**2)
+        src_error = np.sqrt(err_x ** 2 + err_y ** 2)
 
         result = ReconstructedShowerContainer(
             alt=sky_pos.altaz.alt.to(u.rad),
             az=sky_pos.altaz.az.to(u.rad),
             core_x=grd.x,
             core_y=grd.y,
-            core_uncert=u.Quantity(np.sqrt(core_err_x**2 + core_err_y**2), u.m),
+            core_uncert=u.Quantity(np.sqrt(core_err_x ** 2 + core_err_y ** 2), u.m),
             tel_ids=[h for h in hillas_dict_mod.keys()],
             average_intensity=np.mean([h.intensity for h in hillas_dict_mod.values()]),
             is_valid=True,
@@ -230,27 +229,34 @@ class HillasIntersection(Reconstructor):
         # Copy parameters we need to a numpy array to speed things up
         h1 = list(
             map(
-                lambda h: [h[0].psi.to_value(u.rad),
-                           h[0].x.to_value(u.rad),
-                           h[0].y.to_value(u.rad),
-                           h[0].intensity], hillas_pairs
+                lambda h: [
+                    h[0].psi.to_value(u.rad),
+                    h[0].x.to_value(u.rad),
+                    h[0].y.to_value(u.rad),
+                    h[0].intensity,
+                ],
+                hillas_pairs,
             )
         )
         h1 = np.array(h1)
         h1 = np.transpose(h1)
 
         h2 = list(
-            map(lambda h: [h[1].psi.to_value(u.rad),
-                           h[1].x.to_value(u.rad),
-                           h[1].y.to_value(u.rad),
-                           h[1].intensity], hillas_pairs)
+            map(
+                lambda h: [
+                    h[1].psi.to_value(u.rad),
+                    h[1].x.to_value(u.rad),
+                    h[1].y.to_value(u.rad),
+                    h[1].intensity,
+                ],
+                hillas_pairs,
+            )
         )
         h2 = np.array(h2)
         h2 = np.transpose(h2)
 
         # Perform intersection
-        sx, sy = self.intersect_lines(h1[1], h1[2], h1[0],
-                                      h2[1], h2[2], h2[0])
+        sx, sy = self.intersect_lines(h1[1], h1[2], h1[0], h2[1], h2[2], h2[0])
 
         # Weight by chosen method
         weight = self._weight_method(h1[3], h2[3])
@@ -312,17 +318,22 @@ class HillasIntersection(Reconstructor):
         tel_y = np.array(ty)
 
         # Copy parameters we need to a numpy array to speed things up
-        hillas1 = map(lambda h: [h[0].psi.to_value(u.rad), h[0].intensity], hillas_pairs)
+        hillas1 = map(
+            lambda h: [h[0].psi.to_value(u.rad), h[0].intensity], hillas_pairs
+        )
         hillas1 = np.array(list(hillas1))
         hillas1 = np.transpose(hillas1)
 
-        hillas2 = map(lambda h: [h[1].psi.to_value(u.rad), h[1].intensity], hillas_pairs)
+        hillas2 = map(
+            lambda h: [h[1].psi.to_value(u.rad), h[1].intensity], hillas_pairs
+        )
         hillas2 = np.array(list(hillas2))
         hillas2 = np.transpose(hillas2)
 
         # Perform intersection
-        crossing_x, crossing_y = self.intersect_lines(tel_x[:, 0], tel_y[:, 0], hillas1[0],
-                                                      tel_x[:, 1], tel_y[:, 1], hillas2[0])
+        crossing_x, crossing_y = self.intersect_lines(
+            tel_x[:, 0], tel_y[:, 0], hillas1[0], tel_x[:, 1], tel_y[:, 1], hillas2[0]
+        )
 
         # Weight by chosen method
         weight = self._weight_method(hillas1[1], hillas2[1])
@@ -337,8 +348,9 @@ class HillasIntersection(Reconstructor):
 
         return x_pos, y_pos, np.sqrt(var_x), np.sqrt(var_y)
 
-    def reconstruct_xmax(self, source_x, source_y, core_x, core_y,
-                         hillas_parameters, tel_x, tel_y, zen):
+    def reconstruct_xmax(
+        self, source_x, source_y, core_x, core_y, hillas_parameters, tel_x, tel_y, zen
+    ):
         """
         Geometrical depth of shower maximum reconstruction, assuming the shower
         maximum lies at the image centroid
@@ -383,14 +395,16 @@ class HillasIntersection(Reconstructor):
             tx.append(tel_x[tel].to_value(u.m))
             ty.append(tel_y[tel].to_value(u.m))
 
-        height = get_shower_height(source_x.to_value(u.rad),
-                                   source_y.to_value(u.rad),
-                                   np.array(cog_x),
-                                   np.array(cog_y),
-                                   core_x.to_value(u.m),
-                                   core_y.to_value(u.m),
-                                   np.array(tx),
-                                   np.array(ty))
+        height = get_shower_height(
+            source_x.to_value(u.rad),
+            source_y.to_value(u.rad),
+            np.array(cog_x),
+            np.array(cog_y),
+            core_x.to_value(u.m),
+            core_y.to_value(u.m),
+            np.array(tx),
+            np.array(ty),
+        )
         weight = np.array(amp)
         mean_height = np.sum(height * weight) / np.sum(weight)
 
@@ -448,9 +462,9 @@ class HillasIntersection(Reconstructor):
         b2 = -1 * cos_2
         c2 = yp2 * cos_2 - xp2 * sin_2
 
-        det_ab = (a1 * b2 - a2 * b1)
-        det_bc = (b1 * c2 - b2 * c1)
-        det_ca = (c1 * a2 - c2 * a1)
+        det_ab = a1 * b2 - a2 * b1
+        det_bc = b1 * c2 - b2 * c1
+        det_ca = c1 * a2 - c2 * a1
 
         # if  math.fabs(det_ab) < 1e-14 : # /* parallel */
         #    return 0,0
@@ -468,8 +482,9 @@ class HillasIntersection(Reconstructor):
         return np.abs(np.sin(phi1 - phi2))
 
 
-def get_shower_height(source_x, source_y, cog_x, cog_y,
-                      core_x, core_y, tel_pos_x, tel_pos_y):
+def get_shower_height(
+    source_x, source_y, cog_x, cog_y, core_x, core_y, tel_pos_x, tel_pos_y
+):
     """
     Function to calculate the depth of shower maximum geometrically under the assumption
     that the shower maximum lies at the brightest point of the camera image.
@@ -498,9 +513,9 @@ def get_shower_height(source_x, source_y, cog_x, cog_y,
     """
 
     # Calculate displacement of image centroid from source position (in rad)
-    disp = np.sqrt((cog_x - source_x)**2 + (cog_y - source_y)**2)
+    disp = np.sqrt((cog_x - source_x) ** 2 + (cog_y - source_y) ** 2)
     # Calculate impact parameter of the shower
-    impact = np.sqrt((tel_pos_x - core_x)**2 + (tel_pos_y - core_y)**2)
+    impact = np.sqrt((tel_pos_x - core_x) ** 2 + (tel_pos_y - core_y) ** 2)
 
     # Distance above telescope is ration of these two (small angle)
     height = impact / disp

@@ -5,6 +5,7 @@ from ctapipe.instrument import CameraGeometry
 
 def test_number_of_islands():
     from ctapipe.image import number_of_islands
+
     # test with LST geometry (1855 pixels)
     geom = CameraGeometry.from_name("LSTCam")
 

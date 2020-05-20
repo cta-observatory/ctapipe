@@ -22,7 +22,7 @@ def plot_peds(peds, pedvars):
     plt.title(f"Ped Variances for event {event.index.event_id}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     # if a filename is specified, use it, otherwise load sample data
     if len(sys.argv) > 1:
@@ -52,9 +52,7 @@ if __name__ == '__main__':
                 if traces.shape[1] == 1:
                     continue
 
-                peds, pedvars = pedestals.calc_pedestals_from_traces(
-                    traces, start, end
-                )
+                peds, pedvars = pedestals.calc_pedestals_from_traces(traces, start, end)
 
                 print("Number of samples: {}".format(traces.shape[1]))
                 print(f"Calculate over window:({start},{end})")

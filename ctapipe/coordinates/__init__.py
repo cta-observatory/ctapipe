@@ -1,6 +1,6 @@
-'''
+"""
 Coordinates.
-'''
+"""
 from astropy.coordinates import (
     AltAz,
     FunctionTransformWithFiniteDifference,
@@ -15,14 +15,14 @@ from .camera_frame import CameraFrame, EngineeringCameraFrame
 
 
 __all__ = [
-    'TelescopeFrame',
-    'CameraFrame',
-    'EngineeringCameraFrame',
-    'NominalFrame',
-    'GroundFrame',
-    'TiltedGroundFrame',
-    'project_to_ground',
-    'MissingFrameAttributeWarning',
+    "TelescopeFrame",
+    "CameraFrame",
+    "EngineeringCameraFrame",
+    "NominalFrame",
+    "GroundFrame",
+    "TiltedGroundFrame",
+    "project_to_ground",
+    "MissingFrameAttributeWarning",
 ]
 
 
@@ -36,17 +36,13 @@ class MissingFrameAttributeWarning(Warning):
 # This forbids it to use AltAz without setting location and obstime
 # here, the astropy behaviour is defined so that it is assumed,
 # that if no information about location or obstime is known, both are the same
-@frame_transform_graph.transform(
-    FunctionTransformWithFiniteDifference,
-    AltAz,
-    AltAz
-)
+@frame_transform_graph.transform(FunctionTransformWithFiniteDifference, AltAz, AltAz)
 def altaz_to_altaz(from_coo, to_frame):
     # check if coordinates have obstimes defined
     obstime = from_coo.obstime
     if from_coo.obstime is None:
         warnings.warn(
-            'AltAz coordinate has no obstime, assuming same frame',
+            "AltAz coordinate has no obstime, assuming same frame",
             MissingFrameAttributeWarning,
         )
         obstime = to_frame.obstime
@@ -54,7 +50,7 @@ def altaz_to_altaz(from_coo, to_frame):
     location = from_coo.location
     if from_coo.obstime is None:
         warnings.warn(
-            'Horizontal coordinate has no location, assuming same frame',
+            "Horizontal coordinate has no location, assuming same frame",
             MissingFrameAttributeWarning,
         )
         location = to_frame.location

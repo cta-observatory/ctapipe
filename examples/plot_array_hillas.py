@@ -11,17 +11,15 @@ from astropy import units as u
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.coordinates import TiltedGroundFrame, MissingFrameAttributeWarning
-from ctapipe.image import (
-    hillas_parameters, tailcuts_clean, HillasParameterizationError
-)
+from ctapipe.image import hillas_parameters, tailcuts_clean, HillasParameterizationError
 from ctapipe.image import timing_parameters
 from ctapipe.io import event_source
 from ctapipe.utils import datasets
 from ctapipe.visualization import ArrayDisplay
 import warnings
 
-if __name__ == '__main__':
-    warnings.filterwarnings('ignore', category=MissingFrameAttributeWarning)
+if __name__ == "__main__":
+    warnings.filterwarnings("ignore", category=MissingFrameAttributeWarning)
 
     # importing data from avaiable datasets in ctapipe
     filename = datasets.get_dataset_path("gamma_test_large.simtel.gz")
@@ -62,23 +60,19 @@ if __name__ == '__main__':
         # plot the core position, which must be transformed from the tilted
         # system to the system that the ArrayDisplay is in (default
         # GroundFrame)
-        point_dir = SkyCoord(
-            *event.mcheader.run_array_direction,
-            frame=AltAz()
-        )
+        point_dir = SkyCoord(*event.mcheader.run_array_direction, frame=AltAz())
         tiltedframe = TiltedGroundFrame(pointing_direction=point_dir)
         if markers:
             for marker in markers:
                 marker.remove()
 
         core_coord = SkyCoord(
-            x=event.mc.core_x,
-            y=event.mc.core_y,
-            frame=tiltedframe
+            x=event.mc.core_x, y=event.mc.core_y, frame=tiltedframe
         ).transform_to(array_disp.frame)
 
-        markers = ax.plot([core_coord.x.value, ], [core_coord.y.value, ],
-                          "r+", markersize=10)
+        markers = ax.plot(
+            [core_coord.x.value,], [core_coord.y.value,], "r+", markersize=10
+        )
 
         # plot the hit pattern (triggered tels).
         # first expand the tels_with_data list into a fixed-length vector,

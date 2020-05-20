@@ -1,7 +1,8 @@
 from matplotlib.cm import get_cmap
 import numpy as np
 import codecs
-viridis = get_cmap('viridis')
+
+viridis = get_cmap("viridis")
 
 
 def intensity_to_rgb(array, minval=None, maxval=None):
@@ -58,13 +59,13 @@ def intensity_to_hex(array, minval=None, maxval=None):
         hex strings representing the intensity as a color
 
     """
-    hex_ = np.zeros((array.size, 9), dtype='B')
+    hex_ = np.zeros((array.size, 9), dtype="B")
     rgb = intensity_to_rgb(array, minval, maxval)
 
-    hex_encoded = codecs.encode(rgb, 'hex')
-    bytes_ = np.frombuffer(hex_encoded, 'B')
+    hex_encoded = codecs.encode(rgb, "hex")
+    bytes_ = np.frombuffer(hex_encoded, "B")
     bytes_2d = bytes_.reshape(-1, 8)
-    hex_[:, 0] = ord('#')
+    hex_[:, 0] = ord("#")
     hex_[:, 1:9] = bytes_2d
 
-    return hex_.view('S9').astype('U9')[:, 0]
+    return hex_.view("S9").astype("U9")[:, 0]

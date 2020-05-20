@@ -367,14 +367,14 @@ def export_tool_config_to_commented_yaml(tool_instance: Tool, classes=None):
 
 
 def run_tool(tool: Tool, argv=None):
-    '''
+    """
     Utility run a certain tool in a python session without exitinig
 
     Returns
     -------
     exit_code: int
         The return code of the tool, 0 indicates success, everything else an error
-    '''
+    """
     try:
         tool.run(argv or [])
         return 0

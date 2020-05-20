@@ -4,10 +4,10 @@ import astropy.units as u
 from ctapipe.utils import get_dataset_path
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def subarray():
 
-    lst = TelescopeDescription.from_name('LST', 'LSTCam')
+    lst = TelescopeDescription.from_name("LST", "LSTCam")
     tels = [lst] * 4
 
     positions = {
@@ -18,7 +18,7 @@ def subarray():
     }
     descriptions = {i: t for i, t in enumerate(tels, start=1)}
 
-    return SubarrayDescription('test', positions, descriptions)
+    return SubarrayDescription("test", positions, descriptions)
 
 
 def test_toyeventsource(subarray):
@@ -36,5 +36,7 @@ def test_toyeventsource(subarray):
 def test_is_compatible():
     from ctapipe.io.toymodel import ToyEventSource
 
-    assert not ToyEventSource.is_compatible('test.fits.gz')
-    assert not ToyEventSource.is_compatible(get_dataset_path('gamma_test_large.simtel.gz'))
+    assert not ToyEventSource.is_compatible("test.fits.gz")
+    assert not ToyEventSource.is_compatible(
+        get_dataset_path("gamma_test_large.simtel.gz")
+    )

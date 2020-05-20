@@ -73,21 +73,21 @@ def test_prefix(tmp_path):
 
 def test_units():
     class WithUnits(Container):
-        inverse_length = Field(5 / u.m, 'foo')
-        time = Field(1 * u.s, 'bar', unit=u.s)
-        grammage = Field(2 * u.g / u.cm**2, 'baz', unit=u.g / u.cm**2)
+        inverse_length = Field(5 / u.m, "foo")
+        time = Field(1 * u.s, "bar", unit=u.s)
+        grammage = Field(2 * u.g / u.cm ** 2, "baz", unit=u.g / u.cm ** 2)
 
     c = WithUnits()
 
     with tempfile.NamedTemporaryFile() as f:
         with HDF5TableWriter(f.name, "data") as writer:
-            writer.write('units', c)
+            writer.write("units", c)
 
-        with tables.open_file(f.name, 'r') as f:
+        with tables.open_file(f.name, "r") as f:
 
-            assert f.root.data.units.attrs['inverse_length_UNIT'] == 'm-1'
-            assert f.root.data.units.attrs['time_UNIT'] == 's'
-            assert f.root.data.units.attrs['grammage_UNIT'] == 'cm-2 g'
+            assert f.root.data.units.attrs["inverse_length_UNIT"] == "m-1"
+            assert f.root.data.units.attrs["time_UNIT"] == "s"
+            assert f.root.data.units.attrs["grammage_UNIT"] == "cm-2 g"
 
 
 def test_write_containers(temp_h5_file):
@@ -112,7 +112,7 @@ def test_write_containers(temp_h5_file):
 
 def test_write_bool():
     class C(Container):
-        boolean = Field(True, 'Boolean value')
+        boolean = Field(True, "Boolean value")
 
     with tempfile.NamedTemporaryFile() as f:
         with HDF5TableWriter(f.name, "test") as writer:
@@ -122,7 +122,7 @@ def test_write_bool():
 
         c = C()
         with HDF5TableReader(f.name) as reader:
-            c_reader = reader.read('/test/c', c)
+            c_reader = reader.read("/test/c", c)
             for i in range(2):
                 cur = next(c_reader)
                 expected = (i % 2) == 0
@@ -132,21 +132,21 @@ def test_write_bool():
 
 def test_write_large_integer():
     class C(Container):
-        value = Field(True, 'Integer value')
+        value = Field(True, "Integer value")
 
     exps = [15, 31, 63]
     with tempfile.NamedTemporaryFile() as f:
         with HDF5TableWriter(f.name, "test") as writer:
             for exp in exps:
-                c = C(value=2**exp - 1)
+                c = C(value=2 ** exp - 1)
                 writer.write("c", c)
 
         c = C()
         with HDF5TableReader(f.name) as reader:
-            c_reader = reader.read('/test/c', c)
+            c_reader = reader.read("/test/c", c)
             for exp in exps:
                 cur = next(c_reader)
-                assert cur.value == 2**exp - 1
+                assert cur.value == 2 ** exp - 1
 
 
 def test_read_container(temp_h5_file):
@@ -435,62 +435,64 @@ def test_filters():
     from tables import Filters, open_file
 
     class TestContainer(Container):
-        value = Field(-1, 'test')
+        value = Field(-1, "test")
 
     no_comp = Filters(complevel=0)
-    zstd = Filters(complevel=5, complib='blosc:zstd')
+    zstd = Filters(complevel=5, complib="blosc:zstd")
 
-    with tempfile.NamedTemporaryFile(suffix='.hdf5') as f:
-        with HDF5TableWriter(f.name, group_name='data', mode='w', filters=no_comp) as writer:
+    with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
+        with HDF5TableWriter(
+            f.name, group_name="data", mode="w", filters=no_comp
+        ) as writer:
             assert writer._h5file.filters.complevel == 0
 
             c = TestContainer(value=5)
-            writer.write('default', c)
+            writer.write("default", c)
 
             writer.filters = zstd
-            writer.write('zstd', c)
+            writer.write("zstd", c)
 
             writer.filters = no_comp
-            writer.write('nocomp', c)
+            writer.write("nocomp", c)
 
         with open_file(f.name) as h5file:
             assert h5file.root.data.default.filters.complevel == 0
             assert h5file.root.data.zstd.filters.complevel == 5
-            assert h5file.root.data.zstd.filters.complib == 'blosc:zstd'
+            assert h5file.root.data.zstd.filters.complib == "blosc:zstd"
             assert h5file.root.data.nocomp.filters.complevel == 0
 
 
 def test_column_order():
-    ''' Test that columns are written in the order the containers define them'''
+    """ Test that columns are written in the order the containers define them"""
 
     class Container1(Container):
-        b = Field(1, 'b')
-        a = Field(2, 'a')
+        b = Field(1, "b")
+        a = Field(2, "a")
 
     class Container2(Container):
-        d = Field(3, 'd')
-        c = Field(4, 'c')
+        d = Field(3, "d")
+        c = Field(4, "c")
 
     # test with single container
-    with tempfile.NamedTemporaryFile(suffix='.hdf5') as f:
-        with HDF5TableWriter(f.name, mode='w') as writer:
+    with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
+        with HDF5TableWriter(f.name, mode="w") as writer:
             c = Container1()
-            writer.write('foo', c)
+            writer.write("foo", c)
 
-        with tables.open_file(f.name, 'r') as f:
-            assert f.root.foo[:].dtype.names == ('b', 'a')
+        with tables.open_file(f.name, "r") as f:
+            assert f.root.foo[:].dtype.names == ("b", "a")
 
     # test with two containers
-    with tempfile.NamedTemporaryFile(suffix='.hdf5') as f:
-        with HDF5TableWriter(f.name, mode='w') as writer:
+    with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
+        with HDF5TableWriter(f.name, mode="w") as writer:
             c1 = Container1()
             c2 = Container2()
-            writer.write('foo', [c2, c1])
-            writer.write('bar', [c1, c2])
+            writer.write("foo", [c2, c1])
+            writer.write("bar", [c1, c2])
 
-        with tables.open_file(f.name, 'r') as f:
-            assert f.root.foo[:].dtype.names == ('d', 'c', 'b', 'a')
-            assert f.root.bar[:].dtype.names == ('b', 'a', 'd', 'c')
+        with tables.open_file(f.name, "r") as f:
+            assert f.root.foo[:].dtype.names == ("d", "c", "b", "a")
+            assert f.root.bar[:].dtype.names == ("b", "a", "d", "c")
 
 
 def test_writing_nan_defaults():
@@ -498,9 +500,9 @@ def test_writing_nan_defaults():
 
     params = ImageParametersContainer()
 
-    with tempfile.NamedTemporaryFile(suffix='.hdf5') as f:
-        with HDF5TableWriter(f.name, mode='w') as writer:
-            writer.write('params', params.values())
+    with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
+        with HDF5TableWriter(f.name, mode="w") as writer:
+            writer.write("params", params.values())
 
 
 ALL_CONTAINERS = []
@@ -513,17 +515,17 @@ for name in dir(containers):
         pass
 
 
-@pytest.mark.parametrize('cls', ALL_CONTAINERS)
+@pytest.mark.parametrize("cls", ALL_CONTAINERS)
 def test_write_default_container(cls):
 
-    with tempfile.NamedTemporaryFile(suffix='.hdf5') as f:
-        with HDF5TableWriter(f.name, mode='w') as writer:
+    with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
+        with HDF5TableWriter(f.name, mode="w") as writer:
             try:
-                writer.write('params', cls())
+                writer.write("params", cls())
             except ValueError as e:
                 # some containers do not have writable members,
                 # only subcontainers. For now, ignore them.
-                if 'cannot create an empty data type' in str(e):
+                if "cannot create an empty data type" in str(e):
                     pytest.xfail()
                 else:
                     raise
