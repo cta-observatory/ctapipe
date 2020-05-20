@@ -26,7 +26,7 @@ def skewness(data, mean=None, std=None):
     '''
     mean = mean or np.mean(data)
     std = std or np.std(data)
-    return np.average(((data - mean) / std)**3)
+    return np.mean(((data - mean) / std)**3)
 
 
 def kurtosis(data, mean=None, std=None, fisher=True):
@@ -55,7 +55,7 @@ def kurtosis(data, mean=None, std=None, fisher=True):
     '''
     mean = mean or np.mean(data)
     std = std or np.std(data)
-    kurt = np.average(((data - mean) / std)**4)
+    kurt = np.mean(((data - mean) / std)**4)
     if fisher is True:
         kurt -= 3.0
     return kurt
