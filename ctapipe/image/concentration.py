@@ -1,6 +1,5 @@
 import numpy as np
 import astropy.units as u
-from numba import njit
 
 from ..containers import ConcentrationContainer
 from .hillas import camera_to_shower_coordinates

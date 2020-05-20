@@ -3,9 +3,11 @@ Image timing-based shower image parametrization.
 """
 
 import numpy as np
+import astropy.units as u
 from numpy.polynomial.polynomial import polyval
-from ctapipe.containers import TimingParametersContainer
+from ..containers import TimingParametersContainer
 from .hillas import camera_to_shower_coordinates
+from ..utils.quantities import all_to_value
 
 
 __all__ = ["timing_parameters"]
@@ -44,17 +46,19 @@ def timing_parameters(geom, image, peak_time, hillas_parameters, cleaning_mask=N
     if (image < 0).any():
         raise ValueError("The non-masked pixels must verify signal >= 0")
 
-    pix_x = geom.pix_x
-    pix_y = geom.pix_y
+    h = hillas_parameters
+    pix_x, pix_y, x, y, length, width = all_to_value(
+        geom.pix_x, geom.pix_y, h.x, h.y, h.length, h.width, unit=unit
+    )
 
-    longi, trans = camera_to_shower_coordinates(
-        pix_x, pix_y, hillas_parameters.x, hillas_parameters.y, hillas_parameters.psi
+    longi, _ = camera_to_shower_coordinates(
+        pix_x, pix_y, x, y, hillas_parameters.psi.to_value(u.rad)
     )
     (slope, intercept), cov = np.polyfit(
-        longi.value, peak_time, deg=1, w=np.sqrt(image), cov=True,
+        longi, peak_time, deg=1, w=np.sqrt(image), cov=True
     )
     slope_err, intercept_err = np.sqrt(np.diag(cov))
-    predicted_time = polyval(longi.value, (intercept, slope))
+    predicted_time = polyval(longi, (intercept, slope))
     deviation = np.sqrt(np.sum((peak_time - predicted_time) ** 2) / peak_time.size)
 
     return TimingParametersContainer(
