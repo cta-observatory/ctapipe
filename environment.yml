@@ -42,6 +42,5 @@ dependencies:
   - xz
   - zlib
   - zstandard
-  - pip:
-    - eventio~=1.0
-    - https://github.com/cta-observatory/ctapipe-extra/archive/v0.3.0.tar.gz
+  - eventio>=1.1.1
+  - ctapipe-extra>=0.3
