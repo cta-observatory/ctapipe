@@ -6,7 +6,7 @@ from ..containers import StatisticsContainer
 
 @njit()
 def skewness(data, mean=None, std=None):
-    '''Calculate skewnewss (normalized third central moment)
+    """Calculate skewnewss (normalized third central moment)
     with allowing precomputed mean and std.
 
     With precomputed mean and std, this is ~10x faster than scipy.stats.skew
@@ -27,15 +27,15 @@ def skewness(data, mean=None, std=None):
     -------
     skewness: float
         computed skewness
-    '''
+    """
     mean = mean or np.mean(data)
     std = std or np.std(data)
-    return np.mean(((data - mean) / std)**3)
+    return np.mean(((data - mean) / std) ** 3)
 
 
 @njit()
 def kurtosis(data, mean=None, std=None, fisher=True):
-    '''Calculate kurtosis (normalized fourth central moment)
+    """Calculate kurtosis (normalized fourth central moment)
     with allowing precomputed mean and std.
 
     With precomputed mean and std, this is ~10x faster than scipy.stats.skew
@@ -59,10 +59,10 @@ def kurtosis(data, mean=None, std=None, fisher=True):
     -------
     kurtosis: float
         kurtosis
-    '''
+    """
     mean = mean or np.mean(data)
     std = std or np.std(data)
-    kurt = np.mean(((data - mean) / std)**4)
+    kurt = np.mean(((data - mean) / std) ** 4)
     if fisher is True:
         kurt -= 3.0
     return kurt

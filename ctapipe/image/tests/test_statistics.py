@@ -24,8 +24,7 @@ def test_kurtosis():
 
     assert np.isclose(kurtosis(data), scipy.stats.kurtosis(data))
     assert np.isclose(
-        kurtosis(data, fisher=False),
-        scipy.stats.kurtosis(data, fisher=False),
+        kurtosis(data, fisher=False), scipy.stats.kurtosis(data, fisher=False)
     )
 
 
