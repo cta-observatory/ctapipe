@@ -9,6 +9,8 @@ from ..containers import TimingParametersContainer
 from .hillas import camera_to_shower_coordinates
 from ..utils.quantities import all_to_value
 
+from scipy.stats import siegelslopes
+
 
 __all__ = ["timing_parameters"]
 
@@ -54,10 +56,13 @@ def timing_parameters(geom, image, peak_time, hillas_parameters, cleaning_mask=N
     longi, _ = camera_to_shower_coordinates(
         pix_x, pix_y, x, y, hillas_parameters.psi.to_value(u.rad)
     )
-    (slope, intercept), cov = np.polyfit(
-        longi, peak_time, deg=1, w=np.sqrt(image), cov=True
-    )
+
+    # use polyfit just to get the covariance matrix and errors
+    (_s, _i), cov = np.polyfit(longi, peak_time, deg=1, w=np.sqrt(image), cov=True)
     slope_err, intercept_err = np.sqrt(np.diag(cov))
+
+    # re-fit using a robust-to-outlier algorithm
+    slope, intercept = siegelslopes(x=longi, y=peak_time)
     predicted_time = polyval(longi, (intercept, slope))
     deviation = np.sqrt(np.sum((peak_time - predicted_time) ** 2) / peak_time.size)
 
