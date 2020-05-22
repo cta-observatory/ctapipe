@@ -10,23 +10,33 @@ def test_number_of_islands():
     geom = CameraGeometry.from_name("LSTCam")
 
     # create 18 triggered pixels grouped to 5 clusters
-    island_mask_true = np.zeros(geom.n_pixels)
     mask = np.zeros(geom.n_pixels).astype("bool")
     triggered_pixels = np.array(
         [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 37, 38, 111, 222]
     )
-    island_mask_true[[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]] = 1
-    island_mask_true[14] = 2
-    island_mask_true[[37, 38]] = 3
-    island_mask_true[111] = 4
-    island_mask_true[222] = 5
-    mask[triggered_pixels] = 1
+    mask[triggered_pixels] = True
 
-    n_islands, island_mask = number_of_islands(geom, mask)
+    print(triggered_pixels)
+
+    island_labels_true = np.zeros(geom.n_pixels, dtype=np.int16)
+    island_labels_true[[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]] = 1
+    island_labels_true[14] = 2
+    island_labels_true[[37, 38]] = 3
+    island_labels_true[111] = 4
+    island_labels_true[222] = 5
+
+    print(island_labels_true[mask])
+
+    n_islands, island_labels = number_of_islands(geom, mask)
     n_islands_true = 5
+    # non cleaning pixels should be zero
+    assert np.all(island_labels[~mask] == 0)
+    # all other should have some label
+    assert np.all(island_labels[mask] > 0)
+
     assert n_islands == n_islands_true
-    assert_allclose(island_mask, island_mask_true)
-    assert island_mask.dtype == np.int32
+    assert_allclose(island_labels, island_labels_true)
+    assert island_labels.dtype == np.int16
 
 
 def test_number_of_island_sizes():

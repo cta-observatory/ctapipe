@@ -1,7 +1,40 @@
 import numpy as np
-from scipy.sparse.csgraph import connected_components
-
+from numba import njit
 from ..containers import MorphologyContainer
+
+
+@njit
+def _num_islands_sparse_indices(indices, indptr, mask):
+
+    labels = np.zeros(len(mask), dtype=np.int16)
+    cleaning_pixels = np.where(mask)[0]
+    current_island = 0
+
+    to_check = set()
+    for idx in cleaning_pixels:
+
+        # we already visited this pixel
+        if labels[idx] != 0:
+            continue
+
+        # start a new island
+        current_island += 1
+        labels[idx] = current_island
+
+        # check neighbors recursively
+        neighbors = indices[indptr[idx] : indptr[idx + 1]]
+        for i in range(len(neighbors)):
+            to_check.add(neighbors[i])
+
+        while to_check:
+            idx = to_check.pop()
+            if mask[idx] and labels[idx] == 0:
+                labels[idx] = current_island
+
+                neighbors = indices[indptr[idx] : indptr[idx + 1]]
+                for i in range(len(neighbors)):
+                    to_check.add(neighbors[i])
+    return current_island, labels
 
 
 def number_of_islands(geom, mask):
@@ -25,18 +58,10 @@ def number_of_islands(geom, mask):
         Dimension equals input geometry.
         Entries range from 0 (not in the pixel mask) to num_islands.
     """
-    # compress sparse neighbor matrix
-    neighbor_matrix_compressed = geom.neighbor_matrix_sparse[mask][:, mask]
-    # pixels in no cluster have label == 0
-    island_labels = np.zeros(geom.n_pixels, dtype="int32")
-
-    num_islands, island_labels_compressed = connected_components(
-        neighbor_matrix_compressed, directed=False
+    neighbors = geom.neighbor_matrix_sparse
+    num_islands, island_labels = _num_islands_sparse_indices(
+        neighbors.indices, neighbors.indptr, mask
     )
-
-    # count clusters from 1 onwards
-    island_labels[mask] = island_labels_compressed + 1
-
     return num_islands, island_labels
 
 
