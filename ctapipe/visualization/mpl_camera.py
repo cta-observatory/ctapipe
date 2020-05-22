@@ -415,7 +415,7 @@ class CameraDisplay:
             centroid=(cen_x, cen_y),
             length=length * 2,
             width=width * 2,
-            angle=hillas_parameters.psi.rad,
+            angle=hillas_parameters.psi.to_value(u.rad),
             **kwargs,
         )
 
