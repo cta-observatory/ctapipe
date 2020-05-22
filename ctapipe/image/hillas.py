@@ -14,10 +14,7 @@ from ..containers import HillasParametersContainer
 HILLAS_ATOL = np.finfo(np.float64).eps
 
 
-__all__ = [
-    "hillas_parameters",
-    "HillasParameterizationError",
-]
+__all__ = ["hillas_parameters", "HillasParameterizationError"]
 
 
 def camera_to_shower_coordinates(x, y, cog_x, cog_y, psi):
@@ -170,11 +167,11 @@ def hillas_parameters(geom, image):
         x=u.Quantity(cog_x, unit),
         y=u.Quantity(cog_y, unit),
         r=u.Quantity(cog_r, unit),
-        phi=Angle(cog_phi, unit=u.rad),
+        phi=u.Quantity(cog_phi, unit=u.rad),
         intensity=size,
         length=u.Quantity(length, unit),
         width=u.Quantity(width, unit),
-        psi=Angle(psi, unit=u.rad),
+        psi=u.Quantity(psi, unit=u.rad),
         skewness=skewness_long,
         kurtosis=kurtosis_long,
     )
