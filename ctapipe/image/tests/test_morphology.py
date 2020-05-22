@@ -16,16 +16,12 @@ def test_number_of_islands():
     )
     mask[triggered_pixels] = True
 
-    print(triggered_pixels)
-
     island_labels_true = np.zeros(geom.n_pixels, dtype=np.int16)
     island_labels_true[[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]] = 1
     island_labels_true[14] = 2
     island_labels_true[[37, 38]] = 3
     island_labels_true[111] = 4
     island_labels_true[222] = 5
-
-    print(island_labels_true[mask])
 
     n_islands, island_labels = number_of_islands(geom, mask)
     n_islands_true = 5

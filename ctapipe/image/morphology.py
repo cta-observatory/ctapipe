@@ -8,14 +8,20 @@ def _num_islands_sparse_indices(indices, indptr, mask):
 
     labels = np.zeros(len(mask), dtype=np.int16)
     cleaning_pixels = np.where(mask)[0]
+    n_cleaning_pixels = len(cleaning_pixels)
     current_island = 0
 
-    to_check = set()
-    for idx in cleaning_pixels:
+    visited = np.zeros(len(mask), dtype=np.bool_)
+    to_check = []
+
+    for i in range(n_cleaning_pixels):
+        idx = cleaning_pixels[i]
 
         # we already visited this pixel
-        if labels[idx] != 0:
+        if visited[idx]:
             continue
+
+        visited[idx] = True
 
         # start a new island
         current_island += 1
@@ -23,17 +29,22 @@ def _num_islands_sparse_indices(indices, indptr, mask):
 
         # check neighbors recursively
         neighbors = indices[indptr[idx] : indptr[idx + 1]]
-        for i in range(len(neighbors)):
-            to_check.add(neighbors[i])
+        for n in range(len(neighbors)):
+            to_check.append(neighbors[n])
 
-        while to_check:
+        while len(to_check) > 0:
             idx = to_check.pop()
-            if mask[idx] and labels[idx] == 0:
+            visited[idx] = True
+
+            if mask[idx]:
                 labels[idx] = current_island
 
                 neighbors = indices[indptr[idx] : indptr[idx + 1]]
-                for i in range(len(neighbors)):
-                    to_check.add(neighbors[i])
+
+                for n in range(len(neighbors)):
+                    if not visited[neighbors[n]]:
+                        to_check.append(neighbors[n])
+
     return current_island, labels
 
 
