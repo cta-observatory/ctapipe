@@ -6,22 +6,23 @@ from ..containers import MorphologyContainer
 @njit
 def _num_islands_sparse_indices(indices, indptr, mask):
 
+    # non-signal pixel get label == 0, we marke the cleaning
+    # pixels with -1, so we only have to check labels and not labels and mask
+    # from now on.
     labels = np.zeros(len(mask), dtype=np.int16)
+    labels[mask] = -1
+
     cleaning_pixels = np.where(mask)[0]
     n_cleaning_pixels = len(cleaning_pixels)
     current_island = 0
 
-    visited = np.zeros(len(mask), dtype=np.bool_)
     to_check = []
-
     for i in range(n_cleaning_pixels):
         idx = cleaning_pixels[i]
 
         # we already visited this pixel
-        if visited[idx]:
+        if labels[idx] != -1:
             continue
-
-        visited[idx] = True
 
         # start a new island
         current_island += 1
@@ -30,20 +31,20 @@ def _num_islands_sparse_indices(indices, indptr, mask):
         # check neighbors recursively
         neighbors = indices[indptr[idx] : indptr[idx + 1]]
         for n in range(len(neighbors)):
-            to_check.append(neighbors[n])
+            neighbor = neighbors[n]
+            if labels[neighbor] == -1:
+                to_check.append(neighbor)
 
         while len(to_check) > 0:
             idx = to_check.pop()
-            visited[idx] = True
+            labels[idx] = current_island
 
-            if mask[idx]:
-                labels[idx] = current_island
+            neighbors = indices[indptr[idx] : indptr[idx + 1]]
+            for n in range(len(neighbors)):
+                neighbor = neighbors[n]
 
-                neighbors = indices[indptr[idx] : indptr[idx + 1]]
-
-                for n in range(len(neighbors)):
-                    if not visited[neighbors[n]]:
-                        to_check.append(neighbors[n])
+                if labels[neighbor] == -1:
+                    to_check.append(neighbor)
 
     return current_island, labels
 
