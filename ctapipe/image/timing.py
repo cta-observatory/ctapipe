@@ -43,11 +43,11 @@ def linear_regression(x, y):
 
     cov = np.linalg.inv(X.T @ X)
     params = cov @ X.T @ y
-    return params[0], params[1], cov
+    return params[0][0], params[1][0], cov
 
 
 @njit(cache=True)
-def sigma_clipping_linreg(x, y, kappa=3, n_iter=3):
+def sigma_clipping_linreg(x, y, kappa=2.5, n_iter=3):
     """
     Linear regression with sigma clipping.
     Iteratively perform a linear regression, excluding points
@@ -76,12 +76,13 @@ def sigma_clipping_linreg(x, y, kappa=3, n_iter=3):
     """
 
     a, b, cov = linear_regression(x, y)
+    mask = np.ones(len(x), dtype=np.bool_)
 
     for i in range(n_iter):
         delta = y - (a * x + b)
         sigma = np.std(delta)
+        mask &= np.abs(delta) < (kappa * sigma)
 
-        mask = delta < (kappa * sigma)
         a, b, cov = linear_regression(x[mask], y[mask])
 
     return a, b, cov
