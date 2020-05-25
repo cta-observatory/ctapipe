@@ -3,7 +3,7 @@ from numba import njit
 from ..containers import MorphologyContainer
 
 
-@njit
+@njit(cache=True)
 def _num_islands_sparse_indices(indices, indptr, mask):
 
     # non-signal pixel get label == 0, we marke the cleaning

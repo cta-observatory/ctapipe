@@ -14,7 +14,7 @@ from ..utils.quantities import all_to_value
 __all__ = ["timing_parameters"]
 
 
-@njit
+@njit(cache=True)
 def linear_regression(x, y):
     """
     njit version of a least squares linear regression
@@ -46,7 +46,7 @@ def linear_regression(x, y):
     return params[0], params[1], cov
 
 
-@njit
+@njit(cache=True)
 def sigma_clipping_linreg(x, y, kappa=3, n_iter=3):
     """
     Linear regression with sigma clipping.
@@ -129,7 +129,9 @@ def timing_parameters(geom, image, peak_time, hillas_parameters, cleaning_mask=N
         pix_x, pix_y, x, y, hillas_parameters.psi.to_value(u.rad)
     )
 
-    slope, intercept, cov = sigma_clipping_linreg(x=longi, y=peak_time)
+    slope, intercept, cov = sigma_clipping_linreg(
+        x=longi, y=peak_time.astype("float64")
+    )
     slope_err, intercept_err = np.sqrt(np.diag(cov))
 
     predicted_time = slope * longi + intercept

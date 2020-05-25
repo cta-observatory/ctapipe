@@ -38,6 +38,7 @@ from .hillas import hillas_parameters, camera_to_shower_coordinates
     ],
     "(s),(),(),(),()->(),()",
     nopython=True,
+    cache=True,
 )
 def extract_around_peak(
     waveforms, peak_index, width, shift, sampling_rate_ghz, sum_, peak_time
@@ -887,11 +888,7 @@ class TwoPassWindowSum(ImageExtractor):
 
         # get projected distances along main image axis
         long, _ = camera_to_shower_coordinates(
-            camera_geometry.pix_x,
-            camera_geometry.pix_y,
-            hillas.x,
-            hillas.y,
-            hillas.psi,
+            camera_geometry.pix_x, camera_geometry.pix_y, hillas.x, hillas.y, hillas.psi
         )
 
         # get the predicted times as a linear relation
@@ -1022,7 +1019,7 @@ class TwoPassWindowSum(ImageExtractor):
             )
 
         charge2, pulse_time2 = self._apply_second_pass(
-            waveforms, telid, selected_gain_channel, charge1, pulse_time1, correction1,
+            waveforms, telid, selected_gain_channel, charge1, pulse_time1, correction1
         )
         # FIXME: properly make sure that output is 32Bit instead of downcasting here
         return charge2.astype("float32"), pulse_time2.astype("float32")
