@@ -15,7 +15,7 @@ __all__ = ["timing_parameters"]
 
 
 @njit(cache=True)
-def linear_regression(x, y):
+def linear_regression(x, y, weights):
     """
     njit version of a least squares linear regression
 
@@ -40,14 +40,15 @@ def linear_regression(x, y):
     X = np.empty((len(x), 2))
     X[:, 0] = x
     X[:, 1] = 1
+    W = np.diag(weights)
 
-    cov = np.linalg.inv(X.T @ X)
-    params = cov @ X.T @ y
+    cov = np.linalg.inv(X.T @ W @ X)
+    params = cov @ X.T @ W @ y
     return params[0][0], params[1][0], cov
 
 
 @njit(cache=True)
-def sigma_clipping_linreg(x, y, kappa=2.5, n_iter=3):
+def sigma_clipping_linreg(x, y, weights, kappa=2.5, n_iter=3):
     """
     Linear regression with sigma clipping.
     Iteratively perform a linear regression, excluding points
@@ -75,7 +76,7 @@ def sigma_clipping_linreg(x, y, kappa=2.5, n_iter=3):
         covariance matrix of the slope and intercept
     """
 
-    a, b, cov = linear_regression(x, y)
+    a, b, cov = linear_regression(x, y, weights=weights)
     mask = np.ones(len(x), dtype=np.bool_)
 
     for i in range(n_iter):
@@ -83,7 +84,7 @@ def sigma_clipping_linreg(x, y, kappa=2.5, n_iter=3):
         sigma = np.std(delta)
         mask &= np.abs(delta) < (kappa * sigma)
 
-        a, b, cov = linear_regression(x[mask], y[mask])
+        a, b, cov = linear_regression(x[mask], y[mask], weights=weights[mask])
 
     return a, b, cov
 
@@ -121,6 +122,8 @@ def timing_parameters(geom, image, peak_time, hillas_parameters, cleaning_mask=N
     if (image < 0).any():
         raise ValueError("The non-masked pixels must verify signal >= 0")
 
+    weights = image.astype("float64")
+
     h = hillas_parameters
     pix_x, pix_y, x, y, length, width = all_to_value(
         geom.pix_x, geom.pix_y, h.x, h.y, h.length, h.width, unit=unit
@@ -131,7 +134,7 @@ def timing_parameters(geom, image, peak_time, hillas_parameters, cleaning_mask=N
     )
 
     slope, intercept, cov = sigma_clipping_linreg(
-        x=longi, y=peak_time.astype("float64")
+        x=longi, y=peak_time.astype("float64"), weights=weights
     )
     slope_err, intercept_err = np.sqrt(np.diag(cov))
 
