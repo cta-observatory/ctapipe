@@ -4,15 +4,87 @@ Image timing-based shower image parametrization.
 
 import numpy as np
 import astropy.units as u
-from numpy.polynomial.polynomial import polyval
+from numba import njit
+
 from ..containers import TimingParametersContainer
 from .hillas import camera_to_shower_coordinates
 from ..utils.quantities import all_to_value
 
-from scipy.stats import siegelslopes
-
 
 __all__ = ["timing_parameters"]
+
+
+@njit
+def linear_regression(x, y):
+    """
+    njit version of a least squares linear regression
+
+    Parameters
+    ----------
+
+    x: np.ndarray
+        x values
+    y: np.ndarray
+        y values
+
+    Returns
+    -------
+    slope: float
+        slope of the linear regression result
+    intercept: float
+        intercept of the linear regression result
+    cov: 2x2 ndarray
+        covariance matrix of the slope and intercept
+    """
+    y = y.reshape((-1, 1))
+    X = np.empty((len(x), 2))
+    X[:, 0] = x
+    X[:, 1] = 1
+
+    cov = np.linalg.inv(X.T @ X)
+    params = cov @ X.T @ y
+    return params[0], params[1], cov
+
+
+@njit
+def sigma_clipping_linreg(x, y, kappa=3, n_iter=3):
+    """
+    Linear regression with sigma clipping.
+    Iteratively perform a linear regression, excluding points
+    further away than ``kappa`` times the current root mean squared error.
+
+    Parameters
+    ----------
+
+    x: np.ndarray
+        x values
+    y: np.ndarray
+        y values
+    kappa: float
+        maximum distance from fit in terms of rmse
+    n_iter: int
+        How many iterations of sigma clipping to perform
+
+    Returns
+    -------
+    slope: float
+        slope of the linear regression result
+    intercept: float
+        intercept of the linear regression result
+    cov: 2x2 ndarray
+        covariance matrix of the slope and intercept
+    """
+
+    a, b, cov = linear_regression(x, y)
+
+    for i in range(n_iter):
+        delta = y - (a * x + b)
+        sigma = np.std(delta)
+
+        mask = delta < (kappa * sigma)
+        a, b, cov = linear_regression(x[mask], y[mask])
+
+    return a, b, cov
 
 
 def timing_parameters(geom, image, peak_time, hillas_parameters, cleaning_mask=None):
@@ -57,19 +129,16 @@ def timing_parameters(geom, image, peak_time, hillas_parameters, cleaning_mask=N
         pix_x, pix_y, x, y, hillas_parameters.psi.to_value(u.rad)
     )
 
-    # use polyfit just to get the covariance matrix and errors
-    (_s, _i), cov = np.polyfit(longi, peak_time, deg=1, w=np.sqrt(image), cov=True)
+    slope, intercept, cov = sigma_clipping_linreg(x=longi, y=peak_time)
     slope_err, intercept_err = np.sqrt(np.diag(cov))
 
-    # re-fit using a robust-to-outlier algorithm
-    slope, intercept = siegelslopes(x=longi, y=peak_time)
-    predicted_time = polyval(longi, (intercept, slope))
-    deviation = np.sqrt(np.sum((peak_time - predicted_time) ** 2) / peak_time.size)
+    predicted_time = slope * longi + intercept
+    rsme = np.sqrt(np.mean((peak_time - predicted_time) ** 2))
 
     return TimingParametersContainer(
         slope=slope / unit,
         intercept=intercept,
-        deviation=deviation,
+        deviation=rsme,
         slope_err=slope_err / unit,
         intercept_err=intercept_err,
     )

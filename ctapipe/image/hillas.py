@@ -6,7 +6,6 @@ Hillas-style moment-based shower image parametrization.
 
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import Angle
 from astropy.units import Quantity
 from ..containers import HillasParametersContainer
 
