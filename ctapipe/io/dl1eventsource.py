@@ -51,8 +51,10 @@ class DL1EventSource(EventSource):
             **kwargs
         )
 
-        self.file = tables.open_file(input_url)
-        self._subarray_info = self._prepare_subarray_info()
+        self.file_ = tables.open_file(input_url)
+        self._subarray_info = self._prepare_subarray_info(
+            self.file_.root.configuration.instrument
+        )
         self.mc_header = self._parse_mc_header()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -101,11 +103,65 @@ class DL1EventSource(EventSource):
             self.log.warning(msg)
             warnings.warn(msg)
 
-    def _prepare_subarray_info(self):
+    def _prepare_subarray_info(self, instrument_description):
         """
-        Implementation needed
+        Constructs a SubArrayDescription object from
+        self.file_.root.configuration.instrument.telescope.optics
+        and 
+        self.file_.root.configuration.instrument.subarray.layout
+        tables.
+
+        Returns
+        -------
+        SubarrayDescription :
+            instrumental information
         """
-        return None
+        available_optics = instrument_description.telescope.optics.iterrows()
+        available_telescopes = instrument_description.subarray.layout.iterrows()
+    
+        # The focal length choice is missing here
+        # I am not sure how they are handled in the file
+        # Will there be one of "e_fl" or "fl" in the columns?
+        # This will only work if "e_fl" is available
+        optic_descriptions = {}
+        for optic in available_optics:
+            optic_description = OpticsDescription(
+                name=optic['name'].decode(),
+                num_mirrors=optic['num_mirrors'],
+                equivalent_focal_length=u.Quantity(
+                    optic['equivalent_focal_length'],
+                    u.m,
+                ),
+                mirror_area=u.Quantity(
+                    optic['mirror_area'],
+                    u.m ** 2,
+                ),
+                num_mirror_tiles=optic['num_mirror_tiles'],
+            )
+            optic_descriptions[optic['description'].decode()] = optic_description
+        
+        tel_positions = {}
+        tel_descriptions = {}
+        for telescope in available_telescopes:
+            tel_positions[telescope['tel_id']] = (
+                telescope['pos_x'],
+                telescope['pos_y'],
+                telescope['pos_z'],
+            )
+            geom = CameraGeometry.from_name(telescope['camera_type'].decode())
+            optics = optic_descriptions[telescope['tel_description'].decode()]
+            tel_descriptions[telescope['tel_id']] = TelescopeDescription(
+                name=telescope['name'],
+                tel_type=telescope['type'],
+                optics=optics,
+                camera=geom,
+            )
+
+        return SubarrayDescription(
+            name='???',
+            tel_positions=tel_positions,
+            tel_descriptions=tel_descriptions,
+        )
 
     def _parse_mc_header(self):
         """
