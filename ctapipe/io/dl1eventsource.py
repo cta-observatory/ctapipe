@@ -44,7 +44,7 @@ class DL1EventSource(EventSource):
         parent: ??
         kwargs
         """
-        super().init(
+        super().__init__(
             input_url=input_url,
             config=config,
             parent=parent,
@@ -62,14 +62,14 @@ class DL1EventSource(EventSource):
         self.file_.close()
 
     @staticmethod
-    def is_compatible(file_path)
+    def is_compatible(file_path):
         """
         Implementation needed!
         """
         return False
 
     @property
-    def is_simulation(self)
+    def is_simulation(self):
         """
         Implementation needed!
         """
@@ -101,7 +101,7 @@ class DL1EventSource(EventSource):
             self.log.warning(msg)
             warnings.warn(msg)
 
-    def prepare_subarray_info(self):
+    def _prepare_subarray_info(self):
         """
         Implementation needed
         """
