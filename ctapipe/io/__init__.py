@@ -7,6 +7,7 @@ from .datalevels import DataLevel
 
 # import event sources to make them visible to EventSource.from_url
 from .simteleventsource import SimTelEventSource
+from .dl1eventsource import DL1EventSource
 
 __all__ = [
     "get_array_layout",
@@ -18,5 +19,6 @@ __all__ = [
     "EventSource",
     "event_source",
     "SimTelEventSource",
+    "DL1EventSource",
     "DataLevel",
 ]
