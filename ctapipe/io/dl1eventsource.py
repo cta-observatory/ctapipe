@@ -215,9 +215,145 @@ class DL1EventSource(EventSource):
 
     def _generate_events(self):
         """
-        Implementation needed
+        Yield EventAndMonDataContainer to iterate through events.
         """
-        return None
+        data = EventAndMonDataContainer()
+        data.meta["origin"] = "dl1 test" # Any Infos in the file?
+        data.meta["input_url"] = self.input_url
+        data.meta["max_events"] = self.max_events # Does this have any effect?
+        data.mcheader = self._mc_header
+        
+        # check this! Where are event specific telescope pointings??
+        #self._fill_array_pointing(data)
+        
+        # loop array events
+        for counter, array_event in enumerate(self.file_.root.dl1.event.subarray.trigger):
+            # this should be done in a nicer way to not re-allocate the
+            # data each time (right now it's just deleted and garbage
+            # collected)
+            data.r0.tel.clear()
+            data.r1.tel.clear()
+            data.dl0.tel.clear()
+            data.dl1.tel.clear()
+            data.mc.tel.clear()
+            #data.pointing.tel.clear() # we only set this once, but why? -> Investigate
+            #added
+            data.trigger.tel.clear()
+            
+            data.count = counter
+            
+            obs_id = array_event['obs_id']
+            event_id = array_event['event_id']
+            time = array_event['time']
+            event_type = array_event['event_type']
+            data.index.obs_id = obs_id
+            data.index.event_id = event_id
+            
+            #self._fill_trigger_info(data, array_event)
+
+            telescope_events = self.file_.root.dl1.event.telescope.trigger.where(
+                f"(obs_id=={obs_id})&(event_id=={event_id})"
+            )
+            
+            for tel_event in telescope_events:
+                obs_id = telescope_event['obs_id']
+                event_id = telescope_event['event_id']
+                teltrigger_time = telescope_event['telescopetrigger_time']
+                tel_id = telescope_event['tel_id']
+               
+                # bc of indexing in the table (1->001, 12->012, 123->123)
+                index_id = ("000" + str(tel_id))[-3:]
+                
+                # where returns an iterator. Is there a way to directly get the row?
+                mc_info_iterator = self.file_.root.simulation.event.subarray.shower.where(
+                    f"(obs_id=={obs_id})&(event_id=={event_id})"
+                )
+                mc_info = validate_single_result_query(mc_info_iterator)
+                if mc_info:
+                    data.mc = MCEventContainer(
+                        energy=mc_info['true_energy'],
+                        alt=mc_info['true_alt'],
+                        az=mc_info['true_az'],
+                        core_x=mc_info['true_core_x'],
+                        core_y=mc_info['true_core_y'],
+                        h_first_int=mc_info['true_h_first_int'],
+                        x_max=mc_info['true_x_max'],
+                        shower_primary_id=mc_info['true_shower_primary_id'],
+                    )
+                
+                dl1 = data.dl1.tel[tel_id]
+
+                cam_iterator = self.file_.root.dl1.event.telescope.images[f'tel_{index_id}'].where(
+                    f"(obs_id=={obs_id})&(event_id=={event_id})"
+                )
+                cam = validate_single_result_query(cam_iterator)
+                if cam:
+                    dl1.image = cam['image']
+                    dl1.peak_time = cam['peak_time']
+                    dl1.image_mask = cam['image_mask']
+                
+                    
+                params_iterator = self.file_.root.dl1.event.telescope.parameters[f'tel_{index_id}'].where(
+                    f"(obs_id=={obs_id})&(event_id=={event_id})"
+                )
+                params = validate_single_result_query(params_iterator)
+                if params:
+                    dl1.parameters.hillas.x = params['hillas_x']
+                    dl1.parameters.hillas.y = params['hillas_y']
+                    dl1.parameters.hillas.r = params['hillas_r']
+                    dl1.parameters.hillas.phi = params['hillas_phi']
+                    dl1.parameters.hillas.length = params['hillas_length']
+                    dl1.parameters.hillas.width = params['hillas_width']
+                    dl1.parameters.hillas.psi = params['hillas_psi']
+                    dl1.parameters.hillas.skewness = params['hillas_skewness']
+                    dl1.parameters.hillas.kurtosis = params['hillas_kurtosis']
+                    dl1.parameters.hillas.intensity = params['hillas_intensity']
+
+                    dl1.parameters.timing.slope = params['timing_slope']
+                    dl1.parameters.timing.slope_err = params['timing_slope_err']
+                    dl1.parameters.timing.intercept = params['timing_intercept']
+                    dl1.parameters.timing.intercept_err = params['timing_intercept_err']
+                    dl1.parameters.timing.deviation = params['timing_deviation']
+
+                    dl1.parameters.leakage.pixels_width_1 = params['leakage_pixles_width_1']
+                    dl1.parameters.leakage.pixels_width_2 = params['leakage_pixles_width_2']
+                    dl1.parameters.leakage.intensity_width_1 = params['leakage_pixles_width_1']
+                    dl1.parameters.leakage.intensity_width_2 = params['leakage_pixles_width_2']
+
+                    dl1.parameters.concentration.cog = params['concentration_cog']
+                    dl1.parameters.concentration.core = params['concentration_core']
+                    dl1.parameters.concentration.pixel = params['concentration_pixel']
+
+                    dl1.parameters.morphology.num_pixels = params['morphology_num_pixels']
+                    dl1.parameters.morphology.num_island = params['morphology_num_island']
+                    dl1.parameters.morphology.num_small_islands = params['morphology_num_small_islands']
+                    dl1.parameters.morphology.num_medium_islands = params['morphology_num_medium_islands']
+                    dl1.parameters.morphology.num_large_islands = params['morphology_num_large_islands']
+
+                    dl1.parameters.intensity_statistics.max = params['intensity_max']
+                    dl1.parameters.intensity_statistics.min = params['intensity_min']
+                    dl1.parameters.intensity_statistics.mean = params['intensity_mean']
+                    dl1.parameters.intensity_statistics.std = params['intensity_std']
+                    dl1.parameters.intensity_statistics.skewness = params['intensity_skewness']
+                    dl1.parameters.intensity_statistics.kurtosis = params['intensity_kurtosis']
+
+                    dl1.parameters.peak_time_statistics.max = params['peak_time_max']
+                    dl1.parameters.peak_time_statistics.min = params['peak_time_min']
+                    dl1.parameters.peak_time_statistics.mean = params['peak_time_mean']
+                    dl1.parameters.peak_time_statistics.std = params['peak_time_std']
+                    dl1.parameters.peak_time_statistics.skewness = params['peak_time_skewness']
+                    dl1.parameters.peak_time_statistics.kurtosis = params['peak_time_kurtosis']
+
+                #self._fill_event_pointing(
+                #    data.pointing.tel[tel_id], mc, tracking_positions[tel_id],
+                #)
+                # ????
+                # mccameraeventcontainer
+                #mc_camera = data.mc.tel[tel_id]
+                
+                
+            yield data
+
 
     def _fill_trigger_info(self, data, array_event):
         """
@@ -230,3 +366,22 @@ class DL1EventSource(EventSource):
         Implementaion needed
         """
         return None
+
+
+
+def validate_single_result_query(row_iterator):
+    """
+    This is done in order to validate the row_iterator
+    for where queries for which we expect to
+    get one or zero rows. More than one row will raise an Exception
+    
+    Probably an unneeded hack and if its needed should maybe perform some
+    logging.
+    """
+    query_result = [x for x in row_iterator]
+    if len(query_result) == 1:
+        return query_result[0]
+    elif len(query_result) == 0:
+        return None
+    else:
+        raise Exception("The query selected more than one row. This should not happen")
