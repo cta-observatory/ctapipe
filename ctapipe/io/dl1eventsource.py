@@ -233,6 +233,23 @@ class DL1EventSource(EventSource):
             data.index.obs_id = obs_id
             data.index.event_id = event_id
 
+            # where returns an iterator. Is there a way to directly get the row?
+            mc_info_iterator = self.file_.root.simulation.event.subarray.shower.where(
+                f"(obs_id=={obs_id})&(event_id=={event_id})"
+            )
+            mc_info = validate_single_result_query(mc_info_iterator)
+            if mc_info:
+                data.mc = MCEventContainer(
+                    energy=mc_info['true_energy'],
+                    alt=mc_info['true_alt'],
+                    az=mc_info['true_az'],
+                    core_x=mc_info['true_core_x'],
+                    core_y=mc_info['true_core_y'],
+                    h_first_int=mc_info['true_h_first_int'],
+                    x_max=mc_info['true_x_max'],
+                    shower_primary_id=mc_info['true_shower_primary_id'],
+                )
+
             self._fill_trigger_info(data, array_event)
             self._fill_array_pointing(data, time)
 
@@ -250,23 +267,6 @@ class DL1EventSource(EventSource):
 
                 # bc of indexing in the table (1->001, 12->012, 123->123)
                 index_id = ("000" + str(tel_id))[-3:]
-
-                # where returns an iterator. Is there a way to directly get the row?
-                mc_info_iterator = self.file_.root.simulation.event.subarray.shower.where(
-                    f"(obs_id=={obs_id})&(event_id=={event_id})"
-                )
-                mc_info = validate_single_result_query(mc_info_iterator)
-                if mc_info:
-                    data.mc = MCEventContainer(
-                        energy=mc_info['true_energy'],
-                        alt=mc_info['true_alt'],
-                        az=mc_info['true_az'],
-                        core_x=mc_info['true_core_x'],
-                        core_y=mc_info['true_core_y'],
-                        h_first_int=mc_info['true_h_first_int'],
-                        x_max=mc_info['true_x_max'],
-                        shower_primary_id=mc_info['true_shower_primary_id'],
-                    )
 
                 dl1 = data.dl1.tel[tel_id]
 
@@ -341,7 +341,7 @@ class DL1EventSource(EventSource):
 
         # Implementation needed
         event_type = array_event['event_type']
-        data.event_type = EventType.UNKNOWN
+        data.trigger.event_type = EventType.UNKNOWN
 
         array_trigger_iterator = self.file_.root.dl1.event.subarray.trigger.where(
             f"(obs_id=={obs_id})&(event_id=={event_id})"
