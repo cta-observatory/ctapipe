@@ -3,6 +3,7 @@ import pytest
 from astropy import units as u
 
 from ctapipe.instrument.optics import OpticsDescription
+from ctapipe.utils import get_table_dataset
 
 
 def test_guess_optics():
@@ -45,3 +46,10 @@ def test_optics_from_name(optics_name):
     assert optics.equivalent_focal_length > 0
     # make sure the string rep gives back the name:
     assert str(optics) == optics_name
+
+
+def test_optics_from_name_user_supplied_table():
+    table = get_table_dataset("optics", role="")
+    optics = OpticsDescription.from_name("SST-GCT", optics_table=table)
+    assert optics.name == "SST-GCT"
+    assert optics.mirror_area > 1.0 * u.m ** 2

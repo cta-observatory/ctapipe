@@ -94,7 +94,11 @@ class OpticsDescription:
         OpticsDescription
 
         """
-        table = get_table_dataset(optics_table, role="dl0.tel.svc.optics")
+        if isinstance(optics_table, str):
+            table = get_table_dataset(optics_table, role="OpticsDescription.from_name")
+        else:
+            table = optics_table
+
         mask = table["tel_description"] == name
         if mask.sum() == 0:
             raise ValueError(f"Unknown telescope name {name}")
@@ -117,8 +121,17 @@ class OpticsDescription:
         return the list of optics names from ctapipe resources, i.e. those that can be
         constructed by name (this does not return the list of known names from an
         already open Monte-Carlo file)
+
+        Parameters
+        ----------
+        optics_table: str or astropy Table
+            table where to read the optics description from. If a string, this is
+            opened with `ctapipe.utils.get_table_dataset()`
         """
-        table = get_table_dataset(optics_table, "get_known_optics")
+        if isinstance(optics_table, str):
+            table = get_table_dataset(optics_table, role="get_known_optics_names")
+        else:
+            table = optics_table
         return np.array(table["tel_description"])
 
     def __repr__(self):
@@ -126,7 +139,7 @@ class OpticsDescription:
             f"{self.__class__.__name__}"
             f"(name={self.name}"
             f", equivalent_focal_length={self.equivalent_focal_length:.2f}"
-            f", num_mirros={self.num_mirrors}"
+            f", num_mirrors={self.num_mirrors}"
             f", mirror_area={self.mirror_area:.2f}"
             ")"
         )
