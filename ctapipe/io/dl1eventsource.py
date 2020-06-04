@@ -56,10 +56,17 @@ class DL1EventSource(EventSource):
 
     @staticmethod
     def is_compatible(file_path):
-        """
-        Implementation needed!
-        """
-        return False
+        with open(file_path) as f:
+            magic_number = f.read(8)
+        if magic_number != b'\x89HDF\r\n\x1a\n':
+            return False
+        else:
+            hdf5file = tables.open_file(file_path)
+            metadata = hdf5file.root._v_attrs
+            organization = metadata.get('CTA CONTACT ORGANIZATION')
+            if organization != 'CTA Consortium':
+                return False
+        return True
 
     @property
     def is_simulation(self):
