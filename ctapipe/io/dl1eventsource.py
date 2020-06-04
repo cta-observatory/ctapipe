@@ -223,9 +223,6 @@ class DL1EventSource(EventSource):
         data.meta["max_events"] = self.max_events # Does this have any effect?
         data.mcheader = self._mc_header
         
-        # check this! Where are event specific telescope pointings??
-        #self._fill_array_pointing(data)
-        
         # loop array events
         for counter, array_event in enumerate(self.file_.root.dl1.event.subarray.trigger):
             # this should be done in a nicer way to not re-allocate the
@@ -236,8 +233,7 @@ class DL1EventSource(EventSource):
             data.dl0.tel.clear()
             data.dl1.tel.clear()
             data.mc.tel.clear()
-            #data.pointing.tel.clear() # we only set this once, but why? -> Investigate
-            #added
+            data.pointing.tel.clear()
             data.trigger.tel.clear()
             
             data.count = counter
@@ -249,18 +245,21 @@ class DL1EventSource(EventSource):
             data.index.obs_id = obs_id
             data.index.event_id = event_id
             
-            #self._fill_trigger_info(data, array_event)
+            self._fill_trigger_info(data, array_event)
+            self._fill_array_pointing(data, time)
 
             telescope_events = self.file_.root.dl1.event.telescope.trigger.where(
                 f"(obs_id=={obs_id})&(event_id=={event_id})"
             )
             
-            for tel_event in telescope_events:
+            for telescope_event in telescope_events:
                 obs_id = telescope_event['obs_id']
                 event_id = telescope_event['event_id']
                 teltrigger_time = telescope_event['telescopetrigger_time']
                 tel_id = telescope_event['tel_id']
                
+                self._fill_telescope_pointing(data, teltrigger_time)
+
                 # bc of indexing in the table (1->001, 12->012, 123->123)
                 index_id = ("000" + str(tel_id))[-3:]
                 
@@ -315,17 +314,17 @@ class DL1EventSource(EventSource):
                     dl1.parameters.timing.intercept_err = params['timing_intercept_err']
                     dl1.parameters.timing.deviation = params['timing_deviation']
 
-                    dl1.parameters.leakage.pixels_width_1 = params['leakage_pixles_width_1']
-                    dl1.parameters.leakage.pixels_width_2 = params['leakage_pixles_width_2']
-                    dl1.parameters.leakage.intensity_width_1 = params['leakage_pixles_width_1']
-                    dl1.parameters.leakage.intensity_width_2 = params['leakage_pixles_width_2']
+                    dl1.parameters.leakage.pixels_width_1 = params['leakage_pixels_width_1']
+                    dl1.parameters.leakage.pixels_width_2 = params['leakage_pixels_width_2']
+                    dl1.parameters.leakage.intensity_width_1 = params['leakage_pixels_width_1']
+                    dl1.parameters.leakage.intensity_width_2 = params['leakage_pixels_width_2']
 
                     dl1.parameters.concentration.cog = params['concentration_cog']
                     dl1.parameters.concentration.core = params['concentration_core']
                     dl1.parameters.concentration.pixel = params['concentration_pixel']
 
                     dl1.parameters.morphology.num_pixels = params['morphology_num_pixels']
-                    dl1.parameters.morphology.num_island = params['morphology_num_island']
+                    dl1.parameters.morphology.num_islands = params['morphology_num_islands']
                     dl1.parameters.morphology.num_small_islands = params['morphology_num_small_islands']
                     dl1.parameters.morphology.num_medium_islands = params['morphology_num_medium_islands']
                     dl1.parameters.morphology.num_large_islands = params['morphology_num_large_islands']
@@ -344,27 +343,38 @@ class DL1EventSource(EventSource):
                     dl1.parameters.peak_time_statistics.skewness = params['peak_time_skewness']
                     dl1.parameters.peak_time_statistics.kurtosis = params['peak_time_kurtosis']
 
-                #self._fill_event_pointing(
-                #    data.pointing.tel[tel_id], mc, tracking_positions[tel_id],
-                #)
-                # ????
-                # mccameraeventcontainer
-                #mc_camera = data.mc.tel[tel_id]
-                
-                
             yield data
-
 
     def _fill_trigger_info(self, data, array_event):
         """
-        Implementation needed
+        Fill the trigger information for a provided array event.
         """
-        return None
+        obs_id = array_event['obs_id']
+        event_id = array_event['event_id']
+        array_trigger_iterator = self.file_.root.dl1.event.subarray.trigger.where(
+            f"(obs_id=={obs_id})&(event_id=={event_id})"
+        )
+        array_trigger = validate_single_result_query(array_trigger_iterator)
+        data.trigger.time = array_trigger['time']
+        data.trigger.event_type = array_trigger['event_type']
 
-    def _fill_pointing(self, data):
+        tel_trigger_iterator = self.file_.root.dl1.event.telescope.trigger.where(
+            f"(obs_id=={obs_id})&(event_id=={event_id})"
+        )
+        tels_with_trigger = []
+        for tel in tel_trigger_iterator:
+            tels_with_trigger.append(tel['tel_id'])
+            data.trigger.tel[tel['tel_id']].time = tel['telescopetrigger_time']
+        data.trigger.tels_with_trigger = tels_with_trigger
+
+    def _fill_array_pointing(self, data, time):
         """
         Implementaion needed
         """
+        return None
+
+    def _fill_telescope_pointing(self, data, teltrigger_time):
+        """Implementation needed"""
         return None
 
 
