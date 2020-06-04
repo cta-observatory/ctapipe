@@ -40,13 +40,11 @@ class DL1EventSource(EventSource):
             **kwargs
         )
 
-        self.file_ = HDF5TableReader(input_url)
+        self.reader_ = HDF5TableReader(input_url)
         self._subarray_info = self._prepare_subarray_info(
-            self.file_.root.configuration.instrument
+            self.reader_._h5file.root.configuration.instrument
         )
-        self._mc_header = self._parse_mc_header(
-            self.file_.root.configuration.simulation.run
-        )
+        self._mc_header = self._parse_mc_header()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
@@ -154,7 +152,7 @@ class DL1EventSource(EventSource):
             tel_descriptions=tel_descriptions,
         )
 
-    def _parse_mc_header(self, header_table):
+    def _parse_mc_header(self):
         """
         Construct a MCHeaderContainer from the
         self.file_.root.configuration.simulation.run
@@ -162,45 +160,8 @@ class DL1EventSource(EventSource):
         # We just assume there is only one row?
         # Thats kind of what the SimTelEventSource does
         # If mixed configurations are in one file, it gets problematic anyway, right? -> subarray layout?
-        header = header_table.row
-        return MCHeaderContainer(
-            corsika_version=header["corsika_version"],
-            simtel_version=header["simtel_version"],
-            energy_range_min=header["energy_range_min"] * u.TeV,
-            energy_range_max=header["energy_range_max"] * u.TeV,
-            prod_site_B_total=header["prod_site_B_total"] * u.uT,
-            prod_site_B_declination=Angle(header["prod_site_B_declination"], u.rad,),
-            prod_site_B_inclination=Angle(header["prod_site_B_inclination"], u.rad,),
-            prod_site_alt=header["prod_site_alt"] * u.m,
-            spectral_index=header["spectral_index"],
-            shower_prog_start=header["shower_prog_start"],
-            shower_prog_id=header["shower_prog_id"],
-            detector_prog_start=header["detector_prog_start"],
-            detector_prog_id=header["detector_prog_id"],
-            num_showers=header["num_showers"],
-            shower_reuse=header["shower_reuse"],
-            max_alt=header["max_alt"] * u.rad,
-            min_alt=header["min_alt"] * u.rad,
-            max_az=header["max_az"] * u.rad,
-            min_az=header["min_az"] * u.rad,
-            diffuse=header["diffuse"],
-            max_viewcone_radius=header["max_viewcone_radius"] * u.deg,
-            min_viewcone_radius=header["min_viewcone_radius"] * u.deg,
-            max_scatter_range=header["max_scatter_range"] * u.m,
-            min_scatter_range=header["min_scatter_range"] * u.m,
-            core_pos_mode=header["core_pos_mode"],
-            injection_height=header["injection_height"] * u.m,
-            atmosphere=header["atmosphere"],
-            corsika_iact_options=header["corsika_iact_options"],
-            corsika_low_E_model=header["corsika_low_E_model"],
-            corsika_high_E_model=header["corsika_high_E_model"],
-            corsika_bunchsize=header["corsika_bunchsize"],
-            corsika_wlen_min=header["corsika_wlen_min"] * u.nm,
-            corsika_wlen_max=header["corsika_wlen_max"] * u.nm,
-            corsika_low_E_detail=header["corsika_low_E_detail"],
-            corsika_high_E_detail=header["corsika_high_E_detail"],
-            run_array_direction=Angle(header["run_array_direction"] * u.rad),
-        )
+        if 'simulation' in self.reader_._h5file.root.configuration.__members__:
+            return next(self.reader_.read('/configuration/simulation/run', MCHeaderContainer()))
 
     def _generate_events(self):
         """
