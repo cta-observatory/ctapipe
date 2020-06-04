@@ -1,28 +1,17 @@
-from ctapipe.io import EventSource
-import tables
-import matplotlib.pyplot as plt
 from ctapipe.io.datalevels import DataLevel
-
 from ctapipe.instrument import (
     TelescopeDescription,
     SubarrayDescription,
-    CameraDescription,
     CameraGeometry,
-    CameraReadout,
     OpticsDescription,
 )
-from astropy.table import Table
-
 from ctapipe.containers import EventAndMonDataContainer, EventType
-from ctapipe.instrument.camera import UnknownPixelShapeWarning
-from ctapipe.instrument.guess import guess_telescope, UNKNOWN_TELESCOPE
-from ctapipe.containers import MCHeaderContainer
-from ctapipe.containers import *
-from ctapipe.containers import IntensityStatisticsContainer, PeakTimeStatisticsContainer
+from ctapipe.containers import MCHeaderContainer, MCEventContainer
 from ctapipe.io.eventsource import EventSource
-from ctapipe.io.datalevels import DataLevel
 from astropy.coordinates import Angle
 import astropy.units as u
+import tables
+import warnings
 
 
 class DL1EventSource(EventSource):
@@ -85,7 +74,7 @@ class DL1EventSource(EventSource):
 
     @property
     def datalevels(self):
-        return (DataLevel.DL1_IMAGES, DataLevel.DL1_PARAMETERS)  ## need to check if they are in file?
+        return (DataLevel.DL1_IMAGES, DataLevel.DL1_PARAMETERS)
 
     @property
     def obs_id(self):
@@ -109,7 +98,7 @@ class DL1EventSource(EventSource):
         """
         Constructs a SubArrayDescription object from
         self.file_.root.configuration.instrument.telescope.optics
-        and 
+        and
         self.file_.root.configuration.instrument.subarray.layout
         tables.
 
@@ -120,7 +109,7 @@ class DL1EventSource(EventSource):
         """
         available_optics = instrument_description.telescope.optics.iterrows()
         available_telescopes = instrument_description.subarray.layout.iterrows()
-    
+
         # The focal length choice is missing here
         # I am not sure how they are handled in the file
         # Will there be one of "e_fl" or "fl" in the columns?
@@ -141,7 +130,7 @@ class DL1EventSource(EventSource):
                 num_mirror_tiles=optic['num_mirror_tiles'],
             )
             optic_descriptions[optic['description'].decode()] = optic_description
-        
+
         tel_positions = {}
         tel_descriptions = {}
         for telescope in available_telescopes:
@@ -175,54 +164,54 @@ class DL1EventSource(EventSource):
         # If mixed configurations are in one file, it gets problematic anyway, right? -> subarray layout?
         header = header_table.row
         return MCHeaderContainer(
-                corsika_version=header["corsika_version"],
-                simtel_version=header["simtel_version"],
-                energy_range_min=header["energy_range_min"] * u.TeV,
-                energy_range_max=header["energy_range_max"] * u.TeV,
-                prod_site_B_total=header["prod_site_B_total"] * u.uT,
-                prod_site_B_declination=Angle(header["prod_site_B_declination"], u.rad,),
-                prod_site_B_inclination=Angle(header["prod_site_B_inclination"], u.rad,),
-                prod_site_alt=header["prod_site_alt"] * u.m,
-                spectral_index=header["spectral_index"],
-                shower_prog_start=header["shower_prog_start"],
-                shower_prog_id=header["shower_prog_id"],
-                detector_prog_start=header["detector_prog_start"],
-                detector_prog_id=header["detector_prog_id"],
-                num_showers=header["num_showers"],
-                shower_reuse=header["shower_reuse"],
-                max_alt=header["max_alt"] * u.rad,
-                min_alt=header["min_alt"] * u.rad,
-                max_az=header["max_az"] * u.rad,
-                min_az=header["min_az"] * u.rad,
-                diffuse=header["diffuse"],
-                max_viewcone_radius=header["max_viewcone_radius"] * u.deg,
-                min_viewcone_radius=header["min_viewcone_radius"] * u.deg,
-                max_scatter_range=header["max_scatter_range"] * u.m,
-                min_scatter_range=header["min_scatter_range"] * u.m,
-                core_pos_mode=header["core_pos_mode"],
-                injection_height=header["injection_height"] * u.m,
-                atmosphere=header["atmosphere"],
-                corsika_iact_options=header["corsika_iact_options"],
-                corsika_low_E_model=header["corsika_low_E_model"],
-                corsika_high_E_model=header["corsika_high_E_model"],
-                corsika_bunchsize=header["corsika_bunchsize"],
-                corsika_wlen_min=header["corsika_wlen_min"] * u.nm,
-                corsika_wlen_max=header["corsika_wlen_max"] * u.nm,
-                corsika_low_E_detail=header["corsika_low_E_detail"],
-                corsika_high_E_detail=header["corsika_high_E_detail"],
-                run_array_direction=Angle(header["run_array_direction"] * u.rad),
-            )
+            corsika_version=header["corsika_version"],
+            simtel_version=header["simtel_version"],
+            energy_range_min=header["energy_range_min"] * u.TeV,
+            energy_range_max=header["energy_range_max"] * u.TeV,
+            prod_site_B_total=header["prod_site_B_total"] * u.uT,
+            prod_site_B_declination=Angle(header["prod_site_B_declination"], u.rad,),
+            prod_site_B_inclination=Angle(header["prod_site_B_inclination"], u.rad,),
+            prod_site_alt=header["prod_site_alt"] * u.m,
+            spectral_index=header["spectral_index"],
+            shower_prog_start=header["shower_prog_start"],
+            shower_prog_id=header["shower_prog_id"],
+            detector_prog_start=header["detector_prog_start"],
+            detector_prog_id=header["detector_prog_id"],
+            num_showers=header["num_showers"],
+            shower_reuse=header["shower_reuse"],
+            max_alt=header["max_alt"] * u.rad,
+            min_alt=header["min_alt"] * u.rad,
+            max_az=header["max_az"] * u.rad,
+            min_az=header["min_az"] * u.rad,
+            diffuse=header["diffuse"],
+            max_viewcone_radius=header["max_viewcone_radius"] * u.deg,
+            min_viewcone_radius=header["min_viewcone_radius"] * u.deg,
+            max_scatter_range=header["max_scatter_range"] * u.m,
+            min_scatter_range=header["min_scatter_range"] * u.m,
+            core_pos_mode=header["core_pos_mode"],
+            injection_height=header["injection_height"] * u.m,
+            atmosphere=header["atmosphere"],
+            corsika_iact_options=header["corsika_iact_options"],
+            corsika_low_E_model=header["corsika_low_E_model"],
+            corsika_high_E_model=header["corsika_high_E_model"],
+            corsika_bunchsize=header["corsika_bunchsize"],
+            corsika_wlen_min=header["corsika_wlen_min"] * u.nm,
+            corsika_wlen_max=header["corsika_wlen_max"] * u.nm,
+            corsika_low_E_detail=header["corsika_low_E_detail"],
+            corsika_high_E_detail=header["corsika_high_E_detail"],
+            run_array_direction=Angle(header["run_array_direction"] * u.rad),
+        )
 
     def _generate_events(self):
         """
         Yield EventAndMonDataContainer to iterate through events.
         """
         data = EventAndMonDataContainer()
-        data.meta["origin"] = "dl1 test" # Any Infos in the file?
+        data.meta["origin"] = "dl1 test"  # Any Infos in the file?
         data.meta["input_url"] = self.input_url
-        data.meta["max_events"] = self.max_events # Does this have any effect?
+        data.meta["max_events"] = self.max_events  # Does this have any effect?
         data.mcheader = self._mc_header
-        
+
         # loop array events
         for counter, array_event in enumerate(self.file_.root.dl1.event.subarray.trigger):
             # this should be done in a nicer way to not re-allocate the
@@ -235,34 +224,33 @@ class DL1EventSource(EventSource):
             data.mc.tel.clear()
             data.pointing.tel.clear()
             data.trigger.tel.clear()
-            
+
             data.count = counter
-            
+
             obs_id = array_event['obs_id']
             event_id = array_event['event_id']
             time = array_event['time']
-            event_type = array_event['event_type']
             data.index.obs_id = obs_id
             data.index.event_id = event_id
-            
+
             self._fill_trigger_info(data, array_event)
             self._fill_array_pointing(data, time)
 
             telescope_events = self.file_.root.dl1.event.telescope.trigger.where(
                 f"(obs_id=={obs_id})&(event_id=={event_id})"
             )
-            
+
             for telescope_event in telescope_events:
                 obs_id = telescope_event['obs_id']
                 event_id = telescope_event['event_id']
                 teltrigger_time = telescope_event['telescopetrigger_time']
                 tel_id = telescope_event['tel_id']
-               
+
                 self._fill_telescope_pointing(data, teltrigger_time)
 
                 # bc of indexing in the table (1->001, 12->012, 123->123)
                 index_id = ("000" + str(tel_id))[-3:]
-                
+
                 # where returns an iterator. Is there a way to directly get the row?
                 mc_info_iterator = self.file_.root.simulation.event.subarray.shower.where(
                     f"(obs_id=={obs_id})&(event_id=={event_id})"
@@ -279,7 +267,7 @@ class DL1EventSource(EventSource):
                         x_max=mc_info['true_x_max'],
                         shower_primary_id=mc_info['true_shower_primary_id'],
                     )
-                
+
                 dl1 = data.dl1.tel[tel_id]
 
                 cam_iterator = self.file_.root.dl1.event.telescope.images[f'tel_{index_id}'].where(
@@ -290,8 +278,7 @@ class DL1EventSource(EventSource):
                     dl1.image = cam['image']
                     dl1.peak_time = cam['peak_time']
                     dl1.image_mask = cam['image_mask']
-                
-                    
+
                 params_iterator = self.file_.root.dl1.event.telescope.parameters[f'tel_{index_id}'].where(
                     f"(obs_id=={obs_id})&(event_id=={event_id})"
                 )
@@ -351,6 +338,11 @@ class DL1EventSource(EventSource):
         """
         obs_id = array_event['obs_id']
         event_id = array_event['event_id']
+
+        # Implementation needed
+        event_type = array_event['event_type']
+        data.event_type = EventType.UNKNOWN
+
         array_trigger_iterator = self.file_.root.dl1.event.subarray.trigger.where(
             f"(obs_id=={obs_id})&(event_id=={event_id})"
         )
@@ -378,15 +370,15 @@ class DL1EventSource(EventSource):
         return None
 
 
-
 def validate_single_result_query(row_iterator):
     """
     This is done in order to validate the row_iterator
     for where queries for which we expect to
     get one or zero rows. More than one row will raise an Exception
-    
     Probably an unneeded hack and if its needed should maybe perform some
     logging.
+    Maybe better, since its always the same query for obs id and event id:
+    one function "select_event_rows" or similar
     """
     query_result = [x for x in row_iterator]
     if len(query_result) == 1:
