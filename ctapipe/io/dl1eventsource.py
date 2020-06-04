@@ -8,10 +8,10 @@ from ctapipe.instrument import (
 from ctapipe.containers import EventAndMonDataContainer, EventType
 from ctapipe.containers import MCHeaderContainer, MCEventContainer
 from ctapipe.io.eventsource import EventSource
+from ctapipe.io import HDF5TableReader
 from astropy.coordinates import Angle
 import astropy.units as u
 import tables
-import warnings
 
 
 class DL1EventSource(EventSource):
@@ -40,7 +40,7 @@ class DL1EventSource(EventSource):
             **kwargs
         )
 
-        self.file_ = tables.open_file(input_url)
+        self.file_ = HDF5TableReader(input_url)
         self._subarray_info = self._prepare_subarray_info(
             self.file_.root.configuration.instrument
         )
@@ -92,14 +92,7 @@ class DL1EventSource(EventSource):
         return self._mc_header
 
     def _generator(self):
-        try:
-            yield from self._generate_events()
-        except EOFError:
-            msg = 'EOFError reading from "{input_url}". Might be truncated'.format(
-                input_url=self.input_url
-            )
-            self.log.warning(msg)
-            warnings.warn(msg)
+        yield from self._generate_events()
 
     def _prepare_subarray_info(self, instrument_description):
         """
