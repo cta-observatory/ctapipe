@@ -731,7 +731,7 @@ class TwoPassWindowSum(ImageExtractor):
         # Since we have to add 1 sample on each side, window_shift will always
         # be (-)1, while window_width will always be window1_width + 1
         # so we the final 5-samples window will be 1+3+1
-        window_width = width + 1
+        window_width = width + 2
         window_shift = 1
 
         # the 'peak_index' argument of 'extract_around_peak' has a different
@@ -898,7 +898,7 @@ class TwoPassWindowSum(ImageExtractor):
         # We have to add 2 samples each side, so the shift will always
         # be (-)2, while width will always end 4 samples to the right.
         # This "always" refers to a 5-samples window of course
-        window_width_default = 4
+        window_width_default = 5
         window_shift_default = 2
 
         # now let's deal with some edge cases: the predicted peak falls before
@@ -908,12 +908,12 @@ class TwoPassWindowSum(ImageExtractor):
 
         # BUT, if the resulting 5-samples window falls outside of the readout
         # window then we take the first (or last) 5 samples
-        window_width_before = 4
+        window_width_before = 5
         window_shift_before = 0
 
         # in the case where the window is after, shift backward
-        window_width_after = 4
-        window_shift_after = 4
+        window_width_after = 5
+        window_shift_after = 5
 
         # and put them together:
         window_widths = np.full(nonCore_waveforms.shape[0], window_width_default)
