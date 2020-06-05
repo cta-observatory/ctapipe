@@ -895,8 +895,8 @@ class TwoPassWindowSum(ImageExtractor):
         # window along each waveform
 
         # Now the definition of peak_index is really the peak.
-        # We have to add 2 samples each side, so the shist will always
-        # be (-)2, while width will alwapys end 4 samples to the right.
+        # We have to add 2 samples each side, so the shift will always
+        # be (-)2, while width will always end 4 samples to the right.
         # This "always" refers to a 5-samples window of course
         window_width_default = 4
         window_shift_default = 2
