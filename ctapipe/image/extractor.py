@@ -662,9 +662,9 @@ class TwoPassWindowSum(ImageExtractor):
         telid : int
             Index of the telescope in use.
         width : int
-            Width of the integration window (in units of n_samples)
+            Width of the integration window in samples
         shift : int
-            Values of the window shifts per pixel.
+            Window shift to the left of the pulse peak in samples
 
         Returns
         -------
