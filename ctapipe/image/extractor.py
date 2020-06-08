@@ -21,7 +21,7 @@ __all__ = [
 from abc import abstractmethod
 from functools import lru_cache
 import numpy as np
-from traitlets import Int
+from traitlets import Int, Bool
 from ctapipe.core.traits import IntTelescopeParameter, FloatTelescopeParameter
 from ctapipe.core import TelescopeComponent
 from numba import njit, prange, guvectorize, float64, float32, int64
@@ -641,8 +641,10 @@ class TwoPassWindowSum(ImageExtractor):
         help="Picture threshold for internal tail-cuts pass",
     ).tag(config=True)
 
-    # Boolean that is used to disable the 2np pass and return the 1st pass
-    disable_second_pass = False
+    disable_second_pass = Bool(
+        default_value=False,
+        help="only run the first pass of the extractor, for debugging purposes",
+    ).tag(config=True)
 
     @lru_cache(maxsize=4096)
     def _calculate_correction(self, telid, width, shift):
