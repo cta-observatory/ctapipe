@@ -25,6 +25,7 @@ from traitlets import Int, Bool
 from ctapipe.core.traits import IntTelescopeParameter, FloatTelescopeParameter
 from ctapipe.core import TelescopeComponent
 from numba import njit, prange, guvectorize, float64, float32, int64
+from scipy.ndimage.filters import convolve1d
 
 from . import number_of_islands, largest_island, tailcuts_clean
 from .timing import timing_parameters
@@ -238,29 +239,6 @@ def integration_correction(
         correction[ichannel] = 1.0 / np.sum(integration)
 
     return correction
-
-
-def slide_window(waveform, width):
-    """Smooth a pixel's waveform (or a slice of it) with a kernel of certain
-     size via convolution.
-
-    Parameters
-    ----------
-    waveform : array_like
-        DL0-level waveform (or slice of it) of one event.
-        Shape: max (n_samples)
-    width : int
-        Size of the smoothing kernel.
-
-    Returns
-    -------
-    sum : array_like
-        Array containing the sums for each of the kernel positions.
-        Shape: max (n_samples - (window_width - 1))
-
-    """
-    sums = np.convolve(waveform, np.ones(width, dtype=int), "valid")
-    return sums
 
 
 class ImageExtractor(TelescopeComponent):
@@ -714,14 +692,14 @@ class TwoPassWindowSum(ImageExtractor):
         # 'width' could be configurable in a generalized version
         # Right now this image extractor is optimized for LSTCam and NectarCam
         width = 3
-        sums = np.apply_along_axis(slide_window, 1, waveforms[:, 1:-1], width)
+        sums = convolve1d(waveforms, np.ones(width), axis=1, mode="nearest")
         # Note that the input waveforms are clipped at the extremes because
         # we want to extend this 3-samples window to 5 samples
         # 'sums' has now the shape of (N_pixels, N_samples-4)
 
         # For each pixel, in each of the (N_samples - 4) positions, we check
         # where the window encountered the maximum number of ADC counts
-        startWindows = np.apply_along_axis(np.argmax, 1, sums)
+        startWindows = np.argmax(sums, axis=1)
         # Now startWindows has the shape of (N_pixels).
         # Note that the index values stored in startWindows come from 'sums'
         # of which the first index (0) corresponds of index 1 of each waveform
