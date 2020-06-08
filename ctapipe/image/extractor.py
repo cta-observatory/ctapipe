@@ -682,7 +682,7 @@ class TwoPassWindowSum(ImageExtractor):
             shift,
         )
 
-    def _apply_first_pass(self, waveforms, telid, selected_gain_channel):
+    def _apply_first_pass(self, waveforms, telid):
         """
         Execute step 1.
 
@@ -692,9 +692,6 @@ class TwoPassWindowSum(ImageExtractor):
             DL0-level waveforms of one event.
         telid : int
             Index of the telescope.
-        selected_gain_channel: array of size (N_channels, N_pixels)
-            Array containing the index of the selected gain channel for each
-            pixel (0 for low gain, 1 for high gain).
 
         Returns
         -------
@@ -1009,9 +1006,7 @@ class TwoPassWindowSum(ImageExtractor):
             Shape: (n_pix)
         """
 
-        charge1, pulse_time1, correction1 = self._apply_first_pass(
-            waveforms, telid, selected_gain_channel
-        )
+        charge1, pulse_time1, correction1 = self._apply_first_pass(waveforms, telid)
 
         # FIXME: properly make sure that output is 32Bit instead of downcasting here
         if self.disable_second_pass:
