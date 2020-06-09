@@ -26,6 +26,7 @@ from ctapipe.core.traits import IntTelescopeParameter, FloatTelescopeParameter
 from ctapipe.core import TelescopeComponent
 from numba import njit, prange, guvectorize, float64, float32, int64
 from scipy.ndimage.filters import convolve1d
+from typing import Tuple
 
 from . import number_of_islands, largest_island, tailcuts_clean
 from .timing import timing_parameters
@@ -624,6 +625,10 @@ class TwoPassWindowSum(ImageExtractor):
         help="only run the first pass of the extractor, for debugging purposes",
     ).tag(config=True)
 
+    peak_finding_window_width = IntTelescopeParameter(
+        default_value=3, help="width of sliding window used to do peak detection"
+    ).tag(config=True)
+
     @lru_cache(maxsize=4096)
     def _calculate_correction(self, telid, width, shift):
         """Obtain the correction for the integration window specified for each
@@ -660,7 +665,9 @@ class TwoPassWindowSum(ImageExtractor):
             shift,
         )
 
-    def _apply_first_pass(self, waveforms, telid):
+    def _apply_first_pass(
+        self, waveforms, telid
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Execute step 1.
 
@@ -691,7 +698,7 @@ class TwoPassWindowSum(ImageExtractor):
 
         # 'width' could be configurable in a generalized version
         # Right now this image extractor is optimized for LSTCam and NectarCam
-        width = 3
+        width = self.peak_finding_window_width.tel[telid]
         sums = convolve1d(waveforms, np.ones(width), axis=1, mode="nearest")
         # Note that the input waveforms are clipped at the extremes because
         # we want to extend this 3-samples window to 5 samples
@@ -699,7 +706,7 @@ class TwoPassWindowSum(ImageExtractor):
 
         # For each pixel, in each of the (N_samples - 4) positions, we check
         # where the window encountered the maximum number of ADC counts
-        startWindows = np.argmax(sums, axis=1)
+        start_windows = np.argmax(sums, axis=1)
         # Now startWindows has the shape of (N_pixels).
         # Note that the index values stored in startWindows come from 'sums'
         # of which the first index (0) corresponds of index 1 of each waveform
@@ -717,7 +724,7 @@ class TwoPassWindowSum(ImageExtractor):
         # then each peak index has to be increased by one
         charge_1stpass, pulse_time_1stpass = extract_around_peak(
             waveforms,
-            startWindows + 1,
+            start_windows + 1,
             window_width,
             window_shift,
             self.sampling_rate[telid],
@@ -736,7 +743,7 @@ class TwoPassWindowSum(ImageExtractor):
         charge_1stpass_uncorrected,
         pulse_time_1stpass,
         correction,
-    ):
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Follow steps from 2 to 7.
 
@@ -806,8 +813,8 @@ class TwoPassWindowSum(ImageExtractor):
             image_2[~mask_biggest] = 0
 
         # Indexes of pixels that will need the 2nd pass
-        nonCore_pixels_ids = np.where(image_2 < core_th)[0]
-        nonCore_pixels_mask = image_2 < core_th
+        non_core_pixels_ids = np.where(image_2 < core_th)[0]
+        non_core_pixels_mask = image_2 < core_th
 
         # STEP 4
 
@@ -819,7 +826,7 @@ class TwoPassWindowSum(ImageExtractor):
             # NOTE: In this case, the image was not bright enough!
             # We should label it as "bad and NOT use it"
             return charge_1stpass, pulse_time_1stpass
-        elif len(nonCore_pixels_ids) == 0:
+        elif len(non_core_pixels_ids) == 0:
             # Since all reconstructed charges are above the core threshold,
             # there is no need to perform the 2nd pass.
             # We return the 1st pass information.
@@ -846,7 +853,7 @@ class TwoPassWindowSum(ImageExtractor):
 
         # get the predicted times as a linear relation
         predicted_pulse_times = (
-            timing.slope * long[nonCore_pixels_ids] + timing.intercept
+            timing.slope * long[non_core_pixels_ids] + timing.intercept
         )
 
         predicted_peaks = np.zeros(len(predicted_pulse_times))
@@ -866,7 +873,7 @@ class TwoPassWindowSum(ImageExtractor):
 
         # select only the waveforms correspondent to the non-core pixels
         # of the main island survived from the 1st pass image cleaning
-        nonCore_waveforms = waveforms[nonCore_pixels_ids]
+        non_core_waveforms = waveforms[non_core_pixels_ids]
 
         # Build 'width' and 'shift' arrays that adapt on the position of the
         # window along each waveform
@@ -881,7 +888,7 @@ class TwoPassWindowSum(ImageExtractor):
         # now let's deal with some edge cases: the predicted peak falls before
         # or after the readout window:
         peak_before_window = predicted_peaks < 0
-        peak_after_window = predicted_peaks > (nonCore_waveforms.shape[1] - 1)
+        peak_after_window = predicted_peaks > (non_core_waveforms.shape[1] - 1)
 
         # BUT, if the resulting 5-samples window falls outside of the readout
         # window then we take the first (or last) 5 samples
@@ -893,10 +900,10 @@ class TwoPassWindowSum(ImageExtractor):
         window_shift_after = 5
 
         # and put them together:
-        window_widths = np.full(nonCore_waveforms.shape[0], window_width_default)
+        window_widths = np.full(non_core_waveforms.shape[0], window_width_default)
         window_widths[peak_before_window] = window_width_before
         window_widths[peak_after_window] = window_width_after
-        window_shifts = np.full(nonCore_waveforms.shape[0], window_shift_default)
+        window_shifts = np.full(non_core_waveforms.shape[0], window_shift_default)
         window_shifts[peak_before_window] = window_shift_before
         window_shifts[peak_after_window] = window_shift_after
 
@@ -913,8 +920,8 @@ class TwoPassWindowSum(ImageExtractor):
         )
 
         # re-calibrate non-core pixels using the fixed 5-samples window
-        charge_noCore, pulse_times_noCore = extract_around_peak(
-            nonCore_waveforms,
+        charge_no_core, pulse_times_no_core = extract_around_peak(
+            non_core_waveforms,
             predicted_peaks,
             window_widths,
             window_shifts,
@@ -925,20 +932,20 @@ class TwoPassWindowSum(ImageExtractor):
         # now we compute 3 corrections for the default, before, and after cases:
         correction = self._calculate_correction(
             telid, window_width_default, window_shift_default
-        )[selected_gain_channel][nonCore_pixels_mask]
+        )[selected_gain_channel][non_core_pixels_mask]
 
         correction_before = self._calculate_correction(
             telid, window_width_before, window_shift_before
-        )[selected_gain_channel][nonCore_pixels_mask]
+        )[selected_gain_channel][non_core_pixels_mask]
 
         correction_after = self._calculate_correction(
             telid, window_width_after, window_shift_after
-        )[selected_gain_channel][nonCore_pixels_mask]
+        )[selected_gain_channel][non_core_pixels_mask]
 
         correction[peak_before_window] = correction_before[peak_before_window]
         correction[peak_after_window] = correction_after[peak_after_window]
 
-        charge_noCore *= correction
+        charge_no_core *= correction
 
         # STEP 7
 
@@ -952,11 +959,13 @@ class TwoPassWindowSum(ImageExtractor):
         # plus all those pixels which didn't survive the preliminary
         # cleaning.
         # We apply also their corrections.
-        charge_2ndpass[nonCore_pixels_mask] = charge_noCore
+        charge_2ndpass[non_core_pixels_mask] = charge_no_core
 
         # Same approach for the pulse times
         pulse_time_2ndpass = pulse_time_1stpass  # core + non-core pixels
-        pulse_time_2ndpass[nonCore_pixels_mask] = pulse_times_noCore  # non-core pixels
+        pulse_time_2ndpass[
+            non_core_pixels_mask
+        ] = pulse_times_no_core  # non-core pixels
 
         return charge_2ndpass, pulse_time_2ndpass
 
