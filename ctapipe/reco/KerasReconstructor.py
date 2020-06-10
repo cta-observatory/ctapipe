@@ -22,9 +22,9 @@ class KerasReconstructor(Reconstructor):
         the H5 with the weights paths for the model as values
     """
 
-    def __init__(self, weights, config=None, parent=None, **kwargs):
-        self.weights = weights
-        if any(cam_name not in self.supported_cameras for cam_name in self.weights.keys()):
+    def __init__(self, models, config=None, parent=None, **kwargs):
+        self.models = models
+        if any(cam_name not in self.supported_cameras for cam_name in self.models.keys()):
             raise ValueError("Some of the weights telescope types are not supported by this reconstructor")
         super().__init__(config=config, parent=parent, **kwargs)
 
@@ -69,12 +69,11 @@ class KerasReconstructor(Reconstructor):
         """
         predictions = dict()
         for cam_name in self.supported_cameras:
-            weights_path = self.weights.get(cam_name)
-            if cam_name not in weights_path:
+            models_path = self.models.get(cam_name)
+            if cam_name not in models_path:
                 continue
 
             model = self._get_model(cam_name)
-            model.load_weights(weights_path)
 
             inputs = [self._to_input(event, tel_id, **kwargs)
                       for tel_id in self._get_tel_ids_with_cam(subarray, cam_name)]
@@ -84,7 +83,6 @@ class KerasReconstructor(Reconstructor):
                 predictions[cam_name].append(model.predict(inp))
         return self._combine(predictions)
 
-    @abstractmethod
     def _get_model(self, cam_name):
         """
         Return an instance of a Keras model with the architecture given a camera name.
@@ -99,6 +97,7 @@ class KerasReconstructor(Reconstructor):
         model : keras.Sequential
             List of events to be used for training
         """
+        return self.models.get(cam_name)
 
     @abstractmethod
     def _to_input(self, event, tel_id, **kwargs):
