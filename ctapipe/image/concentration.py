@@ -30,7 +30,7 @@ def concentration(geom, image, hillas_parameters):
     cog_pixels = np.argsort(delta_x ** 2 + delta_y ** 2)
     conc_cog = np.sum(image[cog_pixels[:3]]) / h.intensity
 
-    if hillas_parameters.width != 0:
+    if hillas_parameters.width.value != 0:
         # get all pixels inside the hillas ellipse
         longi, trans = camera_to_shower_coordinates(
             pix_x, pix_y, x, y, h.psi.to_value(u.rad)
