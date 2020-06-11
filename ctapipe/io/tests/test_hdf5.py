@@ -70,6 +70,32 @@ def test_prefix(tmp_path):
     assert "hillas_x" in df.columns
     assert "leakage_pixels_width_1" in df.columns
 
+    with HDF5TableReader(tmp_file.name) as reader:
+        generator = reader.read(
+            "/blabla/events",
+            HillasParametersContainer(),
+            prefix=True
+        )
+        hillas = next(generator)
+    for value, read_value in zip(
+            hillas_parameter_container.as_dict().values(),
+            hillas.as_dict().values()
+    ):
+        np.testing.assert_equal(value, read_value)
+
+    with HDF5TableReader(tmp_file.name) as reader:
+        generator = reader.read(
+            "/blabla/events",
+            LeakageContainer(),
+            prefix=True
+        )
+        leakage = next(generator)
+    for value, read_value in zip(
+            leakage_container.as_dict().values(),
+            leakage.as_dict().values()
+    ):
+        np.testing.assert_equal(value, read_value)
+
 
 def test_units():
     class WithUnits(Container):

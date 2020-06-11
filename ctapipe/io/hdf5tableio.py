@@ -364,10 +364,10 @@ class HDF5TableReader(TableReader):
 
         self._h5file.close()
 
-    def _setup_table(self, table_name, container):
+    def _setup_table(self, table_name, container, prefix):
         tab = self._h5file.get_node(table_name)
         self._tables[table_name] = tab
-        self._map_table_to_container(table_name, container)
+        self._map_table_to_container(table_name, container, prefix)
         self._map_transforms_from_table_header(table_name)
         return tab
 
@@ -393,31 +393,39 @@ class HDF5TableReader(TableReader):
 
                 self.add_column_transform(table_name, colname, transform_int_to_enum)
 
-    def _map_table_to_container(self, table_name, container):
+    def _map_table_to_container(self, table_name, container, prefix=None):
         """ identifies which columns in the table to read into the container,
-        by comparing their names."""
+        by comparing their names including an optional prefix."""
         tab = self._tables[table_name]
         for colname in tab.colnames:
-            if colname in container.fields:
+            if prefix and colname.startswith(prefix):
+                colname_without_prefix = colname[len(prefix) + 1:]
+            else:
+                colname_without_prefix = colname
+            if colname_without_prefix in container.fields:
                 self._cols_to_read[table_name].append(colname)
             else:
                 self.log.warning(
                     "Table '%s' has column '%s' that is not in "
                     "container %s. It will be skipped",
                     table_name,
-                    colname,
+                    colname_without_prefix,
                     container.__class__.__name__,
                 )
 
         # also check that the container doesn't have fields that are not
         # in the table:
         for colname in container.fields:
-            if colname not in self._cols_to_read[table_name]:
+            if prefix:
+                colname_with_prefix = f"{prefix}_{colname}"
+            else:
+                colname_with_prefix = colname
+            if colname_with_prefix not in self._cols_to_read[table_name]:
                 self.log.warning(
                     "Table '%s' is missing column '%s' that is "
                     "in container %s. It will be skipped.",
                     table_name,
-                    colname,
+                    colname_with_prefix,
                     container.__class__.__name__,
                 )
 
@@ -425,10 +433,10 @@ class HDF5TableReader(TableReader):
         for key in tab.attrs._f_list():
             container.meta[key] = tab.attrs[key]
 
-    def read(self, table_name: str, container: Container):
+    def read(self, table_name: str, container: Container, prefix=False):
         """
         Returns a generator that reads the next row from the table into the
-        given container.  The generator returns the same container. Note that
+        given container. The generator returns the same container. Note that
         no containers are copied, the data are overwritten inside.
 
         Parameters
@@ -437,9 +445,23 @@ class HDF5TableReader(TableReader):
             name of table to read from
         container : ctapipe.core.Container
             Container instance to fill
+        prefix: bool or str
+            Prefix that was added while writing the file.
+            If True, the container prefix is taken into consideration, when
+            comparing column names and container fields.
+            If False, no prefix is used.
+            If a string is provided, it is used as prefix. This is äquivalent
+            to creating a container, changing its prefix and
+            using this container with prefix=True.
         """
+
+        if prefix is True:
+            prefix = container.prefix
+        elif prefix is False:
+            prefix = None
+
         if table_name not in self._tables:
-            tab = self._setup_table(table_name, container)
+            tab = self._setup_table(table_name, container, prefix)
         else:
             tab = self._tables[table_name]
 
@@ -453,7 +475,11 @@ class HDF5TableReader(TableReader):
                 return  # stop generator when done
 
             for colname in self._cols_to_read[table_name]:
-                container[colname] = self._apply_col_transform(
+                if prefix and colname.startswith(prefix):
+                    colname_without_prefix = colname[len(prefix) + 1:]
+                else:
+                    colname_without_prefix = colname
+                container[colname_without_prefix] = self._apply_col_transform(
                     table_name, colname, row[colname]
                 )
 
