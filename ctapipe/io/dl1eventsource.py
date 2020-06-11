@@ -168,19 +168,16 @@ class DL1EventSource(EventSource):
         Yield EventAndMonDataContainer to iterate through events.
         """
         data = EventAndMonDataContainer()
-        data.meta["origin"] = "dl1 test"  # Any Infos in the file?
+        #data.meta["origin"] = "dl1 test"  # Any Infos in the file?
         data.meta["input_url"] = self.input_url
         data.meta["max_events"] = self.max_events  # Does this have any effect?
         data.mcheader = self._mc_header
 
         # loop array events
-        for counter, array_event in enumerate(self.file_.root.dl1.event.subarray.trigger):
+        for counter, array_event in enumerate(self.reader_._h5file.root.dl1.event.subarray.trigger):
             # this should be done in a nicer way to not re-allocate the
             # data each time (right now it's just deleted and garbage
             # collected)
-            data.r0.tel.clear()
-            data.r1.tel.clear()
-            data.dl0.tel.clear()
             data.dl1.tel.clear()
             data.mc.tel.clear()
             data.pointing.tel.clear()
@@ -195,22 +192,12 @@ class DL1EventSource(EventSource):
             data.index.event_id = event_id
 
             # where returns an iterator. Is there a way to directly get the row?
-            mc_info_iterator = self.file_.root.simulation.event.subarray.shower.where(
-                f"(obs_id=={obs_id})&(event_id=={event_id})"
-            )
-            mc_info = validate_single_result_query(mc_info_iterator)
-            if mc_info:
-                data.mc = MCEventContainer(
-                    energy=mc_info['true_energy'],
-                    alt=mc_info['true_alt'],
-                    az=mc_info['true_az'],
-                    core_x=mc_info['true_core_x'],
-                    core_y=mc_info['true_core_y'],
-                    h_first_int=mc_info['true_h_first_int'],
-                    x_max=mc_info['true_x_max'],
-                    shower_primary_id=mc_info['true_shower_primary_id'],
+            if 'simulation' in self.reader_._h5file.root:
+                data.mc = self.reader_.read(
+                    '/simulation/event/subarray/shower',
+                    MCHeaderContainer()
                 )
-
+            
             self._fill_trigger_info(data, array_event)
             self._fill_array_pointing(data, time)
 
@@ -227,7 +214,7 @@ class DL1EventSource(EventSource):
                 self._fill_telescope_pointing(data, teltrigger_time)
 
                 # bc of indexing in the table (1->001, 12->012, 123->123)
-                index_id = ("000" + str(tel_id))[-3:]
+                index_id = f'{tel_id:03d}'
 
                 dl1 = data.dl1.tel[tel_id]
 
