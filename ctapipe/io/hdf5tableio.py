@@ -161,7 +161,7 @@ class HDF5TableWriter(TableWriter):
                     continue
 
                 if col_name in Schema.columns:
-                    self.log.warning(f"Found duplicated column {col_name}, skipping")
+                    self.log.warning("Found duplicated column %s, skipping", col_name)
                     continue
 
                 # apply any user-defined transforms first
@@ -208,10 +208,10 @@ class HDF5TableWriter(TableWriter):
 
                 else:
                     self.log.warning(
-                        f"Column {col_name} of"
-                        f" container {container.__class__.__name__}"
-                        f" in table {table_name}"
-                        " not writable, skipping"
+                        "Column %s of container %s in table %s not writable, skipping",
+                        col_name,
+                        container.__class__.__name__,
+                        table_name
                     )
                     continue
 
@@ -280,8 +280,9 @@ class HDF5TableWriter(TableWriter):
                     row[colname] = value
                 except Exception:
                     self.log.error(
-                        f'Error writing col "{colname}" of'
-                        f' container "{container.__class__.__name__}"'
+                        'Error writing col "%s" of container "%s"',
+                        colname,
+                        container.__class__.__name__
                     )
                     raise
         row.append()
