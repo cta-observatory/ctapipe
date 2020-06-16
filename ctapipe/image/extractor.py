@@ -21,10 +21,12 @@ __all__ = [
 from abc import abstractmethod
 from functools import lru_cache
 import numpy as np
-from traitlets import Int
+from traitlets import Int, Bool
 from ctapipe.core.traits import IntTelescopeParameter, FloatTelescopeParameter
 from ctapipe.core import TelescopeComponent
 from numba import njit, prange, guvectorize, float64, float32, int64
+from scipy.ndimage.filters import convolve1d
+from typing import Tuple
 
 from . import number_of_islands, largest_island, tailcuts_clean
 from .timing import timing_parameters
@@ -238,29 +240,6 @@ def integration_correction(
         correction[ichannel] = 1.0 / np.sum(integration)
 
     return correction
-
-
-def slide_window(waveform, width):
-    """Smooth a pixel's waveform (or a slice of it) with a kernel of certain
-     size via convolution.
-
-    Parameters
-    ----------
-    waveform : array_like
-        DL0-level waveform (or slice of it) of one event.
-        Shape: max (n_samples)
-    width : int
-        Size of the smoothing kernel.
-
-    Returns
-    -------
-    sum : array_like
-        Array containing the sums for each of the kernel positions.
-        Shape: max (n_samples - (window_width - 1))
-
-    """
-    sums = np.convolve(waveform, np.ones(width, dtype=int), "valid")
-    return sums
 
 
 class ImageExtractor(TelescopeComponent):
@@ -641,10 +620,17 @@ class TwoPassWindowSum(ImageExtractor):
         help="Picture threshold for internal tail-cuts pass",
     ).tag(config=True)
 
-    # Boolean that is used to disable the 2np pass and return the 1st pass
-    disable_second_pass = False
+    disable_second_pass = Bool(
+        default_value=False,
+        help="only run the first pass of the extractor, for debugging purposes",
+    ).tag(config=True)
 
-    def _calculate_correction(self, telid, widths, shifts, selected_gain_channel):
+    peak_finding_window_width = IntTelescopeParameter(
+        default_value=3, help="width of sliding window used to do peak detection"
+    ).tag(config=True)
+
+    @lru_cache(maxsize=4096)
+    def _calculate_correction(self, telid, width, shift):
         """Obtain the correction for the integration window specified for each
         pixel.
 
@@ -658,10 +644,10 @@ class TwoPassWindowSum(ImageExtractor):
         ----------
         telid : int
             Index of the telescope in use.
-        widths : array of shape N_pixels
-            Width of the integration window (in units of n_samples)
-        shifts : array of shape N_pixels
-            Values of the window shifts per pixel.
+        width : int
+            Width of the integration window in samples
+        shift : int
+            Window shift to the left of the pulse peak in samples
 
         Returns
         -------
@@ -671,37 +657,17 @@ class TwoPassWindowSum(ImageExtractor):
         """
         readout = self.subarray.tel[telid].camera.readout
         # Calculate correction of first pixel for both channels
-        correction = integration_correction(
+        return integration_correction(
             readout.reference_pulse_shape,
             readout.reference_pulse_sample_width.to_value("ns"),
             (1 / readout.sampling_rate).to_value("ns"),
-            widths[0],
-            shifts[0],
+            width,
+            shift,
         )
-        # then do the same for each remaining pixel and attach the result as
-        # a column containing information from both channels
-        for pixel in range(len(selected_gain_channel)):
-            new_pixel_both_channels = integration_correction(
-                readout.reference_pulse_shape,
-                readout.reference_pulse_sample_width.to_value("ns"),
-                (1 / readout.sampling_rate).to_value("ns"),
-                widths[pixel],
-                shifts[pixel],
-            )
-            # stack the columns (i.e pixels) so the final correction array
-            # is N_channels X N_pixels
-            correction = np.column_stack((correction, new_pixel_both_channels))
 
-        # select the right channel per pixel
-        correction = np.asarray(
-            [
-                correction[:, pix_id][selected_gain_channel[pix_id]]
-                for pix_id in range(len(selected_gain_channel))
-            ]
-        )
-        return correction
-
-    def _apply_first_pass(self, waveforms, telid, selected_gain_channel):
+    def _apply_first_pass(
+        self, waveforms, telid
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Execute step 1.
 
@@ -711,9 +677,6 @@ class TwoPassWindowSum(ImageExtractor):
             DL0-level waveforms of one event.
         telid : int
             Index of the telescope.
-        selected_gain_channel: array of size (N_channels, N_pixels)
-            Array containing the index of the selected gain channel for each
-            pixel (0 for low gain, 1 for high gain).
 
         Returns
         -------
@@ -735,15 +698,15 @@ class TwoPassWindowSum(ImageExtractor):
 
         # 'width' could be configurable in a generalized version
         # Right now this image extractor is optimized for LSTCam and NectarCam
-        width = 3
-        sums = np.apply_along_axis(slide_window, 1, waveforms[:, 1:-1], width)
+        width = self.peak_finding_window_width.tel[telid]
+        sums = convolve1d(waveforms, np.ones(width), axis=1, mode="nearest")
         # Note that the input waveforms are clipped at the extremes because
         # we want to extend this 3-samples window to 5 samples
         # 'sums' has now the shape of (N_pixels, N_samples-4)
 
         # For each pixel, in each of the (N_samples - 4) positions, we check
         # where the window encountered the maximum number of ADC counts
-        startWindows = np.apply_along_axis(np.argmax, 1, sums)
+        start_windows = np.argmax(sums, axis=1)
         # Now startWindows has the shape of (N_pixels).
         # Note that the index values stored in startWindows come from 'sums'
         # of which the first index (0) corresponds of index 1 of each waveform
@@ -752,8 +715,8 @@ class TwoPassWindowSum(ImageExtractor):
         # Since we have to add 1 sample on each side, window_shift will always
         # be (-)1, while window_width will always be window1_width + 1
         # so we the final 5-samples window will be 1+3+1
-        window_widths = np.full_like(startWindows, width + 1)
-        window_shifts = np.full_like(startWindows, 1)
+        window_width = width + 2
+        window_shift = 1
 
         # the 'peak_index' argument of 'extract_around_peak' has a different
         # meaning here: it's the start of the 3-samples window.
@@ -761,16 +724,14 @@ class TwoPassWindowSum(ImageExtractor):
         # then each peak index has to be increased by one
         charge_1stpass, pulse_time_1stpass = extract_around_peak(
             waveforms,
-            startWindows + 1,
-            window_widths,
-            window_shifts,
+            start_windows + 1,
+            window_width,
+            window_shift,
             self.sampling_rate[telid],
         )
 
         # Get integration correction factors
-        correction = self._calculate_correction(
-            telid, window_widths, window_shifts, selected_gain_channel
-        )
+        correction = self._calculate_correction(telid, window_width, window_shift)
 
         return charge_1stpass, pulse_time_1stpass, correction
 
@@ -779,10 +740,10 @@ class TwoPassWindowSum(ImageExtractor):
         waveforms,
         telid,
         selected_gain_channel,
-        charge_1stpass,
+        charge_1stpass_uncorrected,
         pulse_time_1stpass,
         correction,
-    ):
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Follow steps from 2 to 7.
 
@@ -795,7 +756,7 @@ class TwoPassWindowSum(ImageExtractor):
         selected_gain_channel: array of shape (N_channels, N_pixels)
             Array containing the index of the selected gain channel for each
             pixel (0 for low gain, 1 for high gain).
-        charge_1stpass : array of shape N_pixels
+        charge_1stpass_uncorrected : array of shape N_pixels
             Pixel charges reconstructed with the 1st pass, but not corrected.
         pulse_time_1stpass : array of shape N_pixels
             Pixel-wise pulse times reconstructed with the 1st pass.
@@ -820,7 +781,7 @@ class TwoPassWindowSum(ImageExtractor):
         # STEP 2
 
         # Apply correction to 1st pass charges
-        charge_1stpass = charge_1stpass * correction
+        charge_1stpass = charge_1stpass_uncorrected * correction[selected_gain_channel]
 
         # Set thresholds for core-pixels depending on telescope
         core_th = self.core_threshold.tel[telid]
@@ -852,8 +813,8 @@ class TwoPassWindowSum(ImageExtractor):
             image_2[~mask_biggest] = 0
 
         # Indexes of pixels that will need the 2nd pass
-        nonCore_pixels_ids = np.where(image_2 < core_th)[0]
-        nonCore_pixels_mask = image_2 < core_th
+        non_core_pixels_ids = np.where(image_2 < core_th)[0]
+        non_core_pixels_mask = image_2 < core_th
 
         # STEP 4
 
@@ -865,7 +826,7 @@ class TwoPassWindowSum(ImageExtractor):
             # NOTE: In this case, the image was not bright enough!
             # We should label it as "bad and NOT use it"
             return charge_1stpass, pulse_time_1stpass
-        elif len(nonCore_pixels_ids) == 0:
+        elif len(non_core_pixels_ids) == 0:
             # Since all reconstructed charges are above the core threshold,
             # there is no need to perform the 2nd pass.
             # We return the 1st pass information.
@@ -887,16 +848,12 @@ class TwoPassWindowSum(ImageExtractor):
 
         # get projected distances along main image axis
         long, _ = camera_to_shower_coordinates(
-            camera_geometry.pix_x,
-            camera_geometry.pix_y,
-            hillas.x,
-            hillas.y,
-            hillas.psi,
+            camera_geometry.pix_x, camera_geometry.pix_y, hillas.x, hillas.y, hillas.psi
         )
 
         # get the predicted times as a linear relation
         predicted_pulse_times = (
-            timing.slope * long[nonCore_pixels_ids] + timing.intercept
+            timing.slope * long[non_core_pixels_ids] + timing.intercept
         )
 
         predicted_peaks = np.zeros(len(predicted_pulse_times))
@@ -916,29 +873,43 @@ class TwoPassWindowSum(ImageExtractor):
 
         # select only the waveforms correspondent to the non-core pixels
         # of the main island survived from the 1st pass image cleaning
-        nonCore_waveforms = waveforms[nonCore_pixels_ids]
+        non_core_waveforms = waveforms[non_core_pixels_ids]
 
         # Build 'width' and 'shift' arrays that adapt on the position of the
         # window along each waveform
 
         # Now the definition of peak_index is really the peak.
-        # We have to add 2 samples each side, so the shist will always
+        # We have to add 2 samples each side, so the shift will always
         # be (-)2, while width will always end 4 samples to the right.
         # This "always" refers to a 5-samples window of course
-        window_widths = np.full_like(predicted_peaks, 4, dtype=np.int64)
-        window_shifts = np.full_like(predicted_peaks, 2, dtype=np.int64)
+        window_width_default = 5
+        window_shift_default = 2
+
+        # now let's deal with some edge cases: the predicted peak falls before
+        # or after the readout window:
+        peak_before_window = predicted_peaks < 0
+        peak_after_window = predicted_peaks > (non_core_waveforms.shape[1] - 1)
 
         # BUT, if the resulting 5-samples window falls outside of the readout
         # window then we take the first (or last) 5 samples
-        window_widths[predicted_peaks < 0] = 4
-        window_shifts[predicted_peaks < 0] = 0
-        window_widths[predicted_peaks > (waveforms.shape[1] - 1)] = 4
-        window_shifts[predicted_peaks > (waveforms.shape[1] - 1)] = 4
+        window_width_before = 5
+        window_shift_before = 0
+
+        # in the case where the window is after, shift backward
+        window_width_after = 5
+        window_shift_after = 5
+
+        # and put them together:
+        window_widths = np.full(non_core_waveforms.shape[0], window_width_default)
+        window_widths[peak_before_window] = window_width_before
+        window_widths[peak_after_window] = window_width_after
+        window_shifts = np.full(non_core_waveforms.shape[0], window_shift_default)
+        window_shifts[peak_before_window] = window_shift_before
+        window_shifts[peak_after_window] = window_shift_after
 
         # Now we can also (re)define the patological predicted times
         # because (we needed them to define the corrispective widths
         # and shifts)
-
         # set sample to 0 (beginning of the waveform) if predicted time
         # falls before
         predicted_peaks[predicted_peaks < 0] = 0
@@ -949,8 +920,8 @@ class TwoPassWindowSum(ImageExtractor):
         )
 
         # re-calibrate non-core pixels using the fixed 5-samples window
-        charge_noCore, pulse_times_noCore = extract_around_peak(
-            nonCore_waveforms,
+        charge_no_core, pulse_times_no_core = extract_around_peak(
+            non_core_waveforms,
             predicted_peaks,
             window_widths,
             window_shifts,
@@ -958,13 +929,23 @@ class TwoPassWindowSum(ImageExtractor):
         )
 
         # Modify integration correction factors only for non-core pixels
-        correction_2ndPass = self._calculate_correction(
-            telid,
-            window_widths,
-            window_shifts,
-            selected_gain_channel[nonCore_pixels_ids],
-        )
-        np.put(correction, [nonCore_pixels_ids], correction_2ndPass)
+        # now we compute 3 corrections for the default, before, and after cases:
+        correction = self._calculate_correction(
+            telid, window_width_default, window_shift_default
+        )[selected_gain_channel][non_core_pixels_mask]
+
+        correction_before = self._calculate_correction(
+            telid, window_width_before, window_shift_before
+        )[selected_gain_channel][non_core_pixels_mask]
+
+        correction_after = self._calculate_correction(
+            telid, window_width_after, window_shift_after
+        )[selected_gain_channel][non_core_pixels_mask]
+
+        correction[peak_before_window] = correction_before[peak_before_window]
+        correction[peak_after_window] = correction_after[peak_after_window]
+
+        charge_no_core *= correction
 
         # STEP 7
 
@@ -978,13 +959,15 @@ class TwoPassWindowSum(ImageExtractor):
         # plus all those pixels which didn't survive the preliminary
         # cleaning.
         # We apply also their corrections.
-        charge_2ndpass[nonCore_pixels_mask] = charge_noCore * correction_2ndPass
+        charge_2ndpass[non_core_pixels_mask] = charge_no_core
 
         # Same approach for the pulse times
-        pulse_time_2npass = pulse_time_1stpass  # core + non-core pixels
-        pulse_time_2npass[nonCore_pixels_mask] = pulse_times_noCore  # non-core pixels
+        pulse_time_2ndpass = pulse_time_1stpass  # core + non-core pixels
+        pulse_time_2ndpass[
+            non_core_pixels_mask
+        ] = pulse_times_no_core  # non-core pixels
 
-        return charge_2ndpass, pulse_time_2npass
+        return charge_2ndpass, pulse_time_2ndpass
 
     def __call__(self, waveforms, telid, selected_gain_channel):
         """
@@ -1010,19 +993,17 @@ class TwoPassWindowSum(ImageExtractor):
             Shape: (n_pix)
         """
 
-        charge1, pulse_time1, correction1 = self._apply_first_pass(
-            waveforms, telid, selected_gain_channel
-        )
+        charge1, pulse_time1, correction1 = self._apply_first_pass(waveforms, telid)
 
         # FIXME: properly make sure that output is 32Bit instead of downcasting here
         if self.disable_second_pass:
             return (
-                (charge1 * correction1).astype("float32"),
+                (charge1 * correction1[selected_gain_channel]).astype("float32"),
                 pulse_time1.astype("float32"),
             )
 
         charge2, pulse_time2 = self._apply_second_pass(
-            waveforms, telid, selected_gain_channel, charge1, pulse_time1, correction1,
+            waveforms, telid, selected_gain_channel, charge1, pulse_time1, correction1
         )
         # FIXME: properly make sure that output is 32Bit instead of downcasting here
         return charge2.astype("float32"), pulse_time2.astype("float32")
