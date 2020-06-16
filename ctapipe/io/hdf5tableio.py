@@ -157,11 +157,11 @@ class HDF5TableWriter(TableWriter):
                 shape = 1
 
                 if self._is_column_excluded(table_name, col_name):
-                    self.log.debug("excluded column: %s/%s", table_name, col_name)
+                    self.log.debug(f"excluded column: {table_name}/{col_name}")
                     continue
 
                 if col_name in Schema.columns:
-                    self.log.warning("Found duplicated column %s, skipping", col_name)
+                    self.log.warning(f"Found duplicated column {col_name}, skipping")
                     continue
 
                 # apply any user-defined transforms first
@@ -208,20 +208,17 @@ class HDF5TableWriter(TableWriter):
 
                 else:
                     self.log.warning(
-                        "Column %s of container %s in table %s not writable, skipping",
-                        col_name,
-                        container.__class__.__name__,
-                        table_name
+                        f"Column {col_name} of "
+                        f"container {container.__class__.__name__} in "
+                        f"table {table_name} not writable, skipping"
                     )
                     continue
 
                 pos += 1
                 self.log.debug(
-                    "Table %s: added col: %s type: %s shape: %s",
-                    table_name,
-                    col_name,
-                    typename,
-                    shape,
+                    f"Table {table_name}: "
+                    f"added col: {col_name} type: "
+                    f"{typename} shape: {shape}"
                 )
 
         self._schemas[table_name] = Schema
@@ -254,7 +251,7 @@ class HDF5TableWriter(TableWriter):
             createparents=True,
             filters=self.filters,
         )
-        self.log.debug("CREATED TABLE: %s", table)
+        self.log.debug(f"CREATED TABLE: {table}")
         for key, val in meta.items():
             table.attrs[key] = val
 
@@ -280,9 +277,8 @@ class HDF5TableWriter(TableWriter):
                     row[colname] = value
                 except Exception:
                     self.log.error(
-                        'Error writing col "%s" of container "%s"',
-                        colname,
-                        container.__class__.__name__
+                        f"Error writing col {colname} of "
+                        f"container {container.__class__.__name__}"
                     )
                     raise
         row.append()
@@ -407,11 +403,8 @@ class HDF5TableReader(TableReader):
                 self._cols_to_read[table_name].append(colname)
             else:
                 self.log.warning(
-                    "Table '%s' has column '%s' that is not in "
-                    "container %s. It will be skipped",
-                    table_name,
-                    colname_without_prefix,
-                    container.__class__.__name__,
+                    f"Table {table_name} has column {colname_without_prefix} that is not in "
+                    f"container {container.__class__.__name__}. It will be skipped."
                 )
 
         # also check that the container doesn't have fields that are not
@@ -423,11 +416,8 @@ class HDF5TableReader(TableReader):
                 colname_with_prefix = colname
             if colname_with_prefix not in self._cols_to_read[table_name]:
                 self.log.warning(
-                    "Table '%s' is missing column '%s' that is "
-                    "in container %s. It will be skipped.",
-                    table_name,
-                    colname_with_prefix,
-                    container.__class__.__name__,
+                    f"Table {table_name} is missing column {colname_with_prefix}"
+                    f"that is in container {container.__class__.__name__}. It will be skipped."
                 )
 
         # copy all user-defined attributes back to Container.mets
