@@ -77,7 +77,7 @@ def write_reference_metadata_headers(obs_id, subarray, writer):
     activity = PROV.current_activity.provenance
 
     reference = meta.Reference(
-        contact=meta.Contact(name="", email="", organization="CTA Consortium",),
+        contact=meta.Contact(name="", email="", organization="CTA Consortium"),
         product=meta.Product(
             description="DL1 Data Product",
             data_category="S",
@@ -110,7 +110,7 @@ class ImageQualityQuery(QualityQuery):
 
     quality_criteria = List(
         default_value=[
-            ("size_greater_0", "lambda image_selected: image_selected.sum() > 0"),
+            ("size_greater_0", "lambda image_selected: image_selected.sum() > 0")
         ],
         help=QualityQuery.quality_criteria.help,
     ).tag(config=True)
@@ -456,12 +456,12 @@ class Stage1ProcessorTool(Tool):
         if all(image_criteria):
             geom_selected = geometry[signal_pixels]
 
-            hillas = hillas_parameters(geom=geom_selected, image=image_selected,)
+            hillas = hillas_parameters(geom=geom_selected, image=image_selected)
             leakage = leakage_parameters(
                 geom=geometry, image=image, cleaning_mask=signal_pixels
             )
             concentration = concentration_parameters(
-                geom=geom_selected, image=image_selected, hillas_parameters=hillas,
+                geom=geom_selected, image=image_selected, hillas_parameters=hillas
             )
             morphology = morphology_parameters(geom=geometry, image_mask=signal_pixels)
             intensity_statistics = descriptive_statistics(
@@ -659,7 +659,7 @@ class Stage1ProcessorTool(Tool):
             self._generate_table_indices(writer._h5file, "/dl1/event/telescope/images")
         self._generate_table_indices(writer._h5file, "/dl1/event/subarray")
 
-    def _setup_writer(self, writer):
+    def _setup_writer(self, writer: HDF5TableWriter):
         writer.add_column_transform(
             table_name="dl1/event/subarray/trigger",
             col_name="tels_with_trigger",
@@ -667,8 +667,8 @@ class Stage1ProcessorTool(Tool):
         )
 
         # exclude some columns that are not writable
-        writer.exclude("dl1/event/subarray/trigger", "tel")
-        writer.exclude("dl1/monitoring/subarray/pointing", "tel")
+        writer.exclude("dl1/event/subarray/trigger", "^tel$")
+        writer.exclude("dl1/monitoring/subarray/pointing", "^tel$")
         writer.exclude("dl1/monitoring/subarray/pointing", "event_type")
         for tel_id, telescope in self.event_source.subarray.tel.items():
             tel_type = str(telescope)
