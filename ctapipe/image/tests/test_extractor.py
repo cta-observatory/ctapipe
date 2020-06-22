@@ -254,7 +254,7 @@ def test_extractors(Extractor, toymodel):
 
 def test_fixed_window_sum(toymodel):
     waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
-    extractor = FixedWindowSum(subarray=subarray, window_start=47)
+    extractor = FixedWindowSum(subarray=subarray, peak_index=47)
     charge, peak_time = extractor(waveforms, telid, selected_gain_channel)
     assert_allclose(charge, true_charge, rtol=0.1)
     assert_allclose(peak_time, true_time, rtol=0.1)
@@ -320,7 +320,7 @@ def test_extractor_tel_param(toymodel):
         {
             "ImageExtractor": {
                 "window_width": [("type", "*", n_samples), ("id", "2", n_samples // 2)],
-                "window_start": 0,
+                "peak_index": 0,
             }
         }
     )
@@ -331,9 +331,9 @@ def test_extractor_tel_param(toymodel):
         "FixedWindowSum", subarray=subarray, config=config
     )
 
-    assert extractor.window_start.tel[None] == 0
-    assert extractor.window_start.tel[1] == 0
-    assert extractor.window_start.tel[2] == 0
+    assert extractor.peak_index.tel[None] == 0
+    assert extractor.peak_index.tel[1] == 0
+    assert extractor.peak_index.tel[2] == 0
     assert extractor.window_width.tel[None] == n_samples
     assert extractor.window_width.tel[1] == n_samples
     assert extractor.window_width.tel[2] == n_samples // 2

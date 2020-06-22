@@ -323,11 +323,16 @@ class FixedWindowSum(ImageExtractor):
     Extractor that sums within a fixed window defined by the user.
     """
 
-    window_start = IntTelescopeParameter(
-        default_value=0, help="Define the start position for the integration window"
+    peak_index = IntTelescopeParameter(
+        default_value=0, help="Manually select index where the peak is located"
     ).tag(config=True)
     window_width = IntTelescopeParameter(
         default_value=7, help="Define the width of the integration window"
+    ).tag(config=True)
+    window_shift = IntTelescopeParameter(
+        default_value=3,
+        help="Define the shift of the integration window from the peak_index "
+        "(peak_index - shift)",
     ).tag(config=True)
 
     @lru_cache(maxsize=128)
@@ -336,8 +341,6 @@ class FixedWindowSum(ImageExtractor):
         Calculate the correction for the extracted change such that the value
         returned would equal 1 for a noise-less unit pulse.
 
-        Assuming the pulse is centered in the manually defined integration
-        window, the integration_correction with a shift=0 is correct.
         This method is decorated with @lru_cache to ensure it is only
         calculated once per telescope.
 
@@ -358,15 +361,15 @@ class FixedWindowSum(ImageExtractor):
             readout.reference_pulse_sample_width.to_value("ns"),
             (1 / readout.sampling_rate).to_value("ns"),
             self.window_width.tel[telid],
-            0,
+            self.window_shift.tel[telid],
         )
 
     def __call__(self, waveforms, telid, selected_gain_channel):
         charge, peak_time = extract_around_peak(
             waveforms,
-            self.window_start.tel[telid],
+            self.peak_index.tel[telid],
             self.window_width.tel[telid],
-            0,
+            self.window_shift.tel[telid],
             self.sampling_rate[telid],
         )
         charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
