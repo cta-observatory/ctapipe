@@ -153,11 +153,13 @@ def test_reconstructor_validations():
         ValueError,
         match=r"^Some of the given camera names are not supported by this reconstructor: LSTCam$",
     ):
-        TReconstructor({
-            "FlashCam": flashcam_path,
-            "ASTRICam": astricam_path,
-            "LSTCam": lstcam_path
-        })
+        TReconstructor(
+            {
+                "FlashCam": flashcam_path,
+                "ASTRICam": astricam_path,
+                "LSTCam": lstcam_path,
+            }
+        )
 
 
 def test_reconstruction():
