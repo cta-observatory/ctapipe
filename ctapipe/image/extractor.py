@@ -330,7 +330,7 @@ class FixedWindowSum(ImageExtractor):
         default_value=7, help="Define the width of the integration window"
     ).tag(config=True)
     window_shift = IntTelescopeParameter(
-        default_value=3,
+        default_value=0,
         help="Define the shift of the integration window from the peak_index "
         "(peak_index - shift)",
     ).tag(config=True)
