@@ -667,8 +667,8 @@ class Stage1ProcessorTool(Tool):
         )
 
         # exclude some columns that are not writable
-        writer.exclude("dl1/event/subarray/trigger", "^tel$")
-        writer.exclude("dl1/monitoring/subarray/pointing", "^tel$")
+        writer.exclude("dl1/event/subarray/trigger", "tel")
+        writer.exclude("dl1/monitoring/subarray/pointing", "tel")
         writer.exclude("dl1/monitoring/subarray/pointing", "event_type")
         for tel_id, telescope in self.event_source.subarray.tel.items():
             tel_type = str(telescope)
