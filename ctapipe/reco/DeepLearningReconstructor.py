@@ -152,7 +152,7 @@ class DeepLearningReconstructor(Reconstructor):
             model = self._get_model(cam_name)
 
             obs_inputs = [
-                self._to_input(event, tel_id, **kwargs)
+                self._to_input(event, tel_id, cam_name, **kwargs)
                 for tel_id in self._get_tel_ids_with_cam(event, subarray, cam_name)
             ]
 
@@ -183,7 +183,7 @@ class DeepLearningReconstructor(Reconstructor):
         return self.models.get(cam_name)
 
     @abstractmethod
-    def _to_input(self, event, tel_id, **kwargs):
+    def _to_input(self, event, tel_id, cam_name, **kwargs):
         """
         Method to convert an observation of an event to the model input.
 
@@ -193,6 +193,8 @@ class DeepLearningReconstructor(Reconstructor):
             Event to be converted
         tel_id: int
             The telescope id of the observation to be converted.
+        cam_name: str
+            The camera name of the observation
 
         Returns
         -------

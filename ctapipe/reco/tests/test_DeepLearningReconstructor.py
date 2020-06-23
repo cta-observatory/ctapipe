@@ -29,7 +29,7 @@ class TReconstructor(DeepLearningReconstructor):
         """
         return ["FlashCam", "ASTRICam"]
 
-    def _to_input(self, event, tel_id, **kwargs):
+    def _to_input(self, event, tel_id, cam_name, **kwargs):
         """
         Each observation will use the dl1 image and a random "extra" input
         """
