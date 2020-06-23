@@ -65,7 +65,7 @@ setup(
         'tables~=3.4',
         'tqdm>=4.32',
         'traitlets>=4.1,<5.0',
-        'tensorflow~=1.15'
+        'onnxruntime~=1.3'
     ],
     # here are optional dependencies (as "tag" : "dependency spec")
     extras_require={

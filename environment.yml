@@ -34,12 +34,10 @@ dependencies:
   - sphinx_rtd_theme
   - tqdm
   - traitlets
-  - tensorflow=1.15.0
   - wheel
   - xz
   - zlib
   - pip
   - pip:
     - eventio~=1.0
-
-
+    - onnxruntime
