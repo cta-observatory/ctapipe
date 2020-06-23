@@ -9,7 +9,7 @@ from ctapipe.utils import get_dataset_path
 from ctapipe.calib import CameraCalibrator
 from ctapipe.reco.DeepLearningReconstructor import DeepLearningReconstructor, ONNXModel
 
-MODELS_PATH = "models"
+MODELS_PATH = os.path.join(os.path.dirname(__file__), "models")
 
 
 class TReconstructor(DeepLearningReconstructor):
