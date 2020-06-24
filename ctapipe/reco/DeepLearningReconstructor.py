@@ -16,15 +16,15 @@ class ONNXModel:
         except RuntimeError:
             raise ValueError(f'The model could not be loaded from "{path}"')
 
-    def predict(self, *inputs, **named_inputs):
+    def predict(self, *args, **kwargs):
         """
         Start a prediction using the given inputs
 
         Parameters
         ----------
-        inputs
+        *args
             Ordered arguments to use as inputs
-        named_inputs
+        **kwargs
             Named arguments to use as inputs
         Returns
         -------
@@ -32,32 +32,34 @@ class ONNXModel:
             List with the predictions of each output
         """
         n_inputs = len(self.inputs)
-        if len(named_inputs) == 0 and len(inputs) == 0:
+        if len(kwargs) == 0 and len(args) == 0:
             raise ValueError(
                 "The number of given (named xor ordered) arguments must be at least 1"
             )
-        if len(named_inputs) != 0 and len(inputs) != 0:
+        if len(kwargs) != 0 and len(args) != 0:
             raise ValueError(
                 "Ordered arguments and named arguments can't be given in the same prediction"
             )
-        if len(named_inputs) != n_inputs and len(inputs) != n_inputs:
+        if len(kwargs) != n_inputs and len(args) != n_inputs:
             raise ValueError(
-                f"The number of given arguments ({max(len(named_inputs), len(inputs))}) must be "
+                f"The number of given arguments ({max(len(kwargs), len(args))}) must be "
                 f"equal to the number of model inputs ({n_inputs})"
             )
-        if len(inputs) != 0:
+        if len(args) != 0:
             for i in range(n_inputs):
-                named_inputs[self.inputs[i].name] = inputs[i]
+                kwargs[self.inputs[i].name] = args[i]
 
-        n_predictions = [len(named_inputs[name]) for name in named_inputs]
+        n_predictions = [len(kwargs[name]) for name in kwargs]
         if len(set(n_predictions)) != 1:
             raise ValueError("All inputs must have the same length")
 
-        for name in named_inputs:
-            inp = named_inputs[name]
+        for name in kwargs:
+            inp = kwargs[name]
+            # to avoid common type errors, convert arrays with dtype float64 to float32 (as ONNX only supports the
+            # latter)
             if type(inp) is np.ndarray and inp.dtype == np.float64:
-                named_inputs[name] = inp.astype(np.float32)
-        return self.sess.run(None, named_inputs)
+                kwargs[name] = inp.astype(np.float32)
+        return self.sess.run(None, kwargs)
 
     @property
     def inputs(self):
@@ -117,7 +119,7 @@ class DeepLearningReconstructor(Reconstructor):
     @staticmethod
     def _get_tel_ids_with_cam(event, subarray, cam_name):
         """
-        Get telescope IDs using a given camera
+        Get telescope IDs from subarray that uses a given camera
 
         Parameters
         ----------
@@ -142,6 +144,11 @@ class DeepLearningReconstructor(Reconstructor):
             Event container from which the prediction will be made
         subarray : ctapipe.instrument.SubarrayDecription
             Subarray description
+
+        Returns
+        -------
+        ctapipe.containers.ReconstructedShowerContainer
+            The shower container with the reconstructed data
         """
         predictions = dict()
         for cam_name in self.supported_cameras:
@@ -168,7 +175,7 @@ class DeepLearningReconstructor(Reconstructor):
 
     def _get_model(self, cam_name):
         """
-        Return an instance of a Keras model with the architecture given a camera name.
+        Return an instance of a ONNXModel that corresponds to the given camera name.
 
         Parameters
         ----------
@@ -177,13 +184,13 @@ class DeepLearningReconstructor(Reconstructor):
 
         Returns
         -------
-        model : keras.Sequential
+        model : List[ONNXModel]
             List of events to be used for training
         """
-        return self.models.get(cam_name)
+        return self.models[cam_name]
 
     @abstractmethod
-    def _to_input(self, event, tel_id, cam_name, **kwargs):
+    def _to_input(self, event, tel_id, cam_name):
         """
         Method to convert an observation of an event to the model input.
 
