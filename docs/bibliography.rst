@@ -15,3 +15,6 @@ References
 		DOI: 10.17877/DE290R-17773
 
 .. [factcleaning] https://github.com/fact-project/fact-tools
+
+.. [ctatopleveldatamodel] K. Kosack et al, "Top-level Data Model", CTAO Computing
+        Department Internal Documentation, CTA-SPE-OSO-000000-0001, v1A.

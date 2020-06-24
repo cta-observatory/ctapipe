@@ -101,7 +101,6 @@ class Tool(Application):
     """
 
     config_file = Path(
-        None,
         exists=True,
         directory_ok=False,
         help=(
@@ -215,7 +214,7 @@ class Tool(Application):
             Provenance().start_activity(self.name)
             self.setup()
             self.is_setup = True
-            self.log.info(f"CONFIG: {self.get_current_config()}")
+            self.log.debug(f"CONFIG: {self.get_current_config()}")
             Provenance().add_config(self.get_current_config())
             self.start()
             self.finish()
@@ -368,14 +367,14 @@ def export_tool_config_to_commented_yaml(tool_instance: Tool, classes=None):
 
 
 def run_tool(tool: Tool, argv=None):
-    '''
+    """
     Utility run a certain tool in a python session without exitinig
 
     Returns
     -------
     exit_code: int
         The return code of the tool, 0 indicates success, everything else an error
-    '''
+    """
     try:
         tool.run(argv or [])
         return 0

@@ -1,15 +1,16 @@
 language: generic
 
 env:
-    global: 
-        - PYTHONIOENCODING=UTF8
-        - MPLBACKEND=Agg
-        - PYTEST_ADDOPTS='--color=yes'
+  global:
+    - PYTHONIOENCODING=UTF8
+    - MPLBACKEND=Agg
+    - PYTEST_ADDOPTS='--color=yes'
 
 matrix:
   include:
     - name: conda python 3.6
       os: linux
+      dist: bionic
       language: generic
       env:
         - PYTHON_VERSION=3.6
@@ -17,12 +18,14 @@ matrix:
 
     - name: conda python 3.7
       os: linux
+      dist: bionic
       language: generic
       env:
         - PYTHON_VERSION=3.7
         - CONDA=true
 
     - os: linux
+      dist: bionic
       language: python
       python: 3.6
       addons:
@@ -32,6 +35,7 @@ matrix:
             - graphviz
 
     - os: linux
+      dist: bionic
       language: python
       python: 3.7
       addons:
@@ -41,6 +45,7 @@ matrix:
             - graphviz
 
     - os: linux
+      dist: bionic
       language: python
       python: 3.8
       addons:
@@ -50,28 +55,27 @@ matrix:
             - graphviz
 
 before_install:
-    - git fetch --tags
+  - git fetch --tags
 
 install:
-    - source ci/install.sh
-    - python --version
-    - ulimit -s 16000  # increase stack size limit, for libhessio
-    - pip install travis-sphinx codecov pytest-cov
-    - python setup.py develop
+  - source ci/install.sh
+  - python --version
+  - pip install travis-sphinx codecov pytest-cov
+  - pip install -e .[all]
 
 script:
-    - pytest --cov=ctapipe
-    - ctapipe-info --version # print out the version string
-    - travis-sphinx -v --outdir=docbuild build --source=docs/
+  - pytest --cov=ctapipe
+  - ctapipe-info --version
+  - travis-sphinx -v --outdir=docbuild build --source=docs/
 
 after_script:
-    - if [[ "$CONDA" == "true" ]];then
-          conda deactivate
-      fi
+  - if [[ "$CONDA" == "true" ]];then
+        conda deactivate
+    fi
 
 after_success:
-    - travis-sphinx -v --outdir=docbuild deploy
-    - codecov
+  - travis-sphinx -v --outdir=docbuild deploy
+  - codecov
 
 deploy:
   provider: pypi

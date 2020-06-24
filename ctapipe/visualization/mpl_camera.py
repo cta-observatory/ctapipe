@@ -13,7 +13,7 @@ from matplotlib.colors import Normalize, LogNorm, SymLogNorm
 from matplotlib.patches import Ellipse, RegularPolygon, Rectangle
 from numpy import sqrt
 
-__all__ = ['CameraDisplay']
+__all__ = ["CameraDisplay"]
 
 logger = logging.getLogger(__name__)
 
@@ -85,16 +85,16 @@ class CameraDisplay:
     """
 
     def __init__(
-            self,
-            geometry,
-            image=None,
-            ax=None,
-            title=None,
-            norm="lin",
-            cmap=None,
-            allow_pick=False,
-            autoupdate=True,
-            autoscale=True,
+        self,
+        geometry,
+        image=None,
+        ax=None,
+        title=None,
+        norm="lin",
+        cmap=None,
+        allow_pick=False,
+        autoupdate=True,
+        autoscale=True,
     ):
         self.axes = ax if ax is not None else plt.gca()
         self.pixels = None
@@ -128,7 +128,9 @@ class CameraDisplay:
             if self.geom.pix_type.startswith("hex"):
                 r = sqrt(area * 2 / 3 / sqrt(3)) + 2 * PIXEL_EPSILON
                 poly = RegularPolygon(
-                    (x, y), 6, radius=r,
+                    (x, y),
+                    6,
+                    radius=r,
                     orientation=self.geom.pix_rotation.to_value(u.rad),
                     fill=True,
                 )
@@ -148,13 +150,13 @@ class CameraDisplay:
         self.axes.add_collection(self.pixels)
 
         self.pixel_highlighting = copy.copy(self.pixels)
-        self.pixel_highlighting.set_facecolor('none')
+        self.pixel_highlighting.set_facecolor("none")
         self.pixel_highlighting.set_linewidth(0)
         self.axes.add_collection(self.pixel_highlighting)
 
         # Set up some nice plot defaults
 
-        self.axes.set_aspect('equal', 'datalim')
+        self.axes.set_aspect("equal", "datalim")
         self.axes.set_title(title)
         self.axes.set_xlabel(f"X position ({self.geom.pix_x.unit})")
         self.axes.set_ylabel(f"Y position ({self.geom.pix_y.unit})")
@@ -164,17 +166,19 @@ class CameraDisplay:
         # pixel_picker is enabled):
 
         self._active_pixel = copy.copy(patches[0])
-        self._active_pixel.set_facecolor('r')
+        self._active_pixel.set_facecolor("r")
         self._active_pixel.set_alpha(0.5)
         self._active_pixel.set_linewidth(2.0)
         self._active_pixel.set_visible(False)
         self.axes.add_patch(self._active_pixel)
 
-        self._active_pixel_label = self.axes.text(self._active_pixel.xy[0],
-                                                  self._active_pixel.xy[1],
-                                                  "0",
-                                                  horizontalalignment='center',
-                                                  verticalalignment='center')
+        self._active_pixel_label = self.axes.text(
+            self._active_pixel.xy[0],
+            self._active_pixel.xy[1],
+            "0",
+            horizontalalignment="center",
+            verticalalignment="center",
+        )
         self._active_pixel_label.set_visible(False)
 
         # enable ability to click on pixel and do something (can be
@@ -190,7 +194,7 @@ class CameraDisplay:
 
         self.norm = norm
 
-    def highlight_pixels(self, pixels, color='g', linewidth=1, alpha=0.75):
+    def highlight_pixels(self, pixels, color="g", linewidth=1, alpha=0.75):
         """
         Highlight the given pixels with a colored line around them
 
@@ -218,10 +222,11 @@ class CameraDisplay:
     def enable_pixel_picker(self):
         """ enable ability to click on pixels """
         self.pixels.set_picker(True)  # enable click
-        self.pixels.set_pickradius(sqrt(u.Quantity(self.geom.pix_area[0])
-                                        .value) / np.pi)
+        self.pixels.set_pickradius(
+            sqrt(u.Quantity(self.geom.pix_area[0]).value) / np.pi
+        )
         self.pixels.set_snap(True)  # snap cursor to pixel center
-        self.axes.figure.canvas.mpl_connect('pick_event', self._on_pick)
+        self.axes.figure.canvas.mpl_connect("pick_event", self._on_pick)
 
     def set_limits_minmax(self, zmin, zmax):
         """ set the color scale limits from min to max """
@@ -255,20 +260,21 @@ class CameraDisplay:
     @norm.setter
     def norm(self, norm):
 
-        if norm == 'lin':
+        if norm == "lin":
             self.pixels.norm = Normalize()
-        elif norm == 'log':
+        elif norm == "log":
             self.pixels.norm = LogNorm()
             self.pixels.autoscale()  # this is to handle matplotlib bug #5424
-        elif norm == 'symlog':
+        elif norm == "symlog":
             self.pixels.norm = SymLogNorm(linthresh=1.0)
             self.pixels.autoscale()
         elif isinstance(norm, Normalize):
             self.pixels.norm = norm
         else:
-            raise ValueError("Unsupported norm: '{}', options are 'lin',"
-                             "'log','symlog', or a matplotlib Normalize object"
-                             .format(norm))
+            raise ValueError(
+                "Unsupported norm: '{}', options are 'lin',"
+                "'log','symlog', or a matplotlib Normalize object".format(norm)
+            )
 
         self.update(force=True)
         self.pixels.autoscale()
@@ -303,10 +309,11 @@ class CameraDisplay:
         """
         image = np.asanyarray(image)
         if image.shape != self.geom.pix_x.shape:
-            raise ValueError((
-                "Image has a different shape {} than the "
-                "given CameraGeometry {}"
-            ).format(image.shape, self.geom.pix_x.shape))
+            raise ValueError(
+                (
+                    "Image has a different shape {} than the " "given CameraGeometry {}"
+                ).format(image.shape, self.geom.pix_x.shape)
+            )
 
         self.pixels.set_array(np.ma.masked_invalid(image[self.mask]))
         self.pixels.changed()
@@ -338,16 +345,15 @@ class CameraDisplay:
         """
         if self.colorbar is not None:
             raise ValueError(
-                'There is already a colorbar attached to this CameraDisplay'
+                "There is already a colorbar attached to this CameraDisplay"
             )
         else:
-            if 'ax' not in kwargs:
-                kwargs['ax'] = self.axes
+            if "ax" not in kwargs:
+                kwargs["ax"] = self.axes
             self.colorbar = self.axes.figure.colorbar(self.pixels, **kwargs)
         self.update()
 
-    def add_ellipse(self, centroid, length, width, angle, asymmetry=0.0,
-                    **kwargs):
+    def add_ellipse(self, centroid, length, width, angle, asymmetry=0.0, **kwargs):
         """
         plot an ellipse on top of the camera
 
@@ -367,14 +373,21 @@ class CameraDisplay:
             any MatPlotLib style arguments to pass to the Ellipse patch
 
         """
-        ellipse = Ellipse(xy=centroid, width=length, height=width,
-                          angle=np.degrees(angle), fill=False, **kwargs)
+        ellipse = Ellipse(
+            xy=centroid,
+            width=length,
+            height=width,
+            angle=np.degrees(angle),
+            fill=False,
+            **kwargs,
+        )
         self.axes.add_patch(ellipse)
         self.update()
         return ellipse
 
-    def overlay_moments(self, hillas_parameters, with_label=True, keep_old=False,
-                        **kwargs):
+    def overlay_moments(
+        self, hillas_parameters, with_label=True, keep_old=False, **kwargs
+    ):
         """helper to overlay ellipse from a `HillasParametersContainer` structure
 
         Parameters
@@ -403,7 +416,7 @@ class CameraDisplay:
             length=length * 2,
             width=width * 2,
             angle=hillas_parameters.psi.rad,
-            **kwargs
+            **kwargs,
         )
 
         self._axes_overlays.append(el)
@@ -418,7 +431,7 @@ class CameraDisplay:
                     hillas_parameters.width,
                     hillas_parameters.length,
                 ),
-                color=el.get_edgecolor()
+                color=el.get_edgecolor(),
             )
 
             self._axes_overlays.append(text)
@@ -432,14 +445,16 @@ class CameraDisplay:
     def _on_pick(self, event):
         """ handler for when a pixel is clicked """
         pix_id = event.ind[-1]
-        xx, yy, aa = u.Quantity(self.geom.pix_x[pix_id]).value, \
-                     u.Quantity(self.geom.pix_y[pix_id]).value, \
-                     u.Quantity(np.array(self.geom.pix_area)[pix_id])
+        xx, yy, aa = (
+            u.Quantity(self.geom.pix_x[pix_id]).value,
+            u.Quantity(self.geom.pix_y[pix_id]).value,
+            u.Quantity(np.array(self.geom.pix_area)[pix_id]),
+        )
         if self.geom.pix_type.startswith("hex"):
             self._active_pixel.xy = (xx, yy)
         else:
             rr = sqrt(aa)
-            self._active_pixel.xy = (xx - rr / 2., yy - rr / 2.)
+            self._active_pixel.xy = (xx - rr / 2.0, yy - rr / 2.0)
         self._active_pixel.set_visible(True)
         self._active_pixel_label.set_x(xx)
         self._active_pixel_label.set_y(yy)
@@ -456,5 +471,3 @@ class CameraDisplay:
 
     def show(self):
         self.axes.figure.show()
-
-

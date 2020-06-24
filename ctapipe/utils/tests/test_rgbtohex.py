@@ -27,4 +27,4 @@ def test_rgb_nan():
 
 def test_hex_nan():
     output = intensity_to_hex(np.array([np.nan, 2]), 0, 3)
-    assert output[0] == '#00000000'
+    assert output[0] == "#00000000"

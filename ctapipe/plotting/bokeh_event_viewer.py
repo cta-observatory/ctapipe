@@ -19,18 +19,18 @@ class BokehEventViewerCamera(CameraDisplay):
             Figure to store the bokeh plot onto (optional)
         """
         self._event = None
-        self._view = 'r0'
+        self._view = "r0"
         self._telid = None
         self._channel = 0
         self._time = 0
         super().__init__(fig=fig)
 
         self._view_options = {
-            'r0': lambda e, t, c, time: e.r0.tel[t].waveform[c, :, time],
-            'r1': lambda e, t, c, time: e.r1.tel[t].waveform[:, time],
-            'dl0': lambda e, t, c, time: e.dl0.tel[t].waveform[:, time],
-            'dl1': lambda e, t, c, time: e.dl1.tel[t].image[:],
-            'pulse_time': lambda e, t, c, time: e.dl1.tel[t].pulse_time[:],
+            "r0": lambda e, t, c, time: e.r0.tel[t].waveform[c, :, time],
+            "r1": lambda e, t, c, time: e.r1.tel[t].waveform[:, time],
+            "dl0": lambda e, t, c, time: e.dl0.tel[t].waveform[:, time],
+            "dl1": lambda e, t, c, time: e.dl1.tel[t].image[:],
+            "peak_time": lambda e, t, c, time: e.dl1.tel[t].peak_time[:],
         }
 
         self.w_view = None
@@ -60,7 +60,7 @@ class BokehEventViewerCamera(CameraDisplay):
 
         try:
             self.image = self._view_options[v](e, t, c, time)
-            self.fig.title.text = f'{v} (T = {time})'
+            self.fig.title.text = f"{v} (T = {time})"
         except TypeError:
             self.image = None
 
@@ -70,7 +70,7 @@ class BokehEventViewerCamera(CameraDisplay):
         if e:
             # Check if geom actually needs to be changed
             if not t == self._geom_tel:
-                self.geom = e.inst.subarray.tel[t].camera.geometry
+                self.geom = self.event_viewer.subarray.tel[t].camera.geometry
                 self._geom_tel = t
         else:
             self.event_viewer.log.warning("No event has been provided")
@@ -142,7 +142,7 @@ class BokehEventViewerCamera(CameraDisplay):
 
     def create_view_widget(self):
         self.w_view = Select(title="View:", value="", options=[], width=5)
-        self.w_view.on_change('value', self.on_view_widget_change)
+        self.w_view.on_change("value", self.on_view_widget_change)
         self.layout = column([self.w_view, self.layout])
 
     def update_view_widget(self):
@@ -168,16 +168,16 @@ class BokehEventViewerWaveform(WaveformDisplay):
             Figure to store the bokeh plot onto (optional)
         """
         self._event = None
-        self._view = 'r0'
+        self._view = "r0"
         self._telid = None
         self._channel = 0
         self._pixel = 0
         super().__init__(fig=fig)
 
         self._view_options = {
-            'r0': lambda e, t, c, p: e.r0.tel[t].waveform[c, p],
-            'r1': lambda e, t, c, p: e.r1.tel[t].waveform[p],
-            'dl0': lambda e, t, c, p: e.dl0.tel[t].waveform[p],
+            "r0": lambda e, t, c, p: e.r0.tel[t].waveform[c, p],
+            "r1": lambda e, t, c, p: e.r1.tel[t].waveform[p],
+            "dl0": lambda e, t, c, p: e.dl0.tel[t].waveform[p],
         }
 
         self.w_view = None
@@ -206,7 +206,7 @@ class BokehEventViewerWaveform(WaveformDisplay):
 
         try:
             self.waveform = self._view_options[v](e, t, c, p)
-            self.fig.title.text = f'{v} (Pixel = {p})'
+            self.fig.title.text = f"{v} (Pixel = {p})"
         except TypeError:
             self.waveform = None
 
@@ -274,7 +274,7 @@ class BokehEventViewerWaveform(WaveformDisplay):
 
     def create_view_widget(self):
         self.w_view = Select(title="View:", value="", options=[], width=5)
-        self.w_view.on_change('value', self.on_view_widget_change)
+        self.w_view.on_change("value", self.on_view_widget_change)
         self.layout = column([self.w_view, self.layout])
 
     def update_view_widget(self):
@@ -289,11 +289,12 @@ class BokehEventViewerWaveform(WaveformDisplay):
 class BokehEventViewer(Component):
     def __init__(
         self,
+        subarray,
         config=None,
         parent=None,
         num_cameras=1,
         num_waveforms=2,
-        **kwargs
+        **kwargs,
     ):
         """
         A class to organise the interface between
@@ -320,7 +321,7 @@ class BokehEventViewer(Component):
         super().__init__(config=config, parent=parent, **kwargs)
 
         self._event = None
-        self._view = 'r0'
+        self._view = "r0"
         self._telid = None
         self._channel = 0
 
@@ -331,6 +332,7 @@ class BokehEventViewer(Component):
         self.camera_layouts = []
         self.waveforms = []
         self.waveform_layouts = []
+        self.subarray = subarray
 
         self.layout = None
 
@@ -348,7 +350,7 @@ class BokehEventViewer(Component):
         for iwav in range(self.num_waveforms):
             wav = BokehEventViewerWaveform(self)
             active_color = self.cameras[0].active_colors[iwav]
-            wav.fig.select(name='line')[0].glyph.line_color = active_color
+            wav.fig.select(name="line")[0].glyph.line_color = active_color
             wav.enable_time_picker()
             wav.create_view_widget()
             wav.update_view_widget()
@@ -356,9 +358,9 @@ class BokehEventViewer(Component):
             self.waveforms.append(wav)
             self.waveform_layouts.append(wav.layout)
 
-        self.layout = layout([
-            [column(self.camera_layouts), column(self.waveform_layouts)],
-        ])
+        self.layout = layout(
+            [[column(self.camera_layouts), column(self.waveform_layouts)],]
+        )
 
     def enable_automatic_index_increment(self):
         for cam in self.cameras:

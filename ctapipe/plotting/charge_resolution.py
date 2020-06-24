@@ -4,7 +4,8 @@ from matplotlib.ticker import FuncFormatter
 from matplotlib import pyplot as plt
 import os
 from ctapipe.core import Component, Provenance
-from traitlets import Unicode, Int
+from ctapipe.core.traits import Path
+from traitlets import Int
 
 
 def root_mean_square(array):
@@ -19,7 +20,7 @@ def root_mean_square(array):
     -------
     float
     """
-    return np.sqrt(np.mean(array**2))
+    return np.sqrt(np.mean(array ** 2))
 
 
 def bin_dataframe(df, n_bins):
@@ -39,27 +40,25 @@ def bin_dataframe(df, n_bins):
     -------
     pd.DataFrame
     """
-    true = df['true'].values
+    true = df["true"].values
     min_ = true.min()
     max_ = true.max()
     bins = np.geomspace(min_, max_, n_bins)
     log_bin_width = np.diff(np.log10(bins))[0]
-    bins = np.append(bins, 10**(np.log10(bins[-1]) + log_bin_width))
-    df['bin'] = np.digitize(true, bins, right=True) - 1
+    bins = np.append(bins, 10 ** (np.log10(bins[-1]) + log_bin_width))
+    df["bin"] = np.digitize(true, bins, right=True) - 1
 
     return df
 
 
 class ChargeResolutionPlotter(Component):
 
-    output_path = Unicode(
-        '', help='Output path to save the plot.'
-    ).tag(config=True)
+    output_path = Path(help="Output path to save the plot.").tag(config=True)
 
     n_bins = Int(
         40,
-        help='Number of bins for collecting true charges and combining '
-             'their resolution'
+        help="Number of bins for collecting true charges and combining "
+        "their resolution",
     ).tag(config=True)
 
     def __init__(self, config=None, parent=None, **kwargs):
@@ -94,9 +93,7 @@ class ChargeResolutionPlotter(Component):
         self.ax = self.fig.add_subplot(111)
 
         self.ax.set_xlabel("True Charge (p.e.)")
-        self.ax.set_ylabel(
-            r"Fractional Charge Resolution $\frac{{\sigma_Q}}{{Q}}$"
-        )
+        self.ax.set_ylabel(r"Fractional Charge Resolution $\frac{{\sigma_Q}}{{Q}}$")
 
         if not self.output_path:
             raise ValueError("Output path must be specified")
@@ -111,9 +108,9 @@ class ChargeResolutionPlotter(Component):
         path : str
             Path to the charge resolution HDF5 file
         """
-        with pd.HDFStore(path, 'r') as store:
-            self._df_pixel = store['charge_resolution_pixel']
-            self._df_camera = store['charge_resolution_camera']
+        with pd.HDFStore(path, "r") as store:
+            self._df_pixel = store["charge_resolution_pixel"]
+            self._df_camera = store["charge_resolution_camera"]
 
     def _plot(self, x, y, **kwargs):
         """
@@ -128,15 +125,14 @@ class ChargeResolutionPlotter(Component):
         label : str
         """
         defaults = dict(
-            mew=1, capsize=1, elinewidth=0.5, markersize=2,
-            linewidth=0.5, fmt='.'
+            mew=1, capsize=1, elinewidth=0.5, markersize=2, linewidth=0.5, fmt="."
         )
         kwargs = {**defaults, **kwargs}
         (_, caps, _) = self.ax.errorbar(x, y, **kwargs)
         for cap in caps:
             cap.set_markeredgewidth(0.5)
 
-    def plot_average(self, path, label='', **kwargs):
+    def plot_average(self, path, label="", **kwargs):
         """
         Plot the average and standard deviation of the charge resolution
         across the pixels of the camera.
@@ -151,14 +147,14 @@ class ChargeResolutionPlotter(Component):
         """
         self._set_file(path)
         df_binned = bin_dataframe(self._df_pixel, self.n_bins)
-        agg = {'charge_resolution': ['mean', 'std'], 'true': 'mean'}
-        df_agg = df_binned.groupby(['bin']).agg(agg)
-        x = df_agg['true']['mean'].values
-        y = df_agg['charge_resolution']['mean'].values
-        yerr = df_agg['charge_resolution']['std'].values
+        agg = {"charge_resolution": ["mean", "std"], "true": "mean"}
+        df_agg = df_binned.groupby(["bin"]).agg(agg)
+        x = df_agg["true"]["mean"].values
+        y = df_agg["charge_resolution"]["mean"].values
+        yerr = df_agg["charge_resolution"]["std"].values
         self._plot(x, y, yerr=yerr, label=label, **kwargs)
 
-    def plot_pixel(self, path, pixel, label='', **kwargs):
+    def plot_pixel(self, path, pixel, label="", **kwargs):
         """
         Plot a single pixel's charge resolution.
 
@@ -175,16 +171,16 @@ class ChargeResolutionPlotter(Component):
         kwargs
         """
         self._set_file(path)
-        df_p = self._df_pixel.loc[self._df_pixel['pixel'] == pixel]
+        df_p = self._df_pixel.loc[self._df_pixel["pixel"] == pixel]
         df_binned = bin_dataframe(df_p, self.n_bins)
-        agg = {'charge_resolution': 'mean', 'true': 'mean', 'n': 'sum'}
-        df_agg = df_binned.groupby(['bin']).agg(agg)
-        x = df_agg['true'].values
-        y = df_agg['charge_resolution'].values
-        yerr = 1 / np.sqrt(df_agg['n'].values)
+        agg = {"charge_resolution": "mean", "true": "mean", "n": "sum"}
+        df_agg = df_binned.groupby(["bin"]).agg(agg)
+        x = df_agg["true"].values
+        y = df_agg["charge_resolution"].values
+        yerr = 1 / np.sqrt(df_agg["n"].values)
         self._plot(x, y, yerr=yerr, label=label, **kwargs)
 
-    def plot_camera(self, path, label='', **kwargs):
+    def plot_camera(self, path, label="", **kwargs):
         """
         Plot the charge resolution for the entire camera.
 
@@ -200,23 +196,21 @@ class ChargeResolutionPlotter(Component):
         """
         self._set_file(path)
         df_binned = bin_dataframe(self._df_camera, self.n_bins)
-        agg = {'charge_resolution': 'mean', 'true': 'mean', 'n': 'sum'}
-        df_agg = df_binned.groupby(['bin']).agg(agg)
-        x = df_agg['true'].values
-        y = df_agg['charge_resolution'].values
-        yerr = 1 / np.sqrt(df_agg['n'].values)
+        agg = {"charge_resolution": "mean", "true": "mean", "n": "sum"}
+        df_agg = df_binned.groupby(["bin"]).agg(agg)
+        x = df_agg["true"].values
+        y = df_agg["charge_resolution"].values
+        yerr = 1 / np.sqrt(df_agg["n"].values)
         self._plot(x, y, yerr=yerr, label=label, **kwargs)
 
     def _finish(self):
         """
         Perform the finishing touches to the figure before saving.
         """
-        self.ax.set_xscale('log')
-        self.ax.get_xaxis().set_major_formatter(
-            FuncFormatter(lambda x, _: f'{x:g}'))
-        self.ax.set_yscale('log')
-        self.ax.get_yaxis().set_major_formatter(
-            FuncFormatter(lambda y, _: f'{y:g}'))
+        self.ax.set_xscale("log")
+        self.ax.get_xaxis().set_major_formatter(FuncFormatter(lambda x, _: f"{x:g}"))
+        self.ax.set_yscale("log")
+        self.ax.get_yaxis().set_major_formatter(FuncFormatter(lambda y, _: f"{y:g}"))
 
     def save(self):
         """
@@ -229,7 +223,7 @@ class ChargeResolutionPlotter(Component):
             print(f"Creating directory: {output_dir}")
             os.makedirs(output_dir)
 
-        self.fig.savefig(self.output_path, bbox_inches='tight')
+        self.fig.savefig(self.output_path, bbox_inches="tight")
         print(f"Figure saved to: {self.output_path}")
         Provenance().add_output_file(self.output_path)
 
@@ -258,9 +252,9 @@ class ChargeResolutionPlotter(Component):
         enf : float
             Excess noise factor.
         """
-        sigma_0 = np.sqrt(nsb * t_w + n_e**2)
+        sigma_0 = np.sqrt(nsb * t_w + n_e ** 2)
         sigma_enf = 1 + enf
-        sigma_q = np.sqrt(sigma_0**2 + sigma_enf**2 * q + sigma_g**2 * q**2)
+        sigma_q = np.sqrt(sigma_0 ** 2 + sigma_enf ** 2 * q + sigma_g ** 2 * q ** 2)
         return sigma_q / q
 
     @staticmethod
@@ -308,7 +302,7 @@ class ChargeResolutionPlotter(Component):
             Charges to evaluate the requirement curve at
         """
         req = self.requirement(q)
-        self.ax.plot(q, req, '--', color='black', label="Requirement")
+        self.ax.plot(q, req, "--", color="black", label="Requirement")
 
     def plot_poisson(self, q):
         """
@@ -320,7 +314,7 @@ class ChargeResolutionPlotter(Component):
             Charges to evaluate the limit at
         """
         poisson = self.poisson(q)
-        self.ax.plot(q, poisson, '--', color='grey', label="Poisson")
+        self.ax.plot(q, poisson, "--", color="grey", label="Poisson")
 
 
 class ChargeResolutionWRRPlotter(ChargeResolutionPlotter):
@@ -347,21 +341,20 @@ class ChargeResolutionWRRPlotter(ChargeResolutionPlotter):
 
     def _plot(self, x, y, **kwargs):
         y = y / self.requirement(x)
-        if 'yerr' in kwargs:
-            kwargs['yerr'] /= self.requirement(x)
+        if "yerr" in kwargs:
+            kwargs["yerr"] /= self.requirement(x)
         super()._plot(x, y, **kwargs)
 
     def plot_requirement(self, q):
         req = self.requirement(q)
         req /= self.requirement(q)
-        self.ax.plot(q, req, '--', color='black', label="Requirement")
+        self.ax.plot(q, req, "--", color="black", label="Requirement")
 
     def plot_poisson(self, q):
         poisson = self.poisson(q)
         poisson /= self.requirement(q)
-        self.ax.plot(q, poisson, '--', color='grey', label="Poisson")
+        self.ax.plot(q, poisson, "--", color="grey", label="Poisson")
 
     def _finish(self):
-        self.ax.set_xscale('log')
-        self.ax.get_xaxis().set_major_formatter(
-            FuncFormatter(lambda x, _: f'{x:g}'))
+        self.ax.set_xscale("log")
+        self.ax.get_xaxis().set_major_formatter(FuncFormatter(lambda x, _: f"{x:g}"))

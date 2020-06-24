@@ -4,7 +4,7 @@ Calibrate dl0 data to dl1, and plot the photoelectron images.
 from matplotlib import colors
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from traitlets import Bool, Dict, Int, List, Unicode
+from traitlets import Bool, Dict, Int, List
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Component, Tool
@@ -21,15 +21,15 @@ class ImagePlotter(Component):
     display = Bool(
         True, help="Display the photoelectron images on-screen as they are produced."
     ).tag(config=True)
-    output_path = Unicode(
-        None,
-        allow_none=True,
-        help="Output path for the pdf containing all the "
-        "images. Set to None for no saved "
-        "output.",
+    output_path = traits.Path(
+        directory_ok=False,
+        help=(
+            "Output path for the pdf containing all the images."
+            " Set to None for no saved output."
+        ),
     ).tag(config=True)
 
-    def __init__(self, config=None, parent=None, **kwargs):
+    def __init__(self, subarray, config=None, parent=None, **kwargs):
         """
         Plotter for camera images.
 
@@ -48,44 +48,41 @@ class ImagePlotter(Component):
         super().__init__(config=config, parent=parent, **kwargs)
         self._current_tel = None
         self.c_intensity = None
-        self.c_pulse_time = None
+        self.c_peak_time = None
         self.cb_intensity = None
-        self.cb_pulse_time = None
+        self.cb_peak_time = None
         self.pdf = None
+        self.subarray = subarray
 
         self._init_figure()
 
     def _init_figure(self):
         self.fig = plt.figure(figsize=(16, 7))
         self.ax_intensity = self.fig.add_subplot(1, 2, 1)
-        self.ax_pulse_time = self.fig.add_subplot(1, 2, 2)
+        self.ax_peak_time = self.fig.add_subplot(1, 2, 2)
         if self.output_path:
             self.log.info(f"Creating PDF: {self.output_path}")
             self.pdf = PdfPages(self.output_path)
 
-    @staticmethod
-    def get_geometry(event, telid):
-        return event.inst.subarray.tel[telid].camera.geometry
-
     def plot(self, event, telid):
         image = event.dl1.tel[telid].image
-        pulse_time = event.dl1.tel[telid].pulse_time
-        print("plot", image.shape, pulse_time.shape)
+        peak_time = event.dl1.tel[telid].peak_time
+        print("plot", image.shape, peak_time.shape)
 
         if self._current_tel != telid:
             self._current_tel = telid
 
             self.ax_intensity.cla()
-            self.ax_pulse_time.cla()
+            self.ax_peak_time.cla()
 
             # Redraw camera
-            geom = self.get_geometry(event, telid)
+            geom = self.subarray.tel[telid].camera.geometry
             self.c_intensity = CameraDisplay(geom, ax=self.ax_intensity)
-            self.c_pulse_time = CameraDisplay(geom, ax=self.ax_pulse_time)
+            self.c_peak_time = CameraDisplay(geom, ax=self.ax_peak_time)
 
-            if (pulse_time != 0.).all():
+            if (peak_time != 0.0).all():
                 tmaxmin = event.dl0.tel[telid].waveform.shape[1]
-                t_chargemax = pulse_time[image.argmax()]
+                t_chargemax = peak_time[image.argmax()]
                 cmap_time = colors.LinearSegmentedColormap.from_list(
                     "cmap_t",
                     [
@@ -96,7 +93,7 @@ class ImagePlotter(Component):
                         (1, "darkblue"),
                     ],
                 )
-                self.c_pulse_time.pixels.set_cmap(cmap_time)
+                self.c_peak_time.pixels.set_cmap(cmap_time)
 
             if not self.cb_intensity:
                 self.c_intensity.add_colorbar(
@@ -106,22 +103,22 @@ class ImagePlotter(Component):
             else:
                 self.c_intensity.colorbar = self.cb_intensity
                 self.c_intensity.update(True)
-            if not self.cb_pulse_time:
-                self.c_pulse_time.add_colorbar(
-                    ax=self.ax_pulse_time, label="Pulse Time (ns)"
+            if not self.cb_peak_time:
+                self.c_peak_time.add_colorbar(
+                    ax=self.ax_peak_time, label="Pulse Time (ns)"
                 )
-                self.cb_pulse_time = self.c_pulse_time.colorbar
+                self.cb_peak_time = self.c_peak_time.colorbar
             else:
-                self.c_pulse_time.colorbar = self.cb_pulse_time
-                self.c_pulse_time.update(True)
+                self.c_peak_time.colorbar = self.cb_peak_time
+                self.c_peak_time.update(True)
 
         self.c_intensity.image = image
-        if pulse_time is not None:
-            self.c_pulse_time.image = pulse_time
+        if peak_time is not None:
+            self.c_peak_time.image = peak_time
 
         self.fig.suptitle(
             "Event_index={}  Event_id={}  Telescope={}".format(
-                event.count, event.r0.event_id, telid
+                event.count, event.index.event_id, telid
             )
         )
 
@@ -146,8 +143,8 @@ class DisplayDL1Calib(Tool):
         help="Telescope to view. Set to None to display all telescopes.",
     ).tag(config=True)
 
-    extractor_product = traits.enum_trait(
-        ImageExtractor, default="NeighborPeakWindowSum"
+    extractor_product = traits.create_class_enum_trait(
+        ImageExtractor, default_value="NeighborPeakWindowSum"
     )
 
     aliases = Dict(
@@ -173,20 +170,22 @@ class DisplayDL1Calib(Tool):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.config.EventSource.input_url = get_dataset_path('gamma_test_large.simtel.gz')
+        self.config.EventSource.input_url = get_dataset_path(
+            "gamma_test_large.simtel.gz"
+        )
         self.eventsource = None
         self.calibrator = None
         self.plotter = None
 
     def setup(self):
-        self.eventsource = self.add_component(
-            EventSource.from_config(parent=self)
-        )
+        self.eventsource = self.add_component(EventSource.from_config(parent=self))
 
-        self.calibrator = self.add_component(CameraCalibrator(
-            parent=self, subarray=self.eventsource.subarray
-        ))
-        self.plotter = self.add_component(ImagePlotter(parent=self))
+        self.calibrator = self.add_component(
+            CameraCalibrator(parent=self, subarray=self.eventsource.subarray)
+        )
+        self.plotter = self.add_component(
+            ImagePlotter(subarray=self.eventsource.subarray, parent=self)
+        )
 
     def start(self):
         for event in self.eventsource:

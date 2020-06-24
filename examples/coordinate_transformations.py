@@ -32,7 +32,7 @@ def cam_to_tel():
     # first define the camera frame
     camera_frame = CameraFrame(focal_length=15 * u.m)
     # create a coordinate in that frame
-    camera_coord = SkyCoord(pix_x, pix_y, frame=camera_frame)
+    camera_coord = SkyCoord(x=pix_x, y=pix_y, frame=camera_frame)
 
     # then use transform to function to convert to a new system making sure
     # to give the required values for the conversion (these are not checked
@@ -58,15 +58,12 @@ def cam_to_nom():
 
     pointing_direction = SkyCoord(alt=70 * u.deg, az=180 * u.deg, frame=AltAz())
     camera_frame = CameraFrame(
-        focal_length=15 * u.m,
-        telescope_pointing=pointing_direction
+        focal_length=15 * u.m, telescope_pointing=pointing_direction
     )
     camera_coord = SkyCoord(pix_x, pix_y, frame=camera_frame)
 
     # In this case we bypass the telescope system
-    nominal_frame = NominalFrame(
-        origin=AltAz(alt=75 * u.deg, az=180 * u.deg)
-    )
+    nominal_frame = NominalFrame(origin=AltAz(alt=75 * u.deg, az=180 * u.deg))
     nom_coord = camera_coord.transform_to(nominal_frame)
 
     horizon = camera_coord.transform_to(AltAz())
@@ -80,9 +77,9 @@ def cam_to_nom():
 def nominal_to_altaz():
 
     nom = SkyCoord(
-        x=0 * u.deg,
-        y=0 * u.deg,
-        frame=NominalFrame(origin=AltAz(alt=75 * u.deg, az=180 * u.deg))
+        fov_lon=0 * u.deg,
+        fov_lat=0 * u.deg,
+        frame=NominalFrame(origin=AltAz(alt=75 * u.deg, az=180 * u.deg)),
     )
     alt_az = nom.transform_to(AltAz())
     print("HorizonCoordinate", alt_az)
@@ -95,15 +92,13 @@ def nominal_to_altaz():
 def grd_to_tilt():
     grd_coord = GroundFrame(x=1 * u.m, y=2 * u.m, z=0 * u.m)
     tilt_coord = grd_coord.transform_to(
-        TiltedGroundFrame(
-            pointing_direction=AltAz(alt=90 * u.deg, az=180 * u.deg)
-        )
+        TiltedGroundFrame(pointing_direction=AltAz(alt=90 * u.deg, az=180 * u.deg))
     )
     print(project_to_ground(tilt_coord))
     print("Tilted Coordinate", tilt_coord)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cam_to_tel()
     cam_to_nom()
     nominal_to_altaz()

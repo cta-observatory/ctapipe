@@ -29,7 +29,7 @@ __all__ = [
     "Gaussian",
     "SkewedGaussian",
     "ImageModel",
-    "obtain_time_image"
+    "obtain_time_image",
 ]
 
 
@@ -148,7 +148,8 @@ class WaveformModel:
         sampled = (
             convolved.reshape(
                 (n_pixels, convolved.shape[-1] // self.upsampling, self.upsampling)
-            ).sum(-1) * self.ref_width_ns  # Waveform units: p.e.
+            ).sum(-1)
+            * self.ref_width_ns  # Waveform units: p.e.
         )
         return sampled
 

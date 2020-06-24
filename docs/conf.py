@@ -25,33 +25,34 @@
 # -- General configuration ------------------------------------------------
 import datetime
 import os
+
 # Get configuration information from setup.cfg
 from configparser import ConfigParser
 
 import ctapipe
 
 conf = ConfigParser()
-conf.read([os.path.join(os.path.dirname(__file__), '..', 'setup.cfg')])
-setup_cfg = dict(conf.items('metadata'))
+conf.read([os.path.join(os.path.dirname(__file__), "..", "setup.cfg")])
+setup_cfg = dict(conf.items("metadata"))
 # If your documentation needs a minimal Sphinx version, state it here.
 #
-needs_sphinx = '1.5'
+needs_sphinx = "1.5"
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.todo',
-    'sphinx.ext.coverage',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.githubpages',
-    'sphinx.ext.mathjax',
-    'sphinx_automodapi.automodapi',
-    'nbsphinx',
-    'matplotlib.sphinxext.plot_directive',
-    'numpydoc',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.todo",
+    "sphinx.ext.coverage",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.githubpages",
+    "sphinx.ext.mathjax",
+    "sphinx_automodapi.automodapi",
+    "nbsphinx",
+    "matplotlib.sphinxext.plot_directive",
+    "numpydoc",
 ]
 
 numpydoc_show_class_members = False
@@ -59,30 +60,29 @@ nbsphinx_timeout = 200  # allow max 2 minutes to build each notebook
 
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
 # source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+source_suffix = ".rst"
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 # have all links automatically associated with the right domain.
-default_role = 'py:obj'
+default_role = "py:obj"
 
-suppress_warnings = [
-    'ref.citation',  # ignore citation not referenced warnings
-]
+suppress_warnings = ["ref.citation"]  # ignore citation not referenced warnings
 
 # General information about the project.
 
-project = setup_cfg['name']
-author = setup_cfg['author']
-copyright = '{}.  Last updated {}'.format(
-    setup_cfg['author'], datetime.datetime.now().strftime('%d %b %Y %H:%M'), )
+project = setup_cfg["name"]
+author = setup_cfg["author"]
+copyright = "{}.  Last updated {}".format(
+    setup_cfg["author"], datetime.datetime.now().strftime("%d %b %Y %H:%M")
+)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -97,15 +97,15 @@ release = version
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = 'en'
+language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '**.ipynb_checkpoints']
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints"]
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = "sphinx"
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
@@ -115,7 +115,7 @@ todo_include_todos = True
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'default'
+html_theme = "default"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -127,6 +127,11 @@ html_theme = 'default'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 # html_static_path = ['_static']
+html_static_path = ["_static"]
+
+html_context = {
+    "css_files": ["_static/theme_overrides.css"]  # override wide tables in RTD theme
+}
 
 
 # -- Options for HTMLHelp output ------------------------------------------
@@ -134,10 +139,10 @@ html_theme = 'default'
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
-html_title = f'{project} v{release}'
+html_title = f"{project} v{release}"
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = project + 'doc'
+htmlhelp_basename = project + "doc"
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -145,15 +150,12 @@ latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
     #
     # 'papersize': 'letterpaper',
-
     # The font size ('10pt', '11pt' or '12pt').
     #
     # 'pointsize': '10pt',
-
     # Additional stuff for the LaTeX preamble.
     #
     # 'preamble': '',
-
     # Latex figure (float) alignment
     #
     # 'figure_align': 'htbp',
@@ -163,15 +165,15 @@ latex_elements = {
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
-latex_documents = [('index', project + '.tex', project + ' Documentation',
-                    author, 'manual')]
+latex_documents = [
+    ("index", project + ".tex", project + " Documentation", author, "manual")
+]
 
 # -- Options for manual page output --------------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [('index', project.lower(), project + ' Documentation',
-              [author], 1)]
+man_pages = [("index", project.lower(), project + " Documentation", [author], 1)]
 
 # -- Options for Texinfo output -------------------------------------------
 
@@ -179,35 +181,42 @@ man_pages = [('index', project.lower(), project + ' Documentation',
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'ctapipe', 'ctapipe Documentation',
-     author, 'ctapipe', 'Experimental Data Analysis for the'
-                        'Cherenkov Telescope Array (CTA).',
-     'Science'),
+    (
+        master_doc,
+        "ctapipe",
+        "ctapipe Documentation",
+        author,
+        "ctapipe",
+        "Experimental Data Analysis for the" "Cherenkov Telescope Array (CTA).",
+        "Science",
+    )
 ]
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3.6', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy/', None),
-    'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
-    'astropy': ('http://docs.astropy.org/en/latest/', None),
-    'pytables': ('http://www.pytables.org/', None),
-    'pandas': ('http://pandas.pydata.org/pandas-docs/stable/', None),
-    'matplotlib': ('http://matplotlib.org/', None),
-    'cython': ('http://docs.cython.org/en/latest/', None),
-    'iminuit': ('https://iminuit.readthedocs.io/en/latest/', None)
+    "python": ("https://docs.python.org/3.6", None),
+    "numpy": ("https://docs.scipy.org/doc/numpy/", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
+    "astropy": ("http://docs.astropy.org/en/latest/", None),
+    "pytables": ("http://www.pytables.org/", None),
+    "pandas": ("http://pandas.pydata.org/pandas-docs/stable/", None),
+    "matplotlib": ("http://matplotlib.org/", None),
+    "cython": ("http://docs.cython.org/en/latest/", None),
+    "iminuit": ("https://iminuit.readthedocs.io/en/latest/", None),
 }
 
 # on_rtd is whether we are on readthedocs.org
-on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+on_rtd = os.environ.get("READTHEDOCS", None) == "True"
 
 if not on_rtd:  # only import and set the theme if we're building docs locally
     try:
         import sphinx_rtd_theme
     except ImportError:
-        raise ImportError("It looks like you don't have the sphinx_rtd_theme "
-                          "package installed. This documentation "
-                          "uses the Read The Docs theme, so you must install this "
-                          "first. For example, pip install sphinx_rtd_theme")
-    html_theme = 'sphinx_rtd_theme'
+        raise ImportError(
+            "It looks like you don't have the sphinx_rtd_theme "
+            "package installed. This documentation "
+            "uses the Read The Docs theme, so you must install this "
+            "first. For example, pip install sphinx_rtd_theme"
+        )
+    html_theme = "sphinx_rtd_theme"
     html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]

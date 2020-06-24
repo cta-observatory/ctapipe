@@ -1,0 +1,29 @@
+{
+    "Stage1ProcessorTool": {
+        "overwrite": false,
+        "write_images": true,
+        "image_extractor_type": "NeighborPeakWindowSum",
+        "image_cleaner_type": "TailcutsImageCleaner"
+    },
+    "TailcutsImageCleaner": {
+        "picture_threshold_pe":  [
+              ["type", "*", 10.0],
+              ["type", "LST_LST_LSTCam", 6.0],
+              ["type", "MST_MST_NectarCam", 6.0]
+        ],
+        "boundary_threshold_pe": [
+            ["type", "*", 5.0],
+            ["type", "LST*", 3.0],
+            ["type", "MST*", 4.0]
+        ],
+        "min_picture_neighbors":[
+            ["type", "*", 2]
+        ]
+    },
+    "ImageQualityQuery": {
+        "quality_criteria": [
+            ["enough_pixels", "lambda im: np.count_nonzero(im) > 2"],
+            ["enough_charge", "lambda im: im.sum() > 50"]
+        ]
+    }
+}

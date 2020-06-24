@@ -6,9 +6,7 @@ from .geometry import CameraGeometry
 from .readout import CameraReadout
 from ctapipe.utils import find_all_matching_datasets
 
-__all__ = [
-    "CameraDescription"
-]
+__all__ = ["CameraDescription"]
 
 
 class CameraDescription:
@@ -52,7 +50,7 @@ class CameraDescription:
         list(str)
         """
 
-        pattern = r'(.*)\.camgeom\.fits(\.gz)?'
+        pattern = r"(.*)\.camgeom\.fits(\.gz)?"
         return find_all_matching_datasets(pattern, regexp_group=1)
 
     @classmethod

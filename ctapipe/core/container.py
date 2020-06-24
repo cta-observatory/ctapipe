@@ -3,6 +3,12 @@ from copy import deepcopy
 from pprint import pformat
 from textwrap import wrap
 import warnings
+import numpy as np
+from astropy.units import UnitConversionError, Quantity, Unit
+
+
+class FieldValidationError(ValueError):
+    pass
 
 
 class Field:
@@ -16,33 +22,111 @@ class Field:
         is constructed, as well as when  `Container.reset()` is called
     description: str
         Help text associated with the item
-    unit: `astropy.units.Quantity`
+    unit: str or astropy.units.core.UnitBase
         unit to convert to when writing output, or None for no conversion
     ucd: str
         universal content descriptor (see Virtual Observatory standards)
+    dtype: str or np.dtype
+        expected data type of the value, None to ignore in validation.
+    ndim: int or None
+        expected dimensionality of the data, for arrays, None to ignore
+    allow_none:
+        if the value of None is given to this Field, skip validation
     """
 
-    def __init__(self, default, description="", unit=None, ucd=None):
+    def __init__(
+        self,
+        default=None,
+        description="",
+        unit=None,
+        ucd=None,
+        dtype=None,
+        ndim=None,
+        allow_none=True,
+    ):
+
         self.default = default
         self.description = description
-        self.unit = unit
+        self.unit = Unit(unit) if unit is not None else None
         self.ucd = ucd
+        self.dtype = np.dtype(dtype) if dtype is not None else None
+        self.ndim = ndim
+        self.allow_none = allow_none
 
     def __repr__(self):
         desc = f"{self.description}"
         if self.unit is not None:
             desc += f" [{self.unit}]"
+        if self.ndim is not None:
+            desc += f" as a {self.ndim}-D array"
+        if self.dtype is not None:
+            desc += f" with type {self.dtype}"
+
         return desc
+
+    def validate(self, value):
+        """
+        check that a given value is appropriate for this Field
+
+        Parameters
+        ----------
+        value: Any
+           the value to test
+
+        Raises
+        ------
+        FieldValidationError:
+            if the value is not valid
+        """
+
+        if self.allow_none and value is None:
+            return
+
+        errorstr = f"the value '{value}' ({type(value)}) is invalid: "
+
+        if self.unit is not None:
+            if not isinstance(value, Quantity):
+                raise FieldValidationError(
+                    f"{errorstr} Should have units of {self.unit}"
+                ) from None
+            try:
+                value.to(self.unit)
+            except UnitConversionError as err:
+                raise FieldValidationError(f"{errorstr}: {err}")
+
+            # strip off the units now, so we can test the rest without units
+            value = value.value
+
+        if self.ndim is not None:
+            # should be a numpy array
+            if not isinstance(value, np.ndarray):
+                raise FieldValidationError(f"{errorstr} Should be an ndarray")
+            if value.ndim != self.ndim:
+                raise FieldValidationError(
+                    f"{errorstr} Should have dimensionality {self.ndim}"
+                )
+            if value.dtype != self.dtype:
+                raise FieldValidationError(
+                    f"{errorstr} Has dtype "
+                    f"{value.dtype}, should have dtype"
+                    f" {self.dtype}"
+                )
+        else:
+            # not a numpy array
+            if self.dtype is not None:
+                if not isinstance(value, self.dtype.type):
+                    raise FieldValidationError(
+                        f"{errorstr} Should have numpy dtype {self.dtype}"
+                    )
 
 
 class DeprecatedField(Field):
     """ used to mark which fields may be removed in next version """
+
     def __init__(self, default, description="", unit=None, ucd=None, reason=""):
         super().__init__(default=default, description=description, unit=unit, ucd=ucd)
         warnings.warn(f"Field {self} is deprecated. {reason}", DeprecationWarning)
         self.reason = reason
-
-
 
 
 class ContainerMeta(type):
@@ -232,6 +316,25 @@ class Container(metaclass=ContainerMeta):
             lines = wrap(desc, 80, subsequent_indent=" " * 32)
             text.extend(lines)
         return "\n".join(text)
+
+    def validate(self):
+        """
+        Check that all fields in the Container have the expected characterisics (as
+        defined by the Field metadata).  This is not intended to be run every time a
+        Container is filled, since it is slow, only for testing a first event.
+
+        Raises
+        ------
+        ValueError:
+            if the Container's values are not valid
+        """
+        for name, field in self.fields.items():
+            try:
+                field.validate(self[name])
+            except FieldValidationError as err:
+                raise FieldValidationError(
+                    f"{self.__class__.__name__} Field '{name}': {err}"
+                )
 
 
 class Map(defaultdict):

@@ -1,6 +1,9 @@
 import numpy as np
+import astropy.units as u
+
 from ..containers import ConcentrationContainer
 from .hillas import camera_to_shower_coordinates
+from ..utils.quantities import all_to_value
 
 
 def concentration(geom, image, hillas_parameters):
@@ -14,24 +17,31 @@ def concentration(geom, image, hillas_parameters):
     """
 
     h = hillas_parameters
+    unit = h.x.unit
 
-    delta_x = geom.pix_x - h.x
-    delta_y = geom.pix_y - h.y
+    pix_x, pix_y, x, y, length, width = all_to_value(
+        geom.pix_x, geom.pix_y, h.x, h.y, h.length, h.width, unit=unit
+    )
+
+    delta_x = pix_x - x
+    delta_y = pix_y - y
 
     # sort pixels by distance to cog
     cog_pixels = np.argsort(delta_x ** 2 + delta_y ** 2)
     conc_cog = np.sum(image[cog_pixels[:3]]) / h.intensity
 
-    longi, trans = camera_to_shower_coordinates(geom.pix_x, geom.pix_y, h.x, h.y, h.psi)
-
-    # get all pixels inside the hillas ellipse
-    mask_core = (longi ** 2 / h.length ** 2) + (trans ** 2 / h.width ** 2) <= 1.0
-    conc_core = image[mask_core].sum() / h.intensity
+    if hillas_parameters.width.value != 0:
+        # get all pixels inside the hillas ellipse
+        longi, trans = camera_to_shower_coordinates(
+            pix_x, pix_y, x, y, h.psi.to_value(u.rad)
+        )
+        mask_core = (longi ** 2 / length ** 2) + (trans ** 2 / width ** 2) <= 1.0
+        conc_core = image[mask_core].sum() / h.intensity
+    else:
+        conc_core = 0.0
 
     concentration_pixel = image.max() / h.intensity
 
     return ConcentrationContainer(
-        cog=conc_cog,
-        core=conc_core,
-        pixel=concentration_pixel,
+        cog=conc_cog, core=conc_core, pixel=concentration_pixel
     )

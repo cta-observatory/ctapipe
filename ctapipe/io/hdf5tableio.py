@@ -32,6 +32,13 @@ PYTABLES_TYPE_MAP = {
 }
 
 
+DEFAULT_FILTERS = tables.Filters(
+    complevel=5,  # compression medium, tradeoff between speed and compression
+    complib="blosc:zstd",  # use modern zstd algorithm
+    fletcher32=True,  # add checksums to data chunks
+)
+
+
 class HDF5TableWriter(TableWriter):
     """
     A very basic table writer that can take a container (or more than one)
@@ -74,11 +81,11 @@ class HDF5TableWriter(TableWriter):
         'a' if you want to append data to the file
     root_uep : str
         root location of the `group_name`
+    filters: pytables.Filters
+        A set of filters (compression settings) to be used for
+        all datasets created by this writer.
     kwargs:
         any other arguments that will be passed through to `pytables.open()`.
-        e.g. to set the compression level to 7 pass : `filters=tables.Filters(
-        complevel=7)`
-
     """
 
     def __init__(
@@ -88,30 +95,32 @@ class HDF5TableWriter(TableWriter):
         add_prefix=False,
         mode="w",
         root_uep="/",
+        filters=DEFAULT_FILTERS,
+        parent=None,
+        config=None,
         **kwargs,
     ):
 
-        super().__init__(add_prefix=add_prefix)
+        super().__init__(add_prefix=add_prefix, parent=parent, config=config)
         self._schemas = {}
         self._tables = {}
 
         if mode not in ["a", "w", "r+"]:
-            raise IOError(f"The mode {mode} is not supported for writing")
+            raise IOError(f"The mode '{mode}' is not supported for writing")
 
-        kwargs.update(mode=mode, root_uep=root_uep)
+        kwargs.update(mode=mode, root_uep=root_uep, filters=filters)
 
         self.open(filename, **kwargs)
         self._group = "/" + group_name
+        self.filters = filters
 
         self.log.debug("h5file: %s", self._h5file)
 
     def open(self, filename, **kwargs):
-
         self.log.debug("kwargs for tables.open_file: %s", kwargs)
         self._h5file = tables.open_file(filename, **kwargs)
 
     def close(self):
-
         self._h5file.close()
 
     def _create_hdf5_table_schema(self, table_name, containers):
@@ -137,7 +146,11 @@ class HDF5TableWriter(TableWriter):
         meta = {}  # any extra meta-data generated here (like units, etc)
 
         # create pytables schema description for the given container
+        pos = 0
         for container in containers:
+
+            container.validate()  # ensure the data are complete
+
             for col_name, value in container.items(add_prefix=self.add_prefix):
 
                 typename = ""
@@ -145,6 +158,10 @@ class HDF5TableWriter(TableWriter):
 
                 if self._is_column_excluded(table_name, col_name):
                     self.log.debug("excluded column: %s/%s", table_name, col_name)
+                    continue
+
+                if col_name in Schema.columns:
+                    self.log.warning(f"Found duplicated column {col_name}, skipping")
                     continue
 
                 # apply any user-defined transforms first
@@ -165,14 +182,10 @@ class HDF5TableWriter(TableWriter):
                         key = col_name.replace(container.prefix + "_", "")
                     else:
                         key = col_name
-                    req_unit = container.fields[key].unit
 
-                    if req_unit is not None:
-                        tr = partial(tr_convert_and_strip_unit, unit=req_unit)
-                        meta[f"{col_name}_UNIT"] = str(req_unit)
-                    else:
-                        tr = lambda x: x.value
-                        meta[f"{col_name}_UNIT"] = str(value.unit)
+                    unit = container.fields[key].unit or value.unit
+                    tr = partial(tr_convert_and_strip_unit, unit=unit)
+                    meta[f"{col_name}_UNIT"] = unit.to_string("vounit")
 
                     value = tr(value)
                     self.add_column_transform(table_name, col_name, tr)
@@ -181,18 +194,28 @@ class HDF5TableWriter(TableWriter):
                     typename = value.dtype.name
                     coltype = PYTABLES_TYPE_MAP[typename]
                     shape = value.shape
-                    Schema.columns[col_name] = coltype(shape=shape)
+                    Schema.columns[col_name] = coltype(shape=shape, pos=pos)
 
-                if isinstance(value, Time):
+                elif isinstance(value, Time):
                     # TODO: really should use MET, but need a func for that
-                    Schema.columns[col_name] = tables.Float64Col()
+                    Schema.columns[col_name] = tables.Float64Col(pos=pos)
                     self.add_column_transform(table_name, col_name, tr_time_to_float)
 
                 elif type(value).__name__ in PYTABLES_TYPE_MAP:
                     typename = type(value).__name__
                     coltype = PYTABLES_TYPE_MAP[typename]
-                    Schema.columns[col_name] = coltype()
+                    Schema.columns[col_name] = coltype(pos=pos)
 
+                else:
+                    self.log.warning(
+                        f"Column {col_name} of"
+                        f" container {container.__class__.__name__}"
+                        f" in table {table_name}"
+                        " not writable, skipping"
+                    )
+                    continue
+
+                pos += 1
                 self.log.debug(
                     "Table %s: added col: %s type: %s shape: %s",
                     table_name,
@@ -229,6 +252,7 @@ class HDF5TableWriter(TableWriter):
             ),
             description=self._schemas[table_name],
             createparents=True,
+            filters=self.filters,
         )
         self.log.debug("CREATED TABLE: %s", table)
         for key, val in meta.items():
@@ -251,9 +275,15 @@ class HDF5TableWriter(TableWriter):
             )
             for colname, value in selected_fields:
 
-                value = self._apply_col_transform(table_name, colname, value)
-
-                row[colname] = value
+                try:
+                    value = self._apply_col_transform(table_name, colname, value)
+                    row[colname] = value
+                except Exception:
+                    self.log.error(
+                        f'Error writing col "{colname}" of'
+                        f' container "{container.__class__.__name__}"'
+                    )
+                    raise
         row.append()
 
     def write(self, table_name, containers):
@@ -432,7 +462,7 @@ class HDF5TableReader(TableReader):
 
 
 def tr_convert_and_strip_unit(quantity, unit):
-    return quantity.to(unit).value
+    return quantity.to_value(unit)
 
 
 def tr_list_to_mask(thelist, length):
@@ -447,4 +477,4 @@ def tr_time_to_float(thetime):
 
 
 def tr_add_unit(value, unitname):
-    return Quantity(value, unitname)
+    return Quantity(value, unitname, copy=False)

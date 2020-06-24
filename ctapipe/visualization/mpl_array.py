@@ -161,7 +161,7 @@ class ArrayDisplay:
         vv = u.Quantity(vv).to_value("m")
         N = len(coords.x)
 
-        # matplotlib since 3.2 does not allow scalars anymore 
+        # matplotlib since 3.2 does not allow scalars anymore
         # if quiver was already created with a certain number of arrows
         if np.isscalar(uu):
             uu = np.full(N, uu)
@@ -179,7 +179,7 @@ class ArrayDisplay:
 
         if c is None:
             # use colors by telescope type if the user did not provide any
-            kwargs['color'] = kwargs.get('color', self.tel_colors)
+            kwargs["color"] = kwargs.get("color", self.tel_colors)
         else:
             # same as above, enable use of scalar to set all values at once
             if np.isscalar(c):
@@ -188,11 +188,7 @@ class ArrayDisplay:
 
         if self._quiver is None:
             self._quiver = self.axes.quiver(
-                *args,
-                scale_units="xy",
-                angles="xy",
-                scale=1,
-                **kwargs
+                *args, scale_units="xy", angles="xy", scale=1, **kwargs
             )
         else:
             self._quiver.set_UVC(uu, vv, c)

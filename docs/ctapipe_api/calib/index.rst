@@ -14,7 +14,7 @@ This module include all the functions and classes needed for the Calibration of 
 
 It consists in four main sub-modules:
 
-* Camera Calibration (see :ref:`calib_camera`)
+* :ref:`calib_camera`
 
 * Array Calibration
 

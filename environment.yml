@@ -4,10 +4,12 @@ channels:
   - default
   - cta-observatory
 dependencies:
+  - python=3.7
+  - pip
   - astropy
-  - bokeh
+  - h5py
+  - bokeh=1
   - conda-forge::nbsphinx
-  - ctapipe-extra=0.2.19
   - cython
   - graphviz
   - iminuit
@@ -17,9 +19,10 @@ dependencies:
   - jupyter
   - matplotlib
   - numba
-  - numpy>=1.15.4
+  - numpy>=1.17
   - numpydoc
   - pandas
+  - pre-commit
   - psutil
   - pytables
   - pytest
@@ -34,10 +37,13 @@ dependencies:
   - sphinx_rtd_theme
   - tqdm
   - traitlets
+  - vitables
   - wheel
   - xz
   - zlib
+  - zstandard
+  - eventio>=1.1.1
+  - ctapipe-extra>=0.3
   - pip
   - pip:
-    - eventio~=1.0
-    - onnxruntime
+    - onnxruntime~=1.3

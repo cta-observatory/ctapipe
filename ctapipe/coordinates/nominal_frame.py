@@ -1,10 +1,10 @@
-'''
+"""
 The code in this module is basically a copy of
 http://docs.astropy.org/en/stable/_modules/astropy/coordinates/builtin_frames/skyoffset.html
 
 We are just not creating a metaclass and a factory but directly building the
 corresponding class.
-'''
+"""
 import astropy.units as u
 from astropy.coordinates.matrix_utilities import (
     rotation_matrix,
@@ -27,7 +27,7 @@ from astropy.coordinates import (
 
 
 class NominalFrame(BaseCoordinateFrame):
-    '''
+    """
     Nominal coordinate frame.
 
     A Frame using a UnitSphericalRepresentation.
@@ -47,11 +47,12 @@ class NominalFrame(BaseCoordinateFrame):
         Observation time
     location: EarthLocation
         Location of the telescope
-    '''
+    """
+
     frame_specific_representation_info = {
         UnitSphericalRepresentation: [
-            RepresentationMapping('lon', 'delta_az'),
-            RepresentationMapping('lat', 'delta_alt'),
+            RepresentationMapping("lon", "fov_lon"),
+            RepresentationMapping("lat", "fov_lat"),
         ]
     }
     default_representation = UnitSphericalRepresentation
@@ -73,12 +74,8 @@ class NominalFrame(BaseCoordinateFrame):
 def skyoffset_to_skyoffset(from_telescope_coord, to_telescope_frame):
     """Transform between two skyoffset frames."""
 
-    intermediate_from = from_telescope_coord.transform_to(
-        from_telescope_coord.origin
-    )
-    intermediate_to = intermediate_from.transform_to(
-        to_telescope_frame.origin
-    )
+    intermediate_from = from_telescope_coord.transform_to(from_telescope_coord.origin)
+    intermediate_to = intermediate_from.transform_to(to_telescope_frame.origin)
     return intermediate_to.transform_to(to_telescope_frame)
 
 
@@ -89,8 +86,8 @@ def reference_to_skyoffset(reference_frame, telescope_frame):
     # Define rotation matrices along the position angle vector, and
     # relative to the origin.
     origin = telescope_frame.origin.spherical
-    mat1 = rotation_matrix(-origin.lat, 'y')
-    mat2 = rotation_matrix(origin.lon, 'z')
+    mat1 = rotation_matrix(-origin.lat, "y")
+    mat2 = rotation_matrix(origin.lon, "z")
     return matrix_product(mat1, mat2)
 
 

@@ -8,8 +8,7 @@ def test_roundtrip_camera_horizon():
 
     telescope_pointing = SkyCoord(alt=70 * u.deg, az=0 * u.deg, frame=AltAz())
     camera_frame = CameraFrame(
-        focal_length=28 * u.m,
-        telescope_pointing=telescope_pointing
+        focal_length=28 * u.m, telescope_pointing=telescope_pointing
     )
 
     cam_coord = SkyCoord(x=0.5 * u.m, y=0.1 * u.m, frame=camera_frame)
@@ -19,10 +18,10 @@ def test_roundtrip_camera_horizon():
     back_telescope_coord = horizon_coord.transform_to(TelescopeFrame())
     back_cam_coord = back_telescope_coord.transform_to(camera_frame)
 
-    delta_az = back_telescope_coord.delta_az.to_value(u.deg)
-    delta_alt = back_telescope_coord.delta_alt.to_value(u.deg)
-    assert delta_az == approx(telescope_coord.delta_az.to_value(u.deg))
-    assert delta_alt == approx(telescope_coord.delta_alt.to_value(u.deg))
+    fov_lon = back_telescope_coord.fov_lon.to_value(u.deg)
+    fov_lat = back_telescope_coord.fov_lat.to_value(u.deg)
+    assert fov_lon == approx(telescope_coord.fov_lon.to_value(u.deg))
+    assert fov_lat == approx(telescope_coord.fov_lat.to_value(u.deg))
 
     assert back_cam_coord.x.to_value(u.m) == approx(cam_coord.x.to_value(u.m))
     assert back_cam_coord.y.to_value(u.m) == approx(cam_coord.y.to_value(u.m))

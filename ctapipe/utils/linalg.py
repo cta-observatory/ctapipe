@@ -4,7 +4,7 @@ from astropy import units as u
 import numpy as np
 from numpy import cos, sin, arctan2 as atan2, arccos as acos
 
-__all__ = ['rotation_matrix_2d', 'length', 'normalise', 'angle']
+__all__ = ["rotation_matrix_2d", "length", "normalise", "angle"]
 
 
 def rotation_matrix_2d(angle):
@@ -13,16 +13,14 @@ def rotation_matrix_2d(angle):
     into an `astropy.coordinates.Angle`
     """
     psi = Angle(angle).rad
-    return np.array([[cos(psi), -sin(psi)],
-                     [sin(psi), cos(psi)]])
-
+    return np.array([[cos(psi), -sin(psi)], [sin(psi), cos(psi)]])
 
 
 def length(vec):
     """ returns the length/norm of a numpy array
         as the square root of the inner product with itself
     """
-    return vec.dot(vec)**.5
+    return vec.dot(vec) ** 0.5
 
 
 def normalise(vec):

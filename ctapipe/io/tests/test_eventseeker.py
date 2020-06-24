@@ -17,8 +17,8 @@ def test_eventseeker():
         event = seeker[0]
         assert event.count == 0
 
-        event = seeker['31007']
-        assert event.r0.event_id == 31007
+        event = seeker["31007"]
+        assert event.index.event_id == 31007
 
         events = seeker[0:2]
 
@@ -29,22 +29,24 @@ def test_eventseeker():
         for i, event in enumerate(events):
             assert event.count == i
 
-        ids = ['23703', '31007']
+        ids = ["23703", "31007"]
         events = seeker[ids]
 
         for i, event in zip(ids, events):
-            assert event.r0.event_id == int(i)
+            assert event.index.event_id == int(i)
 
         with pytest.raises(IndexError):
             event = seeker[200]
 
         with pytest.raises(ValueError):
-            event = seeker['t']
+            event = seeker["t"]
 
         with pytest.raises(TypeError):
             event = seeker[dict()]
 
-    with SimTelEventSource(input_url=dataset, max_events=5, back_seekable=True) as reader:
+    with SimTelEventSource(
+        input_url=dataset, max_events=5, back_seekable=True
+    ) as reader:
         seeker = EventSeeker(reader=reader)
         with pytest.raises(IndexError):
             event = seeker[5]

@@ -5,7 +5,7 @@ import numpy as np
 def test_leakage():
     from ctapipe.image.leakage import leakage
 
-    geom = CameraGeometry.from_name('LSTCam')
+    geom = CameraGeometry.from_name("LSTCam")
 
     img = np.ones(geom.n_pixels)
     mask = np.ones(len(geom), dtype=bool)
