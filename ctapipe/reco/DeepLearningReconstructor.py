@@ -23,7 +23,7 @@ class ONNXModel:
         Parameters
         ----------
         *args
-            Ordered arguments to use as inputs
+            Ordered arguments to use as inputs (will be automatically assigned to each model input)
         **kwargs
             Named arguments to use as inputs
         Returns
@@ -65,6 +65,11 @@ class ONNXModel:
     def inputs(self):
         """
         Inputs as returned by the ONNX model
+
+        Returns
+        -------
+        list
+            List of ONNX inputs from the model
         """
         return self.sess.get_inputs()
 
@@ -72,6 +77,11 @@ class ONNXModel:
     def outputs(self):
         """
         Outputs as returned by the ONNX model
+
+        Returns
+        -------
+        list
+            List of ONNX outputs from the model
         """
         return self.sess.get_outputs()
 
@@ -110,6 +120,8 @@ class DeepLearningReconstructor(Reconstructor):
     @abstractmethod
     def supported_cameras(self):
         """
+        Cameras supported by this reconstructor
+
         Returns
         -------
         List[str]
@@ -135,7 +147,7 @@ class DeepLearningReconstructor(Reconstructor):
 
     def predict(self, event, subarray, **kwargs):
         """
-        Start a prediction using the model and then combine
+        Start a prediction using the given models and then combine
         all the observations into a ReconstructedShowerContainer
 
         Parameters
@@ -180,7 +192,7 @@ class DeepLearningReconstructor(Reconstructor):
         Parameters
         ----------
         cam_name : str
-            Camera name (e.g. FlashCam, ASTRICam, LSTCam, etc.)
+            Camera name which the returned model can process (e.g. FlashCam, ASTRICam, LSTCam, etc.)
 
         Returns
         -------
