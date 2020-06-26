@@ -1,10 +1,9 @@
 import onnxruntime
 
 import numpy as np
-from typing import List, Dict
 from abc import abstractmethod
 
-from ctapipe.reco.reco_algorithms import Reconstructor, ReconstructedShowerContainer
+from ctapipe.reco.reco_algorithms import Reconstructor
 
 __all__ = ["ONNXModel", "DeepLearningReconstructor"]
 
@@ -23,7 +22,8 @@ class ONNXModel:
         Parameters
         ----------
         *args
-            Ordered arguments to use as inputs (will be automatically assigned to each model input)
+            Ordered arguments to use as inputs (will be automatically assigned to
+            each model input)
         **kwargs
             Named arguments to use as inputs
         Returns
@@ -38,7 +38,8 @@ class ONNXModel:
             )
         if len(kwargs) != 0 and len(args) != 0:
             raise ValueError(
-                "Ordered arguments and named arguments can't be given in the same prediction"
+                "Ordered arguments and named arguments can't be given in the same "
+                "prediction"
             )
         if len(kwargs) != n_inputs and len(args) != n_inputs:
             raise ValueError(
@@ -55,9 +56,9 @@ class ONNXModel:
 
         for name in kwargs:
             inp = kwargs[name]
-            # to avoid common type errors, convert arrays with dtype float64 to float32 (as ONNX only supports the
-            # latter)
-            if type(inp) is np.ndarray and inp.dtype == np.float64:
+            # to avoid common type errors, convert arrays with
+            # dtype float64 to float32 (as ONNX only supports the latter)
+            if isinstance(inp, np.ndarray) and inp.dtype == np.float64:
                 kwargs[name] = inp.astype(np.float32)
         return self.sess.run(None, kwargs)
 
@@ -101,9 +102,9 @@ class DeepLearningReconstructor(Reconstructor):
     """
 
     def __init__(self, models_paths, config=None, parent=None, **kwargs):
-        self.models = dict(
-            [(cam_name, ONNXModel(path)) for cam_name, path in models_paths.items()]
-        )
+        self.models = {
+            cam_name: ONNXModel(path) for (cam_name, path) in models_paths.items()
+        }
         not_supported_cams = [
             cam_name
             for cam_name in self.models.keys()
@@ -111,7 +112,8 @@ class DeepLearningReconstructor(Reconstructor):
         ]
         if len(not_supported_cams) > 0:
             raise ValueError(
-                f"Some of the given camera names are not supported by this reconstructor: "
+                f"Some of the given camera names are not supported by "
+                f"this reconstructor: "
                 f"{', '.join(not_supported_cams)}"
             )
         super().__init__(config=config, parent=parent, **kwargs)
@@ -177,9 +179,9 @@ class DeepLearningReconstructor(Reconstructor):
 
             predictions[cam_name] = list()
             for inp in obs_inputs:
-                if type(inp) is list:
+                if isinstance(inp, list):
                     predictions[cam_name].append(model.predict(*inp))
-                elif type(inp) is dict:
+                elif isinstance(inp, dict):
                     predictions[cam_name].append(model.predict(**inp))
                 else:
                     predictions[cam_name].append(model.predict(inp))
@@ -192,7 +194,8 @@ class DeepLearningReconstructor(Reconstructor):
         Parameters
         ----------
         cam_name : str
-            Camera name which the returned model can process (e.g. FlashCam, ASTRICam, LSTCam, etc.)
+            Camera name which the returned model can process (e.g.
+            FlashCam, ASTRICam, LSTCam, etc.)
 
         Returns
         -------
@@ -218,7 +221,8 @@ class DeepLearningReconstructor(Reconstructor):
         Returns
         -------
         Dict[str, str]
-            Dictionary for the inputs, with the input name as the key, and the input array as the value
+            Dictionary for the inputs, with the input name as the
+            key, and the input array as the value
         """
 
     @abstractmethod

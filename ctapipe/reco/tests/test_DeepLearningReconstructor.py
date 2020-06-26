@@ -37,7 +37,8 @@ class TReconstructor(DeepLearningReconstructor):
 
     def _reconstruct(self, models_outputs):
         """
-        Before combining an assert will be made to test if results are as expected (all ones)
+        Before combining an assert will be made to test if results are as
+        expected (all ones)
         """
         for cam_name in models_outputs:
             assert cam_name in self.supported_cameras
@@ -72,7 +73,8 @@ def test_onnx_model_validations():
 
     with pytest.raises(
         ValueError,
-        match=r"^Ordered arguments and named arguments can't be given in the same prediction$",
+        match=r"^Ordered arguments and named arguments can't be given in the same "
+        r"prediction$",
     ):
         model.predict(input_img, extra=input_extra)
 
@@ -151,7 +153,8 @@ def test_reconstructor_validations():
 
     with pytest.raises(
         ValueError,
-        match=r"^Some of the given camera names are not supported by this reconstructor: LSTCam$",
+        match=r"^Some of the given camera names are not supported by this "
+        r"reconstructor: LSTCam$",
     ):
         TReconstructor(
             {
