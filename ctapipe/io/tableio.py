@@ -47,7 +47,7 @@ class TableWriter(Component, metaclass=ABCMeta):
 
     def _is_column_excluded(self, table_name, col_name):
         for pattern in self._exclusions[table_name]:
-            if pattern.match(col_name):
+            if pattern.fullmatch(col_name):
                 return True
         return False
 
