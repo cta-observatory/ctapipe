@@ -47,7 +47,7 @@ class TableWriter(Component, metaclass=ABCMeta):
 
     def _is_column_excluded(self, table_name, col_name):
         for pattern in self._exclusions[table_name]:
-            if pattern.match(col_name):
+            if pattern.fullmatch(col_name):
                 return True
         return False
 
@@ -168,7 +168,7 @@ class TableReader(Component, metaclass=ABCMeta):
         return value
 
     @abstractmethod
-    def read(self, table_name: str, container: Container):
+    def read(self, table_name: str, container: Container, prefix=False):
         """
         Returns a generator that reads the next row from the table into the
         given container.  The generator returns the same container. Note that
@@ -180,6 +180,8 @@ class TableReader(Component, metaclass=ABCMeta):
             name of table to read from
         container : ctapipe.core.Container
             Container instance to fill
+        prefix: bool or str
+            Prefix that was added while writing the file.
         """
         pass
 
