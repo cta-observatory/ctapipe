@@ -1,7 +1,52 @@
 import numpy as np
-from scipy.sparse.csgraph import connected_components
-
+from numba import njit
 from ..containers import MorphologyContainer
+
+
+@njit
+def _num_islands_sparse_indices(indices, indptr, mask):
+
+    # non-signal pixel get label == 0, we marke the cleaning
+    # pixels with -1, so we only have to check labels and not labels and mask
+    # from now on.
+    labels = np.zeros(len(mask), dtype=np.int16)
+    labels[mask] = -1
+
+    cleaning_pixels = np.where(mask)[0]
+    n_cleaning_pixels = len(cleaning_pixels)
+    current_island = 0
+
+    to_check = []
+    for i in range(n_cleaning_pixels):
+        idx = cleaning_pixels[i]
+
+        # we already visited this pixel
+        if labels[idx] != -1:
+            continue
+
+        # start a new island
+        current_island += 1
+        labels[idx] = current_island
+
+        # check neighbors recursively
+        neighbors = indices[indptr[idx] : indptr[idx + 1]]
+        for n in range(len(neighbors)):
+            neighbor = neighbors[n]
+            if labels[neighbor] == -1:
+                to_check.append(neighbor)
+
+        while len(to_check) > 0:
+            idx = to_check.pop()
+            labels[idx] = current_island
+
+            neighbors = indices[indptr[idx] : indptr[idx + 1]]
+            for n in range(len(neighbors)):
+                neighbor = neighbors[n]
+
+                if labels[neighbor] == -1:
+                    to_check.append(neighbor)
+
+    return current_island, labels
 
 
 def number_of_islands(geom, mask):
@@ -25,18 +70,10 @@ def number_of_islands(geom, mask):
         Dimension equals input geometry.
         Entries range from 0 (not in the pixel mask) to num_islands.
     """
-    # compress sparse neighbor matrix
-    neighbor_matrix_compressed = geom.neighbor_matrix_sparse[mask][:, mask]
-    # pixels in no cluster have label == 0
-    island_labels = np.zeros(geom.n_pixels, dtype="int32")
-
-    num_islands, island_labels_compressed = connected_components(
-        neighbor_matrix_compressed, directed=False
+    neighbors = geom.neighbor_matrix_sparse
+    num_islands, island_labels = _num_islands_sparse_indices(
+        neighbors.indices, neighbors.indptr, mask
     )
-
-    # count clusters from 1 onwards
-    island_labels[mask] = island_labels_compressed + 1
-
     return num_islands, island_labels
 
 
