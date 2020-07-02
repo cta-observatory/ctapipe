@@ -1,6 +1,6 @@
-=========================================================
-ctapipe |teststatus| |codacy| |coverage| |conda| |doiv07|
-=========================================================
+============================================================
+ctapipe |teststatus| |codacy| |coverage| |conda| |doilatest|
+============================================================
 
 .. |teststatus| image:: https://travis-ci.com/cta-observatory/ctapipe.svg?branch=master
     :target: https://travis-ci.com/cta-observatory/ctapipe
@@ -10,8 +10,12 @@ ctapipe |teststatus| |codacy| |coverage| |conda| |doiv07|
 .. |conda| image:: https://anaconda.org/cta-observatory/ctapipe/badges/installer/conda.svg
 .. |coverage| image:: https://codecov.io/gh/cta-observatory/ctapipe/branch/master/graph/badge.svg
   :target: https://codecov.io/gh/cta-observatory/ctapipe
-.. |doiv07| image:: https://zenodo.org/badge/37927055.svg
+.. |doilatest| image:: https://zenodo.org/badge/37927055.svg
   :target: https://zenodo.org/badge/latestdoi/37927055
+.. |doiv07| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.3372211.svg
+   :target: https://doi.org/10.5281/zenodo.3372211
+.. |doiv08| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.3837306.svg
+   :target: https://doi.org/10.5281/zenodo.3837306
 
 Low-level data processing pipeline software for
 `CTA <www.cta-observatory.org>`_ (the Cherenkov Telescope Array)
@@ -26,10 +30,10 @@ expert or developer!
 
 Citing this software
 --------------------
-If you use this software for a publication, please cite using the following DOIs: 
+If you use this software for a publication, please cite the proper version using the following DOIs:
 
 - v0.7.0 : |doiv07|
-
+- v0.8.0 : |doiv08|
 
 Installation for Users
 ----------------------
@@ -41,15 +45,16 @@ environment (this is optional).
 
 
 The following command will set up a conda virtual environment, add the
-necessary package channels, and download ctapipe and its dependencies. The
+necessary package channels, and install ctapipe specified version and its dependencies. The
 file *environment.yml* can be found in this repo. 
 Note this is *pre-alpha* software and is not yet stable enough for end-users (expect large API changes until the first stable 1.0 release).
 
 ::
-
+  CTAPIPE_VER=0.8.0
+  wget https://raw.githubusercontent.com/cta-observatory/ctapipe/v$CTAPIPE_VER/environment.yml
   conda env create -n cta -f environment.yml
   conda activate cta
-  conda install -c cta-observatory ctapipe
+  conda install -c cta-observatory ctapipe=$CTAPIPE_VER
 
 
 Developers should follow the development install instructions found in the
