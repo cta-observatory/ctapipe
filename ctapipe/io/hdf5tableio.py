@@ -402,7 +402,9 @@ class HDF5TableReader(TableReader):
                 else:
                     colname_without_prefix = colname
                 if colname_without_prefix in container.fields:
-                    self._cols_to_read[table_name][container.container_prefix].append(colname)
+                    self._cols_to_read[table_name][container.container_prefix].append(
+                        colname
+                    )
                 else:
                     self.log.warning(
                         f"Table {table_name} has column {colname_without_prefix} that is not in "
@@ -426,7 +428,7 @@ class HDF5TableReader(TableReader):
             for key in tab.attrs._f_list():
                 container.meta[key] = tab.attrs[key]
 
-    def read(self, table_name, containers, prefix=False):
+    def read(self, table_name, containers, prefixes=False):
         """
         Returns a generator that reads the next row from the table into the
         given container. The generator returns the same container. Note that
@@ -451,14 +453,12 @@ class HDF5TableReader(TableReader):
         if isinstance(containers, Container):
             containers = (containers, )
 
-        if prefix is False:
+        if prefixes is False:
             prefixes = ["" for container in containers]
-        elif prefix is True:
+        elif prefixes is True:
             prefixes = [container.prefix for container in containers]
-        elif isinstance(prefix, str):
-            prefixes = [prefix for container in containers]
-        else:
-            prefixes = prefix
+        elif isinstance(prefixes, str):
+            prefixes = [prefixes for container in containers]
         assert len(prefixes) == len(containers)
 
         if table_name not in self._tables:

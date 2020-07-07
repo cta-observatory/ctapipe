@@ -64,7 +64,7 @@ def test_read_multiple_containers():
     with tempfile.NamedTemporaryFile() as f:
         with HDF5TableWriter(f.name, group_name="dl1", add_prefix=True) as writer:
             writer.write("params", [hillas_parameter_container, leakage_container])
-        
+
         df = pd.read_hdf(f.name, key="/dl1/params")
         assert "hillas_x" in df.columns
         assert "leakage_pixels_width_1" in df.columns
@@ -74,7 +74,7 @@ def test_read_multiple_containers():
             generator = reader.read(
                 "/dl1/params",
                 HillasParametersContainer(),
-                prefix=True
+                prefixes=True
             )
             hillas = next(generator)
         for value, read_value in zip(
@@ -87,7 +87,7 @@ def test_read_multiple_containers():
             generator = reader.read(
                 "/dl1/params",
                 LeakageContainer(),
-                prefix=True
+                prefixes=True
             )
             leakage = next(generator)
         for value, read_value in zip(
@@ -101,7 +101,7 @@ def test_read_multiple_containers():
             generator = reader.read(
                 "/dl1/params",
                 [HillasParametersContainer(), LeakageContainer()],
-                prefix=True,
+                prefixes=True,
             )
             hillas_, leakage_ = next(generator)
 
@@ -110,7 +110,7 @@ def test_read_multiple_containers():
             leakage_.as_dict().values()
         ):
             np.testing.assert_equal(value, read_value)
-    
+
         for value, read_value in zip(
             hillas_parameter_container.as_dict().values(),
             hillas_.as_dict().values()
