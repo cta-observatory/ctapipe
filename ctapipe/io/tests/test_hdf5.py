@@ -50,8 +50,7 @@ def test_write_container(temp_h5_file):
             writer.write("MC", mc)
 
 
-def test_prefix(tmp_path):
-    tmp_file = tmp_path / "test_prefix.hdf5"
+def test_read_multiple_containers():
     hillas_parameter_container = HillasParametersContainer(
         x=1 * u.m, y=1 * u.m, length=1 * u.m, width=1 * u.m
     )
@@ -62,39 +61,61 @@ def test_prefix(tmp_path):
         intensity_width_1=0.1,
         intensity_width_2=0.1,
     )
+    with tempfile.NamedTemporaryFile() as f:
+        with HDF5TableWriter(f.name, group_name="dl1", add_prefix=True) as writer:
+            writer.write("params", [hillas_parameter_container, leakage_container])
+        
+        df = pd.read_hdf(f.name, key="/dl1/params")
+        assert "hillas_x" in df.columns
+        assert "leakage_pixels_width_1" in df.columns
 
-    with HDF5TableWriter(tmp_file.name, group_name="blabla", add_prefix=True) as writer:
-        writer.write("events", [hillas_parameter_container, leakage_container])
-
-    df = pd.read_hdf(tmp_file.name, key="/blabla/events")
-    assert "hillas_x" in df.columns
-    assert "leakage_pixels_width_1" in df.columns
-
-    with HDF5TableReader(tmp_file.name) as reader:
-        generator = reader.read(
-            "/blabla/events",
-            HillasParametersContainer(),
-            prefix=True
-        )
-        hillas = next(generator)
-    for value, read_value in zip(
+        # test reading both containers separately
+        with HDF5TableReader(f.name) as reader:
+            generator = reader.read(
+                "/dl1/params",
+                HillasParametersContainer(),
+                prefix=True
+            )
+            hillas = next(generator)
+        for value, read_value in zip(
             hillas_parameter_container.as_dict().values(),
             hillas.as_dict().values()
-    ):
-        np.testing.assert_equal(value, read_value)
+        ):
+            np.testing.assert_equal(value, read_value)
 
-    with HDF5TableReader(tmp_file.name) as reader:
-        generator = reader.read(
-            "/blabla/events",
-            LeakageContainer(),
-            prefix=True
-        )
-        leakage = next(generator)
-    for value, read_value in zip(
+        with HDF5TableReader(f.name) as reader:
+            generator = reader.read(
+                "/dl1/params",
+                LeakageContainer(),
+                prefix=True
+            )
+            leakage = next(generator)
+        for value, read_value in zip(
+                leakage_container.as_dict().values(),
+                leakage.as_dict().values()
+        ):
+            np.testing.assert_equal(value, read_value)
+
+        # test reading both containers simultaneously
+        with HDF5TableReader(f.name) as reader:
+            generator = reader.read(
+                "/dl1/params",
+                [HillasParametersContainer(), LeakageContainer()],
+                prefix=True,
+            )
+            hillas_, leakage_ = next(generator)
+
+        for value, read_value in zip(
             leakage_container.as_dict().values(),
-            leakage.as_dict().values()
-    ):
-        np.testing.assert_equal(value, read_value)
+            leakage_.as_dict().values()
+        ):
+            np.testing.assert_equal(value, read_value)
+    
+        for value, read_value in zip(
+            hillas_parameter_container.as_dict().values(),
+            hillas_.as_dict().values()
+        ):
+            np.testing.assert_equal(value, read_value)
 
 
 def test_units():
