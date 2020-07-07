@@ -1,17 +1,31 @@
-from ctapipe.io.datalevels import DataLevel
+import astropy.units as u
+from astropy.table import Table
+import numpy as np
+import tables
 from ctapipe.instrument import (
     TelescopeDescription,
     SubarrayDescription,
+    CameraDescription,
     CameraGeometry,
+    CameraReadout,
     OpticsDescription,
 )
-from ctapipe.containers import EventAndMonDataContainer, EventType
-from ctapipe.containers import MCHeaderContainer, MCEventContainer
 from ctapipe.io.eventsource import EventSource
 from ctapipe.io import HDF5TableReader
-from astropy.coordinates import Angle
-import astropy.units as u
-import tables
+from ctapipe.io.datalevels import DataLevel
+from ctapipe.containers import (
+    ConcentrationContainer,
+    EventAndMonDataContainer,
+    HillasParametersContainer,
+    IntensityStatisticsContainer,
+    LeakageContainer,
+    MorphologyContainer,
+    MCHeaderContainer,
+    MCEventContainer,
+    PeakTimeStatisticsContainer,
+    TimingParametersContainer,
+    TriggerContainer,
+)
 
 
 class DL1EventSource(EventSource):
@@ -29,8 +43,12 @@ class DL1EventSource(EventSource):
         -----------
         input_url : str
             Path of the file to load
-        config: ??
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
         parent: ??
+            Parent from which the config is used. Mutually exclusive with config
         kwargs
         """
         super().__init__(
@@ -40,11 +58,10 @@ class DL1EventSource(EventSource):
             **kwargs
         )
 
-        self.reader_ = HDF5TableReader(input_url)
-        self._subarray_info = self._prepare_subarray_info(
-            self.reader_._h5file.root.configuration.instrument
-        )
-        self._mc_header = self._parse_mc_header()
+        self.file_ = tables.open_file(input_url)
+        self.input_url = input_url
+        self._subarray_info = self._prepare_subarray_info()
+        self._mc_headers = self._parse_mc_headers()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
@@ -59,19 +76,30 @@ class DL1EventSource(EventSource):
         if magic_number != b'\x89HDF\r\n\x1a\n':
             return False
         else:
-            hdf5file = tables.open_file(file_path)
-            metadata = hdf5file.root._v_attrs
-            organization = metadata.get('CTA CONTACT ORGANIZATION')
-            if organization != 'CTA Consortium':
-                return False
+            with tables.open_file(file_path) as f:
+                metadata = f.root._v_attrs
+                print(metadata)
+                organization = metadata.get('CTA CONTACT ORGANIZATION')
+                if organization != 'CTA Consortium':
+                    return False
         return True
 
     @property
     def is_simulation(self):
         """
-        Implementation needed!
+        True for files with a simulation group at the root of the file.
         """
-        return True
+        return "simulation" in self.file_.root
+
+    @property
+    def has_simulated_dl1(self):
+        """
+        True for files with telescope-wise event information in the simulation group
+        """
+        if self.is_simulation:
+            if "telescope" in self.file_.root.simulation.event:
+                return True
+        return False
 
     @property
     def subarray(self):
@@ -79,43 +107,51 @@ class DL1EventSource(EventSource):
 
     @property
     def datalevels(self):
-        return (DataLevel.DL1_IMAGES, DataLevel.DL1_PARAMETERS)
+        params = 'parameters' in self.file_.root.dl1.event.telescope
+        images = 'images' in self.file_.root.dl1.event.telescope
+        if params and images:
+            return (DataLevel.DL1_IMAGES, DataLevel.DL1_PARAMETERS)
+        elif params:
+            return (DataLevel.DL1_PARAMETERS)
+        elif images:
+            return (DataLevel.DL1_IMAGES)
 
     @property
     def obs_id(self):
         return set(self.file_.root.dl1.event.subarray.trigger.col("obs_id"))
 
     @property
-    def mc_header(self):
-        return self._mc_header
+    def mc_headers(self):
+        return self._mc_headers
+
+    @property
+    def obs_ids(self):
+        return self.mc_headers.keys()
 
     def _generator(self):
         yield from self._generate_events()
 
-    def _prepare_subarray_info(self, instrument_description):
+    def _prepare_subarray_info(self):
         """
         Constructs a SubArrayDescription object from
-        self.file_.root.configuration.instrument.telescope.optics
-        and
-        self.file_.root.configuration.instrument.subarray.layout
-        tables.
+        the tables in /configuration/instrument.
 
         Returns
         -------
         SubarrayDescription :
-            instrumental information
+            Instrumental information including the position, optic and camera of each telescope
         """
-        available_optics = instrument_description.telescope.optics.iterrows()
-        available_telescopes = instrument_description.subarray.layout.iterrows()
 
-        # The focal length choice is missing here
-        # I am not sure how they are handled in the file
-        # Will there be one of "e_fl" or "fl" in the columns?
-        # This will only work if "e_fl" is available
+        # collect all optics
+        optics_table = Table.read(
+            self.input_url,
+            "configuration/instrument/telescope/optics"
+        )
         optic_descriptions = {}
-        for optic in available_optics:
+        for optic in optics_table:
+            # ToDo: .from_table() method missing for now (see #1358)
             optic_description = OpticsDescription(
-                name=optic['name'].decode(),
+                name=optic['name'],
                 num_mirrors=optic['num_mirrors'],
                 equivalent_focal_length=u.Quantity(
                     optic['equivalent_focal_length'],
@@ -127,211 +163,258 @@ class DL1EventSource(EventSource):
                 ),
                 num_mirror_tiles=optic['num_mirror_tiles'],
             )
-            optic_descriptions[optic['description'].decode()] = optic_description
+            optic_descriptions[optic['description']] = optic_description
 
+        # collect all cameras
+        # Maybe that loop/if-cases can be optimized?
+        cameras = {}
+        camera_tables = [i for i in self.file_.root.configuration.instrument.telescope.camera]
+        for cam_table in camera_tables:
+            if cam_table.name.endswith('meta__'):
+                continue
+            if cam_table.name.startswith('geometry'):
+                cam_name = str(cam_table).split('_')[1].split()[0]
+                geom_table_path = str(cam_table).split()[0]
+                geom = CameraGeometry.from_table(
+                    Table.read(
+                        self.input_url,
+                        geom_table_path
+                    )
+                )
+                readout_table_path = geom_table_path.replace('geometry', 'readout')
+                readout = CameraReadout.from_table(
+                    Table.read(
+                        self.input_url,
+                        readout_table_path
+                    )
+                )
+                camera = CameraDescription(
+                    cam_name,
+                    geom,
+                    readout
+                )
+                cameras[cam_name] = camera
+
+        # collect all telescopes and match optics and cameras
         tel_positions = {}
         tel_descriptions = {}
-        for telescope in available_telescopes:
+        layout_table = Table.read(self.input_url, "configuration/instrument/subarray/layout")
+        for telescope in layout_table:
+            if self.allowed_tels and telescope['tel_id'] not in self.allowed_tels:
+                continue
             tel_positions[telescope['tel_id']] = (
                 telescope['pos_x'],
                 telescope['pos_y'],
                 telescope['pos_z'],
             )
-            geom = CameraGeometry.from_name(telescope['camera_type'].decode())
-            optics = optic_descriptions[telescope['tel_description'].decode()]
             tel_descriptions[telescope['tel_id']] = TelescopeDescription(
-                name=telescope['name'],
-                tel_type=telescope['type'],
-                optics=optics,
-                camera=geom,
+                telescope['name'],
+                telescope['type'],
+                optic_descriptions[telescope['tel_description']],
+                cameras[telescope['camera_type']]
             )
 
         return SubarrayDescription(
-            name='???',
+            name=layout_table.meta['SUBARRAY'],
             tel_positions=tel_positions,
             tel_descriptions=tel_descriptions,
         )
 
-    def _parse_mc_header(self):
+    def _parse_mc_headers(self):
         """
-        Construct a MCHeaderContainer from the
-        self.file_.root.configuration.simulation.run
+        Construct a dict of MCHeaderContainers from the
+        self.file_.root.configuration.simulation.run.
+        These are used to match the correct header to each event
         """
-        # We just assume there is only one row?
-        # Thats kind of what the SimTelEventSource does
-        # If mixed configurations are in one file, it gets problematic anyway, right? -> subarray layout?
-        if 'simulation' in self.reader_._h5file.root.configuration.__members__:
-            return next(self.reader_.read('/configuration/simulation/run', MCHeaderContainer()))
+        # Just returning next(reader) would work as long as there are no merged files
+        # The reader ignores obs_id making the setup somewhat tricky
+        # This is ugly but supports multiple headers so each event can have
+        # the correct mcheader assigned by matching the obs_id
+        # Alternatively this becomes a flat list and the obs_id matching part needs to be done
+        # in _generate_events()
+        mc_headers = {}
+        if 'simulation' in self.file_.root.configuration.__members__:
+            reader = HDF5TableReader(self.input_url).read(
+                '/configuration/simulation/run', MCHeaderContainer()
+            )
+            row_iterator = self.file_.root.configuration.simulation.run.iterrows()
+            for row in row_iterator:
+                mc_headers[row['obs_id']] = next(reader)
+        return mc_headers
 
     def _generate_events(self):
         """
         Yield EventAndMonDataContainer to iterate through events.
         """
         data = EventAndMonDataContainer()
-        #data.meta["origin"] = "dl1 test"  # Any Infos in the file?
+        # Maybe take some other metadata, but there are still some 'unknown'
+        # written out by the stage1 tool
+        data.meta["origin"] = self.file_.root._v_attrs["CTA PROCESS TYPE"]
         data.meta["input_url"] = self.input_url
-        data.meta["max_events"] = self.max_events  # Does this have any effect?
-        data.mcheader = self._mc_header
+        data.meta["max_events"] = self.max_events
 
-        # loop array events
-        for counter, array_event in enumerate(self.reader_._h5file.root.dl1.event.subarray.trigger):
-            # this should be done in a nicer way to not re-allocate the
-            # data each time (right now it's just deleted and garbage
-            # collected)
+        if DataLevel.DL1_IMAGES in self.datalevels:
+            image_iterators = {
+                tel: self.file_.root.dl1.event.telescope.images[tel].iterrows()
+                for tel in self.file_.root.dl1.event.telescope.images.__members__
+            }
+            if self.has_simulated_dl1:
+                true_image_iterators = {
+                    tel: self.file_.root.simulation.event.telescope.images[tel].iterrows()
+                    for tel in self.file_.root.simulation.event.telescope.images.__members__
+                }
+
+        if DataLevel.DL1_PARAMETERS in self.datalevels:
+            # ToDo:
+            # The HDF5TableReader doesnt like multiple containers per table (see #1367)
+            # For now we need one reader per container type
+            param_readers = {
+                'hillas': {'container': HillasParametersContainer()},
+                'leakage': {'container': LeakageContainer()},
+                'timing': {'container': TimingParametersContainer()},
+                'concentration': {'container': ConcentrationContainer()},
+                'morphology': {'container': MorphologyContainer()},
+                'intensity_statistics': {'container': IntensityStatisticsContainer()},
+                'peak_time_statistics': {'container': PeakTimeStatisticsContainer()},
+            }
+            for param in param_readers:
+                param_readers[param]['reader'] = HDF5TableReader(self.input_url)
+                for tel in self.file_.root.dl1.event.telescope.parameters:
+                    param_readers[param][tel.name] = param_readers[param]["reader"].read(
+                        f"/dl1/event/telescope/parameters/{tel.name}",
+                        param_readers[param]['container'],
+                        prefix=True
+                    )
+            if self.has_simulated_dl1:
+                true_param_readers = {
+                    'hillas': {'container': HillasParametersContainer()},
+                    'leakage': {'container': LeakageContainer()},
+                    'timing': {'container': TimingParametersContainer()},
+                    'concentration': {'container': ConcentrationContainer()},
+                    'morphology': {'container': MorphologyContainer()},
+                    'intensity_statistics': {'container': IntensityStatisticsContainer()},
+                    'peak_time_statistics': {'container': PeakTimeStatisticsContainer()},
+                }
+                for param in true_param_readers:
+                    true_param_readers[param]['reader'] = HDF5TableReader(self.input_url)
+                    for tel in self.file_.root.simulation.event.telescope.parameters:
+                        true_param_readers[param][tel.name] = true_param_readers[param]["reader"].read(
+                            f"/dl1/event/telescope/parameters/{tel.name}",
+                            true_param_readers[param]['container'],
+                            prefix=True
+                        )
+
+            if self.is_simulation:
+                # true shower wide information
+                mc_shower_reader = HDF5TableReader(self.input_url).read(
+                    '/simulation/event/subarray/shower',
+                    MCEventContainer(),
+                    prefix="true"
+                )
+
+        # Setup iterators for the event triggers
+        # Could also setup a reader for the EventIndexContainer, but it only has two fields anyway
+        # Maybe this can be optimized after #1367 is done
+        array_events = self.file_.root.dl1.event.subarray.trigger.iterrows()
+        event_triggers = HDF5TableReader(self.input_url).read(
+            "/dl1/event/subarray/trigger",
+            TriggerContainer())
+        # the TelescopeTriggerContainer information is located somewhere else
+        # Unlike the image/parameter groups this is a single table for all telescopes
+        # telescope_trigger_iterator = self.file_.root.dl1.event.telescope.trigger.iterrows()
+        for counter, array_event in enumerate(array_events):
             data.dl1.tel.clear()
             data.mc.tel.clear()
             data.pointing.tel.clear()
             data.trigger.tel.clear()
 
             data.count = counter
+            data.index.obs_id = array_event['obs_id']
+            data.index.event_id = array_event['event_id']
 
-            obs_id = array_event['obs_id']
-            event_id = array_event['event_id']
-            time = array_event['time']
-            data.index.obs_id = obs_id
-            data.index.event_id = event_id
+            data.trigger = next(event_triggers)
+            # the trigger info is somewhat weird in terms of allowed tels
+            # Fill triggertime of each telescope
+            # Could be included in the loop below for better performance
+            # This way the trigger specific stuff is at one place
+            for i in self.file_.root.dl1.event.telescope.trigger.where(f"(obs_id=={data.index.obs_id}) & (event_id=={data.index.event_id})"):
+                if self.allowed_tels and i['tel_id'] not in self.allowed_tels:
+                    continue
+                data.trigger.tel[i['tel_id']].time = i['telescopetrigger_time']
+            # Pretty sure this is supposed to be a list of ids, not a boolean mask?
+            # this might be broken in terms of allowed tels
+            # not sure which behaviour is expected here
+            tels_with_trigger = set(np.where(data.trigger.tels_with_trigger)[0] + 1)
+            if self.allowed_tels:
+                # double casting to make sure its the same datatype in both cases
+                tels_with_trigger = self.allowed_tels.intersection(tels_with_trigger)
+            data.trigger.tels_with_trigger = tels_with_trigger
 
-            # where returns an iterator. Is there a way to directly get the row?
-            if 'simulation' in self.reader_._h5file.root:
-                data.mc = self.reader_.read(
-                    '/simulation/event/subarray/shower',
-                    MCHeaderContainer()
-                )
-            
-            self._fill_trigger_info(data, array_event)
-            self._fill_array_pointing(data, time)
+            self._fill_array_pointing(data)
+            self._fill_telescope_pointing(data)
 
-            telescope_events = self.file_.root.dl1.event.telescope.trigger.where(
-                f"(obs_id=={obs_id})&(event_id=={event_id})"
-            )
+            if self.is_simulation:
+                data.mc = next(mc_shower_reader)
+                data.mcheader = self._mc_headers[data.index.obs_id]
 
-            for telescope_event in telescope_events:
-                obs_id = telescope_event['obs_id']
-                event_id = telescope_event['event_id']
-                teltrigger_time = telescope_event['telescopetrigger_time']
-                tel_id = telescope_event['tel_id']
+            for tel in data.trigger.tel.keys():
+                if self.allowed_tels and tel not in self.allowed_tels:
+                    continue
+                dl1 = data.dl1.tel[tel]
+                if DataLevel.DL1_IMAGES in self.datalevels:
+                    image_row = next(image_iterators[f'tel_{tel:03d}'])
+                    dl1.image = image_row['image']
+                    dl1.peak_time = image_row['peak_time']
+                    dl1.image_mask = image_row['image_mask']
+                    # ToDo: Find a place in the data container, where this information can go
+                    # (see #1368)
+                    # if self.has_simulated_dl1:
+                    #    row = next(true_image_iterators[f'tel_{tel:03d}'])
+                    #    data.mc??.tel[tel].image = row['true_image']
+                    #    data.mc??[tel].peak_time = row['true_peak_time']
+                    #    data.mc??[tel].image_mask = row['true_image_mask']
 
-                self._fill_telescope_pointing(data, teltrigger_time)
-
-                # bc of indexing in the table (1->001, 12->012, 123->123)
-                index_id = f'{tel_id:03d}'
-
-                dl1 = data.dl1.tel[tel_id]
-
-                cam_iterator = self.file_.root.dl1.event.telescope.images[f'tel_{index_id}'].where(
-                    f"(obs_id=={obs_id})&(event_id=={event_id})"
-                )
-                cam = validate_single_result_query(cam_iterator)
-                if cam:
-                    dl1.image = cam['image']
-                    dl1.peak_time = cam['peak_time']
-                    dl1.image_mask = cam['image_mask']
-
-                params_iterator = self.file_.root.dl1.event.telescope.parameters[f'tel_{index_id}'].where(
-                    f"(obs_id=={obs_id})&(event_id=={event_id})"
-                )
-                params = validate_single_result_query(params_iterator)
-                if params:
-                    dl1.parameters.hillas.x = params['hillas_x']
-                    dl1.parameters.hillas.y = params['hillas_y']
-                    dl1.parameters.hillas.r = params['hillas_r']
-                    dl1.parameters.hillas.phi = params['hillas_phi']
-                    dl1.parameters.hillas.length = params['hillas_length']
-                    dl1.parameters.hillas.width = params['hillas_width']
-                    dl1.parameters.hillas.psi = params['hillas_psi']
-                    dl1.parameters.hillas.skewness = params['hillas_skewness']
-                    dl1.parameters.hillas.kurtosis = params['hillas_kurtosis']
-                    dl1.parameters.hillas.intensity = params['hillas_intensity']
-
-                    dl1.parameters.timing.slope = params['timing_slope']
-                    dl1.parameters.timing.slope_err = params['timing_slope_err']
-                    dl1.parameters.timing.intercept = params['timing_intercept']
-                    dl1.parameters.timing.intercept_err = params['timing_intercept_err']
-                    dl1.parameters.timing.deviation = params['timing_deviation']
-
-                    dl1.parameters.leakage.pixels_width_1 = params['leakage_pixels_width_1']
-                    dl1.parameters.leakage.pixels_width_2 = params['leakage_pixels_width_2']
-                    dl1.parameters.leakage.intensity_width_1 = params['leakage_pixels_width_1']
-                    dl1.parameters.leakage.intensity_width_2 = params['leakage_pixels_width_2']
-
-                    dl1.parameters.concentration.cog = params['concentration_cog']
-                    dl1.parameters.concentration.core = params['concentration_core']
-                    dl1.parameters.concentration.pixel = params['concentration_pixel']
-
-                    dl1.parameters.morphology.num_pixels = params['morphology_num_pixels']
-                    dl1.parameters.morphology.num_islands = params['morphology_num_islands']
-                    dl1.parameters.morphology.num_small_islands = params['morphology_num_small_islands']
-                    dl1.parameters.morphology.num_medium_islands = params['morphology_num_medium_islands']
-                    dl1.parameters.morphology.num_large_islands = params['morphology_num_large_islands']
-
-                    dl1.parameters.intensity_statistics.max = params['intensity_max']
-                    dl1.parameters.intensity_statistics.min = params['intensity_min']
-                    dl1.parameters.intensity_statistics.mean = params['intensity_mean']
-                    dl1.parameters.intensity_statistics.std = params['intensity_std']
-                    dl1.parameters.intensity_statistics.skewness = params['intensity_skewness']
-                    dl1.parameters.intensity_statistics.kurtosis = params['intensity_kurtosis']
-
-                    dl1.parameters.peak_time_statistics.max = params['peak_time_max']
-                    dl1.parameters.peak_time_statistics.min = params['peak_time_min']
-                    dl1.parameters.peak_time_statistics.mean = params['peak_time_mean']
-                    dl1.parameters.peak_time_statistics.std = params['peak_time_std']
-                    dl1.parameters.peak_time_statistics.skewness = params['peak_time_skewness']
-                    dl1.parameters.peak_time_statistics.kurtosis = params['peak_time_kurtosis']
-
+                if DataLevel.DL1_PARAMETERS in self.datalevels:
+                    for param in param_readers:
+                        dl1.parameters[param] = next(param_readers[param][f'tel_{tel:03d}'])
+                        # ToDo: Find a place in the data container, where this information can go
+                        # (see #1368)
+                        # if self.has_simulated_dl1:
+                        # for param in true_param_readers:
+                        #    data.mc??.tel[tel].parameters[param] = next(true_param_readers[param][f'tel_{tel:03d}'])
             yield data
 
-    def _fill_trigger_info(self, data, array_event):
+    def _fill_array_pointing(self, data):
         """
-        Fill the trigger information for a provided array event.
+        Fill the array pointing information of a given event
         """
-        obs_id = array_event['obs_id']
-        event_id = array_event['event_id']
+        # Only unique pointings are stored, so reader.read() wont work as easily
+        # Not sure if this is the right way to do it
+        # one could keep an index of the last selected row and the last pointing
+        # and only advance with the row iterator if the next time is closer or smth like that
+        closest_time = np.argmin(
+            self.file_.root.dl1.monitoring.subarray.pointing.col("time")
+            - data.trigger.time)
+        array_pointing = self.file_.root.dl1.monitoring.subarray.pointing[closest_time]
 
-        # Implementation needed
-        event_type = array_event['event_type']
-        data.trigger.event_type = EventType.UNKNOWN
+        data.pointing.array_azimuth = u.Quantity(array_pointing["array_azimuth"], u.rad)
+        data.pointing.array_altitude = u.Quantity(array_pointing["array_altitude"], u.rad)
+        data.pointing.array_ra = u.Quantity(array_pointing["array_ra"], u.rad)
+        data.pointing.array_dec = u.Quantity(array_pointing["array_dec"], u.rad)
 
-        array_trigger_iterator = self.file_.root.dl1.event.subarray.trigger.where(
-            f"(obs_id=={obs_id})&(event_id=={event_id})"
-        )
-        array_trigger = validate_single_result_query(array_trigger_iterator)
-        data.trigger.time = array_trigger['time']
-        data.trigger.event_type = array_trigger['event_type']
-
-        tel_trigger_iterator = self.file_.root.dl1.event.telescope.trigger.where(
-            f"(obs_id=={obs_id})&(event_id=={event_id})"
-        )
-        tels_with_trigger = []
-        for tel in tel_trigger_iterator:
-            tels_with_trigger.append(tel['tel_id'])
-            data.trigger.tel[tel['tel_id']].time = tel['telescopetrigger_time']
-        data.trigger.tels_with_trigger = tels_with_trigger
-
-    def _fill_array_pointing(self, data, time):
+    def _fill_telescope_pointing(self, data):
         """
-        Implementaion needed
+        Fill the telescope pointing information of a given event
         """
-        return None
-
-    def _fill_telescope_pointing(self, data, teltrigger_time):
-        """Implementation needed"""
-        return None
-
-
-def validate_single_result_query(row_iterator):
-    """
-    This is done in order to validate the row_iterator
-    for where queries for which we expect to
-    get one or zero rows. More than one row will raise an Exception
-    Probably an unneeded hack and if its needed should maybe perform some
-    logging.
-    Maybe better, since its always the same query for obs id and event id:
-    one function "select_event_rows" or similar
-    """
-    query_result = [x for x in row_iterator]
-    if len(query_result) == 1:
-        return query_result[0]
-    elif len(query_result) == 0:
-        return None
-    else:
-        raise Exception("The query selected more than one row. This should not happen")
+        # Same comments as to _fill_array_pointing_information apply
+        for tel in data.trigger.tel.keys():
+            if self.allowed_tels and tel not in self.allowed_tels:
+                continue
+            tel_pointing_table = self.file_.root.dl1.monitoring.telescope.pointing[f"tel_{tel:03d}"]
+            closest_time = np.argmin(
+                tel_pointing_table.col("telescopetrigger_time")
+                - data.trigger.tel[tel].time
+            )
+            pointing_array = tel_pointing_table[closest_time]
+            data.pointing.tel[tel].azimuth = u.Quantity(pointing_array['azimuth'], u.rad)
+            data.pointing.tel[tel].altitude = u.Quantity(pointing_array['altitude'], u.rad)
