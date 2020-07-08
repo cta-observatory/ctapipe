@@ -118,6 +118,30 @@ def test_read_multiple_containers():
             np.testing.assert_equal(value, read_value)
 
 
+def test_custom_prefix():
+    container = HillasParametersContainer(
+        x=1 * u.m, y=1 * u.m, length=1 * u.m, width=1 * u.m
+    )
+    container.prefix = "custom"
+    with tempfile.NamedTemporaryFile() as f:
+        with HDF5TableWriter(f.name, group_name="dl1", add_prefix=True) as writer:
+            writer.write("params", container)
+
+        with HDF5TableReader(f.name) as reader:
+            generator = reader.read(
+                "/dl1/params",
+                HillasParametersContainer(),
+                prefixes="custom"
+            )
+            read_container = next(generator)
+        assert isinstance(read_container, HillasParametersContainer)
+        for value, read_value in zip(
+            container.as_dict().values(),
+            read_container.as_dict().values()
+        ):
+            np.testing.assert_equal(value, read_value)
+
+
 def test_units():
     class WithUnits(Container):
         inverse_length = Field(5 / u.m, "foo")
