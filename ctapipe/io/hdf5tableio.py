@@ -330,10 +330,6 @@ class HDF5TableReader(TableReader):
 
     Todo:
     - add ability to synchronize reading of multiple tables on a key
-
-    - add ability (also with TableWriter) to read a row into n containers at
-        once, assuming no naming conflicts (so we can add e.g. event_id)
-
     """
 
     def __init__(self, filename, **kwargs):
