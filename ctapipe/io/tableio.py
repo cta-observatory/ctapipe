@@ -168,7 +168,7 @@ class TableReader(Component, metaclass=ABCMeta):
         return value
 
     @abstractmethod
-    def read(self, table_name, prefixes, containers, **kwargs):
+    def read(self, table_name, containers, prefixes, **kwargs):
         """
         Returns a generator that reads the next row from the table into the
         given container.  The generator returns the same container. Note that
