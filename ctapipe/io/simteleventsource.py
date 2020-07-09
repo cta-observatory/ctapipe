@@ -218,6 +218,9 @@ class SimTelEventSource(EventSource):
     def close(self):
         self.file_.close()
 
+    def __len__(self):
+        return self._mc_header.num_showers
+
     @property
     def is_simulation(self):
         return True
