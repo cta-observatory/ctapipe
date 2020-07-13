@@ -255,7 +255,7 @@ def image_prediction_no_units(
     pred *= pixel_diameter_rad / radius_rad
     # multiply by angle (in radians) subtended by pixel width as seen from ring center
 
-    pred *= np.sin(2 * radius_rad)
+    pred *= 0.5 * np.sin(2 * radius_rad)
 
     # multiply by gaussian weight, to account for "fraction of muon ring" which falls
     # within the pixel
@@ -446,11 +446,11 @@ class MuonIntensityFitter(TelescopeComponent):
     ).tag(config=True)
 
     min_lambda_m = FloatTelescopeParameter(
-        help="Minimum wavelength for Cherenkov light in m", default_value=300e-9,
+        help="Minimum wavelength for Cherenkov light in m", default_value=300e-9
     ).tag(config=True)
 
     max_lambda_m = FloatTelescopeParameter(
-        help="Minimum wavelength for Cherenkov light in m", default_value=600e-9,
+        help="Minimum wavelength for Cherenkov light in m", default_value=600e-9
     ).tag(config=True)
 
     hole_radius_m = FloatTelescopeParameter(
@@ -466,9 +466,7 @@ class MuonIntensityFitter(TelescopeComponent):
         help="Oversampling for the line integration", default_value=3
     ).tag(config=True)
 
-    def __call__(
-        self, tel_id, center_x, center_y, radius, image, pedestal,
-    ):
+    def __call__(self, tel_id, center_x, center_y, radius, image, pedestal):
         """
 
         Parameters
@@ -508,7 +506,7 @@ class MuonIntensityFitter(TelescopeComponent):
             hole_radius=self.hole_radius_m.tel[tel_id] * u.m,
         )
 
-        initial_guess = create_initial_guess(center_x, center_y, radius, telescope,)
+        initial_guess = create_initial_guess(center_x, center_y, radius, telescope)
 
         step_sizes = {}
         step_sizes["error_impact_parameter"] = 0.5
