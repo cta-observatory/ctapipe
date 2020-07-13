@@ -182,7 +182,7 @@ class EventSource(Component):
         bool
             If True, then input is a stream.
         """
-        return False
+        return True
 
     @property
     @abstractmethod
