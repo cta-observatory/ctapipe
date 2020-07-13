@@ -275,39 +275,6 @@ def image_prediction_no_units(
     return pred
 
 
-def calc_likelihood(image, pred, spe_width, ped):
-    """Calculate likelihood of prediction given the measured signal,
-    gaussian approx from [denaurois2009]_
-
-    Parameters
-    ----------
-    image: ndarray
-        Pixel amplitudes from image
-    pred: ndarray
-        Predicted pixel amplitudes from model
-    spe_width: ndarray
-        width of single p.e. distribution
-    ped: ndarray
-        width of pedestal
-
-    Returns
-    -------
-    ndarray: likelihood for each pixel
-
-    """
-
-    sq = 1 / np.sqrt(2 * np.pi * (ped ** 2 + pred * (1 + spe_width ** 2)))
-    diff = (image - pred) ** 2
-    denom = 2 * (ped ** 2 + pred * (1 + spe_width ** 2))
-    expo = np.exp(-diff / denom) + 1e-16  # add small epsilon to avoid nans
-
-    log_value = sq * expo
-
-    likelihood_value = -2 * np.log(log_value)
-
-    return likelihood_value
-
-
 def build_negative_log_likelihood(
     image,
     telescope_description,
@@ -446,11 +413,11 @@ class MuonIntensityFitter(TelescopeComponent):
     ).tag(config=True)
 
     min_lambda_m = FloatTelescopeParameter(
-        help="Minimum wavelength for Cherenkov light in m", default_value=300e-9,
+        help="Minimum wavelength for Cherenkov light in m", default_value=300e-9
     ).tag(config=True)
 
     max_lambda_m = FloatTelescopeParameter(
-        help="Minimum wavelength for Cherenkov light in m", default_value=600e-9,
+        help="Minimum wavelength for Cherenkov light in m", default_value=600e-9
     ).tag(config=True)
 
     hole_radius_m = FloatTelescopeParameter(
@@ -466,9 +433,7 @@ class MuonIntensityFitter(TelescopeComponent):
         help="Oversampling for the line integration", default_value=3
     ).tag(config=True)
 
-    def __call__(
-        self, tel_id, center_x, center_y, radius, image, pedestal,
-    ):
+    def __call__(self, tel_id, center_x, center_y, radius, image, pedestal):
         """
 
         Parameters
@@ -508,7 +473,7 @@ class MuonIntensityFitter(TelescopeComponent):
             hole_radius=self.hole_radius_m.tel[tel_id] * u.m,
         )
 
-        initial_guess = create_initial_guess(center_x, center_y, radius, telescope,)
+        initial_guess = create_initial_guess(center_x, center_y, radius, telescope)
 
         step_sizes = {}
         step_sizes["error_impact_parameter"] = 0.5
