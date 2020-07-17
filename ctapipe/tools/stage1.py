@@ -11,7 +11,7 @@ from astropy import units as u
 from tqdm.autonotebook import tqdm
 from collections import defaultdict
 
-from ctapipe.io import metadata as meta
+from ..io import metadata as meta, DataLevel
 from ..calib.camera import CameraCalibrator, GainSelector
 from ..containers import (
     ImageParametersContainer,
@@ -250,13 +250,20 @@ class Stage1ProcessorTool(Tool):
             )
 
         # setup components:
-
         self.gain_selector = self.add_component(
             GainSelector.from_name(self.gain_selector_type, parent=self)
         )
         self.event_source = self.add_component(
             EventSource.from_config(parent=self, gain_selector=self.gain_selector)
         )
+
+        if DataLevel.DL0 not in self.event_source.datalevels:
+            self.log.critical(
+                f"{self.name} needs the EventSource to provide DL0 data"
+                f", {self.event_source} does noet"
+            )
+            sys.exit(1)
+
         self.image_extractor = self.add_component(
             ImageExtractor.from_name(
                 self.image_extractor_type,
@@ -542,7 +549,6 @@ class Stage1ProcessorTool(Tool):
         add entries to the event/telescope tables for each telescope in a single
         event
         """
-
         # write the telescope tables
         for tel_id, dl1_camera in event.dl1.tel.items():
             dl1_camera.prefix = ""  # don't want a prefix for this container
