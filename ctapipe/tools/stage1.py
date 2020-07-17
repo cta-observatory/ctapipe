@@ -280,8 +280,12 @@ class Stage1ProcessorTool(Tool):
         )
         self.check_image = self.add_component(ImageQualityQuery(parent=self))
 
-        # check component setup
-        if self.event_source.max_events and self.event_source.max_events > 0:
+        # warn if max_events prevents writing the histograms
+        if (
+            isinstance(self.event_source, SimTelEventSource)
+            and self.event_source.max_events
+            and self.event_source.max_events > 0
+        ):
             self.log.warning(
                 "No Simulated shower distributions will be written because "
                 "EventSource.max_events is set to a non-zero number (and therefore "
@@ -526,10 +530,11 @@ class Stage1ProcessorTool(Tool):
                 last_pointing = current_pointing
 
             # write the subarray tables
-            writer.write(
-                table_name="simulation/event/subarray/shower",
-                containers=[event.index, event.mc],
-            )
+            if self.event_source.is_simulation:
+                writer.write(
+                    table_name="simulation/event/subarray/shower",
+                    containers=[event.index, event.mc],
+                )
             writer.write(
                 table_name="dl1/event/subarray/trigger",
                 containers=[event.index, event.trigger],
