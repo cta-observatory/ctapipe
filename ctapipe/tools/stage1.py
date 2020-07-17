@@ -705,7 +705,7 @@ class Stage1ProcessorTool(Tool):
                 writer.exclude(
                     f"/simulation/event/telescope/parameters/{table_name}", r"timing_.*"
                 )
-                writer.exclude(f"/simulation/event/subarray/shower", "true_tel")
+                writer.exclude("/simulation/event/subarray/shower", "true_tel")
 
     def start(self):
 
