@@ -257,10 +257,11 @@ class Stage1ProcessorTool(Tool):
             EventSource.from_config(parent=self, gain_selector=self.gain_selector)
         )
 
-        if DataLevel.DL0 not in self.event_source.datalevels:
+        datalevels = self.event_source.datalevels
+        if DataLevel.R1 not in datalevels and DataLevel.DL0 not in datalevels:
             self.log.critical(
-                f"{self.name} needs the EventSource to provide DL0 data"
-                f", {self.event_source} does noet"
+                f"{self.name} needs the EventSource to provide either R1 or DL0 data"
+                f", {self.event_source} provides only {datalevels}"
             )
             sys.exit(1)
 
