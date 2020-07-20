@@ -8,7 +8,6 @@ __all__ = [
     "mars_cleaning_1st_pass",
     "fact_image_cleaning",
     "apply_time_delta_cleaning",
-    "number_of_islands",
     "ImageCleaner",
     "TailcutsImageCleaner",
 ]
@@ -16,10 +15,13 @@ __all__ = [
 from abc import abstractmethod
 
 import numpy as np
-from scipy.sparse.csgraph import connected_components
 
 from ..core.component import TelescopeComponent
-from ..core.traits import FloatTelescopeParameter, IntTelescopeParameter
+from ..core.traits import (
+    FloatTelescopeParameter,
+    IntTelescopeParameter,
+    BoolTelescopeParameter,
+)
 
 
 def tailcuts_clean(
@@ -200,42 +202,6 @@ def dilate(geom, mask):
     return mask | geom.neighbor_matrix_sparse.dot(mask)
 
 
-def number_of_islands(geom, mask):
-    """
-    Search a given pixel mask for connected clusters.
-    This can be used to seperate between gamma and hadronic showers.
-
-    Parameters
-    ----------
-    geom: `~ctapipe.instrument.CameraGeometry`
-        Camera geometry information
-    mask: ndarray
-        input mask (array of booleans)
-
-    Returns
-    -------
-    num_islands: int
-        Total number of clusters
-    island_labels: ndarray
-        Contains cluster membership of each pixel.
-        Dimension equals input geometry.
-        Entries range from 0 (not in the pixel mask) to num_islands.
-    """
-    # compress sparse neighbor matrix
-    neighbor_matrix_compressed = geom.neighbor_matrix_sparse[mask][:, mask]
-    # pixels in no cluster have label == 0
-    island_labels = np.zeros(geom.n_pixels, dtype="int32")
-
-    num_islands, island_labels_compressed = connected_components(
-        neighbor_matrix_compressed, directed=False
-    )
-
-    # count clusters from 1 onwards
-    island_labels[mask] = island_labels_compressed + 1
-
-    return num_islands, island_labels
-
-
 def apply_time_delta_cleaning(
     geom, mask, arrival_times, min_number_neighbors, time_limit
 ):
@@ -365,30 +331,6 @@ def fact_image_cleaning(
     return pixels_to_keep
 
 
-def largest_island(islands_labels):
-    """Find the biggest island and filter it from the image.
-
-    This function takes a list of islands in an image and isolates the largest one
-    for later parametrization.
-
-    Parameters
-    ----------
-    islands_labels : array
-        Flattened array containing a list of labelled islands from a cleaned image.
-        Second value returned by the function 'number_of_islands'.
-
-    Returns
-    -------
-    islands_labels : array
-        A boolean mask created from the input labels and filtered for the largest island.
-        If no islands survived the cleaning the array is all False.
-
-    """
-    if np.count_nonzero(islands_labels) == 0:
-        return np.zeros(islands_labels.shape, dtype="bool")
-    return islands_labels == np.argmax(np.bincount(islands_labels[islands_labels > 0]))
-
-
 class ImageCleaner(TelescopeComponent):
     """
     Abstract class for all configurable Image Cleaning algorithms.   Use
@@ -427,15 +369,21 @@ class TailcutsImageCleaner(ImageCleaner):
     """
 
     picture_threshold_pe = FloatTelescopeParameter(
-        help="top-level threshold in photoelectrons", default_value=10.0
+        default_value=10.0, help="top-level threshold in photoelectrons"
     ).tag(config=True)
 
     boundary_threshold_pe = FloatTelescopeParameter(
-        help="second-level threshold in photoelectrons", default_value=5.0
+        default_value=5.0, help="second-level threshold in photoelectrons"
     ).tag(config=True)
 
     min_picture_neighbors = IntTelescopeParameter(
-        help="Minimum number of neighbors above threshold to consider", default_value=2
+        default_value=2, help="Minimum number of neighbors above threshold to consider"
+    ).tag(config=True)
+
+    keep_isolated_pixels = BoolTelescopeParameter(
+        default_value=False,
+        help="If False, pixels with less neighbors than ``min_picture_neighbors`` are"
+        "removed.",
     ).tag(config=True)
 
     def __call__(
@@ -451,7 +399,7 @@ class TailcutsImageCleaner(ImageCleaner):
             picture_thresh=self.picture_threshold_pe.tel[tel_id],
             boundary_thresh=self.boundary_threshold_pe.tel[tel_id],
             min_number_picture_neighbors=self.min_picture_neighbors.tel[tel_id],
-            keep_isolated_pixels=False,
+            keep_isolated_pixels=self.keep_isolated_pixels.tel[tel_id],
         )
 
 
@@ -484,7 +432,7 @@ class FACTImageCleaner(TailcutsImageCleaner):
     """
 
     time_limit_ns = FloatTelescopeParameter(
-        help="arrival time limit for neighboring " "pixels, in ns", default_value=5.0
+        default_value=5.0, help="arrival time limit for neighboring " "pixels, in ns"
     ).tag(config=True)
 
     def __call__(

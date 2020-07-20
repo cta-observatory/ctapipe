@@ -20,7 +20,7 @@ if __name__ == "__main__":
     event = next(iter(source))
 
     # display the array
-    subarray = event.inst.subarray
+    subarray = source.subarray
     ad = ArrayDisplay(subarray, tel_scale=3.0)
 
     print("Now setting vectors")
@@ -28,11 +28,11 @@ if __name__ == "__main__":
     plt.tight_layout()
 
     for phi in np.linspace(0, 360, 30) * u.deg:
-        r = np.cos(phi / 2)
+        r = 200 * np.cos(phi / 2) * u.m
         ad.set_vector_rho_phi(r, phi)
         plt.pause(0.01)
 
-    ad.set_vector_rho_phi(0, 0 * u.deg)
+    ad.set_vector_rho_phi(0 * u.m, 0 * u.deg)
     plt.pause(1.0)
 
     print("Now setting values")

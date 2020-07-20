@@ -115,6 +115,12 @@ using the `ctapipe.io.HDF5TableReader`, or more generically using the
 array values in a column cannot be read into a `pandas.DataFrame`, since it
 only supports scalar values).
 
+Standard Metadata Headers
+=========================
+
+The `ctapipe.io.metadata` package provides functions for generating standard CTA
+metadata headers and attaching them to various files.
+
 
 Reference/API
 =============
@@ -125,7 +131,7 @@ Reference/API
 
 .. automodapi:: ctapipe.io.hdf5tableio
 
-------------------------------
+.. automodapi:: ctapipe.io.metadata
 
-.. automodapi:: ctapipe.io.containers
-    :no-inheritance-diagram:
+
+

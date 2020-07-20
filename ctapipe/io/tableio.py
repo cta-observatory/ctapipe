@@ -42,11 +42,12 @@ class TableWriter(Component, metaclass=ABCMeta):
         pattern: str
             regular expression string to match column name
         """
+        table_name = table_name.lstrip("/")
         self._exclusions[table_name].append(re.compile(pattern))
 
     def _is_column_excluded(self, table_name, col_name):
         for pattern in self._exclusions[table_name]:
-            if pattern.match(col_name):
+            if pattern.fullmatch(col_name):
                 return True
         return False
 
@@ -71,7 +72,7 @@ class TableWriter(Component, metaclass=ABCMeta):
         )
 
     @abstractmethod
-    def write(self, table_name, containers):
+    def write(self, table_name, containers, **kwargs):
         """
         Write the contents of the given container or containers to a table.
         The first call to write  will create a schema and initialize the table
@@ -85,6 +86,8 @@ class TableWriter(Component, metaclass=ABCMeta):
             name of table to write to
         container: `ctapipe.core.Container`
             container to write
+        **kwargs:
+            may be passed to a lower level implementation to set options
         """
         pass
 
@@ -165,7 +168,7 @@ class TableReader(Component, metaclass=ABCMeta):
         return value
 
     @abstractmethod
-    def read(self, table_name: str, container: Container):
+    def read(self, table_name: str, container: Container, prefix=False):
         """
         Returns a generator that reads the next row from the table into the
         given container.  The generator returns the same container. Note that
@@ -177,6 +180,8 @@ class TableReader(Component, metaclass=ABCMeta):
             name of table to read from
         container : ctapipe.core.Container
             Container instance to fill
+        prefix: bool or str
+            Prefix that was added while writing the file.
         """
         pass
 

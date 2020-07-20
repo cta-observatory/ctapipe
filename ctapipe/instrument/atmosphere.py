@@ -7,10 +7,10 @@ from scipy.interpolate import interp1d
 
 from ctapipe.utils import get_table_dataset
 
-__all__ = ['get_atmosphere_profile_table', 'get_atmosphere_profile_functions']
+__all__ = ["get_atmosphere_profile_table", "get_atmosphere_profile_functions"]
 
 
-def get_atmosphere_profile_table(atmosphere_name='paranal'):
+def get_atmosphere_profile_table(atmosphere_name="paranal"):
     """
     Get an atmosphere profile table
 
@@ -25,14 +25,12 @@ def get_atmosphere_profile_table(atmosphere_name='paranal'):
     'altitude' (m), and 'thickness' (g cm-2) as well as others.
 
     """
-    table_name = f'{atmosphere_name}.atmprof'
-    table = get_table_dataset(table_name=table_name,
-                              role='dl0.arr.svc.atmosphere')
+    table_name = f"{atmosphere_name}.atmprof"
+    table = get_table_dataset(table_name=table_name, role="dl0.arr.svc.atmosphere")
     return table
 
 
-def get_atmosphere_profile_functions(atmosphere_name="paranal",
-                                     with_units=True):
+def get_atmosphere_profile_functions(atmosphere_name="paranal", with_units=True):
     """
     Gives atmospheric profile as a continuous function thickness(
     altitude), and it's inverse altitude(thickness)  in m and g/cm^2
@@ -51,18 +49,19 @@ def get_atmosphere_profile_functions(atmosphere_name="paranal",
     functions: thickness(alt), alt(thickness)
     """
     tab = get_atmosphere_profile_table(atmosphere_name)
-    alt = tab['altitude'].to('m')
-    thick = (tab['thickness']).to("g cm-2")
+    alt = tab["altitude"].to("m")
+    thick = (tab["thickness"]).to("g cm-2")
 
     alt_to_thickness = interp1d(x=np.array(alt), y=np.array(thick))
     thickness_to_alt = interp1d(x=np.array(thick), y=np.array(alt))
 
     if with_units:
+
         def thickness(a):
-            return Quantity(alt_to_thickness(a.to('m')), 'g cm-2')
+            return Quantity(alt_to_thickness(a.to("m")), "g cm-2")
 
         def altitude(a):
-            return Quantity(thickness_to_alt(a.to('g cm-2')), 'm')
+            return Quantity(thickness_to_alt(a.to("g cm-2")), "m")
 
         return thickness, altitude
 

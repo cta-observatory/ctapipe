@@ -4,9 +4,9 @@ Core functionality of ctapipe
 """
 
 from .component import Component, TelescopeComponent, non_abstract_children
-from .container import Container, Field, DeprecatedField, Map
+from .container import Container, Field, DeprecatedField, Map, FieldValidationError
 from .provenance import Provenance, get_module_version
-from .tool import Tool, ToolConfigurationError
+from .tool import Tool, ToolConfigurationError, run_tool
 from .qualityquery import QualityQuery, QualityCriteriaError
 
 __all__ = [
@@ -21,6 +21,8 @@ __all__ = [
     "ToolConfigurationError",
     "non_abstract_children",
     "get_module_version",
+    "run_tool",
     "QualityQuery",
     "QualityCriteriaError",
+    "FieldValidationError",
 ]

@@ -1,7 +1,7 @@
 from ctapipe.core import Component
-from ctapipe.io.containers import ReconstructedShowerContainer
+from ctapipe.containers import ReconstructedShowerContainer
 
-__all__ = ['Reconstructor', 'TooFewTelescopesException', 'InvalidWidthException']
+__all__ = ["Reconstructor", "TooFewTelescopesException", "InvalidWidthException"]
 
 
 class TooFewTelescopesException(Exception):

@@ -5,95 +5,141 @@ Create a toymodel event stream of array events
 import logging
 
 import numpy as np
-from ctapipe.image import toymodel
-from scipy.stats import norm
 import astropy.units as u
 
-from .containers import DataContainer
+from ..containers import (
+    DataContainer,
+    DL1CameraContainer,
+    EventIndexContainer,
+)
+from ..core import traits
+from ..core import TelescopeComponent
+from ..image import toymodel
+from .eventsource import EventSource
+from .datalevels import DataLevel
 
 logger = logging.getLogger(__name__)
 
 
-def toymodel_event_source(geoms, max_events=100, single_tel=False, n_channels=1,
-                          n_samples=25, p_trigger=0.3):
-    """
-    An event source that produces array
-    Parameters
-    ----------
-    geoms : list of CameraGeometry instances
-        Geometries for the telescopes to simulate
-    max_events : int, default: 100
-        maximum number of events to create
-    n_channels : int
-        how many channels per telescope
-    n_samples : int
-        how many adc samples per pixel
-    p_trigger : float
-        mean trigger probability for the telescopes
-    """
-    n_telescopes = len(geoms)
-    container = DataContainer()
-    container.meta['toymodel__max_events'] = max_events
-    container.meta['source'] = "toymodel"
-    tel_ids = np.arange(n_telescopes)
+class ToyEventSource(EventSource, TelescopeComponent):
 
-    for event_id in range(max_events):
+    trigger_probability = traits.FloatTelescopeParameter(
+        default_value=0.5, help="Probability that the telescope has an event",
+    ).tag(config=True)
 
-        n_triggered = np.random.poisson(n_telescopes * 0.3)
-        if n_triggered > n_telescopes:
-            n_triggered = n_telescopes
+    min_length_m = traits.FloatTelescopeParameter(
+        default_value=0.05, help="Minimum length m",
+    ).tag(config=True)
+    max_length_m = traits.FloatTelescopeParameter(
+        default_value=0.3, help="Maximum length in m",
+    ).tag(config=True)
+    min_eccentricity = traits.FloatTelescopeParameter(
+        default_value=0.8, help="Minimum eccentricity = sqrt(1 - width**2/length**2)",
+    ).tag(config=True)
+    max_eccentricity = traits.FloatTelescopeParameter(
+        default_value=0.98, help="Maximum eccentricity = sqrt(1 - width**2/length**2)",
+    ).tag(config=True)
+    min_skewness = traits.FloatTelescopeParameter(
+        default_value=0.1, help="Minimum skewness",
+    ).tag(config=True)
+    max_skewness = traits.FloatTelescopeParameter(
+        default_value=0.5, help="Maximum skewness",
+    ).tag(config=True)
 
-        triggered_tels = np.random.choice(tel_ids, n_triggered, replace=False)
+    def __init__(self, subarray, config=None, parent=None, **kwargs):
+        super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
+        self._subarray = subarray
+        self._camera_radii = {}
 
-        container.r0.event_id = event_id
-        container.r0.tels_with_data = triggered_tels
-        container.count = event_id
+    @staticmethod
+    def calc_width(eccentricity, length):
+        return length * np.sqrt(1 - eccentricity ** 2)
 
-        # handle single-telescope case (ignore others:
-        if single_tel:
-            if single_tel not in container.r0.tels_with_data:
+    @property
+    def subarray(self):
+        return self._subarray
+
+    @property
+    def obs_id(self):
+        return -1
+
+    @property
+    def is_simulation(self):
+        return True
+
+    @property
+    def datalevels(self):
+        return (DataLevel.DL1_IMAGES,)
+
+    @subarray.setter
+    def subarray(self, value):
+        self._subarray = value
+
+    @staticmethod
+    def is_compatible(file_path):
+        return False
+
+    def _generator(self):
+        self.event_id = 0
+        while True:
+            if self.event_id >= self.max_events:
+                break
+
+            yield self.generate_event()
+            self.event_id += 1
+
+    def generate_event(self):
+
+        event = DataContainer(
+            index=EventIndexContainer(obs_id=1, event_id=self.event_id),
+            trigger=None,
+            r0=None,
+            dl0=None,
+            dl2=None,
+            mc=None,
+            mcheader=None,
+            count=self.event_id,
+            calibration=None,
+        )
+
+        for tel_id, telescope in self.subarray.tel.items():
+            if np.random.uniform() >= self.trigger_probability.tel[tel_id]:
                 continue
-            container.r0.tels_with_data = [single_tel, ]
 
-        container.r0.tel.reset()  # clear the previous telescopes
-        t = np.arange(n_samples)
+            cam = telescope.camera.geometry
 
-        for tel_id in container.r0.tels_with_data:
-            geom = geoms[tel_id]
+            # draw cog
+            r_fraction = np.sqrt(np.random.uniform(0, 0.9))
+            r = r_fraction * cam.guess_radius()
+            phi = np.random.uniform(0, 2 * np.pi)
+            x = r * np.cos(phi)
+            y = r * np.sin(phi)
 
-            # fill pixel position dictionary, if not already done:
-            if tel_id not in container.inst.pixel_pos:
-                container.inst.pixel_pos[tel_id] = (
-                    geom.pix_x.value,
-                    geom.pix_y.value,
-                )
+            # draw length
+            length = np.random.uniform(
+                self.min_length_m.tel[tel_id], self.max_length_m.tel[tel_id],
+            )
+            eccentricity = np.random.uniform(
+                self.min_eccentricity.tel[tel_id], self.max_eccentricity.tel[tel_id],
+            )
+            width = self.calc_width(eccentricity, length)
 
-            x, y = np.random.uniform(geom.pix_x.min(), geom.pix_y.max(), 2)
-            length = np.random.uniform(0.02, 0.2)
-            width = np.random.uniform(0.01, length)
             psi = np.random.randint(0, 360)
-            intensity = np.random.poisson(int(10000 * width * length))
-            model = toymodel.Gaussian(
-                x=x * u.m,
-                y=y * u.m,
+            intensity = np.random.poisson(int(1e5 * width * length))
+            skewness = np.random.uniform(
+                self.min_skewness.tel[tel_id], self.max_skewness.tel[tel_id]
+            )
+
+            model = toymodel.SkewedGaussian(
+                x=x,
+                y=y,
                 length=length * u.m,
                 width=width * u.m,
-                psi=f'{psi}d',
+                psi=f"{psi}d",
+                skewness=skewness,
             )
-            image, _, _ = model.generate_image(
-                geom,
-                intensity,
-            )
+            image, _, _ = model.generate_image(cam, intensity,)
 
-            # container.r0.tel[tel_id] = R0CameraContainer()
-            container.inst.num_channels[tel_id] = n_channels
-            n_pix = len(geom.pix_id)
-            means = np.random.normal(15, 1, (n_pix, 1))
-            stds = np.random.uniform(3, 6, (n_pix, 1))
-            samples = image[:, np.newaxis] * norm.pdf(t, means, stds)
+            event.dl1.tel[tel_id] = DL1CameraContainer(image=image)
 
-            for chan in range(n_channels):
-                container.r0.tel[tel_id].waveform[chan] = samples
-                container.r0.tel[tel_id].image[chan] = image
-
-        yield container
+        return event

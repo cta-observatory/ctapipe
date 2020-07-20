@@ -6,7 +6,7 @@ import numpy as np
 
 from ctapipe.calib.camera.pedestals import *
 from ctapipe.instrument import SubarrayDescription, TelescopeDescription
-from ctapipe.io.containers import EventAndMonDataContainer
+from ctapipe.containers import EventAndMonDataContainer
 
 
 def test_pedestal_calculator():
@@ -28,7 +28,7 @@ def test_pedestal_calculator():
         },
     )
     subarray.tel[0].camera.readout.reference_pulse_shape = np.ones((1, 2))
-    subarray.tel[0].camera.readout.reference_pulse_step = u.Quantity(1, u.ns)
+    subarray.tel[0].camera.readout.reference_pulse_sample_width = u.Quantity(1, u.ns)
 
     ped_calculator = PedestalIntegrator(
         subarray=subarray,

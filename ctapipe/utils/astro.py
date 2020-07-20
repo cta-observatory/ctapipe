@@ -8,7 +8,7 @@ from astropy.coordinates import Angle
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 
-__all__ = ['get_bright_stars']
+__all__ = ["get_bright_stars"]
 
 
 def get_bright_stars(pointing=None, radius=None, magnitude_cut=None):
@@ -38,26 +38,29 @@ def get_bright_stars(pointing=None, radius=None, magnitude_cut=None):
     """
     from ctapipe.utils import get_table_dataset
 
-    catalog = get_table_dataset("yale_bright_star_catalog5",
-                                role="bright star catalog")
+    catalog = get_table_dataset("yale_bright_star_catalog5", role="bright star catalog")
 
-    starpositions = SkyCoord(ra=Angle(catalog['RAJ2000'], unit=u.deg),
-                             dec=Angle(catalog['DEJ2000'], unit=u.deg),
-                             frame='icrs', copy=False)
-    catalog['ra_dec'] = starpositions
+    starpositions = SkyCoord(
+        ra=Angle(catalog["RAJ2000"], unit=u.deg),
+        dec=Angle(catalog["DEJ2000"], unit=u.deg),
+        frame="icrs",
+        copy=False,
+    )
+    catalog["ra_dec"] = starpositions
 
     if magnitude_cut is not None:
-        catalog = catalog[catalog['Vmag'] < magnitude_cut]
+        catalog = catalog[catalog["Vmag"] < magnitude_cut]
 
     if radius is not None:
         if pointing is None:
-            raise ValueError('Sky pointing, pointing=SkyCoord(), must be '
-                             'provided if radius is given.')
-        separations = catalog['ra_dec'].separation(pointing)
-        catalog['separation'] = separations
+            raise ValueError(
+                "Sky pointing, pointing=SkyCoord(), must be "
+                "provided if radius is given."
+            )
+        separations = catalog["ra_dec"].separation(pointing)
+        catalog["separation"] = separations
         catalog = catalog[separations < radius]
 
-    catalog.remove_columns(['RAJ2000', 'DEJ2000'])
+    catalog.remove_columns(["RAJ2000", "DEJ2000"])
 
     return catalog
-

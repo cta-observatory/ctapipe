@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-__all__ = ['ChargeResolutionCalculator']
+__all__ = ["ChargeResolutionCalculator"]
 
 
 class ChargeResolutionCalculator:
@@ -41,7 +41,7 @@ class ChargeResolutionCalculator:
         self._df_list = []
         self._df = pd.DataFrame()
         self._n_bytes = 0
-        self._max_bytes = 1E9
+        self._max_bytes = 1e9
 
     @staticmethod
     def rmse_abs(sum_, n):
@@ -57,8 +57,7 @@ class ChargeResolutionCalculator:
 
     @staticmethod
     def charge_res(true, sum_, n):
-        return (ChargeResolutionCalculator.charge_res_abs(true, sum_, n)
-                / np.abs(true))
+        return ChargeResolutionCalculator.charge_res_abs(true, sum_, n) / np.abs(true)
 
     def add(self, pixel, true, measured):
         """
@@ -73,13 +72,8 @@ class ChargeResolutionCalculator:
         measured : ndarray
             1D array containing the measured charge for each entry
         """
-        diff2 = (measured - true)**2
-        df = pd.DataFrame(dict(
-            pixel=pixel,
-            true=true,
-            sum=diff2,
-            n=np.uint32(1)
-        ))
+        diff2 = (measured - true) ** 2
+        df = pd.DataFrame(dict(pixel=pixel, true=true, sum=diff2, n=np.uint32(1)))
         self._df_list.append(df)
         self._n_bytes += df.memory_usage(index=True, deep=True).sum()
         if self._n_bytes > self._max_bytes:
@@ -91,7 +85,7 @@ class ChargeResolutionCalculator:
         values per pixel and true charge in order to reduce memory use.
         """
         self._df = pd.concat([self._df, *self._df_list], ignore_index=True)
-        self._df = self._df.groupby(['pixel', 'true']).sum().reset_index()
+        self._df = self._df.groupby(["pixel", "true"]).sum().reset_index()
         self._n_bytes = 0
         self._df_list = []
 
@@ -109,28 +103,28 @@ class ChargeResolutionCalculator:
         """
         self._amalgamate()
 
-        self._df = self._df.loc[self._df['true'] != 0]
+        self._df = self._df.loc[self._df["true"] != 0]
 
         df_p = self._df.copy()
-        true = df_p['true'].values
-        sum_ = df_p['sum'].values
-        n = df_p['n'].values
+        true = df_p["true"].values
+        sum_ = df_p["sum"].values
+        n = df_p["n"].values
         if self._mc_true:
-            df_p['charge_resolution'] = self.charge_res(true, sum_, n)
-            df_p['charge_resolution_abs'] = self.charge_res_abs(true, sum_, n)
+            df_p["charge_resolution"] = self.charge_res(true, sum_, n)
+            df_p["charge_resolution_abs"] = self.charge_res_abs(true, sum_, n)
         else:
-            df_p['charge_resolution'] = self.rmse(true, sum_, n)
-            df_p['charge_resolution_abs'] = self.rmse_abs(sum_, n)
-        df_c = self._df.copy().groupby('true').sum().reset_index()
-        df_c = df_c.drop(columns='pixel')
-        true = df_c['true'].values
-        sum_ = df_c['sum'].values
-        n = df_c['n'].values
+            df_p["charge_resolution"] = self.rmse(true, sum_, n)
+            df_p["charge_resolution_abs"] = self.rmse_abs(sum_, n)
+        df_c = self._df.copy().groupby("true").sum().reset_index()
+        df_c = df_c.drop(columns="pixel")
+        true = df_c["true"].values
+        sum_ = df_c["sum"].values
+        n = df_c["n"].values
         if self._mc_true:
-            df_c['charge_resolution'] = self.charge_res(true, sum_, n)
-            df_c['charge_resolution_abs'] = self.charge_res_abs(true, sum_, n)
+            df_c["charge_resolution"] = self.charge_res(true, sum_, n)
+            df_c["charge_resolution_abs"] = self.charge_res_abs(true, sum_, n)
         else:
-            df_c['charge_resolution'] = self.rmse(true, sum_, n)
-            df_c['charge_resolution_abs'] = self.rmse_abs(sum_, n)
+            df_c["charge_resolution"] = self.rmse(true, sum_, n)
+            df_c["charge_resolution_abs"] = self.rmse_abs(sum_, n)
 
         return df_p, df_c

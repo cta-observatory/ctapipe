@@ -1,8 +1,5 @@
 import numpy as np
-import logging
-import math as mt
-
-log = logging.getLogger(__name__)
+from ...utils.quantities import all_to_value
 
 
 def mean_squared_error(pixel_x, pixel_y, weights, radius, center_x, center_y):
@@ -24,13 +21,13 @@ def mean_squared_error(pixel_x, pixel_y, weights, radius, center_x, center_y):
     center_y: float
         y coordinate of the ring center
     """
-    r = np.sqrt((center_x - pixel_x)**2 + (center_y - pixel_y)**2)
-    return np.average((r - radius)**2, weights=weights)
+    r = np.sqrt((center_x - pixel_x) ** 2 + (center_y - pixel_y) ** 2)
+    return np.average((r - radius) ** 2, weights=weights)
 
 
-def photon_ratio_inside_ring(
-        pixel_x, pixel_y, weights, radius, center_x, center_y, width
-        ):
+def intensity_ratio_inside_ring(
+    pixel_x, pixel_y, weights, radius, center_x, center_y, width
+):
     """
     Calculate the ratio of the photons inside a given ring with
     coordinates (center_x, center_y), radius and width.
@@ -55,29 +52,20 @@ def photon_ratio_inside_ring(
         width of the ring
     """
 
-    total = np.sum(weights)
-
-    pixel_r = np.sqrt((center_x - pixel_x)**2 + (center_y - pixel_y)**2)
+    pixel_r = np.sqrt((center_x - pixel_x) ** 2 + (center_y - pixel_y) ** 2)
     mask = np.logical_and(
-        pixel_r >= radius - 0.5 * width,
-        pixel_r <= radius + 0.5 * width
+        pixel_r >= radius - 0.5 * width, pixel_r <= radius + 0.5 * width
     )
 
-    inside = np.sum(weights[mask])
+    inside = weights[mask].sum()
+    total = weights.sum()
 
     return inside / total
 
 
 def ring_completeness(
-        pixel_x,
-        pixel_y,
-        weights,
-        radius,
-        center_x,
-        center_y,
-        threshold=30,
-        bins=30,
-        ):
+    pixel_x, pixel_y, weights, radius, center_x, center_y, threshold=30, bins=30,
+):
     """
     Estimate how complete a ring is.
     Bin the light distribution along the the ring and apply a threshold to the
@@ -117,78 +105,46 @@ def ring_completeness(
     return np.sum(bins_above_threshold) / bins
 
 
-def ring_containment(
-        ring_radius,
-        cam_rad,
-        cring_x,
-        cring_y,
-        ):
+def ring_containment(radius, center_x, center_y, camera_radius):
 
     """
     Estimate angular containment of a ring inside the camera
     (camera center is (0,0))
+
     Improve: include the case of an arbitrary
     center for the camera
 
+    See https://stackoverflow.com/questions/3349125/circle-circle-intersection-points
+
     Parameters
     ----------
-    ring_radius: float
+    radius: float or quantity
         radius of the muon ring
-    cam_rad: float
-        radius of the camera
-    cring_x: float
+    center_x: float or quantity
         x coordinate of the center of the muon ring
-    cring_y: float
+    center_y: float or quantity
         y coordinate of the center of the muon ring
+    camera_radius: float or quantity
+        radius of the camera
 
     Returns
     ------
     ringcontainment: float
         the ratio of ring inside the camera
     """
-    angle_ring = np.linspace(0, 2 * mt.pi, 360)
-    ring_x = cring_x + ring_radius * np.cos(angle_ring)
-    ring_y = cring_y + ring_radius * np.sin(angle_ring)
-    d = np.sqrt(ring_x**2 + ring_y**2)
+    if hasattr(radius, "unit"):
+        radius, center_x, center_y, camera_radius = all_to_value(
+            radius, center_x, center_y, camera_radius, unit=radius.unit
+        )
+    d = np.sqrt(center_x ** 2 + center_y ** 2)
 
-    ringcontainment = len(d[d < cam_rad]) / len(d)
+    # one circle fully contained in the other
+    if d <= np.abs(camera_radius - radius):
+        return 1.0
 
-    return ringcontainment
+    # no intersection
+    if d > (radius + camera_radius):
+        return 0.0
 
-
-def npix_above_threshold(pix, thr):
-    """
-    Calculate number of pixels above a given threshold
-
-    Parameters
-    ----------
-    pix: array-like
-        array with pixel content, usually pe
-    thr: float
-        threshold for the pixels to be counted
-
-    Returns
-    ------
-    npix_above_threshold: float
-        Number of pixels above threshold
-    """
-
-    return (pix > thr).sum()
-
-
-def npix_composing_ring(pix):
-    """
-    Calculate number of pixels composing a ring
-
-    Parameters
-    ----------
-    pix: array-like
-        array with pixel content, usually pe
-
-    Returns
-    ------
-    npix_composing ring: float
-        Number of pixels composing a ring
-    """
-
-    return np.count_nonzero(pix)
+    a = (radius ** 2 - camera_radius ** 2 + d ** 2) / (2 * d)
+    return np.arccos(a / radius) / np.pi

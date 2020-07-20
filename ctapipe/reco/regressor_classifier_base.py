@@ -138,13 +138,15 @@ class RegressorClassifierBase:
                     # features-lists for this telescope type
                     trainFeatures[cam_id] += tels
                 except KeyError:
-                    raise KeyError("cam_id '{}' in X but no model defined: {}"
-                                   .format(cam_id, [k for k in self.model_dict]))
+                    raise KeyError(
+                        "cam_id '{}' in X but no model defined: {}".format(
+                            cam_id, [k for k in self.model_dict]
+                        )
+                    )
 
                 try:
                     # add a target-entry for every feature-list
-                    trainTarget[cam_id] += \
-                        [target.to(self.unit).value] * len(tels)
+                    trainTarget[cam_id] += [target.to(self.unit).value] * len(tels)
                 except AttributeError:
                     # in case the target is not given as an astropy
                     # quantity let's hope that the user keeps proper
@@ -187,12 +189,16 @@ class RegressorClassifierBase:
 
         for cam_id in X:
             if cam_id not in y:
-                raise KeyError("cam_id '{}' in X but not in y: {}"
-                               .format(cam_id, [k for k in y]))
+                raise KeyError(
+                    "cam_id '{}' in X but not in y: {}".format(cam_id, [k for k in y])
+                )
 
             if cam_id not in self.model_dict:
-                raise KeyError("cam_id '{}' in X but no model defined: {}"
-                               .format(cam_id, [k for k in self.model_dict]))
+                raise KeyError(
+                    "cam_id '{}' in X but no model defined: {}".format(
+                        cam_id, [k for k in self.model_dict]
+                    )
+                )
 
             # add a `None` entry in the weights dictionary in case there is no entry yet
             if cam_id not in sample_weight:
@@ -201,8 +207,9 @@ class RegressorClassifierBase:
             # for every `cam_id` train one model (as long as there are events in `X`)
             if len(X[cam_id]):
                 try:
-                    self.model_dict[cam_id].fit(X[cam_id], y[cam_id],
-                                                sample_weight=sample_weight[cam_id])
+                    self.model_dict[cam_id].fit(
+                        X[cam_id], y[cam_id], sample_weight=sample_weight[cam_id]
+                    )
                 except (TypeError, ValueError):
                     # some models do not like `sample_weight` in the `fit` call...
                     # catch the exception and try again without the weights
@@ -258,6 +265,7 @@ class RegressorClassifierBase:
         """
 
         import joblib
+
         for cam_id, model in self.model_dict.items():
             try:
                 # assume that there is a `{cam_id}` keyword to replace
@@ -369,6 +377,7 @@ class RegressorClassifierBase:
         """
 
         import matplotlib.pyplot as plt
+
         n_tel_types = len(self.model_dict)
         n_cols = np.ceil(np.sqrt(n_tel_types)).astype(int)
         n_rows = np.ceil(n_tel_types / n_cols).astype(int)
@@ -381,21 +390,22 @@ class RegressorClassifierBase:
             try:
                 importances = model.feature_importances_
             except:
-                plt.gca().axis('off')
+                plt.gca().axis("off")
                 continue
             bins = range(importances.shape[0])
 
-            if cam_id in self.input_features_dict \
-                    and (len(self.input_features_dict[cam_id]) == len(bins)):
+            if cam_id in self.input_features_dict and (
+                len(self.input_features_dict[cam_id]) == len(bins)
+            ):
                 feature_labels = self.input_features_dict[cam_id]
-                importances, s_feature_labels = \
-                    zip(*sorted(zip(importances, feature_labels), reverse=True))
+                importances, s_feature_labels = zip(
+                    *sorted(zip(importances, feature_labels), reverse=True)
+                )
                 plt.xticks(bins, s_feature_labels, rotation=17)
-            plt.bar(bins, importances,
-                    color='r', align='center')
+            plt.bar(bins, importances, color="r", align="center")
 
         # switch off superfluous axes
         for j in range(i + 1, n_rows * n_cols):
-            axs.ravel()[j].axis('off')
+            axs.ravel()[j].axis("off")
 
         return fig

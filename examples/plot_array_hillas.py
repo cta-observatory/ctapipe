@@ -10,13 +10,16 @@ from astropy.coordinates import SkyCoord, AltAz
 from astropy import units as u
 
 from ctapipe.calib import CameraCalibrator
-from ctapipe.coordinates import TiltedGroundFrame
+from ctapipe.coordinates import TiltedGroundFrame, MissingFrameAttributeWarning
 from ctapipe.image import hillas_parameters, tailcuts_clean, HillasParameterizationError
+from ctapipe.image import timing_parameters
 from ctapipe.io import event_source
 from ctapipe.utils import datasets
 from ctapipe.visualization import ArrayDisplay
+import warnings
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+    warnings.filterwarnings("ignore", category=MissingFrameAttributeWarning)
 
     # importing data from avaiable datasets in ctapipe
     filename = datasets.get_dataset_path("gamma_test_large.simtel.gz")
@@ -52,33 +55,30 @@ if __name__ == '__main__':
         # calibrating the event
         calib(event)
         hillas_dict = {}
+        timing_dict = {}
 
         # plot the core position, which must be transformed from the tilted
         # system to the system that the ArrayDisplay is in (default
         # GroundFrame)
-        point_dir = SkyCoord(
-            *event.mcheader.run_array_direction,
-            frame=AltAz()
-        )
+        point_dir = SkyCoord(*event.mcheader.run_array_direction, frame=AltAz())
         tiltedframe = TiltedGroundFrame(pointing_direction=point_dir)
         if markers:
             for marker in markers:
                 marker.remove()
 
         core_coord = SkyCoord(
-            x=event.mc.core_x,
-            y=event.mc.core_y,
-            frame=tiltedframe
+            x=event.mc.core_x, y=event.mc.core_y, frame=tiltedframe
         ).transform_to(array_disp.frame)
 
-        markers = ax.plot([core_coord.x.value, ], [core_coord.y.value, ],
-                          "r+", markersize=10)
+        markers = ax.plot(
+            [core_coord.x.value,], [core_coord.y.value,], "r+", markersize=10
+        )
 
         # plot the hit pattern (triggered tels).
         # first expand the tels_with_data list into a fixed-length vector,
         # then set the value so that the ArrayDisplay shows it as color per
         # telescope.
-        tel_idx = event.inst.subarray.tel_indices
+        tel_idx = source.subarray.tel_indices
         hit_pattern[:] = 0
         mask = [tel_idx[t] for t in event.r0.tels_with_data]
         hit_pattern[mask] = 10.0
@@ -93,6 +93,7 @@ if __name__ == '__main__':
 
             # note the [0] is for channel 0 which is high-gain channel
             image = event.dl1.tel[tel_id].image
+            time = event.dl1.tel[tel_id].peak_time
 
             # Cleaning  of the image
             cleaned_image = image.copy()
@@ -101,6 +102,9 @@ if __name__ == '__main__':
             cleanmask = tailcuts_clean(
                 camgeom, image, picture_thresh=10, boundary_thresh=5
             )
+            if np.count_nonzero(cleanmask) < 10:
+                continue
+
             # set all rejected pixels to zero
             cleaned_image[~cleanmask] = 0
 
@@ -108,9 +112,15 @@ if __name__ == '__main__':
             try:
                 hillas_dict[tel_id] = hillas_parameters(camgeom, cleaned_image)
             except HillasParameterizationError:
-                pass  # skip failed parameterization (normally no signal)
+                continue  # skip failed parameterization (normally no signal)
 
-        array_disp.set_vector_hillas(hillas_dict, angle_offset=0 * u.deg)
+            timing_dict[tel_id] = timing_parameters(
+                camgeom, image, time, hillas_dict[tel_id], cleanmask
+            ).slope.value
+
+        array_disp.set_vector_hillas(
+            hillas_dict, 500, timing_dict, angle_offset=0 * u.deg
+        )
 
         plt.pause(0.1)  # allow matplotlib to redraw the display
 

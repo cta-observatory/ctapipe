@@ -8,7 +8,7 @@ from ctapipe.calib import CameraCalibrator
 from ctapipe.io import event_source
 from ctapipe.utils import get_dataset_path
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     if len(sys.argv) >= 2:
         filename = sys.argv[1]

@@ -8,7 +8,7 @@ import pytest
 plt = pytest.importorskip("matplotlib.pyplot")
 
 from ctapipe.instrument import CameraGeometry, SubarrayDescription, TelescopeDescription
-from ctapipe.io.containers import HillasParametersContainer
+from ctapipe.containers import HillasParametersContainer
 from numpy import ones
 from astropy import units as u
 
@@ -59,7 +59,7 @@ def test_camera_display_multiple():
 def test_array_display():
     """ check that we can do basic array display functionality """
     from ctapipe.visualization.mpl_array import ArrayDisplay
-    from ctapipe.image.timing_parameters import timing_parameters
+    from ctapipe.image import timing_parameters
 
     # build a test subarray:
     tels = dict()
@@ -97,7 +97,7 @@ def test_array_display():
     timing_rot20 = timing_parameters(
         geom,
         image=ones(geom.n_pixels),
-        pulse_time=intercept + grad * geom.pix_x.value,
+        peak_time=intercept + grad * geom.pix_x.value,
         hillas_parameters=hillas,
         cleaning_mask=ones(geom.n_pixels, dtype=bool),
     )
