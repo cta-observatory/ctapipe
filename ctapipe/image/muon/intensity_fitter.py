@@ -337,10 +337,14 @@ def build_negative_log_likelihood(
     tel_coords = cam_coords.transform_to(TelescopeFrame())
 
     # Use only a subset of pixels, indicated by mask:
-    pixel_x = tel_coords.fov_lon.to_value(u.rad)[mask]
-    pixel_y = tel_coords.fov_lat.to_value(u.rad)[mask]
-    image = image[mask]
-    pedestal = pedestal[mask]
+    pixel_x = tel_coords.fov_lon.to_value(u.rad)
+    pixel_y = tel_coords.fov_lat.to_value(u.rad)
+
+    if mask is not None:
+        pixel_x = pixel_x[mask]
+        pixel_y = pixel_y[mask]
+        image = image[mask]
+        pedestal = pedestal[mask]
 
     pixel_diameter = 2 * (
         np.sqrt(cam.pix_area[0] / np.pi) / focal_length * u.rad
@@ -472,7 +476,7 @@ class MuonIntensityFitter(TelescopeComponent):
     ).tag(config=True)
 
     def __call__(
-        self, tel_id, center_x, center_y, radius, image, pedestal, mask
+        self, tel_id, center_x, center_y, radius, image, pedestal, mask=None
     ):
         """
 
