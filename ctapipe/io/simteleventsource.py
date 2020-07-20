@@ -224,7 +224,7 @@ class SimTelEventSource(EventSource):
 
     @property
     def datalevels(self):
-        return (DataLevel.R0, DataLevel.R1, DataLevel.DL0)
+        return (DataLevel.R0, DataLevel.R1)
 
     @property
     def obs_id(self):
