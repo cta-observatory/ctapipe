@@ -405,7 +405,13 @@ def build_negative_log_likelihood(
         # scale prediction by optical efficiency of the telescope
         prediction *= optical_efficiency_muon
 
+        # A gaussian approximation is used here, where the total
+        # standard deviation is the pedestal standard deviation (e.g. by NSB) and
+        # the single photon resolution times the image magnitude.
         sigma2 = pedestal ** 2 + prediction * (1 + spe_width ** 2)
+
+        # gaussian negative log-likelihood, analytically simplified and
+        # constant terms discarded
         neglogL = np.log(sigma2) + (image - prediction) ** 2 / sigma2
 
         return neglogL.sum()
