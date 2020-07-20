@@ -14,6 +14,7 @@ import tables
 
 from ctapipe.utils import get_dataset_path
 from ctapipe.core import run_tool
+from ctapipe.io import DataLevel
 import numpy as np
 
 
@@ -92,6 +93,67 @@ def test_stage_1():
             assert "peak_time" in dl1_image.dtype.names
 
 
+def test_stage1_datalevels():
+    """test the dl1 tool on a file not providing r1 or dl0"""
+    from ctapipe.io import EventSource
+    from ctapipe.tools.stage1 import Stage1ProcessorTool
+
+    class DummyEventSource(EventSource):
+        def __init__(self, *args, gain_selector=None, **kwargs):
+            super().__init__(*args, **kwargs)
+
+        @classmethod
+        def is_compatible(cls, path):
+            with open(path, "rb") as f:
+                dummy = f.read(5)
+                return dummy == b"dummy"
+
+        @property
+        def datalevels(self):
+            return (DataLevel.R0,)
+
+        @property
+        def is_simulation(self):
+            return True
+
+        @property
+        def obs_id(self):
+            return 1
+
+        @property
+        def subarray(self):
+            return None
+
+        def _generator(self):
+            return None
+
+    with tempfile.NamedTemporaryFile(mode="wb", suffix=".dummy") as f:
+        with tempfile.NamedTemporaryFile(mode="wb", suffix=".h5") as out:
+            f.write(b"dummy")
+            f.flush()
+
+            tool = Stage1ProcessorTool()
+            assert (
+                run_tool(
+                    tool,
+                    argv=[
+                        "--config=./examples/stage1_config.json",
+                        f"--input={f.name}",
+                        f"--output={out.name}",
+                        "--write-images",
+                        "--overwrite",
+                    ],
+                )
+                == 1
+            )
+            # make sure the dummy event source was really used
+            assert isinstance(tool.event_source, DummyEventSource)
+
+            # we need to "touch" the output file again, otherwise tempfile will
+            # complain it no longer exists as the tool removed it
+            open(out.name, mode="a").close()
+
+
 def test_muon_reconstruction(tmpdir):
     from ctapipe.tools.muon_reconstruction import MuonAnalysis
 
@@ -99,7 +161,7 @@ def test_muon_reconstruction(tmpdir):
         assert (
             run_tool(
                 MuonAnalysis(),
-                argv=[f"--input={LST_MUONS}", f"--output={f.name}", "--overwrite",],
+                argv=[f"--input={LST_MUONS}", f"--output={f.name}", "--overwrite"],
             )
             == 0
         )
@@ -203,7 +265,7 @@ def test_dump_instrument(tmpdir):
     sys.argv = ["dump_instrument"]
     tmpdir.chdir()
 
-    tool = DumpInstrumentTool(infile=GAMMA_TEST_LARGE,)
+    tool = DumpInstrumentTool(infile=GAMMA_TEST_LARGE)
 
     assert run_tool(tool) == 0
     assert tmpdir.join("FlashCam.camgeom.fits.gz").exists()
