@@ -224,7 +224,7 @@ class SimTelEventSource(EventSource):
 
     @property
     def datalevels(self):
-        return (DataLevel.R0, DataLevel.R1, DataLevel.DL0)
+        return (DataLevel.R0, DataLevel.R1)
 
     @property
     def obs_id(self):
@@ -388,7 +388,7 @@ class SimTelEventSource(EventSource):
                 )
 
                 self._fill_event_pointing(
-                    data.pointing.tel[tel_id], mc, tracking_positions[tel_id],
+                    data.pointing.tel[tel_id], mc, tracking_positions[tel_id]
                 )
 
                 r0 = data.r0.tel[tel_id]
@@ -468,8 +468,8 @@ class SimTelEventSource(EventSource):
             energy_range_min=mc_run_head["E_range"][0] * u.TeV,
             energy_range_max=mc_run_head["E_range"][1] * u.TeV,
             prod_site_B_total=mc_run_head["B_total"] * u.uT,
-            prod_site_B_declination=Angle(mc_run_head["B_declination"], u.rad,),
-            prod_site_B_inclination=Angle(mc_run_head["B_inclination"], u.rad,),
+            prod_site_B_declination=Angle(mc_run_head["B_declination"], u.rad),
+            prod_site_B_inclination=Angle(mc_run_head["B_inclination"], u.rad),
             prod_site_alt=mc_run_head["obsheight"] * u.m,
             spectral_index=mc_run_head["spectral_index"],
             shower_prog_start=mc_run_head["shower_prog_start"],
