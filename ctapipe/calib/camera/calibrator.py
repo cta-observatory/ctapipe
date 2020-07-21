@@ -7,7 +7,8 @@ import warnings
 import numpy as np
 from ctapipe.core import Component
 from ctapipe.image.extractor import NeighborPeakWindowSum
-from ctapipe.image.reducer import NullDataVolumeReducer
+from ctapipe.image.reducer import DataVolumeReducer
+from ctapipe.core.traits import create_class_enum_trait
 
 __all__ = ["CameraCalibrator"]
 
@@ -18,14 +19,12 @@ class CameraCalibrator(Component):
     the DL1 data level in the event container.
     """
 
+    data_volume_reducer_type = create_class_enum_trait(
+        DataVolumeReducer, default_value="NullDataVolumeReducer"
+    ).tag(config=True)
+
     def __init__(
-        self,
-        subarray,
-        config=None,
-        parent=None,
-        data_volume_reducer=None,
-        image_extractor=None,
-        **kwargs,
+        self, subarray, config=None, parent=None, image_extractor=None, **kwargs
     ):
         """
         Parameters
@@ -63,9 +62,12 @@ class CameraCalibrator(Component):
             image_extractor = NeighborPeakWindowSum(parent=self, subarray=subarray)
         self.image_extractor = image_extractor
 
-        if data_volume_reducer is None:
-            data_volume_reducer = NullDataVolumeReducer(parent=self, subarray=subarray)
-        self.data_volume_reducer = data_volume_reducer
+        self.data_volume_reducer = DataVolumeReducer.from_name(
+            self.data_volume_reducer_type,
+            subarray=self.subarray,
+            image_extractor=self.image_extractor,
+            parent=self,
+        )
 
     def _check_r1_empty(self, waveforms):
         if waveforms is None:

@@ -9,11 +9,7 @@ from ctapipe.core.traits import IntTelescopeParameter, BoolTelescopeParameter, U
 from ctapipe.image.extractor import ImageExtractor
 from ctapipe.image.cleaning import dilate
 
-__all__ = [
-    "DataVolumeReducer",
-    "NullDataVolumeReducer",
-    "TailCutsDataVolumeReducer",
-]
+__all__ = ["DataVolumeReducer", "NullDataVolumeReducer", "TailCutsDataVolumeReducer"]
 
 
 class DataVolumeReducer(TelescopeComponent):
@@ -87,6 +83,43 @@ class DataVolumeReducer(TelescopeComponent):
         mask: array
             Mask of selected pixels.
         """
+
+    @classmethod
+    def from_name(
+        cls, name, subarray, image_extractor=None, config=None, parent=None, **kwargs
+    ):
+        """
+        Obtain an instance of a subclass via its name
+
+        Parameters
+        ----------
+        name : str
+            Name of the subclass to obtain
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            This argument is typically only specified when using this method
+            from within a Tool.
+        parent : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger and configuration to the component.
+            This argument is typically only specified when using this method
+            from within a Tool (config need not be passed if parent is used).
+        kwargs
+
+        Returns
+        -------
+        instace
+            Instance of subclass to this class
+        """
+        requested_subclass = cls.non_abstract_subclasses()[name]
+        return requested_subclass(
+            subarray=subarray,
+            image_extractor=image_extractor,
+            config=config,
+            parent=parent,
+            **kwargs,
+        )
 
 
 class NullDataVolumeReducer(DataVolumeReducer):
