@@ -412,9 +412,9 @@ def build_negative_log_likelihood(
 
         # gaussian negative log-likelihood, analytically simplified and
         # constant terms discarded
-        neglogL = np.log(sigma2) + (image - prediction) ** 2 / sigma2
+        neg_log_l = np.log(sigma2) + (image - prediction) ** 2 / sigma2
 
-        return neglogL.sum()
+        return neg_log_l.sum()
 
     return negative_log_likelihood
 
