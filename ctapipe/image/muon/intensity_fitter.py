@@ -214,6 +214,8 @@ def image_prediction_no_units(
     """Function for producing the expected image for a given set of trial
     muon parameters without using astropy units but expecting the input to
     be in the correct ones.
+
+    See [chalmecalvet2013]_
     """
 
     # First produce angular position of each pixel w.r.t muon center

@@ -5,10 +5,14 @@ References
 	to weighted data in multi-dimensional space". Pattern
 	Recognition Letters 14.1 (1993), S. 1–6
 
-.. [denaurois2009] de Naurois, M., Roland, L. "A high performance
-	likelihood reconstruction of gamma-rays for imaging
-	atmospheric Cherenkov telescopes". Astroparticle Physics
-	32.5, (2009)
+
+.. [chalmecalvet2013] R. Chalme-Calvet, M. de Naurois, J.-P. Tavernet
+   "Muon efficiency of the H.E.S.S" telescope. AtmoHEAD Workshop, 2013.
+    https://arxiv.org/pdf/1403.4550.pdf
+
+.. [denaurois2009] M de Naurois, L. Roland
+    "A high performance likelihood reconstruction of gamma-rays for imaging
+	atmospheric Cherenkov telescopes". Astroparticle Physics 32.5, (2009)
 
 .. [temme2016] Temme T.F., "On the hunt for photons: analysis of Crab Nebula
 		data obtainedby the first G-APD Cherenkov telescope" 2016
