@@ -99,9 +99,6 @@ def test_stage1_datalevels():
     from ctapipe.tools.stage1 import Stage1ProcessorTool
 
     class DummyEventSource(EventSource):
-        def __init__(self, *args, gain_selector=None, **kwargs):
-            super().__init__(*args, **kwargs)
-
         @classmethod
         def is_compatible(cls, path):
             with open(path, "rb") as f:

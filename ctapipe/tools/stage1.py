@@ -164,10 +164,6 @@ class Stage1ProcessorTool(Tool):
         help="Method to use to turn a waveform into a single charge value",
     ).tag(config=True)
 
-    gain_selector_type = create_class_enum_trait(
-        base_class=GainSelector, default_value="ThresholdGainSelector"
-    ).tag(config=True)
-
     image_cleaner_type = create_class_enum_trait(
         base_class=ImageCleaner, default_value="TailcutsImageCleaner"
     )
@@ -191,7 +187,6 @@ class Stage1ProcessorTool(Tool):
         "allowed-tels": "EventSource.allowed_tels",
         "max-events": "EventSource.max_events",
         "image-extractor-type": "Stage1ProcessorTool.image_extractor_type",
-        "gain-selector-type": "Stage1ProcessorTool.gain_selector_type",
         "image-cleaner-type": "Stage1ProcessorTool.image_cleaner_type",
     }
 
@@ -250,12 +245,7 @@ class Stage1ProcessorTool(Tool):
             )
 
         # setup components:
-        self.gain_selector = self.add_component(
-            GainSelector.from_name(self.gain_selector_type, parent=self)
-        )
-        self.event_source = self.add_component(
-            EventSource.from_config(parent=self, gain_selector=self.gain_selector)
-        )
+        self.event_source = self.add_component(EventSource.from_config(parent=self))
 
         datalevels = self.event_source.datalevels
         if DataLevel.R1 not in datalevels and DataLevel.DL0 not in datalevels:

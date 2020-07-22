@@ -11,9 +11,9 @@ from eventio.simtel.simtelfile import SimTelFile
 from traitlets import observe
 from io import BufferedReader
 
-from ..calib.camera.gainselection import ThresholdGainSelector
+from ..calib.camera.gainselection import GainSelector
 from ..containers import EventAndMonDataContainer, EventType
-from ..core.traits import Bool, CaselessStrEnum
+from ..core.traits import Bool, CaselessStrEnum, create_class_enum_trait
 from ..instrument import (
     TelescopeDescription,
     SubarrayDescription,
@@ -160,9 +160,11 @@ class SimTelEventSource(EventSource):
         ),
     ).tag(config=True)
 
-    def __init__(
-        self, input_url, config=None, parent=None, gain_selector=None, **kwargs
-    ):
+    gain_selector_type = create_class_enum_trait(
+        base_class=GainSelector, default_value="ThresholdGainSelector"
+    ).tag(config=True)
+
+    def __init__(self, input_url, config=None, parent=None, **kwargs):
         """
         EventSource for simtelarray files using the pyeventio library.
 
@@ -198,12 +200,10 @@ class SimTelEventSource(EventSource):
         self._mc_header = self._parse_mc_header()
         self.start_pos = self.file_.tell()
 
-        # Waveforms from simtelarray have both gain channels
-        # Gain selection is performed by this EventSource to produce R1 waveforms
-        if gain_selector is None:
-            gain_selector = ThresholdGainSelector(parent=self)
-
-        self.gain_selector = gain_selector
+        self.gain_selector = GainSelector.from_name(
+            self.gain_selector_type, parent=self
+        )
+        self.log.debug(f"Using gain selector {self.gain_selector}")
 
     @observe("allowed_tels")
     def _observe_allowed_tels(self, change):
