@@ -124,11 +124,12 @@ def neighbor_average_waveform(waveforms, neighbors_indices, neighbors_indptr, lw
     waveforms : ndarray
         Waveforms stored in a numpy array.
         Shape: (n_pix, n_samples)
-    neighbors : ndarray
-        2D array where each row is [pixel index, one neighbor of that pixel].
-        Changes per telescope.
-        Can be obtained from
-        `ctapipe.instrument.CameraGeometry.neighbor_matrix_where`.
+    neighbors_indices : ndarray
+        indices of a scipy csr sparse matrix of neighbors, i.e.
+        `ctapipe.instrument.CameraGeometry.neighbor_matrix_sparse.indices`.
+    neighbors_indptr : ndarray
+        indptr of a scipy csr sparse matrix of neighbors, i.e.
+        `ctapipe.instrument.CameraGeometry.neighbor_matrix_sparse.indptr`.
     lwt: int
         Weight of the local pixel (0: peak from neighbors only,
         1: local pixel counts as much as any neighbor)
