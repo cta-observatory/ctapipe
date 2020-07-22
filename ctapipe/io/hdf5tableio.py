@@ -390,15 +390,15 @@ class HDF5TableReader(TableReader):
         """ identifies which columns in the table to read into the containers,
         by comparing their names including an optional prefix."""
         tab = self._tables[table_name]
+        self._cols_to_read[table_name] = []
         for container, prefix in zip(containers, prefixes):
-            self._cols_to_read[table_name][container.container_prefix] = []
             for colname in tab.colnames:
                 if prefix and colname.startswith(prefix):
                     colname_without_prefix = colname[len(prefix) + 1:]
                 else:
                     colname_without_prefix = colname
                 if colname_without_prefix in container.fields:
-                    self._cols_to_read[table_name][container.container_prefix].append(
+                    self._cols_to_read[table_name].append(
                         colname
                     )
                 else:
@@ -470,12 +470,14 @@ class HDF5TableReader(TableReader):
             except IndexError:
                 return  # stop generator when done
             for container, prefix in zip(containers, prefixes):
-                for colname in self._cols_to_read[table_name][container.container_prefix]:
-                    if prefix and colname.startswith(prefix):
-                        colname_without_prefix = colname[len(prefix) + 1:]
+                for fieldname in container.keys():
+                    if prefix:
+                        colname = f"{prefix}_{fieldname}"
                     else:
-                        colname_without_prefix = colname
-                    container[colname_without_prefix] = self._apply_col_transform(
+                        colname = fieldname
+                    if colname not in self._cols_to_read[table_name]:
+                        continue
+                    container[fieldname] = self._apply_col_transform(
                         table_name, colname, row[colname]
                     )
             if len(containers) == 1:
