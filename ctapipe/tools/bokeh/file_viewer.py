@@ -153,7 +153,7 @@ class BokehFileViewer(Tool):
     @event_index.setter
     def event_index(self, val):
         try:
-            self.event = self.seeker[val]
+            self.event = self.seeker.get_event_index(val)
         except IndexError:
             self.log.warning(f"Event Index {val} does not exist")
 
@@ -164,7 +164,7 @@ class BokehFileViewer(Tool):
     @event_id.setter
     def event_id(self, val):
         try:
-            self.event = self.seeker[str(val)]
+            self.event = self.seeker.get_event_id(val)
         except IndexError:
             self.log.warning(f"Event ID {val} does not exist")
 
