@@ -158,20 +158,31 @@ def test_extract_around_peak_charge_expected(toymodel):
 
 def test_neighbor_average_waveform(toymodel):
     waveforms, subarray, telid, _, _, _ = toymodel
-    nei = subarray.tel[telid].camera.geometry.neighbor_matrix_where
-    average_wf = neighbor_average_waveform(waveforms, nei, 0)
+    neighbors = subarray.tel[telid].camera.geometry.neighbor_matrix_sparse
+    average_wf = neighbor_average_waveform(
+        waveforms,
+        neighbors_indices=neighbors.indices,
+        neighbors_indptr=neighbors.indptr,
+        lwt=0,
+    )
 
     pixel = 0
-    nei_pixel = list((np.unique(nei[np.where(nei == pixel)[0]])))
-    nei_pixel.remove(pixel)
+    _, nei_pixel = np.where(neighbors[pixel].A)
     expected_average = waveforms[nei_pixel].sum(0) / len(nei_pixel)
     assert_allclose(average_wf[pixel], expected_average, rtol=1e-3)
 
+    lwt = 4
+    average_wf = neighbor_average_waveform(
+        waveforms,
+        neighbors_indices=neighbors.indices,
+        neighbors_indptr=neighbors.indptr,
+        lwt=lwt,
+    )
+
     pixel = 1
-    nei_pixel = list((np.unique(nei[np.where(nei == pixel)[0]])))
-    nei_pixel.extend([pixel] * 3)
+    _, nei_pixel = np.where(neighbors[pixel].A)
+    nei_pixel = np.concatenate([nei_pixel, [pixel] * lwt])
     expected_average = waveforms[nei_pixel].sum(0) / len(nei_pixel)
-    average_wf = neighbor_average_waveform(waveforms, nei, 4)
     assert_allclose(average_wf[pixel], expected_average, rtol=1e-3)
 
 
