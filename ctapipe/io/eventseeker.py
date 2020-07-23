@@ -101,11 +101,21 @@ class EventSeeker(Component):
             yield event
 
     def get_event_index(self, event_index):
-        if self._current_event is not None:
-            if event_index == self._current_event.count:
-                return deepcopy(self._current_event)
-            if event_index < self._current_event.count:
-                self._reset()
+        """
+        Obtain the event via its event index
+
+        Parameters
+        ----------
+        event_index : int
+            The event_index to seek.
+
+        Returns
+        -------
+        event : ctapipe.io.container
+            The event container filled with the requested event's information
+        """
+        if self._current_event and event_index == self._current_event.count:
+            return deepcopy(self._current_event)
 
         # Check we are within max_events range
         max_events = self._event_source.max_events
@@ -116,33 +126,32 @@ class EventSeeker(Component):
         try:
             event = self._event_source._get_event_by_index(event_index)
         except AttributeError:
-            if self._getevent_warn:
-                self.log.warning(
-                    "Seeking to event by looping through "
-                    "events... (potentially long process)"
-                )
-                self._getevent_warn = False
             event = self._get_event_by_index(event_index)
 
         self._current_event = event
         return deepcopy(event)
 
     def get_event_id(self, event_id):
-        if self._current_event is not None:
-            if event_id == self._current_event.index.event_id:
-                return deepcopy(self._current_event)
-            if event_id < self._current_event.index.event_id:
-                self._reset()
+        """
+        Obtain the event via its event id
+
+        Parameters
+        ----------
+        event_id : int
+            The event_id to seek.
+
+        Returns
+        -------
+        event : ctapipe.io.container
+            The event container filled with the requested event's information
+
+        """
+        if self._current_event and event_id == self._current_event.index.event_id:
+            return deepcopy(self._current_event)
 
         try:
             event = self._event_source._get_event_by_id(event_id)
         except AttributeError:
-            if self._getevent_warn:
-                self.log.warning(
-                    "Seeking to event by looping through "
-                    "events... (potentially long process)"
-                )
-                self._getevent_warn = False
             event = self._get_event_by_id(event_id)
 
         self._current_event = event
@@ -168,6 +177,14 @@ class EventSeeker(Component):
             The event container filled with the requested event's information
 
         """
+        if self._getevent_warn:
+            msg = "Seeking event by iterating through events.. (potentially long process)"
+            self.log.warning(msg)
+            self._getevent_warn = False
+
+        if self._current_event and index < self._current_event.count:
+            self._reset()
+
         for event in self._source:
             if event.count == index:
                 return event
@@ -193,6 +210,14 @@ class EventSeeker(Component):
             The event container filled with the requested event's information
 
         """
+        if self._getevent_warn:
+            msg = "Seeking event by iterating through events.. (potentially long process)"
+            self.log.warning(msg)
+            self._getevent_warn = False
+
+        if self._current_event and event_id < self._current_event.index.event_id:
+            self._reset()
+
         for event in self:  # Event Ids may not be in order
             if event.index.event_id == event_id:
                 return event
