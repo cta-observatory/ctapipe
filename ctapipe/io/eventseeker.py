@@ -215,10 +215,9 @@ class EventSeeker(Component):
             self.log.warning(msg)
             self._getevent_warn = False
 
-        if self._current_event and event_id < self._current_event.index.event_id:
-            self._reset()
+        self._reset()  # Event ids may not be in order, so always reset
 
-        for event in self:  # Event Ids may not be in order
+        for event in self._source:
             if event.index.event_id == event_id:
                 return event
         raise IndexError(f"Event id {event_id} not found in file")
