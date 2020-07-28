@@ -51,42 +51,62 @@ class PixelLikelihoodError(RuntimeError):
     pass
 
 
-def poisson_likelihood_gaussian(image, prediction, spe_width, ped):
-    """
-    Calculate likelihood of prediction given the measured signal, gaussian approx from
-    de Naurois et al 2009
+def poisson_likelihood_gaussian(image, prediction, spe_width, pedestal):
+    """Calculate negative log likelihood for every pixel.
+
+    Gaussian approximation from de Naurois, p. 22 (between (24) and (25)).
+
+    Simplification:
+
+    .. math::
+
+        θ = σ_p^2 + μ · (1 + σ_γ^2)
+
+        → P = \\frac{1}{\\sqrt{2 π θ}} · \\exp\\left(- \\frac{(s - μ)^2}{2 θ}\\right)
+
+        \\ln{P} = \\ln{\\frac{1}{\\sqrt{2 π θ}}} - \\frac{(s - μ)^2}{2 θ}
+
+                = \\ln{1} - \\ln{\\sqrt{2 π θ}} - \\frac{(s - μ)^2}{2 θ}
+
+                = - \\frac{\\ln{2 π θ}}{2} - \\frac{(s - μ)^2}{2 θ}
+
+                = - \\frac{\\ln{2 π} + \\ln{θ}}{2} - \\frac{(s - μ)^2}{2 θ}
+
+        - \\ln{P} = \\frac{\\ln{2 π} + \\ln{θ}}{2} + \\frac{(s - μ)^2}{2 θ}
+
+    and since we can remove constants and factors in the minimization:
+
+    .. math::
+
+        - \\ln{P} = \\ln{θ} + \\frac{(s - μ)^2}{θ}
+
+
+    References
+    ----------
+    - de Naurois, Rolland
+      'A high performance likelihood reconstruction of gamma-rays
+      for Imaging Atmospheric Cherenkov Telescopes' (2009)
 
     Parameters
     ----------
     image: ndarray
-        Pixel amplitudes from image
+        Pixel amplitudes from image (:math:`s`).
     prediction: ndarray
-        Predicted pixel amplitudes from model
+        Predicted pixel amplitudes from model (:math:`μ`).
     spe_width: ndarray
-        width of single p.e. distributio
-    ped: ndarray
-        width of pedestal
+        Width of single p.e. peak (:math:`σ_γ`).
+    pedestal: ndarray
+        Width of pedestal (:math:`σ_p`).
 
     Returns
     -------
-    ndarray: likelihood for each pixel
+    ndarray: Negative log-likelihood for each pixel.
     """
-    image = np.asarray(image)
-    prediction = np.asarray(prediction)
-    spe_width = np.asarray(spe_width)
-    ped = np.asarray(ped)
+    theta = pedestal ** 2 + prediction * (1 + spe_width ** 2)
 
-    sq = 1.0 / np.sqrt(2 * np.pi * (ped ** 2 + prediction * (1 + spe_width ** 2)))
+    neg_log_l = np.log(theta) + (image - prediction) ** 2 / theta
 
-    diff = (image - prediction) ** 2
-    denom = 2 * (ped ** 2 + prediction * (1 + spe_width ** 2))
-    expo = np.asarray(np.exp(-1 * diff / denom))
-
-    # If we are outside of the range of datatype, fix to lower bound
-    min_prob = np.finfo(expo.dtype).tiny
-    expo[expo < min_prob] = min_prob
-
-    return -2 * np.log(sq * expo)
+    return neg_log_l
 
 
 def poisson_likelihood_full(
