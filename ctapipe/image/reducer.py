@@ -5,8 +5,8 @@ from abc import abstractmethod
 import numpy as np
 from ctapipe.image import TailcutsImageCleaner
 from ctapipe.core import TelescopeComponent
-from ctapipe.core.traits import IntTelescopeParameter, BoolTelescopeParameter
-from ctapipe.image.extractor import NeighborPeakWindowSum
+from ctapipe.core.traits import IntTelescopeParameter, BoolTelescopeParameter, Unicode
+from ctapipe.image.extractor import ImageExtractor
 from ctapipe.image.cleaning import dilate
 
 __all__ = [
@@ -108,7 +108,10 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
        with ctapipe module dilate until no new pixels were added.
     3) Adding new pixels with dilate to get more conservative.
     """
-
+    image_extractor_type = Unicode(
+        default_value="NeighborPeakWindowSum", help="Name of the image_extractor"
+        "to be used"
+    ).tag(config=True)
     n_end_dilates = IntTelescopeParameter(
         default_value=1, help="Number of how many times to dilate at the end."
     ).tag(config=True)
@@ -118,14 +121,7 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         "normal TailcutCleaning is used.",
     ).tag(config=True)
 
-    def __init__(
-        self,
-        subarray,
-        image_extractor=None,
-        config=None,
-        parent=None,
-        **kwargs
-    ):
+    def __init__(self, subarray, config=None, parent=None, **kwargs):
         """
         Parameters
         ----------
@@ -144,9 +140,11 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
 
         self.cleaner = TailcutsImageCleaner(parent=self, subarray=self.subarray)
 
-        if image_extractor is None:
-            image_extractor = NeighborPeakWindowSum(parent=self, subarray=subarray)
-        self.image_extractor = image_extractor
+        self.image_extractor = ImageExtractor.from_name(
+            self.image_extractor_type,
+            subarray=self.subarray,
+            config=self.config
+        )
 
     def select_pixels(self, waveforms, telid=None, selected_gain_channel=None):
         camera_geom = self.subarray.tel[telid].camera.geometry
