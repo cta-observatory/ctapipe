@@ -21,32 +21,20 @@ class DataVolumeReducer(TelescopeComponent):
     Base component for data volume reducers.
     """
 
-    def __init__(
-        self, config=None, parent=None, subarray=None, image_extractor=None, **kwargs
-    ):
+    def __init__(self, subarray, config=None, parent=None, **kwargs):
         """
         Parameters
         ----------
+        subarray: ctapipe.instrument.SubarrayDescription
+            Description of the subarray
         config: traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
             Set to None if no configuration to pass.
-        subarray: ctapipe.instrument.SubarrayDescription
-            Description of the subarray
-        image_extractor: ctapipe.image.extractor.ImageExtractor
-            The ImageExtractor to use for 'TailCutsDataVolumeReducer'.
-            If None, then NeighborPeakWindowSum will be used by default.
         kwargs
         """
-
         self.subarray = subarray
         super().__init__(config=config, parent=parent, subarray=subarray, **kwargs)
-
-        if image_extractor is None:
-            image_extractor = NeighborPeakWindowSum(parent=self, subarray=subarray)
-        self.image_extractor = image_extractor
-
-        self.cleaner = TailcutsImageCleaner(parent=self, subarray=subarray)
 
     def __call__(self, waveforms, telid=None, selected_gain_channel=None):
         """
@@ -71,7 +59,6 @@ class DataVolumeReducer(TelescopeComponent):
         mask: array
             Mask of selected pixels.
         """
-
         mask = self.select_pixels(
             waveforms, telid=telid, selected_gain_channel=selected_gain_channel
         )
@@ -130,6 +117,36 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         help="If set to 'False', the iteration steps in 2) are skipped and"
         "normal TailcutCleaning is used.",
     ).tag(config=True)
+
+    def __init__(
+        self,
+        subarray,
+        image_extractor=None,
+        config=None,
+        parent=None,
+        **kwargs
+    ):
+        """
+        Parameters
+        ----------
+        subarray: ctapipe.instrument.SubarrayDescription
+            Description of the subarray
+        config: traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        image_extractor: ctapipe.image.extractor.ImageExtractor
+            The ImageExtractor to use for 'TailCutsDataVolumeReducer'.
+            If None, then NeighborPeakWindowSum will be used by default.
+        kwargs
+        """
+        super().__init__(config=config, parent=parent, subarray=subarray, **kwargs)
+
+        self.cleaner = TailcutsImageCleaner(parent=self, subarray=self.subarray)
+
+        if image_extractor is None:
+            image_extractor = NeighborPeakWindowSum(parent=self, subarray=subarray)
+        self.image_extractor = image_extractor
 
     def select_pixels(self, waveforms, telid=None, selected_gain_channel=None):
         camera_geom = self.subarray.tel[telid].camera.geometry
