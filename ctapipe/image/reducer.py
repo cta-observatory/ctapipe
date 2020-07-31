@@ -107,10 +107,20 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
     2) Add iteratively all pixels with Signal S >= boundary_thresh
        with ctapipe module dilate until no new pixels were added.
     3) Adding new pixels with dilate to get more conservative.
+
+    Attributes
+    ----------
+    image_extractor_type: String
+        Name of the image_extractor to be used.
+    n_end_dilates: IntTelescopeParameter
+        Number of how many times to dilate at the end.
+    do_boundary_dilation: BoolTelescopeParameter
+        If set to 'False', the iteration steps in 2) are skipped and
+        normal TailcutCleaning is used.
     """
     image_extractor_type = Unicode(
         default_value="NeighborPeakWindowSum", help="Name of the image_extractor"
-        "to be used"
+        "to be used.",
     ).tag(config=True)
     n_end_dilates = IntTelescopeParameter(
         default_value=1, help="Number of how many times to dilate at the end."
@@ -131,9 +141,6 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
             Set to None if no configuration to pass.
-        image_extractor: ctapipe.image.extractor.ImageExtractor
-            The ImageExtractor to use for 'TailCutsDataVolumeReducer'.
-            If None, then NeighborPeakWindowSum will be used by default.
         kwargs
         """
         super().__init__(config=config, parent=parent, subarray=subarray, **kwargs)
