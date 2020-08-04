@@ -115,7 +115,7 @@ def extract_around_peak(
 
 
 @njit(parallel=True)
-def neighbor_average_waveform(waveforms, neighbors, lwt):
+def neighbor_average_waveform(waveforms, neighbors_indices, neighbors_indptr, lwt):
     """
     Obtain the average waveform built from the neighbors of each pixel
 
@@ -124,11 +124,12 @@ def neighbor_average_waveform(waveforms, neighbors, lwt):
     waveforms : ndarray
         Waveforms stored in a numpy array.
         Shape: (n_pix, n_samples)
-    neighbors : ndarray
-        2D array where each row is [pixel index, one neighbor of that pixel].
-        Changes per telescope.
-        Can be obtained from
-        `ctapipe.instrument.CameraGeometry.neighbor_matrix_where`.
+    neighbors_indices : ndarray
+        indices of a scipy csr sparse matrix of neighbors, i.e.
+        `ctapipe.instrument.CameraGeometry.neighbor_matrix_sparse.indices`.
+    neighbors_indptr : ndarray
+        indptr of a scipy csr sparse matrix of neighbors, i.e.
+        `ctapipe.instrument.CameraGeometry.neighbor_matrix_sparse.indptr`.
     lwt: int
         Weight of the local pixel (0: peak from neighbors only,
         1: local pixel counts as much as any neighbor)
@@ -140,15 +141,26 @@ def neighbor_average_waveform(waveforms, neighbors, lwt):
         Shape: (n_pix, n_samples)
 
     """
-    n_neighbors = neighbors.shape[0]
-    sum_ = waveforms * lwt
-    n = np.full(waveforms.shape, lwt, dtype=np.int32)
-    for i in prange(n_neighbors):
-        pixel = neighbors[i, 0]
-        neighbor = neighbors[i, 1]
-        sum_[pixel] += waveforms[neighbor]
-        n[pixel] += 1
-    return sum_ / n
+
+    n_pixels = waveforms.shape[0]
+    indptr = neighbors_indptr
+    indices = neighbors_indices
+
+    # initialize to waveforms weighted with lwt
+    # so the value of the pixel itself is already taken into account
+    average = waveforms * lwt
+
+    for pixel in prange(n_pixels):
+        neighbors = indices[indptr[pixel] : indptr[pixel + 1]]
+
+        n = lwt
+        for neighbor in neighbors:
+            average[pixel] += waveforms[neighbor]
+            n += 1
+
+        average[pixel] /= n
+
+    return average
 
 
 def subtract_baseline(waveforms, baseline_start, baseline_end):
@@ -323,11 +335,16 @@ class FixedWindowSum(ImageExtractor):
     Extractor that sums within a fixed window defined by the user.
     """
 
-    window_start = IntTelescopeParameter(
-        default_value=0, help="Define the start position for the integration window"
+    peak_index = IntTelescopeParameter(
+        default_value=0, help="Manually select index where the peak is located"
     ).tag(config=True)
     window_width = IntTelescopeParameter(
         default_value=7, help="Define the width of the integration window"
+    ).tag(config=True)
+    window_shift = IntTelescopeParameter(
+        default_value=0,
+        help="Define the shift of the integration window from the peak_index "
+        "(peak_index - shift)",
     ).tag(config=True)
 
     @lru_cache(maxsize=128)
@@ -336,8 +353,6 @@ class FixedWindowSum(ImageExtractor):
         Calculate the correction for the extracted change such that the value
         returned would equal 1 for a noise-less unit pulse.
 
-        Assuming the pulse is centered in the manually defined integration
-        window, the integration_correction with a shift=0 is correct.
         This method is decorated with @lru_cache to ensure it is only
         calculated once per telescope.
 
@@ -358,15 +373,15 @@ class FixedWindowSum(ImageExtractor):
             readout.reference_pulse_sample_width.to_value("ns"),
             (1 / readout.sampling_rate).to_value("ns"),
             self.window_width.tel[telid],
-            0,
+            self.window_shift.tel[telid],
         )
 
     def __call__(self, waveforms, telid, selected_gain_channel):
         charge, peak_time = extract_around_peak(
             waveforms,
-            self.window_start.tel[telid],
+            self.peak_index.tel[telid],
             self.window_width.tel[telid],
-            0,
+            self.window_shift.tel[telid],
             self.sampling_rate[telid],
         )
         charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
@@ -537,9 +552,12 @@ class NeighborPeakWindowSum(ImageExtractor):
         )
 
     def __call__(self, waveforms, telid, selected_gain_channel):
-        neighbors = self.subarray.tel[telid].camera.geometry.neighbor_matrix_where
+        neighbors = self.subarray.tel[telid].camera.geometry.neighbor_matrix_sparse
         average_wfs = neighbor_average_waveform(
-            waveforms, neighbors, self.lwt.tel[telid]
+            waveforms,
+            neighbors_indices=neighbors.indices,
+            neighbors_indptr=neighbors.indptr,
+            lwt=self.lwt.tel[telid],
         )
         peak_index = average_wfs.argmax(axis=-1)
         charge, peak_time = extract_around_peak(

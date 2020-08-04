@@ -134,7 +134,7 @@ class CameraGeometry:
             return False
 
         return all(
-            [(self.pix_x == other.pix_x).all(), (self.pix_y == other.pix_y).all(),]
+            [(self.pix_x == other.pix_x).all(), (self.pix_y == other.pix_y).all()]
         )
 
     def guess_radius(self):
@@ -486,19 +486,6 @@ class CameraGeometry:
                 )
 
         return neighbors.tocsr()
-
-    @lazyproperty
-    def neighbor_matrix_where(self):
-        """
-        Obtain a 2D array, where each row is [pixel index, one neighbour
-        of that pixel].
-
-        Returns
-        -------
-        ndarray
-        """
-        coo = self.neighbor_matrix_sparse.tocoo()
-        return np.column_stack([coo.row, coo.col])
 
     @lazyproperty
     def pixel_moment_matrix(self):
