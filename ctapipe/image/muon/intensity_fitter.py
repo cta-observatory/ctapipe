@@ -278,6 +278,7 @@ def image_prediction_no_units(
 def build_negative_log_likelihood(
     image,
     telescope_description,
+    mask,
     oversampling,
     min_lambda,
     max_lambda,
@@ -302,8 +303,16 @@ def build_negative_log_likelihood(
     cam_coords = SkyCoord(x=cam.pix_x, y=cam.pix_y, frame=camera_frame)
     tel_coords = cam_coords.transform_to(TelescopeFrame())
 
+    # Use only a subset of pixels, indicated by mask:
     pixel_x = tel_coords.fov_lon.to_value(u.rad)
     pixel_y = tel_coords.fov_lat.to_value(u.rad)
+
+    if mask is not None:
+        pixel_x = pixel_x[mask]
+        pixel_y = pixel_y[mask]
+        image = image[mask]
+        pedestal = pedestal[mask]
+
     pixel_diameter = 2 * (
         np.sqrt(cam.pix_area[0] / np.pi) / focal_length * u.rad
     ).to_value(u.rad)
@@ -432,8 +441,10 @@ class MuonIntensityFitter(TelescopeComponent):
     oversampling = IntTelescopeParameter(
         help="Oversampling for the line integration", default_value=3
     ).tag(config=True)
-
-    def __call__(self, tel_id, center_x, center_y, radius, image, pedestal):
+    
+    def __call__(
+        self, tel_id, center_x, center_y, radius, image, pedestal, mask=None
+    ):
         """
 
         Parameters
@@ -450,6 +461,8 @@ class MuonIntensityFitter(TelescopeComponent):
             Y position of pixel in image from circle fitting
         image: ndarray
             Amplitude of image pixels
+        mask: ndarray
+            mask marking the pixels to be used in the likelihood fit
 
         Returns
         -------
@@ -465,6 +478,7 @@ class MuonIntensityFitter(TelescopeComponent):
         negative_log_likelihood = build_negative_log_likelihood(
             image,
             telescope,
+            mask,
             oversampling=self.oversampling.tel[tel_id],
             min_lambda=self.min_lambda_m.tel[tel_id] * u.m,
             max_lambda=self.max_lambda_m.tel[tel_id] * u.m,
