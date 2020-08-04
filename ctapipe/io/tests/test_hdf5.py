@@ -329,14 +329,16 @@ def test_read_container(temp_h5_file):
     with HDF5TableReader(temp_h5_file) as reader:
 
         # get the generators for each table
-        mctab = reader.read("/R0/MC", mc)
+        # test supplying a single container as well as an
+        # iterable with one entry only
+        mctab = reader.read("/R0/MC", (mc,))
         r0tab1 = reader.read("/R0/tel_001", r0tel1)
         r0tab2 = reader.read("/R0/tel_002", r0tel2)
 
         # read all 3 tables in sync
         for ii in range(3):
 
-            m = next(mctab)
+            m = next(mctab)[0]
             r0_1 = next(r0tab1)
             r0_2 = next(r0tab2)
 

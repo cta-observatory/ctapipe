@@ -446,8 +446,10 @@ class HDF5TableReader(TableReader):
             of containers.
         """
 
+        return_iterable = True
         if isinstance(containers, Container):
             containers = (containers, )
+            return_iterable = False
 
         if prefixes is False:
             prefixes = ["" for container in containers]
@@ -480,10 +482,10 @@ class HDF5TableReader(TableReader):
                     container[fieldname] = self._apply_col_transform(
                         table_name, colname, row[colname]
                     )
-            if len(containers) == 1:
-                yield containers[0]
-            else:
+            if return_iterable:
                 yield containers
+            else:
+                yield containers[0]
             row_count += 1
 
 
