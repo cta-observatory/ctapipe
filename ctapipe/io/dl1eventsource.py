@@ -16,6 +16,7 @@ from ctapipe.io.datalevels import DataLevel
 from ctapipe.containers import (
     ConcentrationContainer,
     EventAndMonDataContainer,
+    EventIndexContainer,
     HillasParametersContainer,
     IntensityStatisticsContainer,
     LeakageContainer,
@@ -133,6 +134,7 @@ class DL1EventSource(EventSource):
 
     def _prepare_subarray_info(self):
         """
+        ToDo: revisit after merge of #1405
         Constructs a SubArrayDescription object from
         the tables in /configuration/instrument.
 
@@ -233,7 +235,7 @@ class DL1EventSource(EventSource):
         # Alternatively this becomes a flat list and the obs_id matching part needs to be done
         # in _generate_events()
         mc_headers = {}
-        if 'simulation' in self.file_.root.configuration.__members__:
+        if 'simulation' in self.file_.root.configuration:
             reader = HDF5TableReader(self.input_url).read(
                 '/configuration/simulation/run', MCHeaderContainer()
             )
@@ -265,90 +267,75 @@ class DL1EventSource(EventSource):
                 }
 
         if DataLevel.DL1_PARAMETERS in self.datalevels:
-            # ToDo:
-            # The HDF5TableReader doesnt like multiple containers per table (see #1367)
-            # For now we need one reader per container type
             param_readers = {
-                'hillas': {'container': HillasParametersContainer()},
-                'leakage': {'container': LeakageContainer()},
-                'timing': {'container': TimingParametersContainer()},
-                'concentration': {'container': ConcentrationContainer()},
-                'morphology': {'container': MorphologyContainer()},
-                'intensity_statistics': {'container': IntensityStatisticsContainer()},
-                'peak_time_statistics': {'container': PeakTimeStatisticsContainer()},
+                tel.name: HDF5TableReader(self.input_url).read(
+                    f"/dl1/event/telescope/parameters/{tel.name}",
+                    containers=[
+                        HillasParametersContainer(),
+                        TimingParametersContainer(),
+                        LeakageContainer(),
+                        ConcentrationContainer(),
+                        MorphologyContainer(),
+                        IntensityStatisticsContainer(),
+                        PeakTimeStatisticsContainer(),
+                    ],
+                    prefixes=True
+                )
+                for tel in self.file_.root.dl1.event.telescope.parameters
             }
-            for param in param_readers:
-                param_readers[param]['reader'] = HDF5TableReader(self.input_url)
-                for tel in self.file_.root.dl1.event.telescope.parameters:
-                    param_readers[param][tel.name] = param_readers[param]["reader"].read(
-                        f"/dl1/event/telescope/parameters/{tel.name}",
-                        param_readers[param]['container'],
-                        prefix=True
-                    )
             if self.has_simulated_dl1:
                 true_param_readers = {
-                    'hillas': {'container': HillasParametersContainer()},
-                    'leakage': {'container': LeakageContainer()},
-                    'timing': {'container': TimingParametersContainer()},
-                    'concentration': {'container': ConcentrationContainer()},
-                    'morphology': {'container': MorphologyContainer()},
-                    'intensity_statistics': {'container': IntensityStatisticsContainer()},
-                    'peak_time_statistics': {'container': PeakTimeStatisticsContainer()},
+                    tel.name: HDF5TableReader(self.input_url).read(
+                        f"/simulation/event/telescope/parameters/{tel.name}",
+                        containers=[
+                            HillasParametersContainer(),
+                            TimingParametersContainer(),
+                            LeakageContainer(),
+                            ConcentrationContainer(),
+                            MorphologyContainer(),
+                            IntensityStatisticsContainer(),
+                            PeakTimeStatisticsContainer(),
+                        ],
+                        prefixes=True
+                    )
+                    for tel in self.file_.root.dl1.event.telescope.parameters
                 }
-                for param in true_param_readers:
-                    true_param_readers[param]['reader'] = HDF5TableReader(self.input_url)
-                    for tel in self.file_.root.simulation.event.telescope.parameters:
-                        true_param_readers[param][tel.name] = true_param_readers[param]["reader"].read(
-                            f"/dl1/event/telescope/parameters/{tel.name}",
-                            true_param_readers[param]['container'],
-                            prefix=True
-                        )
 
-            if self.is_simulation:
-                # true shower wide information
-                mc_shower_reader = HDF5TableReader(self.input_url).read(
-                    '/simulation/event/subarray/shower',
-                    MCEventContainer(),
-                    prefix="true"
-                )
+        if self.is_simulation:
+            # true shower wide information
+            mc_shower_reader = HDF5TableReader(self.input_url).read(
+                '/simulation/event/subarray/shower',
+                MCEventContainer(),
+                prefixes="true"
+            )
 
-        # Setup iterators for the event triggers
-        # Could also setup a reader for the EventIndexContainer, but it only has two fields anyway
-        # Maybe this can be optimized after #1367 is done
-        array_events = self.file_.root.dl1.event.subarray.trigger.iterrows()
-        event_triggers = HDF5TableReader(self.input_url).read(
+        # Setup iterators for the array events
+        events = HDF5TableReader(self.input_url).read(
             "/dl1/event/subarray/trigger",
-            TriggerContainer())
-        # the TelescopeTriggerContainer information is located somewhere else
-        # Unlike the image/parameter groups this is a single table for all telescopes
-        # telescope_trigger_iterator = self.file_.root.dl1.event.telescope.trigger.iterrows()
-        for counter, array_event in enumerate(array_events):
+            [TriggerContainer(), EventIndexContainer()]
+        )
+        for counter, array_event in enumerate(events):
             data.dl1.tel.clear()
             data.mc.tel.clear()
             data.pointing.tel.clear()
             data.trigger.tel.clear()
 
             data.count = counter
-            data.index.obs_id = array_event['obs_id']
-            data.index.event_id = array_event['event_id']
+            data.trigger, data.index = next(events)
+            data.trigger.tels_with_trigger = (
+                np.where(data.trigger.tels_with_trigger)[0] + 1
+            )  # +1 to match array index to telescope id
 
-            data.trigger = next(event_triggers)
-            # the trigger info is somewhat weird in terms of allowed tels
-            # Fill triggertime of each telescope
-            # Could be included in the loop below for better performance
-            # This way the trigger specific stuff is at one place
-            for i in self.file_.root.dl1.event.telescope.trigger.where(f"(obs_id=={data.index.obs_id}) & (event_id=={data.index.event_id})"):
+            # Maybe there is a simpler way  to do this
+            # Beware: tels_with_trigger contains all triggered telescopes whereas
+            # the telescope trigger table contains only the subset of
+            # allowed_tels given during the creation of the dl1 file
+            for i in self.file_.root.dl1.event.telescope.trigger.where(
+                    f"(obs_id=={data.index.obs_id}) & (event_id=={data.index.event_id})"
+            ):
                 if self.allowed_tels and i['tel_id'] not in self.allowed_tels:
                     continue
                 data.trigger.tel[i['tel_id']].time = i['telescopetrigger_time']
-            # Pretty sure this is supposed to be a list of ids, not a boolean mask?
-            # this might be broken in terms of allowed tels
-            # not sure which behaviour is expected here
-            tels_with_trigger = set(np.where(data.trigger.tels_with_trigger)[0] + 1)
-            if self.allowed_tels:
-                # double casting to make sure its the same datatype in both cases
-                tels_with_trigger = self.allowed_tels.intersection(tels_with_trigger)
-            data.trigger.tels_with_trigger = tels_with_trigger
 
             self._fill_array_pointing(data)
             self._fill_telescope_pointing(data)
@@ -362,26 +349,31 @@ class DL1EventSource(EventSource):
                     continue
                 dl1 = data.dl1.tel[tel]
                 if DataLevel.DL1_IMAGES in self.datalevels:
+                    if f"tel_{tel:03d}" not in image_iterators.keys():
+                        print('miss', tel)
+                        continue
                     image_row = next(image_iterators[f'tel_{tel:03d}'])
                     dl1.image = image_row['image']
                     dl1.peak_time = image_row['peak_time']
                     dl1.image_mask = image_row['image_mask']
-                    # ToDo: Find a place in the data container, where this information can go
-                    # (see #1368)
-                    # if self.has_simulated_dl1:
-                    #    row = next(true_image_iterators[f'tel_{tel:03d}'])
-                    #    data.mc??.tel[tel].image = row['true_image']
-                    #    data.mc??[tel].peak_time = row['true_peak_time']
-                    #    data.mc??[tel].image_mask = row['true_image_mask']
+                    # ToDo: Find a place in the data container, where the true images can go #1368
 
                 if DataLevel.DL1_PARAMETERS in self.datalevels:
-                    for param in param_readers:
-                        dl1.parameters[param] = next(param_readers[param][f'tel_{tel:03d}'])
-                        # ToDo: Find a place in the data container, where this information can go
-                        # (see #1368)
-                        # if self.has_simulated_dl1:
-                        # for param in true_param_readers:
-                        #    data.mc??.tel[tel].parameters[param] = next(true_param_readers[param][f'tel_{tel:03d}'])
+                    if f"tel_{tel:03d}" not in param_readers.keys():
+                        print('miss', tel)
+                        continue
+                    # Is there a smarter way to unpack this?
+                    # Best would probbaly be if we could directly read
+                    # into the ImageParametersContainer
+                    params = next(param_readers[f'tel_{tel:03d}'])
+                    dl1.parameters.hillas = params[0]
+                    dl1.parameters.timing = params[1]
+                    dl1.parameters.leakage = params[2]
+                    dl1.parameters.concentration = params[3]
+                    dl1.parameters.morphology = params[4]
+                    dl1.parameters.intensity_statistics = params[5]
+                    dl1.parameters.peak_time_statistics = params[6]
+                    # ToDo: Find a place in the data container, where the true params can go #1368
             yield data
 
     def _fill_array_pointing(self, data):
@@ -390,11 +382,13 @@ class DL1EventSource(EventSource):
         """
         # Only unique pointings are stored, so reader.read() wont work as easily
         # Not sure if this is the right way to do it
-        # one could keep an index of the last selected row and the last pointing
+        # One could keep an index of the last selected row and the last pointing
         # and only advance with the row iterator if the next time is closer or smth like that
+        # But that would require peeking ahead
         closest_time = np.argmin(
             self.file_.root.dl1.monitoring.subarray.pointing.col("time")
-            - data.trigger.time)
+            - data.trigger.time
+        )
         array_pointing = self.file_.root.dl1.monitoring.subarray.pointing[closest_time]
 
         data.pointing.array_azimuth = u.Quantity(array_pointing["array_azimuth"], u.rad)
@@ -406,7 +400,7 @@ class DL1EventSource(EventSource):
         """
         Fill the telescope pointing information of a given event
         """
-        # Same comments as to _fill_array_pointing_information apply
+        # Same comments as to _fill_array_pointing apply
         for tel in data.trigger.tel.keys():
             if self.allowed_tels and tel not in self.allowed_tels:
                 continue
