@@ -72,16 +72,16 @@ class DL1EventSource(EventSource):
 
     @staticmethod
     def is_compatible(file_path):
-        with open(file_path) as f:
+        with open(file_path, 'rb') as f:
             magic_number = f.read(8)
         if magic_number != b'\x89HDF\r\n\x1a\n':
             return False
         else:
             with tables.open_file(file_path) as f:
                 metadata = f.root._v_attrs
-                print(metadata)
-                organization = metadata.get('CTA CONTACT ORGANIZATION')
-                if organization != 'CTA Consortium':
+                if 'CTA PRODUCT DESCRIPTION' not in metadata._v_attrnames:
+                    return False
+                if metadata['CTA PRODUCT DESCRIPTION'] != 'DL1 Data Product':
                     return False
         return True
 
