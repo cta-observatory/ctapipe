@@ -54,7 +54,7 @@ class PixelLikelihoodError(RuntimeError):
 def poisson_likelihood_gaussian(image, prediction, spe_width, pedestal):
     """Calculate negative log likelihood for every pixel.
 
-    Gaussian approximation from de Naurois, p. 22 (between (24) and (25)).
+    Gaussian approximation from [denaurois2009]_, p. 22 (between (24) and (25)).
 
     Simplification:
 
@@ -80,12 +80,6 @@ def poisson_likelihood_gaussian(image, prediction, spe_width, pedestal):
 
         - \\ln{P} = \\ln{θ} + \\frac{(s - μ)^2}{θ}
 
-
-    References
-    ----------
-    - de Naurois, Rolland
-      'A high performance likelihood reconstruction of gamma-rays
-      for Imaging Atmospheric Cherenkov Telescopes' (2009)
 
     Parameters
     ----------
