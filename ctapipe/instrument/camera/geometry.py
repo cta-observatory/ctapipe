@@ -204,9 +204,10 @@ class CameraGeometry:
 
         rot = np.arctan2(uv_y[0], uv_y[1])
         det = np.linalg.det([uv_x.value, uv_y.value])
+        print(f"DEBUG: det={det}, rot={rot.to('deg')}")
 
-        cam_rotation = rot + det * self.cam_rotation
-        pix_rotation = rot + det * self.pix_rotation
+        cam_rotation = rot - self.cam_rotation
+        pix_rotation = rot - self.pix_rotation
 
         return CameraGeometry(
             camera_name=self.camera_name,
