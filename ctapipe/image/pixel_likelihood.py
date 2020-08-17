@@ -5,9 +5,8 @@ This calculation is taken from [denaurois2009]_.
 
 The likelihood is essentially a poissonian convolved with a gaussian, at low signal
 a full possonian approach must be adopted, which requires the sum of contibutions
-over a number of potential contributing photoelectrons (which is slow and can fail
-at high signals due to the factorial which mst be calculated). At high signal this
-simplifies to a gaussian approximation.
+over a number of potential contributing photoelectrons (which is slow).
+At high signal this simplifies to a gaussian approximation.
 
 The full and gaussian approximations are implemented, in addition to a general purpose
 implementation, which tries to intellegently switch 
