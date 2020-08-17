@@ -5,12 +5,14 @@ Utilities for reading or working with Camera geometry files
 import logging
 
 import numpy as np
+from typing import TypeVar
 from astropy import units as u
 from astropy.coordinates import Angle, SkyCoord
 from astropy.table import Table
 from astropy.utils import lazyproperty
 from scipy.spatial import cKDTree as KDTree
 from scipy.sparse import lil_matrix, csr_matrix
+from astropy.coordinates import BaseCoordinateFrame
 import warnings
 
 from ctapipe.utils import get_table_dataset
@@ -21,6 +23,7 @@ from ctapipe.coordinates import CameraFrame
 __all__ = ["CameraGeometry", "UnknownPixelShapeWarning"]
 
 logger = logging.getLogger(__name__)
+CG = TypeVar("CG", bound="CameraGeometry")  # for forward-referencing type hints
 
 
 class CameraGeometry:
@@ -150,15 +153,23 @@ class CameraGeometry:
             (self.pix_x[border] - cx) ** 2 + (self.pix_y[border] - cy) ** 2
         ).mean()
 
-    def transform_to(self, frame):
-        """
-        Transform the pixel coordinates stored in this geometry
-        and the pixel and camera rotations to another camera coordinate frame.
+    def transform_to(self, frame: BaseCoordinateFrame) -> CG:
+        """Transform the pixel coordinates stored in this geometry and the pixel
+        and camera rotations to another camera coordinate frame.
+
+        Note that `geom.frame` must contain all the necessary attributes needed
+        to transform into the requested frame, i.e. if going from `CameraFrame`
+        to `TelescopeFrame`, it should contain a `focal_length` attribute.
 
         Parameters
         ----------
         frame: ctapipe.coordinates.CameraFrame
             The coordinate frame to transform to.
+
+        Returns
+        -------
+        CameraGeometry:
+            new instance in the requested Frame
         """
         if self.frame is None:
             self.frame = CameraFrame()
@@ -169,8 +180,30 @@ class CameraGeometry:
         # also transform the unit vectors, to get rotation / mirroring
         uv = SkyCoord(x=[1, 0], y=[0, 1], unit=u.m, frame=self.frame)
         uv_trans = uv.transform_to(frame)
-        rot = np.arctan2(uv_trans[0].y, uv_trans[1].y)
-        det = np.linalg.det([uv_trans.x.value, uv_trans.y.value])
+
+        if hasattr(uv_trans, "y"):
+            uv_x = uv_trans.x
+            uv_y = uv_trans.y
+            trans_x = trans.x
+            trans_y = trans.y
+        elif hasattr(uv_trans, "fov_lat"):  # in case it's TelescopeFrame
+            uv_x = uv_trans.fov_lon
+            uv_y = uv_trans.fov_lat
+            trans_x = trans.fov_lon
+            trans_y = trans.fov_lat
+        elif hasattr(uv_trans, "lat"):
+            uv_x = uv_trans.lon
+            uv_y = uv_trans.lat
+            trans_x = trans.lon
+            trans_y = trans.lat
+        else:
+            raise RuntimeError(
+                f"Unable to transform to frame {frame}, "
+                "which has unknown representation"
+            )
+
+        rot = np.arctan2(uv_y[0], uv_y[1])
+        det = np.linalg.det([uv_x.value, uv_y.value])
 
         cam_rotation = rot + det * self.cam_rotation
         pix_rotation = rot + det * self.pix_rotation
@@ -178,8 +211,8 @@ class CameraGeometry:
         return CameraGeometry(
             camera_name=self.camera_name,
             pix_id=self.pix_id,
-            pix_x=trans.x,
-            pix_y=trans.y,
+            pix_x=trans_x,
+            pix_y=trans_y,
             pix_area=self.pix_area,
             pix_type=self.pix_type,
             pix_rotation=pix_rotation,
