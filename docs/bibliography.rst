@@ -8,7 +8,7 @@ References
 .. [denaurois2009] de Naurois, M., Roland, L. "A high performance
 	likelihood reconstruction of gamma-rays for imaging
 	atmospheric Cherenkov telescopes". Astroparticle Physics
-	32.5, (2009)
+	32.5, (2009), https://arxiv.org/abs/0907.2610
 
 .. [temme2016] Temme T.F., "On the hunt for photons: analysis of Crab Nebula
 		data obtainedby the first G-APD Cherenkov telescope" 2016
