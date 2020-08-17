@@ -76,13 +76,12 @@ class DL1EventSource(EventSource):
             magic_number = f.read(8)
         if magic_number != b'\x89HDF\r\n\x1a\n':
             return False
-        else:
-            with tables.open_file(file_path) as f:
-                metadata = f.root._v_attrs
-                if 'CTA PRODUCT DESCRIPTION' not in metadata._v_attrnames:
-                    return False
-                if metadata['CTA PRODUCT DESCRIPTION'] != 'DL1 Data Product':
-                    return False
+        with tables.open_file(file_path) as f:
+            metadata = f.root._v_attrs
+            if 'CTA PRODUCT DESCRIPTION' not in metadata._v_attrnames:
+                return False
+            if metadata['CTA PRODUCT DESCRIPTION'] != 'DL1 Data Product':
+                return False
         return True
 
     @property
@@ -113,9 +112,9 @@ class DL1EventSource(EventSource):
         if params and images:
             return (DataLevel.DL1_IMAGES, DataLevel.DL1_PARAMETERS)
         elif params:
-            return (DataLevel.DL1_PARAMETERS)
+            return (DataLevel.DL1_PARAMETERS,)
         elif images:
-            return (DataLevel.DL1_IMAGES)
+            return (DataLevel.DL1_IMAGES,)
 
     @property
     def obs_id(self):
@@ -141,7 +140,8 @@ class DL1EventSource(EventSource):
         Returns
         -------
         SubarrayDescription :
-            Instrumental information including the position, optic and camera of each telescope
+            Instrumental information including the position,
+            optic and camera of each telescope
         """
 
         # collect all optics
@@ -157,11 +157,11 @@ class DL1EventSource(EventSource):
                 num_mirrors=optic['num_mirrors'],
                 equivalent_focal_length=u.Quantity(
                     optic['equivalent_focal_length'],
-                    u.m,
+                    optic.columns['equivalent_focal_length'].unit,
                 ),
                 mirror_area=u.Quantity(
                     optic['mirror_area'],
-                    u.m ** 2,
+                    optic.columns['mirror_area'].unit,
                 ),
                 num_mirror_tiles=optic['num_mirror_tiles'],
             )
@@ -170,8 +170,7 @@ class DL1EventSource(EventSource):
         # collect all cameras
         # Maybe that loop/if-cases can be optimized?
         cameras = {}
-        camera_tables = [i for i in self.file_.root.configuration.instrument.telescope.camera]
-        for cam_table in camera_tables:
+        for cam_table in self.file_.root.configuration.instrument.telescope.camera:
             if cam_table.name.endswith('meta__'):
                 continue
             if cam_table.name.startswith('geometry'):
@@ -200,7 +199,10 @@ class DL1EventSource(EventSource):
         # collect all telescopes and match optics and cameras
         tel_positions = {}
         tel_descriptions = {}
-        layout_table = Table.read(self.input_url, "configuration/instrument/subarray/layout")
+        layout_table = Table.read(
+            self.input_url,
+            "configuration/instrument/subarray/layout"
+        )
         for telescope in layout_table:
             if self.allowed_tels and telescope['tel_id'] not in self.allowed_tels:
                 continue
@@ -232,8 +234,8 @@ class DL1EventSource(EventSource):
         # The reader ignores obs_id making the setup somewhat tricky
         # This is ugly but supports multiple headers so each event can have
         # the correct mcheader assigned by matching the obs_id
-        # Alternatively this becomes a flat list and the obs_id matching part needs to be done
-        # in _generate_events()
+        # Alternatively this becomes a flat list
+        # and the obs_id matching part needs to be done in _generate_events()
         mc_headers = {}
         if 'simulation' in self.file_.root.configuration:
             reader = HDF5TableReader(self.input_url).read(
@@ -257,13 +259,13 @@ class DL1EventSource(EventSource):
 
         if DataLevel.DL1_IMAGES in self.datalevels:
             image_iterators = {
-                tel: self.file_.root.dl1.event.telescope.images[tel].iterrows()
-                for tel in self.file_.root.dl1.event.telescope.images.__members__
+                tel.name: self.file_.root.dl1.event.telescope.images[tel.name].iterrows()
+                for tel in self.file_.root.dl1.event.telescope.images
             }
             if self.has_simulated_dl1:
                 true_image_iterators = {
-                    tel: self.file_.root.simulation.event.telescope.images[tel].iterrows()
-                    for tel in self.file_.root.simulation.event.telescope.images.__members__
+                    tel.name: self.file_.root.simulation.event.telescope.images[tel.name].iterrows()
+                    for tel in self.file_.root.simulation.event.telescope.images
                 }
 
         if DataLevel.DL1_PARAMETERS in self.datalevels:
@@ -383,8 +385,8 @@ class DL1EventSource(EventSource):
         # Only unique pointings are stored, so reader.read() wont work as easily
         # Not sure if this is the right way to do it
         # One could keep an index of the last selected row and the last pointing
-        # and only advance with the row iterator if the next time is closer or smth like that
-        # But that would require peeking ahead
+        # and only advance with the row iterator if the next time
+        # is closer or smth like that. But that would require peeking ahead
         closest_time = np.argmin(
             self.file_.root.dl1.monitoring.subarray.pointing.col("time")
             - data.trigger.time
@@ -404,11 +406,19 @@ class DL1EventSource(EventSource):
         for tel in data.trigger.tel.keys():
             if self.allowed_tels and tel not in self.allowed_tels:
                 continue
-            tel_pointing_table = self.file_.root.dl1.monitoring.telescope.pointing[f"tel_{tel:03d}"]
+            tel_pointing_table = self.file_.root.dl1.monitoring.telescope.pointing[
+                f"tel_{tel:03d}"
+            ]
             closest_time = np.argmin(
                 tel_pointing_table.col("telescopetrigger_time")
                 - data.trigger.tel[tel].time
             )
             pointing_array = tel_pointing_table[closest_time]
-            data.pointing.tel[tel].azimuth = u.Quantity(pointing_array['azimuth'], u.rad)
-            data.pointing.tel[tel].altitude = u.Quantity(pointing_array['altitude'], u.rad)
+            data.pointing.tel[tel].azimuth = u.Quantity(
+                pointing_array['azimuth'],
+                u.rad
+            )
+            data.pointing.tel[tel].altitude = u.Quantity(
+                pointing_array['altitude'],
+                u.rad
+            )
