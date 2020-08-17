@@ -89,13 +89,13 @@ def poisson_likelihood_gaussian(image, prediction, spe_width, pedestal):
 
     Returns
     -------
-    ndarray: Negative log-likelihood for each pixel.
+    float
     """
     theta = pedestal ** 2 + prediction * (1 + spe_width ** 2)
 
     neg_log_l = np.log(theta) + (image - prediction) ** 2 / theta
 
-    return neg_log_l
+    return np.sum(neg_log_l)
 
 
 def neg_log_likelihood_numeric(image, prediction, spe_width, pedestal, confidence=(0.001, 0.999)):
