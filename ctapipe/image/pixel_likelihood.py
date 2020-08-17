@@ -30,11 +30,9 @@ TODO:
 - Additional terms may be useful to add to the likelihood
 """
 
-import math
-
 import numpy as np
 from scipy.integrate import quad
-from scipy.special import factorial
+from scipy.stats import poisson
 
 __all__ = [
     "poisson_likelihood_gaussian",
@@ -103,96 +101,47 @@ def poisson_likelihood_gaussian(image, prediction, spe_width, pedestal):
     return neg_log_l
 
 
-def poisson_likelihood_full(
-    image, prediction, spe_width, ped, width_fac=3, dtype=np.float32
-):
+def neg_log_likelihood_numeric(image, prediction, spe_width, pedestal, confidence=(0.001, 0.999)):
     """
     Calculate likelihood of prediction given the measured signal,
-    full numerical integration from de Naurois et al 2009.
-    The width factor included here defines  the range over
-    which photo electron contributions are summed, and is
-    defined as a multiple of the expected resolution of
-    the highest amplitude pixel. For most applications
-    the defult of 3 is sufficient.
+    full numerical integration from [denaurois2009]_.
 
     Parameters
     ----------
     image: ndarray
-        Pixel amplitudes from image
+        Pixel amplitudes from image (:math:`s`).
     prediction: ndarray
-        Predicted pixel amplitudes from model
+        Predicted pixel amplitudes from model (:math:`μ`).
     spe_width: ndarray
-        width of single p.e. distribution
-    ped: ndarray
-        width of pedestal
-    width_fac: float
-        Factor to determine range of summation on integral
-    dtype: datatype
-        Data type of output array
+        Width of single p.e. peak (:math:`σ_γ`).
+    pedestal: ndarray
+        Width of pedestal (:math:`σ_p`).
+    confidence: tuple(float, float), 0 < x < 1
+        Confidence interval of poisson integration.
 
     Returns
     -------
-    ndarray: likelihood for each pixel
+    float
     """
 
-    image = np.asarray(image, dtype=dtype)
-    prediction = np.asarray(prediction, dtype=dtype)
-    spe_width = np.asarray(spe_width, dtype=dtype)
-    ped = np.asarray(ped, dtype=dtype)
+    epsilon = np.finfo(np.float).eps
 
-    if image.shape != prediction.shape:
-        raise PixelLikelihoodError(
-            ("Image and prediction arrays" " have different dimensions"),
-            "Image shape: ",
-            image.shape[0],
-            "Prediction shape: ",
-            prediction.shape[0],
-        )
-    max_val = np.max(image)
-    width = ped * ped + max_val * spe_width * spe_width
-    width = np.sqrt(np.abs(width))  # take abs of width if negative
+    prediction = prediction + epsilon
 
-    max_sum = max_val + width_fac * width
-    if max_sum < 5:
-        max_sum = 5
+    likelihood = epsilon
 
-    pe_summed = np.arange(max_sum)  # Need to decide how range is determined
-    pe_factorial = factorial(pe_summed)
-
-    first_term = prediction ** pe_summed[:, np.newaxis] * np.exp(-1 * prediction)
-    first_term /= pe_factorial[:, np.newaxis] * np.sqrt(
-        math.pi * 2 * (ped * ped + pe_summed[:, np.newaxis] * spe_width * spe_width)
+    ns = np.arange(
+        *poisson(np.max(prediction)).ppf(confidence),
     )
 
-    # Throw error if we get NaN in likelihood
-    if np.any(np.isnan(first_term)):
-        raise PixelLikelihoodError(
-            "Likelihood returning NaN,"
-            "likely due to extremely high signal"
-            " deviation. Switch to poisson_likelihood_safe"
-            " implementation or"
-            " increase floating point precision"
-            " e.g. dtype=float64"
-        )
+    ns = ns[ns >= 0]
 
-    # Should not have any porblems here with NaN that have not bee seens
-    second_term = (image - pe_summed[:, np.newaxis]) * (
-        image - pe_summed[:, np.newaxis]
-    )
-    second_term_denom = 2 * (
-        ped * ped + spe_width * spe_width * pe_summed[:, np.newaxis]
-    )
+    for n in ns:
+        theta = pedestal ** 2 + n * spe_width ** 2
+        _l = prediction ** n * np.exp(-prediction) / theta * np.exp(-(image - n) ** 2 / (2 * theta))
+        likelihood += _l
 
-    second_term = second_term / second_term_denom
-    second_term = np.exp(-1 * second_term)
-
-    # If we are outside of the range of datatype, fix to lower bound
-    min_prob = np.finfo(second_term.dtype).tiny
-    second_term[second_term < min_prob] = min_prob
-
-    like = first_term * second_term
-
-    return -2 * np.log(np.sum(like, axis=0))
+    return - np.sum(np.log(likelihood))
 
 
 def poisson_likelihood(
