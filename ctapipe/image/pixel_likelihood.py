@@ -144,79 +144,56 @@ def neg_log_likelihood_numeric(image, prediction, spe_width, pedestal, confidenc
     return - np.sum(np.log(likelihood))
 
 
-def poisson_likelihood(
+def neg_log_likelihood(
     image,
     prediction,
     spe_width,
-    ped,
-    pedestal_safety=1.5,
-    width_fac=3,
-    dtype=np.float32,
+    pedestal,
+    prediction_safety=20.0,
 ):
     """
     Safe implementation of the poissonian likelihood implementation,
     adaptively switches between the full solution and the gaussian
-    approx depending on the signal. Pedestal safety parameter 
-    determines cross over point between the two solutions,
-    based on the expected p.e. resolution of the image pixels.
-    Therefore the cross over point will change dependent on 
-    the single p.e. resolution and pedestal levels.
+    approx depending on the prediction. Prediction safety parameter
+    determines cross over point between the two solutions.
 
     Parameters
     ----------
     image: ndarray
-        Pixel amplitudes from image
+        Pixel amplitudes from image (:math:`s`).
     prediction: ndarray
-        Predicted pixel amplitudes from model
+        Predicted pixel amplitudes from model (:math:`μ`).
     spe_width: ndarray
-        width of single p.e. distribution
-    ped: ndarray
-        width of pedestal
-    pedestal_safety: float
-        Decision point to choose between poissonian likelihood 
-        and gaussian approximation (p.e. resolution)
-    width_fac: float
-        Factor to determine range of summation on integral
-    dtype: datatype
-        Data type of output array
+        Width of single p.e. peak (:math:`σ_γ`).
+    pedestal: ndarray
+        Width of pedestal (:math:`σ_p`).
+    prediction_safety: float
+        Decision point to choose between poissonian likelihood
+        and gaussian approximation.
 
     Returns
     -------
-    ndarray: pixel likelihoods
+    float
     """
-    # Convert everything to arrays to begin
-    image = np.asarray(image, dtype=dtype)
-    prediction = np.asarray(prediction, dtype=dtype)
-    spe_width = np.asarray(spe_width, dtype=dtype)
-    ped = np.asarray(ped, dtype=dtype)
 
-    # Calculate photoelectron resolution
+    approx_mask = prediction > prediction_safety
 
-    width = ped * ped + image * spe_width * spe_width
-    width = np.asarray(width)
-    width[width < 0] = 0  # Set width to 0 for negative pixel amplitudes
-    width = np.sqrt(width)
+    neg_log_l = 0
+    neg_log_l += neg_log_likelihood_approx(
+        image[approx_mask],
+        prediction[approx_mask],
+        spe_width,
+        pedestal,
+    )
 
-    like = np.zeros(image.shape)
-    # If larger than safety value use gaussian approx
-    poisson_pix = width <= pedestal_safety
-    gaus_pix = width > pedestal_safety
+    neg_log_l += neg_log_likelihood_numeric(
+        image[~approx_mask],
+        prediction[~approx_mask],
+        spe_width,
+        pedestal,
+    )
 
-    if np.any(poisson_pix):
-        like[poisson_pix] = poisson_likelihood_full(
-            image[poisson_pix],
-            prediction[poisson_pix],
-            spe_width,
-            ped,
-            width_fac,
-            dtype,
-        )
-    if np.any(gaus_pix):
-        like[gaus_pix] = poisson_likelihood_gaussian(
-            image[gaus_pix], prediction[gaus_pix], spe_width, ped
-        )
-
-    return like
+    return neg_log_l
 
 
 def mean_poisson_likelihood_gaussian(prediction, spe_width, ped):
