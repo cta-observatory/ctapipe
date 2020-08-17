@@ -1,9 +1,7 @@
 """
 Class for calculation of likelihood of a pixel expectation, given the pixel amplitude,
-the level of noise in the pixel and the photoelectron resolution. This calculation is
-taken from:
-de Naurois & Rolland, Astroparticle Physics, Volume 32, Issue 5, p. 231-252 (2009)
-https://arxiv.org/abs/0907.2610
+the level of noise in the pixel and the photoelectron resolution.
+This calculation is taken from [denaurois2009]_.
 
 The likelihood is essentially a poissonian convolved with a gaussian, at low signal
 a full possonian approach must be adopted, which requires the sum of contibutions
