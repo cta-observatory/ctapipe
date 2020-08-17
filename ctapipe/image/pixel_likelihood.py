@@ -98,7 +98,9 @@ def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
     return np.sum(neg_log_l)
 
 
-def neg_log_likelihood_numeric(image, prediction, spe_width, pedestal, confidence=(0.001, 0.999)):
+def neg_log_likelihood_numeric(
+    image, prediction, spe_width, pedestal, confidence=(0.001, 0.999)
+):
     """
     Calculate likelihood of prediction given the measured signal,
     full numerical integration from [denaurois2009]_.
@@ -127,26 +129,25 @@ def neg_log_likelihood_numeric(image, prediction, spe_width, pedestal, confidenc
 
     likelihood = epsilon
 
-    ns = np.arange(
-        *poisson(np.max(prediction)).ppf(confidence),
-    )
+    ns = np.arange(*poisson(np.max(prediction)).ppf(confidence),)
 
     ns = ns[ns >= 0]
 
     for n in ns:
         theta = pedestal ** 2 + n * spe_width ** 2
-        _l = prediction ** n * np.exp(-prediction) / theta * np.exp(-(image - n) ** 2 / (2 * theta))
+        _l = (
+            prediction ** n
+            * np.exp(-prediction)
+            / theta
+            * np.exp(-((image - n) ** 2) / (2 * theta))
+        )
         likelihood += _l
 
-    return - np.sum(np.log(likelihood))
+    return -np.sum(np.log(likelihood))
 
 
 def neg_log_likelihood(
-    image,
-    prediction,
-    spe_width,
-    pedestal,
-    prediction_safety=20.0,
+    image, prediction, spe_width, pedestal, prediction_safety=20.0,
 ):
     """
     Safe implementation of the poissonian likelihood implementation,
@@ -177,17 +178,11 @@ def neg_log_likelihood(
 
     neg_log_l = 0
     neg_log_l += neg_log_likelihood_approx(
-        image[approx_mask],
-        prediction[approx_mask],
-        spe_width,
-        pedestal,
+        image[approx_mask], prediction[approx_mask], spe_width, pedestal,
     )
 
     neg_log_l += neg_log_likelihood_numeric(
-        image[~approx_mask],
-        prediction[~approx_mask],
-        spe_width,
-        pedestal,
+        image[~approx_mask], prediction[~approx_mask], spe_width, pedestal,
     )
 
     return neg_log_l
@@ -260,7 +255,10 @@ def mean_poisson_likelihood_full(prediction, spe_width, ped):
     width = np.sqrt(width)
 
     for p in range(len(prediction)):
-        int_range = (prediction[p] - 10 * width[p], prediction[p] + 10 * width[p])
+        int_range = (
+            prediction[p] - 10 * width[p],
+            prediction[p] + 10 * width[p],
+        )
         mean_like[p] = quad(
             _integral_poisson_likelihood_full,
             int_range[0],
@@ -298,7 +296,9 @@ def chi_squared(image, prediction, ped, error_factor=2.9):
     if image.shape is not prediction.shape:
         PixelLikelihoodError(
             "Image and prediction arrays have different dimensions Image "
-            "shape: {} Prediction shape: {}".format(image.shape, prediction.shape)
+            "shape: {} Prediction shape: {}".format(
+                image.shape, prediction.shape
+            )
         )
 
     chi_square = (image - prediction) * (image - prediction)
