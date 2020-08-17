@@ -1,6 +1,7 @@
 from ctapipe.utils import get_dataset_path
 from ctapipe.io import DataLevel
 from ctapipe.io.dl1eventsource import DL1EventSource
+import astropy.units as u
 import subprocess
 import numpy as np
 import tempfile
@@ -58,7 +59,9 @@ def test_dl1_data(dl1_file):
 def test_pointing(dl1_file):
     with DL1EventSource(input_url=dl1_file) as source:
         for event in source:
-            assert event.pointing.array_azimuth != np.nan
+            assert np.isclose(event.pointing.array_azimuth.to_value(u.deg), 0)
+            assert np.isclose(event.pointing.array_altitude.to_value(u.deg), 70)
             assert event.pointing.tel
             for tel in event.pointing.tel:
-                assert event.pointing.tel[tel].azimuth != np.nan
+                assert np.isclose(event.pointing.tel[tel].azimuth.to_value(u.deg), 0)
+                assert np.isclose(event.pointing.tel[tel].altitude.to_value(u.deg), 70)
