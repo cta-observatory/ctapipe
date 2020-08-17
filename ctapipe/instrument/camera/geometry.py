@@ -213,7 +213,7 @@ class CameraGeometry:
             pix_id=self.pix_id,
             pix_x=trans_x,
             pix_y=trans_y,
-            pix_area=self.pix_area,
+            pix_area=self.guess_pixel_area(trans_x, trans_y, self.pix_type),
             pix_type=self.pix_type,
             pix_rotation=pix_rotation,
             cam_rotation=cam_rotation,
