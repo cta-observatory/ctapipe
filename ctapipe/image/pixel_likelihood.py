@@ -196,9 +196,8 @@ def neg_log_likelihood(
     return neg_log_l
 
 
-def mean_poisson_likelihood_gaussian(prediction, spe_width, ped):
-    """
-    Calculation of the mean  likelihood for a give expectation
+def mean_poisson_likelihood_gaussian(prediction, spe_width, pedestal):
+    """Calculation of the mean likelihood for a give expectation
     value of pixel intensity in the gaussian approximation.
     This is useful in the calculation of the goodness of fit.
 
@@ -207,22 +206,18 @@ def mean_poisson_likelihood_gaussian(prediction, spe_width, ped):
     prediction: ndarray
         Predicted pixel amplitudes from model
     spe_width: ndarray
-        width of single p.e. distribution
-    ped: ndarray
-        width of pedestal
+        Width of single p.e. distribution
+    pedestal: ndarray
+        Width of pedestal
 
     Returns
     -------
-    ndarray: mean likelihood for give pixel expectation
+    float
     """
-    prediction = np.asarray(prediction)
-    spe_width = np.asarray(spe_width)
-    ped = np.asarray(ped)
+    theta = pedestal ** 2 + prediction * (1 + spe_width ** 2)
+    mean_log_likelihood = 1 + np.log(2 * np.pi) + np.log(theta)
 
-    mean_like = 1 + np.log(2 * math.pi)
-    mean_like += np.log(ped * ped + prediction * (1 + spe_width * spe_width))
-
-    return mean_like
+    return np.sum(mean_log_likelihood)
 
 
 def _integral_poisson_likelihood_full(s, prediction, spe_width, ped):
