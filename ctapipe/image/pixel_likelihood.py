@@ -12,13 +12,13 @@ The full and gaussian approximations are implemented, in addition to a general p
 implementation, which tries to intellegently switch 
 between the two. Speed tests are below:
 
-poisson_likelihood_gaussian(image, prediction, spe, ped)
+neg_log_likelihood_approx(image, prediction, spe, ped)
 29.8 µs per loop
 
-poisson_likelihood_full(image, prediction, spe, ped)
+neg_log_likelihood_numeric(image, prediction, spe, ped)
 93.4 µs per loop
 
-poisson_likelihood(image, prediction, spe, ped)
+neg_log_likelihood(image, prediction, spe, ped)
 59.9 µs per loop
 
 TODO:
@@ -32,9 +32,9 @@ from scipy.integrate import quad
 from scipy.stats import poisson
 
 __all__ = [
-    "poisson_likelihood_gaussian",
-    "poisson_likelihood_full",
-    "poisson_likelihood",
+    "neg_log_likelihood_approx",
+    "neg_log_likelihood_numeric",
+    "neg_log_likelihood",
     "mean_poisson_likelihood_gaussian",
     "mean_poisson_likelihood_full",
     "PixelLikelihoodError",
@@ -46,10 +46,10 @@ class PixelLikelihoodError(RuntimeError):
     pass
 
 
-def poisson_likelihood_gaussian(image, prediction, spe_width, pedestal):
-    """Calculate negative log likelihood for every pixel.
+def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
+    """Calculate negative log likelihood for telescope.
 
-    Gaussian approximation from [denaurois2009]_, p. 22 (between (24) and (25)).
+    Gaussian approximation from [denaurois2009]_, p. 22 (equation between (24) and (25)).
 
     Simplification:
 
@@ -222,7 +222,7 @@ def _integral_poisson_likelihood_full(s, prediction, spe_width, ped):
     Wrapper function around likelihood calculation, used in numerical
     integration.
     """
-    like = poisson_likelihood(s, prediction, spe_width, ped)
+    like = neg_log_likelihood(s, prediction, spe_width, ped)
     return like * np.exp(-0.5 * like)
 
 
