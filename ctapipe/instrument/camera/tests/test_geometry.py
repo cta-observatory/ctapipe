@@ -292,8 +292,8 @@ def test_camera_coordinate_transform(camera_name):
     assert np.allclose(geom.pix_y.to_value(unit), -trans_geom.pix_x.to_value(unit))
 
     # also test converting into a spherical frame:
-
-    geom.frame = CameraFrame(focal_length=1.2 * u.m)
+    focal_length = 1.2 * u.m
+    geom.frame = CameraFrame(focal_length=focal_length)
     telescope_frame = TelescopeFrame()
     sky_geom = geom.transform_to(telescope_frame)
 
@@ -302,8 +302,8 @@ def test_camera_coordinate_transform(camera_name):
 
     # and test going backward from spherical to cartesian:
 
-    geom_cam = sky_geom.transform_to(CameraFrame)
-    assert np.allclose(geom_cam.pix_x.to_value(unit), gepm.pix_x.to_value(unit))
+    geom_cam = sky_geom.transform_to(CameraFrame(focal_length=focal_length))
+    assert np.allclose(geom_cam.pix_x.to_value(unit), geom.pix_x.to_value(unit))
 
 
 def test_guess_area():

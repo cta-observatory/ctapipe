@@ -174,11 +174,11 @@ class CameraGeometry:
         if self.frame is None:
             self.frame = CameraFrame()
 
-        coord = SkyCoord(x=self.pix_x, y=self.pix_y, frame=self.frame)
+        coord = SkyCoord(self.pix_x, self.pix_y, frame=self.frame)
         trans = coord.transform_to(frame)
 
         # also transform the unit vectors, to get rotation / mirroring
-        uv = SkyCoord(x=[1, 0], y=[0, 1], unit=u.m, frame=self.frame)
+        uv = SkyCoord([1, 0], [0, 1], unit=self.pix_x.unit, frame=self.frame)
         uv_trans = uv.transform_to(frame)
 
         if hasattr(uv_trans, "y"):
@@ -186,12 +186,12 @@ class CameraGeometry:
             uv_y = uv_trans.y
             trans_x = trans.x
             trans_y = trans.y
-        elif hasattr(uv_trans, "fov_lat"):  # in case it's TelescopeFrame
+        elif hasattr(uv_trans, "fov_lat"):  # in case its TelescopeFrame
             uv_x = uv_trans.fov_lon
             uv_y = uv_trans.fov_lat
             trans_x = trans.fov_lon
             trans_y = trans.fov_lat
-        elif hasattr(uv_trans, "lat"):
+        elif hasattr(uv_trans, "lat"):  # in case its a sky frame
             uv_x = uv_trans.lon
             uv_y = uv_trans.lat
             trans_x = trans.lon
