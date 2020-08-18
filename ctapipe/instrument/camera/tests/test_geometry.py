@@ -300,6 +300,11 @@ def test_camera_coordinate_transform(camera_name):
     x = sky_geom.pix_x.to_value(u.deg)
     assert len(x) == len(geom.pix_x)
 
+    # and test going backward from spherical to cartesian:
+
+    geom_cam = sky_geom.transform_to(CameraFrame)
+    assert np.allclose(geom_cam.pix_x.to_value(unit), gepm.pix_x.to_value(unit))
+
 
 def test_guess_area():
     x = u.Quantity([0, 1, 2], u.cm)
