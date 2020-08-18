@@ -108,7 +108,7 @@ class CameraDisplay:
         self.geom = geometry
 
         if title is None:
-            title = geometry.camera_name
+            title = f"{geometry.camera_name} ({self.geom.frame.__class__.__name__})"
 
         # initialize the plot and generate the pixels as a
         # RegularPolyCollection
