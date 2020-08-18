@@ -225,10 +225,10 @@ class HillasReconstructor(Reconstructor):
                 az=telescopes_pointings[tel_id].az,
                 frame=horizon_frame,
             )
-            
+
             focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
             unit = moments.x.unit
-            
+
             # we just need any point on the main shower axis a bit away from the cog
             p2_x = moments.x + 0.1 * unit * np.cos(moments.psi)
             p2_y = moments.y + 0.1 * unit * np.sin(moments.psi)
@@ -239,28 +239,31 @@ class HillasReconstructor(Reconstructor):
                     focal_length=focal_length, telescope_pointing=pointing
                 )
 
-                cog_coord = SkyCoord(x=moments.x, y=moments.y, frame=camera_frame,)
+                cog_coord = SkyCoord(x=moments.x, y=moments.y, frame=camera_frame)
                 p2_coord = SkyCoord(x=p2_x, y=p2_y, frame=camera_frame)
 
             else:  # Image parameters are already in TelescopeFrame
-            
-                
 
                 telescope_frame = TelescopeFrame(telescope_pointing=pointing)
 
                 cog_coord = SkyCoord(
-                    fov_lon=moments.x, fov_lat=moments.y, frame=telescope_frame,
+                    fov_lon=moments.x, fov_lat=moments.y, frame=telescope_frame
                 )
                 p2_coord = SkyCoord(fov_lon=p2_x, fov_lat=p2_y, frame=telescope_frame)
-                
+
+            # Coordinates in the sky
+            cog_coord = cog_coord.transform_to(horizon_frame)
+            p2_coord = p2_coord.transform_to(horizon_frame)
+
             # DIVERGENT MODE
-            # re-project from sky to a "fake"-parallel-pointing telescope
-            # then recalculate the psi angle
-            # In this case there is a posterior transformation to a parallel 
-            # so the origin of the coordinates shouldn't matter
-            # WARNING: possibly missing unit-test!
             if self.divergent_mode:
-                
+
+                # re-project from sky to a "fake"-parallel-pointing telescope
+                # then recalculate the psi angle
+                # In this case there is a posterior transformation to a parallel
+                # so the origin of the coordinates shouldn't matter
+                # WARNING: possibly missing unit-test!
+
                 camera_frame_parallel = CameraFrame(
                     focal_length=focal_length, telescope_pointing=array_pointing
                 )
@@ -271,9 +274,6 @@ class HillasReconstructor(Reconstructor):
                     cog_sky_to_parallel.x - p2_sky_to_parallel.x,
                 )
                 self.corrected_angle_dict[tel_id] = angle_psi_corr
-
-            cog_coord = cog_coord.transform_to(horizon_frame)
-            p2_coord = p2_coord.transform_to(horizon_frame)
 
             circle = HillasPlane(
                 p1=cog_coord,

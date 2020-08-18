@@ -179,7 +179,7 @@ def test_reconstruction_TelescopeFrame():
     reconstructed_events = 0
 
     # ==========================================================================
-    # CREATION OF TELESCOPEFRAMES
+    # CREATION OF TELESCOPE FRAMES
     # ==========================================================================
 
     geom_TelescopeFrame = {}
@@ -241,14 +241,10 @@ def test_reconstruction_TelescopeFrame():
         fit = HillasReconstructor()
         fit_result_parall = fit.predict(hillas_dict, source.subarray, array_pointing)
 
-        print(f"array_pointing = {array_pointing}")
-
         fit = HillasReconstructor()
         fit_result_tel_point = fit.predict(
             hillas_dict, source.subarray, array_pointing, telescope_pointings
         )
-
-        print(f"telescope_pointings = {telescope_pointings}")
 
         for key in fit_result_parall.keys():
             print(key, fit_result_parall[key], fit_result_tel_point[key])
@@ -257,6 +253,9 @@ def test_reconstruction_TelescopeFrame():
         fit_result_parall.az.to(u.deg)
         fit_result_parall.core_x.to(u.m)
         assert fit_result_parall.is_valid
+        assert fit_result_parall.az == fit_result_tel_point.az
+        assert fit_result_parall.alt == fit_result_tel_point.alt
+        # assert fit_result_parall == fit_result_tel_point
 
     assert reconstructed_events > 0
 
