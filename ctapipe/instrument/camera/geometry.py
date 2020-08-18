@@ -174,11 +174,11 @@ class CameraGeometry:
         if self.frame is None:
             self.frame = CameraFrame()
 
-        coord = SkyCoord(x=self.pix_x, y=self.pix_y, frame=self.frame)
+        coord = SkyCoord(self.pix_x, self.pix_y, frame=self.frame)
         trans = coord.transform_to(frame)
 
         # also transform the unit vectors, to get rotation / mirroring
-        uv = SkyCoord(x=[1, 0], y=[0, 1], unit=u.m, frame=self.frame)
+        uv = SkyCoord([1, 0], [0, 1], unit=self.pix_x.unit, frame=self.frame)
         uv_trans = uv.transform_to(frame)
 
         if hasattr(uv_trans, "y"):
@@ -186,12 +186,12 @@ class CameraGeometry:
             uv_y = uv_trans.y
             trans_x = trans.x
             trans_y = trans.y
-        elif hasattr(uv_trans, "fov_lat"):  # in case it's TelescopeFrame
+        elif hasattr(uv_trans, "fov_lat"):  # in case its TelescopeFrame
             uv_x = uv_trans.fov_lon
             uv_y = uv_trans.fov_lat
             trans_x = trans.fov_lon
             trans_y = trans.fov_lat
-        elif hasattr(uv_trans, "lat"):
+        elif hasattr(uv_trans, "lat"):  # in case its a sky frame
             uv_x = uv_trans.lon
             uv_y = uv_trans.lat
             trans_x = trans.lon
@@ -204,7 +204,6 @@ class CameraGeometry:
 
         rot = np.arctan2(uv_y[0], uv_y[1])
         det = np.linalg.det([uv_x.value, uv_y.value])
-        print(f"DEBUG: det={det}, rot={rot.to('deg')}")
 
         cam_rotation = rot - self.cam_rotation
         pix_rotation = rot - self.pix_rotation
@@ -227,8 +226,8 @@ class CameraGeometry:
         return hash(
             (
                 self.camera_name,
-                self.pix_x[0].to_value(u.m),
-                self.pix_y[0].to_value(u.m),
+                self.pix_x[0].value,
+                self.pix_y[0].value,
                 self.pix_type,
                 self.pix_rotation.deg,
             )
@@ -330,9 +329,7 @@ class CameraGeometry:
 
         """
 
-        pixel_centers = np.column_stack(
-            [self.pix_x.to_value(u.m), self.pix_y.to_value(u.m)]
-        )
+        pixel_centers = np.column_stack([self.pix_x.value, self.pix_y.value])
         return KDTree(pixel_centers)
 
     @lazyproperty
@@ -705,9 +702,9 @@ class CameraGeometry:
             logger.warning(
                 " Method not implemented for cameras with varying pixel sizes"
             )
-
-        points_searched = np.dstack([x.to_value(u.m), y.to_value(u.m)])
-        circum_rad = self._pixel_circumferences[0].to_value(u.m)
+        unit = x.unit
+        points_searched = np.dstack([x.to_value(unit), y.to_value(unit)])
+        circum_rad = self._pixel_circumferences[0].to_value(unit)
         kdtree = self._kdtree
         dist, pix_indices = kdtree.query(
             points_searched, distance_upper_bound=circum_rad
@@ -739,13 +736,13 @@ class CameraGeometry:
                 # compare with inside pixel:
                 xprime = (
                     points_searched[0][index, 0]
-                    - self.pix_x[borderpix_index].to_value(u.m)
-                    + self.pix_x[insidepix_index].to_value(u.m)
+                    - self.pix_x[borderpix_index].to_value(unit)
+                    + self.pix_x[insidepix_index].to_value(unit)
                 )
                 yprime = (
                     points_searched[0][index, 1]
-                    - self.pix_y[borderpix_index].to_value(u.m)
-                    + self.pix_y[insidepix_index].to_value(u.m)
+                    - self.pix_y[borderpix_index].to_value(unit)
+                    + self.pix_y[insidepix_index].to_value(unit)
                 )
                 dist_check, index_check = kdtree.query(
                     [xprime, yprime], distance_upper_bound=circum_rad
