@@ -104,7 +104,11 @@ def test_reconstruction():
     reconstructed_events = 0
 
     for event in source:
-        array_pointing = SkyCoord(az=event.mc.az, alt=event.mc.alt, frame=horizon_frame)
+        array_pointing = SkyCoord(
+            az=event.pointing.array_azimuth,
+            alt=event.pointing.array_altitude,
+            frame=horizon_frame,
+        )
 
         hillas_dict = {}
         telescope_pointings = {}
@@ -155,7 +159,8 @@ def test_reconstruction():
         assert fit_result_parall.is_valid
 
     assert reconstructed_events > 0
-    
+
+
 def test_reconstruction_TelescopeFrame():
     """
     a test of the complete fit procedure on one event including:
@@ -172,26 +177,30 @@ def test_reconstruction_TelescopeFrame():
     horizon_frame = AltAz()
 
     reconstructed_events = 0
-    
+
     # ==========================================================================
     # CREATION OF TELESCOPEFRAMES
     # ==========================================================================
-    
+
     geom_TelescopeFrame = {}
     for telescope in source.subarray.telescope_types:
-        
+
         # Original geometry of each camera
         geom = telescope.camera.geometry
         cam_id = telescope.camera.camera_name
-        
+
         # Transformed geometry of each camera
         # It will be transformed using the equivalent focal length
         geom_TelescopeFrame[cam_id] = geom.transform_to(TelescopeFrame())
-    
+
     # ==========================================================================
 
     for event in source:
-        array_pointing = SkyCoord(az=event.mc.az, alt=event.mc.alt, frame=horizon_frame)
+        array_pointing = SkyCoord(
+            az=event.pointing.array_azimuth,
+            alt=event.pointing.array_altitude,
+            frame=horizon_frame,
+        )
 
         hillas_dict = {}
         telescope_pointings = {}
@@ -209,7 +218,10 @@ def test_reconstruction_TelescopeFrame():
             pmt_signal = event.r0.tel[tel_id].waveform[0].sum(axis=1)
 
             mask = tailcuts_clean(
-                geom_TelescopeFrame[cam_id], pmt_signal, picture_thresh=10.0, boundary_thresh=5.0
+                geom_TelescopeFrame[cam_id],
+                pmt_signal,
+                picture_thresh=10.0,
+                boundary_thresh=5.0,
             )
             pmt_signal[mask == 0] = 0
 
@@ -228,14 +240,14 @@ def test_reconstruction_TelescopeFrame():
         # The two reconstructions below give the same results
         fit = HillasReconstructor()
         fit_result_parall = fit.predict(hillas_dict, source.subarray, array_pointing)
-        
+
         print(f"array_pointing = {array_pointing}")
 
         fit = HillasReconstructor()
         fit_result_tel_point = fit.predict(
             hillas_dict, source.subarray, array_pointing, telescope_pointings
         )
-        
+
         print(f"telescope_pointings = {telescope_pointings}")
 
         for key in fit_result_parall.keys():
