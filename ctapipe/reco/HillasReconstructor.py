@@ -218,10 +218,6 @@ class HillasReconstructor(Reconstructor):
         k = next(iter(telescopes_pointings))
         horizon_frame = telescopes_pointings[k].frame
         for tel_id, moments in hillas_dict.items():
-            # we just need any point on the main shower axis a bit away from the cog
-            p2_x = moments.x + 0.1 * u.m * np.cos(moments.psi)
-            p2_y = moments.y + 0.1 * u.m * np.sin(moments.psi)
-            focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
 
             pointing = SkyCoord(
                 alt=telescopes_pointings[tel_id].alt,
@@ -229,29 +225,57 @@ class HillasReconstructor(Reconstructor):
                 frame=horizon_frame,
             )
 
-            camera_frame = CameraFrame(
-                focal_length=focal_length, telescope_pointing=pointing
-            )
+            if moments.x.unit == u.Unit("m"):  # Image parameters are in CameraFrame
 
-            cog_coord = SkyCoord(x=moments.x, y=moments.y, frame=camera_frame,)
+                # we just need any point on the main shower axis a bit away from the cog
+                p2_x = moments.x + 0.1 * u.m * np.cos(moments.psi)
+                p2_y = moments.y + 0.1 * u.m * np.sin(moments.psi)
+                focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
+
+                camera_frame = CameraFrame(
+                    focal_length=focal_length, telescope_pointing=pointing
+                )
+
+                cog_coord = SkyCoord(x=moments.x, y=moments.y, frame=camera_frame,)
+                p2_coord = SkyCoord(x=p2_x, y=p2_y, frame=camera_frame)
+
+                # ==============
+                # DIVERGENT MODE
+
+                # re-project from sky to a "fake"-parallel-pointing telescope
+                # then recalculate the psi angle
+
+                # WARNING: this part will need to be reproduced accordingly in the TelescopeFrame case!
+
+                if self.divergent_mode:
+                    camera_frame_parallel = CameraFrame(
+                        focal_length=focal_length, telescope_pointing=array_pointing
+                    )
+                    cog_sky_to_parallel = cog_coord.transform_to(camera_frame_parallel)
+                    p2_sky_to_parallel = p2_coord.transform_to(camera_frame_parallel)
+                    angle_psi_corr = np.arctan2(
+                        cog_sky_to_parallel.y - p2_sky_to_parallel.y,
+                        cog_sky_to_parallel.x - p2_sky_to_parallel.x,
+                    )
+                    self.corrected_angle_dict[tel_id] = angle_psi_corr
+
+                # ============
+
+            else:  # Image parameters are already in TelescopeFrame
+
+                # we just need any point on the main shower axis a bit away from the cog
+                p2_x = moments.x + 0.1 * u.deg * np.cos(moments.psi)
+                p2_y = moments.y + 0.1 * u.deg * np.sin(moments.psi)
+
+                telescope_frame = TelescopeFrame(telescope_pointing=pointing)
+
+                cog_coord = SkyCoord(
+                    fov_lon=moments.x, fov_lat=moments.y, frame=telescope_frame,
+                )
+                p2_coord = SkyCoord(fov_lon=p2_x, fov_lat=p2_y, frame=telescope_frame)
+
             cog_coord = cog_coord.transform_to(horizon_frame)
-
-            p2_coord = SkyCoord(x=p2_x, y=p2_y, frame=camera_frame)
             p2_coord = p2_coord.transform_to(horizon_frame)
-
-            # re-project from sky to a "fake"-parallel-pointing telescope
-            # then recalculate the psi angle
-            if self.divergent_mode:
-                camera_frame_parallel = CameraFrame(
-                    focal_length=focal_length, telescope_pointing=array_pointing
-                )
-                cog_sky_to_parallel = cog_coord.transform_to(camera_frame_parallel)
-                p2_sky_to_parallel = p2_coord.transform_to(camera_frame_parallel)
-                angle_psi_corr = np.arctan2(
-                    cog_sky_to_parallel.y - p2_sky_to_parallel.y,
-                    cog_sky_to_parallel.x - p2_sky_to_parallel.x,
-                )
-                self.corrected_angle_dict[tel_id] = angle_psi_corr
 
             circle = HillasPlane(
                 p1=cog_coord,
