@@ -181,26 +181,14 @@ class CameraGeometry:
         uv = SkyCoord([1, 0], [0, 1], unit=self.pix_x.unit, frame=self.frame)
         uv_trans = uv.transform_to(frame)
 
-        if hasattr(uv_trans, "y"):
-            uv_x = uv_trans.x
-            uv_y = uv_trans.y
-            trans_x = trans.x
-            trans_y = trans.y
-        elif hasattr(uv_trans, "fov_lat"):  # in case its TelescopeFrame
-            uv_x = uv_trans.fov_lon
-            uv_y = uv_trans.fov_lat
-            trans_x = trans.fov_lon
-            trans_y = trans.fov_lat
-        elif hasattr(uv_trans, "lat"):  # in case its a sky frame
-            uv_x = uv_trans.lon
-            uv_y = uv_trans.lat
-            trans_x = trans.lon
-            trans_y = trans.lat
-        else:
-            raise RuntimeError(
-                f"Unable to transform to frame {frame}, "
-                "which has unknown representation"
-            )
+        # some trickers has to be done to deal with the fact that
+        # not all frames use the same x/y attributes. Therefore we get the
+        # component names, and access them by string:
+        frame_attrs = list(uv_trans.frame.get_representation_component_names().keys())
+        uv_x = getattr(uv_trans, frame_attrs[0])
+        uv_y = getattr(uv_trans, frame_attrs[1])
+        trans_x = getattr(trans, frame_attrs[0])
+        trans_y = getattr(trans, frame_attrs[1])
 
         rot = np.arctan2(uv_y[0], uv_y[1])
         det = np.linalg.det([uv_x.value, uv_y.value])
