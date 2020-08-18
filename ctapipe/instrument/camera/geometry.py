@@ -3,22 +3,21 @@
 Utilities for reading or working with Camera geometry files
 """
 import logging
+import warnings
+from typing import TypeVar
 
 import numpy as np
-from typing import TypeVar
 from astropy import units as u
 from astropy.coordinates import Angle, SkyCoord
+from astropy.coordinates import BaseCoordinateFrame
 from astropy.table import Table
 from astropy.utils import lazyproperty
-from scipy.spatial import cKDTree as KDTree
 from scipy.sparse import lil_matrix, csr_matrix
-from astropy.coordinates import BaseCoordinateFrame
-import warnings
+from scipy.spatial import cKDTree as KDTree
 
+from ctapipe.coordinates import CameraFrame
 from ctapipe.utils import get_table_dataset
 from ctapipe.utils.linalg import rotation_matrix_2d
-from ctapipe.coordinates import CameraFrame
-
 
 __all__ = ["CameraGeometry", "UnknownPixelShapeWarning"]
 
@@ -181,9 +180,9 @@ class CameraGeometry:
         uv = SkyCoord([1, 0], [0, 1], unit=self.pix_x.unit, frame=self.frame)
         uv_trans = uv.transform_to(frame)
 
-        # some trickers has to be done to deal with the fact that
-        # not all frames use the same x/y attributes. Therefore we get the
-        # component names, and access them by string:
+        # some trickery has to be done to deal with the fact that not all frames
+        # use the same x/y attributes. Therefore we get the component names, and
+        # access them by string:
         frame_attrs = list(uv_trans.frame.get_representation_component_names().keys())
         uv_x = getattr(uv_trans, frame_attrs[0])
         uv_y = getattr(uv_trans, frame_attrs[1])
