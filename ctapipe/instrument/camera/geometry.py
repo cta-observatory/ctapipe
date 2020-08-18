@@ -204,7 +204,6 @@ class CameraGeometry:
 
         rot = np.arctan2(uv_y[0], uv_y[1])
         det = np.linalg.det([uv_x.value, uv_y.value])
-        print(f"DEBUG: det={det}, rot={rot.to('deg')}")
 
         cam_rotation = rot - self.cam_rotation
         pix_rotation = rot - self.pix_rotation
@@ -227,8 +226,8 @@ class CameraGeometry:
         return hash(
             (
                 self.camera_name,
-                self.pix_x[0].to_value(u.m),
-                self.pix_y[0].to_value(u.m),
+                self.pix_x[0].value,
+                self.pix_y[0].value,
                 self.pix_type,
                 self.pix_rotation.deg,
             )
@@ -330,9 +329,7 @@ class CameraGeometry:
 
         """
 
-        pixel_centers = np.column_stack(
-            [self.pix_x.to_value(u.m), self.pix_y.to_value(u.m)]
-        )
+        pixel_centers = np.column_stack([self.pix_x.value, self.pix_y.value])
         return KDTree(pixel_centers)
 
     @lazyproperty
@@ -705,9 +702,9 @@ class CameraGeometry:
             logger.warning(
                 " Method not implemented for cameras with varying pixel sizes"
             )
-
-        points_searched = np.dstack([x.to_value(u.m), y.to_value(u.m)])
-        circum_rad = self._pixel_circumferences[0].to_value(u.m)
+        unit = x.unit
+        points_searched = np.dstack([x.to_value(unit), y.to_value(unit)])
+        circum_rad = self._pixel_circumferences[0].to_value(unit)
         kdtree = self._kdtree
         dist, pix_indices = kdtree.query(
             points_searched, distance_upper_bound=circum_rad
@@ -739,13 +736,13 @@ class CameraGeometry:
                 # compare with inside pixel:
                 xprime = (
                     points_searched[0][index, 0]
-                    - self.pix_x[borderpix_index].to_value(u.m)
-                    + self.pix_x[insidepix_index].to_value(u.m)
+                    - self.pix_x[borderpix_index].to_value(unit)
+                    + self.pix_x[insidepix_index].to_value(unit)
                 )
                 yprime = (
                     points_searched[0][index, 1]
-                    - self.pix_y[borderpix_index].to_value(u.m)
-                    + self.pix_y[insidepix_index].to_value(u.m)
+                    - self.pix_y[borderpix_index].to_value(unit)
+                    + self.pix_y[insidepix_index].to_value(unit)
                 )
                 dist_check, index_check = kdtree.query(
                     [xprime, yprime], distance_upper_bound=circum_rad
