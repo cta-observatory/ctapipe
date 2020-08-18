@@ -11,6 +11,7 @@ from ctapipe.reco.reco_algorithms import (
     InvalidWidthException,
 )
 from ctapipe.utils import get_dataset_path
+from ctapipe.coordinates import TelescopeFrame
 from astropy.coordinates import SkyCoord, AltAz
 
 
@@ -144,6 +145,98 @@ def test_reconstruction():
         fit_result_tel_point = fit.predict(
             hillas_dict, source.subarray, array_pointing, telescope_pointings
         )
+
+        for key in fit_result_parall.keys():
+            print(key, fit_result_parall[key], fit_result_tel_point[key])
+
+        fit_result_parall.alt.to(u.deg)
+        fit_result_parall.az.to(u.deg)
+        fit_result_parall.core_x.to(u.m)
+        assert fit_result_parall.is_valid
+
+    assert reconstructed_events > 0
+    
+def test_reconstruction_TelescopeFrame():
+    """
+    a test of the complete fit procedure on one event including:
+    • tailcut cleaning in CameraFrame
+    • hillas parametrisation in TelescopeFrame
+    • HillasPlane creation
+    • direction fit
+    • position fit
+
+    in the end, proper units in the output are asserted """
+    filename = get_dataset_path("gamma_test_large.simtel.gz")
+
+    source = event_source(filename, max_events=10)
+    horizon_frame = AltAz()
+
+    reconstructed_events = 0
+    
+    # ==========================================================================
+    # CREATION OF TELESCOPEFRAMES
+    # ==========================================================================
+    
+    geom_TelescopeFrame = {}
+    for telescope in source.subarray.telescope_types:
+        
+        # Original geometry of each camera
+        geom = telescope.camera.geometry
+        cam_id = telescope.camera.camera_name
+        
+        # Transformed geometry of each camera
+        # It will be transformed using the equivalent focal length
+        geom_TelescopeFrame[cam_id] = geom.transform_to(TelescopeFrame())
+    
+    # ==========================================================================
+
+    for event in source:
+        array_pointing = SkyCoord(az=event.mc.az, alt=event.mc.alt, frame=horizon_frame)
+
+        hillas_dict = {}
+        telescope_pointings = {}
+
+        for tel_id in event.dl0.tels_with_data:
+
+            geom = source.subarray.tel[tel_id].camera.geometry
+            cam_id = source.subarray.tel[tel_id].camera.camera_name
+
+            telescope_pointings[tel_id] = SkyCoord(
+                alt=event.pointing.tel[tel_id].altitude,
+                az=event.pointing.tel[tel_id].azimuth,
+                frame=horizon_frame,
+            )
+            pmt_signal = event.r0.tel[tel_id].waveform[0].sum(axis=1)
+
+            mask = tailcuts_clean(
+                geom_TelescopeFrame[cam_id], pmt_signal, picture_thresh=10.0, boundary_thresh=5.0
+            )
+            pmt_signal[mask == 0] = 0
+
+            try:
+                moments = hillas_parameters(geom_TelescopeFrame[cam_id], pmt_signal)
+                hillas_dict[tel_id] = moments
+            except HillasParameterizationError as e:
+                print(e)
+                continue
+
+        if len(hillas_dict) < 2:
+            continue
+        else:
+            reconstructed_events += 1
+
+        # The two reconstructions below give the same results
+        fit = HillasReconstructor()
+        fit_result_parall = fit.predict(hillas_dict, source.subarray, array_pointing)
+        
+        print(f"array_pointing = {array_pointing}")
+
+        fit = HillasReconstructor()
+        fit_result_tel_point = fit.predict(
+            hillas_dict, source.subarray, array_pointing, telescope_pointings
+        )
+        
+        print(f"telescope_pointings = {telescope_pointings}")
 
         for key in fit_result_parall.keys():
             print(key, fit_result_parall[key], fit_result_tel_point[key])
