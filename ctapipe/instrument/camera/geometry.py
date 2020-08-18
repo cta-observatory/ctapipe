@@ -204,7 +204,7 @@ class CameraGeometry:
             pix_type=self.pix_type,
             pix_rotation=pix_rotation,
             cam_rotation=cam_rotation,
-            neighbors=None,
+            neighbors=self._neighbors,
             apply_derotation=False,
             frame=frame,
         )
