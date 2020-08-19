@@ -53,7 +53,7 @@ class DL1EventSource(EventSource):
 
         self.file_ = tables.open_file(input_url)
         self.input_url = input_url
-        self._subarray_info = self._prepare_subarray_info()
+        self._subarray_info = SubarrayDescription.from_hdf(self.input_url)
         self._mc_headers = self._parse_mc_headers()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -95,7 +95,7 @@ class DL1EventSource(EventSource):
 
     @property
     def subarray(self):
-        return SubarrayDescription.from_hdf(self.input_url)
+        return self._subarray_info
 
     @property
     def datalevels(self):
@@ -109,16 +109,18 @@ class DL1EventSource(EventSource):
             return (DataLevel.DL1_IMAGES,)
 
     @property
+    def obs_ids(self):
+        return np.unique(
+            self.file_.root.dl1.event.subarray.trigger.col("obs_id")
+        )
+
+    @property
     def obs_id(self):
-        return set(self.file_.root.dl1.event.subarray.trigger.col("obs_id"))
+        return self.obs_ids[0] if len(self.obs_ids) == 1 else -1
 
     @property
     def mc_headers(self):
         return self._mc_headers
-
-    @property
-    def obs_ids(self):
-        return self.mc_headers.keys()
 
     def _generator(self):
         yield from self._generate_events()
