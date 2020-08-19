@@ -1,15 +1,7 @@
 import astropy.units as u
-from astropy.table import Table
 import numpy as np
 import tables
-from ctapipe.instrument import (
-    TelescopeDescription,
-    SubarrayDescription,
-    CameraDescription,
-    CameraGeometry,
-    CameraReadout,
-    OpticsDescription,
-)
+from ctapipe.instrument import SubarrayDescription
 from ctapipe.io.eventsource import EventSource
 from ctapipe.io import HDF5TableReader
 from ctapipe.io.datalevels import DataLevel
@@ -103,7 +95,7 @@ class DL1EventSource(EventSource):
 
     @property
     def subarray(self):
-        return self._subarray_info
+        return SubarrayDescription.from_hdf(self.input_url)
 
     @property
     def datalevels(self):
@@ -130,99 +122,6 @@ class DL1EventSource(EventSource):
 
     def _generator(self):
         yield from self._generate_events()
-
-    def _prepare_subarray_info(self):
-        """
-        ToDo: revisit after merge of #1405
-        Constructs a SubArrayDescription object from
-        the tables in /configuration/instrument.
-
-        Returns
-        -------
-        SubarrayDescription :
-            Instrumental information including the position,
-            optic and camera of each telescope
-        """
-
-        # collect all optics
-        optics_table = Table.read(
-            self.input_url,
-            "configuration/instrument/telescope/optics"
-        )
-        optic_descriptions = {}
-        for optic in optics_table:
-            # ToDo: .from_table() method missing for now (see #1358)
-            optic_description = OpticsDescription(
-                name=optic['name'],
-                num_mirrors=optic['num_mirrors'],
-                equivalent_focal_length=u.Quantity(
-                    optic['equivalent_focal_length'],
-                    optic.columns['equivalent_focal_length'].unit,
-                ),
-                mirror_area=u.Quantity(
-                    optic['mirror_area'],
-                    optic.columns['mirror_area'].unit,
-                ),
-                num_mirror_tiles=optic['num_mirror_tiles'],
-            )
-            optic_descriptions[optic['description']] = optic_description
-
-        # collect all cameras
-        # Maybe that loop/if-cases can be optimized?
-        cameras = {}
-        for cam_table in self.file_.root.configuration.instrument.telescope.camera:
-            if cam_table.name.endswith('meta__'):
-                continue
-            if cam_table.name.startswith('geometry'):
-                cam_name = str(cam_table).split('_')[1].split()[0]
-                geom_table_path = str(cam_table).split()[0]
-                geom = CameraGeometry.from_table(
-                    Table.read(
-                        self.input_url,
-                        geom_table_path
-                    )
-                )
-                readout_table_path = geom_table_path.replace('geometry', 'readout')
-                readout = CameraReadout.from_table(
-                    Table.read(
-                        self.input_url,
-                        readout_table_path
-                    )
-                )
-                camera = CameraDescription(
-                    cam_name,
-                    geom,
-                    readout
-                )
-                cameras[cam_name] = camera
-
-        # collect all telescopes and match optics and cameras
-        tel_positions = {}
-        tel_descriptions = {}
-        layout_table = Table.read(
-            self.input_url,
-            "configuration/instrument/subarray/layout"
-        )
-        for telescope in layout_table:
-            if self.allowed_tels and telescope['tel_id'] not in self.allowed_tels:
-                continue
-            tel_positions[telescope['tel_id']] = (
-                telescope['pos_x'],
-                telescope['pos_y'],
-                telescope['pos_z'],
-            )
-            tel_descriptions[telescope['tel_id']] = TelescopeDescription(
-                telescope['name'],
-                telescope['type'],
-                optic_descriptions[telescope['tel_description']],
-                cameras[telescope['camera_type']]
-            )
-
-        return SubarrayDescription(
-            name=layout_table.meta['SUBARRAY'],
-            tel_positions=tel_positions,
-            tel_descriptions=tel_descriptions,
-        )
 
     def _parse_mc_headers(self):
         """

@@ -29,6 +29,13 @@ def test_metadata(dl1_file):
         assert source.mc_headers[7514].corsika_version == 6990
 
 
+def test_subarray(dl1_file):
+    with DL1EventSource(input_url=dl1_file) as source:
+        assert source.subarray.telescope_types
+        assert source.subarray.camera_types
+        assert source.subarray.optics_types
+
+
 def test_max_events(dl1_file):
     max_events = 5
     with DL1EventSource(input_url=dl1_file, max_events=max_events) as source:
