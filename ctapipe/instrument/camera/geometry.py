@@ -3,24 +3,26 @@
 Utilities for reading or working with Camera geometry files
 """
 import logging
+import warnings
+from typing import TypeVar
 
 import numpy as np
 from astropy import units as u
 from astropy.coordinates import Angle, SkyCoord
+from astropy.coordinates import BaseCoordinateFrame
 from astropy.table import Table
 from astropy.utils import lazyproperty
-from scipy.spatial import cKDTree as KDTree
 from scipy.sparse import lil_matrix, csr_matrix
-import warnings
+from scipy.spatial import cKDTree as KDTree
 
+from ctapipe.coordinates import CameraFrame
 from ctapipe.utils import get_table_dataset
 from ctapipe.utils.linalg import rotation_matrix_2d
-from ctapipe.coordinates import CameraFrame
-
 
 __all__ = ["CameraGeometry", "UnknownPixelShapeWarning"]
 
 logger = logging.getLogger(__name__)
+CG = TypeVar("CG", bound="CameraGeometry")  # for forward-referencing type hints
 
 
 class CameraGeometry:
@@ -150,41 +152,59 @@ class CameraGeometry:
             (self.pix_x[border] - cx) ** 2 + (self.pix_y[border] - cy) ** 2
         ).mean()
 
-    def transform_to(self, frame):
-        """
-        Transform the pixel coordinates stored in this geometry
-        and the pixel and camera rotations to another camera coordinate frame.
+    def transform_to(self, frame: BaseCoordinateFrame) -> CG:
+        """Transform the pixel coordinates stored in this geometry and the pixel
+        and camera rotations to another camera coordinate frame.
+
+        Note that `geom.frame` must contain all the necessary attributes needed
+        to transform into the requested frame, i.e. if going from `CameraFrame`
+        to `TelescopeFrame`, it should contain a `focal_length` attribute.
 
         Parameters
         ----------
         frame: ctapipe.coordinates.CameraFrame
             The coordinate frame to transform to.
+
+        Returns
+        -------
+        CameraGeometry:
+            new instance in the requested Frame
         """
         if self.frame is None:
             self.frame = CameraFrame()
 
-        coord = SkyCoord(x=self.pix_x, y=self.pix_y, frame=self.frame)
+        coord = SkyCoord(self.pix_x, self.pix_y, frame=self.frame)
         trans = coord.transform_to(frame)
 
         # also transform the unit vectors, to get rotation / mirroring
-        uv = SkyCoord(x=[1, 0], y=[0, 1], unit=u.m, frame=self.frame)
+        uv = SkyCoord([1, 0], [0, 1], unit=self.pix_x.unit, frame=self.frame)
         uv_trans = uv.transform_to(frame)
-        rot = np.arctan2(uv_trans[0].y, uv_trans[1].y)
-        det = np.linalg.det([uv_trans.x.value, uv_trans.y.value])
 
-        cam_rotation = rot + det * self.cam_rotation
-        pix_rotation = rot + det * self.pix_rotation
+        # some trickery has to be done to deal with the fact that not all frames
+        # use the same x/y attributes. Therefore we get the component names, and
+        # access them by string:
+        frame_attrs = list(uv_trans.frame.get_representation_component_names().keys())
+        uv_x = getattr(uv_trans, frame_attrs[0])
+        uv_y = getattr(uv_trans, frame_attrs[1])
+        trans_x = getattr(trans, frame_attrs[0])
+        trans_y = getattr(trans, frame_attrs[1])
+
+        rot = np.arctan2(uv_y[0], uv_y[1])
+        det = np.linalg.det([uv_x.value, uv_y.value])
+
+        cam_rotation = rot - self.cam_rotation
+        pix_rotation = rot - self.pix_rotation
 
         return CameraGeometry(
             camera_name=self.camera_name,
             pix_id=self.pix_id,
-            pix_x=trans.x,
-            pix_y=trans.y,
-            pix_area=self.pix_area,
+            pix_x=trans_x,
+            pix_y=trans_y,
+            pix_area=self.guess_pixel_area(trans_x, trans_y, self.pix_type),
             pix_type=self.pix_type,
             pix_rotation=pix_rotation,
             cam_rotation=cam_rotation,
-            neighbors=None,
+            neighbors=self._neighbors,
             apply_derotation=False,
             frame=frame,
         )
@@ -193,8 +213,8 @@ class CameraGeometry:
         return hash(
             (
                 self.camera_name,
-                self.pix_x[0].to_value(u.m),
-                self.pix_y[0].to_value(u.m),
+                self.pix_x[0].value,
+                self.pix_y[0].value,
                 self.pix_type,
                 self.pix_rotation.deg,
             )
@@ -296,9 +316,7 @@ class CameraGeometry:
 
         """
 
-        pixel_centers = np.column_stack(
-            [self.pix_x.to_value(u.m), self.pix_y.to_value(u.m)]
-        )
+        pixel_centers = np.column_stack([self.pix_x.value, self.pix_y.value])
         return KDTree(pixel_centers)
 
     @lazyproperty
@@ -671,9 +689,9 @@ class CameraGeometry:
             logger.warning(
                 " Method not implemented for cameras with varying pixel sizes"
             )
-
-        points_searched = np.dstack([x.to_value(u.m), y.to_value(u.m)])
-        circum_rad = self._pixel_circumferences[0].to_value(u.m)
+        unit = x.unit
+        points_searched = np.dstack([x.to_value(unit), y.to_value(unit)])
+        circum_rad = self._pixel_circumferences[0].to_value(unit)
         kdtree = self._kdtree
         dist, pix_indices = kdtree.query(
             points_searched, distance_upper_bound=circum_rad
@@ -705,13 +723,13 @@ class CameraGeometry:
                 # compare with inside pixel:
                 xprime = (
                     points_searched[0][index, 0]
-                    - self.pix_x[borderpix_index].to_value(u.m)
-                    + self.pix_x[insidepix_index].to_value(u.m)
+                    - self.pix_x[borderpix_index].to_value(unit)
+                    + self.pix_x[insidepix_index].to_value(unit)
                 )
                 yprime = (
                     points_searched[0][index, 1]
-                    - self.pix_y[borderpix_index].to_value(u.m)
-                    + self.pix_y[insidepix_index].to_value(u.m)
+                    - self.pix_y[borderpix_index].to_value(unit)
+                    + self.pix_y[insidepix_index].to_value(unit)
                 )
                 dist_check, index_check = kdtree.query(
                     [xprime, yprime], distance_upper_bound=circum_rad
