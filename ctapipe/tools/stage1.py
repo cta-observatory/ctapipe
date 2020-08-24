@@ -314,7 +314,8 @@ class Stage1ProcessorTool(Tool):
             obs_id = Field(0, "MC Run Identifier")
 
         extramc = ExtraMCInfo()
-        extramc.obs_id = self.event_source.obs_id
+        # ToDo: Support merged files (multiple obs_ids)
+        extramc.obs_id = self.event_source.obs_ids[0]
         self.event_source.mc_header.prefix = ""
         writer.write(
             "configuration/simulation/run", [extramc, self.event_source.mc_header]
@@ -368,7 +369,8 @@ class Stage1ProcessorTool(Tool):
             hist_container.prefix = ""
             for hist in hists:
                 if hist["id"] == 6:
-                    fill_from_simtel(self.event_source.obs_id, hist, hist_container)
+                    # ToDo: Support merged files (multiple obs_ids)
+                    fill_from_simtel(self.event_source.obs_ids[0], hist, hist_container)
                     writer.write(
                         table_name="simulation/service/shower_distribution",
                         containers=hist_container,
@@ -690,9 +692,10 @@ class Stage1ProcessorTool(Tool):
             if self.write_index_tables:
                 self._generate_indices(writer)
 
+            # ToDo: Support merged files (multiple obs_ids)
             write_reference_metadata_headers(
                 subarray=self.event_source.subarray,
-                obs_id=self.event_source.obs_id,
+                obs_id=self.event_source.obs_ids[0],
                 writer=writer,
             )
         self._write_processing_statistics()

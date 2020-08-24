@@ -110,13 +110,9 @@ class DL1EventSource(EventSource):
 
     @property
     def obs_ids(self):
-        return np.unique(
-            self.file_.root.dl1.event.subarray.trigger.col("obs_id")
+        return list(
+            np.unique(self.file_.root.dl1.event.subarray.trigger.col("obs_id"))
         )
-
-    @property
-    def obs_id(self):
-        return self.obs_ids[0] if len(self.obs_ids) == 1 else -1
 
     @property
     def mc_headers(self):

@@ -120,7 +120,7 @@ def test_properties():
     assert source.is_simulation
     assert source.mc_header.corsika_version == 6990
     assert source.datalevels == (DataLevel.R0, DataLevel.R1)
-    assert source.obs_id == 7514
+    assert source.obs_ids == [7514, ]
 
 
 def test_gamma_file():
