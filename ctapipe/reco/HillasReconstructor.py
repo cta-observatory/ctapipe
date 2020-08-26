@@ -4,6 +4,8 @@ Line-intersection-based fitting.
 Contact: Tino Michael <Tino.Michael@cea.fr>
 """
 
+from copy import deepcopy
+from astropy.coordinates import Angle
 
 from ctapipe.reco.reco_algorithms import (
     Reconstructor,
@@ -105,6 +107,7 @@ class HillasReconstructor(Reconstructor):
         self.hillas_planes = {}
         self.divergent_mode = False
         self.corrected_angle_dict = {}
+        self.mode = "CameraFrame"
 
     def predict(self, hillas_dict, subarray, array_pointing, telescopes_pointings=None):
         """
@@ -171,10 +174,20 @@ class HillasReconstructor(Reconstructor):
         direction, err_est_dir = self.estimate_direction()
 
         # array pointing is needed to define the tilted frame
-        core_pos = self.estimate_core_position(hillas_dict, array_pointing)
+        print("calling estimate_core_position ...")
+        core_pos_x, core_pos_y, hillas_dict_new = self.estimate_core_position(
+            hillas_dict, array_pointing
+        )
+
+        core_pos = [core_pos_x, core_pos_y]
 
         # container class for reconstructed showers
-        _, lat, lon = cartesian_to_spherical(*direction)
+        if self.mode == "CameraFrame":
+            _, lat, lon = cartesian_to_spherical(*direction)
+        elif self.mode == "TelescopeFrame":
+            _, lon, lat = cartesian_to_spherical(*direction)
+            lon *= -1
+            lat *= -1
 
         # estimate max height of shower
         h_max = self.estimate_h_max()
@@ -194,7 +207,7 @@ class HillasReconstructor(Reconstructor):
             h_max=h_max,
         )
 
-        return result
+        return result, hillas_dict_new
 
     def initialize_hillas_planes(
         self, hillas_dict, subarray, telescopes_pointings, array_pointing
@@ -227,13 +240,12 @@ class HillasReconstructor(Reconstructor):
             )
 
             focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
-            unit = moments.x.unit
-
-            # we just need any point on the main shower axis a bit away from the cog
-            p2_x = moments.x + 0.1 * unit * np.cos(moments.psi)
-            p2_y = moments.y + 0.1 * unit * np.sin(moments.psi)
 
             if moments.x.unit == u.Unit("m"):  # Image parameters are in CameraFrame
+
+                # we just need any point on the main shower axis a bit away from the cog
+                p2_x = moments.x + 0.1 * u.m * np.cos(moments.psi)
+                p2_y = moments.y + 0.1 * u.m * np.sin(moments.psi)
 
                 camera_frame = CameraFrame(
                     focal_length=focal_length, telescope_pointing=pointing
@@ -244,16 +256,33 @@ class HillasReconstructor(Reconstructor):
 
             else:  # Image parameters are already in TelescopeFrame
 
+                self.mode = "TelescopeFrame"
+
+                # we just need any point on the main shower axis a bit away from the cog
+                p2_delta_alt = moments.x + 0.1 * u.deg * np.sin(
+                    (np.pi / 2.0) * u.rad - moments.psi
+                )
+                p2_delta_az = moments.y + 0.1 * u.deg * np.cos(
+                    (np.pi / 2.0) * u.rad - moments.psi
+                )
+
                 telescope_frame = TelescopeFrame(telescope_pointing=pointing)
 
                 cog_coord = SkyCoord(
-                    fov_lon=moments.x, fov_lat=moments.y, frame=telescope_frame
+                    fov_lon=moments.y, fov_lat=moments.x, frame=telescope_frame
                 )
-                p2_coord = SkyCoord(fov_lon=p2_x, fov_lat=p2_y, frame=telescope_frame)
+                p2_coord = SkyCoord(
+                    fov_lon=p2_delta_az, fov_lat=p2_delta_alt, frame=telescope_frame
+                )
 
             # Coordinates in the sky
             cog_coord = cog_coord.transform_to(horizon_frame)
             p2_coord = p2_coord.transform_to(horizon_frame)
+
+            print(f"predict mode = ", self.mode)
+            print(
+                f"tel_id = {tel_id}, cog_coord horizon_frame INSIDE predict = (az: {cog_coord.az} , alt: {cog_coord.alt})"
+            )
 
             # DIVERGENT MODE
             if self.divergent_mode:
@@ -273,6 +302,11 @@ class HillasReconstructor(Reconstructor):
                     cog_sky_to_parallel.y - p2_sky_to_parallel.y,
                     cog_sky_to_parallel.x - p2_sky_to_parallel.x,
                 )
+
+                # angle_psi_corr = np.arctan2(
+                #     cog_coord.alt - p2_coord.alt, cog_coord.az - p2_coord.az,
+                # )
+
                 self.corrected_angle_dict[tel_id] = angle_psi_corr
 
             circle = HillasPlane(
@@ -339,10 +373,24 @@ class HillasReconstructor(Reconstructor):
             estimated y position of impact
 
         """
+        hillas_dict_div = deepcopy(hillas_dict)
         if self.divergent_mode:
             psi = u.Quantity(list(self.corrected_angle_dict.values()))
+            for tel_id in hillas_dict.keys():
+                hillas_dict_div[tel_id].psi = Angle(self.corrected_angle_dict[tel_id])
         else:
             psi = u.Quantity([h.psi for h in hillas_dict.values()])
+            print(f"PSI (INSIDE estimate_core_position - ORIGINAL) = {psi.to('rad')}")
+            if self.mode == "TelescopeFrame":
+                psi = (np.pi / 2) * u.rad - psi
+                print(
+                    f"PSI (INSIDE estimate_core_position - TelescopeFrame case) = {psi.to('rad')}"
+                )
+                print(f"OLD PSI = {u.Quantity([h.psi for h in hillas_dict.values()])}")
+            else:
+                print(
+                    f"PSI (INSIDE estimate_core_position - CameraFrame case) = {psi.to('deg')}"
+                )
 
         z = np.zeros(len(psi))
         uvw_vectors = np.column_stack([np.cos(psi).value, np.sin(psi).value, z])
@@ -367,7 +415,7 @@ class HillasReconstructor(Reconstructor):
 
         core_pos = project_to_ground(core_pos_tilted)
 
-        return core_pos.x, core_pos.y
+        return core_pos.x, core_pos.y, hillas_dict_div
 
     def estimate_h_max(self):
         """
