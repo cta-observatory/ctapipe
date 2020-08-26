@@ -95,6 +95,7 @@ class CameraDisplay:
         allow_pick=False,
         autoupdate=True,
         autoscale=True,
+        show_frame=True,
     ):
         self.axes = ax if ax is not None else plt.gca()
         self.pixels = None
@@ -160,23 +161,8 @@ class CameraDisplay:
         self.axes.set_title(title)
         self.axes.autoscale_view()
 
-        # add some descriptive labels
-        frame_name = (
-            self.geom.frame.__class__.__name__
-            if self.geom.frame is not None
-            else "Unknown Frame"
-        )
-        self.axes.text(  # position text relative to Axes
-            1.0,
-            0.0,
-            frame_name,
-            ha="right",
-            va="bottom",
-            transform=self.axes.transAxes,
-            color="grey",
-            fontsize="smaller",
-        )
-
+        if show_frame:
+            self.add_frame_name()
         # set up a patch to display when a pixel is clicked (and
         # pixel_picker is enabled):
 
@@ -498,3 +484,22 @@ class CameraDisplay:
 
         self.axes.set_xlabel(f"{axes_labels[0]}  ({self.geom.pix_x.unit})")
         self.axes.set_ylabel(f"{axes_labels[1]}  ({self.geom.pix_y.unit})")
+
+    def add_frame_name(self, color="grey"):
+        """ label the frame type of the display (e.g. CameraFrame) """
+
+        frame_name = (
+            self.geom.frame.__class__.__name__
+            if self.geom.frame is not None
+            else "Unknown Frame"
+        )
+        self.axes.text(  # position text relative to Axes
+            1.0,
+            0.0,
+            frame_name,
+            ha="right",
+            va="bottom",
+            transform=self.axes.transAxes,
+            color=color,
+            fontsize="smaller",
+        )
