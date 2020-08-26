@@ -495,8 +495,6 @@ class CameraDisplay:
             axes_labels = list(
                 self.geom.frame.get_representation_component_names().keys()
             )
-        else:
-            print(f"FRAME: {self.geom.frame}")
 
         self.axes.set_xlabel(f"{axes_labels[0]}  ({self.geom.pix_x.unit})")
         self.axes.set_ylabel(f"{axes_labels[1]}  ({self.geom.pix_y.unit})")
