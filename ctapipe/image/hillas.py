@@ -153,7 +153,7 @@ def hillas_parameters(geom, image):
         psi = skewness_long = kurtosis_long = np.nan
     else:
         if vx != 0:
-            psi = np.arctan(vy / vx)
+            psi = np.arctan2(vy, vx)
         else:
             psi = np.pi / 2
 
