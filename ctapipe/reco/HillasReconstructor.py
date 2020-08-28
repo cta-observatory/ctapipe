@@ -4,9 +4,6 @@ Line-intersection-based fitting.
 Contact: Tino Michael <Tino.Michael@cea.fr>
 """
 
-from copy import deepcopy
-from astropy.coordinates import Angle
-
 from ctapipe.reco.reco_algorithms import (
     Reconstructor,
     InvalidWidthException,
