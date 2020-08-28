@@ -246,9 +246,9 @@ class ArrayDisplay:
             if params.psi_divergent:
                 psi = Angle(params.psi_divergent)
             elif params.x.unit == u.Unit("deg"):
-                Angle((np.pi / 2.0) * u.rad - params.psi)  # from TelescopeFrame
+                psi = Angle((np.pi / 2.0) * u.rad - params.psi)  # from TelescopeFrame
             else:
-                Angle(params.psi)  # from CameraFrame
+                psi = Angle(params.psi)  # from CameraFrame
 
             if time_gradient[tel_id] > 0.01:
                 angle_offset = Angle(angle_offset)
@@ -284,12 +284,15 @@ class ArrayDisplay:
             x_0 = coords[idx].x.to_value(u.m)
             y_0 = coords[idx].y.to_value(u.m)
 
-            if params.psi_divergent:
+            if str(params.psi_divergent.value) != "nan":
                 psi = Angle(params.psi_divergent)
-            elif params.x.unit == u.Unit("deg"):
-                Angle((np.pi / 2.0) * u.rad - params.psi)  # from TelescopeFrame
             else:
-                Angle(params.psi)  # from CameraFrame
+                if params.x.unit == u.Unit("deg"):
+                    psi = Angle(
+                        (np.pi / 2.0) * u.rad - params.psi
+                    )  # from TelescopeFrame
+                else:
+                    psi = Angle(params.psi)  # from CameraFrame
 
             x = x_0 + np.cos(psi) * r
             y = y_0 + np.sin(psi) * r
