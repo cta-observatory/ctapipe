@@ -162,6 +162,7 @@ class HillasReconstructor(Reconstructor):
             telescopes_pointings = {
                 tel_id: array_pointing for tel_id in hillas_dict.keys()
             }
+            self.divergent_mode = False
         else:
             self.divergent_mode = True
             self.corrected_angle_dict = {}
@@ -177,12 +178,7 @@ class HillasReconstructor(Reconstructor):
         core_pos = self.estimate_core_position(hillas_dict, array_pointing)
 
         # container class for reconstructed showers
-        if self.mode == "CameraFrame":
-            _, lat, lon = cartesian_to_spherical(*direction)
-        elif self.mode == "TelescopeFrame":
-            _, lon, lat = cartesian_to_spherical(*direction)
-            lon *= -1
-            lat *= -1
+        _, lat, lon = cartesian_to_spherical(*direction)
 
         # estimate max height of shower
         h_max = self.estimate_h_max()
@@ -254,17 +250,13 @@ class HillasReconstructor(Reconstructor):
                 self.mode = "TelescopeFrame"
 
                 # we just need any point on the main shower axis a bit away from the cog
-                p2_delta_alt = moments.x + 0.1 * u.deg * np.sin(
-                    (np.pi / 2.0) * u.rad - moments.psi
-                )
-                p2_delta_az = moments.y + 0.1 * u.deg * np.cos(
-                    (np.pi / 2.0) * u.rad - moments.psi
-                )
+                p2_delta_alt = moments.y + 0.1 * u.deg * np.sin(moments.psi)
+                p2_delta_az = moments.x + 0.1 * u.deg * np.cos(moments.psi)
 
                 telescope_frame = TelescopeFrame(telescope_pointing=pointing)
 
                 cog_coord = SkyCoord(
-                    fov_lon=moments.y, fov_lat=moments.x, frame=telescope_frame
+                    fov_lon=moments.x, fov_lat=moments.y, frame=telescope_frame
                 )
                 p2_coord = SkyCoord(
                     fov_lon=p2_delta_az, fov_lat=p2_delta_alt, frame=telescope_frame
