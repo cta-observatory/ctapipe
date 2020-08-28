@@ -174,12 +174,7 @@ class HillasReconstructor(Reconstructor):
         direction, err_est_dir = self.estimate_direction()
 
         # array pointing is needed to define the tilted frame
-        print("calling estimate_core_position ...")
-        core_pos_x, core_pos_y, hillas_dict_new = self.estimate_core_position(
-            hillas_dict, array_pointing
-        )
-
-        core_pos = [core_pos_x, core_pos_y]
+        core_pos = self.estimate_core_position(hillas_dict, array_pointing)
 
         # container class for reconstructed showers
         if self.mode == "CameraFrame":
@@ -207,7 +202,7 @@ class HillasReconstructor(Reconstructor):
             h_max=h_max,
         )
 
-        return result, hillas_dict_new
+        return result
 
     def initialize_hillas_planes(
         self, hillas_dict, subarray, telescopes_pointings, array_pointing
@@ -279,11 +274,6 @@ class HillasReconstructor(Reconstructor):
             cog_coord = cog_coord.transform_to(horizon_frame)
             p2_coord = p2_coord.transform_to(horizon_frame)
 
-            print(f"predict mode = ", self.mode)
-            print(
-                f"tel_id = {tel_id}, cog_coord horizon_frame INSIDE predict = (az: {cog_coord.az} , alt: {cog_coord.alt})"
-            )
-
             # DIVERGENT MODE
             if self.divergent_mode:
 
@@ -303,11 +293,10 @@ class HillasReconstructor(Reconstructor):
                     cog_sky_to_parallel.x - p2_sky_to_parallel.x,
                 )
 
-                # angle_psi_corr = np.arctan2(
-                #     cog_coord.alt - p2_coord.alt, cog_coord.az - p2_coord.az,
-                # )
-
                 self.corrected_angle_dict[tel_id] = angle_psi_corr
+
+                # record this angle
+                moments["psi_divergent"] = angle_psi_corr
 
             circle = HillasPlane(
                 p1=cog_coord,
@@ -373,24 +362,20 @@ class HillasReconstructor(Reconstructor):
             estimated y position of impact
 
         """
-        hillas_dict_div = deepcopy(hillas_dict)
         if self.divergent_mode:
             psi = u.Quantity(list(self.corrected_angle_dict.values()))
-            for tel_id in hillas_dict.keys():
-                hillas_dict_div[tel_id].psi = Angle(self.corrected_angle_dict[tel_id])
+            # Since psi has been recalculated in the fake CameraFrame
+            # now we don't need other corrections
+            # this should also be the angle used in ArrayDisplay
         else:
             psi = u.Quantity([h.psi for h in hillas_dict.values()])
-            print(f"PSI (INSIDE estimate_core_position - ORIGINAL) = {psi.to('rad')}")
+
             if self.mode == "TelescopeFrame":
+                # whereas here
+                # to calculate the core in the groundframe
+                # we need to flip the x and y axes back as they
+                # would be in CameraFrame
                 psi = (np.pi / 2) * u.rad - psi
-                print(
-                    f"PSI (INSIDE estimate_core_position - TelescopeFrame case) = {psi.to('rad')}"
-                )
-                print(f"OLD PSI = {u.Quantity([h.psi for h in hillas_dict.values()])}")
-            else:
-                print(
-                    f"PSI (INSIDE estimate_core_position - CameraFrame case) = {psi.to('deg')}"
-                )
 
         z = np.zeros(len(psi))
         uvw_vectors = np.column_stack([np.cos(psi).value, np.sin(psi).value, z])
@@ -415,7 +400,7 @@ class HillasReconstructor(Reconstructor):
 
         core_pos = project_to_ground(core_pos_tilted)
 
-        return core_pos.x, core_pos.y, hillas_dict_div
+        return core_pos.x, core_pos.y
 
     def estimate_h_max(self):
         """
