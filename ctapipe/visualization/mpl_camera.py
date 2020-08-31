@@ -95,6 +95,7 @@ class CameraDisplay:
         allow_pick=False,
         autoupdate=True,
         autoscale=True,
+        show_frame=True,
     ):
         self.axes = ax if ax is not None else plt.gca()
         self.pixels = None
@@ -108,7 +109,7 @@ class CameraDisplay:
         self.geom = geometry
 
         if title is None:
-            title = f"{geometry.camera_name} ({self.geom.frame.__class__.__name__})"
+            title = f"{geometry.camera_name}"
 
         # initialize the plot and generate the pixels as a
         # RegularPolyCollection
@@ -158,10 +159,10 @@ class CameraDisplay:
 
         self.axes.set_aspect("equal", "datalim")
         self.axes.set_title(title)
-        self.axes.set_xlabel(f"X position ({self.geom.pix_x.unit})")
-        self.axes.set_ylabel(f"Y position ({self.geom.pix_y.unit})")
         self.axes.autoscale_view()
 
+        if show_frame:
+            self.add_frame_name()
         # set up a patch to display when a pixel is clicked (and
         # pixel_picker is enabled):
 
@@ -193,6 +194,7 @@ class CameraDisplay:
             self.image = np.zeros_like(self.geom.pix_id, dtype=np.float)
 
         self.norm = norm
+        self.auto_set_axes_labels()
 
     def highlight_pixels(self, pixels, color="g", linewidth=1, alpha=0.75):
         """
@@ -471,3 +473,33 @@ class CameraDisplay:
 
     def show(self):
         self.axes.figure.show()
+
+    def auto_set_axes_labels(self):
+        """ set the axes labels based on the Frame attribute"""
+        axes_labels = ("X", "Y")
+        if self.geom.frame is not None:
+            axes_labels = list(
+                self.geom.frame.get_representation_component_names().keys()
+            )
+
+        self.axes.set_xlabel(f"{axes_labels[0]}  ({self.geom.pix_x.unit})")
+        self.axes.set_ylabel(f"{axes_labels[1]}  ({self.geom.pix_y.unit})")
+
+    def add_frame_name(self, color="grey"):
+        """ label the frame type of the display (e.g. CameraFrame) """
+
+        frame_name = (
+            self.geom.frame.__class__.__name__
+            if self.geom.frame is not None
+            else "Unknown Frame"
+        )
+        self.axes.text(  # position text relative to Axes
+            1.0,
+            0.0,
+            frame_name,
+            ha="right",
+            va="bottom",
+            transform=self.axes.transAxes,
+            color=color,
+            fontsize="smaller",
+        )
