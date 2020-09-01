@@ -27,6 +27,7 @@ from ..instrument.guess import guess_telescope, UNKNOWN_TELESCOPE
 from ..containers import MCHeaderContainer
 from .eventsource import EventSource
 from .datalevels import DataLevel
+from ..coordinates import CameraFrame
 
 X_MAX_UNIT = u.g / (u.cm ** 2)
 
@@ -53,7 +54,7 @@ def parse_simtel_time(simtel_time):
     )
 
 
-def build_camera(cam_settings, pixel_settings, telescope):
+def build_camera(cam_settings, pixel_settings, telescope, frame):
     pixel_shape = cam_settings["pixel_shape"][0]
     try:
         pix_type, pix_rotation = CameraGeometry.simtel_shape_to_type(pixel_shape)
@@ -75,6 +76,7 @@ def build_camera(cam_settings, pixel_settings, telescope):
         pix_rotation=pix_rotation,
         cam_rotation=-Angle(cam_settings["cam_rot"], u.rad),
         apply_derotation=True,
+        frame=frame,
     )
     readout = CameraReadout(
         telescope.camera_name,
@@ -286,11 +288,6 @@ class SimTelEventSource(EventSource):
             except ValueError:
                 telescope = UNKNOWN_TELESCOPE
 
-            camera = self._camera_cache.get(telescope.camera_name)
-            if camera is None:
-                camera = build_camera(cam_settings, pixel_settings, telescope)
-                self._camera_cache[telescope.camera_name] = camera
-
             optics = OpticsDescription(
                 name=telescope.name,
                 num_mirrors=telescope.n_mirrors,
@@ -298,6 +295,16 @@ class SimTelEventSource(EventSource):
                 mirror_area=u.Quantity(cam_settings["mirror_area"], u.m ** 2),
                 num_mirror_tiles=cam_settings["n_mirrors"],
             )
+
+            camera = self._camera_cache.get(telescope.camera_name)
+            if camera is None:
+                camera = build_camera(
+                    cam_settings,
+                    pixel_settings,
+                    telescope,
+                    frame=CameraFrame(focal_length=optics.equivalent_focal_length),
+                )
+                self._camera_cache[telescope.camera_name] = camera
 
             tel_descriptions[tel_id] = TelescopeDescription(
                 name=telescope.name,
