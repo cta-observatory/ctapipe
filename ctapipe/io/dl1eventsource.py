@@ -59,13 +59,8 @@ class DL1EventSource(EventSource):
         image parameters evaluated on these.
 
     """
-    def __init__(
-        self,
-        input_url,
-        config=None,
-        parent=None,
-        **kwargs
-    ):
+
+    def __init__(self, input_url, config=None, parent=None, **kwargs):
         """
         EventSource for dl1 files in the standard DL1 data format
 
@@ -81,12 +76,7 @@ class DL1EventSource(EventSource):
             Parent from which the config is used. Mutually exclusive with config
         kwargs
         """
-        super().__init__(
-            input_url=input_url,
-            config=config,
-            parent=parent,
-            **kwargs
-        )
+        super().__init__(input_url=input_url, config=config, parent=parent, **kwargs)
 
         self.file_ = tables.open_file(input_url)
         self.input_url = input_url
@@ -101,15 +91,15 @@ class DL1EventSource(EventSource):
 
     @staticmethod
     def is_compatible(file_path):
-        with open(file_path, 'rb') as f:
+        with open(file_path, "rb") as f:
             magic_number = f.read(8)
-        if magic_number != b'\x89HDF\r\n\x1a\n':
+        if magic_number != b"\x89HDF\r\n\x1a\n":
             return False
         with tables.open_file(file_path) as f:
             metadata = f.root._v_attrs
-            if 'CTA PRODUCT DESCRIPTION' not in metadata._v_attrnames:
+            if "CTA PRODUCT DESCRIPTION" not in metadata._v_attrnames:
                 return False
-            if metadata['CTA PRODUCT DESCRIPTION'] != 'DL1 Data Product':
+            if metadata["CTA PRODUCT DESCRIPTION"] != "DL1 Data Product":
                 return False
         return True
 
@@ -136,8 +126,8 @@ class DL1EventSource(EventSource):
 
     @property
     def datalevels(self):
-        params = 'parameters' in self.file_.root.dl1.event.telescope
-        images = 'images' in self.file_.root.dl1.event.telescope
+        params = "parameters" in self.file_.root.dl1.event.telescope
+        images = "images" in self.file_.root.dl1.event.telescope
         if params and images:
             return (DataLevel.DL1_IMAGES, DataLevel.DL1_PARAMETERS)
         elif params:
@@ -147,9 +137,7 @@ class DL1EventSource(EventSource):
 
     @property
     def obs_ids(self):
-        return list(
-            np.unique(self.file_.root.dl1.event.subarray.trigger.col("obs_id"))
-        )
+        return list(np.unique(self.file_.root.dl1.event.subarray.trigger.col("obs_id")))
 
     @property
     def mc_headers(self):
@@ -157,6 +145,9 @@ class DL1EventSource(EventSource):
 
     def _generator(self):
         yield from self._generate_events()
+
+    def __len__(self):
+        return len(self.file_.root.dl1.event.subarray.trigger)
 
     def _parse_mc_headers(self):
         """
@@ -171,13 +162,13 @@ class DL1EventSource(EventSource):
         # Alternatively this becomes a flat list
         # and the obs_id matching part needs to be done in _generate_events()
         mc_headers = {}
-        if 'simulation' in self.file_.root.configuration:
+        if "simulation" in self.file_.root.configuration:
             reader = HDF5TableReader(self.file_).read(
-                '/configuration/simulation/run', MCHeaderContainer()
+                "/configuration/simulation/run", MCHeaderContainer()
             )
             row_iterator = self.file_.root.configuration.simulation.run.iterrows()
             for row in row_iterator:
-                mc_headers[row['obs_id']] = next(reader)
+                mc_headers[row["obs_id"]] = next(reader)
         return mc_headers
 
     def _generate_events(self):
@@ -193,12 +184,16 @@ class DL1EventSource(EventSource):
 
         if DataLevel.DL1_IMAGES in self.datalevels:
             image_iterators = {
-                tel.name: self.file_.root.dl1.event.telescope.images[tel.name].iterrows()
+                tel.name: self.file_.root.dl1.event.telescope.images[
+                    tel.name
+                ].iterrows()
                 for tel in self.file_.root.dl1.event.telescope.images
             }
             if self.has_simulated_dl1:
                 true_image_iterators = {
-                    tel.name: self.file_.root.simulation.event.telescope.images[tel.name].iterrows()
+                    tel.name: self.file_.root.simulation.event.telescope.images[
+                        tel.name
+                    ].iterrows()
                     for tel in self.file_.root.simulation.event.telescope.images
                 }
 
@@ -215,7 +210,7 @@ class DL1EventSource(EventSource):
                         IntensityStatisticsContainer(),
                         PeakTimeStatisticsContainer(),
                     ],
-                    prefixes=True
+                    prefixes=True,
                 )
                 for tel in self.file_.root.dl1.event.telescope.parameters
             }
@@ -232,7 +227,7 @@ class DL1EventSource(EventSource):
                             IntensityStatisticsContainer(),
                             PeakTimeStatisticsContainer(),
                         ],
-                        prefixes=True
+                        prefixes=True,
                     )
                     for tel in self.file_.root.dl1.event.telescope.parameters
                 }
@@ -240,15 +235,12 @@ class DL1EventSource(EventSource):
         if self.is_simulation:
             # true shower wide information
             mc_shower_reader = HDF5TableReader(self.file_).read(
-                '/simulation/event/subarray/shower',
-                MCEventContainer(),
-                prefixes="true"
+                "/simulation/event/subarray/shower", MCEventContainer(), prefixes="true"
             )
 
         # Setup iterators for the array events
         events = HDF5TableReader(self.file_).read(
-            "/dl1/event/subarray/trigger",
-            [TriggerContainer(), EventIndexContainer()]
+            "/dl1/event/subarray/trigger", [TriggerContainer(), EventIndexContainer()]
         )
         for counter, array_event in enumerate(events):
             data.dl1.tel.clear()
@@ -267,11 +259,11 @@ class DL1EventSource(EventSource):
             # the telescope trigger table contains only the subset of
             # allowed_tels given during the creation of the dl1 file
             for i in self.file_.root.dl1.event.telescope.trigger.where(
-                    f"(obs_id=={data.index.obs_id}) & (event_id=={data.index.event_id})"
+                f"(obs_id=={data.index.obs_id}) & (event_id=={data.index.event_id})"
             ):
-                if self.allowed_tels and i['tel_id'] not in self.allowed_tels:
+                if self.allowed_tels and i["tel_id"] not in self.allowed_tels:
                     continue
-                data.trigger.tel[i['tel_id']].time = i['telescopetrigger_time']
+                data.trigger.tel[i["tel_id"]].time = i["telescopetrigger_time"]
 
             self._fill_array_pointing(data)
             self._fill_telescope_pointing(data)
@@ -286,22 +278,22 @@ class DL1EventSource(EventSource):
                 dl1 = data.dl1.tel[tel]
                 if DataLevel.DL1_IMAGES in self.datalevels:
                     if f"tel_{tel:03d}" not in image_iterators.keys():
-                        print('miss', tel)
+                        print("miss", tel)
                         continue
-                    image_row = next(image_iterators[f'tel_{tel:03d}'])
-                    dl1.image = image_row['image']
-                    dl1.peak_time = image_row['peak_time']
-                    dl1.image_mask = image_row['image_mask']
+                    image_row = next(image_iterators[f"tel_{tel:03d}"])
+                    dl1.image = image_row["image"]
+                    dl1.peak_time = image_row["peak_time"]
+                    dl1.image_mask = image_row["image_mask"]
                     # ToDo: Find a place in the data container, where the true images can go #1368
 
                 if DataLevel.DL1_PARAMETERS in self.datalevels:
                     if f"tel_{tel:03d}" not in param_readers.keys():
-                        print('miss', tel)
+                        print("miss", tel)
                         continue
                     # Is there a smarter way to unpack this?
                     # Best would probbaly be if we could directly read
                     # into the ImageParametersContainer
-                    params = next(param_readers[f'tel_{tel:03d}'])
+                    params = next(param_readers[f"tel_{tel:03d}"])
                     dl1.parameters.hillas = params[0]
                     dl1.parameters.timing = params[1]
                     dl1.parameters.leakage = params[2]
@@ -328,7 +320,9 @@ class DL1EventSource(EventSource):
         array_pointing = self.file_.root.dl1.monitoring.subarray.pointing[closest_time]
 
         data.pointing.array_azimuth = u.Quantity(array_pointing["array_azimuth"], u.rad)
-        data.pointing.array_altitude = u.Quantity(array_pointing["array_altitude"], u.rad)
+        data.pointing.array_altitude = u.Quantity(
+            array_pointing["array_altitude"], u.rad
+        )
         data.pointing.array_ra = u.Quantity(array_pointing["array_ra"], u.rad)
         data.pointing.array_dec = u.Quantity(array_pointing["array_dec"], u.rad)
 
@@ -349,10 +343,8 @@ class DL1EventSource(EventSource):
             )
             pointing_array = tel_pointing_table[closest_time]
             data.pointing.tel[tel].azimuth = u.Quantity(
-                pointing_array['azimuth'],
-                u.rad
+                pointing_array["azimuth"], u.rad
             )
             data.pointing.tel[tel].altitude = u.Quantity(
-                pointing_array['altitude'],
-                u.rad
+                pointing_array["altitude"], u.rad
             )

@@ -15,16 +15,13 @@ def dl1_file():
     simtel_path = get_dataset_path("gamma_test_large.simtel.gz")
     command = f"ctapipe-stage1-process --input {simtel_path} --output {d.name}/testfile.dl1.h5 --write-parameters --write-images --max-events 20 --allowed-tels=[1,2,3]"
     subprocess.call(command.split(), stdout=subprocess.PIPE)
-    return f'{d.name}/testfile.dl1.h5'
+    return f"{d.name}/testfile.dl1.h5"
 
 
 def test_metadata(dl1_file):
     with DL1EventSource(input_url=dl1_file) as source:
         assert source.is_simulation
-        assert source.datalevels == (
-            DataLevel.DL1_IMAGES,
-            DataLevel.DL1_PARAMETERS
-        )
+        assert source.datalevels == (DataLevel.DL1_IMAGES, DataLevel.DL1_PARAMETERS)
         assert list(source.obs_ids) == [7514]
         assert source.mc_headers[7514].corsika_version == 6990
 
@@ -40,7 +37,8 @@ def test_max_events(dl1_file):
     max_events = 5
     with DL1EventSource(input_url=dl1_file, max_events=max_events) as source:
         count = 0
-        assert source.max_events == max_events
+        assert source.max_events == max_events  # stop iterating after max_events
+        assert len(source) == 20  # total events in file
         for _ in source:
             count += 1
         assert count == max_events
