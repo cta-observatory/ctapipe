@@ -22,6 +22,43 @@ from ctapipe.containers import (
 
 
 class DL1EventSource(EventSource):
+    """
+    Event source for files in the ctapipe DL1 format.
+    For general information about the concept of event sources,
+    take a look at the parent class ctapipe.io.EventSource.
+
+    To use this event source, create an instance of this class
+    specifying the file to be read.
+
+    Looping over the EventSource yields events from the _generate_events
+    method. An event equals an EventAndMonDataContainer instance.
+    See ctapipe.containers.EventAndMonDataContainer for details.
+
+    Attributes:
+    -----------
+    input_url: str
+        Path to the input event file.
+    file: tables.File
+        File object
+    obs_ids: list
+        Observation ids of te recorded runs. For unmerged files, this
+        should only contain a single number.
+    subarray: ctapipe.instrument.SubarrayDescription
+        The subarray configuration of the recorded run.
+    datalevels: Tuple
+        One or both of ctapipe.io.datalevels.DataLevel.DL1_IMAGES
+        and ctapipe.io.datalevels.DataLevel.DL1_PARAMETERS
+        depending on the information present in the file.
+    is_simulation: Boolean
+        Whether the events are simulated or observed.
+    mc_headers: Dict
+        Mapping of obs_id to ctapipe.containers.MCHeaderContainer
+        if the file contains simulated events.
+    has_simulated_dl1: Boolean
+        Whether the file contains true camera images and/or
+        image parameters evaluated on these.
+
+    """
     def __init__(
         self,
         input_url,
@@ -40,7 +77,7 @@ class DL1EventSource(EventSource):
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
             Set to None if no configuration to pass.
-        parent: ??
+        parent:
             Parent from which the config is used. Mutually exclusive with config
         kwargs
         """
