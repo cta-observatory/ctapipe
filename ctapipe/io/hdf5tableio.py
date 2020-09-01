@@ -353,8 +353,8 @@ class HDF5TableReader(TableReader):
             self._h5file = filename
         else:
             raise NotImplementedError(
-                "filename needs to be either a string, pathlib.PurePath"
-                "or e"
+                "filename needs to be either a string, pathlib.PurePath "
+                "or tables.File"
             )
 
     def open(self, filename, **kwargs):
@@ -402,13 +402,11 @@ class HDF5TableReader(TableReader):
         for container, prefix in zip(containers, prefixes):
             for colname in tab.colnames:
                 if prefix and colname.startswith(prefix):
-                    colname_without_prefix = colname[len(prefix) + 1:]
+                    colname_without_prefix = colname[len(prefix) + 1 :]
                 else:
                     colname_without_prefix = colname
                 if colname_without_prefix in container.fields:
-                    self._cols_to_read[table_name].append(
-                        colname
-                    )
+                    self._cols_to_read[table_name].append(colname)
 
             # also check that the container doesn't have fields that are not
             # in the table:
@@ -419,8 +417,9 @@ class HDF5TableReader(TableReader):
                     colname_with_prefix = colname
                 if colname_with_prefix not in self._cols_to_read[table_name]:
                     self.log.warning(
-                        f"Table {table_name} is missing column {colname_with_prefix}"
-                        f"that is in container {container.__class__.__name__}. It will be skipped."
+                        f"Table {table_name} is missing column {colname_with_prefix} "
+                        f"that is in container {container.__class__.__name__}. "
+                        "It will be skipped."
                     )
 
             # copy all user-defined attributes back to Container.mets
@@ -431,7 +430,7 @@ class HDF5TableReader(TableReader):
         for colname in tab.colnames:
             if colname not in self._cols_to_read[table_name]:
                 self.log.debug(
-                    f"Table {table_name} contains column {colname}"
+                    f"Table {table_name} contains column {colname} "
                     "that does not map to any of the specified containers"
                 )
 
@@ -459,7 +458,7 @@ class HDF5TableReader(TableReader):
 
         return_iterable = True
         if isinstance(containers, Container):
-            containers = (containers, )
+            containers = (containers,)
             return_iterable = False
 
         if prefixes is False:
