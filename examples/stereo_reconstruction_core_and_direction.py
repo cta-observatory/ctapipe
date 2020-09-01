@@ -244,7 +244,6 @@ for event in source:
         except HillasParameterizationError as e:
             print(f"WARNING: {e}")
             noGood = True
-            pass
 
     if len(parametrized_images) < 2:  # discard events with < 2 images
         print("WARNING: Less than 2 images survived the cleaning!")
