@@ -401,11 +401,6 @@ class HDF5TableReader(TableReader):
                     self._cols_to_read[table_name].append(
                         colname
                     )
-                else:
-                    self.log.warning(
-                        f"Table {table_name} has column {colname_without_prefix} that is not in "
-                        f"container {container.__class__.__name__}. It will be skipped."
-                    )
 
             # also check that the container doesn't have fields that are not
             # in the table:
@@ -423,6 +418,14 @@ class HDF5TableReader(TableReader):
             # copy all user-defined attributes back to Container.mets
             for key in tab.attrs._f_list():
                 container.meta[key] = tab.attrs[key]
+
+        # check if the table has additional columns not present in any container
+        for colname in tab.colnames:
+            if colname not in self._cols_to_read[table_name]:
+                self.log.debug(
+                    f"Table {table_name} contains column {colname}"
+                    "that does not map to any of the specified containers"
+                )
 
     def read(self, table_name, containers, prefixes=False):
         """
