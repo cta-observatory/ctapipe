@@ -336,8 +336,8 @@ class HDF5TableReader(TableReader):
         """
         Parameters
         ----------
-        filename: str
-            name of hdf5 file
+        filename: str, pathlib.PurePath or tables.File instance
+            name of hdf5 file or file handle
         kwargs:
             any other arguments that will be passed through to
             `pytables.open()`.
@@ -347,7 +347,15 @@ class HDF5TableReader(TableReader):
         self._tables = {}
         kwargs.update(mode="r")
 
-        self.open(filename, **kwargs)
+        if isinstance(filename, str) or isinstance(filename, PurePath):
+            self.open(filename, **kwargs)
+        elif isinstance(filename, tables.File):
+            self._h5file = filename
+        else:
+            raise NotImplementedError(
+                "filename needs to be either a string, pathlib.PurePath"
+                "or e"
+            )
 
     def open(self, filename, **kwargs):
 

@@ -172,7 +172,7 @@ class DL1EventSource(EventSource):
         # and the obs_id matching part needs to be done in _generate_events()
         mc_headers = {}
         if 'simulation' in self.file_.root.configuration:
-            reader = HDF5TableReader(self.input_url).read(
+            reader = HDF5TableReader(self.file_).read(
                 '/configuration/simulation/run', MCHeaderContainer()
             )
             row_iterator = self.file_.root.configuration.simulation.run.iterrows()
@@ -204,7 +204,7 @@ class DL1EventSource(EventSource):
 
         if DataLevel.DL1_PARAMETERS in self.datalevels:
             param_readers = {
-                tel.name: HDF5TableReader(self.input_url).read(
+                tel.name: HDF5TableReader(self.file_).read(
                     f"/dl1/event/telescope/parameters/{tel.name}",
                     containers=[
                         HillasParametersContainer(),
@@ -221,7 +221,7 @@ class DL1EventSource(EventSource):
             }
             if self.has_simulated_dl1:
                 true_param_readers = {
-                    tel.name: HDF5TableReader(self.input_url).read(
+                    tel.name: HDF5TableReader(self.file_).read(
                         f"/simulation/event/telescope/parameters/{tel.name}",
                         containers=[
                             HillasParametersContainer(),
@@ -239,14 +239,14 @@ class DL1EventSource(EventSource):
 
         if self.is_simulation:
             # true shower wide information
-            mc_shower_reader = HDF5TableReader(self.input_url).read(
+            mc_shower_reader = HDF5TableReader(self.file_).read(
                 '/simulation/event/subarray/shower',
                 MCEventContainer(),
                 prefixes="true"
             )
 
         # Setup iterators for the array events
-        events = HDF5TableReader(self.input_url).read(
+        events = HDF5TableReader(self.file_).read(
             "/dl1/event/subarray/trigger",
             [TriggerContainer(), EventIndexContainer()]
         )
