@@ -1,7 +1,6 @@
 """
-Line-intersection-based fitting.
-
-Contact: Tino Michael <Tino.Michael@cea.fr>
+Line-intersection-based fitting for reconstruction of direction
+and core position of a shower.
 """
 
 from ctapipe.reco.reco_algorithms import (
