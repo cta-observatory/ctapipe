@@ -191,6 +191,7 @@ class HillasReconstructor(Reconstructor):
             average_intensity=np.mean([h.intensity for h in hillas_dict.values()]),
             is_valid=True,
             alt_uncert=err_est_dir,
+            az_uncert=err_est_dir,
             h_max=h_max,
         )
 
