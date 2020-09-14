@@ -1,4 +1,5 @@
 import astropy.units as u
+import logging
 import numpy as np
 import tables
 from ctapipe.instrument import SubarrayDescription
@@ -19,6 +20,9 @@ from ctapipe.containers import (
     TimingParametersContainer,
     TriggerContainer,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class DL1EventSource(EventSource):
@@ -278,7 +282,10 @@ class DL1EventSource(EventSource):
                 dl1 = data.dl1.tel[tel]
                 if DataLevel.DL1_IMAGES in self.datalevels:
                     if f"tel_{tel:03d}" not in image_iterators.keys():
-                        print("miss", tel)
+                        logger.debug(
+                            f"Triggered telescope {tel} is missing "
+                            "from the image table."
+                        )
                         continue
                     image_row = next(image_iterators[f"tel_{tel:03d}"])
                     dl1.image = image_row["image"]
@@ -288,7 +295,10 @@ class DL1EventSource(EventSource):
 
                 if DataLevel.DL1_PARAMETERS in self.datalevels:
                     if f"tel_{tel:03d}" not in param_readers.keys():
-                        print("miss", tel)
+                        logger.debug(
+                            f"Triggered telescope {tel} is missing "
+                            "from the parameters table."
+                        )
                         continue
                     # Is there a smarter way to unpack this?
                     # Best would probbaly be if we could directly read
