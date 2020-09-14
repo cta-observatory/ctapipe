@@ -223,6 +223,7 @@ class SubarrayDescription:
                     tel_description=descs,
                 )
             )
+            tab.meta["TAB_VER"] = "1.0"
 
         elif kind == "optics":
             unique_types = set(self.tels.values())
@@ -245,6 +246,7 @@ class SubarrayDescription:
                 "equivalent_focal_length": focal_length,
             }
             tab = Table(cols)
+            tab.meta["TAB_VER"] = "2.0"
 
         else:
             raise ValueError(f"Table type '{kind}' not known")
