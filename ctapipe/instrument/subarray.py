@@ -5,17 +5,21 @@ Description of Arrays or Subarrays of telescopes
 __all__ = ["SubarrayDescription"]
 
 from collections import defaultdict
+from pathlib import Path
 
 import numpy as np
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.table import Table
 from astropy.utils import lazyproperty
+import tables
 
 import ctapipe
 
 from ..coordinates import GroundFrame
-from . import TelescopeDescription
+from .telescope import TelescopeDescription
+from .camera import CameraDescription, CameraReadout, CameraGeometry
+from .optics import OpticsDescription
 
 
 class SubarrayDescription:
@@ -335,3 +339,134 @@ class SubarrayDescription:
             tel_str = tel_type
 
         return [id for id, descr in self.tels.items() if str(descr) == tel_str]
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+
+        if self.name != other.name:
+            return False
+
+        if self.tels.keys() != other.tels.keys():
+            return False
+
+        if self.positions.keys() != other.positions.keys():
+            return False
+
+        for tel_id in self.tels.keys():
+            if self.tels[tel_id] != other.tels[tel_id]:
+                return False
+
+        for tel_id in self.tels.keys():
+            if np.any(self.positions[tel_id] != other.positions[tel_id]):
+                return False
+        return True
+
+    def to_hdf(self, output_path):
+        """write the SubarrayDescription
+
+        Parameters
+        ----------
+        subarray : ctapipe.instrument.SubarrayDescription
+            subarray description
+        """
+        serialize_meta = True
+
+        if Path(output_path).suffix not in (".h5", ".hdf", ".hdf5"):
+            raise ValueError("This function can only write to hdf files.")
+
+        self.to_table().write(
+            output_path,
+            path="/configuration/instrument/subarray/layout",
+            serialize_meta=serialize_meta,
+            append=True,
+        )
+        self.to_table(kind="optics").write(
+            output_path,
+            path="/configuration/instrument/telescope/optics",
+            append=True,
+            serialize_meta=serialize_meta,
+        )
+        for telescope_type in self.telescope_types:
+            ids = set(self.get_tel_ids_for_type(telescope_type))
+            if len(ids) > 0:  # only write if there is a telescope with this camera
+                tel_id = list(ids)[0]
+                camera = self.tel[tel_id].camera
+                camera.geometry.to_table().write(
+                    output_path,
+                    path=f"/configuration/instrument/telescope/camera/geometry_{camera}",
+                    append=True,
+                    serialize_meta=serialize_meta,
+                )
+                camera.readout.to_table().write(
+                    output_path,
+                    path=f"/configuration/instrument/telescope/camera/readout_{camera}",
+                    append=True,
+                    serialize_meta=serialize_meta,
+                )
+
+        with tables.open_file(output_path, mode="r+") as f:
+            f.root.configuration.instrument.subarray._v_attrs.name = self.name
+
+    @classmethod
+    def from_hdf(cls, path):
+        layout = Table.read(path, path="/configuration/instrument/subarray/layout")
+
+        optics_table = Table.read(
+            path, path="/configuration/instrument/telescope/optics"
+        )
+
+        cameras = {}
+        for name in set(layout["camera_type"]):
+            geometry = CameraGeometry.from_table(
+                Table.read(
+                    path,
+                    path=f"/configuration/instrument/telescope/camera/geometry_{name}",
+                )
+            )
+            readout = CameraReadout.from_table(
+                Table.read(
+                    path,
+                    path=f"/configuration/instrument/telescope/camera/readout_{name}",
+                )
+            )
+            cameras[name] = CameraDescription(
+                camera_name=name, readout=readout, geometry=geometry
+            )
+
+        # iterating over the rows of a table does not play well
+        # with units, convert to dict of quantity arrays
+        optics_quantities = {
+            name: optics_table[name].quantity
+            if optics_table[name].unit
+            else optics_table[name]
+            for name in optics_table.colnames
+            if name not in {"description", "type"}
+        }
+        optics = {}
+        for row, desc in enumerate(optics_table["description"]):
+            kwargs = {k: v[row] for k, v in optics_quantities.items()}
+            optics[desc] = OpticsDescription(**kwargs)
+
+        telescope_descriptions = {
+            row["tel_id"]: TelescopeDescription(
+                name=row["name"],
+                tel_type=row["type"],
+                optics=optics[row["tel_description"]],
+                camera=cameras[row["camera_type"]],
+            )
+            for row in layout
+        }
+
+        positions = np.column_stack([layout[f"pos_{c}"].quantity for c in "xyz"])
+
+        with tables.open_file(path, mode="r") as f:
+            name = f.root.configuration.instrument.subarray._v_attrs.name
+
+        return cls(
+            name=name,
+            tel_positions={
+                tel_id: pos for tel_id, pos in zip(layout["tel_id"], positions)
+            },
+            tel_descriptions=telescope_descriptions,
+        )
