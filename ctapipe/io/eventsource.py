@@ -228,7 +228,7 @@ class EventSource(Component):
 
         Returns
         -------
-        list
+        list[int]
         """
 
     @abstractmethod
