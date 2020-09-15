@@ -9,7 +9,7 @@ over a number of potential contributing photoelectrons (which is slow).
 At high signal this simplifies to a gaussian approximation.
 
 The full and gaussian approximations are implemented, in addition to a general purpose
-implementation, which tries to intellegently switch 
+implementation, which tries to intellegently switch
 between the two. Speed tests are below:
 
 neg_log_likelihood_approx(image, prediction, spe, ped)
@@ -129,7 +129,7 @@ def neg_log_likelihood_numeric(
 
     likelihood = epsilon
 
-    ns = np.arange(*poisson(np.max(prediction)).ppf(confidence),)
+    ns = np.arange(*poisson(np.max(prediction)).ppf(confidence))
 
     ns = ns[ns >= 0]
 
