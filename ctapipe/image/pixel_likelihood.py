@@ -177,13 +177,15 @@ def neg_log_likelihood(
     approx_mask = prediction > prediction_safety
 
     neg_log_l = 0
-    neg_log_l += neg_log_likelihood_approx(
-        image[approx_mask], prediction[approx_mask], spe_width, pedestal,
-    )
+    if np.sum(approx_mask) > 0:
+        neg_log_l += neg_log_likelihood_approx(
+            image[approx_mask], prediction[approx_mask], spe_width, pedestal,
+        )
 
-    neg_log_l += neg_log_likelihood_numeric(
-        image[~approx_mask], prediction[~approx_mask], spe_width, pedestal,
-    )
+    if np.sum(~approx_mask) > 0:
+        neg_log_l += neg_log_likelihood_numeric(
+            image[~approx_mask], prediction[~approx_mask], spe_width, pedestal,
+        )
 
     return neg_log_l
 
