@@ -4,12 +4,10 @@ Image timing-based shower image parametrization.
 
 import numpy as np
 import astropy.units as u
-from numpy.polynomial.polynomial import polyval
 from ..containers import TimingParametersContainer
 from .hillas import camera_to_shower_coordinates
 from ..utils.quantities import all_to_value
-
-from scipy.stats import siegelslopes
+from ..fitting import lts_linear_regression
 
 
 __all__ = ["timing_parameters"]
@@ -62,13 +60,15 @@ def timing_parameters(geom, image, peak_time, hillas_parameters, cleaning_mask=N
     slope_err, intercept_err = np.sqrt(np.diag(cov))
 
     # re-fit using a robust-to-outlier algorithm
-    slope, intercept = siegelslopes(x=longi, y=peak_time)
-    predicted_time = polyval(longi, (intercept, slope))
-    deviation = np.sqrt(np.sum((peak_time - predicted_time) ** 2) / peak_time.size)
+    beta, error = lts_linear_regression(
+        x=longi, y=peak_time.astype(np.float64), samples=5
+    )
+    predicted_time = beta[0] * longi + beta[1]
+    deviation = np.sqrt(np.mean((peak_time - predicted_time) ** 2))
 
     return TimingParametersContainer(
-        slope=slope / unit,
-        intercept=intercept,
+        slope=beta[0] / unit,
+        intercept=beta[1],
         deviation=deviation,
         slope_err=slope_err / unit,
         intercept_err=intercept_err,
