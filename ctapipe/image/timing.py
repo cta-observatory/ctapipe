@@ -63,8 +63,9 @@ def timing_parameters(geom, image, peak_time, hillas_parameters, cleaning_mask=N
     beta, error = lts_linear_regression(
         x=longi, y=peak_time.astype(np.float64), samples=5
     )
-    predicted_time = beta[0] * longi + beta[1]
-    deviation = np.sqrt(np.mean((peak_time - predicted_time) ** 2))
+
+    # error is sum of squares, we want root mean squared error here
+    deviation = np.sqrt(error / longi.size)
 
     return TimingParametersContainer(
         slope=beta[0] / unit,
