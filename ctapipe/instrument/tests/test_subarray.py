@@ -1,4 +1,5 @@
 """ Tests for SubarrayDescriptions """
+import tempfile
 import numpy as np
 from astropy import units as u
 from astropy.coordinates import SkyCoord
@@ -88,7 +89,7 @@ def test_tel_ids_to_mask(example_subarray):
     )
 
     assert np.all(subarray.tel_ids_to_mask([]) == [False, False])
-    assert np.all(subarray.tel_ids_to_mask([1,]) == [True, False])
+    assert np.all(subarray.tel_ids_to_mask([1]) == [True, False])
     assert np.all(subarray.tel_ids_to_mask([10]) == [False, True])
     assert np.all(subarray.tel_ids_to_mask([1, 10]) == [True, True])
 
@@ -104,3 +105,12 @@ def test_get_tel_ids_for_type(example_subarray):
     for teltype in types:
         assert len(sub.get_tel_ids_for_type(teltype)) > 0
         assert len(sub.get_tel_ids_for_type(str(teltype))) > 0
+
+
+def test_hdf(example_subarray):
+    with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
+
+        example_subarray.to_hdf(f.name)
+        read = SubarrayDescription.from_hdf(f.name)
+
+        assert example_subarray == read

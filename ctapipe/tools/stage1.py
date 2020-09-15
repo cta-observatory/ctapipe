@@ -374,47 +374,6 @@ class Stage1ProcessorTool(Tool):
                         containers=hist_container,
                     )
 
-    def _write_instrument_configuration(self, subarray):
-        """write the SubarrayDescription
-
-        Parameters
-        ----------
-        subarray : ctapipe.instrument.SubarrayDescription
-            subarray description
-        """
-        self.log.debug("Writing instrument configuration")
-        serialize_meta = True
-
-        subarray.to_table().write(
-            self.output_path,
-            path="/configuration/instrument/subarray/layout",
-            serialize_meta=serialize_meta,
-            append=True,
-        )
-        subarray.to_table(kind="optics").write(
-            self.output_path,
-            path="/configuration/instrument/telescope/optics",
-            append=True,
-            serialize_meta=serialize_meta,
-        )
-        for telescope_type in subarray.telescope_types:
-            ids = set(subarray.get_tel_ids_for_type(telescope_type))
-            if len(ids) > 0:  # only write if there is a telescope with this camera
-                tel_id = list(ids)[0]
-                camera = subarray.tel[tel_id].camera
-                camera.geometry.to_table().write(
-                    self.output_path,
-                    path=f"/configuration/instrument/telescope/camera/geometry_{camera}",
-                    append=True,
-                    serialize_meta=serialize_meta,
-                )
-                camera.readout.to_table().write(
-                    self.output_path,
-                    path=f"/configuration/instrument/telescope/camera/readout_{camera}",
-                    append=True,
-                    serialize_meta=serialize_meta,
-                )
-
     def _write_processing_statistics(self):
         """ write out the event selection stats, etc. """
         image_stats = self.check_image.to_table(functions=True)
@@ -709,7 +668,7 @@ class Stage1ProcessorTool(Tool):
         # to "Resource temporary unavailable" if h5py and tables are not linked
         # against the same libhdf (happens when using the pre-build pip wheels)
         # should be replaced by writing the table using tables
-        self._write_instrument_configuration(self.event_source.subarray)
+        self.event_source.subarray.to_hdf(self.output_path)
 
         with HDF5TableWriter(
             self.output_path,
