@@ -146,9 +146,7 @@ def neg_log_likelihood_numeric(
     return -np.sum(np.log(likelihood))
 
 
-def neg_log_likelihood(
-    image, prediction, spe_width, pedestal, prediction_safety=20.0,
-):
+def neg_log_likelihood(image, prediction, spe_width, pedestal, prediction_safety=20.0):
     """
     Safe implementation of the poissonian likelihood implementation,
     adaptively switches between the full solution and the gaussian
@@ -177,14 +175,14 @@ def neg_log_likelihood(
     approx_mask = prediction > prediction_safety
 
     neg_log_l = 0
-    if np.sum(approx_mask) > 0:
+    if np.any(approx_mask):
         neg_log_l += neg_log_likelihood_approx(
-            image[approx_mask], prediction[approx_mask], spe_width, pedestal,
+            image[approx_mask], prediction[approx_mask], spe_width, pedestal
         )
 
-    if np.sum(~approx_mask) > 0:
+    if not np.all(approx_mask):
         neg_log_l += neg_log_likelihood_numeric(
-            image[~approx_mask], prediction[~approx_mask], spe_width, pedestal,
+            image[~approx_mask], prediction[~approx_mask], spe_width, pedestal
         )
 
     return neg_log_l
@@ -257,10 +255,7 @@ def mean_poisson_likelihood_full(prediction, spe_width, ped):
     width = np.sqrt(width)
 
     for p in range(len(prediction)):
-        int_range = (
-            prediction[p] - 10 * width[p],
-            prediction[p] + 10 * width[p],
-        )
+        int_range = (prediction[p] - 10 * width[p], prediction[p] + 10 * width[p])
         mean_like[p] = quad(
             _integral_poisson_likelihood_full,
             int_range[0],
@@ -298,9 +293,7 @@ def chi_squared(image, prediction, ped, error_factor=2.9):
     if image.shape is not prediction.shape:
         PixelLikelihoodError(
             "Image and prediction arrays have different dimensions Image "
-            "shape: {} Prediction shape: {}".format(
-                image.shape, prediction.shape
-            )
+            "shape: {} Prediction shape: {}".format(image.shape, prediction.shape)
         )
 
     chi_square = (image - prediction) * (image - prediction)
