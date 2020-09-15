@@ -150,7 +150,7 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         self.image_extractor = ImageExtractor.from_name(
             self.image_extractor_type,
             subarray=self.subarray,
-            config=self.config
+            parent=self
         )
 
     def select_pixels(self, waveforms, telid=None, selected_gain_channel=None):
