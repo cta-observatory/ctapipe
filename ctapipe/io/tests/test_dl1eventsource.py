@@ -1,6 +1,7 @@
 from ctapipe.utils import get_dataset_path
 from ctapipe.io import DataLevel
 from ctapipe.io.dl1eventsource import DL1EventSource
+from ctapipe.io import event_source
 import astropy.units as u
 import subprocess
 import numpy as np
@@ -16,6 +17,11 @@ def dl1_file():
     command = f"ctapipe-stage1-process --input {simtel_path} --output {d.name}/testfile.dl1.h5 --write-parameters --write-images --max-events 20 --allowed-tels=[1,2,3]"
     subprocess.call(command.split(), stdout=subprocess.PIPE)
     return f"{d.name}/testfile.dl1.h5"
+
+
+def test_is_compatible(dl1_file):
+    with event_source(input_url=dl1_file) as source:
+        assert isinstance(source, DL1EventSource)
 
 
 def test_metadata(dl1_file):
