@@ -212,12 +212,14 @@ def mean_poisson_likelihood_gaussian(prediction, spe_width, pedestal):
     return np.sum(mean_log_likelihood)
 
 
-def _integral_poisson_likelihood_full(s, prediction, spe_width, ped):
+def _integral_poisson_likelihood_full(image, prediction, spe_width, ped):
     """
     Wrapper function around likelihood calculation, used in numerical
     integration.
     """
-    like = neg_log_likelihood(s, prediction, spe_width, ped)
+    image = np.asarray(image)
+    prediction = np.asarray(prediction)
+    like = neg_log_likelihood(image, prediction, spe_width, ped)
     return like * np.exp(-0.5 * like)
 
 
@@ -234,70 +236,64 @@ def mean_poisson_likelihood_full(prediction, spe_width, ped):
     prediction: ndarray
         Predicted pixel amplitudes from model
     spe_width: ndarray
-        width of single p.e. distribution
-    ped: ndarray
-        width of pedestal
+        Width of single p.e. distribution
+    pedestal: ndarray
+        Width of pedestal
 
     Returns
     -------
-    ndarray: mean likelihood for give pixel expectation
+    float
     """
-    prediction = np.asarray(prediction)
-    spe_width = np.asarray(spe_width)
 
-    if len(spe_width.shape) == 0:
-        spe_width = np.ones(prediction.shape) * spe_width
-    ped = np.asarray(ped)
-    if len(ped.shape) == 0:
-        ped = np.ones(prediction.shape) * ped
-    mean_like = np.zeros(prediction.shape)
-    width = ped * ped + prediction * spe_width * spe_width
+    if len(spe_width) == 1:
+        spe_width = np.full_like(prediction, spe_width)
+
+    if len(ped) == 1:
+        ped = np.full_like(prediction, ped)
+
+    mean_like = 0
+
+    width = ped ** 2 + prediction * spe_width ** 2
     width = np.sqrt(width)
 
-    for p in range(len(prediction)):
-        int_range = (prediction[p] - 10 * width[p], prediction[p] + 10 * width[p])
-        mean_like[p] = quad(
+    for pred, w, spe, p in zip(prediction, width, spe_width, ped):
+        lower_integration_bound = pred - 10 * w
+        upper_integration_bound = pred + 10 * w
+
+        integral, *_ = quad(
             _integral_poisson_likelihood_full,
-            int_range[0],
-            int_range[1],
-            args=(prediction[p], spe_width[p], ped[p]),
+            lower_integration_bound,
+            upper_integration_bound,
+            args=(pred, spe, p),
             epsrel=0.05,
-        )[0]
+        )
+
+        mean_like += integral
+
     return mean_like
 
 
-def chi_squared(image, prediction, ped, error_factor=2.9):
+def chi_squared(image, prediction, pedestal, error_factor=2.9):
     """
     Simple chi-squared statistic from Le Bohec et al 2008
 
     Parameters
     ----------
     image: ndarray
-        Pixel amplitudes from image
+        Pixel amplitudes from image (:math:`s`).
     prediction: ndarray
-        Predicted pixel amplitudes from model
-    ped: ndarray
-        width of pedestal
+        Predicted pixel amplitudes from model (:math:`μ`).
+    pedestal: ndarray
+        Width of pedestal (:math:`σ_p`).
     error_factor: float
-        ad hoc error factor
+        Ad-hoc error factor
 
     Returns
     -------
-    ndarray: likelihood for each pixel
+    float
     """
 
-    image = np.asarray(image)
-    prediction = np.asarray(prediction)
-    ped = np.asarray(ped)
-
-    if image.shape is not prediction.shape:
-        PixelLikelihoodError(
-            "Image and prediction arrays have different dimensions Image "
-            "shape: {} Prediction shape: {}".format(image.shape, prediction.shape)
-        )
-
-    chi_square = (image - prediction) * (image - prediction)
-    chi_square /= ped + 0.5 * (image - prediction)
+    chi_square = (image - prediction) ** 2 / (pedestal + 0.5 * (image - prediction))
     chi_square *= 1.0 / error_factor
 
-    return chi_square
+    return np.sum(chi_square)
