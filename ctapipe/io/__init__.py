@@ -4,7 +4,7 @@ from .hdf5tableio import HDF5TableReader, HDF5TableWriter
 from .tableio import TableWriter, TableReader
 from .datalevels import DataLevel
 from .astropy_helpers import read_table
-from .dl1writer import DL1Writer
+from .dl1writer import DL1Writer, DL1_DATA_MODEL_VERSION
 
 from ..core.plugins import detect_and_import_io_plugins
 
@@ -28,4 +28,5 @@ __all__ = [
     "DataLevel",
     "read_table",
     "DL1Writer",
+    "DL1_DATA_MODEL_VERSION",
 ]

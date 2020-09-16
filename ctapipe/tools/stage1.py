@@ -7,7 +7,7 @@ from tqdm.autonotebook import tqdm
 
 from ..calib.camera import CameraCalibrator, GainSelector
 from ..core import Tool
-from ..core.traits import Bool, List, classes_with_traits
+from ..core.traits import Bool, classes_with_traits
 from ..image import ImageCleaner, ImageProcessor
 from ..image.extractor import ImageExtractor
 from ..io import DataLevel, DL1Writer, EventSource, SimTelEventSource

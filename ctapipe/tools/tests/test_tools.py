@@ -103,8 +103,8 @@ def test_stage_1_dl1(tmpdir, dl1_image_file, dl1_parameters_file):
         assert tf.root.dl1.event.subarray
         assert tf.root.configuration.instrument.subarray.layout
         assert tf.root.configuration.instrument.telescope.optics
-        assert tf.root.configuration.instrument.telescope.camera.geometry_LSTCam
-        assert tf.root.configuration.instrument.telescope.camera.readout_LSTCam
+        assert tf.root.configuration.instrument.telescope.camera.geometry_0
+        assert tf.root.configuration.instrument.telescope.camera.readout_0
 
         assert tf.root.dl1.monitoring.subarray.pointing.dtype.names == (
             "time",
@@ -144,7 +144,6 @@ def test_stage_1_dl1(tmpdir, dl1_image_file, dl1_parameters_file):
         )
         == 1
     )
-
 
 def test_stage1_datalevels(tmpdir):
     """test the dl1 tool on a file not providing r1, dl0 or dl1a"""

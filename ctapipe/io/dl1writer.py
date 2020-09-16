@@ -29,8 +29,15 @@ __all__ = ["DL1Writer", "DL1_DATA_MODEL_VERSION", "write_reference_metadata_head
 
 tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many datasets
 
-DL1_DATA_MODEL_VERSION = "v1.1.0"
+# define the version of the DL1 data model written here. This should be updated
+# when necessary:
+# - increase the major number if there is a breaking change to the model
+#   (meaning readers need to update scripts)
+# - increase the minor number if new columns or datasets are added
+# - increase the patch number if there is a small bugfix to the model.
+DL1_DATA_MODEL_VERSION = "v2.0.0"
 DL1_DATA_MODEL_CHANGE_HISTORY = """
+- v2.0.0: Match optics and camera tables using indices instead of names
 - v1.1.0: images and peak_times can be stored as scaled integers
 - v1.0.3: true_image dtype changed from float32 to int32
 """

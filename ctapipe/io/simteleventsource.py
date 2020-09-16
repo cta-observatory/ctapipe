@@ -198,8 +198,6 @@ class SimTelEventSource(EventSource):
         """
         super().__init__(input_url=input_url, config=config, parent=parent, **kwargs)
 
-        self._camera_cache = {}
-
         self.file_ = SimTelFile(
             self.input_url.expanduser(),
             allowed_telescopes=self.allowed_tels,
@@ -300,15 +298,12 @@ class SimTelEventSource(EventSource):
                 num_mirror_tiles=cam_settings["n_mirrors"],
             )
 
-            camera = self._camera_cache.get(telescope.camera_name)
-            if camera is None:
-                camera = build_camera(
-                    cam_settings,
-                    pixel_settings,
-                    telescope,
-                    frame=CameraFrame(focal_length=optics.equivalent_focal_length),
-                )
-                self._camera_cache[telescope.camera_name] = camera
+            camera = camera = build_camera(
+                cam_settings,
+                pixel_settings,
+                telescope,
+                frame=CameraFrame(focal_length=optics.equivalent_focal_length),
+            )
 
             tel_descriptions[tel_id] = TelescopeDescription(
                 name=telescope.name,

@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-from astropy.table import Table
+from astropy.table import QTable, Table
 from astropy.utils import lazyproperty
 import tables
 from copy import copy
@@ -243,12 +243,17 @@ class SubarrayDescription:
 
         if kind == "subarray":
 
+            unique_types = self.telescope_types
+
             ids = list(self.tels.keys())
             descs = [str(t) for t in self.tels.values()]
-            num_mirrors = [t.optics.num_mirrors for t in self.tels.values()]
             tel_names = [t.name for t in self.tels.values()]
             tel_types = [t.type for t in self.tels.values()]
             cam_types = [t.camera.camera_name for t in self.tels.values()]
+            optics_index = [unique_types.index(t) for t in self.tels.values()]
+            camera_index = [
+                self.camera_types.index(t.camera) for t in self.tels.values()
+            ]
             tel_coords = self.tel_coords
 
             tab = Table(
@@ -259,15 +264,16 @@ class SubarrayDescription:
                     pos_z=tel_coords.z,
                     name=tel_names,
                     type=tel_types,
-                    num_mirrors=num_mirrors,
                     camera_type=cam_types,
+                    camera_index=camera_index,
+                    optics_index=optics_index,
                     tel_description=descs,
                 )
             )
             tab.meta["TAB_VER"] = "1.0"
 
         elif kind == "optics":
-            unique_types = set(self.tels.values())
+            unique_types = self.telescope_types
 
             mirror_area = u.Quantity(
                 [t.optics.mirror_area.to_value(u.m ** 2) for t in unique_types],
@@ -288,7 +294,6 @@ class SubarrayDescription:
             }
             tab = Table(cols)
             tab.meta["TAB_VER"] = "2.0"
-
         else:
             raise ValueError(f"Table type '{kind}' not known")
 
@@ -438,17 +443,17 @@ class SubarrayDescription:
             serialize_meta=serialize_meta,
             overwrite=overwrite,
         )
-        for camera in self.camera_types:
+        for i, camera in enumerate(self.camera_types):
             camera.geometry.to_table().write(
                 output_path,
-                path=f"/configuration/instrument/telescope/camera/geometry_{camera}",
+                path=f"/configuration/instrument/telescope/camera/geometry_{i}",
                 append=True,
                 serialize_meta=serialize_meta,
                 overwrite=overwrite,
             )
             camera.readout.to_table().write(
                 output_path,
-                path=f"/configuration/instrument/telescope/camera/readout_{camera}",
+                path=f"/configuration/instrument/telescope/camera/readout_{i}",
                 append=True,
                 serialize_meta=serialize_meta,
                 overwrite=overwrite,
@@ -459,66 +464,80 @@ class SubarrayDescription:
 
     @classmethod
     def from_hdf(cls, path):
-        layout = Table.read(path, path="/configuration/instrument/subarray/layout")
-
-        optics_table = Table.read(
-            path, path="/configuration/instrument/telescope/optics"
-        )
+        layout = QTable.read(path, path="/configuration/instrument/subarray/layout")
 
         cameras = {}
-        for name in set(layout["camera_type"]):
+
+        # backwards compatibility for older tables, index is the name
+        if "camera_index" not in layout.colnames:
+            layout["camera_index"] = layout["camera_type"]
+
+        for idx in sorted(set(layout["camera_index"])):
             geometry = CameraGeometry.from_table(
                 Table.read(
                     path,
-                    path=f"/configuration/instrument/telescope/camera/geometry_{name}",
+                    path=f"/configuration/instrument/telescope/camera/geometry_{idx}",
                 )
             )
             readout = CameraReadout.from_table(
                 Table.read(
                     path,
-                    path=f"/configuration/instrument/telescope/camera/readout_{name}",
+                    path=f"/configuration/instrument/telescope/camera/readout_{idx}",
                 )
             )
-            cameras[name] = CameraDescription(
-                camera_name=name, readout=readout, geometry=geometry
+            cameras[idx] = CameraDescription(
+                camera_name=geometry.camera_name, readout=readout, geometry=geometry
             )
 
-        # iterating over the rows of a table does not play well
-        # with units, convert to dict of quantity arrays
-        optics_quantities = {
-            name: optics_table[name].quantity
-            if optics_table[name].unit
-            else optics_table[name]
-            for name in optics_table.colnames
-            if name not in {"description", "type"}
-        }
-        optics = {}
-        for row, desc in enumerate(optics_table["description"]):
-            kwargs = {k: v[row] for k, v in optics_quantities.items()}
-            optics[desc] = OpticsDescription(**kwargs)
+        optics_table = QTable.read(
+            path, path="/configuration/instrument/telescope/optics"
+        )
+        # for backwards compatibility
+        # if optics_index not in table, guess via telescope_description string
+        # might not result in correct array when there are duplicated telescope_description
+        # strings
+        if "optics_index" not in layout.colnames:
+            descriptions = list(optics_table["description"])
+            layout["optics_index"] = [
+                descriptions.index(tel) for tel in layout["tel_description"]
+            ]
+            if len(descriptions) != len(set(descriptions)):
+                warnings.warn(
+                    "Array contains different telescopes with the same description string"
+                    "representation, optics descriptions will be incorrect for some of the telescopes"
+                )
+
+        optics = [
+            OpticsDescription(
+                row["name"],
+                num_mirrors=row["num_mirrors"],
+                equivalent_focal_length=row["equivalent_focal_length"],
+                mirror_area=row["mirror_area"],
+                num_mirror_tiles=row["num_mirror_tiles"],
+            )
+            for row in optics_table
+        ]
 
         # give correct frame for the camera to each telescope
-        cameras_by_desc = {}
+        cameras_with_frame = []
         for row in layout:
-            desc = row["tel_description"]
-
             # copy to support different telescopes with same camera geom
-            camera = copy(cameras[row["camera_type"]])
-            focal_length = optics[desc].equivalent_focal_length
+            camera = copy(cameras[row["camera_index"]])
+            focal_length = optics[row["optics_index"]].equivalent_focal_length
             camera.geometry.frame = CameraFrame(focal_length=focal_length)
-            cameras_by_desc[desc] = camera
+            cameras_with_frame.append(camera)
 
         telescope_descriptions = {
             row["tel_id"]: TelescopeDescription(
                 name=row["name"],
                 tel_type=row["type"],
-                optics=optics[row["tel_description"]],
-                camera=cameras_by_desc[row["tel_description"]],
+                optics=optics[row["optics_index"]],
+                camera=camera,
             )
-            for row in layout
+            for row, camera in zip(layout, cameras_with_frame)
         }
 
-        positions = np.column_stack([layout[f"pos_{c}"].quantity for c in "xyz"])
+        positions = np.column_stack([layout[f"pos_{c}"] for c in "xyz"])
 
         with tables.open_file(path, mode="r") as f:
             attrs = f.root.configuration.instrument.subarray._v_attrs
