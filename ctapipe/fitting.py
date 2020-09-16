@@ -46,7 +46,7 @@ def residual_sum_of_squares(X, y, beta):
     beta: np.array
         Parameter vector of the linear regression
     """
-    return y @ y - beta @ X.T @ y
+    return np.sum(residuals(X, y, beta) ** 2)
 
 
 @njit
@@ -62,7 +62,7 @@ def residuals(X, y, beta):
     beta: np.array
         Parameter vector of the linear regression
     """
-    return y - X @ beta
+    return y - (X[:, 0] * beta[0] + beta[1])
 
 
 @njit
