@@ -20,6 +20,9 @@ def dl1_file():
 
 
 def test_is_compatible(dl1_file):
+    simtel_path = get_dataset_path("gamma_test.simtel.gz")
+    assert not DL1EventSource.is_compatible(simtel_path)
+    assert DL1EventSource.is_compatible(dl1_file)
     with event_source(input_url=dl1_file) as source:
         assert isinstance(source, DL1EventSource)
 
