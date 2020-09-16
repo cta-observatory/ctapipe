@@ -114,3 +114,20 @@ def test_hdf(example_subarray):
         read = SubarrayDescription.from_hdf(f.name)
 
         assert example_subarray == read
+
+    # test with a subarray that has two different telescopes with the same
+    # camera
+    tel = {
+        1: TelescopeDescription.from_name(optics_name="SST-ASTRI", camera_name="CHEC"),
+        2: TelescopeDescription.from_name(optics_name="SST-GCT", camera_name="CHEC"),
+    }
+    pos = {1: [0, 0, 0] * u.m, 2: [50, 0, 0] * u.m}
+
+    array = SubarrayDescription("test array", tel_positions=pos, tel_descriptions=tel)
+
+    with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
+
+        array.to_hdf(f.name)
+        read = SubarrayDescription.from_hdf(f.name)
+
+        assert array == read

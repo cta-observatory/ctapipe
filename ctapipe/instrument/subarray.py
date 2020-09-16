@@ -387,23 +387,19 @@ class SubarrayDescription:
             append=True,
             serialize_meta=serialize_meta,
         )
-        for telescope_type in self.telescope_types:
-            ids = set(self.get_tel_ids_for_type(telescope_type))
-            if len(ids) > 0:  # only write if there is a telescope with this camera
-                tel_id = list(ids)[0]
-                camera = self.tel[tel_id].camera
-                camera.geometry.to_table().write(
-                    output_path,
-                    path=f"/configuration/instrument/telescope/camera/geometry_{camera}",
-                    append=True,
-                    serialize_meta=serialize_meta,
-                )
-                camera.readout.to_table().write(
-                    output_path,
-                    path=f"/configuration/instrument/telescope/camera/readout_{camera}",
-                    append=True,
-                    serialize_meta=serialize_meta,
-                )
+        for camera in self.camera_types:
+            camera.geometry.to_table().write(
+                output_path,
+                path=f"/configuration/instrument/telescope/camera/geometry_{camera}",
+                append=True,
+                serialize_meta=serialize_meta,
+            )
+            camera.readout.to_table().write(
+                output_path,
+                path=f"/configuration/instrument/telescope/camera/readout_{camera}",
+                append=True,
+                serialize_meta=serialize_meta,
+            )
 
         with tables.open_file(output_path, mode="r+") as f:
             f.root.configuration.instrument.subarray._v_attrs.name = self.name
