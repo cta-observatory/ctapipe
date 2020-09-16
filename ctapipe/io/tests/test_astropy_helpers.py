@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 import numpy as np
 from astropy import units as u
+
+from ctapipe.containers import ReconstructedEnergyContainer
 from ctapipe.io import HDF5TableWriter
 from ctapipe.io.astropy_helpers import h5_table_to_astropy
-from ctapipe.containers import ReconstructedEnergyContainer
 
 
 def test_h5_table_to_astropy(tmp_path):
@@ -23,3 +24,4 @@ def test_h5_table_to_astropy(tmp_path):
 
     assert "energy" in table.columns
     assert table["energy"].unit == u.TeV
+    assert "CTAPIPE_VERSION" in table.meta

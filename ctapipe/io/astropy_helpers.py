@@ -6,7 +6,6 @@ import tables
 from astropy.table import QTable
 from astropy.units import Unit
 
-
 __all__ = ["h5_table_to_astropy"]
 
 
@@ -43,13 +42,16 @@ def h5_table_to_astropy(h5file, path) -> QTable:
 
     table = h5file.get_node(path)
 
+    other_attrs = {}
     column_units = {}  # mapping of colname to unit
     for attr in table.attrs._f_list():
         if attr.endswith("_UNIT"):
             colname = attr[:-5]
             column_units[colname] = table.attrs[attr]
+        else:
+            other_attrs[attr] = table.attrs[attr]
 
-    astropy_table = QTable(table[:])
+    astropy_table = QTable(table[:], meta=other_attrs)
 
     for column, unit in column_units.items():
         astropy_table[column].unit = Unit(unit)
