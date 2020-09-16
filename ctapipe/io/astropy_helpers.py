@@ -34,9 +34,11 @@ def h5_table_to_astropy(h5file, path) -> QTable:
     """
 
     should_close_file = False
-    if not isinstance(h5file, tables.file.File) and isinstance(h5file, (str, Path)):
+    if isinstance(h5file, (str, Path)):
         h5file = tables.open_file(h5file)
         should_close_file = True
+    elif isinstance(h5file, tables.file.File):
+        pass
     else:
         raise ValueError(
             f"expected a string, Path, or PyTables "
