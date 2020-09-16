@@ -1,5 +1,45 @@
 import numpy as np
-from ctapipe.image import neg_log_likelihood, neg_log_likelihood_approx
+from ctapipe.image import (
+    neg_log_likelihood,
+    neg_log_likelihood_approx,
+    mean_poisson_likelihood_gaussian,
+    chi_squared,
+    mean_poisson_likelihood_full,
+)
+
+
+def test_chi_squared():
+    image = np.array([20, 20, 20])
+    prediction = np.array([20, 20, 20])
+    bad_prediction = np.array([1, 1, 1])
+
+    ped = 1
+
+    chi = chi_squared(image, prediction, ped)
+    bad_chi = chi_squared(image, bad_prediction, ped)
+
+    assert chi < bad_chi
+
+
+def test_mean_poisson_likelihoood_gaussian():
+    prediction = np.array([1, 1, 1], dtype="float")
+    spe = 0.5
+
+    small_mean_likelihood = mean_poisson_likelihood_gaussian(prediction, spe, 0)
+    large_mean_likelihood = mean_poisson_likelihood_gaussian(prediction, spe, 1)
+
+    assert small_mean_likelihood < large_mean_likelihood
+
+
+def test_mean_poisson_likelihood_full():
+    prediction = np.array([30.0, 30.0])
+
+    spe = np.array([0.5])
+
+    small_mean_likelihood = mean_poisson_likelihood_full(prediction, spe, [0])
+    large_mean_likelihood = mean_poisson_likelihood_full(prediction, spe, [1])
+
+    assert small_mean_likelihood < large_mean_likelihood
 
 
 def test_full_likelihood():
