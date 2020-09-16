@@ -243,7 +243,7 @@ class ArrayDisplay:
             idx = self.subarray.tel_indices[tel_id]
             rho[idx] = u.Quantity(length, u.m)
 
-            if str(params.psi_divergent.value) != "nan":
+            if not np.isnan(params.psi_divergent.value):
                 psi = Angle(params.psi_divergent)
             elif params.x.unit == u.Unit("deg"):
                 psi = Angle((np.pi / 2.0) * u.rad - params.psi)  # from TelescopeFrame
@@ -284,7 +284,7 @@ class ArrayDisplay:
             x_0 = coords[idx].x.to_value(u.m)
             y_0 = coords[idx].y.to_value(u.m)
 
-            if str(params.psi_divergent.value) != "nan":
+            if not np.isnan(params.psi_divergent.value):
                 psi = Angle(params.psi_divergent)
             else:
                 if params.x.unit == u.Unit("deg"):
