@@ -64,9 +64,7 @@ class CameraCalibrator(Component):
         self.image_extractor = image_extractor
 
         if data_volume_reducer is None:
-            data_volume_reducer = NullDataVolumeReducer(
-                parent=self, image_extractor=self.image_extractor
-            )
+            data_volume_reducer = NullDataVolumeReducer(parent=self, subarray=subarray)
         self.data_volume_reducer = data_volume_reducer
 
     def _check_r1_empty(self, waveforms):
