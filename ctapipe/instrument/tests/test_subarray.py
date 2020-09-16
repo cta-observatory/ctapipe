@@ -130,4 +130,4 @@ def test_hdf(example_subarray):
         array.to_hdf(f.name)
         read = SubarrayDescription.from_hdf(f.name)
 
-        assert example_subarray == read
+        assert array == read
