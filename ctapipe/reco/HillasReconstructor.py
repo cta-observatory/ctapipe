@@ -229,7 +229,7 @@ class HillasReconstructor(Reconstructor):
 
             focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
 
-            if moments.x.unit == u.Unit("m"):  # Image parameters are in CameraFrame
+            if moments.x.unit == u.m:  # Image parameters are in CameraFrame
 
                 # we just need any point on the main shower axis a bit away from the cog
                 p2_x = moments.x + 0.1 * u.m * np.cos(moments.psi)
