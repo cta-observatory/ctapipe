@@ -105,6 +105,8 @@ class DL1EventSource(EventSource):
                 return False
             if metadata["CTA PRODUCT DESCRIPTION"] != "DL1 Data Product":
                 return False
+            if metadata["CTA PRODUCT DATA MODEL VERSION"] != "v1.0.0":
+                return False
         return True
 
     @property
