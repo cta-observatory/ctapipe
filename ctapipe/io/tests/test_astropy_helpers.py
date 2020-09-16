@@ -2,6 +2,7 @@
 import numpy as np
 from astropy import units as u
 import tables
+import pytest
 
 from ctapipe.containers import ReconstructedEnergyContainer
 from ctapipe.io import HDF5TableWriter
@@ -34,3 +35,7 @@ def test_h5_table_to_astropy(tmp_path):
     handle = tables.open_file(filename)
     table = h5_table_to_astropy(handle, "/events")
     handle.close()
+
+    # test a bad input
+    with pytest.raises(ValueError):
+        table = h5_table_to_astropy(12345, "/events")
