@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+"""
+Functions to help adapt internal ctapipe data to astropy formats and conventions
+"""
 
 from pathlib import Path
 
@@ -44,7 +47,7 @@ def h5_table_to_astropy(h5file, path) -> QTable:
 
     other_attrs = {}
     column_units = {}  # mapping of colname to unit
-    for attr in table.attrs._f_list():
+    for attr in table.attrs._f_list():  # pylint: disable=W0212
         if attr.endswith("_UNIT"):
             colname = attr[:-5]
             column_units[colname] = table.attrs[attr]
