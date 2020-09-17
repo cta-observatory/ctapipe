@@ -22,3 +22,8 @@ References
 
 .. [ctatopleveldatamodel] K. Kosack et al, "Top-level Data Model", CTAO Computing
     Department Internal Documentation, CTA-SPE-OSO-000000-0001, v1A.
+
+.. [gasparetto] Gasparetto T., "Development of a computing farm for Cloud
+    computing on GPU Development and optimisation of data-analysis
+    methodologies for the Cherenkov Telescope Array",
+    Ph.D. thesis, Academic Year 2018/2019.

@@ -214,6 +214,12 @@ class HillasReconstructor(Reconstructor):
             dictionary of pointing direction per each telescope
         array_pointing: SkyCoord[AltAz]
             pointing direction of the array
+
+        Notes
+        -----
+        The part of the algorithm taking into account divergent pointing
+        mode and the correction to the psi angle is explained in [gasparetto]_
+        section 7.1.4.
         """
 
         self.hillas_planes = {}
@@ -348,6 +354,12 @@ class HillasReconstructor(Reconstructor):
             estimated x position of impact
         core_y: u.Quantity
             estimated y position of impact
+
+        Notes
+        -----
+        The part of the algorithm taking into account divergent pointing
+        mode and the usage of a corrected psi angle is explained in [gasparetto]_
+        section 7.1.4.
 
         """
         if self.divergent_mode:
