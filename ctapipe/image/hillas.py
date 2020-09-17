@@ -153,9 +153,10 @@ def hillas_parameters(geom, image):
         psi = skewness_long = kurtosis_long = np.nan
     else:
         if vx != 0:
-            psi = np.arctan2(vy, vx)
+            psi = np.arctan(vy / vx)
         else:
             psi = np.pi / 2
+        # psi will be then consistently defined in the range (-pi/2, pi/2)
 
         # calculate higher order moments along shower axes
         longitudinal = delta_x * np.cos(psi) + delta_y * np.sin(psi)
