@@ -32,9 +32,8 @@ def test_h5_table_to_astropy(tmp_path):
     table = h5_table_to_astropy(str(filename), "/events")
 
     # test using a file handle
-    handle = tables.open_file(filename)
-    table = h5_table_to_astropy(handle, "/events")
-    handle.close()
+    with tables.open_file(filename) as handle:
+        table = h5_table_to_astropy(handle, "/events")
 
     # test a bad input
     with pytest.raises(ValueError):
