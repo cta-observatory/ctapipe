@@ -46,7 +46,6 @@ def plot_pixel(pixel, pdf, fitter, charges):
         print(f"  {param} = {value:.2e} ± {error:.2e}")
 
     plt.show()
-    exit()
 
 
 def append_to_table(pixel, table, result):
@@ -191,6 +190,7 @@ class SPEFitter(Tool):
 
         if self.plot_pixel is not None:
             plot_pixel(self.plot_pixel, pdf, fitter, charges)
+            return
 
         if self.n_processes == 1:
             fitter.process(charges)
