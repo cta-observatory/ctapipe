@@ -2,7 +2,7 @@ import re
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 
-from ctapipe.core import Component, Container
+from ctapipe.core import Component
 
 __all__ = ["TableReader", "TableWriter"]
 
@@ -84,8 +84,8 @@ class TableWriter(Component, metaclass=ABCMeta):
         ----------
         table_name: str
             name of table to write to
-        container: `ctapipe.core.Container`
-            container to write
+        containers: ctapipe.core.Container or iterable thereof
+            container instance(s) to write
         **kwargs:
             may be passed to a lower level implementation to set options
         """
@@ -129,7 +129,7 @@ class TableReader(Component, metaclass=ABCMeta):
 
     def __init__(self):
         super().__init__()
-        self._cols_to_read = defaultdict(list)
+        self._cols_to_read = defaultdict(dict)
         self._transforms = defaultdict(dict)
 
     def __enter__(self):
@@ -168,7 +168,7 @@ class TableReader(Component, metaclass=ABCMeta):
         return value
 
     @abstractmethod
-    def read(self, table_name: str, container: Container, prefix=False):
+    def read(self, table_name, containers, prefixes, **kwargs):
         """
         Returns a generator that reads the next row from the table into the
         given container.  The generator returns the same container. Note that
@@ -178,10 +178,10 @@ class TableReader(Component, metaclass=ABCMeta):
         ----------
         table_name: str
             name of table to read from
-        container : ctapipe.core.Container
-            Container instance to fill
-        prefix: bool or str
-            Prefix that was added while writing the file.
+        containers: ctapipe.core.Container or iterable thereof
+            Container instance(s) to fill
+        prefixes: bool, str or iterable of str
+            prefixes used during writing of the table
         """
         pass
 
