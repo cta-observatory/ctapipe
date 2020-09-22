@@ -22,7 +22,11 @@ from abc import abstractmethod
 from functools import lru_cache
 import numpy as np
 from traitlets import Int, Bool
-from ctapipe.core.traits import IntTelescopeParameter, FloatTelescopeParameter
+from ctapipe.core.traits import (
+    IntTelescopeParameter,
+    FloatTelescopeParameter,
+    BoolTelescopeParameter,
+)
 from ctapipe.core import TelescopeComponent
 from numba import njit, prange, guvectorize, float64, float32, int64
 from scipy.ndimage.filters import convolve1d
@@ -347,6 +351,10 @@ class FixedWindowSum(ImageExtractor):
         "(peak_index - shift)",
     ).tag(config=True)
 
+    apply_integration_correction = BoolTelescopeParameter(
+        default_value=True, help="Apply the integration window correction"
+    ).tag(config=True)
+
     @lru_cache(maxsize=128)
     def _calculate_correction(self, telid):
         """
@@ -384,7 +392,8 @@ class FixedWindowSum(ImageExtractor):
             self.window_shift.tel[telid],
             self.sampling_rate[telid],
         )
-        charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
+        if self.apply_integration_correction.tel[telid]:
+            charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
         return charge, peak_time
 
 
@@ -397,10 +406,15 @@ class GlobalPeakWindowSum(ImageExtractor):
     window_width = IntTelescopeParameter(
         default_value=7, help="Define the width of the integration window"
     ).tag(config=True)
+
     window_shift = IntTelescopeParameter(
         default_value=3,
         help="Define the shift of the integration window from the peak_index "
         "(peak_index - shift)",
+    ).tag(config=True)
+
+    apply_integration_correction = BoolTelescopeParameter(
+        default_value=True, help="Apply the integration window correction"
     ).tag(config=True)
 
     @lru_cache(maxsize=128)
@@ -441,7 +455,8 @@ class GlobalPeakWindowSum(ImageExtractor):
             self.window_shift.tel[telid],
             self.sampling_rate[telid],
         )
-        charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
+        if self.apply_integration_correction.tel[telid]:
+            charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
         return charge, peak_time
 
 
@@ -454,10 +469,15 @@ class LocalPeakWindowSum(ImageExtractor):
     window_width = IntTelescopeParameter(
         default_value=7, help="Define the width of the integration window"
     ).tag(config=True)
+
     window_shift = IntTelescopeParameter(
         default_value=3,
         help="Define the shift of the integration window"
         "from the peak_index (peak_index - shift)",
+    ).tag(config=True)
+
+    apply_integration_correction = BoolTelescopeParameter(
+        default_value=True, help="Apply the integration window correction"
     ).tag(config=True)
 
     @lru_cache(maxsize=128)
@@ -498,7 +518,8 @@ class LocalPeakWindowSum(ImageExtractor):
             self.window_shift.tel[telid],
             self.sampling_rate[telid],
         )
-        charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
+        if self.apply_integration_correction.tel[telid]:
+            charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
         return charge, peak_time
 
 
@@ -511,15 +532,21 @@ class NeighborPeakWindowSum(ImageExtractor):
     window_width = IntTelescopeParameter(
         default_value=7, help="Define the width of the integration window"
     ).tag(config=True)
+
     window_shift = IntTelescopeParameter(
         default_value=3,
         help="Define the shift of the integration window "
         "from the peak_index (peak_index - shift)",
     ).tag(config=True)
+
     lwt = IntTelescopeParameter(
         default_value=0,
         help="Weight of the local pixel (0: peak from neighbors only, "
         "1: local pixel counts as much as any neighbor)",
+    ).tag(config=True)
+
+    apply_integration_correction = BoolTelescopeParameter(
+        default_value=True, help="Apply the integration window correction"
     ).tag(config=True)
 
     @lru_cache(maxsize=128)
@@ -567,7 +594,8 @@ class NeighborPeakWindowSum(ImageExtractor):
             self.window_shift.tel[telid],
             self.sampling_rate[telid],
         )
-        charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
+        if self.apply_integration_correction.tel[telid]:
+            charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
         return charge, peak_time
 
 
@@ -645,6 +673,10 @@ class TwoPassWindowSum(ImageExtractor):
 
     peak_finding_window_width = IntTelescopeParameter(
         default_value=3, help="width of sliding window used to do peak detection"
+    ).tag(config=True)
+
+    apply_integration_correction = BoolTelescopeParameter(
+        default_value=True, help="Apply the integration window correction"
     ).tag(config=True)
 
     @lru_cache(maxsize=4096)
@@ -749,7 +781,10 @@ class TwoPassWindowSum(ImageExtractor):
         )
 
         # Get integration correction factors
-        correction = self._calculate_correction(telid, window_width, window_shift)
+        if self.apply_integration_correction.tel[telid]:
+            correction = self._calculate_correction(telid, window_width, window_shift)
+        else:
+            correction = np.ones(waveforms.shape[0])
 
         return charge_1stpass, pulse_time_1stpass, correction
 
@@ -946,24 +981,25 @@ class TwoPassWindowSum(ImageExtractor):
             self.sampling_rate[telid],
         )
 
-        # Modify integration correction factors only for non-core pixels
-        # now we compute 3 corrections for the default, before, and after cases:
-        correction = self._calculate_correction(
-            telid, window_width_default, window_shift_default
-        )[selected_gain_channel][non_core_pixels_mask]
+        if self.apply_integration_correction.tel[telid]:
+            # Modify integration correction factors only for non-core pixels
+            # now we compute 3 corrections for the default, before, and after cases:
+            correction = self._calculate_correction(
+                telid, window_width_default, window_shift_default
+            )[selected_gain_channel][non_core_pixels_mask]
 
-        correction_before = self._calculate_correction(
-            telid, window_width_before, window_shift_before
-        )[selected_gain_channel][non_core_pixels_mask]
+            correction_before = self._calculate_correction(
+                telid, window_width_before, window_shift_before
+            )[selected_gain_channel][non_core_pixels_mask]
 
-        correction_after = self._calculate_correction(
-            telid, window_width_after, window_shift_after
-        )[selected_gain_channel][non_core_pixels_mask]
+            correction_after = self._calculate_correction(
+                telid, window_width_after, window_shift_after
+            )[selected_gain_channel][non_core_pixels_mask]
 
-        correction[peak_before_window] = correction_before[peak_before_window]
-        correction[peak_after_window] = correction_after[peak_after_window]
+            correction[peak_before_window] = correction_before[peak_before_window]
+            correction[peak_after_window] = correction_after[peak_after_window]
 
-        charge_no_core *= correction
+            charge_no_core *= correction
 
         # STEP 7
 
