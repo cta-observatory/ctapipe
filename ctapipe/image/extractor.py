@@ -352,8 +352,7 @@ class FixedWindowSum(ImageExtractor):
     ).tag(config=True)
 
     apply_integration_correction = BoolTelescopeParameter(
-        default_value=True,
-        help="Weither or not to apply the integration window correction",
+        default_value=True, help="Apply the integration window correction"
     ).tag(config=True)
 
     @lru_cache(maxsize=128)
@@ -415,8 +414,7 @@ class GlobalPeakWindowSum(ImageExtractor):
     ).tag(config=True)
 
     apply_integration_correction = BoolTelescopeParameter(
-        default_value=True,
-        help="Weither or not to apply the integration window correction",
+        default_value=True, help="Apply the integration window correction"
     ).tag(config=True)
 
     @lru_cache(maxsize=128)
@@ -479,8 +477,7 @@ class LocalPeakWindowSum(ImageExtractor):
     ).tag(config=True)
 
     apply_integration_correction = BoolTelescopeParameter(
-        default_value=True,
-        help="Weither or not to apply the integration window correction",
+        default_value=True, help="Apply the integration window correction"
     ).tag(config=True)
 
     @lru_cache(maxsize=128)
@@ -549,8 +546,7 @@ class NeighborPeakWindowSum(ImageExtractor):
     ).tag(config=True)
 
     apply_integration_correction = BoolTelescopeParameter(
-        default_value=True,
-        help="Weither or not to apply the integration window correction",
+        default_value=True, help="Apply the integration window correction"
     ).tag(config=True)
 
     @lru_cache(maxsize=128)
@@ -680,8 +676,7 @@ class TwoPassWindowSum(ImageExtractor):
     ).tag(config=True)
 
     apply_integration_correction = BoolTelescopeParameter(
-        default_value=True,
-        help="Weither or not to apply the integration window correction",
+        default_value=True, help="Apply the integration window correction"
     ).tag(config=True)
 
     @lru_cache(maxsize=4096)
