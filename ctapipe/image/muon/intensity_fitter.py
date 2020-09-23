@@ -214,6 +214,8 @@ def image_prediction_no_units(
     """Function for producing the expected image for a given set of trial
     muon parameters without using astropy units but expecting the input to
     be in the correct ones.
+
+    See [chalmecalvet2013]_
     """
 
     # First produce angular position of each pixel w.r.t muon center
@@ -255,7 +257,7 @@ def image_prediction_no_units(
     pred *= pixel_diameter_rad / radius_rad
     # multiply by angle (in radians) subtended by pixel width as seen from ring center
 
-    pred *= np.sin(2 * radius_rad)
+    pred *= 0.5 * np.sin(2 * radius_rad)
 
     # multiply by gaussian weight, to account for "fraction of muon ring" which falls
     # within the pixel
@@ -441,10 +443,8 @@ class MuonIntensityFitter(TelescopeComponent):
     oversampling = IntTelescopeParameter(
         help="Oversampling for the line integration", default_value=3
     ).tag(config=True)
-    
-    def __call__(
-        self, tel_id, center_x, center_y, radius, image, pedestal, mask=None
-    ):
+
+    def __call__(self, tel_id, center_x, center_y, radius, image, pedestal, mask=None):
         """
 
         Parameters
