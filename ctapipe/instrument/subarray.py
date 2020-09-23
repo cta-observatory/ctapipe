@@ -457,7 +457,11 @@ class SubarrayDescription:
         positions = np.column_stack([layout[f"pos_{c}"].quantity for c in "xyz"])
 
         with tables.open_file(path, mode="r") as f:
-            name = f.root.configuration.instrument.subarray._v_attrs.name
+            attrs = f.root.configuration.instrument.subarray._v_attrs
+            if "name" in attrs:
+                name = attrs.name
+            else:
+                name = "Unknown"
 
         return cls(
             name=name,

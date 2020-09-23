@@ -108,12 +108,21 @@ def test_get_tel_ids_for_type(example_subarray):
 
 
 def test_hdf(example_subarray):
+    import tables
+
     with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
 
         example_subarray.to_hdf(f.name)
         read = SubarrayDescription.from_hdf(f.name)
 
         assert example_subarray == read
+
+        # test that subarrays without name (v0.8.0) work:
+        with tables.open_file(f.name, "r+") as hdf:
+            del hdf.root.configuration.instrument.subarray._v_attrs.name
+
+        no_name = SubarrayDescription.from_hdf(f.name)
+        assert no_name.name == "Unknown"
 
     # test with a subarray that has two different telescopes with the same
     # camera
