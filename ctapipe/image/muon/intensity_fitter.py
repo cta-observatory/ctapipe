@@ -277,39 +277,6 @@ def image_prediction_no_units(
     return pred
 
 
-def calc_likelihood(image, pred, spe_width, ped):
-    """Calculate likelihood of prediction given the measured signal,
-    gaussian approx from [denaurois2009]_
-
-    Parameters
-    ----------
-    image: ndarray
-        Pixel amplitudes from image
-    pred: ndarray
-        Predicted pixel amplitudes from model
-    spe_width: ndarray
-        width of single p.e. distribution
-    ped: ndarray
-        width of pedestal
-
-    Returns
-    -------
-    ndarray: likelihood for each pixel
-
-    """
-
-    sq = 1 / np.sqrt(2 * np.pi * (ped ** 2 + pred * (1 + spe_width ** 2)))
-    diff = (image - pred) ** 2
-    denom = 2 * (ped ** 2 + pred * (1 + spe_width ** 2))
-    expo = np.exp(-diff / denom) + 1e-16  # add small epsilon to avoid nans
-
-    log_value = sq * expo
-
-    likelihood_value = -2 * np.log(log_value)
-
-    return likelihood_value
-
-
 def build_negative_log_likelihood(
     image,
     telescope_description,
