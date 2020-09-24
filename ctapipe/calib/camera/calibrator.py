@@ -6,7 +6,7 @@ calibration and image extraction, as well as supporting algorithms.
 import warnings
 import numpy as np
 from ctapipe.core import Component
-from ctapipe.image.extractor import NeighborPeakWindowSum
+from ctapipe.image.extractor import ImageExtractor, NeighborPeakWindowSum
 from ctapipe.image.reducer import DataVolumeReducer
 from ctapipe.core.traits import create_class_enum_trait
 
@@ -21,6 +21,10 @@ class CameraCalibrator(Component):
 
     data_volume_reducer_type = create_class_enum_trait(
         DataVolumeReducer, default_value="NullDataVolumeReducer"
+    ).tag(config=True)
+
+    image_extractor_type = create_class_enum_trait(
+        ImageExtractor, default_value="NeighborPeakWindowSum"
     ).tag(config=True)
 
     def __init__(
@@ -58,9 +62,9 @@ class CameraCalibrator(Component):
         self._r1_empty_warn = False
         self._dl0_empty_warn = False
 
-        if image_extractor is None:
-            image_extractor = NeighborPeakWindowSum(parent=self, subarray=subarray)
-        self.image_extractor = image_extractor
+        self.image_extractor = ImageExtractor.from_name(
+            self.image_extractor_type, subarray=self.subarray, parent=self
+        )
 
         self.data_volume_reducer = DataVolumeReducer.from_name(
             self.data_volume_reducer_type,
