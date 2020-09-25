@@ -73,7 +73,7 @@ setup(
         "traitlets>=4.1,<5.0",
         "zstandard",
         "h5py",  # needed for astropy hdf5 io
-        "spefit~=1.0.1",
+        "spefit~=1.0.2",
     ],
     # here are optional dependencies (as "tag" : "dependency spec")
     extras_require={
