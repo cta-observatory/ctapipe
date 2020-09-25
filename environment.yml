@@ -44,5 +44,4 @@ dependencies:
   - zstandard
   - eventio>=1.1.1
   - ctapipe-extra>=0.3
-  - pip:
-    - spefit~=1.0
+  - spefit~=1.0
