@@ -12,7 +12,7 @@ from matplotlib import pyplot as plt
 
 
 def plot_pixel(pixel, pdf, fitter, charges):
-    fig, ax = plt.subplots()
+    _, ax = plt.subplots()
     fitter._apply_pixel(charges, pixel)
     for i in range(fitter.n_illuminations):
         color = next(ax._get_lines.prop_cycler)['color']
