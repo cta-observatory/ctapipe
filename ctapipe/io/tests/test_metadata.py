@@ -29,7 +29,7 @@ def test_construct_and_write_metadata(tmp_path):
             data_model_url="http://google.com",
             format="hdf5",
         ),
-        process=meta.Process(_type="Simulation", subtype="Prod3b", _id=423442),
+        process=meta.Process(type_="Simulation", subtype="Prod3b", id_=423442),
         activity=meta.Activity.from_provenance(prov_activity.provenance),
         instrument=meta.Instrument(
             site="CTA-North",
