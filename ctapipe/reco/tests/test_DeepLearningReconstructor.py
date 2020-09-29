@@ -1,7 +1,7 @@
 import os
 
 import pytest
-from pandas import np
+import numpy as np
 
 from ctapipe.containers import ReconstructedShowerContainer
 from ctapipe.io import event_source
@@ -28,12 +28,6 @@ class TReconstructor(DeepLearningReconstructor):
             List of supported cameras: FlashCam and ASTRICam
         """
         return ["FlashCam", "ASTRICam"]
-
-    def _to_input(self, event, tel_id, cam_name):
-        """
-        Each observation will use the dl1 image and a random "extra" input
-        """
-        return {"img": [event.dl1.tel[tel_id].image], "extra": [np.random.rand(10)]}
 
     def _reconstruct(self, models_outputs):
         """
@@ -112,37 +106,6 @@ def test_onnx_prediction():
     assert np.allclose(out_b, np.ones((1, 1)))
 
 
-def test_filter_cams():
-    """
-    Tests the telescope filtering by camera name.
-
-    Iterates over all events from the test file filtering by camera name
-    using the `ONNXReconstructor._get_tel_ids_with_cam(subarray, cam_name)`
-    method to assert that no event is wrongly filtered.
-    """
-    filename = get_dataset_path("gamma_test_large.simtel.gz")
-
-    source = event_source(filename, max_events=10)
-    calib = CameraCalibrator(subarray=source.subarray)
-
-    subarray = source.subarray
-    for event in source:
-        calib(event)
-        # count to assert that observations from all the telescopes have been processed
-        count = 0
-        for cam in subarray.camera_types:
-            cam_name = cam.camera_name
-            tel_ids = list(
-                TReconstructor._get_tel_ids_with_cam(
-                    event=event, subarray=subarray, cam_name=cam_name
-                )
-            )
-            for tel_id in tel_ids:
-                assert subarray.tel[tel_id].camera.geometry.camera_name == cam_name
-            count += len(tel_ids)
-        assert count == len(event.dl1.tel)
-
-
 def test_reconstructor_validations():
     """
     Tests reconstructor models validation
@@ -186,5 +149,9 @@ def test_reconstruction():
     # start prediction per event
     for event in source:
         calib(event)
-        prediction = fit.predict(event, source.subarray)
+        inputs = {}
+        for tel_id in event.dl1.tel:
+            inputs[tel_id] = {"img": [event.dl1.tel[tel_id].image], "extra": [np.random.rand(10)]}
+
+        prediction = fit.predict(inputs, source.subarray)
         assert isinstance(prediction, ReconstructedShowerContainer)

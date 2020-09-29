@@ -130,35 +130,16 @@ class DeepLearningReconstructor(Reconstructor):
             List of camera names supported by this reconstructor
         """
 
-    @staticmethod
-    def _get_tel_ids_with_cam(event, subarray, cam_name):
-        """
-        Get telescope IDs from subarray that uses a given camera
-
-        Parameters
-        ----------
-        subarray : ctapipe.instrument.SubarrayDecription
-            Subarray description
-        cam_name : str
-            Camera name for filter
-        """
-        for tel_id in event.dl1.tel:
-            if subarray.tel[tel_id].camera.geometry.camera_name != cam_name:
-                continue
-            yield tel_id
-
-    def predict(self, event, subarray, **kwargs):
+    def predict(self, tels_dict, subarray, **kwargs):
         """
         Start a prediction using the given models and then combine
         all the observations into a ReconstructedShowerContainer
 
         Parameters
         ----------
-        event : ctapipe.containers.EventAndMonDataContainer
-            Event container from which the prediction will be made
-        subarray : ctapipe.instrument.SubarrayDecription
-            Subarray description
-
+        tels_dict : dict
+            dictionary with telescope IDs as key and
+            the input as value
         Returns
         -------
         ctapipe.containers.ReconstructedShowerContainer
@@ -173,8 +154,9 @@ class DeepLearningReconstructor(Reconstructor):
             model = self._get_model(cam_name)
 
             obs_inputs = [
-                self._to_input(event, tel_id, cam_name, **kwargs)
-                for tel_id in self._get_tel_ids_with_cam(event, subarray, cam_name)
+                tels_dict[tel_id]
+                for tel_id in tels_dict
+                if subarray.tel[tel_id].camera.geometry.camera_name == cam_name
             ]
 
             predictions[cam_name] = list()
@@ -203,27 +185,6 @@ class DeepLearningReconstructor(Reconstructor):
             List of events to be used for training
         """
         return self.models[cam_name]
-
-    @abstractmethod
-    def _to_input(self, event, tel_id, cam_name):
-        """
-        Method to convert an observation of an event to the model input.
-
-        Parameters
-        ----------
-        event : ctapipe.containers.EventAndMonDataContainer
-            Event to be converted
-        tel_id: int
-            The telescope id of the observation to be converted.
-        cam_name: str
-            The camera name of the observation
-
-        Returns
-        -------
-        Dict[str, str]
-            Dictionary for the inputs, with the input name as the
-            key, and the input array as the value
-        """
 
     @abstractmethod
     def _reconstruct(self, models_outputs):
