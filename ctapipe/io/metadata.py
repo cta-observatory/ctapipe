@@ -44,6 +44,9 @@ __all__ = [
 from astropy.time import Time
 
 
+CONVERSIONS = {Time: lambda t: t.utc.iso}
+
+
 class Contact(HasTraits):
     """ Contact information """
 
@@ -162,12 +165,17 @@ def _to_dict(hastraits_instance, prefix=""):
     """ helper to convert a HasTraits to a dict with keys
     in the required CTA format (upper-case, space separated)
     """
-    return {
-        (prefix + k.upper().replace("_", " "))
-        .replace("  ", " ")
-        .strip(): tr.get(hastraits_instance)
-        for k, tr in hastraits_instance.traits().items()
-    }
+    res = {}
+
+    for k, tr in hastraits_instance.traits().items():
+        key = (prefix + k.upper().replace("_", " ")).replace("  ", " ").strip()
+        val = tr.get(hastraits_instance)
+
+        # apply type conversions
+        val = CONVERSIONS.get(type(val), lambda v: v)(val)
+        res[key] = val
+
+    return res
 
 
 class Reference(HasTraits):
