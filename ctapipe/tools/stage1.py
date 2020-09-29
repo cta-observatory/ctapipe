@@ -16,7 +16,8 @@ from ..calib.camera import CameraCalibrator, GainSelector
 from ..containers import (
     ImageParametersContainer,
     TelEventIndexContainer,
-    SimulatedShowerDistribution,
+    CorePosEnergyDistribution,
+    SourceAngleDistribution,
     IntensityStatisticsContainer,
     PeakTimeStatisticsContainer,
     MCDL1CameraContainer,
@@ -337,42 +338,46 @@ class Stage1ProcessorTool(Tool):
         if not isinstance(self.event_source, SimTelEventSource):
             return
 
-        def fill_from_simtel(
-            obs_id, eventio_hist, container: SimulatedShowerDistribution
-        ):
-            """ fill from a SimTel Histogram entry"""
-            container.obs_id = obs_id
-            container.hist_id = eventio_hist["id"]
-            container.num_entries = eventio_hist["entries"]
-            xbins = np.linspace(
-                eventio_hist["lower_x"],
-                eventio_hist["upper_x"],
-                eventio_hist["n_bins_x"] + 1,
-            )
-            ybins = np.linspace(
-                eventio_hist["lower_y"],
-                eventio_hist["upper_y"],
-                eventio_hist["n_bins_y"] + 1,
-            )
-
-            container.bins_core_dist = xbins * u.m
-            container.bins_energy = 10 ** ybins * u.TeV
-            container.histogram = eventio_hist["data"]
-            container.meta["hist_title"] = eventio_hist["title"]
-            container.meta["x_label"] = "Log10 E (TeV)"
-            container.meta["y_label"] = "3D Core Distance (m)"
-
         hists = self.event_source.file_.histograms
-        if hists is not None:
-            hist_container = SimulatedShowerDistribution()
-            hist_container.prefix = ""
-            for hist in hists:
-                if hist["id"] == 6:
-                    fill_from_simtel(self.event_source.obs_id, hist, hist_container)
-                    writer.write(
-                        table_name="simulation/service/shower_distribution",
-                        containers=hist_container,
-                    )
+        if hists is None:
+            self.log.warning("No shower distribution histograms found")
+            return
+
+        hist_container = self._fill_(hists[6], self.event_source.obs_id)
+        writer.write(
+            table_name="simulation/service/shower_distribution",
+            containers=hist_container,
+        )
+
+        hists = {h["id"] for h in hists}
+        hist_energy_vs_core_pos = self._fill_energy_vs_core_pos(
+            hists[6], self.event_source.obs_id
+        )
+        writer.write(
+            table_name="simulation/service/histogram_energy_vs_core_pos",
+            containers=hist_energy_vs_core_pos,
+        )
+
+    @staticmethod
+    def _fill_energy_vs_core_pos(hist, obs_id):
+        if hist["id"] != 6:
+            raise ValueError(f'Expected id 6, got {hist["id"]}')
+
+        xbins = np.linspace(hist["lower_x"], hist["upper_x"], hist["n_bins_x"] + 1)
+        ybins = np.linspace(hist["lower_y"], hist["upper_y"], hist["n_bins_y"] + 1)
+        container = CorePosEnergyDistribution(
+            obs_id=obs_id,
+            hist_id=hist["id"],
+            num_entries=hist["entries"],
+            bins_core_dist=xbins * u.m,
+            bins_energy=10 ** ybins * u.TeV,
+            histogram=hist["data"],
+        )
+        container.meta["hist_title"] = hist["title"]
+        container.meta["x_label"] = "3D Core Distance / m"
+        container.meta["y_label"] = "E / TeV"
+
+        return container
 
     def _write_processing_statistics(self):
         """ write out the event selection stats, etc. """
