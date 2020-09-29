@@ -26,14 +26,7 @@ import uuid
 import warnings
 from collections import OrderedDict
 
-from traitlets import (
-    Enum,
-    Unicode,
-    Int,
-    HasTraits,
-    default,
-    Instance,
-)
+from traitlets import Enum, Unicode, Int, HasTraits, default, Instance
 
 from ctapipe.core.provenance import _ActivityProvenance
 from ctapipe.core.traits import AstroTime
@@ -187,14 +180,20 @@ class Reference(HasTraits):
     activity = Instance(Activity)
     instrument = Instance(Instrument)
 
-    def to_dict(self):
-        """ convert Reference metadata to a flat dict"""
-        meta = OrderedDict({"CTA REFERENCE VERSION": "1"})
-        meta.update(_to_dict(self.contact, prefix="CTA CONTACT "))
-        meta.update(_to_dict(self.product, prefix="CTA PRODUCT "))
-        meta.update(_to_dict(self.process, prefix="CTA PROCESS "))
-        meta.update(_to_dict(self.activity, prefix="CTA ACTIVITY "))
-        meta.update(_to_dict(self.instrument, prefix="CTA INSTRUMENT "))
+    def to_dict(self, fits=False):
+        """
+        convert Reference metadata to a flat dict.
+
+        If `fits=True`, this will include the `HIERARCH` keyword in front.
+        """
+        prefix = "CTA " if fits is False else "HIERARCH CTA "
+
+        meta = OrderedDict({prefix + "REFERENCE VERSION": "1"})
+        meta.update(_to_dict(self.contact, prefix=prefix + "CONTACT "))
+        meta.update(_to_dict(self.product, prefix=prefix + "PRODUCT "))
+        meta.update(_to_dict(self.process, prefix=prefix + "PROCESS "))
+        meta.update(_to_dict(self.activity, prefix=prefix + "ACTIVITY "))
+        meta.update(_to_dict(self.instrument, prefix=prefix + "INSTRUMENT "))
         return meta
 
 
