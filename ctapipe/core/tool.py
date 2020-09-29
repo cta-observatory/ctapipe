@@ -253,7 +253,6 @@ class Tool(Application):
         """ a formatted version string with version, release, and git hash"""
         return f"{version}"
 
-
     def get_current_config(self):
         """ return the current configuration as a dict (e.g. the values
         of all traits, even if they were not set during configuration)
