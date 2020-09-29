@@ -113,7 +113,7 @@ class Tool(Application):
         "%(levelname)s [%(name)s] (%(module)s/%(funcName)s): %(message)s",
         help="The Logging format template",
     ).tag(config=True)
-    provenance_dir = Path(
+    prov_dir = Path(
         default_value=".",
         exists=True,
         file_ok=False,
@@ -132,6 +132,7 @@ class Tool(Application):
         self.log_level = logging.INFO
         self.is_setup = False
         self._registered_components = []
+        self.prov_filename = f"{self.name}.prov.log"
         self.version = version
         self.raise_config_file_errors = True  # override traitlets.Application default
 
@@ -243,7 +244,7 @@ class Tool(Application):
                 self.log.info("Output: %s", output_str)
 
             self.log.debug("PROVENANCE: '%s'", Provenance().as_json(indent=3))
-            with open(self.provenance_dir / "provenance.log", mode="a+") as provlog:
+            with open(self.prov_dir / self.prov_filename, mode="a+") as provlog:
                 provlog.write(Provenance().as_json(indent=3))
 
         self.exit(exit_status)
