@@ -243,6 +243,7 @@ class Tool(Application):
                 self.log.info("Output: %s", output_str)
 
             self.log.debug("PROVENANCE: '%s'", Provenance().as_json(indent=3))
+            self.provenance_log.parent.mkdir(parents=True, exist_ok=True)
             with open(self.provenance_log, mode="a+") as provlog:
                 provlog.write(Provenance().as_json(indent=3))
 
