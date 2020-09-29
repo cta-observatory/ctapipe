@@ -47,7 +47,7 @@ def test_provenance_dir():
         userparam = Float(5.0, help="parameter").tag(config=True)
 
     tool = MyTool()
-    assert str(tool.provenance_dir) == os.getcwd()
+    assert str(tool.provenance_log) == os.path.join(os.getcwd(), "application.provenance.log")
 
 
 def test_export_config_to_yaml():
