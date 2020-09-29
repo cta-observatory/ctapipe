@@ -113,6 +113,12 @@ class Tool(Application):
         "%(levelname)s [%(name)s] (%(module)s/%(funcName)s): %(message)s",
         help="The Logging format template",
     ).tag(config=True)
+    provenance_dir = Path(
+        default_value=".",
+        exists=True,
+        file_ok=False,
+        help="name of the existing folder where the provenance.log will be created",
+    ).tag(config=True)
 
     _log_formatter_cls = ColoredFormatter
 
@@ -237,7 +243,7 @@ class Tool(Application):
                 self.log.info("Output: %s", output_str)
 
             self.log.debug("PROVENANCE: '%s'", Provenance().as_json(indent=3))
-            with open("provenance.log", mode="a+") as provlog:
+            with open(self.provenance_dir / "provenance.log", mode="a+") as provlog:
                 provlog.write(Provenance().as_json(indent=3))
 
         self.exit(exit_status)
@@ -246,6 +252,7 @@ class Tool(Application):
     def version_string(self):
         """ a formatted version string with version, release, and git hash"""
         return f"{version}"
+
 
     def get_current_config(self):
         """ return the current configuration as a dict (e.g. the values
