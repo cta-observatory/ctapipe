@@ -5,8 +5,8 @@ from abc import abstractmethod
 import numpy as np
 from ctapipe.image import TailcutsImageCleaner
 from ctapipe.core import TelescopeComponent
-from ctapipe.core.traits import IntTelescopeParameter, BoolTelescopeParameter
-from ctapipe.image.extractor import NeighborPeakWindowSum
+from ctapipe.core.traits import IntTelescopeParameter, BoolTelescopeParameter, Unicode
+from ctapipe.image.extractor import ImageExtractor
 from ctapipe.image.cleaning import dilate
 
 __all__ = [
@@ -21,32 +21,20 @@ class DataVolumeReducer(TelescopeComponent):
     Base component for data volume reducers.
     """
 
-    def __init__(
-        self, config=None, parent=None, subarray=None, image_extractor=None, **kwargs
-    ):
+    def __init__(self, subarray, config=None, parent=None, **kwargs):
         """
         Parameters
         ----------
+        subarray: ctapipe.instrument.SubarrayDescription
+            Description of the subarray
         config: traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
             Set to None if no configuration to pass.
-        subarray: ctapipe.instrument.SubarrayDescription
-            Description of the subarray
-        image_extractor: ctapipe.image.extractor.ImageExtractor
-            The ImageExtractor to use for 'TailCutsDataVolumeReducer'.
-            If None, then NeighborPeakWindowSum will be used by default.
         kwargs
         """
-
         self.subarray = subarray
         super().__init__(config=config, parent=parent, subarray=subarray, **kwargs)
-
-        if image_extractor is None:
-            image_extractor = NeighborPeakWindowSum(parent=self, subarray=subarray)
-        self.image_extractor = image_extractor
-
-        self.cleaner = TailcutsImageCleaner(parent=self, subarray=subarray)
 
     def __call__(self, waveforms, telid=None, selected_gain_channel=None):
         """
@@ -71,7 +59,6 @@ class DataVolumeReducer(TelescopeComponent):
         mask: array
             Mask of selected pixels.
         """
-
         mask = self.select_pixels(
             waveforms, telid=telid, selected_gain_channel=selected_gain_channel
         )
@@ -120,8 +107,21 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
     2) Add iteratively all pixels with Signal S >= boundary_thresh
        with ctapipe module dilate until no new pixels were added.
     3) Adding new pixels with dilate to get more conservative.
-    """
 
+    Attributes
+    ----------
+    image_extractor_type: String
+        Name of the image_extractor to be used.
+    n_end_dilates: IntTelescopeParameter
+        Number of how many times to dilate at the end.
+    do_boundary_dilation: BoolTelescopeParameter
+        If set to 'False', the iteration steps in 2) are skipped and
+        normal TailcutCleaning is used.
+    """
+    image_extractor_type = Unicode(
+        default_value="NeighborPeakWindowSum", help="Name of the image_extractor"
+        "to be used.",
+    ).tag(config=True)
     n_end_dilates = IntTelescopeParameter(
         default_value=1, help="Number of how many times to dilate at the end."
     ).tag(config=True)
@@ -130,6 +130,28 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         help="If set to 'False', the iteration steps in 2) are skipped and"
         "normal TailcutCleaning is used.",
     ).tag(config=True)
+
+    def __init__(self, subarray, config=None, parent=None, **kwargs):
+        """
+        Parameters
+        ----------
+        subarray: ctapipe.instrument.SubarrayDescription
+            Description of the subarray
+        config: traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        kwargs
+        """
+        super().__init__(config=config, parent=parent, subarray=subarray, **kwargs)
+
+        self.cleaner = TailcutsImageCleaner(parent=self, subarray=self.subarray)
+
+        self.image_extractor = ImageExtractor.from_name(
+            self.image_extractor_type,
+            subarray=self.subarray,
+            parent=self
+        )
 
     def select_pixels(self, waveforms, telid=None, selected_gain_channel=None):
         camera_geom = self.subarray.tel[telid].camera.geometry

@@ -52,9 +52,12 @@ class DumpInstrumentTool(Tool):
             self.subarray = source.subarray
 
     def start(self):
-        self.write_camera_geometries()
-        self.write_optics_descriptions()
-        self.write_subarray_description()
+        if self.format == "hdf5":
+            self.subarray.to_hdf("subarray.h5")
+        else:
+            self.write_camera_geometries()
+            self.write_optics_descriptions()
+            self.write_subarray_description()
 
     def finish(self):
         pass
@@ -67,10 +70,8 @@ class DumpInstrumentTool(Tool):
             return "fits.gz", dict()
         elif format_name == "ecsv":
             return "ecsv.txt", dict(format="ascii.ecsv")
-        elif format_name == "hdf5":
-            return "h5", dict(path="/" + table_type + "/" + table_name)
         else:
-            raise NameError("format not supported")
+            raise NameError(f"format {format_name} not supported")
 
     def write_camera_geometries(self):
         cam_types = get_camera_types(self.subarray)
@@ -82,7 +83,7 @@ class DumpInstrumentTool(Tool):
             tel_id = cam_types[cam_name].pop()
             geom = self.subarray.tel[tel_id].camera.geometry
             table = geom.to_table()
-            table.meta["SOURCE"] = self.infile
+            table.meta["SOURCE"] = str(self.infile)
             filename = f"{cam_name}.camgeom.{ext}"
 
             try:
@@ -98,7 +99,7 @@ class DumpInstrumentTool(Tool):
         ext, args = self._get_file_format_info(self.format, sub.name, "optics")
 
         tab = sub.to_table(kind="optics")
-        tab.meta["SOURCE"] = self.infile
+        tab.meta["SOURCE"] = str(self.infile)
         filename = f"{sub.name}.optics.{ext}"
         try:
             tab.write(filename, **args)
@@ -112,7 +113,7 @@ class DumpInstrumentTool(Tool):
         sub = self.subarray
         ext, args = self._get_file_format_info(self.format, sub.name, "subarray")
         tab = sub.to_table(kind="subarray")
-        tab.meta["SOURCE"] = self.infile
+        tab.meta["SOURCE"] = str(self.infile)
         filename = f"{sub.name}.subarray.{ext}"
         try:
             tab.write(filename, **args)

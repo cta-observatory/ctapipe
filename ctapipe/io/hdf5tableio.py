@@ -157,7 +157,7 @@ class HDF5TableWriter(TableWriter):
                 shape = 1
 
                 if self._is_column_excluded(table_name, col_name):
-                    self.log.debug("excluded column: %s/%s", table_name, col_name)
+                    self.log.debug(f"excluded column: {table_name}/{col_name}")
                     continue
 
                 if col_name in Schema.columns:
@@ -208,20 +208,17 @@ class HDF5TableWriter(TableWriter):
 
                 else:
                     self.log.warning(
-                        f"Column {col_name} of"
-                        f" container {container.__class__.__name__}"
-                        f" in table {table_name}"
-                        " not writable, skipping"
+                        f"Column {col_name} of "
+                        f"container {container.__class__.__name__} in "
+                        f"table {table_name} not writable, skipping"
                     )
                     continue
 
                 pos += 1
                 self.log.debug(
-                    "Table %s: added col: %s type: %s shape: %s",
-                    table_name,
-                    col_name,
-                    typename,
-                    shape,
+                    f"Table {table_name}: "
+                    f"added col: {col_name} type: "
+                    f"{typename} shape: {shape}"
                 )
 
         self._schemas[table_name] = Schema
@@ -254,7 +251,7 @@ class HDF5TableWriter(TableWriter):
             createparents=True,
             filters=self.filters,
         )
-        self.log.debug("CREATED TABLE: %s", table)
+        self.log.debug(f"CREATED TABLE: {table}")
         for key, val in meta.items():
             table.attrs[key] = val
 
@@ -280,8 +277,8 @@ class HDF5TableWriter(TableWriter):
                     row[colname] = value
                 except Exception:
                     self.log.error(
-                        f'Error writing col "{colname}" of'
-                        f' container "{container.__class__.__name__}"'
+                        f"Error writing col {colname} of "
+                        f"container {container.__class__.__name__}"
                     )
                     raise
         row.append()
@@ -333,10 +330,6 @@ class HDF5TableReader(TableReader):
 
     Todo:
     - add ability to synchronize reading of multiple tables on a key
-
-    - add ability (also with TableWriter) to read a row into n containers at
-        once, assuming no naming conflicts (so we can add e.g. event_id)
-
     """
 
     def __init__(self, filename, **kwargs):
@@ -364,10 +357,10 @@ class HDF5TableReader(TableReader):
 
         self._h5file.close()
 
-    def _setup_table(self, table_name, container):
+    def _setup_table(self, table_name, containers, prefixes):
         tab = self._h5file.get_node(table_name)
         self._tables[table_name] = tab
-        self._map_table_to_container(table_name, container)
+        self._map_table_to_containers(table_name, containers, prefixes)
         self._map_transforms_from_table_header(table_name)
         return tab
 
@@ -393,42 +386,48 @@ class HDF5TableReader(TableReader):
 
                 self.add_column_transform(table_name, colname, transform_int_to_enum)
 
-    def _map_table_to_container(self, table_name, container):
-        """ identifies which columns in the table to read into the container,
-        by comparing their names."""
+    def _map_table_to_containers(self, table_name, containers, prefixes):
+        """ identifies which columns in the table to read into the containers,
+        by comparing their names including an optional prefix."""
         tab = self._tables[table_name]
-        for colname in tab.colnames:
-            if colname in container.fields:
-                self._cols_to_read[table_name].append(colname)
-            else:
-                self.log.warning(
-                    "Table '%s' has column '%s' that is not in "
-                    "container %s. It will be skipped",
-                    table_name,
-                    colname,
-                    container.__class__.__name__,
-                )
+        self._cols_to_read[table_name] = []
+        for container, prefix in zip(containers, prefixes):
+            for colname in tab.colnames:
+                if prefix and colname.startswith(prefix):
+                    colname_without_prefix = colname[len(prefix) + 1:]
+                else:
+                    colname_without_prefix = colname
+                if colname_without_prefix in container.fields:
+                    self._cols_to_read[table_name].append(
+                        colname
+                    )
+                else:
+                    self.log.warning(
+                        f"Table {table_name} has column {colname_without_prefix} that is not in "
+                        f"container {container.__class__.__name__}. It will be skipped."
+                    )
 
-        # also check that the container doesn't have fields that are not
-        # in the table:
-        for colname in container.fields:
-            if colname not in self._cols_to_read[table_name]:
-                self.log.warning(
-                    "Table '%s' is missing column '%s' that is "
-                    "in container %s. It will be skipped.",
-                    table_name,
-                    colname,
-                    container.__class__.__name__,
-                )
+            # also check that the container doesn't have fields that are not
+            # in the table:
+            for colname in container.fields:
+                if prefix:
+                    colname_with_prefix = f"{prefix}_{colname}"
+                else:
+                    colname_with_prefix = colname
+                if colname_with_prefix not in self._cols_to_read[table_name]:
+                    self.log.warning(
+                        f"Table {table_name} is missing column {colname_with_prefix}"
+                        f"that is in container {container.__class__.__name__}. It will be skipped."
+                    )
 
-        # copy all user-defined attributes back to Container.mets
-        for key in tab.attrs._f_list():
-            container.meta[key] = tab.attrs[key]
+            # copy all user-defined attributes back to Container.mets
+            for key in tab.attrs._f_list():
+                container.meta[key] = tab.attrs[key]
 
-    def read(self, table_name: str, container: Container):
+    def read(self, table_name, containers, prefixes=False):
         """
         Returns a generator that reads the next row from the table into the
-        given container.  The generator returns the same container. Note that
+        given container. The generator returns the same container. Note that
         no containers are copied, the data are overwritten inside.
 
         Parameters
@@ -437,27 +436,56 @@ class HDF5TableReader(TableReader):
             name of table to read from
         container : ctapipe.core.Container
             Container instance to fill
+        prefix: bool, str or list
+            Prefix that was added while writing the file.
+            If True, the container prefix is taken into consideration, when
+            comparing column names and container fields.
+            If False, no prefix is used.
+            If a string is provided, it is used as prefix for all containers.
+            If a list is provided, the length needs to match th number
+            of containers.
         """
+
+        return_iterable = True
+        if isinstance(containers, Container):
+            containers = (containers, )
+            return_iterable = False
+
+        if prefixes is False:
+            prefixes = ["" for container in containers]
+        elif prefixes is True:
+            prefixes = [container.prefix for container in containers]
+        elif isinstance(prefixes, str):
+            prefixes = [prefixes for container in containers]
+        assert len(prefixes) == len(containers)
+
         if table_name not in self._tables:
-            tab = self._setup_table(table_name, container)
+            tab = self._setup_table(table_name, containers, prefixes)
         else:
             tab = self._tables[table_name]
 
         row_count = 0
 
         while 1:
-
             try:
                 row = tab[row_count]
             except IndexError:
                 return  # stop generator when done
-
-            for colname in self._cols_to_read[table_name]:
-                container[colname] = self._apply_col_transform(
-                    table_name, colname, row[colname]
-                )
-
-            yield container
+            for container, prefix in zip(containers, prefixes):
+                for fieldname in container.keys():
+                    if prefix:
+                        colname = f"{prefix}_{fieldname}"
+                    else:
+                        colname = fieldname
+                    if colname not in self._cols_to_read[table_name]:
+                        continue
+                    container[fieldname] = self._apply_col_transform(
+                        table_name, colname, row[colname]
+                    )
+            if return_iterable:
+                yield containers
+            else:
+                yield containers[0]
             row_count += 1
 
 

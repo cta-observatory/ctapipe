@@ -718,10 +718,10 @@ class MuonRingContainer(Container):
 
 
 class MuonEfficiencyContainer(Container):
-    width = Field(nan, "width of the muon ring in degrees")
-    impact = Field(nan, "distance of muon impact position from center of mirror")
-    impact_x = Field(nan, "impact parameter x position")
-    impact_y = Field(nan, "impact parameter y position")
+    width = Field(nan * u.deg, "width of the muon ring in degrees")
+    impact = Field(nan * u.m, "distance of muon impact position from center of mirror")
+    impact_x = Field(nan * u.m, "impact parameter x position")
+    impact_y = Field(nan * u.m, "impact parameter y position")
     optical_efficiency = Field(nan, "optical efficiency muon")
 
 
@@ -854,10 +854,10 @@ class WaveformCalibrationContainer(Container):
 
     time = Field(nan * u.s, "Time associated to the calibration event", unit=u.s)
     time_min = Field(
-        nan * u.s, "Earliest time of validity for the calibration event", unit=u.s,
+        nan * u.s, "Earliest time of validity for the calibration event", unit=u.s
     )
     time_max = Field(
-        nan * u.s, "Latest time of validity for the calibration event", unit=u.s,
+        nan * u.s, "Latest time of validity for the calibration event", unit=u.s
     )
 
     dc_to_pe = Field(

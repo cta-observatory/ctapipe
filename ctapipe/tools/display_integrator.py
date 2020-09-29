@@ -274,10 +274,10 @@ class DisplayIntegrator(Tool):
         )
 
     def start(self):
-        event_num = self.event_index
         if self.use_event_id:
-            event_num = str(event_num)
-        event = self.eventseeker[event_num]
+            event = self.eventseeker.get_event_id(self.event_index)
+        else:
+            event = self.eventseeker.get_event_index(self.event_index)
 
         # Calibrate
         self.calibrate(event)

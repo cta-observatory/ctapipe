@@ -26,7 +26,11 @@ def test_flasherflatfieldcalculator():
     subarray.tel[0].camera.readout.reference_pulse_shape = np.ones((1, 2))
     subarray.tel[0].camera.readout.reference_pulse_sample_width = u.Quantity(1, u.ns)
 
-    config = Config({"FixedWindowSum": {"window_start": 15, "window_width": 10}})
+    config = Config({"FixedWindowSum": {
+        "peak_index": 15,
+        "window_shift": 0,
+        "window_width": 10,
+    }})
     ff_calculator = FlasherFlatFieldCalculator(
         subarray=subarray,
         charge_product="FixedWindowSum",

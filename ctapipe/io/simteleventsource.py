@@ -11,9 +11,9 @@ from eventio.simtel.simtelfile import SimTelFile
 from traitlets import observe
 from io import BufferedReader
 
-from ..calib.camera.gainselection import ThresholdGainSelector
+from ..calib.camera.gainselection import GainSelector
 from ..containers import EventAndMonDataContainer, EventType
-from ..core.traits import Bool, CaselessStrEnum
+from ..core.traits import Bool, CaselessStrEnum, create_class_enum_trait
 from ..instrument import (
     TelescopeDescription,
     SubarrayDescription,
@@ -27,6 +27,7 @@ from ..instrument.guess import guess_telescope, UNKNOWN_TELESCOPE
 from ..containers import MCHeaderContainer
 from .eventsource import EventSource
 from .datalevels import DataLevel
+from ..coordinates import CameraFrame
 
 X_MAX_UNIT = u.g / (u.cm ** 2)
 
@@ -53,7 +54,7 @@ def parse_simtel_time(simtel_time):
     )
 
 
-def build_camera(cam_settings, pixel_settings, telescope):
+def build_camera(cam_settings, pixel_settings, telescope, frame):
     pixel_shape = cam_settings["pixel_shape"][0]
     try:
         pix_type, pix_rotation = CameraGeometry.simtel_shape_to_type(pixel_shape)
@@ -75,12 +76,15 @@ def build_camera(cam_settings, pixel_settings, telescope):
         pix_rotation=pix_rotation,
         cam_rotation=-Angle(cam_settings["cam_rot"], u.rad),
         apply_derotation=True,
+        frame=frame,
     )
     readout = CameraReadout(
         telescope.camera_name,
         sampling_rate=u.Quantity(1 / pixel_settings["time_slice"], u.GHz),
         reference_pulse_shape=pixel_settings["ref_shape"].astype("float64", copy=False),
-        reference_pulse_sample_width=u.Quantity(pixel_settings["ref_step"], u.ns),
+        reference_pulse_sample_width=u.Quantity(
+            pixel_settings["ref_step"], u.ns, dtype="float64"
+        ),
     )
 
     return CameraDescription(
@@ -160,9 +164,11 @@ class SimTelEventSource(EventSource):
         ),
     ).tag(config=True)
 
-    def __init__(
-        self, input_url, config=None, parent=None, gain_selector=None, **kwargs
-    ):
+    gain_selector_type = create_class_enum_trait(
+        base_class=GainSelector, default_value="ThresholdGainSelector"
+    ).tag(config=True)
+
+    def __init__(self, input_url, config=None, parent=None, **kwargs):
         """
         EventSource for simtelarray files using the pyeventio library.
 
@@ -198,12 +204,10 @@ class SimTelEventSource(EventSource):
         self._mc_header = self._parse_mc_header()
         self.start_pos = self.file_.tell()
 
-        # Waveforms from simtelarray have both gain channels
-        # Gain selection is performed by this EventSource to produce R1 waveforms
-        if gain_selector is None:
-            gain_selector = ThresholdGainSelector(parent=self)
-
-        self.gain_selector = gain_selector
+        self.gain_selector = GainSelector.from_name(
+            self.gain_selector_type, parent=self
+        )
+        self.log.debug(f"Using gain selector {self.gain_selector}")
 
     @observe("allowed_tels")
     def _observe_allowed_tels(self, change):
@@ -224,7 +228,7 @@ class SimTelEventSource(EventSource):
 
     @property
     def datalevels(self):
-        return (DataLevel.R0, DataLevel.R1, DataLevel.DL0)
+        return (DataLevel.R0, DataLevel.R1)
 
     @property
     def obs_id(self):
@@ -283,11 +287,6 @@ class SimTelEventSource(EventSource):
             except ValueError:
                 telescope = UNKNOWN_TELESCOPE
 
-            camera = self._camera_cache.get(telescope.camera_name)
-            if camera is None:
-                camera = build_camera(cam_settings, pixel_settings, telescope)
-                self._camera_cache[telescope.camera_name] = camera
-
             optics = OpticsDescription(
                 name=telescope.name,
                 num_mirrors=telescope.n_mirrors,
@@ -295,6 +294,16 @@ class SimTelEventSource(EventSource):
                 mirror_area=u.Quantity(cam_settings["mirror_area"], u.m ** 2),
                 num_mirror_tiles=cam_settings["n_mirrors"],
             )
+
+            camera = self._camera_cache.get(telescope.camera_name)
+            if camera is None:
+                camera = build_camera(
+                    cam_settings,
+                    pixel_settings,
+                    telescope,
+                    frame=CameraFrame(focal_length=optics.equivalent_focal_length),
+                )
+                self._camera_cache[telescope.camera_name] = camera
 
             tel_descriptions[tel_id] = TelescopeDescription(
                 name=telescope.name,
@@ -388,7 +397,7 @@ class SimTelEventSource(EventSource):
                 )
 
                 self._fill_event_pointing(
-                    data.pointing.tel[tel_id], mc, tracking_positions[tel_id],
+                    data.pointing.tel[tel_id], mc, tracking_positions[tel_id]
                 )
 
                 r0 = data.r0.tel[tel_id]
@@ -468,8 +477,8 @@ class SimTelEventSource(EventSource):
             energy_range_min=mc_run_head["E_range"][0] * u.TeV,
             energy_range_max=mc_run_head["E_range"][1] * u.TeV,
             prod_site_B_total=mc_run_head["B_total"] * u.uT,
-            prod_site_B_declination=Angle(mc_run_head["B_declination"], u.rad,),
-            prod_site_B_inclination=Angle(mc_run_head["B_inclination"], u.rad,),
+            prod_site_B_declination=Angle(mc_run_head["B_declination"], u.rad),
+            prod_site_B_inclination=Angle(mc_run_head["B_inclination"], u.rad),
             prod_site_alt=mc_run_head["obsheight"] * u.m,
             spectral_index=mc_run_head["spectral_index"],
             shower_prog_start=mc_run_head["shower_prog_start"],

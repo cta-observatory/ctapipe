@@ -44,10 +44,7 @@ def test_load_lst_camera():
 def test_position_to_pix_index():
     """ test that we can lookup a pixel from a coordinate"""
     geom = CameraGeometry.from_name("LSTCam")
-    x, y = (
-        0.80 * u.m,
-        0.79 * u.m,
-    )
+    x, y = (0.80 * u.m, 0.79 * u.m)
     pix_id = geom.position_to_pix_index(x, y)
     assert pix_id == 1790
 
@@ -178,7 +175,7 @@ def test_precal_neighbors():
         pix_x=np.arange(3) * u.deg,
         pix_y=np.arange(3) * u.deg,
         pix_area=np.ones(3) * u.deg ** 2,
-        neighbors=[[1,], [0, 2], [1,]],
+        neighbors=[[1], [0, 2], [1]],
         pix_type="rectangular",
         pix_rotation="0deg",
         cam_rotation="0deg",
@@ -285,7 +282,7 @@ def test_camera_from_name(camera_name):
 @pytest.mark.parametrize("camera_name", camera_names)
 def test_camera_coordinate_transform(camera_name):
     """test conversion of the coordinates stored in a camera frame"""
-    from ctapipe.coordinates import EngineeringCameraFrame
+    from ctapipe.coordinates import EngineeringCameraFrame, CameraFrame, TelescopeFrame
 
     geom = CameraGeometry.from_name(camera_name)
     trans_geom = geom.transform_to(EngineeringCameraFrame())
@@ -293,6 +290,20 @@ def test_camera_coordinate_transform(camera_name):
     unit = geom.pix_x.unit
     assert np.allclose(geom.pix_x.to_value(unit), -trans_geom.pix_y.to_value(unit))
     assert np.allclose(geom.pix_y.to_value(unit), -trans_geom.pix_x.to_value(unit))
+
+    # also test converting into a spherical frame:
+    focal_length = 1.2 * u.m
+    geom.frame = CameraFrame(focal_length=focal_length)
+    telescope_frame = TelescopeFrame()
+    sky_geom = geom.transform_to(telescope_frame)
+
+    x = sky_geom.pix_x.to_value(u.deg)
+    assert len(x) == len(geom.pix_x)
+
+    # and test going backward from spherical to cartesian:
+
+    geom_cam = sky_geom.transform_to(CameraFrame(focal_length=focal_length))
+    assert np.allclose(geom_cam.pix_x.to_value(unit), geom.pix_x.to_value(unit))
 
 
 def test_guess_area():

@@ -11,7 +11,7 @@ from astropy import units as u
 from tqdm.autonotebook import tqdm
 from collections import defaultdict
 
-from ctapipe.io import metadata as meta
+from ..io import metadata as meta, DataLevel
 from ..calib.camera import CameraCalibrator, GainSelector
 from ..containers import (
     ImageParametersContainer,
@@ -77,7 +77,7 @@ def write_reference_metadata_headers(obs_id, subarray, writer):
     activity = PROV.current_activity.provenance
 
     reference = meta.Reference(
-        contact=meta.Contact(name="", email="", organization="CTA Consortium",),
+        contact=meta.Contact(name="", email="", organization="CTA Consortium"),
         product=meta.Product(
             description="DL1 Data Product",
             data_category="S",
@@ -110,7 +110,7 @@ class ImageQualityQuery(QualityQuery):
 
     quality_criteria = List(
         default_value=[
-            ("size_greater_0", "lambda image_selected: image_selected.sum() > 0"),
+            ("size_greater_0", "lambda image_selected: image_selected.sum() > 0")
         ],
         help=QualityQuery.quality_criteria.help,
     ).tag(config=True)
@@ -164,10 +164,6 @@ class Stage1ProcessorTool(Tool):
         help="Method to use to turn a waveform into a single charge value",
     ).tag(config=True)
 
-    gain_selector_type = create_class_enum_trait(
-        base_class=GainSelector, default_value="ThresholdGainSelector"
-    ).tag(config=True)
-
     image_cleaner_type = create_class_enum_trait(
         base_class=ImageCleaner, default_value="TailcutsImageCleaner"
     )
@@ -191,7 +187,6 @@ class Stage1ProcessorTool(Tool):
         "allowed-tels": "EventSource.allowed_tels",
         "max-events": "EventSource.max_events",
         "image-extractor-type": "Stage1ProcessorTool.image_extractor_type",
-        "gain-selector-type": "Stage1ProcessorTool.gain_selector_type",
         "image-cleaner-type": "Stage1ProcessorTool.image_cleaner_type",
     }
 
@@ -250,13 +245,16 @@ class Stage1ProcessorTool(Tool):
             )
 
         # setup components:
+        self.event_source = self.add_component(EventSource.from_config(parent=self))
 
-        self.gain_selector = self.add_component(
-            GainSelector.from_name(self.gain_selector_type, parent=self)
-        )
-        self.event_source = self.add_component(
-            EventSource.from_config(parent=self, gain_selector=self.gain_selector)
-        )
+        datalevels = self.event_source.datalevels
+        if DataLevel.R1 not in datalevels and DataLevel.DL0 not in datalevels:
+            self.log.critical(
+                f"{self.name} needs the EventSource to provide either R1 or DL0 data"
+                f", {self.event_source} provides only {datalevels}"
+            )
+            sys.exit(1)
+
         self.image_extractor = self.add_component(
             ImageExtractor.from_name(
                 self.image_extractor_type,
@@ -280,8 +278,12 @@ class Stage1ProcessorTool(Tool):
         )
         self.check_image = self.add_component(ImageQualityQuery(parent=self))
 
-        # check component setup
-        if self.event_source.max_events and self.event_source.max_events > 0:
+        # warn if max_events prevents writing the histograms
+        if (
+            isinstance(self.event_source, SimTelEventSource)
+            and self.event_source.max_events
+            and self.event_source.max_events > 0
+        ):
             self.log.warning(
                 "No Simulated shower distributions will be written because "
                 "EventSource.max_events is set to a non-zero number (and therefore "
@@ -372,47 +374,6 @@ class Stage1ProcessorTool(Tool):
                         containers=hist_container,
                     )
 
-    def _write_instrument_configuration(self, subarray):
-        """write the SubarrayDescription
-
-        Parameters
-        ----------
-        subarray : ctapipe.instrument.SubarrayDescription
-            subarray description
-        """
-        self.log.debug("Writing instrument configuration")
-        serialize_meta = True
-
-        subarray.to_table().write(
-            self.output_path,
-            path="/configuration/instrument/subarray/layout",
-            serialize_meta=serialize_meta,
-            append=True,
-        )
-        subarray.to_table(kind="optics").write(
-            self.output_path,
-            path="/configuration/instrument/telescope/optics",
-            append=True,
-            serialize_meta=serialize_meta,
-        )
-        for telescope_type in subarray.telescope_types:
-            ids = set(subarray.get_tel_ids_for_type(telescope_type))
-            if len(ids) > 0:  # only write if there is a telescope with this camera
-                tel_id = list(ids)[0]
-                camera = subarray.tel[tel_id].camera
-                camera.geometry.to_table().write(
-                    self.output_path,
-                    path=f"/configuration/instrument/telescope/camera/geometry_{camera}",
-                    append=True,
-                    serialize_meta=serialize_meta,
-                )
-                camera.readout.to_table().write(
-                    self.output_path,
-                    path=f"/configuration/instrument/telescope/camera/readout_{camera}",
-                    append=True,
-                    serialize_meta=serialize_meta,
-                )
-
     def _write_processing_statistics(self):
         """ write out the event selection stats, etc. """
         image_stats = self.check_image.to_table(functions=True)
@@ -456,12 +417,12 @@ class Stage1ProcessorTool(Tool):
         if all(image_criteria):
             geom_selected = geometry[signal_pixels]
 
-            hillas = hillas_parameters(geom=geom_selected, image=image_selected,)
+            hillas = hillas_parameters(geom=geom_selected, image=image_selected)
             leakage = leakage_parameters(
                 geom=geometry, image=image, cleaning_mask=signal_pixels
             )
             concentration = concentration_parameters(
-                geom=geom_selected, image=image_selected, hillas_parameters=hillas,
+                geom=geom_selected, image=image_selected, hillas_parameters=hillas
             )
             morphology = morphology_parameters(geom=geometry, image_mask=signal_pixels)
             intensity_statistics = descriptive_statistics(
@@ -526,10 +487,11 @@ class Stage1ProcessorTool(Tool):
                 last_pointing = current_pointing
 
             # write the subarray tables
-            writer.write(
-                table_name="simulation/event/subarray/shower",
-                containers=[event.index, event.mc],
-            )
+            if self.event_source.is_simulation:
+                writer.write(
+                    table_name="simulation/event/subarray/shower",
+                    containers=[event.index, event.mc],
+                )
             writer.write(
                 table_name="dl1/event/subarray/trigger",
                 containers=[event.index, event.trigger],
@@ -542,7 +504,6 @@ class Stage1ProcessorTool(Tool):
         add entries to the event/telescope tables for each telescope in a single
         event
         """
-
         # write the telescope tables
         for tel_id, dl1_camera in event.dl1.tel.items():
             dl1_camera.prefix = ""  # don't want a prefix for this container
@@ -659,7 +620,7 @@ class Stage1ProcessorTool(Tool):
             self._generate_table_indices(writer._h5file, "/dl1/event/telescope/images")
         self._generate_table_indices(writer._h5file, "/dl1/event/subarray")
 
-    def _setup_writer(self, writer):
+    def _setup_writer(self, writer: HDF5TableWriter):
         writer.add_column_transform(
             table_name="dl1/event/subarray/trigger",
             col_name="tels_with_trigger",
@@ -698,7 +659,7 @@ class Stage1ProcessorTool(Tool):
                 writer.exclude(
                     f"/simulation/event/telescope/parameters/{table_name}", r"timing_.*"
                 )
-                writer.exclude(f"/simulation/event/subarray/shower", "true_tel")
+                writer.exclude("/simulation/event/subarray/shower", "true_tel")
 
     def start(self):
 
@@ -707,7 +668,7 @@ class Stage1ProcessorTool(Tool):
         # to "Resource temporary unavailable" if h5py and tables are not linked
         # against the same libhdf (happens when using the pre-build pip wheels)
         # should be replaced by writing the table using tables
-        self._write_instrument_configuration(self.event_source.subarray)
+        self.event_source.subarray.to_hdf(self.output_path)
 
         with HDF5TableWriter(
             self.output_path,
