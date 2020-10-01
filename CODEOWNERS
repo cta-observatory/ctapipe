@@ -9,3 +9,5 @@ ctapipe/image/extractor.py  @watsonjj @HealthyPear
 
 ctapipe/reco/HillasReconstructor.py @HealthyPear
 ctapipe/reco/tests/test_HillasReconstructor.py @HealthyPear
+
+examples/stereo_reconstruction_core_and_direction.py @HealthyPear

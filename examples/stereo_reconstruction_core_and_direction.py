@@ -422,7 +422,7 @@ for event in source:
                 xy=(centerOfgravity.fov_lon.value, centerOfgravity.fov_lat.value),
                 width=length,
                 height=width,
-                angle=psi,
+                angle=psi.value,
                 fill=False,
                 linewidth=3,
                 color=cmap(i),
