@@ -262,10 +262,17 @@ def test_dump_instrument(tmpdir):
     sys.argv = ["dump_instrument"]
     tmpdir.chdir()
 
-    tool = DumpInstrumentTool(infile=GAMMA_TEST_LARGE)
+    tool = DumpInstrumentTool()
 
-    assert run_tool(tool) == 0
+    assert run_tool(tool, [f"--infile={GAMMA_TEST_LARGE}"]) == 0
     assert tmpdir.join("FlashCam.camgeom.fits.gz").exists()
+
+    assert run_tool(tool, [f"--infile={GAMMA_TEST_LARGE}", "--format=ecsv"]) == 0
+    assert tmpdir.join("MonteCarloArray.optics.ecsv.txt").exists()
+
+    assert run_tool(tool, [f"--infile={GAMMA_TEST_LARGE}", "--format=hdf5"]) == 0
+    assert tmpdir.join("subarray.h5").exists()
+
     assert run_tool(tool, ["--help-all"]) == 0
 
 

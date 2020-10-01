@@ -277,39 +277,6 @@ def image_prediction_no_units(
     return pred
 
 
-def calc_likelihood(image, pred, spe_width, ped):
-    """Calculate likelihood of prediction given the measured signal,
-    gaussian approx from [denaurois2009]_
-
-    Parameters
-    ----------
-    image: ndarray
-        Pixel amplitudes from image
-    pred: ndarray
-        Predicted pixel amplitudes from model
-    spe_width: ndarray
-        width of single p.e. distribution
-    ped: ndarray
-        width of pedestal
-
-    Returns
-    -------
-    ndarray: likelihood for each pixel
-
-    """
-
-    sq = 1 / np.sqrt(2 * np.pi * (ped ** 2 + pred * (1 + spe_width ** 2)))
-    diff = (image - pred) ** 2
-    denom = 2 * (ped ** 2 + pred * (1 + spe_width ** 2))
-    expo = np.exp(-diff / denom) + 1e-16  # add small epsilon to avoid nans
-
-    log_value = sq * expo
-
-    likelihood_value = -2 * np.log(log_value)
-
-    return likelihood_value
-
-
 def build_negative_log_likelihood(
     image,
     telescope_description,
@@ -323,7 +290,13 @@ def build_negative_log_likelihood(
 ):
     """Create an efficient negative log_likelihood function that does
     not rely on astropy units internally by defining needed values as closures
-    in this function
+    in this function.
+
+    The likelihood is the gaussian approximation,
+    i.e. the unnumbered equation on page 22 between (24) and (25), from [denaurois2009]_
+
+    The logarithm of the likelihood is calculated analytically as far as possible
+    and terms constant under differentation are discarded.
     """
 
     # get all the neeed values and transform them into appropriate units
@@ -388,12 +361,6 @@ def build_negative_log_likelihood(
         -------
         float: Likelihood that model matches data
         """
-        # center_x *= self.unit
-        # center_y *= self.unit
-        # radius *= self.unit
-        # ring_width *= self.unit
-        # impact_parameter *= u.m
-        # phi *= u.rad
 
         # Generate model prediction
         prediction = image_prediction_no_units(
@@ -413,18 +380,19 @@ def build_negative_log_likelihood(
             max_lambda_m=max_lambda,
         )
 
-        # scale prediction by optical efficiency of array
+        # scale prediction by optical efficiency of the telescope
         prediction *= optical_efficiency_muon
 
-        sq = 1 / np.sqrt(
-            2 * np.pi * (pedestal ** 2 + prediction * (1 + spe_width ** 2))
-        )
-        diff = (image - prediction) ** 2
-        denom = 2 * (pedestal ** 2 + prediction * (1 + spe_width ** 2))
-        expo = np.exp(-diff / denom) + 1e-16  # add small epsilon to avoid nans
-        value = sq * expo
+        # A gaussian approximation is used here, where the total
+        # standard deviation is the pedestal standard deviation (e.g. by NSB) and
+        # the single photon resolution times the image magnitude.
+        sigma2 = pedestal ** 2 + prediction * (1 + spe_width ** 2)
 
-        return -2 * np.log(value).sum()
+        # gaussian negative log-likelihood, analytically simplified and
+        # constant terms discarded
+        neg_log_l = np.log(sigma2) + (image - prediction) ** 2 / sigma2
+
+        return neg_log_l.sum()
 
     return negative_log_likelihood
 
@@ -476,6 +444,7 @@ class MuonIntensityFitter(TelescopeComponent):
     oversampling = IntTelescopeParameter(
         help="Oversampling for the line integration", default_value=3
     ).tag(config=True)
+
 
     def __call__(self, tel_id, center_x, center_y, radius, image, pedestal, mask=None):
         """
