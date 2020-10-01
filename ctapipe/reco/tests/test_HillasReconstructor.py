@@ -86,7 +86,122 @@ def test_h_max_results():
     # np.testing.assert_allclose(fitted_core_position.value, [0, 0], atol=1e-3)
 
 
-def test_reconstruction():
+def test_parallel_reconstruction():
+    """
+    Test the complete fit procedure on one event including:
+    • tailcut cleaning in CameraFrame
+    • hillas parametrisation
+    • HillasPlane creation
+    • shower direction fit
+    • shower core fit
+
+    Cases tested:
+    - starting from CameraFrame,
+    - starting from TelescopeFrame,
+    - no telescope pointing (aka "parallel" pointing) with parallel test data
+    """
+    filename = get_dataset_path(
+        "gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"
+    )
+
+    source = event_source(filename, max_events=2)
+    horizon_frame = AltAz()
+
+    reconstructed_events = 0
+
+    # ==========================================================================
+
+    for event in source:
+
+        array_pointing = SkyCoord(
+            az=event.pointing.array_azimuth,
+            alt=event.pointing.array_altitude,
+            frame=horizon_frame,
+        )
+
+        hillas_dict_CameraFrame = {}
+        hillas_dict_TelescopeFrame = {}
+        telescope_pointings = {}
+
+        for tel_id in event.dl0.tels_with_data:
+
+            telescope_pointings[tel_id] = SkyCoord(
+                alt=event.pointing.tel[tel_id].altitude,
+                az=event.pointing.tel[tel_id].azimuth,
+                frame=horizon_frame,
+            )
+
+            geom_CameraFrame = source.subarray.tel[tel_id].camera.geometry
+
+            # this could be done also out of this loop,
+            # but in case of real data each telescope would have a
+            # different telescope_pointing
+            geom_TelescopeFrame = geom_CameraFrame.transform_to(
+                TelescopeFrame(telescope_pointing=telescope_pointings[tel_id])
+            )
+
+            pmt_signal = event.r0.tel[tel_id].waveform[0].sum(axis=1)
+
+            mask = tailcuts_clean(
+                geom_TelescopeFrame,
+                pmt_signal,
+                picture_thresh=10.0,
+                boundary_thresh=5.0,
+            )
+            pmt_signal[mask == 0] = 0
+
+            try:
+                moments_CameraFrame = hillas_parameters(geom_CameraFrame, pmt_signal)
+                moments_TelescopeFrame = hillas_parameters(
+                    geom_TelescopeFrame, pmt_signal
+                )
+                hillas_dict_CameraFrame[tel_id] = moments_CameraFrame
+                hillas_dict_TelescopeFrame[tel_id] = moments_TelescopeFrame
+            except HillasParameterizationError as e:
+                print(e)
+                continue
+
+        if (len(hillas_dict_CameraFrame) < 2) and (len(hillas_dict_TelescopeFrame) < 2):
+            continue
+        else:
+            reconstructed_events += 1
+
+        # Parallel pointing case using CameraFrame
+        fit = HillasReconstructor()
+        fit_result_parall_CameraFrame = fit.predict(
+            hillas_dict_CameraFrame, source.subarray, array_pointing
+        )
+
+        # Parallel pointing case using TelescopeFrame
+        fit = HillasReconstructor()
+        fit_result_parall_TelescopeFrame = fit.predict(
+            hillas_dict_TelescopeFrame, source.subarray, array_pointing
+        )
+
+        for field in fit_result_parall_CameraFrame.as_dict():
+            C = np.asarray(fit_result_parall_CameraFrame.as_dict()[field])
+            T = np.asarray(fit_result_parall_TelescopeFrame.as_dict()[field])
+            assert (np.isclose(C, T, rtol=1e-03, atol=1e-03, equal_nan=True)).all()
+            if field in ["alt", "az"]:
+                assert (
+                    np.isclose(
+                        fit_result_parall_TelescopeFrame.as_dict()[field],
+                        event.mc[field],
+                        rtol=1e-01,
+                        atol=1e-01,
+                    )
+                ).all()
+            if field in ["core_x", "core_y"]:
+                print(f"\nEVENT #{event.count}")
+                print(f"TRUE {field} {event.mc[field]}")
+                print(
+                    f"RECO {field} = {fit_result_parall_TelescopeFrame.as_dict()[field]}"
+                )
+
+    assert reconstructed_events > 0
+
+
+def test_divergent_reconstruction():
     """
     Test the complete fit procedure on one event including:
     • tailcut cleaning in CameraFrame
@@ -98,15 +213,14 @@ def test_reconstruction():
     Cases tested (all combinations):
     - starting from CameraFrame,
     - starting from TelescopeFrame,
-    - specifying no telescope pointing (aka "parallel" pointing),
-    - specifying a telescope pointing (aka "divergent" pointing).
+    - specifying a telescope pointing (aka "divergent" pointing)
+    - divergent pointing Prod3b test data
 
-    WARNING:
-    In this unit-test, when specifying a telescope pointing this coincides
-    with the array pointing. In this speacial case the divergent pointing
-    coincides with parallel pointing.
     """
-    filename = get_dataset_path("gamma_test_large.simtel.gz")
+
+    filename = get_dataset_path(
+        "gamma_divergent_LaPalma_baseline_20Zd_180Az_prod3_test.simtel.gz"
+    )
 
     source = event_source(filename, max_events=10)
     horizon_frame = AltAz()
@@ -186,7 +300,7 @@ def test_reconstruction():
         # in this special condition the telescope pointings are the same
         # so this reconstructor must give the same results
         fit = HillasReconstructor()
-        fit_result_tel_point_CameraFrame = fit.predict(
+        fit_result_CameraFrame = fit.predict(
             hillas_dict_CameraFrame,
             source.subarray,
             array_pointing,
@@ -196,7 +310,7 @@ def test_reconstruction():
         # # (Generalized) Divergent pointing case  using CameraFrame
         # same as above
         fit = HillasReconstructor()
-        fit_result_tel_point_TelescopeFrame = fit.predict(
+        fit_result_TelescopeFrame = fit.predict(
             hillas_dict_TelescopeFrame,
             source.subarray,
             array_pointing,
@@ -204,16 +318,27 @@ def test_reconstruction():
         )
 
         for field in fit_result_parall_CameraFrame.as_dict():
-            p_C = np.asarray(fit_result_parall_CameraFrame.as_dict()[field])
-            p_T = np.asarray(fit_result_parall_TelescopeFrame.as_dict()[field])
-            d_C = np.asarray(fit_result_tel_point_CameraFrame.as_dict()[field])
-            d_T = np.asarray(fit_result_tel_point_TelescopeFrame.as_dict()[field])
-            assert (np.isclose(p_C, p_T, rtol=1e-03, atol=1e-03, equal_nan=True)).all()
-            assert (np.isclose(d_C, d_T, rtol=1e-03, atol=1e-03, equal_nan=True)).all()
-            if field == "psi_divergent":
-                continue  # because this differes between parallel and divergent
-            assert (np.isclose(p_C, d_C, rtol=1e-03, atol=1e-03, equal_nan=True)).all()
-            assert (np.isclose(p_T, d_T, rtol=1e-03, atol=1e-03, equal_nan=True)).all()
+            C = np.asarray(fit_result_CameraFrame.as_dict()[field])
+            T = np.asarray(fit_result_TelescopeFrame.as_dict()[field])
+            assert (np.isclose(C, T, rtol=1e-03, atol=1e-03, equal_nan=True)).all()
+            if field in ["alt", "az"]:
+                print(f"\nEVENT #{event.count}")
+                print(f"TRUE {field} {event.mc[field]}")
+                print(f"RECO {field} = {fit_result_TelescopeFrame.as_dict()[field]}")
+                assert (
+                    np.isclose(
+                        fit_result_TelescopeFrame.as_dict()[field],
+                        event.mc[field],
+                        rtol=1e-01,
+                        atol=1e-01,
+                    )
+                ).all()
+            if field in ["core_x", "core_y"]:
+                print(f"\nEVENT #{event.count}")
+                print(f"TRUE {field} {event.mc[field]}")
+                print(
+                    f"RECO {field} = {fit_result_parall_TelescopeFrame.as_dict()[field]}"
+                )
 
     assert reconstructed_events > 0
 
