@@ -88,23 +88,29 @@ def test_h_max_results():
 
 def test_parallel_reconstruction():
     """
-    Test the complete fit procedure on one event including:
-    • tailcut cleaning in CameraFrame
+    Test shower's reconstruction procedure:
+    • image cleaning
     • hillas parametrisation
     • HillasPlane creation
-    • shower direction fit
-    • shower core fit
+    • shower direction reconstruction in the sky
+    • shower core reconstruction in the ground
 
-    Cases tested:
+    Tested,
     - starting from CameraFrame,
     - starting from TelescopeFrame,
     - no telescope pointing (aka "parallel" pointing) with parallel test data
+
+    The test checks the old approach (using CameraFrame) and the new one
+    (using TelescopeFrame) provide compatible results and that we are able to
+    reconstruct a positive number of events.
     """
+    from scipy.spatial import distance
+
     filename = get_dataset_path(
         "gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"
     )
 
-    source = event_source(filename, max_events=2)
+    source = event_source(filename, max_events=10)
     horizon_frame = AltAz()
 
     reconstructed_events = 0
@@ -168,55 +174,43 @@ def test_parallel_reconstruction():
 
         # Parallel pointing case using CameraFrame
         fit = HillasReconstructor()
-        fit_result_parall_CameraFrame = fit.predict(
+        fit_result_CameraFrame = fit.predict(
             hillas_dict_CameraFrame, source.subarray, array_pointing
         )
 
         # Parallel pointing case using TelescopeFrame
         fit = HillasReconstructor()
-        fit_result_parall_TelescopeFrame = fit.predict(
+        fit_result_TelescopeFrame = fit.predict(
             hillas_dict_TelescopeFrame, source.subarray, array_pointing
         )
 
-        for field in fit_result_parall_CameraFrame.as_dict():
-            C = np.asarray(fit_result_parall_CameraFrame.as_dict()[field])
-            T = np.asarray(fit_result_parall_TelescopeFrame.as_dict()[field])
+        for field in fit_result_CameraFrame.as_dict():
+            C = np.asarray(fit_result_CameraFrame.as_dict()[field])
+            T = np.asarray(fit_result_TelescopeFrame.as_dict()[field])
             assert (np.isclose(C, T, rtol=1e-03, atol=1e-03, equal_nan=True)).all()
-            if field in ["alt", "az"]:
-                assert (
-                    np.isclose(
-                        fit_result_parall_TelescopeFrame.as_dict()[field],
-                        event.mc[field],
-                        rtol=1e-01,
-                        atol=1e-01,
-                    )
-                ).all()
-            if field in ["core_x", "core_y"]:
-                print(f"\nEVENT #{event.count}")
-                print(f"TRUE {field} {event.mc[field]}")
-                print(
-                    f"RECO {field} = {fit_result_parall_TelescopeFrame.as_dict()[field]}"
-                )
 
     assert reconstructed_events > 0
 
 
 def test_divergent_reconstruction():
     """
-    Test the complete fit procedure on one event including:
-    • tailcut cleaning in CameraFrame
+    Test shower's reconstruction procedure:
+    • image cleaning
     • hillas parametrisation
     • HillasPlane creation
-    • shower direction fit
-    • shower core fit
+    • shower direction reconstruction in the sky
+    • shower core reconstruction in the ground
 
-    Cases tested (all combinations):
+    Tested,
     - starting from CameraFrame,
     - starting from TelescopeFrame,
-    - specifying a telescope pointing (aka "divergent" pointing)
-    - divergent pointing Prod3b test data
+    - divergent pointing using divergent pointing test data
 
+    The test checks the old approach (using CameraFrame) and the new one
+    (using TelescopeFrame) provide compatible results and that we are able to
+    reconstruct a positive number of events.
     """
+    from scipy.spatial import distance
 
     filename = get_dataset_path(
         "gamma_divergent_LaPalma_baseline_20Zd_180Az_prod3_test.simtel.gz"
@@ -284,21 +278,6 @@ def test_divergent_reconstruction():
         else:
             reconstructed_events += 1
 
-        # Parallel pointing case using CameraFrame
-        fit = HillasReconstructor()
-        fit_result_parall_CameraFrame = fit.predict(
-            hillas_dict_CameraFrame, source.subarray, array_pointing
-        )
-
-        # Parallel pointing case using TelescopeFrame
-        fit = HillasReconstructor()
-        fit_result_parall_TelescopeFrame = fit.predict(
-            hillas_dict_TelescopeFrame, source.subarray, array_pointing
-        )
-
-        # (Generalized) Divergent pointing case  using CameraFrame
-        # in this special condition the telescope pointings are the same
-        # so this reconstructor must give the same results
         fit = HillasReconstructor()
         fit_result_CameraFrame = fit.predict(
             hillas_dict_CameraFrame,
@@ -307,8 +286,6 @@ def test_divergent_reconstruction():
             telescope_pointings,
         )
 
-        # # (Generalized) Divergent pointing case  using CameraFrame
-        # same as above
         fit = HillasReconstructor()
         fit_result_TelescopeFrame = fit.predict(
             hillas_dict_TelescopeFrame,
@@ -317,28 +294,11 @@ def test_divergent_reconstruction():
             telescope_pointings,
         )
 
-        for field in fit_result_parall_CameraFrame.as_dict():
+        # Compare old approach with new approach
+        for field in fit_result_CameraFrame.as_dict():
             C = np.asarray(fit_result_CameraFrame.as_dict()[field])
             T = np.asarray(fit_result_TelescopeFrame.as_dict()[field])
             assert (np.isclose(C, T, rtol=1e-03, atol=1e-03, equal_nan=True)).all()
-            if field in ["alt", "az"]:
-                print(f"\nEVENT #{event.count}")
-                print(f"TRUE {field} {event.mc[field]}")
-                print(f"RECO {field} = {fit_result_TelescopeFrame.as_dict()[field]}")
-                assert (
-                    np.isclose(
-                        fit_result_TelescopeFrame.as_dict()[field],
-                        event.mc[field],
-                        rtol=1e-01,
-                        atol=1e-01,
-                    )
-                ).all()
-            if field in ["core_x", "core_y"]:
-                print(f"\nEVENT #{event.count}")
-                print(f"TRUE {field} {event.mc[field]}")
-                print(
-                    f"RECO {field} = {fit_result_parall_TelescopeFrame.as_dict()[field]}"
-                )
 
     assert reconstructed_events > 0
 
