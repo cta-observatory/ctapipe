@@ -184,7 +184,7 @@ class HillasReconstructor(Reconstructor):
         # that's why lon get's a sign
         result = ReconstructedShowerContainer(
             alt=lat,
-            az=-lon,
+            az=lon,
             core_x=core_pos[0],
             core_y=core_pos[1],
             tel_ids=[h for h in hillas_dict.keys()],
