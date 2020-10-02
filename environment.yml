@@ -43,4 +43,4 @@ dependencies:
   - zlib
   - zstandard
   - eventio>=1.1.1
-  - ctapipe-extra>=0.3
+  - ctapipe-extra>=0.3.1
