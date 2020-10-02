@@ -275,8 +275,6 @@ class HillasReconstructor(Reconstructor):
                 # re-project from sky to a "fake"-parallel-pointing telescope
                 # then recalculate the psi angle
 
-                # TODO: use a divergent simtel test file with the unit-test
-
                 camera_frame_parallel = CameraFrame(
                     focal_length=focal_length, telescope_pointing=array_pointing
                 )
