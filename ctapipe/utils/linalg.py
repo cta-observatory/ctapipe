@@ -1,8 +1,7 @@
 from astropy.coordinates import Angle
-from astropy import units as u
 
 import numpy as np
-from numpy import cos, sin, arctan2 as atan2, arccos as acos
+from numpy import cos, sin
 
 __all__ = ["rotation_matrix_2d", "length", "normalise", "angle"]
 

@@ -22,3 +22,6 @@ References
 
 .. [ctatopleveldatamodel] K. Kosack et al, "Top-level Data Model", CTAO Computing
     Department Internal Documentation, CTA-SPE-OSO-000000-0001, v1A.
+
+.. [lts_regression] P. J. Rousseeuw, K. van Driessen, "Computing LTS Regression for Large Data Sets",
+    Data Mining and Knowledge Discovery, 12, 29-45, DOI: 10.1007/s10618-005-0024-4
