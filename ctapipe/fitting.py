@@ -80,6 +80,9 @@ def _lts_single_sample(X, y, sample_size, max_iterations, eps=1e-12):
 
     # perform the initial fit
     beta = linear_regression(X[sample], y[sample])
+    if np.isnan(beta[0]):
+        return beta, np.nan
+
     last_error = residual_sum_of_squares(X[sample], y[sample], beta)
 
     for i in range(max_iterations):
