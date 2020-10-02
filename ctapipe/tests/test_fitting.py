@@ -11,13 +11,42 @@ def test_design_matrix():
     assert np.all(matrix[:, 1] == 1)
 
 
+def test_linear_regression():
+    from ctapipe.fitting import linear_regression, design_matrix
+
+    # test without noise, should give exact result
+    true_beta = np.array([5.0, 2.0])
+    x = np.linspace(0, 10, 50)
+    y = np.polyval(true_beta, x)
+    X = design_matrix(x)
+
+    beta = linear_regression(X, y)
+
+    assert np.allclose(true_beta, beta)
+
+
+def test_linear_regression_singular():
+    from ctapipe.fitting import linear_regression, design_matrix
+
+    # test under-determined input
+    x = np.zeros(2, dtype=float)
+    y = np.array([2, 1], dtype=float)
+    X = design_matrix(x)
+
+    beta = linear_regression(X, y)
+
+    assert np.all(np.isnan(beta))
+
+
 def test_lts_regression():
     from ctapipe.fitting import lts_linear_regression
+
+    np.random.seed(1337)
 
     true_beta = np.array([5.0, 2.0])
 
     # test without noise, should give exact result
-    x = np.linspace(0, 10, 20)
+    x = np.linspace(0, 10, 50)
     y = np.polyval(true_beta, x)
 
     beta, error = lts_linear_regression(x, y)

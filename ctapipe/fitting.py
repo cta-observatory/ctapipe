@@ -2,6 +2,9 @@ from numba import njit
 import numpy as np
 
 
+EPS = 2 * np.finfo(np.float64).eps
+
+
 @njit
 def design_matrix(x):
     """
@@ -30,7 +33,11 @@ def linear_regression(X, y):
     y: np.array
         y values
     """
-    return np.linalg.inv(X.T @ X) @ X.T @ y
+    mat = X.T @ X
+    if np.linalg.det(mat) < EPS:
+        return np.full(2, np.nan)
+
+    return np.linalg.inv(mat) @ X.T @ y
 
 
 @njit
