@@ -3,7 +3,7 @@ import logging
 import textwrap
 from abc import abstractmethod
 
-from traitlets import Unicode
+from traitlets import default, Unicode
 from traitlets.config import Application, Configurable
 
 from .. import __version__ as version
@@ -113,6 +113,12 @@ class Tool(Application):
         "%(levelname)s [%(name)s] (%(module)s/%(funcName)s): %(message)s",
         help="The Logging format template",
     ).tag(config=True)
+
+    provenance_log = Path(directory_ok=False)
+
+    @default('provenance_log')
+    def _default_provenance_log(self):
+        return self.name + '.provenance.log'
 
     _log_formatter_cls = ColoredFormatter
 
@@ -237,7 +243,8 @@ class Tool(Application):
                 self.log.info("Output: %s", output_str)
 
             self.log.debug("PROVENANCE: '%s'", Provenance().as_json(indent=3))
-            with open("provenance.log", mode="w+") as provlog:
+            self.provenance_log.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.provenance_log, mode="a+") as provlog:
                 provlog.write(Provenance().as_json(indent=3))
 
         self.exit(exit_status)

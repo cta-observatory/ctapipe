@@ -1,3 +1,4 @@
+import os
 import pytest
 from traitlets import Float, TraitError, List, Dict
 from traitlets.config import Config
@@ -36,6 +37,17 @@ def test_tool_version():
 
     tool = MyTool()
     assert tool.version_string != ""
+
+
+def test_provenance_dir():
+    """ check that the tool gets the provenance dir"""
+
+    class MyTool(Tool):
+        description = "test"
+        userparam = Float(5.0, help="parameter").tag(config=True)
+
+    tool = MyTool()
+    assert str(tool.provenance_log) == os.path.join(os.getcwd(), "application.provenance.log")
 
 
 def test_export_config_to_yaml():
