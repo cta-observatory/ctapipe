@@ -48,6 +48,9 @@ docs_require = [
     "travis-sphinx",
     "graphviz",
 ]
+spe_fitting_require = [
+    "spefit~=1.0.2",
+]
 
 ctapipe.version.update_release_version()
 
@@ -73,13 +76,13 @@ setup(
         "traitlets>=4.1,<5.0",
         "zstandard",
         "h5py",  # needed for astropy hdf5 io
-        "spefit~=1.0.2",
     ],
     # here are optional dependencies (as "tag" : "dependency spec")
     extras_require={
-        "all": tests_require + docs_require,
+        "all": tests_require + docs_require + spe_fitting_require,
         "tests": tests_require,
         "docs": docs_require,
+        "spe_fitting": spe_fitting_require,
     },
     tests_require=tests_require,
     setup_requires=["pytest_runner"],
