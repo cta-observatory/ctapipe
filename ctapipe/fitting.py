@@ -144,6 +144,9 @@ def lts_linear_regression(
     error: float
         Residual sum of squares of the best fit
     """
+    # this will only affect the seed in numba code,
+    # see https://numba.pydata.org/numba-doc/latest/reference/numpysupported.html#random
+    np.random.seed(0)
 
     X = design_matrix(x)
     sample_size = int(relative_sample_size * len(x))
