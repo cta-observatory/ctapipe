@@ -2,6 +2,9 @@ from numba import njit
 import numpy as np
 
 
+EPS = 2 * np.finfo(np.float64).eps
+
+
 @njit
 def design_matrix(x):
     """
@@ -30,7 +33,11 @@ def linear_regression(X, y):
     y: np.array
         y values
     """
-    return np.linalg.inv(X.T @ X) @ X.T @ y
+    mat = X.T @ X
+    if np.linalg.det(mat) < EPS:
+        return np.full(2, np.nan)
+
+    return np.linalg.inv(mat) @ X.T @ y
 
 
 @njit
@@ -73,6 +80,9 @@ def _lts_single_sample(X, y, sample_size, max_iterations, eps=1e-12):
 
     # perform the initial fit
     beta = linear_regression(X[sample], y[sample])
+    if np.isnan(beta[0]):
+        return beta, np.nan
+
     last_error = residual_sum_of_squares(X[sample], y[sample], beta)
 
     for i in range(max_iterations):
@@ -134,6 +144,9 @@ def lts_linear_regression(
     error: float
         Residual sum of squares of the best fit
     """
+    # this will only affect the seed in numba code,
+    # see https://numba.pydata.org/numba-doc/latest/reference/numpysupported.html#random
+    np.random.seed(0)
 
     X = design_matrix(x)
     sample_size = int(relative_sample_size * len(x))
