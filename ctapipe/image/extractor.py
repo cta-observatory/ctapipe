@@ -743,38 +743,28 @@ class TwoPassWindowSum(ImageExtractor):
         # event.dl0.tel[tel_id].waveform object has shape (N_pixels, N_samples)
 
         # For each pixel, we slide a 3-samples window through the
-        # waveform without touching the extremes (so later we can increase it
-        # to 5), summing each time the ADC counts contained within it.
+        # waveform summing each time the ADC counts contained within it.
 
-        # 'width' could be configurable in a generalized version
-        # Right now this image extractor is optimized for LSTCam and NectarCam
         width = self.peak_finding_window_width.tel[telid]
         sums = convolve1d(waveforms, np.ones(width), axis=1, mode="nearest")
-        # Note that the input waveforms are clipped at the extremes because
-        # we want to extend this 3-samples window to 5 samples
-        # 'sums' has now the shape of (N_pixels, N_samples-4)
+        # 'sums' has now still shape of (N_pixels, N_samples), and each element
+        # corresponds to the center-sample of each 3-samples sliding window
 
-        # For each pixel, in each of the (N_samples - 4) positions, we check
+        # For each pixel, in each of the N_samples positions, we check
         # where the window encountered the maximum number of ADC counts
-        start_windows = np.argmax(sums, axis=1)
+        peak_index = np.argmax(sums, axis=1)
         # Now startWindows has the shape of (N_pixels).
-        # Note that the index values stored in startWindows come from 'sums'
-        # of which the first index (0) corresponds of index 1 of each waveform
-        # since we clipped them before.
 
         # Since we have to add 1 sample on each side, window_shift will always
-        # be (-)1, while window_width will always be window1_width + 1
+        # be (-)2, while window_width will always be window1_width + 2
         # so we the final 5-samples window will be 1+3+1
-        window_width = width + 2
-        window_shift = 1
+        window_width = width + 2  # in extract_around_peak we sum up to < end !
+        window_shift = 2
 
-        # the 'peak_index' argument of 'extract_around_peak' has a different
-        # meaning here: it's the start of the 3-samples window.
-        # Since since the "sums" arrays started from index 1 of each waveform,
-        # then each peak index has to be increased by one
+        # this function is applied to all pixels together
         charge_1stpass, pulse_time_1stpass = extract_around_peak(
             waveforms,
-            start_windows + 1,
+            peak_index,
             window_width,
             window_shift,
             self.sampling_rate[telid],
@@ -935,7 +925,7 @@ class TwoPassWindowSum(ImageExtractor):
         # We have to add 2 samples each side, so the shift will always
         # be (-)2, while width will always end 4 samples to the right.
         # This "always" refers to a 5-samples window of course
-        window_width_default = 5
+        window_width_default = 5  # +1 since extract_around_peak stops at end
         window_shift_default = 2
 
         # now let's deal with some edge cases: the predicted peak falls before
