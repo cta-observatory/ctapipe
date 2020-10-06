@@ -119,7 +119,6 @@ def test_with_toy():
     length_uncertainty = length * 0.05
     intensity = 500
     
-
     xs = u.Quantity([0.5, 0.5, -0.5, -0.5], u.m)
     ys = u.Quantity([0.5, -0.5, 0.5, -0.5], u.m)
     psis = Angle([-90, -45, 0, 45, 90], unit="deg")
