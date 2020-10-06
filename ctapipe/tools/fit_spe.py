@@ -5,10 +5,16 @@ stored in a DL1 file
 import tables
 from tables.nodes import filenode
 from traitlets import Dict, List, Unicode, Int, Tuple
-from spefit import CameraFitter, PDF, Cost
 from ctapipe.core import Provenance, Tool, traits
 import numpy as np
 from matplotlib import pyplot as plt
+
+try:
+    from spefit import CameraFitter, PDF, Cost
+except ImportError:
+    msg = ("This tool requires spefit:\n "
+           "`conda install -c cta-observatory spefit` / `pip install spefit`")
+    raise ImportError(msg)
 
 
 def plot_pixel(pixel, pdf, fitter, charges):
