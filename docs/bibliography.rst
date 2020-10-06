@@ -25,3 +25,5 @@ References
 
 .. [lts_regression] P. J. Rousseeuw, K. van Driessen, "Computing LTS Regression for Large Data Sets",
     Data Mining and Knowledge Discovery, 12, 29-45, DOI: 10.1007/s10618-005-0024-4
+
+.. [hillas_uncertainties] W. Wittek, "Image Parameters", MAGIC-TDAS internal note 02-03, (2002). 

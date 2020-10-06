@@ -167,9 +167,9 @@ def hillas_parameters(geom, image):
         kurtosis_long = m4_long / length ** 4
     
     """
-    Compute Hillas parameters uncertainties. 
-    Implementation based on W. Wittek. 2002. Image parameters. MAGIC-TDAS internal note 02-03. 
-    http://wwwmagic.mppmu.mpg.de/documents/tdasnotes.html    
+    Compute of the Hillas parameters uncertainties. 
+    Implementation described in [hillas_uncertainties]_ This is an internal MAGIC document
+    not generally accessible.  
     """
    
     #intermediate variables
