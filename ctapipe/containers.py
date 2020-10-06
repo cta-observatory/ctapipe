@@ -112,7 +112,7 @@ class HillasParametersContainer(Container):
     phi = Field(nan * u.deg, "polar coordinate of centroid", unit=u.deg)
 
     length = Field(nan * u.m, "standard deviation along the major-axis", unit=u.m)
-    length_uncertainty = Field(nan * u.m, "uncertainty of legth", unit=u.m)
+    length_uncertainty = Field(nan * u.m, "uncertainty of length", unit=u.m)
     width = Field(nan * u.m, "standard spread along the minor-axis", unit=u.m)
     width_uncertainty = Field(nan * u.m, "uncertainty of width", unit=u.m)
     psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
