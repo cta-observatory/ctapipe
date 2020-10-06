@@ -173,7 +173,7 @@ def hillas_parameters(geom, image):
     """
    
     #intermediate variables
-    cos_psi = np.cos(2 * psi)
+    cos_2psi = np.cos(2 * psi)
     a = (1 + cos_psi) / 2 
     b = (1 - cos_psi) / 2
     c = np.sin(2 * psi)
