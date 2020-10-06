@@ -1,7 +1,7 @@
 from abc import abstractmethod, ABC
 
 import pytest
-from traitlets import Float, TraitError
+from traitlets import Float, TraitError, Int
 from traitlets.config.loader import Config
 import astropy.units as u
 import warnings
@@ -367,3 +367,31 @@ def test_telescope_component():
         pass
 
     assert isinstance(Base.from_name("Sub", subarray=subarray), Sub)
+
+
+def test_full_config():
+    class SubComponent(Component):
+        param = Int(default_value=3).tag(config=True)
+
+    class MyComponent(Component):
+        val = Int(default_value=42).tag(config=True)
+
+        def __init__(self, config=None, parent=None):
+            super().__init__(config=config, parent=parent)
+            self.sub = SubComponent(parent=self)
+
+    comp = MyComponent()
+    assert comp.get_current_config() == {
+        "MyComponent": {"val": 42, "SubComponent": {"param": 3}}
+    }
+
+    # test round tripping
+    comp = MyComponent()
+    comp.val = 10
+    comp.sub.param = -1
+
+    dict_config = comp.get_current_config()
+    config = Config(dict_config)
+    comp_from_config = MyComponent(config=config)
+
+    assert dict_config == comp_from_config.get_current_config()
