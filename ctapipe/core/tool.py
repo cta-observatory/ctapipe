@@ -1,5 +1,6 @@
 """ Classes to handle configurable command-line user interfaces """
 import logging
+import warnings
 import textwrap
 from abc import abstractmethod
 
@@ -153,6 +154,11 @@ class Tool(Application):
         """
         No-op for backwards-compatibility
         """
+        warnings.warn(
+            "Tool.add_component is not needed anymore"
+            " and will be removed in a future ctapipe version",
+            DeprecationWarning,
+        )
         return component_instance
 
     @abstractmethod
