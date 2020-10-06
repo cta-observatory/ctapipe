@@ -165,6 +165,28 @@ def hillas_parameters(geom, image):
 
         m4_long = np.average(longitudinal ** 4, weights=image)
         kurtosis_long = m4_long / length ** 4
+    
+    """
+    Compute Hillas parameters uncertainties. 
+    Implementation based on W. Wittek. 2002. Image parameters. MAGIC-TDAS internal note 02-03. 
+    http://wwwmagic.mppmu.mpg.de/documents/tdasnotes.html    
+    """
+   
+    #intermediate variables
+    a_l = (1 + (np.cos(2 * psi))) / 2 
+    a_w = (1 - (np.cos(2 * psi))) / 2 
+    b_l = (1 - (np.cos(2 * psi))) / 2
+    b_w = (1 + (np.cos(2 * psi))) / 2
+    c_l = np.sin(2 * psi)
+    
+    A = (((pix_x - cog_x) ** 2.0) - cov[0][0]) / size
+    B = (((pix_y - cog_y) ** 2.0) - cov[1][1]) / size
+    C = (((pix_x - cog_x) * (pix_y - cog_y)) - cov[0][1]) / size     
+         
+    #Hillas's uncertainties
+    length_uncertainty =  np.sqrt(np.sum(((((a_l * A) + (b_l * B) + (c_l * C))) ** 2.0) * image)) / (2 * length)
+    width_uncertainty =  np.sqrt(np.sum(((((a_w * A) + (b_w * B) + (- c_l * C))) ** 2.0) * image)) / (2 * width)
+    
 
     return HillasParametersContainer(
         x=u.Quantity(cog_x, unit),
@@ -173,7 +195,9 @@ def hillas_parameters(geom, image):
         phi=Angle(cog_phi, unit=u.rad),
         intensity=size,
         length=u.Quantity(length, unit),
+        length_uncertainty=u.Quantity(length_uncertainty, unit),
         width=u.Quantity(width, unit),
+        width_uncertainty=u.Quantity(width_uncertainty, unit),
         psi=Angle(psi, unit=u.rad),
         skewness=skewness_long,
         kurtosis=kurtosis_long,
