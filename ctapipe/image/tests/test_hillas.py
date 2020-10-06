@@ -115,7 +115,10 @@ def test_with_toy():
 
     width = 0.03 * u.m
     length = 0.15 * u.m
+    width_uncertainty = width * 0.05
+    length_uncertainty = length * 0.05
     intensity = 500
+    
 
     xs = u.Quantity([0.5, 0.5, -0.5, -0.5], u.m)
     ys = u.Quantity([0.5, -0.5, 0.5, -0.5], u.m)
@@ -137,7 +140,9 @@ def test_with_toy():
             assert u.isclose(result.y, y, rtol=0.1)
 
             assert u.isclose(result.width, width, rtol=0.1)
+            assert u.isclose(result.width_uncertainty, width_uncertainty, rtol=1)
             assert u.isclose(result.length, length, rtol=0.1)
+            assert u.isclose(result.length_uncertainty, length_uncertainty, rtol=1)
             assert (result.psi.to_value(u.deg) == approx(psi.deg, abs=2)) or abs(
                 result.psi.to_value(u.deg) - psi.deg
             ) == approx(180.0, abs=2)
@@ -217,6 +222,7 @@ def test_straight_line_width_0():
                 img = np.random.poisson(5, size=len(long))
                 result = hillas_parameters(geom, img)
                 assert result.width.value == 0
+                assert np.isnan(result.width_uncertainty.value)
 
 
 @pytest.mark.filterwarnings("error")
