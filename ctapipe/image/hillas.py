@@ -173,20 +173,31 @@ def hillas_parameters(geom, image):
     """
    
     #intermediate variables
-    a_l = (1 + (np.cos(2 * psi))) / 2 
-    a_w = (1 - (np.cos(2 * psi))) / 2 
-    b_l = (1 - (np.cos(2 * psi))) / 2
-    b_w = (1 + (np.cos(2 * psi))) / 2
-    c_l = np.sin(2 * psi)
+    cos_psi = np.cos(2 * psi)
+    a = (1 + cos_psi) / 2 
+    b = (1 - cos_psi) / 2
+    c = np.sin(2 * psi)
+     
     
-    A = (((pix_x - cog_x) ** 2.0) - cov[0][0]) / size
-    B = (((pix_y - cog_y) ** 2.0) - cov[1][1]) / size
-    C = (((pix_x - cog_x) * (pix_y - cog_y)) - cov[0][1]) / size     
+    A = ((delta_x ** 2.0) - cov[0][0]) / size
+    B = ((delta_y ** 2.0) - cov[1][1]) / size
+    C = ((delta_x * delta_y) - cov[0][1]) / size     
          
     #Hillas's uncertainties
-    length_uncertainty =  np.sqrt(np.sum(((((a_l * A) + (b_l * B) + (c_l * C))) ** 2.0) * image)) / (2 * length)
-    width_uncertainty =  np.sqrt(np.sum(((((a_w * A) + (b_w * B) + (- c_l * C))) ** 2.0) * image)) / (2 * width)
     
+    # avoid divide by 0 warnings
+    if length == 0:
+        length_uncertainty = np.nan
+    else:
+        length_uncertainty =  np.sqrt(np.sum(((((a * A) + (b * B) + (c * C))) ** 2.0) * image)) / (2 * length)
+    
+    
+    if width == 0:
+        width_uncertainty = np.nan
+    else:
+        width_uncertainty =  np.sqrt(np.sum(((((b * A) + (a * B) + (- c * C))) ** 2.0) * image)) / (2 * width)
+    
+
 
     return HillasParametersContainer(
         x=u.Quantity(cog_x, unit),
