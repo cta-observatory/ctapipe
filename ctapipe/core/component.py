@@ -184,13 +184,15 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
             "<table>",
         ]
         for key, val in self.get_current_config()[name].items():
-            thehelp = f"{traits[key].help} (default: {traits[key].default_value})"
-            lines.append(f"<tr><th>{key}</th>")
-            if val != traits[key].default_value:
-                lines.append(f"<td><span style='color:blue'>{val}</span></td>")
-            else:
-                lines.append(f"<td>{val}</td>")
-            lines.append(f'<td style="text-align:left"><i>{thehelp}</i></td></tr>')
+            # traits of the current component
+            if key in traits:
+                thehelp = f"{traits[key].help} (default: {traits[key].default_value})"
+                lines.append(f"<tr><th>{key}</th>")
+                if val != traits[key].default_value:
+                    lines.append(f"<td><span style='color:blue'>{val}</span></td>")
+                else:
+                    lines.append(f"<td>{val}</td>")
+                lines.append(f'<td style="text-align:left"><i>{thehelp}</i></td></tr>')
         lines.append("</table>")
         return "\n".join(lines)
 

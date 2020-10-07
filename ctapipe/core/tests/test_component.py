@@ -40,10 +40,20 @@ def test_non_abstract_children():
     assert AbstractChild not in kids
 
 
+class SubComponent(Component):
+    """ An Example Component, this is the help text"""
+
+    value = Float(default_value=-1.0, help="float parameter").tag(config=True)
+
+
 class ExampleComponent(Component):
     """ An Example Component, this is the help text"""
 
     param = Float(default_value=1.0, help="float parameter").tag(config=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.sub = SubComponent(parent=self)
 
 
 class ExampleSubclass1(ExampleComponent):
