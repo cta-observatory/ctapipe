@@ -465,7 +465,7 @@ class SubarrayDescription:
         with tables.open_file(path, mode="r") as f:
             attrs = f.root.configuration.instrument.subarray._v_attrs
             if "name" in attrs:
-                name = attrs.name
+                name = str(attrs.name)
             else:
                 name = "Unknown"
 
