@@ -57,8 +57,8 @@ NAN_TIME = Time(np.ma.masked_array(nan, mask=True), format="mjd")
 
 
 class EventType(enum.Enum):
-    """ These numbers come from  the document *CTA R1/Event Data Model Specification*
-    version 1 revision C.  They may be updated in future revisions """
+    """These numbers come from  the document *CTA R1/Event Data Model Specification*
+    version 1 revision C.  They may be updated in future revisions"""
 
     # calibrations are 0-15
     FLATFIELD = 0
@@ -259,7 +259,7 @@ class DL1CameraContainer(Container):
 
 
 class MCDL1CameraContainer(Container):
-    """ Contains all fields of the DL1CameraContainer, but adds fields for simulated
+    """Contains all fields of the DL1CameraContainer, but adds fields for simulated
     DL1 image information."""
 
     true_image = Field(
