@@ -177,7 +177,7 @@ class DisplayDL1Calib(Tool):
         subarray = self.eventsource.subarray
 
         self.calibrator = CameraCalibrator(parent=self, subarray=subarray)
-        self.plotter = ImagePlotter(subarray=subarray, parent=self)
+        self.plotter = ImagePlotter(parent=self, subarray=subarray)
 
     def start(self):
         for event in self.eventsource:
