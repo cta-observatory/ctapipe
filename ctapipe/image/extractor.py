@@ -755,10 +755,9 @@ class TwoPassWindowSum(ImageExtractor):
         peak_index = np.argmax(sums, axis=1)
         # Now startWindows has the shape of (N_pixels).
 
-        # Since we have to add 1 sample on each side, window_shift will always
-        # be (-)2, while window_width will always be window1_width + 2
-        # so we the final 5-samples window will be 1+3+1
-        window_width = width + 2  # in extract_around_peak we sum up to < end !
+        # The final 5-samples window will be 1+3+1, centered on the 3-samples
+        # window in which the highest amount of ADC counts has been found
+        window_width = width + 2
         window_shift = 2
 
         # this function is applied to all pixels together
@@ -885,9 +884,11 @@ class TwoPassWindowSum(ImageExtractor):
         # linear fit of pulse time vs. distance along major image axis
         # using only the main island surviving the preliminary
         # image cleaning
-        # WARNING: in case of outliers, the fit can perform better if
-        # it is a robust algorithm.
         timing = timing_parameters(camera_geometry, image_2, pulse_time_1stpass, hillas)
+
+        # If the fit returns nan
+        if np.isnan(timing.slope):
+            return charge_1stpass, pulse_time_1stpass
 
         # get projected distances along main image axis
         long, _ = camera_to_shower_coordinates(
@@ -921,11 +922,9 @@ class TwoPassWindowSum(ImageExtractor):
         # Build 'width' and 'shift' arrays that adapt on the position of the
         # window along each waveform
 
-        # Now the definition of peak_index is really the peak.
-        # We have to add 2 samples each side, so the shift will always
-        # be (-)2, while width will always end 4 samples to the right.
-        # This "always" refers to a 5-samples window of course
-        window_width_default = 5  # +1 since extract_around_peak stops at end
+        # As before we will integrate the charge in a 5-sample window centered
+        # on the peak
+        window_width_default = 5
         window_shift_default = 2
 
         # now let's deal with some edge cases: the predicted peak falls before
