@@ -27,3 +27,6 @@ References
     computing on GPU Development and optimisation of data-analysis
     methodologies for the Cherenkov Telescope Array",
     Ph.D. thesis, Academic Year 2018/2019.
+
+.. [lts_regression] P. J. Rousseeuw, K. van Driessen, "Computing LTS Regression for Large Data Sets",
+    Data Mining and Knowledge Discovery, 12, 29-45, DOI: 10.1007/s10618-005-0024-4

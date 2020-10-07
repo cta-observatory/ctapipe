@@ -313,8 +313,8 @@ def test_two_pass_window_sum(subarray):
             true_time,
         ) = toymodel
         charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
-        assert_allclose(charge, true_charge, rtol=0.07)
-        assert_allclose(pulse_time, true_time, rtol=0.07)
+        assert_allclose(charge, true_charge, rtol=0.1)
+        assert_allclose(pulse_time, true_time, rtol=0.1)
 
 
 def test_waveform_extractor_factory(toymodel):

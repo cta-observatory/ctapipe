@@ -99,9 +99,8 @@ def write_reference_metadata_headers(obs_id, subarray, writer):
         ),
     )
 
-    # convert all values to strings, since hdf5 can't handle Times, etc.:
     # TODO: add activity_stop_time?
-    headers = {k: str(v) for k, v in reference.to_dict().items()}
+    headers = reference.to_dict()
     meta.write_to_hdf5(headers, writer._h5file)
 
 
