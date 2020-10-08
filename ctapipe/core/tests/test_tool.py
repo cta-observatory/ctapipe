@@ -175,13 +175,13 @@ def test_tool_command_line_precedence():
         userparam = Float(5.0, help="parameter").tag(config=True)
 
         classes = List([SubComponent])
-        aliases = Dict({"component_param": "MyTool.SubComponent.component_param"})
+        aliases = Dict({"component_param": "SubComponent.component_param"})
 
         def setup(self):
             self.sub = SubComponent(parent=self)
 
     config = Config(
-        {"MyTool": {"userparam": 12.0, "SubComponent": {"component_param": 15.0}}}
+        {"MyTool": {"userparam": 12.0}, "SubComponent": {"component_param": 15.0}}
     )
 
     tool = MyTool(config=config)  # sets component_param to 15.0
