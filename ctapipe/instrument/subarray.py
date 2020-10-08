@@ -364,7 +364,7 @@ class SubarrayDescription:
                 return False
         return True
 
-    def to_hdf(self, output_path):
+    def to_hdf(self, output_path, overwrite=False):
         """write the SubarrayDescription
 
         Parameters
@@ -382,12 +382,14 @@ class SubarrayDescription:
             path="/configuration/instrument/subarray/layout",
             serialize_meta=serialize_meta,
             append=True,
+            overwrite=overwrite,
         )
         self.to_table(kind="optics").write(
             output_path,
             path="/configuration/instrument/telescope/optics",
             append=True,
             serialize_meta=serialize_meta,
+            overwrite=overwrite,
         )
         for camera in self.camera_types:
             camera.geometry.to_table().write(
@@ -395,12 +397,14 @@ class SubarrayDescription:
                 path=f"/configuration/instrument/telescope/camera/geometry_{camera}",
                 append=True,
                 serialize_meta=serialize_meta,
+                overwrite=overwrite,
             )
             camera.readout.to_table().write(
                 output_path,
                 path=f"/configuration/instrument/telescope/camera/readout_{camera}",
                 append=True,
                 serialize_meta=serialize_meta,
+                overwrite=overwrite,
             )
 
         with tables.open_file(output_path, mode="r+") as f:
@@ -461,7 +465,7 @@ class SubarrayDescription:
         with tables.open_file(path, mode="r") as f:
             attrs = f.root.configuration.instrument.subarray._v_attrs
             if "name" in attrs:
-                name = attrs.name
+                name = str(attrs.name)
             else:
                 name = "Unknown"
 

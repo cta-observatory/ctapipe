@@ -117,6 +117,9 @@ def test_hdf(example_subarray):
 
         assert example_subarray == read
 
+        # test we can write the read subarray
+        read.to_hdf(f.name, overwrite=True)
+
         # test that subarrays without name (v0.8.0) work:
         with tables.open_file(f.name, "r+") as hdf:
             del hdf.root.configuration.instrument.subarray._v_attrs.name
