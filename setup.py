@@ -31,6 +31,7 @@ entry_points["console_scripts"] = [
     "ctapipe-display-integration = ctapipe.tools.display_integrator:main",
     "ctapipe-display-dl1 = ctapipe.tools.display_dl1:main",
     "ctapipe-stage1-process = ctapipe.tools.stage1:main",
+    "ctapipe-merge-dl1 = ctapipe.tools.dl1_merge:main",
 ]
 tests_require = [
     "pytest",
