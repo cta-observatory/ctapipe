@@ -28,11 +28,7 @@ def create_sample_image(
     model = toymodel.Gaussian(x=x, y=y, width=width, length=length, psi=psi)
 
     # generate toymodel image in camera for this shower model.
-    image, _, _ = model.generate_image(
-        geom,
-        intensity=1500,
-        nsb_level_pe=3,
-    )
+    image, _, _ = model.generate_image(geom, intensity=1500, nsb_level_pe=3,)
 
     # calculate pixels likely containing signal
     clean_mask = tailcuts_clean(geom, image, 10, 5)
@@ -119,10 +115,10 @@ def test_with_toy():
 
     width = 0.03 * u.m
     length = 0.15 * u.m
-    width_uncertainty = width * 0.05
-    length_uncertainty = length * 0.05
+    width_uncertainty = 0.00094 * u.m
+    length_uncertainty = 0.00465 * u.m 
     intensity = 500
-
+    
     xs = u.Quantity([0.5, 0.5, -0.5, -0.5], u.m)
     ys = u.Quantity([0.5, -0.5, 0.5, -0.5], u.m)
     psis = Angle([-90, -45, 0, 45, 90], unit="deg")
@@ -131,18 +127,10 @@ def test_with_toy():
         for psi in psis:
 
             # make a toymodel shower model
-            model = toymodel.Gaussian(
-                x=x,
-                y=y,
-                width=width,
-                length=length,
-                psi=psi,
-            )
+            model = toymodel.Gaussian(x=x, y=y, width=width, length=length, psi=psi,)
 
             image, signal, noise = model.generate_image(
-                geom,
-                intensity=intensity,
-                nsb_level_pe=5,
+                geom, intensity=intensity, nsb_level_pe=5,
             )
 
             result = hillas_parameters(geom, signal)
@@ -151,9 +139,9 @@ def test_with_toy():
             assert u.isclose(result.y, y, rtol=0.1)
 
             assert u.isclose(result.width, width, rtol=0.1)
-            assert u.isclose(result.width_uncertainty, width_uncertainty, rtol=1)
+            assert u.isclose(result.width_uncertainty, width_uncertainty, rtol=0.4)
             assert u.isclose(result.length, length, rtol=0.1)
-            assert u.isclose(result.length_uncertainty, length_uncertainty, rtol=1)
+            assert u.isclose(result.length_uncertainty, length_uncertainty, rtol=0.4)
             assert (result.psi.to_value(u.deg) == approx(psi.deg, abs=2)) or abs(
                 result.psi.to_value(u.deg) - psi.deg
             ) == approx(180.0, abs=2)
@@ -178,19 +166,10 @@ def test_skewness():
     for x, y, psi, skew in itertools.product(xs, ys, psis, skews):
         # make a toymodel shower model
         model = toymodel.SkewedGaussian(
-            x=x,
-            y=y,
-            width=width,
-            length=length,
-            psi=psi,
-            skewness=skew,
+            x=x, y=y, width=width, length=length, psi=psi, skewness=skew,
         )
 
-        _, signal, _ = model.generate_image(
-            geom,
-            intensity=intensity,
-            nsb_level_pe=5,
-        )
+        _, signal, _ = model.generate_image(geom, intensity=intensity, nsb_level_pe=5,)
 
         result = hillas_parameters(geom, signal)
 
