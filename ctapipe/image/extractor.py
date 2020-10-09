@@ -671,10 +671,6 @@ class TwoPassWindowSum(ImageExtractor):
         help="only run the first pass of the extractor, for debugging purposes",
     ).tag(config=True)
 
-    peak_finding_window_width = IntTelescopeParameter(
-        default_value=3, help="width of sliding window used to do peak detection"
-    ).tag(config=True)
-
     apply_integration_correction = BoolTelescopeParameter(
         default_value=True, help="Apply the integration window correction"
     ).tag(config=True)
@@ -745,19 +741,26 @@ class TwoPassWindowSum(ImageExtractor):
         # For each pixel, we slide a 3-samples window through the
         # waveform summing each time the ADC counts contained within it.
 
-        width = self.peak_finding_window_width.tel[telid]
-        sums = convolve1d(waveforms, np.ones(width), axis=1, mode="nearest")
-        # 'sums' has now still shape of (N_pixels, N_samples), and each element
-        # corresponds to the center-sample of each 3-samples sliding window
+        peak_search_window_width = 3
+        sums = convolve1d(
+            waveforms, np.ones(peak_search_window_width), axis=1, mode="nearest"
+        )
+        # 'sums' has now still shape of (N_pixels, N_samples)
+        # each element is the center-sample of each 3-samples sliding window
 
-        # For each pixel, in each of the N_samples positions, we check
-        # where the window encountered the maximum number of ADC counts
-        peak_index = np.argmax(sums, axis=1)
-        # Now startWindows has the shape of (N_pixels).
+        # For each pixel, we check where the peak search window encountered
+        # the maximum number of ADC counts.
+        # We want to stop before the edge of the readout window in order to
+        # later extend the search window to a 1+3+1 integration window.
+        # Since in 'sums' the peak index corresponds to the center of the
+        # search window, we shift it on the right by 2 samples so to get the
+        # correspondent sample index in each waveform.
+        peak_index = np.argmax(sums[:, 2:-2], axis=1) + 2
+        # Now peak_index has the shape of (N_pixels).
 
         # The final 5-samples window will be 1+3+1, centered on the 3-samples
         # window in which the highest amount of ADC counts has been found
-        window_width = width + 2
+        window_width = peak_search_window_width + 2
         window_shift = 2
 
         # this function is applied to all pixels together
