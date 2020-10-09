@@ -11,6 +11,7 @@ from ctapipe.reco.reco_algorithms import (
     InvalidWidthException,
 )
 from ctapipe.utils import get_dataset_path
+from ctapipe.coordinates import TelescopeFrame
 from astropy.coordinates import SkyCoord, AltAz
 
 
@@ -85,73 +86,219 @@ def test_h_max_results():
     # np.testing.assert_allclose(fitted_core_position.value, [0, 0], atol=1e-3)
 
 
-def test_reconstruction():
+def test_parallel_reconstruction():
     """
-    a test of the complete fit procedure on one event including:
-    • tailcut cleaning
+    Test shower's reconstruction procedure:
+    • image cleaning
     • hillas parametrisation
     • HillasPlane creation
-    • direction fit
-    • position fit
+    • shower direction reconstruction in the sky
+    • shower core reconstruction in the ground
 
-    in the end, proper units in the output are asserted """
-    filename = get_dataset_path("gamma_test_large.simtel.gz")
+    Tested,
+    - starting from CameraFrame,
+    - starting from TelescopeFrame,
+    - no telescope pointing (aka "parallel" pointing) with parallel test data
+
+    The test checks the old approach (using CameraFrame) and the new one
+    (using TelescopeFrame) provide compatible results and that we are able to
+    reconstruct a positive number of events.
+    """
+    from scipy.spatial import distance
+
+    filename = get_dataset_path(
+        "gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"
+    )
 
     source = event_source(filename, max_events=10)
     horizon_frame = AltAz()
 
     reconstructed_events = 0
 
-    for event in source:
-        array_pointing = SkyCoord(az=event.mc.az, alt=event.mc.alt, frame=horizon_frame)
+    # ==========================================================================
 
-        hillas_dict = {}
+    for event in source:
+
+        array_pointing = SkyCoord(
+            az=event.pointing.array_azimuth,
+            alt=event.pointing.array_altitude,
+            frame=horizon_frame,
+        )
+
+        hillas_dict_CameraFrame = {}
+        hillas_dict_TelescopeFrame = {}
         telescope_pointings = {}
 
         for tel_id in event.dl0.tels_with_data:
-
-            geom = source.subarray.tel[tel_id].camera.geometry
 
             telescope_pointings[tel_id] = SkyCoord(
                 alt=event.pointing.tel[tel_id].altitude,
                 az=event.pointing.tel[tel_id].azimuth,
                 frame=horizon_frame,
             )
+
+            geom_CameraFrame = source.subarray.tel[tel_id].camera.geometry
+
+            # this could be done also out of this loop,
+            # but in case of real data each telescope would have a
+            # different telescope_pointing
+            geom_TelescopeFrame = geom_CameraFrame.transform_to(
+                TelescopeFrame(telescope_pointing=telescope_pointings[tel_id])
+            )
+
             pmt_signal = event.r0.tel[tel_id].waveform[0].sum(axis=1)
 
             mask = tailcuts_clean(
-                geom, pmt_signal, picture_thresh=10.0, boundary_thresh=5.0
+                geom_TelescopeFrame,
+                pmt_signal,
+                picture_thresh=10.0,
+                boundary_thresh=5.0,
             )
             pmt_signal[mask == 0] = 0
 
             try:
-                moments = hillas_parameters(geom, pmt_signal)
-                hillas_dict[tel_id] = moments
+                moments_CameraFrame = hillas_parameters(geom_CameraFrame, pmt_signal)
+                moments_TelescopeFrame = hillas_parameters(
+                    geom_TelescopeFrame, pmt_signal
+                )
+                hillas_dict_CameraFrame[tel_id] = moments_CameraFrame
+                hillas_dict_TelescopeFrame[tel_id] = moments_TelescopeFrame
             except HillasParameterizationError as e:
                 print(e)
                 continue
 
-        if len(hillas_dict) < 2:
+        if (len(hillas_dict_CameraFrame) < 2) and (len(hillas_dict_TelescopeFrame) < 2):
             continue
         else:
             reconstructed_events += 1
 
-        # The three reconstructions below gives the same results
+        # Parallel pointing case using CameraFrame
         fit = HillasReconstructor()
-        fit_result_parall = fit.predict(hillas_dict, source.subarray, array_pointing)
-
-        fit = HillasReconstructor()
-        fit_result_tel_point = fit.predict(
-            hillas_dict, source.subarray, array_pointing, telescope_pointings
+        fit_result_CameraFrame = fit.predict(
+            hillas_dict_CameraFrame, source.subarray, array_pointing
         )
 
-        for key in fit_result_parall.keys():
-            print(key, fit_result_parall[key], fit_result_tel_point[key])
+        # Parallel pointing case using TelescopeFrame
+        fit = HillasReconstructor()
+        fit_result_TelescopeFrame = fit.predict(
+            hillas_dict_TelescopeFrame, source.subarray, array_pointing
+        )
 
-        fit_result_parall.alt.to(u.deg)
-        fit_result_parall.az.to(u.deg)
-        fit_result_parall.core_x.to(u.m)
-        assert fit_result_parall.is_valid
+        for field in fit_result_CameraFrame.as_dict():
+            C = np.asarray(fit_result_CameraFrame.as_dict()[field])
+            T = np.asarray(fit_result_TelescopeFrame.as_dict()[field])
+            assert (np.isclose(C, T, rtol=1e-03, atol=1e-03, equal_nan=True)).all()
+
+    assert reconstructed_events > 0
+
+
+def test_divergent_reconstruction():
+    """
+    Test shower's reconstruction procedure:
+    • image cleaning
+    • hillas parametrisation
+    • HillasPlane creation
+    • shower direction reconstruction in the sky
+    • shower core reconstruction in the ground
+
+    Tested,
+    - starting from CameraFrame,
+    - starting from TelescopeFrame,
+    - divergent pointing using divergent pointing test data
+
+    The test checks the old approach (using CameraFrame) and the new one
+    (using TelescopeFrame) provide compatible results and that we are able to
+    reconstruct a positive number of events.
+    """
+    from scipy.spatial import distance
+
+    filename = get_dataset_path(
+        "gamma_divergent_LaPalma_baseline_20Zd_180Az_prod3_test.simtel.gz"
+    )
+
+    source = event_source(filename, max_events=10)
+    horizon_frame = AltAz()
+
+    reconstructed_events = 0
+
+    # ==========================================================================
+
+    for event in source:
+
+        array_pointing = SkyCoord(
+            az=event.pointing.array_azimuth,
+            alt=event.pointing.array_altitude,
+            frame=horizon_frame,
+        )
+
+        hillas_dict_CameraFrame = {}
+        hillas_dict_TelescopeFrame = {}
+        telescope_pointings = {}
+
+        for tel_id in event.dl0.tels_with_data:
+
+            telescope_pointings[tel_id] = SkyCoord(
+                alt=event.pointing.tel[tel_id].altitude,
+                az=event.pointing.tel[tel_id].azimuth,
+                frame=horizon_frame,
+            )
+
+            geom_CameraFrame = source.subarray.tel[tel_id].camera.geometry
+
+            # this could be done also out of this loop,
+            # but in case of real data each telescope would have a
+            # different telescope_pointing
+            geom_TelescopeFrame = geom_CameraFrame.transform_to(
+                TelescopeFrame(telescope_pointing=telescope_pointings[tel_id])
+            )
+
+            pmt_signal = event.r0.tel[tel_id].waveform[0].sum(axis=1)
+
+            mask = tailcuts_clean(
+                geom_TelescopeFrame,
+                pmt_signal,
+                picture_thresh=10.0,
+                boundary_thresh=5.0,
+            )
+            pmt_signal[mask == 0] = 0
+
+            try:
+                moments_CameraFrame = hillas_parameters(geom_CameraFrame, pmt_signal)
+                moments_TelescopeFrame = hillas_parameters(
+                    geom_TelescopeFrame, pmt_signal
+                )
+                hillas_dict_CameraFrame[tel_id] = moments_CameraFrame
+                hillas_dict_TelescopeFrame[tel_id] = moments_TelescopeFrame
+            except HillasParameterizationError as e:
+                print(e)
+                continue
+
+        if (len(hillas_dict_CameraFrame) < 2) and (len(hillas_dict_TelescopeFrame) < 2):
+            continue
+        else:
+            reconstructed_events += 1
+
+        fit = HillasReconstructor()
+        fit_result_CameraFrame = fit.predict(
+            hillas_dict_CameraFrame,
+            source.subarray,
+            array_pointing,
+            telescope_pointings,
+        )
+
+        fit = HillasReconstructor()
+        fit_result_TelescopeFrame = fit.predict(
+            hillas_dict_TelescopeFrame,
+            source.subarray,
+            array_pointing,
+            telescope_pointings,
+        )
+
+        # Compare old approach with new approach
+        for field in fit_result_CameraFrame.as_dict():
+            C = np.asarray(fit_result_CameraFrame.as_dict()[field])
+            T = np.asarray(fit_result_TelescopeFrame.as_dict()[field])
+            assert (np.isclose(C, T, rtol=1e-03, atol=1e-03, equal_nan=True)).all()
 
     assert reconstructed_events > 0
 
@@ -164,9 +311,9 @@ def test_invalid_events():
     - any width is NaN
     - any width is 0
 
-    This test uses the same sample simtel file as 
+    This test uses the same sample simtel file as
     test_reconstruction(). As there are no invalid events in this
-    file, multiple hillas_dicts are constructed to make sure 
+    file, multiple hillas_dicts are constructed to make sure
     Exceptions get thrown in the mentioned edge cases.
 
     Test will fail if no Exception or another Exception gets thrown."""

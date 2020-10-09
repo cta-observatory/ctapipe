@@ -55,7 +55,7 @@ def create_sample_image_selected_pixel(psi="-30d"):
 def compare_result(x, y):
     ux = u.Quantity(x)
     uy = u.Quantity(y)
-    assert isclose(ux.value, uy.value)
+    assert isclose(ux.value, uy.value, equal_nan=True)
     assert ux.unit == uy.unit
 
 

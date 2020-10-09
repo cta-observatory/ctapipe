@@ -9,6 +9,7 @@ plt = pytest.importorskip("matplotlib.pyplot")
 
 from ctapipe.instrument import CameraGeometry, SubarrayDescription, TelescopeDescription
 from ctapipe.containers import HillasParametersContainer
+import numpy
 from numpy import ones
 from astropy import units as u
 
@@ -81,7 +82,18 @@ def test_array_display():
 
     assert (vals == ad.values).all()
 
-    # test using hillas params:
+    # test UV field ...
+
+    # ...with colors by telescope type
+    ad.set_vector_uv(numpy.array([1, 2, 3]) * u.m, numpy.array([1, 2, 3]) * u.m)
+    # ...with scalar color
+    ad.set_vector_uv(numpy.array([1, 2, 3]) * u.m, numpy.array([1, 2, 3]) * u.m, c=3)
+
+    geom = CameraGeometry.from_name("LSTCam")
+    rot_angle = 20 * u.deg
+    hillas = HillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=rot_angle)
+
+    # test using hillas params CameraFrame:
     hillas_dict = {
         1: HillasParametersContainer(length=100.0 * u.m, psi=90 * u.deg),
         2: HillasParametersContainer(length=20000 * u.cm, psi="95deg"),
@@ -89,10 +101,6 @@ def test_array_display():
 
     grad = 2
     intercept = 1
-
-    geom = CameraGeometry.from_name("LSTCam")
-    rot_angle = 20 * u.deg
-    hillas = HillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=rot_angle)
 
     timing_rot20 = timing_parameters(
         geom,
@@ -110,6 +118,86 @@ def test_array_display():
         length=500,
         time_gradient=gradient_dict,
         angle_offset=0 * u.deg,
+    )
+    ad.set_line_hillas(hillas_dict=hillas_dict, range=300)
+
+    # test using hillas params for divergent pointing in telescopeframe:
+    hillas_dict = {
+        1: HillasParametersContainer(
+            x=1.0 * u.deg,
+            y=1.0 * u.deg,
+            length=1.0 * u.deg,
+            psi=90 * u.deg,
+            psi_divergent=30 * u.deg,
+        ),
+        2: HillasParametersContainer(
+            x=1.0 * u.deg,
+            y=1.0 * u.deg,
+            length=1.0 * u.deg,
+            psi=95 * u.deg,
+            psi_divergent=20 * u.deg,
+        ),
+    }
+    ad.set_vector_hillas(
+        hillas_dict=hillas_dict,
+        length=500,
+        time_gradient=gradient_dict,
+        angle_offset=0 * u.deg,
+    )
+    ad.set_line_hillas(hillas_dict=hillas_dict, range=300)
+
+    # test using hillas params for parallel pointing in telescopeframe:
+    hillas_dict = {
+        1: HillasParametersContainer(
+            x=1.0 * u.deg,
+            y=1.0 * u.deg,
+            length=1.0 * u.deg,
+            psi=90 * u.deg,
+            psi_divergent=numpy.nan * u.deg,
+        ),
+        2: HillasParametersContainer(
+            x=1.0 * u.deg,
+            y=1.0 * u.deg,
+            length=1.0 * u.deg,
+            psi=95 * u.deg,
+            psi_divergent=numpy.nan * u.deg,
+        ),
+    }
+    ad.set_vector_hillas(
+        hillas_dict=hillas_dict,
+        length=500,
+        time_gradient=gradient_dict,
+        angle_offset=0 * u.deg,
+    )
+
+    # test negative time_gradients
+    gradient_dict = {
+        1: -0.03,
+        2: -0.02,
+    }
+    ad.set_vector_hillas(
+        hillas_dict=hillas_dict,
+        length=500,
+        time_gradient=gradient_dict,
+        angle_offset=0 * u.deg,
+    )
+    # and very small
+    gradient_dict = {
+        1: 0.003,
+        2: 0.002,
+    }
+    ad.set_vector_hillas(
+        hillas_dict=hillas_dict,
+        length=500,
+        time_gradient=gradient_dict,
+        angle_offset=0 * u.deg,
+    )
+
+    # Test background contour
+    ad.background_contour(
+        x=numpy.array([0, 1, 2]),
+        y=numpy.array([0, 1, 2]),
+        background=numpy.array([[0, 1, 2], [0, 1, 2], [0, 1, 2]]),
     )
 
     ad.set_line_hillas(hillas_dict, range=300)

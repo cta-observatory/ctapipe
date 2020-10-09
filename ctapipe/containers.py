@@ -114,6 +114,11 @@ class HillasParametersContainer(Container):
     length = Field(nan * u.m, "standard deviation along the major-axis", unit=u.m)
     width = Field(nan * u.m, "standard spread along the minor-axis", unit=u.m)
     psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
+    psi_divergent = Field(
+        nan * u.deg,
+        "rotation angle of ellipse used in divergent mode for core reconstruction",
+        unit=u.deg,
+    )
 
     skewness = Field(nan, "measure of the asymmetry")
     kurtosis = Field(nan, "measure of the tailedness")

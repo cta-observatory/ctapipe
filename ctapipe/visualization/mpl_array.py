@@ -239,15 +239,22 @@ class ArrayDisplay:
         rot_angle_ellipse = np.zeros(self.subarray.num_tels) * u.deg
 
         for tel_id, params in hillas_dict.items():
+
             idx = self.subarray.tel_indices[tel_id]
             rho[idx] = u.Quantity(length, u.m)
 
+            if not np.isnan(params.psi_divergent.value):
+                psi = Angle(params.psi_divergent)
+            elif params.x.unit == u.Unit("deg"):
+                psi = Angle((np.pi / 2.0) * u.rad - params.psi)  # from TelescopeFrame
+            else:
+                psi = Angle(params.psi)  # from CameraFrame
+
             if time_gradient[tel_id] > 0.01:
-                params.psi = Angle(params.psi)
                 angle_offset = Angle(angle_offset)
-                rot_angle_ellipse[idx] = params.psi + angle_offset + 180 * u.deg
+                rot_angle_ellipse[idx] = psi + angle_offset + 180 * u.deg
             elif time_gradient[tel_id] < -0.01:
-                rot_angle_ellipse[idx] = params.psi + angle_offset
+                rot_angle_ellipse[idx] = psi + angle_offset
             else:
                 rho[idx] = 0 * u.m
 
@@ -271,12 +278,24 @@ class ArrayDisplay:
         c = self.tel_colors
 
         r = np.array([-range, range])
+
         for tel_id, params in hillas_dict.items():
             idx = self.subarray.tel_indices[tel_id]
             x_0 = coords[idx].x.to_value(u.m)
             y_0 = coords[idx].y.to_value(u.m)
-            x = x_0 + np.cos(params.psi) * r
-            y = y_0 + np.sin(params.psi) * r
+
+            if not np.isnan(params.psi_divergent.value):
+                psi = Angle(params.psi_divergent)
+            else:
+                if params.x.unit == u.Unit("deg"):
+                    psi = Angle(
+                        (np.pi / 2.0) * u.rad - params.psi
+                    )  # from TelescopeFrame
+                else:
+                    psi = Angle(params.psi)  # from CameraFrame
+
+            x = x_0 + np.cos(psi) * r
+            y = y_0 + np.sin(psi) * r
             self.axes.plot(x, y, color=c[idx], **kwargs)
             self.axes.scatter(x_0, y_0, color=c[idx])
 

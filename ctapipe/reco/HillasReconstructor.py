@@ -1,9 +1,7 @@
 """
-Line-intersection-based fitting.
-
-Contact: Tino Michael <Tino.Michael@cea.fr>
+Line-intersection-based fitting for reconstruction of direction
+and core position of a shower.
 """
-
 
 from ctapipe.reco.reco_algorithms import (
     Reconstructor,
@@ -15,6 +13,7 @@ from itertools import combinations
 
 from ctapipe.coordinates import (
     CameraFrame,
+    TelescopeFrame,
     GroundFrame,
     TiltedGroundFrame,
     project_to_ground,
@@ -104,6 +103,7 @@ class HillasReconstructor(Reconstructor):
         self.hillas_planes = {}
         self.divergent_mode = False
         self.corrected_angle_dict = {}
+        self.mode = "CameraFrame"
 
     def predict(self, hillas_dict, subarray, array_pointing, telescopes_pointings=None):
         """
@@ -158,6 +158,7 @@ class HillasReconstructor(Reconstructor):
             telescopes_pointings = {
                 tel_id: array_pointing for tel_id in hillas_dict.keys()
             }
+            self.divergent_mode = False
         else:
             self.divergent_mode = True
             self.corrected_angle_dict = {}
@@ -190,6 +191,7 @@ class HillasReconstructor(Reconstructor):
             average_intensity=np.mean([h.intensity for h in hillas_dict.values()]),
             is_valid=True,
             alt_uncert=err_est_dir,
+            az_uncert=err_est_dir,
             h_max=h_max,
         )
 
@@ -212,16 +214,18 @@ class HillasReconstructor(Reconstructor):
             dictionary of pointing direction per each telescope
         array_pointing: SkyCoord[AltAz]
             pointing direction of the array
+
+        Notes
+        -----
+        The part of the algorithm taking into account divergent pointing
+        mode and the correction to the psi angle is explained in [gasparetto]_
+        section 7.1.4.
         """
 
         self.hillas_planes = {}
         k = next(iter(telescopes_pointings))
         horizon_frame = telescopes_pointings[k].frame
         for tel_id, moments in hillas_dict.items():
-            # we just need any point on the main shower axis a bit away from the cog
-            p2_x = moments.x + 0.1 * u.m * np.cos(moments.psi)
-            p2_y = moments.y + 0.1 * u.m * np.sin(moments.psi)
-            focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
 
             pointing = SkyCoord(
                 alt=telescopes_pointings[tel_id].alt,
@@ -229,19 +233,48 @@ class HillasReconstructor(Reconstructor):
                 frame=horizon_frame,
             )
 
-            camera_frame = CameraFrame(
-                focal_length=focal_length, telescope_pointing=pointing
-            )
+            focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
 
-            cog_coord = SkyCoord(x=moments.x, y=moments.y, frame=camera_frame,)
+            if moments.x.unit == u.m:  # Image parameters are in CameraFrame
+
+                # we just need any point on the main shower axis a bit away from the cog
+                p2_x = moments.x + 0.1 * u.m * np.cos(moments.psi)
+                p2_y = moments.y + 0.1 * u.m * np.sin(moments.psi)
+
+                camera_frame = CameraFrame(
+                    focal_length=focal_length, telescope_pointing=pointing
+                )
+
+                cog_coord = SkyCoord(x=moments.x, y=moments.y, frame=camera_frame)
+                p2_coord = SkyCoord(x=p2_x, y=p2_y, frame=camera_frame)
+
+            else:  # Image parameters are already in TelescopeFrame
+
+                self.mode = "TelescopeFrame"
+
+                # we just need any point on the main shower axis a bit away from the cog
+                p2_delta_alt = moments.y + 0.1 * u.deg * np.sin(moments.psi)
+                p2_delta_az = moments.x + 0.1 * u.deg * np.cos(moments.psi)
+
+                telescope_frame = TelescopeFrame(telescope_pointing=pointing)
+
+                cog_coord = SkyCoord(
+                    fov_lon=moments.x, fov_lat=moments.y, frame=telescope_frame
+                )
+                p2_coord = SkyCoord(
+                    fov_lon=p2_delta_az, fov_lat=p2_delta_alt, frame=telescope_frame
+                )
+
+            # Coordinates in the sky
             cog_coord = cog_coord.transform_to(horizon_frame)
-
-            p2_coord = SkyCoord(x=p2_x, y=p2_y, frame=camera_frame)
             p2_coord = p2_coord.transform_to(horizon_frame)
 
-            # re-project from sky to a "fake"-parallel-pointing telescope
-            # then recalculate the psi angle
+            # DIVERGENT MODE
             if self.divergent_mode:
+
+                # re-project from sky to a "fake"-parallel-pointing telescope
+                # then recalculate the psi angle
+
                 camera_frame_parallel = CameraFrame(
                     focal_length=focal_length, telescope_pointing=array_pointing
                 )
@@ -251,7 +284,11 @@ class HillasReconstructor(Reconstructor):
                     cog_sky_to_parallel.y - p2_sky_to_parallel.y,
                     cog_sky_to_parallel.x - p2_sky_to_parallel.x,
                 )
+
                 self.corrected_angle_dict[tel_id] = angle_psi_corr
+
+                # record this angle
+                moments["psi_divergent"] = angle_psi_corr
 
             circle = HillasPlane(
                 p1=cog_coord,
@@ -316,11 +353,27 @@ class HillasReconstructor(Reconstructor):
         core_y: u.Quantity
             estimated y position of impact
 
+        Notes
+        -----
+        The part of the algorithm taking into account divergent pointing
+        mode and the usage of a corrected psi angle is explained in [gasparetto]_
+        section 7.1.4.
+
         """
         if self.divergent_mode:
             psi = u.Quantity(list(self.corrected_angle_dict.values()))
+            # Since psi has been recalculated in the fake CameraFrame
+            # now we don't need other corrections
+            # this should also be the angle used in ArrayDisplay
         else:
             psi = u.Quantity([h.psi for h in hillas_dict.values()])
+
+            if self.mode == "TelescopeFrame":
+                # whereas here
+                # to calculate the core in the groundframe
+                # we need to flip the x and y axes back as they
+                # would be in CameraFrame
+                psi = (np.pi / 2) * u.rad - psi
 
         z = np.zeros(len(psi))
         uvw_vectors = np.column_stack([np.cos(psi).value, np.sin(psi).value, z])
