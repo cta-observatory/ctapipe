@@ -44,7 +44,7 @@ class DumpInstrumentTool(Tool):
     )
 
     aliases = Dict(
-        dict(infile="DumpInstrumentTool.infile", format="DumpInstrumentTool.format")
+        dict(input="DumpInstrumentTool.infile", format="DumpInstrumentTool.format")
     )
 
     def setup(self):
@@ -55,7 +55,7 @@ class DumpInstrumentTool(Tool):
         if self.format == "hdf5":
             self.subarray.to_hdf("subarray.h5")
         else:
-            self.write_camera_geometries()
+            self.write_camera_definitions()
             self.write_optics_descriptions()
             self.write_subarray_description()
 
@@ -63,7 +63,7 @@ class DumpInstrumentTool(Tool):
         pass
 
     @staticmethod
-    def _get_file_format_info(format_name, table_type, table_name):
+    def _get_file_format_info(format_name):
         """ returns file extension + dict of required parameters for
         Table.write"""
         if format_name == "fits":
@@ -73,37 +73,45 @@ class DumpInstrumentTool(Tool):
         else:
             raise NameError(f"format {format_name} not supported")
 
-    def write_camera_geometries(self):
+    def write_camera_definitions(self):
+        """ writes out camgeom and camreadout files for each camera"""
         cam_types = get_camera_types(self.subarray)
         self.subarray.info(printer=self.log.info)
         for cam_name in cam_types:
-            ext, args = self._get_file_format_info(self.format, "CAMGEOM", cam_name)
+            ext, args = self._get_file_format_info(self.format)
 
             self.log.debug(f"writing {cam_name}")
             tel_id = cam_types[cam_name].pop()
             geom = self.subarray.tel[tel_id].camera.geometry
-            table = geom.to_table()
-            table.meta["SOURCE"] = str(self.infile)
-            filename = f"{cam_name}.camgeom.{ext}"
+            readout = self.subarray.tel[tel_id].camera.readout
+
+            geom_table = geom.to_table()
+            geom_table.meta["SOURCE"] = str(self.infile)
+            geom_filename = f"{cam_name}.camgeom.{ext}"
+
+            readout_table = readout.to_table()
+            readout_table.meta["SOURCE"] = str(self.infile)
+            readout_filename = f"{cam_name}.camreadout.{ext}"
 
             try:
-                table.write(filename, **args)
-                Provenance().add_output_file(filename, "dl0.tel.svc.camera")
+                geom_table.write(geom_filename, **args)
+                readout_table.write(readout_filename, **args)
+                Provenance().add_output_file(geom_filename, "CameraGeometry")
+                Provenance().add_output_file(readout_filename, "CameraReadout")
             except IOError as err:
-                self.log.warning(
-                    "couldn't write camera definition '%s' because: %s", filename, err
-                )
+                self.log.warning("couldn't write camera definition because: %s", err)
 
     def write_optics_descriptions(self):
+        """ writes out optics files for each telescope type"""
         sub = self.subarray
-        ext, args = self._get_file_format_info(self.format, sub.name, "optics")
+        ext, args = self._get_file_format_info(self.format)
 
         tab = sub.to_table(kind="optics")
         tab.meta["SOURCE"] = str(self.infile)
         filename = f"{sub.name}.optics.{ext}"
         try:
             tab.write(filename, **args)
-            Provenance().add_output_file(filename, "dl0.sub.svc.optics")
+            Provenance().add_output_file(filename, "OpticsDescription")
         except IOError as err:
             self.log.warning(
                 "couldn't write optics description '%s' because: %s", filename, err
@@ -111,13 +119,13 @@ class DumpInstrumentTool(Tool):
 
     def write_subarray_description(self):
         sub = self.subarray
-        ext, args = self._get_file_format_info(self.format, sub.name, "subarray")
+        ext, args = self._get_file_format_info(self.format)
         tab = sub.to_table(kind="subarray")
         tab.meta["SOURCE"] = str(self.infile)
         filename = f"{sub.name}.subarray.{ext}"
         try:
             tab.write(filename, **args)
-            Provenance().add_output_file(filename, "dl0.sub.svc.subarray")
+            Provenance().add_output_file(filename, "SubarrayDescription")
         except IOError as err:
             self.log.warning(
                 "couldn't write subarray description '%s' because: %s", filename, err
