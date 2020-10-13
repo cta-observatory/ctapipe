@@ -1,17 +1,18 @@
 """
 Merge DL1-files from stage1-process tool
 """
-import pathlib
+from pathlib import Path
 import sys
 import tables
 import os
+from argparse import ArgumentParser
 import numpy as np
 
-from tqdm.autonotebook import tqdm
+from tqdm import tqdm
 
-from ctapipe.core import Tool
+from ctapipe.core import Tool, traits
+from traitlets import List
 from ctapipe.instrument import SubarrayDescription
-from ..core.traits import Bool, Path
 
 import warnings
 
@@ -31,41 +32,56 @@ group_path_pointings = '/dl1/monitoring/telescope/pointing'
 table_path_image_statistics = '/dl1/service/image_statistics'
 
 
-class DL1MergeTool(Tool):
-    name = "ctapipe-merge-dl1"
+class MergeTool(Tool):
+    name = "ctapipe-merge"
     description = "Merges DL1-files from the stage1-process tool"
     examples = """
-    To merge DL1-files created by the stage1-process-tool from a specific directory:
-    > ctapipe-merge-dl1 --input=/path/to/directory --ouput=/path/to/output_file.h5 --progress
-    """
-    input_dir = Path(help="input dl1-directory",
-                     exists=None, directory_ok=True, file_ok=False).tag(config=True)
-    output_path = Path(help="Merged-DL1 output filename").tag(config=True)
-    skip_images = Bool(help="Skip DL1/Event/Image data in output",
-                       default_value=False).tag(config=True)
-    skip_parameters = Bool(help="Skip image parameters",
-                           default_value=False).tag(config=True)
-    overwrite = Bool(help="overwrite output file if it exists").tag(config=True)
-    progress_bar = Bool(help="show progress bar during processing").tag(config=True)
+    To merge DL1-files created by the stage1-process-tool from current directory:
 
-    aliases = {'input': 'DL1MergeTool.input_dir',
-               'output': 'DL1MergeTool.output_path'}
+    > ctapipe-merge file1.h5 file2.h5 file3.h5 --ouput=/path/output_file.h5 --progress
+
+    If you want a specific file pattern as input files use --patter='pattern.*.dl1.h5', e.g.:
+
+    > ctapip-merge --output=/path/output_file.h5 --progress --patter='pattern.*.dl1.h5'
+
+    If neither any input files nor any pattern is given, all files from the current directory
+    with the default pattern '*.h5' are taken.
+    """
+    input_files = List(traits.Path(exists=True, directory_ok=False),
+                       default_value=[],
+                       help="input dl1-files").tag(config=True)
+    output_path = traits.Path(help="Merged-DL1 output filename").tag(config=True)
+    skip_images = traits.Bool(help="Skip DL1/Event/Image data in output",
+                       default_value=False).tag(config=True)
+    skip_parameters = traits.Bool(help="Skip image parameters",
+                           default_value=False).tag(config=True)
+    overwrite = traits.Bool(help="overwrite output file if it exists").tag(config=True)
+    progress_bar = traits.Bool(help="show progress bar during processing").tag(config=True)
+    file_pattern = traits.Unicode(default_value='*.h5',
+                                  help="Give a specific file pattern for the input files"
+                                 ).tag(config=True)
+
+    parser = ArgumentParser()
+    parser.add_argument('input_files', nargs='*', type=Path)
+
+    aliases = {'output': 'MergeTool.output_path',
+               'pattern' : 'MergeTool.file_pattern'}
 
     flags = {
         "skip-images": (
-            {"DL1MergeTool": {"skip_images": True}},
-            "store DL1/Event/Telescope images in output",
+            {"MergeTool": {"skip_images": True}},
+            "Skip DL1/Event/Telescope images in output",
         ),
         "skip-parameters": (
-            {"DL1MergeTool": {"skip_parameters": True}},
-            "store DL1/Event/Telescope parameters in output",
+            {"MergeTool": {"skip_parameters": True}},
+            "Skip DL1/Event/Telescope parameters in output",
         ),
         "overwrite": (
-            {"DL1MergeTool": {"overwrite": True}},
+            {"MergeTool": {"overwrite": True}},
             "Overwrite output file if it exists",
         ),
         "progress": (
-            {"DL1MergeTool": {"progress_bar": True}},
+            {"MergeTool": {"progress_bar": True}},
             "show a progress bar during event processing",
         )
     }
@@ -82,16 +98,23 @@ class DL1MergeTool(Tool):
                                    "use `--overwrite` to overwrite")
                 sys.exit(1)
 
+        #PROV
+
         if self.skip_parameters is True and self.skip_images is True:
             self.log.warning('Skip-parameters and skip-images are both'
                              'set to True')
 
-        self.input_path_list = sorted(self.input_dir.iterdir())
+        args = self.parser.parse_args(self.extra_args)
+        self.input_files = args.input_files
+        if not self.input_files:
+            self.input_files = sorted(Path('.').glob(self.file_pattern))
 
         # create output file with subarray from first file
-        self.first_subarray = SubarrayDescription.from_hdf(self.input_path_list[0])
+        self.first_subarray = SubarrayDescription.from_hdf(self.input_files[0])
         self.first_subarray.to_hdf(self.output_path)
         self.output_file = tables.open_file(self.output_path, mode='a')
+
+
 
     def add_image_statistics(self, file):
         # Creates table for image statistics and adds the entries together.
@@ -123,7 +146,7 @@ class DL1MergeTool(Tool):
             if table_path_base in file and table_path_base in self.output_file:
                 output_node = self.output_file.get_node(table_path_base)
                 output_node.append(file.root[table_path_base][:])
-            else:
+            elif table_path_base in file and table_path_base not in self.output_file:
                 head, tail = os.path.split(os.path.split(table_path_base)[0])
                 target_group = self.output_file.create_group(head, tail, createparents=True)
                 file.copy_node(table_path_base, newparent=target_group)
@@ -173,12 +196,12 @@ class DL1MergeTool(Tool):
 
     def start(self):
         merged_files_counter = 0
-        len_input_path_list = len(self.input_path_list)
+        len_input_files = len(self.input_files)
 
-        for i, current_file in tqdm(
-            enumerate(self.input_path_list),
+        for current_file in tqdm(
+            self.input_files,
             desc="Merging",
-            total=(len_input_path_list),
+            total=(len_input_files),
             unit="Files",
             disable=not self.progress_bar
         ):
@@ -195,15 +218,15 @@ class DL1MergeTool(Tool):
 
             merged_files_counter += 1
 
-        self.log.info(f"{merged_files_counter} out of {len_input_path_list} Files "
-                       "had been merged!")
+        self.log.info(f"{merged_files_counter} out of {len_input_files} Files "
+                       "has been merged!")
 
     def finish(self):
         pass
 
 
 def main():
-    tool = DL1MergeTool()
+    tool = MergeTool()
     tool.run()
 
 
