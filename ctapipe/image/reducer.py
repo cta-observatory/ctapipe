@@ -84,43 +84,6 @@ class DataVolumeReducer(TelescopeComponent):
             Mask of selected pixels.
         """
 
-    @classmethod
-    def from_name(
-        cls, name, subarray, image_extractor=None, config=None, parent=None, **kwargs
-    ):
-        """
-        Obtain an instance of a subclass via its name
-
-        Parameters
-        ----------
-        name : str
-            Name of the subclass to obtain
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            This argument is typically only specified when using this method
-            from within a Tool.
-        parent : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger and configuration to the component.
-            This argument is typically only specified when using this method
-            from within a Tool (config need not be passed if parent is used).
-        kwargs
-
-        Returns
-        -------
-        instace
-            Instance of subclass to this class
-        """
-        requested_subclass = cls.non_abstract_subclasses()[name]
-        return requested_subclass(
-            subarray=subarray,
-            image_extractor=image_extractor,
-            config=config,
-            parent=parent,
-            **kwargs,
-        )
-
 
 class NullDataVolumeReducer(DataVolumeReducer):
     """
@@ -151,20 +114,31 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         If set to 'False', the iteration steps in 2) are skipped and
         normal TailcutCleaning is used.
     """
+
     image_extractor_type = Unicode(
-        default_value="NeighborPeakWindowSum", help="Name of the image_extractor"
-        "to be used.",
+        default_value="NeighborPeakWindowSum",
+        help="Name of the image_extractor" "to be used.",
     ).tag(config=True)
+
     n_end_dilates = IntTelescopeParameter(
         default_value=1, help="Number of how many times to dilate at the end."
     ).tag(config=True)
+
     do_boundary_dilation = BoolTelescopeParameter(
         default_value=True,
         help="If set to 'False', the iteration steps in 2) are skipped and"
         "normal TailcutCleaning is used.",
     ).tag(config=True)
 
-    def __init__(self, subarray, config=None, parent=None, **kwargs):
+    def __init__(
+        self,
+        subarray,
+        config=None,
+        parent=None,
+        cleaner=None,
+        image_extractor=None,
+        **kwargs,
+    ):
         """
         Parameters
         ----------
@@ -178,13 +152,17 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         """
         super().__init__(config=config, parent=parent, subarray=subarray, **kwargs)
 
-        self.cleaner = TailcutsImageCleaner(parent=self, subarray=self.subarray)
+        if cleaner is None:
+            self.cleaner = TailcutsImageCleaner(parent=self, subarray=self.subarray)
+        else:
+            self.cleaner = cleaner
 
-        self.image_extractor = ImageExtractor.from_name(
-            self.image_extractor_type,
-            subarray=self.subarray,
-            parent=self
-        )
+        if image_extractor is None:
+            self.image_extractor = ImageExtractor.from_name(
+                self.image_extractor_type, subarray=self.subarray, parent=self
+            )
+        else:
+            self.image_extractor = image_extractor
 
     def select_pixels(self, waveforms, telid=None, selected_gain_channel=None):
         camera_geom = self.subarray.tel[telid].camera.geometry

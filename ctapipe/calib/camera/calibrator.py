@@ -6,7 +6,7 @@ calibration and image extraction, as well as supporting algorithms.
 import warnings
 import numpy as np
 from ctapipe.core import Component
-from ctapipe.image.extractor import ImageExtractor, NeighborPeakWindowSum
+from ctapipe.image.extractor import ImageExtractor
 from ctapipe.image.reducer import DataVolumeReducer
 from ctapipe.core.traits import create_class_enum_trait
 
@@ -17,6 +17,15 @@ class CameraCalibrator(Component):
     """
     Calibrator to handle the full camera calibration chain, in order to fill
     the DL1 data level in the event container.
+
+    Attributes
+    ----------
+    data_volume_reducer_type: str
+        The name of the DataVolumeReducer subclass to be used
+        for data volume reduction
+
+    image_extractor_type: str
+        The name of the ImageExtractor subclass to be used for image extraction
     """
 
     data_volume_reducer_type = create_class_enum_trait(
@@ -28,7 +37,13 @@ class CameraCalibrator(Component):
     ).tag(config=True)
 
     def __init__(
-        self, subarray, config=None, parent=None, image_extractor=None, **kwargs
+        self,
+        subarray,
+        config=None,
+        parent=None,
+        image_extractor=None,
+        data_volume_reducer=None,
+        **kwargs,
     ):
         """
         Parameters
@@ -37,24 +52,20 @@ class CameraCalibrator(Component):
             Description of the subarray. Provides information about the
             camera which are useful in calibration. Also required for
             configuring the TelescopeParameter traitlets.
-        config : traitlets.loader.Config
+        config: traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool or None
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        data_volume_reducer : ctapipe.image.reducer.DataVolumeReducer
-            The DataVolumeReducer to use. If None, then
-            NullDataVolumeReducer will be used by default, and waveforms
-            will not be reduced.
-        image_extractor : ctapipe.image.extractor.ImageExtractor
-            The ImageExtractor to use. If None, then NeighborPeakWindowSum
-            will be used by default.
-        subarray: ctapipe.instrument.SubarrayDescription
-            Description of the subarray
-        kwargs
+            This is mutually exclusive with passing a ``parent``.
+        parent: ctapipe.core.Component or ctapipe.core.Tool
+            Parent of this component in the configuration hierarchy,
+            this is mutually exclusive with passing ``config``
+        data_volume_reducer: ctapipe.image.reducer.DataVolumeReducer
+            The DataVolumeReducer to use.
+            This is used to override the options from the config system
+            and to enable passing a preconfigured reducer.
+        image_extractor: ctapipe.image.extractor.ImageExtractor
+            The ImageExtractor to use. If None, the default via the
+            configuration system will be constructed.
         """
         super().__init__(config=config, parent=parent, **kwargs)
         self.subarray = subarray
@@ -62,16 +73,19 @@ class CameraCalibrator(Component):
         self._r1_empty_warn = False
         self._dl0_empty_warn = False
 
-        self.image_extractor = ImageExtractor.from_name(
-            self.image_extractor_type, subarray=self.subarray, parent=self
-        )
+        if image_extractor is None:
+            self.image_extractor = ImageExtractor.from_name(
+                self.image_extractor_type, subarray=self.subarray, parent=self
+            )
+        else:
+            self.image_extractor = image_extractor
 
-        self.data_volume_reducer = DataVolumeReducer.from_name(
-            self.data_volume_reducer_type,
-            subarray=self.subarray,
-            image_extractor=self.image_extractor,
-            parent=self,
-        )
+        if data_volume_reducer is None:
+            self.data_volume_reducer = DataVolumeReducer.from_name(
+                self.data_volume_reducer_type, subarray=self.subarray, parent=self
+            )
+        else:
+            self.data_volume_reducer = data_volume_reducer
 
     def _check_r1_empty(self, waveforms):
         if waveforms is None:
