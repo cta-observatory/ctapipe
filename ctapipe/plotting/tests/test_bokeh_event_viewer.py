@@ -68,34 +68,34 @@ def test_on_waveform_click(example_event, example_subarray):
         assert wf.active_time == t
 
 
-def test_telid(example_event, example_subarray):
+def test_tel_id(example_event, example_subarray):
     viewer = BokehEventViewer(example_subarray)
     viewer.create()
     viewer.event = example_event
 
     tels = list(example_event.r0.tels_with_data)
 
-    assert viewer.telid == tels[0]
+    assert viewer.tel_id == tels[0]
     for cam in viewer.cameras:
-        assert cam.telid == tels[0]
+        assert cam.tel_id == tels[0]
     for wf in viewer.waveforms:
-        assert wf.telid == tels[0]
+        assert wf.tel_id == tels[0]
 
-    viewer.telid = tels[1]
-    assert viewer.telid == tels[1]
+    viewer.tel_id = tels[1]
+    assert viewer.tel_id == tels[1]
     for cam in viewer.cameras:
-        assert cam.telid == tels[1]
+        assert cam.tel_id == tels[1]
     for wf in viewer.waveforms:
-        assert wf.telid == tels[1]
+        assert wf.tel_id == tels[1]
 
 
-def test_telid_incorrect(example_event, example_subarray):
+def test_tel_id_incorrect(example_event, example_subarray):
     viewer = BokehEventViewer(example_subarray)
     viewer.create()
     viewer.event = example_event
 
     with pytest.raises(KeyError):
-        viewer.telid = 148937242
+        viewer.tel_id = 148937242
 
 
 def test_on_pixel_click(example_event, example_subarray):

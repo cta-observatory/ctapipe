@@ -44,14 +44,14 @@ class BokehFileViewer(Tool):
         )
     )
 
-    classes = List([EventSource,] + traits.classes_with_traits(ImageExtractor))
+    classes = List([EventSource] + traits.classes_with_traits(ImageExtractor))
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._event = None
         self._event_index = None
         self._event_id = None
-        self._telid = None
+        self._tel_id = None
         self._channel = None
 
         self.w_next_event = None
@@ -60,7 +60,7 @@ class BokehFileViewer(Tool):
         self.w_event_id = None
         self.w_goto_event_index = None
         self.w_goto_event_id = None
-        self.w_telid = None
+        self.w_tel_id = None
         self.w_channel = None
         self.w_dl1_dict = None
         self.wb_extractor = None
@@ -83,10 +83,10 @@ class BokehFileViewer(Tool):
         self.seeker = EventSeeker(self.reader, parent=self)
 
         self.extractor = ImageExtractor.from_name(
-            self.extractor_product, parent=self, subarray=self.reader.subarray,
+            self.extractor_product, parent=self, subarray=self.reader.subarray
         )
         self.calibrator = CameraCalibrator(
-            subarray=self.reader.subarray, parent=self, image_extractor=self.extractor,
+            subarray=self.reader.subarray, parent=self, image_extractor=self.extractor
         )
 
         self.viewer = BokehEventViewer(parent=self, subarray=self.reader.subarray)
@@ -100,7 +100,7 @@ class BokehFileViewer(Tool):
         self.create_goto_event_index_widget()
         self.create_event_id_widget()
         self.create_goto_event_id_widget()
-        self.create_telid_widget()
+        self.create_tel_id_widget()
         self.create_channel_widget()
         self.create_dl1_widgets()
         self.update_dl1_widget_values()
@@ -116,7 +116,7 @@ class BokehFileViewer(Tool):
                     self.w_goto_event_id,
                 ],
                 [self.w_event_index, self.w_event_id],
-                [self.w_telid, self.w_channel],
+                [self.w_tel_id, self.w_channel],
                 [self.wb_extractor],
             ]
         )
@@ -169,18 +169,18 @@ class BokehFileViewer(Tool):
             self.log.warning(f"Event ID {val} does not exist")
 
     @property
-    def telid(self):
-        return self._telid
+    def tel_id(self):
+        return self._tel_id
 
-    @telid.setter
-    def telid(self, val):
+    @tel_id.setter
+    def tel_id(self, val):
         self.channel = 0
         tels = list(self.event.r0.tels_with_data)
         if val not in tels:
             val = tels[0]
-        self._telid = val
-        self.viewer.telid = val
-        self.update_telid_widget()
+        self._tel_id = val
+        self.viewer.tel_id = val
+        self.update_tel_id_widget()
 
     @property
     def channel(self):
@@ -209,8 +209,8 @@ class BokehFileViewer(Tool):
         self.update_event_index_widget()
         self.update_event_id_widget()
 
-        self._telid = self.viewer.telid
-        self.update_telid_widget()
+        self._tel_id = self.viewer.tel_id
+        self.update_tel_id_widget()
 
         self._channel = self.viewer.channel
         self.update_channel_widget()
@@ -229,7 +229,7 @@ class BokehFileViewer(Tool):
         self.extractor = extractor
 
         self.calibrator = CameraCalibrator(
-            subarray=self.reader.subarray, parent=self, image_extractor=self.extractor,
+            subarray=self.reader.subarray, parent=self, image_extractor=self.extractor
         )
         self.viewer.refresh()
 
@@ -277,19 +277,19 @@ class BokehFileViewer(Tool):
     def on_goto_event_id_widget_click(self):
         self.event_id = int(self.w_event_id.value)
 
-    def create_telid_widget(self):
-        self.w_telid = Select(title="Telescope:", value="", options=[])
-        self.w_telid.on_change("value", self.on_telid_widget_change)
+    def create_tel_id_widget(self):
+        self.w_tel_id = Select(title="Telescope:", value="", options=[])
+        self.w_tel_id.on_change("value", self.on_tel_id_widget_change)
 
-    def update_telid_widget(self):
-        if self.w_telid:
+    def update_tel_id_widget(self):
+        if self.w_tel_id:
             tels = [str(t) for t in self.event.r0.tels_with_data]
-            self.w_telid.options = tels
-            self.w_telid.value = str(self.telid)
+            self.w_tel_id.options = tels
+            self.w_tel_id.value = str(self.tel_id)
 
-    def on_telid_widget_change(self, _, __, ___):
-        if self.telid != int(self.w_telid.value):
-            self.telid = int(self.w_telid.value)
+    def on_tel_id_widget_change(self, _, __, ___):
+        if self.tel_id != int(self.w_tel_id.value):
+            self.tel_id = int(self.w_tel_id.value)
 
     def create_channel_widget(self):
         self.w_channel = Select(title="Channel:", value="", options=[])
@@ -298,7 +298,7 @@ class BokehFileViewer(Tool):
     def update_channel_widget(self):
         if self.w_channel:
             try:
-                n_chan = self.event.r0.tel[self.telid].waveform.shape[0]
+                n_chan = self.event.r0.tel[self.tel_id].waveform.shape[0]
             except AttributeError:
                 n_chan = 1
             channels = [str(c) for c in range(n_chan)]

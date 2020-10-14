@@ -126,7 +126,7 @@ v0.5.1 / 2017-07-05
 ===================
 
   * remove unused import
-  * get rid of hard-coded telid in camera plotter test
+  * get rid of hard-coded tel_id in camera plotter test
   * use SubarrayDescription in array plotter test
   * use SubarrayDescription in HillasReconstructor
   * get rid of instrument.get_camera_types (replaced by SubarrayDescription)

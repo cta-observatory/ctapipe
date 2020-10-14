@@ -20,7 +20,7 @@ class BokehEventViewerCamera(CameraDisplay):
         """
         self._event = None
         self._view = "r0"
-        self._telid = None
+        self._tel_id = None
         self._channel = 0
         self._time = 0
         super().__init__(fig=fig)
@@ -45,7 +45,7 @@ class BokehEventViewerCamera(CameraDisplay):
     def _set_image(self):
         e = self.event
         v = self.view
-        t = self.telid
+        t = self.tel_id
         c = self.channel
         time = self.time
         if not e:
@@ -66,7 +66,7 @@ class BokehEventViewerCamera(CameraDisplay):
 
     def _update_geometry(self):
         e = self.event
-        t = self.telid
+        t = self.tel_id
         if e:
             # Check if geom actually needs to be changed
             if not t == self._geom_tel:
@@ -88,10 +88,10 @@ class BokehEventViewerCamera(CameraDisplay):
         self._update_geometry()
         self._set_image()
 
-    def change_event(self, event, telid):
+    def change_event(self, event, tel_id):
         if self.event:  # Only reset when an event exists
             self._reset()
-        self._telid = telid
+        self._tel_id = tel_id
         self.event = event
 
     @property
@@ -106,14 +106,14 @@ class BokehEventViewerCamera(CameraDisplay):
         self._set_image()
 
     @property
-    def telid(self):
-        return self._telid
+    def tel_id(self):
+        return self._tel_id
 
-    @telid.setter
-    def telid(self, val):
+    @tel_id.setter
+    def tel_id(self, val):
         if self.event:  # Only reset when an event exists
             self._reset()
-        self._telid = val
+        self._tel_id = val
         self._update_geometry()
         self._set_image()
 
@@ -169,7 +169,7 @@ class BokehEventViewerWaveform(WaveformDisplay):
         """
         self._event = None
         self._view = "r0"
-        self._telid = None
+        self._tel_id = None
         self._channel = 0
         self._pixel = 0
         super().__init__(fig=fig)
@@ -191,7 +191,7 @@ class BokehEventViewerWaveform(WaveformDisplay):
     def _set_waveform(self):
         e = self.event
         v = self.view
-        t = self.telid
+        t = self.tel_id
         c = self.channel
         p = self.pixel
         if not e:
@@ -222,10 +222,10 @@ class BokehEventViewerWaveform(WaveformDisplay):
         self._event = val
         self._set_waveform()
 
-    def change_event(self, event, telid):
+    def change_event(self, event, tel_id):
         if self.event:  # Only reset when an event exists
             self._reset()
-        self._telid = telid
+        self._tel_id = tel_id
         self.event = event
 
     @property
@@ -240,14 +240,14 @@ class BokehEventViewerWaveform(WaveformDisplay):
         self._set_waveform()
 
     @property
-    def telid(self):
-        return self._telid
+    def tel_id(self):
+        return self._tel_id
 
-    @telid.setter
-    def telid(self, val):
+    @tel_id.setter
+    def tel_id(self, val):
         if self.event:  # Only reset when an event exists
             self._reset()
-        self._telid = val
+        self._tel_id = val
         self._set_waveform()
 
     @property
@@ -322,7 +322,7 @@ class BokehEventViewer(Component):
 
         self._event = None
         self._view = "r0"
-        self._telid = None
+        self._tel_id = None
         self._channel = 0
 
         self.num_cameras = num_cameras
@@ -359,7 +359,7 @@ class BokehEventViewer(Component):
             self.waveform_layouts.append(wav.layout)
 
         self.layout = layout(
-            [[column(self.camera_layouts), column(self.waveform_layouts)],]
+            [[column(self.camera_layouts), column(self.waveform_layouts)]]
         )
 
     def enable_automatic_index_increment(self):
@@ -392,21 +392,21 @@ class BokehEventViewer(Component):
         if self._event != val:
             self._event = val
             tels = list(val.r0.tels_with_data)
-            if self.telid not in tels:
-                self._telid = tels[0]
+            if self.tel_id not in tels:
+                self._tel_id = tels[0]
             for sub in self.sub_event_viewer_generator():
-                sub.change_event(val, self.telid)
+                sub.change_event(val, self.tel_id)
 
     @property
-    def telid(self):
-        return self._telid
+    def tel_id(self):
+        return self._tel_id
 
-    @telid.setter
-    def telid(self, val):
-        if self._telid != val:
-            self._telid = val
+    @tel_id.setter
+    def tel_id(self, val):
+        if self._tel_id != val:
+            self._tel_id = val
             for sub in self.sub_event_viewer_generator():
-                sub.telid = val
+                sub.tel_id = val
 
     @property
     def channel(self):

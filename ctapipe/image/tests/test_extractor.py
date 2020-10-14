@@ -58,10 +58,10 @@ def subarray():
 
 
 def get_test_toymodel(subarray, minCharge=100, maxCharge=1000):
-    telid = list(subarray.tel.keys())[0]
-    n_pixels = subarray.tel[telid].camera.geometry.n_pixels
+    tel_id = list(subarray.tel.keys())[0]
+    n_pixels = subarray.tel[tel_id].camera.geometry.n_pixels
     n_samples = 96
-    readout = subarray.tel[telid].camera.readout
+    readout = subarray.tel[tel_id].camera.readout
 
     random = np.random.RandomState(1)
     charge = random.uniform(minCharge, maxCharge, n_pixels)
@@ -73,7 +73,7 @@ def get_test_toymodel(subarray, minCharge=100, maxCharge=1000):
 
     selected_gain_channel = np.zeros(charge.size, dtype=np.int)
 
-    return waveform, subarray, telid, selected_gain_channel, charge, time
+    return waveform, subarray, tel_id, selected_gain_channel, charge, time
 
 
 @pytest.fixture(scope="module")
@@ -158,8 +158,8 @@ def test_extract_around_peak_charge_expected(toymodel):
 
 
 def test_neighbor_average_waveform(toymodel):
-    waveforms, subarray, telid, _, _, _ = toymodel
-    neighbors = subarray.tel[telid].camera.geometry.neighbor_matrix_sparse
+    waveforms, subarray, tel_id, _, _, _ = toymodel
+    neighbors = subarray.tel[tel_id].camera.geometry.neighbor_matrix_sparse
     average_wf = neighbor_average_waveform(
         waveforms,
         neighbors_indices=neighbors.indices,
@@ -257,9 +257,11 @@ def test_integration_correction_outofbounds(subarray):
 
 @pytest.mark.parametrize("Extractor", extractors)
 def test_extractors(Extractor, toymodel):
-    waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
+    waveforms, subarray, tel_id, selected_gain_channel, true_charge, true_time = (
+        toymodel
+    )
     extractor = Extractor(subarray=subarray)
-    charge, peak_time = extractor(waveforms, telid, selected_gain_channel)
+    charge, peak_time = extractor(waveforms, tel_id, selected_gain_channel)
     assert_allclose(charge, true_charge, rtol=0.1)
     assert_allclose(peak_time, true_time, rtol=0.1)
 
@@ -270,9 +272,11 @@ def test_integration_correction_off(Extractor, toymodel):
     if Extractor is FullWaveformSum:
         return
 
-    waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
+    waveforms, subarray, tel_id, selected_gain_channel, true_charge, true_time = (
+        toymodel
+    )
     extractor = Extractor(subarray=subarray, apply_integration_correction=False)
-    charge, peak_time = extractor(waveforms, telid, selected_gain_channel)
+    charge, peak_time = extractor(waveforms, tel_id, selected_gain_channel)
 
     # peak time should stay the same
     assert_allclose(peak_time, true_time, rtol=0.1)
@@ -282,18 +286,22 @@ def test_integration_correction_off(Extractor, toymodel):
 
 
 def test_fixed_window_sum(toymodel):
-    waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
+    waveforms, subarray, tel_id, selected_gain_channel, true_charge, true_time = (
+        toymodel
+    )
     extractor = FixedWindowSum(subarray=subarray, peak_index=47)
-    charge, peak_time = extractor(waveforms, telid, selected_gain_channel)
+    charge, peak_time = extractor(waveforms, tel_id, selected_gain_channel)
     assert_allclose(charge, true_charge, rtol=0.1)
     assert_allclose(peak_time, true_time, rtol=0.1)
 
 
 def test_neighbor_peak_window_sum_lwt(toymodel):
-    waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
+    waveforms, subarray, tel_id, selected_gain_channel, true_charge, true_time = (
+        toymodel
+    )
     extractor = NeighborPeakWindowSum(subarray=subarray, lwt=4)
-    assert extractor.lwt.tel[telid] == 4
-    charge, peak_time = extractor(waveforms, telid, selected_gain_channel)
+    assert extractor.lwt.tel[tel_id] == 4
+    charge, peak_time = extractor(waveforms, tel_id, selected_gain_channel)
     assert_allclose(charge, true_charge, rtol=0.1)
     assert_allclose(peak_time, true_time, rtol=0.1)
 
@@ -307,20 +315,22 @@ def test_two_pass_window_sum(subarray):
         (
             waveforms,
             subarray,
-            telid,
+            tel_id,
             selected_gain_channel,
             true_charge,
             true_time,
         ) = toymodel
-        charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
+        charge, pulse_time = extractor(waveforms, tel_id, selected_gain_channel)
         assert_allclose(charge, true_charge, rtol=0.1)
         assert_allclose(pulse_time, true_time, rtol=0.1)
 
 
 def test_waveform_extractor_factory(toymodel):
-    waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
+    waveforms, subarray, tel_id, selected_gain_channel, true_charge, true_time = (
+        toymodel
+    )
     extractor = ImageExtractor.from_name("LocalPeakWindowSum", subarray=subarray)
-    charge, peak_time = extractor(waveforms, telid, selected_gain_channel)
+    charge, peak_time = extractor(waveforms, tel_id, selected_gain_channel)
     assert_allclose(charge, true_charge, rtol=0.1)
     assert_allclose(peak_time, true_time, rtol=0.1)
 

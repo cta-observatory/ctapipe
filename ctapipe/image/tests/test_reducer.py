@@ -9,7 +9,7 @@ from ctapipe.image.reducer import NullDataVolumeReducer, TailCutsDataVolumeReduc
 
 @pytest.fixture(scope="module")
 def subarray_lst():
-    telid = 1
+    tel_id = 1
     subarray = SubarrayDescription(
         "test array lst",
         tel_positions={1: np.zeros(3) * u.m, 2: np.ones(3) * u.m},
@@ -19,11 +19,11 @@ def subarray_lst():
         },
     )
 
-    n_pixels = subarray.tel[telid].camera.geometry.n_pixels
+    n_pixels = subarray.tel[tel_id].camera.geometry.n_pixels
     n_samples = 30
     selected_gain_channel = np.zeros(n_pixels, dtype=np.int)
 
-    return subarray, telid, selected_gain_channel, n_pixels, n_samples
+    return subarray, tel_id, selected_gain_channel, n_pixels, n_samples
 
 
 def test_null_data_volume_reducer(subarray_lst):
@@ -37,7 +37,7 @@ def test_null_data_volume_reducer(subarray_lst):
 
 
 def test_tailcuts_data_volume_reducer(subarray_lst):
-    subarray, telid, selected_gain_channel, n_pixels, n_samples = subarray_lst
+    subarray, tel_id, selected_gain_channel, n_pixels, n_samples = subarray_lst
 
     # create signal
     waveforms_signal = np.zeros((n_pixels, n_samples), dtype=np.float)
@@ -76,7 +76,7 @@ def test_tailcuts_data_volume_reducer(subarray_lst):
     reducer = TailCutsDataVolumeReducer(config=reduction_param, subarray=subarray)
     reduced_waveforms = waveforms_signal.copy()
     reduced_waveforms_mask = reducer(
-        waveforms_signal, telid=telid, selected_gain_channel=selected_gain_channel
+        waveforms_signal, tel_id=tel_id, selected_gain_channel=selected_gain_channel
     )
     reduced_waveforms[~reduced_waveforms_mask] = 0
 

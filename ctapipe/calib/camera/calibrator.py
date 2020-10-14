@@ -91,24 +91,24 @@ class CameraCalibrator(Component):
         else:
             return False
 
-    def _calibrate_dl0(self, event, telid):
-        waveforms = event.r1.tel[telid].waveform
-        selected_gain_channel = event.r1.tel[telid].selected_gain_channel
+    def _calibrate_dl0(self, event, tel_id):
+        waveforms = event.r1.tel[tel_id].waveform
+        selected_gain_channel = event.r1.tel[tel_id].selected_gain_channel
         if self._check_r1_empty(waveforms):
             return
 
         reduced_waveforms_mask = self.data_volume_reducer(
-            waveforms, telid=telid, selected_gain_channel=selected_gain_channel
+            waveforms, tel_id=tel_id, selected_gain_channel=selected_gain_channel
         )
 
         waveforms_copy = waveforms.copy()
         waveforms_copy[~reduced_waveforms_mask] = 0
-        event.dl0.tel[telid].waveform = waveforms_copy
-        event.dl0.tel[telid].selected_gain_channel = selected_gain_channel
+        event.dl0.tel[tel_id].waveform = waveforms_copy
+        event.dl0.tel[tel_id].selected_gain_channel = selected_gain_channel
 
-    def _calibrate_dl1(self, event, telid):
-        waveforms = event.dl0.tel[telid].waveform
-        selected_gain_channel = event.r1.tel[telid].selected_gain_channel
+    def _calibrate_dl1(self, event, tel_id):
+        waveforms = event.dl0.tel[tel_id].waveform
+        selected_gain_channel = event.r1.tel[tel_id].selected_gain_channel
         if self._check_dl0_empty(waveforms):
             return
         n_pixels, n_samples = waveforms.shape
@@ -123,18 +123,18 @@ class CameraCalibrator(Component):
             peak_time = np.zeros(n_pixels, dtype=np.float32)
         else:
             charge, peak_time = self.image_extractor(
-                waveforms, telid=telid, selected_gain_channel=selected_gain_channel
+                waveforms, tel_id=tel_id, selected_gain_channel=selected_gain_channel
             )
 
         # Calibrate extracted charge
-        pedestal = event.calibration.tel[telid].dl1.pedestal_offset
-        absolute = event.calibration.tel[telid].dl1.absolute_factor
-        relative = event.calibration.tel[telid].dl1.relative_factor
+        pedestal = event.calibration.tel[tel_id].dl1.pedestal_offset
+        absolute = event.calibration.tel[tel_id].dl1.absolute_factor
+        relative = event.calibration.tel[tel_id].dl1.relative_factor
         charge -= pedestal
         charge *= relative / absolute
 
-        event.dl1.tel[telid].image = charge
-        event.dl1.tel[telid].peak_time = peak_time
+        event.dl1.tel[tel_id].image = charge
+        event.dl1.tel[tel_id].peak_time = peak_time
 
     def __call__(self, event):
         """
@@ -147,8 +147,8 @@ class CameraCalibrator(Component):
         event : container
             A `ctapipe` event container
         """
-        # TODO: How to handle different calibrations depending on telid?
+        # TODO: How to handle different calibrations depending on tel_id?
         tel = event.r1.tel or event.dl0.tel or event.dl1.tel
-        for telid in tel.keys():
-            self._calibrate_dl0(event, telid)
-            self._calibrate_dl1(event, telid)
+        for tel_id in tel.keys():
+            self._calibrate_dl0(event, tel_id)
+            self._calibrate_dl1(event, tel_id)

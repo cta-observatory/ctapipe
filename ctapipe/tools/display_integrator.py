@@ -16,18 +16,18 @@ from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.visualization import CameraDisplay
 
 
-def plot(subarray, event, telid, chan, extractor_name):
+def plot(subarray, event, tel_id, chan, extractor_name):
     # Extract required images
-    dl0 = event.dl0.tel[telid].waveform
+    dl0 = event.dl0.tel[tel_id].waveform
 
-    t_pe = event.mc.tel[telid].true_image
-    dl1 = event.dl1.tel[telid].image
+    t_pe = event.mc.tel[tel_id].true_image
+    dl1 = event.dl1.tel[tel_id].image
     max_time = np.unravel_index(np.argmax(dl0), dl0.shape)[1]
     max_charges = np.max(dl0, axis=1)
     max_pix = int(np.argmax(max_charges))
     min_pix = int(np.argmin(max_charges))
 
-    geom = subarray.tel[telid].camera.geometry
+    geom = subarray.tel[tel_id].camera.geometry
     nei = geom.neighbors
 
     # Get Neighbours
@@ -214,7 +214,7 @@ class DisplayIntegrator(Tool):
 
     event_index = Int(0, help="Event index to view.").tag(config=True)
     use_event_id = Bool(
-        False, help="event_index will obtain an event using event_id instead of index.",
+        False, help="event_index will obtain an event using event_id instead of index."
     ).tag(config=True)
     telescope = Int(
         None,
@@ -284,10 +284,10 @@ class DisplayIntegrator(Tool):
 
         # Select telescope
         tels = list(event.r0.tels_with_data)
-        telid = self.telescope
-        if telid is None:
-            telid = tels[0]
-        if telid not in tels:
+        tel_id = self.telescope
+        if tel_id is None:
+            tel_id = tels[0]
+        if tel_id not in tels:
             self.log.error(
                 "[event] please specify one of the following "
                 "telescopes for this event: {}".format(tels)
@@ -296,7 +296,7 @@ class DisplayIntegrator(Tool):
 
         extractor_name = self.extractor.__class__.__name__
 
-        plot(self.subarray, event, telid, self.channel, extractor_name)
+        plot(self.subarray, event, tel_id, self.channel, extractor_name)
 
     def finish(self):
         pass

@@ -98,8 +98,8 @@ class ImageSumDisplayerTool(Tool):
                 continue
 
             imsum[:] = 0
-            for telid in event.dl0.tels_with_data:
-                imsum += event.dl1.tel[telid].image
+            for tel_id in event.dl0.tels_with_data:
+                imsum += event.dl1.tel[tel_id].image
 
             self.log.info(
                 "event={} ntels={} energy={}".format(

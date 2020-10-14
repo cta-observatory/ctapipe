@@ -64,24 +64,24 @@ class ImagePlotter(Component):
             self.log.info(f"Creating PDF: {self.output_path}")
             self.pdf = PdfPages(self.output_path)
 
-    def plot(self, event, telid):
-        image = event.dl1.tel[telid].image
-        peak_time = event.dl1.tel[telid].peak_time
+    def plot(self, event, tel_id):
+        image = event.dl1.tel[tel_id].image
+        peak_time = event.dl1.tel[tel_id].peak_time
         print("plot", image.shape, peak_time.shape)
 
-        if self._current_tel != telid:
-            self._current_tel = telid
+        if self._current_tel != tel_id:
+            self._current_tel = tel_id
 
             self.ax_intensity.cla()
             self.ax_peak_time.cla()
 
             # Redraw camera
-            geom = self.subarray.tel[telid].camera.geometry
+            geom = self.subarray.tel[tel_id].camera.geometry
             self.c_intensity = CameraDisplay(geom, ax=self.ax_intensity)
             self.c_peak_time = CameraDisplay(geom, ax=self.ax_peak_time)
 
             if (peak_time != 0.0).all():
-                tmaxmin = event.dl0.tel[telid].waveform.shape[1]
+                tmaxmin = event.dl0.tel[tel_id].waveform.shape[1]
                 t_chargemax = peak_time[image.argmax()]
                 cmap_time = colors.LinearSegmentedColormap.from_list(
                     "cmap_t",
@@ -118,7 +118,7 @@ class ImagePlotter(Component):
 
         self.fig.suptitle(
             "Event_index={}  Event_id={}  Telescope={}".format(
-                event.count, event.index.event_id, telid
+                event.count, event.index.event_id, tel_id
             )
         )
 
@@ -197,8 +197,8 @@ class DisplayDL1Calib(Tool):
                 if self.telescope not in tel_list:
                     continue
                 tel_list = [self.telescope]
-            for telid in tel_list:
-                self.plotter.plot(event, telid)
+            for tel_id in tel_list:
+                self.plotter.plot(event, tel_id)
 
     def finish(self):
         self.plotter.finish()

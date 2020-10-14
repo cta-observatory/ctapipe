@@ -179,7 +179,7 @@ def create_class_enum_trait(base_class, default_value, help=None):
         raise ValueError(f"{default_value} is not in choices: {choices}")
 
     return CaselessStrEnum(
-        choices, default_value=default_value, allow_none=False, help=help,
+        choices, default_value=default_value, allow_none=False, help=help
     ).tag(config=True)
 
 
@@ -235,7 +235,7 @@ class TelescopeParameterLookup:
     def __init__(self, telescope_parameter_list):
         """
         Handles the lookup of corresponding configuration value from a list of
-        tuples for a telid.
+        tuples for a tel_id.
 
         Parameters
         ----------

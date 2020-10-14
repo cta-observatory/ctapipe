@@ -9,11 +9,7 @@ from ctapipe.core.traits import IntTelescopeParameter, BoolTelescopeParameter, U
 from ctapipe.image.extractor import ImageExtractor
 from ctapipe.image.cleaning import dilate
 
-__all__ = [
-    "DataVolumeReducer",
-    "NullDataVolumeReducer",
-    "TailCutsDataVolumeReducer",
-]
+__all__ = ["DataVolumeReducer", "NullDataVolumeReducer", "TailCutsDataVolumeReducer"]
 
 
 class DataVolumeReducer(TelescopeComponent):
@@ -36,7 +32,7 @@ class DataVolumeReducer(TelescopeComponent):
         self.subarray = subarray
         super().__init__(config=config, parent=parent, subarray=subarray, **kwargs)
 
-    def __call__(self, waveforms, telid=None, selected_gain_channel=None):
+    def __call__(self, waveforms, tel_id=None, selected_gain_channel=None):
         """
         Call the relevant functions to perform data volume reduction on the
         waveforms.
@@ -46,7 +42,7 @@ class DataVolumeReducer(TelescopeComponent):
         waveforms: ndarray
             Waveforms stored in a numpy array of shape
             (n_pix, n_samples).
-        telid: int
+        tel_id: int
             The telescope id. Required for the 'image_extractor' and
             'camera.geometry' in 'TailCutsDataVolumeReducer'.
         selected_gain_channel: ndarray
@@ -60,12 +56,12 @@ class DataVolumeReducer(TelescopeComponent):
             Mask of selected pixels.
         """
         mask = self.select_pixels(
-            waveforms, telid=telid, selected_gain_channel=selected_gain_channel
+            waveforms, tel_id=tel_id, selected_gain_channel=selected_gain_channel
         )
         return mask
 
     @abstractmethod
-    def select_pixels(self, waveforms, telid=None, selected_gain_channel=None):
+    def select_pixels(self, waveforms, tel_id=None, selected_gain_channel=None):
         """
         Abstract method to be defined by a DataVolumeReducer subclass.
         Call the relevant functions for the required pixel selection.
@@ -75,7 +71,7 @@ class DataVolumeReducer(TelescopeComponent):
         waveforms: ndarray
             Waveforms stored in a numpy array of shape
             (n_pix, n_samples).
-        telid: int
+        tel_id: int
             The telescope id. Required for the 'image_extractor' and
             'camera.geometry' in 'TailCutsDataVolumeReducer'.
         selected_gain_channel: ndarray
@@ -94,7 +90,7 @@ class NullDataVolumeReducer(DataVolumeReducer):
     Perform no data volume reduction
     """
 
-    def select_pixels(self, waveforms, telid=None, selected_gain_channel=None):
+    def select_pixels(self, waveforms, tel_id=None, selected_gain_channel=None):
         mask = waveforms != 0
         return mask
 
@@ -118,9 +114,10 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         If set to 'False', the iteration steps in 2) are skipped and
         normal TailcutCleaning is used.
     """
+
     image_extractor_type = Unicode(
-        default_value="NeighborPeakWindowSum", help="Name of the image_extractor"
-        "to be used.",
+        default_value="NeighborPeakWindowSum",
+        help="Name of the image_extractor" "to be used.",
     ).tag(config=True)
     n_end_dilates = IntTelescopeParameter(
         default_value=1, help="Number of how many times to dilate at the end."
@@ -148,22 +145,20 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         self.cleaner = TailcutsImageCleaner(parent=self, subarray=self.subarray)
 
         self.image_extractor = ImageExtractor.from_name(
-            self.image_extractor_type,
-            subarray=self.subarray,
-            parent=self
+            self.image_extractor_type, subarray=self.subarray, parent=self
         )
 
-    def select_pixels(self, waveforms, telid=None, selected_gain_channel=None):
-        camera_geom = self.subarray.tel[telid].camera.geometry
+    def select_pixels(self, waveforms, tel_id=None, selected_gain_channel=None):
+        camera_geom = self.subarray.tel[tel_id].camera.geometry
         # Pulse-integrate waveforms
         charge, _ = self.image_extractor(
-            waveforms, telid=telid, selected_gain_channel=selected_gain_channel
+            waveforms, tel_id=tel_id, selected_gain_channel=selected_gain_channel
         )
 
         # 1) Step: TailcutCleaning at first
-        mask = self.cleaner(telid, charge)
+        mask = self.cleaner(tel_id, charge)
         pixels_above_boundary_thresh = (
-            charge >= self.cleaner.boundary_threshold_pe.tel[telid]
+            charge >= self.cleaner.boundary_threshold_pe.tel[tel_id]
         )
         mask_in_loop = np.array([])
         # 2) Step: Add iteratively all pixels with Signal
@@ -171,13 +166,13 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         #          'dilate' until no new pixels were added.
         while (
             not np.array_equal(mask, mask_in_loop)
-            and self.do_boundary_dilation.tel[telid]
+            and self.do_boundary_dilation.tel[tel_id]
         ):
             mask_in_loop = mask
             mask = dilate(camera_geom, mask) & pixels_above_boundary_thresh
 
         # 3) Step: Adding Pixels with 'dilate' to get more conservative.
-        for _ in range(self.n_end_dilates.tel[telid]):
+        for _ in range(self.n_end_dilates.tel[tel_id]):
             mask = dilate(camera_geom, mask)
 
         return mask
