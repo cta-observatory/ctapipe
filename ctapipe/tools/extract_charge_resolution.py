@@ -36,16 +36,12 @@ class ChargeResolutionGenerator(Tool):
         directory_ok=False,
         help="Path to store the output HDF5 file",
     ).tag(config=True)
-    extractor_product = traits.create_class_enum_trait(
-        ImageExtractor, default_value="NeighborPeakWindowSum"
-    )
 
     aliases = Dict(
         dict(
             f="SimTelEventSource.input_url",
             max_events="SimTelEventSource.max_events",
             T="SimTelEventSource.allowed_tels",
-            extractor="ChargeResolutionGenerator.extractor_product",
             O="ChargeResolutionGenerator.output_path",
         )
     )
@@ -65,7 +61,7 @@ class ChargeResolutionGenerator(Tool):
 
         extractor = self.add_component(
             ImageExtractor.from_name(
-                self.extractor_product, parent=self, subarray=self.eventsource.subarray,
+                self.extractor_product, parent=self, subarray=self.eventsource.subarray
             )
         )
 
