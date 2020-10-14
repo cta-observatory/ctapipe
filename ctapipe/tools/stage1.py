@@ -157,12 +157,6 @@ class Stage1ProcessorTool(Tool):
         default_value="blosc:zstd",
     ).tag(config=True)
 
-    image_extractor_type = create_class_enum_trait(
-        base_class=ImageExtractor,
-        default_value="NeighborPeakWindowSum",
-        help="Method to use to turn a waveform into a single charge value",
-    ).tag(config=True)
-
     image_cleaner_type = create_class_enum_trait(
         base_class=ImageCleaner, default_value="TailcutsImageCleaner"
     )
@@ -185,7 +179,6 @@ class Stage1ProcessorTool(Tool):
         "output": "Stage1ProcessorTool.output_path",
         "allowed-tels": "EventSource.allowed_tels",
         "max-events": "EventSource.max_events",
-        "image-extractor-type": "Stage1ProcessorTool.image_extractor_type",
         "image-cleaner-type": "Stage1ProcessorTool.image_cleaner_type",
     }
 
@@ -254,19 +247,8 @@ class Stage1ProcessorTool(Tool):
             )
             sys.exit(1)
 
-        self.image_extractor = self.add_component(
-            ImageExtractor.from_name(
-                self.image_extractor_type,
-                parent=self,
-                subarray=self.event_source.subarray,
-            )
-        )
         self.calibrate = self.add_component(
-            CameraCalibrator(
-                parent=self,
-                subarray=self.event_source.subarray,
-                image_extractor=self.image_extractor,
-            )
+            CameraCalibrator(parent=self, subarray=self.event_source.subarray)
         )
         self.clean = self.add_component(
             ImageCleaner.from_name(
