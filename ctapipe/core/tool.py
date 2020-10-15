@@ -114,11 +114,11 @@ class Tool(Application):
         help="The Logging format template",
     ).tag(config=True)
 
-    provenance_log = Path(directory_ok=False)
+    provenance_log = Path(directory_ok=False).tag(config=True)
 
-    @default('provenance_log')
+    @default("provenance_log")
     def _default_provenance_log(self):
-        return self.name + '.provenance.log'
+        return self.name + ".provenance.log"
 
     _log_formatter_cls = ColoredFormatter
 
