@@ -12,7 +12,7 @@ from ctapipe.image.extractor import ImageExtractor
 from ctapipe.image.reducer import DataVolumeReducer
 from ctapipe.core.traits import create_class_enum_trait
 
-from numba import njit
+from numba import guvectorize, float64, float32, int64
 
 __all__ = ["CameraCalibrator"]
 
@@ -215,20 +215,16 @@ def shift_waveforms(waveforms, time_shift_samples):
     return shifted_waveforms, remaining_shift
 
 
-@njit
-def _shift_waveforms_by_integer(waveforms, integer_shift):
-    n_pixels, n_samples = waveforms.shape
-    shifted_waveforms = np.zeros_like(waveforms)
+@guvectorize(
+    [(float64[:], int64, float64[:]), (float32[:], int64, float32[:])],
+    "(s),()->(s)",
+    nopython=True,
+)
+def _shift_waveforms_by_integer(waveforms, integer_shift, shifted_waveforms):
+    n_samples = waveforms.size
 
-    for pixel_idx in range(n_pixels):
-        shift = integer_shift[pixel_idx]
-
-        for new_sample_idx in range(n_samples):
-            # repeat first value if out ouf bounds to the left
-            # repeat last value if out ouf bounds to the right
-            sample_idx = min(max(new_sample_idx + shift, 0), n_samples - 1)
-            shifted_waveforms[pixel_idx, new_sample_idx] = waveforms[
-                pixel_idx, sample_idx
-            ]
-
-    return shifted_waveforms
+    for new_sample_idx in range(n_samples):
+        # repeat first value if out ouf bounds to the left
+        # repeat last value if out ouf bounds to the right
+        sample_idx = min(max(new_sample_idx + integer_shift, 0), n_samples - 1)
+        shifted_waveforms[new_sample_idx] = waveforms[sample_idx]
