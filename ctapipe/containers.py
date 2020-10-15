@@ -288,8 +288,9 @@ class DL1CameraCalibrationContainer(Container):
 
     pedestal_offset = Field(
         None,
-        "Additive coefficients for the pedestal calibration of extracted charge "
-        "for each pixel",
+        "Residual mean pedestal of the waveforms for each pixel."
+        " This value is subtracted from the waveforms of each pixel before"
+        " the pulse extraction.",
     )
     absolute_factor = Field(
         1,
