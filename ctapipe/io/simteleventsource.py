@@ -405,10 +405,6 @@ class SimTelEventSource(EventSource):
                 r0 = data.r0.tel[tel_id]
                 r1 = data.r1.tel[tel_id]
                 r0.waveform = adc_samples
-                print(
-                    array_event["camera_monitorings"][tel_id]["n_ped_slices"],
-                    r0.waveform.shape[2],
-                )
                 r1.waveform, r1.selected_gain_channel = apply_simtel_r1_calibration(
                     adc_samples, mc.pedestal, mc.dc_to_pe, self.gain_selector
                 )
