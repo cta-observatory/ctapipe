@@ -99,8 +99,10 @@ def test_check_dl0_empty(example_event, example_subarray):
 
 
 def test_dl1_charge_calib(example_subarray):
-    camera = CameraGeometry.from_name("CHEC")
-    n_pixels = camera.n_pixels
+    camera = example_subarray.tel[1].camera
+    sampling_rate = camera.readout.sampling_rate.to_value(u.GHz)
+
+    n_pixels = camera.geometry.n_pixels
     n_samples = 96
     mid = n_samples // 2
     pulse_sigma = 6
@@ -108,8 +110,8 @@ def test_dl1_charge_calib(example_subarray):
     x = np.arange(n_samples)
 
     # Randomize times and create pulses
-    time_offset = random.uniform(mid - 10, mid + 10, n_pixels)
-    y = norm.pdf(x, time_offset[:, np.newaxis], pulse_sigma).astype("float32")
+    time_offset = random.uniform(-10, 10, n_pixels)
+    y = norm.pdf(x, mid + time_offset[:, np.newaxis], pulse_sigma).astype("float32")
 
     # Define absolute calibration coefficients
     absolute = random.uniform(100, 1000, n_pixels).astype("float32")
@@ -135,7 +137,7 @@ def test_dl1_charge_calib(example_subarray):
     calibrator(event)
     np.testing.assert_allclose(event.dl1.tel[telid].image, y.sum(1), rtol=1e-4)
 
-    event.calibration.tel[telid].dl1.pedestal_offset = pedestal * n_samples
+    event.calibration.tel[telid].dl1.pedestal_offset = pedestal
     event.calibration.tel[telid].dl1.absolute_factor = absolute
     event.calibration.tel[telid].dl1.relative_factor = relative
 
@@ -147,6 +149,7 @@ def test_dl1_charge_calib(example_subarray):
     calibrator(event)
     dl1 = event.dl1.tel[telid]
     np.testing.assert_allclose(dl1.image, 1, rtol=1e-5)
-    np.testing.assert_allclose(dl1.peak_time, mid + time_offset, rtol=1e-5)
+    expected_peak_time = (mid + time_offset) / sampling_rate
+    np.testing.assert_allclose(dl1.peak_time, expected_peak_time, rtol=1e-5)
 
     # TODO: Test with timing corrections

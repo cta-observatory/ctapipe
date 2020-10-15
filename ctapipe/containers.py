@@ -287,7 +287,7 @@ class DL1CameraCalibrationContainer(Container):
     """
 
     pedestal_offset = Field(
-        0,
+        None,
         "Additive coefficients for the pedestal calibration of extracted charge "
         "for each pixel",
     )
