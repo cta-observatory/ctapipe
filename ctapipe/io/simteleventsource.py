@@ -126,7 +126,7 @@ def apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe, gain_selector)
         Shape: (n_pixels)
     """
     n_channels, n_pixels, n_samples = r0_waveforms.shape
-    ped = pedestal[..., np.newaxis] / n_samples
+    ped = pedestal[..., np.newaxis]
     gain = dc_to_pe[..., np.newaxis]
     r1_waveforms = (r0_waveforms - ped) * gain
     if n_channels == 1:
@@ -389,7 +389,9 @@ class SimTelEventSource(EventSource):
 
                 mc = data.mc.tel[tel_id]
                 mc.dc_to_pe = array_event["laser_calibrations"][tel_id]["calib"]
-                mc.pedestal = array_event["camera_monitorings"][tel_id]["pedestal"]
+                mon = array_event["camera_monitorings"][tel_id]
+                mc.pedestal = mon["pedestal"] / mon["n_ped_slices"]
+
                 mc.true_image = (
                     array_event.get("photoelectrons", {})
                     .get(tel_id - 1, {})
@@ -403,6 +405,10 @@ class SimTelEventSource(EventSource):
                 r0 = data.r0.tel[tel_id]
                 r1 = data.r1.tel[tel_id]
                 r0.waveform = adc_samples
+                print(
+                    array_event["camera_monitorings"][tel_id]["n_ped_slices"],
+                    r0.waveform.shape[2],
+                )
                 r1.waveform, r1.selected_gain_channel = apply_simtel_r1_calibration(
                     adc_samples, mc.pedestal, mc.dc_to_pe, self.gain_selector
                 )
