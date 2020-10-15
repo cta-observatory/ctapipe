@@ -129,9 +129,19 @@ class CameraCalibrator(Component):
     def _calibrate_dl1(self, event, telid):
         waveforms = event.dl0.tel[telid].waveform
         selected_gain_channel = event.r1.tel[telid].selected_gain_channel
+        dl1_calib = event.calibration.tel[telid].dl1
+
         if self._check_dl0_empty(waveforms):
             return
+
         n_pixels, n_samples = waveforms.shape
+
+        # subtract any remaining pedestal before extraction
+        if dl1_calib.pedestal_offset is not None:
+            # this copies intentionally, we don't want to modify the dl0 data
+            # waveforms have shape (n_pixel, n_samples), pedestals (n_pixels, )
+            waveforms = waveforms - dl1_calib.pedestal_offset[:, np.newaxis]
+
         if n_samples == 1:
             # To handle ASTRI and dst
             # TODO: Improved handling of ASTRI and dst
@@ -147,11 +157,7 @@ class CameraCalibrator(Component):
             )
 
         # Calibrate extracted charge
-        pedestal = event.calibration.tel[telid].dl1.pedestal_offset
-        absolute = event.calibration.tel[telid].dl1.absolute_factor
-        relative = event.calibration.tel[telid].dl1.relative_factor
-        charge -= pedestal
-        charge *= relative / absolute
+        charge *= dl1_calib.relative_factor / dl1_calib.absolute_factor
 
         event.dl1.tel[telid].image = charge
         event.dl1.tel[telid].peak_time = peak_time
