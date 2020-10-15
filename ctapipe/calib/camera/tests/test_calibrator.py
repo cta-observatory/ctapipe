@@ -1,6 +1,7 @@
 """
 Tests for CameraCalibrator and related functions
 """
+import astropy.units as u
 import numpy as np
 import pytest
 from scipy.stats import norm
