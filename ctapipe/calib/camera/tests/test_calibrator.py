@@ -5,10 +5,14 @@ import numpy as np
 import pytest
 from scipy.stats import norm
 from traitlets.config.configurable import Config
-from astropy import units as u
 
 from ctapipe.calib.camera.calibrator import CameraCalibrator
-from ctapipe.image.extractor import LocalPeakWindowSum, FullWaveformSum
+from ctapipe.image.extractor import (
+    NeighborPeakWindowSum,
+    LocalPeakWindowSum,
+    FullWaveformSum,
+)
+from ctapipe.image.reducer import NullDataVolumeReducer, TailCutsDataVolumeReducer
 from ctapipe.containers import DataContainer
 
 
@@ -33,23 +37,31 @@ def test_manual_extractor(example_subarray):
 
 
 def test_config(example_subarray):
-    window_shift = 3
-    window_width = 9
+    calibrator = CameraCalibrator(subarray=example_subarray)
+
+    # test defaults
+    assert isinstance(calibrator.image_extractor, NeighborPeakWindowSum)
+    assert isinstance(calibrator.data_volume_reducer, NullDataVolumeReducer)
+
     config = Config(
         {
-            "LocalPeakWindowSum": {
-                "window_shift": window_shift,
-                "window_width": window_width,
+            "CameraCalibrator": {
+                "image_extractor_type": "LocalPeakWindowSum",
+                "LocalPeakWindowSum": {"window_width": 15},
+                "data_volume_reducer_type": "TailCutsDataVolumeReducer",
+                "TailCutsDataVolumeReducer": {
+                    "TailcutsImageCleaner": {"picture_threshold_pe": 20.0}
+                },
             }
         }
     )
-    calibrator = CameraCalibrator(
-        subarray=example_subarray,
-        image_extractor=LocalPeakWindowSum(subarray=example_subarray, config=config),
-        config=config,
-    )
-    assert calibrator.image_extractor.window_shift.tel[None] == window_shift
-    assert calibrator.image_extractor.window_width.tel[None] == window_width
+
+    calibrator = CameraCalibrator(example_subarray, config=config)
+    assert isinstance(calibrator.image_extractor, LocalPeakWindowSum)
+    assert calibrator.image_extractor.window_width.tel[None] == 15
+
+    assert isinstance(calibrator.data_volume_reducer, TailCutsDataVolumeReducer)
+    assert calibrator.data_volume_reducer.cleaner.picture_threshold_pe.tel[None] == 20
 
 
 def test_check_r1_empty(example_event, example_subarray):
