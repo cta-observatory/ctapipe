@@ -120,9 +120,7 @@ class CameraCalibrator(Component):
         if dl1_calib.pedestal_offset is not None:
             # this copies intentionally, we don't want to modify the dl0 data
             # waveforms have shape (n_pixel, n_samples), pedestals (n_pixels, )
-            # so we need to transpose to be able to utilize broadcasting
-            # and transpose back after to retain the correct shape
-            waveforms = (waveforms.T - dl1_calib.pedestal_offset).T
+            waveforms = waveforms - dl1_calib.pedestal_offset[:, np.newaxis]
 
         if n_samples == 1:
             # To handle ASTRI and dst
