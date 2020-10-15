@@ -9,7 +9,6 @@ from astropy import units as u
 
 from ctapipe.calib.camera.calibrator import CameraCalibrator
 from ctapipe.image.extractor import LocalPeakWindowSum, FullWaveformSum
-from ctapipe.instrument import CameraGeometry
 from ctapipe.containers import DataContainer
 
 
