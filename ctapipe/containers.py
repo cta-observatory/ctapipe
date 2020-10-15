@@ -304,7 +304,7 @@ class DL1CameraCalibrationContainer(Container):
         "uniform illumination.",
     )
     time_shift = Field(
-        0,
+        None,
         "Additive coefficients for the timing correction before charge extraction "
         "for each pixel",
     )
