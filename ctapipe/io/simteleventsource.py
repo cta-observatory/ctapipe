@@ -414,6 +414,13 @@ class SimTelEventSource(EventSource):
                 if r0.num_trig_pix > 0:
                     r0.trig_pix_id = pixel_lists[0]["pixel_list"]
 
+                # get time_shift from laser calibration
+                time_calib = array_event["laser_calibrations"][tel_id]["tm_calib"]
+                pix_index = np.arange(n_pixels)
+
+                dl1_calib = data.calibration.tel[tel_id].dl1
+                dl1_calib.time_shift = time_calib[r1.selected_gain_channel, pix_index]
+
             yield data
 
     @staticmethod
