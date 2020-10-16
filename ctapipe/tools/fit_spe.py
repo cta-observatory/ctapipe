@@ -128,7 +128,11 @@ class SPEFitter(Tool):
     name = "SPEFitter"
     description = "Extract the Single Photoelectron spectrum parameters from the measured charges stored in a DL1 file"
 
-    input_paths = List(Unicode(), None, help="Paths to DL1 files").tag(config=True)
+    input_paths = List(
+        traits.Path(exists=True, directory_ok=False),
+        default_value=None,
+        help="Paths to DL1 files"
+    ).tag(config=True)
     telescope = Int(
         None,
         allow_none=True,
