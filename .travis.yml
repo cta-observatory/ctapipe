@@ -53,6 +53,7 @@ matrix:
           packages:
             - pandoc
             - graphviz
+            - libhdf5-dev # remove when pytables wheel is available for 3.9
 
 before_install:
   - git fetch --tags
