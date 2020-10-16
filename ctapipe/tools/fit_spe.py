@@ -138,9 +138,7 @@ class SPEFitter(Tool):
         allow_none=True,
         help="Telescope to process",
     ).tag(config=True)
-    output_path = Unicode(
-        None,
-        allow_none=True,
+    output_path = traits.Path(
         help="Path to save results of SPE fit (HDF5 file)",
     ).tag(config=True)
     pdf_name = traits.create_class_enum_trait(
