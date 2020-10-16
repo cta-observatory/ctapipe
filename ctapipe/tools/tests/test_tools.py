@@ -22,6 +22,137 @@ GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 LST_MUONS = get_dataset_path("lst_muons.simtel.zst")
 
 
+def test_merge():
+    from ctapipe.tools.dl1_merge import MergeTool
+    from ctapipe.tools.stage1 import Stage1ProcessorTool
+
+    blacklist_path = ['/configuration/instrument/subarray',
+                      '/configuration/instrument/telescope',
+                      '/configuration/instrument/telescope/camera',
+                      '/dl1/service']
+    blacklist_images = '/dl1/event/telescope/images'
+    blacklist_parameters = '/dl1/event/telescope/parameters'
+
+    with tempfile.NamedTemporaryFile(suffix=".hdf5") as f1, \
+         tempfile.NamedTemporaryFile(suffix=".hdf5") as f2, \
+         tempfile.NamedTemporaryFile(suffix=".hdf5") as out_all, \
+         tempfile.NamedTemporaryFile(suffix=".hdf5") as out_skip_images, \
+         tempfile.NamedTemporaryFile(suffix=".hdf5") as out_skip_parameters:
+        assert(
+            run_tool(
+                Stage1ProcessorTool(),
+                argv=[
+                    "--config=./examples/stage1_config.json",
+                    f"--input={GAMMA_TEST_LARGE}",
+                    f"--output={f1.name}",
+                    "--write-parameters",
+                    "--write-images",
+                    "--overwrite",
+                ],
+            )
+            == 0
+        )
+        assert(
+            run_tool(
+                Stage1ProcessorTool(),
+                argv=[
+                    "--config=./examples/stage1_config.json",
+                    f"--input={GAMMA_TEST_LARGE}",
+                    f"--output={f2.name}",
+                    "--write-parameters",
+                    "--write-images",
+                    "--overwrite",
+                ],
+            )
+            == 0
+        )
+
+        assert(
+            run_tool(
+                MergeTool(),
+                argv=[
+                    f"{f1.name}",
+                    f"{f2.name}",
+                    f"--output={out_all.name}",
+                    "--overwrite"
+                ]
+            )
+            == 0
+        )
+
+        assert(
+            run_tool(
+                MergeTool(),
+                argv=[
+                    f"{f1.name}",
+                    f"{f2.name}",
+                    f"--output={out_skip_images.name}",
+                    "--overwrite",
+                    "--skip-images"
+                ]
+            )
+            == 0
+        )
+
+        assert(
+            run_tool(
+                MergeTool(),
+                argv=[
+                    f"{f1.name}",
+                    f"{f2.name}",
+                    f"--output={out_skip_parameters.name}",
+                    "--overwrite",
+                    "--skip-parameters"
+                ]
+            )
+            == 0
+        )
+
+        out_files_list = [out_all.name, out_skip_images.name, out_skip_parameters.name]
+
+        for out_file in out_files_list:
+            with tables.open_file(out_file, mode='r') as out_f, \
+                 tables.open_file(f1.name, mode='r') as in_f:
+
+                # Loop over every group in the input file
+                for group in in_f.walk_groups(where='/'):
+                    group_path = in_f.get_node_attr(group, '_v__nodepath')
+
+                    # Check that image groups doesn't exist for 'skip-images' file
+                    if (out_file == out_skip_images.name) and \
+                       (group_path == blacklist_images):
+                        assert (group_path not in out_f)
+                        continue
+
+                    # Check that parameter groups doesn't exist for 'skip-parameters' file
+                    elif (out_file == out_skip_parameters.name) and \
+                         (group_path == blacklist_parameters):
+                        assert (group_path not in out_f)
+                        continue
+
+                    # Check that nodes from groups of 'blacklist_path' have just been copied
+                    if group_path in blacklist_path:
+                        for leaf in in_f.iter_nodes(group, classname='Leaf'):
+                            assert (len(leaf)
+                                    == len(out_f.root[group_path + '/' + leaf.name]))
+                        continue
+
+                    # Check that rows of nodes has been appended
+                    for node in in_f.iter_nodes(group, classname='Table'):
+                        assert(len(out_f.root[group_path + '/' + node.name])
+                               == np.multiply(len(node), 2))
+
+                # Check that entries in image_statistics has been added
+                path_image_statistics = '/dl1/service/image_statistics'
+                table_in = in_f.root[path_image_statistics]
+                table_out = out_f.root[path_image_statistics]
+                for row in range(len(table_in)):
+                    assert(table_out.cols.counts[row]
+                           == np.multiply(table_in.cols.counts[row], 2))
+                    assert(table_out.cols.cumulative_counts[row]
+                           == np.multiply(table_in.cols.cumulative_counts[row], 2))
+
+
 def test_stage_1():
     from ctapipe.tools.stage1 import Stage1ProcessorTool
 
