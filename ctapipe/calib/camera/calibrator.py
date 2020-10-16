@@ -207,6 +207,22 @@ def shift_waveforms(waveforms, time_shift_samples):
     time differences between pixels.
     The remaining shift (mean + fractional part) is returned
     to be applied later to the extracted peak time.
+
+    Parameters
+    ----------
+    waveforms: ndarray of shape (n_pixels, n_samples)
+        The waveforms to shift
+    time_shift_samples: ndarray of shape (n_pixels, )
+        The shift to apply in units of samples.
+        Waveforms are shifted to the left by the smallest integer
+        that minimizes inter-pixel differences.
+
+    Returns
+    -------
+    shifted_waveforms: ndarray of shape (n_pixels, n_samples)
+        The shifted waveforms
+    remaining_shift: ndarray of shape (n_pixels, )
+        The remaining shift after applying the integer shift to the waveforms.
     """
     mean_shift = time_shift_samples.mean()
     integer_shift = np.round(time_shift_samples - mean_shift).astype("int16")
