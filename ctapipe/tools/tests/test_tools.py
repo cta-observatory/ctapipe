@@ -125,12 +125,13 @@ def test_merge():
                         continue
 
                     # Check that parameter groups doesn't exist for 'skip-parameters' file
-                    elif (out_file == out_skip_parameters.name) and \
-                         (group_path == blacklist_parameters):
+                    if (out_file == out_skip_parameters.name) and \
+                       (group_path == blacklist_parameters):
                         assert (group_path not in out_f)
                         continue
 
-                    # Check that nodes from groups of 'blacklist_path' have just been copied
+                    # Check that nodes from groups of 'blacklist_path'
+                    # have just been copied
                     if group_path in blacklist_path:
                         for leaf in in_f.iter_nodes(group, classname='Leaf'):
                             assert (len(leaf)

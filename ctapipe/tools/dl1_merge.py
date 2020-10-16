@@ -48,7 +48,8 @@ class MergeTool(Tool):
     with the default pattern '*.h5' are taken.
     """
     input_dir = traits.Path(help="input dl1-directory",
-                            exists=None, directory_ok=True, file_ok=False).tag(config=True)
+                            exists=None, directory_ok=True,
+                            file_ok=False).tag(config=True)
     input_files = List(default_value=[],
                        help="input dl1-files").tag(config=True)
     output_path = traits.Path(help="Merged-DL1 output filename").tag(config=True)
@@ -57,7 +58,8 @@ class MergeTool(Tool):
     skip_parameters = traits.Bool(help="Skip image parameters",
                                   default_value=False).tag(config=True)
     overwrite = traits.Bool(help="overwrite output file if it exists").tag(config=True)
-    progress_bar = traits.Bool(help="show progress bar during processing").tag(config=True)
+    progress_bar = traits.Bool(help="show progress bar during "
+                                    "processing").tag(config=True)
     file_pattern = traits.Unicode(default_value='*.h5',
                                   help="Give a specific file pattern for the"
                                        "input files").tag(config=True)
@@ -128,7 +130,8 @@ class MergeTool(Tool):
         # This does not append rows to the existing table
         if service_group in file:
             image_statistics_path = service_group + '/image_statistics'
-            if image_statistics_path in file and image_statistics_path in self.output_file:
+            if image_statistics_path in file and \
+               image_statistics_path in self.output_file:
                 table_out = self.output_file.root[image_statistics_path]
                 table_in = file.root[image_statistics_path]
                 for row in range(len(table_in)):
@@ -140,7 +143,8 @@ class MergeTool(Tool):
 
             elif service_group not in self.output_file:
                 head, tail = os.path.split(service_group)
-                target_group = self.output_file.create_group(head, tail, createparents=True)
+                target_group = self.output_file.create_group(head,
+                                                             tail, createparents=True)
                 file.copy_node(image_statistics_path, newparent=target_group)
                 file.copy_node(image_statistics_path + '.__table_column_meta__',
                                newparent=target_group)
@@ -154,9 +158,9 @@ class MergeTool(Tool):
             group_path = file.get_node_attr(group, '_v__nodepath')
             if group_path in blacklist_path:
                 continue
-            elif self.skip_images is True and group_path in blacklist_images:
+            if self.skip_images is True and group_path in blacklist_images:
                 continue
-            elif self.skip_parameters is True and group_path in blacklist_parameters:
+            if self.skip_parameters is True and group_path in blacklist_parameters:
                 continue
             for node in file.iter_nodes(group, classname='Table'):
                 if (group_path + '/' + node.name) in self.output_file:
