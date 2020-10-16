@@ -47,7 +47,7 @@ matrix:
     - os: linux
       dist: bionic
       language: python
-      python: 3.9
+      python: 3.9-dev
       addons:
         apt:
           packages:
