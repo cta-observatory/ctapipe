@@ -44,16 +44,15 @@ matrix:
             - pandoc
             - graphviz
 
-    - os: linux
-      dist: bionic
-      language: python
-      python: 3.9-dev
-      addons:
-        apt:
-          packages:
-            - pandoc
-            - graphviz
-            - libhdf5-dev # remove when pytables wheel is available for 3.9
+#    - os: linux
+#      dist: bionic
+#      language: python
+#      python: 3.9
+#      addons:
+#        apt:
+#          packages:
+#            - pandoc
+#            - graphviz
 
 before_install:
   - git fetch --tags
