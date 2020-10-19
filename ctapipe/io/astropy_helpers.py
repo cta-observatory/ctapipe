@@ -8,6 +8,7 @@ from pathlib import Path
 import tables
 from astropy.table import QTable
 from astropy.units import Unit
+import numpy as np
 
 __all__ = ["h5_table_to_astropy"]
 
@@ -60,7 +61,8 @@ def h5_table_to_astropy(h5file, path) -> QTable:
         else:
             # need to convert to str() here so they are python strings, not
             # numpy strings
-            other_attrs[attr] = str(table.attrs[attr])
+            value = table.attrs[attr]
+            other_attrs[attr] = str(value) if isinstance(value, np.str) else value
 
     astropy_table = QTable(table[:], meta=other_attrs)
 
