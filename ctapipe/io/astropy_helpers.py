@@ -62,7 +62,7 @@ def h5_table_to_astropy(h5file, path) -> QTable:
             # need to convert to str() here so they are python strings, not
             # numpy strings
             value = table.attrs[attr]
-            other_attrs[attr] = str(value) if isinstance(value, np.str) else value
+            other_attrs[attr] = str(value) if isinstance(value, np.str_) else value
 
     astropy_table = QTable(table[:], meta=other_attrs)
 
