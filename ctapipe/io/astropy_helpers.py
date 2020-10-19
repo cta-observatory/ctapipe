@@ -49,17 +49,26 @@ def h5_table_to_astropy(h5file, path) -> QTable:
 
     other_attrs = {}
     column_units = {}  # mapping of colname to unit
+    column_descriptions = {}
     for attr in table.attrs._f_list():  # pylint: disable=W0212
         if attr.endswith("_UNIT"):
             colname = attr[:-5]
             column_units[colname] = table.attrs[attr]
+        elif attr.endswith("_DESC"):
+            colname = attr[:-5]
+            column_descriptions[colname] = str(table.attrs[attr])
         else:
-            other_attrs[attr] = table.attrs[attr]
+            # need to convert to str() here so they are python strings, not
+            # numpy strings
+            other_attrs[attr] = str(table.attrs[attr])
 
     astropy_table = QTable(table[:], meta=other_attrs)
 
     for column, unit in column_units.items():
         astropy_table[column].unit = Unit(unit)
+
+    for column, desc in column_descriptions.items():
+        astropy_table[column].description = desc
 
     if should_close_file:
         h5file.close()
