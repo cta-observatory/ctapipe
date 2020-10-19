@@ -65,7 +65,7 @@ def test_optics_from_dump_instrument():
         infile = get_dataset_path("gamma_test_large.simtel.gz")
         run_tool(DumpInstrumentTool(), [f"--infile={infile}", "--format=ecsv"])
 
-        lst = OpticsDescription.from_name("LST_LST_LSTCam", "MonteCarloArray.optics")
+        lst = OpticsDescription.from_name("LST_LST_LSTCam", "optics")
         assert lst.num_mirrors == 1
         assert lst.equivalent_focal_length.to_value(u.m) == 28
         assert lst.num_mirror_tiles == 198
