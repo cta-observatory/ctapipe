@@ -26,12 +26,12 @@ def test_merge():
     from ctapipe.tools.dl1_merge import MergeTool
     from ctapipe.tools.stage1 import Stage1ProcessorTool
 
-    blacklist_path = ['/configuration/instrument/subarray',
+    blocklist_path = ['/configuration/instrument/subarray',
                       '/configuration/instrument/telescope',
                       '/configuration/instrument/telescope/camera',
                       '/dl1/service']
-    blacklist_images = '/dl1/event/telescope/images'
-    blacklist_parameters = '/dl1/event/telescope/parameters'
+    blocklist_images = '/dl1/event/telescope/images'
+    blocklist_parameters = '/dl1/event/telescope/parameters'
 
     with tempfile.NamedTemporaryFile(suffix=".hdf5") as f1, \
          tempfile.NamedTemporaryFile(suffix=".hdf5") as f2, \
@@ -120,19 +120,19 @@ def test_merge():
 
                     # Check that image groups doesn't exist for 'skip-images' file
                     if (out_file == out_skip_images.name) and \
-                       (group_path == blacklist_images):
+                       (group_path == blocklist_images):
                         assert (group_path not in out_f)
                         continue
 
                     # Check that parameter groups doesn't exist for 'skip-parameters' file
                     if (out_file == out_skip_parameters.name) and \
-                       (group_path == blacklist_parameters):
+                       (group_path == blocklist_parameters):
                         assert (group_path not in out_f)
                         continue
 
                     # Check that nodes from groups of 'blacklist_path'
                     # have just been copied
-                    if group_path in blacklist_path:
+                    if group_path in blocklist_path:
                         for leaf in in_f.iter_nodes(group, classname='Leaf'):
                             assert (len(leaf)
                                     == len(out_f.root[group_path + '/' + leaf.name]))
