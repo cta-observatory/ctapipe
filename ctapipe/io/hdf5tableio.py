@@ -168,14 +168,6 @@ class HDF5TableWriter(TableWriter):
                 # apply any user-defined transforms first
                 value = self._apply_col_transform(table_name, col_name, value)
 
-                # add desription to metadata
-                if self.add_prefix:
-                    meta[f"{col_name}_DESC"] = container.fields[
-                        re.sub(f"^{container.prefix}_", "", col_name)
-                    ].description
-                else:
-                    meta[f"{col_name}_DESC"] = container.fields[col_name].description
-
                 if isinstance(value, enum.Enum):
 
                     def transform(enum_value):
@@ -224,6 +216,15 @@ class HDF5TableWriter(TableWriter):
                     continue
 
                 pos += 1
+
+                # add desription to metadata
+                if self.add_prefix:
+                    meta[f"{col_name}_DESC"] = container.fields[
+                        re.sub(f"^{container.prefix}_", "", col_name)
+                    ].description
+                else:
+                    meta[f"{col_name}_DESC"] = container.fields[col_name].description
+
                 self.log.debug(
                     f"Table {table_name}: "
                     f"added col: {col_name} type: "
