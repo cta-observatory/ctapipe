@@ -150,17 +150,6 @@ class Tool(Application):
         # ensure command-line takes precedence over config file options:
         self.update_config(self.cli_config)
 
-    def add_component(self, component_instance):
-        """
-        No-op for backwards-compatibility
-        """
-        warnings.warn(
-            "Tool.add_component is not needed anymore"
-            " and will be removed in a future ctapipe version",
-            DeprecationWarning,
-        )
-        return component_instance
-
     @abstractmethod
     def setup(self):
         """set up the tool (override in subclass). Here the user should
