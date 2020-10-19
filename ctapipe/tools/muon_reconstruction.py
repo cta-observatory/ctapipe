@@ -65,7 +65,7 @@ class MuonAnalysis(Tool):
     ).tag(config=True)
 
     pedestal = traits.FloatTelescopeParameter(
-        help="Pedestal noise rms", default_value=1.1,
+        help="Pedestal noise rms", default_value=1.1
     ).tag(config=True)
 
     classes = [
@@ -100,7 +100,8 @@ class MuonAnalysis(Tool):
 
         self.source = EventSource.from_config(parent=self)
         subarray = self.source.subarray
-        self.calib = CameraCalibrator(subarray=self.source.subarray, parent=self)
+
+        self.calib = CameraCalibrator(subarray=subarray, parent=self)
         self.ring_fitter = MuonRingFitter(parent=self)
         self.intensity_fitter = MuonIntensityFitter(subarray=subarray, parent=self)
         self.cleaning = TailcutsImageCleaner(parent=self, subarray=subarray)
