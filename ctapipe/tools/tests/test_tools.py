@@ -22,7 +22,7 @@ GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 LST_MUONS = get_dataset_path("lst_muons.simtel.zst")
 
 
-def test_stage_1():
+def test_stage_1(tmpdir):
     from ctapipe.tools.stage1 import Stage1ProcessorTool
 
     with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
@@ -36,6 +36,7 @@ def test_stage_1():
                     "--write-parameters",
                     "--overwrite",
                 ],
+                cwd=tmpdir,
             )
             == 0
         )
@@ -74,6 +75,7 @@ def test_stage_1():
                     "--write-images",
                     "--overwrite",
                 ],
+                cwd=tmpdir,
             )
             == 0
         )
@@ -93,7 +95,7 @@ def test_stage_1():
             assert "peak_time" in dl1_image.dtype.names
 
 
-def test_stage1_datalevels():
+def test_stage1_datalevels(tmpdir):
     """test the dl1 tool on a file not providing r1 or dl0"""
     from ctapipe.io import EventSource
     from ctapipe.tools.stage1 import Stage1ProcessorTool
@@ -140,6 +142,7 @@ def test_stage1_datalevels():
                         "--write-images",
                         "--overwrite",
                     ],
+                    cwd=tmpdir,
                 )
                 == 1
             )
@@ -159,6 +162,7 @@ def test_muon_reconstruction(tmpdir):
             run_tool(
                 MuonAnalysis(),
                 argv=[f"--input={LST_MUONS}", f"--output={f.name}", "--overwrite"],
+                cwd=tmpdir,
             )
             == 0
         )
@@ -179,6 +183,7 @@ def test_display_summed_images(tmpdir):
         run_tool(
             ImageSumDisplayerTool(),
             argv=shlex.split(f"--infile={GAMMA_TEST_LARGE} " "--max-events=2 "),
+            cwd=tmpdir,
         )
         == 0
     )
@@ -195,6 +200,7 @@ def test_display_integrator(tmpdir):
         run_tool(
             DisplayIntegrator(),
             argv=shlex.split(f"--f={GAMMA_TEST_LARGE} " "--max_events=1 "),
+            cwd=tmpdir,
         )
         == 0
     )
@@ -215,6 +221,7 @@ def test_display_events_single_tel(tmpdir):
                 "--tel=11 "
                 "--max-events=2 "  # <--- inconsistent!!!
             ),
+            cwd=tmpdir,
         )
         == 0
     )
@@ -229,7 +236,9 @@ def test_display_dl1(tmpdir):
 
     assert (
         run_tool(
-            DisplayDL1Calib(), argv=shlex.split("--max_events=1 " "--telescope=11 ")
+            DisplayDL1Calib(),
+            argv=shlex.split("--max_events=1 " "--telescope=11 "),
+            cwd=tmpdir,
         )
         == 0
     )
@@ -250,7 +259,7 @@ def test_dump_triggers(tmpdir):
     outfile = tmpdir.join("triggers.fits")
     tool = DumpTriggersTool(infile=GAMMA_TEST_LARGE, outfile=str(outfile))
 
-    assert run_tool(tool) == 0
+    assert run_tool(tool, cwd=tmpdir) == 0
 
     assert outfile.exists()
     assert run_tool(tool, ["--help-all"]) == 0
@@ -264,19 +273,25 @@ def test_dump_instrument(tmpdir):
 
     tool = DumpInstrumentTool()
 
-    assert run_tool(tool, [f"--infile={GAMMA_TEST_LARGE}"]) == 0
+    assert run_tool(tool, [f"--infile={GAMMA_TEST_LARGE}"], cwd=tmpdir) == 0
     assert tmpdir.join("FlashCam.camgeom.fits.gz").exists()
 
-    assert run_tool(tool, [f"--infile={GAMMA_TEST_LARGE}", "--format=ecsv"]) == 0
+    assert (
+        run_tool(tool, [f"--infile={GAMMA_TEST_LARGE}", "--format=ecsv"], cwd=tmpdir)
+        == 0
+    )
     assert tmpdir.join("MonteCarloArray.optics.ecsv.txt").exists()
 
-    assert run_tool(tool, [f"--infile={GAMMA_TEST_LARGE}", "--format=hdf5"]) == 0
+    assert (
+        run_tool(tool, [f"--infile={GAMMA_TEST_LARGE}", "--format=hdf5"], cwd=tmpdir)
+        == 0
+    )
     assert tmpdir.join("subarray.h5").exists()
 
     assert run_tool(tool, ["--help-all"]) == 0
 
 
-def test_camdemo():
+def test_camdemo(tmpdir):
     from ctapipe.tools.camdemo import CameraDemo
 
     sys.argv = ["camera_demo"]
@@ -285,16 +300,16 @@ def test_camdemo():
     tool.cleanframes = 2
     tool.display = False
 
-    assert run_tool(tool) == 0
+    assert run_tool(tool, cwd=tmpdir) == 0
     assert run_tool(tool, ["--help-all"]) == 0
 
 
-def test_bokeh_file_viewer():
+def test_bokeh_file_viewer(tmpdir):
     from ctapipe.tools.bokeh.file_viewer import BokehFileViewer
 
     sys.argv = ["bokeh_file_viewer"]
     tool = BokehFileViewer(disable_server=True)
-    assert run_tool(tool) == 0
+    assert run_tool(tool, cwd=tmpdir) == 0
     assert str(tool.reader.input_url) == get_dataset_path("gamma_test_large.simtel.gz")
     assert run_tool(tool, ["--help-all"]) == 0
 
@@ -304,7 +319,7 @@ def test_extract_charge_resolution(tmpdir):
 
     output_path = os.path.join(str(tmpdir), "cr.h5")
     tool = ChargeResolutionGenerator()
-    assert run_tool(tool, ["-f", GAMMA_TEST_LARGE, "-O", output_path]) == 1
+    assert run_tool(tool, ["-f", GAMMA_TEST_LARGE, "-O", output_path], cwd=tmpdir) == 1
     # TODO: Test files do not contain true charge, cannot test tool fully
     # assert os.path.exists(output_path)
     assert run_tool(tool, ["--help-all"]) == 0
