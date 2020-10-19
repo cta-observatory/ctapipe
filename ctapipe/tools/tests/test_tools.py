@@ -319,6 +319,6 @@ def test_plot_charge_resolution(tmpdir):
     output_path = os.path.join(str(tmpdir), "cr.pdf")
     tool = ChargeResolutionViewer()
 
-    assert run_tool(tool, ["-f", [path], "-o", output_path]) == 0
+    assert run_tool(tool, ["-f", f"[{path}]", "-o", output_path]) == 0
     assert os.path.exists(output_path)
     assert run_tool(tool, ["--help-all"]) == 0
