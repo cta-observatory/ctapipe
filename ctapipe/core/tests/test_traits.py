@@ -243,6 +243,9 @@ def test_telescope_parameter_patterns(mock_subarray):
 
     comp.tel_param = [("type", "*", 1.0), ("type", "*LSTCam", 16.0), ("id", 16, 10.0)]
 
+    # explicitly set the default for all
+    comp.tel_param = [("*", "*", 1.0), ("type", "*_LSTCam", 5.0)]
+
     with pytest.raises(TraitError):
         comp.tel_param = [("badcommand", "", 1.0)]
 
