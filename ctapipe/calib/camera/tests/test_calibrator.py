@@ -112,7 +112,10 @@ def test_check_dl0_empty(example_event, example_subarray):
 
 def test_dl1_charge_calib(example_subarray):
     camera = example_subarray.tel[1].camera
-    sampling_rate = camera.readout.sampling_rate.to_value(u.GHz)
+    # test with a sampling_rate different than 1 to
+    # test if we handle time vs. slices correctly
+    sampling_rate = 2
+    camera.readout.sampling_rate = sampling_rate * u.GHz
 
     n_pixels = camera.geometry.n_pixels
     n_samples = 96
@@ -122,7 +125,7 @@ def test_dl1_charge_calib(example_subarray):
     x = np.arange(n_samples)
 
     # Randomize times and create pulses
-    time_offset = random.uniform(-10, 10, n_pixels)
+    time_offset = random.uniform(-10, +10, n_pixels)
     y = norm.pdf(x, mid + time_offset[:, np.newaxis], pulse_sigma).astype("float32")
 
     # Define absolute calibration coefficients
@@ -164,4 +167,31 @@ def test_dl1_charge_calib(example_subarray):
     expected_peak_time = (mid + time_offset) / sampling_rate
     np.testing.assert_allclose(dl1.peak_time, expected_peak_time, rtol=1e-5)
 
-    # TODO: Test with timing corrections
+    # test with timing corrections
+    event.calibration.tel[telid].dl1.time_shift = time_offset / sampling_rate
+    calibrator(event)
+
+    # more rtol since shifting might lead to reduced integral
+    np.testing.assert_allclose(event.dl1.tel[telid].image, 1, rtol=1e-5)
+    np.testing.assert_allclose(
+        event.dl1.tel[telid].peak_time, mid / sampling_rate, atol=1
+    )
+
+
+def test_shift_waveforms():
+    from ctapipe.calib.camera.calibrator import shift_waveforms
+
+    # 5 pixels, 40 samples
+    waveforms = np.zeros((5, 40))
+    waveforms[:, 10] = 1
+    shifts = np.array([1.4, 2.1, -1.8, 3.1, -4.4])
+
+    shifted_waveforms, remaining_shift = shift_waveforms(waveforms, shifts)
+
+    assert np.allclose(remaining_shift, [0.4, 0.1, 0.2, 0.1, -0.4])
+
+    assert shifted_waveforms[0, 9] == 1
+    assert shifted_waveforms[1, 8] == 1
+    assert shifted_waveforms[2, 12] == 1
+    assert shifted_waveforms[3, 7] == 1
+    assert shifted_waveforms[4, 14] == 1
