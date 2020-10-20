@@ -624,6 +624,10 @@ class Stage1ProcessorTool(Tool):
                 writer.exclude(
                     f"/dl1/event/telescope/images/{table_name}", "image_mask"
                 )
+
+            writer.exclude(
+                f"/dl1/monitoring/telescope/trigger/{table_name}", "trigger_pixels"
+            )
             writer.exclude(f"/dl1/event/telescope/images/{table_name}", "parameters")
             writer.exclude(
                 f"/dl1/monitoring/event/pointing/tel_{tel_id:03d}", "event_type"
