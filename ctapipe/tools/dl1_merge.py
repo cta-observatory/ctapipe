@@ -258,7 +258,7 @@ class MergeTool(Tool):
             with tables.open_file(current_file, mode='r') as file:
                 if i == 0:
                     # Check if first file is simulation
-                    if '/simulation' in file:
+                    if '/simulation' in file.root:
                         self.is_simu = True
                         self.log.info('Merging simulation-files')
 
@@ -269,6 +269,7 @@ class MergeTool(Tool):
                 self.merge_tables(file)
                 self.add_image_statistics(file)
 
+            PROV.add_input_file(str(current_file))
             merged_files_counter += 1
 
         self.log.info(f"{merged_files_counter} out of {len(self.input_files)} files "
