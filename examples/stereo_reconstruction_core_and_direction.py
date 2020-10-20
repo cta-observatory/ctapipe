@@ -79,20 +79,24 @@ signal.signal(signal.SIGINT, signal_handler)
 #                               INPUT DATA
 # ==============================================================================
 
-description = "Example of showers reconstruction. Press ctrl-c to exit."
+description = "Example of showers reconstruction. To exit press ctrl-c."
 description += "You can use Matplotlib interactive GUI to zoom in."
+default_test_file = "gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"
 parser = argparse.ArgumentParser(description=description)
 parser.add_argument(
     "--infile",
     type=str,
-    default=get_dataset_path("gamma_test_large.simtel.gz"),
-    help="simtel file to use (default: gamma_test_large.simtel.gz)",
+    default=get_dataset_path(f"{default_test_file}"),
+    help=f"simtel file to use (default: {default_test_file})",
 )
 parser.add_argument(
     "--max_events",
     type=int,
     default=None,
     help="maximum number of showers to analyze (default: all showers)",
+)
+parser.add_argument(
+    "--show_pixels", action="store_true", help="Show pixel positions in NominalFrame",
 )
 
 args = parser.parse_args()
@@ -430,13 +434,14 @@ for event in source:
             )
             ax.add_patch(ellipse)
 
-            ax.scatter(
-                x=pixel_coord.fov_lon.deg,
-                y=pixel_coord.fov_lat.deg,
-                s=30,
-                color=cmap(i),
-                alpha=0.25,
-            )
+            if args.show_pixels:
+                ax.scatter(
+                    x=pixel_coord.fov_lon.deg,
+                    y=pixel_coord.fov_lat.deg,
+                    s=30,
+                    color=cmap(i),
+                    alpha=0.25,
+                )
 
         plt.plot(
             simulated_direction.fov_lon,
