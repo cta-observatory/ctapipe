@@ -21,7 +21,7 @@ warnings.filterwarnings('ignore', category=tables.NaturalNameWarning)
 
 PROV = Provenance()
 
-allowlist_base = ['/dl1/monitoring/subarray/pointing',
+required_nodes = ['/dl1/monitoring/subarray/pointing',
                   '/dl1/monitoring/telescope/pointing',
                   '/dl1/service/image_statistics',
                   '/dl1/service/image_statistics.__table_column_meta__',
@@ -34,15 +34,15 @@ allowlist_base = ['/dl1/monitoring/subarray/pointing',
                   '/simulation/event/telescope/parameters',
                   '/simulation/event/telescope/images',
                   '/simulation/service/shower_distribution']
+optional_nodes = ['/simulation/service/shower_distribution',
+                  '/simulation/event/telescope/images',
+                  '/simulation/event/telescope/parameters']
 allowlist_simu = ['/simulation/event/subarray/shower',
                   '/simulation/event/telescope/parameters',
                   '/simulation/event/telescope/images',
                   '/simulation/service/shower_distribution']
 allowlist_service = ['/dl1/service/image_statistics',
                      '/dl1/service/image_statistics.__table_column_meta__']
-allowlist_unessential = ['/simulation/service/shower_distribution',
-                         '/simulation/event/telescope/images',
-                         '/simulation/event/telescope/parameters']
 allowlist_tels = ['/dl1/monitoring/telescope/pointing',
                   '/dl1/event/telescope/parameters',
                   '/dl1/event/telescope/images',
@@ -163,11 +163,11 @@ class MergeTool(Tool):
                              "Skip File.")
             self.skip_file = True
 
-        # Gives warning if tables for listed nodes in 'allowlist_unessential'
+        # Gives warning if tables for listed nodes in 'optional_nodes'
         # are missing but continues merging the rest of the file. If any
-        # other node from 'allowlist_base' is missing, except the given combinations
+        # other node from 'required_nodes' is missing, except the given combinations
         # of traits and blocklist, the whole file will be skipped.
-        for node in allowlist_base:
+        for node in required_nodes:
             if self.is_simu is False and node in allowlist_simu:
                 continue
             if self.skip_simu_images is True and node is blocklist_images[0]:
@@ -176,7 +176,7 @@ class MergeTool(Tool):
                 continue
             if self.skip_parameters is True and node in blocklist_parameters:
                 continue
-            if node in allowlist_unessential and node not in file:
+            if node in optional_nodes and node not in file:
                 self.log.warning(f"{node} is not in {file_path}. Continue with "
                                  "merging file. This table will be incomplete "
                                  "or empty")
@@ -206,11 +206,11 @@ class MergeTool(Tool):
                 file.copy_node(node, newparent=target_group)
 
     def merge_tables(self, file):
-        # Loop over all nodes listed in allowlist_base. Appends table to output_file
+        # Loop over all nodes listed in required_nodes. Appends table to output_file
         # if it already exists, otherwise creates group and copies node. If skip_images
         # or skip_simu_images or skip_parameters flag is True, related groups
         # will be skipped.
-        for node in allowlist_base:
+        for node in required_nodes:
             if node in file:
                 if self.skip_images is True and node in blocklist_images:
                     continue
