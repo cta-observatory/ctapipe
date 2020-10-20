@@ -214,7 +214,7 @@ class MergeTool(Tool):
             if node in file:
                 if self.skip_images is True and node in blocklist_images:
                     continue
-                elif self.skip_simu_images is True and node in blocklist_images[0]:
+                if self.skip_simu_images is True and node in blocklist_images[0]:
                     continue
                 if self.skip_parameters is True and node in blocklist_parameters:
                     continue
@@ -261,12 +261,13 @@ class MergeTool(Tool):
                     if '/simulation' in file:
                         self.is_simu = True
                         self.log.info('Merging simulation-files')
+
                 self.check_file(file)
                 if self.skip_file is True:
                     continue
-                else:
-                    self.merge_tables(file)
-                    self.add_image_statistics(file)
+
+                self.merge_tables(file)
+                self.add_image_statistics(file)
 
             merged_files_counter += 1
 
