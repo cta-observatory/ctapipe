@@ -13,10 +13,11 @@ from astropy.coordinates import SkyCoord
 from astropy.table import Table
 from astropy.utils import lazyproperty
 import tables
+from copy import copy
 
 import ctapipe
 
-from ..coordinates import GroundFrame
+from ..coordinates import GroundFrame, CameraFrame
 from .telescope import TelescopeDescription
 from .camera import CameraDescription, CameraReadout, CameraGeometry
 from .optics import OpticsDescription
@@ -450,12 +451,23 @@ class SubarrayDescription:
             kwargs = {k: v[row] for k, v in optics_quantities.items()}
             optics[desc] = OpticsDescription(**kwargs)
 
+        # give correct frame for the camera to each telescope
+        cameras_by_desc = {}
+        for row in layout:
+            desc = row["tel_description"]
+
+            # copy to support different telescopes with same camera geom
+            camera = copy(cameras[row["camera_type"]])
+            focal_length = optics[desc].equivalent_focal_length
+            camera.geometry.frame = CameraFrame(focal_length=focal_length)
+            cameras_by_desc[desc] = camera
+
         telescope_descriptions = {
             row["tel_id"]: TelescopeDescription(
                 name=row["name"],
                 tel_type=row["type"],
                 optics=optics[row["tel_description"]],
-                camera=cameras[row["camera_type"]],
+                camera=cameras_by_desc[row["tel_description"]],
             )
             for row in layout
         }
