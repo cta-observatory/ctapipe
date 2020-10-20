@@ -50,6 +50,14 @@ def test_stage_1():
             assert tf.root.configuration.instrument.telescope.camera.geometry_LSTCam
             assert tf.root.configuration.instrument.telescope.camera.readout_LSTCam
 
+            assert tf.root.dl1.monitoring.subarray.pointing.dtype.names == (
+                "time",
+                "array_azimuth",
+                "array_altitude",
+                "array_ra",
+                "array_dec",
+            )
+
         # check we can read telescope parametrs
         dl1_features = pd.read_hdf(f.name, "/dl1/event/telescope/parameters/tel_001")
         features = (
