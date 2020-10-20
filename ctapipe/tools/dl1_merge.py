@@ -214,12 +214,16 @@ class MergeTool(Tool):
             if node in file:
                 if self.skip_images is True and node in blocklist_images:
                     continue
+
                 if self.skip_simu_images is True and node in blocklist_images[0]:
                     continue
+
                 if self.skip_parameters is True and node in blocklist_parameters:
                     continue
+
                 if node in allowlist_service:
                     continue
+
                 if node in allowlist_tels:
                     if node not in self.output_file:
                         head, tail = os.path.split(node)
@@ -227,21 +231,52 @@ class MergeTool(Tool):
                     for tel in file.root[node]:
                         if (node + '/' + tel.name) in self.output_file:
                             output_node = self.output_file.get_node(node + '/' + tel.name)
-                            output_node.append(file.root[node + '/' + tel.name][:])
+                            input_node = file.root[node + '/' + tel.name]
+
+                            # cast needed for some image parameters that are sometimes
+                            # float32 and sometimes float64
+                            output_node.append(input_node[:].astype(output_node.dtype))
                         else:
                             target_group = self.output_file.root[node]
                             file.copy_node(tel, newparent=target_group)
                     continue
                 if node in self.output_file:
+                    # this is needed to merge 0.8 files due to
+                    # a column added erronouesly which prevents merging
+                    # because it's variable length
+                    # TODO: remove when we no longer want to support merging 0.8 files.
+                    data = file.root[node][:]
+                    if node == '/dl1/monitoring/subarray/pointing':
+                        data = self.drop_column(data, 'tels_with_trigger')
+
                     output_node = self.output_file.get_node(node)
-                    output_node.append(file.root[node][:])
+                    output_node.append(data)
                 else:
-                    group_path = os.path.split(node)[0]
+                    group_path, table_name = os.path.split(node)
                     if group_path not in self.output_file:
                         head, tail = os.path.split(group_path)
                         self.output_file.create_group(head, tail, createparents=True)
+
                     target_group = self.output_file.root[group_path]
-                    file.copy_node(node, newparent=target_group)
+
+                    if node == '/dl1/monitoring/subarray/pointing':
+                        h5_node = file.root[node]
+                        data = self.drop_column(h5_node[:], 'tels_with_trigger')
+                        self.output_file.create_table(
+                            group_path, table_name, filters=h5_node.filters,
+                            obj=data,
+                        )
+                    else:
+                        file.copy_node(node, newparent=target_group)
+
+    @staticmethod
+    def drop_column(array, column):
+        from numpy.lib.recfunctions import repack_fields
+        cols = list(array.dtype.names)
+        if column in cols:
+            cols.remove(column)
+
+        return repack_fields(array[cols])
 
     def start(self):
         merged_files_counter = 0
