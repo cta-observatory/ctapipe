@@ -16,6 +16,7 @@ from ctapipe.utils import get_dataset_path
 from ctapipe.core import run_tool
 from ctapipe.io import DataLevel
 import numpy as np
+from pathlib import Path
 
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
@@ -25,12 +26,13 @@ LST_MUONS = get_dataset_path("lst_muons.simtel.zst")
 def test_stage_1(tmpdir):
     from ctapipe.tools.stage1 import Stage1ProcessorTool
 
+    config = Path("./examples/stage1_config.json").absolute()
     with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
         assert (
             run_tool(
                 Stage1ProcessorTool(),
                 argv=[
-                    "--config=./examples/stage1_config.json",
+                    f"--config={config}",
                     f"--input={GAMMA_TEST_LARGE}",
                     f"--output={f.name}",
                     "--write-parameters",
@@ -69,7 +71,7 @@ def test_stage_1(tmpdir):
             run_tool(
                 Stage1ProcessorTool(),
                 argv=[
-                    "--config=./examples/stage1_config.json",
+                    f"--config={config}",
                     f"--input={GAMMA_TEST_LARGE}",
                     f"--output={f.name}",
                     "--write-images",
@@ -131,12 +133,13 @@ def test_stage1_datalevels(tmpdir):
             f.write(b"dummy")
             f.flush()
 
+            config = Path("./examples/stage1_config.json").absolute()
             tool = Stage1ProcessorTool()
             assert (
                 run_tool(
                     tool,
                     argv=[
-                        "--config=./examples/stage1_config.json",
+                        f"--config={config}",
                         f"--input={f.name}",
                         f"--output={out.name}",
                         "--write-images",

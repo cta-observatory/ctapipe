@@ -3,6 +3,7 @@ import logging
 import textwrap
 from abc import abstractmethod
 import pathlib
+import os
 
 from traitlets import default, Unicode
 from traitlets.config import Application, Configurable
@@ -388,11 +389,14 @@ def run_tool(tool: Tool, argv=None, cwd=None):
     exit_code: int
         The return code of the tool, 0 indicates success, everything else an error
     """
-    cwd = pathlib.Path(cwd) if cwd is not None else pathlib.Path()
+    current_cwd = pathlib.Path().absolute()
+    cwd = pathlib.Path(cwd) if cwd is not None else current_cwd
     try:
         # switch to cwd for running and back after
-        with cwd:
-            tool.run(argv or [])
+        os.chdir(cwd)
+        tool.run(argv or [])
         return 0
     except SystemExit as e:
         return e.code
+    finally:
+        os.chdir(current_cwd)
