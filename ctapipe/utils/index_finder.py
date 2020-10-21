@@ -2,6 +2,9 @@ import bisect
 import numpy as np
 
 
+__all__ = ["IndexFinder"]
+
+
 class IndexFinder:
     """
     Helper class to find the index of the closest matching value in an array/list/...,
@@ -49,6 +52,8 @@ class IndexFinder:
         index of the closest matching entry relative to the unordered
         list, that was given at construction.
         """
+        if len(self.nums) == 1:
+            return 0
         try:
             return self.numindexes[self.nums[self._rank(target)]]
         except IndexError:

@@ -20,7 +20,7 @@ from ctapipe.containers import (
     TimingParametersContainer,
     TriggerContainer,
 )
-from ctapipe.utils.index_finder import IndexFinder
+from ctapipe.utils import IndexFinder
 
 
 logger = logging.getLogger(__name__)
@@ -334,16 +334,25 @@ class DL1EventSource(EventSource):
         Fill the array pointing information of a given event
         """
         # Only unique pointings are stored, so reader.read() wont work as easily
-        # Thats why we sort the values once in the finder and then look
-        # for the closest match using a bisect search
-        closest_time = array_pointing_finder.closest(data.trigger.time)
-        array_pointing = self.file_.root.dl1.monitoring.subarray.pointing[closest_time]
-        data.pointing.array_azimuth = u.Quantity(array_pointing["array_azimuth"], u.rad)
-        data.pointing.array_altitude = u.Quantity(
-            array_pointing["array_altitude"], u.rad
+        # Thats why we match the pointings based on trigger time
+        closest_time_index = array_pointing_finder.closest(data.trigger.time)
+        array_pointing = self.file_.root.dl1.monitoring.subarray.pointing
+        data.pointing.array_azimuth = u.Quantity(
+            array_pointing[closest_time_index]["array_azimuth"],
+            array_pointing.attrs["array_azimuth_UNIT"],
         )
-        data.pointing.array_ra = u.Quantity(array_pointing["array_ra"], u.rad)
-        data.pointing.array_dec = u.Quantity(array_pointing["array_dec"], u.rad)
+        data.pointing.array_altitude = u.Quantity(
+            array_pointing[closest_time_index]["array_altitude"],
+            array_pointing.attrs["array_altitude_UNIT"],
+        )
+        data.pointing.array_ra = u.Quantity(
+            array_pointing[closest_time_index]["array_ra"],
+            array_pointing.attrs["array_ra_UNIT"],
+        )
+        data.pointing.array_dec = u.Quantity(
+            array_pointing[closest_time_index]["array_dec"],
+            array_pointing.attrs["array_dec_UNIT"],
+        )
 
     def _fill_telescope_pointing(self, data, tel_pointing_finder):
         """
@@ -356,13 +365,15 @@ class DL1EventSource(EventSource):
             tel_pointing_table = self.file_.root.dl1.monitoring.telescope.pointing[
                 f"tel_{tel:03d}"
             ]
-            closest_time = tel_pointing_finder[f"tel_{tel:03d}"].closest(
+            closest_time_index = tel_pointing_finder[f"tel_{tel:03d}"].closest(
                 data.trigger.tel[tel].time
             )
-            pointing_array = tel_pointing_table[closest_time]
+            pointing_telescope = tel_pointing_table
             data.pointing.tel[tel].azimuth = u.Quantity(
-                pointing_array["azimuth"], u.rad
+                pointing_telescope[closest_time_index]["azimuth"],
+                pointing_telescope.attrs["azimuth_UNIT"],
             )
             data.pointing.tel[tel].altitude = u.Quantity(
-                pointing_array["altitude"], u.rad
+                pointing_telescope[closest_time_index]["altitude"],
+                pointing_telescope.attrs["altitude_UNIT"],
             )
