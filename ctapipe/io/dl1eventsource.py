@@ -20,6 +20,7 @@ from ctapipe.containers import (
     TimingParametersContainer,
     TriggerContainer,
 )
+from ctapipe.utils.index_finder import IndexFinder
 
 
 logger = logging.getLogger(__name__)
@@ -250,6 +251,16 @@ class DL1EventSource(EventSource):
         events = HDF5TableReader(self.file_).read(
             "/dl1/event/subarray/trigger", [TriggerContainer(), EventIndexContainer()]
         )
+
+        array_pointing_finder = IndexFinder(
+            self.file_.root.dl1.monitoring.subarray.pointing.col("time")
+        )
+
+        tel_pointing_finder = {
+            tel.name: IndexFinder(tel.col("telescopetrigger_time"))
+            for tel in self.file_.root.dl1.monitoring.telescope.pointing
+        }
+
         for counter, array_event in enumerate(events):
             data.dl1.tel.clear()
             data.mc.tel.clear()
@@ -273,8 +284,8 @@ class DL1EventSource(EventSource):
                     continue
                 data.trigger.tel[i["tel_id"]].time = i["telescopetrigger_time"]
 
-            self._fill_array_pointing(data)
-            self._fill_telescope_pointing(data)
+            self._fill_array_pointing(data, array_pointing_finder)
+            self._fill_telescope_pointing(data, tel_pointing_finder)
 
             if self.is_simulation:
                 data.mc = next(mc_shower_reader)
@@ -318,21 +329,15 @@ class DL1EventSource(EventSource):
                     # ToDo: Find a place in the data container, where the true params can go #1368
             yield data
 
-    def _fill_array_pointing(self, data):
+    def _fill_array_pointing(self, data, array_pointing_finder):
         """
         Fill the array pointing information of a given event
         """
         # Only unique pointings are stored, so reader.read() wont work as easily
-        # Not sure if this is the right way to do it
-        # One could keep an index of the last selected row and the last pointing
-        # and only advance with the row iterator if the next time
-        # is closer or smth like that. But that would require peeking ahead
-        closest_time = np.argmin(
-            self.file_.root.dl1.monitoring.subarray.pointing.col("time")
-            - data.trigger.time
-        )
+        # Thats why we sort the values once in the finder and then look
+        # for the closest match using a bisect search
+        closest_time = array_pointing_finder.closest(data.trigger.time)
         array_pointing = self.file_.root.dl1.monitoring.subarray.pointing[closest_time]
-
         data.pointing.array_azimuth = u.Quantity(array_pointing["array_azimuth"], u.rad)
         data.pointing.array_altitude = u.Quantity(
             array_pointing["array_altitude"], u.rad
@@ -340,7 +345,7 @@ class DL1EventSource(EventSource):
         data.pointing.array_ra = u.Quantity(array_pointing["array_ra"], u.rad)
         data.pointing.array_dec = u.Quantity(array_pointing["array_dec"], u.rad)
 
-    def _fill_telescope_pointing(self, data):
+    def _fill_telescope_pointing(self, data, tel_pointing_finder):
         """
         Fill the telescope pointing information of a given event
         """
@@ -351,9 +356,8 @@ class DL1EventSource(EventSource):
             tel_pointing_table = self.file_.root.dl1.monitoring.telescope.pointing[
                 f"tel_{tel:03d}"
             ]
-            closest_time = np.argmin(
-                tel_pointing_table.col("telescopetrigger_time")
-                - data.trigger.tel[tel].time
+            closest_time = tel_pointing_finder[f"tel_{tel:03d}"].closest(
+                data.trigger.tel[tel].time
             )
             pointing_array = tel_pointing_table[closest_time]
             data.pointing.tel[tel].azimuth = u.Quantity(
