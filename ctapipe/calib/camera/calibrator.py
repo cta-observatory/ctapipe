@@ -5,10 +5,14 @@ calibration and image extraction, as well as supporting algorithms.
 
 import warnings
 import numpy as np
+import astropy.units as u
+
 from ctapipe.core import Component
 from ctapipe.image.extractor import ImageExtractor
 from ctapipe.image.reducer import DataVolumeReducer
 from ctapipe.core.traits import create_class_enum_trait
+
+from numba import guvectorize, float64, float32, int64
 
 __all__ = ["CameraCalibrator"]
 
@@ -134,6 +138,9 @@ class CameraCalibrator(Component):
         if self._check_dl0_empty(waveforms):
             return
 
+        selected_gain_channel = event.r1.tel[telid].selected_gain_channel
+        time_shift = event.calibration.tel[telid].dl1.time_shift
+        readout = self.subarray.tel[telid].camera.readout
         n_pixels, n_samples = waveforms.shape
 
         # subtract any remaining pedestal before extraction
@@ -152,9 +159,23 @@ class CameraCalibrator(Component):
             charge = waveforms[..., 0].astype(np.float32)
             peak_time = np.zeros(n_pixels, dtype=np.float32)
         else:
+
+            # shift waveforms if time_shift calibration is available
+            if time_shift is not None:
+                sampling_rate = readout.sampling_rate.to_value(u.GHz)
+                time_shift_samples = time_shift * sampling_rate
+                waveforms, remaining_shift = shift_waveforms(
+                    waveforms, time_shift_samples
+                )
+                remaining_shift /= sampling_rate
+
             charge, peak_time = self.image_extractor(
                 waveforms, telid=telid, selected_gain_channel=selected_gain_channel
             )
+
+            # correct non-integer remainder of the shift if given
+            if time_shift is not None:
+                peak_time -= remaining_shift
 
         # Calibrate extracted charge
         charge *= dl1_calib.relative_factor / dl1_calib.absolute_factor
@@ -178,3 +199,48 @@ class CameraCalibrator(Component):
         for telid in tel.keys():
             self._calibrate_dl0(event, telid)
             self._calibrate_dl1(event, telid)
+
+
+def shift_waveforms(waveforms, time_shift_samples):
+    """
+    Shift the waveforms by the mean integer shift to mediate
+    time differences between pixels.
+    The remaining shift (mean + fractional part) is returned
+    to be applied later to the extracted peak time.
+
+    Parameters
+    ----------
+    waveforms: ndarray of shape (n_pixels, n_samples)
+        The waveforms to shift
+    time_shift_samples: ndarray of shape (n_pixels, )
+        The shift to apply in units of samples.
+        Waveforms are shifted to the left by the smallest integer
+        that minimizes inter-pixel differences.
+
+    Returns
+    -------
+    shifted_waveforms: ndarray of shape (n_pixels, n_samples)
+        The shifted waveforms
+    remaining_shift: ndarray of shape (n_pixels, )
+        The remaining shift after applying the integer shift to the waveforms.
+    """
+    mean_shift = time_shift_samples.mean()
+    integer_shift = np.round(time_shift_samples - mean_shift).astype("int16")
+    remaining_shift = time_shift_samples - integer_shift
+    shifted_waveforms = _shift_waveforms_by_integer(waveforms, integer_shift)
+    return shifted_waveforms, remaining_shift
+
+
+@guvectorize(
+    [(float64[:], int64, float64[:]), (float32[:], int64, float32[:])],
+    "(s),()->(s)",
+    nopython=True,
+)
+def _shift_waveforms_by_integer(waveforms, integer_shift, shifted_waveforms):
+    n_samples = waveforms.size
+
+    for new_sample_idx in range(n_samples):
+        # repeat first value if out ouf bounds to the left
+        # repeat last value if out ouf bounds to the right
+        sample_idx = min(max(new_sample_idx + integer_shift, 0), n_samples - 1)
+        shifted_waveforms[new_sample_idx] = waveforms[sample_idx]
