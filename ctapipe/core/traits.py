@@ -388,8 +388,8 @@ class TelescopeParameter(List):
             if not isinstance(command, str):
                 raise TraitError("command must be a string")
 
-            if command not in ["*", "type", "id"]:
-                raise TraitError("command must be one of: '*', 'type', 'id'")
+            if command not in ["type", "id"]:
+                raise TraitError("command must be one of: 'type', 'id'")
 
             if command == "type":
                 if not isinstance(arg, str):
