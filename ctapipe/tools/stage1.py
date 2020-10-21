@@ -483,7 +483,7 @@ class Stage1ProcessorTool(Tool):
     def _write_telescope_event(self, writer, event):
         """
         add entries to the event/telescope tables for each telescope in a single
-        event
+        even
         """
         # write the telescope tables
         for tel_id, dl1_camera in event.dl1.tel.items():
@@ -612,6 +612,7 @@ class Stage1ProcessorTool(Tool):
         writer.exclude("dl1/event/subarray/trigger", "tel")
         writer.exclude("dl1/monitoring/subarray/pointing", "tel")
         writer.exclude("dl1/monitoring/subarray/pointing", "event_type")
+        writer.exclude("dl1/monitoring/subarray/pointing", "tels_with_trigger")
         for tel_id, telescope in self.event_source.subarray.tel.items():
             tel_type = str(telescope)
             if self.split_datasets_by == "tel_id":
@@ -623,6 +624,10 @@ class Stage1ProcessorTool(Tool):
                 writer.exclude(
                     f"/dl1/event/telescope/images/{table_name}", "image_mask"
                 )
+
+            writer.exclude(
+                f"/dl1/monitoring/telescope/trigger/{table_name}", "trigger_pixels"
+            )
             writer.exclude(f"/dl1/event/telescope/images/{table_name}", "parameters")
             writer.exclude(
                 f"/dl1/monitoring/event/pointing/tel_{tel_id:03d}", "event_type"
