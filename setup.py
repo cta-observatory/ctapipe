@@ -69,7 +69,7 @@ setup(
         "scipy~=1.2",
         "tables~=3.4",
         "tqdm>=4.32",
-        "traitlets>=4.1,<5.0",
+        "traitlets~=5.0,>=5.0.5",
         "zstandard",
         "h5py",  # needed for astropy hdf5 io
     ],

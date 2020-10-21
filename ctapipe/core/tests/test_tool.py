@@ -47,7 +47,9 @@ def test_provenance_dir():
         userparam = Float(5.0, help="parameter").tag(config=True)
 
     tool = MyTool()
-    assert str(tool.provenance_log) == os.path.join(os.getcwd(), "application.provenance.log")
+    assert str(tool.provenance_log) == os.path.join(
+        os.getcwd(), "application.provenance.log"
+    )
 
 
 def test_export_config_to_yaml():
@@ -113,7 +115,7 @@ def test_tool_exit_code():
     with pytest.raises(SystemExit) as exc:
         tool.run(["--non-existent-option"])
 
-    assert exc.value.code == 1
+    assert exc.value.code == 2
 
     with pytest.raises(SystemExit) as exc:
         tool.run(["--MyTool.userparam=foo"])
@@ -121,7 +123,7 @@ def test_tool_exit_code():
     assert exc.value.code == 1
 
     assert run_tool(tool, ["--help"]) == 0
-    assert run_tool(tool, ["--non-existent-option"]) == 1
+    assert run_tool(tool, ["--non-existent-option"]) == 2
 
 
 def test_tool_command_line_precedence():
@@ -137,7 +139,7 @@ def test_tool_command_line_precedence():
         description = "test"
         userparam = Float(5.0, help="parameter").tag(config=True)
 
-        classes = List([SubComponent,])
+        classes = List([SubComponent])
         aliases = Dict({"component_param": "SubComponent.component_param"})
 
         def setup(self):
