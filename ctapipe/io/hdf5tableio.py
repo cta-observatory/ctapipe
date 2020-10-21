@@ -2,6 +2,7 @@
 import enum
 from functools import partial
 from pathlib import PurePath
+import re
 
 import numpy as np
 import tables
@@ -166,6 +167,14 @@ class HDF5TableWriter(TableWriter):
 
                 # apply any user-defined transforms first
                 value = self._apply_col_transform(table_name, col_name, value)
+
+                # add desription to metadata
+                if self.add_prefix:
+                    meta[f"{col_name}_DESC"] = container.fields[
+                        re.sub(f"^{container.prefix}_", "", col_name)
+                    ].description
+                else:
+                    meta[f"{col_name}_DESC"] = container.fields[col_name].description
 
                 if isinstance(value, enum.Enum):
 
@@ -407,6 +416,11 @@ class HDF5TableReader(TableReader):
                     colname_without_prefix = colname
                 if colname_without_prefix in container.fields:
                     self._cols_to_read[table_name].append(colname)
+                else:
+                    self.log.warning(
+                        f"Table {table_name} has column {colname_without_prefix} that is not in "
+                        f"container {container.__class__.__name__}. It will be skipped."
+                    )
 
             # also check that the container doesn't have fields that are not
             # in the table:

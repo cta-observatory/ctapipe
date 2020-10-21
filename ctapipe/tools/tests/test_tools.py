@@ -50,6 +50,14 @@ def test_stage_1():
             assert tf.root.configuration.instrument.telescope.camera.geometry_LSTCam
             assert tf.root.configuration.instrument.telescope.camera.readout_LSTCam
 
+            assert tf.root.dl1.monitoring.subarray.pointing.dtype.names == (
+                "time",
+                "array_azimuth",
+                "array_altitude",
+                "array_ra",
+                "array_dec",
+            )
+
         # check we can read telescope parametrs
         dl1_features = pd.read_hdf(f.name, "/dl1/event/telescope/parameters/tel_001")
         features = (
@@ -115,7 +123,7 @@ def test_stage1_datalevels():
 
         @property
         def obs_ids(self):
-            return [1, ]
+            return [1]
 
         @property
         def subarray(self):
@@ -163,10 +171,10 @@ def test_muon_reconstruction(tmpdir):
             == 0
         )
 
-        t = tables.open_file(f.name)
-        table = t.root.dl1.event.telescope.parameters.muons[:]
-        assert len(table) > 20
-        assert np.count_nonzero(np.isnan(table["muonring_radius"])) == 0
+        with tables.open_file(f.name) as t:
+            table = t.root.dl1.event.telescope.parameters.muons[:]
+            assert len(table) > 20
+            assert np.count_nonzero(np.isnan(table["muonring_radius"])) == 0
 
     assert run_tool(MuonAnalysis(), ["--help-all"]) == 0
 
@@ -262,10 +270,17 @@ def test_dump_instrument(tmpdir):
     sys.argv = ["dump_instrument"]
     tmpdir.chdir()
 
-    tool = DumpInstrumentTool(infile=GAMMA_TEST_LARGE)
+    tool = DumpInstrumentTool()
 
-    assert run_tool(tool) == 0
+    assert run_tool(tool, [f"--infile={GAMMA_TEST_LARGE}"]) == 0
     assert tmpdir.join("FlashCam.camgeom.fits.gz").exists()
+
+    assert run_tool(tool, [f"--infile={GAMMA_TEST_LARGE}", "--format=ecsv"]) == 0
+    assert tmpdir.join("MonteCarloArray.optics.ecsv.txt").exists()
+
+    assert run_tool(tool, [f"--infile={GAMMA_TEST_LARGE}", "--format=hdf5"]) == 0
+    assert tmpdir.join("subarray.h5").exists()
+
     assert run_tool(tool, ["--help-all"]) == 0
 
 
@@ -312,6 +327,7 @@ def test_plot_charge_resolution(tmpdir):
     output_path = os.path.join(str(tmpdir), "cr.pdf")
     tool = ChargeResolutionViewer()
 
-    assert run_tool(tool, ["-f", [path], "-o", output_path]) == 0
+    argv = ["-f", str(path), "-o", output_path]
+    assert run_tool(tool, argv) == 0
     assert os.path.exists(output_path)
     assert run_tool(tool, ["--help-all"]) == 0

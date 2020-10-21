@@ -57,8 +57,8 @@ NAN_TIME = Time(np.ma.masked_array(nan, mask=True), format="mjd")
 
 
 class EventType(enum.Enum):
-    """ These numbers come from  the document *CTA R1/Event Data Model Specification*
-    version 1 revision C.  They may be updated in future revisions """
+    """These numbers come from  the document *CTA R1/Event Data Model Specification*
+    version 1 revision C.  They may be updated in future revisions"""
 
     # calibrations are 0-15
     FLATFIELD = 0
@@ -112,7 +112,9 @@ class HillasParametersContainer(Container):
     phi = Field(nan * u.deg, "polar coordinate of centroid", unit=u.deg)
 
     length = Field(nan * u.m, "standard deviation along the major-axis", unit=u.m)
+    length_uncertainty = Field(nan * u.m, "uncertainty of length", unit=u.m)
     width = Field(nan * u.m, "standard spread along the minor-axis", unit=u.m)
+    width_uncertainty = Field(nan * u.m, "uncertainty of width", unit=u.m)
     psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
 
     skewness = Field(nan, "measure of the asymmetry")
@@ -257,7 +259,7 @@ class DL1CameraContainer(Container):
 
 
 class MCDL1CameraContainer(Container):
-    """ Contains all fields of the DL1CameraContainer, but adds fields for simulated
+    """Contains all fields of the DL1CameraContainer, but adds fields for simulated
     DL1 image information."""
 
     true_image = Field(
@@ -285,9 +287,10 @@ class DL1CameraCalibrationContainer(Container):
     """
 
     pedestal_offset = Field(
-        0,
-        "Additive coefficients for the pedestal calibration of extracted charge "
-        "for each pixel",
+        None,
+        "Residual mean pedestal of the waveforms for each pixel."
+        " This value is subtracted from the waveforms of each pixel before"
+        " the pulse extraction.",
     )
     absolute_factor = Field(
         1,
@@ -301,7 +304,7 @@ class DL1CameraCalibrationContainer(Container):
         "uniform illumination.",
     )
     time_shift = Field(
-        0,
+        None,
         "Additive coefficients for the timing correction before charge extraction "
         "for each pixel",
     )

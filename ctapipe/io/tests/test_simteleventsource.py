@@ -120,7 +120,7 @@ def test_properties():
     assert source.is_simulation
     assert source.mc_header.corsika_version == 6990
     assert source.datalevels == (DataLevel.R0, DataLevel.R1)
-    assert source.obs_ids == [7514, ]
+    assert source.obs_ids == [7514]
 
 
 def test_gamma_file():
@@ -255,7 +255,7 @@ def test_apply_simtel_r1_calibration_1_channel():
     n_samples = 128
 
     r0_waveforms = np.zeros((n_channels, n_pixels, n_samples))
-    pedestal = np.full((n_channels, n_pixels), 20 * n_samples)
+    pedestal = np.full((n_channels, n_pixels), 20)
     dc_to_pe = np.full((n_channels, n_pixels), 0.5)
 
     gain_selector = ThresholdGainSelector(threshold=90)
@@ -267,7 +267,7 @@ def test_apply_simtel_r1_calibration_1_channel():
     assert r1_waveforms.ndim == 2
     assert r1_waveforms.shape == (n_pixels, n_samples)
 
-    ped = pedestal / n_samples
+    ped = pedestal
     assert r1_waveforms[0, 0] == (r0_waveforms[0, 0, 0] - ped[0, 0]) * dc_to_pe[0, 0]
     assert r1_waveforms[1, 0] == (r0_waveforms[0, 1, 0] - ped[0, 1]) * dc_to_pe[0, 1]
 
@@ -282,8 +282,8 @@ def test_apply_simtel_r1_calibration_2_channel():
     r0_waveforms[1, :, :] = 1
 
     pedestal = np.zeros((n_channels, n_pixels))
-    pedestal[0] = 90 * n_samples
-    pedestal[1] = 0.9 * n_samples
+    pedestal[0] = 90
+    pedestal[1] = 0.9
 
     dc_to_pe = np.zeros((n_channels, n_pixels))
     dc_to_pe[0] = 0.01
@@ -299,7 +299,7 @@ def test_apply_simtel_r1_calibration_2_channel():
     assert r1_waveforms.ndim == 2
     assert r1_waveforms.shape == (n_pixels, n_samples)
 
-    ped = pedestal / n_samples
+    ped = pedestal
     assert r1_waveforms[0, 0] == (r0_waveforms[1, 0, 0] - ped[1, 0]) * dc_to_pe[1, 0]
     assert r1_waveforms[1, 0] == (r0_waveforms[0, 1, 0] - ped[0, 1]) * dc_to_pe[0, 1]
 

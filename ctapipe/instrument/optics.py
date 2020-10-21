@@ -95,13 +95,36 @@ class OpticsDescription:
 
         """
         table = get_table_dataset(optics_table, role="dl0.tel.svc.optics")
-        mask = table["tel_description"] == name
-        if mask.sum() == 0:
+
+        version = table.meta.get("TAB_VER")
+
+        # we introduced the TAB_VER after switching to the second version
+        # of this table, so when the version is missing, it can be either 1 or 2
+        # we guess the version by looking for the mirror_type attribute.
+        if version is None:
+            if "mirror_type" in table.colnames:
+                version = "1.0"
+            else:
+                version = "2.0"
+
+        if version not in {"1.0", "2.0"}:
+            raise ValueError(f"Unsupported version of optics table: {version}")
+
+        if version == "1.0":
+            mask = table["tel_description"] == name
+        elif version == "2.0":
+            mask = table["description"] == name
+
+        if np.count_nonzero(mask) == 0:
             raise ValueError(f"Unknown telescope name {name}")
+
+        if version == "1.0":
+            num_mirrors = 1 if table["mirror_type"][mask][0] == "DC" else 2
+        elif version == "2.0":
+            num_mirrors = table["num_mirrors"][mask][0]
 
         flen = table["equivalent_focal_length"][mask].quantity[0]
 
-        num_mirrors = 1 if table["mirror_type"][mask][0] == "DC" else 2
         optics = cls(
             name=name,
             num_mirrors=num_mirrors,

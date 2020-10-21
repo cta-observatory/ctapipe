@@ -99,9 +99,8 @@ def write_reference_metadata_headers(obs_id, subarray, writer):
         ),
     )
 
-    # convert all values to strings, since hdf5 can't handle Times, etc.:
     # TODO: add activity_stop_time?
-    headers = {k: str(v) for k, v in reference.to_dict().items()}
+    headers = reference.to_dict()
     meta.write_to_hdf5(headers, writer._h5file)
 
 
@@ -158,12 +157,6 @@ class Stage1ProcessorTool(Tool):
         default_value="blosc:zstd",
     ).tag(config=True)
 
-    image_extractor_type = create_class_enum_trait(
-        base_class=ImageExtractor,
-        default_value="NeighborPeakWindowSum",
-        help="Method to use to turn a waveform into a single charge value",
-    ).tag(config=True)
-
     image_cleaner_type = create_class_enum_trait(
         base_class=ImageCleaner, default_value="TailcutsImageCleaner"
     )
@@ -186,7 +179,6 @@ class Stage1ProcessorTool(Tool):
         "output": "Stage1ProcessorTool.output_path",
         "allowed-tels": "EventSource.allowed_tels",
         "max-events": "EventSource.max_events",
-        "image-extractor-type": "Stage1ProcessorTool.image_extractor_type",
         "image-cleaner-type": "Stage1ProcessorTool.image_cleaner_type",
     }
 
@@ -255,19 +247,8 @@ class Stage1ProcessorTool(Tool):
             )
             sys.exit(1)
 
-        self.image_extractor = self.add_component(
-            ImageExtractor.from_name(
-                self.image_extractor_type,
-                parent=self,
-                subarray=self.event_source.subarray,
-            )
-        )
         self.calibrate = self.add_component(
-            CameraCalibrator(
-                parent=self,
-                subarray=self.event_source.subarray,
-                image_extractor=self.image_extractor,
-            )
+            CameraCalibrator(parent=self, subarray=self.event_source.subarray)
         )
         self.clean = self.add_component(
             ImageCleaner.from_name(
@@ -504,7 +485,7 @@ class Stage1ProcessorTool(Tool):
     def _write_telescope_event(self, writer, event):
         """
         add entries to the event/telescope tables for each telescope in a single
-        event
+        even
         """
         # write the telescope tables
         for tel_id, dl1_camera in event.dl1.tel.items():
@@ -633,6 +614,7 @@ class Stage1ProcessorTool(Tool):
         writer.exclude("dl1/event/subarray/trigger", "tel")
         writer.exclude("dl1/monitoring/subarray/pointing", "tel")
         writer.exclude("dl1/monitoring/subarray/pointing", "event_type")
+        writer.exclude("dl1/monitoring/subarray/pointing", "tels_with_trigger")
         for tel_id, telescope in self.event_source.subarray.tel.items():
             tel_type = str(telescope)
             if self.split_datasets_by == "tel_id":
@@ -644,6 +626,10 @@ class Stage1ProcessorTool(Tool):
                 writer.exclude(
                     f"/dl1/event/telescope/images/{table_name}", "image_mask"
                 )
+
+            writer.exclude(
+                f"/dl1/monitoring/telescope/trigger/{table_name}", "trigger_pixels"
+            )
             writer.exclude(f"/dl1/event/telescope/images/{table_name}", "parameters")
             writer.exclude(
                 f"/dl1/monitoring/event/pointing/tel_{tel_id:03d}", "event_type"

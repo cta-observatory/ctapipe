@@ -8,14 +8,6 @@ env:
 
 matrix:
   include:
-    - name: conda python 3.6
-      os: linux
-      dist: bionic
-      language: generic
-      env:
-        - PYTHON_VERSION=3.6
-        - CONDA=true
-
     - name: conda python 3.7
       os: linux
       dist: bionic
@@ -24,15 +16,13 @@ matrix:
         - PYTHON_VERSION=3.7
         - CONDA=true
 
-    - os: linux
+    - name: conda python 3.8
+      os: linux
       dist: bionic
-      language: python
-      python: 3.6
-      addons:
-        apt:
-          packages:
-            - pandoc
-            - graphviz
+      language: generic
+      env:
+        - PYTHON_VERSION=3.8
+        - CONDA=true
 
     - os: linux
       dist: bionic
@@ -53,6 +43,7 @@ matrix:
           packages:
             - pandoc
             - graphviz
+
 
 before_install:
   - git fetch --tags
@@ -88,4 +79,4 @@ deploy:
   on:
     tags: true
     branch: master
-    condition: $TRAVIS_PYTHON_VERSION = "3.7"
+    condition: $TRAVIS_PYTHON_VERSION = "3.8"

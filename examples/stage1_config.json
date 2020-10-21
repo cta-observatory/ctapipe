@@ -2,8 +2,10 @@
     "Stage1ProcessorTool": {
         "overwrite": false,
         "write_images": true,
-        "image_extractor_type": "NeighborPeakWindowSum",
         "image_cleaner_type": "TailcutsImageCleaner"
+    },
+    "CameraCalibrator": {
+      "image_extractor_type": "NeighborPeakWindowSum"
     },
     "TailcutsImageCleaner": {
         "picture_threshold_pe":  [

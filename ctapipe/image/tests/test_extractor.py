@@ -15,6 +15,7 @@ from ctapipe.image.extractor import (
     FixedWindowSum,
     NeighborPeakWindowSum,
     TwoPassWindowSum,
+    FullWaveformSum,
 )
 from ctapipe.image.toymodel import WaveformModel
 from ctapipe.instrument import SubarrayDescription, TelescopeDescription
@@ -263,6 +264,23 @@ def test_extractors(Extractor, toymodel):
     assert_allclose(peak_time, true_time, rtol=0.1)
 
 
+@pytest.mark.parametrize("Extractor", extractors)
+def test_integration_correction_off(Extractor, toymodel):
+    # full waveform extractor does not have an integration correction
+    if Extractor is FullWaveformSum:
+        return
+
+    waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
+    extractor = Extractor(subarray=subarray, apply_integration_correction=False)
+    charge, peak_time = extractor(waveforms, telid, selected_gain_channel)
+
+    # peak time should stay the same
+    assert_allclose(peak_time, true_time, rtol=0.1)
+
+    # charge should be too small without correction
+    assert np.all(charge <= true_charge)
+
+
 def test_fixed_window_sum(toymodel):
     waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
     extractor = FixedWindowSum(subarray=subarray, peak_index=47)
@@ -295,8 +313,8 @@ def test_two_pass_window_sum(subarray):
             true_time,
         ) = toymodel
         charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
-        assert_allclose(charge, true_charge, rtol=0.07)
-        assert_allclose(pulse_time, true_time, rtol=0.07)
+        assert_allclose(charge, true_charge, rtol=0.1)
+        assert_allclose(pulse_time, true_time, rtol=0.1)
 
 
 def test_waveform_extractor_factory(toymodel):

@@ -126,7 +126,7 @@ def apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe, gain_selector)
         Shape: (n_pixels)
     """
     n_channels, n_pixels, n_samples = r0_waveforms.shape
-    ped = pedestal[..., np.newaxis] / n_samples
+    ped = pedestal[..., np.newaxis]
     gain = dc_to_pe[..., np.newaxis]
     r1_waveforms = (r0_waveforms - ped) * gain
     if n_channels == 1:
@@ -233,7 +233,7 @@ class SimTelEventSource(EventSource):
     @property
     def obs_ids(self):
         # ToDo: This does not support merged simtel files!
-        return [self.file_.header["run"], ]
+        return [self.file_.header["run"]]
 
     @property
     def mc_header(self):
@@ -390,7 +390,9 @@ class SimTelEventSource(EventSource):
 
                 mc = data.mc.tel[tel_id]
                 mc.dc_to_pe = array_event["laser_calibrations"][tel_id]["calib"]
-                mc.pedestal = array_event["camera_monitorings"][tel_id]["pedestal"]
+                mon = array_event["camera_monitorings"][tel_id]
+                mc.pedestal = mon["pedestal"] / mon["n_ped_slices"]
+
                 mc.true_image = (
                     array_event.get("photoelectrons", {})
                     .get(tel_id - 1, {})

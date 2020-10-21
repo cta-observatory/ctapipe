@@ -18,7 +18,7 @@ from ctapipe.coordinates import (
     GroundFrame,
     project_to_ground,
 )
-from ctapipe.image import poisson_likelihood_gaussian, mean_poisson_likelihood_gaussian
+from ctapipe.image import neg_log_likelihood, mean_poisson_likelihood_gaussian
 from ctapipe.instrument import get_atmosphere_profile_functions
 from ctapipe.containers import (
     ReconstructedShowerContainer,
@@ -484,7 +484,7 @@ class ImPACTReconstructor(Reconstructor):
         prediction *= self.template_scale
 
         # Get likelihood that the prediction matched the camera image
-        like = poisson_likelihood_gaussian(self.image, prediction, self.spe, self.ped)
+        like = neg_log_likelihood(self.image, prediction, self.spe, self.ped)
         like[np.isnan(like)] = 1e9
         like *= np.invert(ma.getmask(self.image))
         like = ma.MaskedArray(like, mask=ma.getmask(self.image))

@@ -143,15 +143,10 @@ class DisplayDL1Calib(Tool):
         help="Telescope to view. Set to None to display all telescopes.",
     ).tag(config=True)
 
-    extractor_product = traits.create_class_enum_trait(
-        ImageExtractor, default_value="NeighborPeakWindowSum"
-    )
-
     aliases = Dict(
         dict(
             input="EventSource.input_url",
             max_events="EventSource.max_events",
-            extractor="DisplayDL1Calib.extractor_product",
             T="DisplayDL1Calib.telescope",
             O="ImagePlotter.output_path",
         )
