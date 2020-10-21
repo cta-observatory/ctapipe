@@ -320,7 +320,6 @@ def test_plot_charge_resolution(tmpdir):
     tool = ChargeResolutionViewer()
 
     argv = ["-f", str(path), "-o", output_path]
-    print(argv)
     assert run_tool(tool, argv) == 0
     assert os.path.exists(output_path)
     assert run_tool(tool, ["--help-all"]) == 0
