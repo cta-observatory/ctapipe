@@ -2,6 +2,7 @@
 Tests for pedestal calculator functionality
 """
 import astropy.units as u
+from astropy.time import Time
 import numpy as np
 
 from ctapipe.calib.camera.pedestals import (
@@ -42,6 +43,7 @@ def test_pedestal_calculator():
     # create one event
     data = EventAndMonDataContainer()
     data.meta["origin"] = "test"
+    data.trigger.time = Time.now()
 
     # fill the values necessary for the pedestal calculation
     data.mon.tel[tel_id].pixel_status.hardware_failing_pixels = np.zeros(

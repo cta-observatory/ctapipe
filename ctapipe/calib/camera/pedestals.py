@@ -307,10 +307,9 @@ class PedestalIntegrator(PedestalCalculator):
 def calculate_time_results(time_start, trigger_time):
     """Calculate and return the sample time"""
     return {
-        # FIXME Why divided by two here?
-        "sample_time": u.Quantity((trigger_time - time_start) / 2, u.s),
-        "sample_time_min": u.Quantity(time_start, u.s),
-        "sample_time_max": u.Quantity(trigger_time, u.s),
+        "sample_time": (trigger_time - time_start).to_value(u.s),
+        "sample_time_min": time_start,
+        "sample_time_max": trigger_time,
     }
 
 

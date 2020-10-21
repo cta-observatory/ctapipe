@@ -1,4 +1,5 @@
 import numpy as np
+from astropy.time import Time
 from ctapipe.calib.camera.flatfield import FlasherFlatFieldCalculator
 from ctapipe.containers import EventAndMonDataContainer
 from traitlets.config.loader import Config
@@ -39,6 +40,7 @@ def test_flasherflatfieldcalculator():
     # create one event
     data = EventAndMonDataContainer()
     data.meta["origin"] = "test"
+    data.trigger.time = Time.now()
 
     # initialize mon and r1 data
     data.mon.tel[tel_id].pixel_status.hardware_failing_pixels = np.zeros(
