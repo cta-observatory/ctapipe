@@ -53,7 +53,7 @@ ctapipe.version.update_release_version()
 setup(
     packages=find_packages(),
     version=ctapipe.version.get_version(pep440=True),
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     install_requires=[
         "astropy>=3,<5",
         "bokeh~=1.0",
@@ -85,9 +85,9 @@ setup(
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: BSD License",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: Implementation :: CPython",
         "Topic :: Scientific/Engineering :: Astronomy",
         "Development Status :: 3 - Alpha",
