@@ -1,5 +1,6 @@
 import numpy as np
-from ctapipe.calib.camera.flatfield import *
+from astropy.time import Time
+from ctapipe.calib.camera.flatfield import FlasherFlatFieldCalculator
 from ctapipe.containers import EventAndMonDataContainer
 from traitlets.config.loader import Config
 import astropy.units as u
@@ -20,17 +21,15 @@ def test_flasherflatfieldcalculator():
         tel_descriptions={
             0: TelescopeDescription.from_name(
                 optics_name="SST-ASTRI", camera_name="CHEC"
-            ),
+            )
         },
     )
     subarray.tel[0].camera.readout.reference_pulse_shape = np.ones((1, 2))
     subarray.tel[0].camera.readout.reference_pulse_sample_width = u.Quantity(1, u.ns)
 
-    config = Config({"FixedWindowSum": {
-        "peak_index": 15,
-        "window_shift": 0,
-        "window_width": 10,
-    }})
+    config = Config(
+        {"FixedWindowSum": {"peak_index": 15, "window_shift": 0, "window_width": 10}}
+    )
     ff_calculator = FlasherFlatFieldCalculator(
         subarray=subarray,
         charge_product="FixedWindowSum",
@@ -41,6 +40,7 @@ def test_flasherflatfieldcalculator():
     # create one event
     data = EventAndMonDataContainer()
     data.meta["origin"] = "test"
+    data.trigger.time = Time.now()
 
     # initialize mon and r1 data
     data.mon.tel[tel_id].pixel_status.hardware_failing_pixels = np.zeros(
@@ -53,7 +53,6 @@ def test_flasherflatfieldcalculator():
         (n_gain, n_pixels), dtype=bool
     )
     data.r1.tel[tel_id].waveform = np.zeros((n_gain, n_pixels, 40))
-    data.r1.tel[tel_id].trigger_time = 1000
 
     # flat-field signal put == delta function of height ff_level at sample 20
     data.r1.tel[tel_id].waveform[:, :, 20] = ff_level

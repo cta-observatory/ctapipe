@@ -1,4 +1,5 @@
 .pytest_cache
+*.log
 
 # Compiled files
 *.py[co]
