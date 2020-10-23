@@ -315,12 +315,6 @@ class R0CameraContainer(Container):
     Storage of raw data from a single telescope
     """
 
-    trigger_time = Field(
-        None, "Telescope trigger time, start of waveform " "readout, None for MCs"
-    )
-    trigger_type = Field(0o0, "camera's event trigger type if applicable")
-    num_trig_pix = Field(0, "Number of trigger groups (sectors) listed")
-    trig_pix_id = Field(None, "pixels involved in the camera trigger")
     waveform = Field(
         None, ("numpy array containing ADC samples" "(n_channels, n_pixels, n_samples)")
     )
@@ -339,9 +333,6 @@ class R1CameraContainer(Container):
     """
     Storage of r1 calibrated data from a single telescope
     """
-
-    trigger_time = Field(None, "Telescope trigger time, start of waveform " "readout")
-    trigger_type = Field(0o0, "camera trigger type")
 
     waveform = Field(
         None,
@@ -372,9 +363,6 @@ class DL0CameraContainer(Container):
     """
     Storage of data volume reduced dl0 data from a single telescope
     """
-
-    trigger_time = Field(None, "Telescope trigger time, start of waveform " "readout")
-    trigger_type = Field(0o0, "camera trigger type")
 
     waveform = Field(
         None,
@@ -519,6 +507,8 @@ class MCHeaderContainer(Container):
 
 class TelescopeTriggerContainer(Container):
     time = Field(NAN_TIME, "Telescope trigger time")
+    n_trigger_pixels = Field(-1, "Number of trigger groups (sectors) listed")
+    trigger_pixels = Field(None, "pixels involved in the camera trigger")
 
 
 class TriggerContainer(Container):

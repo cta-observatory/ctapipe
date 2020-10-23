@@ -513,6 +513,7 @@ class Stage1ProcessorTool(Tool):
                 f"tel_{tel_id:03d}" if self.split_datasets_by == "tel_id" else tel_type
             )
 
+            event.trigger.tel[tel_id].prefix = ""
             writer.write(
                 "dl1/event/telescope/trigger", [tel_index, event.trigger.tel[tel_id]]
             )
@@ -615,6 +616,7 @@ class Stage1ProcessorTool(Tool):
         writer.exclude("dl1/monitoring/subarray/pointing", "tel")
         writer.exclude("dl1/monitoring/subarray/pointing", "event_type")
         writer.exclude("dl1/monitoring/subarray/pointing", "tels_with_trigger")
+        writer.exclude("/dl1/event/telescope/trigger", "trigger_pixels")
         for tel_id, telescope in self.event_source.subarray.tel.items():
             tel_type = str(telescope)
             if self.split_datasets_by == "tel_id":
@@ -628,7 +630,8 @@ class Stage1ProcessorTool(Tool):
                 )
 
             writer.exclude(
-                f"/dl1/monitoring/telescope/trigger/{table_name}", "trigger_pixels"
+                f"/dl1/monitoring/telescope/pointing/{table_name}",
+                "telescopetrigger_trigger_pixels",
             )
             writer.exclude(f"/dl1/event/telescope/images/{table_name}", "parameters")
             writer.exclude(

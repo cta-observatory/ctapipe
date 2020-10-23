@@ -410,11 +410,6 @@ class SimTelEventSource(EventSource):
                     adc_samples, mc.pedestal, mc.dc_to_pe, self.gain_selector
                 )
 
-                pixel_lists = telescope_event["pixel_lists"]
-                r0.num_trig_pix = pixel_lists.get(0, {"pixels": 0})["pixels"]
-                if r0.num_trig_pix > 0:
-                    r0.trig_pix_id = pixel_lists[0]["pixel_list"]
-
             yield data
 
     @staticmethod
@@ -459,7 +454,17 @@ class SimTelEventSource(EventSource):
             trigger["triggered_telescopes"], trigger["trigger_times"]
         ):
             # time is relative to central trigger in nano seconds
-            data.trigger.tel[tel_id].time = data.trigger.time + u.Quantity(time, u.ns)
+            trigger = data.trigger.tel[tel_id]
+            trigger.time = data.trigger.time + u.Quantity(time, u.ns)
+
+            # triggered pixel info
+            tel_event = array_event["telescope_events"].get(tel_id)
+            if tel_event:
+                # code 0 = trigger pixels
+                pixel_list = tel_event["pixel_lists"].get(0)
+                if pixel_list:
+                    trigger.n_trigger_pixels = pixel_list["pixels"]
+                    trigger.trigger_pixels = pixel_list["pixel_list"]
 
     def _fill_array_pointing(self, data):
         if self.file_.header["tracking_mode"] == 0:

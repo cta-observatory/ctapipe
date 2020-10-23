@@ -395,13 +395,8 @@ class HDF5TableReader(TableReader):
         for attr in tab.attrs._f_list():
             if attr.endswith("_ENUM"):
                 colname = attr[:-5]
-
-                def transform_int_to_enum(int_val):
-                    """transform integer 'code' into enum instance"""
-                    enum_class = tab.attrs[attr]
-                    return enum_class(int_val)
-
-                self.add_column_transform(table_name, colname, transform_int_to_enum)
+                enum = tab.attrs[attr]
+                self.add_column_transform(table_name, colname, enum)
 
     def _map_table_to_containers(self, table_name, containers, prefixes):
         """ identifies which columns in the table to read into the containers,
