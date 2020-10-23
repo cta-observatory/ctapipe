@@ -282,7 +282,7 @@ class DL1EventSource(EventSource):
             ):
                 if self.allowed_tels and i["tel_id"] not in self.allowed_tels:
                     continue
-                data.trigger.tel[i["tel_id"]].time = i["telescopetrigger_time"]
+                data.trigger.tel[i["tel_id"]].time = i["time"]
 
             self._fill_array_pointing(data, array_pointing_finder)
             self._fill_telescope_pointing(data, tel_pointing_finder)
