@@ -7,16 +7,16 @@ import pathlib
 
 from ctapipe.core import Component, TelescopeComponent
 from ctapipe.core.traits import (
+    Float,
     Path,
     TraitError,
     classes_with_traits,
-    enum_trait,
     has_traits,
     TelescopeParameterLookup,
     TelescopeParameter,
     FloatTelescopeParameter,
     IntTelescopeParameter,
-    AstroTime
+    AstroTime,
 )
 from ctapipe.image import ImageExtractor
 
@@ -43,7 +43,7 @@ def test_path_exists():
         thepath = Path(exists=False)
 
     c1 = C1()
-    c1.thepath = "test"
+    c1.thepath = "non-existent-path-that-should-never-exist-not-even-by-accident"
 
     with tempfile.NamedTemporaryFile() as f:
         with pytest.raises(TraitError):
@@ -70,7 +70,7 @@ def test_path_invalid():
         c1.p = 5
 
     with pytest.raises(TraitError):
-        c1.p = ''
+        c1.p = ""
 
 
 def test_bytes():
@@ -78,8 +78,8 @@ def test_bytes():
         p = Path(exists=False)
 
     c1 = C1()
-    c1.p = b'/home/foo'
-    assert c1.p == pathlib.Path('/home/foo')
+    c1.p = b"/home/foo"
+    assert c1.p == pathlib.Path("/home/foo")
 
 
 def test_path_none():
@@ -87,7 +87,7 @@ def test_path_none():
         thepath = Path(exists=False)
 
     c1 = C1()
-    c1.thepath = 'foo'
+    c1.thepath = "foo"
     c1.thepath = None
 
 
@@ -144,27 +144,33 @@ def test_path_url():
 
     c = C()
     # test relative
-    c.thepath = 'file://foo.hdf5'
-    assert c.thepath == (pathlib.Path() / 'foo.hdf5').absolute()
+    c.thepath = "file://foo.hdf5"
+    assert c.thepath == (pathlib.Path() / "foo.hdf5").absolute()
 
     # test absolute
-    c.thepath = 'file:///foo.hdf5'
-    assert c.thepath == pathlib.Path('/foo.hdf5')
+    c.thepath = "file:///foo.hdf5"
+    assert c.thepath == pathlib.Path("/foo.hdf5")
 
     # test not other shemes raise trailet errors
     with pytest.raises(TraitError):
-        c.thepath = 'https://example.org/test.hdf5'
+        c.thepath = "https://example.org/test.hdf5"
 
 
 def test_enum_trait_default_is_right():
     """ check default value of enum trait """
+    from ctapipe.core.traits import create_class_enum_trait
+
     with pytest.raises(ValueError):
-        enum_trait(ImageExtractor, default="name_of_default_choice")
+        create_class_enum_trait(ImageExtractor, default_value="name_of_default_choice")
 
 
 def test_enum_trait():
     """ check that enum traits are constructable from a complex class """
-    trait = enum_trait(ImageExtractor, default="NeighborPeakWindowSum")
+    from ctapipe.core.traits import create_class_enum_trait
+
+    trait = create_class_enum_trait(
+        ImageExtractor, default_value="NeighborPeakWindowSum"
+    )
     assert isinstance(trait, CaselessStrEnum)
 
 
@@ -216,17 +222,20 @@ def test_telescope_parameter_lookup(mock_subarray):
         telparam_list2[None]
 
 
-def test_telescope_parameter_patterns():
+def test_telescope_parameter_patterns(mock_subarray):
     """ Test validation of TelescopeParameters"""
 
-    with pytest.raises(ValueError):
-        TelescopeParameter(dtype="notatype")
+    with pytest.raises(TypeError):
+        TelescopeParameter(trait=int)
 
-    class SomeComponent(Component):
-        tel_param = TelescopeParameter()
+    with pytest.raises(TypeError):
+        TelescopeParameter(trait=Int)
+
+    class SomeComponent(TelescopeComponent):
+        tel_param = TelescopeParameter(Float(default_value=0.0, allow_none=True))
         tel_param_int = IntTelescopeParameter()
 
-    comp = SomeComponent()
+    comp = SomeComponent(mock_subarray)
 
     # single value allowed (converted to ("default","",val) )
     comp.tel_param = 4.5
@@ -250,6 +259,44 @@ def test_telescope_parameter_patterns():
 
     with pytest.raises(TraitError):
         comp.tel_param_int = [(12, "", 5)]  # command not string
+
+
+def test_telescope_parameter_path(mock_subarray):
+    class SomeComponent(TelescopeComponent):
+        path = TelescopeParameter(Path(exists=True, directory_ok=False))
+
+    c = SomeComponent(subarray=mock_subarray)
+
+    # non existing
+    with pytest.raises(TraitError):
+        c.path = "/does/not/exist"
+
+    with tempfile.NamedTemporaryFile() as f:
+        c.path = f.name
+
+        assert str(c.path.tel[1]) == f.name
+
+        with pytest.raises(TraitError):
+            # non existing somewhere in the config
+            c.path = [
+                ("type", "*", f.name),
+                ("type", "LST_LST_LSTCam", "/does/not/exist"),
+            ]
+
+    with tempfile.TemporaryDirectory() as d:
+        with pytest.raises(TraitError):
+            c.path = d
+
+    # test with none default:
+    class SomeComponent(TelescopeComponent):
+        path = TelescopeParameter(
+            Path(exists=True, directory_ok=False), default_value=None, allow_none=True
+        )
+
+    s = SomeComponent(subarray=mock_subarray)
+    assert s.path.tel[1] is None
+    s.path = [("type", "*", "setup.py")]
+    assert s.path.tel[1] == pathlib.Path("setup.py").absolute()
 
 
 def test_telescope_parameter_scalar_default(mock_subarray):
@@ -373,7 +420,7 @@ def test_telescope_parameter_set_retain_subarray(mock_subarray):
 
 def test_telescope_parameter_to_config(mock_subarray):
     """
-    test that the config can be read back from a component with a TelescopeParameter 
+    test that the config can be read back from a component with a TelescopeParameter
     (see Issue #1216)
     """
 
@@ -383,9 +430,7 @@ def test_telescope_parameter_to_config(mock_subarray):
     component = SomeComponent(subarray=mock_subarray)
     component.tel_param1 = 6.0
     config = component.get_current_config()
-    assert config["SomeComponent"]["tel_param1"] == [
-        ("type", "*", 6.0),
-    ]
+    assert config["SomeComponent"]["tel_param1"] == [("type", "*", 6.0)]
 
 
 def test_datetimes():
@@ -414,7 +459,7 @@ def test_time_none():
     c.time = None
 
     class NoNone(Component):
-        time = AstroTime(default_value='2012-01-01T20:00', allow_none=False)
+        time = AstroTime(default_value="2012-01-01T20:00", allow_none=False)
 
     c = NoNone()
     with pytest.raises(TraitError):

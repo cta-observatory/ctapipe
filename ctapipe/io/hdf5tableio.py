@@ -2,6 +2,7 @@
 import enum
 from functools import partial
 from pathlib import PurePath
+import re
 
 import numpy as np
 import tables
@@ -33,9 +34,9 @@ PYTABLES_TYPE_MAP = {
 
 
 DEFAULT_FILTERS = tables.Filters(
-    complevel=5,           # compression medium, tradeoff between speed and compression
-    complib='blosc:zstd',  # use modern zstd algorithm
-    fletcher32=True,       # add checksums to data chunks
+    complevel=5,  # compression medium, tradeoff between speed and compression
+    complib="blosc:zstd",  # use modern zstd algorithm
+    fletcher32=True,  # add checksums to data chunks
 )
 
 
@@ -96,10 +97,12 @@ class HDF5TableWriter(TableWriter):
         mode="w",
         root_uep="/",
         filters=DEFAULT_FILTERS,
+        parent=None,
+        config=None,
         **kwargs,
     ):
 
-        super().__init__(add_prefix=add_prefix)
+        super().__init__(add_prefix=add_prefix, parent=parent, config=config)
         self._schemas = {}
         self._tables = {}
 
@@ -144,18 +147,34 @@ class HDF5TableWriter(TableWriter):
         meta = {}  # any extra meta-data generated here (like units, etc)
 
         # create pytables schema description for the given container
+        pos = 0
         for container in containers:
+
+            container.validate()  # ensure the data are complete
+
             for col_name, value in container.items(add_prefix=self.add_prefix):
 
                 typename = ""
                 shape = 1
 
                 if self._is_column_excluded(table_name, col_name):
-                    self.log.debug("excluded column: %s/%s", table_name, col_name)
+                    self.log.debug(f"excluded column: {table_name}/{col_name}")
+                    continue
+
+                if col_name in Schema.columns:
+                    self.log.warning(f"Found duplicated column {col_name}, skipping")
                     continue
 
                 # apply any user-defined transforms first
                 value = self._apply_col_transform(table_name, col_name, value)
+
+                # add desription to metadata
+                if self.add_prefix:
+                    meta[f"{col_name}_DESC"] = container.fields[
+                        re.sub(f"^{container.prefix}_", "", col_name)
+                    ].description
+                else:
+                    meta[f"{col_name}_DESC"] = container.fields[col_name].description
 
                 if isinstance(value, enum.Enum):
 
@@ -172,14 +191,10 @@ class HDF5TableWriter(TableWriter):
                         key = col_name.replace(container.prefix + "_", "")
                     else:
                         key = col_name
-                    req_unit = container.fields[key].unit
 
-                    if req_unit is not None:
-                        tr = partial(tr_convert_and_strip_unit, unit=req_unit)
-                        meta[f"{col_name}_UNIT"] = str(req_unit)
-                    else:
-                        tr = lambda x: x.value
-                        meta[f"{col_name}_UNIT"] = str(value.unit)
+                    unit = container.fields[key].unit or value.unit
+                    tr = partial(tr_convert_and_strip_unit, unit=unit)
+                    meta[f"{col_name}_UNIT"] = unit.to_string("vounit")
 
                     value = tr(value)
                     self.add_column_transform(table_name, col_name, tr)
@@ -188,24 +203,31 @@ class HDF5TableWriter(TableWriter):
                     typename = value.dtype.name
                     coltype = PYTABLES_TYPE_MAP[typename]
                     shape = value.shape
-                    Schema.columns[col_name] = coltype(shape=shape)
+                    Schema.columns[col_name] = coltype(shape=shape, pos=pos)
 
-                if isinstance(value, Time):
+                elif isinstance(value, Time):
                     # TODO: really should use MET, but need a func for that
-                    Schema.columns[col_name] = tables.Float64Col()
+                    Schema.columns[col_name] = tables.Float64Col(pos=pos)
                     self.add_column_transform(table_name, col_name, tr_time_to_float)
 
                 elif type(value).__name__ in PYTABLES_TYPE_MAP:
                     typename = type(value).__name__
                     coltype = PYTABLES_TYPE_MAP[typename]
-                    Schema.columns[col_name] = coltype()
+                    Schema.columns[col_name] = coltype(pos=pos)
 
+                else:
+                    self.log.warning(
+                        f"Column {col_name} of "
+                        f"container {container.__class__.__name__} in "
+                        f"table {table_name} not writable, skipping"
+                    )
+                    continue
+
+                pos += 1
                 self.log.debug(
-                    "Table %s: added col: %s type: %s shape: %s",
-                    table_name,
-                    col_name,
-                    typename,
-                    shape,
+                    f"Table {table_name}: "
+                    f"added col: {col_name} type: "
+                    f"{typename} shape: {shape}"
                 )
 
         self._schemas[table_name] = Schema
@@ -238,7 +260,7 @@ class HDF5TableWriter(TableWriter):
             createparents=True,
             filters=self.filters,
         )
-        self.log.debug("CREATED TABLE: %s", table)
+        self.log.debug(f"CREATED TABLE: {table}")
         for key, val in meta.items():
             table.attrs[key] = val
 
@@ -259,9 +281,15 @@ class HDF5TableWriter(TableWriter):
             )
             for colname, value in selected_fields:
 
-                value = self._apply_col_transform(table_name, colname, value)
-
-                row[colname] = value
+                try:
+                    value = self._apply_col_transform(table_name, colname, value)
+                    row[colname] = value
+                except Exception:
+                    self.log.error(
+                        f"Error writing col {colname} of "
+                        f"container {container.__class__.__name__}"
+                    )
+                    raise
         row.append()
 
     def write(self, table_name, containers):
@@ -311,10 +339,6 @@ class HDF5TableReader(TableReader):
 
     Todo:
     - add ability to synchronize reading of multiple tables on a key
-
-    - add ability (also with TableWriter) to read a row into n containers at
-        once, assuming no naming conflicts (so we can add e.g. event_id)
-
     """
 
     def __init__(self, filename, **kwargs):
@@ -342,10 +366,10 @@ class HDF5TableReader(TableReader):
 
         self._h5file.close()
 
-    def _setup_table(self, table_name, container):
+    def _setup_table(self, table_name, containers, prefixes):
         tab = self._h5file.get_node(table_name)
         self._tables[table_name] = tab
-        self._map_table_to_container(table_name, container)
+        self._map_table_to_containers(table_name, containers, prefixes)
         self._map_transforms_from_table_header(table_name)
         return tab
 
@@ -363,50 +387,49 @@ class HDF5TableReader(TableReader):
         for attr in tab.attrs._f_list():
             if attr.endswith("_ENUM"):
                 colname = attr[:-5]
+                enum = tab.attrs[attr]
+                self.add_column_transform(table_name, colname, enum)
 
-                def transform_int_to_enum(int_val):
-                    """transform integer 'code' into enum instance"""
-                    enum_class = tab.attrs[attr]
-                    return enum_class(int_val)
-
-                self.add_column_transform(table_name, colname, transform_int_to_enum)
-
-    def _map_table_to_container(self, table_name, container):
-        """ identifies which columns in the table to read into the container,
-        by comparing their names."""
+    def _map_table_to_containers(self, table_name, containers, prefixes):
+        """ identifies which columns in the table to read into the containers,
+        by comparing their names including an optional prefix."""
         tab = self._tables[table_name]
-        for colname in tab.colnames:
-            if colname in container.fields:
-                self._cols_to_read[table_name].append(colname)
-            else:
-                self.log.warning(
-                    "Table '%s' has column '%s' that is not in "
-                    "container %s. It will be skipped",
-                    table_name,
-                    colname,
-                    container.__class__.__name__,
-                )
+        self._cols_to_read[table_name] = []
+        for container, prefix in zip(containers, prefixes):
+            for colname in tab.colnames:
+                if prefix and colname.startswith(prefix):
+                    colname_without_prefix = colname[len(prefix) + 1 :]
+                else:
+                    colname_without_prefix = colname
+                if colname_without_prefix in container.fields:
+                    self._cols_to_read[table_name].append(colname)
+                else:
+                    self.log.warning(
+                        f"Table {table_name} has column {colname_without_prefix} that is not in "
+                        f"container {container.__class__.__name__}. It will be skipped."
+                    )
 
-        # also check that the container doesn't have fields that are not
-        # in the table:
-        for colname in container.fields:
-            if colname not in self._cols_to_read[table_name]:
-                self.log.warning(
-                    "Table '%s' is missing column '%s' that is "
-                    "in container %s. It will be skipped.",
-                    table_name,
-                    colname,
-                    container.__class__.__name__,
-                )
+            # also check that the container doesn't have fields that are not
+            # in the table:
+            for colname in container.fields:
+                if prefix:
+                    colname_with_prefix = f"{prefix}_{colname}"
+                else:
+                    colname_with_prefix = colname
+                if colname_with_prefix not in self._cols_to_read[table_name]:
+                    self.log.warning(
+                        f"Table {table_name} is missing column {colname_with_prefix}"
+                        f"that is in container {container.__class__.__name__}. It will be skipped."
+                    )
 
-        # copy all user-defined attributes back to Container.mets
-        for key in tab.attrs._f_list():
-            container.meta[key] = tab.attrs[key]
+            # copy all user-defined attributes back to Container.mets
+            for key in tab.attrs._f_list():
+                container.meta[key] = tab.attrs[key]
 
-    def read(self, table_name: str, container: Container):
+    def read(self, table_name, containers, prefixes=False):
         """
         Returns a generator that reads the next row from the table into the
-        given container.  The generator returns the same container. Note that
+        given container. The generator returns the same container. Note that
         no containers are copied, the data are overwritten inside.
 
         Parameters
@@ -415,32 +438,61 @@ class HDF5TableReader(TableReader):
             name of table to read from
         container : ctapipe.core.Container
             Container instance to fill
+        prefix: bool, str or list
+            Prefix that was added while writing the file.
+            If True, the container prefix is taken into consideration, when
+            comparing column names and container fields.
+            If False, no prefix is used.
+            If a string is provided, it is used as prefix for all containers.
+            If a list is provided, the length needs to match th number
+            of containers.
         """
+
+        return_iterable = True
+        if isinstance(containers, Container):
+            containers = (containers,)
+            return_iterable = False
+
+        if prefixes is False:
+            prefixes = ["" for container in containers]
+        elif prefixes is True:
+            prefixes = [container.prefix for container in containers]
+        elif isinstance(prefixes, str):
+            prefixes = [prefixes for container in containers]
+        assert len(prefixes) == len(containers)
+
         if table_name not in self._tables:
-            tab = self._setup_table(table_name, container)
+            tab = self._setup_table(table_name, containers, prefixes)
         else:
             tab = self._tables[table_name]
 
         row_count = 0
 
         while 1:
-
             try:
                 row = tab[row_count]
             except IndexError:
                 return  # stop generator when done
-
-            for colname in self._cols_to_read[table_name]:
-                container[colname] = self._apply_col_transform(
-                    table_name, colname, row[colname]
-                )
-
-            yield container
+            for container, prefix in zip(containers, prefixes):
+                for fieldname in container.keys():
+                    if prefix:
+                        colname = f"{prefix}_{fieldname}"
+                    else:
+                        colname = fieldname
+                    if colname not in self._cols_to_read[table_name]:
+                        continue
+                    container[fieldname] = self._apply_col_transform(
+                        table_name, colname, row[colname]
+                    )
+            if return_iterable:
+                yield containers
+            else:
+                yield containers[0]
             row_count += 1
 
 
 def tr_convert_and_strip_unit(quantity, unit):
-    return quantity.to(unit).value
+    return quantity.to_value(unit)
 
 
 def tr_list_to_mask(thelist, length):
@@ -455,4 +507,4 @@ def tr_time_to_float(thetime):
 
 
 def tr_add_unit(value, unitname):
-    return Quantity(value, unitname)
+    return Quantity(value, unitname, copy=False)

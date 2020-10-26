@@ -1,3 +1,4 @@
+import os
 import pytest
 from traitlets import Float, TraitError, List, Dict
 from traitlets.config import Config
@@ -36,6 +37,19 @@ def test_tool_version():
 
     tool = MyTool()
     assert tool.version_string != ""
+
+
+def test_provenance_dir():
+    """ check that the tool gets the provenance dir"""
+
+    class MyTool(Tool):
+        description = "test"
+        userparam = Float(5.0, help="parameter").tag(config=True)
+
+    tool = MyTool()
+    assert str(tool.provenance_log) == os.path.join(
+        os.getcwd(), "application.provenance.log"
+    )
 
 
 def test_export_config_to_yaml():
@@ -83,8 +97,8 @@ def test_tool_current_config():
     tool.userparam = -1.0
     conf2 = tool.get_current_config()
 
-    assert conf1['MyTool']['userparam'] == 5.0
-    assert conf2['MyTool']['userparam'] == -1.0
+    assert conf1["MyTool"]["userparam"] == 5.0
+    assert conf2["MyTool"]["userparam"] == -1.0
 
 
 def test_tool_exit_code():
@@ -98,17 +112,17 @@ def test_tool_exit_code():
     tool = MyTool()
 
     with pytest.raises(SystemExit) as exc:
-        tool.run(['--non-existent-option'])
+        tool.run(["--non-existent-option"])
 
-    assert exc.value.code == 1
+    assert exc.value.code == 2
 
     with pytest.raises(SystemExit) as exc:
-        tool.run(['--MyTool.userparam=foo'])
+        tool.run(["--MyTool.userparam=foo"])
 
     assert exc.value.code == 1
 
-    assert run_tool(tool, ['--help']) == 0
-    assert run_tool(tool, ['--non-existent-option']) == 1
+    assert run_tool(tool, ["--help"]) == 0
+    assert run_tool(tool, ["--non-existent-option"]) == 2
 
 
 def test_tool_command_line_precedence():
@@ -123,7 +137,7 @@ def test_tool_command_line_precedence():
         description = "test"
         userparam = Float(5.0, help="parameter").tag(config=True)
 
-        classes = List([SubComponent,])
+        classes = List([SubComponent])
         aliases = Dict({"component_param": "SubComponent.component_param"})
 
         def setup(self):
@@ -141,7 +155,6 @@ def test_tool_command_line_precedence():
 
 
 def test_tool_logging():
-
     class MyTool(Tool):
         name = "ctapipe.test"
 

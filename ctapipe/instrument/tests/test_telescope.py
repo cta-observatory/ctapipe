@@ -17,9 +17,12 @@ def test_hash():
         for i in range(3):
 
             telescopes.append(
-                TelescopeDescription(name=name, tel_type=type,
-                                     optics=OpticsDescription.from_name(name),
-                                     camera=CameraDescription.from_name(camera))
+                TelescopeDescription(
+                    name=name,
+                    tel_type=type,
+                    optics=OpticsDescription.from_name(name),
+                    camera=CameraDescription.from_name(camera),
+                )
             )
 
     assert len(telescopes) == 9

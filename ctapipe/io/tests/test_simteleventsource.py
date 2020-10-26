@@ -3,15 +3,26 @@ import copy
 import numpy as np
 from astropy.utils.data import download_file
 import astropy.units as u
+from itertools import zip_longest
+import pytest
+from astropy.time import Time
+from pathlib import Path
+
 
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 from ctapipe.io.simteleventsource import SimTelEventSource, apply_simtel_r1_calibration
 from ctapipe.utils import get_dataset_path
+from ctapipe.io import DataLevel
 
 
 gamma_test_large_path = get_dataset_path("gamma_test_large.simtel.gz")
 gamma_test_path = get_dataset_path("gamma_test.simtel.gz")
-calib_events_path = get_dataset_path("calib_events.simtel.gz")
+calib_events_path = get_dataset_path("lst_prod3_calibration_and_mcphotons.simtel.zst")
+
+
+def test_positional_input():
+    source = SimTelEventSource(gamma_test_large_path)
+    assert source.input_url == Path(gamma_test_large_path)
 
 
 def test_simtel_event_source_on_gamma_test_one_event():
@@ -25,10 +36,11 @@ def test_simtel_event_source_on_gamma_test_one_event():
             if event.count > 1:
                 break
 
-        for event in reader:
-            # Check generator has restarted from beginning
-            assert event.count == 0
-            break
+        with pytest.warns(UserWarning):
+            for event in reader:
+                # Check generator has restarted from beginning
+                assert event.count == 0
+                break
 
     # test that max_events works:
     max_events = 5
@@ -60,7 +72,7 @@ def test_that_event_is_not_modified_after_loop():
         # Unfortunately this does not work:
         #      assert last_event == event
         # So for the moment we just compare event ids
-        assert event.r0.event_id == last_event.r0.event_id
+        assert event.index.event_id == last_event.index.event_id
 
 
 def test_additional_meta_data_from_mc_header():
@@ -100,6 +112,15 @@ def test_additional_meta_data_from_mc_header():
         assert np.isclose(
             value.to_value(expectation.unit), expectation.to_value(expectation.unit)
         )
+
+
+def test_properties():
+    source = SimTelEventSource(input_url=gamma_test_large_path)
+
+    assert source.is_simulation
+    assert source.mc_header.corsika_version == 6990
+    assert source.datalevels == (DataLevel.R0, DataLevel.R1)
+    assert source.obs_id == 7514
 
 
 def test_gamma_file():
@@ -170,11 +191,48 @@ def test_allowed_telescopes():
 
 
 def test_calibration_events():
+    from ctapipe.containers import EventType
+
+    # this test file as two of each of these types
+    expected_types = [
+        EventType.DARK_PEDESTAL,
+        EventType.DARK_PEDESTAL,
+        EventType.SKY_PEDESTAL,
+        EventType.SKY_PEDESTAL,
+        EventType.SINGLE_PE,
+        EventType.SINGLE_PE,
+        EventType.FLATFIELD,
+        EventType.FLATFIELD,
+        EventType.SUBARRAY,
+        EventType.SUBARRAY,
+    ]
     with SimTelEventSource(
-        input_url=calib_events_path, skip_calibration_events=False,
+        input_url=calib_events_path, skip_calibration_events=False
     ) as reader:
+
+        for event, expected_type in zip_longest(reader, expected_types):
+            assert event.trigger.event_type is expected_type
+
+
+def test_trigger_times():
+
+    source = SimTelEventSource(input_url=calib_events_path)
+    t0 = Time("2020-05-06T15:30:00")
+    t1 = Time("2020-05-06T15:40:00")
+
+    for event in source:
+        assert t0 <= event.trigger.time <= t1
+        for tel_id, trigger in event.trigger.tel.items():
+            # test single telescope events triggered within 50 ns
+            assert 0 <= (trigger.time - event.trigger.time).to_value(u.ns) <= 50
+
+
+def test_true_image():
+    with SimTelEventSource(input_url=calib_events_path) as reader:
+
         for e in reader:
-            pass
+            for tel in e.mc.tel.values():
+                assert np.count_nonzero(tel.true_image) > 0
 
 
 def test_camera_caching():
@@ -197,7 +255,7 @@ def test_apply_simtel_r1_calibration_1_channel():
     n_samples = 128
 
     r0_waveforms = np.zeros((n_channels, n_pixels, n_samples))
-    pedestal = np.full((n_channels, n_pixels), 20 * n_samples)
+    pedestal = np.full((n_channels, n_pixels), 20)
     dc_to_pe = np.full((n_channels, n_pixels), 0.5)
 
     gain_selector = ThresholdGainSelector(threshold=90)
@@ -209,7 +267,7 @@ def test_apply_simtel_r1_calibration_1_channel():
     assert r1_waveforms.ndim == 2
     assert r1_waveforms.shape == (n_pixels, n_samples)
 
-    ped = pedestal / n_samples
+    ped = pedestal
     assert r1_waveforms[0, 0] == (r0_waveforms[0, 0, 0] - ped[0, 0]) * dc_to_pe[0, 0]
     assert r1_waveforms[1, 0] == (r0_waveforms[0, 1, 0] - ped[0, 1]) * dc_to_pe[0, 1]
 
@@ -224,8 +282,8 @@ def test_apply_simtel_r1_calibration_2_channel():
     r0_waveforms[1, :, :] = 1
 
     pedestal = np.zeros((n_channels, n_pixels))
-    pedestal[0] = 90 * n_samples
-    pedestal[1] = 0.9 * n_samples
+    pedestal[0] = 90
+    pedestal[1] = 0.9
 
     dc_to_pe = np.zeros((n_channels, n_pixels))
     dc_to_pe[0] = 0.01
@@ -241,7 +299,7 @@ def test_apply_simtel_r1_calibration_2_channel():
     assert r1_waveforms.ndim == 2
     assert r1_waveforms.shape == (n_pixels, n_samples)
 
-    ped = pedestal / n_samples
+    ped = pedestal
     assert r1_waveforms[0, 0] == (r0_waveforms[1, 0, 0] - ped[1, 0]) * dc_to_pe[1, 0]
     assert r1_waveforms[1, 0] == (r0_waveforms[0, 1, 0] - ped[0, 1]) * dc_to_pe[0, 1]
 

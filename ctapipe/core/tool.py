@@ -4,12 +4,17 @@ import logging.config
 import textwrap
 from abc import abstractmethod
 
+from traitlets import default, Unicode
 from traitlets.config import Application, Configurable
 
 from .. import __version__ as version
 from .traits import Path, Enum
 from . import Provenance
-from .logging import DEFAULT_LOGGING, update_logging_config, set_logging_config_from_file
+from .logging import (
+    DEFAULT_LOGGING,
+    update_logging_config,
+    set_logging_config_from_file,
+)
 
 
 class ToolConfigurationError(Exception):
@@ -111,7 +116,9 @@ class Tool(Application):
     ).tag(config=True)
 
     log_config = Path(
-        default_value=None, exists=True, directory_ok=False,
+        default_value=None,
+        exists=True,
+        directory_ok=False,
         help="Filename of Logging Configuration",
     ).tag(config=True)
     log_level = Enum(
@@ -120,14 +127,21 @@ class Tool(Application):
         help="Logging Level for Console Logging",
     ).tag(config=True)
     log_file = Path(
-        default_value=None, exists=None, directory_ok=False,
-        help="Filename for the log",
+        default_value=None, exists=None, directory_ok=False, help="Filename for the log"
     ).tag(config=True)
     log_file_level = Enum(
         values=Application.log_level.values,
         default_value="DEBUG",
         help="Logging Level for File Logging",
     ).tag(config=True)
+
+    _log_formatter_cls = ColoredFormatter
+
+    provenance_log = Path(directory_ok=False).tag(config=True)
+
+    @default("provenance_log")
+    def _default_provenance_log(self):
+        return self.name + ".provenance.log"
 
     def __init__(self, **kwargs):
         # make sure there are some default aliases in all Tools:
@@ -167,9 +181,7 @@ class Tool(Application):
         )
 
         if self.log_config is not None:
-            cfg = set_logging_config_from_file(
-                filename=self.log_config,
-            )
+            cfg = set_logging_config_from_file(filename=self.log_config)
 
         logging.config.dictConfig(cfg)
 
@@ -248,7 +260,7 @@ class Tool(Application):
             Provenance().start_activity(self.name)
             self.setup()
             self.is_setup = True
-            self.log.info(f"CONFIG: {self.get_current_config()}")
+            self.log.debug(f"CONFIG: {self.get_current_config()}")
             Provenance().add_config(self.get_current_config())
             self.start()
             self.finish()
@@ -271,7 +283,8 @@ class Tool(Application):
                 self.log.info("Output: %s", output_str)
 
             self.log.debug("PROVENANCE: '%s'", Provenance().as_json(indent=3))
-            with open("provenance.log", mode="w+") as provlog:
+            self.provenance_log.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.provenance_log, mode="a+") as provlog:
                 provlog.write(Provenance().as_json(indent=3))
 
         self.exit(exit_status)
@@ -401,14 +414,14 @@ def export_tool_config_to_commented_yaml(tool_instance: Tool, classes=None):
 
 
 def run_tool(tool: Tool, argv=None):
-    '''
+    """
     Utility run a certain tool in a python session without exitinig
 
     Returns
     -------
     exit_code: int
         The return code of the tool, 0 indicates success, everything else an error
-    '''
+    """
     try:
         tool.run(argv or [])
         return 0

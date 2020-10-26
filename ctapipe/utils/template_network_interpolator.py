@@ -9,6 +9,7 @@ class TemplateNetworkInterpolator:
     """
     Class for interpolating between the the predictions
     """
+
     def __init__(self, template_file):
         """
 
@@ -20,8 +21,9 @@ class TemplateNetworkInterpolator:
 
         file_list = gzip.open(template_file)
         input_dict = pickle.load(file_list)
-        self.interpolator = UnstructuredInterpolator(input_dict, remember_last=True,
-                                                     bounds=((-5, 1),(-1.5, 1.5)))
+        self.interpolator = UnstructuredInterpolator(
+            input_dict, remember_last=True, bounds=((-5, 1), (-1.5, 1.5))
+        )
 
     def reset(self):
         """
@@ -54,7 +56,7 @@ class TemplateNetworkInterpolator:
         points = ma.dstack((xb, yb))
 
         interpolated_value = self.interpolator(array, points)
-        interpolated_value[interpolated_value<0] = 0
+        interpolated_value[interpolated_value < 0] = 0
         interpolated_value = interpolated_value
 
         return interpolated_value
@@ -64,6 +66,7 @@ class TimeGradientInterpolator:
     """
     Class for interpolating between the time gradient predictions
     """
+
     def __init__(self, template_file):
         """
 

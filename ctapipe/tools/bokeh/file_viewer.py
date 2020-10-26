@@ -18,34 +18,33 @@ from ctapipe.utils import get_dataset_path
 
 class BokehFileViewer(Tool):
     name = "BokehFileViewer"
-    description = ("Interactively explore an event file using the bokeh "
-                   "visualisation package")
+    description = (
+        "Interactively explore an event file using the bokeh " "visualisation package"
+    )
 
     port = Int(5006, help="Port to open bokeh server onto").tag(config=True)
-    disable_server = Bool(False, help="Do not start the bokeh server "
-                                      "(useful for testing)").tag(config=True)
+    disable_server = Bool(
+        False, help="Do not start the bokeh server " "(useful for testing)"
+    ).tag(config=True)
 
     default_url = get_dataset_path("gamma_test_large.simtel.gz")
     EventSource.input_url.default_value = default_url
 
-    extractor_product = traits.enum_trait(
-        ImageExtractor,
-        default='NeighborPeakWindowSum'
+    extractor_product = traits.create_class_enum_trait(
+        ImageExtractor, default_value="NeighborPeakWindowSum"
     )
 
-    aliases = Dict(dict(
-        port='BokehFileViewer.port',
-        disable_server='BokehFileViewer.disable_server',
-        f='EventSource.input_url',
-        max_events='EventSource.max_events',
-        extractor='BokehFileViewer.extractor_product',
-    ))
-
-    classes = List(
-        [
-            EventSource,
-        ] + traits.classes_with_traits(ImageExtractor)
+    aliases = Dict(
+        dict(
+            port="BokehFileViewer.port",
+            disable_server="BokehFileViewer.disable_server",
+            f="EventSource.input_url",
+            max_events="EventSource.max_events",
+            extractor="BokehFileViewer.extractor_product",
+        )
     )
+
+    classes = List([EventSource,] + traits.classes_with_traits(ImageExtractor))
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -84,14 +83,10 @@ class BokehFileViewer(Tool):
         self.seeker = EventSeeker(self.reader, parent=self)
 
         self.extractor = ImageExtractor.from_name(
-            self.extractor_product,
-            parent=self,
-            subarray=self.reader.subarray,
+            self.extractor_product, parent=self, subarray=self.reader.subarray,
         )
         self.calibrator = CameraCalibrator(
-            subarray=self.reader.subarray,
-            parent=self,
-            image_extractor=self.extractor,
+            subarray=self.reader.subarray, parent=self, image_extractor=self.extractor,
         )
 
         self.viewer = BokehEventViewer(parent=self, subarray=self.reader.subarray)
@@ -111,24 +106,27 @@ class BokehFileViewer(Tool):
         self.update_dl1_widget_values()
 
         # Setup layout
-        self.layout = layout([
-            [self.viewer.layout],
+        self.layout = layout(
             [
-                self.w_previous_event,
-                self.w_next_event,
-                self.w_goto_event_index,
-                self.w_goto_event_id
-            ],
-            [self.w_event_index, self.w_event_id],
-            [self.w_telid, self.w_channel],
-            [self.wb_extractor]
-        ])
+                [self.viewer.layout],
+                [
+                    self.w_previous_event,
+                    self.w_next_event,
+                    self.w_goto_event_index,
+                    self.w_goto_event_id,
+                ],
+                [self.w_event_index, self.w_event_id],
+                [self.w_telid, self.w_channel],
+                [self.wb_extractor],
+            ]
+        )
 
     def start(self):
         self.event_index = 0
 
     def finish(self):
         if not self.disable_server:
+
             def modify_doc(doc):
                 doc.add_root(self.layout)
                 doc.title = self.name
@@ -137,14 +135,13 @@ class BokehFileViewer(Tool):
                 theme_path = os.path.join(directory, "theme.yaml")
                 template_path = os.path.join(directory, "templates")
                 doc.theme = Theme(filename=theme_path)
-                env = jinja2.Environment(
-                    loader=jinja2.FileSystemLoader(template_path)
-                )
-                doc.template = env.get_template('index.html')
+                env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_path))
+                doc.template = env.get_template("index.html")
 
-            self.log.info('Opening Bokeh application on '
-                          'http://localhost:{}/'.format(self.port))
-            server = Server({'/': modify_doc}, num_procs=1, port=self.port)
+            self.log.info(
+                "Opening Bokeh application on " "http://localhost:{}/".format(self.port)
+            )
+            server = Server({"/": modify_doc}, num_procs=1, port=self.port)
             server.start()
             server.io_loop.add_callback(server.show, "/")
             server.io_loop.start()
@@ -156,7 +153,7 @@ class BokehFileViewer(Tool):
     @event_index.setter
     def event_index(self, val):
         try:
-            self.event = self.seeker[val]
+            self.event = self.seeker.get_event_index(val)
         except IndexError:
             self.log.warning(f"Event Index {val} does not exist")
 
@@ -167,7 +164,7 @@ class BokehFileViewer(Tool):
     @event_id.setter
     def event_id(self, val):
         try:
-            self.event = self.seeker[str(val)]
+            self.event = self.seeker.get_event_id(val)
         except IndexError:
             self.log.warning(f"Event ID {val} does not exist")
 
@@ -208,7 +205,7 @@ class BokehFileViewer(Tool):
         self.viewer.event = val
 
         self._event_index = val.count
-        self._event_id = val.r0.event_id
+        self._event_id = val.index.event_id
         self.update_event_index_widget()
         self.update_event_id_widget()
 
@@ -232,9 +229,7 @@ class BokehFileViewer(Tool):
         self.extractor = extractor
 
         self.calibrator = CameraCalibrator(
-            subarray=self.reader.subarray,
-            parent=self,
-            image_extractor=self.extractor,
+            subarray=self.reader.subarray, parent=self, image_extractor=self.extractor,
         )
         self.viewer.refresh()
 
@@ -246,25 +241,21 @@ class BokehFileViewer(Tool):
         self.event_index += 1
 
     def create_previous_event_widget(self):
-        self.w_previous_event = Button(
-            label="<",
-            button_type="default",
-            width=50
-        )
+        self.w_previous_event = Button(label="<", button_type="default", width=50)
         self.w_previous_event.on_click(self.on_previous_event_widget_click)
 
     def on_previous_event_widget_click(self):
         self.event_index -= 1
 
     def create_event_index_widget(self):
-        self.w_event_index = TextInput(title="Event Index:", value='')
+        self.w_event_index = TextInput(title="Event Index:", value="")
 
     def update_event_index_widget(self):
         if self.w_event_index:
             self.w_event_index.value = str(self.event_index)
 
     def create_event_id_widget(self):
-        self.w_event_id = TextInput(title="Event ID:", value='')
+        self.w_event_id = TextInput(title="Event ID:", value="")
 
     def update_event_id_widget(self):
         if self.w_event_id:
@@ -272,9 +263,7 @@ class BokehFileViewer(Tool):
 
     def create_goto_event_index_widget(self):
         self.w_goto_event_index = Button(
-            label="GOTO Index",
-            button_type="default",
-            width=100
+            label="GOTO Index", button_type="default", width=100
         )
         self.w_goto_event_index.on_click(self.on_goto_event_index_widget_click)
 
@@ -282,11 +271,7 @@ class BokehFileViewer(Tool):
         self.event_index = int(self.w_event_index.value)
 
     def create_goto_event_id_widget(self):
-        self.w_goto_event_id = Button(
-            label="GOTO ID",
-            button_type="default",
-            width=70
-        )
+        self.w_goto_event_id = Button(label="GOTO ID", button_type="default", width=70)
         self.w_goto_event_id.on_click(self.on_goto_event_id_widget_click)
 
     def on_goto_event_id_widget_click(self):
@@ -294,7 +279,7 @@ class BokehFileViewer(Tool):
 
     def create_telid_widget(self):
         self.w_telid = Select(title="Telescope:", value="", options=[])
-        self.w_telid.on_change('value', self.on_telid_widget_change)
+        self.w_telid.on_change("value", self.on_telid_widget_change)
 
     def update_telid_widget(self):
         if self.w_telid:
@@ -308,7 +293,7 @@ class BokehFileViewer(Tool):
 
     def create_channel_widget(self):
         self.w_channel = Select(title="Channel:", value="", options=[])
-        self.w_channel.on_change('value', self.on_channel_widget_change)
+        self.w_channel.on_change("value", self.on_channel_widget_change)
 
     def update_channel_widget(self):
         if self.w_channel:
@@ -326,36 +311,42 @@ class BokehFileViewer(Tool):
 
     def create_dl1_widgets(self):
         self.w_dl1_dict = dict(
-            extractor=Select(title="Extractor:", value='', width=5,
-                             options=BokehFileViewer.extractor_product.values),
-            extractor_window_start=TextInput(title="Window Start:", value=''),
-            extractor_window_width=TextInput(title="Window Width:", value=''),
-            extractor_window_shift=TextInput(title="Window Shift:", value=''),
-            extractor_lwt=TextInput(title="Local Pixel Weight:", value=''))
+            extractor=Select(
+                title="Extractor:",
+                value="",
+                width=5,
+                options=BokehFileViewer.extractor_product.values,
+            ),
+            extractor_window_start=TextInput(title="Window Start:", value=""),
+            extractor_window_width=TextInput(title="Window Width:", value=""),
+            extractor_window_shift=TextInput(title="Window Shift:", value=""),
+            extractor_lwt=TextInput(title="Local Pixel Weight:", value=""),
+        )
 
         for val in self.w_dl1_dict.values():
-            val.on_change('value', self.on_dl1_widget_change)
+            val.on_change("value", self.on_dl1_widget_change)
 
         self.wb_extractor = widgetbox(
             PreText(text="Charge Extractor Configuration"),
-            self.w_dl1_dict['extractor'],
-            self.w_dl1_dict['extractor_window_start'],
-            self.w_dl1_dict['extractor_window_width'],
-            self.w_dl1_dict['extractor_window_shift'],
-            self.w_dl1_dict['extractor_lwt'])
+            self.w_dl1_dict["extractor"],
+            self.w_dl1_dict["extractor_window_start"],
+            self.w_dl1_dict["extractor_window_width"],
+            self.w_dl1_dict["extractor_window_shift"],
+            self.w_dl1_dict["extractor_lwt"],
+        )
 
     def update_dl1_widget_values(self):
         if self.w_dl1_dict:
             for key, val in self.w_dl1_dict.items():
-                if 'extractor' in key:
-                    if key == 'extractor':
+                if "extractor" in key:
+                    if key == "extractor":
                         val.value = self.extractor.__class__.__name__
                     else:
                         key = key.replace("extractor_", "")
                         try:
                             val.value = str(getattr(self.extractor, key))
                         except AttributeError:
-                            val.value = ''
+                            val.value = ""
 
     def on_dl1_widget_change(self, _, __, ___):
         if self.event:
@@ -365,11 +356,11 @@ class BokehFileViewer(Tool):
                 for key, val in self.w_dl1_dict.items():
                     k = key.replace("extractor_", "ImageExtractor.")
                     if val.value:
-                        cmdline.append(f'--{k}={val.value}')
+                        cmdline.append(f"--{k}={val.value}")
                 self.parse_command_line(cmdline)
                 extractor = ImageExtractor.from_name(
-                    self.extractor_product,
-                    parent=self)
+                    self.extractor_product, parent=self
+                )
                 self.update_dl1_calibrator(extractor)
                 self.update_dl1_widget_values()
                 self._updating_dl1 = False
@@ -380,5 +371,5 @@ def main():
     exe.run()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

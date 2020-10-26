@@ -8,6 +8,7 @@ import pandas as pd
 from astropy import units as u
 
 from ctapipe.core.container import Container, Field
+from ctapipe import containers
 from ctapipe.containers import (
     R0CameraContainer,
     MCEventContainer,
@@ -49,8 +50,7 @@ def test_write_container(temp_h5_file):
             writer.write("MC", mc)
 
 
-def test_prefix(tmp_path):
-    tmp_file = tmp_path / "test_prefix.hdf5"
+def test_read_multiple_containers():
     hillas_parameter_container = HillasParametersContainer(
         x=1 * u.m, y=1 * u.m, length=1 * u.m, width=1 * u.m
     )
@@ -61,13 +61,184 @@ def test_prefix(tmp_path):
         intensity_width_1=0.1,
         intensity_width_2=0.1,
     )
+    with tempfile.NamedTemporaryFile() as f:
+        with HDF5TableWriter(f.name, group_name="dl1", add_prefix=True) as writer:
+            writer.write("params", [hillas_parameter_container, leakage_container])
 
-    with HDF5TableWriter(tmp_file.name, group_name="blabla", add_prefix=True) as writer:
-        writer.write("events", [hillas_parameter_container, leakage_container])
+        df = pd.read_hdf(f.name, key="/dl1/params")
+        assert "hillas_x" in df.columns
+        assert "leakage_pixels_width_1" in df.columns
 
-    df = pd.read_hdf(tmp_file.name, key="/blabla/events")
-    assert "hillas_x" in df.columns
-    assert "leakage_pixels_width_1" in df.columns
+        # test reading both containers separately
+        with HDF5TableReader(f.name) as reader:
+            generator = reader.read(
+                "/dl1/params", HillasParametersContainer(), prefixes=True
+            )
+            hillas = next(generator)
+        for value, read_value in zip(
+            hillas_parameter_container.as_dict().values(), hillas.as_dict().values()
+        ):
+            np.testing.assert_equal(value, read_value)
+
+        with HDF5TableReader(f.name) as reader:
+            generator = reader.read("/dl1/params", LeakageContainer(), prefixes=True)
+            leakage = next(generator)
+        for value, read_value in zip(
+            leakage_container.as_dict().values(), leakage.as_dict().values()
+        ):
+            np.testing.assert_equal(value, read_value)
+
+        # test reading both containers simultaneously
+        with HDF5TableReader(f.name) as reader:
+            generator = reader.read(
+                "/dl1/params",
+                [HillasParametersContainer(), LeakageContainer()],
+                prefixes=True,
+            )
+            hillas_, leakage_ = next(generator)
+
+        for value, read_value in zip(
+            leakage_container.as_dict().values(), leakage_.as_dict().values()
+        ):
+            np.testing.assert_equal(value, read_value)
+
+        for value, read_value in zip(
+            hillas_parameter_container.as_dict().values(), hillas_.as_dict().values()
+        ):
+            np.testing.assert_equal(value, read_value)
+
+
+def test_read_without_prefixes():
+    hillas_parameter_container = HillasParametersContainer(
+        x=1 * u.m, y=1 * u.m, length=1 * u.m, width=1 * u.m
+    )
+
+    leakage_container = LeakageContainer(
+        pixels_width_1=0.1,
+        pixels_width_2=0.1,
+        intensity_width_1=0.1,
+        intensity_width_2=0.1,
+    )
+    with tempfile.NamedTemporaryFile() as f:
+        with HDF5TableWriter(f.name, group_name="dl1", add_prefix=False) as writer:
+            writer.write("params", [hillas_parameter_container, leakage_container])
+
+        df = pd.read_hdf(f.name, key="/dl1/params")
+        assert "x" in df.columns
+        assert "pixels_width_1" in df.columns
+
+        # call with prefixes=False
+        with HDF5TableReader(f.name) as reader:
+            generator = reader.read(
+                "/dl1/params",
+                [HillasParametersContainer(), LeakageContainer()],
+                prefixes=False,
+            )
+            hillas_, leakage_ = next(generator)
+
+        for value, read_value in zip(
+            leakage_container.as_dict().values(), leakage_.as_dict().values()
+        ):
+            np.testing.assert_equal(value, read_value)
+
+        for value, read_value in zip(
+            hillas_parameter_container.as_dict().values(), hillas_.as_dict().values()
+        ):
+            np.testing.assert_equal(value, read_value)
+
+        # call with manually removed prefixes
+        with HDF5TableReader(f.name) as reader:
+            generator = reader.read(
+                "/dl1/params",
+                [HillasParametersContainer(prefix=""), LeakageContainer(prefix="")],
+                prefixes=True,
+            )
+            hillas_, leakage_ = next(generator)
+
+        for value, read_value in zip(
+            leakage_container.as_dict().values(), leakage_.as_dict().values()
+        ):
+            np.testing.assert_equal(value, read_value)
+
+        for value, read_value in zip(
+            hillas_parameter_container.as_dict().values(), hillas_.as_dict().values()
+        ):
+            np.testing.assert_equal(value, read_value)
+
+
+def test_read_duplicated_container_types():
+    hillas_config_1 = HillasParametersContainer(
+        x=1 * u.m, y=2 * u.m, length=3 * u.m, width=4 * u.m, prefix="hillas_1"
+    )
+    hillas_config_2 = HillasParametersContainer(
+        x=2 * u.m, y=3 * u.m, length=4 * u.m, width=5 * u.m, prefix="hillas_2"
+    )
+
+    with tempfile.NamedTemporaryFile() as f:
+        with HDF5TableWriter(f.name, group_name="dl1", add_prefix=True) as writer:
+            writer.write("params", [hillas_config_1, hillas_config_2])
+
+        df = pd.read_hdf(f.name, key="/dl1/params")
+        assert "hillas_1_x" in df.columns
+        assert "hillas_2_x" in df.columns
+
+        with HDF5TableReader(f.name) as reader:
+            generator = reader.read(
+                "/dl1/params",
+                [HillasParametersContainer(), HillasParametersContainer()],
+                prefixes=["hillas_1", "hillas_2"],
+            )
+            hillas_1, hillas_2 = next(generator)
+
+        for value, read_value in zip(
+            hillas_config_1.as_dict().values(), hillas_1.as_dict().values()
+        ):
+            np.testing.assert_equal(value, read_value)
+
+        for value, read_value in zip(
+            hillas_config_2.as_dict().values(), hillas_2.as_dict().values()
+        ):
+            np.testing.assert_equal(value, read_value)
+
+
+def test_custom_prefix():
+    container = HillasParametersContainer(
+        x=1 * u.m, y=1 * u.m, length=1 * u.m, width=1 * u.m
+    )
+    container.prefix = "custom"
+    with tempfile.NamedTemporaryFile() as f:
+        with HDF5TableWriter(f.name, group_name="dl1", add_prefix=True) as writer:
+            writer.write("params", container)
+
+        with HDF5TableReader(f.name) as reader:
+            generator = reader.read(
+                "/dl1/params", HillasParametersContainer(), prefixes="custom"
+            )
+            read_container = next(generator)
+        assert isinstance(read_container, HillasParametersContainer)
+        for value, read_value in zip(
+            container.as_dict().values(), read_container.as_dict().values()
+        ):
+            np.testing.assert_equal(value, read_value)
+
+
+def test_units():
+    class WithUnits(Container):
+        inverse_length = Field(5 / u.m, "foo")
+        time = Field(1 * u.s, "bar", unit=u.s)
+        grammage = Field(2 * u.g / u.cm ** 2, "baz", unit=u.g / u.cm ** 2)
+
+    c = WithUnits()
+
+    with tempfile.NamedTemporaryFile() as f:
+        with HDF5TableWriter(f.name, "data") as writer:
+            writer.write("units", c)
+
+        with tables.open_file(f.name, "r") as f:
+
+            assert f.root.data.units.attrs["inverse_length_UNIT"] == "m-1"
+            assert f.root.data.units.attrs["time_UNIT"] == "s"
+            assert f.root.data.units.attrs["grammage_UNIT"] == "cm-2 g"
 
 
 def test_write_containers(temp_h5_file):
@@ -92,7 +263,7 @@ def test_write_containers(temp_h5_file):
 
 def test_write_bool():
     class C(Container):
-        boolean = Field(True, 'Boolean value')
+        boolean = Field(True, "Boolean value")
 
     with tempfile.NamedTemporaryFile() as f:
         with HDF5TableWriter(f.name, "test") as writer:
@@ -102,7 +273,7 @@ def test_write_bool():
 
         c = C()
         with HDF5TableReader(f.name) as reader:
-            c_reader = reader.read('/test/c', c)
+            c_reader = reader.read("/test/c", c)
             for i in range(2):
                 cur = next(c_reader)
                 expected = (i % 2) == 0
@@ -112,21 +283,21 @@ def test_write_bool():
 
 def test_write_large_integer():
     class C(Container):
-        value = Field(True, 'Integer value')
+        value = Field(True, "Integer value")
 
     exps = [15, 31, 63]
     with tempfile.NamedTemporaryFile() as f:
         with HDF5TableWriter(f.name, "test") as writer:
             for exp in exps:
-                c = C(value=2**exp - 1)
+                c = C(value=2 ** exp - 1)
                 writer.write("c", c)
 
         c = C()
         with HDF5TableReader(f.name) as reader:
-            c_reader = reader.read('/test/c', c)
+            c_reader = reader.read("/test/c", c)
             for exp in exps:
                 cur = next(c_reader)
-                assert cur.value == 2**exp - 1
+                assert cur.value == 2 ** exp - 1
 
 
 def test_read_container(temp_h5_file):
@@ -137,14 +308,16 @@ def test_read_container(temp_h5_file):
     with HDF5TableReader(temp_h5_file) as reader:
 
         # get the generators for each table
-        mctab = reader.read("/R0/MC", mc)
+        # test supplying a single container as well as an
+        # iterable with one entry only
+        mctab = reader.read("/R0/MC", (mc,))
         r0tab1 = reader.read("/R0/tel_001", r0tel1)
         r0tab2 = reader.read("/R0/tel_002", r0tel2)
 
         # read all 3 tables in sync
         for ii in range(3):
 
-            m = next(mctab)
+            m = next(mctab)[0]
             r0_1 = next(r0tab1)
             r0_2 = next(r0tab2)
 
@@ -326,10 +499,14 @@ class WithNormalEnum(Container):
         physics = 2
         calibration = 3
 
+    foo = Field(5, "foo field to test if this still works with more fields")
+
     event_type = Field(
         EventType.calibration,
         f"type of event, one of: {list(EventType.__members__.keys())}",
     )
+
+    bar = Field(10, "bar field to test if this still works with more fields")
 
 
 def test_read_write_container_with_enum(tmp_path):
@@ -339,6 +516,8 @@ def test_read_write_container_with_enum(tmp_path):
         data = WithNormalEnum()
         for i in range(n_event):
             data.event_type = data.EventType(i % 3 + 1)
+            data.foo = i
+            data.bar = i * 2
             yield data
 
     with HDF5TableWriter(tmp_file, group_name="data") as h5_table:
@@ -415,29 +594,100 @@ def test_filters():
     from tables import Filters, open_file
 
     class TestContainer(Container):
-        value = Field(-1, 'test')
+        value = Field(-1, "test")
 
     no_comp = Filters(complevel=0)
-    zstd = Filters(complevel=5, complib='blosc:zstd')
+    zstd = Filters(complevel=5, complib="blosc:zstd")
 
-    with tempfile.NamedTemporaryFile(suffix='.hdf5') as f:
-        with HDF5TableWriter(f.name, group_name='data', mode='w', filters=no_comp) as writer:
+    with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
+        with HDF5TableWriter(
+            f.name, group_name="data", mode="w", filters=no_comp
+        ) as writer:
             assert writer._h5file.filters.complevel == 0
 
             c = TestContainer(value=5)
-            writer.write('default', c)
+            writer.write("default", c)
 
             writer.filters = zstd
-            writer.write('zstd', c)
+            writer.write("zstd", c)
 
             writer.filters = no_comp
-            writer.write('nocomp', c)
+            writer.write("nocomp", c)
 
         with open_file(f.name) as h5file:
             assert h5file.root.data.default.filters.complevel == 0
             assert h5file.root.data.zstd.filters.complevel == 5
-            assert h5file.root.data.zstd.filters.complib == 'blosc:zstd'
+            assert h5file.root.data.zstd.filters.complib == "blosc:zstd"
             assert h5file.root.data.nocomp.filters.complevel == 0
+
+
+def test_column_order():
+    """ Test that columns are written in the order the containers define them"""
+
+    class Container1(Container):
+        b = Field(1, "b")
+        a = Field(2, "a")
+
+    class Container2(Container):
+        d = Field(3, "d")
+        c = Field(4, "c")
+
+    # test with single container
+    with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
+        with HDF5TableWriter(f.name, mode="w") as writer:
+            c = Container1()
+            writer.write("foo", c)
+
+        with tables.open_file(f.name, "r") as f:
+            assert f.root.foo[:].dtype.names == ("b", "a")
+
+    # test with two containers
+    with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
+        with HDF5TableWriter(f.name, mode="w") as writer:
+            c1 = Container1()
+            c2 = Container2()
+            writer.write("foo", [c2, c1])
+            writer.write("bar", [c1, c2])
+
+        with tables.open_file(f.name, "r") as f:
+            assert f.root.foo[:].dtype.names == ("d", "c", "b", "a")
+            assert f.root.bar[:].dtype.names == ("b", "a", "d", "c")
+
+
+def test_writing_nan_defaults():
+    from ctapipe.containers import ImageParametersContainer
+
+    params = ImageParametersContainer()
+
+    with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
+        with HDF5TableWriter(f.name, mode="w") as writer:
+            writer.write("params", params.values())
+
+
+ALL_CONTAINERS = []
+for name in dir(containers):
+    try:
+        obj = getattr(containers, name)
+        if issubclass(obj, Container):
+            ALL_CONTAINERS.append(obj)
+    except TypeError:
+        pass
+
+
+@pytest.mark.parametrize("cls", ALL_CONTAINERS)
+def test_write_default_container(cls):
+
+    with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
+        with HDF5TableWriter(f.name, mode="w") as writer:
+            try:
+                writer.write("params", cls())
+            except ValueError as e:
+                # some containers do not have writable members,
+                # only subcontainers. For now, ignore them.
+                if "cannot create an empty data type" in str(e):
+                    pytest.xfail()
+                else:
+                    raise
 
 
 if __name__ == "__main__":

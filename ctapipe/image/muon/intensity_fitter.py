@@ -16,7 +16,7 @@ from scipy.stats import norm
 from astropy.coordinates import SkyCoord
 from functools import lru_cache
 
-from ...containers import MuonIntensityParameter
+from ...containers import MuonEfficiencyContainer
 from ...coordinates import CameraFrame, TelescopeFrame
 from ...core import TelescopeComponent
 from ...core.traits import FloatTelescopeParameter, IntTelescopeParameter
@@ -46,7 +46,7 @@ def chord_length(radius, rho, phi):
     scalar = np.isscalar(phi)
     phi = np.array(phi, ndmin=1, copy=False)
 
-    chord = 1 - (rho**2 * np.sin(phi)**2)
+    chord = 1 - (rho ** 2 * np.sin(phi) ** 2)
     valid = chord >= 0
 
     if rho <= 1.0:
@@ -77,11 +77,7 @@ def intersect_circle(mirror_radius, r, angle, hole_radius=0):
     float: length from impact point to mirror edge
 
     """
-    mirror_length = chord_length(
-        mirror_radius,
-        (r / mirror_radius),
-        angle
-    )
+    mirror_length = chord_length(mirror_radius, (r / mirror_radius), angle)
 
     if hole_radius == 0:
         return mirror_length
@@ -91,9 +87,9 @@ def intersect_circle(mirror_radius, r, angle, hole_radius=0):
 
 
 def pixels_on_ring(radius, pixel_diameter):
-    '''Calculate number of pixels of diameter ``pixel_diameter`` on the circumference
+    """Calculate number of pixels of diameter ``pixel_diameter`` on the circumference
     of a circle with radius ``radius``
-    '''
+    """
     circumference = 2 * np.pi * radius
     n_pixels = u.Quantity(circumference / pixel_diameter)
     return int(n_pixels.to_value(u.dimensionless_unscaled))
@@ -104,7 +100,15 @@ def linspace_two_pi(n_points):
     return np.linspace(-np.pi, np.pi, n_points)
 
 
-def create_profile(mirror_radius, hole_radius, impact_parameter, radius, phi, pixel_diameter, oversampling=3):
+def create_profile(
+    mirror_radius,
+    hole_radius,
+    impact_parameter,
+    radius,
+    phi,
+    pixel_diameter,
+    oversampling=3,
+):
     """
     Perform intersection over all angles and return length
 
@@ -128,7 +132,7 @@ def create_profile(mirror_radius, hole_radius, impact_parameter, radius, phi, pi
     ang = phi + linspace_two_pi(pixels_on_circle * oversampling)
 
     length = intersect_circle(mirror_radius, impact_parameter, ang, hole_radius)
-    length = correlate1d(length, np.ones(oversampling), mode='wrap', axis=0)
+    length = correlate1d(length, np.ones(oversampling), mode="wrap", axis=0)
     length /= oversampling
 
     return ang, length
@@ -150,7 +154,7 @@ def image_prediction(
     min_lambda=300 * u.nm,
     max_lambda=600 * u.nm,
 ):
-    '''
+    """
     Parameters
     ----------
     impact_parameter: quantity[length]
@@ -172,7 +176,7 @@ def image_prediction(
     -------
     ndarray:
         Predicted signal
-    '''
+    """
     return image_prediction_no_units(
         mirror_radius.to_value(u.m),
         hole_radius.to_value(u.m),
@@ -205,11 +209,13 @@ def image_prediction_no_units(
     pixel_diameter_rad,
     oversampling=3,
     min_lambda_m=300e-9,
-    max_lambda_m=600e-9
+    max_lambda_m=600e-9,
 ):
     """Function for producing the expected image for a given set of trial
     muon parameters without using astropy units but expecting the input to
     be in the correct ones.
+
+    See [chalmecalvet2013]_
     """
 
     # First produce angular position of each pixel w.r.t muon center
@@ -221,16 +227,23 @@ def image_prediction_no_units(
 
     # Produce smoothed muon profile
     ang_prof, profile = create_profile(
-        mirror_radius_m, hole_radius_m, impact_parameter_m,
-        radius_rad, phi_rad, pixel_diameter_rad, oversampling=oversampling,
+        mirror_radius_m,
+        hole_radius_m,
+        impact_parameter_m,
+        radius_rad,
+        phi_rad,
+        pixel_diameter_rad,
+        oversampling=oversampling,
     )
 
     # Produce gaussian weight for each pixel given ring width
-    radial_dist = np.sqrt(dx**2 + dy**2)
+    radial_dist = np.sqrt(dx ** 2 + dy ** 2)
     # The weight is the integral of the ring's radial gaussian profile inside the
     # ring's width
     delta = pixel_diameter_rad / 2
-    cdfs = norm.cdf([radial_dist + delta, radial_dist - delta], radius_rad, ring_width_rad)
+    cdfs = norm.cdf(
+        [radial_dist + delta, radial_dist - delta], radius_rad, ring_width_rad
+    )
     gauss = cdfs[0] - cdfs[1]
 
     # interpolate profile to find prediction for each pixel
@@ -240,11 +253,11 @@ def image_prediction_no_units(
     # get total number of photons per pixel
     # ^ would be per radian, but no need to put it here, would anyway cancel out below
 
-    pred *= alpha * (min_lambda_m**-1 - max_lambda_m**-1)
+    pred *= alpha * (min_lambda_m ** -1 - max_lambda_m ** -1)
     pred *= pixel_diameter_rad / radius_rad
     # multiply by angle (in radians) subtended by pixel width as seen from ring center
 
-    pred *= np.sin(2 * radius_rad)
+    pred *= 0.5 * np.sin(2 * radius_rad)
 
     # multiply by gaussian weight, to account for "fraction of muon ring" which falls
     # within the pixel
@@ -264,42 +277,10 @@ def image_prediction_no_units(
     return pred
 
 
-def calc_likelihood(image, pred, spe_width, ped):
-    """Calculate likelihood of prediction given the measured signal,
-    gaussian approx from [denaurois2009]_
-
-    Parameters
-    ----------
-    image: ndarray
-        Pixel amplitudes from image
-    pred: ndarray
-        Predicted pixel amplitudes from model
-    spe_width: ndarray
-        width of single p.e. distribution
-    ped: ndarray
-        width of pedestal
-
-    Returns
-    -------
-    ndarray: likelihood for each pixel
-
-    """
-
-    sq = 1 / np.sqrt(2 * np.pi * (ped**2 + pred * (1 + spe_width**2)))
-    diff = (image - pred)**2
-    denom = 2 * (ped**2 + pred * (1 + spe_width**2))
-    expo = np.exp(-diff / denom) + 1e-16  # add small epsilon to avoid nans
-
-    log_value = sq * expo
-
-    likelihood_value = -2 * np.log(log_value)
-
-    return likelihood_value
-
-
 def build_negative_log_likelihood(
     image,
     telescope_description,
+    mask,
     oversampling,
     min_lambda,
     max_lambda,
@@ -307,14 +288,20 @@ def build_negative_log_likelihood(
     pedestal,
     hole_radius=0 * u.m,
 ):
-    '''Create an efficient negative log_likelihood function that does
+    """Create an efficient negative log_likelihood function that does
     not rely on astropy units internally by defining needed values as closures
-    in this function
-    '''
+    in this function.
+
+    The likelihood is the gaussian approximation,
+    i.e. the unnumbered equation on page 22 between (24) and (25), from [denaurois2009]_
+
+    The logarithm of the likelihood is calculated analytically as far as possible
+    and terms constant under differentation are discarded.
+    """
 
     # get all the neeed values and transform them into appropriate units
     optics = telescope_description.optics
-    mirror_area = optics.mirror_area.to_value(u.m**2)
+    mirror_area = optics.mirror_area.to_value(u.m ** 2)
     mirror_radius = np.sqrt(mirror_area / np.pi)
 
     focal_length = optics.equivalent_focal_length
@@ -324,8 +311,16 @@ def build_negative_log_likelihood(
     cam_coords = SkyCoord(x=cam.pix_x, y=cam.pix_y, frame=camera_frame)
     tel_coords = cam_coords.transform_to(TelescopeFrame())
 
+    # Use only a subset of pixels, indicated by mask:
     pixel_x = tel_coords.fov_lon.to_value(u.rad)
     pixel_y = tel_coords.fov_lat.to_value(u.rad)
+
+    if mask is not None:
+        pixel_x = pixel_x[mask]
+        pixel_y = pixel_y[mask]
+        image = image[mask]
+        pedestal = pedestal[mask]
+
     pixel_diameter = 2 * (
         np.sqrt(cam.pix_area[0] / np.pi) / focal_length * u.rad
     ).to_value(u.rad)
@@ -342,7 +337,7 @@ def build_negative_log_likelihood(
         center_y,
         radius,
         ring_width,
-        optical_efficiency_muon
+        optical_efficiency_muon,
     ):
         """
         Likelihood function to be called by minimizer
@@ -366,12 +361,6 @@ def build_negative_log_likelihood(
         -------
         float: Likelihood that model matches data
         """
-        # center_x *= self.unit
-        # center_y *= self.unit
-        # radius *= self.unit
-        # ring_width *= self.unit
-        # impact_parameter *= u.m
-        # phi *= u.rad
 
         # Generate model prediction
         prediction = image_prediction_no_units(
@@ -391,16 +380,19 @@ def build_negative_log_likelihood(
             max_lambda_m=max_lambda,
         )
 
-        # scale prediction by optical efficiency of array
+        # scale prediction by optical efficiency of the telescope
         prediction *= optical_efficiency_muon
 
-        sq = 1 / np.sqrt(2 * np.pi * (pedestal**2 + prediction * (1 + spe_width**2)))
-        diff = (image - prediction)**2
-        denom = 2 * (pedestal**2 + prediction * (1 + spe_width**2))
-        expo = np.exp(-diff / denom) + 1e-16  # add small epsilon to avoid nans
-        value = sq * expo
+        # A gaussian approximation is used here, where the total
+        # standard deviation is the pedestal standard deviation (e.g. by NSB) and
+        # the single photon resolution times the image magnitude.
+        sigma2 = pedestal ** 2 + prediction * (1 + spe_width ** 2)
 
-        return -2 * np.log(value).sum()
+        # gaussian negative log-likelihood, analytically simplified and
+        # constant terms discarded
+        neg_log_l = np.log(sigma2) + (image - prediction) ** 2 / sigma2
+
+        return neg_log_l.sum()
 
     return negative_log_likelihood
 
@@ -410,19 +402,19 @@ def create_initial_guess(center_x, center_y, radius, telescope_description):
     optics = telescope_description.optics
 
     focal_length = optics.equivalent_focal_length.to_value(u.m)
-    pixel_area = geometry.pix_area[0].to_value(u.m**2)
+    pixel_area = geometry.pix_area[0].to_value(u.m ** 2)
     pixel_radius = np.sqrt(pixel_area / np.pi) / focal_length
 
-    mirror_radius = np.sqrt(optics.mirror_area.to_value(u.m**2) / np.pi)
+    mirror_radius = np.sqrt(optics.mirror_area.to_value(u.m ** 2) / np.pi)
 
     initial_guess = {}
-    initial_guess['impact_parameter'] = mirror_radius / 2
-    initial_guess['phi'] = 0
-    initial_guess['radius'] = radius.to_value(u.rad)
-    initial_guess['center_x'] = center_x.to_value(u.rad)
-    initial_guess['center_y'] = center_y.to_value(u.rad)
-    initial_guess['ring_width'] = 3 * pixel_radius
-    initial_guess['optical_efficiency_muon'] = 0.1
+    initial_guess["impact_parameter"] = mirror_radius / 2
+    initial_guess["phi"] = 0
+    initial_guess["radius"] = radius.to_value(u.rad)
+    initial_guess["center_x"] = center_x.to_value(u.rad)
+    initial_guess["center_y"] = center_y.to_value(u.rad)
+    initial_guess["ring_width"] = 3 * pixel_radius
+    initial_guess["optical_efficiency_muon"] = 0.1
 
     return initial_guess
 
@@ -433,35 +425,28 @@ class MuonIntensityFitter(TelescopeComponent):
     ).tag(config=True)
 
     min_lambda_m = FloatTelescopeParameter(
-        help="Minimum wavelength for Cherenkov light in m", default_value=300e-9,
+        help="Minimum wavelength for Cherenkov light in m", default_value=300e-9
     ).tag(config=True)
 
     max_lambda_m = FloatTelescopeParameter(
-        help="Minimum wavelength for Cherenkov light in m", default_value=600e-9,
+        help="Minimum wavelength for Cherenkov light in m", default_value=600e-9
     ).tag(config=True)
 
     hole_radius_m = FloatTelescopeParameter(
         help="Hole radius of the reflector in m",
         default_value=[
-            ('type', 'LST_*', 0.308),
-            ('type', 'MST_*', 0.244),
-            ('type', 'SST_1M_*', 0.130),
-        ]
+            ("type", "LST_*", 0.308),
+            ("type", "MST_*", 0.244),
+            ("type", "SST_1M_*", 0.130),
+        ],
     ).tag(config=True)
 
     oversampling = IntTelescopeParameter(
-        help='Oversampling for the line integration', default_value=3
+        help="Oversampling for the line integration", default_value=3
     ).tag(config=True)
 
-    def __call__(
-        self,
-        tel_id,
-        center_x,
-        center_y,
-        radius,
-        image,
-        pedestal,
-    ):
+
+    def __call__(self, tel_id, center_x, center_y, radius, image, pedestal, mask=None):
         """
 
         Parameters
@@ -478,20 +463,24 @@ class MuonIntensityFitter(TelescopeComponent):
             Y position of pixel in image from circle fitting
         image: ndarray
             Amplitude of image pixels
+        mask: ndarray
+            mask marking the pixels to be used in the likelihood fit
 
         Returns
         -------
-        MuonIntensityParameters
+        MuonEfficiencyContainer
         """
         telescope = self.subarray.tel[tel_id]
         if telescope.optics.num_mirrors != 1:
             raise NotImplementedError(
-                'Currently only single mirror telescopes'
-                f' are supported in {self.__class__.__name__}'
+                "Currently only single mirror telescopes"
+                f" are supported in {self.__class__.__name__}"
             )
 
         negative_log_likelihood = build_negative_log_likelihood(
-            image, telescope,
+            image,
+            telescope,
+            mask,
             oversampling=self.oversampling.tel[tel_id],
             min_lambda=self.min_lambda_m.tel[tel_id] * u.m,
             max_lambda=self.max_lambda_m.tel[tel_id] * u.m,
@@ -500,24 +489,22 @@ class MuonIntensityFitter(TelescopeComponent):
             hole_radius=self.hole_radius_m.tel[tel_id] * u.m,
         )
 
-        initial_guess = create_initial_guess(
-            center_x, center_y, radius, telescope,
-        )
+        initial_guess = create_initial_guess(center_x, center_y, radius, telescope)
 
         step_sizes = {}
-        step_sizes['error_impact_parameter'] = 0.5
-        step_sizes['error_phi'] = np.deg2rad(0.5)
-        step_sizes['error_ring_width'] = 0.001 * radius.to_value(u.rad)
-        step_sizes['error_optical_efficiency_muon'] = 0.05
+        step_sizes["error_impact_parameter"] = 0.5
+        step_sizes["error_phi"] = np.deg2rad(0.5)
+        step_sizes["error_ring_width"] = 0.001 * radius.to_value(u.rad)
+        step_sizes["error_optical_efficiency_muon"] = 0.05
 
         constraints = {}
-        constraints['limit_impact_parameter'] = (0, None)
-        constraints['limit_phi'] = (-np.pi, np.pi)
-        constraints['fix_radius'] = True
-        constraints['fix_center_x'] = True
-        constraints['fix_center_y'] = True
-        constraints['limit_ring_width'] = (0., None)
-        constraints['limit_optical_efficiency_muon'] = (0., None)
+        constraints["limit_impact_parameter"] = (0, None)
+        constraints["limit_phi"] = (-np.pi, np.pi)
+        constraints["fix_radius"] = True
+        constraints["fix_center_x"] = True
+        constraints["fix_center_y"] = True
+        constraints["limit_ring_width"] = (0.0, None)
+        constraints["limit_optical_efficiency_muon"] = (0.0, None)
 
         # Create Minuit object with first guesses at parameters
         # strip away the units as Minuit doesnt like them
@@ -539,10 +526,10 @@ class MuonIntensityFitter(TelescopeComponent):
         # Get fitted values
         result = minuit.values
 
-        return MuonIntensityParameter(
-            impact=result['impact_parameter'] * u.m,
-            impact_x=result['impact_parameter'] * np.cos(result['phi']) * u.m,
-            impact_y=result['impact_parameter'] * np.sin(result['phi']) * u.m,
-            ring_width=u.Quantity(np.rad2deg(result['ring_width']), u.deg),
-            optical_efficiency=result['optical_efficiency_muon'],
+        return MuonEfficiencyContainer(
+            impact=result["impact_parameter"] * u.m,
+            impact_x=result["impact_parameter"] * np.cos(result["phi"]) * u.m,
+            impact_y=result["impact_parameter"] * np.sin(result["phi"]) * u.m,
+            width=u.Quantity(np.rad2deg(result["ring_width"]), u.deg),
+            optical_efficiency=result["optical_efficiency_muon"],
         )

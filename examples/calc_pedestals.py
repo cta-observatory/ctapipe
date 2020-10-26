@@ -5,7 +5,7 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ctapipe.calib import pedestals
+from ctapipe.calib.camera import pedestals
 from ctapipe.io import event_source
 from ctapipe.utils import get_dataset_path
 
@@ -15,14 +15,14 @@ def plot_peds(peds, pedvars):
     pixid = np.arange(len(peds))
     plt.subplot(1, 2, 1)
     plt.scatter(pixid, peds)
-    plt.title(f"Pedestals for event {event.r0.event_id}")
+    plt.title(f"Pedestals for event {event.index.event_id}")
 
     plt.subplot(1, 2, 2)
     plt.scatter(pixid, pedvars)
-    plt.title(f"Ped Variances for event {event.r0.event_id}")
+    plt.title(f"Ped Variances for event {event.index.event_id}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     # if a filename is specified, use it, otherwise load sample data
     if len(sys.argv) > 1:
@@ -48,9 +48,11 @@ if __name__ == '__main__':
 
                 traces = event.r0.tel[telid].waveform[chan, ...]
 
-                peds, pedvars = pedestals.calc_pedestals_from_traces(
-                    traces, start, end
-                )
+                # skip telescopes without timeseries data
+                if traces.shape[1] == 1:
+                    continue
+
+                peds, pedvars = pedestals.calc_pedestals_from_traces(traces, start, end)
 
                 print("Number of samples: {}".format(traces.shape[1]))
                 print(f"Calculate over window:({start},{end})")

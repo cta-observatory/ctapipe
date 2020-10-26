@@ -14,6 +14,8 @@ GuessingResult = namedtuple(
 )
 
 
+# focal length must have at most two digits after period
+# as we round the lookup to two digits
 TELESCOPE_NAMES = {
     GuessingKey(2048, 2.28): GuessingResult("SST", "GCT", "CHEC", 2),
     GuessingKey(2368, 2.15): GuessingResult("SST", "ASTRI", "ASTRICam", 2),
@@ -27,7 +29,7 @@ TELESCOPE_NAMES = {
     GuessingKey(1039, 16.97): GuessingResult("LST", "MAGIC", "MAGICCam", 1),
     GuessingKey(960, 15.0): GuessingResult("MST", "HESS-I", "HESS-I", 1),
     GuessingKey(2048, 36.0): GuessingResult("LST", "HESS-II", "HESS-II", 1),
-    GuessingKey(1440, 4.998): GuessingResult("SST", "FACT", "FACT", 1),
+    GuessingKey(1440, 4.89): GuessingResult("SST", "FACT", "FACT", 1),
 }
 
 UNKNOWN_TELESCOPE = GuessingResult("UNKNOWN", "UNKNOWN", "UNKNOWN", -1)

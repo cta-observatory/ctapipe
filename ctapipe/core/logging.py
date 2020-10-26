@@ -4,7 +4,9 @@ import logging
 import logging.config
 from yaml import load, FullLoader
 
-DEFAULT_LOGGING_FORMAT = "%(asctime)s %(levelname)s [%(name)s] (%(module)s.%(funcName)s): %(message)s"
+DEFAULT_LOGGING_FORMAT = (
+    "%(asctime)s %(levelname)s [%(name)s] (%(module)s.%(funcName)s): %(message)s"
+)
 
 
 class PlainFormatter(logging.Formatter):
@@ -31,22 +33,21 @@ def apply_colors(levelname):
     reset_seq = "\033[0m"
     color_seq = "\033[1;%dm"
     colors = {
-        'INFO': green,
-        'DEBUG': blue,
-        'WARNING': yellow,
-        'CRITICAL': magenta,
-        'ERROR': red
+        "INFO": green,
+        "DEBUG": blue,
+        "WARNING": yellow,
+        "CRITICAL": magenta,
+        "ERROR": red,
     }
 
     if levelname in colors:
-        levelname_color = (
-            color_seq % (30 + colors[levelname])
-            + levelname + reset_seq
-        )
+        levelname_color = color_seq % (30 + colors[levelname]) + levelname + reset_seq
     return levelname_color
 
 
-def update_logging_config(config: dict, log_level=None, log_file=None, log_file_level=None):
+def update_logging_config(
+    config: dict, log_level=None, log_file=None, log_file_level=None
+):
     """Update logging level for console and file according to CLI arguments."""
     if log_level is not None:
         config["handlers"]["console"]["level"] = log_level
@@ -59,7 +60,7 @@ def update_logging_config(config: dict, log_level=None, log_file=None, log_file_
                     "formatter": "file",
                     "filename": log_file,
                     "level": log_file_level,
-                },
+                }
             }
         )
         config["loggers"]["ctapipe"]["handlers"].append("file")
@@ -92,27 +93,21 @@ DEFAULT_LOGGING = {
     "root": {"level": "WARN", "handlers": ["console"]},
     "disable_existing_loggers": False,
     "formatters": {
-        "file": {
-            "()": PlainFormatter,
-            "fmt": DEFAULT_LOGGING_FORMAT,
-        },
-        "console": {
-            "()": FancyFormatter,
-            "fmt": DEFAULT_LOGGING_FORMAT,
-        },
+        "file": {"()": PlainFormatter, "fmt": DEFAULT_LOGGING_FORMAT},
+        "console": {"()": FancyFormatter, "fmt": DEFAULT_LOGGING_FORMAT},
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "console",
             "stream": "ext://sys.stdout",
-        },
+        }
     },
     "loggers": {
         "ctapipe": {
             "level": "DEBUG",  # needs to be lowest level to support higher level handlers
             "handlers": ["console"],
             "propagate": False,
-        },
+        }
     },
 }

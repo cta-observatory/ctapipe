@@ -4,6 +4,7 @@ import pytest
 
 def test_camera_display_create():
     from ctapipe.visualization.bokeh import CameraDisplay
+
     CameraDisplay()
 
 
@@ -14,14 +15,14 @@ def test_camera_geom(example_event, example_subarray):
     geom = example_subarray.tel[t].camera.geometry
     c_display = CameraDisplay(geom)
 
-    assert (c_display.cdsource.data['x'] == geom.pix_x.value).all()
-    assert (c_display.cdsource.data['y'] == geom.pix_y.value).all()
+    assert (c_display.cdsource.data["x"] == geom.pix_x.value).all()
+    assert (c_display.cdsource.data["y"] == geom.pix_y.value).all()
 
     t = list(example_event.r0.tels_with_data)[1]
     geom = example_subarray.tel[t].camera.geometry
     c_display.geom = geom
-    assert (c_display.cdsource.data['x'] == geom.pix_x.value).all()
-    assert (c_display.cdsource.data['y'] == geom.pix_y.value).all()
+    assert (c_display.cdsource.data["x"] == geom.pix_x.value).all()
+    assert (c_display.cdsource.data["y"] == geom.pix_y.value).all()
 
 
 def test_camera_image(example_event, example_subarray):
@@ -37,20 +38,21 @@ def test_camera_image(example_event, example_subarray):
         CameraDisplay(None, image)
 
     c_display = CameraDisplay(geom, image)
-    assert (c_display.cdsource.data['image'] == colors).all()
+    assert (c_display.cdsource.data["image"] == colors).all()
     assert c_display.image_min == 0
     assert c_display.image_max == 2
 
     image[5] = 5
     colors = intensity_to_hex(image)
     c_display.image = image
-    assert (c_display.cdsource.data['image'] == colors).all()
+    assert (c_display.cdsource.data["image"] == colors).all()
     assert c_display.image_min == image.min()
     assert c_display.image_max == image.max()
 
 
 def test_camera_enable_pixel_picker(example_event, example_subarray):
     from ctapipe.visualization.bokeh import CameraDisplay
+
     t = list(example_event.r0.tels_with_data)[0]
     geom = example_subarray.tel[t].camera.geometry
     n_pixels = geom.pix_x.value.size
@@ -66,6 +68,7 @@ def test_camera_enable_pixel_picker(example_event, example_subarray):
 
 def test_fast_camera_display_create(example_event, example_subarray):
     from ctapipe.visualization.bokeh import FastCameraDisplay
+
     t = list(example_event.r0.tels_with_data)[0]
     geom = example_subarray.tel[t].camera.geometry
 
@@ -94,7 +97,7 @@ def test_fast_camera_image(example_event, example_subarray):
     colors = intensity_to_hex(image)
     c_display.image = colors
 
-    assert (c_display.cdsource.data['image'] == colors).all()
+    assert (c_display.cdsource.data["image"] == colors).all()
 
 
 def test_waveform_display_create():
@@ -109,14 +112,14 @@ def test_waveform_values():
     wf = np.ones(30)
     w_display = WaveformDisplay(wf)
 
-    assert (w_display.cdsource.data['samples'] == wf).all()
-    assert (w_display.cdsource.data['t'] == np.arange(wf.size)).all()
+    assert (w_display.cdsource.data["samples"] == wf).all()
+    assert (w_display.cdsource.data["t"] == np.arange(wf.size)).all()
 
     wf[5] = 5
     w_display.waveform = wf
 
-    assert (w_display.cdsource.data['samples'] == wf).all()
-    assert (w_display.cdsource.data['t'] == np.arange(wf.size)).all()
+    assert (w_display.cdsource.data["samples"] == wf).all()
+    assert (w_display.cdsource.data["t"] == np.arange(wf.size)).all()
 
 
 def test_span():

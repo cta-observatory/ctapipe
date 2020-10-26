@@ -17,17 +17,11 @@ from ctapipe.visualization import CameraDisplay
 
 def draw_several_cams(geom, ncams=4):
 
-    cmaps = ['jet', 'afmhot', 'terrain', 'autumn']
-    fig, axs = plt.subplots(
-        1, ncams, figsize=(15, 4),
-    )
+    cmaps = ["jet", "afmhot", "terrain", "autumn"]
+    fig, axs = plt.subplots(1, ncams, figsize=(15, 4),)
 
     for ii in range(ncams):
-        disp = CameraDisplay(
-            geom,
-            ax=axs[ii],
-            title="CT{}".format(ii + 1),
-        )
+        disp = CameraDisplay(geom, ax=axs[ii], title="CT{}".format(ii + 1),)
         disp.cmap = cmaps[ii]
 
         model = toymodel.Gaussian(
@@ -38,17 +32,13 @@ def draw_several_cams(geom, ncams=4):
             psi=ii * 20 * u.deg,
         )
 
-        image, _, _ = model.generate_image(
-            geom,
-            intensity=1500,
-            nsb_level_pe=5,
-        )
+        image, _, _ = model.generate_image(geom, intensity=1500, nsb_level_pe=5,)
 
         mask = tailcuts_clean(
             geom,
             image,
             picture_thresh=6 * image.mean(),
-            boundary_thresh=4 * image.mean()
+            boundary_thresh=4 * image.mean(),
         )
         cleaned = image.copy()
         cleaned[~mask] = 0
@@ -59,10 +49,10 @@ def draw_several_cams(geom, ncams=4):
         disp.add_colorbar(ax=axs[ii])
 
         disp.set_limits_percent(95)
-        disp.overlay_moments(hillas, linewidth=3, color='blue')
+        disp.overlay_moments(hillas, linewidth=3, color="blue")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     hexgeom = CameraGeometry.from_name("LSTCam")
     recgeom = CameraGeometry.make_rectangular()

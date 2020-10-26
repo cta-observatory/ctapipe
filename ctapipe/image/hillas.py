@@ -15,13 +15,13 @@ HILLAS_ATOL = np.finfo(np.float64).eps
 
 
 __all__ = [
-    'hillas_parameters',
-    'HillasParameterizationError',
+    "hillas_parameters",
+    "HillasParameterizationError",
 ]
 
 
 def camera_to_shower_coordinates(x, y, cog_x, cog_y, psi):
-    '''
+    """
     Return longitudinal and transverse coordinates for x and y
     for a given set of hillas parameters
 
@@ -44,7 +44,7 @@ def camera_to_shower_coordinates(x, y, cog_x, cog_y, psi):
         longitudinal coordinates (along the shower axis)
     transverse: astropy.units.Quantity
         transverse coordinates (perpendicular to the shower axis)
-    '''
+    """
     cos_psi = np.cos(psi)
     sin_psi = np.sin(psi)
 
@@ -112,15 +112,13 @@ def hillas_parameters(geom, image):
     pix_y = Quantity(np.asanyarray(geom.pix_y, dtype=np.float64)).value
     image = np.asanyarray(image, dtype=np.float64)
     image = np.ma.filled(image, 0)
-    msg = 'Image and pixel shape do not match'
+    msg = "Image and pixel shape do not match"
     assert pix_x.shape == pix_y.shape == image.shape, msg
 
     size = np.sum(image)
 
     if size == 0.0:
-        raise HillasParameterizationError(
-            'size=0, cannot calculate HillasParameters'
-        )
+        raise HillasParameterizationError("size=0, cannot calculate HillasParameters")
 
     # calculate the cog as the mean of the coordinates weighted with the image
     cog_x = np.average(pix_x, weights=image)
@@ -148,16 +146,56 @@ def hillas_parameters(geom, image):
     width, length = np.sqrt(eig_vals)
 
     # psi is the angle of the eigenvector to length to the x-axis
-    psi = np.arctan(eig_vecs[1, 1] / eig_vecs[0, 1])
+    vx, vy = eig_vecs[0, 1], eig_vecs[1, 1]
 
-    # calculate higher order moments along shower axes
-    longitudinal = delta_x * np.cos(psi) + delta_y * np.sin(psi)
+    # avoid divide by 0 warnings
+    if length == 0:
+        psi = skewness_long = kurtosis_long = np.nan
+    else:
+        if vx != 0:
+            psi = np.arctan(vy / vx)
+        else:
+            psi = np.pi / 2
 
-    m3_long = np.average(longitudinal**3, weights=image)
-    skewness_long = m3_long / length**3
+        # calculate higher order moments along shower axes
+        longitudinal = delta_x * np.cos(psi) + delta_y * np.sin(psi)
 
-    m4_long = np.average(longitudinal**4, weights=image)
-    kurtosis_long = m4_long / length**4
+        m3_long = np.average(longitudinal ** 3, weights=image)
+        skewness_long = m3_long / length ** 3
+
+        m4_long = np.average(longitudinal ** 4, weights=image)
+        kurtosis_long = m4_long / length ** 4
+
+    # Compute of the Hillas parameters uncertainties.
+    # Implementation described in [hillas_uncertainties]_ This is an internal MAGIC document
+    # not generally accessible.
+
+    # intermediate variables
+    cos_2psi = np.cos(2 * psi)
+    a = (1 + cos_2psi) / 2
+    b = (1 - cos_2psi) / 2
+    c = np.sin(2 * psi)
+
+    A = ((delta_x ** 2.0) - cov[0][0]) / size
+    B = ((delta_y ** 2.0) - cov[1][1]) / size
+    C = ((delta_x * delta_y) - cov[0][1]) / size
+
+    # Hillas's uncertainties
+
+    # avoid divide by 0 warnings
+    if length == 0:
+        length_uncertainty = np.nan
+    else:
+        length_uncertainty = np.sqrt(
+            np.sum(((((a * A) + (b * B) + (c * C))) ** 2.0) * image)
+        ) / (2 * length)
+
+    if width == 0:
+        width_uncertainty = np.nan
+    else:
+        width_uncertainty = np.sqrt(
+            np.sum(((((b * A) + (a * B) + (-c * C))) ** 2.0) * image)
+        ) / (2 * width)
 
     return HillasParametersContainer(
         x=u.Quantity(cog_x, unit),
@@ -166,7 +204,9 @@ def hillas_parameters(geom, image):
         phi=Angle(cog_phi, unit=u.rad),
         intensity=size,
         length=u.Quantity(length, unit),
+        length_uncertainty=u.Quantity(length_uncertainty, unit),
         width=u.Quantity(width, unit),
+        width_uncertainty=u.Quantity(width_uncertainty, unit),
         psi=Angle(psi, unit=u.rad),
         skewness=skewness_long,
         kurtosis=kurtosis_long,

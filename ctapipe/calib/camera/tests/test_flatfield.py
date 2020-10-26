@@ -1,5 +1,6 @@
 import numpy as np
-from ctapipe.calib.camera.flatfield import *
+from astropy.time import Time
+from ctapipe.calib.camera.flatfield import FlasherFlatFieldCalculator
 from ctapipe.containers import EventAndMonDataContainer
 from traitlets.config.loader import Config
 import astropy.units as u
@@ -20,36 +21,39 @@ def test_flasherflatfieldcalculator():
         tel_descriptions={
             0: TelescopeDescription.from_name(
                 optics_name="SST-ASTRI", camera_name="CHEC"
-            ),
-        }
+            )
+        },
     )
     subarray.tel[0].camera.readout.reference_pulse_shape = np.ones((1, 2))
     subarray.tel[0].camera.readout.reference_pulse_sample_width = u.Quantity(1, u.ns)
 
-    config = Config({
-        "FixedWindowSum": {
-            "window_start": 15,
-            "window_width": 10
-        }
-    })
+    config = Config(
+        {"FixedWindowSum": {"peak_index": 15, "window_shift": 0, "window_width": 10}}
+    )
     ff_calculator = FlasherFlatFieldCalculator(
         subarray=subarray,
         charge_product="FixedWindowSum",
         sample_size=n_events,
         tel_id=tel_id,
-        config=config
+        config=config,
     )
     # create one event
     data = EventAndMonDataContainer()
-    data.meta['origin'] = 'test'
+    data.meta["origin"] = "test"
+    data.trigger.time = Time.now()
 
     # initialize mon and r1 data
-    data.mon.tel[tel_id].pixel_status.hardware_failing_pixels = np.zeros((n_gain, n_pixels), dtype=bool)
-    data.mon.tel[tel_id].pixel_status.pedestal_failing_pixels = np.zeros((n_gain, n_pixels), dtype=bool)
-    data.mon.tel[tel_id].pixel_status.flatfield_failing_pixels = np.zeros((n_gain, n_pixels), dtype=bool)
+    data.mon.tel[tel_id].pixel_status.hardware_failing_pixels = np.zeros(
+        (n_gain, n_pixels), dtype=bool
+    )
+    data.mon.tel[tel_id].pixel_status.pedestal_failing_pixels = np.zeros(
+        (n_gain, n_pixels), dtype=bool
+    )
+    data.mon.tel[tel_id].pixel_status.flatfield_failing_pixels = np.zeros(
+        (n_gain, n_pixels), dtype=bool
+    )
     data.r1.tel[tel_id].waveform = np.zeros((n_gain, n_pixels, 40))
-    data.r1.tel[tel_id].trigger_time = 1000
-    
+
     # flat-field signal put == delta function of height ff_level at sample 20
     data.r1.tel[tel_id].waveform[:, :, 20] = ff_level
     print(data.r1.tel[tel_id].waveform[0, 0, 20])
@@ -67,14 +71,15 @@ def test_flasherflatfieldcalculator():
     # Second test: introduce some failing pixels
     failing_pixels_id = np.array([10, 20, 30, 40])
     data.r1.tel[tel_id].waveform[:, failing_pixels_id, :] = 0
-    data.mon.tel[tel_id].pixel_status.pedestal_failing_pixels[:,failing_pixels_id] = True
+    data.mon.tel[tel_id].pixel_status.pedestal_failing_pixels[
+        :, failing_pixels_id
+    ] = True
 
     while ff_calculator.num_events_seen < n_events:
         if ff_calculator.calculate_relative_gain(data):
 
             # working pixel have good gain
-            assert (data.mon.tel[tel_id].flatfield.relative_gain_median[0, 0] == 1)
+            assert data.mon.tel[tel_id].flatfield.relative_gain_median[0, 0] == 1
 
             # bad pixels do non influence the gain
             assert np.mean(data.mon.tel[tel_id].flatfield.relative_gain_std) == 0
-

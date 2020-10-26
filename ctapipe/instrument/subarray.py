@@ -5,16 +5,22 @@ Description of Arrays or Subarrays of telescopes
 __all__ = ["SubarrayDescription"]
 
 from collections import defaultdict
+from pathlib import Path
 
 import numpy as np
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.table import Table
+from astropy.utils import lazyproperty
+import tables
+from copy import copy
 
 import ctapipe
 
-from ..coordinates import GroundFrame
-from . import TelescopeDescription
+from ..coordinates import GroundFrame, CameraFrame
+from .telescope import TelescopeDescription
+from .camera import CameraDescription, CameraReadout, CameraGeometry
+from .optics import OpticsDescription
 
 
 class SubarrayDescription:
@@ -99,7 +105,7 @@ class SubarrayDescription:
                 )
             )
 
-    @property
+    @lazyproperty
     def tel_coords(self):
         """ returns telescope positions as astropy.coordinates.SkyCoord"""
 
@@ -109,18 +115,18 @@ class SubarrayDescription:
 
         return SkyCoord(x=pos_x, y=pos_y, z=pos_z, frame=GroundFrame())
 
-    @property
+    @lazyproperty
     def tel_ids(self):
         """ telescope IDs as an array"""
         return np.array(list(self.tel.keys()))
 
-    @property
+    @lazyproperty
     def tel_indices(self):
         """ returns dict mapping tel_id to tel_index, useful for unpacking
         lists based on tel_ids into fixed-length arrays"""
         return {tel_id: ii for ii, tel_id in enumerate(self.tels.keys())}
 
-    @property
+    @lazyproperty
     def tel_index_array(self):
         """
         returns an expanded array that maps tel_id to tel_index. I.e. for a given
@@ -147,9 +153,29 @@ class SubarrayDescription:
         np.array:
             array of corresponding tel indices
         """
-        tel_ids = np.asanyarray(tel_ids).ravel()
-        index_map = self.tel_index_array
-        return index_map[tel_ids]
+        tel_ids = np.array(tel_ids, dtype=int, copy=False).ravel()
+        return self.tel_index_array[tel_ids]
+
+    def tel_ids_to_mask(self, tel_ids):
+        """Convert a list of telescope ids to a boolean mask
+        of length ``num_tels`` where the **index** of the telescope
+        is set to ``True`` for each tel_id in tel_ids
+
+        Parameters
+        ----------
+        tel_ids : int or List[int]
+            array of tel IDs
+
+        Returns
+        -------
+        np.array[dtype=bool]:
+            Boolean array of length ``num_tels`` with indices of the
+            telescopes in ``tel_ids`` set to True.
+        """
+        mask = np.zeros(self.num_tels, dtype=bool)
+        indices = self.tel_ids_to_indices(tel_ids)
+        mask[indices] = True
+        return mask
 
     @property
     def footprint(self):
@@ -198,6 +224,7 @@ class SubarrayDescription:
                     tel_description=descs,
                 )
             )
+            tab.meta["TAB_VER"] = "1.0"
 
         elif kind == "optics":
             unique_types = set(self.tels.values())
@@ -220,6 +247,7 @@ class SubarrayDescription:
                 "equivalent_focal_length": focal_length,
             }
             tab = Table(cols)
+            tab.meta["TAB_VER"] = "2.0"
 
         else:
             raise ValueError(f"Table type '{kind}' not known")
@@ -314,3 +342,149 @@ class SubarrayDescription:
             tel_str = tel_type
 
         return [id for id, descr in self.tels.items() if str(descr) == tel_str]
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+
+        if self.name != other.name:
+            return False
+
+        if self.tels.keys() != other.tels.keys():
+            return False
+
+        if self.positions.keys() != other.positions.keys():
+            return False
+
+        for tel_id in self.tels.keys():
+            if self.tels[tel_id] != other.tels[tel_id]:
+                return False
+
+        for tel_id in self.tels.keys():
+            if np.any(self.positions[tel_id] != other.positions[tel_id]):
+                return False
+        return True
+
+    def to_hdf(self, output_path, overwrite=False):
+        """write the SubarrayDescription
+
+        Parameters
+        ----------
+        subarray : ctapipe.instrument.SubarrayDescription
+            subarray description
+        """
+        serialize_meta = True
+
+        if Path(output_path).suffix not in (".h5", ".hdf", ".hdf5"):
+            raise ValueError("This function can only write to hdf files.")
+
+        self.to_table().write(
+            output_path,
+            path="/configuration/instrument/subarray/layout",
+            serialize_meta=serialize_meta,
+            append=True,
+            overwrite=overwrite,
+        )
+        self.to_table(kind="optics").write(
+            output_path,
+            path="/configuration/instrument/telescope/optics",
+            append=True,
+            serialize_meta=serialize_meta,
+            overwrite=overwrite,
+        )
+        for camera in self.camera_types:
+            camera.geometry.to_table().write(
+                output_path,
+                path=f"/configuration/instrument/telescope/camera/geometry_{camera}",
+                append=True,
+                serialize_meta=serialize_meta,
+                overwrite=overwrite,
+            )
+            camera.readout.to_table().write(
+                output_path,
+                path=f"/configuration/instrument/telescope/camera/readout_{camera}",
+                append=True,
+                serialize_meta=serialize_meta,
+                overwrite=overwrite,
+            )
+
+        with tables.open_file(output_path, mode="r+") as f:
+            f.root.configuration.instrument.subarray._v_attrs.name = self.name
+
+    @classmethod
+    def from_hdf(cls, path):
+        layout = Table.read(path, path="/configuration/instrument/subarray/layout")
+
+        optics_table = Table.read(
+            path, path="/configuration/instrument/telescope/optics"
+        )
+
+        cameras = {}
+        for name in set(layout["camera_type"]):
+            geometry = CameraGeometry.from_table(
+                Table.read(
+                    path,
+                    path=f"/configuration/instrument/telescope/camera/geometry_{name}",
+                )
+            )
+            readout = CameraReadout.from_table(
+                Table.read(
+                    path,
+                    path=f"/configuration/instrument/telescope/camera/readout_{name}",
+                )
+            )
+            cameras[name] = CameraDescription(
+                camera_name=name, readout=readout, geometry=geometry
+            )
+
+        # iterating over the rows of a table does not play well
+        # with units, convert to dict of quantity arrays
+        optics_quantities = {
+            name: optics_table[name].quantity
+            if optics_table[name].unit
+            else optics_table[name]
+            for name in optics_table.colnames
+            if name not in {"description", "type"}
+        }
+        optics = {}
+        for row, desc in enumerate(optics_table["description"]):
+            kwargs = {k: v[row] for k, v in optics_quantities.items()}
+            optics[desc] = OpticsDescription(**kwargs)
+
+        # give correct frame for the camera to each telescope
+        cameras_by_desc = {}
+        for row in layout:
+            desc = row["tel_description"]
+
+            # copy to support different telescopes with same camera geom
+            camera = copy(cameras[row["camera_type"]])
+            focal_length = optics[desc].equivalent_focal_length
+            camera.geometry.frame = CameraFrame(focal_length=focal_length)
+            cameras_by_desc[desc] = camera
+
+        telescope_descriptions = {
+            row["tel_id"]: TelescopeDescription(
+                name=row["name"],
+                tel_type=row["type"],
+                optics=optics[row["tel_description"]],
+                camera=cameras_by_desc[row["tel_description"]],
+            )
+            for row in layout
+        }
+
+        positions = np.column_stack([layout[f"pos_{c}"].quantity for c in "xyz"])
+
+        with tables.open_file(path, mode="r") as f:
+            attrs = f.root.configuration.instrument.subarray._v_attrs
+            if "name" in attrs:
+                name = str(attrs.name)
+            else:
+                name = "Unknown"
+
+        return cls(
+            name=name,
+            tel_positions={
+                tel_id: pos for tel_id, pos in zip(layout["tel_id"], positions)
+            },
+            tel_descriptions=telescope_descriptions,
+        )

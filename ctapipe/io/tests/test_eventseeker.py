@@ -10,50 +10,63 @@ def test_eventseeker():
 
     with SimTelEventSource(input_url=dataset, back_seekable=True) as reader:
 
-        seeker = EventSeeker(reader=reader)
+        seeker = EventSeeker(event_source=reader)
 
-        event = seeker[1]
+        event = seeker.get_event_index(1)
         assert event.count == 1
-        event = seeker[0]
+        event = seeker.get_event_index(0)
         assert event.count == 0
 
-        event = seeker['31007']
-        assert event.r0.event_id == 31007
-
-        events = seeker[0:2]
-
-        for i, event in enumerate(events):
-            assert event.count == i
-
-        events = seeker[[0, 1]]
-        for i, event in enumerate(events):
-            assert event.count == i
-
-        ids = ['23703', '31007']
-        events = seeker[ids]
-
-        for i, event in zip(ids, events):
-            assert event.r0.event_id == int(i)
+        event = seeker.get_event_id(31007)
+        assert event.index.event_id == 31007
 
         with pytest.raises(IndexError):
-            event = seeker[200]
-
-        with pytest.raises(ValueError):
-            event = seeker['t']
+            seeker.get_event_index(200)
 
         with pytest.raises(TypeError):
-            event = seeker[dict()]
+            seeker.get_event_index("1")
 
-    with SimTelEventSource(input_url=dataset, max_events=5, back_seekable=True) as reader:
-        seeker = EventSeeker(reader=reader)
+        with pytest.raises(TypeError):
+            seeker.get_event_index("t")
+
+        with pytest.raises(TypeError):
+            seeker.get_event_index(dict())
+
+    with SimTelEventSource(
+        input_url=dataset, max_events=5, back_seekable=True
+    ) as reader:
+        seeker = EventSeeker(event_source=reader)
         with pytest.raises(IndexError):
-            event = seeker[5]
+            event = seeker.get_event_index(5)
             assert event is not None
 
-    class StreamFileReader(SimTelEventSource):
-        def is_stream(self):
-            return True
 
-    with StreamFileReader(input_url=dataset) as reader:
+def test_eventseeker_edit():
+    with SimTelEventSource(input_url=dataset, back_seekable=True) as reader:
+        seeker = EventSeeker(event_source=reader)
+        event = seeker.get_event_index(1)
+        assert event.count == 1
+        event.count = 2
+        assert event.count == 2
+        event = seeker.get_event_index(1)
+        assert event.count == 1
+
+
+def test_eventseeker_simtel():
+    # Ensure the EventSeeker can forward seek even if back-seeking is not possible
+    with SimTelEventSource(input_url=dataset, back_seekable=False) as reader:
+        seeker = EventSeeker(event_source=reader)
+        event = seeker.get_event_index(1)
+        assert event.count == 1
+        event = seeker.get_event_index(1)
+        assert event.count == 1
+        event = seeker.get_event_index(2)
+        assert event.count == 2
+        event = seeker.get_event_index(2)
+        assert event.count == 2
+        event = seeker.get_event_index(4)
+        assert event.count == 4
         with pytest.raises(IOError):
-            seeker = EventSeeker(reader=reader)
+            seeker.get_event_index(1)
+        event = seeker.get_event_index(5)
+        assert event.count == 5

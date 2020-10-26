@@ -34,18 +34,14 @@ class ChargeResolutionGenerator(Tool):
     output_path = Path(
         default_value="charge_resolution.h5",
         directory_ok=False,
-        help="Path to store the output HDF5 file"
+        help="Path to store the output HDF5 file",
     ).tag(config=True)
-    extractor_product = traits.enum_trait(
-        ImageExtractor, default="NeighborPeakWindowSum"
-    )
 
     aliases = Dict(
         dict(
             f="SimTelEventSource.input_url",
             max_events="SimTelEventSource.max_events",
             T="SimTelEventSource.allowed_tels",
-            extractor="ChargeResolutionGenerator.extractor_product",
             O="ChargeResolutionGenerator.output_path",
         )
     )
@@ -63,17 +59,19 @@ class ChargeResolutionGenerator(Tool):
 
         self.eventsource = self.add_component(SimTelEventSource(parent=self))
 
-        extractor = self.add_component(ImageExtractor.from_name(
-            self.extractor_product,
-            parent=self,
-            subarray=self.eventsource.subarray,
-        ))
+        extractor = self.add_component(
+            ImageExtractor.from_name(
+                self.extractor_product, parent=self, subarray=self.eventsource.subarray
+            )
+        )
 
-        self.calibrator = self.add_component(CameraCalibrator(
-            parent=self,
-            image_extractor=extractor,
-            subarray=self.eventsource.subarray,
-        ))
+        self.calibrator = self.add_component(
+            CameraCalibrator(
+                parent=self,
+                image_extractor=extractor,
+                subarray=self.eventsource.subarray,
+            )
+        )
         self.calculator = ChargeResolutionCalculator()
 
     def start(self):
@@ -84,7 +82,7 @@ class ChargeResolutionGenerator(Tool):
             # Check events have true charge included
             if event.count == 0:
                 try:
-                    pe = list(event.mc.tel.values())[0].photo_electron_image
+                    pe = list(event.mc.tel.values())[0].true_image
                     if np.all(pe == 0):
                         raise KeyError
                 except KeyError:
@@ -92,7 +90,7 @@ class ChargeResolutionGenerator(Tool):
                     raise
 
             for mc, dl1 in zip(event.mc.tel.values(), event.dl1.tel.values()):
-                true_charge = mc.photo_electron_image
+                true_charge = mc.true_image
                 measured_charge = dl1.image
                 pixels = np.arange(measured_charge.size)
                 self.calculator.add(pixels, true_charge, measured_charge)

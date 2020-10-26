@@ -11,15 +11,19 @@ from scipy.stats import norm
 from ctapipe.utils import get_table_dataset
 
 
-__all__ = ['CameraReadout']
+__all__ = ["CameraReadout"]
 
 logger = logging.getLogger(__name__)
 
 
 class CameraReadout:
-
-    def __init__(self, camera_name, sampling_rate, reference_pulse_shape,
-                 reference_pulse_sample_width):
+    def __init__(
+        self,
+        camera_name,
+        sampling_rate,
+        reference_pulse_shape,
+        reference_pulse_sample_width,
+    ):
         """Stores properties related to the readout of a Cherenkov Camera.
 
         Parameters
@@ -57,12 +61,14 @@ class CameraReadout:
         return True
 
     def __hash__(self):
-        return hash((
-            self.camera_name,
-            self.sampling_rate.to_value(u.GHz),
-            self.reference_pulse_shape.size,
-            self.reference_pulse_sample_width.to_value(u.ns),
-        ))
+        return hash(
+            (
+                self.camera_name,
+                self.sampling_rate.to_value(u.GHz),
+                self.reference_pulse_shape.size,
+                self.reference_pulse_sample_width.to_value(u.ns),
+            )
+        )
 
     def __len__(self):
         return self.reference_pulse_shape.size
@@ -79,7 +85,7 @@ class CameraReadout:
         return u.Quantity(sample_time, u.ns)
 
     @classmethod
-    def from_name(cls, camera_name='NectarCam', version=None):
+    def from_name(cls, camera_name="NectarCam", version=None):
         """Construct a CameraReadout using the name of the camera and array.
 
         This expects that there is a resource in the `ctapipe_resources` module
@@ -100,7 +106,7 @@ class CameraReadout:
         """
 
         if version is None:
-            verstr = ''
+            verstr = ""
         else:
             verstr = f"-{version:03d}"
 
@@ -108,12 +114,14 @@ class CameraReadout:
             tabname = "{camera_name}{verstr}.camreadout".format(
                 camera_name=camera_name, verstr=verstr
             )
-            table = get_table_dataset(tabname, role='dl0.tel.svc.camera')
+            table = get_table_dataset(tabname, role="dl0.tel.svc.camera")
             return CameraReadout.from_table(table)
         except FileNotFoundError:
             # TODO: remove case when files have been generated
-            logger.warning(f"Resorting to default CameraReadout,"
-                           f" File does not exist: ({tabname})")
+            logger.warning(
+                f"Resorting to default CameraReadout,"
+                f" File does not exist: ({tabname})"
+            )
             reference_pulse_shape = np.array([norm.pdf(np.arange(96), 48, 6)])
             return cls(
                 camera_name=camera_name,
@@ -127,21 +135,25 @@ class CameraReadout:
         n_channels = len(self.reference_pulse_shape)
         tables = [
             *[self.reference_pulse_shape[i] for i in range(n_channels)],
-            self.reference_pulse_sample_time
+            self.reference_pulse_sample_time,
         ]
         names = [
             *[f"reference_pulse_shape_channel{i}" for i in range(n_channels)],
-            "reference_pulse_sample_time"
+            "reference_pulse_sample_time",
         ]
 
-        return Table(tables, names=names, meta=dict(
-            TAB_TYPE='ctapipe.instrument.CameraReadout',
-            TAB_VER='1.0',
-            CAM_ID=self.camera_name,
-            NCHAN=n_channels,
-            SAMPFREQ=self.sampling_rate.to_value(u.GHz),
-            REF_WIDTH=self.reference_pulse_sample_width.to_value(u.ns),
-        ))
+        return Table(
+            tables,
+            names=names,
+            meta=dict(
+                TAB_TYPE="ctapipe.instrument.CameraReadout",
+                TAB_VER="1.0",
+                CAM_ID=self.camera_name,
+                NCHAN=n_channels,
+                SAMPFREQ=self.sampling_rate.to_value(u.GHz),
+                REF_WIDTH=self.reference_pulse_sample_width.to_value(u.ns),
+            ),
+        )
 
     @classmethod
     def from_table(cls, url_or_table, **kwargs):
@@ -161,12 +173,12 @@ class CameraReadout:
         if not isinstance(url_or_table, Table):
             tab = Table.read(url_or_table, **kwargs)
 
-        camera_name = tab.meta.get('CAM_ID', 'Unknown')
-        n_channels = tab.meta['NCHAN']
+        camera_name = tab.meta.get("CAM_ID", "Unknown")
+        n_channels = tab.meta["NCHAN"]
         sampling_rate = u.Quantity(tab.meta["SAMPFREQ"], u.GHz)
-        reference_pulse_sample_width = u.Quantity(tab.meta['REF_WIDTH'], u.ns)
+        reference_pulse_sample_width = u.Quantity(tab.meta["REF_WIDTH"], u.ns)
         reference_pulse_shape = np.array(
-            [tab[f'reference_pulse_shape_channel{i}'] for i in range(n_channels)]
+            [tab[f"reference_pulse_shape_channel{i}"] for i in range(n_channels)]
         )
 
         return cls(

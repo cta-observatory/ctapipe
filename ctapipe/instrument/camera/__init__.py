@@ -6,5 +6,5 @@ __all__ = [
     "CameraDescription",
     "CameraGeometry",
     "UnknownPixelShapeWarning",
-    "CameraReadout"
+    "CameraReadout",
 ]

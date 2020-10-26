@@ -16,11 +16,9 @@ from tqdm import tqdm
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Tool
-from ctapipe.core.traits import Float, Dict, List
+from ctapipe.core.traits import Float, Dict, List, Path
 from ctapipe.core.traits import Unicode, Int, Bool
-from ctapipe.image import (
-    tailcuts_clean, hillas_parameters, HillasParameterizationError
-)
+from ctapipe.image import tailcuts_clean, hillas_parameters, HillasParameterizationError
 from ctapipe.io import EventSource
 from ctapipe.visualization import CameraDisplay
 
@@ -29,38 +27,40 @@ class SingleTelEventDisplay(Tool):
     name = "ctapipe-display-televents"
     description = Unicode(__doc__)
 
-    infile = Unicode(help="input file to read", default='').tag(config=True)
-    tel = Int(help='Telescope ID to display', default=0).tag(config=True)
-    write = Bool(
-        help="Write out images to PNG files", default=False
-    ).tag(config=True)
-    clean = Bool(help="Apply image cleaning", default=False).tag(config=True)
+    infile = Path(help="input file to read", exists=True, directory_ok=False).tag(
+        config=True
+    )
+    tel = Int(help="Telescope ID to display", default_value=0).tag(config=True)
+    write = Bool(help="Write out images to PNG files", default_value=False).tag(
+        config=True
+    )
+    clean = Bool(help="Apply image cleaning", default_value=False).tag(config=True)
     hillas = Bool(
-        help="Apply and display Hillas parametrization", default=False
+        help="Apply and display Hillas parametrization", default_value=False
     ).tag(config=True)
-    samples = Bool(help="Show each sample", default=False).tag(config=True)
+    samples = Bool(help="Show each sample", default_value=False).tag(config=True)
     display = Bool(
         help="Display results in interactive window", default_value=True
     ).tag(config=True)
-    delay = Float(
-        help='delay between events in s', default_value=0.01, min=0.001
-    ).tag(config=True)
-    progress = Bool(
-        help='display progress bar', default_value=True
-    ).tag(config=True)
+    delay = Float(help="delay between events in s", default_value=0.01, min=0.001).tag(
+        config=True
+    )
+    progress = Bool(help="display progress bar", default_value=True).tag(config=True)
 
-    aliases = Dict({
-        'infile': 'SingleTelEventDisplay.infile',
-        'tel': 'SingleTelEventDisplay.tel',
-        'max-events': 'EventSource.max_events',
-        'write': 'SingleTelEventDisplay.write',
-        'clean': 'SingleTelEventDisplay.clean',
-        'hillas': 'SingleTelEventDisplay.hillas',
-        'samples': 'SingleTelEventDisplay.samples',
-        'display': 'SingleTelEventDisplay.display',
-        'delay': 'SingleTelEventDisplay.delay',
-        'progress': 'SingleTelEventDisplay.progress'
-    })
+    aliases = Dict(
+        {
+            "infile": "SingleTelEventDisplay.infile",
+            "tel": "SingleTelEventDisplay.tel",
+            "max-events": "EventSource.max_events",
+            "write": "SingleTelEventDisplay.write",
+            "clean": "SingleTelEventDisplay.clean",
+            "hillas": "SingleTelEventDisplay.hillas",
+            "samples": "SingleTelEventDisplay.samples",
+            "display": "SingleTelEventDisplay.display",
+            "delay": "SingleTelEventDisplay.delay",
+            "progress": "SingleTelEventDisplay.progress",
+        }
+    )
 
     classes = List([EventSource, CameraCalibrator])
 
@@ -68,30 +68,30 @@ class SingleTelEventDisplay(Tool):
         super().__init__(**kwargs)
 
     def setup(self):
-        print('TOLLES INFILE', self.infile)
+        print("TOLLES INFILE", self.infile)
         self.event_source = self.add_component(
             EventSource.from_url(self.infile, parent=self)
         )
-        self.event_source.allowed_tels = {self.tel, }
+        self.event_source.allowed_tels = {self.tel}
 
         self.calibrator = self.add_component(
             CameraCalibrator(parent=self, subarray=self.event_source.subarray)
         )
 
-        self.log.info(f'SELECTING EVENTS FROM TELESCOPE {self.tel}')
+        self.log.info(f"SELECTING EVENTS FROM TELESCOPE {self.tel}")
 
     def start(self):
 
         disp = None
 
         for event in tqdm(
-                self.event_source,
-                desc=f'Tel{self.tel}',
-                total=self.event_source.max_events,
-                disable=~self.progress
+            self.event_source,
+            desc=f"Tel{self.tel}",
+            total=self.event_source.max_events,
+            disable=~self.progress,
         ):
 
-            self.log.debug(event.trig)
+            self.log.debug(event.trigger)
             self.log.debug(f"Energy: {event.mc.energy}")
 
             self.calibrator(event)
@@ -107,8 +107,8 @@ class SingleTelEventDisplay(Tool):
 
             # display the event
             disp.axes.set_title(
-                'CT{:03d} ({}), event {:06d}'.format(
-                    self.tel, geom.camera_name, event.r0.event_id
+                "CT{:03d} ({}), event {:06d}".format(
+                    self.tel, geom.camera_name, event.index.event_id
                 )
             )
 
@@ -123,8 +123,8 @@ class SingleTelEventDisplay(Tool):
                         plt.pause(self.delay)
                     if self.write:
                         plt.savefig(
-                            f'CT{self.tel:03d}_EV{event.r0.event_id:10d}'
-                            f'_S{ii:02d}.png'
+                            f"CT{self.tel:03d}_EV{event.index.event_id:10d}"
+                            f"_S{ii:02d}.png"
                         )
             else:
                 # display integrated event:
@@ -146,7 +146,7 @@ class SingleTelEventDisplay(Tool):
 
                         params = hillas_parameters(geom, image=im)
                         disp.overlay_moments(
-                            params, color='pink', lw=3, with_label=False
+                            params, color="pink", lw=3, with_label=False
                         )
                     except HillasParameterizationError:
                         pass
@@ -154,17 +154,16 @@ class SingleTelEventDisplay(Tool):
                 if self.display:
                     plt.pause(self.delay)
                 if self.write:
-                    plt.savefig(
-                        f'CT{self.tel:03d}_EV{event.r0.event_id:010d}.png'
-                    )
+                    plt.savefig(f"CT{self.tel:03d}_EV{event.index.event_id:010d}.png")
 
         self.log.info("FINISHED READING DATA FILE")
 
         if disp is None:
             self.log.warning(
-                'No events for tel {} were found in {}. Try a '
-                'different EventIO file or another telescope'
-                    .format(self.tel, self.infile),
+                "No events for tel {} were found in {}. Try a "
+                "different EventIO file or another telescope".format(
+                    self.tel, self.infile
+                )
             )
 
 
