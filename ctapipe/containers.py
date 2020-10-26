@@ -171,9 +171,7 @@ class TimingParametersContainer(Container):
     slope = Field(
         nan / u.m, "Slope of arrival times along main shower axis", unit=1 / u.m
     )
-    slope_err = Field(nan / u.m, "Uncertainty `slope`", unit=1 / u.m)
     intercept = Field(nan, "intercept of arrival times along main shower axis")
-    intercept_err = Field(nan, "Uncertainty `intercept`")
     deviation = Field(
         nan,
         "Root-mean-square deviation of the pulse times "
