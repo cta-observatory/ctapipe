@@ -312,7 +312,7 @@ class CameraGeometry:
         elif self.pix_type == PixelShape.SQUARE:
             width = np.sqrt(self.pix_area)
         elif self.pix_type == PixelShape.CIRCLE:
-            width = np.sqrt(self.pix_area / np.pi)
+            width = 2 * np.sqrt(self.pix_area / np.pi)
         else:
             raise NotImplementedError(
                 "Cannot calculate pixel width for type {self.pix_type!r}"
