@@ -12,6 +12,7 @@ from ctapipe.reco.reco_algorithms import (
 )
 from ctapipe.utils import get_dataset_path
 from astropy.coordinates import SkyCoord, AltAz
+from ctapipe.calib import CameraCalibrator
 
 
 def test_estimator_results():
@@ -98,17 +99,19 @@ def test_reconstruction():
     filename = get_dataset_path("gamma_test_large.simtel.gz")
 
     source = event_source(filename, max_events=10)
+    calib = CameraCalibrator(subarray=source.subarray)
+
     horizon_frame = AltAz()
 
     reconstructed_events = 0
 
     for event in source:
-        array_pointing = SkyCoord(az=event.mc.az, alt=event.mc.alt, frame=horizon_frame)
+        calib(event)
 
+        array_pointing = SkyCoord(az=event.mc.az, alt=event.mc.alt, frame=horizon_frame)
         hillas_dict = {}
         telescope_pointings = {}
-
-        for tel_id in event.dl0.tels_with_data:
+        for tel_id, dl1 in event.dl1.tel.items():
 
             geom = source.subarray.tel[tel_id].camera.geometry
 
@@ -117,15 +120,12 @@ def test_reconstruction():
                 az=event.pointing.tel[tel_id].azimuth,
                 frame=horizon_frame,
             )
-            pmt_signal = event.r0.tel[tel_id].waveform[0].sum(axis=1)
-
             mask = tailcuts_clean(
-                geom, pmt_signal, picture_thresh=10.0, boundary_thresh=5.0
+                geom, dl1.image, picture_thresh=10.0, boundary_thresh=5.0
             )
-            pmt_signal[mask == 0] = 0
 
             try:
-                moments = hillas_parameters(geom, pmt_signal)
+                moments = hillas_parameters(geom[mask], dl1.image[mask])
                 hillas_dict[tel_id] = moments
             except HillasParameterizationError as e:
                 print(e)
@@ -180,25 +180,24 @@ def test_invalid_events():
 
     source = event_source(filename, max_events=10)
     subarray = source.subarray
+    calib = CameraCalibrator(subarray)
 
     for event in source:
+        calib(event)
 
         hillas_dict = {}
-        for tel_id in event.dl0.tels_with_data:
+        for tel_id, dl1 in event.dl1.tel.items():
 
             geom = source.subarray.tel[tel_id].camera.geometry
             tel_azimuth[tel_id] = event.pointing.tel[tel_id].azimuth
             tel_altitude[tel_id] = event.pointing.tel[tel_id].altitude
 
-            pmt_signal = event.r0.tel[tel_id].waveform[0].sum(axis=1)
-
             mask = tailcuts_clean(
-                geom, pmt_signal, picture_thresh=10.0, boundary_thresh=5.0
+                geom, dl1.image, picture_thresh=10.0, boundary_thresh=5.0
             )
-            pmt_signal[mask == 0] = 0
 
             try:
-                moments = hillas_parameters(geom, pmt_signal)
+                moments = hillas_parameters(geom[mask], dl1.image[mask])
                 hillas_dict[tel_id] = moments
             except HillasParameterizationError as e:
                 continue
