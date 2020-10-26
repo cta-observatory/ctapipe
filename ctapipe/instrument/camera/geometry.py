@@ -315,7 +315,7 @@ class CameraGeometry:
             width = 2 * np.sqrt(self.pix_area / np.pi)
         else:
             raise NotImplementedError(
-                "Cannot calculate pixel width for type {self.pix_type!r}"
+                f"Cannot calculate pixel width for type {self.pix_type!r}"
             )
 
         return width

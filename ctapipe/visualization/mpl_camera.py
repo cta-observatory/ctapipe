@@ -271,7 +271,7 @@ class CameraDisplay:
             self.pixels.norm = LogNorm()
             self.pixels.autoscale()  # this is to handle matplotlib bug #5424
         elif norm == "symlog":
-            self.pixels.norm = SymLogNorm(linthresh=1.0)
+            self.pixels.norm = SymLogNorm(linthresh=1.0, base=10)
             self.pixels.autoscale()
         elif isinstance(norm, Normalize):
             self.pixels.norm = norm
