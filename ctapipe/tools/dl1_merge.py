@@ -17,41 +17,52 @@ from ctapipe.instrument import SubarrayDescription
 
 import warnings
 
-warnings.filterwarnings('ignore', category=tables.NaturalNameWarning)
+warnings.filterwarnings("ignore", category=tables.NaturalNameWarning)
 
 PROV = Provenance()
 
-required_nodes = ['/dl1/monitoring/subarray/pointing',
-                  '/dl1/monitoring/telescope/pointing',
-                  '/dl1/service/image_statistics',
-                  '/dl1/service/image_statistics.__table_column_meta__',
-                  '/dl1/event/subarray/trigger',
-                  '/dl1/event/telescope/trigger',
-                  '/dl1/event/telescope/parameters',
-                  '/dl1/event/telescope/images',
-                  '/configuration/simulation/run',
-                  '/simulation/event/subarray/shower',
-                  '/simulation/event/telescope/parameters',
-                  '/simulation/event/telescope/images',
-                  '/simulation/service/shower_distribution']
-optional_nodes = ['/simulation/service/shower_distribution',
-                  '/simulation/event/telescope/images',
-                  '/simulation/event/telescope/parameters']
-allowlist_simu = ['/simulation/event/subarray/shower',
-                  '/simulation/event/telescope/parameters',
-                  '/simulation/event/telescope/images',
-                  '/simulation/service/shower_distribution']
-allowlist_service = ['/dl1/service/image_statistics',
-                     '/dl1/service/image_statistics.__table_column_meta__']
-allowlist_tels = ['/dl1/monitoring/telescope/pointing',
-                  '/dl1/event/telescope/parameters',
-                  '/dl1/event/telescope/images',
-                  '/simulation/event/telescope/parameters',
-                  '/simulation/event/telescope/images']
-blocklist_images = ['/simulation/event/telescope/images',
-                    '/dl1/event/telescope/images']
-blocklist_parameters = ['/simulation/event/telescope/parameters',
-                        '/dl1/event/telescope/parameters']
+required_nodes = [
+    "/dl1/monitoring/subarray/pointing",
+    "/dl1/monitoring/telescope/pointing",
+    "/dl1/service/image_statistics",
+    "/dl1/service/image_statistics.__table_column_meta__",
+    "/dl1/event/subarray/trigger",
+    "/dl1/event/telescope/trigger",
+    "/dl1/event/telescope/parameters",
+    "/dl1/event/telescope/images",
+    "/configuration/simulation/run",
+    "/simulation/event/subarray/shower",
+    "/simulation/event/telescope/parameters",
+    "/simulation/event/telescope/images",
+    "/simulation/service/shower_distribution",
+]
+optional_nodes = [
+    "/simulation/service/shower_distribution",
+    "/simulation/event/telescope/images",
+    "/simulation/event/telescope/parameters",
+]
+allowlist_simu = [
+    "/simulation/event/subarray/shower",
+    "/simulation/event/telescope/parameters",
+    "/simulation/event/telescope/images",
+    "/simulation/service/shower_distribution",
+]
+allowlist_service = [
+    "/dl1/service/image_statistics",
+    "/dl1/service/image_statistics.__table_column_meta__",
+]
+allowlist_tels = [
+    "/dl1/monitoring/telescope/pointing",
+    "/dl1/event/telescope/parameters",
+    "/dl1/event/telescope/images",
+    "/simulation/event/telescope/parameters",
+    "/simulation/event/telescope/images",
+]
+blocklist_images = ["/simulation/event/telescope/images", "/dl1/event/telescope/images"]
+blocklist_parameters = [
+    "/simulation/event/telescope/parameters",
+    "/dl1/event/telescope/parameters",
+]
 
 
 class MergeTool(Tool):
@@ -73,35 +84,42 @@ class MergeTool(Tool):
     > ctapipe-merge --input-dir=/input/dir/ --output=/path/output_file.h5 --progress
     --pattern='pattern.*.dl1.h5'
     """
-    input_dir = traits.Path(help="input dl1-directory",
-                            exists=None, directory_ok=True,
-                            file_ok=False).tag(config=True)
-    input_files = List(default_value=[],
-                       help="input dl1-files").tag(config=True)
+    input_dir = traits.Path(
+        help="input dl1-directory", exists=None, directory_ok=True, file_ok=False
+    ).tag(config=True)
+    input_files = List(default_value=[], help="input dl1-files").tag(config=True)
     output_path = traits.Path(help="merged-DL1 output filename").tag(config=True)
-    skip_images = traits.Bool(help="skip /dl1/event/telescope/images and "
-                                   "/simulation/event/telescope/images data in output",
-                              default_value=False).tag(config=True)
-    skip_simu_images = traits.Bool(help="skip /simulation/event/telescope/images "
-                                        "data in output",
-                                   default_value=False).tag(config=True)
-    skip_parameters = traits.Bool(help="skip /dl1/event/telescope/parameters and "
-                                       "/simulation/event/telescope/parameters "
-                                       "data in output",
-                                  default_value=False).tag(config=True)
+    skip_images = traits.Bool(
+        help="skip /dl1/event/telescope/images and "
+        "/simulation/event/telescope/images data in output",
+        default_value=False,
+    ).tag(config=True)
+    skip_simu_images = traits.Bool(
+        help="skip /simulation/event/telescope/images " "data in output",
+        default_value=False,
+    ).tag(config=True)
+    skip_parameters = traits.Bool(
+        help="skip /dl1/event/telescope/parameters and "
+        "/simulation/event/telescope/parameters "
+        "data in output",
+        default_value=False,
+    ).tag(config=True)
     overwrite = traits.Bool(help="overwrite output file if it exists").tag(config=True)
-    progress_bar = traits.Bool(help="show progress bar during "
-                                    "processing").tag(config=True)
-    file_pattern = traits.Unicode(default_value='*.h5',
-                                  help="Give a specific file pattern for the"
-                                       "input files").tag(config=True)
+    progress_bar = traits.Bool(help="show progress bar during " "processing").tag(
+        config=True
+    )
+    file_pattern = traits.Unicode(
+        default_value="*.h5", help="Give a specific file pattern for the" "input files"
+    ).tag(config=True)
 
     parser = ArgumentParser()
-    parser.add_argument('input_files', nargs='*', type=Path)
+    parser.add_argument("input_files", nargs="*", type=Path)
 
-    aliases = {'input-dir': 'MergeTool.input_dir',
-               'output': 'MergeTool.output_path',
-               'pattern' : 'MergeTool.file_pattern'}
+    aliases = {
+        "input-dir": "MergeTool.input_dir",
+        "output": "MergeTool.output_path",
+        "pattern": "MergeTool.file_pattern",
+    }
 
     flags = {
         "skip-images": (
@@ -123,7 +141,7 @@ class MergeTool(Tool):
         "progress": (
             {"MergeTool": {"progress_bar": True}},
             "show a progress bar during event processing",
-        )
+        ),
     }
 
     def setup(self):
@@ -134,15 +152,16 @@ class MergeTool(Tool):
                 self.log.warning(f"Overwriting {self.output_path}")
                 self.output_path.unlink()
             else:
-                self.log.critical(f"Output file {self.output_path} exists, "
-                                  "use `--overwrite` to overwrite")
+                self.log.critical(
+                    f"Output file {self.output_path} exists, "
+                    "use `--overwrite` to overwrite"
+                )
                 sys.exit(1)
 
         PROV.add_output_file(str(self.output_path))
 
         if self.skip_parameters is True and self.skip_images is True:
-            self.log.warning('Skip-parameters and skip-images are both'
-                             'set to True')
+            self.log.warning("Skip-parameters and skip-images are both" "set to True")
 
         # Get input Files
         args = self.parser.parse_args(self.extra_args)
@@ -150,12 +169,12 @@ class MergeTool(Tool):
         if self.input_dir is not None:
             self.input_files.extend(sorted(self.input_dir.glob(self.file_pattern)))
         if not self.input_files:
-            self.input_files = sorted(Path('.').glob(self.file_pattern))
+            self.input_files = sorted(Path(".").glob(self.file_pattern))
 
         # create output file with subarray from first file
         self.first_subarray = SubarrayDescription.from_hdf(self.input_files[0])
         self.first_subarray.to_hdf(self.output_path)
-        self.output_file = tables.open_file(self.output_path, mode='a')
+        self.output_file = tables.open_file(self.output_path, mode="a")
 
     def check_file(self, file):
         # Check that the file is not broken or any node is missing
@@ -163,8 +182,7 @@ class MergeTool(Tool):
         current_subarray = SubarrayDescription.from_hdf(file_path)
         # Check subarrays
         if self.first_subarray != current_subarray:
-            self.log.warning(f"Subarray does not match for {file_path}. "
-                             "Skip File.")
+            self.log.warning(f"Subarray does not match for {file_path}. " "Skip File.")
             self.skip_file = True
 
         # Gives warning if tables for listed nodes in 'optional_nodes'
@@ -181,9 +199,11 @@ class MergeTool(Tool):
             if self.skip_parameters is True and node in blocklist_parameters:
                 continue
             if node in optional_nodes and node not in file:
-                self.log.warning(f"{node} is not in {file_path}. Continue with "
-                                 "merging file. This table will be incomplete "
-                                 "or empty")
+                self.log.warning(
+                    f"{node} is not in {file_path}. Continue with "
+                    "merging file. This table will be incomplete "
+                    "or empty"
+                )
                 continue
             if node not in file:
                 self.log.warning(f"{node} is not in {file_path}. Skip file")
@@ -197,15 +217,18 @@ class MergeTool(Tool):
             table_out = self.output_file.root[image_statistics_path]
             table_in = file.root[image_statistics_path]
             for row in range(len(table_in)):
-                table_out.cols.counts[row] = np.add(table_out.cols.counts[row],
-                                                    table_in.cols.counts[row])
+                table_out.cols.counts[row] = np.add(
+                    table_out.cols.counts[row], table_in.cols.counts[row]
+                )
                 table_out.cols.cumulative_counts[row] = np.add(
                     table_out.cols.cumulative_counts[row],
-                    table_in .cols.cumulative_counts[row])
+                    table_in.cols.cumulative_counts[row],
+                )
 
-        elif '/dl1/service' not in self.output_file:
-            target_group = self.output_file.create_group('/dl1',
-                                                         'service', createparents=True)
+        elif "/dl1/service" not in self.output_file:
+            target_group = self.output_file.create_group(
+                "/dl1", "service", createparents=True
+            )
             for node in allowlist_service:
                 file.copy_node(node, newparent=target_group)
 
@@ -233,9 +256,11 @@ class MergeTool(Tool):
                         head, tail = os.path.split(node)
                         self.output_file.create_group(head, tail, createparents=True)
                     for tel in file.root[node]:
-                        if (node + '/' + tel.name) in self.output_file:
-                            output_node = self.output_file.get_node(node + '/' + tel.name)
-                            input_node = file.root[node + '/' + tel.name]
+                        if (node + "/" + tel.name) in self.output_file:
+                            output_node = self.output_file.get_node(
+                                node + "/" + tel.name
+                            )
+                            input_node = file.root[node + "/" + tel.name]
 
                             # cast needed for some image parameters that are sometimes
                             # float32 and sometimes float64
@@ -250,8 +275,8 @@ class MergeTool(Tool):
                     # because it's variable length
                     # TODO: remove when we no longer want to support merging 0.8 files.
                     data = file.root[node][:]
-                    if node == '/dl1/monitoring/subarray/pointing':
-                        data = self.drop_column(data, 'tels_with_trigger')
+                    if node == "/dl1/monitoring/subarray/pointing":
+                        data = self.drop_column(data, "tels_with_trigger")
 
                     output_node = self.output_file.get_node(node)
                     output_node.append(data)
@@ -263,11 +288,13 @@ class MergeTool(Tool):
 
                     target_group = self.output_file.root[group_path]
 
-                    if node == '/dl1/monitoring/subarray/pointing':
+                    if node == "/dl1/monitoring/subarray/pointing":
                         h5_node = file.root[node]
-                        data = self.drop_column(h5_node[:], 'tels_with_trigger')
+                        data = self.drop_column(h5_node[:], "tels_with_trigger")
                         self.output_file.create_table(
-                            group_path, table_name, filters=h5_node.filters,
+                            group_path,
+                            table_name,
+                            filters=h5_node.filters,
                             obj=data,
                         )
                     else:
@@ -276,6 +303,7 @@ class MergeTool(Tool):
     @staticmethod
     def drop_column(array, column):
         from numpy.lib.recfunctions import repack_fields
+
         cols = list(array.dtype.names)
         if column in cols:
             cols.remove(column)
@@ -286,20 +314,22 @@ class MergeTool(Tool):
         merged_files_counter = 0
         self.is_simu = False
 
-        for i, current_file in enumerate(tqdm(
-            self.input_files,
-            desc="Merging",
-            unit="Files",
-            disable=not self.progress_bar
-        )):
+        for i, current_file in enumerate(
+            tqdm(
+                self.input_files,
+                desc="Merging",
+                unit="Files",
+                disable=not self.progress_bar,
+            )
+        ):
 
             self.skip_file = False
-            with tables.open_file(current_file, mode='r') as file:
+            with tables.open_file(current_file, mode="r") as file:
                 if i == 0:
                     # Check if first file is simulation
-                    if '/simulation' in file.root:
+                    if "/simulation" in file.root:
                         self.is_simu = True
-                        self.log.info('Merging simulation-files')
+                        self.log.info("Merging simulation-files")
 
                 self.check_file(file)
                 if self.skip_file is True:
@@ -311,8 +341,10 @@ class MergeTool(Tool):
             PROV.add_input_file(str(current_file))
             merged_files_counter += 1
 
-        self.log.info(f"{merged_files_counter} out of {len(self.input_files)} files "
-                      "has been merged!")
+        self.log.info(
+            f"{merged_files_counter} out of {len(self.input_files)} files "
+            "has been merged!"
+        )
 
     def finish(self):
         pass
