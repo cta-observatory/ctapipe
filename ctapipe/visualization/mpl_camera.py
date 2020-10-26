@@ -13,6 +13,8 @@ from matplotlib.colors import Normalize, LogNorm, SymLogNorm
 from matplotlib.patches import Ellipse, RegularPolygon, Rectangle
 from numpy import sqrt
 
+from ctapipe.instrument import PixelShape
+
 __all__ = ["CameraDisplay"]
 
 logger = logging.getLogger(__name__)
@@ -126,7 +128,7 @@ class CameraDisplay:
         pix_area = self.geom.pix_area.value[self.mask]
 
         for x, y, area in zip(pix_x, pix_y, pix_area):
-            if self.geom.pix_type.startswith("hex"):
+            if self.geom.pix_type == PixelShape.HEXAGON:
                 r = sqrt(area * 2 / 3 / sqrt(3)) + 2 * PIXEL_EPSILON
                 poly = RegularPolygon(
                     (x, y),
@@ -135,12 +137,16 @@ class CameraDisplay:
                     orientation=self.geom.pix_rotation.to_value(u.rad),
                     fill=True,
                 )
-            else:
-                r = sqrt(area) + PIXEL_EPSILON
+
+            elif self.geom.pix_type == PixelShape.CIRCLE:
+                raise NotImplementedError("Circle not supported")
+
+            elif self.geom.pix_type == PixelShape.SQUARE:
+                w = self.geom.pixel_width.value + PIXEL_EPSILON
                 poly = Rectangle(
-                    (x - r / 2, y - r / 2),
-                    width=r,
-                    height=r,
+                    (x - w / 2, y - w / 2),
+                    width=w,
+                    height=w,
                     angle=self.geom.pix_rotation.to_value(u.deg),
                     fill=True,
                 )

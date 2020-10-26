@@ -18,11 +18,43 @@ from scipy.spatial import cKDTree as KDTree
 from ctapipe.coordinates import CameraFrame
 from ctapipe.utils import get_table_dataset
 from ctapipe.utils.linalg import rotation_matrix_2d
+from enum import Enum, unique
 
 __all__ = ["CameraGeometry", "UnknownPixelShapeWarning"]
 
 logger = logging.getLogger(__name__)
 CG = TypeVar("CG", bound="CameraGeometry")  # for forward-referencing type hints
+
+
+@unique
+class PixelShape(Enum):
+    CIRCLE = "circle"
+    SQUARE = "square"
+    HEXAGON = "hexagon"
+
+    @classmethod
+    def from_string(cls, name):
+        name = name.lower()
+
+        if name.startswith("hex"):
+            return cls.HEXAGON
+
+        if name.startswith("rect") or name == "square":
+            return cls.SQUARE
+
+        if name.startswith("circ"):
+            return cls.CIRCLE
+
+        raise TypeError(f"Unknown pixel shape {name}")
+
+
+#: mapper from simtel pixel shape integerrs to our shape and rotation angle
+SIMTEL_PIXEL_SHAPES = {
+    0: (PixelShape.CIRCLE, Angle(0, u.deg)),
+    1: (PixelShape.HEXAGON, Angle(0, u.deg)),
+    2: (PixelShape.SQUARE, Angle(0, u.deg)),
+    3: (PixelShape.HEXAGON, Angle(30, u.deg)),
+}
 
 
 class CameraGeometry:
@@ -90,6 +122,10 @@ class CameraGeometry:
             )
 
         assert len(pix_x) == len(pix_y), "pix_x and pix_y must have same length"
+
+        if isinstance(pix_type, str):
+            pix_type = PixelShape.from_string(pix_type)
+
         self.n_pixels = len(pix_x)
         self.camera_name = camera_name
         self.pix_id = pix_id
@@ -249,9 +285,9 @@ class CameraGeometry:
 
         dist = cls.guess_pixel_width(pix_x, pix_y)
 
-        if pix_type.startswith("hex"):
+        if pix_type == PixelShape.HEXAGON:
             area = 2 * np.sqrt(3) * (dist / 2) ** 2
-        elif pix_type.startswith("rect"):
+        elif pix_type == PixelShape.SQUARE:
             area = dist ** 2
         else:
             raise KeyError("unsupported pixel type")
@@ -261,17 +297,22 @@ class CameraGeometry:
     @lazyproperty
     def pixel_width(self):
         """
-        in-circle diameter for hexagons, edge width for square pixels
+        in-circle diameter for hexagons, edge width for square pixels,
+        diameter for circles.
 
         This is calculated from the pixel area.
         """
 
-        if self.pix_type.startswith("hex"):
+        if self.pix_type == PixelShape.HEXAGON:
             width = 2 * np.sqrt(self.pix_area / (2 * np.sqrt(3)))
-        elif self.pix_type.startswith("rect"):
+        elif self.pix_type == PixelShape.SQUARE:
             width = np.sqrt(self.pix_area)
+        elif self.pix_type == PixelShape.CIRCLE:
+            width = np.sqrt(self.pix_area / np.pi)
         else:
-            raise KeyError("unsupported pixel type")
+            raise NotImplementedError(
+                "Cannot calculate pixel width for type {self.pix_type!r}"
+            )
 
         return width
 
@@ -291,17 +332,20 @@ class CameraGeometry:
         )
 
     @lazyproperty
-    def _pixel_circumferences(self):
+    def _pixel_circumradius(self):
         """ pixel circumference radius/radii based on pixel area and layout
-
         """
 
-        if self.pix_type.startswith("hex"):
-            circum_rad = np.sqrt(2.0 * self.pix_area / 3.0 / np.sqrt(3))
-        elif self.pix_type.startswith("rect"):
+        if self.pix_type == PixelShape.HEXAGON:
+            circum_rad = self.pixel_width / np.sqrt(3)
+        elif self.pix_type == PixelShape.SQUARE:
             circum_rad = np.sqrt(self.pix_area / 2.0)
+        elif self.pix_type == PixelShape.CIRCLE:
+            circum_rad = self.pixel_width / 2
         else:
-            raise KeyError("unsupported pixel type")
+            raise NotImplementedError(
+                "Cannot calculate pixel circumradius for type {self.pix_type!r}"
+            )
 
         return circum_rad
 
@@ -371,7 +415,7 @@ class CameraGeometry:
             [self.pix_id, self.pix_x, self.pix_y, self.pix_area],
             names=["pix_id", "pix_x", "pix_y", "pix_area"],
             meta=dict(
-                PIX_TYPE=self.pix_type,
+                PIX_TYPE=self.pix_type.value,
                 TAB_TYPE="ctapipe.instrument.CameraGeometry",
                 TAB_VER="1.1",
                 CAM_ID=self.camera_name,
@@ -414,7 +458,7 @@ class CameraGeometry:
 
     def __repr__(self):
         return (
-            "CameraGeometry(camera_name='{camera_name}', pix_type='{pix_type}', "
+            "CameraGeometry(camera_name='{camera_name}', pix_type={pix_type!r}, "
             "npix={npix}, cam_rot={camrot}, pix_rot={pixrot})"
         ).format(
             camera_name=self.camera_name,
@@ -455,7 +499,8 @@ class CameraGeometry:
         """
         neighbors = lil_matrix((self.n_pixels, self.n_pixels), dtype=bool)
 
-        if self.pix_type.startswith("hex"):
+        # assume circle pixels are also on a hex grid
+        if self.pix_type in (PixelShape.HEXAGON, PixelShape.CIRCLE):
             max_neighbors = 6
             # on a hexgrid, the closest pixel in the second circle is
             # the diameter of the hexagon plus the inradius away
@@ -691,7 +736,7 @@ class CameraGeometry:
             )
         unit = x.unit
         points_searched = np.dstack([x.to_value(unit), y.to_value(unit)])
-        circum_rad = self._pixel_circumferences[0].to_value(unit)
+        circum_rad = self._pixel_circumradius[0].to_value(unit)
         kdtree = self._kdtree
         dist, pix_indices = kdtree.query(
             points_searched, distance_upper_bound=circum_rad
@@ -750,16 +795,10 @@ class CameraGeometry:
 
     @staticmethod
     def simtel_shape_to_type(pixel_shape):
-        if pixel_shape == 1:
-            return "hexagonal", Angle(0, u.deg)
-
-        if pixel_shape == 2:
-            return "rectangular", Angle(0, u.deg)
-
-        if pixel_shape == 3:
-            return "hexagonal", Angle(30, u.deg)
-
-        raise ValueError(f"Unknown pixel_shape {pixel_shape}")
+        try:
+            return SIMTEL_PIXEL_SHAPES[pixel_shape]
+        except KeyError:
+            raise ValueError(f"Unknown pixel_shape {pixel_shape}") from None
 
 
 class UnknownPixelShapeWarning(UserWarning):

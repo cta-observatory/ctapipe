@@ -1,7 +1,7 @@
 """ Tests for CameraGeometry """
 import numpy as np
 from astropy import units as u
-from ctapipe.instrument import CameraDescription, CameraGeometry
+from ctapipe.instrument import CameraDescription, CameraGeometry, PixelShape
 import pytest
 
 camera_names = CameraDescription.get_known_camera_names()
@@ -38,7 +38,7 @@ def test_load_lst_camera():
     """ test that a specific camera has the expected attributes """
     geom = CameraGeometry.from_name("LSTCam")
     assert len(geom.pix_x) == 1855
-    assert geom.pix_type == "hexagonal"
+    assert geom.pix_type == PixelShape.HEXAGON
 
 
 def test_position_to_pix_index():
@@ -81,11 +81,11 @@ def test_neighbor_pixels(camera_name):
     n_pix = len(geom.pix_id)
     n_neighbors = [len(x) for x in geom.neighbors]
 
-    if geom.pix_type.startswith("hex"):
+    if geom.pix_type == PixelShape.HEXAGON:
         assert n_neighbors.count(6) > 0.5 * n_pix
         assert n_neighbors.count(6) > n_neighbors.count(4)
 
-    if geom.pix_type.startswith("rect"):
+    if geom.pix_type == PixelShape.SQUARE:
         assert n_neighbors.count(4) > 0.5 * n_pix
         assert n_neighbors.count(5) == 0
         assert n_neighbors.count(6) == 0
