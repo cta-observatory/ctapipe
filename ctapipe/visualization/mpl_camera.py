@@ -123,10 +123,9 @@ class CameraDisplay:
 
         pix_x = self.geom.pix_x.value[self.mask]
         pix_y = self.geom.pix_y.value[self.mask]
-        pix_area = self.geom.pix_area.value[self.mask]
         pix_width = self.geom.pixel_width.value[self.mask]
 
-        for x, y, area, w in zip(pix_x, pix_y, pix_area, pix_width):
+        for x, y, w in zip(pix_x, pix_y, pix_width):
             if self.geom.pix_type == PixelShape.HEXAGON:
                 r = w / np.sqrt(3)
                 patch = RegularPolygon(
