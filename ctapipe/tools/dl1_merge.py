@@ -78,12 +78,16 @@ class MergeTool(Tool):
                             file_ok=False).tag(config=True)
     input_files = List(default_value=[],
                        help="input dl1-files").tag(config=True)
-    output_path = traits.Path(help="Merged-DL1 output filename").tag(config=True)
-    skip_images = traits.Bool(help="Skip DL1/Event/Image data in output",
+    output_path = traits.Path(help="merged-DL1 output filename").tag(config=True)
+    skip_images = traits.Bool(help="skip /dl1/event/telescope/images and "
+                                   "/simulation/event/telescope/images data in output",
                               default_value=False).tag(config=True)
-    skip_simu_images = traits.Bool(help="Skip DL1/Event/Image data in output",
+    skip_simu_images = traits.Bool(help="skip /simulation/event/telescope/images "
+                                        "data in output",
                                    default_value=False).tag(config=True)
-    skip_parameters = traits.Bool(help="Skip image parameters",
+    skip_parameters = traits.Bool(help="skip /dl1/event/telescope/parameters and "
+                                       "/simulation/event/telescope/parameters "
+                                       "data in output",
                                   default_value=False).tag(config=True)
     overwrite = traits.Bool(help="overwrite output file if it exists").tag(config=True)
     progress_bar = traits.Bool(help="show progress bar during "
