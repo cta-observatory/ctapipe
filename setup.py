@@ -39,7 +39,7 @@ setup(
     python_requires=">=3.8",
     install_requires=[
         "astropy~=5.0",
-        "bokeh~=1.0",
+        "bokeh~=2.0",
         "eventio>=1.5.0,<2.0.0a0",
         "h5py",
         "iminuit>=2",

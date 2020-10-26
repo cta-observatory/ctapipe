@@ -1,312 +1,163 @@
-import warnings
-import numpy as np
-from bokeh.plotting import figure
+import sys
 from bokeh.events import Tap
-from bokeh import palettes
+import numpy as np
+import bokeh
+from bokeh.io import output_notebook, push_notebook, show
+from bokeh.plotting import figure
 from bokeh.models import (
     ColumnDataSource,
     TapTool,
     Span,
     ColorBar,
     LinearColorMapper,
+    HoverTool,
+    BoxZoomTool,
 )
-from ctapipe.utils.rgbtohex import intensity_to_hex
+
+from ctapipe.instrument import CameraGeometry, PixelShape
+
 
 PLOTARGS = dict(tools="", toolbar_location=None, outline_line_color="#595959")
 
 
+# mapper to mpl names
+CMAPS = {
+    "viridis": bokeh.palettes.Viridis256,
+    "magma": bokeh.palettes.Magma256,
+    "inferno": bokeh.palettes.Inferno256,
+    "grey": bokeh.palettes.Greys256,
+}
+
+
+def is_notebook():
+    """
+    Returns True if currently running in a notebook session,
+    see https://stackoverflow.com/a/37661854/3838691
+    """
+    return "ipykernel" in sys.modules
+
+
+def generate_hex_vertices(geom):
+    phi = np.arange(0, 2 * np.pi, np.pi / 3)
+
+    # apply pixel rotation and conversion from flat top to pointy top
+    phi += geom.pix_rotation.rad + np.deg2rad(30)
+
+    # we need the circumcircle radius, pixel_width is incircle diameter
+    r = 2 / np.sqrt(3) * geom.pixel_width.value / 2
+
+    x = geom.pix_x.value
+    y = geom.pix_y.value
+
+    xs = x[:, np.newaxis] + r[:, np.newaxis] * np.cos(phi)[np.newaxis]
+    ys = y[:, np.newaxis] + r[:, np.newaxis] * np.sin(phi)[np.newaxis]
+
+    return xs, ys
+
+
 class CameraDisplay:
-    def __init__(self, geometry=None, image=None, fig=None):
-        """
-        Camera display that utilises the bokeh visualisation library
+    """
+    CameraDisplay implementation in Bokeh
+    """
 
-        Parameters
-        ----------
-        geometry : `~ctapipe.instrument.CameraGeometry`
-            Definition of the Camera/Image
-        image : ndarray
-            1D array containing the image values for each pixel
-        fig : bokeh.plotting.figure
-            Figure to store the bokeh plot onto (optional)
-        """
-        self._geom = None
-        self._image = None
-        self._colors = None
-        self._image_min = None
-        self._image_max = None
-        self._fig = None
+    def __init__(
+        self, geom: CameraGeometry, image=None, use_notebook=None, autoshow=True
+    ):
 
-        self._n_pixels = None
-        self._pix_sizes = np.ones(1)
-        self._pix_areas = np.ones(1)
-        self._pix_x = np.zeros(1)
-        self._pix_y = np.zeros(1)
+        self._geom = geom
+        self._handle = None
 
-        self.glyphs = None
-        self.cm = None
-        self.cb = None
-
-        cdsource_d = dict(
-            image=[],
-            x=[],
-            y=[],
-            width=[],
-            height=[],
-            outline_color=[],
-            outline_alpha=[],
-        )
-        self.cdsource = ColumnDataSource(data=cdsource_d)
-
-        self._active_pixels = []
-        self.active_index = 0
-        self.active_colors = []
-        self.automatic_index_increment = False
-
-        self.geom = geometry
-        self.image = image
-        self.fig = fig
-
-        self.layout = self.fig
-
-    @property
-    def fig(self):
-        return self._fig
-
-    @fig.setter
-    def fig(self, val):
-        if val is None:
-            val = figure(plot_width=550, plot_height=500, **PLOTARGS)
-        val.axis.visible = False
-        val.grid.grid_line_color = None
-        self._fig = val
-
-        self._draw_camera()
-
-    @property
-    def geom(self):
-        return self._geom
-
-    @geom.setter
-    def geom(self, val):
-        self._geom = val
-
-        if val is not None:
-            self._pix_areas = val.pix_area.value
-            self._pix_sizes = np.sqrt(self._pix_areas)
-            self._pix_x = val.pix_x.value
-            self._pix_y = val.pix_y.value
-
-        self._n_pixels = self._pix_x.size
-        if self._n_pixels == len(self.cdsource.data["x"]):
-            self.cdsource.data["x"] = self._pix_x
-            self.cdsource.data["y"] = self._pix_y
-            self.cdsource.data["width"] = self._pix_sizes
-            self.cdsource.data["height"] = self._pix_sizes
+        if geom.pix_type == PixelShape.HEXAGON:
+            xs, ys = generate_hex_vertices(geom)
         else:
-            self._image = np.empty(self._pix_x.shape)
-            alpha = [0] * self._n_pixels
-            color = ["black"] * self._n_pixels
-            cdsource_d = dict(
-                image=self.image,
-                x=self._pix_x,
-                y=self._pix_y,
-                width=self._pix_sizes,
-                height=self._pix_sizes,
-                outline_color=color,
-                outline_alpha=alpha,
+            raise NotImplementedError(f"Unsupported pixel shape {geom.pix_type}")
+
+        if image is None:
+            image = np.zeros(geom.n_pixels)
+
+        self.datasource = bokeh.plotting.ColumnDataSource(
+            data=dict(
+                poly_xs=xs.tolist(), poly_ys=ys.tolist(), image=image, id=geom.pix_id
             )
-            self.cdsource.data = cdsource_d
-
-        self.active_pixels = [0] * len(self.active_pixels)
-
-    @property
-    def image(self):
-        return self._image
-
-    @image.setter
-    def image(self, val):
-        if val is None:
-            val = np.zeros(self._n_pixels)
-
-        image_min = np.nanmin(val)
-        image_max = np.nanmax(val)
-        if image_max == image_min:
-            image_min -= 1
-            image_max += 1
-        colors = intensity_to_hex(val, image_min, image_max)
-
-        self._image = val
-        self._colors = colors
-        self.image_min = image_min
-        self.image_max = image_max
-
-        if len(colors) == self._n_pixels:
-            with warnings.catch_warnings():
-                warnings.simplefilter(action="ignore", category=FutureWarning)
-                self.cdsource.data["image"] = colors
-        else:
-            raise ValueError(
-                "Image has a different size {} than the current "
-                "CameraGeometry n_pixels {}".format(colors.size, self._n_pixels)
-            )
-
-    @property
-    def image_min(self):
-        return self._image_min
-
-    @image_min.setter
-    def image_min(self, val):
-        self._image_min = val
-        if self.cb:
-            self.cm.low = val.item()
-
-    @property
-    def image_max(self):
-        return self._image_max
-
-    @image_max.setter
-    def image_max(self, val):
-        self._image_max = val
-        if self.cb:
-            self.cm.high = val.item()
-
-    @property
-    def active_pixels(self):
-        return self._active_pixels
-
-    @active_pixels.setter
-    def active_pixels(self, listval):
-        self._active_pixels = listval
-
-        palette = palettes.Set1[9]
-        palette = tuple([palette[0]] + list(palette[3:]))
-        self.active_colors = [palette[i % (len(palette))] for i in range(len(listval))]
-        self.highlight_pixels()
-
-    def reset_pixels(self):
-        self.active_pixels = [0] * len(self.active_pixels)
-
-    def _draw_camera(self):
-        # TODO: Support other pixel shapes OR switch to ellipse
-        # after https://github.com/bokeh/bokeh/issues/6985
-        self.glyphs = self.fig.ellipse(
-            "x",
-            "y",
-            color="image",
-            width="width",
-            height="height",
-            line_color="outline_color",
-            line_alpha="outline_alpha",
-            line_width=2,
-            nonselection_fill_color="image",
-            nonselection_fill_alpha=1,
-            nonselection_line_color="outline_color",
-            nonselection_line_alpha="outline_alpha",
-            source=self.cdsource,
         )
 
-    def enable_pixel_picker(self, n_active):
-        """
-        Enables the selection of a pixel by clicking on it
-
-        Parameters
-        ----------
-        n_active : int
-            Number of active pixels to keep record of
-        """
-        self.active_pixels = [0] * n_active
-        self.fig.add_tools(TapTool())
-
-        def source_change_response(_, __, val):
-            if val:
-                pix = val[0]
-                ai = self.active_index
-                self.active_pixels[ai] = pix
-
-                self.highlight_pixels()
-                self._on_pixel_click(pix)
-
-                if self.automatic_index_increment:
-                    self.active_index = (ai + 1) % len(self.active_pixels)
-
-        self.cdsource.selected.on_change("indices", source_change_response)
-
-    def _on_pixel_click(self, pix_id):
-        print(f"Clicked pixel_id: {pix_id}")
-        print(f"Active Pixels: {self.active_pixels}")
-
-    def highlight_pixels(self):
-        alpha = [0] * self._n_pixels
-        color = ["black"] * self._n_pixels
-        for i, pix in enumerate(self.active_pixels):
-            alpha[pix] = 1
-            color[pix] = self.active_colors[i]
-        self.cdsource.data["outline_alpha"] = alpha
-        self.cdsource.data["outline_color"] = color
-
-    def add_colorbar(self):
-        self.cm = LinearColorMapper(
-            palette="Viridis256", low=0, high=100, low_color="white", high_color="red"
+        self._color_mapper = LinearColorMapper(
+            palette=bokeh.palettes.Viridis256, low=image.min(), high=image.max()
         )
-        self.cb = ColorBar(
-            color_mapper=self.cm,
+
+        frame = geom.frame.__class__.__name__ if geom.frame else "CameraFrame"
+        self.figure = figure(
+            title=f"{geom} ({frame})", match_aspect=True, aspect_scale=1
+        )
+
+        # Make sure the box zoom tool does not distort the camera display
+        for tool in self.figure.toolbar.tools:
+            if isinstance(tool, BoxZoomTool):
+                tool.match_aspect = True
+
+        self._setup_camera()
+
+        if use_notebook is None:
+            use_notebook = is_notebook()
+
+        if use_notebook:
+            output_notebook()
+
+        self._use_notebook = use_notebook
+
+        if autoshow:
+            self._handle = show(self.figure, notebook_handle=use_notebook)
+
+    def _setup_camera(self):
+        self._pixels = self.figure.patches(
+            xs="poly_xs",
+            ys="poly_ys",
+            fill_color=dict(field="image", transform=self._color_mapper),
+            line_width=0,
+            source=self.datasource,
+        )
+
+        self.figure.add_tools(HoverTool(tooltips=[("id", "@id"), ("value", "@image")]))
+
+        self._color_bar = ColorBar(
+            color_mapper=self._color_mapper,
+            label_standoff=12,
             border_line_color=None,
-            background_fill_alpha=0,
-            major_label_text_color="green",
             location=(0, 0),
         )
-        self.fig.add_layout(self.cb, "right")
-        self.cm.low = self.image_min.item()
-        self.cm.high = self.image_max.item()
+        self.figure.add_layout(self._color_bar, "right")
 
+    def update(self):
+        if self._use_notebook and self._handle:
+            push_notebook(self._handle)
 
-class FastCameraDisplay:
-    def __init__(self, x_pix, y_pix, pix_size):
-        """
-        A fast and simple version of the bokeh camera plotter that does not
-        allow for geometry changes
-
-        Parameters
-        ----------
-        x_pix : ndarray
-            Pixel x positions
-        y_pix : ndarray
-            Pixel y positions
-        pix_size : ndarray
-            Pixel sizes
-        """
-        self._image = None
-        n_pix = x_pix.size
-
-        cdsource_d = dict(image=np.empty(n_pix, dtype="<U8"), x=x_pix, y=y_pix)
-        self.cdsource = ColumnDataSource(cdsource_d)
-        self.fig = figure(plot_width=400, plot_height=400, **PLOTARGS)
-        self.fig.grid.grid_line_color = None
-        self.fig.rect(
-            "x",
-            "y",
-            color="image",
-            source=self.cdsource,
-            width=pix_size[0],
-            height=pix_size[0],
+    def rescale(self, percent=100):
+        self._color_mapper.update(
+            low=self.datasource.data["image"].min(),
+            high=(percent / 100) * self.datasource.data["image"].max(),
         )
 
-        self.layout = self.fig
+    @property
+    def cmap(self):
+        return self._color_mapper.palette
+
+    @cmap.setter
+    def cmap(self, cmap):
+        if isinstance(cmap, str):
+            cmap = CMAPS[cmap]
+
+        self._color_mapper.palette = cmap
+        self.rescale()
 
     @property
-    def image(self):
-        return self._image
+    def image(self,):
+        return self.datasource.data["image"]
 
     @image.setter
-    def image(self, val):
-        """
-        Parameters
-        ----------
-        val : ndarray
-            Array containing the image values, already converted into
-            hexidecimal strings
-        """
-        self.cdsource.data["image"] = val
+    def image(self, new_image):
+        self.datasource.patch({"image": [(slice(None), new_image)]})
+        self.rescale()
+        self.update()
 
 
 class WaveformDisplay:
