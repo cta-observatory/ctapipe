@@ -125,6 +125,10 @@ class CameraGeometry:
 
         if isinstance(pix_type, str):
             pix_type = PixelShape.from_string(pix_type)
+        elif not isinstance(pix_type, PixelShape):
+            raise TypeError(
+                f"pix_type most be a PixelShape or the name of a PixelShape, got {pix_type}"
+            )
 
         self.n_pixels = len(pix_x)
         self.camera_name = camera_name

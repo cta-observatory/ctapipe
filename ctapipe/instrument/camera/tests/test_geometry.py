@@ -17,7 +17,7 @@ def test_construct():
         pix_x=x * u.m,
         pix_y=y * u.m,
         pix_area=x * u.m ** 2,
-        pix_type="rectangular",
+        pix_type=PixelShape.SQUARE,
         pix_rotation="10d",
         cam_rotation="12d",
     )
@@ -26,6 +26,30 @@ def test_construct():
     assert geom.pix_area is not None
     assert (geom.pix_rotation.deg - 10) < 1e-5
     assert (geom.cam_rotation.deg - 10) < 1e-5
+
+    with pytest.raises(TypeError):
+        geom = CameraGeometry(
+            camera_name="Unknown",
+            pix_id=np.arange(100),
+            pix_x=x * u.m,
+            pix_y=y * u.m,
+            pix_area=x * u.m ** 2,
+            pix_type="foo",
+            pix_rotation="10d",
+            cam_rotation="12d",
+        )
+
+    # test from string:
+    geom = CameraGeometry(
+        camera_name="Unknown",
+        pix_id=np.arange(100),
+        pix_x=x * u.m,
+        pix_y=y * u.m,
+        pix_area=x * u.m ** 2,
+        pix_type="rectangular",
+        pix_rotation="10d",
+        cam_rotation="12d",
+    )
 
 
 def test_make_rectangular_camera_geometry():
