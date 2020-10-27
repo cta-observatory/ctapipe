@@ -201,15 +201,18 @@ class MyLogTool(Tool):
         self.log.critical("test-critical")
 
 
-def test_tool_logging_defaults(caplog):
+def test_tool_logging_defaults(capsys):
     tool = MyLogTool()
 
-    with caplog.at_level("WARN"):
-        run_tool(tool)
+    run_tool(tool)
 
-    assert len(caplog.messages) == 3
     assert tool.log_level == 30
     assert tool.log_file is None
+
+    log = capsys.readouterr().out
+
+    assert "test-info" not in log
+    assert "test-warn" in log
 
 
 def test_tool_logging_setlevel(capsys):
