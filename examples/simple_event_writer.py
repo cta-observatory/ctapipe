@@ -75,7 +75,7 @@ class SimpleEventWriter(Tool):
 
             self.calibrator(event)
 
-            for tel_id in event.dl0.tels_with_data:
+            for tel_id in event.dl0.tel.keys():
 
                 geom = self.event_source.subarray.tel[tel_id].camera.geometry
                 dl1_tel = event.dl1.tel[tel_id]

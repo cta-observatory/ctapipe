@@ -270,7 +270,7 @@ class DisplayIntegrator(Tool):
         self.calibrate(event)
 
         # Select telescope
-        tels = list(event.r0.tels_with_data)
+        tels = list(event.r0.tel.keys())
         telid = self.telescope
         if telid is None:
             telid = tels[0]
