@@ -10,11 +10,17 @@ from bokeh.models import (
     Span,
     ColorBar,
     LinearColorMapper,
+    LogColorMapper,
+    ContinuousColorMapper,
     HoverTool,
     BoxZoomTool,
+    Ellipse,
+    Label,
 )
 import tempfile
 from threading import Timer
+from functools import wraps
+import astropy.units as u
 
 from ctapipe.instrument import CameraGeometry, PixelShape
 
@@ -28,7 +34,22 @@ CMAPS = {
     "magma": bokeh.palettes.Magma256,
     "inferno": bokeh.palettes.Inferno256,
     "grey": bokeh.palettes.Greys256,
+    "gray": bokeh.palettes.Greys256,
 }
+
+
+def pallete_from_mpl_name(name):
+    if name in CMAPS:
+        return CMAPS[name]
+
+    # TODO: make optional if we decide to make one of the plotting
+    # TODO: libraries optional
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import to_hex
+
+    rgba = plt.get_cmap(name)(np.linspace(0, 1, 256))
+    palette = [to_hex(color) for color in rgba]
+    return palette
 
 
 def is_notebook():
@@ -63,64 +84,113 @@ class CameraDisplay:
     """
 
     def __init__(
-        self, geom: CameraGeometry, image=None, use_notebook=None, autoshow=True
+        # same options as MPL display
+        self,
+        geometry: CameraGeometry,
+        image=None,
+        cmap="inferno",
+        norm="lin",
+        autoscale=True,
+        title=None,
+        # bokeh specific options
+        use_notebook=None,
+        autoshow=True,
     ):
 
-        self._geom = geom
+        self._geometry = geometry
         self._handle = None
+        self._color_bar = None
+        self._color_mapper = None
+        self._pixels = None
 
-        if geom.pix_type == PixelShape.HEXAGON:
-            xs, ys = generate_hex_vertices(geom)
+        self._annotations = []
+        self._labels = []
+
+        if geometry.pix_type == PixelShape.HEXAGON:
+            xs, ys = generate_hex_vertices(geometry)
         else:
-            raise NotImplementedError(f"Unsupported pixel shape {geom.pix_type}")
+            raise NotImplementedError(f"Unsupported pixel shape {geometry.pix_type}")
 
         if image is None:
-            image = np.zeros(geom.n_pixels)
+            image = np.zeros(geometry.n_pixels)
 
         self.datasource = bokeh.plotting.ColumnDataSource(
             data=dict(
-                poly_xs=xs.tolist(), poly_ys=ys.tolist(), image=image, id=geom.pix_id
+                poly_xs=xs.tolist(),
+                poly_ys=ys.tolist(),
+                id=geometry.pix_id,
+                image=image,
             )
         )
+        if title is None:
+            frame = (
+                geometry.frame.__class__.__name__ if geometry.frame else "CameraFrame"
+            )
+            title = f"{geometry} ({frame})"
 
-        self._color_mapper = LinearColorMapper(
-            palette=bokeh.palettes.Viridis256, low=image.min(), high=image.max()
-        )
-
-        frame = geom.frame.__class__.__name__ if geom.frame else "CameraFrame"
-        self.figure = figure(
-            title=f"{geom} ({frame})", match_aspect=True, aspect_scale=1
-        )
+        self.figure = figure(title=title, match_aspect=True, aspect_scale=1)
 
         # Make sure the box zoom tool does not distort the camera display
         for tool in self.figure.toolbar.tools:
             if isinstance(tool, BoxZoomTool):
                 tool.match_aspect = True
 
-        self._setup_camera()
-
         # only use autoshow / use_notebook by default if we are in a notebook
         self._use_notebook = use_notebook if use_notebook is not None else is_notebook()
 
         # give code some time to run before openeing the plot,
         # so e.g. cmaps and images can be set after the display was created
-        if autoshow:
-            self.autoshow_timer = Timer(0.1, self.show)
-            self.autoshow_timer.start()
-        else:
-            self.autoshow_timer = None
+        self._autoshow_timer = Timer(0.1, self.show) if autoshow else None
 
+        if self._autoshow_timer is not None:
+            self._autoshow_timer.start()
+
+        # have to be after the timer started
+        # order is important because steps depent on each other
+        self.cmap = cmap
+        self.norm = norm
+        self.autoscale = autoscale
+        self.rescale()
+        self._setup_camera()
+
+    def _reset_autoshow_timer(f):
+        """A decorator that resets the timer for autoshow if necessary"""
+
+        @wraps(f)
+        def wrapped(self, *args, **kwargs):
+            if self._autoshow_timer is not None:
+                self._autoshow_timer.cancel()
+                self._autoshow_timer = Timer(0.1, self.show)
+
+            res = f(self, *args, **kwargs)
+
+            if self._autoshow_timer is not None:
+                self._autoshow_timer.start()
+
+            return res
+
+        return wrapped
+
+    def clear_overlays(self):
+        while self._annotations:
+            self.figure.renderers.remove(self._annotations.pop())
+
+        while self._labels:
+            self.figure.center.remove(self._labels.pop())
+
+    @_reset_autoshow_timer
     def _setup_camera(self):
         self._pixels = self.figure.patches(
             xs="poly_xs",
             ys="poly_ys",
-            fill_color=dict(field="image", transform=self._color_mapper),
+            fill_color=dict(field="image", transform=self.norm),
             line_width=0,
             source=self.datasource,
         )
-
         self.figure.add_tools(HoverTool(tooltips=[("id", "@id"), ("value", "@image")]))
 
+    @_reset_autoshow_timer
+    def add_colorbar(self):
         self._color_bar = ColorBar(
             color_mapper=self._color_mapper,
             label_standoff=12,
@@ -128,48 +198,185 @@ class CameraDisplay:
             location=(0, 0),
         )
         self.figure.add_layout(self._color_bar, "right")
+        self.update()
 
     def update(self):
         if self._use_notebook and self._handle:
             push_notebook(self._handle)
 
-        if self.autoshow_timer is not None:
-            # reset timer
-            self.autoshow_timer.cancel()
-            self.autoshow_timer = Timer(0.1, self.show)
-            self.autoshow_timer.start()
+    def rescale(self):
+        low = self.datasource.data["image"].min()
+        high = self.datasource.data["image"].max()
 
-    def rescale(self, percent=100):
-        self._color_mapper.update(
-            low=self.datasource.data["image"].min(),
-            high=(percent / 100) * self.datasource.data["image"].max(),
-        )
+        # force color to be at lower end of the colormap if
+        # data is all equal
+        if low == high:
+            high += 1
+
+        self.set_limits_minmax(low, high)
+
+    @_reset_autoshow_timer
+    def set_limits_minmax(self, zmin, zmax):
+        self._color_mapper.update(low=zmin, high=zmax)
         self.update()
+
+    @_reset_autoshow_timer
+    def set_limits_percent(self, percent=95):
+        zmin = np.nanmin(self.image)
+        zmax = np.nanmax(self.image)
+        dz = zmax - zmin
+        frac = percent / 100.0
+        self.set_limits_minmax(zmin, zmax - (1.0 - frac) * dz)
 
     @property
     def cmap(self):
-        return self._color_mapper.palette
+        return self._palette
 
     @cmap.setter
+    @_reset_autoshow_timer
     def cmap(self, cmap):
         if isinstance(cmap, str):
-            cmap = CMAPS[cmap]
+            cmap = pallete_from_mpl_name(cmap)
 
-        self._color_mapper.palette = cmap
+        self._palette = cmap
+        # might be called in __init__ before color mapper is setup
+        if self._color_mapper is not None:
+            self._color_mapper.palette = cmap
+            self._trigger_cm_update()
+            self.update()
+
+    def _trigger_cm_update(self):
         # it seems changing palette does not trigger a color change,
         # so we reassign limits
         low = self._color_mapper.low
         self._color_mapper.update(low=low)
-        self.update()
 
     @property
-    def image(self,):
+    def image(self):
         return self.datasource.data["image"]
 
     @image.setter
+    @_reset_autoshow_timer
     def image(self, new_image):
         self.datasource.patch({"image": [(slice(None), new_image)]})
-        self.rescale()
+        if self.autoscale:
+            self.rescale()
+
+    @property
+    def norm(self):
+        """
+        The norm instance of the Display
+
+        Possible values:
+
+        - "lin": linear scale
+        - "log": log scale (cannot have negative values)
+        - "symlog": symmetric log scale (negative values are ok)
+        """
+        return self._color_mapper
+
+    @norm.setter
+    @_reset_autoshow_timer
+    def norm(self, norm):
+        if not isinstance(norm, ContinuousColorMapper):
+            if norm == "lin":
+                norm = LinearColorMapper
+            elif norm == "log":
+                norm = LogColorMapper
+            else:
+                raise ValueError(f"Unsupported norm {norm}")
+
+        self._color_mapper = norm(self.cmap)
+        if self._pixels is not None:
+            self._pixels.glyph.fill_color.update(transform=self._color_mapper)
+
+        if self._color_bar is not None:
+            self._color_bar.update(color_mapper=self._color_mapper)
+
+        self.update()
+
+    def add_ellipse(self, centroid, length, width, angle, asymmetry=0.0, **kwargs):
+        """
+        plot an ellipse on top of the camera
+
+        Parameters
+        ----------
+        centroid: (float, float)
+            position of centroid
+        length: float
+            major axis
+        width: float
+            minor axis
+        angle: float
+            rotation angle wrt x-axis about the centroid, anticlockwise, in radians
+        asymmetry: float
+            3rd-order moment for directionality if known
+        kwargs:
+            any MatPlotLib style arguments to pass to the Ellipse patch
+
+        """
+        ellipse = Ellipse(
+            x=centroid[0],
+            y=centroid[1],
+            width=length,
+            height=width,
+            angle=angle,
+            fill_color=None,
+            **kwargs,
+        )
+        glyph = self.figure.add_glyph(ellipse)
+        self._annotations.append(glyph)
+        self.update()
+        return ellipse
+
+    def overlay_moments(
+        self, hillas_parameters, with_label=True, keep_old=False, **kwargs
+    ):
+        """helper to overlay ellipse from a `HillasParametersContainer` structure
+
+        Parameters
+        ----------
+        hillas_parameters: `HillasParametersContainer`
+            structuring containing Hillas-style parameterization
+        with_label: bool
+            If True, show coordinates of centroid and width and length
+        keep_old: bool
+            If True, to not remove old overlays
+        kwargs: key=value
+            any style keywords to pass to matplotlib (e.g. color='red'
+            or linewidth=6)
+        """
+        if not keep_old:
+            self.clear_overlays()
+
+        # strip off any units
+        cen_x = u.Quantity(hillas_parameters.x).value
+        cen_y = u.Quantity(hillas_parameters.y).value
+        length = u.Quantity(hillas_parameters.length).value
+        width = u.Quantity(hillas_parameters.width).value
+
+        el = self.add_ellipse(
+            centroid=(cen_x, cen_y),
+            length=length * 2,
+            width=width * 2,
+            angle=hillas_parameters.psi.to_value(u.rad),
+            **kwargs,
+        )
+
+        if with_label:
+            label = Label(
+                x=cen_x,
+                y=cen_y,
+                text="({:.02f},{:.02f})\n[w={:.02f},l={:.02f}]".format(
+                    hillas_parameters.x,
+                    hillas_parameters.y,
+                    hillas_parameters.width,
+                    hillas_parameters.length,
+                ),
+                text_color=el.line_color,
+            )
+            self.figure.add_layout(label, "center")
+            self._labels.append(label)
 
     def show(self):
         if self._use_notebook:
