@@ -57,7 +57,7 @@ def create_logging_config(
     config["loggers"][name] = {
         "level": "DEBUG",
         "handlers": ["console"],
-        "propagate": True,
+        "propagate": False,
     }
     config["handlers"]["console"]["level"] = log_level
 
