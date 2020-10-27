@@ -27,7 +27,7 @@ from ctapipe.visualization import CameraDisplay
 
 
 class CameraDemo(Tool):
-    name = "ctapipe.camdemo"
+    name = "ctapipe-camdemo"
     description = "Display fake events in a demo camera"
 
     delay = traits.Int(50, help="Frame delay in ms", min=20).tag(config=True)
