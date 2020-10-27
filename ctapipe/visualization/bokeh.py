@@ -2,7 +2,7 @@ import sys
 from bokeh.events import Tap
 import numpy as np
 import bokeh
-from bokeh.io import output_notebook, push_notebook, show
+from bokeh.io import output_notebook, push_notebook, show, output_file
 from bokeh.plotting import figure
 from bokeh.models import (
     ColumnDataSource,
@@ -13,6 +13,8 @@ from bokeh.models import (
     HoverTool,
     BoxZoomTool,
 )
+import tempfile
+from threading import Timer
 
 from ctapipe.instrument import CameraGeometry, PixelShape
 
@@ -97,16 +99,16 @@ class CameraDisplay:
 
         self._setup_camera()
 
-        if use_notebook is None:
-            use_notebook = is_notebook()
+        # only use autoshow / use_notebook by default if we are in a notebook
+        self._use_notebook = use_notebook if use_notebook is not None else is_notebook()
 
-        if use_notebook:
-            output_notebook()
-
-        self._use_notebook = use_notebook
-
+        # give code some time to run before openeing the plot,
+        # so e.g. cmaps and images can be set after the display was created
         if autoshow:
-            self._handle = show(self.figure, notebook_handle=use_notebook)
+            self.autoshow_timer = Timer(0.1, self.show)
+            self.autoshow_timer.start()
+        else:
+            self.autoshow_timer = None
 
     def _setup_camera(self):
         self._pixels = self.figure.patches(
@@ -131,11 +133,18 @@ class CameraDisplay:
         if self._use_notebook and self._handle:
             push_notebook(self._handle)
 
+        if self.autoshow_timer is not None:
+            # reset timer
+            self.autoshow_timer.cancel()
+            self.autoshow_timer = Timer(0.1, self.show)
+            self.autoshow_timer.start()
+
     def rescale(self, percent=100):
         self._color_mapper.update(
             low=self.datasource.data["image"].min(),
             high=(percent / 100) * self.datasource.data["image"].max(),
         )
+        self.update()
 
     @property
     def cmap(self):
@@ -147,7 +156,11 @@ class CameraDisplay:
             cmap = CMAPS[cmap]
 
         self._color_mapper.palette = cmap
-        self.rescale()
+        # it seems changing palette does not trigger a color change,
+        # so we reassign limits
+        low = self._color_mapper.low
+        self._color_mapper.update(low=low)
+        self.update()
 
     @property
     def image(self,):
@@ -157,7 +170,15 @@ class CameraDisplay:
     def image(self, new_image):
         self.datasource.patch({"image": [(slice(None), new_image)]})
         self.rescale()
-        self.update()
+
+    def show(self):
+        if self._use_notebook:
+            output_notebook()
+        else:
+            # this only sets the default name, created only when show is called
+            output_file(tempfile.mktemp(prefix="ctapipe_bokeh_", suffix=".html"))
+
+        self._handle = show(self.figure, notebook_handle=self._use_notebook)
 
 
 class WaveformDisplay:
