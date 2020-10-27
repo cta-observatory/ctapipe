@@ -2,6 +2,7 @@ import os
 import pytest
 from traitlets import Float, TraitError, List, Dict
 from traitlets.config import Config
+from pathlib import Path
 
 from .. import Tool, Component
 from ..tool import export_tool_config_to_commented_yaml
@@ -50,6 +51,21 @@ def test_provenance_dir():
     assert str(tool.provenance_log) == os.path.join(
         os.getcwd(), "application.provenance.log"
     )
+
+
+def test_provenance_log_help(tmpdir):
+    """ check that the tool does not write a provenance log if only the help was run"""
+    from ctapipe.core.tool import run_tool
+
+    class MyTool(Tool):
+        description = "test"
+        userparam = Float(5.0, help="parameter").tag(config=True)
+
+    tool = MyTool()
+    tool.provenance_log = Path(tmpdir) / "test_prov_log_help.log"
+    for o in ["-h", "--help", "--help-all"]:
+        assert run_tool(tool, [o], cwd=tmpdir) == 0
+        assert not tool.provenance_log.exists()
 
 
 def test_export_config_to_yaml():

@@ -240,7 +240,6 @@ class Tool(Application):
             Provenance().finish_activity(activity_name=self.name, status="error")
             exit_status = 1  # any other error
         finally:
-            print(self.argv)
             if not {"-h", "--help", "--help-all"}.intersection(self.argv):
                 self.write_provenance()
 
