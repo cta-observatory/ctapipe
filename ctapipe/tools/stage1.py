@@ -23,7 +23,14 @@ from ..containers import (
     TimingParametersContainer,
 )
 from ..core import Provenance
-from ..core import QualityQuery, Container, Field, Tool, ToolConfigurationError
+from ..core import (
+    QualityQuery,
+    Container,
+    Field,
+    Tool,
+    Component,
+    ToolConfigurationError,
+)
 from ..core.traits import (
     Bool,
     CaselessStrEnum,
