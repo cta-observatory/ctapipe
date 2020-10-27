@@ -43,7 +43,6 @@ __all__ = [
     "WaveformCalibrationContainer",
     "MonitoringCameraContainer",
     "MonitoringContainer",
-    "EventAndMonDataContainer",
     "EventIndexContainer",
     "TelEventIndexContainer",
     "ImageParametersContainer",
