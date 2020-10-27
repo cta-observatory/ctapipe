@@ -44,7 +44,7 @@ class BokehFileViewer(Tool):
         )
     )
 
-    classes = List([EventSource,] + traits.classes_with_traits(ImageExtractor))
+    classes = List([EventSource] + traits.classes_with_traits(ImageExtractor))
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -83,10 +83,10 @@ class BokehFileViewer(Tool):
         self.seeker = EventSeeker(self.reader, parent=self)
 
         self.extractor = ImageExtractor.from_name(
-            self.extractor_product, parent=self, subarray=self.reader.subarray,
+            self.extractor_product, parent=self, subarray=self.reader.subarray
         )
         self.calibrator = CameraCalibrator(
-            subarray=self.reader.subarray, parent=self, image_extractor=self.extractor,
+            subarray=self.reader.subarray, parent=self, image_extractor=self.extractor
         )
 
         self.viewer = BokehEventViewer(parent=self, subarray=self.reader.subarray)
@@ -175,7 +175,7 @@ class BokehFileViewer(Tool):
     @telid.setter
     def telid(self, val):
         self.channel = 0
-        tels = list(self.event.r0.tels_with_data)
+        tels = list(self.event.r0.tel.keys())
         if val not in tels:
             val = tels[0]
         self._telid = val
@@ -229,7 +229,7 @@ class BokehFileViewer(Tool):
         self.extractor = extractor
 
         self.calibrator = CameraCalibrator(
-            subarray=self.reader.subarray, parent=self, image_extractor=self.extractor,
+            subarray=self.reader.subarray, parent=self, image_extractor=self.extractor
         )
         self.viewer.refresh()
 
@@ -283,7 +283,7 @@ class BokehFileViewer(Tool):
 
     def update_telid_widget(self):
         if self.w_telid:
-            tels = [str(t) for t in self.event.r0.tels_with_data]
+            tels = [str(t) for t in self.event.r0.tel.keys()]
             self.w_telid.options = tels
             self.w_telid.value = str(self.telid)
 

@@ -45,7 +45,7 @@ for event in source:
     # dictionary for the pointing directions of the telescopes
     telescope_pointings = {}
 
-    for tel_id in event.dl0.tels_with_data:
+    for tel_id in event.dl0.tel.keys():
 
         # telescope pointing direction as dictionary of SkyCoord
         telescope_pointings[tel_id] = SkyCoord(
