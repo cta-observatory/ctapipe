@@ -353,7 +353,6 @@ class SimTelEventSource(EventSource):
         data.meta["origin"] = "hessio"
         data.meta["input_url"] = self.input_url
         data.meta["max_events"] = self.max_events
-        data.mcheader = self._mc_header
 
         self._fill_array_pointing(data)
 

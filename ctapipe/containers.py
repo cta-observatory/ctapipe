@@ -904,8 +904,6 @@ class DataContainer(Container):
     dl1 = Field(DL1Container(), "DL1 Calibrated image")
     dl2 = Field(ReconstructedContainer(), "Reconstructed Shower Information")
     simulation = Field(SimulatedEventContainer(), "Simulated Event Information")
-    # mc = DeprecatedField(MCEventContainer(), "Monte-Carlo data")
-    mcheader = DeprecatedField(MCHeaderContainer(), "Monte-Carlo run header data")
     trigger = Field(TriggerContainer(), "central trigger information")
     count = Field(0, "number of events processed")
     pointing = Field(PointingContainer(), "Array and telescope pointing positions")
