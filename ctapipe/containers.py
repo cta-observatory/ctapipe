@@ -171,9 +171,7 @@ class TimingParametersContainer(Container):
     slope = Field(
         nan / u.m, "Slope of arrival times along main shower axis", unit=1 / u.m
     )
-    slope_err = Field(nan / u.m, "Uncertainty `slope`", unit=1 / u.m)
     intercept = Field(nan, "intercept of arrival times along main shower axis")
-    intercept_err = Field(nan, "Uncertainty `intercept`")
     deviation = Field(
         nan,
         "Root-mean-square deviation of the pulse times "
@@ -325,7 +323,6 @@ class R0Container(Container):
     Storage of a Merged Raw Data Event
     """
 
-    tels_with_data = Field([], "set of tel_ids for telescopes with data")
     tel = Field(Map(R0CameraContainer), "map of tel_id to R0CameraContainer")
 
 
@@ -355,7 +352,6 @@ class R1Container(Container):
     Storage of a r1 calibrated Data Event
     """
 
-    tels_with_data = Field([], "set of tel_ids for telescopes with data")
     tel = Field(Map(R1CameraContainer), "map of tel_id to R1CameraContainer")
 
 
@@ -388,7 +384,6 @@ class DL0Container(Container):
     Storage of a data volume reduced Event
     """
 
-    tels_with_data = Field([], "set of tel_ids for telescopes with data")
     tel = Field(Map(DL0CameraContainer), "map of tel_id to DL0CameraContainer")
 
 
@@ -513,7 +508,9 @@ class TelescopeTriggerContainer(Container):
 
 class TriggerContainer(Container):
     time = Field(NAN_TIME, "central average time stamp")
-    tels_with_trigger = Field([], "list of telescope ids with data")
+    tels_with_trigger = Field(
+        [], "List of telescope ids that triggered the array event"
+    )
     event_type = Field(EventType.SUBARRAY, "Event type")
     tel = Field(Map(TelescopeTriggerContainer), "telescope-wise trigger information")
 
@@ -666,8 +663,6 @@ class EventCalibrationContainer(Container):
     """
     Container for calibration coefficients for the current event
     """
-
-    tels_with_data = Field([], "set of tel_ids for telescopes with data")
 
     # create the camera container
     tel = Field(
@@ -894,8 +889,6 @@ class MonitoringContainer(Container):
     """
     Root container for monitoring data (MON)
     """
-
-    tels_with_data = Field([], "list of telescopes with data")
 
     # create the camera container
     tel = Field(

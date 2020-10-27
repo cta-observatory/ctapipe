@@ -356,13 +356,9 @@ class SimTelEventSource(EventSource):
 
             event_id = array_event.get("event_id", -1)
             obs_id = self.file_.header["run"]
-            tels_with_data = set(array_event["telescope_events"].keys())
             data.count = counter
             data.index.obs_id = obs_id
             data.index.event_id = event_id
-            data.r0.tels_with_data = tels_with_data
-            data.r1.tels_with_data = tels_with_data
-            data.dl0.tels_with_data = tels_with_data
 
             self._fill_trigger_info(data, array_event)
 

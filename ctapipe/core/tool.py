@@ -1,6 +1,6 @@
 """Classes to handle configurable command-line user interfaces."""
 import logging
-import logging.config
+import warnings
 import textwrap
 from abc import abstractmethod
 
@@ -10,6 +10,7 @@ from traitlets.config import Application, Configurable
 from .. import __version__ as version
 from .traits import Path, Enum, Bool, flag
 from . import Provenance
+from .component import Component
 from .logging import create_logging_config, ColoredFormatter
 
 
@@ -151,7 +152,6 @@ class Tool(Application):
 
         super().__init__(**kwargs)
         self.is_setup = False
-        self._registered_components = []
         self.version = version
         self.raise_config_file_errors = True  # override traitlets.Application default
 
@@ -297,8 +297,10 @@ class Tool(Application):
                 k: v.get(self) for k, v in self.traits(config=True).items()
             }
         }
-        for component in self._registered_components:
-            conf.update(component.get_current_config())
+
+        for val in self.__dict__.values():
+            if isinstance(val, Component):
+                conf[self.__class__.__name__].update(val.get_current_config())
 
         return conf
 
