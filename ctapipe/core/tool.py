@@ -8,13 +8,9 @@ from traitlets import default, Unicode
 from traitlets.config import Application, Configurable
 
 from .. import __version__ as version
-from .traits import Path, Enum
+from .traits import Path, Enum, Bool, flag
 from . import Provenance
-from .logging import (
-    DEFAULT_LOGGING,
-    update_logging_config,
-    set_logging_config_from_file,
-)
+from .logging import create_logging_config, ColoredFormatter
 
 
 class ToolConfigurationError(Exception):
@@ -121,19 +117,15 @@ class Tool(Application):
         directory_ok=False,
         help="Filename of Logging Configuration",
     ).tag(config=True)
-    log_level = Enum(
-        values=Application.log_level.values,
-        default_value="INFO",
-        help="Logging Level for Console Logging",
-    ).tag(config=True)
     log_file = Path(
         default_value=None, exists=None, directory_ok=False, help="Filename for the log"
     ).tag(config=True)
     log_file_level = Enum(
         values=Application.log_level.values,
-        default_value="DEBUG",
+        default_value="INFO",
         help="Logging Level for File Logging",
     ).tag(config=True)
+    quiet = Bool(default_value=False).tag(config=True)
 
     _log_formatter_cls = ColoredFormatter
 
@@ -150,9 +142,12 @@ class Tool(Application):
             "log-config": "Tool.log_config",
             "log-level": "Tool.log_level",
             "log-file": "Tool.log_file",
+            "log": "Tool.log_file",
+            "l": "Tool.log_file",
             "log-file-level": "Tool.log_file_level",
         }
         self.aliases.update(aliases)
+        self.flags.update(flag("q", "Tool.quiet", "Disable console logging."))
 
         super().__init__(**kwargs)
         self.is_setup = False
@@ -173,15 +168,14 @@ class Tool(Application):
         # ensure command-line takes precedence over config file options:
         self.update_config(self.cli_config)
 
-        cfg = update_logging_config(
-            config=DEFAULT_LOGGING,
+        cfg = create_logging_config(
+            name=self.name,
             log_level=self.log_level,
             log_file=self.log_file,
             log_file_level=self.log_file_level,
+            log_config_file=self.log_config,
+            quiet=self.quiet,
         )
-
-        if self.log_config is not None:
-            cfg = set_logging_config_from_file(filename=self.log_config)
 
         logging.config.dictConfig(cfg)
 

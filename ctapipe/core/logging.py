@@ -13,7 +13,7 @@ class PlainFormatter(logging.Formatter):
     """Custom logging.Formatter used for file logging."""
 
 
-class FancyFormatter(logging.Formatter):
+class ColoredFormatter(logging.Formatter):
     """Custom logging.Formatter that adds colors for terminal logging."""
 
     def format(self, record):
@@ -27,7 +27,7 @@ class FancyFormatter(logging.Formatter):
         return self._fmt % rec
 
 
-def apply_colors(levelname):
+def apply_colors(levelname: str):
     """Use ANSI escape sequences to add colors the levelname of log entries."""
     _black, red, green, yellow, blue, magenta, _cyan, _white = range(8)
     reset_seq = "\033[0m"
@@ -40,19 +40,33 @@ def apply_colors(levelname):
         "ERROR": red,
     }
 
-    if levelname in colors:
-        levelname_color = color_seq % (30 + colors[levelname]) + levelname + reset_seq
+    levelname_color = color_seq % (30 + colors[levelname]) + levelname + reset_seq
+
     return levelname_color
 
 
-def update_logging_config(
-    config: dict, log_level=None, log_file=None, log_file_level=None
+def create_logging_config(
+    name: str, log_level, log_file, log_file_level, log_config_file, quiet
 ):
     """Update logging level for console and file according to CLI arguments."""
-    if log_level is not None:
-        config["handlers"]["console"]["level"] = log_level
+    config = DEFAULT_LOGGING
 
-    if log_file is not None and log_file_level is not None:
+    # update default logging configuration with user supplied logging configuration file
+    if log_config_file is not None:
+        config.update(get_logging_config_from_file(log_config_file))
+
+    config["loggers"][name] = {
+        "level": "DEBUG",
+        "handlers": ["console"],
+        "propagate": True,
+    }
+    config["handlers"]["console"]["level"] = log_level
+
+    if quiet:
+        config["loggers"][name]["handlers"] = []
+        config["loggers"]["ctapipe"]["handlers"] = []
+
+    if log_file is not None:
         config["handlers"].update(
             {
                 "file": {
@@ -63,12 +77,13 @@ def update_logging_config(
                 }
             }
         )
+        config["loggers"][name]["handlers"].append("file")
         config["loggers"]["ctapipe"]["handlers"].append("file")
 
     return config
 
 
-def set_logging_config_from_file(filename):
+def get_logging_config_from_file(filename):
     """Open logging config file.
 
     Parameters
@@ -90,17 +105,17 @@ def set_logging_config_from_file(filename):
 
 DEFAULT_LOGGING = {
     "version": 1,
-    "root": {"level": "WARN", "handlers": ["console"]},
     "disable_existing_loggers": False,
     "formatters": {
         "file": {"()": PlainFormatter, "fmt": DEFAULT_LOGGING_FORMAT},
-        "console": {"()": FancyFormatter, "fmt": DEFAULT_LOGGING_FORMAT},
+        "console": {"()": ColoredFormatter, "fmt": DEFAULT_LOGGING_FORMAT},
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "console",
             "stream": "ext://sys.stdout",
+            "level": "DEBUG",
         }
     },
     "loggers": {

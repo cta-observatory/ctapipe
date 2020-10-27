@@ -2,6 +2,7 @@ import os
 import pytest
 from traitlets import Float, TraitError, List, Dict
 from traitlets.config import Config
+import tempfile
 
 from .. import Tool, Component
 from ..tool import export_tool_config_to_commented_yaml, run_tool
@@ -154,13 +155,67 @@ def test_tool_command_line_precedence():
     assert tool.userparam == 12.0
 
 
-def test_tool_logging():
-    class MyTool(Tool):
-        name = "ctapipe.test"
+class MyLogTool(Tool):
+    name = "ctapipe-test"
 
-    tool = MyTool()
-    run_tool(tool, ["--log-level", "WARN"])
+    def start(self):
+        self.log.debug("test-debug")
+        self.log.info("test-info")
+        self.log.warning("test-warn")
+        self.log.error("test-error")
+        self.log.critical("test-critical")
 
+
+def test_tool_logging_defaults(caplog):
+    tool = MyLogTool()
+
+    with caplog.at_level("WARN"):
+        run_tool(tool)
+
+    assert len(caplog.messages) == 3
     assert tool.log_level == 30
     assert tool.log_file is None
-    assert tool.log.hasHandlers()
+
+
+def test_tool_logging_setlevel(capsys):
+    tool = MyLogTool()
+
+    run_tool(tool, ["--log-level", "ERROR"])
+
+    log = capsys.readouterr().out
+
+    assert "test-debug" not in log
+    assert "test-info" not in log
+    assert "test-warn" not in log
+    assert "test-error" in log
+    assert "test-critical" in log
+
+
+def test_tool_logging_quiet(capsys):
+    tool = MyLogTool()
+
+    # setting log-level should not matter when given -q
+    run_tool(tool, ["-q", "--log-level", "DEBUG"])
+
+    log = capsys.readouterr().out
+
+    assert len(log) == 0
+
+
+def test_tool_logging_file(capsys):
+    tool = MyLogTool()
+
+    with tempfile.NamedTemporaryFile() as f:
+        run_tool(tool, ["--log-file", f.name])
+
+        log = str(f.read())
+
+        assert "test-debug" not in log
+        assert "test-info" in log
+        assert "test-warn" in log
+
+    # also logging to console (with different default level)
+    log = capsys.readouterr().out
+
+    assert "test-info" not in log
+    assert "test-warn" in log
