@@ -83,12 +83,12 @@ def test_additional_meta_data_from_mc_header():
     from astropy import units as u
     from astropy.coordinates import Angle
 
-    assert data.mcheader.corsika_version == 6990
-    assert data.mcheader.spectral_index == -2.0
-    assert data.mcheader.shower_reuse == 20
-    assert data.mcheader.core_pos_mode == 1
-    assert data.mcheader.diffuse == 1
-    assert data.mcheader.atmosphere == 26
+    assert reader.mc_header.corsika_version == 6990
+    assert reader.mc_header.spectral_index == -2.0
+    assert reader.mc_header.shower_reuse == 20
+    assert reader.mc_header.core_pos_mode == 1
+    assert reader.mc_header.diffuse == 1
+    assert reader.mc_header.atmosphere == 26
 
     # value read by hand from input card
     name_expectation = {
@@ -106,7 +106,7 @@ def test_additional_meta_data_from_mc_header():
     }
 
     for name, expectation in name_expectation.items():
-        value = getattr(data.mcheader, name)
+        value = getattr(reader.mc_header, name)
 
         assert value.unit == expectation.unit
         assert np.isclose(
