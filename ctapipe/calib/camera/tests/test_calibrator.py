@@ -177,6 +177,21 @@ def test_dl1_charge_calib(example_subarray):
         event.dl1.tel[telid].peak_time, mid / sampling_rate, atol=1
     )
 
+    # test deactivating timing corrections
+    calibrator.apply_waveform_time_shift = False
+    calibrator(event)
+    # times should still be correct, since peaks are shifted
+    np.testing.assert_allclose(
+        event.dl1.tel[telid].peak_time, mid / sampling_rate, atol=1
+    )
+
+    calibrator.apply_peak_time_shift = False
+    calibrator(event)
+    # no we should be back to the result without time shift
+    np.testing.assert_allclose(
+        event.dl1.tel[telid].peak_time, expected_peak_time, atol=1
+    )
+
 
 def test_shift_waveforms():
     from ctapipe.calib.camera.calibrator import shift_waveforms

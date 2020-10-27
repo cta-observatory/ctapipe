@@ -7,17 +7,17 @@ import warnings
 import numpy as np
 import astropy.units as u
 
-from ctapipe.core import Component
+from ctapipe.core import TelescopeComponent
 from ctapipe.image.extractor import ImageExtractor
 from ctapipe.image.reducer import DataVolumeReducer
-from ctapipe.core.traits import create_class_enum_trait
+from ctapipe.core.traits import create_class_enum_trait, BoolTelescopeParameter
 
 from numba import guvectorize, float64, float32, int64
 
 __all__ = ["CameraCalibrator"]
 
 
-class CameraCalibrator(Component):
+class CameraCalibrator(TelescopeComponent):
     """
     Calibrator to handle the full camera calibration chain, in order to fill
     the DL1 data level in the event container.
@@ -38,6 +38,25 @@ class CameraCalibrator(Component):
 
     image_extractor_type = create_class_enum_trait(
         ImageExtractor, default_value="NeighborPeakWindowSum"
+    ).tag(config=True)
+
+    apply_waveform_time_shift = BoolTelescopeParameter(
+        default_value=True,
+        help=(
+            "Apply waveform time shift corrections."
+            " The minimal integer shift to synchronize waveforms is applied"
+            " before peak extraction if this option is True"
+        ),
+    ).tag(config=True)
+
+    apply_peak_time_shift = BoolTelescopeParameter(
+        default_value=True,
+        help=(
+            "Apply peak time shift corrections."
+            " Apply the remaining absolute and fractional time shift corrections"
+            " to the peak time after pulse extraction."
+            " If `apply_waveform_time_shift` is False, this will apply the full time shift"
+        ),
     ).tag(config=True)
 
     def __init__(
@@ -71,7 +90,7 @@ class CameraCalibrator(Component):
             The ImageExtractor to use. If None, the default via the
             configuration system will be constructed.
         """
-        super().__init__(config=config, parent=parent, **kwargs)
+        super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
         self.subarray = subarray
 
         self._r1_empty_warn = False
@@ -162,19 +181,22 @@ class CameraCalibrator(Component):
 
             # shift waveforms if time_shift calibration is available
             if time_shift is not None:
-                sampling_rate = readout.sampling_rate.to_value(u.GHz)
-                time_shift_samples = time_shift * sampling_rate
-                waveforms, remaining_shift = shift_waveforms(
-                    waveforms, time_shift_samples
-                )
-                remaining_shift /= sampling_rate
+                if self.apply_waveform_time_shift.tel[telid]:
+                    sampling_rate = readout.sampling_rate.to_value(u.GHz)
+                    time_shift_samples = time_shift * sampling_rate
+                    waveforms, remaining_shift = shift_waveforms(
+                        waveforms, time_shift_samples
+                    )
+                    remaining_shift /= sampling_rate
+                else:
+                    remaining_shift = time_shift
 
             charge, peak_time = self.image_extractor(
                 waveforms, telid=telid, selected_gain_channel=selected_gain_channel
             )
 
             # correct non-integer remainder of the shift if given
-            if time_shift is not None:
+            if self.apply_peak_time_shift.tel[telid] and time_shift is not None:
                 peak_time -= remaining_shift
 
         # Calibrate extracted charge
