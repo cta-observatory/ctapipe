@@ -1,7 +1,6 @@
 """Helpers for better logging."""
 
 import logging
-import logging.config
 from yaml import load, FullLoader
 
 DEFAULT_LOGGING_FORMAT = (
