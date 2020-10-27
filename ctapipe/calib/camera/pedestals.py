@@ -120,7 +120,7 @@ class PedestalCalculator(Component):
 
         # load the waveform charge extractor
         self.extractor = ImageExtractor.from_name(
-            self.charge_product, config=self.config, subarray=subarray,
+            self.charge_product, config=self.config, subarray=subarray
         )
         self.log.info(f"extractor {self.extractor}")
 
@@ -239,18 +239,10 @@ class PedestalIntegrator(PedestalCalculator):
             self.num_events_seen = 0
 
         # real data
+        trigger_time = event.trigger.time
         if event.meta["origin"] != "hessio":
-
-            trigger_time = event.r1.tel[self.tel_id].trigger_time
             pixel_mask = event.mon.tel[self.tel_id].pixel_status.hardware_failing_pixels
-
         else:  # patches for MC data
-
-            if event.trig.tels_with_trigger:
-                trigger_time = event.trig.gps_time.unix
-            else:
-                trigger_time = 0
-
             pixel_mask = np.zeros(waveform.shape[1], dtype=bool)
 
         if self.num_events_seen == 0:
@@ -271,9 +263,9 @@ class PedestalIntegrator(PedestalCalculator):
             or self.num_events_seen == self.sample_size
         ):
             pedestal_results = calculate_pedestal_results(
-                self, self.charges, self.sample_masked_pixels,
+                self, self.charges, self.sample_masked_pixels
             )
-            time_results = calculate_time_results(self.time_start, trigger_time,)
+            time_results = calculate_time_results(self.time_start, trigger_time)
 
             result = {
                 "n_events": self.num_events_seen,
@@ -312,21 +304,16 @@ class PedestalIntegrator(PedestalCalculator):
         self.num_events_seen += 1
 
 
-def calculate_time_results(
-    time_start, trigger_time,
-):
+def calculate_time_results(time_start, trigger_time):
     """Calculate and return the sample time"""
     return {
-        # FIXME Why divided by two here?
-        "sample_time": u.Quantity((trigger_time - time_start) / 2, u.s),
-        "sample_time_min": u.Quantity(time_start, u.s),
-        "sample_time_max": u.Quantity(trigger_time, u.s),
+        "sample_time": (trigger_time - time_start).to_value(u.s),
+        "sample_time_min": time_start,
+        "sample_time_max": trigger_time,
     }
 
 
-def calculate_pedestal_results(
-    self, trace_integral, masked_pixels_of_sample,
-):
+def calculate_pedestal_results(self, trace_integral, masked_pixels_of_sample):
     """Calculate and return the sample statistics"""
     masked_trace_integral = np.ma.array(trace_integral, mask=masked_pixels_of_sample)
     # median over the sample per pixel

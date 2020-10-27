@@ -4,20 +4,14 @@ Style Guide
 Coding Style
 ------------
 
-Code should follow the Python
-`PEP8 <https://www.python.org/dev/peps/pep-0008/>`_ style guide. You
-can check if your code has style problems using any one of the
-following shell commmands (you may need to install the relevant
-package):
+Code follows the Python
+`PEP8 <https://www.python.org/dev/peps/pep-0008/>`_ style guide.
+This is enforced via the
+`black formatter <https://black.readthedocs.io/en/stable/>`_
+and the pre-commit hook set up in :doc:`/getting_started/index`.
 
-.. code-block:: sh
-
-  % pylint file.py 
-  % pep8 file.py
-
-
-The `autopep8` command-line utility can be used to automatically reformat
-non-conforming code to the PEP8 style.
+You can also use `black \<filename\>` to reformat your code by hand or install
+editor plugins.
 
 
 API Documentation Style

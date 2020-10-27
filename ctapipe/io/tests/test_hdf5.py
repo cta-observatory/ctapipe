@@ -72,27 +72,19 @@ def test_read_multiple_containers():
         # test reading both containers separately
         with HDF5TableReader(f.name) as reader:
             generator = reader.read(
-                "/dl1/params",
-                HillasParametersContainer(),
-                prefixes=True
+                "/dl1/params", HillasParametersContainer(), prefixes=True
             )
             hillas = next(generator)
         for value, read_value in zip(
-            hillas_parameter_container.as_dict().values(),
-            hillas.as_dict().values()
+            hillas_parameter_container.as_dict().values(), hillas.as_dict().values()
         ):
             np.testing.assert_equal(value, read_value)
 
         with HDF5TableReader(f.name) as reader:
-            generator = reader.read(
-                "/dl1/params",
-                LeakageContainer(),
-                prefixes=True
-            )
+            generator = reader.read("/dl1/params", LeakageContainer(), prefixes=True)
             leakage = next(generator)
         for value, read_value in zip(
-                leakage_container.as_dict().values(),
-                leakage.as_dict().values()
+            leakage_container.as_dict().values(), leakage.as_dict().values()
         ):
             np.testing.assert_equal(value, read_value)
 
@@ -106,14 +98,12 @@ def test_read_multiple_containers():
             hillas_, leakage_ = next(generator)
 
         for value, read_value in zip(
-            leakage_container.as_dict().values(),
-            leakage_.as_dict().values()
+            leakage_container.as_dict().values(), leakage_.as_dict().values()
         ):
             np.testing.assert_equal(value, read_value)
 
         for value, read_value in zip(
-            hillas_parameter_container.as_dict().values(),
-            hillas_.as_dict().values()
+            hillas_parameter_container.as_dict().values(), hillas_.as_dict().values()
         ):
             np.testing.assert_equal(value, read_value)
 
@@ -147,14 +137,12 @@ def test_read_without_prefixes():
             hillas_, leakage_ = next(generator)
 
         for value, read_value in zip(
-            leakage_container.as_dict().values(),
-            leakage_.as_dict().values()
+            leakage_container.as_dict().values(), leakage_.as_dict().values()
         ):
             np.testing.assert_equal(value, read_value)
 
         for value, read_value in zip(
-            hillas_parameter_container.as_dict().values(),
-            hillas_.as_dict().values()
+            hillas_parameter_container.as_dict().values(), hillas_.as_dict().values()
         ):
             np.testing.assert_equal(value, read_value)
 
@@ -168,26 +156,22 @@ def test_read_without_prefixes():
             hillas_, leakage_ = next(generator)
 
         for value, read_value in zip(
-            leakage_container.as_dict().values(),
-            leakage_.as_dict().values()
+            leakage_container.as_dict().values(), leakage_.as_dict().values()
         ):
             np.testing.assert_equal(value, read_value)
 
         for value, read_value in zip(
-            hillas_parameter_container.as_dict().values(),
-            hillas_.as_dict().values()
+            hillas_parameter_container.as_dict().values(), hillas_.as_dict().values()
         ):
             np.testing.assert_equal(value, read_value)
 
 
 def test_read_duplicated_container_types():
     hillas_config_1 = HillasParametersContainer(
-        x=1 * u.m, y=2 * u.m, length=3 * u.m, width=4 * u.m,
-        prefix='hillas_1',
+        x=1 * u.m, y=2 * u.m, length=3 * u.m, width=4 * u.m, prefix="hillas_1"
     )
     hillas_config_2 = HillasParametersContainer(
-        x=2 * u.m, y=3 * u.m, length=4 * u.m, width=5 * u.m,
-        prefix='hillas_2',
+        x=2 * u.m, y=3 * u.m, length=4 * u.m, width=5 * u.m, prefix="hillas_2"
     )
 
     with tempfile.NamedTemporaryFile() as f:
@@ -202,19 +186,17 @@ def test_read_duplicated_container_types():
             generator = reader.read(
                 "/dl1/params",
                 [HillasParametersContainer(), HillasParametersContainer()],
-                prefixes=['hillas_1', 'hillas_2']
+                prefixes=["hillas_1", "hillas_2"],
             )
             hillas_1, hillas_2 = next(generator)
 
         for value, read_value in zip(
-            hillas_config_1.as_dict().values(),
-            hillas_1.as_dict().values()
+            hillas_config_1.as_dict().values(), hillas_1.as_dict().values()
         ):
             np.testing.assert_equal(value, read_value)
 
         for value, read_value in zip(
-            hillas_config_2.as_dict().values(),
-            hillas_2.as_dict().values()
+            hillas_config_2.as_dict().values(), hillas_2.as_dict().values()
         ):
             np.testing.assert_equal(value, read_value)
 
@@ -230,15 +212,12 @@ def test_custom_prefix():
 
         with HDF5TableReader(f.name) as reader:
             generator = reader.read(
-                "/dl1/params",
-                HillasParametersContainer(),
-                prefixes="custom"
+                "/dl1/params", HillasParametersContainer(), prefixes="custom"
             )
             read_container = next(generator)
         assert isinstance(read_container, HillasParametersContainer)
         for value, read_value in zip(
-            container.as_dict().values(),
-            read_container.as_dict().values()
+            container.as_dict().values(), read_container.as_dict().values()
         ):
             np.testing.assert_equal(value, read_value)
 
@@ -520,10 +499,14 @@ class WithNormalEnum(Container):
         physics = 2
         calibration = 3
 
+    foo = Field(5, "foo field to test if this still works with more fields")
+
     event_type = Field(
         EventType.calibration,
         f"type of event, one of: {list(EventType.__members__.keys())}",
     )
+
+    bar = Field(10, "bar field to test if this still works with more fields")
 
 
 def test_read_write_container_with_enum(tmp_path):
@@ -533,6 +516,8 @@ def test_read_write_container_with_enum(tmp_path):
         data = WithNormalEnum()
         for i in range(n_event):
             data.event_type = data.EventType(i % 3 + 1)
+            data.foo = i
+            data.bar = i * 2
             yield data
 
     with HDF5TableWriter(tmp_file, group_name="data") as h5_table:
