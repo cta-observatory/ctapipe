@@ -230,8 +230,8 @@ def test_trigger_times():
 def test_true_image():
     with SimTelEventSource(input_url=calib_events_path) as reader:
 
-        for e in reader:
-            for tel in e.mc.tel.values():
+        for event in reader:
+            for tel in event.simulation.tel.values():
                 assert np.count_nonzero(tel.true_image) > 0
 
 
