@@ -144,6 +144,8 @@ def apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe, gain_selector)
 
 
 class SimTelEventSource(EventSource):
+    """ Read events from a SimTelArray data file (in EventIO format)."""
+
     skip_calibration_events = Bool(True, help="Skip calibration events").tag(
         config=True
     )
