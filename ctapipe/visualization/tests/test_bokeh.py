@@ -1,53 +1,47 @@
+from ctapipe.coordinates import TelescopeFrame
 import numpy as np
-import pytest
+from bokeh.io import save, output_file
+import tempfile
 
 
-def test_camera_display_create():
-    from ctapipe.visualization.bokeh import CameraDisplay
-
-    CameraDisplay()
-
-
-def test_camera_geom(example_event, example_subarray):
+def test_camera_display_creation(example_event, example_subarray):
     from ctapipe.visualization.bokeh import CameraDisplay
 
     t = list(example_event.r0.tel.keys())[0]
     geom = example_subarray.tel[t].camera.geometry
-    c_display = CameraDisplay(geom)
+    display = CameraDisplay(geom, autoshow=False)
 
-    assert (c_display.cdsource.data["x"] == geom.pix_x.value).all()
-    assert (c_display.cdsource.data["y"] == geom.pix_y.value).all()
+    assert np.allclose(np.mean(display.datasource.data["xs"], axis=1), geom.pix_x.value)
+    assert np.allclose(np.mean(display.datasource.data["ys"], axis=1), geom.pix_y.value)
 
-    t = list(example_event.r0.tel.keys())[1]
-    geom = example_subarray.tel[t].camera.geometry
-    c_display.geom = geom
-    assert (c_display.cdsource.data["x"] == geom.pix_x.value).all()
-    assert (c_display.cdsource.data["y"] == geom.pix_y.value).all()
+
+def test_camera_display_telescope_frame(example_event, example_subarray):
+    from ctapipe.visualization.bokeh import CameraDisplay
+
+    t = list(example_event.r0.tel.keys())[0]
+    geom = example_subarray.tel[t].camera.geometry.transform_to(TelescopeFrame())
+    display = CameraDisplay(geom, autoshow=False)
+
+    assert np.allclose(np.mean(display.datasource.data["xs"], axis=1), geom.pix_x.value)
+    assert np.allclose(np.mean(display.datasource.data["ys"], axis=1), geom.pix_y.value)
 
 
 def test_camera_image(example_event, example_subarray):
-    from ctapipe.visualization.bokeh import CameraDisplay, intensity_to_hex
+    from ctapipe.visualization.bokeh import CameraDisplay
 
     t = list(example_event.r0.tel.keys())[0]
     geom = example_subarray.tel[t].camera.geometry
-    n_pixels = geom.pix_x.value.size
-    image = np.ones(n_pixels)
-    colors = intensity_to_hex(image)
+    image = np.ones(geom.n_pixels)
 
-    with pytest.raises(ValueError):
-        CameraDisplay(None, image)
+    display = CameraDisplay(geom, image, autoshow=False)
+    assert np.all(display.image == image)
 
-    c_display = CameraDisplay(geom, image)
-    assert (c_display.cdsource.data["image"] == colors).all()
-    assert c_display.image_min == 0
-    assert c_display.image_max == 2
+    display.image = np.random.normal(size=geom.n_pixels)
+    assert np.all(display.image == image)
 
-    image[5] = 5
-    colors = intensity_to_hex(image)
-    c_display.image = image
-    assert (c_display.cdsource.data["image"] == colors).all()
-    assert c_display.image_min == image.min()
-    assert c_display.image_max == image.max()
+    with tempfile.NamedTemporaryFile(suffix=".png") as f:
+        output_file(f.name)
+        save(display.figure, filename=f.name)
 
 
 def test_camera_enable_pixel_picker(example_event, example_subarray):
@@ -57,47 +51,12 @@ def test_camera_enable_pixel_picker(example_event, example_subarray):
     geom = example_subarray.tel[t].camera.geometry
     n_pixels = geom.pix_x.value.size
     image = np.ones(n_pixels)
-    c_display = CameraDisplay(geom, image)
+    c_display = CameraDisplay(geom, image, autoshow=False)
 
-    c_display.enable_pixel_picker(2)
-    assert len(c_display.active_pixels) == 2
+    def callback(attr, new, old):
+        print(attr, new, old)
 
-    c_display.enable_pixel_picker(3)
-    assert len(c_display.active_pixels) == 3
-
-
-def test_fast_camera_display_create(example_event, example_subarray):
-    from ctapipe.visualization.bokeh import FastCameraDisplay
-
-    t = list(example_event.r0.tel.keys())[0]
-    geom = example_subarray.tel[t].camera.geometry
-
-    x = geom.pix_x.value
-    y = geom.pix_y.value
-    area = geom.pix_area.value
-    size = np.sqrt(area)
-
-    FastCameraDisplay(x, y, size)
-
-
-def test_fast_camera_image(example_event, example_subarray):
-    from ctapipe.visualization.bokeh import FastCameraDisplay, intensity_to_hex
-
-    t = list(example_event.r0.tel.keys())[0]
-    geom = example_subarray.tel[t].camera.geometry
-
-    x = geom.pix_x.value
-    y = geom.pix_y.value
-    area = geom.pix_area.value
-    size = np.sqrt(area)
-
-    c_display = FastCameraDisplay(x, y, size)
-
-    image = np.ones(x.size)
-    colors = intensity_to_hex(image)
-    c_display.image = colors
-
-    assert (c_display.cdsource.data["image"] == colors).all()
+    c_display.enable_pixel_picker(callback)
 
 
 def test_waveform_display_create():
