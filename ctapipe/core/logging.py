@@ -72,7 +72,7 @@ def recursive_update(d1, d2, copy=False):
 
 
 def create_logging_config(
-    name, log_level, log_file, log_file_level, log_config: dict, quiet: bool
+    log_level, log_file, log_file_level, log_config: dict, quiet: bool
 ):
     """Update logging level for console and file according to CLI arguments."""
     config = recursive_update(DEFAULT_LOGGING, log_config)

@@ -1,8 +1,9 @@
 import os
+import logging
+import tempfile
 import pytest
 from traitlets import Float, TraitError, List, Dict, Int
 from traitlets.config import Config
-import tempfile
 
 from .. import Tool, Component
 from ..tool import export_tool_config_to_commented_yaml, run_tool
@@ -250,8 +251,6 @@ def test_tool_logging_file(capsys):
 
 def test_tool_logging_multiple_loggers(capsys):
     """No-ctapipe loggers can be configured via tool config files."""
-    import logging
-
     logger = logging.getLogger("another_logger")
 
     config = Config(

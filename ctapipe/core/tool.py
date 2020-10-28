@@ -5,7 +5,7 @@ import warnings
 import textwrap
 from abc import abstractmethod
 
-from traitlets import default, Unicode
+from traitlets import default
 from traitlets.config import Application, Configurable
 
 from .. import __version__ as version
