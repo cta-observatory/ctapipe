@@ -122,6 +122,7 @@ class CameraDisplay:
 
         self._annotations = []
         self._labels = []
+        self.datasource = None
 
         self._init_datasource(image)
 
@@ -132,6 +133,7 @@ class CameraDisplay:
             title = f"{geometry} ({frame})"
 
         self.figure = figure(title=title, match_aspect=True, aspect_scale=1)
+        self.figure.add_tools(HoverTool(tooltips=[("id", "@id"), ("value", "@image")]))
 
         # Make sure the box zoom tool does not distort the camera display
         for tool in self.figure.toolbar.tools:
@@ -183,14 +185,13 @@ class CameraDisplay:
 
         return wrapped
 
-    def _init_datasource(self, image):
+    def _init_datasource(self, image=None):
         if image is None:
             image = np.zeros(self._geometry.n_pixels)
 
         data = dict(
             id=self._geometry.pix_id,
             image=image,
-            selected=np.zeros(self._geometry.n_pixels, dtype=bool),
             line_width=np.zeros(self._geometry.n_pixels),
             line_color=["green"] * self._geometry.n_pixels,
             line_alpha=np.zeros(self._geometry.n_pixels),
@@ -212,7 +213,10 @@ class CameraDisplay:
 
         data["xs"], data["ys"] = xs.tolist(), ys.tolist()
 
-        self.datasource = bokeh.plotting.ColumnDataSource(data=data)
+        if self.datasource is None:
+            self.datasource = bokeh.plotting.ColumnDataSource(data=data)
+        else:
+            self.datasource.update(data=data)
 
     @_reset_autoshow_timer
     def _setup_camera(self):
@@ -227,8 +231,6 @@ class CameraDisplay:
             self._pixels = self.figure.patches(xs="xs", ys="ys", **kwargs)
         elif self._geometry.pix_type == PixelShape.CIRCLE:
             self._pixels = self.figure.circle(x="xs", y="ys", radius="radius", **kwargs)
-
-        self.figure.add_tools(HoverTool(tooltips=[("id", "@id"), ("value", "@image")]))
 
     def clear_overlays(self):
         while self._annotations:
@@ -339,6 +341,19 @@ class CameraDisplay:
         # so we reassign limits
         low = self._color_mapper.low
         self._color_mapper.update(low=low)
+
+    @property
+    def geometry(self):
+        return self._geometry
+
+    @geometry.setter
+    def geometry(self, new_geometry):
+        self._geometry = new_geometry
+        self.figure.renderers.remove(self._pixels)
+        self._init_datasource()
+        self._setup_camera()
+        self.rescale()
+        self.update()
 
     @property
     def image(self):
