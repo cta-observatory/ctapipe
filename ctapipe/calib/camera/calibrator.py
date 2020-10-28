@@ -151,7 +151,7 @@ class CameraCalibrator(TelescopeComponent):
 
     def _calibrate_dl1(self, event, telid):
         waveforms = event.dl0.tel[telid].waveform
-        selected_gain_channel = event.r1.tel[telid].selected_gain_channel
+        selected_gain_channel = event.dl0.tel[telid].selected_gain_channel
         dl1_calib = event.calibration.tel[telid].dl1
 
         if self._check_dl0_empty(waveforms):
