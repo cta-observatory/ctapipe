@@ -99,8 +99,6 @@ class OpticsDescription:
         else:
             table = optics_table
 
-        table = get_table_dataset(optics_table, role="dl0.tel.svc.optics")
-
         version = table.meta.get("TAB_VER")
 
         # we introduced the TAB_VER after switching to the second version

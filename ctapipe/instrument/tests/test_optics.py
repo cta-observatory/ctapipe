@@ -60,6 +60,7 @@ def test_optics_from_name_user_supplied_table():
     assert optics.name == "SST-GCT"
     assert optics.mirror_area > 1.0 * u.m ** 2
 
+
 def test_optics_from_dump_instrument():
     # test with file written by dump-instrument
 
