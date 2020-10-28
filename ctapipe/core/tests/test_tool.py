@@ -204,15 +204,16 @@ class MyLogTool(Tool):
 def test_tool_logging_defaults(capsys):
     tool = MyLogTool()
 
-    run_tool(tool)
-
     assert tool.log_level == 30
     assert tool.log_file is None
 
-    log = capsys.readouterr().out
+    run_tool(tool)
 
-    assert "test-info" not in log
-    assert "test-warn" in log
+    # split lines and skip last empty line
+    log = capsys.readouterr().err.split("\n")[:-1]
+
+    assert len(log) == 3
+    assert "test-warn" in log[0]
 
 
 def test_tool_logging_setlevel(capsys):
@@ -220,13 +221,63 @@ def test_tool_logging_setlevel(capsys):
 
     run_tool(tool, ["--log-level", "ERROR"])
 
-    log = capsys.readouterr().out
+    # split lines and skip last empty line
+    log = capsys.readouterr().err.split("\n")[:-1]
 
-    assert "test-debug" not in log
-    assert "test-info" not in log
-    assert "test-warn" not in log
-    assert "test-error" in log
-    assert "test-critical" in log
+    assert len(log) == 2
+    assert "test-error" in log[0]
+    assert "test-critical" in log[1]
+
+
+def test_tool_logging_file(capsys):
+    tool = MyLogTool()
+
+    with tempfile.NamedTemporaryFile("w+") as f:
+        run_tool(tool, ["--log-file", f.name])
+        log = str(f.read())
+
+        assert len(log) > 0
+        assert "test-debug" not in log
+        assert "test-info" in log
+        assert "test-warn" in log
+
+    # split lines and skip last empty line
+    log = capsys.readouterr().err.split("\n")[:-1]
+
+    assert len(log) > 0
+    assert "test-warn" in log[0]
+
+
+def test_tool_logging_multiple_loggers(capsys):
+    """No-ctapipe loggers can be configured via tool config files."""
+    import logging
+
+    logger = logging.getLogger("another_logger")
+
+    config = Config(
+        {
+            "MyLogTool": {
+                "log_config": {
+                    "loggers": {
+                        "another_logger": {"level": "DEBUG", "handlers": ["console"]},
+                        "ctapipe.ctapipe-test": {"level": "ERROR"},
+                    }
+                }
+            }
+        }
+    )
+
+    tool = MyLogTool(config=config)
+    run_tool(tool)
+
+    logger.debug("another-debug")
+
+    # split lines and skip last empty line
+    log = capsys.readouterr().err.split("\n")[:-1]
+
+    assert len(log) == 3
+    assert "test-error" in log[0]
+    assert "another-debug" in log[2]
 
 
 def test_tool_logging_quiet(capsys):
@@ -235,25 +286,6 @@ def test_tool_logging_quiet(capsys):
     # setting log-level should not matter when given -q
     run_tool(tool, ["-q", "--log-level", "DEBUG"])
 
-    log = capsys.readouterr().out
+    log = capsys.readouterr().err
 
     assert len(log) == 0
-
-
-def test_tool_logging_file(capsys):
-    tool = MyLogTool()
-
-    with tempfile.NamedTemporaryFile() as f:
-        run_tool(tool, ["--log-file", f.name])
-
-        log = str(f.read())
-
-        assert "test-debug" not in log
-        assert "test-info" in log
-        assert "test-warn" in log
-
-    # also logging to console (with different default level)
-    log = capsys.readouterr().out
-
-    assert "test-info" not in log
-    assert "test-warn" in log
