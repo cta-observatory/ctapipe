@@ -23,8 +23,8 @@ def test_guess_optics():
 
 
 def test_construct_optics():
-    """ create an OpticsDescription and make sure it
-    fails if units are missing """
+    """create an OpticsDescription and make sure it
+    fails if units are missing"""
     OpticsDescription(
         name="test",
         num_mirrors=1,
@@ -63,7 +63,7 @@ def test_optics_from_dump_instrument():
         os.environ["CTAPIPE_SVC_PATH"] = tmp_dir
 
         infile = get_dataset_path("gamma_test_large.simtel.gz")
-        run_tool(DumpInstrumentTool(), [f"--infile={infile}", "--format=ecsv"])
+        run_tool(DumpInstrumentTool(), [f"--input={infile}", "--format=ecsv"])
 
         lst = OpticsDescription.from_name("LST_LST_LSTCam", "MonteCarloArray.optics")
         assert lst.num_mirrors == 1
