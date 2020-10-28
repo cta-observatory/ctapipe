@@ -78,6 +78,19 @@ def generate_hex_vertices(geom):
     return xs, ys
 
 
+def generate_square_vertices(geom):
+    w = geom.pixel_width.value / 2
+    x = geom.pix_x.value
+    y = geom.pix_y.value
+
+    x_offset = w[:, np.newaxis] * np.array([-1, -1, 1, 1])
+    y_offset = w[:, np.newaxis] * np.array([1, -1, -1, 1])
+
+    xs = x[:, np.newaxis] + x_offset
+    ys = y[:, np.newaxis] + y_offset
+    return xs, ys
+
+
 class CameraDisplay:
     """
     CameraDisplay implementation in Bokeh
@@ -102,26 +115,15 @@ class CameraDisplay:
         self._color_bar = None
         self._color_mapper = None
         self._pixels = None
+        self._autoshow_timer = None
+        # only use autoshow / use_notebook by default if we are in a notebook
+        self._use_notebook = use_notebook if use_notebook is not None else is_notebook()
 
         self._annotations = []
         self._labels = []
 
-        if geometry.pix_type == PixelShape.HEXAGON:
-            xs, ys = generate_hex_vertices(geometry)
-        else:
-            raise NotImplementedError(f"Unsupported pixel shape {geometry.pix_type}")
+        self._init_datasource(image)
 
-        if image is None:
-            image = np.zeros(geometry.n_pixels)
-
-        self.datasource = bokeh.plotting.ColumnDataSource(
-            data=dict(
-                poly_xs=xs.tolist(),
-                poly_ys=ys.tolist(),
-                id=geometry.pix_id,
-                image=image,
-            )
-        )
         if title is None:
             frame = (
                 geometry.frame.__class__.__name__ if geometry.frame else "CameraFrame"
@@ -135,23 +137,49 @@ class CameraDisplay:
             if isinstance(tool, BoxZoomTool):
                 tool.match_aspect = True
 
-        # only use autoshow / use_notebook by default if we are in a notebook
-        self._use_notebook = use_notebook if use_notebook is not None else is_notebook()
-
-        # give code some time to run before openeing the plot,
-        # so e.g. cmaps and images can be set after the display was created
-        self._autoshow_timer = Timer(0.1, self.show) if autoshow else None
-
-        if self._autoshow_timer is not None:
-            self._autoshow_timer.start()
-
-        # have to be after the timer started
-        # order is important because steps depent on each other
+        # order is important because steps depend on each other
         self.cmap = cmap
         self.norm = norm
         self.autoscale = autoscale
         self.rescale()
         self._setup_camera()
+
+        if autoshow:
+            if self._use_notebook:
+                self.show()
+            else:
+                # When running a script, if we would generate a html file
+                # directly in __init__, the user would not be able change the display.
+                # So give code some time to run before opening the plot,
+                # so e.g. colorbars, cmaps and images can be set after the display was created
+                self._autoshow_timer = Timer(0.1, self.show)
+
+        if self._autoshow_timer is not None:
+            self._autoshow_timer.start()
+
+    def _init_datasource(self, image):
+        if image is None:
+            image = np.zeros(self._geometry.n_pixels)
+
+        data = dict(id=self._geometry.pix_id, image=image)
+
+        if self._geometry.pix_type == PixelShape.HEXAGON:
+            xs, ys = generate_hex_vertices(self._geometry)
+
+        elif self._geometry.pix_type == PixelShape.SQUARE:
+            xs, ys = generate_square_vertices(self._geometry)
+
+        elif self._geometry.pix_type == PixelShape.CIRCLE:
+            xs, ys = self._geometry.pix_x.value, self._geometry.pix_y.value
+            data["radius"] = self._geometry.pixel_width / 2
+        else:
+            raise NotImplementedError(
+                f"Unsupported pixel shape {self._geometry.pix_type}"
+            )
+
+        data["xs"], data["ys"] = xs.tolist(), ys.tolist()
+
+        self.datasource = bokeh.plotting.ColumnDataSource(data=data)
 
     def _reset_autoshow_timer(f):
         """A decorator that resets the timer for autoshow if necessary"""
@@ -180,13 +208,16 @@ class CameraDisplay:
 
     @_reset_autoshow_timer
     def _setup_camera(self):
-        self._pixels = self.figure.patches(
-            xs="poly_xs",
-            ys="poly_ys",
+        kwargs = dict(
             fill_color=dict(field="image", transform=self.norm),
             line_width=0,
             source=self.datasource,
         )
+        if self._geometry.pix_type in (PixelShape.SQUARE, PixelShape.HEXAGON):
+            self._pixels = self.figure.patches(xs="xs", ys="ys", **kwargs)
+        elif self._geometry.pix_type == PixelShape.CIRCLE:
+            self._pixels = self.figure.circle(x="xs", y="ys", radius="radius", **kwargs)
+
         self.figure.add_tools(HoverTool(tooltips=[("id", "@id"), ("value", "@image")]))
 
     @_reset_autoshow_timer
@@ -202,7 +233,7 @@ class CameraDisplay:
 
     def update(self):
         if self._use_notebook and self._handle:
-            push_notebook(self._handle)
+            push_notebook(handle=self._handle)
 
     def rescale(self):
         low = self.datasource.data["image"].min()
