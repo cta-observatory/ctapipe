@@ -157,11 +157,43 @@ class CameraDisplay:
         if self._autoshow_timer is not None:
             self._autoshow_timer.start()
 
+    def _reset_autoshow_timer(f):
+        """A decorator that resets the timer for autoshow if necessary"""
+
+        @wraps(f)
+        def wrapped(self, *args, **kwargs):
+            timer = False
+
+            if self._autoshow_timer is not None:
+                self._autoshow_timer.cancel()
+                self._autoshow_timer = None
+                timer = True
+
+            res = f(self, *args, **kwargs)
+
+            if timer:
+                # make sure also nested calls work
+                if self._autoshow_timer is not None:
+                    self._autoshow_timer.cancel()
+                self._autoshow_timer = Timer(0.1, self.show)
+                self._autoshow_timer.start()
+
+            return res
+
+        return wrapped
+
     def _init_datasource(self, image):
         if image is None:
             image = np.zeros(self._geometry.n_pixels)
 
-        data = dict(id=self._geometry.pix_id, image=image)
+        data = dict(
+            id=self._geometry.pix_id,
+            image=image,
+            selected=np.zeros(self._geometry.n_pixels, dtype=bool),
+            line_width=np.zeros(self._geometry.n_pixels),
+            line_color=["green"] * self._geometry.n_pixels,
+            line_alpha=np.zeros(self._geometry.n_pixels),
+        )
 
         if self._geometry.pix_type == PixelShape.HEXAGON:
             xs, ys = generate_hex_vertices(self._geometry)
@@ -181,36 +213,13 @@ class CameraDisplay:
 
         self.datasource = bokeh.plotting.ColumnDataSource(data=data)
 
-    def _reset_autoshow_timer(f):
-        """A decorator that resets the timer for autoshow if necessary"""
-
-        @wraps(f)
-        def wrapped(self, *args, **kwargs):
-            if self._autoshow_timer is not None:
-                self._autoshow_timer.cancel()
-                self._autoshow_timer = Timer(0.1, self.show)
-
-            res = f(self, *args, **kwargs)
-
-            if self._autoshow_timer is not None:
-                self._autoshow_timer.start()
-
-            return res
-
-        return wrapped
-
-    def clear_overlays(self):
-        while self._annotations:
-            self.figure.renderers.remove(self._annotations.pop())
-
-        while self._labels:
-            self.figure.center.remove(self._labels.pop())
-
     @_reset_autoshow_timer
     def _setup_camera(self):
         kwargs = dict(
             fill_color=dict(field="image", transform=self.norm),
-            line_width=0,
+            line_width="line_width",
+            line_color="line_color",
+            line_alpha="line_alpha",
             source=self.datasource,
         )
         if self._geometry.pix_type in (PixelShape.SQUARE, PixelShape.HEXAGON):
@@ -219,6 +228,13 @@ class CameraDisplay:
             self._pixels = self.figure.circle(x="xs", y="ys", radius="radius", **kwargs)
 
         self.figure.add_tools(HoverTool(tooltips=[("id", "@id"), ("value", "@image")]))
+
+    def clear_overlays(self):
+        while self._annotations:
+            self.figure.renderers.remove(self._annotations.pop())
+
+        while self._labels:
+            self.figure.center.remove(self._labels.pop())
 
     @_reset_autoshow_timer
     def add_colorbar(self):
@@ -258,6 +274,42 @@ class CameraDisplay:
         dz = zmax - zmin
         frac = percent / 100.0
         self.set_limits_minmax(zmin, zmax - (1.0 - frac) * dz)
+
+    @_reset_autoshow_timer
+    def highlight_pixels(self, pixels, color="g", linewidth=1, alpha=0.75):
+        """
+        Highlight the given pixels with a colored line around them
+
+        Parameters
+        ----------
+        pixels : index-like
+            The pixels to highlight.
+            Can either be a list or array of integers or a
+            boolean mask of length number of pixels
+        color: a matplotlib conform color
+            the color for the pixel highlighting
+        linewidth: float
+            linewidth of the highlighting in points
+        alpha: 0 <= alpha <= 1
+            The transparency
+        """
+        n_pixels = self._geometry.n_pixels
+        pixels = np.asanyarray(pixels)
+
+        if pixels.dtype != np.bool:
+            selected = np.zeros(n_pixels, dtype=bool)
+            selected[pixels] = True
+            pixels = selected
+
+        new_data = {"line_alpha": [(slice(None), pixels.astype(float) * alpha)]}
+        if linewidth != self.datasource.data["line_width"][0]:
+            new_data["line_width"] = [(slice(None), np.full(n_pixels, linewidth))]
+
+        if color != self.datasource.data["line_color"][0]:
+            new_data["line_color"] = [(slice(None), [color] * n_pixels)]
+
+        self.datasource.patch(new_data)
+        self.update()
 
     @property
     def cmap(self):
