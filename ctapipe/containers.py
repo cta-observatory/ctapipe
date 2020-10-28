@@ -8,7 +8,7 @@ from astropy.time import Time
 from numpy import nan
 import numpy as np
 
-from .core import Container, Field, Map, DeprecatedField
+from .core import Container, Field, Map
 
 __all__ = [
     "ArrayEventContainer",

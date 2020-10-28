@@ -1,5 +1,6 @@
 import warnings
 from gzip import GzipFile
+from io import BufferedReader
 from pathlib import Path
 
 import numpy as np
@@ -9,30 +10,29 @@ from astropy.time import Time
 from eventio.file_types import is_eventio
 from eventio.simtel.simtelfile import SimTelFile
 from traitlets import observe
-from io import BufferedReader
 
 from ..calib.camera.gainselection import GainSelector
 from ..containers import (
     ArrayEventContainer,
     EventType,
+    MCHeaderContainer,
     SimulatedCameraContainer,
     SimulatedShowerContainer,
 )
+from ..coordinates import CameraFrame
 from ..core.traits import Bool, CaselessStrEnum, create_class_enum_trait
 from ..instrument import (
-    TelescopeDescription,
-    SubarrayDescription,
     CameraDescription,
     CameraGeometry,
     CameraReadout,
     OpticsDescription,
+    SubarrayDescription,
+    TelescopeDescription,
 )
 from ..instrument.camera import UnknownPixelShapeWarning
-from ..instrument.guess import guess_telescope, UNKNOWN_TELESCOPE
-from ..containers import MCHeaderContainer
-from .eventsource import EventSource
+from ..instrument.guess import UNKNOWN_TELESCOPE, guess_telescope
 from .datalevels import DataLevel
-from ..coordinates import CameraFrame
+from .eventsource import EventSource
 
 X_MAX_UNIT = u.g / (u.cm ** 2)
 
@@ -394,7 +394,7 @@ class SimTelEventSource(EventSource):
                     .get("photoelectrons", np.zeros(n_pixels, dtype="float32"))
                 )
 
-                sim = data.simulation.tel[tel_id] = SimulatedCameraContainer(
+                data.simulation.tel[tel_id] = SimulatedCameraContainer(
                     true_image=true_image
                 )
 
