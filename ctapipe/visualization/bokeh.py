@@ -116,6 +116,7 @@ class CameraDisplay:
         self._color_mapper = None
         self._pixels = None
         self._autoshow_timer = None
+        self._tap_tool = None
         # only use autoshow / use_notebook by default if we are in a notebook
         self._use_notebook = use_notebook if use_notebook is not None else is_notebook()
 
@@ -261,6 +262,11 @@ class CameraDisplay:
             high += 1
 
         self.set_limits_minmax(low, high)
+
+    def enable_pixel_picker(self, callback):
+        if self._tap_tool is None:
+            self.figure.add_tools(TapTool())
+        self.datasource.selected.on_change("indices", callback)
 
     @_reset_autoshow_timer
     def set_limits_minmax(self, zmin, zmax):
