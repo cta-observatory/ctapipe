@@ -1,7 +1,8 @@
 """Helpers for better logging."""
 
 import logging
-from yaml import load, FullLoader
+from collections.abc import Mapping
+
 
 DEFAULT_LOGGING_FORMAT = (
     "%(asctime)s %(levelname)s [%(name)s] (%(module)s.%(funcName)s): %(message)s"
@@ -44,62 +45,74 @@ def apply_colors(levelname: str):
     return levelname_color
 
 
+def recursive_update(d1, d2, copy=False):
+    """Merge dicts recursively, e.g.
+    >>> d1 = {'a': {'b': 'foo'}}
+    >>> d2 = {'a': {'c': 'foo'}}
+    >>> recursive_update(d1, d2)
+    {'a': {'b': 'foo', 'c': 'foo'}}
+    >>> # As opposed to
+    >>> d1.update(d2)
+    {'a': {'c': 'foo'}}
+    """
+    if not isinstance(d1, Mapping) or not isinstance(d2, Mapping):
+        raise TypeError("Arguments must be mappings")
+
+    if copy:
+        d1 = d1.copy()
+
+    for k, v in d2.items():
+        if isinstance(v, Mapping):
+            d1[k] = recursive_update(d1.get(k, {}), v)
+        else:
+            d1[k] = v
+
+    # just for convenience, the input dict is actually mutated
+    return d1
+
+
 def create_logging_config(
-    name: str, log_level, log_file, log_file_level, log_config_file, quiet
+    name, log_level, log_file, log_file_level, log_config: dict, quiet: bool
 ):
     """Update logging level for console and file according to CLI arguments."""
-    config = DEFAULT_LOGGING
-
-    # update default logging configuration with user supplied logging configuration file
-    if log_config_file is not None:
-        config.update(get_logging_config_from_file(log_config_file))
-
-    config["loggers"][name] = {
-        "level": "DEBUG",
-        "handlers": ["console"],
-        "propagate": False,
-    }
-    config["handlers"]["console"]["level"] = log_level
+    config = recursive_update(DEFAULT_LOGGING, log_config)
 
     if quiet:
-        config["loggers"][name]["handlers"] = []
-        config["loggers"]["ctapipe"]["handlers"] = []
+        config["handlers"]["ctapipe-console"] = {"class": "logging.NullHandler"}
+    else:
+        config["handlers"]["ctapipe-console"]["level"] = log_level
 
     if log_file is not None:
-        config["handlers"].update(
-            {
-                "file": {
-                    "class": "logging.FileHandler",
-                    "formatter": "file",
-                    "filename": log_file,
-                    "level": log_file_level,
-                }
+        file_handler = {
+            "ctapipe-file": {
+                "class": "logging.FileHandler",
+                "formatter": "file",
+                "filename": log_file,
+                "level": log_file_level,
             }
+        }
+        config["handlers"].update(file_handler)
+        config["loggers"]["ctapipe"]["handlers"].append("ctapipe-file")
+
+        # level of logger must be at least that of all their handlers
+        config["loggers"]["ctapipe"]["level"] = get_lower_level(
+            log_level, log_file_level
         )
-        config["loggers"][name]["handlers"].append("file")
-        config["loggers"]["ctapipe"]["handlers"].append("file")
+
+    else:
+        config["loggers"]["ctapipe"]["level"] = log_level
 
     return config
 
 
-def get_logging_config_from_file(filename):
-    """Open logging config file.
+def get_lower_level(l0, l1):
+    """Compare logging levels and return the lower level."""
+    if isinstance(l0, (str)):
+        l0 = logging.getLevelName(l0)
+    if isinstance(l1, (str)):
+        l1 = logging.getLevelName(l1)
 
-    Parameters
-    ----------
-    filename : str
-
-    Returns
-    -------
-    dict
-    """
-
-    with open(filename, "r") as f:
-        config = load(f, Loader=FullLoader)
-        if config is None:  # empty file
-            config = {}
-
-    return config
+    return l0 if l0 < l1 else l1
 
 
 DEFAULT_LOGGING = {
@@ -110,17 +123,23 @@ DEFAULT_LOGGING = {
         "console": {"()": ColoredFormatter, "fmt": DEFAULT_LOGGING_FORMAT},
     },
     "handlers": {
+        "ctapipe-console": {
+            "class": "logging.StreamHandler",
+            "formatter": "console",
+            "stream": "ext://sys.stderr",
+            "level": "NOTSET",
+        },
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "console",
-            "stream": "ext://sys.stdout",
-            "level": "DEBUG",
-        }
+            "stream": "ext://sys.stderr",
+            "level": "NOTSET",
+        },
     },
     "loggers": {
         "ctapipe": {
-            "level": "DEBUG",  # needs to be lowest level to support higher level handlers
-            "handlers": ["console"],
+            "level": "WARN",
+            "handlers": ["ctapipe-console"],
             "propagate": False,
         }
     },
