@@ -78,6 +78,7 @@ def create_logging_config(
     config = recursive_update(DEFAULT_LOGGING, log_config)
 
     if quiet:
+        config["handlers"]["console"] = {"class": "logging.NullHandler"}
         config["handlers"]["ctapipe-console"] = {"class": "logging.NullHandler"}
     else:
         config["handlers"]["ctapipe-console"]["level"] = log_level
