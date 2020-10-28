@@ -1,9 +1,15 @@
 """ Tests for OpticsDescriptions"""
 import pytest
 from astropy import units as u
+import os
+import tempfile
 
 from ctapipe.instrument.optics import OpticsDescription
+
 from ctapipe.utils import get_table_dataset
+from ctapipe.core.tool import run_tool
+from ctapipe.tools.dump_instrument import DumpInstrumentTool
+from ctapipe.utils.datasets import get_dataset_path
 
 
 def test_guess_optics():
@@ -53,3 +59,27 @@ def test_optics_from_name_user_supplied_table():
     optics = OpticsDescription.from_name("SST-GCT", optics_table=table)
     assert optics.name == "SST-GCT"
     assert optics.mirror_area > 1.0 * u.m ** 2
+
+def test_optics_from_dump_instrument():
+    # test with file written by dump-instrument
+
+    svc_path_before = os.getenv("CTAPIPE_SVC_PATH")
+    cwd = os.getcwd()
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        os.chdir(tmp_dir)
+        os.environ["CTAPIPE_SVC_PATH"] = tmp_dir
+
+        infile = get_dataset_path("gamma_test_large.simtel.gz")
+        run_tool(DumpInstrumentTool(), [f"--infile={infile}", "--format=ecsv"])
+
+        lst = OpticsDescription.from_name("LST_LST_LSTCam", "MonteCarloArray.optics")
+        assert lst.num_mirrors == 1
+        assert lst.equivalent_focal_length.to_value(u.m) == 28
+        assert lst.num_mirror_tiles == 198
+
+    os.chdir(cwd)
+    if svc_path_before is None:
+        del os.environ["CTAPIPE_SVC_PATH"]
+    else:
+        os.environ["CTAPIPE_SVC_PATH"] = svc_path_before

@@ -30,13 +30,15 @@ class SingleTelEventDisplay(Tool):
     infile = Path(help="input file to read", exists=True, directory_ok=False).tag(
         config=True
     )
-    tel = Int(help="Telescope ID to display", default=0).tag(config=True)
-    write = Bool(help="Write out images to PNG files", default=False).tag(config=True)
-    clean = Bool(help="Apply image cleaning", default=False).tag(config=True)
-    hillas = Bool(help="Apply and display Hillas parametrization", default=False).tag(
+    tel = Int(help="Telescope ID to display", default_value=0).tag(config=True)
+    write = Bool(help="Write out images to PNG files", default_value=False).tag(
         config=True
     )
-    samples = Bool(help="Show each sample", default=False).tag(config=True)
+    clean = Bool(help="Apply image cleaning", default_value=False).tag(config=True)
+    hillas = Bool(
+        help="Apply and display Hillas parametrization", default_value=False
+    ).tag(config=True)
+    samples = Bool(help="Show each sample", default_value=False).tag(config=True)
     display = Bool(
         help="Display results in interactive window", default_value=True
     ).tag(config=True)
@@ -67,17 +69,12 @@ class SingleTelEventDisplay(Tool):
 
     def setup(self):
         print("TOLLES INFILE", self.infile)
-        self.event_source = self.add_component(
-            EventSource.from_url(self.infile, parent=self)
-        )
-        self.event_source.allowed_tels = {
-            self.tel,
-        }
+        self.event_source = EventSource.from_url(self.infile, parent=self)
+        self.event_source.allowed_tels = {self.tel}
 
-        self.calibrator = self.add_component(
-            CameraCalibrator(parent=self, subarray=self.event_source.subarray)
+        self.calibrator = CameraCalibrator(
+            parent=self, subarray=self.event_source.subarray
         )
-
         self.log.info(f"SELECTING EVENTS FROM TELESCOPE {self.tel}")
 
     def start(self):
@@ -163,7 +160,7 @@ class SingleTelEventDisplay(Tool):
                 "No events for tel {} were found in {}. Try a "
                 "different EventIO file or another telescope".format(
                     self.tel, self.infile
-                ),
+                )
             )
 
 

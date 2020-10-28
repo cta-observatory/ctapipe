@@ -1,14 +1,16 @@
 """ Classes to handle configurable command-line user interfaces """
 import logging
+import warnings
 import textwrap
 from abc import abstractmethod
 
-from traitlets import Unicode
+from traitlets import default, Unicode
 from traitlets.config import Application, Configurable
 
 from .. import __version__ as version
 from .traits import Path
 from . import Provenance
+from .component import Component
 from .logging import ColoredFormatter
 
 
@@ -114,6 +116,12 @@ class Tool(Application):
         help="The Logging format template",
     ).tag(config=True)
 
+    provenance_log = Path(directory_ok=False).tag(config=True)
+
+    @default("provenance_log")
+    def _default_provenance_log(self):
+        return self.name + ".provenance.log"
+
     _log_formatter_cls = ColoredFormatter
 
     def __init__(self, **kwargs):
@@ -125,7 +133,6 @@ class Tool(Application):
         super().__init__(**kwargs)
         self.log_level = logging.INFO
         self.is_setup = False
-        self._registered_components = []
         self.version = version
         self.raise_config_file_errors = True  # override traitlets.Application default
 
@@ -142,35 +149,6 @@ class Tool(Application):
 
         # ensure command-line takes precedence over config file options:
         self.update_config(self.cli_config)
-
-    def add_component(self, component_instance):
-        """
-        constructs and adds a component to the list of registered components,
-        so that later we can ask for the current configuration of all instances,
-        e.g. in`get_full_config()`.  All sub-components of a tool should be
-        constructed using this function, in order to ensure the configuration is
-        properly traced.
-
-        Parameters
-        ----------
-        component_instance: Component
-            constructed instance of a component
-
-        Returns
-        -------
-        Component:
-            the same component instance that was passed in, so that the call
-            can be chained.
-
-        Examples
-        --------
-        .. code-block:: python3
-
-            self.mycomp = self.add_component(MyComponent(parent=self))
-
-        """
-        self._registered_components.append(component_instance)
-        return component_instance
 
     @abstractmethod
     def setup(self):
@@ -237,7 +215,8 @@ class Tool(Application):
                 self.log.info("Output: %s", output_str)
 
             self.log.debug("PROVENANCE: '%s'", Provenance().as_json(indent=3))
-            with open("provenance.log", mode="w+") as provlog:
+            self.provenance_log.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.provenance_log, mode="a+") as provlog:
                 provlog.write(Provenance().as_json(indent=3))
 
         self.exit(exit_status)
@@ -256,8 +235,10 @@ class Tool(Application):
                 k: v.get(self) for k, v in self.traits(config=True).items()
             }
         }
-        for component in self._registered_components:
-            conf.update(component.get_current_config())
+
+        for val in self.__dict__.values():
+            if isinstance(val, Component):
+                conf[self.__class__.__name__].update(val.get_current_config())
 
         return conf
 

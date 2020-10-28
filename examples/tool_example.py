@@ -76,12 +76,12 @@ class MyTool(Tool):
     def init_a_component(self):
         """ setup the Foo component"""
         self.log.info("INIT FOO")
-        self.a_component = self.add_component(AComponent(parent=self))
+        self.a_component = AComponent(parent=self)
 
     def init_b_component(self):
         """ setup the Bar component"""
         self.log.info("INIT BAR")
-        self.b_component = self.add_component(BComponent(parent=self))
+        self.b_component = BComponent(parent=self)
 
     def setup(self):
         """ Setup all components and the tool"""

@@ -11,7 +11,6 @@ from ctapipe.io import EventSource
 from ctapipe.io import HDF5TableWriter
 from ctapipe.image.cleaning import TailcutsImageCleaner
 from ctapipe.coordinates import TelescopeFrame, CameraFrame
-from ctapipe.image import ImageExtractor
 from ctapipe.containers import MuonParametersContainer
 from ctapipe.instrument import CameraGeometry
 
@@ -42,7 +41,7 @@ class MuonAnalysis(Tool):
     )
 
     completeness_threshold = traits.FloatTelescopeParameter(
-        default_value=30.0, help="Threshold for calculating the ``ring_completeness``",
+        default_value=30.0, help="Threshold for calculating the ``ring_completeness``"
     ).tag(config=True)
 
     ratio_width = traits.FloatTelescopeParameter(
@@ -66,11 +65,7 @@ class MuonAnalysis(Tool):
     ).tag(config=True)
 
     pedestal = traits.FloatTelescopeParameter(
-        help="Pedestal noise rms", default_value=1.1,
-    ).tag(config=True)
-
-    extractor_name = traits.create_class_enum_trait(
-        ImageExtractor, default_value="GlobalPeakWindowSum",
+        help="Pedestal noise rms", default_value=1.1
     ).tag(config=True)
 
     classes = [
@@ -79,7 +74,7 @@ class MuonAnalysis(Tool):
         EventSource,
         MuonRingFitter,
         MuonIntensityFitter,
-    ] + traits.classes_with_traits(ImageExtractor)
+    ]
 
     aliases = {
         "i": "EventSource.input_url",
@@ -103,28 +98,15 @@ class MuonAnalysis(Tool):
                 "Outputfile {self.output} already exists, use `--overwrite` to overwrite"
             )
 
-        self.source = self.add_component(EventSource.from_config(parent=self))
-        self.extractor = self.add_component(
-            ImageExtractor.from_name(
-                self.extractor_name, parent=self, subarray=self.source.subarray
-            )
-        )
-        self.calib = self.add_component(
-            CameraCalibrator(
-                subarray=self.source.subarray,
-                parent=self,
-                image_extractor=self.extractor,
-            )
-        )
-        self.ring_fitter = self.add_component(MuonRingFitter(parent=self,))
-        self.intensity_fitter = self.add_component(
-            MuonIntensityFitter(subarray=self.source.subarray, parent=self,)
-        )
-        self.cleaning = self.add_component(
-            TailcutsImageCleaner(parent=self, subarray=self.source.subarray,)
-        )
-        self.writer = self.add_component(
-            HDF5TableWriter(self.output, "", add_prefix=True, parent=self, mode="w",)
+        self.source = EventSource.from_config(parent=self)
+        subarray = self.source.subarray
+
+        self.calib = CameraCalibrator(subarray=subarray, parent=self)
+        self.ring_fitter = MuonRingFitter(parent=self)
+        self.intensity_fitter = MuonIntensityFitter(subarray=subarray, parent=self)
+        self.cleaning = TailcutsImageCleaner(parent=self, subarray=subarray)
+        self.writer = HDF5TableWriter(
+            self.output, "", add_prefix=True, parent=self, mode="w"
         )
         self.pixels_in_tel_frame = {}
         self.field_of_view = {}
@@ -209,10 +191,10 @@ class MuonAnalysis(Tool):
         self.log.info(
             f"Muon fit: r={ring.radius:.2f}"
             f", width={result.width:.4f}"
-            f", efficiency={result.optical_efficiency:.2%}",
+            f", efficiency={result.optical_efficiency:.2%}"
         )
 
-        tel_event_index = TelEventIndexContainer(**event_index, tel_id=tel_id,)
+        tel_event_index = TelEventIndexContainer(**event_index, tel_id=tel_id)
 
         self.writer.write(
             "dl1/event/telescope/parameters/muons",
@@ -225,7 +207,7 @@ class MuonAnalysis(Tool):
 
         # add ring containment, not filled in fit
         containment = ring_containment(
-            ring.radius, ring.center_x, ring.center_y, fov_radius,
+            ring.radius, ring.center_x, ring.center_y, fov_radius
         )
 
         completeness = ring_completeness(
@@ -304,9 +286,7 @@ class MuonAnalysis(Tool):
         return coords.fov_lon, coords.fov_lat
 
     def finish(self):
-        Provenance().add_output_file(
-            self.output, role="muon_efficiency_parameters",
-        )
+        Provenance().add_output_file(self.output, role="muon_efficiency_parameters")
         self.writer.close()
 
 

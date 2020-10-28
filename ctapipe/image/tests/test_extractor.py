@@ -15,6 +15,7 @@ from ctapipe.image.extractor import (
     FixedWindowSum,
     NeighborPeakWindowSum,
     TwoPassWindowSum,
+    FullWaveformSum,
 )
 from ctapipe.image.toymodel import WaveformModel
 from ctapipe.instrument import SubarrayDescription, TelescopeDescription
@@ -158,20 +159,31 @@ def test_extract_around_peak_charge_expected(toymodel):
 
 def test_neighbor_average_waveform(toymodel):
     waveforms, subarray, telid, _, _, _ = toymodel
-    nei = subarray.tel[telid].camera.geometry.neighbor_matrix_where
-    average_wf = neighbor_average_waveform(waveforms, nei, 0)
+    neighbors = subarray.tel[telid].camera.geometry.neighbor_matrix_sparse
+    average_wf = neighbor_average_waveform(
+        waveforms,
+        neighbors_indices=neighbors.indices,
+        neighbors_indptr=neighbors.indptr,
+        lwt=0,
+    )
 
     pixel = 0
-    nei_pixel = list((np.unique(nei[np.where(nei == pixel)[0]])))
-    nei_pixel.remove(pixel)
+    _, nei_pixel = np.where(neighbors[pixel].A)
     expected_average = waveforms[nei_pixel].sum(0) / len(nei_pixel)
     assert_allclose(average_wf[pixel], expected_average, rtol=1e-3)
 
+    lwt = 4
+    average_wf = neighbor_average_waveform(
+        waveforms,
+        neighbors_indices=neighbors.indices,
+        neighbors_indptr=neighbors.indptr,
+        lwt=lwt,
+    )
+
     pixel = 1
-    nei_pixel = list((np.unique(nei[np.where(nei == pixel)[0]])))
-    nei_pixel.extend([pixel] * 3)
+    _, nei_pixel = np.where(neighbors[pixel].A)
+    nei_pixel = np.concatenate([nei_pixel, [pixel] * lwt])
     expected_average = waveforms[nei_pixel].sum(0) / len(nei_pixel)
-    average_wf = neighbor_average_waveform(waveforms, nei, 4)
     assert_allclose(average_wf[pixel], expected_average, rtol=1e-3)
 
 
@@ -252,9 +264,26 @@ def test_extractors(Extractor, toymodel):
     assert_allclose(peak_time, true_time, rtol=0.1)
 
 
+@pytest.mark.parametrize("Extractor", extractors)
+def test_integration_correction_off(Extractor, toymodel):
+    # full waveform extractor does not have an integration correction
+    if Extractor is FullWaveformSum:
+        return
+
+    waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
+    extractor = Extractor(subarray=subarray, apply_integration_correction=False)
+    charge, peak_time = extractor(waveforms, telid, selected_gain_channel)
+
+    # peak time should stay the same
+    assert_allclose(peak_time, true_time, rtol=0.1)
+
+    # charge should be too small without correction
+    assert np.all(charge <= true_charge)
+
+
 def test_fixed_window_sum(toymodel):
     waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
-    extractor = FixedWindowSum(subarray=subarray, window_start=47)
+    extractor = FixedWindowSum(subarray=subarray, peak_index=47)
     charge, peak_time = extractor(waveforms, telid, selected_gain_channel)
     assert_allclose(charge, true_charge, rtol=0.1)
     assert_allclose(peak_time, true_time, rtol=0.1)
@@ -284,8 +313,8 @@ def test_two_pass_window_sum(subarray):
             true_time,
         ) = toymodel
         charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
-        assert_allclose(charge, true_charge, rtol=0.07)
-        assert_allclose(pulse_time, true_time, rtol=0.07)
+        assert_allclose(charge, true_charge, rtol=0.1)
+        assert_allclose(pulse_time, true_time, rtol=0.1)
 
 
 def test_waveform_extractor_factory(toymodel):
@@ -320,7 +349,7 @@ def test_extractor_tel_param(toymodel):
         {
             "ImageExtractor": {
                 "window_width": [("type", "*", n_samples), ("id", "2", n_samples // 2)],
-                "window_start": 0,
+                "peak_index": 0,
             }
         }
     )
@@ -331,9 +360,9 @@ def test_extractor_tel_param(toymodel):
         "FixedWindowSum", subarray=subarray, config=config
     )
 
-    assert extractor.window_start.tel[None] == 0
-    assert extractor.window_start.tel[1] == 0
-    assert extractor.window_start.tel[2] == 0
+    assert extractor.peak_index.tel[None] == 0
+    assert extractor.peak_index.tel[1] == 0
+    assert extractor.peak_index.tel[2] == 0
     assert extractor.window_width.tel[None] == n_samples
     assert extractor.window_width.tel[1] == n_samples
     assert extractor.window_width.tel[2] == n_samples // 2

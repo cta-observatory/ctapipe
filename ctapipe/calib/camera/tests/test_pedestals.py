@@ -2,9 +2,13 @@
 Tests for pedestal calculator functionality
 """
 import astropy.units as u
+from astropy.time import Time
 import numpy as np
 
-from ctapipe.calib.camera.pedestals import *
+from ctapipe.calib.camera.pedestals import (
+    PedestalIntegrator,
+    calc_pedestals_from_traces,
+)
 from ctapipe.instrument import SubarrayDescription, TelescopeDescription
 from ctapipe.containers import EventAndMonDataContainer
 
@@ -24,7 +28,7 @@ def test_pedestal_calculator():
         tel_descriptions={
             0: TelescopeDescription.from_name(
                 optics_name="SST-ASTRI", camera_name="CHEC"
-            ),
+            )
         },
     )
     subarray.tel[0].camera.readout.reference_pulse_shape = np.ones((1, 2))
@@ -39,13 +43,13 @@ def test_pedestal_calculator():
     # create one event
     data = EventAndMonDataContainer()
     data.meta["origin"] = "test"
+    data.trigger.time = Time.now()
 
     # fill the values necessary for the pedestal calculation
     data.mon.tel[tel_id].pixel_status.hardware_failing_pixels = np.zeros(
         (n_gain, n_pixels), dtype=bool
     )
     data.r1.tel[tel_id].waveform = np.full((2, n_pixels, 40), ped_level)
-    data.r1.tel[tel_id].trigger_time = 1000
 
     while ped_calculator.num_events_seen < n_events:
         if ped_calculator.calculate_pedestals(data):

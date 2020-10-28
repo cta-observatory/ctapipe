@@ -49,7 +49,7 @@ if __name__ == "__main__":
             first_event = False
             hit_pattern = np.zeros(subarray.num_tels)
 
-        if len(event.r0.tels_with_data) < 3:
+        if len(event.r0.tel.keys()) < 3:
             continue
 
         # calibrating the event
@@ -71,22 +71,22 @@ if __name__ == "__main__":
         ).transform_to(array_disp.frame)
 
         markers = ax.plot(
-            [core_coord.x.value,], [core_coord.y.value,], "r+", markersize=10
+            [core_coord.x.value], [core_coord.y.value], "r+", markersize=10
         )
 
         # plot the hit pattern (triggered tels).
-        # first expand the tels_with_data list into a fixed-length vector,
+        # first expand the tel.keys() list into a fixed-length vector,
         # then set the value so that the ArrayDisplay shows it as color per
         # telescope.
         tel_idx = source.subarray.tel_indices
         hit_pattern[:] = 0
-        mask = [tel_idx[t] for t in event.r0.tels_with_data]
+        mask = [tel_idx[t] for t in event.r0.tel.keys()]
         hit_pattern[mask] = 10.0
         array_disp.values = hit_pattern
 
         # calculate and plot the hillas params
 
-        for tel_id in event.dl0.tels_with_data:
+        for tel_id in event.dl0.tel.keys():
 
             # Camera Geometry required for hillas parametrization
             camgeom = subarray.tel[tel_id].camera.geometry

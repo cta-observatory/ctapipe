@@ -49,18 +49,12 @@ class SimpleEventWriter(Tool):
     def setup(self):
         self.log.info("Configure EventSource...")
 
-        self.event_source = self.add_component(
-            EventSource.from_url(self.infile, parent=self)
+        self.event_source = EventSource.from_url(self.infile, parent=self)
+        self.calibrator = CameraCalibrator(
+            subarray=self.event_source.subarray, parent=self
         )
-
-        self.calibrator = self.add_component(
-            CameraCalibrator(subarray=self.event_source.subarray, parent=self)
-        )
-
-        self.writer = self.add_component(
-            HDF5TableWriter(
-                filename=self.outfile, group_name="image_infos", overwrite=True
-            )
+        self.writer = HDF5TableWriter(
+            filename=self.outfile, group_name="image_infos", overwrite=True, parent=self
         )
 
     def start(self):
@@ -75,7 +69,7 @@ class SimpleEventWriter(Tool):
 
             self.calibrator(event)
 
-            for tel_id in event.dl0.tels_with_data:
+            for tel_id in event.dl0.tel.keys():
 
                 geom = self.event_source.subarray.tel[tel_id].camera.geometry
                 dl1_tel = event.dl1.tel[tel_id]

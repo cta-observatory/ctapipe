@@ -7,6 +7,7 @@ import pathlib
 
 from ctapipe.core import Component, TelescopeComponent
 from ctapipe.core.traits import (
+    Float,
     Path,
     TraitError,
     classes_with_traits,
@@ -221,17 +222,20 @@ def test_telescope_parameter_lookup(mock_subarray):
         telparam_list2[None]
 
 
-def test_telescope_parameter_patterns():
+def test_telescope_parameter_patterns(mock_subarray):
     """ Test validation of TelescopeParameters"""
 
-    with pytest.raises(ValueError):
-        TelescopeParameter(dtype="notatype")
+    with pytest.raises(TypeError):
+        TelescopeParameter(trait=int)
 
-    class SomeComponent(Component):
-        tel_param = TelescopeParameter()
+    with pytest.raises(TypeError):
+        TelescopeParameter(trait=Int)
+
+    class SomeComponent(TelescopeComponent):
+        tel_param = TelescopeParameter(Float(default_value=0.0, allow_none=True))
         tel_param_int = IntTelescopeParameter()
 
-    comp = SomeComponent()
+    comp = SomeComponent(mock_subarray)
 
     # single value allowed (converted to ("default","",val) )
     comp.tel_param = 4.5
@@ -255,6 +259,44 @@ def test_telescope_parameter_patterns():
 
     with pytest.raises(TraitError):
         comp.tel_param_int = [(12, "", 5)]  # command not string
+
+
+def test_telescope_parameter_path(mock_subarray):
+    class SomeComponent(TelescopeComponent):
+        path = TelescopeParameter(Path(exists=True, directory_ok=False))
+
+    c = SomeComponent(subarray=mock_subarray)
+
+    # non existing
+    with pytest.raises(TraitError):
+        c.path = "/does/not/exist"
+
+    with tempfile.NamedTemporaryFile() as f:
+        c.path = f.name
+
+        assert str(c.path.tel[1]) == f.name
+
+        with pytest.raises(TraitError):
+            # non existing somewhere in the config
+            c.path = [
+                ("type", "*", f.name),
+                ("type", "LST_LST_LSTCam", "/does/not/exist"),
+            ]
+
+    with tempfile.TemporaryDirectory() as d:
+        with pytest.raises(TraitError):
+            c.path = d
+
+    # test with none default:
+    class SomeComponent(TelescopeComponent):
+        path = TelescopeParameter(
+            Path(exists=True, directory_ok=False), default_value=None, allow_none=True
+        )
+
+    s = SomeComponent(subarray=mock_subarray)
+    assert s.path.tel[1] is None
+    s.path = [("type", "*", "setup.py")]
+    assert s.path.tel[1] == pathlib.Path("setup.py").absolute()
 
 
 def test_telescope_parameter_scalar_default(mock_subarray):
@@ -378,7 +420,7 @@ def test_telescope_parameter_set_retain_subarray(mock_subarray):
 
 def test_telescope_parameter_to_config(mock_subarray):
     """
-    test that the config can be read back from a component with a TelescopeParameter 
+    test that the config can be read back from a component with a TelescopeParameter
     (see Issue #1216)
     """
 
@@ -388,9 +430,7 @@ def test_telescope_parameter_to_config(mock_subarray):
     component = SomeComponent(subarray=mock_subarray)
     component.tel_param1 = 6.0
     config = component.get_current_config()
-    assert config["SomeComponent"]["tel_param1"] == [
-        ("type", "*", 6.0),
-    ]
+    assert config["SomeComponent"]["tel_param1"] == [("type", "*", 6.0)]
 
 
 def test_datetimes():
