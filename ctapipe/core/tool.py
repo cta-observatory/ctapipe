@@ -174,7 +174,6 @@ class Tool(Application):
     def update_logging_config(self):
         """Update the configuration of loggers."""
         cfg = create_logging_config(
-            name=self.name,
             log_level=self.log_level,
             log_file=self.log_file,
             log_file_level=self.log_file_level,
