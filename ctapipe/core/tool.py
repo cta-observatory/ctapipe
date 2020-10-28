@@ -9,10 +9,10 @@ from traitlets import default, Unicode
 from traitlets.config import Application, Configurable
 
 from .. import __version__ as version
-from .traits import Path, Enum, Bool, flag
+from .traits import Path, Enum, Bool, flag, Dict
 from . import Provenance
 from .component import Component
-from .logging import create_logging_config, ColoredFormatter
+from .logging import create_logging_config, ColoredFormatter, DEFAULT_LOGGING
 
 
 class ToolConfigurationError(Exception):
@@ -113,12 +113,7 @@ class Tool(Application):
         ),
     ).tag(config=True)
 
-    log_config = Path(
-        default_value=None,
-        exists=True,
-        directory_ok=False,
-        help="Filename of Logging Configuration",
-    ).tag(config=True)
+    log_config = Dict(default_value=DEFAULT_LOGGING).tag(config=True)
     log_file = Path(
         default_value=None, exists=None, directory_ok=False, help="Filename for the log"
     ).tag(config=True)
@@ -139,9 +134,9 @@ class Tool(Application):
 
     def __init__(self, **kwargs):
         # make sure there are some default aliases in all Tools:
+        super().__init__(**kwargs)
         aliases = {
             "config": "Tool.config_file",
-            "log-config": "Tool.log_config",
             "log-level": "Tool.log_level",
             "log-file": "Tool.log_file",
             "log": "Tool.log_file",
@@ -151,14 +146,18 @@ class Tool(Application):
         self.aliases.update(aliases)
         self.flags.update(flag("q", "Tool.quiet", "Disable console logging."))
 
-        super().__init__(**kwargs)
         self.is_setup = False
         self.version = version
         self.raise_config_file_errors = True  # override traitlets.Application default
 
+        self.log = logging.getLogger("ctapipe." + self.name)
+        self.update_logging_config()
+
     def initialize(self, argv=None):
         """ handle config and any other low-level setup """
         self.parse_command_line(argv)
+        self.update_logging_config()
+
         if self.config_file is not None:
             self.log.debug(f"Loading config from '{self.config_file}'")
             try:
@@ -168,21 +167,22 @@ class Tool(Application):
 
         # ensure command-line takes precedence over config file options:
         self.update_config(self.cli_config)
+        self.update_logging_config()
 
+        self.log.info(f"ctapipe version {self.version_string}")
+
+    def update_logging_config(self):
+        """Update the configuration of loggers."""
         cfg = create_logging_config(
             name=self.name,
             log_level=self.log_level,
             log_file=self.log_file,
             log_file_level=self.log_file_level,
-            log_config_file=self.log_config,
+            log_config=self.log_config,
             quiet=self.quiet,
         )
 
         logging.config.dictConfig(cfg)
-
-        self.log = logging.getLogger(self.name)
-
-        self.log.info(f"ctapipe version {self.version_string}")
 
     def add_component(self, component_instance):
         """
