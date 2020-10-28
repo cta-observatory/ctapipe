@@ -7,7 +7,7 @@ import logging
 import numpy as np
 import astropy.units as u
 
-from ..containers import DataContainer, DL1CameraContainer, EventIndexContainer
+from ..containers import ArrayEventContainer, DL1CameraContainer, EventIndexContainer
 from ..core import traits
 from ..core import TelescopeComponent
 from ..image import toymodel
@@ -86,7 +86,7 @@ class ToyEventSource(EventSource, TelescopeComponent):
 
     def generate_event(self):
 
-        event = DataContainer(
+        event = ArrayEventContainer(
             index=EventIndexContainer(obs_id=1, event_id=self.event_id),
             trigger=None,
             r0=None,

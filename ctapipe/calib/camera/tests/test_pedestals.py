@@ -10,7 +10,7 @@ from ctapipe.calib.camera.pedestals import (
     calc_pedestals_from_traces,
 )
 from ctapipe.instrument import SubarrayDescription, TelescopeDescription
-from ctapipe.containers import DataContainer
+from ctapipe.containers import ArrayEventContainer
 
 
 def test_pedestal_calculator():
@@ -41,7 +41,7 @@ def test_pedestal_calculator():
         tel_id=tel_id,
     )
     # create one event
-    data = DataContainer()
+    data = ArrayEventContainer()
     data.meta["origin"] = "test"
     data.trigger.time = Time.now()
 

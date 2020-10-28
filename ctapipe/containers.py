@@ -29,7 +29,7 @@ __all__ = [
     "ReconstructedShowerContainer",
     "ReconstructedEnergyContainer",
     "ParticleClassificationContainer",
-    "DataContainer",
+    "ArrayEventContainer",
     "HillasParametersContainer",
     "LeakageContainer",
     "ConcentrationContainer",
@@ -410,8 +410,10 @@ class SimulatedShowerContainer(Container):
 
 
 class SimulatedCameraContainer(Container):
-    """Contains all fields of the DL1CameraContainer, but adds fields for simulated
-    DL1 image information."""
+    """
+    True images and parameters derived from them, analgous to the `DL1CameraContainer`
+    but for simulated data.
+    """
 
     container_prefix = ""
 
@@ -894,7 +896,7 @@ class SimulatedShowerDistribution(Container):
     histogram = Field(None, "array of histogram entries, size (n_bins_x, n_bins_y)")
 
 
-class DataContainer(Container):
+class ArrayEventContainer(Container):
     """ Top-level container for all event information """
 
     index = Field(EventIndexContainer(), "event indexing information")

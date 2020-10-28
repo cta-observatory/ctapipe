@@ -13,7 +13,7 @@ from io import BufferedReader
 
 from ..calib.camera.gainselection import GainSelector
 from ..containers import (
-    DataContainer,
+    ArrayEventContainer,
     EventType,
     SimulatedCameraContainer,
     SimulatedShowerContainer,
@@ -349,7 +349,7 @@ class SimTelEventSource(EventSource):
             warnings.warn(msg)
 
     def _generate_events(self):
-        data = DataContainer()
+        data = ArrayEventContainer()
         data.meta["origin"] = "hessio"
         data.meta["input_url"] = self.input_url
         data.meta["max_events"] = self.max_events
