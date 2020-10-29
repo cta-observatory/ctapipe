@@ -8,6 +8,7 @@ import yaml
 from astropy.table import Table
 from pkg_resources import resource_listdir
 from requests.exceptions import HTTPError
+from functools import partial
 
 from .download import download_file_cached, get_cache_path
 
@@ -166,6 +167,36 @@ def get_dataset_path(filename):
     )
 
 
+def try_filetypes(basename, role, file_types, **kwargs):
+    path = None
+
+    # look first in cache so we don't have to try non-existing downloads
+    for ext, reader in file_types.items():
+        filename = basename + ext
+        cache_path = get_cache_path(filename)
+        if cache_path.is_file():
+            path = cache_path
+            break
+
+    # no cache hit
+    if path is None:
+        for ext, reader in file_types.items():
+            filename = basename + ext
+            try:
+                path = get_dataset_path(filename)
+            except (FileNotFoundError, HTTPError):
+                pass
+
+    if path is not None:
+        table = reader(path, **kwargs)
+        Provenance().add_input_file(path, role)
+        return table
+
+    raise FileNotFoundError(
+        "Couldn't find any file: {}[{}]".format(basename, ", ".join(file_types))
+    )
+
+
 def get_table_dataset(table_name, role="resource", **kwargs):
     """
     get a tabular dataset as an `astropy.table.Table` object
@@ -188,29 +219,14 @@ def get_table_dataset(table_name, role="resource", **kwargs):
 
     # a mapping of types (keys) to any extra keyword args needed for
     # table.read()
-    types_to_try = {
-        ".fits.gz": {},
-        ".fits": {},
-        ".ecsv": dict(format="ascii.ecsv"),
-        ".ecsv.txt": dict(format="ascii.ecsv"),
+    table_types = {
+        ".fits.gz": Table.read,
+        ".fits": Table.read,
+        ".ecsv": partial(Table.read, format="ascii.ecsv"),
+        ".ecsv.txt": partial(Table.read, format="ascii.ecsv"),
     }
 
-    for table_type in types_to_try:
-        filename = table_name + table_type
-        try:
-            fullname = get_dataset_path(filename)
-            if fullname:
-                args = types_to_try[table_type]
-                args.update(kwargs)
-                table = Table.read(fullname, **args)
-                Provenance().add_input_file(fullname, role)
-                return table
-        except (FileNotFoundError, HTTPError):
-            pass
-
-    raise FileNotFoundError(
-        "couldn't locate table: {}[{}]".format(table_name, ", ".join(types_to_try))
-    )
+    return try_filetypes(table_name, role, table_types, **kwargs)
 
 
 def get_structured_dataset(basename, role="resource", **kwargs):
@@ -232,31 +248,15 @@ def get_structured_dataset(basename, role="resource", **kwargs):
        dictionary of data in the file
     """
 
+    def load_yaml(path, **kwargs):
+        with open(path, "rb") as f:
+            return yaml.safe_load(f, **kwargs)
+
+    def load_json(path, **kwargs):
+        with open(path, "rb") as f:
+            return json.load(f, **kwargs)
+
     # a mapping of types (keys) to any extra keyword args needed for
     # table.read()
-    types_to_try = {".yaml": {}, ".yml": {}, ".json": {}}
-
-    for data_type in types_to_try:
-        filename = basename + data_type
-        try:
-            fullname = get_dataset_path(filename)
-            if fullname:
-                args = types_to_try[data_type]
-                args.update(kwargs)
-
-                with open(fullname) as infile:
-                    if data_type == ".yaml" or data_type == ".yml":
-                        dataset = yaml.safe_load(infile, **args)
-                    elif data_type == ".json":
-                        dataset = json.load(infile, **args)
-
-                Provenance().add_input_file(fullname, role)
-                return dataset
-        except (FileNotFoundError, HTTPError):
-            pass
-
-    raise FileNotFoundError(
-        "couldn't locate structed dataset: {}[{}]".format(
-            basename, ", ".join(types_to_try)
-        )
-    )
+    structured_types = {".yaml": load_yaml, ".yml": load_yaml, ".json": load_json}
+    return try_filetypes(basename, role, structured_types, **kwargs)
