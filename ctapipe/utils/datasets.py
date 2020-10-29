@@ -7,6 +7,7 @@ import re
 import yaml
 from astropy.table import Table
 from pkg_resources import resource_listdir
+from requests.exceptions import HTTPError
 
 from .download import download_file_cached
 
@@ -196,7 +197,7 @@ def get_table_dataset(table_name, role="resource", **kwargs):
                 table = Table.read(fullname, **args)
                 Provenance().add_input_file(fullname, role)
                 return table
-        except FileNotFoundError:
+        except (FileNotFoundError, HTTPError):
             pass
 
     raise FileNotFoundError(
