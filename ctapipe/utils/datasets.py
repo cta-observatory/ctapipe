@@ -8,6 +8,8 @@ import yaml
 from astropy.table import Table
 from pkg_resources import resource_listdir
 
+from .download import download_file_cached
+
 try:
     import ctapipe_resources
 
@@ -142,6 +144,13 @@ def get_dataset_path(filename):
 
         return ctapipe_resources.get(filename)
 
+    # last, try downloading the data
+    return download_file_cached(
+        filename,
+        default_url="http://cccta-dataserver.in2p3.fr/data/ctapipe-extra/v0.3.1/",
+        progress=True,
+    )
+
     raise FileNotFoundError(
         f"Couldn't find resource: '{filename}',"
         " You might want to install ctapipe_resources"
@@ -216,11 +225,7 @@ def get_structured_dataset(basename, role="resource", **kwargs):
 
     # a mapping of types (keys) to any extra keyword args needed for
     # table.read()
-    types_to_try = {
-        ".yaml": {},
-        ".yml": {},
-        ".json": {},
-    }
+    types_to_try = {".yaml": {}, ".yml": {}, ".json": {}}
 
     for data_type in types_to_try:
         filename = basename + data_type

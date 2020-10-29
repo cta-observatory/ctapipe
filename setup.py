@@ -32,10 +32,7 @@ entry_points["console_scripts"] = [
     "ctapipe-display-dl1 = ctapipe.tools.display_dl1:main",
     "ctapipe-stage1-process = ctapipe.tools.stage1:main",
 ]
-tests_require = [
-    "pytest",
-    "ctapipe-extra @ https://github.com/cta-observatory/ctapipe-extra/archive/v0.3.0.tar.gz",
-]
+tests_require = ["pytest"]
 docs_require = [
     "sphinx_rtd_theme",
     "sphinx_automodapi",

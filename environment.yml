@@ -43,4 +43,3 @@ dependencies:
   - zlib
   - zstandard
   - conda-forge::eventio>=1.1.1
-  - ctapipe-extra>=0.3
