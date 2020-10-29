@@ -184,6 +184,7 @@ def try_filetypes(basename, role, file_types, **kwargs):
             filename = basename + ext
             try:
                 path = get_dataset_path(filename)
+                break
             except (FileNotFoundError, HTTPError):
                 pass
 
