@@ -9,7 +9,7 @@ from astropy.table import Table
 from pkg_resources import resource_listdir
 from requests.exceptions import HTTPError
 
-from .download import download_file_cached
+from .download import download_file_cached, get_cache_path
 
 try:
     import ctapipe_resources
@@ -29,14 +29,19 @@ __all__ = ["get_dataset_path", "find_in_path", "find_all_matching_datasets"]
 def get_searchpath_dirs(searchpath=os.getenv("CTAPIPE_SVC_PATH")):
     """ returns a list of dirs in specified searchpath"""
     if searchpath == "" or searchpath is None:
-        return []
-    return os.path.expandvars(searchpath).split(":")
+        searchpaths = []
+    else:
+        searchpaths = os.path.expandvars(searchpath).split(":")
+
+    searchpaths.append(get_cache_path(""))
+
+    return searchpaths
 
 
 def find_all_matching_datasets(pattern, searchpath=None, regexp_group=None):
     """
-    Returns a list of resource names (or substrings) matching the given 
-    pattern, searching first in searchpath (a colon-separated list of 
+    Returns a list of resource names (or substrings) matching the given
+    pattern, searching first in searchpath (a colon-separated list of
     directories) and then in the ctapipe_resources module)
 
     Parameters
@@ -44,10 +49,10 @@ def find_all_matching_datasets(pattern, searchpath=None, regexp_group=None):
     pattern: str
        regular expression to use for matching
     searchpath: str
-       colon-seprated list of directories in which to search, defaulting to 
+       colon-seprated list of directories in which to search, defaulting to
        CTAPIPE_SVC_PATH environment variable
     regexp_group: int
-       if not None, return the regular expression group indicated (assuming 
+       if not None, return the regular expression group indicated (assuming
        pattern has a group specifier in it)
 
     Returns
@@ -57,20 +62,18 @@ def find_all_matching_datasets(pattern, searchpath=None, regexp_group=None):
     """
     results = set()
 
-    if searchpath is None:
-        searchpath = os.getenv("CTAPIPE_SVC_PATH")
+    search_path_dirs = get_searchpath_dirs(os.getenv("CTAPIPE_SVC_PATH"))
 
     # first check search path
-    if searchpath is not None:
-        for path in get_searchpath_dirs(searchpath):
-            if os.path.exists(path):
-                for filename in os.listdir(path):
-                    match = re.match(pattern, filename)
-                    if match:
-                        if regexp_group is not None:
-                            results.add(match.group(regexp_group))
-                        else:
-                            results.add(filename)
+    for path in search_path_dirs:
+        if os.path.exists(path):
+            for filename in os.listdir(path):
+                match = re.match(pattern, filename)
+                if match:
+                    if regexp_group is not None:
+                        results.add(match.group(regexp_group))
+                    else:
+                        results.add(filename)
 
     # then check resources module
     if has_resources:
@@ -146,11 +149,16 @@ def get_dataset_path(filename):
         return ctapipe_resources.get(filename)
 
     # last, try downloading the data
-    return download_file_cached(
-        filename,
-        default_url="http://cccta-dataserver.in2p3.fr/data/ctapipe-extra/v0.3.1/",
-        progress=True,
-    )
+    try:
+        return download_file_cached(
+            filename,
+            default_url="http://cccta-dataserver.in2p3.fr/data/ctapipe-extra/v0.3.1/",
+            progress=True,
+        )
+    except HTTPError as e:
+        # let 404 raise the FileNotFoundError instead of HTTPError
+        if e.response.status_code != 404:
+            raise
 
     raise FileNotFoundError(
         f"Couldn't find resource: '{filename}',"
@@ -244,7 +252,7 @@ def get_structured_dataset(basename, role="resource", **kwargs):
 
                 Provenance().add_input_file(fullname, role)
                 return dataset
-        except FileNotFoundError:
+        except (FileNotFoundError, HTTPError):
             pass
 
     raise FileNotFoundError(

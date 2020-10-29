@@ -25,44 +25,43 @@ def download_file(url, path, auth=None, chunk_size=10240, progress=False):
         Chunk size for writing the data file, 10 kB by default.
     """
     log.info(f"Downloading {url} to {path}")
-
-    r = requests.get(url, stream=True, auth=auth)
     name = urlparse(url).path.split("/")[-1]
-
-    # make sure the request is successful
-    r.raise_for_status()
-
     path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
 
-    # open a .part file to avoid a creating a broken file at the intended location
-    part_file = path.with_suffix(path.suffix + ".part")
+    with requests.get(url, stream=True, auth=auth) as r:
+        # make sure the request is successful
+        r.raise_for_status()
 
-    total = float(r.headers.get("Content-Length", float("inf")))
-    pbar = tqdm(
-        total=total,
-        disable=not progress,
-        unit="B",
-        unit_scale=True,
-        desc=f"Downloading {name}",
-    )
+        total = float(r.headers.get("Content-Length", float("inf")))
+        pbar = tqdm(
+            total=total,
+            disable=not progress,
+            unit="B",
+            unit_scale=True,
+            desc=f"Downloading {name}",
+        )
 
-    try:
-        with part_file.open("wb") as f:
-            for chunk in r.iter_content(chunk_size=chunk_size):
-                f.write(chunk)
-                pbar.update(len(chunk))
-    except Exception:
-        # cleanup part file if something goes wrong
-        if part_file.is_file():
-            part_file.unlink()
-        raise
+        try:
+            # open a .part file to avoid creating
+            # a broken file at the intended location
+            part_file = path.with_suffix(path.suffix + ".part")
+
+            part_file.parent.mkdir(parents=True, exist_ok=True)
+            with part_file.open("wb") as f:
+                for chunk in r.iter_content(chunk_size=chunk_size):
+                    f.write(chunk)
+                    pbar.update(len(chunk))
+        except Exception:
+            # cleanup part file if something goes wrong
+            if part_file.is_file():
+                part_file.unlink()
+            raise
 
     # when successful, move to intended location
     part_file.rename(path)
 
 
-def get_cache_path(path, cache_name="lstchain"):
+def get_cache_path(path, cache_name="ctapipe"):
     # need to make it relative
     path = str(path).lstrip("/")
     path = Path(os.environ["HOME"]) / ".cache" / cache_name / path
