@@ -26,15 +26,6 @@ def test_merge():
     from ctapipe.tools.dl1_merge import MergeTool
     from ctapipe.tools.stage1 import Stage1ProcessorTool
 
-    blocklist_path = [
-        "/configuration/instrument/subarray",
-        "/configuration/instrument/telescope",
-        "/configuration/instrument/telescope/camera",
-        "/dl1/service",
-    ]
-    blocklist_images = "/dl1/event/telescope/images"
-    blocklist_parameters = "/dl1/event/telescope/parameters"
-
     with tempfile.NamedTemporaryFile(suffix=".hdf5") as f1, tempfile.NamedTemporaryFile(
         suffix=".hdf5"
     ) as f2, tempfile.NamedTemporaryFile(
@@ -121,43 +112,25 @@ def test_merge():
                 f1.name, mode="r"
             ) as in_f:
 
-                # Loop over every group in the input file
-                for group in in_f.walk_groups(where="/"):
-                    group_path = in_f.get_node_attr(group, "_v__nodepath")
+                assert len(out_f.root.simulation.service.shower_distribution) == 2
+                assert len(out_f.root.simulation.event.subarray.shower) == 220
+                assert len(out_f.root.configuration.simulation.run) == 2
+                assert len(out_f.root.dl1.monitoring.subarray.pointing) == 2
+                assert len(out_f.root.dl1.event.subarray.trigger) == 220
+                assert len(out_f.root.dl1.event.telescope.trigger) == 918
+                assert len(out_f.root.simulation.service.shower_distribution) == 2
+                assert out_f.root.dl1.service["image_statistics.__table_column_meta__"]
+                assert out_f.root.configuration.instrument.subarray.layout
+                assert out_f.root.configuration.instrument.telescope.optics
+                assert (
+                    out_f.root.configuration.instrument.telescope.camera.geometry_LSTCam
+                )
+                assert (
+                    out_f.root.configuration.instrument.telescope.camera.readout_LSTCam
+                )
 
-                    # Check that image groups doesn't exist for 'skip-images' file
-                    if (out_file == out_skip_images.name) and (
-                        group_path == blocklist_images
-                    ):
-                        assert group_path not in out_f
-                        continue
-
-                    # Check that parameter groups doesn't exist for 'skip-parameters' file
-                    if (out_file == out_skip_parameters.name) and (
-                        group_path == blocklist_parameters
-                    ):
-                        assert group_path not in out_f
-                        continue
-
-                    # Check that nodes from groups of 'blacklist_path'
-                    # have just been copied
-                    if group_path in blocklist_path:
-                        for leaf in in_f.iter_nodes(group, classname="Leaf"):
-                            assert len(leaf) == len(
-                                out_f.root[group_path + "/" + leaf.name]
-                            )
-                        continue
-
-                    # Check that rows of nodes has been appended
-                    for node in in_f.iter_nodes(group, classname="Table"):
-                        assert len(
-                            out_f.root[group_path + "/" + node.name]
-                        ) == np.multiply(len(node), 2)
-
-                # Check that entries in image_statistics has been added
-                path_image_statistics = "/dl1/service/image_statistics"
-                table_in = in_f.root[path_image_statistics]
-                table_out = out_f.root[path_image_statistics]
+                table_in = in_f.root["/dl1/service/image_statistics"]
+                table_out = out_f.root["/dl1/service/image_statistics"]
                 for row in range(len(table_in)):
                     assert table_out.cols.counts[row] == np.multiply(
                         table_in.cols.counts[row], 2
@@ -165,6 +138,29 @@ def test_merge():
                     assert table_out.cols.cumulative_counts[row] == np.multiply(
                         table_in.cols.cumulative_counts[row], 2
                     )
+
+                for tel in in_f.root.dl1.monitoring.telescope.pointing:
+                    assert len(
+                        out_f.root.dl1.monitoring.telescope.pointing[tel.name]
+                    ) == np.multiply(
+                        len(in_f.root.dl1.monitoring.telescope.pointing[tel.name]), 2
+                    )
+
+                if out_file != out_skip_images.name:
+                    for tel in in_f.root.dl1.event.telescope.images:
+                        assert len(
+                            out_f.root.dl1.event.telescope.images[tel.name]
+                        ) == np.multiply(
+                            len(in_f.root.dl1.event.telescope.images[tel.name]), 2
+                        )
+
+                if out_file != out_skip_parameters.name:
+                    for tel in in_f.root.dl1.event.telescope.parameters:
+                        assert len(
+                            out_f.root.dl1.event.telescope.parameters[tel.name]
+                        ) == np.multiply(
+                            len(in_f.root.dl1.event.telescope.parameters[tel.name]), 2
+                        )
 
 
 def test_stage_1():
