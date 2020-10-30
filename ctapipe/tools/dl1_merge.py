@@ -155,7 +155,7 @@ class MergeTool(Tool):
         ),
         "skip-broken-files": (
             {"MergeTool": {"skip_broken_files": True}},
-            "Skip broken files instead of giving error",
+            "Skip broken files instead of raising an error",
         ),
         "overwrite": (
             {"MergeTool": {"overwrite": True}},
