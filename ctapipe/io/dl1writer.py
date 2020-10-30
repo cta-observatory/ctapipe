@@ -1,14 +1,6 @@
 #!/usr/bin/env python3
-"""Class to write DL1 data from an event stream
-
-
-TODOs:
-------
-
-* need to store MCDL1CameraContainer in the event hierarchy (so that we can
-  write the true image and true parameters to
-  simulation/event/telescope/images/{table_name} in `_write_telescope_event()`
-
+"""
+Class to write DL1 data from an event stream
 """
 
 
@@ -71,7 +63,7 @@ class DL1Writer(Component):
     write_index_tables = Bool(
         help=(
             "Generate PyTables index datasets for all tables that contain an "
-            "event_id or tel_id. These speed up in-kernal pytables operations,"
+            "event_id or tel_id. These speed up in-kernel pytables operations,"
             "but add some overhead to the file. They can also be generated "
             "and attached after the file is written "
         ),
@@ -115,7 +107,7 @@ class DL1Writer(Component):
         self._last_pointing = None
         self._writer: TableWriter = None
 
-    def __enter__(self,):
+    def __enter__(self):
         return self
 
     def __exit__(self, type, value, traceback):
@@ -152,7 +144,7 @@ class DL1Writer(Component):
             )
 
         # write telescope event data
-        self._write_telescope_event(self._writer, event)
+        self._write_telescope_events(self._writer, event)
 
     def setup(self):
         """called on first event"""
@@ -165,7 +157,7 @@ class DL1Writer(Component):
         # store last pointing to only write unique poitings
         self._last_pointing_tel = defaultdict(lambda: (np.nan * u.deg, np.nan * u.deg))
 
-    def _setup_compression(self,):
+    def _setup_compression(self):
         """ setup HDF5 compression"""
         self._hdf5_filters = tables.Filters(
             complevel=self.compression_level,
@@ -174,7 +166,7 @@ class DL1Writer(Component):
         )
         self.log.debug("compression filters: %s", self._hdf5_filters)
 
-    def _setup_output_path(self,):
+    def _setup_output_path(self):
         """
         ensure output path exists, and if requested delete what is there for
         overwriting
@@ -337,7 +329,7 @@ class DL1Writer(Component):
                         containers=hist_container,
                     )
 
-    def _write_telescope_event(self, writer: TableWriter, event: DataContainer):
+    def _write_telescope_events(self, writer: TableWriter, event: DataContainer):
         """
         add entries to the event/telescope tables for each telescope in a single
         event
