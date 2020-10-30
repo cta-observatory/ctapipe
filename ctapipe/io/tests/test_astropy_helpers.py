@@ -27,9 +27,14 @@ def test_h5_table_to_astropy(tmp_path):
     assert "energy" in table.columns
     assert table["energy"].unit == u.TeV
     assert "CTAPIPE_VERSION" in table.meta
+    assert table["energy"].description is not None
 
     # test using a string
     table = h5_table_to_astropy(str(filename), "/events")
+
+    # test write the table back out to some other format:
+    table.write(tmp_path / "test_output.ecsv")
+    table.write(tmp_path / "test_output.fits.gz")
 
     # test using a file handle
     with tables.open_file(filename) as handle:
