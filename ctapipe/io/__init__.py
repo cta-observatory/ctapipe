@@ -5,6 +5,8 @@ from .hdf5tableio import HDF5TableReader, HDF5TableWriter
 from .tableio import TableWriter, TableReader
 from .datalevels import DataLevel
 from .astropy_helpers import h5_table_to_astropy as read_table
+from .dl1writer import DL1Writer
+
 
 # import event sources to make them visible to EventSource.from_url
 from .simteleventsource import SimTelEventSource
@@ -21,4 +23,5 @@ __all__ = [
     "SimTelEventSource",
     "DataLevel",
     "read_table",
+    "DL1Writer",
 ]
