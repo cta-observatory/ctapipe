@@ -28,7 +28,7 @@ def download_file(url, path, auth=None, chunk_size=10240, progress=False):
     name = urlparse(url).path.split("/")[-1]
     path = Path(path)
 
-    with requests.get(url, stream=True, auth=auth) as r:
+    with requests.get(url, stream=True, auth=auth, timeout=5) as r:
         # make sure the request is successful
         r.raise_for_status()
 
@@ -61,10 +61,15 @@ def download_file(url, path, auth=None, chunk_size=10240, progress=False):
     part_file.rename(path)
 
 
-def get_cache_path(path, cache_name="ctapipe"):
+def get_cache_path(path, cache_name="ctapipe", env_override="CTAPIPE_CACHE"):
+    if os.getenv(env_override):
+        base = Path(os.environ["CTAPIPE_CACHE"])
+    else:
+        base = Path(os.environ["HOME"]) / ".cache" / cache_name
+
     # need to make it relative
     path = str(path).lstrip("/")
-    path = Path(os.environ["HOME"]) / ".cache" / cache_name / path
+    path = base / path
     path.parent.mkdir(parents=True, exist_ok=True)
     return path
 

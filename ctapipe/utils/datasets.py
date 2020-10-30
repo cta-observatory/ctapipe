@@ -3,12 +3,13 @@ import json
 import logging
 import os
 import re
+from functools import partial
+from pathlib import Path
 
 import yaml
 from astropy.table import Table
 from pkg_resources import resource_listdir
 from requests.exceptions import HTTPError
-from functools import partial
 
 from .download import download_file_cached, get_cache_path
 
@@ -32,7 +33,7 @@ def get_searchpath_dirs(searchpath=os.getenv("CTAPIPE_SVC_PATH")):
     if searchpath == "" or searchpath is None:
         searchpaths = []
     else:
-        searchpaths = os.path.expandvars(searchpath).split(":")
+        searchpaths = [Path(p) for p in os.path.expandvars(searchpath).split(":")]
 
     searchpaths.append(get_cache_path(""))
 
@@ -67,14 +68,14 @@ def find_all_matching_datasets(pattern, searchpath=None, regexp_group=None):
 
     # first check search path
     for path in search_path_dirs:
-        if os.path.exists(path):
-            for filename in os.listdir(path):
-                match = re.match(pattern, filename)
+        if path.is_dir():
+            for entry in path.iter_dir():
+                match = re.match(pattern, str(entry))
                 if match:
                     if regexp_group is not None:
-                        results.add(match.group(regexp_group))
+                        results.add(Path(match.group(regexp_group)))
                     else:
-                        results.add(filename)
+                        results.add(entry)
 
     # then check resources module
     if has_resources:
@@ -82,9 +83,9 @@ def find_all_matching_datasets(pattern, searchpath=None, regexp_group=None):
             match = re.match(pattern, resource)
             if match:
                 if regexp_group is not None:
-                    results.add(match.group(regexp_group))
+                    results.add(Path(match.group(regexp_group)))
                 else:
-                    results.add(resource)
+                    results.add(Path(resource))
 
     return list(results)
 
@@ -107,9 +108,9 @@ def find_in_path(filename, searchpath):
     """
 
     for directory in get_searchpath_dirs(searchpath):
-        pathname = os.path.join(directory, filename)
-        if os.path.exists(pathname):
-            return pathname
+        path = directory / filename
+        if path.exists():
+            return path
 
     return None
 
@@ -174,7 +175,7 @@ def try_filetypes(basename, role, file_types, **kwargs):
     for ext, reader in file_types.items():
         filename = basename + ext
         cache_path = get_cache_path(filename)
-        if cache_path.is_file():
+        if cache_path.exists():
             path = cache_path
             break
 
