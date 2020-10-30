@@ -151,7 +151,6 @@ class DL1Writer(Component):
         # here we just set up data, but all real initializtion should be in
         # setup(), which is called when the first event is read.
         self.event_source = event_source
-        self._is_first_event: bool = True
         self._hdf5_filters = None
         self._last_pointing_tel = None
         self._last_pointing = None
@@ -162,12 +161,6 @@ class DL1Writer(Component):
 
     def __exit__(self, type, value, traceback):
         self.finish()
-        if self._writer:
-            self._writer.close()
-
-    def __del__(self):
-        if self._writer:
-            self._writer.close()
 
     def __call__(self, event: DataContainer):
         """
@@ -176,12 +169,10 @@ class DL1Writer(Component):
         """
 
         # perform delayed initialization on first event
-        if self._is_first_event:
+        if self._writer is None:
             self.setup()
-            self._is_first_event = False
 
         # Write subarray event data
-
         self._write_subarray_pointing(event, writer=self._writer)
 
         self._writer.write(
@@ -221,6 +212,8 @@ class DL1Writer(Component):
             obs_id=self.event_source.obs_id,
             writer=self._writer,
         )
+        self._writer.close()
+        self._writer = None
 
     def _setup_compression(self):
         """ setup HDF5 compression"""
