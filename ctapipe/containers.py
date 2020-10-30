@@ -501,12 +501,14 @@ class MCHeaderContainer(Container):
 
 
 class TelescopeTriggerContainer(Container):
+    container_prefix = ""
     time = Field(NAN_TIME, "Telescope trigger time")
     n_trigger_pixels = Field(-1, "Number of trigger groups (sectors) listed")
     trigger_pixels = Field(None, "pixels involved in the camera trigger")
 
 
 class TriggerContainer(Container):
+    container_prefix = ""
     time = Field(NAN_TIME, "central average time stamp")
     tels_with_trigger = Field(
         [], "List of telescope ids that triggered the array event"

@@ -5,15 +5,16 @@ Class to write DL1 data from an event stream
 
 
 import pathlib
-import sys
-import tables
 from collections import defaultdict
 
-from ..containers import DataContainer
+import numpy as np
+import tables
+from astropy import units as u
+
+from ..containers import DataContainer, TelEventIndexContainer
 from ..core import Component, ToolConfigurationError
 from ..core.traits import Bool, CaselessStrEnum, Int, Path
-from ..instrument import SubarrayDescription
-from ..io import TableWriter, HDF5TableWriter, EventSource
+from ..io import EventSource, HDF5TableWriter, TableWriter
 
 
 class DL1Writer(Component):
@@ -72,14 +73,7 @@ class DL1Writer(Component):
 
     overwrite = Bool(help="overwrite output file if it exists").tag(config=True)
 
-    def __init__(
-        self,
-        event_source: EventSource,
-        is_simulation,
-        config=None,
-        parent=None,
-        **kwargs,
-    ):
+    def __init__(self, event_source: EventSource, config=None, parent=None, **kwargs):
         """
 
         Parameters
@@ -190,7 +184,7 @@ class DL1Writer(Component):
         """
 
         writer = HDF5TableWriter(
-            self.output_path,
+            str(self.output_path),
             parent=self,
             mode="a",
             add_prefix=True,
@@ -360,24 +354,9 @@ class DL1Writer(Component):
                 f"tel_{tel_id:03d}" if self.split_datasets_by == "tel_id" else tel_type
             )
 
-            event.trigger.tel[tel_id].prefix = ""
             writer.write(
                 "dl1/event/telescope/trigger", [tel_index, event.trigger.tel[tel_id]]
             )
-
-            if self.event_source.is_simulation:
-                true_image = event.mc.tel[tel_id].true_image
-                has_true_image = (
-                    true_image is not None and np.count_nonzero(true_image) > 0
-                )
-
-                if has_true_image:
-                    mcdl1 = MCDL1CameraContainer(
-                        true_image=true_image, true_parameters=None
-                    )
-                    mcdl1.prefix = ""
-            else:
-                has_true_image = False
 
             if self.write_parameters:
                 writer.write(
@@ -386,12 +365,6 @@ class DL1Writer(Component):
                 )
 
                 if self.event_source.is_simulation and has_true_image:
-                    mcdl1.true_parameters = self._parameterize_image(
-                        tel_id,
-                        image=true_image,
-                        signal_pixels=true_image > 0,
-                        peak_time=None,  # true image from mc has no peak time
-                    )
                     writer.write(
                         f"simulation/event/telescope/parameters/{table_name}",
                         [tel_index, *mcdl1.true_parameters.values()],
@@ -406,7 +379,7 @@ class DL1Writer(Component):
                     containers=[tel_index, dl1_camera],
                 )
 
-                if has_true_image:
+                if self.event_source.is_simulation:
                     writer.write(
                         f"simulation/event/telescope/images/{table_name}",
                         [tel_index, mcdl1],

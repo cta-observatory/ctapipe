@@ -254,7 +254,9 @@ class Stage1ProcessorTool(Tool):
             )
             sys.exit(1)
 
-        self.calibrate = CameraCalibrator(parent=self, subarray=self.event_source.subarray)
+        self.calibrate = CameraCalibrator(
+            parent=self, subarray=self.event_source.subarray
+        )
         self.clean = ImageCleaner.from_name(
             self.image_cleaner_type, parent=self, subarray=self.event_source.subarray
         )
@@ -303,7 +305,7 @@ class Stage1ProcessorTool(Tool):
         )
 
     def _write_simulation_histograms(self, writer: HDF5TableWriter):
-        """ Write the distribution of thrown showers
+        """Write the distribution of thrown showers
 
         Notes
         -----
@@ -604,6 +606,8 @@ class Stage1ProcessorTool(Tool):
         self._generate_table_indices(writer._h5file, "/dl1/event/subarray")
 
     def _setup_writer(self, writer: HDF5TableWriter):
+
+        self.log.debug("Setting up column transforms")
         writer.add_column_transform(
             table_name="dl1/event/subarray/trigger",
             col_name="tels_with_trigger",
