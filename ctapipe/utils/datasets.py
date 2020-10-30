@@ -64,13 +64,15 @@ def find_all_matching_datasets(pattern, searchpath=None, regexp_group=None):
     """
     results = set()
 
-    search_path_dirs = get_searchpath_dirs(os.getenv("CTAPIPE_SVC_PATH"))
+    if searchpath is None:
+        searchpath = os.getenv("CTAPIPE_SVC_PATH")
+    search_path_dirs = get_searchpath_dirs(searchpath)
 
     # first check search path
     for path in search_path_dirs:
         if path.is_dir():
             for entry in path.iterdir():
-                match = re.match(pattern, str(entry))
+                match = re.match(pattern, entry.name)
                 if match:
                     if regexp_group is not None:
                         results.add(Path(match.group(regexp_group)))

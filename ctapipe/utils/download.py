@@ -119,7 +119,7 @@ def download_file_cached(
     log.debug(f"File {name} is not available in cache, downloading.")
 
     base_url = os.environ.get(env_prefix + "URL", default_url).rstrip("/")
-    url = base_url + "/" + name.lstrip("/")
+    url = base_url + "/" + str(name).lstrip("/")
 
     if auth is True:
         try:
