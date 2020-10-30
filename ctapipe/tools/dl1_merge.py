@@ -1,19 +1,20 @@
 """
 Merge DL1-files from stage1-process tool
 """
-from pathlib import Path
 import sys
-import tables
 import os
 from argparse import ArgumentParser
-import numpy as np
+from pathlib import Path
+from traitlets import List
 
+import tables
+import numpy as np
 from tqdm import tqdm
 
-from ..core import Provenance
-from ctapipe.core import Tool, traits
-from traitlets import List
-from ctapipe.instrument import SubarrayDescription
+from ..io import metadata as meta
+from ..io import HDF5TableWriter
+from ..core import Provenance, Tool, traits
+from ..instrument import SubarrayDescription
 
 import warnings
 
@@ -21,7 +22,7 @@ warnings.filterwarnings("ignore", category=tables.NaturalNameWarning)
 
 PROV = Provenance()
 
-all_nodes = [
+all_nodes = {
     "/dl1/monitoring/subarray/pointing",
     "/dl1/monitoring/telescope/pointing",
     "/dl1/service/image_statistics",
@@ -35,8 +36,8 @@ all_nodes = [
     "/simulation/event/telescope/parameters",
     "/simulation/event/telescope/images",
     "/simulation/service/shower_distribution",
-]
-optional_nodes = [
+}
+optional_nodes = {
     "/simulation/service/shower_distribution",
     "/simulation/event/telescope/images",
     "/simulation/event/telescope/parameters",
@@ -44,25 +45,34 @@ optional_nodes = [
     "/dl1/event/telescope/images",
     "/dl1/service/image_statistics",
     "/dl1/service/image_statistics.__table_column_meta__",
-]
-simu_nodes = [
+}
+simu_nodes = {
     "/simulation/event/subarray/shower",
     "/simulation/event/telescope/parameters",
     "/simulation/event/telescope/images",
     "/simulation/service/shower_distribution",
     "/configuration/simulation/run",
-]
-service_nodes = [
+}
+service_nodes = {
     "/dl1/service/image_statistics",
     "/dl1/service/image_statistics.__table_column_meta__",
-]
-nodes_with_tels = [
+}
+nodes_with_tels = {
     "/dl1/monitoring/telescope/pointing",
     "/dl1/event/telescope/parameters",
     "/dl1/event/telescope/images",
     "/simulation/event/telescope/parameters",
     "/simulation/event/telescope/images",
-]
+}
+image_nodes = {
+    "/simulation/event/telescope/images",
+    "/dl1/event/telescope/images",
+}
+parameter_nodes = {
+    "/simulation/event/telescope/parameters",
+    "/dl1/event/telescope/parameters",
+}
+simu_images = {"/simulation/event/telescope/images"}
 
 
 class MergeTool(Tool):
@@ -71,15 +81,16 @@ class MergeTool(Tool):
     examples = """
     To merge DL1-files created by the stage1-process-tool from current directory:
 
-    > ctapipe-merge file1.h5 file2.h5 file3.h5 --ouput=/path/output_file.h5 --progress
+    > ctapipe-merge file1.h5 file2.h5 file3.h5 --output=/path/output_file.h5 --progress
 
-    If you want a specific file pattern as input files use --pattern='pattern.*.dl1.h5', e.g.:
+    If you want a specific file pattern as input files, use --pattern='pattern.*.dl1.h5',
+    e.g.:
 
     > ctapipe-merge --output=/path/output_file.h5 --progress --pattern='pattern.*.dl1.h5'
 
-    If neither any input files nor any pattern is given, all files from the current directory
-    with the default pattern '*.h5' are taken. For merging all files from a specific
-    directory with a given pattern, use:
+    If neither any input files nor any pattern is given, all files from the current
+    directory with the default pattern '*.h5' are taken. For merging all files from a
+    specific directory with a given pattern, use:
 
     > ctapipe-merge --input-dir=/input/dir/ --output=/path/output_file.h5 --progress
     --pattern='pattern.*.dl1.h5'
@@ -106,23 +117,26 @@ class MergeTool(Tool):
         default_value=False,
     ).tag(config=True)
     skip_broken_files = traits.Bool(
-        help="Skip broken files instead of giving error",
+        help="Skip broken files instead of raising an error",
         default_value=False,
     ).tag(config=True)
     overwrite = traits.Bool(help="Overwrite output file if it exists").tag(config=True)
-    progress_bar = traits.Bool(help="Show progress bar during " "processing").tag(
+    progress_bar = traits.Bool(help="Show progress bar during processing").tag(
         config=True
     )
     file_pattern = traits.Unicode(
-        default_value="*.h5", help="Give a specific file pattern for the" "input files"
+        default_value="*.h5", help="Give a specific file pattern for the input files"
     ).tag(config=True)
 
     parser = ArgumentParser()
     parser.add_argument("input_files", nargs="*", type=Path)
 
     aliases = {
+        "input-dir": "MergeTool.input_dir",
         "i": "MergeTool.input_dir",
+        "output": "MergeTool.output_path",
         "o": "MergeTool.output_path",
+        "pattern": "MergeTool.file_pattern",
         "p": "MergeTool.file_pattern",
     }
 
@@ -171,7 +185,6 @@ class MergeTool(Tool):
 
         if self.skip_parameters is True and self.skip_images is True:
             self.log.warning("Skip-parameters and skip-images are both set to True")
-            sys.exit(1)
 
         # Get input Files
         args = self.parser.parse_args(self.extra_args)
@@ -192,35 +205,27 @@ class MergeTool(Tool):
         self.output_file = tables.open_file(self.output_path, mode="a")
 
         # setup required nodes
-        self.usable_nodes = set(all_nodes)
+        self.usable_nodes = all_nodes
 
         if self.skip_simu_images is True:
-            simu_images = ["/simulation/event/telescope/images"]
-            self.usable_nodes = self.usable_nodes - set(simu_images)
+            self.usable_nodes = self.usable_nodes - simu_images
 
         if self.skip_images is True:
-            images_path = [
-                "/simulation/event/telescope/images",
-                "/dl1/event/telescope/images",
-            ]
-            self.usable_nodes = self.usable_nodes - set(images_path)
+            self.usable_nodes = self.usable_nodes - image_nodes
 
         if self.skip_parameters is True:
-            parameters_path = [
-                "/simulation/event/telescope/parameters",
-                "/dl1/event/telescope/parameters",
-            ]
-            self.usable_nodes = self.usable_nodes - set(parameters_path)
+            self.usable_nodes = self.usable_nodes - parameter_nodes
 
-    def check_file(self, file):
+    def check_file_broken(self, file):
         # Check that the file is not broken or any node is missing
         file_path = file.root._v_file.filename
         current_subarray = SubarrayDescription.from_hdf(file_path)
+        broken = False
 
         # Check subarray
         if self.first_subarray != current_subarray:
             self.log.critical(f"Subarray does not match for {file_path}")
-            self.broken_file = True
+            broken = True
 
         # Gives warning if tables for listed nodes in 'optional_nodes'
         # are missing but continues merging the rest of the file. Gives error
@@ -237,15 +242,19 @@ class MergeTool(Tool):
 
             if node not in file:
                 self.log.critical(f"{node} is not in {file_path}.")
-                self.broken_file = True
+                broken = True
+
+        return broken
 
     def add_image_statistics(self, file):
         # Creates table for image statistics and adds the entries together.
         # This does not append rows to the existing table
         image_statistics_path = "/dl1/service/image_statistics"
+
         if image_statistics_path in self.output_file:
             table_out = self.output_file.root[image_statistics_path]
             table_in = file.root[image_statistics_path]
+
             for row in range(len(table_in)):
                 table_out.cols.counts[row] = np.add(
                     table_out.cols.counts[row], table_in.cols.counts[row]
@@ -259,7 +268,8 @@ class MergeTool(Tool):
             target_group = self.output_file.create_group(
                 "/dl1", "service", createparents=True
             )
-            for node in set(service_nodes):
+
+            for node in service_nodes:
                 file.copy_node(node, newparent=target_group)
 
     def merge_tables(self, file):
@@ -283,7 +293,6 @@ class MergeTool(Tool):
                             # cast needed for some image parameters that are sometimes
                             # float32 and sometimes float64
                             output_node.append(input_node[:].astype(output_node.dtype))
-
                         else:
                             target_group = self.output_file.root[node]
                             file.copy_node(tel, newparent=target_group)
@@ -308,7 +317,6 @@ class MergeTool(Tool):
                         self._create_group(group_path)
 
                     target_group = self.output_file.root[group_path]
-
                     if node == "/dl1/monitoring/subarray/pointing":
                         h5_node = file.root[node]
                         data = self.drop_column(h5_node[:], "tels_with_trigger")
@@ -348,21 +356,21 @@ class MergeTool(Tool):
             )
         ):
 
-            self.broken_file = False
             with tables.open_file(current_file, mode="r") as file:
                 if i == 0:
                     # Check if first file is simulation
                     if "/simulation" not in file.root:
-                        self.usable_nodes = self.usable_nodes - set(simu_nodes)
+                        self.usable_nodes = self.usable_nodes - simu_nodes
+                        self.log.info("Merging real data")
                     else:
                         self.log.info("Merging simulation-files")
 
-                self.check_file(file)
-                if self.broken_file is True and self.skip_broken_files is True:
-                    continue
-                if self.broken_file is True and self.skip_broken_files is False:
-                    self.log.critical("Broken file detected.")
-                    sys.exit(1)
+                if self.check_file_broken(file) is True:
+                    if self.skip_broken_files is True:
+                        continue
+                    else:
+                        self.log.critical("Broken file detected.")
+                        sys.exit(1)
 
                 self.merge_tables(file)
                 self.add_image_statistics(file)
@@ -376,7 +384,41 @@ class MergeTool(Tool):
         )
 
     def finish(self):
-        pass
+        activity = PROV.current_activity.provenance
+        DL1_DATA_MODEL_VERSION = "v1.0.0"
+
+        reference = meta.Reference(
+            contact=meta.Contact(name="", email="", organization="CTA Consortium"),
+            product=meta.Product(
+                description="Merged DL1 Data Product",
+                data_category="S",
+                data_level="DL1",
+                data_association="Subarray",
+                data_model_name="ASWG DL1",
+                data_model_version=DL1_DATA_MODEL_VERSION,
+                data_model_url="",
+                format="hdf5",
+            ),
+            process=meta.Process(type_="Simulation", subtype="", id_=0),
+            activity=meta.Activity.from_provenance(activity),
+            instrument=meta.Instrument(
+                site="Other",
+                class_="Subarray",
+                type_="unknown",
+                version="unknown",
+                id_=self.first_subarray.name,
+            ),
+        )
+
+        headers = reference.to_dict()
+
+        with HDF5TableWriter(
+            self.output_path,
+            parent=self,
+            mode="a",
+            add_prefix=True,
+        ) as writer:
+            meta.write_to_hdf5(headers, writer._h5file)
 
 
 def main():

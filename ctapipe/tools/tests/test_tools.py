@@ -112,6 +112,7 @@ def test_merge():
                 f1.name, mode="r"
             ) as in_f:
 
+                # Check expanded tables
                 assert len(out_f.root.simulation.service.shower_distribution) == 2
                 assert len(out_f.root.simulation.event.subarray.shower) == 220
                 assert len(out_f.root.configuration.simulation.run) == 2
@@ -119,6 +120,7 @@ def test_merge():
                 assert len(out_f.root.dl1.event.subarray.trigger) == 220
                 assert len(out_f.root.dl1.event.telescope.trigger) == 918
                 assert len(out_f.root.simulation.service.shower_distribution) == 2
+                # Check subarray and service meta
                 assert out_f.root.dl1.service["image_statistics.__table_column_meta__"]
                 assert out_f.root.configuration.instrument.subarray.layout
                 assert out_f.root.configuration.instrument.telescope.optics
@@ -129,6 +131,7 @@ def test_merge():
                     out_f.root.configuration.instrument.telescope.camera.readout_LSTCam
                 )
 
+                # Check image statistics
                 table_in = in_f.root["/dl1/service/image_statistics"]
                 table_out = out_f.root["/dl1/service/image_statistics"]
                 for row in range(len(table_in)):
@@ -139,6 +142,7 @@ def test_merge():
                         table_in.cols.cumulative_counts[row], 2
                     )
 
+                # Check telescope tables
                 for tel in in_f.root.dl1.monitoring.telescope.pointing:
                     assert len(
                         out_f.root.dl1.monitoring.telescope.pointing[tel.name]
