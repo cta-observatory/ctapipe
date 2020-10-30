@@ -69,7 +69,7 @@ def find_all_matching_datasets(pattern, searchpath=None, regexp_group=None):
     # first check search path
     for path in search_path_dirs:
         if path.is_dir():
-            for entry in path.iter_dir():
+            for entry in path.iterdir():
                 match = re.match(pattern, str(entry))
                 if match:
                     if regexp_group is not None:
