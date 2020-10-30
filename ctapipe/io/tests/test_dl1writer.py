@@ -6,6 +6,7 @@ from ctapipe.io import event_source
 from ctapipe.calib import CameraCalibrator
 from pathlib import Path
 import tables
+import logging
 
 
 def test_dl1writer(tmpdir: Path):
@@ -27,8 +28,12 @@ def test_dl1writer(tmpdir: Path):
     calibrate = CameraCalibrator(subarray=source.subarray)
 
     with DL1Writer(
-        event_source=source, output_path=output_path, write_parameters=False
+        event_source=source,
+        output_path=output_path,
+        write_parameters=False,
+        write_images=True,
     ) as write_dl1:
+        write_dl1.log.level = logging.DEBUG
         for event in source:
             calibrate(event)
             write_dl1(event)
@@ -38,3 +43,7 @@ def test_dl1writer(tmpdir: Path):
     with tables.open_file(output_path) as h5file:
         images = h5file.get_node("/dl1/event/telescope/images/tel_001")
         assert len(images.col("image")) > 0
+
+
+if __name__ == "__main__":
+    test_dl1writer(Path("/tmp"))

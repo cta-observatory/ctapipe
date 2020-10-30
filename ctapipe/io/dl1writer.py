@@ -11,10 +11,66 @@ import numpy as np
 import tables
 from astropy import units as u
 
-from ..containers import DataContainer, TelEventIndexContainer
-from ..core import Component, ToolConfigurationError
+from ..containers import (
+    DataContainer,
+    SimulatedShowerDistribution,
+    TelEventIndexContainer,
+)
+from ..core import Component, Container, Field, Provenance, ToolConfigurationError
 from ..core.traits import Bool, CaselessStrEnum, Int, Path
 from ..io import EventSource, HDF5TableWriter, TableWriter
+from ..io import metadata as meta
+
+tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many datasets
+
+DL1_DATA_MODEL_VERSION = "v1.0.0"
+PROV = Provenance()
+
+
+def write_reference_metadata_headers(obs_id, subarray, writer):
+    """
+    Attaches Core Provenence headers to an output HDF5 file.
+    Right now this is hard-coded for use with the ctapipe-stage1-process tool
+
+    Parameters
+    ----------
+    output_path: pathlib.Path
+        output HDF5 file
+    obs_id: int
+        observation ID
+    subarray:
+        SubarrayDescription to get metadata from
+    writer: HDF5TableWriter
+        output
+    """
+    activity = PROV.current_activity.provenance
+
+    reference = meta.Reference(
+        contact=meta.Contact(name="", email="", organization="CTA Consortium"),
+        product=meta.Product(
+            description="DL1 Data Product",
+            data_category="S",
+            data_level="DL1",
+            data_association="Subarray",
+            data_model_name="ASWG DL1",
+            data_model_version=DL1_DATA_MODEL_VERSION,
+            data_model_url="",
+            format="hdf5",
+        ),
+        process=meta.Process(type_="Simulation", subtype="", id_=int(obs_id)),
+        activity=meta.Activity.from_provenance(activity),
+        instrument=meta.Instrument(
+            site="Other",  # need a way to detect site...
+            class_="Subarray",
+            type_="unknown",
+            version="unknown",
+            id_=subarray.name,
+        ),
+    )
+
+    # TODO: add activity_stop_time?
+    headers = reference.to_dict()
+    meta.write_to_hdf5(headers, writer._h5file)
 
 
 class DL1Writer(Component):
@@ -105,6 +161,7 @@ class DL1Writer(Component):
         return self
 
     def __exit__(self, type, value, traceback):
+        self.finish()
         if self._writer:
             self._writer.close()
 
@@ -147,9 +204,23 @@ class DL1Writer(Component):
         self._setup_output_path()
         self._setup_compression()
         self._setup_writer()
+        if self.event_source.is_simulation:
+            self._write_simulation_configuration()
 
         # store last pointing to only write unique poitings
         self._last_pointing_tel = defaultdict(lambda: (np.nan * u.deg, np.nan * u.deg))
+
+    def finish(self):
+        """ called after all events are done """
+        if self.event_source.is_simulation:
+            self._write_simulation_histograms()
+        if self.write_index_tables:
+            self._generate_indices()
+        write_reference_metadata_headers(
+            subarray=self.event_source.subarray,
+            obs_id=self.event_source.obs_id,
+            writer=self._writer,
+        )
 
     def _setup_compression(self):
         """ setup HDF5 compression"""
@@ -249,7 +320,7 @@ class DL1Writer(Component):
             writer.write("dl1/monitoring/subarray/pointing", [event.trigger, pnt])
             self._last_pointing = current_pointing
 
-    def _write_simulation_configuration(self, writer: TableWriter):
+    def _write_simulation_configuration(self):
         """
         Write the simulation headers to a single row of a table. Later
         if this file is merged with others, that table will grow.
@@ -265,11 +336,11 @@ class DL1Writer(Component):
         extramc = ExtraMCInfo()
         extramc.obs_id = self.event_source.obs_id
         self.event_source.mc_header.prefix = ""
-        writer.write(
+        self._writer.write(
             "configuration/simulation/run", [extramc, self.event_source.mc_header]
         )
 
-    def _write_simulation_histograms(self, writer: TableWriter):
+    def _write_simulation_histograms(self):
         """Write the distribution of thrown showers
 
         Notes
@@ -282,9 +353,6 @@ class DL1Writer(Component):
           histograms will be found.
         """
         self.log.debug("Writing simulation histograms")
-
-        if not isinstance(self.event_source, SimTelEventSource):
-            return
 
         def fill_from_simtel(
             obs_id, eventio_hist, container: SimulatedShowerDistribution
@@ -318,7 +386,7 @@ class DL1Writer(Component):
             for hist in hists:
                 if hist["id"] == 6:
                     fill_from_simtel(self.event_source.obs_id, hist, hist_container)
-                    writer.write(
+                    self._writer.write(
                         table_name="simulation/service/shower_distribution",
                         containers=hist_container,
                     )
@@ -328,11 +396,14 @@ class DL1Writer(Component):
         add entries to the event/telescope tables for each telescope in a single
         event
         """
+
         # write the telescope tables
+
         for tel_id, dl1_camera in event.dl1.tel.items():
             dl1_camera.prefix = ""  # don't want a prefix for this container
             telescope = self.event_source.subarray.tel[tel_id]
             tel_type = str(telescope)
+            self.log.debug("WRITING TELESCOPE %s: %s", tel_id, telescope)
 
             tel_index = TelEventIndexContainer(
                 obs_id=event.index.obs_id,
@@ -374,6 +445,7 @@ class DL1Writer(Component):
                 # note that we always write the image, even if the image quality
                 # criteria are not met (those are only to determine if the parameters
                 # can be computed).
+                self.log.debug("WRITING IMAGES")
                 writer.write(
                     table_name=f"dl1/event/telescope/images/{table_name}",
                     containers=[tel_index, dl1_camera],

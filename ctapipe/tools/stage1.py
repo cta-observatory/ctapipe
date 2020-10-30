@@ -360,6 +360,7 @@ class Stage1ProcessorTool(Tool):
 
     def _write_processing_statistics(self):
         """ write out the event selection stats, etc. """
+        # NOTE: don't remove this, not part of DL1Writer
         image_stats = self.check_image.to_table(functions=True)
         image_stats.write(
             self.output_path,
