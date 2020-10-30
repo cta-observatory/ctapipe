@@ -85,7 +85,7 @@ def find_all_matching_datasets(pattern, searchpath=None, regexp_group=None):
             match = re.match(pattern, resource)
             if match:
                 if regexp_group is not None:
-                    results.add(Path(match.group(regexp_group)))
+                    results.add(match.group(regexp_group))
                 else:
                     results.add(Path(resource))
 
