@@ -150,7 +150,11 @@ class DL1Writer(Component):
 
         # here we just set up data, but all real initializtion should be in
         # setup(), which is called when the first event is read.
-        self.event_source = event_source
+
+        self._is_simulation = event_source.is_simulation
+        self._subarray = event_source.subarray
+        self._mc_header = event_source.mc_header
+        self._obs_id = event_source.obs_id
         self._hdf5_filters = None
         self._last_pointing_tel = None
         self._last_pointing = None
@@ -179,7 +183,7 @@ class DL1Writer(Component):
             table_name="dl1/event/subarray/trigger",
             containers=[event.index, event.trigger],
         )
-        if self.event_source.is_simulation:
+        if self._is_simulation:
             self._writer.write(
                 table_name="simulation/event/subarray/shower",
                 containers=[event.index, event.mc],
@@ -195,7 +199,7 @@ class DL1Writer(Component):
         self._setup_output_path()
         self._setup_compression()
         self._setup_writer()
-        if self.event_source.is_simulation:
+        if self._is_simulation:
             self._write_simulation_configuration()
 
         # store last pointing to only write unique poitings
@@ -203,14 +207,12 @@ class DL1Writer(Component):
 
     def finish(self):
         """ called after all events are done """
-        if self.event_source.is_simulation:
+        if self._is_simulation:
             self._write_simulation_histograms()
         if self.write_index_tables:
             self._generate_indices()
         write_reference_metadata_headers(
-            subarray=self.event_source.subarray,
-            obs_id=self.event_source.obs_id,
-            writer=self._writer,
+            subarray=self._subarray, obs_id=self._obs_id, writer=self._writer
         )
         self._writer.close()
         self._writer = None
@@ -258,7 +260,7 @@ class DL1Writer(Component):
         writer.add_column_transform(
             table_name="dl1/event/subarray/trigger",
             col_name="tels_with_trigger",
-            transform=self.event_source.subarray.tel_ids_to_mask,
+            transform=self._subarray.tel_ids_to_mask,
         )
 
         # exclude some columns that are not writable
@@ -267,7 +269,7 @@ class DL1Writer(Component):
         writer.exclude("dl1/monitoring/subarray/pointing", "event_type")
         writer.exclude("dl1/monitoring/subarray/pointing", "tels_with_trigger")
         writer.exclude("/dl1/event/telescope/trigger", "trigger_pixels")
-        for tel_id, telescope in self.event_source.subarray.tel.items():
+        for tel_id, telescope in self._subarray.tel.items():
             tel_type = str(telescope)
             if self.split_datasets_by == "tel_id":
                 table_name = f"tel_{tel_id:03d}"
@@ -287,7 +289,7 @@ class DL1Writer(Component):
             writer.exclude(
                 f"/dl1/monitoring/event/pointing/tel_{tel_id:03d}", "event_type"
             )
-            if self.event_source.is_simulation:
+            if self._is_simulation:
                 writer.exclude(
                     f"/simulation/event/telescope/images/{table_name}",
                     "true_parameters",
@@ -327,14 +329,16 @@ class DL1Writer(Component):
             obs_id = Field(0, "MC Run Identifier")
 
         extramc = ExtraMCInfo()
-        extramc.obs_id = self.event_source.obs_id
-        self.event_source.mc_header.prefix = ""
-        self._writer.write(
-            "configuration/simulation/run", [extramc, self.event_source.mc_header]
-        )
+        extramc.obs_id = self._obs_id
+        self._mc_header.prefix = ""
+        self._writer.write("configuration/simulation/run", [extramc, self._mc_header])
 
     def _write_simulation_histograms(self):
         """Write the distribution of thrown showers
+
+        TODO: this needs to be fixed, since it currently requires access to the
+        low-level _file attribute of the SimTelEventSource.  Instead, SimTelEventSource should
+        provide this as header info, like `source.mc_header`
 
         Notes
         -----
@@ -344,6 +348,7 @@ class DL1Writer(Component):
         - Currently the histograms are at the end of the simtel file, so if max_events
           is set to non-zero, the end of the file may not be read, and this no
           histograms will be found.
+
         """
         self.log.debug("Writing simulation histograms")
 
@@ -378,7 +383,7 @@ class DL1Writer(Component):
             hist_container.prefix = ""
             for hist in hists:
                 if hist["id"] == 6:
-                    fill_from_simtel(self.event_source.obs_id, hist, hist_container)
+                    fill_from_simtel(self._obs_id, hist, hist_container)
                     self._writer.write(
                         table_name="simulation/service/shower_distribution",
                         containers=hist_container,
@@ -394,7 +399,7 @@ class DL1Writer(Component):
 
         for tel_id, dl1_camera in event.dl1.tel.items():
             dl1_camera.prefix = ""  # don't want a prefix for this container
-            telescope = self.event_source.subarray.tel[tel_id]
+            telescope = self._subarray.tel[tel_id]
             tel_type = str(telescope)
             self.log.debug("WRITING TELESCOPE %s: %s", tel_id, telescope)
 
@@ -428,7 +433,7 @@ class DL1Writer(Component):
                     containers=[tel_index, *dl1_camera.parameters.values()],
                 )
 
-                if self.event_source.is_simulation and has_true_image:
+                if self._is_simulation and has_true_image:
                     writer.write(
                         f"simulation/event/telescope/parameters/{table_name}",
                         [tel_index, *mcdl1.true_parameters.values()],
@@ -444,7 +449,7 @@ class DL1Writer(Component):
                     containers=[tel_index, dl1_camera],
                 )
 
-                if self.event_source.is_simulation:
+                if self._is_simulation:
                     writer.write(
                         f"simulation/event/telescope/images/{table_name}",
                         [tel_index, mcdl1],
