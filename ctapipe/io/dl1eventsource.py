@@ -26,6 +26,9 @@ from ctapipe.utils import IndexFinder
 logger = logging.getLogger(__name__)
 
 
+COMPATIBLE_DL1_VERSIONS = ["v1.0.0", "v1.0.1"]
+
+
 class DL1EventSource(EventSource):
     """
     Event source for files in the ctapipe DL1 format.
@@ -87,6 +90,9 @@ class DL1EventSource(EventSource):
         self.input_url = input_url
         self._subarray_info = SubarrayDescription.from_hdf(self.input_url)
         self._mc_headers = self._parse_mc_headers()
+        self.datamodel_version = self.file_.root._v_attrs[
+            "CTA PRODUCT DATA MODEL VERSION"
+        ]
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
@@ -108,7 +114,10 @@ class DL1EventSource(EventSource):
                 return False
             if "CTA PRODUCT DATA MODEL VERSION" not in metadata._v_attrnames:
                 return False
-            if metadata["CTA PRODUCT DATA MODEL VERSION"] != "v1.0.0":
+            if (
+                metadata["CTA PRODUCT DATA MODEL VERSION"]
+                not in COMPATIBLE_DL1_VERSIONS
+            ):
                 return False
         return True
 
@@ -282,7 +291,10 @@ class DL1EventSource(EventSource):
             ):
                 if self.allowed_tels and i["tel_id"] not in self.allowed_tels:
                     continue
-                data.trigger.tel[i["tel_id"]].time = i["time"]
+                if self.datamodel_version == "v1.0.0":
+                    data.trigger.tel[i["tel_id"]].time = i["telescopetrigger_time"]
+                else:
+                    data.trigger.tel[i["tel_id"]].time = i["time"]
 
             self._fill_array_pointing(data, array_pointing_finder)
             self._fill_telescope_pointing(data, tel_pointing_finder)
