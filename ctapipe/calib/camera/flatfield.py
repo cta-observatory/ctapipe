@@ -91,7 +91,7 @@ class FlatFieldCalculator(Component):
         super().__init__(**kwargs)
         # load the waveform charge extractor
         self.extractor = ImageExtractor.from_name(
-            self.charge_product, config=self.config, subarray=subarray,
+            self.charge_product, config=self.config, subarray=subarray
         )
 
         self.log.info(f"extractor {self.extractor}")
@@ -208,8 +208,8 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
             self.num_events_seen = 0
 
         # real data
+        trigger_time = event.trigger.time
         if event.meta["origin"] != "hessio":
-            trigger_time = event.r1.tel[self.tel_id].trigger_time
             hardware_or_pedestal_mask = np.logical_or(
                 event.mon.tel[self.tel_id].pixel_status.hardware_failing_pixels,
                 event.mon.tel[self.tel_id].pixel_status.pedestal_failing_pixels,
@@ -220,11 +220,6 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
             )
 
         else:  # patches for MC data
-            if event.trig.tels_with_trigger:
-                trigger_time = event.trig.gps_time.unix
-            else:
-                trigger_time = 0
-
             pixel_mask = np.zeros(waveform.shape[1], dtype=bool)
 
         if self.num_events_seen == 0:
@@ -296,7 +291,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         self.num_events_seen += 1
 
     def calculate_time_results(
-        self, trace_time, masked_pixels_of_sample, time_start, trigger_time,
+        self, trace_time, masked_pixels_of_sample, time_start, trigger_time
     ):
         """Calculate and return the time results """
         masked_trace_time = np.ma.array(trace_time, mask=masked_pixels_of_sample)
@@ -321,10 +316,9 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         )
 
         return {
-            # FIXME Why divided by two here?
-            "sample_time": u.Quantity((trigger_time - time_start) / 2, u.s),
-            "sample_time_min": u.Quantity(time_start, u.s),
-            "sample_time_max": u.Quantity(trigger_time, u.s),
+            "sample_time": (trigger_time - time_start).to_value(u.s),
+            "sample_time_min": time_start,
+            "sample_time_max": trigger_time,
             "time_mean": np.ma.getdata(pixel_mean),
             "time_median": np.ma.getdata(pixel_median),
             "time_std": np.ma.getdata(pixel_std),
@@ -333,7 +327,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         }
 
     def calculate_relative_gain_results(
-        self, event_median, trace_integral, masked_pixels_of_sample,
+        self, event_median, trace_integral, masked_pixels_of_sample
     ):
         """Calculate and return the sample statistics"""
         masked_trace_integral = np.ma.array(

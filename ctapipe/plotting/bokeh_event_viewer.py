@@ -52,7 +52,7 @@ class BokehEventViewerCamera(CameraDisplay):
             self.event_viewer.log.warning("No event has been provided")
             return
 
-        tels = list(e.r0.tels_with_data)
+        tels = list(e.r0.tel.keys())
         if t is None:
             t = tels[0]
         if t not in tels:
@@ -198,7 +198,7 @@ class BokehEventViewerWaveform(WaveformDisplay):
             self.event_viewer.log.warning("No event has been provided")
             return
 
-        tels = list(e.r0.tels_with_data)
+        tels = list(e.r0.tel.keys())
         if t is None:
             t = tels[0]
         if t not in tels:
@@ -359,7 +359,7 @@ class BokehEventViewer(Component):
             self.waveform_layouts.append(wav.layout)
 
         self.layout = layout(
-            [[column(self.camera_layouts), column(self.waveform_layouts)],]
+            [[column(self.camera_layouts), column(self.waveform_layouts)]]
         )
 
     def enable_automatic_index_increment(self):
@@ -391,7 +391,7 @@ class BokehEventViewer(Component):
     def event(self, val):
         if self._event != val:
             self._event = val
-            tels = list(val.r0.tels_with_data)
+            tels = list(val.r0.tel.keys())
             if self.telid not in tels:
                 self._telid = tels[0]
             for sub in self.sub_event_viewer_generator():

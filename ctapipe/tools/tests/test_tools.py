@@ -195,6 +195,14 @@ def test_stage_1():
             assert tf.root.configuration.instrument.telescope.camera.geometry_LSTCam
             assert tf.root.configuration.instrument.telescope.camera.readout_LSTCam
 
+            assert tf.root.dl1.monitoring.subarray.pointing.dtype.names == (
+                "time",
+                "array_azimuth",
+                "array_altitude",
+                "array_ra",
+                "array_dec",
+            )
+
         # check we can read telescope parametrs
         dl1_features = pd.read_hdf(f.name, "/dl1/event/telescope/parameters/tel_001")
         features = (
@@ -464,6 +472,7 @@ def test_plot_charge_resolution(tmpdir):
     output_path = os.path.join(str(tmpdir), "cr.pdf")
     tool = ChargeResolutionViewer()
 
-    assert run_tool(tool, ["-f", [path], "-o", output_path]) == 0
+    argv = ["-f", str(path), "-o", output_path]
+    assert run_tool(tool, argv) == 0
     assert os.path.exists(output_path)
     assert run_tool(tool, ["--help-all"]) == 0

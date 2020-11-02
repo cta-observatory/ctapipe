@@ -94,16 +94,16 @@ class ImageSumDisplayerTool(Tool):
                 disp.add_colorbar()
                 disp.cmap = "viridis"
 
-            if len(event.dl0.tels_with_data) <= 2:
+            if len(event.dl0.tel.keys()) <= 2:
                 continue
 
             imsum[:] = 0
-            for telid in event.dl0.tels_with_data:
+            for telid in event.dl0.tel.keys():
                 imsum += event.dl1.tel[telid].image
 
             self.log.info(
                 "event={} ntels={} energy={}".format(
-                    event.index.event_id, len(event.dl0.tels_with_data), event.mc.energy
+                    event.index.event_id, len(event.dl0.tel.keys()), event.mc.energy
                 )
             )
             disp.image = imsum

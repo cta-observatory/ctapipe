@@ -57,7 +57,7 @@ def test_simtel_event_source_on_gamma_test_one_event():
         input_url=gamma_test_large_path, allowed_tels={3, 4}
     ) as reader:
         for event in reader:
-            assert event.r0.tels_with_data.issubset(reader.allowed_tels)
+            assert set(event.r0.tel).issubset(reader.allowed_tels)
 
 
 def test_that_event_is_not_modified_after_loop():
@@ -132,9 +132,9 @@ def test_gamma_file():
 
         for event in reader:
             if event.count == 0:
-                assert event.r0.tels_with_data == {38, 47}
+                assert event.r0.tel.keys() == {38, 47}
             elif event.count == 1:
-                assert event.r0.tels_with_data == {11, 21, 24, 26, 61, 63, 118, 119}
+                assert event.r0.tel.keys() == {11, 21, 24, 26, 61, 63, 118, 119}
             else:
                 break
 
@@ -172,9 +172,9 @@ def test_allowed_telescopes():
     ) as reader:
 
         for event in reader:
-            assert event.r0.tels_with_data.issubset(allowed_tels)
-            assert event.r1.tels_with_data.issubset(allowed_tels)
-            assert event.dl0.tels_with_data.issubset(allowed_tels)
+            assert set(event.r0.tel).issubset(allowed_tels)
+            assert set(event.r1.tel).issubset(allowed_tels)
+            assert set(event.dl0.tel).issubset(allowed_tels)
 
     # test that updating the allowed_tels mask works
     new_allowed_tels = {1, 2}
@@ -185,9 +185,9 @@ def test_allowed_telescopes():
         # change allowed_tels after __init__
         reader.allowed_tels = new_allowed_tels
         for event in reader:
-            assert event.r0.tels_with_data.issubset(new_allowed_tels)
-            assert event.r1.tels_with_data.issubset(new_allowed_tels)
-            assert event.dl0.tels_with_data.issubset(new_allowed_tels)
+            assert set(event.r0.tel).issubset(new_allowed_tels)
+            assert set(event.r1.tel).issubset(new_allowed_tels)
+            assert set(event.dl0.tel).issubset(new_allowed_tels)
 
 
 def test_calibration_events():
@@ -255,7 +255,7 @@ def test_apply_simtel_r1_calibration_1_channel():
     n_samples = 128
 
     r0_waveforms = np.zeros((n_channels, n_pixels, n_samples))
-    pedestal = np.full((n_channels, n_pixels), 20 * n_samples)
+    pedestal = np.full((n_channels, n_pixels), 20)
     dc_to_pe = np.full((n_channels, n_pixels), 0.5)
 
     gain_selector = ThresholdGainSelector(threshold=90)
@@ -267,7 +267,7 @@ def test_apply_simtel_r1_calibration_1_channel():
     assert r1_waveforms.ndim == 2
     assert r1_waveforms.shape == (n_pixels, n_samples)
 
-    ped = pedestal / n_samples
+    ped = pedestal
     assert r1_waveforms[0, 0] == (r0_waveforms[0, 0, 0] - ped[0, 0]) * dc_to_pe[0, 0]
     assert r1_waveforms[1, 0] == (r0_waveforms[0, 1, 0] - ped[0, 1]) * dc_to_pe[0, 1]
 
@@ -282,8 +282,8 @@ def test_apply_simtel_r1_calibration_2_channel():
     r0_waveforms[1, :, :] = 1
 
     pedestal = np.zeros((n_channels, n_pixels))
-    pedestal[0] = 90 * n_samples
-    pedestal[1] = 0.9 * n_samples
+    pedestal[0] = 90
+    pedestal[1] = 0.9
 
     dc_to_pe = np.zeros((n_channels, n_pixels))
     dc_to_pe[0] = 0.01
@@ -299,7 +299,7 @@ def test_apply_simtel_r1_calibration_2_channel():
     assert r1_waveforms.ndim == 2
     assert r1_waveforms.shape == (n_pixels, n_samples)
 
-    ped = pedestal / n_samples
+    ped = pedestal
     assert r1_waveforms[0, 0] == (r0_waveforms[1, 0, 0] - ped[1, 0]) * dc_to_pe[1, 0]
     assert r1_waveforms[1, 0] == (r0_waveforms[0, 1, 0] - ped[0, 1]) * dc_to_pe[0, 1]
 

@@ -158,6 +158,12 @@ to your local working copy):
 Developing a new feature or code change
 ---------------------------------------
 
+We adhere to the PEP8 coding style (see our :doc:`/development/style-guide`).
+To enforce this, setup the
+`pre-commit hook <https://pre-commit.com/>`_::
+
+    $ pre-commit install
+
 You should always create a branch when developing some new code (unless it is
 a very small change).  Genearlly make a new branch for each new feature, so
 that you can make pull-requests for each one separately and not mix code

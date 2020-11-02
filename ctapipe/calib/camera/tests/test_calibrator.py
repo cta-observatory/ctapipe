@@ -1,15 +1,19 @@
 """
 Tests for CameraCalibrator and related functions
 """
+import astropy.units as u
 import numpy as np
 import pytest
 from scipy.stats import norm
 from traitlets.config.configurable import Config
-from astropy import units as u
 
 from ctapipe.calib.camera.calibrator import CameraCalibrator
-from ctapipe.image.extractor import LocalPeakWindowSum, FullWaveformSum
-from ctapipe.instrument import CameraGeometry
+from ctapipe.image.extractor import (
+    NeighborPeakWindowSum,
+    LocalPeakWindowSum,
+    FullWaveformSum,
+)
+from ctapipe.image.reducer import NullDataVolumeReducer, TailCutsDataVolumeReducer
 from ctapipe.containers import DataContainer
 
 
@@ -34,23 +38,31 @@ def test_manual_extractor(example_subarray):
 
 
 def test_config(example_subarray):
-    window_shift = 3
-    window_width = 9
+    calibrator = CameraCalibrator(subarray=example_subarray)
+
+    # test defaults
+    assert isinstance(calibrator.image_extractor, NeighborPeakWindowSum)
+    assert isinstance(calibrator.data_volume_reducer, NullDataVolumeReducer)
+
     config = Config(
         {
-            "LocalPeakWindowSum": {
-                "window_shift": window_shift,
-                "window_width": window_width,
+            "CameraCalibrator": {
+                "image_extractor_type": "LocalPeakWindowSum",
+                "LocalPeakWindowSum": {"window_width": 15},
+                "data_volume_reducer_type": "TailCutsDataVolumeReducer",
+                "TailCutsDataVolumeReducer": {
+                    "TailcutsImageCleaner": {"picture_threshold_pe": 20.0}
+                },
             }
         }
     )
-    calibrator = CameraCalibrator(
-        subarray=example_subarray,
-        image_extractor=LocalPeakWindowSum(subarray=example_subarray, config=config),
-        config=config,
-    )
-    assert calibrator.image_extractor.window_shift.tel[None] == window_shift
-    assert calibrator.image_extractor.window_width.tel[None] == window_width
+
+    calibrator = CameraCalibrator(example_subarray, config=config)
+    assert isinstance(calibrator.image_extractor, LocalPeakWindowSum)
+    assert calibrator.image_extractor.window_width.tel[None] == 15
+
+    assert isinstance(calibrator.data_volume_reducer, TailCutsDataVolumeReducer)
+    assert calibrator.data_volume_reducer.cleaner.picture_threshold_pe.tel[None] == 20
 
 
 def test_check_r1_empty(example_event, example_subarray):
@@ -99,8 +111,13 @@ def test_check_dl0_empty(example_event, example_subarray):
 
 
 def test_dl1_charge_calib(example_subarray):
-    camera = CameraGeometry.from_name("CHEC")
-    n_pixels = camera.n_pixels
+    camera = example_subarray.tel[1].camera
+    # test with a sampling_rate different than 1 to
+    # test if we handle time vs. slices correctly
+    sampling_rate = 2
+    camera.readout.sampling_rate = sampling_rate * u.GHz
+
+    n_pixels = camera.geometry.n_pixels
     n_samples = 96
     mid = n_samples // 2
     pulse_sigma = 6
@@ -108,8 +125,8 @@ def test_dl1_charge_calib(example_subarray):
     x = np.arange(n_samples)
 
     # Randomize times and create pulses
-    time_offset = random.uniform(mid - 10, mid + 10, n_pixels)[:, np.newaxis]
-    y = norm.pdf(x, time_offset, pulse_sigma).astype("float32")
+    time_offset = random.uniform(-10, +10, n_pixels)
+    y = norm.pdf(x, mid + time_offset[:, np.newaxis], pulse_sigma).astype("float32")
 
     # Define absolute calibration coefficients
     absolute = random.uniform(100, 1000, n_pixels).astype("float32")
@@ -135,8 +152,7 @@ def test_dl1_charge_calib(example_subarray):
     calibrator(event)
     np.testing.assert_allclose(event.dl1.tel[telid].image, y.sum(1), rtol=1e-4)
 
-    event.calibration.tel[telid].dl1.time_shift = time_offset
-    event.calibration.tel[telid].dl1.pedestal_offset = pedestal * n_samples
+    event.calibration.tel[telid].dl1.pedestal_offset = pedestal
     event.calibration.tel[telid].dl1.absolute_factor = absolute
     event.calibration.tel[telid].dl1.relative_factor = relative
 
@@ -146,6 +162,36 @@ def test_dl1_charge_calib(example_subarray):
         image_extractor=FullWaveformSum(subarray=example_subarray),
     )
     calibrator(event)
-    np.testing.assert_allclose(event.dl1.tel[telid].image, 1, rtol=1e-5)
+    dl1 = event.dl1.tel[telid]
+    np.testing.assert_allclose(dl1.image, 1, rtol=1e-5)
+    expected_peak_time = (mid + time_offset) / sampling_rate
+    np.testing.assert_allclose(dl1.peak_time, expected_peak_time, rtol=1e-5)
 
-    # TODO: Test with timing corrections
+    # test with timing corrections
+    event.calibration.tel[telid].dl1.time_shift = time_offset / sampling_rate
+    calibrator(event)
+
+    # more rtol since shifting might lead to reduced integral
+    np.testing.assert_allclose(event.dl1.tel[telid].image, 1, rtol=1e-5)
+    np.testing.assert_allclose(
+        event.dl1.tel[telid].peak_time, mid / sampling_rate, atol=1
+    )
+
+
+def test_shift_waveforms():
+    from ctapipe.calib.camera.calibrator import shift_waveforms
+
+    # 5 pixels, 40 samples
+    waveforms = np.zeros((5, 40))
+    waveforms[:, 10] = 1
+    shifts = np.array([1.4, 2.1, -1.8, 3.1, -4.4])
+
+    shifted_waveforms, remaining_shift = shift_waveforms(waveforms, shifts)
+
+    assert np.allclose(remaining_shift, [0.4, 0.1, 0.2, 0.1, -0.4])
+
+    assert shifted_waveforms[0, 9] == 1
+    assert shifted_waveforms[1, 8] == 1
+    assert shifted_waveforms[2, 12] == 1
+    assert shifted_waveforms[3, 7] == 1
+    assert shifted_waveforms[4, 14] == 1

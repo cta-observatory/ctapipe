@@ -57,8 +57,8 @@ NAN_TIME = Time(np.ma.masked_array(nan, mask=True), format="mjd")
 
 
 class EventType(enum.Enum):
-    """ These numbers come from  the document *CTA R1/Event Data Model Specification*
-    version 1 revision C.  They may be updated in future revisions """
+    """These numbers come from  the document *CTA R1/Event Data Model Specification*
+    version 1 revision C.  They may be updated in future revisions"""
 
     # calibrations are 0-15
     FLATFIELD = 0
@@ -112,7 +112,9 @@ class HillasParametersContainer(Container):
     phi = Field(nan * u.deg, "polar coordinate of centroid", unit=u.deg)
 
     length = Field(nan * u.m, "standard deviation along the major-axis", unit=u.m)
+    length_uncertainty = Field(nan * u.m, "uncertainty of length", unit=u.m)
     width = Field(nan * u.m, "standard spread along the minor-axis", unit=u.m)
+    width_uncertainty = Field(nan * u.m, "uncertainty of width", unit=u.m)
     psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
 
     skewness = Field(nan, "measure of the asymmetry")
@@ -169,9 +171,7 @@ class TimingParametersContainer(Container):
     slope = Field(
         nan / u.m, "Slope of arrival times along main shower axis", unit=1 / u.m
     )
-    slope_err = Field(nan / u.m, "Uncertainty `slope`", unit=1 / u.m)
     intercept = Field(nan, "intercept of arrival times along main shower axis")
-    intercept_err = Field(nan, "Uncertainty `intercept`")
     deviation = Field(
         nan,
         "Root-mean-square deviation of the pulse times "
@@ -257,7 +257,7 @@ class DL1CameraContainer(Container):
 
 
 class MCDL1CameraContainer(Container):
-    """ Contains all fields of the DL1CameraContainer, but adds fields for simulated
+    """Contains all fields of the DL1CameraContainer, but adds fields for simulated
     DL1 image information."""
 
     true_image = Field(
@@ -285,9 +285,10 @@ class DL1CameraCalibrationContainer(Container):
     """
 
     pedestal_offset = Field(
-        0,
-        "Additive coefficients for the pedestal calibration of extracted charge "
-        "for each pixel",
+        None,
+        "Residual mean pedestal of the waveforms for each pixel."
+        " This value is subtracted from the waveforms of each pixel before"
+        " the pulse extraction.",
     )
     absolute_factor = Field(
         1,
@@ -301,7 +302,7 @@ class DL1CameraCalibrationContainer(Container):
         "uniform illumination.",
     )
     time_shift = Field(
-        0,
+        None,
         "Additive coefficients for the timing correction before charge extraction "
         "for each pixel",
     )
@@ -312,12 +313,6 @@ class R0CameraContainer(Container):
     Storage of raw data from a single telescope
     """
 
-    trigger_time = Field(
-        None, "Telescope trigger time, start of waveform " "readout, None for MCs"
-    )
-    trigger_type = Field(0o0, "camera's event trigger type if applicable")
-    num_trig_pix = Field(0, "Number of trigger groups (sectors) listed")
-    trig_pix_id = Field(None, "pixels involved in the camera trigger")
     waveform = Field(
         None, ("numpy array containing ADC samples" "(n_channels, n_pixels, n_samples)")
     )
@@ -328,7 +323,6 @@ class R0Container(Container):
     Storage of a Merged Raw Data Event
     """
 
-    tels_with_data = Field([], "set of tel_ids for telescopes with data")
     tel = Field(Map(R0CameraContainer), "map of tel_id to R0CameraContainer")
 
 
@@ -336,9 +330,6 @@ class R1CameraContainer(Container):
     """
     Storage of r1 calibrated data from a single telescope
     """
-
-    trigger_time = Field(None, "Telescope trigger time, start of waveform " "readout")
-    trigger_type = Field(0o0, "camera trigger type")
 
     waveform = Field(
         None,
@@ -361,7 +352,6 @@ class R1Container(Container):
     Storage of a r1 calibrated Data Event
     """
 
-    tels_with_data = Field([], "set of tel_ids for telescopes with data")
     tel = Field(Map(R1CameraContainer), "map of tel_id to R1CameraContainer")
 
 
@@ -369,9 +359,6 @@ class DL0CameraContainer(Container):
     """
     Storage of data volume reduced dl0 data from a single telescope
     """
-
-    trigger_time = Field(None, "Telescope trigger time, start of waveform " "readout")
-    trigger_type = Field(0o0, "camera trigger type")
 
     waveform = Field(
         None,
@@ -397,7 +384,6 @@ class DL0Container(Container):
     Storage of a data volume reduced Event
     """
 
-    tels_with_data = Field([], "set of tel_ids for telescopes with data")
     tel = Field(Map(DL0CameraContainer), "map of tel_id to DL0CameraContainer")
 
 
@@ -516,11 +502,15 @@ class MCHeaderContainer(Container):
 
 class TelescopeTriggerContainer(Container):
     time = Field(NAN_TIME, "Telescope trigger time")
+    n_trigger_pixels = Field(-1, "Number of trigger groups (sectors) listed")
+    trigger_pixels = Field(None, "pixels involved in the camera trigger")
 
 
 class TriggerContainer(Container):
     time = Field(NAN_TIME, "central average time stamp")
-    tels_with_trigger = Field([], "list of telescope ids with data")
+    tels_with_trigger = Field(
+        [], "List of telescope ids that triggered the array event"
+    )
     event_type = Field(EventType.SUBARRAY, "Event type")
     tel = Field(Map(TelescopeTriggerContainer), "telescope-wise trigger information")
 
@@ -673,8 +663,6 @@ class EventCalibrationContainer(Container):
     """
     Container for calibration coefficients for the current event
     """
-
-    tels_with_data = Field([], "set of tel_ids for telescopes with data")
 
     # create the camera container
     tel = Field(
@@ -901,8 +889,6 @@ class MonitoringContainer(Container):
     """
     Root container for monitoring data (MON)
     """
-
-    tels_with_data = Field([], "list of telescopes with data")
 
     # create the camera container
     tel = Field(

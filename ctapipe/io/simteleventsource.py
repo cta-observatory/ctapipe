@@ -126,7 +126,7 @@ def apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe, gain_selector)
         Shape: (n_pixels)
     """
     n_channels, n_pixels, n_samples = r0_waveforms.shape
-    ped = pedestal[..., np.newaxis] / n_samples
+    ped = pedestal[..., np.newaxis]
     gain = dc_to_pe[..., np.newaxis]
     r1_waveforms = (r0_waveforms - ped) * gain
     if n_channels == 1:
@@ -356,13 +356,9 @@ class SimTelEventSource(EventSource):
 
             event_id = array_event.get("event_id", -1)
             obs_id = self.file_.header["run"]
-            tels_with_data = set(array_event["telescope_events"].keys())
             data.count = counter
             data.index.obs_id = obs_id
             data.index.event_id = event_id
-            data.r0.tels_with_data = tels_with_data
-            data.r1.tels_with_data = tels_with_data
-            data.dl0.tels_with_data = tels_with_data
 
             self._fill_trigger_info(data, array_event)
 
@@ -389,7 +385,9 @@ class SimTelEventSource(EventSource):
 
                 mc = data.mc.tel[tel_id]
                 mc.dc_to_pe = array_event["laser_calibrations"][tel_id]["calib"]
-                mc.pedestal = array_event["camera_monitorings"][tel_id]["pedestal"]
+                mon = array_event["camera_monitorings"][tel_id]
+                mc.pedestal = mon["pedestal"] / mon["n_ped_slices"]
+
                 mc.true_image = (
                     array_event.get("photoelectrons", {})
                     .get(tel_id - 1, {})
@@ -406,11 +404,6 @@ class SimTelEventSource(EventSource):
                 r1.waveform, r1.selected_gain_channel = apply_simtel_r1_calibration(
                     adc_samples, mc.pedestal, mc.dc_to_pe, self.gain_selector
                 )
-
-                pixel_lists = telescope_event["pixel_lists"]
-                r0.num_trig_pix = pixel_lists.get(0, {"pixels": 0})["pixels"]
-                if r0.num_trig_pix > 0:
-                    r0.trig_pix_id = pixel_lists[0]["pixel_list"]
 
             yield data
 
@@ -456,7 +449,17 @@ class SimTelEventSource(EventSource):
             trigger["triggered_telescopes"], trigger["trigger_times"]
         ):
             # time is relative to central trigger in nano seconds
-            data.trigger.tel[tel_id].time = data.trigger.time + u.Quantity(time, u.ns)
+            trigger = data.trigger.tel[tel_id]
+            trigger.time = data.trigger.time + u.Quantity(time, u.ns)
+
+            # triggered pixel info
+            tel_event = array_event["telescope_events"].get(tel_id)
+            if tel_event:
+                # code 0 = trigger pixels
+                pixel_list = tel_event["pixel_lists"].get(0)
+                if pixel_list:
+                    trigger.n_trigger_pixels = pixel_list["pixels"]
+                    trigger.trigger_pixels = pixel_list["pixel_list"]
 
     def _fill_array_pointing(self, data):
         if self.file_.header["tracking_mode"] == 0:
