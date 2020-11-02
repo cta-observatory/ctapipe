@@ -72,7 +72,9 @@ setup(
         "tqdm>=4.32",
         "traitlets>=4.1,<5.0",
         "zstandard",
-        "h5py",  # needed for astropy hdf5 io
+        # needed for astropy hdf5 io. Version 3 breaks copying those tables
+        # with pytables du to variable length strings.
+        "h5py~=2.0",
     ],
     # here are optional dependencies (as "tag" : "dependency spec")
     extras_require={
