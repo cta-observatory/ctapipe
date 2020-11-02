@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from ctapipe.io.dl1writer import DL1Writer
+from ctapipe.io.dl1writer import DL1Writer, DL1_DATA_MODEL_VERSION
 from ctapipe.utils import get_dataset_path
 from ctapipe.io import event_source
 from ctapipe.calib import CameraCalibrator
@@ -37,13 +37,24 @@ def test_dl1writer(tmpdir: Path):
         for event in source:
             calibrate(event)
             write_dl1(event)
+        write_dl1.write_simulation_histograms(source)
 
     assert output_path.exists()
 
+    # check a few things in the output just to make sure there is output. For a
+    # full test of the data model, a verify tool should be created.
     with tables.open_file(output_path) as h5file:
         images = h5file.get_node("/dl1/event/telescope/images/tel_001")
-        assert len(images.col("image")) > 0
-
-
-if __name__ == "__main__":
-    test_dl1writer(Path("/tmp"))
+        assert images.col("image").max() > 0.0
+        assert (
+            h5file.root._v_attrs[
+                "CTA PRODUCT DATA MODEL VERSION"
+            ]  # pylint: disable=protected-access
+            == DL1_DATA_MODEL_VERSION
+        )
+        shower = h5file.get_node("/simulation/event/subarray/shower")
+        assert len(shower) > 0
+        assert shower.col("true_alt").mean() > 0.0
+        assert (
+            shower._v_attrs["true_alt_UNIT"] == "deg"
+        )  # pylint: disable=protected-access

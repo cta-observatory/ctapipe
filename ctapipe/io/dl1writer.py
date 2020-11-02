@@ -6,13 +6,14 @@ Class to write DL1 data from an event stream
 
 import pathlib
 from collections import defaultdict
+from typing import DefaultDict, Tuple
 
 import numpy as np
 import tables
 from astropy import units as u
 
 from ..containers import (
-    DataContainer,
+    ArrayEventContainer,
     SimulatedShowerDistribution,
     TelEventIndexContainer,
 )
@@ -156,8 +157,8 @@ class DL1Writer(Component):
         self._mc_header = event_source.mc_header
         self._obs_id = event_source.obs_id
         self._hdf5_filters = None
-        self._last_pointing_tel = None
-        self._last_pointing = None
+        self._last_pointing_tel: DefaultDict[Tuple] = None
+        self._last_pointing: Tuple = None
         self._writer: TableWriter = None
 
     def __enter__(self):
@@ -166,7 +167,7 @@ class DL1Writer(Component):
     def __exit__(self, type, value, traceback):
         self.finish()
 
-    def __call__(self, event: DataContainer):
+    def __call__(self, event: ArrayEventContainer):
         """
         Write a single event to the output file. On the first event, the output
         file is set up
@@ -179,6 +180,7 @@ class DL1Writer(Component):
         # Write subarray event data
         self._write_subarray_pointing(event, writer=self._writer)
 
+        self.log.debug(f"WRITING EVENT {event.index}")
         self._writer.write(
             table_name="dl1/event/subarray/trigger",
             containers=[event.index, event.trigger],
@@ -186,7 +188,7 @@ class DL1Writer(Component):
         if self._is_simulation:
             self._writer.write(
                 table_name="simulation/event/subarray/shower",
-                containers=[event.index, event.mc],
+                containers=[event.index, event.simulation.shower],
             )
 
         # write telescope event data
@@ -207,8 +209,7 @@ class DL1Writer(Component):
 
     def finish(self):
         """ called after all events are done """
-        if self._is_simulation:
-            self._write_simulation_histograms()
+        self.log.info("Finishing DL1 output")
         if self.write_index_tables:
             self._generate_indices()
         write_reference_metadata_headers(
@@ -306,7 +307,7 @@ class DL1Writer(Component):
         self._writer = writer
         self.log.debug("Writer initialized: %s", self._writer)
 
-    def _write_subarray_pointing(self, event: DataContainer, writer: TableWriter):
+    def _write_subarray_pointing(self, event: ArrayEventContainer, writer: TableWriter):
         """ store subarray pointing info in a monitoring table """
         pnt = event.pointing
         current_pointing = (pnt.array_azimuth, pnt.array_altitude)
@@ -333,7 +334,7 @@ class DL1Writer(Component):
         self._mc_header.prefix = ""
         self._writer.write("configuration/simulation/run", [extramc, self._mc_header])
 
-    def _write_simulation_histograms(self):
+    def write_simulation_histograms(self, event_source):
         """Write the distribution of thrown showers
 
         TODO: this needs to be fixed, since it currently requires access to the
@@ -377,7 +378,7 @@ class DL1Writer(Component):
             container.meta["x_label"] = "Log10 E (TeV)"
             container.meta["y_label"] = "3D Core Distance (m)"
 
-        hists = self.event_source.file_.histograms
+        hists = event_source.file_.histograms
         if hists is not None:
             hist_container = SimulatedShowerDistribution()
             hist_container.prefix = ""
@@ -389,7 +390,7 @@ class DL1Writer(Component):
                         containers=hist_container,
                     )
 
-    def _write_telescope_events(self, writer: TableWriter, event: DataContainer):
+    def _write_telescope_events(self, writer: TableWriter, event: ArrayEventContainer):
         """
         add entries to the event/telescope tables for each telescope in a single
         event
@@ -427,16 +428,21 @@ class DL1Writer(Component):
                 "dl1/event/telescope/trigger", [tel_index, event.trigger.tel[tel_id]]
             )
 
+            has_sim_camera = tel_id in event.simulation.tel
+
             if self.write_parameters:
                 writer.write(
                     table_name=f"dl1/event/telescope/parameters/{table_name}",
                     containers=[tel_index, *dl1_camera.parameters.values()],
                 )
 
-                if self._is_simulation and has_true_image:
+                if self._is_simulation and has_sim_camera:
                     writer.write(
                         f"simulation/event/telescope/parameters/{table_name}",
-                        [tel_index, *mcdl1.true_parameters.values()],
+                        [
+                            tel_index,
+                            *event.simulation.tel[tel_id].true_parameters.values(),
+                        ],
                     )
 
             if self.write_images:
@@ -449,10 +455,10 @@ class DL1Writer(Component):
                     containers=[tel_index, dl1_camera],
                 )
 
-                if self._is_simulation:
+                if self._is_simulation and has_sim_camera:
                     writer.write(
                         f"simulation/event/telescope/images/{table_name}",
-                        [tel_index, mcdl1],
+                        [tel_index, event.simulation.tel[tel_id]],
                     )
 
     def _generate_table_indices(self, h5file, start_node):
