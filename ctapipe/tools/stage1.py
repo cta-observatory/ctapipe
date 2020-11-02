@@ -55,7 +55,7 @@ PROV = Provenance()
 #   (meaning readers need to update scripts)
 # - increase the minor number if new columns or datasets are added
 # - increase the patch number if there is a small bugfix to the model.
-DL1_DATA_MODEL_VERSION = "v1.0.0"
+DL1_DATA_MODEL_VERSION = "v1.0.1"
 
 
 def write_reference_metadata_headers(obs_id, subarray, writer):
