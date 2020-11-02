@@ -11,7 +11,7 @@ from ctapipe.core.container import Container, Field
 from ctapipe import containers
 from ctapipe.containers import (
     R0CameraContainer,
-    MCEventContainer,
+    SimulatedShowerContainer,
     HillasParametersContainer,
     LeakageContainer,
 )
@@ -28,7 +28,7 @@ def temp_h5_file(tmpdir_factory):
 
 def test_write_container(temp_h5_file):
     r0tel = R0CameraContainer()
-    mc = MCEventContainer()
+    mc = SimulatedShowerContainer()
     mc.reset()
     r0tel.waveform = np.random.uniform(size=(50, 10))
     r0tel.meta["test_attribute"] = 3.14159
@@ -303,7 +303,7 @@ def test_write_large_integer():
 def test_read_container(temp_h5_file):
     r0tel1 = R0CameraContainer()
     r0tel2 = R0CameraContainer()
-    mc = MCEventContainer()
+    mc = SimulatedShowerContainer()
 
     with HDF5TableReader(temp_h5_file) as reader:
 
@@ -332,7 +332,7 @@ def test_read_container(temp_h5_file):
 
 def test_read_whole_table(temp_h5_file):
 
-    mc = MCEventContainer()
+    mc = SimulatedShowerContainer()
 
     with HDF5TableReader(temp_h5_file) as reader:
 
@@ -377,7 +377,7 @@ def test_reader_closes_file(temp_h5_file):
 
 def test_with_context_reader(temp_h5_file):
 
-    mc = MCEventContainer()
+    mc = SimulatedShowerContainer()
 
     with HDF5TableReader(temp_h5_file) as h5_table:
 

@@ -11,44 +11,42 @@ import numpy as np
 from .core import Container, Field, Map
 
 __all__ = [
-    "R0Container",
-    "R0CameraContainer",
-    "R1Container",
-    "R1CameraContainer",
-    "DL0Container",
-    "DL0CameraContainer",
-    "DL1Container",
-    "DL1CameraContainer",
-    "MCDL1CameraContainer",
-    "EventCameraCalibrationContainer",
-    "EventCalibrationContainer",
-    "MCEventContainer",
-    "MCHeaderContainer",
-    "MCCameraEventContainer",
-    "DL1CameraCalibrationContainer",
-    "TriggerContainer",
-    "ReconstructedContainer",
-    "ReconstructedShowerContainer",
-    "ReconstructedEnergyContainer",
-    "ParticleClassificationContainer",
-    "DataContainer",
-    "HillasParametersContainer",
-    "LeakageContainer",
+    "ArrayEventContainer",
     "ConcentrationContainer",
-    "MorphologyContainer",
-    "TimingParametersContainer",
+    "DL0CameraContainer",
+    "DL0Container",
+    "DL1CameraCalibrationContainer",
+    "DL1CameraContainer",
+    "DL1Container",
+    "EventCalibrationContainer",
+    "EventCameraCalibrationContainer",
+    "EventIndexContainer",
+    "EventType",
     "FlatFieldContainer",
-    "PedestalContainer",
-    "PixelStatusContainer",
-    "WaveformCalibrationContainer",
+    "HillasParametersContainer",
+    "ImageParametersContainer",
+    "LeakageContainer",
+    "MCHeaderContainer",
     "MonitoringCameraContainer",
     "MonitoringContainer",
-    "EventAndMonDataContainer",
-    "EventIndexContainer",
-    "TelEventIndexContainer",
-    "ImageParametersContainer",
+    "MorphologyContainer",
+    "ParticleClassificationContainer",
+    "PedestalContainer",
+    "PixelStatusContainer",
+    "R0CameraContainer",
+    "R0Container",
+    "R1CameraContainer",
+    "R1Container",
+    "ReconstructedContainer",
+    "ReconstructedEnergyContainer",
+    "ReconstructedShowerContainer",
+    "SimulatedCameraContainer",
+    "SimulatedShowerContainer",
     "SimulatedShowerDistribution",
-    "EventType",
+    "TelEventIndexContainer",
+    "TimingParametersContainer",
+    "TriggerContainer",
+    "WaveformCalibrationContainer",
 ]
 
 
@@ -256,23 +254,6 @@ class DL1CameraContainer(Container):
     parameters = Field(ImageParametersContainer(), "Parameters derived from images")
 
 
-class MCDL1CameraContainer(Container):
-    """Contains all fields of the DL1CameraContainer, but adds fields for simulated
-    DL1 image information."""
-
-    true_image = Field(
-        None,
-        "Numpy array of camera image in PE as simulated before noise has been added. "
-        "Shape: (n_pixel)",
-        dtype=np.float32,
-        ndim=1,
-    )
-
-    true_parameters = Field(
-        ImageParametersContainer(), "Parameters derived from the true_image"
-    )
-
-
 class DL1Container(Container):
     """ DL1 Calibrated Camera Images and associated data"""
 
@@ -412,13 +393,8 @@ class MCCameraEventContainer(Container):
     )
 
 
-class MCEventContainer(Container):
-    """
-    Monte-Carlo
-    """
-
+class SimulatedShowerContainer(Container):
     container_prefix = "true"
-
     energy = Field(nan * u.TeV, "Monte-Carlo Energy", unit=u.TeV)
     alt = Field(nan * u.deg, "Monte-carlo altitude", unit=u.deg)
     az = Field(nan * u.deg, "Monte-Carlo azimuth", unit=u.deg)
@@ -432,7 +408,32 @@ class MCEventContainer(Container):
         "2(mu-), 100*A+Z for nucleons and nuclei,"
         "negative for antimatter.",
     )
-    tel = Field(Map(MCCameraEventContainer), "map of tel_id to MCCameraEventContainer")
+
+
+class SimulatedCameraContainer(Container):
+    """
+    True images and parameters derived from them, analgous to the `DL1CameraContainer`
+    but for simulated data.
+    """
+
+    container_prefix = ""
+
+    true_image = Field(
+        None,
+        "Numpy array of camera image in PE as simulated before noise has been added. "
+        "Shape: (n_pixel)",
+        dtype=np.float32,
+        ndim=1,
+    )
+
+    true_parameters = Field(
+        ImageParametersContainer(), "Parameters derived from the true_image"
+    )
+
+
+class SimulatedEventContainer(Container):
+    shower = Field(SimulatedShowerContainer(), "True event information")
+    tel = Field(Map(SimulatedCameraContainer))
 
 
 class MCHeaderContainer(Container):
@@ -673,26 +674,6 @@ class EventCalibrationContainer(Container):
     )
 
 
-class DataContainer(Container):
-    """ Top-level container for all event information """
-
-    index = Field(EventIndexContainer(), "event indexing information")
-    r0 = Field(R0Container(), "Raw Data")
-    r1 = Field(R1Container(), "R1 Calibrated Data")
-    dl0 = Field(DL0Container(), "DL0 Data Volume Reduced Data")
-    dl1 = Field(DL1Container(), "DL1 Calibrated image")
-    dl2 = Field(ReconstructedContainer(), "Reconstructed Shower Information")
-    mc = Field(MCEventContainer(), "Monte-Carlo data")
-    mcheader = Field(MCHeaderContainer(), "Monte-Carlo run header data")
-    trigger = Field(TriggerContainer(), "central trigger information")
-    count = Field(0, "number of events processed")
-    pointing = Field(PointingContainer(), "Array and telescope pointing positions")
-    calibration = Field(
-        EventCalibrationContainer(),
-        "Container for calibration coefficients for the current event",
-    )
-
-
 class MuonRingContainer(Container):
     """Container for the result of a ring fit, center_x, center_y"""
 
@@ -898,14 +879,6 @@ class MonitoringContainer(Container):
     )
 
 
-class EventAndMonDataContainer(DataContainer):
-    """
-    Data container including monitoring information
-    """
-
-    mon = Field(MonitoringContainer(), "container for monitoring data (MON)")
-
-
 class SimulatedShowerDistribution(Container):
     """
     2D histogram of simulated number of showers simulated as function of energy and
@@ -924,3 +897,23 @@ class SimulatedShowerDistribution(Container):
         None, "array of core-distance bin lower edges, as in np.histogram", unit=u.m
     )
     histogram = Field(None, "array of histogram entries, size (n_bins_x, n_bins_y)")
+
+
+class ArrayEventContainer(Container):
+    """ Top-level container for all event information """
+
+    index = Field(EventIndexContainer(), "event indexing information")
+    r0 = Field(R0Container(), "Raw Data")
+    r1 = Field(R1Container(), "R1 Calibrated Data")
+    dl0 = Field(DL0Container(), "DL0 Data Volume Reduced Data")
+    dl1 = Field(DL1Container(), "DL1 Calibrated image")
+    dl2 = Field(ReconstructedContainer(), "Reconstructed Shower Information")
+    simulation = Field(SimulatedEventContainer(), "Simulated Event Information")
+    trigger = Field(TriggerContainer(), "central trigger information")
+    count = Field(0, "number of events processed")
+    pointing = Field(PointingContainer(), "Array and telescope pointing positions")
+    calibration = Field(
+        EventCalibrationContainer(),
+        "Container for calibration coefficients for the current event",
+    )
+    mon = Field(MonitoringContainer(), "container for event-wise monitoring data (MON)")

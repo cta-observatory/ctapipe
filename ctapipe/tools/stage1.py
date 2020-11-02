@@ -19,7 +19,7 @@ from ..containers import (
     SimulatedShowerDistribution,
     IntensityStatisticsContainer,
     PeakTimeStatisticsContainer,
-    MCDL1CameraContainer,
+    SimulatedCameraContainer,
     TimingParametersContainer,
 )
 from ..core import Provenance
@@ -475,7 +475,7 @@ class Stage1ProcessorTool(Tool):
             if self.event_source.is_simulation:
                 writer.write(
                     table_name="simulation/event/subarray/shower",
-                    containers=[event.index, event.mc],
+                    containers=[event.index, event.simulation.shower],
                 )
             writer.write(
                 table_name="dl1/event/subarray/trigger",
@@ -520,17 +520,12 @@ class Stage1ProcessorTool(Tool):
                 "dl1/event/telescope/trigger", [tel_index, event.trigger.tel[tel_id]]
             )
 
+            sim_camera = event.simulation.tel[tel_id]
             if self.event_source.is_simulation:
-                true_image = event.mc.tel[tel_id].true_image
+                true_image = sim_camera.true_image
                 has_true_image = (
                     true_image is not None and np.count_nonzero(true_image) > 0
                 )
-
-                if has_true_image:
-                    mcdl1 = MCDL1CameraContainer(
-                        true_image=true_image, true_parameters=None
-                    )
-                    mcdl1.prefix = ""
             else:
                 has_true_image = False
 
@@ -556,7 +551,7 @@ class Stage1ProcessorTool(Tool):
                 )
 
                 if self.event_source.is_simulation and has_true_image:
-                    mcdl1.true_parameters = self._parameterize_image(
+                    sim_camera.true_parameters = self._parameterize_image(
                         tel_id,
                         image=true_image,
                         signal_pixels=true_image > 0,
@@ -564,7 +559,7 @@ class Stage1ProcessorTool(Tool):
                     )
                     writer.write(
                         f"simulation/event/telescope/parameters/{table_name}",
-                        [tel_index, *mcdl1.true_parameters.values()],
+                        [tel_index, *sim_camera.true_parameters.values()],
                     )
 
             if self.write_images:
@@ -579,7 +574,7 @@ class Stage1ProcessorTool(Tool):
                 if has_true_image:
                     writer.write(
                         f"simulation/event/telescope/images/{table_name}",
-                        [tel_index, mcdl1],
+                        [tel_index, sim_camera],
                     )
 
     def _generate_table_indices(self, h5file, start_node):
