@@ -362,8 +362,10 @@ class MergeTool(Tool):
                     if "/simulation" not in file.root:
                         self.usable_nodes = self.usable_nodes - simu_nodes
                         self.log.info("Merging real data")
+                        self.is_simulation = False
                     else:
                         self.log.info("Merging simulation-files")
+                        self.is_simulation = True
 
                 if self.check_file_broken(file) is True:
                     if self.skip_broken_files is True:
@@ -386,6 +388,9 @@ class MergeTool(Tool):
     def finish(self):
         activity = PROV.current_activity.provenance
         DL1_DATA_MODEL_VERSION = "v1.0.0"
+        process_type_ = "Observation"
+        if self.is_simulation is True:
+            process_type_ = "Simulation"
 
         reference = meta.Reference(
             contact=meta.Contact(name="", email="", organization="CTA Consortium"),
@@ -399,7 +404,7 @@ class MergeTool(Tool):
                 data_model_url="",
                 format="hdf5",
             ),
-            process=meta.Process(type_="Simulation", subtype="", id_=0),
+            process=meta.Process(type_=process_type_, subtype="", id_=0),
             activity=meta.Activity.from_provenance(activity),
             instrument=meta.Instrument(
                 site="Other",
