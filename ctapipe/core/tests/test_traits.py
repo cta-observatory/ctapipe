@@ -278,11 +278,25 @@ def test_telescope_parameter_path(mock_subarray):
 
         with pytest.raises(TraitError):
             # non existing somewhere in the config
-            c.path = [("*", "", f.name), ("type", "LST_LST_LSTCam", "/does/not/exist")]
+            c.path = [
+                ("type", "*", f.name),
+                ("type", "LST_LST_LSTCam", "/does/not/exist"),
+            ]
 
     with tempfile.TemporaryDirectory() as d:
         with pytest.raises(TraitError):
             c.path = d
+
+    # test with none default:
+    class SomeComponent(TelescopeComponent):
+        path = TelescopeParameter(
+            Path(exists=True, directory_ok=False), default_value=None, allow_none=True
+        )
+
+    s = SomeComponent(subarray=mock_subarray)
+    assert s.path.tel[1] is None
+    s.path = [("type", "*", "setup.py")]
+    assert s.path.tel[1] == pathlib.Path("setup.py").absolute()
 
 
 def test_telescope_parameter_scalar_default(mock_subarray):

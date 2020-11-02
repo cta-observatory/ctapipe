@@ -34,7 +34,7 @@ class ChargeResolutionViewer(Tool):
 
     def setup(self):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
-        self.plotter = self.add_component(ChargeResolutionPlotter(parent=self))
+        self.plotter = ChargeResolutionPlotter(parent=self)
 
     def start(self):
         for fp in self.input_files:

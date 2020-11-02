@@ -253,12 +253,10 @@ class DisplayIntegrator(Tool):
     def setup(self):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
 
-        event_source = self.add_component(EventSource.from_config(parent=self))
+        event_source = EventSource.from_config(parent=self)
         self.subarray = event_source.subarray
-        self.eventseeker = self.add_component(EventSeeker(event_source, parent=self))
-        self.calibrate = self.add_component(
-            CameraCalibrator(parent=self, subarray=self.subarray)
-        )
+        self.eventseeker = EventSeeker(event_source, parent=self)
+        self.calibrate = CameraCalibrator(parent=self, subarray=self.subarray)
 
     def start(self):
         if self.use_event_id:
@@ -270,7 +268,7 @@ class DisplayIntegrator(Tool):
         self.calibrate(event)
 
         # Select telescope
-        tels = list(event.r0.tels_with_data)
+        tels = list(event.r0.tel.keys())
         telid = self.telescope
         if telid is None:
             telid = tels[0]

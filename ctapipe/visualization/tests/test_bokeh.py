@@ -11,14 +11,14 @@ def test_camera_display_create():
 def test_camera_geom(example_event, example_subarray):
     from ctapipe.visualization.bokeh import CameraDisplay
 
-    t = list(example_event.r0.tels_with_data)[0]
+    t = list(example_event.r0.tel.keys())[0]
     geom = example_subarray.tel[t].camera.geometry
     c_display = CameraDisplay(geom)
 
     assert (c_display.cdsource.data["x"] == geom.pix_x.value).all()
     assert (c_display.cdsource.data["y"] == geom.pix_y.value).all()
 
-    t = list(example_event.r0.tels_with_data)[1]
+    t = list(example_event.r0.tel.keys())[1]
     geom = example_subarray.tel[t].camera.geometry
     c_display.geom = geom
     assert (c_display.cdsource.data["x"] == geom.pix_x.value).all()
@@ -28,7 +28,7 @@ def test_camera_geom(example_event, example_subarray):
 def test_camera_image(example_event, example_subarray):
     from ctapipe.visualization.bokeh import CameraDisplay, intensity_to_hex
 
-    t = list(example_event.r0.tels_with_data)[0]
+    t = list(example_event.r0.tel.keys())[0]
     geom = example_subarray.tel[t].camera.geometry
     n_pixels = geom.pix_x.value.size
     image = np.ones(n_pixels)
@@ -53,7 +53,7 @@ def test_camera_image(example_event, example_subarray):
 def test_camera_enable_pixel_picker(example_event, example_subarray):
     from ctapipe.visualization.bokeh import CameraDisplay
 
-    t = list(example_event.r0.tels_with_data)[0]
+    t = list(example_event.r0.tel.keys())[0]
     geom = example_subarray.tel[t].camera.geometry
     n_pixels = geom.pix_x.value.size
     image = np.ones(n_pixels)
@@ -69,7 +69,7 @@ def test_camera_enable_pixel_picker(example_event, example_subarray):
 def test_fast_camera_display_create(example_event, example_subarray):
     from ctapipe.visualization.bokeh import FastCameraDisplay
 
-    t = list(example_event.r0.tels_with_data)[0]
+    t = list(example_event.r0.tel.keys())[0]
     geom = example_subarray.tel[t].camera.geometry
 
     x = geom.pix_x.value
@@ -83,7 +83,7 @@ def test_fast_camera_display_create(example_event, example_subarray):
 def test_fast_camera_image(example_event, example_subarray):
     from ctapipe.visualization.bokeh import FastCameraDisplay, intensity_to_hex
 
-    t = list(example_event.r0.tels_with_data)[0]
+    t = list(example_event.r0.tel.keys())[0]
     geom = example_subarray.tel[t].camera.geometry
 
     x = geom.pix_x.value

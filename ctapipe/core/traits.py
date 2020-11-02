@@ -133,6 +133,12 @@ class Path(TraitType):
         if isinstance(value, bytes):
             value = os.fsdecode(value)
 
+        if value is None:
+            if self.allow_none:
+                return None
+            else:
+                self.error(obj, value)
+
         if not isinstance(value, (str, pathlib.Path)):
             return self.error(obj, value)
 

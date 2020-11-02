@@ -165,11 +165,14 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         """ return the current configuration as a dict (e.g. the values
         of all traits, even if they were not set during configuration)
         """
-        return {
-            self.__class__.__name__: {
-                k: v.get(self) for k, v in self.traits(config=True).items()
-            }
-        }
+        name = self.__class__.__name__
+        config = {name: {k: v.get(self) for k, v in self.traits(config=True).items()}}
+
+        for val in self.__dict__.values():
+            if isinstance(val, Component):
+                config[name].update(val.get_current_config())
+
+        return config
 
     def _repr_html_(self):
         """ nice HTML rep, with blue for non-default values"""
@@ -181,13 +184,15 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
             "<table>",
         ]
         for key, val in self.get_current_config()[name].items():
-            thehelp = f"{traits[key].help} (default: {traits[key].default_value})"
-            lines.append(f"<tr><th>{key}</th>")
-            if val != traits[key].default_value:
-                lines.append(f"<td><span style='color:blue'>{val}</span></td>")
-            else:
-                lines.append(f"<td>{val}</td>")
-            lines.append(f'<td style="text-align:left"><i>{thehelp}</i></td></tr>')
+            # traits of the current component
+            if key in traits:
+                thehelp = f"{traits[key].help} (default: {traits[key].default_value})"
+                lines.append(f"<tr><th>{key}</th>")
+                if val != traits[key].default_value:
+                    lines.append(f"<td><span style='color:blue'>{val}</span></td>")
+                else:
+                    lines.append(f"<td>{val}</td>")
+                lines.append(f'<td style="text-align:left"><i>{thehelp}</i></td></tr>')
         lines.append("</table>")
         return "\n".join(lines)
 

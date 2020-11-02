@@ -57,20 +57,10 @@ class ChargeResolutionGenerator(Tool):
     def setup(self):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
 
-        self.eventsource = self.add_component(SimTelEventSource(parent=self))
+        self.eventsource = SimTelEventSource(parent=self)
 
-        extractor = self.add_component(
-            ImageExtractor.from_name(
-                self.extractor_product, parent=self, subarray=self.eventsource.subarray
-            )
-        )
-
-        self.calibrator = self.add_component(
-            CameraCalibrator(
-                parent=self,
-                image_extractor=extractor,
-                subarray=self.eventsource.subarray,
-            )
+        self.calibrator = CameraCalibrator(
+            parent=self, subarray=self.eventsource.subarray
         )
         self.calculator = ChargeResolutionCalculator()
 

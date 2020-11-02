@@ -98,19 +98,15 @@ class MuonAnalysis(Tool):
                 "Outputfile {self.output} already exists, use `--overwrite` to overwrite"
             )
 
-        self.source = self.add_component(EventSource.from_config(parent=self))
-        self.calib = self.add_component(
-            CameraCalibrator(subarray=self.source.subarray, parent=self)
-        )
-        self.ring_fitter = self.add_component(MuonRingFitter(parent=self))
-        self.intensity_fitter = self.add_component(
-            MuonIntensityFitter(subarray=self.source.subarray, parent=self)
-        )
-        self.cleaning = self.add_component(
-            TailcutsImageCleaner(parent=self, subarray=self.source.subarray)
-        )
-        self.writer = self.add_component(
-            HDF5TableWriter(self.output, "", add_prefix=True, parent=self, mode="w")
+        self.source = EventSource.from_config(parent=self)
+        subarray = self.source.subarray
+
+        self.calib = CameraCalibrator(subarray=subarray, parent=self)
+        self.ring_fitter = MuonRingFitter(parent=self)
+        self.intensity_fitter = MuonIntensityFitter(subarray=subarray, parent=self)
+        self.cleaning = TailcutsImageCleaner(parent=self, subarray=subarray)
+        self.writer = HDF5TableWriter(
+            self.output, "", add_prefix=True, parent=self, mode="w"
         )
         self.pixels_in_tel_frame = {}
         self.field_of_view = {}

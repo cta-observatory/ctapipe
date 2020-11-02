@@ -237,7 +237,7 @@ class Stage1ProcessorTool(Tool):
             )
 
         # setup components:
-        self.event_source = self.add_component(EventSource.from_config(parent=self))
+        self.event_source = EventSource.from_config(parent=self)
 
         datalevels = self.event_source.datalevels
         if DataLevel.R1 not in datalevels and DataLevel.DL0 not in datalevels:
@@ -247,17 +247,11 @@ class Stage1ProcessorTool(Tool):
             )
             sys.exit(1)
 
-        self.calibrate = self.add_component(
-            CameraCalibrator(parent=self, subarray=self.event_source.subarray)
+        self.calibrate = CameraCalibrator(parent=self, subarray=self.event_source.subarray)
+        self.clean = ImageCleaner.from_name(
+            self.image_cleaner_type, parent=self, subarray=self.event_source.subarray
         )
-        self.clean = self.add_component(
-            ImageCleaner.from_name(
-                self.image_cleaner_type,
-                parent=self,
-                subarray=self.event_source.subarray,
-            )
-        )
-        self.check_image = self.add_component(ImageQualityQuery(parent=self))
+        self.check_image = ImageQualityQuery(parent=self)
 
         # warn if max_events prevents writing the histograms
         if (

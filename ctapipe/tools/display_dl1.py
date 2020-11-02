@@ -173,20 +173,17 @@ class DisplayDL1Calib(Tool):
         self.plotter = None
 
     def setup(self):
-        self.eventsource = self.add_component(EventSource.from_config(parent=self))
+        self.eventsource = EventSource.from_config(parent=self)
+        subarray = self.eventsource.subarray
 
-        self.calibrator = self.add_component(
-            CameraCalibrator(parent=self, subarray=self.eventsource.subarray)
-        )
-        self.plotter = self.add_component(
-            ImagePlotter(subarray=self.eventsource.subarray, parent=self)
-        )
+        self.calibrator = CameraCalibrator(parent=self, subarray=subarray)
+        self.plotter = ImagePlotter(parent=self, subarray=subarray)
 
     def start(self):
         for event in self.eventsource:
             self.calibrator(event)
 
-            tel_list = event.r0.tels_with_data
+            tel_list = event.r0.tel.keys()
 
             if self.telescope:
                 if self.telescope not in tel_list:
