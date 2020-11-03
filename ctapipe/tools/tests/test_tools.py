@@ -22,6 +22,151 @@ GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 LST_MUONS = get_dataset_path("lst_muons.simtel.zst")
 
 
+def test_merge():
+    from ctapipe.tools.dl1_merge import MergeTool
+    from ctapipe.tools.stage1 import Stage1ProcessorTool
+
+    with tempfile.NamedTemporaryFile(suffix=".hdf5") as f1, tempfile.NamedTemporaryFile(
+        suffix=".hdf5"
+    ) as f2, tempfile.NamedTemporaryFile(
+        suffix=".hdf5"
+    ) as out_all, tempfile.NamedTemporaryFile(
+        suffix=".hdf5"
+    ) as out_skip_images, tempfile.NamedTemporaryFile(
+        suffix=".hdf5"
+    ) as out_skip_parameters:
+        assert (
+            run_tool(
+                Stage1ProcessorTool(),
+                argv=[
+                    "--config=./examples/stage1_config.json",
+                    f"--input={GAMMA_TEST_LARGE}",
+                    f"--output={f1.name}",
+                    "--write-parameters",
+                    "--write-images",
+                    "--overwrite",
+                ],
+            )
+            == 0
+        )
+        assert (
+            run_tool(
+                Stage1ProcessorTool(),
+                argv=[
+                    "--config=./examples/stage1_config.json",
+                    f"--input={GAMMA_TEST_LARGE}",
+                    f"--output={f2.name}",
+                    "--write-parameters",
+                    "--write-images",
+                    "--overwrite",
+                ],
+            )
+            == 0
+        )
+
+        assert (
+            run_tool(
+                MergeTool(),
+                argv=[
+                    f"{f1.name}",
+                    f"{f2.name}",
+                    f"--o={out_all.name}",
+                    "--overwrite",
+                ],
+            )
+            == 0
+        )
+
+        assert (
+            run_tool(
+                MergeTool(),
+                argv=[
+                    f"{f1.name}",
+                    f"{f2.name}",
+                    f"--o={out_skip_images.name}",
+                    "--overwrite",
+                    "--skip-images",
+                ],
+            )
+            == 0
+        )
+
+        assert (
+            run_tool(
+                MergeTool(),
+                argv=[
+                    f"{f1.name}",
+                    f"{f2.name}",
+                    f"--o={out_skip_parameters.name}",
+                    "--overwrite",
+                    "--skip-parameters",
+                ],
+            )
+            == 0
+        )
+
+        out_files_list = [out_all.name, out_skip_images.name, out_skip_parameters.name]
+
+        for out_file in out_files_list:
+            with tables.open_file(out_file, mode="r") as out_f, tables.open_file(
+                f1.name, mode="r"
+            ) as in_f:
+
+                # Check expanded tables
+                assert len(out_f.root.simulation.service.shower_distribution) == 2
+                assert len(out_f.root.simulation.event.subarray.shower) == 220
+                assert len(out_f.root.configuration.simulation.run) == 2
+                assert len(out_f.root.dl1.monitoring.subarray.pointing) == 2
+                assert len(out_f.root.dl1.event.subarray.trigger) == 220
+                assert len(out_f.root.dl1.event.telescope.trigger) == 918
+                assert len(out_f.root.simulation.service.shower_distribution) == 2
+                # Check subarray and service meta
+                assert out_f.root.dl1.service["image_statistics.__table_column_meta__"]
+                assert out_f.root.configuration.instrument.subarray.layout
+                assert out_f.root.configuration.instrument.telescope.optics
+                assert (
+                    out_f.root.configuration.instrument.telescope.camera.geometry_LSTCam
+                )
+                assert (
+                    out_f.root.configuration.instrument.telescope.camera.readout_LSTCam
+                )
+
+                # Check image statistics
+                table_in = in_f.root["/dl1/service/image_statistics"]
+                table_out = out_f.root["/dl1/service/image_statistics"]
+                for row in range(len(table_in)):
+                    assert table_out.cols.counts[row] == np.multiply(
+                        table_in.cols.counts[row], 2
+                    )
+                    assert table_out.cols.cumulative_counts[row] == np.multiply(
+                        table_in.cols.cumulative_counts[row], 2
+                    )
+
+                # Check telescope tables
+                for tel in in_f.root.dl1.monitoring.telescope.pointing:
+                    assert len(
+                        out_f.root.dl1.monitoring.telescope.pointing[tel.name]
+                    ) == np.multiply(
+                        len(in_f.root.dl1.monitoring.telescope.pointing[tel.name]), 2
+                    )
+
+                if out_file != out_skip_images.name:
+                    for tel in in_f.root.dl1.event.telescope.images:
+                        assert len(
+                            out_f.root.dl1.event.telescope.images[tel.name]
+                        ) == np.multiply(
+                            len(in_f.root.dl1.event.telescope.images[tel.name]), 2
+                        )
+
+                if out_file != out_skip_parameters.name:
+                    for tel in in_f.root.dl1.event.telescope.parameters:
+                        assert len(
+                            out_f.root.dl1.event.telescope.parameters[tel.name]
+                        ) == np.multiply(
+                            len(in_f.root.dl1.event.telescope.parameters[tel.name]), 2
+                        )
+
+
 def test_stage_1():
     from ctapipe.tools.stage1 import Stage1ProcessorTool
 
