@@ -62,6 +62,18 @@ def test_allowed_tels(dl1_file):
                 assert tel in allowed_tels
 
 
+def test_simulation_info(dl1_file):
+    with DL1EventSource(input_url=dl1_file) as source:
+        for event in source:
+            assert event.simulation.shower.energy != np.nan
+            # the currently used file does not include true dl1 information
+            # this is skipped for that reason
+            for tel in event.simulation.tel:
+                assert tel in event.simulation.tel
+                assert event.simulation.tel[tel].true_image.any()
+                assert event.simulation.tel[tel].parameters.hillas.x != np.nan
+
+
 def test_dl1_data(dl1_file):
     with DL1EventSource(input_url=dl1_file) as source:
         for event in source:
