@@ -115,6 +115,24 @@ using the `ctapipe.io.HDF5TableReader`, or more generically using the
 array values in a column cannot be read into a `pandas.DataFrame`, since it
 only supports scalar values).
 
+Writing Output Files:
+=====================
+
+The `DL1Writer` Component allows one to write a series of events (stored in
+`ctapipe.containers.ArrayEventContainer`) to a standardized HDF5 format DL1 file
+following the DL1 data model. This includes all related datasets such as the
+instrument and simulation configuration information, simulated shower and image
+information, and real images and parameters. It can be used in an event loop
+like:
+
+.. code-block:: python
+
+    with DL1Writer(event_source=source, output_path="events.dl1.h5") as write_dl1:
+        for event in source:
+            calibrate(event)
+            write_dl1(event)
+    
+
 Standard Metadata Headers
 =========================
 

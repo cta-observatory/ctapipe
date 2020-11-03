@@ -78,16 +78,17 @@ class DL1Writer(Component):
     """
     Serialize a sequence of events into a HDF5 DL1 file, in the correct format
 
-    Example
-    -------
+    Examples
+    --------
     inside a Tool:
-    .. code-block: python3
+
+    .. code-block:: python
+
         with DL1Writer(parent=self) as write_dl1:
             for event in source:
                 calibrate(event)
                 process_images(event)
                 write_dl1(event)
-
     """
 
     output_path = Path(
