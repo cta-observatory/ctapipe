@@ -272,14 +272,16 @@ class Stage1ProcessorTool(Tool):
                     arrival_times=dl1_camera.peak_time,
                 )
 
-                params = self._parameterize_image(
+                dl1_camera.parameters = self._parameterize_image(
                     tel_id=tel_id,
                     image=dl1_camera.image,
                     signal_pixels=dl1_camera.image_mask,
                     peak_time=dl1_camera.peak_time,
                 )
 
-                self.log.debug("params: %s", params.as_dict(recursive=True))
+                self.log.debug(
+                    "params: %s", dl1_camera.parameters.as_dict(recursive=True)
+                )
 
                 if (
                     self.event_source.is_simulation
