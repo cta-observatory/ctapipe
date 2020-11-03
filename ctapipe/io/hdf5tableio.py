@@ -413,7 +413,7 @@ class HDF5TableReader(TableReader):
                 if colname_without_prefix in container.fields:
                     self._cols_to_read[table_name].append(colname)
                 else:
-                    self.log.warning(
+                    self.log.debug(
                         f"Table {table_name} has column {colname_without_prefix} that is not in "
                         f"container {container.__class__.__name__}. It will be skipped."
                     )
