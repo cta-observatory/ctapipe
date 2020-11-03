@@ -21,6 +21,9 @@ from ..core import Component, Container, Field, Provenance, ToolConfigurationErr
 from ..core.traits import Bool, CaselessStrEnum, Int, Path
 from ..io import EventSource, HDF5TableWriter, TableWriter
 from ..io import metadata as meta
+from ..instrument import SubarrayDescription
+
+__all__ = ["DL1Writer", "DL1_DATA_MODEL_VERSION", "write_reference_metadata_headers"]
 
 tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many datasets
 
@@ -154,7 +157,7 @@ class DL1Writer(Component):
         # setup(), which is called when the first event is read.
 
         self._is_simulation = event_source.is_simulation
-        self._subarray = event_source.subarray
+        self._subarray: SubarrayDescription = event_source.subarray
         self._simulation_config = event_source.simulation_config
         self._obs_id = event_source.obs_id
         self._hdf5_filters = None
@@ -178,7 +181,7 @@ class DL1Writer(Component):
         if self._writer is None:
             self.setup()
 
-        # Write subarray event data
+        # Write subarray evvent data
         self._write_subarray_pointing(event, writer=self._writer)
 
         self.log.debug(f"WRITING EVENT {event.index}")
@@ -200,11 +203,10 @@ class DL1Writer(Component):
         self.log.debug("Setting Up DL1 Output")
 
         self._setup_output_path()
-        self._subarray.to_hdf(self.output_path)
+        self._subarray.to_hdf(self.output_path)  # must be first (uses astropy io)
         self._setup_compression()
         self._setup_writer()
-        if self._is_simulation:
-            self._write_simulation_configuration()
+        self._write_simulation_configuration()
 
         # store last pointing to only write unique poitings
         self._last_pointing_tel = defaultdict(lambda: (np.nan * u.deg, np.nan * u.deg))

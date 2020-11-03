@@ -304,9 +304,9 @@ class Stage1ProcessorTool(Tool):
         self._process_events()
 
     def finish(self):
-        self._write_processing_statistics()
         self._write_dl1.write_simulation_histograms(self.event_source)
         self._write_dl1.finish()
+        self._write_processing_statistics()
 
 
 def main():
