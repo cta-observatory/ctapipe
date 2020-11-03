@@ -7,6 +7,7 @@ from itertools import zip_longest
 import pytest
 from astropy.time import Time
 from pathlib import Path
+from traitlets.config import Config
 
 
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
@@ -329,3 +330,11 @@ def test_effective_focal_length():
     assert focal_length_nominal > 0
     assert focal_length_effective > 0
     assert focal_length_nominal != focal_length_effective
+
+
+def test_only_config():
+    config = Config()
+    config.SimTelEventSource.input_url = gamma_test_large_path
+
+    s = SimTelEventSource(config=config)
+    assert s.input_url == Path(gamma_test_large_path).absolute()
