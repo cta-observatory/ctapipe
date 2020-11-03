@@ -3,8 +3,6 @@ Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
 """
 import sys
 
-import numpy as np
-from astropy import units as u
 from tqdm.autonotebook import tqdm
 
 from ..calib.camera import CameraCalibrator, GainSelector
@@ -12,28 +10,10 @@ from ..containers import (
     ImageParametersContainer,
     IntensityStatisticsContainer,
     PeakTimeStatisticsContainer,
-    SimulatedCameraContainer,
-    SimulatedShowerDistribution,
-    TelEventIndexContainer,
     TimingParametersContainer,
 )
-from ..core import (
-    Container,
-    Field,
-    Provenance,
-    QualityQuery,
-    Tool,
-    ToolConfigurationError,
-)
-from ..core.traits import (
-    Bool,
-    CaselessStrEnum,
-    Int,
-    List,
-    Path,
-    classes_with_traits,
-    create_class_enum_trait,
-)
+from ..core import QualityQuery, Tool
+from ..core.traits import Bool, List, classes_with_traits, create_class_enum_trait
 from ..image import ImageCleaner
 from ..image import concentration as concentration_parameters
 from ..image import descriptive_statistics, hillas_parameters
@@ -254,14 +234,6 @@ class Stage1ProcessorTool(Tool):
         """
 
         for tel_id, dl1_camera in event.dl1.tel.items():
-            telescope = self.event_source.subarray.tel[tel_id]
-            tel_type = str(telescope)
-
-            tel_index = TelEventIndexContainer(
-                obs_id=event.index.obs_id,
-                event_id=event.index.event_id,
-                tel_id=np.int16(tel_id),
-            )
 
             if self._write_dl1.write_parameters:
                 # compute image parameters only if requested to write them
