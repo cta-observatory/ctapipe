@@ -132,7 +132,7 @@ class PedestalCalculator(Component):
 
         Parameters
         ----------
-        event: general DataContainer
+        event: ctapipe.containers.ArrayEventContainer
 
         Returns: True if the mon.tel[tel_id].pedestal is updated,
                  False otherwise

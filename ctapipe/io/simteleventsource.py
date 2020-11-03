@@ -1,5 +1,6 @@
 import warnings
 from gzip import GzipFile
+from io import BufferedReader
 from pathlib import Path
 
 import numpy as np
@@ -9,25 +10,29 @@ from astropy.time import Time
 from eventio.file_types import is_eventio
 from eventio.simtel.simtelfile import SimTelFile
 from traitlets import observe
-from io import BufferedReader
 
 from ..calib.camera.gainselection import GainSelector
-from ..containers import EventAndMonDataContainer, EventType
+from ..containers import (
+    ArrayEventContainer,
+    EventType,
+    SimulationConfigContainer,
+    SimulatedCameraContainer,
+    SimulatedShowerContainer,
+)
+from ..coordinates import CameraFrame
 from ..core.traits import Bool, CaselessStrEnum, create_class_enum_trait
 from ..instrument import (
-    TelescopeDescription,
-    SubarrayDescription,
     CameraDescription,
     CameraGeometry,
     CameraReadout,
     OpticsDescription,
+    SubarrayDescription,
+    TelescopeDescription,
 )
 from ..instrument.camera import UnknownPixelShapeWarning
-from ..instrument.guess import guess_telescope, UNKNOWN_TELESCOPE
-from ..containers import MCHeaderContainer
-from .eventsource import EventSource
+from ..instrument.guess import UNKNOWN_TELESCOPE, guess_telescope
 from .datalevels import DataLevel
-from ..coordinates import CameraFrame
+from .eventsource import EventSource
 
 X_MAX_UNIT = u.g / (u.cm ** 2)
 
@@ -139,6 +144,8 @@ def apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe, gain_selector)
 
 
 class SimTelEventSource(EventSource):
+    """ Read events from a SimTelArray data file (in EventIO format)."""
+
     skip_calibration_events = Bool(True, help="Skip calibration events").tag(
         config=True
     )
@@ -201,7 +208,7 @@ class SimTelEventSource(EventSource):
         self._subarray_info = self.prepare_subarray_info(
             self.file_.telescope_descriptions, self.file_.header
         )
-        self._mc_header = self._parse_mc_header()
+        self._simulation_config = self._parse_simulation_header()
         self.start_pos = self.file_.tell()
 
         self.gain_selector = GainSelector.from_name(
@@ -236,8 +243,8 @@ class SimTelEventSource(EventSource):
         return [self.file_.header["run"]]
 
     @property
-    def mc_header(self):
-        return self._mc_header
+    def simulation_config(self) -> SimulationConfigContainer:
+        return self._simulation_config
 
     @property
     def is_stream(self):
@@ -345,11 +352,10 @@ class SimTelEventSource(EventSource):
             warnings.warn(msg)
 
     def _generate_events(self):
-        data = EventAndMonDataContainer()
+        data = ArrayEventContainer()
         data.meta["origin"] = "hessio"
         data.meta["input_url"] = self.input_url
         data.meta["max_events"] = self.max_events
-        data.mcheader = self._mc_header
 
         self._fill_array_pointing(data)
 
@@ -364,7 +370,7 @@ class SimTelEventSource(EventSource):
             self._fill_trigger_info(data, array_event)
 
             if data.trigger.event_type == EventType.SUBARRAY:
-                self._fill_mc_event_information(data, array_event)
+                self._fill_simulated_event_information(data, array_event)
 
             # this should be done in a nicer way to not re-allocate the
             # data each time (right now it's just deleted and garbage
@@ -373,59 +379,65 @@ class SimTelEventSource(EventSource):
             data.r1.tel.clear()
             data.dl0.tel.clear()
             data.dl1.tel.clear()
-            data.mc.tel.clear()
             data.pointing.tel.clear()
+            data.simulation.tel.clear()
 
             telescope_events = array_event["telescope_events"]
             tracking_positions = array_event["tracking_positions"]
+
             for tel_id, telescope_event in telescope_events.items():
                 adc_samples = telescope_event.get("adc_samples")
                 if adc_samples is None:
                     adc_samples = telescope_event["adc_sums"][:, :, np.newaxis]
+
                 n_gains, n_pixels, n_samples = adc_samples.shape
-
-                mc = data.mc.tel[tel_id]
-                mc.dc_to_pe = array_event["laser_calibrations"][tel_id]["calib"]
-                mon = array_event["camera_monitorings"][tel_id]
-                mc.pedestal = mon["pedestal"] / mon["n_ped_slices"]
-
-                mc.true_image = (
+                true_image = (
                     array_event.get("photoelectrons", {})
                     .get(tel_id - 1, {})
                     .get("photoelectrons", np.zeros(n_pixels, dtype="float32"))
                 )
 
+                data.simulation.tel[tel_id] = SimulatedCameraContainer(
+                    true_image=true_image
+                )
+
                 self._fill_event_pointing(
-                    data.pointing.tel[tel_id], mc, tracking_positions[tel_id]
+                    data.pointing.tel[tel_id], tracking_positions[tel_id]
                 )
 
                 r0 = data.r0.tel[tel_id]
                 r1 = data.r1.tel[tel_id]
                 r0.waveform = adc_samples
+
+                mon = array_event["camera_monitorings"][tel_id]
+                pedestal = mon["pedestal"] / mon["n_ped_slices"]
+                dc_to_pe = array_event["laser_calibrations"][tel_id]["calib"]
+                # todo: store pedestal and dc_to_pe somewhere?
+                #
                 r1.waveform, r1.selected_gain_channel = apply_simtel_r1_calibration(
-                    adc_samples, mc.pedestal, mc.dc_to_pe, self.gain_selector
+                    adc_samples, pedestal, dc_to_pe, self.gain_selector
                 )
 
             yield data
 
     @staticmethod
-    def _fill_event_pointing(pointing, mc, tracking_position):
-        mc.azimuth_raw = tracking_position["azimuth_raw"]
-        mc.altitude_raw = tracking_position["altitude_raw"]
-        mc.azimuth_cor = tracking_position.get("azimuth_cor", np.nan)
-        mc.altitude_cor = tracking_position.get("altitude_cor", np.nan)
+    def _fill_event_pointing(pointing, tracking_position):
+        azimuth_raw = tracking_position["azimuth_raw"]
+        altitude_raw = tracking_position["altitude_raw"]
+        azimuth_cor = tracking_position.get("azimuth_cor", np.nan)
+        altitude_cor = tracking_position.get("altitude_cor", np.nan)
 
         # take pointing corrected position if available
-        if np.isnan(mc.azimuth_cor):
-            pointing.azimuth = u.Quantity(mc.azimuth_raw, u.rad)
+        if np.isnan(azimuth_cor):
+            pointing.azimuth = u.Quantity(azimuth_raw, u.rad)
         else:
-            pointing.azimuth = u.Quantity(mc.azimuth_cor, u.rad)
+            pointing.azimuth = u.Quantity(azimuth_cor, u.rad)
 
         # take pointing corrected position if available
-        if np.isnan(mc.altitude_cor):
-            pointing.altitude = u.Quantity(mc.altitude_raw, u.rad)
+        if np.isnan(altitude_cor):
+            pointing.altitude = u.Quantity(altitude_raw, u.rad)
         else:
-            pointing.altitude = u.Quantity(mc.altitude_cor, u.rad)
+            pointing.altitude = u.Quantity(altitude_cor, u.rad)
 
     @staticmethod
     def _fill_trigger_info(data, array_event):
@@ -472,10 +484,10 @@ class SimTelEventSource(EventSource):
             data.pointing.array_ra = u.Quantity(ra, u.rad)
             data.pointing.array_dec = u.Quantity(dec, u.rad)
 
-    def _parse_mc_header(self):
+    def _parse_simulation_header(self):
         mc_run_head = self.file_.mc_run_headers[-1]
 
-        return MCHeaderContainer(
+        return SimulationConfigContainer(
             corsika_version=mc_run_head["shower_prog_vers"],
             simtel_version=mc_run_head["detector_prog_vers"],
             energy_range_min=mc_run_head["E_range"][0] * u.TeV,
@@ -515,16 +527,17 @@ class SimTelEventSource(EventSource):
         )
 
     @staticmethod
-    def _fill_mc_event_information(data, array_event):
+    def _fill_simulated_event_information(data, array_event):
         mc_event = array_event["mc_event"]
         mc_shower = array_event["mc_shower"]
 
-        data.mc.energy = u.Quantity(mc_shower["energy"], u.TeV)
-        data.mc.alt = Angle(mc_shower["altitude"], u.rad)
-        data.mc.az = Angle(mc_shower["azimuth"], u.rad)
-        data.mc.core_x = u.Quantity(mc_event["xcore"], u.m)
-        data.mc.core_y = u.Quantity(mc_event["ycore"], u.m)
-        first_int = u.Quantity(mc_shower["h_first_int"], u.m)
-        data.mc.h_first_int = first_int
-        data.mc.x_max = u.Quantity(mc_shower["xmax"], X_MAX_UNIT)
-        data.mc.shower_primary_id = mc_shower["primary_id"]
+        data.simulation.shower = SimulatedShowerContainer(
+            energy=u.Quantity(mc_shower["energy"], u.TeV),
+            alt=Angle(mc_shower["altitude"], u.rad),
+            az=Angle(mc_shower["azimuth"], u.rad),
+            core_x=u.Quantity(mc_event["xcore"], u.m),
+            core_y=u.Quantity(mc_event["ycore"], u.m),
+            h_first_int=u.Quantity(mc_shower["h_first_int"], u.m),
+            x_max=u.Quantity(mc_shower["xmax"], X_MAX_UNIT),
+            shower_primary_id=mc_shower["primary_id"],
+        )

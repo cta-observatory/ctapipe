@@ -89,7 +89,7 @@ class SingleTelEventDisplay(Tool):
         ):
 
             self.log.debug(event.trigger)
-            self.log.debug(f"Energy: {event.mc.energy}")
+            self.log.debug(f"Energy: {event.simulation.shower.energy}")
 
             self.calibrator(event)
 
