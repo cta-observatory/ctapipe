@@ -251,12 +251,10 @@ class Stage1ProcessorTool(Tool):
 
     def _process_telescope_event(self, event):
         """
-        add entries to the event/telescope tables for each telescope in a single
-        even
+        Loop over telescopes and process the calibrated images into parameters
         """
-        # write the telescope tables
+
         for tel_id, dl1_camera in event.dl1.tel.items():
-            dl1_camera.prefix = ""  # don't want a prefix for this container
             telescope = self.event_source.subarray.tel[tel_id]
             tel_type = str(telescope)
 
@@ -265,14 +263,6 @@ class Stage1ProcessorTool(Tool):
                 event_id=event.index.event_id,
                 tel_id=np.int16(tel_id),
             )
-            sim_camera = event.simulation.tel[tel_id]
-            if self.event_source.is_simulation:
-                true_image = sim_camera.true_image
-                has_true_image = (
-                    true_image is not None and np.count_nonzero(true_image) > 0
-                )
-            else:
-                has_true_image = False
 
             if self._write_dl1.write_parameters:
                 # compute image parameters only if requested to write them
@@ -291,26 +281,26 @@ class Stage1ProcessorTool(Tool):
 
                 self.log.debug("params: %s", params.as_dict(recursive=True))
 
-                if self.event_source.is_simulation and has_true_image:
+                if (
+                    self.event_source.is_simulation
+                    and event.simulation.tel[tel_id].true_image is not None
+                ):
+                    sim_camera = event.simulation.tel[tel_id]
+                    true_image = sim_camera.true_image
                     sim_camera.true_parameters = self._parameterize_image(
                         tel_id,
-                        image=true_image,
-                        signal_pixels=true_image > 0,
+                        image=sim_camera.true_image,
+                        signal_pixels=sim_camera.true_image > 0,
                         peak_time=None,  # true image from simulation has no peak time
                     )
                     self.log.debug(
                         "sim params: %s",
-                        sim_camera.true_parameters.as_dict(recursive=True),
+                        event.simulation.tel[tel_id].true_parameters.as_dict(
+                            recursive=True
+                        ),
                     )
 
     def start(self):
-
-        # FIXME: this uses astropy tables hdf5 io, internally using h5py,
-        # and must thus be done before the table writer opens the file or it might lead
-        # to "Resource temporary unavailable" if h5py and tables are not linked
-        # against the same libhdf (happens when using the pre-build pip wheels)
-        # should be replaced by writing the table using tables
-
         self._process_events()
 
     def finish(self):

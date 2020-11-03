@@ -278,6 +278,7 @@ class DL1Writer(Component):
         writer.exclude("dl1/monitoring/subarray/pointing", "tel")
         writer.exclude("dl1/monitoring/subarray/pointing", "event_type")
         writer.exclude("dl1/monitoring/subarray/pointing", "tels_with_trigger")
+        writer.exclude("dl1/monitoring/subarray/pointing", "n_trigger_pixels")
         writer.exclude("/dl1/event/telescope/trigger", "trigger_pixels")
         for tel_id, telescope in self._subarray.tel.items():
             tel_type = str(telescope)
