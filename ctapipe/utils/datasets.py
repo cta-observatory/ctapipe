@@ -28,6 +28,9 @@ logger = logging.getLogger(__name__)
 __all__ = ["get_dataset_path", "find_in_path", "find_all_matching_datasets"]
 
 
+DEFAULT_URL = "http://cccta-dataserver.in2p3.fr/data/ctapipe-extra/v0.3.1/"
+
+
 def get_searchpath_dirs(searchpath=os.getenv("CTAPIPE_SVC_PATH")):
     """ returns a list of dirs in specified searchpath"""
     if searchpath == "" or searchpath is None:
@@ -154,11 +157,7 @@ def get_dataset_path(filename):
 
     # last, try downloading the data
     try:
-        return download_file_cached(
-            filename,
-            default_url="http://cccta-dataserver.in2p3.fr/data/ctapipe-extra/v0.3.1/",
-            progress=True,
-        )
+        return download_file_cached(filename, default_url=DEFAULT_URL, progress=True)
     except HTTPError as e:
         # let 404 raise the FileNotFoundError instead of HTTPError
         if e.response.status_code != 404:
