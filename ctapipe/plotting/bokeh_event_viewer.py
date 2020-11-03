@@ -9,7 +9,7 @@ class BokehEventViewerCamera(CameraDisplay):
     def __init__(self, event_viewer, fig=None):
         """
         A `ctapipe.visualization.bokeh.CameraDisplay` modified to utilise a
-        `ctapipe.core.container.DataContainer` directly.
+        `ctapipe.core.container.ArrayEventContainer` directly.
 
         Parameters
         ----------
@@ -158,7 +158,7 @@ class BokehEventViewerWaveform(WaveformDisplay):
     def __init__(self, event_viewer, fig=None):
         """
         A `ctapipe.visualization.bokeh.WaveformDisplay` modified to utilise a
-        `ctapipe.core.container.DataContainer` directly.
+        `ctapipe.core.container.ArrayEventContainer` directly.
 
         Parameters
         ----------
@@ -300,7 +300,7 @@ class BokehEventViewer(Component):
         A class to organise the interface between
         `ctapipe.visualization.bokeh.CameraDisplay`,
         `ctapipe.visualization.bokeh.WaveformDisplay` and
-        `ctapipe.core.container.DataContainer`.
+        `ctapipe.core.container.ArrayEventContainer`.
 
         Parameters
         ----------

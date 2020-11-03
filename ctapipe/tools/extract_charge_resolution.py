@@ -72,14 +72,14 @@ class ChargeResolutionGenerator(Tool):
             # Check events have true charge included
             if event.count == 0:
                 try:
-                    pe = list(event.mc.tel.values())[0].true_image
+                    pe = list(event.simulation.tel.values())[0].true_image
                     if np.all(pe == 0):
                         raise KeyError
                 except KeyError:
                     self.log.exception("Source does not contain true charge!")
                     raise
 
-            for mc, dl1 in zip(event.mc.tel.values(), event.dl1.tel.values()):
+            for mc, dl1 in zip(event.simulation.tel.values(), event.dl1.tel.values()):
                 true_charge = mc.true_image
                 measured_charge = dl1.image
                 pixels = np.arange(measured_charge.size)
