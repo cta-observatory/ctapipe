@@ -264,7 +264,7 @@ class Stage1ProcessorTool(Tool):
             self.log.warning(
                 "No Simulated shower distributions will be written because "
                 "EventSource.max_events is set to a non-zero number (and therefore "
-                "shower distributions read from the input MC file are invalid)."
+                "shower distributions read from the input Simulation file are invalid)."
             )
 
         # setup HDF5 compression:
@@ -292,13 +292,14 @@ class Stage1ProcessorTool(Tool):
 
         extramc = ExtraMCInfo()
         extramc.obs_id = self.event_source.obs_id
-        self.event_source.mc_header.prefix = ""
+        self.event_source.simulation_config.prefix = ""
         writer.write(
-            "configuration/simulation/run", [extramc, self.event_source.mc_header]
+            "configuration/simulation/run",
+            [extramc, self.event_source.simulation_config],
         )
 
     def _write_simulation_histograms(self, writer: HDF5TableWriter):
-        """ Write the distribution of thrown showers
+        """Write the distribution of thrown showers
 
         Notes
         -----
@@ -547,7 +548,7 @@ class Stage1ProcessorTool(Tool):
                         tel_id,
                         image=true_image,
                         signal_pixels=true_image > 0,
-                        peak_time=None,  # true image from mc has no peak time
+                        peak_time=None,  # true image from simulation has no peak time
                     )
                     writer.write(
                         f"simulation/event/telescope/parameters/{table_name}",

@@ -26,7 +26,6 @@ __all__ = [
     "HillasParametersContainer",
     "ImageParametersContainer",
     "LeakageContainer",
-    "MCHeaderContainer",
     "MonitoringCameraContainer",
     "MonitoringContainer",
     "MorphologyContainer",
@@ -43,6 +42,7 @@ __all__ = [
     "SimulatedCameraContainer",
     "SimulatedShowerContainer",
     "SimulatedShowerDistribution",
+    "SimulationConfigContainer",
     "TelEventIndexContainer",
     "TimingParametersContainer",
     "TriggerContainer",
@@ -368,43 +368,20 @@ class DL0Container(Container):
     tel = Field(Map(DL0CameraContainer), "map of tel_id to DL0CameraContainer")
 
 
-class MCCameraEventContainer(Container):
-    """
-    Storage of mc data for a single telescope that change per event
-    """
-
-    true_image = Field(
-        None,
-        "Numpy array of camera image in PE as simulated before noise has been added. "
-        "Shape: (n_pixel)",
-    )
-
-    # TODO: should move dc_to_pe and pedestal to a MC Monitoring Container,
-    # so they are not written for each event.
-    dc_to_pe = Field(None, "DC/PE calibration arrays from MC file")
-    pedestal = Field(None, "pedestal calibration arrays from MC file")
-    azimuth_raw = Field(0, "Raw azimuth angle [radians from N->E] for the telescope")
-    altitude_raw = Field(0, "Raw altitude angle [radians] for the telescope")
-    azimuth_cor = Field(
-        0, "the tracking Azimuth corrected for pointing errors for the telescope"
-    )
-    altitude_cor = Field(
-        0, "the tracking Altitude corrected for pointing errors for the telescope"
-    )
-
-
 class SimulatedShowerContainer(Container):
     container_prefix = "true"
-    energy = Field(nan * u.TeV, "Monte-Carlo Energy", unit=u.TeV)
-    alt = Field(nan * u.deg, "Monte-carlo altitude", unit=u.deg)
-    az = Field(nan * u.deg, "Monte-Carlo azimuth", unit=u.deg)
-    core_x = Field(nan * u.m, "MC core position", unit=u.m)
-    core_y = Field(nan * u.m, "MC core position", unit=u.m)
+    energy = Field(nan * u.TeV, "Simulated Energy", unit=u.TeV)
+    alt = Field(nan * u.deg, "Simulated altitude", unit=u.deg)
+    az = Field(nan * u.deg, "Simulated azimuth", unit=u.deg)
+    core_x = Field(nan * u.m, "Simulated core position (x)", unit=u.m)
+    core_y = Field(nan * u.m, "Simulated core position (y)", unit=u.m)
     h_first_int = Field(nan * u.m, "Height of first interaction", unit=u.m)
-    x_max = Field(nan * u.g / (u.cm ** 2), "MC Xmax value", unit=u.g / (u.cm ** 2))
+    x_max = Field(
+        nan * u.g / (u.cm ** 2), "Simulated Xmax value", unit=u.g / (u.cm ** 2)
+    )
     shower_primary_id = Field(
         -1,
-        "MC shower primary ID 0 (gamma), 1(e-),"
+        "Simulated shower primary ID 0 (gamma), 1(e-),"
         "2(mu-), 100*A+Z for nucleons and nuclei,"
         "negative for antimatter.",
     )
@@ -436,9 +413,9 @@ class SimulatedEventContainer(Container):
     tel = Field(Map(SimulatedCameraContainer))
 
 
-class MCHeaderContainer(Container):
+class SimulationConfigContainer(Container):
     """
-    Monte-Carlo information that doesn't change per event
+    Configuration parameters of the simulation
     """
 
     run_array_direction = Field(
@@ -455,10 +432,10 @@ class MCHeaderContainer(Container):
     corsika_version = Field(nan, "CORSIKA version * 1000")
     simtel_version = Field(nan, "sim_telarray version * 1000")
     energy_range_min = Field(
-        nan * u.TeV, "Lower limit of energy range " "of primary particle", unit=u.TeV
+        nan * u.TeV, "Lower limit of energy range of primary particle", unit=u.TeV
     )
     energy_range_max = Field(
-        nan * u.TeV, "Upper limit of energy range " "of primary particle", unit=u.TeV
+        nan * u.TeV, "Upper limit of energy range of primary particle", unit=u.TeV
     )
     prod_site_B_total = Field(nan * u.uT, "total geomagnetic field", unit=u.uT)
     prod_site_B_declination = Field(nan * u.rad, "magnetic declination", unit=u.rad)
@@ -466,9 +443,7 @@ class MCHeaderContainer(Container):
     prod_site_alt = Field(nan * u.m, "height of observation level", unit=u.m)
     spectral_index = Field(nan, "Power-law spectral index of spectrum")
     shower_prog_start = Field(
-        nan,
-        """Time when shower simulation started,
-                              CORSIKA: only date""",
+        nan, "Time when shower simulation started, CORSIKA: only date"
     )
     shower_prog_id = Field(nan, "CORSIKA=1, ALTAI=2, KASCADE=3, MOCCA=4")
     detector_prog_start = Field(nan, "Time when detector simulation started")
@@ -484,21 +459,29 @@ class MCHeaderContainer(Container):
     min_viewcone_radius = Field(nan * u.deg, "Minimum viewcone radius", unit=u.deg)
     max_scatter_range = Field(nan * u.m, "Maximum scatter range", unit=u.m)
     min_scatter_range = Field(nan * u.m, "Minimum scatter range", unit=u.m)
-    core_pos_mode = Field(nan, "Core Position Mode (fixed/circular/...)")
+    core_pos_mode = Field(nan, "Core Position Mode (0=Circular, 1=Rectangular)")
     injection_height = Field(nan * u.m, "Height of particle injection", unit=u.m)
     atmosphere = Field(nan * u.m, "Atmospheric model number")
-    corsika_iact_options = Field(nan, "Detector MC information")
-    corsika_low_E_model = Field(nan, "Detector MC information")
-    corsika_high_E_model = Field(nan, "Detector MC information")
-    corsika_bunchsize = Field(nan, "Number of photons per bunch")
+    corsika_iact_options = Field(nan, "CORSIKA simulation options for IACTs")
+    corsika_low_E_model = Field(nan, "CORSIKA low-energy simulation physics model")
+    corsika_high_E_model = Field(
+        nan,
+        "CORSIKA physics model ID for high energies "
+        "(1=VENUS, 2=SIBYLL, 3=QGSJET, 4=DPMJET, 5=NeXus, 6=EPOS) ",
+    )
+    corsika_bunchsize = Field(nan, "Number of Cherenkov photons per bunch")
     corsika_wlen_min = Field(
         nan * u.m, "Minimum wavelength of cherenkov light", unit=u.nm
     )
     corsika_wlen_max = Field(
         nan * u.m, "Maximum wavelength of cherenkov light", unit=u.nm
     )
-    corsika_low_E_detail = Field(nan, "Detector MC information")
-    corsika_high_E_detail = Field(nan, "Detector MC information")
+    corsika_low_E_detail = Field(
+        nan, "More details on low E interaction model (version etc.)"
+    )
+    corsika_high_E_detail = Field(
+        nan, "More details on high E interaction model (version etc.)"
+    )
 
 
 class TelescopeTriggerContainer(Container):

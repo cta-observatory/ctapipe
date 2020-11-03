@@ -15,7 +15,7 @@ from ..calib.camera.gainselection import GainSelector
 from ..containers import (
     ArrayEventContainer,
     EventType,
-    MCHeaderContainer,
+    SimulationConfigContainer,
     SimulatedCameraContainer,
     SimulatedShowerContainer,
 )
@@ -208,7 +208,7 @@ class SimTelEventSource(EventSource):
         self._subarray_info = self.prepare_subarray_info(
             self.file_.telescope_descriptions, self.file_.header
         )
-        self._mc_header = self._parse_mc_header()
+        self._simulation_config = self._parse_simulation_header()
         self.start_pos = self.file_.tell()
 
         self.gain_selector = GainSelector.from_name(
@@ -242,8 +242,8 @@ class SimTelEventSource(EventSource):
         return self.file_.header["run"]
 
     @property
-    def mc_header(self):
-        return self._mc_header
+    def simulation_config(self) -> SimulationConfigContainer:
+        return self._simulation_config
 
     @property
     def is_stream(self):
@@ -369,7 +369,7 @@ class SimTelEventSource(EventSource):
             self._fill_trigger_info(data, array_event)
 
             if data.trigger.event_type == EventType.SUBARRAY:
-                self._fill_mc_event_information(data, array_event)
+                self._fill_simulated_event_information(data, array_event)
 
             # this should be done in a nicer way to not re-allocate the
             # data each time (right now it's just deleted and garbage
@@ -483,10 +483,10 @@ class SimTelEventSource(EventSource):
             data.pointing.array_ra = u.Quantity(ra, u.rad)
             data.pointing.array_dec = u.Quantity(dec, u.rad)
 
-    def _parse_mc_header(self):
+    def _parse_simulation_header(self):
         mc_run_head = self.file_.mc_run_headers[-1]
 
-        return MCHeaderContainer(
+        return SimulationConfigContainer(
             corsika_version=mc_run_head["shower_prog_vers"],
             simtel_version=mc_run_head["detector_prog_vers"],
             energy_range_min=mc_run_head["E_range"][0] * u.TeV,
@@ -526,7 +526,7 @@ class SimTelEventSource(EventSource):
         )
 
     @staticmethod
-    def _fill_mc_event_information(data, array_event):
+    def _fill_simulated_event_information(data, array_event):
         mc_event = array_event["mc_event"]
         mc_shower = array_event["mc_shower"]
 
