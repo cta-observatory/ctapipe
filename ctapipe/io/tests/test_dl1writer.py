@@ -44,6 +44,7 @@ def test_dl1writer(tmpdir: Path):
 
     # check we can get the subarray description:
     sub = SubarrayDescription.from_hdf(output_path)
+    assert sub.num_tels > 0
 
     # check a few things in the output just to make sure there is output. For a
     # full test of the data model, a verify tool should be created.

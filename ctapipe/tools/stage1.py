@@ -18,7 +18,6 @@ from ..containers import (
     TimingParametersContainer,
 )
 from ..core import (
-    Component,
     Container,
     Field,
     Provenance,
@@ -41,7 +40,7 @@ from ..image import descriptive_statistics, hillas_parameters
 from ..image import leakage as leakage_parameters
 from ..image import morphology_parameters, timing_parameters
 from ..image.extractor import ImageExtractor
-from ..io import DL1Writer, EventSource, SimTelEventSource, DataLevel
+from ..io import DataLevel, DL1Writer, EventSource, SimTelEventSource
 from ..io.dl1writer import DL1_DATA_MODEL_VERSION
 
 
@@ -288,7 +287,6 @@ class Stage1ProcessorTool(Tool):
                     and event.simulation.tel[tel_id].true_image is not None
                 ):
                     sim_camera = event.simulation.tel[tel_id]
-                    true_image = sim_camera.true_image
                     sim_camera.true_parameters = self._parameterize_image(
                         tel_id,
                         image=sim_camera.true_image,

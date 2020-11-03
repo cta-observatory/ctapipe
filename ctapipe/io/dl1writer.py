@@ -491,9 +491,24 @@ class DL1Writer(Component):
                 # recurse
                 self._generate_table_indices(h5file, node)
 
-    def _generate_indices(self, writer: HDF5TableWriter):
+    def _generate_indices(self):
         """ generate PyTables index tables for common columns """
         self.log.debug("Writing index tables")
         if self.write_images:
-            self._generate_table_indices(writer._h5file, "/dl1/event/telescope/images")
-        self._generate_table_indices(writer._h5file, "/dl1/event/subarray")
+            self._generate_table_indices(
+                self._writer._h5file, "/dl1/event/telescope/images"
+            )
+            if self._is_simulation:
+                self._generate_table_indices(
+                    self._writer._h5file, "/simulation/event/telescope/images"
+                )
+        if self.write_parameters:
+            self._generate_table_indices(
+                self._writer._h5file, "/dl1/event/telescope/parameters"
+            )
+            if self._is_simulation:
+                self._generate_table_indices(
+                    self._writer._h5file, "/simulation/event/telescope/parameters"
+                )
+
+        self._generate_table_indices(self._writer._h5file, "/dl1/event/subarray")
