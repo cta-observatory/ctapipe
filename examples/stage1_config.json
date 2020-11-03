@@ -1,8 +1,11 @@
 {
     "Stage1ProcessorTool": {
+        "image_cleaner_type": "TailcutsImageCleaner"
+    },
+    "DL1Writer": {
         "overwrite": false,
         "write_images": true,
-        "image_cleaner_type": "TailcutsImageCleaner"
+        "write_parameters": true
     },
     "CameraCalibrator": {
       "image_extractor_type": "NeighborPeakWindowSum"

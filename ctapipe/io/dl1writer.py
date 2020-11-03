@@ -154,7 +154,7 @@ class DL1Writer(Component):
 
         self._is_simulation = event_source.is_simulation
         self._subarray = event_source.subarray
-        self._mc_header = event_source.mc_header
+        self._simulation_config = event_source.simulation_config
         self._obs_id = event_source.obs_id
         self._hdf5_filters = None
         self._last_pointing_tel: DefaultDict[Tuple] = None
@@ -199,6 +199,7 @@ class DL1Writer(Component):
         self.log.debug("Setting Up DL1 Output")
 
         self._setup_output_path()
+        self._subarray.to_hdf(self.output_path)
         self._setup_compression()
         self._setup_writer()
         if self._is_simulation:
@@ -243,13 +244,21 @@ class DL1Writer(Component):
                     ", use the `overwrite` option or choose another `output_path` "
                 )
         self.log.debug("output path: %s", self.output_path)
+        PROV.add_output_file(str(self.output_path), role="DL1/Event")
+
+        # check that options make sense
+        if self.write_parameters is False and self.write_images is False:
+            raise ToolConfigurationError(
+                "The options 'write_parameters' and 'write_images' are "
+                "both set to False. No output will be generated in that case. "
+                "Please enable one or both of these options."
+            )
 
     def _setup_writer(self):
         """
         Create a TableWriter and setup any column exclusions
         When complete, self._writer should be initialized
         """
-
         writer = HDF5TableWriter(
             str(self.output_path),
             parent=self,
@@ -283,8 +292,7 @@ class DL1Writer(Component):
                 )
 
             writer.exclude(
-                f"/dl1/monitoring/telescope/pointing/{table_name}",
-                "telescopetrigger_trigger_pixels",
+                f"/dl1/monitoring/telescope/pointing/{table_name}", "trigger_pixels"
             )
             writer.exclude(f"/dl1/event/telescope/images/{table_name}", "parameters")
             writer.exclude(
@@ -325,21 +333,23 @@ class DL1Writer(Component):
         """
         self.log.debug("Writing simulation configuration")
 
-        class ExtraMCInfo(Container):
+        class ExtraSimInfo(Container):
             container_prefix = ""
-            obs_id = Field(0, "MC Run Identifier")
+            obs_id = Field(0, "Simulation Run Identifier")
 
-        extramc = ExtraMCInfo()
+        extramc = ExtraSimInfo()
         extramc.obs_id = self._obs_id
-        self._mc_header.prefix = ""
-        self._writer.write("configuration/simulation/run", [extramc, self._mc_header])
+        self._simulation_config.prefix = ""
+        self._writer.write(
+            "configuration/simulation/run", [extramc, self._simulation_config]
+        )
 
     def write_simulation_histograms(self, event_source):
         """Write the distribution of thrown showers
 
         TODO: this needs to be fixed, since it currently requires access to the
         low-level _file attribute of the SimTelEventSource.  Instead, SimTelEventSource should
-        provide this as header info, like `source.mc_header`
+        provide this as header info, like `source.simulation_config`
 
         Notes
         -----

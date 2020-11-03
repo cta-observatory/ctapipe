@@ -5,6 +5,7 @@ from ctapipe.utils import get_dataset_path
 from ctapipe.io import event_source
 from ctapipe.calib import CameraCalibrator
 from pathlib import Path
+from ctapipe.instrument import SubarrayDescription
 import tables
 import logging
 
@@ -40,6 +41,9 @@ def test_dl1writer(tmpdir: Path):
         write_dl1.write_simulation_histograms(source)
 
     assert output_path.exists()
+
+    # check we can get the subarray description:
+    sub = SubarrayDescription.from_hdf(output_path)
 
     # check a few things in the output just to make sure there is output. For a
     # full test of the data model, a verify tool should be created.
