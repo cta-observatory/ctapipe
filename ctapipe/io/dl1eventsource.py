@@ -8,14 +8,14 @@ from ctapipe.io import HDF5TableReader
 from ctapipe.io.datalevels import DataLevel
 from ctapipe.containers import (
     ConcentrationContainer,
-    EventAndMonDataContainer,
+    ArrayEventContainer,
     EventIndexContainer,
     HillasParametersContainer,
     IntensityStatisticsContainer,
     LeakageContainer,
     MorphologyContainer,
-    MCHeaderContainer,
-    MCEventContainer,
+    SimulationConfigContainer,
+    SimulatedShowerContainer,
     PeakTimeStatisticsContainer,
     TimingParametersContainer,
     TriggerContainer,
@@ -39,8 +39,8 @@ class DL1EventSource(EventSource):
     specifying the file to be read.
 
     Looping over the EventSource yields events from the _generate_events
-    method. An event equals an EventAndMonDataContainer instance.
-    See ctapipe.containers.EventAndMonDataContainer for details.
+    method. An event equals an ArrayEventContainer instance.
+    See ctapipe.containers.ArrayEventContainer for details.
 
     Attributes:
     -----------
@@ -60,10 +60,10 @@ class DL1EventSource(EventSource):
     is_simulation: Boolean
         Whether the events are simulated or observed.
     mc_headers: Dict
-        Mapping of obs_id to ctapipe.containers.MCHeaderContainer
+        Mapping of obs_id to ctapipe.containers.SimulationConfigContainer
         if the file contains simulated events.
     has_simulated_dl1: Boolean
-        Whether the file contains true camera images and/or
+        Whether the file contains simulated camera images and/or
         image parameters evaluated on these.
 
     """
@@ -169,7 +169,7 @@ class DL1EventSource(EventSource):
 
     def _parse_mc_headers(self):
         """
-        Construct a dict of MCHeaderContainers from the
+        Construct a dict of SimulationConfigContainers from the
         self.file_.root.configuration.simulation.run.
         These are used to match the correct header to each event
         """
@@ -182,7 +182,7 @@ class DL1EventSource(EventSource):
         mc_headers = {}
         if "simulation" in self.file_.root.configuration:
             reader = HDF5TableReader(self.file_).read(
-                "/configuration/simulation/run", MCHeaderContainer()
+                "/configuration/simulation/run", SimulationConfigContainer()
             )
             row_iterator = self.file_.root.configuration.simulation.run.iterrows()
             for row in row_iterator:
@@ -191,9 +191,9 @@ class DL1EventSource(EventSource):
 
     def _generate_events(self):
         """
-        Yield EventAndMonDataContainer to iterate through events.
+        Yield ArrayEventContainer to iterate through events.
         """
-        data = EventAndMonDataContainer()
+        data = ArrayEventContainer()
         # Maybe take some other metadata, but there are still some 'unknown'
         # written out by the stage1 tool
         data.meta["origin"] = self.file_.root._v_attrs["CTA PROCESS TYPE"]
@@ -208,7 +208,7 @@ class DL1EventSource(EventSource):
                 for tel in self.file_.root.dl1.event.telescope.images
             }
             if self.has_simulated_dl1:
-                true_image_iterators = {
+                simulated_image_iterators = {
                     tel.name: self.file_.root.simulation.event.telescope.images[
                         tel.name
                     ].iterrows()
@@ -233,7 +233,7 @@ class DL1EventSource(EventSource):
                 for tel in self.file_.root.dl1.event.telescope.parameters
             }
             if self.has_simulated_dl1:
-                true_param_readers = {
+                simulated_param_readers = {
                     tel.name: HDF5TableReader(self.file_).read(
                         f"/simulation/event/telescope/parameters/{tel.name}",
                         containers=[
@@ -251,9 +251,11 @@ class DL1EventSource(EventSource):
                 }
 
         if self.is_simulation:
-            # true shower wide information
+            # simulated shower wide information
             mc_shower_reader = HDF5TableReader(self.file_).read(
-                "/simulation/event/subarray/shower", MCEventContainer(), prefixes="true"
+                "/simulation/event/subarray/shower",
+                SimulatedShowerContainer(),
+                prefixes="simulated",
             )
 
         # Setup iterators for the array events
@@ -272,7 +274,7 @@ class DL1EventSource(EventSource):
 
         for counter, array_event in enumerate(events):
             data.dl1.tel.clear()
-            data.mc.tel.clear()
+            data.simulation.tel.clear()
             data.pointing.tel.clear()
             data.trigger.tel.clear()
 
@@ -300,12 +302,13 @@ class DL1EventSource(EventSource):
             self._fill_telescope_pointing(data, tel_pointing_finder)
 
             if self.is_simulation:
-                data.mc = next(mc_shower_reader)
-                data.mcheader = self._mc_headers[data.index.obs_id]
+                data.simulation.shower = next(mc_shower_reader)
 
             for tel in data.trigger.tel.keys():
                 if self.allowed_tels and tel not in self.allowed_tels:
                     continue
+                if self.has_simulated_dl1:
+                    simulated = data.simulation.tel[tel]
                 dl1 = data.dl1.tel[tel]
                 if DataLevel.DL1_IMAGES in self.datalevels:
                     if f"tel_{tel:03d}" not in image_iterators.keys():
@@ -318,7 +321,21 @@ class DL1EventSource(EventSource):
                     dl1.image = image_row["image"]
                     dl1.peak_time = image_row["peak_time"]
                     dl1.image_mask = image_row["image_mask"]
-                    # ToDo: Find a place in the data container, where the true images can go #1368
+
+                    if self.has_simulated_dl1:
+                        if f"tel_{tel:03d}" not in simulated_image_iterators.keys():
+                            logger.warning(
+                                f"Triggered telescope {tel} is missing "
+                                "from the simulated image table, but was present at the "
+                                "reconstructed image table."
+                            )
+                            continue
+                        simulated_image_row = next(
+                            simulated_image_iterators[f"tel_{tel:03d}"]
+                        )
+                        simulated.image = simulated_image_row["image"]
+                        simulated.peak_time = simulated_image_row["peak_time"]
+                        simulated.image_mask = simulated_image_row["image_mask"]
 
                 if DataLevel.DL1_PARAMETERS in self.datalevels:
                     if f"tel_{tel:03d}" not in param_readers.keys():
@@ -338,7 +355,26 @@ class DL1EventSource(EventSource):
                     dl1.parameters.morphology = params[4]
                     dl1.parameters.intensity_statistics = params[5]
                     dl1.parameters.peak_time_statistics = params[6]
-                    # ToDo: Find a place in the data container, where the true params can go #1368
+
+                    if self.has_simulated_dl1:
+                        if f"tel_{tel:03d}" not in param_readers.keys():
+                            logger.debug(
+                                f"Triggered telescope {tel} is missing "
+                                "from the simulated parameters table, but was "
+                                "present at the reconstructed parameters table."
+                            )
+                            continue
+                        simulated_params = next(
+                            simulated_param_readers[f"tel_{tel:03d}"]
+                        )
+                        simulated.parameters.hillas = simulated_params[0]
+                        simulated.parameters.timing = simulated_params[1]
+                        simulated.parameters.leakage = simulated_params[2]
+                        simulated.parameters.concentration = simulated_params[3]
+                        simulated.parameters.morphology = simulated_params[4]
+                        simulated.parameters.intensity_statistics = simulated_params[5]
+                        simulated.parameters.peak_time_statistics = simulated_params[6]
+
             yield data
 
     def _fill_array_pointing(self, data, array_pointing_finder):
