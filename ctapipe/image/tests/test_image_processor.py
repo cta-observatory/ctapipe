@@ -4,7 +4,8 @@ from ctapipe.image.cleaning import MARSImageCleaner
 from numpy import isfinite
 
 
-def test_ImageProcessor(example_event, example_subarray):
+def test_image_processor(example_event, example_subarray):
+    """ ensure we get parameters out when we input an event with images """
 
     calibrate = CameraCalibrator(subarray=example_subarray)
     process_images = ImageProcessor(
