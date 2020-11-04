@@ -19,7 +19,7 @@ from ..containers import (
     SimulatedShowerDistribution,
     IntensityStatisticsContainer,
     PeakTimeStatisticsContainer,
-    MCDL1CameraContainer,
+    SimulatedCameraContainer,
     TimingParametersContainer,
 )
 from ..core import Provenance
@@ -237,7 +237,7 @@ class Stage1ProcessorTool(Tool):
             )
 
         # setup components:
-        self.event_source = self.add_component(EventSource.from_config(parent=self))
+        self.event_source = EventSource.from_config(parent=self)
 
         datalevels = self.event_source.datalevels
         if DataLevel.R1 not in datalevels and DataLevel.DL0 not in datalevels:
@@ -247,17 +247,13 @@ class Stage1ProcessorTool(Tool):
             )
             sys.exit(1)
 
-        self.calibrate = self.add_component(
-            CameraCalibrator(parent=self, subarray=self.event_source.subarray)
+        self.calibrate = CameraCalibrator(
+            parent=self, subarray=self.event_source.subarray
         )
-        self.clean = self.add_component(
-            ImageCleaner.from_name(
-                self.image_cleaner_type,
-                parent=self,
-                subarray=self.event_source.subarray,
-            )
+        self.clean = ImageCleaner.from_name(
+            self.image_cleaner_type, parent=self, subarray=self.event_source.subarray
         )
-        self.check_image = self.add_component(ImageQualityQuery(parent=self))
+        self.check_image = ImageQualityQuery(parent=self)
 
         # warn if max_events prevents writing the histograms
         if (
@@ -268,7 +264,7 @@ class Stage1ProcessorTool(Tool):
             self.log.warning(
                 "No Simulated shower distributions will be written because "
                 "EventSource.max_events is set to a non-zero number (and therefore "
-                "shower distributions read from the input MC file are invalid)."
+                "shower distributions read from the input Simulation file are invalid)."
             )
 
         # setup HDF5 compression:
@@ -296,13 +292,14 @@ class Stage1ProcessorTool(Tool):
 
         extramc = ExtraMCInfo()
         extramc.obs_id = self.event_source.obs_id
-        self.event_source.mc_header.prefix = ""
+        self.event_source.simulation_config.prefix = ""
         writer.write(
-            "configuration/simulation/run", [extramc, self.event_source.mc_header]
+            "configuration/simulation/run",
+            [extramc, self.event_source.simulation_config],
         )
 
     def _write_simulation_histograms(self, writer: HDF5TableWriter):
-        """ Write the distribution of thrown showers
+        """Write the distribution of thrown showers
 
         Notes
         -----
@@ -471,7 +468,7 @@ class Stage1ProcessorTool(Tool):
             if self.event_source.is_simulation:
                 writer.write(
                     table_name="simulation/event/subarray/shower",
-                    containers=[event.index, event.mc],
+                    containers=[event.index, event.simulation.shower],
                 )
             writer.write(
                 table_name="dl1/event/subarray/trigger",
@@ -483,7 +480,7 @@ class Stage1ProcessorTool(Tool):
     def _write_telescope_event(self, writer, event):
         """
         add entries to the event/telescope tables for each telescope in a single
-        event
+        even
         """
         # write the telescope tables
         for tel_id, dl1_camera in event.dl1.tel.items():
@@ -511,21 +508,17 @@ class Stage1ProcessorTool(Tool):
                 f"tel_{tel_id:03d}" if self.split_datasets_by == "tel_id" else tel_type
             )
 
+            event.trigger.tel[tel_id].prefix = ""
             writer.write(
                 "dl1/event/telescope/trigger", [tel_index, event.trigger.tel[tel_id]]
             )
 
+            sim_camera = event.simulation.tel[tel_id]
             if self.event_source.is_simulation:
-                true_image = event.mc.tel[tel_id].true_image
+                true_image = sim_camera.true_image
                 has_true_image = (
                     true_image is not None and np.count_nonzero(true_image) > 0
                 )
-
-                if has_true_image:
-                    mcdl1 = MCDL1CameraContainer(
-                        true_image=true_image, true_parameters=None
-                    )
-                    mcdl1.prefix = ""
             else:
                 has_true_image = False
 
@@ -551,15 +544,15 @@ class Stage1ProcessorTool(Tool):
                 )
 
                 if self.event_source.is_simulation and has_true_image:
-                    mcdl1.true_parameters = self._parameterize_image(
+                    sim_camera.true_parameters = self._parameterize_image(
                         tel_id,
                         image=true_image,
                         signal_pixels=true_image > 0,
-                        peak_time=None,  # true image from mc has no peak time
+                        peak_time=None,  # true image from simulation has no peak time
                     )
                     writer.write(
                         f"simulation/event/telescope/parameters/{table_name}",
-                        [tel_index, *mcdl1.true_parameters.values()],
+                        [tel_index, *sim_camera.true_parameters.values()],
                     )
 
             if self.write_images:
@@ -574,7 +567,7 @@ class Stage1ProcessorTool(Tool):
                 if has_true_image:
                     writer.write(
                         f"simulation/event/telescope/images/{table_name}",
-                        [tel_index, mcdl1],
+                        [tel_index, sim_camera],
                     )
 
     def _generate_table_indices(self, h5file, start_node):
@@ -612,6 +605,8 @@ class Stage1ProcessorTool(Tool):
         writer.exclude("dl1/event/subarray/trigger", "tel")
         writer.exclude("dl1/monitoring/subarray/pointing", "tel")
         writer.exclude("dl1/monitoring/subarray/pointing", "event_type")
+        writer.exclude("dl1/monitoring/subarray/pointing", "tels_with_trigger")
+        writer.exclude("/dl1/event/telescope/trigger", "trigger_pixels")
         for tel_id, telescope in self.event_source.subarray.tel.items():
             tel_type = str(telescope)
             if self.split_datasets_by == "tel_id":
@@ -623,6 +618,11 @@ class Stage1ProcessorTool(Tool):
                 writer.exclude(
                     f"/dl1/event/telescope/images/{table_name}", "image_mask"
                 )
+
+            writer.exclude(
+                f"/dl1/monitoring/telescope/pointing/{table_name}",
+                "telescopetrigger_trigger_pixels",
+            )
             writer.exclude(f"/dl1/event/telescope/images/{table_name}", "parameters")
             writer.exclude(
                 f"/dl1/monitoring/event/pointing/tel_{tel_id:03d}", "event_type"

@@ -14,7 +14,7 @@ from ctapipe.image.extractor import (
     FullWaveformSum,
 )
 from ctapipe.image.reducer import NullDataVolumeReducer, TailCutsDataVolumeReducer
-from ctapipe.containers import DataContainer
+from ctapipe.containers import ArrayEventContainer
 
 
 def test_camera_calibrator(example_event, example_subarray):
@@ -81,7 +81,7 @@ def test_check_r1_empty(example_event, example_subarray):
         subarray=example_subarray,
         image_extractor=FullWaveformSum(subarray=example_subarray),
     )
-    event = DataContainer()
+    event = ArrayEventContainer()
     event.dl0.tel[telid].waveform = np.full((2048, 128), 2)
     with pytest.warns(UserWarning):
         calibrator(event)
@@ -103,7 +103,7 @@ def test_check_dl0_empty(example_event, example_subarray):
     assert calibrator._check_dl0_empty(waveform) is False
 
     calibrator = CameraCalibrator(subarray=example_subarray)
-    event = DataContainer()
+    event = ArrayEventContainer()
     event.dl1.tel[telid].image = np.full(2048, 2)
     with pytest.warns(UserWarning):
         calibrator(event)
@@ -140,7 +140,7 @@ def test_dl1_charge_calib(example_subarray):
     pedestal = random.uniform(-4, 4, n_pixels)
     y += pedestal[:, np.newaxis]
 
-    event = DataContainer()
+    event = ArrayEventContainer()
     telid = list(example_subarray.tel.keys())[0]
     event.dl0.tel[telid].waveform = y
 

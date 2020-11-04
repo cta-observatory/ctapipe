@@ -168,14 +168,6 @@ class HDF5TableWriter(TableWriter):
                 # apply any user-defined transforms first
                 value = self._apply_col_transform(table_name, col_name, value)
 
-                # add desription to metadata
-                if self.add_prefix:
-                    meta[f"{col_name}_DESC"] = container.fields[
-                        re.sub(f"^{container.prefix}_", "", col_name)
-                    ].description
-                else:
-                    meta[f"{col_name}_DESC"] = container.fields[col_name].description
-
                 if isinstance(value, enum.Enum):
 
                     def transform(enum_value):
@@ -224,6 +216,15 @@ class HDF5TableWriter(TableWriter):
                     continue
 
                 pos += 1
+
+                # add desription to metadata
+                if self.add_prefix:
+                    meta[f"{col_name}_DESC"] = container.fields[
+                        re.sub(f"^{container.prefix}_", "", col_name)
+                    ].description
+                else:
+                    meta[f"{col_name}_DESC"] = container.fields[col_name].description
+
                 self.log.debug(
                     f"Table {table_name}: "
                     f"added col: {col_name} type: "
@@ -387,13 +388,8 @@ class HDF5TableReader(TableReader):
         for attr in tab.attrs._f_list():
             if attr.endswith("_ENUM"):
                 colname = attr[:-5]
-
-                def transform_int_to_enum(int_val):
-                    """transform integer 'code' into enum instance"""
-                    enum_class = tab.attrs[attr]
-                    return enum_class(int_val)
-
-                self.add_column_transform(table_name, colname, transform_int_to_enum)
+                enum = tab.attrs[attr]
+                self.add_column_transform(table_name, colname, enum)
 
     def _map_table_to_containers(self, table_name, containers, prefixes):
         """ identifies which columns in the table to read into the containers,

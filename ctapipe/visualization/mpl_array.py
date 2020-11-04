@@ -96,9 +96,7 @@ class ArrayDisplay:
             list(radius),
             tel_color,
         ):
-            patches.append(
-                Circle(xy=(x, y), radius=r, fill=True, color=c, alpha=alpha,)
-            )
+            patches.append(Circle(xy=(x, y), radius=r, fill=True, color=c, alpha=alpha))
 
         # build the legend:
         legend_elements = []
@@ -170,12 +168,7 @@ class ArrayDisplay:
 
         # passing in None for C does not work, we need to provide
         # a variadic number of arguments
-        args = [
-            coords.x.to_value("m"),
-            coords.y.to_value("m"),
-            uu,
-            vv,
-        ]
+        args = [coords.x.to_value("m"), coords.y.to_value("m"), uu, vv]
 
         if c is None:
             # use colors by telescope type if the user did not provide any
@@ -230,7 +223,7 @@ class ArrayDisplay:
         time_gradient: Dict[int, value of time gradient (no units)]
             dictionary for value of the time gradient for each telescope
         angle_offset: Float
-            This should be the event.mcheader.run_array_direction[0] parameter
+            This should be the `event.pointing.array_azimuth` parameter
 
         """
 

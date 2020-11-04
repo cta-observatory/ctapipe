@@ -1,6 +1,6 @@
 import os
 import pytest
-from traitlets import Float, TraitError, List, Dict
+from traitlets import Float, TraitError, List, Dict, Int
 from traitlets.config import Config
 from pathlib import Path
 
@@ -117,6 +117,41 @@ def test_tool_current_config():
     assert conf2["MyTool"]["userparam"] == -1.0
 
 
+def test_tool_current_config_subcomponents():
+    """ Check that we can get the full instance configuration """
+    from ctapipe.core.component import Component
+
+    class SubComponent(Component):
+        param = Int(default_value=3).tag(config=True)
+
+    class MyComponent(Component):
+        val = Int(default_value=42).tag(config=True)
+
+        def __init__(self, config=None, parent=None):
+            super().__init__(config=config, parent=parent)
+            self.sub = SubComponent(parent=self)
+
+    class MyTool(Tool):
+        description = "test"
+        userparam = Float(5.0, help="parameter").tag(config=True)
+
+        def setup(self):
+            self.my_comp = MyComponent(parent=self)
+
+    config = Config()
+    config.MyTool.userparam = 2.0
+    config.MyTool.MyComponent.val = 10
+    config.MyTool.MyComponent.SubComponent.param = -1
+
+    tool = MyTool(config=config)
+    tool.setup()
+
+    current_config = tool.get_current_config()
+    assert current_config["MyTool"]["MyComponent"]["val"] == 10
+    assert current_config["MyTool"]["MyComponent"]["SubComponent"]["param"] == -1
+    assert current_config["MyTool"]["userparam"] == 2.0
+
+
 def test_tool_exit_code():
     """ Check that we can get the full instance configuration """
     from ctapipe.core.tool import run_tool
@@ -159,7 +194,7 @@ def test_tool_command_line_precedence():
         aliases = Dict({"component_param": "SubComponent.component_param"})
 
         def setup(self):
-            self.sub = self.add_component(SubComponent(parent=self))
+            self.sub = SubComponent(parent=self)
 
     config = Config(
         {"MyTool": {"userparam": 12.0}, "SubComponent": {"component_param": 15.0}}

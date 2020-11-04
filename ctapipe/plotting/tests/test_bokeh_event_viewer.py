@@ -45,7 +45,7 @@ def test_change_time(example_event, example_subarray):
     for wf in viewer.waveforms:
         assert wf.active_time == 0
 
-    tel = list(example_event.r0.tels_with_data)[0]
+    tel = list(example_event.r0.tel.keys())[0]
     n_samples = example_event.r0.tel[tel].waveform.shape[-1]
     t = 10000
     viewer.change_time(t)
@@ -73,7 +73,7 @@ def test_telid(example_event, example_subarray):
     viewer.create()
     viewer.event = example_event
 
-    tels = list(example_event.r0.tels_with_data)
+    tels = list(example_event.r0.tel.keys())
 
     assert viewer.telid == tels[0]
     for cam in viewer.cameras:
@@ -137,7 +137,7 @@ def test_view_camera(example_event, example_subarray):
     calibrator = CameraCalibrator(subarray=example_subarray)
     calibrator(example_event)
 
-    t = list(example_event.r0.tels_with_data)[0]
+    t = list(example_event.r0.tel.keys())[0]
 
     cam = viewer.cameras[0]
     cam.view = "r1"
@@ -155,7 +155,7 @@ def test_view_wf(example_event, example_subarray):
     calibrator = CameraCalibrator(subarray=example_subarray)
     calibrator(example_event)
 
-    t = list(example_event.r0.tels_with_data)[0]
+    t = list(example_event.r0.tel.keys())[0]
 
     wf = viewer.waveforms[0]
     wf.view = "r1"
