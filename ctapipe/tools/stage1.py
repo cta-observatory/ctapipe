@@ -22,6 +22,7 @@ from ..image import morphology_parameters, timing_parameters
 from ..image.extractor import ImageExtractor
 from ..io import DataLevel, DL1Writer, EventSource, SimTelEventSource
 from ..io.dl1writer import DL1_DATA_MODEL_VERSION
+from ..coordinates import TelescopeFrame
 
 
 class ImageQualityQuery(QualityQuery):
@@ -128,6 +129,17 @@ class Stage1Tool(Tool):
                 "shower distributions read from the input Simulation file are invalid)."
             )
 
+        # storage of transformed camera geometries. Note that right now, these
+        # are computed once. However, in real data when there is changing
+        # pointing, the frame attributes need to be updated, particularly the
+        # pointing position (not the pixel positions)
+        self._cam_geoms_tel_frame = {}
+        tel_frame = TelescopeFrame()
+        for tel_id, telescope in self.event_source.subarray.tel.items():
+            self._cam_geoms_tel_frame[tel_id] = telescope.camera.geometry.transform_to(
+                tel_frame
+            )
+
     def _write_processing_statistics(self):
         """ write out the event selection stats, etc. """
         # NOTE: don't remove this, not part of DL1Writer
@@ -158,7 +170,7 @@ class Stage1Tool(Tool):
         """
 
         tel = self.event_source.subarray.tel[tel_id]
-        geometry = tel.camera.geometry
+        geometry = self._cam_geoms_tel_frame[tel_id]
         image_selected = image[signal_pixels]
 
         # check if image can be parameterized:
