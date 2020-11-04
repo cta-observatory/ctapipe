@@ -11,7 +11,7 @@ from ctapipe.core.container import Container, Field
 from ctapipe import containers
 from ctapipe.containers import (
     R0CameraContainer,
-    MCEventContainer,
+    SimulatedShowerContainer,
     HillasParametersContainer,
     LeakageContainer,
 )
@@ -20,7 +20,7 @@ from ctapipe.io.hdf5tableio import HDF5TableWriter, HDF5TableReader
 
 @pytest.fixture(scope="session")
 def temp_h5_file(tmpdir_factory):
-    """ a fixture that fetches a temporary output dir/file for a test
+    """a fixture that fetches a temporary output dir/file for a test
     file that we want to read or write (so it doesn't clutter up the test
     directory when the automated tests are run)"""
     return str(tmpdir_factory.mktemp("data").join("test.h5"))
@@ -28,8 +28,8 @@ def temp_h5_file(tmpdir_factory):
 
 def test_write_container(temp_h5_file):
     r0tel = R0CameraContainer()
-    mc = MCEventContainer()
-    mc.reset()
+    simshower = SimulatedShowerContainer()
+    simshower.reset()
     r0tel.waveform = np.random.uniform(size=(50, 10))
     r0tel.meta["test_attribute"] = 3.14159
     r0tel.meta["date"] = "2020-10-10"
@@ -41,13 +41,13 @@ def test_write_container(temp_h5_file):
 
         for ii in range(100):
             r0tel.waveform[:] = np.random.uniform(size=(50, 10))
-            mc.energy = 10 ** np.random.uniform(1, 2) * u.TeV
-            mc.core_x = np.random.uniform(-1, 1) * u.m
-            mc.core_y = np.random.uniform(-1, 1) * u.m
+            simshower.energy = 10 ** np.random.uniform(1, 2) * u.TeV
+            simshower.core_x = np.random.uniform(-1, 1) * u.m
+            simshower.core_y = np.random.uniform(-1, 1) * u.m
 
             writer.write("tel_001", r0tel)
             writer.write("tel_002", r0tel)  # write a second table too
-            writer.write("MC", mc)
+            writer.write("sim_shower", simshower)
 
 
 def test_read_multiple_containers():
@@ -303,25 +303,25 @@ def test_write_large_integer():
 def test_read_container(temp_h5_file):
     r0tel1 = R0CameraContainer()
     r0tel2 = R0CameraContainer()
-    mc = MCEventContainer()
+    sim_shower = SimulatedShowerContainer()
 
     with HDF5TableReader(temp_h5_file) as reader:
 
         # get the generators for each table
         # test supplying a single container as well as an
         # iterable with one entry only
-        mctab = reader.read("/R0/MC", (mc,))
+        simtab = reader.read("/R0/sim_shower", (sim_shower,))
         r0tab1 = reader.read("/R0/tel_001", r0tel1)
         r0tab2 = reader.read("/R0/tel_002", r0tel2)
 
         # read all 3 tables in sync
         for ii in range(3):
 
-            m = next(mctab)[0]
+            m = next(simtab)[0]
             r0_1 = next(r0tab1)
             r0_2 = next(r0tab2)
 
-            print("MC:", m)
+            print("sim_shower:", m)
             print("t0:", r0_1.waveform)
             print("t1:", r0_2.waveform)
             print("---------------------------")
@@ -332,11 +332,11 @@ def test_read_container(temp_h5_file):
 
 def test_read_whole_table(temp_h5_file):
 
-    mc = MCEventContainer()
+    sim_shower = SimulatedShowerContainer()
 
     with HDF5TableReader(temp_h5_file) as reader:
 
-        for cont in reader.read("/R0/MC", mc):
+        for cont in reader.read("/R0/sim_shower", sim_shower):
             print(cont)
 
 
@@ -377,13 +377,13 @@ def test_reader_closes_file(temp_h5_file):
 
 def test_with_context_reader(temp_h5_file):
 
-    mc = MCEventContainer()
+    sim_shower = SimulatedShowerContainer()
 
     with HDF5TableReader(temp_h5_file) as h5_table:
 
         assert h5_table._h5file.isopen == 1
 
-        for cont in h5_table.read("/R0/MC", mc):
+        for cont in h5_table.read("/R0/sim_shower", sim_shower):
             print(cont)
 
     assert h5_table._h5file.isopen == 0

@@ -104,7 +104,7 @@ class FlatFieldCalculator(Component):
 
         Parameters
         ----------
-        event: DataContainer
+        event: ctapipe.containers.ArrayEventContainer
 
         Returns: True if the mon.tel[tel_id].flatfield is updated,
                  False otherwise

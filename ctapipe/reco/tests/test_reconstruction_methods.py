@@ -28,7 +28,7 @@ def test_reconstructors(reconstructors):
     • direction fit
     • position fit
 
-    in the end, proper units in the output are asserted """
+    in the end, proper units in the output are asserted"""
 
     filename = get_dataset_path("gamma_test_large.simtel.gz")
 
@@ -41,7 +41,10 @@ def test_reconstructors(reconstructors):
 
     for event in source:
         calib(event)
-        array_pointing = SkyCoord(az=event.mc.az, alt=event.mc.alt, frame=horizon_frame)
+        sim_shower = event.simulation.shower
+        array_pointing = SkyCoord(
+            az=sim_shower.az, alt=sim_shower.alt, frame=horizon_frame
+        )
 
         hillas_dict = {}
         telescope_pointings = {}
