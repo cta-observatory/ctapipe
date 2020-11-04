@@ -4,10 +4,8 @@ from .hillas import (
     camera_to_shower_coordinates,
 )
 from .timing import timing_parameters
-from .leakage import leakage
-from .leakage import leakage as leakage_parameters
-from .concentration import concentration
-from .concentration import concentration as concentration_parameters
+from .leakage import leakage_parameters
+from .concentration import concentration_parameters
 from .statistics import descriptive_statistics
 from .morphology import (
     number_of_islands,
