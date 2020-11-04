@@ -73,7 +73,7 @@ class Stage1Tool(Tool):
             "store DL1/Event/Telescope parameters in output",
         ),
         "write-index-tables": (
-            {"DL1Wroter": {"write_index_tables": True}},
+            {"DL1Writer": {"write_index_tables": True}},
             "generate PyTables index tables for the parameter and image datasets",
         ),
         "overwrite": (
