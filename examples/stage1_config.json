@@ -1,5 +1,5 @@
 {
-    "Stage1ProcessorTool": {
+    "Stage1Tool": {
         "image_cleaner_type": "TailcutsImageCleaner"
     },
     "DL1Writer": {

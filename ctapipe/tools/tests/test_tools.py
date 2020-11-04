@@ -24,7 +24,7 @@ LST_MUONS = get_dataset_path("lst_muons.simtel.zst")
 
 def test_merge():
     from ctapipe.tools.dl1_merge import MergeTool
-    from ctapipe.tools.stage1 import Stage1ProcessorTool
+    from ctapipe.tools.stage1 import Stage1Tool
 
     with tempfile.NamedTemporaryFile(suffix=".hdf5") as f1, tempfile.NamedTemporaryFile(
         suffix=".hdf5"
@@ -37,7 +37,7 @@ def test_merge():
     ) as out_skip_parameters:
         assert (
             run_tool(
-                Stage1ProcessorTool(),
+                Stage1Tool(),
                 argv=[
                     "--config=./examples/stage1_config.json",
                     f"--input={GAMMA_TEST_LARGE}",
@@ -51,7 +51,7 @@ def test_merge():
         )
         assert (
             run_tool(
-                Stage1ProcessorTool(),
+                Stage1Tool(),
                 argv=[
                     "--config=./examples/stage1_config.json",
                     f"--input={GAMMA_TEST_LARGE}",
@@ -67,12 +67,7 @@ def test_merge():
         assert (
             run_tool(
                 MergeTool(),
-                argv=[
-                    f"{f1.name}",
-                    f"{f2.name}",
-                    f"--o={out_all.name}",
-                    "--overwrite",
-                ],
+                argv=[f"{f1.name}", f"{f2.name}", f"--o={out_all.name}", "--overwrite"],
             )
             == 0
         )
@@ -168,12 +163,12 @@ def test_merge():
 
 
 def test_stage_1():
-    from ctapipe.tools.stage1 import Stage1ProcessorTool
+    from ctapipe.tools.stage1 import Stage1Tool
 
     with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
         assert (
             run_tool(
-                Stage1ProcessorTool(),
+                Stage1Tool(),
                 argv=[
                     "--config=./examples/stage1_config.json",
                     f"--input={GAMMA_TEST_LARGE}",
@@ -219,7 +214,7 @@ def test_stage_1():
     with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
         assert (
             run_tool(
-                Stage1ProcessorTool(),
+                Stage1Tool(),
                 argv=[
                     "--config=./examples/stage1_config.json",
                     f"--input={GAMMA_TEST_LARGE}",
@@ -249,7 +244,7 @@ def test_stage_1():
 def test_stage1_datalevels():
     """test the dl1 tool on a file not providing r1 or dl0"""
     from ctapipe.io import EventSource
-    from ctapipe.tools.stage1 import Stage1ProcessorTool
+    from ctapipe.tools.stage1 import Stage1Tool
 
     class DummyEventSource(EventSource):
         @classmethod
@@ -282,7 +277,7 @@ def test_stage1_datalevels():
             f.write(b"dummy")
             f.flush()
 
-            tool = Stage1ProcessorTool()
+            tool = Stage1Tool()
             assert (
                 run_tool(
                     tool,

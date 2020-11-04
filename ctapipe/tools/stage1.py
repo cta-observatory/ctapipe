@@ -35,15 +35,15 @@ class ImageQualityQuery(QualityQuery):
     ).tag(config=True)
 
 
-class Stage1ProcessorTool(Tool):
-    name = "ctapipe-stage1-process"
+class Stage1Tool(Tool):
+    name = "ctapipe-stage1"
     description = __doc__ + f" This currently writes {DL1_DATA_MODEL_VERSION} DL1 data"
     examples = """
     To process data with all default values:
-    > ctapipe-stage1-process --input events.simtel.gz --output events.dl1.h5 --progress
+    > ctapipe-stage1 --input events.simtel.gz --output events.dl1.h5 --progress
 
     Or use an external configuration file, where you can specify all options:
-    > ctapipe-stage1-process --config stage1_config.json --progress
+    > ctapipe-stage1 --config stage1_config.json --progress
 
     The config file should be in JSON or python format (see traitlets docs). For an
     example, see ctapipe/examples/stage1_config.json in the main code repo.
@@ -60,7 +60,7 @@ class Stage1ProcessorTool(Tool):
         "output": "DL1Writer.output_path",
         "allowed-tels": "EventSource.allowed_tels",
         "max-events": "EventSource.max_events",
-        "image-cleaner-type": "Stage1ProcessorTool.image_cleaner_type",
+        "image-cleaner-type": "Stage1Tool.image_cleaner_type",
     }
 
     flags = {
@@ -81,7 +81,7 @@ class Stage1ProcessorTool(Tool):
             "Overwrite output file if it exists",
         ),
         "progress": (
-            {"Stage1ProcessorTool": {"progress_bar": True}},
+            {"Stage1Tool": {"progress_bar": True}},
             "show a progress bar during event processing",
         ),
     }
@@ -282,7 +282,7 @@ class Stage1ProcessorTool(Tool):
 
 
 def main():
-    tool = Stage1ProcessorTool()
+    tool = Stage1Tool()
     tool.run()
 
 
