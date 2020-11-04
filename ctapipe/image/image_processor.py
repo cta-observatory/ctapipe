@@ -7,11 +7,12 @@ from ..containers import (
     ArrayEventContainer,
     ImageParametersContainer,
     IntensityStatisticsContainer,
-    TimingParametersContainer,
     PeakTimeStatisticsContainer,
+    TimingParametersContainer,
 )
 from ..core import QualityQuery, TelescopeComponent
-from ..core.traits import create_class_enum_trait, List
+from ..core.traits import List, create_class_enum_trait
+from ..instrument import SubarrayDescription
 from . import (
     ImageCleaner,
     concentration_parameters,
@@ -21,7 +22,6 @@ from . import (
     morphology_parameters,
     timing_parameters,
 )
-from ..instrument import SubarrayDescription
 
 
 class ImageQualityQuery(QualityQuery):

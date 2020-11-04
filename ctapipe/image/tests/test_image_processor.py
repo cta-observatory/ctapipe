@@ -1,6 +1,6 @@
+from ctapipe.calib import CameraCalibrator
 from ctapipe.image import ImageProcessor
 from ctapipe.image.cleaning import MARSImageCleaner
-from ctapipe.calib import CameraCalibrator
 from numpy import isfinite
 
 
