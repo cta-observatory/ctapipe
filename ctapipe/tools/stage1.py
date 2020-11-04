@@ -32,7 +32,7 @@ class Stage1Tool(Tool):
 
     aliases = {
         "input": "EventSource.input_url",
-        "output": "EventSource.DL1Writer.output_path",
+        "output": "DL1Writer.output_path",
         "allowed-tels": "EventSource.allowed_tels",
         "max-events": "EventSource.max_events",
         "image-cleaner-type": "ImageProcessor.image_cleaner_type",
@@ -91,7 +91,7 @@ class Stage1Tool(Tool):
             is_simulation=self.event_source.is_simulation,
             parent=self,
         )
-        self._write_dl1 = DL1Writer(event_source=self.event_source, parent=self)
+        self.write_dl1 = DL1Writer(event_source=self.event_source, parent=self)
 
         # warn if max_events prevents writing the histograms
         if (
@@ -108,15 +108,15 @@ class Stage1Tool(Tool):
     def _write_processing_statistics(self):
         """ write out the event selection stats, etc. """
         # NOTE: don't remove this, not part of DL1Writer
-        image_stats = self.check_image.to_table(functions=True)
+        image_stats = self.process_images.check_image.to_table(functions=True)
         image_stats.write(
-            self._write_dl1.ouput_path,
+            self.write_dl1.output_path,
             path="/dl1/service/image_statistics",
             append=True,
             serialize_meta=True,
         )
 
-    def _process_events(self):
+    def start(self):
         self.event_source.subarray.info(printer=self.log.info)
         for event in tqdm(
             self.event_source,
@@ -128,16 +128,13 @@ class Stage1Tool(Tool):
 
             self.log.log(9, "Processessing event_id=%s", event.index.event_id)
             self.calibrate(event)
-            if self._write_dl1.write_parameters:
+            if self.write_dl1.write_parameters:
                 self.process_images(event)
-            self._write_dl1(event)
-
-    def start(self):
-        self._process_events()
+            self.write_dl1(event)
 
     def finish(self):
-        self._write_dl1.write_simulation_histograms(self.event_source)
-        self._write_dl1.finish()
+        self.write_dl1.write_simulation_histograms(self.event_source)
+        self.write_dl1.finish()
         self._write_processing_statistics()
 
 
