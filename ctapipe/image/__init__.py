@@ -5,7 +5,9 @@ from .hillas import (
 )
 from .timing import timing_parameters
 from .leakage import leakage
+from .leakage import leakage as leakage_parameters
 from .concentration import concentration
+from .concentration import concentration as concentration_parameters
 from .statistics import descriptive_statistics
 from .morphology import (
     number_of_islands,
@@ -20,3 +22,4 @@ from .extractor import *
 from .reducer import *
 from .geometry_converter import *
 from .muon import *
+from .image_processor import ImageProcessor

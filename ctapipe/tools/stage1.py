@@ -22,17 +22,7 @@ from ..image import morphology_parameters, timing_parameters
 from ..image.extractor import ImageExtractor
 from ..io import DataLevel, DL1Writer, EventSource, SimTelEventSource
 from ..io.dl1writer import DL1_DATA_MODEL_VERSION
-
-
-class ImageQualityQuery(QualityQuery):
-    """ for configuring image-wise data checks """
-
-    quality_criteria = List(
-        default_value=[
-            ("size_greater_0", "lambda image_selected: image_selected.sum() > 0")
-        ],
-        help=QualityQuery.quality_criteria.help,
-    ).tag(config=True)
+from ..image import ImageProcessor
 
 
 class Stage1Tool(Tool):
@@ -49,18 +39,14 @@ class Stage1Tool(Tool):
     example, see ctapipe/examples/stage1_config.json in the main code repo.
     """
 
-    image_cleaner_type = create_class_enum_trait(
-        base_class=ImageCleaner, default_value="TailcutsImageCleaner"
-    )
-
     progress_bar = Bool(help="show progress bar during processing").tag(config=True)
 
     aliases = {
         "input": "EventSource.input_url",
-        "output": "DL1Writer.output_path",
+        "output": "EventSource.DL1Writer.output_path",
         "allowed-tels": "EventSource.allowed_tels",
         "max-events": "EventSource.max_events",
-        "image-cleaner-type": "Stage1Tool.image_cleaner_type",
+        "image-cleaner-type": "ImageProcessor.image_cleaner_type",
     }
 
     flags = {
@@ -87,11 +73,12 @@ class Stage1Tool(Tool):
     }
 
     classes = List(
-        [CameraCalibrator, ImageQualityQuery, EventSource]
+        [CameraCalibrator, EventSource]
         + classes_with_traits(ImageCleaner)
         + classes_with_traits(ImageExtractor)
         + classes_with_traits(GainSelector)
         + classes_with_traits(DL1Writer)
+        + classes_with_traits(ImageProcessor)
     )
 
     def setup(self):
@@ -110,10 +97,11 @@ class Stage1Tool(Tool):
         self.calibrate = CameraCalibrator(
             parent=self, subarray=self.event_source.subarray
         )
-        self.clean = ImageCleaner.from_name(
-            self.image_cleaner_type, parent=self, subarray=self.event_source.subarray
+        self.process_images = ImageProcessor(
+            subarray=self.event_source.subarray,
+            is_simulation=self.event_source.is_simulation,
+            parent=self,
         )
-        self.check_image = ImageQualityQuery(parent=self)
         self._write_dl1 = DL1Writer(event_source=self.event_source, parent=self)
 
         # warn if max_events prevents writing the histograms
@@ -133,85 +121,11 @@ class Stage1Tool(Tool):
         # NOTE: don't remove this, not part of DL1Writer
         image_stats = self.check_image.to_table(functions=True)
         image_stats.write(
-            self._write_dl1.output_path,
+            self._write_dl1.ouput_path,
             path="/dl1/service/image_statistics",
             append=True,
             serialize_meta=True,
         )
-
-    def _parameterize_image(self, tel_id, image, signal_pixels, peak_time=None):
-        """Apply image cleaning and calculate image features
-
-        Parameters
-        ----------
-        subarray : SubarrayDescription
-           subarray description
-        data : DL1CameraContainer
-            calibrated camera data
-        tel_id: int
-            which telescope is being cleaned
-
-        Returns
-        -------
-        np.ndarray, ImageParametersContainer:
-            cleaning mask, parameters
-        """
-
-        tel = self.event_source.subarray.tel[tel_id]
-        geometry = tel.camera.geometry
-        image_selected = image[signal_pixels]
-
-        # check if image can be parameterized:
-        image_criteria = self.check_image(image_selected)
-        self.log.debug(
-            "image_criteria: %s",
-            list(zip(self.check_image.criteria_names[1:], image_criteria)),
-        )
-
-        # parameterize the event if all criteria pass:
-        if all(image_criteria):
-            geom_selected = geometry[signal_pixels]
-
-            hillas = hillas_parameters(geom=geom_selected, image=image_selected)
-            leakage = leakage_parameters(
-                geom=geometry, image=image, cleaning_mask=signal_pixels
-            )
-            concentration = concentration_parameters(
-                geom=geom_selected, image=image_selected, hillas_parameters=hillas
-            )
-            morphology = morphology_parameters(geom=geometry, image_mask=signal_pixels)
-            intensity_statistics = descriptive_statistics(
-                image_selected, container_class=IntensityStatisticsContainer
-            )
-
-            if peak_time is not None:
-                timing = timing_parameters(
-                    geom=geom_selected,
-                    image=image_selected,
-                    peak_time=peak_time[signal_pixels],
-                    hillas_parameters=hillas,
-                )
-                peak_time_statistics = descriptive_statistics(
-                    peak_time[signal_pixels],
-                    container_class=PeakTimeStatisticsContainer,
-                )
-            else:
-                timing = TimingParametersContainer()
-                peak_time_statistics = PeakTimeStatisticsContainer()
-
-            return ImageParametersContainer(
-                hillas=hillas,
-                timing=timing,
-                leakage=leakage,
-                morphology=morphology,
-                concentration=concentration,
-                intensity_statistics=intensity_statistics,
-                peak_time_statistics=peak_time_statistics,
-            )
-
-        # return the default container (containing nan values) for no
-        # parameterization
-        return ImageParametersContainer()
 
     def _process_events(self):
         self.event_source.subarray.info(printer=self.log.info)
@@ -225,52 +139,9 @@ class Stage1Tool(Tool):
 
             self.log.log(9, "Processessing event_id=%s", event.index.event_id)
             self.calibrate(event)
-            self._process_telescope_event(event)
-            self._write_dl1(event)
-
-    def _process_telescope_event(self, event):
-        """
-        Loop over telescopes and process the calibrated images into parameters
-        """
-
-        for tel_id, dl1_camera in event.dl1.tel.items():
-
             if self._write_dl1.write_parameters:
-                # compute image parameters only if requested to write them
-                dl1_camera.image_mask = self.clean(
-                    tel_id=tel_id,
-                    image=dl1_camera.image,
-                    arrival_times=dl1_camera.peak_time,
-                )
-
-                dl1_camera.parameters = self._parameterize_image(
-                    tel_id=tel_id,
-                    image=dl1_camera.image,
-                    signal_pixels=dl1_camera.image_mask,
-                    peak_time=dl1_camera.peak_time,
-                )
-
-                self.log.debug(
-                    "params: %s", dl1_camera.parameters.as_dict(recursive=True)
-                )
-
-                if (
-                    self.event_source.is_simulation
-                    and event.simulation.tel[tel_id].true_image is not None
-                ):
-                    sim_camera = event.simulation.tel[tel_id]
-                    sim_camera.true_parameters = self._parameterize_image(
-                        tel_id,
-                        image=sim_camera.true_image,
-                        signal_pixels=sim_camera.true_image > 0,
-                        peak_time=None,  # true image from simulation has no peak time
-                    )
-                    self.log.debug(
-                        "sim params: %s",
-                        event.simulation.tel[tel_id].true_parameters.as_dict(
-                            recursive=True
-                        ),
-                    )
+                self.process_images(event)
+            self._write_dl1(event)
 
     def start(self):
         self._process_events()
