@@ -27,6 +27,8 @@ def test_merge(tmpdir):
     from ctapipe.tools.dl1_merge import MergeTool
     from ctapipe.tools.stage1 import Stage1ProcessorTool
 
+    config = Path("./examples/stage1_config.json").absolute()
+
     with tempfile.NamedTemporaryFile(suffix=".hdf5") as f1, tempfile.NamedTemporaryFile(
         suffix=".hdf5"
     ) as f2, tempfile.NamedTemporaryFile(
@@ -40,7 +42,7 @@ def test_merge(tmpdir):
             run_tool(
                 Stage1ProcessorTool(),
                 argv=[
-                    "--config=./examples/stage1_config.json",
+                    f"--config={config}",
                     f"--input={GAMMA_TEST_LARGE}",
                     f"--output={f1.name}",
                     "--write-parameters",
@@ -55,7 +57,7 @@ def test_merge(tmpdir):
             run_tool(
                 Stage1ProcessorTool(),
                 argv=[
-                    "--config=./examples/stage1_config.json",
+                    f"--config={config}",
                     f"--input={GAMMA_TEST_LARGE}",
                     f"--output={f2.name}",
                     "--write-parameters",
@@ -70,12 +72,7 @@ def test_merge(tmpdir):
         assert (
             run_tool(
                 MergeTool(),
-                argv=[
-                    f"{f1.name}",
-                    f"{f2.name}",
-                    f"--o={out_all.name}",
-                    "--overwrite",
-                ],
+                argv=[f"{f1.name}", f"{f2.name}", f"--o={out_all.name}", "--overwrite"],
                 cwd=tmpdir,
             )
             == 0
