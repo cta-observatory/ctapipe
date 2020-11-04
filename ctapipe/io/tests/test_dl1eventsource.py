@@ -65,7 +65,7 @@ def test_allowed_tels(dl1_file):
 def test_simulation_info(dl1_file):
     with DL1EventSource(input_url=dl1_file) as source:
         for event in source:
-            assert event.simulation.shower.energy != np.nan
+            assert np.isfinite(event.simulation.shower.energy)
             # the currently used file does not include true dl1 information
             # this is skipped for that reason
             for tel in event.simulation.tel:

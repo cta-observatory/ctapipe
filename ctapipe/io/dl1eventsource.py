@@ -255,7 +255,7 @@ class DL1EventSource(EventSource):
             mc_shower_reader = HDF5TableReader(self.file_).read(
                 "/simulation/event/subarray/shower",
                 SimulatedShowerContainer(),
-                prefixes="simulated",
+                prefixes="true",
             )
 
         # Setup iterators for the array events
