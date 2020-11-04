@@ -15,7 +15,8 @@
             "picture_threshold_pe":  [
                 ["type", "*", 10.0],
                 ["type", "LST_LST_LSTCam", 6.0],
-                ["type", "MST_MST_NectarCam", 6.0]
+                ["type", "MST_MST_NectarCam", 6.0],
+                ["type", "MST_MST_FlashCam", 6.0]
             ],
             "boundary_threshold_pe": [
                 ["type", "*", 5.0],
