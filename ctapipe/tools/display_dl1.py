@@ -143,15 +143,10 @@ class DisplayDL1Calib(Tool):
         help="Telescope to view. Set to None to display all telescopes.",
     ).tag(config=True)
 
-    extractor_product = traits.create_class_enum_trait(
-        ImageExtractor, default_value="NeighborPeakWindowSum"
-    )
-
     aliases = Dict(
         dict(
             input="EventSource.input_url",
             max_events="EventSource.max_events",
-            extractor="DisplayDL1Calib.extractor_product",
             T="DisplayDL1Calib.telescope",
             O="ImagePlotter.output_path",
         )
@@ -178,20 +173,17 @@ class DisplayDL1Calib(Tool):
         self.plotter = None
 
     def setup(self):
-        self.eventsource = self.add_component(EventSource.from_config(parent=self))
+        self.eventsource = EventSource.from_config(parent=self)
+        subarray = self.eventsource.subarray
 
-        self.calibrator = self.add_component(
-            CameraCalibrator(parent=self, subarray=self.eventsource.subarray)
-        )
-        self.plotter = self.add_component(
-            ImagePlotter(subarray=self.eventsource.subarray, parent=self)
-        )
+        self.calibrator = CameraCalibrator(parent=self, subarray=subarray)
+        self.plotter = ImagePlotter(parent=self, subarray=subarray)
 
     def start(self):
         for event in self.eventsource:
             self.calibrator(event)
 
-            tel_list = event.r0.tels_with_data
+            tel_list = event.r0.tel.keys()
 
             if self.telescope:
                 if self.telescope not in tel_list:

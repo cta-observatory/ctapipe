@@ -128,7 +128,7 @@ def test_max_events():
 def test_max_events_from_config():
     dataset = get_dataset_path("gamma_test_large.simtel.gz")
     max_events = 10
-    config = Config({"EventSource": {"input_url": dataset, "max_events": max_events,}})
+    config = Config({"EventSource": {"input_url": dataset, "max_events": max_events}})
     reader = EventSource.from_config(config=config)
     assert reader.max_events == max_events
 
@@ -136,7 +136,7 @@ def test_max_events_from_config():
 def test_allowed_tels():
     dataset = get_dataset_path("gamma_test_large.simtel.gz")
     reader = event_source(input_url=dataset)
-    assert len(reader.allowed_tels) == 0
+    assert reader.allowed_tels is None
     reader = event_source(input_url=dataset, allowed_tels={1, 3})
     assert len(reader.allowed_tels) == 2
 

@@ -5,9 +5,14 @@ calibration and image extraction, as well as supporting algorithms.
 
 import warnings
 import numpy as np
+import astropy.units as u
+
 from ctapipe.core import Component
-from ctapipe.image.extractor import NeighborPeakWindowSum
-from ctapipe.image.reducer import NullDataVolumeReducer
+from ctapipe.image.extractor import ImageExtractor
+from ctapipe.image.reducer import DataVolumeReducer
+from ctapipe.core.traits import create_class_enum_trait
+
+from numba import guvectorize, float64, float32, int64
 
 __all__ = ["CameraCalibrator"]
 
@@ -16,15 +21,32 @@ class CameraCalibrator(Component):
     """
     Calibrator to handle the full camera calibration chain, in order to fill
     the DL1 data level in the event container.
+
+    Attributes
+    ----------
+    data_volume_reducer_type: str
+        The name of the DataVolumeReducer subclass to be used
+        for data volume reduction
+
+    image_extractor_type: str
+        The name of the ImageExtractor subclass to be used for image extraction
     """
+
+    data_volume_reducer_type = create_class_enum_trait(
+        DataVolumeReducer, default_value="NullDataVolumeReducer"
+    ).tag(config=True)
+
+    image_extractor_type = create_class_enum_trait(
+        ImageExtractor, default_value="NeighborPeakWindowSum"
+    ).tag(config=True)
 
     def __init__(
         self,
         subarray,
         config=None,
         parent=None,
-        data_volume_reducer=None,
         image_extractor=None,
+        data_volume_reducer=None,
         **kwargs,
     ):
         """
@@ -34,24 +56,20 @@ class CameraCalibrator(Component):
             Description of the subarray. Provides information about the
             camera which are useful in calibration. Also required for
             configuring the TelescopeParameter traitlets.
-        config : traitlets.loader.Config
+        config: traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool or None
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        data_volume_reducer : ctapipe.image.reducer.DataVolumeReducer
-            The DataVolumeReducer to use. If None, then
-            NullDataVolumeReducer will be used by default, and waveforms
-            will not be reduced.
-        image_extractor : ctapipe.image.extractor.ImageExtractor
-            The ImageExtractor to use. If None, then NeighborPeakWindowSum
-            will be used by default.
-        subarray: ctapipe.instrument.SubarrayDescription
-            Description of the subarray
-        kwargs
+            This is mutually exclusive with passing a ``parent``.
+        parent: ctapipe.core.Component or ctapipe.core.Tool
+            Parent of this component in the configuration hierarchy,
+            this is mutually exclusive with passing ``config``
+        data_volume_reducer: ctapipe.image.reducer.DataVolumeReducer
+            The DataVolumeReducer to use.
+            This is used to override the options from the config system
+            and to enable passing a preconfigured reducer.
+        image_extractor: ctapipe.image.extractor.ImageExtractor
+            The ImageExtractor to use. If None, the default via the
+            configuration system will be constructed.
         """
         super().__init__(config=config, parent=parent, **kwargs)
         self.subarray = subarray
@@ -60,12 +78,18 @@ class CameraCalibrator(Component):
         self._dl0_empty_warn = False
 
         if image_extractor is None:
-            image_extractor = NeighborPeakWindowSum(parent=self, subarray=subarray)
-        self.image_extractor = image_extractor
+            self.image_extractor = ImageExtractor.from_name(
+                self.image_extractor_type, subarray=self.subarray, parent=self
+            )
+        else:
+            self.image_extractor = image_extractor
 
         if data_volume_reducer is None:
-            data_volume_reducer = NullDataVolumeReducer(parent=self, subarray=subarray)
-        self.data_volume_reducer = data_volume_reducer
+            self.data_volume_reducer = DataVolumeReducer.from_name(
+                self.data_volume_reducer_type, subarray=self.subarray, parent=self
+            )
+        else:
+            self.data_volume_reducer = data_volume_reducer
 
     def _check_r1_empty(self, waveforms):
         if waveforms is None:
@@ -109,9 +133,22 @@ class CameraCalibrator(Component):
     def _calibrate_dl1(self, event, telid):
         waveforms = event.dl0.tel[telid].waveform
         selected_gain_channel = event.r1.tel[telid].selected_gain_channel
+        dl1_calib = event.calibration.tel[telid].dl1
+
         if self._check_dl0_empty(waveforms):
             return
+
+        selected_gain_channel = event.r1.tel[telid].selected_gain_channel
+        time_shift = event.calibration.tel[telid].dl1.time_shift
+        readout = self.subarray.tel[telid].camera.readout
         n_pixels, n_samples = waveforms.shape
+
+        # subtract any remaining pedestal before extraction
+        if dl1_calib.pedestal_offset is not None:
+            # this copies intentionally, we don't want to modify the dl0 data
+            # waveforms have shape (n_pixel, n_samples), pedestals (n_pixels, )
+            waveforms = waveforms - dl1_calib.pedestal_offset[:, np.newaxis]
+
         if n_samples == 1:
             # To handle ASTRI and dst
             # TODO: Improved handling of ASTRI and dst
@@ -122,16 +159,26 @@ class CameraCalibrator(Component):
             charge = waveforms[..., 0].astype(np.float32)
             peak_time = np.zeros(n_pixels, dtype=np.float32)
         else:
+
+            # shift waveforms if time_shift calibration is available
+            if time_shift is not None:
+                sampling_rate = readout.sampling_rate.to_value(u.GHz)
+                time_shift_samples = time_shift * sampling_rate
+                waveforms, remaining_shift = shift_waveforms(
+                    waveforms, time_shift_samples
+                )
+                remaining_shift /= sampling_rate
+
             charge, peak_time = self.image_extractor(
                 waveforms, telid=telid, selected_gain_channel=selected_gain_channel
             )
 
+            # correct non-integer remainder of the shift if given
+            if time_shift is not None:
+                peak_time -= remaining_shift
+
         # Calibrate extracted charge
-        pedestal = event.calibration.tel[telid].dl1.pedestal_offset
-        absolute = event.calibration.tel[telid].dl1.absolute_factor
-        relative = event.calibration.tel[telid].dl1.relative_factor
-        charge -= pedestal
-        charge *= relative / absolute
+        charge *= dl1_calib.relative_factor / dl1_calib.absolute_factor
 
         event.dl1.tel[telid].image = charge
         event.dl1.tel[telid].peak_time = peak_time
@@ -152,3 +199,48 @@ class CameraCalibrator(Component):
         for telid in tel.keys():
             self._calibrate_dl0(event, telid)
             self._calibrate_dl1(event, telid)
+
+
+def shift_waveforms(waveforms, time_shift_samples):
+    """
+    Shift the waveforms by the mean integer shift to mediate
+    time differences between pixels.
+    The remaining shift (mean + fractional part) is returned
+    to be applied later to the extracted peak time.
+
+    Parameters
+    ----------
+    waveforms: ndarray of shape (n_pixels, n_samples)
+        The waveforms to shift
+    time_shift_samples: ndarray of shape (n_pixels, )
+        The shift to apply in units of samples.
+        Waveforms are shifted to the left by the smallest integer
+        that minimizes inter-pixel differences.
+
+    Returns
+    -------
+    shifted_waveforms: ndarray of shape (n_pixels, n_samples)
+        The shifted waveforms
+    remaining_shift: ndarray of shape (n_pixels, )
+        The remaining shift after applying the integer shift to the waveforms.
+    """
+    mean_shift = time_shift_samples.mean()
+    integer_shift = np.round(time_shift_samples - mean_shift).astype("int16")
+    remaining_shift = time_shift_samples - integer_shift
+    shifted_waveforms = _shift_waveforms_by_integer(waveforms, integer_shift)
+    return shifted_waveforms, remaining_shift
+
+
+@guvectorize(
+    [(float64[:], int64, float64[:]), (float32[:], int64, float32[:])],
+    "(s),()->(s)",
+    nopython=True,
+)
+def _shift_waveforms_by_integer(waveforms, integer_shift, shifted_waveforms):
+    n_samples = waveforms.size
+
+    for new_sample_idx in range(n_samples):
+        # repeat first value if out ouf bounds to the left
+        # repeat last value if out ouf bounds to the right
+        sample_idx = min(max(new_sample_idx + integer_shift, 0), n_samples - 1)
+        shifted_waveforms[new_sample_idx] = waveforms[sample_idx]

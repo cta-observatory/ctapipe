@@ -66,10 +66,6 @@ def timing_parameters(geom, image, peak_time, hillas_parameters, cleaning_mask=N
         pix_x, pix_y, x, y, hillas_parameters.psi.to_value(u.rad)
     )
 
-    # use polyfit just to get the covariance matrix and errors
-    (_s, _i), cov = np.polyfit(longi, peak_time, deg=1, w=np.sqrt(image), cov=True)
-    slope_err, intercept_err = np.sqrt(np.diag(cov))
-
     # re-fit using a robust-to-outlier algorithm
     beta, error = lts_linear_regression(x=longi, y=peak_time, samples=5)
 
@@ -78,9 +74,5 @@ def timing_parameters(geom, image, peak_time, hillas_parameters, cleaning_mask=N
     deviation = rmse(longi * beta[0] + beta[1], peak_time)
 
     return TimingParametersContainer(
-        slope=beta[0] / unit,
-        intercept=beta[1],
-        deviation=deviation,
-        slope_err=slope_err / unit,
-        intercept_err=intercept_err,
+        slope=beta[0] / unit, intercept=beta[1], deviation=deviation
     )

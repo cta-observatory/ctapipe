@@ -13,6 +13,7 @@ from ctapipe.reco.reco_algorithms import (
 from ctapipe.utils import get_dataset_path
 from ctapipe.coordinates import TelescopeFrame
 from astropy.coordinates import SkyCoord, AltAz
+from ctapipe.calib import CameraCalibrator
 
 
 def test_estimator_results():
@@ -111,6 +112,8 @@ def test_parallel_reconstruction():
     )
 
     source = event_source(filename, max_events=10)
+    calib = CameraCalibrator(subarray=source.subarray)
+
     horizon_frame = AltAz()
 
     reconstructed_events = 0
@@ -118,18 +121,16 @@ def test_parallel_reconstruction():
     # ==========================================================================
 
     for event in source:
+        calib(event)
 
-        array_pointing = SkyCoord(
-            az=event.pointing.array_azimuth,
-            alt=event.pointing.array_altitude,
-            frame=horizon_frame,
-        )
+        mc = event.simulation.shower
+        array_pointing = SkyCoord(az=mc.az, alt=mc.alt, frame=horizon_frame)
 
         hillas_dict_CameraFrame = {}
         hillas_dict_TelescopeFrame = {}
         telescope_pointings = {}
 
-        for tel_id in event.dl0.tels_with_data:
+        for tel_id, dl1 in event.dl1.tel.items():
 
             telescope_pointings[tel_id] = SkyCoord(
                 alt=event.pointing.tel[tel_id].altitude,
@@ -146,20 +147,17 @@ def test_parallel_reconstruction():
                 TelescopeFrame(telescope_pointing=telescope_pointings[tel_id])
             )
 
-            pmt_signal = event.r0.tel[tel_id].waveform[0].sum(axis=1)
-
             mask = tailcuts_clean(
                 geom_TelescopeFrame,
-                pmt_signal,
+                dl1.image,
                 picture_thresh=10.0,
                 boundary_thresh=5.0,
             )
-            pmt_signal[mask == 0] = 0
 
             try:
-                moments_CameraFrame = hillas_parameters(geom_CameraFrame, pmt_signal)
+                moments_CameraFrame = hillas_parameters(geom_CameraFrame[mask], dl1.image[mask])
                 moments_TelescopeFrame = hillas_parameters(
-                    geom_TelescopeFrame, pmt_signal
+                    geom_TelescopeFrame[mask], dl1.image[mask]
                 )
                 hillas_dict_CameraFrame[tel_id] = moments_CameraFrame
                 hillas_dict_TelescopeFrame[tel_id] = moments_TelescopeFrame
@@ -327,25 +325,24 @@ def test_invalid_events():
 
     source = event_source(filename, max_events=10)
     subarray = source.subarray
+    calib = CameraCalibrator(subarray)
 
     for event in source:
+        calib(event)
 
         hillas_dict = {}
-        for tel_id in event.dl0.tels_with_data:
+        for tel_id, dl1 in event.dl1.tel.items():
 
             geom = source.subarray.tel[tel_id].camera.geometry
             tel_azimuth[tel_id] = event.pointing.tel[tel_id].azimuth
             tel_altitude[tel_id] = event.pointing.tel[tel_id].altitude
 
-            pmt_signal = event.r0.tel[tel_id].waveform[0].sum(axis=1)
-
             mask = tailcuts_clean(
-                geom, pmt_signal, picture_thresh=10.0, boundary_thresh=5.0
+                geom, dl1.image, picture_thresh=10.0, boundary_thresh=5.0
             )
-            pmt_signal[mask == 0] = 0
 
             try:
-                moments = hillas_parameters(geom, pmt_signal)
+                moments = hillas_parameters(geom[mask], dl1.image[mask])
                 hillas_dict[tel_id] = moments
             except HillasParameterizationError as e:
                 continue
