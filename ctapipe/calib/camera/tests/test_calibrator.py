@@ -12,8 +12,10 @@ from ctapipe.image.extractor import (
     NeighborPeakWindowSum,
     LocalPeakWindowSum,
     FullWaveformSum,
+    GlobalPeakWindowSum,
 )
 from ctapipe.image.reducer import NullDataVolumeReducer, TailCutsDataVolumeReducer
+from copy import deepcopy
 from ctapipe.containers import ArrayEventContainer
 
 
@@ -111,7 +113,9 @@ def test_check_dl0_empty(example_event, example_subarray):
 
 
 def test_dl1_charge_calib(example_subarray):
-    camera = example_subarray.tel[1].camera
+    # copy because we mutate the camera, should not affect other tests
+    subarray = deepcopy(example_subarray)
+    camera = subarray.tel[1].camera
     # test with a sampling_rate different than 1 to
     # test if we handle time vs. slices correctly
     sampling_rate = 2
@@ -128,6 +132,9 @@ def test_dl1_charge_calib(example_subarray):
     time_offset = random.uniform(-10, +10, n_pixels)
     y = norm.pdf(x, mid + time_offset[:, np.newaxis], pulse_sigma).astype("float32")
 
+    camera.readout.reference_pulse_shape = norm.pdf(x, mid, pulse_sigma)[np.newaxis, :]
+    camera.readout.reference_pulse_sample_width = 1 / camera.readout.sampling_rate
+
     # Define absolute calibration coefficients
     absolute = random.uniform(100, 1000, n_pixels).astype("float32")
     y *= absolute[:, np.newaxis]
@@ -141,13 +148,14 @@ def test_dl1_charge_calib(example_subarray):
     y += pedestal[:, np.newaxis]
 
     event = ArrayEventContainer()
-    telid = list(example_subarray.tel.keys())[0]
+    telid = list(subarray.tel.keys())[0]
     event.dl0.tel[telid].waveform = y
+    event.dl0.tel[telid].selected_gain_channel = np.zeros(len(y), dtype=int)
+    event.r1.tel[telid].selected_gain_channel = np.zeros(len(y), dtype=int)
 
     # Test default
     calibrator = CameraCalibrator(
-        subarray=example_subarray,
-        image_extractor=FullWaveformSum(subarray=example_subarray),
+        subarray=subarray, image_extractor=FullWaveformSum(subarray=subarray)
     )
     calibrator(event)
     np.testing.assert_allclose(event.dl1.tel[telid].image, y.sum(1), rtol=1e-4)
@@ -156,11 +164,7 @@ def test_dl1_charge_calib(example_subarray):
     event.calibration.tel[telid].dl1.absolute_factor = absolute
     event.calibration.tel[telid].dl1.relative_factor = relative
 
-    # Test without need for timing corrections
-    calibrator = CameraCalibrator(
-        subarray=example_subarray,
-        image_extractor=FullWaveformSum(subarray=example_subarray),
-    )
+    # Test without timing corrections
     calibrator(event)
     dl1 = event.dl1.tel[telid]
     np.testing.assert_allclose(dl1.image, 1, rtol=1e-5)
@@ -176,6 +180,39 @@ def test_dl1_charge_calib(example_subarray):
     np.testing.assert_allclose(
         event.dl1.tel[telid].peak_time, mid / sampling_rate, atol=1
     )
+
+    # test not applying time shifts
+    # now we should be back to the result without setting time shift
+    calibrator.apply_peak_time_shift = False
+    calibrator.apply_waveform_time_shift = False
+    calibrator(event)
+
+    np.testing.assert_allclose(event.dl1.tel[telid].image, 1, rtol=1e-4)
+    np.testing.assert_allclose(
+        event.dl1.tel[telid].peak_time, expected_peak_time, atol=1
+    )
+
+    # We now use GlobalPeakWindowSum to see the effect of missing charge
+    # due to not correcting time offsets.
+    calibrator = CameraCalibrator(
+        subarray=subarray, image_extractor=GlobalPeakWindowSum(subarray=subarray)
+    )
+    calibrator(event)
+    # test with timing corrections, should work
+    # higher rtol because we cannot shift perfectly
+    np.testing.assert_allclose(event.dl1.tel[telid].image, 1, rtol=0.01)
+    np.testing.assert_allclose(
+        event.dl1.tel[telid].peak_time, mid / sampling_rate, atol=1
+    )
+
+    # test deactivating timing corrections
+    calibrator.apply_waveform_time_shift = False
+    calibrator(event)
+
+    # make sure we chose an example where the time shifts matter
+    # charges should be quite off due to summing around global shift
+    assert not np.allclose(event.dl1.tel[telid].image, 1, rtol=0.1)
+    assert not np.allclose(event.dl1.tel[telid].peak_time, mid / sampling_rate, atol=1)
 
 
 def test_shift_waveforms():
