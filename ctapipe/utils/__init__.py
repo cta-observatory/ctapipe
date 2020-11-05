@@ -10,6 +10,7 @@ from .datasets import (
 )
 from .astro import get_bright_stars
 from .CutFlow import CutFlow, PureCountingCut, UndefinedCut
+from .index_finder import IndexFinder
 
 
 __all__ = [
@@ -24,4 +25,5 @@ __all__ = [
     "CutFlow",
     "PureCountingCut",
     "UndefinedCut",
+    "IndexFinder",
 ]

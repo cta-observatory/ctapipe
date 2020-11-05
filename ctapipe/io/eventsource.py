@@ -228,13 +228,14 @@ class EventSource(Component):
 
     @property
     @abstractmethod
-    def obs_id(self):
+    def obs_ids(self):
         """
-        The current observation id
+        The observation ids of the runs located in the file
+        Unmerged files should only contain a single obs id.
 
         Returns
         -------
-        int
+        list[int]
         """
 
     @abstractmethod

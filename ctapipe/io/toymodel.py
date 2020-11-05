@@ -56,8 +56,8 @@ class ToyEventSource(EventSource, TelescopeComponent):
         return self._subarray
 
     @property
-    def obs_id(self):
-        return -1
+    def obs_ids(self):
+        return [-1]
 
     @property
     def is_simulation(self):
