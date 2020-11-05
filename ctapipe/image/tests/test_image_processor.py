@@ -19,7 +19,7 @@ def test_image_processor(example_event, example_subarray):
     calibrate(example_event)
     process_images(example_event)
 
-    for tel_id, dl1tel in example_event.dl1.tel.items():
+    for dl1tel in example_event.dl1.tel.values():
         assert isfinite(dl1tel.image_mask.sum())
         assert isfinite(dl1tel.parameters.hillas.length.value)
         assert isfinite(dl1tel.parameters.timing.slope.value)
