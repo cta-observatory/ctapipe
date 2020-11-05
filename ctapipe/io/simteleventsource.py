@@ -239,8 +239,9 @@ class SimTelEventSource(EventSource):
         return (DataLevel.R0, DataLevel.R1)
 
     @property
-    def obs_id(self):
-        return self.file_.header["run"]
+    def obs_ids(self):
+        # ToDo: This does not support merged simtel files!
+        return [self.file_.header["run"]]
 
     @property
     def simulation_config(self) -> SimulationConfigContainer:

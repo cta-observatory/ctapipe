@@ -27,7 +27,7 @@ __all__ = ["DL1Writer", "DL1_DATA_MODEL_VERSION", "write_reference_metadata_head
 
 tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many datasets
 
-DL1_DATA_MODEL_VERSION = "v1.0.0"
+DL1_DATA_MODEL_VERSION = "v1.0.2"
 PROV = Provenance()
 
 
