@@ -214,13 +214,14 @@ class DL1Writer(Component):
     def finish(self):
         """ called after all events are done """
         self.log.info("Finishing DL1 output")
-        if self.write_index_tables:
-            self._generate_indices()
-        write_reference_metadata_headers(
-            subarray=self._subarray, obs_id=self._obs_id, writer=self._writer
-        )
-        self._writer.close()
-        self._writer = None
+        if self._writer:
+            if self.write_index_tables:
+                self._generate_indices()
+            write_reference_metadata_headers(
+                subarray=self._subarray, obs_id=self._obs_id, writer=self._writer
+            )
+            self._writer.close()
+            self._writer = None
 
     def _setup_compression(self):
         """ setup HDF5 compression"""
