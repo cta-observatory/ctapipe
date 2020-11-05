@@ -159,7 +159,7 @@ class DL1Writer(Component):
         self._is_simulation = event_source.is_simulation
         self._subarray: SubarrayDescription = event_source.subarray
         self._simulation_config = event_source.simulation_config
-        self._obs_id = event_source.obs_id
+        self._obs_id = event_source.obs_ids[0]
         self._hdf5_filters = None
         self._last_pointing_tel: DefaultDict[Tuple] = None
         self._last_pointing: Tuple = None
