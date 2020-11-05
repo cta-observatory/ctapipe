@@ -3,6 +3,8 @@ import logging
 import warnings
 import textwrap
 from abc import abstractmethod
+import pathlib
+import os
 
 from traitlets import default, Unicode
 from traitlets.config import Application, Configurable
@@ -210,16 +212,20 @@ class Tool(Application):
             Provenance().finish_activity(activity_name=self.name, status="error")
             exit_status = 1  # any other error
         finally:
-            for activity in Provenance().finished_activities:
-                output_str = " ".join([x["url"] for x in activity.output])
-                self.log.info("Output: %s", output_str)
-
-            self.log.debug("PROVENANCE: '%s'", Provenance().as_json(indent=3))
-            self.provenance_log.parent.mkdir(parents=True, exist_ok=True)
-            with open(self.provenance_log, mode="a+") as provlog:
-                provlog.write(Provenance().as_json(indent=3))
+            if not {"-h", "--help", "--help-all"}.intersection(self.argv):
+                self.write_provenance()
 
         self.exit(exit_status)
+
+    def write_provenance(self):
+        for activity in Provenance().finished_activities:
+            output_str = " ".join([x["url"] for x in activity.output])
+            self.log.info("Output: %s", output_str)
+
+        self.log.debug("PROVENANCE: '%s'", Provenance().as_json(indent=3))
+        self.provenance_log.parent.mkdir(parents=True, exist_ok=True)
+        with open(self.provenance_log, mode="a+") as provlog:
+            provlog.write(Provenance().as_json(indent=3))
 
     @property
     def version_string(self):
@@ -347,7 +353,7 @@ def export_tool_config_to_commented_yaml(tool_instance: Tool, classes=None):
     return "\n".join(lines)
 
 
-def run_tool(tool: Tool, argv=None):
+def run_tool(tool: Tool, argv=None, cwd=None):
     """
     Utility run a certain tool in a python session without exitinig
 
@@ -356,8 +362,14 @@ def run_tool(tool: Tool, argv=None):
     exit_code: int
         The return code of the tool, 0 indicates success, everything else an error
     """
+    current_cwd = pathlib.Path().absolute()
+    cwd = pathlib.Path(cwd) if cwd is not None else current_cwd
     try:
+        # switch to cwd for running and back after
+        os.chdir(cwd)
         tool.run(argv or [])
         return 0
     except SystemExit as e:
         return e.code
+    finally:
+        os.chdir(current_cwd)
