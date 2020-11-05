@@ -284,13 +284,20 @@ class DL1Writer(Component):
         writer.exclude("dl1/monitoring/subarray/pointing", "tels_with_trigger")
         writer.exclude("dl1/monitoring/subarray/pointing", "n_trigger_pixels")
         writer.exclude("/dl1/event/telescope/trigger", "trigger_pixels")
-        for tel_id, telescope in self._subarray.tel.items():
-            tel_type = str(telescope)
-            if self.split_datasets_by == "tel_id":
-                table_name = f"tel_{tel_id:03d}"
-            else:
-                table_name = tel_type
 
+        table_names_tel_id = [f"tel_{tel_id:03d}" for tel_id in self._subarray.tel]
+        table_names_tel_type = [
+            str(telescope) for telescope in self._subarray.telescope_types
+        ]
+
+        if self.split_datasets_by == "tel_id":
+            table_names = table_names_tel_id
+        elif self.split_datasets_by == "tel_type":
+            table_names = table_names_tel_type
+        else:
+            table_names = []
+
+        for table_name in table_names:
             if self.write_parameters is False:
                 writer.exclude(
                     f"/dl1/event/telescope/images/{table_name}", "image_mask"
@@ -300,9 +307,6 @@ class DL1Writer(Component):
                 f"/dl1/monitoring/telescope/pointing/{table_name}", "trigger_pixels"
             )
             writer.exclude(f"/dl1/event/telescope/images/{table_name}", "parameters")
-            writer.exclude(
-                f"/dl1/monitoring/event/pointing/tel_{tel_id:03d}", "event_type"
-            )
             if self._is_simulation:
                 writer.exclude(
                     f"/simulation/event/telescope/images/{table_name}",
@@ -317,6 +321,10 @@ class DL1Writer(Component):
                     f"/simulation/event/telescope/parameters/{table_name}", r"timing_.*"
                 )
                 writer.exclude("/simulation/event/subarray/shower", "true_tel")
+
+        for table_name in table_names_tel_id:
+            writer.exclude(f"/dl1/monitoring/event/pointing/{table_name}", "event_type")
+
         self._writer = writer
         self.log.debug("Writer initialized: %s", self._writer)
 
