@@ -14,7 +14,7 @@ d = tempfile.TemporaryDirectory()
 @pytest.fixture
 def dl1_file():
     simtel_path = get_dataset_path("gamma_test_large.simtel.gz")
-    command = f"ctapipe-stage1-process --input {simtel_path} --output {d.name}/testfile.dl1.h5 --write-parameters --write-images --max-events 20 --allowed-tels=[1,2,3]"
+    command = f"ctapipe-stage1 --input {simtel_path} --output {d.name}/testfile.dl1.h5 --write-parameters --write-images --max-events 20 --allowed-tels=[1,2,3]"
     subprocess.call(command.split(), stdout=subprocess.PIPE)
     return f"{d.name}/testfile.dl1.h5"
 
