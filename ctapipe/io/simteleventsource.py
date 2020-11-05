@@ -175,7 +175,7 @@ class SimTelEventSource(EventSource):
         base_class=GainSelector, default_value="ThresholdGainSelector"
     ).tag(config=True)
 
-    def __init__(self, input_url, config=None, parent=None, **kwargs):
+    def __init__(self, input_url=None, config=None, parent=None, **kwargs):
         """
         EventSource for simtelarray files using the pyeventio library.
 
@@ -194,6 +194,7 @@ class SimTelEventSource(EventSource):
         kwargs
         """
         super().__init__(input_url=input_url, config=config, parent=parent, **kwargs)
+
         self._camera_cache = {}
 
         self.file_ = SimTelFile(
