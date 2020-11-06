@@ -451,7 +451,10 @@ class DL1Writer(Component):
                 "dl1/event/telescope/trigger", [tel_index, event.trigger.tel[tel_id]]
             )
 
-            has_sim_camera = tel_id in event.simulation.tel
+            has_sim_camera = (
+                tel_id in event.simulation.tel
+                and event.simulation.tel[tel_id].true_image.sum() > 0
+            )
 
             if self.write_parameters:
                 writer.write(
