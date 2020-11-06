@@ -1,4 +1,5 @@
 import astropy.units as u
+from astropy.utils.decorators import lazyproperty
 import logging
 import numpy as np
 import tables
@@ -153,7 +154,7 @@ class DL1EventSource(EventSource):
         elif images:
             return (DataLevel.DL1_IMAGES,)
 
-    @property
+    @lazyproperty
     def obs_ids(self):
         return list(np.unique(self.file_.root.dl1.event.subarray.trigger.col("obs_id")))
 
