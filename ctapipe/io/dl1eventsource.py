@@ -26,7 +26,7 @@ from ctapipe.utils import IndexFinder
 logger = logging.getLogger(__name__)
 
 
-COMPATIBLE_DL1_VERSIONS = ["v1.0.0", "v1.0.1"]
+COMPATIBLE_DL1_VERSIONS = ["v1.0.0", "v1.0.1", "v1.0.2"]
 
 
 class DL1EventSource(EventSource):
@@ -268,7 +268,7 @@ class DL1EventSource(EventSource):
         )
 
         tel_pointing_finder = {
-            tel.name: IndexFinder(tel.col("telescopetrigger_time"))
+            tel.name: IndexFinder(tel.col("time"))
             for tel in self.file_.root.dl1.monitoring.telescope.pointing
         }
 
@@ -333,9 +333,9 @@ class DL1EventSource(EventSource):
                         simulated_image_row = next(
                             simulated_image_iterators[f"tel_{tel:03d}"]
                         )
-                        simulated.image = simulated_image_row["image"]
-                        simulated.peak_time = simulated_image_row["peak_time"]
-                        simulated.image_mask = simulated_image_row["image_mask"]
+                        simulated.true_image = simulated_image_row["true_image"]
+                        # simulated.peak_time = simulated_image_row["peak_time"]
+                        # simulated.image_mask = simulated_image_row["image_mask"]
 
                 if DataLevel.DL1_PARAMETERS in self.datalevels:
                     if f"tel_{tel:03d}" not in param_readers.keys():
@@ -367,13 +367,17 @@ class DL1EventSource(EventSource):
                         simulated_params = next(
                             simulated_param_readers[f"tel_{tel:03d}"]
                         )
-                        simulated.parameters.hillas = simulated_params[0]
-                        simulated.parameters.timing = simulated_params[1]
-                        simulated.parameters.leakage = simulated_params[2]
-                        simulated.parameters.concentration = simulated_params[3]
-                        simulated.parameters.morphology = simulated_params[4]
-                        simulated.parameters.intensity_statistics = simulated_params[5]
-                        simulated.parameters.peak_time_statistics = simulated_params[6]
+                        simulated.true_parameters.hillas = simulated_params[0]
+                        simulated.true_parameters.timing = simulated_params[1]
+                        simulated.true_parameters.leakage = simulated_params[2]
+                        simulated.true_parameters.concentration = simulated_params[3]
+                        simulated.true_parameters.morphology = simulated_params[4]
+                        simulated.true_parameters.intensity_statistics = simulated_params[
+                            5
+                        ]
+                        simulated.true_parameters.peak_time_statistics = simulated_params[
+                            6
+                        ]
 
             yield data
 

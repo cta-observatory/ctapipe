@@ -71,7 +71,7 @@ def test_simulation_info(dl1_file):
             for tel in event.simulation.tel:
                 assert tel in event.simulation.tel
                 assert event.simulation.tel[tel].true_image.any()
-                assert event.simulation.tel[tel].parameters.hillas.x != np.nan
+                assert event.simulation.tel[tel].true_parameters.hillas.x != np.nan
 
 
 def test_dl1_data(dl1_file):
