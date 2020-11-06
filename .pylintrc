@@ -542,7 +542,9 @@ exclude-protected=_asdict,
                   _fields,
                   _replace,
                   _source,
-                  _make
+                  _make,
+                  _v_attrs, 
+                  _v_attrnames
 
 # List of valid names for the first argument in a class method.
 valid-classmethod-first-arg=cls
