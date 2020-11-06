@@ -1,7 +1,11 @@
+"""
+Tests for ImageProcessor functionality
+"""
+from numpy import isfinite
+
 from ctapipe.calib import CameraCalibrator
 from ctapipe.image import ImageProcessor
 from ctapipe.image.cleaning import MARSImageCleaner
-from numpy import isfinite
 
 
 def test_image_processor(example_event, example_subarray):

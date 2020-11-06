@@ -15,6 +15,11 @@ from ..io.dl1writer import DL1_DATA_MODEL_VERSION
 
 
 class Stage1Tool(Tool):
+    """
+    Process data from lower-data levels up to DL1, including both image
+    extraction and optinally image parameterization
+    """
+
     name = "ctapipe-stage1"
     description = __doc__ + f" This currently writes {DL1_DATA_MODEL_VERSION} DL1 data"
     examples = """
@@ -139,5 +144,6 @@ class Stage1Tool(Tool):
 
 
 def main():
+    """ run the tool"""
     tool = Stage1Tool()
     tool.run()
