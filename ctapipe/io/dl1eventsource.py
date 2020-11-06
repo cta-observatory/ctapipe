@@ -238,12 +238,10 @@ class DL1EventSource(EventSource):
                         f"/simulation/event/telescope/parameters/{tel.name}",
                         containers=[
                             HillasParametersContainer(),
-                            TimingParametersContainer(),
                             LeakageContainer(),
                             ConcentrationContainer(),
                             MorphologyContainer(),
                             IntensityStatisticsContainer(),
-                            PeakTimeStatisticsContainer(),
                         ],
                         prefixes=True,
                     )
@@ -334,8 +332,6 @@ class DL1EventSource(EventSource):
                             simulated_image_iterators[f"tel_{tel:03d}"]
                         )
                         simulated.true_image = simulated_image_row["true_image"]
-                        # simulated.peak_time = simulated_image_row["peak_time"]
-                        # simulated.image_mask = simulated_image_row["image_mask"]
 
                 if DataLevel.DL1_PARAMETERS in self.datalevels:
                     if f"tel_{tel:03d}" not in param_readers.keys():
@@ -368,15 +364,11 @@ class DL1EventSource(EventSource):
                             simulated_param_readers[f"tel_{tel:03d}"]
                         )
                         simulated.true_parameters.hillas = simulated_params[0]
-                        simulated.true_parameters.timing = simulated_params[1]
-                        simulated.true_parameters.leakage = simulated_params[2]
-                        simulated.true_parameters.concentration = simulated_params[3]
-                        simulated.true_parameters.morphology = simulated_params[4]
+                        simulated.true_parameters.leakage = simulated_params[1]
+                        simulated.true_parameters.concentration = simulated_params[2]
+                        simulated.true_parameters.morphology = simulated_params[3]
                         simulated.true_parameters.intensity_statistics = simulated_params[
-                            5
-                        ]
-                        simulated.true_parameters.peak_time_statistics = simulated_params[
-                            6
+                            4
                         ]
 
             yield data
