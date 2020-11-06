@@ -281,9 +281,9 @@ class DL1EventSource(EventSource):
 
             data.count = counter
             data.trigger, data.index = next(events)
-            data.trigger.tels_with_trigger = (
-                np.where(data.trigger.tels_with_trigger)[0] + 1
-            )  # +1 to match array index to telescope id
+            data.trigger.tels_with_trigger = self.subarray.tel_mask_to_tel_ids(
+                data.trigger.tels_with_trigger
+            )
 
             # Maybe there is a simpler way  to do this
             # Beware: tels_with_trigger contains all triggered telescopes whereas

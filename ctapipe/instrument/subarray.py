@@ -177,6 +177,13 @@ class SubarrayDescription:
         mask[indices] = True
         return mask
 
+    def tel_mask_to_tel_ids(self, tel_mask):
+        """
+
+        """
+        indices = np.where(tel_mask)[0]
+        return self.tel_ids[indices]
+
     @property
     def footprint(self):
         """area of smallest circle containing array on ground"""
