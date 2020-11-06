@@ -103,7 +103,9 @@ class ImageSumDisplayerTool(Tool):
 
             self.log.info(
                 "event={} ntels={} energy={}".format(
-                    event.index.event_id, len(event.dl0.tel.keys()), event.mc.energy
+                    event.index.event_id,
+                    len(event.dl0.tel.keys()),
+                    event.simulation.shower.energy,
                 )
             )
             disp.image = imsum

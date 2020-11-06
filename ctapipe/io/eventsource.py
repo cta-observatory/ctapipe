@@ -139,7 +139,14 @@ class EventSource(Component):
             Set to None if no Tool to pass.
         kwargs
         """
-        super().__init__(config=config, parent=parent, input_url=input_url, **kwargs)
+        # traitlets differentiates between not getting the kwarg
+        # and getting the kwarg with a None value.
+        # the latter overrides the value in the config with None, the former
+        # enables getting it from the config.
+        if input_url is not None:
+            kwargs["input_url"] = input_url
+
+        super().__init__(config=config, parent=parent, **kwargs)
 
         self.metadata = dict(is_simulation=False)
         self.log.info(f"INPUT PATH = {self.input_url}")
@@ -221,13 +228,14 @@ class EventSource(Component):
 
     @property
     @abstractmethod
-    def obs_id(self):
+    def obs_ids(self):
         """
-        The current observation id
+        The observation ids of the runs located in the file
+        Unmerged files should only contain a single obs id.
 
         Returns
         -------
-        int
+        list[int]
         """
 
     @abstractmethod

@@ -20,7 +20,7 @@ def plot(subarray, event, telid, chan, extractor_name):
     # Extract required images
     dl0 = event.dl0.tel[telid].waveform
 
-    t_pe = event.mc.tel[telid].true_image
+    t_pe = event.simulation.tel[telid].true_image
     dl1 = event.dl1.tel[telid].image
     max_time = np.unravel_index(np.argmax(dl0), dl0.shape)[1]
     max_charges = np.max(dl0, axis=1)
@@ -253,12 +253,10 @@ class DisplayIntegrator(Tool):
     def setup(self):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
 
-        event_source = self.add_component(EventSource.from_config(parent=self))
+        event_source = EventSource.from_config(parent=self)
         self.subarray = event_source.subarray
-        self.eventseeker = self.add_component(EventSeeker(event_source, parent=self))
-        self.calibrate = self.add_component(
-            CameraCalibrator(parent=self, subarray=self.subarray)
-        )
+        self.eventseeker = EventSeeker(event_source, parent=self)
+        self.calibrate = CameraCalibrator(parent=self, subarray=self.subarray)
 
     def start(self):
         if self.use_event_id:

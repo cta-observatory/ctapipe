@@ -1,4 +1,4 @@
-from .camera import CameraDescription, CameraGeometry, CameraReadout
+from .camera import CameraDescription, CameraGeometry, CameraReadout, PixelShape
 from .atmosphere import get_atmosphere_profile_functions
 from .telescope import TelescopeDescription
 from .optics import OpticsDescription
@@ -15,4 +15,5 @@ __all__ = [
     "OpticsDescription",
     "SubarrayDescription",
     "guess_telescope",
+    "PixelShape",
 ]
