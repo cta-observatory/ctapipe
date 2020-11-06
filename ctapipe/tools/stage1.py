@@ -141,7 +141,3 @@ class Stage1Tool(Tool):
 def main():
     tool = Stage1Tool()
     tool.run()
-
-
-if __name__ == "__main__":
-    main()
