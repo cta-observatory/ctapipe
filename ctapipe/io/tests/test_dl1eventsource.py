@@ -11,7 +11,7 @@ import pytest
 d = tempfile.TemporaryDirectory()
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def dl1_file():
     simtel_path = get_dataset_path("gamma_test_large.simtel.gz")
     command = f"ctapipe-stage1 --input {simtel_path} --output {d.name}/testfile.dl1.h5 --write-parameters --write-images --max-events 20 --allowed-tels=[1,2,3]"
