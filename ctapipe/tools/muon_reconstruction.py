@@ -125,7 +125,9 @@ class MuonAnalysis(Tool):
         for tel_id, dl1 in event.dl1.tel.items():
             self.process_telescope_event(event.index, tel_id, dl1)
 
-        self.writer.write("sim/event/subarray/shower", [event.index, event.mc])
+        self.writer.write(
+            "sim/event/subarray/shower", [event.index, event.simulation.shower]
+        )
 
     def process_telescope_event(self, event_index, tel_id, dl1):
         event_id = event_index.event_id

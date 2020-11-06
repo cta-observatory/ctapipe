@@ -52,7 +52,7 @@ install:
   - source ci/install.sh
   - python --version
   - pip install travis-sphinx codecov pytest-cov
-  - pip install -e .[all]
+  - pip install --use-feature=2020-resolver -e .[all]
   - pip freeze
 
 script:

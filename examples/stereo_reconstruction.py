@@ -65,7 +65,7 @@ for event in event_source:
         n_islands, island_ids = number_of_islands(geom, clean)
 
         timing_c = timing_parameters(
-            geom[clean], image[clean], peakpos[clean], hillas_c,
+            geom[clean], image[clean], peakpos[clean], hillas_c
         )
 
         # store parameters for stereo reconstruction
@@ -87,14 +87,14 @@ for event in event_source:
     if len(hillas_containers) < 2:
         continue
     array_pointing = SkyCoord(
-        az=event.mcheader.run_array_direction[0],
-        alt=event.mcheader.run_array_direction[1],
+        az=event.pointing.array_azimuth,
+        alt=event.pointing.array_altitude,
         frame=horizon_frame,
     )
-    stereo = reco.predict(hillas_containers, event_source.subarray, array_pointing,)
+    stereo = reco.predict(hillas_containers, event_source.subarray, array_pointing)
 
     plt.figure()
-    angle_offset = event.mcheader.run_array_direction[0]
+    angle_offset = event.pointing.array_azimuth
     disp = ArrayDisplay(event_source.subarray)
 
     disp.set_vector_hillas(
@@ -104,15 +104,15 @@ for event in event_source:
         length=500,
     )
     plt.scatter(
-        event.mc.core_x, event.mc.core_y, s=200, c="k", marker="x", label="True Impact",
+        event.simulation.shower.core_x,
+        event.simulation.shower.core_y,
+        s=200,
+        c="k",
+        marker="x",
+        label="True Impact",
     )
     plt.scatter(
-        stereo.core_x,
-        stereo.core_y,
-        s=200,
-        c="r",
-        marker="x",
-        label="Estimated Impact",
+        stereo.core_x, stereo.core_y, s=200, c="r", marker="x", label="Estimated Impact"
     )
 
     plt.legend()

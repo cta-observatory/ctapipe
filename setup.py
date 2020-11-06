@@ -31,6 +31,7 @@ entry_points["console_scripts"] = [
     "ctapipe-display-integration = ctapipe.tools.display_integrator:main",
     "ctapipe-display-dl1 = ctapipe.tools.display_dl1:main",
     "ctapipe-stage1-process = ctapipe.tools.stage1:main",
+    "ctapipe-merge = ctapipe.tools.dl1_merge:main",
 ]
 tests_require = [
     "pytest",
@@ -71,7 +72,9 @@ setup(
         "tqdm>=4.32",
         "traitlets~=5.0,>=5.0.5",
         "zstandard",
-        "h5py",  # needed for astropy hdf5 io
+        # needed for astropy hdf5 io. Version 3 breaks copying those tables
+        # with pytables du to variable length strings.
+        "h5py~=2.0",
     ],
     # here are optional dependencies (as "tag" : "dependency spec")
     extras_require={

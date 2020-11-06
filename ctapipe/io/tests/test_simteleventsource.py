@@ -7,6 +7,7 @@ from itertools import zip_longest
 import pytest
 from astropy.time import Time
 from pathlib import Path
+from traitlets.config import Config
 
 
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
@@ -75,7 +76,7 @@ def test_that_event_is_not_modified_after_loop():
         assert event.index.event_id == last_event.index.event_id
 
 
-def test_additional_meta_data_from_mc_header():
+def test_additional_meta_data_from_simulation_config():
     with SimTelEventSource(input_url=gamma_test_large_path) as reader:
         data = next(iter(reader))
 
@@ -83,12 +84,12 @@ def test_additional_meta_data_from_mc_header():
     from astropy import units as u
     from astropy.coordinates import Angle
 
-    assert data.mcheader.corsika_version == 6990
-    assert data.mcheader.spectral_index == -2.0
-    assert data.mcheader.shower_reuse == 20
-    assert data.mcheader.core_pos_mode == 1
-    assert data.mcheader.diffuse == 1
-    assert data.mcheader.atmosphere == 26
+    assert reader.simulation_config.corsika_version == 6990
+    assert reader.simulation_config.spectral_index == -2.0
+    assert reader.simulation_config.shower_reuse == 20
+    assert reader.simulation_config.core_pos_mode == 1
+    assert reader.simulation_config.diffuse == 1
+    assert reader.simulation_config.atmosphere == 26
 
     # value read by hand from input card
     name_expectation = {
@@ -106,7 +107,7 @@ def test_additional_meta_data_from_mc_header():
     }
 
     for name, expectation in name_expectation.items():
-        value = getattr(data.mcheader, name)
+        value = getattr(reader.simulation_config, name)
 
         assert value.unit == expectation.unit
         assert np.isclose(
@@ -118,9 +119,9 @@ def test_properties():
     source = SimTelEventSource(input_url=gamma_test_large_path)
 
     assert source.is_simulation
-    assert source.mc_header.corsika_version == 6990
+    assert source.simulation_config.corsika_version == 6990
     assert source.datalevels == (DataLevel.R0, DataLevel.R1)
-    assert source.obs_id == 7514
+    assert source.obs_ids == [7514]
 
 
 def test_gamma_file():
@@ -230,8 +231,8 @@ def test_trigger_times():
 def test_true_image():
     with SimTelEventSource(input_url=calib_events_path) as reader:
 
-        for e in reader:
-            for tel in e.mc.tel.values():
+        for event in reader:
+            for tel in event.simulation.tel.values():
                 assert np.count_nonzero(tel.true_image) > 0
 
 
@@ -329,3 +330,11 @@ def test_effective_focal_length():
     assert focal_length_nominal > 0
     assert focal_length_effective > 0
     assert focal_length_nominal != focal_length_effective
+
+
+def test_only_config():
+    config = Config()
+    config.SimTelEventSource.input_url = gamma_test_large_path
+
+    s = SimTelEventSource(config=config)
+    assert s.input_url == Path(gamma_test_large_path).absolute()

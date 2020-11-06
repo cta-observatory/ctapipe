@@ -37,7 +37,7 @@ The following datasets will be written to the group `/dl1/event/` in the  output
       - `EventIndexContainer` +, `CentralTriggerContainer`
     * - /subarray/mc_shower
       - true shower parameters from Monte-Carlo simulation
-      - `EventIndexContainer` +, `MCEventContainer`
+      - `EventIndexContainer` +, `SimulatedShowerContainer`
     * - /telescope
       - Per-telescope Per-event information
       - (group)
@@ -95,7 +95,7 @@ applicable), simulation (if applicable) configuration information, written to th
 Core Provenance
 ---------------
 
-The root group of the file shall contain all of thethe "CTA Core Provenance Metadata"
+The root group of the file shall contain all of the "CTA Core Provenance Metadata"
 headers as user attributes, with the hierarchy flattened and separated by spaces (e.g.
 `"CTA ACTIVITY NAME" = "ctapipe-stage1-process"`)
 
