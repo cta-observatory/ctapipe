@@ -23,9 +23,9 @@ if [[ "$CONDA" == "true" ]]; then
     # Useful for debugging any issues with conda
     conda info -a
 
-	sed -i -e "s/- python=.*/- python=$TRAVIS_PYTHON_VERSION/g" environment.yml
-	travis_wait 20 conda env create -n cta-dev --file environment.yml
-	conda activate cta-dev
+	sed -i -e "s/- python=.*/- python=$PYTHON_VERSION/g" environment.yml
+	travis_wait 20 conda env create -n travis --file environment.yml
+	conda activate travis
 else
     pip install -U pip
 fi

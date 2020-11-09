@@ -82,7 +82,7 @@ class DumpTriggersTool(Tool):
         # build the trigger pattern as a fixed-length array
         # (better for storage in FITS format)
         # trigtels = event.get_telescope_with_data_list()
-        trigtels = event.dl0.tels_with_data
+        trigtels = event.dl0.tel.keys()
         self._current_trigpattern[:] = 0  # zero the trigger pattern
         self._current_trigpattern[list(trigtels)] = 1  # set the triggered tels
         # to 1

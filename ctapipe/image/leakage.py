@@ -6,10 +6,10 @@ import numpy as np
 from ..containers import LeakageContainer
 
 
-__all__ = ["leakage"]
+__all__ = ["leakage_parameters"]
 
 
-def leakage(geom, image, cleaning_mask):
+def leakage_parameters(geom, image, cleaning_mask):
     """
     Calculating the leakage-values for a given image.
     Image must be cleaned for example with tailcuts_clean.

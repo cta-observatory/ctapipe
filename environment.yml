@@ -7,7 +7,7 @@ dependencies:
   - python=3.7
   - pip
   - astropy
-  - h5py
+  - h5py=2
   - bokeh=1
   - conda-forge::nbsphinx
   - cython
@@ -42,5 +42,5 @@ dependencies:
   - xz
   - zlib
   - zstandard
-  - eventio>=1.1.1
-  - ctapipe-extra>=0.3
+  - conda-forge::eventio>=1.1.1
+  - ctapipe-extra>=0.3.1

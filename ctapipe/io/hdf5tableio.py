@@ -168,14 +168,6 @@ class HDF5TableWriter(TableWriter):
                 # apply any user-defined transforms first
                 value = self._apply_col_transform(table_name, col_name, value)
 
-                # add desription to metadata
-                if self.add_prefix:
-                    meta[f"{col_name}_DESC"] = container.fields[
-                        re.sub(f"^{container.prefix}_", "", col_name)
-                    ].description
-                else:
-                    meta[f"{col_name}_DESC"] = container.fields[col_name].description
-
                 if isinstance(value, enum.Enum):
 
                     def transform(enum_value):
@@ -224,6 +216,15 @@ class HDF5TableWriter(TableWriter):
                     continue
 
                 pos += 1
+
+                # add desription to metadata
+                if self.add_prefix:
+                    meta[f"{col_name}_DESC"] = container.fields[
+                        re.sub(f"^{container.prefix}_", "", col_name)
+                    ].description
+                else:
+                    meta[f"{col_name}_DESC"] = container.fields[col_name].description
+
                 self.log.debug(
                     f"Table {table_name}: "
                     f"added col: {col_name} type: "
@@ -345,8 +346,8 @@ class HDF5TableReader(TableReader):
         """
         Parameters
         ----------
-        filename: str
-            name of hdf5 file
+        filename: str, pathlib.PurePath or tables.File instance
+            name of hdf5 file or file handle
         kwargs:
             any other arguments that will be passed through to
             `pytables.open()`.
@@ -356,7 +357,15 @@ class HDF5TableReader(TableReader):
         self._tables = {}
         kwargs.update(mode="r")
 
-        self.open(filename, **kwargs)
+        if isinstance(filename, str) or isinstance(filename, PurePath):
+            self.open(filename, **kwargs)
+        elif isinstance(filename, tables.File):
+            self._h5file = filename
+        else:
+            raise NotImplementedError(
+                "filename needs to be either a string, pathlib.PurePath "
+                "or tables.File"
+            )
 
     def open(self, filename, **kwargs):
 
@@ -387,13 +396,8 @@ class HDF5TableReader(TableReader):
         for attr in tab.attrs._f_list():
             if attr.endswith("_ENUM"):
                 colname = attr[:-5]
-
-                def transform_int_to_enum(int_val):
-                    """transform integer 'code' into enum instance"""
-                    enum_class = tab.attrs[attr]
-                    return enum_class(int_val)
-
-                self.add_column_transform(table_name, colname, transform_int_to_enum)
+                enum = tab.attrs[attr]
+                self.add_column_transform(table_name, colname, enum)
 
     def _map_table_to_containers(self, table_name, containers, prefixes):
         """ identifies which columns in the table to read into the containers,
@@ -409,7 +413,7 @@ class HDF5TableReader(TableReader):
                 if colname_without_prefix in container.fields:
                     self._cols_to_read[table_name].append(colname)
                 else:
-                    self.log.warning(
+                    self.log.debug(
                         f"Table {table_name} has column {colname_without_prefix} that is not in "
                         f"container {container.__class__.__name__}. It will be skipped."
                     )
@@ -423,13 +427,22 @@ class HDF5TableReader(TableReader):
                     colname_with_prefix = colname
                 if colname_with_prefix not in self._cols_to_read[table_name]:
                     self.log.warning(
-                        f"Table {table_name} is missing column {colname_with_prefix}"
-                        f"that is in container {container.__class__.__name__}. It will be skipped."
+                        f"Table {table_name} is missing column {colname_with_prefix} "
+                        f"that is in container {container.__class__.__name__}. "
+                        "It will be skipped."
                     )
 
             # copy all user-defined attributes back to Container.mets
             for key in tab.attrs._f_list():
                 container.meta[key] = tab.attrs[key]
+
+        # check if the table has additional columns not present in any container
+        for colname in tab.colnames:
+            if colname not in self._cols_to_read[table_name]:
+                self.log.debug(
+                    f"Table {table_name} contains column {colname} "
+                    "that does not map to any of the specified containers"
+                )
 
     def read(self, table_name, containers, prefixes=False):
         """

@@ -30,11 +30,12 @@ entry_points["console_scripts"] = [
     "ctapipe-reconstruct-muons = ctapipe.tools.muon_reconstruction:main",
     "ctapipe-display-integration = ctapipe.tools.display_integrator:main",
     "ctapipe-display-dl1 = ctapipe.tools.display_dl1:main",
-    "ctapipe-stage1-process = ctapipe.tools.stage1:main",
+    "ctapipe-stage1 = ctapipe.tools.stage1:main",
+    "ctapipe-merge = ctapipe.tools.dl1_merge:main",
 ]
 tests_require = [
     "pytest",
-    "ctapipe-extra @ https://github.com/cta-observatory/ctapipe-extra/archive/v0.3.0.tar.gz",
+    "ctapipe-extra @ https://github.com/cta-observatory/ctapipe-extra/archive/v0.3.1.tar.gz",
 ]
 docs_require = [
     "sphinx_rtd_theme",
@@ -53,7 +54,7 @@ ctapipe.version.update_release_version()
 setup(
     packages=find_packages(),
     version=ctapipe.version.get_version(pep440=True),
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     install_requires=[
         "astropy>=3,<5",
         "bokeh~=1.0",
@@ -69,9 +70,11 @@ setup(
         "scipy~=1.2",
         "tables~=3.4",
         "tqdm>=4.32",
-        "traitlets>=4.1,<5.0",
+        "traitlets~=5.0,>=5.0.5",
         "zstandard",
-        "h5py",  # needed for astropy hdf5 io
+        # needed for astropy hdf5 io. Version 3 breaks copying those tables
+        # with pytables du to variable length strings.
+        "h5py~=2.0",
     ],
     # here are optional dependencies (as "tag" : "dependency spec")
     extras_require={
@@ -85,9 +88,9 @@ setup(
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: BSD License",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: Implementation :: CPython",
         "Topic :: Scientific/Engineering :: Astronomy",
         "Development Status :: 3 - Alpha",
