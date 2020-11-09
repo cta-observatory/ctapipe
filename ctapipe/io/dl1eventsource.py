@@ -60,7 +60,7 @@ class DL1EventSource(EventSource):
         depending on the information present in the file.
     is_simulation: Boolean
         Whether the events are simulated or observed.
-    mc_headers: Dict
+    simulation_configs: Dict
         Mapping of obs_id to ctapipe.containers.SimulationConfigContainer
         if the file contains simulated events.
     has_simulated_dl1: Boolean
@@ -90,7 +90,7 @@ class DL1EventSource(EventSource):
         self.file_ = tables.open_file(input_url)
         self.input_url = input_url
         self._subarray_info = SubarrayDescription.from_hdf(self.input_url)
-        self._mc_headers = self._parse_mc_headers()
+        self._simulation_configs = self._parse_simulation_configs()
         self.datamodel_version = self.file_.root._v_attrs[
             "CTA PRODUCT DATA MODEL VERSION"
         ]
@@ -159,8 +159,8 @@ class DL1EventSource(EventSource):
         return list(np.unique(self.file_.root.dl1.event.subarray.trigger.col("obs_id")))
 
     @property
-    def mc_headers(self):
-        return self._mc_headers
+    def simulation_configs(self):
+        return self._simulation_configs
 
     def _generator(self):
         yield from self._generate_events()
@@ -168,7 +168,7 @@ class DL1EventSource(EventSource):
     def __len__(self):
         return len(self.file_.root.dl1.event.subarray.trigger)
 
-    def _parse_mc_headers(self):
+    def _parse_simulation_configs(self):
         """
         Construct a dict of SimulationConfigContainers from the
         self.file_.root.configuration.simulation.run.
@@ -180,15 +180,15 @@ class DL1EventSource(EventSource):
         # the correct mcheader assigned by matching the obs_id
         # Alternatively this becomes a flat list
         # and the obs_id matching part needs to be done in _generate_events()
-        mc_headers = {}
+        simulation_configs = {}
         if "simulation" in self.file_.root.configuration:
             reader = HDF5TableReader(self.file_).read(
                 "/configuration/simulation/run", SimulationConfigContainer()
             )
             row_iterator = self.file_.root.configuration.simulation.run.iterrows()
             for row in row_iterator:
-                mc_headers[row["obs_id"]] = next(reader)
-        return mc_headers
+                simulation_configs[row["obs_id"]] = next(reader)
+        return simulation_configs
 
     def _generate_events(self):
         """

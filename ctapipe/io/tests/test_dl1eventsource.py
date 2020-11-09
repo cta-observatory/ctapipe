@@ -32,7 +32,7 @@ def test_metadata(dl1_file):
         assert source.is_simulation
         assert source.datalevels == (DataLevel.DL1_IMAGES, DataLevel.DL1_PARAMETERS)
         assert list(source.obs_ids) == [7514]
-        assert source.mc_headers[7514].corsika_version == 6990
+        assert source.simulation_configs[7514].corsika_version == 6990
 
 
 def test_subarray(dl1_file):
