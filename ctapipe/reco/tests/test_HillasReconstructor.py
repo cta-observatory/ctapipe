@@ -170,17 +170,22 @@ def test_parallel_reconstruction():
         else:
             reconstructed_events += 1
 
-        # Parallel pointing case using CameraFrame
-        fit = HillasReconstructor()
-        fit_result_CameraFrame = fit.predict(
-            hillas_dict_CameraFrame, source.subarray, array_pointing
-        )
+        try:
 
-        # Parallel pointing case using TelescopeFrame
-        fit = HillasReconstructor()
-        fit_result_TelescopeFrame = fit.predict(
-            hillas_dict_TelescopeFrame, source.subarray, array_pointing
-        )
+            # Parallel pointing case using CameraFrame
+            fit = HillasReconstructor(event=event)
+            fit_result_CameraFrame = fit.predict(
+                hillas_dict_CameraFrame, source.subarray, array_pointing, telescope_pointings
+            )
+
+            # Parallel pointing case using TelescopeFrame
+            fit = HillasReconstructor(event=event)
+            fit_result_TelescopeFrame = fit.predict(
+                hillas_dict_TelescopeFrame, source.subarray, array_pointing, telescope_pointings
+            )
+
+        except InvalidWidthException:
+            continue
 
         for field in fit_result_CameraFrame.as_dict():
             C = np.asarray(fit_result_CameraFrame.as_dict()[field])
@@ -233,7 +238,7 @@ def test_divergent_reconstruction():
         hillas_dict_TelescopeFrame = {}
         telescope_pointings = {}
 
-        for tel_id in event.dl0.tels_with_data:
+        for tel_id in event.r1.tel.keys():
 
             telescope_pointings[tel_id] = SkyCoord(
                 alt=event.pointing.tel[tel_id].altitude,
@@ -276,7 +281,7 @@ def test_divergent_reconstruction():
         else:
             reconstructed_events += 1
 
-        fit = HillasReconstructor()
+        fit = HillasReconstructor(event=event)
         fit_result_CameraFrame = fit.predict(
             hillas_dict_CameraFrame,
             source.subarray,
@@ -284,7 +289,7 @@ def test_divergent_reconstruction():
             telescope_pointings,
         )
 
-        fit = HillasReconstructor()
+        fit = HillasReconstructor(event=event)
         fit_result_TelescopeFrame = fit.predict(
             hillas_dict_TelescopeFrame,
             source.subarray,
