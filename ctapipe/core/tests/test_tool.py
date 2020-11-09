@@ -71,9 +71,9 @@ def test_provenance_log_help(tmpdir):
 def test_export_config_to_yaml():
     """ test that we can export a Tool's config to YAML"""
     import yaml
-    from ctapipe.tools.stage1 import Stage1ProcessorTool
+    from ctapipe.tools.stage1 import Stage1Tool
 
-    tool = Stage1ProcessorTool()
+    tool = Stage1Tool()
     tool.overwrite = True
     yaml_string = export_tool_config_to_commented_yaml(tool)
 
