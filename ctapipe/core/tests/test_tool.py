@@ -82,7 +82,7 @@ def test_export_config_to_yaml():
     # check round-trip back from yaml:
     config_dict = yaml.load(yaml_string, Loader=yaml.SafeLoader)
 
-    assert config_dict["Stage1ProcessorTool"]["overwrite"] is True
+    assert config_dict["Stage1Tool"]["overwrite"] is True
 
 
 def test_tool_html_rep():
