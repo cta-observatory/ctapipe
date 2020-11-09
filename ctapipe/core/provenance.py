@@ -22,6 +22,7 @@ from pkg_resources import get_distribution
 import ctapipe
 from .support import Singleton
 from collections import UserList
+from pathlib import Path
 
 log = logging.getLogger(__name__)
 
@@ -81,7 +82,7 @@ class Provenance(metaclass=Singleton):
         log.debug(f"started activity: {activity_name}")
 
     def add_input_file(self, filename, role=None):
-        """ register an input to the current activity
+        """register an input to the current activity
 
         Parameters
         ----------
@@ -164,7 +165,7 @@ class Provenance(metaclass=Singleton):
         return [x.provenance for x in self._finished_activities]
 
     def as_json(self, **kwargs):
-        """ return all finished provenance as JSON.  Kwargs for `json.dumps`
+        """return all finished provenance as JSON.  Kwargs for `json.dumps`
         may be included, e.g. `indent=4`"""
 
         def set_default(obj):
@@ -173,6 +174,8 @@ class Provenance(metaclass=Singleton):
                 return list(obj)
             if isinstance(obj, UserList):
                 return list(obj)
+            if isinstance(obj, Path):
+                return str(obj)
 
         return json.dumps(self.provenance, default=set_default, **kwargs)
 
@@ -210,7 +213,7 @@ class _ActivityProvenance:
         self.name = activity_name
 
     def start(self):
-        """ begin recording provenance for this activity. Set's up the system
+        """begin recording provenance for this activity. Set's up the system
         and startup provenance data. Generally should be called at start of a
         program."""
         self._prov["start"].update(_sample_cpu_and_memory())
@@ -280,7 +283,7 @@ class _ActivityProvenance:
 
 
 def _get_system_provenance():
-    """ return JSON string containing provenance for all things that are
+    """return JSON string containing provenance for all things that are
     fixed during the runtime"""
 
     bits, linkage = platform.architecture()

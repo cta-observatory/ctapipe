@@ -11,10 +11,10 @@ import pytest
 d = tempfile.TemporaryDirectory()
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def dl1_file():
     simtel_path = get_dataset_path("gamma_test_large.simtel.gz")
-    command = f"ctapipe-stage1-process --input {simtel_path} --output {d.name}/testfile.dl1.h5 --write-parameters --write-images --max-events 20 --allowed-tels=[1,2,3]"
+    command = f"ctapipe-stage1 --input {simtel_path} --output {d.name}/testfile.dl1.h5 --write-parameters --write-images --max-events 20 --allowed-tels=[1,2,3]"
     subprocess.call(command.split(), stdout=subprocess.PIPE)
     return f"{d.name}/testfile.dl1.h5"
 
@@ -71,7 +71,7 @@ def test_simulation_info(dl1_file):
             for tel in event.simulation.tel:
                 assert tel in event.simulation.tel
                 assert event.simulation.tel[tel].true_image.any()
-                assert event.simulation.tel[tel].parameters.hillas.x != np.nan
+                assert event.simulation.tel[tel].true_parameters.hillas.x != np.nan
 
 
 def test_dl1_data(dl1_file):
