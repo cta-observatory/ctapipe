@@ -22,7 +22,7 @@ def test_dl1writer(tmpdir: Path):
 
     output_path = Path(tmpdir / "events.dl1.h5")
     source = event_source(
-        get_dataset_path("gamma_test_large.simtel.gz"),
+        get_dataset_path("gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"),
         max_events=20,
         allowed_tels=[1, 2, 3, 4],
     )
