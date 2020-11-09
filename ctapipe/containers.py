@@ -24,6 +24,7 @@ __all__ = [
     "EventType",
     "FlatFieldContainer",
     "HillasParametersContainer",
+    "CoreParametersContainer",
     "ImageParametersContainer",
     "LeakageContainer",
     "MonitoringCameraContainer",
@@ -114,11 +115,6 @@ class HillasParametersContainer(Container):
     width = Field(nan * u.m, "standard spread along the minor-axis", unit=u.m)
     width_uncertainty = Field(nan * u.m, "uncertainty of width", unit=u.m)
     psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
-    psi_divergent = Field(
-        nan * u.deg,
-        "rotation angle of ellipse used in divergent mode for core reconstruction",
-        unit=u.deg,
-    )
 
     skewness = Field(nan, "measure of the asymmetry")
     kurtosis = Field(nan, "measure of the tailedness")
@@ -211,6 +207,12 @@ class PeakTimeStatisticsContainer(StatisticsContainer):
     container_prefix = "peak_time"
 
 
+class CoreParametersContainer(Container):
+    """Telescope-wise shower's direction in the TiltedFrame"""
+    container_prefix = "core"
+    psi = Field(nan * u.deg, "Image direction in the Titled/Ground Frame", unit="deg")
+
+
 class ImageParametersContainer(Container):
     """ Collection of image parameters """
 
@@ -226,6 +228,7 @@ class ImageParametersContainer(Container):
     peak_time_statistics = Field(
         PeakTimeStatisticsContainer(), "Peak time image statistics"
     )
+    core = Field(CoreParametersContainer(), "Images direction in Titled/Ground Frame")
 
 
 class DL1CameraContainer(Container):
