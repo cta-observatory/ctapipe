@@ -189,10 +189,11 @@ def test_merge(tmpdir):
                         )
 
 
-def test_stage_1(tmpdir):
+def test_stage_1_raw(tmpdir):
     from ctapipe.tools.stage1 import Stage1ProcessorTool
 
     config = Path("./examples/stage1_config.json").absolute()
+
     with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
         assert (
             run_tool(
@@ -227,7 +228,7 @@ def test_stage_1(tmpdir):
                 "array_dec",
             )
 
-        # check we can read telescope parametrs
+        # check we can read telescope parameters
         dl1_features = pd.read_hdf(f.name, "/dl1/event/telescope/parameters/tel_001")
         features = (
             "obs_id",
@@ -269,6 +270,75 @@ def test_stage_1(tmpdir):
             assert "image_mask" in dl1_image.dtype.names
             assert "image" in dl1_image.dtype.names
             assert "peak_time" in dl1_image.dtype.names
+
+
+def test_stage_1_dl1(tmpdir, dl1_image_file, dl1_parameters_file):
+    from ctapipe.tools.stage1 import Stage1ProcessorTool
+
+    config = Path("./examples/stage1_config.json").absolute()
+    # DL1A file as input
+    with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
+        assert (
+            run_tool(
+                Stage1ProcessorTool(),
+                argv=[
+                    f"--config={config}",
+                    f"--input={dl1_image_file}",
+                    f"--output={f.name}",
+                    "--write-parameters",
+                    "--overwrite",
+                ],
+                cwd=tmpdir,
+            )
+            == 0
+        )
+
+        # check tables were written
+        with tables.open_file(f.name, mode="r") as tf:
+            assert tf.root.dl1
+            assert tf.root.dl1.event.telescope
+            assert tf.root.dl1.event.subarray
+            assert tf.root.configuration.instrument.subarray.layout
+            assert tf.root.configuration.instrument.telescope.optics
+            assert tf.root.configuration.instrument.telescope.camera.geometry_LSTCam
+            assert tf.root.configuration.instrument.telescope.camera.readout_LSTCam
+
+            assert tf.root.dl1.monitoring.subarray.pointing.dtype.names == (
+                "time",
+                "array_azimuth",
+                "array_altitude",
+                "array_ra",
+                "array_dec",
+            )
+
+        # check we can read telescope parameters
+        dl1_features = pd.read_hdf(f.name, "/dl1/event/telescope/parameters/tel_001")
+        features = (
+            "obs_id",
+            "event_id",
+            "tel_id",
+            "hillas_intensity",
+            "concentration_cog",
+            "leakage_pixels_width_1",
+        )
+        for feature in features:
+            assert feature in dl1_features.columns
+
+    # DL1B file as input
+    assert (
+        run_tool(
+            Stage1ProcessorTool(),
+            argv=[
+                f"--config={config}",
+                f"--input={dl1_parameters_file}",
+                f"--output={f.name}",
+                "--write-parameters",
+                "--overwrite",
+            ],
+            cwd=tmpdir,
+        )
+        == 1
+    )
 
 
 def test_stage1_datalevels(tmpdir):

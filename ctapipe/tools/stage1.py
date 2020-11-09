@@ -43,7 +43,7 @@ from ..image import (
     morphology_parameters,
 )
 from ..image.extractor import ImageExtractor
-from ..io import EventSource, HDF5TableWriter, SimTelEventSource
+from ..io import EventSource, HDF5TableWriter, SimTelEventSource, DL1EventSource
 
 tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many datasets
 
@@ -240,12 +240,21 @@ class Stage1ProcessorTool(Tool):
         self.event_source = EventSource.from_config(parent=self)
 
         datalevels = self.event_source.datalevels
-        if DataLevel.R1 not in datalevels and DataLevel.DL0 not in datalevels:
+        if not (
+            set([DataLevel.R1, DataLevel.DL0, DataLevel.DL1_IMAGES])
+            & set(self.event_source.datalevels)
+        ):
             self.log.critical(
-                f"{self.name} needs the EventSource to provide either R1 or DL0 data"
+                f"{self.name} needs the EventSource to provide either R1, DL0 or DL1A data"
                 f", {self.event_source} provides only {datalevels}"
             )
             sys.exit(1)
+
+        if DataLevel.DL1_PARAMETERS in self.event_source.datalevels:
+            self.log.critical(
+                "The EventSource contains DL1B data already. "
+                "There is nothing more to be done at stage-1."
+            )
 
         self.calibrate = CameraCalibrator(
             parent=self, subarray=self.event_source.subarray
@@ -254,13 +263,18 @@ class Stage1ProcessorTool(Tool):
             self.image_cleaner_type, parent=self, subarray=self.event_source.subarray
         )
         self.check_image = ImageQualityQuery(parent=self)
+        if DataLevel.DL1_IMAGES in self.event_source.datalevels:
+            self.log.warning(
+                "The file contains DL1A data already. "
+                "No image processing will be performed."
+            )
 
         # warn if max_events prevents writing the histograms
         if (
             isinstance(self.event_source, SimTelEventSource)
             and self.event_source.max_events
             and self.event_source.max_events > 0
-        ):
+        ) or isinstance(self.event_source, DL1EventSource):
             self.log.warning(
                 "No Simulated shower distributions will be written because "
                 "EventSource.max_events is set to a non-zero number (and therefore "
@@ -293,12 +307,20 @@ class Stage1ProcessorTool(Tool):
         extramc = ExtraMCInfo()
         # ToDo: Support merged files (multiple obs_ids)
         extramc.obs_id = self.event_source.obs_ids[0]
-        self.event_source.simulation_config.prefix = ""
 
-        writer.write(
-            "configuration/simulation/run",
-            [extramc, self.event_source.simulation_config],
-        )
+        if isinstance(self.event_source, SimTelEventSource):
+            self.event_source.simulation_config.prefix = ""
+            writer.write(
+                "configuration/simulation/run",
+                [extramc, self.event_source.simulation_config],
+            )
+        if isinstance(self.event_source, DL1EventSource):
+            for run in self.event_source.simulation_configs:
+                self.event_source.simulation_configs[run].prefix = ""
+                writer.write(
+                    "configuration/simulation/run",
+                    [extramc, self.event_source.simulation_configs[run]],
+                )
 
     def _write_simulation_histograms(self, writer: HDF5TableWriter):
         """Write the distribution of thrown showers
@@ -527,11 +549,12 @@ class Stage1ProcessorTool(Tool):
 
             if self.write_parameters:
                 # apply cleaning
-                dl1_camera.image_mask = self.clean(
-                    tel_id=tel_id,
-                    image=dl1_camera.image,
-                    arrival_times=dl1_camera.peak_time,
-                )
+                if dl1_camera.image_mask is None:
+                    dl1_camera.image_mask = self.clean(
+                        tel_id=tel_id,
+                        image=dl1_camera.image,
+                        arrival_times=dl1_camera.peak_time,
+                    )
 
                 params = self._parameterize_image(
                     tel_id=tel_id,
