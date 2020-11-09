@@ -30,12 +30,12 @@ entry_points["console_scripts"] = [
     "ctapipe-reconstruct-muons = ctapipe.tools.muon_reconstruction:main",
     "ctapipe-display-integration = ctapipe.tools.display_integrator:main",
     "ctapipe-display-dl1 = ctapipe.tools.display_dl1:main",
-    "ctapipe-stage1-process = ctapipe.tools.stage1:main",
+    "ctapipe-stage1 = ctapipe.tools.stage1:main",
     "ctapipe-merge = ctapipe.tools.dl1_merge:main",
 ]
 tests_require = [
     "pytest",
-    "ctapipe-extra @ https://github.com/cta-observatory/ctapipe-extra/archive/v0.3.0.tar.gz",
+    "ctapipe-extra @ https://github.com/cta-observatory/ctapipe-extra/archive/v0.3.1.tar.gz",
 ]
 docs_require = [
     "sphinx_rtd_theme",

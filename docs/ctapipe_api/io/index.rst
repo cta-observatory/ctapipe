@@ -115,11 +115,41 @@ using the `ctapipe.io.HDF5TableReader`, or more generically using the
 array values in a column cannot be read into a `pandas.DataFrame`, since it
 only supports scalar values).
 
+Writing Output Files:
+=====================
+
+The `DL1Writer` Component allows one to write a series of events (stored in
+`ctapipe.containers.ArrayEventContainer`) to a standardized HDF5 format DL1 file
+following the DL1 data model. This includes all related datasets such as the
+instrument and simulation configuration information, simulated shower and image
+information, and observed images and parameters. It can be used in an event loop
+like:
+
+.. code-block:: python
+
+    with DL1Writer(event_source=source, output_path="events.dl1.h5") as write_dl1:
+        for event in source:
+            calibrate(event)
+            write_dl1(event)
+    
+Reading Output Tables:
+======================
+In addition to using an `EventSource` to read R0-DL1 data files, one can also access full *tables* for files that are in HDF5 format (e.g. DL1 files).  The `read_table` function will load any table in an HDF5 table into an `astropy.table.QTable` in memory, while maintaining units, column descriptions, and other ctapipe metadata.  Astropy Tables can also be converted to Pandas tables via their `to_pandas()` method, as long as the table does not contain any vector columns. 
+
+.. code-block:: python
+
+   from ctapipe.io import read_table
+   mctable = read_table("events.dl1.h5", "/simulation/event/subarray/shower")
+   mctable['logE'] = np.log10(mc_table['energy'])
+   mctable.write("output.fits")
+
+
+        
 Standard Metadata Headers
 =========================
 
 The `ctapipe.io.metadata` package provides functions for generating standard CTA
-metadata headers and attaching them to various files.
+metadata headers and attaching them to output files.
 
 
 Reference/API
@@ -132,6 +162,7 @@ Reference/API
 .. automodapi:: ctapipe.io.hdf5tableio
 
 .. automodapi:: ctapipe.io.metadata
+
 
 
 

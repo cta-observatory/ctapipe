@@ -25,7 +25,7 @@ LST_MUONS = get_dataset_path("lst_muons.simtel.zst")
 
 def test_merge(tmpdir):
     from ctapipe.tools.dl1_merge import MergeTool
-    from ctapipe.tools.stage1 import Stage1ProcessorTool
+    from ctapipe.tools.stage1 import Stage1Tool
 
     config = Path("./examples/stage1_config.json").absolute()
 
@@ -40,7 +40,7 @@ def test_merge(tmpdir):
     ) as out_skip_parameters:
         assert (
             run_tool(
-                Stage1ProcessorTool(),
+                Stage1Tool(),
                 argv=[
                     f"--config={config}",
                     f"--input={GAMMA_TEST_LARGE}",
@@ -55,7 +55,7 @@ def test_merge(tmpdir):
         )
         assert (
             run_tool(
-                Stage1ProcessorTool(),
+                Stage1Tool(),
                 argv=[
                     f"--config={config}",
                     f"--input={GAMMA_TEST_LARGE}",
@@ -171,13 +171,13 @@ def test_merge(tmpdir):
 
 
 def test_stage_1(tmpdir):
-    from ctapipe.tools.stage1 import Stage1ProcessorTool
+    from ctapipe.tools.stage1 import Stage1Tool
 
     config = Path("./examples/stage1_config.json").absolute()
     with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
         assert (
             run_tool(
-                Stage1ProcessorTool(),
+                Stage1Tool(),
                 argv=[
                     f"--config={config}",
                     f"--input={GAMMA_TEST_LARGE}",
@@ -224,7 +224,7 @@ def test_stage_1(tmpdir):
     with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
         assert (
             run_tool(
-                Stage1ProcessorTool(),
+                Stage1Tool(),
                 argv=[
                     f"--config={config}",
                     f"--input={GAMMA_TEST_LARGE}",
@@ -255,7 +255,7 @@ def test_stage_1(tmpdir):
 def test_stage1_datalevels(tmpdir):
     """test the dl1 tool on a file not providing r1 or dl0"""
     from ctapipe.io import EventSource
-    from ctapipe.tools.stage1 import Stage1ProcessorTool
+    from ctapipe.tools.stage1 import Stage1Tool
 
     class DummyEventSource(EventSource):
         @classmethod
@@ -289,7 +289,8 @@ def test_stage1_datalevels(tmpdir):
             f.flush()
 
             config = Path("./examples/stage1_config.json").absolute()
-            tool = Stage1ProcessorTool()
+            tool = Stage1Tool()
+
             assert (
                 run_tool(
                     tool,
