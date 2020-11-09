@@ -5,6 +5,8 @@ Test individual tool functionality
 import os
 import shlex
 import sys
+import pytest
+import subprocess
 
 import matplotlib as mpl
 
@@ -19,8 +21,25 @@ import numpy as np
 from pathlib import Path
 
 
+d = tempfile.TemporaryDirectory()
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 LST_MUONS = get_dataset_path("lst_muons.simtel.zst")
+
+
+@pytest.fixture
+def dl1_image_file():
+    simtel_path = get_dataset_path("gamma_test_large.simtel.gz")
+    command = f"ctapipe-stage1-process --input {simtel_path} --output {d.name}/images.dl1.h5 --write-images --max-events 20 --allowed-tels=[1,2,3]"
+    subprocess.call(command.split(), stdout=subprocess.PIPE)
+    return f"{d.name}/images.dl1.h5"
+
+
+@pytest.fixture
+def dl1_parameters_file():
+    simtel_path = get_dataset_path("gamma_test_large.simtel.gz")
+    command = f"ctapipe-stage1-process --input {simtel_path} --output {d.name}/parameters.dl1.h5 --write-parameters --max-events 20 --allowed-tels=[1,2,3]"
+    subprocess.call(command.split(), stdout=subprocess.PIPE)
+    return f"{d.name}/parameters.dl1.h5"
 
 
 def test_merge(tmpdir):
@@ -387,11 +406,12 @@ def test_display_events_single_tel(tmpdir):
     assert run_tool(SingleTelEventDisplay(), ["--help-all"]) == 0
 
 
-def test_display_dl1(tmpdir):
+def test_display_dl1(tmpdir, dl1_image_file, dl1_parameters_file):
     from ctapipe.tools.display_dl1 import DisplayDL1Calib
 
     mpl.use("Agg")
 
+    # test simtel
     assert (
         run_tool(
             DisplayDL1Calib(),
@@ -400,7 +420,26 @@ def test_display_dl1(tmpdir):
         )
         == 0
     )
-
+    # test DL1A
+    assert (
+        run_tool(
+            DisplayDL1Calib(),
+            argv=shlex.split(
+                f"--input {dl1_image_file} --max_events=1 " "--telescope=11 "
+            ),
+        )
+        == 0
+    )
+    # test DL1B
+    assert (
+        run_tool(
+            DisplayDL1Calib(),
+            argv=shlex.split(
+                f"--input {dl1_parameters_file} --max_events=1 " "--telescope=11 "
+            ),
+        )
+        == 1
+    )
     assert run_tool(DisplayDL1Calib(), ["--help-all"]) == 0
 
 

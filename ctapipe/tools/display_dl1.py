@@ -11,6 +11,7 @@ from ctapipe.core import Component, Tool
 from ctapipe.core import traits
 from ctapipe.image.extractor import ImageExtractor
 from ctapipe.io import EventSource
+from ctapipe.io.datalevels import DataLevel
 from ctapipe.utils import get_dataset_path
 from ctapipe.visualization import CameraDisplay
 
@@ -67,7 +68,6 @@ class ImagePlotter(Component):
     def plot(self, event, telid):
         image = event.dl1.tel[telid].image
         peak_time = event.dl1.tel[telid].peak_time
-        print("plot", image.shape, peak_time.shape)
 
         if self._current_tel != telid:
             self._current_tel = telid
@@ -174,6 +174,14 @@ class DisplayDL1Calib(Tool):
 
     def setup(self):
         self.eventsource = EventSource.from_config(parent=self)
+        if not (
+            set([DataLevel.R0, DataLevel.R1, DataLevel.DL0, DataLevel.DL1_IMAGES])
+            & set(self.eventsource.datalevels)
+        ):
+            raise Exception(
+                "The input file contains no pixelwise information. "
+                "Images can not be constructed."
+            )
         subarray = self.eventsource.subarray
 
         self.calibrator = CameraCalibrator(parent=self, subarray=subarray)
@@ -181,10 +189,11 @@ class DisplayDL1Calib(Tool):
 
     def start(self):
         for event in self.eventsource:
-            self.calibrator(event)
+            # use saved dl1 images if they are present, calibrate raw data otherwise
+            if DataLevel.DL1_PARAMETERS not in self.eventsource.datalevels:
+                self.calibrator(event)
 
-            tel_list = event.r0.tel.keys()
-
+            tel_list = event.dl1.tel.keys()
             if self.telescope:
                 if self.telescope not in tel_list:
                     continue
