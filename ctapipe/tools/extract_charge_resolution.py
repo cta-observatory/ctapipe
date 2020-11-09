@@ -57,20 +57,10 @@ class ChargeResolutionGenerator(Tool):
     def setup(self):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
 
-        self.eventsource = self.add_component(SimTelEventSource(parent=self))
+        self.eventsource = SimTelEventSource(parent=self)
 
-        extractor = self.add_component(
-            ImageExtractor.from_name(
-                self.extractor_product, parent=self, subarray=self.eventsource.subarray
-            )
-        )
-
-        self.calibrator = self.add_component(
-            CameraCalibrator(
-                parent=self,
-                image_extractor=extractor,
-                subarray=self.eventsource.subarray,
-            )
+        self.calibrator = CameraCalibrator(
+            parent=self, subarray=self.eventsource.subarray
         )
         self.calculator = ChargeResolutionCalculator()
 
@@ -82,14 +72,14 @@ class ChargeResolutionGenerator(Tool):
             # Check events have true charge included
             if event.count == 0:
                 try:
-                    pe = list(event.mc.tel.values())[0].true_image
+                    pe = list(event.simulation.tel.values())[0].true_image
                     if np.all(pe == 0):
                         raise KeyError
                 except KeyError:
                     self.log.exception("Source does not contain true charge!")
                     raise
 
-            for mc, dl1 in zip(event.mc.tel.values(), event.dl1.tel.values()):
+            for mc, dl1 in zip(event.simulation.tel.values(), event.dl1.tel.values()):
                 true_charge = mc.true_image
                 measured_charge = dl1.image
                 pixels = np.arange(measured_charge.size)
