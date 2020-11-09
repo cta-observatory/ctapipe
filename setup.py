@@ -35,7 +35,7 @@ entry_points["console_scripts"] = [
 ]
 tests_require = [
     "pytest",
-    "ctapipe-extra @ https://github.com/cta-observatory/ctapipe-extra/archive/v0.3.0.tar.gz",
+    "ctapipe-extra @ https://github.com/cta-observatory/ctapipe-extra/archive/v0.3.1.tar.gz",
 ]
 docs_require = [
     "sphinx_rtd_theme",
