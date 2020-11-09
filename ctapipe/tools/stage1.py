@@ -19,7 +19,7 @@ from ..containers import (
     SimulatedShowerDistribution,
     IntensityStatisticsContainer,
     PeakTimeStatisticsContainer,
-    MCDL1CameraContainer,
+    SimulatedCameraContainer,
     TimingParametersContainer,
 )
 from ..core import Provenance
@@ -55,7 +55,7 @@ PROV = Provenance()
 #   (meaning readers need to update scripts)
 # - increase the minor number if new columns or datasets are added
 # - increase the patch number if there is a small bugfix to the model.
-DL1_DATA_MODEL_VERSION = "v1.0.0"
+DL1_DATA_MODEL_VERSION = "v1.0.1"
 
 
 def write_reference_metadata_headers(obs_id, subarray, writer):
@@ -247,7 +247,9 @@ class Stage1ProcessorTool(Tool):
             )
             sys.exit(1)
 
-        self.calibrate = CameraCalibrator(parent=self, subarray=self.event_source.subarray)
+        self.calibrate = CameraCalibrator(
+            parent=self, subarray=self.event_source.subarray
+        )
         self.clean = ImageCleaner.from_name(
             self.image_cleaner_type, parent=self, subarray=self.event_source.subarray
         )
@@ -262,7 +264,7 @@ class Stage1ProcessorTool(Tool):
             self.log.warning(
                 "No Simulated shower distributions will be written because "
                 "EventSource.max_events is set to a non-zero number (and therefore "
-                "shower distributions read from the input MC file are invalid)."
+                "shower distributions read from the input Simulation file are invalid)."
             )
 
         # setup HDF5 compression:
@@ -289,14 +291,17 @@ class Stage1ProcessorTool(Tool):
             obs_id = Field(0, "MC Run Identifier")
 
         extramc = ExtraMCInfo()
-        extramc.obs_id = self.event_source.obs_id
-        self.event_source.mc_header.prefix = ""
+        # ToDo: Support merged files (multiple obs_ids)
+        extramc.obs_id = self.event_source.obs_ids[0]
+        self.event_source.simulation_config.prefix = ""
+
         writer.write(
-            "configuration/simulation/run", [extramc, self.event_source.mc_header]
+            "configuration/simulation/run",
+            [extramc, self.event_source.simulation_config],
         )
 
     def _write_simulation_histograms(self, writer: HDF5TableWriter):
-        """ Write the distribution of thrown showers
+        """Write the distribution of thrown showers
 
         Notes
         -----
@@ -343,7 +348,8 @@ class Stage1ProcessorTool(Tool):
             hist_container.prefix = ""
             for hist in hists:
                 if hist["id"] == 6:
-                    fill_from_simtel(self.event_source.obs_id, hist, hist_container)
+                    # ToDo: Support merged files (multiple obs_ids)
+                    fill_from_simtel(self.event_source.obs_ids[0], hist, hist_container)
                     writer.write(
                         table_name="simulation/service/shower_distribution",
                         containers=hist_container,
@@ -465,7 +471,7 @@ class Stage1ProcessorTool(Tool):
             if self.event_source.is_simulation:
                 writer.write(
                     table_name="simulation/event/subarray/shower",
-                    containers=[event.index, event.mc],
+                    containers=[event.index, event.simulation.shower],
                 )
             writer.write(
                 table_name="dl1/event/subarray/trigger",
@@ -510,17 +516,12 @@ class Stage1ProcessorTool(Tool):
                 "dl1/event/telescope/trigger", [tel_index, event.trigger.tel[tel_id]]
             )
 
+            sim_camera = event.simulation.tel[tel_id]
             if self.event_source.is_simulation:
-                true_image = event.mc.tel[tel_id].true_image
+                true_image = sim_camera.true_image
                 has_true_image = (
                     true_image is not None and np.count_nonzero(true_image) > 0
                 )
-
-                if has_true_image:
-                    mcdl1 = MCDL1CameraContainer(
-                        true_image=true_image, true_parameters=None
-                    )
-                    mcdl1.prefix = ""
             else:
                 has_true_image = False
 
@@ -546,15 +547,15 @@ class Stage1ProcessorTool(Tool):
                 )
 
                 if self.event_source.is_simulation and has_true_image:
-                    mcdl1.true_parameters = self._parameterize_image(
+                    sim_camera.true_parameters = self._parameterize_image(
                         tel_id,
                         image=true_image,
                         signal_pixels=true_image > 0,
-                        peak_time=None,  # true image from mc has no peak time
+                        peak_time=None,  # true image from simulation has no peak time
                     )
                     writer.write(
                         f"simulation/event/telescope/parameters/{table_name}",
-                        [tel_index, *mcdl1.true_parameters.values()],
+                        [tel_index, *sim_camera.true_parameters.values()],
                     )
 
             if self.write_images:
@@ -569,7 +570,7 @@ class Stage1ProcessorTool(Tool):
                 if has_true_image:
                     writer.write(
                         f"simulation/event/telescope/images/{table_name}",
-                        [tel_index, mcdl1],
+                        [tel_index, sim_camera],
                     )
 
     def _generate_table_indices(self, h5file, start_node):
@@ -673,9 +674,10 @@ class Stage1ProcessorTool(Tool):
             if self.write_index_tables:
                 self._generate_indices(writer)
 
+            # ToDo: Support merged files (multiple obs_ids)
             write_reference_metadata_headers(
                 subarray=self.event_source.subarray,
-                obs_id=self.event_source.obs_id,
+                obs_id=self.event_source.obs_ids[0],
                 writer=writer,
             )
         self._write_processing_statistics()

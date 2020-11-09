@@ -33,8 +33,8 @@ class DummyReader(EventSource):
         return False
 
     @property
-    def obs_id(self):
-        return 1
+    def obs_ids(self):
+        return [1]
 
     @property
     def datalevels(self):

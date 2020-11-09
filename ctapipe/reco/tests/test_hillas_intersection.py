@@ -252,7 +252,8 @@ def test_reconstruction():
     for event in source:
         calib(event)
 
-        array_pointing = SkyCoord(az=event.mc.az, alt=event.mc.alt, frame=horizon_frame)
+        mc = event.simulation.shower
+        array_pointing = SkyCoord(az=mc.az, alt=mc.alt, frame=horizon_frame)
 
         hillas_dict = {}
         telescope_pointings = {}
@@ -289,7 +290,7 @@ def test_reconstruction():
         )
 
         print(fit_result)
-        print(event.mc.core_x, event.mc.core_y)
+        print(event.simulation.shower.core_x, event.simulation.shower.core_y)
         fit_result.alt.to(u.deg)
         fit_result.az.to(u.deg)
         fit_result.core_x.to(u.m)

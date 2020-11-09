@@ -16,6 +16,7 @@ Todo:
 from .camera import CameraDescription
 from .guess import UNKNOWN_TELESCOPE, guess_telescope
 from .optics import OpticsDescription
+from ..coordinates import CameraFrame
 
 
 class TelescopeDescription:
@@ -80,6 +81,7 @@ class TelescopeDescription:
 
         camera = CameraDescription.from_name(camera_name)
         optics = OpticsDescription.from_name(optics_name)
+        camera.geometry.frame = CameraFrame(focal_length=optics.equivalent_focal_length)
 
         try:
             result = guess_telescope(

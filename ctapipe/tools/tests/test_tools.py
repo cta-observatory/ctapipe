@@ -16,15 +16,18 @@ from ctapipe.utils import get_dataset_path
 from ctapipe.core import run_tool
 from ctapipe.io import DataLevel
 import numpy as np
+from pathlib import Path
 
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 LST_MUONS = get_dataset_path("lst_muons.simtel.zst")
 
 
-def test_merge():
+def test_merge(tmpdir):
     from ctapipe.tools.dl1_merge import MergeTool
     from ctapipe.tools.stage1 import Stage1ProcessorTool
+
+    config = Path("./examples/stage1_config.json").absolute()
 
     with tempfile.NamedTemporaryFile(suffix=".hdf5") as f1, tempfile.NamedTemporaryFile(
         suffix=".hdf5"
@@ -39,13 +42,14 @@ def test_merge():
             run_tool(
                 Stage1ProcessorTool(),
                 argv=[
-                    "--config=./examples/stage1_config.json",
+                    f"--config={config}",
                     f"--input={GAMMA_TEST_LARGE}",
                     f"--output={f1.name}",
                     "--write-parameters",
                     "--write-images",
                     "--overwrite",
                 ],
+                cwd=tmpdir,
             )
             == 0
         )
@@ -53,13 +57,14 @@ def test_merge():
             run_tool(
                 Stage1ProcessorTool(),
                 argv=[
-                    "--config=./examples/stage1_config.json",
+                    f"--config={config}",
                     f"--input={GAMMA_TEST_LARGE}",
                     f"--output={f2.name}",
                     "--write-parameters",
                     "--write-images",
                     "--overwrite",
                 ],
+                cwd=tmpdir,
             )
             == 0
         )
@@ -67,12 +72,8 @@ def test_merge():
         assert (
             run_tool(
                 MergeTool(),
-                argv=[
-                    f"{f1.name}",
-                    f"{f2.name}",
-                    f"--o={out_all.name}",
-                    "--overwrite",
-                ],
+                argv=[f"{f1.name}", f"{f2.name}", f"--o={out_all.name}", "--overwrite"],
+                cwd=tmpdir,
             )
             == 0
         )
@@ -87,6 +88,7 @@ def test_merge():
                     "--overwrite",
                     "--skip-images",
                 ],
+                cwd=tmpdir,
             )
             == 0
         )
@@ -101,6 +103,7 @@ def test_merge():
                     "--overwrite",
                     "--skip-parameters",
                 ],
+                cwd=tmpdir,
             )
             == 0
         )
@@ -167,20 +170,22 @@ def test_merge():
                         )
 
 
-def test_stage_1():
+def test_stage_1(tmpdir):
     from ctapipe.tools.stage1 import Stage1ProcessorTool
 
+    config = Path("./examples/stage1_config.json").absolute()
     with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
         assert (
             run_tool(
                 Stage1ProcessorTool(),
                 argv=[
-                    "--config=./examples/stage1_config.json",
+                    f"--config={config}",
                     f"--input={GAMMA_TEST_LARGE}",
                     f"--output={f.name}",
                     "--write-parameters",
                     "--overwrite",
                 ],
+                cwd=tmpdir,
             )
             == 0
         )
@@ -221,12 +226,13 @@ def test_stage_1():
             run_tool(
                 Stage1ProcessorTool(),
                 argv=[
-                    "--config=./examples/stage1_config.json",
+                    f"--config={config}",
                     f"--input={GAMMA_TEST_LARGE}",
                     f"--output={f.name}",
                     "--write-images",
                     "--overwrite",
                 ],
+                cwd=tmpdir,
             )
             == 0
         )
@@ -246,7 +252,7 @@ def test_stage_1():
             assert "peak_time" in dl1_image.dtype.names
 
 
-def test_stage1_datalevels():
+def test_stage1_datalevels(tmpdir):
     """test the dl1 tool on a file not providing r1 or dl0"""
     from ctapipe.io import EventSource
     from ctapipe.tools.stage1 import Stage1ProcessorTool
@@ -267,8 +273,8 @@ def test_stage1_datalevels():
             return True
 
         @property
-        def obs_id(self):
-            return 1
+        def obs_ids(self):
+            return [1]
 
         @property
         def subarray(self):
@@ -282,17 +288,19 @@ def test_stage1_datalevels():
             f.write(b"dummy")
             f.flush()
 
+            config = Path("./examples/stage1_config.json").absolute()
             tool = Stage1ProcessorTool()
             assert (
                 run_tool(
                     tool,
                     argv=[
-                        "--config=./examples/stage1_config.json",
+                        f"--config={config}",
                         f"--input={f.name}",
                         f"--output={out.name}",
                         "--write-images",
                         "--overwrite",
                     ],
+                    cwd=tmpdir,
                 )
                 == 1
             )
@@ -312,6 +320,7 @@ def test_muon_reconstruction(tmpdir):
             run_tool(
                 MuonAnalysis(),
                 argv=[f"--input={LST_MUONS}", f"--output={f.name}", "--overwrite"],
+                cwd=tmpdir,
             )
             == 0
         )
@@ -332,6 +341,7 @@ def test_display_summed_images(tmpdir):
         run_tool(
             ImageSumDisplayerTool(),
             argv=shlex.split(f"--infile={GAMMA_TEST_LARGE} " "--max-events=2 "),
+            cwd=tmpdir,
         )
         == 0
     )
@@ -348,6 +358,7 @@ def test_display_integrator(tmpdir):
         run_tool(
             DisplayIntegrator(),
             argv=shlex.split(f"--f={GAMMA_TEST_LARGE} " "--max_events=1 "),
+            cwd=tmpdir,
         )
         == 0
     )
@@ -368,6 +379,7 @@ def test_display_events_single_tel(tmpdir):
                 "--tel=11 "
                 "--max-events=2 "  # <--- inconsistent!!!
             ),
+            cwd=tmpdir,
         )
         == 0
     )
@@ -382,7 +394,9 @@ def test_display_dl1(tmpdir):
 
     assert (
         run_tool(
-            DisplayDL1Calib(), argv=shlex.split("--max_events=1 " "--telescope=11 ")
+            DisplayDL1Calib(),
+            argv=shlex.split("--max_events=1 " "--telescope=11 "),
+            cwd=tmpdir,
         )
         == 0
     )
@@ -403,7 +417,7 @@ def test_dump_triggers(tmpdir):
     outfile = tmpdir.join("triggers.fits")
     tool = DumpTriggersTool(infile=GAMMA_TEST_LARGE, outfile=str(outfile))
 
-    assert run_tool(tool) == 0
+    assert run_tool(tool, cwd=tmpdir) == 0
 
     assert outfile.exists()
     assert run_tool(tool, ["--help-all"]) == 0
@@ -417,19 +431,25 @@ def test_dump_instrument(tmpdir):
 
     tool = DumpInstrumentTool()
 
-    assert run_tool(tool, [f"--infile={GAMMA_TEST_LARGE}"]) == 0
+    assert run_tool(tool, [f"--infile={GAMMA_TEST_LARGE}"], cwd=tmpdir) == 0
     assert tmpdir.join("FlashCam.camgeom.fits.gz").exists()
 
-    assert run_tool(tool, [f"--infile={GAMMA_TEST_LARGE}", "--format=ecsv"]) == 0
+    assert (
+        run_tool(tool, [f"--infile={GAMMA_TEST_LARGE}", "--format=ecsv"], cwd=tmpdir)
+        == 0
+    )
     assert tmpdir.join("MonteCarloArray.optics.ecsv.txt").exists()
 
-    assert run_tool(tool, [f"--infile={GAMMA_TEST_LARGE}", "--format=hdf5"]) == 0
+    assert (
+        run_tool(tool, [f"--infile={GAMMA_TEST_LARGE}", "--format=hdf5"], cwd=tmpdir)
+        == 0
+    )
     assert tmpdir.join("subarray.h5").exists()
 
     assert run_tool(tool, ["--help-all"]) == 0
 
 
-def test_camdemo():
+def test_camdemo(tmpdir):
     from ctapipe.tools.camdemo import CameraDemo
 
     sys.argv = ["camera_demo"]
@@ -438,16 +458,16 @@ def test_camdemo():
     tool.cleanframes = 2
     tool.display = False
 
-    assert run_tool(tool) == 0
+    assert run_tool(tool, cwd=tmpdir) == 0
     assert run_tool(tool, ["--help-all"]) == 0
 
 
-def test_bokeh_file_viewer():
+def test_bokeh_file_viewer(tmpdir):
     from ctapipe.tools.bokeh.file_viewer import BokehFileViewer
 
     sys.argv = ["bokeh_file_viewer"]
     tool = BokehFileViewer(disable_server=True)
-    assert run_tool(tool) == 0
+    assert run_tool(tool, cwd=tmpdir) == 0
     assert tool.reader.input_url == get_dataset_path("gamma_test_large.simtel.gz")
     assert run_tool(tool, ["--help-all"]) == 0
 
@@ -457,7 +477,8 @@ def test_extract_charge_resolution(tmpdir):
 
     output_path = os.path.join(str(tmpdir), "cr.h5")
     tool = ChargeResolutionGenerator()
-    assert run_tool(tool, ["-f", str(GAMMA_TEST_LARGE), "-O", output_path]) == 1
+
+    assert run_tool(tool, ["-f", str(GAMMA_TEST_LARGE), "-O", output_path], cwd=tmpdir) == 1
     # TODO: Test files do not contain true charge, cannot test tool fully
     # assert os.path.exists(output_path)
     assert run_tool(tool, ["--help-all"]) == 0

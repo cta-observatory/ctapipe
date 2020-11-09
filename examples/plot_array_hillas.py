@@ -60,14 +60,20 @@ if __name__ == "__main__":
         # plot the core position, which must be transformed from the tilted
         # system to the system that the ArrayDisplay is in (default
         # GroundFrame)
-        point_dir = SkyCoord(*event.mcheader.run_array_direction, frame=AltAz())
+        point_dir = SkyCoord(
+            az=event.pointing.array_azimuth,
+            alt=event.pointing.array_altitude,
+            frame=AltAz(),
+        )
         tiltedframe = TiltedGroundFrame(pointing_direction=point_dir)
         if markers:
             for marker in markers:
                 marker.remove()
 
         core_coord = SkyCoord(
-            x=event.mc.core_x, y=event.mc.core_y, frame=tiltedframe
+            x=event.simulation.shower.core_x,
+            y=event.simulation.shower.core_y,
+            frame=tiltedframe,
         ).transform_to(array_disp.frame)
 
         markers = ax.plot(
