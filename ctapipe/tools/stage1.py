@@ -67,12 +67,10 @@ class Stage1Tool(Tool):
     }
 
     classes = List(
-        [CameraCalibrator, EventSource]
+        [CameraCalibrator, EventSource, DL1Writer, ImageProcessor]
         + classes_with_traits(ImageCleaner)
         + classes_with_traits(ImageExtractor)
         + classes_with_traits(GainSelector)
-        + classes_with_traits(DL1Writer)
-        + classes_with_traits(ImageProcessor)
     )
 
     def setup(self):
