@@ -98,12 +98,13 @@ class HillasReconstructor(Reconstructor):
 
     """
 
-    def __init__(self, config=None, parent=None, **kwargs):
+    def __init__(self, event=None, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
         self.hillas_planes = {}
         self.divergent_mode = False
         self.corrected_angle_dict = {}
         self.mode = "CameraFrame"
+        self.event = event
 
     def predict(self, hillas_dict, subarray, array_pointing, telescopes_pointings=None):
         """
@@ -153,15 +154,9 @@ class HillasReconstructor(Reconstructor):
                 "A HillasContainer contains an ellipse of width==0"
             )
 
-        # use the single telescope pointing also for parallel pointing: code is more general
-        if telescopes_pointings is None:
-            telescopes_pointings = {
-                tel_id: array_pointing for tel_id in hillas_dict.keys()
-            }
-            self.divergent_mode = False
-        else:
-            self.divergent_mode = True
-            self.corrected_angle_dict = {}
+        # dictionary to store the telescope-wise image directions
+        # to be projected on the ground and corrected in case of mispointing
+        self.corrected_angle_dict = {}
 
         self.initialize_hillas_planes(
             hillas_dict, subarray, telescopes_pointings, array_pointing
@@ -287,9 +282,6 @@ class HillasReconstructor(Reconstructor):
 
                 self.corrected_angle_dict[tel_id] = angle_psi_corr
 
-                # record this angle
-                moments["psi_divergent"] = angle_psi_corr
-
             circle = HillasPlane(
                 p1=cog_coord,
                 p2=p2_coord,
@@ -360,20 +352,23 @@ class HillasReconstructor(Reconstructor):
         section 7.1.4.
 
         """
-        if self.divergent_mode:
-            psi = u.Quantity(list(self.corrected_angle_dict.values()))
-            # Since psi has been recalculated in the fake CameraFrame
-            # now we don't need other corrections
-            # this should also be the angle used in ArrayDisplay
-        else:
-            psi = u.Quantity([h.psi for h in hillas_dict.values()])
 
-            if self.mode == "TelescopeFrame":
-                # whereas here
-                # to calculate the core in the groundframe
-                # we need to flip the x and y axes back as they
-                # would be in CameraFrame
-                psi = (np.pi / 2) * u.rad - psi
+        # Since psi has been recalculated in the fake CameraFrame
+        # it doesn't need any further corrections because it is now independent
+        # of both pointing and cleaning/parametrization frame.
+        # This angle will be used to visualize the telescope-wise directions of
+        # the shower core the ground.
+        psi_core = self.corrected_angle_dict
+
+        # Record these values
+        for tel_id in hillas_dict.keys():
+            self.event.dl1.tel[tel_id].parameters.core.psi = psi_core[tel_id]
+
+        # Transform them for numpy
+        psi = u.Quantity(list(psi_core.values()))
+
+        # Estimate the position of the shower's core
+        # from the TiltedFram to the GroundFrame
 
         z = np.zeros(len(psi))
         uvw_vectors = np.column_stack([np.cos(psi).value, np.sin(psi).value, z])
