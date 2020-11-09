@@ -53,6 +53,7 @@ install:
   - python --version
   - pip install travis-sphinx codecov pytest-cov
   - pip install --use-feature=2020-resolver -e .[all]
+  - pip freeze
 
 script:
   - pytest --cov=ctapipe

@@ -5,8 +5,10 @@ from ..containers import ConcentrationContainer
 from .hillas import camera_to_shower_coordinates
 from ..utils.quantities import all_to_value
 
+__all__ = ["concentration_parameters"]
 
-def concentration(geom, image, hillas_parameters):
+
+def concentration_parameters(geom, image, hillas_parameters):
     """
     Calculate concentraion values.
 

@@ -32,8 +32,8 @@ def get_searchpath_dirs(searchpath=os.getenv("CTAPIPE_SVC_PATH")):
 
 def find_all_matching_datasets(pattern, searchpath=None, regexp_group=None):
     """
-    Returns a list of resource names (or substrings) matching the given 
-    pattern, searching first in searchpath (a colon-separated list of 
+    Returns a list of resource names (or substrings) matching the given
+    pattern, searching first in searchpath (a colon-separated list of
     directories) and then in the ctapipe_resources module)
 
     Parameters
@@ -41,10 +41,10 @@ def find_all_matching_datasets(pattern, searchpath=None, regexp_group=None):
     pattern: str
        regular expression to use for matching
     searchpath: str
-       colon-seprated list of directories in which to search, defaulting to 
+       colon-seprated list of directories in which to search, defaulting to
        CTAPIPE_SVC_PATH environment variable
     regexp_group: int
-       if not None, return the regular expression group indicated (assuming 
+       if not None, return the regular expression group indicated (assuming
        pattern has a group specifier in it)
 
     Returns
@@ -216,11 +216,7 @@ def get_structured_dataset(basename, role="resource", **kwargs):
 
     # a mapping of types (keys) to any extra keyword args needed for
     # table.read()
-    types_to_try = {
-        ".yaml": {},
-        ".yml": {},
-        ".json": {},
-    }
+    types_to_try = {".yaml": {}, ".yml": {}, ".json": {}}
 
     for data_type in types_to_try:
         filename = basename + data_type
