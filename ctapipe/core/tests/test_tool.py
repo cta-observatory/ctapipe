@@ -1,11 +1,13 @@
 import os
+import logging
+import tempfile
 import pytest
 from traitlets import Float, TraitError, List, Dict, Int
 from traitlets.config import Config
 from pathlib import Path
 
 from .. import Tool, Component
-from ..tool import export_tool_config_to_commented_yaml
+from ..tool import export_tool_config_to_commented_yaml, run_tool
 
 
 def test_tool_simple():
@@ -154,7 +156,6 @@ def test_tool_current_config_subcomponents():
 
 def test_tool_exit_code():
     """ Check that we can get the full instance configuration """
-    from ctapipe.core.tool import run_tool
 
     class MyTool(Tool):
 
@@ -181,7 +182,6 @@ def test_tool_command_line_precedence():
     """
     ensure command-line has higher priority than config file
     """
-    from ctapipe.core.tool import run_tool
 
     class SubComponent(Component):
         component_param = Float(10.0, help="some parameter").tag(config=True)
@@ -205,3 +205,102 @@ def test_tool_command_line_precedence():
     run_tool(tool, ["--component_param", "20.0"])
     assert tool.sub.component_param == 20.0
     assert tool.userparam == 12.0
+
+
+class MyLogTool(Tool):
+    name = "ctapipe-test"
+
+    def start(self):
+        self.log.debug("test-debug")
+        self.log.info("test-info")
+        self.log.warning("test-warn")
+        self.log.error("test-error")
+        self.log.critical("test-critical")
+
+
+def test_tool_logging_defaults(capsys):
+    tool = MyLogTool()
+
+    assert tool.log_level == 30
+    assert tool.log_file is None
+
+    run_tool(tool)
+
+    # split lines and skip last empty line
+    log = capsys.readouterr().err.split("\n")[:-1]
+
+    assert len(log) == 3
+    assert "test-warn" in log[0]
+
+
+def test_tool_logging_setlevel(capsys):
+    tool = MyLogTool()
+
+    run_tool(tool, ["--log-level", "ERROR"])
+
+    # split lines and skip last empty line
+    log = capsys.readouterr().err.split("\n")[:-1]
+
+    assert len(log) == 2
+    assert "test-error" in log[0]
+    assert "test-critical" in log[1]
+
+
+def test_tool_logging_file(capsys):
+    tool = MyLogTool()
+
+    with tempfile.NamedTemporaryFile("w+") as f:
+        run_tool(tool, ["--log-file", f.name])
+        log = str(f.read())
+
+        assert len(log) > 0
+        assert "test-debug" not in log
+        assert "test-info" in log
+        assert "test-warn" in log
+
+    # split lines and skip last empty line
+    log = capsys.readouterr().err.split("\n")[:-1]
+
+    assert len(log) > 0
+    assert "test-warn" in log[0]
+
+
+def test_tool_logging_multiple_loggers(capsys):
+    """No-ctapipe loggers can be configured via tool config files."""
+    logger = logging.getLogger("another_logger")
+
+    config = Config(
+        {
+            "MyLogTool": {
+                "log_config": {
+                    "loggers": {
+                        "another_logger": {"level": "DEBUG", "handlers": ["console"]},
+                        "ctapipe.ctapipe-test": {"level": "ERROR"},
+                    }
+                }
+            }
+        }
+    )
+
+    tool = MyLogTool(config=config)
+    run_tool(tool)
+
+    logger.debug("another-debug")
+
+    # split lines and skip last empty line
+    log = capsys.readouterr().err.split("\n")[:-1]
+
+    assert len(log) == 3
+    assert "test-error" in log[0]
+    assert "another-debug" in log[2]
+
+
+def test_tool_logging_quiet(capsys):
+    tool = MyLogTool()
+
+    # setting log-level should not matter when given -q
+    run_tool(tool, ["-q", "--log-level", "DEBUG"])
+
+    log = capsys.readouterr().err
+
+    assert len(log) == 0

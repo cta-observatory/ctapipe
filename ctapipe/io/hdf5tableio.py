@@ -111,7 +111,7 @@ class HDF5TableWriter(TableWriter):
 
         kwargs.update(mode=mode, root_uep=root_uep, filters=filters)
 
-        self.open(filename, **kwargs)
+        self.open(str(filename), **kwargs)
         self._group = "/" + group_name
         self.filters = filters
 
