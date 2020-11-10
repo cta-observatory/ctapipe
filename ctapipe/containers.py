@@ -208,7 +208,7 @@ class PeakTimeStatisticsContainer(StatisticsContainer):
 
 
 class CoreParametersContainer(Container):
-    """Telescope-wise shower's direction in the TiltedFrame"""
+    """Telescope-wise shower's direction in the Titled/Ground Frame"""
     container_prefix = "core"
     psi = Field(nan * u.deg, "Image direction in the Titled/Ground Frame", unit="deg")
 
