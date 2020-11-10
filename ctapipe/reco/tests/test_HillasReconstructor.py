@@ -99,9 +99,8 @@ def test_parallel_reconstruction():
     Tested,
     - starting from CameraFrame,
     - starting from TelescopeFrame,
-    - no telescope pointing (aka "parallel" pointing) with parallel test data
 
-    The test checks the old approach (using CameraFrame) and the new one
+    The test checks that the old approach (using CameraFrame) and the new one
     (using TelescopeFrame) provide compatible results and that we are able to
     reconstruct a positive number of events.
     """
