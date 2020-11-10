@@ -67,7 +67,6 @@ class ImagePlotter(Component):
     def plot(self, event, telid):
         image = event.dl1.tel[telid].image
         peak_time = event.dl1.tel[telid].peak_time
-        print("plot", image.shape, peak_time.shape)
 
         if self._current_tel != telid:
             self._current_tel = telid
@@ -84,10 +83,6 @@ class ImagePlotter(Component):
             time_cmap.set_over("gray")
             self.c_peak_time = CameraDisplay(geom, ax=self.ax_peak_time, cmap=time_cmap)
 
-            # center around brightes pixel, show 10ns total
-            if (peak_time != 0.0).all():
-                t_chargemax = peak_time[image.argmax()]
-                self.c_peak_time.set_limits_minmax(t_chargemax - 5, t_chargemax + 5)
             if not self.cb_intensity:
                 self.c_intensity.add_colorbar(
                     ax=self.ax_intensity, label="Intensity (p.e.)"
@@ -106,8 +101,11 @@ class ImagePlotter(Component):
                 self.c_peak_time.update(True)
 
         self.c_intensity.image = image
-        if peak_time is not None:
-            self.c_peak_time.image = peak_time
+        self.c_peak_time.image = peak_time
+
+        # center around brightes pixel, show 10ns total
+        t_chargemax = peak_time[image.argmax()]
+        self.c_peak_time.set_limits_minmax(t_chargemax - 5, t_chargemax + 5)
 
         self.fig.suptitle(
             "Event_index={}  Event_id={}  Telescope={}".format(
@@ -117,6 +115,7 @@ class ImagePlotter(Component):
 
         if self.display:
             plt.pause(0.001)
+
         if self.pdf is not None:
             self.pdf.savefig(self.fig)
 
@@ -182,6 +181,7 @@ class DisplayDL1Calib(Tool):
                 if self.telescope not in tel_list:
                     continue
                 tel_list = [self.telescope]
+
             for telid in tel_list:
                 self.plotter.plot(event, telid)
 
