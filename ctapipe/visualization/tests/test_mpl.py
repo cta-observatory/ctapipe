@@ -81,6 +81,14 @@ def test_array_display():
     from ctapipe.visualization.mpl_array import ArrayDisplay
     from ctapipe.image import timing_parameters
 
+    from ctapipe.containers import (
+        ArrayEventContainer,
+        DL1Container,
+        DL1CameraContainer,
+        ImageParametersContainer,
+        CoreParametersContainer,
+    )
+
     # build a test subarray:
     tels = dict()
     tel_pos = dict()
@@ -92,7 +100,18 @@ def test_array_display():
         name="TestSubarray", tel_positions=tel_pos, tel_descriptions=tels
     )
 
-    ad = ArrayDisplay(sub)
+    # Create a fake event containing telescope-wise information about
+    # the image directions projected on the ground
+    ArrayEventContainer.dl1 = DL1Container
+    ArrayEventContainer.dl1.tel = {1: DL1CameraContainer, 2: DL1CameraContainer}
+    ArrayEventContainer.dl1.tel[1].parameters = ImageParametersContainer
+    ArrayEventContainer.dl1.tel[2].parameters = ImageParametersContainer
+    ArrayEventContainer.dl1.tel[2].parameters.core = CoreParametersContainer
+    ArrayEventContainer.dl1.tel[1].parameters.core = CoreParametersContainer
+    ArrayEventContainer.dl1.tel[1].parameters.core.psi = u.Quantity(2.0, unit=u.deg)
+    ArrayEventContainer.dl1.tel[2].parameters.core.psi = u.Quantity(1.0, unit=u.deg)
+
+    ad = ArrayDisplay(subarray=sub)
     ad.set_vector_rho_phi(1 * u.m, 90 * u.deg)
 
     # try setting a value
@@ -104,9 +123,9 @@ def test_array_display():
     # test UV field ...
 
     # ...with colors by telescope type
-    ad.set_vector_uv(numpy.array([1, 2, 3]) * u.m, numpy.array([1, 2, 3]) * u.m)
+    ad.set_vector_uv(np.array([1, 2, 3]) * u.m, np.array([1, 2, 3]) * u.m)
     # ...with scalar color
-    ad.set_vector_uv(numpy.array([1, 2, 3]) * u.m, numpy.array([1, 2, 3]) * u.m, c=3)
+    ad.set_vector_uv(np.array([1, 2, 3]) * u.m, np.array([1, 2, 3]) * u.m, c=3)
 
     geom = CameraGeometry.from_name("LSTCam")
     rot_angle = 20 * u.deg
@@ -130,12 +149,13 @@ def test_array_display():
     )
     gradient_dict = {1: timing_rot20.slope.value, 2: timing_rot20.slope.value}
     ad.set_vector_hillas(
+        event=ArrayEventContainer,
         hillas_dict=hillas_dict,
         length=500,
         time_gradient=gradient_dict,
         angle_offset=0 * u.deg,
     )
-    ad.set_line_hillas(hillas_dict=hillas_dict, range=300)
+    ad.set_line_hillas(event=ArrayEventContainer, hillas_dict=hillas_dict, range=300)
 
     # test using hillas params for divergent pointing in telescopeframe:
     hillas_dict = {
@@ -144,23 +164,22 @@ def test_array_display():
             y=1.0 * u.deg,
             length=1.0 * u.deg,
             psi=90 * u.deg,
-            psi_divergent=30 * u.deg,
         ),
         2: HillasParametersContainer(
             x=1.0 * u.deg,
             y=1.0 * u.deg,
             length=1.0 * u.deg,
             psi=95 * u.deg,
-            psi_divergent=20 * u.deg,
         ),
     }
     ad.set_vector_hillas(
+        event=ArrayEventContainer,
         hillas_dict=hillas_dict,
         length=500,
         time_gradient=gradient_dict,
         angle_offset=0 * u.deg,
     )
-    ad.set_line_hillas(hillas_dict=hillas_dict, range=300)
+    ad.set_line_hillas(event=ArrayEventContainer, hillas_dict=hillas_dict, range=300)
 
     # test using hillas params for parallel pointing in telescopeframe:
     hillas_dict = {
@@ -169,17 +188,16 @@ def test_array_display():
             y=1.0 * u.deg,
             length=1.0 * u.deg,
             psi=90 * u.deg,
-            psi_divergent=numpy.nan * u.deg,
         ),
         2: HillasParametersContainer(
             x=1.0 * u.deg,
             y=1.0 * u.deg,
             length=1.0 * u.deg,
             psi=95 * u.deg,
-            psi_divergent=numpy.nan * u.deg,
         ),
     }
     ad.set_vector_hillas(
+        event=ArrayEventContainer,
         hillas_dict=hillas_dict,
         length=500,
         time_gradient=gradient_dict,
@@ -192,6 +210,7 @@ def test_array_display():
         2: -0.02,
     }
     ad.set_vector_hillas(
+        event=ArrayEventContainer,
         hillas_dict=hillas_dict,
         length=500,
         time_gradient=gradient_dict,
@@ -203,6 +222,7 @@ def test_array_display():
         2: 0.002,
     }
     ad.set_vector_hillas(
+        event=ArrayEventContainer,
         hillas_dict=hillas_dict,
         length=500,
         time_gradient=gradient_dict,
@@ -211,11 +231,11 @@ def test_array_display():
 
     # Test background contour
     ad.background_contour(
-        x=numpy.array([0, 1, 2]),
-        y=numpy.array([0, 1, 2]),
-        background=numpy.array([[0, 1, 2], [0, 1, 2], [0, 1, 2]]),
+        x=np.array([0, 1, 2]),
+        y=np.array([0, 1, 2]),
+        background=np.array([[0, 1, 2], [0, 1, 2], [0, 1, 2]]),
     )
 
-    ad.set_line_hillas(hillas_dict, range=300)
+    ad.set_line_hillas(event=ArrayEventContainer, hillas_dict=hillas_dict, range=300)
     ad.add_labels()
     ad.remove_labels()
