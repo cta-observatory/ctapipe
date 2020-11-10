@@ -4,7 +4,7 @@ import numpy as np
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.io import event_source
-from ctapipe.reco.HillasReconstructor import HillasReconstructor
+from ctapipe.reco import HillasReconstructor
 from ctapipe.reco.hillas_intersection import HillasIntersection
 
 from ctapipe.utils import get_dataset_path
@@ -73,8 +73,12 @@ def test_reconstructors(reconstructors):
             continue
 
         for count, reco_method in enumerate(reconstructors):
+            if isinstance(reco_method(), HillasReconstructor):
+                reconstructor = HillasReconstructor(event=event)
+            else:
+                reconstructor = reco_method()
             reconstructed_events[count] += 1
-            reconstructor = reco_method()
+
             reconstructor_out = reconstructor.predict(
                 hillas_dict, source.subarray, array_pointing, telescope_pointings
             )

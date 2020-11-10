@@ -323,8 +323,6 @@ def test_invalid_events():
 
     filename = get_dataset_path("gamma_test_large.simtel.gz")
 
-    fit = HillasReconstructor()
-
     tel_azimuth = {}
     tel_altitude = {}
 
@@ -333,6 +331,7 @@ def test_invalid_events():
     calib = CameraCalibrator(subarray)
 
     for event in source:
+        fit = HillasReconstructor(event=event)
         calib(event)
 
         hillas_dict = {}
