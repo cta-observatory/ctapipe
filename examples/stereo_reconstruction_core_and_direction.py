@@ -81,12 +81,14 @@ signal.signal(signal.SIGINT, signal_handler)
 
 description = "Example of showers reconstruction. To exit press ctrl-c."
 description += "You can use Matplotlib interactive GUI to zoom in."
-default_test_file = "gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"
+
 parser = argparse.ArgumentParser(description=description)
+
+default_test_file = "gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"
 parser.add_argument(
     "--infile",
     type=str,
-    default=get_dataset_path(f"{default_test_file}"),
+    default=default_test_file,
     help=f"simtel file to use (default: {default_test_file})",
 )
 parser.add_argument(
@@ -101,14 +103,14 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-source = event_source(args.infile, max_events=args.max_events)
+infile = get_dataset_path(args.infile)
+source = event_source(infile, max_events=args.max_events)
 
 # ==============================================================================
 #                         ANALYSIS INITIALIZATION
 # ==============================================================================
 
 subarray = source.subarray
-reconstructor = HillasReconstructor()
 calibrator = CameraCalibrator(subarray=subarray)
 horizon_frame = AltAz()
 
@@ -129,7 +131,7 @@ for event in source:
 
     print(f"EVENT #{event.count} with ID #{event.index.event_id}...")
 
-    print(f"Telescopes with DL0 data = {event.dl0.tels_with_data}")
+    print(f"Telescopes with DL0 data = {event.r1.tel.keys()}")
 
     # ARRAY INFORMATION
     array_pointing = SkyCoord(
@@ -137,6 +139,9 @@ for event in source:
         alt=event.pointing.array_altitude,
         frame=horizon_frame,
     )
+
+    # Direction reconstruction setup
+    reconstructor = HillasReconstructor(event=event)
 
     # CALIBRATION
     calibrator(event)
@@ -155,7 +160,7 @@ for event in source:
     #                             TELESCOPE LOOP
     # ==========================================================================
 
-    for tel_id in event.dl0.tels_with_data:
+    for tel_id in event.r1.tel.keys():
 
         # Camera information
         camera = subarray.tel[tel_id].camera
@@ -286,13 +291,17 @@ for event in source:
             plt.suptitle(f"EVENT #{event.count} with ID #{event.index.event_id}")
 
         length = 250
-        angle_offset = event.mcheader.run_array_direction[0]
+        angle_offset = event.pointing.array_azimuth
 
         # COORDINATES OF THE IMPACT CORE ON THE GROUND
 
         ground_frame = GroundFrame()
         simulated_core = SkyCoord(
-            x=event.mc.core_x, y=event.mc.core_y, z=0, unit=u.m, frame=ground_frame
+            x=event.simulation.shower.core_x,
+            y=event.simulation.shower.core_y,
+            z=0,
+            unit=u.m,
+            frame=ground_frame,
         )
         reconstructed_core = SkyCoord(
             x=shower.core_x, y=shower.core_y, z=0, unit=u.m, frame=ground_frame
@@ -327,13 +336,11 @@ for event in source:
             radius=None,
         )
         array_disp.add_labels()
-        # array_disp.set_vector_hillas(
-        #     parametrized_images,
-        #     length,
-        #     time_gradients,
-        #     angle_offset,
-        # )
-        array_disp.set_line_hillas(parametrized_images, range=100)
+        array_disp.set_line_hillas(
+            event,
+            parametrized_images,
+            range=100
+        )
 
         plt.plot(
             simulated_core.x,
@@ -360,7 +367,9 @@ for event in source:
         # Transform all positions into the nominal frame
         nominal_frame = NominalFrame(origin=array_pointing)
         simulated_direction = SkyCoord(
-            alt=event.mc.alt, az=event.mc.az, frame="altaz"
+            alt=event.simulation.shower.alt,
+            az=event.simulation.shower.az,
+            frame="altaz",
         ).transform_to(nominal_frame)
         reconstructed_direction = SkyCoord(
             alt=shower.alt, az=shower.az, frame="altaz"
