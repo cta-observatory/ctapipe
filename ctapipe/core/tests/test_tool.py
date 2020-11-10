@@ -76,13 +76,13 @@ def test_export_config_to_yaml():
     from ctapipe.tools.stage1 import Stage1Tool
 
     tool = Stage1Tool()
-    tool.overwrite = True
+    tool.progress_bar = True
     yaml_string = export_tool_config_to_commented_yaml(tool)
 
     # check round-trip back from yaml:
     config_dict = yaml.load(yaml_string, Loader=yaml.SafeLoader)
 
-    assert config_dict["Stage1Tool"]["overwrite"] is True
+    assert config_dict["Stage1Tool"]["progress_bar"] is True
 
 
 def test_tool_html_rep():
