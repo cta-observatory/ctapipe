@@ -216,6 +216,8 @@ class ArrayDisplay:
 
         Parameters
         ----------
+        event : ctapipe.containers.ArrayEventContainer
+            Container filled with telescope-wise and shower information
         hillas_dict: Dict[int, HillasParametersContainer]
             mapping of tel_id to Hillas parameters
         length: Float
@@ -257,6 +259,8 @@ class ArrayDisplay:
 
         Parameters
         ----------
+        event : ctapipe.containers.ArrayEventContainer
+            Container filled with telescope-wise and shower information
         hillas_dict: Dict[int, HillasParametersContainer]
             mapping of tel_id to Hillas parameters
         range: float
