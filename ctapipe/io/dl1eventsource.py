@@ -42,7 +42,7 @@ class DL1EventSource(EventSource):
     method. An event equals an ArrayEventContainer instance.
     See ctapipe.containers.ArrayEventContainer for details.
 
-    Parameters
+    Attributes
     ----------
     input_url: str
         Path to the input event file.
