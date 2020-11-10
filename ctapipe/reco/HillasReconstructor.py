@@ -101,10 +101,12 @@ class HillasReconstructor(Reconstructor):
     def __init__(self, event=None, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
         self.hillas_planes = {}
-        self.divergent_mode = False
-        self.corrected_angle_dict = {}
         self.mode = "CameraFrame"
         self.event = event
+
+        # dictionary to store the telescope-wise image directions
+        # to be projected on the ground and corrected in case of mispointing
+        self.corrected_angle_dict = {}
 
     def predict(self, hillas_dict, subarray, array_pointing, telescopes_pointings=None):
         """
@@ -264,23 +266,22 @@ class HillasReconstructor(Reconstructor):
             cog_coord = cog_coord.transform_to(horizon_frame)
             p2_coord = p2_coord.transform_to(horizon_frame)
 
-            # DIVERGENT MODE
-            if self.divergent_mode:
+            # re-project from sky to a "fake"-parallel-pointing telescope
+            # then recalculate the psi angle in order to be able to project
+            # it on the ground
+            # This is done to bypass divergent pointing or mispointing
 
-                # re-project from sky to a "fake"-parallel-pointing telescope
-                # then recalculate the psi angle
+            camera_frame_parallel = CameraFrame(
+                focal_length=focal_length, telescope_pointing=array_pointing
+            )
+            cog_sky_to_parallel = cog_coord.transform_to(camera_frame_parallel)
+            p2_sky_to_parallel = p2_coord.transform_to(camera_frame_parallel)
+            angle_psi_corr = np.arctan2(
+                cog_sky_to_parallel.y - p2_sky_to_parallel.y,
+                cog_sky_to_parallel.x - p2_sky_to_parallel.x,
+            )
 
-                camera_frame_parallel = CameraFrame(
-                    focal_length=focal_length, telescope_pointing=array_pointing
-                )
-                cog_sky_to_parallel = cog_coord.transform_to(camera_frame_parallel)
-                p2_sky_to_parallel = p2_coord.transform_to(camera_frame_parallel)
-                angle_psi_corr = np.arctan2(
-                    cog_sky_to_parallel.y - p2_sky_to_parallel.y,
-                    cog_sky_to_parallel.x - p2_sky_to_parallel.x,
-                )
-
-                self.corrected_angle_dict[tel_id] = angle_psi_corr
+            self.corrected_angle_dict[tel_id] = angle_psi_corr
 
             circle = HillasPlane(
                 p1=cog_coord,
