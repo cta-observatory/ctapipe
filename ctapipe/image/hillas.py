@@ -117,9 +117,6 @@ def hillas_parameters(geom, image):
     msg = "Image and pixel shape do not match"
     assert pix_x.shape == pix_y.shape == image.shape, msg
 
-    # if size == 0.0:
-    #    raise HillasParameterizationError("size=0, cannot calculate HillasParameters")
-
     (
         cog_x,
         cog_y,
