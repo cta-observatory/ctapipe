@@ -8,16 +8,14 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import Angle
 from astropy.units import Quantity
+from numba import njit
 from ..containers import HillasParametersContainer
 
 
 HILLAS_ATOL = np.finfo(np.float64).eps
 
 
-__all__ = [
-    "hillas_parameters",
-    "HillasParameterizationError",
-]
+__all__ = ["hillas_parameters", "HillasParameterizationError"]
 
 
 def camera_to_shower_coordinates(x, y, cog_x, cog_y, psi):
@@ -111,91 +109,30 @@ def hillas_parameters(geom, image):
     pix_x = Quantity(np.asanyarray(geom.pix_x, dtype=np.float64)).value
     pix_y = Quantity(np.asanyarray(geom.pix_y, dtype=np.float64)).value
     image = np.asanyarray(image, dtype=np.float64)
-    image = np.ma.filled(image, 0)
+    # image = np.ma.filled(image, 0)
     msg = "Image and pixel shape do not match"
     assert pix_x.shape == pix_y.shape == image.shape, msg
 
-    size = np.sum(image)
+    # if size == 0.0:
+    #    raise HillasParameterizationError("size=0, cannot calculate HillasParameters")
 
-    if size == 0.0:
-        raise HillasParameterizationError("size=0, cannot calculate HillasParameters")
+    (
+        cog_x,
+        cog_y,
+        cog_r,
+        cog_phi,
+        size,
+        length,
+        length_uncertainty,
+        width,
+        width_uncertainty,
+        psi_rad,
+        skewness_long,
+        kurtosis_long,
+    ) = hillas_parameters_fast(pix_x, pix_y, image)
 
-    # calculate the cog as the mean of the coordinates weighted with the image
-    cog_x = np.average(pix_x, weights=image)
-    cog_y = np.average(pix_y, weights=image)
-
-    # polar coordinates of the cog
-    cog_r = np.linalg.norm([cog_x, cog_y])
-    cog_phi = np.arctan2(cog_y, cog_x)
-
-    # do the PCA for the hillas parameters
-    delta_x = pix_x - cog_x
-    delta_y = pix_y - cog_y
-
-    # The ddof=0 makes this comparable to the other methods,
-    # but ddof=1 should be more correct, mostly affects small showers
-    # on a percent level
-    cov = np.cov(delta_x, delta_y, aweights=image, ddof=0)
-    eig_vals, eig_vecs = np.linalg.eigh(cov)
-
-    # round eig_vals to get rid of nans when eig val is something like -8.47032947e-22
-    near_zero = np.isclose(eig_vals, 0, atol=HILLAS_ATOL)
-    eig_vals[near_zero] = 0
-
-    # width and length are eigen values of the PCA
-    width, length = np.sqrt(eig_vals)
-
-    # psi is the angle of the eigenvector to length to the x-axis
-    vx, vy = eig_vecs[0, 1], eig_vecs[1, 1]
-
-    # avoid divide by 0 warnings
-    if length == 0:
-        psi = skewness_long = kurtosis_long = np.nan
-    else:
-        if vx != 0:
-            psi = np.arctan(vy / vx)
-        else:
-            psi = np.pi / 2
-
-        # calculate higher order moments along shower axes
-        longitudinal = delta_x * np.cos(psi) + delta_y * np.sin(psi)
-
-        m3_long = np.average(longitudinal ** 3, weights=image)
-        skewness_long = m3_long / length ** 3
-
-        m4_long = np.average(longitudinal ** 4, weights=image)
-        kurtosis_long = m4_long / length ** 4
-
-    # Compute of the Hillas parameters uncertainties.
-    # Implementation described in [hillas_uncertainties]_ This is an internal MAGIC document
-    # not generally accessible.
-
-    # intermediate variables
-    cos_2psi = np.cos(2 * psi)
-    a = (1 + cos_2psi) / 2
-    b = (1 - cos_2psi) / 2
-    c = np.sin(2 * psi)
-
-    A = ((delta_x ** 2.0) - cov[0][0]) / size
-    B = ((delta_y ** 2.0) - cov[1][1]) / size
-    C = ((delta_x * delta_y) - cov[0][1]) / size
-
-    # Hillas's uncertainties
-
-    # avoid divide by 0 warnings
-    if length == 0:
-        length_uncertainty = np.nan
-    else:
-        length_uncertainty = np.sqrt(
-            np.sum(((((a * A) + (b * B) + (c * C))) ** 2.0) * image)
-        ) / (2 * length)
-
-    if width == 0:
-        width_uncertainty = np.nan
-    else:
-        width_uncertainty = np.sqrt(
-            np.sum(((((b * A) + (a * B) + (-c * C))) ** 2.0) * image)
-        ) / (2 * width)
+    if size == np.nan:
+        HillasParameterizationError("size=0, cannot calculate HillasParameters")
 
     return HillasParametersContainer(
         x=u.Quantity(cog_x, unit),
@@ -207,7 +144,163 @@ def hillas_parameters(geom, image):
         length_uncertainty=u.Quantity(length_uncertainty, unit),
         width=u.Quantity(width, unit),
         width_uncertainty=u.Quantity(width_uncertainty, unit),
-        psi=Angle(psi, unit=u.rad),
+        psi=Angle(psi_rad, unit=u.rad),
         skewness=skewness_long,
         kurtosis=kurtosis_long,
     )
+
+
+@njit
+def weighted_average_1d(values, weights):
+    """
+    since Numba doesn't support np.average(), this is a simplistic version
+    without the various checks and broadcasting
+    """
+    scale = weights.sum()
+    return np.multiply(values, weights).sum() / scale
+
+
+@njit
+def hillas_parameters_fast(pix_x, pix_y, image):
+    """
+    A helper function to Compute hillas paremeters rapidly using Numba. This
+    function assumes pure unitless numpy arrays as input.
+    """
+    size = np.sum(image)
+    if size == 0.0:
+        return (
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+        )
+
+    # calculate the cog as the mean of the coordinates weighted with the image
+    cog_x = weighted_average_1d(pix_x, weights=image)
+    cog_y = weighted_average_1d(pix_y, weights=image)
+
+    # polar coordinates of the cog
+    cog2d = np.asarray([cog_x, cog_y])
+    cog_r = np.linalg.norm(cog2d)
+    cog_phi = np.arctan2(cog_y, cog_x)
+
+    # do the PCA for the hillas parameters
+    delta_x = pix_x - cog_x
+    delta_y = pix_y - cog_y
+
+    # The ddof=0 makes this comparable to the other methods,
+    # but ddof=1 should be more correct, mostly affects small showers
+    # on a percent level
+    # cov = np.cov(delta_x, delta_y, aweights=image, ddof=0)
+    cov = np.cov(delta_x, delta_y, ddof=1)
+    eig_vals, eig_vecs = np.linalg.eigh(cov)
+
+    # round eig_vals to get rid of nans when eig val is something like -8.47032947e-22
+    near_zero = np.abs(eig_vals) < HILLAS_ATOL
+    eig_vals[near_zero] = 0
+
+    # width and length are eigen values of the PCA
+    width, length = np.sqrt(eig_vals)
+
+    # psi is the angle of the eigenvector to length to the x-axis
+    vx, vy = eig_vecs[0, 1], eig_vecs[1, 1]
+
+    # avoid divide by 0 warnings
+    if length == 0:
+        psi_rad = skewness_long = kurtosis_long = np.nan
+    else:
+        if vx != 0:
+            psi_rad = np.arctan(vy / vx)
+        else:
+            psi_rad = np.pi / 2
+
+        # calculate higher order moments along shower axes
+        longitudinal = delta_x * np.cos(psi_rad) + delta_y * np.sin(psi_rad)
+
+        m3_long = weighted_average_1d(longitudinal ** 3, weights=image)
+        skewness_long = m3_long / length ** 3
+
+        m4_long = weighted_average_1d(longitudinal ** 4, weights=image)
+        kurtosis_long = m4_long / length ** 4
+
+    # Hillas's uncertainties
+    length_uncertainty, width_uncertainty = compute_uncertainties(
+        image, delta_x, delta_y, size, length, width, psi_rad, cov
+    )
+
+    return (
+        cog_x,
+        cog_y,
+        cog_r,
+        cog_phi,
+        size,
+        length,
+        length_uncertainty,
+        width,
+        width_uncertainty,
+        psi_rad,
+        skewness_long,
+        kurtosis_long,
+    )
+
+
+@njit
+def compute_uncertainties(image, delta_x, delta_y, size, length, width, psi_rad, cov):
+    """
+    Compute of the Hillas parameters uncertainties. Implementation described in
+    [hillas_uncertainties]_ This is an internal MAGIC document not generally
+    accessible
+
+    Parameters
+    ----------
+    image: np.ndarray
+        image values
+    delta_x: np.ndarray[float]
+        x distance of pixels to cog
+    delta_y: np.ndarray[float]
+        y distance of pixels to cog
+    size: float
+        size Hillas parameter (total intensity)
+    length: float
+        length Hillas parameter
+    width: float
+        width Hillas parameter
+    psi_rad: float
+        psi hillas parameter in radians
+    cov: np.ndarray[float]
+        covariance matrix used to compute width, length
+    """
+
+    # intermediate variables
+    cos_2psi = np.cos(2 * psi_rad)
+    a = (1 + cos_2psi) / 2
+    b = (1 - cos_2psi) / 2
+    c = np.sin(2 * psi_rad)
+
+    A = ((delta_x ** 2.0) - cov[0][0]) / size
+    B = ((delta_y ** 2.0) - cov[1][1]) / size
+    C = ((delta_x * delta_y) - cov[0][1]) / size
+
+    length_uncertainty = np.nan
+    width_uncertainty = np.nan
+
+    # avoid divide by 0 warnings
+    if length != 0:
+        length_uncertainty = np.sqrt(
+            np.sum(((((a * A) + (b * B) + (c * C))) ** 2.0) * image)
+        ) / (2 * length)
+
+    if width != 0:
+        width_uncertainty = np.sqrt(
+            np.sum(((((b * A) + (a * B) + (-c * C))) ** 2.0) * image)
+        ) / (2 * width)
+
+    return length_uncertainty, width_uncertainty
