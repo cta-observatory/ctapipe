@@ -1,6 +1,12 @@
 from ctapipe.instrument import CameraGeometry
 from ctapipe.image import tailcuts_clean, toymodel
-from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
+from ctapipe.image.hillas import (
+    hillas_parameters,
+    HillasParameterizationError,
+    covariance_2d,
+    covariance_matrix_2d,
+    weighted_average_1d,
+)
 from ctapipe.containers import HillasParametersContainer
 from astropy.coordinates import Angle
 from astropy import units as u
@@ -28,11 +34,7 @@ def create_sample_image(
     model = toymodel.Gaussian(x=x, y=y, width=width, length=length, psi=psi)
 
     # generate toymodel image in camera for this shower model.
-    image, _, _ = model.generate_image(
-        geom,
-        intensity=1500,
-        nsb_level_pe=3,
-    )
+    image, _, _ = model.generate_image(geom, intensity=1500, nsb_level_pe=3)
 
     # calculate pixels likely containing signal
     clean_mask = tailcuts_clean(geom, image, 10, 5)
@@ -70,6 +72,20 @@ def compare_hillas(hillas1, hillas2):
         compare_result(hillas1_dict[key], hillas2_dict[key])
 
 
+def test_covariance():
+
+    x = np.array([0, 1, 2, 3, 4])
+    y = np.array([-5, -6, -7, -8, -9])
+    w0 = np.array([1, 1, 5, 1, 1])
+
+    xmean = weighted_average_1d(x, w0)
+    ymean = weighted_average_1d(y, w0)
+
+    cov = covariance_matrix_2d(x - xmean, y - ymean, w0)
+    npcov = np.cov(x, y, aweights=w0, ddof=1)
+    assert np.allclose(cov, npcov)
+
+
 def test_hillas_selected():
     """
     test Hillas-parameter routines on a sample image with selected values
@@ -92,15 +108,13 @@ def test_hillas_failure():
         hillas_parameters(geom, blank_image)
 
 
-def test_hillas_masked_array():
+def test_hillas_masking():
     geom, image, clean_mask = create_sample_image(psi="0d")
 
     image_zeros = image.copy()
     image_zeros[~clean_mask] = 0
     hillas_zeros = hillas_parameters(geom, image_zeros)
-
-    image_masked = np.ma.masked_array(image, mask=~clean_mask)
-    hillas_masked = hillas_parameters(geom, image_masked)
+    hillas_masked = hillas_parameters(geom[clean_mask], image[clean_mask])
 
     compare_hillas(hillas_zeros, hillas_masked)
 
@@ -131,18 +145,10 @@ def test_with_toy():
         for psi in psis:
 
             # make a toymodel shower model
-            model = toymodel.Gaussian(
-                x=x,
-                y=y,
-                width=width,
-                length=length,
-                psi=psi,
-            )
+            model = toymodel.Gaussian(x=x, y=y, width=width, length=length, psi=psi)
 
             image, signal, noise = model.generate_image(
-                geom,
-                intensity=intensity,
-                nsb_level_pe=5,
+                geom, intensity=intensity, nsb_level_pe=5
             )
 
             result = hillas_parameters(geom, signal)
@@ -178,19 +184,10 @@ def test_skewness():
     for x, y, psi, skew in itertools.product(xs, ys, psis, skews):
         # make a toymodel shower model
         model = toymodel.SkewedGaussian(
-            x=x,
-            y=y,
-            width=width,
-            length=length,
-            psi=psi,
-            skewness=skew,
+            x=x, y=y, width=width, length=length, psi=psi, skewness=skew
         )
 
-        _, signal, _ = model.generate_image(
-            geom,
-            intensity=intensity,
-            nsb_level_pe=5,
-        )
+        _, signal, _ = model.generate_image(geom, intensity=intensity, nsb_level_pe=5)
 
         result = hillas_parameters(geom, signal)
 

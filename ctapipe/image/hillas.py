@@ -109,7 +109,11 @@ def hillas_parameters(geom, image):
     pix_x = Quantity(np.asanyarray(geom.pix_x, dtype=np.float64)).value
     pix_y = Quantity(np.asanyarray(geom.pix_y, dtype=np.float64)).value
     image = np.asanyarray(image, dtype=np.float64)
-    # image = np.ma.filled(image, 0)
+    if np.ma.is_masked(image):
+        raise TypeError(
+            "np.ma.masked arrays are not supported by hillas_parameters(). "
+            "Use `hillas_parameters(geom[mask], image[mask])` instead."
+        )
     msg = "Image and pixel shape do not match"
     assert pix_x.shape == pix_y.shape == image.shape, msg
 
@@ -131,8 +135,10 @@ def hillas_parameters(geom, image):
         kurtosis_long,
     ) = hillas_parameters_fast(pix_x, pix_y, image)
 
-    if size == np.nan:
-        HillasParameterizationError("size=0, cannot calculate HillasParameters")
+    if np.isnan(size):
+        raise HillasParameterizationError(
+            "intensity=0, cannot calculate HillasParameters"
+        )
 
     return HillasParametersContainer(
         x=u.Quantity(cog_x, unit),
@@ -158,6 +164,36 @@ def weighted_average_1d(values, weights):
     """
     scale = weights.sum()
     return np.multiply(values, weights).sum() / scale
+
+
+@njit
+def covariance_2d(delta_x, delta_y, weights_normed):
+    """covariance assuming x and y are already weighted-mean subtracted
+    and the weights are normalized"""
+    w2_sum = (weights_normed ** 2).sum()
+    if w2_sum == 1:
+        return 0
+
+    return np.sum(weights_normed * delta_x * delta_y) / (1.0 - w2_sum)
+
+
+@njit
+def covariance_matrix_2d(x, y, weights):
+    """
+    covariance matrix in 2d, assuming that x and y are already
+    weighed-mean subtracted
+    """
+    # fmt: off
+    w_sum =  weights.sum()
+    if w_sum == 0.0:
+        return np.array([[0,0],[0,0]], dtype=np.float64)
+
+    w_normed = weights  / w_sum
+    return np.array(
+        [[covariance_2d(x, x, w_normed), covariance_2d(x, y, w_normed)],
+         [covariance_2d(y, x, w_normed), covariance_2d(y, y, w_normed)]]
+    )
+    # fmt: on
 
 
 @njit
@@ -200,7 +236,7 @@ def hillas_parameters_fast(pix_x, pix_y, image):
     # but ddof=1 should be more correct, mostly affects small showers
     # on a percent level
     # cov = np.cov(delta_x, delta_y, aweights=image, ddof=0)
-    cov = np.cov(delta_x, delta_y, ddof=1)
+    cov = covariance_matrix_2d(delta_x, delta_y, image)
     eig_vals, eig_vecs = np.linalg.eigh(cov)
 
     # round eig_vals to get rid of nans when eig val is something like -8.47032947e-22
