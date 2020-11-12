@@ -145,3 +145,7 @@ def main():
     """ run the tool"""
     tool = Stage1Tool()
     tool.run()
+
+
+if __name__ == "__main__":
+    main()
