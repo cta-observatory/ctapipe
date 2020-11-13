@@ -3,15 +3,7 @@
 
 # import ah_bootstrap
 from setuptools import setup, find_packages
-
-import sys
 import os
-
-# pep 517 builds do not have cwd in PATH by default
-sys.path.insert(0, os.path.dirname(__file__))
-# Get the long and version description from the package's docstring
-import ctapipe  # noqa
-
 
 # Define entry points for command-line scripts
 # TODO: this shuold be automated (e.g. look for main functions and
@@ -49,11 +41,8 @@ docs_require = [
     "graphviz",
 ]
 
-ctapipe.version.update_release_version()
-
 setup(
     packages=find_packages(),
-    version=ctapipe.version.get_version(pep440=True),
     python_requires=">=3.7",
     install_requires=[
         "astropy>=3,<5",
@@ -72,6 +61,7 @@ setup(
         "tqdm>=4.32",
         "traitlets~=5.0,>=5.0.5",
         "zstandard",
+        "setuptools_scm>=3.4",
         # needed for astropy hdf5 io. Version 3 breaks copying those tables
         # with pytables du to variable length strings.
         "h5py~=2.0",
@@ -82,8 +72,9 @@ setup(
         "tests": tests_require,
         "docs": docs_require,
     },
+    use_scm_version={"write_to": os.path.join("ctapipe", "_version.py")},
     tests_require=tests_require,
-    setup_requires=["pytest_runner"],
+    setup_requires=["pytest_runner", "setuptools_scm"],
     classifiers=[
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: BSD License",
