@@ -2,7 +2,6 @@
 """
 ctapipe - CTA Python pipeline experimental version
 """
+from .version import __version__
 
-from . import version
-
-__version__ = version.get_version(pep440=False)
+__all__ = ['__version__']
