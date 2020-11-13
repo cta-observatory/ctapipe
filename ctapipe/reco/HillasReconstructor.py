@@ -220,6 +220,11 @@ class HillasReconstructor(Reconstructor):
         """
 
         self.hillas_planes = {}
+
+        # dictionary to store the telescope-wise image directions
+        # to be projected on the ground and corrected in case of mispointing
+        corrected_angle_dict = {}
+
         k = next(iter(telescopes_pointings))
         horizon_frame = telescopes_pointings[k].frame
         for tel_id, moments in hillas_dict.items():
@@ -284,7 +289,7 @@ class HillasReconstructor(Reconstructor):
                 cog_sky_to_parallel.x - p2_sky_to_parallel.x,
             )
 
-            self.corrected_angle_dict[tel_id] = angle_psi_corr
+            corrected_angle_dict[tel_id] = angle_psi_corr
 
             circle = HillasPlane(
                 p1=cog_coord,
@@ -293,6 +298,8 @@ class HillasReconstructor(Reconstructor):
                 weight=moments.intensity * (moments.length / moments.width),
             )
             self.hillas_planes[tel_id] = circle
+
+            return corrected_angle_dict
 
     def estimate_direction(self):
         """calculates the origin of the gamma as the weighted average
@@ -331,7 +338,7 @@ class HillasReconstructor(Reconstructor):
 
         return result, err_est_dir
 
-    def estimate_core_position(self, hillas_dict, array_pointing):
+    def estimate_core_position(self, hillas_dict, array_pointing, corrected_angle_dict):
         """
         Estimate the core position by intersection the major ellipse lines of each telescope.
 
@@ -362,7 +369,7 @@ class HillasReconstructor(Reconstructor):
         # of both pointing and cleaning/parametrization frame.
         # This angle will be used to visualize the telescope-wise directions of
         # the shower core the ground.
-        psi_core = self.corrected_angle_dict
+        psi_core = corrected_angle_dict
 
         # Record these values
         for tel_id in hillas_dict.keys():
