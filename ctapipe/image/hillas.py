@@ -180,12 +180,12 @@ def covariance_matrix_2d(x, y, weights):
     covariance matrix in 2d, assuming that x and y are already
     weighed-mean subtracted
     """
-    # fmt: off
-    w_sum =  weights.sum()
+    w_sum = weights.sum()
     if w_sum == 0.0:
-        return np.array([[0,0],[0,0]], dtype=np.float64)
+        return np.array([[0, 0], [0, 0]], dtype=np.float64)
 
-    w_normed = weights  / w_sum
+    w_normed = weights / w_sum
+    # fmt: off
     return np.array(
         [[covariance_2d(x, x, w_normed), covariance_2d(x, y, w_normed)],
          [covariance_2d(y, x, w_normed), covariance_2d(y, y, w_normed)]]
