@@ -162,7 +162,7 @@ def covariance_2d(delta_x, delta_y, weights_normed):
     """covariance assuming x and y are already weighted-mean subtracted
     and the weights are normalized"""
     w2_sum = (weights_normed ** 2).sum()
-    if w2_sum == 1:
+    if (w2_sum - 1) < HILLAS_ATOL:
         return 0
 
     return np.sum(weights_normed * delta_x * delta_y) / (1.0 - w2_sum)
@@ -175,7 +175,7 @@ def covariance_matrix_2d(x, y, weights):
     weighed-mean subtracted
     """
     w_sum = weights.sum()
-    if w_sum == 0.0:
+    if w_sum < HILLAS_ATOL:
         return np.array([[0, 0], [0, 0]], dtype=np.float64)
 
     w_normed = weights / w_sum
