@@ -32,12 +32,12 @@ def create_mock_image(geom):
     )
 
     _, image, _ = model.generate_image(
-        geom, intensity=0.5 * geom.n_pixels, nsb_level_pe=3,
+        geom, intensity=0.5 * geom.n_pixels, nsb_level_pe=3
     )
     return image
 
 
-@pytest.mark.parametrize("rot", [3,])
+@pytest.mark.parametrize("rot", [3])
 @pytest.mark.parametrize("camera_name", camera_names)
 def test_convert_geometry(camera_name, rot):
 
@@ -77,15 +77,14 @@ def test_convert_geometry(camera_name, rot):
     #     plt.tight_layout()
     #     plt.pause(.1)
 
-    assert np.abs(hillas_1.phi - hillas_0.phi).deg < 1.0
+    assert np.abs(hillas_1.phi - hillas_0.phi).to_value(u.deg) < 1.0
     # TODO: test other parameters
 
 
-@pytest.mark.parametrize("rot", [3,])
+@pytest.mark.parametrize("rot", [3])
 @pytest.mark.parametrize("camera_name", camera_names)
 def test_convert_geometry_mock(camera_name, rot):
-    """here we use a different key for the back conversion to trigger the mock conversion
-    """
+    """here we use a different key for the back conversion to trigger the mock conversion"""
 
     geom = CameraGeometry.from_name(camera_name)
     image = create_mock_image(geom)
@@ -105,7 +104,7 @@ def test_convert_geometry_mock(camera_name, rot):
         return
 
     hillas_1 = hillas_parameters(geom, image1d)
-    assert np.abs(hillas_1.phi - hillas_0.phi).deg < 1.0
+    assert np.abs(hillas_1.phi - hillas_0.phi).to_value(u.deg) < 1.0
 
 
 # def plot_cam(geom, geom2d, geom1d, image, image2d, image1d):

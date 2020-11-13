@@ -6,11 +6,10 @@ Hillas-style moment-based shower image parametrization.
 
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import Angle
 from astropy.units import Quantity
 from numba import njit
-from ..containers import HillasParametersContainer
 
+from ..containers import HillasParametersContainer
 
 HILLAS_ATOL = np.finfo(np.float64).eps
 
@@ -141,13 +140,13 @@ def hillas_parameters(geom, image):
         x=u.Quantity(cog_x, unit),
         y=u.Quantity(cog_y, unit),
         r=u.Quantity(cog_r, unit),
-        phi=Angle(cog_phi, unit=u.rad),
+        phi=u.Quantity(cog_phi, unit=u.rad),
         intensity=size,
         length=u.Quantity(length, unit),
         length_uncertainty=u.Quantity(length_uncertainty, unit),
         width=u.Quantity(width, unit),
         width_uncertainty=u.Quantity(width_uncertainty, unit),
-        psi=Angle(psi_rad, unit=u.rad),
+        psi=u.Quantity(psi_rad, unit=u.rad),
         skewness=skewness_long,
         kurtosis=kurtosis_long,
     )
