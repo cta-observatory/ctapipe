@@ -59,38 +59,32 @@ class HillasParameterizationError(RuntimeError):
 
 
 def hillas_parameters(geom, image):
-    """
-    Compute Hillas parameters for a given shower image.
+    """Compute Hillas parameters for a given shower image.
 
     Implementation uses a PCA analogous to the implementation in
-    src/main/java/fact/features/HillasParameters.java
-    from
-    https://github.com/fact-project/fact-tools
+    src/main/java/fact/features/HillasParameters.java from
+    https://github.com/fact-project/fact-tools. Uncertainties on parameters are
+    computed following [hillas_uncertainties]_
 
-    The image passed to this function can be in three forms:
+    The image passed to this function can be in two forms:
 
     >>> from ctapipe.image.hillas import hillas_parameters
     >>> from ctapipe.image.tests.test_hillas import create_sample_image, compare_hillas
     >>> geom, image, clean_mask = create_sample_image(psi='0d')
     >>>
-    >>> # Fastest
+    >>> # Faster
     >>> geom_selected = geom[clean_mask]
     >>> image_selected = image[clean_mask]
     >>> hillas_selected = hillas_parameters(geom_selected, image_selected)
     >>>
-    >>> # Mid (1.45 times longer than fastest)
+    >>> # Slower (1.45 times longer)
     >>> image_zeros = image.copy()
     >>> image_zeros[~clean_mask] = 0
     >>> hillas_zeros = hillas_parameters(geom, image_zeros)
     >>>
-    >>> # Slowest (1.51 times longer than fastest)
-    >>> image_masked = np.ma.masked_array(image, mask=~clean_mask)
-    >>> hillas_masked = hillas_parameters(geom, image_masked)
-    >>>
     >>> compare_hillas(hillas_selected, hillas_zeros)
-    >>> compare_hillas(hillas_selected, hillas_masked)
 
-    Each method gives the same result, but vary in efficiency
+    Each method gives the same result, but varying in efficiency
 
     Parameters
     ----------
@@ -103,6 +97,7 @@ def hillas_parameters(geom, image):
     -------
     HillasParametersContainer:
         container of hillas parametesr
+
     """
     unit = geom.pix_x.unit
     pix_x = Quantity(np.asanyarray(geom.pix_x, dtype=np.float64)).value
@@ -264,7 +259,7 @@ def hillas_parameters_fast(pix_x, pix_y, image):
         kurtosis_long = m4_long / length ** 4
 
     # Hillas's uncertainties
-    length_uncertainty, width_uncertainty = compute_uncertainties(
+    length_uncertainty, width_uncertainty = _compute_hillas_uncertainties(
         image, delta_x, delta_y, size, length, width, psi_rad, cov
     )
 
@@ -285,7 +280,9 @@ def hillas_parameters_fast(pix_x, pix_y, image):
 
 
 @njit
-def compute_uncertainties(image, delta_x, delta_y, size, length, width, psi_rad, cov):
+def _compute_hillas_uncertainties(
+    image, delta_x, delta_y, size, length, width, psi_rad, cov
+):
     """
     Compute of the Hillas parameters uncertainties. Implementation described in
     [hillas_uncertainties]_ This is an internal MAGIC document not generally
