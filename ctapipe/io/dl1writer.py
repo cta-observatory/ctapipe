@@ -20,6 +20,7 @@ from ..containers import (
 from ..core import Component, Container, Field, Provenance, ToolConfigurationError
 from ..core.traits import Bool, CaselessStrEnum, Int, Path
 from ..io import EventSource, HDF5TableWriter, TableWriter
+from ..io.simteleventsource import SimTelEventSource
 from ..io import metadata as meta
 from ..instrument import SubarrayDescription
 
@@ -158,7 +159,12 @@ class DL1Writer(Component):
 
         self._is_simulation = event_source.is_simulation
         self._subarray: SubarrayDescription = event_source.subarray
-        self._simulation_config = event_source.simulation_config
+
+        if self._is_simulation:
+            self._simulation_config = event_source.simulation_config
+        else:
+            self._simulation_config = None
+
         self._obs_id = event_source.obs_ids[0]
         self._hdf5_filters = None
         self._last_pointing_tel: DefaultDict[Tuple] = None
@@ -206,7 +212,8 @@ class DL1Writer(Component):
         self._subarray.to_hdf(self.output_path)  # must be first (uses astropy io)
         self._setup_compression()
         self._setup_writer()
-        self._write_simulation_configuration()
+        if self._is_simulation:
+            self._write_simulation_configuration()
 
         # store last pointing to only write unique poitings
         self._last_pointing_tel = defaultdict(lambda: (np.nan * u.deg, np.nan * u.deg))
@@ -374,6 +381,15 @@ class DL1Writer(Component):
           histograms will be found.
 
         """
+
+        if not self._is_simulation:
+            self.log.debug("Not writing simulation histograms for observed data")
+            return
+
+        if not isinstance(event_source, SimTelEventSource):
+            self.log.debug("Not writing simulation for non-SimTelEventSource")
+            return
+
         self.log.debug("Writing simulation histograms")
 
         def fill_from_simtel(
