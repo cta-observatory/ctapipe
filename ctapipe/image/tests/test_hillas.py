@@ -3,7 +3,6 @@ from ctapipe.image import tailcuts_clean, toymodel
 from ctapipe.image.hillas import (
     hillas_parameters,
     HillasParameterizationError,
-    covariance_2d,
     covariance_matrix_2d,
     weighted_average_1d,
 )
@@ -73,13 +72,15 @@ def compare_hillas(hillas1, hillas2):
 
 
 def test_covariance():
-
+    """ check custom numba implementation of covariance matrix computation """
     x = np.array([0, 1, 2, 3, 4])
     y = np.array([-5, -6, -7, -8, -9])
     w0 = np.array([1, 1, 5, 1, 1])
 
     xmean = weighted_average_1d(x, w0)
     ymean = weighted_average_1d(y, w0)
+
+    assert np.allclose(xmean, np.average(x, weights=w0))
 
     cov = covariance_matrix_2d(x - xmean, y - ymean, w0)
     npcov = np.cov(x, y, aweights=w0, ddof=1)

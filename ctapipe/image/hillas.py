@@ -196,7 +196,7 @@ def covariance_matrix_2d(x, y, weights):
 @njit
 def hillas_parameters_fast(pix_x, pix_y, image):
     """
-    A helper function to Compute hillas paremeters rapidly using Numba. This
+    A helper function to Compute hillas parameters rapidly using Numba. This
     function assumes pure unitless numpy arrays as input.
     """
     size = np.sum(image)
