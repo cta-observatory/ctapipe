@@ -156,10 +156,6 @@ class HillasReconstructor(Reconstructor):
                 "A HillasContainer contains an ellipse of width==0"
             )
 
-        # dictionary to store the telescope-wise image directions
-        # to be projected on the ground and corrected in case of mispointing
-        self.corrected_angle_dict = {}
-
         self.initialize_hillas_planes(
             hillas_dict, subarray, telescopes_pointings, array_pointing
         )
