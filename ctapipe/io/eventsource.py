@@ -62,7 +62,7 @@ class EventSource(Component):
     and update it with new data on iteration, which might lead to surprising
     behaviour if you want to access multiple events at the same time.
     To keep an event and prevent its data from being overwritten with the next event's data,
-    perform a deepcopy: ``some_special_event = copy.deepcopy(event)`.
+    perform a deepcopy: ``some_special_event = copy.deepcopy(event)``.
 
 
     Attributes
