@@ -3,7 +3,7 @@ import numpy as np
 
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
-from ctapipe.io import event_source
+from ctapipe.io import EventSource
 from ctapipe.reco.HillasReconstructor import HillasReconstructor
 from ctapipe.reco.hillas_intersection import HillasIntersection
 
@@ -32,7 +32,7 @@ def test_reconstructors(reconstructors):
 
     filename = get_dataset_path("gamma_test_large.simtel.gz")
 
-    source = event_source(filename, max_events=10)
+    source = EventSource(filename, max_events=10)
     calib = CameraCalibrator(source.subarray)
     horizon_frame = AltAz()
 

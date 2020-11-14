@@ -9,7 +9,7 @@ from collections import defaultdict
 
 from ctapipe.core import Tool, Provenance
 from ctapipe.core.traits import Unicode, Dict, Enum, Path
-from ctapipe.io import event_source
+from ctapipe.io import EventSource
 
 
 def get_camera_types(subarray):
@@ -48,7 +48,7 @@ class DumpInstrumentTool(Tool):
     )
 
     def setup(self):
-        with event_source(self.infile) as source:
+        with EventSource(self.infile) as source:
             self.subarray = source.subarray
 
     def start(self):

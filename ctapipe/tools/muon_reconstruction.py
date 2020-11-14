@@ -98,7 +98,7 @@ class MuonAnalysis(Tool):
                 "Outputfile {self.output} already exists, use `--overwrite` to overwrite"
             )
 
-        self.source = EventSource.from_config(parent=self)
+        self.source = EventSource(parent=self)
         subarray = self.source.subarray
 
         self.calib = CameraCalibrator(subarray=subarray, parent=self)

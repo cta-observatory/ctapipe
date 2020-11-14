@@ -79,7 +79,7 @@ class BokehFileViewer(Tool):
     def setup(self):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
 
-        self.reader = EventSource.from_config(parent=self)
+        self.reader = EventSource(parent=self)
         self.seeker = EventSeeker(self.reader, parent=self)
 
         self.extractor = ImageExtractor.from_name(

@@ -13,7 +13,7 @@ from astropy.coordinates import SkyCoord, AltAz
 from ctapipe.calib import CameraCalibrator
 from ctapipe.image import hillas_parameters
 from ctapipe.image import tailcuts_clean
-from ctapipe.io import event_source
+from ctapipe.io import EventSource
 from ctapipe.reco import HillasReconstructor
 from ctapipe.utils import datasets
 
@@ -26,7 +26,7 @@ else:
 
 
 # reading the Monte Carlo file for LST
-source = event_source(filename, allowed_tels={1, 2, 3, 4})
+source = EventSource(filename, allowed_tels={1, 2, 3, 4})
 
 reco = HillasReconstructor()
 calib = CameraCalibrator(subarray=source.subarray)

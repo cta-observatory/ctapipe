@@ -1,6 +1,6 @@
 from astropy.coordinates import SkyCoord, AltAz
 import astropy.units as u
-from ctapipe.io import event_source
+from ctapipe.io import EventSource
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.calib import CameraCalibrator
 from ctapipe.utils.datasets import get_dataset_path
@@ -24,7 +24,7 @@ cleaning_level = {
 input_url = get_dataset_path("gamma_test_large.simtel.gz")
 
 
-with event_source(input_url=input_url) as source:
+with EventSource(input_url=input_url) as source:
     calibrator = CameraCalibrator(subarray=source.subarray)
 
     for event in source:

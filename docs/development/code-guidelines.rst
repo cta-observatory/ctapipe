@@ -302,7 +302,7 @@ help when writing algorithms:
 
 	 # initialize any algorithms
 
-	 source = calibrated_event_source(filename)
+	 source = calibrated_EventSource(filename)
 	 ImageMangler mangler(geom.pix_x, geom.pix_y, "transformtable.fits")
 
 	 # simple loop over events, calling each algorithm and directly
