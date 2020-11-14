@@ -5,6 +5,7 @@ from ctapipe.io import DataLevel
 from traitlets.config.loader import Config
 from traitlets import TraitError
 from ctapipe.io import event_source, SimTelEventSource
+from ctapipe.core import Component
 
 
 def test_construct():
@@ -76,9 +77,35 @@ def test_function_nonexistant_file():
 def test_from_config():
     dataset = get_dataset_path("gamma_test_large.simtel.gz")
     config = Config({"EventSource": {"input_url": dataset}})
-    reader = EventSource.from_config(config=config, parent=None)
+    reader = EventSource.from_config(config=config)
+
     assert isinstance(reader, SimTelEventSource)
     assert str(reader.input_url) == dataset
+
+
+def test_from_config_parent():
+    dataset = get_dataset_path("gamma_test_large.simtel.gz")
+
+    class Parent(Component):
+        def __init__(self, config=None, parent=None):
+            super().__init__(config=config, parent=parent)
+
+            self.source = EventSource.from_config(parent=self)
+
+    # test with EventSource in root of config
+    config = Config({"EventSource": {"input_url": dataset}})
+
+    parent = Parent(config=config)
+
+    assert isinstance(parent.source, SimTelEventSource)
+    assert parent.source.parent is parent
+
+    # test with EventSource as subconfig of parent
+    config = Config({"Parent": {"EventSource": {"input_url": dataset}}})
+
+    parent = Parent(config=config)
+    assert isinstance(parent.source, SimTelEventSource)
+    assert parent.source.parent is parent
 
 
 def test_from_config_default():
