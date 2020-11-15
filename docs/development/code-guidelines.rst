@@ -287,32 +287,29 @@ help when writing algorithms:
 
 * When writing example or integration test code for an algorithm,
   **keep it simple**: use a basic for loop to chain your algorithms
-  together. This example code will later be transformed by *framework
-  experts* into a modular system that can be parallelized and chained,
-  so don't do that yourself. Algorithm test (not unit test, but
-  integration test) code should look roughtly like this:
+  together.
+  An algorithm test (not unit test, but integration test) should look roughtly like this:
 
   .. code-block:: python
 
 
-	 # these should become user-defined parameters:
+    # these should become user-defined parameters:
+    filename = "events.tar.gz"
+    tel_id = 1
 
-	 filename = "events.tar.gz"
-	 tel_id = 1
+    # initialize any algorithms
 
-	 # initialize any algorithms
+    source = EventSource(filename)
+    geom = source.subarray.tel[tel_id].camera.geometry
+    ImageMangler = mangler(geom.pix_x, geom.pix_y, "transformtable.fits")
 
-	 source = calibrated_EventSource(filename)
-	 ImageMangler mangler(geom.pix_x, geom.pix_y, "transformtable.fits")
+    # simple loop over events, calling each algorithm and directly
+    # passing data
 
-	 # simple loop over events, calling each algorithm and directly
-	 #passing data
-
-	 for event in source:
-
-		 image = event.dl1.tel[tel_id].image
-		 mangled_image = mangler.mangle(image)
-		 image_parameters = parameterize_image(mangled_image)
+    for event in source:
+        image = event.dl1.tel[tel_id].image
+        mangled_image = mangler.mangle(image)
+        image_parameters = parameterize_image(mangled_image)
 
 
 * When your algorithm test code (as above) works well and you are
