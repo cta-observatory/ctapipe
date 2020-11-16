@@ -1,11 +1,17 @@
 from astropy import units as u
 import numpy as np
 
+from ctapipe.containers import HillasParametersContainer
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.io import event_source
 from ctapipe.reco import HillasReconstructor
 from ctapipe.reco.hillas_intersection import HillasIntersection
+
+from ctapipe.reco.reco_algorithms import (
+    TooFewTelescopesException,
+    InvalidWidthException,
+)
 
 from ctapipe.utils import get_dataset_path
 from astropy.coordinates import SkyCoord, AltAz
@@ -30,14 +36,14 @@ def test_reconstructors(reconstructors):
 
     in the end, proper units in the output are asserted"""
 
-    filename = get_dataset_path("gamma_test_large.simtel.gz")
+    filename = get_dataset_path(
+        "gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"
+    )
 
     source = event_source(filename, max_events=10)
+    subarray = source.subarray
     calib = CameraCalibrator(source.subarray)
     horizon_frame = AltAz()
-
-    # record how many events were reconstructed by each reconstructor
-    reconstructed_events = np.zeros((len(reconstructors)))
 
     for event in source:
         calib(event)
@@ -46,7 +52,6 @@ def test_reconstructors(reconstructors):
             az=sim_shower.az, alt=sim_shower.alt, frame=horizon_frame
         )
 
-        hillas_dict = {}
         telescope_pointings = {}
 
         for tel_id, dl1 in event.dl1.tel.items():
@@ -64,30 +69,53 @@ def test_reconstructors(reconstructors):
 
             try:
                 moments = hillas_parameters(geom[mask], dl1.image[mask])
-                hillas_dict[tel_id] = moments
             except HillasParameterizationError as e:
-                print(e)
+                event.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer()
                 continue
 
+            # Make sure we provide only good images for the test
+            if (
+                np.isnan(moments.width.value)
+                or (moments.width.value == 0)
+            ):
+                event.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer()
+            else:
+                event.dl1.tel[tel_id].parameters.hillas = moments
+
+        hillas_dict = {
+            tel_id: dl1.parameters.hillas
+            for tel_id, dl1 in event.dl1.tel.items()
+            if np.isfinite(event.dl1.tel[tel_id].parameters.hillas.intensity)
+        }
         if len(hillas_dict) < 2:
             continue
 
         for count, reco_method in enumerate(reconstructors):
-            if isinstance(reco_method(), HillasReconstructor):
-                reconstructor = HillasReconstructor(event=event)
+            # if isinstance(reco_method(), HillasReconstructor):
+            if reco_method is HillasReconstructor:
+                reconstructor = HillasReconstructor(subarray)
+
+                reconstructor(event)
+
+                # event.dl2.shower["HillasReconstructor"].alt.to(u.deg)
+                # event.dl2.shower["HillasReconstructor"].az.to(u.deg)
+                # event.dl2.shower["HillasReconstructor"].core_x.to(u.m)
+                assert event.dl2.shower["HillasReconstructor"].is_valid
+
             else:
                 reconstructor = reco_method()
-            reconstructed_events[count] += 1
 
-            reconstructor_out = reconstructor.predict(
-                hillas_dict, source.subarray, array_pointing, telescope_pointings
-            )
+                try:
+                    reconstructor_out = reconstructor.predict(
+                        hillas_dict,
+                        source.subarray,
+                        array_pointing,
+                        telescope_pointings,
+                    )
+                except InvalidWidthException:
+                    continue
 
-            reconstructor_out.alt.to(u.deg)
-            reconstructor_out.az.to(u.deg)
-            reconstructor_out.core_x.to(u.m)
-            assert reconstructor_out.is_valid
-
-    np.testing.assert_array_less(
-        np.zeros_like(reconstructed_events), reconstructed_events
-    )
+                reconstructor_out.alt.to(u.deg)
+                reconstructor_out.az.to(u.deg)
+                reconstructor_out.core_x.to(u.m)
+                assert reconstructor_out.is_valid
