@@ -34,9 +34,9 @@ Citing this software
 --------------------
 If you use this software for a publication, please cite the proper version using the following DOIs:
 
-- v0.7.0 : |doiv07|
-- v0.8.0 : |doiv08|
 - v0.9.1 : |doiv09|
+- v0.8.0 : |doiv08|
+- v0.7.0 : |doiv07|
 
 Installation for Users
 ----------------------
