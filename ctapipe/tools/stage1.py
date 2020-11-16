@@ -67,7 +67,8 @@ class Stage1Tool(Tool):
     }
 
     classes = List(
-        [CameraCalibrator, EventSource, DL1Writer, ImageProcessor]
+        [CameraCalibrator, DL1Writer, ImageProcessor]
+        + classes_with_traits(EventSource)
         + classes_with_traits(ImageCleaner)
         + classes_with_traits(ImageExtractor)
         + classes_with_traits(GainSelector)
