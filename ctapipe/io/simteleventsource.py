@@ -531,7 +531,6 @@ class SimTelEventSource(EventSource):
             corsika_wlen_max=mc_run_head["corsika_wlen_max"] * u.nm,
             corsika_low_E_detail=mc_run_head["corsika_low_E_detail"],
             corsika_high_E_detail=mc_run_head["corsika_high_E_detail"],
-            run_array_direction=Angle(self.file_.header["direction"] * u.rad),
         )
 
     @staticmethod
