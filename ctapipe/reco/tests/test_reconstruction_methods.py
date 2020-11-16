@@ -4,8 +4,8 @@ import numpy as np
 from ctapipe.containers import HillasParametersContainer
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
-from ctapipe.io import event_source
-from ctapipe.reco import HillasReconstructor
+from ctapipe.io import EventSource
+from ctapipe.reco.HillasReconstructor import HillasReconstructor
 from ctapipe.reco.hillas_intersection import HillasIntersection
 
 from ctapipe.reco.reco_algorithms import (
@@ -40,8 +40,9 @@ def test_reconstructors(reconstructors):
         "gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"
     )
 
-    source = event_source(filename, max_events=10)
+    source = EventSource(filename, max_events=10)
     subarray = source.subarray
+
     calib = CameraCalibrator(source.subarray)
     horizon_frame = AltAz()
 

@@ -73,16 +73,16 @@ def test_provenance_log_help(tmpdir):
 def test_export_config_to_yaml():
     """ test that we can export a Tool's config to YAML"""
     import yaml
-    from ctapipe.tools.camdemo import CameraDemo
+    from ctapipe.tools.stage1 import Stage1Tool
 
-    tool = CameraDemo()
-    tool.num_events = 2
+    tool = Stage1Tool()
+    tool.progress_bar = True
     yaml_string = export_tool_config_to_commented_yaml(tool)
 
     # check round-trip back from yaml:
     config_dict = yaml.load(yaml_string, Loader=yaml.SafeLoader)
 
-    assert config_dict["CameraDemo"]["num_events"] == 2
+    assert config_dict["Stage1Tool"]["progress_bar"] is True
 
 
 def test_tool_html_rep():

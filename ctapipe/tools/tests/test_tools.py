@@ -432,22 +432,22 @@ def test_dump_instrument(tmpdir):
 
     tool = DumpInstrumentTool()
 
-    assert run_tool(tool, [f"--infile={GAMMA_TEST_LARGE}"], cwd=tmpdir) == 0
+    assert run_tool(tool, [f"--input={GAMMA_TEST_LARGE}"], cwd=tmpdir) == 0
     assert tmpdir.join("FlashCam.camgeom.fits.gz").exists()
 
     assert (
-        run_tool(tool, [f"--infile={GAMMA_TEST_LARGE}", "--format=ecsv"], cwd=tmpdir)
+        run_tool(tool, [f"--input={GAMMA_TEST_LARGE}", "--format=ecsv"], cwd=tmpdir)
         == 0
     )
     assert tmpdir.join("MonteCarloArray.optics.ecsv.txt").exists()
 
     assert (
-        run_tool(tool, [f"--infile={GAMMA_TEST_LARGE}", "--format=hdf5"], cwd=tmpdir)
+        run_tool(tool, [f"--input={GAMMA_TEST_LARGE}", "--format=hdf5"], cwd=tmpdir)
         == 0
     )
     assert tmpdir.join("subarray.h5").exists()
 
-    assert run_tool(tool, ["--help-all"]) == 0
+    assert run_tool(tool, ["--help-all"], cwd=tmpdir) == 0
 
 
 def test_camdemo(tmpdir):
@@ -469,7 +469,7 @@ def test_bokeh_file_viewer(tmpdir):
     sys.argv = ["bokeh_file_viewer"]
     tool = BokehFileViewer(disable_server=True)
     assert run_tool(tool, cwd=tmpdir) == 0
-    assert str(tool.reader.input_url) == get_dataset_path("gamma_test_large.simtel.gz")
+    assert tool.reader.input_url == get_dataset_path("gamma_test_large.simtel.gz")
     assert run_tool(tool, ["--help-all"]) == 0
 
 
@@ -478,7 +478,8 @@ def test_extract_charge_resolution(tmpdir):
 
     output_path = os.path.join(str(tmpdir), "cr.h5")
     tool = ChargeResolutionGenerator()
-    assert run_tool(tool, ["-f", GAMMA_TEST_LARGE, "-O", output_path], cwd=tmpdir) == 1
+
+    assert run_tool(tool, ["-f", str(GAMMA_TEST_LARGE), "-O", output_path], cwd=tmpdir) == 1
     # TODO: Test files do not contain true charge, cannot test tool fully
     # assert os.path.exists(output_path)
     assert run_tool(tool, ["--help-all"]) == 0

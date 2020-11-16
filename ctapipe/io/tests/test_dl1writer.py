@@ -2,7 +2,7 @@
 
 from ctapipe.io.dl1writer import DL1Writer, DL1_DATA_MODEL_VERSION
 from ctapipe.utils import get_dataset_path
-from ctapipe.io import event_source
+from ctapipe.io import EventSource
 from ctapipe.calib import CameraCalibrator
 from pathlib import Path
 from ctapipe.instrument import SubarrayDescription
@@ -21,7 +21,7 @@ def test_dl1writer(tmpdir: Path):
     """
 
     output_path = Path(tmpdir / "events.dl1.h5")
-    source = event_source(
+    source = EventSource(
         get_dataset_path("gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"),
         max_events=20,
         allowed_tels=[1, 2, 3, 4],
