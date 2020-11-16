@@ -25,10 +25,7 @@ entry_points["console_scripts"] = [
     "ctapipe-stage1 = ctapipe.tools.stage1:main",
     "ctapipe-merge = ctapipe.tools.dl1_merge:main",
 ]
-tests_require = [
-    "pytest",
-    "ctapipe-extra @ https://github.com/cta-observatory/ctapipe-extra/archive/v0.3.1.tar.gz",
-]
+tests_require = ["pytest"]
 docs_require = [
     "sphinx_rtd_theme",
     "sphinx_automodapi",
@@ -61,6 +58,7 @@ setup(
         "tqdm>=4.32",
         "traitlets~=5.0,>=5.0.5",
         "zstandard",
+        "requests",
         "setuptools_scm>=3.4",
         # needed for astropy hdf5 io. Version 3 breaks copying those tables
         # with pytables du to variable length strings.

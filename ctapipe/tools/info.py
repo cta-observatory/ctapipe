@@ -9,6 +9,8 @@ from .utils import get_parser
 from ..core import Provenance, get_module_version
 from ..utils import datasets
 
+from pkg_resources import resource_filename
+
 __all__ = ["info"]
 
 # TODO: this list should be global (or generated at install time)
@@ -161,21 +163,23 @@ def _info_resources():
     print("")
 
     all_resources = sorted(datasets.find_all_matching_datasets(r"\w.*"))
-    locations = [
-        os.path.dirname(datasets.get_dataset_path(name)) for name in all_resources
-    ]
     home = os.path.expanduser("~")
-    resource_dir = os.path.dirname(datasets.get_dataset_path("HESS-I.camgeom.fits.gz"))
+    try:
+        resource_dir = resource_filename("ctapipe_resources", "")
+    except ImportError:
+        resource_dir = None
 
     fmt = "{name:<30.30s} : {loc:<30.30s}"
     print(fmt.format(name="RESOURCE NAME", loc="LOCATION"))
     print("-" * 70)
-    for name, loc in zip(all_resources, locations):
-        if name.endswith(".py") or name.startswith("_"):
+    for resource in all_resources:
+        if resource.suffix == ".py" or resource.name.startswith("_"):
             continue
-        loc = loc.replace(resource_dir, "[ctapipe_resources]")
+        loc = str(resource)
+        if resource_dir is not None:
+            loc = loc.replace(resource_dir, "[ctapipe_resources]")
         loc = loc.replace(home, "~")
-        print(fmt.format(name=name, loc=loc))
+        print(fmt.format(name=resource.name, loc=loc))
 
 
 def _info_system():
