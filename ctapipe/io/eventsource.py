@@ -4,9 +4,12 @@ Handles reading of different event/waveform containing files
 from abc import abstractmethod
 from traitlets.config.loader import LazyConfigValue
 
-from ctapipe.core import Component, non_abstract_children, ToolConfigurationError
-from ctapipe.core import Provenance
-from ctapipe.core.plugins import detect_and_import_io_plugins
+from ctapipe.core import ToolConfigurationError, Provenance
+from ctapipe.core.component import (
+    Component,
+    non_abstract_children,
+    find_config_in_hierarchy,
+)
 from ctapipe.core.traits import Path, Int, Set
 
 
@@ -37,7 +40,7 @@ class EventSource(Component):
     >>> event_source = EventSource(input_url=dataset)
     <ctapipe.io.simteleventsource.SimTelEventSource at ...>
 
-    An ``EvenSource`` can also be created through the configuration system,
+    An ``EventSource`` can also be created through the configuration system,
     by passing ``config`` or ``parent`` as appropriate.
     E.g. if using ``EventSource`` inside of a ``Tool``, you would do:
     >>> self.event_source = EventSource(parent=self)
@@ -294,7 +297,6 @@ class EventSource(Component):
         # to make sure it's compatible and to raise the correct error
         input_url = EventSource.input_url.validate(obj=None, value=input_url)
 
-        detect_and_import_io_plugins()
         available_classes = non_abstract_children(cls)
 
         for subcls in available_classes:
@@ -335,10 +337,28 @@ class EventSource(Component):
         if config is not None and parent is not None:
             raise ValueError("Only one of config or parent must be provided")
 
-        if config is None:
-            config = parent.config
+        input_url = None
 
-        if isinstance(config.EventSource.input_url, LazyConfigValue):
-            config.EventSource.input_url = cls.input_url.default_value
+        # config was passed
+        if config is not None:
+            if not isinstance(config.input_url, LazyConfigValue):
+                input_url = config.input_url
+            elif not isinstance(config.EventSource.input_url, LazyConfigValue):
+                input_url = config.EventSource.input_url
+            else:
+                input_url = cls.input_url.default_value
 
-        return EventSource(config.EventSource.input_url, config=config, **kwargs)
+        # parent was passed
+        else:
+            # first look at appropriate position in the config hierarcy
+            input_url = find_config_in_hierarchy(parent, "EventSource", "input_url")
+
+            # if not found, check top level
+            if isinstance(input_url, LazyConfigValue):
+                if not isinstance(parent.config.EventSource.input_url, LazyConfigValue):
+                    input_url = parent.config.EventSource.input_url
+                else:
+                    input_url = cls.input_url.default_value
+
+        return cls.from_url(input_url, config=config, parent=parent, **kwargs)
+ 
