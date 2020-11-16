@@ -16,6 +16,8 @@ ctapipe |teststatus| |codacy| |coverage| |conda| |doilatest|
    :target: https://doi.org/10.5281/zenodo.3372211
 .. |doiv08| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.3837306.svg
    :target: https://doi.org/10.5281/zenodo.3837306
+.. |doiv09| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4084989.svg
+   :target: https://doi.org/10.5281/zenodo.4084989
 
 Low-level data processing pipeline software for
 `CTA <www.cta-observatory.org>`_ (the Cherenkov Telescope Array)
@@ -34,6 +36,7 @@ If you use this software for a publication, please cite the proper version using
 
 - v0.7.0 : |doiv07|
 - v0.8.0 : |doiv08|
+- v0.9.1 : |doiv09|
 
 Installation for Users
 ----------------------
