@@ -54,6 +54,8 @@ class HillasIntersection(Reconstructor):
     Uncertainties on the positions are provided by taking the spread of the
     crossing points, however this means that no uncertainty can be provided
     for multiplicity 2 events.
+
+    Note: only input from CameraFrame is currently supported
     """
 
     atmosphere_profile_name = traits.CaselessStrEnum(
