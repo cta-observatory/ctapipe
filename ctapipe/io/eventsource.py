@@ -12,86 +12,60 @@ from ctapipe.core.component import (
 )
 from ctapipe.core.traits import Path, Int, Set
 
-__all__ = ["EventSource", "event_source"]
 
-
-def event_source(input_url, **kwargs):
-    """
-    Helper function for EventSource.from_url
-
-    Find compatible EventSource for input_url via the `is_compatible` method
-    of the EventSource
-
-    Parameters
-    ----------
-    input_url : str
-        Filename or URL pointing to an event file
-    kwargs
-        Named arguments for the EventSource
-
-    Returns
-    -------
-    instance
-        Instance of a compatible EventSource subclass
-    """
-    return EventSource.from_url(input_url, **kwargs)
+__all__ = ["EventSource"]
 
 
 class EventSource(Component):
     """
-    Parent class for EventFileReaders of different sources.
+    Parent class for EventSources.
 
-    A new EventFileReader should be created for each type of event file read
+    EventSources read input files and generate `ArrayEvents`
+    when iterated over.
+
+    A new EventSource should be created for each type of event file read
     into ctapipe, e.g. sim_telarray files are read by the `SimTelEventSource`.
 
-    EventFileReader provides a common high-level interface for accessing event
+    EventSource provides a common high-level interface for accessing event
     information from different data sources (simulation or different camera
-    file formats). Creating an EventFileReader for a new
-    file format ensures that data can be accessed in a common way,
-    irregardless of the file format.
+    file formats). Creating an EventSource for a new
+    file format or other event source ensures that data can be accessed in a common way,
+    irregardless of the file format or data origin.
 
-    EventFileReader itself is an abstract class. To use an EventFileReader you
-    must use a subclass that is relevant for the file format you
-    are reading (for example you must use
-    `ctapipe.io.SimTelEventSource` to read a hessio format
-    file). Alternatively you can use `event_source()` to automatically
-    select the correct EventFileReader subclass for the file format you wish
-    to read.
+    EventSource itself is an abstract class, but will create an
+    appropriate subclass if a compatible source is found for the given
+    ``input_url``.
 
-    To create an instance of an EventFileReader you must pass the traitlet
-    configuration (containing the input_url) and the
-    `ctapipe.core.tool.Tool`. Therefore from inside a Tool you would do:
+    >>> dataset = get_dataset_path('gamma_test_large.simtel.gz')
+    >>> event_source = EventSource(input_url=dataset)
+    <ctapipe.io.simteleventsource.SimTelEventSource at ...>
 
-    >>> event_source = EventSource(self.config, self)
-
-    An example of how to use `ctapipe.core.tool.Tool` and `event_source()`
-    can be found in ctapipe/tools/display_dl1.py.
-
-    However if you are not inside a Tool, you can still create an instance and
-    supply an input_url via:
-
-    >>> event_source = EventSource( input_url="/path/to/file")
+    An ``EventSource`` can also be created through the configuration system,
+    by passing ``config`` or ``parent`` as appropriate.
+    E.g. if using ``EventSource`` inside of a ``Tool``, you would do:
+    >>> self.event_source = EventSource(parent=self)
 
     To loop through the events in a file:
-
-    >>> event_source = EventSource( input_url="/path/to/file")
+    >>> event_source = EventSource(input_url="/path/to/file")
     >>> for event in event_source:
     >>>    print(event.count)
 
-    **NOTE**: Every time a new loop is started through the event_source, it restarts
-    from the first event.
+    **NOTE**: Every time a new loop is started through the event_source,
+    it tries to restart from the first event, which might not be supported
+    by the event source.
 
-    Alternatively one can use EventFileReader in a `with` statement to ensure
+    It is encouraged to use ``EventSource`` in a context manager to ensure
     the correct cleanups are performed when you are finished with the event_source:
 
-    >>> with EventSource( input_url="/path/to/file") as event_source:
+    >>> with EventSource(input_url="/path/to/file") as event_source:
     >>>    for event in event_source:
     >>>       print(event.count)
 
-    **NOTE**: The "event" that is returned from the generator is a pointer.
-    Any operation that progresses that instance of the generator further will
-    change the data pointed to by "event". If you wish to ensure a particular
-    event is kept, you should perform a `event_copy = copy.deepcopy(event)`.
+    **NOTE**: For effiency reasons, most sources only use a single ``ArrayEvent`` instance
+    and update it with new data on iteration, which might lead to surprising
+    behaviour if you want to access multiple events at the same time.
+    To keep an event and prevent its data from being overwritten with the next event's data,
+    perform a deepcopy: ``some_special_event = copy.deepcopy(event)``.
 
 
     Attributes
@@ -100,6 +74,10 @@ class EventSource(Component):
         Path to the input event file.
     max_events : int
         Maximum number of events to loop through in generator
+    allowed_tels: Set[int] or None
+        Ids of the telescopes to be included in the data.
+        If given, only this subset of telescopes will be present in the
+        generated events. If None, all available telescopes are used.
     """
 
     input_url = Path(
@@ -123,6 +101,27 @@ class EventSource(Component):
             "will be included"
         ),
     ).tag(config=True)
+
+    def __new__(cls, input_url=None, config=None, parent=None, **kwargs):
+        """
+        Returns a compatible subclass for given input url, either
+        directly or via config / parent
+        """
+        # needed to break recursion, as __new__ of subclass will also
+        # call this method
+        if cls is not EventSource:
+            return super().__new__(cls)
+
+        # check we have at least one of these to be able to determine the subclass
+        if input_url is None and config is None and parent is None:
+            raise ValueError("One of `input_url`, `config`, `parent` is required")
+
+        if input_url is not None:
+            return EventSource.from_url(
+                input_url, config=config, parent=parent, **kwargs
+            )
+        else:
+            return EventSource.from_config(config=config, parent=parent, **kwargs)
 
     def __init__(self, input_url=None, config=None, parent=None, **kwargs):
         """
@@ -362,3 +361,4 @@ class EventSource(Component):
                     input_url = cls.input_url.default_value
 
         return cls.from_url(input_url, config=config, parent=parent, **kwargs)
+ 

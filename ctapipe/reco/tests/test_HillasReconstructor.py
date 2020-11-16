@@ -4,7 +4,7 @@ import pytest
 
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
-from ctapipe.io import event_source
+from ctapipe.io import EventSource
 from ctapipe.reco.HillasReconstructor import HillasReconstructor, HillasPlane
 from ctapipe.reco.reco_algorithms import (
     TooFewTelescopesException,
@@ -98,7 +98,7 @@ def test_reconstruction():
     in the end, proper units in the output are asserted """
     filename = get_dataset_path("gamma_test_large.simtel.gz")
 
-    source = event_source(filename, max_events=10)
+    source = EventSource(filename, max_events=10)
     calib = CameraCalibrator(subarray=source.subarray)
 
     horizon_frame = AltAz()
@@ -179,7 +179,7 @@ def test_invalid_events():
     tel_azimuth = {}
     tel_altitude = {}
 
-    source = event_source(filename, max_events=10)
+    source = EventSource(filename, max_events=10)
     subarray = source.subarray
     calib = CameraCalibrator(subarray)
 
