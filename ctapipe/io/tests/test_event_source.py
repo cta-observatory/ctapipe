@@ -4,7 +4,6 @@ from ctapipe.io import EventSource, SimTelEventSource, DataLevel
 from traitlets.config.loader import Config
 from traitlets import TraitError
 
-from ctapipe.io import event_source, SimTelEventSource
 from ctapipe.core import Component
 
 
