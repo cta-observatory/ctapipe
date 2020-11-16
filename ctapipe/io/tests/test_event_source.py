@@ -126,20 +126,15 @@ def test_from_config_invalid_type():
         EventSource(config=config, parent=None)
 
 
-def test_event_source_config():
-    dataset1 = get_dataset_path("gamma_test_large.simtel.gz")
-    dataset2 = get_dataset_path("gamma_test_large.simtel.gz")
-    config = Config({"EventSource": {"input_url": dataset1}})
-    reader = EventSource(dataset2, config=config)
-    assert isinstance(reader, SimTelEventSource)
-    assert reader.input_url == dataset2
-
-
 def test_event_source_input_url_config_override():
     dataset1 = get_dataset_path("gamma_test_large.simtel.gz")
-    dataset2 = get_dataset_path("gamma_test_large.simtel.gz")
+    dataset2 = get_dataset_path(
+        "gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"
+    )
+
     config = Config({"EventSource": {"input_url": dataset1}})
     reader = EventSource(input_url=dataset2, config=config)
+
     assert isinstance(reader, SimTelEventSource)
     assert reader.input_url == dataset2
 
