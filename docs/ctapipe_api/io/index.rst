@@ -25,7 +25,7 @@ formats may be supported by simply adding a plug-in.
 The underlying mechanism is a set of `EventSource` sub-classes that
 read data in various formats, with a common interface and automatic command-line
 configuration parameters. These are generally constructed in a generic way by
-using `event_source(file_or_url)` which will construct the
+using `EventSource(file_or_url)` which will construct the
 appropriate `EventSource` subclass based on the input file's type.
 
 The resulting `EventSource`  then works like a python collection and can be
@@ -35,7 +35,7 @@ the case of streams that cannot be restarted):
 
 .. code-block:: python3
 
-  with event_source(input_url="file.simtel.gz") as source:
+  with EventSource(input_url="file.simtel.gz") as source:
       for event in source:
          do_something_with_event(event)
 

@@ -8,6 +8,15 @@ from copy import deepcopy
 
 from ctapipe.io import SimTelEventSource
 from ctapipe.utils import get_dataset_path
+from ctapipe.instrument import CameraGeometry
+
+
+@pytest.fixture(scope="session")
+def camera_geometries():
+    return [
+        CameraGeometry.from_name(name)
+        for name in ["LSTCam", "NectarCam", "CHEC", "FlashCam", "MAGICCam"]
+    ]
 
 
 @pytest.fixture(scope="session")

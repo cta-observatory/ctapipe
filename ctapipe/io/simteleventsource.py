@@ -419,6 +419,13 @@ class SimTelEventSource(EventSource):
                     adc_samples, pedestal, dc_to_pe, self.gain_selector
                 )
 
+                # get time_shift from laser calibration
+                time_calib = array_event["laser_calibrations"][tel_id]["tm_calib"]
+                pix_index = np.arange(n_pixels)
+
+                dl1_calib = data.calibration.tel[tel_id].dl1
+                dl1_calib.time_shift = time_calib[r1.selected_gain_channel, pix_index]
+
             yield data
 
     @staticmethod
@@ -524,7 +531,6 @@ class SimTelEventSource(EventSource):
             corsika_wlen_max=mc_run_head["corsika_wlen_max"] * u.nm,
             corsika_low_E_detail=mc_run_head["corsika_low_E_detail"],
             corsika_high_E_detail=mc_run_head["corsika_high_E_detail"],
-            run_array_direction=Angle(self.file_.header["direction"] * u.rad),
         )
 
     @staticmethod

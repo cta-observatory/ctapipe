@@ -6,7 +6,7 @@ from astropy.coordinates import SkyCoord
 from ctapipe.coordinates import NominalFrame, AltAz, CameraFrame
 from ctapipe.containers import HillasParametersContainer
 
-from ctapipe.io import event_source
+from ctapipe.io import EventSource
 
 from ctapipe.utils import get_dataset_path
 
@@ -242,7 +242,7 @@ def test_reconstruction():
 
     fit = HillasIntersection()
 
-    source = event_source(filename, max_events=10)
+    source = EventSource(filename, max_events=10)
     calib = CameraCalibrator(source.subarray)
 
     horizon_frame = AltAz()

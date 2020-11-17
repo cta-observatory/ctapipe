@@ -3,6 +3,7 @@ import os
 
 import pytest
 import yaml
+from pathlib import Path
 
 from ctapipe.utils import datasets
 
@@ -13,11 +14,11 @@ def test_find_datasets():
     assert len(r) > 3
 
     # get the full filename for a resrouces
-    assert os.path.exists(datasets.get_dataset_path(r[0]))
+    assert datasets.get_dataset_path(r[0].name).exists()
 
     # try using a pattern
     r = datasets.find_all_matching_datasets(r"(.*)\.camgeom\.fits\.gz", regexp_group=1)
-    assert not r[0].endswith("gz")
+    assert not str(r[0]).endswith("gz")
 
 
 def test_datasets_in_custom_path(tmpdir_factory):
@@ -39,7 +40,7 @@ def test_datasets_in_custom_path(tmpdir_factory):
 
     # try to find dummy dataset
     path = datasets.get_dataset_path(dataset_name)
-    assert path == dataset_path
+    assert path == Path(dataset_path)
 
     with pytest.raises(FileNotFoundError):
         datasets.get_dataset_path("does_not_exist")
@@ -49,12 +50,10 @@ def test_datasets_in_custom_path(tmpdir_factory):
     ds = datasets.find_all_matching_datasets(
         "test.*", searchpath=os.environ["CTAPIPE_SVC_PATH"]
     )
-    assert dataset_name in ds
+    assert dataset_name in {d.name for d in ds}
 
 
 def test_structured_datasets(tmpdir):
-    basename = "test.yml"
-
     test_data = dict(x=[1, 2, 3, 4, 5], y="test_json")
 
     os.environ["CTAPIPE_SVC_PATH"] = ":".join([str(tmpdir)])

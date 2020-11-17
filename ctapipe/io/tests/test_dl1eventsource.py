@@ -1,7 +1,7 @@
 from ctapipe.utils import get_dataset_path
 from ctapipe.io import DataLevel
 from ctapipe.io.dl1eventsource import DL1EventSource
-from ctapipe.io import event_source
+from ctapipe.io import EventSource
 import astropy.units as u
 import subprocess
 import numpy as np
@@ -23,7 +23,7 @@ def test_is_compatible(dl1_file):
     simtel_path = get_dataset_path("gamma_test.simtel.gz")
     assert not DL1EventSource.is_compatible(simtel_path)
     assert DL1EventSource.is_compatible(dl1_file)
-    with event_source(input_url=dl1_file) as source:
+    with EventSource(input_url=dl1_file) as source:
         assert isinstance(source, DL1EventSource)
 
 

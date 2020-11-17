@@ -7,7 +7,7 @@ from ctapipe.containers import HillasParametersContainer
 from ctapipe.instrument import SubarrayDescription, TelescopeDescription
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
-from ctapipe.io import event_source
+from ctapipe.io import EventSource
 from ctapipe.reco.HillasReconstructor import HillasReconstructor, HillasPlane
 from ctapipe.reco.reco_algorithms import (
     TooFewTelescopesException,
@@ -136,7 +136,7 @@ def test_parallel_reconstruction():
         "gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"
     )
 
-    source = event_source(filename, max_events=10)
+    source = EventSource(filename, max_events=10)
     calib = CameraCalibrator(subarray=source.subarray)
 
     fit_CameraFrame = HillasReconstructor(source.subarray)

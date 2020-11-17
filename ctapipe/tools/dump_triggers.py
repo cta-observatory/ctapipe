@@ -7,7 +7,7 @@ import numpy as np
 from astropy import units as u
 from astropy.table import Table
 
-from ctapipe.io import event_source
+from ctapipe.io import EventSource
 from ctapipe.core import Provenance, ToolConfigurationError
 from ctapipe.core.traits import Unicode, Dict, Bool, Path
 from ..core import Tool
@@ -121,7 +121,7 @@ class DumpTriggersTool(Tool):
 
     def start(self):
         """ main event loop """
-        with event_source(self.infile) as source:
+        with EventSource(self.infile) as source:
             for event in source:
                 self.add_event_to_table(event)
 

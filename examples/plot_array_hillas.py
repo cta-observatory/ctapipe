@@ -13,7 +13,7 @@ from ctapipe.calib import CameraCalibrator
 from ctapipe.coordinates import TiltedGroundFrame, MissingFrameAttributeWarning
 from ctapipe.image import hillas_parameters, tailcuts_clean, HillasParameterizationError
 from ctapipe.image import timing_parameters
-from ctapipe.io import event_source
+from ctapipe.io import EventSource
 from ctapipe.utils import datasets
 from ctapipe.visualization import ArrayDisplay
 import warnings
@@ -28,7 +28,7 @@ if __name__ == "__main__":
         filename = sys.argv[1]
 
     # reading the Monte Carlo file for LST
-    source = event_source(filename)
+    source = EventSource(filename)
 
     # pointing direction of the telescopes
     point_azimuth = {}

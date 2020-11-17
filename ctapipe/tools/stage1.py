@@ -67,7 +67,8 @@ class Stage1Tool(Tool):
     }
 
     classes = List(
-        [CameraCalibrator, EventSource, DL1Writer, ImageProcessor]
+        [CameraCalibrator, DL1Writer, ImageProcessor]
+        + classes_with_traits(EventSource)
         + classes_with_traits(ImageCleaner)
         + classes_with_traits(ImageExtractor)
         + classes_with_traits(GainSelector)
@@ -76,7 +77,7 @@ class Stage1Tool(Tool):
     def setup(self):
 
         # setup components:
-        self.event_source = EventSource.from_config(parent=self)
+        self.event_source = EventSource(parent=self)
 
         datalevels = self.event_source.datalevels
         if DataLevel.R1 not in datalevels and DataLevel.DL0 not in datalevels:
