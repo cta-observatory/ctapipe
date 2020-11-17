@@ -153,7 +153,7 @@ def get_dataset_path(filename):
             "ctapipe_resources...".format(filename)
         )
 
-        return ctapipe_resources.get(filename)
+        return Path(ctapipe_resources.get(filename))
 
     # last, try downloading the data
     try:
