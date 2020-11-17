@@ -148,14 +148,18 @@ def test_array_display():
         cleaning_mask=np.ones(geom.n_pixels, dtype=bool),
     )
     gradient_dict = {1: timing_rot20.slope.value, 2: timing_rot20.slope.value}
+    core_dict = {
+            tel_id: dl1.parameters.core.psi
+            for tel_id, dl1 in ArrayEventContainer.dl1.tel.items()
+        }
     ad.set_vector_hillas(
-        event=ArrayEventContainer,
         hillas_dict=hillas_dict,
+        core_dict=core_dict,
         length=500,
         time_gradient=gradient_dict,
         angle_offset=0 * u.deg,
     )
-    ad.set_line_hillas(event=ArrayEventContainer, hillas_dict=hillas_dict, range=300)
+    ad.set_line_hillas(hillas_dict=hillas_dict, core_dict=core_dict, range=300)
 
     # test using hillas params for divergent pointing in telescopeframe:
     hillas_dict = {
@@ -173,13 +177,13 @@ def test_array_display():
         ),
     }
     ad.set_vector_hillas(
-        event=ArrayEventContainer,
         hillas_dict=hillas_dict,
+        core_dict=core_dict,
         length=500,
         time_gradient=gradient_dict,
         angle_offset=0 * u.deg,
     )
-    ad.set_line_hillas(event=ArrayEventContainer, hillas_dict=hillas_dict, range=300)
+    ad.set_line_hillas(hillas_dict=hillas_dict, core_dict=core_dict, range=300)
 
     # test using hillas params for parallel pointing in telescopeframe:
     hillas_dict = {
@@ -197,8 +201,8 @@ def test_array_display():
         ),
     }
     ad.set_vector_hillas(
-        event=ArrayEventContainer,
         hillas_dict=hillas_dict,
+        core_dict=core_dict,
         length=500,
         time_gradient=gradient_dict,
         angle_offset=0 * u.deg,
@@ -210,8 +214,8 @@ def test_array_display():
         2: -0.02,
     }
     ad.set_vector_hillas(
-        event=ArrayEventContainer,
         hillas_dict=hillas_dict,
+        core_dict=core_dict,
         length=500,
         time_gradient=gradient_dict,
         angle_offset=0 * u.deg,
@@ -222,8 +226,8 @@ def test_array_display():
         2: 0.002,
     }
     ad.set_vector_hillas(
-        event=ArrayEventContainer,
         hillas_dict=hillas_dict,
+        core_dict=core_dict,
         length=500,
         time_gradient=gradient_dict,
         angle_offset=0 * u.deg,
@@ -236,6 +240,6 @@ def test_array_display():
         background=np.array([[0, 1, 2], [0, 1, 2], [0, 1, 2]]),
     )
 
-    ad.set_line_hillas(event=ArrayEventContainer, hillas_dict=hillas_dict, range=300)
+    ad.set_line_hillas(hillas_dict=hillas_dict, core_dict=core_dict, range=300)
     ad.add_labels()
     ad.remove_labels()

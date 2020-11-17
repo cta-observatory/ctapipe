@@ -51,7 +51,7 @@ def test_estimator_results():
             1: TelescopeDescription.from_name(
                 optics_name="SST-ASTRI", camera_name="CHEC"
             )
-        }
+        },
     )
 
     # creating the fit class and setting the the great circle member
@@ -96,7 +96,7 @@ def test_h_max_results():
             1: TelescopeDescription.from_name(
                 optics_name="SST-ASTRI", camera_name="CHEC"
             )
-        }
+        },
     )
 
     # creating the fit class and setting the the great circle member
@@ -147,7 +147,11 @@ def test_parallel_reconstruction():
     # ==========================================================================
 
     for event in source:
+
         calib(event)
+
+        # make a copy of the event for the camera frame case
+        event_CameraFrame = deepcopy(event)
 
         hillas_dict_CameraFrame = {}
         hillas_dict_TelescopeFrame = {}
@@ -179,16 +183,35 @@ def test_parallel_reconstruction():
             )
 
             try:
-                moments_CameraFrame = hillas_parameters(geom_CameraFrame[mask], dl1.image[mask])
+                moments_CameraFrame = hillas_parameters(
+                    geom_CameraFrame[mask], dl1.image[mask]
+                )
                 moments_TelescopeFrame = hillas_parameters(
                     geom_TelescopeFrame[mask], dl1.image[mask]
                 )
                 hillas_dict_CameraFrame[tel_id] = moments_CameraFrame
                 hillas_dict_TelescopeFrame[tel_id] = moments_TelescopeFrame
 
+                event_CameraFrame.dl1.tel[tel_id].parameters.hillas = moments_CameraFrame
+                event.dl1.tel[tel_id].parameters.hillas = moments_TelescopeFrame
+
+                if (
+                    (moments_CameraFrame.width.value == np.nan)
+                    or (moments_CameraFrame.width.value == np.nan)
+                    or (moments_CameraFrame.width.value == 0)
+                    or (moments_CameraFrame.width.value == 0)
+                ):
+                    event_CameraFrame.dl1.tel[
+                        tel_id
+                    ].parameters.hillas = HillasParametersContainer()
+                    event.dl1.tel[
+                        tel_id
+                    ].parameters.hillas = HillasParametersContainer()
+
             except HillasParameterizationError as e:
                 print(e)
-                continue
+                event_CameraFrame.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer()
+                event.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer()
 
         if (len(hillas_dict_CameraFrame) < 2) and (len(hillas_dict_TelescopeFrame) < 2):
             continue
@@ -197,7 +220,7 @@ def test_parallel_reconstruction():
 
         # last writing of event.dl1 was with telescope frame parameters
         # make a copy of the event and overwrite its hillas parameters
-        event_CameraFrame = deepcopy(event)
+
         for tel_id, hillas in hillas_dict_CameraFrame.items():
             event_CameraFrame.dl1.tel[tel_id].parameters.hillas = hillas
 
@@ -240,7 +263,7 @@ def test_divergent_reconstruction():
         "gamma_divergent_LaPalma_baseline_20Zd_180Az_prod3_test.simtel.gz"
     )
 
-    source = event_source(filename, max_events=10)
+    source = EventSource(filename, max_events=10)
     calib = CameraCalibrator(subarray=source.subarray)
 
     fit_CameraFrame = HillasReconstructor(source.subarray)
@@ -281,7 +304,9 @@ def test_divergent_reconstruction():
             )
 
             try:
-                moments_CameraFrame = hillas_parameters(geom_CameraFrame[mask], dl1.image[mask])
+                moments_CameraFrame = hillas_parameters(
+                    geom_CameraFrame[mask], dl1.image[mask]
+                )
                 moments_TelescopeFrame = hillas_parameters(
                     geom_TelescopeFrame[mask], dl1.image[mask]
                 )
@@ -335,7 +360,7 @@ def test_invalid_events():
     tel_azimuth = {}
     tel_altitude = {}
 
-    source = event_source(filename, max_events=1)
+    source = EventSource(filename, max_events=1)
     subarray = source.subarray
     calib = CameraCalibrator(subarray)
     fit = HillasReconstructor(subarray)

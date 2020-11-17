@@ -69,35 +69,34 @@ def test_reconstructors(reconstructors):
             try:
                 moments = hillas_parameters(geom[mask], dl1.image[mask])
             except HillasParameterizationError:
-                event.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer()
+                dl1.parameters.hillas = HillasParametersContainer()
                 continue
 
             # Make sure we provide only good images for the test
             if (
                 np.isnan(moments.width.value) or (moments.width.value == 0)
             ):
-                event.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer()
+                dl1.parameters.hillas = HillasParametersContainer()
             else:
-                event.dl1.tel[tel_id].parameters.hillas = moments
+                dl1.parameters.hillas = moments
 
         hillas_dict = {
             tel_id: dl1.parameters.hillas
             for tel_id, dl1 in event.dl1.tel.items()
-            if np.isfinite(event.dl1.tel[tel_id].parameters.hillas.intensity)
+            if np.isfinite(dl1.parameters.hillas.intensity)
         }
         if len(hillas_dict) < 2:
             continue
 
         for count, reco_method in enumerate(reconstructors):
-            # if isinstance(reco_method(), HillasReconstructor):
             if reco_method is HillasReconstructor:
                 reconstructor = HillasReconstructor(subarray)
 
                 reconstructor(event)
 
-                # event.dl2.shower["HillasReconstructor"].alt.to(u.deg)
-                # event.dl2.shower["HillasReconstructor"].az.to(u.deg)
-                # event.dl2.shower["HillasReconstructor"].core_x.to(u.m)
+                event.dl2.shower["HillasReconstructor"].alt.to(u.deg)
+                event.dl2.shower["HillasReconstructor"].az.to(u.deg)
+                event.dl2.shower["HillasReconstructor"].core_x.to(u.m)
                 assert event.dl2.shower["HillasReconstructor"].is_valid
 
             else:
