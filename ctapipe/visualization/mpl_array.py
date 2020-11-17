@@ -202,7 +202,7 @@ class ArrayDisplay:
         uu, vv = polar_to_cart(rho, phi)
         self.set_vector_uv(uu, vv, c=c, **kwargs)
 
-    def set_vector_hillas(self, event, hillas_dict, length, time_gradient, angle_offset):
+    def set_vector_hillas(self, hillas_dict, core_dict, length, time_gradient, angle_offset):
         """
         Function to set the vector angle and length from a set of Hillas parameters.
 
@@ -216,10 +216,10 @@ class ArrayDisplay:
 
         Parameters
         ----------
-        event : ctapipe.containers.ArrayEventContainer
-            Container filled with telescope-wise and shower information
         hillas_dict: Dict[int, HillasParametersContainer]
             mapping of tel_id to Hillas parameters
+        core_dict : Dict[int, CoreParameters]
+            mapping of tel_id to CoreParametersContainer
         length: Float
             length of the arrow (in meters)
         time_gradient: Dict[int, value of time gradient (no units)]
@@ -238,7 +238,7 @@ class ArrayDisplay:
             idx = self.subarray.tel_indices[tel_id]
             rho[idx] = u.Quantity(length, u.m)
 
-            psi = event.dl1.tel[tel_id].parameters.core.psi
+            psi = core_dict[tel_id]
 
             if time_gradient[tel_id] > 0.01:
                 angle_offset = Angle(angle_offset)
@@ -250,7 +250,7 @@ class ArrayDisplay:
 
         self.set_vector_rho_phi(rho=rho, phi=rot_angle_ellipse)
 
-    def set_line_hillas(self, event, hillas_dict, range, **kwargs):
+    def set_line_hillas(self, hillas_dict, core_dict, range, **kwargs):
         """
         Plot the telescope-wise direction of the shower as a segment.
 
@@ -259,10 +259,10 @@ class ArrayDisplay:
 
         Parameters
         ----------
-        event : ctapipe.containers.ArrayEventContainer
-            Container filled with telescope-wise and shower information
         hillas_dict: Dict[int, HillasParametersContainer]
             mapping of tel_id to Hillas parameters
+        core_dict : Dict[int, CoreParameters]
+            mapping of tel_id to CoreParametersContainer
         range: float
             half of the length of the segments to be plotted (in meters)
         """
@@ -277,7 +277,7 @@ class ArrayDisplay:
             x_0 = coords[idx].x.to_value(u.m)
             y_0 = coords[idx].y.to_value(u.m)
 
-            psi = event.dl1.tel[tel_id].parameters.core.psi
+            psi = core_dict[tel_id]
 
             x = x_0 + np.cos(psi).value * r
             y = y_0 + np.sin(psi).value * r
