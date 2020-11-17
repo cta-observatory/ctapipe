@@ -140,8 +140,8 @@ class HillasReconstructor(Reconstructor):
 
         try:
             result = self._predict(
-                    event, hillas_dict, self.subarray, array_pointing, telescope_pointings
-                )
+                event, hillas_dict, self.subarray, array_pointing, telescope_pointings
+            )
         except (TooFewTelescopesException, InvalidWidthException):
             result = ReconstructedShowerContainer()
 
@@ -279,14 +279,14 @@ class HillasReconstructor(Reconstructor):
             )
 
             focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
-
-            camera_radius = subarray.tel[tel_id].camera.geometry.guess_radius()
+            camera_geometry_meters = subarray.tel[tel_id].camera.geometry
 
             if moments.x.unit.is_equivalent(u.m):  # Image parameters are in CameraFrame
 
                 # we just need any point on the main shower axis a bit away from the cog
-                p2_x = moments.x + 0.1 * camera_radius * np.cos(moments.psi)
-                p2_y = moments.y + 0.1 * camera_radius * np.sin(moments.psi)
+                camera_radius_meters = camera_geometry_meters.guess_radius()
+                p2_x = moments.x + 0.1 * camera_radius_meters * np.cos(moments.psi)
+                p2_y = moments.y + 0.1 * camera_radius_meters * np.sin(moments.psi)
 
                 camera_frame = CameraFrame(
                     focal_length=focal_length, telescope_pointing=pointing
@@ -297,10 +297,12 @@ class HillasReconstructor(Reconstructor):
 
             else:  # Image parameters are already in TelescopeFrame
 
+                camera_geometry_degrees = camera_geometry_meters.transform_to(TelescopeFrame())
+
                 # we just need any point on the main shower axis a bit away from the cog
-                camera_radius_deg = camera_radius / focal_length
-                p2_delta_alt = moments.y + 0.1 * camera_radius_deg * np.sin(moments.psi)
-                p2_delta_az = moments.x + 0.1 * camera_radius_deg * np.cos(moments.psi)
+                camera_radius_degrees = camera_geometry_degrees.guess_radius()
+                p2_delta_alt = moments.y + 0.1 * camera_radius_degrees * np.sin(moments.psi)
+                p2_delta_az = moments.x + 0.1 * camera_radius_degrees * np.cos(moments.psi)
 
                 telescope_frame = TelescopeFrame(telescope_pointing=pointing)
 
