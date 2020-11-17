@@ -16,8 +16,9 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 
 # FROM CTAPIPE
+from ctapipe.containers import HillasParametersContainer
 from ctapipe.utils import get_dataset_path
-from ctapipe.io import event_source
+from ctapipe.io import EventSource
 from ctapipe.coordinates import TelescopeFrame, NominalFrame, GroundFrame
 from ctapipe.calib import CameraCalibrator
 from ctapipe.image import (
@@ -29,7 +30,6 @@ from ctapipe.image import (
     HillasParameterizationError,
 )
 from ctapipe.reco import HillasReconstructor
-from ctapipe.reco.reco_algorithms import InvalidWidthException
 from ctapipe.visualization import ArrayDisplay
 
 # ==============================================================================
@@ -104,7 +104,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 infile = get_dataset_path(args.infile)
-source = event_source(infile, max_events=args.max_events)
+source = EventSource(infile, max_events=args.max_events)
 
 # ==============================================================================
 #                         ANALYSIS INITIALIZATION
@@ -131,7 +131,7 @@ for event in source:
 
     print(f"EVENT #{event.count} with ID #{event.index.event_id}...")
 
-    print(f"Telescopes with DL0 data = {event.r1.tel.keys()}")
+    print(f"Telescopes with DL0 data = {list(event.r1.tel.keys())}")
 
     # ARRAY INFORMATION
     array_pointing = SkyCoord(
@@ -141,7 +141,7 @@ for event in source:
     )
 
     # Direction reconstruction setup
-    reconstructor = HillasReconstructor(event=event)
+    reconstructor = HillasReconstructor(subarray=subarray)
 
     # CALIBRATION
     calibrator(event)
@@ -248,11 +248,16 @@ for event in source:
 
             if image_parameters.width == 0 or image_parameters.width == np.nan:
                 noGood = True
-                continue
+                event.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer()
+            else:
+                event.dl1.tel[tel_id].parameters.hillas = image_parameters
+                print("XXXXXXXX")
+                print(event.dl1.tel[tel_id].parameters.hillas)
 
         except HillasParameterizationError as e:
             print(f"WARNING: {e}")
             noGood = True
+            event.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer()
 
     if len(parametrized_images) < 2:  # discard events with < 2 images
         print("WARNING: Less than 2 images survived the cleaning!")
@@ -264,13 +269,7 @@ for event in source:
         #                       DIRECTION RECONSTRUCTION
         # ======================================================================
 
-        try:
-            shower = reconstructor.predict(
-                parametrized_images, subarray, array_pointing, telescope_pointings
-            )
-        except InvalidWidthException as e:
-            print(f"WARNING: {e}")
-            print()
+        reconstructor(event)
 
         # ======================================================================
         #                           VISUALIZATION
@@ -291,7 +290,12 @@ for event in source:
             plt.suptitle(f"EVENT #{event.count} with ID #{event.index.event_id}")
 
         length = 250
+
         angle_offset = event.pointing.array_azimuth
+
+        core_dict = {
+            tel_id: dl1.parameters.core.psi for tel_id, dl1 in event.dl1.tel.items()
+        }
 
         # COORDINATES OF THE IMPACT CORE ON THE GROUND
 
@@ -304,7 +308,11 @@ for event in source:
             frame=ground_frame,
         )
         reconstructed_core = SkyCoord(
-            x=shower.core_x, y=shower.core_y, z=0, unit=u.m, frame=ground_frame
+            x=event.dl2.shower["HillasReconstructor"].core_x,
+            y=event.dl2.shower["HillasReconstructor"].core_y,
+            z=0,
+            unit=u.m,
+            frame=ground_frame,
         )
         error_core = u.Quantity(
             np.sqrt(
@@ -336,11 +344,7 @@ for event in source:
             radius=None,
         )
         array_disp.add_labels()
-        array_disp.set_line_hillas(
-            event,
-            parametrized_images,
-            range=100
-        )
+        array_disp.set_line_hillas(parametrized_images, core_dict, range=100)
 
         plt.plot(
             simulated_core.x,
@@ -372,7 +376,9 @@ for event in source:
             frame="altaz",
         ).transform_to(nominal_frame)
         reconstructed_direction = SkyCoord(
-            alt=shower.alt, az=shower.az, frame="altaz"
+            alt=event.dl2.shower["HillasReconstructor"].alt,
+            az=event.dl2.shower["HillasReconstructor"].az,
+            frame="altaz",
         ).transform_to(
             nominal_frame
         )  # coming from TelescopeFrame, axes are flipped!
