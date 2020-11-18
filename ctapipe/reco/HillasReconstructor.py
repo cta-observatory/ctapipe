@@ -139,7 +139,6 @@ class HillasReconstructor(Reconstructor):
             frame=AltAz(),
         )
 
-        telescope_pointings = {}
         telescope_pointings = {
             tel_id: SkyCoord(
                 alt=event.pointing.tel[tel_id].altitude,
