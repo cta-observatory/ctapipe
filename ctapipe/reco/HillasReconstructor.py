@@ -196,13 +196,11 @@ class HillasReconstructor(Reconstructor):
 
         # stereoscopy needs at least two telescopes
         if len(hillas_dict) < 2:
-            result = ReconstructedShowerContainer()
             raise TooFewTelescopesException(
                 "need at least two telescopes, have {}".format(len(hillas_dict))
             )
         # check for np.nan or 0 width's as these screw up weights
         if any([np.isnan(hillas_dict[tel]["width"].value) for tel in hillas_dict]):
-            result = ReconstructedShowerContainer()
             raise InvalidWidthException(
                 "A HillasContainer contains an ellipse of width==np.nan"
             )
