@@ -11,7 +11,7 @@ from ..containers import (
     TimingParametersContainer,
 )
 from ..core import QualityQuery, TelescopeComponent
-from ..core.traits import List, create_class_enum_trait
+from ..core.traits import List, create_class_enum_trait, Bool
 from ..instrument import SubarrayDescription
 from . import (
     ImageCleaner,
@@ -21,6 +21,8 @@ from . import (
     leakage_parameters,
     morphology_parameters,
     timing_parameters,
+    largest_island,
+    number_of_islands,
 )
 
 
@@ -50,6 +52,11 @@ class ImageProcessor(TelescopeComponent):
         base_class=ImageCleaner, default_value="TailcutsImageCleaner"
     )
 
+    only_main_island = Bool(
+        default_value=False,
+        help="only use main island for calculating image parameters",
+    ).tag(config=True)
+
     def __init__(
         self,
         subarray: SubarrayDescription,
@@ -77,6 +84,7 @@ class ImageProcessor(TelescopeComponent):
         """
 
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
+        self.log.info(f"Using only main island: {self.only_main_island}")
         self.subarray = subarray
         self.clean = ImageCleaner.from_name(
             self.image_cleaner_type, subarray=subarray, parent=self
@@ -111,7 +119,15 @@ class ImageProcessor(TelescopeComponent):
 
         tel = self.subarray.tel[tel_id]
         geometry = tel.camera.geometry
-        image_selected = image[signal_pixels]
+
+        if self.only_main_island:
+            _, island_labels = number_of_islands(geometry, signal_pixels)
+            main_island = largest_island(island_labels)
+            selected_pixels = main_island
+        else:
+            selected_pixels = signal_pixels
+
+        image_selected = image[selected_pixels]
 
         # check if image can be parameterized:
         image_criteria = self.check_image(image_selected)
@@ -122,7 +138,7 @@ class ImageProcessor(TelescopeComponent):
 
         # parameterize the event if all criteria pass:
         if all(image_criteria):
-            geom_selected = geometry[signal_pixels]
+            geom_selected = geometry[selected_pixels]
 
             hillas = hillas_parameters(geom=geom_selected, image=image_selected)
             leakage = leakage_parameters(
@@ -140,7 +156,7 @@ class ImageProcessor(TelescopeComponent):
                 timing = timing_parameters(
                     geom=geom_selected,
                     image=image_selected,
-                    peak_time=peak_time[signal_pixels],
+                    peak_time=peak_time[selected_pixels],
                     hillas_parameters=hillas,
                 )
                 peak_time_statistics = descriptive_statistics(
@@ -160,7 +176,6 @@ class ImageProcessor(TelescopeComponent):
                 intensity_statistics=intensity_statistics,
                 peak_time_statistics=peak_time_statistics,
             )
-
         # return the default container (containing nan values) for no
         # parameterization
         return DEFAULT_IMAGE_PARAMETERS

@@ -151,7 +151,6 @@ def morphology_parameters(geom, image_mask) -> MorphologyContainer:
     """
 
     num_islands, island_labels = number_of_islands(geom=geom, mask=image_mask)
-
     n_small, n_medium, n_large = number_of_island_sizes(island_labels)
 
     return MorphologyContainer(
