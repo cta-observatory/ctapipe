@@ -21,10 +21,12 @@ from . import (
     leakage_parameters,
     morphology_parameters,
     timing_parameters,
+    largest_island,
 )
 
 
 DEFAULT_IMAGE_PARAMETERS = ImageParametersContainer()
+DEFAULT_IMAGE_PARAMETERS.hillas_main_island.prefix = "hillas_main_island"
 DEFAULT_TIMING_PARAMETERS = TimingParametersContainer()
 DEFAULT_PEAKTIME_STATISTICS = PeakTimeStatisticsContainer()
 
@@ -131,10 +133,18 @@ class ImageProcessor(TelescopeComponent):
             concentration = concentration_parameters(
                 geom=geom_selected, image=image_selected, hillas_parameters=hillas
             )
-            morphology = morphology_parameters(geom=geometry, image_mask=signal_pixels)
+            morphology, island_labels = morphology_parameters(
+                geom=geometry, image_mask=signal_pixels
+            )
             intensity_statistics = descriptive_statistics(
                 image_selected, container_class=IntensityStatisticsContainer
             )
+
+            main_island = largest_island(island_labels)
+            hillas_main = hillas_parameters(
+                geom=geometry[main_island], image=image[main_island]
+            )
+            hillas_main.prefix = "hillas_main_island"
 
             if peak_time is not None:
                 timing = timing_parameters(
@@ -153,6 +163,7 @@ class ImageProcessor(TelescopeComponent):
 
             return ImageParametersContainer(
                 hillas=hillas,
+                hillas_main_island=hillas_main,
                 timing=timing,
                 leakage=leakage,
                 morphology=morphology,
@@ -160,7 +171,6 @@ class ImageProcessor(TelescopeComponent):
                 intensity_statistics=intensity_statistics,
                 peak_time_statistics=peak_time_statistics,
             )
-
         # return the default container (containing nan values) for no
         # parameterization
         return DEFAULT_IMAGE_PARAMETERS

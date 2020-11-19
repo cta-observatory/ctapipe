@@ -211,6 +211,10 @@ class ImageParametersContainer(Container):
 
     container_prefix = "params"
     hillas = Field(HillasParametersContainer(), "Hillas Parameters")
+    hillas_main_island = Field(
+        HillasParametersContainer(),
+        "Hillas Parameters only calculated for the largest island",
+    )
     timing = Field(TimingParametersContainer(), "Timing Parameters")
     leakage = Field(LeakageContainer(), "Leakage Parameters")
     concentration = Field(ConcentrationContainer(), "Concentration Parameters")

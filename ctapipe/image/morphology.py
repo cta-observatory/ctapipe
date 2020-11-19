@@ -154,10 +154,13 @@ def morphology_parameters(geom, image_mask) -> MorphologyContainer:
 
     n_small, n_medium, n_large = number_of_island_sizes(island_labels)
 
-    return MorphologyContainer(
-        num_pixels=np.count_nonzero(image_mask),
-        num_islands=num_islands,
-        num_small_islands=n_small,
-        num_medium_islands=n_medium,
-        num_large_islands=n_large,
+    return (
+        MorphologyContainer(
+            num_pixels=np.count_nonzero(image_mask),
+            num_islands=num_islands,
+            num_small_islands=n_small,
+            num_medium_islands=n_medium,
+            num_large_islands=n_large,
+        ),
+        island_labels,
     )
