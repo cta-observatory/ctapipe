@@ -24,6 +24,11 @@ from . import (
 )
 
 
+DEFAULT_IMAGE_PARAMETERS = ImageParametersContainer()
+DEFAULT_TIMING_PARAMETERS = TimingParametersContainer()
+DEFAULT_PEAKTIME_STATISTICS = PeakTimeStatisticsContainer()
+
+
 class ImageQualityQuery(QualityQuery):
     """ for configuring image-wise data checks """
 
@@ -143,8 +148,8 @@ class ImageProcessor(TelescopeComponent):
                     container_class=PeakTimeStatisticsContainer,
                 )
             else:
-                timing = TimingParametersContainer()
-                peak_time_statistics = PeakTimeStatisticsContainer()
+                timing = DEFAULT_TIMING_PARAMETERS
+                peak_time_statistics = DEFAULT_PEAKTIME_STATISTICS
 
             return ImageParametersContainer(
                 hillas=hillas,
@@ -158,7 +163,7 @@ class ImageProcessor(TelescopeComponent):
 
         # return the default container (containing nan values) for no
         # parameterization
-        return ImageParametersContainer()
+        return DEFAULT_IMAGE_PARAMETERS
 
     def _process_telescope_event(self, event):
         """

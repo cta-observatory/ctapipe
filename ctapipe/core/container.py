@@ -6,6 +6,11 @@ import warnings
 import numpy as np
 from astropy.units import UnitConversionError, Quantity, Unit
 
+import logging
+
+
+log = logging.getLogger(__name__)
+
 
 class FieldValidationError(ValueError):
     pass
@@ -221,7 +226,13 @@ class Container(metaclass=ContainerMeta):
         self.prefix = self.container_prefix
 
         for k in set(self.fields).difference(fields):
-            setattr(self, k, deepcopy(self.fields[k].default))
+
+            # deepcopy of None is surprisingly slow
+            default = self.fields[k].default
+            if default is not None:
+                default = deepcopy(default)
+
+            setattr(self, k, default)
 
         for k, v in fields.items():
             setattr(self, k, v)
