@@ -18,13 +18,8 @@ class ColoredFormatter(logging.Formatter):
 
     def format(self, record):
         """Format the LogRecord."""
-        rec = record.__dict__.copy()
-
-        rec["asctime"] = self.formatTime(record, self.datefmt)
-        rec["levelname"] = apply_colors(record.levelname)
-        rec["message"] = record.getMessage()
-
-        return self._fmt % rec
+        record.levelname = apply_colors(record.levelname)
+        return super().format(record)
 
 
 def apply_colors(levelname: str):
