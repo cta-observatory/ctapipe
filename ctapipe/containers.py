@@ -418,17 +418,6 @@ class SimulationConfigContainer(Container):
     Configuration parameters of the simulation
     """
 
-    run_array_direction = Field(
-        [],
-        (
-            "the tracking/pointing direction in "
-            "[radians]. Depending on 'tracking_mode' "
-            "this either contains: "
-            "[0]=Azimuth, [1]=Altitude in mode 0, "
-            "OR "
-            "[0]=R.A., [1]=Declination in mode 1."
-        ),
-    )
     corsika_version = Field(nan, "CORSIKA version * 1000")
     simtel_version = Field(nan, "sim_telarray version * 1000")
     energy_range_min = Field(
@@ -485,12 +474,14 @@ class SimulationConfigContainer(Container):
 
 
 class TelescopeTriggerContainer(Container):
+    container_prefix = ""
     time = Field(NAN_TIME, "Telescope trigger time")
     n_trigger_pixels = Field(-1, "Number of trigger groups (sectors) listed")
     trigger_pixels = Field(None, "pixels involved in the camera trigger")
 
 
 class TriggerContainer(Container):
+    container_prefix = ""
     time = Field(NAN_TIME, "central average time stamp")
     tels_with_trigger = Field(
         [], "List of telescope ids that triggered the array event"

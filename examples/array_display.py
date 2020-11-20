@@ -4,7 +4,7 @@ import matplotlib.pylab as plt
 import numpy as np
 from astropy import units as u
 
-from ctapipe.io import event_source
+from ctapipe.io import EventSource
 from ctapipe.utils import datasets
 from ctapipe.visualization import ArrayDisplay
 
@@ -13,8 +13,8 @@ if __name__ == "__main__":
     plt.figure(figsize=(9.5, 8.5))
 
     # load up a single event, so we can get the subarray info:
-    source = event_source(
-        datasets.get_dataset_path("gamma_test_large.simtel.gz"), max_events=1,
+    source = EventSource(
+        datasets.get_dataset_path("gamma_test_large.simtel.gz"), max_events=1
     )
 
     event = next(iter(source))

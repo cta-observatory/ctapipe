@@ -1,19 +1,20 @@
-""" Classes to handle configurable command-line user interfaces """
+"""Classes to handle configurable command-line user interfaces."""
 import logging
+import logging.config
 import warnings
 import textwrap
 from abc import abstractmethod
 import pathlib
 import os
 
-from traitlets import default, Unicode
+from traitlets import default
 from traitlets.config import Application, Configurable
 
 from .. import __version__ as version
-from .traits import Path
+from .traits import Path, Enum, Bool, flag, Dict
 from . import Provenance
 from .component import Component
-from .logging import ColoredFormatter
+from .logging import create_logging_config, ColoredFormatter, DEFAULT_LOGGING
 
 
 class ToolConfigurationError(Exception):
@@ -113,10 +114,19 @@ class Tool(Application):
             "command-line parameters"
         ),
     ).tag(config=True)
-    log_format = Unicode(
-        "%(levelname)s [%(name)s] (%(module)s/%(funcName)s): %(message)s",
-        help="The Logging format template",
+
+    log_config = Dict(default_value=DEFAULT_LOGGING).tag(config=True)
+    log_file = Path(
+        default_value=None, exists=None, directory_ok=False, help="Filename for the log"
     ).tag(config=True)
+    log_file_level = Enum(
+        values=Application.log_level.values,
+        default_value="INFO",
+        help="Logging Level for File Logging",
+    ).tag(config=True)
+    quiet = Bool(default_value=False).tag(config=True)
+
+    _log_formatter_cls = ColoredFormatter
 
     provenance_log = Path(directory_ok=False).tag(config=True)
 
@@ -124,33 +134,85 @@ class Tool(Application):
     def _default_provenance_log(self):
         return self.name + ".provenance.log"
 
-    _log_formatter_cls = ColoredFormatter
-
     def __init__(self, **kwargs):
         # make sure there are some default aliases in all Tools:
-        if self.aliases:
-            self.aliases["log-level"] = "Application.log_level"
-            self.aliases["config"] = "Tool.config_file"
-
         super().__init__(**kwargs)
-        self.log_level = logging.INFO
+        aliases = {
+            "config": "Tool.config_file",
+            "log-level": "Tool.log_level",
+            "log-file": "Tool.log_file",
+            "log": "Tool.log_file",
+            "l": "Tool.log_file",
+            "log-file-level": "Tool.log_file_level",
+        }
+        self.aliases.update(aliases)
+        self.flags.update(flag("q", "Tool.quiet", "Disable console logging."))
+
         self.is_setup = False
         self.version = version
         self.raise_config_file_errors = True  # override traitlets.Application default
 
+        self.log = logging.getLogger("ctapipe." + self.name)
+        self.update_logging_config()
+
     def initialize(self, argv=None):
         """ handle config and any other low-level setup """
         self.parse_command_line(argv)
+        self.update_logging_config()
+
         if self.config_file is not None:
             self.log.debug(f"Loading config from '{self.config_file}'")
             try:
                 self.load_config_file(self.config_file)
             except Exception as err:
                 raise ToolConfigurationError(f"Couldn't read config file: {err}")
-        self.log.info(f"ctapipe version {self.version_string}")
 
         # ensure command-line takes precedence over config file options:
         self.update_config(self.cli_config)
+        self.update_logging_config()
+
+        self.log.info(f"ctapipe version {self.version_string}")
+
+    def update_logging_config(self):
+        """Update the configuration of loggers."""
+        cfg = create_logging_config(
+            log_level=self.log_level,
+            log_file=self.log_file,
+            log_file_level=self.log_file_level,
+            log_config=self.log_config,
+            quiet=self.quiet,
+        )
+
+        logging.config.dictConfig(cfg)
+
+    def add_component(self, component_instance):
+        """
+        constructs and adds a component to the list of registered components,
+        so that later we can ask for the current configuration of all instances,
+        e.g. in`get_full_config()`.  All sub-components of a tool should be
+        constructed using this function, in order to ensure the configuration is
+        properly traced.
+
+        Parameters
+        ----------
+        component_instance: Component
+            constructed instance of a component
+
+        Returns
+        -------
+        Component:
+            the same component instance that was passed in, so that the call
+            can be chained.
+
+        Examples
+        --------
+        .. code-block:: python3
+
+            self.mycomp = self.add_component(MyComponent(parent=self))
+
+        """
+        self._registered_components.append(component_instance)
+        return component_instance
 
     @abstractmethod
     def setup(self):

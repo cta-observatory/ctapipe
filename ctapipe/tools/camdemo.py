@@ -135,7 +135,7 @@ class CameraDemo(Tool):
                 intens,
             )
 
-            image, _, _ = model.generate_image(geom, intensity=intens, nsb_level_pe=3,)
+            image, _, _ = model.generate_image(geom, intensity=intens, nsb_level_pe=3)
 
             # alternate between cleaned and raw images
             if self._counter == self.cleanframes:
@@ -183,9 +183,7 @@ class CameraDemo(Tool):
 
             disp.axes.figure.canvas.draw()
             self._counter += 1
-            return [
-                ax,
-            ]
+            return [ax]
 
         frames = None if self.num_events == 0 else self.num_events
         repeat = True if self.num_events == 0 else False

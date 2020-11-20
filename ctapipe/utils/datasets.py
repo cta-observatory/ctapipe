@@ -3,10 +3,15 @@ import json
 import logging
 import os
 import re
+from functools import partial
+from pathlib import Path
 
 import yaml
 from astropy.table import Table
 from pkg_resources import resource_listdir
+from requests.exceptions import HTTPError
+
+from .download import download_file_cached, get_cache_path
 
 try:
     import ctapipe_resources
@@ -23,17 +28,25 @@ logger = logging.getLogger(__name__)
 __all__ = ["get_dataset_path", "find_in_path", "find_all_matching_datasets"]
 
 
+DEFAULT_URL = "http://cccta-dataserver.in2p3.fr/data/ctapipe-extra/v0.3.1/"
+
+
 def get_searchpath_dirs(searchpath=os.getenv("CTAPIPE_SVC_PATH")):
     """ returns a list of dirs in specified searchpath"""
     if searchpath == "" or searchpath is None:
-        return []
-    return os.path.expandvars(searchpath).split(":")
+        searchpaths = []
+    else:
+        searchpaths = [Path(p) for p in os.path.expandvars(searchpath).split(":")]
+
+    searchpaths.append(get_cache_path(""))
+
+    return searchpaths
 
 
 def find_all_matching_datasets(pattern, searchpath=None, regexp_group=None):
     """
-    Returns a list of resource names (or substrings) matching the given 
-    pattern, searching first in searchpath (a colon-separated list of 
+    Returns a list of resource names (or substrings) matching the given
+    pattern, searching first in searchpath (a colon-separated list of
     directories) and then in the ctapipe_resources module)
 
     Parameters
@@ -41,10 +54,10 @@ def find_all_matching_datasets(pattern, searchpath=None, regexp_group=None):
     pattern: str
        regular expression to use for matching
     searchpath: str
-       colon-seprated list of directories in which to search, defaulting to 
+       colon-seprated list of directories in which to search, defaulting to
        CTAPIPE_SVC_PATH environment variable
     regexp_group: int
-       if not None, return the regular expression group indicated (assuming 
+       if not None, return the regular expression group indicated (assuming
        pattern has a group specifier in it)
 
     Returns
@@ -56,18 +69,18 @@ def find_all_matching_datasets(pattern, searchpath=None, regexp_group=None):
 
     if searchpath is None:
         searchpath = os.getenv("CTAPIPE_SVC_PATH")
+    search_path_dirs = get_searchpath_dirs(searchpath)
 
     # first check search path
-    if searchpath is not None:
-        for path in get_searchpath_dirs(searchpath):
-            if os.path.exists(path):
-                for filename in os.listdir(path):
-                    match = re.match(pattern, filename)
-                    if match:
-                        if regexp_group is not None:
-                            results.add(match.group(regexp_group))
-                        else:
-                            results.add(filename)
+    for path in search_path_dirs:
+        if path.is_dir():
+            for entry in path.iterdir():
+                match = re.match(pattern, entry.name)
+                if match:
+                    if regexp_group is not None:
+                        results.add(match.group(regexp_group))
+                    else:
+                        results.add(entry)
 
     # then check resources module
     if has_resources:
@@ -77,7 +90,7 @@ def find_all_matching_datasets(pattern, searchpath=None, regexp_group=None):
                 if regexp_group is not None:
                     results.add(match.group(regexp_group))
                 else:
-                    results.add(resource)
+                    results.add(Path(resource))
 
     return list(results)
 
@@ -100,9 +113,9 @@ def find_in_path(filename, searchpath):
     """
 
     for directory in get_searchpath_dirs(searchpath):
-        pathname = os.path.join(directory, filename)
-        if os.path.exists(pathname):
-            return pathname
+        path = directory / filename
+        if path.exists():
+            return path
 
     return None
 
@@ -140,11 +153,50 @@ def get_dataset_path(filename):
             "ctapipe_resources...".format(filename)
         )
 
-        return ctapipe_resources.get(filename)
+        return Path(ctapipe_resources.get(filename))
+
+    # last, try downloading the data
+    try:
+        return download_file_cached(filename, default_url=DEFAULT_URL, progress=True)
+    except HTTPError as e:
+        # let 404 raise the FileNotFoundError instead of HTTPError
+        if e.response.status_code != 404:
+            raise
 
     raise FileNotFoundError(
         f"Couldn't find resource: '{filename}',"
         " You might want to install ctapipe_resources"
+    )
+
+
+def try_filetypes(basename, role, file_types, **kwargs):
+    path = None
+
+    # look first in cache so we don't have to try non-existing downloads
+    for ext, reader in file_types.items():
+        filename = basename + ext
+        cache_path = get_cache_path(filename)
+        if cache_path.exists():
+            path = cache_path
+            break
+
+    # no cache hit
+    if path is None:
+        for ext, reader in file_types.items():
+            filename = basename + ext
+            try:
+                path = get_dataset_path(filename)
+                break
+            except (FileNotFoundError, HTTPError):
+                pass
+
+    if path is not None:
+        table = reader(path, **kwargs)
+        Provenance().add_input_file(path, role)
+        return table
+
+    raise FileNotFoundError(
+        "Couldn't find any file: {}[{}]".format(basename, ", ".join(file_types))
     )
 
 
@@ -170,29 +222,14 @@ def get_table_dataset(table_name, role="resource", **kwargs):
 
     # a mapping of types (keys) to any extra keyword args needed for
     # table.read()
-    types_to_try = {
-        ".fits.gz": {},
-        ".fits": {},
-        ".ecsv": dict(format="ascii.ecsv"),
-        ".ecsv.txt": dict(format="ascii.ecsv"),
+    table_types = {
+        ".fits.gz": Table.read,
+        ".fits": Table.read,
+        ".ecsv": partial(Table.read, format="ascii.ecsv"),
+        ".ecsv.txt": partial(Table.read, format="ascii.ecsv"),
     }
 
-    for table_type in types_to_try:
-        filename = table_name + table_type
-        try:
-            fullname = get_dataset_path(filename)
-            if fullname:
-                args = types_to_try[table_type]
-                args.update(kwargs)
-                table = Table.read(fullname, **args)
-                Provenance().add_input_file(fullname, role)
-                return table
-        except FileNotFoundError:
-            pass
-
-    raise FileNotFoundError(
-        "couldn't locate table: {}[{}]".format(table_name, ", ".join(types_to_try))
-    )
+    return try_filetypes(table_name, role, table_types, **kwargs)
 
 
 def get_structured_dataset(basename, role="resource", **kwargs):
@@ -214,35 +251,15 @@ def get_structured_dataset(basename, role="resource", **kwargs):
        dictionary of data in the file
     """
 
+    def load_yaml(path, **kwargs):
+        with open(path, "rb") as f:
+            return yaml.safe_load(f, **kwargs)
+
+    def load_json(path, **kwargs):
+        with open(path, "rb") as f:
+            return json.load(f, **kwargs)
+
     # a mapping of types (keys) to any extra keyword args needed for
     # table.read()
-    types_to_try = {
-        ".yaml": {},
-        ".yml": {},
-        ".json": {},
-    }
-
-    for data_type in types_to_try:
-        filename = basename + data_type
-        try:
-            fullname = get_dataset_path(filename)
-            if fullname:
-                args = types_to_try[data_type]
-                args.update(kwargs)
-
-                with open(fullname) as infile:
-                    if data_type == ".yaml" or data_type == ".yml":
-                        dataset = yaml.safe_load(infile, **args)
-                    elif data_type == ".json":
-                        dataset = json.load(infile, **args)
-
-                Provenance().add_input_file(fullname, role)
-                return dataset
-        except FileNotFoundError:
-            pass
-
-    raise FileNotFoundError(
-        "couldn't locate structed dataset: {}[{}]".format(
-            basename, ", ".join(types_to_try)
-        )
-    )
+    structured_types = {".yaml": load_yaml, ".yml": load_yaml, ".json": load_json}
+    return try_filetypes(basename, role, structured_types, **kwargs)

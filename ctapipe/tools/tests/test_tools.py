@@ -49,7 +49,7 @@ def dl1_muon_file():
 
 def test_merge(tmpdir):
     from ctapipe.tools.dl1_merge import MergeTool
-    from ctapipe.tools.stage1 import Stage1ProcessorTool
+    from ctapipe.tools.stage1 import Stage1Tool
 
     config = Path("./examples/stage1_config.json").absolute()
 
@@ -64,7 +64,7 @@ def test_merge(tmpdir):
     ) as out_skip_parameters:
         assert (
             run_tool(
-                Stage1ProcessorTool(),
+                Stage1Tool(),
                 argv=[
                     f"--config={config}",
                     f"--input={GAMMA_TEST_LARGE}",
@@ -79,7 +79,7 @@ def test_merge(tmpdir):
         )
         assert (
             run_tool(
-                Stage1ProcessorTool(),
+                Stage1Tool(),
                 argv=[
                     f"--config={config}",
                     f"--input={GAMMA_TEST_LARGE}",
@@ -195,14 +195,14 @@ def test_merge(tmpdir):
 
 
 def test_stage_1_raw(tmpdir):
-    from ctapipe.tools.stage1 import Stage1ProcessorTool
+    from ctapipe.tools.stage1 import Stage1Tool
 
     config = Path("./examples/stage1_config.json").absolute()
 
     with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
         assert (
             run_tool(
-                Stage1ProcessorTool(),
+                Stage1Tool(),
                 argv=[
                     f"--config={config}",
                     f"--input={GAMMA_TEST_LARGE}",
@@ -249,7 +249,7 @@ def test_stage_1_raw(tmpdir):
     with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
         assert (
             run_tool(
-                Stage1ProcessorTool(),
+                Stage1Tool(),
                 argv=[
                     f"--config={config}",
                     f"--input={GAMMA_TEST_LARGE}",
@@ -349,7 +349,7 @@ def test_stage_1_dl1(tmpdir, dl1_image_file, dl1_parameters_file):
 def test_stage1_datalevels(tmpdir):
     """test the dl1 tool on a file not providing r1 or dl0"""
     from ctapipe.io import EventSource
-    from ctapipe.tools.stage1 import Stage1ProcessorTool
+    from ctapipe.tools.stage1 import Stage1Tool
 
     class DummyEventSource(EventSource):
         @classmethod
@@ -383,7 +383,8 @@ def test_stage1_datalevels(tmpdir):
             f.flush()
 
             config = Path("./examples/stage1_config.json").absolute()
-            tool = Stage1ProcessorTool()
+            tool = Stage1Tool()
+
             assert (
                 run_tool(
                     tool,
@@ -560,22 +561,22 @@ def test_dump_instrument(tmpdir):
 
     tool = DumpInstrumentTool()
 
-    assert run_tool(tool, [f"--infile={GAMMA_TEST_LARGE}"], cwd=tmpdir) == 0
+    assert run_tool(tool, [f"--input={GAMMA_TEST_LARGE}"], cwd=tmpdir) == 0
     assert tmpdir.join("FlashCam.camgeom.fits.gz").exists()
 
     assert (
-        run_tool(tool, [f"--infile={GAMMA_TEST_LARGE}", "--format=ecsv"], cwd=tmpdir)
+        run_tool(tool, [f"--input={GAMMA_TEST_LARGE}", "--format=ecsv"], cwd=tmpdir)
         == 0
     )
     assert tmpdir.join("MonteCarloArray.optics.ecsv.txt").exists()
 
     assert (
-        run_tool(tool, [f"--infile={GAMMA_TEST_LARGE}", "--format=hdf5"], cwd=tmpdir)
+        run_tool(tool, [f"--input={GAMMA_TEST_LARGE}", "--format=hdf5"], cwd=tmpdir)
         == 0
     )
     assert tmpdir.join("subarray.h5").exists()
 
-    assert run_tool(tool, ["--help-all"]) == 0
+    assert run_tool(tool, ["--help-all"], cwd=tmpdir) == 0
 
 
 def test_camdemo(tmpdir):
@@ -597,7 +598,7 @@ def test_bokeh_file_viewer(tmpdir):
     sys.argv = ["bokeh_file_viewer"]
     tool = BokehFileViewer(disable_server=True)
     assert run_tool(tool, cwd=tmpdir) == 0
-    assert str(tool.reader.input_url) == get_dataset_path("gamma_test_large.simtel.gz")
+    assert tool.reader.input_url == get_dataset_path("gamma_test_large.simtel.gz")
     assert run_tool(tool, ["--help-all"]) == 0
 
 
@@ -606,7 +607,11 @@ def test_extract_charge_resolution(tmpdir):
 
     output_path = os.path.join(str(tmpdir), "cr.h5")
     tool = ChargeResolutionGenerator()
-    assert run_tool(tool, ["-f", GAMMA_TEST_LARGE, "-O", output_path], cwd=tmpdir) == 1
+
+    assert (
+        run_tool(tool, ["-f", str(GAMMA_TEST_LARGE), "-O", output_path], cwd=tmpdir)
+        == 1
+    )
     # TODO: Test files do not contain true charge, cannot test tool fully
     # assert os.path.exists(output_path)
     assert run_tool(tool, ["--help-all"]) == 0

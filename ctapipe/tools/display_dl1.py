@@ -1,7 +1,7 @@
 """
 Calibrate dl0 data to dl1, and plot the photoelectron images.
 """
-from matplotlib import colors
+from copy import copy
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from traitlets import Bool, Dict, Int, List
@@ -78,22 +78,11 @@ class ImagePlotter(Component):
             # Redraw camera
             geom = self.subarray.tel[telid].camera.geometry
             self.c_intensity = CameraDisplay(geom, ax=self.ax_intensity)
-            self.c_peak_time = CameraDisplay(geom, ax=self.ax_peak_time)
 
-            if (peak_time != 0.0).all():
-                tmaxmin = event.dl0.tel[telid].waveform.shape[1]
-                t_chargemax = peak_time[image.argmax()]
-                cmap_time = colors.LinearSegmentedColormap.from_list(
-                    "cmap_t",
-                    [
-                        (0 / tmaxmin, "darkgreen"),
-                        (0.6 * t_chargemax / tmaxmin, "green"),
-                        (t_chargemax / tmaxmin, "yellow"),
-                        (1.4 * t_chargemax / tmaxmin, "blue"),
-                        (1, "darkblue"),
-                    ],
-                )
-                self.c_peak_time.pixels.set_cmap(cmap_time)
+            time_cmap = copy(plt.get_cmap("RdBu_r"))
+            time_cmap.set_under("gray")
+            time_cmap.set_over("gray")
+            self.c_peak_time = CameraDisplay(geom, ax=self.ax_peak_time, cmap=time_cmap)
 
             if not self.cb_intensity:
                 self.c_intensity.add_colorbar(
@@ -113,8 +102,11 @@ class ImagePlotter(Component):
                 self.c_peak_time.update(True)
 
         self.c_intensity.image = image
-        if peak_time is not None:
-            self.c_peak_time.image = peak_time
+        self.c_peak_time.image = peak_time
+
+        # center around brightes pixel, show 10ns total
+        t_chargemax = peak_time[image.argmax()]
+        self.c_peak_time.set_limits_minmax(t_chargemax - 5, t_chargemax + 5)
 
         self.fig.suptitle(
             "Event_index={}  Event_id={}  Telescope={}".format(
@@ -124,6 +116,7 @@ class ImagePlotter(Component):
 
         if self.display:
             plt.pause(0.001)
+
         if self.pdf is not None:
             self.pdf.savefig(self.fig)
 
@@ -198,6 +191,7 @@ class DisplayDL1Calib(Tool):
                 if self.telescope not in tel_list:
                     continue
                 tel_list = [self.telescope]
+
             for telid in tel_list:
                 self.plotter.plot(event, telid)
 

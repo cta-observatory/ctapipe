@@ -44,6 +44,7 @@ General documentation
   development/index
   tutorials/index
   examples/index
+  tools/index
   FAQ
   data_models/index
   ctapipe_api/index

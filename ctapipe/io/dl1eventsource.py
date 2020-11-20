@@ -27,7 +27,7 @@ from ctapipe.utils import IndexFinder
 logger = logging.getLogger(__name__)
 
 
-COMPATIBLE_DL1_VERSIONS = ["v1.0.0", "v1.0.1"]
+COMPATIBLE_DL1_VERSIONS = ["v1.0.0", "v1.0.1", "v1.0.2"]
 
 
 class DL1EventSource(EventSource):
@@ -267,7 +267,7 @@ class DL1EventSource(EventSource):
         )
 
         tel_pointing_finder = {
-            tel.name: IndexFinder(tel.col("telescopetrigger_time"))
+            tel.name: IndexFinder(tel.col("time"))
             for tel in self.file_.root.dl1.monitoring.telescope.pointing
         }
 

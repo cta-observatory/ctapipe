@@ -98,7 +98,7 @@ examples directory soon.
 
    def reconstruct_ImPACT():
 
-        source = hessio_event_source(filename)
+        source = EventSource(filename)
         impact = ImPACTReconstructor(minimiser="minuit")
         for event in source:
 

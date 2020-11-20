@@ -253,7 +253,7 @@ class DisplayIntegrator(Tool):
     def setup(self):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
 
-        event_source = EventSource.from_config(parent=self)
+        event_source = EventSource(parent=self)
         self.subarray = event_source.subarray
         self.eventseeker = EventSeeker(event_source, parent=self)
         self.calibrate = CameraCalibrator(parent=self, subarray=self.subarray)

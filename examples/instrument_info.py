@@ -2,7 +2,7 @@
 Example of showing some information about the instrumental description
 """
 
-from ctapipe.io import event_source
+from ctapipe.io import EventSource
 from ctapipe.utils import get_dataset_path
 
 if __name__ == "__main__":
@@ -10,7 +10,7 @@ if __name__ == "__main__":
     # load up one event so that we get the instrument info
     infile = get_dataset_path("gamma_test_large.simtel.gz")
 
-    source = event_source(infile)
+    source = EventSource(infile)
 
     print("------ Input: ", infile)
 
