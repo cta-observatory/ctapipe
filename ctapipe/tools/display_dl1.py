@@ -175,7 +175,7 @@ class DisplayDL1Calib(Tool):
         for event in self.eventsource:
             self.calibrator(event)
 
-            tel_list = event.r0.tel.keys()
+            tel_list = event.dl1.tel.keys()
 
             if self.telescope:
                 if self.telescope not in tel_list:
