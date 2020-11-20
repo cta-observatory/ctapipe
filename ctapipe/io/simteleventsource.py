@@ -50,6 +50,9 @@ SIMTEL_TO_CTA_EVENT_TYPE = {
 }
 
 
+NANOSECONDS_PER_DAY = (1 * u.day).to_value(u.ns)
+
+
 def parse_simtel_time(simtel_time):
     return Time(
         u.Quantity(simtel_time[0], u.s),
@@ -464,14 +467,20 @@ class SimTelEventSource(EventSource):
             data.trigger.event_type = EventType.UNKNOWN
 
         data.trigger.tels_with_trigger = trigger["triggered_telescopes"]
-        data.trigger.time = parse_simtel_time(trigger["gps_time"])
+        central_time = parse_simtel_time(trigger["gps_time"])
+        data.trigger.time = central_time
 
         for tel_id, time in zip(
             trigger["triggered_telescopes"], trigger["trigger_times"]
         ):
             # time is relative to central trigger in nano seconds
             trigger = data.trigger.tel[tel_id]
-            trigger.time = data.trigger.time + u.Quantity(time, u.ns)
+            trigger.time = Time(
+                central_time.jd1,
+                central_time.jd2 + time / NANOSECONDS_PER_DAY,
+                scale=central_time.scale,
+                format="jd",
+            )
 
             # triggered pixel info
             tel_event = array_event["telescope_events"].get(tel_id)
