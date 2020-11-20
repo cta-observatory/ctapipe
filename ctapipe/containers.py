@@ -251,7 +251,7 @@ class DL1CameraContainer(Container):
         ndim=1,
     )
 
-    parameters = Field(None, "Image parameters", dtype=ImageParametersContainer)
+    parameters = Field(None, "Image parameters", type=ImageParametersContainer)
 
 
 class DL1Container(Container):

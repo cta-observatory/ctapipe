@@ -31,8 +31,11 @@ class Field:
         unit to convert to when writing output, or None for no conversion
     ucd: str
         universal content descriptor (see Virtual Observatory standards)
+    type: type
+        expected type of value
     dtype: str or np.dtype
         expected data type of the value, None to ignore in validation.
+        Means value is expected to be a numpy array or astropy quantity
     ndim: int or None
         expected dimensionality of the data, for arrays, None to ignore
     allow_none:
@@ -46,6 +49,7 @@ class Field:
         unit=None,
         ucd=None,
         dtype=None,
+        type=None,
         ndim=None,
         allow_none=True,
     ):
@@ -55,6 +59,7 @@ class Field:
         self.unit = Unit(unit) if unit is not None else None
         self.ucd = ucd
         self.dtype = np.dtype(dtype) if dtype is not None else None
+        self.type = type
         self.ndim = ndim
         self.allow_none = allow_none
 
@@ -88,6 +93,11 @@ class Field:
             return
 
         errorstr = f"the value '{value}' ({type(value)}) is invalid: "
+
+        if self.type is not None and not isinstance(value, self.type):
+            raise FieldValidationError(
+                f"{errorstr} Should be an instance of {self.type}"
+            )
 
         if self.unit is not None:
             if not isinstance(value, Quantity):
