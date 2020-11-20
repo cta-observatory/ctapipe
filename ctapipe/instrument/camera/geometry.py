@@ -137,8 +137,16 @@ class CameraGeometry:
         self.pix_y = pix_y
         self.pix_area = pix_area
         self.pix_type = pix_type
-        self.pix_rotation = Angle(pix_rotation)
-        self.cam_rotation = Angle(cam_rotation)
+
+        if not isinstance(pix_rotation, Angle):
+            pix_rotation = Angle(pix_rotation)
+
+        if not isinstance(cam_rotation, Angle):
+            cam_rotation = Angle(cam_rotation)
+
+        self.pix_rotation = pix_rotation
+        self.cam_rotation = cam_rotation
+
         self._neighbors = neighbors
         self.frame = frame
 
