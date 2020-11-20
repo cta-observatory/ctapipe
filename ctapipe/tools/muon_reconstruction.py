@@ -141,9 +141,10 @@ class MuonAnalysis(Tool):
 
         self.log.debug(f"Processing event {event_id}, telescope {tel_id}")
         image = dl1.image
-        clean_mask = self.cleaning(tel_id, image)
+        if not dl1.image_mask:
+            dl1.image_mask = self.cleaning(tel_id, image)
 
-        if np.count_nonzero(clean_mask) <= self.min_pixels.tel[tel_id]:
+        if np.count_nonzero(dl1.image_mask) <= self.min_pixels.tel[tel_id]:
             self.log.debug(
                 f"Skipping event {event_id}-{tel_id}:"
                 f" has less then {self.min_pixels.tel[tel_id]} pixels after cleaning"
@@ -155,7 +156,7 @@ class MuonAnalysis(Tool):
         # iterative ring fit.
         # First use cleaning pixels, then only pixels close to the ring
         # three iterations seems to be enough for most rings
-        mask = clean_mask
+        mask = dl1.image_mask
         for i in range(3):
             ring = self.ring_fitter(x, y, image, mask)
             dist = np.sqrt((x - ring.center_x) ** 2 + (y - ring.center_y) ** 2)
@@ -176,7 +177,7 @@ class MuonAnalysis(Tool):
             )
             return
 
-        parameters = self.calculate_muon_parameters(tel_id, image, clean_mask, ring)
+        parameters = self.calculate_muon_parameters(tel_id, image, dl1.image_mask, ring)
 
         # intensity_fitter does not support a mask yet, set ignored pixels to 0
         image[~mask] = 0
