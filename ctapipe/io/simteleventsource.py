@@ -54,11 +54,9 @@ NANOSECONDS_PER_DAY = (1 * u.day).to_value(u.ns)
 
 
 def parse_simtel_time(simtel_time):
+    """Convert a unix time second / nanosecond tuple into astropy.time.Time"""
     return Time(
-        u.Quantity(simtel_time[0], u.s),
-        u.Quantity(simtel_time[1], u.ns),
-        format="unix",
-        scale="utc",
+        simtel_time[0], simtel_time[1] * 1e-9, format="unix", scale="utc"  # ns to s
     )
 
 
