@@ -18,8 +18,8 @@ class ColoredFormatter(logging.Formatter):
 
     def format(self, record):
         """Format the LogRecord."""
-        record.levelname = apply_colors(record.levelname)
-        return super().format(record)
+        s = super().format(record)
+        return s.replace(record.levelname, apply_colors(record.levelname), 1)
 
 
 def apply_colors(levelname: str):
