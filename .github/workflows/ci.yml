@@ -67,3 +67,14 @@ jobs:
             apt update --yes && apt install --yes git build-essential pandoc
             pip install -U pip setuptools wheel
             pip install --use-feature=2020-resolver -e .[all]
+
+      - name: Deploy to gihub pages
+        # only run on push to master
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+        uses: JamesIves/github-pages-deploy-action@3.7.1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: gh-pages
+          FOLDER: docs/_build/html
+          CLEAN: true
+          SINGLE_COMMIT: true
