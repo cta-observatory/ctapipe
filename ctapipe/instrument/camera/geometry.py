@@ -232,13 +232,11 @@ class CameraGeometry:
         # use the same x/y attributes. Therefore we get the component names, and
         # access them by string:
         frame_attrs = list(uv_trans.frame.get_representation_component_names().keys())
-        uv_x = getattr(uv_trans, frame_attrs[0])
         uv_y = getattr(uv_trans, frame_attrs[1])
         trans_x = getattr(trans, frame_attrs[0])
         trans_y = getattr(trans, frame_attrs[1])
 
         rot = np.arctan2(uv_y[0], uv_y[1])
-        det = np.linalg.det([uv_x.value, uv_y.value])
 
         cam_rotation = rot - self.cam_rotation
         pix_rotation = rot - self.pix_rotation
@@ -423,7 +421,7 @@ class CameraGeometry:
         """ convert this to an `astropy.table.Table` """
         # currently the neighbor list is not supported, since
         # var-length arrays are not supported by astropy.table.Table
-        return Table(
+        t = Table(
             [self.pix_id, self.pix_x, self.pix_y, self.pix_area],
             names=["pix_id", "pix_x", "pix_y", "pix_area"],
             meta=dict(
@@ -435,6 +433,16 @@ class CameraGeometry:
                 CAM_ROT=self.cam_rotation.deg,
             ),
         )
+
+        # clear `info` member from quantities set by table creation
+        # which impacts indexing performance because it is deepcopied
+        # in Quantity.__getitem__, see https://github.com/astropy/astropy/issues/11066
+        for q in (self.pix_id, self.pix_x, self.pix_y, self.pix_area):
+            if hasattr(q, "__dict__"):
+                if "info" in q.__dict__:
+                    del q.__dict__["info"]
+
+        return t
 
     @classmethod
     def from_table(cls, url_or_table, **kwargs):
