@@ -470,7 +470,7 @@ class DL1Writer(Component):
 
             has_sim_camera = (
                 tel_id in event.simulation.tel
-                and event.simulation.tel[tel_id].true_image.sum() > 0
+                and event.simulation.tel[tel_id].true_image is not None
             )
 
             if self.write_parameters:

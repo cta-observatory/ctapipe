@@ -28,21 +28,21 @@ LST_MUONS = get_dataset_path("lst_muons.simtel.zst")
 
 @pytest.fixture
 def dl1_image_file():
-    command = f"ctapipe-stage1-process --input {GAMMA_TEST_LARGE} --output {d.name}/images.dl1.h5 --write-images --max-events 20 --allowed-tels=[1,2,3]"
+    command = f"ctapipe-stage1 --input {GAMMA_TEST_LARGE} --output {d.name}/images.dl1.h5 --write-images --max-events 20 --allowed-tels=[1,2,3]"
     subprocess.call(command.split(), stdout=subprocess.PIPE)
     return f"{d.name}/images.dl1.h5"
 
 
 @pytest.fixture
 def dl1_parameters_file():
-    command = f"ctapipe-stage1-process --input {GAMMA_TEST_LARGE} --output {d.name}/parameters.dl1.h5 --write-parameters --max-events 20 --allowed-tels=[1,2,3]"
+    command = f"ctapipe-stage1 --input {GAMMA_TEST_LARGE} --output {d.name}/parameters.dl1.h5 --write-parameters --max-events 20 --allowed-tels=[1,2,3]"
     subprocess.call(command.split(), stdout=subprocess.PIPE)
     return f"{d.name}/parameters.dl1.h5"
 
 
 @pytest.fixture
 def dl1_muon_file():
-    command = f"ctapipe-stage1-process --input {LST_MUONS} --output {d.name}/muons.dl1.h5 --write-parameters --allowed-tels=[1,2,3]"
+    command = f"ctapipe-stage1 --input {LST_MUONS} --output {d.name}/muons.dl1.h5 --write-images"
     subprocess.call(command.split(), stdout=subprocess.PIPE)
     return f"{d.name}/muons.dl1.h5"
 
@@ -278,14 +278,14 @@ def test_stage_1_raw(tmpdir):
 
 
 def test_stage_1_dl1(tmpdir, dl1_image_file, dl1_parameters_file):
-    from ctapipe.tools.stage1 import Stage1ProcessorTool
+    from ctapipe.tools.stage1 import Stage1Tool
 
     config = Path("./examples/stage1_config.json").absolute()
     # DL1A file as input
     with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
         assert (
             run_tool(
-                Stage1ProcessorTool(),
+                Stage1Tool(),
                 argv=[
                     f"--config={config}",
                     f"--input={dl1_image_file}",
@@ -332,7 +332,7 @@ def test_stage_1_dl1(tmpdir, dl1_image_file, dl1_parameters_file):
     # DL1B file as input
     assert (
         run_tool(
-            Stage1ProcessorTool(),
+            Stage1Tool(),
             argv=[
                 f"--config={config}",
                 f"--input={dl1_parameters_file}",

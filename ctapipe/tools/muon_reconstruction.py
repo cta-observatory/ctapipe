@@ -98,7 +98,7 @@ class MuonAnalysis(Tool):
                 "Outputfile {self.output} already exists, use `--overwrite` to overwrite"
             )
 
-        self.source = EventSource(parent=self)
+        self.source = EventSource.from_config(parent=self)
         subarray = self.source.subarray
 
         self.calib = CameraCalibrator(subarray=subarray, parent=self)
@@ -117,6 +117,7 @@ class MuonAnalysis(Tool):
 
     def start(self):
         for event in tqdm(self.source, desc="Processing events: "):
+            print(event.index.event_id)
             self.process_array_event(event)
 
     def process_array_event(self, event):
@@ -141,7 +142,7 @@ class MuonAnalysis(Tool):
 
         self.log.debug(f"Processing event {event_id}, telescope {tel_id}")
         image = dl1.image
-        if not dl1.image_mask:
+        if dl1.image_mask is None:
             dl1.image_mask = self.cleaning(tel_id, image)
 
         if np.count_nonzero(dl1.image_mask) <= self.min_pixels.tel[tel_id]:
@@ -178,7 +179,6 @@ class MuonAnalysis(Tool):
             return
 
         parameters = self.calculate_muon_parameters(tel_id, image, dl1.image_mask, ring)
-
         # intensity_fitter does not support a mask yet, set ignored pixels to 0
         image[~mask] = 0
 

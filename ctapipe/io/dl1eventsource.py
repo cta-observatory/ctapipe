@@ -159,7 +159,13 @@ class DL1EventSource(EventSource):
         return list(np.unique(self.file_.root.dl1.event.subarray.trigger.col("obs_id")))
 
     @property
-    def simulation_configs(self):
+    def simulation_config(self):
+        """
+        Returns the simulation config.
+        In case of a merged file, this will be a list of simulation configs.
+        """
+        if len(self._simulation_configs) == 1:
+            return next(iter(self._simulation_configs.values()))
         return self._simulation_configs
 
     def _generator(self):
@@ -271,14 +277,15 @@ class DL1EventSource(EventSource):
             for tel in self.file_.root.dl1.monitoring.telescope.pointing
         }
 
-        for counter, array_event in enumerate(events):
+        for counter, (trigger, index) in enumerate(events):
             data.dl1.tel.clear()
             data.simulation.tel.clear()
             data.pointing.tel.clear()
             data.trigger.tel.clear()
 
             data.count = counter
-            data.trigger, data.index = next(events)
+            data.trigger = trigger
+            data.index = index
             data.trigger.tels_with_trigger = self.subarray.tel_mask_to_tel_ids(
                 data.trigger.tels_with_trigger
             )

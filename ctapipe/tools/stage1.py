@@ -77,12 +77,16 @@ class Stage1Tool(Tool):
     def setup(self):
 
         # setup components:
-        self.event_source = EventSource(parent=self)
+        self.event_source = EventSource.from_config(parent=self)
 
         datalevels = self.event_source.datalevels
-        if DataLevel.R1 not in datalevels and DataLevel.DL0 not in datalevels:
+        if (
+            DataLevel.R1 not in datalevels
+            and DataLevel.DL0 not in datalevels
+            and DataLevel.DL1_IMAGES not in datalevels
+        ):
             self.log.critical(
-                f"{self.name} needs the EventSource to provide either R1 or DL0 data"
+                f"{self.name} needs the EventSource to provide either R1 or DL0 or DL1A data"
                 f", {self.event_source} provides only {datalevels}"
             )
             sys.exit(1)
