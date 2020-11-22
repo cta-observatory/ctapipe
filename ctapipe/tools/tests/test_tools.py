@@ -485,7 +485,7 @@ def test_display_events_single_tel(tmpdir):
         run_tool(
             SingleTelEventDisplay(),
             argv=shlex.split(
-                f"--infile={GAMMA_TEST_LARGE} "
+                f"--input={GAMMA_TEST_LARGE} "
                 "--tel=11 "
                 "--max-events=2 "  # <--- inconsistent!!!
             ),
