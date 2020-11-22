@@ -179,7 +179,17 @@ class SubarrayDescription:
 
     def tel_mask_to_tel_ids(self, tel_mask):
         """
+        Convert a boolean mask of selected telescopes to a list of tel_ids.
 
+        Parameters
+        ----------
+        tel_mask: array-like
+            Boolean array of length ``num_tels`` with indices of the
+            telescopes in ``tel_ids`` set to True.
+        Returns
+        -------
+        np.array:
+            Array of selected tel_ids
         """
         indices = np.where(tel_mask)[0]
         return self.tel_ids[indices]
