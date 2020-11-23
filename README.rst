@@ -2,7 +2,7 @@
 ctapipe |teststatus| |codacy| |coverage| |conda| |doilatest|
 ============================================================
 
-.. |teststatus| image:: https://github.com/cta-observatory/pyirf/workflows/ci/badge.svg?branch=master
+.. |teststatus| image:: https://github.com/cta-observatory/pyirf/workflows/CI/badge.svg?branch=master
     :target: https://github.com/cta-observatory/pyirf/actions?query=workflow%3ACI+branch%3Amaster
     :alt: Test Status
 .. |codacy|  image:: https://api.codacy.com/project/badge/Grade/6192b471956b4cc684130c80c8214115
