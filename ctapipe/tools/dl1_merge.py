@@ -122,6 +122,15 @@ class MergeTool(Tool):
     file_pattern = traits.Unicode(
         default_value="*.h5", help="Give a specific file pattern for the input files"
     ).tag(config=True)
+    allowed_tels = traits.Set(
+        default_value=None,
+        allow_none=True,
+        help=(
+            "list of allowed tel_ids, others will be ignored. "
+            "If None, all telescopes in the input stream "
+            "will be included"
+        ),
+    ).tag(config=True)
 
     parser = ArgumentParser()
     parser.add_argument("input_files", nargs="*", type=Path)
@@ -133,6 +142,8 @@ class MergeTool(Tool):
         "o": "MergeTool.output_path",
         "pattern": "MergeTool.file_pattern",
         "p": "MergeTool.file_pattern",
+        "allowed-tels": "MergeTool.allowed_tels",
+        "t": "MergeTool.allowed_tels",
     }
 
     flags = {
@@ -202,6 +213,10 @@ class MergeTool(Tool):
         self.first_subarray = SubarrayDescription.from_hdf(self.input_files[0])
         self.first_subarray.to_hdf(self.output_path)
         self.output_file = tables.open_file(self.output_path, mode="a")
+
+        # create tel.names list from allowed tels
+        if self.allowed_tels:
+            self.allowed_tel_names = {"tel_%03d" % i for i in self.allowed_tels}
 
         # setup required nodes
         self.usable_nodes = all_nodes
@@ -283,18 +298,15 @@ class MergeTool(Tool):
                     if node not in self.output_file:
                         self._create_group(node)
 
-                    for tel in file.root[node]:
-                        tel_node_path = node + "/" + tel.name
-                        if tel_node_path in self.output_file:
-                            output_node = self.output_file.get_node(tel_node_path)
-                            input_node = file.root[tel_node_path]
+                    if self.allowed_tels:
+                        for tel_name in self.allowed_tel_names:
+                            if tel_name in file.root[node]:
+                                self._copy_or_append_tel_table(file,node, tel_name)
 
-                            # cast needed for some image parameters that are sometimes
-                            # float32 and sometimes float64
-                            output_node.append(input_node[:].astype(output_node.dtype))
-                        else:
-                            target_group = self.output_file.root[node]
-                            file.copy_node(tel, newparent=target_group)
+                        continue
+
+                    for tel in file.root[node]:
+                        self._copy_or_append_tel_table(file, node, tel.name)
 
                     continue
 
@@ -328,6 +340,19 @@ class MergeTool(Tool):
 
                     else:
                         file.copy_node(node, newparent=target_group)
+
+    def _copy_or_append_tel_table(self, file, node, tel_name):
+        tel_node_path = node + "/" + tel_name
+        if tel_node_path in self.output_file:
+            output_node = self.output_file.get_node(tel_node_path)
+            input_node = file.root[tel_node_path]
+
+            # cast needed for some image parameters that are sometimes
+            # float32 and sometimes float64
+            output_node.append(input_node[:].astype(output_node.dtype))
+        else:
+            target_group = self.output_file.root[node]
+            file.copy_node(tel_node_path, newparent=target_group)
 
     def _create_group(self, node):
         head, tail = os.path.split(node)
