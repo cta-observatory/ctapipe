@@ -189,11 +189,11 @@ class DL1EventSource(EventSource):
         simulation_configs = {}
         if "simulation" in self.file_.root.configuration:
             reader = HDF5TableReader(self.file_).read(
-                "/configuration/simulation/run", SimulationConfigContainer()
+                "/configuration/simulation/run",
+                containers=[SimulationConfigContainer(), EventIndexContainer()],
             )
-            row_iterator = self.file_.root.configuration.simulation.run.iterrows()
-            for row in row_iterator:
-                simulation_configs[row["obs_id"]] = next(reader)
+            for (config, index) in reader:
+                simulation_configs[index.obs_id] = config
         return simulation_configs
 
     def _generate_events(self):
