@@ -310,10 +310,11 @@ class DL1Writer(Component):
                     f"/dl1/event/telescope/images/{table_name}", "image_mask"
                 )
 
-            writer.exclude(
-                f"/dl1/monitoring/telescope/pointing/{table_name}", "n_trigger_pixels"
-            )
+            tel_pointing = f"/dl1/monitoring/telescope/pointing/{table_name}"
+            writer.exclude(tel_pointing, "n_trigger_pixels")
+            writer.exclude(tel_pointing, "trigger_pixels")
             writer.exclude(f"/dl1/event/telescope/images/{table_name}", "parameters")
+
             if self._is_simulation:
                 writer.exclude(
                     f"/simulation/event/telescope/images/{table_name}",

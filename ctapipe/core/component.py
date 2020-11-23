@@ -6,7 +6,6 @@ from logging import getLogger
 from traitlets import TraitError
 from traitlets.config import Configurable
 
-from ctapipe.core.plugins import detect_and_import_io_plugins
 
 __all__ = ["non_abstract_children", "Component", "TelescopeComponent"]
 

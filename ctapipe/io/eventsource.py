@@ -116,12 +116,11 @@ class EventSource(Component):
         if input_url is None and config is None and parent is None:
             raise ValueError("One of `input_url`, `config`, `parent` is required")
 
-        if input_url is not None:
-            return EventSource.from_url(
-                input_url, config=config, parent=parent, **kwargs
-            )
-        else:
-            return EventSource.from_config(config=config, parent=parent, **kwargs)
+        if input_url is None:
+            input_url = cls._find_input_url_in_config(config=config, parent=parent)
+
+        subcls = cls._find_compatible_source(input_url)
+        return super().__new__(subcls)
 
     def __init__(self, input_url=None, config=None, parent=None, **kwargs):
         """
@@ -273,6 +272,28 @@ class EventSource(Component):
         pass
 
     @classmethod
+    def _find_compatible_source(cls, input_url):
+        if input_url == "" or input_url is None:
+            raise ToolConfigurationError("EventSource: No input_url was specified")
+
+        # validate input url with the traitel validate method
+        # to make sure it's compatible and to raise the correct error
+        input_url = EventSource.input_url.validate(obj=None, value=input_url)
+
+        available_classes = non_abstract_children(cls)
+
+        for subcls in available_classes:
+            if subcls.is_compatible(input_url):
+                return subcls
+
+        raise ValueError(
+            "Cannot find compatible EventSource for \n"
+            "\turl:{}\n"
+            "in available EventSources:\n"
+            "\t{}".format(input_url, [c.__name__ for c in available_classes])
+        )
+
+    @classmethod
     def from_url(cls, input_url, **kwargs):
         """
         Find compatible EventSource for input_url via the `is_compatible`
@@ -290,47 +311,11 @@ class EventSource(Component):
         instance
             Instance of a compatible EventSource subclass
         """
-        if input_url == "" or input_url is None:
-            raise ToolConfigurationError("EventSource: No input_url was specified")
-
-        # validate input url with the traitel validate method
-        # to make sure it's compatible and to raise the correct error
-        input_url = EventSource.input_url.validate(obj=None, value=input_url)
-
-        available_classes = non_abstract_children(cls)
-
-        for subcls in available_classes:
-            if subcls.is_compatible(input_url):
-                return subcls(input_url=input_url, **kwargs)
-
-        raise ValueError(
-            "Cannot find compatible EventSource for \n"
-            "\turl:{}\n"
-            "in available EventSources:\n"
-            "\t{}".format(input_url, [c.__name__ for c in available_classes])
-        )
+        subcls = cls._find_compatible_source(input_url)
+        return subcls(input_url=input_url, **kwargs)
 
     @classmethod
-    def from_config(cls, config=None, parent=None, **kwargs):
-        """
-        Find compatible EventSource for the EventSource.input_url traitlet
-        specified via the config.
-
-        This method is typically used in Tools, where the input_url is chosen via
-        the command line using the traitlet configuration system.
-
-        Parameters
-        ----------
-        config : traitlets.config.loader.Config
-            Configuration created in the Tool
-        kwargs
-            Named arguments for the EventSource
-
-        Returns
-        -------
-        instance
-            Instance of a compatible EventSource subclass
-        """
+    def _find_input_url_in_config(cls, config=None, parent=None):
         if config is None and parent is None:
             raise ValueError("One of config or parent must be provided")
 
@@ -360,5 +345,28 @@ class EventSource(Component):
                 else:
                     input_url = cls.input_url.default_value
 
+        return input_url
+
+    @classmethod
+    def from_config(cls, config=None, parent=None, **kwargs):
+        """
+        Find compatible EventSource for the EventSource.input_url traitlet
+        specified via the config.
+
+        This method is typically used in Tools, where the input_url is chosen via
+        the command line using the traitlet configuration system.
+
+        Parameters
+        ----------
+        config : traitlets.config.loader.Config
+            Configuration created in the Tool
+        kwargs
+            Named arguments for the EventSource
+
+        Returns
+        -------
+        instance
+            Instance of a compatible EventSource subclass
+        """
+        input_url = cls._find_input_url_in_config(config=config, parent=parent)
         return cls.from_url(input_url, config=config, parent=parent, **kwargs)
- 
