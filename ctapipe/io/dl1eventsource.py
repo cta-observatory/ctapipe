@@ -19,6 +19,7 @@ from ctapipe.containers import (
     PeakTimeStatisticsContainer,
     TimingParametersContainer,
     TriggerContainer,
+    ImageParametersContainer,
 )
 from ctapipe.utils import IndexFinder
 
@@ -344,13 +345,15 @@ class DL1EventSource(EventSource):
                     # Best would probbaly be if we could directly read
                     # into the ImageParametersContainer
                     params = next(param_readers[f"tel_{tel:03d}"])
-                    dl1.parameters.hillas = params[0]
-                    dl1.parameters.timing = params[1]
-                    dl1.parameters.leakage = params[2]
-                    dl1.parameters.concentration = params[3]
-                    dl1.parameters.morphology = params[4]
-                    dl1.parameters.intensity_statistics = params[5]
-                    dl1.parameters.peak_time_statistics = params[6]
+                    dl1.parameters = ImageParametersContainer(
+                        hillas=params[0],
+                        timing=params[1],
+                        leakage=params[2],
+                        concentration=params[3],
+                        morphology=params[4],
+                        intensity_statistics=params[5],
+                        peak_time_statistics=params[6],
+                    )
 
                     if self.has_simulated_dl1:
                         if f"tel_{tel:03d}" not in param_readers.keys():
@@ -363,13 +366,13 @@ class DL1EventSource(EventSource):
                         simulated_params = next(
                             simulated_param_readers[f"tel_{tel:03d}"]
                         )
-                        simulated.true_parameters.hillas = simulated_params[0]
-                        simulated.true_parameters.leakage = simulated_params[1]
-                        simulated.true_parameters.concentration = simulated_params[2]
-                        simulated.true_parameters.morphology = simulated_params[3]
-                        simulated.true_parameters.intensity_statistics = simulated_params[
-                            4
-                        ]
+                        simulated.true_parameters = ImageParametersContainer(
+                            hillas=simulated_params[0],
+                            leakage=simulated_params[1],
+                            concentration=simulated_params[2],
+                            morphology=simulated_params[3],
+                            intensity_statistics=simulated_params[4],
+                        )
 
             yield data
 
