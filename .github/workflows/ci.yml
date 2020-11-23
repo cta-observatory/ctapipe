@@ -1,11 +1,6 @@
 name: CI
 
-on:
-  push:
-  pull_request:
-    branches:
-      # build only on forks, PRs from the same repo are covered by "push"
-      - '**:**'
+on: [push, pull_request]
 
 env:
   NUMBA_NUM_THREADS: 1
