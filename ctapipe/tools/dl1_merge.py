@@ -301,7 +301,7 @@ class MergeTool(Tool):
                     if self.allowed_tels:
                         for tel_name in self.allowed_tel_names:
                             if tel_name in file.root[node]:
-                                self._copy_or_append_tel_table(file,node, tel_name)
+                                self._copy_or_append_tel_table(file, node, tel_name)
 
                         continue
 
