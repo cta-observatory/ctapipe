@@ -115,7 +115,6 @@ class CameraGeometry:
         apply_derotation=True,
         frame=None,
     ):
-
         if pix_x.ndim != 1 or pix_y.ndim != 1:
             raise ValueError(
                 f"Pixel coordinates must be 1 dimensional, got {pix_x.ndim}"
@@ -163,9 +162,7 @@ class CameraGeometry:
             self.pix_area = self.guess_pixel_area(pix_x, pix_y, pix_type)
 
         if apply_derotation:
-            # todo: this should probably not be done, but need to fix
-            # GeometryConverter and reco algorithms if we change it.
-            self.rotate(cam_rotation)
+            self.rotate(self.cam_rotation)
 
         # cache border pixel mask per instance
         self.border_cache = {}
@@ -639,12 +636,15 @@ class CameraGeometry:
             rotation angle with unit (e.g. 12 * u.deg), or "12d"
 
         """
+        angle = Angle(angle)
         rotmat = rotation_matrix_2d(angle)
         rotated = np.dot(rotmat.T, [self.pix_x.value, self.pix_y.value])
         self.pix_x = rotated[0] * self.pix_x.unit
         self.pix_y = rotated[1] * self.pix_x.unit
-        self.pix_rotation -= Angle(angle)
-        self.cam_rotation -= Angle(angle)
+
+        # do not use -=, copy is intentional here
+        self.pix_rotation = self.pix_rotation - angle
+        self.cam_rotation = Angle(0, unit=u.deg)
 
     def info(self, printer=print):
         """ print detailed info about this camera """
@@ -816,7 +816,9 @@ class CameraGeometry:
     @staticmethod
     def simtel_shape_to_type(pixel_shape):
         try:
-            return SIMTEL_PIXEL_SHAPES[pixel_shape]
+            shape, rotation = SIMTEL_PIXEL_SHAPES[pixel_shape]
+            # make sure we don't introduce a mutable global state
+            return shape, rotation.copy()
         except KeyError:
             raise ValueError(f"Unknown pixel_shape {pixel_shape}") from None
 

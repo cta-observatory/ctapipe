@@ -72,7 +72,7 @@ def test_merge(tmpdir):
         assert (
             run_tool(
                 MergeTool(),
-                argv=[f"{f1.name}", f"{f2.name}", f"--o={out_all.name}", "--overwrite"],
+                argv=[f1.name, f2.name, "-o", out_all.name, "--overwrite"],
                 cwd=tmpdir,
             )
             == 0
@@ -82,9 +82,10 @@ def test_merge(tmpdir):
             run_tool(
                 MergeTool(),
                 argv=[
-                    f"{f1.name}",
-                    f"{f2.name}",
-                    f"--o={out_skip_images.name}",
+                    f1.name,
+                    f2.name,
+                    "-o",
+                    out_skip_images.name,
                     "--overwrite",
                     "--skip-images",
                 ],
@@ -97,9 +98,10 @@ def test_merge(tmpdir):
             run_tool(
                 MergeTool(),
                 argv=[
-                    f"{f1.name}",
-                    f"{f2.name}",
-                    f"--o={out_skip_parameters.name}",
+                    f1.name,
+                    f2.name,
+                    "-o",
+                    out_skip_parameters.name,
                     "--overwrite",
                     "--skip-parameters",
                 ],
@@ -479,7 +481,10 @@ def test_extract_charge_resolution(tmpdir):
     output_path = os.path.join(str(tmpdir), "cr.h5")
     tool = ChargeResolutionGenerator()
 
-    assert run_tool(tool, ["-f", str(GAMMA_TEST_LARGE), "-O", output_path], cwd=tmpdir) == 1
+    assert (
+        run_tool(tool, ["-f", str(GAMMA_TEST_LARGE), "-O", output_path], cwd=tmpdir)
+        == 1
+    )
     # TODO: Test files do not contain true charge, cannot test tool fully
     # assert os.path.exists(output_path)
     assert run_tool(tool, ["--help-all"]) == 0
