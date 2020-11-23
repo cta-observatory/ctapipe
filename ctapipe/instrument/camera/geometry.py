@@ -172,11 +172,11 @@ class CameraGeometry:
         if self.pix_type != other.pix_type:
             return False
 
-        if self.pix_rotation != other.pix_rotation:
+        if not u.isclose(self.pix_rotation, other.pix_rotation):
             return False
 
         return all(
-            [(self.pix_x == other.pix_x).all(), (self.pix_y == other.pix_y).all()]
+            [u.allclose(self.pix_x, other.pix_x), u.allclose(self.pix_y, other.pix_y)]
         )
 
     def guess_radius(self):
