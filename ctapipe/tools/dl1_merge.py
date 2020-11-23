@@ -77,23 +77,18 @@ simu_images = {"/simulation/event/telescope/images"}
 
 class MergeTool(Tool):
     name = "ctapipe-merge"
-    description = "Merges DL1-files from the stage1-process tool"
+    description = "Merges DL1-files created by the stage1-tool"
     examples = """
-    To merge DL1-files created by the stage1-process-tool from current directory:
+    To merge DL1-files created by the stage1-tool from current directory:
 
     > ctapipe-merge file1.h5 file2.h5 file3.h5 --output=/path/output_file.h5 --progress
 
-    If you want a specific file pattern as input files, use --pattern='pattern.*.dl1.h5',
-    e.g.:
-
-    > ctapipe-merge --output=/path/output_file.h5 --progress --pattern='pattern.*.dl1.h5'
-
-    If neither any input files nor any pattern is given, all files from the current
-    directory with the default pattern '*.h5' are taken. For merging all files from a
-    specific directory with a given pattern, use:
+    For merging files from a specific directory with a specific pattern, use:
 
     > ctapipe-merge --input-dir=/input/dir/ --output=/path/output_file.h5 --progress
-    --pattern='pattern.*.dl1.h5'
+    --pattern='*.dl1.h5'
+
+    If no pattern is given, all .h5 files of the given directory will be taken as input.
     """
     input_dir = traits.Path(
         help="Input dl1-directory", exists=True, directory_ok=True, file_ok=False
@@ -163,12 +158,16 @@ class MergeTool(Tool):
         ),
         "progress": (
             {"MergeTool": {"progress_bar": True}},
-            "Show a progress bar during event processing",
+            "Show a progress bar for all given input files",
         ),
     }
 
     def setup(self):
         # prepare output path:
+        if not self.output_path:
+            self.log.critical("No output path was specified")
+            sys.exit(1)
+
         self.output_path = self.output_path.expanduser()
         if self.output_path.exists():
             if self.overwrite:
