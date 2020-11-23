@@ -117,7 +117,6 @@ class MuonAnalysis(Tool):
 
     def start(self):
         for event in tqdm(self.source, desc="Processing events: "):
-            print(event.index.event_id)
             self.process_array_event(event)
 
     def process_array_event(self, event):
