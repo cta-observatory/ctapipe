@@ -73,10 +73,10 @@ def test_merge(tmpdir):
             MergeTool(),
             argv=[
                 f"--i={tmp_dir.name}",
-                f"--p='test_file_*.hdf5'",
+                "--p='test_file_*.hdf5'",
                 f"--o={out_tels_dir_pattern}",
                 "--overwrite",
-                f"--t=[2, 3]",
+                "--t=[2, 3]",
             ],
             cwd=tmpdir,
         )
