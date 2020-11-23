@@ -86,7 +86,8 @@ class Stage1Tool(Tool):
             and DataLevel.DL1_IMAGES not in datalevels
         ):
             self.log.critical(
-                f"{self.name} needs the EventSource to provide either R1 or DL0 or DL1A data"
+                f"{self.name} needs the EventSource to provide "
+                f"either R1 or DL0 or DL1A data"
                 f", {self.event_source} provides only {datalevels}"
             )
             sys.exit(1)
