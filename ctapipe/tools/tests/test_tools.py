@@ -137,8 +137,15 @@ def test_merge(tmpdir):
 
     assert (
         run_tool(
+            MergeTool(), argv=[in_1, in_2, f"--o={out_all}", "--overwrite"], cwd=tmpdir
+        )
+        == 0
+    )
+
+    assert (
+        run_tool(
             MergeTool(),
-            argv=[f"{in_1}", f"{in_2}", f"--o={out_all}", "--overwrite"],
+            argv=[in_1, in_2, f"--o={out_skip_images}", "--overwrite", "--skip-images"],
             cwd=tmpdir,
         )
         == 0
@@ -148,23 +155,8 @@ def test_merge(tmpdir):
         run_tool(
             MergeTool(),
             argv=[
-                f"{in_1}",
-                f"{in_2}",
-                f"--o={out_skip_images}",
-                "--overwrite",
-                "--skip-images",
-            ],
-            cwd=tmpdir,
-        )
-        == 0
-    )
-
-    assert (
-        run_tool(
-            MergeTool(),
-            argv=[
-                f"{in_1}",
-                f"{in_2}",
+                in_1,
+                in_2,
                 f"--o={out_skip_parameters}",
                 "--overwrite",
                 "--skip-parameters",
