@@ -1,0 +1,75 @@
+name: CI
+
+on: [push, pull_request]
+
+env:
+  NUMBA_NUM_THREADS: 1
+  MPLBACKEND: Agg
+  PYTEST_ADDOPTS: --color=yes
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8]
+        install-method: ["pip", "conda"]
+
+    steps:
+      - uses: actions/checkout@v2
+      # make sure we have version info
+      - run: git fetch --tags
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        env:
+          INSTALL_METHOD: ${{ matrix.install-method }}
+          PYTHON_VERSION: ${{ matrix.python-version }}
+        run: |
+          source .github/install.sh
+          python --version
+          pip install codecov pytest-cov
+          pip install --use-feature=2020-resolver -e .[all]
+          pip freeze
+
+      - name: Tests
+        env:
+          INSTALL_METHOD: ${{ matrix.install-method }}
+        run: |
+          if [[ "$INSTALL_METHOD" == "conda" ]]; then
+            source $CONDA/etc/profile.d/conda.sh
+            conda activate ci;
+          fi
+          pytest --cov=ctapipe --cov-report=xml
+          ctapipe-info --version
+
+      - uses: codecov/codecov-action@v1
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: git fetch --tags
+
+      - uses: ammaraskar/sphinx-action@master
+        with:
+          docs-folder: "docs/"
+          pre-build-command: |
+            apt update --yes && apt install --yes git build-essential pandoc
+            pip install -U pip setuptools wheel
+            pip install --use-feature=2020-resolver -e .[all]
+
+      - name: Deploy to gihub pages
+        # only run on push to master
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+        uses: JamesIves/github-pages-deploy-action@3.7.1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: gh-pages
+          FOLDER: docs/_build/html
+          CLEAN: true
+          SINGLE_COMMIT: true

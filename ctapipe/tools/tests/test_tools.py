@@ -81,18 +81,21 @@ def test_merge(tmpdir):
 
     config = Path("./examples/stage1_config.json").absolute()
 
-    input_file_1 = tmp_dir.name + "/test_merge_1.hdf5"
-    input_file_2 = tmp_dir.name + "/test_merge_2.hdf5"
-    out_all = tmp_dir.name + "/merged.hdf5"
-    out_skip_parameters = tmp_dir.name + "/merged_images.hdf5"
-    out_skip_images = tmp_dir.name + "/merged_parameters.hdf5"
+    tmp_dir = tempfile.TemporaryDirectory()
+    in_1 = tmp_dir.name + "/test_file_1.hdf5"
+    in_2 = tmp_dir.name + "/test_file_2.hdf5"
+    out_all = tmp_dir.name + "/merged_file_all.hdf5"
+    out_skip_images = tmp_dir.name + "/merged_file_images.hdf5"
+    out_skip_parameters = tmp_dir.name + "/merged_file_parameters.hdf5"
+    out_tels_dir_pattern = tmp_dir.name + "/merged_file_tels_dir_pattern.hdf5"
+
     assert (
         run_tool(
             Stage1Tool(),
             argv=[
                 f"--config={config}",
                 f"--input={GAMMA_TEST_LARGE}",
-                f"--output={input_file_1}",
+                f"--output={in_1}",
                 "--write-parameters",
                 "--write-images",
                 "--overwrite",
@@ -107,7 +110,7 @@ def test_merge(tmpdir):
             argv=[
                 f"--config={config}",
                 f"--input={GAMMA_TEST_LARGE}",
-                f"--output={input_file_2}",
+                f"--output={in_2}",
                 "--write-parameters",
                 "--write-images",
                 "--overwrite",
@@ -121,10 +124,11 @@ def test_merge(tmpdir):
         run_tool(
             MergeTool(),
             argv=[
-                f"{input_file_1}",
-                f"{input_file_2}",
-                f"--o={out_all}",
+                f"--i={tmp_dir.name}",
+                "--p='test_file_*.hdf5'",
+                f"--o={out_tels_dir_pattern}",
                 "--overwrite",
+                "--t=[2, 3]",
             ],
             cwd=tmpdir,
         )
@@ -134,9 +138,18 @@ def test_merge(tmpdir):
     assert (
         run_tool(
             MergeTool(),
+            argv=[f"{in_1}", f"{in_2}", f"--o={out_all}", "--overwrite"],
+            cwd=tmpdir,
+        )
+        == 0
+    )
+
+    assert (
+        run_tool(
+            MergeTool(),
             argv=[
-                f"{input_file_1}",
-                f"{input_file_2}",
+                f"{in_1}",
+                f"{in_2}",
                 f"--o={out_skip_images}",
                 "--overwrite",
                 "--skip-images",
@@ -150,8 +163,8 @@ def test_merge(tmpdir):
         run_tool(
             MergeTool(),
             argv=[
-                f"{input_file_1}",
-                f"{input_file_2}",
+                f"{in_1}",
+                f"{in_2}",
                 f"--o={out_skip_parameters}",
                 "--overwrite",
                 "--skip-parameters",
@@ -161,11 +174,16 @@ def test_merge(tmpdir):
         == 0
     )
 
-    out_files_list = [out_all, out_skip_images, out_skip_parameters]
+    out_files_list = [
+        out_all,
+        out_skip_images,
+        out_skip_parameters,
+        out_tels_dir_pattern,
+    ]
 
     for out_file in out_files_list:
         with tables.open_file(out_file, mode="r") as out_f, tables.open_file(
-            input_file_1, mode="r"
+            in_1, mode="r"
         ) as in_f:
 
             # Check expanded tables
@@ -195,6 +213,20 @@ def test_merge(tmpdir):
                 )
 
             # Check telescope tables
+            if out_file == out_tels_dir_pattern:
+                telescope_nodes = {
+                    "/dl1/monitoring/telescope/pointing",
+                    "/dl1/event/telescope/images",
+                    "/dl1/event/telescope/parameters",
+                }
+                for node in telescope_nodes:
+                    assert len(out_f.list_nodes(node)) == 2
+                    for tel_name in {"tel_002", "tel_003"}:
+                        assert len(out_f.root[node + "/" + tel_name]) == np.multiply(
+                            len(in_f.root[node + "/" + tel_name]), 2
+                        )
+                continue
+
             for tel in in_f.root.dl1.monitoring.telescope.pointing:
                 assert len(
                     out_f.root.dl1.monitoring.telescope.pointing[tel.name]
@@ -217,10 +249,6 @@ def test_merge(tmpdir):
                     ) == np.multiply(
                         len(in_f.root.dl1.event.telescope.parameters[tel.name]), 2
                     )
-
-
-def test_stage_1_raw(tmpdir):
-    from ctapipe.tools.stage1 import Stage1Tool
 
     config = Path("./examples/stage1_config.json").absolute()
     dl1b_file = tmp_dir.name + "/dl1b_from_simtel.dl1.h5"
