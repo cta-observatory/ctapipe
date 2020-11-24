@@ -191,8 +191,7 @@ class SubarrayDescription:
         np.array:
             Array of selected tel_ids
         """
-        indices = np.where(tel_mask)[0]
-        return self.tel_ids[indices]
+        return self.tel_ids[tel_mask]
 
     @property
     def footprint(self):
