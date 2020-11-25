@@ -77,7 +77,7 @@ class Stage1Tool(Tool):
     def setup(self):
 
         # setup components:
-        self.event_source = EventSource.from_config(parent=self)
+        self.event_source = EventSource(parent=self)
 
         datalevels = self.event_source.datalevels
         if (

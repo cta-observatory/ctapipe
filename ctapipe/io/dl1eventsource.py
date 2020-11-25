@@ -69,7 +69,7 @@ class DL1EventSource(EventSource):
 
     """
 
-    def __init__(self, input_url, config=None, parent=None, **kwargs):
+    def __init__(self, input_url=None, config=None, parent=None, **kwargs):
         """
         EventSource for dl1 files in the standard DL1 data format
 
@@ -87,8 +87,7 @@ class DL1EventSource(EventSource):
         """
         super().__init__(input_url=input_url, config=config, parent=parent, **kwargs)
 
-        self.file_ = tables.open_file(input_url)
-        self.input_url = input_url
+        self.file_ = tables.open_file(self.input_url)
         self._subarray_info = SubarrayDescription.from_hdf(self.input_url)
         self._simulation_configs = self._parse_simulation_configs()
         self.datamodel_version = self.file_.root._v_attrs[
