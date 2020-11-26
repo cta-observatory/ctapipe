@@ -227,6 +227,17 @@ class EventSource(Component):
         tuple[ctapipe.io.DataLevel]
         """
 
+    def has_any_datalevel(self, datalevels):
+        """
+        Check if any of `datalevels` is in self.datalevels
+
+        Parameters:
+        -----------
+        datalevels: Iterable
+            Iterable of datalevels
+        """
+        return any(dl in self.datalevels for dl in datalevels)
+
     @property
     @abstractmethod
     def obs_ids(self):

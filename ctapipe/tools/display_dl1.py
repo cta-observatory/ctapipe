@@ -167,10 +167,14 @@ class DisplayDL1Calib(Tool):
 
     def setup(self):
         self.eventsource = EventSource.from_config(parent=self)
-        if not (
-            set([DataLevel.R0, DataLevel.R1, DataLevel.DL0, DataLevel.DL1_IMAGES])
-            & set(self.eventsource.datalevels)
-        ):
+        compatible_datalevels = [
+            DataLevel.R0,
+            DataLevel.R1,
+            DataLevel.DL0,
+            DataLevel.DL1_IMAGES,
+        ]
+
+        if not self.eventsource.has_any_datalevel(compatible_datalevels):
             raise Exception(
                 "The input file contains no pixelwise information. "
                 "Images can not be constructed."
