@@ -167,12 +167,7 @@ class DisplayDL1Calib(Tool):
 
     def setup(self):
         self.eventsource = EventSource.from_config(parent=self)
-        compatible_datalevels = [
-            DataLevel.R0,
-            DataLevel.R1,
-            DataLevel.DL0,
-            DataLevel.DL1_IMAGES,
-        ]
+        compatible_datalevels = [DataLevel.R1, DataLevel.DL0, DataLevel.DL1_IMAGES]
 
         if not self.eventsource.has_any_datalevel(compatible_datalevels):
             raise Exception(
