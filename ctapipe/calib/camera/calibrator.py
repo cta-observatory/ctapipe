@@ -257,6 +257,7 @@ def shift_waveforms(waveforms, time_shift_samples):
     [(float64[:], int64, float64[:]), (float32[:], int64, float32[:])],
     "(s),()->(s)",
     nopython=True,
+    cache=True,
 )
 def _shift_waveforms_by_integer(waveforms, integer_shift, shifted_waveforms):
     n_samples = waveforms.size

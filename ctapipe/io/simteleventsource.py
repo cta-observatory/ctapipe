@@ -52,12 +52,13 @@ SIMTEL_TO_CTA_EVENT_TYPE = {
 }
 
 
+NANOSECONDS_PER_DAY = (1 * u.day).to_value(u.ns)
+
+
 def parse_simtel_time(simtel_time):
+    """Convert a unix time second / nanosecond tuple into astropy.time.Time"""
     return Time(
-        u.Quantity(simtel_time[0], u.s),
-        u.Quantity(simtel_time[1], u.ns),
-        format="unix",
-        scale="utc",
+        simtel_time[0], simtel_time[1] * 1e-9, format="unix", scale="utc"  # ns to s
     )
 
 
@@ -468,11 +469,19 @@ class SimTelEventSource(EventSource):
             data.trigger.event_type = EventType.UNKNOWN
 
         data.trigger.tels_with_trigger = trigger["triggered_telescopes"]
-        data.trigger.time = parse_simtel_time(trigger["gps_time"])
+        central_time = parse_simtel_time(trigger["gps_time"])
+        data.trigger.time = central_time
 
         for tel_id, time in zip(
             trigger["triggered_telescopes"], trigger["trigger_times"]
         ):
+            # telesocpe time is relative to central trigger in ns
+            time = Time(
+                central_time.jd1,
+                central_time.jd2 + time / NANOSECONDS_PER_DAY,
+                scale=central_time.scale,
+                format="jd",
+            )
 
             # triggered pixel info
             n_trigger_pixels = -1
@@ -487,8 +496,7 @@ class SimTelEventSource(EventSource):
                     trigger_pixels = pixel_list["pixel_list"]
 
             trigger = data.trigger.tel[tel_id] = TelescopeTriggerContainer(
-                # time is relative to central trigger in nano seconds
-                time=data.trigger.time + u.Quantity(time, u.ns),
+                time=time,
                 n_trigger_pixels=n_trigger_pixels,
                 trigger_pixels=trigger_pixels,
             )

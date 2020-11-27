@@ -29,145 +29,174 @@ def test_merge(tmpdir):
 
     config = Path("./examples/stage1_config.json").absolute()
 
-    with tempfile.NamedTemporaryFile(suffix=".hdf5") as f1, tempfile.NamedTemporaryFile(
-        suffix=".hdf5"
-    ) as f2, tempfile.NamedTemporaryFile(
-        suffix=".hdf5"
-    ) as out_all, tempfile.NamedTemporaryFile(
-        suffix=".hdf5"
-    ) as out_skip_images, tempfile.NamedTemporaryFile(
-        suffix=".hdf5"
-    ) as out_skip_parameters:
-        assert (
-            run_tool(
-                Stage1Tool(),
-                argv=[
-                    f"--config={config}",
-                    f"--input={GAMMA_TEST_LARGE}",
-                    f"--output={f1.name}",
-                    "--write-parameters",
-                    "--write-images",
-                    "--overwrite",
-                ],
-                cwd=tmpdir,
-            )
-            == 0
+    tmp_dir = tempfile.TemporaryDirectory()
+    in_1 = tmp_dir.name + "/test_file_1.hdf5"
+    in_2 = tmp_dir.name + "/test_file_2.hdf5"
+    out_all = tmp_dir.name + "/merged_file_all.hdf5"
+    out_skip_images = tmp_dir.name + "/merged_file_images.hdf5"
+    out_skip_parameters = tmp_dir.name + "/merged_file_parameters.hdf5"
+    out_tels_dir_pattern = tmp_dir.name + "/merged_file_tels_dir_pattern.hdf5"
+
+    assert (
+        run_tool(
+            Stage1Tool(),
+            argv=[
+                f"--config={config}",
+                f"--input={GAMMA_TEST_LARGE}",
+                f"--output={in_1}",
+                "--write-parameters",
+                "--write-images",
+                "--overwrite",
+            ],
+            cwd=tmpdir,
         )
-        assert (
-            run_tool(
-                Stage1Tool(),
-                argv=[
-                    f"--config={config}",
-                    f"--input={GAMMA_TEST_LARGE}",
-                    f"--output={f2.name}",
-                    "--write-parameters",
-                    "--write-images",
-                    "--overwrite",
-                ],
-                cwd=tmpdir,
-            )
-            == 0
+        == 0
+    )
+    assert (
+        run_tool(
+            Stage1Tool(),
+            argv=[
+                f"--config={config}",
+                f"--input={GAMMA_TEST_LARGE}",
+                f"--output={in_2}",
+                "--write-parameters",
+                "--write-images",
+                "--overwrite",
+            ],
+            cwd=tmpdir,
         )
+        == 0
+    )
 
-        assert (
-            run_tool(
-                MergeTool(),
-                argv=[f"{f1.name}", f"{f2.name}", f"--o={out_all.name}", "--overwrite"],
-                cwd=tmpdir,
-            )
-            == 0
+    assert (
+        run_tool(
+            MergeTool(),
+            argv=[
+                f"--i={tmp_dir.name}",
+                "--p='test_file_*.hdf5'",
+                f"--o={out_tels_dir_pattern}",
+                "--overwrite",
+                "--t=[2, 3]",
+            ],
+            cwd=tmpdir,
         )
+        == 0
+    )
 
-        assert (
-            run_tool(
-                MergeTool(),
-                argv=[
-                    f"{f1.name}",
-                    f"{f2.name}",
-                    f"--o={out_skip_images.name}",
-                    "--overwrite",
-                    "--skip-images",
-                ],
-                cwd=tmpdir,
-            )
-            == 0
+    assert (
+        run_tool(
+            MergeTool(),
+            argv=[f"{in_1}", f"{in_2}", f"--o={out_all}", "--overwrite"],
+            cwd=tmpdir,
         )
+        == 0
+    )
 
-        assert (
-            run_tool(
-                MergeTool(),
-                argv=[
-                    f"{f1.name}",
-                    f"{f2.name}",
-                    f"--o={out_skip_parameters.name}",
-                    "--overwrite",
-                    "--skip-parameters",
-                ],
-                cwd=tmpdir,
-            )
-            == 0
+    assert (
+        run_tool(
+            MergeTool(),
+            argv=[
+                f"{in_1}",
+                f"{in_2}",
+                f"--o={out_skip_images}",
+                "--overwrite",
+                "--skip-images",
+            ],
+            cwd=tmpdir,
         )
+        == 0
+    )
 
-        out_files_list = [out_all.name, out_skip_images.name, out_skip_parameters.name]
+    assert (
+        run_tool(
+            MergeTool(),
+            argv=[
+                f"{in_1}",
+                f"{in_2}",
+                f"--o={out_skip_parameters}",
+                "--overwrite",
+                "--skip-parameters",
+            ],
+            cwd=tmpdir,
+        )
+        == 0
+    )
 
-        for out_file in out_files_list:
-            with tables.open_file(out_file, mode="r") as out_f, tables.open_file(
-                f1.name, mode="r"
-            ) as in_f:
+    out_files_list = [
+        out_all,
+        out_skip_images,
+        out_skip_parameters,
+        out_tels_dir_pattern,
+    ]
 
-                # Check expanded tables
-                assert len(out_f.root.simulation.service.shower_distribution) == 2
-                assert len(out_f.root.simulation.event.subarray.shower) == 220
-                assert len(out_f.root.configuration.simulation.run) == 2
-                assert len(out_f.root.dl1.monitoring.subarray.pointing) == 2
-                assert len(out_f.root.dl1.event.subarray.trigger) == 220
-                assert len(out_f.root.dl1.event.telescope.trigger) == 918
-                assert len(out_f.root.simulation.service.shower_distribution) == 2
-                # Check subarray and service meta
-                assert out_f.root.dl1.service["image_statistics.__table_column_meta__"]
-                assert out_f.root.configuration.instrument.subarray.layout
-                assert out_f.root.configuration.instrument.telescope.optics
-                assert (
-                    out_f.root.configuration.instrument.telescope.camera.geometry_LSTCam
+    for out_file in out_files_list:
+        with tables.open_file(out_file, mode="r") as out_f, tables.open_file(
+            in_1, mode="r"
+        ) as in_f:
+
+            # Check expanded tables
+            assert len(out_f.root.simulation.service.shower_distribution) == 2
+            assert len(out_f.root.simulation.event.subarray.shower) == 220
+            assert len(out_f.root.configuration.simulation.run) == 2
+            assert len(out_f.root.dl1.monitoring.subarray.pointing) == 2
+            assert len(out_f.root.dl1.event.subarray.trigger) == 220
+            assert len(out_f.root.dl1.event.telescope.trigger) == 918
+            assert len(out_f.root.simulation.service.shower_distribution) == 2
+            # Check subarray and service meta
+            assert out_f.root.dl1.service["image_statistics.__table_column_meta__"]
+            assert out_f.root.configuration.instrument.subarray.layout
+            assert out_f.root.configuration.instrument.telescope.optics
+            assert out_f.root.configuration.instrument.telescope.camera.geometry_LSTCam
+            assert out_f.root.configuration.instrument.telescope.camera.readout_LSTCam
+
+            # Check image statistics
+            table_in = in_f.root["/dl1/service/image_statistics"]
+            table_out = out_f.root["/dl1/service/image_statistics"]
+            for row in range(len(table_in)):
+                assert table_out.cols.counts[row] == np.multiply(
+                    table_in.cols.counts[row], 2
                 )
-                assert (
-                    out_f.root.configuration.instrument.telescope.camera.readout_LSTCam
+                assert table_out.cols.cumulative_counts[row] == np.multiply(
+                    table_in.cols.cumulative_counts[row], 2
                 )
 
-                # Check image statistics
-                table_in = in_f.root["/dl1/service/image_statistics"]
-                table_out = out_f.root["/dl1/service/image_statistics"]
-                for row in range(len(table_in)):
-                    assert table_out.cols.counts[row] == np.multiply(
-                        table_in.cols.counts[row], 2
-                    )
-                    assert table_out.cols.cumulative_counts[row] == np.multiply(
-                        table_in.cols.cumulative_counts[row], 2
-                    )
+            # Check telescope tables
+            if out_file == out_tels_dir_pattern:
+                telescope_nodes = {
+                    "/dl1/monitoring/telescope/pointing",
+                    "/dl1/event/telescope/images",
+                    "/dl1/event/telescope/parameters",
+                }
+                for node in telescope_nodes:
+                    assert len(out_f.list_nodes(node)) == 2
+                    for tel_name in {"tel_002", "tel_003"}:
+                        assert len(out_f.root[node + "/" + tel_name]) == np.multiply(
+                            len(in_f.root[node + "/" + tel_name]), 2
+                        )
+                continue
 
-                # Check telescope tables
-                for tel in in_f.root.dl1.monitoring.telescope.pointing:
+            for tel in in_f.root.dl1.monitoring.telescope.pointing:
+                assert len(
+                    out_f.root.dl1.monitoring.telescope.pointing[tel.name]
+                ) == np.multiply(
+                    len(in_f.root.dl1.monitoring.telescope.pointing[tel.name]), 2
+                )
+
+            if out_file != out_skip_images:
+                for tel in in_f.root.dl1.event.telescope.images:
                     assert len(
-                        out_f.root.dl1.monitoring.telescope.pointing[tel.name]
+                        out_f.root.dl1.event.telescope.images[tel.name]
                     ) == np.multiply(
-                        len(in_f.root.dl1.monitoring.telescope.pointing[tel.name]), 2
+                        len(in_f.root.dl1.event.telescope.images[tel.name]), 2
                     )
 
-                if out_file != out_skip_images.name:
-                    for tel in in_f.root.dl1.event.telescope.images:
-                        assert len(
-                            out_f.root.dl1.event.telescope.images[tel.name]
-                        ) == np.multiply(
-                            len(in_f.root.dl1.event.telescope.images[tel.name]), 2
-                        )
-
-                if out_file != out_skip_parameters.name:
-                    for tel in in_f.root.dl1.event.telescope.parameters:
-                        assert len(
-                            out_f.root.dl1.event.telescope.parameters[tel.name]
-                        ) == np.multiply(
-                            len(in_f.root.dl1.event.telescope.parameters[tel.name]), 2
-                        )
+            if out_file != out_skip_parameters:
+                for tel in in_f.root.dl1.event.telescope.parameters:
+                    assert len(
+                        out_f.root.dl1.event.telescope.parameters[tel.name]
+                    ) == np.multiply(
+                        len(in_f.root.dl1.event.telescope.parameters[tel.name]), 2
+                    )
 
 
 def test_stage_1(tmpdir):
@@ -479,7 +508,10 @@ def test_extract_charge_resolution(tmpdir):
     output_path = os.path.join(str(tmpdir), "cr.h5")
     tool = ChargeResolutionGenerator()
 
-    assert run_tool(tool, ["-f", str(GAMMA_TEST_LARGE), "-O", output_path], cwd=tmpdir) == 1
+    assert (
+        run_tool(tool, ["-f", str(GAMMA_TEST_LARGE), "-O", output_path], cwd=tmpdir)
+        == 1
+    )
     # TODO: Test files do not contain true charge, cannot test tool fully
     # assert os.path.exists(output_path)
     assert run_tool(tool, ["--help-all"]) == 0
