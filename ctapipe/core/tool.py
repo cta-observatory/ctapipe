@@ -1,7 +1,6 @@
 """Classes to handle configurable command-line user interfaces."""
 import logging
 import logging.config
-import warnings
 import textwrap
 from abc import abstractmethod
 import pathlib
