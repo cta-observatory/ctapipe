@@ -42,7 +42,7 @@ setup(
     packages=find_packages(),
     python_requires=">=3.7",
     install_requires=[
-        "astropy>=3,<5",
+        "astropy>=4,<5",
         "bokeh~=1.0",
         "eventio>=1.1.1,<2.0.0a0",  # at least 1.1.1, but not 2
         "iminuit~=1.3",
