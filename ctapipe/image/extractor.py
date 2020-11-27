@@ -44,6 +44,7 @@ from .hillas import hillas_parameters, camera_to_shower_coordinates
     ],
     "(s),(),(),(),()->(),()",
     nopython=True,
+    cache=True,
 )
 def extract_around_peak(
     waveforms, peak_index, width, shift, sampling_rate_ghz, sum_, peak_time
@@ -118,7 +119,7 @@ def extract_around_peak(
     sum_[0] = i_sum
 
 
-@njit(parallel=True)
+@njit(parallel=True, cache=True)
 def neighbor_average_waveform(waveforms, neighbors_indices, neighbors_indptr, lwt):
     """
     Obtain the average waveform built from the neighbors of each pixel
@@ -765,11 +766,7 @@ class TwoPassWindowSum(ImageExtractor):
 
         # this function is applied to all pixels together
         charge_1stpass, pulse_time_1stpass = extract_around_peak(
-            waveforms,
-            peak_index,
-            window_width,
-            window_shift,
-            self.sampling_rate[telid],
+            waveforms, peak_index, window_width, window_shift, self.sampling_rate[telid]
         )
 
         # Get integration correction factors

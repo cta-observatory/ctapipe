@@ -4,7 +4,7 @@ from numba import njit
 from ..containers import StatisticsContainer
 
 
-@njit()
+@njit(cache=True)
 def skewness(data, mean=None, std=None):
     """Calculate skewnewss (normalized third central moment)
     with allowing precomputed mean and std.
@@ -37,7 +37,7 @@ def skewness(data, mean=None, std=None):
     return np.mean(((data - mean) / std) ** 3)
 
 
-@njit()
+@njit(cache=True)
 def kurtosis(data, mean=None, std=None, fisher=True):
     """Calculate kurtosis (normalized fourth central moment)
     with allowing precomputed mean and std.
