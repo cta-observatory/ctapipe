@@ -76,6 +76,7 @@ def test_merge(tmpdir):
                 "--p='test_file_*.hdf5'",
                 f"--o={out_tels_dir_pattern}",
                 "--overwrite",
+                "--t=[2, 3]",
             ],
             cwd=tmpdir,
         )
