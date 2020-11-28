@@ -5,7 +5,7 @@ import numpy as np
 EPS = 2 * np.finfo(np.float64).eps
 
 
-@njit
+@njit(cache=True)
 def design_matrix(x):
     """
     Build the design matrix for linear regression for
@@ -21,7 +21,7 @@ def design_matrix(x):
     return X
 
 
-@njit
+@njit(cache=True)
 def linear_regression(X, y):
     """
     Analytical linear regression
@@ -40,7 +40,7 @@ def linear_regression(X, y):
     return np.linalg.inv(mat) @ X.T @ y
 
 
-@njit
+@njit(cache=True)
 def residual_sum_of_squares(X, y, beta):
     """Calculate the residual sum of squares
 
@@ -56,7 +56,7 @@ def residual_sum_of_squares(X, y, beta):
     return np.sum(residuals(X, y, beta) ** 2)
 
 
-@njit
+@njit(cache=True)
 def residuals(X, y, beta):
     """Calculate the residuals of a linear regression
 
@@ -72,7 +72,7 @@ def residuals(X, y, beta):
     return y - (X[:, 0] * beta[0] + beta[1])
 
 
-@njit
+@njit(cache=True)
 def _lts_single_sample(X, y, sample_size, max_iterations, eps=1e-12):
 
     # randomly draw 2 points for the initial fit
@@ -105,7 +105,7 @@ def _lts_single_sample(X, y, sample_size, max_iterations, eps=1e-12):
     return beta, error
 
 
-@njit
+@njit(cache=True)
 def lts_linear_regression(
     x, y, samples=20, relative_sample_size=0.85, max_iterations=20, eps=1e-12
 ):

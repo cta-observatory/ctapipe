@@ -15,7 +15,7 @@ from numba import njit
 __all__ = ["timing_parameters"]
 
 
-@njit
+@njit(cache=True)
 def rmse(truth, prediction):
     """Root mean squared error"""
     return np.sqrt(np.mean((truth - prediction) ** 2))

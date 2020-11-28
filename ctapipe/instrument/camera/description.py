@@ -35,8 +35,7 @@ class CameraDescription:
         return hash((self.geometry, self.readout))
 
     def __eq__(self, other):
-        """Make this hashable, so it can be used as dict keys or in sets"""
-        return hash(self) == hash(other)
+        return self.geometry == other.geometry and self.readout == other.readout
 
     @classmethod
     def get_known_camera_names(cls):

@@ -56,8 +56,7 @@ class TelescopeDescription:
         return hash((self.optics, self.camera))
 
     def __eq__(self, other):
-        """Make this hashable, so it can be used as dict keys or in sets"""
-        return hash(self) == hash(other)
+        return self.optics == other.optics and self.camera == other.camera
 
     @classmethod
     def from_name(cls, optics_name, camera_name):
