@@ -103,13 +103,13 @@ class HillasReconstructor(Reconstructor):
         super().__init__(config=config, parent=parent, **kwargs)
         self.subarray = subarray
 
-        self.cam_R_m = {
+        self._cam_radius_m = {
             tel_id: tel.camera.geometry.guess_radius()
             for tel_id, tel in subarray.tel.items()
         }
 
         telframe = TelescopeFrame()
-        self.cam_R_deg = {
+        self._cam_radius_deg = {
             tel_id: tel.camera.geometry.transform_to(telframe).guess_radius()
             for tel_id, tel in subarray.tel.items()
         }
@@ -291,8 +291,8 @@ class HillasReconstructor(Reconstructor):
             if moments.x.unit.is_equivalent(u.m):  # Image parameters are in CameraFrame
 
                 # we just need any point on the main shower axis a bit away from the cog
-                p2_x = moments.x + 0.1 * self.cam_R_m[tel_id] * np.cos(moments.psi)
-                p2_y = moments.y + 0.1 * self.cam_R_m[tel_id] * np.sin(moments.psi)
+                p2_x = moments.x + 0.1 * self._cam_radius_m[tel_id] * np.cos(moments.psi)
+                p2_y = moments.y + 0.1 * self._cam_radius_m[tel_id] * np.sin(moments.psi)
 
                 camera_frame = CameraFrame(
                     focal_length=focal_length, telescope_pointing=pointing
@@ -304,10 +304,10 @@ class HillasReconstructor(Reconstructor):
             else:  # Image parameters are already in TelescopeFrame
 
                 # we just need any point on the main shower axis a bit away from the cog
-                p2_delta_alt = moments.y + 0.1 * self.cam_R_deg[tel_id] * np.sin(
+                p2_delta_alt = moments.y + 0.1 * self._cam_radius_deg[tel_id] * np.sin(
                     moments.psi
                 )
-                p2_delta_az = moments.x + 0.1 * self.cam_R_deg[tel_id] * np.cos(
+                p2_delta_az = moments.x + 0.1 * self._cam_radius_deg[tel_id] * np.cos(
                     moments.psi
                 )
 
