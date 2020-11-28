@@ -104,15 +104,18 @@ class HillasReconstructor(Reconstructor):
         self.subarray = subarray
 
         self._cam_radius_m = {
-            tel_id: tel.camera.geometry.guess_radius()
-            for tel_id, tel in subarray.tel.items()
+            cam: cam.geometry.guess_radius()
+            for cam in subarray.camera_types
         }
 
         telframe = TelescopeFrame()
-        self._cam_radius_deg = {
-            tel_id: tel.camera.geometry.transform_to(telframe).guess_radius()
-            for tel_id, tel in subarray.tel.items()
-        }
+        self._cam_radius_deg = {}
+        for cam, radius_m in self._cam_radius_m.items():
+            cam_name = cam.camera_name
+            cam = next((c for c in subarray.camera_types if c.geometry.camera_name == cam_name))
+            point_cam = SkyCoord(0 * u.m, radius_m, frame=cam.geometry.frame)
+            point_tel = point_cam.transform_to(telframe)
+            self._cam_radius_deg[cam] = point_tel.fov_lon
 
     def __call__(self, event):
         """
@@ -280,6 +283,8 @@ class HillasReconstructor(Reconstructor):
         horizon_frame = telescopes_pointings[k].frame
         for tel_id, moments in hillas_dict.items():
 
+            camera = self.subarray.tel[tel_id].camera
+
             pointing = SkyCoord(
                 alt=telescopes_pointings[tel_id].alt,
                 az=telescopes_pointings[tel_id].az,
@@ -291,8 +296,8 @@ class HillasReconstructor(Reconstructor):
             if moments.x.unit.is_equivalent(u.m):  # Image parameters are in CameraFrame
 
                 # we just need any point on the main shower axis a bit away from the cog
-                p2_x = moments.x + 0.1 * self._cam_radius_m[tel_id] * np.cos(moments.psi)
-                p2_y = moments.y + 0.1 * self._cam_radius_m[tel_id] * np.sin(moments.psi)
+                p2_x = moments.x + 0.1 * self._cam_radius_m[camera] * np.cos(moments.psi)
+                p2_y = moments.y + 0.1 * self._cam_radius_m[camera] * np.sin(moments.psi)
 
                 camera_frame = CameraFrame(
                     focal_length=focal_length, telescope_pointing=pointing
@@ -304,10 +309,10 @@ class HillasReconstructor(Reconstructor):
             else:  # Image parameters are already in TelescopeFrame
 
                 # we just need any point on the main shower axis a bit away from the cog
-                p2_delta_alt = moments.y + 0.1 * self._cam_radius_deg[tel_id] * np.sin(
+                p2_delta_alt = moments.y + 0.1 * self._cam_radius_deg[camera] * np.sin(
                     moments.psi
                 )
-                p2_delta_az = moments.x + 0.1 * self._cam_radius_deg[tel_id] * np.cos(
+                p2_delta_az = moments.x + 0.1 * self._cam_radius_deg[camera] * np.cos(
                     moments.psi
                 )
 
