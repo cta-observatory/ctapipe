@@ -93,6 +93,14 @@ class DL1EventSource(EventSource):
         self.datamodel_version = self.file_.root._v_attrs[
             "CTA PRODUCT DATA MODEL VERSION"
         ]
+        params = "parameters" in self.file_.root.dl1.event.telescope
+        images = "images" in self.file_.root.dl1.event.telescope
+        if params and images:
+            self._datalevels = (DataLevel.DL1_IMAGES, DataLevel.DL1_PARAMETERS)
+        elif params:
+            self._datalevels = (DataLevel.DL1_PARAMETERS,)
+        elif images:
+            self._datalevels = (DataLevel.DL1_IMAGES,)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
@@ -144,14 +152,7 @@ class DL1EventSource(EventSource):
 
     @property
     def datalevels(self):
-        params = "parameters" in self.file_.root.dl1.event.telescope
-        images = "images" in self.file_.root.dl1.event.telescope
-        if params and images:
-            return (DataLevel.DL1_IMAGES, DataLevel.DL1_PARAMETERS)
-        elif params:
-            return (DataLevel.DL1_PARAMETERS,)
-        elif images:
-            return (DataLevel.DL1_IMAGES,)
+        return self._datalevels
 
     @lazyproperty
     def obs_ids(self):
