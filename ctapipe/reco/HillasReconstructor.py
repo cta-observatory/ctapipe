@@ -111,8 +111,6 @@ class HillasReconstructor(Reconstructor):
         telframe = TelescopeFrame()
         self._cam_radius_deg = {}
         for cam, radius_m in self._cam_radius_m.items():
-            cam_name = cam.camera_name
-            cam = next((c for c in subarray.camera_types if c.geometry.camera_name == cam_name))
             point_cam = SkyCoord(0 * u.m, radius_m, frame=cam.geometry.frame)
             point_tel = point_cam.transform_to(telframe)
             self._cam_radius_deg[cam] = point_tel.fov_lon
