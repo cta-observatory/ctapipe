@@ -181,9 +181,9 @@ class DisplayDL1Calib(Tool):
 
     def start(self):
         for event in self.eventsource:
-            # use saved dl1 images if they are present, calibrate raw data otherwise
-            if DataLevel.DL1_PARAMETERS not in self.eventsource.datalevels:
-                self.calibrator(event)
+            self.calibrator(event)
+
+            tel_list = event.dl1.tel.keys()
 
             tel_list = event.dl1.tel.keys()
             if self.telescope:
