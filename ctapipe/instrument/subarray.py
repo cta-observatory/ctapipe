@@ -85,23 +85,34 @@ class SubarrayDescription:
         """
         print descriptive info about subarray
         """
-
-        teltypes = defaultdict(list)
-
-        for tel_id, desc in self.tels.items():
-            teltypes[str(desc)].append(tel_id)
-
         printer(f"Subarray : {self.name}")
         printer(f"Num Tels : {self.num_tels}")
         printer(f"Footprint: {self.footprint:.2f}")
         printer("")
-        printer("                TYPE  Num IDmin  IDmax")
+        format_str = "{type:>20s} {num:3s} {tel_ids}"
+        printer(format_str.format(type="TYPE", num="NUM", tel_ids="TEL_IDS"))
         printer("=====================================")
 
-        for teltype, tels in teltypes.items():
+        # make nice range strings for tel_ids
+        # (e.g. [1,2,3,4,16,17] -> 1-4, 16-17).
+
+        table = self.to_table().group_by("tel_description")
+
+        for group in table.groups:
+            ttype = group[0]["tel_description"]
+            tids = group["tel_id"]
+            delta = np.array(tids[1:] - tids[:-1])
+            splits = np.where(delta > 1)[0]
+            id_ranges = np.split(tids, splits)
+            id_str_list = []
+            for id_range in id_ranges:
+                if len(id_range) > 1:
+                    id_str_list.append(f"{id_range.min()}-{id_range.max()}")
+                else:
+                    id_str_list.append(str(id_range[0]))
             printer(
-                "{:>20s} {:4d} {:4d} ..{:4d}".format(
-                    teltype, len(tels), min(tels), max(tels)
+                format_str.format(
+                    type=ttype, num=str(len(group)), tel_ids=", ".join(id_str_list)
                 )
             )
 
@@ -122,7 +133,7 @@ class SubarrayDescription:
 
     @lazyproperty
     def tel_indices(self):
-        """ returns dict mapping tel_id to tel_index, useful for unpacking
+        """returns dict mapping tel_id to tel_index, useful for unpacking
         lists based on tel_ids into fixed-length arrays"""
         return {tel_id: ii for ii, tel_id in enumerate(self.tels.keys())}
 
