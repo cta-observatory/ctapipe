@@ -89,32 +89,39 @@ class SubarrayDescription:
         printer(f"Num Tels : {self.num_tels}")
         printer(f"Footprint: {self.footprint:.2f}")
         printer("")
-        format_str = "{type:>20s} {num:3s} {tel_ids}"
-        printer(format_str.format(type="TYPE", num="NUM", tel_ids="TEL_IDS"))
-        printer("=====================================")
 
-        # make nice range strings for tel_ids
-        # (e.g. [1,2,3,4,16,17] -> 1-4, 16-17).
-
+        # print the per-telescope-type informatino:
         table = self.to_table().group_by("tel_description")
+        ttypes = [str(d) for d in self.telescope_types]
+        n_tels = {}
+        tel_ids = {}
 
         for group in table.groups:
-            ttype = group[0]["tel_description"]
-            tids = group["tel_id"]
-            delta = np.array(tids[1:] - tids[:-1])
+            # make nice range strings for tel_ids
+            # (e.g. [1,2,3,4,16,17] -> 1-4, 16-17).
+            tel_desc = group[0]["tel_description"]
+            tel_ids_in_group = group["tel_id"]
+            delta = np.array(tel_ids_in_group[1:] - tel_ids_in_group[:-1])
             splits = np.where(delta > 1)[0]
-            id_ranges = np.split(tids, splits)
+            id_ranges = np.split(tel_ids_in_group, splits)
             id_str_list = []
             for id_range in id_ranges:
                 if len(id_range) > 1:
                     id_str_list.append(f"{id_range.min()}-{id_range.max()}")
                 else:
                     id_str_list.append(str(id_range[0]))
-            printer(
-                format_str.format(
-                    type=ttype, num=str(len(group)), tel_ids=", ".join(id_str_list)
-                )
-            )
+            tel_ids[tel_desc] = ", ".join(id_str_list)
+            n_tels[tel_desc] = len(group)
+
+        out_table = Table(
+            {
+                "Type": ttypes,
+                "Count": list(n_tels.values()),
+                "Tel IDs": list(tel_ids.values()),
+            }
+        )
+        out_table["Tel IDs"].format = "<s"
+        printer(out_table)
 
     @lazyproperty
     def tel_coords(self):
