@@ -92,7 +92,6 @@ class SubarrayDescription:
 
         # print the per-telescope-type informatino:
         table = self.to_table().group_by("tel_description")
-        ttypes = [str(d) for d in self.telescope_types]
         n_tels = {}
         tel_ids = {}
 
@@ -115,7 +114,7 @@ class SubarrayDescription:
 
         out_table = Table(
             {
-                "Type": ttypes,
+                "Type": list(n_tels.keys()),
                 "Count": list(n_tels.values()),
                 "Tel IDs": list(tel_ids.values()),
             }
