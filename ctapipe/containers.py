@@ -403,7 +403,9 @@ class SimulatedCameraContainer(Container):
         ndim=1,
     )
 
-    true_parameters = Field(None, "Parameters derived from the true_image")
+    true_parameters = Field(
+        None, "Parameters derived from the true_image", type=ImageParametersContainer
+    )
 
 
 class SimulatedEventContainer(Container):
