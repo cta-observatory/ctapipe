@@ -115,7 +115,6 @@ class CameraGeometry:
         apply_derotation=True,
         frame=None,
     ):
-
         if pix_x.ndim != 1 or pix_y.ndim != 1:
             raise ValueError(
                 f"Pixel coordinates must be 1 dimensional, got {pix_x.ndim}"
@@ -137,8 +136,16 @@ class CameraGeometry:
         self.pix_y = pix_y
         self.pix_area = pix_area
         self.pix_type = pix_type
-        self.pix_rotation = Angle(pix_rotation)
-        self.cam_rotation = Angle(cam_rotation)
+
+        if not isinstance(pix_rotation, Angle):
+            pix_rotation = Angle(pix_rotation)
+
+        if not isinstance(cam_rotation, Angle):
+            cam_rotation = Angle(cam_rotation)
+
+        self.pix_rotation = pix_rotation
+        self.cam_rotation = cam_rotation
+
         self._neighbors = neighbors
         self.frame = frame
 
@@ -155,9 +162,7 @@ class CameraGeometry:
             self.pix_area = self.guess_pixel_area(pix_x, pix_y, pix_type)
 
         if apply_derotation:
-            # todo: this should probably not be done, but need to fix
-            # GeometryConverter and reco algorithms if we change it.
-            self.rotate(cam_rotation)
+            self.rotate(self.cam_rotation)
 
         # cache border pixel mask per instance
         self.border_cache = {}
@@ -224,13 +229,11 @@ class CameraGeometry:
         # use the same x/y attributes. Therefore we get the component names, and
         # access them by string:
         frame_attrs = list(uv_trans.frame.get_representation_component_names().keys())
-        uv_x = getattr(uv_trans, frame_attrs[0])
         uv_y = getattr(uv_trans, frame_attrs[1])
         trans_x = getattr(trans, frame_attrs[0])
         trans_y = getattr(trans, frame_attrs[1])
 
         rot = np.arctan2(uv_y[0], uv_y[1])
-        det = np.linalg.det([uv_x.value, uv_y.value])
 
         cam_rotation = rot - self.cam_rotation
         pix_rotation = rot - self.pix_rotation
@@ -415,7 +418,7 @@ class CameraGeometry:
         """ convert this to an `astropy.table.Table` """
         # currently the neighbor list is not supported, since
         # var-length arrays are not supported by astropy.table.Table
-        return Table(
+        t = Table(
             [self.pix_id, self.pix_x, self.pix_y, self.pix_area],
             names=["pix_id", "pix_x", "pix_y", "pix_area"],
             meta=dict(
@@ -427,6 +430,16 @@ class CameraGeometry:
                 CAM_ROT=self.cam_rotation.deg,
             ),
         )
+
+        # clear `info` member from quantities set by table creation
+        # which impacts indexing performance because it is deepcopied
+        # in Quantity.__getitem__, see https://github.com/astropy/astropy/issues/11066
+        for q in (self.pix_id, self.pix_x, self.pix_y, self.pix_area):
+            if hasattr(q, "__dict__"):
+                if "info" in q.__dict__:
+                    del q.__dict__["info"]
+
+        return t
 
     @classmethod
     def from_table(cls, url_or_table, **kwargs):
@@ -623,12 +636,15 @@ class CameraGeometry:
             rotation angle with unit (e.g. 12 * u.deg), or "12d"
 
         """
+        angle = Angle(angle)
         rotmat = rotation_matrix_2d(angle)
         rotated = np.dot(rotmat.T, [self.pix_x.value, self.pix_y.value])
         self.pix_x = rotated[0] * self.pix_x.unit
         self.pix_y = rotated[1] * self.pix_x.unit
-        self.pix_rotation -= Angle(angle)
-        self.cam_rotation -= Angle(angle)
+
+        # do not use -=, copy is intentional here
+        self.pix_rotation = self.pix_rotation - angle
+        self.cam_rotation = Angle(0, unit=u.deg)
 
     def info(self, printer=print):
         """ print detailed info about this camera """
@@ -800,7 +816,9 @@ class CameraGeometry:
     @staticmethod
     def simtel_shape_to_type(pixel_shape):
         try:
-            return SIMTEL_PIXEL_SHAPES[pixel_shape]
+            shape, rotation = SIMTEL_PIXEL_SHAPES[pixel_shape]
+            # make sure we don't introduce a mutable global state
+            return shape, rotation.copy()
         except KeyError:
             raise ValueError(f"Unknown pixel_shape {pixel_shape}") from None
 
