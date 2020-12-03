@@ -85,25 +85,42 @@ class SubarrayDescription:
         """
         print descriptive info about subarray
         """
-
-        teltypes = defaultdict(list)
-
-        for tel_id, desc in self.tels.items():
-            teltypes[str(desc)].append(tel_id)
-
         printer(f"Subarray : {self.name}")
         printer(f"Num Tels : {self.num_tels}")
         printer(f"Footprint: {self.footprint:.2f}")
         printer("")
-        printer("                TYPE  Num IDmin  IDmax")
-        printer("=====================================")
 
-        for teltype, tels in teltypes.items():
-            printer(
-                "{:>20s} {:4d} {:4d} ..{:4d}".format(
-                    teltype, len(tels), min(tels), max(tels)
-                )
-            )
+        # print the per-telescope-type informatino:
+        table = self.to_table().group_by("tel_description")
+        n_tels = {}
+        tel_ids = {}
+
+        for group in table.groups:
+            # make nice range strings for tel_ids
+            # (e.g. [1,2,3,4,16,17] -> 1-4, 16-17).
+            tel_desc = group[0]["tel_description"]
+            tel_ids_in_group = group["tel_id"]
+            delta = np.array(tel_ids_in_group[1:] - tel_ids_in_group[:-1])
+            splits = np.where(delta > 1)[0]
+            id_ranges = np.split(tel_ids_in_group, splits)
+            id_str_list = []
+            for id_range in id_ranges:
+                if len(id_range) > 1:
+                    id_str_list.append(f"{id_range.min()}-{id_range.max()}")
+                else:
+                    id_str_list.append(str(id_range[0]))
+            tel_ids[tel_desc] = ", ".join(id_str_list)
+            n_tels[tel_desc] = len(group)
+
+        out_table = Table(
+            {
+                "Type": list(n_tels.keys()),
+                "Count": list(n_tels.values()),
+                "Tel IDs": list(tel_ids.values()),
+            }
+        )
+        out_table["Tel IDs"].format = "<s"
+        printer(out_table)
 
     @lazyproperty
     def tel_coords(self):
@@ -122,7 +139,7 @@ class SubarrayDescription:
 
     @lazyproperty
     def tel_indices(self):
-        """ returns dict mapping tel_id to tel_index, useful for unpacking
+        """returns dict mapping tel_id to tel_index, useful for unpacking
         lists based on tel_ids into fixed-length arrays"""
         return {tel_id: ii for ii, tel_id in enumerate(self.tels.keys())}
 
