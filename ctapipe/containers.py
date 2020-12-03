@@ -238,20 +238,20 @@ class DL1CameraContainer(Container):
     peak_time = Field(
         None,
         "Numpy array containing position of the peak of the pulse as determined by "
-        "the extractor. Shape: (n_pixel)",
+        "the extractor. Shape: (n_pixel, )",
         dtype=np.float32,
         ndim=1,
     )
 
     image_mask = Field(
         None,
-        "Boolean numpy array where True means the pixel has passed cleaning. Shape: ("
-        "n_pixel)",
+        "Boolean numpy array where True means the pixel has passed cleaning."
+        " Shape: (n_pixel, )",
         dtype=np.bool,
         ndim=1,
     )
 
-    parameters = Field(ImageParametersContainer(), "Parameters derived from images")
+    parameters = Field(None, "Image parameters", type=ImageParametersContainer)
 
 
 class DL1Container(Container):
@@ -404,7 +404,7 @@ class SimulatedCameraContainer(Container):
     )
 
     true_parameters = Field(
-        ImageParametersContainer(), "Parameters derived from the true_image"
+        None, "Parameters derived from the true_image", type=ImageParametersContainer
     )
 
 
