@@ -357,20 +357,25 @@ class TelescopeParameter(List):
     """
 
     klass = TelescopePatternList
+    _valid_defaults = (object,)  # allow everything, we validate the default ourselves
 
     def __init__(self, trait, default_value=Undefined, **kwargs):
+
         if not isinstance(trait, TraitType):
             raise TypeError("trait must be a TraitType instance")
 
-        if (
-            not isinstance(default_value, (UserList, list, List))
-            and default_value is not Undefined
-        ):
-            default_value = trait.validate(self, default_value)
-            default_value = [("type", "*", default_value)]
+        self._trait = trait
+        if default_value != Undefined:
+            default_value = self.validate(self, default_value)
 
         super().__init__(default_value=default_value, **kwargs)
-        self._trait = trait
+
+    def from_string(self, s):
+        val = super().from_string(s)
+        # for strings, parsing fails and traitlets returns None
+        if val == [("type", "*", None)] and s != "None":
+            val = [("type", "*", self._trait.from_string(s))]
+        return val
 
     def validate(self, obj, value):
         # Support a single value for all (check and convert into a default value)

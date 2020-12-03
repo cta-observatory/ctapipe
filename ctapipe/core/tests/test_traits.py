@@ -433,6 +433,33 @@ def test_telescope_parameter_to_config(mock_subarray):
     assert config["SomeComponent"]["tel_param1"] == [("type", "*", 6.0)]
 
 
+def test_telescope_parameter_from_cli(mock_subarray):
+    """
+    Test we can pass single default for telescope components via cli
+    see #1559
+    """
+
+    from ctapipe.core import Tool, run_tool
+
+    class SomeComponent(TelescopeComponent):
+        path = TelescopeParameter(Path(), default_value=None).tag(config=True)
+        val = TelescopeParameter(Float(), default_value=1.0).tag(config=True)
+
+    class TelescopeTool(Tool):
+        def setup(self):
+            self.comp = SomeComponent(subarray=mock_subarray, parent=self)
+
+    tool = TelescopeTool()
+    run_tool(tool)
+    assert tool.comp.path == [("type", "*", None)]
+    assert tool.comp.val == [("type", "*", 1.0)]
+
+    tool = TelescopeTool()
+    run_tool(tool, ["--SomeComponent.path", "test.h5", "--SomeComponent.val", "2.0"])
+    assert tool.comp.path == [("type", "*", pathlib.Path("test.h5").absolute())]
+    assert tool.comp.val == [("type", "*", 2.0)]
+
+
 def test_datetimes():
     from astropy import time as t
 
