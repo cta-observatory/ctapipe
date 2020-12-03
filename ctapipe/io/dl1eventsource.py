@@ -1,4 +1,5 @@
 import astropy.units as u
+from astropy.utils.decorators import lazyproperty
 import logging
 import numpy as np
 import tables
@@ -59,7 +60,7 @@ class DL1EventSource(EventSource):
         depending on the information present in the file.
     is_simulation: Boolean
         Whether the events are simulated or observed.
-    mc_headers: Dict
+    simulation_configs: Dict
         Mapping of obs_id to ctapipe.containers.SimulationConfigContainer
         if the file contains simulated events.
     has_simulated_dl1: Boolean
@@ -88,10 +89,18 @@ class DL1EventSource(EventSource):
 
         self.file_ = tables.open_file(self.input_url)
         self._subarray_info = SubarrayDescription.from_hdf(self.input_url)
-        self._mc_headers = self._parse_mc_headers()
+        self._simulation_configs = self._parse_simulation_configs()
         self.datamodel_version = self.file_.root._v_attrs[
             "CTA PRODUCT DATA MODEL VERSION"
         ]
+        params = "parameters" in self.file_.root.dl1.event.telescope
+        images = "images" in self.file_.root.dl1.event.telescope
+        if params and images:
+            self._datalevels = (DataLevel.DL1_IMAGES, DataLevel.DL1_PARAMETERS)
+        elif params:
+            self._datalevels = (DataLevel.DL1_PARAMETERS,)
+        elif images:
+            self._datalevels = (DataLevel.DL1_IMAGES,)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
@@ -143,22 +152,21 @@ class DL1EventSource(EventSource):
 
     @property
     def datalevels(self):
-        params = "parameters" in self.file_.root.dl1.event.telescope
-        images = "images" in self.file_.root.dl1.event.telescope
-        if params and images:
-            return (DataLevel.DL1_IMAGES, DataLevel.DL1_PARAMETERS)
-        elif params:
-            return (DataLevel.DL1_PARAMETERS,)
-        elif images:
-            return (DataLevel.DL1_IMAGES,)
+        return self._datalevels
 
-    @property
+    @lazyproperty
     def obs_ids(self):
         return list(np.unique(self.file_.root.dl1.event.subarray.trigger.col("obs_id")))
 
     @property
-    def mc_headers(self):
-        return self._mc_headers
+    def simulation_config(self):
+        """
+        Returns the simulation config.
+        In case of a merged file, this will be a list of simulation configs.
+        """
+        if len(self._simulation_configs) == 1:
+            return next(iter(self._simulation_configs.values()))
+        return self._simulation_configs
 
     def _generator(self):
         yield from self._generate_events()
@@ -166,7 +174,7 @@ class DL1EventSource(EventSource):
     def __len__(self):
         return len(self.file_.root.dl1.event.subarray.trigger)
 
-    def _parse_mc_headers(self):
+    def _parse_simulation_configs(self):
         """
         Construct a dict of SimulationConfigContainers from the
         self.file_.root.configuration.simulation.run.
@@ -178,15 +186,15 @@ class DL1EventSource(EventSource):
         # the correct mcheader assigned by matching the obs_id
         # Alternatively this becomes a flat list
         # and the obs_id matching part needs to be done in _generate_events()
-        mc_headers = {}
+        simulation_configs = {}
         if "simulation" in self.file_.root.configuration:
             reader = HDF5TableReader(self.file_).read(
-                "/configuration/simulation/run", SimulationConfigContainer()
+                "/configuration/simulation/run",
+                containers=[SimulationConfigContainer(), EventIndexContainer()],
             )
-            row_iterator = self.file_.root.configuration.simulation.run.iterrows()
-            for row in row_iterator:
-                mc_headers[row["obs_id"]] = next(reader)
-        return mc_headers
+            for (config, index) in reader:
+                simulation_configs[index.obs_id] = config
+        return simulation_configs
 
     def _generate_events(self):
         """
@@ -269,17 +277,18 @@ class DL1EventSource(EventSource):
             for tel in self.file_.root.dl1.monitoring.telescope.pointing
         }
 
-        for counter, array_event in enumerate(events):
+        for counter, (trigger, index) in enumerate(events):
             data.dl1.tel.clear()
             data.simulation.tel.clear()
             data.pointing.tel.clear()
             data.trigger.tel.clear()
 
             data.count = counter
-            data.trigger, data.index = next(events)
-            data.trigger.tels_with_trigger = (
-                np.where(data.trigger.tels_with_trigger)[0] + 1
-            )  # +1 to match array index to telescope id
+            data.trigger = trigger
+            data.index = index
+            data.trigger.tels_with_trigger = self.subarray.tel_mask_to_tel_ids(
+                data.trigger.tels_with_trigger
+            )
 
             # Maybe there is a simpler way  to do this
             # Beware: tels_with_trigger contains all triggered telescopes whereas

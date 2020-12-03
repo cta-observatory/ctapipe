@@ -5,6 +5,8 @@ Test individual tool functionality
 import os
 import shlex
 import sys
+import subprocess
+import pytest
 
 import matplotlib as mpl
 
@@ -19,8 +21,58 @@ import numpy as np
 from pathlib import Path
 
 
+tmp_dir = tempfile.TemporaryDirectory()
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 LST_MUONS = get_dataset_path("lst_muons.simtel.zst")
+
+
+@pytest.fixture(scope="module")
+def dl1_image_file():
+    """
+    DL1 file containing only images (DL1A) from a gamma simulation set.
+    """
+    command = (
+        "ctapipe-stage1 "
+        f"--input {GAMMA_TEST_LARGE} "
+        f"--output {tmp_dir.name}/images.dl1.h5 "
+        "--write-images "
+        "--max-events 20 "
+        "--allowed-tels=[1,2,3]"
+    )
+    subprocess.call(command.split(), stdout=subprocess.PIPE)
+    return f"{tmp_dir.name}/images.dl1.h5"
+
+
+@pytest.fixture(scope="module")
+def dl1_parameters_file():
+    """
+    DL1 File containing only parameters (DL1B) from a gamma simulation set.
+    """
+    command = (
+        "ctapipe-stage1 "
+        f"--input {GAMMA_TEST_LARGE} "
+        f"--output {tmp_dir.name}/parameters.dl1.h5 "
+        "--write-parameters "
+        "--max-events 20 "
+        "--allowed-tels=[1,2,3]"
+    )
+    subprocess.call(command.split(), stdout=subprocess.PIPE)
+    return f"{tmp_dir.name}/parameters.dl1.h5"
+
+
+@pytest.fixture(scope="module")
+def dl1_muon_file():
+    """
+    DL1 file containing only images from a muon simulation set.
+    """
+    command = (
+        "ctapipe-stage1 "
+        f"--input {LST_MUONS} "
+        f"--output {tmp_dir.name}/muons.dl1.h5 "
+        "--write-images"
+    )
+    subprocess.call(command.split(), stdout=subprocess.PIPE)
+    return f"{tmp_dir.name}/muons.dl1.h5"
 
 
 def test_merge(tmpdir):
@@ -85,8 +137,15 @@ def test_merge(tmpdir):
 
     assert (
         run_tool(
+            MergeTool(), argv=[in_1, in_2, f"--o={out_all}", "--overwrite"], cwd=tmpdir
+        )
+        == 0
+    )
+
+    assert (
+        run_tool(
             MergeTool(),
-            argv=[f"{in_1}", f"{in_2}", f"--o={out_all}", "--overwrite"],
+            argv=[in_1, in_2, f"--o={out_skip_images}", "--overwrite", "--skip-images"],
             cwd=tmpdir,
         )
         == 0
@@ -96,23 +155,8 @@ def test_merge(tmpdir):
         run_tool(
             MergeTool(),
             argv=[
-                f"{in_1}",
-                f"{in_2}",
-                f"--o={out_skip_images}",
-                "--overwrite",
-                "--skip-images",
-            ],
-            cwd=tmpdir,
-        )
-        == 0
-    )
-
-    assert (
-        run_tool(
-            MergeTool(),
-            argv=[
-                f"{in_1}",
-                f"{in_2}",
+                in_1,
+                in_2,
                 f"--o={out_skip_parameters}",
                 "--overwrite",
                 "--skip-parameters",
@@ -198,91 +242,158 @@ def test_merge(tmpdir):
                         len(in_f.root.dl1.event.telescope.parameters[tel.name]), 2
                     )
 
+    config = Path("./examples/stage1_config.json").absolute()
+    dl1b_file = tmp_dir.name + "/dl1b_from_simtel.dl1.h5"
+    assert (
+        run_tool(
+            Stage1Tool(),
+            argv=[
+                f"--config={config}",
+                f"--input={GAMMA_TEST_LARGE}",
+                f"--output={dl1b_file}",
+                "--write-parameters",
+                "--overwrite",
+            ],
+            cwd=tmpdir,
+        )
+        == 0
+    )
 
-def test_stage_1(tmpdir):
+    # check tables were written
+    with tables.open_file(dl1b_file, mode="r") as tf:
+        assert tf.root.dl1
+        assert tf.root.dl1.event.telescope
+        assert tf.root.dl1.event.subarray
+        assert tf.root.configuration.instrument.subarray.layout
+        assert tf.root.configuration.instrument.telescope.optics
+        assert tf.root.configuration.instrument.telescope.camera.geometry_LSTCam
+        assert tf.root.configuration.instrument.telescope.camera.readout_LSTCam
+
+        assert tf.root.dl1.monitoring.subarray.pointing.dtype.names == (
+            "time",
+            "array_azimuth",
+            "array_altitude",
+            "array_ra",
+            "array_dec",
+        )
+
+    # check we can read telescope parameters
+    dl1_features = pd.read_hdf(dl1b_file, "/dl1/event/telescope/parameters/tel_001")
+    features = (
+        "obs_id",
+        "event_id",
+        "tel_id",
+        "hillas_intensity",
+        "concentration_cog",
+        "leakage_pixels_width_1",
+    )
+    for feature in features:
+        assert feature in dl1_features.columns
+
+    dl1a_file = tmp_dir.name + "/dl1a_from_simtel.dl1.h5"
+    assert (
+        run_tool(
+            Stage1Tool(),
+            argv=[
+                f"--config={config}",
+                f"--input={GAMMA_TEST_LARGE}",
+                f"--output={dl1a_file}",
+                "--write-images",
+                "--overwrite",
+            ],
+            cwd=tmpdir,
+        )
+        == 0
+    )
+
+    with tables.open_file(dl1a_file, mode="r") as tf:
+        assert tf.root.dl1
+        assert tf.root.dl1.event.telescope
+        assert tf.root.dl1.event.subarray
+        assert tf.root.configuration.instrument.subarray.layout
+        assert tf.root.configuration.instrument.telescope.optics
+        assert tf.root.configuration.instrument.telescope.camera.geometry_LSTCam
+        assert tf.root.configuration.instrument.telescope.camera.readout_LSTCam
+        assert tf.root.dl1.event.telescope.images.tel_001
+        dl1_image = tf.root.dl1.event.telescope.images.tel_001
+        assert "image_mask" in dl1_image.dtype.names
+        assert "image" in dl1_image.dtype.names
+        assert "peak_time" in dl1_image.dtype.names
+
+
+def test_stage_1_dl1(tmpdir, dl1_image_file, dl1_parameters_file):
     from ctapipe.tools.stage1 import Stage1Tool
 
     config = Path("./examples/stage1_config.json").absolute()
-    with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
-        assert (
-            run_tool(
-                Stage1Tool(),
-                argv=[
-                    f"--config={config}",
-                    f"--input={GAMMA_TEST_LARGE}",
-                    f"--output={f.name}",
-                    "--write-parameters",
-                    "--overwrite",
-                ],
-                cwd=tmpdir,
-            )
-            == 0
+    # DL1A file as input
+    dl1b_from_dl1a_file = tmp_dir.name + "/dl1b_from dl1a.dl1.h5"
+    assert (
+        run_tool(
+            Stage1Tool(),
+            argv=[
+                f"--config={config}",
+                f"--input={dl1_image_file}",
+                f"--output={dl1b_from_dl1a_file}",
+                "--write-parameters",
+                "--overwrite",
+            ],
+            cwd=tmpdir,
+        )
+        == 0
+    )
+
+    # check tables were written
+    with tables.open_file(dl1b_from_dl1a_file, mode="r") as tf:
+        assert tf.root.dl1
+        assert tf.root.dl1.event.telescope
+        assert tf.root.dl1.event.subarray
+        assert tf.root.configuration.instrument.subarray.layout
+        assert tf.root.configuration.instrument.telescope.optics
+        assert tf.root.configuration.instrument.telescope.camera.geometry_LSTCam
+        assert tf.root.configuration.instrument.telescope.camera.readout_LSTCam
+
+        assert tf.root.dl1.monitoring.subarray.pointing.dtype.names == (
+            "time",
+            "array_azimuth",
+            "array_altitude",
+            "array_ra",
+            "array_dec",
         )
 
-        # check tables were written
-        with tables.open_file(f.name, mode="r") as tf:
-            assert tf.root.dl1
-            assert tf.root.dl1.event.telescope
-            assert tf.root.dl1.event.subarray
-            assert tf.root.configuration.instrument.subarray.layout
-            assert tf.root.configuration.instrument.telescope.optics
-            assert tf.root.configuration.instrument.telescope.camera.geometry_LSTCam
-            assert tf.root.configuration.instrument.telescope.camera.readout_LSTCam
+    # check we can read telescope parameters
+    dl1_features = pd.read_hdf(
+        dl1b_from_dl1a_file, "/dl1/event/telescope/parameters/tel_001"
+    )
+    features = (
+        "obs_id",
+        "event_id",
+        "tel_id",
+        "hillas_intensity",
+        "concentration_cog",
+        "leakage_pixels_width_1",
+    )
+    for feature in features:
+        assert feature in dl1_features.columns
 
-            assert tf.root.dl1.monitoring.subarray.pointing.dtype.names == (
-                "time",
-                "array_azimuth",
-                "array_altitude",
-                "array_ra",
-                "array_dec",
-            )
-
-        # check we can read telescope parametrs
-        dl1_features = pd.read_hdf(f.name, "/dl1/event/telescope/parameters/tel_001")
-        features = (
-            "obs_id",
-            "event_id",
-            "tel_id",
-            "hillas_intensity",
-            "concentration_cog",
-            "leakage_pixels_width_1",
+    # DL1B file as input
+    assert (
+        run_tool(
+            Stage1Tool(),
+            argv=[
+                f"--config={config}",
+                f"--input={dl1_parameters_file}",
+                f"--output={tmp_dir.name + '/dl1b_from_dl1b.dl1.h5'}",
+                "--write-parameters",
+                "--overwrite",
+            ],
+            cwd=tmpdir,
         )
-        for feature in features:
-            assert feature in dl1_features.columns
-
-    with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
-        assert (
-            run_tool(
-                Stage1Tool(),
-                argv=[
-                    f"--config={config}",
-                    f"--input={GAMMA_TEST_LARGE}",
-                    f"--output={f.name}",
-                    "--write-images",
-                    "--overwrite",
-                ],
-                cwd=tmpdir,
-            )
-            == 0
-        )
-
-        with tables.open_file(f.name, mode="r") as tf:
-            assert tf.root.dl1
-            assert tf.root.dl1.event.telescope
-            assert tf.root.dl1.event.subarray
-            assert tf.root.configuration.instrument.subarray.layout
-            assert tf.root.configuration.instrument.telescope.optics
-            assert tf.root.configuration.instrument.telescope.camera.geometry_LSTCam
-            assert tf.root.configuration.instrument.telescope.camera.readout_LSTCam
-            assert tf.root.dl1.event.telescope.images.tel_001
-            dl1_image = tf.root.dl1.event.telescope.images.tel_001
-            assert "image_mask" in dl1_image.dtype.names
-            assert "image" in dl1_image.dtype.names
-            assert "peak_time" in dl1_image.dtype.names
+        == 1
+    )
 
 
 def test_stage1_datalevels(tmpdir):
-    """test the dl1 tool on a file not providing r1 or dl0"""
+    """test the dl1 tool on a file not providing r1, dl0 or dl1a"""
     from ctapipe.io import EventSource
     from ctapipe.tools.stage1 import Stage1Tool
 
@@ -312,53 +423,73 @@ def test_stage1_datalevels(tmpdir):
         def _generator(self):
             return None
 
-    with tempfile.NamedTemporaryFile(mode="wb", suffix=".dummy") as f:
-        with tempfile.NamedTemporaryFile(mode="wb", suffix=".h5") as out:
-            f.write(b"dummy")
-            f.flush()
+    dummy_file = tmp_dir.name + "/datalevels_dummy.h5"
+    out_file = tmp_dir.name + "/datalevels_dummy_stage1_output.h5"
+    with open(dummy_file, "wb") as f:
+        f.write(b"dummy")
+        f.flush()
 
-            config = Path("./examples/stage1_config.json").absolute()
-            tool = Stage1Tool()
+    config = Path("./examples/stage1_config.json").absolute()
+    tool = Stage1Tool()
 
-            assert (
-                run_tool(
-                    tool,
-                    argv=[
-                        f"--config={config}",
-                        f"--input={f.name}",
-                        f"--output={out.name}",
-                        "--write-images",
-                        "--overwrite",
-                    ],
-                    cwd=tmpdir,
-                )
-                == 1
-            )
-            # make sure the dummy event source was really used
-            assert isinstance(tool.event_source, DummyEventSource)
-
-            # we need to "touch" the output file again, otherwise tempfile will
-            # complain it no longer exists as the tool removed it
-            open(out.name, mode="a").close()
+    assert (
+        run_tool(
+            tool,
+            argv=[
+                f"--config={config}",
+                f"--input={dummy_file}",
+                f"--output={out_file}",
+                "--write-images",
+                "--overwrite",
+            ],
+            cwd=tmpdir,
+        )
+        == 1
+    )
+    # make sure the dummy event source was really used
+    assert isinstance(tool.event_source, DummyEventSource)
 
 
-def test_muon_reconstruction(tmpdir):
+def test_muon_reconstruction(tmpdir, dl1_muon_file):
     from ctapipe.tools.muon_reconstruction import MuonAnalysis
 
-    with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
-        assert (
-            run_tool(
-                MuonAnalysis(),
-                argv=[f"--input={LST_MUONS}", f"--output={f.name}", "--overwrite"],
-                cwd=tmpdir,
-            )
-            == 0
+    muon_simtel_output_file = tmp_dir.name + "/muon_reco_on_simtel.h5"
+    assert (
+        run_tool(
+            MuonAnalysis(),
+            argv=[
+                f"--input={LST_MUONS}",
+                f"--output={muon_simtel_output_file}",
+                "--overwrite",
+            ],
+            cwd=tmpdir,
         )
+        == 0
+    )
 
-        with tables.open_file(f.name) as t:
-            table = t.root.dl1.event.telescope.parameters.muons[:]
-            assert len(table) > 20
-            assert np.count_nonzero(np.isnan(table["muonring_radius"])) == 0
+    with tables.open_file(muon_simtel_output_file) as t:
+        table = t.root.dl1.event.telescope.parameters.muons[:]
+        assert len(table) > 20
+        assert np.count_nonzero(np.isnan(table["muonring_radius"])) == 0
+
+    muon_dl1_output_file = tmp_dir.name + "/muon_reco_on_dl1a.h5"
+    assert (
+        run_tool(
+            MuonAnalysis(),
+            argv=[
+                f"--input={dl1_muon_file}",
+                f"--output={muon_dl1_output_file}",
+                "--overwrite",
+            ],
+            cwd=tmpdir,
+        )
+        == 0
+    )
+
+    with tables.open_file(muon_dl1_output_file) as t:
+        table = t.root.dl1.event.telescope.parameters.muons[:]
+        assert len(table) > 20
+        assert np.count_nonzero(np.isnan(table["muonring_radius"])) == 0
 
     assert run_tool(MuonAnalysis(), ["--help-all"]) == 0
 
@@ -405,7 +536,7 @@ def test_display_events_single_tel(tmpdir):
         run_tool(
             SingleTelEventDisplay(),
             argv=shlex.split(
-                f"--infile={GAMMA_TEST_LARGE} "
+                f"--input={GAMMA_TEST_LARGE} "
                 "--tel=11 "
                 "--max-events=2 "  # <--- inconsistent!!!
             ),
@@ -417,11 +548,12 @@ def test_display_events_single_tel(tmpdir):
     assert run_tool(SingleTelEventDisplay(), ["--help-all"]) == 0
 
 
-def test_display_dl1(tmpdir):
+def test_display_dl1(tmpdir, dl1_image_file, dl1_parameters_file):
     from ctapipe.tools.display_dl1 import DisplayDL1Calib
 
     mpl.use("Agg")
 
+    # test simtel
     assert (
         run_tool(
             DisplayDL1Calib(),
@@ -430,7 +562,26 @@ def test_display_dl1(tmpdir):
         )
         == 0
     )
-
+    # test DL1A
+    assert (
+        run_tool(
+            DisplayDL1Calib(),
+            argv=shlex.split(
+                f"--input {dl1_image_file} --max_events=1 " "--telescope=11 "
+            ),
+        )
+        == 0
+    )
+    # test DL1B
+    assert (
+        run_tool(
+            DisplayDL1Calib(),
+            argv=shlex.split(
+                f"--input {dl1_parameters_file} --max_events=1 " "--telescope=11 "
+            ),
+        )
+        == 1
+    )
     assert run_tool(DisplayDL1Calib(), ["--help-all"]) == 0
 
 

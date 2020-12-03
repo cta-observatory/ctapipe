@@ -177,6 +177,22 @@ class SubarrayDescription:
         mask[indices] = True
         return mask
 
+    def tel_mask_to_tel_ids(self, tel_mask):
+        """
+        Convert a boolean mask of selected telescopes to a list of tel_ids.
+
+        Parameters
+        ----------
+        tel_mask: array-like
+            Boolean array of length ``num_tels`` with indices of the
+            telescopes in ``tel_ids`` set to True.
+        Returns
+        -------
+        np.array:
+            Array of selected tel_ids
+        """
+        return self.tel_ids[tel_mask]
+
     @property
     def footprint(self):
         """area of smallest circle containing array on ground"""

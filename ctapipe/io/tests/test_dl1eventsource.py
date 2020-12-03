@@ -32,7 +32,7 @@ def test_metadata(dl1_file):
         assert source.is_simulation
         assert source.datalevels == (DataLevel.DL1_IMAGES, DataLevel.DL1_PARAMETERS)
         assert list(source.obs_ids) == [7514]
-        assert source.mc_headers[7514].corsika_version == 6990
+        assert source.simulation_config.corsika_version == 6990
 
 
 def test_subarray(dl1_file):
@@ -70,7 +70,7 @@ def test_simulation_info(dl1_file):
             # this is skipped for that reason
             for tel in event.simulation.tel:
                 assert tel in event.simulation.tel
-                assert event.simulation.tel[tel].true_image.any()
+                assert event.simulation.tel[tel].true_image is not None
                 assert event.simulation.tel[tel].true_parameters.hillas.x != np.nan
 
 
