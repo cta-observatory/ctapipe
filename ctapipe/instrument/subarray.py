@@ -120,7 +120,8 @@ class SubarrayDescription:
             }
         )
         out_table["Tel IDs"].format = "<s"
-        printer(out_table)
+        for line in str(out_table).split("\n"):
+            printer(line)
 
     @lazyproperty
     def tel_coords(self):
