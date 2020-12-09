@@ -6,6 +6,7 @@ from astropy.time import Time
 import pathlib
 from urllib.parse import urlparse
 import os
+from collections.abc import Sequence
 
 from traitlets import (
     Bool,
@@ -422,13 +423,25 @@ class TelescopeParameter(List):
         return normalized_value
 
     def set(self, obj, value):
+        # fix for issue #1566.
+        # If a component is in Tool.classes, then a custom argparse parser
+        # gets created that appends the single element to
+        if (
+            isinstance(value, Sequence)
+            and len(value) == 1
+            and not isinstance(value[0], (list, tuple))
+        ):
+            value = [("type", "*", value[0])]
+
         # Retain existing subarray description
         # when setting new value for TelescopeParameter
         try:
             old_value = obj._trait_values[self.name]
         except KeyError:
             old_value = self.default_value
+
         super().set(obj, value)
+
         if getattr(old_value, "_subarray", None) is not None:
             obj._trait_values[self.name].attach_subarray(old_value._subarray)
 
