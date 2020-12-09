@@ -446,16 +446,23 @@ def test_telescope_parameter_from_cli(mock_subarray):
         val = TelescopeParameter(Float(), default_value=1.0).tag(config=True)
 
     class TelescopeTool(Tool):
+        classes = [SomeComponent]
+
         def setup(self):
             self.comp = SomeComponent(subarray=mock_subarray, parent=self)
 
     tool = TelescopeTool()
-    run_tool(tool)
+    assert run_tool(tool) == 0
     assert tool.comp.path == [("type", "*", None)]
     assert tool.comp.val == [("type", "*", 1.0)]
 
     tool = TelescopeTool()
-    run_tool(tool, ["--SomeComponent.path", "test.h5", "--SomeComponent.val", "2.0"])
+    assert (
+        run_tool(
+            tool, ["--SomeComponent.path", "test.h5", "--SomeComponent.val", "2.0"]
+        )
+        == 0
+    )
     assert tool.comp.path == [("type", "*", pathlib.Path("test.h5").absolute())]
     assert tool.comp.val == [("type", "*", 2.0)]
 
