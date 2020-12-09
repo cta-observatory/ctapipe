@@ -6,7 +6,6 @@ from astropy.time import Time
 import pathlib
 from urllib.parse import urlparse
 import os
-from collections.abc import Sequence
 
 from traitlets import (
     Bool,
@@ -225,6 +224,9 @@ class TelescopePatternList(UserList):
         self._lookup = None
         self._subarray = None
 
+        for i in range(len(self)):
+            self[i] = self.single_to_pattern(self[i])
+
     @property
     def tel(self):
         """ access the value per telescope_id, e.g. `param.tel[2]`"""
@@ -235,6 +237,23 @@ class TelescopePatternList(UserList):
                 "No TelescopeParameterLookup was registered. You must "
                 "call attach_subarray() first"
             )
+
+    @staticmethod
+    def single_to_pattern(value):
+        # make sure we only change things that are not already a
+        # pattern tuple
+        if (
+            not isinstance(value, tuple)
+            or len(value) != 3
+            or value[0] not in {"type", "id"}
+        ):
+            return ["type", "*", value]
+
+        return value
+
+    def append(self, value):
+        """Validate and then append a new value"""
+        super().append(self.single_to_pattern(value))
 
     def attach_subarray(self, subarray):
         """
@@ -380,7 +399,7 @@ class TelescopeParameter(List):
 
     def validate(self, obj, value):
         # Support a single value for all (check and convert into a default value)
-        if not isinstance(value, (list, List, UserList)):
+        if not isinstance(value, (list, List, UserList, TelescopePatternList)):
             value = [("type", "*", self._trait.validate(obj, value))]
 
         # Check each value of list
@@ -423,16 +442,6 @@ class TelescopeParameter(List):
         return normalized_value
 
     def set(self, obj, value):
-        # fix for issue #1566.
-        # If a component is in Tool.classes, then a custom argparse parser
-        # gets created that appends the single element to
-        if (
-            isinstance(value, Sequence)
-            and len(value) == 1
-            and not isinstance(value[0], (list, tuple))
-        ):
-            value = [("type", "*", value[0])]
-
         # Retain existing subarray description
         # when setting new value for TelescopeParameter
         try:
