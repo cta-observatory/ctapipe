@@ -108,7 +108,6 @@ def test_extract_around_peak(toymodel):
 def test_extract_sliding_window(toymodel):
     waveforms, _, _, _, _, _ = toymodel
     n_pixels, n_samples = waveforms.shape
-    rand = np.random.RandomState(1)
     charge, peak_time = extract_sliding_window(waveforms, 7, 1)
     assert (charge >= 0).all()
     assert (peak_time >= 0).all() and (peak_time <= n_samples).all()

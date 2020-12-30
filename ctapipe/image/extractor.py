@@ -120,6 +120,7 @@ def extract_around_peak(
     peak_time[0] /= sampling_rate_ghz
     sum_[0] = i_sum
 
+
 @guvectorize(
     [
         (float64[:], int64, float64, float32[:], float32[:]),
@@ -128,13 +129,11 @@ def extract_around_peak(
     "(s),(),()->(),()",
     nopython=True,
 )
-def extract_sliding_window(
-    waveforms, width, sampling_rate_ghz, sum_, peak_time
-):
+def extract_sliding_window(waveforms, width, sampling_rate_ghz, sum_, peak_time):
     """
     This function performs the following operations:
 
-    - Find the largest sum of width consecutive slices 
+    - Find the largest sum of width consecutive slices
     - Obtain the pulse time within a window defined by a peak finding
     algorithm, using the weighted average of the samples.
 
@@ -173,24 +172,26 @@ def extract_sliding_window(
     """
 
     # first find the cumulative waveform
-    cwf=np.cumsum(waveforms) 
-    cwf=np.concatenate((np.zeros(1), cwf)) # add zero at the begining so it is easier to substract the two arrays later
-    sums=cwf[width:]-cwf[:-width]
-    maxpos=np.argmax(sums) # start of the window with largest sum
-    sum_[0]=sums[maxpos]
+    cwf = np.cumsum(waveforms)
+    # add zero at the begining so it is easier to substract the two arrays later
+    cwf = np.concatenate((np.zeros(1), cwf))
+    sums = cwf[width:] - cwf[:-width]
+    maxpos = np.argmax(sums)  # start of the window with largest sum
+    sum_[0] = sums[maxpos]
 
     time_num = float64(0.0)
     time_den = float64(0.0)
     # now compute the timing as the average of non negative slices
-    for isample in prange(maxpos, maxpos+width):
+    for isample in prange(maxpos, maxpos + width):
         if waveforms[isample] > 0:
             time_num += waveforms[isample] * isample
             time_den += waveforms[isample]
 
-    peak_time[0] = time_num / time_den if time_den > 0 else maxpos+0.5*width
+    peak_time[0] = time_num / time_den if time_den > 0 else maxpos + 0.5 * width
     # Convert to units of ns
     peak_time[0] /= sampling_rate_ghz
-    
+
+
 @njit(parallel=True, cache=True)
 def neighbor_average_waveform(waveforms, neighbors_indices, neighbors_indptr, lwt):
     """
@@ -596,7 +597,7 @@ class LocalPeakWindowSum(ImageExtractor):
         return charge, peak_time
 
 
-class SlidingWindowMaxSum (ImageExtractor):
+class SlidingWindowMaxSum(ImageExtractor):
     """
     Sliding window extractor that maximizes the signal in window_width consecutive slices.
     """
@@ -618,12 +619,12 @@ class SlidingWindowMaxSum (ImageExtractor):
         This method is decorated with @lru_cache to ensure it is only
         calculated once per telescope.
         
-        WARNING: TO BE DONE properly, the current code reuses the function of 
-        LocalPeakWindowSum assuming that the pulse is symmetric (which normally is not true)
-        The proper approach would be to apply a similar sliding window over the 
+        WARNING: TO BE DONE properly, the current code reuses the function of
+        LocalPeakWindowSum assuming that the pulse is symmetric (which normally is not 
+        true). The proper approach would be to apply a similar sliding window over the
         reference pulse shape and compute the maximum fraction of the pulse contained
         in window of a given size. Thus the correction for the leakage of signal outside
-        of the integration window is slightly overestimated. 
+        of the integration window is slightly overestimated.
         
 
         Parameters
@@ -637,21 +638,19 @@ class SlidingWindowMaxSum (ImageExtractor):
         Has size n_channels, as a different correction value might be required
         for different gain channels.
         """
-        
+
         readout = self.subarray.tel[telid].camera.readout
         return integration_correction(
             readout.reference_pulse_shape,
             readout.reference_pulse_sample_width.to_value("ns"),
             (1 / readout.sampling_rate).to_value("ns"),
             self.window_width.tel[telid],
-            self.window_width.tel[telid]//2 # assuming that shift = 0.5 * window 
+            self.window_width.tel[telid] // 2,  # assuming that shift = 0.5 * window
         )
 
     def __call__(self, waveforms, telid, selected_gain_channel):
         charge, peak_time = extract_sliding_window(
-            waveforms,
-            self.window_width.tel[telid],
-            self.sampling_rate[telid],
+            waveforms, self.window_width.tel[telid], self.sampling_rate[telid]
         )
         if self.apply_integration_correction.tel[telid]:
             charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
