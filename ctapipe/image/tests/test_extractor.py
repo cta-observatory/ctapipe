@@ -8,6 +8,7 @@ from traitlets.config.loader import Config
 from ctapipe.core import non_abstract_children
 from ctapipe.image.extractor import (
     extract_around_peak,
+    extract_sliding_window,
     neighbor_average_waveform,
     subtract_baseline,
     integration_correction,
@@ -100,6 +101,27 @@ def test_extract_around_peak(toymodel):
     # Test negative amplitude
     y_offset = y - y.max() / 2
     charge, _ = extract_around_peak(y_offset[np.newaxis, :], 0, x.size, 0, 1)
+    assert_allclose(charge, y_offset.sum(), rtol=1e-3)
+    assert charge.dtype == np.float32
+
+
+def test_extract_sliding_window(toymodel):
+    waveforms, _, _, _, _, _ = toymodel
+    n_pixels, n_samples = waveforms.shape
+    rand = np.random.RandomState(1)
+    charge, peak_time = extract_sliding_window(waveforms, 7, 1)
+    assert (charge >= 0).all()
+    assert (peak_time >= 0).all() and (peak_time <= n_samples).all()
+
+    x = np.arange(100)
+    y = norm.pdf(x, 41.2, 6)
+    charge, peak_time = extract_sliding_window(y[np.newaxis, :], x.size, 1)
+    assert_allclose(charge[0], 1.0, rtol=1e-3)
+    assert_allclose(peak_time[0], 41.2, rtol=1e-3)
+
+    # Test negative amplitude
+    y_offset = y - y.max() / 2
+    charge, _ = extract_sliding_window(y_offset[np.newaxis, :], x.size, 1)
     assert_allclose(charge, y_offset.sum(), rtol=1e-3)
     assert charge.dtype == np.float32
 
