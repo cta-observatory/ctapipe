@@ -605,6 +605,10 @@ class SlidingWindowMaxSum (ImageExtractor):
         default_value=7, help="Define the width of the integration window"
     ).tag(config=True)
 
+    apply_integration_correction = BoolTelescopeParameter(
+        default_value=True, help="Apply the integration window correction"
+    ).tag(config=True)
+
     @lru_cache(maxsize=128)
     def _calculate_correction(self, telid):
         """
@@ -649,7 +653,8 @@ class SlidingWindowMaxSum (ImageExtractor):
             self.window_width.tel[telid],
             self.sampling_rate[telid],
         )
-        charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
+        if self.apply_integration_correction.tel[telid]:
+            charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
         return charge, peak_time
 
 
