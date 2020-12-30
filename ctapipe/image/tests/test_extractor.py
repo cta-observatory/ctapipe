@@ -16,6 +16,7 @@ from ctapipe.image.extractor import (
     NeighborPeakWindowSum,
     TwoPassWindowSum,
     FullWaveformSum,
+    SlidingWindowMaxSum,
 )
 from ctapipe.image.toymodel import WaveformModel
 from ctapipe.instrument import SubarrayDescription, TelescopeDescription
@@ -285,6 +286,15 @@ def test_fixed_window_sum(toymodel):
     waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
     extractor = FixedWindowSum(subarray=subarray, peak_index=47)
     charge, peak_time = extractor(waveforms, telid, selected_gain_channel)
+    assert_allclose(charge, true_charge, rtol=0.1)
+    assert_allclose(peak_time, true_time, rtol=0.1)
+
+
+def test_sliding_window_max_sum(toymodel):
+    waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
+    extractor = SlidingWindowMaxSum(subarray=subarray)
+    charge, peak_time = extractor(waveforms, telid, selected_gain_channel)
+    print(true_charge, charge, true_time, peak_time)
     assert_allclose(charge, true_charge, rtol=0.1)
     assert_allclose(peak_time, true_time, rtol=0.1)
 
