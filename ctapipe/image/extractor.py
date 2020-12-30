@@ -618,9 +618,9 @@ class SlidingWindowMaxSum(ImageExtractor):
 
         This method is decorated with @lru_cache to ensure it is only
         calculated once per telescope.
-        
+
         WARNING: TO BE DONE properly, the current code reuses the function of
-        LocalPeakWindowSum assuming that the pulse is symmetric (which normally is not 
+        LocalPeakWindowSum assuming that the pulse is symmetric (which normally is not
         true). The proper approach would be to apply a similar sliding window over the
         reference pulse shape and compute the maximum fraction of the pulse contained
         in window of a given size. Thus the correction for the leakage of signal outside
