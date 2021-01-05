@@ -1,3 +1,6 @@
+"""
+Traitlet implementations for ctapipe
+"""
 from collections import UserList
 from fnmatch import fnmatch
 from typing import Optional
