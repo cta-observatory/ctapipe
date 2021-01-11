@@ -200,7 +200,9 @@ class HDF5TableWriter(TableWriter):
                 elif isinstance(value, Time):
                     # TODO: really should use MET, but need a func for that
                     Schema.columns[col_name] = tables.Float64Col(pos=pos)
-                    self.add_column_transform(table_name, col_name, tr_time_to_float)
+                    meta[f"{col_name}_TIME_SCALE"] = "tai"
+                    meta[f"{col_name}_TIME_FORMAT"] = "mjd"
+                    self.add_column_transform(table_name, col_name, tr_time_to_mjd_tai)
 
                 elif type(value).__name__ in PYTABLES_TYPE_MAP:
                     typename = type(value).__name__
@@ -387,17 +389,28 @@ class HDF5TableReader(TableReader):
         create any transforms needed to "undo" ones in the writer
         """
         tab = self._tables[table_name]
-        for attr in tab.attrs._f_list():
+        attrs = tab.attrs._f_list()
+        for attr in attrs:
             if attr.endswith("_UNIT"):
                 colname = attr[:-5]
                 tr = partial(tr_add_unit, unitname=tab.attrs[attr])
                 self.add_column_transform(table_name, colname, tr)
 
-        for attr in tab.attrs._f_list():
-            if attr.endswith("_ENUM"):
+            elif attr.endswith("_ENUM"):
                 colname = attr[:-5]
                 enum = tab.attrs[attr]
                 self.add_column_transform(table_name, colname, enum)
+
+            elif attr.endswith("_TIME_SCALE"):
+                colname, _, _ = attr.rpartition("_TIME_SCALE")
+                scale = tab.attrs[attr]
+                if colname + "_TIME_FORMAT" in attrs:
+                    format = tab.attrs[colname + "_TIME_FORMAT"]
+                else:
+                    format = "mjd"
+
+                tr = partial(tr_parse_time, scale=scale, format=format)
+                self.add_column_transform(table_name, colname, tr)
 
     def _map_table_to_containers(self, table_name, containers, prefixes):
         """ identifies which columns in the table to read into the containers,
@@ -520,8 +533,15 @@ def tr_list_to_mask(thelist, length):
     return arr
 
 
-def tr_time_to_float(thetime):
-    return thetime.mjd
+def tr_time_to_mjd_tai(thetime: Time):
+    """
+    Convert an astropy time object to an mjd value in tai scale
+    """
+    return thetime.tai.mjd
+
+
+def tr_parse_time(time, scale, format):
+    return Time(time, scale=scale, format=format)
 
 
 def tr_add_unit(value, unitname):

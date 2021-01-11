@@ -6,6 +6,7 @@ import pytest
 import tables
 import pandas as pd
 from astropy import units as u
+from astropy.time import Time
 
 from ctapipe.core.container import Container, Field
 from ctapipe import containers
@@ -588,6 +589,27 @@ def test_column_transforms(tmp_path):
             print(data)
             assert data.value.shape == (3,)
             assert np.allclose(data.value, [6.0, 6.0, 6.0])
+
+
+def test_time(tmp_path):
+    tmp_file = tmp_path / "test_time.hdf5"
+
+    class TimeContainer(Container):
+        time = Field(None, "an astropy time")
+
+    time = Time("2012-01-01T20:00:00", format="isot", scale="utc")
+    container = TimeContainer(time=time)
+
+    with HDF5TableWriter(tmp_file, group_name="data") as writer:
+        # add user generated transform for the "value" column
+        writer.write("table", container)
+
+    with HDF5TableReader(tmp_file, mode="r") as reader:
+        for data in reader.read("/data/table", TimeContainer()):
+            assert isinstance(data.time, Time)
+            assert data.time.scale == "tai"
+            assert data.time.format == "mjd"
+            assert (data.time - time).to(u.s).value < 1e-7
 
 
 def test_filters():
