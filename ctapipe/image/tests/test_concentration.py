@@ -10,7 +10,7 @@ def test_concentration():
 
     hillas = hillas_parameters(geom[clean_mask], image[clean_mask])
 
-    conc = concentration_parameters(geom, image, hillas)
+    conc = concentration_parameters(geom[clean_mask], image[clean_mask], hillas)
 
     assert 0.1 <= conc.cog <= 0.3
     assert 0.05 <= conc.pixel <= 0.2
@@ -26,6 +26,20 @@ def test_width_0():
 
     conc = concentration_parameters(geom, image, hillas)
     assert conc.core == 0
+
+
+def test_no_pixels_near_cog():
+    geom, image, clean_mask = create_sample_image("30d")
+
+    hillas = hillas_parameters(geom[clean_mask], image[clean_mask])
+
+    # remove pixels close to cog from the cleaning pixels
+    clean_mask &= ((geom.pix_x - hillas.x) ** 2 + (geom.pix_y - hillas.y) ** 2) >= (
+        2 * geom.pixel_width ** 2
+    )
+
+    conc = concentration_parameters(geom[clean_mask], image[clean_mask], hillas)
+    assert conc.cog == 0
 
 
 if __name__ == "__main__":
