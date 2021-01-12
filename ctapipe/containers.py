@@ -153,7 +153,7 @@ class ConcentrationContainer(Container):
 
     container_prefix = "concentration"
     cog = Field(
-        nan, "Percentage of photo-electrons in the three pixels closest to the cog"
+        nan, "Percentage of photo-electrons inside one pixel diameter of the cog"
     )
     core = Field(nan, "Percentage of photo-electrons inside the hillas ellipse")
     pixel = Field(nan, "Percentage of photo-electrons in the brightest pixel")
