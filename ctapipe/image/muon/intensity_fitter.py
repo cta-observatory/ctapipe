@@ -8,6 +8,10 @@ To do:
 
 """
 import numpy as np
+
+from math import sqrt, erf
+from numba import vectorize, double
+
 from scipy.ndimage.filters import correlate1d
 from iminuit import Minuit
 from astropy import units as u
@@ -24,7 +28,6 @@ from ...core.traits import FloatTelescopeParameter, IntTelescopeParameter
 
 # ratio of the areas of the unit circle and a square of side lengths 2
 CIRCLE_SQUARE_AREA_RATIO = np.pi / 4
-
 
 def chord_length(radius, rho, phi):
     """
@@ -194,6 +197,10 @@ def image_prediction(
         max_lambda_m=max_lambda.to_value(u.m),
     )
 
+# Define numba vectorized gaussian cdf
+@vectorize([double(double, double, double)])
+def gaussian_cdf(x, mu, sig):
+    return 0.5*(1 + erf((x-mu)/(np.sqrt(2*sig**2))))
 
 def image_prediction_no_units(
     mirror_radius_m,
@@ -241,7 +248,9 @@ def image_prediction_no_units(
     # The weight is the integral of the ring's radial gaussian profile inside the
     # ring's width
     delta = pixel_diameter_rad / 2
-    cdfs = norm.cdf(
+
+    # Define Gaussian cdf for numba usage
+    cdfs = gaussian_cdf(
         [radial_dist + delta, radial_dist - delta], radius_rad, ring_width_rad
     )
     gauss = cdfs[0] - cdfs[1]
@@ -272,9 +281,11 @@ def image_prediction_no_units(
     # circle's area and that of the square whose side is equal to the circle's
     # diameter. In any case, since in the end we do a data-MC comparison of the muon
     # ring analysis outputs, it is not critical that this value is exact.
+
     pred *= CIRCLE_SQUARE_AREA_RATIO
 
     return pred
+
 
 
 def build_negative_log_likelihood(
