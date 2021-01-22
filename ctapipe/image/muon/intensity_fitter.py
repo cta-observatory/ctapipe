@@ -10,7 +10,7 @@ To do:
 import numpy as np
 
 from math import sqrt, erf
-from numba import vectorize, double
+from numba import vectorize, guvectorize, double, int32
 
 from scipy.ndimage.filters import correlate1d
 from iminuit import Minuit
@@ -29,7 +29,8 @@ from ...core.traits import FloatTelescopeParameter, IntTelescopeParameter
 # ratio of the areas of the unit circle and a square of side lengths 2
 CIRCLE_SQUARE_AREA_RATIO = np.pi / 4
 
-def chord_length(radius, rho, phi):
+@guvectorize([(double, double, double[:], double[:])], '(),(),(n)->(n)')
+def chord_length(radius, rho, phi, ret_chord):
     """
     Function for integrating the length of a chord across a circle
 
@@ -46,24 +47,17 @@ def chord_length(radius, rho, phi):
     -------
     ndarray: chord length
     """
-    scalar = np.isscalar(phi)
-    phi = np.array(phi, ndmin=1, copy=False)
-
-    chord = 1 - (rho ** 2 * np.sin(phi) ** 2)
-    valid = chord >= 0
-
-    if rho <= 1.0:
-        # muon has hit the mirror
-        chord[valid] = radius * (np.sqrt(chord[valid]) + rho * np.cos(phi[valid]))
-    else:
-        # muon did not hit the mirror
-        chord[valid] = 2 * radius * np.sqrt(chord[valid])
-
-    chord[~valid] = 0
-
-    if scalar:
-        return chord[0]
-    return chord
+    for i in range(len(phi)):
+        ret_chord[i] = 1 - (rho ** 2 * np.sin(phi[i]) ** 2)
+        if ret_chord[i] < 0:
+            ret_chord[i] = 0
+        else:
+            if rho <= 1.0:
+            # muon has hit the mirror
+                ret_chord[i] = radius * (np.sqrt(ret_chord[i]) + rho * np.cos(phi[i]))
+            else:
+            # muon did not hit the mirror
+                ret_chord[i] = 2 * radius * np.sqrt(ret_chord[i])
 
 
 def intersect_circle(mirror_radius, r, angle, hole_radius=0):
