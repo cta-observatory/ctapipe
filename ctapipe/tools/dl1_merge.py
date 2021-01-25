@@ -419,7 +419,7 @@ class MergeTool(Tool):
         reference = meta.Reference(
             contact=meta.Contact(name="", email="", organization="CTA Consortium"),
             product=meta.Product(
-                description="Merged DL1 Data Product",
+                description="DL1 Data Product",
                 data_category="S",
                 data_level="DL1",
                 data_association="Subarray",
