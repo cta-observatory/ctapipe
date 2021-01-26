@@ -2,7 +2,7 @@ import os
 import logging
 import tempfile
 import pytest
-from traitlets import Float, TraitError, List, Dict, Int
+from traitlets import Float, TraitError, Dict, Int
 from traitlets.config import Config
 from pathlib import Path
 
@@ -190,7 +190,7 @@ def test_tool_command_line_precedence():
         description = "test"
         userparam = Float(5.0, help="parameter").tag(config=True)
 
-        classes = List([SubComponent])
+        classes = [SubComponent]
         aliases = Dict({"component_param": "SubComponent.component_param"})
 
         def setup(self):

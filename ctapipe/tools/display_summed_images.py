@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Tool
-from ctapipe.core.traits import Unicode, Integer, Dict, List, Path
+from ctapipe.core.traits import Unicode, Integer, Dict, Path
 from ctapipe.io import SimTelEventSource
 from ctapipe.visualization import CameraDisplay
 from ctapipe.utils import get_dataset_path
@@ -49,7 +49,7 @@ class ImageSumDisplayerTool(Tool):
         }
     )
 
-    classes = List([CameraCalibrator, SimTelEventSource])
+    classes = [CameraCalibrator, SimTelEventSource]
 
     def setup(self):
         # load up the telescope types table (need to first open a file, a bit of

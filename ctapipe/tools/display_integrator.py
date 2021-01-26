@@ -5,7 +5,7 @@ with the integration window.
 """
 import numpy as np
 from matplotlib import pyplot as plt
-from traitlets import Dict, List, Int, Bool, Enum
+from traitlets import Dict, Int, Bool, Enum
 
 from ctapipe.core import traits
 from ctapipe.calib import CameraCalibrator
@@ -241,7 +241,7 @@ class DisplayIntegrator(Tool):
             )
         )
     )
-    classes = List([EventSource] + traits.classes_with_traits(ImageExtractor))
+    classes = [EventSource] + traits.classes_with_traits(ImageExtractor)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

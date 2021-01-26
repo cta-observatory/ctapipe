@@ -15,7 +15,7 @@ from ctapipe.analysis.camera.charge_resolution import ChargeResolutionCalculator
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Provenance, Tool, traits
 from ctapipe.image.extractor import ImageExtractor
-from ctapipe.io.simteleventsource import SimTelEventSource
+from ctapipe.io import EventSource
 
 
 class ChargeResolutionGenerator(Tool):
@@ -39,14 +39,16 @@ class ChargeResolutionGenerator(Tool):
 
     aliases = Dict(
         dict(
-            f="SimTelEventSource.input_url",
+            f="EventSource.input_url",
             max_events="SimTelEventSource.max_events",
-            T="SimTelEventSource.allowed_tels",
+            T="EventSource.allowed_tels",
             O="ChargeResolutionGenerator.output_path",
         )
     )
 
-    classes = List([SimTelEventSource] + traits.classes_with_traits(ImageExtractor))
+    classes = traits.classes_with_traits(EventSource) + traits.classes_with_traits(
+        ImageExtractor
+    )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -57,7 +59,7 @@ class ChargeResolutionGenerator(Tool):
     def setup(self):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
 
-        self.eventsource = SimTelEventSource(parent=self)
+        self.eventsource = EventSource(parent=self)
 
         self.calibrator = CameraCalibrator(
             parent=self, subarray=self.eventsource.subarray

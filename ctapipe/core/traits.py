@@ -200,7 +200,27 @@ def classes_with_traits(base_class):
     """ Returns a list of the base class plus its non-abstract children
     if they have traits """
     all_classes = [base_class] + non_abstract_children(base_class)
-    return [cls for cls in all_classes if has_traits(cls)]
+    with_traits = []
+
+    for cls in all_classes:
+        if has_traits(cls):
+            with_traits.append(cls)
+
+        # add subcomponents
+        if hasattr(cls, "classes"):
+            # we will ignore failing classes to not break anyone
+            if isinstance(cls.classes, List):
+                classes = cls.classes.default()
+            else:
+                classes = cls.classes
+
+            try:
+                for component in classes:
+                    with_traits.extend(classes_with_traits(component))
+            except Exception:
+                pass
+
+    return with_traits
 
 
 def has_traits(cls, ignore=("config", "parent")):

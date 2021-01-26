@@ -16,7 +16,7 @@ from tqdm import tqdm
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Tool
-from ctapipe.core.traits import Float, Dict, List
+from ctapipe.core.traits import Float, Dict
 from ctapipe.core.traits import Unicode, Int, Bool
 from ctapipe.image import tailcuts_clean, hillas_parameters, HillasParameterizationError
 from ctapipe.io import EventSource
@@ -65,7 +65,7 @@ class SingleTelEventDisplay(Tool):
         }
     )
 
-    classes = List([EventSource, CameraCalibrator])
+    classes = [EventSource, CameraCalibrator]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
