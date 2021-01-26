@@ -17,6 +17,7 @@ from ctapipe.containers import (
     MorphologyContainer,
     SimulationConfigContainer,
     SimulatedShowerContainer,
+    SimulatedEventContainer,
     PeakTimeStatisticsContainer,
     TimingParametersContainer,
     TriggerContainer,
@@ -263,7 +264,7 @@ class DL1EventSource(EventSource):
                 SimulatedShowerContainer(),
                 prefixes="true",
             )
-            data.simulation = SimulatedShowerContainer()
+            data.simulation = SimulatedEventContainer()
 
         # Setup iterators for the array events
         events = HDF5TableReader(self.file_).read(
