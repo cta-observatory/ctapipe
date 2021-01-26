@@ -468,7 +468,7 @@ class DL1Writer(Component):
                 "dl1/event/telescope/trigger", [tel_index, event.trigger.tel[tel_id]]
             )
 
-            has_sim_camera = (
+            has_sim_camera = self._is_simulation and (
                 tel_id in event.simulation.tel
                 and event.simulation.tel[tel_id].true_image is not None
             )
@@ -479,7 +479,7 @@ class DL1Writer(Component):
                     containers=[tel_index, *dl1_camera.parameters.values()],
                 )
 
-                if self._is_simulation and has_sim_camera:
+                if has_sim_camera:
                     writer.write(
                         f"simulation/event/telescope/parameters/{table_name}",
                         [
