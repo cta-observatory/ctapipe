@@ -281,7 +281,7 @@ class DL1EventSource(EventSource):
 
         for counter, (trigger, index) in enumerate(events):
             data.dl1.tel.clear()
-            if self.is_simulation():
+            if self.is_simulation:
                 data.simulation.tel.clear()
             data.pointing.tel.clear()
             data.trigger.tel.clear()
