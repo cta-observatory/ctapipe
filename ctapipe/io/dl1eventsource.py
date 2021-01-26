@@ -117,9 +117,9 @@ class DL1EventSource(EventSource):
             return False
         with tables.open_file(file_path) as f:
             metadata = f.root._v_attrs
-            if "CTA PRODUCT DESCRIPTION" not in metadata._v_attrnames:
+            if "CTA PRODUCT DATA LEVEL" not in metadata._v_attrnames:
                 return False
-            if metadata["CTA PRODUCT DESCRIPTION"] != "DL1 Data Product":
+            if metadata["CTA PRODUCT DATA LEVEL"] != "DL1":
                 return False
             if "CTA PRODUCT DATA MODEL VERSION" not in metadata._v_attrnames:
                 return False
