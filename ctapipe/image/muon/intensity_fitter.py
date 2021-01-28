@@ -262,8 +262,6 @@ def image_prediction_no_units(
     # The weight is the integral of the ring's radial gaussian profile inside the
     # ring's width
     delta = pixel_diameter_rad / 2
-
-    # Define Gaussian cdf for numba usage
     cdfs = gaussian_cdf(
         [radial_dist + delta, radial_dist - delta], radius_rad, ring_width_rad
     )
