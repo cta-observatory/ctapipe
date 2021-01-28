@@ -203,7 +203,7 @@ def gaussian_cdf(x, mu, sig):
     Parameters
     ----------
     x: float
-        point, at which the cfd should be evaluated
+        point, at which the cdf should be evaluated
     mu: float
         gaussian mean
     sig: float
