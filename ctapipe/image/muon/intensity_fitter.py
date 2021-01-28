@@ -9,8 +9,8 @@ To do:
 """
 import numpy as np
 
-from math import sqrt, erf
-from numba import vectorize, guvectorize, double, int32
+from math import erf
+from numba import vectorize, guvectorize, double
 
 from scipy.ndimage.filters import correlate1d
 from iminuit import Minuit
@@ -29,7 +29,8 @@ from ...core.traits import FloatTelescopeParameter, IntTelescopeParameter
 # ratio of the areas of the unit circle and a square of side lengths 2
 CIRCLE_SQUARE_AREA_RATIO = np.pi / 4
 
-@guvectorize([(double, double, double[:], double[:])], '(),(),(n)->(n)')
+
+@guvectorize([(double, double, double[:], double[:])], "(),(),(n)->(n)")
 def chord_length(radius, rho, phi, ret_chord):
     """
     Function for integrating the length of a chord across a circle
@@ -45,7 +46,8 @@ def chord_length(radius, rho, phi, ret_chord):
 
     Returns
     -------
-    ndarray: chord length
+    ret_chord: ndarray
+        chord length
     """
     for i in range(len(phi)):
         ret_chord[i] = 1 - (rho ** 2 * np.sin(phi[i]) ** 2)
@@ -53,10 +55,10 @@ def chord_length(radius, rho, phi, ret_chord):
             ret_chord[i] = 0
         else:
             if rho <= 1.0:
-            # muon has hit the mirror
+                # muon has hit the mirror
                 ret_chord[i] = radius * (np.sqrt(ret_chord[i]) + rho * np.cos(phi[i]))
             else:
-            # muon did not hit the mirror
+                # muon did not hit the mirror
                 ret_chord[i] = 2 * radius * np.sqrt(ret_chord[i])
 
 
@@ -191,10 +193,28 @@ def image_prediction(
         max_lambda_m=max_lambda.to_value(u.m),
     )
 
-# Define numba vectorized gaussian cdf
+
 @vectorize([double(double, double, double)])
 def gaussian_cdf(x, mu, sig):
-    return 0.5*(1 + erf((x-mu)/(np.sqrt(2*sig**2))))
+    """
+    Function to compute values of a given gaussians
+    cumulative distribution function (cdf)
+
+    Parameters
+    ----------
+    x: float
+        point, at which the cfd should be evaluated
+    mu: float
+        gaussian mean
+    sig: float
+        gaussian standart deviation
+
+    Returns
+    -------
+    float: cdf-value at x
+    """
+    return 0.5 * (1 + erf((x - mu) / (np.sqrt(2 * sig ** 2))))
+
 
 def image_prediction_no_units(
     mirror_radius_m,
@@ -279,7 +299,6 @@ def image_prediction_no_units(
     pred *= CIRCLE_SQUARE_AREA_RATIO
 
     return pred
-
 
 
 def build_negative_log_likelihood(
@@ -449,7 +468,6 @@ class MuonIntensityFitter(TelescopeComponent):
     oversampling = IntTelescopeParameter(
         help="Oversampling for the line integration", default_value=3
     ).tag(config=True)
-
 
     def __call__(self, tel_id, center_x, center_y, radius, image, pedestal, mask=None):
         """
