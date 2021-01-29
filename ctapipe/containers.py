@@ -399,7 +399,7 @@ class SimulatedCameraContainer(Container):
         None,
         "Numpy array of camera image in PE as simulated before noise has been added. "
         "Shape: (n_pixel)",
-        dtype=np.float32,
+        dtype=np.int32,
         ndim=1,
     )
 
