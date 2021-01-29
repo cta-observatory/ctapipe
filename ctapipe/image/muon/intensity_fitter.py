@@ -30,8 +30,8 @@ from ...core.traits import FloatTelescopeParameter, IntTelescopeParameter
 CIRCLE_SQUARE_AREA_RATIO = np.pi / 4
 
 
-@guvectorize([(double, double, double[:], double[:])], "(),(),(n)->(n)")
-def chord_length(radius, rho, phi, ret_chord):
+@vectorize([double(double, double, double)])
+def chord_length(radius, rho, phi):
     """
     Function for integrating the length of a chord across a circle
 
@@ -41,25 +41,28 @@ def chord_length(radius, rho, phi, ret_chord):
         radius of circle
     rho: float
         fractional distance of impact point from circle center
-    phi: ndarray in radians
+    phi: float in radians
         rotation angles to calculate length
 
     Returns
     -------
-    ret_chord: ndarray
+    float:
         chord length
     """
-    for i in range(len(phi)):
-        ret_chord[i] = 1 - (rho ** 2 * np.sin(phi[i]) ** 2)
-        if ret_chord[i] < 0:
-            ret_chord[i] = 0
-        else:
-            if rho <= 1.0:
-                # muon has hit the mirror
-                ret_chord[i] = radius * (np.sqrt(ret_chord[i]) + rho * np.cos(phi[i]))
-            else:
-                # muon did not hit the mirror
-                ret_chord[i] = 2 * radius * np.sqrt(ret_chord[i])
+    chord = 1 - (rho ** 2 * np.sin(phi) ** 2)
+    valid = chord >= 0
+
+    if not valid:
+        return 0
+
+    if rho <= 1.0:
+        # muon has hit the mirror
+        chord = radius * (np.sqrt(chord) + rho * np.cos(phi))
+    else:
+        # muon did not hit the mirror
+        chord = 2 * radius * np.sqrt(chord)
+
+    return chord
 
 
 def intersect_circle(mirror_radius, r, angle, hole_radius=0):
