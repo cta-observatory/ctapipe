@@ -1,0 +1,31 @@
+TwoPassWindowSum
+================
+
+.. currentmodule:: ctapipe.image
+
+.. autoclass:: TwoPassWindowSum
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~TwoPassWindowSum.apply_integration_correction
+      ~TwoPassWindowSum.core_threshold
+      ~TwoPassWindowSum.disable_second_pass
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~TwoPassWindowSum.__call__
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: apply_integration_correction
+   .. autoattribute:: core_threshold
+   .. autoattribute:: disable_second_pass
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__

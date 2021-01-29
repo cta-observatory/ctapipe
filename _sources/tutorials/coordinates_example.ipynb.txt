@@ -1,0 +1,642 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "slide"
+    }
+   },
+   "source": [
+    "# Coordinates usage in ctapipe"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "import astropy.units as u\n",
+    "import copy\n",
+    "import numpy as np\n",
+    "import matplotlib.pyplot as plt\n",
+    "\n",
+    "\n",
+    "from ctapipe.io import EventSource\n",
+    "from ctapipe.calib import CameraCalibrator\n",
+    "from ctapipe.utils import get_dataset_path\n",
+    "\n",
+    "from ctapipe.visualization import ArrayDisplay\n",
+    "\n",
+    "\n",
+    "%matplotlib inline"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "from astropy.coordinates import SkyCoord, AltAz\n",
+    "\n",
+    "from ctapipe.coordinates import (\n",
+    "    GroundFrame,\n",
+    "    TiltedGroundFrame,\n",
+    "    NominalFrame,\n",
+    "    TelescopeFrame,\n",
+    "    CameraFrame,\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# make plots and fonts larger\n",
+    "plt.rcParams['figure.figsize'] = (12, 8)\n",
+    "plt.rcParams['font.size'] = 16"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "## Open test dataset"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "filename = get_dataset_path(\"gamma_test_large.simtel.gz\")\n",
+    "source = EventSource(filename, max_events=4)\n",
+    "\n",
+    "events = [copy.deepcopy(event) for event in source]\n",
+    "event = events[3]\n",
+    "\n",
+    "layout = set(source.subarray.tel_ids)  "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Choose event with LST"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "This ensures that the telescope is not \"parked\" (as it would be in an event where it is not triggered) but is actually pointing to a source."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "print(f'Telescope with data: {event.r0.tel.keys()}')\n",
+    "tel_id = 2"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "slide"
+    }
+   },
+   "source": [
+    "## AltAz\n",
+    "\n",
+    "See [Astropy Docs on AltAz](http://docs.astropy.org/en/stable/api/astropy.coordinates.AltAz.html). \n",
+    "\n",
+    "Pointing direction of telescopes or the origin of a simulated shower are described in the `AltAz` frame.\n",
+    "This is a local, angular coordinate frame, with angles `altitude` and `azimuth`.\n",
+    "Altitude is the measured from the Horizon (0°) to the Zenith (90°).\n",
+    "For the azimuth, there are different conventions. In Astropy und thus ctapipe, Azimuth is oriented East of North (i.e., N=0°, E=90°)."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from astropy.time import Time\n",
+    "from astropy.coordinates import EarthLocation"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "obstime = Time('2013-11-01T03:00')\n",
+    "location = EarthLocation.of_site('Roque de los Muchachos')\n",
+    "\n",
+    "altaz = AltAz(location=location, obstime=obstime)\n",
+    "\n",
+    "array_pointing = SkyCoord(\n",
+    "    alt=event.pointing.array_azimuth,\n",
+    "    az=event.pointing.array_altitude, \n",
+    "    frame=altaz,\n",
+    ")\n",
+    "\n",
+    "print(array_pointing)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "## CameraFrame\n",
+    "\n",
+    "Camera coordinate frame.\n",
+    "\n",
+    "The camera frame is a 2d cartesian frame, describing position of objects in the focal plane of the telescope.\n",
+    "\n",
+    "The frame is defined as in H.E.S.S., starting at the horizon, the telescope is pointed to magnetic north in azimuth and then up to zenith.\n",
+    "\n",
+    "Now, x points north and y points west, so in this orientation, the camera coordinates line up with the CORSIKA ground coordinate system.\n",
+    "\n",
+    "MAGIC and FACT use a different camera coordinate system: Standing at the dish, looking at the camera, x points right, y points up.\n",
+    "To transform MAGIC/FACT to ctapipe, do x' = -y, y' = -x.\n",
+    "\n",
+    "**Typical usage**: Position of pixels in the focal plane."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "geometry = source.subarray.tel[tel_id].camera.geometry\n",
+    "pix_x = geometry.pix_x \n",
+    "pix_y = geometry.pix_y\n",
+    "focal_length = source.subarray.tel[tel_id].optics.equivalent_focal_length "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "telescope_pointing = SkyCoord(\n",
+    "    alt=event.pointing.tel[tel_id].altitude, \n",
+    "    az=event.pointing.tel[tel_id].azimuth, \n",
+    "    frame=altaz,\n",
+    ")\n",
+    "\n",
+    "camera_frame = CameraFrame(\n",
+    "    focal_length=focal_length,\n",
+    "    rotation=0 * u.deg,\n",
+    "    telescope_pointing=telescope_pointing,\n",
+    ")\n",
+    "\n",
+    "cam_coords = SkyCoord(x=pix_x, y=pix_y, frame=camera_frame)\n",
+    "\n",
+    "print(cam_coords)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "plt.scatter(cam_coords.x, cam_coords.y)\n",
+    "plt.title(f'Camera type: {geometry.camera_name}')\n",
+    "plt.xlabel(f'x / {cam_coords.x.unit}')\n",
+    "plt.ylabel(f'y / {cam_coords.y.unit}')\n",
+    "plt.axis('square');"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "The implementation of the coordinate system with astropy makes it easier to use time of the observation and location of the observing site, to understand, for example which stars are visible during a certain night and how they might be visible in the camera.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from ctapipe.visualization import CameraDisplay\n",
+    "from ctapipe.instrument import CameraGeometry\n",
+    "\n",
+    "location = EarthLocation.of_site('Roque de los Muchachos')\n",
+    "obstime = Time('2018-11-01T04:00')\n",
+    "\n",
+    "crab = SkyCoord.from_name(\"crab nebula\")\n",
+    "\n",
+    "altaz = AltAz(location=location, obstime=obstime)\n",
+    "\n",
+    "pointing = crab.transform_to(altaz)\n",
+    "\n",
+    "camera_frame = CameraFrame(\n",
+    "    telescope_pointing=pointing,\n",
+    "    focal_length=focal_length,\n",
+    "    obstime=obstime,\n",
+    "    location=location,\n",
+    ")\n",
+    "\n",
+    "cam = CameraGeometry.from_name('LSTCam')\n",
+    "fig, ax = plt.subplots()\n",
+    "display = CameraDisplay(cam, ax=ax)\n",
+    "\n",
+    "ax.set_title(\n",
+    "    f'La Palma, {obstime}, az={pointing.az.deg:.1f}°, zenith={pointing.zen.deg:.1f}°, camera={geometry.camera_name}'\n",
+    ")\n",
+    "\n",
+    "for i, name in enumerate(['crab nebula', 'o tau', 'zet tau']):\n",
+    "    star = SkyCoord.from_name(name)\n",
+    "    star_cam = star.transform_to(camera_frame)\n",
+    "\n",
+    "    x = star_cam.x.to_value(u.m)\n",
+    "    y = star_cam.y.to_value(u.m)\n",
+    "\n",
+    "    ax.plot(x, y, marker='*', color=f'C{i}')\n",
+    "    ax.annotate(\n",
+    "        s=name, xy=(x, y), xytext=(5, 5),\n",
+    "        textcoords='offset points', color=f'C{i}',\n",
+    "    )\n",
+    "\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "## TelescopeFrame\n",
+    "\n",
+    "Telescope coordinate frame.\n",
+    "A `Frame` using a `UnitSphericalRepresentation`.\n",
+    "\n",
+    "This is basically the same as a `HorizonCoordinate`, but the origin is at the telescope's pointing direction.\n",
+    "This is what astropy calls a `SkyOffsetFrame`.\n",
+    "\n",
+    "The axis of the telescope frame, `fov_lon` and `fov_lat`, are aligned with the horizontal system's azimuth and altitude respectively.\n",
+    " \n",
+    "Pointing corrections should applied to the transformation between this frame and the camera frame."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "scrolled": true,
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "telescope_frame = TelescopeFrame(\n",
+    "    telescope_pointing=pointing,\n",
+    "    obstime=pointing.obstime,\n",
+    "    location=pointing.location,\n",
+    ")\n",
+    "telescope_coords = cam_coords.transform_to(telescope_frame)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "wrap_angle = telescope_pointing.az + 180* u.deg\n",
+    "\n",
+    "plt.axis('equal')\n",
+    "plt.scatter(\n",
+    "    telescope_coords.fov_lon.deg, \n",
+    "    telescope_coords.fov_lat.deg,\n",
+    "    alpha=0.2,\n",
+    "    color='gray'\n",
+    ")\n",
+    "\n",
+    "\n",
+    "for i, name in enumerate(['crab nebula', 'o tau', 'zet tau']):\n",
+    "    star = SkyCoord.from_name(name)\n",
+    "    star_tel = star.transform_to(telescope_frame)\n",
+    "\n",
+    "   \n",
+    "    plt.plot(star_tel.fov_lon.deg, star_tel.fov_lat.deg, '*', ms=10)\n",
+    "    plt.annotate(\n",
+    "        s=name, xy=(star_tel.fov_lon.deg, star_tel.fov_lat.deg), xytext=(5, 5),\n",
+    "        textcoords='offset points', color=f'C{i}',\n",
+    "    )\n",
+    "\n",
+    "plt.xlabel('fov_lon / {}'.format(telescope_coords.altaz.az.unit))\n",
+    "plt.ylabel('fov_lat / {}'.format(telescope_coords.altaz.alt.unit))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "## NominalFrame\n",
+    "\n",
+    "Nominal coordinate frame.\n",
+    "A Frame using a `UnitSphericalRepresentation`.\n",
+    "This is basically the same as a `HorizonCoordinate`, but the\n",
+    "origin is at an arbitray position in the sky.\n",
+    "This is what astropy calls a `SkyOffsetFrame`\n",
+    "If the telescopes are in divergent pointing, this `Frame` can be\n",
+    "used to transform to a common system.\n",
+    "- 2D reconstruction (`HillasIntersector`) is performed in this frame \n",
+    "- 3D reconstruction (`HillasReconstructor`) doesn't need this frame"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "source": [
+    "Let's play a bit with 3 MSTs with divergent pointing"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "location = EarthLocation.of_site('Roque de los Muchachos')\n",
+    "obstime = Time('2018-11-01T02:00')\n",
+    "altaz = AltAz(location=location, obstime=obstime)\n",
+    "\n",
+    "crab = SkyCoord.from_name(\"crab nebula\")\n",
+    "\n",
+    "# let's observe crab\n",
+    "array_pointing = crab.transform_to(altaz)\n",
+    "\n",
+    "\n",
+    "# let the telescopes point to different positions\n",
+    "alt_offsets = u.Quantity([1, -1, -1], u.deg)\n",
+    "az_offsets = u.Quantity([0, -2, +2], u.deg)\n",
+    "\n",
+    "\n",
+    "tel_pointings = SkyCoord(\n",
+    "    alt=array_pointing.alt + alt_offsets, \n",
+    "    az=array_pointing.az + az_offsets, \n",
+    "    frame=altaz,\n",
+    ")\n",
+    "\n",
+    "camera_frames = CameraFrame(\n",
+    "    telescope_pointing=tel_pointings,  # multiple pointings, so we get multiple frames\n",
+    "    focal_length=focal_length,\n",
+    "    obstime=obstime,\n",
+    "    location=location,\n",
+    ")\n",
+    "\n",
+    "nom_frame = NominalFrame(origin=array_pointing, obstime=obstime, location=location)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "fig, ax = plt.subplots(figsize=(15, 10))\n",
+    "ax.set_aspect(1)\n",
+    "\n",
+    "for i in range(3):\n",
+    "    cam_coord = SkyCoord(x=pix_x, y=pix_y, frame=camera_frames[i])\n",
+    "    nom_coord = cam_coord.transform_to(nom_frame)\n",
+    "    \n",
+    "    ax.scatter(\n",
+    "        x=nom_coord.fov_lon.deg,\n",
+    "        y=nom_coord.fov_lat.deg,\n",
+    "        label=f'Telescope {i + 1}',\n",
+    "        s=30,\n",
+    "        alpha=0.15,\n",
+    "    )  \n",
+    "    \n",
+    "\n",
+    "for i, name in enumerate(['Crab', 'o tau', 'zet tau']):\n",
+    "    s = SkyCoord.from_name(name)\n",
+    "    s_nom = s.transform_to(nom_frame)\n",
+    "    ax.plot(\n",
+    "        s_nom.fov_lon.deg,\n",
+    "        s_nom.fov_lat.deg,\n",
+    "        '*',\n",
+    "        ms=10,\n",
+    "    )\n",
+    "    ax.annotate(\n",
+    "        s=name, xy=(s_nom.fov_lon.deg, s_nom.fov_lat.deg), xytext=(5, 5),\n",
+    "        textcoords='offset points', color=f'C{i}',\n",
+    "    )\n",
+    "\n",
+    "\n",
+    "ax.set_xlabel(f'fov_lon / deg')\n",
+    "ax.set_ylabel(f'fov_lat / deg')\n",
+    "    \n",
+    "ax.legend()\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "## GroundFrame\n",
+    "\n",
+    "\n",
+    "Ground coordinate frame.  The ground coordinate frame is a simple\n",
+    "    cartesian frame describing the 3 dimensional position of objects\n",
+    "    compared to the array ground level in relation to the nomial\n",
+    "    centre of the array.  Typically this frame will be used for\n",
+    "    describing the position on telescopes and equipment\n",
+    "    \n",
+    "**Typical usage**: positions of telescopes on the ground (x, y, z)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "source.subarray.peek()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "source": [
+    "In case a layout is selected, the following line will produce a different output from the picture above."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "source.subarray.select_subarray(\"Prod3b layout\", layout).peek()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "![Ground Frame](ground_frame.png)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "In this image all the telescope from the `gamma_test.simtel.gz` file are plotted as spheres in the GroundFrame."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## TiltedGroundFrame"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Tilted ground coordinate frame.  \n",
+    "\n",
+    "The tilted ground coordinate frame is a cartesian system describing the 2 dimensional projected positions of objects in a tilted plane described by pointing_direction. The plane is rotated along the z_axis by the azimuth of the `pointing_direction` and then it is inclined with an angle equal to the zenith angle of the `pointing_direction`.\n",
+    "\n",
+    "This frame is used for the reconstruction of the shower core position."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "![Tilted Ground Frame](tilted_ground_frame.png)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "This image picture both the telescopes in the GroundFrame (red) and in the TiltedGroundFrame (green) are displayed: in this case since the azimuth of the `pointing_direction` is 0 degrees, then the plane is just tilted according to the zenith angle. \n",
+    "\n",
+    "For playing with these and with more 3D models of the telescopes themselves, have a look at the [CREED_VTK](https://github.com/thomasgas/CREED_VTK) library. "
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.7.8"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 4
+}

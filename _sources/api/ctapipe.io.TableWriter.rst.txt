@@ -1,0 +1,25 @@
+TableWriter
+===========
+
+.. currentmodule:: ctapipe.io
+
+.. autoclass:: TableWriter
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~TableWriter.add_column_transform
+      ~TableWriter.close
+      ~TableWriter.exclude
+      ~TableWriter.open
+      ~TableWriter.write
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: add_column_transform
+   .. automethod:: close
+   .. automethod:: exclude
+   .. automethod:: open
+   .. automethod:: write

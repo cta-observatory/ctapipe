@@ -1,0 +1,6 @@
+kundu_chaudhuri_circle_fit
+==========================
+
+.. currentmodule:: ctapipe.image.muon
+
+.. autofunction:: kundu_chaudhuri_circle_fit

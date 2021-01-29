@@ -1,0 +1,6 @@
+mean_poisson_likelihood_full
+============================
+
+.. currentmodule:: ctapipe.image.pixel_likelihood
+
+.. autofunction:: mean_poisson_likelihood_full

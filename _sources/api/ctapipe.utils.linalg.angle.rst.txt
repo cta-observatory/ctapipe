@@ -1,0 +1,6 @@
+angle
+=====
+
+.. currentmodule:: ctapipe.utils.linalg
+
+.. autofunction:: angle

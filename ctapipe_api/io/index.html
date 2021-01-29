@@ -1,0 +1,623 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Input/Output (io) &mdash; ctapipe v0.1.dev1+gb5c90a1</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+        <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.20.0/dist/embed-amd.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="get_array_layout" href="../../api/ctapipe.io.get_array_layout.html" />
+    <link rel="prev" title="PixelShape" href="../../api/ctapipe.instrument.PixelShape.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> ctapipe
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.dev1+gb5c90a1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">API Docs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../containers.html">Data Containers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../analysis/index.html">Analysis (<code class="xref py py-obj docutils literal notranslate"><span class="pre">analysis</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../calib/index.html">Calibration (<code class="xref py py-obj docutils literal notranslate"><span class="pre">calib</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../containers/index.html">Containers (<code class="xref py py-obj docutils literal notranslate"><span class="pre">containers</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../coordinates/index.html">Coordinates (<code class="xref py py-obj docutils literal notranslate"><span class="pre">coordinates</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../core/index.html">Core Structures and Base Classes (<code class="xref py py-obj docutils literal notranslate"><span class="pre">core</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../image/index.html">Imaging (<code class="xref py py-obj docutils literal notranslate"><span class="pre">image</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../instrument/index.html">Instrument (<code class="xref py py-obj docutils literal notranslate"><span class="pre">instrument</span></code>)</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Input/Output (<code class="xref py py-obj docutils literal notranslate"><span class="pre">io</span></code>)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reading-event-data">Reading Event Data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#creating-a-new-eventsource-plugin">Creating a New EventSource Plugin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#container-classes">Container Classes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#serialization-of-containers">Serialization of Containers:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#writing-output-files">Writing Output Files:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reading-output-tables">Reading Output Tables:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#standard-metadata-headers">Standard Metadata Headers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reference-api">Reference/API</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#module-ctapipe.io">ctapipe.io Package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-ctapipe.io.tableio">ctapipe.io.tableio Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-ctapipe.io.hdf5tableio">ctapipe.io.hdf5tableio Module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-ctapipe.io.metadata">ctapipe.io.metadata Module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../reco/index.html">Reconstruction (<code class="xref py py-obj docutils literal notranslate"><span class="pre">reco</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tools/index.html">Command line tools (<code class="xref py py-obj docutils literal notranslate"><span class="pre">tools</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../utils/index.html">Utilities (<code class="xref py py-obj docutils literal notranslate"><span class="pre">utils</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../visualization/index.html">Visualization (<code class="xref py py-obj docutils literal notranslate"><span class="pre">visualization</span></code>)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Change Log</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ctapipe</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">API Docs</a> &raquo;</li>
+        
+      <li>Input/Output (<code class="xref py py-obj docutils literal notranslate"><span class="pre">io</span></code>)</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../../_sources/ctapipe_api/io/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="input-output-io">
+<span id="io"></span><h1>Input/Output (<a class="reference external" href="https://docs.python.org/3.6/library/io.html#module-io" title="(in Python v3.6)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">io</span></code></a>)<a class="headerlink" href="#input-output-io" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference internal" href="#module-ctapipe.io" title="ctapipe.io"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.io</span></code></a> contains functions and classes related to reading, writing, and
+in-memory storage of event data</p>
+</div>
+<div class="section" id="reading-event-data">
+<h2>Reading Event Data<a class="headerlink" href="#reading-event-data" title="Permalink to this headline">¶</a></h2>
+<p>This module provides a set of <em>event sources</em> that are python
+generators that loop through an input file or stream and fill in
+<a class="reference internal" href="../../api/ctapipe.core.Container.html#ctapipe.core.Container" title="ctapipe.core.Container"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.core.Container</span></code></a> classes, defined below. They are designed such that
+ctapipe can be independent of the file format used for event data, and new
+formats may be supported by simply adding a plug-in.</p>
+<p>The underlying mechanism is a set of <a class="reference internal" href="../../api/ctapipe.io.EventSource.html#ctapipe.io.EventSource" title="ctapipe.io.EventSource"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EventSource</span></code></a> sub-classes that
+read data in various formats, with a common interface and automatic command-line
+configuration parameters. These are generally constructed in a generic way by
+using <code class="xref py py-obj docutils literal notranslate"><span class="pre">EventSource(file_or_url)</span></code> which will construct the
+appropriate <a class="reference internal" href="../../api/ctapipe.io.EventSource.html#ctapipe.io.EventSource" title="ctapipe.io.EventSource"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EventSource</span></code></a> subclass based on the input file’s type.</p>
+<p>The resulting <a class="reference internal" href="../../api/ctapipe.io.EventSource.html#ctapipe.io.EventSource" title="ctapipe.io.EventSource"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EventSource</span></code></a>  then works like a python collection and can be
+looped over, providing data for each subsequent event. If looped over
+multiple times, each will start at the beginning of the file (except in
+the case of streams that cannot be restarted):</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">EventSource</span><span class="p">(</span><span class="n">input_url</span><span class="o">=</span><span class="s2">&quot;file.simtel.gz&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">source</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">source</span><span class="p">:</span>
+       <span class="n">do_something_with_event</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If you need random access to events rather than looping over all events in
+order, you can use the <a class="reference internal" href="../../api/ctapipe.io.EventSeeker.html#ctapipe.io.EventSeeker" title="ctapipe.io.EventSeeker"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EventSeeker</span></code></a> class to allow random access by <em>event
+index</em> or <em>event_id</em>. This may not be efficient for some <code class="xref py py-obj docutils literal notranslate"><span class="pre">EventSources</span></code> if
+the underlying file type does not support random access.</p>
+</div>
+<div class="section" id="creating-a-new-eventsource-plugin">
+<h2>Creating a New EventSource Plugin<a class="headerlink" href="#creating-a-new-eventsource-plugin" title="Permalink to this headline">¶</a></h2>
+<p>An example can be found in:</p>
+<p><a class="reference external" href="https://github.com/cta-observatory/ctapipe_io_sst1m">https://github.com/cta-observatory/ctapipe_io_sst1m</a></p>
+</div>
+<div class="section" id="container-classes">
+<h2>Container Classes<a class="headerlink" href="#container-classes" title="Permalink to this headline">¶</a></h2>
+<p>Event data that is intended to be read or written from files is stored
+in subclasses of <a class="reference internal" href="../../api/ctapipe.core.Container.html#ctapipe.core.Container" title="ctapipe.core.Container"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.core.Container</span></code></a>, the structre of which is
+defined in the <code class="xref py py-obj docutils literal notranslate"><span class="pre">containers</span></code> module (See reference API below). Each
+element in the container is a <a class="reference internal" href="../../api/ctapipe.core.Field.html#ctapipe.core.Field" title="ctapipe.core.Field"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.core.Field</span></code></a>, containing the
+default value, a description, and default unit if necessary. The
+following rules should be followed when creating a <code class="xref py py-obj docutils literal notranslate"><span class="pre">Container</span></code> for new
+data:</p>
+<ul class="simple">
+<li><p>Containers both provide a way to exchange data (in-memory) between
+parts of a code, as well as define the schema for any file output
+files to be written.</p></li>
+<li><p>All items in a Container should be expected to be <em>updated at the
+same frequency</em>. Think of a Container as the column definitions of a
+table, therefore representing a single row in a table. For example,
+if the container has event-by-event info, it should not have an
+item in it that does not change between events (that should be in
+another container), otherwise it will be written out for each event
+and will waste space.</p></li>
+<li><p>a Container should be filled in all at once, not at different times
+during the data processing (to allow for parallelization and to
+avoid difficulty in reading code).</p></li>
+<li><p>Containers may contain a dictionary of metadata (in their <code class="xref py py-obj docutils literal notranslate"><span class="pre">meta</span></code>
+dictionary), that will become headers in any output file (this data
+must not change per-event, etc)</p></li>
+<li><p>Algorithms should not update values in a container that have already
+been filled in by another algorithm. Instead, prefer a new data
+item, or a second copy of the Container with the updated values.</p></li>
+<li><p>Fields in a container should be one of the following:</p></li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li><p>scalar values (<a class="reference external" href="https://docs.python.org/3.6/library/functions.html#int" title="(in Python v3.6)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3.6/library/functions.html#float" title="(in Python v3.6)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>, <a class="reference external" href="https://docs.python.org/3.6/library/functions.html#bool" title="(in Python v3.6)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>)</p></li>
+<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.NDarray</span></code> if the data are not scalar (use only simple dtypes that can be written to output files)</p></li>
+<li><p>a <a class="reference internal" href="../../api/ctapipe.core.Container.html#ctapipe.core.Container" title="ctapipe.core.Container"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.core.Container</span></code></a> class (in the case a hierarchy is needed)</p></li>
+<li><p>a <a class="reference internal" href="../../api/ctapipe.core.Map.html#ctapipe.core.Map" title="ctapipe.core.Map"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.core.Map</span></code></a> of <a class="reference internal" href="../../api/ctapipe.core.Container.html#ctapipe.core.Container" title="ctapipe.core.Container"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.core.Container</span></code></a> or scalar values,
+if the hierarchy needs multiple copies of the same <code class="xref py py-obj docutils literal notranslate"><span class="pre">Container</span></code>,
+organized by some variable-length index (e.g. by <code class="xref py py-obj docutils literal notranslate"><span class="pre">tel_id</span></code> or
+algorithm name)</p></li>
+</ul>
+</div></blockquote>
+<ul class="simple">
+<li><p>Fields that should <em>not</em> be in a container class:</p></li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">dicts</span></code></p></li>
+<li><p>classes that are not a subclass of <a class="reference internal" href="../../api/ctapipe.core.Container.html#ctapipe.core.Container" title="ctapipe.core.Container"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.core.Container</span></code></a></p></li>
+<li><p>any other type that cannot be translated automatically into the
+column of an output table.</p></li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="serialization-of-containers">
+<h2>Serialization of Containers:<a class="headerlink" href="#serialization-of-containers" title="Permalink to this headline">¶</a></h2>
+<p>The <a class="reference internal" href="../../api/ctapipe.io.TableWriter.html#ctapipe.io.TableWriter" title="ctapipe.io.TableWriter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.io.TableWriter</span></code></a> and <a class="reference internal" href="../../api/ctapipe.io.TableReader.html#ctapipe.io.TableReader" title="ctapipe.io.TableReader"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.io.TableReader</span></code></a> base classes provide
+an interface to implement subclasses that write/read Containers to/from
+table-like data files.  Currently the only implementation is for writing
+HDF5 tables via the <a class="reference internal" href="../../api/ctapipe.io.HDF5TableWriter.html#ctapipe.io.HDF5TableWriter" title="ctapipe.io.HDF5TableWriter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.io.HDF5TableWriter</span></code></a>. The output that the
+<a class="reference internal" href="../../api/ctapipe.io.HDF5TableWriter.html#ctapipe.io.HDF5TableWriter" title="ctapipe.io.HDF5TableWriter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.io.HDF5TableWriter</span></code></a> produces can be read either one-row-at-a-time
+using the <a class="reference internal" href="../../api/ctapipe.io.HDF5TableReader.html#ctapipe.io.HDF5TableReader" title="ctapipe.io.HDF5TableReader"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.io.HDF5TableReader</span></code></a>, or more generically using the
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">pytables</span></code> or <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/index.html#module-pandas" title="(in pandas v1.2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas</span></code></a> packages (note however any tables that have
+array values in a column cannot be read into a <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.2.1)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>, since it
+only supports scalar values).</p>
+</div>
+<div class="section" id="writing-output-files">
+<h2>Writing Output Files:<a class="headerlink" href="#writing-output-files" title="Permalink to this headline">¶</a></h2>
+<p>The <a class="reference internal" href="../../api/ctapipe.io.DL1Writer.html#ctapipe.io.DL1Writer" title="ctapipe.io.DL1Writer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DL1Writer</span></code></a> Component allows one to write a series of events (stored in
+<a class="reference internal" href="../../api/ctapipe.containers.ArrayEventContainer.html#ctapipe.containers.ArrayEventContainer" title="ctapipe.containers.ArrayEventContainer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.containers.ArrayEventContainer</span></code></a>) to a standardized HDF5 format DL1 file
+following the DL1 data model. This includes all related datasets such as the
+instrument and simulation configuration information, simulated shower and image
+information, and observed images and parameters. It can be used in an event loop
+like:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">DL1Writer</span><span class="p">(</span><span class="n">event_source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span> <span class="n">output_path</span><span class="o">=</span><span class="s2">&quot;events.dl1.h5&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">write_dl1</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">source</span><span class="p">:</span>
+        <span class="n">calibrate</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+        <span class="n">write_dl1</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="reading-output-tables">
+<h2>Reading Output Tables:<a class="headerlink" href="#reading-output-tables" title="Permalink to this headline">¶</a></h2>
+<p>In addition to using an <a class="reference internal" href="../../api/ctapipe.io.EventSource.html#ctapipe.io.EventSource" title="ctapipe.io.EventSource"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EventSource</span></code></a> to read R0-DL1 data files, one can also access full <em>tables</em> for files that are in HDF5 format (e.g. DL1 files).  The <a class="reference internal" href="../../api/ctapipe.io.read_table.html#ctapipe.io.read_table" title="ctapipe.io.read_table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">read_table</span></code></a> function will load any table in an HDF5 table into an <a class="reference external" href="https://docs.astropy.org/en/latest/api/astropy.table.QTable.html#astropy.table.QTable" title="(in Astropy v4.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.table.QTable</span></code></a> in memory, while maintaining units, column descriptions, and other ctapipe metadata.  Astropy Tables can also be converted to Pandas tables via their <code class="xref py py-obj docutils literal notranslate"><span class="pre">to_pandas()</span></code> method, as long as the table does not contain any vector columns.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">ctapipe.io</span> <span class="kn">import</span> <span class="n">read_table</span>
+<span class="n">mctable</span> <span class="o">=</span> <span class="n">read_table</span><span class="p">(</span><span class="s2">&quot;events.dl1.h5&quot;</span><span class="p">,</span> <span class="s2">&quot;/simulation/event/subarray/shower&quot;</span><span class="p">)</span>
+<span class="n">mctable</span><span class="p">[</span><span class="s1">&#39;logE&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">mc_table</span><span class="p">[</span><span class="s1">&#39;energy&#39;</span><span class="p">])</span>
+<span class="n">mctable</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;output.fits&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="standard-metadata-headers">
+<h2>Standard Metadata Headers<a class="headerlink" href="#standard-metadata-headers" title="Permalink to this headline">¶</a></h2>
+<p>The <a class="reference internal" href="#module-ctapipe.io.metadata" title="ctapipe.io.metadata"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.io.metadata</span></code></a> package provides functions for generating standard CTA
+metadata headers and attaching them to output files.</p>
+</div>
+<div class="section" id="reference-api">
+<h2>Reference/API<a class="headerlink" href="#reference-api" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-ctapipe.io">
+<span id="ctapipe-io-package"></span><h3>ctapipe.io Package<a class="headerlink" href="#module-ctapipe.io" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="functions">
+<h4>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.io.get_array_layout.html#ctapipe.io.get_array_layout" title="ctapipe.io.get_array_layout"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_array_layout</span></code></a>(instrument_name)</p></td>
+<td><p>Returns the array layout for the given instrument as an <a class="reference external" href="https://docs.astropy.org/en/latest/api/astropy.table.Table.html#astropy.table.Table" title="(in Astropy v4.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.table.Table</span></code></a> object.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.io.read_table.html#ctapipe.io.read_table" title="ctapipe.io.read_table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">read_table</span></code></a>(h5file, path)</p></td>
+<td><p>Get a table from a ctapipe-format HDF5 table as an <a class="reference external" href="https://docs.astropy.org/en/latest/api/astropy.table.QTable.html#astropy.table.QTable" title="(in Astropy v4.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.table.QTable</span></code></a> object, retaining units.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="classes">
+<h4>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.io.HDF5TableWriter.html#ctapipe.io.HDF5TableWriter" title="ctapipe.io.HDF5TableWriter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HDF5TableWriter</span></code></a>(filename[, group_name, …])</p></td>
+<td><p>A very basic table writer that can take a container (or more than one) and write it to an HDF5 file.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.io.HDF5TableReader.html#ctapipe.io.HDF5TableReader" title="ctapipe.io.HDF5TableReader"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HDF5TableReader</span></code></a>(filename, **kwargs)</p></td>
+<td><p>Reader that reads a single row of an HDF5 table at once into a Container.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.io.TableWriter.html#ctapipe.io.TableWriter" title="ctapipe.io.TableWriter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TableWriter</span></code></a>([parent, add_prefix])</p></td>
+<td><p>Base class for writing  Container classes as rows of an output table, where each <code class="xref py py-obj docutils literal notranslate"><span class="pre">Field</span></code> becomes a column.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.io.TableReader.html#ctapipe.io.TableReader" title="ctapipe.io.TableReader"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TableReader</span></code></a>()</p></td>
+<td><p>Base class for row-wise table readers.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.io.EventSeeker.html#ctapipe.io.EventSeeker" title="ctapipe.io.EventSeeker"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EventSeeker</span></code></a>(event_source[, config, parent])</p></td>
+<td><p>Provides the functionality to seek through a <code class="xref py py-obj docutils literal notranslate"><span class="pre">ctapipe.io.eventfilereader.EventSource</span></code> to find a particular event.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.io.EventSource.html#ctapipe.io.EventSource" title="ctapipe.io.EventSource"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EventSource</span></code></a>([input_url, config, parent])</p></td>
+<td><p>Parent class for EventSources.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.io.SimTelEventSource.html#ctapipe.io.SimTelEventSource" title="ctapipe.io.SimTelEventSource"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SimTelEventSource</span></code></a>([input_url, config, parent])</p></td>
+<td><p>Read events from a SimTelArray data file (in EventIO format).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.io.DL1EventSource.html#ctapipe.io.DL1EventSource" title="ctapipe.io.DL1EventSource"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DL1EventSource</span></code></a>([input_url, config, parent])</p></td>
+<td><p>Event source for files in the ctapipe DL1 format.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.io.DataLevel.html#ctapipe.io.DataLevel" title="ctapipe.io.DataLevel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DataLevel</span></code></a></p></td>
+<td><p>Enum of the different Data Levels</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.io.DL1Writer.html#ctapipe.io.DL1Writer" title="ctapipe.io.DL1Writer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DL1Writer</span></code></a>(event_source[, config, parent])</p></td>
+<td><p>Serialize a sequence of events into a HDF5 DL1 file, in the correct format</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="class-inheritance-diagram">
+<h4>Class Inheritance Diagram<a class="headerlink" href="#class-inheritance-diagram" title="Permalink to this headline">¶</a></h4>
+<div class="graphviz"><img src="../../_images/inheritance-ee459a3e8c2e1c8bbb776c79d8231551be5c5954.png" alt="Inheritance diagram of ctapipe.io.hdf5tableio.HDF5TableWriter, ctapipe.io.hdf5tableio.HDF5TableReader, ctapipe.io.tableio.TableWriter, ctapipe.io.tableio.TableReader, ctapipe.io.eventseeker.EventSeeker, ctapipe.io.eventsource.EventSource, ctapipe.io.simteleventsource.SimTelEventSource, ctapipe.io.dl1eventsource.DL1EventSource, ctapipe.io.datalevels.DataLevel, ctapipe.io.dl1writer.DL1Writer" usemap="#inheritance21a44da93f" class="inheritance graphviz" /></div>
+<map id="inheritance21a44da93f" name="inheritance21a44da93f">
+<area shape="rect" id="node11" href="../../api/ctapipe.io.tableio.TableReader.html#ctapipe.io.tableio.TableReader" target="_top" title="Base class for row&#45;wise table readers. Generally methods that read a" alt="" coords="513,149,598,171"/>
+<area shape="rect" id="node13" href="../../api/ctapipe.io.tableio.TableWriter.html#ctapipe.io.tableio.TableWriter" target="_top" title="Base class for writing &#160;Container classes as rows of an output table," alt="" coords="516,191,596,212"/>
+<area shape="rect" id="node10" href="../../api/ctapipe.io.hdf5tableio.HDF5TableReader.html#ctapipe.io.hdf5tableio.HDF5TableReader" target="_top" title="Reader that reads a single row of an HDF5 table at once into a Container." alt="" coords="644,149,759,171"/>
+<area shape="rect" id="node12" href="../../api/ctapipe.io.hdf5tableio.HDF5TableWriter.html#ctapipe.io.hdf5tableio.HDF5TableWriter" target="_top" title="A very basic table writer that can take a container (or more than one)" alt="" coords="647,191,757,212"/>
+</map></div>
+</div>
+<div class="section" id="module-ctapipe.io.tableio">
+<span id="ctapipe-io-tableio-module"></span><h3>ctapipe.io.tableio Module<a class="headerlink" href="#module-ctapipe.io.tableio" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id1">
+<h4>Classes<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.io.tableio.TableReader.html#ctapipe.io.tableio.TableReader" title="ctapipe.io.tableio.TableReader"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TableReader</span></code></a>()</p></td>
+<td><p>Base class for row-wise table readers.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.io.tableio.TableWriter.html#ctapipe.io.tableio.TableWriter" title="ctapipe.io.tableio.TableWriter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TableWriter</span></code></a>([parent, add_prefix])</p></td>
+<td><p>Base class for writing  Container classes as rows of an output table, where each <code class="xref py py-obj docutils literal notranslate"><span class="pre">Field</span></code> becomes a column.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id2">
+<h4>Class Inheritance Diagram<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h4>
+<div class="graphviz"><img src="../../_images/inheritance-da49539e059cdb62cf920b1998b05fb1ea29a08b.png" alt="Inheritance diagram of ctapipe.io.tableio.TableReader, ctapipe.io.tableio.TableWriter" usemap="#inheritance7e5cf05d40" class="inheritance graphviz" /></div>
+<map id="inheritance7e5cf05d40" name="inheritance7e5cf05d40">
+<area shape="rect" id="node5" href="../../api/ctapipe.io.tableio.TableReader.html#ctapipe.io.tableio.TableReader" target="_top" title="Base class for row&#45;wise table readers. Generally methods that read a" alt="" coords="603,5,704,31"/>
+<area shape="rect" id="node6" href="../../api/ctapipe.io.tableio.TableWriter.html#ctapipe.io.tableio.TableWriter" target="_top" title="Base class for writing &#160;Container classes as rows of an output table," alt="" coords="606,55,701,80"/>
+</map></div>
+</div>
+<div class="section" id="module-ctapipe.io.hdf5tableio">
+<span id="ctapipe-io-hdf5tableio-module"></span><h3>ctapipe.io.hdf5tableio Module<a class="headerlink" href="#module-ctapipe.io.hdf5tableio" title="Permalink to this headline">¶</a></h3>
+<p>Implementations of TableWriter and -Reader for HDF5 files</p>
+<div class="section" id="id3">
+<h4>Classes<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.io.hdf5tableio.HDF5TableWriter.html#ctapipe.io.hdf5tableio.HDF5TableWriter" title="ctapipe.io.hdf5tableio.HDF5TableWriter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HDF5TableWriter</span></code></a>(filename[, group_name, …])</p></td>
+<td><p>A very basic table writer that can take a container (or more than one) and write it to an HDF5 file.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.io.hdf5tableio.HDF5TableReader.html#ctapipe.io.hdf5tableio.HDF5TableReader" title="ctapipe.io.hdf5tableio.HDF5TableReader"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HDF5TableReader</span></code></a>(filename, **kwargs)</p></td>
+<td><p>Reader that reads a single row of an HDF5 table at once into a Container.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id4">
+<h4>Class Inheritance Diagram<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h4>
+<div class="graphviz"><img src="../../_images/inheritance-47319423edd6e98b81b4bb3b90b04c4b6108eb32.png" alt="Inheritance diagram of ctapipe.io.hdf5tableio.HDF5TableWriter, ctapipe.io.hdf5tableio.HDF5TableReader" usemap="#inheritance06dacf67a5" class="inheritance graphviz" /></div>
+<map id="inheritance06dacf67a5" name="inheritance06dacf67a5">
+<area shape="rect" id="node5" href="../../api/ctapipe.io.tableio.TableReader.html#ctapipe.io.tableio.TableReader" target="_top" title="Base class for row&#45;wise table readers. Generally methods that read a" alt="" coords="518,5,605,26"/>
+<area shape="rect" id="node7" href="../../api/ctapipe.io.tableio.TableWriter.html#ctapipe.io.tableio.TableWriter" target="_top" title="Base class for writing &#160;Container classes as rows of an output table," alt="" coords="521,47,602,69"/>
+<area shape="rect" id="node4" href="../../api/ctapipe.io.hdf5tableio.HDF5TableReader.html#ctapipe.io.hdf5tableio.HDF5TableReader" target="_top" title="Reader that reads a single row of an HDF5 table at once into a Container." alt="" coords="646,5,763,26"/>
+<area shape="rect" id="node6" href="../../api/ctapipe.io.hdf5tableio.HDF5TableWriter.html#ctapipe.io.hdf5tableio.HDF5TableWriter" target="_top" title="A very basic table writer that can take a container (or more than one)" alt="" coords="649,47,761,69"/>
+</map></div>
+</div>
+<div class="section" id="module-ctapipe.io.metadata">
+<span id="ctapipe-io-metadata-module"></span><h3>ctapipe.io.metadata Module<a class="headerlink" href="#module-ctapipe.io.metadata" title="Permalink to this headline">¶</a></h3>
+<p>Management of CTA Reference Metadata, as defined in the CTA Top-Level Data Model
+document <a class="reference internal" href="../../bibliography.html#ctatopleveldatamodel" id="id5"><span>[ctatopleveldatamodel]</span></a> , version 1A. This information is required to be
+attached to the header of any
+files generated.</p>
+<p>The class Reference collects all required reference metadata, and can be turned into a
+flat dictionary.  The user should try to fill out all fields, or use a helper to fill
+them (as in <a class="reference internal" href="../../api/ctapipe.io.metadata.Activity.html#ctapipe.io.metadata.Activity.from_provenance" title="ctapipe.io.metadata.Activity.from_provenance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Activity.from_provenance()</span></code></a>)</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ref</span> <span class="o">=</span> <span class="n">Reference</span><span class="p">(</span>
+    <span class="n">contact</span><span class="o">=</span><span class="n">Contact</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Some User&quot;</span><span class="p">,</span> <span class="n">email</span><span class="o">=</span><span class="s2">&quot;user@me.com&quot;</span><span class="p">),</span>
+    <span class="n">product</span><span class="o">=</span><span class="n">Product</span><span class="p">(</span><span class="nb">format</span><span class="o">=</span><span class="s1">&#39;hdf5&#39;</span><span class="p">,</span> <span class="o">...</span><span class="p">),</span>
+    <span class="n">process</span><span class="o">=</span><span class="n">Process</span><span class="p">(</span><span class="o">...</span><span class="p">),</span>
+    <span class="n">activity</span><span class="o">=</span><span class="n">Activity</span><span class="p">(</span><span class="o">...</span><span class="p">),</span>
+    <span class="n">instrument</span> <span class="o">=</span> <span class="n">Instrument</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="p">)</span>
+
+<span class="n">some_astropy_table</span><span class="o">.</span><span class="n">meta</span> <span class="o">=</span> <span class="n">ref</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+<span class="n">some_astropy_table</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;output.ecsv&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="section" id="id6">
+<h4>Functions<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.io.metadata.write_to_hdf5.html#ctapipe.io.metadata.write_to_hdf5" title="ctapipe.io.metadata.write_to_hdf5"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_to_hdf5</span></code></a>(metadata, h5file)</p></td>
+<td><p>Write metadata fields to a PyTables HDF5 file handle.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id7">
+<h4>Classes<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.io.metadata.Reference.html#ctapipe.io.metadata.Reference" title="ctapipe.io.metadata.Reference"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Reference</span></code></a>(*args, **kwargs)</p></td>
+<td><p>All the reference Metadata required for a CTA output file, plus a way to turn it into a dict() for easy addition to the header of a file</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.io.metadata.Contact.html#ctapipe.io.metadata.Contact" title="ctapipe.io.metadata.Contact"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Contact</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Contact information</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.io.metadata.Process.html#ctapipe.io.metadata.Process" title="ctapipe.io.metadata.Process"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Process</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Process (top-level workflow) information</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.io.metadata.Product.html#ctapipe.io.metadata.Product" title="ctapipe.io.metadata.Product"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Product</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Data product information</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.io.metadata.Activity.html#ctapipe.io.metadata.Activity" title="ctapipe.io.metadata.Activity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Activity</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Activity (tool) information</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.io.metadata.Instrument.html#ctapipe.io.metadata.Instrument" title="ctapipe.io.metadata.Instrument"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Instrument</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Instrumental Context</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id8">
+<h4>Class Inheritance Diagram<a class="headerlink" href="#id8" title="Permalink to this headline">¶</a></h4>
+<div class="graphviz"><img src="../../_images/inheritance-4c0536beeabf135dc5b550353aa0c685142ef7de.png" alt="Inheritance diagram of ctapipe.io.metadata.Reference, ctapipe.io.metadata.Contact, ctapipe.io.metadata.Process, ctapipe.io.metadata.Product, ctapipe.io.metadata.Activity, ctapipe.io.metadata.Instrument" usemap="#inheritance6c391bd9fa" class="inheritance graphviz" /></div>
+<map id="inheritance6c391bd9fa" name="inheritance6c391bd9fa">
+<area shape="rect" id="node1" href="../../api/ctapipe.io.metadata.Activity.html#ctapipe.io.metadata.Activity" target="_top" title="Activity (tool) information" alt="" coords="316,5,388,31"/>
+<area shape="rect" id="node3" href="../../api/ctapipe.io.metadata.Contact.html#ctapipe.io.metadata.Contact" target="_top" title="Contact information" alt="" coords="316,55,388,80"/>
+<area shape="rect" id="node5" href="../../api/ctapipe.io.metadata.Instrument.html#ctapipe.io.metadata.Instrument" target="_top" title="Instrumental Context" alt="" coords="305,104,399,129"/>
+<area shape="rect" id="node6" href="../../api/ctapipe.io.metadata.Process.html#ctapipe.io.metadata.Process" target="_top" title="Process (top&#45;level workflow) information" alt="" coords="316,153,388,179"/>
+<area shape="rect" id="node7" href="../../api/ctapipe.io.metadata.Product.html#ctapipe.io.metadata.Product" target="_top" title="Data product information" alt="" coords="316,203,388,228"/>
+<area shape="rect" id="node8" href="../../api/ctapipe.io.metadata.Reference.html#ctapipe.io.metadata.Reference" target="_top" title="All the reference Metadata required for a CTA output file, plus a way to turn" alt="" coords="309,252,395,277"/>
+</map></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="../../api/ctapipe.io.get_array_layout.html" class="btn btn-neutral float-right" title="get_array_layout" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../../api/ctapipe.instrument.PixelShape.html" class="btn btn-neutral float-left" title="PixelShape" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright ctapipe developers.  Last updated 29 Jan 2021 18:09.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

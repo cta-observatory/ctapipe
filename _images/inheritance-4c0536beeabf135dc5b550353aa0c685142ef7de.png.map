@@ -1,0 +1,9 @@
+<map id="inheritance6c391bd9fa" name="inheritance6c391bd9fa">
+<area shape="rect" id="node1" href="../../api/ctapipe.io.metadata.Activity.html#ctapipe.io.metadata.Activity" target="_top" title="Activity (tool) information" alt="" coords="316,5,388,31"/>
+<area shape="rect" id="node3" href="../../api/ctapipe.io.metadata.Contact.html#ctapipe.io.metadata.Contact" target="_top" title="Contact information" alt="" coords="316,55,388,80"/>
+<area shape="rect" id="node5" href="../../api/ctapipe.io.metadata.Instrument.html#ctapipe.io.metadata.Instrument" target="_top" title="Instrumental Context" alt="" coords="305,104,399,129"/>
+<area shape="rect" id="node6" href="../../api/ctapipe.io.metadata.Process.html#ctapipe.io.metadata.Process" target="_top" title="Process (top&#45;level workflow) information" alt="" coords="316,153,388,179"/>
+<area shape="rect" id="node7" href="../../api/ctapipe.io.metadata.Product.html#ctapipe.io.metadata.Product" target="_top" title="Data product information" alt="" coords="316,203,388,228"/>
+<area shape="rect" id="node8" href="../../api/ctapipe.io.metadata.Reference.html#ctapipe.io.metadata.Reference" target="_top" title="All the reference Metadata required for a CTA output file, plus a way to turn" alt="" coords="309,252,395,277"/>
+<area shape="rect" id="node4" title="The base class for all classes that have descriptors." alt="" coords="5,129,127,155"/>
+</map>

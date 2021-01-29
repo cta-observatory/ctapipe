@@ -1,0 +1,387 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>ctapipe.instrument.optics &mdash; ctapipe v0.1.dev1+gb5c90a1</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+        <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.20.0/dist/embed-amd.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> ctapipe
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.dev1+gb5c90a1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>ctapipe.instrument.optics</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for ctapipe.instrument.optics</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Classes and functions related to telescope Optics</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">get_table_dataset</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="OpticsDescription"><a class="viewcode-back" href="../../../api/ctapipe.instrument.OpticsDescription.html#ctapipe.instrument.OpticsDescription">[docs]</a><span class="k">class</span> <span class="nc">OpticsDescription</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Describes the optics of a Cherenkov Telescope mirror</span>
+
+<span class="sd">    The string representation of an `OpticsDescription` will be a combination</span>
+<span class="sd">    of the telescope-type and sub-type as follows: &quot;type-subtype&quot;. You can</span>
+<span class="sd">    also get each individually.</span>
+
+<span class="sd">    The `OpticsDescription.guess()` constructor can be used to fill in info</span>
+<span class="sd">    from metadata, e.g. for Monte-Carlo files.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    num_mirrors: int</span>
+<span class="sd">        Number of mirrors, i. e. 2 for Schwarzschild-Couder else 1</span>
+<span class="sd">    equivalent_focal_length: Quantity(float)</span>
+<span class="sd">        effective focal-length of telescope, independent of which type of</span>
+<span class="sd">        optics (as in the Monte-Carlo)</span>
+<span class="sd">    mirror_area: float</span>
+<span class="sd">        total reflective surface area of the optical system (in m^2)</span>
+<span class="sd">    num_mirror_tiles: int</span>
+<span class="sd">        number of mirror facets</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError:</span>
+<span class="sd">        if tel_type or mirror_type are not one of the accepted values</span>
+<span class="sd">    TypeError, astropy.units.UnitsError:</span>
+<span class="sd">        if the units of one of the inputs are missing or incompatible</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@u</span><span class="o">.</span><span class="n">quantity_input</span><span class="p">(</span><span class="n">mirror_area</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">equivalent_focal_length</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="n">num_mirrors</span><span class="p">,</span>
+        <span class="n">equivalent_focal_length</span><span class="p">,</span>
+        <span class="n">mirror_area</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">num_mirror_tiles</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">equivalent_focal_length</span> <span class="o">=</span> <span class="n">equivalent_focal_length</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mirror_area</span> <span class="o">=</span> <span class="n">mirror_area</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_mirrors</span> <span class="o">=</span> <span class="n">num_mirrors</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_mirror_tiles</span> <span class="o">=</span> <span class="n">num_mirror_tiles</span>
+
+    <span class="k">def</span> <span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Make this hashable, so it can be used as dict keys or in sets&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">equivalent_focal_length</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mirror_area</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">num_mirrors</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">num_mirror_tiles</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Make this hashable, so it can be used as dict keys or in sets&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="nb">hash</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+<div class="viewcode-block" id="OpticsDescription.from_name"><a class="viewcode-back" href="../../../api/ctapipe.instrument.OpticsDescription.html#ctapipe.instrument.OpticsDescription.from_name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">optics_table</span><span class="o">=</span><span class="s2">&quot;optics&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct an OpticsDescription from the name. This is loaded from</span>
+<span class="sd">        `optics.fits.gz`, which should be in `ctapipe_resources` or in a</span>
+<span class="sd">        directory listed in `CTAPIPE_SVC_PATH`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name: str</span>
+<span class="sd">            string representation of optics (MST, LST, SST-1M, SST-ASTRI,...)</span>
+<span class="sd">        optics_table: str</span>
+<span class="sd">            base filename of optics table if not &#39;optics.*&#39;</span>
+
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        OpticsDescription</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">optics_table</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="n">get_table_dataset</span><span class="p">(</span><span class="n">optics_table</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">&quot;OpticsDescription.from_name&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="n">optics_table</span>
+
+        <span class="n">version</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;TAB_VER&quot;</span><span class="p">)</span>
+
+        <span class="c1"># we introduced the TAB_VER after switching to the second version</span>
+        <span class="c1"># of this table, so when the version is missing, it can be either 1 or 2</span>
+        <span class="c1"># we guess the version by looking for the mirror_type attribute.</span>
+        <span class="k">if</span> <span class="n">version</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;mirror_type&quot;</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">colnames</span><span class="p">:</span>
+                <span class="n">version</span> <span class="o">=</span> <span class="s2">&quot;1.0&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">version</span> <span class="o">=</span> <span class="s2">&quot;2.0&quot;</span>
+
+        <span class="k">if</span> <span class="n">version</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;1.0&quot;</span><span class="p">,</span> <span class="s2">&quot;2.0&quot;</span><span class="p">}:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported version of optics table: </span><span class="si">{version}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">version</span> <span class="o">==</span> <span class="s2">&quot;1.0&quot;</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="s2">&quot;tel_description&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">name</span>
+        <span class="k">elif</span> <span class="n">version</span> <span class="o">==</span> <span class="s2">&quot;2.0&quot;</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="s2">&quot;description&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">name</span>
+
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown telescope name </span><span class="si">{name}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">version</span> <span class="o">==</span> <span class="s2">&quot;1.0&quot;</span><span class="p">:</span>
+            <span class="n">num_mirrors</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">table</span><span class="p">[</span><span class="s2">&quot;mirror_type&quot;</span><span class="p">][</span><span class="n">mask</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;DC&quot;</span> <span class="k">else</span> <span class="mi">2</span>
+        <span class="k">elif</span> <span class="n">version</span> <span class="o">==</span> <span class="s2">&quot;2.0&quot;</span><span class="p">:</span>
+            <span class="n">num_mirrors</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="s2">&quot;num_mirrors&quot;</span><span class="p">][</span><span class="n">mask</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">flen</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="s2">&quot;equivalent_focal_length&quot;</span><span class="p">][</span><span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">quantity</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">optics</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">num_mirrors</span><span class="o">=</span><span class="n">num_mirrors</span><span class="p">,</span>
+            <span class="n">equivalent_focal_length</span><span class="o">=</span><span class="n">flen</span><span class="p">,</span>
+            <span class="n">mirror_area</span><span class="o">=</span><span class="n">table</span><span class="p">[</span><span class="s2">&quot;mirror_area&quot;</span><span class="p">][</span><span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">quantity</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">num_mirror_tiles</span><span class="o">=</span><span class="n">table</span><span class="p">[</span><span class="s2">&quot;num_mirror_tiles&quot;</span><span class="p">][</span><span class="n">mask</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">optics</span></div>
+
+<div class="viewcode-block" id="OpticsDescription.get_known_optics_names"><a class="viewcode-back" href="../../../api/ctapipe.instrument.OpticsDescription.html#ctapipe.instrument.OpticsDescription.get_known_optics_names">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_known_optics_names</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">optics_table</span><span class="o">=</span><span class="s2">&quot;optics&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        return the list of optics names from ctapipe resources, i.e. those that can be</span>
+<span class="sd">        constructed by name (this does not return the list of known names from an</span>
+<span class="sd">        already open Monte-Carlo file)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        optics_table: str or astropy Table</span>
+<span class="sd">            table where to read the optics description from. If a string, this is</span>
+<span class="sd">            opened with `ctapipe.utils.get_table_dataset()`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">optics_table</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="n">get_table_dataset</span><span class="p">(</span><span class="n">optics_table</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">&quot;get_known_optics_names&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="n">optics_table</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">table</span><span class="p">[</span><span class="s2">&quot;tel_description&quot;</span><span class="p">])</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{self.__class__.__name__}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;(name=</span><span class="si">{self.name}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;, equivalent_focal_length=</span><span class="si">{self.equivalent_focal_length:.2f}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;, num_mirrors=</span><span class="si">{self.num_mirrors}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;, mirror_area=</span><span class="si">{self.mirror_area:.2f}</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;)&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright ctapipe developers.  Last updated 29 Jan 2021 18:09.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

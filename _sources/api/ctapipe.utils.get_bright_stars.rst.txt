@@ -1,0 +1,6 @@
+get_bright_stars
+================
+
+.. currentmodule:: ctapipe.utils
+
+.. autofunction:: get_bright_stars

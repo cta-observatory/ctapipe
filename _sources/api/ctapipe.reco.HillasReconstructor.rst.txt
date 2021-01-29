@@ -1,0 +1,25 @@
+HillasReconstructor
+===================
+
+.. currentmodule:: ctapipe.reco
+
+.. autoclass:: HillasReconstructor
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~HillasReconstructor.estimate_core_position
+      ~HillasReconstructor.estimate_direction
+      ~HillasReconstructor.estimate_h_max
+      ~HillasReconstructor.initialize_hillas_planes
+      ~HillasReconstructor.predict
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: estimate_core_position
+   .. automethod:: estimate_direction
+   .. automethod:: estimate_h_max
+   .. automethod:: initialize_hillas_planes
+   .. automethod:: predict

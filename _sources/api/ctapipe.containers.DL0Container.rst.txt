@@ -1,0 +1,21 @@
+DL0Container
+============
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: DL0Container
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~DL0Container.meta
+      ~DL0Container.prefix
+      ~DL0Container.tel
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: meta
+   .. autoattribute:: prefix
+   .. autoattribute:: tel

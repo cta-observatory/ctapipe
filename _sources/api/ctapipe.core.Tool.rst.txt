@@ -1,0 +1,55 @@
+Tool
+====
+
+.. currentmodule:: ctapipe.core
+
+.. autoclass:: Tool
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~Tool.config_file
+      ~Tool.log_config
+      ~Tool.log_file
+      ~Tool.log_file_level
+      ~Tool.provenance_log
+      ~Tool.quiet
+      ~Tool.version_string
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~Tool.add_component
+      ~Tool.finish
+      ~Tool.get_current_config
+      ~Tool.initialize
+      ~Tool.run
+      ~Tool.setup
+      ~Tool.start
+      ~Tool.update_logging_config
+      ~Tool.write_provenance
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: config_file
+   .. autoattribute:: log_config
+   .. autoattribute:: log_file
+   .. autoattribute:: log_file_level
+   .. autoattribute:: provenance_log
+   .. autoattribute:: quiet
+   .. autoattribute:: version_string
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: add_component
+   .. automethod:: finish
+   .. automethod:: get_current_config
+   .. automethod:: initialize
+   .. automethod:: run
+   .. automethod:: setup
+   .. automethod:: start
+   .. automethod:: update_logging_config
+   .. automethod:: write_provenance

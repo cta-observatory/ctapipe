@@ -1,0 +1,6 @@
+PureCountingCut
+===============
+
+.. currentmodule:: ctapipe.utils
+
+.. autoexception:: PureCountingCut

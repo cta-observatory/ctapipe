@@ -1,0 +1,17 @@
+Field
+=====
+
+.. currentmodule:: ctapipe.core
+
+.. autoclass:: Field
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~Field.validate
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: validate

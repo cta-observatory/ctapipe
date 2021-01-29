@@ -1,0 +1,31 @@
+CameraReadout
+=============
+
+.. currentmodule:: ctapipe.instrument
+
+.. autoclass:: CameraReadout
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~CameraReadout.reference_pulse_sample_time
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~CameraReadout.from_name
+      ~CameraReadout.from_table
+      ~CameraReadout.to_table
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: reference_pulse_sample_time
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: from_name
+   .. automethod:: from_table
+   .. automethod:: to_table

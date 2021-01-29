@@ -1,0 +1,6 @@
+run_tool
+========
+
+.. currentmodule:: ctapipe.core
+
+.. autofunction:: run_tool

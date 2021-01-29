@@ -1,0 +1,6 @@
+neg_log_likelihood_approx
+=========================
+
+.. currentmodule:: ctapipe.image.pixel_likelihood
+
+.. autofunction:: neg_log_likelihood_approx

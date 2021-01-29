@@ -1,0 +1,424 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>HillasReconstructor &mdash; ctapipe v0.1.dev1+gb5c90a1</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+        <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.20.0/dist/embed-amd.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Reconstructor" href="ctapipe.reco.Reconstructor.html" />
+    <link rel="prev" title="Analysis with ImPACT" href="../ctapipe_api/reco/ImPACT.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> ctapipe
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.dev1+gb5c90a1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../ctapipe_api/index.html">API Docs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/containers.html">Data Containers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/analysis/index.html">Analysis (<code class="xref py py-obj docutils literal notranslate"><span class="pre">analysis</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/calib/index.html">Calibration (<code class="xref py py-obj docutils literal notranslate"><span class="pre">calib</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/containers/index.html">Containers (<code class="xref py py-obj docutils literal notranslate"><span class="pre">containers</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/coordinates/index.html">Coordinates (<code class="xref py py-obj docutils literal notranslate"><span class="pre">coordinates</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/core/index.html">Core Structures and Base Classes (<code class="xref py py-obj docutils literal notranslate"><span class="pre">core</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/image/index.html">Imaging (<code class="xref py py-obj docutils literal notranslate"><span class="pre">image</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/instrument/index.html">Instrument (<code class="xref py py-obj docutils literal notranslate"><span class="pre">instrument</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/io/index.html">Input/Output (<code class="xref py py-obj docutils literal notranslate"><span class="pre">io</span></code>)</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../ctapipe_api/reco/index.html">Reconstruction (<code class="xref py py-obj docutils literal notranslate"><span class="pre">reco</span></code>)</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/reco/index.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/reco/index.html#currently-implemented-algorithms">Currently Implemented Algorithms</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../ctapipe_api/reco/index.html#reference-api">Reference/API</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="../ctapipe_api/reco/index.html#module-ctapipe.reco">ctapipe.reco Package</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/tools/index.html">Command line tools (<code class="xref py py-obj docutils literal notranslate"><span class="pre">tools</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/utils/index.html">Utilities (<code class="xref py py-obj docutils literal notranslate"><span class="pre">utils</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/visualization/index.html">Visualization (<code class="xref py py-obj docutils literal notranslate"><span class="pre">visualization</span></code>)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Change Log</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ctapipe</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../ctapipe_api/index.html">API Docs</a> &raquo;</li>
+        
+          <li><a href="../ctapipe_api/reco/index.html">Reconstruction (<code class="xref py py-obj docutils literal notranslate"><span class="pre">reco</span></code>)</a> &raquo;</li>
+        
+      <li>HillasReconstructor</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/api/ctapipe.reco.HillasReconstructor.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="hillasreconstructor">
+<h1>HillasReconstructor<a class="headerlink" href="#hillasreconstructor" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="ctapipe.reco.HillasReconstructor">
+<em class="property">class </em><code class="sig-prename descclassname">ctapipe.reco.</code><code class="sig-name descname">HillasReconstructor</code><span class="sig-paren">(</span><em class="sig-param">config=None</em>, <em class="sig-param">parent=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/reco/HillasReconstructor.html#HillasReconstructor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ctapipe.reco.HillasReconstructor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ctapipe.reco.reco_algorithms.Reconstructor</span></code></p>
+<p>class that reconstructs the direction of an atmospheric shower
+using a simple hillas parametrisation of the camera images it
+provides a direction estimate in two steps and an estimate for the
+shower’s impact position on the ground.</p>
+<p>so far, it does neither provide an energy estimator nor an
+uncertainty on the reconstructed parameters</p>
+<p class="rubric">Methods Summary</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">estimate_core_position</span></code>(hillas_dict, …)</p></td>
+<td><p>Estimate the core position by intersection the major ellipse lines of each telescope.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">estimate_direction</span></code>()</p></td>
+<td><p>calculates the origin of the gamma as the weighted average direction of the intersections of all hillas planes</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">estimate_h_max</span></code>()</p></td>
+<td><p>Estimate the max height by intersecting the lines of the cog directions of each telescope.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">initialize_hillas_planes</span></code>(hillas_dict, …)</p></td>
+<td><p>Creates a dictionary of <code class="xref py py-class docutils literal notranslate"><span class="pre">HillasPlane</span></code> from a dictionary of hillas parameters</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict</span></code>(hillas_dict, subarray, array_pointing)</p></td>
+<td><p>The function you want to call for the reconstruction of the event.</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods Documentation</p>
+<dl class="method">
+<dt id="ctapipe.reco.HillasReconstructor.estimate_core_position">
+<code class="sig-name descname">estimate_core_position</code><span class="sig-paren">(</span><em class="sig-param">hillas_dict</em>, <em class="sig-param">array_pointing</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/reco/HillasReconstructor.html#HillasReconstructor.estimate_core_position"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ctapipe.reco.HillasReconstructor.estimate_core_position" title="Permalink to this definition">¶</a></dt>
+<dd><p>Estimate the core position by intersection the major ellipse lines of each telescope.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>hillas_dict: dict[HillasContainer]</strong></dt><dd><p>dictionary of hillas moments</p>
+</dd>
+<dt><strong>array_pointing: SkyCoord[HorizonFrame]</strong></dt><dd><p>Pointing direction of the array</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>core_x: u.Quantity</dt><dd><p>estimated x position of impact</p>
+</dd>
+<dt>core_y: u.Quantity</dt><dd><p>estimated y position of impact</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="ctapipe.reco.HillasReconstructor.estimate_direction">
+<code class="sig-name descname">estimate_direction</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/reco/HillasReconstructor.html#HillasReconstructor.estimate_direction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ctapipe.reco.HillasReconstructor.estimate_direction" title="Permalink to this definition">¶</a></dt>
+<dd><p>calculates the origin of the gamma as the weighted average
+direction of the intersections of all hillas planes</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>gamma</strong><span class="classifier">shape (3) numpy array</span></dt><dd><p>direction of origin of the reconstructed shower as a 3D vector</p>
+</dd>
+<dt><strong>crossings</strong><span class="classifier">shape (n,3) list</span></dt><dd><p>an error estimate</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="ctapipe.reco.HillasReconstructor.estimate_h_max">
+<code class="sig-name descname">estimate_h_max</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/reco/HillasReconstructor.html#HillasReconstructor.estimate_h_max"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ctapipe.reco.HillasReconstructor.estimate_h_max" title="Permalink to this definition">¶</a></dt>
+<dd><p>Estimate the max height by intersecting the lines of the cog directions of each telescope.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt>astropy.unit.Quantity</dt><dd><p>the estimated max height</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="ctapipe.reco.HillasReconstructor.initialize_hillas_planes">
+<code class="sig-name descname">initialize_hillas_planes</code><span class="sig-paren">(</span><em class="sig-param">hillas_dict</em>, <em class="sig-param">subarray</em>, <em class="sig-param">telescopes_pointings</em>, <em class="sig-param">array_pointing</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/reco/HillasReconstructor.html#HillasReconstructor.initialize_hillas_planes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ctapipe.reco.HillasReconstructor.initialize_hillas_planes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a dictionary of <code class="xref py py-class docutils literal notranslate"><span class="pre">HillasPlane</span></code> from a dictionary of
+hillas parameters</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>hillas_dict</strong><span class="classifier">dictionary</span></dt><dd><p>dictionary of hillas moments</p>
+</dd>
+<dt><strong>subarray</strong><span class="classifier">ctapipe.instrument.SubarrayDescription</span></dt><dd><p>subarray information</p>
+</dd>
+<dt><strong>telescopes_pointings: dictionary</strong></dt><dd><p>dictionary of pointing direction per each telescope</p>
+</dd>
+<dt><strong>array_pointing: SkyCoord[AltAz]</strong></dt><dd><p>pointing direction of the array</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="ctapipe.reco.HillasReconstructor.predict">
+<code class="sig-name descname">predict</code><span class="sig-paren">(</span><em class="sig-param">hillas_dict</em>, <em class="sig-param">subarray</em>, <em class="sig-param">array_pointing</em>, <em class="sig-param">telescopes_pointings=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/reco/HillasReconstructor.html#HillasReconstructor.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ctapipe.reco.HillasReconstructor.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>The function you want to call for the reconstruction of the
+event. It takes care of setting up the event and consecutively
+calls the functions for the direction and core position
+reconstruction.  Shower parameters not reconstructed by this
+class are set to np.nan</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>hillas_dict: dict</strong></dt><dd><p>dictionary with telescope IDs as key and
+HillasParametersContainer instances as values</p>
+</dd>
+<dt><strong>inst</strong><span class="classifier">ctapipe.io.InstrumentContainer</span></dt><dd><p>instrumental description</p>
+</dd>
+<dt><strong>array_pointing: SkyCoord[AltAz]</strong></dt><dd><p>pointing direction of the array</p>
+</dd>
+<dt><strong>telescopes_pointings: dict[SkyCoord[AltAz]]</strong></dt><dd><p>dictionary of pointing direction per each telescope</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><dl class="simple">
+<dt>TooFewTelescopesException</dt><dd><p>if len(hillas_dict) &lt; 2</p>
+</dd>
+<dt>InvalidWidthException</dt><dd><p>if any width is np.nan or 0</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="ctapipe.reco.Reconstructor.html" class="btn btn-neutral float-right" title="Reconstructor" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../ctapipe_api/reco/ImPACT.html" class="btn btn-neutral float-left" title="Analysis with ImPACT" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright ctapipe developers.  Last updated 29 Jan 2021 18:09.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,33 @@
+CutFlow
+=======
+
+.. currentmodule:: ctapipe.utils
+
+.. autoclass:: CutFlow
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~CutFlow.__call__
+      ~CutFlow.add_cut
+      ~CutFlow.add_cuts
+      ~CutFlow.count
+      ~CutFlow.cut
+      ~CutFlow.get_table
+      ~CutFlow.keep
+      ~CutFlow.set_cut
+      ~CutFlow.set_cuts
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__
+   .. automethod:: add_cut
+   .. automethod:: add_cuts
+   .. automethod:: count
+   .. automethod:: cut
+   .. automethod:: get_table
+   .. automethod:: keep
+   .. automethod:: set_cut
+   .. automethod:: set_cuts

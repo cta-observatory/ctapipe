@@ -1,0 +1,6 @@
+get_table_dataset
+=================
+
+.. currentmodule:: ctapipe.utils
+
+.. autofunction:: get_table_dataset

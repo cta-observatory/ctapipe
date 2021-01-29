@@ -1,0 +1,39 @@
+ArrayDisplay
+============
+
+.. currentmodule:: ctapipe.visualization
+
+.. autoclass:: ArrayDisplay
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~ArrayDisplay.values
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~ArrayDisplay.add_labels
+      ~ArrayDisplay.background_contour
+      ~ArrayDisplay.remove_labels
+      ~ArrayDisplay.set_line_hillas
+      ~ArrayDisplay.set_vector_hillas
+      ~ArrayDisplay.set_vector_rho_phi
+      ~ArrayDisplay.set_vector_uv
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: values
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: add_labels
+   .. automethod:: background_contour
+   .. automethod:: remove_labels
+   .. automethod:: set_line_hillas
+   .. automethod:: set_vector_hillas
+   .. automethod:: set_vector_rho_phi
+   .. automethod:: set_vector_uv

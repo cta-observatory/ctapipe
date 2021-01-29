@@ -1,0 +1,6 @@
+rotation_matrix_2d
+==================
+
+.. currentmodule:: ctapipe.utils.linalg
+
+.. autofunction:: rotation_matrix_2d

@@ -1,0 +1,27 @@
+DL1CameraContainer
+==================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: DL1CameraContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~DL1CameraContainer.image
+      ~DL1CameraContainer.image_mask
+      ~DL1CameraContainer.meta
+      ~DL1CameraContainer.parameters
+      ~DL1CameraContainer.peak_time
+      ~DL1CameraContainer.prefix
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: image
+   .. autoattribute:: image_mask
+   .. autoattribute:: meta
+   .. autoattribute:: parameters
+   .. autoattribute:: peak_time
+   .. autoattribute:: prefix

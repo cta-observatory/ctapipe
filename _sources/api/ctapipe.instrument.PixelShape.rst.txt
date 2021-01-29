@@ -1,0 +1,31 @@
+PixelShape
+==========
+
+.. currentmodule:: ctapipe.instrument
+
+.. autoclass:: PixelShape
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~PixelShape.CIRCLE
+      ~PixelShape.HEXAGON
+      ~PixelShape.SQUARE
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~PixelShape.from_string
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: CIRCLE
+   .. autoattribute:: HEXAGON
+   .. autoattribute:: SQUARE
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: from_string

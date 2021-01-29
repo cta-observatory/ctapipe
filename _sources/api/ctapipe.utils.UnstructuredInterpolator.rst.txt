@@ -1,0 +1,19 @@
+UnstructuredInterpolator
+========================
+
+.. currentmodule:: ctapipe.utils
+
+.. autoclass:: UnstructuredInterpolator
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~UnstructuredInterpolator.__call__
+      ~UnstructuredInterpolator.reset
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__
+   .. automethod:: reset

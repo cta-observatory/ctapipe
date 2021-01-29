@@ -1,0 +1,6 @@
+get_array_layout
+================
+
+.. currentmodule:: ctapipe.io
+
+.. autofunction:: get_array_layout

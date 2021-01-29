@@ -1,0 +1,27 @@
+MonitoringCameraContainer
+=========================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: MonitoringCameraContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~MonitoringCameraContainer.calibration
+      ~MonitoringCameraContainer.flatfield
+      ~MonitoringCameraContainer.meta
+      ~MonitoringCameraContainer.pedestal
+      ~MonitoringCameraContainer.pixel_status
+      ~MonitoringCameraContainer.prefix
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: calibration
+   .. autoattribute:: flatfield
+   .. autoattribute:: meta
+   .. autoattribute:: pedestal
+   .. autoattribute:: pixel_status
+   .. autoattribute:: prefix

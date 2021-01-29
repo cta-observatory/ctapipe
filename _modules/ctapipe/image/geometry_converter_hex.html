@@ -1,0 +1,774 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>ctapipe.image.geometry_converter_hex &mdash; ctapipe v0.1.dev1+gb5c90a1</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+        <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.20.0/dist/embed-amd.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> ctapipe
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.dev1+gb5c90a1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>ctapipe.image.geometry_converter_hex</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for ctapipe.image.geometry_converter_hex</h1><div class="highlight"><pre>
+<span></span><span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;@tino-michael&quot;</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+
+<span class="kn">from</span> <span class="nn">ctapipe.instrument</span> <span class="kn">import</span> <span class="n">CameraGeometry</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;convert_geometry_hex1d_to_rect2d&quot;</span><span class="p">,</span> <span class="s2">&quot;convert_geometry_rect2d_back_to_hexe1d&quot;</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">unskew_hex_pixel_grid</span><span class="p">(</span><span class="n">pix_x</span><span class="p">,</span> <span class="n">pix_y</span><span class="p">,</span> <span class="n">cam_angle</span><span class="o">=</span><span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">base_angle</span><span class="o">=</span><span class="mi">60</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;transform the pixel coordinates of a hexagonal image into an</span>
+<span class="sd">    orthogonal image</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pix_x, pix_y : 1D numpy arrays</span>
+<span class="sd">        the list of x and y coordinates of the hexagonal pixel grid</span>
+<span class="sd">    cam_angle : astropy.Quantity (default: 0 degrees)</span>
+<span class="sd">        The skewing is performed along the y-axis, therefore, one of the slanted</span>
+<span class="sd">        base-vectors needs to be parallel to the y-axis.</span>
+<span class="sd">        Some camera grids are rotated in a way that this is not the case.</span>
+<span class="sd">        This needs to be corrected.</span>
+<span class="sd">    base_angle : astropy.Quantity (default: 60 degrees)</span>
+<span class="sd">        the skewing angle of the hex-grid. should be 60° for regular hexagons</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pix_x, pix_y : 1D numpy arrays</span>
+<span class="sd">        the list of x and y coordinates of the slanted, orthogonal pixel grid</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The correction on the pixel position r can be described by a rotation R around</span>
+<span class="sd">    one angle and a sheer S along a certain axis:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        r&#39; = S \cdot R \cdot r</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \begin{pmatrix}</span>
+<span class="sd">            x&#39; \\</span>
+<span class="sd">            y&#39;</span>
+<span class="sd">        \end{pmatrix}</span>
+<span class="sd">        =</span>
+<span class="sd">        \begin{pmatrix}</span>
+<span class="sd">            1        &amp;  0 \\</span>
+<span class="sd">            -1/\tan  &amp;  1</span>
+<span class="sd">        \end{pmatrix}</span>
+<span class="sd">        \cdot</span>
+<span class="sd">        \begin{pmatrix}</span>
+<span class="sd">            \cos  &amp; -\sin \\</span>
+<span class="sd">            \sin  &amp;  \cos</span>
+<span class="sd">        \end{pmatrix}</span>
+<span class="sd">        \cdot</span>
+<span class="sd">        \begin{pmatrix}</span>
+<span class="sd">            x \\</span>
+<span class="sd">            y</span>
+<span class="sd">        \end{pmatrix}</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \begin{pmatrix}</span>
+<span class="sd">            x&#39; \\</span>
+<span class="sd">            y&#39;</span>
+<span class="sd">        \end{pmatrix}</span>
+<span class="sd">        =</span>
+<span class="sd">        \begin{pmatrix}</span>
+<span class="sd">                 \cos      &amp;     -\sin      \\</span>
+<span class="sd">            \sin-\cos/\tan &amp; \sin/\tan+\cos</span>
+<span class="sd">        \end{pmatrix}</span>
+<span class="sd">        \cdot</span>
+<span class="sd">        \begin{pmatrix}</span>
+<span class="sd">            x \\</span>
+<span class="sd">            y</span>
+<span class="sd">        \end{pmatrix}</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">tan_angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tan</span><span class="p">(</span><span class="n">base_angle</span><span class="p">)</span>
+
+    <span class="c1"># If the camera-rotation angle is non-zero, create a rotation+sheering</span>
+    <span class="c1"># matrix for the pixel coordinates</span>
+    <span class="k">if</span> <span class="n">cam_angle</span> <span class="o">!=</span> <span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">:</span>
+        <span class="n">sin_angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">cam_angle</span><span class="p">)</span>
+        <span class="n">cos_angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">cam_angle</span><span class="p">)</span>
+
+        <span class="c1"># the correction on the pixel position r can be described by a</span>
+        <span class="c1"># rotation R around one angle and a sheer S along a certain axis:</span>
+        <span class="c1">#</span>
+        <span class="c1">#  r&#39;  = S * R * r</span>
+        <span class="c1"># (x&#39;) = (   1    0) * (cos -sin) * (x) = (    cos         -sin    ) * (x)</span>
+        <span class="c1"># (y&#39;)   (-1/tan  1)   (sin  cos)   (y)   (sin-cos/tan  sin/tan+cos) * (y)</span>
+        <span class="n">rot_mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">[</span><span class="n">cos_angle</span><span class="p">,</span> <span class="o">-</span><span class="n">sin_angle</span><span class="p">],</span>
+                <span class="p">[</span><span class="n">sin_angle</span> <span class="o">-</span> <span class="n">cos_angle</span> <span class="o">/</span> <span class="n">tan_angle</span><span class="p">,</span> <span class="n">sin_angle</span> <span class="o">/</span> <span class="n">tan_angle</span> <span class="o">+</span> <span class="n">cos_angle</span><span class="p">],</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># if we don&#39;t rotate the camera, only perform the sheer</span>
+        <span class="n">rot_mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span> <span class="o">/</span> <span class="n">tan_angle</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>
+
+    <span class="n">rotated</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">rot_mat</span><span class="p">,</span> <span class="p">[</span><span class="n">pix_x</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">pix_y</span><span class="o">.</span><span class="n">value</span><span class="p">])</span>
+    <span class="n">rot_x</span> <span class="o">=</span> <span class="n">rotated</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">pix_x</span><span class="o">.</span><span class="n">unit</span>
+    <span class="n">rot_y</span> <span class="o">=</span> <span class="n">rotated</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">pix_x</span><span class="o">.</span><span class="n">unit</span>
+    <span class="k">return</span> <span class="n">rot_x</span><span class="p">,</span> <span class="n">rot_y</span>
+
+
+<span class="k">def</span> <span class="nf">reskew_hex_pixel_grid</span><span class="p">(</span><span class="n">pix_x</span><span class="p">,</span> <span class="n">pix_y</span><span class="p">,</span> <span class="n">cam_angle</span><span class="o">=</span><span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">base_angle</span><span class="o">=</span><span class="mi">60</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;skews the orthogonal coordinates back to the hexagonal ones</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pix_x, pix_y : 1D numpy arrays</span>
+<span class="sd">        the list of x and y coordinates of the slanted, orthogonal pixel grid</span>
+<span class="sd">    cam_angle : astropy.Quantity (default: 0 degrees)</span>
+<span class="sd">        The skewing is performed along the y-axis, therefore, one of the slanted</span>
+<span class="sd">        base-vectors needs to be parallel to the y-axis.</span>
+<span class="sd">        Some camera grids are rotated in a way that this is not the case.</span>
+<span class="sd">        This needs to be corrected.</span>
+<span class="sd">    base_angle : astropy.Quantity (default: 60 degrees)</span>
+<span class="sd">        the skewing angle of the hex-grid. should be 60° for regular hexagons</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pix_x, pix_y : 1D numpy arrays</span>
+<span class="sd">        the list of x and y coordinates of the hexagonal pixel grid</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    To revert the rotation, we need to find matrices S&#39; and R&#39; with</span>
+<span class="sd">    :math:`S&#39; \cdot S = 1` and :math:`R&#39; \cdot R = 1`,</span>
+<span class="sd">    so that :math:`r = R&#39; \cdot S&#39; \cdot S \cdot R \cdot r = R&#39; \cdot S&#39; \cdot  r&#39;`:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \begin{pmatrix}</span>
+<span class="sd">            x \\</span>
+<span class="sd">            y</span>
+<span class="sd">        \end{pmatrix}</span>
+<span class="sd">        =</span>
+<span class="sd">        \begin{pmatrix}</span>
+<span class="sd">            \cos  &amp;  \sin \\</span>
+<span class="sd">            -\sin &amp;  \cos</span>
+<span class="sd">        \end{pmatrix}</span>
+<span class="sd">        \cdot</span>
+<span class="sd">        \begin{pmatrix}</span>
+<span class="sd">            1       &amp;  0 \\</span>
+<span class="sd">            1/\tan  &amp;  1</span>
+<span class="sd">        \end{pmatrix}</span>
+<span class="sd">        \cdot</span>
+<span class="sd">        \begin{pmatrix}</span>
+<span class="sd">            x&#39; \\</span>
+<span class="sd">            y&#39;</span>
+<span class="sd">        \end{pmatrix}</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \begin{pmatrix}</span>
+<span class="sd">            x \\</span>
+<span class="sd">            y</span>
+<span class="sd">        \end{pmatrix}</span>
+<span class="sd">        =</span>
+<span class="sd">        \begin{pmatrix}</span>
+<span class="sd">            \cos+\sin/\tan  &amp;  \sin \\</span>
+<span class="sd">            \cos/\tan-\sin  &amp;  \cos</span>
+<span class="sd">        \end{pmatrix}</span>
+<span class="sd">        \cdot</span>
+<span class="sd">        \begin{pmatrix}</span>
+<span class="sd">            x&#39; \\</span>
+<span class="sd">            y&#39;</span>
+<span class="sd">        \end{pmatrix}</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">tan_angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tan</span><span class="p">(</span><span class="n">base_angle</span><span class="p">)</span>
+
+    <span class="c1"># If the camera-rotation angle is non-zero, create a rotation+sheering</span>
+    <span class="c1"># matrix for the pixel coordinates</span>
+    <span class="k">if</span> <span class="n">cam_angle</span> <span class="o">!=</span> <span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">:</span>
+        <span class="n">sin_angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">cam_angle</span><span class="p">)</span>
+        <span class="n">cos_angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">cam_angle</span><span class="p">)</span>
+
+        <span class="c1"># to revert the rotation, we need to find matrices S&#39; and R&#39;</span>
+        <span class="c1"># S&#39; * S = 1 and R&#39; * R = 1</span>
+        <span class="c1"># so that</span>
+        <span class="c1"># r = R&#39; * S&#39; * S * R * r = R&#39; * S&#39; *  r&#39;</span>
+        <span class="c1">#</span>
+        <span class="c1"># (x) = ( cos sin) * (  1    0) * (x&#39;) = (cos+sin/tan  sin) * (x&#39;)</span>
+        <span class="c1"># (y)   (-sin cos)   (1/tan  1)   (y&#39;)   (cos/tan-sin  cos)   (y&#39;)</span>
+
+        <span class="n">rot_mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">[</span><span class="n">cos_angle</span> <span class="o">+</span> <span class="n">sin_angle</span> <span class="o">/</span> <span class="n">tan_angle</span><span class="p">,</span> <span class="n">sin_angle</span><span class="p">],</span>
+                <span class="p">[</span><span class="n">cos_angle</span> <span class="o">/</span> <span class="n">tan_angle</span> <span class="o">-</span> <span class="n">sin_angle</span><span class="p">,</span> <span class="n">cos_angle</span><span class="p">],</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># if we don&#39;t rotate the camera, only perform the sheer</span>
+        <span class="n">rot_mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span> <span class="o">/</span> <span class="n">tan_angle</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>
+
+    <span class="n">rotated</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">rot_mat</span><span class="p">,</span> <span class="p">[</span><span class="n">pix_x</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">pix_y</span><span class="o">.</span><span class="n">value</span><span class="p">])</span>
+    <span class="n">rot_x</span> <span class="o">=</span> <span class="n">rotated</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">pix_x</span><span class="o">.</span><span class="n">unit</span>
+    <span class="n">rot_y</span> <span class="o">=</span> <span class="n">rotated</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">pix_x</span><span class="o">.</span><span class="n">unit</span>
+    <span class="k">return</span> <span class="n">rot_x</span><span class="p">,</span> <span class="n">rot_y</span>
+
+
+<span class="k">def</span> <span class="nf">reskew_hex_pixel_from_orthogonal_edges</span><span class="p">(</span><span class="n">x_edges</span><span class="p">,</span> <span class="n">y_edges</span><span class="p">,</span> <span class="n">square_mask</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;extracts and skews the pixel coordinates from a 2D orthogonal</span>
+<span class="sd">    histogram (i.e. the bin-edges) and skews them into the hexagonal</span>
+<span class="sd">    image while selecting only the pixel that are selected by the</span>
+<span class="sd">    given mask</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x_edges, y_edges : 1darrays</span>
+<span class="sd">        the bin edges of the 2D histogram</span>
+<span class="sd">    square_mask : 2darray</span>
+<span class="sd">        mask that selects the pixels actually belonging to the camera</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    unrot_x, unrot_y : 1darrays</span>
+<span class="sd">        pixel coordinated reskewed into the hexagonal camera grid</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">unrot_x</span><span class="p">,</span> <span class="n">unrot_y</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">((</span><span class="n">x_edges</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">x_edges</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span> <span class="o">/</span> <span class="mi">2</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">((</span><span class="n">y_edges</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">y_edges</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span> <span class="o">/</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">square_mask</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]:</span>
+                <span class="n">x_unrot</span><span class="p">,</span> <span class="n">y_unrot</span> <span class="o">=</span> <span class="n">reskew_hex_pixel_grid</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+                <span class="n">unrot_x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x_unrot</span><span class="p">)</span>
+                <span class="n">unrot_y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y_unrot</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">unrot_x</span><span class="p">,</span> <span class="n">unrot_y</span>
+
+
+<span class="k">def</span> <span class="nf">get_orthogonal_grid_edges</span><span class="p">(</span><span class="n">pix_x</span><span class="p">,</span> <span class="n">pix_y</span><span class="p">,</span> <span class="n">scale_aspect</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;calculate the bin edges of the slanted, orthogonal pixel grid to</span>
+<span class="sd">    resample the pixel signals with np.histogramdd right after.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pix_x, pix_y : 1D numpy arrays</span>
+<span class="sd">        the list of x and y coordinates of the slanted, orthogonal pixel grid</span>
+<span class="sd">        units should be in meters, and stripped off</span>
+<span class="sd">    scale_aspect : boolean (default: True)</span>
+<span class="sd">        if True, rescales the x-coordinates to create square pixels</span>
+<span class="sd">        (instead of rectangular ones)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    --------</span>
+<span class="sd">    x_edges, y_edges : 1D numpy arrays</span>
+<span class="sd">        the bin edges for the slanted, orthogonal pixel grid</span>
+<span class="sd">    x_scale : float</span>
+<span class="sd">        factor by which the x-coordinates have been scaled</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># finding the size of the square patches</span>
+
+    <span class="n">d_x</span> <span class="o">=</span> <span class="mi">99</span>
+    <span class="n">d_y</span> <span class="o">=</span> <span class="mi">99</span>
+    <span class="n">x_base</span> <span class="o">=</span> <span class="n">pix_x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">y_base</span> <span class="o">=</span> <span class="n">pix_y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">pix_x</span><span class="p">,</span> <span class="n">pix_y</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">y_base</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">abs</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">x_base</span><span class="p">):</span>
+            <span class="n">d_x</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">d_x</span><span class="p">,</span> <span class="nb">abs</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">x_base</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">y_base</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">abs</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">x_base</span><span class="p">):</span>
+            <span class="n">d_y</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">d_y</span><span class="p">,</span> <span class="nb">abs</span><span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">y_base</span><span class="p">))</span>
+
+    <span class="c1"># for x, y in zip(pix_x, pix_y):</span>
+    <span class="c1">#    if abs(y - y_base) &gt; abs(x - x_base):</span>
+    <span class="c1">#        d_y = min(d_y, abs(y - y_base))</span>
+
+    <span class="n">x_scale</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">scale_aspect</span><span class="p">:</span>
+        <span class="n">x_scale</span> <span class="o">=</span> <span class="n">d_y</span> <span class="o">/</span> <span class="n">d_x</span>
+        <span class="n">pix_x</span> <span class="o">*=</span> <span class="n">x_scale</span>
+        <span class="n">d_x</span> <span class="o">=</span> <span class="n">d_y</span>
+
+    <span class="c1"># with the maximal extension of the axes and the size of the pixels,</span>
+    <span class="c1"># determine the number of bins in each direction</span>
+    <span class="n">n_bins_x</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round_</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">pix_x</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">pix_x</span><span class="p">))</span> <span class="o">/</span> <span class="n">d_x</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">n_bins_y</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round_</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">pix_y</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">pix_y</span><span class="p">))</span> <span class="o">/</span> <span class="n">d_y</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">x_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">pix_x</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">pix_x</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">n_bins_x</span><span class="p">)</span>
+    <span class="n">y_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">pix_y</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">pix_y</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">n_bins_y</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">x_edges</span><span class="p">,</span> <span class="n">y_edges</span><span class="p">,</span> <span class="n">x_scale</span><span class="p">)</span>
+
+
+<span class="n">rot_buffer</span> <span class="o">=</span> <span class="p">{}</span>
+
+
+<div class="viewcode-block" id="convert_geometry_hex1d_to_rect2d"><a class="viewcode-back" href="../../../api/ctapipe.image.geometry_converter.convert_geometry_hex1d_to_rect2d.html#ctapipe.image.convert_geometry_hex1d_to_rect2d">[docs]</a><span class="k">def</span> <span class="nf">convert_geometry_hex1d_to_rect2d</span><span class="p">(</span><span class="n">geom</span><span class="p">,</span> <span class="n">signal</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">add_rot</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;converts the geometry object of a camera with a hexagonal grid into</span>
+<span class="sd">    a square grid by slanting and stretching the 1D arrays of pixel x</span>
+<span class="sd">    and y positions and signal intensities are converted to 2D</span>
+<span class="sd">    arrays. If the signal array contains a time-dimension it is</span>
+<span class="sd">    conserved.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    geom : CameraGeometry object</span>
+<span class="sd">        geometry object of hexagonal cameras</span>
+<span class="sd">    signal : ndarray</span>
+<span class="sd">        1D (no timing) or 2D (with timing) array of the pmt signals</span>
+<span class="sd">    key : (default: None)</span>
+<span class="sd">        arbitrary key (float, string) to store the transformed geometry in a buffer</span>
+<span class="sd">        The geometries (hex and rect) will be stored in a buffer.</span>
+<span class="sd">        The key is necessary to make the conversion back from rect to hex.</span>
+<span class="sd">    add_rot : int/float (default: 0)</span>
+<span class="sd">        parameter to apply an additional rotation of `add_rot` times 60°</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    new_geom : CameraGeometry object</span>
+<span class="sd">        geometry object of the slanted picture now with a rectangular</span>
+<span class="sd">        grid and a 2D grid for the pixel positions. contains now a 2D</span>
+<span class="sd">        masking array signifying which of the pixels came from the</span>
+<span class="sd">        original geometry and which are simply fillers from the</span>
+<span class="sd">        rectangular grid</span>
+<span class="sd">    rot_img : ndarray 2D (no timing) or 3D (with timing)</span>
+<span class="sd">        the rectangular signal image</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    camera = subarray.tel[tel_id].camera</span>
+<span class="sd">    image = event.r0.tel[tel_id].image[0]</span>
+<span class="sd">    key = camera.camera_name</span>
+<span class="sd">    square_geom, square_image = convert_geometry_hex1d_to_rect2d(camera, image, key=key)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">rot_buffer</span><span class="p">:</span>
+
+        <span class="c1"># if the conversion with this key was done before and stored,</span>
+        <span class="c1"># just read it in</span>
+        <span class="p">(</span><span class="n">geom</span><span class="p">,</span> <span class="n">new_geom</span><span class="p">,</span> <span class="n">hex_to_rect_map</span><span class="p">)</span> <span class="o">=</span> <span class="n">rot_buffer</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+
+        <span class="c1"># otherwise, we have to do the conversion first now,</span>
+        <span class="c1"># skew all the coordinates of the original geometry</span>
+
+        <span class="c1"># extra_rot is the angle to get back to aligned hexagons with flat</span>
+        <span class="c1"># tops. Note that the pixel rotation angle brings the camera so that</span>
+        <span class="c1"># hexagons have a point at the top, so need to go 30deg back to</span>
+        <span class="c1"># make them flat</span>
+        <span class="n">extra_rot</span> <span class="o">=</span> <span class="n">geom</span><span class="o">.</span><span class="n">pix_rotation</span> <span class="o">-</span> <span class="mi">30</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span>
+
+        <span class="c1"># total rotation angle:</span>
+        <span class="n">rot_angle</span> <span class="o">=</span> <span class="p">(</span><span class="n">add_rot</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span> <span class="o">-</span> <span class="n">extra_rot</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;geom=</span><span class="si">{geom}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;rot=</span><span class="si">{rot_angle}</span><span class="s2">, extra=</span><span class="si">{extra_rot}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">rot_x</span><span class="p">,</span> <span class="n">rot_y</span> <span class="o">=</span> <span class="n">unskew_hex_pixel_grid</span><span class="p">(</span>
+            <span class="n">geom</span><span class="o">.</span><span class="n">pix_x</span><span class="p">,</span> <span class="n">geom</span><span class="o">.</span><span class="n">pix_y</span><span class="p">,</span> <span class="n">cam_angle</span><span class="o">=</span><span class="n">rot_angle</span>
+        <span class="p">)</span>
+
+        <span class="c1"># with all the coordinate points, we can define the bin edges</span>
+        <span class="c1"># of a 2D histogram</span>
+        <span class="n">x_edges</span><span class="p">,</span> <span class="n">y_edges</span><span class="p">,</span> <span class="n">x_scale</span> <span class="o">=</span> <span class="n">get_orthogonal_grid_edges</span><span class="p">(</span>
+            <span class="n">rot_x</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span> <span class="n">rot_y</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># this histogram will introduce bins that do not correspond to</span>
+        <span class="c1"># any pixel from the original geometry. so we create a mask to</span>
+        <span class="c1"># remember the true camera pixels by simply throwing all pixel</span>
+        <span class="c1"># positions into numpy.histogramdd: proper pixels contain the</span>
+        <span class="c1"># value 1, false pixels the value 0.</span>
+        <span class="n">square_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogramdd</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">rot_y</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span> <span class="n">rot_x</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)],</span> <span class="n">bins</span><span class="o">=</span><span class="p">(</span><span class="n">y_edges</span><span class="p">,</span> <span class="n">x_edges</span><span class="p">)</span>
+        <span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+
+        <span class="c1"># to be consistent with the pixel intensity, instead of saving</span>
+        <span class="c1"># only the rotated positions of the true pixels (rot_x and</span>
+        <span class="c1"># rot_y), create 2D arrays of all x and y positions (also the</span>
+        <span class="c1"># false ones).</span>
+        <span class="n">grid_x</span><span class="p">,</span> <span class="n">grid_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">x_edges</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">x_edges</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">,</span> <span class="p">(</span><span class="n">y_edges</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">y_edges</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span> <span class="o">/</span> <span class="mf">2.0</span>
+        <span class="p">)</span>
+
+        <span class="n">ids</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># instead of blindly enumerating all pixels, let&#39;s instead</span>
+        <span class="c1"># store a list of all valid -- i.e. picked by the mask -- 2D</span>
+        <span class="c1"># indices</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">square_mask</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">row</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+                    <span class="n">ids</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">))</span>
+
+        <span class="c1"># the area of the pixels (note that this is still a deformed</span>
+        <span class="c1"># image)</span>
+        <span class="n">pix_area</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">grid_x</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">x_edges</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x_edges</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="n">y_edges</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">y_edges</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="p">)</span>
+
+        <span class="c1"># creating a new geometry object with the attributes we just determined</span>
+        <span class="n">new_geom</span> <span class="o">=</span> <span class="n">CameraGeometry</span><span class="p">(</span>
+            <span class="n">camera_name</span><span class="o">=</span><span class="n">geom</span><span class="o">.</span><span class="n">camera_name</span> <span class="o">+</span> <span class="s2">&quot;_rect&quot;</span><span class="p">,</span>
+            <span class="n">pix_id</span><span class="o">=</span><span class="n">ids</span><span class="p">,</span>  <span class="c1"># this is a list of all the valid coordinate pairs now</span>
+            <span class="n">pix_x</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">grid_x</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">u</span><span class="o">.</span><span class="n">meter</span><span class="p">),</span>
+            <span class="n">pix_y</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">grid_y</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">u</span><span class="o">.</span><span class="n">meter</span><span class="p">),</span>
+            <span class="n">pix_area</span><span class="o">=</span><span class="n">pix_area</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">meter</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="n">neighbors</span><span class="o">=</span><span class="n">geom</span><span class="o">.</span><span class="n">neighbors</span><span class="p">,</span>
+            <span class="n">pix_type</span><span class="o">=</span><span class="s2">&quot;rectangular&quot;</span><span class="p">,</span>
+            <span class="n">apply_derotation</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># storing the pixel mask for later use</span>
+        <span class="n">new_geom</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="n">square_mask</span>
+
+        <span class="c1"># create a transfer map by enumerating all pixel positions in a 2D histogram</span>
+        <span class="n">hex_to_rect_map</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogramdd</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">rot_y</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span> <span class="n">rot_x</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)],</span>
+            <span class="n">bins</span><span class="o">=</span><span class="p">(</span><span class="n">y_edges</span><span class="p">,</span> <span class="n">x_edges</span><span class="p">),</span>
+            <span class="n">weights</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">signal</span><span class="p">)),</span>
+        <span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="c1"># bins that do not correspond to the original image get an entry of `-1`</span>
+        <span class="n">hex_to_rect_map</span><span class="p">[</span><span class="o">~</span><span class="n">square_mask</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">signal</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">long_map</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]):</span>
+                <span class="n">tmp_map</span> <span class="o">=</span> <span class="n">hex_to_rect_map</span> <span class="o">+</span> <span class="n">i</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">hex_to_rect_map</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">tmp_map</span><span class="p">[</span><span class="o">~</span><span class="n">square_mask</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="n">long_map</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp_map</span><span class="p">)</span>
+            <span class="n">hex_to_rect_map</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">long_map</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># if a key is given, store the essential objects in a buffer</span>
+            <span class="n">rot_buffer</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">geom</span><span class="p">,</span> <span class="n">new_geom</span><span class="p">,</span> <span class="n">hex_to_rect_map</span><span class="p">)</span>
+
+    <span class="c1"># done `if key in rot_buffer`</span>
+
+    <span class="c1"># create the rotated rectangular image by applying `hex_to_rect_map` to the flat,</span>
+    <span class="c1"># extended input image</span>
+    <span class="c1"># `input_img_ext` is the flattened input image extended by one entry that contains NaN</span>
+    <span class="c1"># since `hex_to_rect_map` contains `-1` for &quot;fake&quot; pixels, it maps this extra NaN</span>
+    <span class="c1"># value at the last array position to any bin that does not correspond to a pixel of</span>
+    <span class="c1"># the original image</span>
+    <span class="n">input_img_ext</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+
+    <span class="c1"># the way the map is produced, it has the time dimension as axis=0;</span>
+    <span class="c1"># but `signal` has it as axis=-1, so we need to roll the axes back and forth a bit.</span>
+    <span class="c1"># if there is no time dimension, `signal` is a 1d array and `rollaxis` has no effect.</span>
+    <span class="n">input_img_ext</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rollaxis</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+
+    <span class="c1"># now apply the transfer map</span>
+    <span class="n">rot_img</span> <span class="o">=</span> <span class="n">input_img_ext</span><span class="p">[</span><span class="n">hex_to_rect_map</span><span class="p">]</span>
+
+    <span class="c1"># if there is a time dimension, roll the time axis back to the last position</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">rot_img</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rollaxis</span><span class="p">(</span><span class="n">rot_img</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+    <span class="k">return</span> <span class="n">new_geom</span><span class="p">,</span> <span class="n">rot_img</span></div>
+
+
+<div class="viewcode-block" id="convert_geometry_rect2d_back_to_hexe1d"><a class="viewcode-back" href="../../../api/ctapipe.image.geometry_converter.convert_geometry_rect2d_back_to_hexe1d.html#ctapipe.image.convert_geometry_rect2d_back_to_hexe1d">[docs]</a><span class="k">def</span> <span class="nf">convert_geometry_rect2d_back_to_hexe1d</span><span class="p">(</span><span class="n">geom</span><span class="p">,</span> <span class="n">signal</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">add_rot</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;reverts the geometry distortion performed by convert_geometry_hexe1d_to_rect_2d</span>
+<span class="sd">    back to a hexagonal grid stored in 1D arrays</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    geom : CameraGeometry</span>
+<span class="sd">        geometry object where pixel positions are stored in a 2D</span>
+<span class="sd">        rectangular camera grid</span>
+<span class="sd">    signal : ndarray</span>
+<span class="sd">        pixel intensity stored in a 2D rectangular camera grid</span>
+<span class="sd">    key:</span>
+<span class="sd">        key to retrieve buffered geometry information</span>
+<span class="sd">        (see `convert_geometry_hex1d_to_rect2d`)</span>
+<span class="sd">    add_rot:</span>
+<span class="sd">        not used -- only here for backwards compatibility</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    old_geom : CameraGeometry</span>
+<span class="sd">        the original geometry of the image</span>
+<span class="sd">    signal : ndarray</span>
+<span class="sd">        1D (no timing) or 2D (with timing) array of the pmt signals</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The back-conversion works with an internal buffer to store the transfer map (which</span>
+<span class="sd">    was produced in the first conversion). If `key` is not found in said buffer, this</span>
+<span class="sd">    function tries to perform a mock conversion. For this, it needs a `CameraGeometry`</span>
+<span class="sd">    instance of the original camera layout, which it tries to load by name (i.e.</span>
+<span class="sd">    the `camera_name`). The function assumes the original `camera_name` can be inferred from the</span>
+<span class="sd">    given, modified one by: `geom.camera_name.split(&#39;_&#39;)[0]`.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    camera = subarray.tel[tel_id].camera</span>
+<span class="sd">    image = event.r0.tel[tel_id].image[0]</span>
+<span class="sd">    key = camera.camera_name</span>
+<span class="sd">    square_geom, square_image = convert_geometry_hex1d_to_rect2d(camera, image, key=key)</span>
+<span class="sd">    hex_geom, hex_image = convert_geometry_rect2d_back_to_hexe1d(square_geom,</span>
+<span class="sd">    square_image, key = key)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">rot_buffer</span><span class="p">:</span>
+        <span class="c1"># if the key is not in the buffer from the initial conversion (maybe</span>
+        <span class="c1"># because you did it in another process?), perform a mock conversion</span>
+        <span class="c1"># here ATTENTION assumes the original camera_name can be inferred from the</span>
+        <span class="c1">#  given, modified one by by `geom.camera_name.split(&#39;_&#39;)[0]`</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">orig_geom</span> <span class="o">=</span> <span class="n">CameraGeometry</span><span class="o">.</span><span class="n">from_name</span><span class="p">(</span><span class="n">geom</span><span class="o">.</span><span class="n">camera_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;could not deduce `CameraGeometry` from given `geom`...</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;please provide a `geom`, so that &quot;</span>
+                <span class="s2">&quot;`geom.camera_name.split(&#39;_&#39;)[0]` is a known `camera_name`&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">orig_signal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">orig_geom</span><span class="o">.</span><span class="n">pix_x</span><span class="p">))</span>
+        <span class="n">convert_geometry_hex1d_to_rect2d</span><span class="p">(</span>
+            <span class="n">geom</span><span class="o">=</span><span class="n">orig_geom</span><span class="p">,</span> <span class="n">signal</span><span class="o">=</span><span class="n">orig_signal</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">add_rot</span><span class="o">=</span><span class="n">add_rot</span>
+        <span class="p">)</span>
+
+    <span class="p">(</span><span class="n">old_geom</span><span class="p">,</span> <span class="n">new_geom</span><span class="p">,</span> <span class="n">hex_square_map</span><span class="p">)</span> <span class="o">=</span> <span class="n">rot_buffer</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="c1"># the output image has as many entries as there are non-negative values in the</span>
+    <span class="c1"># transfer map (this accounts for time as well)</span>
+    <span class="n">unrot_img</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">hex_square_map</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">))</span>
+
+    <span class="c1"># rearrange input `signal` according to the mask and map</span>
+    <span class="c1"># (the dots in the brackets expand the mask to account for a possible time dimension)</span>
+    <span class="c1"># `atleast_3d` ensures that there is a third axis that we can roll to the front</span>
+    <span class="c1"># even if there is no time; if we&#39;d use `axis=-1` instead, in cas of no time</span>
+    <span class="c1"># dimensions, we would rotate the x and y axes, resulting in a mirrored image</span>
+    <span class="c1"># `squeeze` reduces the added axis again in the no-time-slices cases</span>
+    <span class="n">unrot_img</span><span class="p">[</span><span class="n">hex_square_map</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">new_geom</span><span class="o">.</span><span class="n">mask</span><span class="p">]]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">rollaxis</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">atleast_3d</span><span class="p">(</span><span class="n">signal</span><span class="p">),</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="n">new_geom</span><span class="o">.</span><span class="n">mask</span><span class="p">]</span>
+
+    <span class="c1"># if `signal` has a third dimension, that is the time</span>
+    <span class="c1"># and we need to roll some axes again...</span>
+    <span class="k">if</span> <span class="n">signal</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="c1"># unrot_img[hex_square_map[..., new_geom.mask]] = \</span>
+        <span class="c1"># np.rollaxis(signal, -1, 0)[..., new_geom.mask]</span>
+
+        <span class="c1"># reshape the image so that the time is the first axis</span>
+        <span class="c1"># and then roll the time to the back</span>
+        <span class="n">unrot_img</span> <span class="o">=</span> <span class="n">unrot_img</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">new_geom</span><span class="o">.</span><span class="n">mask</span><span class="p">))</span>
+        <span class="p">)</span>
+        <span class="n">unrot_img</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rollaxis</span><span class="p">(</span><span class="n">unrot_img</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="c1"># else:</span>
+    <span class="c1">#     unrot_img[hex_square_map[new_geom.mask]] = \</span>
+    <span class="c1">#         signal[new_geom.mask]</span>
+
+    <span class="k">return</span> <span class="n">old_geom</span><span class="p">,</span> <span class="n">unrot_img</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright ctapipe developers.  Last updated 29 Jan 2021 18:09.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

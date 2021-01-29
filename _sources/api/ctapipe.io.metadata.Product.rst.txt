@@ -1,0 +1,39 @@
+Product
+=======
+
+.. currentmodule:: ctapipe.io.metadata
+
+.. autoclass:: Product
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~Product.creation_time
+      ~Product.data_association
+      ~Product.data_category
+      ~Product.data_level
+      ~Product.data_model_name
+      ~Product.data_model_url
+      ~Product.data_model_version
+      ~Product.default_product_id
+      ~Product.default_time
+      ~Product.description
+      ~Product.format
+      ~Product.id_
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: creation_time
+   .. autoattribute:: data_association
+   .. autoattribute:: data_category
+   .. autoattribute:: data_level
+   .. autoattribute:: data_model_name
+   .. autoattribute:: data_model_url
+   .. autoattribute:: data_model_version
+   .. autoattribute:: default_product_id
+   .. autoattribute:: default_time
+   .. autoattribute:: description
+   .. autoattribute:: format
+   .. autoattribute:: id_

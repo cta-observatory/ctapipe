@@ -1,0 +1,19 @@
+CameraDescription
+=================
+
+.. currentmodule:: ctapipe.instrument
+
+.. autoclass:: CameraDescription
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~CameraDescription.from_name
+      ~CameraDescription.get_known_camera_names
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: from_name
+   .. automethod:: get_known_camera_names

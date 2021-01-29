@@ -1,0 +1,43 @@
+HillasParametersContainer
+=========================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: HillasParametersContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~HillasParametersContainer.intensity
+      ~HillasParametersContainer.kurtosis
+      ~HillasParametersContainer.length
+      ~HillasParametersContainer.length_uncertainty
+      ~HillasParametersContainer.meta
+      ~HillasParametersContainer.phi
+      ~HillasParametersContainer.prefix
+      ~HillasParametersContainer.psi
+      ~HillasParametersContainer.r
+      ~HillasParametersContainer.skewness
+      ~HillasParametersContainer.width
+      ~HillasParametersContainer.width_uncertainty
+      ~HillasParametersContainer.x
+      ~HillasParametersContainer.y
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: intensity
+   .. autoattribute:: kurtosis
+   .. autoattribute:: length
+   .. autoattribute:: length_uncertainty
+   .. autoattribute:: meta
+   .. autoattribute:: phi
+   .. autoattribute:: prefix
+   .. autoattribute:: psi
+   .. autoattribute:: r
+   .. autoattribute:: skewness
+   .. autoattribute:: width
+   .. autoattribute:: width_uncertainty
+   .. autoattribute:: x
+   .. autoattribute:: y

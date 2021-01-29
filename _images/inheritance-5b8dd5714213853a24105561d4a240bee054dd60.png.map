@@ -1,0 +1,13 @@
+<map id="inheritance4ca68c830f" name="inheritance4ca68c830f">
+<area shape="rect" id="node1" href="../../api/ctapipe.core.traits.AstroTime.html#ctapipe.core.traits.AstroTime" target="_top" title="A trait representing a point in Time, as understood by `astropy.time`" alt="" coords="202,3,256,18"/>
+<area shape="rect" id="node2" title="A base class for all trait types." alt="" coords="105,33,153,48"/>
+<area shape="rect" id="node4" title="A trait with error reporting and string &#45;&gt; type resolution for Type," alt="" coords="182,33,275,48"/>
+<area shape="rect" id="node11" href="../../api/ctapipe.core.traits.Path.html#ctapipe.core.traits.Path" target="_top" title="A path Trait for input/output files." alt="" coords="207,63,250,78"/>
+<area shape="rect" id="node3" title="Base descriptor class" alt="" coords="3,33,76,48"/>
+<area shape="rect" id="node6" title="A trait whose value must be an instance of a specified class." alt="" coords="304,33,351,48"/>
+<area shape="rect" id="node5" title="An instance of a container (list, set, etc.)" alt="" coords="380,33,431,48"/>
+<area shape="rect" id="node10" title="An instance of a Python list." alt="" coords="460,33,503,48"/>
+<area shape="rect" id="node7" href="../../api/ctapipe.core.traits.FloatTelescopeParameter.html#ctapipe.core.traits.FloatTelescopeParameter" target="_top" title="a `TelescopeParameter` with float type (see docs for `TelescopeParameter`)" alt="" coords="653,18,765,33"/>
+<area shape="rect" id="node8" href="../../api/ctapipe.core.traits.TelescopeParameter.html#ctapipe.core.traits.TelescopeParameter" target="_top" title="Allow a parameter value to be specified as a simple value (of type *dtype*)," alt="" coords="532,33,624,48"/>
+<area shape="rect" id="node9" href="../../api/ctapipe.core.traits.IntTelescopeParameter.html#ctapipe.core.traits.IntTelescopeParameter" target="_top" title="a `TelescopeParameter` with int type (see docs for `TelescopeParameter`)" alt="" coords="658,47,760,63"/>
+</map>

@@ -1,0 +1,27 @@
+ChargeResolutionCalculator
+==========================
+
+.. currentmodule:: ctapipe.analysis.camera
+
+.. autoclass:: ChargeResolutionCalculator
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~ChargeResolutionCalculator.add
+      ~ChargeResolutionCalculator.charge_res
+      ~ChargeResolutionCalculator.charge_res_abs
+      ~ChargeResolutionCalculator.finish
+      ~ChargeResolutionCalculator.rmse
+      ~ChargeResolutionCalculator.rmse_abs
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: add
+   .. automethod:: charge_res
+   .. automethod:: charge_res_abs
+   .. automethod:: finish
+   .. automethod:: rmse
+   .. automethod:: rmse_abs

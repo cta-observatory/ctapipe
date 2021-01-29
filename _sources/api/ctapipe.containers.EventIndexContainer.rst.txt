@@ -1,0 +1,23 @@
+EventIndexContainer
+===================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: EventIndexContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~EventIndexContainer.event_id
+      ~EventIndexContainer.meta
+      ~EventIndexContainer.obs_id
+      ~EventIndexContainer.prefix
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: event_id
+   .. autoattribute:: meta
+   .. autoattribute:: obs_id
+   .. autoattribute:: prefix

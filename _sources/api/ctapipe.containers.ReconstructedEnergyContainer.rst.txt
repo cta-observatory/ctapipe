@@ -1,0 +1,29 @@
+ReconstructedEnergyContainer
+============================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: ReconstructedEnergyContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~ReconstructedEnergyContainer.energy
+      ~ReconstructedEnergyContainer.energy_uncert
+      ~ReconstructedEnergyContainer.goodness_of_fit
+      ~ReconstructedEnergyContainer.is_valid
+      ~ReconstructedEnergyContainer.meta
+      ~ReconstructedEnergyContainer.prefix
+      ~ReconstructedEnergyContainer.tel_ids
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: energy
+   .. autoattribute:: energy_uncert
+   .. autoattribute:: goodness_of_fit
+   .. autoattribute:: is_valid
+   .. autoattribute:: meta
+   .. autoattribute:: prefix
+   .. autoattribute:: tel_ids

@@ -1,0 +1,35 @@
+MuonIntensityFitter
+===================
+
+.. currentmodule:: ctapipe.image
+
+.. autoclass:: MuonIntensityFitter
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~MuonIntensityFitter.hole_radius_m
+      ~MuonIntensityFitter.max_lambda_m
+      ~MuonIntensityFitter.min_lambda_m
+      ~MuonIntensityFitter.oversampling
+      ~MuonIntensityFitter.spe_width
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~MuonIntensityFitter.__call__
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: hole_radius_m
+   .. autoattribute:: max_lambda_m
+   .. autoattribute:: min_lambda_m
+   .. autoattribute:: oversampling
+   .. autoattribute:: spe_width
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__

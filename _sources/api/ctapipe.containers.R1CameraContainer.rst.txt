@@ -1,0 +1,23 @@
+R1CameraContainer
+=================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: R1CameraContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~R1CameraContainer.meta
+      ~R1CameraContainer.prefix
+      ~R1CameraContainer.selected_gain_channel
+      ~R1CameraContainer.waveform
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: meta
+   .. autoattribute:: prefix
+   .. autoattribute:: selected_gain_channel
+   .. autoattribute:: waveform

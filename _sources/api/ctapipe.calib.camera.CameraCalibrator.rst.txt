@@ -1,0 +1,33 @@
+CameraCalibrator
+================
+
+.. currentmodule:: ctapipe.calib.camera
+
+.. autoclass:: CameraCalibrator
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~CameraCalibrator.apply_peak_time_shift
+      ~CameraCalibrator.apply_waveform_time_shift
+      ~CameraCalibrator.data_volume_reducer_type
+      ~CameraCalibrator.image_extractor_type
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~CameraCalibrator.__call__
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: apply_peak_time_shift
+   .. autoattribute:: apply_waveform_time_shift
+   .. autoattribute:: data_volume_reducer_type
+   .. autoattribute:: image_extractor_type
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__

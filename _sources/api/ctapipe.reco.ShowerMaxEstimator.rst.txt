@@ -1,0 +1,17 @@
+ShowerMaxEstimator
+==================
+
+.. currentmodule:: ctapipe.reco
+
+.. autoclass:: ShowerMaxEstimator
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~ShowerMaxEstimator.find_shower_max_height
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: find_shower_max_height

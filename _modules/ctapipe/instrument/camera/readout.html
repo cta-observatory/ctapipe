@@ -1,0 +1,419 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>ctapipe.instrument.camera.readout &mdash; ctapipe v0.1.dev1+gb5c90a1</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/theme_overrides.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+        <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.20.0/dist/embed-amd.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> ctapipe
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.dev1+gb5c90a1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../changelog.html">Change Log</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">ctapipe</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>ctapipe.instrument.camera.readout</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for ctapipe.instrument.camera.readout</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Utilities for reading or working with Camera geometry files</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span>
+<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">norm</span>
+<span class="kn">from</span> <span class="nn">ctapipe.utils</span> <span class="kn">import</span> <span class="n">get_table_dataset</span>
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;CameraReadout&quot;</span><span class="p">]</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="CameraReadout"><a class="viewcode-back" href="../../../../api/ctapipe.instrument.CameraReadout.html#ctapipe.instrument.CameraReadout">[docs]</a><span class="k">class</span> <span class="nc">CameraReadout</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">camera_name</span><span class="p">,</span>
+        <span class="n">sampling_rate</span><span class="p">,</span>
+        <span class="n">reference_pulse_shape</span><span class="p">,</span>
+        <span class="n">reference_pulse_sample_width</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Stores properties related to the readout of a Cherenkov Camera.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        camera_name: str</span>
+<span class="sd">             Camera name (e.g. NectarCam, LSTCam, ...)</span>
+<span class="sd">        sampling_rate : u.Quantity[frequency]</span>
+<span class="sd">            Sampling rate of the waveform</span>
+<span class="sd">        reference_pulse_shape : ndarray</span>
+<span class="sd">            Expected pulse shape for a signal in the waveform. 2 dimensional,</span>
+<span class="sd">            first dimension is gain channel.</span>
+<span class="sd">        reference_pulse_sample_width : u.Quantity[time]</span>
+<span class="sd">            The amount of time corresponding to each sample in the 2nd</span>
+<span class="sd">            dimension of reference_pulse_shape</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">camera_name</span> <span class="o">=</span> <span class="n">camera_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sampling_rate</span> <span class="o">=</span> <span class="n">sampling_rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference_pulse_shape</span> <span class="o">=</span> <span class="n">reference_pulse_shape</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference_pulse_sample_width</span> <span class="o">=</span> <span class="n">reference_pulse_sample_width</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">camera_name</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">camera_name</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampling_rate</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">sampling_rate</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_pulse_shape</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">reference_pulse_shape</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_pulse_sample_width</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">reference_pulse_sample_width</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">camera_name</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sampling_rate</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">GHz</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">reference_pulse_shape</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">reference_pulse_sample_width</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">ns</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_pulse_shape</span><span class="o">.</span><span class="n">size</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">reference_pulse_sample_time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Time axis for the reference pulse</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">n_samples</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_pulse_shape</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">sample_width_ns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_pulse_sample_width</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">ns</span><span class="p">)</span>
+        <span class="n">pulse_max_sample</span> <span class="o">=</span> <span class="n">n_samples</span> <span class="o">*</span> <span class="n">sample_width_ns</span>
+        <span class="n">sample_time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">pulse_max_sample</span><span class="p">,</span> <span class="n">sample_width_ns</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">sample_time</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">ns</span><span class="p">)</span>
+
+<div class="viewcode-block" id="CameraReadout.from_name"><a class="viewcode-back" href="../../../../api/ctapipe.instrument.CameraReadout.html#ctapipe.instrument.CameraReadout.from_name">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">camera_name</span><span class="o">=</span><span class="s2">&quot;NectarCam&quot;</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Construct a CameraReadout using the name of the camera and array.</span>
+
+<span class="sd">        This expects that there is a resource in the `ctapipe_resources` module</span>
+<span class="sd">        called &quot;[array]-[camera].camreadout.fits.gz&quot; or &quot;[array]-[camera]-[</span>
+<span class="sd">        version].camgeom.fits.gz&quot;.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        camera_name: str</span>
+<span class="sd">             Camera name (e.g. NectarCam, LSTCam, ...)</span>
+<span class="sd">        version:</span>
+<span class="sd">           camera version id (currently unused)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        new CameraReadout</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">version</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">verstr</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">verstr</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;-</span><span class="si">{version:03d}</span><span class="s2">&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">tabname</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{camera_name}{verstr}</span><span class="s2">.camreadout&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">camera_name</span><span class="o">=</span><span class="n">camera_name</span><span class="p">,</span> <span class="n">verstr</span><span class="o">=</span><span class="n">verstr</span>
+            <span class="p">)</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="n">get_table_dataset</span><span class="p">(</span><span class="n">tabname</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">&quot;dl0.tel.svc.camera&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">CameraReadout</span><span class="o">.</span><span class="n">from_table</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+            <span class="c1"># TODO: remove case when files have been generated</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Resorting to default CameraReadout,&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot; File does not exist: (</span><span class="si">{tabname}</span><span class="s2">)&quot;</span>
+            <span class="p">)</span>
+            <span class="n">reference_pulse_shape</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">norm</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">96</span><span class="p">),</span> <span class="mi">48</span><span class="p">,</span> <span class="mi">6</span><span class="p">)])</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+                <span class="n">camera_name</span><span class="o">=</span><span class="n">camera_name</span><span class="p">,</span>
+                <span class="n">sampling_rate</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">GHz</span><span class="p">),</span>
+                <span class="n">reference_pulse_shape</span><span class="o">=</span><span class="n">reference_pulse_shape</span><span class="p">,</span>
+                <span class="n">reference_pulse_sample_width</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">ns</span><span class="p">),</span>
+            <span class="p">)</span></div>
+
+<div class="viewcode-block" id="CameraReadout.to_table"><a class="viewcode-back" href="../../../../api/ctapipe.instrument.CameraReadout.html#ctapipe.instrument.CameraReadout.to_table">[docs]</a>    <span class="k">def</span> <span class="nf">to_table</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convert this to an `astropy.table.Table`.&quot;&quot;&quot;</span>
+        <span class="n">n_channels</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_pulse_shape</span><span class="p">)</span>
+        <span class="n">tables</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="o">*</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_pulse_shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_channels</span><span class="p">)],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reference_pulse_sample_time</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="o">*</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;reference_pulse_shape_channel</span><span class="si">{i}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_channels</span><span class="p">)],</span>
+            <span class="s2">&quot;reference_pulse_sample_time&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">Table</span><span class="p">(</span>
+            <span class="n">tables</span><span class="p">,</span>
+            <span class="n">names</span><span class="o">=</span><span class="n">names</span><span class="p">,</span>
+            <span class="n">meta</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+                <span class="n">TAB_TYPE</span><span class="o">=</span><span class="s2">&quot;ctapipe.instrument.CameraReadout&quot;</span><span class="p">,</span>
+                <span class="n">TAB_VER</span><span class="o">=</span><span class="s2">&quot;1.0&quot;</span><span class="p">,</span>
+                <span class="n">CAM_ID</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">camera_name</span><span class="p">,</span>
+                <span class="n">NCHAN</span><span class="o">=</span><span class="n">n_channels</span><span class="p">,</span>
+                <span class="n">SAMPFREQ</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sampling_rate</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">GHz</span><span class="p">),</span>
+                <span class="n">REF_WIDTH</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_pulse_sample_width</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">ns</span><span class="p">),</span>
+            <span class="p">),</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="CameraReadout.from_table"><a class="viewcode-back" href="../../../../api/ctapipe.instrument.CameraReadout.html#ctapipe.instrument.CameraReadout.from_table">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_table</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">url_or_table</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Load a CameraReadout from an `astropy.table.Table` instance or a</span>
+<span class="sd">        file that is readable by `astropy.table.Table.read()`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        url_or_table: string or astropy.table.Table</span>
+<span class="sd">            either input filename/url or a Table instance</span>
+<span class="sd">        kwargs: extra keyword arguments</span>
+<span class="sd">            extra arguments passed to `astropy.table.read()`, depending on</span>
+<span class="sd">            file type (e.g. format, hdu, path)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">tab</span> <span class="o">=</span> <span class="n">url_or_table</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">url_or_table</span><span class="p">,</span> <span class="n">Table</span><span class="p">):</span>
+            <span class="n">tab</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">url_or_table</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="n">camera_name</span> <span class="o">=</span> <span class="n">tab</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;CAM_ID&quot;</span><span class="p">,</span> <span class="s2">&quot;Unknown&quot;</span><span class="p">)</span>
+        <span class="n">n_channels</span> <span class="o">=</span> <span class="n">tab</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;NCHAN&quot;</span><span class="p">]</span>
+        <span class="n">sampling_rate</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">tab</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;SAMPFREQ&quot;</span><span class="p">],</span> <span class="n">u</span><span class="o">.</span><span class="n">GHz</span><span class="p">)</span>
+        <span class="n">reference_pulse_sample_width</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">tab</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;REF_WIDTH&quot;</span><span class="p">],</span> <span class="n">u</span><span class="o">.</span><span class="n">ns</span><span class="p">)</span>
+        <span class="n">reference_pulse_shape</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">tab</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;reference_pulse_shape_channel</span><span class="si">{i}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_channels</span><span class="p">)]</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">camera_name</span><span class="o">=</span><span class="n">camera_name</span><span class="p">,</span>
+            <span class="n">sampling_rate</span><span class="o">=</span><span class="n">sampling_rate</span><span class="p">,</span>
+            <span class="n">reference_pulse_shape</span><span class="o">=</span><span class="n">reference_pulse_shape</span><span class="p">,</span>
+            <span class="n">reference_pulse_sample_width</span><span class="o">=</span><span class="n">reference_pulse_sample_width</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="s2">&quot;CameraReadout(camera_name=&#39;</span><span class="si">{camera_name}</span><span class="s2">&#39;, sampling_rate=&#39;</span><span class="si">{sampling_rate}</span><span class="s2">&#39;, &quot;</span>
+            <span class="s2">&quot;reference_pulse_sample_width=</span><span class="si">{reference_pulse_sample_width}</span><span class="s2">)&quot;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">camera_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">camera_name</span><span class="p">,</span>
+            <span class="n">sampling_rate</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sampling_rate</span><span class="p">,</span>
+            <span class="n">reference_pulse_sample_width</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">reference_pulse_sample_width</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">camera_name</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright ctapipe developers.  Last updated 29 Jan 2021 18:09.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

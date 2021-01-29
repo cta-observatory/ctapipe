@@ -1,0 +1,47 @@
+EventSource
+===========
+
+.. currentmodule:: ctapipe.io
+
+.. autoclass:: EventSource
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~EventSource.allowed_tels
+      ~EventSource.datalevels
+      ~EventSource.input_url
+      ~EventSource.is_simulation
+      ~EventSource.is_stream
+      ~EventSource.max_events
+      ~EventSource.obs_ids
+      ~EventSource.subarray
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~EventSource.from_config
+      ~EventSource.from_url
+      ~EventSource.has_any_datalevel
+      ~EventSource.is_compatible
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: allowed_tels
+   .. autoattribute:: datalevels
+   .. autoattribute:: input_url
+   .. autoattribute:: is_simulation
+   .. autoattribute:: is_stream
+   .. autoattribute:: max_events
+   .. autoattribute:: obs_ids
+   .. autoattribute:: subarray
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: from_config
+   .. automethod:: from_url
+   .. automethod:: has_any_datalevel
+   .. automethod:: is_compatible

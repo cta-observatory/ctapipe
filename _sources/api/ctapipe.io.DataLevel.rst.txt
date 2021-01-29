@@ -1,0 +1,31 @@
+DataLevel
+=========
+
+.. currentmodule:: ctapipe.io
+
+.. autoclass:: DataLevel
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~DataLevel.DL0
+      ~DataLevel.DL1_IMAGES
+      ~DataLevel.DL1_PARAMETERS
+      ~DataLevel.DL2
+      ~DataLevel.DL3
+      ~DataLevel.R0
+      ~DataLevel.R1
+      ~DataLevel.R2
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: DL0
+   .. autoattribute:: DL1_IMAGES
+   .. autoattribute:: DL1_PARAMETERS
+   .. autoattribute:: DL2
+   .. autoattribute:: DL3
+   .. autoattribute:: R0
+   .. autoattribute:: R1
+   .. autoattribute:: R2

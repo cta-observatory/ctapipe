@@ -1,0 +1,21 @@
+MonitoringContainer
+===================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: MonitoringContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~MonitoringContainer.meta
+      ~MonitoringContainer.prefix
+      ~MonitoringContainer.tel
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: meta
+   .. autoattribute:: prefix
+   .. autoattribute:: tel

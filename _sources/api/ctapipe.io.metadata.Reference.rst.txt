@@ -1,0 +1,35 @@
+Reference
+=========
+
+.. currentmodule:: ctapipe.io.metadata
+
+.. autoclass:: Reference
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~Reference.activity
+      ~Reference.contact
+      ~Reference.instrument
+      ~Reference.process
+      ~Reference.product
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~Reference.to_dict
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: activity
+   .. autoattribute:: contact
+   .. autoattribute:: instrument
+   .. autoattribute:: process
+   .. autoattribute:: product
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: to_dict

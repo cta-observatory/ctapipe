@@ -1,0 +1,33 @@
+TailcutsImageCleaner
+====================
+
+.. currentmodule:: ctapipe.image.cleaning
+
+.. autoclass:: TailcutsImageCleaner
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~TailcutsImageCleaner.boundary_threshold_pe
+      ~TailcutsImageCleaner.keep_isolated_pixels
+      ~TailcutsImageCleaner.min_picture_neighbors
+      ~TailcutsImageCleaner.picture_threshold_pe
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~TailcutsImageCleaner.__call__
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: boundary_threshold_pe
+   .. autoattribute:: keep_isolated_pixels
+   .. autoattribute:: min_picture_neighbors
+   .. autoattribute:: picture_threshold_pe
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__

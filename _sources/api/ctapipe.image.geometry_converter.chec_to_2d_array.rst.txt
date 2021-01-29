@@ -1,0 +1,6 @@
+chec_to_2d_array
+================
+
+.. currentmodule:: ctapipe.image.geometry_converter
+
+.. autofunction:: chec_to_2d_array

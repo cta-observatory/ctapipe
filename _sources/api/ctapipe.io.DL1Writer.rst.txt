@@ -1,0 +1,47 @@
+DL1Writer
+=========
+
+.. currentmodule:: ctapipe.io
+
+.. autoclass:: DL1Writer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~DL1Writer.compression_level
+      ~DL1Writer.compression_type
+      ~DL1Writer.output_path
+      ~DL1Writer.overwrite
+      ~DL1Writer.split_datasets_by
+      ~DL1Writer.write_images
+      ~DL1Writer.write_index_tables
+      ~DL1Writer.write_parameters
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~DL1Writer.__call__
+      ~DL1Writer.finish
+      ~DL1Writer.setup
+      ~DL1Writer.write_simulation_histograms
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: compression_level
+   .. autoattribute:: compression_type
+   .. autoattribute:: output_path
+   .. autoattribute:: overwrite
+   .. autoattribute:: split_datasets_by
+   .. autoattribute:: write_images
+   .. autoattribute:: write_index_tables
+   .. autoattribute:: write_parameters
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__
+   .. automethod:: finish
+   .. automethod:: setup
+   .. automethod:: write_simulation_histograms

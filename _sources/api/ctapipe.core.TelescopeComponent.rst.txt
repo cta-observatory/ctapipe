@@ -1,0 +1,17 @@
+TelescopeComponent
+==================
+
+.. currentmodule:: ctapipe.core
+
+.. autoclass:: TelescopeComponent
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~TelescopeComponent.from_name
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: from_name

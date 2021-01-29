@@ -1,0 +1,15 @@
+<map id="inheritance21a44da93f" name="inheritance21a44da93f">
+<area shape="rect" id="node1" title="Base class of all Components." alt="" coords="390,108,472,129"/>
+<area shape="rect" id="node5" title="Parent class for EventSources." alt="" coords="513,25,599,46"/>
+<area shape="rect" id="node6" title="Serialize a sequence of events into a HDF5 DL1 file, in the correct format" alt="" coords="519,66,592,88"/>
+<area shape="rect" id="node9" title="Provides the functionality to seek through a" alt="" coords="512,108,600,129"/>
+<area shape="rect" id="node11" href="../../api/ctapipe.io.tableio.TableReader.html#ctapipe.io.tableio.TableReader" target="_top" title="Base class for row&#45;wise table readers. Generally methods that read a" alt="" coords="513,149,598,171"/>
+<area shape="rect" id="node13" href="../../api/ctapipe.io.tableio.TableWriter.html#ctapipe.io.tableio.TableWriter" target="_top" title="Base class for writing &#160;Container classes as rows of an output table," alt="" coords="516,191,596,212"/>
+<area shape="rect" id="node4" title="Event source for files in the ctapipe DL1 format." alt="" coords="648,4,756,26"/>
+<area shape="rect" id="node15" title="Read events from a SimTelArray data file (in EventIO format)." alt="" coords="640,46,764,67"/>
+<area shape="rect" id="node7" title="Enum of the different Data Levels" alt="" coords="147,66,221,88"/>
+<area shape="rect" id="node8" title="Generic enumeration." alt="" coords="25,66,86,88"/>
+<area shape="rect" id="node10" href="../../api/ctapipe.io.hdf5tableio.HDF5TableReader.html#ctapipe.io.hdf5tableio.HDF5TableReader" target="_top" title="Reader that reads a single row of an HDF5 table at once into a Container." alt="" coords="644,149,759,171"/>
+<area shape="rect" id="node12" href="../../api/ctapipe.io.hdf5tableio.HDF5TableWriter.html#ctapipe.io.hdf5tableio.HDF5TableWriter" target="_top" title="A very basic table writer that can take a container (or more than one)" alt="" coords="647,191,757,212"/>
+<area shape="rect" id="node14" title="The base class for all classes that have descriptors." alt="" coords="4,108,107,129"/>
+</map>

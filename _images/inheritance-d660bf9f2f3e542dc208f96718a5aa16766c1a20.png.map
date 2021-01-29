@@ -1,0 +1,7 @@
+<map id="inheritance086387626f" name="inheritance086387626f">
+<area shape="rect" id="node1" href="../../api/ctapipe.calib.camera.calibrator.CameraCalibrator.html#ctapipe.calib.camera.calibrator.CameraCalibrator" target="_top" title="Calibrator to handle the full camera calibration chain, in order to fill" alt="" coords="653,4,764,25"/>
+<area shape="rect" id="node2" title="A component that needs a SubarrayDescription to be constructed, and which" alt="" coords="485,4,615,25"/>
+<area shape="rect" id="node3" title="Base class of all Components." alt="" coords="368,25,446,45"/>
+<area shape="rect" id="node6" title="Base class for algorithms that decide on the gain channel to use" alt="" coords="507,44,592,64"/>
+<area shape="rect" id="node7" title="The base class for all classes that have descriptors." alt="" coords="4,25,102,45"/>
+</map>

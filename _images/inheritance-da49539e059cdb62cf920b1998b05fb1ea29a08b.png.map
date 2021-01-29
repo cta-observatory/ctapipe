@@ -1,0 +1,6 @@
+<map id="inheritance7e5cf05d40" name="inheritance7e5cf05d40">
+<area shape="rect" id="node1" title="Base class of all Components." alt="" coords="457,31,555,56"/>
+<area shape="rect" id="node5" href="../../api/ctapipe.io.tableio.TableReader.html#ctapipe.io.tableio.TableReader" target="_top" title="Base class for row&#45;wise table readers. Generally methods that read a" alt="" coords="603,5,704,31"/>
+<area shape="rect" id="node6" href="../../api/ctapipe.io.tableio.TableWriter.html#ctapipe.io.tableio.TableWriter" target="_top" title="Base class for writing &#160;Container classes as rows of an output table," alt="" coords="606,55,701,80"/>
+<area shape="rect" id="node4" title="The base class for all classes that have descriptors." alt="" coords="5,31,127,56"/>
+</map>

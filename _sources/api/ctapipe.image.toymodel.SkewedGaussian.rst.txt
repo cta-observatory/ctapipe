@@ -1,0 +1,17 @@
+SkewedGaussian
+==============
+
+.. currentmodule:: ctapipe.image.toymodel
+
+.. autoclass:: SkewedGaussian
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~SkewedGaussian.pdf
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: pdf

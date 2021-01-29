@@ -1,0 +1,23 @@
+DL0CameraContainer
+==================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: DL0CameraContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~DL0CameraContainer.meta
+      ~DL0CameraContainer.prefix
+      ~DL0CameraContainer.selected_gain_channel
+      ~DL0CameraContainer.waveform
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: meta
+   .. autoattribute:: prefix
+   .. autoattribute:: selected_gain_channel
+   .. autoattribute:: waveform

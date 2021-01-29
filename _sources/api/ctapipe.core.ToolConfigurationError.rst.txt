@@ -1,0 +1,6 @@
+ToolConfigurationError
+======================
+
+.. currentmodule:: ctapipe.core
+
+.. autoexception:: ToolConfigurationError

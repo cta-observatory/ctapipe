@@ -1,0 +1,389 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Traitlet Implementations for ctapipe &mdash; ctapipe v0.1.dev1+gb5c90a1</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+        <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.20.0/dist/embed-amd.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="create_class_enum_trait" href="../../api/ctapipe.core.traits.create_class_enum_trait.html" />
+    <link rel="prev" title="Core Structures and Base Classes (core)" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> ctapipe
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.dev1+gb5c90a1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">API Docs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../containers.html">Data Containers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../analysis/index.html">Analysis (<code class="xref py py-obj docutils literal notranslate"><span class="pre">analysis</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../calib/index.html">Calibration (<code class="xref py py-obj docutils literal notranslate"><span class="pre">calib</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../containers/index.html">Containers (<code class="xref py py-obj docutils literal notranslate"><span class="pre">containers</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../coordinates/index.html">Coordinates (<code class="xref py py-obj docutils literal notranslate"><span class="pre">coordinates</span></code>)</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Core Structures and Base Classes (<code class="xref py py-obj docutils literal notranslate"><span class="pre">core</span></code>)</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="index.html#introduction">Introduction</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Traitlet Implementations for ctapipe</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#reference-api">Reference/API</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../image/index.html">Imaging (<code class="xref py py-obj docutils literal notranslate"><span class="pre">image</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../instrument/index.html">Instrument (<code class="xref py py-obj docutils literal notranslate"><span class="pre">instrument</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../io/index.html">Input/Output (<code class="xref py py-obj docutils literal notranslate"><span class="pre">io</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reco/index.html">Reconstruction (<code class="xref py py-obj docutils literal notranslate"><span class="pre">reco</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tools/index.html">Command line tools (<code class="xref py py-obj docutils literal notranslate"><span class="pre">tools</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../utils/index.html">Utilities (<code class="xref py py-obj docutils literal notranslate"><span class="pre">utils</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../visualization/index.html">Visualization (<code class="xref py py-obj docutils literal notranslate"><span class="pre">visualization</span></code>)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Change Log</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ctapipe</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">API Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Core Structures and Base Classes (<code class="xref py py-obj docutils literal notranslate"><span class="pre">core</span></code>)</a> &raquo;</li>
+        
+      <li>Traitlet Implementations for ctapipe</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../../_sources/ctapipe_api/core/traits.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="traitlet-implementations-for-ctapipe">
+<span id="core"></span><h1>Traitlet Implementations for ctapipe<a class="headerlink" href="#traitlet-implementations-for-ctapipe" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p>Custom Traitlets implemented for ctapipe.</p>
+</div>
+<div class="section" id="reference-api">
+<h2>Reference/API<a class="headerlink" href="#reference-api" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-ctapipe.core.traits">
+<span id="ctapipe-core-traits-module"></span><h3>ctapipe.core.traits Module<a class="headerlink" href="#module-ctapipe.core.traits" title="Permalink to this headline">¶</a></h3>
+<p>Traitlet implementations for ctapipe</p>
+<div class="section" id="functions">
+<h4>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">flag</span></code>(name, configurable[, set_help, unset_help])</p></td>
+<td><p>Helper for building basic –trait, –no-trait flags.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">observe</span></code>(*names, **kwargs)</p></td>
+<td><p>A decorator which can be used to observe Traits on a class.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.core.traits.create_class_enum_trait.html#ctapipe.core.traits.create_class_enum_trait" title="ctapipe.core.traits.create_class_enum_trait"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_class_enum_trait</span></code></a>(base_class, …[, help])</p></td>
+<td><p>create a configurable CaselessStrEnum traitlet from baseclass</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.core.traits.classes_with_traits.html#ctapipe.core.traits.classes_with_traits" title="ctapipe.core.traits.classes_with_traits"><code class="xref py py-obj docutils literal notranslate"><span class="pre">classes_with_traits</span></code></a>(base_class)</p></td>
+<td><p>Returns a list of the base class plus its non-abstract children if they have traits</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.core.traits.has_traits.html#ctapipe.core.traits.has_traits" title="ctapipe.core.traits.has_traits"><code class="xref py py-obj docutils literal notranslate"><span class="pre">has_traits</span></code></a>(cls[, ignore])</p></td>
+<td><p>True if cls has any traits apart from the usual ones</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="classes">
+<h4>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.core.traits.Path.html#ctapipe.core.traits.Path" title="ctapipe.core.traits.Path"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a>(*args[, default_value, exists, …])</p></td>
+<td><p>A path Trait for input/output files.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Int</span></code>([default_value, allow_none])</p></td>
+<td><p>An int trait.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Integer</span></code></p></td>
+<td><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">traitlets.traitlets.Int</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Float</span></code>([default_value, allow_none])</p></td>
+<td><p>A float trait.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Unicode</span></code>([default_value, allow_none, …])</p></td>
+<td><p>A trait for unicode strings.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Enum</span></code>(values[, default_value])</p></td>
+<td><p>An enum whose value must be in a given sequence.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Long</span></code></p></td>
+<td><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">traitlets.traitlets.Int</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">List</span></code>([trait, default_value, minlen, maxlen])</p></td>
+<td><p>An instance of a Python list.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Bool</span></code>([default_value, allow_none, read_only, …])</p></td>
+<td><p>A boolean (True, False) trait.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Set</span></code>([trait, default_value, minlen, maxlen])</p></td>
+<td><p>An instance of a Python set.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">CRegExp</span></code>([default_value, allow_none, …])</p></td>
+<td><p>A casting compiled regular expression trait.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Dict</span></code>([value_trait, per_key_traits, …])</p></td>
+<td><p>An instance of a Python dict.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">TraitError</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">CaselessStrEnum</span></code>(values[, default_value])</p></td>
+<td><p>An enum of strings where the case should be ignored.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.core.traits.TelescopeParameter.html#ctapipe.core.traits.TelescopeParameter" title="ctapipe.core.traits.TelescopeParameter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TelescopeParameter</span></code></a>(trait[, default_value])</p></td>
+<td><p>Allow a parameter value to be specified as a simple value (of type <em>dtype</em>), or as a list of patterns that match different telescopes.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.core.traits.FloatTelescopeParameter.html#ctapipe.core.traits.FloatTelescopeParameter" title="ctapipe.core.traits.FloatTelescopeParameter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FloatTelescopeParameter</span></code></a>(**kwargs)</p></td>
+<td><p>a <a class="reference internal" href="../../api/ctapipe.core.traits.TelescopeParameter.html#ctapipe.core.traits.TelescopeParameter" title="ctapipe.core.traits.TelescopeParameter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TelescopeParameter</span></code></a> with float type (see docs for <a class="reference internal" href="../../api/ctapipe.core.traits.TelescopeParameter.html#ctapipe.core.traits.TelescopeParameter" title="ctapipe.core.traits.TelescopeParameter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TelescopeParameter</span></code></a>)</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../../api/ctapipe.core.traits.IntTelescopeParameter.html#ctapipe.core.traits.IntTelescopeParameter" title="ctapipe.core.traits.IntTelescopeParameter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IntTelescopeParameter</span></code></a>(**kwargs)</p></td>
+<td><p>a <a class="reference internal" href="../../api/ctapipe.core.traits.TelescopeParameter.html#ctapipe.core.traits.TelescopeParameter" title="ctapipe.core.traits.TelescopeParameter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TelescopeParameter</span></code></a> with int type (see docs for <a class="reference internal" href="../../api/ctapipe.core.traits.TelescopeParameter.html#ctapipe.core.traits.TelescopeParameter" title="ctapipe.core.traits.TelescopeParameter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TelescopeParameter</span></code></a>)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../../api/ctapipe.core.traits.AstroTime.html#ctapipe.core.traits.AstroTime" title="ctapipe.core.traits.AstroTime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AstroTime</span></code></a>([default_value, allow_none, …])</p></td>
+<td><p>A trait representing a point in Time, as understood by <a class="reference external" href="https://docs.astropy.org/en/latest/time/index.html#module-astropy.time" title="(in Astropy v4.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.time</span></code></a></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="class-inheritance-diagram">
+<h4>Class Inheritance Diagram<a class="headerlink" href="#class-inheritance-diagram" title="Permalink to this headline">¶</a></h4>
+<div class="graphviz"><img src="../../_images/inheritance-5b8dd5714213853a24105561d4a240bee054dd60.png" alt="Inheritance diagram of ctapipe.core.traits.Path, ctapipe.core.traits.TelescopeParameter, ctapipe.core.traits.FloatTelescopeParameter, ctapipe.core.traits.IntTelescopeParameter, ctapipe.core.traits.AstroTime" usemap="#inheritance4ca68c830f" class="inheritance graphviz" /></div>
+<map id="inheritance4ca68c830f" name="inheritance4ca68c830f">
+<area shape="rect" id="node1" href="../../api/ctapipe.core.traits.AstroTime.html#ctapipe.core.traits.AstroTime" target="_top" title="A trait representing a point in Time, as understood by `astropy.time`" alt="" coords="202,3,256,18"/>
+<area shape="rect" id="node11" href="../../api/ctapipe.core.traits.Path.html#ctapipe.core.traits.Path" target="_top" title="A path Trait for input/output files." alt="" coords="207,63,250,78"/>
+<area shape="rect" id="node7" href="../../api/ctapipe.core.traits.FloatTelescopeParameter.html#ctapipe.core.traits.FloatTelescopeParameter" target="_top" title="a `TelescopeParameter` with float type (see docs for `TelescopeParameter`)" alt="" coords="653,18,765,33"/>
+<area shape="rect" id="node8" href="../../api/ctapipe.core.traits.TelescopeParameter.html#ctapipe.core.traits.TelescopeParameter" target="_top" title="Allow a parameter value to be specified as a simple value (of type *dtype*)," alt="" coords="532,33,624,48"/>
+<area shape="rect" id="node9" href="../../api/ctapipe.core.traits.IntTelescopeParameter.html#ctapipe.core.traits.IntTelescopeParameter" target="_top" title="a `TelescopeParameter` with int type (see docs for `TelescopeParameter`)" alt="" coords="658,47,760,63"/>
+</map></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="../../api/ctapipe.core.traits.create_class_enum_trait.html" class="btn btn-neutral float-right" title="create_class_enum_trait" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="index.html" class="btn btn-neutral float-left" title="Core Structures and Base Classes (core)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright ctapipe developers.  Last updated 29 Jan 2021 18:09.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

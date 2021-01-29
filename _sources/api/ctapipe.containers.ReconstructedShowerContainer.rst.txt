@@ -1,0 +1,45 @@
+ReconstructedShowerContainer
+============================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: ReconstructedShowerContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~ReconstructedShowerContainer.alt
+      ~ReconstructedShowerContainer.alt_uncert
+      ~ReconstructedShowerContainer.average_intensity
+      ~ReconstructedShowerContainer.az
+      ~ReconstructedShowerContainer.az_uncert
+      ~ReconstructedShowerContainer.core_uncert
+      ~ReconstructedShowerContainer.core_x
+      ~ReconstructedShowerContainer.core_y
+      ~ReconstructedShowerContainer.goodness_of_fit
+      ~ReconstructedShowerContainer.h_max
+      ~ReconstructedShowerContainer.h_max_uncert
+      ~ReconstructedShowerContainer.is_valid
+      ~ReconstructedShowerContainer.meta
+      ~ReconstructedShowerContainer.prefix
+      ~ReconstructedShowerContainer.tel_ids
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: alt
+   .. autoattribute:: alt_uncert
+   .. autoattribute:: average_intensity
+   .. autoattribute:: az
+   .. autoattribute:: az_uncert
+   .. autoattribute:: core_uncert
+   .. autoattribute:: core_x
+   .. autoattribute:: core_y
+   .. autoattribute:: goodness_of_fit
+   .. autoattribute:: h_max
+   .. autoattribute:: h_max_uncert
+   .. autoattribute:: is_valid
+   .. autoattribute:: meta
+   .. autoattribute:: prefix
+   .. autoattribute:: tel_ids

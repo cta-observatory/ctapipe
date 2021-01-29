@@ -1,0 +1,6 @@
+subtract_baseline
+=================
+
+.. currentmodule:: ctapipe.image.extractor
+
+.. autofunction:: subtract_baseline

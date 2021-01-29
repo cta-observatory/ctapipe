@@ -1,0 +1,6 @@
+hillas_parameters
+=================
+
+.. currentmodule:: ctapipe.image
+
+.. autofunction:: hillas_parameters

@@ -1,0 +1,9 @@
+<map id="inheritance19a97d59e1" name="inheritance19a97d59e1">
+<area shape="rect" id="node1" title="Describes a Cherenkov camera and it&#39;s associated `CameraGeometry` and" alt="" coords="12,301,159,327"/>
+<area shape="rect" id="node2" title="`CameraGeometry` is a class that stores information about a" alt="" coords="16,252,155,277"/>
+<area shape="rect" id="node4" title="Generic enumeration." alt="" coords="49,153,121,179"/>
+<area shape="rect" id="node6" title="An enumeration." alt="" coords="213,153,308,179"/>
+<area shape="rect" id="node5" title="Describes the optics of a Cherenkov Telescope mirror" alt="" coords="17,104,154,129"/>
+<area shape="rect" id="node7" title="Collects the `TelescopeDescription` of all telescopes along with their" alt="" coords="8,55,163,80"/>
+<area shape="rect" id="node8" title="Describes a Cherenkov Telescope and it&#39;s associated `OpticsDescription` and" alt="" coords="5,5,165,31"/>
+</map>

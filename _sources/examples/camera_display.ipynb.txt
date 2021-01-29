@@ -1,0 +1,153 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Example of a Camera Display"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "%matplotlib inline"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import matplotlib.pylab as plt\n",
+    "from ctapipe.instrument import CameraGeometry\n",
+    "from ctapipe.visualization import CameraDisplay\n",
+    "from ctapipe.image import toymodel\n",
+    "from ctapipe.image import hillas_parameters, tailcuts_clean\n",
+    "import numpy as np\n",
+    "import astropy.units as u"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Just a quick function to mark a pixel and draw lines to its neighbors"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def draw_neighbors(geom, pixel_index, color='r', **kwargs):\n",
+    "    \"\"\" draw lines between a pixel and its neighbors\"\"\"\n",
+    "    neigh = geom.neighbors[pixel_index]  # neighbor indices (not pixel ids)\n",
+    "    x, y = geom.pix_x[pixel_index].value, geom.pix_y[pixel_index].value\n",
+    "    for nn in neigh:\n",
+    "        nx, ny = geom.pix_x[nn].value, geom.pix_y[nn].value\n",
+    "        plt.plot([x, nx], [y, ny], color=color, **kwargs)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Now, let's create a fake Cherenkov image from a given `CameraGeometry` and fill it with some data:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# get the HESS demo camera geometry\n",
+    "geom = CameraGeometry.from_name(\"NectarCam\")\n",
+    "\n",
+    "# create a fake camera image to display:\n",
+    "model = toymodel.Gaussian(\n",
+    "    x=0.2 * u.m,\n",
+    "    y=0.0 * u.m,\n",
+    "    width=0.05 * u.m,\n",
+    "    length=0.15 * u.m,\n",
+    "    psi='35d',\n",
+    ")\n",
+    "\n",
+    "image, sig, bg = model.generate_image(geom, intensity=1500, nsb_level_pe=5)\n",
+    "\n",
+    "# apply really stupid image cleaning (single threshold):\n",
+    "mask = tailcuts_clean(geom, image, 10, 5)\n",
+    "\n",
+    "# calculate image parameters\n",
+    "image[~mask] = 0\n",
+    "hillas = hillas_parameters(geom, image)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# show the camera image and overlay Hillas ellipse\n",
+    "disp = CameraDisplay(geom)\n",
+    "disp.add_colorbar()\n",
+    "disp.image = image\n",
+    "disp.overlay_moments(hillas, color='grey', linewidth=3,zorder=10)\n",
+    "disp.highlight_pixels(mask, alpha=0.1, color='white')\n",
+    "\n",
+    "# draw the neighbors of pixel 430 in red, and the\n",
+    "# neighbor-neighbors in green\n",
+    "\n",
+    "for ii in geom.neighbors[430]:\n",
+    "    draw_neighbors(geom, ii, color='green')\n",
+    "draw_neighbors(geom, 430, color='red',lw=2)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "For online use, you can use the mpld3 library to automatically convert this to a zoomable HTML5 plot if you like. Simply call `display()` at the end of the code:\n",
+    "\n",
+    "    import mpld3\n",
+    "    ...\n",
+    "    mpld3.display()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "anaconda-cloud": {},
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.6.8"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}

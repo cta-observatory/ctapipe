@@ -1,0 +1,39 @@
+Activity
+========
+
+.. currentmodule:: ctapipe.io.metadata
+
+.. autoclass:: Activity
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~Activity.default_time
+      ~Activity.id_
+      ~Activity.name
+      ~Activity.software_name
+      ~Activity.software_version
+      ~Activity.start_time
+      ~Activity.type_
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~Activity.from_provenance
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: default_time
+   .. autoattribute:: id_
+   .. autoattribute:: name
+   .. autoattribute:: software_name
+   .. autoattribute:: software_version
+   .. autoattribute:: start_time
+   .. autoattribute:: type_
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: from_provenance

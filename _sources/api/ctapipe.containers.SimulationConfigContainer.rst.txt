@@ -1,0 +1,89 @@
+SimulationConfigContainer
+=========================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: SimulationConfigContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~SimulationConfigContainer.atmosphere
+      ~SimulationConfigContainer.core_pos_mode
+      ~SimulationConfigContainer.corsika_bunchsize
+      ~SimulationConfigContainer.corsika_high_E_detail
+      ~SimulationConfigContainer.corsika_high_E_model
+      ~SimulationConfigContainer.corsika_iact_options
+      ~SimulationConfigContainer.corsika_low_E_detail
+      ~SimulationConfigContainer.corsika_low_E_model
+      ~SimulationConfigContainer.corsika_version
+      ~SimulationConfigContainer.corsika_wlen_max
+      ~SimulationConfigContainer.corsika_wlen_min
+      ~SimulationConfigContainer.detector_prog_id
+      ~SimulationConfigContainer.detector_prog_start
+      ~SimulationConfigContainer.diffuse
+      ~SimulationConfigContainer.energy_range_max
+      ~SimulationConfigContainer.energy_range_min
+      ~SimulationConfigContainer.injection_height
+      ~SimulationConfigContainer.max_alt
+      ~SimulationConfigContainer.max_az
+      ~SimulationConfigContainer.max_scatter_range
+      ~SimulationConfigContainer.max_viewcone_radius
+      ~SimulationConfigContainer.meta
+      ~SimulationConfigContainer.min_alt
+      ~SimulationConfigContainer.min_az
+      ~SimulationConfigContainer.min_scatter_range
+      ~SimulationConfigContainer.min_viewcone_radius
+      ~SimulationConfigContainer.num_showers
+      ~SimulationConfigContainer.prefix
+      ~SimulationConfigContainer.prod_site_B_declination
+      ~SimulationConfigContainer.prod_site_B_inclination
+      ~SimulationConfigContainer.prod_site_B_total
+      ~SimulationConfigContainer.prod_site_alt
+      ~SimulationConfigContainer.shower_prog_id
+      ~SimulationConfigContainer.shower_prog_start
+      ~SimulationConfigContainer.shower_reuse
+      ~SimulationConfigContainer.simtel_version
+      ~SimulationConfigContainer.spectral_index
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: atmosphere
+   .. autoattribute:: core_pos_mode
+   .. autoattribute:: corsika_bunchsize
+   .. autoattribute:: corsika_high_E_detail
+   .. autoattribute:: corsika_high_E_model
+   .. autoattribute:: corsika_iact_options
+   .. autoattribute:: corsika_low_E_detail
+   .. autoattribute:: corsika_low_E_model
+   .. autoattribute:: corsika_version
+   .. autoattribute:: corsika_wlen_max
+   .. autoattribute:: corsika_wlen_min
+   .. autoattribute:: detector_prog_id
+   .. autoattribute:: detector_prog_start
+   .. autoattribute:: diffuse
+   .. autoattribute:: energy_range_max
+   .. autoattribute:: energy_range_min
+   .. autoattribute:: injection_height
+   .. autoattribute:: max_alt
+   .. autoattribute:: max_az
+   .. autoattribute:: max_scatter_range
+   .. autoattribute:: max_viewcone_radius
+   .. autoattribute:: meta
+   .. autoattribute:: min_alt
+   .. autoattribute:: min_az
+   .. autoattribute:: min_scatter_range
+   .. autoattribute:: min_viewcone_radius
+   .. autoattribute:: num_showers
+   .. autoattribute:: prefix
+   .. autoattribute:: prod_site_B_declination
+   .. autoattribute:: prod_site_B_inclination
+   .. autoattribute:: prod_site_B_total
+   .. autoattribute:: prod_site_alt
+   .. autoattribute:: shower_prog_id
+   .. autoattribute:: shower_prog_start
+   .. autoattribute:: shower_reuse
+   .. autoattribute:: simtel_version
+   .. autoattribute:: spectral_index

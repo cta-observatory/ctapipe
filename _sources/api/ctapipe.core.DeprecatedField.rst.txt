@@ -1,0 +1,7 @@
+DeprecatedField
+===============
+
+.. currentmodule:: ctapipe.core
+
+.. autoclass:: DeprecatedField
+   :show-inheritance:

@@ -1,0 +1,55 @@
+CameraDisplay
+=============
+
+.. currentmodule:: ctapipe.visualization
+
+.. autoclass:: CameraDisplay
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~CameraDisplay.cmap
+      ~CameraDisplay.image
+      ~CameraDisplay.norm
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~CameraDisplay.add_colorbar
+      ~CameraDisplay.add_ellipse
+      ~CameraDisplay.add_frame_name
+      ~CameraDisplay.auto_set_axes_labels
+      ~CameraDisplay.clear_overlays
+      ~CameraDisplay.enable_pixel_picker
+      ~CameraDisplay.highlight_pixels
+      ~CameraDisplay.on_pixel_clicked
+      ~CameraDisplay.overlay_moments
+      ~CameraDisplay.set_limits_minmax
+      ~CameraDisplay.set_limits_percent
+      ~CameraDisplay.show
+      ~CameraDisplay.update
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: cmap
+   .. autoattribute:: image
+   .. autoattribute:: norm
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: add_colorbar
+   .. automethod:: add_ellipse
+   .. automethod:: add_frame_name
+   .. automethod:: auto_set_axes_labels
+   .. automethod:: clear_overlays
+   .. automethod:: enable_pixel_picker
+   .. automethod:: highlight_pixels
+   .. automethod:: on_pixel_clicked
+   .. automethod:: overlay_moments
+   .. automethod:: set_limits_minmax
+   .. automethod:: set_limits_percent
+   .. automethod:: show
+   .. automethod:: update

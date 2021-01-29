@@ -1,0 +1,31 @@
+SimulatedShowerDistribution
+===========================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: SimulatedShowerDistribution
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~SimulatedShowerDistribution.bins_core_dist
+      ~SimulatedShowerDistribution.bins_energy
+      ~SimulatedShowerDistribution.hist_id
+      ~SimulatedShowerDistribution.histogram
+      ~SimulatedShowerDistribution.meta
+      ~SimulatedShowerDistribution.num_entries
+      ~SimulatedShowerDistribution.obs_id
+      ~SimulatedShowerDistribution.prefix
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: bins_core_dist
+   .. autoattribute:: bins_energy
+   .. autoattribute:: hist_id
+   .. autoattribute:: histogram
+   .. autoattribute:: meta
+   .. autoattribute:: num_entries
+   .. autoattribute:: obs_id
+   .. autoattribute:: prefix

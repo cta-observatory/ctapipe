@@ -1,0 +1,6 @@
+create_class_enum_trait
+=======================
+
+.. currentmodule:: ctapipe.core.traits
+
+.. autofunction:: create_class_enum_trait

@@ -1,0 +1,6 @@
+array_2d_to_chec
+================
+
+.. currentmodule:: ctapipe.image
+
+.. autofunction:: array_2d_to_chec

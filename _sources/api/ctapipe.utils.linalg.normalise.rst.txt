@@ -1,0 +1,6 @@
+normalise
+=========
+
+.. currentmodule:: ctapipe.utils.linalg
+
+.. autofunction:: normalise

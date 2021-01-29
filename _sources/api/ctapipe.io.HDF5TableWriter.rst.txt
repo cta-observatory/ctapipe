@@ -1,0 +1,21 @@
+HDF5TableWriter
+===============
+
+.. currentmodule:: ctapipe.io
+
+.. autoclass:: HDF5TableWriter
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~HDF5TableWriter.close
+      ~HDF5TableWriter.open
+      ~HDF5TableWriter.write
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: close
+   .. automethod:: open
+   .. automethod:: write

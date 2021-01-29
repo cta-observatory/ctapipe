@@ -1,0 +1,428 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>ctapipe.coordinates.ground_frames &mdash; ctapipe v0.1.dev1+gb5c90a1</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+        <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.20.0/dist/embed-amd.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> ctapipe
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.dev1+gb5c90a1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../coordinates.html">ctapipe.coordinates</a> &raquo;</li>
+        
+      <li>ctapipe.coordinates.ground_frames</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for ctapipe.coordinates.ground_frames</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;This module defines the important coordinate systems to be used in</span>
+<span class="sd">reconstruction with the CTA pipeline and the transformations between</span>
+<span class="sd">this different systems. Frames and transformations are defined using</span>
+<span class="sd">the astropy.coordinates framework. This module defines transformations</span>
+<span class="sd">for ground based cartesian and planar systems.</span>
+
+<span class="sd">For examples on usage see examples/coordinate_transformations.py</span>
+
+<span class="sd">This code is based on the coordinate transformations performed in the</span>
+<span class="sd">read_hess code</span>
+
+<span class="sd">TODO:</span>
+
+<span class="sd">- Tests Tests Tests!</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BaseCoordinateFrame</span><span class="p">,</span>
+    <span class="n">CartesianRepresentation</span><span class="p">,</span>
+    <span class="n">FunctionTransform</span><span class="p">,</span>
+    <span class="n">CoordinateAttribute</span><span class="p">,</span>
+    <span class="n">AltAz</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">frame_transform_graph</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">cos</span><span class="p">,</span> <span class="n">sin</span>
+
+<span class="kn">from</span> <span class="nn">.representation</span> <span class="kn">import</span> <span class="n">PlanarRepresentation</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;GroundFrame&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;TiltedGroundFrame&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;project_to_ground&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="GroundFrame"><a class="viewcode-back" href="../../../api/ctapipe.coordinates.GroundFrame.html#ctapipe.coordinates.GroundFrame">[docs]</a><span class="k">class</span> <span class="nc">GroundFrame</span><span class="p">(</span><span class="n">BaseCoordinateFrame</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Ground coordinate frame.  The ground coordinate frame is a simple</span>
+<span class="sd">    cartesian frame describing the 3 dimensional position of objects</span>
+<span class="sd">    compared to the array ground level in relation to the nomial</span>
+<span class="sd">    centre of the array.  Typically this frame will be used for</span>
+<span class="sd">    describing the position on telescopes and equipment.</span>
+<span class="sd">    In this frame x points north, y points west and z is meters above array center.</span>
+
+<span class="sd">    Frame attributes: None</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">default_representation</span> <span class="o">=</span> <span class="n">CartesianRepresentation</span></div>
+
+
+<div class="viewcode-block" id="TiltedGroundFrame"><a class="viewcode-back" href="../../../api/ctapipe.coordinates.TiltedGroundFrame.html#ctapipe.coordinates.TiltedGroundFrame">[docs]</a><span class="k">class</span> <span class="nc">TiltedGroundFrame</span><span class="p">(</span><span class="n">BaseCoordinateFrame</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Tilted ground coordinate frame.  The tilted ground coordinate frame</span>
+<span class="sd">    is a cartesian system describing the 2 dimensional projected</span>
+<span class="sd">    positions of objects in a tilted plane described by</span>
+<span class="sd">    pointing_direction Typically this frame will be used for the</span>
+<span class="sd">    reconstruction of the shower core position</span>
+
+<span class="sd">    Frame attributes:</span>
+
+<span class="sd">    * ``pointing_direction``</span>
+<span class="sd">        Alt,Az direction of the tilted reference plane</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">default_representation</span> <span class="o">=</span> <span class="n">PlanarRepresentation</span>
+    <span class="c1"># Pointing direction of the tilted system (alt,az),</span>
+    <span class="c1"># could be the telescope pointing direction or the reconstructed shower</span>
+    <span class="c1"># direction</span>
+    <span class="n">pointing_direction</span> <span class="o">=</span> <span class="n">CoordinateAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">AltAz</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">get_shower_trans_matrix</span><span class="p">(</span><span class="n">azimuth</span><span class="p">,</span> <span class="n">altitude</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get Transformation matrix for conversion from the ground system to</span>
+<span class="sd">    the Tilted system and back again (This function is directly lifted</span>
+<span class="sd">    from read_hess, probably could be streamlined using python</span>
+<span class="sd">    functionality)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    azimuth: float</span>
+<span class="sd">        Azimuth angle of the tilted system used</span>
+<span class="sd">    altitude: float</span>
+<span class="sd">        Altitude angle of the tilted system used</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    trans: 3x3 ndarray transformation matrix</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">cos_z</span> <span class="o">=</span> <span class="n">sin</span><span class="p">(</span><span class="n">altitude</span><span class="p">)</span>
+    <span class="n">sin_z</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">altitude</span><span class="p">)</span>
+    <span class="n">cos_az</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">azimuth</span><span class="p">)</span>
+    <span class="n">sin_az</span> <span class="o">=</span> <span class="n">sin</span><span class="p">(</span><span class="n">azimuth</span><span class="p">)</span>
+
+    <span class="n">trans</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="n">trans</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">cos_z</span> <span class="o">*</span> <span class="n">cos_az</span>
+    <span class="n">trans</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">sin_az</span>
+    <span class="n">trans</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">sin_z</span> <span class="o">*</span> <span class="n">cos_az</span>
+
+    <span class="n">trans</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">cos_z</span> <span class="o">*</span> <span class="n">sin_az</span>
+    <span class="n">trans</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">cos_az</span>
+    <span class="n">trans</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">sin_z</span> <span class="o">*</span> <span class="n">sin_az</span>
+
+    <span class="n">trans</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">sin_z</span>
+    <span class="n">trans</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">trans</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">cos_z</span>
+
+    <span class="k">return</span> <span class="n">trans</span>
+
+
+<span class="nd">@frame_transform_graph</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">FunctionTransform</span><span class="p">,</span> <span class="n">GroundFrame</span><span class="p">,</span> <span class="n">TiltedGroundFrame</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">ground_to_tilted</span><span class="p">(</span><span class="n">ground_coord</span><span class="p">,</span> <span class="n">tilted_frame</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transformation from ground system to tilted ground system</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ground_coord: `astropy.coordinates.SkyCoord`</span>
+<span class="sd">        Coordinate in GroundFrame</span>
+<span class="sd">    tilted_frame: `ctapipe.coordinates.TiltedFrame`</span>
+<span class="sd">        Frame to transform to</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    SkyCoordinate transformed to `tilted_frame` coordinates</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x_grd</span> <span class="o">=</span> <span class="n">ground_coord</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">x</span>
+    <span class="n">y_grd</span> <span class="o">=</span> <span class="n">ground_coord</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">y</span>
+    <span class="n">z_grd</span> <span class="o">=</span> <span class="n">ground_coord</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">z</span>
+
+    <span class="n">altitude</span> <span class="o">=</span> <span class="n">tilted_frame</span><span class="o">.</span><span class="n">pointing_direction</span><span class="o">.</span><span class="n">alt</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+    <span class="n">azimuth</span> <span class="o">=</span> <span class="n">tilted_frame</span><span class="o">.</span><span class="n">pointing_direction</span><span class="o">.</span><span class="n">az</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+    <span class="n">trans</span> <span class="o">=</span> <span class="n">get_shower_trans_matrix</span><span class="p">(</span><span class="n">azimuth</span><span class="p">,</span> <span class="n">altitude</span><span class="p">)</span>
+
+    <span class="n">x_tilt</span> <span class="o">=</span> <span class="n">trans</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">x_grd</span> <span class="o">+</span> <span class="n">trans</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">y_grd</span> <span class="o">+</span> <span class="n">trans</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">z_grd</span>
+    <span class="n">y_tilt</span> <span class="o">=</span> <span class="n">trans</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">x_grd</span> <span class="o">+</span> <span class="n">trans</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">y_grd</span> <span class="o">+</span> <span class="n">trans</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">z_grd</span>
+
+    <span class="n">representation</span> <span class="o">=</span> <span class="n">PlanarRepresentation</span><span class="p">(</span><span class="n">x_tilt</span><span class="p">,</span> <span class="n">y_tilt</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">tilted_frame</span><span class="o">.</span><span class="n">realize_frame</span><span class="p">(</span><span class="n">representation</span><span class="p">)</span>
+
+
+<span class="nd">@frame_transform_graph</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">FunctionTransform</span><span class="p">,</span> <span class="n">TiltedGroundFrame</span><span class="p">,</span> <span class="n">GroundFrame</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">tilted_to_ground</span><span class="p">(</span><span class="n">tilted_coord</span><span class="p">,</span> <span class="n">ground_frame</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transformation from tilted ground system to  ground system</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    tilted_coord: `astropy.coordinates.SkyCoord`</span>
+<span class="sd">        TiltedGroundFrame system</span>
+<span class="sd">    ground_frame: `astropy.coordinates.SkyCoord`</span>
+<span class="sd">        GroundFrame system</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    GroundFrame coordinates</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x_tilt</span> <span class="o">=</span> <span class="n">tilted_coord</span><span class="o">.</span><span class="n">x</span>
+    <span class="n">y_tilt</span> <span class="o">=</span> <span class="n">tilted_coord</span><span class="o">.</span><span class="n">y</span>
+
+    <span class="n">altitude</span> <span class="o">=</span> <span class="n">tilted_coord</span><span class="o">.</span><span class="n">pointing_direction</span><span class="o">.</span><span class="n">alt</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+    <span class="n">azimuth</span> <span class="o">=</span> <span class="n">tilted_coord</span><span class="o">.</span><span class="n">pointing_direction</span><span class="o">.</span><span class="n">az</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+
+    <span class="n">trans</span> <span class="o">=</span> <span class="n">get_shower_trans_matrix</span><span class="p">(</span><span class="n">azimuth</span><span class="p">,</span> <span class="n">altitude</span><span class="p">)</span>
+
+    <span class="n">x_grd</span> <span class="o">=</span> <span class="n">trans</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">x_tilt</span> <span class="o">+</span> <span class="n">trans</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">y_tilt</span>
+    <span class="n">y_grd</span> <span class="o">=</span> <span class="n">trans</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">x_tilt</span> <span class="o">+</span> <span class="n">trans</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">y_tilt</span>
+    <span class="n">z_grd</span> <span class="o">=</span> <span class="n">trans</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">x_tilt</span> <span class="o">+</span> <span class="n">trans</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">y_tilt</span>
+
+    <span class="n">representation</span> <span class="o">=</span> <span class="n">CartesianRepresentation</span><span class="p">(</span><span class="n">x_grd</span><span class="p">,</span> <span class="n">y_grd</span><span class="p">,</span> <span class="n">z_grd</span><span class="p">)</span>
+
+    <span class="n">grd</span> <span class="o">=</span> <span class="n">ground_frame</span><span class="o">.</span><span class="n">realize_frame</span><span class="p">(</span><span class="n">representation</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">grd</span>
+
+
+<div class="viewcode-block" id="project_to_ground"><a class="viewcode-back" href="../../../api/ctapipe.coordinates.project_to_ground.html#ctapipe.coordinates.project_to_ground">[docs]</a><span class="k">def</span> <span class="nf">project_to_ground</span><span class="p">(</span><span class="n">tilt_system</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Project position in the tilted system onto the ground. This is</span>
+<span class="sd">    needed as the standard transformation will return the 3d position</span>
+<span class="sd">    of the tilted frame. This projection may ultimately be the</span>
+<span class="sd">    standard use case so may be implemented in the tilted to ground</span>
+<span class="sd">    transformation</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    tilt_system: `astropy.coordinates.SkyCoord`</span>
+<span class="sd">        coorinate in the the tilted ground system</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Projection of tilted system onto the ground (GroundSystem)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ground_system</span> <span class="o">=</span> <span class="n">tilt_system</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">GroundFrame</span><span class="p">)</span>
+
+    <span class="n">unit</span> <span class="o">=</span> <span class="n">ground_system</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">unit</span>
+    <span class="n">x_initial</span> <span class="o">=</span> <span class="n">ground_system</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">value</span>
+    <span class="n">y_initial</span> <span class="o">=</span> <span class="n">ground_system</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">value</span>
+    <span class="n">z_initial</span> <span class="o">=</span> <span class="n">ground_system</span><span class="o">.</span><span class="n">z</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="n">trans</span> <span class="o">=</span> <span class="n">get_shower_trans_matrix</span><span class="p">(</span>
+        <span class="n">tilt_system</span><span class="o">.</span><span class="n">pointing_direction</span><span class="o">.</span><span class="n">az</span><span class="p">,</span> <span class="n">tilt_system</span><span class="o">.</span><span class="n">pointing_direction</span><span class="o">.</span><span class="n">alt</span>
+    <span class="p">)</span>
+
+    <span class="n">x_projected</span> <span class="o">=</span> <span class="n">x_initial</span> <span class="o">-</span> <span class="n">trans</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">z_initial</span> <span class="o">/</span> <span class="n">trans</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">y_projected</span> <span class="o">=</span> <span class="n">y_initial</span> <span class="o">-</span> <span class="n">trans</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">z_initial</span> <span class="o">/</span> <span class="n">trans</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">GroundFrame</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x_projected</span> <span class="o">*</span> <span class="n">unit</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y_projected</span> <span class="o">*</span> <span class="n">unit</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mi">0</span> <span class="o">*</span> <span class="n">unit</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright ctapipe developers.  Last updated 29 Jan 2021 18:09.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

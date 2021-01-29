@@ -1,0 +1,27 @@
+ImageProcessor
+==============
+
+.. currentmodule:: ctapipe.image
+
+.. autoclass:: ImageProcessor
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~ImageProcessor.image_cleaner_type
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~ImageProcessor.__call__
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: image_cleaner_type
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__

@@ -1,0 +1,6 @@
+tailcuts_clean
+==============
+
+.. currentmodule:: ctapipe.image
+
+.. autofunction:: tailcuts_clean

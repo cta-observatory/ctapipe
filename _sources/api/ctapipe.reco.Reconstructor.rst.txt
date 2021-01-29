@@ -1,0 +1,17 @@
+Reconstructor
+=============
+
+.. currentmodule:: ctapipe.reco
+
+.. autoclass:: Reconstructor
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~Reconstructor.predict
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: predict

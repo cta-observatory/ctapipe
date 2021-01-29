@@ -1,0 +1,13 @@
+<map id="inheritance9ee38650df" name="inheritance9ee38650df">
+<area shape="rect" id="node1" href="../../api/ctapipe.image.extractor.BaselineSubtractedNeighborPeakWindowSum.html#ctapipe.image.extractor.BaselineSubtractedNeighborPeakWindowSum" target="_top" title="Extractor that first subtracts the baseline before summing in a" alt="" coords="607,3,765,15"/>
+<area shape="rect" id="node2" href="../../api/ctapipe.image.extractor.NeighborPeakWindowSum.html#ctapipe.image.extractor.NeighborPeakWindowSum" target="_top" title="Extractor which sums in a window about the" alt="" coords="487,3,583,15"/>
+<area shape="rect" id="node3" title="Base class of all Components." alt="" coords="227,64,275,77"/>
+<area shape="rect" id="node11" title="A component that needs a SubarrayDescription to be constructed, and which" alt="" coords="298,64,378,77"/>
+<area shape="rect" id="node6" href="../../api/ctapipe.image.extractor.FixedWindowSum.html#ctapipe.image.extractor.FixedWindowSum" target="_top" title="Extractor that sums within a fixed window defined by the user." alt="" coords="501,27,569,40"/>
+<area shape="rect" id="node7" href="../../api/ctapipe.image.extractor.ImageExtractor.html#ctapipe.image.extractor.ImageExtractor" target="_top" title="ImageExtractor" alt="" coords="402,64,463,77"/>
+<area shape="rect" id="node8" href="../../api/ctapipe.image.extractor.FullWaveformSum.html#ctapipe.image.extractor.FullWaveformSum" target="_top" title="Extractor that sums the entire waveform." alt="" coords="500,52,570,64"/>
+<area shape="rect" id="node9" href="../../api/ctapipe.image.extractor.GlobalPeakWindowSum.html#ctapipe.image.extractor.GlobalPeakWindowSum" target="_top" title="Extractor which sums in a window about the" alt="" coords="491,76,579,88"/>
+<area shape="rect" id="node12" href="../../api/ctapipe.image.extractor.LocalPeakWindowSum.html#ctapipe.image.extractor.LocalPeakWindowSum" target="_top" title="Extractor which sums in a window about the" alt="" coords="493,100,577,113"/>
+<area shape="rect" id="node13" href="../../api/ctapipe.image.extractor.TwoPassWindowSum.html#ctapipe.image.extractor.TwoPassWindowSum" target="_top" title="Extractor based on [1]_ which integrates the waveform a second time using" alt="" coords="496,125,574,137"/>
+<area shape="rect" id="node10" title="The base class for all classes that have descriptors." alt="" coords="3,64,63,77"/>
+</map>

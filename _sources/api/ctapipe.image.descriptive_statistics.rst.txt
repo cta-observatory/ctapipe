@@ -1,0 +1,6 @@
+descriptive_statistics
+======================
+
+.. currentmodule:: ctapipe.image
+
+.. autofunction:: descriptive_statistics

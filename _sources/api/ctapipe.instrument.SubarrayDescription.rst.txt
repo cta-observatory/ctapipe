@@ -1,0 +1,63 @@
+SubarrayDescription
+===================
+
+.. currentmodule:: ctapipe.instrument
+
+.. autoclass:: SubarrayDescription
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~SubarrayDescription.camera_types
+      ~SubarrayDescription.footprint
+      ~SubarrayDescription.num_tels
+      ~SubarrayDescription.optics_types
+      ~SubarrayDescription.tel
+      ~SubarrayDescription.tel_coords
+      ~SubarrayDescription.tel_ids
+      ~SubarrayDescription.tel_index_array
+      ~SubarrayDescription.tel_indices
+      ~SubarrayDescription.telescope_types
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~SubarrayDescription.from_hdf
+      ~SubarrayDescription.get_tel_ids_for_type
+      ~SubarrayDescription.info
+      ~SubarrayDescription.peek
+      ~SubarrayDescription.select_subarray
+      ~SubarrayDescription.tel_ids_to_indices
+      ~SubarrayDescription.tel_ids_to_mask
+      ~SubarrayDescription.tel_mask_to_tel_ids
+      ~SubarrayDescription.to_hdf
+      ~SubarrayDescription.to_table
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: camera_types
+   .. autoattribute:: footprint
+   .. autoattribute:: num_tels
+   .. autoattribute:: optics_types
+   .. autoattribute:: tel
+   .. autoattribute:: tel_coords
+   .. autoattribute:: tel_ids
+   .. autoattribute:: tel_index_array
+   .. autoattribute:: tel_indices
+   .. autoattribute:: telescope_types
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: from_hdf
+   .. automethod:: get_tel_ids_for_type
+   .. automethod:: info
+   .. automethod:: peek
+   .. automethod:: select_subarray
+   .. automethod:: tel_ids_to_indices
+   .. automethod:: tel_ids_to_mask
+   .. automethod:: tel_mask_to_tel_ids
+   .. automethod:: to_hdf
+   .. automethod:: to_table

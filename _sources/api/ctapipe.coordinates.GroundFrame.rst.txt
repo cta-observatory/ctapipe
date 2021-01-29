@@ -1,0 +1,23 @@
+GroundFrame
+===========
+
+.. currentmodule:: ctapipe.coordinates
+
+.. autoclass:: GroundFrame
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~GroundFrame.default_differential
+      ~GroundFrame.default_representation
+      ~GroundFrame.frame_specific_representation_info
+      ~GroundFrame.name
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: default_differential
+   .. autoattribute:: default_representation
+   .. autoattribute:: frame_specific_representation_info
+   .. autoattribute:: name

@@ -1,0 +1,640 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>ctapipe.reco.HillasReconstructor &mdash; ctapipe v0.1.dev1+gb5c90a1</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+        <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.20.0/dist/embed-amd.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> ctapipe
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.dev1+gb5c90a1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>ctapipe.reco.HillasReconstructor</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for ctapipe.reco.HillasReconstructor</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Line-intersection-based fitting.</span>
+
+<span class="sd">Contact: Tino Michael &lt;Tino.Michael@cea.fr&gt;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="kn">from</span> <span class="nn">ctapipe.reco.reco_algorithms</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Reconstructor</span><span class="p">,</span>
+    <span class="n">InvalidWidthException</span><span class="p">,</span>
+    <span class="n">TooFewTelescopesException</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">ctapipe.containers</span> <span class="kn">import</span> <span class="n">ReconstructedShowerContainer</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">combinations</span>
+
+<span class="kn">from</span> <span class="nn">ctapipe.coordinates</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CameraFrame</span><span class="p">,</span>
+    <span class="n">GroundFrame</span><span class="p">,</span>
+    <span class="n">TiltedGroundFrame</span><span class="p">,</span>
+    <span class="n">project_to_ground</span><span class="p">,</span>
+    <span class="n">MissingFrameAttributeWarning</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">SkyCoord</span><span class="p">,</span>
+    <span class="n">spherical_to_cartesian</span><span class="p">,</span>
+    <span class="n">cartesian_to_spherical</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;HillasReconstructor&quot;</span><span class="p">,</span> <span class="s2">&quot;HillasPlane&quot;</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">angle</span><span class="p">(</span><span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; computes the angle between two vectors</span>
+<span class="sd">        assuming cartesian coordinates</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    v1 : numpy array</span>
+<span class="sd">    v2 : numpy array</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    the angle between v1 and v2 as a dimensioned astropy quantity</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">v1</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">v2</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">v1</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">v2</span><span class="p">)</span> <span class="o">/</span> <span class="n">norm</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">normalise</span><span class="p">(</span><span class="n">vec</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Sets the length of the vector to 1</span>
+<span class="sd">        without changing its direction</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    vec : numpy array</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy array with the same direction but length of 1</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">vec</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">vec</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ZeroDivisionError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">vec</span>
+
+
+<span class="k">def</span> <span class="nf">line_line_intersection_3d</span><span class="p">(</span><span class="n">uvw_vectors</span><span class="p">,</span> <span class="n">origins</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Intersection of many lines in 3d.</span>
+<span class="sd">    See https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">S</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">pos</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">uvw_vectors</span><span class="p">,</span> <span class="n">origins</span><span class="p">):</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">n</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">norm_matrix</span> <span class="o">=</span> <span class="p">(</span><span class="n">n</span> <span class="o">@</span> <span class="n">n</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">C</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">norm_matrix</span> <span class="o">@</span> <span class="n">pos</span><span class="p">)</span>
+        <span class="n">S</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">norm_matrix</span><span class="p">)</span>
+
+    <span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">S</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">C</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">S</span><span class="p">)</span> <span class="o">@</span> <span class="n">C</span>
+
+
+<div class="viewcode-block" id="HillasReconstructor"><a class="viewcode-back" href="../../../api/ctapipe.reco.HillasReconstructor.html#ctapipe.reco.HillasReconstructor">[docs]</a><span class="k">class</span> <span class="nc">HillasReconstructor</span><span class="p">(</span><span class="n">Reconstructor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    class that reconstructs the direction of an atmospheric shower</span>
+<span class="sd">    using a simple hillas parametrisation of the camera images it</span>
+<span class="sd">    provides a direction estimate in two steps and an estimate for the</span>
+<span class="sd">    shower&#39;s impact position on the ground.</span>
+
+<span class="sd">    so far, it does neither provide an energy estimator nor an</span>
+<span class="sd">    uncertainty on the reconstructed parameters</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hillas_planes</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">divergent_mode</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">corrected_angle_dict</span> <span class="o">=</span> <span class="p">{}</span>
+
+<div class="viewcode-block" id="HillasReconstructor.predict"><a class="viewcode-back" href="../../../api/ctapipe.reco.HillasReconstructor.html#ctapipe.reco.HillasReconstructor.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hillas_dict</span><span class="p">,</span> <span class="n">subarray</span><span class="p">,</span> <span class="n">array_pointing</span><span class="p">,</span> <span class="n">telescopes_pointings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The function you want to call for the reconstruction of the</span>
+<span class="sd">        event. It takes care of setting up the event and consecutively</span>
+<span class="sd">        calls the functions for the direction and core position</span>
+<span class="sd">        reconstruction.  Shower parameters not reconstructed by this</span>
+<span class="sd">        class are set to np.nan</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        -----------</span>
+<span class="sd">        hillas_dict: dict</span>
+<span class="sd">            dictionary with telescope IDs as key and</span>
+<span class="sd">            HillasParametersContainer instances as values</span>
+<span class="sd">        inst : ctapipe.io.InstrumentContainer</span>
+<span class="sd">            instrumental description</span>
+<span class="sd">        array_pointing: SkyCoord[AltAz]</span>
+<span class="sd">            pointing direction of the array</span>
+<span class="sd">        telescopes_pointings: dict[SkyCoord[AltAz]]</span>
+<span class="sd">            dictionary of pointing direction per each telescope</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        TooFewTelescopesException</span>
+<span class="sd">            if len(hillas_dict) &lt; 2</span>
+<span class="sd">        InvalidWidthException</span>
+<span class="sd">            if any width is np.nan or 0</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># filter warnings for missing obs time. this is needed because MC data has no obs time</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="n">action</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="n">MissingFrameAttributeWarning</span><span class="p">)</span>
+
+        <span class="c1"># stereoscopy needs at least two telescopes</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">hillas_dict</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">TooFewTelescopesException</span><span class="p">(</span>
+                <span class="s2">&quot;need at least two telescopes, have </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">hillas_dict</span><span class="p">))</span>
+            <span class="p">)</span>
+
+        <span class="c1"># check for np.nan or 0 width&#39;s as these screw up weights</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">hillas_dict</span><span class="p">[</span><span class="n">tel</span><span class="p">][</span><span class="s2">&quot;width&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">tel</span> <span class="ow">in</span> <span class="n">hillas_dict</span><span class="p">]):</span>
+            <span class="k">raise</span> <span class="n">InvalidWidthException</span><span class="p">(</span>
+                <span class="s2">&quot;A HillasContainer contains an ellipse of width==np.nan&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">hillas_dict</span><span class="p">[</span><span class="n">tel</span><span class="p">][</span><span class="s2">&quot;width&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">tel</span> <span class="ow">in</span> <span class="n">hillas_dict</span><span class="p">]):</span>
+            <span class="k">raise</span> <span class="n">InvalidWidthException</span><span class="p">(</span>
+                <span class="s2">&quot;A HillasContainer contains an ellipse of width==0&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># use the single telescope pointing also for parallel pointing: code is more general</span>
+        <span class="k">if</span> <span class="n">telescopes_pointings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">telescopes_pointings</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">tel_id</span><span class="p">:</span> <span class="n">array_pointing</span> <span class="k">for</span> <span class="n">tel_id</span> <span class="ow">in</span> <span class="n">hillas_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+            <span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">divergent_mode</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">corrected_angle_dict</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">initialize_hillas_planes</span><span class="p">(</span>
+            <span class="n">hillas_dict</span><span class="p">,</span> <span class="n">subarray</span><span class="p">,</span> <span class="n">telescopes_pointings</span><span class="p">,</span> <span class="n">array_pointing</span>
+        <span class="p">)</span>
+
+        <span class="c1"># algebraic direction estimate</span>
+        <span class="n">direction</span><span class="p">,</span> <span class="n">err_est_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimate_direction</span><span class="p">()</span>
+
+        <span class="c1"># array pointing is needed to define the tilted frame</span>
+        <span class="n">core_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimate_core_position</span><span class="p">(</span><span class="n">hillas_dict</span><span class="p">,</span> <span class="n">array_pointing</span><span class="p">)</span>
+
+        <span class="c1"># container class for reconstructed showers</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">lon</span> <span class="o">=</span> <span class="n">cartesian_to_spherical</span><span class="p">(</span><span class="o">*</span><span class="n">direction</span><span class="p">)</span>
+
+        <span class="c1"># estimate max height of shower</span>
+        <span class="n">h_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimate_h_max</span><span class="p">()</span>
+
+        <span class="c1"># astropy&#39;s coordinates system rotates counter-clockwise.</span>
+        <span class="c1"># Apparently we assume it to be clockwise.</span>
+        <span class="c1"># that&#39;s why lon get&#39;s a sign</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">ReconstructedShowerContainer</span><span class="p">(</span>
+            <span class="n">alt</span><span class="o">=</span><span class="n">lat</span><span class="p">,</span>
+            <span class="n">az</span><span class="o">=-</span><span class="n">lon</span><span class="p">,</span>
+            <span class="n">core_x</span><span class="o">=</span><span class="n">core_pos</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">core_y</span><span class="o">=</span><span class="n">core_pos</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">tel_ids</span><span class="o">=</span><span class="p">[</span><span class="n">h</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hillas_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()],</span>
+            <span class="n">average_intensity</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">h</span><span class="o">.</span><span class="n">intensity</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hillas_dict</span><span class="o">.</span><span class="n">values</span><span class="p">()]),</span>
+            <span class="n">is_valid</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">alt_uncert</span><span class="o">=</span><span class="n">err_est_dir</span><span class="p">,</span>
+            <span class="n">h_max</span><span class="o">=</span><span class="n">h_max</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="HillasReconstructor.initialize_hillas_planes"><a class="viewcode-back" href="../../../api/ctapipe.reco.HillasReconstructor.html#ctapipe.reco.HillasReconstructor.initialize_hillas_planes">[docs]</a>    <span class="k">def</span> <span class="nf">initialize_hillas_planes</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">hillas_dict</span><span class="p">,</span> <span class="n">subarray</span><span class="p">,</span> <span class="n">telescopes_pointings</span><span class="p">,</span> <span class="n">array_pointing</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a dictionary of :class:`.HillasPlane` from a dictionary of</span>
+<span class="sd">        hillas parameters</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        hillas_dict : dictionary</span>
+<span class="sd">            dictionary of hillas moments</span>
+<span class="sd">        subarray : ctapipe.instrument.SubarrayDescription</span>
+<span class="sd">            subarray information</span>
+<span class="sd">        telescopes_pointings: dictionary</span>
+<span class="sd">            dictionary of pointing direction per each telescope</span>
+<span class="sd">        array_pointing: SkyCoord[AltAz]</span>
+<span class="sd">            pointing direction of the array</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">hillas_planes</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">telescopes_pointings</span><span class="p">))</span>
+        <span class="n">horizon_frame</span> <span class="o">=</span> <span class="n">telescopes_pointings</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">frame</span>
+        <span class="k">for</span> <span class="n">tel_id</span><span class="p">,</span> <span class="n">moments</span> <span class="ow">in</span> <span class="n">hillas_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1"># we just need any point on the main shower axis a bit away from the cog</span>
+            <span class="n">p2_x</span> <span class="o">=</span> <span class="n">moments</span><span class="o">.</span><span class="n">x</span> <span class="o">+</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">moments</span><span class="o">.</span><span class="n">psi</span><span class="p">)</span>
+            <span class="n">p2_y</span> <span class="o">=</span> <span class="n">moments</span><span class="o">.</span><span class="n">y</span> <span class="o">+</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">moments</span><span class="o">.</span><span class="n">psi</span><span class="p">)</span>
+            <span class="n">focal_length</span> <span class="o">=</span> <span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">optics</span><span class="o">.</span><span class="n">equivalent_focal_length</span>
+
+            <span class="n">pointing</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span>
+                <span class="n">alt</span><span class="o">=</span><span class="n">telescopes_pointings</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">alt</span><span class="p">,</span>
+                <span class="n">az</span><span class="o">=</span><span class="n">telescopes_pointings</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">az</span><span class="p">,</span>
+                <span class="n">frame</span><span class="o">=</span><span class="n">horizon_frame</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">camera_frame</span> <span class="o">=</span> <span class="n">CameraFrame</span><span class="p">(</span>
+                <span class="n">focal_length</span><span class="o">=</span><span class="n">focal_length</span><span class="p">,</span> <span class="n">telescope_pointing</span><span class="o">=</span><span class="n">pointing</span>
+            <span class="p">)</span>
+
+            <span class="n">cog_coord</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">moments</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">moments</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">camera_frame</span><span class="p">,)</span>
+            <span class="n">cog_coord</span> <span class="o">=</span> <span class="n">cog_coord</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">horizon_frame</span><span class="p">)</span>
+
+            <span class="n">p2_coord</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">p2_x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">p2_y</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">camera_frame</span><span class="p">)</span>
+            <span class="n">p2_coord</span> <span class="o">=</span> <span class="n">p2_coord</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">horizon_frame</span><span class="p">)</span>
+
+            <span class="c1"># re-project from sky to a &quot;fake&quot;-parallel-pointing telescope</span>
+            <span class="c1"># then recalculate the psi angle</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">divergent_mode</span><span class="p">:</span>
+                <span class="n">camera_frame_parallel</span> <span class="o">=</span> <span class="n">CameraFrame</span><span class="p">(</span>
+                    <span class="n">focal_length</span><span class="o">=</span><span class="n">focal_length</span><span class="p">,</span> <span class="n">telescope_pointing</span><span class="o">=</span><span class="n">array_pointing</span>
+                <span class="p">)</span>
+                <span class="n">cog_sky_to_parallel</span> <span class="o">=</span> <span class="n">cog_coord</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">camera_frame_parallel</span><span class="p">)</span>
+                <span class="n">p2_sky_to_parallel</span> <span class="o">=</span> <span class="n">p2_coord</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">camera_frame_parallel</span><span class="p">)</span>
+                <span class="n">angle_psi_corr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span>
+                    <span class="n">cog_sky_to_parallel</span><span class="o">.</span><span class="n">y</span> <span class="o">-</span> <span class="n">p2_sky_to_parallel</span><span class="o">.</span><span class="n">y</span><span class="p">,</span>
+                    <span class="n">cog_sky_to_parallel</span><span class="o">.</span><span class="n">x</span> <span class="o">-</span> <span class="n">p2_sky_to_parallel</span><span class="o">.</span><span class="n">x</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">corrected_angle_dict</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">angle_psi_corr</span>
+
+            <span class="n">circle</span> <span class="o">=</span> <span class="n">HillasPlane</span><span class="p">(</span>
+                <span class="n">p1</span><span class="o">=</span><span class="n">cog_coord</span><span class="p">,</span>
+                <span class="n">p2</span><span class="o">=</span><span class="n">p2_coord</span><span class="p">,</span>
+                <span class="n">telescope_position</span><span class="o">=</span><span class="n">subarray</span><span class="o">.</span><span class="n">positions</span><span class="p">[</span><span class="n">tel_id</span><span class="p">],</span>
+                <span class="n">weight</span><span class="o">=</span><span class="n">moments</span><span class="o">.</span><span class="n">intensity</span> <span class="o">*</span> <span class="p">(</span><span class="n">moments</span><span class="o">.</span><span class="n">length</span> <span class="o">/</span> <span class="n">moments</span><span class="o">.</span><span class="n">width</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hillas_planes</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">circle</span></div>
+
+<div class="viewcode-block" id="HillasReconstructor.estimate_direction"><a class="viewcode-back" href="../../../api/ctapipe.reco.HillasReconstructor.html#ctapipe.reco.HillasReconstructor.estimate_direction">[docs]</a>    <span class="k">def</span> <span class="nf">estimate_direction</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;calculates the origin of the gamma as the weighted average</span>
+<span class="sd">        direction of the intersections of all hillas planes</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        gamma : shape (3) numpy array</span>
+<span class="sd">            direction of origin of the reconstructed shower as a 3D vector</span>
+<span class="sd">        crossings : shape (n,3) list</span>
+<span class="sd">            an error estimate</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">crossings</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">perm</span> <span class="ow">in</span> <span class="n">combinations</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hillas_planes</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="n">n1</span><span class="p">,</span> <span class="n">n2</span> <span class="o">=</span> <span class="n">perm</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">norm</span><span class="p">,</span> <span class="n">perm</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">norm</span>
+            <span class="c1"># cross product automatically weighs in the angle between</span>
+            <span class="c1"># the two vectors: narrower angles have less impact,</span>
+            <span class="c1"># perpendicular vectors have the most</span>
+            <span class="n">crossing</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">n1</span><span class="p">,</span> <span class="n">n2</span><span class="p">)</span>
+
+            <span class="c1"># two great circles cross each other twice (one would be</span>
+            <span class="c1"># the origin, the other one the direction of the gamma) it</span>
+            <span class="c1"># doesn&#39;t matter which we pick but it should at least be</span>
+            <span class="c1"># consistent: make sure to always take the &quot;upper&quot; solution</span>
+            <span class="k">if</span> <span class="n">crossing</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">crossing</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="n">crossings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">crossing</span> <span class="o">*</span> <span class="n">perm</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">weight</span> <span class="o">*</span> <span class="n">perm</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">normalise</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">crossings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+        <span class="n">off_angles</span> <span class="o">=</span> <span class="p">[</span><span class="n">angle</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">cross</span><span class="p">)</span> <span class="k">for</span> <span class="n">cross</span> <span class="ow">in</span> <span class="n">crossings</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">rad</span>
+
+        <span class="n">err_est_dir</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span>
+            <span class="n">off_angles</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">cross</span><span class="p">)</span> <span class="k">for</span> <span class="n">cross</span> <span class="ow">in</span> <span class="n">crossings</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">result</span><span class="p">,</span> <span class="n">err_est_dir</span></div>
+
+<div class="viewcode-block" id="HillasReconstructor.estimate_core_position"><a class="viewcode-back" href="../../../api/ctapipe.reco.HillasReconstructor.html#ctapipe.reco.HillasReconstructor.estimate_core_position">[docs]</a>    <span class="k">def</span> <span class="nf">estimate_core_position</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hillas_dict</span><span class="p">,</span> <span class="n">array_pointing</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Estimate the core position by intersection the major ellipse lines of each telescope.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        -----------</span>
+<span class="sd">        hillas_dict: dict[HillasContainer]</span>
+<span class="sd">            dictionary of hillas moments</span>
+<span class="sd">        array_pointing: SkyCoord[HorizonFrame]</span>
+<span class="sd">            Pointing direction of the array</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -----------</span>
+<span class="sd">        core_x: u.Quantity</span>
+<span class="sd">            estimated x position of impact</span>
+<span class="sd">        core_y: u.Quantity</span>
+<span class="sd">            estimated y position of impact</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">divergent_mode</span><span class="p">:</span>
+            <span class="n">psi</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">corrected_angle_dict</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">psi</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">([</span><span class="n">h</span><span class="o">.</span><span class="n">psi</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hillas_dict</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span>
+
+        <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">psi</span><span class="p">))</span>
+        <span class="n">uvw_vectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">psi</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">psi</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">z</span><span class="p">])</span>
+
+        <span class="n">tilted_frame</span> <span class="o">=</span> <span class="n">TiltedGroundFrame</span><span class="p">(</span><span class="n">pointing_direction</span><span class="o">=</span><span class="n">array_pointing</span><span class="p">)</span>
+        <span class="n">ground_frame</span> <span class="o">=</span> <span class="n">GroundFrame</span><span class="p">()</span>
+
+        <span class="n">positions</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span>
+                <span class="n">SkyCoord</span><span class="p">(</span><span class="o">*</span><span class="n">plane</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">ground_frame</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">tilted_frame</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">xyz</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">plane</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hillas_planes</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+        <span class="p">]</span>
+
+        <span class="n">core_position</span> <span class="o">=</span> <span class="n">line_line_intersection_3d</span><span class="p">(</span><span class="n">uvw_vectors</span><span class="p">,</span> <span class="n">positions</span><span class="p">)</span>
+
+        <span class="n">core_pos_tilted</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span>
+            <span class="n">x</span><span class="o">=</span><span class="n">core_position</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">core_position</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">tilted_frame</span>
+        <span class="p">)</span>
+
+        <span class="n">core_pos</span> <span class="o">=</span> <span class="n">project_to_ground</span><span class="p">(</span><span class="n">core_pos_tilted</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">core_pos</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">core_pos</span><span class="o">.</span><span class="n">y</span></div>
+
+<div class="viewcode-block" id="HillasReconstructor.estimate_h_max"><a class="viewcode-back" href="../../../api/ctapipe.reco.HillasReconstructor.html#ctapipe.reco.HillasReconstructor.estimate_h_max">[docs]</a>    <span class="k">def</span> <span class="nf">estimate_h_max</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Estimate the max height by intersecting the lines of the cog directions of each telescope.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -----------</span>
+<span class="sd">        astropy.unit.Quantity</span>
+<span class="sd">            the estimated max height</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">uvw_vectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">plane</span><span class="o">.</span><span class="n">a</span> <span class="k">for</span> <span class="n">plane</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hillas_planes</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span>
+        <span class="n">positions</span> <span class="o">=</span> <span class="p">[</span><span class="n">plane</span><span class="o">.</span><span class="n">pos</span> <span class="k">for</span> <span class="n">plane</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hillas_planes</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+
+        <span class="c1"># not sure if its better to return the length of the vector of the z component</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">line_line_intersection_3d</span><span class="p">(</span><span class="n">uvw_vectors</span><span class="p">,</span> <span class="n">positions</span><span class="p">))</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span></div></div>
+
+
+<span class="k">class</span> <span class="nc">HillasPlane</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    a tiny helper class to collect some parameters for each great great</span>
+<span class="sd">    circle</span>
+
+<span class="sd">    Stores some vectors a, b, and c</span>
+
+<span class="sd">    These vectors are euclidean [x, y, z] where positive z values point towards the sky</span>
+<span class="sd">    and x and y are parallel to the ground.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">telescope_position</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The constructor takes two coordinates in the horizontal</span>
+<span class="sd">        frame (alt, az) which define a plane perpendicular</span>
+<span class="sd">        to the camera.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        -----------</span>
+<span class="sd">        p1: astropy.coordinates.SkyCoord</span>
+<span class="sd">            One of two direction vectors which define the plane.</span>
+<span class="sd">            This coordinate has to be defined in the ctapipe.coordinates.AltAz</span>
+<span class="sd">        p2: astropy.coordinates.SkyCoord</span>
+<span class="sd">            One of two direction vectors which define the plane.</span>
+<span class="sd">            This coordinate has to be defined in the ctapipe.coordinates.AltAz</span>
+<span class="sd">        telescope_position: np.array(3)</span>
+<span class="sd">            Position of the telescope on the ground</span>
+<span class="sd">        weight : float, optional</span>
+<span class="sd">            weight of this plane for later use during the reconstruction</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        c: numpy.ndarray(3)</span>
+<span class="sd">            :math:`\vec c = (\vec a \times \vec b) \times \vec a`</span>
+<span class="sd">            :math:`\rightarrow` a and c form an orthogonal base for the</span>
+<span class="sd">            great circle</span>
+<span class="sd">            (only orthonormal if a and b are of unit-length)</span>
+<span class="sd">        norm: numpy.ndarray(3)</span>
+<span class="sd">            normal vector of the circle&#39;s plane,</span>
+<span class="sd">            perpendicular to a, b and c</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="n">telescope_position</span>
+
+        <span class="c1"># astropy&#39;s coordinates system rotates counter clockwise. Apparently we assume it to</span>
+        <span class="c1"># be clockwise</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">spherical_to_cartesian</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">p1</span><span class="o">.</span><span class="n">alt</span><span class="p">,</span> <span class="o">-</span><span class="n">p1</span><span class="o">.</span><span class="n">az</span><span class="p">))</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">spherical_to_cartesian</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">p2</span><span class="o">.</span><span class="n">alt</span><span class="p">,</span> <span class="o">-</span><span class="n">p2</span><span class="o">.</span><span class="n">az</span><span class="p">))</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+
+        <span class="c1"># a and c form an orthogonal basis for the great circle</span>
+        <span class="c1"># not really necessary since the norm can be calculated</span>
+        <span class="c1"># with a and b just as well</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">a</span><span class="p">)</span>
+        <span class="c1"># normal vector for the plane defined by the great circle</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">=</span> <span class="n">normalise</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">))</span>
+        <span class="c1"># some weight for this circle</span>
+        <span class="c1"># (put e.g. uncertainty on the Hillas parameters</span>
+        <span class="c1"># or number of PE in here)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">weight</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright ctapipe developers.  Last updated 29 Jan 2021 18:09.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

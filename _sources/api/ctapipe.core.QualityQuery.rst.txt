@@ -1,0 +1,29 @@
+QualityQuery
+============
+
+.. currentmodule:: ctapipe.core
+
+.. autoclass:: QualityQuery
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~QualityQuery.quality_criteria
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~QualityQuery.__call__
+      ~QualityQuery.to_table
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: quality_criteria
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__
+   .. automethod:: to_table

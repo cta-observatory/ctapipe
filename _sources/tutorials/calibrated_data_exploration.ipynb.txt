@@ -1,0 +1,391 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Explore Calibrated Data"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import ctapipe\n",
+    "from ctapipe.utils.datasets import get_dataset_path\n",
+    "from ctapipe.io import EventSource, EventSeeker\n",
+    "from ctapipe.visualization import CameraDisplay\n",
+    "from ctapipe.instrument import CameraGeometry\n",
+    "from matplotlib import pyplot as plt\n",
+    "from astropy import units as u\n",
+    "import numpy as np\n",
+    "%matplotlib inline\n",
+    "plt.style.use(\"ggplot\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(ctapipe.__version__)\n",
+    "print(ctapipe.__file__)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Let's first open a raw event file and get an event out of it:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "filename = get_dataset_path(\"gamma_test.simtel.gz\")\n",
+    "source = EventSource(filename, max_events=2)\n",
+    "\n",
+    "for event in source:\n",
+    "    print(event.index.event_id)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "filename"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "source"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "event"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(event.r1)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Perform basic calibration:\n",
+    "\n",
+    "Here we will use a `CameraCalibrator` which is just a simple wrapper that runs the three calibraraton and trace-integration phases of the pipeline, taking the data from levels:\n",
+    "\n",
+    "  **R0** &rightarrow; **R1** &rightarrow; **DL0** &rightarrow; **DL1**\n",
+    "\n",
+    "You could of course do these each separately, by using the classes `R1Calibrator`, `DL0Reducer`, and `DL1Calibrator`.\n",
+    "Note that we have not specified any configuration to the `CameraCalibrator`, so it will be using the default algorithms and thresholds, other than specifying that the product is a \"HESSIOR1Calibrator\" (hopefully in the near future that will be automatic)."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from ctapipe.calib import CameraCalibrator\n",
+    "\n",
+    "calib = CameraCalibrator(subarray=source.subarray)\n",
+    "calib(event)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Now the *r1*, *dl0* and *dl1* containers are filled in the event\n",
+    "\n",
+    "* **r1.tel[x]**: contains the \"r1-calibrated\" waveforms, after gain-selection, pedestal subtraciton, and gain-correction\n",
+    "* **dl0.tel[x]**: is the same but with optional data volume reduction (some pixels not filled), in this case this is not performed by default, so it is the same as r1\n",
+    "* **dl1.tel[x]**: contains the (possibly re-calibrated) waveforms as dl0, but also the time-integrated *image* that has been calculated using a `ImageExtractor` (a `NeighborPeakWindowSum` by default)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "for tel_id in event.dl1.tel:\n",
+    "    print(\"TEL{:03}: {}\".format(tel_id, source.subarray.tel[tel_id]))\n",
+    "    print(\"  - r0  wave shape  : {}\".format(event.r0.tel[tel_id].waveform.shape))\n",
+    "    print(\"  - r1  wave shape  : {}\".format(event.r1.tel[tel_id].waveform.shape))\n",
+    "    print(\"  - dl1 image shape : {}\".format(event.dl1.tel[tel_id].image.shape))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Some image processing:\n",
+    "\n",
+    "Let's look at the image"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from ctapipe.visualization import CameraDisplay\n",
+    "tel_id = sorted(event.r1.tel.keys())[1]\n",
+    "sub = source.subarray\n",
+    "geometry = sub.tel[tel_id].camera.geometry\n",
+    "image = event.dl1.tel[tel_id].image"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "disp = CameraDisplay(geometry, image=image)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from ctapipe.image import tailcuts_clean, hillas_parameters"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "mask = tailcuts_clean(geometry, image, picture_thresh=10, boundary_thresh=5, min_number_picture_neighbors=2)\n",
+    "cleaned = image.copy()\n",
+    "cleaned[~mask] = 0\n",
+    "disp = CameraDisplay(geometry, image=cleaned)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "params = hillas_parameters(geometry, cleaned)\n",
+    "print(params)\n",
+    "params"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "params = hillas_parameters(geometry, cleaned)\n",
+    "\n",
+    "plt.figure(figsize=(10,10))\n",
+    "disp = CameraDisplay(geometry, image=image)\n",
+    "disp.add_colorbar()\n",
+    "disp.overlay_moments(params, color='red', lw=3)\n",
+    "disp.highlight_pixels(mask, color='white', alpha=0.3, linewidth=2)\n",
+    "\n",
+    "plt.xlim(params.x.to_value(u.m) - 0.5, params.x.to_value(u.m) + 0.5)\n",
+    "plt.ylim(params.y.to_value(u.m) - 0.5, params.y.to_value(u.m) + 0.5)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "source.metadata"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## More complex image processing:\n",
+    "\n",
+    "Let's now explore how stereo reconstruction works. \n",
+    "\n",
+    "### first, look at a summed image from multiple telescopes\n",
+    "\n",
+    "For this, we want to use a `CameraDisplay` again, but since we can't sum and display images with different cameras, we'll just sub-select images from a particular camera type\n",
+    "\n",
+    "These are the telescopes that are in this event:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "tels_in_event = set(event.dl1.tel.keys())  # use a set here, so we can intersect it later\n",
+    "tels_in_event"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "cam_ids = set(sub.get_tel_ids_for_type(\"MST_MST_NectarCam\"))\n",
+    "cam_ids"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "cams_in_event = tels_in_event.intersection(cam_ids)\n",
+    "first_tel_id = list(cams_in_event)[0]\n",
+    "tel = sub.tel[first_tel_id]\n",
+    "print(\"{}s in event: {}\".format(tel, cams_in_event))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Now, let's sum those images:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "image_sum = np.zeros_like(tel.camera.geometry.pix_x.value)  # just make an array of 0's in the same shape as the camera \n",
+    "\n",
+    "for tel_id in cams_in_event:\n",
+    "    image_sum += event.dl1.tel[tel_id].image"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "And finally display the sum of those images"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plt.figure(figsize=(8,8))\n",
+    "\n",
+    "disp = CameraDisplay(tel.camera.geometry, image=image_sum)\n",
+    "disp.overlay_moments(params, with_label=False)\n",
+    "plt.title(\"Sum of {}x {}\".format(len(cams_in_event), tel))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "let's also show which telescopes those were. Note that currently ArrayDisplay's value field is a vector by `tel_index`, not `tel_id`, so we have to convert to a tel_index. (this may change in a future version to be more user-friendly)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from ctapipe.visualization import ArrayDisplay"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "nectarcam_subarray = sub.select_subarray(\"FlashCam\", cam_ids)\n",
+    "\n",
+    "hit_pattern = np.zeros(shape=nectarcam_subarray.num_tels)\n",
+    "hit_pattern[[nectarcam_subarray.tel_indices[x] for x in cams_in_event ]] = 100\n",
+    "\n",
+    "plt.set_cmap(plt.cm.Accent)\n",
+    "plt.figure(figsize=(8,8))\n",
+    "\n",
+    "ad = ArrayDisplay(nectarcam_subarray)\n",
+    "ad.values = hit_pattern\n",
+    "ad.add_labels()\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.7.8"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 4
+}

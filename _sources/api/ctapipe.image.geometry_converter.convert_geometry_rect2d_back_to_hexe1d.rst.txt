@@ -1,0 +1,6 @@
+convert_geometry_rect2d_back_to_hexe1d
+======================================
+
+.. currentmodule:: ctapipe.image.geometry_converter
+
+.. autofunction:: convert_geometry_rect2d_back_to_hexe1d

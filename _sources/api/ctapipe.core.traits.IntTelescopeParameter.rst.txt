@@ -1,0 +1,7 @@
+IntTelescopeParameter
+=====================
+
+.. currentmodule:: ctapipe.core.traits
+
+.. autoclass:: IntTelescopeParameter
+   :show-inheritance:

@@ -1,0 +1,6 @@
+mars_cleaning_1st_pass
+======================
+
+.. currentmodule:: ctapipe.image.cleaning
+
+.. autofunction:: mars_cleaning_1st_pass

@@ -1,0 +1,212 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# containers_with_enums_and_table_writer\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Create some example Containers"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import enum\n",
+    "from ctapipe.io import HDF5TableWriter\n",
+    "from ctapipe.core import Container, Field\n",
+    "from astropy import units as u\n",
+    "import numpy as np"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "class WithEnum(Container):\n",
+    "    \n",
+    "    # this class could also be defined in global namespace \n",
+    "    # outside this container, but this looks a bit tidier.\n",
+    "    # both variants work however\n",
+    "    class EventType(enum.Enum):\n",
+    "        pedestal = 1\n",
+    "        physics = 2\n",
+    "        calibration = 3\n",
+    "    \n",
+    "    event_type = Field(\n",
+    "        EventType.calibration, \n",
+    "        f'type of event, one of: {list(EventType.__members__.keys())}'\n",
+    "    )"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "let's also make a dummy stream (generator) that will create a series of these containers"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def create_stream(n_event):\n",
+    "    data = WithEnum()\n",
+    "    for i in range(n_event):\n",
+    "        data.event_type = WithEnum.EventType(i % 3 + 1)\n",
+    "        yield data"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "for data in create_stream(3):\n",
+    "    for key, val in data.items():\n",
+    "        print('{}: {}, type : {}'.format(key, val, type(val)))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Writing the Data"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "with HDF5TableWriter('container.h5', group_name='data') as h5_table:\n",
+    "    for data in create_stream(10):\n",
+    "        h5_table.write('table', data)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "!ls container.h5"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Reading the Data"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import pandas as pd\n",
+    "\n",
+    "data = pd.read_hdf('container.h5', key='/data/table')\n",
+    "data.head()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Reading with PyTables"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import tables\n",
+    "h5  = tables.open_file('container.h5')\n",
+    "table = h5.root['data']['table']\n",
+    "table"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "table.attrs"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from ctapipe.io import HDF5TableReader\n",
+    "\n",
+    "def read(mode):\n",
+    "    \n",
+    "    print('reading mode {}'.format(mode))\n",
+    "\n",
+    "    with HDF5TableReader('container.h5', mode=mode) as h5_table:\n",
+    "\n",
+    "        for group_name in ['data/']:\n",
+    "\n",
+    "            group_name = '/{}table'.format(group_name)\n",
+    "            print(group_name)\n",
+    "\n",
+    "            for data in h5_table.read(group_name, WithEnum()):\n",
+    "\n",
+    "                print(data.as_dict())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "read('r')"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.7.2"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}

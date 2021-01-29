@@ -1,0 +1,6 @@
+FieldValidationError
+====================
+
+.. currentmodule:: ctapipe.core
+
+.. autoexception:: FieldValidationError

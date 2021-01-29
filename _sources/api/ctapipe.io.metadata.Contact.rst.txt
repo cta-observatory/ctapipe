@@ -1,0 +1,21 @@
+Contact
+=======
+
+.. currentmodule:: ctapipe.io.metadata
+
+.. autoclass:: Contact
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~Contact.email
+      ~Contact.name
+      ~Contact.organization
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: email
+   .. autoattribute:: name
+   .. autoattribute:: organization

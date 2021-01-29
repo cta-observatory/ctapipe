@@ -1,0 +1,6 @@
+astri_to_2d_array
+=================
+
+.. currentmodule:: ctapipe.image
+
+.. autofunction:: astri_to_2d_array

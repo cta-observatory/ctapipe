@@ -1,0 +1,19 @@
+DataVolumeReducer
+=================
+
+.. currentmodule:: ctapipe.image
+
+.. autoclass:: DataVolumeReducer
+   :show-inheritance:
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~DataVolumeReducer.__call__
+      ~DataVolumeReducer.select_pixels
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__
+   .. automethod:: select_pixels

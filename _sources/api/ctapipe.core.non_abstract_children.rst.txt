@@ -1,0 +1,6 @@
+non_abstract_children
+=====================
+
+.. currentmodule:: ctapipe.core
+
+.. autofunction:: non_abstract_children

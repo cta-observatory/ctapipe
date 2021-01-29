@@ -1,0 +1,6 @@
+get_bright_stars
+================
+
+.. currentmodule:: ctapipe.utils.astro
+
+.. autofunction:: get_bright_stars

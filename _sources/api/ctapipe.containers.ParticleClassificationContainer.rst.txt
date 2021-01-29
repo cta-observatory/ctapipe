@@ -1,0 +1,27 @@
+ParticleClassificationContainer
+===============================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: ParticleClassificationContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~ParticleClassificationContainer.goodness_of_fit
+      ~ParticleClassificationContainer.is_valid
+      ~ParticleClassificationContainer.meta
+      ~ParticleClassificationContainer.prediction
+      ~ParticleClassificationContainer.prefix
+      ~ParticleClassificationContainer.tel_ids
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: goodness_of_fit
+   .. autoattribute:: is_valid
+   .. autoattribute:: meta
+   .. autoattribute:: prediction
+   .. autoattribute:: prefix
+   .. autoattribute:: tel_ids

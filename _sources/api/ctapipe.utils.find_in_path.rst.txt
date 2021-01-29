@@ -1,0 +1,6 @@
+find_in_path
+============
+
+.. currentmodule:: ctapipe.utils
+
+.. autofunction:: find_in_path

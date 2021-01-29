@@ -1,0 +1,51 @@
+Provenance
+==========
+
+.. currentmodule:: ctapipe.core
+
+.. autoclass:: Provenance
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~Provenance.active_activity_names
+      ~Provenance.current_activity
+      ~Provenance.finished_activities
+      ~Provenance.finished_activity_names
+      ~Provenance.instance
+      ~Provenance.provenance
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~Provenance.activity
+      ~Provenance.add_config
+      ~Provenance.add_input_file
+      ~Provenance.add_output_file
+      ~Provenance.as_json
+      ~Provenance.clear
+      ~Provenance.finish_activity
+      ~Provenance.start_activity
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: active_activity_names
+   .. autoattribute:: current_activity
+   .. autoattribute:: finished_activities
+   .. autoattribute:: finished_activity_names
+   .. autoattribute:: instance
+   .. autoattribute:: provenance
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: activity
+   .. automethod:: add_config
+   .. automethod:: add_input_file
+   .. automethod:: add_output_file
+   .. automethod:: as_json
+   .. automethod:: clear
+   .. automethod:: finish_activity
+   .. automethod:: start_activity

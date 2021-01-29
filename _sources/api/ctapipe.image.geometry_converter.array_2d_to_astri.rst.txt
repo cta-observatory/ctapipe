@@ -1,0 +1,6 @@
+array_2d_to_astri
+=================
+
+.. currentmodule:: ctapipe.image.geometry_converter
+
+.. autofunction:: array_2d_to_astri

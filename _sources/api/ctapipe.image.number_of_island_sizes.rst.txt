@@ -1,0 +1,6 @@
+number_of_island_sizes
+======================
+
+.. currentmodule:: ctapipe.image
+
+.. autofunction:: number_of_island_sizes

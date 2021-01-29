@@ -1,0 +1,8 @@
+<map id="inheritance06dacf67a5" name="inheritance06dacf67a5">
+<area shape="rect" id="node1" title="Base class of all Components." alt="" coords="393,26,477,48"/>
+<area shape="rect" id="node5" href="../../api/ctapipe.io.tableio.TableReader.html#ctapipe.io.tableio.TableReader" target="_top" title="Base class for row&#45;wise table readers. Generally methods that read a" alt="" coords="518,5,605,26"/>
+<area shape="rect" id="node7" href="../../api/ctapipe.io.tableio.TableWriter.html#ctapipe.io.tableio.TableWriter" target="_top" title="Base class for writing &#160;Container classes as rows of an output table," alt="" coords="521,47,602,69"/>
+<area shape="rect" id="node4" href="../../api/ctapipe.io.hdf5tableio.HDF5TableReader.html#ctapipe.io.hdf5tableio.HDF5TableReader" target="_top" title="Reader that reads a single row of an HDF5 table at once into a Container." alt="" coords="646,5,763,26"/>
+<area shape="rect" id="node6" href="../../api/ctapipe.io.hdf5tableio.HDF5TableWriter.html#ctapipe.io.hdf5tableio.HDF5TableWriter" target="_top" title="A very basic table writer that can take a container (or more than one)" alt="" coords="649,47,761,69"/>
+<area shape="rect" id="node8" title="The base class for all classes that have descriptors." alt="" coords="5,26,109,48"/>
+</map>

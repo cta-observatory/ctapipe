@@ -1,0 +1,510 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Exploring Raw Data\n",
+    "\n",
+    "Here are just some very simple examples of going through and inspecting the raw data, and making some plots using `ctapipe`.\n",
+    "The data explored here are *raw Monte Carlo* data, which is Data Level \"R0\" in CTA terminology (e.g. it is before any processing that would happen inside a Camera or off-line)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Setup:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from ctapipe.utils import get_dataset_path\n",
+    "from ctapipe.io import EventSource, EventSeeker\n",
+    "from ctapipe.visualization import CameraDisplay\n",
+    "from ctapipe.instrument import CameraGeometry\n",
+    "from matplotlib import pyplot as plt\n",
+    "from astropy import units as u\n",
+    "%matplotlib inline"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "To read SimTelArray format data, ctapipe uses the `pyeventio` library (which is installed automatically along with ctapipe). The following lines however will load any data known to ctapipe (multiple `EventSources` are implemented, and chosen automatically based on the type of the input file. \n",
+    "\n",
+    "All data access first starts with an `EventSource`, and here we use a helper function `event_source` that constructs one. The resulting `source` object can be iterated over like a list of events.  We also here use an `EventSeeker` which provides random-access to the source (by seeking to the given event ID or number)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "source = EventSource(get_dataset_path(\"gamma_test_large.simtel.gz\"), max_events=100, back_seekable=True)\n",
+    "seeker = EventSeeker(source)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Explore the contents of an event\n",
+    "\n",
+    "note that the R0 level is the raw data that comes out of a camera, and also the lowest level of monte-carlo data. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "event = seeker.get_event_index(3)  # get 3rd event\n",
+    "event"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "the event is just a class with a bunch of data items in it.  You can see a more compact represntation via:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(repr(event.r0))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "printing the event structure, will currently print the value all items under it (so you get a lot of output if you print a high-level container):"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(event.simulation.shower)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(event.r0.tel.keys())"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "note that the event has 2 telescopes in it: 38,40... Let's try the next one:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "event = seeker.get_event_index(5) # get the next event\n",
+    "print(event.r0.tel.keys())"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "now, we have a larger event with many telescopes... Let's look at the data from **CT7**:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "teldata = event.r0.tel[15]\n",
+    "print(teldata)\n",
+    "teldata"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Note that some values are unit quantities (`astropy.units.Quantity`) or angular quantities (`astropy.coordinates.Angle`), and you can easily maniuplate them:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "event.simulation.shower.energy"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "event.simulation.shower.energy.to('GeV')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "event.simulation.shower.energy.to('J')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "event.simulation.shower.alt"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(\"Altitude in degrees:\", event.simulation.shower.alt.deg)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Look for signal pixels in a camera\n",
+    "again, `event.r0.tel[x]` contains a data structure for the telescope data, with some fields like `waveform`.\n",
+    "\n",
+    "Let's make a 2D plot of the sample data (sample vs pixel), so we can see if we see which pixels contain Cherenkov light signals:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plt.pcolormesh(teldata.waveform[0])  # note the [0] is for channel 0\n",
+    "plt.colorbar()\n",
+    "plt.xlabel(\"sample number\")\n",
+    "plt.ylabel(\"Pixel_id\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Let's zoom in to see if we can identify the pixels that have the Cherenkov signal in them"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plt.pcolormesh(teldata.waveform[0])\n",
+    "plt.colorbar()\n",
+    "plt.ylim(700,750)\n",
+    "plt.xlabel(\"sample number\")\n",
+    "plt.ylabel(\"pixel_id\")\n",
+    "print(\"waveform[0] is an array of shape (N_pix,N_slice) =\",teldata.waveform[0].shape)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Now we can really see that some pixels have a signal in them!\n",
+    "\n",
+    "Lets look at a 1D plot of pixel 270 in channel 0 and see the signal:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "trace = teldata.waveform[0][719]   \n",
+    "plt.plot(trace, drawstyle='steps')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Great! It looks like a *standard Cherenkov signal*!\n",
+    "\n",
+    "Let's take a look at several traces to see if the peaks area aligned:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "for pix_id in range(718,723):\n",
+    "    plt.plot(teldata.waveform[0][pix_id], label=\"pix {}\".format(pix_id), drawstyle='steps')\n",
+    "plt.legend()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Look at the time trace from a Camera Pixel\n",
+    "\n",
+    "`ctapipe.calib.camera` includes classes for doing automatic trace integration with many methods, but before using that, let's just try to do something simple!\n",
+    "\n",
+    "Let's define the integration windows first:\n",
+    "By eye, they seem to be reaonsable from sample 8 to 13 for signal, and 20 to 29 for pedestal (which we define as the sum of all noise: NSB + electronic)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "for pix_id in range(718,723):\n",
+    "    plt.plot(teldata.waveform[0][pix_id],'+-')\n",
+    "plt.fill_betweenx([0,1600],19,24,color='red',alpha=0.3, label='Ped window')\n",
+    "plt.fill_betweenx([0,1600],5,9,color='green',alpha=0.3, label='Signal window')\n",
+    "plt.legend()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Do a very simplisitic trace analysis \n",
+    "Now, let's for example calculate a signal and background in a the fixed windows we defined for this single event.  Note we are ignoring the fact that cameras have 2 gains, and just using a single gain (channel 0, which is the high-gain channel):"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "data = teldata.waveform[0]\n",
+    "peds = data[:, 19:24].mean(axis=1)  # mean of samples 20 to 29 for all pixels\n",
+    "sums = data[:, 5:9].sum(axis=1)/(13-8)    # simple sum integration"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "phist = plt.hist(peds, bins=50, range=[0,150])\n",
+    "plt.title(\"Pedestal Distribution of all pixels for a single event\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "let's now take a look at the pedestal-subtracted sums and a pedestal-subtracted signal:\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plt.plot(sums - peds)\n",
+    "plt.xlabel(\"pixel id\")\n",
+    "plt.ylabel(\"Pedestal-subtracted Signal\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Now, we can clearly see that the signal is centered at 0 where there is no Cherenkov light, and we can also clearly see the shower around pixel 250."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# we can also subtract the pedestals from the traces themselves, which would be needed to compare peaks properly\n",
+    "for ii in range(270,280):\n",
+    "    plt.plot(data[ii] - peds[ii], drawstyle='steps', label=\"pix{}\".format(ii))\n",
+    "plt.legend()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Camera Displays\n",
+    "\n",
+    "It's of course much easier to see the signal if we plot it in 2D with correct pixel positions! \n",
+    "\n",
+    ">note: the instrument data model is not fully implemented, so there is not a good way to load all the camera information (right now it is hacked into the `inst` sub-container that is read from the Monte-Carlo file)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "camgeom = source.subarray.tel[24].camera.geometry"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "title=\"CT24, run {} event {} ped-sub\".format(event.index.obs_id,event.index.event_id)\n",
+    "disp = CameraDisplay(camgeom,title=title)\n",
+    "disp.image = sums - peds \n",
+    "disp.cmap = plt.cm.RdBu_r\n",
+    "disp.add_colorbar()\n",
+    "disp.set_limits_percent(95)  # autoscale"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "It looks like a nice signal! We have plotted our pedestal-subtracted trace integral, and see the shower clearly!\n",
+    "\n",
+    "Let's look at all telescopes:\n",
+    "\n",
+    "> note we plot here the raw signal, since we have not calculated the pedestals for each)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "for tel in event.r0.tel.keys():\n",
+    "    plt.figure()\n",
+    "    camgeom = source.subarray.tel[tel].camera.geometry\n",
+    "    title=\"CT{}, run {} event {}\".format(tel,event.index.obs_id,event.index.event_id)\n",
+    "    disp = CameraDisplay(camgeom,title=title)\n",
+    "    disp.image = event.r0.tel[tel].waveform[0].sum(axis=1)\n",
+    "    disp.cmap = plt.cm.RdBu_r\n",
+    "    disp.add_colorbar()\n",
+    "    disp.set_limits_percent(95)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## some signal processing...\n",
+    "\n",
+    "Let's try to detect the peak using the scipy.signal package:\n",
+    "http://docs.scipy.org/doc/scipy/reference/signal.html"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from scipy import signal\n",
+    "import numpy as np"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "pix_ids = np.arange(len(data))\n",
+    "has_signal = sums > 300\n",
+    "\n",
+    "widths = np.array([8,]) # peak widths to search for (let's fix it at 8 samples, about the width of the peak)\n",
+    "peaks = [signal.find_peaks_cwt(trace,widths) for trace in data[has_signal] ]\n",
+    "\n",
+    "for p,s in zip(pix_ids[has_signal],peaks):\n",
+    "    print(\"pix{} has peaks at sample {}\".format(p,s))\n",
+    "    plt.plot(data[p], drawstyle='steps-mid')\n",
+    "    plt.scatter(np.array(s),data[p,s])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "clearly the signal needs to be filtered first, or an appropriate wavelet used, but the idea is nice"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.7.8"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 4
+}

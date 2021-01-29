@@ -1,0 +1,49 @@
+SimTelEventSource
+=================
+
+.. currentmodule:: ctapipe.io
+
+.. autoclass:: SimTelEventSource
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~SimTelEventSource.back_seekable
+      ~SimTelEventSource.datalevels
+      ~SimTelEventSource.focal_length_choice
+      ~SimTelEventSource.gain_selector_type
+      ~SimTelEventSource.is_simulation
+      ~SimTelEventSource.is_stream
+      ~SimTelEventSource.obs_ids
+      ~SimTelEventSource.simulation_config
+      ~SimTelEventSource.skip_calibration_events
+      ~SimTelEventSource.subarray
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~SimTelEventSource.close
+      ~SimTelEventSource.is_compatible
+      ~SimTelEventSource.prepare_subarray_info
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: back_seekable
+   .. autoattribute:: datalevels
+   .. autoattribute:: focal_length_choice
+   .. autoattribute:: gain_selector_type
+   .. autoattribute:: is_simulation
+   .. autoattribute:: is_stream
+   .. autoattribute:: obs_ids
+   .. autoattribute:: simulation_config
+   .. autoattribute:: skip_calibration_events
+   .. autoattribute:: subarray
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: close
+   .. automethod:: is_compatible
+   .. automethod:: prepare_subarray_info

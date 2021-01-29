@@ -1,0 +1,21 @@
+EventCameraCalibrationContainer
+===============================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: EventCameraCalibrationContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~EventCameraCalibrationContainer.dl1
+      ~EventCameraCalibrationContainer.meta
+      ~EventCameraCalibrationContainer.prefix
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: dl1
+   .. autoattribute:: meta
+   .. autoattribute:: prefix

@@ -1,0 +1,6 @@
+guess_telescope
+===============
+
+.. currentmodule:: ctapipe.instrument
+
+.. autofunction:: guess_telescope

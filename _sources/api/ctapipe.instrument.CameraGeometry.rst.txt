@@ -1,0 +1,61 @@
+CameraGeometry
+==============
+
+.. currentmodule:: ctapipe.instrument
+
+.. autoclass:: CameraGeometry
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~CameraGeometry.neighbor_matrix
+      ~CameraGeometry.neighbor_matrix_sparse
+      ~CameraGeometry.neighbors
+      ~CameraGeometry.pixel_moment_matrix
+      ~CameraGeometry.pixel_width
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~CameraGeometry.calc_pixel_neighbors
+      ~CameraGeometry.from_name
+      ~CameraGeometry.from_table
+      ~CameraGeometry.get_border_pixel_mask
+      ~CameraGeometry.guess_pixel_area
+      ~CameraGeometry.guess_pixel_width
+      ~CameraGeometry.guess_radius
+      ~CameraGeometry.info
+      ~CameraGeometry.make_rectangular
+      ~CameraGeometry.position_to_pix_index
+      ~CameraGeometry.rotate
+      ~CameraGeometry.simtel_shape_to_type
+      ~CameraGeometry.to_table
+      ~CameraGeometry.transform_to
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: neighbor_matrix
+   .. autoattribute:: neighbor_matrix_sparse
+   .. autoattribute:: neighbors
+   .. autoattribute:: pixel_moment_matrix
+   .. autoattribute:: pixel_width
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: calc_pixel_neighbors
+   .. automethod:: from_name
+   .. automethod:: from_table
+   .. automethod:: get_border_pixel_mask
+   .. automethod:: guess_pixel_area
+   .. automethod:: guess_pixel_width
+   .. automethod:: guess_radius
+   .. automethod:: info
+   .. automethod:: make_rectangular
+   .. automethod:: position_to_pix_index
+   .. automethod:: rotate
+   .. automethod:: simtel_shape_to_type
+   .. automethod:: to_table
+   .. automethod:: transform_to

@@ -1,0 +1,1253 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Explore Calibrated Data &mdash; ctapipe v0.1.dev1+gb5c90a1</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+        <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.20.0/dist/embed-amd.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Make a theta-square plot" href="theta_square.html" />
+    <link rel="prev" title="Exploring Raw Data" href="raw_data_exploration.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> ctapipe
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.dev1+gb5c90a1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Tutorials</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="ctapipe_handson.html">Getting Started with ctapipe</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coordinates_example.html">Coordinates usage in ctapipe</a></li>
+<li class="toctree-l2"><a class="reference internal" href="raw_data_exploration.html">Exploring Raw Data</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Explore Calibrated Data</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Perform-basic-calibration:">Perform basic calibration:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Some-image-processing:">Some image processing:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#More-complex-image-processing:">More complex image processing:</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#first,-look-at-a-summed-image-from-multiple-telescopes">first, look at a summed image from multiple telescopes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="theta_square.html">Make a theta-square plot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lst_analysis_bootcamp_2018.html">2018 LST Bootcamp walkthrough</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Change Log</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ctapipe</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="index.html">Tutorials</a> &raquo;</li>
+        
+      <li>Explore Calibrated Data</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/tutorials/calibrated_data_exploration.ipynb.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS for nbsphinx extension */
+
+/* remove conflicting styling from Sphinx themes */
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt *,
+div.nbinput.container div.input_area pre,
+div.nboutput.container div.output_area pre,
+div.nbinput.container div.input_area .highlight,
+div.nboutput.container div.output_area .highlight {
+    border: none;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+}
+
+div.nbinput.container > div[class*=highlight],
+div.nboutput.container > div[class*=highlight] {
+    margin: 0;
+}
+
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt * {
+    background: none;
+}
+
+div.nboutput.container div.output_area .highlight,
+div.nboutput.container div.output_area pre {
+    background: unset;
+}
+
+div.nboutput.container div.output_area div.highlight {
+    color: unset;  /* override Pygments text color */
+}
+
+/* avoid gaps between output lines */
+div.nboutput.container div[class*=highlight] pre {
+    line-height: normal;
+}
+
+/* input/output containers */
+div.nbinput.container,
+div.nboutput.container {
+    display: -webkit-flex;
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    width: 100%;
+}
+@media (max-width: 540px) {
+    div.nbinput.container,
+    div.nboutput.container {
+        flex-direction: column;
+    }
+}
+
+/* input container */
+div.nbinput.container {
+    padding-top: 5px;
+}
+
+/* last container */
+div.nblast.container {
+    padding-bottom: 5px;
+}
+
+/* input prompt */
+div.nbinput.container div.prompt pre {
+    color: #307FC1;
+}
+
+/* output prompt */
+div.nboutput.container div.prompt pre {
+    color: #BF5B3D;
+}
+
+/* all prompts */
+div.nbinput.container div.prompt,
+div.nboutput.container div.prompt {
+    width: 4.5ex;
+    padding-top: 5px;
+    position: relative;
+    user-select: none;
+}
+
+div.nbinput.container div.prompt > div,
+div.nboutput.container div.prompt > div {
+    position: absolute;
+    right: 0;
+    margin-right: 0.3ex;
+}
+
+@media (max-width: 540px) {
+    div.nbinput.container div.prompt,
+    div.nboutput.container div.prompt {
+        width: unset;
+        text-align: left;
+        padding: 0.4em;
+    }
+    div.nboutput.container div.prompt.empty {
+        padding: 0;
+    }
+
+    div.nbinput.container div.prompt > div,
+    div.nboutput.container div.prompt > div {
+        position: unset;
+    }
+}
+
+/* disable scrollbars on prompts */
+div.nbinput.container div.prompt pre,
+div.nboutput.container div.prompt pre {
+    overflow: hidden;
+}
+
+/* input/output area */
+div.nbinput.container div.input_area,
+div.nboutput.container div.output_area {
+    -webkit-flex: 1;
+    flex: 1;
+    overflow: auto;
+}
+@media (max-width: 540px) {
+    div.nbinput.container div.input_area,
+    div.nboutput.container div.output_area {
+        width: 100%;
+    }
+}
+
+/* input area */
+div.nbinput.container div.input_area {
+    border: 1px solid #e0e0e0;
+    border-radius: 2px;
+    /*background: #f5f5f5;*/
+}
+
+/* override MathJax center alignment in output cells */
+div.nboutput.container div[class*=MathJax] {
+    text-align: left !important;
+}
+
+/* override sphinx.ext.imgmath center alignment in output cells */
+div.nboutput.container div.math p {
+    text-align: left;
+}
+
+/* standard error */
+div.nboutput.container div.output_area.stderr {
+    background: #fdd;
+}
+
+/* ANSI colors */
+.ansi-black-fg { color: #3E424D; }
+.ansi-black-bg { background-color: #3E424D; }
+.ansi-black-intense-fg { color: #282C36; }
+.ansi-black-intense-bg { background-color: #282C36; }
+.ansi-red-fg { color: #E75C58; }
+.ansi-red-bg { background-color: #E75C58; }
+.ansi-red-intense-fg { color: #B22B31; }
+.ansi-red-intense-bg { background-color: #B22B31; }
+.ansi-green-fg { color: #00A250; }
+.ansi-green-bg { background-color: #00A250; }
+.ansi-green-intense-fg { color: #007427; }
+.ansi-green-intense-bg { background-color: #007427; }
+.ansi-yellow-fg { color: #DDB62B; }
+.ansi-yellow-bg { background-color: #DDB62B; }
+.ansi-yellow-intense-fg { color: #B27D12; }
+.ansi-yellow-intense-bg { background-color: #B27D12; }
+.ansi-blue-fg { color: #208FFB; }
+.ansi-blue-bg { background-color: #208FFB; }
+.ansi-blue-intense-fg { color: #0065CA; }
+.ansi-blue-intense-bg { background-color: #0065CA; }
+.ansi-magenta-fg { color: #D160C4; }
+.ansi-magenta-bg { background-color: #D160C4; }
+.ansi-magenta-intense-fg { color: #A03196; }
+.ansi-magenta-intense-bg { background-color: #A03196; }
+.ansi-cyan-fg { color: #60C6C8; }
+.ansi-cyan-bg { background-color: #60C6C8; }
+.ansi-cyan-intense-fg { color: #258F8F; }
+.ansi-cyan-intense-bg { background-color: #258F8F; }
+.ansi-white-fg { color: #C5C1B4; }
+.ansi-white-bg { background-color: #C5C1B4; }
+.ansi-white-intense-fg { color: #A1A6B2; }
+.ansi-white-intense-bg { background-color: #A1A6B2; }
+
+.ansi-default-inverse-fg { color: #FFFFFF; }
+.ansi-default-inverse-bg { background-color: #000000; }
+
+.ansi-bold { font-weight: bold; }
+.ansi-underline { text-decoration: underline; }
+
+
+div.nbinput.container div.input_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight].math,
+div.nboutput.container div.output_area.rendered_html,
+div.nboutput.container div.output_area > div.output_javascript,
+div.nboutput.container div.output_area:not(.rendered_html) > img{
+    padding: 5px;
+    margin: 0;
+}
+
+/* fix copybtn overflow problem in chromium (needed for 'sphinx_copybutton') */
+div.nbinput.container div.input_area > div[class^='highlight'],
+div.nboutput.container div.output_area > div[class^='highlight']{
+    overflow-y: hidden;
+}
+
+/* hide copybtn icon on prompts (needed for 'sphinx_copybutton') */
+.prompt a.copybtn {
+    display: none;
+}
+
+/* Some additional styling taken form the Jupyter notebook CSS */
+div.rendered_html table {
+  border: none;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: black;
+  font-size: 12px;
+  table-layout: fixed;
+}
+div.rendered_html thead {
+  border-bottom: 1px solid black;
+  vertical-align: bottom;
+}
+div.rendered_html tr,
+div.rendered_html th,
+div.rendered_html td {
+  text-align: right;
+  vertical-align: middle;
+  padding: 0.5em 0.5em;
+  line-height: normal;
+  white-space: normal;
+  max-width: none;
+  border: none;
+}
+div.rendered_html th {
+  font-weight: bold;
+}
+div.rendered_html tbody tr:nth-child(odd) {
+  background: #f5f5f5;
+}
+div.rendered_html tbody tr:hover {
+  background: rgba(66, 165, 245, 0.2);
+}
+
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="Explore-Calibrated-Data">
+<h1>Explore Calibrated Data<a class="headerlink" href="#Explore-Calibrated-Data" title="Permalink to this headline">¶</a></h1>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">ctapipe</span>
+<span class="kn">from</span> <span class="nn">ctapipe.utils.datasets</span> <span class="kn">import</span> <span class="n">get_dataset_path</span>
+<span class="kn">from</span> <span class="nn">ctapipe.io</span> <span class="kn">import</span> <span class="n">EventSource</span><span class="p">,</span> <span class="n">EventSeeker</span>
+<span class="kn">from</span> <span class="nn">ctapipe.visualization</span> <span class="kn">import</span> <span class="n">CameraDisplay</span>
+<span class="kn">from</span> <span class="nn">ctapipe.instrument</span> <span class="kn">import</span> <span class="n">CameraGeometry</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="o">%</span><span class="k">matplotlib</span> inline
+<span class="n">plt</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;ggplot&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/usr/local/lib/python3.8/site-packages/setuptools_scm/git.py:68: UserWarning: &#34;/github/workspace&#34; is shallow and may cause errors
+  warnings.warn(&#39;&#34;{}&#34; is shallow and may cause errors&#39;.format(wd.path))
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="nb">print</span><span class="p">(</span><span class="n">ctapipe</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">ctapipe</span><span class="o">.</span><span class="vm">__file__</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+0.1.dev1+gb5c90a1
+/github/workspace/ctapipe/__init__.py
+</pre></div></div>
+</div>
+<p>Let’s first open a raw event file and get an event out of it:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">filename</span> <span class="o">=</span> <span class="n">get_dataset_path</span><span class="p">(</span><span class="s2">&quot;gamma_test.simtel.gz&quot;</span><span class="p">)</span>
+<span class="n">source</span> <span class="o">=</span> <span class="n">EventSource</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">max_events</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">source</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">event_id</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/github/workspace/ctapipe/io/simteleventsource.py:70: UnknownPixelShapeWarning: Unkown pixel_shape -1.0 for camera_type LSTCam
+  warnings.warn(
+/github/workspace/ctapipe/io/simteleventsource.py:70: UnknownPixelShapeWarning: Unkown pixel_shape -1.0 for camera_type NectarCam
+  warnings.warn(
+/github/workspace/ctapipe/io/simteleventsource.py:70: UnknownPixelShapeWarning: Unkown pixel_shape -1.0 for camera_type CHEC
+  warnings.warn(
+/github/workspace/ctapipe/io/simteleventsource.py:70: UnknownPixelShapeWarning: Unkown pixel_shape -1.0 for camera_type SCTCam
+  warnings.warn(
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+408
+409
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">filename</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+PosixPath(&#39;/github/home/.cache/ctapipe/gamma_test.simtel.gz&#39;)
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">source</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<b>SimTelEventSource</b>
+<p>  Read events from a SimTelArray data file (in EventIO format). </p>
+<table>
+<tr><th>allowed_tels</th>
+<td>None</td>
+<td style="text-align:left"><i>list of allowed tel_ids, others will be ignored. If None, all telescopes in the input stream will be included (default: None)</i></td></tr>
+<tr><th>back_seekable</th>
+<td>False</td>
+<td style="text-align:left"><i>Require the event source to be backwards seekable. This will reduce in slower read speed for gzipped files and is not possible for zstd compressed files (default: False)</i></td></tr>
+<tr><th>focal_length_choice</th>
+<td>nominal</td>
+<td style="text-align:left"><i>if both nominal and effective focal lengths are available in the SimTelArray file, which one to use when constructing the SubarrayDescription (which will be used in CameraFrame to TelescopeFrame coordinate transforms. The 'nominal' focal length is the one used during the simulation, the 'effective' focal length is computed using specialized ray-tracing from a point light source (default: nominal)</i></td></tr>
+<tr><th>gain_selector_type</th>
+<td>ThresholdGainSelector</td>
+<td style="text-align:left"><i>GainSelector to use. (default: ThresholdGainSelector)</i></td></tr>
+<tr><th>input_url</th>
+<td><span style='color:blue'>/github/home/.cache/ctapipe/gamma_test.simtel.gz</span></td>
+<td style="text-align:left"><i>Path to the input file containing events. (default: None)</i></td></tr>
+<tr><th>max_events</th>
+<td><span style='color:blue'>2</span></td>
+<td style="text-align:left"><i>Maximum number of events that will be read from the file (default: None)</i></td></tr>
+<tr><th>skip_calibration_events</th>
+<td>True</td>
+<td style="text-align:left"><i>Skip calibration events (default: True)</i></td></tr>
+</table></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">event</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+ctapipe.containers.ArrayEventContainer:
+                       index.*: event indexing information
+                          r0.*: Raw Data
+                          r1.*: R1 Calibrated Data
+                         dl0.*: DL0 Data Volume Reduced Data
+                         dl1.*: DL1 Calibrated image
+                         dl2.*: Reconstructed Shower Information
+                  simulation.*: Simulated Event Information
+                     trigger.*: central trigger information
+                         count: number of events processed
+                    pointing.*: Array and telescope pointing positions
+                 calibration.*: Container for calibration coefficients for the
+                                current event
+                         mon.*: container for event-wise monitoring data (MON)
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">r1</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;tel&#39;: {11: {&#39;selected_gain_channel&#39;: array([0, 0, 0, ..., 0, 0, 0], dtype=int8),
+              &#39;waveform&#39;: array([[-0.08697608,  0.18923593,  0.18923593, ...,  0.58820885,
+         0.03578481, -0.17904675],
+       [ 0.65603745,  0.65603745,  0.16448696, ..., -0.22875345,
+        -0.5236837 , -0.13044335],
+       [-0.31448284, -0.15485168, -0.12292545, ..., -0.21870415,
+        -0.15485168, -0.28255662],
+       ...,
+       [-0.2288092 ,  0.1161234 , -0.04066414, ...,  0.02205088,
+        -0.07202165,  0.02205088],
+       [ 0.0596489 , -0.06216849, -0.09262283, ..., -0.18398587,
+        -0.36671194, -0.12307718],
+       [-0.38044545, -0.24650918,  0.05484743, ...,  0.52362436,
+         0.55710846,  0.52362436]], dtype=float32)},
+         21: {&#39;selected_gain_channel&#39;: array([0, 0, 0, ..., 0, 0, 0], dtype=int8),
+              &#39;waveform&#39;: array([[-0.23289204, -0.2635209 , -0.07974766, ..., -0.04911879,
+         0.01213896, -0.17163429],
+       [ 1.1236377 ,  0.5958728 ,  0.25437793, ..., -0.02502699,
+        -0.05607199, -0.18025196],
+       [-0.17667109, -0.04912165,  0.3973014 , ...,  0.58862555,
+         0.6205129 ,  0.716175  ],
+       ...,
+       [ 0.40350705,  0.8413429 ,  0.77879494, ..., -0.31579474,
+        -0.00305482,  0.528603  ],
+       [-0.09964581, -0.0381696 ,  0.08478284, ...,  0.3306877 ,
+         0.20773527,  0.23847337],
+       [ 0.42958432,  0.15098573,  0.27480733, ..., -0.03474665,
+        -0.00379125, -0.06570205]], dtype=float32)},
+         24: {&#39;selected_gain_channel&#39;: array([0, 0, 0, ..., 0, 0, 0], dtype=int8),
+              &#39;waveform&#39;: array([[ 0.20489624,  0.33959898, -0.13186066, ..., -0.40126616,
+        -0.16553634, -0.5359689 ],
+       [-0.22010921, -0.12690239,  0.18378705, ..., -0.344385  ,
+        -0.2822471 ,  0.02844233],
+       [-0.09333542, -0.31169948, -0.18692002, ..., -0.31169948,
+        -0.4052841 , -0.46767384],
+       ...,
+       [-0.21383263, -0.43987572, -0.21383263, ..., -0.31070825,
+        -0.11695702, -0.3430001 ],
+       [ 0.16586055,  0.07120538,  0.13430882, ...,  0.57603294,
+         0.85999846,  0.8915502 ],
+       [-0.05169091, -0.11653713,  0.04557843, ..., -0.18138336,
+        -0.18138336, -0.37592202]], dtype=float32)},
+         26: {&#39;selected_gain_channel&#39;: array([0, 0, 0, ..., 0, 0, 0], dtype=int8),
+              &#39;waveform&#39;: array([[ 0.10818457, -0.17343406, -0.07956119, ..., -0.17343406,
+        -0.2985979 , -0.26730695],
+       [ 0.28453484,  0.03107848, -0.41247013, ...,  0.12612462,
+         0.09444257,  0.60135525],
+       [-0.01938689, -0.05021886,  0.07310902, ...,  0.01144508,
+         0.35059676,  0.13477296],
+       ...,
+       [-0.48684907, -0.29694626, -0.01209205, ...,  0.2411117 ,
+         0.01955842, -0.1703444 ],
+       [-0.15805551, -0.15805551,  0.2170638 , ..., -0.31435522,
+        -0.47065493, -0.12679556],
+       [-0.17201822, -0.23635136, -0.20418479, ...,  0.21398063,
+         0.27831376,  0.37481347]], dtype=float32)},
+         61: {&#39;selected_gain_channel&#39;: array([0, 0, 0, ..., 0, 0, 0], dtype=int8),
+              &#39;waveform&#39;: array([[-0.09033689,  0.14919089, -0.21010077, ...,  0.029427  ,
+        -0.21010077, -0.09033689],
+       [-0.20168626,  0.16380924,  0.07243536, ..., -0.11031239,
+         0.16380924,  0.25518313],
+       [-0.02433773, -0.02433773, -0.14491166, ...,  0.33738407,
+         0.09623621,  0.09623621],
+       ...,
+       [ 0.07372501, -0.3746946 , -0.10564283, ..., -0.0159589 ,
+        -0.0159589 ,  0.16340894],
+       [-0.09563459, -0.00609556, -0.00609556, ..., -0.09563459,
+        -0.09563459, -0.18517363],
+       [ 0.0242704 ,  0.12670045, -0.07815965, ...,  0.53642064,
+         0.33156055, -0.28301972]], dtype=float32)},
+         63: {&#39;selected_gain_channel&#39;: array([0, 0, 0, ..., 0, 0, 0], dtype=int8),
+              &#39;waveform&#39;: array([[ 8.3050177e-02, -8.0907416e-01, -2.1432461e-01, ...,
+         8.2648712e-01,  2.3173757e-01,  8.3050177e-02],
+       [ 8.3567634e-02, -7.2033242e-03, -3.7028715e-01, ...,
+         2.6510957e-01, -2.7951619e-01, -4.6105811e-01],
+       [-9.6725412e-02, -6.9741560e-03, -9.6725412e-02, ...,
+        -4.5573044e-01, -9.6725412e-02,  1.7252836e-01],
+       ...,
+       [ 1.3219908e-01, -6.0026228e-02,  3.2442439e-01, ...,
+         3.6086425e-02, -1.5613888e-01,  3.6086425e-02],
+       [-8.2004257e-02, -4.6903652e-04, -4.6903652e-04, ...,
+         1.6260140e-01, -4.6903652e-04,  8.1066184e-02],
+       [-1.8674533e-01,  1.0895659e-01, -1.8674533e-01, ...,
+         1.0895659e-01, -2.8531262e-01, -8.8178024e-02]], dtype=float32)},
+         118: {&#39;selected_gain_channel&#39;: array([0, 0, 0, ..., 0, 0, 0], dtype=int8),
+               &#39;waveform&#39;: array([[-0.00312013, -0.00312013, -0.01841514, ..., -0.01841514,
+        -0.00312013, -0.00312013],
+       [-0.01518433, -0.01518433, -0.01518433, ..., -0.01518433,
+        -0.01518433, -0.01518433],
+       [-0.00777916, -0.00777916, -0.00777916, ..., -0.00777916,
+        -0.00777916, -0.00777916],
+       ...,
+       [-0.01964806, -0.01964806, -0.01964806, ..., -0.01964806,
+        -0.00275011, -0.01964806],
+       [-0.01970303, -0.01970303, -0.01970303, ..., -0.01970303,
+        -0.01970303, -0.01970303],
+       [-0.01387683,  0.00185392, -0.01387683, ...,  0.12769988,
+         0.08050765,  0.04904616]], dtype=float32)},
+         119: {&#39;selected_gain_channel&#39;: array([0, 0, 0, ..., 0, 0, 0], dtype=int8),
+               &#39;waveform&#39;: array([[-0.005349  , -0.005349  , -0.005349  , ..., -0.005349  ,
+        -0.005349  , -0.005349  ],
+       [-0.0152637 , -0.0152637 , -0.0152637 , ...,  0.17803247,
+         0.17803247,  0.12970842],
+       [-0.00617304, -0.00617304, -0.00617304, ..., -0.00617304,
+        -0.00617304, -0.00617304],
+       ...,
+       [-0.0155689 , -0.0155689 , -0.0155689 , ..., -0.0155689 ,
+        -0.0155689 , -0.0155689 ],
+       [-0.01582186, -0.01582186, -0.01582186, ..., -0.01582186,
+        -0.01582186, -0.01582186],
+       [-0.01675882, -0.01675882, -0.01675882, ..., -0.01675882,
+        -0.01675882, -0.01675882]], dtype=float32)}}}
+</pre></div></div>
+</div>
+<div class="section" id="Perform-basic-calibration:">
+<h2>Perform basic calibration:<a class="headerlink" href="#Perform-basic-calibration:" title="Permalink to this headline">¶</a></h2>
+<p>Here we will use a <code class="docutils literal notranslate"><span class="pre">CameraCalibrator</span></code> which is just a simple wrapper that runs the three calibraraton and trace-integration phases of the pipeline, taking the data from levels:</p>
+<p><strong>R0</strong> → <strong>R1</strong> → <strong>DL0</strong> → <strong>DL1</strong></p>
+<p>You could of course do these each separately, by using the classes <code class="docutils literal notranslate"><span class="pre">R1Calibrator</span></code>, <code class="docutils literal notranslate"><span class="pre">DL0Reducer</span></code>, and <code class="docutils literal notranslate"><span class="pre">DL1Calibrator</span></code>. Note that we have not specified any configuration to the <code class="docutils literal notranslate"><span class="pre">CameraCalibrator</span></code>, so it will be using the default algorithms and thresholds, other than specifying that the product is a “HESSIOR1Calibrator” (hopefully in the near future that will be automatic).</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">ctapipe.calib</span> <span class="kn">import</span> <span class="n">CameraCalibrator</span>
+
+<span class="n">calib</span> <span class="o">=</span> <span class="n">CameraCalibrator</span><span class="p">(</span><span class="n">subarray</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">subarray</span><span class="p">)</span>
+<span class="n">calib</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>Now the <em>r1</em>, <em>dl0</em> and <em>dl1</em> containers are filled in the event</p>
+<ul class="simple">
+<li><p><strong>r1.tel[x]</strong>: contains the “r1-calibrated” waveforms, after gain-selection, pedestal subtraciton, and gain-correction</p></li>
+<li><p><strong>dl0.tel[x]</strong>: is the same but with optional data volume reduction (some pixels not filled), in this case this is not performed by default, so it is the same as r1</p></li>
+<li><p><strong>dl1.tel[x]</strong>: contains the (possibly re-calibrated) waveforms as dl0, but also the time-integrated <em>image</em> that has been calculated using a <code class="docutils literal notranslate"><span class="pre">ImageExtractor</span></code> (a <code class="docutils literal notranslate"><span class="pre">NeighborPeakWindowSum</span></code> by default)</p></li>
+</ul>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="k">for</span> <span class="n">tel_id</span> <span class="ow">in</span> <span class="n">event</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">tel</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;TEL</span><span class="si">{:03}</span><span class="s2">: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tel_id</span><span class="p">,</span> <span class="n">source</span><span class="o">.</span><span class="n">subarray</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  - r0  wave shape  : </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">r0</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">waveform</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  - r1  wave shape  : </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">r1</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">waveform</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  - dl1 image shape : </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+TEL011: MST_MST_NectarCam
+  - r0  wave shape  : (1, 1855, 30)
+  - r1  wave shape  : (1855, 30)
+  - dl1 image shape : (1855,)
+TEL021: MST_MST_NectarCam
+  - r0  wave shape  : (1, 1855, 30)
+  - r1  wave shape  : (1855, 30)
+  - dl1 image shape : (1855,)
+TEL024: MST_MST_NectarCam
+  - r0  wave shape  : (1, 1855, 30)
+  - r1  wave shape  : (1855, 30)
+  - dl1 image shape : (1855,)
+TEL026: MST_MST_NectarCam
+  - r0  wave shape  : (1, 1855, 30)
+  - r1  wave shape  : (1855, 30)
+  - dl1 image shape : (1855,)
+TEL061: SST_ASTRI_CHEC
+  - r0  wave shape  : (1, 2048, 25)
+  - r1  wave shape  : (2048, 25)
+  - dl1 image shape : (2048,)
+TEL063: SST_ASTRI_CHEC
+  - r0  wave shape  : (1, 2048, 25)
+  - r1  wave shape  : (2048, 25)
+  - dl1 image shape : (2048,)
+TEL118: MST_SCT_SCTCam
+  - r0  wave shape  : (1, 11328, 32)
+  - r1  wave shape  : (11328, 32)
+  - dl1 image shape : (11328,)
+TEL119: MST_SCT_SCTCam
+  - r0  wave shape  : (1, 11328, 32)
+  - r1  wave shape  : (11328, 32)
+  - dl1 image shape : (11328,)
+</pre></div></div>
+</div>
+</div>
+<div class="section" id="Some-image-processing:">
+<h2>Some image processing:<a class="headerlink" href="#Some-image-processing:" title="Permalink to this headline">¶</a></h2>
+<p>Let’s look at the image</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">ctapipe.visualization</span> <span class="kn">import</span> <span class="n">CameraDisplay</span>
+<span class="n">tel_id</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">r1</span><span class="o">.</span><span class="n">tel</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">sub</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">subarray</span>
+<span class="n">geometry</span> <span class="o">=</span> <span class="n">sub</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span>
+<span class="n">image</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">image</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">disp</span> <span class="o">=</span> <span class="n">CameraDisplay</span><span class="p">(</span><span class="n">geometry</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorials_calibrated_data_exploration_15_0.png" src="../_images/tutorials_calibrated_data_exploration_15_0.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">ctapipe.image</span> <span class="kn">import</span> <span class="n">tailcuts_clean</span><span class="p">,</span> <span class="n">hillas_parameters</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">mask</span> <span class="o">=</span> <span class="n">tailcuts_clean</span><span class="p">(</span><span class="n">geometry</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">picture_thresh</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">boundary_thresh</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">min_number_picture_neighbors</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">cleaned</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">cleaned</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">disp</span> <span class="o">=</span> <span class="n">CameraDisplay</span><span class="p">(</span><span class="n">geometry</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="n">cleaned</span><span class="p">)</span>
+
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorials_calibrated_data_exploration_17_0.png" src="../_images/tutorials_calibrated_data_exploration_17_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">params</span> <span class="o">=</span> <span class="n">hillas_parameters</span><span class="p">(</span><span class="n">geometry</span><span class="p">,</span> <span class="n">cleaned</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">params</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;intensity&#39;: 40.55668926239014,
+ &#39;kurtosis&#39;: 1.7355258945159615,
+ &#39;length&#39;: &lt;Quantity 0.0329767 m&gt;,
+ &#39;length_uncertainty&#39;: &lt;Quantity 0.00222047 m&gt;,
+ &#39;phi&#39;: &lt;Angle 2.85056754 rad&gt;,
+ &#39;psi&#39;: &lt;Angle -0.32029021 rad&gt;,
+ &#39;r&#39;: &lt;Quantity 0.52409634 m&gt;,
+ &#39;skewness&#39;: 0.15350147214718432,
+ &#39;width&#39;: &lt;Quantity 0.01579441 m&gt;,
+ &#39;width_uncertainty&#39;: &lt;Quantity 0.00150044 m&gt;,
+ &#39;x&#39;: &lt;Quantity -0.50205821 m&gt;,
+ &#39;y&#39;: &lt;Quantity 0.15038126 m&gt;}
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+ctapipe.containers.HillasParametersContainer:
+                     intensity: total intensity (size)
+                             x: centroid x coordinate [m]
+                             y: centroid x coordinate [m]
+                             r: radial coordinate of centroid [m]
+                           phi: polar coordinate of centroid [deg]
+                        length: standard deviation along the major-axis [m]
+            length_uncertainty: uncertainty of length [m]
+                         width: standard spread along the minor-axis [m]
+             width_uncertainty: uncertainty of width [m]
+                           psi: rotation angle of ellipse [deg]
+                      skewness: measure of the asymmetry
+                      kurtosis: measure of the tailedness
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">params</span> <span class="o">=</span> <span class="n">hillas_parameters</span><span class="p">(</span><span class="n">geometry</span><span class="p">,</span> <span class="n">cleaned</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
+<span class="n">disp</span> <span class="o">=</span> <span class="n">CameraDisplay</span><span class="p">(</span><span class="n">geometry</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">)</span>
+<span class="n">disp</span><span class="o">.</span><span class="n">add_colorbar</span><span class="p">()</span>
+<span class="n">disp</span><span class="o">.</span><span class="n">overlay_moments</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">disp</span><span class="o">.</span><span class="n">highlight_pixels</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;white&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">params</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">params</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(-0.34961873844871744, 0.6503812615512825)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorials_calibrated_data_exploration_19_1.png" src="../_images/tutorials_calibrated_data_exploration_19_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">source</span><span class="o">.</span><span class="n">metadata</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;is_simulation&#39;: False}
+</pre></div></div>
+</div>
+</div>
+<div class="section" id="More-complex-image-processing:">
+<h2>More complex image processing:<a class="headerlink" href="#More-complex-image-processing:" title="Permalink to this headline">¶</a></h2>
+<p>Let’s now explore how stereo reconstruction works.</p>
+<div class="section" id="first,-look-at-a-summed-image-from-multiple-telescopes">
+<h3>first, look at a summed image from multiple telescopes<a class="headerlink" href="#first,-look-at-a-summed-image-from-multiple-telescopes" title="Permalink to this headline">¶</a></h3>
+<p>For this, we want to use a <code class="docutils literal notranslate"><span class="pre">CameraDisplay</span></code> again, but since we can’t sum and display images with different cameras, we’ll just sub-select images from a particular camera type</p>
+<p>These are the telescopes that are in this event:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">tels_in_event</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">tel</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>  <span class="c1"># use a set here, so we can intersect it later</span>
+<span class="n">tels_in_event</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{11, 21, 24, 26, 61, 63, 118, 119}
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">cam_ids</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">sub</span><span class="o">.</span><span class="n">get_tel_ids_for_type</span><span class="p">(</span><span class="s2">&quot;MST_MST_NectarCam&quot;</span><span class="p">))</span>
+<span class="n">cam_ids</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{5,
+ 6,
+ 7,
+ 8,
+ 9,
+ 10,
+ 11,
+ 12,
+ 13,
+ 14,
+ 15,
+ 16,
+ 17,
+ 18,
+ 19,
+ 20,
+ 21,
+ 22,
+ 23,
+ 24,
+ 25,
+ 26,
+ 27,
+ 28}
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">cams_in_event</span> <span class="o">=</span> <span class="n">tels_in_event</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">cam_ids</span><span class="p">)</span>
+<span class="n">first_tel_id</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">cams_in_event</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">tel</span> <span class="o">=</span> <span class="n">sub</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">first_tel_id</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">s in event: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tel</span><span class="p">,</span> <span class="n">cams_in_event</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+MST_MST_NectarCams in event: {24, 26, 11, 21}
+</pre></div></div>
+</div>
+<p>Now, let’s sum those images:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">image_sum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">tel</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">pix_x</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>  <span class="c1"># just make an array of 0&#39;s in the same shape as the camera</span>
+
+<span class="k">for</span> <span class="n">tel_id</span> <span class="ow">in</span> <span class="n">cams_in_event</span><span class="p">:</span>
+    <span class="n">image_sum</span> <span class="o">+=</span> <span class="n">event</span><span class="o">.</span><span class="n">dl1</span><span class="o">.</span><span class="n">tel</span><span class="p">[</span><span class="n">tel_id</span><span class="p">]</span><span class="o">.</span><span class="n">image</span>
+</pre></div>
+</div>
+</div>
+<p>And finally display the sum of those images</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">8</span><span class="p">))</span>
+
+<span class="n">disp</span> <span class="o">=</span> <span class="n">CameraDisplay</span><span class="p">(</span><span class="n">tel</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">geometry</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="n">image_sum</span><span class="p">)</span>
+<span class="n">disp</span><span class="o">.</span><span class="n">overlay_moments</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">with_label</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Sum of </span><span class="si">{}</span><span class="s2">x </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cams_in_event</span><span class="p">),</span> <span class="n">tel</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Text(0.5, 1.0, &#39;Sum of 4x MST_MST_NectarCam&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorials_calibrated_data_exploration_28_1.png" src="../_images/tutorials_calibrated_data_exploration_28_1.png" />
+</div>
+</div>
+<p>let’s also show which telescopes those were. Note that currently ArrayDisplay’s value field is a vector by <code class="docutils literal notranslate"><span class="pre">tel_index</span></code>, not <code class="docutils literal notranslate"><span class="pre">tel_id</span></code>, so we have to convert to a tel_index. (this may change in a future version to be more user-friendly)</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">ctapipe.visualization</span> <span class="kn">import</span> <span class="n">ArrayDisplay</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">nectarcam_subarray</span> <span class="o">=</span> <span class="n">sub</span><span class="o">.</span><span class="n">select_subarray</span><span class="p">(</span><span class="s2">&quot;FlashCam&quot;</span><span class="p">,</span> <span class="n">cam_ids</span><span class="p">)</span>
+
+<span class="n">hit_pattern</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">nectarcam_subarray</span><span class="o">.</span><span class="n">num_tels</span><span class="p">)</span>
+<span class="n">hit_pattern</span><span class="p">[[</span><span class="n">nectarcam_subarray</span><span class="o">.</span><span class="n">tel_indices</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">cams_in_event</span> <span class="p">]]</span> <span class="o">=</span> <span class="mi">100</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">set_cmap</span><span class="p">(</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">Accent</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">8</span><span class="p">))</span>
+
+<span class="n">ad</span> <span class="o">=</span> <span class="n">ArrayDisplay</span><span class="p">(</span><span class="n">nectarcam_subarray</span><span class="p">)</span>
+<span class="n">ad</span><span class="o">.</span><span class="n">values</span> <span class="o">=</span> <span class="n">hit_pattern</span>
+<span class="n">ad</span><span class="o">.</span><span class="n">add_labels</span><span class="p">()</span>
+
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;Figure size 432x288 with 0 Axes&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorials_calibrated_data_exploration_31_1.png" src="../_images/tutorials_calibrated_data_exploration_31_1.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="theta_square.html" class="btn btn-neutral float-right" title="Make a theta-square plot" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="raw_data_exploration.html" class="btn btn-neutral float-left" title="Exploring Raw Data" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright ctapipe developers.  Last updated 29 Jan 2021 18:09.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

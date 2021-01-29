@@ -1,0 +1,27 @@
+EngineeringCameraFrame
+======================
+
+.. currentmodule:: ctapipe.coordinates
+
+.. autoclass:: EngineeringCameraFrame
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~EngineeringCameraFrame.default_differential
+      ~EngineeringCameraFrame.default_representation
+      ~EngineeringCameraFrame.frame_attributes
+      ~EngineeringCameraFrame.frame_specific_representation_info
+      ~EngineeringCameraFrame.n_mirrors
+      ~EngineeringCameraFrame.name
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: default_differential
+   .. autoattribute:: default_representation
+   .. autoattribute:: frame_attributes
+   .. autoattribute:: frame_specific_representation_info
+   .. autoattribute:: n_mirrors
+   .. autoattribute:: name

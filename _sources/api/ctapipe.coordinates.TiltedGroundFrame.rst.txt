@@ -1,0 +1,27 @@
+TiltedGroundFrame
+=================
+
+.. currentmodule:: ctapipe.coordinates
+
+.. autoclass:: TiltedGroundFrame
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~TiltedGroundFrame.default_differential
+      ~TiltedGroundFrame.default_representation
+      ~TiltedGroundFrame.frame_attributes
+      ~TiltedGroundFrame.frame_specific_representation_info
+      ~TiltedGroundFrame.name
+      ~TiltedGroundFrame.pointing_direction
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: default_differential
+   .. autoattribute:: default_representation
+   .. autoattribute:: frame_attributes
+   .. autoattribute:: frame_specific_representation_info
+   .. autoattribute:: name
+   .. autoattribute:: pointing_direction

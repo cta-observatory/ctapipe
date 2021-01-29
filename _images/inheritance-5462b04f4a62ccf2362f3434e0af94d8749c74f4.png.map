@@ -1,0 +1,17 @@
+<map id="inheritanceea72e6276d" name="inheritanceea72e6276d">
+<area shape="rect" id="node1" title="A singleton application with full configuration support." alt="" coords="625,243,687,260"/>
+<area shape="rect" id="node18" title="A base class for all executable tools (applications) that handles" alt="" coords="718,243,765,260"/>
+<area shape="rect" id="node2" title="A configurable that only allows one instance." alt="" coords="487,243,594,260"/>
+<area shape="rect" id="node3" title="Base class of all Components." alt="" coords="374,211,437,228"/>
+<area shape="rect" id="node16" title="Manages a set of user&#45;configurable (at runtime or in a config file) selection" alt="" coords="505,179,575,196"/>
+<area shape="rect" id="node17" title="A component that needs a SubarrayDescription to be constructed, and which" alt="" coords="488,211,593,228"/>
+<area shape="rect" id="node11" title="A parent class for Configurables that log." alt="" coords="355,243,455,260"/>
+<area shape="rect" id="node6" title="Generic class that can hold and accumulate data to be passed" alt="" coords="30,196,85,212"/>
+<area shape="rect" id="node7" title="used to mark which fields may be removed in next version" alt="" coords="143,164,225,180"/>
+<area shape="rect" id="node8" title="Class for storing data in `Containers`." alt="" coords="34,164,81,180"/>
+<area shape="rect" id="node10" title="The base class for all classes that have descriptors." alt="" coords="18,228,97,244"/>
+<area shape="rect" id="node12" title="A dictionary of sub&#45;containers that can be added to a Container. This" alt="" coords="161,100,207,116"/>
+<area shape="rect" id="node13" title="defaultdict(default_factory[, ...]) &#45;&#45;&gt; dict with default factory" alt="" coords="28,100,87,116"/>
+<area shape="rect" id="node14" title="Manage the provenance info for a stack of *activities*" alt="" coords="26,68,90,84"/>
+<area shape="rect" id="node15" title="Signal a problem with a user&#45;defined selection criteria function" alt="" coords="10,35,106,52"/>
+</map>

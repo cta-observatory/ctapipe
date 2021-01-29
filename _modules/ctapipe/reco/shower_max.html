@@ -1,0 +1,287 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>ctapipe.reco.shower_max &mdash; ctapipe v0.1.dev1+gb5c90a1</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+        <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.20.0/dist/embed-amd.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> ctapipe
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.dev1+gb5c90a1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../ctapipe_api/index.html">API Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Change Log</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ctapipe</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>ctapipe.reco.shower_max</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for ctapipe.reco.shower_max</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="n">log</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="kn">from</span> <span class="nn">ctapipe.utils.fitshistogram</span> <span class="kn">import</span> <span class="n">Histogram</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">ndimage</span>
+<span class="kn">from</span> <span class="nn">ctapipe.instrument</span> <span class="kn">import</span> <span class="n">get_atmosphere_profile_functions</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">fsolve</span>
+
+
+<div class="viewcode-block" id="ShowerMaxEstimator"><a class="viewcode-back" href="../../../api/ctapipe.reco.ShowerMaxEstimator.html#ctapipe.reco.ShowerMaxEstimator">[docs]</a><span class="k">class</span> <span class="nc">ShowerMaxEstimator</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class that calculates the height of the shower maximum</span>
+<span class="sd">    given a parametrisation of the atmosphere</span>
+<span class="sd">    and certain parameters of the shower itself</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    atmosphere_profile_name : string</span>
+<span class="sd">       path to text file that contains a table of the</span>
+<span class="sd">       atmosphere parameters</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atmosphere_profile_name</span><span class="p">):</span>
+
+        <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">thickness_profile</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">altitude_profile</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="n">get_atmosphere_profile_functions</span><span class="p">(</span><span class="n">atmosphere_profile_name</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ShowerMaxEstimator.find_shower_max_height"><a class="viewcode-back" href="../../../api/ctapipe.reco.ShowerMaxEstimator.html#ctapipe.reco.ShowerMaxEstimator.find_shower_max_height">[docs]</a>    <span class="k">def</span> <span class="nf">find_shower_max_height</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">energy</span><span class="p">,</span> <span class="n">h_first_int</span><span class="p">,</span> <span class="n">gamma_alt</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        estimates the height of the shower maximum in the atmosphere</span>
+<span class="sd">        according to equation (3) in [arXiv:0907.2610v3]</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        energy : astropy.Quantity</span>
+<span class="sd">            energy of the parent gamma photon</span>
+<span class="sd">        h_first_int : astropy.Quantity</span>
+<span class="sd">            hight of the first interaction</span>
+<span class="sd">        gamma_alt : astropy.Quantity or float</span>
+<span class="sd">            altitude / pi-minus-zenith (in radians in case of float)</span>
+<span class="sd">            of the parent gamma photon</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        shower_max_height : astropy.Quantity</span>
+<span class="sd">            height of the shower maximum</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># offset of the shower-maximum in radiation lengths</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="mf">0.97</span> <span class="o">*</span> <span class="n">log</span><span class="p">(</span><span class="n">energy</span> <span class="o">/</span> <span class="p">(</span><span class="mi">83</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">MeV</span><span class="p">))</span> <span class="o">-</span> <span class="mf">1.32</span>
+        <span class="c1"># radiation length in dry air at 1 atm = 36,62 g / cm**2 [PDG]</span>
+        <span class="n">c</span> <span class="o">*=</span> <span class="mf">36.62</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">g</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">cm</span> <span class="o">**</span> <span class="o">-</span><span class="mi">2</span>
+        <span class="c1"># showers with a more horizontal direction spend more path</span>
+        <span class="c1"># length in each atm. layer the &quot;effective transverse</span>
+        <span class="c1"># thickness&quot; they have to pass is reduced</span>
+        <span class="n">c</span> <span class="o">*=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">gamma_alt</span><span class="p">)</span>
+
+        <span class="c1"># find the thickness at the height of the first interaction</span>
+        <span class="n">t_first_int</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">thickness_profile</span><span class="p">(</span><span class="n">h_first_int</span><span class="p">)</span>
+
+        <span class="c1"># total thickness at shower maximum = thickness at first</span>
+        <span class="c1"># interaction + thickness traversed to shower maximum</span>
+        <span class="n">t_shower_max</span> <span class="o">=</span> <span class="n">t_first_int</span> <span class="o">+</span> <span class="n">c</span>
+
+        <span class="c1"># now find the height with the wanted thickness by solving for the</span>
+        <span class="c1"># desired thickness</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">altitude_profile</span><span class="p">(</span><span class="n">t_shower_max</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright ctapipe developers.  Last updated 29 Jan 2021 18:09.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

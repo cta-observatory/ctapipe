@@ -1,0 +1,6 @@
+chi_squared
+===========
+
+.. currentmodule:: ctapipe.image
+
+.. autofunction:: chi_squared

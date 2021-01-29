@@ -1,0 +1,27 @@
+DL1CameraCalibrationContainer
+=============================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: DL1CameraCalibrationContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~DL1CameraCalibrationContainer.absolute_factor
+      ~DL1CameraCalibrationContainer.meta
+      ~DL1CameraCalibrationContainer.pedestal_offset
+      ~DL1CameraCalibrationContainer.prefix
+      ~DL1CameraCalibrationContainer.relative_factor
+      ~DL1CameraCalibrationContainer.time_shift
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: absolute_factor
+   .. autoattribute:: meta
+   .. autoattribute:: pedestal_offset
+   .. autoattribute:: prefix
+   .. autoattribute:: relative_factor
+   .. autoattribute:: time_shift

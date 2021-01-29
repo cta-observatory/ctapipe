@@ -1,0 +1,8 @@
+<map id="inheritanced7974d158e" name="inheritanced7974d158e">
+<area shape="rect" id="node1" title="Base class of all Components." alt="" coords="287,19,348,35"/>
+<area shape="rect" id="node5" title="A component that needs a SubarrayDescription to be constructed, and which" alt="" coords="378,19,479,35"/>
+<area shape="rect" id="node4" href="../../api/ctapipe.image.reducer.DataVolumeReducer.html#ctapipe.image.reducer.DataVolumeReducer" target="_top" title="Base component for data volume reducers." alt="" coords="509,19,606,35"/>
+<area shape="rect" id="node7" href="../../api/ctapipe.image.reducer.NullDataVolumeReducer.html#ctapipe.image.reducer.NullDataVolumeReducer" target="_top" title="Perform no data volume reduction" alt="" coords="644,3,757,19"/>
+<area shape="rect" id="node8" href="../../api/ctapipe.image.reducer.TailCutsDataVolumeReducer.html#ctapipe.image.reducer.TailCutsDataVolumeReducer" target="_top" title="Reduce the time integrated shower image in 3 Steps:" alt="" coords="636,34,765,50"/>
+<area shape="rect" id="node6" title="The base class for all classes that have descriptors." alt="" coords="3,19,79,35"/>
+</map>

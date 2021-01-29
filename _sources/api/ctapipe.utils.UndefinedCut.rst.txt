@@ -1,0 +1,6 @@
+UndefinedCut
+============
+
+.. currentmodule:: ctapipe.utils
+
+.. autoexception:: UndefinedCut

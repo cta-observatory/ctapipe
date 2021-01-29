@@ -1,0 +1,6 @@
+<map id="inheritance4737c869dd" name="inheritance4737c869dd">
+<area shape="rect" id="node1" title="Base class of all Components." alt="" coords="364,24,442,45"/>
+<area shape="rect" id="node6" title="A component that needs a SubarrayDescription to be constructed, and which" alt="" coords="480,4,609,24"/>
+<area shape="rect" id="node7" title="Different ring fit algorithms for muon rings" alt="" coords="497,44,592,64"/>
+<area shape="rect" id="node4" title="The base class for all classes that have descriptors." alt="" coords="4,24,101,45"/>
+</map>

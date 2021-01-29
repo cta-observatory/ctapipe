@@ -1,0 +1,6 @@
+get_module_version
+==================
+
+.. currentmodule:: ctapipe.core
+
+.. autofunction:: get_module_version

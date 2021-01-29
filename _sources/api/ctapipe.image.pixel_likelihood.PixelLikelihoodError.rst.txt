@@ -1,0 +1,6 @@
+PixelLikelihoodError
+====================
+
+.. currentmodule:: ctapipe.image.pixel_likelihood
+
+.. autoexception:: PixelLikelihoodError

@@ -1,0 +1,21 @@
+R0CameraContainer
+=================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: R0CameraContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~R0CameraContainer.meta
+      ~R0CameraContainer.prefix
+      ~R0CameraContainer.waveform
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: meta
+   .. autoattribute:: prefix
+   .. autoattribute:: waveform

@@ -1,0 +1,347 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>TelescopeParameter &mdash; ctapipe v0.1.dev1+gb5c90a1</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+        <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.20.0/dist/embed-amd.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="FloatTelescopeParameter" href="ctapipe.core.traits.FloatTelescopeParameter.html" />
+    <link rel="prev" title="Path" href="ctapipe.core.traits.Path.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> ctapipe
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.dev1+gb5c90a1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../getting_started/index.html">Getting Started For Developers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development/index.html">Development Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/index.html">Command-Line Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_models/index.html">Data Models</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../ctapipe_api/index.html">API Docs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/containers.html">Data Containers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/analysis/index.html">Analysis (<code class="xref py py-obj docutils literal notranslate"><span class="pre">analysis</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/calib/index.html">Calibration (<code class="xref py py-obj docutils literal notranslate"><span class="pre">calib</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/containers/index.html">Containers (<code class="xref py py-obj docutils literal notranslate"><span class="pre">containers</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/coordinates/index.html">Coordinates (<code class="xref py py-obj docutils literal notranslate"><span class="pre">coordinates</span></code>)</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../ctapipe_api/core/index.html">Core Structures and Base Classes (<code class="xref py py-obj docutils literal notranslate"><span class="pre">core</span></code>)</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../ctapipe_api/core/index.html#introduction">Introduction</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="../ctapipe_api/core/traits.html">Traitlet Implementations for ctapipe</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../ctapipe_api/core/index.html#reference-api">Reference/API</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/image/index.html">Imaging (<code class="xref py py-obj docutils literal notranslate"><span class="pre">image</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/instrument/index.html">Instrument (<code class="xref py py-obj docutils literal notranslate"><span class="pre">instrument</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/io/index.html">Input/Output (<code class="xref py py-obj docutils literal notranslate"><span class="pre">io</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/reco/index.html">Reconstruction (<code class="xref py py-obj docutils literal notranslate"><span class="pre">reco</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/tools/index.html">Command line tools (<code class="xref py py-obj docutils literal notranslate"><span class="pre">tools</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/utils/index.html">Utilities (<code class="xref py py-obj docutils literal notranslate"><span class="pre">utils</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ctapipe_api/visualization/index.html">Visualization (<code class="xref py py-obj docutils literal notranslate"><span class="pre">visualization</span></code>)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../bibliography.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Change Log</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ctapipe</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../ctapipe_api/index.html">API Docs</a> &raquo;</li>
+        
+          <li><a href="../ctapipe_api/core/index.html">Core Structures and Base Classes (<code class="xref py py-obj docutils literal notranslate"><span class="pre">core</span></code>)</a> &raquo;</li>
+        
+          <li><a href="../ctapipe_api/core/traits.html">Traitlet Implementations for ctapipe</a> &raquo;</li>
+        
+      <li>TelescopeParameter</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/api/ctapipe.core.traits.TelescopeParameter.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="telescopeparameter">
+<h1>TelescopeParameter<a class="headerlink" href="#telescopeparameter" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="ctapipe.core.traits.TelescopeParameter">
+<em class="property">class </em><code class="sig-prename descclassname">ctapipe.core.traits.</code><code class="sig-name descname">TelescopeParameter</code><span class="sig-paren">(</span><em class="sig-param">trait</em>, <em class="sig-param">default_value=traitlets.Undefined</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/core/traits.html#TelescopeParameter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ctapipe.core.traits.TelescopeParameter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">traitlets.traitlets.List</span></code></p>
+<p>Allow a parameter value to be specified as a simple value (of type <em>dtype</em>),
+or as a list of patterns that match different telescopes.
+The patterns are given as a list of 3-tuples in in the
+form: <code class="xref py py-obj docutils literal notranslate"><span class="pre">[(command,</span> <span class="pre">argument,</span> <span class="pre">value),</span> <span class="pre">...]</span></code>.</p>
+<p>Command can be one of:
+- ‘type’: argument is then a telescope type  string (e.g.</p>
+<blockquote>
+<div><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">('type',</span> <span class="pre">'SST_ASTRI_CHEC',</span> <span class="pre">4.0)</span></code> to apply to all telescopes of that type,
+or use a wildcard like “LST*”, or “*” to set a pure default value for all
+telescopes.</p>
+</div></blockquote>
+<ul class="simple">
+<li><p>‘id’:  argument is a specific telescope ID <code class="xref py py-obj docutils literal notranslate"><span class="pre">['id',</span> <span class="pre">89,</span> <span class="pre">5.0]</span></code>)</p></li>
+</ul>
+<p>These are evaluated in-order, so you can first set a default value, and then set
+values for specific telescopes or types to override them.</p>
+<p class="rubric">Examples</p>
+<dl class="simple">
+<dt>tel_param = [</dt><dd><p>(‘type’, ‘*’, 5.0),                       # default for all
+(‘type’, ‘LST_*’, 5.2),
+(‘type’, ‘MST_MST_NectarCam’, 4.0),
+(‘type’, ‘MST_MST_FlashCam’, 4.5),
+(‘id’, 34, 4.0),                   # override telescope 34 specifically</p>
+</dd>
+</dl>
+<p>]</p>
+<p>tel_param = 4.0  # sets this value for all telescopes</p>
+<p class="rubric">Methods Summary</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.core.traits.TelescopeParameter.from_string" title="ctapipe.core.traits.TelescopeParameter.from_string"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_string</span></code></a>(s)</p></td>
+<td><p>Load value from a single string</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ctapipe.core.traits.TelescopeParameter.set" title="ctapipe.core.traits.TelescopeParameter.set"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set</span></code></a>(obj, value)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ctapipe.core.traits.TelescopeParameter.validate" title="ctapipe.core.traits.TelescopeParameter.validate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate</span></code></a>(obj, value)</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods Documentation</p>
+<dl class="method">
+<dt id="ctapipe.core.traits.TelescopeParameter.from_string">
+<code class="sig-name descname">from_string</code><span class="sig-paren">(</span><em class="sig-param">s</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/core/traits.html#TelescopeParameter.from_string"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ctapipe.core.traits.TelescopeParameter.from_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load value from a single string</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ctapipe.core.traits.TelescopeParameter.set">
+<code class="sig-name descname">set</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/core/traits.html#TelescopeParameter.set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ctapipe.core.traits.TelescopeParameter.set" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="ctapipe.core.traits.TelescopeParameter.validate">
+<code class="sig-name descname">validate</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ctapipe/core/traits.html#TelescopeParameter.validate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ctapipe.core.traits.TelescopeParameter.validate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="ctapipe.core.traits.FloatTelescopeParameter.html" class="btn btn-neutral float-right" title="FloatTelescopeParameter" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="ctapipe.core.traits.Path.html" class="btn btn-neutral float-left" title="Path" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright ctapipe developers.  Last updated 29 Jan 2021 18:09.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

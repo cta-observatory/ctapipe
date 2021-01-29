@@ -1,0 +1,7 @@
+FloatTelescopeParameter
+=======================
+
+.. currentmodule:: ctapipe.core.traits
+
+.. autoclass:: FloatTelescopeParameter
+   :show-inheritance:

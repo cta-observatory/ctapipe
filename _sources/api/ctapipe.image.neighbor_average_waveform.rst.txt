@@ -1,0 +1,6 @@
+image.neighbor_average_waveform
+===============================
+
+.. currentmodule:: ctapipe
+
+.. autoattribute:: image.neighbor_average_waveform

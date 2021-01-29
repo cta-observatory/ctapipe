@@ -1,0 +1,6 @@
+<map id="inheritance068f8b945e" name="inheritance068f8b945e">
+<area shape="rect" id="node1" href="../../api/ctapipe.image.toymodel.Gaussian.html#ctapipe.image.toymodel.Gaussian" target="_top" title="Gaussian" alt="" coords="207,29,289,55"/>
+<area shape="rect" id="node2" href="../../api/ctapipe.image.toymodel.ImageModel.html#ctapipe.image.toymodel.ImageModel" target="_top" title="ImageModel" alt="" coords="18,55,121,80"/>
+<area shape="rect" id="node3" href="../../api/ctapipe.image.toymodel.SkewedGaussian.html#ctapipe.image.toymodel.SkewedGaussian" target="_top" title="A shower image that has a skewness along the major axis." alt="" coords="181,79,315,104"/>
+<area shape="rect" id="node4" href="../../api/ctapipe.image.toymodel.WaveformModel.html#ctapipe.image.toymodel.WaveformModel" target="_top" title="WaveformModel" alt="" coords="5,5,133,31"/>
+</map>

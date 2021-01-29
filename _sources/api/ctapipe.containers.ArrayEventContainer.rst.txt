@@ -1,0 +1,43 @@
+ArrayEventContainer
+===================
+
+.. currentmodule:: ctapipe.containers
+
+.. autoclass:: ArrayEventContainer
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~ArrayEventContainer.calibration
+      ~ArrayEventContainer.count
+      ~ArrayEventContainer.dl0
+      ~ArrayEventContainer.dl1
+      ~ArrayEventContainer.dl2
+      ~ArrayEventContainer.index
+      ~ArrayEventContainer.meta
+      ~ArrayEventContainer.mon
+      ~ArrayEventContainer.pointing
+      ~ArrayEventContainer.prefix
+      ~ArrayEventContainer.r0
+      ~ArrayEventContainer.r1
+      ~ArrayEventContainer.simulation
+      ~ArrayEventContainer.trigger
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: calibration
+   .. autoattribute:: count
+   .. autoattribute:: dl0
+   .. autoattribute:: dl1
+   .. autoattribute:: dl2
+   .. autoattribute:: index
+   .. autoattribute:: meta
+   .. autoattribute:: mon
+   .. autoattribute:: pointing
+   .. autoattribute:: prefix
+   .. autoattribute:: r0
+   .. autoattribute:: r1
+   .. autoattribute:: simulation
+   .. autoattribute:: trigger

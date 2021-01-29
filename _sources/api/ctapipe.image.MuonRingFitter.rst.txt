@@ -1,0 +1,27 @@
+MuonRingFitter
+==============
+
+.. currentmodule:: ctapipe.image
+
+.. autoclass:: MuonRingFitter
+   :show-inheritance:
+
+   .. rubric:: Attributes Summary
+
+   .. autosummary::
+
+      ~MuonRingFitter.fit_method
+
+   .. rubric:: Methods Summary
+
+   .. autosummary::
+
+      ~MuonRingFitter.__call__
+
+   .. rubric:: Attributes Documentation
+
+   .. autoattribute:: fit_method
+
+   .. rubric:: Methods Documentation
+
+   .. automethod:: __call__

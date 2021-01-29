@@ -1,0 +1,6 @@
+has_traits
+==========
+
+.. currentmodule:: ctapipe.core.traits
+
+.. autofunction:: has_traits

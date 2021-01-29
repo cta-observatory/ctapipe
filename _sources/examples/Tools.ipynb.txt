@@ -1,0 +1,590 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Creating command-line Tools"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from ctapipe.core import Tool, Component, TelescopeComponent\n",
+    "from ctapipe.core.traits import (\n",
+    "    Integer, Float, List, Dict, Unicode,\n",
+    "    TraitError, observe, FloatTelescopeParameter,\n",
+    "    Path,\n",
+    ")\n",
+    "import logging\n",
+    "from time import sleep\n",
+    "from astropy import units as u\n",
+    "from ctapipe.utils import get_dataset_path"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "GAMMA_FILE = get_dataset_path('gamma_test.simtel.gz')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "see https://github.com/ipython/traitlets/blob/master/examples/myapp.py"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Setup:\n",
+    "\n",
+    "Create a few `Component`s that we will use later in a `Tool`:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "class MyComponent(Component):\n",
+    "    \"\"\" A Component that does stuff \"\"\"\n",
+    "\n",
+    "    value = Integer(default_value=-1, help=\"Value to use\").tag(config=True)\n",
+    "\n",
+    "    def do_thing(self):\n",
+    "        self.log.debug(\"Did thing\")\n",
+    "\n",
+    "\n",
+    "# in order to have 2 of the same components at once\n",
+    "class SecondaryMyComponent(MyComponent):\n",
+    "    pass\n",
+    "\n",
+    "\n",
+    "class AdvancedComponent(Component):\n",
+    "    \"\"\" An advanced technique \"\"\"\n",
+    "\n",
+    "    value1 = Integer(default_value=-1, help=\"Value to use\").tag(config=True)\n",
+    "    infile = Path(\n",
+    "        help=\"input file name\", \n",
+    "        exists=None,  # set to True to require existing, False for requiring non-existing\n",
+    "        directory_ok=False,\n",
+    "    ).tag(config=True)\n",
+    "    outfile = Path(\n",
+    "        help=\"output file name\",\n",
+    "        exists=False, directory_ok=False\n",
+    "    ).tag(config=True)\n",
+    "    \n",
+    "    def __init__(self, config=None, parent=None, **kwargs):\n",
+    "        super().__init__(config=config, parent=parent, **kwargs)\n",
+    "        # components can have sub components, but these must have \n",
+    "        # then parent=self as argument and be assigned as member\n",
+    "        # so the full config can be received later\n",
+    "        self.subcompent = MyComponent(parent=self)\n",
+    "\n",
+    "    @observe(\"outfile\")\n",
+    "    def on_outfile_changed(self, change):\n",
+    "        self.log.warning(\"Outfile was changed to '{}'\".format(change))\n",
+    "\n",
+    "\n",
+    "class TelescopeWiseComponent(TelescopeComponent):\n",
+    "    \"\"\" a component that contains parameters that are per-telescope configurable \"\"\"\n",
+    "\n",
+    "    param = FloatTelescopeParameter(\n",
+    "        help=\"Something configurable with telescope patterns\", default_value=5.0\n",
+    "    ).tag(config=True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "MyComponent()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "AdvancedComponent()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "`TelescopeComponents` need to have a subarray given to them in order to work (since they need one to turn a `TelescopeParameter` into a concrete list of values for each telescope.  Here we will give a dummy one:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from ctapipe.instrument import SubarrayDescription, TelescopeDescription\n",
+    "\n",
+    "subarray = SubarrayDescription(\n",
+    "    \"Junk\",\n",
+    "    tel_positions={1: (0.0, 0.0, 0.0) * u.m, 2: (1.0, 1.0, 0.0) * u.m},\n",
+    "    tel_descriptions={\n",
+    "        1: TelescopeDescription.from_name(\"LST\", \"LSTCam\"),\n",
+    "        2: TelescopeDescription.from_name(\"MST\", \"NectarCam\"),\n",
+    "    },\n",
+    ")\n",
+    "subarray.info()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "TelescopeWiseComponent(subarray=subarray)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "This TelescopeParameters can then be set using a list of patterns like:\n",
+    "```python\n",
+    "component.param = [ \n",
+    "    (\"type\", \"LST*\",3.0), \n",
+    "    (\"type\", \"MST*\", 2.0), \n",
+    "    (id, 25, 4.0) \n",
+    "]\n",
+    "```\n",
+    "\n",
+    "These get translated into per-telescope-id values once the subarray is registered.  After that one acccess the per-telescope id values via:\n",
+    "```python\n",
+    "component.param.tel[tel_id]\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Now create an executable Tool that contains the Components"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "class MyTool(Tool):\n",
+    "    name=\"mytool\"\n",
+    "    description=\"do some things and stuff\"\n",
+    "    aliases = dict(\n",
+    "        infile='AdvancedComponent.infile',\n",
+    "        iterations='MyTool.iterations'\n",
+    "    )\n",
+    "\n",
+    "    # Which classes are registered for configuration\n",
+    "    classes = List([MyComponent, AdvancedComponent, SecondaryMyComponent, TelescopeWiseComponent])\n",
+    "\n",
+    "    # local configuration parameters\n",
+    "    iterations = Integer(5,help=\"Number of times to run\",allow_none=False).tag(config=True)\n",
+    "\n",
+    "    def setup(self):\n",
+    "        self.comp = MyComponent(parent=self)\n",
+    "        self.comp2 = SecondaryMyComponent(parent=self)\n",
+    "        self.comp3 = TelescopeWiseComponent(parent=self, subarray=subarray)\n",
+    "        self.advanced = AdvancedComponent(parent=self)\n",
+    "\n",
+    "\n",
+    "    def start(self):\n",
+    "        self.log.info(\"Performing {} iterations...\".format(self.iterations))\n",
+    "        for ii in range(self.iterations):\n",
+    "            self.log.info(\"ITERATION {}\".format(ii))\n",
+    "            self.comp.do_thing()\n",
+    "            self.comp2.do_thing()\n",
+    "            sleep(0.1)\n",
+    "            \n",
+    "    def finish(self):\n",
+    "        self.log.warning(\"Shutting down.\")\n",
+    "    "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Get Help info\n",
+    "\n",
+    "The following allows you to print the help info within a Jupyter notebook, but this same inforamtion would be displayed if the user types:\n",
+    "```\n",
+    "  mytool --help\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "tool=MyTool()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "tool.print_help()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "The following  is equivalant to the user typing `mytool --help-all`"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "tool.print_help(classes=True)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Run the tool\n",
+    "\n",
+    "here we pass in argv since it is a Notebook, but if argv is not specified it's read from `sys.argv`, so the following is the same as running:\n",
+    "\n",
+    "```sh\n",
+    "mytool --log_level=INFO --infile gamma_test.simtel.gz --iterations=3\n",
+    "```\n",
+    "\n",
+    "As Tools are intended to be exectutables, they are raising `SystemExit` on exit.\n",
+    "Here, we use them to demonstrate how it would work, so we catch the `SystemExit`."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "scrolled": false
+   },
+   "outputs": [],
+   "source": [
+    "try:\n",
+    "    tool.run(argv=['--infile',  str(GAMMA_FILE)])\n",
+    "except SystemExit as e:\n",
+    "    assert e.code == 0, f'Tool returned with error status {e}'"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "tool.log_format = \"%(asctime)s : %(levelname)s [%(name)s %(funcName)s] %(message)s\" \n",
+    "\n",
+    "\n",
+    "try:\n",
+    "    tool.run(argv=['--log-level','INFO','--infile', str(GAMMA_FILE), '--iterations','3'])\n",
+    "except SystemExit as e:\n",
+    "    assert e.code == 0, f'Tool returned with error status {e}'"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "here we change the log-level to DEBUG:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "scrolled": false
+   },
+   "outputs": [],
+   "source": [
+    "try:\n",
+    "    tool.run(argv=['--log-level','DEBUG','--infile', str(GAMMA_FILE)])\n",
+    "except SystemExit as e:\n",
+    "    assert e.code == 0, f'Tool returned with error status {e}'"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "you can also set parameters directly in the class, rather than using the argument/configfile parser. This is useful if you are calling the Tool from a script rather than the command-line"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "scrolled": false
+   },
+   "outputs": [],
+   "source": [
+    "tool.iterations = 1\n",
+    "tool.log_level = 0\n",
+    "\n",
+    "try:\n",
+    "    tool.run(['--infile', str(GAMMA_FILE)])\n",
+    "except SystemExit as e:\n",
+    "    assert e.code == 0, f'Tool returned with error status {e}'"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "see what happens when a value is set that is not of the correct type:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "try:\n",
+    "    tool.iterations = \"badval\"\n",
+    "except TraitError as E:\n",
+    "    print(\"bad value:\",E)\n",
+    "except SystemExit as e:\n",
+    "    assert e.code == 0, f'Tool returned with error status {e}'"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Example of what happens when you change a parameter that is being \"observed\" in a class. It's handler is called:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "tool.advanced.outfile = \"Another.txt\""
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "we see that the handler for `outfile` was called, and it receive a change dict that shows the old and new values."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "create a tool using a config file:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "tool2 = MyTool()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "scrolled": false
+   },
+   "outputs": [],
+   "source": [
+    "try:\n",
+    "    tool2.run(argv=['--config', 'Tools.json'])\n",
+    "except SystemExit as e:\n",
+    "    assert e.code == 0, f'Tool returned with error status {e}'"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(tool2.advanced.infile)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(tool2.config)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "tool2.is_setup"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "tool3 = MyTool()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "tool3.is_setup"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "tool3.initialize(argv=[])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "tool3.is_setup"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "tool3"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "tool"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "tool.comp2"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Getting the configuration of an instance"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "tool.get_current_config()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "tool.iterations = 12\n",
+    "tool.get_current_config()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Writing a Sample Config File"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(tool.generate_config_file())"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.7.7"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 4
+}
