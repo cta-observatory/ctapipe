@@ -398,7 +398,7 @@ class SimTelEventSource(EventSource):
                 true_image = (
                     array_event.get("photoelectrons", {})
                     .get(tel_id - 1, {})
-                    .get("photoelectrons", np.zeros(n_pixels, dtype="float32"))
+                    .get("photoelectrons", np.zeros(n_pixels, dtype="int32"))
                 )
 
                 data.simulation.tel[tel_id] = SimulatedCameraContainer(
