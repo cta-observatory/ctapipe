@@ -66,7 +66,8 @@ class TableWriter(Component, metaclass=ABCMeta):
         transform: callable
             function that take a value and returns a new one
         """
-        self._transforms[table_name][col_name] = transform
+        # allow leading slash
+        self._transforms[table_name.lstrip("/")][col_name] = transform
         self.log.debug(
             "Added transform: {}/{} -> {}".format(table_name, col_name, transform)
         )

@@ -41,6 +41,12 @@ DEFAULT_FILTERS = tables.Filters(
 )
 
 
+def get_hdf5_attr(attrs, name, default=None):
+    if name in attrs:
+        return attrs[name]
+    return default
+
+
 class HDF5TableWriter(TableWriter):
     """
     A very basic table writer that can take a container (or more than one)
@@ -212,7 +218,8 @@ class HDF5TableWriter(TableWriter):
                 # add meta fields of transform
                 transform = self._transforms[table_name].get(col_name)
                 if transform is not None:
-                    meta.update(transform.get_meta(col_name))
+                    if hasattr(transform, "get_meta"):
+                        meta.update(transform.get_meta(col_name))
 
                 pos += 1
 
@@ -281,7 +288,6 @@ class HDF5TableWriter(TableWriter):
                 container.items(add_prefix=self.add_prefix),
             )
             for colname, value in selected_fields:
-
                 try:
                     value = self._apply_col_transform(table_name, colname, value)
                     row[colname] = value
@@ -375,10 +381,10 @@ class HDF5TableReader(TableReader):
 
         self._h5file.close()
 
-    def _setup_table(self, table_name, containers, prefixes):
+    def _setup_table(self, table_name, containers, prefixes, ignore_columns):
         tab = self._h5file.get_node(table_name)
         self._tables[table_name] = tab
-        self._map_table_to_containers(table_name, containers, prefixes)
+        self._map_table_to_containers(table_name, containers, prefixes, ignore_columns)
         self._map_transforms_from_table_header(table_name)
         return tab
 
@@ -402,15 +408,25 @@ class HDF5TableReader(TableReader):
             elif attr.endswith("_TIME_SCALE"):
                 colname, _, _ = attr.rpartition("_TIME_SCALE")
                 scale = tab.attrs[attr]
-                if colname + "_TIME_FORMAT" in attrs:
-                    format = tab.attrs[colname + "_TIME_FORMAT"]
-                else:
-                    format = "mjd"
-
+                format = get_hdf5_attr(tab.attrs, colname + "_TIME_FORMAT", "mjd")
                 tr = TimeColumnTransform(scale=scale, format=format)
                 self.add_column_transform(table_name, colname, tr)
 
-    def _map_table_to_containers(self, table_name, containers, prefixes):
+            elif attr.endswith("_TRANSFORM_SCALE"):
+                colname, _, _ = attr.rpartition("_TRANSFORM_SCALE")
+                tr = ScaleColumnTransform(
+                    scale=tab.attrs[attr],
+                    offset=get_hdf5_attr(tab.attrs, colname + "_TRANSFORM_OFFSET", 0),
+                    source_dtype=get_hdf5_attr(
+                        tab.attrs, colname + "_TRANSFORM_DTYPE", "float32"
+                    ),
+                    target_dtype=tab.dtype[colname].base,
+                )
+                self.add_column_transform(table_name, colname, tr)
+
+    def _map_table_to_containers(
+        self, table_name, containers, prefixes, ignore_columns
+    ):
         """ identifies which columns in the table to read into the containers,
         by comparing their names including an optional prefix."""
         tab = self._tables[table_name]
@@ -432,10 +448,14 @@ class HDF5TableReader(TableReader):
             # also check that the container doesn't have fields that are not
             # in the table:
             for colname in container.fields:
+                if colname in ignore_columns:
+                    continue
+
                 if prefix:
                     colname_with_prefix = f"{prefix}_{colname}"
                 else:
                     colname_with_prefix = colname
+
                 if colname_with_prefix not in self._cols_to_read[table_name]:
                     self.log.warning(
                         f"Table {table_name} is missing column {colname_with_prefix} "
@@ -443,7 +463,7 @@ class HDF5TableReader(TableReader):
                         "It will be skipped."
                     )
 
-            # copy all user-defined attributes back to Container.mets
+            # copy all user-defined attributes back to Container.meta
             for key in tab.attrs._f_list():
                 container.meta[key] = tab.attrs[key]
 
@@ -455,7 +475,7 @@ class HDF5TableReader(TableReader):
                     "that does not map to any of the specified containers"
                 )
 
-    def read(self, table_name, containers, prefixes=False):
+    def read(self, table_name, containers, prefixes=False, ignore_columns=None):
         """
         Returns a generator that reads the next row from the table into the
         given container. The generator returns the same container. Note that
@@ -477,6 +497,8 @@ class HDF5TableReader(TableReader):
             of containers.
         """
 
+        ignore_columns = set(ignore_columns) if ignore_columns is not None else set()
+
         return_iterable = True
         if isinstance(containers, Container):
             containers = (containers,)
@@ -491,7 +513,7 @@ class HDF5TableReader(TableReader):
         assert len(prefixes) == len(containers)
 
         if table_name not in self._tables:
-            tab = self._setup_table(table_name, containers, prefixes)
+            tab = self._setup_table(table_name, containers, prefixes, ignore_columns)
         else:
             tab = self._tables[table_name]
 
@@ -586,8 +608,8 @@ class ScaleColumnTransform(ColumnTransform):
     def __init__(self, scale, offset, source_dtype, target_dtype):
         self.scale = scale
         self.offset = offset
-        self.source_dtype = source_dtype
-        self.target_dtype = target_dtype
+        self.source_dtype = np.dtype(source_dtype)
+        self.target_dtype = np.dtype(target_dtype)
 
     def __call__(self, value):
         return (value * self.scale).astype(self.target_dtype) + self.offset
@@ -599,7 +621,7 @@ class ScaleColumnTransform(ColumnTransform):
         return {
             f"{colname}_TRANSFORM_SCALE": self.scale,
             f"{colname}_TRANSFORM_DTYPE": str(self.source_dtype),
-            "f{colname}_TRANSFORM_OFFSET": self.offset,
+            f"{colname}_TRANSFORM_OFFSET": self.offset,
         }
 
 

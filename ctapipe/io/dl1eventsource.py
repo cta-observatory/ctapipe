@@ -10,6 +10,7 @@ from ctapipe.io.datalevels import DataLevel
 from ctapipe.containers import (
     ConcentrationContainer,
     ArrayEventContainer,
+    DL1CameraContainer,
     EventIndexContainer,
     HillasParametersContainer,
     IntensityStatisticsContainer,
@@ -208,11 +209,15 @@ class DL1EventSource(EventSource):
         data.meta["input_url"] = self.input_url
         data.meta["max_events"] = self.max_events
 
+        self.reader = HDF5TableReader(self.file_)
+
         if DataLevel.DL1_IMAGES in self.datalevels:
-            image_iterators = {
-                tel.name: self.file_.root.dl1.event.telescope.images[
-                    tel.name
-                ].iterrows()
+            image_readers = {
+                tel.name: self.reader.read(
+                    f"/dl1/event/telescope/images/{tel.name}",
+                    DL1CameraContainer(),
+                    ignore_columns={"parameters"},
+                )
                 for tel in self.file_.root.dl1.event.telescope.images
             }
             if self.has_simulated_dl1:
@@ -225,7 +230,7 @@ class DL1EventSource(EventSource):
 
         if DataLevel.DL1_PARAMETERS in self.datalevels:
             param_readers = {
-                tel.name: HDF5TableReader(self.file_).read(
+                tel.name: self.reader.read(
                     f"/dl1/event/telescope/parameters/{tel.name}",
                     containers=[
                         HillasParametersContainer(),
@@ -242,7 +247,7 @@ class DL1EventSource(EventSource):
             }
             if self.has_simulated_dl1:
                 simulated_param_readers = {
-                    tel.name: HDF5TableReader(self.file_).read(
+                    tel.name: self.reader.read(
                         f"/simulation/event/telescope/parameters/{tel.name}",
                         containers=[
                             HillasParametersContainer(),
@@ -266,7 +271,9 @@ class DL1EventSource(EventSource):
 
         # Setup iterators for the array events
         events = HDF5TableReader(self.file_).read(
-            "/dl1/event/subarray/trigger", [TriggerContainer(), EventIndexContainer()]
+            "/dl1/event/subarray/trigger",
+            [TriggerContainer(), EventIndexContainer()],
+            ignore_columns={"tel"},
         )
 
         array_pointing_finder = IndexFinder(
@@ -312,25 +319,25 @@ class DL1EventSource(EventSource):
                 data.simulation.shower = next(mc_shower_reader)
 
             for tel in data.trigger.tel.keys():
+                key = f"tel_{tel:03d}"
                 if self.allowed_tels and tel not in self.allowed_tels:
                     continue
                 if self.has_simulated_dl1:
                     simulated = data.simulation.tel[tel]
-                dl1 = data.dl1.tel[tel]
+
                 if DataLevel.DL1_IMAGES in self.datalevels:
-                    if f"tel_{tel:03d}" not in image_iterators.keys():
+                    if key not in image_readers:
                         logger.debug(
                             f"Triggered telescope {tel} is missing "
                             "from the image table."
                         )
                         continue
-                    image_row = next(image_iterators[f"tel_{tel:03d}"])
-                    dl1.image = image_row["image"]
-                    dl1.peak_time = image_row["peak_time"]
-                    dl1.image_mask = image_row["image_mask"]
+
+                    dl1 = next(image_readers[key])
+                    data.dl1.tel[tel] = dl1
 
                     if self.has_simulated_dl1:
-                        if f"tel_{tel:03d}" not in simulated_image_iterators.keys():
+                        if key not in simulated_image_iterators:
                             logger.warning(
                                 f"Triggered telescope {tel} is missing "
                                 "from the simulated image table, but was present at the "
@@ -390,7 +397,7 @@ class DL1EventSource(EventSource):
         """
         # Only unique pointings are stored, so reader.read() wont work as easily
         # Thats why we match the pointings based on trigger time
-        closest_time_index = array_pointing_finder.closest(data.trigger.time)
+        closest_time_index = array_pointing_finder.closest(data.trigger.time.mjd)
         array_pointing = self.file_.root.dl1.monitoring.subarray.pointing
         data.pointing.array_azimuth = u.Quantity(
             array_pointing[closest_time_index]["array_azimuth"],
