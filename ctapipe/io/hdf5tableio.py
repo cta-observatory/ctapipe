@@ -3,11 +3,12 @@ import enum
 from functools import partial
 from pathlib import PurePath
 import re
+from abc import ABCMeta, abstractmethod
 
 import numpy as np
 import tables
 from astropy.time import Time
-from astropy.units import Quantity
+from astropy.units import Quantity, Unit
 
 import ctapipe
 from .tableio import TableWriter, TableReader
@@ -169,14 +170,9 @@ class HDF5TableWriter(TableWriter):
                 value = self._apply_col_transform(table_name, col_name, value)
 
                 if isinstance(value, enum.Enum):
-
-                    def transform(enum_value):
-                        """transform enum instance into its (integer) value"""
-                        return enum_value.value
-
-                    meta[f"{col_name}_ENUM"] = value.__class__
-                    value = transform(value)
-                    self.add_column_transform(table_name, col_name, transform)
+                    tr = EnumColumnTransform(enum=value.__class__)
+                    value = tr(value)
+                    self.add_column_transform(table_name, col_name, tr)
 
                 if isinstance(value, Quantity):
                     if self.add_prefix and container.prefix:
@@ -185,9 +181,7 @@ class HDF5TableWriter(TableWriter):
                         key = col_name
 
                     unit = container.fields[key].unit or value.unit
-                    tr = partial(tr_convert_and_strip_unit, unit=unit)
-                    meta[f"{col_name}_UNIT"] = unit.to_string("vounit")
-
+                    tr = QuantityColumnTransform(unit=unit)
                     value = tr(value)
                     self.add_column_transform(table_name, col_name, tr)
 
@@ -200,15 +194,13 @@ class HDF5TableWriter(TableWriter):
                 elif isinstance(value, Time):
                     # TODO: really should use MET, but need a func for that
                     Schema.columns[col_name] = tables.Float64Col(pos=pos)
-                    meta[f"{col_name}_TIME_SCALE"] = "tai"
-                    meta[f"{col_name}_TIME_FORMAT"] = "mjd"
-                    self.add_column_transform(table_name, col_name, tr_time_to_mjd_tai)
+                    tr = TimeColumnTransform(scale="tai", format="mjd")
+                    self.add_column_transform(table_name, col_name, tr)
 
                 elif type(value).__name__ in PYTABLES_TYPE_MAP:
                     typename = type(value).__name__
                     coltype = PYTABLES_TYPE_MAP[typename]
                     Schema.columns[col_name] = coltype(pos=pos)
-
                 else:
                     self.log.warning(
                         f"Column {col_name} of "
@@ -216,6 +208,11 @@ class HDF5TableWriter(TableWriter):
                         f"table {table_name} not writable, skipping"
                     )
                     continue
+
+                # add meta fields of transform
+                transform = self._transforms[table_name].get(col_name)
+                if transform is not None:
+                    meta.update(transform.get_meta(col_name))
 
                 pos += 1
 
@@ -230,7 +227,8 @@ class HDF5TableWriter(TableWriter):
                 self.log.debug(
                     f"Table {table_name}: "
                     f"added col: {col_name} type: "
-                    f"{typename} shape: {shape}"
+                    f"{typename} shape: {shape} "
+                    f"with transform: {transform} "
                 )
 
         self._schemas[table_name] = Schema
@@ -393,13 +391,13 @@ class HDF5TableReader(TableReader):
         for attr in attrs:
             if attr.endswith("_UNIT"):
                 colname = attr[:-5]
-                tr = partial(tr_add_unit, unitname=tab.attrs[attr])
+                tr = QuantityColumnTransform(unit=Unit(tab.attrs[attr]))
                 self.add_column_transform(table_name, colname, tr)
 
             elif attr.endswith("_ENUM"):
                 colname = attr[:-5]
-                enum = tab.attrs[attr]
-                self.add_column_transform(table_name, colname, enum)
+                tr = EnumColumnTransform(tab.attrs[attr])
+                self.add_column_transform(table_name, colname, tr)
 
             elif attr.endswith("_TIME_SCALE"):
                 colname, _, _ = attr.rpartition("_TIME_SCALE")
@@ -409,7 +407,7 @@ class HDF5TableReader(TableReader):
                 else:
                     format = "mjd"
 
-                tr = partial(tr_parse_time, scale=scale, format=format)
+                tr = TimeColumnTransform(scale=scale, format=format)
                 self.add_column_transform(table_name, colname, tr)
 
     def _map_table_to_containers(self, table_name, containers, prefixes):
@@ -522,10 +520,6 @@ class HDF5TableReader(TableReader):
             row_count += 1
 
 
-def tr_convert_and_strip_unit(quantity, unit):
-    return quantity.to_value(unit)
-
-
 def tr_list_to_mask(thelist, length):
     """ transform list to a fixed-length mask"""
     arr = np.zeros(shape=length, dtype=np.bool)
@@ -533,16 +527,92 @@ def tr_list_to_mask(thelist, length):
     return arr
 
 
-def tr_time_to_mjd_tai(thetime: Time):
+class ColumnTransform(metaclass=ABCMeta):
+    @abstractmethod
+    def __call__(self, value):
+        pass
+
+    def inverse(self, value):
+        """No inverse transform by default"""
+        return value
+
+    def get_meta(self, colname):
+        """Empty meta by default"""
+        return {}
+
+
+class TimeColumnTransform(ColumnTransform):
+    def __init__(self, scale, format):
+        self.scale = scale
+        self.format = format
+
+    def __call__(self, value: Time):
+        """
+        Convert an astropy time object to an mjd value in tai scale
+        """
+        return getattr(getattr(value, self.scale), self.format)
+
+    def inverse(self, value):
+        return Time(value, scale=self.scale, format=self.format, copy=False)
+
+    def get_meta(self, colname):
+        return {
+            f"{colname}_TIME_FORMAT": self.format,
+            f"{colname}_TIME_SCALE": self.scale,
+        }
+
+
+class QuantityColumnTransform(ColumnTransform):
+    def __init__(self, unit):
+        self.unit = unit
+
+    def __call__(self, value):
+        return value.to_value(self.unit)
+
+    def inverse(self, value):
+        return Quantity(value, self.unit, copy=False)
+
+    def get_meta(self, colname):
+        return {f"{colname}_UNIT": self.unit.to_string("vounit")}
+
+
+class ScaleColumnTransform(ColumnTransform):
     """
-    Convert an astropy time object to an mjd value in tai scale
+    Transform value of a column according to:
+
+    new_value = (scale * value).astype(target_dtype) + offset
     """
-    return thetime.tai.mjd
+
+    def __init__(self, scale, offset, source_dtype, target_dtype):
+        self.scale = scale
+        self.offset = offset
+        self.source_dtype = source_dtype
+        self.target_dtype = target_dtype
+
+    def __call__(self, value):
+        return (value * self.scale).astype(self.target_dtype) + self.offset
+
+    def inverse(self, value):
+        return (value - self.offset).astype(self.source_dtype) / self.scale
+
+    def get_meta(self, colname: str):
+        return {
+            f"{colname}_TRANSFORM_SCALE": self.scale,
+            f"{colname}_TRANSFORM_DTYPE": str(self.source_dtype),
+            "f{colname}_TRANSFORM_OFFSET": self.offset,
+        }
 
 
-def tr_parse_time(time, scale, format):
-    return Time(time, scale=scale, format=format)
+class EnumColumnTransform(ColumnTransform):
+    def __init__(self, enum):
+        self.enum = enum
 
+    @staticmethod
+    def __call__(value):
+        return value.value
 
-def tr_add_unit(value, unitname):
-    return Quantity(value, unitname, copy=False)
+    def inverse(self, value):
+        return self.enum(value)
+
+    def get_meta(self, colname):
+        return {f"{colname}_ENUM": self.enum}

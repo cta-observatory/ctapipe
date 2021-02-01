@@ -164,7 +164,7 @@ class TableReader(Component, metaclass=ABCMeta):
         """
         if col_name in self._transforms[table_name]:
             tr = self._transforms[table_name][col_name]
-            value = tr(value)
+            value = tr.inverse(value)
         return value
 
     @abstractmethod

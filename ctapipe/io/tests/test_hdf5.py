@@ -16,7 +16,7 @@ from ctapipe.containers import (
     HillasParametersContainer,
     LeakageContainer,
 )
-from ctapipe.io.hdf5tableio import HDF5TableWriter, HDF5TableReader
+from ctapipe.io.hdf5tableio import ColumnTransform, HDF5TableWriter, HDF5TableReader
 
 
 @pytest.fixture(scope="session")
@@ -573,14 +573,16 @@ def test_column_transforms(tmp_path):
 
     cont = SomeContainer()
 
-    def my_transform(x):
+    class MyTransform(ColumnTransform):
         """ makes a length-3 array from x"""
-        return np.ones(3) * x
+
+        def __call__(self, value):
+            return np.ones(3) * value
 
     with HDF5TableWriter(tmp_file, group_name="data") as writer:
         # add user generated transform for the "value" column
         cont.value = 6.0
-        writer.add_column_transform("mytable", "value", my_transform)
+        writer.add_column_transform("mytable", "value", MyTransform())
         writer.write("mytable", cont)
 
     # check that we get a length-3 array when reading back
