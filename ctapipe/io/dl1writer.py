@@ -143,12 +143,12 @@ class DL1Writer(Component):
     transform_image = Bool(default_value=False).tag(config=True)
     image_dtype = Unicode(default_value="int32").tag(config=True)
     image_offset = Int(default_value=0).tag(config=True)
-    image_scale = Float(default_value=100.0).tag(config=True)
+    image_scale = Float(default_value=10.0).tag(config=True)
 
     transform_peak_time = Bool(default_value=False).tag(config=True)
-    peak_time_dtype = Unicode(default_value="int32").tag(config=True)
+    peak_time_dtype = Unicode(default_value="int16").tag(config=True)
     peak_time_offset = Int(default_value=0).tag(config=True)
-    peak_time_scale = Float(default_value=10.0).tag(config=True)
+    peak_time_scale = Float(default_value=100.0).tag(config=True)
 
     def __init__(self, event_source: EventSource, config=None, parent=None, **kwargs):
         """
