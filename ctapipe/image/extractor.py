@@ -619,13 +619,8 @@ class SlidingWindowMaxSum(ImageExtractor):
         This method is decorated with @lru_cache to ensure it is only
         calculated once per telescope.
 
-        WARNING: TO BE DONE properly, the current code reuses the function of
-        LocalPeakWindowSum assuming that the pulse is symmetric (which normally is not
-        true). The proper approach would be to apply a similar sliding window over the
-        reference pulse shape and compute the maximum fraction of the pulse contained
-        in window of a given size. Thus the correction for the leakage of signal outside
-        of the integration window is slightly overestimated.
-        
+        The same procedure as for the actual SlidingWindowMaxSum extractor is used, but
+        on the reference pulse_shape (that is also more finely binned)
 
         Parameters
         ----------
@@ -640,13 +635,33 @@ class SlidingWindowMaxSum(ImageExtractor):
         """
 
         readout = self.subarray.tel[telid].camera.readout
-        return integration_correction(
-            readout.reference_pulse_shape,
-            readout.reference_pulse_sample_width.to_value("ns"),
-            (1 / readout.sampling_rate).to_value("ns"),
-            self.window_width.tel[telid],
-            self.window_width.tel[telid] // 2,  # assuming that shift = 0.5 * window
+
+        # compute the number of slices to integrate in the pulse template
+        width_shape = int(
+            round(
+                (
+                    self.window_width.tel[telid]
+                    / readout.sampling_rate
+                    / readout.reference_pulse_sample_width
+                )
+                .to("")
+                .value
+            )
         )
+
+        n_channels = len(readout.reference_pulse_shape)
+        correction = np.ones(n_channels, dtype=np.float)
+        for ichannel, pulse_shape in enumerate(readout.reference_pulse_shape):
+
+            # apply the same method as sliding window to find the highest sum
+            cwf = np.cumsum(pulse_shape)
+            # add zero at the begining so it is easier to substract the two arrays later
+            cwf = np.concatenate((np.zeros(1), cwf))
+            sums = cwf[width_shape:] - cwf[:-width_shape]
+            maxsum = np.max(sums)
+            correction[ichannel] = np.sum(pulse_shape) / maxsum
+
+        return correction
 
     def __call__(self, waveforms, telid, selected_gain_channel):
         charge, peak_time = extract_sliding_window(
