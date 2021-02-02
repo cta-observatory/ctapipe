@@ -28,6 +28,9 @@ from ...core.traits import FloatTelescopeParameter, IntTelescopeParameter
 # ratio of the areas of the unit circle and a square of side lengths 2
 CIRCLE_SQUARE_AREA_RATIO = np.pi / 4
 
+# Sqrt of 2, as it is needed multiple times
+SQRT2 = np.sqrt(2)
+
 
 @vectorize([double(double, double, double)])
 def chord_length(radius, rho, phi):
@@ -215,7 +218,7 @@ def gaussian_cdf(x, mu, sig):
     -------
     float: cdf-value at x
     """
-    return 0.5 * (1 + erf((x - mu) / (np.sqrt(2 * sig ** 2))))
+    return 0.5 * (1 + erf((x - mu) / (SQRT2 * sig)))
 
 
 def image_prediction_no_units(
