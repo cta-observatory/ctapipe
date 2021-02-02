@@ -67,7 +67,8 @@ def test_tailcuts_data_volume_reducer(subarray_lst):
                     "min_picture_neighbors": 0,
                     "keep_isolated_pixels": True,
                 },
-                "image_extractor_type": "NeighborPeakWindowSum",
+                "image_extractor_type": "FixedWindowSum",
+                "FixedWindowSum": {"apply_integration_correction": False},
                 "n_end_dilates": 1,
                 "do_boundary_dilation": True,
             }
