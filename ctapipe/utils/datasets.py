@@ -38,7 +38,7 @@ def get_searchpath_dirs(searchpath=os.getenv("CTAPIPE_SVC_PATH")):
     else:
         searchpaths = [Path(p) for p in os.path.expandvars(searchpath).split(":")]
 
-    searchpaths.append(get_cache_path(""))
+    searchpaths.append(get_cache_path(DEFAULT_URL))
 
     return searchpaths
 
@@ -175,7 +175,7 @@ def try_filetypes(basename, role, file_types, **kwargs):
     # look first in cache so we don't have to try non-existing downloads
     for ext, reader in file_types.items():
         filename = basename + ext
-        cache_path = get_cache_path(filename)
+        cache_path = get_cache_path(os.path.join(DEFAULT_URL, filename))
         if cache_path.exists():
             path = cache_path
             break
