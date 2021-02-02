@@ -231,8 +231,8 @@ class EventSource(Component):
         """
         Check if any of `datalevels` is in self.datalevels
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         datalevels: Iterable
             Iterable of datalevels
         """

@@ -42,4 +42,4 @@ dependencies:
   - xz
   - zlib
   - zstandard
-  - conda-forge::eventio>=1.1.1
+  - conda-forge::eventio>=1.5.0

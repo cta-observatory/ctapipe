@@ -8,6 +8,7 @@ import pathlib
 from ctapipe.core import Component, TelescopeComponent
 from ctapipe.core.traits import (
     Float,
+    Bool,
     Path,
     TraitError,
     classes_with_traits,
@@ -444,20 +445,39 @@ def test_telescope_parameter_from_cli(mock_subarray):
     class SomeComponent(TelescopeComponent):
         path = TelescopeParameter(Path(), default_value=None).tag(config=True)
         val = TelescopeParameter(Float(), default_value=1.0).tag(config=True)
+        flag = TelescopeParameter(Bool(), default_value=True).tag(config=True)
 
-    class TelescopeTool(Tool):
-        def setup(self):
-            self.comp = SomeComponent(subarray=mock_subarray, parent=self)
+    # test with and without SomeComponent in classes
+    for tool_classes in [[], [SomeComponent]]:
 
-    tool = TelescopeTool()
-    run_tool(tool)
-    assert tool.comp.path == [("type", "*", None)]
-    assert tool.comp.val == [("type", "*", 1.0)]
+        class TelescopeTool(Tool):
+            classes = tool_classes
 
-    tool = TelescopeTool()
-    run_tool(tool, ["--SomeComponent.path", "test.h5", "--SomeComponent.val", "2.0"])
-    assert tool.comp.path == [("type", "*", pathlib.Path("test.h5").absolute())]
-    assert tool.comp.val == [("type", "*", 2.0)]
+            def setup(self):
+                self.comp = SomeComponent(subarray=mock_subarray, parent=self)
+
+        tool = TelescopeTool()
+        assert run_tool(tool) == 0
+        assert tool.comp.path == [("type", "*", None)]
+        assert tool.comp.val == [("type", "*", 1.0)]
+        assert tool.comp.flag == [("type", "*", True)]
+
+        tool = TelescopeTool()
+        result = run_tool(
+            tool,
+            [
+                "--SomeComponent.path",
+                "test.h5",
+                "--SomeComponent.val",
+                "2.0",
+                "--SomeComponent.flag",
+                "False",
+            ],
+        )
+        assert result == 0
+        assert tool.comp.path == [("type", "*", pathlib.Path("test.h5").absolute())]
+        assert tool.comp.val == [("type", "*", 2.0)]
+        assert tool.comp.flag == [("type", "*", False)]
 
 
 def test_datetimes():
