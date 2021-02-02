@@ -39,16 +39,16 @@ def chord_length(radius, rho, phi):
 
     Parameters
     ----------
-    radius: float
+    radius: float or ndarray
         radius of circle
-    rho: float
+    rho: float or ndarray
         fractional distance of impact point from circle center
-    phi: float in radians
+    phi: float or ndarray in radians
         rotation angles to calculate length
 
     Returns
     -------
-    float:
+    float or ndarray:
         chord length
     """
     chord = 1 - (rho ** 2 * np.sin(phi) ** 2)
@@ -207,16 +207,16 @@ def gaussian_cdf(x, mu, sig):
 
     Parameters
     ----------
-    x: float
+    x: float or ndarray
         point, at which the cdf should be evaluated
-    mu: float
+    mu: float or ndarray
         gaussian mean
-    sig: float
-        gaussian standart deviation
+    sig: float or ndarray
+        gaussian standard deviation
 
     Returns
     -------
-    float: cdf-value at x
+    float or ndarray: cdf-value at x
     """
     return 0.5 * (1 + erf((x - mu) / (SQRT2 * sig)))
 
