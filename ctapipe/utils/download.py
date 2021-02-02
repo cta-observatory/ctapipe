@@ -4,6 +4,7 @@ from pathlib import Path
 import logging
 from tqdm import tqdm
 from urllib.parse import urlparse
+import time
 
 
 log = logging.getLogger(__name__)
@@ -51,7 +52,7 @@ def download_file(url, path, auth=None, chunk_size=10240, progress=False):
                 for chunk in r.iter_content(chunk_size=chunk_size):
                     f.write(chunk)
                     pbar.update(len(chunk))
-        except Exception:
+        except:  # we really want to catch everythin here
             # cleanup part file if something goes wrong
             if part_file.is_file():
                 part_file.unlink()
@@ -116,6 +117,12 @@ def download_file_cached(
     url = base_url + "/" + str(name).lstrip("/")
 
     path = get_cache_path(url, cache_name=cache_name)
+    part_file = path.with_suffix(path.suffix + ".part")
+
+    if part_file.is_file():
+        log.warning("Another download for this file is already running, waiting.")
+        while part_file.is_file():
+            time.sleep(1)
 
     # if we already dowloaded the file, just use it
     if path.is_file():
