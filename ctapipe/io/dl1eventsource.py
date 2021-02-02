@@ -28,7 +28,7 @@ from ctapipe.utils import IndexFinder
 logger = logging.getLogger(__name__)
 
 
-COMPATIBLE_DL1_VERSIONS = ["v1.0.0", "v1.0.1", "v1.0.2"]
+COMPATIBLE_DL1_VERSIONS = ["v1.0.0", "v1.0.1", "v1.0.2", "v1.0.3"]
 
 
 class DL1EventSource(EventSource):
@@ -44,8 +44,8 @@ class DL1EventSource(EventSource):
     method. An event equals an ArrayEventContainer instance.
     See ctapipe.containers.ArrayEventContainer for details.
 
-    Attributes:
-    -----------
+    Attributes
+    ----------
     input_url: str
         Path to the input event file.
     file: tables.File
