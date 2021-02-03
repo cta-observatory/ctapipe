@@ -1,8 +1,13 @@
 from ctapipe.instrument import CameraGeometry
 from ctapipe.image import tailcuts_clean, toymodel
-from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
+from ctapipe.image.hillas import (
+    hillas_parameters,
+    nominal_hillas_parameters,
+    HillasParameterizationError,
+)
 from ctapipe.containers import HillasParametersContainer
 from astropy.coordinates import Angle
+from ctapipe.coordinates import NominalFrame, CameraFrame
 from astropy import units as u
 import numpy as np
 from numpy import isclose, zeros_like
@@ -10,6 +15,9 @@ from numpy.random import seed
 from pytest import approx
 import itertools
 import pytest
+from astropy.time import Time
+from astropy.coordinates import EarthLocation
+from astropy.coordinates import SkyCoord, AltAz
 
 
 def create_sample_image(
@@ -28,11 +36,7 @@ def create_sample_image(
     model = toymodel.Gaussian(x=x, y=y, width=width, length=length, psi=psi)
 
     # generate toymodel image in camera for this shower model.
-    image, _, _ = model.generate_image(
-        geom,
-        intensity=1500,
-        nsb_level_pe=3,
-    )
+    image, _, _ = model.generate_image(geom, intensity=1500, nsb_level_pe=3)
 
     # calculate pixels likely containing signal
     clean_mask = tailcuts_clean(geom, image, 10, 5)
@@ -131,18 +135,10 @@ def test_with_toy():
         for psi in psis:
 
             # make a toymodel shower model
-            model = toymodel.Gaussian(
-                x=x,
-                y=y,
-                width=width,
-                length=length,
-                psi=psi,
-            )
+            model = toymodel.Gaussian(x=x, y=y, width=width, length=length, psi=psi)
 
             image, signal, noise = model.generate_image(
-                geom,
-                intensity=intensity,
-                nsb_level_pe=5,
+                geom, intensity=intensity, nsb_level_pe=5
             )
 
             result = hillas_parameters(geom, signal)
@@ -178,19 +174,10 @@ def test_skewness():
     for x, y, psi, skew in itertools.product(xs, ys, psis, skews):
         # make a toymodel shower model
         model = toymodel.SkewedGaussian(
-            x=x,
-            y=y,
-            width=width,
-            length=length,
-            psi=psi,
-            skewness=skew,
+            x=x, y=y, width=width, length=length, psi=psi, skewness=skew
         )
 
-        _, signal, _ = model.generate_image(
-            geom,
-            intensity=intensity,
-            nsb_level_pe=5,
-        )
+        _, signal, _ = model.generate_image(geom, intensity=intensity, nsb_level_pe=5)
 
         result = hillas_parameters(geom, signal)
 
@@ -268,3 +255,89 @@ def test_single_pixel():
     assert hillas.length.value == 0
     assert hillas.width.value == 0
     assert np.isnan(hillas.psi)
+
+
+def test_reconstruction_in_nominal_frame():
+    np.random.seed(42)
+
+    obstime = Time("2013-11-01T03:00")
+    location = EarthLocation.of_site("Roque de los Muchachos")
+    focal_length = 28 * u.m
+    horizon_frame = AltAz(location=location, obstime=obstime)
+    pointing = SkyCoord(alt=70 * u.deg, az=180 * u.deg, frame=horizon_frame)
+    nominal_frame = NominalFrame(origin=pointing, obstime=obstime, location=location)
+    camera_frame = CameraFrame(
+        telescope_pointing=pointing,
+        focal_length=focal_length,
+        obstime=obstime,
+        location=location,
+    )
+
+    geom = CameraGeometry.from_name("LSTCam")
+    nominal_pixel_positions = SkyCoord(
+        x=geom.pix_x, y=geom.pix_y, frame=camera_frame
+    ).transform_to(nominal_frame)
+
+    width = 0.03 * u.m
+    length = 0.15 * u.m
+    intensity = 500
+
+    xs = u.Quantity([0.5, 0.5, -0.5, -0.5], u.m)
+    ys = u.Quantity([0.5, -0.5, 0.5, -0.5], u.m)
+    psis = Angle([-90, -45, 0, 45, 90], unit="deg")
+
+    def distance(coord):
+        return np.sqrt(np.diff(coord.x) ** 2 + np.diff(coord.y) ** 2) / 2
+
+    for x, y in zip(xs, ys):
+        for psi in psis:
+            # make a toymodel shower model
+            model = toymodel.Gaussian(x=x, y=y, width=width, length=length, psi=psi)
+
+            image, signal, noise = model.generate_image(
+                geom, intensity=intensity, nsb_level_pe=5
+            )
+
+            nominal_result = nominal_hillas_parameters(nominal_pixel_positions, signal)
+            assert u.isclose(np.abs(nominal_result.lon), 1 * u.deg, rtol=0.1)
+            assert u.isclose(np.abs(nominal_result.lat), 1 * u.deg, rtol=0.1)
+            assert u.isclose(nominal_result.width, 0.06 * u.deg, rtol=0.1)
+            assert u.isclose(nominal_result.width_uncertainty, 0.002 * u.deg, rtol=0.4)
+            assert u.isclose(nominal_result.length, 0.3 * u.deg, rtol=0.1)
+            assert u.isclose(nominal_result.length_uncertainty, 0.01 * u.deg, rtol=0.4)
+            assert signal.sum() == nominal_result.intensity
+
+            # Compare results with calculation in the camera frame
+            camera_result = hillas_parameters(geom, signal)
+
+            transformed_cog = SkyCoord(
+                fov_lon=nominal_result.lon,
+                fov_lat=nominal_result.lat,
+                frame=nominal_frame,
+            ).transform_to(camera_frame)
+            assert u.isclose(transformed_cog.x, camera_result.x, rtol=0.01)
+            assert u.isclose(transformed_cog.y, camera_result.y, rtol=0.01)
+
+            main_edges = u.Quantity([-nominal_result.length, nominal_result.length])
+            main_lon = main_edges * np.cos(nominal_result.psi) + nominal_result.lon
+            main_lat = main_edges * np.sin(nominal_result.psi) + nominal_result.lat
+            cam_main_axis = SkyCoord(
+                fov_lon=main_lon, fov_lat=main_lat, frame=nominal_frame
+            ).transform_to(camera_frame)
+            transformed_length = distance(cam_main_axis)
+            assert u.isclose(transformed_length, camera_result.length, rtol=0.01)
+
+            secondary_edges = u.Quantity(
+                [-nominal_result.length, nominal_result.length]
+            )
+            secondary_lon = (
+                secondary_edges * np.cos(nominal_result.psi) + nominal_result.lon
+            )
+            secondary_lat = (
+                secondary_edges * np.sin(nominal_result.psi) + nominal_result.lat
+            )
+            cam_secondary_edges = SkyCoord(
+                fov_lon=secondary_lon, fov_lat=secondary_lat, frame=nominal_frame
+            ).transform_to(camera_frame)
+            transformed_width = distance(cam_secondary_edges)
+            assert u.isclose(transformed_width, camera_result.length, rtol=0.01)
