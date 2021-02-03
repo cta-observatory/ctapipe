@@ -1,17 +1,28 @@
+"""
+Test of sliding window extractor for LST camera pulse shape with
+the correction for the integration window completeness
+"""
+
 import numpy as np
 import astropy.units as u
 from numpy.testing import assert_allclose
 
-from ctapipe.image.extractor import SlidingWindowMaxSum
+from ctapipe.image.extractor import SlidingWindowMaxSum, ImageExtractor
 from ctapipe.image.toymodel import WaveformModel
 from ctapipe.instrument import SubarrayDescription, TelescopeDescription
 
 from ctapipe.utils import datasets
+from traitlets.config.loader import Config
 
 
 def test_sw_pulse_lst(monkeypatch):
-    with monkeypatch.context() as m:
-        m.setattr(
+    """
+    Test function of sliding window extractor for LST camera pulse shape with
+the correction for the integration window completeness
+    """
+
+    with monkeypatch.context() as monkey_patch:
+        monkey_patch.setattr(
             datasets,
             "DEFAULT_URL",
             "http://cccta-dataserver.in2p3.fr/data/ctapipe-extra/v0.3.2/",
@@ -35,9 +46,9 @@ def test_sw_pulse_lst(monkeypatch):
         readout = subarray.tel[telid].camera.readout
 
         random = np.random.RandomState(1)
-        minCharge = 100
-        maxCharge = 1000
-        charge_true = random.uniform(minCharge, maxCharge, n_pixels)
+        min_charge = 100
+        max_charge = 1000
+        charge_true = random.uniform(min_charge, max_charge, n_pixels)
         time_true = random.uniform(
             n_samples // 2 - 1, n_samples // 2 + 1, n_pixels
         ) / readout.sampling_rate.to_value(u.GHz)
@@ -47,9 +58,12 @@ def test_sw_pulse_lst(monkeypatch):
         selected_gain_channel = np.zeros(charge_true.size, dtype=np.int)
 
         # define extractor
-        extr_width = 8
+        config = Config({"SlidingWindowMaxSum": {"window_width": 8}})
         extractor = SlidingWindowMaxSum(subarray=subarray)
-        extractor.window_width = extr_width
-        charge, peak_time = extractor(waveform, telid, selected_gain_channel)
+        extractor = ImageExtractor.from_name(
+            "SlidingWindowMaxSum", subarray=subarray, config=config
+        )
+
+        charge, _ = extractor(waveform, telid, selected_gain_channel)
         print(charge / charge_true)
         assert_allclose(charge, charge_true, rtol=0.02)
