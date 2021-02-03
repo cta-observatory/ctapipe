@@ -6,13 +6,13 @@ the correction for the integration window completeness
 import numpy as np
 import astropy.units as u
 from numpy.testing import assert_allclose
+from traitlets.config.loader import Config
 
 from ctapipe.image.extractor import SlidingWindowMaxSum, ImageExtractor
 from ctapipe.image.toymodel import WaveformModel
 from ctapipe.instrument import SubarrayDescription, TelescopeDescription
 
 from ctapipe.utils import datasets
-from traitlets.config.loader import Config
 
 
 def test_sw_pulse_lst(monkeypatch):
