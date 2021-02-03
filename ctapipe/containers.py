@@ -122,6 +122,30 @@ class HillasParametersContainer(Container):
     kurtosis = Field(nan, "measure of the tailedness")
 
 
+class NominalHillasParametersContainer(Container):
+    container_prefix = "hillas_nominal"
+
+    intensity = Field(nan, "total intensity (size)")
+
+    lon = Field(nan * u.deg, "centroid longitude in the nominal frame", unit=u.deg)
+    lat = Field(nan * u.deg, "centroid latitude in the nominal frame", unit=u.deg)
+    r = Field(
+        nan * u.deg, "radial coordinate of centroid in the nominal frame", unit=u.deg
+    )
+    phi = Field(
+        nan * u.deg, "polar coordinate of centroid in the nominal frame", unit=u.deg
+    )
+
+    length = Field(nan * u.deg, "standard deviation along the major-axis", unit=u.deg)
+    length_uncertainty = Field(nan * u.deg, "uncertainty of length", unit=u.deg)
+    width = Field(nan * u.deg, "standard spread along the minor-axis", unit=u.deg)
+    width_uncertainty = Field(nan * u.deg, "uncertainty of width", unit=u.deg)
+    psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
+
+    skewness = Field(nan, "measure of the asymmetry")
+    kurtosis = Field(nan, "measure of the tailedness")
+
+
 class LeakageContainer(Container):
     """
     Fraction of signal in 1 or 2-pixel width border from the edge of the
