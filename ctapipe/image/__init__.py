@@ -1,6 +1,5 @@
 from .hillas import (
     hillas_parameters,
-    nominal_hillas_parameters,
     HillasParameterizationError,
     camera_to_shower_coordinates,
 )

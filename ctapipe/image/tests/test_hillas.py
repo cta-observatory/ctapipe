@@ -1,10 +1,6 @@
 from ctapipe.instrument import CameraGeometry
 from ctapipe.image import tailcuts_clean, toymodel
-from ctapipe.image.hillas import (
-    hillas_parameters,
-    nominal_hillas_parameters,
-    HillasParameterizationError,
-)
+from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.containers import HillasParametersContainer
 from astropy.coordinates import Angle
 from ctapipe.coordinates import NominalFrame, CameraFrame
@@ -274,9 +270,6 @@ def test_reconstruction_in_nominal_frame():
     )
 
     geom = CameraGeometry.from_name("LSTCam")
-    nominal_pixel_positions = SkyCoord(
-        x=geom.pix_x, y=geom.pix_y, frame=camera_frame
-    ).transform_to(nominal_frame)
 
     width = 0.03 * u.m
     length = 0.15 * u.m
@@ -289,7 +282,7 @@ def test_reconstruction_in_nominal_frame():
     def distance(coord):
         return np.sqrt(np.diff(coord.x) ** 2 + np.diff(coord.y) ** 2) / 2
 
-    for x, y in zip(xs, ys):
+    for i, (x, y) in enumerate(zip(xs, ys)):
         for psi in psis:
             # make a toymodel shower model
             model = toymodel.Gaussian(x=x, y=y, width=width, length=length, psi=psi)
@@ -298,7 +291,10 @@ def test_reconstruction_in_nominal_frame():
                 geom, intensity=intensity, nsb_level_pe=5
             )
 
-            nominal_result = nominal_hillas_parameters(nominal_pixel_positions, signal)
+            geom.frame = camera_frame
+            geom_nom = geom.transform_to(nominal_frame)
+
+            nominal_result = hillas_parameters(geom_nom, signal)
             assert u.isclose(np.abs(nominal_result.lon), 1 * u.deg, rtol=0.1)
             assert u.isclose(np.abs(nominal_result.lat), 1 * u.deg, rtol=0.1)
             assert u.isclose(nominal_result.width, 0.06 * u.deg, rtol=0.1)
