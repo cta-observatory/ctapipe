@@ -236,7 +236,7 @@ def integration_correction(
         Value of the integration correction for each gain channel
     """
     n_channels = len(reference_pulse_shape)
-    correction = np.ones(n_channels, dtype=np.float)
+    correction = np.ones(n_channels, dtype=np.float64)
     for ichannel, pulse_shape in enumerate(reference_pulse_shape):
         pulse_max_sample = pulse_shape.size * reference_pulse_sample_width_ns
         pulse_shape_x = np.arange(0, pulse_max_sample, reference_pulse_sample_width_ns)

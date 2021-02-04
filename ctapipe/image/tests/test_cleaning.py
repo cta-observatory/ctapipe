@@ -6,7 +6,7 @@ from ctapipe.instrument import CameraGeometry
 
 def test_tailcuts_clean_simple():
     geom = CameraGeometry.from_name("LSTCam")
-    image = np.zeros_like(geom.pix_id, dtype=np.float)
+    image = np.zeros_like(geom.pix_id, dtype=np.float64)
 
     num_pix = 40
     some_neighs = geom.neighbors[num_pix][0:3]  # pick 3 neighbors
@@ -245,7 +245,7 @@ def test_fact_image_cleaning():
 
 def test_apply_time_delta_cleaning():
     geom = CameraGeometry.from_name("LSTCam")
-    peak_time = np.zeros(geom.n_pixels, dtype=np.float)
+    peak_time = np.zeros(geom.n_pixels, dtype=np.float64)
 
     pixel = 40
     neighbours = geom.neighbors[pixel]

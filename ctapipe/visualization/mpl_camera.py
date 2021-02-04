@@ -193,7 +193,7 @@ class CameraDisplay:
         if image is not None:
             self.image = image
         else:
-            self.image = np.zeros_like(self.geom.pix_id, dtype=np.float)
+            self.image = np.zeros_like(self.geom.pix_id, dtype=np.float64)
 
         self.norm = norm
         self.auto_set_axes_labels()

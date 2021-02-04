@@ -40,7 +40,7 @@ def test_tailcuts_data_volume_reducer(subarray_lst):
     subarray, telid, selected_gain_channel, n_pixels, n_samples = subarray_lst
 
     # create signal
-    waveforms_signal = np.zeros((n_pixels, n_samples), dtype=np.float)
+    waveforms_signal = np.zeros((n_pixels, n_samples), dtype=np.float64)
 
     # Should be selected as core-pixel from Step 1) tailcuts_clean
     waveforms_signal[9] = 100
