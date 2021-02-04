@@ -12,6 +12,7 @@ from ctapipe.containers import (
     ArrayEventContainer,
     EventIndexContainer,
     HillasParametersContainer,
+    NominalHillasParametersContainer,
     IntensityStatisticsContainer,
     LeakageContainer,
     MorphologyContainer,
@@ -19,8 +20,10 @@ from ctapipe.containers import (
     SimulatedShowerContainer,
     PeakTimeStatisticsContainer,
     TimingParametersContainer,
+    NominalTimingParametersContainer,
     TriggerContainer,
     ImageParametersContainer,
+    NominalImageParametersContainer,
 )
 from ctapipe.utils import IndexFinder
 
@@ -28,7 +31,7 @@ from ctapipe.utils import IndexFinder
 logger = logging.getLogger(__name__)
 
 
-COMPATIBLE_DL1_VERSIONS = ["v1.0.0", "v1.0.1", "v1.0.2", "v1.0.3"]
+COMPATIBLE_DL1_VERSIONS = ["v1.0.0", "v1.0.1", "v1.0.2", "v1.0.3", "v1.0.4"]
 
 
 class DL1EventSource(EventSource):
@@ -228,8 +231,16 @@ class DL1EventSource(EventSource):
                 tel.name: HDF5TableReader(self.file_).read(
                     f"/dl1/event/telescope/parameters/{tel.name}",
                     containers=[
-                        HillasParametersContainer(),
-                        TimingParametersContainer(),
+                        (
+                            NominalHillasParametersContainer()
+                            if (self.datamodel_version >= "1.0.4")
+                            else HillasParametersContainer()
+                        ),
+                        (
+                            NominalTimingParametersContainer()
+                            if (self.datamodel_version >= "1.0.4")
+                            else TimingParametersContainer()
+                        ),
                         LeakageContainer(),
                         ConcentrationContainer(),
                         MorphologyContainer(),
@@ -245,7 +256,11 @@ class DL1EventSource(EventSource):
                     tel.name: HDF5TableReader(self.file_).read(
                         f"/simulation/event/telescope/parameters/{tel.name}",
                         containers=[
-                            HillasParametersContainer(),
+                            (
+                                NominalHillasParametersContainer()
+                                if (self.datamodel_version >= "1.0.4")
+                                else HillasParametersContainer()
+                            ),
                             LeakageContainer(),
                             ConcentrationContainer(),
                             MorphologyContainer(),
@@ -353,15 +368,26 @@ class DL1EventSource(EventSource):
                     # Best would probbaly be if we could directly read
                     # into the ImageParametersContainer
                     params = next(param_readers[f"tel_{tel:03d}"])
-                    dl1.parameters = ImageParametersContainer(
-                        hillas=params[0],
-                        timing=params[1],
-                        leakage=params[2],
-                        concentration=params[3],
-                        morphology=params[4],
-                        intensity_statistics=params[5],
-                        peak_time_statistics=params[6],
-                    )
+                    if self.datamodel_version >= "1.0.4":
+                        dl1.parameters = NominalImageParametersContainer(
+                            hillas=params[0],
+                            timing=params[1],
+                            leakage=params[2],
+                            concentration=params[3],
+                            morphology=params[4],
+                            intensity_statistics=params[5],
+                            peak_time_statistics=params[6],
+                        )
+                    else:
+                        dl1.parameters = ImageParametersContainer(
+                            hillas=params[0],
+                            timing=params[1],
+                            leakage=params[2],
+                            concentration=params[3],
+                            morphology=params[4],
+                            intensity_statistics=params[5],
+                            peak_time_statistics=params[6],
+                        )
 
                     if self.has_simulated_dl1:
                         if f"tel_{tel:03d}" not in param_readers.keys():
@@ -374,13 +400,22 @@ class DL1EventSource(EventSource):
                         simulated_params = next(
                             simulated_param_readers[f"tel_{tel:03d}"]
                         )
-                        simulated.true_parameters = ImageParametersContainer(
-                            hillas=simulated_params[0],
-                            leakage=simulated_params[1],
-                            concentration=simulated_params[2],
-                            morphology=simulated_params[3],
-                            intensity_statistics=simulated_params[4],
-                        )
+                        if self.datamodel_version >= "1.0.4":
+                            simulated.true_parameters = NominalImageParametersContainer(
+                                hillas=simulated_params[0],
+                                leakage=simulated_params[1],
+                                concentration=simulated_params[2],
+                                morphology=simulated_params[3],
+                                intensity_statistics=simulated_params[4],
+                            )
+                        else:
+                            simulated.true_parameters = ImageParametersContainer(
+                                hillas=simulated_params[0],
+                                leakage=simulated_params[1],
+                                concentration=simulated_params[2],
+                                morphology=simulated_params[3],
+                                intensity_statistics=simulated_params[4],
+                            )
 
             yield data
 

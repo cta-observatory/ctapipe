@@ -79,7 +79,7 @@ def test_dl1_data(dl1_file):
         for event in source:
             for tel in event.dl1.tel:
                 assert event.dl1.tel[tel].image.any()
-                assert event.dl1.tel[tel].parameters.hillas.x != np.nan
+                assert event.dl1.tel[tel].parameters.hillas.lon != np.nan
 
 
 def test_pointing(dl1_file):
