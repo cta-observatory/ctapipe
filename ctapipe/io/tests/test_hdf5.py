@@ -567,31 +567,36 @@ def test_read_write_container_with_int_enum(tmp_path):
 
 def test_column_transforms(tmp_path):
     """ ensure a user-added column transform is applied """
+    from ctapipe.containers import NAN_TIME
+    from ctapipe.io.tableio import FixedPointColumnTransform
+
     tmp_file = tmp_path / "test_column_transforms.hdf5"
 
     class SomeContainer(Container):
-        value = Field(-1, "some value that should be transformed")
+        container_prefix = ""
+
+        current = Field(1 * u.A, unit=u.uA)
+        time = Field(NAN_TIME)
+        image = Field(np.array([1.234, 123.456]))
 
     cont = SomeContainer()
 
-    class MyTransform(ColumnTransform):
-        """ makes a length-3 array from x"""
-
-        def __call__(self, value):
-            return np.ones(3) * value
-
     with HDF5TableWriter(tmp_file, group_name="data") as writer:
+        writer.add_column_transform(
+            "mytable", "image", FixedPointColumnTransform(100, 0, np.float64, np.int32)
+        )
         # add user generated transform for the "value" column
-        cont.value = 6.0
-        writer.add_column_transform("mytable", "value", MyTransform())
         writer.write("mytable", cont)
 
     # check that we get a length-3 array when reading back
     with HDF5TableReader(tmp_file, mode="r") as reader:
-        for data in reader.read("/data/mytable", SomeContainer()):
-            print(data)
-            assert data.value.shape == (3,)
-            assert np.allclose(data.value, [6.0, 6.0, 6.0])
+        data = next(reader.read("/data/mytable", SomeContainer()))
+        assert data.current.value == 1e6
+        assert data.current.unit == u.uA
+        assert isinstance(data.time, Time)
+        assert data.time == NAN_TIME
+        # rounded to two digits
+        assert np.all(data.image == np.array([1.23, 123.45]))
 
 
 def test_time(tmp_path):

@@ -2,9 +2,11 @@ import re
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 
-from ctapipe.core import Component
+import numpy as np
 from astropy.time import Time
 from astropy.units import Quantity
+
+from ..core import Component
 
 
 __all__ = ["TableReader", "TableWriter"]
