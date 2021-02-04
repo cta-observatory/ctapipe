@@ -208,7 +208,7 @@ class ColumnTransform(metaclass=ABCMeta):
     ``TableReader`` will call `.inverse`` the reverse the transformation 
     when a transformation is detected in the file through metadata.
 
-    Transformations implemnt ``get_meta`` to provide the necessary metadata
+    Transformations implement ``get_meta`` to provide the necessary metadata
     for inverting the transformation on reading.
     """
 

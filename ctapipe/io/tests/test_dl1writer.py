@@ -129,10 +129,6 @@ def test_dl1writer_int(tmpdir: Path):
         for tel_id, dl1 in event.dl1.tel.items():
             original_image = events[event.count].dl1.tel[tel_id].image
             read_image = dl1.image
-            print()
-            print(original_image[:10])
-            print(read_image[:10])
-            print()
             assert np.allclose(original_image, read_image, atol=0.1)
 
             original_peaktime = events[event.count].dl1.tel[tel_id].peak_time
