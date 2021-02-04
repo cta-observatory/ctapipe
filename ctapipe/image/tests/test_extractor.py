@@ -71,7 +71,7 @@ def get_test_toymodel(subarray, minCharge=100, maxCharge=1000):
     waveform_model = WaveformModel.from_camera_readout(readout)
     waveform = waveform_model.get_waveform(charge, time, n_samples)
 
-    selected_gain_channel = np.zeros(charge.size, dtype=np.int)
+    selected_gain_channel = np.zeros(charge.size, dtype=np.int64)
 
     return waveform, subarray, telid, selected_gain_channel, charge, time
 
@@ -85,7 +85,7 @@ def test_extract_around_peak(toymodel):
     waveforms, _, _, _, _, _ = toymodel
     n_pixels, n_samples = waveforms.shape
     rand = np.random.RandomState(1)
-    peak_index = rand.uniform(0, n_samples, n_pixels).astype(np.int)
+    peak_index = rand.uniform(0, n_samples, n_pixels).astype(np.int64)
     charge, peak_time = extract_around_peak(waveforms, peak_index, 7, 3, 1)
     assert (charge >= 0).all()
     assert (peak_time >= 0).all() and (peak_time <= n_samples).all()

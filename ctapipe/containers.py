@@ -250,7 +250,7 @@ class DL1CameraContainer(Container):
         None,
         "Boolean numpy array where True means the pixel has passed cleaning."
         " Shape: (n_pixel, )",
-        dtype=np.bool,
+        dtype=np.bool_,
         ndim=1,
     )
 

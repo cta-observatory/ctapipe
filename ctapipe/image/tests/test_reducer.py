@@ -21,7 +21,7 @@ def subarray_lst():
 
     n_pixels = subarray.tel[telid].camera.geometry.n_pixels
     n_samples = 30
-    selected_gain_channel = np.zeros(n_pixels, dtype=np.int)
+    selected_gain_channel = np.zeros(n_pixels, dtype=np.int16)
 
     return subarray, telid, selected_gain_channel, n_pixels, n_samples
 
