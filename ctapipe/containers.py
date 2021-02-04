@@ -29,6 +29,8 @@ __all__ = [
     "MonitoringCameraContainer",
     "MonitoringContainer",
     "MorphologyContainer",
+    "NominalHillasParametersContainer",
+    "NominalTimingParametersContainer",
     "ParticleClassificationContainer",
     "PedestalContainer",
     "PixelStatusContainer",
@@ -204,6 +206,24 @@ class TimingParametersContainer(Container):
     )
 
 
+class NominalTimingParametersContainer(Container):
+    """
+    Slope and Intercept of a linear regression of the arrival times
+    along the shower main axis in the nominal frame
+    """
+
+    container_prefix = "nominal_timing"
+    slope = Field(
+        nan / u.deg, "Slope of arrival times along main shower axis", unit=1 / u.deg
+    )
+    intercept = Field(nan, "intercept of arrival times along main shower axis")
+    deviation = Field(
+        nan,
+        "Root-mean-square deviation of the pulse times "
+        "with respect to the predicted time",
+    )
+
+
 class MorphologyContainer(Container):
     """ Parameters related to pixels surviving image cleaning """
 
@@ -250,6 +270,23 @@ class ImageParametersContainer(Container):
     )
 
 
+class NominalImageParametersContainer(Container):
+    """ Collection of image parameters """
+
+    container_prefix = "params"
+    hillas = Field(NominalHillasParametersContainer(), "Hillas Parameters")
+    timing = Field(NominalTimingParametersContainer(), "Timing Parameters")
+    leakage = Field(LeakageContainer(), "Leakage Parameters")
+    concentration = Field(ConcentrationContainer(), "Concentration Parameters")
+    morphology = Field(MorphologyContainer(), "Image Morphology Parameters")
+    intensity_statistics = Field(
+        IntensityStatisticsContainer(), "Intensity image statistics"
+    )
+    peak_time_statistics = Field(
+        PeakTimeStatisticsContainer(), "Peak time image statistics"
+    )
+
+
 class DL1CameraContainer(Container):
     """
     Storage of output of camera calibration e.g the final calibrated
@@ -278,7 +315,7 @@ class DL1CameraContainer(Container):
         ndim=1,
     )
 
-    parameters = Field(None, "Image parameters", type=ImageParametersContainer)
+    parameters = Field(None, "Image parameters", type=NominalImageParametersContainer)
 
 
 class DL1Container(Container):
@@ -431,7 +468,9 @@ class SimulatedCameraContainer(Container):
     )
 
     true_parameters = Field(
-        None, "Parameters derived from the true_image", type=ImageParametersContainer
+        None,
+        "Parameters derived from the true_image",
+        type=NominalImageParametersContainer,
     )
 
 

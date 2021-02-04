@@ -4,7 +4,12 @@ Image timing-based shower image parametrization.
 
 import numpy as np
 import astropy.units as u
-from ..containers import TimingParametersContainer
+from ..containers import (
+    TimingParametersContainer,
+    NominalTimingParametersContainer,
+    HillasParametersContainer,
+    NominalHillasParametersContainer,
+)
 from .hillas import camera_to_shower_coordinates
 from ..utils.quantities import all_to_value
 from ..fitting import lts_linear_regression
@@ -58,9 +63,16 @@ def timing_parameters(geom, image, peak_time, hillas_parameters, cleaning_mask=N
         raise ValueError("The non-masked pixels must verify signal >= 0")
 
     h = hillas_parameters
-    pix_x, pix_y, x, y, length, width = all_to_value(
-        geom.pix_x, geom.pix_y, h.x, h.y, h.length, h.width, unit=unit
-    )
+    if isinstance(h, HillasParametersContainer):
+        unit = h.x.unit
+        pix_x, pix_y, x, y, length, width = all_to_value(
+            geom.pix_x, geom.pix_y, h.x, h.y, h.length, h.width, unit=unit
+        )
+    elif isinstance(h, NominalHillasParametersContainer):
+        unit = h.lon.unit
+        pix_x, pix_y, x, y, length, width = all_to_value(
+            geom.pix_x, geom.pix_y, h.lon, h.lat, h.length, h.width, unit=unit
+        )
 
     longi, _ = camera_to_shower_coordinates(
         pix_x, pix_y, x, y, hillas_parameters.psi.to_value(u.rad)
@@ -73,6 +85,11 @@ def timing_parameters(geom, image, peak_time, hillas_parameters, cleaning_mask=N
     # recalculate for all points
     deviation = rmse(longi * beta[0] + beta[1], peak_time)
 
-    return TimingParametersContainer(
-        slope=beta[0] / unit, intercept=beta[1], deviation=deviation
-    )
+    if unit.is_equivalent(u.m):
+        return TimingParametersContainer(
+            slope=beta[0] / unit, intercept=beta[1], deviation=deviation
+        )
+    else:
+        return NominalTimingParametersContainer(
+            slope=beta[0] / unit, intercept=beta[1], deviation=deviation
+        )
