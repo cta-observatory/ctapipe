@@ -16,7 +16,8 @@ from ctapipe.containers import (
     HillasParametersContainer,
     LeakageContainer,
 )
-from ctapipe.io.hdf5tableio import ColumnTransform, HDF5TableWriter, HDF5TableReader
+from ctapipe.io.hdf5tableio import HDF5TableWriter, HDF5TableReader
+from ctapipe.io.tableio import ColumnTransform
 
 
 @pytest.fixture(scope="session")

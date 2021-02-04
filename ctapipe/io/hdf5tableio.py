@@ -1,9 +1,7 @@
 """Implementations of TableWriter and -Reader for HDF5 files"""
 import enum
-from functools import partial
 from pathlib import PurePath
 import re
-from abc import ABCMeta, abstractmethod
 
 import numpy as np
 import tables
@@ -11,7 +9,14 @@ from astropy.time import Time
 from astropy.units import Quantity, Unit
 
 import ctapipe
-from .tableio import TableWriter, TableReader
+from .tableio import (
+    TableWriter,
+    TableReader,
+    FixedPointColumnTransform,
+    TimeColumnTransform,
+    EnumColumnTransform,
+    QuantityColumnTransform,
+)
 from ..core import Container
 
 __all__ = ["HDF5TableWriter", "HDF5TableReader"]
@@ -414,7 +419,7 @@ class HDF5TableReader(TableReader):
 
             elif attr.endswith("_TRANSFORM_SCALE"):
                 colname, _, _ = attr.rpartition("_TRANSFORM_SCALE")
-                tr = ScaleColumnTransform(
+                tr = FixedPointColumnTransform(
                     scale=tab.attrs[attr],
                     offset=get_hdf5_attr(tab.attrs, colname + "_TRANSFORM_OFFSET", 0),
                     source_dtype=get_hdf5_attr(
@@ -505,11 +510,11 @@ class HDF5TableReader(TableReader):
             return_iterable = False
 
         if prefixes is False:
-            prefixes = ["" for container in containers]
+            prefixes = ["" for _ in containers]
         elif prefixes is True:
             prefixes = [container.prefix for container in containers]
         elif isinstance(prefixes, str):
-            prefixes = [prefixes for container in containers]
+            prefixes = [prefixes for _ in containers]
         assert len(prefixes) == len(containers)
 
         if table_name not in self._tables:
@@ -540,101 +545,3 @@ class HDF5TableReader(TableReader):
             else:
                 yield containers[0]
             row_count += 1
-
-
-def tr_list_to_mask(thelist, length):
-    """ transform list to a fixed-length mask"""
-    arr = np.zeros(shape=length, dtype=np.bool)
-    arr[thelist] = True
-    return arr
-
-
-class ColumnTransform(metaclass=ABCMeta):
-    @abstractmethod
-    def __call__(self, value):
-        pass
-
-    def inverse(self, value):
-        """No inverse transform by default"""
-        return value
-
-    def get_meta(self, colname):
-        """Empty meta by default"""
-        return {}
-
-
-class TimeColumnTransform(ColumnTransform):
-    def __init__(self, scale, format):
-        self.scale = scale
-        self.format = format
-
-    def __call__(self, value: Time):
-        """
-        Convert an astropy time object to an mjd value in tai scale
-        """
-        return getattr(getattr(value, self.scale), self.format)
-
-    def inverse(self, value):
-        return Time(value, scale=self.scale, format=self.format, copy=False)
-
-    def get_meta(self, colname):
-        return {
-            f"{colname}_TIME_FORMAT": self.format,
-            f"{colname}_TIME_SCALE": self.scale,
-        }
-
-
-class QuantityColumnTransform(ColumnTransform):
-    def __init__(self, unit):
-        self.unit = unit
-
-    def __call__(self, value):
-        return value.to_value(self.unit)
-
-    def inverse(self, value):
-        return Quantity(value, self.unit, copy=False)
-
-    def get_meta(self, colname):
-        return {f"{colname}_UNIT": self.unit.to_string("vounit")}
-
-
-class ScaleColumnTransform(ColumnTransform):
-    """
-    Transform value of a column according to:
-
-    new_value = (scale * value).astype(target_dtype) + offset
-    """
-
-    def __init__(self, scale, offset, source_dtype, target_dtype):
-        self.scale = scale
-        self.offset = offset
-        self.source_dtype = np.dtype(source_dtype)
-        self.target_dtype = np.dtype(target_dtype)
-
-    def __call__(self, value):
-        return (value * self.scale).astype(self.target_dtype) + self.offset
-
-    def inverse(self, value):
-        return (value - self.offset).astype(self.source_dtype) / self.scale
-
-    def get_meta(self, colname: str):
-        return {
-            f"{colname}_TRANSFORM_SCALE": self.scale,
-            f"{colname}_TRANSFORM_DTYPE": str(self.source_dtype),
-            f"{colname}_TRANSFORM_OFFSET": self.offset,
-        }
-
-
-class EnumColumnTransform(ColumnTransform):
-    def __init__(self, enum):
-        self.enum = enum
-
-    @staticmethod
-    def __call__(value):
-        return value.value
-
-    def inverse(self, value):
-        return self.enum(value)
-
-    def get_meta(self, colname):
-        return {f"{colname}_ENUM": self.enum}

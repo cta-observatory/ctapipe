@@ -22,7 +22,7 @@ from ..core.traits import Bool, CaselessStrEnum, Int, Path, Float, Unicode
 from ..io import EventSource, HDF5TableWriter, TableWriter
 from ..io.simteleventsource import SimTelEventSource
 from ..io import metadata as meta
-from ..io.hdf5tableio import ScaleColumnTransform
+from ..io.tableio import FixedPointColumnTransform
 from ..instrument import SubarrayDescription
 
 __all__ = ["DL1Writer", "DL1_DATA_MODEL_VERSION", "write_reference_metadata_headers"]
@@ -331,7 +331,7 @@ class DL1Writer(Component):
             writer.exclude(f"/dl1/event/telescope/images/{table_name}", "parameters")
 
             if self.transform_image:
-                tr = ScaleColumnTransform(
+                tr = FixedPointColumnTransform(
                     scale=self.image_scale,
                     offset=self.image_offset,
                     source_dtype=np.float32,
@@ -342,7 +342,7 @@ class DL1Writer(Component):
                 )
 
             if self.transform_peak_time:
-                tr = ScaleColumnTransform(
+                tr = FixedPointColumnTransform(
                     scale=self.peak_time_scale,
                     offset=self.peak_time_offset,
                     source_dtype=np.float32,
