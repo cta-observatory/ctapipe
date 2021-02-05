@@ -58,8 +58,6 @@ def h5_table_to_astropy(h5file, path) -> QTable:
 
     other_attrs = {}
     column_descriptions = {}
-    # column_units = {}  # mapping of colname to unit
-    # time_columns = {}
     column_transforms = {}
     for attr in table.attrs._f_list():  # pylint: disable=W0212
         if attr.endswith("_UNIT"):
