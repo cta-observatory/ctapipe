@@ -4,7 +4,8 @@ High level image processing  (ImageProcessor Component)
 """
 from astropy.coordinates import SkyCoord, AltAz
 from astropy.time import Time
-from ctapipe.coordinates import NominalFrame, CameraFrame, EarthLocation
+from ctapipe.coordinates import NominalFrame, CameraFrame
+from astropy.coordinates import EarthLocation
 
 from ..containers import (
     ArrayEventContainer,
