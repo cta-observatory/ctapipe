@@ -84,7 +84,13 @@ class ImageProcessor(TelescopeComponent):
         )
         self.check_image = ImageQualityQuery(parent=self)
         self._is_simulation = is_simulation
-        self.telescope_frame = TelescopeFrame()
+        telescope_frame = TelescopeFrame()
+        self.telescope_frame_geometries = {
+            tel_id: self.subarray.tel[tel_id].camera.geometry.transform_to(
+                telescope_frame
+            )
+            for tel_id in self.subarray.tel
+        }
 
     def __call__(self, event: ArrayEventContainer):
         self._process_telescope_event(event)
@@ -170,9 +176,8 @@ class ImageProcessor(TelescopeComponent):
         Loop over telescopes and process the calibrated images into parameters
         """
         for tel_id, dl1_camera in event.dl1.tel.items():
-            geometry = self.subarray.tel[tel_id].camera.geometry
-            geometry_telescope = geometry.transform_to(self.telescope_frame)
 
+            geometry_telescope = self.telescope_frame_geometries[tel_id]
             # compute image parameters only if requested to write them
             dl1_camera.image_mask = self.clean(
                 tel_id=tel_id,
