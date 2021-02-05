@@ -291,7 +291,7 @@ def test_reconstruction_in_telescope_frame():
             telescope_result = hillas_parameters(geom_nom, signal)
             assert u.isclose(np.abs(telescope_result.lon), 1 * u.deg, rtol=0.1)
             assert u.isclose(np.abs(telescope_result.lat), 1 * u.deg, rtol=0.1)
-            assert u.isclose(telescope_result.width, 0.06 * u.deg, rtol=0.1)
+            assert u.isclose(telescope_result.width, 0.065 * u.deg, rtol=0.1)
             assert u.isclose(
                 telescope_result.width_uncertainty, 0.002 * u.deg, rtol=0.4
             )
