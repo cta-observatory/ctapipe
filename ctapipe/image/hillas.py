@@ -8,7 +8,7 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import Angle
 from astropy.units import Quantity
-from ..containers import HillasParametersContainer, NominalHillasParametersContainer
+from ..containers import CameraHillasParametersContainer, HillasParametersContainer
 
 
 HILLAS_ATOL = np.finfo(np.float64).eps
@@ -195,7 +195,7 @@ def hillas_parameters(geom, image):
         ) / (2 * width)
 
     if unit.is_equivalent(u.m):
-        return HillasParametersContainer(
+        return CameraHillasParametersContainer(
             x=u.Quantity(cog_x, unit),
             y=u.Quantity(cog_y, unit),
             r=u.Quantity(cog_r, unit),
@@ -210,7 +210,7 @@ def hillas_parameters(geom, image):
             kurtosis=kurtosis_long,
         )
     else:
-        return NominalHillasParametersContainer(
+        return HillasParametersContainer(
             lon=u.Quantity(cog_x, unit),
             lat=u.Quantity(cog_y, unit),
             r=u.Quantity(cog_r, unit),

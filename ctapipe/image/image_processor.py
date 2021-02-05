@@ -2,16 +2,13 @@
 
 High level image processing  (ImageProcessor Component)
 """
-from astropy.coordinates import SkyCoord, AltAz
-from astropy.time import Time
-from ctapipe.coordinates import NominalFrame, CameraFrame
-from astropy.coordinates import EarthLocation
+from ctapipe.coordinates import TelescopeFrame
 
 from ..containers import (
     ArrayEventContainer,
     IntensityStatisticsContainer,
-    NominalImageParametersContainer,
-    NominalTimingParametersContainer,
+    ImageParametersContainer,
+    TimingParametersContainer,
     PeakTimeStatisticsContainer,
 )
 from ..core import QualityQuery, TelescopeComponent
@@ -28,8 +25,8 @@ from . import (
 )
 
 
-DEFAULT_IMAGE_PARAMETERS = NominalImageParametersContainer()
-DEFAULT_TIMING_PARAMETERS = NominalTimingParametersContainer()
+DEFAULT_IMAGE_PARAMETERS = ImageParametersContainer()
+DEFAULT_TIMING_PARAMETERS = TimingParametersContainer()
 DEFAULT_PEAKTIME_STATISTICS = PeakTimeStatisticsContainer()
 
 
@@ -87,13 +84,14 @@ class ImageProcessor(TelescopeComponent):
         )
         self.check_image = ImageQualityQuery(parent=self)
         self._is_simulation = is_simulation
+        self.telescope_frame = TelescopeFrame()
 
     def __call__(self, event: ArrayEventContainer):
         self._process_telescope_event(event)
 
     def _parameterize_image(
         self, tel_id, image, signal_pixels, geometry, peak_time=None
-    ) -> NominalImageParametersContainer:
+    ) -> ImageParametersContainer:
         """Apply image cleaning and calculate image features
 
         Parameters
@@ -109,7 +107,7 @@ class ImageProcessor(TelescopeComponent):
 
         Returns
         -------
-        NominalImageParametersContainer:
+        ImageParametersContainer:
             cleaning mask, parameters
         """
 
@@ -153,7 +151,7 @@ class ImageProcessor(TelescopeComponent):
                 timing = DEFAULT_TIMING_PARAMETERS
                 peak_time_statistics = DEFAULT_PEAKTIME_STATISTICS
 
-            return NominalImageParametersContainer(
+            return ImageParametersContainer(
                 hillas=hillas,
                 timing=timing,
                 leakage=leakage,
@@ -171,33 +169,9 @@ class ImageProcessor(TelescopeComponent):
         """
         Loop over telescopes and process the calibrated images into parameters
         """
-        location = EarthLocation.of_site("Roque de los Muchachos")
-        obstime = Time(event.trigger.time, format="mjd")
-        altaz = AltAz(location=location, obstime=obstime)
-        array_pointing = SkyCoord(
-            alt=event.pointing.array_azimuth,
-            az=event.pointing.array_altitude,
-            frame=altaz,
-        )
-        nominal_frame = NominalFrame(
-            origin=array_pointing, obstime=obstime, location=location
-        )
-
         for tel_id, dl1_camera in event.dl1.tel.items():
-            tel_pointings = SkyCoord(
-                alt=event.pointing.tel[tel_id].azimuth,
-                az=event.pointing.tel[tel_id].altitude,
-                frame=altaz,
-            )
-            camera_frame = CameraFrame(
-                telescope_pointing=tel_pointings,
-                focal_length=self.subarray.tel[tel_id].optics.equivalent_focal_length,
-                obstime=obstime,
-                location=location,
-            )
             geometry = self.subarray.tel[tel_id].camera.geometry
-            geometry.frame = camera_frame
-            geometry_nominal = geometry.transform_to(nominal_frame)
+            geometry_telescope = geometry.transform_to(self.telescope_frame)
 
             # compute image parameters only if requested to write them
             dl1_camera.image_mask = self.clean(
@@ -211,7 +185,7 @@ class ImageProcessor(TelescopeComponent):
                 image=dl1_camera.image,
                 signal_pixels=dl1_camera.image_mask,
                 peak_time=dl1_camera.peak_time,
-                geometry=geometry_nominal,
+                geometry=geometry_telescope,
             )
 
             self.log.debug("params: %s", dl1_camera.parameters.as_dict(recursive=True))
@@ -225,7 +199,7 @@ class ImageProcessor(TelescopeComponent):
                     tel_id,
                     image=sim_camera.true_image,
                     signal_pixels=sim_camera.true_image > 0,
-                    geometry=geometry_nominal,
+                    geometry=geometry_telescope,
                     peak_time=None,  # true image from simulation has no peak time
                 )
                 self.log.debug(

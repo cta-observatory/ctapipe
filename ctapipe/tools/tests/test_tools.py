@@ -283,7 +283,7 @@ def test_merge(tmpdir):
         "obs_id",
         "event_id",
         "tel_id",
-        "hillas_nominal_intensity",
+        "hillas_intensity",
         "concentration_cog",
         "leakage_pixels_width_1",
     )
@@ -368,7 +368,7 @@ def test_stage_1_dl1(tmpdir, dl1_image_file, dl1_parameters_file):
         "obs_id",
         "event_id",
         "tel_id",
-        "hillas_nominal_intensity",
+        "hillas_intensity",
         "concentration_cog",
         "leakage_pixels_width_1",
     )

@@ -4,7 +4,7 @@ from numpy.testing import assert_allclose
 import numpy as np
 from astropy.coordinates import SkyCoord
 from ctapipe.coordinates import NominalFrame, AltAz, CameraFrame
-from ctapipe.containers import HillasParametersContainer
+from ctapipe.containers import CameraHillasParametersContainer
 
 from ctapipe.io import EventSource
 
@@ -81,12 +81,12 @@ def test_intersection_xmax_reco():
     focal_length = 28 * u.m
 
     hillas_dict = {
-        1: HillasParametersContainer(
+        1: CameraHillasParametersContainer(
             x=-(delta / focal_length) * u.rad,
             y=((0 * u.m) / focal_length) * u.rad,
             intensity=1,
         ),
-        2: HillasParametersContainer(
+        2: CameraHillasParametersContainer(
             x=((0 * u.m) / focal_length) * u.rad,
             y=-(delta / focal_length) * u.rad,
             intensity=1,
@@ -119,9 +119,9 @@ def test_intersection_reco_impact_point_tilted():
     tel_y_dict = {1: delta, 2: delta, 3: -delta}
 
     hillas_dict = {
-        1: HillasParametersContainer(intensity=100, psi=-90 * u.deg),
-        2: HillasParametersContainer(intensity=100, psi=-45 * u.deg),
-        3: HillasParametersContainer(intensity=100, psi=0 * u.deg),
+        1: CameraHillasParametersContainer(intensity=100, psi=-90 * u.deg),
+        2: CameraHillasParametersContainer(intensity=100, psi=-45 * u.deg),
+        3: CameraHillasParametersContainer(intensity=100, psi=0 * u.deg),
     }
 
     reco_konrad = hill_inter.reconstruct_tilted(
@@ -144,9 +144,9 @@ def test_intersection_weighting_spoiled_parameters():
 
     # telescope 2 have a spoiled reconstruction (45 instead of -45)
     hillas_dict = {
-        1: HillasParametersContainer(intensity=10000, psi=-90 * u.deg),
-        2: HillasParametersContainer(intensity=1, psi=45 * u.deg),
-        3: HillasParametersContainer(intensity=10000, psi=0 * u.deg),
+        1: CameraHillasParametersContainer(intensity=10000, psi=-90 * u.deg),
+        2: CameraHillasParametersContainer(intensity=1, psi=45 * u.deg),
+        3: CameraHillasParametersContainer(intensity=10000, psi=0 * u.deg),
     }
 
     reco_konrad_spoiled = hill_inter.reconstruct_tilted(
@@ -189,21 +189,21 @@ def test_intersection_nominal_reconstruction():
     cog_coords_nom_3 = cog_coords_camera_3.transform_to(nominal_frame)
 
     #  x-axis is along the altitude and y-axis is along the azimuth
-    hillas_1 = HillasParametersContainer(
+    hillas_1 = CameraHillasParametersContainer(
         x=cog_coords_nom_1.fov_lat,
         y=cog_coords_nom_1.fov_lon,
         intensity=100,
         psi=0 * u.deg,
     )
 
-    hillas_2 = HillasParametersContainer(
+    hillas_2 = CameraHillasParametersContainer(
         x=cog_coords_nom_2.fov_lat,
         y=cog_coords_nom_2.fov_lon,
         intensity=100,
         psi=45 * u.deg,
     )
 
-    hillas_3 = HillasParametersContainer(
+    hillas_3 = CameraHillasParametersContainer(
         x=cog_coords_nom_3.fov_lat,
         y=cog_coords_nom_3.fov_lon,
         intensity=100,

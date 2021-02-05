@@ -1,9 +1,12 @@
 from ctapipe.instrument import CameraGeometry
 from ctapipe.image import tailcuts_clean, toymodel
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
-from ctapipe.containers import HillasParametersContainer
-from astropy.coordinates import Angle
-from ctapipe.coordinates import NominalFrame, CameraFrame
+from ctapipe.containers import (
+    HillasParametersContainer,
+    CameraHillasParametersContainer,
+)
+from astropy.coordinates import Angle, SkyCoord
+from ctapipe.coordinates import TelescopeFrame, CameraFrame
 from astropy import units as u
 import numpy as np
 from numpy import isclose, zeros_like
@@ -11,9 +14,6 @@ from numpy.random import seed
 from pytest import approx
 import itertools
 import pytest
-from astropy.time import Time
-from astropy.coordinates import EarthLocation
-from astropy.coordinates import SkyCoord, AltAz
 
 
 def create_sample_image(
@@ -109,6 +109,11 @@ def test_hillas_container():
     geom, image = create_sample_image_zeros(psi="0d")
 
     params = hillas_parameters(geom, image)
+    assert isinstance(params, CameraHillasParametersContainer)
+
+    geom.frame = CameraFrame(focal_length=28 * u.m)
+    geom_telescope_frame = geom.transform_to(TelescopeFrame())
+    params = hillas_parameters(geom_telescope_frame, image)
     assert isinstance(params, HillasParametersContainer)
 
 
@@ -253,23 +258,15 @@ def test_single_pixel():
     assert np.isnan(hillas.psi)
 
 
-def test_reconstruction_in_nominal_frame():
+def test_reconstruction_in_telescope_frame():
     np.random.seed(42)
 
-    obstime = Time("2013-11-01T03:00")
-    location = EarthLocation.of_site("Roque de los Muchachos")
-    focal_length = 28 * u.m
-    horizon_frame = AltAz(location=location, obstime=obstime)
-    pointing = SkyCoord(alt=70 * u.deg, az=180 * u.deg, frame=horizon_frame)
-    nominal_frame = NominalFrame(origin=pointing, obstime=obstime, location=location)
-    camera_frame = CameraFrame(
-        telescope_pointing=pointing,
-        focal_length=focal_length,
-        obstime=obstime,
-        location=location,
-    )
+    telescope_frame = TelescopeFrame()
+    camera_frame = CameraFrame(focal_length=28 * u.m)
 
     geom = CameraGeometry.from_name("LSTCam")
+    geom.frame = camera_frame
+    geom_nom = geom.transform_to(telescope_frame)
 
     width = 0.03 * u.m
     length = 0.15 * u.m
@@ -291,49 +288,50 @@ def test_reconstruction_in_nominal_frame():
                 geom, intensity=intensity, nsb_level_pe=5
             )
 
-            geom.frame = camera_frame
-            geom_nom = geom.transform_to(nominal_frame)
-
-            nominal_result = hillas_parameters(geom_nom, signal)
-            assert u.isclose(np.abs(nominal_result.lon), 1 * u.deg, rtol=0.1)
-            assert u.isclose(np.abs(nominal_result.lat), 1 * u.deg, rtol=0.1)
-            assert u.isclose(nominal_result.width, 0.06 * u.deg, rtol=0.1)
-            assert u.isclose(nominal_result.width_uncertainty, 0.002 * u.deg, rtol=0.4)
-            assert u.isclose(nominal_result.length, 0.3 * u.deg, rtol=0.1)
-            assert u.isclose(nominal_result.length_uncertainty, 0.01 * u.deg, rtol=0.4)
-            assert signal.sum() == nominal_result.intensity
+            telescope_result = hillas_parameters(geom_nom, signal)
+            assert u.isclose(np.abs(telescope_result.lon), 1 * u.deg, rtol=0.1)
+            assert u.isclose(np.abs(telescope_result.lat), 1 * u.deg, rtol=0.1)
+            assert u.isclose(telescope_result.width, 0.06 * u.deg, rtol=0.1)
+            assert u.isclose(
+                telescope_result.width_uncertainty, 0.002 * u.deg, rtol=0.4
+            )
+            assert u.isclose(telescope_result.length, 0.3 * u.deg, rtol=0.1)
+            assert u.isclose(
+                telescope_result.length_uncertainty, 0.01 * u.deg, rtol=0.4
+            )
+            assert signal.sum() == telescope_result.intensity
 
             # Compare results with calculation in the camera frame
             camera_result = hillas_parameters(geom, signal)
 
             transformed_cog = SkyCoord(
-                fov_lon=nominal_result.lon,
-                fov_lat=nominal_result.lat,
-                frame=nominal_frame,
+                fov_lon=telescope_result.lon,
+                fov_lat=telescope_result.lat,
+                frame=telescope_frame,
             ).transform_to(camera_frame)
             assert u.isclose(transformed_cog.x, camera_result.x, rtol=0.01)
             assert u.isclose(transformed_cog.y, camera_result.y, rtol=0.01)
 
-            main_edges = u.Quantity([-nominal_result.length, nominal_result.length])
-            main_lon = main_edges * np.cos(nominal_result.psi) + nominal_result.lon
-            main_lat = main_edges * np.sin(nominal_result.psi) + nominal_result.lat
+            main_edges = u.Quantity([-telescope_result.length, telescope_result.length])
+            main_lon = main_edges * np.cos(telescope_result.psi) + telescope_result.lon
+            main_lat = main_edges * np.sin(telescope_result.psi) + telescope_result.lat
             cam_main_axis = SkyCoord(
-                fov_lon=main_lon, fov_lat=main_lat, frame=nominal_frame
+                fov_lon=main_lon, fov_lat=main_lat, frame=telescope_frame
             ).transform_to(camera_frame)
             transformed_length = distance(cam_main_axis)
             assert u.isclose(transformed_length, camera_result.length, rtol=0.01)
 
             secondary_edges = u.Quantity(
-                [-nominal_result.length, nominal_result.length]
+                [-telescope_result.length, telescope_result.length]
             )
             secondary_lon = (
-                secondary_edges * np.cos(nominal_result.psi) + nominal_result.lon
+                secondary_edges * np.cos(telescope_result.psi) + telescope_result.lon
             )
             secondary_lat = (
-                secondary_edges * np.sin(nominal_result.psi) + nominal_result.lat
+                secondary_edges * np.sin(telescope_result.psi) + telescope_result.lat
             )
             cam_secondary_edges = SkyCoord(
-                fov_lon=secondary_lon, fov_lat=secondary_lat, frame=nominal_frame
+                fov_lon=secondary_lon, fov_lat=secondary_lat, frame=telescope_frame
             ).transform_to(camera_frame)
             transformed_width = distance(cam_secondary_edges)
             assert u.isclose(transformed_width, camera_result.length, rtol=0.01)

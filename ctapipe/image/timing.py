@@ -5,10 +5,10 @@ Image timing-based shower image parametrization.
 import numpy as np
 import astropy.units as u
 from ..containers import (
+    CameraTimingParametersContainer,
     TimingParametersContainer,
-    NominalTimingParametersContainer,
+    CameraHillasParametersContainer,
     HillasParametersContainer,
-    NominalHillasParametersContainer,
 )
 from .hillas import camera_to_shower_coordinates
 from ..utils.quantities import all_to_value
@@ -63,12 +63,12 @@ def timing_parameters(geom, image, peak_time, hillas_parameters, cleaning_mask=N
         raise ValueError("The non-masked pixels must verify signal >= 0")
 
     h = hillas_parameters
-    if isinstance(h, HillasParametersContainer):
+    if isinstance(h, CameraHillasParametersContainer):
         unit = h.x.unit
         pix_x, pix_y, x, y, length, width = all_to_value(
             geom.pix_x, geom.pix_y, h.x, h.y, h.length, h.width, unit=unit
         )
-    elif isinstance(h, NominalHillasParametersContainer):
+    elif isinstance(h, HillasParametersContainer):
         unit = h.lon.unit
         pix_x, pix_y, x, y, length, width = all_to_value(
             geom.pix_x, geom.pix_y, h.lon, h.lat, h.length, h.width, unit=unit
@@ -86,10 +86,10 @@ def timing_parameters(geom, image, peak_time, hillas_parameters, cleaning_mask=N
     deviation = rmse(longi * beta[0] + beta[1], peak_time)
 
     if unit.is_equivalent(u.m):
-        return TimingParametersContainer(
+        return CameraTimingParametersContainer(
             slope=beta[0] / unit, intercept=beta[1], deviation=deviation
         )
     else:
-        return NominalTimingParametersContainer(
+        return TimingParametersContainer(
             slope=beta[0] / unit, intercept=beta[1], deviation=deviation
         )

@@ -10,7 +10,7 @@ from ctapipe.instrument import (
     TelescopeDescription,
     PixelShape,
 )
-from ctapipe.containers import HillasParametersContainer
+from ctapipe.containers import CameraHillasParametersContainer
 import numpy as np
 from astropy import units as u
 
@@ -103,8 +103,8 @@ def test_array_display():
 
     # test using hillas params:
     hillas_dict = {
-        1: HillasParametersContainer(length=100.0 * u.m, psi=90 * u.deg),
-        2: HillasParametersContainer(length=20000 * u.cm, psi="95deg"),
+        1: CameraHillasParametersContainer(length=100.0 * u.m, psi=90 * u.deg),
+        2: CameraHillasParametersContainer(length=20000 * u.cm, psi="95deg"),
     }
 
     grad = 2
@@ -112,7 +112,7 @@ def test_array_display():
 
     geom = CameraGeometry.from_name("LSTCam")
     rot_angle = 20 * u.deg
-    hillas = HillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=rot_angle)
+    hillas = CameraHillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=rot_angle)
 
     timing_rot20 = timing_parameters(
         geom,
