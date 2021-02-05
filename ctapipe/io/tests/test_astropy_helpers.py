@@ -61,3 +61,20 @@ def test_h5_table_to_astropy_time(tmp_path):
     table = h5_table_to_astropy(filename, "/events")
     assert isinstance(table["time"], Time)
     assert np.allclose(times.tai.mjd, table["time"].tai.mjd)
+
+
+def test_transforms(tmp_path):
+    path = tmp_path / "test_trans.hdf5"
+
+    data = np.array([100, 110], dtype="int16").view([("waveform", "int16")])
+    print(data)
+
+    with tables.open_file(path, "w") as f:
+        f.create_table("/data", "test", obj=data, createparents=True)
+        f.root.data.test.attrs["waveform_TRANSFORM_SCALE"] = 100.0
+        f.root.data.test.attrs["waveform_TRANSFORM_OFFSET"] = 200
+        f.root.data.test.attrs["waveform_TRANSFORM_DTYPE"] = "float64"
+
+    table = h5_table_to_astropy(path, "/data/test")
+
+    assert np.all(table["waveform"] == [-1.0, -0.9])

@@ -11,6 +11,13 @@ from astropy.units import Unit
 from astropy.time import Time
 import numpy as np
 
+from .tableio import (
+    FixedPointColumnTransform,
+    QuantityColumnTransform,
+    TimeColumnTransform,
+)
+from .hdf5tableio import get_hdf5_attr
+
 __all__ = ["h5_table_to_astropy"]
 
 
@@ -50,24 +57,30 @@ def h5_table_to_astropy(h5file, path) -> QTable:
     table = h5file.get_node(path)
 
     other_attrs = {}
-    column_units = {}  # mapping of colname to unit
     column_descriptions = {}
-    time_columns = {}
+    # column_units = {}  # mapping of colname to unit
+    # time_columns = {}
+    column_transforms = {}
     for attr in table.attrs._f_list():  # pylint: disable=W0212
         if attr.endswith("_UNIT"):
             colname = attr[:-5]
-            column_units[colname] = table.attrs[attr]
+            column_transforms[colname] = QuantityColumnTransform(unit=table.attrs[attr])
         elif attr.endswith("_DESC"):
             colname = attr[:-5]
             column_descriptions[colname] = str(table.attrs[attr])
         elif attr.endswith("_TIME_SCALE"):
             colname, _, _ = attr.rpartition("_TIME_SCALE")
             scale = table.attrs[attr].lower()
-            if f"{colname}_TIME_FORMAT" in table.attrs:
-                fmt = table.attrs[f"{colname}_TIME_FORMAT"].lower()
-            else:
-                fmt = "mjd"
-            time_columns[colname] = (scale, fmt)
+            fmt = get_hdf5_attr(table.attrs, f"{colname}_TIME_FORMAT", "mjd").lower()
+            column_transforms[colname] = TimeColumnTransform(scale=scale, format=fmt)
+        elif attr.endswith("_TRANSFORM_SCALE"):
+            colname, _, _ = attr.rpartition("_TRANSFORM_SCALE")
+            column_transforms[colname] = FixedPointColumnTransform(
+                scale=table.attrs[attr],
+                offset=table.attrs[f"{colname}_TRANSFORM_OFFSET"],
+                source_dtype=table.attrs[f"{colname}_TRANSFORM_DTYPE"],
+                target_dtype=table.col(colname).dtype,
+            )
         else:
             # need to convert to str() here so they are python strings, not
             # numpy strings
@@ -76,16 +89,11 @@ def h5_table_to_astropy(h5file, path) -> QTable:
 
     astropy_table = QTable(table[:], meta=other_attrs)
 
-    for column, unit in column_units.items():
-        astropy_table[column].unit = Unit(unit)
+    for column, tr in column_transforms.items():
+        astropy_table[column] = tr.inverse(astropy_table[column])
 
     for column, desc in column_descriptions.items():
         astropy_table[column].description = desc
-
-    for column, (scale, fmt) in time_columns.items():
-        astropy_table[column] = Time(
-            astropy_table[column], format=fmt, scale=scale, copy=False
-        )
 
     if should_close_file:
         h5file.close()
