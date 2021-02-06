@@ -211,8 +211,8 @@ def hillas_parameters(geom, image):
         )
     else:
         return HillasParametersContainer(
-            lon=u.Quantity(cog_x, unit),
-            lat=u.Quantity(cog_y, unit),
+            fov_lon=u.Quantity(cog_x, unit),
+            fov_lat=u.Quantity(cog_y, unit),
             r=u.Quantity(cog_r, unit),
             phi=Angle(cog_phi, unit=u.rad),
             intensity=size,

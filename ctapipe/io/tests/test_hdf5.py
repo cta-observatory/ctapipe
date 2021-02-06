@@ -52,7 +52,7 @@ def test_write_container(temp_h5_file):
 
 def test_read_multiple_containers():
     hillas_parameter_container = HillasParametersContainer(
-        lon=1 * u.deg, lat=1 * u.deg, length=1 * u.deg, width=1 * u.deg
+        fov_lon=1 * u.deg, fov_lat=1 * u.deg, length=1 * u.deg, width=1 * u.deg
     )
 
     leakage_container = LeakageContainer(
@@ -66,7 +66,7 @@ def test_read_multiple_containers():
             writer.write("params", [hillas_parameter_container, leakage_container])
 
         df = pd.read_hdf(f.name, key="/dl1/params")
-        assert "hillas_lon" in df.columns
+        assert "hillas_fov_lon" in df.columns
         assert "leakage_pixels_width_1" in df.columns
 
         # test reading both containers separately
@@ -110,7 +110,7 @@ def test_read_multiple_containers():
 
 def test_read_without_prefixes():
     hillas_parameter_container = HillasParametersContainer(
-        lon=1 * u.deg, lat=1 * u.deg, length=1 * u.deg, width=1 * u.deg
+        fov_lon=1 * u.deg, fov_lat=1 * u.deg, length=1 * u.deg, width=1 * u.deg
     )
 
     leakage_container = LeakageContainer(
@@ -124,7 +124,7 @@ def test_read_without_prefixes():
             writer.write("params", [hillas_parameter_container, leakage_container])
 
         df = pd.read_hdf(f.name, key="/dl1/params")
-        assert "lon" in df.columns
+        assert "fov_lon" in df.columns
         assert "pixels_width_1" in df.columns
 
         # call with prefixes=False
@@ -168,15 +168,15 @@ def test_read_without_prefixes():
 
 def test_read_duplicated_container_types():
     hillas_config_1 = HillasParametersContainer(
-        lon=1 * u.deg,
-        lat=2 * u.deg,
+        fov_lon=1 * u.deg,
+        fov_lat=2 * u.deg,
         length=3 * u.deg,
         width=4 * u.deg,
         prefix="hillas_1",
     )
     hillas_config_2 = HillasParametersContainer(
-        lon=2 * u.deg,
-        lat=3 * u.deg,
+        fov_lon=2 * u.deg,
+        fov_lat=3 * u.deg,
         length=4 * u.deg,
         width=5 * u.deg,
         prefix="hillas_2",
@@ -187,8 +187,8 @@ def test_read_duplicated_container_types():
             writer.write("params", [hillas_config_1, hillas_config_2])
 
         df = pd.read_hdf(f.name, key="/dl1/params")
-        assert "hillas_1_lon" in df.columns
-        assert "hillas_2_lat" in df.columns
+        assert "hillas_1_fov_lon" in df.columns
+        assert "hillas_2_fov_lat" in df.columns
 
         with HDF5TableReader(f.name) as reader:
             generator = reader.read(
@@ -211,7 +211,7 @@ def test_read_duplicated_container_types():
 
 def test_custom_prefix():
     container = HillasParametersContainer(
-        lon=1 * u.deg, lat=1 * u.deg, length=1 * u.deg, width=1 * u.deg
+        fov_lon=1 * u.deg, fov_lat=1 * u.deg, length=1 * u.deg, width=1 * u.deg
     )
     container.prefix = "custom"
     with tempfile.NamedTemporaryFile() as f:

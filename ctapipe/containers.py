@@ -126,19 +126,19 @@ class CameraHillasParametersContainer(BaseHillasParametersContainer):
 
 class HillasParametersContainer(BaseHillasParametersContainer):
     container_prefix = "hillas"
-    lon = Field(
+    fov_lon = Field(
         nan * u.deg,
-        "centroid longitude in a sky frame e.g. the telescope frame",
+        "longitude angle in a spherical system centered on the pointing position (TelescopeFrame)",
         unit=u.deg,
     )
-    lat = Field(
+    fov_lat = Field(
         nan * u.deg,
-        "centroid latitude in a sky frame e.g. the telescope frame",
+        "latitude angle in a spherical system centered on the pointing position (TelescopeFrame)",
         unit=u.deg,
     )
     r = Field(
         nan * u.deg,
-        "radial coordinate of centroid in a sky frame e.g. the telescope frame",
+        "radial coordinate in a spherical system centered on the pointing position (TelescopeFrame)",
         unit=u.deg,
     )
     phi = Field(

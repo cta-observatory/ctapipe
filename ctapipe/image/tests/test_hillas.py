@@ -289,8 +289,8 @@ def test_reconstruction_in_telescope_frame():
             )
 
             telescope_result = hillas_parameters(geom_nom, signal)
-            assert u.isclose(np.abs(telescope_result.lon), 1 * u.deg, rtol=0.1)
-            assert u.isclose(np.abs(telescope_result.lat), 1 * u.deg, rtol=0.1)
+            assert u.isclose(np.abs(telescope_result.fov_lon), 1 * u.deg, rtol=0.1)
+            assert u.isclose(np.abs(telescope_result.fov_lat), 1 * u.deg, rtol=0.1)
             assert u.isclose(telescope_result.width, 0.065 * u.deg, rtol=0.1)
             assert u.isclose(
                 telescope_result.width_uncertainty, 0.002 * u.deg, rtol=0.4
@@ -305,16 +305,20 @@ def test_reconstruction_in_telescope_frame():
             camera_result = hillas_parameters(geom, signal)
 
             transformed_cog = SkyCoord(
-                fov_lon=telescope_result.lon,
-                fov_lat=telescope_result.lat,
+                fov_lon=telescope_result.fov_lon,
+                fov_lat=telescope_result.fov_lat,
                 frame=telescope_frame,
             ).transform_to(camera_frame)
             assert u.isclose(transformed_cog.x, camera_result.x, rtol=0.01)
             assert u.isclose(transformed_cog.y, camera_result.y, rtol=0.01)
 
             main_edges = u.Quantity([-telescope_result.length, telescope_result.length])
-            main_lon = main_edges * np.cos(telescope_result.psi) + telescope_result.lon
-            main_lat = main_edges * np.sin(telescope_result.psi) + telescope_result.lat
+            main_lon = (
+                main_edges * np.cos(telescope_result.psi) + telescope_result.fov_lon
+            )
+            main_lat = (
+                main_edges * np.sin(telescope_result.psi) + telescope_result.fov_lat
+            )
             cam_main_axis = SkyCoord(
                 fov_lon=main_lon, fov_lat=main_lat, frame=telescope_frame
             ).transform_to(camera_frame)
@@ -325,10 +329,12 @@ def test_reconstruction_in_telescope_frame():
                 [-telescope_result.length, telescope_result.length]
             )
             secondary_lon = (
-                secondary_edges * np.cos(telescope_result.psi) + telescope_result.lon
+                secondary_edges * np.cos(telescope_result.psi)
+                + telescope_result.fov_lon
             )
             secondary_lat = (
-                secondary_edges * np.sin(telescope_result.psi) + telescope_result.lat
+                secondary_edges * np.sin(telescope_result.psi)
+                + telescope_result.fov_lat
             )
             cam_secondary_edges = SkyCoord(
                 fov_lon=secondary_lon, fov_lat=secondary_lat, frame=telescope_frame

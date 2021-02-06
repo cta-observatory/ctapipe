@@ -29,9 +29,9 @@ def concentration_parameters(geom, image, hillas_parameters):
             geom.pix_x, geom.pix_y, h.x, h.y, h.length, h.width, unit=unit
         )
     elif isinstance(h, HillasParametersContainer):
-        unit = h.lon.unit
+        unit = h.fov_lon.unit
         pix_x, pix_y, x, y, length, width = all_to_value(
-            geom.pix_x, geom.pix_y, h.lon, h.lat, h.length, h.width, unit=unit
+            geom.pix_x, geom.pix_y, h.fov_lon, h.fov_lat, h.length, h.width, unit=unit
         )
 
     delta_x = pix_x - x

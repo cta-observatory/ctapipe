@@ -49,7 +49,7 @@ def test_hillas_overlay():
     from ctapipe.visualization import CameraDisplay
 
     disp = CameraDisplay(CameraGeometry.from_name("LSTCam"))
-    hillas = HillasParametersContainer(
+    hillas = CameraHillasParametersContainer(
         x=0.1 * u.m, y=-0.1 * u.m, length=0.5 * u.m, width=0.2 * u.m, psi=90 * u.deg
     )
 
