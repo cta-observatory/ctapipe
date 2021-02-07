@@ -10,6 +10,7 @@ from ..containers import (
     ImageParametersContainer,
     TimingParametersContainer,
     PeakTimeStatisticsContainer,
+    HillasParametersContainer,
 )
 from ..core import QualityQuery, TelescopeComponent
 from ..core.traits import List, create_class_enum_trait
@@ -25,7 +26,10 @@ from . import (
 )
 
 
-DEFAULT_IMAGE_PARAMETERS = ImageParametersContainer()
+# avoid use of base containers for unparameterized images
+DEFAULT_IMAGE_PARAMETERS = ImageParametersContainer(
+    hillas=HillasParametersContainer(), timing=TimingParametersContainer()
+)
 DEFAULT_TIMING_PARAMETERS = TimingParametersContainer()
 DEFAULT_PEAKTIME_STATISTICS = PeakTimeStatisticsContainer()
 
