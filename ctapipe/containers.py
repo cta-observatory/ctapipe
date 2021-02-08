@@ -276,8 +276,16 @@ class ImageParametersContainer(Container):
     """ Collection of image parameters """
 
     container_prefix = "params"
-    hillas = Field(BaseHillasParametersContainer(), "Hillas Parameters")
-    timing = Field(BaseTimingParametersContainer(), "Timing Parameters")
+    hillas = Field(
+        HillasParametersContainer(),
+        "Hillas Parameters",
+        type=BaseHillasParametersContainer,
+    )
+    timing = Field(
+        TimingParametersContainer(),
+        "Timing Parameters",
+        type=BaseTimingParametersContainer,
+    )
     leakage = Field(LeakageContainer(), "Leakage Parameters")
     concentration = Field(ConcentrationContainer(), "Concentration Parameters")
     morphology = Field(MorphologyContainer(), "Image Morphology Parameters")
