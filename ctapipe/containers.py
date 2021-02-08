@@ -105,12 +105,23 @@ class TelEventIndexContainer(Container):
 
 
 class BaseHillasParametersContainer(Container):
+    """
+    Base container for hillas parameters to
+    allow the CameraHillasParametersContainer to
+    be assigned to an ImageParametersContainer as well.
+    """
+
     intensity = Field(nan, "total intensity (size)")
     skewness = Field(nan, "measure of the asymmetry")
     kurtosis = Field(nan, "measure of the tailedness")
 
 
 class CameraHillasParametersContainer(BaseHillasParametersContainer):
+    """
+    Hillas Parameters in the camera frame. The cog position
+    is given in meter from the camera center.
+    """
+
     container_prefix = "camera_frame_hillas"
     x = Field(nan * u.m, "centroid x coordinate", unit=u.m)
     y = Field(nan * u.m, "centroid x coordinate", unit=u.m)
@@ -125,27 +136,25 @@ class CameraHillasParametersContainer(BaseHillasParametersContainer):
 
 
 class HillasParametersContainer(BaseHillasParametersContainer):
+    """
+    Hillas Parameters in a spherical system centered on the pointing position
+    (TelescopeFrame). The cog position is given as offset in
+    longitude and latitude in degree.
+    """
+
     container_prefix = "hillas"
     fov_lon = Field(
         nan * u.deg,
-        "longitude angle in a spherical system centered on the pointing position (TelescopeFrame)",
+        "longitude angle in a spherical system centered on the pointing position",
         unit=u.deg,
     )
     fov_lat = Field(
         nan * u.deg,
-        "latitude angle in a spherical system centered on the pointing position (TelescopeFrame)",
+        "latitude angle in a spherical system centered on the pointing position",
         unit=u.deg,
     )
-    r = Field(
-        nan * u.deg,
-        "radial coordinate in a spherical system centered on the pointing position (TelescopeFrame)",
-        unit=u.deg,
-    )
-    phi = Field(
-        nan * u.deg,
-        "polar coordinate of centroid in a sky frame e.g. the telescope frame",
-        unit=u.deg,
-    )
+    r = Field(nan * u.deg, "radial coordinate of centroid", unit=u.deg)
+    phi = Field(nan * u.deg, "polar coordinate of centroid", unit=u.deg)
 
     length = Field(nan * u.deg, "standard deviation along the major-axis", unit=u.deg)
     length_uncertainty = Field(nan * u.deg, "uncertainty of length", unit=u.deg)
@@ -195,6 +204,12 @@ class ConcentrationContainer(Container):
 
 
 class BaseTimingParametersContainer(Container):
+    """
+    Base container for timing parameters to
+    allow the CameraTimingParametersContainer to
+    be assigned to an ImageParametersContainer as well.
+    """
+
     intercept = Field(nan, "intercept of arrival times along main shower axis")
     deviation = Field(
         nan,
@@ -218,7 +233,8 @@ class CameraTimingParametersContainer(BaseTimingParametersContainer):
 class TimingParametersContainer(BaseTimingParametersContainer):
     """
     Slope and Intercept of a linear regression of the arrival times
-    along the shower main axis in a sky frame e.g. the telescope frame.
+    along the shower main axis in a
+    spherical system centered on the pointing position (TelescopeFrame)
     """
 
     container_prefix = "timing"

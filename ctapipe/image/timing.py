@@ -89,7 +89,6 @@ def timing_parameters(geom, image, peak_time, hillas_parameters, cleaning_mask=N
         return CameraTimingParametersContainer(
             slope=beta[0] / unit, intercept=beta[1], deviation=deviation
         )
-    else:
-        return TimingParametersContainer(
-            slope=beta[0] / unit, intercept=beta[1], deviation=deviation
-        )
+    return TimingParametersContainer(
+        slope=beta[0] / unit, intercept=beta[1], deviation=deviation
+    )

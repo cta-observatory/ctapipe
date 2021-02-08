@@ -1,12 +1,5 @@
-from ctapipe.instrument import CameraGeometry
-from ctapipe.image import tailcuts_clean, toymodel
-from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
-from ctapipe.containers import (
-    HillasParametersContainer,
-    CameraHillasParametersContainer,
-)
-from astropy.coordinates import Angle, SkyCoord
 from ctapipe.coordinates import TelescopeFrame, CameraFrame
+from astropy.coordinates import Angle, SkyCoord
 from astropy import units as u
 import numpy as np
 from numpy import isclose, zeros_like
@@ -14,6 +7,13 @@ from numpy.random import seed
 from pytest import approx
 import itertools
 import pytest
+from ctapipe.instrument import CameraGeometry
+from ctapipe.image import tailcuts_clean, toymodel
+from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
+from ctapipe.containers import (
+    HillasParametersContainer,
+    CameraHillasParametersContainer,
+)
 
 
 def create_sample_image(
@@ -279,7 +279,7 @@ def test_reconstruction_in_telescope_frame():
     def distance(coord):
         return np.sqrt(np.diff(coord.x) ** 2 + np.diff(coord.y) ** 2) / 2
 
-    for i, (x, y) in enumerate(zip(xs, ys)):
+    for x, y in zip(xs, ys):
         for psi in psis:
             # make a toymodel shower model
             model = toymodel.Gaussian(x=x, y=y, width=width, length=length, psi=psi)
