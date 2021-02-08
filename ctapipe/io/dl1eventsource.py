@@ -30,7 +30,7 @@ from ctapipe.utils import IndexFinder
 logger = logging.getLogger(__name__)
 
 
-COMPATIBLE_DL1_VERSIONS = ["v1.0.0", "v1.0.1", "v1.0.2", "v1.0.3", "v1.0.4"]
+COMPATIBLE_DL1_VERSIONS = ["v1.0.0", "v1.0.1", "v1.0.2", "v1.0.3", "v1.1.0"]
 
 
 class DL1EventSource(EventSource):
@@ -232,12 +232,12 @@ class DL1EventSource(EventSource):
                     containers=[
                         (
                             HillasParametersContainer()
-                            if (self.datamodel_version >= "1.0.4")
+                            if (self.datamodel_version >= "1.1.0")
                             else CameraHillasParametersContainer()
                         ),
                         (
                             TimingParametersContainer()
-                            if (self.datamodel_version >= "1.0.4")
+                            if (self.datamodel_version >= "1.1.0")
                             else CameraTimingParametersContainer()
                         ),
                         LeakageContainer(),
@@ -257,7 +257,7 @@ class DL1EventSource(EventSource):
                         containers=[
                             (
                                 HillasParametersContainer()
-                                if (self.datamodel_version >= "1.0.4")
+                                if (self.datamodel_version >= "1.1.0")
                                 else CameraHillasParametersContainer()
                             ),
                             LeakageContainer(),

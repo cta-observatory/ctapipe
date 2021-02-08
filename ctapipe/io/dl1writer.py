@@ -28,10 +28,10 @@ __all__ = ["DL1Writer", "DL1_DATA_MODEL_VERSION", "write_reference_metadata_head
 
 tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many datasets
 
-DL1_DATA_MODEL_VERSION = "v1.0.4"
+DL1_DATA_MODEL_VERSION = "v1.1.0"
 DL1_DATA_MODEL_CHANGE_HISTORY = """
 - v1.0.3: true_image dtype changed from float32 to int32
-- v1.0.4: hillas and timing parameters saved in telescope frame (degree) as opposed to camera frame (m)
+- v1.1.0: hillas and timing parameters saved in telescope frame (degree) as opposed to camera frame (m)
 """
 
 PROV = Provenance()
