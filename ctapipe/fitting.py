@@ -149,7 +149,7 @@ def lts_linear_regression(
     np.random.seed(0)
 
     X = design_matrix(x)
-    sample_size = int(relative_sample_size * len(x))
+    sample_size = np.int64(relative_sample_size * len(x))
 
     best_beta = np.full(2, np.nan)
     best_error = np.inf
