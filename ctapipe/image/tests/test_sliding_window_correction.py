@@ -16,7 +16,7 @@ from ctapipe.instrument import SubarrayDescription, TelescopeDescription
 def test_sw_pulse_lst():
     """
     Test function of sliding window extractor for LST camera pulse shape with
-the correction for the integration window completeness
+    the correction for the integration window completeness
     """
 
     # prepare array with 1 LST
