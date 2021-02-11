@@ -96,6 +96,10 @@ class CameraGeometry:
         either 'rectangular' or 'hexagonal'
     pix_rotation: value convertable to an `astropy.coordinates.Angle`
         rotation angle with unit (e.g. 12 * u.deg), or "12d"
+    pix_nx: array with units
+        normal vector y component
+    pix_ny: array with units
+        normal vector y component
     cam_rotation: overall camera rotation with units
     """
 
@@ -111,6 +115,8 @@ class CameraGeometry:
         pix_type,
         pix_rotation="0d",
         cam_rotation="0d",
+        pix_nx=None,
+        pix_ny=None,
         neighbors=None,
         apply_derotation=True,
         frame=None,
@@ -134,6 +140,8 @@ class CameraGeometry:
         self.pix_id = pix_id
         self.pix_x = pix_x
         self.pix_y = pix_y
+        self.pix_nx = pix_nx
+        self.pix_ny = pix_ny
         self.pix_area = pix_area
         self.pix_type = pix_type
 
@@ -182,6 +190,12 @@ class CameraGeometry:
 
         return all(
             [u.allclose(self.pix_x, other.pix_x), u.allclose(self.pix_y, other.pix_y)]
+        )
+
+    @property
+    def flat(self):
+        return (self.pix_nx is None and self.pix_ny is None) or (
+            (self.pix_nx.value == 0).all() and (self.pix_ny.value == 0).all()
         )
 
     def guess_radius(self):
