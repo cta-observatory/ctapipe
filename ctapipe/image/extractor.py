@@ -8,10 +8,12 @@ __all__ = [
     "FixedWindowSum",
     "GlobalPeakWindowSum",
     "LocalPeakWindowSum",
+    "SlidingWindowMaxSum",
     "NeighborPeakWindowSum",
     "BaselineSubtractedNeighborPeakWindowSum",
     "TwoPassWindowSum",
     "extract_around_peak",
+    "extract_sliding_window",
     "neighbor_average_waveform",
     "subtract_baseline",
     "integration_correction",
@@ -117,6 +119,77 @@ def extract_around_peak(
     # Convert to units of ns
     peak_time[0] /= sampling_rate_ghz
     sum_[0] = i_sum
+
+
+@guvectorize(
+    [
+        (float64[:], int64, float64, float32[:], float32[:]),
+        (float32[:], int64, float64, float32[:], float32[:]),
+    ],
+    "(s),(),()->(),()",
+    nopython=True,
+)
+def extract_sliding_window(waveforms, width, sampling_rate_ghz, sum_, peak_time):
+    """
+    This function performs the following operations:
+
+    - Find the largest sum of width consecutive slices
+    - Obtain the pulse time within a window defined by a peak finding
+    algorithm, using the weighted average of the samples.
+
+    This function is a numpy universal function which defines the operation
+    applied on the waveform for every channel and pixel. Therefore in the
+    code body of this function:
+        - waveforms is a 1D array of size n_samples.
+        - width is integer
+
+    The ret argument is required by numpy to create the numpy array which is
+    returned. It can be ignored when calling this function.
+
+    Parameters
+    ----------
+    waveforms : ndarray
+        Waveforms stored in a numpy array.
+        Shape: (n_pix, n_samples)
+    width : ndarray or int
+        Window size of integration window for each pixel.
+    sampling_rate_ghz : float
+        Sampling rate of the camera, in units of GHz
+        Astropy units should have to_value('GHz') applied before being passed
+    sum_ : ndarray
+        Return argument for ufunc (ignore)
+        Returns the sum of the waveform samples
+    peak_time : ndarray
+        Return argument for ufunc (ignore)
+        Returns the peak_time in units "ns"
+
+    Returns
+    -------
+    charge : ndarray
+        Extracted charge.
+        Shape: (n_pix)
+
+    """
+
+    # first find the cumulative waveform
+    cwf = np.cumsum(waveforms)
+    # add zero at the begining so it is easier to substract the two arrays later
+    cwf = np.concatenate((np.zeros(1), cwf))
+    sums = cwf[width:] - cwf[:-width]
+    maxpos = np.argmax(sums)  # start of the window with largest sum
+    sum_[0] = sums[maxpos]
+
+    time_num = float64(0.0)
+    time_den = float64(0.0)
+    # now compute the timing as the average of non negative slices
+    for isample in prange(maxpos, maxpos + width):
+        if waveforms[isample] > 0:
+            time_num += waveforms[isample] * isample
+            time_den += waveforms[isample]
+
+    peak_time[0] = time_num / time_den if time_den > 0 else maxpos + 0.5 * width
+    # Convert to units of ns
+    peak_time[0] /= sampling_rate_ghz
 
 
 @njit(parallel=True, cache=True)
@@ -518,6 +591,81 @@ class LocalPeakWindowSum(ImageExtractor):
             self.window_width.tel[telid],
             self.window_shift.tel[telid],
             self.sampling_rate[telid],
+        )
+        if self.apply_integration_correction.tel[telid]:
+            charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
+        return charge, peak_time
+
+
+class SlidingWindowMaxSum(ImageExtractor):
+    """
+    Sliding window extractor that maximizes the signal in window_width consecutive slices.
+    """
+
+    window_width = IntTelescopeParameter(
+        default_value=7, help="Define the width of the integration window"
+    ).tag(config=True)
+
+    apply_integration_correction = BoolTelescopeParameter(
+        default_value=True, help="Apply the integration window correction"
+    ).tag(config=True)
+
+    @lru_cache(maxsize=128)
+    def _calculate_correction(self, telid):
+        """
+        Calculate the correction for the extracted charge such that the value
+        returned would equal 1 for a noise-less unit pulse.
+
+        This method is decorated with @lru_cache to ensure it is only
+        calculated once per telescope.
+
+        The same procedure as for the actual SlidingWindowMaxSum extractor is used, but
+        on the reference pulse_shape (that is also more finely binned)
+
+        Parameters
+        ----------
+        telid : int
+
+        Returns
+        -------
+        correction : ndarray
+        The correction to apply to an extracted charge using this ImageExtractor
+        Has size n_channels, as a different correction value might be required
+        for different gain channels.
+        """
+
+        readout = self.subarray.tel[telid].camera.readout
+
+        # compute the number of slices to integrate in the pulse template
+        width_shape = int(
+            round(
+                (
+                    self.window_width.tel[telid]
+                    / readout.sampling_rate
+                    / readout.reference_pulse_sample_width
+                )
+                .to("")
+                .value
+            )
+        )
+
+        n_channels = len(readout.reference_pulse_shape)
+        correction = np.ones(n_channels, dtype=np.float)
+        for ichannel, pulse_shape in enumerate(readout.reference_pulse_shape):
+
+            # apply the same method as sliding window to find the highest sum
+            cwf = np.cumsum(pulse_shape)
+            # add zero at the begining so it is easier to substract the two arrays later
+            cwf = np.concatenate((np.zeros(1), cwf))
+            sums = cwf[width_shape:] - cwf[:-width_shape]
+            maxsum = np.max(sums)
+            correction[ichannel] = np.sum(pulse_shape) / maxsum
+
+        return correction
+
+    def __call__(self, waveforms, telid, selected_gain_channel):
+        charge, peak_time = extract_sliding_window(
+            waveforms, self.window_width.tel[telid], self.sampling_rate[telid]
         )
         if self.apply_integration_correction.tel[telid]:
             charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
