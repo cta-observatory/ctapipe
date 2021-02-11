@@ -55,4 +55,4 @@ the correction for the integration window completeness
 
     charge, _ = extractor(waveform, telid, selected_gain_channel)
     print(charge / charge_true)
-    assert_allclose(charge, charge_true, rtol=-0.02)
+    assert_allclose(charge, charge_true, rtol=0.02)
