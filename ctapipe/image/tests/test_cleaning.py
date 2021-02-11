@@ -1,7 +1,9 @@
+import os
 import numpy as np
 from numpy.testing import assert_allclose
 from ctapipe.image import cleaning
 from ctapipe.instrument import CameraGeometry
+import astropy.units as u
 
 
 def test_tailcuts_clean_simple():
@@ -67,6 +69,49 @@ def test_tailcuts_clean():
             keep_isolated_pixels=False,
         )
         assert (result == mask).all()
+
+
+def test_tailcuts_clean_threshold_array():
+    """Tests that tailcuts can also work with individual thresholds per pixel"""
+    rng = np.random.default_rng(1337)
+    geom = CameraGeometry.from_name("LSTCam")
+
+    # artifical event having a "shower" and a "star" at these locations
+    star_x = 0.5 * u.m
+    star_y = 0.5 * u.m
+    shower_x = -0.5 * u.m
+    shower_y = -0.5 * u.m
+
+    star_pixels = (
+        np.sqrt((geom.pix_x - star_x) ** 2 + (geom.pix_y - star_y) ** 2) < 0.1 * u.m
+    )
+    shower = (
+        np.sqrt((geom.pix_x - shower_x) ** 2 + (geom.pix_y - shower_y) ** 2) < 0.2 * u.m
+    )
+
+    # noise level at the star cluster is much higher than normal camera
+    noise = rng.normal(3, 0.2, len(geom))
+    noise[star_pixels] = rng.normal(10, 1, np.count_nonzero(star_pixels))
+
+    # large signal at the signal location
+    image = rng.poisson(noise).astype(float)
+    signal = rng.normal(20, 2, np.count_nonzero(shower))
+    image[shower] += signal
+
+    picture_threshold = 3 * noise
+    boundary_threshold = 1.5 * noise
+
+    # test that normal cleaning also contains star cluster
+    # and that cleaning with pixel wise values removes star cluster
+    normal_cleaning = cleaning.tailcuts_clean(
+        geom, image, picture_threshold.mean(), boundary_threshold.mean()
+    )
+    pixel_cleaning = cleaning.tailcuts_clean(
+        geom, image, picture_threshold, boundary_threshold
+    )
+
+    assert np.count_nonzero(normal_cleaning & star_pixels) > 0
+    assert np.count_nonzero(pixel_cleaning & star_pixels) == 0
 
 
 def test_mars_cleaning_1st_pass():

@@ -883,7 +883,7 @@ class ArrayEventContainer(Container):
     dl0 = Field(DL0Container(), "DL0 Data Volume Reduced Data")
     dl1 = Field(DL1Container(), "DL1 Calibrated image")
     dl2 = Field(ReconstructedContainer(), "Reconstructed Shower Information")
-    simulation = Field(SimulatedEventContainer(), "Simulated Event Information")
+    simulation = Field(None, "Simulated Event Information",  type=SimulatedEventContainer)
     trigger = Field(TriggerContainer(), "central trigger information")
     count = Field(0, "number of events processed")
     pointing = Field(PointingContainer(), "Array and telescope pointing positions")
