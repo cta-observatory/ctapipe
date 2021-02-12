@@ -27,11 +27,7 @@ from numpy import cos, sin
 
 from .representation import PlanarRepresentation
 
-__all__ = [
-    "GroundFrame",
-    "TiltedGroundFrame",
-    "project_to_ground",
-]
+__all__ = ["GroundFrame", "TiltedGroundFrame", "project_to_ground"]
 
 
 class GroundFrame(BaseCoordinateFrame):
@@ -93,18 +89,14 @@ def get_shower_trans_matrix(azimuth, altitude):
     cos_az = cos(azimuth)
     sin_az = sin(azimuth)
 
-    trans = np.zeros([3, 3])
-    trans[0][0] = cos_z * cos_az
-    trans[1][0] = sin_az
-    trans[2][0] = sin_z * cos_az
-
-    trans[0][1] = -cos_z * sin_az
-    trans[1][1] = cos_az
-    trans[2][1] = -sin_z * sin_az
-
-    trans[0][2] = -sin_z
-    trans[1][2] = 0.0
-    trans[2][2] = cos_z
+    trans = np.array(
+        [
+            [cos_z * cos_az, -cos_z * sin_az, -sin_z],
+            [sin_az, cos_az, np.zeros_like(sin_z)],
+            [sin_z * cos_az, -sin_z * sin_az, cos_z],
+        ],
+        dtype=np.float64,
+    )
 
     return trans
 
@@ -133,8 +125,8 @@ def ground_to_tilted(ground_coord, tilted_frame):
     azimuth = tilted_frame.pointing_direction.az.to(u.rad)
     trans = get_shower_trans_matrix(azimuth, altitude)
 
-    x_tilt = trans[0][0] * x_grd + trans[0][1] * y_grd + trans[0][2] * z_grd
-    y_tilt = trans[1][0] * x_grd + trans[1][1] * y_grd + trans[1][2] * z_grd
+    x_tilt = trans[0, 0] * x_grd + trans[0, 1] * y_grd + trans[0, 2] * z_grd
+    y_tilt = trans[1, 0] * x_grd + trans[1, 1] * y_grd + trans[1, 2] * z_grd
 
     representation = PlanarRepresentation(x_tilt, y_tilt)
 
