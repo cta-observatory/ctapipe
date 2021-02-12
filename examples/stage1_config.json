@@ -17,7 +17,7 @@
                 ["type", "SST_ASTRI_CHEC", 3.0]
             ],
             "boundary_threshold_pe": [
-                ["type", "*", 10.0],
+                ["type", "*", 5.0],
                 ["type", "LST_LST_LSTCam", 2.5],
                 ["type", "MST_MST_NectarCam", 2.5],
                 ["type", "SST_ASTRI_CHEC", 1.5]
