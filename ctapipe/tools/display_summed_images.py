@@ -89,7 +89,7 @@ class ImageSumDisplayerTool(Tool):
 
             if geom is None:
                 geom = self.reader.subarray.tel[self._base_tel].camera.geometry
-                imsum = np.zeros(shape=geom.pix_x.shape, dtype=np.float)
+                imsum = np.zeros(shape=geom.pix_x.shape, dtype=np.float64)
                 disp = CameraDisplay(geom, title=geom.camera_name)
                 disp.add_colorbar()
                 disp.cmap = "viridis"

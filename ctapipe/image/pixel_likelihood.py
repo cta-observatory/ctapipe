@@ -123,7 +123,7 @@ def neg_log_likelihood_numeric(
     float
     """
 
-    epsilon = np.finfo(np.float).eps
+    epsilon = np.finfo(np.float64).eps
 
     prediction = prediction + epsilon
 

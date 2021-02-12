@@ -11,7 +11,7 @@ def test_construct():
     """ Check we can make a CameraReadout from scratch """
     camera_name = "Unknown"
     sampling_rate = u.Quantity(2, u.GHz)
-    reference_pulse_shape = np.ones((2, 20)).astype(np.float)
+    reference_pulse_shape = np.ones((2, 20)).astype(np.float64)
     reference_pulse_sample_width = u.Quantity(0.5, u.ns)
     readout = CameraReadout(
         camera_name=camera_name,
@@ -30,7 +30,7 @@ def test_construct():
 def readout():
     camera_name = "Unknown"
     sampling_rate = u.Quantity(2, u.GHz)
-    reference_pulse_shape = np.ones((2, 20)).astype(np.float)
+    reference_pulse_shape = np.ones((2, 20)).astype(np.float64)
     reference_pulse_sample_width = u.Quantity(0.5, u.ns)
     return CameraReadout(
         camera_name=camera_name,
@@ -73,7 +73,7 @@ def test_equals():
     """ check we can use the == operator """
     camera_name = "Unknown"
     sampling_rate = u.Quantity(2, u.GHz)
-    reference_pulse_shape = np.ones((2, 20)).astype(np.float)
+    reference_pulse_shape = np.ones((2, 20)).astype(np.float64)
     reference_pulse_sample_width = u.Quantity(0.5, u.ns)
     readout1 = CameraReadout(
         camera_name=camera_name,
@@ -116,7 +116,7 @@ def test_hashing():
     """" check that hashes are correctly computed """
     camera_name = "Unknown"
     sampling_rate = u.Quantity(2, u.GHz)
-    reference_pulse_shape = np.ones((2, 20)).astype(np.float)
+    reference_pulse_shape = np.ones((2, 20)).astype(np.float64)
     reference_pulse_sample_width = u.Quantity(0.5, u.ns)
     readout1 = CameraReadout(
         camera_name=camera_name,

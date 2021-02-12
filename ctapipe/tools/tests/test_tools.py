@@ -125,7 +125,7 @@ def test_merge(tmpdir):
             MergeTool(),
             argv=[
                 f"--i={tmp_dir.name}",
-                "--p='test_file_*.hdf5'",
+                "--p=test_file_*.hdf5",
                 f"--o={out_tels_dir_pattern}",
                 "--overwrite",
                 "--t=[2, 3]",

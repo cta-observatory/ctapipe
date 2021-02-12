@@ -101,7 +101,7 @@ def plot(subarray, event, telid, chan, extractor_name):
             ax.set_ylim(max_ylim)
 
     # Draw cameras
-    nei_camera = np.zeros_like(max_charges, dtype=np.int)
+    nei_camera = np.zeros_like(max_charges, dtype=np.int64)
     nei_camera[min_pixel_nei] = 2
     nei_camera[min_pix] = 1
     nei_camera[max_pixel_nei] = 3
