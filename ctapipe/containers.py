@@ -51,7 +51,7 @@ __all__ = [
 
 
 # see https://github.com/astropy/astropy/issues/6509
-NAN_TIME = Time(np.ma.masked_array(nan, mask=True), format="mjd")
+NAN_TIME = Time(0, format="mjd", scale="tai")
 
 
 class EventType(enum.Enum):
