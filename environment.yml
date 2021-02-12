@@ -8,6 +8,7 @@ dependencies:
   - pip
   - astropy
   - h5py=2
+  - black
   - bokeh=1
   - conda-forge::nbsphinx
   - cython
