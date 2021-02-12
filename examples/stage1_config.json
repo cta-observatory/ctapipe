@@ -2,7 +2,9 @@
     "DL1Writer": {
         "overwrite": false,
         "write_images": true,
-        "write_parameters": true
+        "write_parameters": true,
+        "transform_image": true,
+        "transform_peak_time": true
     },
     "CameraCalibrator": {
         "image_extractor_type": "NeighborPeakWindowSum"
