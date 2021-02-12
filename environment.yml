@@ -44,3 +44,4 @@ dependencies:
   - zlib
   - zstandard
   - conda-forge::eventio>=1.5.0
+  - conda-forge::corsikaio
