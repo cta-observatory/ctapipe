@@ -137,12 +137,12 @@ class LeakageContainer(Container):
         nan, "fraction of pixels after cleaning that are in camera border of width=2"
     )
     intensity_width_1 = Field(
-        nan,
+        np.float32(nan),
         "Intensity in photo-electrons after cleaning"
         " that are in the camera border of width=1 pixel",
     )
     intensity_width_2 = Field(
-        nan,
+        np.float32(nan),
         "Intensity in photo-electrons after cleaning"
         " that are in the camera border of width=2 pixels",
     )
@@ -193,10 +193,10 @@ class MorphologyContainer(Container):
 class StatisticsContainer(Container):
     """Store descriptive statistics"""
 
-    max = Field(nan, "value of pixel with maximum intensity")
-    min = Field(nan, "value of pixel with minimum intensity")
-    mean = Field(nan, "mean intensity")
-    std = Field(nan, "standard deviation of intensity")
+    max = Field(np.float32(nan), "value of pixel with maximum intensity")
+    min = Field(np.float32(nan), "value of pixel with minimum intensity")
+    mean = Field(np.float32(nan), "mean intensity")
+    std = Field(np.float32(nan), "standard deviation of intensity")
     skewness = Field(nan, "skewness of intensity")
     kurtosis = Field(nan, "kurtosis of intensity")
 
@@ -883,7 +883,9 @@ class ArrayEventContainer(Container):
     dl0 = Field(DL0Container(), "DL0 Data Volume Reduced Data")
     dl1 = Field(DL1Container(), "DL1 Calibrated image")
     dl2 = Field(ReconstructedContainer(), "Reconstructed Shower Information")
-    simulation = Field(None, "Simulated Event Information",  type=SimulatedEventContainer)
+    simulation = Field(
+        None, "Simulated Event Information", type=SimulatedEventContainer
+    )
     trigger = Field(TriggerContainer(), "central trigger information")
     count = Field(0, "number of events processed")
     pointing = Field(PointingContainer(), "Array and telescope pointing positions")
