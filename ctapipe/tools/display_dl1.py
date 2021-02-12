@@ -4,7 +4,7 @@ Calibrate dl0 data to dl1, and plot the photoelectron images.
 from copy import copy
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from traitlets import Bool, Dict, Int, List
+from traitlets import Bool, Dict, Int
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Component, Tool
@@ -152,9 +152,7 @@ class DisplayDL1Calib(Tool):
             )
         )
     )
-    classes = List(
-        [EventSource, ImagePlotter] + traits.classes_with_traits(ImageExtractor)
-    )
+    classes = [EventSource, ImagePlotter] + traits.classes_with_traits(ImageExtractor)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

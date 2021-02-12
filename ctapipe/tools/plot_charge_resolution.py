@@ -26,7 +26,7 @@ class ChargeResolutionViewer(Tool):
             o="ChargeResolutionPlotter.output_path",
         )
     )
-    classes = List([ChargeResolutionPlotter])
+    classes = [ChargeResolutionPlotter]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
