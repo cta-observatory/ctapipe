@@ -22,7 +22,7 @@ __all__ = ["h5_table_to_astropy"]
 
 
 def read_table(h5file, path) -> Table:
-    """Get a table from a ctapipe-format HDF5 table as an `astropy.table.QTable`
+    """Get a table from a ctapipe-format HDF5 table as an `astropy.table.Table`
     object, retaining units. This uses the same unit storage convention as
     defined by the `HDF5TableWriter`, namely that the units are in attributes
     named by `<column name>_UNIT` that are parsible by `astropy.units`. Columns
