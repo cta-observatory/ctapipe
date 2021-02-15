@@ -122,19 +122,16 @@ def neg_log_likelihood_numeric(
     -------
     float
     """
-
     epsilon = np.finfo(np.float).eps
-
     prediction = prediction + epsilon
-
     likelihood = epsilon
 
     ns = np.arange(*poisson(np.max(prediction)).ppf(confidence))
-
     ns = ns[ns >= 0]
 
     for n in ns:
         theta = pedestal ** 2 + n * spe_width ** 2
+
         _l = (
             prediction ** n
             * np.exp(-prediction)
@@ -173,16 +170,15 @@ def neg_log_likelihood(image, prediction, spe_width, pedestal, prediction_safety
     """
 
     approx_mask = prediction > prediction_safety
-
     neg_log_l = 0
     if np.any(approx_mask):
         neg_log_l += neg_log_likelihood_approx(
-            image[approx_mask], prediction[approx_mask], spe_width, pedestal
+            image[approx_mask], prediction[approx_mask], spe_width, pedestal[approx_mask]
         )
 
     if not np.all(approx_mask):
         neg_log_l += neg_log_likelihood_numeric(
-            image[~approx_mask], prediction[~approx_mask], spe_width, pedestal
+            image[~approx_mask], prediction[~approx_mask], spe_width, pedestal[~approx_mask]
         )
 
     return neg_log_l

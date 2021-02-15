@@ -49,7 +49,7 @@ def test_full_likelihood():
     equal at high signal.
     """
     spe = 0.5  # Single photo-electron width
-    pedestal = 1  # width of the pedestal distribution
+    pedestal = np.array([1, 1, 1])  # width of the pedestal distribution
 
     image_small = np.array([0, 1, 2])
     expectation_small = np.array([1, 1, 1])
