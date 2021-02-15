@@ -6,7 +6,7 @@ Functions to help adapt internal ctapipe data to astropy formats and conventions
 from pathlib import Path
 
 import tables
-from astropy.table import QTable
+from astropy.table import Table
 from astropy.units import Unit
 from astropy.time import Time
 import numpy as np
@@ -21,8 +21,8 @@ from .hdf5tableio import get_hdf5_attr
 __all__ = ["h5_table_to_astropy"]
 
 
-def h5_table_to_astropy(h5file, path) -> QTable:
-    """Get a table from a ctapipe-format HDF5 table as an `astropy.table.QTable`
+def read_table(h5file, path) -> Table:
+    """Get a table from a ctapipe-format HDF5 table as an `astropy.table.Table`
     object, retaining units. This uses the same unit storage convention as
     defined by the `HDF5TableWriter`, namely that the units are in attributes
     named by `<column name>_UNIT` that are parsible by `astropy.units`. Columns
@@ -37,7 +37,7 @@ def h5_table_to_astropy(h5file, path) -> QTable:
 
     Returns
     -------
-    astropy.table.QTable:
+    astropy.table.Table:
         table in Astropy Format
 
     """
@@ -85,7 +85,7 @@ def h5_table_to_astropy(h5file, path) -> QTable:
             value = table.attrs[attr]
             other_attrs[attr] = str(value) if isinstance(value, np.str_) else value
 
-    astropy_table = QTable(table[:], meta=other_attrs)
+    astropy_table = Table(table[:], meta=other_attrs)
 
     for column, tr in column_transforms.items():
         astropy_table[column] = tr.inverse(astropy_table[column])

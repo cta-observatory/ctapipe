@@ -7,10 +7,10 @@ from astropy.time import Time
 
 from ctapipe.containers import ReconstructedEnergyContainer, TelescopeTriggerContainer
 from ctapipe.io import HDF5TableWriter
-from ctapipe.io.astropy_helpers import h5_table_to_astropy
+from ctapipe.io.astropy_helpers import read_table
 
 
-def test_h5_table_to_astropy(tmp_path):
+def test_read_table(tmp_path):
 
     # write a simple hdf5 file using
 
@@ -23,7 +23,7 @@ def test_h5_table_to_astropy(tmp_path):
             writer.write("events", container)
 
     # try opening the result
-    table = h5_table_to_astropy(filename, "/events")
+    table = read_table(filename, "/events")
 
     assert "energy" in table.columns
     assert table["energy"].unit == u.TeV
@@ -31,7 +31,7 @@ def test_h5_table_to_astropy(tmp_path):
     assert table["energy"].description is not None
 
     # test using a string
-    table = h5_table_to_astropy(str(filename), "/events")
+    table = read_table(str(filename), "/events")
 
     # test write the table back out to some other format:
     table.write(tmp_path / "test_output.ecsv")
@@ -39,14 +39,14 @@ def test_h5_table_to_astropy(tmp_path):
 
     # test using a file handle
     with tables.open_file(filename) as handle:
-        table = h5_table_to_astropy(handle, "/events")
+        table = read_table(handle, "/events")
 
     # test a bad input
     with pytest.raises(ValueError):
-        table = h5_table_to_astropy(12345, "/events")
+        table = read_table(12345, "/events")
 
 
-def test_h5_table_to_astropy_time(tmp_path):
+def test_read_table_time(tmp_path):
     t0 = Time("2020-01-01T20:00:00.0")
     times = t0 + np.arange(10) * u.s
 
@@ -58,7 +58,7 @@ def test_h5_table_to_astropy_time(tmp_path):
             writer.write("events", container)
 
     # check reading in the times works as expected
-    table = h5_table_to_astropy(filename, "/events")
+    table = read_table(filename, "/events")
     assert isinstance(table["time"], Time)
     assert np.allclose(times.tai.mjd, table["time"].tai.mjd)
 
@@ -75,6 +75,6 @@ def test_transforms(tmp_path):
         f.root.data.test.attrs["waveform_TRANSFORM_OFFSET"] = 200
         f.root.data.test.attrs["waveform_TRANSFORM_DTYPE"] = "float64"
 
-    table = h5_table_to_astropy(path, "/data/test")
+    table = read_table(path, "/data/test")
 
     assert np.all(table["waveform"] == [-1.0, -0.9])
