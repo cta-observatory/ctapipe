@@ -62,6 +62,15 @@ class TemplateNetworkInterpolator:
         return interpolated_value
 
 
+class DummyTemplateInterpolator:
+
+    def __call__(self, energy, impact, xmax, xb, yb):
+        return np.ones_like(xb)
+
+    def reset(self):
+        return True
+
+
 class TimeGradientInterpolator:
     """
     Class for interpolating between the time gradient predictions
@@ -102,3 +111,12 @@ class TimeGradientInterpolator:
         interpolated_value = self.interpolator(array)
 
         return interpolated_value
+
+
+class DummyTimeInterpolator:
+
+    def __call__(self, energy, impact, xmax):
+        return np.ones_like(energy)
+
+    def reset(self):
+        return True

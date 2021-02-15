@@ -4,6 +4,7 @@
 """
 import math
 from string import Template
+import copy
 
 import numpy as np
 import numpy.ma as ma
@@ -30,6 +31,8 @@ from ctapipe.reco.reco_algorithms import Reconstructor, TooFewTelescopesExceptio
 from ctapipe.utils.template_network_interpolator import (
     TemplateNetworkInterpolator,
     TimeGradientInterpolator,
+    DummyTemplateInterpolator,
+    DummyTimeInterpolator
 )
 from ctapipe.reco.ImPACT_utilities import *
 
@@ -117,6 +120,7 @@ class ImPACTReconstructor(Reconstructor):
         template_scale=1.0,
         xmax_offset=0,
         use_time_gradient=False,
+        dummy_reconstructor=False
     ):
 
         # First we create a dictionary of image template interpolators
@@ -155,7 +159,6 @@ class ImPACTReconstructor(Reconstructor):
         self.time_prediction = dict()
 
         self.array_direction = None
-        self.array_return = False
         self.nominal_frame = None
 
         # For now these factors are required to fix problems in templates
@@ -164,6 +167,7 @@ class ImPACTReconstructor(Reconstructor):
         self.use_time_gradient = use_time_gradient
 
         self.min = None
+        self.dummy_reconstructor = dummy_reconstructor
 
     def initialise_templates(self, tel_type):
         """Check if templates for a given telescope type has been initialised
@@ -184,13 +188,19 @@ class ImPACTReconstructor(Reconstructor):
             if tel_type[t] in self.prediction.keys() or tel_type[t] == "DUMMY":
                 continue
 
-            self.prediction[tel_type[t]] = TemplateNetworkInterpolator(
-                self.amplitude_template.substitute(base=self.root_dir, camera=tel_type[t]))
+            if self.dummy_reconstructor:
+                self.prediction[tel_type[t]] = DummyTemplateInterpolator()
+            else:
+                self.prediction[tel_type[t]] = TemplateNetworkInterpolator(
+                    self.amplitude_template.substitute(base=self.root_dir, camera=tel_type[t]))
 
             if self.use_time_gradient:
-                self.time_prediction[tel_type[t]] = TimeGradientInterpolator(
-                    self.time_template.substitute(base=self.root_dir, camera=tel_type[t])
-                )
+                if self.dummy_reconstructor:
+                    self.time_prediction[tel_type[t]] = DummyTimeInterpolator()
+                else:
+                    self.time_prediction[tel_type[t]] = TimeGradientInterpolator(
+                        self.time_template.substitute(base=self.root_dir, camera=tel_type[t])
+                    )
 
         return True
 
@@ -403,7 +413,7 @@ class ImPACTReconstructor(Reconstructor):
 
         # Rotate and translate all pixels such that they match the
         # template orientation
-        pix_y_rot, pix_x_rot = self.rotate_translate(
+        pix_y_rot, pix_x_rot = rotate_translate(
             self.pixel_x, self.pixel_y, source_x, source_y, phi
         )
 
@@ -460,31 +470,18 @@ class ImPACTReconstructor(Reconstructor):
 
         # Get likelihood that the prediction matched the camera image
         like = neg_log_likelihood(self.image, prediction, self.spe, self.ped)
-        like[np.isnan(like)] = 1e9
-        like *= np.invert(ma.getmask(self.image))
-        like = ma.MaskedArray(like, mask=ma.getmask(self.image))
 
-        array_like = like
         if goodness_of_fit:
-            return np.sum(
-                like - mean_poisson_likelihood_gaussian(prediction, self.spe, self.ped)
-            )
+            return like - mean_poisson_likelihood_gaussian(prediction, self.spe, self.ped)
 
         prior_pen = 0
         # Add prior penalities if we have them
-        array_like += 1e-8
         if "energy" in self.priors:
             prior_pen += energy_prior(energy, index=-1)
         if "xmax" in self.priors:
             prior_pen += xmax_prior(energy, x_max)
 
-        array_like += prior_pen / float(len(array_like))
-
-        if self.array_return:
-            array_like = array_like.ravel()
-            return array_like[np.invert(ma.getmask(array_like))]
-
-        final_sum = array_like.sum()
+        final_sum = like
         if self.use_time_gradient:
             final_sum += chi2.sum()  # * np.sum(ma.getmask(self.image))
 
@@ -575,8 +572,6 @@ class ImPACTReconstructor(Reconstructor):
         self.nominal_frame = NominalFrame(origin=self.array_direction)
 
         tilt_coord = grd_coord.transform_to(tilted_frame)
-        self.tel_pos_x = tilt_coord.x.to(u.m).value
-        self.tel_pos_y = tilt_coord.y.to(u.m).value
 
         type_tel = {}
         # So here we must loop over the telescopes
@@ -606,6 +601,8 @@ class ImPACTReconstructor(Reconstructor):
             self.ped[i] = self.ped_table[type]
             self.tel_types.append(type)
             self.tel_id.append(tel_id)
+            self.tel_pos_x[i] = tilt_coord[tel_id].x.to(u.m).value
+            self.tel_pos_y[i] = tilt_coord[tel_id].y.to(u.m).value
 
             cog_coords = SkyCoord(x=hillas_dict[tel_id].x, y=hillas_dict[tel_id].y, frame=camera_frame)
             cog_coords_nom = cog_coords.transform_to(self.nominal_frame)
@@ -647,14 +644,6 @@ class ImPACTReconstructor(Reconstructor):
         self.get_hillas_mean()
         self.initialise_templates(type_tel)
 
-    def reset_interpolator(self):
-        """
-        This function is needed in order to reset some variables in the interpolator
-        at each new event. Without this reset, a new event starts with information
-        from the previous event.
-        """
-        list(self.prediction.values())[0].reset()
-
     def predict(self,hillas_dict, subarray, array_pointing, telescope_pointings=None,
                 image_dict=None, mask_dict=None, shower_seed=None, energy_seed=None):
         """Predict method for the ImPACT reconstructor.
@@ -675,7 +664,7 @@ class ImPACTReconstructor(Reconstructor):
         if image_dict is None:
             raise EmptyImages("Images not passed to ImPACT reconstructor")
 
-        self.set_event_properties(hillas_dict, image_dict, image_dict, mask_dict, subarray, array_pointing,
+        self.set_event_properties(copy.deepcopy(hillas_dict), image_dict, image_dict, mask_dict, subarray, array_pointing,
                                   telescope_pointings)
 
         self.reset_interpolator()
@@ -751,7 +740,6 @@ class ImPACTReconstructor(Reconstructor):
             fit_params[3],
             zenith.to(u.rad).value,
         )
-
         shower_result.h_max *= np.cos(zenith)
         shower_result.h_max_uncert = errors[5] * shower_result.h_max
 
@@ -821,7 +809,7 @@ class ImPACTReconstructor(Reconstructor):
             )
 
             self.min.tol *= 1000
-            self.min.set_strategy(1)
+            self.min.strategy = 1
 
             migrad = self.min.migrad()
             fit_params = self.min.values
@@ -847,20 +835,6 @@ class ImPACTReconstructor(Reconstructor):
                 self.min.fval,
             )
 
-        elif minimiser_name in ("lm", "trf", "dogleg"):
-            self.array_return = True
-
-            min = least_squares(
-                self.get_likelihood_min,
-                params,
-                method=minimiser_name,
-                x_scale=step,
-                xtol=1e-10,
-                ftol=1e-10,
-            )
-
-            return min.x, (0, 0, 0, 0, 0, 0), self.get_likelihood_min(min.x)
-
         else:
             min = minimize(
                 self.get_likelihood_min,
@@ -872,3 +846,11 @@ class ImPACTReconstructor(Reconstructor):
             )
 
             return np.array(min.x), (0, 0, 0, 0, 0, 0), self.get_likelihood_min(min.x)
+
+    def reset_interpolator(self):
+        """
+        This function is needed in order to reset some variables in the interpolator
+        at each new event. Without this reset, a new event starts with information
+        from the previous event.
+        """
+        list(self.prediction.values())[0].reset()

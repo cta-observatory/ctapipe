@@ -1,4 +1,5 @@
 import numpy as np
+import astropy.units as u
 
 __all__ = ["spread_line_seed", "create_seed", "rotate_translate"]
 

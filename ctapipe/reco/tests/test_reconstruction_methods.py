@@ -7,6 +7,7 @@ from ctapipe.io import EventSource
 from ctapipe.reco.HillasReconstructor import HillasReconstructor
 from ctapipe.reco.hillas_intersection import HillasIntersection
 from ctapipe.reco.ImPACT import ImPACTReconstructor
+from ctapipe.containers import ReconstructedEnergyContainer
 
 from ctapipe.utils import get_dataset_path
 from astropy.coordinates import SkyCoord, AltAz
@@ -91,6 +92,7 @@ def test_reconstructors(reconstructors):
         np.zeros_like(reconstructed_events), reconstructed_events
     )
 
+
 def test_ImPACT(reconstructors):
     """
     a test of the complete fit procedure on one event including:
@@ -110,7 +112,7 @@ def test_ImPACT(reconstructors):
 
     # record how many events were reconstructed by each reconstructor
     reconstructed_events = np.zeros((len(reconstructors)))
-    impact_reconstructor = ImPACTReconstructor()
+    impact_reconstructor = ImPACTReconstructor(dummy_reconstructor=True)
 
     for event in source:
         calib(event)
@@ -148,20 +150,29 @@ def test_ImPACT(reconstructors):
             continue
 
         for count, reco_method in enumerate(reconstructors):
+
             reconstructed_events[count] += 1
             reconstructor = reco_method()
             reconstructor_out = reconstructor.predict(
                 hillas_dict, source.subarray, array_pointing, telescope_pointings
             )
-            impact_reconstructor.predict(
+
+            energy_seed = ReconstructedEnergyContainer()
+            energy_seed.is_valid = True
+            energy_seed.energy = 1 * u.TeV
+
+            shower_result, energy_result = impact_reconstructor.predict(
                 hillas_dict, source.subarray, array_pointing, telescope_pointings,
-                image_dict, mask_dict, reconstructor_out
+                image_dict, mask_dict, reconstructor_out, energy_seed
             )
-            reconstructor_out.alt.to(u.deg)
-            reconstructor_out.az.to(u.deg)
-            reconstructor_out.core_x.to(u.m)
-            assert reconstructor_out.is_valid
+
+            shower_result.alt.to(u.deg)
+            shower_result.az.to(u.deg)
+            shower_result.core_x.to(u.m)
+            assert shower_result.is_valid
 
     np.testing.assert_array_less(
         np.zeros_like(reconstructed_events), reconstructed_events
     )
+
+test_ImPACT([HillasIntersection])
