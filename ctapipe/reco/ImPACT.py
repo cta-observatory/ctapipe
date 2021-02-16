@@ -157,16 +157,18 @@ class ImPACTReconstructor(Reconstructor):
             if self.dummy_reconstructor:
                 self.prediction[tel_type[t]] = DummyTemplateInterpolator()
             else:
-                self.prediction[tel_type[t]] = TemplateNetworkInterpolator(
-                    self.amplitude_template.substitute(base=self.root_dir, camera=tel_type[t]))
+                filename = self.amplitude_template.substitute(base=self.root_dir, camera=tel_type[t])
+                self.prediction[tel_type[t]] = TemplateNetworkInterpolator(filename)
+                PROV.add_input_file(filename, role="ImPACT Template file for " + tel_type[t])
 
             if self.use_time_gradient:
                 if self.dummy_reconstructor:
                     self.time_prediction[tel_type[t]] = DummyTimeInterpolator()
                 else:
-                    self.time_prediction[tel_type[t]] = TimeGradientInterpolator(
-                        self.time_template.substitute(base=self.root_dir, camera=tel_type[t])
-                    )
+                    filename = self.time_template.substitute(base=self.root_dir, camera=tel_type[t])
+                    self.time_prediction[tel_type[t]] = TimeGradientInterpolator(filename)
+                    PROV.add_input_file(filename, role="ImPACT Time Template file for " + tel_type[t])
+
 
         return True
 
@@ -580,7 +582,8 @@ class ImPACTReconstructor(Reconstructor):
         # First allocate everything
         shape = (len(hillas_dict), max_pix_x)
         self.pixel_x, self.pixel_y = ma.zeros(shape), ma.zeros(shape)
-        self.image, self.time, self.ped = (
+        self.image, self.time, self.ped, self.spe = (
+            ma.zeros(shape),
             ma.zeros(shape),
             ma.zeros(shape),
             ma.zeros(shape),
@@ -595,6 +598,7 @@ class ImPACTReconstructor(Reconstructor):
             self.image[i][:array_len] = pa[i]
             self.time[i][:array_len] = pt[i]
             self.ped[i][:array_len] = self.ped_table[self.tel_types[i]]
+            self.spe[i][:array_len] = 0.5
 
         # Set the image mask
         mask = self.image == 0.0
