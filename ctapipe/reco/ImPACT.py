@@ -297,7 +297,7 @@ class ImPACTReconstructor(Reconstructor):
 
         return x_max + self.xmax_offset
 
-    def image_prediction(self, tel_type, energy, impact, x_max, pix_x, pix_y):
+    def image_prediction(self, tel_type, zenith, azimuth, energy, impact, x_max, pix_x, pix_y):
         """Creates predicted image for the specified pixels, interpolated
         from the template library.
 
@@ -322,7 +322,7 @@ class ImPACTReconstructor(Reconstructor):
 
         """
 
-        return self.prediction[tel_type](energy, impact, x_max, pix_x, pix_y)
+        return self.prediction[tel_type](zenith, azimuth, energy, impact, x_max, pix_x, pix_y)
 
     def predict_time(self, tel_type, energy, impact, x_max):
         """Creates predicted image for the specified pixels, interpolated
@@ -429,6 +429,7 @@ class ImPACTReconstructor(Reconstructor):
             type_mask = self.tel_types == tel_type
             prediction[type_mask] = self.image_prediction(
                 tel_type,
+                zenith, azimuth,
                 energy * np.ones_like(impact[type_mask]),
                 impact[type_mask],
                 x_max_bin * np.ones_like(impact[type_mask]),
