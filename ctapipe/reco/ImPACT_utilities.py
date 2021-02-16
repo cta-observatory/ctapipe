@@ -1,7 +1,42 @@
 import numpy as np
 import astropy.units as u
 
-__all__ = ["spread_line_seed", "create_seed", "rotate_translate"]
+__all__ = ["spread_line_seed", "create_seed", "rotate_translate",
+"guess_shower_depth", "energy_prior", "xmax_prior", "EmptyImages"]
+
+
+class EmptyImages(Exception):
+    pass
+
+
+def guess_shower_depth(energy):
+    """
+    Simple estimation of depth of shower max based on the expected gamma-ray elongation
+    rate.
+
+    Parameters
+    ----------
+    energy: float
+        Energy of the shower in TeV
+
+    Returns
+    -------
+    float: Expected depth of shower maximum
+    """
+
+    x_max_exp = 300 + 93 * np.log10(energy)
+
+    return x_max_exp
+
+
+def energy_prior(energy, index=-1):
+    return -2 * np.log(energy ** index)
+
+
+def xmax_prior(energy, xmax, width=100):
+    x_max_exp = guess_shower_depth(energy)
+    diff = xmax - x_max_exp
+    return -2 * np.log(norm.pdf(diff / width))
 
 
 def rotate_translate(pixel_pos_x, pixel_pos_y, x_trans, y_trans, phi):

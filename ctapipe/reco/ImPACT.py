@@ -39,41 +39,7 @@ from ctapipe.reco.ImPACT_utilities import *
 from ctapipe.core import Provenance
 PROV = Provenance()
 
-__all__ = ["ImPACTReconstructor", "energy_prior", "xmax_prior", "guess_shower_depth"]
-
-
-class EmptyImages(Exception):
-    pass
-
-
-def guess_shower_depth(energy):
-    """
-    Simple estimation of depth of shower max based on the expected gamma-ray elongation
-    rate.
-
-    Parameters
-    ----------
-    energy: float
-        Energy of the shower in TeV
-
-    Returns
-    -------
-    float: Expected depth of shower maximum
-    """
-
-    x_max_exp = 300 + 93 * np.log10(energy)
-
-    return x_max_exp
-
-
-def energy_prior(energy, index=-1):
-    return -2 * np.log(energy ** index)
-
-
-def xmax_prior(energy, xmax, width=100):
-    x_max_exp = guess_shower_depth(energy)
-    diff = xmax - x_max_exp
-    return -2 * np.log(norm.pdf(diff / width))
+__all__ = ["ImPACTReconstructor"]
 
 
 class ImPACTReconstructor(Reconstructor):
@@ -524,26 +490,21 @@ class ImPACTReconstructor(Reconstructor):
 
         Parameters
         ----------
-        image: dict
-            Amplitude of pixels in camera images
-        time: dict
-            Time information per each pixel in camera images
-        pixel_x: dict
-            X position of pixels in nominal system
-        pixel_y: dict
-            Y position of pixels in nominal system
-        type_tel: dict
-            Type of telescope
-        tel_x: dict
-            X position of telescope in TiltedGroundFrame
-        tel_y: dict
-            Y position of telescope in TiltedGroundFrame
-        array_direction: SkyCoord[AltAz]
-            Array pointing direction in the AltAz Frame
-        hillas: dict
+        hillas_dict: dict
             dictionary with telescope IDs as key and
             HillasParametersContainer instances as values
-
+        image_dict: dict
+            Amplitude of pixels in camera images
+        time_dict: dict
+            Time information per each pixel in camera images
+        mask_dict: dict
+            Event image masks
+        subarray: dict
+            Type of telescope
+        array_pointing: SkyCoord[AltAz]
+            Array pointing direction in the AltAz Frame
+        telescope_pointing: SkyCoord[AltAz]
+            Telescope pointing directions in the AltAz Frame
         Returns
         -------
         None
