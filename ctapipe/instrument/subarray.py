@@ -14,6 +14,7 @@ from astropy.table import Table
 from astropy.utils import lazyproperty
 import tables
 from copy import copy
+from itertools import groupby
 
 import ctapipe
 
@@ -21,6 +22,24 @@ from ..coordinates import GroundFrame, CameraFrame
 from .telescope import TelescopeDescription
 from .camera import CameraDescription, CameraReadout, CameraGeometry
 from .optics import OpticsDescription
+
+
+def _group_consecutives(lst):
+    """
+    Turn consequtive lists into ranges (used in SubarrayDescription.info())
+
+    from https://codereview.stackexchange.com/questions/214820/codewars-range-extraction
+    """
+    for _, g in groupby(enumerate(lst), lambda i_x: i_x[0] - i_x[1]):
+        r = [x for _, x in g]
+        if len(r) > 2:
+            yield f"{r[0]}-{r[-1]}"
+        else:
+            yield from map(str, r)
+
+
+def _range_extraction(lst):
+    return ",".join(_group_consecutives(lst))
 
 
 class SubarrayDescription:
@@ -91,26 +110,13 @@ class SubarrayDescription:
         printer("")
 
         # print the per-telescope-type informatino:
-        table = self.to_table().group_by("tel_description")
         n_tels = {}
         tel_ids = {}
 
-        for group in table.groups:
-            # make nice range strings for tel_ids
-            # (e.g. [1,2,3,4,16,17] -> 1-4, 16-17).
-            tel_desc = group[0]["tel_description"]
-            tel_ids_in_group = group["tel_id"]
-            delta = np.array(tel_ids_in_group[1:] - tel_ids_in_group[:-1])
-            splits = np.where(delta > 1)[0]
-            id_ranges = np.split(tel_ids_in_group, splits)
-            id_str_list = []
-            for id_range in id_ranges:
-                if len(id_range) > 1:
-                    id_str_list.append(f"{id_range.min()}-{id_range.max()}")
-                else:
-                    id_str_list.append(str(id_range[0]))
-            tel_ids[tel_desc] = ", ".join(id_str_list)
-            n_tels[tel_desc] = len(group)
+        for tel_type in self.telescope_types:
+            ids = self.get_tel_ids_for_type(tel_type)
+            tel_ids[str(tel_type)] = _range_extraction(ids)
+            n_tels[str(tel_type)] = len(ids)
 
         out_table = Table(
             {
