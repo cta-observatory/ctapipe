@@ -24,13 +24,13 @@ from .camera import CameraDescription, CameraReadout, CameraGeometry
 from .optics import OpticsDescription
 
 
-def _group_consecutives(lst):
+def _group_consecutives(sequence):
     """
     Turn consequtive lists into ranges (used in SubarrayDescription.info())
 
     from https://codereview.stackexchange.com/questions/214820/codewars-range-extraction
     """
-    for _, g in groupby(enumerate(lst), lambda i_x: i_x[0] - i_x[1]):
+    for _, g in groupby(enumerate(sequence), lambda i_x: i_x[0] - i_x[1]):
         r = [x for _, x in g]
         if len(r) > 2:
             yield f"{r[0]}-{r[-1]}"
@@ -38,8 +38,8 @@ def _group_consecutives(lst):
             yield from map(str, r)
 
 
-def _range_extraction(lst):
-    return ",".join(_group_consecutives(lst))
+def _range_extraction(sequence):
+    return ",".join(_group_consecutives(sequence))
 
 
 class SubarrayDescription:
