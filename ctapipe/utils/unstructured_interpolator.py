@@ -3,11 +3,9 @@ This class is largely created as a more versatile alternative to the Linear ND
 interpolator, allowing the user to pass the interpolator an array of classes and then
 perform interpolation between the results of a member function of that class. Currently
 the name of the target interpolation function is passed in a string at initialisation.
-
 TODO:
 - Figure out what to do when out of bounds of interpolation range
 - Create function to append points to the interpolator
-
 """
 
 import numpy as np
@@ -24,14 +22,14 @@ class UnstructuredInterpolator:
     values returned from class member functions. The primary use case of this being to
     interpolate between the predictions of a set of machine learning algorithms or
     regular grid interpolators.
-
     In the case that a numpy array is passed as the interpolation values this class will
     behave exactly the same as the scipy LinearNDInterpolator
     """
 
     def __init__(
         self,
-        interpolation_points,
+        keys,
+        values,
         function_name=None,
         remember_last=False,
         bounds=None,
@@ -40,18 +38,19 @@ class UnstructuredInterpolator:
         """
         Parameters
         ----------
-        interpolation_points: dict
-            Dictionary of interpolation points (stored as key) and values
+        keys: ndarray
+            Interpolation grid points
+        values: ndarray
+            Interpolation values
         function_name: str
             Name of class member function to call in the case we are interpolating
             between class predictions, for numpy arrays leave blank
         """
-
-        self.keys = np.array(list(interpolation_points.keys()))
+        self.keys = keys
         if dtype:
-            self.values = np.array(list(interpolation_points.values()), dtype=dtype)
+            self.values = np.array(values, dtype=dtype)
         else:
-            self.values = np.array(list(interpolation_points.values()))
+            self.values = np.array(values)
 
         self._num_dimensions = len(self.keys[0])
 
@@ -153,21 +152,18 @@ class UnstructuredInterpolator:
 
         # Multiply point values by weight
         p_values = np.einsum("ij...,ij...->i...", selected_points, w)
-        # print(time.time() - t)
 
         return p_values
 
     def _call_class_function(self, point_num, eval_points):
         """
         Function to loop over class function and return array of outputs
-
         Parameters
         ----------
         point_num: int
             Index of class position in values list
         eval_points: ndarray
             Inputs used to evaluate class member function
-
         Returns
         -------
         ndarray: output from member function
@@ -203,14 +199,12 @@ class UnstructuredInterpolator:
 
     def _numpy_interpolation(self, point_num, eval_points):
         """
-
         Parameters
         ----------
         point_num: int
             Index of class position in values list
         eval_points: ndarray
             Inputs used to evaluate class member function
-
         Returns
         -------
         ndarray: output from member function

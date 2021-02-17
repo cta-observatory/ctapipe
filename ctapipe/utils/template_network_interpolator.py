@@ -142,7 +142,6 @@ class BaseTemplate:
         selection = np.logical_and(self.keys.T[0] == zenith, self.keys.T[1] == azimuth)
 
         # Create interpolator using this selection
-        print(self.bounds)
         self.interpolator[zenith_bin][azimuth_bin] = UnstructuredInterpolator(
             self.keys[selection].T[2:].T,
             self.values[selection],
