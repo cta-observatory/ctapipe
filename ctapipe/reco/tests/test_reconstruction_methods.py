@@ -174,5 +174,3 @@ def test_ImPACT(reconstructors):
     np.testing.assert_array_less(
         np.zeros_like(reconstructed_events), reconstructed_events
     )
-
-test_ImPACT([HillasIntersection])
