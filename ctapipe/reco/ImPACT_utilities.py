@@ -181,8 +181,8 @@ def create_seed(source_x, source_y, tilt_x, tilt_y, energy):
     step = [0.04 / 57.3, 0.04 / 57.3, 5, 5, en_seed * 0.1, 0.05]
     # And some sensible limits of the fit range
     limits = [
-        [source_x - 0.1, source_x + 0.1],
-        [source_y - 0.1, source_y + 0.1],
+        [source_x - 0.5/57.3, source_x + 0.5/57.3],
+        [source_y - 0.5/57.3, source_y + 0.5/57.3],
         [tilt_x - 100, tilt_x + 100],
         [tilt_y - 100, tilt_y + 100],
         [lower_en_limit, en_seed * 2],
