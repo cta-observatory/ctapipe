@@ -36,6 +36,8 @@ from ctapipe.utils.template_network_interpolator import (
 )
 from ctapipe.reco.ImPACT_utilities import *
 
+import matplotlib.pyplot as plt
+
 from ctapipe.core import Provenance
 PROV = Provenance()
 
@@ -75,6 +77,8 @@ class ImPACTReconstructor(Reconstructor):
         "CHEC": 0.5,
         "ASTRICam": 0.5,
         "DUMMY": 0,
+        "UNKNOWN": 1.,
+
     }
     spe = 0.5  # Also hard code single p.e. distribution width
 
@@ -381,8 +385,8 @@ class ImPACTReconstructor(Reconstructor):
 
         # Rotate and translate all pixels such that they match the
         # template orientation
-        pix_y_rot, pix_x_rot = rotate_translate(
-            self.pixel_x, self.pixel_y, source_x, source_y, phi
+        pix_x_rot, pix_y_rot = rotate_translate(
+            self.pixel_x, self.pixel_y, source_y, source_x, -phi
         )
 
         # In the interpolator class we can gain speed advantages by using masked arrays
@@ -392,9 +396,11 @@ class ImPACTReconstructor(Reconstructor):
 
         time_gradients = np.zeros((self.image.shape[0], 2))
 
+
         # Loop over all telescope types and get prediction
         for tel_type in np.unique(self.tel_types).tolist():
             type_mask = self.tel_types == tel_type
+
             prediction[type_mask] = self.image_prediction(
                 tel_type,
                 zenith, azimuth,
