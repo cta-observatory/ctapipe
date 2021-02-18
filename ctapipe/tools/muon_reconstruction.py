@@ -1,7 +1,4 @@
 from tqdm import tqdm
-import numpy as np
-from astropy.coordinates import SkyCoord
-from ctapipe.containers import TelEventIndexContainer
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Provenance
@@ -10,19 +7,9 @@ from ctapipe.core import traits
 from ctapipe.io import EventSource
 from ctapipe.io import HDF5TableWriter
 from ctapipe.image.cleaning import TailcutsImageCleaner
-from ctapipe.coordinates import TelescopeFrame, CameraFrame
-from ctapipe.containers import MuonParametersContainer
-from ctapipe.instrument import CameraGeometry
 
 from ctapipe.image.muon.muon_processor import MuonProcessor
-from ctapipe.image.muon import (
-    MuonRingFitter,
-    MuonIntensityFitter,
-    ring_containment,
-    ring_completeness,
-    intensity_ratio_inside_ring,
-    mean_squared_error,
-)
+from ctapipe.image.muon import MuonRingFitter, MuonIntensityFitter
 
 
 class MuonAnalysis(Tool):
@@ -75,7 +62,7 @@ class MuonAnalysis(Tool):
             raise ToolConfigurationError(
                 "Outputfile {self.output} already exists, use `--overwrite` to overwrite"
             )
-        
+
         self.source = EventSource(parent=self)
         subarray = self.source.subarray
 

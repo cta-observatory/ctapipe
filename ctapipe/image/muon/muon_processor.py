@@ -1,17 +1,14 @@
 """
 High level image processing  (ImageProcessor Component)
 """
-from tqdm import tqdm
 import numpy as np
 from astropy.coordinates import SkyCoord
 from ctapipe.containers import TelEventIndexContainer
 
 from ctapipe.calib import CameraCalibrator
-from ctapipe.core import Provenance, TelescopeComponent
-from ctapipe.core import Tool, ToolConfigurationError
+from ctapipe.core import TelescopeComponent
 from ctapipe.core import traits
 from ctapipe.io import EventSource
-from ctapipe.io import HDF5TableWriter
 from ctapipe.image.cleaning import TailcutsImageCleaner
 from ctapipe.coordinates import TelescopeFrame, CameraFrame
 from ctapipe.containers import MuonParametersContainer, ArrayEventContainer
@@ -109,7 +106,6 @@ class MuonProcessor(TelescopeComponent):
     def __call__(self, event: ArrayEventContainer):
         self._process_array_event(event)
 
-    
     def _process_array_event(self, event):
         self.calib(event)
 
@@ -193,7 +189,7 @@ class MuonProcessor(TelescopeComponent):
             "dl1/event/telescope/parameters/muons",
             [tel_event_index, ring, parameters, result],
         )
-    
+
     def calculate_muon_parameters(self, tel_id, image, clean_mask, ring):
         fov_radius = self.get_fov(tel_id)
         x, y = self.get_pixel_coords(tel_id)
