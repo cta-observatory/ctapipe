@@ -232,7 +232,7 @@ class MergeTool(Tool):
         if data_model_version != self.data_model_version:
             self.log.critical(
                 f"File has data model version {data_model_version}"
-                f" expected {self.data_model_version}"
+                f", expected {self.data_model_version}"
             )
             return True
 
@@ -365,7 +365,9 @@ class MergeTool(Tool):
         ):
 
             if not DL1EventSource.is_compatible(current_file):
-                self.log.critical("input file {file} is not a supported DL1 file")
+                self.log.critical(
+                    f"input file {current_file} is not a supported DL1 file"
+                )
                 if self.skip_broken_files:
                     continue
                 else:
