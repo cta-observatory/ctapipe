@@ -10,7 +10,7 @@ class IndexFinder:
     Helper class to find the index of the closest matching value in an array/list/...,
     used to locate the pointing of an event based on the trigger time.
     This searches using pythons bisect module.
-    All entries of `values` need to be unique.
+    Duplicated keys will be ignored.
 
 
     Explanations can be found here:
@@ -20,8 +20,7 @@ class IndexFinder:
     """
 
     def __init__(self, values):
-        if not len(np.unique(values)) == len(values):
-            raise Exception("values contains duplicate entries!")
+        values = np.unique(values)
         self.numindexes = dict((val, n) for n, val in enumerate(values))
         self.nums = sorted(self.numindexes)
 

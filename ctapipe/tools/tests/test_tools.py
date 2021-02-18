@@ -16,7 +16,7 @@ import tables
 
 from ctapipe.utils import get_dataset_path
 from ctapipe.core import run_tool
-from ctapipe.io import DataLevel
+from ctapipe.io import DataLevel, EventSource
 import numpy as np
 from pathlib import Path
 
@@ -75,69 +75,54 @@ def dl1_muon_file():
     return f"{tmp_dir.name}/muons.dl1.h5"
 
 
-def test_merge(tmpdir):
+def test_merge(tmp_path):
     from ctapipe.tools.dl1_merge import MergeTool
     from ctapipe.tools.stage1 import Stage1Tool
 
     config = Path("./examples/stage1_config.json").absolute()
 
-    tmp_dir = tempfile.TemporaryDirectory()
-    in_1 = tmp_dir.name + "/test_file_1.hdf5"
-    in_2 = tmp_dir.name + "/test_file_2.hdf5"
-    out_all = tmp_dir.name + "/merged_file_all.hdf5"
-    out_skip_images = tmp_dir.name + "/merged_file_images.hdf5"
-    out_skip_parameters = tmp_dir.name + "/merged_file_parameters.hdf5"
-    out_tels_dir_pattern = tmp_dir.name + "/merged_file_tels_dir_pattern.hdf5"
+    # FIXME don't use the same file twice
+    simtel_files = [
+        get_dataset_path("gamma_test_large.simtel.gz"),
+        get_dataset_path("gamma_test_large.simtel.gz"),
+    ]
 
-    assert (
-        run_tool(
-            Stage1Tool(),
-            argv=[
-                f"--config={config}",
-                f"--input={GAMMA_TEST_LARGE}",
-                f"--output={in_1}",
-                "--write-parameters",
-                "--write-images",
-                "--overwrite",
-            ],
-            cwd=tmpdir,
+    out_all = tmp_path / "merged_file_all.hdf5"
+    out_skip_images = tmp_path / "merged_file_images.hdf5"
+    out_skip_parameters = tmp_path / "merged_file_parameters.hdf5"
+    out_tels_dir_pattern = tmp_path / "merged_file_tels_dir_pattern.hdf5"
+
+    dl1_files = []
+    for i, infile in enumerate(simtel_files):
+        dl1_file = tmp_path / f"test_file_{i}.dl1.hdf5"
+        assert (
+            run_tool(
+                Stage1Tool(),
+                argv=[
+                    f"--config={config}",
+                    f"--input={infile}",
+                    f"--output={dl1_file}",
+                    "--write-parameters",
+                    "--write-images",
+                    "--overwrite",
+                ],
+                cwd=tmp_path,
+            )
+            == 0
         )
-        == 0
-    )
-    assert (
-        run_tool(
-            Stage1Tool(),
-            argv=[
-                f"--config={config}",
-                f"--input={GAMMA_TEST_LARGE}",
-                f"--output={in_2}",
-                "--write-parameters",
-                "--write-images",
-                "--overwrite",
-            ],
-            cwd=tmpdir,
-        )
-        == 0
-    )
+        dl1_files.append(str(dl1_file))
 
     assert (
         run_tool(
             MergeTool(),
             argv=[
-                f"--i={tmp_dir.name}",
+                f"--i={tmp_path}",
                 "--p=test_file_*.hdf5",
                 f"--o={out_tels_dir_pattern}",
                 "--overwrite",
                 "--t=[2, 3]",
             ],
-            cwd=tmpdir,
-        )
-        == 0
-    )
-
-    assert (
-        run_tool(
-            MergeTool(), argv=[in_1, in_2, f"--o={out_all}", "--overwrite"], cwd=tmpdir
+            cwd=tmp_path,
         )
         == 0
     )
@@ -145,8 +130,17 @@ def test_merge(tmpdir):
     assert (
         run_tool(
             MergeTool(),
-            argv=[in_1, in_2, f"--o={out_skip_images}", "--overwrite", "--skip-images"],
-            cwd=tmpdir,
+            argv=[*dl1_files, f"--o={out_all}", "--overwrite"],
+            cwd=tmp_path,
+        )
+        == 0
+    )
+
+    assert (
+        run_tool(
+            MergeTool(),
+            argv=[*dl1_files, f"--o={out_skip_images}", "--overwrite", "--skip-images"],
+            cwd=tmp_path,
         )
         == 0
     )
@@ -155,13 +149,31 @@ def test_merge(tmpdir):
         run_tool(
             MergeTool(),
             argv=[
-                in_1,
-                in_2,
+                *dl1_files,
                 f"--o={out_skip_parameters}",
                 "--overwrite",
                 "--skip-parameters",
             ],
-            cwd=tmpdir,
+            cwd=tmp_path,
+        )
+        == 0
+    )
+
+    # check we can run stage one on it again, this should catch
+    # most errors
+    config = Path("./examples/stage1_config.json").absolute()
+    dl1b_file = tmp_path / "dl1b_from_simtel.dl1.h5"
+    assert (
+        run_tool(
+            Stage1Tool(),
+            argv=[
+                f"--config={config}",
+                f"--input={out_all}",
+                f"--output={dl1b_file}",
+                "--write-parameters",
+                "--overwrite",
+            ],
+            cwd=tmp_path,
         )
         == 0
     )
@@ -175,7 +187,7 @@ def test_merge(tmpdir):
 
     for out_file in out_files_list:
         with tables.open_file(out_file, mode="r") as out_f, tables.open_file(
-            in_1, mode="r"
+            dl1_files[0], mode="r"
         ) as in_f:
 
             # Check expanded tables
@@ -186,6 +198,7 @@ def test_merge(tmpdir):
             assert len(out_f.root.dl1.event.subarray.trigger) == 220
             assert len(out_f.root.dl1.event.telescope.trigger) == 918
             assert len(out_f.root.simulation.service.shower_distribution) == 2
+
             # Check subarray and service meta
             assert out_f.root.dl1.service["image_statistics.__table_column_meta__"]
             assert out_f.root.configuration.instrument.subarray.layout
@@ -242,23 +255,6 @@ def test_merge(tmpdir):
                         len(in_f.root.dl1.event.telescope.parameters[tel.name]), 2
                     )
 
-    config = Path("./examples/stage1_config.json").absolute()
-    dl1b_file = tmp_dir.name + "/dl1b_from_simtel.dl1.h5"
-    assert (
-        run_tool(
-            Stage1Tool(),
-            argv=[
-                f"--config={config}",
-                f"--input={GAMMA_TEST_LARGE}",
-                f"--output={dl1b_file}",
-                "--write-parameters",
-                "--overwrite",
-            ],
-            cwd=tmpdir,
-        )
-        == 0
-    )
-
     # check tables were written
     with tables.open_file(dl1b_file, mode="r") as tf:
         assert tf.root.dl1
@@ -287,38 +283,6 @@ def test_merge(tmpdir):
         "concentration_cog",
         "leakage_pixels_width_1",
     )
-    for feature in features:
-        assert feature in dl1_features.columns
-
-    dl1a_file = tmp_dir.name + "/dl1a_from_simtel.dl1.h5"
-    assert (
-        run_tool(
-            Stage1Tool(),
-            argv=[
-                f"--config={config}",
-                f"--input={GAMMA_TEST_LARGE}",
-                f"--output={dl1a_file}",
-                "--write-images",
-                "--overwrite",
-            ],
-            cwd=tmpdir,
-        )
-        == 0
-    )
-
-    with tables.open_file(dl1a_file, mode="r") as tf:
-        assert tf.root.dl1
-        assert tf.root.dl1.event.telescope
-        assert tf.root.dl1.event.subarray
-        assert tf.root.configuration.instrument.subarray.layout
-        assert tf.root.configuration.instrument.telescope.optics
-        assert tf.root.configuration.instrument.telescope.camera.geometry_LSTCam
-        assert tf.root.configuration.instrument.telescope.camera.readout_LSTCam
-        assert tf.root.dl1.event.telescope.images.tel_001
-        dl1_image = tf.root.dl1.event.telescope.images.tel_001
-        assert "image_mask" in dl1_image.dtype.names
-        assert "image" in dl1_image.dtype.names
-        assert "peak_time" in dl1_image.dtype.names
 
 
 def test_stage_1_dl1(tmpdir, dl1_image_file, dl1_parameters_file):

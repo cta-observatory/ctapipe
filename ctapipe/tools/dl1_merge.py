@@ -11,7 +11,7 @@ import tables
 import numpy as np
 from tqdm import tqdm
 
-from ..io import metadata as meta
+from ..io import metadata as meta, DL1EventSource
 from ..io import HDF5TableWriter
 from ..core import Provenance, Tool, traits
 from ..instrument import SubarrayDescription
@@ -64,10 +64,7 @@ nodes_with_tels = {
     "/simulation/event/telescope/parameters",
     "/simulation/event/telescope/images",
 }
-image_nodes = {
-    "/simulation/event/telescope/images",
-    "/dl1/event/telescope/images",
-}
+image_nodes = {"/simulation/event/telescope/images", "/dl1/event/telescope/images"}
 parameter_nodes = {
     "/simulation/event/telescope/parameters",
     "/dl1/event/telescope/parameters",
@@ -95,16 +92,14 @@ class MergeTool(Tool):
     ).tag(config=True)
     input_files = List(default_value=[], help="Input dl1-files").tag(config=True)
     output_path = traits.Path(
-        help="Merged-DL1 output filename",
-        directory_ok=False,
+        help="Merged-DL1 output filename", directory_ok=False
     ).tag(config=True)
     skip_images = traits.Bool(
         help="Skip DL1/Event/Telescope and Simulation/Event/Telescope images in output",
         default_value=False,
     ).tag(config=True)
     skip_simu_images = traits.Bool(
-        help="Skip Simulation/Event/Telescope images in output",
-        default_value=False,
+        help="Skip Simulation/Event/Telescope images in output", default_value=False
     ).tag(config=True)
     skip_parameters = traits.Bool(
         help="Skip DL1/Event/Telescope and Simulation/Event/Telescope parameters"
@@ -112,8 +107,7 @@ class MergeTool(Tool):
         default_value=False,
     ).tag(config=True)
     skip_broken_files = traits.Bool(
-        help="Skip broken files instead of raising an error",
-        default_value=False,
+        help="Skip broken files instead of raising an error", default_value=False
     ).tag(config=True)
     overwrite = traits.Bool(help="Overwrite output file if it exists").tag(config=True)
     progress_bar = traits.Bool(help="Show progress bar during processing").tag(
@@ -233,6 +227,15 @@ class MergeTool(Tool):
     def check_file_broken(self, file):
         # Check that the file is not broken or any node is missing
         file_path = file.root._v_file.filename
+
+        data_model_version = file.root._v_attrs["CTA PRODUCT DATA MODEL VERSION"]
+        if data_model_version != self.data_model_version:
+            self.log.critical(
+                f"File has data model version {data_model_version}"
+                f" expected {self.data_model_version}"
+            )
+            return True
+
         current_subarray = SubarrayDescription.from_hdf(file_path)
         broken = False
 
@@ -311,35 +314,16 @@ class MergeTool(Tool):
                     continue
 
                 if node in self.output_file:
-                    # this is needed to merge 0.8 files due to
-                    # a column added erronouesly which prevents merging
-                    # because it's variable length
-                    # TODO: remove when we no longer want to support merging 0.8 files.
                     data = file.root[node][:]
-                    if node == "/dl1/monitoring/subarray/pointing":
-                        data = self.drop_column(data, "tels_with_trigger")
-
                     output_node = self.output_file.get_node(node)
                     output_node.append(data)
-
                 else:
-                    group_path, table_name = os.path.split(node)
+                    group_path, _ = os.path.split(node)
                     if group_path not in self.output_file:
                         self._create_group(group_path)
 
                     target_group = self.output_file.root[group_path]
-                    if node == "/dl1/monitoring/subarray/pointing":
-                        h5_node = file.root[node]
-                        data = self.drop_column(h5_node[:], "tels_with_trigger")
-                        self.output_file.create_table(
-                            group_path,
-                            table_name,
-                            filters=h5_node.filters,
-                            obj=data,
-                        )
-
-                    else:
-                        file.copy_node(node, newparent=target_group)
+                    file.copy_node(node, newparent=target_group)
 
     def _copy_or_append_tel_table(self, file, node, tel_name):
         tel_node_path = node + "/" + tel_name
@@ -380,9 +364,21 @@ class MergeTool(Tool):
             )
         ):
 
+            if not DL1EventSource.is_compatible(current_file):
+                self.log.critical("input file {file} is not a supported DL1 file")
+                if self.skip_broken_files:
+                    continue
+                else:
+                    sys.exit(1)
+
             with tables.open_file(current_file, mode="r") as file:
                 if i == 0:
+                    self.data_model_version = file.root._v_attrs[
+                        "CTA PRODUCT DATA MODEL VERSION"
+                    ]
+
                     # Check if first file is simulation
+
                     if "/simulation" not in file.root:
                         self.usable_nodes = self.usable_nodes - simu_nodes
                         self.log.info("Merging real data")
@@ -410,8 +406,8 @@ class MergeTool(Tool):
         )
 
     def finish(self):
+        self.output_file.close()
         activity = PROV.current_activity.provenance
-        DL1_DATA_MODEL_VERSION = "v1.0.0"
         process_type_ = "Observation"
         if self.is_simulation is True:
             process_type_ = "Simulation"
@@ -424,7 +420,7 @@ class MergeTool(Tool):
                 data_level="DL1",
                 data_association="Subarray",
                 data_model_name="ASWG DL1",
-                data_model_version=DL1_DATA_MODEL_VERSION,
+                data_model_version=self.data_model_version,
                 data_model_url="",
                 format="hdf5",
             ),
@@ -442,10 +438,7 @@ class MergeTool(Tool):
         headers = reference.to_dict()
 
         with HDF5TableWriter(
-            self.output_path,
-            parent=self,
-            mode="a",
-            add_prefix=True,
+            self.output_path, parent=self, mode="a", add_prefix=True
         ) as writer:
             meta.write_to_hdf5(headers, writer._h5file)
 
