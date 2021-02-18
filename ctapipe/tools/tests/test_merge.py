@@ -60,6 +60,7 @@ def test_simple(tmp_path, gamma_dl1_path, proton_dl1_path):
         cwd=tmp_path,
     )
     assert ret == 0
+    run_stage1(output, cwd=tmp_path)
 
 
 def test_pattern(tmp_path, gamma_dl1_path, proton_dl1_path):
@@ -84,6 +85,7 @@ def test_pattern(tmp_path, gamma_dl1_path, proton_dl1_path):
         cwd=tmp_path,
     )
     assert ret == 0
+    run_stage1(output, cwd=tmp_path)
 
 
 def test_skip_images(tmp_path, gamma_dl1_path, proton_dl1_path):
