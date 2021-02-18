@@ -14,7 +14,7 @@ def run_stage1(input_path, cwd, output_path=None):
     if output_path is None:
         output_path = Path(
             tempfile.NamedTemporaryFile(suffix=".dl1.hdf5", dir=cwd).name
-        )
+        ).absolute()
 
     ret = run_tool(
         Stage1Tool(),
