@@ -74,7 +74,7 @@ def test_pattern(tmp_path, gamma_dl1_path, proton_dl1_path):
         MergeTool(),
         argv=[
             "-i",
-            tmp_path,
+            str(tmp_path),
             "-p",
             "*.dl1.hdf5",
             f"--output={output}",
