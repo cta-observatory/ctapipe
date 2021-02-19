@@ -344,16 +344,6 @@ class MergeTool(Tool):
         head, tail = os.path.split(node)
         self.output_file.create_group(head, tail, createparents=True)
 
-    @staticmethod
-    def drop_column(array, column):
-        from numpy.lib.recfunctions import repack_fields
-
-        cols = list(array.dtype.names)
-        if column in cols:
-            cols.remove(column)
-
-        return repack_fields(array[cols])
-
     def start(self):
         merged_files_counter = 0
 
