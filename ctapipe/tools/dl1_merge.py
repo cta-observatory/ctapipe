@@ -235,7 +235,7 @@ class MergeTool(Tool):
         if data_model_version != self.data_model_version:
             self.log.critical(
                 f"File has data model version {data_model_version}"
-                f" expected {self.data_model_version}"
+                f", expected {self.data_model_version}"
             )
             return True
 
