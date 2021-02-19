@@ -7,7 +7,9 @@ import pathlib
 
 from ctapipe.core import Component, TelescopeComponent
 from ctapipe.core.traits import (
+    List,
     Float,
+    Bool,
     Path,
     TraitError,
     classes_with_traits,
@@ -178,6 +180,30 @@ def test_enum_classes_with_traits():
     """ test that we can get a list of classes that have traits """
     list_of_classes = classes_with_traits(ImageExtractor)
     assert list_of_classes  # should not be empty
+
+
+def test_classes_with_traits():
+    from ctapipe.core import Tool
+
+    class CompA(Component):
+        a = Int().tag(config=True)
+
+    class CompB(Component):
+        classes = List([CompA])
+        b = Int().tag(config=True)
+
+    class CompC(Component):
+        c = Int().tag(config=True)
+
+    class MyTool(Tool):
+        classes = [CompB, CompC]
+
+    with_traits = classes_with_traits(MyTool)
+    assert len(with_traits) == 4
+    assert MyTool in with_traits
+    assert CompA in with_traits
+    assert CompB in with_traits
+    assert CompC in with_traits
 
 
 def test_has_traits():
@@ -431,6 +457,52 @@ def test_telescope_parameter_to_config(mock_subarray):
     component.tel_param1 = 6.0
     config = component.get_current_config()
     assert config["SomeComponent"]["tel_param1"] == [("type", "*", 6.0)]
+
+
+def test_telescope_parameter_from_cli(mock_subarray):
+    """
+    Test we can pass single default for telescope components via cli
+    see #1559
+    """
+
+    from ctapipe.core import Tool, run_tool
+
+    class SomeComponent(TelescopeComponent):
+        path = TelescopeParameter(Path(), default_value=None).tag(config=True)
+        val = TelescopeParameter(Float(), default_value=1.0).tag(config=True)
+        flag = TelescopeParameter(Bool(), default_value=True).tag(config=True)
+
+    # test with and without SomeComponent in classes
+    for tool_classes in [[], [SomeComponent]]:
+
+        class TelescopeTool(Tool):
+            classes = tool_classes
+
+            def setup(self):
+                self.comp = SomeComponent(subarray=mock_subarray, parent=self)
+
+        tool = TelescopeTool()
+        assert run_tool(tool) == 0
+        assert tool.comp.path == [("type", "*", None)]
+        assert tool.comp.val == [("type", "*", 1.0)]
+        assert tool.comp.flag == [("type", "*", True)]
+
+        tool = TelescopeTool()
+        result = run_tool(
+            tool,
+            [
+                "--SomeComponent.path",
+                "test.h5",
+                "--SomeComponent.val",
+                "2.0",
+                "--SomeComponent.flag",
+                "False",
+            ],
+        )
+        assert result == 0
+        assert tool.comp.path == [("type", "*", pathlib.Path("test.h5").absolute())]
+        assert tool.comp.val == [("type", "*", 2.0)]
+        assert tool.comp.flag == [("type", "*", False)]
 
 
 def test_datetimes():

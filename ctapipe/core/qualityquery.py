@@ -14,10 +14,7 @@ from .traits import List
 
 # the following are what are allowed to be used
 # in selection functions (passed to eval())
-ALLOWED_GLOBALS = {
-    "u": u,  # astropy units
-    "np": np,  # numpy
-}
+ALLOWED_GLOBALS = {"u": u, "np": np}  # astropy units  # numpy
 
 
 class QualityCriteriaError(TypeError):
@@ -76,8 +73,8 @@ class QualityQuery(Component):
                 )
 
         # arrays for recording overall statistics
-        self._counts = np.zeros(len(self._selectors), dtype=np.int)
-        self._cumulative_counts = np.zeros(len(self._selectors), dtype=np.int)
+        self._counts = np.zeros(len(self._selectors), dtype=np.int64)
+        self._cumulative_counts = np.zeros(len(self._selectors), dtype=np.int64)
 
     def __len__(self):
         """ return number of events processed"""

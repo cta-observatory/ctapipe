@@ -44,7 +44,7 @@ class BokehFileViewer(Tool):
         )
     )
 
-    classes = List([EventSource] + traits.classes_with_traits(ImageExtractor))
+    classes = [EventSource] + traits.classes_with_traits(ImageExtractor)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

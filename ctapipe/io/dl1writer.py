@@ -18,17 +18,23 @@ from ..containers import (
     TelEventIndexContainer,
 )
 from ..core import Component, Container, Field, Provenance, ToolConfigurationError
-from ..core.traits import Bool, CaselessStrEnum, Int, Path
+from ..core.traits import Bool, CaselessStrEnum, Int, Path, Float, Unicode
 from ..io import EventSource, HDF5TableWriter, TableWriter
 from ..io.simteleventsource import SimTelEventSource
 from ..io import metadata as meta
+from ..io.tableio import FixedPointColumnTransform
 from ..instrument import SubarrayDescription
 
 __all__ = ["DL1Writer", "DL1_DATA_MODEL_VERSION", "write_reference_metadata_headers"]
 
 tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many datasets
 
-DL1_DATA_MODEL_VERSION = "v1.0.2"
+DL1_DATA_MODEL_VERSION = "v1.1.0"
+DL1_DATA_MODEL_CHANGE_HISTORY = """
+- v1.1.0: images and peak_times can be stored as scaled integers
+- v1.0.3: true_image dtype changed from float32 to int32
+"""
+
 PROV = Provenance()
 
 
@@ -134,6 +140,16 @@ class DL1Writer(Component):
     ).tag(config=True)
 
     overwrite = Bool(help="overwrite output file if it exists").tag(config=True)
+
+    transform_image = Bool(default_value=False).tag(config=True)
+    image_dtype = Unicode(default_value="int32").tag(config=True)
+    image_offset = Int(default_value=0).tag(config=True)
+    image_scale = Float(default_value=10.0).tag(config=True)
+
+    transform_peak_time = Bool(default_value=False).tag(config=True)
+    peak_time_dtype = Unicode(default_value="int16").tag(config=True)
+    peak_time_offset = Int(default_value=0).tag(config=True)
+    peak_time_scale = Float(default_value=100.0).tag(config=True)
 
     def __init__(self, event_source: EventSource, config=None, parent=None, **kwargs):
         """
@@ -315,6 +331,28 @@ class DL1Writer(Component):
             writer.exclude(tel_pointing, "trigger_pixels")
             writer.exclude(f"/dl1/event/telescope/images/{table_name}", "parameters")
 
+            if self.transform_image:
+                tr = FixedPointColumnTransform(
+                    scale=self.image_scale,
+                    offset=self.image_offset,
+                    source_dtype=np.float32,
+                    target_dtype=np.dtype(self.image_dtype),
+                )
+                writer.add_column_transform(
+                    f"dl1/event/telescope/images/{table_name}", "image", tr
+                )
+
+            if self.transform_peak_time:
+                tr = FixedPointColumnTransform(
+                    scale=self.peak_time_scale,
+                    offset=self.peak_time_offset,
+                    source_dtype=np.float32,
+                    target_dtype=np.dtype(self.peak_time_dtype),
+                )
+                writer.add_column_transform(
+                    f"dl1/event/telescope/images/{table_name}", "peak_time", tr
+                )
+
             if self._is_simulation:
                 writer.exclude(
                     f"/simulation/event/telescope/images/{table_name}",
@@ -468,9 +506,9 @@ class DL1Writer(Component):
                 "dl1/event/telescope/trigger", [tel_index, event.trigger.tel[tel_id]]
             )
 
-            has_sim_camera = (
+            has_sim_camera = self._is_simulation and (
                 tel_id in event.simulation.tel
-                and event.simulation.tel[tel_id].true_image.sum() > 0
+                and event.simulation.tel[tel_id].true_image is not None
             )
 
             if self.write_parameters:
@@ -479,7 +517,7 @@ class DL1Writer(Component):
                     containers=[tel_index, *dl1_camera.parameters.values()],
                 )
 
-                if self._is_simulation and has_sim_camera:
+                if has_sim_camera:
                     writer.write(
                         f"simulation/event/telescope/parameters/{table_name}",
                         [

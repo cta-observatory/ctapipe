@@ -52,7 +52,7 @@ class MyTool(Tool):
 
     name = Unicode("myapp")
     running = Bool(False, help="Is the app running?").tag(config=True)
-    classes = List([BComponent, AComponent])
+    classes = [BComponent, AComponent]
 
     aliases = Dict(
         dict(

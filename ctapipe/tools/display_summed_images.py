@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Tool
-from ctapipe.core.traits import Unicode, Integer, Dict, List, Path
+from ctapipe.core.traits import Unicode, Integer, Dict, Path
 from ctapipe.io import SimTelEventSource
 from ctapipe.visualization import CameraDisplay
 from ctapipe.utils import get_dataset_path
@@ -49,7 +49,7 @@ class ImageSumDisplayerTool(Tool):
         }
     )
 
-    classes = List([CameraCalibrator, SimTelEventSource])
+    classes = [CameraCalibrator, SimTelEventSource]
 
     def setup(self):
         # load up the telescope types table (need to first open a file, a bit of
@@ -89,7 +89,7 @@ class ImageSumDisplayerTool(Tool):
 
             if geom is None:
                 geom = self.reader.subarray.tel[self._base_tel].camera.geometry
-                imsum = np.zeros(shape=geom.pix_x.shape, dtype=np.float)
+                imsum = np.zeros(shape=geom.pix_x.shape, dtype=np.float64)
                 disp = CameraDisplay(geom, title=geom.camera_name)
                 disp.add_colorbar()
                 disp.cmap = "viridis"

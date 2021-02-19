@@ -52,12 +52,15 @@ __all__ = [
 
 
 # see https://github.com/astropy/astropy/issues/6509
-NAN_TIME = Time(np.ma.masked_array(nan, mask=True), format="mjd")
+NAN_TIME = Time(0, format="mjd", scale="tai")
 
 
 class EventType(enum.Enum):
-    """These numbers come from  the document *CTA R1/Event Data Model Specification*
-    version 1 revision C.  They may be updated in future revisions"""
+    """Enum of EventTypes as defined in the CTA Data Model
+
+    These numbers come from  the document *CTA R1/Event Data Model Specification*
+    version 1 revision C.  They may be updated in future revisions
+    """
 
     # calibrations are 0-15
     FLATFIELD = 0
@@ -135,12 +138,12 @@ class LeakageContainer(Container):
         nan, "fraction of pixels after cleaning that are in camera border of width=2"
     )
     intensity_width_1 = Field(
-        nan,
+        np.float32(nan),
         "Intensity in photo-electrons after cleaning"
         " that are in the camera border of width=1 pixel",
     )
     intensity_width_2 = Field(
-        nan,
+        np.float32(nan),
         "Intensity in photo-electrons after cleaning"
         " that are in the camera border of width=2 pixels",
     )
@@ -191,10 +194,10 @@ class MorphologyContainer(Container):
 class StatisticsContainer(Container):
     """Store descriptive statistics"""
 
-    max = Field(nan, "value of pixel with maximum intensity")
-    min = Field(nan, "value of pixel with minimum intensity")
-    mean = Field(nan, "mean intensity")
-    std = Field(nan, "standard deviation of intensity")
+    max = Field(np.float32(nan), "value of pixel with maximum intensity")
+    min = Field(np.float32(nan), "value of pixel with minimum intensity")
+    mean = Field(np.float32(nan), "mean intensity")
+    std = Field(np.float32(nan), "standard deviation of intensity")
     skewness = Field(nan, "skewness of intensity")
     kurtosis = Field(nan, "kurtosis of intensity")
 
@@ -246,20 +249,20 @@ class DL1CameraContainer(Container):
     peak_time = Field(
         None,
         "Numpy array containing position of the peak of the pulse as determined by "
-        "the extractor. Shape: (n_pixel)",
+        "the extractor. Shape: (n_pixel, )",
         dtype=np.float32,
         ndim=1,
     )
 
     image_mask = Field(
         None,
-        "Boolean numpy array where True means the pixel has passed cleaning. Shape: ("
-        "n_pixel)",
-        dtype=np.bool,
+        "Boolean numpy array where True means the pixel has passed cleaning."
+        " Shape: (n_pixel, )",
+        dtype=np.bool_,
         ndim=1,
     )
 
-    parameters = Field(ImageParametersContainer(), "Parameters derived from images")
+    parameters = Field(None, "Image parameters", type=ImageParametersContainer)
 
 
 class DL1Container(Container):
@@ -407,12 +410,12 @@ class SimulatedCameraContainer(Container):
         None,
         "Numpy array of camera image in PE as simulated before noise has been added. "
         "Shape: (n_pixel)",
-        dtype=np.float32,
+        dtype=np.int32,
         ndim=1,
     )
 
     true_parameters = Field(
-        ImageParametersContainer(), "Parameters derived from the true_image"
+        None, "Parameters derived from the true_image", type=ImageParametersContainer
     )
 
 
@@ -888,7 +891,9 @@ class ArrayEventContainer(Container):
     dl0 = Field(DL0Container(), "DL0 Data Volume Reduced Data")
     dl1 = Field(DL1Container(), "DL1 Calibrated image")
     dl2 = Field(ReconstructedContainer(), "Reconstructed Shower Information")
-    simulation = Field(SimulatedEventContainer(), "Simulated Event Information")
+    simulation = Field(
+        None, "Simulated Event Information", type=SimulatedEventContainer
+    )
     trigger = Field(TriggerContainer(), "central trigger information")
     count = Field(0, "number of events processed")
     pointing = Field(PointingContainer(), "Array and telescope pointing positions")

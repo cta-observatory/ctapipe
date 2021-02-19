@@ -8,6 +8,7 @@ dependencies:
   - pip
   - astropy
   - h5py=2
+  - black
   - bokeh=1
   - conda-forge::nbsphinx
   - cython
@@ -42,4 +43,5 @@ dependencies:
   - xz
   - zlib
   - zstandard
-  - conda-forge::eventio>=1.1.1
+  - conda-forge::eventio>=1.5.0
+  - conda-forge::corsikaio

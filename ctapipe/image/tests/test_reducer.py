@@ -21,7 +21,7 @@ def subarray_lst():
 
     n_pixels = subarray.tel[telid].camera.geometry.n_pixels
     n_samples = 30
-    selected_gain_channel = np.zeros(n_pixels, dtype=np.int)
+    selected_gain_channel = np.zeros(n_pixels, dtype=np.int16)
 
     return subarray, telid, selected_gain_channel, n_pixels, n_samples
 
@@ -40,7 +40,7 @@ def test_tailcuts_data_volume_reducer(subarray_lst):
     subarray, telid, selected_gain_channel, n_pixels, n_samples = subarray_lst
 
     # create signal
-    waveforms_signal = np.zeros((n_pixels, n_samples), dtype=np.float)
+    waveforms_signal = np.zeros((n_pixels, n_samples), dtype=np.float64)
 
     # Should be selected as core-pixel from Step 1) tailcuts_clean
     waveforms_signal[9] = 100
@@ -68,6 +68,10 @@ def test_tailcuts_data_volume_reducer(subarray_lst):
                     "keep_isolated_pixels": True,
                 },
                 "image_extractor_type": "NeighborPeakWindowSum",
+                "NeighborPeakWindowSum": {
+                    "apply_integration_correction": False,
+                    "window_shift": 0,
+                },
                 "n_end_dilates": 1,
                 "do_boundary_dilation": True,
             }

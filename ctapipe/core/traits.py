@@ -1,3 +1,6 @@
+"""
+Traitlet implementations for ctapipe
+"""
 from collections import UserList
 from fnmatch import fnmatch
 from typing import Optional
@@ -200,7 +203,27 @@ def classes_with_traits(base_class):
     """ Returns a list of the base class plus its non-abstract children
     if they have traits """
     all_classes = [base_class] + non_abstract_children(base_class)
-    return [cls for cls in all_classes if has_traits(cls)]
+    with_traits = []
+
+    for cls in all_classes:
+        if has_traits(cls):
+            with_traits.append(cls)
+
+        # add subcomponents
+        if hasattr(cls, "classes"):
+            # we will ignore failing classes to not break anyone
+            if isinstance(cls.classes, List):
+                classes = cls.classes.default()
+            else:
+                classes = cls.classes
+
+            try:
+                for component in classes:
+                    with_traits.extend(classes_with_traits(component))
+            except Exception:
+                pass
+
+    return with_traits
 
 
 def has_traits(cls, ignore=("config", "parent")):
@@ -224,6 +247,9 @@ class TelescopePatternList(UserList):
         self._lookup = None
         self._subarray = None
 
+        for i in range(len(self)):
+            self[i] = self.single_to_pattern(self[i])
+
     @property
     def tel(self):
         """ access the value per telescope_id, e.g. `param.tel[2]`"""
@@ -234,6 +260,23 @@ class TelescopePatternList(UserList):
                 "No TelescopeParameterLookup was registered. You must "
                 "call attach_subarray() first"
             )
+
+    @staticmethod
+    def single_to_pattern(value):
+        # make sure we only change things that are not already a
+        # pattern tuple
+        if (
+            not isinstance(value, tuple)
+            or len(value) != 3
+            or value[0] not in {"type", "id"}
+        ):
+            return ["type", "*", value]
+
+        return value
+
+    def append(self, value):
+        """Validate and then append a new value"""
+        super().append(self.single_to_pattern(value))
 
     def attach_subarray(self, subarray):
         """
@@ -357,24 +400,29 @@ class TelescopeParameter(List):
     """
 
     klass = TelescopePatternList
+    _valid_defaults = (object,)  # allow everything, we validate the default ourselves
 
     def __init__(self, trait, default_value=Undefined, **kwargs):
+
         if not isinstance(trait, TraitType):
             raise TypeError("trait must be a TraitType instance")
 
-        if (
-            not isinstance(default_value, (UserList, list, List))
-            and default_value is not Undefined
-        ):
-            default_value = trait.validate(self, default_value)
-            default_value = [("type", "*", default_value)]
+        self._trait = trait
+        if default_value != Undefined:
+            default_value = self.validate(self, default_value)
 
         super().__init__(default_value=default_value, **kwargs)
-        self._trait = trait
+
+    def from_string(self, s):
+        val = super().from_string(s)
+        # for strings, parsing fails and traitlets returns None
+        if val == [("type", "*", None)] and s != "None":
+            val = [("type", "*", self._trait.from_string(s))]
+        return val
 
     def validate(self, obj, value):
         # Support a single value for all (check and convert into a default value)
-        if not isinstance(value, (list, List, UserList)):
+        if not isinstance(value, (list, List, UserList, TelescopePatternList)):
             value = [("type", "*", self._trait.validate(obj, value))]
 
         # Check each value of list
@@ -423,7 +471,9 @@ class TelescopeParameter(List):
             old_value = obj._trait_values[self.name]
         except KeyError:
             old_value = self.default_value
+
         super().set(obj, value)
+
         if getattr(old_value, "_subarray", None) is not None:
             obj._trait_values[self.name].attach_subarray(old_value._subarray)
 

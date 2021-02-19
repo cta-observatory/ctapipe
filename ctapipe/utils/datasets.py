@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 __all__ = ["get_dataset_path", "find_in_path", "find_all_matching_datasets"]
 
 
-DEFAULT_URL = "http://cccta-dataserver.in2p3.fr/data/ctapipe-extra/v0.3.1/"
+DEFAULT_URL = "http://cccta-dataserver.in2p3.fr/data/ctapipe-extra/v0.3.2/"
 
 
 def get_searchpath_dirs(searchpath=os.getenv("CTAPIPE_SVC_PATH")):
@@ -38,7 +38,7 @@ def get_searchpath_dirs(searchpath=os.getenv("CTAPIPE_SVC_PATH")):
     else:
         searchpaths = [Path(p) for p in os.path.expandvars(searchpath).split(":")]
 
-    searchpaths.append(get_cache_path(""))
+    searchpaths.append(get_cache_path(DEFAULT_URL))
 
     return searchpaths
 
@@ -175,7 +175,7 @@ def try_filetypes(basename, role, file_types, **kwargs):
     # look first in cache so we don't have to try non-existing downloads
     for ext, reader in file_types.items():
         filename = basename + ext
-        cache_path = get_cache_path(filename)
+        cache_path = get_cache_path(os.path.join(DEFAULT_URL, filename))
         if cache_path.exists():
             path = cache_path
             break

@@ -5,7 +5,7 @@ with the integration window.
 """
 import numpy as np
 from matplotlib import pyplot as plt
-from traitlets import Dict, List, Int, Bool, Enum
+from traitlets import Dict, Int, Bool, Enum
 
 from ctapipe.core import traits
 from ctapipe.calib import CameraCalibrator
@@ -20,8 +20,10 @@ def plot(subarray, event, telid, chan, extractor_name):
     # Extract required images
     dl0 = event.dl0.tel[telid].waveform
 
-    t_pe = event.simulation.tel[telid].true_image
     dl1 = event.dl1.tel[telid].image
+    t_pe = event.simulation.tel[telid].true_image
+    if t_pe is None:
+        t_pe = np.zeros_like(dl1)
     max_time = np.unravel_index(np.argmax(dl0), dl0.shape)[1]
     max_charges = np.max(dl0, axis=1)
     max_pix = int(np.argmax(max_charges))
@@ -99,7 +101,7 @@ def plot(subarray, event, telid, chan, extractor_name):
             ax.set_ylim(max_ylim)
 
     # Draw cameras
-    nei_camera = np.zeros_like(max_charges, dtype=np.int)
+    nei_camera = np.zeros_like(max_charges, dtype=np.int64)
     nei_camera[min_pixel_nei] = 2
     nei_camera[min_pix] = 1
     nei_camera[max_pixel_nei] = 3
@@ -241,7 +243,7 @@ class DisplayIntegrator(Tool):
             )
         )
     )
-    classes = List([EventSource] + traits.classes_with_traits(ImageExtractor))
+    classes = [EventSource] + traits.classes_with_traits(ImageExtractor)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

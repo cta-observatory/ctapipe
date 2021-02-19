@@ -14,6 +14,7 @@ from astropy.table import Table
 from astropy.utils import lazyproperty
 import tables
 from copy import copy
+from itertools import groupby
 
 import ctapipe
 
@@ -21,6 +22,24 @@ from ..coordinates import GroundFrame, CameraFrame
 from .telescope import TelescopeDescription
 from .camera import CameraDescription, CameraReadout, CameraGeometry
 from .optics import OpticsDescription
+
+
+def _group_consecutives(sequence):
+    """
+    Turn consequtive lists into ranges (used in SubarrayDescription.info())
+
+    from https://codereview.stackexchange.com/questions/214820/codewars-range-extraction
+    """
+    for _, g in groupby(enumerate(sequence), lambda i_x: i_x[0] - i_x[1]):
+        r = [x for _, x in g]
+        if len(r) > 2:
+            yield f"{r[0]}-{r[-1]}"
+        else:
+            yield from map(str, r)
+
+
+def _range_extraction(sequence):
+    return ",".join(_group_consecutives(sequence))
 
 
 class SubarrayDescription:
@@ -85,25 +104,30 @@ class SubarrayDescription:
         """
         print descriptive info about subarray
         """
-
-        teltypes = defaultdict(list)
-
-        for tel_id, desc in self.tels.items():
-            teltypes[str(desc)].append(tel_id)
-
         printer(f"Subarray : {self.name}")
         printer(f"Num Tels : {self.num_tels}")
         printer(f"Footprint: {self.footprint:.2f}")
         printer("")
-        printer("                TYPE  Num IDmin  IDmax")
-        printer("=====================================")
 
-        for teltype, tels in teltypes.items():
-            printer(
-                "{:>20s} {:4d} {:4d} ..{:4d}".format(
-                    teltype, len(tels), min(tels), max(tels)
-                )
-            )
+        # print the per-telescope-type informatino:
+        n_tels = {}
+        tel_ids = {}
+
+        for tel_type in self.telescope_types:
+            ids = self.get_tel_ids_for_type(tel_type)
+            tel_ids[str(tel_type)] = _range_extraction(ids)
+            n_tels[str(tel_type)] = len(ids)
+
+        out_table = Table(
+            {
+                "Type": list(n_tels.keys()),
+                "Count": list(n_tels.values()),
+                "Tel IDs": list(tel_ids.values()),
+            }
+        )
+        out_table["Tel IDs"].format = "<s"
+        for line in str(out_table).split("\n"):
+            printer(line)
 
     @lazyproperty
     def tel_coords(self):
@@ -122,7 +146,7 @@ class SubarrayDescription:
 
     @lazyproperty
     def tel_indices(self):
-        """ returns dict mapping tel_id to tel_index, useful for unpacking
+        """returns dict mapping tel_id to tel_index, useful for unpacking
         lists based on tel_ids into fixed-length arrays"""
         return {tel_id: ii for ii, tel_id in enumerate(self.tels.keys())}
 
@@ -176,6 +200,22 @@ class SubarrayDescription:
         indices = self.tel_ids_to_indices(tel_ids)
         mask[indices] = True
         return mask
+
+    def tel_mask_to_tel_ids(self, tel_mask):
+        """
+        Convert a boolean mask of selected telescopes to a list of tel_ids.
+
+        Parameters
+        ----------
+        tel_mask: array-like
+            Boolean array of length ``num_tels`` with indices of the
+            telescopes in ``tel_ids`` set to True.
+        Returns
+        -------
+        np.array:
+            Array of selected tel_ids
+        """
+        return self.tel_ids[tel_mask]
 
     @property
     def footprint(self):

@@ -4,13 +4,14 @@ Calibrate dl0 data to dl1, and plot the photoelectron images.
 from copy import copy
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from traitlets import Bool, Dict, Int, List
+from traitlets import Bool, Dict, Int
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Component, Tool
 from ctapipe.core import traits
 from ctapipe.image.extractor import ImageExtractor
 from ctapipe.io import EventSource
+from ctapipe.io.datalevels import DataLevel
 from ctapipe.utils import get_dataset_path
 from ctapipe.visualization import CameraDisplay
 
@@ -151,9 +152,7 @@ class DisplayDL1Calib(Tool):
             )
         )
     )
-    classes = List(
-        [EventSource, ImagePlotter] + traits.classes_with_traits(ImageExtractor)
-    )
+    classes = [EventSource, ImagePlotter] + traits.classes_with_traits(ImageExtractor)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -165,7 +164,14 @@ class DisplayDL1Calib(Tool):
         self.plotter = None
 
     def setup(self):
-        self.eventsource = EventSource(parent=self)
+        self.eventsource = EventSource.from_config(parent=self)
+        compatible_datalevels = [DataLevel.R1, DataLevel.DL0, DataLevel.DL1_IMAGES]
+
+        if not self.eventsource.has_any_datalevel(compatible_datalevels):
+            raise Exception(
+                "The input file contains no pixelwise information. "
+                "Images can not be constructed."
+            )
         subarray = self.eventsource.subarray
 
         self.calibrator = CameraCalibrator(parent=self, subarray=subarray)
@@ -177,6 +183,7 @@ class DisplayDL1Calib(Tool):
 
             tel_list = event.dl1.tel.keys()
 
+            tel_list = event.dl1.tel.keys()
             if self.telescope:
                 if self.telescope not in tel_list:
                     continue

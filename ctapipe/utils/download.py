@@ -4,6 +4,7 @@ from pathlib import Path
 import logging
 from tqdm import tqdm
 from urllib.parse import urlparse
+import time
 
 
 log = logging.getLogger(__name__)
@@ -51,7 +52,7 @@ def download_file(url, path, auth=None, chunk_size=10240, progress=False):
                 for chunk in r.iter_content(chunk_size=chunk_size):
                     f.write(chunk)
                     pbar.update(len(chunk))
-        except Exception:
+        except:  # we really want to catch everythin here
             # cleanup part file if something goes wrong
             if part_file.is_file():
                 part_file.unlink()
@@ -61,14 +62,15 @@ def download_file(url, path, auth=None, chunk_size=10240, progress=False):
     part_file.rename(path)
 
 
-def get_cache_path(path, cache_name="ctapipe", env_override="CTAPIPE_CACHE"):
+def get_cache_path(url, cache_name="ctapipe", env_override="CTAPIPE_CACHE"):
     if os.getenv(env_override):
         base = Path(os.environ["CTAPIPE_CACHE"])
     else:
         base = Path(os.environ["HOME"]) / ".cache" / cache_name
 
-    # need to make it relative
-    path = str(path).lstrip("/")
+    url = urlparse(url)
+
+    path = os.path.join(url.netloc.rstrip("/"), url.path.lstrip("/"))
     path = base / path
     path.parent.mkdir(parents=True, exist_ok=True)
     return path
@@ -109,17 +111,23 @@ def download_file_cached(
     path: pathlib.Path
         the full path to the downloaded data.
     """
-    path = get_cache_path(name, cache_name=cache_name)
+    log.debug(f"File {name} is not available in cache, downloading.")
+
+    base_url = os.environ.get(env_prefix + "URL", default_url).rstrip("/")
+    url = base_url + "/" + str(name).lstrip("/")
+
+    path = get_cache_path(url, cache_name=cache_name)
+    part_file = path.with_suffix(path.suffix + ".part")
+
+    if part_file.is_file():
+        log.warning("Another download for this file is already running, waiting.")
+        while part_file.is_file():
+            time.sleep(1)
 
     # if we already dowloaded the file, just use it
     if path.is_file():
         log.debug(f"File {name} is available in cache.")
         return path
-
-    log.debug(f"File {name} is not available in cache, downloading.")
-
-    base_url = os.environ.get(env_prefix + "URL", default_url).rstrip("/")
-    url = base_url + "/" + str(name).lstrip("/")
 
     if auth is True:
         try:

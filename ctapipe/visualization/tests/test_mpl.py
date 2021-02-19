@@ -45,6 +45,17 @@ def test_camera_display_single():
     disp.clear_overlays()
 
 
+def test_hillas_overlay():
+    from ctapipe.visualization import CameraDisplay
+
+    disp = CameraDisplay(CameraGeometry.from_name("LSTCam"))
+    hillas = HillasParametersContainer(
+        x=0.1 * u.m, y=-0.1 * u.m, length=0.5 * u.m, width=0.2 * u.m, psi=90 * u.deg
+    )
+
+    disp.overlay_moments(hillas)
+
+
 @pytest.mark.parametrize("pix_type", PixelShape.__members__.values())
 def test_pixel_shapes(pix_type):
     """ test CameraDisplay functionality """

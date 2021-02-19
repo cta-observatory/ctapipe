@@ -8,6 +8,7 @@ from traitlets.config.loader import Config
 from ctapipe.core import non_abstract_children
 from ctapipe.image.extractor import (
     extract_around_peak,
+    extract_sliding_window,
     neighbor_average_waveform,
     subtract_baseline,
     integration_correction,
@@ -16,6 +17,7 @@ from ctapipe.image.extractor import (
     NeighborPeakWindowSum,
     TwoPassWindowSum,
     FullWaveformSum,
+    SlidingWindowMaxSum,
 )
 from ctapipe.image.toymodel import WaveformModel
 from ctapipe.instrument import SubarrayDescription, TelescopeDescription
@@ -71,7 +73,7 @@ def get_test_toymodel(subarray, minCharge=100, maxCharge=1000):
     waveform_model = WaveformModel.from_camera_readout(readout)
     waveform = waveform_model.get_waveform(charge, time, n_samples)
 
-    selected_gain_channel = np.zeros(charge.size, dtype=np.int)
+    selected_gain_channel = np.zeros(charge.size, dtype=np.int64)
 
     return waveform, subarray, telid, selected_gain_channel, charge, time
 
@@ -85,7 +87,7 @@ def test_extract_around_peak(toymodel):
     waveforms, _, _, _, _, _ = toymodel
     n_pixels, n_samples = waveforms.shape
     rand = np.random.RandomState(1)
-    peak_index = rand.uniform(0, n_samples, n_pixels).astype(np.int)
+    peak_index = rand.uniform(0, n_samples, n_pixels).astype(np.int64)
     charge, peak_time = extract_around_peak(waveforms, peak_index, 7, 3, 1)
     assert (charge >= 0).all()
     assert (peak_time >= 0).all() and (peak_time <= n_samples).all()
@@ -99,6 +101,26 @@ def test_extract_around_peak(toymodel):
     # Test negative amplitude
     y_offset = y - y.max() / 2
     charge, _ = extract_around_peak(y_offset[np.newaxis, :], 0, x.size, 0, 1)
+    assert_allclose(charge, y_offset.sum(), rtol=1e-3)
+    assert charge.dtype == np.float32
+
+
+def test_extract_sliding_window(toymodel):
+    waveforms, _, _, _, _, _ = toymodel
+    n_pixels, n_samples = waveforms.shape
+    charge, peak_time = extract_sliding_window(waveforms, 7, 1)
+    assert (charge >= 0).all()
+    assert (peak_time >= 0).all() and (peak_time <= n_samples).all()
+
+    x = np.arange(100)
+    y = norm.pdf(x, 41.2, 6)
+    charge, peak_time = extract_sliding_window(y[np.newaxis, :], x.size, 1)
+    assert_allclose(charge[0], 1.0, rtol=1e-3)
+    assert_allclose(peak_time[0], 41.2, rtol=1e-3)
+
+    # Test negative amplitude
+    y_offset = y - y.max() / 2
+    charge, _ = extract_sliding_window(y_offset[np.newaxis, :], x.size, 1)
     assert_allclose(charge, y_offset.sum(), rtol=1e-3)
     assert charge.dtype == np.float32
 
@@ -285,6 +307,15 @@ def test_fixed_window_sum(toymodel):
     waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
     extractor = FixedWindowSum(subarray=subarray, peak_index=47)
     charge, peak_time = extractor(waveforms, telid, selected_gain_channel)
+    assert_allclose(charge, true_charge, rtol=0.1)
+    assert_allclose(peak_time, true_time, rtol=0.1)
+
+
+def test_sliding_window_max_sum(toymodel):
+    waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
+    extractor = SlidingWindowMaxSum(subarray=subarray)
+    charge, peak_time = extractor(waveforms, telid, selected_gain_channel)
+    print(true_charge, charge, true_time, peak_time)
     assert_allclose(charge, true_charge, rtol=0.1)
     assert_allclose(peak_time, true_time, rtol=0.1)
 

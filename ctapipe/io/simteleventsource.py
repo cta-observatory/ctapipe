@@ -15,9 +15,12 @@ from ..calib.camera.gainselection import GainSelector
 from ..containers import (
     ArrayEventContainer,
     EventType,
+    SimulatedEventContainer,
     SimulationConfigContainer,
     SimulatedCameraContainer,
     SimulatedShowerContainer,
+    TelescopePointingContainer,
+    TelescopeTriggerContainer,
 )
 from ..coordinates import CameraFrame
 from ..core.traits import Bool, CaselessStrEnum, create_class_enum_trait
@@ -355,6 +358,7 @@ class SimTelEventSource(EventSource):
 
     def _generate_events(self):
         data = ArrayEventContainer()
+        data.simulation = SimulatedEventContainer()
         data.meta["origin"] = "hessio"
         data.meta["input_url"] = self.input_url
         data.meta["max_events"] = self.max_events
@@ -396,15 +400,15 @@ class SimTelEventSource(EventSource):
                 true_image = (
                     array_event.get("photoelectrons", {})
                     .get(tel_id - 1, {})
-                    .get("photoelectrons", np.zeros(n_pixels, dtype="float32"))
+                    .get("photoelectrons", None)
                 )
 
                 data.simulation.tel[tel_id] = SimulatedCameraContainer(
                     true_image=true_image
                 )
 
-                self._fill_event_pointing(
-                    data.pointing.tel[tel_id], tracking_positions[tel_id]
+                data.pointing.tel[tel_id] = self._fill_event_pointing(
+                    tracking_positions[tel_id]
                 )
 
                 r0 = data.r0.tel[tel_id]
@@ -430,7 +434,7 @@ class SimTelEventSource(EventSource):
             yield data
 
     @staticmethod
-    def _fill_event_pointing(pointing, tracking_position):
+    def _fill_event_pointing(tracking_position):
         azimuth_raw = tracking_position["azimuth_raw"]
         altitude_raw = tracking_position["altitude_raw"]
         azimuth_cor = tracking_position.get("azimuth_cor", np.nan)
@@ -438,15 +442,17 @@ class SimTelEventSource(EventSource):
 
         # take pointing corrected position if available
         if np.isnan(azimuth_cor):
-            pointing.azimuth = u.Quantity(azimuth_raw, u.rad)
+            azimuth = u.Quantity(azimuth_raw, u.rad, copy=False)
         else:
-            pointing.azimuth = u.Quantity(azimuth_cor, u.rad)
+            azimuth = u.Quantity(azimuth_cor, u.rad, copy=False)
 
         # take pointing corrected position if available
         if np.isnan(altitude_cor):
-            pointing.altitude = u.Quantity(altitude_raw, u.rad)
+            altitude = u.Quantity(altitude_raw, u.rad, copy=False)
         else:
-            pointing.altitude = u.Quantity(altitude_cor, u.rad)
+            altitude = u.Quantity(altitude_cor, u.rad, copy=False)
+
+        return TelescopePointingContainer(azimuth=azimuth, altitude=altitude)
 
     @staticmethod
     def _fill_trigger_info(data, array_event):
@@ -471,9 +477,8 @@ class SimTelEventSource(EventSource):
         for tel_id, time in zip(
             trigger["triggered_telescopes"], trigger["trigger_times"]
         ):
-            # time is relative to central trigger in nano seconds
-            trigger = data.trigger.tel[tel_id]
-            trigger.time = Time(
+            # telesocpe time is relative to central trigger in ns
+            time = Time(
                 central_time.jd1,
                 central_time.jd2 + time / NANOSECONDS_PER_DAY,
                 scale=central_time.scale,
@@ -481,13 +486,22 @@ class SimTelEventSource(EventSource):
             )
 
             # triggered pixel info
+            n_trigger_pixels = -1
+            trigger_pixels = None
+
             tel_event = array_event["telescope_events"].get(tel_id)
             if tel_event:
                 # code 0 = trigger pixels
                 pixel_list = tel_event["pixel_lists"].get(0)
                 if pixel_list:
-                    trigger.n_trigger_pixels = pixel_list["pixels"]
-                    trigger.trigger_pixels = pixel_list["pixel_list"]
+                    n_trigger_pixels = pixel_list["pixels"]
+                    trigger_pixels = pixel_list["pixel_list"]
+
+            trigger = data.trigger.tel[tel_id] = TelescopeTriggerContainer(
+                time=time,
+                n_trigger_pixels=n_trigger_pixels,
+                trigger_pixels=trigger_pixels,
+            )
 
     def _fill_array_pointing(self, data):
         if self.file_.header["tracking_mode"] == 0:
