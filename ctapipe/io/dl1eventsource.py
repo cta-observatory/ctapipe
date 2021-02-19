@@ -117,20 +117,27 @@ class DL1EventSource(EventSource):
     def is_compatible(file_path):
         with open(file_path, "rb") as f:
             magic_number = f.read(8)
+
         if magic_number != b"\x89HDF\r\n\x1a\n":
             return False
+
         with tables.open_file(file_path) as f:
             metadata = f.root._v_attrs
             if "CTA PRODUCT DATA LEVEL" not in metadata._v_attrnames:
                 return False
+
             if metadata["CTA PRODUCT DATA LEVEL"] != "DL1":
                 return False
+
             if "CTA PRODUCT DATA MODEL VERSION" not in metadata._v_attrnames:
                 return False
-            if (
-                metadata["CTA PRODUCT DATA MODEL VERSION"]
-                not in COMPATIBLE_DL1_VERSIONS
-            ):
+
+            version = metadata["CTA PRODUCT DATA MODEL VERSION"]
+            if version not in COMPATIBLE_DL1_VERSIONS:
+                logger.error(
+                    f"File is DL1 file but has unsupported version {version}"
+                    f", supported versions are {COMPATIBLE_DL1_VERSIONS}"
+                )
                 return False
         return True
 
