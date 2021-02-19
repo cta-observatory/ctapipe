@@ -1,18 +1,13 @@
-from copy import copy, deepcopy
+from copy import deepcopy
 import numpy as np
 from astropy import units as u
-import pytest
 
-from ctapipe.containers import HillasParametersContainer
+from ctapipe.containers import ImageParametersContainer, HillasParametersContainer
 from ctapipe.instrument import SubarrayDescription, TelescopeDescription
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.io import EventSource
 from ctapipe.reco.HillasReconstructor import HillasReconstructor, HillasPlane
-from ctapipe.reco.reco_algorithms import (
-    TooFewTelescopesException,
-    InvalidWidthException,
-)
 from ctapipe.utils import get_dataset_path
 from ctapipe.coordinates import TelescopeFrame
 from astropy.coordinates import SkyCoord, AltAz
@@ -130,7 +125,6 @@ def test_parallel_reconstruction():
     (using TelescopeFrame) provide compatible results and that we are able to
     reconstruct a positive number of events.
     """
-    from scipy.spatial import distance
 
     filename = get_dataset_path(
         "gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"
@@ -192,8 +186,11 @@ def test_parallel_reconstruction():
                 hillas_dict_CameraFrame[tel_id] = moments_CameraFrame
                 hillas_dict_TelescopeFrame[tel_id] = moments_TelescopeFrame
 
+                event_CameraFrame.dl1.tel[tel_id].parameters = ImageParametersContainer()
+                dl1.parameters = ImageParametersContainer()
+
                 event_CameraFrame.dl1.tel[tel_id].parameters.hillas = moments_CameraFrame
-                event.dl1.tel[tel_id].parameters.hillas = moments_TelescopeFrame
+                dl1.parameters.hillas = moments_TelescopeFrame
 
                 if (
                     (moments_CameraFrame.width.value == np.nan)
@@ -257,7 +254,6 @@ def test_divergent_reconstruction():
     (using TelescopeFrame) provide compatible results and that we are able to
     reconstruct a positive number of events.
     """
-    from scipy.spatial import distance
 
     filename = get_dataset_path(
         "gamma_divergent_LaPalma_baseline_20Zd_180Az_prod3_test.simtel.gz"
@@ -312,6 +308,10 @@ def test_divergent_reconstruction():
                 )
                 hillas_dict_CameraFrame[tel_id] = moments_CameraFrame
                 hillas_dict_TelescopeFrame[tel_id] = moments_TelescopeFrame
+
+                dl1.parameters = ImageParametersContainer()
+                dl1.parameters.hillas = moments_TelescopeFrame
+
             except HillasParameterizationError as e:
                 print(e)
                 continue
@@ -325,6 +325,7 @@ def test_divergent_reconstruction():
         # make a copy of the event and overwrite its hillas parameters
         event_CameraFrame = deepcopy(event)
         for tel_id, hillas in hillas_dict_CameraFrame.items():
+            event_CameraFrame.dl1.tel[tel_id].parameters = ImageParametersContainer()
             event_CameraFrame.dl1.tel[tel_id].parameters.hillas = hillas
 
         fit_CameraFrame(event_CameraFrame)
@@ -380,17 +381,19 @@ def test_invalid_events():
                 geom, dl1.image, picture_thresh=10.0, boundary_thresh=5.0
             )
 
+            dl1.parameters = ImageParametersContainer()
+
             try:
                 moments = hillas_parameters(geom[mask], dl1.image[mask])
                 hillas_dict[tel_id] = moments
-                event.dl1.tel[tel_id].parameters.hillas = moments
+                dl1.parameters.hillas = moments
             except HillasParameterizationError:
-                event.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer()
+                dl1.parameters.hillas = HillasParametersContainer()
                 continue
 
         # copy event container to modify it
         event_copy = deepcopy(event)
-        # overwrite all tel_id image parameters with dummy ones but the last one
+        # overwrite all image parameters but the last one with dummy ones 
         for tel_id in list(event_copy.dl1.tel.keys())[:-1]:
             event_copy.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer()
         fit(event_copy)

@@ -1,7 +1,7 @@
 from astropy import units as u
 import numpy as np
 
-from ctapipe.containers import HillasParametersContainer
+from ctapipe.containers import ImageParametersContainer, HillasParametersContainer
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.io import EventSource
@@ -65,6 +65,8 @@ def test_reconstructors(reconstructors):
             mask = tailcuts_clean(
                 geom, dl1.image, picture_thresh=10.0, boundary_thresh=5.0
             )
+
+            dl1.parameters = ImageParametersContainer()
 
             try:
                 moments = hillas_parameters(geom[mask], dl1.image[mask])
