@@ -3,11 +3,10 @@ from astropy.utils.decorators import lazyproperty
 import logging
 import numpy as np
 import tables
-from ctapipe.instrument import SubarrayDescription
-from ctapipe.io.eventsource import EventSource
-from ctapipe.io import HDF5TableReader
-from ctapipe.io.datalevels import DataLevel
-from ctapipe.containers import (
+
+from ..core import Container, Field
+from ..instrument import SubarrayDescription
+from ..containers import (
     ConcentrationContainer,
     ArrayEventContainer,
     DL1CameraContainer,
@@ -24,7 +23,10 @@ from ctapipe.containers import (
     TriggerContainer,
     ImageParametersContainer,
 )
-from ctapipe.utils import IndexFinder
+from .eventsource import EventSource
+from .hdf5tableio import HDF5TableReader
+from .datalevels import DataLevel
+from ..utils import IndexFinder
 
 
 logger = logging.getLogger(__name__)
@@ -189,11 +191,15 @@ class DL1EventSource(EventSource):
         # the correct mcheader assigned by matching the obs_id
         # Alternatively this becomes a flat list
         # and the obs_id matching part needs to be done in _generate_events()
+        class ObsIdContainer(Container):
+            container_prefix = ""
+            obs_id = Field(-1)
+
         simulation_configs = {}
         if "simulation" in self.file_.root.configuration:
             reader = HDF5TableReader(self.file_).read(
                 "/configuration/simulation/run",
-                containers=[SimulationConfigContainer(), EventIndexContainer()],
+                containers=[SimulationConfigContainer(), ObsIdContainer()],
             )
             for (config, index) in reader:
                 simulation_configs[index.obs_id] = config
