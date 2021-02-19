@@ -34,7 +34,6 @@ docs_require = [
     "numpydoc",
     "jupyter",
     "notebook",
-    "travis-sphinx",
     "graphviz",
 ]
 
