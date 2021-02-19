@@ -13,7 +13,7 @@ def run_stage1(input_path, cwd, output_path=None):
 
     if output_path is None:
         output_path = Path(
-            tempfile.NamedTemporaryFile(suffix=".dl1.hdf5", dir=cwd).name
+            tempfile.NamedTemporaryFile(suffix=".dl1.h5", dir=cwd).name
         ).absolute()
 
     ret = run_tool(
@@ -48,7 +48,7 @@ def proton_dl1_path(tmp_path, prod5_proton_simtel_path):
 def test_simple(tmp_path, gamma_dl1_path, proton_dl1_path):
     from ctapipe.tools.dl1_merge import MergeTool
 
-    output = tmp_path / "merged_simple.dl1.hdf5"
+    output = tmp_path / "merged_simple.dl1.h5"
     ret = run_tool(
         MergeTool(),
         argv=[
@@ -63,24 +63,22 @@ def test_simple(tmp_path, gamma_dl1_path, proton_dl1_path):
     run_stage1(output, cwd=tmp_path)
 
 
-def test_pattern(tmp_path, gamma_dl1_path, proton_dl1_path):
+def test_pattern(tmp_path: Path, gamma_dl1_path, proton_dl1_path):
     from ctapipe.tools.dl1_merge import MergeTool
 
     # touch a random file to test that the pattern does not use it
-    open(tmp_path / "foo.hdf5", "w").close()
+    open(tmp_path / "foo.h5", "w").close()
 
-    output = tmp_path / "merged_pattern.dl1.hdf5"
-
+    output = tmp_path / "merged_pattern.dl1.h5"
     ret = run_tool(
         MergeTool(),
         argv=[
             "-i",
             str(tmp_path),
             "-p",
-            "*.dl1.hdf5",
+            "*.dl1.h5",
             f"--output={output}",
             "--overwrite",
-            "--t=[2, 3]",
         ],
         cwd=tmp_path,
     )
@@ -92,7 +90,7 @@ def test_skip_images(tmp_path, gamma_dl1_path, proton_dl1_path):
     from ctapipe.tools.dl1_merge import MergeTool
 
     # create a second file so we can test the patterns
-    output = tmp_path / "merged_no_images.dl1.hdf5"
+    output = tmp_path / "merged_no_images.dl1.h5"
 
     ret = run_tool(
         MergeTool(),

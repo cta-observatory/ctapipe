@@ -384,7 +384,7 @@ def test_dump_instrument(tmpdir):
     assert run_tool(tool, ["--help-all"], cwd=tmpdir) == 0
 
 
-def test_camdemo(tmpdir):
+def test_camdemo(tmpdir, camera_geometries):
     from ctapipe.tools.camdemo import CameraDemo
 
     sys.argv = ["camera_demo"]
