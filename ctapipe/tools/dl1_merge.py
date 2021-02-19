@@ -23,6 +23,7 @@ warnings.filterwarnings("ignore", category=tables.NaturalNameWarning)
 PROV = Provenance()
 
 VERSION_KEY = "CTA PRODUCT DATA MODEL VERSION"
+IMAGE_STATISTICS_PATH = "/dl1/service/image_statistics"
 
 all_nodes = {
     "/dl1/monitoring/subarray/pointing",
@@ -268,11 +269,10 @@ class MergeTool(Tool):
     def add_image_statistics(self, file):
         # Creates table for image statistics and adds the entries together.
         # This does not append rows to the existing table
-        image_statistics_path = "/dl1/service/image_statistics"
 
-        if image_statistics_path in self.output_file:
-            table_out = self.output_file.root[image_statistics_path]
-            table_in = file.root[image_statistics_path]
+        if IMAGE_STATISTICS_PATH in self.output_file:
+            table_out = self.output_file.root[IMAGE_STATISTICS_PATH]
+            table_in = file.root[IMAGE_STATISTICS_PATH]
 
             for row in range(len(table_in)):
                 table_out.cols.counts[row] = np.add(
@@ -395,7 +395,8 @@ class MergeTool(Tool):
                         sys.exit(1)
 
                 self.merge_tables(file)
-                self.add_image_statistics(file)
+                if IMAGE_STATISTICS_PATH in file:
+                    self.add_image_statistics(file)
 
             PROV.add_input_file(str(current_file))
             merged_files_counter += 1
