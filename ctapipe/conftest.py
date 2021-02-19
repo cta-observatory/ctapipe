@@ -60,3 +60,17 @@ def example_event(_global_example_event):
 
     """
     return deepcopy(_global_example_event)
+
+
+@pytest.fixture(scope="session")
+def prod5_gamma_simtel_path():
+    return get_dataset_path(
+        "gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst"
+    )
+
+
+@pytest.fixture(scope="session")
+def prod5_proton_simtel_path():
+    return get_dataset_path(
+        "proton_20deg_0deg_run4___cta-prod5-paranal_desert-2147m-Paranal-dark-100evts.simtel.zst"
+    )

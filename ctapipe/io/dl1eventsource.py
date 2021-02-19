@@ -3,11 +3,10 @@ from astropy.utils.decorators import lazyproperty
 import logging
 import numpy as np
 import tables
-from ctapipe.instrument import SubarrayDescription
-from ctapipe.io.eventsource import EventSource
-from ctapipe.io import HDF5TableReader
-from ctapipe.io.datalevels import DataLevel
-from ctapipe.containers import (
+
+from ..core import Container, Field
+from ..instrument import SubarrayDescription
+from ..containers import (
     ConcentrationContainer,
     ArrayEventContainer,
     DL1CameraContainer,
@@ -24,7 +23,10 @@ from ctapipe.containers import (
     TriggerContainer,
     ImageParametersContainer,
 )
-from ctapipe.utils import IndexFinder
+from .eventsource import EventSource
+from .hdf5tableio import HDF5TableReader
+from .datalevels import DataLevel
+from ..utils import IndexFinder
 
 
 logger = logging.getLogger(__name__)
@@ -115,20 +117,27 @@ class DL1EventSource(EventSource):
     def is_compatible(file_path):
         with open(file_path, "rb") as f:
             magic_number = f.read(8)
+
         if magic_number != b"\x89HDF\r\n\x1a\n":
             return False
+
         with tables.open_file(file_path) as f:
             metadata = f.root._v_attrs
             if "CTA PRODUCT DATA LEVEL" not in metadata._v_attrnames:
                 return False
+
             if metadata["CTA PRODUCT DATA LEVEL"] != "DL1":
                 return False
+
             if "CTA PRODUCT DATA MODEL VERSION" not in metadata._v_attrnames:
                 return False
-            if (
-                metadata["CTA PRODUCT DATA MODEL VERSION"]
-                not in COMPATIBLE_DL1_VERSIONS
-            ):
+
+            version = metadata["CTA PRODUCT DATA MODEL VERSION"]
+            if version not in COMPATIBLE_DL1_VERSIONS:
+                logger.error(
+                    f"File is DL1 file but has unsupported version {version}"
+                    f", supported versions are {COMPATIBLE_DL1_VERSIONS}"
+                )
                 return False
         return True
 
@@ -189,11 +198,15 @@ class DL1EventSource(EventSource):
         # the correct mcheader assigned by matching the obs_id
         # Alternatively this becomes a flat list
         # and the obs_id matching part needs to be done in _generate_events()
+        class ObsIdContainer(Container):
+            container_prefix = ""
+            obs_id = Field(-1)
+
         simulation_configs = {}
         if "simulation" in self.file_.root.configuration:
             reader = HDF5TableReader(self.file_).read(
                 "/configuration/simulation/run",
-                containers=[SimulationConfigContainer(), EventIndexContainer()],
+                containers=[SimulationConfigContainer(), ObsIdContainer()],
             )
             for (config, index) in reader:
                 simulation_configs[index.obs_id] = config
