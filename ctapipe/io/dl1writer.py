@@ -151,7 +151,14 @@ class DL1Writer(Component):
     peak_time_offset = Int(default_value=0).tag(config=True)
     peak_time_scale = Float(default_value=100.0).tag(config=True)
 
-    def __init__(self, event_source: EventSource, config=None, parent=None, **kwargs):
+    def __init__(
+        self,
+        event_source: EventSource,
+        config=None,
+        parent=None,
+        is_muon=False,
+        **kwargs,
+    ):
         """
 
         Parameters
@@ -164,6 +171,9 @@ class DL1Writer(Component):
         parent : , optional
             parent of this component in the config hierarchy (this supercedes
             the config option)
+        is_muon : Bool, optional
+            Flag whether the created instance should process muon events (True)
+            or normal events (False), defaults to False.
         **kwargs :
             other options, such as parameters passed to parent.
 
@@ -174,6 +184,7 @@ class DL1Writer(Component):
         # setup(), which is called when the first event is read.
 
         self._is_simulation = event_source.is_simulation
+        self._is_muon = is_muon
         self._subarray: SubarrayDescription = event_source.subarray
 
         if self._is_simulation:
@@ -193,7 +204,7 @@ class DL1Writer(Component):
     def __exit__(self, exc_type, exc_value, exc_traceback):
         self.finish()
 
-    def __call__(self, event: ArrayEventContainer, ismuon=False):
+    def __call__(self, event: ArrayEventContainer):
         """
         Write a single event to the output file. On the first event, the output
         file is set up
@@ -203,7 +214,7 @@ class DL1Writer(Component):
         if self._writer is None:
             self.setup()
 
-        if ismuon is False:
+        if self._is_muon is False:
             # Write subarray evvent data
             self._write_subarray_pointing(event, writer=self._writer)
 
@@ -240,12 +251,17 @@ class DL1Writer(Component):
     def finish(self):
         """ called after all events are done """
         self.log.info("Finishing DL1 output")
-        if self._writer:
-            if self.write_index_tables:
-                self._generate_indices()
-            write_reference_metadata_headers(
-                subarray=self._subarray, obs_id=self._obs_id, writer=self._writer
-            )
+        if self._is_muon is False:
+            if self._writer:
+                if self.write_index_tables:
+                    self._generate_indices()
+                write_reference_metadata_headers(
+                    subarray=self._subarray, obs_id=self._obs_id, writer=self._writer
+                )
+                self._writer.close()
+                self._writer = None
+        else:
+            PROV.add_output_file(self.output_path, role="muon_efficiency_parameters")
             self._writer.close()
             self._writer = None
 

@@ -3,7 +3,6 @@ High level muon processing  (MuonProcessor Component)
 """
 import numpy as np
 from astropy.coordinates import SkyCoord
-from ctapipe.containers import TelEventIndexContainer
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import TelescopeComponent
@@ -44,10 +43,6 @@ class MuonProcessor(TelescopeComponent):
         ),
     ).tag(config=True)
 
-    overwrite = traits.Bool(
-        default_value=False, help="If true, overwrite outputfile without asking"
-    ).tag(config=True)
-
     min_pixels = traits.IntTelescopeParameter(
         help=(
             "Minimum number of pixels after cleaning and ring finding"
@@ -61,12 +56,7 @@ class MuonProcessor(TelescopeComponent):
     ).tag(config=True)
 
     def __init__(
-        self,
-        subarray: SubarrayDescription,
-        is_simulation,
-        config=None,
-        parent=None,
-        **kwargs,
+        self, subarray: SubarrayDescription, config=None, parent=None, **kwargs
     ):
         """
         Parameters
@@ -75,8 +65,6 @@ class MuonProcessor(TelescopeComponent):
             Description of the subarray. Provides information about the
             camera which are useful in calibration. Also required for
             configuring the TelescopeParameter traitlets.
-        is_simulation: bool
-            If true, also process simulated images if they exist
         config: traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
@@ -88,7 +76,6 @@ class MuonProcessor(TelescopeComponent):
 
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
         self.subarray = subarray
-        self._is_simulation = is_simulation
 
         self.source = EventSource(parent=self)
         subarray = self.source.subarray
@@ -105,8 +92,6 @@ class MuonProcessor(TelescopeComponent):
         for p in ["min_pixels", "pedestal", "ratio_width", "completeness_threshold"]:
             getattr(self, p).attach_subarray(self.source.subarray)
 
-        # self.writer = parent.writer
-
     def __call__(self, event: ArrayEventContainer):
         self._process_array_event(event)
 
@@ -114,10 +99,6 @@ class MuonProcessor(TelescopeComponent):
         self.calib(event)
         for tel_id, dl1 in event.dl1.tel.items():
             self.process_telescope_event(event.index, tel_id, dl1)
-
-        # self.writer.write(
-        #     "sim/event/subarray/shower", [event.index, event.simulation.shower]
-        # )
 
     def process_telescope_event(self, event_index, tel_id, dl1):
         event_id = event_index.event_id
@@ -189,13 +170,6 @@ class MuonProcessor(TelescopeComponent):
             f", width={result.width:.4f}"
             f", efficiency={result.optical_efficiency:.2%}"
         )
-
-        # tel_event_index = TelEventIndexContainer(**event_index, tel_id=tel_id)
-
-        # self.writer.write(
-        #    "dl1/event/telescope/parameters/muons",
-        #    [tel_event_index, ring, parameters, result],
-        # )
 
     def calculate_muon_parameters(self, tel_id, image, clean_mask, ring):
         fov_radius = self.get_fov(tel_id)

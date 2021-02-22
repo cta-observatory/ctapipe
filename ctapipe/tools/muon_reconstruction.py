@@ -1,8 +1,7 @@
 from tqdm import tqdm
 
 from ctapipe.calib import CameraCalibrator
-from ctapipe.core import Provenance
-from ctapipe.core import Tool, ToolConfigurationError
+from ctapipe.core import Tool
 from ctapipe.core import traits
 from ctapipe.io import EventSource
 from ctapipe.io import DL1Writer
@@ -23,14 +22,6 @@ class MuonAnalysis(Tool):
 
     name = "ctapipe-reconstruct-muons"
     description = traits.Unicode(__doc__)
-
-    # output = traits.Path(directory_ok=False, help="HDF5 output file name").tag(
-    #     config=True
-    # )
-    #
-    # overwrite = traits.Bool(
-    #     default_value=False, help="If true, overwrite outputfile without asking"
-    # ).tag(config=True)
 
     classes = [
         MuonProcessor,
@@ -54,31 +45,20 @@ class MuonAnalysis(Tool):
     flags = {"overwrite": ({"DL1Writer": {"overwrite": True}}, "overwrite output file")}
 
     def setup(self):
-        # if self.output is None:
-        #     raise ToolConfigurationError("You need to provide an --output file")
-        #
-        # if self.output.exists() and not self.overwrite:
-        #     raise ToolConfigurationError(
-        #         "Outputfile {self.output} already exists, use `--overwrite` to overwrite"
-        #     )
-
         self.source = EventSource(parent=self)
 
-        self.write_dl1 = DL1Writer(event_source=self.source, parent=self)
+        self.write_dl1 = DL1Writer(event_source=self.source, parent=self, is_muon=True)
 
         self.process_array_event = MuonProcessor(
-            subarray=self.source.subarray,
-            is_simulation=self.source.is_simulation,
-            parent=self,
+            subarray=self.source.subarray, parent=self
         )
 
     def start(self):
         for event in tqdm(self.source, desc="Processing events: "):
             self.process_array_event(event)
-            self.write_dl1(event, ismuon=True)
+            self.write_dl1(event)
 
     def finish(self):
-        # Provenance().add_output_file(self.output, role="muon_efficiency_parameters")
         self.write_dl1.finish()
 
 
