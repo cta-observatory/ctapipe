@@ -1,5 +1,5 @@
 """
-High level image processing  (ImageProcessor Component)
+High level muon processing  (MuonProcessor Component)
 """
 import numpy as np
 from astropy.coordinates import SkyCoord
@@ -11,7 +11,11 @@ from ctapipe.core import traits
 from ctapipe.io import EventSource
 from ctapipe.image.cleaning import TailcutsImageCleaner
 from ctapipe.coordinates import TelescopeFrame, CameraFrame
-from ctapipe.containers import MuonParametersContainer, ArrayEventContainer
+from ctapipe.containers import (
+    MuonParametersContainer,
+    ArrayEventContainer,
+    MuonCollectionContainer,
+)
 from ctapipe.instrument import CameraGeometry, SubarrayDescription
 from ctapipe.image.muon import (
     MuonRingFitter,
@@ -101,20 +105,19 @@ class MuonProcessor(TelescopeComponent):
         for p in ["min_pixels", "pedestal", "ratio_width", "completeness_threshold"]:
             getattr(self, p).attach_subarray(self.source.subarray)
 
-        self.writer = parent.writer
+        # self.writer = parent.writer
 
     def __call__(self, event: ArrayEventContainer):
         self._process_array_event(event)
 
     def _process_array_event(self, event):
         self.calib(event)
-
         for tel_id, dl1 in event.dl1.tel.items():
             self.process_telescope_event(event.index, tel_id, dl1)
 
-        self.writer.write(
-            "sim/event/subarray/shower", [event.index, event.simulation.shower]
-        )
+        # self.writer.write(
+        #     "sim/event/subarray/shower", [event.index, event.simulation.shower]
+        # )
 
     def process_telescope_event(self, event_index, tel_id, dl1):
         event_id = event_index.event_id
@@ -177,18 +180,22 @@ class MuonProcessor(TelescopeComponent):
             pedestal=self.pedestal.tel[tel_id],
         )
 
+        dl1.muon_parameters = MuonCollectionContainer(
+            ring=ring, parameters=parameters, efficiency=result
+        )
+
         self.log.info(
             f"Muon fit: r={ring.radius:.2f}"
             f", width={result.width:.4f}"
             f", efficiency={result.optical_efficiency:.2%}"
         )
 
-        tel_event_index = TelEventIndexContainer(**event_index, tel_id=tel_id)
+        # tel_event_index = TelEventIndexContainer(**event_index, tel_id=tel_id)
 
-        self.writer.write(
-            "dl1/event/telescope/parameters/muons",
-            [tel_event_index, ring, parameters, result],
-        )
+        # self.writer.write(
+        #    "dl1/event/telescope/parameters/muons",
+        #    [tel_event_index, ring, parameters, result],
+        # )
 
     def calculate_muon_parameters(self, tel_id, image, clean_mask, ring):
         fov_radius = self.get_fov(tel_id)
