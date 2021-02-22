@@ -29,6 +29,10 @@ __all__ = [
     "MonitoringCameraContainer",
     "MonitoringContainer",
     "MorphologyContainer",
+    "MuonEfficiencyContainer",
+    "MuonParametersContainer",
+    "MuonCollectionContainer",
+    "MuonRingContainer",
     "ParticleClassificationContainer",
     "PedestalContainer",
     "PixelStatusContainer",
@@ -226,6 +230,50 @@ class ImageParametersContainer(Container):
     )
 
 
+class MuonRingContainer(Container):
+    """Container for the result of a ring fit, center_x, center_y"""
+
+    center_x = Field(nan * u.deg, "center (x) of the fitted muon ring", unit=u.deg)
+    center_y = Field(nan * u.deg, "center (y) of the fitted muon ring", unit=u.deg)
+    radius = Field(nan * u.deg, "radius of the fitted muon ring", unit=u.deg)
+    center_phi = Field(
+        nan * u.deg, "Angle of ring center within camera plane", unit=u.deg
+    )
+    center_distance = Field(
+        nan * u.deg, "Distance of ring center from camera center", unit=u.deg
+    )
+
+
+class MuonEfficiencyContainer(Container):
+    width = Field(nan * u.deg, "width of the muon ring in degrees")
+    impact = Field(nan * u.m, "distance of muon impact position from center of mirror")
+    impact_x = Field(nan * u.m, "impact parameter x position")
+    impact_y = Field(nan * u.m, "impact parameter y position")
+    optical_efficiency = Field(nan, "optical efficiency muon")
+
+
+class MuonParametersContainer(Container):
+    containment = Field(nan, "containment of the ring inside the camera")
+    completeness = Field(
+        nan,
+        "Complenetess of the muon ring"
+        ", estimated by dividing the ring into segments"
+        " and counting segments above a threshold",
+    )
+    intensity_ratio = Field(nan, "Intensity ratio of pixels in the ring to all pixels")
+    mean_squared_error = Field(
+        nan, "MSE of the deviation of all pixels after cleaning from the ring fit"
+    )
+
+
+class MuonCollectionContainer(Container):
+    """ Collection of muon image informations """
+
+    ring = Field(MuonRingContainer(), "Muon ring parametrization")
+    parameters = Field(MuonParametersContainer(), "Muon ring statistsics")
+    efficiency = Field(MuonEfficiencyContainer(), "Optical efficiency parameters")
+
+
 class DL1CameraContainer(Container):
     """
     Storage of output of camera calibration e.g the final calibrated
@@ -255,6 +303,8 @@ class DL1CameraContainer(Container):
     )
 
     parameters = Field(None, "Image parameters", type=ImageParametersContainer)
+
+    muon_parameters = Field(None, "Muon image parameters", type=MuonCollectionContainer)
 
 
 class DL1Container(Container):
@@ -646,42 +696,6 @@ class EventCalibrationContainer(Container):
     tel = Field(
         Map(EventCameraCalibrationContainer),
         "map of tel_id to EventCameraCalibrationContainer",
-    )
-
-
-class MuonRingContainer(Container):
-    """Container for the result of a ring fit, center_x, center_y"""
-
-    center_x = Field(nan * u.deg, "center (x) of the fitted muon ring", unit=u.deg)
-    center_y = Field(nan * u.deg, "center (y) of the fitted muon ring", unit=u.deg)
-    radius = Field(nan * u.deg, "radius of the fitted muon ring", unit=u.deg)
-    center_phi = Field(
-        nan * u.deg, "Angle of ring center within camera plane", unit=u.deg
-    )
-    center_distance = Field(
-        nan * u.deg, "Distance of ring center from camera center", unit=u.deg
-    )
-
-
-class MuonEfficiencyContainer(Container):
-    width = Field(nan * u.deg, "width of the muon ring in degrees")
-    impact = Field(nan * u.m, "distance of muon impact position from center of mirror")
-    impact_x = Field(nan * u.m, "impact parameter x position")
-    impact_y = Field(nan * u.m, "impact parameter y position")
-    optical_efficiency = Field(nan, "optical efficiency muon")
-
-
-class MuonParametersContainer(Container):
-    containment = Field(nan, "containment of the ring inside the camera")
-    completeness = Field(
-        nan,
-        "Complenetess of the muon ring"
-        ", estimated by dividing the ring into segments"
-        " and counting segments above a threshold",
-    )
-    intensity_ratio = Field(nan, "Intensity ratio of pixels in the ring to all pixels")
-    mean_squared_error = Field(
-        nan, "MSE of the deviation of all pixels after cleaning from the ring fit"
     )
 
 
