@@ -60,3 +60,30 @@ def example_event(_global_example_event):
 
     """
     return deepcopy(_global_example_event)
+
+
+@pytest.fixture(scope="function")
+def gamma_off_axis_500_gev():
+    from ctapipe.calib import CameraCalibrator
+    from ctapipe.image import ImageProcessor
+
+    path = get_dataset_path("lst_prod3_calibration_and_mcphotons.simtel.zst")
+
+    with SimTelEventSource(path) as source:
+        it = iter(source)
+        # we want the second event
+        next(it)
+        event = next(it)
+
+        # make dl1a available
+        calib = CameraCalibrator(source.subarray)
+        calib(event)
+
+        image_processor = ImageProcessor(
+            source.subarray, is_simulation=source.is_simulation
+        )
+
+        # make dl1b available
+        image_processor(event)
+
+        return source.subarray, deepcopy(event)
