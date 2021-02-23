@@ -17,8 +17,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      # make sure we have version info
-      - run: git fetch --tags
+        with:
+          fetch-depth: 0
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
@@ -53,7 +53,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: git fetch --tags
+        with:
+          fetch-depth: 0
 
       - uses: ammaraskar/sphinx-action@master
         with:
@@ -62,6 +63,8 @@ jobs:
             apt update --yes && apt install --yes git build-essential pandoc
             pip install -U pip setuptools wheel
             pip install --use-feature=2020-resolver -e .[all]
+            git describe --tags
+            python -c 'import ctapipe; print(ctapipe.__version__)'
 
       - name: Deploy to gihub pages
         # only run on push to master

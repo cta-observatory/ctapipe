@@ -415,8 +415,11 @@ class SubarrayDescription:
         """
         serialize_meta = True
 
-        if Path(output_path).suffix not in (".h5", ".hdf", ".hdf5"):
-            raise ValueError("This function can only write to hdf files.")
+        output_path = Path(output_path)
+        if output_path.suffix not in (".h5", ".hdf", ".hdf5"):
+            raise ValueError(
+                f"This function can only write to hdf files, got {output_path.suffix}"
+            )
 
         self.to_table().write(
             output_path,
