@@ -138,13 +138,14 @@ class Tool(Application):
         aliases = {
             "config": "Tool.config_file",
             "log-level": "Tool.log_level",
-            "log-file": "Tool.log_file",
-            "log": "Tool.log_file",
-            "l": "Tool.log_file",
+            ("l", "log", "log-file"): "Tool.log_file",
             "log-file-level": "Tool.log_file_level",
         }
         self.aliases.update(aliases)
-        self.flags.update(flag("q", "Tool.quiet", "Disable console logging."))
+        flags = {
+            ("q", "quiet"): ({"Tool": {"quiet": True}}, "Disable console logging.")
+        }
+        self.flags.update(flags)
 
         self.is_setup = False
         self.version = version
