@@ -299,10 +299,8 @@ def test_reconstruction():
     assert reconstructed_events > 0
 
 
-def test_reconstruction_works(gamma_off_axis_500_gev):
-    from ctapipe.image import ImageProcessor
-
-    subarray, event = gamma_off_axis_500_gev
+def test_reconstruction_works(subarray_and_event_gamma_off_axis_500_gev):
+    subarray, event = subarray_and_event_gamma_off_axis_500_gev
 
     reconstructor = HillasIntersection()
 

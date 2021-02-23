@@ -62,8 +62,8 @@ def example_event(_global_example_event):
     return deepcopy(_global_example_event)
 
 
-@pytest.fixture(scope="function")
-def gamma_off_axis_500_gev():
+@pytest.fixture(scope="session")
+def subarray_and_event_gamma_off_axis_500_gev():
     """
     A four LST subarray event with a nice shower, well suited to test
     reconstruction algorithms.
@@ -94,10 +94,9 @@ def gamma_off_axis_500_gev():
 
         # make dl1b available
         image_processor(event)
+        return source.subarray, event
 
-        return source.subarray, deepcopy(event)
 
-      
 @pytest.fixture(scope="session")
 def prod5_gamma_simtel_path():
     return get_dataset_path(
