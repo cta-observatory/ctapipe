@@ -64,6 +64,15 @@ def example_event(_global_example_event):
 
 @pytest.fixture(scope="function")
 def gamma_off_axis_500_gev():
+    """
+    A four LST subarray event with a nice shower, well suited to test
+    reconstruction algorithms.
+
+    This event should be very well reconstructible, as we have four LSTs with
+    bright events.
+
+    The event is already calibrated and image parameters have been calculated.
+    """
     from ctapipe.calib import CameraCalibrator
     from ctapipe.image import ImageProcessor
 
@@ -71,7 +80,7 @@ def gamma_off_axis_500_gev():
 
     with SimTelEventSource(path) as source:
         it = iter(source)
-        # we want the second event
+        # we want the second event, first event is a corner clipper
         next(it)
         event = next(it)
 
