@@ -456,17 +456,22 @@ def test_reconstruction_against_simulation(subarray_and_event_gamma_off_axis_500
                 geom_TelescopeFrame[mask], dl1.image[mask]
             )
 
-            dl1.parameters = ImageParametersContainer()
-            dl1.parameters.hillas = hillas_dict[tel_id]
+            # the original event is created from a
+            # pytest fixture with "session" scope, so it's always the same
+            # and if we used the same event we would overwrite the image
+            # parameters for the next tests, thus causing their failure
+            test_event = deepcopy(event)
+            test_event.dl1.tel[tel_id].parameters = ImageParametersContainer()
+            test_event.dl1.tel[tel_id].parameters.hillas = hillas_dict[tel_id]
 
         except HillasParameterizationError as e:
             print(e)
             continue
 
     # Get shower geometry
-    reconstructor(event)
+    reconstructor(test_event)
     # get the result from the correct DL2 container
-    result = event.dl2.shower["HillasReconstructor"]
+    result = test_event.dl2.shower["HillasReconstructor"]
 
     # get the reconstructed coordinates in the sky
     reco_coord = SkyCoord(alt=result.alt, az=result.az, frame=AltAz())
