@@ -201,6 +201,11 @@ def _info_system():
 def _info_plugins():
     plugins = detect_and_import_io_plugins()
     print("\n*** ctapipe io plugins ***\n")
+
+    if not plugins:
+        print("No io plugins installed")
+        return
+
     for name in plugins:
         version = get_module_version(name)
         print(f"{name:>20s} -- {version}")
