@@ -408,3 +408,72 @@ def test_invalid_events():
         event.dl1.tel[tel_id].parameters.hillas.width = np.nan * u.m
         fit(event)
         assert event_copy.dl2.shower["HillasReconstructor"].is_valid is False
+
+
+def test_reconstruction_against_simulation(subarray_and_event_gamma_off_axis_500_gev):
+    """Reconstruction is here done only in the TelescopeFrame,
+    since the previous tests test already for the compatibility between
+    frames"""
+
+    # 4-LST bright event already calibrated
+    # we'll clean it and parametrize it again in the TelescopeFrame
+    subarray, event = subarray_and_event_gamma_off_axis_500_gev
+
+    # define reconstructor
+    reconstructor = HillasReconstructor(subarray)
+
+    hillas_dict = {}
+    telescope_pointings = {}
+
+    for tel_id, dl1 in event.dl1.tel.items():
+
+        telescope_pointings[tel_id] = SkyCoord(
+            alt=event.pointing.tel[tel_id].altitude,
+            az=event.pointing.tel[tel_id].azimuth,
+            frame=AltAz(),
+        )
+
+        geom_CameraFrame = subarray.tel[tel_id].camera.geometry
+
+        # this could be done also out of this loop,
+        # but in case of real data each telescope would have a
+        # different telescope_pointing
+        geom_TelescopeFrame = geom_CameraFrame.transform_to(
+            TelescopeFrame(telescope_pointing=telescope_pointings[tel_id])
+        )
+
+        mask = tailcuts_clean(
+            geom_TelescopeFrame,
+            dl1.image,
+            picture_thresh=5.0,
+            boundary_thresh=2.5,
+            keep_isolated_pixels=False,
+            min_number_picture_neighbors=2,
+        )
+
+        try:
+            hillas_dict[tel_id] = hillas_parameters(
+                geom_TelescopeFrame[mask], dl1.image[mask]
+            )
+
+            dl1.parameters = ImageParametersContainer()
+            dl1.parameters.hillas = hillas_dict[tel_id]
+
+        except HillasParameterizationError as e:
+            print(e)
+            continue
+
+    # Get shower geometry
+    reconstructor(event)
+    # get the result from the correct DL2 container
+    result = event.dl2.shower["HillasReconstructor"]
+
+    # get the reconstructed coordinates in the sky
+    reco_coord = SkyCoord(alt=result.alt, az=result.az, frame=AltAz())
+    # get the simulated coordinates in the sky
+    true_coord = SkyCoord(
+        alt=event.simulation.shower.alt, az=event.simulation.shower.az, frame=AltAz()
+    )
+
+    # check that we are not more far than 0.1 degrees
+    assert reco_coord.separation(true_coord) < 0.1 * u.deg
