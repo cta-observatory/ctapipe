@@ -203,12 +203,24 @@ def test_parallel_reconstruction():
                     ].parameters.hillas = HillasParametersContainer()
                     event.dl1.tel[
                         tel_id
-                    ].parameters.hillas = HillasParametersContainer()
+                    ].parameters.hillas = HillasParametersContainer(
+                        x = float("nan") * u.deg,
+                        y = float("nan") * u.deg,
+                        r = float("nan") * u.deg,
+                        width = float("nan") * u.deg,
+                        length = float("nan") * u.deg
+                    )
 
             except HillasParameterizationError as e:
                 print(e)
                 event_CameraFrame.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer()
-                event.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer()
+                event.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer(
+                    x = float("nan") * u.deg,
+                    y = float("nan") * u.deg,
+                    r = float("nan") * u.deg,
+                    width = float("nan") * u.deg,
+                    length = float("nan") * u.deg
+                )
 
         if (len(hillas_dict_CameraFrame) < 2) and (len(hillas_dict_TelescopeFrame) < 2):
             continue

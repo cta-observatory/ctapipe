@@ -213,6 +213,8 @@ for event in source:
 
         # IMAGE PARAMETRIZATION
 
+        event.dl1.tel[tel_id].parameters = ImageParametersContainer()
+
         try:
 
             print("Attempting image parametrization via Hillas approach...")
@@ -248,16 +250,27 @@ for event in source:
 
             if image_parameters.width == 0 or image_parameters.width == np.nan:
                 noGood = True
-                event.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer()
+                event.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer(
+                    x = float("nan") * u.deg,
+                    y = float("nan") * u.deg,
+                    r = float("nan") * u.deg,
+                    width = float("nan") * u.deg,
+                    length = float("nan") * u.deg
+                )
             else:
                 event.dl1.tel[tel_id].parameters.hillas = image_parameters
-                print("XXXXXXXX")
                 print(event.dl1.tel[tel_id].parameters.hillas)
 
         except HillasParameterizationError as e:
             print(f"WARNING: {e}")
             noGood = True
-            event.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer()
+            event.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer(
+                x = float("nan") * u.deg,
+                y = float("nan") * u.deg,
+                r = float("nan") * u.deg,
+                width = float("nan") * u.deg,
+                length = float("nan") * u.deg
+            )
 
     if len(parametrized_images) < 2:  # discard events with < 2 images
         print("WARNING: Less than 2 images survived the cleaning!")
