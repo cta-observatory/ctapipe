@@ -154,10 +154,22 @@ class Path(TraitType):
             except ValueError:
                 return self.error(obj, value)
 
-            if url.scheme not in ("", "file"):
-                return self.error(obj, value)
+            if url.scheme in ("http", "https"):
+                # here to avoid circular import, since every module imports
+                # from ctapipe.core
+                from ctapipe.utils.download import download_cached
 
-            value = pathlib.Path(url.netloc, url.path)
+                value = download_cached(value, progress=True)
+            elif url.scheme == "dataset":
+                # here to avoid circular import, since every module imports
+                # from ctapipe.core
+                from ctapipe.utils import get_dataset_path
+
+                value = get_dataset_path(value.partition("dataset://")[2])
+            elif url.scheme in ("", "file"):
+                value = pathlib.Path(url.netloc, url.path)
+            else:
+                return self.error(obj, value)
 
         value = value.absolute()
         exists = value.exists()
