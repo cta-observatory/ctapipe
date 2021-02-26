@@ -63,16 +63,7 @@ def example_event(_global_example_event):
 
 
 @pytest.fixture(scope="session")
-def subarray_and_event_gamma_off_axis_500_gev():
-    """
-    A four LST subarray event with a nice shower, well suited to test
-    reconstruction algorithms.
-
-    This event should be very well reconstructible, as we have four LSTs with
-    bright events.
-
-    The event is already calibrated and image parameters have been calculated.
-    """
+def _subarray_and_event_gamma_off_axis_500_gev():
     from ctapipe.calib import CameraCalibrator
     from ctapipe.image import ImageProcessor
 
@@ -95,6 +86,26 @@ def subarray_and_event_gamma_off_axis_500_gev():
         # make dl1b available
         image_processor(event)
         return source.subarray, event
+
+
+@pytest.fixture(scope="function")
+def subarray_and_event_gamma_off_axis_500_gev(
+    _subarray_and_event_gamma_off_axis_500_gev
+):
+    """
+    A four LST subarray event with a nice shower, well suited to test
+    reconstruction algorithms.
+
+    This event should be very well reconstructible, as we have four LSTs with
+    bright events.
+
+    The event is already calibrated and image parameters have been calculated.
+
+    You can safely mutate the event or subarray in a test as each test
+    gets a fresh copy.
+    """
+    subarray, event = _subarray_and_event_gamma_off_axis_500_gev
+    return deepcopy(subarray), deepcopy(event)
 
 
 @pytest.fixture(scope="session")
