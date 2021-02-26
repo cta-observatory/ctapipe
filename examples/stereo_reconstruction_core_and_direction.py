@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 
 # FROM CTAPIPE
-from ctapipe.containers import HillasParametersContainer
+from ctapipe.containers import HillasParametersContainer, ImageParametersContainer
 from ctapipe.utils import get_dataset_path
 from ctapipe.io import EventSource
 from ctapipe.coordinates import TelescopeFrame, NominalFrame, GroundFrame
