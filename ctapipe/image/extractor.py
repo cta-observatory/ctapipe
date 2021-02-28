@@ -991,35 +991,23 @@ class TwoPassWindowSum(ImageExtractor):
             keep_isolated_pixels=False,
             min_number_picture_neighbors=1,
         )
-        image_1 = charge_1stpass.copy()
-        image_1[~mask_1] = 0
 
         # STEP 3
 
-        # find all islands using this cleaning
-        num_islands, labels = number_of_islands(camera_geometry, mask_1)
-        image_2 = image_1.copy()
-
-        if num_islands > 0:
-            # ...find the biggest one
-            mask_biggest = largest_island(labels)
-            image_2[~mask_biggest] = 0
-
         # Indexes of pixels that will need the 2nd pass
-        non_core_pixels_ids = np.where(image_2 < core_th)[0]
-        non_core_pixels_mask = image_2 < core_th
+        non_core_pixels_mask = charge_1stpass < core_th
 
         # STEP 4
 
         # if the resulting image has less then 3 pixels
         # or there are more than 3 pixels but all contain a number of
         # photoelectrons above the core threshold
-        if np.count_nonzero(image_2) < 3:
+        if np.count_nonzero(mask_1) < 3:
             # we return the 1st pass information
             # NOTE: In this case, the image was not bright enough!
             # We should label it as "bad and NOT use it"
             return charge_1stpass, pulse_time_1stpass
-        elif len(non_core_pixels_ids) == 0:
+        elif len(non_core_pixels_mask) == 0:
             # Since all reconstructed charges are above the core threshold,
             # there is no need to perform the 2nd pass.
             # We return the 1st pass information.
@@ -1028,7 +1016,16 @@ class TwoPassWindowSum(ImageExtractor):
             return charge_1stpass, pulse_time_1stpass
 
         # otherwise we proceed by parametrizing the image
-        hillas = hillas_parameters(camera_geometry, image_2)
+        hillas = hillas_parameters(camera_geometry[mask_1], charge_1stpass[mask_1])
+
+        # find all islands using this cleaning
+        num_islands, labels = number_of_islands(camera_geometry, mask_1)
+
+        if num_islands > 0:
+            # ...find the biggest one
+            mask_biggest = largest_island(labels)
+        else:
+            mask_biggest = mask_1
 
         # STEP 5
 
@@ -1037,7 +1034,7 @@ class TwoPassWindowSum(ImageExtractor):
         # image cleaning
         timing = timing_parameters(
             geom=camera_geometry,
-            image=image_2,
+            image=charge_1stpass,
             peak_time=pulse_time_1stpass,
             hillas_parameters=hillas,
             cleaning_mask=mask_biggest,
@@ -1054,7 +1051,7 @@ class TwoPassWindowSum(ImageExtractor):
 
         # get the predicted times as a linear relation
         predicted_pulse_times = (
-            timing.slope * longitude[non_core_pixels_ids] + timing.intercept
+            timing.slope * longitude[non_core_pixels_mask] + timing.intercept
         )
 
         # Convert time in ns to sample index using the sampling rate from
@@ -1073,7 +1070,7 @@ class TwoPassWindowSum(ImageExtractor):
 
         # select only the waveforms correspondent to the non-core pixels
         # of the main island survived from the 1st pass image cleaning
-        non_core_waveforms = waveforms[non_core_pixels_ids]
+        non_core_waveforms = waveforms[non_core_pixels_mask]
 
         # Build 'width' and 'shift' arrays that adapt on the position of the
         # window along each waveform
@@ -1153,7 +1150,7 @@ class TwoPassWindowSum(ImageExtractor):
         # this is the biggest cluster from the cleaned image
         # it contains the core pixels (which we leave untouched)
         # plus possibly some non-core pixels
-        charge_2ndpass = image_2.copy()
+        charge_2ndpass = charge_1stpass.copy()
         # Now we overwrite the charges of all non-core pixels in the camera
         # plus all those pixels which didn't survive the preliminary
         # cleaning.
