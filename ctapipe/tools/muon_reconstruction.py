@@ -45,7 +45,7 @@ class MuonAnalysis(Tool):
     def setup(self):
         self.source = EventSource(parent=self)
 
-        self.write_dl1 = DL1Writer(event_source=self.source, parent=self, is_muon=True)
+        self.write_dl1 = DL1Writer(event_source=self.source, parent=self)
 
         self.process_array_event = MuonProcessor(
             subarray=self.source.subarray, parent=self
@@ -54,7 +54,7 @@ class MuonAnalysis(Tool):
     def start(self):
         for event in tqdm(self.source, desc="Processing events: "):
             self.process_array_event(event)
-            self.write_dl1(event)
+            self.write_dl1.write_muon_events(event)
 
     def finish(self):
         self.write_dl1.finish()
