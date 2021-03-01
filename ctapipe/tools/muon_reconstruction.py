@@ -34,10 +34,8 @@ class MuonAnalysis(Tool):
     ]
 
     aliases = {
-        "i": "EventSource.input_url",
-        "input": "EventSource.input_url",
-        "o": "DL1Writer.output_path",
-        "output": "DL1Writer.output_path",
+        ("i", "input"): "EventSource.input_url",
+        ("o", "output"): "DL1Writer.output_path",
         "max-events": "EventSource.max_events",
         "allowed-tels": "EventSource.allowed_tels",
     }

@@ -223,16 +223,16 @@ class DL1Writer(Component):
                 table_name="dl1/event/subarray/trigger",
                 containers=[event.index, event.trigger],
             )
-            if self._is_simulation:
-                self._writer.write(
-                    table_name="simulation/event/subarray/shower",
-                    containers=[event.index, event.simulation.shower],
-                )
-
             # write telescope event data
             self._write_telescope_events(self._writer, event)
         else:
             self._write_muon_events(self._writer, event)
+
+        if self._is_simulation:
+            self._writer.write(
+                table_name="simulation/event/subarray/shower",
+                containers=[event.index, event.simulation.shower],
+            )
 
     def setup(self):
         """called on first event"""
@@ -495,6 +495,9 @@ class DL1Writer(Component):
         # write the telescope tables
 
         for tel_id, dl1_camera in event.dl1.tel.items():
+            if dl1_camera.muon_parameters is None:
+                continue
+
             dl1_camera.prefix = ""  # don't want a prefix for this container
             telescope = self._subarray.tel[tel_id]
             self.log.debug("WRITING TELESCOPE %s: %s", tel_id, telescope)
@@ -505,15 +508,10 @@ class DL1Writer(Component):
                 tel_id=np.int16(tel_id),
             )
 
-            if dl1_camera.muon_parameters is not None:
-                writer.write(
-                    table_name=f"dl1/event/telescope/parameters/muons",
-                    containers=[tel_index, *dl1_camera.muon_parameters.values()],
-                )
-
-        writer.write(
-            "sim/event/subarray/shower", [event.index, event.simulation.shower]
-        )
+            writer.write(
+                table_name=f"dl1/event/telescope/parameters/muons",
+                containers=[tel_index, *dl1_camera.muon_parameters.values()],
+            )
 
     def _write_telescope_events(self, writer: TableWriter, event: ArrayEventContainer):
         """
