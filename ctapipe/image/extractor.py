@@ -983,7 +983,7 @@ class TwoPassWindowSum(ImageExtractor):
 
         # Preliminary image cleaning with simple two-level tail-cut
         camera_geometry = self.subarray.tel[telid].camera.geometry
-        mask_1 = tailcuts_clean(
+        mask_clean = tailcuts_clean(
             camera_geometry,
             charge_1stpass,
             picture_thresh=core_th,
@@ -998,13 +998,13 @@ class TwoPassWindowSum(ImageExtractor):
         non_core_pixels_mask = charge_1stpass < core_th
 
         # find all islands using this cleaning
-        num_islands, labels = number_of_islands(camera_geometry, mask_1)
+        num_islands, labels = number_of_islands(camera_geometry, mask_clean)
 
         if num_islands > 0:
             # ...find the biggest one
             mask_biggest = largest_island(labels)
         else:
-            mask_biggest = mask_1
+            mask_biggest = mask_clean
 
         # STEP 4
 
@@ -1025,7 +1025,9 @@ class TwoPassWindowSum(ImageExtractor):
             return charge_1stpass, pulse_time_1stpass
 
         # otherwise we proceed by parametrizing the image
-        hillas = hillas_parameters(camera_geometry[mask_1], charge_1stpass[mask_1])
+        camera_geometry_biggest = camera_geometry[mask_biggest]
+        charge_biggest = charge_1stpass[mask_biggest]
+        hillas = hillas_parameters(camera_geometry_biggest, charge_biggest)
 
         # STEP 5
 
@@ -1033,11 +1035,10 @@ class TwoPassWindowSum(ImageExtractor):
         # using only the main island surviving the preliminary
         # image cleaning
         timing = timing_parameters(
-            geom=camera_geometry,
-            image=charge_1stpass,
-            peak_time=pulse_time_1stpass,
+            geom=camera_geometry_biggest,
+            image=charge_biggest,
+            peak_time=pulse_time_1stpass[mask_biggest],
             hillas_parameters=hillas,
-            cleaning_mask=mask_biggest,
         )
 
         # If the fit returns nan
