@@ -151,14 +151,7 @@ class DL1Writer(Component):
     peak_time_offset = Int(default_value=0).tag(config=True)
     peak_time_scale = Float(default_value=100.0).tag(config=True)
 
-    def __init__(
-        self,
-        event_source: EventSource,
-        config=None,
-        parent=None,
-        is_muon=False,
-        **kwargs,
-    ):
+    def __init__(self, event_source: EventSource, config=None, parent=None, **kwargs):
         """
 
         Parameters
@@ -171,9 +164,6 @@ class DL1Writer(Component):
         parent : , optional
             parent of this component in the config hierarchy (this supercedes
             the config option)
-        is_muon : Bool, optional
-            Flag whether the created instance should process muon events (True)
-            or normal events (False), defaults to False.
         **kwargs :
             other options, such as parameters passed to parent.
 
@@ -184,7 +174,6 @@ class DL1Writer(Component):
         # setup(), which is called when the first event is read.
 
         self._is_simulation = event_source.is_simulation
-        self._is_muon = is_muon
         self._subarray: SubarrayDescription = event_source.subarray
 
         if self._is_simulation:
@@ -214,25 +203,22 @@ class DL1Writer(Component):
         if self._writer is None:
             self.setup()
 
-        if self._is_muon is False:
-            # Write subarray evvent data
-            self._write_subarray_pointing(event, writer=self._writer)
+        # Write subarray evvent data
+        self._write_subarray_pointing(event, writer=self._writer)
 
-            self.log.debug(f"WRITING EVENT {event.index}")
-            self._writer.write(
-                table_name="dl1/event/subarray/trigger",
-                containers=[event.index, event.trigger],
-            )
-            # write telescope event data
-            self._write_telescope_events(self._writer, event)
-        else:
-            self._write_muon_events(self._writer, event)
-
+        self.log.debug(f"WRITING EVENT {event.index}")
+        self._writer.write(
+            table_name="dl1/event/subarray/trigger",
+            containers=[event.index, event.trigger],
+        )
         if self._is_simulation:
             self._writer.write(
                 table_name="simulation/event/subarray/shower",
                 containers=[event.index, event.simulation.shower],
             )
+
+        # write telescope event data
+        self._write_telescope_events(self._writer, event)
 
     def setup(self):
         """called on first event"""
@@ -251,17 +237,12 @@ class DL1Writer(Component):
     def finish(self):
         """ called after all events are done """
         self.log.info("Finishing DL1 output")
-        if self._is_muon is False:
-            if self._writer:
-                if self.write_index_tables:
-                    self._generate_indices()
-                write_reference_metadata_headers(
-                    subarray=self._subarray, obs_id=self._obs_id, writer=self._writer
-                )
-                self._writer.close()
-                self._writer = None
-        else:
-            PROV.add_output_file(self.output_path, role="muon_efficiency_parameters")
+        if self._writer:
+            if self.write_index_tables:
+                self._generate_indices()
+            write_reference_metadata_headers(
+                subarray=self._subarray, obs_id=self._obs_id, writer=self._writer
+            )
             self._writer.close()
             self._writer = None
 
@@ -487,13 +468,15 @@ class DL1Writer(Component):
                         containers=hist_container,
                     )
 
-    def _write_muon_events(self, writer: TableWriter, event: ArrayEventContainer):
+    def write_muon_events(self, event: ArrayEventContainer):
         """
         add muon entries to the event/telescope tables for each muon event
         """
+        # perform delayed initialization on first event
+        if self._writer is None:
+            self.setup()
 
         # write the telescope tables
-
         for tel_id, dl1_camera in event.dl1.tel.items():
             if dl1_camera.muon_parameters is None:
                 continue
@@ -508,9 +491,15 @@ class DL1Writer(Component):
                 tel_id=np.int16(tel_id),
             )
 
-            writer.write(
+            self._writer.write(
                 table_name=f"dl1/event/telescope/parameters/muons",
                 containers=[tel_index, *dl1_camera.muon_parameters.values()],
+            )
+
+        if self._is_simulation:
+            self._writer.write(
+                table_name="simulation/event/subarray/shower",
+                containers=[event.index, event.simulation.shower],
             )
 
     def _write_telescope_events(self, writer: TableWriter, event: ArrayEventContainer):
