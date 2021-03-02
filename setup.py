@@ -33,6 +33,7 @@ docs_require = [
     "jupyter",
     "notebook",
     "graphviz",
+    "pandas",
 ]
 
 setup(
