@@ -483,7 +483,7 @@ class DL1Writer(Component):
 
             dl1_camera.prefix = ""  # don't want a prefix for this container
             telescope = self._subarray.tel[tel_id]
-            self.log.debug("WRITING TELESCOPE %s: %s", tel_id, telescope)
+            self.log.debug("WRITING MUONS FOR TELESCOPE %s: %s", tel_id, telescope)
 
             tel_index = TelEventIndexContainer(
                 obs_id=event.index.obs_id,
@@ -491,15 +491,15 @@ class DL1Writer(Component):
                 tel_id=np.int16(tel_id),
             )
 
-            self._writer.write(
-                table_name=f"dl1/event/telescope/parameters/muons",
-                containers=[tel_index, *dl1_camera.muon_parameters.values()],
+            table_name = (
+                f"tel_{tel_id:03d}"
+                if self.split_datasets_by == "tel_id"
+                else str(telescope)
             )
 
-        if self._is_simulation:
             self._writer.write(
-                table_name="simulation/event/subarray/shower",
-                containers=[event.index, event.simulation.shower],
+                table_name=f"dl1/event/telescope/muon_parameters/{table_name}",
+                containers=[tel_index, *dl1_camera.muon_parameters.values()],
             )
 
     def _write_telescope_events(self, writer: TableWriter, event: ArrayEventContainer):

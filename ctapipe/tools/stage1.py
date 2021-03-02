@@ -13,6 +13,8 @@ from ..image.extractor import ImageExtractor
 from ..io import DataLevel, DL1Writer, EventSource, SimTelEventSource
 from ..io.dl1writer import DL1_DATA_MODEL_VERSION
 
+from ctapipe.image.muon.muon_processor import MuonProcessor
+
 
 class Stage1Tool(Tool):
     """
@@ -34,6 +36,10 @@ class Stage1Tool(Tool):
     """
 
     progress_bar = Bool(help="show progress bar during processing").tag(config=True)
+    analyse_muons = Bool(
+        help="Analyse muon events and write muon parameters"
+        "to /dl1/event/telescope/muon_parameters/tel_id"
+    ).tag(config=True)
 
     aliases = {
         "input": "EventSource.input_url",
@@ -64,10 +70,15 @@ class Stage1Tool(Tool):
             {"Stage1Tool": {"progress_bar": True}},
             "show a progress bar during event processing",
         ),
+        "analyse-muons": (
+            {"Stage1Tool": {"analyse_muons": True}},
+            "Analyse muon events and write muon parameters"
+            "to /dl1/event/telescope/muon_parameters/tel_id",
+        ),
     }
 
     classes = (
-        [CameraCalibrator, DL1Writer, ImageProcessor]
+        [CameraCalibrator, DL1Writer, ImageProcessor, MuonProcessor]
         + classes_with_traits(EventSource)
         + classes_with_traits(ImageCleaner)
         + classes_with_traits(ImageExtractor)
@@ -109,6 +120,10 @@ class Stage1Tool(Tool):
                 "shower distributions read from the input Simulation file are invalid)."
             )
 
+        self.process_muon = MuonProcessor(
+            subarray=self.event_source.subarray, parent=self
+        )
+
     def _write_processing_statistics(self):
         """ write out the event selection stats, etc. """
         # NOTE: don't remove this, not part of DL1Writer
@@ -135,6 +150,10 @@ class Stage1Tool(Tool):
             if self.write_dl1.write_parameters:
                 self.process_images(event)
             self.write_dl1(event)
+
+            if self.analyse_muons:
+                self.process_muon(event)
+                self.write_dl1.write_muon_events(event)
 
     def finish(self):
         self.write_dl1.write_simulation_histograms(self.event_source)
