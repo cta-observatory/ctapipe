@@ -149,8 +149,6 @@ class MuonProcessor(TelescopeComponent):
             return
 
         parameters = self.calculate_muon_parameters(tel_id, image, dl1.image_mask, ring)
-        # intensity_fitter does not support a mask yet, set ignored pixels to 0
-        image[~mask] = 0
 
         result = self.intensity_fitter(
             tel_id,
@@ -158,7 +156,8 @@ class MuonProcessor(TelescopeComponent):
             ring.center_y,
             ring.radius,
             image,
-            pedestal=self.pedestal.tel[tel_id],
+            pedestal=np.full(len(image), self.pedestal.tel[tel_id]),
+            mask=mask,
         )
 
         dl1.muon_parameters = MuonCollectionContainer(
