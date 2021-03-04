@@ -23,7 +23,6 @@ from pathlib import Path
 
 tmp_dir = tempfile.TemporaryDirectory()
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
-LST_MUONS = get_dataset_path("lst_muons.simtel.zst")
 
 
 @pytest.fixture(scope="module")
@@ -58,21 +57,6 @@ def dl1_parameters_file():
     )
     subprocess.call(command.split(), stdout=subprocess.PIPE)
     return f"{tmp_dir.name}/parameters.dl1.h5"
-
-
-@pytest.fixture(scope="module")
-def dl1_muon_file():
-    """
-    DL1 file containing only images from a muon simulation set.
-    """
-    command = (
-        "ctapipe-stage1 "
-        f"--input {LST_MUONS} "
-        f"--output {tmp_dir.name}/muons.dl1.h5 "
-        "--write-images"
-    )
-    subprocess.call(command.split(), stdout=subprocess.PIPE)
-    return f"{tmp_dir.name}/muons.dl1.h5"
 
 
 def test_merge(tmpdir):
@@ -448,50 +432,6 @@ def test_stage1_datalevels(tmpdir):
     )
     # make sure the dummy event source was really used
     assert isinstance(tool.event_source, DummyEventSource)
-
-
-def test_muon_reconstruction(tmpdir, dl1_muon_file):
-    from ctapipe.tools.muon_reconstruction import MuonAnalysis
-
-    muon_simtel_output_file = tmp_dir.name + "/muon_reco_on_simtel.h5"
-    assert (
-        run_tool(
-            MuonAnalysis(),
-            argv=[
-                f"--input={LST_MUONS}",
-                f"--output={muon_simtel_output_file}",
-                "--overwrite",
-            ],
-            cwd=tmpdir,
-        )
-        == 0
-    )
-
-    with tables.open_file(muon_simtel_output_file) as t:
-        table = t.root.dl1.event.telescope.parameters.muons[:]
-        assert len(table) > 20
-        assert np.count_nonzero(np.isnan(table["muonring_radius"])) == 0
-
-    muon_dl1_output_file = tmp_dir.name + "/muon_reco_on_dl1a.h5"
-    assert (
-        run_tool(
-            MuonAnalysis(),
-            argv=[
-                f"--input={dl1_muon_file}",
-                f"--output={muon_dl1_output_file}",
-                "--overwrite",
-            ],
-            cwd=tmpdir,
-        )
-        == 0
-    )
-
-    with tables.open_file(muon_dl1_output_file) as t:
-        table = t.root.dl1.event.telescope.parameters.muons[:]
-        assert len(table) > 20
-        assert np.count_nonzero(np.isnan(table["muonring_radius"])) == 0
-
-    assert run_tool(MuonAnalysis(), ["--help-all"]) == 0
 
 
 def test_display_summed_images(tmpdir):
