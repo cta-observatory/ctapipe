@@ -297,3 +297,38 @@ def test_reconstruction():
         assert fit_result.is_valid
 
     assert reconstructed_events > 0
+
+
+def test_reconstruction_works(subarray_and_event_gamma_off_axis_500_gev):
+    subarray, event = subarray_and_event_gamma_off_axis_500_gev
+
+    reconstructor = HillasIntersection()
+
+    array_pointing = SkyCoord(
+        az=event.pointing.array_azimuth,
+        alt=event.pointing.array_altitude,
+        frame=AltAz(),
+    )
+
+    hillas_dict = {
+        tel_id: dl1.parameters.hillas
+        for tel_id, dl1 in event.dl1.tel.items()
+        if dl1.parameters.hillas.width.value > 0
+    }
+
+    telescope_pointings = {
+        tel_id: SkyCoord(alt=pointing.altitude, az=pointing.azimuth, frame=AltAz())
+        for tel_id, pointing in event.pointing.tel.items()
+        if tel_id in hillas_dict
+    }
+
+    result = reconstructor.predict(
+        hillas_dict, subarray, array_pointing, telescope_pointings
+    )
+
+    reco_coord = SkyCoord(alt=result.alt, az=result.az, frame=AltAz())
+    true_coord = SkyCoord(
+        alt=event.simulation.shower.alt, az=event.simulation.shower.az, frame=AltAz()
+    )
+
+    assert reco_coord.separation(true_coord) < 0.1 * u.deg

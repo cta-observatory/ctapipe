@@ -168,7 +168,7 @@ class HillasIntersection(Reconstructor):
         err_x *= u.rad
         err_y *= u.rad
 
-        nom = SkyCoord(fov_lon=src_x * u.rad, fov_lat=src_y * u.rad, frame=nom_frame)
+        nom = SkyCoord(fov_lat=src_x * u.rad, fov_lon=src_y * u.rad, frame=nom_frame)
         # nom = sky_pos.transform_to(nom_frame)
         sky_pos = nom.transform_to(array_pointing.frame)
         tilt = SkyCoord(x=core_x * u.m, y=core_y * u.m, frame=tilted_frame,)
