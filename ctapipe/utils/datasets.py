@@ -44,7 +44,7 @@ def get_searchpath_dirs(searchpath=os.getenv("CTAPIPE_SVC_PATH"), url=DEFAULT_UR
     return searchpaths
 
 
-def find_all_matching_datasets(pattern, url=DEFAULT_URL, searchpath=None, regexp_group=None):
+def find_all_matching_datasets(pattern, searchpath=None, regexp_group=None, url=DEFAULT_URL):
     """
     Returns a list of resource names (or substrings) matching the given
     pattern, searching first in searchpath (a colon-separated list of
