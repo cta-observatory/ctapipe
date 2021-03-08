@@ -173,6 +173,33 @@ def get_dataset_path(filename, url=DEFAULT_URL):
 
 
 def try_filetypes(basename, role, file_types, url=DEFAULT_URL, **kwargs):
+    """
+    Get the contents of dataset as an `astropy.table.Table` object from
+    different file types if available.
+
+    Parameters
+    ----------
+    basename: str
+        base-name (without extension) of the dataset
+    role: str
+        Provenance role. It should be set to the CTA data hierarchy name when
+        possible (e.g. dl1.sub.svc.arraylayout). This will be recorded in the
+        provenance system.
+    file_types: dict
+        Mapping of file extensions to readers.
+    url : str
+        URL where the dataset is stored.
+    kwargs:
+        extra arguments to pass to Table.read()
+
+    Returns
+    -------
+    table : astropy.table.Table
+        Table containing the data in a dataser from an available file
+        type entry.
+
+    """
+
     path = None
 
     # look first in cache so we don't have to try non-existing downloads
