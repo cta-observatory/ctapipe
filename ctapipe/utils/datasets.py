@@ -70,9 +70,7 @@ def find_all_matching_datasets(pattern, searchpath=None, regexp_group=None, url=
 
     if searchpath is None:
         searchpath = os.getenv("CTAPIPE_SVC_PATH")
-    search_path_dirs = get_searchpath_dirs(searchpath, url)
-
-    print(search_path_dirs)
+    search_path_dirs = get_searchpath_dirs(searchpath, url=url)
 
     # first check search path
     for path in search_path_dirs:
@@ -215,7 +213,7 @@ def try_filetypes(basename, role, file_types, url=DEFAULT_URL, **kwargs):
         for ext, reader in file_types.items():
             filename = basename + ext
             try:
-                path = get_dataset_path(filename, url)
+                path = get_dataset_path(filename, url=url)
                 break
             except (FileNotFoundError, HTTPError):
                 pass
