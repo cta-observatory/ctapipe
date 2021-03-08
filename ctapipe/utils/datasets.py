@@ -115,7 +115,7 @@ def find_in_path(filename, searchpath, url=DEFAULT_URL):
 
     """
 
-    for directory in get_searchpath_dirs(searchpath, url):
+    for directory in get_searchpath_dirs(searchpath, url=url):
         path = directory / filename
         if path.exists():
             return path
