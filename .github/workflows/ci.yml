@@ -62,7 +62,7 @@ jobs:
           pre-build-command: |
             apt update --yes && apt install --yes git build-essential pandoc
             pip install -U pip setuptools wheel
-            pip install --use-feature=2020-resolver -e .[all]
+            pip install --use-feature=2020-resolver -e .[docs]
             git describe --tags
             python -c 'import ctapipe; print(ctapipe.__version__)'
 

@@ -13,8 +13,6 @@ entry_points["console_scripts"] = [
     "ctapipe-info = ctapipe.tools.info:main",
     "ctapipe-camdemo = ctapipe.tools.camdemo:main",
     "ctapipe-dump-triggers = ctapipe.tools.dump_triggers:main",
-    "ctapipe-chargeres-extract = ctapipe.tools.extract_charge_resolution:main",
-    "ctapipe-chargeres-plot = ctapipe.tools.plot_charge_resolution:main",
     "ctapipe-dump-instrument=ctapipe.tools.dump_instrument:main",
     "ctapipe-event-viewer = ctapipe.tools.bokeh.file_viewer:main",
     "ctapipe-display-tel-events = ctapipe.tools.display_events_single_tel:main",
@@ -25,7 +23,7 @@ entry_points["console_scripts"] = [
     "ctapipe-stage1 = ctapipe.tools.stage1:main",
     "ctapipe-merge = ctapipe.tools.dl1_merge:main",
 ]
-tests_require = ["pytest"]
+tests_require = ["pytest", "pandas>=0.24.0"]
 docs_require = [
     "sphinx_rtd_theme",
     "sphinx_automodapi",
@@ -35,6 +33,7 @@ docs_require = [
     "jupyter",
     "notebook",
     "graphviz",
+    "pandas",
 ]
 
 setup(
@@ -49,7 +48,6 @@ setup(
         "matplotlib~=3.0",
         "numba>=0.43",
         "numpy~=1.16",
-        "pandas>=0.24.0",
         "psutil",
         "scikit-learn",
         "scipy~=1.2",
