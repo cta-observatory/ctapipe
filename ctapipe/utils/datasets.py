@@ -34,7 +34,6 @@ DEFAULT_URL = "http://cccta-dataserver.in2p3.fr/data/ctapipe-extra/v0.3.3/"
 def get_searchpath_dirs(searchpath=os.getenv("CTAPIPE_SVC_PATH"), url=DEFAULT_URL):
     """ returns a list of dirs in specified searchpath"""
 
-    print(searchpath)
     if searchpath == "" or searchpath is None:
         searchpaths = []
     else:
