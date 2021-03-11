@@ -282,7 +282,7 @@ def test_fact_image_cleaning():
         time_limit=5,
     )
 
-    expected_pixels = np.array([0, 1, 2, 3, 4, 8, 9, 10, 11])
+    expected_pixels = np.array([0, 1, 2, 3, 4, 8, 9])
     expected_mask = np.zeros(len(geom)).astype(bool)
     expected_mask[expected_pixels] = 1
     assert_allclose(mask, expected_mask)
@@ -321,4 +321,14 @@ def test_apply_time_delta_cleaning():
     )
     test_mask = mask.copy()
     test_mask[neighbours] = 0
+    assert (test_mask == td_mask).all()
+
+    # Test unselected neighbors
+    mask[156] = 0
+    peak_time[noise_neighbour] -= 10
+    td_mask = cleaning.apply_time_delta_cleaning(
+        geom, mask, peak_time, min_number_neighbors=3, time_limit=5
+    )
+    test_mask = mask.copy()
+    test_mask[[41, 157]] = 0
     assert (test_mask == td_mask).all()

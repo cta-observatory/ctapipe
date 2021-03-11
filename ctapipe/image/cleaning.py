@@ -232,14 +232,13 @@ def apply_time_delta_cleaning(
     `image[~mask] = 0`
 
     """
+    pixels_to_keep = mask.copy()
     time_diffs = np.abs(arrival_times[mask, None] - arrival_times)
-    # neighboring pixels arriving in the time limit #Fix: and previously selected
-    valid_neighbors = (time_diffs < time_limit) & geom.neighbor_matrix[
-        mask
-    ]  # & mask # for the fix
+    # neighboring pixels arriving in the time limit and previously selected
+    valid_neighbors = (time_diffs < time_limit) & geom.neighbor_matrix[mask] & mask
     enough_neighbors = valid_neighbors.sum(axis=1) >= min_number_neighbors
-    mask[np.where(mask)[0]] &= enough_neighbors
-    return mask
+    pixels_to_keep[np.where(pixels_to_keep)[0]] &= enough_neighbors
+    return pixels_to_keep
 
 
 def fact_image_cleaning(
