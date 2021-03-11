@@ -236,8 +236,8 @@ def apply_time_delta_cleaning(
     time_diffs = np.abs(arrival_times[mask, None] - arrival_times)
     # neighboring pixels arriving in the time limit and previously selected
     valid_neighbors = (time_diffs < time_limit) & geom.neighbor_matrix[mask] & mask
-    enough_neighbors = valid_neighbors.sum(axis=1) >= min_number_neighbors
-    pixels_to_keep[np.where(pixels_to_keep)[0]] &= enough_neighbors
+    enough_neighbors = np.count_nonzero(valid_neighbors, axis=1) >= min_number_neighbors
+    pixels_to_keep[pixels_to_keep] &= enough_neighbors
     return pixels_to_keep
 
 
