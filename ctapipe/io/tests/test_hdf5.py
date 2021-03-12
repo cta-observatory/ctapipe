@@ -14,10 +14,12 @@ from ctapipe.containers import (
     R0CameraContainer,
     SimulatedShowerContainer,
     HillasParametersContainer,
+    TelEventIndexContainer,
     LeakageContainer,
 )
 from ctapipe.io.hdf5tableio import HDF5TableWriter, HDF5TableReader
 from ctapipe.io.tableio import ColumnTransform
+from ctapipe.io import read_table
 
 
 @pytest.fixture(scope="session")
@@ -50,6 +52,26 @@ def test_write_container(temp_h5_file):
             writer.write("tel_001", r0tel)
             writer.write("tel_002", r0tel)  # write a second table too
             writer.write("sim_shower", simshower)
+
+
+def test_append_container(tmp_path):
+    path = tmp_path / "test_append.h5"
+    with HDF5TableWriter(path, mode="w") as writer:
+        for event_id in range(10):
+            hillas = HillasParametersContainer()
+            index = TelEventIndexContainer(obs_id=1, event_id=event_id, tel_id=1)
+            writer.write("data", [index, hillas])
+
+    with HDF5TableWriter(path, mode="a") as writer:
+        for event_id in range(10):
+            index = TelEventIndexContainer(obs_id=2, event_id=event_id, tel_id=1)
+            hillas = HillasParametersContainer()
+            writer.write("data", [index, hillas])
+
+    table = read_table(path, "/data")
+    assert len(table) == 20
+    assert np.all(table["obs_id"] == np.repeat([1, 2], 10))
+    assert np.all(table["event_id"] == np.tile(np.arange(10), 2))
 
 
 def test_read_multiple_containers():
