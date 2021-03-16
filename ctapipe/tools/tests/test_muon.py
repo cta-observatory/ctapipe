@@ -32,16 +32,17 @@ def dl1_muon_file():
 
 
 def test_muon_reconstruction(tmpdir, dl1_muon_file):
-    from ctapipe.tools.muon_reconstruction import MuonAnalysis
+    from ctapipe.tools.stage1 import Stage1Tool
 
     muon_simtel_output_file = tmp_dir.name + "/muon_reco_on_simtel.h5"
     assert (
         run_tool(
-            MuonAnalysis(),
+            Stage1Tool(),
             argv=[
                 f"--input={LST_MUONS}",
                 f"--output={muon_simtel_output_file}",
                 "--overwrite",
+                "--analyse-muons",
             ],
             cwd=tmpdir,
         )
@@ -56,11 +57,12 @@ def test_muon_reconstruction(tmpdir, dl1_muon_file):
     muon_dl1_output_file = tmp_dir.name + "/muon_reco_on_dl1a.h5"
     assert (
         run_tool(
-            MuonAnalysis(),
+            Stage1Tool(),
             argv=[
                 f"--input={dl1_muon_file}",
                 f"--output={muon_dl1_output_file}",
                 "--overwrite",
+                "--analyse-muons",
             ],
             cwd=tmpdir,
         )
@@ -72,4 +74,4 @@ def test_muon_reconstruction(tmpdir, dl1_muon_file):
         assert len(table) > 20
         assert np.count_nonzero(np.isnan(table["muonring_radius"])) == 0
 
-    assert run_tool(MuonAnalysis(), ["--help-all"]) == 0
+    assert run_tool(Stage1Tool(), ["--help-all"]) == 0
