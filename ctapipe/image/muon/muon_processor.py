@@ -211,7 +211,7 @@ class MuonProcessor(TelescopeComponent):
 
     def get_fov(self, tel_id):
         """Guesstimate fov radius for telescope with id `tel_id`"""
-        # memorize fov calculation
+        # memoize fov calculation
         if tel_id not in self.field_of_view:
             cam = self.subarray.tel[tel_id].camera.geometry
             border = cam.get_border_pixel_mask()
@@ -222,8 +222,8 @@ class MuonProcessor(TelescopeComponent):
         return self.field_of_view[tel_id]
 
     def get_pixel_width(self, tel_id):
-        """Guesstimate fov radius for telescope with id `tel_id`"""
-        # memorize fov calculation
+        """Guesstimate pixel width for telescope with id `tel_id`"""
+        # memoize fov calculation
         if tel_id not in self.pixel_widths:
             x, y = self.get_pixel_coords(tel_id)
             self.pixel_widths[tel_id] = CameraGeometry.guess_pixel_width(x, y)
@@ -232,7 +232,7 @@ class MuonProcessor(TelescopeComponent):
 
     def get_pixel_coords(self, tel_id):
         """Get pixel coords in telescope frame for telescope with id `tel_id`"""
-        # memorize transformation
+        # memoize transformation
         if tel_id not in self.pixels_in_tel_frame:
             telescope = self.subarray.tel[tel_id]
             cam = telescope.camera.geometry
