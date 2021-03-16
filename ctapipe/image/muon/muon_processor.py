@@ -75,27 +75,20 @@ class MuonProcessor(TelescopeComponent):
         """
 
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
-        self.subarray = subarray
 
-        self.source = EventSource(parent=self)
-        subarray = self.source.subarray
-
-        self.calib = CameraCalibrator(subarray=subarray, parent=self)
+        self.calib = CameraCalibrator(subarray=self.subarray, parent=self)
         self.ring_fitter = MuonRingFitter(parent=self)
-        self.intensity_fitter = MuonIntensityFitter(subarray=subarray, parent=self)
-        self.cleaning = TailcutsImageCleaner(parent=self, subarray=subarray)
+        self.intensity_fitter = MuonIntensityFitter(subarray=self.subarray, parent=self)
+        self.cleaning = TailcutsImageCleaner(parent=self, subarray=self.subarray)
 
         self.pixels_in_tel_frame = {}
         self.field_of_view = {}
         self.pixel_widths = {}
 
         for p in ["min_pixels", "pedestal", "ratio_width", "completeness_threshold"]:
-            getattr(self, p).attach_subarray(self.source.subarray)
+            getattr(self, p).attach_subarray(self.subarray)
 
     def __call__(self, event: ArrayEventContainer):
-        self._process_array_event(event)
-
-    def _process_array_event(self, event):
         self.calib(event)
         for tel_id, dl1 in event.dl1.tel.items():
             self.process_telescope_event(event.index, tel_id, dl1)
@@ -103,7 +96,7 @@ class MuonProcessor(TelescopeComponent):
     def process_telescope_event(self, event_index, tel_id, dl1):
         event_id = event_index.event_id
 
-        if self.source.subarray.tel[tel_id].optics.num_mirrors != 1:
+        if self.subarray.tel[tel_id].optics.num_mirrors != 1:
             self.log.warn(
                 f"Skipping non-single mirror telescope {tel_id}"
                 " set --allowed_tels to get rid of this warning"
@@ -218,9 +211,9 @@ class MuonProcessor(TelescopeComponent):
 
     def get_fov(self, tel_id):
         """Guesstimate fov radius for telescope with id `tel_id`"""
-        # memoize fov calculation
+        # memorize fov calculation
         if tel_id not in self.field_of_view:
-            cam = self.source.subarray.tel[tel_id].camera.geometry
+            cam = self.subarray.tel[tel_id].camera.geometry
             border = cam.get_border_pixel_mask()
 
             x, y = self.get_pixel_coords(tel_id)
@@ -230,7 +223,7 @@ class MuonProcessor(TelescopeComponent):
 
     def get_pixel_width(self, tel_id):
         """Guesstimate fov radius for telescope with id `tel_id`"""
-        # memoize fov calculation
+        # memorize fov calculation
         if tel_id not in self.pixel_widths:
             x, y = self.get_pixel_coords(tel_id)
             self.pixel_widths[tel_id] = CameraGeometry.guess_pixel_width(x, y)
@@ -239,9 +232,9 @@ class MuonProcessor(TelescopeComponent):
 
     def get_pixel_coords(self, tel_id):
         """Get pixel coords in telescope frame for telescope with id `tel_id`"""
-        # memoize transformation
+        # memorize transformation
         if tel_id not in self.pixels_in_tel_frame:
-            telescope = self.source.subarray.tel[tel_id]
+            telescope = self.subarray.tel[tel_id]
             cam = telescope.camera.geometry
             camera_frame = CameraFrame(
                 focal_length=telescope.optics.equivalent_focal_length,
