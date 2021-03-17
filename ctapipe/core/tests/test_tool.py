@@ -2,6 +2,7 @@ import os
 import logging
 import tempfile
 import pytest
+import json
 from traitlets import Float, TraitError, Dict, Int
 from traitlets.config import Config
 from pathlib import Path
@@ -304,3 +305,22 @@ def test_tool_logging_quiet(capsys):
     log = capsys.readouterr().err
 
     assert len(log) == 0
+
+
+def test_invalid_traits(tmp_path, caplog):
+    caplog.set_level(logging.INFO, logger="ctapipe")
+
+    class MyTool(Tool):
+        name = "test"
+        description = "test"
+        param = Float(5.0, help="parameter").tag(config=True)
+
+    # 2 means trait error
+    assert run_tool(MyTool(), ["--MyTool.foo=5"]) == 2
+
+    # test that it also works for config files
+    config = tmp_path / "config.json"
+    with config.open("w") as f:
+        json.dump({"MyTool": {"foo": 5}}, f)
+
+    assert run_tool(MyTool(), [f"--config={config}"]) == 2
