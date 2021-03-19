@@ -10,7 +10,11 @@ import astropy.units as u
 from ctapipe.core import TelescopeComponent
 from ctapipe.image.extractor import ImageExtractor
 from ctapipe.image.reducer import DataVolumeReducer
-from ctapipe.core.traits import create_class_enum_trait, BoolTelescopeParameter
+from ctapipe.core.traits import (
+    TelescopeParameter,
+    create_class_enum_trait,
+    BoolTelescopeParameter,
+)
 
 from numba import guvectorize, float64, float32, int64
 
@@ -36,8 +40,11 @@ class CameraCalibrator(TelescopeComponent):
         DataVolumeReducer, default_value="NullDataVolumeReducer"
     ).tag(config=True)
 
-    image_extractor_type = create_class_enum_trait(
-        ImageExtractor, default_value="NeighborPeakWindowSum"
+    image_extractor_type = TelescopeParameter(
+        trait=create_class_enum_trait(
+            ImageExtractor, default_value="NeighborPeakWindowSum"
+        ),
+        default_value="NeighborPeakWindowSum",
     ).tag(config=True)
 
     apply_waveform_time_shift = BoolTelescopeParameter(
@@ -96,12 +103,17 @@ class CameraCalibrator(TelescopeComponent):
         self._r1_empty_warn = False
         self._dl0_empty_warn = False
 
+        self.image_extractors = {}
+
         if image_extractor is None:
-            self.image_extractor = ImageExtractor.from_name(
-                self.image_extractor_type, subarray=self.subarray, parent=self
-            )
+            for (_, _, name) in self.image_extractor_type:
+                self.image_extractors[name] = ImageExtractor.from_name(
+                    name, subarray=self.subarray, parent=self
+                )
         else:
-            self.image_extractor = image_extractor
+            name = image_extractor.__class__.__name__
+            self.image_extractor_type = [("type", "*", name)]
+            self.image_extractors[name] = image_extractor
 
         if data_volume_reducer is None:
             self.data_volume_reducer = DataVolumeReducer.from_name(
@@ -191,7 +203,8 @@ class CameraCalibrator(TelescopeComponent):
                 else:
                     remaining_shift = time_shift
 
-            charge, peak_time = self.image_extractor(
+            extractor = self.image_extractors[self.image_extractor_type.tel[telid]]
+            charge, peak_time = extractor(
                 waveforms, telid=telid, selected_gain_channel=selected_gain_channel
             )
 
