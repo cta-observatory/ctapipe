@@ -45,6 +45,7 @@ class CameraCalibrator(TelescopeComponent):
             ImageExtractor, default_value="NeighborPeakWindowSum"
         ),
         default_value="NeighborPeakWindowSum",
+        help="Name of the ImageExtractor subclass to be used.",
     ).tag(config=True)
 
     apply_waveform_time_shift = BoolTelescopeParameter(
