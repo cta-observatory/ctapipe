@@ -2,7 +2,7 @@ import requests
 import os
 from pathlib import Path
 import logging
-from tqdm import tqdm
+from tqdm.auto import tqdm
 from urllib.parse import urlparse
 import time
 
