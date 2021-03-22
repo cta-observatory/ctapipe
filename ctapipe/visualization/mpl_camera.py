@@ -10,14 +10,14 @@ from astropy import units as u
 from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.colors import Normalize, LogNorm, SymLogNorm
-from matplotlib.patches import Ellipse, RegularPolygon, Rectangle
+from matplotlib.patches import Ellipse, RegularPolygon, Rectangle, Circle
 from numpy import sqrt
+
+from ctapipe.instrument import PixelShape
 
 __all__ = ["CameraDisplay"]
 
 logger = logging.getLogger(__name__)
-
-PIXEL_EPSILON = 0.0005  # a bit of extra size to pixels to avoid aliasing
 
 
 def polar_to_cart(rho, phi):
@@ -123,29 +123,30 @@ class CameraDisplay:
 
         pix_x = self.geom.pix_x.value[self.mask]
         pix_y = self.geom.pix_y.value[self.mask]
-        pix_area = self.geom.pix_area.value[self.mask]
+        pix_width = self.geom.pixel_width.value[self.mask]
 
-        for x, y, area in zip(pix_x, pix_y, pix_area):
-            if self.geom.pix_type.startswith("hex"):
-                r = sqrt(area * 2 / 3 / sqrt(3)) + 2 * PIXEL_EPSILON
-                poly = RegularPolygon(
+        for x, y, w in zip(pix_x, pix_y, pix_width):
+            if self.geom.pix_type == PixelShape.HEXAGON:
+                r = w / np.sqrt(3)
+                patch = RegularPolygon(
                     (x, y),
                     6,
                     radius=r,
                     orientation=self.geom.pix_rotation.to_value(u.rad),
                     fill=True,
                 )
-            else:
-                r = sqrt(area) + PIXEL_EPSILON
-                poly = Rectangle(
-                    (x - r / 2, y - r / 2),
-                    width=r,
-                    height=r,
+            elif self.geom.pix_type == PixelShape.CIRCLE:
+                patch = Circle((x, y), radius=w / 2, fill=True)
+            elif self.geom.pix_type == PixelShape.SQUARE:
+                patch = Rectangle(
+                    (x - w / 2, y - w / 2),
+                    width=w,
+                    height=w,
                     angle=self.geom.pix_rotation.to_value(u.deg),
                     fill=True,
                 )
 
-            patches.append(poly)
+            patches.append(patch)
 
         self.pixels = PatchCollection(patches, cmap=cmap, linewidth=0)
         self.axes.add_collection(self.pixels)
@@ -173,12 +174,13 @@ class CameraDisplay:
         self._active_pixel.set_visible(False)
         self.axes.add_patch(self._active_pixel)
 
+        if hasattr(self._active_pixel, "xy"):
+            center = self._active_pixel.xy
+        else:
+            center = self._active_pixel.center
+
         self._active_pixel_label = self.axes.text(
-            self._active_pixel.xy[0],
-            self._active_pixel.xy[1],
-            "0",
-            horizontalalignment="center",
-            verticalalignment="center",
+            *center, "0", horizontalalignment="center", verticalalignment="center"
         )
         self._active_pixel_label.set_visible(False)
 
@@ -191,7 +193,7 @@ class CameraDisplay:
         if image is not None:
             self.image = image
         else:
-            self.image = np.zeros_like(self.geom.pix_id, dtype=np.float)
+            self.image = np.zeros_like(self.geom.pix_id, dtype=np.float64)
 
         self.norm = norm
         self.auto_set_axes_labels()
@@ -268,7 +270,7 @@ class CameraDisplay:
             self.pixels.norm = LogNorm()
             self.pixels.autoscale()  # this is to handle matplotlib bug #5424
         elif norm == "symlog":
-            self.pixels.norm = SymLogNorm(linthresh=1.0)
+            self.pixels.norm = SymLogNorm(linthresh=1.0, base=10)
             self.pixels.autoscale()
         elif isinstance(norm, Normalize):
             self.pixels.norm = norm
@@ -417,7 +419,7 @@ class CameraDisplay:
             centroid=(cen_x, cen_y),
             length=length * 2,
             width=width * 2,
-            angle=hillas_parameters.psi.rad,
+            angle=hillas_parameters.psi.to_value("rad"),
             **kwargs,
         )
 

@@ -13,13 +13,33 @@ from astropy.coordinates import SkyCoord
 from astropy.table import Table
 from astropy.utils import lazyproperty
 import tables
+from copy import copy
+from itertools import groupby
 
 import ctapipe
 
-from ..coordinates import GroundFrame
+from ..coordinates import GroundFrame, CameraFrame
 from .telescope import TelescopeDescription
 from .camera import CameraDescription, CameraReadout, CameraGeometry
 from .optics import OpticsDescription
+
+
+def _group_consecutives(sequence):
+    """
+    Turn consequtive lists into ranges (used in SubarrayDescription.info())
+
+    from https://codereview.stackexchange.com/questions/214820/codewars-range-extraction
+    """
+    for _, g in groupby(enumerate(sequence), lambda i_x: i_x[0] - i_x[1]):
+        r = [x for _, x in g]
+        if len(r) > 2:
+            yield f"{r[0]}-{r[-1]}"
+        else:
+            yield from map(str, r)
+
+
+def _range_extraction(sequence):
+    return ",".join(_group_consecutives(sequence))
 
 
 class SubarrayDescription:
@@ -84,25 +104,30 @@ class SubarrayDescription:
         """
         print descriptive info about subarray
         """
-
-        teltypes = defaultdict(list)
-
-        for tel_id, desc in self.tels.items():
-            teltypes[str(desc)].append(tel_id)
-
         printer(f"Subarray : {self.name}")
         printer(f"Num Tels : {self.num_tels}")
         printer(f"Footprint: {self.footprint:.2f}")
         printer("")
-        printer("                TYPE  Num IDmin  IDmax")
-        printer("=====================================")
 
-        for teltype, tels in teltypes.items():
-            printer(
-                "{:>20s} {:4d} {:4d} ..{:4d}".format(
-                    teltype, len(tels), min(tels), max(tels)
-                )
-            )
+        # print the per-telescope-type informatino:
+        n_tels = {}
+        tel_ids = {}
+
+        for tel_type in self.telescope_types:
+            ids = self.get_tel_ids_for_type(tel_type)
+            tel_ids[str(tel_type)] = _range_extraction(ids)
+            n_tels[str(tel_type)] = len(ids)
+
+        out_table = Table(
+            {
+                "Type": list(n_tels.keys()),
+                "Count": list(n_tels.values()),
+                "Tel IDs": list(tel_ids.values()),
+            }
+        )
+        out_table["Tel IDs"].format = "<s"
+        for line in str(out_table).split("\n"):
+            printer(line)
 
     @lazyproperty
     def tel_coords(self):
@@ -121,7 +146,7 @@ class SubarrayDescription:
 
     @lazyproperty
     def tel_indices(self):
-        """ returns dict mapping tel_id to tel_index, useful for unpacking
+        """returns dict mapping tel_id to tel_index, useful for unpacking
         lists based on tel_ids into fixed-length arrays"""
         return {tel_id: ii for ii, tel_id in enumerate(self.tels.keys())}
 
@@ -176,6 +201,22 @@ class SubarrayDescription:
         mask[indices] = True
         return mask
 
+    def tel_mask_to_tel_ids(self, tel_mask):
+        """
+        Convert a boolean mask of selected telescopes to a list of tel_ids.
+
+        Parameters
+        ----------
+        tel_mask: array-like
+            Boolean array of length ``num_tels`` with indices of the
+            telescopes in ``tel_ids`` set to True.
+        Returns
+        -------
+        np.array:
+            Array of selected tel_ids
+        """
+        return self.tel_ids[tel_mask]
+
     @property
     def footprint(self):
         """area of smallest circle containing array on ground"""
@@ -223,6 +264,7 @@ class SubarrayDescription:
                     tel_description=descs,
                 )
             )
+            tab.meta["TAB_VER"] = "1.0"
 
         elif kind == "optics":
             unique_types = set(self.tels.values())
@@ -245,6 +287,7 @@ class SubarrayDescription:
                 "equivalent_focal_length": focal_length,
             }
             tab = Table(cols)
+            tab.meta["TAB_VER"] = "2.0"
 
         else:
             raise ValueError(f"Table type '{kind}' not known")
@@ -362,7 +405,7 @@ class SubarrayDescription:
                 return False
         return True
 
-    def to_hdf(self, output_path):
+    def to_hdf(self, output_path, overwrite=False):
         """write the SubarrayDescription
 
         Parameters
@@ -372,20 +415,25 @@ class SubarrayDescription:
         """
         serialize_meta = True
 
-        if Path(output_path).suffix not in (".h5", ".hdf", ".hdf5"):
-            raise ValueError("This function can only write to hdf files.")
+        output_path = Path(output_path)
+        if output_path.suffix not in (".h5", ".hdf", ".hdf5"):
+            raise ValueError(
+                f"This function can only write to hdf files, got {output_path.suffix}"
+            )
 
         self.to_table().write(
             output_path,
             path="/configuration/instrument/subarray/layout",
             serialize_meta=serialize_meta,
             append=True,
+            overwrite=overwrite,
         )
         self.to_table(kind="optics").write(
             output_path,
             path="/configuration/instrument/telescope/optics",
             append=True,
             serialize_meta=serialize_meta,
+            overwrite=overwrite,
         )
         for camera in self.camera_types:
             camera.geometry.to_table().write(
@@ -393,12 +441,14 @@ class SubarrayDescription:
                 path=f"/configuration/instrument/telescope/camera/geometry_{camera}",
                 append=True,
                 serialize_meta=serialize_meta,
+                overwrite=overwrite,
             )
             camera.readout.to_table().write(
                 output_path,
                 path=f"/configuration/instrument/telescope/camera/readout_{camera}",
                 append=True,
                 serialize_meta=serialize_meta,
+                overwrite=overwrite,
             )
 
         with tables.open_file(output_path, mode="r+") as f:
@@ -444,12 +494,23 @@ class SubarrayDescription:
             kwargs = {k: v[row] for k, v in optics_quantities.items()}
             optics[desc] = OpticsDescription(**kwargs)
 
+        # give correct frame for the camera to each telescope
+        cameras_by_desc = {}
+        for row in layout:
+            desc = row["tel_description"]
+
+            # copy to support different telescopes with same camera geom
+            camera = copy(cameras[row["camera_type"]])
+            focal_length = optics[desc].equivalent_focal_length
+            camera.geometry.frame = CameraFrame(focal_length=focal_length)
+            cameras_by_desc[desc] = camera
+
         telescope_descriptions = {
             row["tel_id"]: TelescopeDescription(
                 name=row["name"],
                 tel_type=row["type"],
                 optics=optics[row["tel_description"]],
-                camera=cameras[row["camera_type"]],
+                camera=cameras_by_desc[row["tel_description"]],
             )
             for row in layout
         }
@@ -457,7 +518,11 @@ class SubarrayDescription:
         positions = np.column_stack([layout[f"pos_{c}"].quantity for c in "xyz"])
 
         with tables.open_file(path, mode="r") as f:
-            name = f.root.configuration.instrument.subarray._v_attrs.name
+            attrs = f.root.configuration.instrument.subarray._v_attrs
+            if "name" in attrs:
+                name = str(attrs.name)
+            else:
+                name = "Unknown"
 
         return cls(
             name=name,

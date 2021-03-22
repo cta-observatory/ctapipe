@@ -7,6 +7,9 @@ import pathlib
 
 from ctapipe.core import Component, TelescopeComponent
 from ctapipe.core.traits import (
+    List,
+    Float,
+    Bool,
     Path,
     TraitError,
     classes_with_traits,
@@ -179,6 +182,30 @@ def test_enum_classes_with_traits():
     assert list_of_classes  # should not be empty
 
 
+def test_classes_with_traits():
+    from ctapipe.core import Tool
+
+    class CompA(Component):
+        a = Int().tag(config=True)
+
+    class CompB(Component):
+        classes = List([CompA])
+        b = Int().tag(config=True)
+
+    class CompC(Component):
+        c = Int().tag(config=True)
+
+    class MyTool(Tool):
+        classes = [CompB, CompC]
+
+    with_traits = classes_with_traits(MyTool)
+    assert len(with_traits) == 4
+    assert MyTool in with_traits
+    assert CompA in with_traits
+    assert CompB in with_traits
+    assert CompC in with_traits
+
+
 def test_has_traits():
     """ test the has_traits func """
 
@@ -221,17 +248,20 @@ def test_telescope_parameter_lookup(mock_subarray):
         telparam_list2[None]
 
 
-def test_telescope_parameter_patterns():
+def test_telescope_parameter_patterns(mock_subarray):
     """ Test validation of TelescopeParameters"""
 
-    with pytest.raises(ValueError):
-        TelescopeParameter(dtype="notatype")
+    with pytest.raises(TypeError):
+        TelescopeParameter(trait=int)
 
-    class SomeComponent(Component):
-        tel_param = TelescopeParameter()
+    with pytest.raises(TypeError):
+        TelescopeParameter(trait=Int)
+
+    class SomeComponent(TelescopeComponent):
+        tel_param = TelescopeParameter(Float(default_value=0.0, allow_none=True))
         tel_param_int = IntTelescopeParameter()
 
-    comp = SomeComponent()
+    comp = SomeComponent(mock_subarray)
 
     # single value allowed (converted to ("default","",val) )
     comp.tel_param = 4.5
@@ -255,6 +285,44 @@ def test_telescope_parameter_patterns():
 
     with pytest.raises(TraitError):
         comp.tel_param_int = [(12, "", 5)]  # command not string
+
+
+def test_telescope_parameter_path(mock_subarray):
+    class SomeComponent(TelescopeComponent):
+        path = TelescopeParameter(Path(exists=True, directory_ok=False))
+
+    c = SomeComponent(subarray=mock_subarray)
+
+    # non existing
+    with pytest.raises(TraitError):
+        c.path = "/does/not/exist"
+
+    with tempfile.NamedTemporaryFile() as f:
+        c.path = f.name
+
+        assert str(c.path.tel[1]) == f.name
+
+        with pytest.raises(TraitError):
+            # non existing somewhere in the config
+            c.path = [
+                ("type", "*", f.name),
+                ("type", "LST_LST_LSTCam", "/does/not/exist"),
+            ]
+
+    with tempfile.TemporaryDirectory() as d:
+        with pytest.raises(TraitError):
+            c.path = d
+
+    # test with none default:
+    class SomeComponent(TelescopeComponent):
+        path = TelescopeParameter(
+            Path(exists=True, directory_ok=False), default_value=None, allow_none=True
+        )
+
+    s = SomeComponent(subarray=mock_subarray)
+    assert s.path.tel[1] is None
+    s.path = [("type", "*", "setup.py")]
+    assert s.path.tel[1] == pathlib.Path("setup.py").absolute()
 
 
 def test_telescope_parameter_scalar_default(mock_subarray):
@@ -378,7 +446,7 @@ def test_telescope_parameter_set_retain_subarray(mock_subarray):
 
 def test_telescope_parameter_to_config(mock_subarray):
     """
-    test that the config can be read back from a component with a TelescopeParameter 
+    test that the config can be read back from a component with a TelescopeParameter
     (see Issue #1216)
     """
 
@@ -388,9 +456,53 @@ def test_telescope_parameter_to_config(mock_subarray):
     component = SomeComponent(subarray=mock_subarray)
     component.tel_param1 = 6.0
     config = component.get_current_config()
-    assert config["SomeComponent"]["tel_param1"] == [
-        ("type", "*", 6.0),
-    ]
+    assert config["SomeComponent"]["tel_param1"] == [("type", "*", 6.0)]
+
+
+def test_telescope_parameter_from_cli(mock_subarray):
+    """
+    Test we can pass single default for telescope components via cli
+    see #1559
+    """
+
+    from ctapipe.core import Tool, run_tool
+
+    class SomeComponent(TelescopeComponent):
+        path = TelescopeParameter(Path(), default_value=None).tag(config=True)
+        val = TelescopeParameter(Float(), default_value=1.0).tag(config=True)
+        flag = TelescopeParameter(Bool(), default_value=True).tag(config=True)
+
+    # test with and without SomeComponent in classes
+    for tool_classes in [[], [SomeComponent]]:
+
+        class TelescopeTool(Tool):
+            classes = tool_classes
+
+            def setup(self):
+                self.comp = SomeComponent(subarray=mock_subarray, parent=self)
+
+        tool = TelescopeTool()
+        assert run_tool(tool) == 0
+        assert tool.comp.path == [("type", "*", None)]
+        assert tool.comp.val == [("type", "*", 1.0)]
+        assert tool.comp.flag == [("type", "*", True)]
+
+        tool = TelescopeTool()
+        result = run_tool(
+            tool,
+            [
+                "--SomeComponent.path",
+                "test.h5",
+                "--SomeComponent.val",
+                "2.0",
+                "--SomeComponent.flag",
+                "False",
+            ],
+        )
+        assert result == 0
+        assert tool.comp.path == [("type", "*", pathlib.Path("test.h5").absolute())]
+        assert tool.comp.val == [("type", "*", 2.0)]
+        assert tool.comp.flag == [("type", "*", False)]
 
 
 def test_datetimes():

@@ -8,11 +8,14 @@ To do:
 
 """
 import numpy as np
+
+from math import erf
+from numba import vectorize, double
+
 from scipy.ndimage.filters import correlate1d
 from iminuit import Minuit
 from astropy import units as u
 from scipy.constants import alpha
-from scipy.stats import norm
 from astropy.coordinates import SkyCoord
 from functools import lru_cache
 
@@ -25,41 +28,42 @@ from ...core.traits import FloatTelescopeParameter, IntTelescopeParameter
 # ratio of the areas of the unit circle and a square of side lengths 2
 CIRCLE_SQUARE_AREA_RATIO = np.pi / 4
 
+# Sqrt of 2, as it is needed multiple times
+SQRT2 = np.sqrt(2)
 
+
+@vectorize([double(double, double, double)])
 def chord_length(radius, rho, phi):
     """
     Function for integrating the length of a chord across a circle
 
     Parameters
     ----------
-    radius: float
+    radius: float or ndarray
         radius of circle
-    rho: float
+    rho: float or ndarray
         fractional distance of impact point from circle center
-    phi: ndarray in radians
+    phi: float or ndarray in radians
         rotation angles to calculate length
 
     Returns
     -------
-    ndarray: chord length
+    float or ndarray:
+        chord length
     """
-    scalar = np.isscalar(phi)
-    phi = np.array(phi, ndmin=1, copy=False)
-
     chord = 1 - (rho ** 2 * np.sin(phi) ** 2)
     valid = chord >= 0
 
+    if not valid:
+        return 0
+
     if rho <= 1.0:
         # muon has hit the mirror
-        chord[valid] = radius * (np.sqrt(chord[valid]) + rho * np.cos(phi[valid]))
+        chord = radius * (np.sqrt(chord) + rho * np.cos(phi))
     else:
         # muon did not hit the mirror
-        chord[valid] = 2 * radius * np.sqrt(chord[valid])
+        chord = 2 * radius * np.sqrt(chord)
 
-    chord[~valid] = 0
-
-    if scalar:
-        return chord[0]
     return chord
 
 
@@ -195,6 +199,28 @@ def image_prediction(
     )
 
 
+@vectorize([double(double, double, double)])
+def gaussian_cdf(x, mu, sig):
+    """
+    Function to compute values of a given gaussians
+    cumulative distribution function (cdf)
+
+    Parameters
+    ----------
+    x: float or ndarray
+        point, at which the cdf should be evaluated
+    mu: float or ndarray
+        gaussian mean
+    sig: float or ndarray
+        gaussian standard deviation
+
+    Returns
+    -------
+    float or ndarray: cdf-value at x
+    """
+    return 0.5 * (1 + erf((x - mu) / (SQRT2 * sig)))
+
+
 def image_prediction_no_units(
     mirror_radius_m,
     hole_radius_m,
@@ -241,7 +267,7 @@ def image_prediction_no_units(
     # The weight is the integral of the ring's radial gaussian profile inside the
     # ring's width
     delta = pixel_diameter_rad / 2
-    cdfs = norm.cdf(
+    cdfs = gaussian_cdf(
         [radial_dist + delta, radial_dist - delta], radius_rad, ring_width_rad
     )
     gauss = cdfs[0] - cdfs[1]
@@ -272,42 +298,10 @@ def image_prediction_no_units(
     # circle's area and that of the square whose side is equal to the circle's
     # diameter. In any case, since in the end we do a data-MC comparison of the muon
     # ring analysis outputs, it is not critical that this value is exact.
+
     pred *= CIRCLE_SQUARE_AREA_RATIO
 
     return pred
-
-
-def calc_likelihood(image, pred, spe_width, ped):
-    """Calculate likelihood of prediction given the measured signal,
-    gaussian approx from [denaurois2009]_
-
-    Parameters
-    ----------
-    image: ndarray
-        Pixel amplitudes from image
-    pred: ndarray
-        Predicted pixel amplitudes from model
-    spe_width: ndarray
-        width of single p.e. distribution
-    ped: ndarray
-        width of pedestal
-
-    Returns
-    -------
-    ndarray: likelihood for each pixel
-
-    """
-
-    sq = 1 / np.sqrt(2 * np.pi * (ped ** 2 + pred * (1 + spe_width ** 2)))
-    diff = (image - pred) ** 2
-    denom = 2 * (ped ** 2 + pred * (1 + spe_width ** 2))
-    expo = np.exp(-diff / denom) + 1e-16  # add small epsilon to avoid nans
-
-    log_value = sq * expo
-
-    likelihood_value = -2 * np.log(log_value)
-
-    return likelihood_value
 
 
 def build_negative_log_likelihood(
@@ -323,7 +317,13 @@ def build_negative_log_likelihood(
 ):
     """Create an efficient negative log_likelihood function that does
     not rely on astropy units internally by defining needed values as closures
-    in this function
+    in this function.
+
+    The likelihood is the gaussian approximation,
+    i.e. the unnumbered equation on page 22 between (24) and (25), from [denaurois2009]_
+
+    The logarithm of the likelihood is calculated analytically as far as possible
+    and terms constant under differentation are discarded.
     """
 
     # get all the neeed values and transform them into appropriate units
@@ -388,12 +388,6 @@ def build_negative_log_likelihood(
         -------
         float: Likelihood that model matches data
         """
-        # center_x *= self.unit
-        # center_y *= self.unit
-        # radius *= self.unit
-        # ring_width *= self.unit
-        # impact_parameter *= u.m
-        # phi *= u.rad
 
         # Generate model prediction
         prediction = image_prediction_no_units(
@@ -413,18 +407,19 @@ def build_negative_log_likelihood(
             max_lambda_m=max_lambda,
         )
 
-        # scale prediction by optical efficiency of array
+        # scale prediction by optical efficiency of the telescope
         prediction *= optical_efficiency_muon
 
-        sq = 1 / np.sqrt(
-            2 * np.pi * (pedestal ** 2 + prediction * (1 + spe_width ** 2))
-        )
-        diff = (image - prediction) ** 2
-        denom = 2 * (pedestal ** 2 + prediction * (1 + spe_width ** 2))
-        expo = np.exp(-diff / denom) + 1e-16  # add small epsilon to avoid nans
-        value = sq * expo
+        # A gaussian approximation is used here, where the total
+        # standard deviation is the pedestal standard deviation (e.g. by NSB) and
+        # the single photon resolution times the image magnitude.
+        sigma2 = pedestal ** 2 + prediction * (1 + spe_width ** 2)
 
-        return -2 * np.log(value).sum()
+        # gaussian negative log-likelihood, analytically simplified and
+        # constant terms discarded
+        neg_log_l = np.log(sigma2) + (image - prediction) ** 2 / sigma2
+
+        return neg_log_l.sum()
 
     return negative_log_likelihood
 

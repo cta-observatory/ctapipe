@@ -1,29 +1,38 @@
 {
-    "Stage1ProcessorTool": {
+    "DL1Writer": {
         "overwrite": false,
         "write_images": true,
-        "image_extractor_type": "NeighborPeakWindowSum",
-        "image_cleaner_type": "TailcutsImageCleaner"
+        "write_parameters": true,
+        "transform_image": true,
+        "transform_peak_time": true
     },
-    "TailcutsImageCleaner": {
-        "picture_threshold_pe":  [
-              ["type", "*", 10.0],
-              ["type", "LST_LST_LSTCam", 6.0],
-              ["type", "MST_MST_NectarCam", 6.0]
-        ],
-        "boundary_threshold_pe": [
-            ["type", "*", 5.0],
-            ["type", "LST*", 3.0],
-            ["type", "MST*", 4.0]
-        ],
-        "min_picture_neighbors":[
-            ["type", "*", 2]
-        ]
+    "CameraCalibrator": {
+        "image_extractor_type": "NeighborPeakWindowSum"
     },
-    "ImageQualityQuery": {
-        "quality_criteria": [
-            ["enough_pixels", "lambda im: np.count_nonzero(im) > 2"],
-            ["enough_charge", "lambda im: im.sum() > 50"]
-        ]
+    "ImageProcessor": {
+        "image_cleaner_type": "TailcutsImageCleaner",
+        "TailcutsImageCleaner": {
+            "picture_threshold_pe":  [
+                ["type", "*", 10.0],
+                ["type", "LST_LST_LSTCam", 5.0],
+                ["type", "MST_MST_NectarCam", 5.0],
+                ["type", "SST_ASTRI_CHEC", 3.0]
+            ],
+            "boundary_threshold_pe": [
+                ["type", "*", 5.0],
+                ["type", "LST_LST_LSTCam", 2.5],
+                ["type", "MST_MST_NectarCam", 2.5],
+                ["type", "SST_ASTRI_CHEC", 1.5]
+            ],
+            "min_picture_neighbors":[
+                ["type", "*", 2]
+            ]
+        },
+        "ImageQualityQuery": {
+            "quality_criteria": [
+                ["enough_pixels", "lambda im: np.count_nonzero(im) > 2"],
+                ["enough_charge", "lambda im: im.sum() > 50"]
+            ]
+        }
     }
 }

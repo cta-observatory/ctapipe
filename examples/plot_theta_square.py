@@ -13,7 +13,7 @@ from astropy.coordinates import SkyCoord, AltAz
 from ctapipe.calib import CameraCalibrator
 from ctapipe.image import hillas_parameters
 from ctapipe.image import tailcuts_clean
-from ctapipe.io import event_source
+from ctapipe.io import EventSource
 from ctapipe.reco import HillasReconstructor
 from ctapipe.utils import datasets
 
@@ -26,7 +26,7 @@ else:
 
 
 # reading the Monte Carlo file for LST
-source = event_source(filename, allowed_tels={1, 2, 3, 4})
+source = EventSource(filename, allowed_tels={1, 2, 3, 4})
 
 reco = HillasReconstructor()
 calib = CameraCalibrator(subarray=source.subarray)
@@ -45,7 +45,7 @@ for event in source:
     # dictionary for the pointing directions of the telescopes
     telescope_pointings = {}
 
-    for tel_id in event.dl0.tels_with_data:
+    for tel_id in event.dl0.tel.keys():
 
         # telescope pointing direction as dictionary of SkyCoord
         telescope_pointings[tel_id] = SkyCoord(
@@ -78,8 +78,8 @@ for event in source:
             hillas_params[tel_id] = params
 
     array_pointing = SkyCoord(
-        az=event.mcheader.run_array_direction[0],
-        alt=event.mcheader.run_array_direction[1],
+        az=event.pointing.array_azimuth,
+        alt=event.pointing.array_altitude,
         frame=horizon_frame,
     )
 
@@ -93,7 +93,10 @@ for event in source:
     # get angular offset between reconstructed shower direction and MC
     # generated shower direction
     off_angle = angular_separation(
-        event.mc.az, event.mc.alt, reco_result.az, reco_result.alt
+        event.simulation.shower.az,
+        event.simulation.shower.alt,
+        reco_result.az,
+        reco_result.alt,
     )
 
     # Appending all estimated off angles

@@ -1,12 +1,14 @@
+import os
 import numpy as np
 from numpy.testing import assert_allclose
 from ctapipe.image import cleaning
 from ctapipe.instrument import CameraGeometry
+import astropy.units as u
 
 
 def test_tailcuts_clean_simple():
     geom = CameraGeometry.from_name("LSTCam")
-    image = np.zeros_like(geom.pix_id, dtype=np.float)
+    image = np.zeros_like(geom.pix_id, dtype=np.float64)
 
     num_pix = 40
     some_neighs = geom.neighbors[num_pix][0:3]  # pick 3 neighbors
@@ -67,6 +69,49 @@ def test_tailcuts_clean():
             keep_isolated_pixels=False,
         )
         assert (result == mask).all()
+
+
+def test_tailcuts_clean_threshold_array():
+    """Tests that tailcuts can also work with individual thresholds per pixel"""
+    rng = np.random.default_rng(1337)
+    geom = CameraGeometry.from_name("LSTCam")
+
+    # artifical event having a "shower" and a "star" at these locations
+    star_x = 0.5 * u.m
+    star_y = 0.5 * u.m
+    shower_x = -0.5 * u.m
+    shower_y = -0.5 * u.m
+
+    star_pixels = (
+        np.sqrt((geom.pix_x - star_x) ** 2 + (geom.pix_y - star_y) ** 2) < 0.1 * u.m
+    )
+    shower = (
+        np.sqrt((geom.pix_x - shower_x) ** 2 + (geom.pix_y - shower_y) ** 2) < 0.2 * u.m
+    )
+
+    # noise level at the star cluster is much higher than normal camera
+    noise = rng.normal(3, 0.2, len(geom))
+    noise[star_pixels] = rng.normal(10, 1, np.count_nonzero(star_pixels))
+
+    # large signal at the signal location
+    image = rng.poisson(noise).astype(float)
+    signal = rng.normal(20, 2, np.count_nonzero(shower))
+    image[shower] += signal
+
+    picture_threshold = 3 * noise
+    boundary_threshold = 1.5 * noise
+
+    # test that normal cleaning also contains star cluster
+    # and that cleaning with pixel wise values removes star cluster
+    normal_cleaning = cleaning.tailcuts_clean(
+        geom, image, picture_threshold.mean(), boundary_threshold.mean()
+    )
+    pixel_cleaning = cleaning.tailcuts_clean(
+        geom, image, picture_threshold, boundary_threshold
+    )
+
+    assert np.count_nonzero(normal_cleaning & star_pixels) > 0
+    assert np.count_nonzero(pixel_cleaning & star_pixels) == 0
 
 
 def test_mars_cleaning_1st_pass():
@@ -237,7 +282,7 @@ def test_fact_image_cleaning():
         time_limit=5,
     )
 
-    expected_pixels = np.array([0, 1, 2, 3, 4, 8, 9, 10, 11])
+    expected_pixels = np.array([0, 1, 2, 3, 4, 8, 9])
     expected_mask = np.zeros(len(geom)).astype(bool)
     expected_mask[expected_pixels] = 1
     assert_allclose(mask, expected_mask)
@@ -245,11 +290,11 @@ def test_fact_image_cleaning():
 
 def test_apply_time_delta_cleaning():
     geom = CameraGeometry.from_name("LSTCam")
-    peak_time = np.zeros(geom.n_pixels, dtype=np.float)
+    peak_time = np.zeros(geom.n_pixels, dtype=np.float64)
 
     pixel = 40
-    neighbours = geom.neighbors[pixel]
-    peak_time[neighbours] = 32.0
+    neighbors = geom.neighbors[pixel]
+    peak_time[neighbors] = 32.0
     peak_time[pixel] = 30.0
     mask = peak_time > 0
 
@@ -261,19 +306,29 @@ def test_apply_time_delta_cleaning():
     assert (test_mask == td_mask).all()
 
     # Test time_limit
-    noise_neighbour = neighbours[0]
-    peak_time[noise_neighbour] += 10
+    noise_neighbor = neighbors[0]
+    peak_time[noise_neighbor] += 10
     td_mask = cleaning.apply_time_delta_cleaning(
         geom, mask, peak_time, min_number_neighbors=1, time_limit=5
     )
     test_mask = mask.copy()
-    test_mask[noise_neighbour] = 0
+    test_mask[noise_neighbor] = 0
     assert (test_mask == td_mask).all()
 
-    # Test min_number_neighbours
+    # Test min_number_neighbors
     td_mask = cleaning.apply_time_delta_cleaning(
         geom, mask, peak_time, min_number_neighbors=4, time_limit=5
     )
     test_mask = mask.copy()
-    test_mask[neighbours] = 0
+    test_mask[neighbors] = 0
+    assert (test_mask == td_mask).all()
+
+    # Test unselected neighbors
+    mask[156] = 0
+    peak_time[noise_neighbor] -= 10
+    td_mask = cleaning.apply_time_delta_cleaning(
+        geom, mask, peak_time, min_number_neighbors=3, time_limit=5
+    )
+    test_mask = mask.copy()
+    test_mask[[41, 157]] = 0
     assert (test_mask == td_mask).all()

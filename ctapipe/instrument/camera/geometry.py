@@ -18,11 +18,43 @@ from scipy.spatial import cKDTree as KDTree
 from ctapipe.coordinates import CameraFrame
 from ctapipe.utils import get_table_dataset
 from ctapipe.utils.linalg import rotation_matrix_2d
+from enum import Enum, unique
 
 __all__ = ["CameraGeometry", "UnknownPixelShapeWarning"]
 
 logger = logging.getLogger(__name__)
 CG = TypeVar("CG", bound="CameraGeometry")  # for forward-referencing type hints
+
+
+@unique
+class PixelShape(Enum):
+    CIRCLE = "circle"
+    SQUARE = "square"
+    HEXAGON = "hexagon"
+
+    @classmethod
+    def from_string(cls, name):
+        name = name.lower()
+
+        if name.startswith("hex"):
+            return cls.HEXAGON
+
+        if name.startswith("rect") or name == "square":
+            return cls.SQUARE
+
+        if name.startswith("circ"):
+            return cls.CIRCLE
+
+        raise TypeError(f"Unknown pixel shape {name}")
+
+
+#: mapper from simtel pixel shape integerrs to our shape and rotation angle
+SIMTEL_PIXEL_SHAPES = {
+    0: (PixelShape.CIRCLE, Angle(0, u.deg)),
+    1: (PixelShape.HEXAGON, Angle(0, u.deg)),
+    2: (PixelShape.SQUARE, Angle(0, u.deg)),
+    3: (PixelShape.HEXAGON, Angle(30, u.deg)),
+}
 
 
 class CameraGeometry:
@@ -83,13 +115,20 @@ class CameraGeometry:
         apply_derotation=True,
         frame=None,
     ):
-
         if pix_x.ndim != 1 or pix_y.ndim != 1:
             raise ValueError(
                 f"Pixel coordinates must be 1 dimensional, got {pix_x.ndim}"
             )
 
         assert len(pix_x) == len(pix_y), "pix_x and pix_y must have same length"
+
+        if isinstance(pix_type, str):
+            pix_type = PixelShape.from_string(pix_type)
+        elif not isinstance(pix_type, PixelShape):
+            raise TypeError(
+                f"pix_type most be a PixelShape or the name of a PixelShape, got {pix_type}"
+            )
+
         self.n_pixels = len(pix_x)
         self.camera_name = camera_name
         self.pix_id = pix_id
@@ -97,8 +136,16 @@ class CameraGeometry:
         self.pix_y = pix_y
         self.pix_area = pix_area
         self.pix_type = pix_type
-        self.pix_rotation = Angle(pix_rotation)
-        self.cam_rotation = Angle(cam_rotation)
+
+        if not isinstance(pix_rotation, Angle):
+            pix_rotation = Angle(pix_rotation)
+
+        if not isinstance(cam_rotation, Angle):
+            cam_rotation = Angle(cam_rotation)
+
+        self.pix_rotation = pix_rotation
+        self.cam_rotation = cam_rotation
+
         self._neighbors = neighbors
         self.frame = frame
 
@@ -115,9 +162,7 @@ class CameraGeometry:
             self.pix_area = self.guess_pixel_area(pix_x, pix_y, pix_type)
 
         if apply_derotation:
-            # todo: this should probably not be done, but need to fix
-            # GeometryConverter and reco algorithms if we change it.
-            self.rotate(cam_rotation)
+            self.rotate(self.cam_rotation)
 
         # cache border pixel mask per instance
         self.border_cache = {}
@@ -132,11 +177,11 @@ class CameraGeometry:
         if self.pix_type != other.pix_type:
             return False
 
-        if self.pix_rotation != other.pix_rotation:
+        if not u.isclose(self.pix_rotation, other.pix_rotation):
             return False
 
         return all(
-            [(self.pix_x == other.pix_x).all(), (self.pix_y == other.pix_y).all()]
+            [u.allclose(self.pix_x, other.pix_x), u.allclose(self.pix_y, other.pix_y)]
         )
 
     def guess_radius(self):
@@ -184,13 +229,11 @@ class CameraGeometry:
         # use the same x/y attributes. Therefore we get the component names, and
         # access them by string:
         frame_attrs = list(uv_trans.frame.get_representation_component_names().keys())
-        uv_x = getattr(uv_trans, frame_attrs[0])
         uv_y = getattr(uv_trans, frame_attrs[1])
         trans_x = getattr(trans, frame_attrs[0])
         trans_y = getattr(trans, frame_attrs[1])
 
         rot = np.arctan2(uv_y[0], uv_y[1])
-        det = np.linalg.det([uv_x.value, uv_y.value])
 
         cam_rotation = rot - self.cam_rotation
         pix_rotation = rot - self.pix_rotation
@@ -249,9 +292,9 @@ class CameraGeometry:
 
         dist = cls.guess_pixel_width(pix_x, pix_y)
 
-        if pix_type.startswith("hex"):
+        if pix_type == PixelShape.HEXAGON:
             area = 2 * np.sqrt(3) * (dist / 2) ** 2
-        elif pix_type.startswith("rect"):
+        elif pix_type == PixelShape.SQUARE:
             area = dist ** 2
         else:
             raise KeyError("unsupported pixel type")
@@ -261,17 +304,22 @@ class CameraGeometry:
     @lazyproperty
     def pixel_width(self):
         """
-        in-circle diameter for hexagons, edge width for square pixels
+        in-circle diameter for hexagons, edge width for square pixels,
+        diameter for circles.
 
         This is calculated from the pixel area.
         """
 
-        if self.pix_type.startswith("hex"):
+        if self.pix_type == PixelShape.HEXAGON:
             width = 2 * np.sqrt(self.pix_area / (2 * np.sqrt(3)))
-        elif self.pix_type.startswith("rect"):
+        elif self.pix_type == PixelShape.SQUARE:
             width = np.sqrt(self.pix_area)
+        elif self.pix_type == PixelShape.CIRCLE:
+            width = 2 * np.sqrt(self.pix_area / np.pi)
         else:
-            raise KeyError("unsupported pixel type")
+            raise NotImplementedError(
+                f"Cannot calculate pixel width for type {self.pix_type!r}"
+            )
 
         return width
 
@@ -291,17 +339,20 @@ class CameraGeometry:
         )
 
     @lazyproperty
-    def _pixel_circumferences(self):
+    def _pixel_circumradius(self):
         """ pixel circumference radius/radii based on pixel area and layout
-
         """
 
-        if self.pix_type.startswith("hex"):
-            circum_rad = np.sqrt(2.0 * self.pix_area / 3.0 / np.sqrt(3))
-        elif self.pix_type.startswith("rect"):
+        if self.pix_type == PixelShape.HEXAGON:
+            circum_rad = self.pixel_width / np.sqrt(3)
+        elif self.pix_type == PixelShape.SQUARE:
             circum_rad = np.sqrt(self.pix_area / 2.0)
+        elif self.pix_type == PixelShape.CIRCLE:
+            circum_rad = self.pixel_width / 2
         else:
-            raise KeyError("unsupported pixel type")
+            raise NotImplementedError(
+                "Cannot calculate pixel circumradius for type {self.pix_type!r}"
+            )
 
         return circum_rad
 
@@ -367,11 +418,11 @@ class CameraGeometry:
         """ convert this to an `astropy.table.Table` """
         # currently the neighbor list is not supported, since
         # var-length arrays are not supported by astropy.table.Table
-        return Table(
+        t = Table(
             [self.pix_id, self.pix_x, self.pix_y, self.pix_area],
             names=["pix_id", "pix_x", "pix_y", "pix_area"],
             meta=dict(
-                PIX_TYPE=self.pix_type,
+                PIX_TYPE=self.pix_type.value,
                 TAB_TYPE="ctapipe.instrument.CameraGeometry",
                 TAB_VER="1.1",
                 CAM_ID=self.camera_name,
@@ -379,6 +430,16 @@ class CameraGeometry:
                 CAM_ROT=self.cam_rotation.deg,
             ),
         )
+
+        # clear `info` member from quantities set by table creation
+        # which impacts indexing performance because it is deepcopied
+        # in Quantity.__getitem__, see https://github.com/astropy/astropy/issues/11066
+        for q in (self.pix_id, self.pix_x, self.pix_y, self.pix_area):
+            if hasattr(q, "__dict__"):
+                if "info" in q.__dict__:
+                    del q.__dict__["info"]
+
+        return t
 
     @classmethod
     def from_table(cls, url_or_table, **kwargs):
@@ -414,7 +475,7 @@ class CameraGeometry:
 
     def __repr__(self):
         return (
-            "CameraGeometry(camera_name='{camera_name}', pix_type='{pix_type}', "
+            "CameraGeometry(camera_name='{camera_name}', pix_type={pix_type!r}, "
             "npix={npix}, cam_rot={camrot}, pix_rot={pixrot})"
         ).format(
             camera_name=self.camera_name,
@@ -455,7 +516,8 @@ class CameraGeometry:
         """
         neighbors = lil_matrix((self.n_pixels, self.n_pixels), dtype=bool)
 
-        if self.pix_type.startswith("hex"):
+        # assume circle pixels are also on a hex grid
+        if self.pix_type in (PixelShape.HEXAGON, PixelShape.CIRCLE):
             max_neighbors = 6
             # on a hexgrid, the closest pixel in the second circle is
             # the diameter of the hexagon plus the inradius away
@@ -574,12 +636,15 @@ class CameraGeometry:
             rotation angle with unit (e.g. 12 * u.deg), or "12d"
 
         """
+        angle = Angle(angle)
         rotmat = rotation_matrix_2d(angle)
         rotated = np.dot(rotmat.T, [self.pix_x.value, self.pix_y.value])
         self.pix_x = rotated[0] * self.pix_x.unit
         self.pix_y = rotated[1] * self.pix_x.unit
-        self.pix_rotation -= Angle(angle)
-        self.cam_rotation -= Angle(angle)
+
+        # do not use -=, copy is intentional here
+        self.pix_rotation = self.pix_rotation - angle
+        self.cam_rotation = Angle(0, unit=u.deg)
 
     def info(self, printer=print):
         """ print detailed info about this camera """
@@ -691,7 +756,7 @@ class CameraGeometry:
             )
         unit = x.unit
         points_searched = np.dstack([x.to_value(unit), y.to_value(unit)])
-        circum_rad = self._pixel_circumferences[0].to_value(unit)
+        circum_rad = self._pixel_circumradius[0].to_value(unit)
         kdtree = self._kdtree
         dist, pix_indices = kdtree.query(
             points_searched, distance_upper_bound=circum_rad
@@ -750,16 +815,12 @@ class CameraGeometry:
 
     @staticmethod
     def simtel_shape_to_type(pixel_shape):
-        if pixel_shape == 1:
-            return "hexagonal", Angle(0, u.deg)
-
-        if pixel_shape == 2:
-            return "rectangular", Angle(0, u.deg)
-
-        if pixel_shape == 3:
-            return "hexagonal", Angle(30, u.deg)
-
-        raise ValueError(f"Unknown pixel_shape {pixel_shape}")
+        try:
+            shape, rotation = SIMTEL_PIXEL_SHAPES[pixel_shape]
+            # make sure we don't introduce a mutable global state
+            return shape, rotation.copy()
+        except KeyError:
+            raise ValueError(f"Unknown pixel_shape {pixel_shape}") from None
 
 
 class UnknownPixelShapeWarning(UserWarning):

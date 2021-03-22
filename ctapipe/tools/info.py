@@ -7,7 +7,10 @@ import sys
 
 from .utils import get_parser
 from ..core import Provenance, get_module_version
+from ..core.plugins import detect_and_import_io_plugins
 from ..utils import datasets
+
+from pkg_resources import resource_filename
 
 __all__ = ["info"]
 
@@ -29,7 +32,7 @@ _dependencies = sorted(
 )
 
 _optional_dependencies = sorted(
-    ["ctapipe_resources", "pytest", "graphviz", "targetio", "matplotlib"]
+    ["ctapipe_resources", "pytest", "graphviz", "matplotlib"]
 )
 
 
@@ -53,6 +56,7 @@ def main(args=None):
     parser.add_argument(
         "--all", dest="show_all", action="store_true", help="show all info"
     )
+    parser.add_argument("--plugins", action="store_true", help="Print plugin info")
     args = parser.parse_args(args)
 
     if len(sys.argv) <= 1:
@@ -68,6 +72,7 @@ def info(
     dependencies=False,
     resources=False,
     system=False,
+    plugins=False,
     show_all=False,
 ):
     """Print various info to the console.
@@ -90,6 +95,9 @@ def info(
 
     if system or show_all:
         _info_system()
+
+    if plugins or show_all:
+        _info_plugins()
 
 
 def _info_version():
@@ -137,14 +145,7 @@ def _info_dependencies():
     print("\n*** ctapipe optional dependencies ***\n")
 
     for name in _optional_dependencies:
-        try:
-            module = importlib.import_module(name)
-            version = module.__version__
-        except ImportError:
-            version = "not installed"
-        except AttributeError:
-            version = "installed, but __version__ doesn't exist"
-
+        version = get_module_version(name)
         print(f"{name:>20s} -- {version}")
 
 
@@ -161,21 +162,23 @@ def _info_resources():
     print("")
 
     all_resources = sorted(datasets.find_all_matching_datasets(r"\w.*"))
-    locations = [
-        os.path.dirname(datasets.get_dataset_path(name)) for name in all_resources
-    ]
     home = os.path.expanduser("~")
-    resource_dir = os.path.dirname(datasets.get_dataset_path("HESS-I.camgeom.fits.gz"))
+    try:
+        resource_dir = resource_filename("ctapipe_resources", "")
+    except ImportError:
+        resource_dir = None
 
     fmt = "{name:<30.30s} : {loc:<30.30s}"
     print(fmt.format(name="RESOURCE NAME", loc="LOCATION"))
     print("-" * 70)
-    for name, loc in zip(all_resources, locations):
-        if name.endswith(".py") or name.startswith("_"):
+    for resource in all_resources:
+        if resource.suffix == ".py" or resource.name.startswith("_"):
             continue
-        loc = loc.replace(resource_dir, "[ctapipe_resources]")
+        loc = str(resource)
+        if resource_dir is not None:
+            loc = loc.replace(resource_dir, "[ctapipe_resources]")
         loc = loc.replace(home, "~")
-        print(fmt.format(name=name, loc=loc))
+        print(fmt.format(name=resource.name, loc=loc))
 
 
 def _info_system():
@@ -193,6 +196,19 @@ def _info_system():
 
         for name, val in sysinfo.items():
             print("{:>20.20s} -- {:<60.60s}".format(name, str(val)))
+
+
+def _info_plugins():
+    plugins = detect_and_import_io_plugins()
+    print("\n*** ctapipe io plugins ***\n")
+
+    if not plugins:
+        print("No io plugins installed")
+        return
+
+    for name in plugins:
+        version = get_module_version(name)
+        print(f"{name:>20s} -- {version}")
 
 
 if __name__ == "__main__":

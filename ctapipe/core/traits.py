@@ -1,3 +1,6 @@
+"""
+Traitlet implementations for ctapipe
+"""
 from collections import UserList
 from fnmatch import fnmatch
 from typing import Optional
@@ -23,6 +26,7 @@ from traitlets import (
     observe,
     Set,
     CRegExp,
+    Undefined,
 )
 from traitlets.config import boolean_flag as flag
 
@@ -93,9 +97,15 @@ class Path(TraitType):
         If False, path must not be a file
     """
 
-    def __init__(self, *args, exists=None, directory_ok=True, file_ok=True, **kwargs):
-        default_value = kwargs.pop("default_value", None)
-
+    def __init__(
+        self,
+        *args,
+        default_value=None,
+        exists=None,
+        directory_ok=True,
+        file_ok=True,
+        **kwargs,
+    ):
         super().__init__(*args, default_value=default_value, allow_none=True, **kwargs)
         self.exists = exists
         self.directory_ok = directory_ok
@@ -125,6 +135,12 @@ class Path(TraitType):
     def validate(self, obj, value):
         if isinstance(value, bytes):
             value = os.fsdecode(value)
+
+        if value is None:
+            if self.allow_none:
+                return None
+            else:
+                self.error(obj, value)
 
         if not isinstance(value, (str, pathlib.Path)):
             return self.error(obj, value)
@@ -179,7 +195,7 @@ def create_class_enum_trait(base_class, default_value, help=None):
         raise ValueError(f"{default_value} is not in choices: {choices}")
 
     return CaselessStrEnum(
-        choices, default_value=default_value, allow_none=False, help=help,
+        choices, default_value=default_value, allow_none=False, help=help
     ).tag(config=True)
 
 
@@ -187,7 +203,27 @@ def classes_with_traits(base_class):
     """ Returns a list of the base class plus its non-abstract children
     if they have traits """
     all_classes = [base_class] + non_abstract_children(base_class)
-    return [cls for cls in all_classes if has_traits(cls)]
+    with_traits = []
+
+    for cls in all_classes:
+        if has_traits(cls):
+            with_traits.append(cls)
+
+        # add subcomponents
+        if hasattr(cls, "classes"):
+            # we will ignore failing classes to not break anyone
+            if isinstance(cls.classes, List):
+                classes = cls.classes.default()
+            else:
+                classes = cls.classes
+
+            try:
+                for component in classes:
+                    with_traits.extend(classes_with_traits(component))
+            except Exception:
+                pass
+
+    return with_traits
 
 
 def has_traits(cls, ignore=("config", "parent")):
@@ -211,6 +247,9 @@ class TelescopePatternList(UserList):
         self._lookup = None
         self._subarray = None
 
+        for i in range(len(self)):
+            self[i] = self.single_to_pattern(self[i])
+
     @property
     def tel(self):
         """ access the value per telescope_id, e.g. `param.tel[2]`"""
@@ -222,7 +261,24 @@ class TelescopePatternList(UserList):
                 "call attach_subarray() first"
             )
 
-    def attach_subarray(self, subarray: "ctapipe.instrument.SubarrayDescription"):
+    @staticmethod
+    def single_to_pattern(value):
+        # make sure we only change things that are not already a
+        # pattern tuple
+        if (
+            not isinstance(value, tuple)
+            or len(value) != 3
+            or value[0] not in {"type", "id"}
+        ):
+            return ["type", "*", value]
+
+        return value
+
+    def append(self, value):
+        """Validate and then append a new value"""
+        super().append(self.single_to_pattern(value))
+
+    def attach_subarray(self, subarray):
         """
         Register a SubarrayDescription so that the user-specified values can be
         looked up by tel_id. This must be done before using the `.tel[x]` property
@@ -344,61 +400,67 @@ class TelescopeParameter(List):
     """
 
     klass = TelescopePatternList
+    _valid_defaults = (object,)  # allow everything, we validate the default ourselves
 
-    def __init__(self, dtype=float, default_value=None, **kwargs):
-        if not isinstance(dtype, type):
-            raise ValueError("dtype should be a type")
-        if isinstance(default_value, dtype):
-            default_value = [("type", "*", default_value)]
+    def __init__(self, trait, default_value=Undefined, **kwargs):
+
+        if not isinstance(trait, TraitType):
+            raise TypeError("trait must be a TraitType instance")
+
+        self._trait = trait
+        if default_value != Undefined:
+            default_value = self.validate(self, default_value)
+
         super().__init__(default_value=default_value, **kwargs)
-        self._dtype = dtype
+
+    def from_string(self, s):
+        val = super().from_string(s)
+        # for strings, parsing fails and traitlets returns None
+        if val == [("type", "*", None)] and s != "None":
+            val = [("type", "*", self._trait.from_string(s))]
+        return val
 
     def validate(self, obj, value):
-        # Support a single value for all (convert into a default value)
-        if isinstance(value, self._dtype):
-            value = [("type", "*", value)]
+        # Support a single value for all (check and convert into a default value)
+        if not isinstance(value, (list, List, UserList, TelescopePatternList)):
+            value = [("type", "*", self._trait.validate(obj, value))]
 
         # Check each value of list
-        normalized_value = TelescopePatternList(None)
-        if isinstance(value, self._dtype):
-            value = [("type", "*", value)]
-        if isinstance(value, (UserList, list)):
-            for pattern in value:
-                # now check for the standard 3-tuple of (command, argument, value)
-                if len(pattern) != 3:
-                    raise TraitError(
-                        "pattern should be a tuple of (command, argument, value)"
-                    )
-                command, arg, val = pattern
-                if not isinstance(val, self._dtype):
-                    raise TraitError(f"Value should be a {self._dtype}")
-                if not isinstance(command, str):
-                    raise TraitError("command must be a string")
-                if command not in ["type", "id"]:
-                    raise TraitError("command must be one of: '*', 'type', 'id'")
-                if command == "type":
-                    if not isinstance(arg, str):
-                        raise TraitError("'type' argument should be a string")
-                if command == "id":
-                    try:
-                        arg = int(arg)
-                    except ValueError:
-                        raise TraitError(
-                            f"Argument of 'id' should be an int (got '{arg}')"
-                        )
+        normalized_value = TelescopePatternList()
 
-                val = self._dtype(val)
-                normalized_value.append((command, arg, val))
-                normalized_value._lookup = TelescopeParameterLookup(normalized_value)
+        for pattern in value:
 
-                if (
-                    isinstance(value, TelescopePatternList)
-                    and value._subarray is not None
-                ):
-                    normalized_value.attach_subarray(value._subarray)
+            # now check for the standard 3-tuple of (command, argument, value)
+            if len(pattern) != 3:
+                raise TraitError(
+                    "pattern should be a tuple of (command, argument, value)"
+                )
 
-        else:
-            raise TraitError(f"Value should be a {self._dtype}")
+            command, arg, val = pattern
+            val = self._trait.validate(obj, val)
+
+            if not isinstance(command, str):
+                raise TraitError("command must be a string")
+
+            if command not in ["type", "id"]:
+                raise TraitError("command must be one of: 'type', 'id'")
+
+            if command == "type":
+                if not isinstance(arg, str):
+                    raise TraitError("'type' argument should be a string")
+
+            if command == "id":
+                try:
+                    arg = int(arg)
+                except ValueError:
+                    raise TraitError(f"Argument of 'id' should be an int (got '{arg}')")
+
+            val = self._trait.validate(obj, val)
+            normalized_value.append((command, arg, val))
+            normalized_value._lookup = TelescopeParameterLookup(normalized_value)
+
+            if isinstance(value, TelescopePatternList) and value._subarray is not None:
+                normalized_value.attach_subarray(value._subarray)
 
         return normalized_value
 
@@ -409,7 +471,9 @@ class TelescopeParameter(List):
             old_value = obj._trait_values[self.name]
         except KeyError:
             old_value = self.default_value
+
         super().set(obj, value)
+
         if getattr(old_value, "_subarray", None) is not None:
             obj._trait_values[self.name].attach_subarray(old_value._subarray)
 
@@ -418,18 +482,18 @@ class FloatTelescopeParameter(TelescopeParameter):
     """ a `TelescopeParameter` with float type (see docs for `TelescopeParameter`)"""
 
     def __init__(self, **kwargs):
-        super().__init__(dtype=float, **kwargs)
+        super().__init__(trait=Float(), **kwargs)
 
 
 class IntTelescopeParameter(TelescopeParameter):
     """ a `TelescopeParameter` with int type (see docs for `TelescopeParameter`)"""
 
     def __init__(self, **kwargs):
-        super().__init__(dtype=int, **kwargs)
+        super().__init__(trait=Int(), **kwargs)
 
 
 class BoolTelescopeParameter(TelescopeParameter):
     """ a `TelescopeParameter` with int type (see docs for `TelescopeParameter`)"""
 
     def __init__(self, **kwargs):
-        super().__init__(dtype=bool, **kwargs)
+        super().__init__(trait=Bool(), **kwargs)

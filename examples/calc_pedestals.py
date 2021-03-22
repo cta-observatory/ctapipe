@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from ctapipe.calib.camera import pedestals
-from ctapipe.io import event_source
+from ctapipe.io import EventSource
 from ctapipe.utils import get_dataset_path
 
 
@@ -40,8 +40,8 @@ if __name__ == "__main__":
 
     # loop over all events, all telescopes and all channels and call
     # the calc_peds function defined above to do some work:
-    for event in event_source(filename):
-        for telid in event.r0.tels_with_data:
+    for event in EventSource(filename):
+        for telid in event.r0.tel.keys():
             for chan in range(event.r0.tel[telid].waveform.shape[0]):
 
                 print(f"CT{telid} chan {chan}:")

@@ -5,7 +5,7 @@ with the integration window.
 """
 import numpy as np
 from matplotlib import pyplot as plt
-from traitlets import Dict, List, Int, Bool, Enum
+from traitlets import Dict, Int, Bool, Enum
 
 from ctapipe.core import traits
 from ctapipe.calib import CameraCalibrator
@@ -20,8 +20,10 @@ def plot(subarray, event, telid, chan, extractor_name):
     # Extract required images
     dl0 = event.dl0.tel[telid].waveform
 
-    t_pe = event.mc.tel[telid].true_image
     dl1 = event.dl1.tel[telid].image
+    t_pe = event.simulation.tel[telid].true_image
+    if t_pe is None:
+        t_pe = np.zeros_like(dl1)
     max_time = np.unravel_index(np.argmax(dl0), dl0.shape)[1]
     max_charges = np.max(dl0, axis=1)
     max_pix = int(np.argmax(max_charges))
@@ -99,7 +101,7 @@ def plot(subarray, event, telid, chan, extractor_name):
             ax.set_ylim(max_ylim)
 
     # Draw cameras
-    nei_camera = np.zeros_like(max_charges, dtype=np.int)
+    nei_camera = np.zeros_like(max_charges, dtype=np.int64)
     nei_camera[min_pixel_nei] = 2
     nei_camera[min_pix] = 1
     nei_camera[max_pixel_nei] = 3
@@ -214,7 +216,7 @@ class DisplayIntegrator(Tool):
 
     event_index = Int(0, help="Event index to view.").tag(config=True)
     use_event_id = Bool(
-        False, help="event_index will obtain an event using event_id instead of index.",
+        False, help="event_index will obtain an event using event_id instead of index."
     ).tag(config=True)
     telescope = Int(
         None,
@@ -224,15 +226,10 @@ class DisplayIntegrator(Tool):
     ).tag(config=True)
     channel = Enum([0, 1], 0, help="Channel to view").tag(config=True)
 
-    extractor_product = traits.create_class_enum_trait(
-        ImageExtractor, default_value="NeighborPeakWindowSum"
-    )
-
     aliases = Dict(
         dict(
             f="EventSource.input_url",
             max_events="EventSource.max_events",
-            extractor="DisplayIntegrator.extractor_product",
             E="DisplayIntegrator.event_index",
             T="DisplayIntegrator.telescope",
             C="DisplayIntegrator.channel",
@@ -246,32 +243,22 @@ class DisplayIntegrator(Tool):
             )
         )
     )
-    classes = List([EventSource] + traits.classes_with_traits(ImageExtractor))
+    classes = [EventSource] + traits.classes_with_traits(ImageExtractor)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # make sure gzip files are seekable
         self.config.SimTelEventSource.back_seekable = True
         self.eventseeker = None
-        self.extractor = None
         self.calibrator = None
 
     def setup(self):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
 
-        event_source = self.add_component(EventSource.from_config(parent=self))
+        event_source = EventSource(parent=self)
         self.subarray = event_source.subarray
-        self.eventseeker = self.add_component(EventSeeker(event_source, parent=self))
-        self.extractor = self.add_component(
-            ImageExtractor.from_name(
-                self.extractor_product, parent=self, subarray=self.subarray
-            )
-        )
-        self.calibrate = self.add_component(
-            CameraCalibrator(
-                parent=self, image_extractor=self.extractor, subarray=self.subarray
-            )
-        )
+        self.eventseeker = EventSeeker(event_source, parent=self)
+        self.calibrate = CameraCalibrator(parent=self, subarray=self.subarray)
 
     def start(self):
         if self.use_event_id:
@@ -283,7 +270,7 @@ class DisplayIntegrator(Tool):
         self.calibrate(event)
 
         # Select telescope
-        tels = list(event.r0.tels_with_data)
+        tels = list(event.r0.tel.keys())
         telid = self.telescope
         if telid is None:
             telid = tels[0]
@@ -294,7 +281,7 @@ class DisplayIntegrator(Tool):
             )
             exit()
 
-        extractor_name = self.extractor.__class__.__name__
+        extractor_name = self.calibrate.image_extractor.__class__.__name__
 
         plot(self.subarray, event, telid, self.channel, extractor_name)
 

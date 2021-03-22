@@ -62,8 +62,8 @@ class UnstructuredInterpolator:
         # OK this code is horrid and will need fixing
         self._numpy_input = (
             isinstance(self.values[0], np.ndarray)
-            or issubclass(type(self.values[0]), np.float)
-            or issubclass(type(self.values[0]), np.int)
+            or issubclass(type(self.values[0]), np.floating)
+            or issubclass(type(self.values[0]), np.integer)
         )
 
         if self._numpy_input is False and function_name is None:

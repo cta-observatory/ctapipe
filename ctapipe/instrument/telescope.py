@@ -16,6 +16,7 @@ Todo:
 from .camera import CameraDescription
 from .guess import UNKNOWN_TELESCOPE, guess_telescope
 from .optics import OpticsDescription
+from ..coordinates import CameraFrame
 
 
 class TelescopeDescription:
@@ -55,8 +56,7 @@ class TelescopeDescription:
         return hash((self.optics, self.camera))
 
     def __eq__(self, other):
-        """Make this hashable, so it can be used as dict keys or in sets"""
-        return hash(self) == hash(other)
+        return self.optics == other.optics and self.camera == other.camera
 
     @classmethod
     def from_name(cls, optics_name, camera_name):
@@ -80,6 +80,7 @@ class TelescopeDescription:
 
         camera = CameraDescription.from_name(camera_name)
         optics = OpticsDescription.from_name(optics_name)
+        camera.geometry.frame = CameraFrame(focal_length=optics.equivalent_focal_length)
 
         try:
             result = guess_telescope(

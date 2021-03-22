@@ -6,12 +6,13 @@ from astropy.coordinates import SkyCoord
 from ctapipe.coordinates import NominalFrame, AltAz, CameraFrame
 from ctapipe.containers import HillasParametersContainer
 
-from ctapipe.io import event_source
+from ctapipe.io import EventSource
 
 from ctapipe.utils import get_dataset_path
 
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
+from ctapipe.calib import CameraCalibrator
 
 
 def test_intersect():
@@ -241,19 +242,23 @@ def test_reconstruction():
 
     fit = HillasIntersection()
 
-    source = event_source(filename, max_events=10)
+    source = EventSource(filename, max_events=10)
+    calib = CameraCalibrator(source.subarray)
 
     horizon_frame = AltAz()
 
     reconstructed_events = 0
 
     for event in source:
-        array_pointing = SkyCoord(az=event.mc.az, alt=event.mc.alt, frame=horizon_frame)
+        calib(event)
+
+        mc = event.simulation.shower
+        array_pointing = SkyCoord(az=mc.az, alt=mc.alt, frame=horizon_frame)
 
         hillas_dict = {}
         telescope_pointings = {}
 
-        for tel_id in event.dl0.tels_with_data:
+        for tel_id, dl1 in event.dl1.tel.items():
 
             geom = source.subarray.tel[tel_id].camera.geometry
 
@@ -262,15 +267,13 @@ def test_reconstruction():
                 az=event.pointing.tel[tel_id].azimuth,
                 frame=horizon_frame,
             )
-            pmt_signal = event.r0.tel[tel_id].waveform[0].sum(axis=1)
 
             mask = tailcuts_clean(
-                geom, pmt_signal, picture_thresh=10.0, boundary_thresh=5.0
+                geom, dl1.image, picture_thresh=10.0, boundary_thresh=5.0
             )
-            pmt_signal[mask == 0] = 0
 
             try:
-                moments = hillas_parameters(geom, pmt_signal)
+                moments = hillas_parameters(geom[mask], dl1.image[mask])
                 hillas_dict[tel_id] = moments
             except HillasParameterizationError as e:
                 print(e)
@@ -287,10 +290,45 @@ def test_reconstruction():
         )
 
         print(fit_result)
-        print(event.mc.core_x, event.mc.core_y)
+        print(event.simulation.shower.core_x, event.simulation.shower.core_y)
         fit_result.alt.to(u.deg)
         fit_result.az.to(u.deg)
         fit_result.core_x.to(u.m)
         assert fit_result.is_valid
 
     assert reconstructed_events > 0
+
+
+def test_reconstruction_works(subarray_and_event_gamma_off_axis_500_gev):
+    subarray, event = subarray_and_event_gamma_off_axis_500_gev
+
+    reconstructor = HillasIntersection()
+
+    array_pointing = SkyCoord(
+        az=event.pointing.array_azimuth,
+        alt=event.pointing.array_altitude,
+        frame=AltAz(),
+    )
+
+    hillas_dict = {
+        tel_id: dl1.parameters.hillas
+        for tel_id, dl1 in event.dl1.tel.items()
+        if dl1.parameters.hillas.width.value > 0
+    }
+
+    telescope_pointings = {
+        tel_id: SkyCoord(alt=pointing.altitude, az=pointing.azimuth, frame=AltAz())
+        for tel_id, pointing in event.pointing.tel.items()
+        if tel_id in hillas_dict
+    }
+
+    result = reconstructor.predict(
+        hillas_dict, subarray, array_pointing, telescope_pointings
+    )
+
+    reco_coord = SkyCoord(alt=result.alt, az=result.az, frame=AltAz())
+    true_coord = SkyCoord(
+        alt=event.simulation.shower.alt, az=event.simulation.shower.az, frame=AltAz()
+    )
+
+    assert reco_coord.separation(true_coord) < 0.1 * u.deg

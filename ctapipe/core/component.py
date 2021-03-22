@@ -6,9 +6,41 @@ from logging import getLogger
 from traitlets import TraitError
 from traitlets.config import Configurable
 
-from ctapipe.core.plugins import detect_and_import_io_plugins
 
 __all__ = ["non_abstract_children", "Component", "TelescopeComponent"]
+
+
+def find_config_in_hierarchy(parent, class_name, trait_name):
+    """
+    Find the value of a config item in the hierarchy by going up the hierarchy
+    from the parent and then down again to the child.
+    This is needed as parent.config is the full config and not the
+    config starting at the level of the parent.
+    """
+
+    config = parent.config
+
+    # find the path from the config root to the desired object
+    hierarchy = [class_name]
+    while parent is not None:
+        hierarchy.append(parent.__class__.__name__)
+        parent = parent.parent
+
+    hierarchy = list(reversed(hierarchy))
+
+    # go down to the config value searched
+
+    # root key is optional
+    root = hierarchy.pop(0)
+    if root in config:
+        subconfig = config[root]
+    else:
+        subconfig = config
+
+    for name in hierarchy:
+        subconfig = subconfig[name]
+
+    return subconfig[trait_name]
 
 
 def non_abstract_children(base):
@@ -156,8 +188,6 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         get dict{name: cls} of non abstract subclasses,
         subclasses can possibly be definded in plugins
         """
-        detect_and_import_io_plugins()
-
         subclasses = {base.__name__: base for base in non_abstract_children(cls)}
         return subclasses
 
@@ -165,11 +195,14 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         """ return the current configuration as a dict (e.g. the values
         of all traits, even if they were not set during configuration)
         """
-        return {
-            self.__class__.__name__: {
-                k: v.get(self) for k, v in self.traits(config=True).items()
-            }
-        }
+        name = self.__class__.__name__
+        config = {name: {k: v.get(self) for k, v in self.traits(config=True).items()}}
+
+        for val in self.__dict__.values():
+            if isinstance(val, Component):
+                config[name].update(val.get_current_config())
+
+        return config
 
     def _repr_html_(self):
         """ nice HTML rep, with blue for non-default values"""
@@ -181,13 +214,15 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
             "<table>",
         ]
         for key, val in self.get_current_config()[name].items():
-            thehelp = f"{traits[key].help} (default: {traits[key].default_value})"
-            lines.append(f"<tr><th>{key}</th>")
-            if val != traits[key].default_value:
-                lines.append(f"<td><span style='color:blue'>{val}</span></td>")
-            else:
-                lines.append(f"<td>{val}</td>")
-            lines.append(f'<td style="text-align:left"><i>{thehelp}</i></td></tr>')
+            # traits of the current component
+            if key in traits:
+                thehelp = f"{traits[key].help} (default: {traits[key].default_value})"
+                lines.append(f"<tr><th>{key}</th>")
+                if val != traits[key].default_value:
+                    lines.append(f"<td><span style='color:blue'>{val}</span></td>")
+                else:
+                    lines.append(f"<td>{val}</td>")
+                lines.append(f'<td style="text-align:left"><i>{thehelp}</i></td></tr>')
         lines.append("</table>")
         return "\n".join(lines)
 

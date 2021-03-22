@@ -4,6 +4,10 @@
 Image Extraction (waveform cube to image)
 #########################################
 
+.. contents::
+   :depth: 1
+   :local:
+
 The main operation in the event processing from DL0 to Dl1 is the reducing of the
 waveforms into per-pixel signal-summarising parameters, from which image analysis
 can be performed to reconstruct the Cherenkov shower. This summary is
@@ -71,6 +75,16 @@ the result of the `ImageExtractor` will equal 1, no matter the window size.
 The extracted pulse time is corrected for the waveform sampling rate to be
 provided in units of nanoseconds.
 
+********
+Examples
+********
+
+TwoPassWindowSum
+----------------
+
+Example of 1st pass integration:
+
+.. image:: ./TwoPassWindowSum_1st_pass_example.png
+
 
 .. automodapi:: ctapipe.image.extractor
-

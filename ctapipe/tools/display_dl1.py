@@ -1,16 +1,17 @@
 """
 Calibrate dl0 data to dl1, and plot the photoelectron images.
 """
-from matplotlib import colors
+from copy import copy
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from traitlets import Bool, Dict, Int, List
+from traitlets import Bool, Dict, Int
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Component, Tool
 from ctapipe.core import traits
 from ctapipe.image.extractor import ImageExtractor
 from ctapipe.io import EventSource
+from ctapipe.io.datalevels import DataLevel
 from ctapipe.utils import get_dataset_path
 from ctapipe.visualization import CameraDisplay
 
@@ -67,7 +68,6 @@ class ImagePlotter(Component):
     def plot(self, event, telid):
         image = event.dl1.tel[telid].image
         peak_time = event.dl1.tel[telid].peak_time
-        print("plot", image.shape, peak_time.shape)
 
         if self._current_tel != telid:
             self._current_tel = telid
@@ -78,22 +78,11 @@ class ImagePlotter(Component):
             # Redraw camera
             geom = self.subarray.tel[telid].camera.geometry
             self.c_intensity = CameraDisplay(geom, ax=self.ax_intensity)
-            self.c_peak_time = CameraDisplay(geom, ax=self.ax_peak_time)
 
-            if (peak_time != 0.0).all():
-                tmaxmin = event.dl0.tel[telid].waveform.shape[1]
-                t_chargemax = peak_time[image.argmax()]
-                cmap_time = colors.LinearSegmentedColormap.from_list(
-                    "cmap_t",
-                    [
-                        (0 / tmaxmin, "darkgreen"),
-                        (0.6 * t_chargemax / tmaxmin, "green"),
-                        (t_chargemax / tmaxmin, "yellow"),
-                        (1.4 * t_chargemax / tmaxmin, "blue"),
-                        (1, "darkblue"),
-                    ],
-                )
-                self.c_peak_time.pixels.set_cmap(cmap_time)
+            time_cmap = copy(plt.get_cmap("RdBu_r"))
+            time_cmap.set_under("gray")
+            time_cmap.set_over("gray")
+            self.c_peak_time = CameraDisplay(geom, ax=self.ax_peak_time, cmap=time_cmap)
 
             if not self.cb_intensity:
                 self.c_intensity.add_colorbar(
@@ -113,8 +102,11 @@ class ImagePlotter(Component):
                 self.c_peak_time.update(True)
 
         self.c_intensity.image = image
-        if peak_time is not None:
-            self.c_peak_time.image = peak_time
+        self.c_peak_time.image = peak_time
+
+        # center around brightes pixel, show 10ns total
+        t_chargemax = peak_time[image.argmax()]
+        self.c_peak_time.set_limits_minmax(t_chargemax - 5, t_chargemax + 5)
 
         self.fig.suptitle(
             "Event_index={}  Event_id={}  Telescope={}".format(
@@ -124,6 +116,7 @@ class ImagePlotter(Component):
 
         if self.display:
             plt.pause(0.001)
+
         if self.pdf is not None:
             self.pdf.savefig(self.fig)
 
@@ -143,15 +136,10 @@ class DisplayDL1Calib(Tool):
         help="Telescope to view. Set to None to display all telescopes.",
     ).tag(config=True)
 
-    extractor_product = traits.create_class_enum_trait(
-        ImageExtractor, default_value="NeighborPeakWindowSum"
-    )
-
     aliases = Dict(
         dict(
             input="EventSource.input_url",
             max_events="EventSource.max_events",
-            extractor="DisplayDL1Calib.extractor_product",
             T="DisplayDL1Calib.telescope",
             O="ImagePlotter.output_path",
         )
@@ -164,9 +152,7 @@ class DisplayDL1Calib(Tool):
             )
         )
     )
-    classes = List(
-        [EventSource, ImagePlotter] + traits.classes_with_traits(ImageExtractor)
-    )
+    classes = [EventSource, ImagePlotter] + traits.classes_with_traits(ImageExtractor)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -178,25 +164,31 @@ class DisplayDL1Calib(Tool):
         self.plotter = None
 
     def setup(self):
-        self.eventsource = self.add_component(EventSource.from_config(parent=self))
+        self.eventsource = EventSource.from_config(parent=self)
+        compatible_datalevels = [DataLevel.R1, DataLevel.DL0, DataLevel.DL1_IMAGES]
 
-        self.calibrator = self.add_component(
-            CameraCalibrator(parent=self, subarray=self.eventsource.subarray)
-        )
-        self.plotter = self.add_component(
-            ImagePlotter(subarray=self.eventsource.subarray, parent=self)
-        )
+        if not self.eventsource.has_any_datalevel(compatible_datalevels):
+            raise Exception(
+                "The input file contains no pixelwise information. "
+                "Images can not be constructed."
+            )
+        subarray = self.eventsource.subarray
+
+        self.calibrator = CameraCalibrator(parent=self, subarray=subarray)
+        self.plotter = ImagePlotter(parent=self, subarray=subarray)
 
     def start(self):
         for event in self.eventsource:
             self.calibrator(event)
 
-            tel_list = event.r0.tels_with_data
+            tel_list = event.dl1.tel.keys()
 
+            tel_list = event.dl1.tel.keys()
             if self.telescope:
                 if self.telescope not in tel_list:
                     continue
                 tel_list = [self.telescope]
+
             for telid in tel_list:
                 self.plotter.plot(event, telid)
 

@@ -11,54 +11,55 @@ import numpy as np
 from .core import Container, Field, Map
 
 __all__ = [
-    "R0Container",
-    "R0CameraContainer",
-    "R1Container",
-    "R1CameraContainer",
-    "DL0Container",
-    "DL0CameraContainer",
-    "DL1Container",
-    "DL1CameraContainer",
-    "MCDL1CameraContainer",
-    "EventCameraCalibrationContainer",
-    "EventCalibrationContainer",
-    "MCEventContainer",
-    "MCHeaderContainer",
-    "MCCameraEventContainer",
-    "DL1CameraCalibrationContainer",
-    "TriggerContainer",
-    "ReconstructedContainer",
-    "ReconstructedShowerContainer",
-    "ReconstructedEnergyContainer",
-    "ParticleClassificationContainer",
-    "DataContainer",
-    "HillasParametersContainer",
-    "LeakageContainer",
+    "ArrayEventContainer",
     "ConcentrationContainer",
-    "MorphologyContainer",
-    "TimingParametersContainer",
+    "DL0CameraContainer",
+    "DL0Container",
+    "DL1CameraCalibrationContainer",
+    "DL1CameraContainer",
+    "DL1Container",
+    "EventCalibrationContainer",
+    "EventCameraCalibrationContainer",
+    "EventIndexContainer",
+    "EventType",
     "FlatFieldContainer",
-    "PedestalContainer",
-    "PixelStatusContainer",
-    "WaveformCalibrationContainer",
+    "HillasParametersContainer",
+    "ImageParametersContainer",
+    "LeakageContainer",
     "MonitoringCameraContainer",
     "MonitoringContainer",
-    "EventAndMonDataContainer",
-    "EventIndexContainer",
-    "TelEventIndexContainer",
-    "ImageParametersContainer",
+    "MorphologyContainer",
+    "ParticleClassificationContainer",
+    "PedestalContainer",
+    "PixelStatusContainer",
+    "R0CameraContainer",
+    "R0Container",
+    "R1CameraContainer",
+    "R1Container",
+    "ReconstructedContainer",
+    "ReconstructedEnergyContainer",
+    "ReconstructedShowerContainer",
+    "SimulatedCameraContainer",
+    "SimulatedShowerContainer",
     "SimulatedShowerDistribution",
-    "EventType",
+    "SimulationConfigContainer",
+    "TelEventIndexContainer",
+    "TimingParametersContainer",
+    "TriggerContainer",
+    "WaveformCalibrationContainer",
 ]
 
 
 # see https://github.com/astropy/astropy/issues/6509
-NAN_TIME = Time(np.ma.masked_array(nan, mask=True), format="mjd")
+NAN_TIME = Time(0, format="mjd", scale="tai")
 
 
 class EventType(enum.Enum):
-    """ These numbers come from  the document *CTA R1/Event Data Model Specification*
-    version 1 revision C.  They may be updated in future revisions """
+    """Enum of EventTypes as defined in the CTA Data Model
+
+    These numbers come from  the document *CTA R1/Event Data Model Specification*
+    version 1 revision C.  They may be updated in future revisions
+    """
 
     # calibrations are 0-15
     FLATFIELD = 0
@@ -112,7 +113,9 @@ class HillasParametersContainer(Container):
     phi = Field(nan * u.deg, "polar coordinate of centroid", unit=u.deg)
 
     length = Field(nan * u.m, "standard deviation along the major-axis", unit=u.m)
+    length_uncertainty = Field(nan * u.m, "uncertainty of length", unit=u.m)
     width = Field(nan * u.m, "standard spread along the minor-axis", unit=u.m)
+    width_uncertainty = Field(nan * u.m, "uncertainty of width", unit=u.m)
     psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
 
     skewness = Field(nan, "measure of the asymmetry")
@@ -134,12 +137,12 @@ class LeakageContainer(Container):
         nan, "fraction of pixels after cleaning that are in camera border of width=2"
     )
     intensity_width_1 = Field(
-        nan,
+        np.float32(nan),
         "Intensity in photo-electrons after cleaning"
         " that are in the camera border of width=1 pixel",
     )
     intensity_width_2 = Field(
-        nan,
+        np.float32(nan),
         "Intensity in photo-electrons after cleaning"
         " that are in the camera border of width=2 pixels",
     )
@@ -169,9 +172,7 @@ class TimingParametersContainer(Container):
     slope = Field(
         nan / u.m, "Slope of arrival times along main shower axis", unit=1 / u.m
     )
-    slope_err = Field(nan / u.m, "Uncertainty `slope`", unit=1 / u.m)
     intercept = Field(nan, "intercept of arrival times along main shower axis")
-    intercept_err = Field(nan, "Uncertainty `intercept`")
     deviation = Field(
         nan,
         "Root-mean-square deviation of the pulse times "
@@ -192,10 +193,10 @@ class MorphologyContainer(Container):
 class StatisticsContainer(Container):
     """Store descriptive statistics"""
 
-    max = Field(nan, "value of pixel with maximum intensity")
-    min = Field(nan, "value of pixel with minimum intensity")
-    mean = Field(nan, "mean intensity")
-    std = Field(nan, "standard deviation of intensity")
+    max = Field(np.float32(nan), "value of pixel with maximum intensity")
+    min = Field(np.float32(nan), "value of pixel with minimum intensity")
+    mean = Field(np.float32(nan), "mean intensity")
+    std = Field(np.float32(nan), "standard deviation of intensity")
     skewness = Field(nan, "skewness of intensity")
     kurtosis = Field(nan, "kurtosis of intensity")
 
@@ -240,37 +241,20 @@ class DL1CameraContainer(Container):
     peak_time = Field(
         None,
         "Numpy array containing position of the peak of the pulse as determined by "
-        "the extractor. Shape: (n_pixel)",
+        "the extractor. Shape: (n_pixel, )",
         dtype=np.float32,
         ndim=1,
     )
 
     image_mask = Field(
         None,
-        "Boolean numpy array where True means the pixel has passed cleaning. Shape: ("
-        "n_pixel)",
-        dtype=np.bool,
+        "Boolean numpy array where True means the pixel has passed cleaning."
+        " Shape: (n_pixel, )",
+        dtype=np.bool_,
         ndim=1,
     )
 
-    parameters = Field(ImageParametersContainer(), "Parameters derived from images")
-
-
-class MCDL1CameraContainer(Container):
-    """ Contains all fields of the DL1CameraContainer, but adds fields for simulated
-    DL1 image information."""
-
-    true_image = Field(
-        None,
-        "Numpy array of camera image in PE as simulated before noise has been added. "
-        "Shape: (n_pixel)",
-        dtype=np.float32,
-        ndim=1,
-    )
-
-    true_parameters = Field(
-        ImageParametersContainer(), "Parameters derived from the true_image"
-    )
+    parameters = Field(None, "Image parameters", type=ImageParametersContainer)
 
 
 class DL1Container(Container):
@@ -285,9 +269,10 @@ class DL1CameraCalibrationContainer(Container):
     """
 
     pedestal_offset = Field(
-        0,
-        "Additive coefficients for the pedestal calibration of extracted charge "
-        "for each pixel",
+        None,
+        "Residual mean pedestal of the waveforms for each pixel."
+        " This value is subtracted from the waveforms of each pixel before"
+        " the pulse extraction.",
     )
     absolute_factor = Field(
         1,
@@ -301,7 +286,7 @@ class DL1CameraCalibrationContainer(Container):
         "uniform illumination.",
     )
     time_shift = Field(
-        0,
+        None,
         "Additive coefficients for the timing correction before charge extraction "
         "for each pixel",
     )
@@ -312,12 +297,6 @@ class R0CameraContainer(Container):
     Storage of raw data from a single telescope
     """
 
-    trigger_time = Field(
-        None, "Telescope trigger time, start of waveform " "readout, None for MCs"
-    )
-    trigger_type = Field(0o0, "camera's event trigger type if applicable")
-    num_trig_pix = Field(0, "Number of trigger groups (sectors) listed")
-    trig_pix_id = Field(None, "pixels involved in the camera trigger")
     waveform = Field(
         None, ("numpy array containing ADC samples" "(n_channels, n_pixels, n_samples)")
     )
@@ -328,7 +307,6 @@ class R0Container(Container):
     Storage of a Merged Raw Data Event
     """
 
-    tels_with_data = Field([], "set of tel_ids for telescopes with data")
     tel = Field(Map(R0CameraContainer), "map of tel_id to R0CameraContainer")
 
 
@@ -336,9 +314,6 @@ class R1CameraContainer(Container):
     """
     Storage of r1 calibrated data from a single telescope
     """
-
-    trigger_time = Field(None, "Telescope trigger time, start of waveform " "readout")
-    trigger_type = Field(0o0, "camera trigger type")
 
     waveform = Field(
         None,
@@ -361,7 +336,6 @@ class R1Container(Container):
     Storage of a r1 calibrated Data Event
     """
 
-    tels_with_data = Field([], "set of tel_ids for telescopes with data")
     tel = Field(Map(R1CameraContainer), "map of tel_id to R1CameraContainer")
 
 
@@ -369,9 +343,6 @@ class DL0CameraContainer(Container):
     """
     Storage of data volume reduced dl0 data from a single telescope
     """
-
-    trigger_time = Field(None, "Telescope trigger time, start of waveform " "readout")
-    trigger_type = Field(0o0, "camera trigger type")
 
     waveform = Field(
         None,
@@ -397,81 +368,66 @@ class DL0Container(Container):
     Storage of a data volume reduced Event
     """
 
-    tels_with_data = Field([], "set of tel_ids for telescopes with data")
     tel = Field(Map(DL0CameraContainer), "map of tel_id to DL0CameraContainer")
 
 
-class MCCameraEventContainer(Container):
+class SimulatedShowerContainer(Container):
+    container_prefix = "true"
+    energy = Field(nan * u.TeV, "Simulated Energy", unit=u.TeV)
+    alt = Field(nan * u.deg, "Simulated altitude", unit=u.deg)
+    az = Field(nan * u.deg, "Simulated azimuth", unit=u.deg)
+    core_x = Field(nan * u.m, "Simulated core position (x)", unit=u.m)
+    core_y = Field(nan * u.m, "Simulated core position (y)", unit=u.m)
+    h_first_int = Field(nan * u.m, "Height of first interaction", unit=u.m)
+    x_max = Field(
+        nan * u.g / (u.cm ** 2), "Simulated Xmax value", unit=u.g / (u.cm ** 2)
+    )
+    shower_primary_id = Field(
+        -1,
+        "Simulated shower primary ID 0 (gamma), 1(e-),"
+        "2(mu-), 100*A+Z for nucleons and nuclei,"
+        "negative for antimatter.",
+    )
+
+
+class SimulatedCameraContainer(Container):
     """
-    Storage of mc data for a single telescope that change per event
+    True images and parameters derived from them, analgous to the `DL1CameraContainer`
+    but for simulated data.
     """
+
+    container_prefix = ""
 
     true_image = Field(
         None,
         "Numpy array of camera image in PE as simulated before noise has been added. "
         "Shape: (n_pixel)",
+        dtype=np.int32,
+        ndim=1,
     )
 
-    # TODO: should move dc_to_pe and pedestal to a MC Monitoring Container,
-    # so they are not written for each event.
-    dc_to_pe = Field(None, "DC/PE calibration arrays from MC file")
-    pedestal = Field(None, "pedestal calibration arrays from MC file")
-    azimuth_raw = Field(0, "Raw azimuth angle [radians from N->E] for the telescope")
-    altitude_raw = Field(0, "Raw altitude angle [radians] for the telescope")
-    azimuth_cor = Field(
-        0, "the tracking Azimuth corrected for pointing errors for the telescope"
-    )
-    altitude_cor = Field(
-        0, "the tracking Altitude corrected for pointing errors for the telescope"
+    true_parameters = Field(
+        None, "Parameters derived from the true_image", type=ImageParametersContainer
     )
 
 
-class MCEventContainer(Container):
+class SimulatedEventContainer(Container):
+    shower = Field(SimulatedShowerContainer(), "True event information")
+    tel = Field(Map(SimulatedCameraContainer))
+
+
+class SimulationConfigContainer(Container):
     """
-    Monte-Carlo
+    Configuration parameters of the simulation
     """
 
-    container_prefix = "true"
-
-    energy = Field(nan * u.TeV, "Monte-Carlo Energy", unit=u.TeV)
-    alt = Field(nan * u.deg, "Monte-carlo altitude", unit=u.deg)
-    az = Field(nan * u.deg, "Monte-Carlo azimuth", unit=u.deg)
-    core_x = Field(nan * u.m, "MC core position", unit=u.m)
-    core_y = Field(nan * u.m, "MC core position", unit=u.m)
-    h_first_int = Field(nan * u.m, "Height of first interaction", unit=u.m)
-    x_max = Field(nan * u.g / (u.cm ** 2), "MC Xmax value", unit=u.g / (u.cm ** 2))
-    shower_primary_id = Field(
-        -1,
-        "MC shower primary ID 0 (gamma), 1(e-),"
-        "2(mu-), 100*A+Z for nucleons and nuclei,"
-        "negative for antimatter.",
-    )
-    tel = Field(Map(MCCameraEventContainer), "map of tel_id to MCCameraEventContainer")
-
-
-class MCHeaderContainer(Container):
-    """
-    Monte-Carlo information that doesn't change per event
-    """
-
-    run_array_direction = Field(
-        [],
-        (
-            "the tracking/pointing direction in "
-            "[radians]. Depending on 'tracking_mode' "
-            "this either contains: "
-            "[0]=Azimuth, [1]=Altitude in mode 0, "
-            "OR "
-            "[0]=R.A., [1]=Declination in mode 1."
-        ),
-    )
     corsika_version = Field(nan, "CORSIKA version * 1000")
     simtel_version = Field(nan, "sim_telarray version * 1000")
     energy_range_min = Field(
-        nan * u.TeV, "Lower limit of energy range " "of primary particle", unit=u.TeV
+        nan * u.TeV, "Lower limit of energy range of primary particle", unit=u.TeV
     )
     energy_range_max = Field(
-        nan * u.TeV, "Upper limit of energy range " "of primary particle", unit=u.TeV
+        nan * u.TeV, "Upper limit of energy range of primary particle", unit=u.TeV
     )
     prod_site_B_total = Field(nan * u.uT, "total geomagnetic field", unit=u.uT)
     prod_site_B_declination = Field(nan * u.rad, "magnetic declination", unit=u.rad)
@@ -479,9 +435,7 @@ class MCHeaderContainer(Container):
     prod_site_alt = Field(nan * u.m, "height of observation level", unit=u.m)
     spectral_index = Field(nan, "Power-law spectral index of spectrum")
     shower_prog_start = Field(
-        nan,
-        """Time when shower simulation started,
-                              CORSIKA: only date""",
+        nan, "Time when shower simulation started, CORSIKA: only date"
     )
     shower_prog_id = Field(nan, "CORSIKA=1, ALTAI=2, KASCADE=3, MOCCA=4")
     detector_prog_start = Field(nan, "Time when detector simulation started")
@@ -497,30 +451,44 @@ class MCHeaderContainer(Container):
     min_viewcone_radius = Field(nan * u.deg, "Minimum viewcone radius", unit=u.deg)
     max_scatter_range = Field(nan * u.m, "Maximum scatter range", unit=u.m)
     min_scatter_range = Field(nan * u.m, "Minimum scatter range", unit=u.m)
-    core_pos_mode = Field(nan, "Core Position Mode (fixed/circular/...)")
+    core_pos_mode = Field(nan, "Core Position Mode (0=Circular, 1=Rectangular)")
     injection_height = Field(nan * u.m, "Height of particle injection", unit=u.m)
     atmosphere = Field(nan * u.m, "Atmospheric model number")
-    corsika_iact_options = Field(nan, "Detector MC information")
-    corsika_low_E_model = Field(nan, "Detector MC information")
-    corsika_high_E_model = Field(nan, "Detector MC information")
-    corsika_bunchsize = Field(nan, "Number of photons per bunch")
+    corsika_iact_options = Field(nan, "CORSIKA simulation options for IACTs")
+    corsika_low_E_model = Field(nan, "CORSIKA low-energy simulation physics model")
+    corsika_high_E_model = Field(
+        nan,
+        "CORSIKA physics model ID for high energies "
+        "(1=VENUS, 2=SIBYLL, 3=QGSJET, 4=DPMJET, 5=NeXus, 6=EPOS) ",
+    )
+    corsika_bunchsize = Field(nan, "Number of Cherenkov photons per bunch")
     corsika_wlen_min = Field(
         nan * u.m, "Minimum wavelength of cherenkov light", unit=u.nm
     )
     corsika_wlen_max = Field(
         nan * u.m, "Maximum wavelength of cherenkov light", unit=u.nm
     )
-    corsika_low_E_detail = Field(nan, "Detector MC information")
-    corsika_high_E_detail = Field(nan, "Detector MC information")
+    corsika_low_E_detail = Field(
+        nan, "More details on low E interaction model (version etc.)"
+    )
+    corsika_high_E_detail = Field(
+        nan, "More details on high E interaction model (version etc.)"
+    )
 
 
 class TelescopeTriggerContainer(Container):
+    container_prefix = ""
     time = Field(NAN_TIME, "Telescope trigger time")
+    n_trigger_pixels = Field(-1, "Number of trigger groups (sectors) listed")
+    trigger_pixels = Field(None, "pixels involved in the camera trigger")
 
 
 class TriggerContainer(Container):
+    container_prefix = ""
     time = Field(NAN_TIME, "central average time stamp")
-    tels_with_trigger = Field([], "list of telescope ids with data")
+    tels_with_trigger = Field(
+        [], "List of telescope ids that triggered the array event"
+    )
     event_type = Field(EventType.SUBARRAY, "Event type")
     tel = Field(Map(TelescopeTriggerContainer), "telescope-wise trigger information")
 
@@ -674,32 +642,10 @@ class EventCalibrationContainer(Container):
     Container for calibration coefficients for the current event
     """
 
-    tels_with_data = Field([], "set of tel_ids for telescopes with data")
-
     # create the camera container
     tel = Field(
         Map(EventCameraCalibrationContainer),
         "map of tel_id to EventCameraCalibrationContainer",
-    )
-
-
-class DataContainer(Container):
-    """ Top-level container for all event information """
-
-    index = Field(EventIndexContainer(), "event indexing information")
-    r0 = Field(R0Container(), "Raw Data")
-    r1 = Field(R1Container(), "R1 Calibrated Data")
-    dl0 = Field(DL0Container(), "DL0 Data Volume Reduced Data")
-    dl1 = Field(DL1Container(), "DL1 Calibrated image")
-    dl2 = Field(ReconstructedContainer(), "Reconstructed Shower Information")
-    mc = Field(MCEventContainer(), "Monte-Carlo data")
-    mcheader = Field(MCHeaderContainer(), "Monte-Carlo run header data")
-    trigger = Field(TriggerContainer(), "central trigger information")
-    count = Field(0, "number of events processed")
-    pointing = Field(PointingContainer(), "Array and telescope pointing positions")
-    calibration = Field(
-        EventCalibrationContainer(),
-        "Container for calibration coefficients for the current event",
     )
 
 
@@ -902,20 +848,10 @@ class MonitoringContainer(Container):
     Root container for monitoring data (MON)
     """
 
-    tels_with_data = Field([], "list of telescopes with data")
-
     # create the camera container
     tel = Field(
         Map(MonitoringCameraContainer), "map of tel_id to MonitoringCameraContainer"
     )
-
-
-class EventAndMonDataContainer(DataContainer):
-    """
-    Data container including monitoring information
-    """
-
-    mon = Field(MonitoringContainer(), "container for monitoring data (MON)")
 
 
 class SimulatedShowerDistribution(Container):
@@ -936,3 +872,25 @@ class SimulatedShowerDistribution(Container):
         None, "array of core-distance bin lower edges, as in np.histogram", unit=u.m
     )
     histogram = Field(None, "array of histogram entries, size (n_bins_x, n_bins_y)")
+
+
+class ArrayEventContainer(Container):
+    """ Top-level container for all event information """
+
+    index = Field(EventIndexContainer(), "event indexing information")
+    r0 = Field(R0Container(), "Raw Data")
+    r1 = Field(R1Container(), "R1 Calibrated Data")
+    dl0 = Field(DL0Container(), "DL0 Data Volume Reduced Data")
+    dl1 = Field(DL1Container(), "DL1 Calibrated image")
+    dl2 = Field(ReconstructedContainer(), "Reconstructed Shower Information")
+    simulation = Field(
+        None, "Simulated Event Information", type=SimulatedEventContainer
+    )
+    trigger = Field(TriggerContainer(), "central trigger information")
+    count = Field(0, "number of events processed")
+    pointing = Field(PointingContainer(), "Array and telescope pointing positions")
+    calibration = Field(
+        EventCalibrationContainer(),
+        "Container for calibration coefficients for the current event",
+    )
+    mon = Field(MonitoringContainer(), "container for event-wise monitoring data (MON)")

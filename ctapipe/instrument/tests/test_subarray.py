@@ -3,6 +3,7 @@ import tempfile
 import numpy as np
 from astropy import units as u
 from astropy.coordinates import SkyCoord
+from ctapipe.coordinates import TelescopeFrame
 
 from ctapipe.instrument import (
     CameraDescription,
@@ -108,12 +109,33 @@ def test_get_tel_ids_for_type(example_subarray):
 
 
 def test_hdf(example_subarray):
+    import tables
+
     with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
 
         example_subarray.to_hdf(f.name)
         read = SubarrayDescription.from_hdf(f.name)
 
         assert example_subarray == read
+
+        # test we can write the read subarray
+        read.to_hdf(f.name, overwrite=True)
+
+        for tel_id, tel in read.tel.items():
+            assert (
+                tel.camera.geometry.frame.focal_length
+                == tel.optics.equivalent_focal_length
+            )
+
+            # test if transforming works
+            tel.camera.geometry.transform_to(TelescopeFrame())
+
+        # test that subarrays without name (v0.8.0) work:
+        with tables.open_file(f.name, "r+") as hdf:
+            del hdf.root.configuration.instrument.subarray._v_attrs.name
+
+        no_name = SubarrayDescription.from_hdf(f.name)
+        assert no_name.name == "Unknown"
 
     # test with a subarray that has two different telescopes with the same
     # camera

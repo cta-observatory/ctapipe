@@ -7,7 +7,7 @@ import numpy as np
 from astropy import units as u
 from astropy.table import Table
 
-from ctapipe.io import event_source
+from ctapipe.io import EventSource
 from ctapipe.core import Provenance, ToolConfigurationError
 from ctapipe.core.traits import Unicode, Dict, Bool, Path
 from ..core import Tool
@@ -82,7 +82,7 @@ class DumpTriggersTool(Tool):
         # build the trigger pattern as a fixed-length array
         # (better for storage in FITS format)
         # trigtels = event.get_telescope_with_data_list()
-        trigtels = event.dl0.tels_with_data
+        trigtels = event.dl0.tel.keys()
         self._current_trigpattern[:] = 0  # zero the trigger pattern
         self._current_trigpattern[list(trigtels)] = 1  # set the triggered tels
         # to 1
@@ -113,7 +113,7 @@ class DumpTriggersTool(Tool):
         self.events["T_REL"].unit = u.s
         self.events["T_REL"].description = "Time relative to first event"
         self.events["DELTA_T"].unit = u.s
-        self.events.meta["INPUT"] = self.infile
+        self.events.meta["INPUT"] = str(self.infile)
 
         self._current_trigpattern = np.zeros(MAX_TELS)
         self._current_starttime = None
@@ -121,7 +121,7 @@ class DumpTriggersTool(Tool):
 
     def start(self):
         """ main event loop """
-        with event_source(self.infile) as source:
+        with EventSource(self.infile) as source:
             for event in source:
                 self.add_event_to_table(event)
 

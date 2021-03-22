@@ -29,7 +29,7 @@ def test_construct_and_write_metadata(tmp_path):
             data_model_url="http://google.com",
             format="hdf5",
         ),
-        process=meta.Process(_type="Simulation", subtype="Prod3b", _id=423442,),
+        process=meta.Process(type_="Simulation", subtype="Prod3b", id_=423442),
         activity=meta.Activity.from_provenance(prov_activity.provenance),
         instrument=meta.Instrument(
             site="CTA-North",
@@ -52,9 +52,16 @@ def test_construct_and_write_metadata(tmp_path):
     from astropy.table import Table  # pylint: disable=import-outside-toplevel
 
     table = Table(dict(x=[1, 2, 3], y=[15.2, 15.2, 14.5]))
-    table.meta = ref_dict
-    for file_name in [tmp_path / "test.fits", tmp_path / "test.ecsv"]:
-        table.write(file_name)
+    for path in [tmp_path / "test.fits", tmp_path / "test.ecsv"]:
+        if ".fits" in path.suffixes:
+            reference.format = "fits"
+            ref_dict = reference.to_dict(fits=True)
+        else:
+            reference.format = "ecsv"
+            ref_dict = reference.to_dict()
+
+        table.meta = ref_dict
+        table.write(path)
 
     # write to pytables file
 
