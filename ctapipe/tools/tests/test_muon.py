@@ -42,7 +42,7 @@ def test_muon_reconstruction(tmpdir, dl1_muon_file):
                 f"--input={LST_MUONS}",
                 f"--output={muon_simtel_output_file}",
                 "--overwrite",
-                "--analyse-muons",
+                "--write-muons",
             ],
             cwd=tmpdir,
         )
@@ -62,7 +62,7 @@ def test_muon_reconstruction(tmpdir, dl1_muon_file):
                 f"--input={dl1_muon_file}",
                 f"--output={muon_dl1_output_file}",
                 "--overwrite",
-                "--analyse-muons",
+                "--write-muons",
             ],
             cwd=tmpdir,
         )
