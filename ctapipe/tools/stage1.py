@@ -36,7 +36,7 @@ class Stage1Tool(Tool):
     """
 
     progress_bar = Bool(help="show progress bar during processing").tag(config=True)
-    analyse_muons = Bool(
+    write_muons = Bool(
         help="Analyse muon events and write muon parameters"
         "to /dl1/event/telescope/muon_parameters/tel_id"
     ).tag(config=True)
@@ -70,8 +70,8 @@ class Stage1Tool(Tool):
             {"Stage1Tool": {"progress_bar": True}},
             "show a progress bar during event processing",
         ),
-        "analyse-muons": (
-            {"Stage1Tool": {"analyse_muons": True}},
+        "write-muons": (
+            {"Stage1Tool": {"write_muons": True}},
             "Analyse muon events and write muon parameters"
             "to /dl1/event/telescope/muon_parameters/tel_id",
         ),
@@ -151,7 +151,7 @@ class Stage1Tool(Tool):
                 self.process_images(event)
             self.write_dl1(event)
 
-            if self.analyse_muons:
+            if self.write_muons:
                 self.process_muon(event)
                 self.write_dl1.write_muon_events(event)
 

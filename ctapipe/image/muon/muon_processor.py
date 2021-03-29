@@ -3,6 +3,7 @@ High level muon processing  (MuonProcessor Component)
 """
 import numpy as np
 from astropy.coordinates import SkyCoord
+from copy import deepcopy
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import TelescopeComponent
@@ -89,9 +90,16 @@ class MuonProcessor(TelescopeComponent):
             getattr(self, p).attach_subarray(self.subarray)
 
     def __call__(self, event: ArrayEventContainer):
-        self.calib(event)
-        for tel_id, dl1 in event.dl1.tel.items():
-            self.process_telescope_event(event.index, tel_id, dl1)
+        # Deep copy event since parts of it are otherwise overwritten by the
+        # muon-specific calibration below
+        event_copy = deepcopy(event)
+
+        self.calib(event_copy)
+        for tel_id, dl1_camera in event_copy.dl1.tel.items():
+            muon_parameters = self.process_telescope_event(
+                event_copy.index, tel_id, dl1_camera
+            )
+            event.dl1.tel[tel_id].muon_parameters = muon_parameters
 
     def process_telescope_event(self, event_index, tel_id, dl1):
         event_id = event_index.event_id
@@ -153,7 +161,7 @@ class MuonProcessor(TelescopeComponent):
             mask=mask,
         )
 
-        dl1.muon_parameters = MuonCollectionContainer(
+        muon_parameters = MuonCollectionContainer(
             ring=ring, parameters=parameters, efficiency=result
         )
 
@@ -162,6 +170,8 @@ class MuonProcessor(TelescopeComponent):
             f", width={result.width:.4f}"
             f", efficiency={result.optical_efficiency:.2%}"
         )
+
+        return muon_parameters
 
     def calculate_muon_parameters(self, tel_id, image, clean_mask, ring):
         fov_radius = self.get_fov(tel_id)
