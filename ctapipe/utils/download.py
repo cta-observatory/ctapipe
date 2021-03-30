@@ -72,7 +72,6 @@ def get_cache_path(url, cache_name="ctapipe", env_override="CTAPIPE_CACHE"):
 
     path = os.path.join(url.netloc.rstrip("/"), url.path.lstrip("/"))
     path = base / path
-    path.parent.mkdir(parents=True, exist_ok=True)
     return path
 
 
@@ -117,6 +116,7 @@ def download_file_cached(
     url = base_url + "/" + str(name).lstrip("/")
 
     path = get_cache_path(url, cache_name=cache_name)
+    path.parent.mkdir(parents=True, exist_ok=True)
     part_file = path.with_suffix(path.suffix + ".part")
 
     if part_file.is_file():
