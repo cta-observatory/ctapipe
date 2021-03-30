@@ -178,6 +178,7 @@ class DL1Writer(Component):
         # setup(), which is called when the first event is read.
 
         self.event_source = event_source
+        self._at_least_one_event = False
         self._is_simulation = event_source.is_simulation
         self._subarray: SubarrayDescription = event_source.subarray
 
@@ -204,11 +205,11 @@ class DL1Writer(Component):
 
     def __call__(self, event: ArrayEventContainer):
         """
-        Write a single event to the output file. On the first event, the output
-        file is set up
+        Write a single event to the output file.
         """
+        self._at_least_one_event = True
 
-        # Write subarray evvent data
+        # Write subarray event data
         self._write_subarray_pointing(event, writer=self._writer)
 
         self.log.debug(f"WRITING EVENT {event.index}")
@@ -228,6 +229,8 @@ class DL1Writer(Component):
     def finish(self):
         """ called after all events are done """
         self.log.info("Finishing DL1 output")
+        if not self._at_least_one_event:
+            self.log.warning("No events have been written to the output file")
         if self._writer:
             if self.write_index_tables:
                 self._generate_indices()
