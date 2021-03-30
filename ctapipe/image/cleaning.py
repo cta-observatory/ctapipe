@@ -8,6 +8,8 @@ __all__ = [
     "mars_cleaning_1st_pass",
     "fact_image_cleaning",
     "apply_time_delta_cleaning",
+    "apply_time_average_cleaning",
+    "time_constrained_clean",
     "ImageCleaner",
     "TailcutsImageCleaner",
 ]
@@ -22,7 +24,7 @@ from ..core.traits import (
     IntTelescopeParameter,
     BoolTelescopeParameter,
 )
-
+from .morphology import number_of_islands
 
 def tailcuts_clean(
     geom,
@@ -241,6 +243,33 @@ def apply_time_delta_cleaning(
     return pixels_to_keep
 
 
+def apply_time_average_cleaning(
+    geom,
+    mask,
+    image,
+    arrival_times,
+    picture_thresh=7,
+    time_limit=4.5,
+):
+    pixels_to_remove = []
+    mask = mask.copy()
+    if sum(mask) > 0:
+
+        # use main island (maximum charge) for time average calculation                                                                                                                                   
+        num_islands, island_labels = number_of_islands(geom, mask)
+        mask_main = island_labels == np.argmax([np.sum(image[np.where(island_labels == l)]) for l in range(1,num_islands+1)]) + 1
+        time_ave = np.average(arrival_times[np.where(mask_main)[0]], weights=image[np.where(mask_main)[0]]**2)
+
+        for pixel in np.where(mask)[0]:
+            time_diff = np.abs(arrival_times[pixel] - time_ave)
+            time_limit = time_limit if image[pixel] < picture_thresh * 2 else time_limit * 2
+            if time_diff > time_limit:
+                pixels_to_remove.append(pixel)
+        mask[pixels_to_remove] = False
+
+    return mask
+
+
 def fact_image_cleaning(
     geom,
     image,
@@ -327,6 +356,51 @@ def fact_image_cleaning(
         geom, pixels_to_keep, arrival_times, min_number_neighbors, time_limit
     )
     return pixels_to_keep
+
+
+def time_constrained_clean(
+    geom,
+    image,
+    arrival_times,
+    picture_thresh=7,
+    boundary_thresh=5,
+    time_limit_core=4.5,
+    time_limit_boundary=1.5,
+    min_number_picture_neighbors=1,
+):
+
+    # find core pixels that pass a picture threshold                                                                                                                                                      
+    pixels_above_picture = image >= picture_thresh
+
+    # require at least min_number_picture_neighbors                                                                                                                                                       
+    number_of_neighbors_above_picture = geom.neighbor_matrix_sparse.dot(
+        pixels_above_picture.view(np.byte)
+    )
+    pixels_in_picture = pixels_above_picture & (
+        number_of_neighbors_above_picture >= min_number_picture_neighbors
+    )
+
+    # keep core pixels whose arrival times are within a certain time limit of the average                                                                                                                 
+    # mask_core = apply_time_average_cleaning(geom, pixels_in_picture, image, arrival_times, time_limit_core)                                                                                             
+    mask_core = apply_time_average_cleaning(geom, pixels_in_picture, image, arrival_times, picture_thresh, time_limit_core)
+
+    # find boundary pixels that pass a boundary threshold                                                                                                                                                 
+    pixels_above_boundary = image >= boundary_thresh
+    pixels_with_picture_neighbors = geom.neighbor_matrix_sparse.dot(mask_core)
+    mask_boundary = ( pixels_above_boundary & pixels_with_picture_neighbors ) & np.invert(mask_core)
+
+    # keep boundary pixels whose arrival times are within a certain time limit of the neighboring core pixels                                                                                             
+    pixels_to_remove = []
+    mask_boundary = mask_boundary.copy()
+    for pixel in np.where(mask_boundary)[0]:
+        neighbors_core = np.where(geom.neighbor_matrix[pixel] & mask_core)[0]
+        time_diff = np.abs(arrival_times[neighbors_core] - arrival_times[pixel])
+        if sum(time_diff < time_limit_boundary) < min_number_picture_neighbors:
+            pixels_to_remove.append(pixel)
+    mask_boundary[pixels_to_remove] = False
+
+    return mask_core | mask_boundary
+
 
 
 class ImageCleaner(TelescopeComponent):
