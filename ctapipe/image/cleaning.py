@@ -276,19 +276,17 @@ def apply_time_average_cleaning(
     """
     pixels_to_remove = []
     mask = mask.copy()
-    if sum(mask) > 0:
+    if np.count_nonzero(mask) > 0:
 
         # use main island (maximum charge) for time average calculation
         num_islands, island_labels = number_of_islands(geom, mask)
         mask_main = island_labels == np.argmax([np.sum(image[np.where(island_labels == l)]) for l in range(1,num_islands+1)]) + 1
         time_ave = np.average(arrival_times[np.where(mask_main)[0]], weights=image[np.where(mask_main)[0]]**2)
 
-        for pixel in np.where(mask)[0]:
-            time_diff = np.abs(arrival_times[pixel] - time_ave)
-            time_limit = time_limit if image[pixel] < picture_thresh * 2 else time_limit * 2
-            if time_diff > time_limit:
-                pixels_to_remove.append(pixel)
-        mask[pixels_to_remove] = False
+        time_diffs = np.abs(arrival_times[mask] - time_ave)
+        time_limit_pixwise = np.where(image < (2 * picture_thresh), time_limit, time_limit * 2)[mask]
+
+        mask[mask] &= time_diffs < time_limit_pixwise
 
     return mask
 
