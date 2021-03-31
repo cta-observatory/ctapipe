@@ -7,7 +7,8 @@ ctapipe |ci| |codacy| |coverage| |conda| |doilatest|
     :alt: Test Status
 .. |codacy|  image:: https://api.codacy.com/project/badge/Grade/6192b471956b4cc684130c80c8214115
   :target: https://www.codacy.com/gh/cta-observatory/ctapipe?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=cta-observatory/ctapipe&amp;utm_campaign=Badge_Grade
-.. |conda| image:: https://anaconda.org/cta-observatory/ctapipe/badges/installer/conda.svg
+.. |conda| image:: https://anaconda.org/conda-forge/ctapipe/badges/installer/conda.svg
+  :target: https://anaconda.org/conda-forge/ctapipe
 .. |coverage| image:: https://codecov.io/gh/cta-observatory/ctapipe/branch/master/graph/badge.svg
   :target: https://codecov.io/gh/cta-observatory/ctapipe
 .. |doilatest| image:: https://zenodo.org/badge/37927055.svg
