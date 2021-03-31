@@ -244,18 +244,41 @@ def apply_time_delta_cleaning(
 
 
 def apply_time_average_cleaning(
-    geom,
-    mask,
-    image,
-    arrival_times,
-    picture_thresh=7,
-    time_limit=4.5,
+    geom, mask, image, arrival_times, picture_thresh, time_limit
 ):
+    """
+    Extract all pixels that arrived within a given timeframe 
+    with respect to the time average of the pixels on the main island.
+
+    Parameters
+    ----------
+    geom: `ctapipe.instrument.CameraGeometry`
+        Camera geometry information
+    mask: array, boolean
+        boolean mask of *clean* pixels before time_delta_cleaning
+    image: array
+        pixel values
+    arrival_times: array
+        pixel timing information
+    picture_thresh: float
+        threshold above which time limit is extended twice its value
+    time_limit: int or float
+        arrival time limit w.r.t. the average time of the core pixels
+
+    Returns
+    -------
+
+    A boolean mask of *clean* pixels.  To get a zero-suppressed image and pixel
+    list, use `image[mask], geom.pix_id[mask]`, or to keep the same
+    image size and just set unclean pixels to 0 or similar, use
+    `image[~mask] = 0`
+
+    """
     pixels_to_remove = []
     mask = mask.copy()
     if sum(mask) > 0:
 
-        # use main island (maximum charge) for time average calculation                                                                                                                                   
+        # use main island (maximum charge) for time average calculation
         num_islands, island_labels = number_of_islands(geom, mask)
         mask_main = island_labels == np.argmax([np.sum(image[np.where(island_labels == l)]) for l in range(1,num_islands+1)]) + 1
         time_ave = np.average(arrival_times[np.where(mask_main)[0]], weights=image[np.where(mask_main)[0]]**2)
@@ -368,7 +391,46 @@ def time_constrained_clean(
     time_limit_boundary=1.5,
     min_number_picture_neighbors=1,
 ):
+    """
+    time constrained cleaning by MAGIC
 
+    Cleaning contains the following steps:
+    - Find core pixels (containing more photons than a picture threshold)
+    - Remove pixels with less than N neighbors
+    - Remove pixels whose arrival times are within a time limit of the average time
+    - Find boundary pixels (containing more photons than a boundary threshold)
+    - Remove pixels with less than N neighbors arriving within a given timeframe
+
+    Parameters
+    ----------
+    geom: `ctapipe.instrument.CameraGeometry`
+        Camera geometry information
+    image: array
+        pixel values
+    arrival_times: array
+        pixel timing information
+    picture_threshold: float or array
+        threshold above which all pixels are retained
+    boundary_threshold: float or array
+        threshold above which pixels are retained if they have a neighbor
+        already above the picture_thresh
+    time_limit_core: int or float
+        arrival time limit of core pixels w.r.t the average time
+    time_limit_boundary: int or float
+        arrival time limit of boundary pixels w.r.t neighboring core pixels
+    min_number_neighbors: int
+        Threshold to determine if a pixel survives cleaning steps.
+        These steps include checks of neighbor arrival time and value
+
+    Returns
+    -------
+    A boolean mask of *clean* pixels.  To get a zero-suppressed image and pixel
+    list, use `image[mask], geom.pix_id[mask]`, or to keep the same
+    image size and just set unclean pixels to 0 or similar, use
+    `image[~mask] = 0`
+
+    """
+    
     # find core pixels that pass a picture threshold                                                                                                                                                      
     pixels_above_picture = image >= picture_thresh
 
@@ -381,7 +443,6 @@ def time_constrained_clean(
     )
 
     # keep core pixels whose arrival times are within a certain time limit of the average                                                                                                                 
-    # mask_core = apply_time_average_cleaning(geom, pixels_in_picture, image, arrival_times, time_limit_core)                                                                                             
     mask_core = apply_time_average_cleaning(geom, pixels_in_picture, image, arrival_times, picture_thresh, time_limit_core)
 
     # find boundary pixels that pass a boundary threshold                                                                                                                                                 
