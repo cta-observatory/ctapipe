@@ -250,6 +250,9 @@ def apply_time_average_cleaning(
     Extract all pixels that arrived within a given timeframe 
     with respect to the time average of the pixels on the main island.
 
+    In order to avoid removing signal pixels of large impact-parameter events, 
+    the time limit for bright pixels is doubled.
+
     Parameters
     ----------
     geom: `ctapipe.instrument.CameraGeometry`
@@ -281,7 +284,7 @@ def apply_time_average_cleaning(
         # use main island (maximum charge) for time average calculation
         num_islands, island_labels = number_of_islands(geom, mask)
         mask_main = island_labels == np.argmax([np.sum(image[np.where(island_labels == l)]) for l in range(1,num_islands+1)]) + 1
-        time_ave = np.average(arrival_times[np.where(mask_main)[0]], weights=image[np.where(mask_main)[0]]**2)
+        time_ave = np.average(arrival_times[mask_main], weights=image[mask_main]**2)
 
         time_diffs = np.abs(arrival_times[mask] - time_ave)
         time_limit_pixwise = np.where(image < (2 * picture_thresh), time_limit, time_limit * 2)[mask]
