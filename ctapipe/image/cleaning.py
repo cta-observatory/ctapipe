@@ -453,12 +453,11 @@ def time_constrained_clean(
     # keep boundary pixels whose arrival times are within a certain time limit of the neighboring core pixels                                                                                             
     pixels_to_remove = []
     mask_boundary = mask_boundary.copy()
-    for pixel in np.where(mask_boundary)[0]:
-        neighbors_core = np.where(geom.neighbor_matrix[pixel] & mask_core)[0]
-        time_diff = np.abs(arrival_times[neighbors_core] - arrival_times[pixel])
-        if sum(time_diff < time_limit_boundary) < min_number_picture_neighbors:
-            pixels_to_remove.append(pixel)
-    mask_boundary[pixels_to_remove] = False
+
+    time_diffs = np.abs(arrival_times[mask_boundary, None] - arrival_times)
+    valid_neighbors = (time_diffs < time_limit_boundary) & geom.neighbor_matrix[mask_boundary] & mask_core
+    enough_neighbors = np.count_nonzero(valid_neighbors, axis=1) >= min_number_picture_neighbors
+    mask_boundary[mask_boundary] &= enough_neighbors
 
     return mask_core | mask_boundary
 
