@@ -113,7 +113,7 @@ class DumpTriggersTool(Tool):
         self.events["T_REL"].unit = u.s
         self.events["T_REL"].description = "Time relative to first event"
         self.events["DELTA_T"].unit = u.s
-        self.events.meta["INPUT"] = self.infile
+        self.events.meta["INPUT"] = str(self.infile)
 
         self._current_trigpattern = np.zeros(MAX_TELS)
         self._current_starttime = None

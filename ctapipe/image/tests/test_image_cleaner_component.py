@@ -35,7 +35,7 @@ def test_image_cleaner(method):
 
     clean = ImageCleaner.from_name(method, config=config, subarray=subarray)
 
-    image = np.zeros_like(tel.camera.geometry.pix_x.value, dtype=np.float)
+    image = np.zeros_like(tel.camera.geometry.pix_x.value, dtype=np.float64)
     image[10:30] = 20.0
     image[31:40] = 8.0
     times = np.linspace(-5, 10, image.shape[0])

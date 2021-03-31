@@ -1,4 +1,5 @@
 import copy
+from ctapipe.instrument.camera.geometry import UnknownPixelShapeWarning
 
 import numpy as np
 from astropy.utils.data import download_file
@@ -127,24 +128,27 @@ def test_properties():
 def test_gamma_file():
     dataset = gamma_test_path
 
-    with SimTelEventSource(input_url=dataset) as reader:
-        assert reader.is_compatible(dataset)
-        assert reader.is_stream  # using gzip subprocess makes it a stream
+    with pytest.warns(UnknownPixelShapeWarning):
+        with SimTelEventSource(input_url=dataset) as reader:
+            assert reader.is_compatible(dataset)
+            assert reader.is_stream  # using gzip subprocess makes it a stream
 
-        for event in reader:
-            if event.count == 0:
-                assert event.r0.tel.keys() == {38, 47}
-            elif event.count == 1:
-                assert event.r0.tel.keys() == {11, 21, 24, 26, 61, 63, 118, 119}
-            else:
-                break
+            for event in reader:
+                if event.count == 0:
+                    assert event.r0.tel.keys() == {38, 47}
+                elif event.count == 1:
+                    assert event.r0.tel.keys() == {11, 21, 24, 26, 61, 63, 118, 119}
+                else:
+                    break
 
     # test that max_events works:
 
 
 def test_max_events():
     max_events = 5
-    with SimTelEventSource(input_url=gamma_test_path, max_events=max_events) as reader:
+    with SimTelEventSource(
+        input_url=gamma_test_large_path, max_events=max_events
+    ) as reader:
         count = 0
         for _ in reader:
             count += 1

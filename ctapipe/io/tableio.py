@@ -2,7 +2,12 @@ import re
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 
-from ctapipe.core import Component
+import numpy as np
+from astropy.time import Time
+from astropy.units import Quantity
+
+from ..core import Component
+
 
 __all__ = ["TableReader", "TableWriter"]
 
@@ -66,7 +71,8 @@ class TableWriter(Component, metaclass=ABCMeta):
         transform: callable
             function that take a value and returns a new one
         """
-        self._transforms[table_name][col_name] = transform
+        # allow leading slash
+        self._transforms[table_name.lstrip("/")][col_name] = transform
         self.log.debug(
             "Added transform: {}/{} -> {}".format(table_name, col_name, transform)
         )
@@ -164,7 +170,7 @@ class TableReader(Component, metaclass=ABCMeta):
         """
         if col_name in self._transforms[table_name]:
             tr = self._transforms[table_name][col_name]
-            value = tr(value)
+            value = tr.inverse(value)
         return value
 
     @abstractmethod
@@ -192,3 +198,117 @@ class TableReader(Component, metaclass=ABCMeta):
     @abstractmethod
     def close(self):
         pass
+
+
+class ColumnTransform(metaclass=ABCMeta):
+    """
+    A Transformation to be applied before serialization / after deserialization.
+
+    The ``TableWriter`` will call the transform on the data to be stored and
+    ``TableReader`` will call `.inverse`` the reverse the transformation 
+    when a transformation is detected in the file through metadata.
+
+    Transformations implement ``get_meta`` to provide the necessary metadata
+    for inverting the transformation on reading.
+    """
+
+    @abstractmethod
+    def __call__(self, value):
+        pass
+
+    def inverse(self, value):
+        """No inverse transform by default"""
+        return value
+
+    def get_meta(self, colname):
+        """Empty meta by default"""
+        return {}
+
+
+class TimeColumnTransform(ColumnTransform):
+    """A Column transformation that converts astropy time objects to MJD TAI"""
+
+    def __init__(self, scale, format):
+        self.scale = scale
+        self.format = format
+
+    def __call__(self, value: Time):
+        """
+        Convert an astropy time object to an mjd value in tai scale
+        """
+        return getattr(getattr(value, self.scale), self.format)
+
+    def inverse(self, value):
+        return Time(value, scale=self.scale, format=self.format, copy=False)
+
+    def get_meta(self, colname):
+        return {
+            f"{colname}_TRANSFORM": "time",
+            f"{colname}_TIME_FORMAT": self.format,
+            f"{colname}_TIME_SCALE": self.scale,
+        }
+
+
+class QuantityColumnTransform(ColumnTransform):
+    """ A Column Transform that transforms quantities to their values in the given unit"""
+
+    def __init__(self, unit):
+        self.unit = unit
+
+    def __call__(self, value):
+        return value.to_value(self.unit)
+
+    def inverse(self, value):
+        return Quantity(value, self.unit, copy=False)
+
+    def get_meta(self, colname):
+        return {
+            f"{colname}_TRANSFORM": "quantity",
+            f"{colname}_UNIT": self.unit.to_string("vounit"),
+        }
+
+
+class FixedPointColumnTransform(ColumnTransform):
+    """
+    Apply a scale, offset and dtype conversion.
+
+    Can be used to store values as fixed point by using an integer dtype
+    and a scale that is a power of 10.
+    """
+
+    def __init__(self, scale, offset, source_dtype, target_dtype):
+        self.scale = scale
+        self.offset = offset
+        self.source_dtype = np.dtype(source_dtype)
+        self.target_dtype = np.dtype(target_dtype)
+
+    def __call__(self, value):
+        return (value * self.scale).astype(self.target_dtype) + self.offset
+
+    def inverse(self, value):
+        return (value - self.offset).astype(self.source_dtype) / self.scale
+
+    def get_meta(self, colname: str):
+        return {
+            f"{colname}_TRANSFORM": "fixed_point",
+            f"{colname}_TRANSFORM_SCALE": self.scale,
+            f"{colname}_TRANSFORM_DTYPE": str(self.source_dtype),
+            f"{colname}_TRANSFORM_OFFSET": self.offset,
+        }
+
+
+class EnumColumnTransform(ColumnTransform):
+    """Store the value of an enum"""
+
+    def __init__(self, enum):
+        self.enum = enum
+
+    @staticmethod
+    def __call__(value):
+        return value.value
+
+    def inverse(self, value):
+        return self.enum(value)
+
+    def get_meta(self, colname):
+        return {f"{colname}_TRANSFORM": "enum", f"{colname}_ENUM": self.enum}

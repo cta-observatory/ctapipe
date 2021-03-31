@@ -6,6 +6,7 @@ import pytest
 import tables
 import pandas as pd
 from astropy import units as u
+from astropy.time import Time
 
 from ctapipe.core.container import Container, Field
 from ctapipe import containers
@@ -16,6 +17,7 @@ from ctapipe.containers import (
     LeakageContainer,
 )
 from ctapipe.io.hdf5tableio import HDF5TableWriter, HDF5TableReader
+from ctapipe.io.tableio import ColumnTransform
 
 
 @pytest.fixture(scope="session")
@@ -573,29 +575,57 @@ def test_read_write_container_with_int_enum(tmp_path):
 
 def test_column_transforms(tmp_path):
     """ ensure a user-added column transform is applied """
+    from ctapipe.containers import NAN_TIME
+    from ctapipe.io.tableio import FixedPointColumnTransform
+
     tmp_file = tmp_path / "test_column_transforms.hdf5"
 
     class SomeContainer(Container):
-        value = Field(-1, "some value that should be transformed")
+        container_prefix = ""
+
+        current = Field(1 * u.A, unit=u.uA)
+        time = Field(NAN_TIME)
+        image = Field(np.array([1.234, 123.456]))
 
     cont = SomeContainer()
 
-    def my_transform(x):
-        """ makes a length-3 array from x"""
-        return np.ones(3) * x
-
     with HDF5TableWriter(tmp_file, group_name="data") as writer:
+        writer.add_column_transform(
+            "mytable", "image", FixedPointColumnTransform(100, 0, np.float64, np.int32)
+        )
         # add user generated transform for the "value" column
-        cont.value = 6.0
-        writer.add_column_transform("mytable", "value", my_transform)
         writer.write("mytable", cont)
 
     # check that we get a length-3 array when reading back
     with HDF5TableReader(tmp_file, mode="r") as reader:
-        for data in reader.read("/data/mytable", SomeContainer()):
-            print(data)
-            assert data.value.shape == (3,)
-            assert np.allclose(data.value, [6.0, 6.0, 6.0])
+        data = next(reader.read("/data/mytable", SomeContainer()))
+        assert data.current.value == 1e6
+        assert data.current.unit == u.uA
+        assert isinstance(data.time, Time)
+        assert data.time == NAN_TIME
+        # rounded to two digits
+        assert np.all(data.image == np.array([1.23, 123.45]))
+
+
+def test_time(tmp_path):
+    tmp_file = tmp_path / "test_time.hdf5"
+
+    class TimeContainer(Container):
+        time = Field(None, "an astropy time")
+
+    time = Time("2012-01-01T20:00:00", format="isot", scale="utc")
+    container = TimeContainer(time=time)
+
+    with HDF5TableWriter(tmp_file, group_name="data") as writer:
+        # add user generated transform for the "value" column
+        writer.write("table", container)
+
+    with HDF5TableReader(tmp_file, mode="r") as reader:
+        for data in reader.read("/data/table", TimeContainer()):
+            assert isinstance(data.time, Time)
+            assert data.time.scale == "tai"
+            assert data.time.format == "mjd"
+            assert (data.time - time).to(u.s).value < 1e-7
 
 
 def test_filters():

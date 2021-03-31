@@ -28,22 +28,22 @@ logger = logging.getLogger(__name__)
 __all__ = ["get_dataset_path", "find_in_path", "find_all_matching_datasets"]
 
 
-DEFAULT_URL = "http://cccta-dataserver.in2p3.fr/data/ctapipe-extra/v0.3.2/"
+DEFAULT_URL = "http://cccta-dataserver.in2p3.fr/data/ctapipe-extra/v0.3.3/"
 
 
-def get_searchpath_dirs(searchpath=os.getenv("CTAPIPE_SVC_PATH")):
+def get_searchpath_dirs(searchpath=os.getenv("CTAPIPE_SVC_PATH"), url=DEFAULT_URL):
     """ returns a list of dirs in specified searchpath"""
+
     if searchpath == "" or searchpath is None:
         searchpaths = []
     else:
         searchpaths = [Path(p) for p in os.path.expandvars(searchpath).split(":")]
-
-    searchpaths.append(get_cache_path(DEFAULT_URL))
+    searchpaths.append(get_cache_path(url))
 
     return searchpaths
 
 
-def find_all_matching_datasets(pattern, searchpath=None, regexp_group=None):
+def find_all_matching_datasets(pattern, searchpath=None, regexp_group=None, url=DEFAULT_URL):
     """
     Returns a list of resource names (or substrings) matching the given
     pattern, searching first in searchpath (a colon-separated list of
@@ -69,7 +69,7 @@ def find_all_matching_datasets(pattern, searchpath=None, regexp_group=None):
 
     if searchpath is None:
         searchpath = os.getenv("CTAPIPE_SVC_PATH")
-    search_path_dirs = get_searchpath_dirs(searchpath)
+    search_path_dirs = get_searchpath_dirs(searchpath, url=url)
 
     # first check search path
     for path in search_path_dirs:
@@ -95,7 +95,7 @@ def find_all_matching_datasets(pattern, searchpath=None, regexp_group=None):
     return list(results)
 
 
-def find_in_path(filename, searchpath):
+def find_in_path(filename, searchpath, url=DEFAULT_URL):
     """
     Search in searchpath for filename, returning full path.
 
@@ -112,7 +112,7 @@ def find_in_path(filename, searchpath):
 
     """
 
-    for directory in get_searchpath_dirs(searchpath):
+    for directory in get_searchpath_dirs(searchpath, url=url):
         path = directory / filename
         if path.exists():
             return path
@@ -120,7 +120,7 @@ def find_in_path(filename, searchpath):
     return None
 
 
-def get_dataset_path(filename):
+def get_dataset_path(filename, url=DEFAULT_URL):
     """
     Returns the full file path to an auxiliary dataset needed by
     ctapipe, given the dataset's full name (filename with no directory).
@@ -142,7 +142,7 @@ def get_dataset_path(filename):
     searchpath = os.getenv("CTAPIPE_SVC_PATH")
 
     if searchpath:
-        filepath = find_in_path(filename=filename, searchpath=searchpath)
+        filepath = find_in_path(filename=filename, searchpath=searchpath, url=url)
 
         if filepath:
             return filepath
@@ -157,7 +157,7 @@ def get_dataset_path(filename):
 
     # last, try downloading the data
     try:
-        return download_file_cached(filename, default_url=DEFAULT_URL, progress=True)
+        return download_file_cached(filename, default_url=url, progress=True)
     except HTTPError as e:
         # let 404 raise the FileNotFoundError instead of HTTPError
         if e.response.status_code != 404:
@@ -169,7 +169,34 @@ def get_dataset_path(filename):
     )
 
 
-def try_filetypes(basename, role, file_types, **kwargs):
+def try_filetypes(basename, role, file_types, url=DEFAULT_URL, **kwargs):
+    """
+    Get the contents of dataset as an `astropy.table.Table` object from
+    different file types if available.
+
+    Parameters
+    ----------
+    basename: str
+        base-name (without extension) of the dataset
+    role: str
+        Provenance role. It should be set to the CTA data hierarchy name when
+        possible (e.g. dl1.sub.svc.arraylayout). This will be recorded in the
+        provenance system.
+    file_types: dict
+        Mapping of file extensions to readers.
+    url : str
+        URL where the dataset is stored.
+    kwargs:
+        extra arguments to pass to Table.read()
+
+    Returns
+    -------
+    table : astropy.table.Table
+        Table containing the data in a dataser from an available file
+        type entry.
+
+    """
+
     path = None
 
     # look first in cache so we don't have to try non-existing downloads
@@ -185,7 +212,7 @@ def try_filetypes(basename, role, file_types, **kwargs):
         for ext, reader in file_types.items():
             filename = basename + ext
             try:
-                path = get_dataset_path(filename)
+                path = get_dataset_path(filename, url=url)
                 break
             except (FileNotFoundError, HTTPError):
                 pass

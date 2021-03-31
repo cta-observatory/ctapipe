@@ -2,7 +2,7 @@ import numpy as np
 import astropy.units as u
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 from astropy.time import Time
-from pytest import approx
+from pytest import approx, raises
 
 location = EarthLocation.of_site("Roque de los Muchachos")
 
@@ -79,7 +79,7 @@ def test_separation_is_the_same():
     telescope_pointing = crab.transform_to(horizon_frame)
 
     telescope_frame = TelescopeFrame(
-        telescope_pointing=telescope_pointing, location=location, obstime=obstime,
+        telescope_pointing=telescope_pointing, location=location, obstime=obstime
     )
 
     ceta_tauri_telescope = ceta_tauri.transform_to(telescope_frame)
@@ -173,3 +173,65 @@ def test_ground_to_tilt():
         TiltedGroundFrame(pointing_direction=pointing_direction)
     )
     assert np.abs(tilt_coord.x) < 1e-5 * u.m
+
+
+def test_ground_to_tilt_one_to_one():
+    from ctapipe.coordinates import GroundFrame, TiltedGroundFrame
+
+    # define ground coordinate
+    grd_coord = GroundFrame(x=[1, 1] * u.m, y=[2, 2] * u.m, z=[0, 0] * u.m)
+    pointing_direction = SkyCoord(alt=[90, 90], az=[0, 0], frame=AltAz(), unit=u.deg)
+
+    # Convert to tilted frame at zenith (should be the same)
+    tilt_coord = grd_coord.transform_to(
+        TiltedGroundFrame(pointing_direction=pointing_direction)
+    )
+
+    # We do a one-to-one conversion
+    assert len(tilt_coord.data) == 2
+
+
+def test_ground_to_tilt_one_to_many():
+    from ctapipe.coordinates import GroundFrame, TiltedGroundFrame
+
+    # define ground coordinate
+    grd_coord = GroundFrame(x=[1] * u.m, y=[2] * u.m, z=[0] * u.m)
+    pointing_direction = SkyCoord(alt=[90, 90], az=[0, 0], frame=AltAz(), unit=u.deg)
+
+    # Convert to tilted frame at zenith (should be the same)
+    tilt_coord = grd_coord.transform_to(
+        TiltedGroundFrame(pointing_direction=pointing_direction)
+    )
+
+    # We do a one-to-one conversion
+    assert len(tilt_coord.data) == 2
+
+
+def test_ground_to_tilt_many_to_one():
+    from ctapipe.coordinates import GroundFrame, TiltedGroundFrame
+
+    # define ground coordinate
+    grd_coord = GroundFrame(x=[1, 1] * u.m, y=[2, 2] * u.m, z=[0, 0] * u.m)
+    pointing_direction = SkyCoord(alt=90, az=0, frame=AltAz(), unit=u.deg)
+
+    # Convert to tilted frame at zenith (should be the same)
+    tilt_coord = grd_coord.transform_to(
+        TiltedGroundFrame(pointing_direction=pointing_direction)
+    )
+
+    # We do a one-to-one conversion
+    assert len(tilt_coord.data) == 2
+
+
+def test_ground_to_tilt_many_to_many():
+    from ctapipe.coordinates import GroundFrame, TiltedGroundFrame
+
+    # define ground coordinate
+    grd_coord = GroundFrame(x=[1, 1] * u.m, y=[2, 2] * u.m, z=[0, 0] * u.m)
+    pointing_direction = SkyCoord(
+        alt=[90, 90, 90], az=[0, 0, 90], frame=AltAz(), unit=u.deg
+    )
+
+    with raises(ValueError):
+        # there will be a shape mismatch in matrix multiplication
+        grd_coord.transform_to(TiltedGroundFrame(pointing_direction=pointing_direction))

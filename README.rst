@@ -18,8 +18,8 @@ ctapipe |ci| |codacy| |coverage| |conda| |doilatest|
    :target: https://doi.org/10.5281/zenodo.3837306
 .. |doiv09| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4084989.svg
    :target: https://doi.org/10.5281/zenodo.4084989
-.. |doiv010| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4279334.svg
-   :target: https://doi.org/10.5281/zenodo.4279334
+.. |doiv010| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4581045.svg
+   :target: https://doi.org/10.5281/zenodo.4581045
 
 Low-level data processing pipeline software for
 `CTA <www.cta-observatory.org>`_ (the Cherenkov Telescope Array)
@@ -36,7 +36,7 @@ Citing this software
 --------------------
 If you use this software for a publication, please cite the proper version using the following DOIs:
 
-- v0.10.0 : |doiv010|
+- v0.10.5 : |doiv010|
 - v0.9.1 : |doiv09|
 - v0.8.0 : |doiv08|
 - v0.7.0 : |doiv07|
@@ -53,7 +53,7 @@ environment (this is optional).
 The following command will set up a conda virtual environment, add the
 necessary package channels, and install ctapipe specified version and its dependencies::
 
-  CTAPIPE_VER=0.8.0
+  CTAPIPE_VER=0.10.5
   wget https://raw.githubusercontent.com/cta-observatory/ctapipe/v$CTAPIPE_VER/environment.yml
   conda env create -n cta -f environment.yml
   conda activate cta

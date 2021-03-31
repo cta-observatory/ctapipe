@@ -66,7 +66,7 @@ class Stage1Tool(Tool):
         ),
     }
 
-    classes = List(
+    classes = (
         [CameraCalibrator, DL1Writer, ImageProcessor]
         + classes_with_traits(EventSource)
         + classes_with_traits(ImageCleaner)
@@ -146,3 +146,7 @@ def main():
     """ run the tool"""
     tool = Stage1Tool()
     tool.run()
+
+
+if __name__ == "__main__":
+    main()

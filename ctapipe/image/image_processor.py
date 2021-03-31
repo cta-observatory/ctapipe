@@ -1,8 +1,8 @@
 """
-
 High level image processing  (ImageProcessor Component)
 """
 from ctapipe.coordinates import TelescopeFrame
+import numpy as np
 
 from ..containers import (
     ArrayEventContainer,
@@ -27,6 +27,15 @@ from . import (
 
 # avoid use of base containers for unparameterized images
 DEFAULT_IMAGE_PARAMETERS = ImageParametersContainer()
+DEFAULT_TRUE_IMAGE_PARAMETERS = ImageParametersContainer()
+DEFAULT_TRUE_IMAGE_PARAMETERS.intensity_statistics = IntensityStatisticsContainer(
+    max=np.int32(-1),
+    min=np.int32(-1),
+    mean=np.float64(np.nan),
+    std=np.float64(np.nan),
+    skewness=np.float64(np.nan),
+    kurtosis=np.float64(np.nan),
+)
 DEFAULT_TIMING_PARAMETERS = TimingParametersContainer()
 DEFAULT_PEAKTIME_STATISTICS = PeakTimeStatisticsContainer()
 
@@ -97,10 +106,15 @@ class ImageProcessor(TelescopeComponent):
         self._process_telescope_event(event)
 
     def _parameterize_image(
-        self, tel_id, image, signal_pixels, geometry, peak_time=None
+        self,
+        tel_id,
+        image,
+        signal_pixels,
+        geometry,
+        peak_time=None,
+        default=DEFAULT_IMAGE_PARAMETERS,
     ) -> ImageParametersContainer:
         """Apply image cleaning and calculate image features
-
         Parameters
         ----------
         tel_id: int
@@ -111,7 +125,6 @@ class ImageProcessor(TelescopeComponent):
             image mask
         peak_time: np.ndarray
             peak time image
-
         Returns
         -------
         ImageParametersContainer:
@@ -170,7 +183,7 @@ class ImageProcessor(TelescopeComponent):
 
         # return the default container (containing nan values) for no
         # parameterization
-        return DEFAULT_IMAGE_PARAMETERS
+        return default
 
     def _process_telescope_event(self, event):
         """
@@ -207,6 +220,7 @@ class ImageProcessor(TelescopeComponent):
                     signal_pixels=sim_camera.true_image > 0,
                     geometry=geometry_telescope,
                     peak_time=None,  # true image from simulation has no peak time
+                    default=DEFAULT_TRUE_IMAGE_PARAMETERS,
                 )
                 self.log.debug(
                     "sim params: %s",

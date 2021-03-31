@@ -18,10 +18,11 @@ from ..containers import (
     TelEventIndexContainer,
 )
 from ..core import Component, Container, Field, Provenance, ToolConfigurationError
-from ..core.traits import Bool, CaselessStrEnum, Int, Path
+from ..core.traits import Bool, CaselessStrEnum, Int, Path, Float, Unicode
 from ..io import EventSource, HDF5TableWriter, TableWriter
 from ..io.simteleventsource import SimTelEventSource
 from ..io import metadata as meta
+from ..io.tableio import FixedPointColumnTransform
 from ..instrument import SubarrayDescription
 
 __all__ = ["DL1Writer", "DL1_DATA_MODEL_VERSION", "write_reference_metadata_headers"]
@@ -30,6 +31,7 @@ tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many dataset
 
 DL1_DATA_MODEL_VERSION = "v1.1.0"
 DL1_DATA_MODEL_CHANGE_HISTORY = """
+- v1.1.0: images and peak_times can be stored as scaled integers
 - v1.0.3: true_image dtype changed from float32 to int32
 - v1.1.0: hillas and timing parameters saved in telescope frame (degree) as opposed to camera frame (m)
 """
@@ -37,7 +39,7 @@ DL1_DATA_MODEL_CHANGE_HISTORY = """
 PROV = Provenance()
 
 
-def write_reference_metadata_headers(obs_id, subarray, writer):
+def write_reference_metadata_headers(obs_ids, subarray, writer, is_simulation):
     """
     Attaches Core Provenence headers to an output HDF5 file.
     Right now this is hard-coded for use with the ctapipe-stage1-process tool
@@ -67,7 +69,11 @@ def write_reference_metadata_headers(obs_id, subarray, writer):
             data_model_url="",
             format="hdf5",
         ),
-        process=meta.Process(type_="Simulation", subtype="", id_=int(obs_id)),
+        process=meta.Process(
+            type_="Simulation" if is_simulation else "Observation",
+            subtype="",
+            id_=int(min(obs_ids)),  # FIXME: hack, proper id needs to be defined
+        ),
         activity=meta.Activity.from_provenance(activity),
         instrument=meta.Instrument(
             site="Other",  # need a way to detect site...
@@ -109,7 +115,7 @@ class DL1Writer(Component):
     ).tag(config=True)
 
     write_parameters = Bool(
-        help="Compute and store image parameters", default_value=True
+        help="Store image parameters", default_value=True
     ).tag(config=True)
 
     compression_level = Int(
@@ -140,6 +146,16 @@ class DL1Writer(Component):
 
     overwrite = Bool(help="overwrite output file if it exists").tag(config=True)
 
+    transform_image = Bool(default_value=False).tag(config=True)
+    image_dtype = Unicode(default_value="int32").tag(config=True)
+    image_offset = Int(default_value=0).tag(config=True)
+    image_scale = Float(default_value=10.0).tag(config=True)
+
+    transform_peak_time = Bool(default_value=False).tag(config=True)
+    peak_time_dtype = Unicode(default_value="int16").tag(config=True)
+    peak_time_offset = Int(default_value=0).tag(config=True)
+    peak_time_scale = Float(default_value=100.0).tag(config=True)
+
     def __init__(self, event_source: EventSource, config=None, parent=None, **kwargs):
         """
 
@@ -162,15 +178,10 @@ class DL1Writer(Component):
         # here we just set up data, but all real initializtion should be in
         # setup(), which is called when the first event is read.
 
+        self.event_source = event_source
         self._is_simulation = event_source.is_simulation
         self._subarray: SubarrayDescription = event_source.subarray
 
-        if self._is_simulation:
-            self._simulation_config = event_source.simulation_config
-        else:
-            self._simulation_config = None
-
-        self._obs_id = event_source.obs_ids[0]
         self._hdf5_filters = None
         self._last_pointing_tel: DefaultDict[Tuple] = None
         self._last_pointing: Tuple = None
@@ -230,7 +241,10 @@ class DL1Writer(Component):
             if self.write_index_tables:
                 self._generate_indices()
             write_reference_metadata_headers(
-                subarray=self._subarray, obs_id=self._obs_id, writer=self._writer
+                subarray=self._subarray,
+                obs_ids=self.event_source.obs_ids,
+                writer=self._writer,
+                is_simulation=self._is_simulation,
             )
             self._writer.close()
             self._writer = None
@@ -320,6 +334,28 @@ class DL1Writer(Component):
             writer.exclude(tel_pointing, "trigger_pixels")
             writer.exclude(f"/dl1/event/telescope/images/{table_name}", "parameters")
 
+            if self.transform_image:
+                tr = FixedPointColumnTransform(
+                    scale=self.image_scale,
+                    offset=self.image_offset,
+                    source_dtype=np.float32,
+                    target_dtype=np.dtype(self.image_dtype),
+                )
+                writer.add_column_transform(
+                    f"dl1/event/telescope/images/{table_name}", "image", tr
+                )
+
+            if self.transform_peak_time:
+                tr = FixedPointColumnTransform(
+                    scale=self.peak_time_scale,
+                    offset=self.peak_time_offset,
+                    source_dtype=np.float32,
+                    target_dtype=np.dtype(self.peak_time_dtype),
+                )
+                writer.add_column_transform(
+                    f"dl1/event/telescope/images/{table_name}", "peak_time", tr
+                )
+
             if self._is_simulation:
                 writer.exclude(
                     f"/simulation/event/telescope/images/{table_name}",
@@ -363,12 +399,18 @@ class DL1Writer(Component):
             container_prefix = ""
             obs_id = Field(0, "Simulation Run Identifier")
 
-        extramc = ExtraSimInfo()
-        extramc.obs_id = self._obs_id
-        self._simulation_config.prefix = ""
-        self._writer.write(
-            "configuration/simulation/run", [extramc, self._simulation_config]
-        )
+        if len(self.event_source.obs_ids) > 1:
+            for obs_id, config in self.event_source.simulation_config.items():
+                extramc = ExtraSimInfo(obs_id=obs_id)
+                config.prefix = ""
+
+                self._writer.write("configuration/simulation/run", [extramc, config])
+        else:
+            extramc = ExtraSimInfo(obs_id=self.event_source.obs_ids[0])
+            config = self.event_source.simulation_config
+            config.prefix = ""
+
+            self._writer.write("configuration/simulation/run", [extramc, config])
 
     def write_simulation_histograms(self, event_source):
         """Write the distribution of thrown showers
@@ -429,7 +471,7 @@ class DL1Writer(Component):
             hist_container.prefix = ""
             for hist in hists:
                 if hist["id"] == 6:
-                    fill_from_simtel(self._obs_id, hist, hist_container)
+                    fill_from_simtel(self.event_source.obs_ids[0], hist, hist_container)
                     self._writer.write(
                         table_name="simulation/service/shower_distribution",
                         containers=hist_container,
@@ -473,7 +515,7 @@ class DL1Writer(Component):
                 "dl1/event/telescope/trigger", [tel_index, event.trigger.tel[tel_id]]
             )
 
-            has_sim_camera = (
+            has_sim_camera = self._is_simulation and (
                 tel_id in event.simulation.tel
                 and event.simulation.tel[tel_id].true_image is not None
             )
@@ -484,7 +526,7 @@ class DL1Writer(Component):
                     containers=[tel_index, *dl1_camera.parameters.values()],
                 )
 
-                if self._is_simulation and has_sim_camera:
+                if has_sim_camera:
                     writer.write(
                         f"simulation/event/telescope/parameters/{table_name}",
                         [
