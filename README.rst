@@ -57,7 +57,13 @@ necessary package channels, and install ctapipe specified version and its depend
   wget https://raw.githubusercontent.com/cta-observatory/ctapipe/v$CTAPIPE_VER/environment.yml
   conda env create -n cta -f environment.yml
   conda activate cta
-  conda install -c cta-observatory ctapipe=$CTAPIPE_VER
+  conda install -c conda-forge ctapipe=$CTAPIPE_VER
+  
+**Note**: this environment contains many useful packages that are not strictly requirements of ctapipe.
+To get only ctapipe and its direct dependencies, just do ``conda install -c conda-forge ctapipe[=<version>]`` in an environment
+of your choice. 
+
+**Note**: If you encounter long ``Solving environment`` times with conda, try using ``mamba`` (https://github.com/mamba-org/mamba) instead.
 
 The file *environment.yml* can be found in this repo. 
 Note this is *pre-alpha* software and is not yet stable enough for end-users (expect large API changes until the first stable 1.0 release).
