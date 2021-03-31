@@ -114,7 +114,7 @@ class DL1Writer(Component):
     ).tag(config=True)
 
     write_parameters = Bool(
-        help="Compute and store image parameters", default_value=True
+        help="Store image parameters", default_value=True
     ).tag(config=True)
 
     compression_level = Int(
