@@ -16,7 +16,7 @@ from ctapipe.reco.reco_algorithms import (
     InvalidWidthException,
     TooFewTelescopesException,
 )
-from ctapipe.containers import ReconstructedShowerContainer
+from ctapipe.containers import ReconstructedGeometryContainer
 from ctapipe.instrument import get_atmosphere_profile_functions
 
 from astropy.coordinates import SkyCoord
@@ -57,7 +57,7 @@ class HillasIntersection(Reconstructor):
     """
 
     atmosphere_profile_name = traits.CaselessStrEnum(
-        ["paranal",], default_value="paranal", help="name of atmosphere profile to use"
+        ["paranal"], default_value="paranal", help="name of atmosphere profile to use"
     ).tag(config=True)
 
     weighting = traits.CaselessStrEnum(
@@ -171,7 +171,7 @@ class HillasIntersection(Reconstructor):
         nom = SkyCoord(fov_lat=src_x * u.rad, fov_lon=src_y * u.rad, frame=nom_frame)
         # nom = sky_pos.transform_to(nom_frame)
         sky_pos = nom.transform_to(array_pointing.frame)
-        tilt = SkyCoord(x=core_x * u.m, y=core_y * u.m, frame=tilted_frame,)
+        tilt = SkyCoord(x=core_x * u.m, y=core_y * u.m, frame=tilted_frame)
         grd = project_to_ground(tilt)
         x_max = self.reconstruct_xmax(
             nom.fov_lon,
@@ -186,7 +186,7 @@ class HillasIntersection(Reconstructor):
 
         src_error = np.sqrt(err_x ** 2 + err_y ** 2)
 
-        result = ReconstructedShowerContainer(
+        result = ReconstructedGeometryContainer(
             alt=sky_pos.altaz.alt.to(u.rad),
             az=sky_pos.altaz.az.to(u.rad),
             core_x=grd.x,

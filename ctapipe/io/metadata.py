@@ -63,7 +63,20 @@ class Product(HasTraits):
     id_ = Unicode(help="leave unspecified to automatically generate a UUID")
     data_category = Enum(["S", "A", "B", "C", "Other"], "Other")
     data_level = Enum(
-        ["R0", "R1", "DL0", "DL1", "DL2", "DL3", "DL4", "DL5", "DL6", "Other"], "Other"
+        [
+            "R0",
+            "R1",
+            "DL0",
+            "DL1",
+            "DL1,DL2",
+            "DL2",
+            "DL3",
+            "DL4",
+            "DL5",
+            "DL6",
+            "Other",
+        ],
+        "Other",
     )
     data_association = Enum(["Subarray", "Telescope", "Target", "Other"], "Other")
     data_model_name = Unicode("unknown")

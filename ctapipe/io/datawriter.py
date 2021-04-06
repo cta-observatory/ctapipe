@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Class to write DL1 data from an event stream
+Class to write DL1 (a,b) and DL2 (a) data from an event stream
 """
 
 
@@ -29,8 +29,9 @@ __all__ = ["DL1Writer", "DL1_DATA_MODEL_VERSION", "write_reference_metadata_head
 
 tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many datasets
 
-DL1_DATA_MODEL_VERSION = "v1.1.0"
-DL1_DATA_MODEL_CHANGE_HISTORY = """
+DATA_MODEL_VERSION = "v1.2.0"
+DATA_MODEL_CHANGE_HISTORY = """
+- v1.2.0: change to more general data model, including also DL2 (DL1 unchanged)
 - v1.1.0: images and peak_times can be stored as scaled integers
 - v1.0.3: true_image dtype changed from float32 to int32
 """
@@ -60,11 +61,11 @@ def write_reference_metadata_headers(obs_ids, subarray, writer, is_simulation):
         contact=meta.Contact(name="", email="", organization="CTA Consortium"),
         product=meta.Product(
             description="DL1 Data Product",
-            data_category="S",
-            data_level="DL1",
+            data_category="S",  # TODO: make this automatically filled
+            data_level="DL1,DL2",  # TODO: make this automatically filled
             data_association="Subarray",
-            data_model_name="ASWG DL1",
-            data_model_version=DL1_DATA_MODEL_VERSION,
+            data_model_name="ASWG",
+            data_model_version=DATA_MODEL_VERSION,
             data_model_url="",
             format="hdf5",
         ),
@@ -88,7 +89,7 @@ def write_reference_metadata_headers(obs_ids, subarray, writer, is_simulation):
     meta.write_to_hdf5(headers, writer._h5file)
 
 
-class DL1Writer(Component):
+class DataWriter(Component):
     """
     Serialize a sequence of events into a HDF5 DL1 file, in the correct format
 
@@ -106,15 +107,23 @@ class DL1Writer(Component):
     """
 
     output_path = Path(
-        help="DL1 output filename", default_value=pathlib.Path("events.dl1.h5")
+        help="output filename", default_value=pathlib.Path("events.dl1.h5")
     ).tag(config=True)
 
-    write_images = Bool(
-        help="Store DL1/Event/Image data in output", default_value=False
-    ).tag(config=True)
+    write_images = Bool(help="Store DL1 Images if available", default_value=False).tag(
+        config=True
+    )
 
     write_parameters = Bool(
-        help="Compute and store image parameters", default_value=True
+        help="Store DL1 image parameters if available", default_value=True
+    ).tag(config=True)
+
+    write_stereo_shower = Bool(
+        help="Store DL2 stereo shower geometry if available", default_value=False
+    ).tag(config=True)
+
+    write_mono_shower = Bool(
+        help="Store DL2 stereo mono geometry if available", default_value=False
     ).tag(config=True)
 
     compression_level = Int(
@@ -124,7 +133,7 @@ class DL1Writer(Component):
     split_datasets_by = CaselessStrEnum(
         values=["tel_id", "tel_type"],
         default_value="tel_id",
-        help="Splitting level for the parameters and images datasets",
+        help="Splitting level for the DL1 parameters and images datasets",
     ).tag(config=True)
 
     compression_type = CaselessStrEnum(
@@ -217,7 +226,14 @@ class DL1Writer(Component):
             )
 
         # write telescope event data
-        self._write_telescope_events(self._writer, event)
+        self._write_dl1_telescope_events(self._writer, event)
+
+        # write DL2 info if requested
+        if self.write_mono_shower:
+            self._write_dl2_telescope_events(self._writer, event)
+
+        if self.write_stereo_shower:
+            self._write_dl2_stereo_event(self._writer, event)
 
     def setup(self):
         """called on first event"""
@@ -476,7 +492,12 @@ class DL1Writer(Component):
                         containers=hist_container,
                     )
 
-    def _write_telescope_events(self, writer: TableWriter, event: ArrayEventContainer):
+    def table_name(self, tel_id, tel_type):
+        return f"tel_{tel_id:03d}" if self.split_datasets_by == "tel_id" else tel_type
+
+    def _write_dl1_telescope_events(
+        self, writer: TableWriter, event: ArrayEventContainer
+    ):
         """
         add entries to the event/telescope tables for each telescope in a single
         event
@@ -487,7 +508,6 @@ class DL1Writer(Component):
         for tel_id, dl1_camera in event.dl1.tel.items():
             dl1_camera.prefix = ""  # don't want a prefix for this container
             telescope = self._subarray.tel[tel_id]
-            tel_type = str(telescope)
             self.log.debug("WRITING TELESCOPE %s: %s", tel_id, telescope)
 
             tel_index = TelEventIndexContainer(
@@ -506,9 +526,7 @@ class DL1Writer(Component):
                 )
                 self._last_pointing_tel[tel_id] = current_pointing
 
-            table_name = (
-                f"tel_{tel_id:03d}" if self.split_datasets_by == "tel_id" else tel_type
-            )
+            table_name = self.table_name(tel_id, str(telescope))
 
             writer.write(
                 "dl1/event/telescope/trigger", [tel_index, event.trigger.tel[tel_id]]
@@ -549,6 +567,51 @@ class DL1Writer(Component):
                         f"simulation/event/telescope/images/{table_name}",
                         [tel_index, event.simulation.tel[tel_id]],
                     )
+
+    def _write_dl2_telescope_events(
+        self, writer: TableWriter, event: ArrayEventContainer
+    ):
+        """
+        write per-telescope DL2 shower information.
+
+        Currently this writes to a single table per type of shower
+        reconstruction and per algorithm, with all telescopes combined.
+        """
+
+        subcontainers = ["geometry", "energy", "classification"]
+
+        for tel_id, dl2_tel in event.dl2.tel.items():
+
+            tel_index = TelEventIndexContainer(
+                obs_id=event.index.obs_id,
+                event_id=event.index.event_id,
+                tel_id=np.int16(tel_id),
+            )
+
+            for container_name in subcontainers:
+                for algorithm, container in dl2_tel[container_name].items():
+                    writer.write(
+                        table_name=f"dl2/event/mono/{container_name}/{algorithm}",
+                        containers=[tel_index, container],
+                    )
+
+    def _write_dl2_stereo_event(self, writer: TableWriter, event: ArrayEventContainer):
+        """
+        write per-telescope DL2 shower information to e.g.
+        `/dl2/event/stereo/{geometry,energy,classification}/<algorithm_name>`
+        """
+
+        subcontainers = ["geometry", "energy", "classification"]
+
+        for container_name in subcontainers:
+            for algorithm, container in event.dl2.stereo[container_name].items():
+                # note this will only write info if the particular algorithm
+                # generated it (otherwise the algorithm map is empty, and no
+                # data will be written)
+                writer.write(
+                    table_name=f"dl2/event/stereo/{container_name}/{algorithm}",
+                    containers=[event.index, container],
+                )
 
     def _generate_table_indices(self, h5file, start_node):
         """ helper to generate PyTables index tabnles for common columns """

@@ -10,7 +10,7 @@ from ctapipe.reco.reco_algorithms import (
     InvalidWidthException,
     TooFewTelescopesException,
 )
-from ctapipe.containers import ReconstructedShowerContainer
+from ctapipe.containers import ReconstructedGeometryContainer
 from itertools import combinations
 
 from ctapipe.coordinates import (
@@ -20,11 +20,7 @@ from ctapipe.coordinates import (
     project_to_ground,
     MissingFrameAttributeWarning,
 )
-from astropy.coordinates import (
-    SkyCoord,
-    spherical_to_cartesian,
-    cartesian_to_spherical,
-)
+from astropy.coordinates import SkyCoord, spherical_to_cartesian, cartesian_to_spherical
 import warnings
 
 import numpy as np
@@ -181,7 +177,7 @@ class HillasReconstructor(Reconstructor):
         # astropy's coordinates system rotates counter-clockwise.
         # Apparently we assume it to be clockwise.
         # that's why lon get's a sign
-        result = ReconstructedShowerContainer(
+        result = ReconstructedGeometryContainer(
             alt=lat,
             az=-lon,
             core_x=core_pos[0],
@@ -233,7 +229,7 @@ class HillasReconstructor(Reconstructor):
                 focal_length=focal_length, telescope_pointing=pointing
             )
 
-            cog_coord = SkyCoord(x=moments.x, y=moments.y, frame=camera_frame,)
+            cog_coord = SkyCoord(x=moments.x, y=moments.y, frame=camera_frame)
             cog_coord = cog_coord.transform_to(horizon_frame)
 
             p2_coord = SkyCoord(x=p2_x, y=p2_y, frame=camera_frame)
