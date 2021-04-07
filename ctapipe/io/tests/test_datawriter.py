@@ -16,7 +16,7 @@ from astropy import units as u
 def generate_dummy_dl2(event):
     """ generate some dummy DL2 info and see if we can write it """
 
-    algos = ["Hillas", "ImPACT"]
+    algos = ["HillasReconstructor", "ImPACTReconstructor"]
 
     for algo in algos:
         for tel_id in event.dl1.tel:
@@ -27,7 +27,7 @@ def generate_dummy_dl2(event):
 
         event.dl2.stereo.geometry[algo].alt = 72 * u.deg
         event.dl2.stereo.geometry[algo].az = 121 * u.deg
-        event.dl2.stereo.geometry[algo].tel_ids = [1, 4, 5]
+        event.dl2.stereo.energy[algo].tel_ids = [1, 4, 5]
         event.dl2.stereo.energy[algo].energy = 10 * u.TeV
         event.dl2.stereo.classification[algo].prediction = 0.9
 
@@ -149,12 +149,14 @@ def test_roundtrip(tmpdir: Path):
         assert images.col("image").max() > 0.0
 
         # check that DL2 info is there
-        dl2_energy = h5file.get_node("/dl2/event/subarray/energy/ImPACT")
+        dl2_energy = h5file.get_node("/dl2/event/subarray/energy/ImPACTReconstructor")
         assert np.allclose(dl2_energy.col("energy"), 10)
+        assert np.count_nonzero(dl2_energy.col("tel_ids")[0]) == 3
 
-        dl2_tel_energy = h5file.get_node("/dl2/event/telescope/energy/Hillas")
+        dl2_tel_energy = h5file.get_node(
+            "/dl2/event/telescope/energy/HillasReconstructor"
+        )
         assert np.allclose(dl2_tel_energy.col("energy"), 10)
-
         assert len(dl2_tel_energy.col("energy")) > len(dl2_energy.col("energy"))
 
     # make sure it is readable by the event source and matches the images

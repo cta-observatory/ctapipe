@@ -16,13 +16,14 @@ from ..containers import (
     ArrayEventContainer,
     SimulatedShowerDistribution,
     TelEventIndexContainer,
+    ReconstructedContainer,
 )
 from ..core import Component, Container, Field, Provenance, ToolConfigurationError
 from ..core.traits import Bool, CaselessStrEnum, Int, Path, Float, Unicode
 from ..io import EventSource, HDF5TableWriter, TableWriter
 from ..io.simteleventsource import SimTelEventSource
 from ..io import metadata as meta
-from ..io.tableio import FixedPointColumnTransform
+from ..io.tableio import FixedPointColumnTransform, TelListToMaskTransform
 from ..instrument import SubarrayDescription
 from ..io.datalevels import DataLevel
 
@@ -258,7 +259,7 @@ class DataWriter(Component):
 
     def finish(self):
         """ called after all events are done """
-        self.log.info("Finishing DL1 output")
+        self.log.info("Finishing output")
         if self._writer:
             if self.write_index_tables:
                 self._generate_indices()
@@ -333,10 +334,12 @@ class DataWriter(Component):
             filters=self._hdf5_filters,
         )
 
+        tr_tel_list_to_mask = TelListToMaskTransform(self._subarray)
+
         writer.add_column_transform(
             table_name="dl1/event/subarray/trigger",
             col_name="tels_with_trigger",
-            transform=self._subarray.tel_ids_to_mask,
+            transform=tr_tel_list_to_mask,
         )
 
         # exclude some columns that are not writable
@@ -409,6 +412,38 @@ class DataWriter(Component):
 
         for table_name in table_names_tel_id:
             writer.exclude(f"/dl1/monitoring/event/pointing/{table_name}", "event_type")
+
+        # set the transforms for the tel_lists in the DL2 reconstructed
+        # parameters. This requires looping over not only telescopes, but also
+        # potential Algorithm names.
+        #
+        # TODO: To reduce circular dependencies, the algorithm names are
+        # currently hard-coded, but a future refactoring could be to dynamically
+        # skip these columns on the first written event, or to modify
+        # TableWriter.add_column_transform to accept a table *pattern* (regexp)
+        # instead of a name, otherwise this will break if we add another
+        # Reconstructor
+
+        table_names_reco_algorithms = [
+            "HillasReconstructor",
+            "HillasIntersection",
+            "ImPACTReconstructor",
+        ]
+
+        for dataset_name in ReconstructedContainer().keys():
+            for table_name in table_names_reco_algorithms:
+                writer.add_column_transform(
+                    table_name=f"dl2/event/telescope/{dataset_name}/{table_name}",
+                    col_name="tel_ids",
+                    transform=tr_tel_list_to_mask,
+                )
+                writer.add_column_transform(
+                    table_name=f"dl2/event/subarray/{dataset_name}/{table_name}",
+                    col_name="tel_ids",
+                    transform=tr_tel_list_to_mask,
+                )
+
+        # final initialization
 
         self._writer = writer
         self.log.debug("Writer initialized: %s", self._writer)
