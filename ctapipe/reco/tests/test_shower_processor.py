@@ -20,9 +20,8 @@ def test_shower_processor_geometry(example_event, example_subarray):
     process_shower = ShowerProcessor(
         subarray=example_subarray,
         is_simulation=True,
-        geometry=True,
-        energy=False,
-        classification=False)
+        reconstruct_energy=False,
+        reconstruct_classification=False)
 
     calibrate(example_event)
     process_images(example_event)
