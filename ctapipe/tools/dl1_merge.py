@@ -357,7 +357,9 @@ class MergeTool(Tool):
         ):
 
             if not DL1EventSource.is_compatible(current_file):
-                self.log.critical(f"input file {current_file} is not a supported DL1 file")
+                self.log.critical(
+                    f"input file {current_file} is not a supported DL1 file"
+                )
                 if self.skip_broken_files:
                     continue
                 else:
@@ -407,10 +409,10 @@ class MergeTool(Tool):
             contact=meta.Contact(name="", email="", organization="CTA Consortium"),
             product=meta.Product(
                 description="Merged DL1 Data Product",
-                data_category="S",
-                data_level="DL1",
+                data_category="Sim",  # TODO: copy this from the inputs
+                data_level=["DL1"],  # TODO: copy this from inputs
                 data_association="Subarray",
-                data_model_name="ASWG DL1",
+                data_model_name="ASWG",  # TODO: copy this from inputs
                 data_model_version=self.data_model_version,
                 data_model_url="",
                 format="hdf5",
