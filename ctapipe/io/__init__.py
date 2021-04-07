@@ -29,5 +29,5 @@ __all__ = [
     "DL1EventSource",
     "DataLevel",
     "read_table",
-    "DL1Writer",
+    "DataWriter",
 ]

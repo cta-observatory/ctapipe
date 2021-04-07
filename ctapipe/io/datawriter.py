@@ -106,11 +106,11 @@ class DataWriter(Component):
 
     .. code-block:: python
 
-        with DL1Writer(parent=self) as write_dl1:
+        with DataWriter(parent=self) as write_data:
             for event in source:
                 calibrate(event)
                 process_images(event)
-                write_dl1(event)
+                write_data(event)
     """
 
     output_path = Path(
