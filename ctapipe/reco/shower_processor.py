@@ -9,6 +9,8 @@ This processor will be able to process a shower/event in 3 steps:
 """
 import numpy as np
 
+from astropy.coordinates import SkyCoord, AltAz
+
 from ctapipe.core import Component, QualityQuery
 from ctapipe.core.traits import List
 from ctapipe.containers import ArrayEventContainer, ReconstructedShowerContainer
@@ -103,12 +105,15 @@ class ShowerProcessor(Component):
                 list of tel_ids used if stereo, or None if Mono
             """
 
-            # Read only valid HillasContainers
+            # Read only valid HillasContainers (min condition to continue)
             hillas_dict = {
                 tel_id: dl1.parameters.hillas
                 for tel_id, dl1 in event.dl1.tel.items()
                 if np.isfinite(event.dl1.tel[tel_id].parameters.hillas.intensity)
             }
+
+            if len(hillas_dict) < 2:
+                return default
 
             # On top of this check if the shower should be considered based
             # on the user's configuration
@@ -121,31 +126,33 @@ class ShowerProcessor(Component):
             # Reconstruct the shower only if all shower criteria are met
             if all(shower_criteria):
 
-                self.reconstructor._predict(event)
+                array_pointing = SkyCoord(
+                    az=event.pointing.array_azimuth,
+                    alt=event.pointing.array_altitude,
+                    frame=AltAz(),
+                )
+
+                telescope_pointings = {
+                    tel_id: SkyCoord(
+                        alt=event.pointing.tel[tel_id].altitude,
+                        az=event.pointing.tel[tel_id].azimuth,
+                        frame=AltAz(),
+                    )
+                    for tel_id in event.dl1.tel.keys()
+                }
+
+                return self.reconstructor._predict(hillas_dict,
+                                                   self.subarray,
+                                                   array_pointing,
+                                                   telescope_pointings)
 
             else:
                 return default
 
-
-            # if less that 2 return default
-
-            # create inputs for predict
-
-            # get result
-
-            # fill event
-
-            return ReconstructedShowerContainer(
-                ...
-            )
-
-            # return the default container (containing nan values) for failed reco
-            return default
-
-        def _reconstruct_energy():
+        def _reconstruct_energy(self, event: ArrayEventContainer):
             raise NotImplementedError("TO DO")
 
-        def _estimate_classification():
+        def _estimate_classification(self, event: ArrayEventContainer):
             raise NotImplementedError("TO DO")
 
         def __call__(self, event: ArrayEventContainer):
@@ -159,10 +166,10 @@ class ShowerProcessor(Component):
             """
 
             # This is always done when calling the ShowerProcessor
-            self._reconstruct_shower()
+            self._reconstruct_shower(event)
 
             if self.estimate_energy:
-                self._reconstruct_energy()
+                self._reconstruct_energy(event)
 
             if self.estimate_classification:
-                self._estimate_classification()
+                self._estimate_classification(event)
