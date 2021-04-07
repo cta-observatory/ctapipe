@@ -1,4 +1,4 @@
-.. _dl1_datamodel:
+.. _datamodel:
 
 .. currentmodule:: ctapipe.io.containers
 
@@ -59,13 +59,13 @@ output file, where `<algorithm>` is the identifier of the algorithm (e.g.
     * - Group/Dataset
       - Description
       - Contents
-    * /geometry
+    * - /geometry
       - shower geometry reconstruction
       - `EventIndexContainer`, `ReconstructedGeometryContainer`
-    * /energy
+    * - /energy
       - shower energy reconstruction
       - `EventIndexContainer`, `ReconstructedEnergyContainer`
-    * /classification
+    * - /classification
       - shower classification parameters
       - `EventIndexContainer`, `ParticleClassificationContainer`
         
