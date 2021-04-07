@@ -59,7 +59,7 @@ def write_reference_metadata_headers(
         output
     data_levels: List[DataLevel]
         list of data levels that were requested/generated
-        (e.g. from `DataWriter.output_data_levels`)
+        (e.g. from `DataWriter.datalevels`)
     """
     activity = PROV.current_activity.provenance
     category = "Sim" if is_simulation else "Other"
@@ -267,13 +267,13 @@ class DataWriter(Component):
                 obs_ids=self.event_source.obs_ids,
                 writer=self._writer,
                 is_simulation=self._is_simulation,
-                data_levels=self.output_data_levels,
+                data_levels=self.datalevels,
             )
             self._writer.close()
             self._writer = None
 
     @property
-    def output_data_levels(self):
+    def datalevels(self):
         """ returns a list of data levels requested """
         data_levels = []
         if self.write_images:
