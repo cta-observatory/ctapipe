@@ -18,6 +18,7 @@ __all__ = [
     "DL1CameraCalibrationContainer",
     "DL1CameraContainer",
     "DL1Container",
+    "DL2Container",
     "EventCalibrationContainer",
     "EventCameraCalibrationContainer",
     "EventIndexContainer",
@@ -38,7 +39,7 @@ __all__ = [
     "R1Container",
     "ReconstructedContainer",
     "ReconstructedEnergyContainer",
-    "ReconstructedShowerContainer",
+    "ReconstructedGeometryContainer",
     "SimulatedCameraContainer",
     "SimulatedShowerContainer",
     "SimulatedShowerDistribution",
@@ -526,7 +527,7 @@ class ReconstructedGeometryContainer(Container):
         nan, "average intensity of the intensities used for reconstruction"
     )
     goodness_of_fit = Field(nan, "measure of algorithm success (if fit)")
-    tel_id_list = Field(None, "list of tel_ids used if stereo, or None if Mono")
+    tel_ids = Field(None, "list of tel_ids used if stereo, or None if Mono")
 
 
 class ReconstructedEnergyContainer(Container):
@@ -547,7 +548,7 @@ class ReconstructedEnergyContainer(Container):
         ),
     )
     goodness_of_fit = Field(nan, "goodness of the algorithm fit")
-    tel_id_list = Field(None, "list of tel_ids used if stereo, or None if Mono")
+    tel_ids = Field(None, "list of tel_ids used if stereo, or None if Mono")
 
 
 class ParticleClassificationContainer(Container):
@@ -571,7 +572,7 @@ class ParticleClassificationContainer(Container):
     )
     is_valid = Field(False, "true if classification parameters are valid")
     goodness_of_fit = Field(nan, "goodness of the algorithm fit")
-    tel_id_list = Field(None, "list of tel_ids used if stereo, or None if Mono")
+    tel_ids = Field(None, "list of tel_ids used if stereo, or None if Mono")
 
 
 class ReconstructedContainer(Container):
