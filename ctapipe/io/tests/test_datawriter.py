@@ -23,10 +23,13 @@ def generate_dummy_dl2(event):
             event.dl2.tel[tel_id].geometry[algo].alt = 70 * u.deg
             event.dl2.tel[tel_id].geometry[algo].az = 120 * u.deg
             event.dl2.tel[tel_id].energy[algo].energy = 10 * u.TeV
+            event.dl2.tel[tel_id].classification[algo].prediction = 0.9
 
-    event.dl2.stereo.geometry[algo].alt = 72 * u.deg
-    event.dl2.stereo.geometry[algo].az = 121 * u.deg
-    event.dl2.stereo.energy[algo].energy = 10 * u.TeV
+        event.dl2.stereo.geometry[algo].alt = 72 * u.deg
+        event.dl2.stereo.geometry[algo].az = 121 * u.deg
+        event.dl2.stereo.geometry[algo].tel_ids = [1, 4, 5]
+        event.dl2.stereo.energy[algo].energy = 10 * u.TeV
+        event.dl2.stereo.classification[algo].prediction = 0.9
 
 
 def test_dl1(tmpdir: Path):
