@@ -125,9 +125,9 @@ def test_roundtrip(tmpdir: Path):
             generate_dummy_dl2(event)
             events.append(deepcopy(event))
         write.write_simulation_histograms(source)
-        assert DataLevel.DL1_IMAGES in write.output_data_levels
-        assert DataLevel.DL1_PARAMETERS not in write.output_data_levels
-        assert DataLevel.DL2 in write.output_data_levels
+        assert DataLevel.DL1_IMAGES in write.datalevels
+        assert DataLevel.DL1_PARAMETERS not in write.datalevels
+        assert DataLevel.DL2 in write.datalevels
 
     assert output_path.exists()
 
