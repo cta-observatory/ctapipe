@@ -64,6 +64,5 @@ How to make a release?
 
 2. The PyPI upload will be done automatically by travis
 
-3. Unfortunately, building the conda packages is a bit harder.
-   Please see `the cta-conda-recipes repo <https://github.com/cta-observatory/cta-conda-recipes>`
-   for instructions.
+3. conda packages are built by conda-forge, the recipe is maintained here: https://github.com/conda-forge/ctapipe-feedstock/
+   An pull request to update the recipe should be opened automatically by a conda-forge bot when a new version is published to PyPi.
