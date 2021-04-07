@@ -146,10 +146,10 @@ def test_roundtrip(tmpdir: Path):
         assert images.col("image").max() > 0.0
 
         # check that DL2 info is there
-        dl2_energy = h5file.get_node("/dl2/event/stereo/energy/ImPACT")
+        dl2_energy = h5file.get_node("/dl2/event/subarray/energy/ImPACT")
         assert np.allclose(dl2_energy.col("energy"), 10)
 
-        dl2_tel_energy = h5file.get_node("/dl2/event/mono/energy/Hillas")
+        dl2_tel_energy = h5file.get_node("/dl2/event/telescope/energy/Hillas")
         assert np.allclose(dl2_tel_energy.col("energy"), 10)
 
         assert len(dl2_tel_energy.col("energy")) > len(dl2_energy.col("energy"))

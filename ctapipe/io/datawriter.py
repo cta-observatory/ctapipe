@@ -610,7 +610,7 @@ class DataWriter(Component):
             for container_name, algorithm_map in dl2_tel.items():
                 for algorithm, container in algorithm_map.items():
                     writer.write(
-                        table_name=f"dl2/event/mono/{container_name}/{algorithm}",
+                        table_name=f"dl2/event/telescope/{container_name}/{algorithm}",
                         containers=[tel_index, container],
                     )
 
@@ -626,7 +626,7 @@ class DataWriter(Component):
                 # generated it (otherwise the algorithm map is empty, and no
                 # data will be written)
                 writer.write(
-                    table_name=f"dl2/event/stereo/{container_name}/{algorithm}",
+                    table_name=f"dl2/event/subarray/{container_name}/{algorithm}",
                     containers=[event.index, container],
                 )
 
