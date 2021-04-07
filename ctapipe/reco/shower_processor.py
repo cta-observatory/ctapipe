@@ -26,11 +26,11 @@ class ShowerQualityQuery(QualityQuery):
 
     quality_criteria = List(
         default_value=[
-            ("lambda p: p.hillas.intensity > 0",
-             "lambda p: p.hillas.width > 0",
-             "lambda p: p.hillas.length > 0",
-             "lambda p: p.hillas.width / p.hillas.length > 0.1",
-             "lambda p: p.hillas.width / p.hillas.length < 0.6")
+            ("lambda hillas: hillas.intensity > 0",
+             # "lambda p: p.hillas.width > 0",
+             # "lambda p: p.hillas.length > 0",
+             # "lambda p: p.hillas.width / p.hillas.length > 0.1",
+             "lambda hillas: hillas.width / hillas.length < 0.6")
         ],
         help=QualityQuery.quality_criteria.help,
     ).tag(config=True)
@@ -48,6 +48,8 @@ class ShowerProcessor(Component):
         self,
         subarray: SubarrayDescription,
         is_simulation,
+        reconstruct_energy,
+        reconstruct_classification,
         config=None,
         parent=None,
         **kwargs,
@@ -70,106 +72,108 @@ class ShowerProcessor(Component):
             this is mutually exclusive with passing ``config``
         """
 
-        super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
+        super().__init__(config=config, parent=parent, **kwargs)
         self.subarray = subarray
         self.check_shower = ShowerQualityQuery(parent=self)
         self._is_simulation = is_simulation
-        self.reconstructor = HillasReconstructor(subarray=subarray)
+        self.reconstruct_energy = reconstruct_energy
+        self.reconstruct_classification = reconstruct_classification
+        self.reconstructor = HillasReconstructor()
 
-        def _reconstruct_shower(
-            self,
-            event,
-            default=DEFAULT_SHOWER_PARAMETERS,
-        ) -> ReconstructedShowerContainer:
-            """Perform shower reconstruction.
+    def _reconstruct_shower(
+        self,
+        event,
+        default=DEFAULT_SHOWER_PARAMETERS,
+    ) -> ReconstructedShowerContainer:
+        """Perform shower reconstruction.
 
-            Parameters
-            ----------
-            tel_id: int
-                which telescope is being cleaned
-            image: np.ndarray
-                image to process
-            signal_pixels: np.ndarray[bool]
-                image mask
-            peak_time: np.ndarray
-                peak time image
-            Returns
-            -------
-            ReconstructedShowerContainer:
-                direction in the sky with uncertainty,
-                core position on the ground with uncertainty,
-                h_max with uncertainty,
-                is_valid boolean for successfull reconstruction,
-                average intensity of the intensities used for reconstruction,
-                measure of algorithm success (if fit),
-                list of tel_ids used if stereo, or None if Mono
-            """
+        Parameters
+        ----------
+        tel_id: int
+            which telescope is being cleaned
+        image: np.ndarray
+            image to process
+        signal_pixels: np.ndarray[bool]
+            image mask
+        peak_time: np.ndarray
+            peak time image
+        Returns
+        -------
+        ReconstructedShowerContainer:
+            direction in the sky with uncertainty,
+            core position on the ground with uncertainty,
+            h_max with uncertainty,
+            is_valid boolean for successfull reconstruction,
+            average intensity of the intensities used for reconstruction,
+            measure of algorithm success (if fit),
+            list of tel_ids used if stereo, or None if Mono
+        """
 
-            # Read only valid HillasContainers (min condition to continue)
-            hillas_dict = {
-                tel_id: dl1.parameters.hillas
-                for tel_id, dl1 in event.dl1.tel.items()
-                if np.isfinite(event.dl1.tel[tel_id].parameters.hillas.intensity)
-            }
+        # Read only valid HillasContainers (min condition to continue)
+        hillas_dict = {
+            tel_id: dl1.parameters.hillas
+            for tel_id, dl1 in event.dl1.tel.items()
+            if np.isfinite(event.dl1.tel[tel_id].parameters.hillas.intensity)
+        }
 
-            if len(hillas_dict) < 2:
-                return default
+        if len(hillas_dict) < 2:
+            return default
 
-            # On top of this check if the shower should be considered based
-            # on the user's configuration
-            shower_criteria = self.check_shower(hillas_dict)
-            self.log.debug(
-                "image_criteria: %s",
-                list(zip(self.check_shower.criteria_names[1:], shower_criteria)),
+        # On top of this check if the shower should be considered based
+        # on the user's configuration
+        shower_criteria = self.check_shower(hillas_dict)
+        self.log.debug(
+            "image_criteria: %s",
+            list(zip(self.check_shower.criteria_names[1:], shower_criteria)),
+        )
+
+        # Reconstruct the shower only if all shower criteria are met
+        if all(shower_criteria):
+
+            array_pointing = SkyCoord(
+                az=event.pointing.array_azimuth,
+                alt=event.pointing.array_altitude,
+                frame=AltAz(),
             )
 
-            # Reconstruct the shower only if all shower criteria are met
-            if all(shower_criteria):
-
-                array_pointing = SkyCoord(
-                    az=event.pointing.array_azimuth,
-                    alt=event.pointing.array_altitude,
+            telescope_pointings = {
+                tel_id: SkyCoord(
+                    alt=event.pointing.tel[tel_id].altitude,
+                    az=event.pointing.tel[tel_id].azimuth,
                     frame=AltAz(),
                 )
+                for tel_id in event.dl1.tel.keys()
+            }
 
-                telescope_pointings = {
-                    tel_id: SkyCoord(
-                        alt=event.pointing.tel[tel_id].altitude,
-                        az=event.pointing.tel[tel_id].azimuth,
-                        frame=AltAz(),
-                    )
-                    for tel_id in event.dl1.tel.keys()
-                }
+            return self.reconstructor._predict(hillas_dict,
+                                               self.subarray,
+                                               array_pointing,
+                                               telescope_pointings)
 
-                return self.reconstructor._predict(hillas_dict,
-                                                   self.subarray,
-                                                   array_pointing,
-                                                   telescope_pointings)
+        else:
+            return default
 
-            else:
-                return default
+    def _reconstruct_energy(self, event: ArrayEventContainer):
+        raise NotImplementedError("TO DO")
 
-        def _reconstruct_energy(self, event: ArrayEventContainer):
-            raise NotImplementedError("TO DO")
+    def _estimate_classification(self, event: ArrayEventContainer):
+        raise NotImplementedError("TO DO")
 
-        def _estimate_classification(self, event: ArrayEventContainer):
-            raise NotImplementedError("TO DO")
+    def __call__(self, event: ArrayEventContainer):
+        """
+        Perform the full shower geometry reconstruction on the input event.
 
-        def __call__(self, event: ArrayEventContainer):
-            """
-            Perform the full shower geometry reconstruction on the input event.
+        Parameters
+        ----------
+        event : container
+            A `ctapipe` event container
+        """
 
-            Parameters
-            ----------
-            event : container
-                A `ctapipe` event container
-            """
+        # This is always done when calling the ShowerProcessor
+        self._reconstruct_shower(event)
 
-            # This is always done when calling the ShowerProcessor
-            self._reconstruct_shower(event)
+        if self.estimate_energy:
+            self._reconstruct_energy(event)
 
-            if self.estimate_energy:
-                self._reconstruct_energy(event)
-
-            if self.estimate_classification:
-                self._estimate_classification(event)
+        if self.estimate_classification:
+            self._estimate_classification(event)
