@@ -26,7 +26,7 @@ import uuid
 import warnings
 from collections import OrderedDict
 
-from traitlets import Enum, Unicode, Int, HasTraits, default, Instance
+from traitlets import Enum, Unicode, Int, HasTraits, default, Instance, List
 
 from ctapipe.core.provenance import _ActivityProvenance
 from ctapipe.core.traits import AstroTime
@@ -44,7 +44,7 @@ __all__ = [
 from astropy.time import Time
 
 
-CONVERSIONS = {Time: lambda t: t.utc.iso}
+CONVERSIONS = {Time: lambda t: t.utc.iso, list: lambda l: str(l)}
 
 
 class Contact(HasTraits):
@@ -61,22 +61,25 @@ class Product(HasTraits):
     description = Unicode("unknown")
     creation_time = AstroTime()
     id_ = Unicode(help="leave unspecified to automatically generate a UUID")
-    data_category = Enum(["S", "A", "B", "C", "Other"], "Other")
-    data_level = Enum(
-        [
-            "R0",
-            "R1",
-            "DL0",
-            "DL1",
-            "DL1,DL2",
-            "DL2",
-            "DL3",
-            "DL4",
-            "DL5",
-            "DL6",
+    data_category = Enum(["Sim", "A", "B", "C", "Other"], "Other")
+    data_level = List(
+        Enum(
+            [
+                "R0",
+                "R1",
+                "DL0",
+                "DL1",
+                "DL1_IMAGES",
+                "DL1_PARAMETERS",
+                "DL2",
+                "DL3",
+                "DL4",
+                "DL5",
+                "DL6",
+                "Other",
+            ],
             "Other",
-        ],
-        "Other",
+        )
     )
     data_association = Enum(["Subarray", "Telescope", "Target", "Other"], "Other")
     data_model_name = Unicode("unknown")

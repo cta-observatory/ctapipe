@@ -24,8 +24,9 @@ from ..io.simteleventsource import SimTelEventSource
 from ..io import metadata as meta
 from ..io.tableio import FixedPointColumnTransform
 from ..instrument import SubarrayDescription
+from ..io.datalevels import DataLevel
 
-__all__ = ["DL1Writer", "DL1_DATA_MODEL_VERSION", "write_reference_metadata_headers"]
+__all__ = ["DataWriter", "DATA_MODEL_VERSION", "write_reference_metadata_headers"]
 
 tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many datasets
 
@@ -39,7 +40,9 @@ DATA_MODEL_CHANGE_HISTORY = """
 PROV = Provenance()
 
 
-def write_reference_metadata_headers(obs_ids, subarray, writer, is_simulation):
+def write_reference_metadata_headers(
+    obs_ids, subarray, writer, is_simulation, data_levels
+):
     """
     Attaches Core Provenence headers to an output HDF5 file.
     Right now this is hard-coded for use with the ctapipe-stage1-process tool
@@ -54,15 +57,19 @@ def write_reference_metadata_headers(obs_ids, subarray, writer, is_simulation):
         SubarrayDescription to get metadata from
     writer: HDF5TableWriter
         output
+    data_levels: List[DataLevel]
+        list of data levels that were requested/generated
+        (e.g. from `DataWriter.output_data_levels`)
     """
     activity = PROV.current_activity.provenance
+    category = "Sim" if is_simulation else "Other"
 
     reference = meta.Reference(
         contact=meta.Contact(name="", email="", organization="CTA Consortium"),
         product=meta.Product(
-            description="DL1 Data Product",
-            data_category="S",  # TODO: make this automatically filled
-            data_level="DL1,DL2",  # TODO: make this automatically filled
+            description="ctapipe Data Product",
+            data_category=category,
+            data_level=[l.name for l in data_levels],
             data_association="Subarray",
             data_model_name="ASWG",
             data_model_version=DATA_MODEL_VERSION,
@@ -260,9 +267,23 @@ class DataWriter(Component):
                 obs_ids=self.event_source.obs_ids,
                 writer=self._writer,
                 is_simulation=self._is_simulation,
+                data_levels=self.output_data_levels,
             )
             self._writer.close()
             self._writer = None
+
+    @property
+    def output_data_levels(self):
+        """ returns a list of data levels requested """
+        data_levels = []
+        if self.write_images:
+            data_levels.append(DataLevel.DL1_IMAGES)
+        if self.write_parameters:
+            data_levels.append(DataLevel.DL1_PARAMETERS)
+        if self.write_stereo_shower or self.write_mono_shower:
+            data_levels.append(DataLevel.DL2)
+
+        return data_levels
 
     def _setup_compression(self):
         """ setup HDF5 compression"""

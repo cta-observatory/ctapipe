@@ -3,7 +3,7 @@
 import numpy as np
 from ctapipe.io.datawriter import DataWriter, DATA_MODEL_VERSION
 from ctapipe.utils import get_dataset_path
-from ctapipe.io import EventSource
+from ctapipe.io import EventSource, DataLevel
 from ctapipe.calib import CameraCalibrator
 from pathlib import Path
 from ctapipe.instrument import SubarrayDescription
@@ -125,6 +125,9 @@ def test_roundtrip(tmpdir: Path):
             generate_dummy_dl2(event)
             events.append(deepcopy(event))
         write.write_simulation_histograms(source)
+        assert DataLevel.DL1_IMAGES in write.output_data_levels
+        assert DataLevel.DL1_PARAMETERS not in write.output_data_levels
+        assert DataLevel.DL2 in write.output_data_levels
 
     assert output_path.exists()
 
