@@ -46,8 +46,11 @@ The following datasets will be written to the group `/dl1/event/` in the  output
 DL2 Data Model
 --------------
 
-This describes data that change per-event.
-The following datasets will be written to the group `/dl2/event/stereo/<algorithm>` and or `/dl2/event/mono/<algorithm>`, one for each reconstruciton algorithm in the  output file:
+This describes data that change per-event. The following datasets will be
+written to the group `/dl2/event/stereo/<algorithm>/` and or
+`/dl2/event/mono/<algorithm>/`, one for each reconstruction algorithm in the
+output file, where `<algorithm>` is the identifier of the algorithm (e.g.
+"Hillas"):
 
 .. list-table::
     :widths: 25 50 25
