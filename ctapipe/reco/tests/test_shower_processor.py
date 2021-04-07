@@ -38,6 +38,10 @@ def test_shower_processor_geometry(example_event, example_subarray):
     process_shower(example_event)
 
     for dl2 in example_event.dl2.shower.values():
-        assert isfinite(dl2.image_mask.sum())
-
-    process_images.check_image.to_table()
+        assert isfinite(event.dl2.shower['HillasReconstructor'].alt)
+        assert isfinite(event.dl2.shower['HillasReconstructor'].az)
+        assert isfinite(event.dl2.shower['HillasReconstructor'].core_x)
+        assert isfinite(event.dl2.shower['HillasReconstructor'].core_x)
+        assert isfinite(event.dl2.shower['HillasReconstructor'].core_y)
+        assert event.dl2.shower['HillasReconstructor'].is_valid
+        assert isfinite(event.dl2.shower['HillasReconstructor'].average_intensity)
