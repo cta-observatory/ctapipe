@@ -1,3 +1,4 @@
+from ctapipe.instrument.subarray import SubarrayDescription
 import re
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
@@ -312,3 +313,25 @@ class EnumColumnTransform(ColumnTransform):
 
     def get_meta(self, colname):
         return {f"{colname}_TRANSFORM": "enum", f"{colname}_ENUM": self.enum}
+
+
+class TelListToMaskTransform(ColumnTransform):
+    """ convert variable-length list of tel_ids to a fixed-length mask """
+
+    def __init__(self, subarray: SubarrayDescription):
+        self._forward = subarray.tel_ids_to_mask
+        self._inverse = subarray.tel_mask_to_tel_ids
+
+    def __call__(self, value):
+        if value is None:
+            return None
+
+        return self._forward(value)
+
+    def inverse(self, value):
+        if value is None:
+            return None
+        return self._inverse(value)
+
+    def get_meta(self, colname):
+        return {f"{colname}_TRANSFORM": "tel_list_to_mask"}
