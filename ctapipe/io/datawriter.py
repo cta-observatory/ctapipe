@@ -578,8 +578,6 @@ class DataWriter(Component):
         reconstruction and per algorithm, with all telescopes combined.
         """
 
-        subcontainers = ["geometry", "energy", "classification"]
-
         for tel_id, dl2_tel in event.dl2.tel.items():
 
             tel_index = TelEventIndexContainer(
@@ -588,8 +586,8 @@ class DataWriter(Component):
                 tel_id=np.int16(tel_id),
             )
 
-            for container_name in subcontainers:
-                for algorithm, container in dl2_tel[container_name].items():
+            for container_name, algorithm_map in dl2_tel.items():
+                for algorithm, container in algorithm_map.items():
                     writer.write(
                         table_name=f"dl2/event/mono/{container_name}/{algorithm}",
                         containers=[tel_index, container],
@@ -601,10 +599,8 @@ class DataWriter(Component):
         `/dl2/event/stereo/{geometry,energy,classification}/<algorithm_name>`
         """
 
-        subcontainers = ["geometry", "energy", "classification"]
-
-        for container_name in subcontainers:
-            for algorithm, container in event.dl2.stereo[container_name].items():
+        for container_name, algorithm_map in event.dl2.stereo.items():
+            for algorithm, container in algorithm_map.items():
                 # note this will only write info if the particular algorithm
                 # generated it (otherwise the algorithm map is empty, and no
                 # data will be written)
