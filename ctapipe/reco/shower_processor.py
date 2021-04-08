@@ -26,11 +26,11 @@ class ShowerQualityQuery(QualityQuery):
 
     quality_criteria = List(
         default_value=[
-            ("lambda hillas: hillas.intensity > 0",
-             # "lambda p: p.hillas.width > 0",
-             # "lambda p: p.hillas.length > 0",
-             # "lambda p: p.hillas.width / p.hillas.length > 0.1",
-             "lambda hillas: hillas.width / hillas.length < 0.6")
+            ("Finite charge", "lambda hillas: hillas.intensity > 0"),
+            ("Finite width", "lambda hillas: hillas.width > 0"),
+            ("Finite length", "lambda hillas: hillas.length > 0"),
+            ("Ellipticity > 0.1", "lambda hillas: hillas.width / hillas.length > 0.1"),
+            ("Ellipticity < 0.6", "lambda hillas: hillas.width / hillas.length < 0.6")
         ],
         help=QualityQuery.quality_criteria.help,
     ).tag(config=True)
@@ -49,7 +49,7 @@ class ShowerProcessor(Component):
         subarray: SubarrayDescription,
         is_simulation,
         reconstruct_energy,
-        reconstruct_classification,
+        classify,
         config=None,
         parent=None,
         **kwargs,
@@ -77,7 +77,7 @@ class ShowerProcessor(Component):
         self.check_shower = ShowerQualityQuery(parent=self)
         self._is_simulation = is_simulation
         self.reconstruct_energy = reconstruct_energy
-        self.reconstruct_classification = reconstruct_classification
+        self.classify = classify
         self.reconstructor = HillasReconstructor()
 
     def _reconstruct_shower(
@@ -109,26 +109,23 @@ class ShowerProcessor(Component):
             list of tel_ids used if stereo, or None if Mono
         """
 
-        # Read only valid HillasContainers (min condition to continue)
+        # Read only valid HillasContainers (minimum condition to continue)
         hillas_dict = {
             tel_id: dl1.parameters.hillas
             for tel_id, dl1 in event.dl1.tel.items()
             if np.isfinite(event.dl1.tel[tel_id].parameters.hillas.intensity)
         }
 
-        if len(hillas_dict) < 2:
-            return default
-
         # On top of this check if the shower should be considered based
         # on the user's configuration
-        shower_criteria = self.check_shower(hillas_dict)
+        shower_criteria = [self.check_shower(hillas_dict[tel_id]) for tel_id in hillas_dict]
         self.log.debug(
-            "image_criteria: %s",
+            "shower_criteria: %s",
             list(zip(self.check_shower.criteria_names[1:], shower_criteria)),
         )
 
         # Reconstruct the shower only if all shower criteria are met
-        if all(shower_criteria):
+        if np.count_nonzero(shower_criteria) > 2:
 
             array_pointing = SkyCoord(
                 az=event.pointing.array_azimuth,
@@ -136,19 +133,21 @@ class ShowerProcessor(Component):
                 frame=AltAz(),
             )
 
-            telescope_pointings = {
+            telescopes_pointings = {
                 tel_id: SkyCoord(
                     alt=event.pointing.tel[tel_id].altitude,
                     az=event.pointing.tel[tel_id].azimuth,
                     frame=AltAz(),
                 )
-                for tel_id in event.dl1.tel.keys()
+                for tel_id in hillas_dict
             }
 
-            return self.reconstructor._predict(hillas_dict,
-                                               self.subarray,
-                                               array_pointing,
-                                               telescope_pointings)
+            result = self.reconstructor.predict(hillas_dict,
+                                                self.subarray,
+                                                array_pointing,
+                                                telescopes_pointings)
+
+            return result
 
         else:
             return default
@@ -158,6 +157,21 @@ class ShowerProcessor(Component):
 
     def _estimate_classification(self, event: ArrayEventContainer):
         raise NotImplementedError("TO DO")
+
+    def _process_reconstructed_energy(self, event: ArrayEventContainer):
+        self._reconstruct_energy(event)
+
+    def _process_reconstructed_classification(self, event: ArrayEventContainer):
+        self._estimate_classification(event)
+
+    def _process_shower_geometry(self, event: ArrayEventContainer):
+        """Record the reconstructed shower geometry into the ArrayEventContainer."""
+
+        shower_geometry = self._reconstruct_shower(event)
+
+        self.log.debug("shower geometry: %s", shower_geometry.as_dict(recursive=True))
+
+        event.dl2.shower["HillasReconstructor"] = shower_geometry
 
     def __call__(self, event: ArrayEventContainer):
         """
@@ -170,10 +184,10 @@ class ShowerProcessor(Component):
         """
 
         # This is always done when calling the ShowerProcessor
-        self._reconstruct_shower(event)
+        self._process_shower_geometry(event)
 
-        if self.estimate_energy:
-            self._reconstruct_energy(event)
+        if self.reconstruct_energy:
+            self._process_reconstructed_classification(event)
 
-        if self.estimate_classification:
-            self._estimate_classification(event)
+        if self.classify:
+            self._process_reconstructed_energy(event)
