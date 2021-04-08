@@ -26,11 +26,11 @@ class ShowerQualityQuery(QualityQuery):
 
     quality_criteria = List(
         default_value=[
-            ("Finite charge", "lambda hillas: hillas.intensity > 0"),
-            ("Finite width", "lambda hillas: hillas.width > 0"),
-            ("Finite length", "lambda hillas: hillas.length > 0"),
-            ("Ellipticity > 0.1", "lambda hillas: hillas.width / hillas.length > 0.1"),
-            ("Ellipticity < 0.6", "lambda hillas: hillas.width / hillas.length < 0.6")
+            ("Positive charge", "lambda hillas: hillas.intensity > 0"),
+            ("Positive width", "lambda hillas: hillas.width.value > 0"),
+            ("Positive length", "lambda hillas: hillas.length.value > 0"),
+            ("Ellipticity > 0.1", "lambda hillas: hillas.width.value / hillas.length.value > 0.1"),
+            ("Ellipticity < 0.6", "lambda hillas: hillas.width.value / hillas.length.value < 0.6")
         ],
         help=QualityQuery.quality_criteria.help,
     ).tag(config=True)
