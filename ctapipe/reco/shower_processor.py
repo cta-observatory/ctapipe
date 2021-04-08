@@ -47,7 +47,6 @@ class ShowerProcessor(Component):
     def __init__(
         self,
         subarray: SubarrayDescription,
-        is_simulation,
         reconstruct_energy,
         classify,
         config=None,
@@ -75,7 +74,6 @@ class ShowerProcessor(Component):
         super().__init__(config=config, parent=parent, **kwargs)
         self.subarray = subarray
         self.check_shower = ShowerQualityQuery(parent=self)
-        self._is_simulation = is_simulation
         self.reconstruct_energy = reconstruct_energy
         self.classify = classify
         self.reconstructor = HillasReconstructor()
