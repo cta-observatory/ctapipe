@@ -1,4 +1,4 @@
-.. _core:
+.. _traits:
 
 ====================================
 Traitlet Implementations for ctapipe
@@ -15,3 +15,6 @@ Reference/API
 =============
 
 .. automodapi:: ctapipe.core.traits
+    :skip: Bool, CaselessStrEnum, Dict, Enum, Float, Int, Integer, List,
+    :skip: Long, TraitError, Unicode, observe, Set, CRegExp,
+    :skip: flag
