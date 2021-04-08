@@ -7,12 +7,12 @@ dependencies:
   - python=3.7
   - pip
   - astropy
-  - h5py=2
   - black
   - bokeh=1
   - conda-forge::nbsphinx
   - cython
   - graphviz
+  - h5py
   - iminuit>=1.3,<2.0.0a0
   - ipython
   - ipywidgets
