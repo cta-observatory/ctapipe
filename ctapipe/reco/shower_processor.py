@@ -38,10 +38,11 @@ class ShowerQualityQuery(QualityQuery):
 
 class ShowerProcessor(Component):
     """
-    Takes DL1/parameters data and estimates the shower geometry.
+    Needs DL1_PARAMETERS as input.
     Should be run after ImageProcessor to produce all DL1b information.
 
-    For now the only supported reconstructor is HillasReconstructor.
+    For the moment it only supports the reconstruction of the shower geometry
+    using ctapipe.reco.HillasReconstructor.
     """
 
     def __init__(
@@ -174,6 +175,9 @@ class ShowerProcessor(Component):
     def __call__(self, event: ArrayEventContainer):
         """
         Perform the full shower geometry reconstruction on the input event.
+
+        Afterwards, optionally perform energy estimation and/or particle
+        classification (currently these two operations are not yet supported).
 
         Parameters
         ----------
