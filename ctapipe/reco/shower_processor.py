@@ -7,6 +7,8 @@ This processor will be able to process a shower/event in 3 steps:
 - estimation of classification (optional, currently unavailable)
 
 """
+from traitlets import Bool
+
 from astropy.coordinates import SkyCoord, AltAz
 
 from ctapipe.core import Component, QualityQuery
@@ -39,13 +41,22 @@ class ShowerProcessor(Component):
 
     For the moment it only supports the reconstruction of the shower geometry
     using ctapipe.reco.HillasReconstructor.
+
+    It is planned to support also energy reconstruction and particle type
+    classification which are now disabled by default.
     """
+
+    reconstruct_energy = Bool(
+        default_value=False, help="Reconstruct the energy of the event."
+    ).tag(config=True)
+
+    classify = Bool(
+        default_value=False, help="Classify the particle type associated with the event."
+    ).tag(config=True)
 
     def __init__(
         self,
         subarray: SubarrayDescription,
-        reconstruct_energy,
-        classify,
         config=None,
         parent=None,
         **kwargs
@@ -69,8 +80,6 @@ class ShowerProcessor(Component):
         super().__init__(config=config, parent=parent, **kwargs)
         self.subarray = subarray
         self.check_shower = ShowerQualityQuery(parent=self)
-        self.reconstruct_energy = reconstruct_energy
-        self.classify = classify
         self.reconstructor = HillasReconstructor()
 
     def _reconstruct_shower(

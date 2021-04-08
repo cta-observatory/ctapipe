@@ -16,6 +16,10 @@ def test_shower_processor_geometry(example_event, example_subarray):
 
     calibrate = CameraCalibrator(subarray=example_subarray)
 
+    config = Config()
+    config.ShowerProcessor.reconstruct_energy = False
+    config.ShowerProcessor.classify = False
+
     process_images = ImageProcessor(
         subarray=example_subarray,
         is_simulation=True,
@@ -45,7 +49,6 @@ def test_shower_processor_geometry(example_event, example_subarray):
     assert isfinite(DL2a.average_intensity)
 
     # Increase some quality cuts and check that we get defaults
-    config = Config()
     config.ShowerQualityQuery.quality_criteria = [("> 500 phes", "lambda p: p.hillas.intensity > 500")]
 
     process_shower = ShowerProcessor(
@@ -69,6 +72,7 @@ def test_shower_processor_geometry(example_event, example_subarray):
     assert not isfinite(DL2a.average_intensity)
 
     # Now check that if energy reconstruction is enabled we get a TODO error
+    config.ShowerProcessor.reconstruct_energy = True
     process_shower = ShowerProcessor(
         config=config,
         subarray=example_subarray,
@@ -78,7 +82,8 @@ def test_shower_processor_geometry(example_event, example_subarray):
     with pytest.raises(NotImplementedError) as error_info:
         process_shower(example_event)
 
-    # also for classification
+    # same for classification
+    config.ShowerProcessor.classify = True
     process_shower = ShowerProcessor(
         config=config,
         subarray=example_subarray,
