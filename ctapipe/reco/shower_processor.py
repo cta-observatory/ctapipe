@@ -7,8 +7,6 @@ This processor will be able to process a shower/event in 3 steps:
 - estimation of classification (optional, currently unavailable)
 
 """
-import numpy as np
-
 from astropy.coordinates import SkyCoord, AltAz
 
 from ctapipe.core import Component, QualityQuery
@@ -26,11 +24,9 @@ class ShowerQualityQuery(QualityQuery):
 
     quality_criteria = List(
         default_value=[
-            ("Positive charge", "lambda hillas: hillas.intensity > 0"),
-            ("Positive width", "lambda hillas: hillas.width.value > 0"),
-            ("Positive length", "lambda hillas: hillas.length.value > 0"),
-            ("Ellipticity > 0.1", "lambda hillas: hillas.width.value / hillas.length.value > 0.1"),
-            ("Ellipticity < 0.6", "lambda hillas: hillas.width.value / hillas.length.value < 0.6")
+            ("> 50 phe", "lambda p: p.hillas.intensity > 50"),
+            ("Positive width", "lambda p: p.hillas.width.value > 0"),
+            ("> 3 pixels", "lambda p: p.morphology.num_pixels > 3"),
         ],
         help=QualityQuery.quality_criteria.help,
     ).tag(config=True)
@@ -52,7 +48,7 @@ class ShowerProcessor(Component):
         classify,
         config=None,
         parent=None,
-        **kwargs,
+        **kwargs
     ):
         """
         Parameters
@@ -61,8 +57,6 @@ class ShowerProcessor(Component):
             Description of the subarray. Provides information about the
             camera which are useful in calibration. Also required for
             configuring the TelescopeParameter traitlets.
-        is_simulation: bool
-            If true, also process simulated images if they exist
         config: traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
@@ -88,14 +82,11 @@ class ShowerProcessor(Component):
 
         Parameters
         ----------
-        tel_id: int
-            which telescope is being cleaned
-        image: np.ndarray
-            image to process
-        signal_pixels: np.ndarray[bool]
-            image mask
-        peak_time: np.ndarray
-            peak time image
+        event : container
+            A `ctapipe` event container
+        default: container
+            The default 'ReconstructedShowerContainer' which is
+            filled with NaNs.
         Returns
         -------
         ReconstructedShowerContainer:
@@ -108,23 +99,18 @@ class ShowerProcessor(Component):
             list of tel_ids used if stereo, or None if Mono
         """
 
-        # Read only valid HillasContainers (minimum condition to continue)
+        # Select only images which pass the shower quality criteria
         hillas_dict = {
             tel_id: dl1.parameters.hillas
             for tel_id, dl1 in event.dl1.tel.items()
-            if np.isfinite(event.dl1.tel[tel_id].parameters.hillas.intensity)
+            if all(self.check_shower(dl1.parameters))
         }
-
-        # On top of this check if the shower should be considered based
-        # on the user's configuration
-        shower_criteria = [self.check_shower(hillas_dict[tel_id]) for tel_id in hillas_dict]
         self.log.debug(
-            "shower_criteria: %s",
-            list(zip(self.check_shower.criteria_names[1:], shower_criteria)),
+            f"shower_criteria:\n {self.check_shower.to_table()}"
         )
 
         # Reconstruct the shower only if all shower criteria are met
-        if np.count_nonzero(shower_criteria) > 2:
+        if len(hillas_dict) > 2:
 
             array_pointing = SkyCoord(
                 az=event.pointing.array_azimuth,
@@ -149,6 +135,10 @@ class ShowerProcessor(Component):
             return result
 
         else:
+            self.log.debug(
+                """Less than 2 images passed the quality cuts.
+                Returning default ReconstructedShowerContainer container"""
+            )
             return default
 
     def _reconstruct_energy(self, event: ArrayEventContainer):
