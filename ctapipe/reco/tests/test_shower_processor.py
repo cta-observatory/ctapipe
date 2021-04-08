@@ -24,7 +24,6 @@ def test_shower_processor_geometry(example_event, example_subarray):
 
     process_shower = ShowerProcessor(
         subarray=example_subarray,
-        is_simulation=True,
         reconstruct_energy=False,
         classify=False
     )
@@ -47,12 +46,11 @@ def test_shower_processor_geometry(example_event, example_subarray):
 
     # Increase some quality cuts and check that we get defaults
     config = Config()
-    config.ShowerQualityQuery.quality_criteria = [("> 500 phes", "lambda hillas: hillas.intensity > 500")]
+    config.ShowerQualityQuery.quality_criteria = [("> 500 phes", "lambda p: p.hillas.intensity > 500")]
 
     process_shower = ShowerProcessor(
         config=config,
         subarray=example_subarray,
-        is_simulation=True,
         reconstruct_energy=False,
         classify=False
     )
@@ -61,6 +59,7 @@ def test_shower_processor_geometry(example_event, example_subarray):
     print(process_shower.check_shower.to_table())
 
     DL2a = example_event.dl2.shower["HillasReconstructor"]
+    print(DL2a)
     assert not isfinite(DL2a.alt)
     assert not isfinite(DL2a.az)
     assert not isfinite(DL2a.core_x)
@@ -73,7 +72,6 @@ def test_shower_processor_geometry(example_event, example_subarray):
     process_shower = ShowerProcessor(
         config=config,
         subarray=example_subarray,
-        is_simulation=True,
         reconstruct_energy=True,
         classify=False
     )
@@ -84,7 +82,6 @@ def test_shower_processor_geometry(example_event, example_subarray):
     process_shower = ShowerProcessor(
         config=config,
         subarray=example_subarray,
-        is_simulation=True,
         reconstruct_energy=False,
         classify=True
     )
