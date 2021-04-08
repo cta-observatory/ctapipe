@@ -153,14 +153,14 @@ class ShowerProcessor(Component):
     def _reconstruct_energy(self, event: ArrayEventContainer):
         raise NotImplementedError("TO DO")
 
-    def _estimate_classification(self, event: ArrayEventContainer):
+    def _classify_particle_type(self, event: ArrayEventContainer):
         raise NotImplementedError("TO DO")
 
     def _process_reconstructed_energy(self, event: ArrayEventContainer):
         self._reconstruct_energy(event)
 
     def _process_reconstructed_classification(self, event: ArrayEventContainer):
-        self._estimate_classification(event)
+        self._classify_particle_type(event)
 
     def _process_shower_geometry(self, event: ArrayEventContainer):
         """Record the reconstructed shower geometry into the ArrayEventContainer."""
