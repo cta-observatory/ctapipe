@@ -369,14 +369,16 @@ class TelescopeParameter(List):
     """
     Allow a parameter value to be specified as a simple value (of type *dtype*),
     or as a list of patterns that match different telescopes.
-    The patterns are given as a list of 3-tuples in in the
+
+    The patterns are given as a list of 3-tuples in the
     form: `[(command, argument, value), ...]`.
 
     Command can be one of:
+
     - 'type': argument is then a telescope type  string (e.g.
-       `('type', 'SST_ASTRI_CHEC', 4.0)` to apply to all telescopes of that type,
-       or use a wildcard like "LST*", or "*" to set a pure default value for all
-       telescopes.
+      `('type', 'SST_ASTRI_CHEC', 4.0)` to apply to all telescopes of that type,
+      or use a wildcard like "LST*", or "*" to set a pure default value for all
+      telescopes.
     - 'id':  argument is a specific telescope ID `['id', 89, 5.0]`)
 
     These are evaluated in-order, so you can first set a default value, and then set
@@ -386,16 +388,18 @@ class TelescopeParameter(List):
     --------
 
     .. code-block: python
-    tel_param = [
-        ('type', '*', 5.0),                       # default for all
-        ('type', 'LST_*', 5.2),
-        ('type', 'MST_MST_NectarCam', 4.0),
-        ('type', 'MST_MST_FlashCam', 4.5),
-        ('id', 34, 4.0),                   # override telescope 34 specifically
-    ]
+
+        tel_param = [
+            ('type', '*', 5.0),                       # default for all
+            ('type', 'LST_*', 5.2),
+            ('type', 'MST_MST_NectarCam', 4.0),
+            ('type', 'MST_MST_FlashCam', 4.5),
+            ('id', 34, 4.0),                   # override telescope 34 specifically
+        ]
 
     .. code-block: python
-    tel_param = 4.0  # sets this value for all telescopes
+
+        tel_param = 4.0  # sets this value for all telescopes
 
     """
 
