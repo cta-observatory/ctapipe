@@ -6,6 +6,8 @@ from logging import getLogger
 from traitlets import TraitError
 from traitlets.config import Configurable
 
+import warnings
+
 
 __all__ = ["non_abstract_children", "Component", "TelescopeComponent"]
 
@@ -138,7 +140,16 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
                 " If you create a Component as part of another, give `parent=self`"
                 " and not `config`"
             )
-        super().__init__(parent=parent, config=config, **kwargs)
+
+        # Transform warning about wrong traitlets in the config to an error
+        # Only works for Components, unfortunately not for Tools, since
+        # Tools use `log.warning` instead of `warnings.warn`
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error", message=".*Config option.*not recognized")
+            try:
+                super().__init__(parent=parent, config=config, **kwargs)
+            except UserWarning as e:
+                raise TraitError(e) from None
 
         for key, value in kwargs.items():
             if not self.has_trait(key):

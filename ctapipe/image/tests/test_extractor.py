@@ -4,6 +4,7 @@ import pytest
 from numpy.testing import assert_allclose, assert_equal
 from scipy.stats import norm
 from traitlets.config.loader import Config
+from traitlets.traitlets import TraitError
 
 from ctapipe.core import non_abstract_children
 from ctapipe.image.extractor import (
@@ -368,7 +369,9 @@ def test_waveform_extractor_factory_args(subarray):
     assert extractor.window_width.tel[None] == 20
     assert extractor.window_shift.tel[None] == 3
 
-    with pytest.warns(UserWarning):
+    # this basically tests that traitlets do not accept unknown traits,
+    # which is tested for all traitlets in the core tests already
+    with pytest.raises(TraitError):
         ImageExtractor.from_name("FullWaveformSum", config=config, subarray=subarray)
 
 
