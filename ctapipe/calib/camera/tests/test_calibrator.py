@@ -32,25 +32,36 @@ def test_camera_calibrator(example_event, example_subarray):
 
 
 def test_manual_extractor(example_subarray):
-    calibrator = CameraCalibrator(
-        subarray=example_subarray,
-        image_extractor=LocalPeakWindowSum(subarray=example_subarray),
-    )
-    assert isinstance(calibrator.image_extractor, LocalPeakWindowSum)
+    extractor = LocalPeakWindowSum(subarray=example_subarray)
+    calibrator = CameraCalibrator(subarray=example_subarray, image_extractor=extractor)
+    assert "LocalPeakWindowSum" in calibrator.image_extractors
+    assert calibrator.image_extractor_type.tel[1] == "LocalPeakWindowSum"
+    assert calibrator.image_extractors["LocalPeakWindowSum"] is extractor
 
 
 def test_config(example_subarray):
     calibrator = CameraCalibrator(subarray=example_subarray)
 
     # test defaults
-    assert isinstance(calibrator.image_extractor, NeighborPeakWindowSum)
+    assert len(calibrator.image_extractors) == 1
+    assert isinstance(
+        calibrator.image_extractors["NeighborPeakWindowSum"], NeighborPeakWindowSum
+    )
     assert isinstance(calibrator.data_volume_reducer, NullDataVolumeReducer)
 
+    # test we can configure different extractors with different options
+    # per telescope.
     config = Config(
         {
             "CameraCalibrator": {
-                "image_extractor_type": "LocalPeakWindowSum",
+                "image_extractor_type": [
+                    ("type", "*", "GlobalPeakWindowSum"),
+                    ("id", 1, "LocalPeakWindowSum"),
+                ],
                 "LocalPeakWindowSum": {"window_width": 15},
+                "GlobalPeakWindowSum": {
+                    "window_width": [("type", "*", 10), ("id", 2, 8)]
+                },
                 "data_volume_reducer_type": "TailCutsDataVolumeReducer",
                 "TailCutsDataVolumeReducer": {
                     "TailcutsImageCleaner": {"picture_threshold_pe": 20.0}
@@ -60,8 +71,26 @@ def test_config(example_subarray):
     )
 
     calibrator = CameraCalibrator(example_subarray, config=config)
-    assert isinstance(calibrator.image_extractor, LocalPeakWindowSum)
-    assert calibrator.image_extractor.window_width.tel[None] == 15
+    assert "GlobalPeakWindowSum" in calibrator.image_extractors
+    assert "LocalPeakWindowSum" in calibrator.image_extractors
+    assert isinstance(
+        calibrator.image_extractors["LocalPeakWindowSum"], LocalPeakWindowSum
+    )
+    assert isinstance(
+        calibrator.image_extractors["GlobalPeakWindowSum"], GlobalPeakWindowSum
+    )
+
+    extractor_1 = calibrator.image_extractors[calibrator.image_extractor_type.tel[1]]
+    assert isinstance(extractor_1, LocalPeakWindowSum)
+    assert extractor_1.window_width.tel[1] == 15
+
+    extractor_2 = calibrator.image_extractors[calibrator.image_extractor_type.tel[2]]
+    assert isinstance(extractor_2, GlobalPeakWindowSum)
+    assert extractor_2.window_width.tel[2] == 8
+
+    extractor_3 = calibrator.image_extractors[calibrator.image_extractor_type.tel[3]]
+    assert isinstance(extractor_3, GlobalPeakWindowSum)
+    assert extractor_3.window_width.tel[3] == 10
 
     assert isinstance(calibrator.data_volume_reducer, TailCutsDataVolumeReducer)
     assert calibrator.data_volume_reducer.cleaner.picture_threshold_pe.tel[None] == 20
