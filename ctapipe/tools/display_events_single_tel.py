@@ -12,7 +12,7 @@ is not a fast operation)
 
 from matplotlib import pyplot as plt
 from matplotlib.patches import Ellipse
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Tool
