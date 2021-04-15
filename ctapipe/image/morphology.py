@@ -110,7 +110,7 @@ def number_of_island_sizes(island_labels):
     return np.count_nonzero(small), n_medium, np.count_nonzero(large)
 
 
-def largest_island(islands_labels):
+def largest_island(island_labels):
     """Find the biggest island and filter it from the image.
 
     This function takes a list of islands in an image and isolates the largest one
@@ -118,20 +118,60 @@ def largest_island(islands_labels):
 
     Parameters
     ----------
-    islands_labels : array
+    island_labels : array
         Flattened array containing a list of labelled islands from a cleaned image.
         Second value returned by the function 'number_of_islands'.
 
     Returns
     -------
-    islands_labels : array
+    mask : array
         A boolean mask created from the input labels and filtered for the largest island.
         If no islands survived the cleaning the array is all False.
 
     """
-    if np.count_nonzero(islands_labels) == 0:
-        return np.zeros(islands_labels.shape, dtype="bool")
-    return islands_labels == np.argmax(np.bincount(islands_labels[islands_labels > 0]))
+    if np.count_nonzero(island_labels) == 0:
+        return np.zeros(island_labels.shape, dtype="bool")
+    return island_labels == np.argmax(np.bincount(island_labels[island_labels > 0]))
+
+
+def brightest_island(n_islands, island_labels, image):
+    """Find the brightest island and filter it from the image.
+
+    This function takes a list of islands in an image and the image itself
+    and isolates brightest island for later parametrization.
+
+    Parameters
+    ----------
+    n_islands: int
+        Total number of islands, first return value of `number_of_islands`
+    island_labels : array
+        Flattened array containing a list of labelled islands from a cleaned image.
+        Second value returned by the function 'number_of_islands'.
+
+    image: array
+        The image array
+
+    Returns
+    -------
+    mask : array
+        A boolean mask created from the input labels and filtered for the brightest island.
+        If no islands survived the cleaning the array is all False.
+    """
+
+    if n_islands == 0:
+        return np.zeros(image.shape, dtype="bool")
+
+    # only look at the actual islands, 0 means pixel did not survive cleaning
+    mask = island_labels > 0
+
+    # calculate the sum of image for each island via numpy ufunc magic
+    # basically, each pixel is added to `island_brightness` at its island_label
+    # +1 because 0 means "no island" and we have up to "n_islands" values.
+    island_brightness = np.zeros(n_islands + 1)
+    np.add.at(island_brightness, island_labels[mask], image[mask])
+
+    brightest = np.argmax(island_brightness)
+    return island_labels == brightest
 
 
 def morphology_parameters(geom, image_mask) -> MorphologyContainer:
