@@ -281,7 +281,7 @@ class DisplayIntegrator(Tool):
             )
             exit()
 
-        extractor_name = self.calibrate.image_extractor.__class__.__name__
+        extractor_name = self.calibrate.image_extractor_type.tel[telid]
 
         plot(self.subarray, event, telid, self.channel, extractor_name)
 

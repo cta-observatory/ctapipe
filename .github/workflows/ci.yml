@@ -44,7 +44,7 @@ jobs:
             source $CONDA/etc/profile.d/conda.sh
             conda activate ci;
           fi
-          pytest --cov=ctapipe --cov-report=xml
+          pytest --cov --cov-report=xml
           ctapipe-info --version
 
       - uses: codecov/codecov-action@v1
