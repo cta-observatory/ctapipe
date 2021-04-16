@@ -24,7 +24,7 @@ from ..core.traits import (
     IntTelescopeParameter,
     BoolTelescopeParameter,
 )
-from .morphology import number_of_islands
+from .morphology import number_of_islands, brightest_island
 
 def tailcuts_clean(
     geom,
@@ -283,7 +283,7 @@ def apply_time_average_cleaning(
 
         # use main island (maximum charge) for time average calculation
         num_islands, island_labels = number_of_islands(geom, mask)
-        mask_main = island_labels == np.argmax([np.sum(image[np.where(island_labels == l)]) for l in range(1,num_islands+1)]) + 1
+        mask_main = brightest_island(num_islands, island_labels, image)
         time_ave = np.average(arrival_times[mask_main], weights=image[mask_main]**2)
 
         time_diffs = np.abs(arrival_times[mask] - time_ave)
