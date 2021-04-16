@@ -259,23 +259,27 @@ class HDF5TableWriter(TableWriter):
         table_path = PurePath(self._group) / PurePath(table_name)
         table_group = str(table_path.parent)
         table_basename = table_path.stem
+        table_path = str(table_path)
 
         for container in containers:
             meta.update(container.meta)  # copy metadata from container
 
-        table = self._h5file.create_table(
-            where=table_group,
-            name=table_basename,
-            title="Storage of {}".format(
-                ",".join(c.__class__.__name__ for c in containers)
-            ),
-            description=self._schemas[table_name],
-            createparents=True,
-            filters=self.filters,
-        )
-        self.log.debug(f"CREATED TABLE: {table}")
-        for key, val in meta.items():
-            table.attrs[key] = val
+        if table_path not in self._h5file:
+            table = self._h5file.create_table(
+                where=table_group,
+                name=table_basename,
+                title="Storage of {}".format(
+                    ",".join(c.__class__.__name__ for c in containers)
+                ),
+                description=self._schemas[table_name],
+                createparents=True,
+                filters=self.filters,
+            )
+            self.log.debug(f"CREATED TABLE: {table}")
+            for key, val in meta.items():
+                table.attrs[key] = val
+        else:
+            table = self._h5file.get_node(table_path)
 
         self._tables[table_name] = table
 

@@ -114,7 +114,7 @@ class DL1Writer(Component):
     ).tag(config=True)
 
     write_parameters = Bool(
-        help="Compute and store image parameters", default_value=True
+        help="Store image parameters", default_value=True
     ).tag(config=True)
 
     compression_level = Int(
@@ -178,6 +178,7 @@ class DL1Writer(Component):
         # setup(), which is called when the first event is read.
 
         self.event_source = event_source
+        self._at_least_one_event = False
         self._is_simulation = event_source.is_simulation
         self._subarray: SubarrayDescription = event_source.subarray
 
@@ -185,6 +186,16 @@ class DL1Writer(Component):
         self._last_pointing_tel: DefaultDict[Tuple] = None
         self._last_pointing: Tuple = None
         self._writer: TableWriter = None
+
+        self._setup_output_path()
+        self._subarray.to_hdf(self.output_path)  # must be first (uses astropy io)
+        self._setup_compression()
+        self._setup_writer()
+        if self._is_simulation:
+            self._write_simulation_configuration()
+
+        # store last pointing to only write unique poitings
+        self._last_pointing_tel = defaultdict(lambda: (np.nan * u.deg, np.nan * u.deg))
 
     def __enter__(self):
         return self
@@ -194,15 +205,11 @@ class DL1Writer(Component):
 
     def __call__(self, event: ArrayEventContainer):
         """
-        Write a single event to the output file. On the first event, the output
-        file is set up
+        Write a single event to the output file.
         """
+        self._at_least_one_event = True
 
-        # perform delayed initialization on first event
-        if self._writer is None:
-            self.setup()
-
-        # Write subarray evvent data
+        # Write subarray event data
         self._write_subarray_pointing(event, writer=self._writer)
 
         self.log.debug(f"WRITING EVENT {event.index}")
@@ -219,23 +226,11 @@ class DL1Writer(Component):
         # write telescope event data
         self._write_telescope_events(self._writer, event)
 
-    def setup(self):
-        """called on first event"""
-        self.log.debug("Setting Up DL1 Output")
-
-        self._setup_output_path()
-        self._subarray.to_hdf(self.output_path)  # must be first (uses astropy io)
-        self._setup_compression()
-        self._setup_writer()
-        if self._is_simulation:
-            self._write_simulation_configuration()
-
-        # store last pointing to only write unique poitings
-        self._last_pointing_tel = defaultdict(lambda: (np.nan * u.deg, np.nan * u.deg))
-
     def finish(self):
         """ called after all events are done """
         self.log.info("Finishing DL1 output")
+        if not self._at_least_one_event:
+            self.log.warning("No events have been written to the output file")
         if self._writer:
             if self.write_index_tables:
                 self._generate_indices()
@@ -428,7 +423,6 @@ class DL1Writer(Component):
           histograms will be found.
 
         """
-
         if not self._is_simulation:
             self.log.debug("Not writing simulation histograms for observed data")
             return

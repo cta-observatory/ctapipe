@@ -9,7 +9,7 @@ Getting Started For Developers
    the following guide is used only if you want to *develop* the
    `ctapipe` package, if you just want to write code that uses it
    externally, you can install `ctapipe` as a conda package
-   with `conda install -c cta-observatory ctapipe`.
+   with `conda install -c conda-forge ctapipe`.
 
 This guide assumes you are using the *Anaconda* python distribution,
 installed locally (*miniconda* should also work).

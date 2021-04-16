@@ -134,3 +134,42 @@ def test_dl1writer_int(tmpdir: Path):
             original_peaktime = events[event.count].dl1.tel[tel_id].peak_time
             read_peaktime = dl1.peak_time
             assert np.allclose(original_peaktime, read_peaktime, atol=0.01)
+
+
+def test_dl1writer_no_events(tmpdir: Path):
+    """
+    Check that we can write DL1 files even when no events are given
+
+    Parameters
+    ----------
+    tmpdir :
+        temp directory fixture
+    """
+
+    output_path = Path(tmpdir / "no_events.dl1.h5")
+    dataset = "lst_prod3_calibration_and_mcphotons.simtel.zst"
+    with EventSource(get_dataset_path(dataset)) as source:
+        # exhaust source
+        for _ in source:
+            pass
+
+    assert source.file_.histograms is not None
+
+    with DL1Writer(
+        event_source=source,
+        output_path=output_path,
+        write_parameters=True,
+        write_images=True,
+    ) as write_dl1:
+        write_dl1.log.level = logging.DEBUG
+        write_dl1.write_simulation_histograms(source)
+
+    assert output_path.exists()
+
+    # check we can get the subarray description:
+    sub = SubarrayDescription.from_hdf(output_path)
+    assert sub == source.subarray
+
+    with tables.open_file(output_path) as h5file:
+        assert h5file.get_node("/configuration/simulation/run") is not None
+        assert h5file.get_node("/simulation/service/shower_distribution") is not None
