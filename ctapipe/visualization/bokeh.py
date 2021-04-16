@@ -602,7 +602,7 @@ class ArrayDisplay(BokehPlot):
         scale=5.0,
         alpha=1.0,
         title=None,
-        cmap="inferno",
+        cmap=None,
         radius=None,
         use_notebook=None,
         autoshow=True,
@@ -641,13 +641,13 @@ class ArrayDisplay(BokehPlot):
         # color by type if no value given
         if values is None:
             n_types = len(subarray.telescope_types)
-            palette = cmap or d3["Category10"][max(n_types, 10)]
+            palette = cmap or d3["Category10"][10][:n_types]
             self._color_mapper = CategoricalColorMapper(
                 palette=palette, factors=[str(t) for t in subarray.telescope_types]
             )
             field = "type"
         else:
-            palette = cmap or Viridis256
+            palette = cmap or Inferno256
             self._color_mapper = LinearColorMapper(palette=palette)
             field = "values"
 
