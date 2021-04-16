@@ -680,7 +680,7 @@ class ArrayDisplay(BokehPlot):
         self.update()
 
     def _init_datasource(self, subarray, values, *, radius, frame, scale, alpha):
-        telescope_ids = sorted(subarray.tel)
+        telescope_ids = subarray.tel_ids
         tel_coords = subarray.tel_coords
 
         # get the telescope positions. If a new frame is set, this will
