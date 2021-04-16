@@ -17,12 +17,15 @@ from bokeh.models import (
     Ellipse,
     Label,
 )
+from bokeh.palettes import Viridis256, Magma256, Inferno256, Greys256, d3
+from bokeh.transform import factor_cmap
 import tempfile
 from threading import Timer
 from functools import wraps
 import astropy.units as u
 
 from ctapipe.instrument import CameraGeometry, PixelShape
+from ctapipe.coordinates import GroundFrame
 
 
 PLOTARGS = dict(tools="", toolbar_location=None, outline_line_color="#595959")
@@ -30,11 +33,11 @@ PLOTARGS = dict(tools="", toolbar_location=None, outline_line_color="#595959")
 
 # mapper to mpl names
 CMAPS = {
-    "viridis": bokeh.palettes.Viridis256,
-    "magma": bokeh.palettes.Magma256,
-    "inferno": bokeh.palettes.Inferno256,
-    "grey": bokeh.palettes.Greys256,
-    "gray": bokeh.palettes.Greys256,
+    "viridis": Viridis256,
+    "magma": Magma256,
+    "inferno": Inferno256,
+    "grey": Greys256,
+    "gray": Greys256,
 }
 
 
@@ -91,7 +94,70 @@ def generate_square_vertices(geom):
     return xs, ys
 
 
-class CameraDisplay:
+def _reset_autoshow_timer(f):
+    """A decorator that resets the timer for autoshow if necessary"""
+
+    @wraps(f)
+    def wrapped(self, *args, **kwargs):
+        print("Resetting autoshow")
+        timer = False
+
+        if self._autoshow_timer is not None:
+            self._autoshow_timer.cancel()
+            self._autoshow_timer = None
+            timer = True
+
+        res = f(self, *args, **kwargs)
+
+        if timer:
+            # make sure also nested calls work
+            if self._autoshow_timer is not None:
+                self._autoshow_timer.cancel()
+            self._autoshow_timer = Timer(0.1, self.show)
+            self._autoshow_timer.start()
+
+        return res
+
+    return wrapped
+
+
+class BokehPlot:
+    def __init__(self, autoshow=True, use_notebook=None, **figure_kwargs):
+        # only use autoshow / use_notebook by default if we are in a notebook
+        self._use_notebook = use_notebook if use_notebook is not None else is_notebook()
+        self._autoshow_timer = None
+        self.figure = figure(**figure_kwargs)
+        self.autoshow = autoshow
+
+    def _autoshow(self):
+        if self.autoshow:
+            if self._use_notebook:
+                self.show()
+            else:
+                # When running a script, if we would generate a html file
+                # directly in __init__, the user would not be able change the display.
+                # So give code some time to run before opening the plot,
+                # so e.g. colorbars, cmaps and images can be set after the display was created
+                self._autoshow_timer = Timer(0.1, self.show)
+
+        if self._autoshow_timer is not None:
+            self._autoshow_timer.start()
+
+    def show(self):
+        if self._use_notebook:
+            output_notebook()
+        else:
+            # this only sets the default name, created only when show is called
+            output_file(tempfile.mktemp(prefix="ctapipe_bokeh_", suffix=".html"))
+
+        self._handle = show(self.figure, notebook_handle=self._use_notebook)
+
+    def update(self):
+        if self._use_notebook and self._handle:
+            push_notebook(handle=self._handle)
+
+
+class CameraDisplay(BokehPlot):
     """
     CameraDisplay implementation in Bokeh
     """
@@ -109,6 +175,13 @@ class CameraDisplay:
         use_notebook=None,
         autoshow=True,
     ):
+        super().__init__(
+            autoshow=autoshow,
+            use_notebook=use_notebook,
+            title=title,
+            match_aspect=True,
+            aspect_scale=1,
+        )
 
         self._geometry = geometry
         self._handle = None
@@ -117,8 +190,6 @@ class CameraDisplay:
         self._pixels = None
         self._autoshow_timer = None
         self._tap_tool = None
-        # only use autoshow / use_notebook by default if we are in a notebook
-        self._use_notebook = use_notebook if use_notebook is not None else is_notebook()
 
         self._annotations = []
         self._labels = []
@@ -132,7 +203,6 @@ class CameraDisplay:
             )
             title = f"{geometry} ({frame})"
 
-        self.figure = figure(title=title, match_aspect=True, aspect_scale=1)
         self.figure.add_tools(HoverTool(tooltips=[("id", "@id"), ("value", "@image")]))
 
         # Make sure the box zoom tool does not distort the camera display
@@ -146,44 +216,7 @@ class CameraDisplay:
         self.autoscale = autoscale
         self.rescale()
         self._setup_camera()
-
-        if autoshow:
-            if self._use_notebook:
-                self.show()
-            else:
-                # When running a script, if we would generate a html file
-                # directly in __init__, the user would not be able change the display.
-                # So give code some time to run before opening the plot,
-                # so e.g. colorbars, cmaps and images can be set after the display was created
-                self._autoshow_timer = Timer(0.1, self.show)
-
-        if self._autoshow_timer is not None:
-            self._autoshow_timer.start()
-
-    def _reset_autoshow_timer(f):
-        """A decorator that resets the timer for autoshow if necessary"""
-
-        @wraps(f)
-        def wrapped(self, *args, **kwargs):
-            timer = False
-
-            if self._autoshow_timer is not None:
-                self._autoshow_timer.cancel()
-                self._autoshow_timer = None
-                timer = True
-
-            res = f(self, *args, **kwargs)
-
-            if timer:
-                # make sure also nested calls work
-                if self._autoshow_timer is not None:
-                    self._autoshow_timer.cancel()
-                self._autoshow_timer = Timer(0.1, self.show)
-                self._autoshow_timer.start()
-
-            return res
-
-        return wrapped
+        self._autoshow()
 
     def _init_datasource(self, image=None):
         if image is None:
@@ -214,7 +247,7 @@ class CameraDisplay:
         data["xs"], data["ys"] = xs.tolist(), ys.tolist()
 
         if self.datasource is None:
-            self.datasource = bokeh.plotting.ColumnDataSource(data=data)
+            self.datasource = ColumnDataSource(data=data)
         else:
             self.datasource.update(data=data)
 
@@ -249,10 +282,6 @@ class CameraDisplay:
         )
         self.figure.add_layout(self._color_bar, "right")
         self.update()
-
-    def update(self):
-        if self._use_notebook and self._handle:
-            push_notebook(handle=self._handle)
 
     def rescale(self):
         low = self.datasource.data["image"].min()
@@ -482,15 +511,6 @@ class CameraDisplay:
             self.figure.add_layout(label, "center")
             self._labels.append(label)
 
-    def show(self):
-        if self._use_notebook:
-            output_notebook()
-        else:
-            # this only sets the default name, created only when show is called
-            output_file(tempfile.mktemp(prefix="ctapipe_bokeh_", suffix=".html"))
-
-        self._handle = show(self.figure, notebook_handle=self._use_notebook)
-
 
 class WaveformDisplay:
     def __init__(self, waveform=np.zeros(1), fig=None):
@@ -589,3 +609,137 @@ class WaveformDisplay:
     def _on_waveform_click(self, time):
         print(f"Clicked time: {time}")
         print(f"Active time: {self.active_time}")
+
+
+class ArrayDisplay(BokehPlot):
+    """
+    Display a top-town view of a telescope array.
+
+    This can be used in two ways: by default, you get a display of all
+    telescopes in the subarray, colored by telescope type, however you can
+    also color the telescopes by a value (like trigger pattern, or some other
+    scalar per-telescope parameter). To set the color value, simply set the
+    `value` attribute, and the fill color will be updated with the value. You
+    might want to set the border color to zero to avoid confusion between the
+    telescope type color and the value color (
+    `array_disp.telescope.set_linewidth(0)`)
+
+    To display a vector field over the telescope positions, e.g. for
+    reconstruction, call `set_uv()` to set cartesian vectors, or `set_r_phi()`
+    to set polar coordinate vectors.  These both take an array of length
+    N_tels, or a single value.
+
+
+    Parameters
+    ----------
+    subarray: ctapipe.instrument.SubarrayDescription
+        the array layout to display
+    axes: matplotlib.axes.Axes
+        matplotlib axes to plot on, or None to use current one
+    title: str
+        title of array plot
+    tel_scale: float
+        scaling between telescope mirror radius in m to displayed size
+    autoupdate: bool
+        redraw when the input changes
+    radius: Union[float, list, None]
+        set telescope radius to value, list/array of values. If None, radius
+        is taken from the telescope's mirror size.
+    """
+
+    def __init__(
+        self,
+        subarray,
+        frame=None,
+        scale=5.0,
+        alpha=1.0,
+        title=None,
+        palette=None,
+        radius=None,
+        use_notebook=None,
+        autoshow=True,
+    ):
+        if title is None:
+            frame_name = (frame or subarray.tel_coords.frame).__class__.__name__
+            title = f"{subarray.name} ({frame_name})"
+
+        super().__init__(
+            autoshow=autoshow,
+            use_notebook=use_notebook,
+            title=title,
+            match_aspect=True,
+            aspect_scale=1,
+        )
+
+        self.frame = frame
+        self.subarray = subarray
+        self.datasource = None
+
+        self._init_datasource(
+            subarray, radius=radius, frame=frame, scale=scale, alpha=alpha
+        )
+
+        if palette is None:
+            palette = d3["Category10"][max(len(subarray.telescope_types), 10)]
+
+        self.figure = figure(title=title, match_aspect=True, aspect_scale=1)
+        cmap = factor_cmap(
+            "type", palette=palette, factors=[str(t) for t in subarray.telescope_types]
+        )
+        self._telescopes = self.figure.circle(
+            x="x",
+            y="y",
+            radius="radius",
+            alpha="alpha",
+            line_alpha="alpha",
+            fill_color=cmap,
+            line_color=cmap,
+            source=self.datasource,
+            legend_field="type",
+        )
+        self.figure.add_tools(
+            HoverTool(tooltips=[("id", "@id"), ("type", "@type"), ("z", "@z")])
+        )
+        self.figure.legend.orientation = "horizontal"
+        self.figure.legend.location = "top_left"
+
+        self._autoshow()
+
+    def _init_datasource(self, subarray, *, radius, frame, scale, alpha):
+        telescope_ids = sorted(subarray.tel)
+        tel_coords = subarray.tel_coords
+
+        # get the telescope positions. If a new frame is set, this will
+        # transform to the new frame.
+        if frame is not None:
+            tel_coords = tel_coords.transform_to(frame)
+
+        tel_types = []
+        mirror_radii = np.zeros(len(telescope_ids))
+
+        for i, telescope_id in enumerate(telescope_ids):
+            telescope = subarray.tel[telescope_id]
+            tel_types.append(str(telescope))
+            mirror_area = telescope.optics.mirror_area.to_value(u.m ** 2)
+            mirror_radii[i] = np.sqrt(mirror_area) / np.pi
+
+        if np.isscalar(alpha):
+            alpha = np.full(len(telescope_ids), alpha)
+        else:
+            alpha = np.array(alpha)
+
+        data = {
+            "id": telescope_ids,
+            "x": tel_coords.x.to_value(u.m).tolist(),
+            "y": tel_coords.y.to_value(u.m).tolist(),
+            "z": tel_coords.z.to_value(u.m).tolist(),
+            "alpha": alpha.tolist(),
+            "type": tel_types,
+            "mirror_radius": mirror_radii.tolist(),
+            "radius": (radius if radius is not None else mirror_radii * scale).tolist(),
+        }
+
+        if self.datasource is None:
+            self.datasource = ColumnDataSource(data=data)
+        else:
+            self.datasource.update(data=data)
