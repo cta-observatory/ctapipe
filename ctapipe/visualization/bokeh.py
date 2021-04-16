@@ -11,13 +11,13 @@ from bokeh.models import (
     LinearColorMapper,
     LogColorMapper,
     ContinuousColorMapper,
+    CategoricalColorMapper,
     HoverTool,
     BoxZoomTool,
     Ellipse,
     Label,
 )
 from bokeh.palettes import Viridis256, Magma256, Inferno256, Greys256, d3
-from bokeh.transform import factor_cmap
 import tempfile
 from threading import Timer
 from functools import wraps
@@ -40,7 +40,7 @@ CMAPS = {
 }
 
 
-def pallete_from_mpl_name(name):
+def palette_from_mpl_name(name):
     if name in CMAPS:
         return CMAPS[name]
 
@@ -304,10 +304,9 @@ class CameraDisplay(BokehPlot):
         return self._palette
 
     @cmap.setter
-    @_reset_autoshow_timer
     def cmap(self, cmap):
         if isinstance(cmap, str):
-            cmap = pallete_from_mpl_name(cmap)
+            cmap = palette_from_mpl_name(cmap)
 
         self._palette = cmap
         # might be called in __init__ before color mapper is setup
@@ -603,10 +602,11 @@ class ArrayDisplay(BokehPlot):
         scale=5.0,
         alpha=1.0,
         title=None,
-        palette=None,
+        cmap="inferno",
         radius=None,
         use_notebook=None,
         autoshow=True,
+        values=None,
     ):
         if title is None:
             frame_name = (frame or subarray.tel_coords.frame).__class__.__name__
@@ -625,24 +625,42 @@ class ArrayDisplay(BokehPlot):
         self.datasource = None
 
         self._init_datasource(
-            subarray, radius=radius, frame=frame, scale=scale, alpha=alpha
+            subarray,
+            values=values,
+            radius=radius,
+            frame=frame,
+            scale=scale,
+            alpha=alpha,
         )
-
-        if palette is None:
-            palette = d3["Category10"][max(len(subarray.telescope_types), 10)]
 
         self.figure = figure(title=title, match_aspect=True, aspect_scale=1)
-        cmap = factor_cmap(
-            "type", palette=palette, factors=[str(t) for t in subarray.telescope_types]
-        )
+
+        if isinstance(cmap, str):
+            cmap = palette_from_mpl_name(cmap)
+
+        # color by type if no value given
+        if values is None:
+            n_types = len(subarray.telescope_types)
+            palette = cmap or d3["Category10"][max(n_types, 10)]
+            self._color_mapper = CategoricalColorMapper(
+                palette=palette, factors=[str(t) for t in subarray.telescope_types]
+            )
+            field = "type"
+        else:
+            palette = cmap or Viridis256
+            self._color_mapper = LinearColorMapper(palette=palette)
+            field = "values"
+
+        color = dict(field=field, transform=self._color_mapper)
+
         self._telescopes = self.figure.circle(
             x="x",
             y="y",
             radius="radius",
             alpha="alpha",
             line_alpha="alpha",
-            fill_color=cmap,
-            line_color=cmap,
+            fill_color=color,
+            line_color=color,
             source=self.datasource,
             legend_field="type",
         )
@@ -652,9 +670,17 @@ class ArrayDisplay(BokehPlot):
         self.figure.legend.orientation = "horizontal"
         self.figure.legend.location = "top_left"
 
-        self._autoshow()
+    def add_colorbar(self):
+        self._color_bar = ColorBar(
+            color_mapper=self._color_mapper,
+            label_standoff=12,
+            border_line_color=None,
+            location=(0, 0),
+        )
+        self.figure.add_layout(self._color_bar, "right")
+        self.update()
 
-    def _init_datasource(self, subarray, *, radius, frame, scale, alpha):
+    def _init_datasource(self, subarray, values, *, radius, frame, scale, alpha):
         telescope_ids = sorted(subarray.tel)
         tel_coords = subarray.tel_coords
 
@@ -687,6 +713,9 @@ class ArrayDisplay(BokehPlot):
             "mirror_radius": mirror_radii.tolist(),
             "radius": (radius if radius is not None else mirror_radii * scale).tolist(),
         }
+
+        if values is not None:
+            data["values"] = values
 
         if self.datasource is None:
             self.datasource = ColumnDataSource(data=data)
