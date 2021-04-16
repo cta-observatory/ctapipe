@@ -1,7 +1,6 @@
 import sys
 from bokeh.events import Tap
 import numpy as np
-import bokeh
 from bokeh.io import output_notebook, push_notebook, show, output_file
 from bokeh.plotting import figure
 from bokeh.models import (
@@ -94,54 +93,19 @@ def generate_square_vertices(geom):
     return xs, ys
 
 
-def _reset_autoshow_timer(f):
-    """A decorator that resets the timer for autoshow if necessary"""
-
-    @wraps(f)
-    def wrapped(self, *args, **kwargs):
-        print("Resetting autoshow")
-        timer = False
-
-        if self._autoshow_timer is not None:
-            self._autoshow_timer.cancel()
-            self._autoshow_timer = None
-            timer = True
-
-        res = f(self, *args, **kwargs)
-
-        if timer:
-            # make sure also nested calls work
-            if self._autoshow_timer is not None:
-                self._autoshow_timer.cancel()
-            self._autoshow_timer = Timer(0.1, self.show)
-            self._autoshow_timer.start()
-
-        return res
-
-    return wrapped
-
-
 class BokehPlot:
     def __init__(self, autoshow=True, use_notebook=None, **figure_kwargs):
         # only use autoshow / use_notebook by default if we are in a notebook
         self._use_notebook = use_notebook if use_notebook is not None else is_notebook()
-        self._autoshow_timer = None
+        self._handle = None
         self.figure = figure(**figure_kwargs)
         self.autoshow = autoshow
 
-    def _autoshow(self):
-        if self.autoshow:
-            if self._use_notebook:
-                self.show()
-            else:
-                # When running a script, if we would generate a html file
-                # directly in __init__, the user would not be able change the display.
-                # So give code some time to run before opening the plot,
-                # so e.g. colorbars, cmaps and images can be set after the display was created
-                self._autoshow_timer = Timer(0.1, self.show)
-
-        if self._autoshow_timer is not None:
-            self._autoshow_timer.start()
+        if figure_kwargs.get("match_aspect"):
+            # Make sure the box zoom tool does not distort the camera display
+            for tool in self.figure.toolbar.tools:
+                if isinstance(tool, BoxZoomTool):
+                    tool.match_aspect = True
 
     def show(self):
         if self._use_notebook:
@@ -184,11 +148,9 @@ class CameraDisplay(BokehPlot):
         )
 
         self._geometry = geometry
-        self._handle = None
         self._color_bar = None
         self._color_mapper = None
         self._pixels = None
-        self._autoshow_timer = None
         self._tap_tool = None
 
         self._annotations = []
@@ -205,18 +167,12 @@ class CameraDisplay(BokehPlot):
 
         self.figure.add_tools(HoverTool(tooltips=[("id", "@id"), ("value", "@image")]))
 
-        # Make sure the box zoom tool does not distort the camera display
-        for tool in self.figure.toolbar.tools:
-            if isinstance(tool, BoxZoomTool):
-                tool.match_aspect = True
-
         # order is important because steps depend on each other
         self.cmap = cmap
         self.norm = norm
         self.autoscale = autoscale
         self.rescale()
         self._setup_camera()
-        self._autoshow()
 
     def _init_datasource(self, image=None):
         if image is None:
@@ -251,7 +207,6 @@ class CameraDisplay(BokehPlot):
         else:
             self.datasource.update(data=data)
 
-    @_reset_autoshow_timer
     def _setup_camera(self):
         kwargs = dict(
             fill_color=dict(field="image", transform=self.norm),
@@ -272,7 +227,6 @@ class CameraDisplay(BokehPlot):
         while self._labels:
             self.figure.center.remove(self._labels.pop())
 
-    @_reset_autoshow_timer
     def add_colorbar(self):
         self._color_bar = ColorBar(
             color_mapper=self._color_mapper,
@@ -299,12 +253,10 @@ class CameraDisplay(BokehPlot):
             self.figure.add_tools(TapTool())
         self.datasource.selected.on_change("indices", callback)
 
-    @_reset_autoshow_timer
     def set_limits_minmax(self, zmin, zmax):
         self._color_mapper.update(low=zmin, high=zmax)
         self.update()
 
-    @_reset_autoshow_timer
     def set_limits_percent(self, percent=95):
         zmin = np.nanmin(self.image)
         zmax = np.nanmax(self.image)
@@ -312,7 +264,6 @@ class CameraDisplay(BokehPlot):
         frac = percent / 100.0
         self.set_limits_minmax(zmin, zmax - (1.0 - frac) * dz)
 
-    @_reset_autoshow_timer
     def highlight_pixels(self, pixels, color="g", linewidth=1, alpha=0.75):
         """
         Highlight the given pixels with a colored line around them
@@ -389,7 +340,6 @@ class CameraDisplay(BokehPlot):
         return self.datasource.data["image"]
 
     @image.setter
-    @_reset_autoshow_timer
     def image(self, new_image):
         self.datasource.patch({"image": [(slice(None), new_image)]})
         if self.autoscale:
@@ -409,7 +359,6 @@ class CameraDisplay(BokehPlot):
         return self._color_mapper
 
     @norm.setter
-    @_reset_autoshow_timer
     def norm(self, norm):
         if not isinstance(norm, ContinuousColorMapper):
             if norm == "lin":
