@@ -1197,7 +1197,7 @@ class TwoPassWindowSum(ImageExtractor):
         # FIXME: properly make sure that output is 32Bit instead of downcasting here
         if self.disable_second_pass:
             return (
-                (self.charge1 * correction1[selected_gain_channel]).astype("float32"),
+                (self._charge1 * correction1[selected_gain_channel]).astype("float32"),
                 self._pulse_time1.astype("float32"),
             )
 
