@@ -1190,23 +1190,23 @@ class TwoPassWindowSum(ImageExtractor):
             Shape: (n_pix)
         """
 
-        self._charge1, self._pulse_time1, correction1 = self._apply_first_pass(
+        charge1, pulse_time1, correction1 = self._apply_first_pass(
             waveforms, telid
         )
 
         # FIXME: properly make sure that output is 32Bit instead of downcasting here
         if self.disable_second_pass:
             return (
-                (self._charge1 * correction1[selected_gain_channel]).astype("float32"),
-                self._pulse_time1.astype("float32"),
+                (charge1 * correction1[selected_gain_channel]).astype("float32"),
+                pulse_time1.astype("float32"),
             )
 
         charge2, pulse_time2 = self._apply_second_pass(
             waveforms,
             telid,
             selected_gain_channel,
-            self._charge1,
-            self._pulse_time1,
+            charge1,
+            pulse_time1,
             correction1,
         )
         # FIXME: properly make sure that output is 32Bit instead of downcasting here
