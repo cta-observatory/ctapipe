@@ -348,6 +348,22 @@ def test_two_pass_window_sum(subarray):
         assert_allclose(charge, true_charge, rtol=0.1)
         assert_allclose(pulse_time, true_time, rtol=0.1)
 
+    # test only 1st pass
+    extractor.disable_second_pass = True
+    for minCharge, maxCharge in zip(min_charges, max_charges):
+        toymodel = get_test_toymodel(subarray, minCharge, maxCharge)
+        (
+            waveforms,
+            subarray,
+            telid,
+            selected_gain_channel,
+            true_charge,
+            true_time,
+        ) = toymodel
+        charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
+        assert_allclose(charge, true_charge, rtol=0.1)
+        assert_allclose(pulse_time, true_time, rtol=0.1)
+
 
 def test_waveform_extractor_factory(toymodel):
     waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
