@@ -83,7 +83,7 @@ def _lts_single_sample(X, y, sample_size, max_iterations, eps=1e-12):
     if np.isnan(beta[0]):
         return beta, np.nan
 
-    last_error = residual_sum_of_squares(X[sample], y[sample], beta)
+    error = residual_sum_of_squares(X[sample], y[sample], beta)
 
     for i in range(max_iterations):
 
@@ -94,18 +94,18 @@ def _lts_single_sample(X, y, sample_size, max_iterations, eps=1e-12):
 
         # redo regression with new sample
         beta = linear_regression(X[sample], y[sample])
+
+        last_error = error
         error = residual_sum_of_squares(X[sample], y[sample], beta)
 
         # test for convergences
         if abs(last_error - error) < eps:
             break
 
-        last_error = error
-
     return beta, error
 
 
-@njit(cache=True)
+@njit()
 def lts_linear_regression(
     x, y, samples=20, relative_sample_size=0.85, max_iterations=20, eps=1e-12
 ):
@@ -154,7 +154,7 @@ def lts_linear_regression(
     best_beta = np.full(2, np.nan)
     best_error = np.inf
 
-    for i in range(samples):
+    for _ in range(samples):
         beta, error = _lts_single_sample(X, y, sample_size, max_iterations, eps)
         if error < best_error:
             best_error = error
