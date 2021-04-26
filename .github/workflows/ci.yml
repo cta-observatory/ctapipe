@@ -66,6 +66,9 @@ jobs:
             git describe --tags
             python -c 'import ctapipe; print(ctapipe.__version__)'
 
+          # treat warnings as errors, make sure links are working
+          build-command: make html SPHINXOPTS="-W --keep-going -n --color -w /tmp/sphinx-log"
+
       - name: Deploy to gihub pages
         # only run on push to master
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
