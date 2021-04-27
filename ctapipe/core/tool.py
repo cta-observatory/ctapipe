@@ -5,8 +5,9 @@ import textwrap
 from abc import abstractmethod
 import pathlib
 import os
+import re
 
-from traitlets import default
+from traitlets import default, TraitError
 from traitlets.config import Application, Configurable
 
 from .. import __version__ as version
@@ -14,6 +15,18 @@ from .traits import Path, Enum, Bool, Dict
 from . import Provenance
 from .component import Component
 from .logging import create_logging_config, ColoredFormatter, DEFAULT_LOGGING
+
+
+class CollectTraitWarningsHandler(logging.NullHandler):
+    regex = re.compile(".*Config option.*not recognized")
+
+    def __init__(self):
+        super().__init__()
+        self.errors = []
+
+    def handle(self, record):
+        if self.regex.match(record.msg) and record.levelno == logging.WARNING:
+            self.errors.append(record.msg)
 
 
 class ToolConfigurationError(Exception):
@@ -152,6 +165,7 @@ class Tool(Application):
         self.raise_config_file_errors = True  # override traitlets.Application default
 
         self.log = logging.getLogger("ctapipe." + self.name)
+        self.trait_warning_handler = CollectTraitWarningsHandler()
         self.update_logging_config()
 
     def initialize(self, argv=None):
@@ -183,6 +197,9 @@ class Tool(Application):
         )
 
         logging.config.dictConfig(cfg)
+
+        # re-add our custom handler every time the config is updated.
+        self.log.addHandler(self.trait_warning_handler)
 
     def add_component(self, component_instance):
         """
@@ -257,6 +274,14 @@ class Tool(Application):
             self.is_setup = True
             self.log.debug(f"CONFIG: {self.get_current_config()}")
             Provenance().add_config(self.get_current_config())
+
+            # check for any traitlets warnings using our custom handler
+            if len(self.trait_warning_handler.errors) > 0:
+                raise ToolConfigurationError(f"Found config errors")
+
+            # remove handler to not impact performance with regex matching
+            self.log.removeHandler(self.trait_warning_handler)
+
             self.start()
             self.finish()
             self.log.info(f"Finished: {self.name}")

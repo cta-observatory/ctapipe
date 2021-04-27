@@ -2,7 +2,7 @@ import requests
 import os
 from pathlib import Path
 import logging
-from tqdm import tqdm
+from tqdm.auto import tqdm
 from urllib.parse import urlparse
 import time
 
@@ -72,7 +72,39 @@ def get_cache_path(url, cache_name="ctapipe", env_override="CTAPIPE_CACHE"):
 
     path = os.path.join(url.netloc.rstrip("/"), url.path.lstrip("/"))
     path = base / path
+    return path
+
+
+def download_cached(
+    url, cache_name="ctapipe", auth=None, env_prefix="CTAPIPE_DATA_", progress=False
+):
+    path = get_cache_path(url, cache_name=cache_name)
     path.parent.mkdir(parents=True, exist_ok=True)
+    part_file = path.with_suffix(path.suffix + ".part")
+
+    if part_file.is_file():
+        log.warning("Another download for this file is already running, waiting.")
+        while part_file.is_file():
+            time.sleep(1)
+
+    # if we already dowloaded the file, just use it
+    if path.is_file():
+        log.debug(f"{url} is available in cache.")
+        return path
+
+    if auth is True:
+        try:
+            auth = (
+                os.environ[env_prefix + "USER"],
+                os.environ[env_prefix + "PASSWORD"],
+            )
+        except KeyError:
+            raise KeyError(
+                f'You need to set the env variables "{env_prefix}USER"'
+                f' and "{env_prefix}PASSWORD" to download test files.'
+            ) from None
+
+    download_file(url=url, path=path, auth=auth, progress=progress)
     return path
 
 
@@ -115,31 +147,6 @@ def download_file_cached(
 
     base_url = os.environ.get(env_prefix + "URL", default_url).rstrip("/")
     url = base_url + "/" + str(name).lstrip("/")
-
-    path = get_cache_path(url, cache_name=cache_name)
-    part_file = path.with_suffix(path.suffix + ".part")
-
-    if part_file.is_file():
-        log.warning("Another download for this file is already running, waiting.")
-        while part_file.is_file():
-            time.sleep(1)
-
-    # if we already dowloaded the file, just use it
-    if path.is_file():
-        log.debug(f"File {name} is available in cache.")
-        return path
-
-    if auth is True:
-        try:
-            auth = (
-                os.environ[env_prefix + "USER"],
-                os.environ[env_prefix + "PASSWORD"],
-            )
-        except KeyError:
-            raise KeyError(
-                f'You need to set the env variables "{env_prefix}USER"'
-                f' and "{env_prefix}PASSWORD" to download test files.'
-            ) from None
-
-    download_file(url=url, path=path, auth=auth, progress=progress)
-    return path
+    return download_cached(
+        url, cache_name=cache_name, auth=auth, env_prefix=env_prefix, progress=progress
+    )

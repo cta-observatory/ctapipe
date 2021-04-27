@@ -9,7 +9,7 @@ from traitlets import List
 
 import tables
 import numpy as np
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from ..io import metadata as meta, DL1EventSource
 from ..io import HDF5TableWriter
