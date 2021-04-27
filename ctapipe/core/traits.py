@@ -50,40 +50,23 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-# make sure sphinx nows the documentation
-
+# Aliases
 Bool = traitlets.Bool
-"""Alias for `traitlets.Bool`"""
 Int = traitlets.Int
-"""Alias for `traitlets.Int`"""
 Integer = traitlets.Integer
-"""Alias for `traitlets.Integer`"""
 Float = traitlets.Float
-"""Alias for `traitlets.Float`"""
 Long = traitlets.Long
-"""Alias for `traitlets.Long`"""
 Unicode = traitlets.Unicode
-"""Alias for `traitlets.Unicode`"""
 Dict = traitlets.Dict
-"""Alias for `traitlets.Dict`"""
 Enum = traitlets.Enum
-"""Alias for `traitlets.Enum`"""
 List = traitlets.List
-"""Alias for `traitlets.List`"""
 Set = traitlets.Set
-"""Alias for `traitlets.Set`"""
-observe = traitlets.observe
-"""Alias for `traitlets.observe`"""
-flag = traitlets.config.boolean_flag
-""" Alias for `traitlets.config.boolean_flag`"""
-TraitError = traitlets.TraitError
-"""Alias for `traitlets.TraitError`"""
-TraitType = traitlets.TraitType
-"""Alias for `traitlets.TraitType`"""
 CRegExp = traitlets.CRegExp
-"""Alias for `traitlets.CRegExp`"""
 CaselessStrEnum = traitlets.CaselessStrEnum
-"""Alias for `traitlets.CaselessStrEnum`"""
+TraitError = traitlets.TraitError
+TraitType = traitlets.TraitType
+observe = traitlets.observe
+flag = traitlets.config.boolean_flag
 
 
 class AstroTime(TraitType):
