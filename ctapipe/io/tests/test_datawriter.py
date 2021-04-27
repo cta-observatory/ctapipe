@@ -192,14 +192,14 @@ def test_dl1writer_no_events(tmpdir: Path):
 
     assert source.file_.histograms is not None
 
-    with DL1Writer(
+    with DataWriter(
         event_source=source,
         output_path=output_path,
         write_parameters=True,
         write_images=True,
-    ) as write_dl1:
-        write_dl1.log.level = logging.DEBUG
-        write_dl1.write_simulation_histograms(source)
+    ) as writer:
+        writer.log.level = logging.DEBUG
+        writer.write_simulation_histograms(source)
 
     assert output_path.exists()
 
