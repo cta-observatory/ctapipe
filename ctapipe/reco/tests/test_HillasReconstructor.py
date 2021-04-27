@@ -5,7 +5,7 @@ import pytest
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.io import EventSource
-from ctapipe.reco.HillasReconstructor import HillasReconstructor, HillasPlane
+from ctapipe.reco.hillas_reconstructor import HillasReconstructor, HillasPlane
 from ctapipe.reco.reco_algorithms import (
     TooFewTelescopesException,
     InvalidWidthException,

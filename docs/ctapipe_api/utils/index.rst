@@ -1,8 +1,8 @@
 .. _utils:
 
-===================
-Utilities (`utils`)
-===================
+============================
+Utilities (`~ctapipe.utils`)
+============================
 
 .. currentmodule:: ctapipe.utils
 
@@ -39,10 +39,10 @@ directory path to the requested file. It currently works as follows:
    defaults.
 
 Tabular data can be accessed automatically using
-`get_table_dataset(basename)`, where the `basename` is the filename
-without the extension.  Several tabular formats will be searched and
-when the file is found it will be opened and read as an
-`astropy.table.Table` object.  For example:
+:func:`get_table_dataset(basename) <.get_table_dataset>`,
+where the ``basename`` is the filename without the extension.
+Several tabular formats will be searched and when the file is found it will be
+opened and read as an ``astropy.table.Table`` object.  For example:
 
 .. code-block:: python
 
@@ -61,6 +61,11 @@ Reference/API
 .. automodapi:: ctapipe.utils.astro
     :no-inheritance-diagram:
 
-.. automodapi:: ctapipe.utils.linalg
+.. automodapi:: ctapipe.utils.datasets
     :no-inheritance-diagram:
 
+.. automodapi:: ctapipe.utils.download
+    :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.utils.linalg
+    :no-inheritance-diagram:

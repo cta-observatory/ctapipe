@@ -21,12 +21,15 @@ from .hdf5tableio import get_hdf5_attr
 __all__ = ["h5_table_to_astropy"]
 
 
+
 def read_table(h5file, path, start=None, stop=None, step=None) -> Table:
-    """Get a table from a ctapipe-format HDF5 table as an `astropy.table.Table`
-    object, retaining units. This uses the same unit storage convention as
-    defined by the `HDF5TableWriter`, namely that the units are in attributes
-    named by `<column name>_UNIT` that are parsible by `astropy.units`. Columns
-    that were Enums will remain as integers.
+    """Read a table from an HDF5 file
+
+    This reads a table written in the ctapipe format table as an `astropy.table.Table`
+    object, inversing the column transformations units.
+
+    This uses the same conventions as the `~ctapipe.io.HDF5TableWriter`,
+    with the exception of Enums, that will remain as integers.
 
     Parameters
     ----------

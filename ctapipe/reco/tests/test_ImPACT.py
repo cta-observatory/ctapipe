@@ -7,7 +7,7 @@ from ctapipe.containers import (
     ReconstructedShowerContainer,
     ReconstructedEnergyContainer,
 )
-from ctapipe.reco.ImPACT import ImPACTReconstructor
+from ctapipe.reco.impact import ImPACTReconstructor
 from ctapipe.containers import HillasParametersContainer
 from astropy.coordinates import Angle, AltAz, SkyCoord
 

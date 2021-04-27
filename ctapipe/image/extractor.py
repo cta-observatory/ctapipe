@@ -204,10 +204,10 @@ def neighbor_average_waveform(waveforms, neighbors_indices, neighbors_indptr, lw
         Shape: (n_pix, n_samples)
     neighbors_indices : ndarray
         indices of a scipy csr sparse matrix of neighbors, i.e.
-        `ctapipe.instrument.CameraGeometry.neighbor_matrix_sparse.indices`.
+        ``ctapipe.instrument.CameraGeometry.neighbor_matrix_sparse.indices``.
     neighbors_indptr : ndarray
         indptr of a scipy csr sparse matrix of neighbors, i.e.
-        `ctapipe.instrument.CameraGeometry.neighbor_matrix_sparse.indptr`.
+        ``ctapipe.instrument.CameraGeometry.neighbor_matrix_sparse.indptr``.
     lwt: int
         Weight of the local pixel (0: peak from neighbors only,
         1: local pixel counts as much as any neighbor)
@@ -1190,9 +1190,7 @@ class TwoPassWindowSum(ImageExtractor):
             Shape: (n_pix)
         """
 
-        charge1, pulse_time1, correction1 = self._apply_first_pass(
-            waveforms, telid
-        )
+        charge1, pulse_time1, correction1 = self._apply_first_pass(waveforms, telid)
 
         # FIXME: properly make sure that output is 32Bit instead of downcasting here
         if self.disable_second_pass:
@@ -1202,12 +1200,7 @@ class TwoPassWindowSum(ImageExtractor):
             )
 
         charge2, pulse_time2 = self._apply_second_pass(
-            waveforms,
-            telid,
-            selected_gain_channel,
-            charge1,
-            pulse_time1,
-            correction1,
+            waveforms, telid, selected_gain_channel, charge1, pulse_time1, correction1
         )
         # FIXME: properly make sure that output is 32Bit instead of downcasting here
         return charge2.astype("float32"), pulse_time2.astype("float32")

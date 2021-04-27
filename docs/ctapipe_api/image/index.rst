@@ -1,8 +1,8 @@
 .. _image:
 
-=================
-Imaging (`image`)
-=================
+==========================
+Imaging (`~ctapipe.image`)
+==========================
 
 .. currentmodule:: ctapipe.image
 

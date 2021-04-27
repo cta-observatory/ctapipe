@@ -6,6 +6,7 @@ from tqdm.auto import tqdm
 from urllib.parse import urlparse
 import time
 
+__all__ = ["download_file", "download_cached", "download_file_cached"]
 
 log = logging.getLogger(__name__)
 

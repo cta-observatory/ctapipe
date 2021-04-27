@@ -228,7 +228,7 @@ class CameraCalibrator(TelescopeComponent):
         Parameters
         ----------
         event : container
-            A `ctapipe` event container
+            A `~ctapipe.containers.ArrayEventContainer` event container
         """
         # TODO: How to handle different calibrations depending on telid?
         tel = event.r1.tel or event.dl0.tel or event.dl1.tel

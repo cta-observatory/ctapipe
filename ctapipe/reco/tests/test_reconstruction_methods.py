@@ -4,7 +4,7 @@ import numpy as np
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.io import EventSource
-from ctapipe.reco.HillasReconstructor import HillasReconstructor
+from ctapipe.reco.hillas_reconstructor import HillasReconstructor
 from ctapipe.reco.hillas_intersection import HillasIntersection
 
 from ctapipe.utils import get_dataset_path
