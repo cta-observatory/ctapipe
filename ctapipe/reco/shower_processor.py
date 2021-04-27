@@ -115,7 +115,7 @@ class ShowerProcessor(Component):
             if all(self.check_shower(dl1.parameters))
         }
         self.log.debug(
-            f"shower_criteria:\n {self.check_shower.to_table()}"
+            "shower_criteria:\n %s", self.check_shower.to_table()
         )
 
         # Reconstruct the shower only if all shower criteria are met
