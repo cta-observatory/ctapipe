@@ -5,6 +5,7 @@ import tables
 import pytest
 from astropy.time import Time
 
+from ctapipe.core import Container, Field
 from ctapipe.containers import ReconstructedEnergyContainer, TelescopeTriggerContainer
 from ctapipe.io import HDF5TableWriter
 from ctapipe.io.astropy_helpers import read_table
@@ -44,6 +45,45 @@ def test_read_table(tmp_path):
     # test a bad input
     with pytest.raises(ValueError):
         table = read_table(12345, "/events")
+
+
+def test_read_table_slicing(tmp_path):
+    filename = tmp_path / "test_slicing.h5"
+
+    # write a simple hdf5 file using
+    class Data(Container):
+        index = Field(0)
+        value = Field(0.0)
+
+    rng = np.random.default_rng(0)
+    values = rng.normal(size=100)
+    index = np.arange(len(values))
+
+    with HDF5TableWriter(filename) as writer:
+        for i, value in zip(index, values):
+            container = Data(index=i, value=value)
+            writer.write("events", container)
+
+    # try opening the result
+    table = read_table(filename, "/events", start=50)
+    assert len(table) == 50
+    assert np.all(table["index"] == index[50:])
+    assert np.all(table["value"] == values[50:])
+
+    table = read_table(filename, "/events", stop=50)
+    assert len(table) == 50
+    assert np.all(table["index"] == index[:50])
+    assert np.all(table["value"] == values[:50])
+
+    table = read_table(filename, "/events", start=10, stop=30)
+    assert len(table) == 20
+    assert np.all(table["index"] == index[10:30])
+    assert np.all(table["value"] == values[10:30])
+
+    table = read_table(filename, "/events", step=5)
+    assert len(table) == 20
+    assert np.all(table["index"] == index[::5])
+    assert np.all(table["value"] == values[::5])
 
 
 def test_read_table_time(tmp_path):
