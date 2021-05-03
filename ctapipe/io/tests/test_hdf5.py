@@ -621,6 +621,41 @@ def test_column_transforms(tmp_path):
         assert np.all(data.image == np.array([1.23, 123.45]))
 
 
+def test_column_transforms_regexps(tmp_path):
+    """ ensure a user-added column transform is applied when given as a regexp"""
+    from ctapipe.io.tableio import FixedPointColumnTransform
+
+    tmp_file = tmp_path / "test_column_transforms.hdf5"
+
+    def multiply_by_10(x):
+        return x * 10
+
+    class SomeContainer(Container):
+        container_prefix = ""
+        hillas_x = Field(1)
+        hillas_y = Field(1)
+
+    cont = SomeContainer()
+
+    with HDF5TableWriter(tmp_file, group_name="data") as writer:
+        writer.add_column_transform_regexp("my.*", "hillas_.*", multiply_by_10)
+        writer.add_column_transform_regexp("anothertable", "hillas_y", multiply_by_10)
+
+        writer.write("mytable", cont)
+        writer.write("anothertable", cont)
+
+    # check that we get back the transformed values (note here a round trip will
+    # not work, as there is no inverse transform in this test)
+    with HDF5TableReader(tmp_file, mode="r") as reader:
+        data = next(reader.read("/data/mytable", SomeContainer()))
+        assert data.hillas_x == 10
+        assert data.hillas_y == 10
+
+        data = next(reader.read("/data/anothertable", SomeContainer()))
+        assert data.hillas_x == 1
+        assert data.hillas_y == 10
+
+
 def test_time(tmp_path):
     tmp_file = tmp_path / "test_time.hdf5"
 

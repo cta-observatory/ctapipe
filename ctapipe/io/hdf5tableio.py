@@ -158,6 +158,11 @@ class HDF5TableWriter(TableWriter):
 
         meta = {}  # any extra meta-data generated here (like units, etc)
 
+        # set up any column tranforms that were requested as regexps (i.e.
+        # convert them to explicit transform in the _transforms dict if they
+        # match)
+        self._realize_regexp_transforms(table_name, containers)
+
         # create pytables schema description for the given container
         pos = 0
         for container in containers:
@@ -180,6 +185,8 @@ class HDF5TableWriter(TableWriter):
                 # apply any user-defined transforms first
                 value = self._apply_col_transform(table_name, col_name, value)
 
+                # now set up automatic transforms to make values that cannot be
+                # written in their default form into a form that is serializable
                 if isinstance(value, enum.Enum):
                     tr = EnumColumnTransform(enum=value.__class__)
                     value = tr(value)

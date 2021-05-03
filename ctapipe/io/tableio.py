@@ -6,6 +6,7 @@ import numpy as np
 from astropy.time import Time
 from astropy.units import Quantity
 
+
 from ..core import Component
 
 
@@ -25,8 +26,9 @@ class TableWriter(Component, metaclass=ABCMeta):
 
     def __init__(self, parent=None, add_prefix=False, **kwargs):
         super().__init__(parent=parent, **kwargs)
-        self._transforms = defaultdict(dict)
-        self._exclusions = defaultdict(list)
+        self._transform_regexps = defaultdict(dict)  # user requested, may be regexps
+        self._transforms = defaultdict(dict)  # fully expanded explicit names
+        self._exclusions = defaultdict(list)  # columns to exclude
         self.add_prefix = add_prefix
 
     def __enter__(self):
@@ -57,25 +59,90 @@ class TableWriter(Component, metaclass=ABCMeta):
         return False
 
     def add_column_transform(self, table_name, col_name, transform):
-        """
-        Add a transformation function for a column. This function will be
-        called on the value in the container before it is written to the
-        output file.
+        """Add a transformation function for a column. This function will be called on
+        the value in the container before it is written to the output file.
 
         Parameters
         ----------
         table_name: str
             identifier of table being written
         col_name: str
-            name of column in the table (or item in the Container)
-        transform: callable
-            function that take a value and returns a new one
+            name of column in the table (or item in the Container).
+        transform: ColumnTransform
+            function that tranforms input into output
+
         """
         # allow leading slash
         self._transforms[table_name.lstrip("/")][col_name] = transform
         self.log.debug(
             "Added transform: {}/{} -> {}".format(table_name, col_name, transform)
         )
+
+    def add_column_transform_regexp(self, table_regexp, col_regexp, transform):
+        """Add a transformation function for a set of columns and tables that match the
+        given regular expressions. Each requested transform pattern will be
+        turned into an explicit column transform when the table schema is built.
+
+        Parameters
+        ----------
+        table_name: regexp
+            pattern matching the table name (via re.matchall)
+        col_name: regexp
+            pattern matching the column name if the table name also matches (via re.matchall)
+        transform: ColumnTransform
+            function that tranformns input value into output value
+
+        """
+        # allow leading slash
+        self._transform_regexps[table_regexp.lstrip("/")][col_regexp] = transform
+        self.log.debug(
+            "Requested transform for pattern: %s/%s -> %s",
+            table_regexp,
+            col_regexp,
+            transform,
+        )
+
+    def _realize_regexp_transforms(self, table_name, containers):
+        """Loops though all requested transform regexps, checks if they apply the the
+        given table, if so, checks each Field in the given Container, and if
+        that matches, calls `self.add_column_transform(table, fieldname)` to
+        create an explicit (non-regexp) transform. This is done for speed
+        reasons: if we called the regexp for each table and each column, it adds
+        a significant overhead.
+
+        This should be called when building the table schema.
+
+        Parameters
+        ----------
+        table_name: str
+            table name
+        containers: List[Container]
+            List of containers to check
+        """
+        for table_regexp, column_regexp_dict in self._transform_regexps.items():
+            if re.fullmatch(table_regexp, table_name):
+                self.log.debug(
+                    "Table '%s' matched pattern '%s'", table_name, table_regexp
+                )
+
+                for column_regexp, transform in column_regexp_dict.items():
+                    for container in containers:
+                        for col_name, value in container.items(
+                            add_prefix=self.add_prefix
+                        ):
+
+                            if re.fullmatch(column_regexp, col_name):
+                                self.log.debug(
+                                    "Column '%s' matched pattern '%s'",
+                                    col_name,
+                                    column_regexp,
+                                )
+
+                                self.add_column_transform(
+                                    table_name=table_name,
+                                    col_name=col_name,
+                                    transform=transform,
+                                )
 
     @abstractmethod
     def write(self, table_name, containers, **kwargs):
