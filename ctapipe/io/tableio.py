@@ -120,29 +120,27 @@ class TableWriter(Component, metaclass=ABCMeta):
             List of containers to check
         """
         for table_regexp, column_regexp_dict in self._transform_regexps.items():
-            if re.fullmatch(table_regexp, table_name):
-                self.log.debug(
-                    "Table '%s' matched pattern '%s'", table_name, table_regexp
-                )
+            if not re.fullmatch(table_regexp, table_name):
+                continue
 
-                for column_regexp, transform in column_regexp_dict.items():
-                    for container in containers:
-                        for col_name, value in container.items(
-                            add_prefix=self.add_prefix
-                        ):
+            self.log.debug("Table '%s' matched pattern '%s'", table_name, table_regexp)
 
-                            if re.fullmatch(column_regexp, col_name):
-                                self.log.debug(
-                                    "Column '%s' matched pattern '%s'",
-                                    col_name,
-                                    column_regexp,
-                                )
+            for column_regexp, transform in column_regexp_dict.items():
+                for container in containers:
+                    for col_name, value in container.items(add_prefix=self.add_prefix):
 
-                                self.add_column_transform(
-                                    table_name=table_name,
-                                    col_name=col_name,
-                                    transform=transform,
-                                )
+                        if re.fullmatch(column_regexp, col_name):
+                            self.log.debug(
+                                "Column '%s' matched pattern '%s'",
+                                col_name,
+                                column_regexp,
+                            )
+
+                            self.add_column_transform(
+                                table_name=table_name,
+                                col_name=col_name,
+                                transform=transform,
+                            )
 
     @abstractmethod
     def write(self, table_name, containers, **kwargs):
