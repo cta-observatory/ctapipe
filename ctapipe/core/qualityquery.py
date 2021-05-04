@@ -113,6 +113,10 @@ class QualityQuery(Component):
         """display nicely in Jupyter notebooks"""
         return self.to_table()._repr_html_()
 
+    def __str__(self):
+        """Print a formatted string representation of the entire table."""
+        return self.to_table().pprint_all(show_unit=True, show_dtype=True)
+
     def __call__(self, value) -> np.ndarray:
         """
         Test that value passes all cuts
