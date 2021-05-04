@@ -18,7 +18,6 @@ from ctapipe.containers import (
     LeakageContainer,
 )
 from ctapipe.io.hdf5tableio import HDF5TableWriter, HDF5TableReader
-from ctapipe.io.tableio import ColumnTransform
 from ctapipe.io import read_table
 
 
@@ -623,7 +622,6 @@ def test_column_transforms(tmp_path):
 
 def test_column_transforms_regexps(tmp_path):
     """ ensure a user-added column transform is applied when given as a regexp"""
-    from ctapipe.io.tableio import FixedPointColumnTransform
 
     tmp_file = tmp_path / "test_column_transforms.hdf5"
 
