@@ -1,3 +1,8 @@
+"""
+Base functionality for reading and writing tabular data
+"""
+
+
 import re
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
@@ -88,7 +93,8 @@ class TableWriter(Component, metaclass=ABCMeta):
         table_name: regexp
             pattern matching the table name (via re.matchall)
         col_name: regexp
-            pattern matching the column name if the table name also matches (via re.matchall)
+            pattern matching the column name if the table name also matches
+            (via re.matchall)
         transform: ColumnTransform
             function that tranformns input value into output value
 
@@ -127,7 +133,7 @@ class TableWriter(Component, metaclass=ABCMeta):
 
             for column_regexp, transform in column_regexp_dict.items():
                 for container in containers:
-                    for col_name, value in container.items(add_prefix=self.add_prefix):
+                    for col_name, _ in container.items(add_prefix=self.add_prefix):
 
                         if re.fullmatch(column_regexp, col_name):
                             self.log.debug(
@@ -178,6 +184,7 @@ class TableWriter(Component, metaclass=ABCMeta):
 
     @abstractmethod
     def close(self):
+        """ Close open writer """
         pass
 
     def _apply_col_transform(self, table_name, col_name, value):
@@ -281,10 +288,12 @@ class ColumnTransform(metaclass=ABCMeta):
     def __call__(self, value):
         pass
 
+    @abstractmethod
     def inverse(self, value):
         """No inverse transform by default"""
         return value
 
+    @abstractmethod
     def get_meta(self, colname):
         """Empty meta by default"""
         return {}
