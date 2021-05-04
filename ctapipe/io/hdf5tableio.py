@@ -425,8 +425,8 @@ class HDF5TableReader(TableReader):
                 colname, _, _ = attr.rpartition("_TIME_SCALE")
                 scale = tab.attrs[attr]
                 time_format = get_hdf5_attr(tab.attrs, colname + "_TIME_FORMAT", "mjd")
-                tr = TimeColumnTransform(scale=scale, format=time_format)
-                self.add_column_transform(table_name, colname, tr)
+                transform = TimeColumnTransform(scale=scale, format=time_format)
+                self.add_column_transform(table_name, colname, transform)
 
             elif attr.endswith("_TRANSFORM_SCALE"):
                 colname, _, _ = attr.rpartition("_TRANSFORM_SCALE")
