@@ -340,6 +340,12 @@ class SimTelEventSource(EventSource):
 
     @property
     def subarray(self):
+        if self.allowed_tels:
+            return self._subarray_info.select_subarray(
+                self._subarray_info.name
+                + "_subset".join(f"_{t}" for t in self.allowed_tels),
+                self.allowed_tels,
+            )
         return self._subarray_info
 
     def _generator(self):
@@ -454,8 +460,7 @@ class SimTelEventSource(EventSource):
 
         return TelescopePointingContainer(azimuth=azimuth, altitude=altitude)
 
-    @staticmethod
-    def _fill_trigger_info(data, array_event):
+    def _fill_trigger_info(self, data, array_event):
         trigger = array_event["trigger_information"]
 
         if array_event["type"] == "data":
@@ -471,13 +476,17 @@ class SimTelEventSource(EventSource):
             data.trigger.event_type = EventType.UNKNOWN
 
         data.trigger.tels_with_trigger = trigger["triggered_telescopes"]
+        if self.allowed_tels:
+            data.trigger.tels_with_trigger = np.intersect1d(
+                data.trigger.tels_with_trigger, np.array(list(self.allowed_tels))
+            )
         central_time = parse_simtel_time(trigger["gps_time"])
         data.trigger.time = central_time
 
         for tel_id, time in zip(
-            trigger["triggered_telescopes"], trigger["trigger_times"]
+            data.trigger.tels_with_trigger, trigger["trigger_times"]
         ):
-            # telesocpe time is relative to central trigger in ns
+            # telescope time is relative to central trigger in ns
             time = Time(
                 central_time.jd1,
                 central_time.jd2 + time / NANOSECONDS_PER_DAY,

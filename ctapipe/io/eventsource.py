@@ -93,6 +93,7 @@ class EventSource(Component):
     ).tag(config=True)
 
     allowed_tels = Set(
+        trait=Int(),
         default_value=None,
         allow_none=True,
         help=(
