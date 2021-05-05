@@ -405,33 +405,3 @@ def test_bokeh_file_viewer(tmpdir):
     assert run_tool(tool, cwd=tmpdir) == 0
     assert tool.reader.input_url == get_dataset_path("gamma_test_large.simtel.gz")
     assert run_tool(tool, ["--help-all"]) == 0
-
-
-def test_extract_charge_resolution(tmpdir):
-    from ctapipe.tools.extract_charge_resolution import ChargeResolutionGenerator
-
-    output_path = os.path.join(str(tmpdir), "cr.h5")
-    tool = ChargeResolutionGenerator()
-
-    assert (
-        run_tool(tool, ["-f", str(GAMMA_TEST_LARGE), "-O", output_path], cwd=tmpdir)
-        == 1
-    )
-    # TODO: Test files do not contain true charge, cannot test tool fully
-    # assert os.path.exists(output_path)
-    assert run_tool(tool, ["--help-all"]) == 0
-
-
-def test_plot_charge_resolution(tmpdir):
-    from ctapipe.tools.plot_charge_resolution import ChargeResolutionViewer
-    from ctapipe.plotting.tests.test_charge_resolution import create_temp_cr_file
-
-    path = create_temp_cr_file(tmpdir)
-
-    output_path = os.path.join(str(tmpdir), "cr.pdf")
-    tool = ChargeResolutionViewer()
-
-    argv = ["-f", str(path), "-o", output_path]
-    assert run_tool(tool, argv) == 0
-    assert os.path.exists(output_path)
-    assert run_tool(tool, ["--help-all"]) == 0

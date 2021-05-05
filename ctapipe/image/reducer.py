@@ -5,7 +5,12 @@ from abc import abstractmethod
 import numpy as np
 from ctapipe.image import TailcutsImageCleaner
 from ctapipe.core import TelescopeComponent
-from ctapipe.core.traits import IntTelescopeParameter, BoolTelescopeParameter, Unicode
+from ctapipe.core.traits import (
+    IntTelescopeParameter,
+    BoolTelescopeParameter,
+    TelescopeParameter,
+    create_class_enum_trait,
+)
 from ctapipe.image.extractor import ImageExtractor
 from ctapipe.image.cleaning import dilate
 
@@ -115,9 +120,12 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         normal TailcutCleaning is used.
     """
 
-    image_extractor_type = Unicode(
+    image_extractor_type = TelescopeParameter(
+        trait=create_class_enum_trait(
+            ImageExtractor, default_value="NeighborPeakWindowSum"
+        ),
         default_value="NeighborPeakWindowSum",
-        help="Name of the image_extractor" "to be used.",
+        help="Name of the ImageExtractor subclass to be used.",
     ).tag(config=True)
 
     n_end_dilates = IntTelescopeParameter(
@@ -157,17 +165,22 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         else:
             self.cleaner = cleaner
 
+        self.image_extractors = {}
         if image_extractor is None:
-            self.image_extractor = ImageExtractor.from_name(
-                self.image_extractor_type, subarray=self.subarray, parent=self
-            )
+            for (_, _, name) in self.image_extractor_type:
+                self.image_extractors[name] = ImageExtractor.from_name(
+                    name, subarray=self.subarray, parent=self
+                )
         else:
-            self.image_extractor = image_extractor
+            name = image_extractor.__class__.__name__
+            self.image_extractor_type = [("type", "*", name)]
+            self.image_extractors[name] = image_extractor
 
     def select_pixels(self, waveforms, telid=None, selected_gain_channel=None):
         camera_geom = self.subarray.tel[telid].camera.geometry
         # Pulse-integrate waveforms
-        charge, _ = self.image_extractor(
+        extractor = self.image_extractors[self.image_extractor_type.tel[telid]]
+        charge, _ = extractor(
             waveforms, telid=telid, selected_gain_channel=selected_gain_channel
         )
 

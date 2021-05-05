@@ -9,7 +9,7 @@ from traitlets import List
 
 import tables
 import numpy as np
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from ..io import metadata as meta, DL1EventSource
 from ..io import HDF5TableWriter
@@ -357,7 +357,9 @@ class MergeTool(Tool):
         ):
 
             if not DL1EventSource.is_compatible(current_file):
-                self.log.critical("input file {file} is not a supported DL1 file")
+                self.log.critical(
+                    f"input file {current_file} is not a supported DL1 file"
+                )
                 if self.skip_broken_files:
                     continue
                 else:

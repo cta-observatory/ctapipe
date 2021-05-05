@@ -48,6 +48,9 @@ __all__ = [
     "TimingParametersContainer",
     "TriggerContainer",
     "WaveformCalibrationContainer",
+    "StatisticsContainer",
+    "IntensityStatisticsContainer",
+    "PeakTimeStatisticsContainer",
 ]
 
 
@@ -157,7 +160,7 @@ class ConcentrationContainer(Container):
 
     container_prefix = "concentration"
     cog = Field(
-        nan, "Percentage of photo-electrons in the three pixels closest to the cog"
+        nan, "Percentage of photo-electrons inside one pixel diameter of the cog"
     )
     core = Field(nan, "Percentage of photo-electrons inside the hillas ellipse")
     pixel = Field(nan, "Percentage of photo-electrons in the brightest pixel")
@@ -212,6 +215,7 @@ class PeakTimeStatisticsContainer(StatisticsContainer):
 
 class CoreParametersContainer(Container):
     """Telescope-wise shower's direction in the Tilted/Ground Frame"""
+
     container_prefix = "core"
     psi = Field(nan * u.deg, "Image direction in the Tilted/Ground Frame", unit="deg")
 
@@ -231,7 +235,9 @@ class ImageParametersContainer(Container):
     peak_time_statistics = Field(
         PeakTimeStatisticsContainer(), "Peak time image statistics"
     )
-    core = Field(CoreParametersContainer(), "Image direction in the Tilted/Ground Frame")
+    core = Field(
+        CoreParametersContainer(), "Image direction in the Tilted/Ground Frame"
+    )
 
 
 class DL1CameraContainer(Container):

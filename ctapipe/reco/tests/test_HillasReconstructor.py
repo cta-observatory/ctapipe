@@ -7,7 +7,7 @@ from ctapipe.instrument import SubarrayDescription, TelescopeDescription
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.io import EventSource
-from ctapipe.reco.HillasReconstructor import HillasReconstructor, HillasPlane
+from ctapipe.reco.hillas_reconstructor import HillasReconstructor, HillasPlane
 from ctapipe.utils import get_dataset_path
 from ctapipe.coordinates import TelescopeFrame
 from astropy.coordinates import SkyCoord, AltAz
@@ -170,10 +170,7 @@ def test_parallel_reconstruction():
             )
 
             mask = tailcuts_clean(
-                geom_TelescopeFrame,
-                dl1.image,
-                picture_thresh=10.0,
-                boundary_thresh=5.0,
+                geom_TelescopeFrame, dl1.image, picture_thresh=10.0, boundary_thresh=5.0
             )
 
             try:
@@ -186,10 +183,14 @@ def test_parallel_reconstruction():
                 hillas_dict_CameraFrame[tel_id] = moments_CameraFrame
                 hillas_dict_TelescopeFrame[tel_id] = moments_TelescopeFrame
 
-                event_CameraFrame.dl1.tel[tel_id].parameters = ImageParametersContainer()
+                event_CameraFrame.dl1.tel[
+                    tel_id
+                ].parameters = ImageParametersContainer()
                 dl1.parameters = ImageParametersContainer()
 
-                event_CameraFrame.dl1.tel[tel_id].parameters.hillas = moments_CameraFrame
+                event_CameraFrame.dl1.tel[
+                    tel_id
+                ].parameters.hillas = moments_CameraFrame
                 dl1.parameters.hillas = moments_TelescopeFrame
 
                 if (
@@ -201,25 +202,25 @@ def test_parallel_reconstruction():
                     event_CameraFrame.dl1.tel[
                         tel_id
                     ].parameters.hillas = HillasParametersContainer()
-                    event.dl1.tel[
-                        tel_id
-                    ].parameters.hillas = HillasParametersContainer(
-                        x = float("nan") * u.deg,
-                        y = float("nan") * u.deg,
-                        r = float("nan") * u.deg,
-                        width = float("nan") * u.deg,
-                        length = float("nan") * u.deg
+                    event.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer(
+                        x=float("nan") * u.deg,
+                        y=float("nan") * u.deg,
+                        r=float("nan") * u.deg,
+                        width=float("nan") * u.deg,
+                        length=float("nan") * u.deg,
                     )
 
             except HillasParameterizationError as e:
                 print(e)
-                event_CameraFrame.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer()
+                event_CameraFrame.dl1.tel[
+                    tel_id
+                ].parameters.hillas = HillasParametersContainer()
                 event.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer(
-                    x = float("nan") * u.deg,
-                    y = float("nan") * u.deg,
-                    r = float("nan") * u.deg,
-                    width = float("nan") * u.deg,
-                    length = float("nan") * u.deg
+                    x=float("nan") * u.deg,
+                    y=float("nan") * u.deg,
+                    r=float("nan") * u.deg,
+                    width=float("nan") * u.deg,
+                    length=float("nan") * u.deg,
                 )
 
         if (len(hillas_dict_CameraFrame) < 2) and (len(hillas_dict_TelescopeFrame) < 2):
@@ -305,10 +306,7 @@ def test_divergent_reconstruction():
             )
 
             mask = tailcuts_clean(
-                geom_TelescopeFrame,
-                dl1.image,
-                picture_thresh=10.0,
-                boundary_thresh=5.0,
+                geom_TelescopeFrame, dl1.image, picture_thresh=10.0, boundary_thresh=5.0
             )
 
             try:
@@ -405,7 +403,7 @@ def test_invalid_events():
 
         # copy event container to modify it
         event_copy = deepcopy(event)
-        # overwrite all image parameters but the last one with dummy ones 
+        # overwrite all image parameters but the last one with dummy ones
         for tel_id in list(event_copy.dl1.tel.keys())[:-1]:
             event_copy.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer()
         fit(event_copy)

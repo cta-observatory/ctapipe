@@ -5,12 +5,9 @@ from ctapipe.containers import ImageParametersContainer, HillasParametersContain
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.io import EventSource
-from ctapipe.reco import HillasReconstructor
-from ctapipe.reco.hillas_intersection import HillasIntersection
+from ctapipe.reco import HillasReconstructor, HillasIntersection
 
-from ctapipe.reco.reco_algorithms import (
-    InvalidWidthException,
-)
+from ctapipe.reco.reco_algorithms import InvalidWidthException
 
 from ctapipe.utils import get_dataset_path
 from astropy.coordinates import SkyCoord, AltAz
@@ -75,9 +72,7 @@ def test_reconstructors(reconstructors):
                 continue
 
             # Make sure we provide only good images for the test
-            if (
-                np.isnan(moments.width.value) or (moments.width.value == 0)
-            ):
+            if np.isnan(moments.width.value) or (moments.width.value == 0):
                 dl1.parameters.hillas = HillasParametersContainer()
             else:
                 dl1.parameters.hillas = moments

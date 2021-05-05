@@ -187,7 +187,7 @@ class ImageModel(metaclass=ABCMeta):
         For the signal, poisson random numbers are drawn from
         the expected signal distribution for each pixel.
         For the background, for each pixel a poisson random number
-        if drawn with mean `nsb_level_pe`.
+        if drawn with mean ``nsb_level_pe``.
 
         Parameters
         ----------

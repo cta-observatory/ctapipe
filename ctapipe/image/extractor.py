@@ -204,10 +204,10 @@ def neighbor_average_waveform(waveforms, neighbors_indices, neighbors_indptr, lw
         Shape: (n_pix, n_samples)
     neighbors_indices : ndarray
         indices of a scipy csr sparse matrix of neighbors, i.e.
-        `ctapipe.instrument.CameraGeometry.neighbor_matrix_sparse.indices`.
+        ``ctapipe.instrument.CameraGeometry.neighbor_matrix_sparse.indices``.
     neighbors_indptr : ndarray
         indptr of a scipy csr sparse matrix of neighbors, i.e.
-        `ctapipe.instrument.CameraGeometry.neighbor_matrix_sparse.indptr`.
+        ``ctapipe.instrument.CameraGeometry.neighbor_matrix_sparse.indptr``.
     lwt: int
         Weight of the local pixel (0: peak from neighbors only,
         1: local pixel counts as much as any neighbor)
@@ -361,7 +361,7 @@ class ImageExtractor(TelescopeComponent):
         """
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
 
-        self.sampling_rate = {
+        self.sampling_rate_ghz = {
             telid: telescope.camera.readout.sampling_rate.to_value("GHz")
             for telid, telescope in subarray.tel.items()
         }
@@ -403,7 +403,7 @@ class FullWaveformSum(ImageExtractor):
 
     def __call__(self, waveforms, telid, selected_gain_channel):
         charge, peak_time = extract_around_peak(
-            waveforms, 0, waveforms.shape[-1], 0, self.sampling_rate[telid]
+            waveforms, 0, waveforms.shape[-1], 0, self.sampling_rate_ghz[telid]
         )
         return charge, peak_time
 
@@ -464,7 +464,7 @@ class FixedWindowSum(ImageExtractor):
             self.peak_index.tel[telid],
             self.window_width.tel[telid],
             self.window_shift.tel[telid],
-            self.sampling_rate[telid],
+            self.sampling_rate_ghz[telid],
         )
         if self.apply_integration_correction.tel[telid]:
             charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
@@ -527,7 +527,7 @@ class GlobalPeakWindowSum(ImageExtractor):
             peak_index,
             self.window_width.tel[telid],
             self.window_shift.tel[telid],
-            self.sampling_rate[telid],
+            self.sampling_rate_ghz[telid],
         )
         if self.apply_integration_correction.tel[telid]:
             charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
@@ -590,7 +590,7 @@ class LocalPeakWindowSum(ImageExtractor):
             peak_index,
             self.window_width.tel[telid],
             self.window_shift.tel[telid],
-            self.sampling_rate[telid],
+            self.sampling_rate_ghz[telid],
         )
         if self.apply_integration_correction.tel[telid]:
             charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
@@ -665,7 +665,7 @@ class SlidingWindowMaxSum(ImageExtractor):
 
     def __call__(self, waveforms, telid, selected_gain_channel):
         charge, peak_time = extract_sliding_window(
-            waveforms, self.window_width.tel[telid], self.sampling_rate[telid]
+            waveforms, self.window_width.tel[telid], self.sampling_rate_ghz[telid]
         )
         if self.apply_integration_correction.tel[telid]:
             charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
@@ -741,7 +741,7 @@ class NeighborPeakWindowSum(ImageExtractor):
             peak_index,
             self.window_width.tel[telid],
             self.window_shift.tel[telid],
-            self.sampling_rate[telid],
+            self.sampling_rate_ghz[telid],
         )
         if self.apply_integration_correction.tel[telid]:
             charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
@@ -914,7 +914,11 @@ class TwoPassWindowSum(ImageExtractor):
 
         # this function is applied to all pixels together
         charge_1stpass, pulse_time_1stpass = extract_around_peak(
-            waveforms, peak_index, window_width, window_shift, self.sampling_rate[telid]
+            waveforms,
+            peak_index,
+            window_width,
+            window_shift,
+            self.sampling_rate_ghz[telid],
         )
 
         # Get integration correction factors
@@ -979,7 +983,7 @@ class TwoPassWindowSum(ImageExtractor):
 
         # Preliminary image cleaning with simple two-level tail-cut
         camera_geometry = self.subarray.tel[telid].camera.geometry
-        mask_1 = tailcuts_clean(
+        mask_clean = tailcuts_clean(
             camera_geometry,
             charge_1stpass,
             picture_thresh=core_th,
@@ -987,36 +991,32 @@ class TwoPassWindowSum(ImageExtractor):
             keep_isolated_pixels=False,
             min_number_picture_neighbors=1,
         )
-        image_1 = charge_1stpass.copy()
-        image_1[~mask_1] = 0
 
         # STEP 3
 
+        # Indexes of pixels that will need the 2nd pass
+        non_core_pixels_mask = charge_1stpass < core_th
+
         # find all islands using this cleaning
-        num_islands, labels = number_of_islands(camera_geometry, mask_1)
-        if num_islands == 0:
-            image_2 = image_1.copy()  # no islands = image unchanged
-        else:
+        num_islands, labels = number_of_islands(camera_geometry, mask_clean)
+
+        if num_islands > 0:
             # ...find the biggest one
             mask_biggest = largest_island(labels)
-            image_2 = image_1.copy()
-            image_2[~mask_biggest] = 0
-
-        # Indexes of pixels that will need the 2nd pass
-        non_core_pixels_ids = np.where(image_2 < core_th)[0]
-        non_core_pixels_mask = image_2 < core_th
+        else:
+            mask_biggest = mask_clean
 
         # STEP 4
 
         # if the resulting image has less then 3 pixels
         # or there are more than 3 pixels but all contain a number of
         # photoelectrons above the core threshold
-        if np.count_nonzero(image_2) < 3:
+        if np.count_nonzero(mask_biggest) < 3:
             # we return the 1st pass information
             # NOTE: In this case, the image was not bright enough!
             # We should label it as "bad and NOT use it"
             return charge_1stpass, pulse_time_1stpass
-        elif len(non_core_pixels_ids) == 0:
+        elif np.count_nonzero(non_core_pixels_mask) == 0:
             # Since all reconstructed charges are above the core threshold,
             # there is no need to perform the 2nd pass.
             # We return the 1st pass information.
@@ -1025,38 +1025,44 @@ class TwoPassWindowSum(ImageExtractor):
             return charge_1stpass, pulse_time_1stpass
 
         # otherwise we proceed by parametrizing the image
-        hillas = hillas_parameters(camera_geometry, image_2)
+        camera_geometry_biggest = camera_geometry[mask_biggest]
+        charge_biggest = charge_1stpass[mask_biggest]
+        hillas = hillas_parameters(camera_geometry_biggest, charge_biggest)
 
         # STEP 5
 
         # linear fit of pulse time vs. distance along major image axis
         # using only the main island surviving the preliminary
         # image cleaning
-        timing = timing_parameters(camera_geometry, image_2, pulse_time_1stpass, hillas)
+        timing = timing_parameters(
+            geom=camera_geometry_biggest,
+            image=charge_biggest,
+            peak_time=pulse_time_1stpass[mask_biggest],
+            hillas_parameters=hillas,
+        )
 
         # If the fit returns nan
         if np.isnan(timing.slope):
             return charge_1stpass, pulse_time_1stpass
 
         # get projected distances along main image axis
-        long, _ = camera_to_shower_coordinates(
+        longitude, _ = camera_to_shower_coordinates(
             camera_geometry.pix_x, camera_geometry.pix_y, hillas.x, hillas.y, hillas.psi
         )
 
         # get the predicted times as a linear relation
         predicted_pulse_times = (
-            timing.slope * long[non_core_pixels_ids] + timing.intercept
+            timing.slope * longitude[non_core_pixels_mask] + timing.intercept
         )
-
-        predicted_peaks = np.zeros(len(predicted_pulse_times))
 
         # Convert time in ns to sample index using the sampling rate from
         # the readout.
         # Approximate the value obtained to nearest integer, then cast to
         # int64 otherwise 'extract_around_peak' complains.
-        sampling_rate = self.sampling_rate[telid]
-        np.rint(predicted_pulse_times.value * sampling_rate, predicted_peaks)
-        predicted_peaks = predicted_peaks.astype(np.int64)
+
+        predicted_peaks = np.rint(
+            predicted_pulse_times.value * self.sampling_rate_ghz[telid]
+        ).astype(np.int64)
 
         # Due to the fit these peak indexes can now be also outside of the
         # readout window, so later we check for this.
@@ -1065,7 +1071,7 @@ class TwoPassWindowSum(ImageExtractor):
 
         # select only the waveforms correspondent to the non-core pixels
         # of the main island survived from the 1st pass image cleaning
-        non_core_waveforms = waveforms[non_core_pixels_ids]
+        non_core_waveforms = waveforms[non_core_pixels_mask]
 
         # Build 'width' and 'shift' arrays that adapt on the position of the
         # window along each waveform
@@ -1077,8 +1083,8 @@ class TwoPassWindowSum(ImageExtractor):
 
         # now let's deal with some edge cases: the predicted peak falls before
         # or after the readout window:
-        peak_before_window = predicted_peaks < 0
-        peak_after_window = predicted_peaks > (non_core_waveforms.shape[1] - 1)
+        peak_before_readout = predicted_peaks < 0
+        peak_after_readout = predicted_peaks > (non_core_waveforms.shape[1] - 1)
 
         # BUT, if the resulting 5-samples window falls outside of the readout
         # window then we take the first (or last) 5 samples
@@ -1091,18 +1097,18 @@ class TwoPassWindowSum(ImageExtractor):
 
         # and put them together:
         window_widths = np.full(non_core_waveforms.shape[0], window_width_default)
-        window_widths[peak_before_window] = window_width_before
-        window_widths[peak_after_window] = window_width_after
+        window_widths[peak_before_readout] = window_width_before
+        window_widths[peak_after_readout] = window_width_after
         window_shifts = np.full(non_core_waveforms.shape[0], window_shift_default)
-        window_shifts[peak_before_window] = window_shift_before
-        window_shifts[peak_after_window] = window_shift_after
+        window_shifts[peak_before_readout] = window_shift_before
+        window_shifts[peak_after_readout] = window_shift_after
 
-        # Now we can also (re)define the patological predicted times
-        # because (we needed them to define the corrispective widths
-        # and shifts)
-        # set sample to 0 (beginning of the waveform) if predicted time
-        # falls before
+        # Now we can also (re)define the pathological predicted times because
+        # (we needed them to define the corrispective widths and shifts) set
+        # sample to 0 (beginning of the waveform) if predicted time falls before
+
         predicted_peaks[predicted_peaks < 0] = 0
+
         # set sample to max-1 (first sample has index 0)
         # if predicted time falls after
         predicted_peaks[predicted_peaks > (waveforms.shape[1] - 1)] = (
@@ -1115,7 +1121,7 @@ class TwoPassWindowSum(ImageExtractor):
             predicted_peaks,
             window_widths,
             window_shifts,
-            self.sampling_rate[telid],
+            self.sampling_rate_ghz[telid],
         )
 
         if self.apply_integration_correction.tel[telid]:
@@ -1133,8 +1139,8 @@ class TwoPassWindowSum(ImageExtractor):
                 telid, window_width_after, window_shift_after
             )[selected_gain_channel][non_core_pixels_mask]
 
-            correction[peak_before_window] = correction_before[peak_before_window]
-            correction[peak_after_window] = correction_after[peak_after_window]
+            correction[peak_before_readout] = correction_before[peak_before_readout]
+            correction[peak_after_readout] = correction_after[peak_after_readout]
 
             charge_no_core *= correction
 
@@ -1145,7 +1151,7 @@ class TwoPassWindowSum(ImageExtractor):
         # this is the biggest cluster from the cleaned image
         # it contains the core pixels (which we leave untouched)
         # plus possibly some non-core pixels
-        charge_2ndpass = image_2.copy()
+        charge_2ndpass = charge_1stpass.copy()
         # Now we overwrite the charges of all non-core pixels in the camera
         # plus all those pixels which didn't survive the preliminary
         # cleaning.

@@ -31,7 +31,7 @@ import numpy as np
 
 from astropy import units as u
 
-__all__ = ["HillasReconstructor", "HillasPlane"]
+__all__ = ["HillasPlane", "HillasReconstructor"]
 
 
 def angle(v1, v2):
@@ -87,6 +87,66 @@ def line_line_intersection_3d(uvw_vectors, origins):
     return np.linalg.inv(S) @ C
 
 
+class HillasPlane:
+    """
+    a tiny helper class to collect some parameters for each great great
+    circle
+
+    Stores some vectors a, b, and c
+
+    These vectors are euclidean [x, y, z] where positive z values point towards the sky
+    and x and y are parallel to the ground.
+    """
+
+    def __init__(self, p1, p2, telescope_position, weight=1):
+        r"""The constructor takes two coordinates in the horizontal
+        frame (alt, az) which define a plane perpendicular
+        to the camera.
+
+        Parameters
+        -----------
+        p1: astropy.coordinates.SkyCoord
+            One of two direction vectors which define the plane.
+            This coordinate has to be defined in the ctapipe.coordinates.AltAz
+        p2: astropy.coordinates.SkyCoord
+            One of two direction vectors which define the plane.
+            This coordinate has to be defined in the ctapipe.coordinates.AltAz
+        telescope_position: np.array(3)
+            Position of the telescope on the ground
+        weight : float, optional
+            weight of this plane for later use during the reconstruction
+
+        Notes
+        -----
+        c: numpy.ndarray(3)
+            :math:`\vec c = (\vec a \times \vec b) \times \vec a`
+            :math:`\rightarrow` a and c form an orthogonal base for the
+            great circle
+            (only orthonormal if a and b are of unit-length)
+        norm: numpy.ndarray(3)
+            normal vector of the circle's plane,
+            perpendicular to a, b and c
+        """
+
+        self.pos = telescope_position
+
+        # astropy's coordinates system rotates counter clockwise. Apparently we assume it to
+        # be clockwise
+        self.a = np.array(spherical_to_cartesian(1, p1.alt, -p1.az)).ravel()
+        self.b = np.array(spherical_to_cartesian(1, p2.alt, -p2.az)).ravel()
+
+        # a and c form an orthogonal basis for the great circle
+        # not really necessary since the norm can be calculated
+        # with a and b just as well
+        self.c = np.cross(np.cross(self.a, self.b), self.a)
+        # normal vector for the plane defined by the great circle
+        self.norm = normalise(np.cross(self.a, self.c))
+        # some weight for this circle
+        # (put e.g. uncertainty on the Hillas parameters
+        # or number of PE in here)
+        self.weight = weight
+
+
 class HillasReconstructor(Reconstructor):
     """
     class that reconstructs the direction of an atmospheric shower
@@ -104,8 +164,7 @@ class HillasReconstructor(Reconstructor):
         self.subarray = subarray
 
         self._cam_radius_m = {
-            cam: cam.geometry.guess_radius()
-            for cam in subarray.camera_types
+            cam: cam.geometry.guess_radius() for cam in subarray.camera_types
         }
 
         telframe = TelescopeFrame()
@@ -250,7 +309,7 @@ class HillasReconstructor(Reconstructor):
         self, hillas_dict, subarray, telescopes_pointings, array_pointing
     ):
         """
-        Creates a dictionary of :class:`.HillasPlane` from a dictionary of
+        Creates a dictionary of `.HillasPlane` from a dictionary of
         hillas parameters
 
         Parameters
@@ -294,8 +353,12 @@ class HillasReconstructor(Reconstructor):
             if moments.x.unit.is_equivalent(u.m):  # Image parameters are in CameraFrame
 
                 # we just need any point on the main shower axis a bit away from the cog
-                p2_x = moments.x + 0.1 * self._cam_radius_m[camera] * np.cos(moments.psi)
-                p2_y = moments.y + 0.1 * self._cam_radius_m[camera] * np.sin(moments.psi)
+                p2_x = moments.x + 0.1 * self._cam_radius_m[camera] * np.cos(
+                    moments.psi
+                )
+                p2_y = moments.y + 0.1 * self._cam_radius_m[camera] * np.sin(
+                    moments.psi
+                )
 
                 camera_frame = CameraFrame(
                     focal_length=focal_length, telescope_pointing=pointing
@@ -475,63 +538,3 @@ class HillasReconstructor(Reconstructor):
 
         # not sure if its better to return the length of the vector of the z component
         return np.linalg.norm(line_line_intersection_3d(uvw_vectors, positions)) * u.m
-
-
-class HillasPlane:
-    """
-    a tiny helper class to collect some parameters for each great great
-    circle
-
-    Stores some vectors a, b, and c
-
-    These vectors are euclidean [x, y, z] where positive z values point towards the sky
-    and x and y are parallel to the ground.
-    """
-
-    def __init__(self, p1, p2, telescope_position, weight=1):
-        """The constructor takes two coordinates in the horizontal
-        frame (alt, az) which define a plane perpendicular
-        to the camera.
-
-        Parameters
-        -----------
-        p1: astropy.coordinates.SkyCoord
-            One of two direction vectors which define the plane.
-            This coordinate has to be defined in the ctapipe.coordinates.AltAz
-        p2: astropy.coordinates.SkyCoord
-            One of two direction vectors which define the plane.
-            This coordinate has to be defined in the ctapipe.coordinates.AltAz
-        telescope_position: np.array(3)
-            Position of the telescope on the ground
-        weight : float, optional
-            weight of this plane for later use during the reconstruction
-
-        Notes
-        -----
-        c: numpy.ndarray(3)
-            :math:`\vec c = (\vec a \times \vec b) \times \vec a`
-            :math:`\rightarrow` a and c form an orthogonal base for the
-            great circle
-            (only orthonormal if a and b are of unit-length)
-        norm: numpy.ndarray(3)
-            normal vector of the circle's plane,
-            perpendicular to a, b and c
-        """
-
-        self.pos = telescope_position
-
-        # astropy's coordinates system rotates counter clockwise. Apparently we assume it to
-        # be clockwise
-        self.a = np.array(spherical_to_cartesian(1, p1.alt, -p1.az)).ravel()
-        self.b = np.array(spherical_to_cartesian(1, p2.alt, -p2.az)).ravel()
-
-        # a and c form an orthogonal basis for the great circle
-        # not really necessary since the norm can be calculated
-        # with a and b just as well
-        self.c = np.cross(np.cross(self.a, self.b), self.a)
-        # normal vector for the plane defined by the great circle
-        self.norm = normalise(np.cross(self.a, self.c))
-        # some weight for this circle
-        # (put e.g. uncertainty on the Hillas parameters
-        # or number of PE in here)
-        self.weight = weight

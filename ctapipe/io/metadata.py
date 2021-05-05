@@ -95,7 +95,7 @@ class Activity(HasTraits):
     """ Activity (tool) information """
 
     @classmethod
-    def from_provenance(cls, activity: _ActivityProvenance):
+    def from_provenance(cls, activity):
         """ construct Activity metadata from existing ActivityProvenance object"""
         return Activity(
             name=activity["activity_name"],
@@ -192,7 +192,7 @@ class Reference(HasTraits):
         """
         convert Reference metadata to a flat dict.
 
-        If `fits=True`, this will include the `HIERARCH` keyword in front.
+        If ``fits=True``, this will include the ``HIERARCH`` keyword in front.
         """
         prefix = "CTA " if fits is False else "HIERARCH CTA "
 

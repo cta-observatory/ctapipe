@@ -6,7 +6,7 @@ process the events and apply pre-selection cuts to the images
 An HDF5 file is written with image MC and moment parameters
 (e.g. length, width, image amplitude, etc.).
 """
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from ctapipe.core import Tool
 from ctapipe.core.traits import Path, Unicode, Dict, Bool

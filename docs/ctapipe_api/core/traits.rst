@@ -1,4 +1,4 @@
-.. _core:
+.. _traits:
 
 ====================================
 Traitlet Implementations for ctapipe
@@ -15,3 +15,5 @@ Reference/API
 =============
 
 .. automodapi:: ctapipe.core.traits
+    :include-all-objects:
+    :no-inheritance-diagram:

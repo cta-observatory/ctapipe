@@ -20,15 +20,15 @@ class ArrayDisplay:
     telescopes in the subarray, colored by telescope type, however you can
     also color the telescopes by a value (like trigger pattern, or some other
     scalar per-telescope parameter). To set the color value, simply set the
-    `value` attribute, and the fill color will be updated with the value. You
+    ``value`` attribute, and the fill color will be updated with the value. You
     might want to set the border color to zero to avoid confusion between the
     telescope type color and the value color (
-    `array_disp.telescope.set_linewidth(0)`)
+    ``array_disp.telescope.set_linewidth(0)``)
 
     To display a vector field over the telescope positions, e.g. for
-    reconstruction, call `set_uv()` to set cartesian vectors, or `set_r_phi()`
-    to set polar coordinate vectors.  These both take an array of length
-    N_tels, or a single value.
+    reconstruction, call `set_vector_uv()` to set cartesian vectors,
+    or `set_vector_rho_phi()` to set polar coordinate vectors.
+    These both take an array of length N_tels, or a single value.
 
 
     Parameters
@@ -202,7 +202,9 @@ class ArrayDisplay:
         uu, vv = polar_to_cart(rho, phi)
         self.set_vector_uv(uu, vv, c=c, **kwargs)
 
-    def set_vector_hillas(self, hillas_dict, core_dict, length, time_gradient, angle_offset):
+    def set_vector_hillas(
+        self, hillas_dict, core_dict, length, time_gradient, angle_offset
+    ):
         """
         Function to set the vector angle and length from a set of Hillas parameters.
 
@@ -225,7 +227,7 @@ class ArrayDisplay:
         time_gradient: Dict[int, value of time gradient (no units)]
             dictionary for value of the time gradient for each telescope
         angle_offset: Float
-            This should be the `event.pointing.array_azimuth` parameter
+            This should be the ``event.pointing.array_azimuth`` parameter
 
         """
 

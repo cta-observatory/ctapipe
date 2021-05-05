@@ -13,8 +13,16 @@ class InvalidWidthException(Exception):
 
 
 class Reconstructor(Component):
-    """This is the base class from which all direction reconstruction
-algorithms should inherit from"""
+    """
+    This is the base class from which all direction reconstruction
+    algorithms should inherit from
+    """
+
+    def __init__(self, *args, **kwargs):
+        """
+        Create a new instance of ImPACTReconstructor
+        """
+        super().__init__(*args, **kwargs)
 
     def predict(self, tels_dict):
         """overwrite this method with your favourite direction reconstruction
@@ -27,7 +35,7 @@ algorithms should inherit from"""
 
         Returns
         -------
-        Standard  `RecoShowerGeom` container
+        `~ctapipe.containers.ReconstructedShowerContainer`
 
         """
         return ReconstructedShowerContainer()

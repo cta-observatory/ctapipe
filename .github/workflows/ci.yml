@@ -33,7 +33,7 @@ jobs:
           source .github/install.sh
           python --version
           pip install codecov pytest-cov
-          pip install --use-feature=2020-resolver -e .[all]
+          pip install -e .[all]
           pip freeze
 
       - name: Tests
@@ -44,7 +44,7 @@ jobs:
             source $CONDA/etc/profile.d/conda.sh
             conda activate ci;
           fi
-          pytest --cov=ctapipe --cov-report=xml
+          pytest --cov --cov-report=xml
           ctapipe-info --version
 
       - uses: codecov/codecov-action@v1
@@ -61,10 +61,13 @@ jobs:
           docs-folder: "docs/"
           pre-build-command: |
             apt update --yes && apt install --yes git build-essential pandoc
-            pip install -U pip setuptools wheel
-            pip install --use-feature=2020-resolver -e .[all]
+            pip install -U pip setuptools wheel sphinx
+            pip install -e .[docs]
             git describe --tags
             python -c 'import ctapipe; print(ctapipe.__version__)'
+
+          # treat warnings as errors, make sure links are working
+          build-command: make html SPHINXOPTS="-W --keep-going -n --color -w /tmp/sphinx-log"
 
       - name: Deploy to gihub pages
         # only run on push to master
