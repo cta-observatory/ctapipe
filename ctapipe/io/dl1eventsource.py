@@ -99,7 +99,7 @@ class DL1EventSource(EventSource):
         self._full_subarray_info = SubarrayDescription.from_hdf(self.input_url)
         if self.allowed_tels:
             self._subarray_info = self._full_subarray_info.select_subarray(
-                "test", self.allowed_tels
+                self._full_subarray_info.name, self.allowed_tels
             )
         else:
             self._subarray_info = self._full_subarray_info
