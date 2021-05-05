@@ -29,7 +29,7 @@ combines them geometrically to estimate the true shower direction.
 The implementation is in the `~ctapipe.reco.HillasReconstructor` class.
 
 The following 2 pictures have been produced using the example script
-`stereo_reconstruction_core_and_direction.py`
+``stereo_reconstruction_core_and_direction.py``
 
 .. figure:: ./images/example_reconstruction_pixels.png
   :width: 800

@@ -181,7 +181,7 @@ class HillasReconstructor(Reconstructor):
         Parameters
         ----------
         event : container
-            A `ctapipe` event container
+            `ctapipe.containers.ArrayEventContainer`
         """
 
         # Read only valid HillasContainers
