@@ -1,9 +1,6 @@
 """
 Description of Arrays or Subarrays of telescopes
 """
-
-__all__ = ["SubarrayDescription"]
-
 from collections import defaultdict
 from pathlib import Path
 
@@ -22,6 +19,9 @@ from ..coordinates import GroundFrame, CameraFrame
 from .telescope import TelescopeDescription
 from .camera import CameraDescription, CameraReadout, CameraGeometry
 from .optics import OpticsDescription
+
+
+__all__ = ["SubarrayDescription"]
 
 
 def _group_consecutives(sequence):
@@ -44,8 +44,8 @@ def _range_extraction(sequence):
 
 class SubarrayDescription:
     """
-    Collects the `TelescopeDescription` of all telescopes along with their
-    positions on the ground.
+    Collects the `~ctapipe.instrument.TelescopeDescription` of all telescopes
+    along with their positions on the ground.
 
     Parameters
     ----------
@@ -53,7 +53,7 @@ class SubarrayDescription:
         name of this subarray
     tel_positions: Dict[Array]
         dict of x,y,z telescope positions on the ground by tel_id. These are
-        converted internally to a `SkyCoord` in the `GroundFrame`
+        converted internally to a coordinate in the `~ctapipe.coordinates.GroundFrame`
     tel_descriptions: Dict[TelescopeDescription]
         dict of TelescopeDescriptions by tel_id
 
@@ -155,7 +155,7 @@ class SubarrayDescription:
         """
         returns an expanded array that maps tel_id to tel_index. I.e. for a given
         telescope, this array maps the tel_id to a flat index starting at 0 for
-        the first telescope. `tel_index = tel_id_to_index_array[tel_id]`
+        the first telescope. ``tel_index = tel_id_to_index_array[tel_id]``
         If the tel_ids are not contiguous, gaps will be filled in by -1.
         For a more compact representation use the `tel_indices`
         """

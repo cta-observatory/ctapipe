@@ -113,9 +113,9 @@ class DL1Writer(Component):
         help="Store DL1/Event/Image data in output", default_value=False
     ).tag(config=True)
 
-    write_parameters = Bool(
-        help="Store image parameters", default_value=True
-    ).tag(config=True)
+    write_parameters = Bool(help="Store image parameters", default_value=True).tag(
+        config=True
+    )
 
     compression_level = Int(
         help="compression level, 0=None, 9=maximum", default_value=5, min=0, max=9
@@ -411,7 +411,7 @@ class DL1Writer(Component):
 
         TODO: this needs to be fixed, since it currently requires access to the
         low-level _file attribute of the SimTelEventSource.  Instead, SimTelEventSource should
-        provide this as header info, like `source.simulation_config`
+        provide this as header info, like ``source.simulation_config``
 
         Notes
         -----

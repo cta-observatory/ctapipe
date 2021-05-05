@@ -25,6 +25,9 @@ from ...core import TelescopeComponent
 from ...core.traits import FloatTelescopeParameter, IntTelescopeParameter
 
 
+__all__ = ["MuonIntensityFitter"]
+
+
 # ratio of the areas of the unit circle and a square of side lengths 2
 CIRCLE_SQUARE_AREA_RATIO = np.pi / 4
 
