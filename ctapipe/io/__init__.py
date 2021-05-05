@@ -1,4 +1,3 @@
-from .array import get_array_layout
 from .eventseeker import EventSeeker
 from .eventsource import EventSource
 from .hdf5tableio import HDF5TableReader, HDF5TableWriter
@@ -18,7 +17,6 @@ detect_and_import_io_plugins()
 
 
 __all__ = [
-    "get_array_layout",
     "HDF5TableWriter",
     "HDF5TableReader",
     "TableWriter",
