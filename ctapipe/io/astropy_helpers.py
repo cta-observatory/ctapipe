@@ -7,8 +7,6 @@ from pathlib import Path
 
 import tables
 from astropy.table import Table
-from astropy.units import Unit
-from astropy.time import Time
 import numpy as np
 
 from .tableio import (
@@ -18,8 +16,9 @@ from .tableio import (
 )
 from .hdf5tableio import get_hdf5_attr
 
-__all__ = ["h5_table_to_astropy"]
+from contextlib import ExitStack
 
+__all__ = ["h5_table_to_astropy"]
 
 
 def read_table(h5file, path, start=None, stop=None, step=None) -> Table:
@@ -45,20 +44,31 @@ def read_table(h5file, path, start=None, stop=None, step=None) -> Table:
 
     """
 
-    should_close_file = False
-    if isinstance(h5file, (str, Path)):
-        h5file = tables.open_file(h5file)
-        should_close_file = True
-    elif isinstance(h5file, tables.file.File):
-        pass
-    else:
-        raise ValueError(
-            f"expected a string, Path, or PyTables "
-            f"filehandle for argument 'h5file', got {h5file}"
-        )
+    with ExitStack() as stack:
 
-    table = h5file.get_node(path)
+        if isinstance(h5file, (str, Path)):
+            h5file = stack.enter_context(tables.open_file(h5file))
+        elif isinstance(h5file, tables.file.File):
+            pass
+        else:
+            raise ValueError(
+                f"expected a string, Path, or PyTables "
+                f"filehandle for argument 'h5file', got {h5file}"
+            )
 
+        table = h5file.get_node(path)
+        transforms, descriptions, meta = _parse_hdf5_attrs(table)
+        astropy_table = Table(table[slice(start, stop, step)], meta=meta)
+        for column, tr in transforms.items():
+            astropy_table[column] = tr.inverse(astropy_table[column])
+
+        for column, desc in descriptions.items():
+            astropy_table[column].description = desc
+
+        return astropy_table
+
+
+def _parse_hdf5_attrs(table):
     other_attrs = {}
     column_descriptions = {}
     column_transforms = {}
@@ -88,15 +98,4 @@ def read_table(h5file, path, start=None, stop=None, step=None) -> Table:
             value = table.attrs[attr]
             other_attrs[attr] = str(value) if isinstance(value, np.str_) else value
 
-    astropy_table = Table(table[slice(start, stop, step)], meta=other_attrs)
-
-    for column, tr in column_transforms.items():
-        astropy_table[column] = tr.inverse(astropy_table[column])
-
-    for column, desc in column_descriptions.items():
-        astropy_table[column].description = desc
-
-    if should_close_file:
-        h5file.close()
-
-    return astropy_table
+    return column_transforms, column_descriptions, other_attrs
