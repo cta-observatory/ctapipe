@@ -491,14 +491,19 @@ class SimTelEventSource(EventSource):
         data.trigger.tels_with_trigger = trigger["triggered_telescopes"]
         if self.allowed_tels:
             data.trigger.tels_with_trigger = np.intersect1d(
-                data.trigger.tels_with_trigger, np.array(list(self.allowed_tels))
+                data.trigger.tels_with_trigger,
+                self.subarray.tel_ids,
+                assume_unique=True,
             )
         central_time = parse_simtel_time(trigger["gps_time"])
         data.trigger.time = central_time
 
         for tel_id, time in zip(
-            data.trigger.tels_with_trigger, trigger["trigger_times"]
+            trigger["triggered_telescopes"], trigger["trigger_times"]
         ):
+            if self.allowed_tels:
+                if tel_id not in self.allowed_tels:
+                    continue
             # telescope time is relative to central trigger in ns
             time = Time(
                 central_time.jd1,
