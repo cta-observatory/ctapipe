@@ -183,21 +183,6 @@ def test_allowed_telescopes():
             assert set(event.trigger.tels_with_trigger).issubset(allowed_tels)
             assert set(event.pointing.tel).issubset(allowed_tels)
 
-    # test that updating the allowed_tels mask works
-    new_allowed_tels = {1, 2}
-    with SimTelEventSource(
-        input_url=gamma_test_large_path, allowed_tels=allowed_tels
-    ) as reader:
-        # change allowed_tels after __init__
-        reader.allowed_tels = new_allowed_tels
-        assert not new_allowed_tels.symmetric_difference(reader.subarray.tel_ids)
-        for event in reader:
-            assert set(event.r0.tel).issubset(new_allowed_tels)
-            assert set(event.r1.tel).issubset(new_allowed_tels)
-            assert set(event.dl0.tel).issubset(new_allowed_tels)
-            assert set(event.trigger.tels_with_trigger).issubset(new_allowed_tels)
-            assert set(event.pointing.tel).issubset(new_allowed_tels)
-
 
 def test_calibration_events():
     from ctapipe.containers import EventType

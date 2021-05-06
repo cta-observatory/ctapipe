@@ -9,7 +9,6 @@ from astropy.coordinates import Angle
 from astropy.time import Time
 from eventio.file_types import is_eventio
 from eventio.simtel.simtelfile import SimTelFile
-from traitlets import observe
 
 from ..calib.camera.gainselection import GainSelector
 from ..containers import (
@@ -220,13 +219,6 @@ class SimTelEventSource(EventSource):
             self.gain_selector_type, parent=self
         )
         self.log.debug(f"Using gain selector {self.gain_selector}")
-
-    @observe("allowed_tels")
-    def _observe_allowed_tels(self, change):
-        # this can run in __init__ before file_ is created
-        if hasattr(self, "file_"):
-            allowed_tels = set(self.allowed_tels) if self.allowed_tels else None
-            self.file_.allowed_telescopes = allowed_tels
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
