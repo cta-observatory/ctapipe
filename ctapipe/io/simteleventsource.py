@@ -478,9 +478,8 @@ class SimTelEventSource(EventSource):
         for tel_id, time in zip(
             trigger["triggered_telescopes"], trigger["trigger_times"]
         ):
-            if self.allowed_tels:
-                if tel_id not in self.allowed_tels:
-                    continue
+            if self.allowed_tels and tel_id not in self.allowed_tels:
+                continue
             # telescope time is relative to central trigger in ns
             time = Time(
                 central_time.jd1,
