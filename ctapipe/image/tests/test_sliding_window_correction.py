@@ -44,7 +44,7 @@ def test_sw_pulse_lst():
 
     waveform_model = WaveformModel.from_camera_readout(readout)
     waveform = waveform_model.get_waveform(charge_true, time_true, n_samples)
-    selected_gain_channel = np.zeros(charge_true.size, dtype=np.int)
+    selected_gain_channel = np.zeros(charge_true.size, dtype=np.int8)
 
     # define extractor
     config = Config({"SlidingWindowMaxSum": {"window_width": 8}})
