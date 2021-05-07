@@ -7,7 +7,7 @@ This is a collection of some notes for maintainers.
 Python / numpy versions to support
 ----------------------------------
 
-ctapipe follows `NEP 29 <https://numpy.org/neps/nep-0029-deprecation_policy.html>`.
+ctapipe follows `NEP 29 <https://numpy.org/neps/nep-0029-deprecation_policy.html>`_.
 
 This means ctapipe will require the following minimum python / numpy releases
 vs. time:

@@ -4,6 +4,9 @@ from collections import OrderedDict
 from warnings import warn
 
 
+__all__ = ["UndefinedCut", "PureCountingCut", "CutFlow"]
+
+
 class UndefinedCut(Exception):
     pass
 
@@ -15,7 +18,8 @@ class PureCountingCut(Exception):
 class CutFlow:
     """
     a class that keeps track of e.g. events/images that passed cuts or other
-    events that could reject them """
+    events that could reject them
+    """
 
     def __init__(self, name="CutFlow"):
         """
@@ -45,7 +49,7 @@ class CutFlow:
 
         Notes
         -----
-        If `cut` is not yet being tracked, it will simply be added
+        If ``cut`` is not yet being tracked, it will simply be added
         Will be an alias to __getitem__
         """
         if cut not in self.cuts:
@@ -100,7 +104,7 @@ class CutFlow:
 
     def _check_cut(self, cut):
         """
-        checks if `cut` is a valid name for a function to select on
+        checks if ``cut`` is a valid name for a function to select on
 
         Parameters
         ----------
@@ -109,8 +113,8 @@ class CutFlow:
 
         Raises
         ------
-        UndefinedCut if `cut` is not known
-        PureCountingCut if `cut` has no associated function
+        UndefinedCut if ``cut`` is not known
+        PureCountingCut if ``cut`` has no associated function
         (i.e. manual counting mode)
         """
 
@@ -125,7 +129,7 @@ class CutFlow:
 
     def cut(self, cut, *args, weight=1, **kwargs):
         """
-        selects the function associated with `cut` and hands it all
+        selects the function associated with ``cut`` and hands it all
         additional arguments provided. if the function returns `False`,
         the event counter is incremented.
 
@@ -160,7 +164,7 @@ class CutFlow:
 
     def keep(self, cut, *args, weight=1, **kwargs):
         """
-        selects the function associated with `cut` and hands it all
+        selects the function associated with ``cut`` and hands it all
         additional arguments provided. if the function returns True,
         the event counter is incremented.
 
@@ -180,8 +184,8 @@ class CutFlow:
 
         Raises
         ------
-        UndefinedCut if `cut` is not known
-        PureCountingCut if `cut` has no associated function
+        UndefinedCut if ``cut`` is not known
+        PureCountingCut if ``cut`` has no associated function
         (i.e. manual counting mode)
         """
 
@@ -202,7 +206,7 @@ class CutFlow:
         Parameters
         ----------
         kwargs : keyword arguments
-            arguments to be passed to the `get_table` function; see there
+            arguments to be passed to the ``get_table`` function; see there
 
         Returns
         -------

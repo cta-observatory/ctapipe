@@ -50,7 +50,7 @@ class IndexFinder:
     def closest(self, target):
         """
         Given a value, that is comparable to the
-        associated `values` list, return the
+        associated ``values`` list, return the
         index of the closest matching entry relative to the unordered
         list, that was given at construction.
         """

@@ -40,9 +40,10 @@ setup(
     packages=find_packages(),
     python_requires=">=3.7",
     install_requires=[
-        "astropy>=4,<5",
+        "astropy>=4.0.5,<5",
         "bokeh~=1.0",
         "eventio>=1.5.0,<2.0.0a0",
+        "h5py",
         "iminuit~=1.3",
         "joblib",
         "matplotlib~=3.0",
@@ -57,9 +58,6 @@ setup(
         "zstandard",
         "requests",
         "setuptools_scm>=3.4",
-        # needed for astropy hdf5 io. Version 3 breaks copying those tables
-        # with pytables du to variable length strings.
-        "h5py~=2.0",
     ],
     # here are optional dependencies (as "tag" : "dependency spec")
     extras_require={

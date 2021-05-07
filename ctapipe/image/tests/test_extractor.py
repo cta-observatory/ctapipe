@@ -4,6 +4,7 @@ import pytest
 from numpy.testing import assert_allclose, assert_equal
 from scipy.stats import norm
 from traitlets.config.loader import Config
+from traitlets.traitlets import TraitError
 
 from ctapipe.core import non_abstract_children
 from ctapipe.image.extractor import (
@@ -347,6 +348,22 @@ def test_two_pass_window_sum(subarray):
         assert_allclose(charge, true_charge, rtol=0.1)
         assert_allclose(pulse_time, true_time, rtol=0.1)
 
+    # test only 1st pass
+    extractor.disable_second_pass = True
+    for minCharge, maxCharge in zip(min_charges, max_charges):
+        toymodel = get_test_toymodel(subarray, minCharge, maxCharge)
+        (
+            waveforms,
+            subarray,
+            telid,
+            selected_gain_channel,
+            true_charge,
+            true_time,
+        ) = toymodel
+        charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
+        assert_allclose(charge, true_charge, rtol=0.1)
+        assert_allclose(pulse_time, true_time, rtol=0.1)
+
 
 def test_waveform_extractor_factory(toymodel):
     waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
@@ -368,7 +385,9 @@ def test_waveform_extractor_factory_args(subarray):
     assert extractor.window_width.tel[None] == 20
     assert extractor.window_shift.tel[None] == 3
 
-    with pytest.warns(UserWarning):
+    # this basically tests that traitlets do not accept unknown traits,
+    # which is tested for all traitlets in the core tests already
+    with pytest.raises(TraitError):
         ImageExtractor.from_name("FullWaveformSum", config=config, subarray=subarray)
 
 

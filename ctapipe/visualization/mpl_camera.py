@@ -41,7 +41,7 @@ class CameraDisplay:
         A matplotlib axes object to plot on, or None to create a new one
     title : str (default "Camera")
         Title to put on camera plot
-    norm : str or `matplotlib.color.Normalize` instance (default 'lin')
+    norm : str or `matplotlib.colors.Normalize` instance (default 'lin')
         Normalization for the color scale.
         Supported str arguments are
         - 'lin': linear scale
@@ -54,7 +54,7 @@ class CameraDisplay:
         redraw automatically (otherwise need to call plt.draw())
     autoscale : bool (default True)
         rescale the vmin/vmax values when the image changes.
-        This is set to False if `set_limits_*` is called to explicity
+        This is set to False if ``set_limits_*`` is called to explicity
         set data limits.
 
     Notes
@@ -75,7 +75,7 @@ class CameraDisplay:
         `matplotlib.collections.PatchCollection` of Polygons (either 6
         or 4 sided).  You can access the PatchCollection directly (to
         e.g. change low-level style parameters) via
-        `CameraDisplay.pixels`
+        ``CameraDisplay.pixels``
 
     Output:
         Since CameraDisplay uses matplotlib, any display can be
@@ -286,8 +286,7 @@ class CameraDisplay:
     @property
     def cmap(self):
         """
-        Color map to use. Either a name or  `matplotlib.colors.ColorMap`
-        instance, e.g. from `matplotlib.pyplot.cm`
+        Color map to use. Either name or `matplotlib.colors.Colormap`
         """
         return self.pixels.get_cmap()
 
@@ -343,7 +342,7 @@ class CameraDisplay:
     def add_colorbar(self, **kwargs):
         """
         add a colorbar to the camera plot
-        kwargs are passed to `figure.colorbar(self.pixels, **kwargs)`
+        kwargs are passed to ``figure.colorbar(self.pixels, **kwargs)``
         See matplotlib documentation for the supported kwargs:
         http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure.colorbar
         """
@@ -392,7 +391,7 @@ class CameraDisplay:
     def overlay_moments(
         self, hillas_parameters, with_label=True, keep_old=False, **kwargs
     ):
-        """helper to overlay ellipse from a `HillasParametersContainer` structure
+        """helper to overlay ellipse from a `~ctapipe.containers.HillasParametersContainer` structure
 
         Parameters
         ----------

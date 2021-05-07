@@ -42,7 +42,7 @@ class HillasIntersection(Reconstructor):
     reconstruction. e.g. https://arxiv.org/abs/astro-ph/0607333
 
     In this case the Hillas parameters are all constructed in the shared
-    angular ( Nominal) system. Direction reconstruction is performed by
+    angular (Nominal) system. Direction reconstruction is performed by
     extrapolation of the major axes of the Hillas parameters in the nominal
     system and the weighted average of the crossing points is taken. Core
     reconstruction is performed by performing the same procedure in the
@@ -57,7 +57,7 @@ class HillasIntersection(Reconstructor):
     """
 
     atmosphere_profile_name = traits.CaselessStrEnum(
-        ["paranal",], default_value="paranal", help="name of atmosphere profile to use"
+        ["paranal"], default_value="paranal", help="name of atmosphere profile to use"
     ).tag(config=True)
 
     weighting = traits.CaselessStrEnum(
@@ -171,7 +171,7 @@ class HillasIntersection(Reconstructor):
         nom = SkyCoord(fov_lat=src_x * u.rad, fov_lon=src_y * u.rad, frame=nom_frame)
         # nom = sky_pos.transform_to(nom_frame)
         sky_pos = nom.transform_to(array_pointing.frame)
-        tilt = SkyCoord(x=core_x * u.m, y=core_y * u.m, frame=tilted_frame,)
+        tilt = SkyCoord(x=core_x * u.m, y=core_y * u.m, frame=tilted_frame)
         grd = project_to_ground(tilt)
         x_max = self.reconstruct_xmax(
             nom.fov_lon,
@@ -430,6 +430,7 @@ class HillasIntersection(Reconstructor):
     def intersect_lines(xp1, yp1, phi1, xp2, yp2, phi2):
         """
         Perform intersection of two lines. This code is borrowed from read_hess.
+
         Parameters
         ----------
         xp1: ndarray

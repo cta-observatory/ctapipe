@@ -1,5 +1,15 @@
 """
 Image Cleaning Algorithms (identification of noisy pixels)
+
+
+All algorithms return a boolean mask that is True for pixels surviving
+the cleaning.
+
+To get a zero-suppressed image and pixel
+list, use ``image[mask], geom.pix_id[mask]``, or to keep the same
+image size and just set unclean pixels to 0 or similar, use
+``image[~mask] = 0``
+
 """
 
 __all__ = [
@@ -64,12 +74,7 @@ def tailcuts_clean(
 
     Returns
     -------
-
-    A boolean mask of *clean* pixels.  To get a zero-suppressed image and pixel
-    list, use `image[mask], geom.pix_id[mask]`, or to keep the same
-    image size and just set unclean pixels to 0 or similar, use
-    `image[~mask] = 0`
-
+    A boolean mask of *clean* pixels.
     """
     pixels_above_picture = image >= picture_thresh
 
@@ -142,11 +147,7 @@ def mars_cleaning_1st_pass(
 
     Returns
     -------
-    A boolean mask of *clean* pixels.  To get a zero-suppressed image and pixel
-    list, use `image[mask], geom.pix_id[mask]`, or to keep the same
-    image size and just set unclean pixels to 0 or similar, use
-    `image[~mask] = 0`
-
+    A boolean mask of *clean* pixels.
     """
 
     pixels_from_tailcuts_clean = tailcuts_clean(
@@ -226,11 +227,7 @@ def apply_time_delta_cleaning(
     Returns
     -------
 
-    A boolean mask of *clean* pixels.  To get a zero-suppressed image and pixel
-    list, use `image[mask], geom.pix_id[mask]`, or to keep the same
-    image size and just set unclean pixels to 0 or similar, use
-    `image[~mask] = 0`
-
+    A boolean mask of *clean* pixels.
     """
     pixels_to_keep = mask.copy()
     time_diffs = np.abs(arrival_times[mask, None] - arrival_times)
@@ -281,10 +278,7 @@ def fact_image_cleaning(
 
     Returns
     -------
-    A boolean mask of *clean* pixels.  To get a zero-suppressed image and pixel
-    list, use `image[mask], geom.pix_id[mask]`, or to keep the same
-    image size and just set unclean pixels to 0 or similar, use
-    `image[~mask] = 0`
+    A boolean mask of *clean* pixels.
 
     References
     ----------
@@ -332,7 +326,7 @@ def fact_image_cleaning(
 class ImageCleaner(TelescopeComponent):
     """
     Abstract class for all configurable Image Cleaning algorithms.   Use
-    `ImageCleaner.from_name()` to construct an instance of a particular algorithm
+    ``ImageCleaner.from_name()`` to construct an instance of a particular algorithm
     """
 
     @abstractmethod
