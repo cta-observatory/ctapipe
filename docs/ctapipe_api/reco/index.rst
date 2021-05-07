@@ -43,10 +43,4 @@ Reference/API
 =============
 
 .. automodapi:: ctapipe.reco
-
-.. automodapi:: ctapipe.reco.shower_processor
-.. automodapi:: ctapipe.reco.hillas_intersection
-.. automodapi:: ctapipe.reco.hillas_reconstructor
-.. automodapi:: ctapipe.reco.impact
-.. automodapi:: ctapipe.reco.reco_algorithms
-
+    :no-inheritance-diagram:

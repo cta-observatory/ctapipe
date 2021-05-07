@@ -18,9 +18,6 @@ from ctapipe.instrument import SubarrayDescription
 from ctapipe.reco import HillasReconstructor
 
 
-__all__ = ["ShowerQualityQuery", "ShowerProcessor"]
-
-
 DEFAULT_SHOWER_PARAMETERS = ReconstructedShowerContainer()
 
 
