@@ -146,7 +146,10 @@ def test_hashing():
 def test_camera_from_name(camera_name):
     """ check we can construct all cameras from name"""
 
-    # these two don't have readout definitions on the dataserver
-    if camera_name not in ["MAGICCam", "Whipple109"]:
+    try:
         camera = CameraReadout.from_name(camera_name)
         assert str(camera) == camera_name
+    except FileNotFoundError:
+        # these two don't have readout definitions on the dataserver
+        if camera_name not in ["MAGICCam", "Whipple109"]:
+            raise
