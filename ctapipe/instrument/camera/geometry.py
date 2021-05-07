@@ -4,7 +4,6 @@ Utilities for reading or working with Camera geometry files
 """
 import logging
 import warnings
-from typing import TypeVar
 
 import numpy as np
 from astropy import units as u
@@ -20,20 +19,27 @@ from ctapipe.utils import get_table_dataset
 from ctapipe.utils.linalg import rotation_matrix_2d
 from enum import Enum, unique
 
-__all__ = ["CameraGeometry", "UnknownPixelShapeWarning"]
+__all__ = ["CameraGeometry", "UnknownPixelShapeWarning", "PixelShape"]
 
 logger = logging.getLogger(__name__)
-CG = TypeVar("CG", bound="CameraGeometry")  # for forward-referencing type hints
 
 
 @unique
 class PixelShape(Enum):
+    """Supported Pixel Shapes Enum"""
+
     CIRCLE = "circle"
     SQUARE = "square"
     HEXAGON = "hexagon"
 
     @classmethod
     def from_string(cls, name):
+        """
+        Convert a string represenation to the enum value
+
+        This function supports abbreviations and for backwards compatibility
+        "rect" as alias for "square".
+        """
         name = name.lower()
 
         if name.startswith("hex"):
@@ -69,12 +75,6 @@ class CameraGeometry:
     The class is intended to be generic, and work with any Cherenkov
     Camera geometry, including those that have square vs hexagonal
     pixels, gaps between pixels, etc.
-
-    You can construct a CameraGeometry either by specifying all data,
-    or using the `CameraGeometry.guess()` constructor, which takes metadata
-    like the pixel positions and telescope focal length to look up the rest
-    of the data. Note that this function is memoized, so calling it multiple
-    times with the same inputs will give back the same object (for speed).
 
     Parameters
     ----------
@@ -197,13 +197,14 @@ class CameraGeometry:
             (self.pix_x[border] - cx) ** 2 + (self.pix_y[border] - cy) ** 2
         ).mean()
 
-    def transform_to(self, frame: BaseCoordinateFrame) -> CG:
+    def transform_to(self, frame: BaseCoordinateFrame):
         """Transform the pixel coordinates stored in this geometry and the pixel
         and camera rotations to another camera coordinate frame.
 
-        Note that `geom.frame` must contain all the necessary attributes needed
-        to transform into the requested frame, i.e. if going from `CameraFrame`
-        to `TelescopeFrame`, it should contain a `focal_length` attribute.
+        Note that ``geom.frame`` must contain all the necessary attributes needed
+        to transform into the requested frame, i.e. if going from
+        `~ctapipe.coordinates.CameraFrame` to `~ctapipe.coordinates.TelescopeFrame`,
+        it should contain the correct data in the ``focal_length`` attribute.
 
         Parameters
         ----------
@@ -387,9 +388,9 @@ class CameraGeometry:
         """
         Construct a CameraGeometry using the name of the camera and array.
 
-        This expects that there is a resource in the `ctapipe_resources` module
-        called "[array]-[camera].camgeom.fits.gz" or "[array]-[camera]-[
-        version].camgeom.fits.gz"
+        This expects that there is a resource accessible via
+        `~ctapipe.utils.get_table_dataset` called ``"[array]-[camera].camgeom.fits.gz"``
+        or ``"[array]-[camera]-[version].camgeom.fits.gz"``
 
         Parameters
         ----------
@@ -445,14 +446,14 @@ class CameraGeometry:
     def from_table(cls, url_or_table, **kwargs):
         """
         Load a CameraGeometry from an `astropy.table.Table` instance or a
-        file that is readable by `astropy.table.Table.read()`
+        file that is readable by `astropy.table.Table.read`
 
         Parameters
         ----------
         url_or_table: string or astropy.table.Table
             either input filename/url or a Table instance
         kwargs: extra keyword arguments
-            extra arguments passed to `astropy.table.read()`, depending on
+            extra arguments passed to `astropy.table.Table.read`, depending on
             file type (e.g. format, hdu, path)
 
 

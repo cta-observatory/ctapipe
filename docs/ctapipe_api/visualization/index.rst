@@ -1,8 +1,8 @@
 .. _visualization:
 
-===============================
-Visualization (`visualization`)
-===============================
+========================================
+Visualization (`~ctapipe.visualization`)
+========================================
 
 .. currentmodule:: ctapipe.visualization
 

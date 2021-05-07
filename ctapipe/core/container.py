@@ -11,6 +11,8 @@ import logging
 
 log = logging.getLogger(__name__)
 
+__all__ = ["Container", "Field", "FieldValidationError", "Map"]
+
 
 class FieldValidationError(ValueError):
     pass
@@ -18,13 +20,13 @@ class FieldValidationError(ValueError):
 
 class Field:
     """
-    Class for storing data in `Containers`.
+    Class for storing data in a `Container`.
 
     Parameters
     ----------
     default:
         default value of the item (this will be set when the `Container`
-        is constructed, as well as when  `Container.reset()` is called
+        is constructed, as well as when  ``Container.reset`` is called
     description: str
         Help text associated with the item
     unit: str or astropy.units.core.UnitBase
@@ -146,7 +148,7 @@ class DeprecatedField(Field):
 
 class ContainerMeta(type):
     """
-    The MetaClass for the Containers
+    The MetaClass for `Container`
 
     It reserves __slots__ for every class variable,
     that is of instance `Field` and sets all other class variables
@@ -190,11 +192,11 @@ class Container(metaclass=ContainerMeta):
     such as a description, defaults, and units for each item in the
     container.
 
-    Containers can transform the data into a `dict` using the `
-    Container.as_dict()` method.  This allows them to be written to an
+    Containers can transform the data into a `dict` using the
+    ``as_dict`` method.  This allows them to be written to an
     output table for example, where each Field defines a column. The
     `dict` conversion can be made recursively and even flattened so
-    that a nested set of `Containers` can be translated into a set of
+    that a nested set of `Containers <Container>`_ can be translated into a set of
     columns in a flat table without naming conflicts (the name of the
     parent Field is pre-pended).
 
@@ -211,19 +213,19 @@ class Container(metaclass=ContainerMeta):
     >>>    # metadata will become header keywords in an output file:
     >>>    cont.meta['KEY'] = value
 
-    `Field`s inside `Containers` can contain instances of other
-    `Containers`, to allow for a hierarchy of containers, and can also
+    `Fields <Field>`_ inside `Containers <Container>`_ can contain instances of other
+    containers, to allow for a hierarchy of containers, and can also
     contain a `Map` for the case where one wants e.g. a set of
-    sub-classes indexed by a value like the `telescope_id`. Examples
+    sub-classes indexed by a value like the ``telescope_id``. Examples
     of this can be found in `ctapipe.containers`
 
-    `Containers` work by shadowing all class variables (which must be
+    `Container` works by shadowing all class variables (which must be
     instances of `Field`) with instance variables of the same name the
-    hold the value expected. If `Container.reset()` is called, all
+    hold the value expected. If ``reset`` is called, all
     instance variables are reset to their default values as defined in
     the class.
 
-    Finally, `Containers` can have associated metadata via their
+    Finally, a Container can have associated metadata via its
     `meta` attribute, which is a `dict` of keywords to values.
 
     """
@@ -270,7 +272,7 @@ class Container(metaclass=ContainerMeta):
 
     def as_dict(self, recursive=False, flatten=False, add_prefix=False):
         """
-        convert the `Container` into a dictionary
+        Convert the `Container` into a dictionary
 
         Parameters
         ----------
@@ -306,7 +308,15 @@ class Container(metaclass=ContainerMeta):
             return d
 
     def reset(self, recursive=True):
-        """ set all values back to their default values"""
+        """
+        Reset all values back to their default values
+
+        Parameters
+        ----------
+        recursive: bool
+            If true, also reset all sub-containers
+        """
+
         for name, value in self.fields.items():
             if isinstance(value, Container):
                 if recursive:
@@ -361,7 +371,7 @@ class Container(metaclass=ContainerMeta):
 class Map(defaultdict):
     """A dictionary of sub-containers that can be added to a Container. This
     may be used e.g. to store a set of identical sub-Containers (e.g. indexed
-    by `tel_id` or algorithm name).
+    by ``tel_id`` or algorithm name).
     """
 
     def as_dict(self, recursive=False, flatten=False, add_prefix=False):
@@ -389,6 +399,7 @@ class Map(defaultdict):
             return d
 
     def reset(self, recursive=True):
+        """Calls all ``Container.reset`` for all values in the Map"""
         for val in self.values():
             if isinstance(val, Container):
                 val.reset(recursive=recursive)

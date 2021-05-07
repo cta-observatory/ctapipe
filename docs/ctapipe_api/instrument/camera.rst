@@ -14,3 +14,13 @@ Cherenkov camera, namely the `CameraGeometry` and `CameraReadout` classes.
 
   camera_geometry
   camera_readout
+
+
+Reference/API
+-------------
+
+
+.. automodapi:: ctapipe.instrument.camera
+    :no-inheritance-diagram:
+.. automodapi:: ctapipe.instrument.camera.description
+    :no-inheritance-diagram:

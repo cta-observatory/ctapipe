@@ -20,11 +20,11 @@ class EventSource(Component):
     """
     Parent class for EventSources.
 
-    EventSources read input files and generate `ArrayEvents`
-    when iterated over.
+    EventSources read input files and generate `~ctapipe.containers.ArrayEventContainer`
+    instances when iterated over.
 
     A new EventSource should be created for each type of event file read
-    into ctapipe, e.g. sim_telarray files are read by the `SimTelEventSource`.
+    into ctapipe, e.g. sim_telarray files are read by the `~ctapipe.io.SimTelEventSource`.
 
     EventSource provides a common high-level interface for accessing event
     information from different data sources (simulation or different camera

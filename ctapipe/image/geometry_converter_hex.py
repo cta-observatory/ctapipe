@@ -312,7 +312,7 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
         The geometries (hex and rect) will be stored in a buffer.
         The key is necessary to make the conversion back from rect to hex.
     add_rot : int/float (default: 0)
-        parameter to apply an additional rotation of `add_rot` times 60°
+        parameter to apply an additional rotation of ``add_rot`` times 60°
 
     Returns
     -------
@@ -487,11 +487,12 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None, add_rot=None)
     Notes
     -----
     The back-conversion works with an internal buffer to store the transfer map (which
-    was produced in the first conversion). If `key` is not found in said buffer, this
-    function tries to perform a mock conversion. For this, it needs a `CameraGeometry`
-    instance of the original camera layout, which it tries to load by name (i.e.
-    the `camera_name`). The function assumes the original `camera_name` can be inferred from the
-    given, modified one by: `geom.camera_name.split('_')[0]`.
+    was produced in the first conversion). If ``key`` is not found in said buffer, this
+    function tries to perform a mock conversion. For this, it needs a
+    `~ctapipe.instrument.CameraGeometry` instance of the original camera layout,
+    which it tries to load by name (i.e.  the ``camera_name``).
+    The function assumes the original ``camera_name`` can be inferred from the
+    given, modified one by: ``geom.camera_name.split('_')[0]``.
 
     Examples
     --------

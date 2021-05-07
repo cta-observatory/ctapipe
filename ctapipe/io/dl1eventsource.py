@@ -29,6 +29,9 @@ from .datalevels import DataLevel
 from ..utils import IndexFinder
 
 
+__all__ = ["DL1EventSource"]
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -349,8 +352,7 @@ class DL1EventSource(EventSource):
                         )
                         continue
 
-                    dl1 = next(image_readers[key])
-                    data.dl1.tel[tel] = dl1
+                    data.dl1.tel[tel] = next(image_readers[key])
 
                     if self.has_simulated_dl1:
                         if key not in simulated_image_iterators:
@@ -376,7 +378,7 @@ class DL1EventSource(EventSource):
                     # Best would probbaly be if we could directly read
                     # into the ImageParametersContainer
                     params = next(param_readers[f"tel_{tel:03d}"])
-                    dl1.parameters = ImageParametersContainer(
+                    data.dl1.tel[tel].parameters = ImageParametersContainer(
                         hillas=params[0],
                         timing=params[1],
                         leakage=params[2],

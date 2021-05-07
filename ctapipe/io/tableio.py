@@ -14,9 +14,11 @@ __all__ = ["TableReader", "TableWriter"]
 
 class TableWriter(Component, metaclass=ABCMeta):
     """
-    Base class for writing  Container classes as rows of an output table,
-    where each `Field` becomes a column. Subclasses of this implement
-    specific output types.
+    Base class for writing tabular data stored in `~ctapipe.core.Container`
+
+    A single write will add a new row to the output table,
+    where each `~ctapipe.core.Field` becomes a column.
+    Subclasses of this implement specific output types.
 
     See Also
     --------

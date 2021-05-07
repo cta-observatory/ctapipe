@@ -1,33 +1,29 @@
 """
-Handles seeking to a particular event in a
-`ctapipe.io.eventfilereader.EventFileReader`
+Handles seeking to a particular event in a `ctapipe.io.EventSource`
 """
 from copy import deepcopy
 from ctapipe.core import Component
 
-__all__ = [
-    "EventSeeker",
-]
+__all__ = ["EventSeeker"]
 
 
 class EventSeeker(Component):
     """
     Provides the functionality to seek through a
-    `ctapipe.io.eventfilereader.EventSource` to find a particular event.
+    `~ctapipe.io.EventSource` to find a particular event.
 
     By default, this will loop through events from the start of the file
     (unless the requested event is the same as the previous requested event,
     or occurs later in the file). However if the
-    `ctapipe.io.eventfilereader.EventSource` has defined a `__getitem__`
+    `ctapipe.io.EventSource` has defined a ``__getitem__``
     method itself, then it will use that method, thereby taking advantage of
     the random event access some file formats provide.
 
     To create an instance of an EventSeeker you must provide it a sub-class of
-    `ctapipe.io.eventfilereader.EventSource` (such as
-    `ctapipe.io.hessiofilereader.HessioFileReader`), which will be used to
-    loop through the file and provide the event container, filled with the
-    event information using the methods defined in the event_source for that
-    file format.
+    `~ctapipe.io.EventSource` (such as `ctapipe.io.SimTelEventSource`),
+    which will be used to loop through the file and provide the event container,
+    filled with the event information using the methods defined in the
+    event_source for that file format.
 
     To obtain a particular event in a hessio file:
 
@@ -46,7 +42,7 @@ class EventSeeker(Component):
     >>> print(event.count)
 
     **NOTE**: Event_index refers to the number associated to the event
-    assigned by ctapipe (`event.count`), based on the order the events are
+    assigned by ctapipe (``event.count``), based on the order the events are
     read from the file.
     Whereas the event_id refers to the ID attatched to the event from the
     external source of the file (software or camera or CTA array).
@@ -178,7 +174,9 @@ class EventSeeker(Component):
 
         """
         if self._getevent_warn:
-            msg = "Seeking event by iterating through events.. (potentially long process)"
+            msg = (
+                "Seeking event by iterating through events.. (potentially long process)"
+            )
             self.log.warning(msg)
             self._getevent_warn = False
 
@@ -211,7 +209,9 @@ class EventSeeker(Component):
 
         """
         if self._getevent_warn:
-            msg = "Seeking event by iterating through events.. (potentially long process)"
+            msg = (
+                "Seeking event by iterating through events.. (potentially long process)"
+            )
             self.log.warning(msg)
             self._getevent_warn = False
 

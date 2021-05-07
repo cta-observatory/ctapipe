@@ -21,6 +21,7 @@ from ctapipe.core.traits import (
     AstroTime,
 )
 from ctapipe.image import ImageExtractor
+from ctapipe.utils.datasets import get_dataset_path, DEFAULT_URL
 
 
 @pytest.fixture(scope="module")
@@ -153,9 +154,13 @@ def test_path_url():
     c.thepath = "file:///foo.hdf5"
     assert c.thepath == pathlib.Path("/foo.hdf5")
 
-    # test not other shemes raise trailet errors
-    with pytest.raises(TraitError):
-        c.thepath = "https://example.org/test.hdf5"
+    # test http downloading
+    c.thepath = DEFAULT_URL + "optics.ecsv.txt"
+    assert c.thepath.name == "optics.ecsv.txt"
+
+    # test dataset://
+    c.thepath = "dataset://optics.ecsv.txt"
+    assert c.thepath == get_dataset_path("optics.ecsv.txt")
 
 
 def test_enum_trait_default_is_right():

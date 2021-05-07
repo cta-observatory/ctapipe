@@ -107,6 +107,9 @@ class ImPACTReconstructor(Reconstructor):
         xmax_offset=0,
         use_time_gradient=False,
     ):
+        """
+        Create a new instance of ImPACTReconstructor
+        """
 
         # First we create a dictionary of image template interpolators
         # for each telescope type
