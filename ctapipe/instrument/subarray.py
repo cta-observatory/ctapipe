@@ -295,17 +295,16 @@ class SubarrayDescription:
         tab.meta.update(meta)
         return tab
 
-    def select_subarray(self, name, tel_ids):
+    def select_subarray(self, tel_ids, name=None):
         """
         return a new SubarrayDescription that is a sub-array of this one
 
         Parameters
         ----------
-        name: str
-            name of new sub-selection
         tel_ids: list(int)
             list of telescope IDs to include in the new subarray
-
+        name: str
+            name of new sub-selection
         Returns
         -------
         SubarrayDescription
@@ -313,6 +312,24 @@ class SubarrayDescription:
 
         tel_positions = {tid: self.positions[tid] for tid in tel_ids}
         tel_descriptions = {tid: self.tel[tid] for tid in tel_ids}
+
+        if not name:
+            # sets don't interact nicely with numpy, so we transform it to a list
+            if isinstance(tel_ids, set):
+                tel_ids = list(tel_ids)
+
+            # Change the subarray name to account for the selected telescopes
+            # This shortens the list of telescope ids by looking for contiguous integers
+            name = self.name + "_"
+            tel_id_delta = np.diff(tel_ids)
+            splits = np.where(tel_id_delta > 1)[0] + 1
+            if splits:
+                id_ranges = np.split(tel_ids, splits)
+            else:
+                # If all allowed ids are contiguous integers the split will be empty
+                id_ranges = ((min(tel_ids), max(tel_ids)),)
+            for id_range in id_ranges:
+                name += f",{min(id_range)}-{max(id_range)}"
 
         newsub = SubarrayDescription(
             name, tel_positions=tel_positions, tel_descriptions=tel_descriptions
@@ -334,7 +351,7 @@ class SubarrayDescription:
         with quantity_support():
             for tel_type in types:
                 tels = tab[tab["tel_description"] == str(tel_type)]["tel_id"]
-                sub = self.select_subarray(tel_type, tels)
+                sub = self.select_subarray(tels, name=tel_type)
                 tel_coords = sub.tel_coords
                 radius = np.array(
                     [

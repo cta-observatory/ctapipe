@@ -269,9 +269,6 @@ class SimTelEventSource(EventSource):
         tel_positions = {}  # tel_id : TelescopeDescription
 
         for tel_id, telescope_description in telescope_descriptions.items():
-            if self.allowed_tels:
-                if tel_id not in self.allowed_tels:
-                    continue
             cam_settings = telescope_description["camera_settings"]
             pixel_settings = telescope_description["pixel_settings"]
 
@@ -323,27 +320,15 @@ class SimTelEventSource(EventSource):
             tel_idx = np.where(header["tel_id"] == tel_id)[0][0]
             tel_positions[tel_id] = header["tel_pos"][tel_idx] * u.m
 
-        subarray_name = "MonteCarloArray"
-        # Change the subarray name to account for the selected telescopes
-        # This shortens the list of telescopes by looking for contiguous integers
-        if self.allowed_tels:
-            subarray_name += "_"
-            tel_ids = np.array(list(self.allowed_tels))
-            tel_id_delta = np.diff(tel_ids)
-            splits = np.where(tel_id_delta > 1)[0] + 1
-            if splits:
-                id_ranges = np.split(tel_ids, splits)
-            else:
-                # If all allowed ids are contiguous integers the split will be empty
-                id_ranges = ((tel_ids.min(), tel_ids.max()),)
-            for id_range in id_ranges:
-                subarray_name += f",{min(id_range)}-{max(id_range)}"
-
-        return SubarrayDescription(
-            subarray_name,
+        subarray = SubarrayDescription(
+            name="MonteCarloArray",
             tel_positions=tel_positions,
             tel_descriptions=tel_descriptions,
         )
+
+        if self.allowed_tels:
+            subarray = subarray.select_subarray(self.allowed_tels)
+        return subarray
 
     @staticmethod
     def is_compatible(file_path):

@@ -99,21 +99,8 @@ class DL1EventSource(EventSource):
         self._full_subarray_info = SubarrayDescription.from_hdf(self.input_url)
 
         if self.allowed_tels:
-            # Change the subarray name to account for the selected telescopes
-            # This shortens the list of telescopes by looking for contiguous integers
-            tel_ids = np.array(list(self.allowed_tels))
-            subarray_name = self._full_subarray_info.name + "_"
-            tel_id_delta = np.diff(tel_ids)
-            splits = np.where(tel_id_delta > 1)[0] + 1
-            if splits:
-                id_ranges = np.split(tel_ids, splits)
-            else:
-                # If all allowed ids are contiguous integers the split will be empty
-                id_ranges = ((tel_ids.min(), tel_ids.max()),)
-            for id_range in id_ranges:
-                subarray_name += f",{min(id_range)}-{max(id_range)}"
             self._subarray_info = self._full_subarray_info.select_subarray(
-                subarray_name, self.allowed_tels
+                self.allowed_tels
             )
         else:
             self._subarray_info = self._full_subarray_info

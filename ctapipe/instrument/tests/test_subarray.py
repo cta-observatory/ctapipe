@@ -52,7 +52,7 @@ def test_subarray_description():
     assert isinstance(sub.tel_coords, SkyCoord)
     assert len(sub.tel_coords) == n_tels
 
-    subsub = sub.select_subarray("newsub", [2, 3, 4, 6])
+    subsub = sub.select_subarray([2, 3, 4, 6], name="newsub")
     assert subsub.num_tels == 4
     assert set(subsub.tels.keys()) == {2, 3, 4, 6}
     assert subsub.tel_indices[6] == 3
