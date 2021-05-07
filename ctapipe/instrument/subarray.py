@@ -314,22 +314,8 @@ class SubarrayDescription:
         tel_descriptions = {tid: self.tel[tid] for tid in tel_ids}
 
         if not name:
-            # sets don't interact nicely with numpy, so we transform it to a list
-            if isinstance(tel_ids, set):
-                tel_ids = list(tel_ids)
-
-            # Change the subarray name to account for the selected telescopes
-            # This shortens the list of telescope ids by looking for contiguous integers
-            name = self.name + "_"
-            tel_id_delta = np.diff(tel_ids)
-            splits = np.where(tel_id_delta > 1)[0] + 1
-            if splits:
-                id_ranges = np.split(tel_ids, splits)
-            else:
-                # If all allowed ids are contiguous integers the split will be empty
-                id_ranges = ((min(tel_ids), max(tel_ids)),)
-            for id_range in id_ranges:
-                name += f",{min(id_range)}-{max(id_range)}"
+            tel_ids = sorted(tel_ids)
+            name = self.name + "_" + _range_extraction(tel_ids)
 
         newsub = SubarrayDescription(
             name, tel_positions=tel_positions, tel_descriptions=tel_descriptions
