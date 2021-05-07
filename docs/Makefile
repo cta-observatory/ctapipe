@@ -2,7 +2,7 @@
 #
 
 # You can set these variables from the command line.
-SPHINXOPTS    = -W --keep-going -n --color -w /tmp/sphinx-log
+SPHINXOPTS    = -W --keep-going -n --color
 SPHINXBUILD   = sphinx-build
 SPHINXPROJ    = ctapipe
 SOURCEDIR     = .
