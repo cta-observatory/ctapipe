@@ -224,7 +224,9 @@ def test_dl1_charge_calib(example_subarray):
     # We now use GlobalPeakWindowSum to see the effect of missing charge
     # due to not correcting time offsets.
     calibrator = CameraCalibrator(
-        subarray=subarray, image_extractor=GlobalPeakWindowSum(subarray=subarray)
+        subarray=subarray,
+        image_extractor=GlobalPeakWindowSum(subarray=subarray),
+        apply_waveform_time_shift=True,
     )
     calibrator(event)
     # test with timing corrections, should work
