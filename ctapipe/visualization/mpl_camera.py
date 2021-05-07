@@ -145,6 +145,8 @@ class CameraDisplay:
                     angle=self.geom.pix_rotation.to_value(u.deg),
                     fill=True,
                 )
+            else:
+                raise ValueError(f"Unsupported pixel_shape {self.geom.pix_type}")
 
             patches.append(patch)
 
@@ -225,11 +227,8 @@ class CameraDisplay:
 
     def enable_pixel_picker(self):
         """ enable ability to click on pixels """
-        self.pixels.set_picker(True)  # enable click
-        self.pixels.set_pickradius(
-            sqrt(u.Quantity(self.geom.pix_area[0]).value) / np.pi
-        )
-        self.pixels.set_snap(True)  # snap cursor to pixel center
+        self.pixels.set_picker(True)
+        self.pixels.set_pickradius(self.geom.pixel_width.value[0] / 2)
         self.axes.figure.canvas.mpl_connect("pick_event", self._on_pick)
 
     def set_limits_minmax(self, zmin, zmax):
@@ -448,19 +447,18 @@ class CameraDisplay:
     def _on_pick(self, event):
         """ handler for when a pixel is clicked """
         pix_id = event.ind[-1]
-        xx, yy, aa = (
-            u.Quantity(self.geom.pix_x[pix_id]).value,
-            u.Quantity(self.geom.pix_y[pix_id]).value,
-            u.Quantity(np.array(self.geom.pix_area)[pix_id]),
-        )
-        if self.geom.pix_type.startswith("hex"):
-            self._active_pixel.xy = (xx, yy)
+        x = self.geom.pix_x[pix_id].value
+        y = self.geom.pix_y[pix_id].value
+
+        if self.geom.pix_type in (PixelShape.HEXAGON, PixelShape.CIRCLE):
+            self._active_pixel.xy = (x, y)
         else:
-            rr = sqrt(aa)
-            self._active_pixel.xy = (xx - rr / 2.0, yy - rr / 2.0)
+            w = self.geom.pixel_width.value[0]
+            self._active_pixel.xy = (x - w / 2.0, y - w / 2.0)
+
         self._active_pixel.set_visible(True)
-        self._active_pixel_label.set_x(xx)
-        self._active_pixel_label.set_y(yy)
+        self._active_pixel_label.set_x(x)
+        self._active_pixel_label.set_y(y)
         self._active_pixel_label.set_text(f"{pix_id:003d}")
         self._active_pixel_label.set_visible(True)
         self._update()
