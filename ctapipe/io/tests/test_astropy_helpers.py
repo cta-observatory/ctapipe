@@ -118,3 +118,19 @@ def test_transforms(tmp_path):
     table = read_table(path, "/data/test")
 
     assert np.all(table["waveform"] == [-1.0, -0.9])
+
+
+def test_file_closed(tmp_path):
+    """Test read_table closes the file even when an exception happens during read"""
+
+    path = tmp_path / "empty.hdf5"
+    with tables.open_file(path, "w"):
+        pass
+
+    with pytest.raises(tables.NoSuchNodeError):
+        read_table(path, "/foo")
+
+    # test we can open the file for writing, fails if read_table did not close
+    # the file
+    with tables.open_file(path, "w"):
+        pass
