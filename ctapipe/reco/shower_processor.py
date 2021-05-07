@@ -183,8 +183,8 @@ class ShowerProcessor(Component):
 
         Parameters
         ----------
-        event : container
-            A `ctapipe` event container
+        event : ctapipe.containers.ArrayEventContainer
+            Top-level container for all event information.
         """
 
         # This is always done when calling the ShowerProcessor
