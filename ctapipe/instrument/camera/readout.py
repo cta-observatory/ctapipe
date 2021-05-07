@@ -111,25 +111,11 @@ class CameraReadout:
         else:
             verstr = f"-{version:03d}"
 
-        try:
-            tabname = "{camera_name}{verstr}.camreadout".format(
-                camera_name=camera_name, verstr=verstr
-            )
-            table = get_table_dataset(tabname, role="dl0.tel.svc.camera")
-            return CameraReadout.from_table(table)
-        except FileNotFoundError:
-            # TODO: remove case when files have been generated
-            logger.warning(
-                f"Resorting to default CameraReadout,"
-                f" File does not exist: ({tabname})"
-            )
-            reference_pulse_shape = np.array([norm.pdf(np.arange(96), 48, 6)])
-            return cls(
-                camera_name=camera_name,
-                sampling_rate=u.Quantity(1, u.GHz),
-                reference_pulse_shape=reference_pulse_shape,
-                reference_pulse_sample_width=u.Quantity(1, u.ns),
-            )
+        tabname = "{camera_name}{verstr}.camreadout".format(
+            camera_name=camera_name, verstr=verstr
+        )
+        table = get_table_dataset(tabname, role="dl0.tel.svc.camera")
+        return CameraReadout.from_table(table)
 
     def to_table(self):
         """Convert this to an `astropy.table.Table`."""
