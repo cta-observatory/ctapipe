@@ -411,11 +411,16 @@ class SimTelEventSource(EventSource):
                 r1 = data.r1.tel[tel_id]
                 r0.waveform = adc_samples
 
-                mon = array_event["camera_monitorings"][tel_id]
-                pedestal = mon["pedestal"] / mon["n_ped_slices"]
+                cam_mon = array_event["camera_monitorings"][tel_id]
+                pedestal = cam_mon["pedestal"] / cam_mon["n_ped_slices"]
                 dc_to_pe = array_event["laser_calibrations"][tel_id]["calib"]
-                # todo: store pedestal and dc_to_pe somewhere?
-                #
+
+                # fill dc_to_pe and pedestal_per_sample info into monitoring
+                # container
+                mon = data.mon.tel[tel_id]
+                mon.calibration.dc_to_pe = dc_to_pe
+                mon.calibration.pedestal_per_sample = pedestal
+
                 r1.waveform, r1.selected_gain_channel = apply_simtel_r1_calibration(
                     adc_samples, pedestal, dc_to_pe, self.gain_selector
                 )

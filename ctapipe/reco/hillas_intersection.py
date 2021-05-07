@@ -126,19 +126,19 @@ class HillasIntersection(Reconstructor):
             }
 
         tilted_frame = TiltedGroundFrame(pointing_direction=array_pointing)
-
-        ground_positions = subarray.tel_coords
-        grd_coord = GroundFrame(
-            x=ground_positions.x, y=ground_positions.y, z=ground_positions.z
-        )
-
+        grd_coord = subarray.tel_coords
         tilt_coord = grd_coord.transform_to(tilted_frame)
 
+        tel_ids = list(hillas_dict.keys())
+        tel_indices = subarray.tel_ids_to_indices(tel_ids)
+
         tel_x = {
-            tel_id: tilt_coord.x[tel_id - 1] for tel_id in list(hillas_dict.keys())
+            tel_id: tilt_coord.x[tel_index]
+            for tel_id, tel_index in zip(tel_ids, tel_indices)
         }
         tel_y = {
-            tel_id: tilt_coord.y[tel_id - 1] for tel_id in list(hillas_dict.keys())
+            tel_id: tilt_coord.y[tel_index]
+            for tel_id, tel_index in zip(tel_ids, tel_indices)
         }
 
         nom_frame = NominalFrame(origin=array_pointing)
