@@ -424,10 +424,10 @@ def test_Two_pass_window_sum_no_noise(subarray_1_LST):
 
     # Check that we have gained signal charge by using the 2nd pass
     # This also checks that the test image has triggered the 2nd pass
-    # (i.e. it is not too good)
+    # (i.e. it is not so bad to have <3 pixels in the preliminary cleaned image)
     reco_charge1 = np.sum(charge_1[signal_pixels & integration_window_inside])
     reco_charge2 = np.sum(charge_2[signal_pixels & integration_window_inside])
-    assert (reco_charge2 / reco_charge1) >= 1
+    assert (reco_charge2 / reco_charge1) > 1
 
     # Test only signal pixels for which it is expected to find most of the
     # charge well inside the readout window
