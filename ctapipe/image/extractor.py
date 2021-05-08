@@ -1055,8 +1055,8 @@ class TwoPassWindowSum(ImageExtractor):
             predicted_pulse_times.value * self.sampling_rate_ghz[telid]
         ).astype(np.int64)
 
-        # Due to the fit these peak indexes can now be also outside of the
-        # readout window, so later we check for this.
+        # Due to the fit these peak indexes can lead to an integration window
+        # outside the readout window, so in the next step we check for this.
 
         # STEP 6
 
@@ -1070,34 +1070,42 @@ class TwoPassWindowSum(ImageExtractor):
         # on the peak
         window_width_default = 5
         window_shift_default = 2
-
-        # now let's deal with some edge cases: the predicted peak falls before
-        # or after the readout window:
-        peak_before_readout = predicted_peaks < 0
-        peak_after_readout = predicted_peaks > (waveforms_to_repass.shape[1] - 1)
+        
+        # first we find where the integration window edges WOULD BE
+        integration_windows_start = predicted_peaks - window_shift_default
+        integration_windows_end   = integration_windows_start + window_width_default
+        
+        # then we define 2 possible edge cases
+        # the predicted integration window falls before the readout window
+        integration_before_readout = integration_windows_start < 0
+        # or after
+        integration_after_readout  = integration_windows_end > (waveforms_to_repass.shape[1] - 1)
 
         # If the resulting 5-samples window falls before the readout
-        # window then we take the first 5 samples
+        # window we take the first 5 samples
         window_width_before = 5
         window_shift_before = 0
 
-        # If the resulting 5-samples window falls before the readout
-        # window then we take the last 5 samples
+        # If the resulting 5-samples window falls after the readout
+        # window we take the last 5 samples
         window_width_after = 6
         window_shift_after = 4
 
-        # and put them together:
+        # put all values of widths and shifts for 2nd pass pixels together
         window_widths = np.full(waveforms_to_repass.shape[0], window_width_default)
-        window_widths[peak_before_readout] = window_width_before
-        window_widths[peak_after_readout] = window_width_after
+        window_widths[integration_before_readout] = window_width_before
+        window_widths[integration_after_readout] = window_width_after
         window_shifts = np.full(waveforms_to_repass.shape[0], window_shift_default)
-        window_shifts[peak_before_readout] = window_shift_before
-        window_shifts[peak_after_readout] = window_shift_after
+        window_shifts[integration_before_readout] = window_shift_before
+        window_shifts[integration_after_readout] = window_shift_after
 
-        # Now we can also (re)define the pathological predicted times because
-        # (we needed them to define the corrispective widths and shifts) set
-        # sample to 0 (beginning of the waveform) if predicted time falls before
+        # Now we have to (re)define the pathological predicted times which
+        # fall out of the readout window
+        # (Widths and shifts are already set for these cases because the
+        # integration window would be definitely outside the readout window)
 
+        # set sample to 0 (beginning of the waveform)
+        # if predicted time falls before
         predicted_peaks[predicted_peaks < 0] = 0
 
         # set sample to max-1 (first sample has index 0)
@@ -1130,8 +1138,8 @@ class TwoPassWindowSum(ImageExtractor):
                 telid, window_width_after, window_shift_after
             )[selected_gain_channel][mask_2nd_pass]
 
-            correction[peak_before_readout] = correction_before[peak_before_readout]
-            correction[peak_after_readout] = correction_after[peak_after_readout]
+            correction[integration_before_readout] = correction_before[integration_before_readout]
+            correction[integration_after_readout] = correction_after[integration_after_readout]
 
             reintegrated_charge *= correction
 
