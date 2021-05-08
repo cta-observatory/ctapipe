@@ -1099,18 +1099,23 @@ class TwoPassWindowSum(ImageExtractor):
         window_shifts[integration_before_readout] = window_shift_before
         window_shifts[integration_after_readout] = window_shift_after
 
-        # Now we have to (re)define the pathological predicted times which
-        # fall out of the readout window
-        # (Widths and shifts are already set for these cases because the
-        # integration window would be definitely outside the readout window)
+        # Now we have to (re)define the pathological predicted times for which
+        # - either the peak itself falls outside of the readout window
+        # - or is within the first or last 2 samples (so that at least 1 sample
+        # of the integration window is outside of the readout window)
+        # We place them at the first or last sample, so the special window
+        # widhts and shifts that we defined earlier put the integration window
+        # for these 2 cases either in the first 5 samples or the last
 
         # set sample to 0 (beginning of the waveform)
         # if predicted time falls before
-        predicted_peaks[predicted_peaks < 0] = 0
+        # but also if it's so near the edge that the integration window falls
+        # outside
+        predicted_peaks[predicted_peaks < 2] = 0
 
         # set sample to max-1 (first sample has index 0)
         # if predicted time falls after
-        predicted_peaks[predicted_peaks > (waveforms_to_repass.shape[1] - 1)] = (
+        predicted_peaks[predicted_peaks > (waveforms_to_repass.shape[1] - 3)] = (
             waveforms_to_repass.shape[1] - 1
         )
 
