@@ -34,7 +34,7 @@ from numba import njit, prange, guvectorize, float64, float32, int64
 from scipy.ndimage.filters import convolve1d
 from typing import Tuple
 
-from . import number_of_islands, largest_island, tailcuts_clean
+from . import number_of_islands, largest_island, tailcuts_clean, brightest_island
 from .timing import timing_parameters
 from .hillas import hillas_parameters, camera_to_shower_coordinates
 
@@ -781,7 +781,7 @@ class TwoPassWindowSum(ImageExtractor):
        No information from neighboouring pixels is used.
     #. Preliminary image cleaning via simple tailcut with minimum number
        of core neighbours set at 1,
-    #. Only the biggest cluster of pixels is kept.
+    #. Only the brightest cluster of pixels is kept.
     #. Parametrize following Hillas approach only if the resulting image has 3
        or more pixels.
     #. Do a linear fit of pulse time vs. distance along major image axis
@@ -998,27 +998,27 @@ class TwoPassWindowSum(ImageExtractor):
         num_islands, labels = number_of_islands(camera_geometry, mask_clean)
 
         if num_islands > 0:
-            # ...find the biggest one
-            mask_biggest = largest_island(labels)
+            # ...find the brightest one
+            mask_brightest_island = brightest_island(num_islands, labels, charge_1stpass)
         else:
-            mask_biggest = mask_clean
+            mask_brightest_island = mask_clean
 
         # for all pixels except the core ones in the main island of the
         # preliminary image, the waveform will be integrated once more (2nd pass)
 
-        mask_2nd_pass = ~mask_biggest | (mask_biggest & (charge_1stpass < core_th))
+        mask_2nd_pass = ~mask_brightest_island | (mask_brightest_island & (charge_1stpass < core_th))
 
         # STEP 4
 
         # if the resulting image has less then 3 pixels
-        if np.count_nonzero(mask_biggest) < 3:
+        if np.count_nonzero(mask_brightest_island) < 3:
             # we return the 1st pass information
             return charge_1stpass, pulse_time_1stpass
 
         # otherwise we proceed by parametrizing the image
-        camera_geometry_biggest = camera_geometry[mask_biggest]
-        charge_biggest = charge_1stpass[mask_biggest]
-        hillas = hillas_parameters(camera_geometry_biggest, charge_biggest)
+        camera_geometry_brightest = camera_geometry[mask_brightest_island]
+        charge_brightest = charge_1stpass[mask_brightest_island]
+        hillas = hillas_parameters(camera_geometry_brightest, charge_brightest)
 
         # STEP 5
 
@@ -1026,9 +1026,9 @@ class TwoPassWindowSum(ImageExtractor):
         # using only the main island surviving the preliminary
         # image cleaning
         timing = timing_parameters(
-            geom=camera_geometry_biggest,
-            image=charge_biggest,
-            peak_time=pulse_time_1stpass[mask_biggest],
+            geom=camera_geometry_brightest,
+            image=charge_brightest,
+            peak_time=pulse_time_1stpass[mask_brightest_island],
             hillas_parameters=hillas,
         )
 
