@@ -60,6 +60,17 @@ def subarray():
     return subarray
 
 
+@pytest.fixture(scope="module")
+def subarray_1_LST():
+    subarray = SubarrayDescription("One LST",
+                tel_positions={1: np.zeros(3) * u.m},
+                tel_descriptions={1: TelescopeDescription.from_name(
+                    optics_name="LST", camera_name="LSTCam"
+                    ),
+                },
+               )
+    return subarray
+
 def get_test_toymodel(subarray, minCharge=100, maxCharge=1000):
     telid = list(subarray.tel.keys())[0]
     n_pixels = subarray.tel[telid].camera.geometry.n_pixels
