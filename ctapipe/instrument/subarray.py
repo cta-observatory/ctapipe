@@ -295,17 +295,16 @@ class SubarrayDescription:
         tab.meta.update(meta)
         return tab
 
-    def select_subarray(self, name, tel_ids):
+    def select_subarray(self, tel_ids, name=None):
         """
         return a new SubarrayDescription that is a sub-array of this one
 
         Parameters
         ----------
-        name: str
-            name of new sub-selection
         tel_ids: list(int)
             list of telescope IDs to include in the new subarray
-
+        name: str
+            name of new sub-selection
         Returns
         -------
         SubarrayDescription
@@ -313,6 +312,10 @@ class SubarrayDescription:
 
         tel_positions = {tid: self.positions[tid] for tid in tel_ids}
         tel_descriptions = {tid: self.tel[tid] for tid in tel_ids}
+
+        if not name:
+            tel_ids = sorted(tel_ids)
+            name = self.name + "_" + _range_extraction(tel_ids)
 
         newsub = SubarrayDescription(
             name, tel_positions=tel_positions, tel_descriptions=tel_descriptions
@@ -334,7 +337,7 @@ class SubarrayDescription:
         with quantity_support():
             for tel_type in types:
                 tels = tab[tab["tel_description"] == str(tel_type)]["tel_id"]
-                sub = self.select_subarray(tel_type, tels)
+                sub = self.select_subarray(tels, name=tel_type)
                 tel_coords = sub.tel_coords
                 radius = np.array(
                     [

@@ -339,7 +339,7 @@ def test_selected_subarray(subarray_and_event_gamma_off_axis_500_gev):
 
     # remove telescopes 2 and 3 to see that HillasIntersection can work
     # with arbirary telescope ids
-    subarray = subarray.select_subarray("foo", tel_ids=[1, 4])
+    subarray = subarray.select_subarray([1, 4])
 
     reconstructor = HillasIntersection()
     array_pointing = SkyCoord(

@@ -72,10 +72,12 @@ def test_max_events(dl1_file):
 def test_allowed_tels(dl1_file):
     allowed_tels = {1, 2}
     with DL1EventSource(input_url=dl1_file, allowed_tels=allowed_tels) as source:
+        assert not allowed_tels.symmetric_difference(source.subarray.tel_ids)
         assert source.allowed_tels == allowed_tels
         for event in source:
-            for tel in event.dl1.tel:
-                assert tel in allowed_tels
+            assert set(event.trigger.tels_with_trigger).issubset(allowed_tels)
+            assert set(event.pointing.tel).issubset(allowed_tels)
+            assert set(event.dl1.tel).issubset(allowed_tels)
 
 
 def test_simulation_info(dl1_file):
