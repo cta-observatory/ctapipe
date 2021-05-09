@@ -49,7 +49,7 @@ class CameraCalibrator(TelescopeComponent):
     ).tag(config=True)
 
     apply_waveform_time_shift = BoolTelescopeParameter(
-        default_value=True,
+        default_value=False,
         help=(
             "Apply waveform time shift corrections."
             " The minimal integer shift to synchronize waveforms is applied"

@@ -650,7 +650,7 @@ class SlidingWindowMaxSum(ImageExtractor):
         )
 
         n_channels = len(readout.reference_pulse_shape)
-        correction = np.ones(n_channels, dtype=np.float)
+        correction = np.ones(n_channels, dtype=np.float64)
         for ichannel, pulse_shape in enumerate(readout.reference_pulse_shape):
 
             # apply the same method as sliding window to find the highest sum

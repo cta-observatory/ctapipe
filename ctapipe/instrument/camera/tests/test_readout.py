@@ -145,5 +145,11 @@ def test_hashing():
 @pytest.mark.parametrize("camera_name", camera_names)
 def test_camera_from_name(camera_name):
     """ check we can construct all cameras from name"""
-    camera = CameraReadout.from_name(camera_name)
-    assert str(camera) == camera_name
+
+    try:
+        camera = CameraReadout.from_name(camera_name)
+        assert str(camera) == camera_name
+    except FileNotFoundError:
+        # these two don't have readout definitions on the dataserver
+        if camera_name not in ["MAGICCam", "Whipple109"]:
+            raise
