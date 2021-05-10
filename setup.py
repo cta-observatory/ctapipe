@@ -27,7 +27,7 @@ tests_require = ["pytest", "pandas>=0.24.0"]
 docs_require = [
     "sphinx_rtd_theme",
     "sphinx_automodapi",
-    "sphinx",
+    "sphinx~=3.5",
     "nbsphinx",
     "numpydoc",
     "jupyter",

@@ -33,7 +33,7 @@ dependencies:
   - scikit-learn
   - scipy
   - setuptools
-  - sphinx
+  - sphinx=3.5
   - sphinx-automodapi
   - sphinx_rtd_theme
   - tqdm
