@@ -71,8 +71,7 @@ class SingleTelEventDisplay(Tool):
         super().__init__(**kwargs)
 
     def setup(self):
-        self.event_source = EventSource(parent=self)
-        self.event_source.allowed_tels = {self.tel}
+        self.event_source = EventSource(parent=self, allowed_tels={self.tel})
 
         self.calibrator = CameraCalibrator(
             parent=self, subarray=self.event_source.subarray
