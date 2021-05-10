@@ -154,7 +154,7 @@ def test_dl1_charge_calib(example_subarray):
     n_samples = 96
     mid = n_samples // 2
     pulse_sigma = 6
-    random = np.random.RandomState(1)
+    random = np.random.default_rng(1)
     x = np.arange(n_samples)
 
     # Randomize times and create pulses
