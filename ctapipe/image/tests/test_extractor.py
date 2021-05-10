@@ -345,6 +345,8 @@ def test_neighbor_peak_window_sum_lwt(toymodel):
 
 def test_Two_pass_window_sum_no_noise(subarray_1_LST):
 
+    rng = np.random.default_rng(0)
+
     subarray = subarray_1_LST
 
     camera = subarray.tel[1].camera
