@@ -375,7 +375,7 @@ def test_Two_pass_window_sum_no_noise(subarray_1_LST):
     true_charge, true_signal, true_noise = m.generate_image(geometry,
                                                             intensity=intensity,
                                                             nsb_level_pe=nsb_level_pe)
-    signal_pixels = true_signal > 0
+    signal_pixels = true_signal > 2
     # create a pulse-times image without noise
     # we can make new functions later
     time_noise = np.random.uniform(0, 0, geometry.n_pixels)
@@ -386,6 +386,8 @@ def test_Two_pass_window_sum_no_noise(subarray_1_LST):
                                     psi,
                                     time_gradient,
                                     time_intercept)
+
+    true_charge[(time_signal < 0) | (time_signal > (n_samples / sampling_rate))] = 0
 
     true_time = np.average(
         np.column_stack([time_noise, time_signal]),
@@ -437,15 +439,10 @@ def test_Two_pass_window_sum_no_noise(subarray_1_LST):
     # charge well inside the readout window
     assert_allclose(charge_2[signal_pixels & integration_window_inside],
                     true_charge[signal_pixels & integration_window_inside],
-                    rtol=0.4)
+                    rtol=0.3, atol = 2.0)
     assert_allclose(pulse_time_2[signal_pixels & integration_window_inside],
                     true_time[signal_pixels & integration_window_inside],
-                    rtol=0.4)
-
-    # then check again using all pixels with less precision
-    assert_allclose(charge_2[signal_pixels], true_charge[signal_pixels], rtol=0.4)
-    assert_allclose(pulse_time_2[signal_pixels], true_time[signal_pixels], rtol=0.4)
-
+                    rtol=0.3, atol = 2.0)
 
 def test_waveform_extractor_factory(toymodel):
     waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
