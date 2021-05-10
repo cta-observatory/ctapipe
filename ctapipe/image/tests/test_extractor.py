@@ -345,7 +345,7 @@ def test_neighbor_peak_window_sum_lwt(toymodel):
 
 def test_Two_pass_window_sum_no_noise(subarray_1_LST):
 
-    np.random.seed(0)
+    rng = np.random.default_rng(0)
 
     subarray = subarray_1_LST
 
@@ -374,11 +374,12 @@ def test_Two_pass_window_sum_no_noise(subarray_1_LST):
     m = SkewedGaussian(x, y, length, width, psi, skewness)
     true_charge, true_signal, true_noise = m.generate_image(geometry,
                                                             intensity=intensity,
-                                                            nsb_level_pe=nsb_level_pe)
+                                                            nsb_level_pe=nsb_level_pe,
+                                                            rng=rng)
     signal_pixels = true_signal > 2
     # create a pulse-times image without noise
     # we can make new functions later
-    time_noise = np.random.uniform(0, 0, geometry.n_pixels)
+    time_noise = rng.uniform(0, 0, geometry.n_pixels)
     time_signal = obtain_time_image(geometry.pix_x,
                                     geometry.pix_y,
                                     x,
