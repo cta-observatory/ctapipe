@@ -42,10 +42,17 @@ class ToyEventSource(EventSource, TelescopeComponent):
         default_value=0.5, help="Maximum skewness"
     ).tag(config=True)
 
-    def __init__(self, subarray, config=None, parent=None, **kwargs):
+    seed = traits.Int(default_value=0, help="Seed for the rng").tag(config=True)
+
+    def __init__(self, subarray, config=None, parent=None, rng=None, **kwargs):
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
         self._subarray = subarray
         self._camera_radii = {}
+
+        if rng is None:
+            self.rng = np.random.default_rng(self.seed)
+        else:
+            self.rng = rng
 
     @staticmethod
     def calc_width(eccentricity, length):
@@ -98,30 +105,30 @@ class ToyEventSource(EventSource, TelescopeComponent):
         )
 
         for tel_id, telescope in self.subarray.tel.items():
-            if np.random.uniform() >= self.trigger_probability.tel[tel_id]:
+            if self.rng.uniform() >= self.trigger_probability.tel[tel_id]:
                 continue
 
             cam = telescope.camera.geometry
 
             # draw cog
-            r_fraction = np.sqrt(np.random.uniform(0, 0.9))
+            r_fraction = np.sqrt(self.rng.uniform(0, 0.9))
             r = r_fraction * cam.guess_radius()
-            phi = np.random.uniform(0, 2 * np.pi)
+            phi = self.rng.uniform(0, 2 * np.pi)
             x = r * np.cos(phi)
             y = r * np.sin(phi)
 
             # draw length
-            length = np.random.uniform(
+            length = self.rng.uniform(
                 self.min_length_m.tel[tel_id], self.max_length_m.tel[tel_id]
             )
-            eccentricity = np.random.uniform(
+            eccentricity = self.rng.uniform(
                 self.min_eccentricity.tel[tel_id], self.max_eccentricity.tel[tel_id]
             )
             width = self.calc_width(eccentricity, length)
 
-            psi = np.random.randint(0, 360)
-            intensity = np.random.poisson(int(1e5 * width * length))
-            skewness = np.random.uniform(
+            psi = self.rng.uniform(0, 360)
+            intensity = self.rng.poisson(int(1e5 * width * length))
+            skewness = self.rng.uniform(
                 self.min_skewness.tel[tel_id], self.max_skewness.tel[tel_id]
             )
 
