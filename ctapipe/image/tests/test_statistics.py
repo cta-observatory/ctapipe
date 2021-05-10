@@ -5,8 +5,8 @@ import scipy.stats
 def test_statistics():
     from ctapipe.image import descriptive_statistics
 
-    np.random.seed(0)
-    data = np.random.normal(5, 2, 1000)
+    rng = np.random.default_rng(0)
+    data = rng.normal(5, 2, 1000)
 
     stats = descriptive_statistics(data)
 
@@ -19,8 +19,8 @@ def test_statistics():
 def test_skewness():
     from ctapipe.image.statistics import skewness
 
-    np.random.seed(0)
-    data = np.random.normal(5, 2, 1000)
+    rng = np.random.default_rng(0)
+    data = rng.normal(5, 2, 1000)
     mean = np.mean(data)
     std = np.std(data)
 
@@ -33,8 +33,8 @@ def test_skewness():
 def test_kurtosis():
     from ctapipe.image.statistics import kurtosis
 
-    np.random.seed(0)
-    data = np.random.normal(5, 2, 1000)
+    rng = np.random.default_rng(0)
+    data = rng.normal(5, 2, 1000)
 
     mean = np.mean(data)
     std = np.std(data)
@@ -52,8 +52,8 @@ def test_return_type():
     from ctapipe.containers import PeakTimeStatisticsContainer, StatisticsContainer
     from ctapipe.image import descriptive_statistics
 
-    np.random.seed(0)
-    data = np.random.normal(5, 2, 1000)
+    rng = np.random.default_rng(0)
+    data = rng.normal(5, 2, 1000)
 
     stats = descriptive_statistics(data)
     assert isinstance(stats, StatisticsContainer)

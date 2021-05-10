@@ -28,7 +28,8 @@ def subarray_lst():
 
 def test_null_data_volume_reducer(subarray_lst):
     subarray, _, _, _, _ = subarray_lst
-    waveforms = np.random.uniform(0, 1, (2048, 96))
+    rng = np.random.default_rng(0)
+    waveforms = rng.uniform(0, 1, (2048, 96))
     reducer = NullDataVolumeReducer(subarray=subarray)
     reduced_waveforms_mask = reducer(waveforms)
     reduced_waveforms = waveforms.copy()
