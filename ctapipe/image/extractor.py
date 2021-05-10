@@ -34,7 +34,7 @@ from numba import njit, prange, guvectorize, float64, float32, int64
 from scipy.ndimage.filters import convolve1d
 from typing import Tuple
 
-from . import number_of_islands, largest_island, tailcuts_clean, brightest_island
+from . import number_of_islands, tailcuts_clean, brightest_island
 from .timing import timing_parameters
 from .hillas import hillas_parameters, camera_to_shower_coordinates
 
