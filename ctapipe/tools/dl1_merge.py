@@ -120,6 +120,7 @@ class MergeTool(Tool):
         default_value="*.h5", help="Give a specific file pattern for the input files"
     ).tag(config=True)
     allowed_tels = traits.Set(
+        trait=traits.Int,
         default_value=None,
         allow_none=True,
         help=(
