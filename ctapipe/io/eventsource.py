@@ -4,13 +4,9 @@ Handles reading of different event/waveform containing files
 from abc import abstractmethod
 from traitlets.config.loader import LazyConfigValue
 
-from ctapipe.core import ToolConfigurationError, Provenance
-from ctapipe.core.component import (
-    Component,
-    non_abstract_children,
-    find_config_in_hierarchy,
-)
-from ctapipe.core.traits import Path, Int, Set
+from ..core import ToolConfigurationError, Provenance
+from ..core.component import Component, non_abstract_children, find_config_in_hierarchy
+from ..core.traits import Path, Int, Set
 
 
 __all__ = ["EventSource"]
