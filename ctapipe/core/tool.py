@@ -157,7 +157,9 @@ class Tool(Application):
             ("l", "log-file"): "Tool.log_file",
             "log-file-level": "Tool.log_file_level",
         }
-        self.aliases.update(aliases)
+        # makes sure user defined aliases override default aliases
+        self.aliases = {**aliases, **self.aliases}
+
         flags = {
             ("q", "quiet"): ({"Tool": {"quiet": True}}, "Disable console logging."),
             ("v", "verbose"): (
