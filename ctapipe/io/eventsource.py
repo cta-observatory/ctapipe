@@ -6,7 +6,7 @@ from traitlets.config.loader import LazyConfigValue
 
 from ..core import ToolConfigurationError, Provenance
 from ..core.component import Component, non_abstract_children, find_config_in_hierarchy
-from ..core.traits import Path, Int, Set
+from ..core.traits import Path, Int, CInt, Set
 
 
 __all__ = ["EventSource"]
@@ -89,7 +89,7 @@ class EventSource(Component):
     ).tag(config=True)
 
     allowed_tels = Set(
-        trait=Int(),
+        trait=CInt(),
         default_value=None,
         allow_none=True,
         help=(
