@@ -77,6 +77,7 @@ def setup(app):
         "Enum",
         "Float",
         "Int",
+        "CInt",
         "Integer",
         "List",
         "Long",

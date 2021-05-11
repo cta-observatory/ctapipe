@@ -31,6 +31,7 @@ __all__ = [
     "Bool",
     "CRegExp",
     "CaselessStrEnum",
+    "CInt",
     "Dict",
     "Enum",
     "Float",
@@ -53,6 +54,7 @@ logger = logging.getLogger(__name__)
 # Aliases
 Bool = traitlets.Bool
 Int = traitlets.Int
+CInt = traitlets.CInt
 Integer = traitlets.Integer
 Float = traitlets.Float
 Long = traitlets.Long
