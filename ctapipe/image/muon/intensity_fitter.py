@@ -517,37 +517,30 @@ class MuonIntensityFitter(TelescopeComponent):
             pedestal=pedestal,
             hole_radius=self.hole_radius_m.tel[tel_id] * u.m,
         )
+        negative_log_likelihood.errordef = Minuit.LIKELIHOOD
 
         initial_guess = create_initial_guess(center_x, center_y, radius, telescope)
-
-        step_sizes = {}
-        step_sizes["error_impact_parameter"] = 0.5
-        step_sizes["error_phi"] = np.deg2rad(0.5)
-        step_sizes["error_ring_width"] = 0.001 * radius.to_value(u.rad)
-        step_sizes["error_optical_efficiency_muon"] = 0.05
-
-        constraints = {}
-        constraints["limit_impact_parameter"] = (0, None)
-        constraints["limit_phi"] = (-np.pi, np.pi)
-        constraints["fix_radius"] = True
-        constraints["fix_center_x"] = True
-        constraints["fix_center_y"] = True
-        constraints["limit_ring_width"] = (0.0, None)
-        constraints["limit_optical_efficiency_muon"] = (0.0, None)
 
         # Create Minuit object with first guesses at parameters
         # strip away the units as Minuit doesnt like them
 
-        minuit = Minuit(
-            negative_log_likelihood,
-            # forced_parameters=parameter_names,
-            **initial_guess,
-            **step_sizes,
-            **constraints,
-            errordef=0.5,
-            print_level=0,
-            pedantic=True,
-        )
+        minuit = Minuit(negative_log_likelihood, **initial_guess)
+
+        minuit.print_level = 0
+
+        minuit.errors["impact_parameter"] = 0.5
+        minuit.errors["phi"] = np.deg2rad(0.5)
+        minuit.errors["ring_width"] = 0.001 * radius.to_value(u.rad)
+        minuit.errors["optical_efficiency_muon"] = 0.05
+
+        minuit.limits["impact_parameter"] = (0, None)
+        minuit.limits["phi"] = (-np.pi, np.pi)
+        minuit.limits["ring_width"] = (0.0, None)
+        minuit.limits["optical_efficiency_muon"] = (0.0, None)
+
+        minuit.fixed["radius"] = True
+        minuit.fixed["center_x"] = True
+        minuit.fixed["center_y"] = True
 
         # Perform minimisation
         minuit.migrad()
