@@ -4,10 +4,7 @@ from astropy.units import Quantity
 
 from ctapipe.utils.quantities import all_to_value
 
-__all__ = [
-    "kundu_chaudhuri_circle_fit",
-    "taubin_circle_fit",
-]
+__all__ = ["kundu_chaudhuri_circle_fit", "taubin_circle_fit"]
 
 
 def kundu_chaudhuri_circle_fit(x, y, weights):
@@ -79,18 +76,17 @@ def taubin_circle_fit(x, y, mask):
 
     # minimization method
     fit = Minuit(
-        make_taubin_loss_function(x_masked, y_masked),
-        xc=xc,
-        yc=yc,
-        r=taubin_r_initial,
-        error_xc=taubin_error,
-        error_yc=taubin_error,
-        error_r=taubin_error,
-        limit_xc=(-2 * R, 2 * R),
-        limit_yc=(-2 * R, 2 * R),
-        limit_r=(0, R),
-        pedantic=False,
+        make_taubin_loss_function(x_masked, y_masked), xc=xc, yc=yc, r=taubin_r_initial
     )
+
+    fit.errors["xc"] = taubin_error
+    fit.errors["yc"] = taubin_error
+    fit.errors["r"] = taubin_error
+
+    fit.limits["xc"] = (-2 * R, 2 * R)
+    fit.limits["yc"] = (-2 * R, 2 * R)
+    fit.limits["r"] = (0, R)
+
     fit.migrad()
 
     radius = Quantity(fit.values["r"], original_unit)

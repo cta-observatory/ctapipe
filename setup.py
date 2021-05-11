@@ -44,7 +44,7 @@ setup(
         "bokeh~=1.0",
         "eventio>=1.5.0,<2.0.0a0",
         "h5py",
-        "iminuit~=1.3",
+        "iminuit>=2",
         "joblib",
         "matplotlib~=3.0",
         "numba>=0.43",
