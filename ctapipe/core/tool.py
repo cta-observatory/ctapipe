@@ -152,14 +152,18 @@ class Tool(Application):
         # make sure there are some default aliases in all Tools:
         super().__init__(**kwargs)
         aliases = {
-            "config": "Tool.config_file",
+            ("c", "config"): "Tool.config_file",
             "log-level": "Tool.log_level",
             ("l", "log-file"): "Tool.log_file",
             "log-file-level": "Tool.log_file_level",
         }
         self.aliases.update(aliases)
         flags = {
-            ("q", "quiet"): ({"Tool": {"quiet": True}}, "Disable console logging.")
+            ("q", "quiet"): ({"Tool": {"quiet": True}}, "Disable console logging."),
+            ("v", "verbose"): (
+                {"Tool": {"log_level": "DEBUG"}},
+                "Set log level to DEBUG",
+            ),
         }
         self.flags.update(flags)
 
