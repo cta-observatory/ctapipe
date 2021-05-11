@@ -133,14 +133,10 @@ class MergeTool(Tool):
     parser.add_argument("input_files", nargs="*", type=Path)
 
     aliases = {
-        "input-dir": "MergeTool.input_dir",
-        "i": "MergeTool.input_dir",
-        "output": "MergeTool.output_path",
-        "o": "MergeTool.output_path",
-        "pattern": "MergeTool.file_pattern",
-        "p": "MergeTool.file_pattern",
-        "allowed-tels": "MergeTool.allowed_tels",
-        "t": "MergeTool.allowed_tels",
+        ("i", "input-dir"): "MergeTool.input_dir",
+        ("o", "output"): "MergeTool.output_path",
+        ("p", "pattern"): "MergeTool.file_pattern",
+        ("t", "allowed-tels"): "MergeTool.allowed_tels",
     }
 
     flags = {
