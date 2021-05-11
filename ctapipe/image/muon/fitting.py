@@ -78,6 +78,7 @@ def taubin_circle_fit(x, y, mask):
     fit = Minuit(
         make_taubin_loss_function(x_masked, y_masked), xc=xc, yc=yc, r=taubin_r_initial
     )
+    fit.errordef = Minuit.LEAST_SQUARES
 
     fit.errors["xc"] = taubin_error
     fit.errors["yc"] = taubin_error
