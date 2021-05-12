@@ -65,13 +65,13 @@ output file, where `<algorithm>` is the identifier of the algorithm (e.g.
       - Contents
     * - /geometry
       - shower geometry reconstruction
-      - `EventIndexContainer`, `ReconstructedGeometryContainer`
+      - :py:class:`~ctapipe.containers.EventIndexContainer`, :py:class:`~ctapipe.containers.ReconstructedGeometryContainer`
     * - /energy
       - shower energy reconstruction
-      - `EventIndexContainer`, `ReconstructedEnergyContainer`
+      - :py:class:`~ctapipe.containers.EventIndexContainer`, :py:class:`~ctapipe.containers.ReconstructedEnergyContainer`
     * - /classification
       - shower classification parameters
-      - `EventIndexContainer`, `ParticleClassificationContainer`
+      - :py:class:`~ctapipe.containers.EventIndexContainer`, :py:class:`~ctapipe.containers.ParticleClassificationContainer`
         
 ---------------------
 Simulation Data Model
