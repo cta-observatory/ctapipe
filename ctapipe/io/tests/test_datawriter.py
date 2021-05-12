@@ -27,7 +27,7 @@ def generate_dummy_dl2(event):
 
         event.dl2.stereo.geometry[algo].alt = 72 * u.deg
         event.dl2.stereo.geometry[algo].az = 121 * u.deg
-        event.dl2.stereo.energy[algo].tel_ids = [1, 4, 5]
+        event.dl2.stereo.energy[algo].tel_ids = [1, 2, 4]
         event.dl2.stereo.energy[algo].energy = 10 * u.TeV
         event.dl2.stereo.classification[algo].prediction = 0.9
 
