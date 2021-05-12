@@ -36,10 +36,10 @@ class Stage1Tool(Tool):
     progress_bar = Bool(help="show progress bar during processing").tag(config=True)
 
     aliases = {
-        "input": "EventSource.input_url",
-        "output": "DL1Writer.output_path",
-        "allowed-tels": "EventSource.allowed_tels",
-        "max-events": "EventSource.max_events",
+        ("i", "input"): "EventSource.input_url",
+        ("o", "output"): "DL1Writer.output_path",
+        ("t", "allowed-tels"): "EventSource.allowed_tels",
+        ("m", "max-events"): "EventSource.max_events",
         "image-cleaner-type": "ImageProcessor.image_cleaner_type",
     }
 
@@ -56,7 +56,7 @@ class Stage1Tool(Tool):
             {"DL1Writer": {"write_index_tables": True}},
             "generate PyTables index tables for the parameter and image datasets",
         ),
-        "overwrite": (
+        ("f", "overwrite"): (
             {"DL1Writer": {"overwrite": True}},
             "Overwrite output file if it exists",
         ),
