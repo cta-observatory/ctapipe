@@ -46,15 +46,16 @@ class TableWriter(Component, metaclass=ABCMeta):
         self.close()
 
     def exclude(self, table_regexp, pattern):
-        """
-        Exclude any columns (Fields)  matching the pattern from being written
+        """Exclude any columns (Fields) matching the pattern from being written. The
+        patterns are matched with re.fullmatch.
 
         Parameters
         ----------
-        table_name: str or regexp
-            name of table on which to apply the exclusion
+        table_regexp: str
+            regexp matching to match table name to apply exclusion
         pattern: str
-            regular expression string to match column name
+            regular expression string to match column name in the table
+
         """
         table_regexp = table_regexp.lstrip("/")
         self._exclusions[table_regexp].append(re.compile(pattern))
