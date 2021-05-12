@@ -40,7 +40,6 @@ def test_write_container(temp_h5_file):
     with HDF5TableWriter(
         temp_h5_file, group_name="R0", filters=tables.Filters(complevel=7)
     ) as writer:
-        writer.exclude("tel_002", ".*samples")  # test exclusion of columns
 
         for ii in range(100):
             r0tel.waveform[:] = np.random.uniform(size=(50, 10))
@@ -584,6 +583,47 @@ def test_read_write_container_with_int_enum(tmp_path):
             group_name = "/{}table".format(group_name)
             for data in h5_table.read(group_name, WithIntEnum()):
                 assert isinstance(data.event_type, WithIntEnum.EventType)
+
+
+def test_column_exclusions(tmp_path):
+    """test if we can exclude columns using regexps for the table and column name"""
+    tmp_file = tmp_path / "test_column_exclusions.hdf5"
+
+    class SomeContainer(Container):
+        container_prefix = ""
+        hillas_x = Field(None)
+        hillas_y = Field(None)
+        impact_x = Field(None)
+        impact_y = Field(None)
+
+    cont = SomeContainer(hillas_x=10, hillas_y=10, impact_x=15, impact_y=15)
+
+    with HDF5TableWriter(tmp_file) as writer:
+
+        # don't write hillas columns for any table
+        writer.exclude(".*table", "hillas_.*")
+
+        # exclude a specific column
+        writer.exclude("data/anothertable", "impact_x")
+        print(writer._exclusions)
+
+        writer.write("data/mytable", cont)
+        writer.write("data/anothertable", cont)
+
+    # check that we get back the transformed values (note here a round trip will
+    # not work, as there is no inverse transform in this test)
+    with HDF5TableReader(tmp_file, mode="r") as reader:
+        data = next(reader.read("/data/mytable", SomeContainer()))
+        assert data.hillas_x is None
+        assert data.hillas_y is None
+        assert data.impact_x == 15
+        assert data.impact_y == 15
+
+        data = next(reader.read("/data/anothertable", SomeContainer()))
+        assert data.hillas_x is None
+        assert data.hillas_y is None
+        assert data.impact_x is None
+        assert data.impact_y == 15
 
 
 def test_column_transforms(tmp_path):
