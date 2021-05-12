@@ -9,9 +9,9 @@ env:
 
 jobs:
   tests:
-    runs-on: [ubuntu-latest, macos-latest]
     strategy:
       matrix:
+        runs-on: [ubuntu-latest, macos-latest]
         python-version: [3.7, 3.8]
         install-method: ["pip", "conda"]
 
@@ -50,7 +50,10 @@ jobs:
       - uses: codecov/codecov-action@v1
 
   docs:
-    runs-on: [ubuntu-latest, macos-latest]
+    strategy:
+      matrix:
+        runs-on: [ubuntu-latest, macos-latest]
+        python-version: [3.7, 3.8]
     steps:
       - uses: actions/checkout@v2
         with:
