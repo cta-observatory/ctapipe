@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 
-import numpy as np
-from ctapipe.io.datawriter import DataWriter, DATA_MODEL_VERSION
-from ctapipe.utils import get_dataset_path
-from ctapipe.io import EventSource, DataLevel
-from ctapipe.calib import CameraCalibrator
-from pathlib import Path
-from ctapipe.instrument import SubarrayDescription
-from copy import deepcopy
-import tables
 import logging
+from copy import deepcopy
+from pathlib import Path
+
+import numpy as np
+import tables
 from astropy import units as u
+from ctapipe.calib import CameraCalibrator
+from ctapipe.instrument import SubarrayDescription
+from ctapipe.io import DataLevel, EventSource
+from ctapipe.io.datawriter import DATA_MODEL_VERSION, DataWriter
+from ctapipe.utils import get_dataset_path
 
 
 def generate_dummy_dl2(event):

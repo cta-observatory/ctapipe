@@ -127,14 +127,14 @@ class HDF5TableWriter(TableWriter):
         self._group = "/" + group_name
         self.filters = filters
 
-        self.log.debug("h5file: %s", self._h5file)
+        self.log.debug("h5file: %s", self.h5file)
 
     def open(self, filename, **kwargs):
         self.log.debug("kwargs for tables.open_file: %s", kwargs)
-        self._h5file = tables.open_file(filename, **kwargs)
+        self.h5file = tables.open_file(filename, **kwargs)
 
     def close(self):
-        self._h5file.close()
+        self.h5file.close()
 
     def _create_hdf5_table_schema(self, table_name, containers):
         """
@@ -271,8 +271,8 @@ class HDF5TableWriter(TableWriter):
         for container in containers:
             meta.update(container.meta)  # copy metadata from container
 
-        if table_path not in self._h5file:
-            table = self._h5file.create_table(
+        if table_path not in self.h5file:
+            table = self.h5file.create_table(
                 where=table_group,
                 name=table_basename,
                 title="Storage of {}".format(
@@ -286,7 +286,7 @@ class HDF5TableWriter(TableWriter):
             for key, val in meta.items():
                 table.attrs[key] = val
         else:
-            table = self._h5file.get_node(table_path)
+            table = self.h5file.get_node(table_path)
 
         self._tables[table_name] = table
 

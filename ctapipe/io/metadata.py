@@ -26,10 +26,11 @@ import uuid
 import warnings
 from collections import OrderedDict
 
-from traitlets import Enum, Unicode, Int, HasTraits, default, Instance, List
+from tables import NaturalNameWarning
+from traitlets import Enum, HasTraits, Instance, Int, List, Unicode, default
+from astropy.time import Time
 
-from ctapipe.core.provenance import _ActivityProvenance
-from ctapipe.core.traits import AstroTime
+from ..core.traits import AstroTime
 
 __all__ = [
     "Reference",
@@ -41,10 +42,8 @@ __all__ = [
     "write_to_hdf5",
 ]
 
-from astropy.time import Time
 
-
-CONVERSIONS = {Time: lambda t: t.utc.iso, list: lambda l: str(l)}
+CONVERSIONS = {Time: lambda t: t.utc.iso, list: str}
 
 
 class Contact(HasTraits):
@@ -183,9 +182,9 @@ def _to_dict(hastraits_instance, prefix=""):
     """
     res = {}
 
-    for k, tr in hastraits_instance.traits().items():
+    for k, trait in hastraits_instance.traits().items():
         key = (prefix + k.upper().replace("_", " ")).replace("  ", " ").strip()
-        val = tr.get(hastraits_instance)
+        val = trait.get(hastraits_instance)
 
         # apply type conversions
         val = CONVERSIONS.get(type(val), lambda v: v)(val)
@@ -232,8 +231,6 @@ def write_to_hdf5(metadata, h5file):
     h5file: tables.file.File
         pytables filehandle
     """
-    from tables import NaturalNameWarning
-
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", NaturalNameWarning)
         for key, value in metadata.items():

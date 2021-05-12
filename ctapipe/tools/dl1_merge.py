@@ -430,7 +430,7 @@ class MergeTool(Tool):
         with HDF5TableWriter(
             self.output_path, parent=self, mode="a", add_prefix=True
         ) as writer:
-            meta.write_to_hdf5(headers, writer._h5file)
+            meta.write_to_hdf5(headers, writer.h5file)
 
 
 def main():

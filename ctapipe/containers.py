@@ -604,9 +604,9 @@ class ReconstructedContainer(Container):
 
 
 class DL2Container(Container):
-    """
-    Reconstructed Shower information for a given reconstruction algorithm,
-    including optionally both per-telescope mono reconstruction and per-shower stereo reconstructions
+    """Reconstructed Shower information for a given reconstruction algorithm,
+    including optionally both per-telescope mono reconstruction and per-shower
+    stereo reconstructions
     """
 
     tel = Field(

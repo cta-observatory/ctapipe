@@ -35,7 +35,7 @@ class Reconstructor(Component):
 
         Returns
         -------
-        `~ctapipe.containers.ReconstructedShowerContainer`
+        `~ctapipe.containers.ReconstructedGeometryContainer`
 
         """
         return ReconstructedGeometryContainer()
