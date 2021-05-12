@@ -301,7 +301,6 @@ def test_reconstruction():
 
 def test_reconstruction_works(subarray_and_event_gamma_off_axis_500_gev):
     subarray, event = subarray_and_event_gamma_off_axis_500_gev
-
     reconstructor = HillasIntersection()
 
     array_pointing = SkyCoord(
@@ -332,3 +331,34 @@ def test_reconstruction_works(subarray_and_event_gamma_off_axis_500_gev):
     )
 
     assert reco_coord.separation(true_coord) < 0.1 * u.deg
+
+
+def test_selected_subarray(subarray_and_event_gamma_off_axis_500_gev):
+    """test that reconstructor also works with "missing" ids"""
+    subarray, event = subarray_and_event_gamma_off_axis_500_gev
+
+    # remove telescopes 2 and 3 to see that HillasIntersection can work
+    # with arbirary telescope ids
+    subarray = subarray.select_subarray([1, 4])
+
+    reconstructor = HillasIntersection()
+    array_pointing = SkyCoord(
+        az=event.pointing.array_azimuth,
+        alt=event.pointing.array_altitude,
+        frame=AltAz(),
+    )
+
+    # again, only use telescopes 1 and 4
+    hillas_dict = {
+        tel_id: dl1.parameters.hillas
+        for tel_id, dl1 in event.dl1.tel.items()
+        if dl1.parameters.hillas.width.value > 0 and tel_id in {1, 4}
+    }
+
+    telescope_pointings = {
+        tel_id: SkyCoord(alt=pointing.altitude, az=pointing.azimuth, frame=AltAz())
+        for tel_id, pointing in event.pointing.tel.items()
+        if tel_id in hillas_dict
+    }
+
+    reconstructor.predict(hillas_dict, subarray, array_pointing, telescope_pointings)

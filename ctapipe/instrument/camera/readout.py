@@ -88,9 +88,10 @@ class CameraReadout:
     def from_name(cls, camera_name="NectarCam", version=None):
         """Construct a CameraReadout using the name of the camera and array.
 
-        This expects that there is a resource in the `ctapipe_resources` module
-        called "[array]-[camera].camreadout.fits.gz" or "[array]-[camera]-[
-        version].camgeom.fits.gz".
+        This expects that there is a resource accessible ``ctapipe_resources``
+        via `~ctapipe.utils.get_table_dataset` called
+        ``"[array]-[camera].camreadout.fits.gz"`` or
+        ``"[array]-[camera]-[version].camgeom.fits.gz"``.
 
         Parameters
         ----------
@@ -110,25 +111,11 @@ class CameraReadout:
         else:
             verstr = f"-{version:03d}"
 
-        try:
-            tabname = "{camera_name}{verstr}.camreadout".format(
-                camera_name=camera_name, verstr=verstr
-            )
-            table = get_table_dataset(tabname, role="dl0.tel.svc.camera")
-            return CameraReadout.from_table(table)
-        except FileNotFoundError:
-            # TODO: remove case when files have been generated
-            logger.warning(
-                f"Resorting to default CameraReadout,"
-                f" File does not exist: ({tabname})"
-            )
-            reference_pulse_shape = np.array([norm.pdf(np.arange(96), 48, 6)])
-            return cls(
-                camera_name=camera_name,
-                sampling_rate=u.Quantity(1, u.GHz),
-                reference_pulse_shape=reference_pulse_shape,
-                reference_pulse_sample_width=u.Quantity(1, u.ns),
-            )
+        tabname = "{camera_name}{verstr}.camreadout".format(
+            camera_name=camera_name, verstr=verstr
+        )
+        table = get_table_dataset(tabname, role="dl0.tel.svc.camera")
+        return CameraReadout.from_table(table)
 
     def to_table(self):
         """Convert this to an `astropy.table.Table`."""
@@ -158,14 +145,14 @@ class CameraReadout:
     @classmethod
     def from_table(cls, url_or_table, **kwargs):
         """Load a CameraReadout from an `astropy.table.Table` instance or a
-        file that is readable by `astropy.table.Table.read()`.
+        file that is readable by `astropy.table.Table.read`.
 
         Parameters
         ----------
         url_or_table: string or astropy.table.Table
             either input filename/url or a Table instance
         kwargs: extra keyword arguments
-            extra arguments passed to `astropy.table.read()`, depending on
+            extra arguments passed to `astropy.table.Table.read`, depending on
             file type (e.g. format, hdu, path)
 
         """

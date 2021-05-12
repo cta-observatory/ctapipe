@@ -7,8 +7,6 @@ from pathlib import Path
 
 import tables
 from astropy.table import Table
-from astropy.units import Unit
-from astropy.time import Time
 import numpy as np
 
 from .tableio import (
@@ -18,15 +16,19 @@ from .tableio import (
 )
 from .hdf5tableio import get_hdf5_attr
 
+from contextlib import ExitStack
+
 __all__ = ["h5_table_to_astropy"]
 
 
-def read_table(h5file, path) -> Table:
-    """Get a table from a ctapipe-format HDF5 table as an `astropy.table.Table`
-    object, retaining units. This uses the same unit storage convention as
-    defined by the `HDF5TableWriter`, namely that the units are in attributes
-    named by `<column name>_UNIT` that are parsible by `astropy.units`. Columns
-    that were Enums will remain as integers.
+def read_table(h5file, path, start=None, stop=None, step=None) -> Table:
+    """Read a table from an HDF5 file
+
+    This reads a table written in the ctapipe format table as an `astropy.table.Table`
+    object, inversing the column transformations units.
+
+    This uses the same conventions as the `~ctapipe.io.HDF5TableWriter`,
+    with the exception of Enums, that will remain as integers.
 
     Parameters
     ----------
@@ -42,20 +44,31 @@ def read_table(h5file, path) -> Table:
 
     """
 
-    should_close_file = False
-    if isinstance(h5file, (str, Path)):
-        h5file = tables.open_file(h5file)
-        should_close_file = True
-    elif isinstance(h5file, tables.file.File):
-        pass
-    else:
-        raise ValueError(
-            f"expected a string, Path, or PyTables "
-            f"filehandle for argument 'h5file', got {h5file}"
-        )
+    with ExitStack() as stack:
 
-    table = h5file.get_node(path)
+        if isinstance(h5file, (str, Path)):
+            h5file = stack.enter_context(tables.open_file(h5file))
+        elif isinstance(h5file, tables.file.File):
+            pass
+        else:
+            raise ValueError(
+                f"expected a string, Path, or PyTables "
+                f"filehandle for argument 'h5file', got {h5file}"
+            )
 
+        table = h5file.get_node(path)
+        transforms, descriptions, meta = _parse_hdf5_attrs(table)
+        astropy_table = Table(table[slice(start, stop, step)], meta=meta)
+        for column, tr in transforms.items():
+            astropy_table[column] = tr.inverse(astropy_table[column])
+
+        for column, desc in descriptions.items():
+            astropy_table[column].description = desc
+
+        return astropy_table
+
+
+def _parse_hdf5_attrs(table):
     other_attrs = {}
     column_descriptions = {}
     column_transforms = {}
@@ -85,15 +98,4 @@ def read_table(h5file, path) -> Table:
             value = table.attrs[attr]
             other_attrs[attr] = str(value) if isinstance(value, np.str_) else value
 
-    astropy_table = Table(table[:], meta=other_attrs)
-
-    for column, tr in column_transforms.items():
-        astropy_table[column] = tr.inverse(astropy_table[column])
-
-    for column, desc in column_descriptions.items():
-        astropy_table[column].description = desc
-
-    if should_close_file:
-        h5file.close()
-
-    return astropy_table
+    return column_transforms, column_descriptions, other_attrs

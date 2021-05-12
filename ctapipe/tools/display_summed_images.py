@@ -75,8 +75,12 @@ class ImageSumDisplayerTool(Tool):
         self.log.info(f"SELECTED TELESCOPES:{self._selected_tels}")
 
         self.calibrator = CameraCalibrator(parent=self, subarray=self.reader.subarray)
-
-        self.reader.allowed_tels = self._selected_tels
+        self.reader = SimTelEventSource(
+            input_url=self.infile,
+            max_events=self.max_events,
+            back_seekable=True,
+            allowed_tels=set(self._selected_tels),
+        )
 
     def start(self):
         geom = None

@@ -19,16 +19,13 @@ from .optics import OpticsDescription
 from ..coordinates import CameraFrame
 
 
+__all__ = ["TelescopeDescription"]
+
+
 class TelescopeDescription:
     """
-    Describes a Cherenkov Telescope and it's associated `OpticsDescription` and
-    `CameraDescription`
-
-    The string representation is a combination of the optics and
-    camera, separated by a colon: "optics:camera" (e.g. "SST-1m:DigiCam")
-
-    The `TelescopeDescription.guess()` constructor can be used to fill in
-    info from metadata, e.g. for Monte-Carlo files.
+    Describes a Cherenkov Telescope and its associated
+    `~ctapipe.instrument.OpticsDescription` and `~ctapipe.instrument.CameraDescription`
 
     Parameters
     ----------

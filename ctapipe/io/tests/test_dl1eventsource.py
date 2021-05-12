@@ -19,6 +19,22 @@ def dl1_file():
     return f"{d.name}/testfile.dl1.h5"
 
 
+@pytest.fixture(scope="module")
+def dl1b_only_file():
+    simtel_path = get_dataset_path("gamma_test_large.simtel.gz")
+    command = f"ctapipe-stage1 --input {simtel_path} --output {d.name}/testfile_only_b.dl1.h5 --write-parameters --max-events 20 --allowed-tels=[1,2,3]"
+    subprocess.call(command.split(), stdout=subprocess.PIPE)
+    return f"{d.name}/testfile_only_b.dl1.h5"
+
+
+@pytest.fixture(scope="module")
+def dl1a_only_file():
+    simtel_path = get_dataset_path("gamma_test_large.simtel.gz")
+    command = f"ctapipe-stage1 --input {simtel_path} --output {d.name}/testfile_only_a.dl1.h5 --write-images --max-events 20 --allowed-tels=[1,2,3]"
+    subprocess.call(command.split(), stdout=subprocess.PIPE)
+    return f"{d.name}/testfile_only_a.dl1.h5"
+
+
 def test_is_compatible(dl1_file):
     simtel_path = get_dataset_path("gamma_test_large.simtel.gz")
     assert not DL1EventSource.is_compatible(simtel_path)
@@ -56,10 +72,12 @@ def test_max_events(dl1_file):
 def test_allowed_tels(dl1_file):
     allowed_tels = {1, 2}
     with DL1EventSource(input_url=dl1_file, allowed_tels=allowed_tels) as source:
+        assert not allowed_tels.symmetric_difference(source.subarray.tel_ids)
         assert source.allowed_tels == allowed_tels
         for event in source:
-            for tel in event.dl1.tel:
-                assert tel in allowed_tels
+            assert set(event.trigger.tels_with_trigger).issubset(allowed_tels)
+            assert set(event.pointing.tel).issubset(allowed_tels)
+            assert set(event.dl1.tel).issubset(allowed_tels)
 
 
 def test_simulation_info(dl1_file):
@@ -72,6 +90,20 @@ def test_simulation_info(dl1_file):
                 assert tel in event.simulation.tel
                 assert event.simulation.tel[tel].true_image is not None
                 assert event.simulation.tel[tel].true_parameters.hillas.x != np.nan
+
+
+def test_dl1_a_only_data(dl1a_only_file):
+    with DL1EventSource(input_url=dl1a_only_file) as source:
+        for event in source:
+            for tel in event.dl1.tel:
+                assert event.dl1.tel[tel].image.any()
+
+
+def test_dl1_b_only_data(dl1b_only_file):
+    with DL1EventSource(input_url=dl1b_only_file) as source:
+        for event in source:
+            for tel in event.dl1.tel:
+                assert event.dl1.tel[tel].parameters.hillas.x != np.nan
 
 
 def test_dl1_data(dl1_file):

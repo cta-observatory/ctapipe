@@ -154,7 +154,7 @@ def test_dl1_charge_calib(example_subarray):
     n_samples = 96
     mid = n_samples // 2
     pulse_sigma = 6
-    random = np.random.RandomState(1)
+    random = np.random.default_rng(1)
     x = np.arange(n_samples)
 
     # Randomize times and create pulses
@@ -224,7 +224,9 @@ def test_dl1_charge_calib(example_subarray):
     # We now use GlobalPeakWindowSum to see the effect of missing charge
     # due to not correcting time offsets.
     calibrator = CameraCalibrator(
-        subarray=subarray, image_extractor=GlobalPeakWindowSum(subarray=subarray)
+        subarray=subarray,
+        image_extractor=GlobalPeakWindowSum(subarray=subarray),
+        apply_waveform_time_shift=True,
     )
     calibrator(event)
     # test with timing corrections, should work

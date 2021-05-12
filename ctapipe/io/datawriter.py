@@ -483,7 +483,7 @@ class DataWriter(Component):
 
         TODO: this needs to be fixed, since it currently requires access to the
         low-level _file attribute of the SimTelEventSource.  Instead, SimTelEventSource should
-        provide this as header info, like `source.simulation_config`
+        provide this as header info, like ``source.simulation_config``
 
         Notes
         -----

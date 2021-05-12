@@ -10,7 +10,7 @@ This is enforced via the
 `black formatter <https://black.readthedocs.io/en/stable/>`_
 and the pre-commit hook set up in :doc:`/getting_started/index`.
 
-You can also use `black \<filename\>` to reformat your code by hand or install
+You can also use ``black \<filename\>`` to reformat your code by hand or install
 editor plugins.
 
 
@@ -24,7 +24,7 @@ documentation), and should follow the `NumPy Docstring Standards
 <https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt#docstring-standard>`_
 
 Documentation for all algorithms should contain citations to external
-works, which should be collected in `bibliography.rst`. An example of
+works, which should be collected in ``bibliography.rst``. An example of
 citing a reference in that file::
 
   this algorithm is an implementaton of [author2003]_
@@ -45,7 +45,7 @@ problems. The recommended IDEs are:
 * `PyDev <http://www.pydev.org>`_ (Eclipse)
 
 The IDEs provide a lot of support for avoiding common style and coding
-mistakes, and automatic re-formatting (e.g. `M-x py-autopep8-buffer`
+mistakes, and automatic re-formatting (e.g. ``M-x py-autopep8-buffer``
 in emacs)
 
 

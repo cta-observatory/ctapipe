@@ -49,7 +49,7 @@ class CameraCalibrator(TelescopeComponent):
     ).tag(config=True)
 
     apply_waveform_time_shift = BoolTelescopeParameter(
-        default_value=True,
+        default_value=False,
         help=(
             "Apply waveform time shift corrections."
             " The minimal integer shift to synchronize waveforms is applied"
@@ -228,7 +228,7 @@ class CameraCalibrator(TelescopeComponent):
         Parameters
         ----------
         event : container
-            A `ctapipe` event container
+            A `~ctapipe.containers.ArrayEventContainer` event container
         """
         # TODO: How to handle different calibrations depending on telid?
         tel = event.r1.tel or event.dl0.tel or event.dl1.tel

@@ -17,6 +17,9 @@ from .component import Component
 from .logging import create_logging_config, ColoredFormatter, DEFAULT_LOGGING
 
 
+__all__ = ["Tool", "ToolConfigurationError"]
+
+
 class CollectTraitWarningsHandler(logging.NullHandler):
     regex = re.compile(".*Config option.*not recognized")
 
@@ -46,14 +49,14 @@ class Tool(Application):
 
     Tool developers should create sub-classes, and a name,
     description, usage examples should be added by defining the
-    `name`, `description` and `examples` class attributes as
-    strings. The `aliases` attribute can be set to cause a lower-level
-    `Component` parameter to become a high-level command-line
+    ``name``, ``description`` and ``examples`` class attributes as
+    strings. The ``aliases`` attribute can be set to cause a lower-level
+    `~ctapipe.core.Component` parameter to become a high-level command-line
     parameter (See example below). The `setup()`, `start()`, and
     `finish()` methods should be defined in the sub-class.
 
     Additionally, any `ctapipe.core.Component` used within the `Tool`
-    should have their class in a list in the `classes` attribute,
+    should have their class in a list in the ``classes`` attribute,
     which will automatically add their configuration parameters to the
     tool.
 
@@ -110,9 +113,9 @@ class Tool(Application):
            main()
 
 
-    If this `main()` method is registered in `setup.py` under
+    If this ``main()`` function is registered in ``setup.py`` under
     *entry_points*, it will become a command-line tool (see examples
-    in the `ctapipe/tools` subdirectory).
+    in the ``ctapipe/tools`` subdirectory).
 
     """
 
@@ -149,14 +152,20 @@ class Tool(Application):
         # make sure there are some default aliases in all Tools:
         super().__init__(**kwargs)
         aliases = {
-            "config": "Tool.config_file",
+            ("c", "config"): "Tool.config_file",
             "log-level": "Tool.log_level",
             ("l", "log-file"): "Tool.log_file",
             "log-file-level": "Tool.log_file_level",
         }
-        self.aliases.update(aliases)
+        # makes sure user defined aliases override default aliases
+        self.aliases = {**aliases, **self.aliases}
+
         flags = {
-            ("q", "quiet"): ({"Tool": {"quiet": True}}, "Disable console logging.")
+            ("q", "quiet"): ({"Tool": {"quiet": True}}, "Disable console logging."),
+            ("v", "verbose"): (
+                {"Tool": {"log_level": "DEBUG"}},
+                "Set log level to DEBUG",
+            ),
         }
         self.flags.update(flags)
 
@@ -233,7 +242,7 @@ class Tool(Application):
     @abstractmethod
     def setup(self):
         """set up the tool (override in subclass). Here the user should
-        construct all `Components` and open files, etc."""
+        construct all ``Components`` and open files, etc."""
         pass
 
     @abstractmethod

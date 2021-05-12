@@ -59,17 +59,17 @@ class HDF5TableWriter(TableWriter):
     container. This is intended as a building block to create a more complex
     I/O system.
 
-    It works by creating a HDF5 Table description from the `Field`s inside a
-    container, where each item becomes a column in the table. The first time
-    `HDF5TableWriter.write()` is called, the container(s) are registered
-    and the table created in the output file.
+    It works by creating a HDF5 Table description from the `~ctapipe.core.Field`
+    definitions inside a container, where each item becomes a column in the table.
+    The first time `HDF5TableWriter.write()` is called, the container(s) are
+    registered and the table created in the output file.
 
     Each item in the container can also have an optional transform function
     that is called before writing to transform the value.  For example,
     unit quantities always have their units removed, or converted to a
-    common unit if specified in the `Field`.
+    common unit if specified in the `~ctapipe.core.Field`.
 
-    Any metadata in the `Container` (stored in `Container.meta`) will be
+    Any metadata in the `~ctapipe.core.Container` (stored in ``Container.meta``) will be
     written to the table's header on the first call to write()
 
     Multiple tables may be written at once in a single file, as long as you
@@ -77,7 +77,7 @@ class HDF5TableWriter(TableWriter):
     to.  Likewise multiple Containers can be merged into a single output
     table by passing a list of containers to `write()`.
 
-    To append to existing files, pass the `mode='a'`  option to the
+    To append to existing files, pass the ``mode='a'``  option to the
     constructor.
 
     Parameters
@@ -93,12 +93,12 @@ class HDF5TableWriter(TableWriter):
         'w' if you want to overwrite the file
         'a' if you want to append data to the file
     root_uep : str
-        root location of the `group_name`
+        root location of the ``group_name``
     filters: pytables.Filters
         A set of filters (compression settings) to be used for
         all datasets created by this writer.
     kwargs:
-        any other arguments that will be passed through to `pytables.open()`.
+        any other arguments that will be passed through to ``pytables.open_file``.
     """
 
     def __init__(
@@ -158,6 +158,11 @@ class HDF5TableWriter(TableWriter):
 
         meta = {}  # any extra meta-data generated here (like units, etc)
 
+        # set up any column tranforms that were requested as regexps (i.e.
+        # convert them to explicit transform in the _transforms dict if they
+        # match)
+        self._realize_regexp_transforms(table_name, containers)
+
         # create pytables schema description for the given container
         pos = 0
         for container in containers:
@@ -180,6 +185,8 @@ class HDF5TableWriter(TableWriter):
                 # apply any user-defined transforms first
                 value = self._apply_col_transform(table_name, col_name, value)
 
+                # now set up automatic transforms to make values that cannot be
+                # written in their default form into a form that is serializable
                 if isinstance(value, enum.Enum):
                     tr = EnumColumnTransform(enum=value.__class__)
                     value = tr(value)
@@ -336,7 +343,7 @@ class HDF5TableReader(TableReader):
     """
     Reader that reads a single row of an HDF5 table at once into a Container.
     Simply construct a `HDF5TableReader` with an input HDF5 file,
-    and call the `read(path, container)` method to get a generator that fills
+    and call the `read(path, container) <read>`_ method to get a generator that fills
     the given container with a new row of the table on each access.
 
     Columns in the table are automatically mapped to container fields by
@@ -365,7 +372,7 @@ class HDF5TableReader(TableReader):
             name of hdf5 file or file handle
         kwargs:
             any other arguments that will be passed through to
-            `pytables.open()`.
+            `pytables.file.open_file`.
         """
 
         super().__init__()
@@ -417,9 +424,9 @@ class HDF5TableReader(TableReader):
             elif attr.endswith("_TIME_SCALE"):
                 colname, _, _ = attr.rpartition("_TIME_SCALE")
                 scale = tab.attrs[attr]
-                format = get_hdf5_attr(tab.attrs, colname + "_TIME_FORMAT", "mjd")
-                tr = TimeColumnTransform(scale=scale, format=format)
-                self.add_column_transform(table_name, colname, tr)
+                time_format = get_hdf5_attr(tab.attrs, colname + "_TIME_FORMAT", "mjd")
+                transform = TimeColumnTransform(scale=scale, format=time_format)
+                self.add_column_transform(table_name, colname, transform)
 
             elif attr.endswith("_TRANSFORM_SCALE"):
                 colname, _, _ = attr.rpartition("_TRANSFORM_SCALE")
