@@ -27,9 +27,11 @@ def generate_dummy_dl2(event):
 
         event.dl2.stereo.geometry[algo].alt = 72 * u.deg
         event.dl2.stereo.geometry[algo].az = 121 * u.deg
+        event.dl2.stereo.geometry[algo].tel_ids = [1, 2, 4]
         event.dl2.stereo.energy[algo].tel_ids = [1, 2, 4]
         event.dl2.stereo.energy[algo].energy = 10 * u.TeV
         event.dl2.stereo.classification[algo].prediction = 0.9
+        event.dl2.stereo.classification[algo].tel_ids = [1, 2, 4]
 
 
 def test_dl1(tmpdir: Path):
@@ -154,10 +156,10 @@ def test_roundtrip(tmpdir: Path):
         assert np.count_nonzero(dl2_energy.col("tel_ids")[0]) == 3
 
         dl2_tel_energy = h5file.get_node(
-            "/dl2/event/telescope/energy/HillasReconstructor"
+            "/dl2/event/telescope/energy/HillasReconstructor/tel_001"
         )
         assert np.allclose(dl2_tel_energy.col("energy"), 10)
-        assert len(dl2_tel_energy.col("energy")) > len(dl2_energy.col("energy"))
+        assert "tel_ids" not in dl2_tel_energy
 
     # make sure it is readable by the event source and matches the images
 

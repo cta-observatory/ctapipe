@@ -337,106 +337,67 @@ class DataWriter(Component):
             transform=tr_tel_list_to_mask,
         )
 
-        # exclude some columns that are not writable
+        # avoid some warnings about unwritable columns (which here are just sub-containers)
         writer.exclude("dl1/event/subarray/trigger", "tel")
         writer.exclude("dl1/monitoring/subarray/pointing", "tel")
+        writer.exclude(f"/dl1/event/telescope/images/.*", "parameters")
+
+        # currently the trigger info is used for the event time, but we dont'
+        # want the other bits of the trigger container in the pointing or other
+        # montitoring containers
         writer.exclude("dl1/monitoring/subarray/pointing", "event_type")
         writer.exclude("dl1/monitoring/subarray/pointing", "tels_with_trigger")
         writer.exclude("dl1/monitoring/subarray/pointing", "n_trigger_pixels")
         writer.exclude("/dl1/event/telescope/trigger", "trigger_pixels")
+        writer.exclude("/dl1/monitoring/telescope/pointing/.*", "n_trigger_pixels")
+        writer.exclude("/dl1/monitoring/telescope/pointing/.*", "trigger_pixels")
+        writer.exclude("/dl1/monitoring/event/pointing/.*", "event_type")
 
-        table_names_tel_id = [f"tel_{tel_id:03d}" for tel_id in self._subarray.tel]
-        table_names_tel_type = [
-            str(telescope) for telescope in self._subarray.telescope_types
-        ]
+        if self.write_parameters is False:
+            writer.exclude(r"/dl1/event/telescope/images/.*", "image_mask")
 
-        if self.split_datasets_by == "tel_id":
-            table_names = table_names_tel_id
-        elif self.split_datasets_by == "tel_type":
-            table_names = table_names_tel_type
-        else:
-            table_names = []
+        if self._is_simulation:
+            writer.exclude(r"/simulation/event/telescope/images/.*", "true_parameters")
+            # no timing information yet for true images
+            writer.exclude(
+                f"/simulation/event/telescope/parameters/.*", r"peak_time_.*"
+            )
+            writer.exclude(r"/simulation/event/telescope/parameters/.*", r"timing_.*")
+            writer.exclude("/simulation/event/subarray/shower", "true_tel")
 
-        for table_name in table_names:
-            if self.write_parameters is False:
-                writer.exclude(
-                    f"/dl1/event/telescope/images/{table_name}", "image_mask"
-                )
+        # Set up transforms
 
-            tel_pointing = f"/dl1/monitoring/telescope/pointing/{table_name}"
-            writer.exclude(tel_pointing, "n_trigger_pixels")
-            writer.exclude(tel_pointing, "trigger_pixels")
-            writer.exclude(f"/dl1/event/telescope/images/{table_name}", "parameters")
+        if self.transform_image:
+            tr = FixedPointColumnTransform(
+                scale=self.image_scale,
+                offset=self.image_offset,
+                source_dtype=np.float32,
+                target_dtype=np.dtype(self.image_dtype),
+            )
+            writer.add_column_transform_regexp(
+                f"dl1/event/telescope/images/.*", "image", tr
+            )
 
-            if self.transform_image:
-                tr = FixedPointColumnTransform(
-                    scale=self.image_scale,
-                    offset=self.image_offset,
-                    source_dtype=np.float32,
-                    target_dtype=np.dtype(self.image_dtype),
-                )
-                writer.add_column_transform(
-                    f"dl1/event/telescope/images/{table_name}", "image", tr
-                )
+        if self.transform_peak_time:
+            tr = FixedPointColumnTransform(
+                scale=self.peak_time_scale,
+                offset=self.peak_time_offset,
+                source_dtype=np.float32,
+                target_dtype=np.dtype(self.peak_time_dtype),
+            )
+            writer.add_column_transform_regexp(
+                f"dl1/event/telescope/images/.*", "peak_time", tr
+            )
 
-            if self.transform_peak_time:
-                tr = FixedPointColumnTransform(
-                    scale=self.peak_time_scale,
-                    offset=self.peak_time_offset,
-                    source_dtype=np.float32,
-                    target_dtype=np.dtype(self.peak_time_dtype),
-                )
-                writer.add_column_transform(
-                    f"dl1/event/telescope/images/{table_name}", "peak_time", tr
-                )
-
-            if self._is_simulation:
-                writer.exclude(
-                    f"/simulation/event/telescope/images/{table_name}",
-                    "true_parameters",
-                )
-                # no timing information yet for true images
-                writer.exclude(
-                    f"/simulation/event/telescope/parameters/{table_name}",
-                    r"peak_time_.*",
-                )
-                writer.exclude(
-                    f"/simulation/event/telescope/parameters/{table_name}", r"timing_.*"
-                )
-                writer.exclude("/simulation/event/subarray/shower", "true_tel")
-
-        for table_name in table_names_tel_id:
-            writer.exclude(f"/dl1/monitoring/event/pointing/{table_name}", "event_type")
-
-        # set the transforms for the tel_lists in the DL2 reconstructed
-        # parameters. This requires looping over not only telescopes, but also
-        # potential Algorithm names.
-        #
-        # TODO: To reduce circular dependencies, the algorithm names are
-        # currently hard-coded, but a future refactoring could be to dynamically
-        # skip these columns on the first written event, or to modify
-        # TableWriter.add_column_transform to accept a table *pattern* (regexp)
-        # instead of a name, otherwise this will break if we add another
-        # Reconstructor
-
-        table_names_reco_algorithms = [
-            "HillasReconstructor",
-            "HillasIntersection",
-            "ImPACTReconstructor",
-        ]
-
-        for dataset_name in ReconstructedContainer().keys():
-            for table_name in table_names_reco_algorithms:
-                writer.add_column_transform(
-                    table_name=f"dl2/event/telescope/{dataset_name}/{table_name}",
-                    col_name="tel_ids",
-                    transform=tr_tel_list_to_mask,
-                )
-                writer.add_column_transform(
-                    table_name=f"dl2/event/subarray/{dataset_name}/{table_name}",
-                    col_name="tel_ids",
-                    transform=tr_tel_list_to_mask,
-                )
+        # set up DL2 transforms:
+        # - the single-tel output has no list of tel_ids
+        # - the stereo output tel_ids list needs to be transformed to a pattern
+        writer.exclude("dl2/event/telescope/.*", "tel_ids")
+        writer.add_column_transform_regexp(
+            table_regexp=f"dl2/event/subarray/.*",
+            col_regexp="tel_ids",
+            transform=tr_tel_list_to_mask,
+        )
 
         # final initialization
 
@@ -630,6 +591,9 @@ class DataWriter(Component):
 
         for tel_id, dl2_tel in event.dl2.tel.items():
 
+            telescope = self._subarray.tel[tel_id]
+            table_name = self.table_name(tel_id, str(telescope))
+
             tel_index = TelEventIndexContainer(
                 obs_id=event.index.obs_id,
                 event_id=event.index.event_id,
@@ -639,7 +603,7 @@ class DataWriter(Component):
             for container_name, algorithm_map in dl2_tel.items():
                 for algorithm, container in algorithm_map.items():
                     writer.write(
-                        table_name=f"dl2/event/telescope/{container_name}/{algorithm}",
+                        table_name=f"dl2/event/telescope/{container_name}/{algorithm}/{table_name}",
                         containers=[tel_index, container],
                     )
 
