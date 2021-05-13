@@ -103,7 +103,7 @@ class Process(HasTraits):
 
     type_ = Enum(["Observation", "Simulation", "Other"], "Other")
     subtype = Unicode("")
-    id_ = Int()
+    id_ = Unicode("")
 
 
 class Activity(HasTraits):
