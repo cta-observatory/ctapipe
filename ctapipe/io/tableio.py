@@ -56,11 +56,11 @@ class TableWriter(Component, metaclass=ABCMeta):
 
         """
         table_regexp = table_regexp.lstrip("/")
-        self._exclusions[table_regexp].append(re.compile(pattern))
+        self._exclusions[re.compile(table_regexp)].append(re.compile(pattern))
 
     def _is_column_excluded(self, table_name, col_name):
         for table_regexp, col_regexp_list in self._exclusions.items():
-            if re.fullmatch(table_regexp, table_name):
+            if table_regexp.fullmatch(table_name):
                 for col_regexp in col_regexp_list:
                     if col_regexp.fullmatch(col_name):
                         return True
