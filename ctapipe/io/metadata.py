@@ -31,6 +31,7 @@ from tables import NaturalNameWarning
 from traitlets import Enum, HasTraits, Instance, List, Unicode, default
 
 from ..core.traits import AstroTime
+from .datalevels import DataLevel
 
 __all__ = [
     "Reference",
@@ -61,25 +62,7 @@ class Product(HasTraits):
     creation_time = AstroTime()
     id_ = Unicode(help="leave unspecified to automatically generate a UUID")
     data_category = Enum(["Sim", "A", "B", "C", "Other"], "Other")
-    data_level = List(
-        Enum(
-            [
-                "R0",
-                "R1",
-                "DL0",
-                "DL1",
-                "DL1_IMAGES",
-                "DL1_PARAMETERS",
-                "DL2",
-                "DL3",
-                "DL4",
-                "DL5",
-                "DL6",
-                "Other",
-            ],
-            "Other",
-        )
-    )
+    data_level = List(Enum([level.name for level in DataLevel]))
     data_association = Enum(["Subarray", "Telescope", "Target", "Other"], "Other")
     data_model_name = Unicode("unknown")
     data_model_version = Unicode("unknown")
