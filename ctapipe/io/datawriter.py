@@ -127,11 +127,11 @@ class DataWriter(Component):
     ).tag(config=True)
 
     write_stereo_shower = Bool(
-        help="Store DL2 stereo shower geometry if available", default_value=False
+        help="Store DL2 stereo shower parameters if available", default_value=False
     ).tag(config=True)
 
     write_mono_shower = Bool(
-        help="Store DL2 stereo mono geometry if available", default_value=False
+        help="Store DL2 mono parameters if available", default_value=False
     ).tag(config=True)
 
     compression_level = Int(
