@@ -508,7 +508,7 @@ class SubarrayDescription:
                     " Reprocessing the data with ctapipe >= 0.12 will fix this problem."
                 )
 
-        optics = [
+        optic_descriptions = [
             OpticsDescription(
                 row["name"],
                 num_mirrors=row["num_mirrors"],
@@ -520,23 +520,17 @@ class SubarrayDescription:
         ]
 
         # give correct frame for the camera to each telescope
-        cameras_with_frame = []
+        telescope_descriptions = {}
         for row in layout:
             # copy to support different telescopes with same camera geom
             camera = copy(cameras[row["camera_index"]])
-            focal_length = optics[row["optics_index"]].equivalent_focal_length
+            optics = optic_descriptions[row["optics_index"]]
+            focal_length = optics.equivalent_focal_length
             camera.geometry.frame = CameraFrame(focal_length=focal_length)
-            cameras_with_frame.append(camera)
 
-        telescope_descriptions = {
-            row["tel_id"]: TelescopeDescription(
-                name=row["name"],
-                tel_type=row["type"],
-                optics=optics[row["optics_index"]],
-                camera=camera,
+            telescope_descriptions[row["tel_id"]] = TelescopeDescription(
+                name=row["name"], tel_type=row["type"], optics=optics, camera=camera
             )
-            for row, camera in zip(layout, cameras_with_frame)
-        }
 
         positions = np.column_stack([layout[f"pos_{c}"] for c in "xyz"])
 
