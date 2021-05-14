@@ -504,7 +504,8 @@ class SubarrayDescription:
             if len(descriptions) != len(set(descriptions)):
                 warnings.warn(
                     "Array contains different telescopes with the same description string"
-                    "representation, optics descriptions will be incorrect for some of the telescopes"
+                    " representation, optics descriptions will be incorrect for some of the telescopes."
+                    " Reprocessing the data with ctapipe >= 0.12 will fix this problem."
                 )
 
         optics = [
