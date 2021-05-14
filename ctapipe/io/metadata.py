@@ -26,9 +26,9 @@ import uuid
 import warnings
 from collections import OrderedDict
 
-from tables import NaturalNameWarning
-from traitlets import Enum, HasTraits, Instance, Int, List, Unicode, default
 from astropy.time import Time
+from tables import NaturalNameWarning
+from traitlets import Enum, HasTraits, Instance, List, Unicode, default
 
 from ..core.traits import AstroTime
 
