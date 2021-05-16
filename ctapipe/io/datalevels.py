@@ -7,6 +7,7 @@ class DataLevel(Enum):
     R0 = auto()  # Raw data in camera or simulation format
     R1 = auto()  # Raw data in common format, with preliminary calibration
     DL0 = auto()  # raw archived data in common format, with optional zero suppression
+    DL1 = auto()  # processed data
     DL1_IMAGES = auto()  # processed data up to camera images
     DL1_PARAMETERS = auto()  #  parameters derived from camera images
     DL2 = auto()  # reconstructed data
