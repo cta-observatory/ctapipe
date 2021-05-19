@@ -406,15 +406,15 @@ class MergeTool(Tool):
             contact=meta.Contact(name="", email="", organization="CTA Consortium"),
             product=meta.Product(
                 description="Merged DL1 Data Product",
-                data_category="S",
-                data_level="DL1",
+                data_category="Sim",  # TODO: copy this from the inputs
+                data_level=["DL1"],  # TODO: copy this from inputs
                 data_association="Subarray",
-                data_model_name="ASWG DL1",
+                data_model_name="ASWG",  # TODO: copy this from inputs
                 data_model_version=self.data_model_version,
                 data_model_url="",
                 format="hdf5",
             ),
-            process=meta.Process(type_=process_type_, subtype="", id_=0),
+            process=meta.Process(type_=process_type_, subtype="", id_="merge"),
             activity=meta.Activity.from_provenance(activity),
             instrument=meta.Instrument(
                 site="Other",
@@ -430,7 +430,7 @@ class MergeTool(Tool):
         with HDF5TableWriter(
             self.output_path, parent=self, mode="a", add_prefix=True
         ) as writer:
-            meta.write_to_hdf5(headers, writer._h5file)
+            meta.write_to_hdf5(headers, writer.h5file)
 
 
 def main():

@@ -383,9 +383,9 @@ def test_writer_closes_file(temp_h5_file):
     with tempfile.NamedTemporaryFile() as f:
         with HDF5TableWriter(f.name, "test") as h5_table:
 
-            assert h5_table._h5file.isopen == 1
+            assert h5_table.h5file.isopen == 1
 
-    assert h5_table._h5file.isopen == 0
+    assert h5_table.h5file.isopen == 0
 
 
 def test_reader_closes_file(temp_h5_file):
@@ -425,7 +425,7 @@ def test_closing_writer(temp_h5_file):
         h5_table = HDF5TableWriter(f.name, "test")
         h5_table.close()
 
-        assert h5_table._h5file.isopen == 0
+        assert h5_table.h5file.isopen == 0
 
 
 def test_cannot_read_with_writer(temp_h5_file):
@@ -728,7 +728,7 @@ def test_filters():
         with HDF5TableWriter(
             f.name, group_name="data", mode="w", filters=no_comp
         ) as writer:
-            assert writer._h5file.filters.complevel == 0
+            assert writer.h5file.filters.complevel == 0
 
             c = TestContainer(value=5)
             writer.write("default", c)
