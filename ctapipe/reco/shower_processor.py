@@ -147,7 +147,7 @@ class ShowerProcessor(Component):
 
         shower_geometry = self.reconstruct_shower(event)
 
-        self.log.debug("shower geometry: %s", shower_geometry.as_dict(recursive=True))
+        self.log.debug("shower geometry:\n %s", shower_geometry)
 
         event.dl2.stereo.geometry["HillasReconstructor"] = shower_geometry
 
