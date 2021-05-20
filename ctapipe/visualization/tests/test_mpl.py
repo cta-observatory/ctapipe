@@ -113,12 +113,12 @@ def test_array_display():
 
     # Create a fake event containing telescope-wise information about
     # the image directions projected on the ground
-    ArrayEventContainer.dl1 = DL1Container
-    ArrayEventContainer.dl1.tel = {1: DL1CameraContainer, 2: DL1CameraContainer}
-    ArrayEventContainer.dl1.tel[1].parameters = ImageParametersContainer
-    ArrayEventContainer.dl1.tel[2].parameters = ImageParametersContainer
-    ArrayEventContainer.dl1.tel[2].parameters.core = CoreParametersContainer
-    ArrayEventContainer.dl1.tel[1].parameters.core = CoreParametersContainer
+    ArrayEventContainer.dl1 = DL1Container()
+    ArrayEventContainer.dl1.tel = {1: DL1CameraContainer(), 2: DL1CameraContainer()}
+    ArrayEventContainer.dl1.tel[1].parameters = ImageParametersContainer()
+    ArrayEventContainer.dl1.tel[2].parameters = ImageParametersContainer()
+    ArrayEventContainer.dl1.tel[2].parameters.core = CoreParametersContainer()
+    ArrayEventContainer.dl1.tel[1].parameters.core = CoreParametersContainer()
     ArrayEventContainer.dl1.tel[1].parameters.core.psi = u.Quantity(2.0, unit=u.deg)
     ArrayEventContainer.dl1.tel[2].parameters.core.psi = u.Quantity(1.0, unit=u.deg)
 
