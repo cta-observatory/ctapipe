@@ -188,11 +188,10 @@ class HillasReconstructor(Reconstructor):
         hillas_dict = {
             tel_id: dl1.parameters.hillas
             for tel_id, dl1 in event.dl1.tel.items()
-            if np.isfinite(event.dl1.tel[tel_id].parameters.hillas.intensity)
+            if np.isfinite(dl1.tel[tel_id].parameters.hillas.intensity)
         }
 
-        # This is here because technically, due to tracking, it is not a
-        # the pointing of the array is not a constant
+        # Due to tracking the pointing of the array will never be a constant
         array_pointing = SkyCoord(
             az=event.pointing.array_azimuth,
             alt=event.pointing.array_altitude,
