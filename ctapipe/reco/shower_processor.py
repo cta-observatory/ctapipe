@@ -43,16 +43,8 @@ class ShowerProcessor(Component):
     using ctapipe.reco.HillasReconstructor.
 
     It is planned to support also energy reconstruction and particle type
-    classification which are now disabled by default.
+    classification.
     """
-
-    reconstruct_energy = Bool(
-        default_value=False, help="Reconstruct the energy of the event."
-    ).tag(config=True)
-
-    classify = Bool(
-        default_value=False, help="Classify the particle type associated with the event."
-    ).tag(config=True)
 
     def __init__(
         self,

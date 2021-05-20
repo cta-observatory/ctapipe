@@ -17,8 +17,6 @@ def test_shower_processor_geometry(example_event, example_subarray):
     calibrate = CameraCalibrator(subarray=example_subarray)
 
     config = Config()
-    config.ShowerProcessor.reconstruct_energy = False
-    config.ShowerProcessor.classify = False
 
     process_images = ImageProcessor(
         subarray=example_subarray,
