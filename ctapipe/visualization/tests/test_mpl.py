@@ -143,3 +143,32 @@ def test_array_display():
     ad.set_line_hillas(hillas_dict, range=300)
     ad.add_labels()
     ad.remove_labels()
+
+
+def test_picker():
+    from ctapipe.visualization import CameraDisplay
+    from matplotlib.backend_bases import MouseEvent, MouseButton
+
+    geom = CameraGeometry.from_name("LSTCam")
+    clicked_pixels = []
+
+    class PickingCameraDisplay(CameraDisplay):
+        def on_pixel_clicked(self, pix_id):
+            print(f"YOU CLICKED PIXEL {pix_id}")
+            clicked_pixels.append(pix_id)
+
+    fig = plt.figure(figsize=(10, 10), dpi=100)
+    ax = fig.add_axes([0, 0, 1, 1])
+
+    disp = PickingCameraDisplay(geom, ax=ax)
+    disp.enable_pixel_picker()
+
+    fig.canvas.draw()
+
+    # emulate someone clicking the central pixel
+    event = MouseEvent(
+        "button_press_event", fig.canvas, x=500, y=500, button=MouseButton.LEFT
+    )
+    disp.pixels.pick(event)
+
+    assert len(clicked_pixels) > 0
