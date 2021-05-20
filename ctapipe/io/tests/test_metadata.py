@@ -21,15 +21,15 @@ def test_construct_and_write_metadata(tmp_path):
         product=meta.Product(
             description="An Amazing Product",
             creation_time="2020-10-11 15:23:31",
-            data_category="S",
-            data_level="DL1",
+            data_category="Sim",
+            data_level=["DL1_IMAGES", "DL1_PARAMETERS"],
             data_association="Subarray",
             data_model_name="Unofficial DL1",
             data_model_version="1.0",
             data_model_url="http://google.com",
             format="hdf5",
         ),
-        process=meta.Process(type_="Simulation", subtype="Prod3b", id_=423442),
+        process=meta.Process(type_="Simulation", subtype="Prod3b", id_="423442"),
         activity=meta.Activity.from_provenance(prov_activity.provenance),
         instrument=meta.Instrument(
             site="CTA-North",

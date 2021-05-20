@@ -120,6 +120,7 @@ class MergeTool(Tool):
         default_value="*.h5", help="Give a specific file pattern for the input files"
     ).tag(config=True)
     allowed_tels = traits.Set(
+        trait=traits.CInt(),
         default_value=None,
         allow_none=True,
         help=(
@@ -133,14 +134,10 @@ class MergeTool(Tool):
     parser.add_argument("input_files", nargs="*", type=Path)
 
     aliases = {
-        "input-dir": "MergeTool.input_dir",
-        "i": "MergeTool.input_dir",
-        "output": "MergeTool.output_path",
-        "o": "MergeTool.output_path",
-        "pattern": "MergeTool.file_pattern",
-        "p": "MergeTool.file_pattern",
-        "allowed-tels": "MergeTool.allowed_tels",
-        "t": "MergeTool.allowed_tels",
+        ("i", "input-dir"): "MergeTool.input_dir",
+        ("o", "output"): "MergeTool.output_path",
+        ("p", "pattern"): "MergeTool.file_pattern",
+        ("t", "allowed-tels"): "MergeTool.allowed_tels",
     }
 
     flags = {
@@ -409,15 +406,15 @@ class MergeTool(Tool):
             contact=meta.Contact(name="", email="", organization="CTA Consortium"),
             product=meta.Product(
                 description="Merged DL1 Data Product",
-                data_category="S",
-                data_level="DL1",
+                data_category="Sim",  # TODO: copy this from the inputs
+                data_level=["DL1"],  # TODO: copy this from inputs
                 data_association="Subarray",
-                data_model_name="ASWG DL1",
+                data_model_name="ASWG",  # TODO: copy this from inputs
                 data_model_version=self.data_model_version,
                 data_model_url="",
                 format="hdf5",
             ),
-            process=meta.Process(type_=process_type_, subtype="", id_=0),
+            process=meta.Process(type_=process_type_, subtype="", id_="merge"),
             activity=meta.Activity.from_provenance(activity),
             instrument=meta.Instrument(
                 site="Other",
@@ -433,7 +430,7 @@ class MergeTool(Tool):
         with HDF5TableWriter(
             self.output_path, parent=self, mode="a", add_prefix=True
         ) as writer:
-            meta.write_to_hdf5(headers, writer._h5file)
+            meta.write_to_hdf5(headers, writer.h5file)
 
 
 def main():

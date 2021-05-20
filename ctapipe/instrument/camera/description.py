@@ -69,7 +69,10 @@ class CameraDescription:
         """
 
         geometry = CameraGeometry.from_name(camera_name)
-        readout = CameraReadout.from_name(camera_name)
+        try:
+            readout = CameraReadout.from_name(camera_name)
+        except FileNotFoundError:
+            readout = None
         return cls(camera_name=camera_name, geometry=geometry, readout=readout)
 
     def __str__(self):

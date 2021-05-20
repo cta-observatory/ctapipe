@@ -127,14 +127,14 @@ class HDF5TableWriter(TableWriter):
         self._group = "/" + group_name
         self.filters = filters
 
-        self.log.debug("h5file: %s", self._h5file)
+        self.log.debug("h5file: %s", self.h5file)
 
     def open(self, filename, **kwargs):
         self.log.debug("kwargs for tables.open_file: %s", kwargs)
-        self._h5file = tables.open_file(filename, **kwargs)
+        self.h5file = tables.open_file(filename, **kwargs)
 
     def close(self):
-        self._h5file.close()
+        self.h5file.close()
 
     def _create_hdf5_table_schema(self, table_name, containers):
         """
@@ -158,6 +158,11 @@ class HDF5TableWriter(TableWriter):
 
         meta = {}  # any extra meta-data generated here (like units, etc)
 
+        # set up any column tranforms that were requested as regexps (i.e.
+        # convert them to explicit transform in the _transforms dict if they
+        # match)
+        self._realize_regexp_transforms(table_name, containers)
+
         # create pytables schema description for the given container
         pos = 0
         for container in containers:
@@ -180,6 +185,8 @@ class HDF5TableWriter(TableWriter):
                 # apply any user-defined transforms first
                 value = self._apply_col_transform(table_name, col_name, value)
 
+                # now set up automatic transforms to make values that cannot be
+                # written in their default form into a form that is serializable
                 if isinstance(value, enum.Enum):
                     tr = EnumColumnTransform(enum=value.__class__)
                     value = tr(value)
@@ -264,8 +271,8 @@ class HDF5TableWriter(TableWriter):
         for container in containers:
             meta.update(container.meta)  # copy metadata from container
 
-        if table_path not in self._h5file:
-            table = self._h5file.create_table(
+        if table_path not in self.h5file:
+            table = self.h5file.create_table(
                 where=table_group,
                 name=table_basename,
                 title="Storage of {}".format(
@@ -279,7 +286,7 @@ class HDF5TableWriter(TableWriter):
             for key, val in meta.items():
                 table.attrs[key] = val
         else:
-            table = self._h5file.get_node(table_path)
+            table = self.h5file.get_node(table_path)
 
         self._tables[table_name] = table
 
@@ -417,9 +424,9 @@ class HDF5TableReader(TableReader):
             elif attr.endswith("_TIME_SCALE"):
                 colname, _, _ = attr.rpartition("_TIME_SCALE")
                 scale = tab.attrs[attr]
-                format = get_hdf5_attr(tab.attrs, colname + "_TIME_FORMAT", "mjd")
-                tr = TimeColumnTransform(scale=scale, format=format)
-                self.add_column_transform(table_name, colname, tr)
+                time_format = get_hdf5_attr(tab.attrs, colname + "_TIME_FORMAT", "mjd")
+                transform = TimeColumnTransform(scale=scale, format=time_format)
+                self.add_column_transform(table_name, colname, transform)
 
             elif attr.endswith("_TRANSFORM_SCALE"):
                 colname, _, _ = attr.rpartition("_TRANSFORM_SCALE")

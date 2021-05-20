@@ -8,7 +8,7 @@ from ctapipe.reco.reco_algorithms import (
     InvalidWidthException,
     TooFewTelescopesException,
 )
-from ctapipe.containers import ReconstructedShowerContainer
+from ctapipe.containers import ReconstructedGeometryContainer
 from itertools import combinations
 
 from ctapipe.coordinates import (
@@ -290,7 +290,7 @@ class HillasReconstructor(Reconstructor):
         # astropy's coordinates system rotates counter-clockwise.
         # Apparently we assume it to be clockwise.
         # that's why lon get's a sign
-        result = ReconstructedShowerContainer(
+        result = ReconstructedGeometryContainer(
             alt=lat,
             az=-lon,
             core_x=core_pos[0],

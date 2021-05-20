@@ -1,5 +1,5 @@
 {
-    "DL1Writer": {
+    "DataWriter": {
         "overwrite": false,
         "write_images": true,
         "write_parameters": true,

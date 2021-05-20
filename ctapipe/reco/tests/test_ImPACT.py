@@ -4,7 +4,7 @@ import pytest
 from numpy.testing import assert_allclose
 
 from ctapipe.containers import (
-    ReconstructedShowerContainer,
+    ReconstructedGeometryContainer,
     ReconstructedEnergyContainer,
 )
 from ctapipe.reco.impact import ImPACTReconstructor
@@ -143,7 +143,7 @@ class TestImPACT:
         assert np.sum(pred) != 0
 
         """Then check helper function gives the same answer"""
-        shower = ReconstructedShowerContainer()
+        shower = ReconstructedGeometryContainer()
         shower.is_valid = True
         shower.alt = 0 * u.deg
         shower.az = 0 * u.deg

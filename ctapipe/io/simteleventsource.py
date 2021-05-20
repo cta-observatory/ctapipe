@@ -9,7 +9,6 @@ from astropy.coordinates import Angle
 from astropy.time import Time
 from eventio.file_types import is_eventio
 from eventio.simtel.simtelfile import SimTelFile
-from traitlets import observe
 
 from ..calib.camera.gainselection import GainSelector
 from ..containers import (
@@ -221,13 +220,6 @@ class SimTelEventSource(EventSource):
         )
         self.log.debug(f"Using gain selector {self.gain_selector}")
 
-    @observe("allowed_tels")
-    def _observe_allowed_tels(self, change):
-        # this can run in __init__ before file_ is created
-        if hasattr(self, "file_"):
-            allowed_tels = set(self.allowed_tels) if self.allowed_tels else None
-            self.file_.allowed_telescopes = allowed_tels
-
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
@@ -328,11 +320,15 @@ class SimTelEventSource(EventSource):
             tel_idx = np.where(header["tel_id"] == tel_id)[0][0]
             tel_positions[tel_id] = header["tel_pos"][tel_idx] * u.m
 
-        return SubarrayDescription(
-            "MonteCarloArray",
+        subarray = SubarrayDescription(
+            name="MonteCarloArray",
             tel_positions=tel_positions,
             tel_descriptions=tel_descriptions,
         )
+
+        if self.allowed_tels:
+            subarray = subarray.select_subarray(self.allowed_tels)
+        return subarray
 
     @staticmethod
     def is_compatible(file_path):
@@ -415,11 +411,16 @@ class SimTelEventSource(EventSource):
                 r1 = data.r1.tel[tel_id]
                 r0.waveform = adc_samples
 
-                mon = array_event["camera_monitorings"][tel_id]
-                pedestal = mon["pedestal"] / mon["n_ped_slices"]
+                cam_mon = array_event["camera_monitorings"][tel_id]
+                pedestal = cam_mon["pedestal"] / cam_mon["n_ped_slices"]
                 dc_to_pe = array_event["laser_calibrations"][tel_id]["calib"]
-                # todo: store pedestal and dc_to_pe somewhere?
-                #
+
+                # fill dc_to_pe and pedestal_per_sample info into monitoring
+                # container
+                mon = data.mon.tel[tel_id]
+                mon.calibration.dc_to_pe = dc_to_pe
+                mon.calibration.pedestal_per_sample = pedestal
+
                 r1.waveform, r1.selected_gain_channel = apply_simtel_r1_calibration(
                     adc_samples, pedestal, dc_to_pe, self.gain_selector
                 )
@@ -454,8 +455,7 @@ class SimTelEventSource(EventSource):
 
         return TelescopePointingContainer(azimuth=azimuth, altitude=altitude)
 
-    @staticmethod
-    def _fill_trigger_info(data, array_event):
+    def _fill_trigger_info(self, data, array_event):
         trigger = array_event["trigger_information"]
 
         if array_event["type"] == "data":
@@ -471,13 +471,21 @@ class SimTelEventSource(EventSource):
             data.trigger.event_type = EventType.UNKNOWN
 
         data.trigger.tels_with_trigger = trigger["triggered_telescopes"]
+        if self.allowed_tels:
+            data.trigger.tels_with_trigger = np.intersect1d(
+                data.trigger.tels_with_trigger,
+                self.subarray.tel_ids,
+                assume_unique=True,
+            )
         central_time = parse_simtel_time(trigger["gps_time"])
         data.trigger.time = central_time
 
         for tel_id, time in zip(
             trigger["triggered_telescopes"], trigger["trigger_times"]
         ):
-            # telesocpe time is relative to central trigger in ns
+            if self.allowed_tels and tel_id not in self.allowed_tels:
+                continue
+            # telescope time is relative to central trigger in ns
             time = Time(
                 central_time.jd1,
                 central_time.jd2 + time / NANOSECONDS_PER_DAY,
