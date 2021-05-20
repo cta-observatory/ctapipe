@@ -59,7 +59,7 @@ def test_estimator_results():
     print("direction fit test minimise:", dir_fit_minimise)
 
 
-def test_h_max_results():
+def test_h_max_results(example_subarray):
     """
     creating some planes pointing in different directions (two
     north-south, two east-west) and that have a slight position errors (+-
@@ -84,15 +84,7 @@ def test_h_max_results():
 
     # Create a dummy subarray
     # (not used here, but required to initialize the reconstructor)
-    subarray = SubarrayDescription(
-        "test array",
-        tel_positions={1: np.zeros(3) * u.m},
-        tel_descriptions={
-            1: TelescopeDescription.from_name(
-                optics_name="SST-ASTRI", camera_name="CHEC"
-            )
-        },
-    )
+    subarray = example_subarray
 
     # creating the fit class and setting the the great circle member
     fit = HillasReconstructor(subarray)
