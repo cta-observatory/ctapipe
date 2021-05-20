@@ -92,7 +92,7 @@ class ShowerProcessor(Component):
         Parameters
         ----------
         event : container
-            A `ctapipe` event container
+            A ``ctapipe`` event container
         default: container
             The default 'ReconstructedGeometryContainer' which is
             filled with NaNs.
