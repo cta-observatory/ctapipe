@@ -82,7 +82,7 @@ class ShowerProcessor(Component):
         self.check_shower = ShowerQualityQuery(parent=self)
         self.reconstructor = HillasReconstructor()
 
-    def _reconstruct_shower(
+    def reconstruct_shower(
         self,
         event,
         default=DEFAULT_SHOWER_PARAMETERS,
@@ -150,19 +150,7 @@ class ShowerProcessor(Component):
             )
             return default
 
-    def _reconstruct_energy(self, event: ArrayEventContainer):
-        raise NotImplementedError("TO DO")
-
-    def _classify_particle_type(self, event: ArrayEventContainer):
-        raise NotImplementedError("TO DO")
-
-    def _process_reconstructed_energy(self, event: ArrayEventContainer):
-        self._reconstruct_energy(event)
-
-    def _process_reconstructed_classification(self, event: ArrayEventContainer):
-        self._classify_particle_type(event)
-
-    def _process_shower_geometry(self, event: ArrayEventContainer):
+    def process_shower_geometry(self, event: ArrayEventContainer):
         """Record the reconstructed shower geometry into the ArrayEventContainer."""
 
         shower_geometry = self._reconstruct_shower(event)
@@ -186,9 +174,3 @@ class ShowerProcessor(Component):
 
         # This is always done when calling the ShowerProcessor
         self._process_shower_geometry(event)
-
-        if self.reconstruct_energy:
-            self._process_reconstructed_classification(event)
-
-        if self.classify:
-            self._process_reconstructed_energy(event)
