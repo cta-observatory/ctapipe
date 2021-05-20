@@ -72,7 +72,7 @@ class ShowerProcessor(Component):
         self.check_shower = ShowerQualityQuery(parent=self)
         self.reconstructor = HillasReconstructor()
 
-    def reconstruct_shower(
+    def reconstruct_geometry(
         self,
         event,
         default=DEFAULT_SHOWER_PARAMETERS,
@@ -143,7 +143,7 @@ class ShowerProcessor(Component):
     def process_shower_geometry(self, event: ArrayEventContainer):
         """Record the reconstructed shower geometry into the ArrayEventContainer."""
 
-        shower_geometry = self.reconstruct_shower(event)
+        shower_geometry = self.reconstruct_geometry(event)
 
         self.log.debug("shower geometry:\n %s", shower_geometry)
 
