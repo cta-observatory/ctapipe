@@ -38,7 +38,7 @@ def test_shower_processor_geometry(example_event, example_subarray):
     process_shower(example_event)
     print(process_shower.check_shower.to_table())
 
-    DL2a = example_event.dl2.shower["HillasReconstructor"]
+    DL2a = example_event.dl2.stereo.geometry["HillasReconstructor"]
     print(DL2a)
     assert isfinite(DL2a.alt)
     assert isfinite(DL2a.az)
@@ -61,7 +61,7 @@ def test_shower_processor_geometry(example_event, example_subarray):
     process_shower(example_event)
     print(process_shower.check_shower.to_table())
 
-    DL2a = example_event.dl2.shower["HillasReconstructor"]
+    DL2a = example_event.dl2.stereo.geometry["HillasReconstructor"]
     print(DL2a)
     assert not isfinite(DL2a.alt)
     assert not isfinite(DL2a.az)
@@ -70,25 +70,3 @@ def test_shower_processor_geometry(example_event, example_subarray):
     assert not isfinite(DL2a.core_y)
     assert not DL2a.is_valid
     assert not isfinite(DL2a.average_intensity)
-
-    # Now check that if energy reconstruction is enabled we get a TODO error
-    config.ShowerProcessor.reconstruct_energy = True
-    process_shower = ShowerProcessor(
-        config=config,
-        subarray=example_subarray,
-        reconstruct_energy=True,
-        classify=False
-    )
-    with pytest.raises(NotImplementedError) as error_info:
-        process_shower(example_event)
-
-    # same for classification
-    config.ShowerProcessor.classify = True
-    process_shower = ShowerProcessor(
-        config=config,
-        subarray=example_subarray,
-        reconstruct_energy=False,
-        classify=True
-    )
-    with pytest.raises(NotImplementedError) as error_info:
-        process_shower(example_event)

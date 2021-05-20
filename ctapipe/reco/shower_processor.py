@@ -13,12 +13,12 @@ from astropy.coordinates import SkyCoord, AltAz
 
 from ctapipe.core import Component, QualityQuery
 from ctapipe.core.traits import List
-from ctapipe.containers import ArrayEventContainer, ReconstructedShowerContainer
+from ctapipe.containers import ArrayEventContainer, ReconstructedGeometryContainer
 from ctapipe.instrument import SubarrayDescription
 from ctapipe.reco import HillasReconstructor
 
 
-DEFAULT_SHOWER_PARAMETERS = ReconstructedShowerContainer()
+DEFAULT_SHOWER_PARAMETERS = ReconstructedGeometryContainer()
 
 
 class ShowerQualityQuery(QualityQuery):
@@ -86,7 +86,7 @@ class ShowerProcessor(Component):
         self,
         event,
         default=DEFAULT_SHOWER_PARAMETERS,
-    ) -> ReconstructedShowerContainer:
+    ) -> ReconstructedGeometryContainer:
         """Perform shower reconstruction.
 
         Parameters
@@ -94,11 +94,11 @@ class ShowerProcessor(Component):
         event : container
             A `ctapipe` event container
         default: container
-            The default 'ReconstructedShowerContainer' which is
+            The default 'ReconstructedGeometryContainer' which is
             filled with NaNs.
         Returns
         -------
-        ReconstructedShowerContainer:
+        ReconstructedGeometryContainer:
             direction in the sky with uncertainty,
             core position on the ground with uncertainty,
             h_max with uncertainty,
@@ -146,18 +146,18 @@ class ShowerProcessor(Component):
         else:
             self.log.debug(
                 """Less than 2 images passed the quality cuts.
-                Returning default ReconstructedShowerContainer container"""
+                Returning default ReconstructedGeometryContainer container"""
             )
             return default
 
     def process_shower_geometry(self, event: ArrayEventContainer):
         """Record the reconstructed shower geometry into the ArrayEventContainer."""
 
-        shower_geometry = self._reconstruct_shower(event)
+        shower_geometry = self.reconstruct_shower(event)
 
         self.log.debug("shower geometry: %s", shower_geometry.as_dict(recursive=True))
 
-        event.dl2.shower["HillasReconstructor"] = shower_geometry
+        event.dl2.stereo.geometry["HillasReconstructor"] = shower_geometry
 
     def __call__(self, event: ArrayEventContainer):
         """
@@ -173,4 +173,4 @@ class ShowerProcessor(Component):
         """
 
         # This is always done when calling the ShowerProcessor
-        self._process_shower_geometry(event)
+        self.process_shower_geometry(event)
