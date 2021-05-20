@@ -37,7 +37,7 @@ class ShowerQualityQuery(QualityQuery):
 class ShowerProcessor(Component):
     """
     Needs DL1_PARAMETERS as input.
-    Should be run after ImageProcessor to produce all DL1b information.
+    Should be run after ImageProcessor which produces such information.
 
     For the moment it only supports the reconstruction of the shower geometry
     using ctapipe.reco.HillasReconstructor.
