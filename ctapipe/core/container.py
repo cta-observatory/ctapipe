@@ -180,6 +180,19 @@ class ContainerMeta(type):
 
         return new_cls
 
+    def __repr__(cls):
+        text = ["{}.{}:".format(type(cls).__module__, cls.__name__)]
+        for name, item in cls.fields.items():
+            extra = ""
+            if isinstance(getattr(cls, name), Container):
+                extra = ".*"
+            if isinstance(getattr(cls, name), Map):
+                extra = "[*]"
+            desc = "{:>30s}: {}".format(name + extra, repr(item))
+            lines = wrap(desc, 80, subsequent_indent=" " * 32)
+            text.extend(lines)
+        return "\n".join(text)
+
 
 class Container(metaclass=ContainerMeta):
     """Generic class that can hold and accumulate data to be passed
@@ -333,20 +346,20 @@ class Container(metaclass=ContainerMeta):
             self[key] = values[key]
 
     def __str__(self):
-        return pformat(self.as_dict(recursive=True))
+        return self.to_string()
 
-    def __repr__(self):
-        text = ["{}.{}:".format(type(self).__module__, type(self).__name__)]
-        for name, item in self.fields.items():
-            extra = ""
-            if isinstance(getattr(self, name), Container):
-                extra = ".*"
-            if isinstance(getattr(self, name), Map):
-                extra = "[*]"
-            desc = "{:>30s}: {}".format(name + extra, repr(item))
-            lines = wrap(desc, 80, subsequent_indent=" " * 32)
-            text.extend(lines)
-        return "\n".join(text)
+    def to_string(self, level=0):
+        d = self.as_dict(recursive=False)
+        sep = "\n" + "  " * (level + 1)
+        items = []
+        for k, v in d.items():
+            if isinstance(v, Container):
+                items.append(f"{k}={v.to_string(level + 1)},")
+            else:
+                items.append(f"{k}={v!r},")
+
+        endsep = "\n" + "  " * level
+        return f"{self.__class__.__name__}({sep}{sep.join(items)}{endsep})"
 
     def validate(self):
         """
@@ -397,6 +410,9 @@ class Map(defaultdict):
                     continue
                 d[key] = val
             return d
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}<{self.default_factory.__name__}>(keys={list(self.keys())})"
 
     def reset(self, recursive=True):
         """Calls all ``Container.reset`` for all values in the Map"""
