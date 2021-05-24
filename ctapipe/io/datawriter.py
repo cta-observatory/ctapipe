@@ -45,7 +45,7 @@ def write_reference_metadata_headers(
 ):
     """
     Attaches Core Provenence headers to an output HDF5 file.
-    Right now this is hard-coded for use with the ctapipe-stage1-process tool
+    Right now this is hard-coded for use with the ctapipe-process tool
 
     Parameters
     ----------
