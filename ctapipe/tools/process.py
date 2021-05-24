@@ -4,6 +4,7 @@ Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
 import sys
 
 from tqdm.autonotebook import tqdm
+from tqdm.auto import tqdm
 
 from ..calib.camera import CameraCalibrator, GainSelector
 from ..core import Tool
@@ -133,7 +134,7 @@ class ProcessorTool(Tool):
             image_stats = self.process_images.check_image.to_table(functions=True)
             image_stats.write(
                 self.write.output_path,
-                path="/dl1/service/image_statistics",
+                path="/dl1/service/cut_statistics",
                 append=True,
                 serialize_meta=True,
             )
@@ -142,7 +143,7 @@ class ProcessorTool(Tool):
             shower_stats = self.process_shower.check_shower.to_table(functions=True)
             shower_stats.write(
                 self.write.output_path,
-                path="/dl2/service/shower_statistics",
+                path="/dl2/service/cut_statistics",
                 append=True,
                 serialize_meta=True,
             )
