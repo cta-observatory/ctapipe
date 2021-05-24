@@ -14,7 +14,7 @@ d = tempfile.TemporaryDirectory()
 @pytest.fixture(scope="module")
 def dl1_file():
     simtel_path = get_dataset_path("gamma_test_large.simtel.gz")
-    command = f"ctapipe-stage1 --input {simtel_path} --output {d.name}/testfile.dl1.h5 --write-parameters --write-images --max-events 20 --allowed-tels=[1,2,3]"
+    command = f"ctapipe-process --input {simtel_path} --output {d.name}/testfile.dl1.h5 --write-parameters --write-images --max-events 20 --allowed-tels=[1,2,3]"
     subprocess.call(command.split(), stdout=subprocess.PIPE)
     return f"{d.name}/testfile.dl1.h5"
 
@@ -22,7 +22,7 @@ def dl1_file():
 @pytest.fixture(scope="module")
 def dl1b_only_file():
     simtel_path = get_dataset_path("gamma_test_large.simtel.gz")
-    command = f"ctapipe-stage1 --input {simtel_path} --output {d.name}/testfile_only_b.dl1.h5 --write-parameters --max-events 20 --allowed-tels=[1,2,3]"
+    command = f"ctapipe-process --input {simtel_path} --output {d.name}/testfile_only_b.dl1.h5 --write-parameters --max-events 20 --allowed-tels=[1,2,3]"
     subprocess.call(command.split(), stdout=subprocess.PIPE)
     return f"{d.name}/testfile_only_b.dl1.h5"
 
@@ -30,7 +30,7 @@ def dl1b_only_file():
 @pytest.fixture(scope="module")
 def dl1a_only_file():
     simtel_path = get_dataset_path("gamma_test_large.simtel.gz")
-    command = f"ctapipe-stage1 --input {simtel_path} --output {d.name}/testfile_only_a.dl1.h5 --write-images --max-events 20 --allowed-tels=[1,2,3]"
+    command = f"ctapipe-process --input {simtel_path} --output {d.name}/testfile_only_a.dl1.h5 --write-images --max-events 20 --allowed-tels=[1,2,3]"
     subprocess.call(command.split(), stdout=subprocess.PIPE)
     return f"{d.name}/testfile_only_a.dl1.h5"
 
