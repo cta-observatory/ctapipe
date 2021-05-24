@@ -3,7 +3,6 @@ Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
 """
 import sys
 
-from tqdm.autonotebook import tqdm
 from tqdm.auto import tqdm
 
 from ..calib.camera import CameraCalibrator, GainSelector
@@ -65,7 +64,7 @@ class ProcessorTool(Tool):
             "Overwrite output file if it exists",
         ),
         "progress": (
-            {"Stage1Tool": {"progress_bar": True}},
+            {"ProcessorTool": {"progress_bar": True}},
             "show a progress bar during event processing",
         ),
     }
