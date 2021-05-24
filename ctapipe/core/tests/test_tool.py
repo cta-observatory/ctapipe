@@ -74,7 +74,7 @@ def test_provenance_log_help(tmpdir):
 def test_export_config_to_yaml():
     """ test that we can export a Tool's config to YAML"""
     import yaml
-    from ctapipe.tools.processor import ProcessorTool
+    from ctapipe.tools.process import ProcessorTool
 
     tool = ProcessorTool()
     tool.progress_bar = True
