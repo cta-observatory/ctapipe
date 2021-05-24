@@ -32,7 +32,7 @@ def dl1_image_file():
     DL1 file containing only images (DL1A) from a gamma simulation set.
     """
     command = (
-        "ctapipe-stage1 "
+        "ctapipe-process "
         f"--input {GAMMA_TEST_LARGE} "
         f"--output {tmp_dir.name}/images.dl1.h5 "
         "--write-images "
@@ -49,7 +49,7 @@ def dl1_parameters_file():
     DL1 File containing only parameters (DL1B) from a gamma simulation set.
     """
     command = (
-        "ctapipe-stage1 "
+        "ctapipe-process "
         f"--input {GAMMA_TEST_LARGE} "
         f"--output {tmp_dir.name}/parameters.dl1.h5 "
         "--write-parameters "
@@ -66,7 +66,7 @@ def dl1_muon_file():
     DL1 file containing only images from a muon simulation set.
     """
     command = (
-        "ctapipe-stage1 "
+        "ctapipe-process "
         f"--input {LST_MUONS} "
         f"--output {tmp_dir.name}/muons.dl1.h5 "
         "--write-images"

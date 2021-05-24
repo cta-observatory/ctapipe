@@ -7,27 +7,30 @@ from tqdm.autonotebook import tqdm
 
 from ..calib.camera import CameraCalibrator, GainSelector
 from ..core import Tool
-from ..core.traits import Bool, List, classes_with_traits
+from ..core.traits import Bool, classes_with_traits
 from ..image import ImageCleaner, ImageProcessor
 from ..image.extractor import ImageExtractor
 from ..io import DataLevel, DataWriter, EventSource, SimTelEventSource
 from ..io.datawriter import DATA_MODEL_VERSION
+from ..reco import ShowerProcessor
 
 
-class Stage1Tool(Tool):
+class ProcessorTool(Tool):
     """
     Process data from lower-data levels up to DL1, including both image
     extraction and optinally image parameterization
     """
 
-    name = "ctapipe-stage1"
-    description = __doc__ + f" This currently writes {DATA_MODEL_VERSION} DL1 data"
+    name = "ctapipe-process"
+    description = (
+        __doc__ + f" This currently uses data model version {DATA_MODEL_VERSION}"
+    )
     examples = """
     To process data with all default values:
-    > ctapipe-stage1 --input events.simtel.gz --output events.dl1.h5 --progress
+    > ctapipe-process --input events.simtel.gz --output events.dl1.h5 --progress
 
     Or use an external configuration file, where you can specify all options:
-    > ctapipe-stage1 --config stage1_config.json --progress
+    > ctapipe-process --config stage1_config.json --progress
 
     The config file should be in JSON or python format (see traitlets docs). For an
     example, see ctapipe/examples/stage1_config.json in the main code repo.
@@ -67,7 +70,7 @@ class Stage1Tool(Tool):
     }
 
     classes = (
-        [CameraCalibrator, DataWriter, ImageProcessor]
+        [CameraCalibrator, DataWriter, ImageProcessor, ShowerProcessor]
         + classes_with_traits(EventSource)
         + classes_with_traits(ImageCleaner)
         + classes_with_traits(ImageExtractor)
@@ -144,7 +147,7 @@ class Stage1Tool(Tool):
 
 def main():
     """ run the tool"""
-    tool = Stage1Tool()
+    tool = ProcessorTool()
     tool.run()
 
 
