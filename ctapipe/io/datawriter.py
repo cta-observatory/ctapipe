@@ -309,11 +309,16 @@ class DataWriter(Component):
         PROV.add_output_file(str(self.output_path), role="DL1/Event")
 
         # check that options make sense
-        if self.write_parameters is False and self.write_images is False:
+        if (
+            self.write_parameters is False
+            and self.write_images is False
+            and self.write_mono_shower is False
+            and self.write_stero_shower is False
+        ):
             raise ToolConfigurationError(
-                "The options 'write_parameters' and 'write_images' are "
-                "both set to False. No output will be generated in that case. "
-                "Please enable one or both of these options."
+                "The options 'write_parameters',  'write_images', 'write_mono_shower', "
+                "and 'write_stereo_shower are all False. No output will be generated in "
+                "that case. Please enable one of these options."
             )
 
     def _setup_writer(self):
