@@ -55,6 +55,14 @@ class ProcessorTool(Tool):
             {"DataWriter": {"write_parameters": True}},
             "store DL1/Event/Telescope parameters in output",
         ),
+        "write-stereo-shower": (
+            {"DataWriter": {"write_stereo_shower": True}},
+            "store DL2/Event/Subarray parameters in output",
+        ),
+        "write-mono-shower": (
+            {"DataWriter": {"write_mono_shower": True}},
+            "store DL2/Event/Telescope parameters in output",
+        ),
         "write-index-tables": (
             {"DataWriter": {"write_index_tables": True}},
             "generate PyTables index tables for the parameter and image datasets",
