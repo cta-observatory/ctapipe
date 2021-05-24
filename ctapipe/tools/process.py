@@ -118,7 +118,7 @@ class ProcessorTool(Tool):
     @property
     def should_compute_dl2(self):
         """ returns true if we should compute DL2 info """
-        return self.writer.write_stereo_shower or self.writer.write_mono_shower
+        return self.write.write_stereo_shower or self.write.write_mono_shower
 
     @property
     def should_compute_dl1(self):
