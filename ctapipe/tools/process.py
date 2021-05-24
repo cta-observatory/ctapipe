@@ -98,7 +98,7 @@ class ProcessorTool(Tool):
             is_simulation=self.event_source.is_simulation,
             parent=self,
         )
-        self.process_showers = ShowerProcessor(
+        self.process_shower = ShowerProcessor(
             subarray=self.event_source.subarray, parent=self
         )
         self.write = DataWriter(event_source=self.event_source, parent=self)
@@ -115,16 +115,37 @@ class ProcessorTool(Tool):
                 "shower distributions read from the input Simulation file are invalid)."
             )
 
+    @property
+    def should_compute_dl2(self):
+        """ returns true if we should compute DL2 info """
+        return self.writer.write_stereo_shower or self.writer.write_mono_shower
+
+    @property
+    def should_compute_dl1(self):
+        """returns true if we should compute DL1 info"""
+        return self.write.write_parameters or self.should_compute_dl2
+
     def _write_processing_statistics(self):
         """ write out the event selection stats, etc. """
         # NOTE: don't remove this, not part of DataWriter
-        image_stats = self.process_images.check_image.to_table(functions=True)
-        image_stats.write(
-            self.write.output_path,
-            path="/dl1/service/image_statistics",
-            append=True,
-            serialize_meta=True,
-        )
+
+        if self.should_compute_dl1:
+            image_stats = self.process_images.check_image.to_table(functions=True)
+            image_stats.write(
+                self.write.output_path,
+                path="/dl1/service/image_statistics",
+                append=True,
+                serialize_meta=True,
+            )
+
+        if self.should_compute_dl2:
+            shower_stats = self.process_shower.check_shower.to_table(functions=True)
+            shower_stats.write(
+                self.write.output_path,
+                path="/dl2/service/shower_statistics",
+                append=True,
+                serialize_meta=True,
+            )
 
     def start(self):
         self.event_source.subarray.info(printer=self.log.info)
@@ -136,10 +157,15 @@ class ProcessorTool(Tool):
             disable=not self.progress_bar,
         ):
 
-            self.log.log(9, "Processessing event_id=%s", event.index.event_id)
+            self.log.debug("Processessing event_id=%s", event.index.event_id)
             self.calibrate(event)
-            if self.write.write_parameters:
+
+            if self.should_compute_dl1:
                 self.process_images(event)
+
+            if self.should_compute_dl2:
+                self.process_shower(event)
+
             self.write(event)
 
     def finish(self):
