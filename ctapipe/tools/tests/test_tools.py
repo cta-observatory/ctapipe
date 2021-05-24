@@ -76,14 +76,14 @@ def dl1_muon_file():
 
 
 def test_stage_1_dl1(tmpdir, dl1_image_file, dl1_parameters_file):
-    from ctapipe.tools.stage1 import Stage1Tool
+    from ctapipe.tools.process import ProcessorTool
 
     config = Path("./examples/stage1_config.json").absolute()
     # DL1A file as input
     dl1b_from_dl1a_file = tmp_dir.name + "/dl1b_from dl1a.dl1.h5"
     assert (
         run_tool(
-            Stage1Tool(),
+            ProcessorTool(),
             argv=[
                 f"--config={config}",
                 f"--input={dl1_image_file}",
@@ -132,7 +132,7 @@ def test_stage_1_dl1(tmpdir, dl1_image_file, dl1_parameters_file):
     # DL1B file as input
     assert (
         run_tool(
-            Stage1Tool(),
+            ProcessorTool(),
             argv=[
                 f"--config={config}",
                 f"--input={dl1_parameters_file}",
@@ -149,7 +149,7 @@ def test_stage_1_dl1(tmpdir, dl1_image_file, dl1_parameters_file):
 def test_stage1_datalevels(tmpdir):
     """test the dl1 tool on a file not providing r1, dl0 or dl1a"""
     from ctapipe.io import EventSource
-    from ctapipe.tools.stage1 import Stage1Tool
+    from ctapipe.tools.process import ProcessorTool
 
     class DummyEventSource(EventSource):
         @classmethod
@@ -184,7 +184,7 @@ def test_stage1_datalevels(tmpdir):
         f.flush()
 
     config = Path("./examples/stage1_config.json").absolute()
-    tool = Stage1Tool()
+    tool = ProcessorTool()
 
     assert (
         run_tool(
