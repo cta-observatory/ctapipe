@@ -98,7 +98,10 @@ class ProcessorTool(Tool):
             is_simulation=self.event_source.is_simulation,
             parent=self,
         )
-        self.write_dl1 = DataWriter(event_source=self.event_source, parent=self)
+        self.process_showers = ShowerProcessor(
+            subarray=self.event_source.subarray, parent=self
+        )
+        self.write = DataWriter(event_source=self.event_source, parent=self)
 
         # warn if max_events prevents writing the histograms
         if (
@@ -117,7 +120,7 @@ class ProcessorTool(Tool):
         # NOTE: don't remove this, not part of DataWriter
         image_stats = self.process_images.check_image.to_table(functions=True)
         image_stats.write(
-            self.write_dl1.output_path,
+            self.write.output_path,
             path="/dl1/service/image_statistics",
             append=True,
             serialize_meta=True,
@@ -135,13 +138,13 @@ class ProcessorTool(Tool):
 
             self.log.log(9, "Processessing event_id=%s", event.index.event_id)
             self.calibrate(event)
-            if self.write_dl1.write_parameters:
+            if self.write.write_parameters:
                 self.process_images(event)
-            self.write_dl1(event)
+            self.write(event)
 
     def finish(self):
-        self.write_dl1.write_simulation_histograms(self.event_source)
-        self.write_dl1.finish()
+        self.write.write_simulation_histograms(self.event_source)
+        self.write.finish()
         self._write_processing_statistics()
 
 
