@@ -9,6 +9,41 @@ from numpy import isclose, zeros_like
 from pytest import approx
 import itertools
 import pytest
+from itertools import product
+
+
+def psi_from_eigvecs(eigvecs, eigvals):
+    # avoid divide by 0 warnings
+    vx, vy = eigvecs[:, 1]
+    if eigvals[1] == 0:
+        psi = 0
+    else:
+        if vx != 0:
+            psi = np.arctan(vy / vx)
+        else:
+            psi = np.pi / 2
+    return psi
+
+
+def test_eigvals():
+    from ctapipe.image.hillas import eigvals_sym_2d
+
+    varx = np.linspace(0, 10, 11)
+    vary = np.linspace(0, 10, 11)
+    rhos = np.linspace(-1.0, 1.0, 11)
+
+    for a, b, rho in product(varx, vary, rhos):
+        c = rho * a * b
+        mat = np.array([[a, c], [c, b]])
+        eigvals_np, eigvecs = np.linalg.eigh(mat)
+        eigvals, psi = eigvals_sym_2d(mat)
+
+        assert np.allclose(
+            eigvals_np, eigvals
+        ), f"Failed for a={a}, b={b}, c={c}, rho={rho}"
+
+        psi_np = psi_from_eigvecs(eigvecs, eigvals_np)
+        assert np.isclose(psi_np, psi), f"Failed for a={a}, b={b}, c={c}, rho={rho}"
 
 
 def create_sample_image(
@@ -27,7 +62,9 @@ def create_sample_image(
 
     # generate toymodel image in camera for this shower model.
     rng = np.random.default_rng(0)
-    image, _, _ = model.generate_image(geom, intensity=1500, nsb_level_pe=3, rng=rng)
+    image, _, _ = model.generate_image(
+        geom, intensity=intensity, nsb_level_pe=3, rng=rng
+    )
 
     # calculate pixels likely containing signal
     clean_mask = tailcuts_clean(geom, image, 10, 5)
@@ -134,18 +171,20 @@ def test_with_toy():
 
             result = hillas_parameters(geom, signal)
 
+            assert signal.sum() == result.intensity
+
             assert u.isclose(result.x, x, rtol=0.1)
             assert u.isclose(result.y, y, rtol=0.1)
 
             assert u.isclose(result.width, width, rtol=0.1)
-            assert u.isclose(result.width_uncertainty, width_uncertainty, rtol=0.4)
             assert u.isclose(result.length, length, rtol=0.1)
-            assert u.isclose(result.length_uncertainty, length_uncertainty, rtol=0.4)
-            assert (result.psi.to_value(u.deg) == approx(psi.deg, abs=2)) or abs(
-                result.psi.to_value(u.deg) - psi.deg
-            ) == approx(180.0, abs=2)
 
-            assert signal.sum() == result.intensity
+            assert u.isclose(result.psi, psi, atol=2 * u.deg) or u.isclose(
+                abs(result.psi - psi), 180.0 * u.deg, atol=2 * u.deg
+            )
+
+            assert u.isclose(result.width_uncertainty, width_uncertainty, rtol=0.4)
+            assert u.isclose(result.length_uncertainty, length_uncertainty, rtol=0.4)
 
 
 def test_skewness():
@@ -247,4 +286,4 @@ def test_single_pixel():
 
     assert hillas.length.value == 0
     assert hillas.width.value == 0
-    assert np.isnan(hillas.psi)
+    assert hillas.psi.value == 0
