@@ -45,17 +45,17 @@ def test_convert_geometry(camera_name, rot):
     hillas_0 = hillas_parameters(geom, image)
 
     if geom.pix_type is PixelShape.HEXAGON:
-        geom2d, image2d = convert_geometry_hex1d_to_rect2d(
+        geom_2d, image_2d = convert_geometry_hex1d_to_rect2d(
             geom, image, geom.camera_name + str(rot), add_rot=rot
         )
-        geom1d, image1d = convert_geometry_rect2d_back_to_hexe1d(
-            geom2d, image2d, geom.camera_name + str(rot), add_rot=rot
+        geom_1d, image_1d = convert_geometry_rect2d_back_to_hexe1d(
+            geom_2d, image_2d, geom.camera_name + str(rot), add_rot=rot
         )
 
     else:
-        image2d, r, c = convert_rect_image_1d_to_2d(image, geom)
-        image1d = convert_rect_image_back_to_1d(image2d, r, c)
-    assert_allclose(image, image1d)
+        rows_cols, image_2d = convert_rect_image_1d_to_2d(geom, image)
+        image_1d = convert_rect_image_back_to_1d(rows_cols, image_2d)
+    assert_allclose(image, image_1d)
 
 
 @pytest.mark.parametrize("rot", [3])
