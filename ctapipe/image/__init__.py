@@ -53,10 +53,8 @@ from .reducer import DataVolumeReducer, NullDataVolumeReducer, TailCutsDataVolum
 from .geometry_converter import (
     convert_geometry_hex1d_to_rect2d,
     convert_geometry_rect2d_back_to_hexe1d,
-    astri_to_2d_array,
-    array_2d_to_astri,
-    chec_to_2d_array,
-    array_2d_to_chec,
+    convert_rect_image_1d_to_2d,
+    convert_rect_image_back_to_1d,
 )
 from .muon import (
     MuonIntensityFitter,
@@ -107,10 +105,8 @@ __all__ = [
     "ring_containment",
     "convert_geometry_hex1d_to_rect2d",
     "convert_geometry_rect2d_back_to_hexe1d",
-    "astri_to_2d_array",
-    "array_2d_to_astri",
-    "chec_to_2d_array",
-    "array_2d_to_chec",
+    "convert_rect_image_1d_to_2d",
+    "convert_rect_image_back_to_1d",
     "ImageExtractor",
     "FullWaveformSum",
     "FixedWindowSum",
