@@ -65,6 +65,6 @@ def convert_rect_image_back_to_1d(rows_cols, image_square):
     image_1d: ndarray
         The flattened camera image
     """
-    image_flat = np.zeros_like(rows_cols[0])
+    image_flat = np.zeros_like(rows_cols[0], dtype=image_square.dtype)
     image_flat[:] = np.flip(image_square, axis=0)[rows_cols]
     return image_flat
