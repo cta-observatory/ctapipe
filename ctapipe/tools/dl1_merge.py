@@ -307,11 +307,10 @@ class MergeTool(Tool):
                         self._create_group(node)
 
                     if self.allowed_tels:
-                        for (tel_id, tel_name) in zip(
-                            self.allowed_tels, self.allowed_tel_names
-                        ):
+                        for tel_name in self.allowed_tel_names:
                             tel_type = None
                             if self.split_datasets_by == "tel_type":
+                                tel_id = int(tel_name.replace('tel_',''))
                                 tel_type = str(self.first_subarray.tels[tel_id])
                             if tel_name in file.root[node]:
                                 self._copy_or_append_tel_table(
