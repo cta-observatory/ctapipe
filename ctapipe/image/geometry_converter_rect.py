@@ -25,20 +25,20 @@ def convert_rect_image_1d_to_2d(geom, image_flat):
     Convert a 1-dimensional image to a 2-dimensional array
     so that normal image manipulation routines can be used.
     Depending on the camera geoemtrie
-    
+
     Parameters:
     -----------
     geom: CameraGeometry object
         geometry object of hexagonal cameras
     image: ndarray
         1D array of the pmt signals
-    
+
     Returns:
     --------
     (rows, cols): (ndarray, ndarray)
         Arrays holding the row and col of each pixel, needed to transform back
     image_2d: ndarray
-        Square image 
+        Square image
     """
     size = np.sqrt(geom.pix_area)
     col = pos_to_index(geom.pix_x, size)
@@ -52,7 +52,7 @@ def convert_rect_image_1d_to_2d(geom, image_flat):
 def convert_rect_image_back_to_1d(rows_cols, image_square):
     """
     Convert a 2-dimensional image back to a 1-dimensional array.
-    
+
     Parameters:
     -----------
     rows_cols: (ndarray, ndarray)

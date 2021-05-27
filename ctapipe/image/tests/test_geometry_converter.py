@@ -1,20 +1,22 @@
 import pytest
 import numpy as np
+from numpy.testing import assert_allclose
 from ctapipe.image.geometry_converter import (
     convert_geometry_rect2d_back_to_hex1d,
     convert_geometry_hex1d_to_rect2d,
     convert_rect_image_1d_to_2d,
     convert_rect_image_back_to_1d,
 )
-from ctapipe.image.hillas import hillas_parameters
-from ctapipe.instrument import CameraDescription, CameraGeometry, PixelShape
+from ctapipe.instrument import CameraGeometry, PixelShape
 from ctapipe.image.toymodel import Gaussian
 import astropy.units as u
-from numpy.testing import assert_allclose
 
 
 @pytest.fixture(params=["LSTCam", "CHEC", "FlashCam", "NectarCam", "MAGICCam", "FACT"])
 def camera_geometry(request):
+    """
+    Fixture to get one camera geometry at a time and perform tests with different geometries.
+    """
     return CameraGeometry.from_name(request.param)
 
 
@@ -40,9 +42,11 @@ def create_mock_image(geom):
 
 @pytest.mark.parametrize("rot", [3])
 def test_convert_geometry(camera_geometry, rot):
-
+    """
+    Test if we can transform toy images for different geometries
+    and get the same images after transforming back
+    """
     image = create_mock_image(camera_geometry)
-    hillas_0 = hillas_parameters(camera_geometry, image)
 
     if camera_geometry.pix_type is PixelShape.HEXAGON:
         geom_2d, image_2d = convert_geometry_hex1d_to_rect2d(
@@ -64,7 +68,6 @@ def test_convert_geometry_mock(camera_geometry, rot):
     """
 
     image = create_mock_image(camera_geometry)
-    hillas_0 = hillas_parameters(camera_geometry, image)
 
     if camera_geometry.pix_type is PixelShape.HEXAGON:
         convert_geometry_1d_to_2d = convert_geometry_hex1d_to_rect2d
