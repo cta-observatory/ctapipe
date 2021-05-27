@@ -112,6 +112,11 @@ class MergeTool(Tool):
     skip_broken_files = traits.Bool(
         help="Skip broken files instead of raising an error", default_value=False
     ).tag(config=True)
+    split_datasets_by = traits.CaselessStrEnum(
+        values=["tel_id", "tel_type"],
+        default_value="tel_id",
+        help="Splitting level for the DL1 parameters and images datasets",
+    ).tag(config=True)
     overwrite = traits.Bool(help="Overwrite output file if it exists").tag(config=True)
     progress_bar = traits.Bool(help="Show progress bar during processing").tag(
         config=True
@@ -138,6 +143,7 @@ class MergeTool(Tool):
         ("o", "output"): "MergeTool.output_path",
         ("p", "pattern"): "MergeTool.file_pattern",
         ("t", "allowed-tels"): "MergeTool.allowed_tels",
+        ("s", "split_datasets_by"): "MergeTool.split_datasets_by",
     }
 
     flags = {
@@ -301,9 +307,16 @@ class MergeTool(Tool):
                         self._create_group(node)
 
                     if self.allowed_tels:
-                        for tel_name in self.allowed_tel_names:
+                        for (tel_id, tel_name) in zip(
+                            self.allowed_tels, self.allowed_tel_names
+                        ):
+                            tel_type = None
+                            if self.split_datasets_by == "tel_type":
+                                tel_type = str(self.first_subarray.tels[tel_id])
                             if tel_name in file.root[node]:
-                                self._copy_or_append_tel_table(file, node, tel_name)
+                                self._copy_or_append_tel_table(
+                                    file, node, tel_name, tel_type
+                                )
 
                         continue
 
@@ -324,10 +337,11 @@ class MergeTool(Tool):
                     target_group = self.output_file.root[group_path]
                     file.copy_node(node, newparent=target_group)
 
-    def _copy_or_append_tel_table(self, file, node, tel_name):
+    def _copy_or_append_tel_table(self, file, node, tel_name, tel_type):
         tel_node_path = node + "/" + tel_name
-        if tel_node_path in self.output_file:
-            output_node = self.output_file.get_node(tel_node_path)
+        output_node_path = node + "/" + tel_type if tel_type else tel_node_path
+        if tel_node_path in self.output_file or output_node_path in self.output_file:
+            output_node = self.output_file.get_node(output_node_path)
             input_node = file.root[tel_node_path]
 
             # cast needed for some image parameters that are sometimes
@@ -335,7 +349,7 @@ class MergeTool(Tool):
             output_node.append(input_node[:].astype(output_node.dtype))
         else:
             target_group = self.output_file.root[node]
-            file.copy_node(tel_node_path, newparent=target_group)
+            file.copy_node(tel_node_path, newparent=target_group, newname=tel_type)
 
     def _create_group(self, node):
         head, tail = os.path.split(node)
@@ -384,6 +398,7 @@ class MergeTool(Tool):
                         sys.exit(1)
 
                 self.merge_tables(file)
+
                 if IMAGE_STATISTICS_PATH in file:
                     self.add_image_statistics(file)
 
