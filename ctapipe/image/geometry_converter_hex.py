@@ -9,7 +9,7 @@ from ctapipe.instrument import CameraGeometry
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["convert_geometry_hex1d_to_rect2d", "convert_geometry_rect2d_back_to_hexe1d"]
+__all__ = ["convert_geometry_hex1d_to_rect2d", "convert_geometry_rect2d_back_to_hex1d"]
 
 
 def unskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg, base_angle=60 * u.deg):
@@ -460,8 +460,8 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
     return new_geom, rot_img
 
 
-def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None, add_rot=None):
-    """reverts the geometry distortion performed by convert_geometry_hexe1d_to_rect_2d
+def convert_geometry_rect2d_back_to_hex1d(geom, signal, key=None, add_rot=None):
+    """reverts the geometry distortion performed by convert_geometry_hex1d_to_rect_2d
     back to a hexagonal grid stored in 1D arrays
 
     Parameters
@@ -500,7 +500,7 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None, add_rot=None)
     image = event.r0.tel[tel_id].image[0]
     key = camera.camera_name
     square_geom, square_image = convert_geometry_hex1d_to_rect2d(camera, image, key=key)
-    hex_geom, hex_image = convert_geometry_rect2d_back_to_hexe1d(square_geom,
+    hex_geom, hex_image = convert_geometry_rect2d_back_to_hex1d(square_geom,
     square_image, key = key)
     """
 

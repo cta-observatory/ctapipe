@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from ctapipe.image.geometry_converter import (
-    convert_geometry_rect2d_back_to_hexe1d,
+    convert_geometry_rect2d_back_to_hex1d,
     convert_geometry_hex1d_to_rect2d,
     convert_rect_image_1d_to_2d,
     convert_rect_image_back_to_1d,
@@ -48,7 +48,7 @@ def test_convert_geometry(camera_geometry, rot):
         geom_2d, image_2d = convert_geometry_hex1d_to_rect2d(
             camera_geometry, image, camera_geometry.camera_name + str(rot), add_rot=rot
         )
-        geom_1d, image_1d = convert_geometry_rect2d_back_to_hexe1d(
+        geom_1d, image_1d = convert_geometry_rect2d_back_to_hex1d(
             geom_2d, image_2d, camera_geometry.camera_name + str(rot), add_rot=rot
         )
 
@@ -68,7 +68,7 @@ def test_convert_geometry_mock(camera_geometry, rot):
 
     if camera_geometry.pix_type is PixelShape.HEXAGON:
         convert_geometry_1d_to_2d = convert_geometry_hex1d_to_rect2d
-        convert_geometry_back = convert_geometry_rect2d_back_to_hexe1d
+        convert_geometry_back = convert_geometry_rect2d_back_to_hex1d
 
         geom2d, image2d = convert_geometry_1d_to_2d(
             camera_geometry, image, key=None, add_rot=rot

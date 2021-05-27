@@ -52,7 +52,7 @@ from .extractor import (
 from .reducer import DataVolumeReducer, NullDataVolumeReducer, TailCutsDataVolumeReducer
 from .geometry_converter import (
     convert_geometry_hex1d_to_rect2d,
-    convert_geometry_rect2d_back_to_hexe1d,
+    convert_geometry_rect2d_back_to_hex1d,
     convert_rect_image_1d_to_2d,
     convert_rect_image_back_to_1d,
 )
@@ -104,7 +104,7 @@ __all__ = [
     "ring_completeness",
     "ring_containment",
     "convert_geometry_hex1d_to_rect2d",
-    "convert_geometry_rect2d_back_to_hexe1d",
+    "convert_geometry_rect2d_back_to_hex1d",
     "convert_rect_image_1d_to_2d",
     "convert_rect_image_back_to_1d",
     "ImageExtractor",
