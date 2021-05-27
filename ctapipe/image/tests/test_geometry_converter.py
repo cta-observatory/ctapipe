@@ -13,7 +13,9 @@ import astropy.units as u
 from numpy.testing import assert_allclose
 
 
-camera_names = CameraDescription.get_known_camera_names()
+@pytest.fixture(params=["LSTCam", "CHEC", "FlashCam", "NectarCam", "MAGICCam", "FACT"])
+def camera_geometry(request):
+    return CameraGeometry.from_name(request.param)
 
 
 def create_mock_image(geom):
@@ -37,44 +39,45 @@ def create_mock_image(geom):
 
 
 @pytest.mark.parametrize("rot", [3])
-@pytest.mark.parametrize("camera_name", camera_names)
-def test_convert_geometry(camera_name, rot):
+def test_convert_geometry(camera_geometry, rot):
 
-    geom = CameraGeometry.from_name(camera_name)
-    image = create_mock_image(geom)
-    hillas_0 = hillas_parameters(geom, image)
+    image = create_mock_image(camera_geometry)
+    hillas_0 = hillas_parameters(camera_geometry, image)
 
-    if geom.pix_type is PixelShape.HEXAGON:
+    if camera_geometry.pix_type is PixelShape.HEXAGON:
         geom_2d, image_2d = convert_geometry_hex1d_to_rect2d(
-            geom, image, geom.camera_name + str(rot), add_rot=rot
+            camera_geometry, image, camera_geometry.camera_name + str(rot), add_rot=rot
         )
         geom_1d, image_1d = convert_geometry_rect2d_back_to_hexe1d(
-            geom_2d, image_2d, geom.camera_name + str(rot), add_rot=rot
+            geom_2d, image_2d, camera_geometry.camera_name + str(rot), add_rot=rot
         )
 
     else:
-        rows_cols, image_2d = convert_rect_image_1d_to_2d(geom, image)
+        rows_cols, image_2d = convert_rect_image_1d_to_2d(camera_geometry, image)
         image_1d = convert_rect_image_back_to_1d(rows_cols, image_2d)
     assert_allclose(image, image_1d)
 
 
 @pytest.mark.parametrize("rot", [3])
-@pytest.mark.parametrize("camera_name", camera_names)
-def test_convert_geometry_mock(camera_name, rot):
+def test_convert_geometry_mock(camera_geometry, rot):
     """here we use a different key for the back conversion to trigger the mock conversion
     """
 
-    geom = CameraGeometry.from_name(camera_name)
-    image = create_mock_image(geom)
-    hillas_0 = hillas_parameters(geom, image)
+    image = create_mock_image(camera_geometry)
+    hillas_0 = hillas_parameters(camera_geometry, image)
 
-    if geom.pix_type == "hexagonal":
+    if camera_geometry.pix_type is PixelShape.HEXAGON:
         convert_geometry_1d_to_2d = convert_geometry_hex1d_to_rect2d
         convert_geometry_back = convert_geometry_rect2d_back_to_hexe1d
 
-        geom2d, image2d = convert_geometry_1d_to_2d(geom, image, key=None, add_rot=rot)
+        geom2d, image2d = convert_geometry_1d_to_2d(
+            camera_geometry, image, key=None, add_rot=rot
+        )
         geom1d, image1d = convert_geometry_back(
-            geom2d, image2d, "_".join([geom.camera_name, str(rot), "mock"]), add_rot=rot
+            geom2d,
+            image2d,
+            "_".join([camera_geometry.camera_name, str(rot), "mock"]),
+            add_rot=rot,
         )
     else:
         # originally rectangular geometries don't need a buffer and therefore no mock
