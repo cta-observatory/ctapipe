@@ -204,14 +204,12 @@ class MergeTool(Tool):
             sys.exit(1)
 
         # create output file with subarray from first file
+        self.first_subarray = SubarrayDescription.from_hdf(self.input_files[0])
         if self.allowed_tels:
-            full_subarray = SubarrayDescription.from_hdf(self.input_files[0])
-            self.first_subarray = full_subarray.select_subarray(
+            self.first_subarray = self.first_subarray.select_subarray(
                 tel_ids=self.allowed_tels
             )
             self.allowed_tel_names = {"tel_%03d" % i for i in self.allowed_tels}
-        else:
-            self.first_subarray = SubarrayDescription.from_hdf(self.input_files[0])
 
         self.first_subarray.to_hdf(self.output_path)
         self.output_file = tables.open_file(self.output_path, mode="a")
