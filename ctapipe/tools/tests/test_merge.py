@@ -91,7 +91,6 @@ def test_skip_images(tmp_path, gamma_dl1_path, proton_dl1_path):
 
     # create a second file so we can test the patterns
     output = tmp_path / "merged_no_images.dl1.h5"
-
     ret = run_tool(
         MergeTool(),
         argv=[
@@ -109,8 +108,8 @@ def test_skip_images(tmp_path, gamma_dl1_path, proton_dl1_path):
 def test_allowed_tels(tmp_path, gamma_dl1_path, proton_dl1_path):
     from ctapipe.tools.dl1_merge import MergeTool
 
+    # create file to test 'allowed-tels' option
     output = tmp_path / "merged_allowed_tels.dl1.h5"
-
     ret = run_tool(
         MergeTool(),
         argv=[
