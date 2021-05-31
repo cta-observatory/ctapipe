@@ -44,7 +44,7 @@ jobs:
             source $CONDA/etc/profile.d/conda.sh
             conda activate ci;
           fi
-          pytest --cov --cov-report=xml --doctest-modules --doctest-glob='*.rst'
+          pytest --cov --cov-report=xml --doctest-modules --doctest-glob='*.rst' ctapipe docs
           ctapipe-info --version
 
       - uses: codecov/codecov-action@v1
