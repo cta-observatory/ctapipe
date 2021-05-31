@@ -104,3 +104,22 @@ def test_skip_images(tmp_path, gamma_dl1_path, proton_dl1_path):
         cwd=tmp_path,
     )
     assert ret == 0
+
+
+def test_allowed_tels(tmp_path, gamma_dl1_path, proton_dl1_path):
+    from ctapipe.tools.dl1_merge import MergeTool
+
+    output = tmp_path / "merged_allowed_tels.dl1.h5"
+
+    ret = run_tool(
+        MergeTool(),
+        argv=[
+            str(gamma_dl1_path),
+            str(proton_dl1_path),
+            f"--output={output}",
+            "--allowed-tels=[1,2]",
+            "--overwrite",
+        ],
+        cwd=tmp_path,
+    )
+    assert ret == 0
