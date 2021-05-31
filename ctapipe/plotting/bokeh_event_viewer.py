@@ -4,11 +4,10 @@ from ctapipe.core import Component
 from ctapipe.visualization.bokeh import CameraDisplay, WaveformDisplay
 
 
-class BokehEventViewerCamera(CameraDisplay):
-    def __init__(self, event_viewer, fig=None):
+class BokehEventViewerCamera:
+    def __init__(self, event_viewer):
         """
-        A `ctapipe.visualization.bokeh.CameraDisplay` modified to utilise a
-        `ctapipe.core.container.ArrayEventContainer` directly.
+        Show data from an event in a bokeh CameraDisplay
 
         Parameters
         ----------
@@ -22,7 +21,7 @@ class BokehEventViewerCamera(CameraDisplay):
         self._telid = None
         self._channel = 0
         self._time = 0
-        super().__init__(fig=fig)
+        self.display = CameraDisplay()
 
         self._view_options = {
             "r0": lambda e, t, c, time: e.r0.tel[t].waveform[c, :, time],
@@ -38,7 +37,6 @@ class BokehEventViewerCamera(CameraDisplay):
         self.event_viewer = event_viewer
 
     def _reset(self):
-        self.reset_pixels()
         self.event_viewer.change_time(0)
 
     def _set_image(self):
@@ -58,8 +56,8 @@ class BokehEventViewerCamera(CameraDisplay):
             raise KeyError(f"Telescope {t} has no data")
 
         try:
-            self.image = self._view_options[v](e, t, c, time)
-            self.fig.title.text = f"{v} (T = {time})"
+            self.display.image = self._view_options[v](e, t, c, time)
+            self.display.figure.title = f"{v} (T = {time})"
         except TypeError:
             self.image = None
 
@@ -69,7 +67,9 @@ class BokehEventViewerCamera(CameraDisplay):
         if e:
             # Check if geom actually needs to be changed
             if not t == self._geom_tel:
-                self.geom = self.event_viewer.subarray.tel[t].camera.geometry
+                self.display.geometry = self.event_viewer.subarray.tel[
+                    t
+                ].camera.geometry
                 self._geom_tel = t
         else:
             self.event_viewer.log.warning("No event has been provided")
@@ -140,9 +140,9 @@ class BokehEventViewerCamera(CameraDisplay):
         self.event_viewer.waveforms[ai].pixel = pix_id
 
     def create_view_widget(self):
-        self.w_view = Select(title="View:", value="", options=[], width=5)
+        self.w_view = Select(title="View:", value="", options=[])
         self.w_view.on_change("value", self.on_view_widget_change)
-        self.layout = column([self.w_view, self.layout])
+        self.layout = column([self.w_view, self.display.figure])
 
     def update_view_widget(self):
         self.w_view.options = list(self._view_options.keys())
@@ -272,7 +272,7 @@ class BokehEventViewerWaveform(WaveformDisplay):
         self.event_viewer.change_time(time)
 
     def create_view_widget(self):
-        self.w_view = Select(title="View:", value="", options=[], width=5)
+        self.w_view = Select(title="View:", value="", options=[])
         self.w_view.on_change("value", self.on_view_widget_change)
         self.layout = column([self.w_view, self.layout])
 
@@ -338,18 +338,17 @@ class BokehEventViewer(Component):
     def create(self):
         for _ in range(self.num_cameras):
             cam = BokehEventViewerCamera(self)
-            cam.enable_pixel_picker(self.num_waveforms)
             cam.create_view_widget()
             cam.update_view_widget()
-            cam.add_colorbar()
+            cam.display.add_colorbar()
 
             self.cameras.append(cam)
             self.camera_layouts.append(cam.layout)
 
         for iwav in range(self.num_waveforms):
             wav = BokehEventViewerWaveform(self)
-            active_color = self.cameras[0].active_colors[iwav]
-            wav.fig.select(name="line")[0].glyph.line_color = active_color
+            # active_color = self.cameras[0].active_colors[iwav]
+            # wav.fig.select(name="line")[0].glyph.line_color = active_color
             wav.enable_time_picker()
             wav.create_view_widget()
             wav.update_view_widget()

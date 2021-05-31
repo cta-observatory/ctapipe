@@ -168,6 +168,7 @@ class CameraDisplay(BokehPlot):
                     else "CameraFrame"
                 )
                 title = f"{geometry} ({frame})"
+            self.figure.title = title
 
         # order is important because steps depend on each other
         self.cmap = cmap

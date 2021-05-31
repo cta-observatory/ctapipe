@@ -57,7 +57,6 @@ setup(
         "requests",
         "setuptools_scm>=3.4",
         "importlib_resources;python_version<'3.9'",
-        "jinja2~=3.0.2",  # for bokeh=1, remove when updaiting bokeh
     ],
     # here are optional dependencies (as "tag" : "dependency spec")
     extras_require={
