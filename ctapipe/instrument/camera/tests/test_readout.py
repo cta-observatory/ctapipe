@@ -151,5 +151,5 @@ def test_camera_from_name(camera_name):
         assert str(camera) == camera_name
     except FileNotFoundError:
         # these two don't have readout definitions on the dataserver
-        if camera_name not in ["MAGICCam", "Whipple109"]:
+        if camera_name not in ["MAGICCam", "Whipple109", "FACT"]:
             raise
