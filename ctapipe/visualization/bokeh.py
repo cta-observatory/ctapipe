@@ -129,7 +129,7 @@ class CameraDisplay(BokehPlot):
     def __init__(
         # same options as MPL display
         self,
-        geometry: CameraGeometry,
+        geometry: CameraGeometry = None,
         image=None,
         cmap="inferno",
         norm="lin",
@@ -156,23 +156,26 @@ class CameraDisplay(BokehPlot):
         self._annotations = []
         self._labels = []
         self.datasource = None
-
-        self._init_datasource(image)
-
-        if title is None:
-            frame = (
-                geometry.frame.__class__.__name__ if geometry.frame else "CameraFrame"
-            )
-            title = f"{geometry} ({frame})"
-
         self.figure.add_tools(HoverTool(tooltips=[("id", "@id"), ("value", "@image")]))
+
+        if geometry is not None:
+            self._init_datasource(image)
+
+            if title is None:
+                frame = (
+                    geometry.frame.__class__.__name__
+                    if geometry.frame
+                    else "CameraFrame"
+                )
+                title = f"{geometry} ({frame})"
 
         # order is important because steps depend on each other
         self.cmap = cmap
         self.norm = norm
         self.autoscale = autoscale
-        self.rescale()
-        self._setup_camera()
+        if geometry is not None:
+            self.rescale()
+            self._setup_camera()
 
     def _init_datasource(self, image=None):
         if image is None:
@@ -328,7 +331,8 @@ class CameraDisplay(BokehPlot):
     @geometry.setter
     def geometry(self, new_geometry):
         self._geometry = new_geometry
-        self.figure.renderers.remove(self._pixels)
+        if self._pixels in self.figure.renderers:
+            self.figure.renderers.remove(self._pixels)
         self._init_datasource()
         self._setup_camera()
         self.rescale()

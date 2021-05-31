@@ -4,6 +4,17 @@ from bokeh.io import save, output_file
 import tempfile
 
 
+def test_create_display_without_geometry(example_event, example_subarray):
+    from ctapipe.visualization.bokeh import CameraDisplay
+
+    # test we can create it without geometry, and then set all the stuff
+    display = CameraDisplay()
+
+    tel_id = next(iter(example_event.r0.tel.keys()))
+    display.geometry = example_subarray.tel[tel_id].camera.geometry
+    display.image = example_event.dl1.tel[tel_id].image
+
+
 def test_camera_display_creation(example_event, example_subarray):
     from ctapipe.visualization.bokeh import CameraDisplay
 
