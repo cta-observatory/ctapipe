@@ -18,7 +18,7 @@ from .hdf5tableio import get_hdf5_attr
 
 from contextlib import ExitStack
 
-__all__ = ["h5_table_to_astropy"]
+__all__ = ["read_table"]
 
 
 def read_table(h5file, path, start=None, stop=None, step=None) -> Table:
