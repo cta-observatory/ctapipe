@@ -32,10 +32,19 @@ jobs:
         run: |
           source .github/install.sh
           python --version
-          pip install codecov pytest-cov
+          pip install codecov pytest-cov pyflakes
           pip install -e .[all]
           pip freeze
 
+      - name: Static codechecks
+        env:
+          INSTALL_METHOD: ${{ matrix.install-method }}
+        run: |
+          if [[ "$INSTALL_METHOD" == "conda" ]]; then
+            source $CONDA/etc/profile.d/conda.sh
+            conda activate ci;
+          fi
+          pyflakes ctapipe
       - name: Tests
         env:
           INSTALL_METHOD: ${{ matrix.install-method }}
