@@ -188,7 +188,7 @@ class HillasReconstructor(Reconstructor):
         hillas_dict = {
             tel_id: dl1.parameters.hillas
             for tel_id, dl1 in event.dl1.tel.items()
-            if np.isfinite(event.dl1.tel[tel_id].parameters.hillas.intensity)
+            if np.isfinite(dl1.parameters.hillas.intensity)
         }
 
         # Due to tracking the pointing of the array will never be a constant
