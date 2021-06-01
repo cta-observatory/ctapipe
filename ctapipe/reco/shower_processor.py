@@ -7,8 +7,6 @@ This processor will be able to process a shower/event in 3 steps:
 - estimation of classification (optional, currently unavailable)
 
 """
-from astropy.coordinates import SkyCoord, AltAz
-
 from ctapipe.core import Component, QualityQuery
 from ctapipe.core.traits import List
 from ctapipe.containers import ArrayEventContainer, ReconstructedGeometryContainer
