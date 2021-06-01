@@ -79,7 +79,7 @@ def test_that_event_is_not_modified_after_loop():
 
 def test_additional_meta_data_from_simulation_config():
     with SimTelEventSource(input_url=gamma_test_large_path) as reader:
-        data = next(iter(reader))
+        next(iter(reader))
 
     # for expectation values
     from astropy import units as u
