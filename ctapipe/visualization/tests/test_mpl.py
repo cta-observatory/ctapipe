@@ -113,14 +113,15 @@ def test_array_display():
 
     # Create a fake event containing telescope-wise information about
     # the image directions projected on the ground
-    ArrayEventContainer.dl1 = DL1Container()
-    ArrayEventContainer.dl1.tel = {1: DL1CameraContainer(), 2: DL1CameraContainer()}
-    ArrayEventContainer.dl1.tel[1].parameters = ImageParametersContainer()
-    ArrayEventContainer.dl1.tel[2].parameters = ImageParametersContainer()
-    ArrayEventContainer.dl1.tel[2].parameters.core = CoreParametersContainer()
-    ArrayEventContainer.dl1.tel[1].parameters.core = CoreParametersContainer()
-    ArrayEventContainer.dl1.tel[1].parameters.core.psi = u.Quantity(2.0, unit=u.deg)
-    ArrayEventContainer.dl1.tel[2].parameters.core.psi = u.Quantity(1.0, unit=u.deg)
+    event = ArrayEventContainer()
+    event.dl1 = DL1Container()
+    event.dl1.tel = {1: DL1CameraContainer(), 2: DL1CameraContainer()}
+    event.dl1.tel[1].parameters = ImageParametersContainer()
+    event.dl1.tel[2].parameters = ImageParametersContainer()
+    event.dl1.tel[2].parameters.core = CoreParametersContainer()
+    event.dl1.tel[1].parameters.core = CoreParametersContainer()
+    event.dl1.tel[1].parameters.core.psi = u.Quantity(2.0, unit=u.deg)
+    event.dl1.tel[2].parameters.core.psi = u.Quantity(1.0, unit=u.deg)
 
     ad = ArrayDisplay(subarray=sub)
     ad.set_vector_rho_phi(1 * u.m, 90 * u.deg)
@@ -161,7 +162,7 @@ def test_array_display():
     gradient_dict = {1: timing_rot20.slope.value, 2: timing_rot20.slope.value}
     core_dict = {
             tel_id: dl1.parameters.core.psi
-            for tel_id, dl1 in ArrayEventContainer.dl1.tel.items()
+            for tel_id, dl1 in event.dl1.tel.items()
         }
     ad.set_vector_hillas(
         hillas_dict=hillas_dict,
