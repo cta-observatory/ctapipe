@@ -19,66 +19,73 @@ import numpy as np
 from pathlib import Path
 
 
-tmp_dir = tempfile.TemporaryDirectory()
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 LST_MUONS = get_dataset_path("lst_muons.simtel.zst")
 
 
 @pytest.fixture(scope="module")
-def dl1_image_file():
+def dl1_tmp_path(tmp_path_factory):
+    return tmp_path_factory.mktemp("dl1")
+
+
+@pytest.fixture(scope="module")
+def dl1_image_file(dl1_tmp_path):
     """
     DL1 file containing only images (DL1A) from a gamma simulation set.
     """
-    command = (
-        "ctapipe-stage1 "
-        f"--input {GAMMA_TEST_LARGE} "
-        f"--output {tmp_dir.name}/images.dl1.h5 "
-        "--write-images "
-        "--max-events 20 "
-        "--allowed-tels=[1,2,3]"
-    )
-    subprocess.call(command.split(), stdout=subprocess.PIPE)
-    return f"{tmp_dir.name}/images.dl1.h5"
+    output = dl1_tmp_path / "images.dl1.h5"
+    command = [
+        "ctapipe-stage1",
+        f"--input={GAMMA_TEST_LARGE}",
+        f"--output={output}",
+        "--write-images",
+        "--max-events=20",
+        "--allowed-tels=[1,2,3]",
+    ]
+    subprocess.run(command, stdout=subprocess.PIPE, check=True)
+    return output
 
 
 @pytest.fixture(scope="module")
-def dl1_parameters_file():
+def dl1_parameters_file(dl1_tmp_path):
     """
     DL1 File containing only parameters (DL1B) from a gamma simulation set.
     """
-    command = (
-        "ctapipe-stage1 "
-        f"--input {GAMMA_TEST_LARGE} "
-        f"--output {tmp_dir.name}/parameters.dl1.h5 "
-        "--write-parameters "
-        "--max-events 20 "
-        "--allowed-tels=[1,2,3]"
-    )
-    subprocess.call(command.split(), stdout=subprocess.PIPE)
-    return f"{tmp_dir.name}/parameters.dl1.h5"
+    output = dl1_tmp_path / "parameters.dl1.h5"
+    command = [
+        "ctapipe-stage1",
+        f"--input={GAMMA_TEST_LARGE}",
+        f"--output={output}",
+        "--write-parameters",
+        "--max-events=20",
+        "--allowed-tels=[1,2,3]",
+    ]
+    subprocess.run(command, stdout=subprocess.PIPE, check=True)
+    return output
 
 
 @pytest.fixture(scope="module")
-def dl1_muon_file():
+def dl1_muon_file(dl1_tmp_path):
     """
     DL1 file containing only images from a muon simulation set.
     """
-    command = (
-        "ctapipe-stage1 "
-        f"--input {LST_MUONS} "
-        f"--output {tmp_dir.name}/muons.dl1.h5 "
-        "--write-images"
-    )
-    subprocess.call(command.split(), stdout=subprocess.PIPE)
-    return f"{tmp_dir.name}/muons.dl1.h5"
+    output = dl1_tmp_path / "muons.dl1.h5"
+    command = [
+        "ctapipe-stage1",
+        f"--input={LST_MUONS}",
+        f"--output={output}",
+        "--write-images",
+    ]
+    subprocess.run(command, stdout=subprocess.PIPE, check=True)
+    return output
 
 
-def test_stage_1_dl1(tmpdir, dl1_image_file, dl1_parameters_file):
+def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
     from ctapipe.tools.stage1 import Stage1Tool
 
     config = Path("./examples/stage1_config.json").absolute()
     # DL1A file as input
-    dl1b_from_dl1a_file = tmp_dir.name + "/dl1b_from dl1a.dl1.h5"
+    dl1b_from_dl1a_file = tmp_path / "dl1b_from dl1a.dl1.h5"
     assert (
         run_tool(
             Stage1Tool(),
@@ -89,7 +96,7 @@ def test_stage_1_dl1(tmpdir, dl1_image_file, dl1_parameters_file):
                 "--write-parameters",
                 "--overwrite",
             ],
-            cwd=tmpdir,
+            cwd=tmp_path,
         )
         == 0
     )
@@ -134,17 +141,17 @@ def test_stage_1_dl1(tmpdir, dl1_image_file, dl1_parameters_file):
             argv=[
                 f"--config={config}",
                 f"--input={dl1_parameters_file}",
-                f"--output={tmp_dir.name + '/dl1b_from_dl1b.dl1.h5'}",
+                f"--output={tmp_path}/dl1b_from_dl1b.dl1.h5",
                 "--write-parameters",
                 "--overwrite",
             ],
-            cwd=tmpdir,
+            cwd=tmp_path,
         )
         == 1
     )
 
 
-def test_stage1_datalevels(tmpdir):
+def test_stage1_datalevels(tmp_path):
     """test the dl1 tool on a file not providing r1, dl0 or dl1a"""
     from ctapipe.io import EventSource
     from ctapipe.tools.stage1 import Stage1Tool
@@ -175,8 +182,8 @@ def test_stage1_datalevels(tmpdir):
         def _generator(self):
             return None
 
-    dummy_file = tmp_dir.name + "/datalevels_dummy.h5"
-    out_file = tmp_dir.name + "/datalevels_dummy_stage1_output.h5"
+    dummy_file = tmp_path / "datalevels_dummy.h5"
+    out_file = tmp_path / "datalevels_dummy_stage1_output.h5"
     with open(dummy_file, "wb") as f:
         f.write(b"dummy")
         f.flush()
@@ -194,7 +201,7 @@ def test_stage1_datalevels(tmpdir):
                 "--write-images",
                 "--overwrite",
             ],
-            cwd=tmpdir,
+            cwd=tmp_path,
         )
         == 1
     )
@@ -202,10 +209,10 @@ def test_stage1_datalevels(tmpdir):
     assert isinstance(tool.event_source, DummyEventSource)
 
 
-def test_muon_reconstruction(tmpdir, dl1_muon_file):
+def test_muon_reconstruction(tmp_path, dl1_muon_file):
     from ctapipe.tools.muon_reconstruction import MuonAnalysis
 
-    muon_simtel_output_file = tmp_dir.name + "/muon_reco_on_simtel.h5"
+    muon_simtel_output_file = tmp_path / "muon_reco_on_simtel.h5"
     assert (
         run_tool(
             MuonAnalysis(),
@@ -214,7 +221,7 @@ def test_muon_reconstruction(tmpdir, dl1_muon_file):
                 f"--output={muon_simtel_output_file}",
                 "--overwrite",
             ],
-            cwd=tmpdir,
+            cwd=tmp_path,
         )
         == 0
     )
@@ -224,7 +231,7 @@ def test_muon_reconstruction(tmpdir, dl1_muon_file):
         assert len(table) > 20
         assert np.count_nonzero(np.isnan(table["muonring_radius"])) == 0
 
-    muon_dl1_output_file = tmp_dir.name + "/muon_reco_on_dl1a.h5"
+    muon_dl1_output_file = tmp_path / "muon_reco_on_dl1a.h5"
     assert (
         run_tool(
             MuonAnalysis(),
@@ -233,7 +240,7 @@ def test_muon_reconstruction(tmpdir, dl1_muon_file):
                 f"--output={muon_dl1_output_file}",
                 "--overwrite",
             ],
-            cwd=tmpdir,
+            cwd=tmp_path,
         )
         == 0
     )
@@ -245,8 +252,7 @@ def test_muon_reconstruction(tmpdir, dl1_muon_file):
 
     assert run_tool(MuonAnalysis(), ["--help-all"]) == 0
 
-
-def test_display_summed_images(tmpdir):
+def test_display_summed_images(tmp_path):
     from ctapipe.tools.display_summed_images import ImageSumDisplayerTool
 
     mpl.use("Agg")
@@ -254,7 +260,7 @@ def test_display_summed_images(tmpdir):
         run_tool(
             ImageSumDisplayerTool(),
             argv=shlex.split(f"--infile={GAMMA_TEST_LARGE} " "--max-events=2 "),
-            cwd=tmpdir,
+            cwd=tmp_path,
         )
         == 0
     )
@@ -262,7 +268,7 @@ def test_display_summed_images(tmpdir):
     assert run_tool(ImageSumDisplayerTool(), ["--help-all"]) == 0
 
 
-def test_display_integrator(tmpdir):
+def test_display_integrator(tmp_path):
     from ctapipe.tools.display_integrator import DisplayIntegrator
 
     mpl.use("Agg")
@@ -271,7 +277,7 @@ def test_display_integrator(tmpdir):
         run_tool(
             DisplayIntegrator(),
             argv=shlex.split(f"--f={GAMMA_TEST_LARGE} " "--max_events=1 "),
-            cwd=tmpdir,
+            cwd=tmp_path,
         )
         == 0
     )
@@ -279,7 +285,7 @@ def test_display_integrator(tmpdir):
     assert run_tool(DisplayIntegrator(), ["--help-all"]) == 0
 
 
-def test_display_events_single_tel(tmpdir):
+def test_display_events_single_tel(tmp_path):
     from ctapipe.tools.display_events_single_tel import SingleTelEventDisplay
 
     mpl.use("Agg")
@@ -292,7 +298,7 @@ def test_display_events_single_tel(tmpdir):
                 "--tel=11 "
                 "--max-events=2 "  # <--- inconsistent!!!
             ),
-            cwd=tmpdir,
+            cwd=tmp_path,
         )
         == 0
     )
@@ -300,7 +306,7 @@ def test_display_events_single_tel(tmpdir):
     assert run_tool(SingleTelEventDisplay(), ["--help-all"]) == 0
 
 
-def test_display_dl1(tmpdir, dl1_image_file, dl1_parameters_file):
+def test_display_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
     from ctapipe.tools.display_dl1 import DisplayDL1Calib
 
     mpl.use("Agg")
@@ -310,7 +316,7 @@ def test_display_dl1(tmpdir, dl1_image_file, dl1_parameters_file):
         run_tool(
             DisplayDL1Calib(),
             argv=shlex.split("--max_events=1 " "--telescope=11 "),
-            cwd=tmpdir,
+            cwd=tmp_path,
         )
         == 0
     )
@@ -343,46 +349,44 @@ def test_info():
     info(show_all=True)
 
 
-def test_dump_triggers(tmpdir):
+def test_dump_triggers(tmp_path):
     from ctapipe.tools.dump_triggers import DumpTriggersTool
 
     sys.argv = ["dump_triggers"]
-    outfile = tmpdir.join("triggers.fits")
+    outfile = tmp_path / "triggers.fits"
     tool = DumpTriggersTool(infile=GAMMA_TEST_LARGE, outfile=str(outfile))
 
-    assert run_tool(tool, cwd=tmpdir) == 0
+    assert run_tool(tool, cwd=tmp_path) == 0
 
     assert outfile.exists()
     assert run_tool(tool, ["--help-all"]) == 0
 
 
-def test_dump_instrument(tmpdir):
+def test_dump_instrument(tmp_path):
     from ctapipe.tools.dump_instrument import DumpInstrumentTool
 
     sys.argv = ["dump_instrument"]
-    tmpdir.chdir()
-
     tool = DumpInstrumentTool()
 
-    assert run_tool(tool, [f"--input={GAMMA_TEST_LARGE}"], cwd=tmpdir) == 0
-    assert tmpdir.join("FlashCam.camgeom.fits.gz").exists()
+    assert run_tool(tool, [f"--input={GAMMA_TEST_LARGE}"], cwd=tmp_path) == 0
+    assert (tmp_path / "FlashCam.camgeom.fits.gz").exists()
 
     assert (
-        run_tool(tool, [f"--input={GAMMA_TEST_LARGE}", "--format=ecsv"], cwd=tmpdir)
+        run_tool(tool, [f"--input={GAMMA_TEST_LARGE}", "--format=ecsv"], cwd=tmp_path)
         == 0
     )
-    assert tmpdir.join("MonteCarloArray.optics.ecsv.txt").exists()
+    assert (tmp_path / "MonteCarloArray.optics.ecsv.txt").exists()
 
     assert (
-        run_tool(tool, [f"--input={GAMMA_TEST_LARGE}", "--format=hdf5"], cwd=tmpdir)
+        run_tool(tool, [f"--input={GAMMA_TEST_LARGE}", "--format=hdf5"], cwd=tmp_path)
         == 0
     )
-    assert tmpdir.join("subarray.h5").exists()
+    assert (tmp_path / "subarray.h5").exists()
 
-    assert run_tool(tool, ["--help-all"], cwd=tmpdir) == 0
+    assert run_tool(tool, ["--help-all"], cwd=tmp_path) == 0
 
 
-def test_camdemo(tmpdir, camera_geometries):
+def test_camdemo(tmp_path):
     from ctapipe.tools.camdemo import CameraDemo
 
     sys.argv = ["camera_demo"]
@@ -391,15 +395,15 @@ def test_camdemo(tmpdir, camera_geometries):
     tool.cleanframes = 2
     tool.display = False
 
-    assert run_tool(tool, cwd=tmpdir) == 0
+    assert run_tool(tool, cwd=tmp_path) == 0
     assert run_tool(tool, ["--help-all"]) == 0
 
 
-def test_bokeh_file_viewer(tmpdir):
+def test_bokeh_file_viewer(tmp_path):
     from ctapipe.tools.bokeh.file_viewer import BokehFileViewer
 
     sys.argv = ["bokeh_file_viewer"]
     tool = BokehFileViewer(disable_server=True)
-    assert run_tool(tool, cwd=tmpdir) == 0
+    assert run_tool(tool, cwd=tmp_path) == 0
     assert tool.reader.input_url == get_dataset_path("gamma_test_large.simtel.gz")
     assert run_tool(tool, ["--help-all"]) == 0
