@@ -440,18 +440,18 @@ for event in source:
 
             # Plot Hillas ellipses
 
-            centerOfgravity_telescopeFrame = SkyCoord(
+            cog_telescope_frame = SkyCoord(
                 fov_lon=parametrized_images[tel_id].x,
                 fov_lat=parametrized_images[tel_id].y,
                 frame=telescopeframe,
             )
-            centerOfgravity = centerOfgravity_telescopeFrame.transform_to(nominal_frame)
+            cog = cog_telescope_frame.transform_to(nominal_frame)
             length = u.Quantity(parametrized_images[tel_id].length).value
             width = u.Quantity(parametrized_images[tel_id].width).value
             psi = u.Quantity(parametrized_images[tel_id].psi).to("deg")
 
             ellipse = Ellipse(
-                xy=(centerOfgravity.fov_lon.value, centerOfgravity.fov_lat.value),
+                xy=(cog.fov_lon.value, cog.fov_lat.value),
                 width=length,
                 height=width,
                 angle=psi.value,
