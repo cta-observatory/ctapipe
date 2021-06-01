@@ -59,7 +59,12 @@ Reference/API
 =============
 
 .. automodapi:: ctapipe.reco
+    :no-inheritance-diagram:
 .. automodapi:: ctapipe.reco.hillas_intersection
+    :no-inheritance-diagram:
 .. automodapi:: ctapipe.reco.hillas_reconstructor
+    :no-inheritance-diagram:
 .. automodapi:: ctapipe.reco.impact
+    :no-inheritance-diagram:
 .. automodapi:: ctapipe.reco.reco_algorithms
+    :no-inheritance-diagram:

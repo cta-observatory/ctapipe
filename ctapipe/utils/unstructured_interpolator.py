@@ -12,7 +12,6 @@ TODO:
 
 import numpy as np
 from scipy.spatial import Delaunay
-import time
 from scipy.ndimage import map_coordinates
 import numpy.ma as ma
 
@@ -70,18 +69,16 @@ class UnstructuredInterpolator:
             self._function_name = "__call__"
 
         self._remember = remember_last
-        self._previous_v = 0
-        self._previous_m = 0
-        self._previous_shape = 0
+        self.reset()
         self._bounds = bounds
 
     def reset(self):
         """
         Function used to reset some class values stored after previous event
         """
-        self._previous_v = 0
-        self._previous_m = 0
-        self._previous_shape = 0
+        self._previous_v = None
+        self._previous_m = None
+        self._previous_shape = None
 
     def __call__(self, points, eval_points=None):
 
@@ -93,7 +90,7 @@ class UnstructuredInterpolator:
 
         # First find simplexes that contain interpolated points
         # In
-        if self._remember and self._previous_v is not 0:
+        if self._remember and self._previous_v is not None:
 
             previous_keys = self.keys[self._previous_v.ravel()]
             hull = Delaunay(previous_keys)
