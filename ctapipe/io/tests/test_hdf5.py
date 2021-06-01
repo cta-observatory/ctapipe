@@ -14,10 +14,11 @@ from ctapipe.containers import (
     R0CameraContainer,
     SimulatedShowerContainer,
     HillasParametersContainer,
+    TelEventIndexContainer,
     LeakageContainer,
 )
 from ctapipe.io.hdf5tableio import HDF5TableWriter, HDF5TableReader
-from ctapipe.io.tableio import ColumnTransform
+from ctapipe.io import read_table
 
 
 @pytest.fixture(scope="session")
@@ -39,7 +40,6 @@ def test_write_container(temp_h5_file):
     with HDF5TableWriter(
         temp_h5_file, group_name="R0", filters=tables.Filters(complevel=7)
     ) as writer:
-        writer.exclude("tel_002", ".*samples")  # test exclusion of columns
 
         for ii in range(100):
             r0tel.waveform[:] = np.random.uniform(size=(50, 10))
@@ -50,6 +50,26 @@ def test_write_container(temp_h5_file):
             writer.write("tel_001", r0tel)
             writer.write("tel_002", r0tel)  # write a second table too
             writer.write("sim_shower", simshower)
+
+
+def test_append_container(tmp_path):
+    path = tmp_path / "test_append.h5"
+    with HDF5TableWriter(path, mode="w") as writer:
+        for event_id in range(10):
+            hillas = HillasParametersContainer()
+            index = TelEventIndexContainer(obs_id=1, event_id=event_id, tel_id=1)
+            writer.write("data", [index, hillas])
+
+    with HDF5TableWriter(path, mode="a") as writer:
+        for event_id in range(10):
+            index = TelEventIndexContainer(obs_id=2, event_id=event_id, tel_id=1)
+            hillas = HillasParametersContainer()
+            writer.write("data", [index, hillas])
+
+    table = read_table(path, "/data")
+    assert len(table) == 20
+    assert np.all(table["obs_id"] == np.repeat([1, 2], 10))
+    assert np.all(table["event_id"] == np.tile(np.arange(10), 2))
 
 
 def test_read_multiple_containers():
@@ -363,9 +383,9 @@ def test_writer_closes_file(temp_h5_file):
     with tempfile.NamedTemporaryFile() as f:
         with HDF5TableWriter(f.name, "test") as h5_table:
 
-            assert h5_table._h5file.isopen == 1
+            assert h5_table.h5file.isopen == 1
 
-    assert h5_table._h5file.isopen == 0
+    assert h5_table.h5file.isopen == 0
 
 
 def test_reader_closes_file(temp_h5_file):
@@ -405,7 +425,7 @@ def test_closing_writer(temp_h5_file):
         h5_table = HDF5TableWriter(f.name, "test")
         h5_table.close()
 
-        assert h5_table._h5file.isopen == 0
+        assert h5_table.h5file.isopen == 0
 
 
 def test_cannot_read_with_writer(temp_h5_file):
@@ -565,6 +585,47 @@ def test_read_write_container_with_int_enum(tmp_path):
                 assert isinstance(data.event_type, WithIntEnum.EventType)
 
 
+def test_column_exclusions(tmp_path):
+    """test if we can exclude columns using regexps for the table and column name"""
+    tmp_file = tmp_path / "test_column_exclusions.hdf5"
+
+    class SomeContainer(Container):
+        container_prefix = ""
+        hillas_x = Field(None)
+        hillas_y = Field(None)
+        impact_x = Field(None)
+        impact_y = Field(None)
+
+    cont = SomeContainer(hillas_x=10, hillas_y=10, impact_x=15, impact_y=15)
+
+    with HDF5TableWriter(tmp_file) as writer:
+
+        # don't write hillas columns for any table
+        writer.exclude(".*table", "hillas_.*")
+
+        # exclude a specific column
+        writer.exclude("data/anothertable", "impact_x")
+        print(writer._exclusions)
+
+        writer.write("data/mytable", cont)
+        writer.write("data/anothertable", cont)
+
+    # check that we get back the transformed values (note here a round trip will
+    # not work, as there is no inverse transform in this test)
+    with HDF5TableReader(tmp_file, mode="r") as reader:
+        data = next(reader.read("/data/mytable", SomeContainer()))
+        assert data.hillas_x is None
+        assert data.hillas_y is None
+        assert data.impact_x == 15
+        assert data.impact_y == 15
+
+        data = next(reader.read("/data/anothertable", SomeContainer()))
+        assert data.hillas_x is None
+        assert data.hillas_y is None
+        assert data.impact_x is None
+        assert data.impact_y == 15
+
+
 def test_column_transforms(tmp_path):
     """ ensure a user-added column transform is applied """
     from ctapipe.containers import NAN_TIME
@@ -597,6 +658,40 @@ def test_column_transforms(tmp_path):
         assert data.time == NAN_TIME
         # rounded to two digits
         assert np.all(data.image == np.array([1.23, 123.45]))
+
+
+def test_column_transforms_regexps(tmp_path):
+    """ ensure a user-added column transform is applied when given as a regexp"""
+
+    tmp_file = tmp_path / "test_column_transforms.hdf5"
+
+    def multiply_by_10(x):
+        return x * 10
+
+    class SomeContainer(Container):
+        container_prefix = ""
+        hillas_x = Field(1)
+        hillas_y = Field(1)
+
+    cont = SomeContainer()
+
+    with HDF5TableWriter(tmp_file, group_name="data") as writer:
+        writer.add_column_transform_regexp("my.*", "hillas_.*", multiply_by_10)
+        writer.add_column_transform_regexp("anothertable", "hillas_y", multiply_by_10)
+
+        writer.write("mytable", cont)
+        writer.write("anothertable", cont)
+
+    # check that we get back the transformed values (note here a round trip will
+    # not work, as there is no inverse transform in this test)
+    with HDF5TableReader(tmp_file, mode="r") as reader:
+        data = next(reader.read("/data/mytable", SomeContainer()))
+        assert data.hillas_x == 10
+        assert data.hillas_y == 10
+
+        data = next(reader.read("/data/anothertable", SomeContainer()))
+        assert data.hillas_x == 1
+        assert data.hillas_y == 10
 
 
 def test_time(tmp_path):
@@ -633,7 +728,7 @@ def test_filters():
         with HDF5TableWriter(
             f.name, group_name="data", mode="w", filters=no_comp
         ) as writer:
-            assert writer._h5file.filters.complevel == 0
+            assert writer.h5file.filters.complevel == 0
 
             c = TestContainer(value=5)
             writer.write("default", c)

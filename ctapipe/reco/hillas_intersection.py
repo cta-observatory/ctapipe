@@ -16,7 +16,7 @@ from ctapipe.reco.reco_algorithms import (
     InvalidWidthException,
     TooFewTelescopesException,
 )
-from ctapipe.containers import ReconstructedShowerContainer
+from ctapipe.containers import ReconstructedGeometryContainer
 from ctapipe.instrument import get_atmosphere_profile_functions
 
 from astropy.coordinates import SkyCoord
@@ -42,7 +42,7 @@ class HillasIntersection(Reconstructor):
     reconstruction. e.g. https://arxiv.org/abs/astro-ph/0607333
 
     In this case the Hillas parameters are all constructed in the shared
-    angular ( Nominal) system. Direction reconstruction is performed by
+    angular (Nominal) system. Direction reconstruction is performed by
     extrapolation of the major axes of the Hillas parameters in the nominal
     system and the weighted average of the crossing points is taken. Core
     reconstruction is performed by performing the same procedure in the
@@ -57,7 +57,7 @@ class HillasIntersection(Reconstructor):
     """
 
     atmosphere_profile_name = traits.CaselessStrEnum(
-        ["paranal",], default_value="paranal", help="name of atmosphere profile to use"
+        ["paranal"], default_value="paranal", help="name of atmosphere profile to use"
     ).tag(config=True)
 
     weighting = traits.CaselessStrEnum(
@@ -126,19 +126,19 @@ class HillasIntersection(Reconstructor):
             }
 
         tilted_frame = TiltedGroundFrame(pointing_direction=array_pointing)
-
-        ground_positions = subarray.tel_coords
-        grd_coord = GroundFrame(
-            x=ground_positions.x, y=ground_positions.y, z=ground_positions.z
-        )
-
+        grd_coord = subarray.tel_coords
         tilt_coord = grd_coord.transform_to(tilted_frame)
 
+        tel_ids = list(hillas_dict.keys())
+        tel_indices = subarray.tel_ids_to_indices(tel_ids)
+
         tel_x = {
-            tel_id: tilt_coord.x[tel_id - 1] for tel_id in list(hillas_dict.keys())
+            tel_id: tilt_coord.x[tel_index]
+            for tel_id, tel_index in zip(tel_ids, tel_indices)
         }
         tel_y = {
-            tel_id: tilt_coord.y[tel_id - 1] for tel_id in list(hillas_dict.keys())
+            tel_id: tilt_coord.y[tel_index]
+            for tel_id, tel_index in zip(tel_ids, tel_indices)
         }
 
         nom_frame = NominalFrame(origin=array_pointing)
@@ -171,7 +171,7 @@ class HillasIntersection(Reconstructor):
         nom = SkyCoord(fov_lat=src_x * u.rad, fov_lon=src_y * u.rad, frame=nom_frame)
         # nom = sky_pos.transform_to(nom_frame)
         sky_pos = nom.transform_to(array_pointing.frame)
-        tilt = SkyCoord(x=core_x * u.m, y=core_y * u.m, frame=tilted_frame,)
+        tilt = SkyCoord(x=core_x * u.m, y=core_y * u.m, frame=tilted_frame)
         grd = project_to_ground(tilt)
         x_max = self.reconstruct_xmax(
             nom.fov_lon,
@@ -186,7 +186,7 @@ class HillasIntersection(Reconstructor):
 
         src_error = np.sqrt(err_x ** 2 + err_y ** 2)
 
-        result = ReconstructedShowerContainer(
+        result = ReconstructedGeometryContainer(
             alt=sky_pos.altaz.alt.to(u.rad),
             az=sky_pos.altaz.az.to(u.rad),
             core_x=grd.x,
@@ -430,6 +430,7 @@ class HillasIntersection(Reconstructor):
     def intersect_lines(xp1, yp1, phi1, xp2, yp2, phi2):
         """
         Perform intersection of two lines. This code is borrowed from read_hess.
+
         Parameters
         ----------
         xp1: ndarray

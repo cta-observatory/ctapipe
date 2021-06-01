@@ -10,8 +10,8 @@ from ..core import Tool
 from ..core.traits import Bool, List, classes_with_traits
 from ..image import ImageCleaner, ImageProcessor
 from ..image.extractor import ImageExtractor
-from ..io import DataLevel, DL1Writer, EventSource, SimTelEventSource
-from ..io.dl1writer import DL1_DATA_MODEL_VERSION
+from ..io import DataLevel, DataWriter, EventSource, SimTelEventSource
+from ..io.datawriter import DATA_MODEL_VERSION
 
 from ctapipe.image.muon.muon_processor import MuonProcessor
 
@@ -23,7 +23,7 @@ class Stage1Tool(Tool):
     """
 
     name = "ctapipe-stage1"
-    description = __doc__ + f" This currently writes {DL1_DATA_MODEL_VERSION} DL1 data"
+    description = __doc__ + f" This currently writes {DATA_MODEL_VERSION} DL1 data"
     examples = """
     To process data with all default values:
     > ctapipe-stage1 --input events.simtel.gz --output events.dl1.h5 --progress
@@ -42,28 +42,28 @@ class Stage1Tool(Tool):
     ).tag(config=True)
 
     aliases = {
-        "input": "EventSource.input_url",
-        "output": "DL1Writer.output_path",
-        "allowed-tels": "EventSource.allowed_tels",
-        "max-events": "EventSource.max_events",
+        ("i", "input"): "EventSource.input_url",
+        ("o", "output"): "DataWriter.output_path",
+        ("t", "allowed-tels"): "EventSource.allowed_tels",
+        ("m", "max-events"): "EventSource.max_events",
         "image-cleaner-type": "ImageProcessor.image_cleaner_type",
     }
 
     flags = {
         "write-images": (
-            {"DL1Writer": {"write_images": True}},
+            {"DataWriter": {"write_images": True}},
             "store DL1/Event/Telescope images in output",
         ),
         "write-parameters": (
-            {"DL1Writer": {"write_parameters": True}},
+            {"DataWriter": {"write_parameters": True}},
             "store DL1/Event/Telescope parameters in output",
         ),
         "write-index-tables": (
-            {"DL1Writer": {"write_index_tables": True}},
+            {"DataWriter": {"write_index_tables": True}},
             "generate PyTables index tables for the parameter and image datasets",
         ),
-        "overwrite": (
-            {"DL1Writer": {"overwrite": True}},
+        ("f", "overwrite"): (
+            {"DataWriter": {"overwrite": True}},
             "Overwrite output file if it exists",
         ),
         "progress": (
@@ -78,7 +78,7 @@ class Stage1Tool(Tool):
     }
 
     classes = (
-        [CameraCalibrator, DL1Writer, ImageProcessor, MuonProcessor]
+        [CameraCalibrator, DataWriter, ImageProcessor, MuonProcessor]
         + classes_with_traits(EventSource)
         + classes_with_traits(ImageCleaner)
         + classes_with_traits(ImageExtractor)
@@ -106,7 +106,7 @@ class Stage1Tool(Tool):
             is_simulation=self.event_source.is_simulation,
             parent=self,
         )
-        self.write_dl1 = DL1Writer(event_source=self.event_source, parent=self)
+        self.write_dl1 = DataWriter(event_source=self.event_source, parent=self)
 
         # warn if max_events prevents writing the histograms
         if (
@@ -126,7 +126,7 @@ class Stage1Tool(Tool):
 
     def _write_processing_statistics(self):
         """ write out the event selection stats, etc. """
-        # NOTE: don't remove this, not part of DL1Writer
+        # NOTE: don't remove this, not part of DataWriter
         image_stats = self.process_images.check_image.to_table(functions=True)
         image_stats.write(
             self.write_dl1.output_path,

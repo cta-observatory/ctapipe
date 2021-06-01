@@ -2,9 +2,9 @@
 
 .. _ctapipe:
 
-=====================================================
- Prototype CTA Pipeline Framework (:mod:`ctapipe`)
-=====================================================
+==============================================
+Prototype CTA Pipeline Framework (``ctapipe``)
+==============================================
 
 .. currentmodule:: ctapipe
 
@@ -17,7 +17,7 @@
 What is ctapipe?
 ================
 
-`ctapipe` is a framework for prototyping the low-level data processing algorithms for the Cherenkov Telescope Array. 
+``ctapipe`` is a framework for prototyping the low-level data processing algorithms for the Cherenkov Telescope Array.
 
 .. CAUTION::
    This is not yet stable code, so expect large and rapid changes to

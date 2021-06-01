@@ -15,6 +15,8 @@ from ctapipe.instrument import (
 
 def example_subarray(n_tels=10):
     """ generate a simple subarray for testing purposes """
+    rng = np.random.default_rng(0)
+
     pos = {}
     tel = {}
 
@@ -22,7 +24,7 @@ def example_subarray(n_tels=10):
         tel[tel_id] = TelescopeDescription.from_name(
             optics_name="MST", camera_name="NectarCam"
         )
-        pos[tel_id] = np.random.uniform(-100, 100, size=3) * u.m
+        pos[tel_id] = rng.uniform(-100, 100, size=3) * u.m
 
     return SubarrayDescription("test array", tel_positions=pos, tel_descriptions=tel)
 
@@ -52,7 +54,7 @@ def test_subarray_description():
     assert isinstance(sub.tel_coords, SkyCoord)
     assert len(sub.tel_coords) == n_tels
 
-    subsub = sub.select_subarray("newsub", [2, 3, 4, 6])
+    subsub = sub.select_subarray([2, 3, 4, 6], name="newsub")
     assert subsub.num_tels == 4
     assert set(subsub.tels.keys()) == {2, 3, 4, 6}
     assert subsub.tel_indices[6] == 3

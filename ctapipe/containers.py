@@ -18,6 +18,7 @@ __all__ = [
     "DL1CameraCalibrationContainer",
     "DL1CameraContainer",
     "DL1Container",
+    "DL2Container",
     "EventCalibrationContainer",
     "EventCameraCalibrationContainer",
     "EventIndexContainer",
@@ -42,7 +43,7 @@ __all__ = [
     "R1Container",
     "ReconstructedContainer",
     "ReconstructedEnergyContainer",
-    "ReconstructedShowerContainer",
+    "ReconstructedGeometryContainer",
     "SimulatedCameraContainer",
     "SimulatedShowerContainer",
     "SimulatedShowerDistribution",
@@ -51,6 +52,9 @@ __all__ = [
     "TimingParametersContainer",
     "TriggerContainer",
     "WaveformCalibrationContainer",
+    "StatisticsContainer",
+    "IntensityStatisticsContainer",
+    "PeakTimeStatisticsContainer",
 ]
 
 
@@ -160,7 +164,7 @@ class ConcentrationContainer(Container):
 
     container_prefix = "concentration"
     cog = Field(
-        nan, "Percentage of photo-electrons in the three pixels closest to the cog"
+        nan, "Percentage of photo-electrons inside one pixel diameter of the cog"
     )
     core = Field(nan, "Percentage of photo-electrons inside the hillas ellipse")
     pixel = Field(nan, "Percentage of photo-electrons in the brightest pixel")
@@ -537,16 +541,18 @@ class TriggerContainer(Container):
     container_prefix = ""
     time = Field(NAN_TIME, "central average time stamp")
     tels_with_trigger = Field(
-        [], "List of telescope ids that triggered the array event"
+        None, "List of telescope ids that triggered the array event"
     )
     event_type = Field(EventType.SUBARRAY, "Event type")
     tel = Field(Map(TelescopeTriggerContainer), "telescope-wise trigger information")
 
 
-class ReconstructedShowerContainer(Container):
+class ReconstructedGeometryContainer(Container):
     """
     Standard output of algorithms reconstructing shower geometry
     """
+
+    container_prefix = ""
 
     alt = Field(nan * u.deg, "reconstructed altitude", unit=u.deg)
     alt_uncert = Field(nan * u.deg, "reconstructed altitude uncertainty", unit=u.deg)
@@ -570,19 +576,19 @@ class ReconstructedShowerContainer(Container):
             "was properly reconstructed by the algorithm"
         ),
     )
-    tel_ids = Field(
-        [], ("list of the telescope ids used in the" " reconstruction of the shower")
-    )
     average_intensity = Field(
         nan, "average intensity of the intensities used for reconstruction"
     )
     goodness_of_fit = Field(nan, "measure of algorithm success (if fit)")
+    tel_ids = Field(None, "list of tel_ids used if stereo, or None if Mono")
 
 
 class ReconstructedEnergyContainer(Container):
     """
     Standard output of algorithms estimating energy
     """
+
+    container_prefix = ""
 
     energy = Field(nan * u.TeV, "reconstructed energy", unit=u.TeV)
     energy_uncert = Field(nan * u.TeV, "reconstructed energy uncertainty", unit=u.TeV)
@@ -594,14 +600,8 @@ class ReconstructedEnergyContainer(Container):
             "algorithm"
         ),
     )
-    tel_ids = Field(
-        [],
-        (
-            "array containing the telescope ids used in the"
-            " reconstruction of the shower"
-        ),
-    )
-    goodness_of_fit = Field(0.0, "goodness of the algorithm fit")
+    goodness_of_fit = Field(nan, "goodness of the algorithm fit")
+    tel_ids = Field(None, "list of tel_ids used if stereo, or None if Mono")
 
 
 class ParticleClassificationContainer(Container):
@@ -609,11 +609,13 @@ class ParticleClassificationContainer(Container):
     Standard output of gamma/hadron classification algorithms
     """
 
+    container_prefix = ""
+
     # TODO: Do people agree on this? This is very MAGIC-like.
     # TODO: Perhaps an integer classification to support different classes?
     # TODO: include an error on the prediction?
     prediction = Field(
-        0.0,
+        nan,
         (
             "prediction of the classifier, defined between "
             "[0,1], where values close to 0 are more "
@@ -621,40 +623,47 @@ class ParticleClassificationContainer(Container):
             "hadron-like"
         ),
     )
-    is_valid = Field(
-        False,
-        (
-            "classificator validity flag. True if the "
-            "predition was successful within the algorithm "
-            "validity range"
-        ),
-    )
-
-    # TODO: KPK: is this different than the list in the reco
-    # container? Why repeat?
-    tel_ids = Field(
-        [],
-        (
-            "array containing the telescope ids used "
-            "in the reconstruction of the shower"
-        ),
-    )
-    goodness_of_fit = Field(0.0, "goodness of the algorithm fit")
+    is_valid = Field(False, "true if classification parameters are valid")
+    goodness_of_fit = Field(nan, "goodness of the algorithm fit")
+    tel_ids = Field(None, "list of tel_ids used if stereo, or None if Mono")
 
 
 class ReconstructedContainer(Container):
-    """ collect reconstructed shower info from multiple algorithms """
+    """ Reconstructed shower info from multiple algorithms """
 
-    shower = Field(
-        Map(ReconstructedShowerContainer), "Map of algorithm name to shower info"
+    # Note: there is a reason why the hiererchy is
+    # `event.dl2.stereo.geometry[algorithm]` and not
+    # `event.dl2[algorithm].stereo.geometry` and that is because when writing
+    # the data, the former makes it easier to only write information that a
+    # particular reconstructor generates, e.g. only write the geometry in cases
+    # where energy is not yet computed. Some algorithms will compute all three,
+    # but most will compute only fill or two of these sub-Contaiers:
+
+    geometry = Field(
+        Map(ReconstructedGeometryContainer),
+        "map of algorithm to reconstructed shower parameters",
     )
     energy = Field(
-        Map(ReconstructedEnergyContainer), "Map of algorithm name to energy info"
+        Map(ReconstructedEnergyContainer),
+        "map of algorithm to reconstructed energy parameters",
     )
     classification = Field(
         Map(ParticleClassificationContainer),
-        "Map of algorithm name to classification info",
+        "map of algorithm to classification parameters",
     )
+
+
+class DL2Container(Container):
+    """Reconstructed Shower information for a given reconstruction algorithm,
+    including optionally both per-telescope mono reconstruction and per-shower
+    stereo reconstructions
+    """
+
+    tel = Field(
+        Map(ReconstructedContainer),
+        "map of tel_id to single-telescope reconstruction (DL2a)",
+    )
+    stereo = Field(ReconstructedContainer(), "Stereo Shower reconstruction results")
 
 
 class TelescopePointingContainer(Container):
@@ -896,7 +905,7 @@ class ArrayEventContainer(Container):
     r1 = Field(R1Container(), "R1 Calibrated Data")
     dl0 = Field(DL0Container(), "DL0 Data Volume Reduced Data")
     dl1 = Field(DL1Container(), "DL1 Calibrated image")
-    dl2 = Field(ReconstructedContainer(), "Reconstructed Shower Information")
+    dl2 = Field(DL2Container(), "DL2 reconstruction info")
     simulation = Field(
         None, "Simulated Event Information", type=SimulatedEventContainer
     )

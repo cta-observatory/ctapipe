@@ -21,7 +21,7 @@ from ctapipe.coordinates import (
 from ctapipe.image import neg_log_likelihood, mean_poisson_likelihood_gaussian
 from ctapipe.instrument import get_atmosphere_profile_functions
 from ctapipe.containers import (
-    ReconstructedShowerContainer,
+    ReconstructedGeometryContainer,
     ReconstructedEnergyContainer,
 )
 from ctapipe.reco.reco_algorithms import Reconstructor
@@ -107,6 +107,9 @@ class ImPACTReconstructor(Reconstructor):
         xmax_offset=0,
         use_time_gradient=False,
     ):
+        """
+        Create a new instance of ImPACTReconstructor
+        """
 
         # First we create a dictionary of image template interpolators
         # for each telescope type
@@ -722,7 +725,7 @@ class ImPACTReconstructor(Reconstructor):
         )
 
         # Create a container class for reconstructed shower
-        shower_result = ReconstructedShowerContainer()
+        shower_result = ReconstructedGeometryContainer()
 
         # Convert the best fits direction and core to Horizon and ground systems and
         # copy to the shower container

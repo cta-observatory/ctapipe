@@ -1,6 +1,7 @@
 """
 High level muon processing  (MuonProcessor Component)
 """
+from tqdm.auto import tqdm
 import numpy as np
 from astropy.coordinates import SkyCoord
 from copy import deepcopy

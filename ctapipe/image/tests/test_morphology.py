@@ -105,3 +105,22 @@ def test_largest_island():
     assert (mask_largest_one == true_mask_largest_one).all()
     assert (mask_largest_0 == true_mask_largest_0).all()
     assert_allclose(mask_largest, true_mask_largest)
+
+
+def test_brightest_island():
+    # we have two islands, 2 is larger but 1 is brighter
+    n_islands = 2
+    image = np.array([0, 1, 2, 5, 1, 0, 1, 2, 2, 1])
+    island_labels = np.array([0, 0, 1, 1, 1, 0, 2, 2, 2, 2])
+
+    from ctapipe.image import brightest_island
+
+    mask = brightest_island(n_islands, island_labels, image)
+    assert np.all(mask == np.array([0, 0, 1, 1, 1, 0, 0, 0, 0, 0], dtype=bool))
+
+    # test no island gives
+    image = np.array([1.5, 2, 1.2])
+    island_labels = [0, 0, 0]
+    no_island_mask = brightest_island(0, island_labels, image)
+    assert len(no_island_mask) == 3
+    assert np.all(no_island_mask == False)
