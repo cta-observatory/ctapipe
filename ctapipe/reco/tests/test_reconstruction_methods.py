@@ -91,10 +91,10 @@ def test_reconstructors(reconstructors):
 
                 reconstructor(event)
 
-                event.dl2.shower["HillasReconstructor"].alt.to(u.deg)
-                event.dl2.shower["HillasReconstructor"].az.to(u.deg)
-                event.dl2.shower["HillasReconstructor"].core_x.to(u.m)
-                assert event.dl2.shower["HillasReconstructor"].is_valid
+                event.dl2.stereo.geometry["HillasReconstructor"].alt.to(u.deg)
+                event.dl2.stereo.geometry["HillasReconstructor"].az.to(u.deg)
+                event.dl2.stereo.geometry["HillasReconstructor"].core_x.to(u.m)
+                assert event.dl2.stereo.geometry["HillasReconstructor"].is_valid
 
             else:
                 reconstructor = reco_method()
