@@ -1,7 +1,6 @@
 """
 High level muon processing  (MuonProcessor Component)
 """
-from tqdm.auto import tqdm
 import numpy as np
 from astropy.coordinates import SkyCoord
 from copy import deepcopy
@@ -9,7 +8,6 @@ from copy import deepcopy
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import TelescopeComponent
 from ctapipe.core import traits
-from ctapipe.io import EventSource
 from ctapipe.image.cleaning import TailcutsImageCleaner
 from ctapipe.coordinates import TelescopeFrame, CameraFrame
 from ctapipe.containers import (

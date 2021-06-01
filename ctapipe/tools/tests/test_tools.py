@@ -17,7 +17,6 @@ import tables
 from ctapipe.utils import get_dataset_path
 from ctapipe.core import run_tool
 from ctapipe.io import DataLevel, EventSource
-import numpy as np
 from pathlib import Path
 
 
