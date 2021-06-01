@@ -70,7 +70,7 @@ class ShowerProcessor(Component):
         super().__init__(config=config, parent=parent, **kwargs)
         self.subarray = subarray
         self.check_shower = ShowerQualityQuery(parent=self)
-        self.reconstructor = HillasReconstructor()
+        self.reconstructor = HillasReconstructor(self.subarray)
 
     def reconstruct_geometry(
         self,
@@ -111,43 +111,21 @@ class ShowerProcessor(Component):
         # Reconstruct the shower only if all shower criteria are met
         if len(hillas_dict) > 2:
 
-            array_pointing = SkyCoord(
-                az=event.pointing.array_azimuth,
-                alt=event.pointing.array_altitude,
-                frame=AltAz(),
-            )
-
-            telescopes_pointings = {
-                tel_id: SkyCoord(
-                    alt=event.pointing.tel[tel_id].altitude,
-                    az=event.pointing.tel[tel_id].azimuth,
-                    frame=AltAz(),
-                )
-                for tel_id in hillas_dict
-            }
-
-            result = self.reconstructor.predict(hillas_dict,
-                                                self.subarray,
-                                                array_pointing,
-                                                telescopes_pointings)
-
-            return result
+            self.reconstructor(event)
 
         else:
             self.log.debug(
                 """Less than 2 images passed the quality cuts.
                 Returning default ReconstructedGeometryContainer container"""
             )
-            return default
+            event.dl2.stereo.geometry["HillasReconstructor"] = default
 
     def process_shower_geometry(self, event: ArrayEventContainer):
         """Record the reconstructed shower geometry into the ArrayEventContainer."""
 
-        shower_geometry = self.reconstruct_geometry(event)
+        self.reconstruct_geometry(event)
 
-        self.log.debug("shower geometry:\n %s", shower_geometry)
-
-        event.dl2.stereo.geometry["HillasReconstructor"] = shower_geometry
+        self.log.debug("shower geometry:\n %s", event.dl2.stereo.geometry["HillasReconstructor"])
 
     def __call__(self, event: ArrayEventContainer):
         """
