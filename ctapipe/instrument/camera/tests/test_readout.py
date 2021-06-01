@@ -4,8 +4,6 @@ from astropy import units as u
 from ctapipe.instrument import CameraDescription, CameraReadout
 import pytest
 
-camera_names = CameraDescription.get_known_camera_names()
-
 
 def test_construct():
     """ Check we can make a CameraReadout from scratch """
@@ -142,14 +140,13 @@ def test_hashing():
     assert len({readout1, readout2, readout3}) == 2
 
 
-@pytest.mark.parametrize("camera_name", camera_names)
-def test_camera_from_name(camera_name):
+def test_camera_from_name(camera_geometry):
     """ check we can construct all cameras from name"""
 
     try:
-        camera = CameraReadout.from_name(camera_name)
-        assert str(camera) == camera_name
+        camera = CameraReadout.from_name(camera_geometry.camera_name)
+        assert str(camera) == camera_geometry.camera_name
     except FileNotFoundError:
-        # these don't have readout definitions on the dataserver
-        if camera_name not in ["MAGICCam", "Whipple109", "FACT"]:
+        # Most non-cta cameras don't have readout provided on the data server
+        if camera_geometry.camera_name in ["LSTCam", "NectarCam", "FlashCam", "CHEC"]:
             raise

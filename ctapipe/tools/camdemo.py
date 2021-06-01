@@ -43,10 +43,8 @@ class CameraDemo(Tool):
         "much faster but may cause some draw "
         "artifacts)",
     ).tag(config=True)
-    camera = traits.CaselessStrEnum(
-        CameraDescription.get_known_camera_names(),
-        default_value="NectarCam",
-        help="Name of camera to display",
+    camera = traits.Unicode(
+        default_value="NectarCam", help="Name of camera to display"
     ).tag(config=True)
 
     optics = traits.CaselessStrEnum(

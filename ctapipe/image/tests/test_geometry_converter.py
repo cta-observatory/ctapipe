@@ -14,9 +14,6 @@ from ctapipe.image.toymodel import Gaussian
 import astropy.units as u
 
 
-camera_names = CameraDescription.get_known_camera_names()
-
-
 def create_mock_image(geom):
     """
     creates a mock image, which parameters are adapted to the camera size
@@ -32,16 +29,14 @@ def create_mock_image(geom):
     )
 
     _, image, _ = model.generate_image(
-        geom, intensity=0.5 * geom.n_pixels, nsb_level_pe=3,
+        geom, intensity=0.5 * geom.n_pixels, nsb_level_pe=3
     )
     return image
 
 
-@pytest.mark.parametrize("rot", [3,])
-@pytest.mark.parametrize("camera_name", camera_names)
-def test_convert_geometry(camera_name, rot):
-
-    geom = CameraGeometry.from_name(camera_name)
+@pytest.mark.parametrize("rot", [3])
+def test_convert_geometry(camera_geometry, rot):
+    geom = camera_geometry
     image = create_mock_image(geom)
     hillas_0 = hillas_parameters(geom, image)
 
@@ -81,13 +76,11 @@ def test_convert_geometry(camera_name, rot):
     # TODO: test other parameters
 
 
-@pytest.mark.parametrize("rot", [3,])
-@pytest.mark.parametrize("camera_name", camera_names)
-def test_convert_geometry_mock(camera_name, rot):
+@pytest.mark.parametrize("rot", [3])
+def test_convert_geometry_mock(camera_geometry, rot):
     """here we use a different key for the back conversion to trigger the mock conversion
     """
-
-    geom = CameraGeometry.from_name(camera_name)
+    geom = camera_geometry
     image = create_mock_image(geom)
     hillas_0 = hillas_parameters(geom, image)
 
@@ -106,22 +99,3 @@ def test_convert_geometry_mock(camera_name, rot):
 
     hillas_1 = hillas_parameters(geom, image1d)
     assert np.abs(hillas_1.phi - hillas_0.phi).deg < 1.0
-
-
-# def plot_cam(geom, geom2d, geom1d, image, image2d, image1d):
-#     # plt.viridis()
-#     plt.figure(figsize=(12, 4))
-#     ax = plt.subplot(1, 3, 1)
-#     CameraDisplay(geom, image=image).add_colorbar()
-#     plt.subplot(1, 3, 2, sharex=ax, sharey=ax)
-#     CameraDisplay(geom2d, image=image2d).add_colorbar()
-#     plt.subplot(1, 3, 3, sharex=ax, sharey=ax)
-#     CameraDisplay(geom1d, image=image1d).add_colorbar()
-#
-#
-# if __name__ == "__main__":
-#     import logging
-#     logging.basicConfig(level=logging.DEBUG)
-#     for camera_name in CameraGeometry.get_known_camera_names():
-#         test_convert_geometry(camera_name, 3)
-#     plt.show()
