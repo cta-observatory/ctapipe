@@ -121,29 +121,29 @@ def test_parallel_reconstruction():
     filename = get_dataset_path(
         "gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"
     )
-
     source = EventSource(filename, max_events=10)
-    calib = CameraCalibrator(subarray=source.subarray)
 
-    fit_CameraFrame = HillasReconstructor(source.subarray)
-    fit_TelescopeFrame = HillasReconstructor(source.subarray)
+    calib = CameraCalibrator(subarray=source.subarray)
+    reconstructor = HillasReconstructor(source.subarray)
 
     reconstructed_events = 0
-
-    # ==========================================================================
 
     for event in source:
 
         calib(event)
+        # make a copy of the calibrated event for the camera frame case
+        # later we clean and paramretrize the 2 events in the same way
+        # but in 2 different frames to check they return compatible results
+        event_camera_frame = deepcopy(event)
 
-        # make a copy of the event for the camera frame case
-        event_CameraFrame = deepcopy(event)
-
-        hillas_dict_CameraFrame = {}
-        hillas_dict_TelescopeFrame = {}
         telescope_pointings = {}
+        hillas_dict_camera_frame = {}
+        hillas_dict_telescope_frame = {}
 
         for tel_id, dl1 in event.dl1.tel.items():
+
+            event_camera_frame.dl1.tel[tel_id].parameters = ImageParametersContainer()
+            event.dl1.tel[tel_id].parameters = ImageParametersContainer()
 
             # this is needed only here to transform the camera geometries
             telescope_pointings[tel_id] = SkyCoord(
@@ -152,93 +152,62 @@ def test_parallel_reconstruction():
                 frame=AltAz(),
             )
 
-            geom_CameraFrame = source.subarray.tel[tel_id].camera.geometry
+            geom_camera_frame = source.subarray.tel[tel_id].camera.geometry
 
             # this could be done also out of this loop,
             # but in case of real data each telescope would have a
             # different telescope_pointing
-            geom_TelescopeFrame = geom_CameraFrame.transform_to(
+            geom_telescope_frame = geom_camera_frame.transform_to(
                 TelescopeFrame(telescope_pointing=telescope_pointings[tel_id])
             )
 
             mask = tailcuts_clean(
-                geom_TelescopeFrame, dl1.image, picture_thresh=10.0, boundary_thresh=5.0
+                geom_telescope_frame, dl1.image, picture_thresh=10.0, boundary_thresh=5.0
             )
 
             try:
-                moments_CameraFrame = hillas_parameters(
-                    geom_CameraFrame[mask], dl1.image[mask]
+                moments_camera_frame = hillas_parameters(
+                    geom_camera_frame[mask], dl1.image[mask]
                 )
-                moments_TelescopeFrame = hillas_parameters(
-                    geom_TelescopeFrame[mask], dl1.image[mask]
+                moments_telescope_frame = hillas_parameters(
+                    geom_telescope_frame[mask], dl1.image[mask]
                 )
-                hillas_dict_CameraFrame[tel_id] = moments_CameraFrame
-                hillas_dict_TelescopeFrame[tel_id] = moments_TelescopeFrame
 
-                event_CameraFrame.dl1.tel[
-                    tel_id
-                ].parameters = ImageParametersContainer()
-                dl1.parameters = ImageParametersContainer()
-
-                event_CameraFrame.dl1.tel[
-                    tel_id
-                ].parameters.hillas = moments_CameraFrame
-                dl1.parameters.hillas = moments_TelescopeFrame
-
-                if (
-                    (moments_CameraFrame.width.value == np.nan)
-                    or (moments_CameraFrame.width.value == np.nan)
-                    or (moments_CameraFrame.width.value == 0)
-                    or (moments_CameraFrame.width.value == 0)
-                ):
-                    event_CameraFrame.dl1.tel[
+                if (moments_camera_frame.width.value > 0) and (moments_telescope_frame.width.value > 0):
+                    event_camera_frame.dl1.tel[
                         tel_id
-                    ].parameters.hillas = HillasParametersContainer()
-                    event.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer(
-                        x=float("nan") * u.deg,
-                        y=float("nan") * u.deg,
-                        r=float("nan") * u.deg,
-                        width=float("nan") * u.deg,
-                        length=float("nan") * u.deg,
-                    )
+                    ].parameters.hillas = moments_camera_frame
+                    dl1.parameters.hillas = moments_telescope_frame
+
+                    hillas_dict_camera_frame[tel_id] = moments_camera_frame
+                    hillas_dict_telescope_frame[tel_id] = moments_telescope_frame
+                else:
+                    continue
 
             except HillasParameterizationError as e:
                 print(e)
-                event_CameraFrame.dl1.tel[
-                    tel_id
-                ].parameters.hillas = HillasParametersContainer()
-                event.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer(
-                    x=float("nan") * u.deg,
-                    y=float("nan") * u.deg,
-                    r=float("nan") * u.deg,
-                    width=float("nan") * u.deg,
-                    length=float("nan") * u.deg,
-                )
+                continue
 
-        if (len(hillas_dict_CameraFrame) < 2) and (len(hillas_dict_TelescopeFrame) < 2):
-            continue
-        else:
+        if (len(hillas_dict_camera_frame) > 2) and (len(hillas_dict_telescope_frame) > 2):
+            reconstructor(event_camera_frame)
+            reconstructor(event)
             reconstructed_events += 1
-
-        # last writing of event.dl1 was with telescope frame parameters
-        # make a copy of the event and overwrite its hillas parameters
-
-        for tel_id, hillas in hillas_dict_CameraFrame.items():
-            event_CameraFrame.dl1.tel[tel_id].parameters.hillas = hillas
-
-        fit_CameraFrame(event_CameraFrame)
-        fit_TelescopeFrame(event)
+        else:  # this event was not good enough to be tested on
+            continue
 
         # Compare old approach with new approach
-        result_CameraFrame = event.dl2.shower["HillasReconstructor"]
-        result_TelescopeFrame = event.dl2.shower["HillasReconstructor"]
+        result_camera_frame = event_camera_frame.dl2.stereo.geometry["HillasReconstructor"]
+        result_telescope_frame = event.dl2.stereo.geometry["HillasReconstructor"]
 
-        for field in event.dl2.shower["HillasReconstructor"].as_dict():
-            C = np.asarray(result_CameraFrame.as_dict()[field])
-            T = np.asarray(result_TelescopeFrame.as_dict()[field])
+        assert result_camera_frame.is_valid
+        assert result_telescope_frame.is_valid
+
+        for field in event.dl2.stereo.geometry["HillasReconstructor"].as_dict():
+            C = np.asarray(result_camera_frame.as_dict()[field])
+            T = np.asarray(result_telescope_frame.as_dict()[field])
             assert (np.isclose(C, T, rtol=1e-03, atol=1e-03, equal_nan=True)).all()
 
-    assert reconstructed_events > 0
+    assert reconstructed_events > 0 # check that we reconstruct at least 1 event
 
 
 def test_divergent_reconstruction():
@@ -265,22 +234,30 @@ def test_divergent_reconstruction():
     )
 
     source = EventSource(filename, max_events=10)
-    calib = CameraCalibrator(subarray=source.subarray)
 
-    fit_CameraFrame = HillasReconstructor(source.subarray)
-    fit_TelescopeFrame = HillasReconstructor(source.subarray)
+    calib = CameraCalibrator(subarray=source.subarray)
+    reconstructor = HillasReconstructor(source.subarray)
+
     reconstructed_events = 0
 
     # ==========================================================================
 
     for event in source:
-        calib(event)
 
-        hillas_dict_CameraFrame = {}
-        hillas_dict_TelescopeFrame = {}
+        calib(event)
+        # make a copy of the calibrated event for the camera frame case
+        # later we clean and paramretrize the 2 events in the same way
+        # but in 2 different frames to check theyy return compatible results
+        event_camera_frame = deepcopy(event)
+
         telescope_pointings = {}
+        hillas_dict_camera_frame = {}
+        hillas_dict_telescope_frame = {}
 
         for tel_id, dl1 in event.dl1.tel.items():
+
+            event_camera_frame.dl1.tel[tel_id].parameters = ImageParametersContainer()
+            event.dl1.tel[tel_id].parameters = ImageParametersContainer()
 
             telescope_pointings[tel_id] = SkyCoord(
                 alt=event.pointing.tel[tel_id].altitude,
@@ -288,61 +265,62 @@ def test_divergent_reconstruction():
                 frame=AltAz(),
             )
 
-            geom_CameraFrame = source.subarray.tel[tel_id].camera.geometry
+            geom_camera_frame = source.subarray.tel[tel_id].camera.geometry
 
             # this could be done also out of this loop,
             # but in case of real data each telescope would have a
             # different telescope_pointing
-            geom_TelescopeFrame = geom_CameraFrame.transform_to(
+            geom_telescope_frame = geom_camera_frame.transform_to(
                 TelescopeFrame(telescope_pointing=telescope_pointings[tel_id])
             )
 
             mask = tailcuts_clean(
-                geom_TelescopeFrame, dl1.image, picture_thresh=10.0, boundary_thresh=5.0
+                geom_telescope_frame, dl1.image, picture_thresh=10.0, boundary_thresh=5.0
             )
 
             try:
-                moments_CameraFrame = hillas_parameters(
-                    geom_CameraFrame[mask], dl1.image[mask]
+                moments_camera_frame = hillas_parameters(
+                    geom_camera_frame[mask], dl1.image[mask]
                 )
-                moments_TelescopeFrame = hillas_parameters(
-                    geom_TelescopeFrame[mask], dl1.image[mask]
+                moments_telescope_frame = hillas_parameters(
+                    geom_telescope_frame[mask], dl1.image[mask]
                 )
-                hillas_dict_CameraFrame[tel_id] = moments_CameraFrame
-                hillas_dict_TelescopeFrame[tel_id] = moments_TelescopeFrame
 
-                dl1.parameters = ImageParametersContainer()
-                dl1.parameters.hillas = moments_TelescopeFrame
+                if (moments_camera_frame.width.value > 0) and (moments_telescope_frame.width.value > 0):
+                    event_camera_frame.dl1.tel[
+                        tel_id
+                    ].parameters.hillas = moments_camera_frame
+                    dl1.parameters.hillas = moments_telescope_frame
+
+                    hillas_dict_camera_frame[tel_id] = moments_camera_frame
+                    hillas_dict_telescope_frame[tel_id] = moments_telescope_frame
+                else:
+                    continue
 
             except HillasParameterizationError as e:
                 print(e)
                 continue
 
-        if (len(hillas_dict_CameraFrame) < 2) and (len(hillas_dict_TelescopeFrame) < 2):
-            continue
-        else:
+        if (len(hillas_dict_camera_frame) > 2) and (len(hillas_dict_telescope_frame) > 2):
+            reconstructor(event_camera_frame)
+            reconstructor(event)
             reconstructed_events += 1
-
-        # last writing of event.dl1 was with telescope frame parameters
-        # make a copy of the event and overwrite its hillas parameters
-        event_CameraFrame = deepcopy(event)
-        for tel_id, hillas in hillas_dict_CameraFrame.items():
-            event_CameraFrame.dl1.tel[tel_id].parameters = ImageParametersContainer()
-            event_CameraFrame.dl1.tel[tel_id].parameters.hillas = hillas
-
-        fit_CameraFrame(event_CameraFrame)
-        fit_TelescopeFrame(event)
+        else:  # this event was not good enough to be tested on
+            continue
 
         # Compare old approach with new approach
-        result_CameraFrame = event.dl2.shower["HillasReconstructor"]
-        result_TelescopeFrame = event.dl2.shower["HillasReconstructor"]
+        result_camera_frame = event_camera_frame.dl2.stereo.geometry["HillasReconstructor"]
+        result_telescope_frame = event.dl2.stereo.geometry["HillasReconstructor"]
 
-        for field in event.dl2.shower["HillasReconstructor"].as_dict():
-            C = np.asarray(result_CameraFrame.as_dict()[field])
-            T = np.asarray(result_TelescopeFrame.as_dict()[field])
+        assert result_camera_frame.is_valid
+        assert result_telescope_frame.is_valid
+
+        for field in event.dl2.stereo.geometry["HillasReconstructor"].as_dict():
+            C = np.asarray(result_camera_frame.as_dict()[field])
+            T = np.asarray(result_telescope_frame.as_dict()[field])
             assert (np.isclose(C, T, rtol=1e-03, atol=1e-03, equal_nan=True)).all()
 
-    assert reconstructed_events > 0
+    assert reconstructed_events  > 0 # check that we reconstruct at least 1 event
 
 
 def test_invalid_events():
@@ -399,17 +377,17 @@ def test_invalid_events():
         for tel_id in list(event_copy.dl1.tel.keys())[:-1]:
             event_copy.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer()
         fit(event_copy)
-        assert event_copy.dl2.shower["HillasReconstructor"].is_valid is False
+        assert event_copy.dl2.stereo.geometry["HillasReconstructor"].is_valid is False
 
         # Now use the original event, but overwrite the last width to 0
         event.dl1.tel[tel_id].parameters.hillas.width = 0 * u.m
         fit(event)
-        assert event_copy.dl2.shower["HillasReconstructor"].is_valid is False
+        assert event.dl2.stereo.geometry["HillasReconstructor"].is_valid is False
 
         # Now use the original event, but overwrite the last width to NaN
         event.dl1.tel[tel_id].parameters.hillas.width = np.nan * u.m
         fit(event)
-        assert event_copy.dl2.shower["HillasReconstructor"].is_valid is False
+        assert event.dl2.stereo.geometry["HillasReconstructor"].is_valid is False
 
 
 def test_reconstruction_against_simulation(subarray_and_event_gamma_off_axis_500_gev):
@@ -471,9 +449,9 @@ def test_reconstruction_against_simulation(subarray_and_event_gamma_off_axis_500
             continue
 
     # Get shower geometry
-    reconstructor(test_event)
+    reconstructor(event)
     # get the result from the correct DL2 container
-    result = test_event.dl2.shower["HillasReconstructor"]
+    result = event.dl2.stereo.geometry["HillasReconstructor"]
 
     # get the reconstructed coordinates in the sky
     reco_coord = SkyCoord(alt=result.alt, az=result.az, frame=AltAz())
