@@ -796,14 +796,3 @@ def test_write_default_container(cls, tmp_path):
                 pytest.xfail()
             else:
                 raise
-
-
-if __name__ == "__main__":
-
-    import logging
-
-    logging.basicConfig(level=logging.DEBUG)
-
-    test_write_container("test.h5")
-    test_read_container("test.h5")
-    test_read_whole_table("test.h5")

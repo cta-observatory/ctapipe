@@ -18,11 +18,7 @@ from ctapipe.image import (
     hillas_parameters,
     HillasParameterizationError,
 )
-from ctapipe.instrument import (
-    TelescopeDescription,
-    OpticsDescription,
-    CameraDescription,
-)
+from ctapipe.instrument import TelescopeDescription, OpticsDescription
 from ctapipe.visualization import CameraDisplay
 
 

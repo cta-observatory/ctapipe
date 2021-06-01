@@ -9,7 +9,6 @@ from ctapipe.image.geometry_converter import (
     array_2d_to_chec,
 )
 from ctapipe.image.hillas import hillas_parameters
-from ctapipe.instrument import CameraDescription, CameraGeometry
 from ctapipe.image.toymodel import Gaussian
 import astropy.units as u
 

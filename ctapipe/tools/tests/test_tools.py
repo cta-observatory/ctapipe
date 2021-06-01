@@ -8,7 +8,6 @@ import pytest
 
 import matplotlib as mpl
 
-import tempfile
 import pandas as pd
 import tables
 
@@ -251,6 +250,7 @@ def test_muon_reconstruction(tmp_path, dl1_muon_file):
         assert np.count_nonzero(np.isnan(table["muonring_radius"])) == 0
 
     assert run_tool(MuonAnalysis(), ["--help-all"]) == 0
+
 
 def test_display_summed_images(tmp_path):
     from ctapipe.tools.display_summed_images import ImageSumDisplayerTool

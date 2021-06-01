@@ -1,7 +1,7 @@
 """ Tests for CameraGeometry """
 import numpy as np
 from astropy import units as u
-from ctapipe.instrument import CameraDescription, CameraGeometry, PixelShape
+from ctapipe.instrument import CameraGeometry, PixelShape
 import pytest
 
 
