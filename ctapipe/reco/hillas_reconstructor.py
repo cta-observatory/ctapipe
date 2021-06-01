@@ -188,7 +188,7 @@ class HillasReconstructor(Reconstructor):
         hillas_dict = {
             tel_id: dl1.parameters.hillas
             for tel_id, dl1 in event.dl1.tel.items()
-            if np.isfinite(dl1.tel[tel_id].parameters.hillas.intensity)
+            if np.isfinite(event.dl1.tel[tel_id].parameters.hillas.intensity)
         }
 
         # Due to tracking the pointing of the array will never be a constant
@@ -212,9 +212,9 @@ class HillasReconstructor(Reconstructor):
                 event, hillas_dict, self.subarray, array_pointing, telescope_pointings
             )
         except (TooFewTelescopesException, InvalidWidthException):
-            result = ReconstructedShowerContainer()
+            result = ReconstructedGeometryContainer()
 
-        event.dl2.shower["HillasReconstructor"] = result
+        event.dl2.stereo.geometry["HillasReconstructor"] = result
 
     def _predict(
         self, event, hillas_dict, subarray, array_pointing, telescopes_pointings
