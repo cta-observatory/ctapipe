@@ -404,7 +404,6 @@ class ImPACTReconstructor(Reconstructor):
         # and ignore them from then on
 
         zenith = (np.pi / 2) - self.array_direction.alt.to(u.rad).value
-        azimuth = self.array_direction.az
 
         # Geometrically calculate the depth of maximum given this test position
         x_max = self.get_shower_max(source_x, source_y, core_x, core_y, zenith)
@@ -834,7 +833,7 @@ class ImPACTReconstructor(Reconstructor):
             self.min.tol *= 1000
             self.min.set_strategy(1)
 
-            migrad = self.min.migrad()
+            self.min.migrad()
             fit_params = self.min.values
             errors = self.min.errors
 

@@ -1,6 +1,5 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """ print information about ctapipe and its command-line tools. """
-import importlib
 import logging
 import os
 import sys

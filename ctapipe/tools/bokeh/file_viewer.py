@@ -5,7 +5,7 @@ from bokeh.layouts import layout, widgetbox
 from bokeh.models import Button, PreText, Select, TextInput
 from bokeh.server.server import Server
 from bokeh.themes import Theme
-from traitlets import Bool, Dict, Int, List
+from traitlets import Bool, Dict, Int
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Tool, traits

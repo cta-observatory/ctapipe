@@ -1,4 +1,3 @@
-import shutil
 import pytest
 import tempfile
 

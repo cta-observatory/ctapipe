@@ -6,7 +6,7 @@ import sys
 from tqdm.auto import tqdm
 
 from ..calib.camera import CameraCalibrator, GainSelector
-from ..core import QualityQuery, Tool
+from ..core import Tool
 from ..core.traits import Bool, classes_with_traits
 from ..image import ImageCleaner, ImageProcessor
 from ..image.extractor import ImageExtractor

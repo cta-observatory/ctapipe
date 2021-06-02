@@ -39,8 +39,9 @@
         "ShowerQualityQuery": {
             "quality_criteria": [
                 ["enough intensity", "lambda p: p.hillas.intensity > 50"],
-                ["Positive width", "lambda p: p.hillas.width.value > 0"],
-                ["enough pixels", "lambda p: p.morphology.num_pixels > 3"]
+                ["positive width", "lambda p: p.hillas.width.value > 0"],
+                ["enough pixels", "lambda p: p.morphology.num_pixels > 3"],
+                ["not clipped", "lambda p: p.leakage.intensity_width_2 < 2"]
             ]
         }
     }
