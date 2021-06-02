@@ -2,8 +2,9 @@ from ctapipe.utils import get_dataset_path
 from ctapipe.io import DataLevel
 from ctapipe.io.dl1eventsource import DL1EventSource
 from ctapipe.io import EventSource
+from ctapipe.core.tool import run_tool
+from ctapipe.tools.stage1 import Stage1Tool
 import astropy.units as u
-import subprocess
 import numpy as np
 import tempfile
 import pytest
@@ -12,27 +13,58 @@ d = tempfile.TemporaryDirectory()
 
 
 @pytest.fixture(scope="module")
-def dl1_file():
-    simtel_path = get_dataset_path("gamma_test_large.simtel.gz")
-    command = f"ctapipe-stage1 --input {simtel_path} --output {d.name}/testfile.dl1.h5 --write-parameters --write-images --max-events 20 --allowed-tels=[1,2,3]"
-    subprocess.call(command.split(), stdout=subprocess.PIPE)
-    return f"{d.name}/testfile.dl1.h5"
+def dl1_dir(tmp_path_factory):
+    return tmp_path_factory.mktemp("dl1")
 
 
 @pytest.fixture(scope="module")
-def dl1b_only_file():
+def dl1_file(dl1_dir):
     simtel_path = get_dataset_path("gamma_test_large.simtel.gz")
-    command = f"ctapipe-stage1 --input {simtel_path} --output {d.name}/testfile_only_b.dl1.h5 --write-parameters --max-events 20 --allowed-tels=[1,2,3]"
-    subprocess.call(command.split(), stdout=subprocess.PIPE)
-    return f"{d.name}/testfile_only_b.dl1.h5"
+    output = dl1_dir / "gamma_test_large.dl1.h5"
+    argv = [
+        "--input",
+        str(simtel_path),
+        f"--output={output}",
+        "--write-parameters",
+        "--write-images",
+        "--max-events=20",
+        "--allowed-tels=[1,2,3]",
+    ]
+    assert run_tool(Stage1Tool(), argv=argv, cwd=dl1_dir) == 0
+    return output
 
 
 @pytest.fixture(scope="module")
-def dl1a_only_file():
+def dl1_only_parameters_file(dl1_dir):
     simtel_path = get_dataset_path("gamma_test_large.simtel.gz")
-    command = f"ctapipe-stage1 --input {simtel_path} --output {d.name}/testfile_only_a.dl1.h5 --write-images --max-events 20 --allowed-tels=[1,2,3]"
-    subprocess.call(command.split(), stdout=subprocess.PIPE)
-    return f"{d.name}/testfile_only_a.dl1.h5"
+    output = dl1_dir / "gamma_test_large_only_parameters.dl1.h5"
+    argv = [
+        "--input",
+        str(simtel_path),
+        f"--output={output}",
+        "--write-parameters",
+        "--max-events=20",
+        "--allowed-tels=[1,2,3]",
+    ]
+    assert run_tool(Stage1Tool(), argv=argv, cwd=dl1_dir) == 0
+    return output
+
+
+@pytest.fixture(scope="module")
+def dl1_only_images_file(dl1_dir):
+    simtel_path = get_dataset_path("gamma_test_large.simtel.gz")
+    output = dl1_dir / "gamma_test_large_only_images.dl1.h5"
+    argv = [
+        "--input",
+        str(simtel_path),
+        f"--output={output}",
+        "--DataWriter.write_parameters=False",
+        "--write-images",
+        "--max-events=20",
+        "--allowed-tels=[1,2,3]",
+    ]
+    assert run_tool(Stage1Tool(), argv=argv, cwd=dl1_dir) == 0
+    return output
 
 
 def test_is_compatible(dl1_file):
@@ -92,15 +124,15 @@ def test_simulation_info(dl1_file):
                 assert event.simulation.tel[tel].true_parameters.hillas.x != np.nan
 
 
-def test_dl1_a_only_data(dl1a_only_file):
-    with DL1EventSource(input_url=dl1a_only_file) as source:
+def test_dl1_a_only_data(dl1_only_images_file):
+    with DL1EventSource(input_url=dl1_only_images_file) as source:
         for event in source:
             for tel in event.dl1.tel:
                 assert event.dl1.tel[tel].image.any()
 
 
-def test_dl1_b_only_data(dl1b_only_file):
-    with DL1EventSource(input_url=dl1b_only_file) as source:
+def test_dl1_b_only_data(dl1_only_parameters_file):
+    with DL1EventSource(input_url=dl1_only_parameters_file) as source:
         for event in source:
             for tel in event.dl1.tel:
                 assert event.dl1.tel[tel].parameters.hillas.x != np.nan
