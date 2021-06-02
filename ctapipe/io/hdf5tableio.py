@@ -2,6 +2,7 @@
 import enum
 from pathlib import PurePath
 import re
+from collections import defaultdict
 
 import numpy as np
 import tables
@@ -377,6 +378,8 @@ class HDF5TableReader(TableReader):
 
         super().__init__()
         self._tables = {}
+        self._cols_to_read = {}
+        self._missing_cols = {}
         kwargs.update(mode="r")
 
         if isinstance(filename, str) or isinstance(filename, PurePath):
@@ -447,7 +450,10 @@ class HDF5TableReader(TableReader):
         by comparing their names including an optional prefix."""
         tab = self._tables[table_name]
         self._cols_to_read[table_name] = []
+        self._missing_cols[table_name] = []
         for container, prefix in zip(containers, prefixes):
+            self._missing_cols[table_name].append([])
+
             for colname in tab.colnames:
                 if prefix and colname.startswith(prefix):
                     colname_without_prefix = colname[len(prefix) + 1 :]
@@ -473,6 +479,7 @@ class HDF5TableReader(TableReader):
                     colname_with_prefix = colname
 
                 if colname_with_prefix not in self._cols_to_read[table_name]:
+                    self._missing_cols[table_name][-1].append(colname)
                     self.log.warning(
                         f"Table {table_name} is missing column {colname_with_prefix} "
                         f"that is in container {container.__class__.__name__}. "
@@ -540,7 +547,9 @@ class HDF5TableReader(TableReader):
                 row = tab[row_count]
             except IndexError:
                 return  # stop generator when done
-            for container, prefix in zip(containers, prefixes):
+
+            missing = self._missing_cols[table_name]
+            for container, prefix, missing_cols in zip(containers, prefixes, missing):
                 for fieldname in container.keys():
                     if prefix:
                         colname = f"{prefix}_{fieldname}"
@@ -551,6 +560,11 @@ class HDF5TableReader(TableReader):
                     container[fieldname] = self._apply_col_transform(
                         table_name, colname, row[colname]
                     )
+
+                # set missing fields to None
+                for fieldname in missing_cols:
+                    container[fieldname] = None
+
             if return_iterable:
                 yield containers
             else:
