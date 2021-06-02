@@ -7,7 +7,7 @@ from ctapipe.image.geometry_converter import (
     convert_rect_image_1d_to_2d,
     convert_rect_image_back_to_1d,
 )
-from ctapipe.instrument import CameraGeometry, PixelShape
+from ctapipe.instrument import PixelShape
 from ctapipe.image.toymodel import Gaussian
 import astropy.units as u
 
