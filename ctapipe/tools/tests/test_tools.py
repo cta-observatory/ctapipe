@@ -3,7 +3,6 @@ Test individual tool functionality
 """
 import shlex
 import sys
-import subprocess
 import pytest
 
 import matplotlib as mpl
@@ -20,63 +19,6 @@ from pathlib import Path
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 LST_MUONS = get_dataset_path("lst_muons.simtel.zst")
-
-
-@pytest.fixture(scope="module")
-def dl1_tmp_path(tmp_path_factory):
-    return tmp_path_factory.mktemp("dl1")
-
-
-@pytest.fixture(scope="module")
-def dl1_image_file(dl1_tmp_path):
-    """
-    DL1 file containing only images (DL1A) from a gamma simulation set.
-    """
-    output = dl1_tmp_path / "images.dl1.h5"
-    command = [
-        "ctapipe-stage1",
-        f"--input={GAMMA_TEST_LARGE}",
-        f"--output={output}",
-        "--write-images",
-        "--max-events=20",
-        "--allowed-tels=[1,2,3]",
-    ]
-    subprocess.run(command, stdout=subprocess.PIPE, check=True)
-    return output
-
-
-@pytest.fixture(scope="module")
-def dl1_parameters_file(dl1_tmp_path):
-    """
-    DL1 File containing only parameters (DL1B) from a gamma simulation set.
-    """
-    output = dl1_tmp_path / "parameters.dl1.h5"
-    command = [
-        "ctapipe-stage1",
-        f"--input={GAMMA_TEST_LARGE}",
-        f"--output={output}",
-        "--write-parameters",
-        "--max-events=20",
-        "--allowed-tels=[1,2,3]",
-    ]
-    subprocess.run(command, stdout=subprocess.PIPE, check=True)
-    return output
-
-
-@pytest.fixture(scope="module")
-def dl1_muon_file(dl1_tmp_path):
-    """
-    DL1 file containing only images from a muon simulation set.
-    """
-    output = dl1_tmp_path / "muons.dl1.h5"
-    command = [
-        "ctapipe-stage1",
-        f"--input={LST_MUONS}",
-        f"--output={output}",
-        "--write-images",
-    ]
-    subprocess.run(command, stdout=subprocess.PIPE, check=True)
-    return output
 
 
 def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
@@ -208,7 +150,7 @@ def test_stage1_datalevels(tmp_path):
     assert isinstance(tool.event_source, DummyEventSource)
 
 
-def test_muon_reconstruction(tmp_path, dl1_muon_file):
+def test_muon_reconstruction_simtel(tmp_path):
     from ctapipe.tools.muon_reconstruction import MuonAnalysis
 
     muon_simtel_output_file = tmp_path / "muon_reco_on_simtel.h5"
@@ -229,6 +171,10 @@ def test_muon_reconstruction(tmp_path, dl1_muon_file):
         table = t.root.dl1.event.telescope.parameters.muons[:]
         assert len(table) > 20
         assert np.count_nonzero(np.isnan(table["muonring_radius"])) == 0
+
+
+def test_muon_reconstruction_dl1(tmp_path, dl1_muon_file):
+    from ctapipe.tools.muon_reconstruction import MuonAnalysis
 
     muon_dl1_output_file = tmp_path / "muon_reco_on_dl1a.h5"
     assert (
@@ -330,16 +276,12 @@ def test_display_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
         )
         == 0
     )
-    # test DL1B
-    assert (
-        run_tool(
-            DisplayDL1Calib(),
-            argv=shlex.split(
-                f"--input {dl1_parameters_file} --max_events=1 " "--telescope=11 "
-            ),
-        )
-        == 1
+    # test DL1B, should error since nothing to plot
+    ret = run_tool(
+        DisplayDL1Calib(),
+        argv=[f"--input={dl1_parameters_file}", "--max_events=1", "--telescope=11"],
     )
+    assert ret == 1
     assert run_tool(DisplayDL1Calib(), ["--help-all"]) == 0
 
 
