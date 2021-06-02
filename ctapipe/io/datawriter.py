@@ -160,6 +160,14 @@ class DataWriter(Component):
         default_value=False,
     ).tag(config=True)
 
+    write_muons = Bool(
+        help=(
+            "Analyse muon events and write muon parameters"
+            "to /dl1/event/telescope/muon_parameters/tel_id"
+        ),
+        default_value=False,
+    ).tag(config=True)
+
     overwrite = Bool(help="overwrite output file if it exists").tag(config=True)
 
     transform_image = Bool(default_value=False).tag(config=True)
@@ -309,11 +317,15 @@ class DataWriter(Component):
         PROV.add_output_file(str(self.output_path), role="DL1/Event")
 
         # check that options make sense
-        if self.write_parameters is False and self.write_images is False:
+        if (
+            self.write_parameters is False
+            and self.write_images is False
+            and self.write_muons is False
+        ):
             raise ToolConfigurationError(
-                "The options 'write_parameters' and 'write_images' are "
-                "both set to False. No output will be generated in that case. "
-                "Please enable one or both of these options."
+                "The options 'write_parameters', 'write_images' and 'write_muons' are "
+                "all set to False. No output will be generated in that case. "
+                "Please enable at least one of these options."
             )
 
     def _setup_writer(self):
@@ -356,6 +368,9 @@ class DataWriter(Component):
 
         if self.write_parameters is False:
             writer.exclude("/dl1/event/telescope/images/.*", "image_mask")
+
+        if self.write_muons is False:
+            writer.exclude("dl1/event/telescope/images/.*", "muon_parameters")
 
         if self._is_simulation:
             writer.exclude("/simulation/event/telescope/images/.*", "true_parameters")

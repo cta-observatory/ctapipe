@@ -10,10 +10,9 @@ from ..core import Tool
 from ..core.traits import Bool, classes_with_traits
 from ..image import ImageCleaner, ImageProcessor
 from ..image.extractor import ImageExtractor
+from ..image.muon.muon_processor import MuonProcessor
 from ..io import DataLevel, DataWriter, EventSource, SimTelEventSource
 from ..io.datawriter import DATA_MODEL_VERSION
-
-from ctapipe.image.muon.muon_processor import MuonProcessor
 
 
 class Stage1Tool(Tool):
@@ -36,10 +35,6 @@ class Stage1Tool(Tool):
     """
 
     progress_bar = Bool(help="show progress bar during processing").tag(config=True)
-    write_muons = Bool(
-        help="Analyse muon events and write muon parameters"
-        "to /dl1/event/telescope/muon_parameters/tel_id"
-    ).tag(config=True)
 
     aliases = {
         ("i", "input"): "EventSource.input_url",
@@ -58,6 +53,10 @@ class Stage1Tool(Tool):
             {"DataWriter": {"write_parameters": True}},
             "store DL1/Event/Telescope parameters in output",
         ),
+        "no-write-parameters": (
+            {"DataWriter": {"write_parameters": False}},
+            "store DL1/Event/Telescope parameters in output",
+        ),
         "write-index-tables": (
             {"DataWriter": {"write_index_tables": True}},
             "generate PyTables index tables for the parameter and image datasets",
@@ -71,7 +70,7 @@ class Stage1Tool(Tool):
             "show a progress bar during event processing",
         ),
         "write-muons": (
-            {"Stage1Tool": {"write_muons": True}},
+            {"DataWriter": {"write_muons": True}},
             "Analyse muon events and write muon parameters"
             "to /dl1/event/telescope/muon_parameters/tel_id",
         ),
@@ -151,7 +150,7 @@ class Stage1Tool(Tool):
                 self.process_images(event)
             self.write_dl1(event)
 
-            if self.write_muons:
+            if self.write_dl1.write_muons:
                 self.process_muon(event)
                 self.write_dl1.write_muon_events(event)
 
