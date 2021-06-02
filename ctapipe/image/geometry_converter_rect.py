@@ -1,7 +1,6 @@
 import logging
 
 import numpy as np
-from astropy import units as u
 
 logger = logging.getLogger(__name__)
 
