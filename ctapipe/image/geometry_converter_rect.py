@@ -8,18 +8,6 @@ logger = logging.getLogger(__name__)
 __all__ = ["convert_rect_image_1d_to_2d", "convert_rect_image_back_to_1d"]
 
 
-def pos_to_index(pos, size):
-    """
-    Bin pixel positions on a grid with bin widths at least half the pixel size.
-    This can be used to infer the rows and columns of square pixels.
-    """
-    rnd = np.round((pos / size).to_value(u.dimensionless_unscaled), 1)
-    unique = np.sort(np.unique(rnd))
-    mask = np.append(np.diff(unique) > 0.5, True)
-    bins = np.append(unique[mask] - 0.5, unique[-1] + 0.5)
-    return np.digitize(rnd, bins) - 1
-
-
 def convert_rect_image_1d_to_2d(geom, image_flat):
     """
     Convert a 1-dimensional image to a 2-dimensional array
@@ -40,9 +28,8 @@ def convert_rect_image_1d_to_2d(geom, image_flat):
     image_2d: ndarray
         Square image
     """
-    size = np.sqrt(geom.pix_area)
-    col = pos_to_index(geom.pix_x, size)
-    row = pos_to_index(geom.pix_y, size)
+    row = geom._pixel_rows
+    col = geom._pixel_columns
     image_square = np.full((row.max() + 1, col.max() + 1), np.nan)
     image_square[row, col] = image_flat
 

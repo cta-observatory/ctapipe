@@ -383,6 +383,36 @@ class CameraGeometry:
         """
         return ~np.any(~np.isclose(self.pix_area.value, self.pix_area[0].value), axis=0)
 
+    @lazyproperty
+    def _pixel_rows(self):
+        """
+        For square pixels:
+        The row each pixel in the flat array ends in if converted to a 2d array.
+
+        Returns
+        -------
+        1d array
+        """
+        if self.pix_type != PixelShape.SQUARE:
+            raise TypeError("Rows are only defined for square pixels")
+        rows = pos_to_index(self.pix_y, np.sqrt(self.pix_area))
+        return rows
+
+    @lazyproperty
+    def _pixel_columns(self):
+        """
+        For square pixels:
+        The column each pixel in the flat array ends in if converted to a 2d array.
+
+        Returns
+        -------
+        1d array
+        """
+        if self.pix_type != PixelShape.SQUARE:
+            raise TypeError("Columns are only defined for square pixels")
+        columns = pos_to_index(self.pix_x, np.sqrt(self.pix_area))
+        return columns
+
     @classmethod
     def from_name(cls, camera_name="NectarCam", version=None):
         """
@@ -826,3 +856,15 @@ class CameraGeometry:
 
 class UnknownPixelShapeWarning(UserWarning):
     pass
+
+
+def pos_to_index(pos, size):
+    """
+    Bin pixel positions on a grid with bin widths at least half the pixel size.
+    This can be used to infer the rows and columns of square pixels.
+    """
+    rnd = np.round((pos / size).to_value(u.dimensionless_unscaled), 1)
+    unique = np.sort(np.unique(rnd))
+    mask = np.append(np.diff(unique) > 0.5, True)
+    bins = np.append(unique[mask] - 0.5, unique[-1] + 0.5)
+    return np.digitize(rnd, bins) - 1
