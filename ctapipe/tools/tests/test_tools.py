@@ -3,7 +3,6 @@ Test individual tool functionality
 """
 import shlex
 import sys
-import pytest
 
 import matplotlib as mpl
 

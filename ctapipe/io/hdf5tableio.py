@@ -2,7 +2,6 @@
 import enum
 from pathlib import PurePath
 import re
-from collections import defaultdict
 
 import numpy as np
 import tables

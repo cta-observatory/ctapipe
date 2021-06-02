@@ -2,8 +2,6 @@ from ctapipe.utils import get_dataset_path
 from ctapipe.io import DataLevel
 from ctapipe.io.dl1eventsource import DL1EventSource
 from ctapipe.io import EventSource
-from ctapipe.core.tool import run_tool
-from ctapipe.tools.stage1 import Stage1Tool
 import astropy.units as u
 import numpy as np
 import tempfile
