@@ -4,7 +4,7 @@ from pathlib import Path
 import logging
 from tqdm.auto import tqdm
 from urllib.parse import urlparse
-import time
+from .filelock import FileLock
 
 __all__ = ["download_file", "download_cached", "download_file_cached"]
 
@@ -74,31 +74,6 @@ def get_cache_path(url, cache_name="ctapipe", env_override="CTAPIPE_CACHE"):
     path = os.path.join(url.netloc.rstrip("/"), url.path.lstrip("/"))
     path = base / path
     return path
-
-
-class FileLock:
-    def __init__(self, path):
-        self.path = Path(path)
-
-    def __enter__(self):
-        bar = None
-        while True:
-            try:
-                self.path.open("x").close()
-                break
-            except FileExistsError:
-                if bar is None:
-                    bar = tqdm(
-                        desc="Another download is already running, waiting",
-                        leave=False,
-                        bar_format="{desc}: {elapsed_s:.1f}s",
-                    )
-                bar.update(1)
-                time.sleep(0.1)
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        if self.path.exists():
-            self.path.unlink()
 
 
 def download_cached(
