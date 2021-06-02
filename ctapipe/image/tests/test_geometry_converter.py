@@ -12,14 +12,6 @@ from ctapipe.image.toymodel import Gaussian
 import astropy.units as u
 
 
-@pytest.fixture(params=["LSTCam", "CHEC", "FlashCam", "NectarCam", "MAGICCam", "FACT"])
-def camera_geometry(request):
-    """
-    Fixture to get one camera geometry at a time and perform tests with different geometries.
-    """
-    return CameraGeometry.from_name(request.param)
-
-
 def create_mock_image(geom):
     """
     creates a mock image, which parameters are adapted to the camera size
@@ -86,5 +78,3 @@ def test_convert_geometry_mock(camera_geometry, rot):
         # originally rectangular geometries don't need a buffer and therefore no mock
         # conversion
         return
-
-    assert_allclose(image, image1d)

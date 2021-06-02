@@ -290,7 +290,7 @@ def test_extra_config_missing():
     config["ExampleSubclass1"]["extra"] = 199.0
 
     with pytest.raises(TraitError):
-        comp = ExampleSubclass1(config=config)
+        ExampleSubclass1(config=config)
 
 
 def test_default():

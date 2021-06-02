@@ -25,7 +25,6 @@ from ctapipe.coordinates import (
     CameraFrame,
     TiltedGroundFrame,
     project_to_ground,
-    GroundFrame,
     MissingFrameAttributeWarning,
 )
 import copy
