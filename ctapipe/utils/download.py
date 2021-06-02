@@ -86,7 +86,7 @@ class FileLock:
             try:
                 self.path.open("x").close()
                 break
-            except FileExistsError as e:
+            except FileExistsError:
                 if bar is None:
                     bar = tqdm(
                         desc="Another download is already running, waiting",
