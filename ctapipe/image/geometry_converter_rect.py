@@ -27,8 +27,8 @@ def convert_rect_image_1d_to_2d(geom, image_flat):
     image_2d: ndarray
         Square image
     """
-    row = geom._pixel_rows
-    col = geom._pixel_columns
+    row = geom.pixel_row
+    col = geom.pixel_column
     image_square = np.full((row.max() + 1, col.max() + 1), np.nan)
     image_square[row, col] = image_flat
 

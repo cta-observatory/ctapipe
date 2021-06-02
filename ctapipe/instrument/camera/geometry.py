@@ -384,7 +384,7 @@ class CameraGeometry:
         return ~np.any(~np.isclose(self.pix_area.value, self.pix_area[0].value), axis=0)
 
     @lazyproperty
-    def _pixel_rows(self):
+    def pixel_row(self):
         """
         For square pixels:
         The row each pixel in the flat array ends in if converted to a 2d array.
@@ -399,7 +399,7 @@ class CameraGeometry:
         return rows
 
     @lazyproperty
-    def _pixel_columns(self):
+    def pixel_column(self):
         """
         For square pixels:
         The column each pixel in the flat array ends in if converted to a 2d array.
