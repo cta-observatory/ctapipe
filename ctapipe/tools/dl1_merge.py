@@ -205,12 +205,14 @@ class MergeTool(Tool):
 
         # create output file with subarray from first file
         self.first_subarray = SubarrayDescription.from_hdf(self.input_files[0])
+        if self.allowed_tels:
+            self.first_subarray = self.first_subarray.select_subarray(
+                tel_ids=self.allowed_tels
+            )
+            self.allowed_tel_names = {"tel_%03d" % i for i in self.allowed_tels}
+
         self.first_subarray.to_hdf(self.output_path)
         self.output_file = tables.open_file(self.output_path, mode="a")
-
-        # create tel.names list from allowed tels
-        if self.allowed_tels:
-            self.allowed_tel_names = {"tel_%03d" % i for i in self.allowed_tels}
 
         # setup required nodes
         self.usable_nodes = all_nodes
@@ -237,6 +239,10 @@ class MergeTool(Tool):
             return True
 
         current_subarray = SubarrayDescription.from_hdf(file_path)
+        if self.allowed_tels:
+            current_subarray = current_subarray.select_subarray(
+                tel_ids=self.allowed_tels
+            )
         broken = False
 
         # Check subarray
