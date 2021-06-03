@@ -1,5 +1,6 @@
 import tables
 import tempfile
+import shutil
 
 from ctapipe.core import run_tool
 from pathlib import Path
@@ -50,12 +51,16 @@ def test_pattern(tmp_path: Path, dl1_file, dl1_proton_file):
     # touch a random file to test that the pattern does not use it
     open(dl1_file.parent / "foo.h5", "w").close()
 
+    # copy to make sure we don't have other files in the dl1 dir disturb this
+    for f in (dl1_file, dl1_proton_file):
+        shutil.copy(f, tmp_path)
+
     output = tmp_path / "merged_pattern.dl1.h5"
     ret = run_tool(
-        MergeTool(),
+        tool=MergeTool(),
         argv=[
             "-i",
-            str(dl1_file.parent),
+            str(tmp_path),
             "-p",
             "*.dl1.h5",
             f"--output={output}",
