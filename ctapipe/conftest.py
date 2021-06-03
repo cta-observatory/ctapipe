@@ -106,7 +106,7 @@ def _subarray_and_event_gamma_off_axis_500_gev():
 
 @pytest.fixture(scope="function")
 def subarray_and_event_gamma_off_axis_500_gev(
-    _subarray_and_event_gamma_off_axis_500_gev
+    _subarray_and_event_gamma_off_axis_500_gev,
 ):
     """
     A four LST subarray event with a nice shower, well suited to test
@@ -148,12 +148,12 @@ def dl1_file(dl1_tmp_path):
     """
     DL1 file containing both images and parameters from a gamma simulation set.
     """
-    from ctapipe.tools.stage1 import Stage1Tool
+    from ctapipe.tools.process import ProcessorTool
     from ctapipe.core import run_tool
 
     output = dl1_tmp_path / "images.dl1.h5"
 
-    # prevent running stage1 multiple times in case of parallel tests
+    # prevent running process multiple times in case of parallel tests
     with FileLock(output.with_suffix(output.suffix + ".lock")):
         if output.is_file():
             return output
@@ -167,7 +167,7 @@ def dl1_file(dl1_tmp_path):
             "--max-events=20",
             "--allowed-tels=[1,2,3]",
         ]
-        assert run_tool(Stage1Tool(), argv=argv, cwd=dl1_tmp_path) == 0
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
 
 
@@ -176,12 +176,12 @@ def dl1_image_file(dl1_tmp_path,):
     """
     DL1 file containing only images (DL1A) from a gamma simulation set.
     """
-    from ctapipe.tools.stage1 import Stage1Tool
+    from ctapipe.tools.process import ProcessorTool
     from ctapipe.core import run_tool
 
     output = dl1_tmp_path / "images.dl1.h5"
 
-    # prevent running stage1 multiple times in case of parallel tests
+    # prevent running process multiple times in case of parallel tests
     with FileLock(output.with_suffix(output.suffix + ".lock")):
         if output.is_file():
             return output
@@ -195,7 +195,7 @@ def dl1_image_file(dl1_tmp_path,):
             "--max-events=20",
             "--allowed-tels=[1,2,3]",
         ]
-        assert run_tool(Stage1Tool(), argv=argv, cwd=dl1_tmp_path) == 0
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
 
 
@@ -204,12 +204,12 @@ def dl1_parameters_file(dl1_tmp_path):
     """
     DL1 File containing only parameters (DL1B) from a gamma simulation set.
     """
-    from ctapipe.tools.stage1 import Stage1Tool
+    from ctapipe.tools.process import ProcessorTool
     from ctapipe.core import run_tool
 
     output = dl1_tmp_path / "parameters.dl1.h5"
 
-    # prevent running stage1 multiple times in case of parallel tests
+    # prevent running process multiple times in case of parallel tests
     with FileLock(output.with_suffix(output.suffix + ".lock")):
         if output.is_file():
             return output
@@ -222,7 +222,7 @@ def dl1_parameters_file(dl1_tmp_path):
             "--max-events=20",
             "--allowed-tels=[1,2,3]",
         ]
-        assert run_tool(Stage1Tool(), argv=argv, cwd=dl1_tmp_path) == 0
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
 
 
@@ -231,12 +231,12 @@ def dl1_muon_file(dl1_tmp_path):
     """
     DL1 file containing only images from a muon simulation set.
     """
-    from ctapipe.tools.stage1 import Stage1Tool
+    from ctapipe.tools.process import ProcessorTool
     from ctapipe.core import run_tool
 
     output = dl1_tmp_path / "muons.dl1.h5"
 
-    # prevent running stage1 multiple times in case of parallel tests
+    # prevent running process multiple times in case of parallel tests
     with FileLock(output.with_suffix(output.suffix + ".lock")):
         if output.is_file():
             return output
@@ -248,5 +248,5 @@ def dl1_muon_file(dl1_tmp_path):
             "--write-images",
             "--DataWriter.write_parameters=False",
         ]
-        assert run_tool(Stage1Tool(), argv=argv, cwd=dl1_tmp_path) == 0
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output

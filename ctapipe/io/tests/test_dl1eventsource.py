@@ -7,8 +7,6 @@ import numpy as np
 import tempfile
 import pytest
 
-d = tempfile.TemporaryDirectory()
-
 
 @pytest.fixture(scope="module")
 def dl1_dir(tmp_path_factory):
