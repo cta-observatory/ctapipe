@@ -210,7 +210,6 @@ class TableReader(Component, metaclass=ABCMeta):
 
     def __init__(self):
         super().__init__()
-        self._cols_to_read = defaultdict(dict)
         self._transforms = defaultdict(dict)
 
     def __enter__(self):
