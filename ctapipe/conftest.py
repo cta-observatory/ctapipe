@@ -2,15 +2,14 @@
 common pytest fixtures for tests in ctapipe
 """
 
-import pytest
-
 from copy import deepcopy
 
+import pytest
+
+from ctapipe.instrument import CameraGeometry
 from ctapipe.io import SimTelEventSource
 from ctapipe.utils import get_dataset_path
-from ctapipe.instrument import CameraGeometry
 from ctapipe.utils.filelock import FileLock
-
 
 # names of camera geometries available on the data server
 camera_names = [
@@ -148,8 +147,8 @@ def dl1_file(dl1_tmp_path):
     """
     DL1 file containing both images and parameters from a gamma simulation set.
     """
-    from ctapipe.tools.process import ProcessorTool
     from ctapipe.core import run_tool
+    from ctapipe.tools.process import ProcessorTool
 
     output = dl1_tmp_path / "images.dl1.h5"
 
@@ -176,8 +175,8 @@ def dl1_image_file(dl1_tmp_path,):
     """
     DL1 file containing only images (DL1A) from a gamma simulation set.
     """
-    from ctapipe.tools.process import ProcessorTool
     from ctapipe.core import run_tool
+    from ctapipe.tools.process import ProcessorTool
 
     output = dl1_tmp_path / "images.dl1.h5"
 
@@ -204,8 +203,8 @@ def dl1_parameters_file(dl1_tmp_path):
     """
     DL1 File containing only parameters (DL1B) from a gamma simulation set.
     """
-    from ctapipe.tools.process import ProcessorTool
     from ctapipe.core import run_tool
+    from ctapipe.tools.process import ProcessorTool
 
     output = dl1_tmp_path / "parameters.dl1.h5"
 
@@ -231,8 +230,8 @@ def dl1_muon_file(dl1_tmp_path):
     """
     DL1 file containing only images from a muon simulation set.
     """
-    from ctapipe.tools.process import ProcessorTool
     from ctapipe.core import run_tool
+    from ctapipe.tools.process import ProcessorTool
 
     output = dl1_tmp_path / "muons.dl1.h5"
 
