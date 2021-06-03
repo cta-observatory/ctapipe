@@ -44,23 +44,6 @@ def test_simtel_event_source_on_gamma_test_one_event():
                 assert event.count == 0
                 break
 
-    # test that max_events works:
-    max_events = 5
-    with SimTelEventSource(
-        input_url=gamma_test_large_path, max_events=max_events
-    ) as reader:
-        count = 0
-        for _ in reader:
-            count += 1
-        assert count == max_events
-
-    # test that the allowed_tels mask works:
-    with SimTelEventSource(
-        input_url=gamma_test_large_path, allowed_tels={3, 4}
-    ) as reader:
-        for event in reader:
-            assert set(event.r0.tel).issubset(reader.allowed_tels)
-
 
 def test_that_event_is_not_modified_after_loop():
 
@@ -173,7 +156,7 @@ def test_allowed_telescopes():
     # test that the allowed_tels mask works:
     allowed_tels = {3, 4}
     with SimTelEventSource(
-        input_url=gamma_test_large_path, allowed_tels=allowed_tels
+        input_url=gamma_test_large_path, allowed_tels=allowed_tels, max_events=5
     ) as reader:
         assert not allowed_tels.symmetric_difference(reader.subarray.tel_ids)
         for event in reader:
