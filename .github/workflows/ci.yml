@@ -25,6 +25,7 @@ jobs:
         with:
           path: |
             ~/.cache/ctapipe
+          key: ctapipe-test-data
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
