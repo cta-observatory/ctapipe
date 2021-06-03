@@ -79,7 +79,7 @@ def dl1_muon_file(dl1_tmp_path):
     return output
 
 
-def test_stage_1_dl1(tmpdir, dl1_image_file, dl1_parameters_file):
+def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
     from ctapipe.tools.process import ProcessorTool
 
     config = Path("./examples/stage1_config.json").absolute()
