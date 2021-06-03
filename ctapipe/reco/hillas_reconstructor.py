@@ -226,7 +226,7 @@ class HillasReconstructor(Reconstructor):
         direction, err_est_dir = self.estimate_direction()
 
         # array pointing is needed to define the tilted frame
-        core_pos = self.estimate_core_position(hillas_dict, array_pointing)
+        core_pos_ground, core_pos_tilted = self.estimate_core_position(hillas_dict, array_pointing)
 
         # container class for reconstructed showers
         _, lat, lon = cartesian_to_spherical(*direction)
@@ -240,8 +240,10 @@ class HillasReconstructor(Reconstructor):
         result = ReconstructedGeometryContainer(
             alt=lat,
             az=-lon,
-            core_x=core_pos[0],
-            core_y=core_pos[1],
+            core_x=core_pos_ground.x,
+            core_y=core_pos_ground.y,
+            core_tilted_x=core_pos_tilted.x,
+            core_tilted_y=core_pos_tilted.y,
             tel_ids=[h for h in hillas_dict.keys()],
             average_intensity=np.mean([h.intensity for h in hillas_dict.values()]),
             is_valid=True,
@@ -399,9 +401,9 @@ class HillasReconstructor(Reconstructor):
             x=core_position[0] * u.m, y=core_position[1] * u.m, frame=tilted_frame
         )
 
-        core_pos = project_to_ground(core_pos_tilted)
+        core_pos_ground = project_to_ground(core_pos_tilted)
 
-        return core_pos.x, core_pos.y
+        return core_pos_ground, core_pos_tilted
 
     def estimate_h_max(self):
         """
