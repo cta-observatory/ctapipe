@@ -226,24 +226,19 @@ class DisplayIntegrator(Tool):
     ).tag(config=True)
     channel = Enum([0, 1], 0, help="Channel to view").tag(config=True)
 
-    aliases = Dict(
-        dict(
-            f="EventSource.input_url",
-            max_events="EventSource.max_events",
-            E="DisplayIntegrator.event_index",
-            T="DisplayIntegrator.telescope",
-            C="DisplayIntegrator.channel",
+    aliases = {
+        ("i", "input"): "EventSource.input_url",
+        ("m", "max-events"): "EventSource.max_events",
+        "E": "DisplayIntegrator.event_index",
+        "T": "DisplayIntegrator.telescope",
+        "C": "DisplayIntegrator.channel",
+    }
+    flags = {
+        "id": (
+            {"DisplayDL1Calib": {"use_event_index": True}},
+            "event_index will obtain an event using event_id instead of index.",
         )
-    )
-    flags = Dict(
-        dict(
-            id=(
-                {"DisplayDL1Calib": {"use_event_index": True}},
-                "event_index will obtain an event using event_id instead of index.",
-            )
-        )
-    )
-    classes = [EventSource] + traits.classes_with_traits(ImageExtractor)
+    }
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

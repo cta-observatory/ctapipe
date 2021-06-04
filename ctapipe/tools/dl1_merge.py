@@ -13,7 +13,8 @@ from tqdm.auto import tqdm
 
 from ..io import metadata as meta, DL1EventSource
 from ..io import HDF5TableWriter
-from ..core import Provenance, Tool, traits
+from ..core import Provenance, Tool
+from ..core.traits import Path, Bool, Set, Unicode, flag, CInt
 from ..instrument import SubarrayDescription
 
 import warnings
@@ -90,37 +91,35 @@ class MergeTool(Tool):
 
     If no pattern is given, all .h5 files of the given directory will be taken as input.
     """
-    input_dir = traits.Path(
+    input_dir = Path(
         help="Input dl1-directory", exists=True, directory_ok=True, file_ok=False
     ).tag(config=True)
     input_files = List(default_value=[], help="Input dl1-files").tag(config=True)
-    output_path = traits.Path(
-        help="Merged-DL1 output filename", directory_ok=False
-    ).tag(config=True)
-    skip_images = traits.Bool(
+    output_path = Path(help="Merged-DL1 output filename", directory_ok=False).tag(
+        config=True
+    )
+    skip_images = Bool(
         help="Skip DL1/Event/Telescope and Simulation/Event/Telescope images in output",
         default_value=False,
     ).tag(config=True)
-    skip_simu_images = traits.Bool(
+    skip_simu_images = Bool(
         help="Skip Simulation/Event/Telescope images in output", default_value=False
     ).tag(config=True)
-    skip_parameters = traits.Bool(
+    skip_parameters = Bool(
         help="Skip DL1/Event/Telescope and Simulation/Event/Telescope parameters"
         "in output",
         default_value=False,
     ).tag(config=True)
-    skip_broken_files = traits.Bool(
+    skip_broken_files = Bool(
         help="Skip broken files instead of raising an error", default_value=False
     ).tag(config=True)
-    overwrite = traits.Bool(help="Overwrite output file if it exists").tag(config=True)
-    progress_bar = traits.Bool(help="Show progress bar during processing").tag(
-        config=True
-    )
-    file_pattern = traits.Unicode(
+    overwrite = Bool(help="Overwrite output file if it exists").tag(config=True)
+    progress_bar = Bool(help="Show progress bar during processing").tag(config=True)
+    file_pattern = Unicode(
         default_value="*.h5", help="Give a specific file pattern for the input files"
     ).tag(config=True)
-    allowed_tels = traits.Set(
-        trait=traits.CInt(),
+    allowed_tels = Set(
+        trait=CInt(),
         default_value=None,
         allow_none=True,
         help=(
@@ -141,23 +140,7 @@ class MergeTool(Tool):
     }
 
     flags = {
-        "skip-images": (
-            {"MergeTool": {"skip_images": True}},
-            "Skip DL1/Event/Telescope and Simulation/Event/Telescope images in output",
-        ),
-        "skip-simu-images": (
-            {"MergeTool": {"skip_simu_images": True}},
-            "Skip Simulation/Event/Telescope images in output",
-        ),
-        "skip-parameters": (
-            {"MergeTool": {"skip_parameters": True}},
-            "Skip DL1/Event/Telescope and Simulation/Event/Telescope parameters in output",
-        ),
-        "skip-broken-files": (
-            {"MergeTool": {"skip_broken_files": True}},
-            "Skip broken files instead of raising an error",
-        ),
-        "overwrite": (
+        ("f", "overwrite"): (
             {"MergeTool": {"overwrite": True}},
             "Overwrite output file if it exists",
         ),
@@ -166,6 +149,34 @@ class MergeTool(Tool):
             "Show a progress bar for all given input files",
         ),
     }
+    _flags = [
+        flag(
+            "skip-images",
+            "MergeTool.skip_images",
+            "Skip DL1/Event/Telescope and Simulation/Event/Telescope images in output",
+            "Don't skip DL1/Event/Telescope and Simulation/Event/Telescope images in output",
+        ),
+        flag(
+            "skip-simu-images",
+            "MergeTool.skip_simu_images",
+            "Skip Simulation/Event/Telescope images in output",
+            "Don't skip Simulation/Event/Telescope images in output",
+        ),
+        flag(
+            "skip-parameters",
+            "MergeTool.skip_parameters",
+            "Skip DL1/Event/Telescope and Simulation/Event/Telescope parameters in output",
+            "Don't skip DL1/Event/Telescope and Simulation/Event/Telescope parameters in output",
+        ),
+        flag(
+            "skip-broken-files",
+            "MergeTool.skip_broken_files",
+            "Skip broken files instead of raising an error",
+            "Don't skip broken files instead of raising an error",
+        ),
+    ]
+    for f in _flags:
+        flags.update(f)
 
     def setup(self):
         # prepare output path:

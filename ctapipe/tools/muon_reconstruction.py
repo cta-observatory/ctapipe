@@ -77,16 +77,17 @@ class MuonAnalysis(Tool):
     ]
 
     aliases = {
-        "i": "EventSource.input_url",
-        "input": "EventSource.input_url",
-        "o": "MuonAnalysis.output",
-        "output": "MuonAnalysis.output",
-        "max-events": "EventSource.max_events",
-        "allowed-tels": "EventSource.allowed_tels",
+        ("i", "input"): "EventSource.input_url",
+        ("o", "output"): "MuonAnalysis.output",
+        ("m", "max-events"): "EventSource.max_events",
+        ("t", "allowed-tels"): "EventSource.allowed_tels",
     }
 
     flags = {
-        "overwrite": ({"MuonAnalysis": {"overwrite": True}}, "overwrite output file")
+        ("f", "overwrite"): (
+            {"MuonAnalysis": {"overwrite": True}},
+            "overwrite output file",
+        )
     }
 
     def setup(self):

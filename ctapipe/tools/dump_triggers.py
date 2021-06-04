@@ -43,14 +43,12 @@ class DumpTriggersTool(Tool):
         {"infile": "DumpTriggersTool.infile", "outfile": "DumpTriggersTool.outfile"}
     )
 
-    flags = Dict(
-        {
-            "overwrite": (
-                {"DumpTriggersTool": {"overwrite": True}},
-                "Enable overwriting of output file",
-            )
-        }
-    )
+    flags = {
+        ("f", "overwrite"): (
+            {"DumpTriggersTool": {"overwrite": True}},
+            "Enable overwriting of output file",
+        )
+    }
 
     examples = (
         "ctapipe-dump-triggers --infile gamma.simtel.gz "

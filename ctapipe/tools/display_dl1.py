@@ -17,7 +17,7 @@ from ctapipe.visualization import CameraDisplay
 
 
 class ImagePlotter(Component):
-    """ Plotter for camera images """
+    """Plotter for camera images"""
 
     display = Bool(
         True, help="Display the photoelectron images on-screen as they are produced."
@@ -136,22 +136,19 @@ class DisplayDL1Calib(Tool):
         help="Telescope to view. Set to None to display all telescopes.",
     ).tag(config=True)
 
-    aliases = Dict(
-        dict(
-            input="EventSource.input_url",
-            max_events="EventSource.max_events",
-            T="DisplayDL1Calib.telescope",
-            O="ImagePlotter.output_path",
+    aliases = {
+        ("i", "input"): "EventSource.input_url",
+        ("m", "max-events"): "EventSource.max_events",
+        "T": "DisplayDL1Calib.telescope",
+        ("o", "output"): "ImagePlotter.output_path",
+    }
+    flags = {
+        "D": (
+            {"ImagePlotter": {"display": True}},
+            "Display the photo-electron images on-screen as they are produced.",
         )
-    )
-    flags = Dict(
-        dict(
-            D=(
-                {"ImagePlotter": {"display": True}},
-                "Display the photo-electron images on-screen as they are produced.",
-            )
-        )
-    )
+    }
+
     classes = [EventSource, ImagePlotter] + traits.classes_with_traits(ImageExtractor)
 
     def __init__(self, **kwargs):
