@@ -355,5 +355,5 @@ def test_calibscale(prod5_gamma_simtel_path):
             pass
 
     np.testing.assert_allclose(event.r1.tel[telid].waveform[0],
-                               config.SimTelEventSource.calib_scale * event_scaled.r1.tel[telid].waveform[0],
+                               event_scaled.r1.tel[telid].waveform[0] / config.SimTelEventSource.calib_scale, 
                                rtol=0.1)
