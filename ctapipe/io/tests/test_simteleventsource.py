@@ -12,7 +12,6 @@ from traitlets.config import Config
 
 
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
-from ctapipe.calib.camera.calibrator import CameraCalibrator
 from ctapipe.io.simteleventsource import SimTelEventSource, apply_simtel_r1_calibration
 from ctapipe.utils import get_dataset_path
 from ctapipe.io import DataLevel
