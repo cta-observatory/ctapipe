@@ -22,7 +22,7 @@ from ..containers import (
     TelescopeTriggerContainer,
 )
 from ..coordinates import CameraFrame
-from ..core.traits import Bool, CaselessStrEnum, create_class_enum_trait
+from ..core.traits import Bool, Float, CaselessStrEnum, create_class_enum_trait
 from ..instrument import (
     CameraDescription,
     CameraGeometry,
@@ -100,7 +100,7 @@ def build_camera(cam_settings, pixel_settings, telescope, frame):
     )
 
 
-def apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe, gain_selector):
+def apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe, gain_selector, calib_scale):
     """
     Perform the R1 calibration for R0 simtel waveforms. This includes:
         - Gain selection
@@ -123,6 +123,9 @@ def apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe, gain_selector)
         simtel file for each gain channel
         Shape: (n_channels, n_pixels)
     gain_selector : ctapipe.calib.camera.gainselection.GainSelector
+    calib_scale : float
+        Conversion factor to transform the integrated charges
+        (in ADC counts) into number of photoelectrons on top of dc_to_pe.
 
     Returns
     -------
@@ -135,7 +138,8 @@ def apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe, gain_selector)
     """
     n_channels, n_pixels, n_samples = r0_waveforms.shape
     ped = pedestal[..., np.newaxis]
-    gain = dc_to_pe[..., np.newaxis]
+    DC_to_PHE = dc_to_pe[..., np.newaxis]
+    gain = DC_to_PHE * calib_scale
     r1_waveforms = (r0_waveforms - ped) * gain
     if n_channels == 1:
         selected_gain_channel = np.zeros(n_pixels, dtype=np.int8)
@@ -176,6 +180,15 @@ class SimTelEventSource(EventSource):
 
     gain_selector_type = create_class_enum_trait(
         base_class=GainSelector, default_value="ThresholdGainSelector"
+    ).tag(config=True)
+
+    calib_scale = Float(
+        default_value=1.0,
+        help=(
+            "Factor to transform the integrated charges in ADC counts"
+            " into number of photoelectrons."
+            " Corrects the DC_to_PHE factor."
+        )
     ).tag(config=True)
 
     def __init__(self, input_url=None, config=None, parent=None, **kwargs):
@@ -422,7 +435,7 @@ class SimTelEventSource(EventSource):
                 mon.calibration.pedestal_per_sample = pedestal
 
                 r1.waveform, r1.selected_gain_channel = apply_simtel_r1_calibration(
-                    adc_samples, pedestal, dc_to_pe, self.gain_selector
+                    adc_samples, pedestal, dc_to_pe, self.gain_selector, self.calib_scale
                 )
 
                 # get time_shift from laser calibration
