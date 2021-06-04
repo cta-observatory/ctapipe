@@ -124,6 +124,7 @@ def apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe, gain_selector,
         Shape: (n_channels, n_pixels)
     gain_selector : ctapipe.calib.camera.gainselection.GainSelector
     calib_scale : float
+        Extra global scale factor for calibration.
         Conversion factor to transform the integrated charges
         (in ADC counts) into number of photoelectrons on top of dc_to_pe.
 
