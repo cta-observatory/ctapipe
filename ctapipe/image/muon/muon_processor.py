@@ -4,7 +4,6 @@ High level muon processing  (MuonProcessor Component)
 import numpy as np
 from astropy.coordinates import SkyCoord
 
-from ...calib.camera import CameraCalibrator
 from ...core import TelescopeComponent
 from ...core import traits
 from ..cleaning import TailcutsImageCleaner
@@ -75,7 +74,6 @@ class MuonProcessor(TelescopeComponent):
 
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
 
-        self.calib = CameraCalibrator(subarray=self.subarray, parent=self)
         self.ring_fitter = MuonRingFitter(parent=self)
         self.intensity_fitter = MuonIntensityFitter(subarray=self.subarray, parent=self)
         self.cleaning = TailcutsImageCleaner(parent=self, subarray=self.subarray)
