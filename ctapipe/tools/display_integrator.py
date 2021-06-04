@@ -5,13 +5,13 @@ with the integration window.
 """
 import numpy as np
 from matplotlib import pyplot as plt
-from traitlets import Int, Bool, Enum
 
-from ctapipe.calib import CameraCalibrator
-from ctapipe.core import Tool
-from ctapipe.io import EventSource
-from ctapipe.io.eventseeker import EventSeeker
-from ctapipe.visualization import CameraDisplay
+from ..calib import CameraCalibrator
+from ..core import Tool
+from ..core.traits import Int, Bool, Enum, flag, classes_with_traits
+from ..io import EventSource
+from ..io.eventseeker import EventSeeker
+from ..visualization import CameraDisplay
 
 
 def plot(subarray, event, telid, chan, extractor_name):

@@ -4,16 +4,15 @@ Calibrate dl0 data to dl1, and plot the photoelectron images.
 from copy import copy
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from traitlets import Bool, Int
 
-from ctapipe.calib import CameraCalibrator
-from ctapipe.core import Component, Tool
-from ctapipe.core import traits
-from ctapipe.image.extractor import ImageExtractor
-from ctapipe.io import EventSource
-from ctapipe.io.datalevels import DataLevel
-from ctapipe.utils import get_dataset_path
-from ctapipe.visualization import CameraDisplay
+from ..calib import CameraCalibrator
+from ..core import Component, Tool
+from ..core.traits import Bool, Path, flag, Int, classes_with_traits
+from ..image.extractor import ImageExtractor
+from ..io import EventSource
+from ..io.datalevels import DataLevel
+from ..utils import get_dataset_path
+from ..visualization import CameraDisplay
 
 
 class ImagePlotter(Component):
@@ -22,7 +21,7 @@ class ImagePlotter(Component):
     display = Bool(
         True, help="Display the photoelectron images on-screen as they are produced."
     ).tag(config=True)
-    output_path = traits.Path(
+    output_path = Path(
         directory_ok=False,
         help=(
             "Output path for the pdf containing all the images."
