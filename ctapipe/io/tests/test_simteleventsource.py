@@ -350,30 +350,28 @@ def test_calibscale_and_calibshift(prod5_gamma_simtel_path):
         for event in source:
             pass
 
-    config = Config()
-    config.SimTelEventSource.calib_scale = 2.0
+    calib_scale = 2.0
 
     with SimTelEventSource(
-        input_url=prod5_gamma_simtel_path, config=config, max_events=1
+        input_url=prod5_gamma_simtel_path, max_events=1, calib_scale=calib_scale
     ) as source:
 
         for event_scaled in source:
             pass
 
     np.testing.assert_allclose(event.r1.tel[telid].waveform[0],
-                               event_scaled.r1.tel[telid].waveform[0] / config.SimTelEventSource.calib_scale, 
+                               event_scaled.r1.tel[telid].waveform[0] / calib_scale,
                                rtol=0.1)
 
-    config = Config()
-    config.SimTelEventSource.calib_shift = 2.0 # p.e.
+    calib_shift = 2.0  # p.e.
 
     with SimTelEventSource(
-        input_url=prod5_gamma_simtel_path, config=config, max_events=1
+        input_url=prod5_gamma_simtel_path, max_events=1, calib_shift=calib_shift
     ) as source:
 
         for event_shifted in source:
             pass
 
     np.testing.assert_allclose(event.r1.tel[telid].waveform[0],
-                               event_shifted.r1.tel[telid].waveform[0] - config.SimTelEventSource.calib_shift, 
+                               event_shifted.r1.tel[telid].waveform[0] - calib_shift,
                                rtol=0.1)
