@@ -205,12 +205,14 @@ class MergeTool(Tool):
 
         # create output file with subarray from first file
         self.first_subarray = SubarrayDescription.from_hdf(self.input_files[0])
+        if self.allowed_tels:
+            self.first_subarray = self.first_subarray.select_subarray(
+                tel_ids=self.allowed_tels
+            )
+            self.allowed_tel_names = {"tel_%03d" % i for i in self.allowed_tels}
+
         self.first_subarray.to_hdf(self.output_path)
         self.output_file = tables.open_file(self.output_path, mode="a")
-
-        # create tel.names list from allowed tels
-        if self.allowed_tels:
-            self.allowed_tel_names = {"tel_%03d" % i for i in self.allowed_tels}
 
         # setup required nodes
         self.usable_nodes = all_nodes
@@ -237,6 +239,10 @@ class MergeTool(Tool):
             return True
 
         current_subarray = SubarrayDescription.from_hdf(file_path)
+        if self.allowed_tels:
+            current_subarray = current_subarray.select_subarray(
+                tel_ids=self.allowed_tels
+            )
         broken = False
 
         # Check subarray
@@ -406,15 +412,15 @@ class MergeTool(Tool):
             contact=meta.Contact(name="", email="", organization="CTA Consortium"),
             product=meta.Product(
                 description="Merged DL1 Data Product",
-                data_category="S",
-                data_level="DL1",
+                data_category="Sim",  # TODO: copy this from the inputs
+                data_level=["DL1"],  # TODO: copy this from inputs
                 data_association="Subarray",
-                data_model_name="ASWG DL1",
+                data_model_name="ASWG",  # TODO: copy this from inputs
                 data_model_version=self.data_model_version,
                 data_model_url="",
                 format="hdf5",
             ),
-            process=meta.Process(type_=process_type_, subtype="", id_=0),
+            process=meta.Process(type_=process_type_, subtype="", id_="merge"),
             activity=meta.Activity.from_provenance(activity),
             instrument=meta.Instrument(
                 site="Other",
@@ -430,7 +436,7 @@ class MergeTool(Tool):
         with HDF5TableWriter(
             self.output_path, parent=self, mode="a", add_prefix=True
         ) as writer:
-            meta.write_to_hdf5(headers, writer._h5file)
+            meta.write_to_hdf5(headers, writer.h5file)
 
 
 def main():
