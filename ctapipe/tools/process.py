@@ -3,11 +3,9 @@ Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
 """
 import sys
 
-from tqdm.auto import tqdm
-
-from ..calib.camera import CameraCalibrator, GainSelector
-from ..core import Tool, QualityQuery
-from ..core.traits import Bool, classes_with_traits
+from ..calib import CameraCalibrator, GainSelector
+from ..core import QualityQuery, Tool
+from ..core.traits import Bool, classes_with_traits, flag
 from ..image import ImageCleaner, ImageProcessor
 from ..image.extractor import ImageExtractor
 from ..io import DataLevel, DataWriter, EventSource, SimTelEventSource
@@ -47,33 +45,50 @@ class ProcessorTool(Tool):
     }
 
     flags = {
-        "write-images": (
-            {"DataWriter": {"write_images": True}},
-            "store DL1/Event/Telescope images in output",
-        ),
-        "write-parameters": (
-            {"DataWriter": {"write_parameters": True}},
-            "store DL1/Event/Telescope parameters in output",
-        ),
-        "write-stereo-shower": (
-            {"DataWriter": {"write_stereo_shower": True}},
-            "store DL2/Event/Subarray parameters in output",
-        ),
-        "write-mono-shower": (
-            {"DataWriter": {"write_mono_shower": True}},
-            "store DL2/Event/Telescope parameters in output",
-        ),
-        "write-index-tables": (
-            {"DataWriter": {"write_index_tables": True}},
-            "generate PyTables index tables for the parameter and image datasets",
-        ),
-        ("f", "overwrite"): (
+        "f": (
             {"DataWriter": {"overwrite": True}},
             "Overwrite output file if it exists",
         ),
-        "progress": (
-            {"ProcessorTool": {"progress_bar": True}},
+        **flag(
+            "overwrite",
+            "DataWriter.overwrite",
+            "Overwrite output file if it exists",
+            "Don't overwrite output file if it exists",
+        ),
+        **flag(
+            "progress",
+            "Stage1Tool.progress_bar",
             "show a progress bar during event processing",
+            "don't show a progress bar during event processing",
+        ),
+        **flag(
+            "write-images",
+            "DataWriter.write_images",
+            "store DL1/Event/Telescope images in output",
+            "don't store DL1/Event/Telescope images in output",
+        ),
+        **flag(
+            "write-parameters",
+            "DataWriter.write_parameters",
+            "store DL1/Event/Telescope parameters in output",
+            "don't store DL1/Event/Telescope parameters in output",
+        ),
+        **flag(
+            "write-stereo-shower",
+            "DataWriter.write_stereo_shower",
+            "store DL2/Event/Subarray parameters in output",
+            "don't DL2/Event/Subarray parameters in output",
+        ),
+        **flag(
+            "write-mono-shower",
+            "DataWriter.write_mono_shower",
+            "store DL2/Event/Telescope parameters in output",
+            "don't store DL2/Event/Telescope parameters in output",
+        ),
+        **flag(
+            "write-index-tables",
+            "DataWriter.write_index_tables",
+            "generate PyTables index tables for the parameter and image datasets",
         ),
     }
 
@@ -135,7 +150,7 @@ class ProcessorTool(Tool):
         return self.write.write_parameters or self.should_compute_dl2
 
     def _write_processing_statistics(self):
-        """ write out the event selection stats, etc. """
+        """write out the event selection stats, etc."""
         # NOTE: don't remove this, not part of DataWriter
 
         if self.should_compute_dl1:
