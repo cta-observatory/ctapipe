@@ -100,7 +100,7 @@ def build_camera(cam_settings, pixel_settings, telescope, frame):
     )
 
 
-def apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe, gain_selector, calib_scale):
+def apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe, gain_selector, calib_scale=1.0, calib_shift=0.0):
     """
     Perform the R1 calibration for R0 simtel waveforms. This includes:
         - Gain selection
@@ -127,6 +127,10 @@ def apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe, gain_selector,
         Extra global scale factor for calibration.
         Conversion factor to transform the integrated charges
         (in ADC counts) into number of photoelectrons on top of dc_to_pe.
+        Defaults to no scaling.
+    calib_shift: float
+        Shift the resulting R1 output in p.e. for simulating miscalibration.
+        Defaults to no shift.
 
     Returns
     -------
@@ -141,7 +145,7 @@ def apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe, gain_selector,
     ped = pedestal[..., np.newaxis]
     DC_to_PHE = dc_to_pe[..., np.newaxis]
     gain = DC_to_PHE * calib_scale
-    r1_waveforms = (r0_waveforms - ped) * gain
+    r1_waveforms = (r0_waveforms - ped) * gain + calib_shift
     if n_channels == 1:
         selected_gain_channel = np.zeros(n_pixels, dtype=np.int8)
         r1_waveforms = r1_waveforms[0]
@@ -186,9 +190,16 @@ class SimTelEventSource(EventSource):
     calib_scale = Float(
         default_value=1.0,
         help=(
-            "Factor to transform the integrated charges in ADC counts"
-            " into number of photoelectrons."
+            "Factor to transform ADC counts into number of photoelectrons."
             " Corrects the DC_to_PHE factor."
+        )
+    ).tag(config=True)
+
+    calib_shift = Float(
+        default_value=0.0,
+        help=(
+            "Factor to shift the R1 photoelectron samples. "
+            "Can be used to simulate mis-calibration."
         )
     ).tag(config=True)
 
@@ -436,7 +447,12 @@ class SimTelEventSource(EventSource):
                 mon.calibration.pedestal_per_sample = pedestal
 
                 r1.waveform, r1.selected_gain_channel = apply_simtel_r1_calibration(
-                    adc_samples, pedestal, dc_to_pe, self.gain_selector, self.calib_scale
+                    adc_samples,
+                    pedestal,
+                    dc_to_pe,
+                    self.gain_selector,
+                    self.calib_scale,
+                    self.calib_shift
                 )
 
                 # get time_shift from laser calibration
