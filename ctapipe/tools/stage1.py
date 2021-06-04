@@ -135,7 +135,7 @@ class Stage1Tool(Tool):
         )
 
     def _write_processing_statistics(self):
-        """ write out the event selection stats, etc. """
+        """write out the event selection stats, etc."""
         # NOTE: don't remove this, not part of DataWriter
         image_stats = self.process_images.check_image.to_table(functions=True)
         image_stats.write(
@@ -172,7 +172,7 @@ class Stage1Tool(Tool):
 
 
 def main():
-    """ run the tool"""
+    """run the tool"""
     tool = Stage1Tool()
     tool.run()
 

@@ -4,18 +4,18 @@ High level muon processing  (MuonProcessor Component)
 import numpy as np
 from astropy.coordinates import SkyCoord
 
-from ctapipe.calib import CameraCalibrator
-from ctapipe.core import TelescopeComponent
-from ctapipe.core import traits
-from ctapipe.image.cleaning import TailcutsImageCleaner
-from ctapipe.coordinates import TelescopeFrame, CameraFrame
-from ctapipe.containers import (
+from ...calib.camera import CameraCalibrator
+from ...core import TelescopeComponent
+from ...core import traits
+from ..cleaning import TailcutsImageCleaner
+from ...coordinates import TelescopeFrame, CameraFrame
+from ...containers import (
     MuonParametersContainer,
     ArrayEventContainer,
     MuonCollectionContainer,
 )
-from ctapipe.instrument import CameraGeometry, SubarrayDescription
-from ctapipe.image.muon import (
+from ...instrument import CameraGeometry, SubarrayDescription
+from . import (
     MuonRingFitter,
     MuonIntensityFitter,
     ring_containment,

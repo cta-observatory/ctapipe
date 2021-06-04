@@ -32,28 +32,21 @@ jobs:
         run: |
           source .github/install.sh
           python --version
-          pip install codecov pytest-cov pyflakes
+          pip install codecov pytest-cov pyflakes pytest-xdist
           pip install -e .[all]
           pip freeze
 
       - name: Static codechecks
-        env:
-          INSTALL_METHOD: ${{ matrix.install-method }}
+        # need to use a login shell for the conda setup to work
+        shell: bash -leo pipefail {0}
         run: |
-          if [[ "$INSTALL_METHOD" == "conda" ]]; then
-            source $CONDA/etc/profile.d/conda.sh
-            conda activate ci;
-          fi
           pyflakes ctapipe
+
       - name: Tests
-        env:
-          INSTALL_METHOD: ${{ matrix.install-method }}
+        # need to use a login shell for the conda setup to work
+        shell: bash -leo pipefail {0}
         run: |
-          if [[ "$INSTALL_METHOD" == "conda" ]]; then
-            source $CONDA/etc/profile.d/conda.sh
-            conda activate ci;
-          fi
-          pytest --cov --cov-report=xml
+          pytest --cov --cov-report=xml -n auto --dist loadscope
           ctapipe-info --version
 
       - uses: codecov/codecov-action@v1
