@@ -4,8 +4,7 @@ from pathlib import Path
 import logging
 from tqdm.auto import tqdm
 from urllib.parse import urlparse
-import time
-from contextlib import contextmanager
+from .filelock import FileLock
 
 __all__ = ["download_file", "download_cached", "download_file_cached"]
 
@@ -77,22 +76,6 @@ def get_cache_path(url, cache_name="ctapipe", env_override="CTAPIPE_CACHE"):
     return path
 
 
-@contextmanager
-def file_lock(path):
-    # if the file already exists, we wait until it does not exist anymore
-    if path.is_file():
-        log.warning("Another download for this file is already running, waiting.")
-        while path.is_file():
-            time.sleep(0.1)
-
-    # create the lock_file file
-    path.open("w").close()
-    try:
-        yield
-    finally:
-        path.unlink()
-
-
 def download_cached(
     url, cache_name="ctapipe", auth=None, env_prefix="CTAPIPE_DATA_", progress=False
 ):
@@ -100,7 +83,7 @@ def download_cached(
     path.parent.mkdir(parents=True, exist_ok=True)
     lock_file = path.with_suffix(path.suffix + ".lock")
 
-    with file_lock(lock_file):
+    with FileLock(lock_file):
         # if we already dowloaded the file, just use it
         if path.is_file():
             log.debug(f"{url} is available in cache.")
