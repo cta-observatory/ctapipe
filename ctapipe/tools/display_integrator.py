@@ -5,12 +5,10 @@ with the integration window.
 """
 import numpy as np
 from matplotlib import pyplot as plt
-from traitlets import Dict, Int, Bool, Enum
+from traitlets import Int, Bool, Enum
 
-from ctapipe.core import traits
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Tool
-from ctapipe.image.extractor import ImageExtractor
 from ctapipe.io import EventSource
 from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.visualization import CameraDisplay

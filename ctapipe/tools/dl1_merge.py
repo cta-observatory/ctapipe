@@ -13,8 +13,8 @@ from tqdm.auto import tqdm
 
 from ..io import metadata as meta, DL1EventSource
 from ..io import HDF5TableWriter
-from ..core import Provenance, Tool
-from ..core.traits import Path, Bool, Set, Unicode, flag, CInt
+from ..core import Provenance, Tool, traits
+from ..core.traits import Bool, Set, Unicode, flag, CInt
 from ..instrument import SubarrayDescription
 
 import warnings
@@ -91,13 +91,13 @@ class MergeTool(Tool):
 
     If no pattern is given, all .h5 files of the given directory will be taken as input.
     """
-    input_dir = Path(
+    input_dir = traits.Path(
         help="Input dl1-directory", exists=True, directory_ok=True, file_ok=False
     ).tag(config=True)
     input_files = List(default_value=[], help="Input dl1-files").tag(config=True)
-    output_path = Path(help="Merged-DL1 output filename", directory_ok=False).tag(
-        config=True
-    )
+    output_path = traits.Path(
+        help="Merged-DL1 output filename", directory_ok=False
+    ).tag(config=True)
     skip_images = Bool(
         help="Skip DL1/Event/Telescope and Simulation/Event/Telescope images in output",
         default_value=False,
