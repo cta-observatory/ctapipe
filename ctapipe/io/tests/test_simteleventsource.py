@@ -12,6 +12,7 @@ from traitlets.config import Config
 
 
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
+from ctapipe.calib.camera.calibrator import CameraCalibrator
 from ctapipe.io.simteleventsource import SimTelEventSource, apply_simtel_r1_calibration
 from ctapipe.utils import get_dataset_path
 from ctapipe.io import DataLevel
@@ -331,3 +332,29 @@ def test_only_config():
 
     s = SimTelEventSource(config=config)
     assert s.input_url == Path(gamma_test_large_path).absolute()
+
+
+def test_calibscale(prod5_gamma_simtel_path):
+
+    telid = 25
+
+    with SimTelEventSource(
+        input_url=prod5_gamma_simtel_path, max_events=1
+    ) as source:
+
+        for event in source:
+            pass
+
+    config = Config()
+    config.SimTelEventSource.calib_scale = 2.0
+
+    with SimTelEventSource(
+        input_url=prod5_gamma_simtel_path, config=config, max_events=1
+    ) as source:
+
+        for event_scaled in source:
+            pass
+
+    np.testing.assert_allclose(event.r1.tel[telid].waveform[0],
+                               config.SimTelEventSource.calib_scale * event_scaled.r1.tel[telid].waveform[0],
+                               rtol=0.1)
