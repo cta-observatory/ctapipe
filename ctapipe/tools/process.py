@@ -57,7 +57,7 @@ class ProcessorTool(Tool):
         ),
         **flag(
             "progress",
-            "Stage1Tool.progress_bar",
+            "ProcessorTool.progress_bar",
             "show a progress bar during event processing",
             "don't show a progress bar during event processing",
         ),
