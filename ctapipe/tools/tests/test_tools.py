@@ -221,7 +221,7 @@ def test_display_integrator(tmp_path):
     assert (
         run_tool(
             DisplayIntegrator(),
-            argv=shlex.split(f"--f={GAMMA_TEST_LARGE} " "--max_events=1 "),
+            argv=shlex.split(f"--input={GAMMA_TEST_LARGE} " "--max_events=1 "),
             cwd=tmp_path,
         )
         == 0
