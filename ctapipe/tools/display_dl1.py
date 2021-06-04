@@ -139,17 +139,16 @@ class DisplayDL1Calib(Tool):
     aliases = {
         ("i", "input"): "EventSource.input_url",
         ("m", "max-events"): "EventSource.max_events",
-        "T": "DisplayDL1Calib.telescope",
+        ("t", "telescope"): "DisplayDL1Calib.telescope",
         ("o", "output"): "ImagePlotter.output_path",
     }
-    flags = {
-        "D": (
-            {"ImagePlotter": {"display": True}},
-            "Display the photo-electron images on-screen as they are produced.",
-        )
-    }
+    flags = flag(
+        "display",
+        "ImagePlotter.display",
+        "Display the photo-electron images on-screen as they are produced.",
+    )
 
-    classes = [EventSource, ImagePlotter] + traits.classes_with_traits(ImageExtractor)
+    classes = [EventSource, ImagePlotter] + classes_with_traits(ImageExtractor)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

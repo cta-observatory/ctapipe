@@ -227,16 +227,17 @@ class DisplayIntegrator(Tool):
     aliases = {
         ("i", "input"): "EventSource.input_url",
         ("m", "max-events"): "EventSource.max_events",
-        "E": "DisplayIntegrator.event_index",
-        "T": "DisplayIntegrator.telescope",
-        "C": "DisplayIntegrator.channel",
+        ("e", "event-index"): "DisplayIntegrator.event_index",
+        ("t", "telescope"): "DisplayIntegrator.telescope",
+        ("C", "channel"): "DisplayIntegrator.channel",
     }
-    flags = {
-        "id": (
-            {"DisplayDL1Calib": {"use_event_index": True}},
-            "event_index will obtain an event using event_id instead of index.",
-        )
-    }
+    flags = flag(
+        "id",
+        "DisplayDL1Calib.use_event_index",
+        "event_index will obtain an event using event_id instead of index.",
+        "event_index will obtain an event using index.",
+    )
+    classes = classes_with_traits(EventSource)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

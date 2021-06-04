@@ -140,43 +140,42 @@ class MergeTool(Tool):
     }
 
     flags = {
-        ("f", "overwrite"): (
-            {"MergeTool": {"overwrite": True}},
+        "f": ({"MergeTool": {"overwrite": True}}, "Overwrite output file if it exists"),
+        **flag(
+            "overwrite",
+            "MergeTool.overwrite",
             "Overwrite output file if it exists",
+            "Don't overwrite output file if it exists",
         ),
         "progress": (
             {"MergeTool": {"progress_bar": True}},
             "Show a progress bar for all given input files",
         ),
-    }
-    _flags = [
-        flag(
+        **flag(
             "skip-images",
             "MergeTool.skip_images",
             "Skip DL1/Event/Telescope and Simulation/Event/Telescope images in output",
             "Don't skip DL1/Event/Telescope and Simulation/Event/Telescope images in output",
         ),
-        flag(
+        **flag(
             "skip-simu-images",
             "MergeTool.skip_simu_images",
             "Skip Simulation/Event/Telescope images in output",
             "Don't skip Simulation/Event/Telescope images in output",
         ),
-        flag(
+        **flag(
             "skip-parameters",
             "MergeTool.skip_parameters",
             "Skip DL1/Event/Telescope and Simulation/Event/Telescope parameters in output",
             "Don't skip DL1/Event/Telescope and Simulation/Event/Telescope parameters in output",
         ),
-        flag(
+        **flag(
             "skip-broken-files",
             "MergeTool.skip_broken_files",
             "Skip broken files instead of raising an error",
             "Don't skip broken files instead of raising an error",
         ),
-    ]
-    for f in _flags:
-        flags.update(f)
+    }
 
     def setup(self):
         # prepare output path:

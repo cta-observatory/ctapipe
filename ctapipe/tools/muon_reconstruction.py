@@ -84,10 +84,13 @@ class MuonAnalysis(Tool):
     }
 
     flags = {
-        ("f", "overwrite"): (
-            {"MuonAnalysis": {"overwrite": True}},
-            "overwrite output file",
-        )
+        "f": ({"MuonAnalysis": {"overwrite": True}}, "Overwrite output file"),
+        **flag(
+            "overwrite",
+            "MuonAnalysis.overwrite",
+            "Overwrite output file",
+            "Don't overwrite output file",
+        ),
     }
 
     def setup(self):

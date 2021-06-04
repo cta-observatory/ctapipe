@@ -44,37 +44,41 @@ class Stage1Tool(Tool):
     }
 
     flags = {
-        ("f", "overwrite"): (
+        "f": (
             {"DataWriter": {"overwrite": True}},
             "Overwrite output file if it exists",
         ),
-        "progress": (
-            {"Stage1Tool": {"progress_bar": True}},
-            "show a progress bar during event processing",
+        **flag(
+            "overwrite",
+            "DataWriter.overwrite",
+            "Overwrite output file if it exists",
+            "Don't overwrite output file if it exists",
         ),
-    }
-    _flags = [
-        flag(
+        **flag(
+            "progress",
+            "Stage1Tool.progress_bar",
+            "show a progress bar during event processing",
+            "don't show a progress bar during event processing",
+        ),
+        **flag(
             "write-images",
             "DataWriter.write_images",
             "store DL1/Event/Telescope images in output",
             "don't store DL1/Event/Telescope images in output",
         ),
-        flag(
+        **flag(
             "write-parameters",
             "DataWriter.write_parameters",
             "store DL1/Event/Telescope parameters in output",
             "don't store DL1/Event/Telescope parameters in output",
         ),
-        flag(
+        **flag(
             "write-index-tables",
             "DataWriter.write_index_tables",
             "generate PyTables index tables for the parameter and image datasets",
             "don't generate PyTables index tables for the parameter and image datasets",
         ),
-    ]
-    for f in _flags:
-        flags.update(f)
+    }
 
     classes = (
         [CameraCalibrator, DataWriter, ImageProcessor]

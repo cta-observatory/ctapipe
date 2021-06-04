@@ -44,10 +44,16 @@ class DumpTriggersTool(Tool):
     )
 
     flags = {
-        ("f", "overwrite"): (
+        "f": (
             {"DumpTriggersTool": {"overwrite": True}},
             "Enable overwriting of output file",
-        )
+        ),
+        **flag(
+            "overwrite"
+            "DumpTriggersTool.overwrite"
+            "Enable overwriting of output file.",
+            "Disable overwriting of output file.",
+        ),
     }
 
     examples = (
