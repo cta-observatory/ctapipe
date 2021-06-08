@@ -251,6 +251,10 @@ class DataWriter(Component):
         # write telescope event data
         self._write_dl1_telescope_events(self._writer, event)
 
+        # write muons
+        if self.write_muons:
+            self._write_muon_events(self._writer, event)
+
         # write DL2 info if requested
         if self.write_mono_shower:
             self._write_dl2_telescope_events(self._writer, event)
@@ -354,6 +358,7 @@ class DataWriter(Component):
         writer.exclude("dl1/event/subarray/trigger", "tel")
         writer.exclude("dl1/monitoring/subarray/pointing", "tel")
         writer.exclude("/dl1/event/telescope/images/.*", "parameters")
+        writer.exclude("dl1/event/telescope/images/.*", "muon_parameters")
 
         # currently the trigger info is used for the event time, but we dont'
         # want the other bits of the trigger container in the pointing or other
@@ -368,9 +373,6 @@ class DataWriter(Component):
 
         if self.write_parameters is False:
             writer.exclude("/dl1/event/telescope/images/.*", "image_mask")
-
-        if self.write_muons is False:
-            writer.exclude("dl1/event/telescope/images/.*", "muon_parameters")
 
         if self._is_simulation:
             writer.exclude("/simulation/event/telescope/images/.*", "true_parameters")
@@ -515,14 +517,10 @@ class DataWriter(Component):
                         containers=hist_container,
                     )
 
-    def write_muon_events(self, event: ArrayEventContainer):
+    def _write_muon_events(self, writer: TableWriter, event: ArrayEventContainer):
         """
         add muon entries to the event/telescope tables for each muon event
         """
-        # perform delayed initialization on first event
-        if self._writer is None:
-            self.setup()
-
         # write the telescope tables
         for tel_id, dl1_camera in event.dl1.tel.items():
             if dl1_camera.muon_parameters is None:
@@ -544,7 +542,7 @@ class DataWriter(Component):
                 else str(telescope)
             )
 
-            self._writer.write(
+            writer.write(
                 table_name=f"dl1/event/telescope/muon_parameters/{table_name}",
                 containers=[tel_index, *dl1_camera.muon_parameters.values()],
             )

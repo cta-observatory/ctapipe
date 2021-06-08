@@ -159,11 +159,11 @@ class Stage1Tool(Tool):
             self.calibrate(event)
             if self.write_dl1.write_parameters:
                 self.process_images(event)
-            self.write_dl1(event)
 
             if self.write_dl1.write_muons:
                 self.process_muon(event)
-                self.write_dl1.write_muon_events(event)
+
+            self.write_dl1(event)
 
     def finish(self):
         self.write_dl1.write_simulation_histograms(self.event_source)
