@@ -2,6 +2,7 @@
 Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
 """
 import sys
+from tqdm.auto import tqdm
 
 from ..calib import CameraCalibrator, GainSelector
 from ..core import QualityQuery, Tool
