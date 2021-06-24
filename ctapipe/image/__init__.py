@@ -50,12 +50,6 @@ from .extractor import (
     integration_correction,
 )
 from .reducer import DataVolumeReducer, NullDataVolumeReducer, TailCutsDataVolumeReducer
-from .geometry_converter import (
-    convert_geometry_hex1d_to_rect2d,
-    convert_geometry_rect2d_back_to_hex1d,
-    convert_rect_image_1d_to_2d,
-    convert_rect_image_back_to_1d,
-)
 from .muon import (
     MuonIntensityFitter,
     MuonRingFitter,
@@ -103,10 +97,6 @@ __all__ = [
     "intensity_ratio_inside_ring",
     "ring_completeness",
     "ring_containment",
-    "convert_geometry_hex1d_to_rect2d",
-    "convert_geometry_rect2d_back_to_hex1d",
-    "convert_rect_image_1d_to_2d",
-    "convert_rect_image_back_to_1d",
     "ImageExtractor",
     "FullWaveformSum",
     "FixedWindowSum",
