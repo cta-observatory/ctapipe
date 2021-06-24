@@ -15,6 +15,13 @@ from scipy.sparse import lil_matrix, csr_matrix
 from scipy.spatial import cKDTree as KDTree
 
 from ctapipe.coordinates import CameraFrame
+from .image_conversion import (
+    unskew_hex_pixel_grid,
+    reskew_hex_pixel_grid,
+    reskew_hex_pixel_from_orthogonal_edges,
+    get_orthogonal_grid_edges,
+    get_orthogonal_grid_indices,
+)
 from ctapipe.utils import get_table_dataset
 from ctapipe.utils.linalg import rotation_matrix_2d
 from enum import Enum, unique
@@ -163,6 +170,28 @@ class CameraGeometry:
 
         if apply_derotation:
             self.rotate(self.cam_rotation)
+
+        if self.pix_type == PixelShape.HEXAGON:
+            rot_x, rot_y = unskew_hex_pixel_grid(
+                self.pix_x, self.pix_y, cam_angle=30 * u.deg - self.pix_rotation
+            )
+            x_edges, y_edges, x_scale = get_orthogonal_grid_edges(
+                rot_x.to_value(u.m), rot_y.to_value(u.m)
+            )
+            square_mask = np.histogramdd(
+                [rot_y.to_value(u.m), rot_x.to_value(u.m)], bins=(y_edges, x_edges)
+            )[0].astype(bool)
+            grid_x, grid_y = np.meshgrid(
+                (x_edges[:-1] + x_edges[1:]) / 2.0, (y_edges[:-1] + y_edges[1:]) / 2.0
+            )
+            hex_to_rect_map = np.histogramdd(
+                [rot_y.to_value(u.m), rot_x.to_value(u.m)],
+                bins=(y_edges, x_edges),
+                weights=np.arange(len(self.pix_x)),
+            )[0].astype(int)
+            hex_to_rect_map[~square_mask] = -1
+            self.square_mask = square_mask
+            self.hex_to_rect_map = hex_to_rect_map
 
         # cache border pixel mask per instance
         self.border_cache = {}
@@ -341,8 +370,7 @@ class CameraGeometry:
 
     @lazyproperty
     def _pixel_circumradius(self):
-        """ pixel circumference radius/radii based on pixel area and layout
-        """
+        """pixel circumference radius/radii based on pixel area and layout"""
 
         if self.pix_type == PixelShape.HEXAGON:
             circum_rad = self.pixel_width / np.sqrt(3)
@@ -393,9 +421,25 @@ class CameraGeometry:
         -------
         1d array
         """
-        if self.pix_type != PixelShape.SQUARE:
-            raise TypeError("Rows are only defined for square pixels")
-        rows = pos_to_index(self.pix_y, np.sqrt(self.pix_area))
+        if self.pix_type == PixelShape.HEXAGON:
+            rot_x, rot_y = unskew_hex_pixel_grid(
+                self.pix_x, self.pix_y, cam_angle=30 * u.deg - self.pix_rotation
+            )
+            x_edges, y_edges, x_scale = get_orthogonal_grid_edges(
+                rot_x.to_value(u.m), rot_y.to_value(u.m)
+            )
+            rows = get_orthogonal_grid_indices(
+                rot_y, np.diff(y_edges)[0] * self.pix_y.unit
+            )
+        elif self.pix_type is PixelShape.SQUARE:
+            rows = get_orthogonal_grid_indices(self.pix_y, np.sqrt(self.pix_area))
+        else:
+            raise Exception(
+                "Pixel rows are currently only defined "
+                "for square and hexagonal pixel shapes. "
+                f"This geometry uses {self.pix_type} pixels."
+            )
+
         return rows
 
     @lazyproperty
@@ -408,10 +452,61 @@ class CameraGeometry:
         -------
         1d array
         """
-        if self.pix_type != PixelShape.SQUARE:
-            raise TypeError("Columns are only defined for square pixels")
-        columns = pos_to_index(self.pix_x, np.sqrt(self.pix_area))
+        if self.pix_type == PixelShape.HEXAGON:
+            rot_x, rot_y = unskew_hex_pixel_grid(
+                self.pix_x, self.pix_y, cam_angle=30 * u.deg - self.pix_rotation
+            )
+            x_edges, y_edges, x_scale = get_orthogonal_grid_edges(
+                rot_x.to_value(u.m), rot_y.to_value(u.m)
+            )
+            columns = get_orthogonal_grid_indices(
+                rot_x, np.diff(x_edges)[0] * self.pix_x.unit
+            )
+        elif self.pix_type is PixelShape.SQUARE:
+            columns = get_orthogonal_grid_indices(self.pix_x, np.sqrt(self.pix_area))
+        else:
+            raise Exception(
+                "Pixel columns are currently only defined "
+                "for square and hexagonal pixel shapes. "
+                f"This geometry uses {self.pix_type} pixels."
+            )
         return columns
+
+    def to_regular_image(self, image):
+        """
+        Create a 2D-image from a given flat image.
+        In the case of hexagonal pixels, the resulting
+        image is skewed.
+        """
+        image_2d = np.full(
+            (self.pixel_row.max() + 1, self.pixel_column.max() + 1), np.nan
+        )
+        image_2d[self.pixel_row, self.pixel_column] = image
+
+        if self.pix_type == PixelShape.SQUARE:
+            image_2d = np.flip(image_2d, axis=0)
+        return image_2d
+
+    def regular_image_to_1d(self, image_2d):
+        """
+        Create a 1D-array from a given 2D image.
+
+        Parameters:
+        -----------
+        image_2d: np.ndarray
+            2D image created by the `to_regular_image` function
+            of the same geometry.
+
+        Returns:
+        1d array
+            The image in the 1D format, that is u
+        """
+        if self.pix_type == PixelShape.SQUARE:
+            image_2d = np.flip(image_2d, axis=0)
+        image_flat = np.zeros_like(self.pixel_row, dtype=image_2d.dtype)
+        image_flat[:] = image_2d[tuple((self.pixel_row, self.pixel_column))]
+        image_1d = image_flat
+        return image_1d
 
     @classmethod
     def from_name(cls, camera_name="NectarCam", version=None):
@@ -856,15 +951,3 @@ class CameraGeometry:
 
 class UnknownPixelShapeWarning(UserWarning):
     pass
-
-
-def pos_to_index(pos, size):
-    """
-    Bin pixel positions on a grid with bin widths at least half the pixel size.
-    This can be used to infer the rows and columns of square pixels.
-    """
-    rnd = np.round((pos / size).to_value(u.dimensionless_unscaled), 1)
-    unique = np.sort(np.unique(rnd))
-    mask = np.append(np.diff(unique) > 0.5, True)
-    bins = np.append(unique[mask] - 0.5, unique[-1] + 0.5)
-    return np.digitize(rnd, bins) - 1
