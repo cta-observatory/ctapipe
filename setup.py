@@ -82,7 +82,5 @@ setup(
     ],
     zip_safe=False,
     entry_points=entry_points,
-    package_data={
-        "": ["tools/bokeh/*.yaml", "tools/bokeh/templates/*.html", "examples/*.json"]
-    },
+    package_data={"": ["tools/bokeh/*.yaml", "tools/bokeh/templates/*.html"]},
 )
