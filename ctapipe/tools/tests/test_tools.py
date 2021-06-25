@@ -5,6 +5,11 @@ Test individual tool functionality
 import subprocess
 import sys
 
+try:
+    from importlib.resources import files
+except ImportError:
+    from importlib_resources import files
+
 import matplotlib as mpl
 import numpy as np
 import tables
