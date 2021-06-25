@@ -444,17 +444,30 @@ class CameraGeometry:
 
     def to_regular_image(self, image):
         """
-        Create a 2D-image from a given flat image.
+        Create a 2D-image from a given flat image or multiple flat images.
         In the case of hexagonal pixels, the resulting
-        image is skewed.
+        image is skewed to match a rectangular grid.
+
+        Parameters:
+        -----------
+        image: np.ndarray
+            One or multiple images of shape
+            (n_images, n_pixels) or (n_pixels) for a single image.
+
+        Returns:
+        --------
+        image_2s: np.ndarray
+            The transformed image of shape (n_images, n_rows, n_cols).
+            For a single image the leading dimension is omitted.
         """
         rows, cols = self._pixel_positions_2d
-        image_2d = np.full((rows.max() + 1, cols.max() + 1), np.nan)
-        image_2d[rows, cols] = image
-
+        image = np.atleast_2d(image)  # this allows for multiple images at once
+        image_2d = np.full((image.shape[0], rows.max() + 1, cols.max() + 1), np.nan)
+        image_2d[:, rows, cols] = image
+        # for hexagonal pixels this is encoded in the row/cols
         if self.pix_type == PixelShape.SQUARE:
-            image_2d = np.flip(image_2d, axis=0)
-        return image_2d
+            image_2d = np.flip(image_2d, axis=1)
+        return np.squeeze(image_2d)  # removes the extra dimension for single images
 
     def regular_image_to_1d(self, image_2d):
         """
@@ -465,18 +478,27 @@ class CameraGeometry:
         image_2d: np.ndarray
             2D image created by the `to_regular_image` function
             of the same geometry.
+            shape is expected to be:
+            (n_images, n_rows, n_cols) or (n_rows, n_cols) for a single image.
 
         Returns:
+        --------
         1d array
-            The image in the 1D format, that is u
+            The image in the 1D format, which has shape (n_images, n_pixels).
+            For single images the leading dimension is omitted.
         """
         rows, cols = self._pixel_positions_2d
+        # np.atleast3d would introduce the extra dimension at the end, which leads
+        # to a different shape compared to a multi image array
+        if image_2d.ndim == 2:
+            image_2d = image_2d[np.newaxis, :]
+        # for hexagonal pixels this is encoded in the row/cols
         if self.pix_type == PixelShape.SQUARE:
-            image_2d = np.flip(image_2d, axis=0)
-        image_flat = np.zeros_like(rows, dtype=image_2d.dtype)
-        image_flat[:] = image_2d[tuple((rows, cols))]
+            image_2d = np.flip(image_2d, axis=1)
+        image_flat = np.zeros((image_2d.shape[0], rows.shape[0]), dtype=image_2d.dtype)
+        image_flat[:] = image_2d[:, rows, cols]
         image_1d = image_flat
-        return image_1d
+        return np.squeeze(image_1d)
 
     @classmethod
     def from_name(cls, camera_name="NectarCam", version=None):
