@@ -171,29 +171,7 @@ class CameraGeometry:
         if apply_derotation:
             self.rotate(self.cam_rotation)
 
-        if self.pix_type == PixelShape.HEXAGON:
-            rot_x, rot_y = unskew_hex_pixel_grid(
-                self.pix_x, self.pix_y, cam_angle=30 * u.deg - self.pix_rotation
-            )
-            x_edges, y_edges, x_scale = get_orthogonal_grid_edges(
-                rot_x.to_value(u.m), rot_y.to_value(u.m)
-            )
-            square_mask = np.histogramdd(
-                [rot_y.to_value(u.m), rot_x.to_value(u.m)], bins=(y_edges, x_edges)
-            )[0].astype(bool)
-            grid_x, grid_y = np.meshgrid(
-                (x_edges[:-1] + x_edges[1:]) / 2.0, (y_edges[:-1] + y_edges[1:]) / 2.0
-            )
-            hex_to_rect_map = np.histogramdd(
-                [rot_y.to_value(u.m), rot_x.to_value(u.m)],
-                bins=(y_edges, x_edges),
-                weights=np.arange(len(self.pix_x)),
-            )[0].astype(int)
-            hex_to_rect_map[~square_mask] = -1
-            self.square_mask = square_mask
-            self.hex_to_rect_map = hex_to_rect_map
-
-        # cache border pixel mask per instance
+            # cache border pixel mask per instance
         self.border_cache = {}
 
     def __eq__(self, other):
@@ -412,45 +390,15 @@ class CameraGeometry:
         return ~np.any(~np.isclose(self.pix_area.value, self.pix_area[0].value), axis=0)
 
     @lazyproperty
-    def pixel_row(self):
+    def _pixel_positions_2d(self):
         """
-        For square pixels:
-        The row each pixel in the flat array ends in if converted to a 2d array.
-
-        Returns
-        -------
-        1d array
-        """
-        if self.pix_type == PixelShape.HEXAGON:
-            rot_x, rot_y = unskew_hex_pixel_grid(
-                self.pix_x, self.pix_y, cam_angle=30 * u.deg - self.pix_rotation
-            )
-            x_edges, y_edges, x_scale = get_orthogonal_grid_edges(
-                rot_x.to_value(u.m), rot_y.to_value(u.m)
-            )
-            rows = get_orthogonal_grid_indices(
-                rot_y, np.diff(y_edges)[0] * self.pix_y.unit
-            )
-        elif self.pix_type is PixelShape.SQUARE:
-            rows = get_orthogonal_grid_indices(self.pix_y, np.sqrt(self.pix_area))
-        else:
-            raise Exception(
-                "Pixel rows are currently only defined "
-                "for square and hexagonal pixel shapes. "
-                f"This geometry uses {self.pix_type} pixels."
-            )
-
-        return rows
-
-    @lazyproperty
-    def pixel_column(self):
-        """
-        For square pixels:
-        The column each pixel in the flat array ends in if converted to a 2d array.
-
-        Returns
-        -------
-        1d array
+        In order for hexagonal pixels to behave as if they were
+        square, the grid has to be distorted.
+        Namely, slanting and stretching of the 1d pixel positions
+        to align them nicely.
+        Beware, that this means the pixels have different sizes
+        on the orthogonal grid compared to the actual sizes.
+        ONLY SQUARE AND HEXAGONAL PIXELS
         """
         if self.pix_type == PixelShape.HEXAGON:
             rot_x, rot_y = unskew_hex_pixel_grid(
@@ -459,18 +407,40 @@ class CameraGeometry:
             x_edges, y_edges, x_scale = get_orthogonal_grid_edges(
                 rot_x.to_value(u.m), rot_y.to_value(u.m)
             )
-            columns = get_orthogonal_grid_indices(
-                rot_x, np.diff(x_edges)[0] * self.pix_x.unit
+            square_mask = np.histogramdd(
+                [rot_y.to_value(u.m), rot_x.to_value(u.m)], bins=(y_edges, x_edges)
+            )[0].astype(bool)
+            grid_x, grid_y = np.meshgrid(
+                (x_edges[:-1] + x_edges[1:]) / 2.0, (y_edges[:-1] + y_edges[1:]) / 2.0
             )
+            hex_to_rect_map = np.histogramdd(
+                [rot_y.to_value(u.m), rot_x.to_value(u.m)],
+                bins=(y_edges, x_edges),
+                weights=np.arange(len(self.pix_x)),
+            )[0].astype(int)
+            hex_to_rect_map[~square_mask] = -1
+            rows_2d = np.zeros(hex_to_rect_map.shape)
+            rows_2d.T[:] = np.arange(hex_to_rect_map.shape[0])
+            rows_1d = np.zeros(self.pix_x.shape, dtype=np.int32)
+            rows_1d[hex_to_rect_map[..., square_mask]] = np.squeeze(
+                np.rollaxis(np.atleast_3d(rows_2d), 2, 0)
+            )[..., square_mask]
+            cols_2d = np.zeros(hex_to_rect_map.shape)
+            cols_2d[:] = np.arange(hex_to_rect_map.shape[1])
+            cols_1d = np.zeros(self.pix_x.shape, dtype=np.int32)
+            cols_1d[hex_to_rect_map[..., square_mask]] = np.squeeze(
+                np.rollaxis(np.atleast_3d(cols_2d), 2, 0)
+            )[..., square_mask]
+            pixel_row = rows_1d
+            pixel_column = cols_1d
+
         elif self.pix_type is PixelShape.SQUARE:
-            columns = get_orthogonal_grid_indices(self.pix_x, np.sqrt(self.pix_area))
-        else:
-            raise Exception(
-                "Pixel columns are currently only defined "
-                "for square and hexagonal pixel shapes. "
-                f"This geometry uses {self.pix_type} pixels."
+            pixel_row = get_orthogonal_grid_indices(self.pix_y, np.sqrt(self.pix_area))
+            pixel_column = get_orthogonal_grid_indices(
+                self.pix_x, np.sqrt(self.pix_area)
             )
-        return columns
+
+        return (pixel_row, pixel_column)
 
     def to_regular_image(self, image):
         """
@@ -478,10 +448,9 @@ class CameraGeometry:
         In the case of hexagonal pixels, the resulting
         image is skewed.
         """
-        image_2d = np.full(
-            (self.pixel_row.max() + 1, self.pixel_column.max() + 1), np.nan
-        )
-        image_2d[self.pixel_row, self.pixel_column] = image
+        rows, cols = self._pixel_positions_2d
+        image_2d = np.full((rows.max() + 1, cols.max() + 1), np.nan)
+        image_2d[rows, cols] = image
 
         if self.pix_type == PixelShape.SQUARE:
             image_2d = np.flip(image_2d, axis=0)
@@ -501,10 +470,11 @@ class CameraGeometry:
         1d array
             The image in the 1D format, that is u
         """
+        rows, cols = self._pixel_positions_2d
         if self.pix_type == PixelShape.SQUARE:
             image_2d = np.flip(image_2d, axis=0)
-        image_flat = np.zeros_like(self.pixel_row, dtype=image_2d.dtype)
-        image_flat[:] = image_2d[tuple((self.pixel_row, self.pixel_column))]
+        image_flat = np.zeros_like(rows, dtype=image_2d.dtype)
+        image_flat[:] = image_2d[tuple((rows, cols))]
         image_1d = image_flat
         return image_1d
 
