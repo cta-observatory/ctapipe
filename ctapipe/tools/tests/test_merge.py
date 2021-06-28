@@ -117,6 +117,7 @@ def test_allowed_tels(tmp_path, gamma_dl1_path, proton_dl1_path):
             str(proton_dl1_path),
             f"--output={output}",
             "--allowed-tels=[1,2]",
+            "--split_datasets_by=tel_type",
             "--overwrite",
         ],
         cwd=tmp_path,
