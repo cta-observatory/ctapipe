@@ -1,6 +1,5 @@
-import numpy as np
 from bokeh.layouts import layout, column
-from bokeh.models import Select, Span
+from bokeh.models import Select
 from ctapipe.core import Component
 from ctapipe.visualization.bokeh import CameraDisplay, WaveformDisplay
 

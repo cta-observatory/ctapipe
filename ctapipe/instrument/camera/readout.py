@@ -7,7 +7,6 @@ import logging
 import numpy as np
 from astropy import units as u
 from astropy.table import Table
-from scipy.stats import norm
 from ctapipe.utils import get_table_dataset
 
 

@@ -200,7 +200,7 @@ def test_invalid_events():
             try:
                 moments = hillas_parameters(geom[mask], dl1.image[mask])
                 hillas_dict[tel_id] = moments
-            except HillasParameterizationError as e:
+            except HillasParameterizationError:
                 continue
 
         # construct a dict only containing the last telescope events

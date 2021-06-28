@@ -1,4 +1,3 @@
-import shutil
 import pytest
 import tempfile
 
@@ -91,7 +90,6 @@ def test_skip_images(tmp_path, gamma_dl1_path, proton_dl1_path):
 
     # create a second file so we can test the patterns
     output = tmp_path / "merged_no_images.dl1.h5"
-
     ret = run_tool(
         MergeTool(),
         argv=[
@@ -106,7 +104,27 @@ def test_skip_images(tmp_path, gamma_dl1_path, proton_dl1_path):
     assert ret == 0
 
 
-def test_split_datasets_by(tmp_path, gamma_dl1_path):
+def test_allowed_tels(tmp_path, gamma_dl1_path, proton_dl1_path):
+    from ctapipe.tools.dl1_merge import MergeTool
+
+    # create file to test 'allowed-tels' option
+    output = tmp_path / "merged_allowed_tels.dl1.h5"
+
+    ret = run_tool(
+        MergeTool(),
+        argv=[
+            str(gamma_dl1_path),
+            str(proton_dl1_path),
+            f"--output={output}",
+            "--allowed-tels=[1,2]",
+            "--overwrite",
+        ],
+        cwd=tmp_path,
+    )
+    assert ret == 0
+
+
+def test_split_datasets_by(tmp_path, gamma_dl1_path, proton_dl1_path):
     from ctapipe.tools.dl1_merge import MergeTool
 
     # create a second file so we can test the split by tel type
@@ -116,6 +134,7 @@ def test_split_datasets_by(tmp_path, gamma_dl1_path):
         MergeTool(),
         argv=[
             str(gamma_dl1_path),
+            str(proton_dl1_path),
             f"--output={output}",
             "--split_datasets_by=tel_type",
             "--overwrite",

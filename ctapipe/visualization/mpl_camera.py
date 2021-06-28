@@ -11,7 +11,6 @@ from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.colors import Normalize, LogNorm, SymLogNorm
 from matplotlib.patches import Ellipse, RegularPolygon, Rectangle, Circle
-from numpy import sqrt
 
 from ctapipe.instrument import PixelShape
 
