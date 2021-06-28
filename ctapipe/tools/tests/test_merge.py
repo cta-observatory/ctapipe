@@ -104,3 +104,22 @@ def test_skip_images(tmp_path, gamma_dl1_path, proton_dl1_path):
         cwd=tmp_path,
     )
     assert ret == 0
+
+
+def test_split_datasets_by(tmp_path, gamma_dl1_path):
+    from ctapipe.tools.dl1_merge import MergeTool
+
+    # create a second file so we can test the split by tel type
+    output = tmp_path / "split_datasets_by_tel_type.dl1.h5"
+
+    ret = run_tool(
+        MergeTool(),
+        argv=[
+            str(gamma_dl1_path),
+            f"--output={output}",
+            "--split_datasets_by=tel_type",
+            "--overwrite",
+        ],
+        cwd=tmp_path,
+    )
+    assert ret == 0

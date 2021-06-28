@@ -310,7 +310,7 @@ class MergeTool(Tool):
                         for tel_name in self.allowed_tel_names:
                             tel_type = None
                             if self.split_datasets_by == "tel_type":
-                                tel_id = int(tel_name.replace('tel_',''))
+                                tel_id = int(tel_name.replace("tel_", ""))
                                 tel_type = str(self.first_subarray.tels[tel_id])
                             if tel_name in file.root[node]:
                                 self._copy_or_append_tel_table(
@@ -322,7 +322,7 @@ class MergeTool(Tool):
                     for tel in file.root[node]:
                         tel_type = None
                         if self.split_datasets_by == "tel_type":
-                            tel_id = int(tel.name.replace('tel_',''))
+                            tel_id = int(tel.name.replace("tel_", ""))
                             tel_type = str(self.first_subarray.tels[tel_id])
                         self._copy_or_append_tel_table(file, node, tel.name, tel_type)
 
