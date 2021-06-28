@@ -413,12 +413,12 @@ class CameraGeometry:
                 rot_x.to_value(u.m), rot_y.to_value(u.m)
             )
             square_mask = np.histogramdd(
-                [rot_y.to_value(u.m), rot_x.to_value(u.m)], bins=(y_edges, x_edges)
+                [rot_x.to_value(u.m), rot_y.to_value(u.m)], bins=(x_edges, y_edges)
             )[0].astype(bool)
             hex_to_rect_map = np.histogramdd(
-                [rot_y.to_value(u.m), rot_x.to_value(u.m)],
-                bins=(y_edges, x_edges),
-                weights=np.arange(len(self.pix_x)),
+                [rot_x.to_value(u.m), rot_y.to_value(u.m)],
+                bins=(x_edges, y_edges),
+                weights=np.arange(len(self.pix_y)),
             )[0].astype(int)
             hex_to_rect_map[~square_mask] = -1
             rows_2d = np.zeros(hex_to_rect_map.shape)
@@ -466,9 +466,10 @@ class CameraGeometry:
         image = np.atleast_2d(image)  # this allows for multiple images at once
         image_2d = np.full((image.shape[0], rows.max() + 1, cols.max() + 1), np.nan)
         image_2d[:, rows, cols] = image
-        # for hexagonal pixels this is taken care of by the grid rotation
         if self.pix_type == PixelShape.SQUARE:
             image_2d = np.flip(image_2d, axis=1)
+        else:
+            image_2d = np.flip(image_2d)
         return np.squeeze(image_2d)  # removes the extra dimension for single images
 
     def regular_image_to_1d(self, image_2d):
@@ -494,9 +495,10 @@ class CameraGeometry:
         # to a different shape compared to a multi image array
         if image_2d.ndim == 2:
             image_2d = image_2d[np.newaxis, :]
-        # for hexagonal pixels this is taken care of by the grid rotation
         if self.pix_type == PixelShape.SQUARE:
             image_2d = np.flip(image_2d, axis=1)
+        else:
+            image_2d = np.flip(image_2d)
         image_flat = np.zeros((image_2d.shape[0], rows.shape[0]), dtype=image_2d.dtype)
         image_flat[:] = image_2d[:, rows, cols]
         image_1d = image_flat
