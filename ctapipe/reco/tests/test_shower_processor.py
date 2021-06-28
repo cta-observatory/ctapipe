@@ -1,7 +1,6 @@
 """
 Tests for ShowerProcessor functionalities.
 """
-import pytest
 from numpy import isfinite
 
 from traitlets.config.loader import Config
@@ -24,9 +23,7 @@ def test_shower_processor_geometry(example_event, example_subarray):
         image_cleaner_type="MARSImageCleaner",
     )
 
-    process_shower = ShowerProcessor(
-        subarray=example_subarray
-    )
+    process_shower = ShowerProcessor(subarray=example_subarray)
 
     calibrate(example_event)
     process_images(example_event)
@@ -45,12 +42,11 @@ def test_shower_processor_geometry(example_event, example_subarray):
     assert isfinite(DL2a.average_intensity)
 
     # Increase some quality cuts and check that we get defaults
-    config.ShowerQualityQuery.quality_criteria = [("> 500 phes", "lambda p: p.hillas.intensity > 500")]
+    config.ShowerQualityQuery.quality_criteria = [
+        ("> 500 phes", "lambda p: p.hillas.intensity > 500")
+    ]
 
-    process_shower = ShowerProcessor(
-        config=config,
-        subarray=example_subarray
-    )
+    process_shower = ShowerProcessor(config=config, subarray=example_subarray)
 
     process_shower(example_event)
     print(process_shower.check_shower.to_table())

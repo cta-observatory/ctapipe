@@ -4,7 +4,7 @@ from pathlib import Path
 import logging
 from tqdm.auto import tqdm
 from urllib.parse import urlparse
-import time
+from .filelock import FileLock
 
 __all__ = ["download_file", "download_cached", "download_file_cached"]
 
@@ -81,32 +81,28 @@ def download_cached(
 ):
     path = get_cache_path(url, cache_name=cache_name)
     path.parent.mkdir(parents=True, exist_ok=True)
-    part_file = path.with_suffix(path.suffix + ".part")
+    lock_file = path.with_suffix(path.suffix + ".lock")
 
-    if part_file.is_file():
-        log.warning("Another download for this file is already running, waiting.")
-        while part_file.is_file():
-            time.sleep(1)
+    with FileLock(lock_file):
+        # if we already dowloaded the file, just use it
+        if path.is_file():
+            log.debug(f"{url} is available in cache.")
+            return path
 
-    # if we already dowloaded the file, just use it
-    if path.is_file():
-        log.debug(f"{url} is available in cache.")
+        if auth is True:
+            try:
+                auth = (
+                    os.environ[env_prefix + "USER"],
+                    os.environ[env_prefix + "PASSWORD"],
+                )
+            except KeyError:
+                raise KeyError(
+                    f'You need to set the env variables "{env_prefix}USER"'
+                    f' and "{env_prefix}PASSWORD" to download test files.'
+                ) from None
+
+        download_file(url=url, path=path, auth=auth, progress=progress)
         return path
-
-    if auth is True:
-        try:
-            auth = (
-                os.environ[env_prefix + "USER"],
-                os.environ[env_prefix + "PASSWORD"],
-            )
-        except KeyError:
-            raise KeyError(
-                f'You need to set the env variables "{env_prefix}USER"'
-                f' and "{env_prefix}PASSWORD" to download test files.'
-            ) from None
-
-    download_file(url=url, path=path, auth=auth, progress=progress)
-    return path
 
 
 def download_file_cached(

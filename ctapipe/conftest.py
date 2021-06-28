@@ -9,14 +9,30 @@ from copy import deepcopy
 from ctapipe.io import SimTelEventSource
 from ctapipe.utils import get_dataset_path
 from ctapipe.instrument import CameraGeometry
+from ctapipe.utils.filelock import FileLock
 
 
-@pytest.fixture(scope="session")
-def camera_geometries():
-    return [
-        CameraGeometry.from_name(name)
-        for name in ["LSTCam", "NectarCam", "CHEC", "FlashCam", "MAGICCam"]
-    ]
+# names of camera geometries available on the data server
+camera_names = [
+    "ASTRICam",
+    "CHEC",
+    "DigiCam",
+    "FACT",
+    "FlashCam",
+    "HESS-I",
+    "HESS-II",
+    "LSTCam",
+    "MAGICCam",
+    "NectarCam",
+    "SCTCam",
+    "VERITAS",
+    "Whipple490",
+]
+
+
+@pytest.fixture(scope="session", params=camera_names)
+def camera_geometry(request):
+    return CameraGeometry.from_name(request.param)
 
 
 @pytest.fixture(scope="session")
@@ -120,3 +136,117 @@ def prod5_proton_simtel_path():
     return get_dataset_path(
         "proton_20deg_0deg_run4___cta-prod5-paranal_desert-2147m-Paranal-dark-100evts.simtel.zst"
     )
+
+
+@pytest.fixture(scope="session")
+def dl1_tmp_path(tmp_path_factory):
+    return tmp_path_factory.mktemp("dl1")
+
+
+@pytest.fixture(scope="session")
+def dl1_file(dl1_tmp_path):
+    """
+    DL1 file containing both images and parameters from a gamma simulation set.
+    """
+    from ctapipe.tools.stage1 import Stage1Tool
+    from ctapipe.core import run_tool
+
+    output = dl1_tmp_path / "images.dl1.h5"
+
+    # prevent running stage1 multiple times in case of parallel tests
+    with FileLock(output.with_suffix(output.suffix + ".lock")):
+        if output.is_file():
+            return output
+
+        infile = get_dataset_path("gamma_test_large.simtel.gz")
+
+        argv = [
+            f"--input={infile}",
+            f"--output={output}",
+            "--write-images",
+            "--max-events=20",
+            "--allowed-tels=[1,2,3]",
+        ]
+        assert run_tool(Stage1Tool(), argv=argv, cwd=dl1_tmp_path) == 0
+        return output
+
+
+@pytest.fixture(scope="session")
+def dl1_image_file(dl1_tmp_path,):
+    """
+    DL1 file containing only images (DL1A) from a gamma simulation set.
+    """
+    from ctapipe.tools.stage1 import Stage1Tool
+    from ctapipe.core import run_tool
+
+    output = dl1_tmp_path / "images.dl1.h5"
+
+    # prevent running stage1 multiple times in case of parallel tests
+    with FileLock(output.with_suffix(output.suffix + ".lock")):
+        if output.is_file():
+            return output
+
+        infile = get_dataset_path("gamma_test_large.simtel.gz")
+        argv = [
+            f"--input={infile}",
+            f"--output={output}",
+            "--write-images",
+            "--DataWriter.write_parameters=False",
+            "--max-events=20",
+            "--allowed-tels=[1,2,3]",
+        ]
+        assert run_tool(Stage1Tool(), argv=argv, cwd=dl1_tmp_path) == 0
+        return output
+
+
+@pytest.fixture(scope="session")
+def dl1_parameters_file(dl1_tmp_path):
+    """
+    DL1 File containing only parameters (DL1B) from a gamma simulation set.
+    """
+    from ctapipe.tools.stage1 import Stage1Tool
+    from ctapipe.core import run_tool
+
+    output = dl1_tmp_path / "parameters.dl1.h5"
+
+    # prevent running stage1 multiple times in case of parallel tests
+    with FileLock(output.with_suffix(output.suffix + ".lock")):
+        if output.is_file():
+            return output
+
+        infile = get_dataset_path("gamma_test_large.simtel.gz")
+        argv = [
+            f"--input={infile}",
+            f"--output={output}",
+            "--write-parameters",
+            "--max-events=20",
+            "--allowed-tels=[1,2,3]",
+        ]
+        assert run_tool(Stage1Tool(), argv=argv, cwd=dl1_tmp_path) == 0
+        return output
+
+
+@pytest.fixture(scope="session")
+def dl1_muon_file(dl1_tmp_path):
+    """
+    DL1 file containing only images from a muon simulation set.
+    """
+    from ctapipe.tools.stage1 import Stage1Tool
+    from ctapipe.core import run_tool
+
+    output = dl1_tmp_path / "muons.dl1.h5"
+
+    # prevent running stage1 multiple times in case of parallel tests
+    with FileLock(output.with_suffix(output.suffix + ".lock")):
+        if output.is_file():
+            return output
+
+        infile = get_dataset_path("lst_muons.simtel.zst")
+        argv = [
+            f"--input={infile}",
+            f"--output={output}",
+            "--write-images",
+            "--DataWriter.write_parameters=False",
+        ]
+        assert run_tool(Stage1Tool(), argv=argv, cwd=dl1_tmp_path) == 0
+        return output

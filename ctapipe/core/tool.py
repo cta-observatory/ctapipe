@@ -7,7 +7,7 @@ import pathlib
 import os
 import re
 
-from traitlets import default, TraitError
+from traitlets import default
 from traitlets.config import Application, Configurable
 
 from .. import __version__ as version
@@ -286,7 +286,7 @@ class Tool(Application):
 
             # check for any traitlets warnings using our custom handler
             if len(self.trait_warning_handler.errors) > 0:
-                raise ToolConfigurationError(f"Found config errors")
+                raise ToolConfigurationError("Found config errors")
 
             # remove handler to not impact performance with regex matching
             self.log.removeHandler(self.trait_warning_handler)
