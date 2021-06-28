@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.testing import assert_allclose
-from ctapipe.image.toymodel import Gaussian
 import astropy.units as u
+from ctapipe.image.toymodel import Gaussian
 
 
 def create_mock_image(geom, psi=25 * u.deg):

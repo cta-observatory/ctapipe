@@ -409,15 +409,12 @@ class CameraGeometry:
                 self.pix_y,
                 cam_angle=30 * u.deg - self.pix_rotation - self.cam_rotation,
             )
-            x_edges, y_edges, x_scale = get_orthogonal_grid_edges(
+            x_edges, y_edges, _ = get_orthogonal_grid_edges(
                 rot_x.to_value(u.m), rot_y.to_value(u.m)
             )
             square_mask = np.histogramdd(
                 [rot_y.to_value(u.m), rot_x.to_value(u.m)], bins=(y_edges, x_edges)
             )[0].astype(bool)
-            grid_x, grid_y = np.meshgrid(
-                (x_edges[:-1] + x_edges[1:]) / 2.0, (y_edges[:-1] + y_edges[1:]) / 2.0
-            )
             hex_to_rect_map = np.histogramdd(
                 [rot_y.to_value(u.m), rot_x.to_value(u.m)],
                 bins=(y_edges, x_edges),
@@ -445,7 +442,7 @@ class CameraGeometry:
                 self.pix_x, np.sqrt(self.pix_area)
             )
 
-        return (pixel_row, pixel_column)
+        return pixel_row, pixel_column
 
     def to_regular_image(self, image):
         """
