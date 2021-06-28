@@ -17,8 +17,6 @@ from scipy.spatial import cKDTree as KDTree
 from ctapipe.coordinates import CameraFrame
 from .image_conversion import (
     unskew_hex_pixel_grid,
-    reskew_hex_pixel_grid,
-    reskew_hex_pixel_from_orthogonal_edges,
     get_orthogonal_grid_edges,
     get_orthogonal_grid_indices,
 )
@@ -61,7 +59,7 @@ class PixelShape(Enum):
         raise TypeError(f"Unknown pixel shape {name}")
 
 
-#: mapper from simtel pixel shape integerrs to our shape and rotation angle
+#: mapper from simtel pixel shape integers to our shape and rotation angle
 SIMTEL_PIXEL_SHAPES = {
     0: (PixelShape.CIRCLE, Angle(0, u.deg)),
     1: (PixelShape.HEXAGON, Angle(0, u.deg)),
@@ -392,17 +390,24 @@ class CameraGeometry:
     @lazyproperty
     def _pixel_positions_2d(self):
         """
+        Pixel positions on the orthogonal grid of the 2d image.
         In order for hexagonal pixels to behave as if they were
         square, the grid has to be distorted.
         Namely, slanting and stretching of the 1d pixel positions
         to align them nicely.
-        Beware, that this means the pixels have different sizes
-        on the orthogonal grid compared to the actual sizes.
-        ONLY SQUARE AND HEXAGONAL PIXELS
+        Beware, that this means the pixel geometries on this
+        grid to not match the one in the geometry.
+
+        Returns:
+        --------
+        (rows, columns) of each pixel if transformed onto an orthogonal grid
         """
         if self.pix_type == PixelShape.HEXAGON:
+            # cam rotation should be 0 unless the derotation is turned off in the init
             rot_x, rot_y = unskew_hex_pixel_grid(
-                self.pix_x, self.pix_y, cam_angle=30 * u.deg - self.pix_rotation
+                self.pix_x,
+                self.pix_y,
+                cam_angle=30 * u.deg - self.pix_rotation - self.cam_rotation,
             )
             x_edges, y_edges, x_scale = get_orthogonal_grid_edges(
                 rot_x.to_value(u.m), rot_y.to_value(u.m)
@@ -464,7 +469,7 @@ class CameraGeometry:
         image = np.atleast_2d(image)  # this allows for multiple images at once
         image_2d = np.full((image.shape[0], rows.max() + 1, cols.max() + 1), np.nan)
         image_2d[:, rows, cols] = image
-        # for hexagonal pixels this is encoded in the row/cols
+        # for hexagonal pixels this is taken care of by the grid rotation
         if self.pix_type == PixelShape.SQUARE:
             image_2d = np.flip(image_2d, axis=1)
         return np.squeeze(image_2d)  # removes the extra dimension for single images
@@ -492,7 +497,7 @@ class CameraGeometry:
         # to a different shape compared to a multi image array
         if image_2d.ndim == 2:
             image_2d = image_2d[np.newaxis, :]
-        # for hexagonal pixels this is encoded in the row/cols
+        # for hexagonal pixels this is taken care of by the grid rotation
         if self.pix_type == PixelShape.SQUARE:
             image_2d = np.flip(image_2d, axis=1)
         image_flat = np.zeros((image_2d.shape[0], rows.shape[0]), dtype=image_2d.dtype)
