@@ -30,8 +30,8 @@ def test_single_image(camera_geometry):
     and get the same images after transforming back
     """
     image = create_mock_image(camera_geometry)
-    image_2d = camera_geometry.to_regular_image(image)
-    image_1d = camera_geometry.regular_image_to_1d(image_2d)
+    image_2d = camera_geometry.image_to_cartesian_representation(image)
+    image_1d = camera_geometry.image_from_cartesian_representation(image_2d)
     # in general this introduces extra pixels in the 2d array, which are set to nan
     assert np.nansum(image) == np.nansum(image_2d)
     assert_allclose(image, image_1d)
@@ -45,8 +45,8 @@ def test_multiple_images(camera_geometry):
     images = np.array(
         [create_mock_image(camera_geometry, psi=i * 30 * u.deg) for i in range(5)]
     )
-    images_2d = camera_geometry.to_regular_image(images)
-    images_1d = camera_geometry.regular_image_to_1d(images_2d)
+    images_2d = camera_geometry.image_to_cartesian_representation(images)
+    images_1d = camera_geometry.image_from_cartesian_representation(images_2d)
     # in general this introduces extra pixels in the 2d array, which are set to nan
     assert np.nansum(images) == np.nansum(images_2d)
     assert_allclose(images, images_1d)
