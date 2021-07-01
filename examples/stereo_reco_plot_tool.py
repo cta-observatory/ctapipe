@@ -8,10 +8,10 @@ import astropy.units as u
 from astropy.coordinates import AltAz, SkyCoord
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
-from traitlets import Bool, Unicode, Int, List, Dict
+from traitlets import Bool, Unicode, Int
 
 # FROM CTAPIPE
-from ctapipe.core import Component, Tool
+from ctapipe.core import Tool
 from ctapipe.core.traits import classes_with_traits
 from ctapipe.containers import HillasParametersContainer, ImageParametersContainer
 from ctapipe.utils import get_dataset_path
