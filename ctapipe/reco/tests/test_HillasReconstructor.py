@@ -1,5 +1,4 @@
 from copy import deepcopy
-from ctapipe.io.simteleventsource import SimTelEventSource
 import numpy as np
 from astropy import units as u
 import pytest
@@ -8,7 +7,7 @@ from ctapipe.containers import ImageParametersContainer, HillasParametersContain
 from ctapipe.instrument import SubarrayDescription, TelescopeDescription
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
-from ctapipe.io import EventSource
+from ctapipe.io import SimTelEventSource
 from ctapipe.reco.hillas_reconstructor import HillasReconstructor, HillasPlane
 from ctapipe.utils import get_dataset_path
 from ctapipe.coordinates import TelescopeFrame
