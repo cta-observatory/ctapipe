@@ -16,7 +16,7 @@ from ctapipe.reco.reco_algorithms import (
     InvalidWidthException,
     TooFewTelescopesException,
 )
-from ctapipe.containers import ReconstructedShowerContainer
+from ctapipe.containers import ReconstructedGeometryContainer
 from ctapipe.instrument import get_atmosphere_profile_functions
 
 from astropy.coordinates import SkyCoord
@@ -25,7 +25,6 @@ from ctapipe.coordinates import (
     CameraFrame,
     TiltedGroundFrame,
     project_to_ground,
-    GroundFrame,
     MissingFrameAttributeWarning,
 )
 import copy
@@ -186,7 +185,7 @@ class HillasIntersection(Reconstructor):
 
         src_error = np.sqrt(err_x ** 2 + err_y ** 2)
 
-        result = ReconstructedShowerContainer(
+        result = ReconstructedGeometryContainer(
             alt=sky_pos.altaz.alt.to(u.rad),
             az=sky_pos.altaz.az.to(u.rad),
             core_x=grd.x,

@@ -35,7 +35,15 @@ __all__ = ["DL1EventSource"]
 logger = logging.getLogger(__name__)
 
 
-COMPATIBLE_DL1_VERSIONS = ["v1.0.0", "v1.0.1", "v1.0.2", "v1.0.3", "v1.1.0", "v2.0.0"]
+COMPATIBLE_DL1_VERSIONS = [
+    "v1.0.0",
+    "v1.0.1",
+    "v1.0.2",
+    "v1.0.3",
+    "v1.1.0",
+    "v1.2.0",
+    "v2.0.0",
+]
 
 
 class DL1EventSource(EventSource):
@@ -136,7 +144,7 @@ class DL1EventSource(EventSource):
             if "CTA PRODUCT DATA LEVEL" not in metadata._v_attrnames:
                 return False
 
-            if metadata["CTA PRODUCT DATA LEVEL"] != "DL1":
+            if "DL1" not in metadata["CTA PRODUCT DATA LEVEL"]:
                 return False
 
             if "CTA PRODUCT DATA MODEL VERSION" not in metadata._v_attrnames:
