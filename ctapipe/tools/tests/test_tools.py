@@ -60,7 +60,7 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
 
     # check we can read telescope parameters
     dl1_features = pd.read_hdf(
-        dl1b_from_dl1a_file, "/dl1/event/telescope/parameters/tel_001"
+        dl1b_from_dl1a_file, "/dl1/event/telescope/parameters/tel_025"
     )
     features = (
         "obs_id",
