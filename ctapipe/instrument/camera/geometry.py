@@ -402,7 +402,7 @@ class CameraGeometry:
         --------
         (rows, columns) of each pixel if transformed onto an orthogonal grid
         """
-        if self.pix_type == PixelShape.HEXAGON:
+        if self.pix_type in {PixelShape.HEXAGON, PixelShape.CIRCLE}:
             # cam rotation should be 0 unless the derotation is turned off in the init
             rot_x, rot_y = unskew_hex_pixel_grid(
                 self.pix_x,
