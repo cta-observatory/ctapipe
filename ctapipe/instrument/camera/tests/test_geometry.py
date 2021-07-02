@@ -2,28 +2,7 @@
 import numpy as np
 from astropy import units as u
 from ctapipe.instrument import CameraGeometry, PixelShape
-from ctapipe.image.toymodel import Gaussian
 import pytest
-
-
-def create_mock_image(geom):
-    """
-    creates a mock image, which parameters are adapted to the camera size
-    """
-
-    camera_r = np.max(np.sqrt(geom.pix_x ** 2 + geom.pix_y ** 2))
-    model = Gaussian(
-        x=0.3 * camera_r,
-        y=0 * u.m,
-        width=0.03 * camera_r,
-        length=0.10 * camera_r,
-        psi="25d",
-    )
-
-    _, image, _ = model.generate_image(
-        geom, intensity=0.5 * geom.n_pixels, nsb_level_pe=3
-    )
-    return image
 
 
 def test_construct():
