@@ -27,8 +27,8 @@ def test_metadata(dl1_file):
     with DL1EventSource(input_url=dl1_file) as source:
         assert source.is_simulation
         assert source.datalevels == (DataLevel.DL1_IMAGES, DataLevel.DL1_PARAMETERS)
-        assert list(source.obs_ids) == [7514]
-        assert source.simulation_config.corsika_version == 6990
+        assert list(source.obs_ids) == [2]
+        assert source.simulation_config.corsika_version == 7710
 
 
 def test_subarray(dl1_file):
@@ -38,14 +38,13 @@ def test_subarray(dl1_file):
         assert source.subarray.optics_types
 
 
-def test_max_events(dl1_file):
-    max_events = 5
-    with DL1EventSource(input_url=dl1_file, max_events=max_events) as source:
-        count = 0
+def test_max_events(dl1_proton_file):
+    max_events = 3
+    with DL1EventSource(input_url=dl1_proton_file, max_events=max_events) as source:
         assert source.max_events == max_events  # stop iterating after max_events
-        assert len(source) == 20  # total events in file
-        for _ in source:
-            count += 1
+        assert len(source) == 4  # total events in file
+        for count, _ in enumerate(source, start=1):
+            pass
         assert count == max_events
 
 

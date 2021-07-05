@@ -24,6 +24,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: cache test data
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/ctapipe
+          key: ctapipe-test-data
+
       - uses: conda-incubator/setup-miniconda@v2
         with:
           auto-update-conda: true

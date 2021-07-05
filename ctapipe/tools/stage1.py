@@ -7,7 +7,7 @@ from tqdm.autonotebook import tqdm
 
 from ..calib.camera import CameraCalibrator, GainSelector
 from ..core import Tool
-from ..core.traits import Bool, classes_with_traits
+from ..core.traits import Bool, classes_with_traits, flag
 from ..image import ImageCleaner, ImageProcessor
 from ..image.extractor import ImageExtractor
 from ..io import DataLevel, DataWriter, EventSource, SimTelEventSource
@@ -44,25 +44,39 @@ class Stage1Tool(Tool):
     }
 
     flags = {
-        "write-images": (
-            {"DataWriter": {"write_images": True}},
-            "store DL1/Event/Telescope images in output",
-        ),
-        "write-parameters": (
-            {"DataWriter": {"write_parameters": True}},
-            "store DL1/Event/Telescope parameters in output",
-        ),
-        "write-index-tables": (
-            {"DataWriter": {"write_index_tables": True}},
-            "generate PyTables index tables for the parameter and image datasets",
-        ),
-        ("f", "overwrite"): (
+        "f": (
             {"DataWriter": {"overwrite": True}},
             "Overwrite output file if it exists",
         ),
-        "progress": (
-            {"Stage1Tool": {"progress_bar": True}},
+        **flag(
+            "overwrite",
+            "DataWriter.overwrite",
+            "Overwrite output file if it exists",
+            "Don't overwrite output file if it exists",
+        ),
+        **flag(
+            "progress",
+            "Stage1Tool.progress_bar",
             "show a progress bar during event processing",
+            "don't show a progress bar during event processing",
+        ),
+        **flag(
+            "write-images",
+            "DataWriter.write_images",
+            "store DL1/Event/Telescope images in output",
+            "don't store DL1/Event/Telescope images in output",
+        ),
+        **flag(
+            "write-parameters",
+            "DataWriter.write_parameters",
+            "store DL1/Event/Telescope parameters in output",
+            "don't store DL1/Event/Telescope parameters in output",
+        ),
+        **flag(
+            "write-index-tables",
+            "DataWriter.write_index_tables",
+            "generate PyTables index tables for the parameter and image datasets",
+            "don't generate PyTables index tables for the parameter and image datasets",
         ),
     }
 
@@ -110,7 +124,7 @@ class Stage1Tool(Tool):
             )
 
     def _write_processing_statistics(self):
-        """ write out the event selection stats, etc. """
+        """write out the event selection stats, etc."""
         # NOTE: don't remove this, not part of DataWriter
         image_stats = self.process_images.check_image.to_table(functions=True)
         image_stats.write(
@@ -143,7 +157,7 @@ class Stage1Tool(Tool):
 
 
 def main():
-    """ run the tool"""
+    """run the tool"""
     tool = Stage1Tool()
     tool.run()
 
