@@ -237,7 +237,10 @@ def test_apply_simtel_r1_calibration_1_channel():
 
     gain_selector = ThresholdGainSelector(threshold=90)
     r1_waveforms, selected_gain_channel = apply_simtel_r1_calibration(
-        r0_waveforms, pedestal, dc_to_pe, gain_selector
+        r0_waveforms,
+        pedestal,
+        dc_to_pe,
+        gain_selector
     )
 
     assert (selected_gain_channel == 0).all()
@@ -268,7 +271,10 @@ def test_apply_simtel_r1_calibration_2_channel():
 
     gain_selector = ThresholdGainSelector(threshold=90)
     r1_waveforms, selected_gain_channel = apply_simtel_r1_calibration(
-        r0_waveforms, pedestal, dc_to_pe, gain_selector
+        r0_waveforms,
+        pedestal,
+        dc_to_pe,
+        gain_selector
     )
 
     assert selected_gain_channel[0] == 1
@@ -314,3 +320,41 @@ def test_only_config():
 
     s = SimTelEventSource(config=config)
     assert s.input_url == Path(gamma_test_large_path).absolute()
+
+
+def test_calibscale_and_calibshift(prod5_gamma_simtel_path):
+
+    telid = 25
+
+    with SimTelEventSource(
+        input_url=prod5_gamma_simtel_path, max_events=1
+    ) as source:
+
+        for event in source:
+            pass
+
+    calib_scale = 2.0
+
+    with SimTelEventSource(
+        input_url=prod5_gamma_simtel_path, max_events=1, calib_scale=calib_scale
+    ) as source:
+
+        for event_scaled in source:
+            pass
+
+    np.testing.assert_allclose(event.r1.tel[telid].waveform[0],
+                               event_scaled.r1.tel[telid].waveform[0] / calib_scale,
+                               rtol=0.1)
+
+    calib_shift = 2.0  # p.e.
+
+    with SimTelEventSource(
+        input_url=prod5_gamma_simtel_path, max_events=1, calib_shift=calib_shift
+    ) as source:
+
+        for event_shifted in source:
+            pass
+
+    np.testing.assert_allclose(event.r1.tel[telid].waveform[0],
+                               event_shifted.r1.tel[telid].waveform[0] - calib_shift,
+                               rtol=0.1)
