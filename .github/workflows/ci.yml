@@ -20,6 +20,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: cache test data
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/ctapipe
+          key: ctapipe-test-data
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:

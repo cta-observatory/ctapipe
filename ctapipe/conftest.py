@@ -143,83 +143,76 @@ def dl1_tmp_path(tmp_path_factory):
 
 
 @pytest.fixture(scope="session")
-def dl1_file(dl1_tmp_path):
+def dl1_file(dl1_tmp_path, prod5_gamma_simtel_path):
     """
     DL1 file containing both images and parameters from a gamma simulation set.
     """
     from ctapipe.core import run_tool
     from ctapipe.tools.process import ProcessorTool
 
-    output = dl1_tmp_path / "images.dl1.h5"
+    output = dl1_tmp_path / "gamma.dl1.h5"
 
     # prevent running process multiple times in case of parallel tests
     with FileLock(output.with_suffix(output.suffix + ".lock")):
         if output.is_file():
             return output
 
-        infile = get_dataset_path("gamma_test_large.simtel.gz")
-
         argv = [
-            f"--input={infile}",
+            f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
             "--write-images",
             "--max-events=20",
-            "--allowed-tels=[1,2,3]",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
 
 
 @pytest.fixture(scope="session")
-def dl1_image_file(dl1_tmp_path,):
+def dl1_image_file(dl1_tmp_path, prod5_gamma_simtel_path):
     """
     DL1 file containing only images (DL1A) from a gamma simulation set.
     """
     from ctapipe.core import run_tool
     from ctapipe.tools.process import ProcessorTool
 
-    output = dl1_tmp_path / "images.dl1.h5"
+    output = dl1_tmp_path / "gamma_images.dl1.h5"
 
     # prevent running process multiple times in case of parallel tests
     with FileLock(output.with_suffix(output.suffix + ".lock")):
         if output.is_file():
             return output
 
-        infile = get_dataset_path("gamma_test_large.simtel.gz")
         argv = [
-            f"--input={infile}",
+            f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
             "--write-images",
             "--DataWriter.write_parameters=False",
             "--max-events=20",
-            "--allowed-tels=[1,2,3]",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
 
 
 @pytest.fixture(scope="session")
-def dl1_parameters_file(dl1_tmp_path):
+def dl1_parameters_file(dl1_tmp_path, prod5_gamma_simtel_path):
     """
     DL1 File containing only parameters (DL1B) from a gamma simulation set.
     """
     from ctapipe.core import run_tool
     from ctapipe.tools.process import ProcessorTool
 
-    output = dl1_tmp_path / "parameters.dl1.h5"
+    output = dl1_tmp_path / "gamma_parameters.dl1.h5"
 
     # prevent running process multiple times in case of parallel tests
     with FileLock(output.with_suffix(output.suffix + ".lock")):
         if output.is_file():
             return output
 
-        infile = get_dataset_path("gamma_test_large.simtel.gz")
         argv = [
-            f"--input={infile}",
+            f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
             "--write-parameters",
             "--max-events=20",
-            "--allowed-tels=[1,2,3]",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
@@ -248,4 +241,27 @@ def dl1_muon_file(dl1_tmp_path):
             "--DataWriter.write_parameters=False",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
+        return output
+
+
+@pytest.fixture(scope="session")
+def dl1_proton_file(dl1_tmp_path, prod5_proton_simtel_path):
+    """
+    DL1 file containing images and parameters for a prod5 proton run
+    """
+    from ctapipe.tools.stage1 import Stage1Tool
+    from ctapipe.core import run_tool
+
+    output = dl1_tmp_path / "proton.dl1.h5"
+
+    with FileLock(output.with_suffix(output.suffix + ".lock")):
+        if output.is_file():
+            return output
+
+        argv = [
+            f"--input={prod5_proton_simtel_path}",
+            f"--output={output}",
+            "--write-images",
+        ]
+        assert run_tool(Stage1Tool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
