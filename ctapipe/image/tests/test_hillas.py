@@ -3,7 +3,6 @@ from astropy.coordinates import Angle, SkyCoord
 from astropy import units as u
 import numpy as np
 from numpy import isclose, zeros_like
-from numpy.random import seed
 from pytest import approx
 import itertools
 import pytest
@@ -24,7 +23,6 @@ def create_sample_image(
     length=0.15 * u.m,
     intensity=1500,
 ):
-    seed(10)
 
     geom = CameraGeometry.from_name("LSTCam")
 
@@ -32,7 +30,8 @@ def create_sample_image(
     model = toymodel.Gaussian(x=x, y=y, width=width, length=length, psi=psi)
 
     # generate toymodel image in camera for this shower model.
-    image, _, _ = model.generate_image(geom, intensity=1500, nsb_level_pe=3)
+    rng = np.random.default_rng(0)
+    image, _, _ = model.generate_image(geom, intensity=1500, nsb_level_pe=3, rng=rng)
 
     # calculate pixels likely containing signal
     clean_mask = tailcuts_clean(geom, image, 10, 5)
@@ -118,7 +117,7 @@ def test_hillas_container():
 
 
 def test_with_toy():
-    np.random.seed(42)
+    rng = np.random.default_rng(42)
 
     geom = CameraGeometry.from_name("LSTCam")
 
@@ -139,7 +138,7 @@ def test_with_toy():
             model = toymodel.Gaussian(x=x, y=y, width=width, length=length, psi=psi)
 
             image, signal, noise = model.generate_image(
-                geom, intensity=intensity, nsb_level_pe=5
+                geom, intensity=intensity, nsb_level_pe=5, rng=rng
             )
 
             result = hillas_parameters(geom, signal)
@@ -159,7 +158,7 @@ def test_with_toy():
 
 
 def test_skewness():
-    np.random.seed(42)
+    rng = np.random.default_rng(42)
 
     geom = CameraGeometry.from_name("LSTCam")
 
@@ -178,7 +177,9 @@ def test_skewness():
             x=x, y=y, width=width, length=length, psi=psi, skewness=skew
         )
 
-        _, signal, _ = model.generate_image(geom, intensity=intensity, nsb_level_pe=5)
+        _, signal, _ = model.generate_image(
+            geom, intensity=intensity, nsb_level_pe=5, rng=rng
+        )
 
         result = hillas_parameters(geom, signal)
 
@@ -210,7 +211,7 @@ def test_straight_line_width_0():
     trans = np.zeros(len(long))
     pix_id = np.arange(len(long))
 
-    np.random.seed(0)
+    rng = np.random.default_rng(0)
 
     for dx in (-1, 0, 1):
         for dy in (-1, 0, 1):
@@ -227,7 +228,7 @@ def test_straight_line_width_0():
                     pix_area=1 * u.m ** 2,
                 )
 
-                img = np.random.poisson(5, size=len(long))
+                img = rng.poisson(5, size=len(long))
                 result = hillas_parameters(geom, img)
                 assert result.width.value == 0
                 assert np.isnan(result.width_uncertainty.value)

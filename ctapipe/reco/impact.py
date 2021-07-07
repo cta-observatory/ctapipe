@@ -21,7 +21,7 @@ from ctapipe.coordinates import (
 from ctapipe.image import neg_log_likelihood, mean_poisson_likelihood_gaussian
 from ctapipe.instrument import get_atmosphere_profile_functions
 from ctapipe.containers import (
-    ReconstructedShowerContainer,
+    ReconstructedGeometryContainer,
     ReconstructedEnergyContainer,
 )
 from ctapipe.reco.reco_algorithms import Reconstructor
@@ -107,6 +107,9 @@ class ImPACTReconstructor(Reconstructor):
         xmax_offset=0,
         use_time_gradient=False,
     ):
+        """
+        Create a new instance of ImPACTReconstructor
+        """
 
         # First we create a dictionary of image template interpolators
         # for each telescope type
@@ -401,7 +404,6 @@ class ImPACTReconstructor(Reconstructor):
         # and ignore them from then on
 
         zenith = (np.pi / 2) - self.array_direction.alt.to(u.rad).value
-        azimuth = self.array_direction.az
 
         # Geometrically calculate the depth of maximum given this test position
         x_max = self.get_shower_max(source_x, source_y, core_x, core_y, zenith)
@@ -722,7 +724,7 @@ class ImPACTReconstructor(Reconstructor):
         )
 
         # Create a container class for reconstructed shower
-        shower_result = ReconstructedShowerContainer()
+        shower_result = ReconstructedGeometryContainer()
 
         # Convert the best fits direction and core to Horizon and ground systems and
         # copy to the shower container
@@ -831,7 +833,7 @@ class ImPACTReconstructor(Reconstructor):
             self.min.tol *= 1000
             self.min.set_strategy(1)
 
-            migrad = self.min.migrad()
+            self.min.migrad()
             fit_params = self.min.values
             errors = self.min.errors
 

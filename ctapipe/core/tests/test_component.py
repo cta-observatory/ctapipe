@@ -288,11 +288,9 @@ def test_extra_config_missing():
     config = Config()
     config["ExampleSubclass1"] = Config()
     config["ExampleSubclass1"]["extra"] = 199.0
-    with pytest.warns(UserWarning):
-        comp = ExampleSubclass1(config=config)
-    assert comp.has_trait("extra") is False
-    with pytest.raises(AttributeError):
-        assert comp.extra == 229.0
+
+    with pytest.raises(TraitError):
+        ExampleSubclass1(config=config)
 
 
 def test_default():

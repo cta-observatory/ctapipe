@@ -6,6 +6,8 @@ from logging import getLogger
 from traitlets import TraitError
 from traitlets.config import Configurable
 
+import warnings
+
 
 __all__ = ["non_abstract_children", "Component", "TelescopeComponent"]
 
@@ -80,17 +82,17 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
     Components are classes that are configurable via traitlets
     and setup a logger in the ctapipe logging hierarchy.
 
-    `traitlets` can validate values and provide defaults and
+    ``traitlets`` can validate values and provide defaults and
     descriptions. These will be automatically translated into
     configuration parameters (command-line, config file, etc). Note
     that any parameter that should be externally configurable must
-    have its `config` attribute set to `True`, e.g. defined like
-    `myparam = Integer(0, help='the parameter').tag(config=True)`.
+    have its ``config`` attribute set to ``True``, e.g. defined like
+    ``myparam = Integer(0, help='the parameter').tag(config=True)``.
 
-    All components also contain a `logger` instance in their `log`
+    All components also contain a ``Logger`` instance in their ``log``
     attribute, that you must use to output info, debugging data,
-    warnings, etc (do not use `print()` statements, instead use
-    `self.log.info()`, `self.log.warning()`, `self.log.debug()`, etc).
+    warnings, etc (do not use ``print()`` statements, instead use
+    ``self.log.info()``, ``self.log.warning()``, ``self.log.debug()``, etc).
 
     Components are generally used within `ctapipe.core.Tool`
     subclasses, which provide configuration handling and command-line
@@ -138,7 +140,16 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
                 " If you create a Component as part of another, give `parent=self`"
                 " and not `config`"
             )
-        super().__init__(parent=parent, config=config, **kwargs)
+
+        # Transform warning about wrong traitlets in the config to an error
+        # Only works for Components, unfortunately not for Tools, since
+        # Tools use `log.warning` instead of `warnings.warn`
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error", message=".*Config option.*not recognized")
+            try:
+                super().__init__(parent=parent, config=config, **kwargs)
+            except UserWarning as e:
+                raise TraitError(e) from None
 
         for key, value in kwargs.items():
             if not self.has_trait(key):
@@ -229,8 +240,9 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
 
 class TelescopeComponent(Component):
     """
-    A component that needs a SubarrayDescription to be constructed, and which
-    contains configurable `TelescopeParameters` that must be configured on construction.
+    A component that needs a `~ctapipe.instrument.SubarrayDescription` to be constructed,
+    and which contains configurable `~ctapipe.core.traits.TelescopeParameter` fields
+    that must be configured on construction.
     """
 
     def __init__(self, subarray, config=None, parent=None, **kwargs):

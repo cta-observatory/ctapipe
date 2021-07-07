@@ -31,10 +31,13 @@ from .datalevels import DataLevel
 from ..utils import IndexFinder
 
 
+__all__ = ["DL1EventSource"]
+
+
 logger = logging.getLogger(__name__)
 
 
-COMPATIBLE_DL1_VERSIONS = ["v1.0.0", "v1.0.1", "v1.0.2", "v1.0.3", "v1.1.0"]
+COMPATIBLE_DL1_VERSIONS = ["v1.0.0", "v1.0.1", "v1.0.2", "v1.0.3", "v1.1.0", "v1.2.0"]
 
 
 class DL1EventSource(EventSource):
@@ -95,7 +98,14 @@ class DL1EventSource(EventSource):
         super().__init__(input_url=input_url, config=config, parent=parent, **kwargs)
 
         self.file_ = tables.open_file(self.input_url)
-        self._subarray_info = SubarrayDescription.from_hdf(self.input_url)
+        self._full_subarray_info = SubarrayDescription.from_hdf(self.input_url)
+
+        if self.allowed_tels:
+            self._subarray_info = self._full_subarray_info.select_subarray(
+                self.allowed_tels
+            )
+        else:
+            self._subarray_info = self._full_subarray_info
         self._simulation_configs = self._parse_simulation_configs()
         self.datamodel_version = self.file_.root._v_attrs[
             "CTA PRODUCT DATA MODEL VERSION"
@@ -128,7 +138,7 @@ class DL1EventSource(EventSource):
             if "CTA PRODUCT DATA LEVEL" not in metadata._v_attrnames:
                 return False
 
-            if metadata["CTA PRODUCT DATA LEVEL"] != "DL1":
+            if "DL1" not in metadata["CTA PRODUCT DATA LEVEL"]:
                 return False
 
             if "CTA PRODUCT DATA MODEL VERSION" not in metadata._v_attrnames:
@@ -324,9 +334,13 @@ class DL1EventSource(EventSource):
             data.count = counter
             data.trigger = trigger
             data.index = index
-            data.trigger.tels_with_trigger = self.subarray.tel_mask_to_tel_ids(
+            data.trigger.tels_with_trigger = self._full_subarray_info.tel_mask_to_tel_ids(
                 data.trigger.tels_with_trigger
             )
+            if self.allowed_tels:
+                data.trigger.tels_with_trigger = np.intersect1d(
+                    data.trigger.tels_with_trigger, np.array(list(self.allowed_tels))
+                )
 
             # Maybe there is a simpler way  to do this
             # Beware: tels_with_trigger contains all triggered telescopes whereas
@@ -363,8 +377,7 @@ class DL1EventSource(EventSource):
                         )
                         continue
 
-                    dl1 = next(image_readers[key])
-                    data.dl1.tel[tel] = dl1
+                    data.dl1.tel[tel] = next(image_readers[key])
 
                     if self.has_simulated_dl1:
                         if key not in simulated_image_iterators:
@@ -390,7 +403,7 @@ class DL1EventSource(EventSource):
                     # Best would probbaly be if we could directly read
                     # into the ImageParametersContainer
                     params = next(param_readers[f"tel_{tel:03d}"])
-                    dl1.parameters = ImageParametersContainer(
+                    data.dl1.tel[tel].parameters = ImageParametersContainer(
                         hillas=params[0],
                         timing=params[1],
                         leakage=params[2],

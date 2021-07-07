@@ -19,7 +19,7 @@ def test_psi_0():
     geom = CameraGeometry.from_name("LSTCam")
     hillas = CameraHillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=0 * u.deg)
 
-    random = np.random.RandomState(1)
+    random = np.random.default_rng(0)
     peak_time = intercept + grad * geom.pix_x.value
     peak_time += random.normal(0, deviation, geom.n_pixels)
 
@@ -49,7 +49,7 @@ def test_psi_20():
     psi = 20 * u.deg
     hillas = CameraHillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=psi)
 
-    random = np.random.RandomState(1)
+    random = np.random.default_rng(0)
     peak_time = intercept + grad * (
         np.cos(psi) * geom.pix_x.value + np.sin(psi) * geom.pix_y.value
     )
@@ -79,7 +79,7 @@ def test_ignore_negative():
     geom = CameraGeometry.from_name("LSTCam")
     hillas = CameraHillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=0 * u.deg)
 
-    random = np.random.RandomState(1)
+    random = np.random.default_rng(0)
     peak_time = intercept + grad * geom.pix_x.value
     peak_time += random.normal(0, deviation, geom.n_pixels)
 

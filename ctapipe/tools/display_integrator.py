@@ -5,15 +5,13 @@ with the integration window.
 """
 import numpy as np
 from matplotlib import pyplot as plt
-from traitlets import Dict, Int, Bool, Enum
 
-from ctapipe.core import traits
-from ctapipe.calib import CameraCalibrator
-from ctapipe.core import Tool
-from ctapipe.image.extractor import ImageExtractor
-from ctapipe.io import EventSource
-from ctapipe.io.eventseeker import EventSeeker
-from ctapipe.visualization import CameraDisplay
+from ..calib import CameraCalibrator
+from ..core import Tool
+from ..core.traits import Int, Bool, Enum, flag, classes_with_traits
+from ..io import EventSource
+from ..io.eventseeker import EventSeeker
+from ..visualization import CameraDisplay
 
 
 def plot(subarray, event, telid, chan, extractor_name):
@@ -226,24 +224,20 @@ class DisplayIntegrator(Tool):
     ).tag(config=True)
     channel = Enum([0, 1], 0, help="Channel to view").tag(config=True)
 
-    aliases = Dict(
-        dict(
-            f="EventSource.input_url",
-            max_events="EventSource.max_events",
-            E="DisplayIntegrator.event_index",
-            T="DisplayIntegrator.telescope",
-            C="DisplayIntegrator.channel",
-        )
+    aliases = {
+        ("i", "input"): "EventSource.input_url",
+        ("m", "max-events"): "EventSource.max_events",
+        ("e", "event-index"): "DisplayIntegrator.event_index",
+        ("t", "telescope"): "DisplayIntegrator.telescope",
+        ("C", "channel"): "DisplayIntegrator.channel",
+    }
+    flags = flag(
+        "id",
+        "DisplayDL1Calib.use_event_index",
+        "event_index will obtain an event using event_id instead of index.",
+        "event_index will obtain an event using index.",
     )
-    flags = Dict(
-        dict(
-            id=(
-                {"DisplayDL1Calib": {"use_event_index": True}},
-                "event_index will obtain an event using event_id instead of index.",
-            )
-        )
-    )
-    classes = [EventSource] + traits.classes_with_traits(ImageExtractor)
+    classes = classes_with_traits(EventSource)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -281,7 +275,7 @@ class DisplayIntegrator(Tool):
             )
             exit()
 
-        extractor_name = self.calibrate.image_extractor.__class__.__name__
+        extractor_name = self.calibrate.image_extractor_type.tel[telid]
 
         plot(self.subarray, event, telid, self.channel, extractor_name)
 

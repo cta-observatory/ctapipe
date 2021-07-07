@@ -62,6 +62,59 @@ nbsphinx_timeout = 200  # allow max 2 minutes to build each notebook
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
+
+def setup(app):
+    # fix trait aliases generating doc warnings
+    from ctapipe.core import traits
+
+    aliases = [
+        "flag",
+        "observe",
+        "Bool",
+        "CRegExp",
+        "CaselessStrEnum",
+        "Dict",
+        "Enum",
+        "Float",
+        "Int",
+        "CInt",
+        "Integer",
+        "List",
+        "Long",
+        "Set",
+        "TraitError",
+        "Unicode",
+    ]
+    for alias in aliases:
+        getattr(traits, alias).__name__ = alias
+        getattr(traits, alias).__module__ = "ctapipe.core.traits"
+
+
+# These links are ignored in the checks, necessary due to broken intersphinx for
+# these
+nitpick_ignore = [
+    ("py:class", "traitlets.config.configurable.Configurable"),
+    ("py:class", "traitlets.traitlets.HasTraits"),
+    ("py:class", "traitlets.traitlets.HasDescriptors"),
+    ("py:class", "traitlets.traitlets.TraitType"),
+    ("py:class", "traitlets.traitlets.BaseDescriptor"),
+    ("py:class", "traitlets.traitlets.List"),
+    ("py:class", "traitlets.traitlets.Container"),
+    ("py:class", "traitlets.traitlets.Instance"),
+    ("py:class", "traitlets.traitlets.ClassBasedTraitType"),
+    ("py:class", "traitlets.traitlets.Int"),
+    ("py:class", "traitlets.config.application.Application"),
+    ("py:obj", "traitlets.config.boolean_flag"),
+    ("py:obj", "traitlets.TraitError"),
+    ("py:meth", "MetaHasDescriptors.__init__"),
+    ("py:meth", "HasTraits.__new__"),
+    ("py:meth", "BaseDescriptor.instance_init"),
+    ("py:obj", "cls"),
+    ("py:obj", "name"),
+    ("py:class", "astropy.coordinates.baseframe.BaseCoordinateFrame"),
+    ("py:class", "astropy.table.table.Table"),
+]
+
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
@@ -203,6 +256,7 @@ intersphinx_mapping = {
     "matplotlib": ("http://matplotlib.org/", None),
     "cython": ("http://docs.cython.org/en/latest/", None),
     "iminuit": ("https://iminuit.readthedocs.io/en/latest/", None),
+    "traitlets": ("https://traitlets.readthedocs.io/en/stable/", None),
 }
 
 # on_rtd is whether we are on readthedocs.org

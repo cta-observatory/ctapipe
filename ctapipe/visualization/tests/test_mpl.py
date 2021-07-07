@@ -10,7 +10,10 @@ from ctapipe.instrument import (
     TelescopeDescription,
     PixelShape,
 )
-from ctapipe.containers import CameraHillasParametersContainer
+from ctapipe.containers import (
+    CameraHillasParametersContainer,
+    HillasParametersContainer,
+)
 import numpy as np
 from astropy import units as u
 
@@ -92,6 +95,14 @@ def test_array_display():
     from ctapipe.visualization.mpl_array import ArrayDisplay
     from ctapipe.image import timing_parameters
 
+    from ctapipe.containers import (
+        ArrayEventContainer,
+        DL1Container,
+        DL1CameraContainer,
+        ImageParametersContainer,
+        CoreParametersContainer,
+    )
+
     # build a test subarray:
     tels = dict()
     tel_pos = dict()
@@ -103,7 +114,19 @@ def test_array_display():
         name="TestSubarray", tel_positions=tel_pos, tel_descriptions=tels
     )
 
-    ad = ArrayDisplay(sub)
+    # Create a fake event containing telescope-wise information about
+    # the image directions projected on the ground
+    event = ArrayEventContainer()
+    event.dl1 = DL1Container()
+    event.dl1.tel = {1: DL1CameraContainer(), 2: DL1CameraContainer()}
+    event.dl1.tel[1].parameters = ImageParametersContainer()
+    event.dl1.tel[2].parameters = ImageParametersContainer()
+    event.dl1.tel[2].parameters.core = CoreParametersContainer()
+    event.dl1.tel[1].parameters.core = CoreParametersContainer()
+    event.dl1.tel[1].parameters.core.psi = u.Quantity(2.0, unit=u.deg)
+    event.dl1.tel[2].parameters.core.psi = u.Quantity(1.0, unit=u.deg)
+
+    ad = ArrayDisplay(subarray=sub)
     ad.set_vector_rho_phi(1 * u.m, 90 * u.deg)
 
     # try setting a value
@@ -112,7 +135,18 @@ def test_array_display():
 
     assert (vals == ad.values).all()
 
-    # test using hillas params:
+    # test UV field ...
+
+    # ...with colors by telescope type
+    ad.set_vector_uv(np.array([1, 2, 3]) * u.m, np.array([1, 2, 3]) * u.m)
+    # ...with scalar color
+    ad.set_vector_uv(np.array([1, 2, 3]) * u.m, np.array([1, 2, 3]) * u.m, c=3)
+
+    geom = CameraGeometry.from_name("LSTCam")
+    rot_angle = 20 * u.deg
+    hillas = CameraHillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=rot_angle)
+
+    # test using hillas params CameraFrame:
     hillas_dict = {
         1: CameraHillasParametersContainer(length=100.0 * u.m, psi=90 * u.deg),
         2: CameraHillasParametersContainer(length=20000 * u.cm, psi="95deg"),
@@ -120,10 +154,6 @@ def test_array_display():
 
     grad = 2
     intercept = 1
-
-    geom = CameraGeometry.from_name("LSTCam")
-    rot_angle = 20 * u.deg
-    hillas = CameraHillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=rot_angle)
 
     timing_rot20 = timing_parameters(
         geom,
@@ -133,13 +163,108 @@ def test_array_display():
         cleaning_mask=np.ones(geom.n_pixels, dtype=bool),
     )
     gradient_dict = {1: timing_rot20.slope.value, 2: timing_rot20.slope.value}
+    core_dict = {
+        tel_id: dl1.parameters.core.psi for tel_id, dl1 in event.dl1.tel.items()
+    }
     ad.set_vector_hillas(
         hillas_dict=hillas_dict,
+        core_dict=core_dict,
+        length=500,
+        time_gradient=gradient_dict,
+        angle_offset=0 * u.deg,
+    )
+    ad.set_line_hillas(hillas_dict=hillas_dict, core_dict=core_dict, range=300)
+
+    # test using hillas params for divergent pointing in telescopeframe:
+    hillas_dict = {
+        1: HillasParametersContainer(
+            x=1.0 * u.deg, y=1.0 * u.deg, length=1.0 * u.deg, psi=90 * u.deg
+        ),
+        2: HillasParametersContainer(
+            x=1.0 * u.deg, y=1.0 * u.deg, length=1.0 * u.deg, psi=95 * u.deg
+        ),
+    }
+    ad.set_vector_hillas(
+        hillas_dict=hillas_dict,
+        core_dict=core_dict,
+        length=500,
+        time_gradient=gradient_dict,
+        angle_offset=0 * u.deg,
+    )
+    ad.set_line_hillas(hillas_dict=hillas_dict, core_dict=core_dict, range=300)
+
+    # test using hillas params for parallel pointing in telescopeframe:
+    hillas_dict = {
+        1: HillasParametersContainer(
+            x=1.0 * u.deg, y=1.0 * u.deg, length=1.0 * u.deg, psi=90 * u.deg
+        ),
+        2: HillasParametersContainer(
+            x=1.0 * u.deg, y=1.0 * u.deg, length=1.0 * u.deg, psi=95 * u.deg
+        ),
+    }
+    ad.set_vector_hillas(
+        hillas_dict=hillas_dict,
+        core_dict=core_dict,
         length=500,
         time_gradient=gradient_dict,
         angle_offset=0 * u.deg,
     )
 
-    ad.set_line_hillas(hillas_dict, range=300)
+    # test negative time_gradients
+    gradient_dict = {1: -0.03, 2: -0.02}
+    ad.set_vector_hillas(
+        hillas_dict=hillas_dict,
+        core_dict=core_dict,
+        length=500,
+        time_gradient=gradient_dict,
+        angle_offset=0 * u.deg,
+    )
+    # and very small
+    gradient_dict = {1: 0.003, 2: 0.002}
+    ad.set_vector_hillas(
+        hillas_dict=hillas_dict,
+        core_dict=core_dict,
+        length=500,
+        time_gradient=gradient_dict,
+        angle_offset=0 * u.deg,
+    )
+
+    # Test background contour
+    ad.background_contour(
+        x=np.array([0, 1, 2]),
+        y=np.array([0, 1, 2]),
+        background=np.array([[0, 1, 2], [0, 1, 2], [0, 1, 2]]),
+    )
+
+    ad.set_line_hillas(hillas_dict=hillas_dict, core_dict=core_dict, range=300)
     ad.add_labels()
     ad.remove_labels()
+
+
+def test_picker():
+    from ctapipe.visualization import CameraDisplay
+    from matplotlib.backend_bases import MouseEvent, MouseButton
+
+    geom = CameraGeometry.from_name("LSTCam")
+    clicked_pixels = []
+
+    class PickingCameraDisplay(CameraDisplay):
+        def on_pixel_clicked(self, pix_id):
+            print(f"YOU CLICKED PIXEL {pix_id}")
+            clicked_pixels.append(pix_id)
+
+    fig = plt.figure(figsize=(10, 10), dpi=100)
+    ax = fig.add_axes([0, 0, 1, 1])
+
+    disp = PickingCameraDisplay(geom, ax=ax)
+    disp.enable_pixel_picker()
+
+    fig.canvas.draw()
+
+    # emulate someone clicking the central pixel
+    event = MouseEvent(
+        "button_press_event", fig.canvas, x=500, y=500, button=MouseButton.LEFT
+    )
+    disp.pixels.pick(event)
+
+    assert len(clicked_pixels) > 0

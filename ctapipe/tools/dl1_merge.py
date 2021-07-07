@@ -9,11 +9,12 @@ from traitlets import List
 
 import tables
 import numpy as np
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from ..io import metadata as meta, DL1EventSource
 from ..io import HDF5TableWriter
 from ..core import Provenance, Tool, traits
+from ..core.traits import Bool, Set, Unicode, flag, CInt
 from ..instrument import SubarrayDescription
 
 import warnings
@@ -97,29 +98,28 @@ class MergeTool(Tool):
     output_path = traits.Path(
         help="Merged-DL1 output filename", directory_ok=False
     ).tag(config=True)
-    skip_images = traits.Bool(
+    skip_images = Bool(
         help="Skip DL1/Event/Telescope and Simulation/Event/Telescope images in output",
         default_value=False,
     ).tag(config=True)
-    skip_simu_images = traits.Bool(
+    skip_simu_images = Bool(
         help="Skip Simulation/Event/Telescope images in output", default_value=False
     ).tag(config=True)
-    skip_parameters = traits.Bool(
+    skip_parameters = Bool(
         help="Skip DL1/Event/Telescope and Simulation/Event/Telescope parameters"
         "in output",
         default_value=False,
     ).tag(config=True)
-    skip_broken_files = traits.Bool(
+    skip_broken_files = Bool(
         help="Skip broken files instead of raising an error", default_value=False
     ).tag(config=True)
-    overwrite = traits.Bool(help="Overwrite output file if it exists").tag(config=True)
-    progress_bar = traits.Bool(help="Show progress bar during processing").tag(
-        config=True
-    )
-    file_pattern = traits.Unicode(
+    overwrite = Bool(help="Overwrite output file if it exists").tag(config=True)
+    progress_bar = Bool(help="Show progress bar during processing").tag(config=True)
+    file_pattern = Unicode(
         default_value="*.h5", help="Give a specific file pattern for the input files"
     ).tag(config=True)
-    allowed_tels = traits.Set(
+    allowed_tels = Set(
+        trait=CInt(),
         default_value=None,
         allow_none=True,
         help=(
@@ -133,40 +133,47 @@ class MergeTool(Tool):
     parser.add_argument("input_files", nargs="*", type=Path)
 
     aliases = {
-        "input-dir": "MergeTool.input_dir",
-        "i": "MergeTool.input_dir",
-        "output": "MergeTool.output_path",
-        "o": "MergeTool.output_path",
-        "pattern": "MergeTool.file_pattern",
-        "p": "MergeTool.file_pattern",
-        "allowed-tels": "MergeTool.allowed_tels",
-        "t": "MergeTool.allowed_tels",
+        ("i", "input-dir"): "MergeTool.input_dir",
+        ("o", "output"): "MergeTool.output_path",
+        ("p", "pattern"): "MergeTool.file_pattern",
+        ("t", "allowed-tels"): "MergeTool.allowed_tels",
     }
 
     flags = {
-        "skip-images": (
-            {"MergeTool": {"skip_images": True}},
-            "Skip DL1/Event/Telescope and Simulation/Event/Telescope images in output",
-        ),
-        "skip-simu-images": (
-            {"MergeTool": {"skip_simu_images": True}},
-            "Skip Simulation/Event/Telescope images in output",
-        ),
-        "skip-parameters": (
-            {"MergeTool": {"skip_parameters": True}},
-            "Skip DL1/Event/Telescope and Simulation/Event/Telescope parameters in output",
-        ),
-        "skip-broken-files": (
-            {"MergeTool": {"skip_broken_files": True}},
-            "Skip broken files instead of raising an error",
-        ),
-        "overwrite": (
-            {"MergeTool": {"overwrite": True}},
+        "f": ({"MergeTool": {"overwrite": True}}, "Overwrite output file if it exists"),
+        **flag(
+            "overwrite",
+            "MergeTool.overwrite",
             "Overwrite output file if it exists",
+            "Don't overwrite output file if it exists",
         ),
         "progress": (
             {"MergeTool": {"progress_bar": True}},
             "Show a progress bar for all given input files",
+        ),
+        **flag(
+            "skip-images",
+            "MergeTool.skip_images",
+            "Skip DL1/Event/Telescope and Simulation/Event/Telescope images in output",
+            "Don't skip DL1/Event/Telescope and Simulation/Event/Telescope images in output",
+        ),
+        **flag(
+            "skip-simu-images",
+            "MergeTool.skip_simu_images",
+            "Skip Simulation/Event/Telescope images in output",
+            "Don't skip Simulation/Event/Telescope images in output",
+        ),
+        **flag(
+            "skip-parameters",
+            "MergeTool.skip_parameters",
+            "Skip DL1/Event/Telescope and Simulation/Event/Telescope parameters in output",
+            "Don't skip DL1/Event/Telescope and Simulation/Event/Telescope parameters in output",
+        ),
+        **flag(
+            "skip-broken-files",
+            "MergeTool.skip_broken_files",
+            "Skip broken files instead of raising an error",
+            "Don't skip broken files instead of raising an error",
         ),
     }
 
@@ -208,12 +215,14 @@ class MergeTool(Tool):
 
         # create output file with subarray from first file
         self.first_subarray = SubarrayDescription.from_hdf(self.input_files[0])
+        if self.allowed_tels:
+            self.first_subarray = self.first_subarray.select_subarray(
+                tel_ids=self.allowed_tels
+            )
+            self.allowed_tel_names = {"tel_%03d" % i for i in self.allowed_tels}
+
         self.first_subarray.to_hdf(self.output_path)
         self.output_file = tables.open_file(self.output_path, mode="a")
-
-        # create tel.names list from allowed tels
-        if self.allowed_tels:
-            self.allowed_tel_names = {"tel_%03d" % i for i in self.allowed_tels}
 
         # setup required nodes
         self.usable_nodes = all_nodes
@@ -240,6 +249,10 @@ class MergeTool(Tool):
             return True
 
         current_subarray = SubarrayDescription.from_hdf(file_path)
+        if self.allowed_tels:
+            current_subarray = current_subarray.select_subarray(
+                tel_ids=self.allowed_tels
+            )
         broken = False
 
         # Check subarray
@@ -357,7 +370,9 @@ class MergeTool(Tool):
         ):
 
             if not DL1EventSource.is_compatible(current_file):
-                self.log.critical(f"input file {current_file} is not a supported DL1 file")
+                self.log.critical(
+                    f"input file {current_file} is not a supported DL1 file"
+                )
                 if self.skip_broken_files:
                     continue
                 else:
@@ -407,15 +422,15 @@ class MergeTool(Tool):
             contact=meta.Contact(name="", email="", organization="CTA Consortium"),
             product=meta.Product(
                 description="Merged DL1 Data Product",
-                data_category="S",
-                data_level="DL1",
+                data_category="Sim",  # TODO: copy this from the inputs
+                data_level=["DL1"],  # TODO: copy this from inputs
                 data_association="Subarray",
-                data_model_name="ASWG DL1",
+                data_model_name="ASWG",  # TODO: copy this from inputs
                 data_model_version=self.data_model_version,
                 data_model_url="",
                 format="hdf5",
             ),
-            process=meta.Process(type_=process_type_, subtype="", id_=0),
+            process=meta.Process(type_=process_type_, subtype="", id_="merge"),
             activity=meta.Activity.from_provenance(activity),
             instrument=meta.Instrument(
                 site="Other",
@@ -431,7 +446,7 @@ class MergeTool(Tool):
         with HDF5TableWriter(
             self.output_path, parent=self, mode="a", add_prefix=True
         ) as writer:
-            meta.write_to_hdf5(headers, writer._h5file)
+            meta.write_to_hdf5(headers, writer.h5file)
 
 
 def main():
