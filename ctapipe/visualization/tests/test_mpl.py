@@ -178,10 +178,10 @@ def test_array_display():
     # test using hillas params for divergent pointing in telescopeframe:
     hillas_dict = {
         1: HillasParametersContainer(
-            x=1.0 * u.deg, y=1.0 * u.deg, length=1.0 * u.deg, psi=90 * u.deg
+            fov_lon=1.0 * u.deg, fov_lat=1.0 * u.deg, length=1.0 * u.deg, psi=90 * u.deg
         ),
         2: HillasParametersContainer(
-            x=1.0 * u.deg, y=1.0 * u.deg, length=1.0 * u.deg, psi=95 * u.deg
+            fov_lon=1.0 * u.deg, fov_lat=1.0 * u.deg, length=1.0 * u.deg, psi=95 * u.deg
         ),
     }
     ad.set_vector_hillas(
@@ -196,10 +196,10 @@ def test_array_display():
     # test using hillas params for parallel pointing in telescopeframe:
     hillas_dict = {
         1: HillasParametersContainer(
-            x=1.0 * u.deg, y=1.0 * u.deg, length=1.0 * u.deg, psi=90 * u.deg
+            fov_lon=1.0 * u.deg, fov_lat=1.0 * u.deg, length=1.0 * u.deg, psi=90 * u.deg
         ),
         2: HillasParametersContainer(
-            x=1.0 * u.deg, y=1.0 * u.deg, length=1.0 * u.deg, psi=95 * u.deg
+            fov_lon=1.0 * u.deg, fov_lat=1.0 * u.deg, length=1.0 * u.deg, psi=95 * u.deg
         ),
     }
     ad.set_vector_hillas(
