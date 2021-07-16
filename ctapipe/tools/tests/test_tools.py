@@ -1,7 +1,6 @@
 """
 Test individual tool functionality
 """
-import shlex
 import sys
 
 import matplotlib as mpl
@@ -61,7 +60,7 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
 
     # check we can read telescope parameters
     dl1_features = pd.read_hdf(
-        dl1b_from_dl1a_file, "/dl1/event/telescope/parameters/tel_001"
+        dl1b_from_dl1a_file, "/dl1/event/telescope/parameters/tel_025"
     )
     features = (
         "obs_id",
@@ -204,7 +203,7 @@ def test_display_summed_images(tmp_path):
     assert (
         run_tool(
             ImageSumDisplayerTool(),
-            argv=shlex.split(f"--infile={GAMMA_TEST_LARGE} " "--max-events=2 "),
+            argv=[f"--infile={GAMMA_TEST_LARGE}", "--max-events=2"],
             cwd=tmp_path,
         )
         == 0
@@ -221,7 +220,7 @@ def test_display_integrator(tmp_path):
     assert (
         run_tool(
             DisplayIntegrator(),
-            argv=shlex.split(f"--f={GAMMA_TEST_LARGE} " "--max_events=1 "),
+            argv=[f"--input={GAMMA_TEST_LARGE}", "--max-events=1"],
             cwd=tmp_path,
         )
         == 0
@@ -238,11 +237,11 @@ def test_display_events_single_tel(tmp_path):
     assert (
         run_tool(
             SingleTelEventDisplay(),
-            argv=shlex.split(
-                f"--input={GAMMA_TEST_LARGE} "
-                "--tel=11 "
-                "--max-events=2 "  # <--- inconsistent!!!
-            ),
+            argv=[
+                f"--input={GAMMA_TEST_LARGE}",
+                "--tel=11",
+                "--max-events=2",  # <--- inconsistent!!!
+            ],
             cwd=tmp_path,
         )
         == 0
@@ -259,9 +258,7 @@ def test_display_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
     # test simtel
     assert (
         run_tool(
-            DisplayDL1Calib(),
-            argv=shlex.split("--max_events=1 " "--telescope=11 "),
-            cwd=tmp_path,
+            DisplayDL1Calib(), argv=["--max-events=1", "--telescope=11"], cwd=tmp_path
         )
         == 0
     )
@@ -269,16 +266,14 @@ def test_display_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
     assert (
         run_tool(
             DisplayDL1Calib(),
-            argv=shlex.split(
-                f"--input {dl1_image_file} --max_events=1 " "--telescope=11 "
-            ),
+            argv=[f"--input={dl1_image_file}", "--max-events=1", "--telescope=11"],
         )
         == 0
     )
     # test DL1B, should error since nothing to plot
     ret = run_tool(
         DisplayDL1Calib(),
-        argv=[f"--input={dl1_parameters_file}", "--max_events=1", "--telescope=11"],
+        argv=[f"--input={dl1_parameters_file}", "--max-events=1", "--telescope=11"],
     )
     assert ret == 1
     assert run_tool(DisplayDL1Calib(), ["--help-all"]) == 0

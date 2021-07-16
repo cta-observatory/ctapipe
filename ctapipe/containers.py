@@ -25,6 +25,7 @@ __all__ = [
     "EventType",
     "FlatFieldContainer",
     "HillasParametersContainer",
+    "CoreParametersContainer",
     "ImageParametersContainer",
     "LeakageContainer",
     "MonitoringCameraContainer",
@@ -213,6 +214,13 @@ class PeakTimeStatisticsContainer(StatisticsContainer):
     container_prefix = "peak_time"
 
 
+class CoreParametersContainer(Container):
+    """Telescope-wise shower's direction in the Tilted/Ground Frame"""
+
+    container_prefix = "core"
+    psi = Field(nan * u.deg, "Image direction in the Tilted/Ground Frame", unit="deg")
+
+
 class ImageParametersContainer(Container):
     """ Collection of image parameters """
 
@@ -227,6 +235,9 @@ class ImageParametersContainer(Container):
     )
     peak_time_statistics = Field(
         PeakTimeStatisticsContainer(), "Peak time image statistics"
+    )
+    core = Field(
+        CoreParametersContainer(), "Image direction in the Tilted/Ground Frame"
     )
 
 
