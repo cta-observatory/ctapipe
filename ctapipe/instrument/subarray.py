@@ -2,6 +2,7 @@
 Description of Arrays or Subarrays of telescopes
 """
 from pathlib import Path
+import warnings
 
 import numpy as np
 from astropy import units as u
@@ -471,7 +472,7 @@ class SubarrayDescription:
         if "camera_index" not in layout.colnames:
             layout["camera_index"] = layout["camera_type"]
 
-        for idx in sorted(set(layout["camera_index"])):
+        for idx in set(layout["camera_index"]):
             geometry = CameraGeometry.from_table(
                 Table.read(
                     path,
