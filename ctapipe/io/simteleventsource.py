@@ -298,7 +298,7 @@ class SimTelEventSource(EventSource):
                 num_mirror_tiles=cam_settings["n_mirrors"],
             )
 
-            camera = camera = build_camera(
+            camera = build_camera(
                 cam_settings,
                 pixel_settings,
                 telescope,
