@@ -11,13 +11,13 @@ import tables
 from ctapipe.core import run_tool
 from ctapipe.tools.process import ProcessorTool
 from ctapipe.utils import get_dataset_path
-from ctapipe.io import DataLevel
+from ctapipe.io import DataLevel, EventSource
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 
 
 def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
-    from ctapipe.tools.process import ProcessorTool
+    """  check simtel to DL1 conversion """
 
     config = Path("./examples/stage1_config.json").absolute()
     # DL1A file as input
@@ -38,16 +38,16 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
     )
 
     # check tables were written
-    with tables.open_file(dl1b_from_dl1a_file, mode="r") as tf:
-        assert tf.root.dl1
-        assert tf.root.dl1.event.telescope
-        assert tf.root.dl1.event.subarray
-        assert tf.root.configuration.instrument.subarray.layout
-        assert tf.root.configuration.instrument.telescope.optics
-        assert tf.root.configuration.instrument.telescope.camera.geometry_LSTCam
-        assert tf.root.configuration.instrument.telescope.camera.readout_LSTCam
+    with tables.open_file(dl1b_from_dl1a_file, mode="r") as testfile:
+        assert testfile.root.dl1
+        assert testfile.root.dl1.event.telescope
+        assert testfile.root.dl1.event.subarray
+        assert testfile.root.configuration.instrument.subarray.layout
+        assert testfile.root.configuration.instrument.telescope.optics
+        assert testfile.root.configuration.instrument.telescope.camera.geometry_LSTCam
+        assert testfile.root.configuration.instrument.telescope.camera.readout_LSTCam
 
-        assert tf.root.dl1.monitoring.subarray.pointing.dtype.names == (
+        assert testfile.root.dl1.monitoring.subarray.pointing.dtype.names == (
             "time",
             "array_azimuth",
             "array_altitude",
@@ -89,14 +89,14 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
 
 def test_stage1_datalevels(tmp_path):
     """test the dl1 tool on a file not providing r1, dl0 or dl1a"""
-    from ctapipe.io import EventSource
-    from ctapipe.tools.process import ProcessorTool
 
     class DummyEventSource(EventSource):
-        @classmethod
-        def is_compatible(cls, path):
-            with open(path, "rb") as f:
-                dummy = f.read(5)
+        """ for testing """
+
+        @staticmethod
+        def is_compatible(path):
+            with open(path, "rb") as infile:
+                dummy = infile.read(5)
                 return dummy == b"dummy"
 
         @property
@@ -120,9 +120,9 @@ def test_stage1_datalevels(tmp_path):
 
     dummy_file = tmp_path / "datalevels_dummy.h5"
     out_file = tmp_path / "datalevels_dummy_stage1_output.h5"
-    with open(dummy_file, "wb") as f:
-        f.write(b"dummy")
-        f.flush()
+    with open(dummy_file, "wb") as infile:
+        infile.write(b"dummy")
+        infile.flush()
 
     config = Path("./examples/stage1_config.json").absolute()
     tool = ProcessorTool()
@@ -166,8 +166,8 @@ def test_stage_2_from_simtel(tmp_path):
     )
 
     # check tables were written
-    with tables.open_file(output, mode="r") as tf:
-        assert tf.root.dl2.event.subarray.geometry.HillasReconstructor
+    with tables.open_file(output, mode="r") as testfile:
+        assert testfile.root.dl2.event.subarray.geometry.HillasReconstructor
 
 
 def test_stage_2_from_dl1_images(tmp_path, dl1_image_file):
@@ -190,8 +190,8 @@ def test_stage_2_from_dl1_images(tmp_path, dl1_image_file):
     )
 
     # check tables were written
-    with tables.open_file(output, mode="r") as tf:
-        assert tf.root.dl2.event.subarray.geometry.HillasReconstructor
+    with tables.open_file(output, mode="r") as testfile:
+        assert testfile.root.dl2.event.subarray.geometry.HillasReconstructor
 
 
 def test_stage_2_from_dl1_params(tmp_path, dl1_parameters_file):
@@ -215,8 +215,8 @@ def test_stage_2_from_dl1_params(tmp_path, dl1_parameters_file):
     )
 
     # check tables were written
-    with tables.open_file(output, mode="r") as tf:
-        assert tf.root.dl2.event.subarray.geometry.HillasReconstructor
+    with tables.open_file(output, mode="r") as testfile:
+        assert testfile.root.dl2.event.subarray.geometry.HillasReconstructor
 
 
 def test_training_from_simtel(tmp_path):
@@ -241,6 +241,6 @@ def test_training_from_simtel(tmp_path):
     )
 
     # check tables were written
-    with tables.open_file(output, mode="r") as tf:
-        assert tf.root.dl1.event.telescope.parameters.tel_002
-        assert tf.root.dl2.event.subarray.geometry.HillasReconstructor
+    with tables.open_file(output, mode="r") as testfile:
+        assert testfile.root.dl1.event.telescope.parameters.tel_002
+        assert testfile.root.dl2.event.subarray.geometry.HillasReconstructor

@@ -182,8 +182,8 @@ class ProcessorTool(Tool):
             )
 
     def start(self):
-        self.log.info(f"(re)compute DL1: {self.should_compute_dl1}")
-        self.log.info(f"(re)compute DL2: {self.should_compute_dl2}")
+        self.log.info("(re)compute DL1: %s", self.should_compute_dl1)
+        self.log.info("(re)compute DL2: %s", self.should_compute_dl2)
         self.event_source.subarray.info(printer=self.log.info)
 
         for event in tqdm(
