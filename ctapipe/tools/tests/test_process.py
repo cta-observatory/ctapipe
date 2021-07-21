@@ -11,6 +11,7 @@ import tables
 from ctapipe.core import run_tool
 from ctapipe.tools.process import ProcessorTool
 from ctapipe.utils import get_dataset_path
+from ctapipe.io import DataLevel
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 
