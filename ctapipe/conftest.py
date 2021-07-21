@@ -35,7 +35,7 @@ def camera_geometry(request):
 
 
 @pytest.fixture(scope="session")
-def global_example_event():
+def _global_example_event():
     """
     helper to get a single event from a MC file. Don't use this fixture
     directly, rather use `test_event`
