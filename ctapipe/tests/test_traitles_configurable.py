@@ -2,7 +2,6 @@ import ctapipe
 import pkgutil
 import importlib
 from collections import defaultdict
-import sys
 
 from ctapipe.core import Component, Tool
 

@@ -12,11 +12,11 @@ is not a fast operation)
 
 from matplotlib import pyplot as plt
 from matplotlib.patches import Ellipse
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Tool
-from ctapipe.core.traits import Float, Dict, List
+from ctapipe.core.traits import Float, Dict
 from ctapipe.core.traits import Unicode, Int, Bool
 from ctapipe.image import tailcuts_clean, hillas_parameters, HillasParameterizationError
 from ctapipe.io import EventSource
@@ -65,14 +65,13 @@ class SingleTelEventDisplay(Tool):
         }
     )
 
-    classes = List([EventSource, CameraCalibrator])
+    classes = [EventSource, CameraCalibrator]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
     def setup(self):
-        self.event_source = EventSource(parent=self)
-        self.event_source.allowed_tels = {self.tel}
+        self.event_source = EventSource(parent=self, allowed_tels={self.tel})
 
         self.calibrator = CameraCalibrator(
             parent=self, subarray=self.event_source.subarray

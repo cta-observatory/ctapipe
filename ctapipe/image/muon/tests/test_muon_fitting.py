@@ -3,19 +3,18 @@ import astropy.units as u
 
 from ctapipe.image.muon import kundu_chaudhuri_circle_fit
 
-np.random.seed(0)
-
 
 def test_kundu_chaudhuri():
 
     num_tests = 10
-    center_xs = np.random.uniform(-1000, 1000, num_tests)
-    center_ys = np.random.uniform(-1000, 1000, num_tests)
-    radii = np.random.uniform(10, 1000, num_tests)
+    rng = np.random.default_rng(0)
+    center_xs = rng.uniform(-1000, 1000, num_tests)
+    center_ys = rng.uniform(-1000, 1000, num_tests)
+    radii = rng.uniform(10, 1000, num_tests)
 
     for center_x, center_y, radius in zip(center_xs, center_ys, radii):
 
-        phi = np.random.uniform(0, 2 * np.pi, 100)
+        phi = rng.uniform(0, 2 * np.pi, 100)
         x = center_x + radius * np.cos(phi)
         y = center_y + radius * np.sin(phi)
 
@@ -34,7 +33,8 @@ def test_kundu_chaudhuri_with_units():
     center_y = 0.5 * u.meter
     radius = 1 * u.meter
 
-    phi = np.random.uniform(0, 2 * np.pi, 100)
+    rng = np.random.default_rng(0)
+    phi = rng.uniform(0, 2 * np.pi, 100)
     x = center_x + radius * np.cos(phi)
     y = center_y + radius * np.sin(phi)
 

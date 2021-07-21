@@ -1,11 +1,10 @@
-from .array import get_array_layout
 from .eventseeker import EventSeeker
 from .eventsource import EventSource
 from .hdf5tableio import HDF5TableReader, HDF5TableWriter
 from .tableio import TableWriter, TableReader
 from .datalevels import DataLevel
-from .astropy_helpers import h5_table_to_astropy as read_table
-from .dl1writer import DL1Writer
+from .astropy_helpers import read_table
+from .datawriter import DataWriter
 
 from ..core.plugins import detect_and_import_io_plugins
 
@@ -18,7 +17,6 @@ detect_and_import_io_plugins()
 
 
 __all__ = [
-    "get_array_layout",
     "HDF5TableWriter",
     "HDF5TableReader",
     "TableWriter",
@@ -29,5 +27,5 @@ __all__ = [
     "DL1EventSource",
     "DataLevel",
     "read_table",
-    "DL1Writer",
+    "DataWriter",
 ]

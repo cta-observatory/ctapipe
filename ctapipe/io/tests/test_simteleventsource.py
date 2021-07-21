@@ -1,4 +1,5 @@
 import copy
+from ctapipe.instrument.camera.geometry import UnknownPixelShapeWarning
 
 import numpy as np
 from astropy.utils.data import download_file
@@ -43,23 +44,6 @@ def test_simtel_event_source_on_gamma_test_one_event():
                 assert event.count == 0
                 break
 
-    # test that max_events works:
-    max_events = 5
-    with SimTelEventSource(
-        input_url=gamma_test_large_path, max_events=max_events
-    ) as reader:
-        count = 0
-        for _ in reader:
-            count += 1
-        assert count == max_events
-
-    # test that the allowed_tels mask works:
-    with SimTelEventSource(
-        input_url=gamma_test_large_path, allowed_tels={3, 4}
-    ) as reader:
-        for event in reader:
-            assert set(event.r0.tel).issubset(reader.allowed_tels)
-
 
 def test_that_event_is_not_modified_after_loop():
 
@@ -78,7 +62,7 @@ def test_that_event_is_not_modified_after_loop():
 
 def test_additional_meta_data_from_simulation_config():
     with SimTelEventSource(input_url=gamma_test_large_path) as reader:
-        data = next(iter(reader))
+        next(iter(reader))
 
     # for expectation values
     from astropy import units as u
@@ -127,24 +111,27 @@ def test_properties():
 def test_gamma_file():
     dataset = gamma_test_path
 
-    with SimTelEventSource(input_url=dataset) as reader:
-        assert reader.is_compatible(dataset)
-        assert reader.is_stream  # using gzip subprocess makes it a stream
+    with pytest.warns(UnknownPixelShapeWarning):
+        with SimTelEventSource(input_url=dataset) as reader:
+            assert reader.is_compatible(dataset)
+            assert reader.is_stream  # using gzip subprocess makes it a stream
 
-        for event in reader:
-            if event.count == 0:
-                assert event.r0.tel.keys() == {38, 47}
-            elif event.count == 1:
-                assert event.r0.tel.keys() == {11, 21, 24, 26, 61, 63, 118, 119}
-            else:
-                break
+            for event in reader:
+                if event.count == 0:
+                    assert event.r0.tel.keys() == {38, 47}
+                elif event.count == 1:
+                    assert event.r0.tel.keys() == {11, 21, 24, 26, 61, 63, 118, 119}
+                else:
+                    break
 
     # test that max_events works:
 
 
 def test_max_events():
     max_events = 5
-    with SimTelEventSource(input_url=gamma_test_path, max_events=max_events) as reader:
+    with SimTelEventSource(
+        input_url=gamma_test_large_path, max_events=max_events
+    ) as reader:
         count = 0
         for _ in reader:
             count += 1
@@ -169,26 +156,15 @@ def test_allowed_telescopes():
     # test that the allowed_tels mask works:
     allowed_tels = {3, 4}
     with SimTelEventSource(
-        input_url=gamma_test_large_path, allowed_tels=allowed_tels
+        input_url=gamma_test_large_path, allowed_tels=allowed_tels, max_events=5
     ) as reader:
-
+        assert not allowed_tels.symmetric_difference(reader.subarray.tel_ids)
         for event in reader:
             assert set(event.r0.tel).issubset(allowed_tels)
             assert set(event.r1.tel).issubset(allowed_tels)
             assert set(event.dl0.tel).issubset(allowed_tels)
-
-    # test that updating the allowed_tels mask works
-    new_allowed_tels = {1, 2}
-    with SimTelEventSource(
-        input_url=gamma_test_large_path, allowed_tels=allowed_tels
-    ) as reader:
-
-        # change allowed_tels after __init__
-        reader.allowed_tels = new_allowed_tels
-        for event in reader:
-            assert set(event.r0.tel).issubset(new_allowed_tels)
-            assert set(event.r1.tel).issubset(new_allowed_tels)
-            assert set(event.dl0.tel).issubset(new_allowed_tels)
+            assert set(event.trigger.tels_with_trigger).issubset(allowed_tels)
+            assert set(event.pointing.tel).issubset(allowed_tels)
 
 
 def test_calibration_events():
@@ -261,7 +237,10 @@ def test_apply_simtel_r1_calibration_1_channel():
 
     gain_selector = ThresholdGainSelector(threshold=90)
     r1_waveforms, selected_gain_channel = apply_simtel_r1_calibration(
-        r0_waveforms, pedestal, dc_to_pe, gain_selector
+        r0_waveforms,
+        pedestal,
+        dc_to_pe,
+        gain_selector
     )
 
     assert (selected_gain_channel == 0).all()
@@ -292,7 +271,10 @@ def test_apply_simtel_r1_calibration_2_channel():
 
     gain_selector = ThresholdGainSelector(threshold=90)
     r1_waveforms, selected_gain_channel = apply_simtel_r1_calibration(
-        r0_waveforms, pedestal, dc_to_pe, gain_selector
+        r0_waveforms,
+        pedestal,
+        dc_to_pe,
+        gain_selector
     )
 
     assert selected_gain_channel[0] == 1
@@ -338,3 +320,41 @@ def test_only_config():
 
     s = SimTelEventSource(config=config)
     assert s.input_url == Path(gamma_test_large_path).absolute()
+
+
+def test_calibscale_and_calibshift(prod5_gamma_simtel_path):
+
+    telid = 25
+
+    with SimTelEventSource(
+        input_url=prod5_gamma_simtel_path, max_events=1
+    ) as source:
+
+        for event in source:
+            pass
+
+    calib_scale = 2.0
+
+    with SimTelEventSource(
+        input_url=prod5_gamma_simtel_path, max_events=1, calib_scale=calib_scale
+    ) as source:
+
+        for event_scaled in source:
+            pass
+
+    np.testing.assert_allclose(event.r1.tel[telid].waveform[0],
+                               event_scaled.r1.tel[telid].waveform[0] / calib_scale,
+                               rtol=0.1)
+
+    calib_shift = 2.0  # p.e.
+
+    with SimTelEventSource(
+        input_url=prod5_gamma_simtel_path, max_events=1, calib_shift=calib_shift
+    ) as source:
+
+        for event_shifted in source:
+            pass
+
+    np.testing.assert_allclose(event.r1.tel[telid].waveform[0],
+                               event_shifted.r1.tel[telid].waveform[0] - calib_shift,
+                               rtol=0.1)

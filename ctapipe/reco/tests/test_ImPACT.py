@@ -4,11 +4,13 @@ import pytest
 from numpy.testing import assert_allclose
 
 from ctapipe.containers import (
-    ReconstructedShowerContainer,
+    ReconstructedGeometryContainer,
     ReconstructedEnergyContainer,
 )
+
 from ctapipe.reco.ImPACT import ImPACTReconstructor
 from ctapipe.reco.ImPACT_utilities import *
+
 from ctapipe.containers import HillasParametersContainer
 from astropy.coordinates import Angle, AltAz, SkyCoord
 
@@ -100,6 +102,58 @@ class TestImPACT:
 
         shower_max = self.impact_reco.get_shower_max(0, 0, 0, 100, 0)
         assert_allclose(shower_max, 484.2442217190515, rtol=0.01)
+
+    @pytest.mark.skip("need a dataset for this to work")
+
+    def test_image_prediction(self):
+        pixel_x = np.array([0]) * u.deg
+        pixel_y = np.array([0]) * u.deg
+
+        image = np.array([1])
+        pixel_area = np.array([1]) * u.deg * u.deg
+
+        self.impact_reco.set_event_properties(
+            {1: image},
+            {1: pixel_x},
+            {1: pixel_y},
+            {1: pixel_area},
+            {1: "CHEC"},
+            {1: 0 * u.m},
+            {1: 0 * u.m},
+            array_direction=[0 * u.deg, 0 * u.deg],
+        )
+
+        """First check image prediction by directly accessing the function"""
+        pred = self.impact_reco.image_prediction(
+            "CHEC",
+            zenith=0,
+            azimuth=0,
+            energy=1,
+            impact=50,
+            x_max=0,
+            pix_x=pixel_x,
+            pix_y=pixel_y,
+        )
+
+        assert np.sum(pred) != 0
+
+        """Then check helper function gives the same answer"""
+        shower = ReconstructedGeometryContainer()
+        shower.is_valid = True
+        shower.alt = 0 * u.deg
+        shower.az = 0 * u.deg
+        shower.core_x = 0 * u.m
+        shower.core_y = 100 * u.m
+        shower.h_max = 300 + 93 * np.log10(1)
+
+        energy = ReconstructedEnergyContainer()
+        energy.is_valid = True
+        energy.energy = 1 * u.TeV
+        pred2 = self.impact_reco.get_prediction(
+            1, shower_reco=shower, energy_reco=energy
+        )
+        print(pred, pred2)
+        assert pred.all() == pred2.all()
 
     @pytest.mark.skip("need a dataset for this to work")
     def test_likelihood(self):

@@ -6,10 +6,10 @@ process the events and apply pre-selection cuts to the images
 An HDF5 file is written with image MC and moment parameters
 (e.g. length, width, image amplitude, etc.).
 """
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from ctapipe.core import Tool
-from ctapipe.core.traits import Path, Unicode, List, Dict, Bool
+from ctapipe.core.traits import Path, Unicode, Dict, Bool
 from ctapipe.io import EventSource, HDF5TableWriter
 
 from ctapipe.calib import CameraCalibrator
@@ -35,7 +35,7 @@ class SimpleEventWriter(Tool):
             "progress": "SimpleEventWriter.progress",
         }
     )
-    classes = List([EventSource, CameraCalibrator])
+    classes = [EventSource, CameraCalibrator]
 
     def setup(self):
         self.log.info("Configure EventSource...")

@@ -1,4 +1,4 @@
-name: CI
+name: Deploy to PyPi
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - 'v*'
 
 jobs:
-  tests:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -22,8 +22,8 @@ jobs:
       - name: Install dependencies
         run: |
           python --version
-          pip install -U pip setuptools wheel
-          python setup.py sdist bdist_wheel
+          pip install -U build
+          python -m build
 
       - name: Publish package
         uses: pypa/gh-action-pypi-publish@master

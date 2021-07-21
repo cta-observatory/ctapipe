@@ -1,10 +1,10 @@
 {
-    "Stage1Tool": {
-    },
-    "DL1Writer": {
+    "DataWriter": {
         "overwrite": false,
         "write_images": true,
-        "write_parameters": true
+        "write_parameters": true,
+        "transform_image": true,
+        "transform_peak_time": true
     },
     "CameraCalibrator": {
         "image_extractor_type": "NeighborPeakWindowSum"
@@ -14,14 +14,15 @@
         "TailcutsImageCleaner": {
             "picture_threshold_pe":  [
                 ["type", "*", 10.0],
-                ["type", "LST_LST_LSTCam", 6.0],
-                ["type", "MST_MST_NectarCam", 6.0],
-                ["type", "MST_MST_FlashCam", 6.0]
+                ["type", "LST_LST_LSTCam", 5.0],
+                ["type", "MST_MST_NectarCam", 5.0],
+                ["type", "SST_ASTRI_CHEC", 3.0]
             ],
             "boundary_threshold_pe": [
                 ["type", "*", 5.0],
-                ["type", "LST*", 3.0],
-                ["type", "MST*", 4.0]
+                ["type", "LST_LST_LSTCam", 2.5],
+                ["type", "MST_MST_NectarCam", 2.5],
+                ["type", "SST_ASTRI_CHEC", 1.5]
             ],
             "min_picture_neighbors":[
                 ["type", "*", 2]

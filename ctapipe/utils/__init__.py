@@ -9,7 +9,7 @@ from .datasets import (
     find_in_path,
 )
 from .astro import get_bright_stars
-from .CutFlow import CutFlow, PureCountingCut, UndefinedCut
+from .cutflow import CutFlow, PureCountingCut, UndefinedCut
 from .index_finder import IndexFinder
 
 

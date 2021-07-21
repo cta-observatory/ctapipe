@@ -7,6 +7,7 @@ import pathlib
 
 from ctapipe.core import Component, TelescopeComponent
 from ctapipe.core.traits import (
+    List,
     Float,
     Bool,
     Path,
@@ -20,6 +21,7 @@ from ctapipe.core.traits import (
     AstroTime,
 )
 from ctapipe.image import ImageExtractor
+from ctapipe.utils.datasets import get_dataset_path, DEFAULT_URL
 
 
 @pytest.fixture(scope="module")
@@ -152,9 +154,13 @@ def test_path_url():
     c.thepath = "file:///foo.hdf5"
     assert c.thepath == pathlib.Path("/foo.hdf5")
 
-    # test not other shemes raise trailet errors
-    with pytest.raises(TraitError):
-        c.thepath = "https://example.org/test.hdf5"
+    # test http downloading
+    c.thepath = DEFAULT_URL + "optics.ecsv.txt"
+    assert c.thepath.name == "optics.ecsv.txt"
+
+    # test dataset://
+    c.thepath = "dataset://optics.ecsv.txt"
+    assert c.thepath == get_dataset_path("optics.ecsv.txt")
 
 
 def test_enum_trait_default_is_right():
@@ -179,6 +185,30 @@ def test_enum_classes_with_traits():
     """ test that we can get a list of classes that have traits """
     list_of_classes = classes_with_traits(ImageExtractor)
     assert list_of_classes  # should not be empty
+
+
+def test_classes_with_traits():
+    from ctapipe.core import Tool
+
+    class CompA(Component):
+        a = Int().tag(config=True)
+
+    class CompB(Component):
+        classes = List([CompA])
+        b = Int().tag(config=True)
+
+    class CompC(Component):
+        c = Int().tag(config=True)
+
+    class MyTool(Tool):
+        classes = [CompB, CompC]
+
+    with_traits = classes_with_traits(MyTool)
+    assert len(with_traits) == 4
+    assert MyTool in with_traits
+    assert CompA in with_traits
+    assert CompB in with_traits
+    assert CompC in with_traits
 
 
 def test_has_traits():

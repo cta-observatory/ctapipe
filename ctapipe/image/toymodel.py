@@ -23,6 +23,7 @@ from astropy.coordinates import Angle
 from scipy.stats import multivariate_normal, skewnorm, norm
 from scipy.ndimage import convolve1d
 from abc import ABCMeta, abstractmethod
+from numpy.random import default_rng
 
 __all__ = [
     "WaveformModel",
@@ -31,6 +32,9 @@ __all__ = [
     "ImageModel",
     "obtain_time_image",
 ]
+
+
+TOYMODEL_RNG = default_rng(0)
 
 
 @u.quantity_input(
@@ -137,7 +141,7 @@ class WaveformModel:
         n_upsampled_samples = n_samples * self.upsampling
         readout = np.zeros((n_pixels, n_upsampled_samples))
 
-        sample = (time / self.ref_width_ns).astype(np.int)
+        sample = (time / self.ref_width_ns).astype(np.int64)
         outofrange = (sample < 0) | (sample >= n_upsampled_samples)
         sample[outofrange] = 0
         charge[outofrange] = 0
@@ -182,12 +186,12 @@ class ImageModel(metaclass=ABCMeta):
         """Probability density function.
         """
 
-    def generate_image(self, camera, intensity=50, nsb_level_pe=20):
+    def generate_image(self, camera, intensity=50, nsb_level_pe=20, rng=None):
         """Generate a randomized DL1 shower image.
         For the signal, poisson random numbers are drawn from
         the expected signal distribution for each pixel.
         For the background, for each pixel a poisson random number
-        if drawn with mean `nsb_level_pe`.
+        if drawn with mean ``nsb_level_pe``.
 
         Parameters
         ----------
@@ -205,10 +209,13 @@ class ImageModel(metaclass=ABCMeta):
         noise: only the noise part of image
 
         """
+        if rng is None:
+            rng = TOYMODEL_RNG
+
         expected_signal = self.expected_signal(camera, intensity)
 
-        signal = np.random.poisson(expected_signal)
-        noise = np.random.poisson(nsb_level_pe, size=signal.shape)
+        signal = rng.poisson(expected_signal)
+        noise = rng.poisson(nsb_level_pe, size=signal.shape)
         image = (signal + noise) - np.mean(noise)
 
         return image, signal, noise
@@ -271,7 +278,7 @@ class Gaussian(ImageModel):
         rotated_covariance = rotation @ aligned_covariance @ rotation.T
 
         return multivariate_normal(
-            mean=[self.x.to_value(u.m), self.y.to_value(u.m)], cov=rotated_covariance,
+            mean=[self.x.to_value(u.m), self.y.to_value(u.m)], cov=rotated_covariance
         ).pdf(np.column_stack([x.to_value(u.m), y.to_value(u.m)]))
 
 
@@ -358,4 +365,4 @@ class RingGaussian(ImageModel):
 
         r = np.sqrt((x - self.x) ** 2 + (y - self.y) ** 2)
 
-        return norm(self.radius.to_value(u.m), self.sigma.to_value(u.m),).pdf(r)
+        return norm(self.radius.to_value(u.m), self.sigma.to_value(u.m)).pdf(r)

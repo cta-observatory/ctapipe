@@ -1,4 +1,3 @@
-import os
 import numpy as np
 from numpy.testing import assert_allclose
 from ctapipe.image import cleaning
@@ -8,7 +7,7 @@ import astropy.units as u
 
 def test_tailcuts_clean_simple():
     geom = CameraGeometry.from_name("LSTCam")
-    image = np.zeros_like(geom.pix_id, dtype=np.float)
+    image = np.zeros_like(geom.pix_id, dtype=np.float64)
 
     num_pix = 40
     some_neighs = geom.neighbors[num_pix][0:3]  # pick 3 neighbors
@@ -282,7 +281,7 @@ def test_fact_image_cleaning():
         time_limit=5,
     )
 
-    expected_pixels = np.array([0, 1, 2, 3, 4, 8, 9, 10, 11])
+    expected_pixels = np.array([0, 1, 2, 3, 4, 8, 9])
     expected_mask = np.zeros(len(geom)).astype(bool)
     expected_mask[expected_pixels] = 1
     assert_allclose(mask, expected_mask)
@@ -290,11 +289,11 @@ def test_fact_image_cleaning():
 
 def test_apply_time_delta_cleaning():
     geom = CameraGeometry.from_name("LSTCam")
-    peak_time = np.zeros(geom.n_pixels, dtype=np.float)
+    peak_time = np.zeros(geom.n_pixels, dtype=np.float64)
 
     pixel = 40
-    neighbours = geom.neighbors[pixel]
-    peak_time[neighbours] = 32.0
+    neighbors = geom.neighbors[pixel]
+    peak_time[neighbors] = 32.0
     peak_time[pixel] = 30.0
     mask = peak_time > 0
 
@@ -306,19 +305,29 @@ def test_apply_time_delta_cleaning():
     assert (test_mask == td_mask).all()
 
     # Test time_limit
-    noise_neighbour = neighbours[0]
-    peak_time[noise_neighbour] += 10
+    noise_neighbor = neighbors[0]
+    peak_time[noise_neighbor] += 10
     td_mask = cleaning.apply_time_delta_cleaning(
         geom, mask, peak_time, min_number_neighbors=1, time_limit=5
     )
     test_mask = mask.copy()
-    test_mask[noise_neighbour] = 0
+    test_mask[noise_neighbor] = 0
     assert (test_mask == td_mask).all()
 
-    # Test min_number_neighbours
+    # Test min_number_neighbors
     td_mask = cleaning.apply_time_delta_cleaning(
         geom, mask, peak_time, min_number_neighbors=4, time_limit=5
     )
     test_mask = mask.copy()
-    test_mask[neighbours] = 0
+    test_mask[neighbors] = 0
+    assert (test_mask == td_mask).all()
+
+    # Test unselected neighbors
+    mask[156] = 0
+    peak_time[noise_neighbor] -= 10
+    td_mask = cleaning.apply_time_delta_cleaning(
+        geom, mask, peak_time, min_number_neighbors=3, time_limit=5
+    )
+    test_mask = mask.copy()
+    test_mask[[41, 157]] = 0
     assert (test_mask == td_mask).all()

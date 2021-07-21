@@ -41,8 +41,6 @@ def test_linear_regression_singular():
 def test_lts_regression():
     from ctapipe.fitting import lts_linear_regression
 
-    np.random.seed(1337)
-
     true_beta = np.array([5.0, 2.0])
 
     # test without noise, should give exact result
@@ -65,7 +63,8 @@ def test_lts_regression():
     assert np.isclose(error, 0)
 
     # add noise, should still give a good result, but not exact
-    y += np.random.normal(0, 0.1, len(y))
+    rng = np.random.default_rng(1337)
+    y += rng.normal(0, 0.1, len(y))
 
     beta, error = lts_linear_regression(x, y)
 
@@ -79,8 +78,6 @@ def test_lts_regression_singular_pair():
     of points creating a singular matrix
     """
     from ctapipe.fitting import lts_linear_regression, design_matrix, EPS
-
-    np.random.seed(1337)
 
     true_beta = np.array([5.0, 2.0])
 

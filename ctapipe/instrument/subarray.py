@@ -1,10 +1,6 @@
 """
 Description of Arrays or Subarrays of telescopes
 """
-
-__all__ = ["SubarrayDescription"]
-
-from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
@@ -14,6 +10,7 @@ from astropy.table import Table
 from astropy.utils import lazyproperty
 import tables
 from copy import copy
+from itertools import groupby
 
 import ctapipe
 
@@ -23,10 +20,31 @@ from .camera import CameraDescription, CameraReadout, CameraGeometry
 from .optics import OpticsDescription
 
 
+__all__ = ["SubarrayDescription"]
+
+
+def _group_consecutives(sequence):
+    """
+    Turn consequtive lists into ranges (used in SubarrayDescription.info())
+
+    from https://codereview.stackexchange.com/questions/214820/codewars-range-extraction
+    """
+    for _, g in groupby(enumerate(sequence), lambda i_x: i_x[0] - i_x[1]):
+        r = [x for _, x in g]
+        if len(r) > 2:
+            yield f"{r[0]}-{r[-1]}"
+        else:
+            yield from map(str, r)
+
+
+def _range_extraction(sequence):
+    return ",".join(_group_consecutives(sequence))
+
+
 class SubarrayDescription:
     """
-    Collects the `TelescopeDescription` of all telescopes along with their
-    positions on the ground.
+    Collects the `~ctapipe.instrument.TelescopeDescription` of all telescopes
+    along with their positions on the ground.
 
     Parameters
     ----------
@@ -34,7 +52,7 @@ class SubarrayDescription:
         name of this subarray
     tel_positions: Dict[Array]
         dict of x,y,z telescope positions on the ground by tel_id. These are
-        converted internally to a `SkyCoord` in the `GroundFrame`
+        converted internally to a coordinate in the `~ctapipe.coordinates.GroundFrame`
     tel_descriptions: Dict[TelescopeDescription]
         dict of TelescopeDescriptions by tel_id
 
@@ -91,26 +109,13 @@ class SubarrayDescription:
         printer("")
 
         # print the per-telescope-type informatino:
-        table = self.to_table().group_by("tel_description")
         n_tels = {}
         tel_ids = {}
 
-        for group in table.groups:
-            # make nice range strings for tel_ids
-            # (e.g. [1,2,3,4,16,17] -> 1-4, 16-17).
-            tel_desc = group[0]["tel_description"]
-            tel_ids_in_group = group["tel_id"]
-            delta = np.array(tel_ids_in_group[1:] - tel_ids_in_group[:-1])
-            splits = np.where(delta > 1)[0]
-            id_ranges = np.split(tel_ids_in_group, splits)
-            id_str_list = []
-            for id_range in id_ranges:
-                if len(id_range) > 1:
-                    id_str_list.append(f"{id_range.min()}-{id_range.max()}")
-                else:
-                    id_str_list.append(str(id_range[0]))
-            tel_ids[tel_desc] = ", ".join(id_str_list)
-            n_tels[tel_desc] = len(group)
+        for tel_type in self.telescope_types:
+            ids = self.get_tel_ids_for_type(tel_type)
+            tel_ids[str(tel_type)] = _range_extraction(ids)
+            n_tels[str(tel_type)] = len(ids)
 
         out_table = Table(
             {
@@ -149,7 +154,7 @@ class SubarrayDescription:
         """
         returns an expanded array that maps tel_id to tel_index. I.e. for a given
         telescope, this array maps the tel_id to a flat index starting at 0 for
-        the first telescope. `tel_index = tel_id_to_index_array[tel_id]`
+        the first telescope. ``tel_index = tel_id_to_index_array[tel_id]``
         If the tel_ids are not contiguous, gaps will be filled in by -1.
         For a more compact representation use the `tel_indices`
         """
@@ -289,17 +294,16 @@ class SubarrayDescription:
         tab.meta.update(meta)
         return tab
 
-    def select_subarray(self, name, tel_ids):
+    def select_subarray(self, tel_ids, name=None):
         """
         return a new SubarrayDescription that is a sub-array of this one
 
         Parameters
         ----------
-        name: str
-            name of new sub-selection
         tel_ids: list(int)
             list of telescope IDs to include in the new subarray
-
+        name: str
+            name of new sub-selection
         Returns
         -------
         SubarrayDescription
@@ -307,6 +311,10 @@ class SubarrayDescription:
 
         tel_positions = {tid: self.positions[tid] for tid in tel_ids}
         tel_descriptions = {tid: self.tel[tid] for tid in tel_ids}
+
+        if not name:
+            tel_ids = sorted(tel_ids)
+            name = self.name + "_" + _range_extraction(tel_ids)
 
         newsub = SubarrayDescription(
             name, tel_positions=tel_positions, tel_descriptions=tel_descriptions
@@ -328,7 +336,7 @@ class SubarrayDescription:
         with quantity_support():
             for tel_type in types:
                 tels = tab[tab["tel_description"] == str(tel_type)]["tel_id"]
-                sub = self.select_subarray(tel_type, tels)
+                sub = self.select_subarray(tels, name=tel_type)
                 tel_coords = sub.tel_coords
                 radius = np.array(
                     [
@@ -409,8 +417,11 @@ class SubarrayDescription:
         """
         serialize_meta = True
 
-        if Path(output_path).suffix not in (".h5", ".hdf", ".hdf5"):
-            raise ValueError("This function can only write to hdf files.")
+        output_path = Path(output_path)
+        if output_path.suffix not in (".h5", ".hdf", ".hdf5"):
+            raise ValueError(
+                f"This function can only write to hdf files, got {output_path.suffix}"
+            )
 
         self.to_table().write(
             output_path,

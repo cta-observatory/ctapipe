@@ -11,7 +11,6 @@ from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.colors import Normalize, LogNorm, SymLogNorm
 from matplotlib.patches import Ellipse, RegularPolygon, Rectangle, Circle
-from numpy import sqrt
 
 from ctapipe.instrument import PixelShape
 
@@ -41,7 +40,7 @@ class CameraDisplay:
         A matplotlib axes object to plot on, or None to create a new one
     title : str (default "Camera")
         Title to put on camera plot
-    norm : str or `matplotlib.color.Normalize` instance (default 'lin')
+    norm : str or `matplotlib.colors.Normalize` instance (default 'lin')
         Normalization for the color scale.
         Supported str arguments are
         - 'lin': linear scale
@@ -54,7 +53,7 @@ class CameraDisplay:
         redraw automatically (otherwise need to call plt.draw())
     autoscale : bool (default True)
         rescale the vmin/vmax values when the image changes.
-        This is set to False if `set_limits_*` is called to explicity
+        This is set to False if ``set_limits_*`` is called to explicity
         set data limits.
 
     Notes
@@ -75,7 +74,7 @@ class CameraDisplay:
         `matplotlib.collections.PatchCollection` of Polygons (either 6
         or 4 sided).  You can access the PatchCollection directly (to
         e.g. change low-level style parameters) via
-        `CameraDisplay.pixels`
+        ``CameraDisplay.pixels``
 
     Output:
         Since CameraDisplay uses matplotlib, any display can be
@@ -145,6 +144,8 @@ class CameraDisplay:
                     angle=self.geom.pix_rotation.to_value(u.deg),
                     fill=True,
                 )
+            else:
+                raise ValueError(f"Unsupported pixel_shape {self.geom.pix_type}")
 
             patches.append(patch)
 
@@ -193,7 +194,7 @@ class CameraDisplay:
         if image is not None:
             self.image = image
         else:
-            self.image = np.zeros_like(self.geom.pix_id, dtype=np.float)
+            self.image = np.zeros_like(self.geom.pix_id, dtype=np.float64)
 
         self.norm = norm
         self.auto_set_axes_labels()
@@ -225,11 +226,8 @@ class CameraDisplay:
 
     def enable_pixel_picker(self):
         """ enable ability to click on pixels """
-        self.pixels.set_picker(True)  # enable click
-        self.pixels.set_pickradius(
-            sqrt(u.Quantity(self.geom.pix_area[0]).value) / np.pi
-        )
-        self.pixels.set_snap(True)  # snap cursor to pixel center
+        self.pixels.set_picker(True)
+        self.pixels.set_pickradius(self.geom.pixel_width.value[0] / 2)
         self.axes.figure.canvas.mpl_connect("pick_event", self._on_pick)
 
     def set_limits_minmax(self, zmin, zmax):
@@ -286,8 +284,7 @@ class CameraDisplay:
     @property
     def cmap(self):
         """
-        Color map to use. Either a name or  `matplotlib.colors.ColorMap`
-        instance, e.g. from `matplotlib.pyplot.cm`
+        Color map to use. Either name or `matplotlib.colors.Colormap`
         """
         return self.pixels.get_cmap()
 
@@ -343,7 +340,7 @@ class CameraDisplay:
     def add_colorbar(self, **kwargs):
         """
         add a colorbar to the camera plot
-        kwargs are passed to `figure.colorbar(self.pixels, **kwargs)`
+        kwargs are passed to ``figure.colorbar(self.pixels, **kwargs)``
         See matplotlib documentation for the supported kwargs:
         http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure.colorbar
         """
@@ -392,7 +389,7 @@ class CameraDisplay:
     def overlay_moments(
         self, hillas_parameters, with_label=True, keep_old=False, **kwargs
     ):
-        """helper to overlay ellipse from a `HillasParametersContainer` structure
+        """helper to overlay ellipse from a `~ctapipe.containers.HillasParametersContainer` structure
 
         Parameters
         ----------
@@ -449,19 +446,18 @@ class CameraDisplay:
     def _on_pick(self, event):
         """ handler for when a pixel is clicked """
         pix_id = event.ind[-1]
-        xx, yy, aa = (
-            u.Quantity(self.geom.pix_x[pix_id]).value,
-            u.Quantity(self.geom.pix_y[pix_id]).value,
-            u.Quantity(np.array(self.geom.pix_area)[pix_id]),
-        )
-        if self.geom.pix_type.startswith("hex"):
-            self._active_pixel.xy = (xx, yy)
+        x = self.geom.pix_x[pix_id].value
+        y = self.geom.pix_y[pix_id].value
+
+        if self.geom.pix_type in (PixelShape.HEXAGON, PixelShape.CIRCLE):
+            self._active_pixel.xy = (x, y)
         else:
-            rr = sqrt(aa)
-            self._active_pixel.xy = (xx - rr / 2.0, yy - rr / 2.0)
+            w = self.geom.pixel_width.value[0]
+            self._active_pixel.xy = (x - w / 2.0, y - w / 2.0)
+
         self._active_pixel.set_visible(True)
-        self._active_pixel_label.set_x(xx)
-        self._active_pixel_label.set_y(yy)
+        self._active_pixel_label.set_x(x)
+        self._active_pixel_label.set_y(y)
         self._active_pixel_label.set_text(f"{pix_id:003d}")
         self._active_pixel_label.set_visible(True)
         self._update()

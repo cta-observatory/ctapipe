@@ -1,8 +1,11 @@
 .. _image_charge_extractors:
 
+
 #########################################
 Image Extraction (waveform cube to image)
 #########################################
+
+.. currentmodule:: ctapipe.image.extractor
 
 .. contents::
    :depth: 1
@@ -66,8 +69,8 @@ Units and Normalisation
 An `ImageExtractor` should preserve the units of the waveform samples when
 extracting the charge. I.e. if the samples are already calibrated into
 photoelectrons, then the charge reported by the `ImageExtractor` should be in
-photoelectrons. The simple `ImageExtractors` (e.g. `LocalPeakWindowSum`)
-achieve this with the `integration_correction` method, which scales the summed
+photoelectrons. The simple `ImageExtractor` implementations (e.g. `LocalPeakWindowSum`)
+achieve this with the ``integration_correction`` method, which scales the summed
 samples to account for the percentage of the pulse missed by the the window.
 This way, if a single photoelectron exists in the waveform (and no noise) then
 the result of the `ImageExtractor` will equal 1, no matter the window size.

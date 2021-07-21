@@ -7,12 +7,13 @@ dependencies:
   - python=3.7
   - pip
   - astropy
-  - h5py=2
+  - black
   - bokeh=1
   - conda-forge::nbsphinx
   - cython
   - graphviz
-  - iminuit>=1.3,<2.0.0a0
+  - h5py
+  - iminuit>=2
   - ipython
   - ipywidgets
   - joblib
@@ -32,7 +33,7 @@ dependencies:
   - scikit-learn
   - scipy
   - setuptools
-  - sphinx
+  - sphinx=3.5
   - sphinx-automodapi
   - sphinx_rtd_theme
   - tqdm
@@ -43,3 +44,4 @@ dependencies:
   - zlib
   - zstandard
   - conda-forge::eventio>=1.5.0
+  - conda-forge::corsikaio

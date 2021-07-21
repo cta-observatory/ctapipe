@@ -5,15 +5,31 @@ import textwrap
 from abc import abstractmethod
 import pathlib
 import os
+import re
 
 from traitlets import default
 from traitlets.config import Application, Configurable
 
 from .. import __version__ as version
-from .traits import Path, Enum, Bool, flag, Dict
+from .traits import Path, Enum, Bool, Dict
 from . import Provenance
 from .component import Component
 from .logging import create_logging_config, ColoredFormatter, DEFAULT_LOGGING
+
+
+__all__ = ["Tool", "ToolConfigurationError"]
+
+
+class CollectTraitWarningsHandler(logging.NullHandler):
+    regex = re.compile(".*Config option.*not recognized")
+
+    def __init__(self):
+        super().__init__()
+        self.errors = []
+
+    def handle(self, record):
+        if self.regex.match(record.msg) and record.levelno == logging.WARNING:
+            self.errors.append(record.msg)
 
 
 class ToolConfigurationError(Exception):
@@ -33,14 +49,14 @@ class Tool(Application):
 
     Tool developers should create sub-classes, and a name,
     description, usage examples should be added by defining the
-    `name`, `description` and `examples` class attributes as
-    strings. The `aliases` attribute can be set to cause a lower-level
-    `Component` parameter to become a high-level command-line
+    ``name``, ``description`` and ``examples`` class attributes as
+    strings. The ``aliases`` attribute can be set to cause a lower-level
+    `~ctapipe.core.Component` parameter to become a high-level command-line
     parameter (See example below). The `setup()`, `start()`, and
     `finish()` methods should be defined in the sub-class.
 
     Additionally, any `ctapipe.core.Component` used within the `Tool`
-    should have their class in a list in the `classes` attribute,
+    should have their class in a list in the ``classes`` attribute,
     which will automatically add their configuration parameters to the
     tool.
 
@@ -51,7 +67,7 @@ class Tool(Application):
     .. code:: python
 
         from ctapipe.core import Tool
-        from traitlets import (Integer, Float, List, Dict, Unicode)
+        from traitlets import (Integer, Float, Dict, Unicode)
 
         class MyTool(Tool):
             name = "mytool"
@@ -60,8 +76,7 @@ class Tool(Application):
                             'iterations': 'MyTool.iterations'})
 
             # Which classes are registered for configuration
-            classes = List([MyComponent, AdvancedComponent,
-                            SecondaryMyComponent])
+            classes = [MyComponent, AdvancedComponent, SecondaryMyComponent]
 
             # local configuration parameters
             iterations = Integer(5,help="Number of times to run",
@@ -98,9 +113,9 @@ class Tool(Application):
            main()
 
 
-    If this `main()` method is registered in `setup.py` under
+    If this ``main()`` function is registered in ``setup.py`` under
     *entry_points*, it will become a command-line tool (see examples
-    in the `ctapipe/tools` subdirectory).
+    in the ``ctapipe/tools`` subdirectory).
 
     """
 
@@ -137,21 +152,29 @@ class Tool(Application):
         # make sure there are some default aliases in all Tools:
         super().__init__(**kwargs)
         aliases = {
-            "config": "Tool.config_file",
+            ("c", "config"): "Tool.config_file",
             "log-level": "Tool.log_level",
-            "log-file": "Tool.log_file",
-            "log": "Tool.log_file",
-            "l": "Tool.log_file",
+            ("l", "log-file"): "Tool.log_file",
             "log-file-level": "Tool.log_file_level",
         }
-        self.aliases.update(aliases)
-        self.flags.update(flag("q", "Tool.quiet", "Disable console logging."))
+        # makes sure user defined aliases override default aliases
+        self.aliases = {**aliases, **self.aliases}
+
+        flags = {
+            ("q", "quiet"): ({"Tool": {"quiet": True}}, "Disable console logging."),
+            ("v", "verbose"): (
+                {"Tool": {"log_level": "DEBUG"}},
+                "Set log level to DEBUG",
+            ),
+        }
+        self.flags.update(flags)
 
         self.is_setup = False
         self.version = version
         self.raise_config_file_errors = True  # override traitlets.Application default
 
         self.log = logging.getLogger("ctapipe." + self.name)
+        self.trait_warning_handler = CollectTraitWarningsHandler()
         self.update_logging_config()
 
     def initialize(self, argv=None):
@@ -183,6 +206,9 @@ class Tool(Application):
         )
 
         logging.config.dictConfig(cfg)
+
+        # re-add our custom handler every time the config is updated.
+        self.log.addHandler(self.trait_warning_handler)
 
     def add_component(self, component_instance):
         """
@@ -216,7 +242,7 @@ class Tool(Application):
     @abstractmethod
     def setup(self):
         """set up the tool (override in subclass). Here the user should
-        construct all `Components` and open files, etc."""
+        construct all ``Components`` and open files, etc."""
         pass
 
     @abstractmethod
@@ -257,6 +283,14 @@ class Tool(Application):
             self.is_setup = True
             self.log.debug(f"CONFIG: {self.get_current_config()}")
             Provenance().add_config(self.get_current_config())
+
+            # check for any traitlets warnings using our custom handler
+            if len(self.trait_warning_handler.errors) > 0:
+                raise ToolConfigurationError("Found config errors")
+
+            # remove handler to not impact performance with regex matching
+            self.log.removeHandler(self.trait_warning_handler)
+
             self.start()
             self.finish()
             self.log.info(f"Finished: {self.name}")

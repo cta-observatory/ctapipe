@@ -3,13 +3,13 @@ from astropy.utils.decorators import lazyproperty
 import logging
 import numpy as np
 import tables
-from ctapipe.instrument import SubarrayDescription
-from ctapipe.io.eventsource import EventSource
-from ctapipe.io import HDF5TableReader
-from ctapipe.io.datalevels import DataLevel
-from ctapipe.containers import (
+
+from ..core import Container, Field
+from ..instrument import SubarrayDescription
+from ..containers import (
     ConcentrationContainer,
     ArrayEventContainer,
+    DL1CameraContainer,
     EventIndexContainer,
     HillasParametersContainer,
     IntensityStatisticsContainer,
@@ -17,18 +17,25 @@ from ctapipe.containers import (
     MorphologyContainer,
     SimulationConfigContainer,
     SimulatedShowerContainer,
+    SimulatedEventContainer,
     PeakTimeStatisticsContainer,
     TimingParametersContainer,
     TriggerContainer,
     ImageParametersContainer,
 )
-from ctapipe.utils import IndexFinder
+from .eventsource import EventSource
+from .hdf5tableio import HDF5TableReader
+from .datalevels import DataLevel
+from ..utils import IndexFinder
+
+
+__all__ = ["DL1EventSource"]
 
 
 logger = logging.getLogger(__name__)
 
 
-COMPATIBLE_DL1_VERSIONS = ["v1.0.0", "v1.0.1", "v1.0.2", "v1.0.3"]
+COMPATIBLE_DL1_VERSIONS = ["v1.0.0", "v1.0.1", "v1.0.2", "v1.0.3", "v1.1.0", "v1.2.0"]
 
 
 class DL1EventSource(EventSource):
@@ -89,7 +96,14 @@ class DL1EventSource(EventSource):
         super().__init__(input_url=input_url, config=config, parent=parent, **kwargs)
 
         self.file_ = tables.open_file(self.input_url)
-        self._subarray_info = SubarrayDescription.from_hdf(self.input_url)
+        self._full_subarray_info = SubarrayDescription.from_hdf(self.input_url)
+
+        if self.allowed_tels:
+            self._subarray_info = self._full_subarray_info.select_subarray(
+                self.allowed_tels
+            )
+        else:
+            self._subarray_info = self._full_subarray_info
         self._simulation_configs = self._parse_simulation_configs()
         self.datamodel_version = self.file_.root._v_attrs[
             "CTA PRODUCT DATA MODEL VERSION"
@@ -113,20 +127,27 @@ class DL1EventSource(EventSource):
     def is_compatible(file_path):
         with open(file_path, "rb") as f:
             magic_number = f.read(8)
+
         if magic_number != b"\x89HDF\r\n\x1a\n":
             return False
+
         with tables.open_file(file_path) as f:
             metadata = f.root._v_attrs
             if "CTA PRODUCT DATA LEVEL" not in metadata._v_attrnames:
                 return False
-            if metadata["CTA PRODUCT DATA LEVEL"] != "DL1":
+
+            if "DL1" not in metadata["CTA PRODUCT DATA LEVEL"]:
                 return False
+
             if "CTA PRODUCT DATA MODEL VERSION" not in metadata._v_attrnames:
                 return False
-            if (
-                metadata["CTA PRODUCT DATA MODEL VERSION"]
-                not in COMPATIBLE_DL1_VERSIONS
-            ):
+
+            version = metadata["CTA PRODUCT DATA MODEL VERSION"]
+            if version not in COMPATIBLE_DL1_VERSIONS:
+                logger.error(
+                    f"File is DL1 file but has unsupported version {version}"
+                    f", supported versions are {COMPATIBLE_DL1_VERSIONS}"
+                )
                 return False
         return True
 
@@ -187,11 +208,15 @@ class DL1EventSource(EventSource):
         # the correct mcheader assigned by matching the obs_id
         # Alternatively this becomes a flat list
         # and the obs_id matching part needs to be done in _generate_events()
+        class ObsIdContainer(Container):
+            container_prefix = ""
+            obs_id = Field(-1)
+
         simulation_configs = {}
         if "simulation" in self.file_.root.configuration:
             reader = HDF5TableReader(self.file_).read(
                 "/configuration/simulation/run",
-                containers=[SimulationConfigContainer(), EventIndexContainer()],
+                containers=[SimulationConfigContainer(), ObsIdContainer()],
             )
             for (config, index) in reader:
                 simulation_configs[index.obs_id] = config
@@ -208,11 +233,15 @@ class DL1EventSource(EventSource):
         data.meta["input_url"] = self.input_url
         data.meta["max_events"] = self.max_events
 
+        self.reader = HDF5TableReader(self.file_)
+
         if DataLevel.DL1_IMAGES in self.datalevels:
-            image_iterators = {
-                tel.name: self.file_.root.dl1.event.telescope.images[
-                    tel.name
-                ].iterrows()
+            image_readers = {
+                tel.name: self.reader.read(
+                    f"/dl1/event/telescope/images/{tel.name}",
+                    DL1CameraContainer(),
+                    ignore_columns={"parameters"},
+                )
                 for tel in self.file_.root.dl1.event.telescope.images
             }
             if self.has_simulated_dl1:
@@ -225,7 +254,7 @@ class DL1EventSource(EventSource):
 
         if DataLevel.DL1_PARAMETERS in self.datalevels:
             param_readers = {
-                tel.name: HDF5TableReader(self.file_).read(
+                tel.name: self.reader.read(
                     f"/dl1/event/telescope/parameters/{tel.name}",
                     containers=[
                         HillasParametersContainer(),
@@ -242,7 +271,7 @@ class DL1EventSource(EventSource):
             }
             if self.has_simulated_dl1:
                 simulated_param_readers = {
-                    tel.name: HDF5TableReader(self.file_).read(
+                    tel.name: self.reader.read(
                         f"/simulation/event/telescope/parameters/{tel.name}",
                         containers=[
                             HillasParametersContainer(),
@@ -263,10 +292,13 @@ class DL1EventSource(EventSource):
                 SimulatedShowerContainer(),
                 prefixes="true",
             )
+            data.simulation = SimulatedEventContainer()
 
         # Setup iterators for the array events
         events = HDF5TableReader(self.file_).read(
-            "/dl1/event/subarray/trigger", [TriggerContainer(), EventIndexContainer()]
+            "/dl1/event/subarray/trigger",
+            [TriggerContainer(), EventIndexContainer()],
+            ignore_columns={"tel"},
         )
 
         array_pointing_finder = IndexFinder(
@@ -280,16 +312,21 @@ class DL1EventSource(EventSource):
 
         for counter, (trigger, index) in enumerate(events):
             data.dl1.tel.clear()
-            data.simulation.tel.clear()
+            if self.is_simulation:
+                data.simulation.tel.clear()
             data.pointing.tel.clear()
             data.trigger.tel.clear()
 
             data.count = counter
             data.trigger = trigger
             data.index = index
-            data.trigger.tels_with_trigger = self.subarray.tel_mask_to_tel_ids(
+            data.trigger.tels_with_trigger = self._full_subarray_info.tel_mask_to_tel_ids(
                 data.trigger.tels_with_trigger
             )
+            if self.allowed_tels:
+                data.trigger.tels_with_trigger = np.intersect1d(
+                    data.trigger.tels_with_trigger, np.array(list(self.allowed_tels))
+                )
 
             # Maybe there is a simpler way  to do this
             # Beware: tels_with_trigger contains all triggered telescopes whereas
@@ -312,25 +349,24 @@ class DL1EventSource(EventSource):
                 data.simulation.shower = next(mc_shower_reader)
 
             for tel in data.trigger.tel.keys():
+                key = f"tel_{tel:03d}"
                 if self.allowed_tels and tel not in self.allowed_tels:
                     continue
                 if self.has_simulated_dl1:
                     simulated = data.simulation.tel[tel]
-                dl1 = data.dl1.tel[tel]
+
                 if DataLevel.DL1_IMAGES in self.datalevels:
-                    if f"tel_{tel:03d}" not in image_iterators.keys():
+                    if key not in image_readers:
                         logger.debug(
                             f"Triggered telescope {tel} is missing "
                             "from the image table."
                         )
                         continue
-                    image_row = next(image_iterators[f"tel_{tel:03d}"])
-                    dl1.image = image_row["image"]
-                    dl1.peak_time = image_row["peak_time"]
-                    dl1.image_mask = image_row["image_mask"]
+
+                    data.dl1.tel[tel] = next(image_readers[key])
 
                     if self.has_simulated_dl1:
-                        if f"tel_{tel:03d}" not in simulated_image_iterators.keys():
+                        if key not in simulated_image_iterators:
                             logger.warning(
                                 f"Triggered telescope {tel} is missing "
                                 "from the simulated image table, but was present at the "
@@ -353,7 +389,7 @@ class DL1EventSource(EventSource):
                     # Best would probbaly be if we could directly read
                     # into the ImageParametersContainer
                     params = next(param_readers[f"tel_{tel:03d}"])
-                    dl1.parameters = ImageParametersContainer(
+                    data.dl1.tel[tel].parameters = ImageParametersContainer(
                         hillas=params[0],
                         timing=params[1],
                         leakage=params[2],
@@ -390,7 +426,7 @@ class DL1EventSource(EventSource):
         """
         # Only unique pointings are stored, so reader.read() wont work as easily
         # Thats why we match the pointings based on trigger time
-        closest_time_index = array_pointing_finder.closest(data.trigger.time)
+        closest_time_index = array_pointing_finder.closest(data.trigger.time.mjd)
         array_pointing = self.file_.root.dl1.monitoring.subarray.pointing
         data.pointing.array_azimuth = u.Quantity(
             array_pointing[closest_time_index]["array_azimuth"],

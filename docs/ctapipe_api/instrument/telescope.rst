@@ -10,3 +10,7 @@ namely it's `OpticsDescription` and `CameraDescription` (though other aspects
 may be added)
 
 
+Reference/API
+-------------
+
+.. automodapi:: ctapipe.instrument.telescope

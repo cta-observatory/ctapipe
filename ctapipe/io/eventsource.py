@@ -4,13 +4,9 @@ Handles reading of different event/waveform containing files
 from abc import abstractmethod
 from traitlets.config.loader import LazyConfigValue
 
-from ctapipe.core import ToolConfigurationError, Provenance
-from ctapipe.core.component import (
-    Component,
-    non_abstract_children,
-    find_config_in_hierarchy,
-)
-from ctapipe.core.traits import Path, Int, Set
+from ..core import ToolConfigurationError, Provenance
+from ..core.component import Component, non_abstract_children, find_config_in_hierarchy
+from ..core.traits import Path, Int, CInt, Set
 
 
 __all__ = ["EventSource"]
@@ -20,11 +16,11 @@ class EventSource(Component):
     """
     Parent class for EventSources.
 
-    EventSources read input files and generate `ArrayEvents`
-    when iterated over.
+    EventSources read input files and generate `~ctapipe.containers.ArrayEventContainer`
+    instances when iterated over.
 
     A new EventSource should be created for each type of event file read
-    into ctapipe, e.g. sim_telarray files are read by the `SimTelEventSource`.
+    into ctapipe, e.g. sim_telarray files are read by the `~ctapipe.io.SimTelEventSource`.
 
     EventSource provides a common high-level interface for accessing event
     information from different data sources (simulation or different camera
@@ -74,7 +70,7 @@ class EventSource(Component):
         Path to the input event file.
     max_events : int
         Maximum number of events to loop through in generator
-    allowed_tels: Set[int] or None
+    allowed_tels: Set or None
         Ids of the telescopes to be included in the data.
         If given, only this subset of telescopes will be present in the
         generated events. If None, all available telescopes are used.
@@ -93,6 +89,7 @@ class EventSource(Component):
     ).tag(config=True)
 
     allowed_tels = Set(
+        trait=CInt(),
         default_value=None,
         allow_none=True,
         help=(

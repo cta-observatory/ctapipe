@@ -5,7 +5,7 @@ from bokeh.layouts import layout, widgetbox
 from bokeh.models import Button, PreText, Select, TextInput
 from bokeh.server.server import Server
 from bokeh.themes import Theme
-from traitlets import Bool, Dict, Int, List
+from traitlets import Bool, Dict, Int
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Tool, traits
@@ -44,7 +44,7 @@ class BokehFileViewer(Tool):
         )
     )
 
-    classes = List([EventSource] + traits.classes_with_traits(ImageExtractor))
+    classes = [EventSource] + traits.classes_with_traits(ImageExtractor)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

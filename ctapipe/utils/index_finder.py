@@ -1,5 +1,6 @@
 import bisect
 import numpy as np
+import warnings
 
 
 __all__ = ["IndexFinder"]
@@ -10,7 +11,7 @@ class IndexFinder:
     Helper class to find the index of the closest matching value in an array/list/...,
     used to locate the pointing of an event based on the trigger time.
     This searches using pythons bisect module.
-    All entries of `values` need to be unique.
+    Duplicated values will result in the first value being returned.
 
 
     Explanations can be found here:
@@ -20,8 +21,9 @@ class IndexFinder:
     """
 
     def __init__(self, values):
-        if not len(np.unique(values)) == len(values):
-            raise Exception("values contains duplicate entries!")
+        if len(np.unique(values)) != len(values):
+            warnings.warn("Duplicated values in IndexFinder")
+
         self.numindexes = dict((val, n) for n, val in enumerate(values))
         self.nums = sorted(self.numindexes)
 
@@ -48,7 +50,7 @@ class IndexFinder:
     def closest(self, target):
         """
         Given a value, that is comparable to the
-        associated `values` list, return the
+        associated ``values`` list, return the
         index of the closest matching entry relative to the unordered
         list, that was given at construction.
         """
