@@ -35,7 +35,7 @@ def camera_geometry(request):
 
 
 @pytest.fixture(scope="session")
-def _global_example_event():
+def global_example_event():
     """
     helper to get a single event from a MC file. Don't use this fixture
     directly, rather use `test_event`
@@ -249,7 +249,7 @@ def dl1_proton_file(dl1_tmp_path, prod5_proton_simtel_path):
     """
     DL1 file containing images and parameters for a prod5 proton run
     """
-    from ctapipe.tools.stage1 import Stage1Tool
+    from ctapipe.tools.process import ProcessorTool
     from ctapipe.core import run_tool
 
     output = dl1_tmp_path / "proton.dl1.h5"
@@ -263,5 +263,5 @@ def dl1_proton_file(dl1_tmp_path, prod5_proton_simtel_path):
             f"--output={output}",
             "--write-images",
         ]
-        assert run_tool(Stage1Tool(), argv=argv, cwd=dl1_tmp_path) == 0
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
