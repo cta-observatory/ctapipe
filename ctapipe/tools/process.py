@@ -13,6 +13,13 @@ from ..io import DataLevel, DataWriter, EventSource, SimTelEventSource
 from ..io.datawriter import DATA_MODEL_VERSION
 from ..reco import ShowerProcessor
 
+COMPATIBLE_DATALEVELS = [
+    DataLevel.R1,
+    DataLevel.DL0,
+    DataLevel.DL1_IMAGES,
+    DataLevel.DL1_PARAMETERS,
+]
+
 
 class ProcessorTool(Tool):
     """
@@ -106,8 +113,7 @@ class ProcessorTool(Tool):
 
         # setup components:
         self.event_source = EventSource(parent=self)
-        compatible_datalevels = [DataLevel.R1, DataLevel.DL0, DataLevel.DL1_IMAGES]
-        if not self.event_source.has_any_datalevel(compatible_datalevels):
+        if not self.event_source.has_any_datalevel(COMPATIBLE_DATALEVELS):
             self.log.critical(
                 f"{self.name} needs the EventSource to provide "
                 f"either R1 or DL0 or DL1A data"
@@ -148,6 +154,9 @@ class ProcessorTool(Tool):
     @property
     def should_compute_dl1(self):
         """returns true if we should compute DL1 info"""
+        if DataLevel.DL1_PARAMETERS in self.event_source.datalevels:
+            return False
+
         return self.write.write_parameters or self.should_compute_dl2
 
     def _write_processing_statistics(self):
@@ -173,7 +182,10 @@ class ProcessorTool(Tool):
             )
 
     def start(self):
+        self.log.info(f"(re)compute DL1: {self.should_compute_dl1}")
+        self.log.info(f"(re)compute DL2: {self.should_compute_dl2}")
         self.event_source.subarray.info(printer=self.log.info)
+
         for event in tqdm(
             self.event_source,
             desc=self.event_source.__class__.__name__,
