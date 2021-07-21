@@ -2,6 +2,7 @@
 """
 
 """
+from ctapipe.image.pixel_likelihood import neg_log_likelihood_approx
 import math
 from string import Template
 import copy
@@ -11,7 +12,6 @@ import numpy.ma as ma
 from astropy import units as u
 from astropy.coordinates import SkyCoord, AltAz
 from iminuit import Minuit
-from scipy.optimize import minimize, least_squares
 from scipy.stats import norm
 
 from ctapipe.coordinates import (
@@ -236,7 +236,6 @@ class ImPACTReconstructor(Reconstructor):
         float: Depth of maximum of air shower
 
         """
-
         # Calculate displacement of image centroid from source position (in
         # rad)
         disp = np.sqrt((self.peak_x - source_x) ** 2 + (self.peak_y - source_y) ** 2)
@@ -257,7 +256,7 @@ class ImPACTReconstructor(Reconstructor):
         mean_height *= np.cos(zen)
 
         # Add on the height of the detector above sea level
-        mean_height += 2150
+        mean_height += 1835#2150
 
         if mean_height > 100000 or np.isnan(mean_height):
             mean_height = 100000
@@ -381,7 +380,7 @@ class ImPACTReconstructor(Reconstructor):
             (self.tel_pos_x - core_x) ** 2 + (self.tel_pos_y - core_y) ** 2
         )
         # And the expected rotation angle
-        phi = np.arctan2((self.tel_pos_x - core_x), (self.tel_pos_y - core_y)) * u.rad
+        phi = np.arctan2((self.tel_pos_y - core_y), (self.tel_pos_x - core_x)) * u.rad
 
         # Rotate and translate all pixels such that they match the
         # template orientation
@@ -407,7 +406,7 @@ class ImPACTReconstructor(Reconstructor):
                 energy * np.ones_like(impact[type_mask]),
                 impact[type_mask],
                 x_max_bin * np.ones_like(impact[type_mask]),
-                -np.rad2deg(pix_x_rot[type_mask]),
+                np.rad2deg(pix_x_rot[type_mask]),
                 np.rad2deg(pix_y_rot[type_mask]),
             )
 
@@ -444,7 +443,7 @@ class ImPACTReconstructor(Reconstructor):
         prediction *= self.template_scale
 
         # Get likelihood that the prediction matched the camera image
-        like = neg_log_likelihood(self.image, prediction, self.spe, self.ped)
+        like = neg_log_likelihood_approx(self.image, prediction, self.spe, self.ped)
 
         if goodness_of_fit:
             return like - mean_poisson_likelihood_gaussian(prediction, self.spe, self.ped)
@@ -476,7 +475,6 @@ class ImPACTReconstructor(Reconstructor):
         float: Likelihood value of test position
 
         """
-
         val = self.get_likelihood(x[0], x[1], x[2], x[3], x[4], x[5])
 
         return val
@@ -571,8 +569,8 @@ class ImPACTReconstructor(Reconstructor):
             self.ped[i] = self.ped_table[type]
             self.tel_types.append(type)
             self.tel_id.append(tel_id)
-            self.tel_pos_x[i] = tilt_coord[tel_id].x.to(u.m).value
-            self.tel_pos_y[i] = tilt_coord[tel_id].y.to(u.m).value
+            self.tel_pos_x[i] = tilt_coord[tel_id-1].x.to(u.m).value
+            self.tel_pos_y[i] = tilt_coord[tel_id-1].y.to(u.m).value
 
             cog_coords = SkyCoord(x=hillas_dict[tel_id].x, y=hillas_dict[tel_id].y, frame=camera_frame)
             cog_coords_nom = cog_coords.transform_to(self.nominal_frame)
@@ -747,43 +745,28 @@ class ImPACTReconstructor(Reconstructor):
         """
         limits = np.asarray(limits)
         if minimiser_name == "minuit":
-
+            
             self.min = Minuit(
                 self.get_likelihood,
-                print_level=1,
                 source_x=params[0],
-                error_source_x=step[0],
-                limit_source_x=limits[0],
-                fix_source_x=False,
                 source_y=params[1],
-                error_source_y=step[1],
-                limit_source_y=limits[1],
-                fix_source_y=False,
                 core_x=params[2],
-                error_core_x=step[2],
-                limit_core_x=limits[2],
-                fix_core_x=False,
                 core_y=params[3],
-                error_core_y=step[3],
-                limit_core_y=limits[3],
-                fix_core_y=False,
                 energy=params[4],
-                error_energy=step[4],
-                limit_energy=limits[4],
-                fix_energy=False,
                 x_max_scale=params[5],
-                error_x_max_scale=step[5],
-                limit_x_max_scale=limits[5],
-                fix_x_max_scale=False,
                 goodness_of_fit=False,
-                fix_goodness_of_fit=True,
-                errordef=1,
             )
 
-            self.min.tol *= 1000
-            self.min.strategy = 1
+            self.min.fixed = [False, False, False, False, False, False, True]
+            self.min.limits = limits
+            self.min.errordef = 1.0
 
-            migrad = self.min.migrad()
+            self.min.tol *= 100000
+            self.min.strategy = 1
+            self.min.precision = 1e-4
+
+            migrad = self.min.migrad(iterate=1)
+            
             fit_params = self.min.values
             errors = self.min.errors
 
@@ -808,6 +791,8 @@ class ImPACTReconstructor(Reconstructor):
             )
 
         else:
+            from scipy.optimize import minimize, least_squares
+
             min = minimize(
                 self.get_likelihood_min,
                 np.array(params),
@@ -825,4 +810,5 @@ class ImPACTReconstructor(Reconstructor):
         at each new event. Without this reset, a new event starts with information
         from the previous event.
         """
-        list(self.prediction.values())[0].reset()
+        for key in self.prediction:
+            self.prediction[key].reset()

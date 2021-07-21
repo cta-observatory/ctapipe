@@ -187,6 +187,7 @@ def create_seed(source_x, source_y, tilt_x, tilt_y, energy):
         [tilt_y - 100, tilt_y + 100],
         [lower_en_limit, en_seed * 2],
         [0.5, 2],
+        [False, False]
     ]
 
     return seed, step, limits

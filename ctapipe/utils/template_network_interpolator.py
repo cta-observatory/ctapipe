@@ -31,8 +31,11 @@ class BaseTemplate:
         """
         Reset method to delete some saved results from the previous event
         """
-        if self.interpolator:
-            self.interpolator.reset()
+
+        for i in self.interpolator:
+            for j in i:
+                if j is not None:
+                    j.reset()
 
     def _create_table_matrix(self, keys, values):
         """
@@ -147,6 +150,7 @@ class BaseTemplate:
             self.values[selection],
             remember_last=True,
             bounds=self.bounds,
+            dtype="float32"
         )
 
         # We can now remove these entries.
