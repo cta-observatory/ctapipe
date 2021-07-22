@@ -313,7 +313,7 @@ class DataWriter(Component):
             self.write_parameters is False
             and self.write_images is False
             and self.write_mono_shower is False
-            and self.write_stero_shower is False
+            and self.write_stereo_shower is False
         ):
             raise ToolConfigurationError(
                 "The options 'write_parameters',  'write_images', 'write_mono_shower', "
