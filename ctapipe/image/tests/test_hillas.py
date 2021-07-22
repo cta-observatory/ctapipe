@@ -280,31 +280,43 @@ def test_reconstruction_in_telescope_frame():
     def distance(coord):
         return np.sqrt(np.diff(coord.x) ** 2 + np.diff(coord.y) ** 2) / 2
 
+    def get_transformed_length(telescope_hillas, telescope_frame, camera_frame):
+        main_edges = u.Quantity([-telescope_hillas.length, telescope_hillas.length])
+        main_lon = main_edges * np.cos(telescope_hillas.psi) + telescope_hillas.fov_lon
+        main_lat = main_edges * np.sin(telescope_hillas.psi) + telescope_hillas.fov_lat
+        cam_main_axis = SkyCoord(
+            fov_lon=main_lon, fov_lat=main_lat, frame=telescope_frame
+        ).transform_to(camera_frame)
+        transformed_length = distance(cam_main_axis)
+        return transformed_length
+
+    def get_transformed_width(telescope_hillas, telescope_frame, camera_frame):
+        secondary_edges = u.Quantity([-telescope_hillas.width, telescope_hillas.width])
+        secondary_lon = (
+            secondary_edges * np.cos(telescope_hillas.psi) + telescope_result.fov_lon
+        )
+        secondary_lat = (
+            secondary_edges * np.sin(telescope_hillas.psi) + telescope_result.fov_lat
+        )
+        cam_secondary_edges = SkyCoord(
+            fov_lon=secondary_lon, fov_lat=secondary_lat, frame=telescope_frame
+        ).transform_to(camera_frame)
+        transformed_width = distance(cam_secondary_edges)
+        return transformed_width
+
     for x, y in zip(xs, ys):
         for psi in psis:
-            # make a toymodel shower model
+            # generate a toy image
             model = toymodel.Gaussian(x=x, y=y, width=width, length=length, psi=psi)
-
             image, signal, noise = model.generate_image(
                 geom, intensity=intensity, nsb_level_pe=5
             )
 
             telescope_result = hillas_parameters(geom_nom, signal)
-            assert u.isclose(np.abs(telescope_result.fov_lon), 1 * u.deg, rtol=0.1)
-            assert u.isclose(np.abs(telescope_result.fov_lat), 1 * u.deg, rtol=0.1)
-            assert u.isclose(telescope_result.width, 0.065 * u.deg, rtol=0.1)
-            assert u.isclose(
-                telescope_result.width_uncertainty, 0.002 * u.deg, rtol=0.4
-            )
-            assert u.isclose(telescope_result.length, 0.3 * u.deg, rtol=0.1)
-            assert u.isclose(
-                telescope_result.length_uncertainty, 0.01 * u.deg, rtol=0.4
-            )
-            assert signal.sum() == telescope_result.intensity
-
-            # Compare results with calculation in the camera frame
             camera_result = hillas_parameters(geom, signal)
+            assert camera_result.intensity == telescope_result.intensity
 
+            # Compare results in both frames
             transformed_cog = SkyCoord(
                 fov_lon=telescope_result.fov_lon,
                 fov_lat=telescope_result.fov_lat,
@@ -313,32 +325,12 @@ def test_reconstruction_in_telescope_frame():
             assert u.isclose(transformed_cog.x, camera_result.x, rtol=0.01)
             assert u.isclose(transformed_cog.y, camera_result.y, rtol=0.01)
 
-            main_edges = u.Quantity([-telescope_result.length, telescope_result.length])
-            main_lon = (
-                main_edges * np.cos(telescope_result.psi) + telescope_result.fov_lon
+            transformed_length = get_transformed_length(
+                telescope_result, telescope_frame, camera_frame
             )
-            main_lat = (
-                main_edges * np.sin(telescope_result.psi) + telescope_result.fov_lat
-            )
-            cam_main_axis = SkyCoord(
-                fov_lon=main_lon, fov_lat=main_lat, frame=telescope_frame
-            ).transform_to(camera_frame)
-            transformed_length = distance(cam_main_axis)
             assert u.isclose(transformed_length, camera_result.length, rtol=0.01)
 
-            secondary_edges = u.Quantity(
-                [-telescope_result.length, telescope_result.length]
+            transformed_width = get_transformed_width(
+                telescope_result, telescope_frame, camera_frame
             )
-            secondary_lon = (
-                secondary_edges * np.cos(telescope_result.psi)
-                + telescope_result.fov_lon
-            )
-            secondary_lat = (
-                secondary_edges * np.sin(telescope_result.psi)
-                + telescope_result.fov_lat
-            )
-            cam_secondary_edges = SkyCoord(
-                fov_lon=secondary_lon, fov_lat=secondary_lat, frame=telescope_frame
-            ).transform_to(camera_frame)
-            transformed_width = distance(cam_secondary_edges)
-            assert u.isclose(transformed_width, camera_result.length, rtol=0.01)
+            assert u.isclose(transformed_width, camera_result.width, rtol=0.01)
