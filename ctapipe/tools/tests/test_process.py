@@ -94,8 +94,8 @@ def test_stage1_datalevels(tmp_path):
         """ for testing """
 
         @staticmethod
-        def is_compatible(path):
-            with open(path, "rb") as infile:
+        def is_compatible(file_path):
+            with open(file_path, "rb") as infile:
                 dummy = infile.read(5)
                 return dummy == b"dummy"
 

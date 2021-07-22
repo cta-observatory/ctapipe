@@ -1,6 +1,7 @@
 """
 Test individual tool functionality
 """
+# pylint: disable=C0103,C0116,C0415
 import sys
 
 import matplotlib as mpl

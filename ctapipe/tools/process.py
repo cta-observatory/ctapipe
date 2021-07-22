@@ -1,6 +1,7 @@
 """
 Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
 """
+# pylint: disable=W0201
 import sys
 from tqdm.auto import tqdm
 
@@ -115,9 +116,11 @@ class ProcessorTool(Tool):
         self.event_source = EventSource(parent=self)
         if not self.event_source.has_any_datalevel(COMPATIBLE_DATALEVELS):
             self.log.critical(
-                f"{self.name} needs the EventSource to provide "
-                f"either R1 or DL0 or DL1A data"
-                f", {self.event_source} provides only {self.event_source.datalevels}"
+                "%s  needs the EventSource to provide either R1 or DL0 or DL1A data"
+                ", %s provides only %s",
+                self.name,
+                self.event_source,
+                self.event_source.datalevels,
             )
             sys.exit(1)
 
