@@ -540,7 +540,7 @@ class ReconstructedGeometryContainer(Container):
         "reconstructed y coordinate of the core position",
         unit=u.m
     )
-    core_uncert_tilted = Field(
+    core_tilted_uncert = Field(
         nan * u.m,
         "uncertainty of the reconstructed core position in the tilted frame",
         unit=u.m
