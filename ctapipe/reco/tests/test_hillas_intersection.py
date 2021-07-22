@@ -3,8 +3,11 @@ import astropy.units as u
 from numpy.testing import assert_allclose
 import numpy as np
 from astropy.coordinates import SkyCoord
-from ctapipe.coordinates import NominalFrame, AltAz, CameraFrame
-from ctapipe.containers import CameraHillasParametersContainer
+from ctapipe.coordinates import NominalFrame, AltAz, CameraFrame, TelescopeFrame
+from ctapipe.containers import (
+    CameraHillasParametersContainer,
+    HillasParametersContainer,
+)
 
 from ctapipe.io import EventSource
 
@@ -81,14 +84,14 @@ def test_intersection_xmax_reco():
     focal_length = 28 * u.m
 
     hillas_dict = {
-        1: CameraHillasParametersContainer(
-            x=-(delta / focal_length) * u.rad,
-            y=((0 * u.m) / focal_length) * u.rad,
+        1: HillasParametersContainer(
+            fov_lon=-(delta / focal_length) * u.rad,
+            fov_lat=((0 * u.m) / focal_length) * u.rad,
             intensity=1,
         ),
-        2: CameraHillasParametersContainer(
-            x=((0 * u.m) / focal_length) * u.rad,
-            y=-(delta / focal_length) * u.rad,
+        2: HillasParametersContainer(
+            fov_lon=((0 * u.m) / focal_length) * u.rad,
+            fov_lat=-(delta / focal_length) * u.rad,
             intensity=1,
         ),
     }
@@ -119,9 +122,9 @@ def test_intersection_reco_impact_point_tilted():
     tel_y_dict = {1: delta, 2: delta, 3: -delta}
 
     hillas_dict = {
-        1: CameraHillasParametersContainer(intensity=100, psi=-90 * u.deg),
-        2: CameraHillasParametersContainer(intensity=100, psi=-45 * u.deg),
-        3: CameraHillasParametersContainer(intensity=100, psi=0 * u.deg),
+        1: HillasParametersContainer(intensity=100, psi=-90 * u.deg),
+        2: HillasParametersContainer(intensity=100, psi=-45 * u.deg),
+        3: HillasParametersContainer(intensity=100, psi=0 * u.deg),
     }
 
     reco_konrad = hill_inter.reconstruct_tilted(
@@ -144,9 +147,9 @@ def test_intersection_weighting_spoiled_parameters():
 
     # telescope 2 have a spoiled reconstruction (45 instead of -45)
     hillas_dict = {
-        1: CameraHillasParametersContainer(intensity=10000, psi=-90 * u.deg),
-        2: CameraHillasParametersContainer(intensity=1, psi=45 * u.deg),
-        3: CameraHillasParametersContainer(intensity=10000, psi=0 * u.deg),
+        1: HillasParametersContainer(intensity=10000, psi=-90 * u.deg),
+        2: HillasParametersContainer(intensity=1, psi=45 * u.deg),
+        3: HillasParametersContainer(intensity=10000, psi=0 * u.deg),
     }
 
     reco_konrad_spoiled = hill_inter.reconstruct_tilted(
@@ -180,32 +183,31 @@ def test_intersection_nominal_reconstruction():
         focal_length=focal_length, telescope_pointing=array_direction
     )
 
-    cog_coords_camera_1 = SkyCoord(x=delta, y=0 * u.m, frame=camera_frame)
-    cog_coords_camera_2 = SkyCoord(x=delta / 0.7, y=delta / 0.7, frame=camera_frame)
-    cog_coords_camera_3 = SkyCoord(x=0 * u.m, y=delta, frame=camera_frame)
+    cog_coords_camera_1 = SkyCoord(y=delta, x=0 * u.m, frame=camera_frame)
+    cog_coords_camera_2 = SkyCoord(y=delta / 0.7, x=delta / 0.7, frame=camera_frame)
+    cog_coords_camera_3 = SkyCoord(y=0 * u.m, x=delta, frame=camera_frame)
 
     cog_coords_nom_1 = cog_coords_camera_1.transform_to(nominal_frame)
     cog_coords_nom_2 = cog_coords_camera_2.transform_to(nominal_frame)
     cog_coords_nom_3 = cog_coords_camera_3.transform_to(nominal_frame)
 
-    #  x-axis is along the altitude and y-axis is along the azimuth
-    hillas_1 = CameraHillasParametersContainer(
-        x=cog_coords_nom_1.fov_lat,
-        y=cog_coords_nom_1.fov_lon,
+    hillas_1 = HillasParametersContainer(
+        fov_lat=cog_coords_nom_1.fov_lat,
+        fov_lon=cog_coords_nom_1.fov_lon,
         intensity=100,
         psi=0 * u.deg,
     )
 
-    hillas_2 = CameraHillasParametersContainer(
-        x=cog_coords_nom_2.fov_lat,
-        y=cog_coords_nom_2.fov_lon,
+    hillas_2 = HillasParametersContainer(
+        fov_lat=cog_coords_nom_2.fov_lat,
+        fov_lon=cog_coords_nom_2.fov_lon,
         intensity=100,
         psi=45 * u.deg,
     )
 
-    hillas_3 = CameraHillasParametersContainer(
-        x=cog_coords_nom_3.fov_lat,
-        y=cog_coords_nom_3.fov_lon,
+    hillas_3 = HillasParametersContainer(
+        fov_lat=cog_coords_nom_3.fov_lat,
+        fov_lon=cog_coords_nom_3.fov_lon,
         intensity=100,
         psi=90 * u.deg,
     )
@@ -257,10 +259,11 @@ def test_reconstruction():
 
         hillas_dict = {}
         telescope_pointings = {}
-
+        telescope_frame = TelescopeFrame()
         for tel_id, dl1 in event.dl1.tel.items():
 
             geom = source.subarray.tel[tel_id].camera.geometry
+            geom_tel_frame = geom.transform_to(telescope_frame)
 
             telescope_pointings[tel_id] = SkyCoord(
                 alt=event.pointing.tel[tel_id].altitude,
@@ -273,7 +276,7 @@ def test_reconstruction():
             )
 
             try:
-                moments = hillas_parameters(geom[mask], dl1.image[mask])
+                moments = hillas_parameters(geom_tel_frame[mask], dl1.image[mask])
                 hillas_dict[tel_id] = moments
             except HillasParameterizationError as e:
                 print(e)
@@ -320,15 +323,16 @@ def test_reconstruction_works(subarray_and_event_gamma_off_axis_500_gev):
         for tel_id, pointing in event.pointing.tel.items()
         if tel_id in hillas_dict
     }
-
-    result = reconstructor.predict(
-        hillas_dict, subarray, array_pointing, telescope_pointings
-    )
-
-    reco_coord = SkyCoord(alt=result.alt, az=result.az, frame=AltAz())
     true_coord = SkyCoord(
         alt=event.simulation.shower.alt, az=event.simulation.shower.az, frame=AltAz()
     )
+
+    nom_frame = NominalFrame(origin=array_pointing)
+    true_nom = true_coord.transform_to(nom_frame)
+    result = reconstructor.predict(
+        hillas_dict, subarray, array_pointing, telescope_pointings
+    )
+    reco_coord = SkyCoord(alt=result.alt, az=result.az, frame=AltAz())
 
     assert reco_coord.separation(true_coord) < 0.1 * u.deg
 
