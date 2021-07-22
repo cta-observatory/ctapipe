@@ -32,7 +32,6 @@ from ctapipe.coordinates import (
     project_to_ground,
     MissingFrameAttributeWarning,
 )
-import copy
 import warnings
 
 from ctapipe.core import traits

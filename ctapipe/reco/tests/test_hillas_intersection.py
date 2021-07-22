@@ -4,10 +4,7 @@ from numpy.testing import assert_allclose
 import numpy as np
 from astropy.coordinates import SkyCoord
 from ctapipe.coordinates import NominalFrame, AltAz, CameraFrame, TelescopeFrame
-from ctapipe.containers import (
-    CameraHillasParametersContainer,
-    HillasParametersContainer,
-)
+from ctapipe.containers import HillasParametersContainer
 
 from ctapipe.io import EventSource
 
@@ -327,8 +324,6 @@ def test_reconstruction_works(subarray_and_event_gamma_off_axis_500_gev):
         alt=event.simulation.shower.alt, az=event.simulation.shower.az, frame=AltAz()
     )
 
-    nom_frame = NominalFrame(origin=array_pointing)
-    true_nom = true_coord.transform_to(nom_frame)
     result = reconstructor.predict(
         hillas_dict, subarray, array_pointing, telescope_pointings
     )
