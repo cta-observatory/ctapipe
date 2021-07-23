@@ -66,7 +66,7 @@ def test_simulation_info(dl1_file):
                 assert tel in event.simulation.tel
                 assert event.simulation.tel[tel].true_image is not None
                 reco_lons.append(
-                    event.simulation.tel[tel].true_parameters.hillas.fov_lon
+                    event.simulation.tel[tel].true_parameters.hillas.fov_lon.value
                 )
                 reco_concentrations.append(
                     event.simulation.tel[tel].true_parameters.concentration.core
@@ -89,7 +89,7 @@ def test_dl1_b_only_data(dl1_parameters_file):
         for event in source:
             for tel in event.dl1.tel:
                 reco_lons.append(
-                    event.simulation.tel[tel].true_parameters.hillas.fov_lon
+                    event.simulation.tel[tel].true_parameters.hillas.fov_lon.value
                 )
                 reco_concentrations.append(
                     event.simulation.tel[tel].true_parameters.concentration.core
@@ -106,7 +106,7 @@ def test_dl1_data(dl1_file):
             for tel in event.dl1.tel:
                 assert event.dl1.tel[tel].image.any()
                 reco_lons.append(
-                    event.simulation.tel[tel].true_parameters.hillas.fov_lon
+                    event.simulation.tel[tel].true_parameters.hillas.fov_lon.value
                 )
                 reco_concentrations.append(
                     event.simulation.tel[tel].true_parameters.concentration.core
