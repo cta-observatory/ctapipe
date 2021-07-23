@@ -31,6 +31,7 @@ __all__ = [
     "MonitoringCameraContainer",
     "MonitoringContainer",
     "MorphologyContainer",
+    "BaseHillasParametersContainer",
     "CameraHillasParametersContainer",
     "CameraTimingParametersContainer",
     "ParticleClassificationContainer",
@@ -48,6 +49,7 @@ __all__ = [
     "SimulatedShowerDistribution",
     "SimulationConfigContainer",
     "TelEventIndexContainer",
+    "BaseTimingParametersContainer",
     "TimingParametersContainer",
     "TriggerContainer",
     "WaveformCalibrationContainer",
@@ -109,7 +111,7 @@ class TelEventIndexContainer(Container):
     tel_id = Field(0, "telescope identifier")
 
 
-class _BaseHillasParametersContainer(Container):
+class BaseHillasParametersContainer(Container):
     """
     Base container for hillas parameters to
     allow the CameraHillasParametersContainer to
@@ -121,7 +123,7 @@ class _BaseHillasParametersContainer(Container):
     kurtosis = Field(nan, "measure of the tailedness")
 
 
-class CameraHillasParametersContainer(_BaseHillasParametersContainer):
+class CameraHillasParametersContainer(BaseHillasParametersContainer):
     """
     Hillas Parameters in the camera frame. The cog position
     is given in meter from the camera center.
@@ -140,7 +142,7 @@ class CameraHillasParametersContainer(_BaseHillasParametersContainer):
     psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
 
 
-class HillasParametersContainer(_BaseHillasParametersContainer):
+class HillasParametersContainer(BaseHillasParametersContainer):
     """
     Hillas Parameters in a spherical system centered on the pointing position
     (TelescopeFrame). The cog position is given as offset in
@@ -208,7 +210,7 @@ class ConcentrationContainer(Container):
     pixel = Field(nan, "Percentage of photo-electrons in the brightest pixel")
 
 
-class _BaseTimingParametersContainer(Container):
+class BaseTimingParametersContainer(Container):
     """
     Base container for timing parameters to
     allow the CameraTimingParametersContainer to
@@ -223,7 +225,7 @@ class _BaseTimingParametersContainer(Container):
     )
 
 
-class CameraTimingParametersContainer(_BaseTimingParametersContainer):
+class CameraTimingParametersContainer(BaseTimingParametersContainer):
     """
     Slope and Intercept of a linear regression of the arrival times
     along the shower main axis in the camera frame.
@@ -235,7 +237,7 @@ class CameraTimingParametersContainer(_BaseTimingParametersContainer):
     )
 
 
-class TimingParametersContainer(_BaseTimingParametersContainer):
+class TimingParametersContainer(BaseTimingParametersContainer):
     """
     Slope and Intercept of a linear regression of the arrival times
     along the shower main axis in a
@@ -291,12 +293,12 @@ class ImageParametersContainer(Container):
     hillas = Field(
         HillasParametersContainer(),
         "Hillas Parameters",
-        type=_BaseHillasParametersContainer,
+        type=BaseHillasParametersContainer,
     )
     timing = Field(
         TimingParametersContainer(),
         "Timing Parameters",
-        type=_BaseTimingParametersContainer,
+        type=BaseTimingParametersContainer,
     )
     leakage = Field(LeakageContainer(), "Leakage Parameters")
     concentration = Field(ConcentrationContainer(), "Concentration Parameters")
