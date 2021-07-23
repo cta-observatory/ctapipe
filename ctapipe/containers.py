@@ -527,9 +527,14 @@ class ReconstructedGeometryContainer(Container):
         "reconstructed y coordinate of the core position",
         unit=u.m
     )
-    core_uncert = Field(
+    core_uncert_x = Field(
         nan * u.m,
-        "uncertainty of the reconstructed core position in the ground frame",
+        "uncertainty of the reconstructed core position along the X axis in the ground frame",
+        unit=u.m
+    )
+    core_uncert_y = Field(
+        nan * u.m,
+        "uncertainty of the reconstructed core position along the Y axis in the ground frame",
         unit=u.m
     )
     core_tilted_x = Field(
