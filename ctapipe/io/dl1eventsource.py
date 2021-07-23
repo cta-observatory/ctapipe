@@ -261,12 +261,12 @@ class DL1EventSource(EventSource):
                     containers=[
                         (
                             HillasParametersContainer()
-                            if (self.datamodel_version >= "1.1.0")
+                            if (self.datamodel_version >= "1.3.0")
                             else CameraHillasParametersContainer()
                         ),
                         (
                             TimingParametersContainer()
-                            if (self.datamodel_version >= "1.1.0")
+                            if (self.datamodel_version >= "1.3.0")
                             else CameraTimingParametersContainer()
                         ),
                         LeakageContainer(),
@@ -286,7 +286,7 @@ class DL1EventSource(EventSource):
                         containers=[
                             (
                                 HillasParametersContainer()
-                                if (self.datamodel_version >= "1.1.0")
+                                if (self.datamodel_version >= "1.3.0")
                                 else CameraHillasParametersContainer()
                             ),
                             LeakageContainer(),

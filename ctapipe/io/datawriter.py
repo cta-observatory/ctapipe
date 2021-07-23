@@ -32,10 +32,10 @@ tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many dataset
 
 DATA_MODEL_VERSION = "v1.2.0"
 DATA_MODEL_CHANGE_HISTORY = """
+- v1.3.0: hillas and timing parameters saved in telescope frame (degree) as opposed to camera frame (m)
 - v1.2.0: change to more general data model, including also DL2 (DL1 unchanged)
 - v1.1.0: images and peak_times can be stored as scaled integers
 - v1.0.3: true_image dtype changed from float32 to int32
-- v1.1.0: hillas and timing parameters saved in telescope frame (degree) as opposed to camera frame (m)
 """
 
 PROV = Provenance()
