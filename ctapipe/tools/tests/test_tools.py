@@ -3,7 +3,7 @@ Test individual tool functionality
 """
 # pylint: disable=C0415,C0103,C0116,C0115
 import sys
-import os
+import subprocess
 
 from pathlib import Path
 import matplotlib as mpl
@@ -294,8 +294,7 @@ def test_fileinfo(tmp_path, dl1_image_file):
 
     index_file = tmp_path / "index.fits"
     command = f"ctapipe-fileinfo {dl1_image_file} --output-table {index_file}"
-    stream = os.popen(command)
-    output = stream.read()
+    output = subprocess.run(command.split(" "), capture_output=True).stdout
     header = yaml.load(output)
     assert "ID" in header[str(dl1_image_file)]["CTA"]["ACTIVITY"]
 
@@ -303,8 +302,7 @@ def test_fileinfo(tmp_path, dl1_image_file):
     assert len(tab["CTA PRODUCT CREATION TIME"]) > 0
 
     command = f"ctapipe-fileinfo {dl1_image_file} --flat"
-    stream = os.popen(command)
-    output = stream.read()
+    output = subprocess.run(command.split(" "), capture_output=True).stdout
     header = yaml.load(output)
     assert "CTA ACTIVITY ID" in header[str(dl1_image_file)]
 
