@@ -30,7 +30,7 @@ __all__ = ["DataWriter", "DATA_MODEL_VERSION", "write_reference_metadata_headers
 
 tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many datasets
 
-DATA_MODEL_VERSION = "v1.2.0"
+DATA_MODEL_VERSION = "v1.3.0"
 DATA_MODEL_CHANGE_HISTORY = """
 - v1.3.0: hillas and timing parameters saved in telescope frame (degree) as opposed to camera frame (m)
 - v1.2.0: change to more general data model, including also DL2 (DL1 unchanged)
