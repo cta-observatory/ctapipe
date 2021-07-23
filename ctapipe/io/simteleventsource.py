@@ -22,7 +22,13 @@ from ..containers import (
     TelescopeTriggerContainer,
 )
 from ..coordinates import CameraFrame
-from ..core.traits import Bool, Float, CaselessStrEnum, create_class_enum_trait
+from ..core.traits import (
+    Bool,
+    Float,
+    CaselessStrEnum,
+    create_class_enum_trait,
+    Undefined,
+)
 from ..instrument import (
     CameraDescription,
     CameraGeometry,
@@ -100,7 +106,9 @@ def build_camera(cam_settings, pixel_settings, telescope, frame):
     )
 
 
-def apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe, gain_selector, calib_scale=1.0, calib_shift=0.0):
+def apply_simtel_r1_calibration(
+    r0_waveforms, pedestal, dc_to_pe, gain_selector, calib_scale=1.0, calib_shift=0.0
+):
     """
     Perform the R1 calibration for R0 simtel waveforms. This includes:
         - Gain selection
@@ -192,7 +200,7 @@ class SimTelEventSource(EventSource):
         help=(
             "Factor to transform ADC counts into number of photoelectrons."
             " Corrects the DC_to_PHE factor."
-        )
+        ),
     ).tag(config=True)
 
     calib_shift = Float(
@@ -200,10 +208,10 @@ class SimTelEventSource(EventSource):
         help=(
             "Factor to shift the R1 photoelectron samples. "
             "Can be used to simulate mis-calibration."
-        )
+        ),
     ).tag(config=True)
 
-    def __init__(self, input_url=None, config=None, parent=None, **kwargs):
+    def __init__(self, input_url=Undefined, config=None, parent=None, **kwargs):
         """
         EventSource for simtelarray files using the pyeventio library.
 
@@ -221,6 +229,7 @@ class SimTelEventSource(EventSource):
             The GainSelector to use. If None, then ThresholdGainSelector will be used.
         kwargs
         """
+        print("SIMTEL INIT", input_url)
         super().__init__(input_url=input_url, config=config, parent=parent, **kwargs)
 
         self._camera_cache = {}
@@ -452,7 +461,7 @@ class SimTelEventSource(EventSource):
                     dc_to_pe,
                     self.gain_selector,
                     self.calib_scale,
-                    self.calib_shift
+                    self.calib_shift,
                 )
 
                 # get time_shift from laser calibration

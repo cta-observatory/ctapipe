@@ -122,6 +122,8 @@ class Tool(Application):
     config_file = Path(
         exists=True,
         directory_ok=False,
+        allow_none=True,
+        default_value=None,
         help=(
             "name of a configuration file with "
             "parameters to load in addition to "
@@ -131,7 +133,11 @@ class Tool(Application):
 
     log_config = Dict(default_value=DEFAULT_LOGGING).tag(config=True)
     log_file = Path(
-        default_value=None, exists=None, directory_ok=False, help="Filename for the log"
+        default_value=None,
+        exists=None,
+        directory_ok=False,
+        help="Filename for the log",
+        allow_none=True,
     ).tag(config=True)
     log_file_level = Enum(
         values=Application.log_level.values,

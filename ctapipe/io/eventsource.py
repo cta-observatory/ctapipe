@@ -6,7 +6,7 @@ from traitlets.config.loader import LazyConfigValue
 
 from ..core import ToolConfigurationError, Provenance
 from ..core.component import Component, non_abstract_children, find_config_in_hierarchy
-from ..core.traits import Path, Int, CInt, Set
+from ..core.traits import Path, Int, CInt, Set, Undefined
 
 
 __all__ = ["EventSource"]
@@ -99,7 +99,7 @@ class EventSource(Component):
         ),
     ).tag(config=True)
 
-    def __new__(cls, input_url=None, config=None, parent=None, **kwargs):
+    def __new__(cls, input_url=Undefined, config=None, parent=None, **kwargs):
         """
         Returns a compatible subclass for given input url, either
         directly or via config / parent
@@ -110,10 +110,10 @@ class EventSource(Component):
             return super().__new__(cls)
 
         # check we have at least one of these to be able to determine the subclass
-        if input_url is None and config is None and parent is None:
+        if input_url in {None, Undefined} and config is None and parent is None:
             raise ValueError("One of `input_url`, `config`, `parent` is required")
 
-        if input_url is None:
+        if input_url in {None, Undefined}:
             input_url = cls._find_input_url_in_config(config=config, parent=parent)
 
         subcls = cls._find_compatible_source(input_url)
@@ -141,7 +141,7 @@ class EventSource(Component):
         # and getting the kwarg with a None value.
         # the latter overrides the value in the config with None, the former
         # enables getting it from the config.
-        if input_url is not None:
+        if input_url not in {None, Undefined}:
             kwargs["input_url"] = input_url
 
         super().__init__(config=config, parent=parent, **kwargs)
@@ -281,7 +281,7 @@ class EventSource(Component):
 
     @classmethod
     def _find_compatible_source(cls, input_url):
-        if input_url == "" or input_url is None:
+        if input_url == "" or input_url in {None, Undefined}:
             raise ToolConfigurationError("EventSource: No input_url was specified")
 
         # validate input url with the traitel validate method
@@ -345,6 +345,7 @@ class EventSource(Component):
         else:
             # first look at appropriate position in the config hierarcy
             input_url = find_config_in_hierarchy(parent, "EventSource", "input_url")
+            print(input_url)
 
             # if not found, check top level
             if isinstance(input_url, LazyConfigValue):
