@@ -37,7 +37,15 @@ __all__ = ["DL1EventSource"]
 logger = logging.getLogger(__name__)
 
 
-COMPATIBLE_DL1_VERSIONS = ["v1.0.0", "v1.0.1", "v1.0.2", "v1.0.3", "v1.1.0", "v1.2.0"]
+COMPATIBLE_DL1_VERSIONS = [
+    "v1.0.0",
+    "v1.0.1",
+    "v1.0.2",
+    "v1.0.3",
+    "v1.1.0",
+    "v1.2.0",
+    "v1.3.0",
+]
 
 
 class DL1EventSource(EventSource):
@@ -261,13 +269,13 @@ class DL1EventSource(EventSource):
                     containers=[
                         (
                             HillasParametersContainer()
-                            if (self.datamodel_version >= "1.3.0")
-                            else CameraHillasParametersContainer()
+                            if (self.datamodel_version >= "v1.3.0")
+                            else CameraHillasParametersContainer(prefix="hillas")
                         ),
                         (
                             TimingParametersContainer()
-                            if (self.datamodel_version >= "1.3.0")
-                            else CameraTimingParametersContainer()
+                            if (self.datamodel_version >= "v1.3.0")
+                            else CameraTimingParametersContainer(prefix="timing")
                         ),
                         LeakageContainer(),
                         ConcentrationContainer(),
@@ -286,8 +294,8 @@ class DL1EventSource(EventSource):
                         containers=[
                             (
                                 HillasParametersContainer()
-                                if (self.datamodel_version >= "1.3.0")
-                                else CameraHillasParametersContainer()
+                                if (self.datamodel_version >= "v1.3.0")
+                                else CameraHillasParametersContainer(prefix="hillas")
                             ),
                             LeakageContainer(),
                             ConcentrationContainer(),
