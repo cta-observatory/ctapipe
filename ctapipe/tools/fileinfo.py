@@ -66,7 +66,7 @@ def fileinfo(args):
 
         dataframe = pd.DataFrame(info_total)
         Table.from_pandas(dataframe.T, index=True).write(
-            args.output_table, format=args.output_format, overwrite=True
+            args.output_table, format=args.table_format, overwrite=True
         )
 
 
@@ -81,15 +81,15 @@ def main():
         help="filenames of files in ctapipe format",
     )
     parser.add_argument(
-        "-t", "--output-table", help="generate output in tabular format"
+        "-o", "--output-table", help="generate output file in tabular format"
     )
     parser.add_argument(
-        "-f",
-        "--output-format",
-        help="format of output table if not automatically guessed from filename",
+        "-T",
+        "--table-format",
+        help="table format of output-table if not automatically guessed from filename",
     )
     parser.add_argument(
-        "--flat", action="store_true", help="show flat header hierarchy"
+        "-f", "--flat", action="store_true", help="show flat header hierarchy"
     )
     args = parser.parse_args()
 
