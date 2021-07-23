@@ -1,4 +1,3 @@
-from ctapipe.coordinates import TelescopeFrame, CameraFrame
 from astropy.coordinates import Angle, SkyCoord
 from astropy import units as u
 import numpy as np
@@ -6,6 +5,7 @@ from numpy import isclose, zeros_like
 from pytest import approx
 import itertools
 import pytest
+from ctapipe.coordinates import TelescopeFrame, CameraFrame
 from ctapipe.instrument import CameraGeometry
 from ctapipe.image import tailcuts_clean, toymodel
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
@@ -260,6 +260,10 @@ def test_single_pixel():
 
 
 def test_reconstruction_in_telescope_frame():
+    """
+    Compare the reconstruction in the telescope
+    and camera frame.
+    """
     np.random.seed(42)
 
     telescope_frame = TelescopeFrame()
