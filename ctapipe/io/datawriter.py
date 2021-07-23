@@ -7,6 +7,7 @@ Class to write DL1 (a,b) and DL2 (a) data from an event stream
 import pathlib
 from collections import defaultdict
 from typing import DefaultDict, Tuple
+from traitlets import Instance
 
 import numpy as np
 import tables
@@ -20,11 +21,11 @@ from ..containers import (
 from ..core import Component, Container, Field, Provenance, ToolConfigurationError
 from ..core.traits import Bool, CaselessStrEnum, Float, Int, Path, Unicode
 from ..instrument import SubarrayDescription
-from ..io import EventSource, HDF5TableWriter, TableWriter
-from ..io import metadata as meta
-from ..io.datalevels import DataLevel
-from ..io.simteleventsource import SimTelEventSource
-from ..io.tableio import FixedPointColumnTransform, TelListToMaskTransform
+from . import EventSource, HDF5TableWriter, TableWriter
+from . import metadata as meta
+from .datalevels import DataLevel
+from .simteleventsource import SimTelEventSource
+from .tableio import FixedPointColumnTransform, TelListToMaskTransform
 
 __all__ = ["DataWriter", "DATA_MODEL_VERSION", "write_reference_metadata_headers"]
 
@@ -41,7 +42,7 @@ PROV = Provenance()
 
 
 def write_reference_metadata_headers(
-    obs_ids, subarray, writer, is_simulation, data_levels
+    obs_ids, subarray, writer, is_simulation, data_levels, contact_info
 ):
     """
     Attaches Core Provenence headers to an output HDF5 file.
@@ -65,7 +66,7 @@ def write_reference_metadata_headers(
     category = "Sim" if is_simulation else "Other"
 
     reference = meta.Reference(
-        contact=meta.Contact(name="", email="", organization="CTA Consortium"),
+        contact=contact_info,
         product=meta.Product(
             description="ctapipe Data Product",
             data_category=category,
@@ -113,6 +114,7 @@ class DataWriter(Component):
     """
 
     # pylint: disable=too-many-instance-attributes
+    contact_info = Instance(meta.Contact, kw={}).tag(config=True)
 
     output_path = Path(
         help="output filename", default_value=pathlib.Path("events.dl1.h5")
@@ -191,10 +193,9 @@ class DataWriter(Component):
         """
         super().__init__(config=config, parent=parent, **kwargs)
 
-        # here we just set up data, but all real initializtion should be in
-        # setup(), which is called when the first event is read.
-
         self.event_source = event_source
+        self.contact_info = meta.Contact(parent=self)
+
         self._at_least_one_event = False
         self._is_simulation = event_source.is_simulation
         self._subarray: SubarrayDescription = event_source.subarray
@@ -258,12 +259,14 @@ class DataWriter(Component):
         if self._writer:
             if self.write_index_tables:
                 self._generate_indices()
+
             write_reference_metadata_headers(
                 subarray=self._subarray,
                 obs_ids=self.event_source.obs_ids,
                 writer=self._writer,
                 is_simulation=self._is_simulation,
                 data_levels=self.datalevels,
+                contact_info=self.contact_info,
             )
             self._writer.close()
             self._writer = None
