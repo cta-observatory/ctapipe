@@ -68,7 +68,9 @@ def test_simulation_info(dl1_file):
             for tel in event.simulation.tel:
                 assert tel in event.simulation.tel
                 assert event.simulation.tel[tel].true_image is not None
-                assert event.simulation.tel[tel].true_parameters.hillas.x != np.nan
+                assert (
+                    event.simulation.tel[tel].true_parameters.hillas.fov_lon != np.nan
+                )
 
 
 def test_dl1_a_only_data(dl1_image_file):
@@ -82,7 +84,7 @@ def test_dl1_b_only_data(dl1_parameters_file):
     with DL1EventSource(input_url=dl1_parameters_file) as source:
         for event in source:
             for tel in event.dl1.tel:
-                assert event.dl1.tel[tel].parameters.hillas.x != np.nan
+                assert event.dl1.tel[tel].parameters.hillas.fov_lon != np.nan
 
 
 def test_dl1_data(dl1_file):
