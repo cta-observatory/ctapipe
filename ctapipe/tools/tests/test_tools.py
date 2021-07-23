@@ -294,7 +294,7 @@ def test_fileinfo(tmp_path, dl1_image_file):
 
     index_file = tmp_path / "index.fits"
     command = f"ctapipe-fileinfo {dl1_image_file} --output-table {index_file}"
-    output = subprocess.run(command.split(" "), capture_output=True).stdout
+    output = subprocess.run(command.split(" "), capture_output=True, check=True).stdout
     header = yaml.load(output)
     assert "ID" in header[str(dl1_image_file)]["CTA"]["ACTIVITY"]
 
@@ -302,7 +302,7 @@ def test_fileinfo(tmp_path, dl1_image_file):
     assert len(tab["CTA PRODUCT CREATION TIME"]) > 0
 
     command = f"ctapipe-fileinfo {dl1_image_file} --flat"
-    output = subprocess.run(command.split(" "), capture_output=True).stdout
+    output = subprocess.run(command.split(" "), capture_output=True, check=True).stdout
     header = yaml.load(output)
     assert "CTA ACTIVITY ID" in header[str(dl1_image_file)]
 
