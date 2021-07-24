@@ -30,8 +30,9 @@ __all__ = ["DataWriter", "DATA_MODEL_VERSION", "write_reference_metadata_headers
 
 tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many datasets
 
-DATA_MODEL_VERSION = "v1.2.0"
+DATA_MODEL_VERSION = "v1.3.0"
 DATA_MODEL_CHANGE_HISTORY = """
+- v1.3.0: reconstructed core uncertainties splitted in their X-Y components
 - v1.2.0: change to more general data model, including also DL2 (DL1 unchanged)
 - v1.1.0: images and peak_times can be stored as scaled integers
 - v1.0.3: true_image dtype changed from float32 to int32
