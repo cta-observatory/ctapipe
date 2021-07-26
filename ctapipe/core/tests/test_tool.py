@@ -86,21 +86,37 @@ def test_export_config_to_yaml():
     assert config_dict["Stage1Tool"]["progress_bar"] is True
 
 
-def test_tool_html_rep():
+def test_tool_html_rep(tmp_path):
     """ check that the HTML rep for Jupyter notebooks works"""
 
     class MyTool(Tool):
         description = "test"
         userparam = Float(5.0, help="parameter").tag(config=True)
 
+    tool = MyTool()
+    assert len(tool._repr_html_()) > 0
+
+    class MyComponent(Component):
+        val = Float(1.0, help="val").tag(config=True)
+
     class MyTool2(Tool):
         """ A docstring description"""
 
         userparam = Float(5.0, help="parameter").tag(config=True)
 
-    tool = MyTool()
+        classes = [MyComponent]
+
+        def setup(self):
+            self.comp = MyComponent(parent=self)
+
+        def start(self):
+            pass
+
     tool2 = MyTool2()
-    assert len(tool._repr_html_()) > 0
+    assert len(tool2._repr_html_()) > 0
+
+    # make sure html repr works also after tool was run
+    assert run_tool(tool2, argv=[], cwd=tmp_path) == 0
     assert len(tool2._repr_html_()) > 0
 
 

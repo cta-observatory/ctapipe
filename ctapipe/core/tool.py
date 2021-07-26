@@ -359,6 +359,11 @@ class Tool(Application):
             "<table>",
         ]
         for key, val in self.get_current_config()[name].items():
+            # after running setup, also the subcomponents are in the current config
+            # which are not in traits
+            if key not in traits:
+                continue
+
             default = traits[key].default_value
             thehelp = f"{traits[key].help} (default: {default})"
             lines.append(f"<tr><th>{key}</th>")
@@ -367,6 +372,7 @@ class Tool(Application):
             else:
                 lines.append(f"<td>{val}</td>")
             lines.append(f'<td style="text-align:left"><i>{thehelp}</i></td></tr>')
+
         lines.append("</table>")
         lines.append("<p><i>Components:</i>")
         lines.append(", ".join([x.__name__ for x in self.classes]))
