@@ -2,18 +2,14 @@
 Test individual tool functionality
 """
 # pylint: disable=C0103,C0116,C0415
-import sys
 import subprocess
+import sys
 
-from pathlib import Path
 import matplotlib as mpl
 import numpy as np
-
 import tables
 from ctapipe.core import run_tool
 from ctapipe.utils import get_dataset_path
-from ctapipe.io import DataLevel
-
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 LST_MUONS = get_dataset_path("lst_muons.simtel.zst")
