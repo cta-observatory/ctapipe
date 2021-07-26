@@ -106,14 +106,13 @@ class Path(TraitType):
 
     def __init__(
         self,
-        *args,
-        default_value=None,
+        default_value=Undefined,
         exists=None,
         directory_ok=True,
         file_ok=True,
         **kwargs,
     ):
-        super().__init__(*args, default_value=default_value, allow_none=True, **kwargs)
+        super().__init__(default_value=default_value, **kwargs)
         self.exists = exists
         self.directory_ok = directory_ok
         self.file_ok = file_ok
@@ -143,9 +142,9 @@ class Path(TraitType):
         if isinstance(value, bytes):
             value = os.fsdecode(value)
 
-        if value is None:
+        if value is None or value is Undefined:
             if self.allow_none:
-                return None
+                return value
             else:
                 self.error(obj, value)
 
