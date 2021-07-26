@@ -149,6 +149,7 @@ def hillas_parameters(geom, image):
     vx, vy = eig_vecs[0, 1], eig_vecs[1, 1]
 
     # avoid divide by 0 warnings
+    # psi will be consistently defined in the range (-pi/2, pi/2)
     if length == 0:
         psi = skewness_long = kurtosis_long = np.nan
     else:

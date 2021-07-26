@@ -1,6 +1,6 @@
-import shutil
-import pytest
+import tables
 import tempfile
+import shutil
 
 from ctapipe.core import run_tool
 from pathlib import Path
@@ -25,53 +25,39 @@ def run_stage1(input_path, cwd, output_path=None):
             "--write-parameters",
             "--write-images",
             "--overwrite",
+            "--max-events=5",
         ],
         cwd=cwd,
     )
     assert ret == 0, "Running stage1 failed"
 
-    return output_path
 
-
-@pytest.fixture
-def gamma_dl1_path(tmp_path, prod5_gamma_simtel_path):
-    dl1_file = tmp_path / "gamma.dl1.h5"
-    return run_stage1(prod5_gamma_simtel_path, tmp_path, dl1_file)
-
-
-@pytest.fixture
-def proton_dl1_path(tmp_path, prod5_proton_simtel_path):
-    dl1_file = tmp_path / "proton.dl1.h5"
-    return run_stage1(prod5_proton_simtel_path, tmp_path, dl1_file)
-
-
-def test_simple(tmp_path, gamma_dl1_path, proton_dl1_path):
+def test_simple(tmp_path, dl1_file, dl1_proton_file):
     from ctapipe.tools.dl1_merge import MergeTool
 
     output = tmp_path / "merged_simple.dl1.h5"
     ret = run_tool(
         MergeTool(),
-        argv=[
-            str(gamma_dl1_path),
-            str(proton_dl1_path),
-            f"--output={output}",
-            "--overwrite",
-        ],
+        argv=[str(dl1_file), str(dl1_proton_file), f"--output={output}", "--overwrite"],
         cwd=tmp_path,
     )
     assert ret == 0
     run_stage1(output, cwd=tmp_path)
 
 
-def test_pattern(tmp_path: Path, gamma_dl1_path, proton_dl1_path):
+def test_pattern(tmp_path: Path, dl1_file, dl1_proton_file):
     from ctapipe.tools.dl1_merge import MergeTool
 
     # touch a random file to test that the pattern does not use it
-    open(tmp_path / "foo.h5", "w").close()
+    open(dl1_file.parent / "foo.h5", "w").close()
+
+    # copy to make sure we don't have other files in the dl1 dir disturb this
+    for f in (dl1_file, dl1_proton_file):
+        shutil.copy(f, tmp_path)
 
     output = tmp_path / "merged_pattern.dl1.h5"
     ret = run_tool(
-        MergeTool(),
+        tool=MergeTool(),
         argv=[
             "-i",
             str(tmp_path),
@@ -86,21 +72,48 @@ def test_pattern(tmp_path: Path, gamma_dl1_path, proton_dl1_path):
     run_stage1(output, cwd=tmp_path)
 
 
-def test_skip_images(tmp_path, gamma_dl1_path, proton_dl1_path):
+def test_skip_images(tmp_path, dl1_file, dl1_proton_file):
     from ctapipe.tools.dl1_merge import MergeTool
 
     # create a second file so we can test the patterns
     output = tmp_path / "merged_no_images.dl1.h5"
-
     ret = run_tool(
         MergeTool(),
         argv=[
-            str(gamma_dl1_path),
-            str(proton_dl1_path),
+            str(dl1_file),
+            str(dl1_proton_file),
             f"--output={output}",
             "--skip-images",
             "--overwrite",
         ],
         cwd=tmp_path,
     )
+
+    with tables.open_file(output, "r") as f:
+        assert "images" not in f.root.dl1.event.telescope
+        assert "parameters" in f.root.dl1.event.telescope
+
     assert ret == 0
+
+
+def test_allowed_tels(tmp_path, dl1_file, dl1_proton_file):
+    from ctapipe.tools.dl1_merge import MergeTool
+    from ctapipe.instrument import SubarrayDescription
+
+    # create file to test 'allowed-tels' option
+    output = tmp_path / "merged_allowed_tels.dl1.h5"
+    ret = run_tool(
+        MergeTool(),
+        argv=[
+            str(dl1_file),
+            str(dl1_proton_file),
+            f"--output={output}",
+            "--allowed-tels=[1,2]",
+            "--overwrite",
+        ],
+        cwd=tmp_path,
+    )
+    assert ret == 0
+
+    s = SubarrayDescription.from_hdf(output)
+    assert s.tel.keys() == {1, 2}

@@ -15,6 +15,11 @@ from scipy.sparse import lil_matrix, csr_matrix
 from scipy.spatial import cKDTree as KDTree
 
 from ctapipe.coordinates import CameraFrame
+from .image_conversion import (
+    unskew_hex_pixel_grid,
+    get_orthogonal_grid_edges,
+    get_orthogonal_grid_indices,
+)
 from ctapipe.utils import get_table_dataset
 from ctapipe.utils.linalg import rotation_matrix_2d
 from enum import Enum, unique
@@ -54,7 +59,7 @@ class PixelShape(Enum):
         raise TypeError(f"Unknown pixel shape {name}")
 
 
-#: mapper from simtel pixel shape integerrs to our shape and rotation angle
+#: mapper from simtel pixel shape integers to our shape and rotation angle
 SIMTEL_PIXEL_SHAPES = {
     0: (PixelShape.CIRCLE, Angle(0, u.deg)),
     1: (PixelShape.HEXAGON, Angle(0, u.deg)),
@@ -164,7 +169,7 @@ class CameraGeometry:
         if apply_derotation:
             self.rotate(self.cam_rotation)
 
-        # cache border pixel mask per instance
+            # cache border pixel mask per instance
         self.border_cache = {}
 
     def __eq__(self, other):
@@ -341,8 +346,7 @@ class CameraGeometry:
 
     @lazyproperty
     def _pixel_circumradius(self):
-        """ pixel circumference radius/radii based on pixel area and layout
-        """
+        """pixel circumference radius/radii based on pixel area and layout"""
 
         if self.pix_type == PixelShape.HEXAGON:
             circum_rad = self.pixel_width / np.sqrt(3)
@@ -382,6 +386,123 @@ class CameraGeometry:
 
         """
         return ~np.any(~np.isclose(self.pix_area.value, self.pix_area[0].value), axis=0)
+
+    @lazyproperty
+    def _pixel_positions_2d(self):
+        """
+        Pixel positions on the orthogonal grid of the 2d image.
+        In order for hexagonal pixels to behave as if they were
+        square, the grid has to be distorted.
+        Namely, slanting and stretching of the 1d pixel positions
+        to align them nicely.
+        Beware, that this means the pixel geometries on this
+        grid to not match the one in the geometry.
+
+        Returns:
+        --------
+        (rows, columns) of each pixel if transformed onto an orthogonal grid
+        """
+        if self.pix_type in {PixelShape.HEXAGON, PixelShape.CIRCLE}:
+            # cam rotation should be 0 unless the derotation is turned off in the init
+            rot_x, rot_y = unskew_hex_pixel_grid(
+                self.pix_x,
+                self.pix_y,
+                cam_angle=30 * u.deg - self.pix_rotation - self.cam_rotation,
+            )
+            x_edges, y_edges, _ = get_orthogonal_grid_edges(
+                rot_x.to_value(u.m), rot_y.to_value(u.m)
+            )
+            square_mask = np.histogramdd(
+                [rot_x.to_value(u.m), rot_y.to_value(u.m)], bins=(x_edges, y_edges)
+            )[0].astype(bool)
+            hex_to_rect_map = np.histogramdd(
+                [rot_x.to_value(u.m), rot_y.to_value(u.m)],
+                bins=(x_edges, y_edges),
+                weights=np.arange(len(self.pix_y)),
+            )[0].astype(int)
+            hex_to_rect_map[~square_mask] = -1
+            rows_2d = np.zeros(hex_to_rect_map.shape)
+            rows_2d.T[:] = np.arange(hex_to_rect_map.shape[0])
+            rows_1d = np.zeros(self.pix_x.shape, dtype=np.int32)
+            rows_1d[hex_to_rect_map[..., square_mask]] = np.squeeze(
+                np.rollaxis(np.atleast_3d(rows_2d), 2, 0)
+            )[..., square_mask]
+            cols_2d = np.zeros(hex_to_rect_map.shape)
+            cols_2d[:] = np.arange(hex_to_rect_map.shape[1])
+            cols_1d = np.zeros(self.pix_x.shape, dtype=np.int32)
+            cols_1d[hex_to_rect_map[..., square_mask]] = np.squeeze(
+                np.rollaxis(np.atleast_3d(cols_2d), 2, 0)
+            )[..., square_mask]
+            pixel_row = rows_1d
+            pixel_column = cols_1d
+
+        elif self.pix_type is PixelShape.SQUARE:
+            pixel_row = get_orthogonal_grid_indices(self.pix_y, np.sqrt(self.pix_area))
+            pixel_column = get_orthogonal_grid_indices(
+                self.pix_x, np.sqrt(self.pix_area)
+            )
+
+        return pixel_row, pixel_column
+
+    def image_to_cartesian_representation(self, image):
+        """
+        Create a 2D-image from a given flat image or multiple flat images.
+        In the case of hexagonal pixels, the resulting
+        image is skewed to match a rectangular grid.
+
+        Parameters:
+        -----------
+        image: np.ndarray
+            One or multiple images of shape
+            (n_images, n_pixels) or (n_pixels) for a single image.
+
+        Returns:
+        --------
+        image_2s: np.ndarray
+            The transformed image of shape (n_images, n_rows, n_cols).
+            For a single image the leading dimension is omitted.
+        """
+        rows, cols = self._pixel_positions_2d
+        image = np.atleast_2d(image)  # this allows for multiple images at once
+        image_2d = np.full((image.shape[0], rows.max() + 1, cols.max() + 1), np.nan)
+        image_2d[:, rows, cols] = image
+        if self.pix_type == PixelShape.SQUARE:
+            image_2d = np.flip(image_2d, axis=1)
+        else:
+            image_2d = np.flip(image_2d)
+        return np.squeeze(image_2d)  # removes the extra dimension for single images
+
+    def image_from_cartesian_representation(self, image_2d):
+        """
+        Create a 1D-array from a given 2D image.
+
+        Parameters:
+        -----------
+        image_2d: np.ndarray
+            2D image created by the `image_to_cartesian_representation` function
+            of the same geometry.
+            shape is expected to be:
+            (n_images, n_rows, n_cols) or (n_rows, n_cols) for a single image.
+
+        Returns:
+        --------
+        1d array
+            The image in the 1D format, which has shape (n_images, n_pixels).
+            For single images the leading dimension is omitted.
+        """
+        rows, cols = self._pixel_positions_2d
+        # np.atleast3d would introduce the extra dimension at the end, which leads
+        # to a different shape compared to a multi image array
+        if image_2d.ndim == 2:
+            image_2d = image_2d[np.newaxis, :]
+        if self.pix_type == PixelShape.SQUARE:
+            image_2d = np.flip(image_2d, axis=1)
+        else:
+            image_2d = np.flip(image_2d)
+        image_flat = np.zeros((image_2d.shape[0], rows.shape[0]), dtype=image_2d.dtype)
+        image_flat[:] = image_2d[:, rows, cols]
+        image_1d = image_flat
+        return np.squeeze(image_1d)
 
     @classmethod
     def from_name(cls, camera_name="NectarCam", version=None):

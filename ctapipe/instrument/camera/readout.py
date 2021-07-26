@@ -7,13 +7,16 @@ import logging
 import numpy as np
 from astropy import units as u
 from astropy.table import Table
-from scipy.stats import norm
 from ctapipe.utils import get_table_dataset
 
 
 __all__ = ["CameraReadout"]
 
 logger = logging.getLogger(__name__)
+
+
+def parse_dotted_version(version):
+    return tuple(map(int, version.split(".")))
 
 
 class CameraReadout:
@@ -134,11 +137,11 @@ class CameraReadout:
             names=names,
             meta=dict(
                 TAB_TYPE="ctapipe.instrument.CameraReadout",
-                TAB_VER="1.0",
+                TAB_VER="2.0",
                 CAM_ID=self.camera_name,
                 NCHAN=n_channels,
                 SAMPFREQ=self.sampling_rate.to_value(u.GHz),
-                REF_WIDTH=self.reference_pulse_sample_width.to_value(u.ns),
+                REFWIDTH=self.reference_pulse_sample_width.to_value(u.ns),
             ),
         )
 
@@ -163,7 +166,13 @@ class CameraReadout:
         camera_name = tab.meta.get("CAM_ID", "Unknown")
         n_channels = tab.meta["NCHAN"]
         sampling_rate = u.Quantity(tab.meta["SAMPFREQ"], u.GHz)
-        reference_pulse_sample_width = u.Quantity(tab.meta["REF_WIDTH"], u.ns)
+
+        if parse_dotted_version(tab.meta["TAB_VER"]) >= (2, 0):
+            ref_width_key = "REFWIDTH"
+        else:
+            ref_width_key = "REF_WIDTH"
+
+        reference_pulse_sample_width = u.Quantity(tab.meta[ref_width_key], u.ns)
         reference_pulse_shape = np.array(
             [tab[f"reference_pulse_shape_channel{i}"] for i in range(n_channels)]
         )
