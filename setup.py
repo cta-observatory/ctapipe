@@ -22,6 +22,7 @@ entry_points["console_scripts"] = [
     "ctapipe-display-dl1 = ctapipe.tools.display_dl1:main",
     "ctapipe-stage1 = ctapipe.tools.stage1:main",
     "ctapipe-merge = ctapipe.tools.dl1_merge:main",
+    "ctapipe-fileinfo = ctapipe.tools.fileinfo:main",
 ]
 tests_require = ["pytest", "pandas>=0.24.0"]
 docs_require = [
