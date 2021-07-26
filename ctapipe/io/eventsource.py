@@ -32,30 +32,33 @@ class EventSource(Component):
     appropriate subclass if a compatible source is found for the given
     ``input_url``.
 
-    >>> dataset = get_dataset_path('gamma_test_large.simtel.gz')
-    >>> event_source = EventSource(input_url=dataset)
-    <ctapipe.io.simteleventsource.SimTelEventSource at ...>
+    >>> EventSource(input_url="dataset://gamma_test_large.simtel.gz")
+    <ctapipe.io.simteleventsource.SimTelEventSource ...>
 
     An ``EventSource`` can also be created through the configuration system,
     by passing ``config`` or ``parent`` as appropriate.
     E.g. if using ``EventSource`` inside of a ``Tool``, you would do:
-    >>> self.event_source = EventSource(parent=self)
+    >>> self.source = EventSource(parent=self) # doctest: +SKIP
 
     To loop through the events in a file:
-    >>> event_source = EventSource(input_url="/path/to/file")
-    >>> for event in event_source:
-    >>>    print(event.count)
+    >>> source = EventSource(input_url="dataset://gamma_test_large.simtel.gz", max_events=2)
+    >>> for event in source:
+    ...     print(event.count)
+    0
+    1
 
-    **NOTE**: Every time a new loop is started through the event_source,
+    **NOTE**: Every time a new loop is started through the source,
     it tries to restart from the first event, which might not be supported
     by the event source.
 
     It is encouraged to use ``EventSource`` in a context manager to ensure
-    the correct cleanups are performed when you are finished with the event_source:
+    the correct cleanups are performed when you are finished with the source:
 
-    >>> with EventSource(input_url="/path/to/file") as event_source:
-    >>>    for event in event_source:
-    >>>       print(event.count)
+    >>> with EventSource(input_url="dataset://gamma_test_large.simtel.gz", max_events=2) as source:
+    ...    for event in source:
+    ...        print(event.count)
+    0
+    1
 
     **NOTE**: For effiency reasons, most sources only use a single ``ArrayEvent`` instance
     and update it with new data on iteration, which might lead to surprising

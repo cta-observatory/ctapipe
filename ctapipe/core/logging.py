@@ -48,6 +48,7 @@ def recursive_update(d1, d2, copy=False):
     {'a': {'b': 'foo', 'c': 'foo'}}
     >>> # As opposed to
     >>> d1.update(d2)
+    >>> d1
     {'a': {'c': 'foo'}}
     """
     if not isinstance(d1, Mapping) or not isinstance(d2, Mapping):
