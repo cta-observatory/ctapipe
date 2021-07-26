@@ -94,11 +94,10 @@ class Path(TraitType):
     """
     A path Trait for input/output files.
 
-    Parameters
+    Attributes
     ----------
     exists: boolean or None
         If True, path must exist, if False path must not exist
-
     directory_ok: boolean
         If False, path must not be a directory
     file_ok: boolean

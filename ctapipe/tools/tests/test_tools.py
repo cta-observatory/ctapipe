@@ -3,12 +3,17 @@ Test individual tool functionality
 """
 # pylint: disable=C0103,C0116,C0415
 import sys
+import subprocess
 
+from pathlib import Path
 import matplotlib as mpl
 import numpy as np
+
 import tables
 from ctapipe.core import run_tool
 from ctapipe.utils import get_dataset_path
+from ctapipe.io import DataLevel
+
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 LST_MUONS = get_dataset_path("lst_muons.simtel.zst")
@@ -149,6 +154,26 @@ def test_info():
     from ctapipe.tools.info import info
 
     info(show_all=True)
+
+
+def test_fileinfo(tmp_path, dl1_image_file):
+    """ check we can run ctapipe-fileinfo and get results """
+    import yaml
+    from astropy.table import Table
+
+    index_file = tmp_path / "index.fits"
+    command = f"ctapipe-fileinfo {dl1_image_file} --output-table {index_file}"
+    output = subprocess.run(command.split(" "), capture_output=True, check=True).stdout
+    header = yaml.load(output)
+    assert "ID" in header[str(dl1_image_file)]["CTA"]["ACTIVITY"]
+
+    tab = Table.read(index_file)
+    assert len(tab["CTA PRODUCT CREATION TIME"]) > 0
+
+    command = f"ctapipe-fileinfo {dl1_image_file} --flat"
+    output = subprocess.run(command.split(" "), capture_output=True, check=True).stdout
+    header = yaml.load(output)
+    assert "CTA ACTIVITY ID" in header[str(dl1_image_file)]
 
 
 def test_dump_triggers(tmp_path):
