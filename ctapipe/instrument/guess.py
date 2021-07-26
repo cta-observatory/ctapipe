@@ -32,8 +32,6 @@ TELESCOPE_NAMES = {
     GuessingKey(1440, 4.89): GuessingResult("SST", "FACT", "FACT", 1),
 }
 
-UNKNOWN_TELESCOPE = GuessingResult("UNKNOWN", "UNKNOWN", "UNKNOWN", -1)
-
 
 def guess_telescope(n_pixels, focal_length):
     """
@@ -62,3 +60,16 @@ def guess_telescope(n_pixels, focal_length):
         return TELESCOPE_NAMES[(n_pixels, round(focal_length, 2))]
     except KeyError:
         raise ValueError(f"Unknown telescope: n_pixel={n_pixels}, f={focal_length}")
+
+
+def unknown_telescope(mirror_area, n_pixels):
+    """Create a GuessingResult for an unknown_telescope"""
+    if hasattr(mirror_area, "unit"):
+        mirror_area = mirror_area.to_value(u.m ** 2)
+
+    return GuessingResult(
+        type="UNKNOWN",
+        name=f"UNKNOWN-{mirror_area:.0f}M2",
+        camera_name=f"UNKNOWN-{n_pixels}PX",
+        n_mirrors=-1,
+    )

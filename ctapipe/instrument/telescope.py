@@ -14,7 +14,7 @@ Todo:
 
 """
 from .camera import CameraDescription
-from .guess import UNKNOWN_TELESCOPE, guess_telescope
+from .guess import unknown_telescope, guess_telescope
 from .optics import OpticsDescription
 from ..coordinates import CameraFrame
 
@@ -84,7 +84,7 @@ class TelescopeDescription:
                 camera.geometry.n_pixels, optics.equivalent_focal_length
             )
         except ValueError:
-            result = UNKNOWN_TELESCOPE
+            result = unknown_telescope(optics.mirror_area, camera.geometry.n_pixels)
 
         return cls(name=result.name, tel_type=result.type, optics=optics, camera=camera)
 
