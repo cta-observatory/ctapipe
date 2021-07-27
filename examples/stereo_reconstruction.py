@@ -3,9 +3,10 @@ from astropy.coordinates import SkyCoord, AltAz
 
 from ctapipe.io import EventSource
 from ctapipe.calib import CameraCalibrator
-from ctapipe.image.cleaning import tailcuts_clean, number_of_islands
+from ctapipe.image.cleaning import tailcuts_clean
+from ctapipe.image.morphology import number_of_islands
 from ctapipe.image import leakage, hillas_parameters
-from ctapipe.image.timing_parameters import timing_parameters
+from ctapipe.image.timing import timing_parameters
 from ctapipe.reco import HillasReconstructor
 from ctapipe.utils.datasets import get_dataset_path
 

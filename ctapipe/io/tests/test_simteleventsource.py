@@ -212,13 +212,6 @@ def test_true_image():
                 assert np.count_nonzero(tel.true_image) > 0
 
 
-def test_camera_caching():
-    """Test if same telescope types share a single instance of CameraGeometry"""
-    source = SimTelEventSource(input_url=gamma_test_large_path)
-    subarray = source.subarray
-    assert subarray.tel[1].camera is subarray.tel[2].camera
-
-
 def test_instrument():
     """Test if same telescope types share a single instance of CameraGeometry"""
     source = SimTelEventSource(input_url=gamma_test_large_path)
