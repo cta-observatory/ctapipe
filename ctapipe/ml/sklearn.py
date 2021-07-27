@@ -7,6 +7,7 @@ from importlib import import_module
 import numpy as np
 from traitlets import Dict, List, Unicode, Enum, Integer
 from sklearn.base import is_classifier, is_regressor
+import joblib
 
 from ..core import Component
 from .preprocessing import check_valid_rows, table_to_float
@@ -74,6 +75,22 @@ class Model(Component):
         prediction = np.full(shape, np.nan)
         prediction[valid] = self.model.predict(X)
         return prediction
+
+    def write(self, path):
+        with open(path, "wb") as f:
+            joblib.dump(self, f, compress=True)
+
+    @classmethod
+    def load(cls, path, check_cls=True):
+        with open(path, "rb") as f:
+            model = joblib.load(f)
+
+        if check_cls is True and not model.__class__ is cls:
+            raise TypeError(
+                "File did not contain an instance of {cls}, got {model.__class__}"
+            )
+
+        return model
 
 
 class Regressor(Model):
