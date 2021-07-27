@@ -49,8 +49,8 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
         assert tf.root.dl1.event.subarray
         assert tf.root.configuration.instrument.subarray.layout
         assert tf.root.configuration.instrument.telescope.optics
-        assert tf.root.configuration.instrument.telescope.camera.geometry_LSTCam
-        assert tf.root.configuration.instrument.telescope.camera.readout_LSTCam
+        assert tf.root.configuration.instrument.telescope.camera.geometry_0
+        assert tf.root.configuration.instrument.telescope.camera.readout_0
 
         assert tf.root.dl1.monitoring.subarray.pointing.dtype.names == (
             "time",

@@ -38,7 +38,7 @@ from ..instrument import (
     TelescopeDescription,
 )
 from ..instrument.camera import UnknownPixelShapeWarning
-from ..instrument.guess import UNKNOWN_TELESCOPE, guess_telescope
+from ..instrument.guess import unknown_telescope, guess_telescope
 from .datalevels import DataLevel
 from .eventsource import EventSource
 
@@ -231,8 +231,6 @@ class SimTelEventSource(EventSource):
         """
         super().__init__(input_url=input_url, config=config, parent=parent, **kwargs)
 
-        self._camera_cache = {}
-
         self.file_ = SimTelFile(
             self.input_url.expanduser(),
             allowed_telescopes=self.allowed_tels,
@@ -307,6 +305,7 @@ class SimTelEventSource(EventSource):
 
             n_pixels = cam_settings["n_pixels"]
             focal_length = u.Quantity(cam_settings["focal_length"], u.m)
+            mirror_area = u.Quantity(cam_settings["mirror_area"], u.m ** 2)
 
             if self.focal_length_choice == "effective":
                 try:
@@ -323,25 +322,22 @@ class SimTelEventSource(EventSource):
             try:
                 telescope = guess_telescope(n_pixels, focal_length)
             except ValueError:
-                telescope = UNKNOWN_TELESCOPE
+                telescope = unknown_telescope(mirror_area, n_pixels)
 
             optics = OpticsDescription(
                 name=telescope.name,
                 num_mirrors=telescope.n_mirrors,
                 equivalent_focal_length=focal_length,
-                mirror_area=u.Quantity(cam_settings["mirror_area"], u.m ** 2),
+                mirror_area=mirror_area,
                 num_mirror_tiles=cam_settings["n_mirrors"],
             )
 
-            camera = self._camera_cache.get(telescope.camera_name)
-            if camera is None:
-                camera = build_camera(
-                    cam_settings,
-                    pixel_settings,
-                    telescope,
-                    frame=CameraFrame(focal_length=optics.equivalent_focal_length),
-                )
-                self._camera_cache[telescope.camera_name] = camera
+            camera = build_camera(
+                cam_settings,
+                pixel_settings,
+                telescope,
+                frame=CameraFrame(focal_length=optics.equivalent_focal_length),
+            )
 
             tel_descriptions[tel_id] = TelescopeDescription(
                 name=telescope.name,
