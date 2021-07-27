@@ -7,6 +7,7 @@ stored in the file.
 from collections import namedtuple
 
 import astropy.units as u
+import numpy as np
 
 GuessingKey = namedtuple("GuessingKey", ["n_pixels", "focal_length"])
 GuessingResult = namedtuple(
@@ -52,8 +53,6 @@ def guess_telescope(n_pixels, focal_length):
     result: GuessingResult
         A namedtuple having type, telescope_name, camera_name and n_mirrors fields
     """
-
-    # allow unit input
     focal_length = u.Quantity(focal_length, u.m).to_value(u.m)
 
     try:
@@ -62,14 +61,21 @@ def guess_telescope(n_pixels, focal_length):
         raise ValueError(f"Unknown telescope: n_pixel={n_pixels}, f={focal_length}")
 
 
-def unknown_telescope(mirror_area, n_pixels):
+def unknown_telescope(mirror_area, n_pixels, n_mirrors=-1):
     """Create a GuessingResult for an unknown_telescope"""
-    if hasattr(mirror_area, "unit"):
-        mirror_area = mirror_area.to_value(u.m ** 2)
+    mirror_area = u.Quantity(mirror_area, u.m ** 2).to_value(u.m ** 2)
+
+    mirror_diameter = 2 * np.sqrt(mirror_area / np.pi)
+    if mirror_diameter < 8:
+        telescope_type = "SST"
+    elif mirror_diameter < 16:
+        telescope_type = "MST"
+    else:
+        telescope_type = "LST"
 
     return GuessingResult(
-        type="UNKNOWN",
+        type=telescope_type,
         name=f"UNKNOWN-{mirror_area:.0f}M2",
         camera_name=f"UNKNOWN-{n_pixels}PX",
-        n_mirrors=-1,
+        n_mirrors=n_mirrors,
     )
