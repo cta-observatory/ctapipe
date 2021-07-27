@@ -9,8 +9,11 @@ Examples:
 
     >>> from ctapipe.instrument import CameraGeometry
     >>> geom = CameraGeometry.make_rectangular(20, 20)
-    >>> showermodel = Gaussian(x=0.25 * u.m, y=0.0 * u.m,
-    length=0.1 * u.m, width=0.02 * u.m, psi='40d')
+    >>> showermodel = Gaussian(
+    ...    x=0.25 * u.m, y=0.0 * u.m,
+    ...    length=0.1 * u.m, width=0.02 * u.m,
+    ...    psi='40d'
+    ... )
     >>> image, signal, noise = showermodel.generate_image(geom, intensity=1000)
     >>> print(image.shape)
     (400,)

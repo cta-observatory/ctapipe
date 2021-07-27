@@ -21,8 +21,11 @@ class ImagePlotter(Component):
     display = Bool(
         True, help="Display the photoelectron images on-screen as they are produced."
     ).tag(config=True)
+
     output_path = Path(
         directory_ok=False,
+        allow_none=True,
+        default_value=None,
         help=(
             "Output path for the pdf containing all the images."
             " Set to None for no saved output."
