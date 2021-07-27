@@ -229,7 +229,6 @@ class SimTelEventSource(EventSource):
             The GainSelector to use. If None, then ThresholdGainSelector will be used.
         kwargs
         """
-        print("SIMTEL INIT", input_url)
         super().__init__(input_url=input_url, config=config, parent=parent, **kwargs)
 
         self._camera_cache = {}

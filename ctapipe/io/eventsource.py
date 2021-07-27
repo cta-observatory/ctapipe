@@ -348,7 +348,6 @@ class EventSource(Component):
         else:
             # first look at appropriate position in the config hierarcy
             input_url = find_config_in_hierarchy(parent, "EventSource", "input_url")
-            print(input_url)
 
             # if not found, check top level
             if isinstance(input_url, LazyConfigValue):
