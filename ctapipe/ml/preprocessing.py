@@ -13,6 +13,9 @@ import logging
 log = logging.getLogger(__name__)
 
 
+__all__ = ["table_to_float", "check_valid_rows"]
+
+
 def table_to_float(table: Table, dtype=np.float32) -> np.ndarray:
     """Convert a table to a float32 array, replacing inf/-inf with float min/max"""
     X = structured_to_unstructured(table.as_array(), dtype=dtype)
