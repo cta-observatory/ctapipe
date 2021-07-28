@@ -44,8 +44,8 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
         assert testfile.root.dl1.event.subarray
         assert testfile.root.configuration.instrument.subarray.layout
         assert testfile.root.configuration.instrument.telescope.optics
-        assert testfile.root.configuration.instrument.telescope.camera.geometry_LSTCam
-        assert testfile.root.configuration.instrument.telescope.camera.readout_LSTCam
+        assert testfile.root.configuration.instrument.telescope.camera.geometry_0
+        assert testfile.root.configuration.instrument.telescope.camera.readout_0
 
         assert testfile.root.dl1.monitoring.subarray.pointing.dtype.names == (
             "time",
