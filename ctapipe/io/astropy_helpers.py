@@ -21,7 +21,7 @@ from contextlib import ExitStack
 __all__ = ["read_table"]
 
 
-def read_table(h5file, path, start=None, stop=None, step=None) -> Table:
+def read_table(h5file, path, start=None, stop=None, step=None, condition=None) -> Table:
     """Read a table from an HDF5 file
 
     This reads a table written in the ctapipe format table as an `astropy.table.Table`
@@ -58,7 +58,15 @@ def read_table(h5file, path, start=None, stop=None, step=None) -> Table:
 
         table = h5file.get_node(path)
         transforms, descriptions, meta = _parse_hdf5_attrs(table)
-        astropy_table = Table(table[slice(start, stop, step)], meta=meta)
+
+        if condition is None:
+            array = table.read(start=start, stop=stop, step=step)
+        else:
+            array = table.read_where(
+                condition=condition, start=start, stop=stop, step=step
+            )
+
+        astropy_table = Table(array, meta=meta, copy=False)
         for column, tr in transforms.items():
             astropy_table[column] = tr.inverse(astropy_table[column])
 
