@@ -1,4 +1,5 @@
 import re
+import numpy as np
 
 import tables
 from astropy.table import join, vstack, Table
@@ -10,6 +11,8 @@ from .astropy_helpers import read_table
 PARAMETERS_GROUP = "/dl1/event/telescope/parameters"
 IMAGES_GROUP = "/dl1/event/telescope/images"
 TRIGGER_TABLE = "/dl1/event/subarray/trigger"
+SHOWER_TABLE = "/simulation/event/subarray/shower"
+TRUE_IMAGES_GROUP = "/simulation/event/telescope/images"
 
 by_id_RE = re.compile(r"tel_\d+")
 
@@ -59,6 +62,27 @@ class TableLoader(Component):
 
         self.trigger_table = read_table(self.h5file, TRIGGER_TABLE)
 
+        self.instrument_table = None
+        if self.load_instrument:
+            table = self.subarray.to_table()
+            optics = self.subarray.to_table(kind="optics")
+            optics["optics_index"] = np.arange(len(optics))
+            optics.remove_columns(["name", "description", "type"])
+            table = join(
+                table,
+                optics,
+                keys="optics_index",
+                # conflicts for TAB_VER, TAB_TYPE, not needed here, ignore
+                metadata_conflicts="silent",
+            )
+
+            table.remove_columns(["optics_index", "camera_index"])
+            self.instrument_table = table
+
+        self.shower_table = None
+        if self.load_simulated and SHOWER_TABLE in self.h5file:
+            self.shower_table = read_table(self.h5file, SHOWER_TABLE)
+
     def close(self):
         self.h5file.close()
 
@@ -71,32 +95,41 @@ class TableLoader(Component):
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
-    def load_telescope_events(self, tel_id):
+    def read_telescope_events(self, tel_ids=None):
+        if tel_ids is None:
+            tel_ids = self.subarray.tel.keys()
+
+        return vstack([self.read_telescope_events_for_id(tel_id) for tel_id in tel_ids])
+
+    def read_telescope_events_for_type(self, tel_type):
+        tel_ids = self.subarray.get_tel_ids_for_type(tel_type)
+        return self.read_telescope_events(tel_ids)
+
+    def _read_telescope_table(self, group, tel_id):
+        if self.structure == "by_id":
+            key = f"{group}/tel_{tel_id:03d}"
+            condition = None
+        else:
+            key = f"{group}/{self.subarray.tel[tel_id]!s}"
+            condition = f"tel_id == {tel_id}"
+
+        if key in self.h5file:
+            table = read_table(self.h5file, key, condition=condition)
+        else:
+            table = Table()
+
+        return table
+
+    def read_telescope_events_for_id(self, tel_id):
         table = None
 
         if self.load_dl1_parameters:
-            if self.structure == "by_id":
-                key = f"{PARAMETERS_GROUP}/tel_{tel_id:03d}"
-                condition = None
-            else:
-                key = f"{PARAMETERS_GROUP}/{self.subarray.tel[tel_id]!s}"
-                condition = f"tel_id == {tel_id}"
-
-            if key in self.h5file:
-                table = read_table(self.h5file, key, condition=condition)
-            else:
-                table = Table()
+            table = self._read_telescope_table(PARAMETERS_GROUP, tel_id)
 
         if self.load_dl1_images:
-            if self.structure == "by_id":
-                key = f"{IMAGES_GROUP}/tel_{tel_id:03d}"
-                condition = None
-            else:
-                key = f"{IMAGES_GROUP}/{self.subarray.tel[tel_id]!s}"
-                condition = f"tel_id == {tel_id}"
+            images = self._read_telescope_table(IMAGES_GROUP, tel_id)
 
-            images = read_table(self.h5file, key, condition=condition)
-            if table is None:
+            if table is None or len(table) == 0:
                 table = images
             else:
                 table = join(
@@ -106,12 +139,34 @@ class TableLoader(Component):
                     join_type="outer",
                 )
 
-        if self.load_trigger:
+        if self.load_true_images:
+            true_images = self._read_telescope_table(TRUE_IMAGES_GROUP, tel_id)
+            if table is None or len(table) == 0:
+                table = true_images
+            else:
+                table = join(
+                    table,
+                    true_images,
+                    keys=["obs_id", "event_id", "tel_id"],
+                    join_type="outer",
+                )
+
+        if self.shower_table is not None:
+            table = join(
+                table, self.shower_table, keys=["obs_id", "event_id"], join_type="inner"
+            )
+
+        if self.load_trigger and len(table) > 0:
             table = join(
                 table,
                 self.trigger_table,
                 keys=["obs_id", "event_id"],
                 join_type="inner",
+            )
+
+        if self.load_instrument and len(table) > 0:
+            table = join(
+                table, self.instrument_table, keys=["tel_id"], join_type="inner"
             )
 
         return table
