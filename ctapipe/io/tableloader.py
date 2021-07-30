@@ -79,7 +79,7 @@ class TableLoader(Component):
                 key = f"{PARAMETERS_GROUP}/tel_{tel_id:03d}"
                 condition = None
             else:
-                key = f"{PARAMETERS_GROUP}/{self.subarray.tel[tel_id]:s}"
+                key = f"{PARAMETERS_GROUP}/{self.subarray.tel[tel_id]!s}"
                 condition = f"tel_id == {tel_id}"
 
             if key in self.h5file:
@@ -92,7 +92,7 @@ class TableLoader(Component):
                 key = f"{IMAGES_GROUP}/tel_{tel_id:03d}"
                 condition = None
             else:
-                key = f"{IMAGES_GROUP}/{self.subarray.tel[tel_id]:s}"
+                key = f"{IMAGES_GROUP}/{self.subarray.tel[tel_id]!s}"
                 condition = f"tel_id == {tel_id}"
 
             images = read_table(self.h5file, key, condition=condition)

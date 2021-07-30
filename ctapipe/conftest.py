@@ -166,6 +166,32 @@ def dl1_file(dl1_tmp_path, prod5_gamma_simtel_path):
 
 
 @pytest.fixture(scope="session")
+def dl1_by_type_file(dl1_tmp_path, prod5_gamma_simtel_path):
+    """
+    DL1 file containing both images and parameters from a gamma simulation set.
+    """
+    from ctapipe.tools.stage1 import Stage1Tool
+    from ctapipe.core import run_tool
+
+    output = dl1_tmp_path / "gamma_by_type.dl1.h5"
+
+    # prevent running stage1 multiple times in case of parallel tests
+    with FileLock(output.with_suffix(output.suffix + ".lock")):
+        if output.is_file():
+            return output
+
+        argv = [
+            f"--input={prod5_gamma_simtel_path}",
+            f"--output={output}",
+            "--write-images",
+            "--max-events=20",
+            "--DataWriter.split_datasets_by=tel_type",
+        ]
+        assert run_tool(Stage1Tool(), argv=argv, cwd=dl1_tmp_path) == 0
+        return output
+
+
+@pytest.fixture(scope="session")
 def dl1_image_file(dl1_tmp_path, prod5_gamma_simtel_path):
     """
     DL1 file containing only images (DL1A) from a gamma simulation set.
