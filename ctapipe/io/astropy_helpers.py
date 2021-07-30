@@ -30,12 +30,24 @@ def read_table(h5file, path, start=None, stop=None, step=None, condition=None) -
     This uses the same conventions as the `~ctapipe.io.HDF5TableWriter`,
     with the exception of Enums, that will remain as integers.
 
+    (start, stop, step) behave like python slices.
+
     Parameters
     ----------
     h5file: Union[str, Path, tables.file.File]
         input filename or PyTables file handle
     path: str
         path to table in the file
+    start: int or None
+        if given, this is the first row to be loaded
+    stop: int or None
+        if given, this is the last row to be loaded (not inclusive)
+    step: int or None
+        step between rows.
+    condition: str
+        A numexpr expression to only load rows fulfilling this condition.
+        For example, use "hillas_length > 0" to only load rows where the
+        hillas length is larger than 0 (so not nan and not 0).
 
     Returns
     -------
