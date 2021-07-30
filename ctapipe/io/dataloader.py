@@ -1,7 +1,6 @@
-from pathlib import Path
 import re
 
-from astropy.table import Table, join, vstack
+from astropy.table import join, vstack
 import astropy.units as u
 import numpy as np
 import tables
@@ -9,8 +8,9 @@ from tables import NoSuchNodeError
 from traitlets import Bool
 from tqdm.auto import tqdm
 
-from ctapipe.instrument import SubarrayDescription
-from ctapipe.io import read_table
+from ..core import Component
+from ..instrument import SubarrayDescription
+from . import read_table
 
 
 __all__ = ["DataLoader"]
@@ -27,7 +27,7 @@ class DataLoader(Component):
     ).tag(config=True)
     
     def __init__(self, input_file, progressbar=True, simulated=True,
-                 load_dl1_parameters=True, load_dl2_parameters=False):
+                 config=None, parent=None, **kwargs):
         
         super().__init__(config=config, parent=parent, **kwargs)
         
@@ -37,7 +37,7 @@ class DataLoader(Component):
         self.split_mode = None
 
         if simulated:
-            self.simshower_table = simshower = read_table(
+            self.simshower_table = read_table(
                 input_file, "/simulation/event/subarray/shower"
             )
         self.progressbar = progressbar
@@ -78,7 +78,7 @@ class DataLoader(Component):
                 
                 pointing_list.append(table)
                     
-            except NoSuchNodeError as e:
+            except NoSuchNodeError:
                 self.log.debug(f"Missing pointing data from tel_id #{t}")
         
         pointing = vstack(pointing_list)
@@ -128,7 +128,7 @@ class DataLoader(Component):
                             f"/simulation/event/telescope/images/tel_{tel_id:03d}",
                         )
                     )
-            except NoSuchNodeError as e:
+            except NoSuchNodeError:
                 self.log.debug(f"Missing reconstructed image from tel_id = {tel_id}")
 
         images = vstack(images)
@@ -214,7 +214,7 @@ class DataLoader(Component):
                         f"/simulation/event/telescope/parameters/tel_{t:03d}",
                     )
                 )
-            except NoSuchNodeError as e:
+            except NoSuchNodeError:
                 self.log.debug(f"Missing true parameters from tel_id #{t}")
         
         true_params = vstack(true_params_list)
@@ -243,7 +243,7 @@ class DataLoader(Component):
                 )
                 
                 reco_parameters_list.append(reco_parameters_tel_id)
-            except NoSuchNodeError as e:
+            except NoSuchNodeError:
                 print(f"Missing reconstructed parameters from tel_id #{t}") #logging.debug(e)
         
         reco_parameters = vstack(reco_parameters_list)
@@ -293,7 +293,7 @@ class DataLoader(Component):
                 )
                 
                 data_list.append(reco_parameters_tel_id)
-            except NoSuchNodeError as e:
+            except NoSuchNodeError:
                 print(f"Missing reconstructed parameters from tel_id #{t}") #logging.debug(e)
         
         total_data = vstack(data_list)
@@ -363,7 +363,7 @@ class DataLoader(Component):
                         )
                         * u.deg
                     )
-            except NoSuchNodeError as e:
+            except NoSuchNodeError:
                 print(f"WARNING: missing pointing data from tel_id = {tel_id}") #logging.debug(e)
         
         # Add and join simulated information if available
