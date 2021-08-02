@@ -8,6 +8,8 @@ from ..core import Component, traits
 from ..instrument import SubarrayDescription
 from .astropy_helpers import read_table
 
+__all__ = ["get_structure", "TableLoader"]
+
 PARAMETERS_GROUP = "/dl1/event/telescope/parameters"
 IMAGES_GROUP = "/dl1/event/telescope/images"
 TRIGGER_TABLE = "/dl1/event/subarray/trigger"
@@ -15,6 +17,7 @@ SHOWER_TABLE = "/simulation/event/subarray/shower"
 TRUE_IMAGES_GROUP = "/simulation/event/telescope/images"
 
 by_id_RE = re.compile(r"tel_\d+")
+
 
 
 def get_structure(h5file):
