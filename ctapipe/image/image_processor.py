@@ -198,7 +198,7 @@ class ImageProcessor(TelescopeComponent):
                 # Use the transformed geometries
                 geometry = self.telescope_frame_geometries[tel_id]
             else:
-                geometry = dl1_camera.geometry
+                self.subarray.tel[tel_id].camera.geometry
             # compute image parameters only if requested to write them
             dl1_camera.image_mask = self.clean(
                 tel_id=tel_id,
