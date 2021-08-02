@@ -7,6 +7,7 @@ Class to write DL1 (a,b) and DL2 (a) data from an event stream
 import pathlib
 from collections import defaultdict
 from typing import DefaultDict, Tuple
+from traitlets import Instance
 
 import numpy as np
 import tables
@@ -20,19 +21,26 @@ from ..containers import (
 from ..core import Component, Container, Field, Provenance, ToolConfigurationError
 from ..core.traits import Bool, CaselessStrEnum, Float, Int, Path, Unicode
 from ..instrument import SubarrayDescription
-from ..io import EventSource, HDF5TableWriter, TableWriter
-from ..io import metadata as meta
-from ..io.datalevels import DataLevel
-from ..io.simteleventsource import SimTelEventSource
-from ..io.tableio import FixedPointColumnTransform, TelListToMaskTransform
+from . import EventSource, HDF5TableWriter, TableWriter
+from . import metadata as meta
+from .datalevels import DataLevel
+from .simteleventsource import SimTelEventSource
+from .tableio import FixedPointColumnTransform, TelListToMaskTransform
 
 __all__ = ["DataWriter", "DATA_MODEL_VERSION", "write_reference_metadata_headers"]
 
 tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many datasets
 
-DATA_MODEL_VERSION = "v1.3.0"
+# define the version of the DL1 data model written here. This should be updated
+# when necessary:
+# - increase the major number if there is a breaking change to the model
+#   (meaning readers need to update scripts)
+# - increase the minor number if new columns or datasets are added
+# - increase the patch number if there is a small bugfix to the model.
+DATA_MODEL_VERSION = "v2.1.0"
 DATA_MODEL_CHANGE_HISTORY = """
-- v1.3.0: hillas and timing parameters saved in telescope frame (degree) as opposed to camera frame (m)
+- v2.1.0: hillas and timing parameters are per default saved in telescope frame (degree) as opposed to camera frame (m)
+- v2.0.0: Match optics and camera tables using indices instead of names
 - v1.2.0: change to more general data model, including also DL2 (DL1 unchanged)
 - v1.1.0: images and peak_times can be stored as scaled integers
 - v1.0.3: true_image dtype changed from float32 to int32
@@ -42,11 +50,11 @@ PROV = Provenance()
 
 
 def write_reference_metadata_headers(
-    obs_ids, subarray, writer, is_simulation, data_levels
+    obs_ids, subarray, writer, is_simulation, data_levels, contact_info
 ):
     """
     Attaches Core Provenence headers to an output HDF5 file.
-    Right now this is hard-coded for use with the ctapipe-stage1-process tool
+    Right now this is hard-coded for use with the ctapipe-process tool
 
     Parameters
     ----------
@@ -66,7 +74,7 @@ def write_reference_metadata_headers(
     category = "Sim" if is_simulation else "Other"
 
     reference = meta.Reference(
-        contact=meta.Contact(name="", email="", organization="CTA Consortium"),
+        contact=contact_info,
         product=meta.Product(
             description="ctapipe Data Product",
             data_category=category,
@@ -114,6 +122,7 @@ class DataWriter(Component):
     """
 
     # pylint: disable=too-many-instance-attributes
+    contact_info = Instance(meta.Contact, kw={}).tag(config=True)
 
     output_path = Path(
         help="output filename", default_value=pathlib.Path("events.dl1.h5")
@@ -192,10 +201,9 @@ class DataWriter(Component):
         """
         super().__init__(config=config, parent=parent, **kwargs)
 
-        # here we just set up data, but all real initializtion should be in
-        # setup(), which is called when the first event is read.
-
         self.event_source = event_source
+        self.contact_info = meta.Contact(parent=self)
+
         self._at_least_one_event = False
         self._is_simulation = event_source.is_simulation
         self._subarray: SubarrayDescription = event_source.subarray
@@ -259,12 +267,14 @@ class DataWriter(Component):
         if self._writer:
             if self.write_index_tables:
                 self._generate_indices()
+
             write_reference_metadata_headers(
                 subarray=self._subarray,
                 obs_ids=self.event_source.obs_ids,
                 writer=self._writer,
                 is_simulation=self._is_simulation,
                 data_levels=self.datalevels,
+                contact_info=self.contact_info,
             )
             self._writer.close()
             self._writer = None
@@ -310,11 +320,16 @@ class DataWriter(Component):
         PROV.add_output_file(str(self.output_path), role="DL1/Event")
 
         # check that options make sense
-        if self.write_parameters is False and self.write_images is False:
+        if (
+            self.write_parameters is False
+            and self.write_images is False
+            and self.write_mono_shower is False
+            and self.write_stereo_shower is False
+        ):
             raise ToolConfigurationError(
-                "The options 'write_parameters' and 'write_images' are "
-                "both set to False. No output will be generated in that case. "
-                "Please enable one or both of these options."
+                "The options 'write_parameters',  'write_images', 'write_mono_shower', "
+                "and 'write_stereo_shower are all False. No output will be generated in "
+                "that case. Please enable one of these options."
             )
 
     def _setup_writer(self):

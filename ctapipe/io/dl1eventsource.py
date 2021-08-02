@@ -44,7 +44,8 @@ COMPATIBLE_DL1_VERSIONS = [
     "v1.0.3",
     "v1.1.0",
     "v1.2.0",
-    "v1.3.0",
+    "v2.0.0",
+    "v2.1.0",
 ]
 
 
@@ -269,12 +270,12 @@ class DL1EventSource(EventSource):
                     containers=[
                         (
                             HillasParametersContainer()
-                            if (self.datamodel_version >= "v1.3.0")
+                            if (self.datamodel_version >= "v2.1.0")
                             else CameraHillasParametersContainer(prefix="hillas")
                         ),
                         (
                             TimingParametersContainer()
-                            if (self.datamodel_version >= "v1.3.0")
+                            if (self.datamodel_version >= "v2.1.0")
                             else CameraTimingParametersContainer(prefix="timing")
                         ),
                         LeakageContainer(),
@@ -294,7 +295,7 @@ class DL1EventSource(EventSource):
                         containers=[
                             (
                                 HillasParametersContainer()
-                                if (self.datamodel_version >= "v1.3.0")
+                                if (self.datamodel_version >= "v2.1.0")
                                 else CameraHillasParametersContainer(prefix="hillas")
                             ),
                             LeakageContainer(),

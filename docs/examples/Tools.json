@@ -1,5 +1,8 @@
 {
     "version": 1.0,
     "MyTool": {"log_level":"DEBUG"},
-    "AdvancedComponent": {"infile": "something.txt"}
+    "AdvancedComponent": {
+        "infile": "something.txt",
+        "outfile": "foo.txt"
+    }
 }

@@ -141,6 +141,15 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
                 " and not `config`"
             )
 
+        # set up logging (for some reason the logger registered by LoggingConfig
+        # doesn't use a child logger of the parent by default)
+        if self.parent:
+            self.log = self.parent.log.getChild(self.__class__.__name__)
+        else:
+            self.log = getLogger(
+                self.__class__.__module__ + "." + self.__class__.__name__
+            )
+
         # Transform warning about wrong traitlets in the config to an error
         # Only works for Components, unfortunately not for Tools, since
         # Tools use `log.warning` instead of `warnings.warn`
@@ -151,18 +160,9 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
             except UserWarning as e:
                 raise TraitError(e) from None
 
-        for key, value in kwargs.items():
+        for key in kwargs:
             if not self.has_trait(key):
                 raise TraitError(f"Traitlet does not exist: {key}")
-
-        # set up logging (for some reason the logger registered by LoggingConfig
-        # doesn't use a child logger of the parent by default)
-        if self.parent:
-            self.log = self.parent.log.getChild(self.__class__.__name__)
-        else:
-            self.log = getLogger(
-                self.__class__.__module__ + "." + self.__class__.__name__
-            )
 
     @classmethod
     def from_name(cls, name, config=None, parent=None, **kwargs):
