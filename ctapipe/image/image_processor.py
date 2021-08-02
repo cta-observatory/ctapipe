@@ -65,6 +65,7 @@ class ImageProcessor(TelescopeComponent):
         self,
         subarray: SubarrayDescription,
         is_simulation,
+        use_telescope_frame=True,
         config=None,
         parent=None,
         **kwargs,
@@ -94,13 +95,15 @@ class ImageProcessor(TelescopeComponent):
         )
         self.check_image = ImageQualityQuery(parent=self)
         self._is_simulation = is_simulation
-        telescope_frame = TelescopeFrame()
-        self.telescope_frame_geometries = {
-            tel_id: self.subarray.tel[tel_id].camera.geometry.transform_to(
-                telescope_frame
-            )
-            for tel_id in self.subarray.tel
-        }
+        self._use_telescope_frame = use_telescope_frame
+        if self.use_telescope_frame:
+            telescope_frame = TelescopeFrame()
+            self.telescope_frame_geometries = {
+                tel_id: self.subarray.tel[tel_id].camera.geometry.transform_to(
+                    telescope_frame
+                )
+                for tel_id in self.subarray.tel
+            }
 
     def __call__(self, event: ArrayEventContainer):
         self._process_telescope_event(event)
@@ -191,7 +194,11 @@ class ImageProcessor(TelescopeComponent):
         """
         for tel_id, dl1_camera in event.dl1.tel.items():
 
-            geometry_telescope = self.telescope_frame_geometries[tel_id]
+            if self.use_telescope_frame:
+                # Use the transformed geometries
+                geometry = self.telescope_frame_geometries[tel_id]
+            else:
+                geometry = dl1_camera.geometry
             # compute image parameters only if requested to write them
             dl1_camera.image_mask = self.clean(
                 tel_id=tel_id,
@@ -204,7 +211,7 @@ class ImageProcessor(TelescopeComponent):
                 image=dl1_camera.image,
                 signal_pixels=dl1_camera.image_mask,
                 peak_time=dl1_camera.peak_time,
-                geometry=geometry_telescope,
+                geometry=geometry,
             )
 
             self.log.debug("params: %s", dl1_camera.parameters.as_dict(recursive=True))
@@ -218,7 +225,7 @@ class ImageProcessor(TelescopeComponent):
                     tel_id,
                     image=sim_camera.true_image,
                     signal_pixels=sim_camera.true_image > 0,
-                    geometry=geometry_telescope,
+                    geometry=geometry,
                     peak_time=None,  # true image from simulation has no peak time
                     default=DEFAULT_TRUE_IMAGE_PARAMETERS,
                 )
