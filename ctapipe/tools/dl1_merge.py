@@ -1,5 +1,5 @@
 """
-Merge DL1-files from stage1-process tool
+Merge DL1-files from ctapipe-process tool
 """
 import sys
 import os

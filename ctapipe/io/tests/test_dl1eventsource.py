@@ -1,13 +1,9 @@
-from ctapipe.utils import get_dataset_path
-from ctapipe.io import DataLevel
-from ctapipe.io.dl1eventsource import DL1EventSource
-from ctapipe.io import EventSource
 import astropy.units as u
 import numpy as np
-import tempfile
 import pytest
-
-d = tempfile.TemporaryDirectory()
+from ctapipe.io import DataLevel, EventSource
+from ctapipe.io.dl1eventsource import DL1EventSource
+from ctapipe.utils import get_dataset_path
 
 
 @pytest.fixture(scope="module")

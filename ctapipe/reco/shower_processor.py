@@ -14,7 +14,7 @@ from ctapipe.instrument import SubarrayDescription
 from ctapipe.reco import HillasReconstructor
 
 
-DEFAULT_SHOWER_PARAMETERS = ReconstructedGeometryContainer()
+DEFAULT_SHOWER_PARAMETERS = ReconstructedGeometryContainer(tel_ids=[])
 
 
 class ShowerQualityQuery(QualityQuery):
@@ -43,11 +43,7 @@ class ShowerProcessor(Component):
     """
 
     def __init__(
-        self,
-        subarray: SubarrayDescription,
-        config=None,
-        parent=None,
-        **kwargs
+        self, subarray: SubarrayDescription, config=None, parent=None, **kwargs
     ):
         """
         Parameters
@@ -70,11 +66,7 @@ class ShowerProcessor(Component):
         self.check_shower = ShowerQualityQuery(parent=self)
         self.reconstructor = HillasReconstructor(self.subarray)
 
-    def reconstruct_geometry(
-        self,
-        event,
-        default=DEFAULT_SHOWER_PARAMETERS,
-    ) -> ReconstructedGeometryContainer:
+    def reconstruct_geometry(self, event, default=DEFAULT_SHOWER_PARAMETERS):
         """Perform shower reconstruction.
 
         Parameters
@@ -102,9 +94,7 @@ class ShowerProcessor(Component):
             for tel_id, dl1 in event.dl1.tel.items()
             if all(self.check_shower(dl1.parameters))
         }
-        self.log.debug(
-            "shower_criteria:\n %s", self.check_shower
-        )
+        self.log.debug("shower_criteria:\n %s", self.check_shower)
 
         # Reconstruct the shower only if all shower criteria are met
         if len(hillas_dict) > 2:
@@ -123,7 +113,9 @@ class ShowerProcessor(Component):
 
         self.reconstruct_geometry(event)
 
-        self.log.debug("shower geometry:\n %s", event.dl2.stereo.geometry["HillasReconstructor"])
+        self.log.debug(
+            "shower geometry:\n %s", event.dl2.stereo.geometry["HillasReconstructor"]
+        )
 
     def __call__(self, event: ArrayEventContainer):
         """

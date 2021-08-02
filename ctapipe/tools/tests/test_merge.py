@@ -5,7 +5,7 @@ import shutil
 from ctapipe.core import run_tool
 from pathlib import Path
 
-from ctapipe.tools.stage1 import Stage1Tool
+from ctapipe.tools.process import ProcessorTool
 
 
 def run_stage1(input_path, cwd, output_path=None):
@@ -17,7 +17,7 @@ def run_stage1(input_path, cwd, output_path=None):
         ).absolute()
 
     ret = run_tool(
-        Stage1Tool(),
+        ProcessorTool(),
         argv=[
             f"--config={config}",
             f"--input={input_path}",
