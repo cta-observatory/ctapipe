@@ -170,7 +170,7 @@ def dl1_by_type_file(dl1_tmp_path, prod5_gamma_simtel_path):
     """
     DL1 file containing both images and parameters from a gamma simulation set.
     """
-    from ctapipe.tools.stage1 import Stage1Tool
+    from ctapipe.tools.process import ProcessorTool
     from ctapipe.core import run_tool
 
     output = dl1_tmp_path / "gamma_by_type.dl1.h5"
@@ -187,7 +187,7 @@ def dl1_by_type_file(dl1_tmp_path, prod5_gamma_simtel_path):
             "--max-events=20",
             "--DataWriter.split_datasets_by=tel_type",
         ]
-        assert run_tool(Stage1Tool(), argv=argv, cwd=dl1_tmp_path) == 0
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
 
 
