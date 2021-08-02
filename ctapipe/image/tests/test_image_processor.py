@@ -26,7 +26,7 @@ def test_image_processor(example_event, example_subarray):
     for dl1tel in example_event.dl1.tel.values():
         assert isfinite(dl1tel.image_mask.sum())
         assert isfinite(dl1tel.parameters.hillas.length.value)
-        dl1tel.parameters.hillas.length.to("meter")
+        dl1tel.parameters.hillas.length.to("deg")
         assert isfinite(dl1tel.parameters.timing.slope.value)
         assert isfinite(dl1tel.parameters.leakage.pixels_width_1)
         assert isfinite(dl1tel.parameters.concentration.cog)
@@ -56,7 +56,7 @@ def test_image_processor_camera_frame(example_event, example_subarray):
     for dl1tel in example_event.dl1.tel.values():
         assert isfinite(dl1tel.image_mask.sum())
         assert isfinite(dl1tel.parameters.hillas.length.value)
-        dl1tel.parameters.hillas.length.to("deg")
+        dl1tel.parameters.hillas.length.to("meter")
         assert isfinite(dl1tel.parameters.timing.slope.value)
         assert isfinite(dl1tel.parameters.leakage.pixels_width_1)
         assert isfinite(dl1tel.parameters.concentration.cog)
