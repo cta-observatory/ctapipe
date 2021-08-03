@@ -3,7 +3,11 @@ Handles reading of different event/waveform containing files
 """
 from abc import abstractmethod
 from traitlets.config.loader import LazyConfigValue
+from typing import Tuple, List, Generator
 
+from ..instrument import SubarrayDescription
+from .datalevels import DataLevel
+from ..containers import ArrayEventContainer
 from ..core import ToolConfigurationError, Provenance
 from ..core.component import Component, non_abstract_children, find_config_in_hierarchy
 from ..core.traits import Path, Int, CInt, Set, Undefined
@@ -194,7 +198,7 @@ class EventSource(Component):
 
     @property
     @abstractmethod
-    def subarray(self):
+    def subarray(self) -> SubarrayDescription:
         """
         Obtain the subarray from the EventSource
 
@@ -206,7 +210,7 @@ class EventSource(Component):
 
     @property
     @abstractmethod
-    def is_simulation(self):
+    def is_simulation(self) -> bool:
         """
         Weither the currently opened file is simulated
 
@@ -218,7 +222,7 @@ class EventSource(Component):
 
     @property
     @abstractmethod
-    def datalevels(self):
+    def datalevels(self) -> Tuple[DataLevel]:
         """
         The datalevels provided by this event source
 
@@ -227,7 +231,7 @@ class EventSource(Component):
         tuple[ctapipe.io.DataLevel]
         """
 
-    def has_any_datalevel(self, datalevels):
+    def has_any_datalevel(self, datalevels) -> bool:
         """
         Check if any of `datalevels` is in self.datalevels
 
@@ -240,7 +244,7 @@ class EventSource(Component):
 
     @property
     @abstractmethod
-    def obs_ids(self):
+    def obs_ids(self) -> List[int]:
         """
         The observation ids of the runs located in the file
         Unmerged files should only contain a single obs id.
@@ -251,7 +255,7 @@ class EventSource(Component):
         """
 
     @abstractmethod
-    def _generator(self):
+    def _generator(self) -> Generator[ArrayEventContainer, None, None]:
         """
         Abstract method to be defined in child class.
 

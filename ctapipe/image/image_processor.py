@@ -61,12 +61,7 @@ class ImageProcessor(TelescopeComponent):
     )
 
     def __init__(
-        self,
-        subarray: SubarrayDescription,
-        is_simulation,
-        config=None,
-        parent=None,
-        **kwargs,
+        self, subarray: SubarrayDescription, config=None, parent=None, **kwargs
     ):
         """
         Parameters
@@ -75,8 +70,6 @@ class ImageProcessor(TelescopeComponent):
             Description of the subarray. Provides information about the
             camera which are useful in calibration. Also required for
             configuring the TelescopeParameter traitlets.
-        is_simulation: bool
-            If true, also process simulated images if they exist
         config: traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
@@ -92,7 +85,6 @@ class ImageProcessor(TelescopeComponent):
             self.image_cleaner_type, subarray=subarray, parent=self
         )
         self.check_image = ImageQualityQuery(parent=self)
-        self._is_simulation = is_simulation
 
     def __call__(self, event: ArrayEventContainer):
         self._process_telescope_event(event)
@@ -204,7 +196,8 @@ class ImageProcessor(TelescopeComponent):
             self.log.debug("params: %s", dl1_camera.parameters.as_dict(recursive=True))
 
             if (
-                self._is_simulation
+                event.simulation is not None
+                and tel_id in event.simulation.tel
                 and event.simulation.tel[tel_id].true_image is not None
             ):
                 sim_camera = event.simulation.tel[tel_id]

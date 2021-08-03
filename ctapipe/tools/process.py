@@ -128,9 +128,7 @@ class ProcessorTool(Tool):
             parent=self, subarray=self.event_source.subarray
         )
         self.process_images = ImageProcessor(
-            subarray=self.event_source.subarray,
-            is_simulation=self.event_source.is_simulation,
-            parent=self,
+            subarray=self.event_source.subarray, parent=self
         )
         self.process_shower = ShowerProcessor(
             subarray=self.event_source.subarray, parent=self

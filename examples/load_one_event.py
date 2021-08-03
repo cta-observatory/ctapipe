@@ -19,9 +19,7 @@ if __name__ == "__main__":
 
     with EventSource(filename, max_events=1) as source:
         calib = CameraCalibrator(subarray=source.subarray)
-        process_images = ImageProcessor(
-            subarray=source.subarray, is_simulation=source.is_simulation
-        )
+        process_images = ImageProcessor(subarray=source.subarray)
         process_shower = ShowerProcessor(subarray=source.subarray)
 
         for event in source:
