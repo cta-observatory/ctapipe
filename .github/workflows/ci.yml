@@ -40,7 +40,7 @@ jobs:
           source .github/install.sh
           python --version
           pip install codecov pytest-cov pyflakes pytest-xdist
-          pip install -e .[all]
+          pip install .[all]
           pip freeze
 
       - name: Static codechecks

@@ -4,8 +4,6 @@
 Test ctapipe-process on a few different use cases
 """
 
-from pathlib import Path
-
 import pandas as pd
 import tables
 from ctapipe.core import run_tool
@@ -13,13 +11,18 @@ from ctapipe.tools.process import ProcessorTool
 from ctapipe.utils import get_dataset_path
 from ctapipe.io import DataLevel, EventSource
 
+try:
+    from importlib.resources import files
+except ImportError:
+    from importlib_resources import files
+
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 
 
 def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
     """  check simtel to DL1 conversion """
 
-    config = Path("./examples/stage1_config.json").absolute()
+    config = files("ctapipe.tools.tests.resources").joinpath("stage1_config.json")
     # DL1A file as input
     dl1b_from_dl1a_file = tmp_path / "dl1b_fromdl1a.dl1.h5"
     assert (
@@ -124,7 +127,7 @@ def test_stage1_datalevels(tmp_path):
         infile.write(b"dummy")
         infile.flush()
 
-    config = Path("./examples/stage1_config.json").absolute()
+    config = files("ctapipe.tools.tests.resources").joinpath("stage1_config.json")
     tool = ProcessorTool()
 
     assert (
@@ -147,7 +150,7 @@ def test_stage1_datalevels(tmp_path):
 
 def test_stage_2_from_simtel(tmp_path):
     """ check we can go to DL2 geometry from simtel file """
-    config = Path("./examples/stage2_config.json").absolute()
+    config = files("ctapipe.tools.tests.resources").joinpath("stage2_config.json")
     output = tmp_path / "test_stage2_from_simtel.DL2.h5"
 
     assert (
@@ -172,7 +175,7 @@ def test_stage_2_from_simtel(tmp_path):
 
 def test_stage_2_from_dl1_images(tmp_path, dl1_image_file):
     """ check we can go to DL2 geometry from DL1 images """
-    config = Path("./examples/stage2_config.json").absolute()
+    config = files("ctapipe.tools.tests.resources").joinpath("stage2_config.json")
     output = tmp_path / "test_stage2_from_dl1image.DL2.h5"
 
     assert (
@@ -197,7 +200,7 @@ def test_stage_2_from_dl1_images(tmp_path, dl1_image_file):
 def test_stage_2_from_dl1_params(tmp_path, dl1_parameters_file):
     """ check we can go to DL2 geometry from DL1 parameters """
 
-    config = Path("./examples/stage2_config.json").absolute()
+    config = files("ctapipe.tools.tests.resources").joinpath("stage2_config.json")
     output = tmp_path / "test_stage2_from_dl1param.DL2.h5"
 
     assert (
@@ -222,7 +225,7 @@ def test_stage_2_from_dl1_params(tmp_path, dl1_parameters_file):
 def test_training_from_simtel(tmp_path):
     """ check we can write both dl1 and dl2 info (e.g. for training input) """
 
-    config = Path("./examples/training_config.json").absolute()
+    config = files("ctapipe.tools.tests.resources").joinpath("training_config.json")
     output = tmp_path / "test_training.DL1DL2.h5"
 
     assert (

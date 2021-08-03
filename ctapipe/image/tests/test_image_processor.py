@@ -13,9 +13,7 @@ def test_image_processor(example_event, example_subarray):
 
     calibrate = CameraCalibrator(subarray=example_subarray)
     process_images = ImageProcessor(
-        subarray=example_subarray,
-        is_simulation=True,
-        image_cleaner_type="MARSImageCleaner",
+        subarray=example_subarray, image_cleaner_type="MARSImageCleaner"
     )
 
     assert isinstance(process_images.clean, MARSImageCleaner)
