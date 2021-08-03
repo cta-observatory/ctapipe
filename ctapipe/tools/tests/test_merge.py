@@ -7,6 +7,11 @@ from pathlib import Path
 
 from ctapipe.tools.process import ProcessorTool
 
+try:
+    from importlib.resources import files
+except ImportError:
+    from importlib_resources import files
+
 
 def run_stage1(input_path, cwd, output_path=None):
     config = files("ctapipe.tools.tests.resources").joinpath("stage1_config.json")
