@@ -24,7 +24,7 @@ entry_points["console_scripts"] = [
     "ctapipe-merge = ctapipe.tools.dl1_merge:main",
     "ctapipe-fileinfo = ctapipe.tools.fileinfo:main",
 ]
-tests_require = ["pytest", "pandas>=0.24.0"]
+tests_require = ["pytest", "pandas>=0.24.0", "importlib_resources;python_version<'3.9'"]
 docs_require = [
     "sphinx_rtd_theme",
     "sphinx_automodapi",
@@ -82,5 +82,7 @@ setup(
     ],
     zip_safe=False,
     entry_points=entry_points,
-    package_data={"": ["tools/bokeh/*.yaml", "tools/bokeh/templates/*.html"]},
+    package_data={
+        "": ["tools/bokeh/*.yaml", "tools/bokeh/templates/*.html", "resources/*"]
+    },
 )
