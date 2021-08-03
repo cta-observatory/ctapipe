@@ -12,7 +12,7 @@ from ..containers import (
     PeakTimeStatisticsContainer,
 )
 from ..core import QualityQuery, TelescopeComponent
-from ..core.traits import List, create_class_enum_trait
+from ..core.traits import Bool, List, create_class_enum_trait
 from ..instrument import SubarrayDescription
 from . import (
     ImageCleaner,
@@ -60,12 +60,15 @@ class ImageProcessor(TelescopeComponent):
     image_cleaner_type = create_class_enum_trait(
         base_class=ImageCleaner, default_value="TailcutsImageCleaner"
     )
+    use_telescope_frame = Bool(
+        default_value=True,
+        help="Whether to calculate parameters in the telescope or camera frame",
+    ).tag(config=True)
 
     def __init__(
         self,
         subarray: SubarrayDescription,
         is_simulation,
-        use_telescope_frame=True,
         config=None,
         parent=None,
         **kwargs,
@@ -95,8 +98,7 @@ class ImageProcessor(TelescopeComponent):
         )
         self.check_image = ImageQualityQuery(parent=self)
         self._is_simulation = is_simulation
-        self._use_telescope_frame = use_telescope_frame
-        if self._use_telescope_frame:
+        if self.use_telescope_frame:
             telescope_frame = TelescopeFrame()
             self.telescope_frame_geometries = {
                 tel_id: self.subarray.tel[tel_id].camera.geometry.transform_to(
@@ -194,7 +196,7 @@ class ImageProcessor(TelescopeComponent):
         """
         for tel_id, dl1_camera in event.dl1.tel.items():
 
-            if self._use_telescope_frame:
+            if self.use_telescope_frame:
                 # Use the transformed geometries
                 geometry = self.telescope_frame_geometries[tel_id]
             else:
