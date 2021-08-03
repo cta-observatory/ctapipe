@@ -32,7 +32,13 @@ ctapipe-process --config <CONFIG> --input <EVENTS FILE>
 ``` 
 
 Where <EVENTS FILE> is any ctapipe-readable event file at a lower or equal data 
-level to the one requested to be produced.  
+level to the one requested to be produced.
+
+Details about all configuration options can be found by running:
+
+```
+ctapipe-process --help-all
+```
 
 This file was generated using ctapipe version {VERSION}
 """
