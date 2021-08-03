@@ -18,9 +18,7 @@ def test_shower_processor_geometry(example_event, example_subarray):
     config = Config()
 
     process_images = ImageProcessor(
-        subarray=example_subarray,
-        is_simulation=True,
-        image_cleaner_type="MARSImageCleaner",
+        subarray=example_subarray, image_cleaner_type="MARSImageCleaner"
     )
 
     process_shower = ShowerProcessor(subarray=example_subarray)
