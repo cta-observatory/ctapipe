@@ -68,7 +68,6 @@ def copy_with_transforms(input_file: Path, output_file: Path, transforms: dict):
         template = template.replace(find, replace)
 
     output_file.write_text(template)
-    print(f"wrote {output_file}")
 
 
 class QuickStartTool(Tool):

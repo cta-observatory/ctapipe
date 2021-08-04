@@ -253,7 +253,7 @@ def test_training_from_simtel(tmp_path):
 
 @pytest.mark.parametrize("filename", CONFIGS_TO_WRITE)
 def test_quickstart_templates(filename):
-
+    """ ensure template configs have an appropriate placeholder for the contact info """
     config = files("ctapipe.tools.tests.resources").joinpath(filename)
     text = config.read_text()
 
