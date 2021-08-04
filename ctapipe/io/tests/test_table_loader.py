@@ -12,6 +12,15 @@ def test_file(request, dl1_file, dl1_by_type_file):
 
     return request.param, f
 
+@pytest.fixture(params=["by_type", "by_id"])
+def test_file_dl2(request, dl2_shower_geometry_file, dl2_shower_geometry_file_type):
+    if request.param == "by_type":
+        f = dl2_shower_geometry_file
+    else:
+        f = dl2_shower_geometry_file_type
+
+    return request.param, f
+
 
 def test_get_structure(test_file):
     from ctapipe.io.tableloader import get_structure

@@ -139,6 +139,62 @@ def prod5_proton_simtel_path():
 def dl1_tmp_path(tmp_path_factory):
     return tmp_path_factory.mktemp("dl1")
 
+@pytest.fixture(scope="session")
+def dl2_tmp_path(tmp_path_factory):
+    return tmp_path_factory.mktemp("dl2")
+
+
+@pytest.fixture(scope="session")
+def dl2_shower_geometry_file(dl2_tmp_path, prod5_gamma_simtel_path):
+    """
+    File containing both parameters and shower geometry from a gamma simulation set.
+    """
+    from ctapipe.core import run_tool
+    from ctapipe.tools.process import ProcessorTool
+
+    output = dl2_tmp_path / "gamma.training.h5"
+
+    # prevent running process multiple times in case of parallel tests
+    with FileLock(output.with_suffix(output.suffix + ".lock")):
+        if output.is_file():
+            return output
+
+        argv = [
+            f"--input={prod5_gamma_simtel_path}",
+            f"--output={output}",
+            "--write-images",
+            "--write-stereo-shower",
+            "--max-events=20",
+        ]
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
+        return output
+
+@pytest.fixture(scope="session")
+def dl2_shower_geometry_file_type(dl2_tmp_path, prod5_gamma_simtel_path):
+    """
+    File containing both parameters and shower geometry from a gamma simulation set.
+    """
+    from ctapipe.core import run_tool
+    from ctapipe.tools.process import ProcessorTool
+
+    output = dl2_tmp_path / "gamma_by_type.training.h5"
+
+    # prevent running process multiple times in case of parallel tests
+    with FileLock(output.with_suffix(output.suffix + ".lock")):
+        if output.is_file():
+            return output
+
+        argv = [
+            f"--input={prod5_gamma_simtel_path}",
+            f"--output={output}",
+            "--write-images",
+            "--write-stereo-shower",
+            "--max-events=20",
+            "--DataWriter.split_datasets_by=tel_type",
+        ]
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
+        return output
+
 
 @pytest.fixture(scope="session")
 def dl1_file(dl1_tmp_path, prod5_gamma_simtel_path):
