@@ -12,13 +12,25 @@ __all__ = ["get_structure", "TableLoader"]
 
 PARAMETERS_GROUP = "/dl1/event/telescope/parameters"
 IMAGES_GROUP = "/dl1/event/telescope/images"
+GEOMETRY_GROUP = "/dl2/event/subarray/geometry"
 TRIGGER_TABLE = "/dl1/event/subarray/trigger"
 SHOWER_TABLE = "/simulation/event/subarray/shower"
 TRUE_IMAGES_GROUP = "/simulation/event/telescope/images"
 
 by_id_RE = re.compile(r"tel_\d+")
 
+def get_tel_ids(
+    subarray: SubarrayDescription,
+    telescopes: List[Union[int, str, TelescopeDescription]]
+) -> List[int]:
+    ids = set()
 
+    for telescope in telescopes:
+        if isinstance(telescope, int):
+            ids.add(telescope)
+        ids.update(subarray.get_tel_ids_for_type(telescope))
+
+    return sorted(ids)
 
 def get_structure(h5file):
 
