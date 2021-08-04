@@ -1,11 +1,12 @@
 import re
-import numpy as np
+from typing import List, Union
 
+import numpy as np
 import tables
 from astropy.table import join, vstack, Table
 
 from ..core import Component, traits
-from ..instrument import SubarrayDescription
+from ..instrument import SubarrayDescription, TelescopeDescription
 from .astropy_helpers import read_table
 
 __all__ = ["get_tel_ids", "get_structure", "TableLoader"]
@@ -19,6 +20,7 @@ TRUE_IMAGES_GROUP = "/simulation/event/telescope/images"
 
 by_id_RE = re.compile(r"tel_\d+")
 
+
 def get_tel_ids(
     subarray: SubarrayDescription,
     telescopes: List[Union[int, str, TelescopeDescription]]
@@ -31,6 +33,7 @@ def get_tel_ids(
         ids.update(subarray.get_tel_ids_for_type(telescope))
 
     return sorted(ids)
+
 
 def get_structure(h5file):
 
@@ -75,8 +78,6 @@ class TableLoader(Component):
         except ValueError:
             self.structure = None
 
-        self.trigger_table = read_table(self.h5file, TRIGGER_TABLE)
-
         self.instrument_table = None
         if self.load_instrument:
             table = self.subarray.to_table()
@@ -110,55 +111,6 @@ class TableLoader(Component):
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
-    def read_subarray_events(self, tel_ids=None):
-
-        if self.shower_table is not None and len(table > 0)):
-            table = join(
-                table,
-                self.shower_table,
-                keys=["obs_id", "event_id"],
-                join_type="inner"
-            )
-
-        if self.load_trigger and len(table > 0):
-            table = join(
-                table,
-                self.trigger_table,
-                keys=["obs_id", "event_id"],
-                join_type="inner",
-            )
-        
-        if self.load_dl2_geometry:
-            
-            g = h5file.root[GEOMETRY_GROUP]
-            
-            for reconstructor in g._v_children:
-                
-                geometry = read_table(self.h5file, f"{GEOMETRY_GROUP}/{reconstructor}")
-                
-                # rename DL2 columns to explicit reconstructor
-                # TBD: we could skip this if only 1 reconstructor is present
-                # or simply find another way to deal with multiple reconstructions
-                for col in set(geometry.colnames) - {"obs_id", "event_id"}:
-                    geometry.rename_column(col, f"{reconstructor}_{col}")
-                
-                if (table is None or len(table)==0) and i==0:
-                    table = geometry
-                else:
-                    table = join(
-                        table, geometry, keys=["obs_id", "event_id"], join_type="left"
-                    )
-
-    def read_telescope_events(self, tel_ids=None):
-        if tel_ids is None:
-            tel_ids = self.subarray.tel.keys()
-
-        return vstack([self.read_telescope_events_for_id(tel_id) for tel_id in tel_ids])
-
-    def read_telescope_events_for_type(self, tel_type):
-        tel_ids = self.subarray.get_tel_ids_for_type(tel_type)
-        return self.read_telescope_events(tel_ids)
-
     def _read_telescope_table(self, group, tel_id):
         if self.structure == "by_id":
             key = f"{group}/tel_{tel_id:03d}"
@@ -174,7 +126,150 @@ class TableLoader(Component):
 
         return table
 
+    def read_subarray_events(self, table=None):
+
+        if self.shower_table:
+            if (table is not None) and len(table) > 0:
+                table = join(
+                    table,
+                    self.shower_table,
+                    keys=["obs_id", "event_id"],
+                    join_type="inner"
+                )
+            else:
+                table = self.shower_table
+
+        if self.load_trigger:
+            if (table is not None) and len(table) > 0:
+                table = join(
+                    table,
+                    read_table(self.h5file, TRIGGER_TABLE),
+                    keys=["obs_id", "event_id"],
+                    join_type="inner",
+                )
+            else:
+                table = read_table(self.h5file, TRIGGER_TABLE)
+
+        if self.load_dl2_geometry:
+
+            shower_geometry_group = self.h5file.root[GEOMETRY_GROUP]
+
+            for i, reconstructor in enumerate(shower_geometry_group._v_children):
+
+                geometry = read_table(self.h5file, f"{GEOMETRY_GROUP}/{reconstructor}")
+
+                # rename DL2 columns to explicit reconstructor
+                # TBD: we could skip this if only 1 reconstructor is present
+                # or simply find another way to deal with multiple reconstructions
+                for col in set(geometry.colnames) - {"obs_id", "event_id"}:
+                    geometry.rename_column(col, f"{reconstructor}_{col}")
+
+                if ((table is None) or (len(table) == 0)) and (i == 0):
+                    table = geometry
+                else:
+                    table = join(
+                        table, geometry, keys=["obs_id", "event_id"], join_type="left"
+                    )
+        return table
+
+    def read_telescope_events(self, tel_ids):
+
+        table = vstack([self.read_telescope_events_for_id(tel_id) for tel_id in tel_ids])
+
+        return table
+
+    def read_events(self, labels=None):
+        """Read telescope-based event information.
+
+        Parameters
+        ----------
+        labels: list
+            Any list combination of tel_ids, tel_types, or telescope_descriptions.
+
+        Returns
+        -------
+        table: astropy.io.Table
+            Table with primary columns "obs_id", "event_id" and "tel_id".
+        """
+
+        if labels is None:
+            tel_ids = self.subarray.tel.keys()
+        else:
+            tel_ids = get_tel_ids(self.subarray, labels)
+
+        if any([self.load_dl1_images, self.load_dl1_parameters, self.load_true_images]):
+            table = self.read_telescope_events(tel_ids)
+        else:
+            table = None
+
+        table = self.read_subarray_events(table)
+
+        return table
+
+    def read_events_by_tel_type(self, labels=None):
+        """Read telescope-based event information.
+
+        Parameters
+        ----------
+        labels: list
+            Any list combination of tel_ids, tel_types, or telescope_descriptions.
+
+        Returns
+        -------
+        tables: dict(astropy.io.Table)
+            Dictionary of tables organized by telescope types
+            with primary columns "obs_id", "event_id".
+        """
+
+        if labels is None:
+            tel_ids = self.subarray.tel.keys()
+        else:
+            tel_ids = get_tel_ids(self.subarray, labels)
+
+        selected_subarray = self.subarray.select_subarray(tel_ids)
+        selected_tel_types = selected_subarray.telescope_types
+
+        tables = {}
+        for tel_type in selected_tel_types:
+
+            tables[str(tel_type)] = self.read_events_for_type(tel_type)
+
+        return tables
+
+    def read_events_for_type(self, tel_type):
+        """Read telescope-based event information.
+
+        Parameters
+        ----------
+        labels: list
+            Any list combination of tel_ids, tel_types, or telescope_descriptions.
+
+        Returns
+        -------
+        tables: dict(astropy.io.Table)
+            Dictionary of tables organized by telescope types
+            with primary columns "obs_id", "event_id".
+        """
+
+        if tel_type is None:
+            raise ValueError("Please, specify a telescope description.")
+        else:
+            tel_ids = self.subarray.get_tel_ids_for_type(tel_type)
+
+        if any([self.load_dl1_images, self.load_dl1_parameters, self.load_true_images]):
+            table = self.read_telescope_events(tel_ids)
+        else:
+            table = None
+
+        table = self.read_subarray_events(table)
+
+        return table
+
     def read_telescope_events_for_id(self, tel_id):
+
+        if tel_id is None:
+            raise ValueError("Please, specify a telescope ID.")
+
         table = None
 
         if self.load_dl1_parameters:
