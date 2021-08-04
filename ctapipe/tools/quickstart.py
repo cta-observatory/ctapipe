@@ -120,9 +120,9 @@ class QuickStartTool(Tool):
             self.contact_organization = input()
 
         self.transforms = {
-            "YOUR NAME HERE": self.contact_name,
-            "youremail@example.org": self.contact_email,
-            "CTA Consortium": self.contact_organization,
+            "YOUR-NAME-HERE": self.contact_name,
+            "YOUREMAIL@EXAMPLE.ORG": self.contact_email,
+            "YOUR-ORGANIZATION": self.contact_organization,
         }
 
     def start(self):

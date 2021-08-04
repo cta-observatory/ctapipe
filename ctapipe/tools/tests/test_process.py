@@ -5,11 +5,13 @@ Test ctapipe-process on a few different use cases
 """
 
 import pandas as pd
+import pytest
 import tables
 from ctapipe.core import run_tool
-from ctapipe.tools.process import ProcessorTool
-from ctapipe.utils import get_dataset_path
 from ctapipe.io import DataLevel, EventSource
+from ctapipe.tools.process import ProcessorTool
+from ctapipe.tools.quickstart import CONFIGS_TO_WRITE, QuickStartTool
+from ctapipe.utils import get_dataset_path
 
 try:
     from importlib.resources import files
@@ -247,3 +249,39 @@ def test_training_from_simtel(tmp_path):
     with tables.open_file(output, mode="r") as testfile:
         assert testfile.root.dl1.event.telescope.parameters.tel_002
         assert testfile.root.dl2.event.subarray.geometry.HillasReconstructor
+
+
+@pytest.mark.parametrize("filename", CONFIGS_TO_WRITE)
+def test_quickstart_templates(filename):
+
+    config = files("ctapipe.tools.tests.resources").joinpath(filename)
+    text = config.read_text()
+
+    assert "YOUR-NAME-HERE" in text, "Missing expected name placeholder"
+    assert "YOUREMAIL@EXAMPLE.ORG" in text, "Missing expected email placeholder"
+    assert "YOUR-ORGANIZATION" in text, "Missing expected org placeholder"
+
+
+def test_quickstart(tmp_path):
+    """ ensure quickstart tool generates expected output """
+
+    tool = QuickStartTool()
+    run_tool(
+        tool,
+        cwd=tmp_path,
+        argv=[
+            "--workdir",
+            "ProdX",
+            "--name",
+            "test",
+            "--email",
+            "a@b.com",
+            "--org",
+            "CTA",
+        ],
+    )
+
+    assert (tmp_path / "ProdX" / "README.md").exists()
+
+    for config in CONFIGS_TO_WRITE:
+        assert (tmp_path / "ProdX" / config).exists()

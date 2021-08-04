@@ -230,29 +230,3 @@ def test_bokeh_file_viewer(tmp_path):
     assert run_tool(tool, cwd=tmp_path) == 0
     assert tool.reader.input_url == get_dataset_path("gamma_test_large.simtel.gz")
     assert run_tool(tool, ["--help-all"]) == 0
-
-
-def test_quickstart(tmp_path):
-    """ ensure quickstart tool generates expected output """
-    from ctapipe.tools.quickstart import QuickStartTool, CONFIGS_TO_WRITE
-
-    tool = QuickStartTool()
-    run_tool(
-        tool,
-        cwd=tmp_path,
-        argv=[
-            "--workdir",
-            "ProdX",
-            "--name",
-            "test",
-            "--email",
-            "a@b.com",
-            "--org",
-            "CTA",
-        ],
-    )
-
-    assert (tmp_path / "ProdX" / "README.md").exists()
-
-    for config in CONFIGS_TO_WRITE:
-        assert (tmp_path / "ProdX" / config).exists()
