@@ -1,5 +1,6 @@
 """
-A tool to set up some standard configuration files for ctapipe-process.
+Create a working directory for ctapipe-process containing standard
+configuration files.
 """
 try:
     from importlib.resources import files
@@ -45,6 +46,8 @@ This file was generated using ctapipe version {VERSION}
 
 
 class QuickStartTool(Tool):
+    """ Generate quick start files and directory structure """
+
     name = "ctapipe-quickstart"
     description = __doc__
     examples = """
@@ -85,6 +88,7 @@ class QuickStartTool(Tool):
                 outfile.write(README_TEXT)
             Provenance().add_output_file(readme, role="ctapipe-quickstart README")
 
+    def finish(self):
         print(f"Generated examples in {self.workdir}")
 
 
