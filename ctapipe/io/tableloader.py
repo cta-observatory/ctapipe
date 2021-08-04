@@ -55,7 +55,7 @@ class TableLoader(Component):
 
     load_dl1_images = traits.Bool(False).tag(config=True)
     load_dl1_parameters = traits.Bool(True).tag(config=True)
-    load_dl2 = traits.Bool(False).tag(config=True)
+    load_dl2_geometry = traits.Bool(False).tag(config=True)
     load_simulated = traits.Bool(False).tag(config=True)
     load_true_images = traits.Bool(False).tag(config=True)
     load_trigger = traits.Bool(True).tag(config=True)
@@ -109,6 +109,45 @@ class TableLoader(Component):
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
+
+    def read_subarray_events(self, tel_ids=None):
+
+        if self.shower_table is not None and len(table > 0)):
+            table = join(
+                table,
+                self.shower_table,
+                keys=["obs_id", "event_id"],
+                join_type="inner"
+            )
+
+        if self.load_trigger and len(table > 0):
+            table = join(
+                table,
+                self.trigger_table,
+                keys=["obs_id", "event_id"],
+                join_type="inner",
+            )
+        
+        if self.load_dl2_geometry:
+            
+            g = h5file.root[GEOMETRY_GROUP]
+            
+            for reconstructor in g._v_children:
+                
+                geometry = read_table(self.h5file, f"{GEOMETRY_GROUP}/{reconstructor}")
+                
+                # rename DL2 columns to explicit reconstructor
+                # TBD: we could skip this if only 1 reconstructor is present
+                # or simply find another way to deal with multiple reconstructions
+                for col in set(geometry.colnames) - {"obs_id", "event_id"}:
+                    geometry.rename_column(col, f"{reconstructor}_{col}")
+                
+                if (table is None or len(table)==0) and i==0:
+                    table = geometry
+                else:
+                    table = join(
+                        table, geometry, keys=["obs_id", "event_id"], join_type="left"
+                    )
 
     def read_telescope_events(self, tel_ids=None):
         if tel_ids is None:
@@ -165,19 +204,6 @@ class TableLoader(Component):
                     keys=["obs_id", "event_id", "tel_id"],
                     join_type="outer",
                 )
-
-        if self.shower_table is not None and len(table > 0)):
-            table = join(
-                table, self.shower_table, keys=["obs_id", "event_id"], join_type="inner"
-            )
-
-        if self.load_trigger:
-            table = join(
-                table,
-                self.trigger_table,
-                keys=["obs_id", "event_id"],
-                join_type="inner",
-            )
 
         if self.load_instrument and len(table) > 0:
             table = join(
