@@ -21,6 +21,27 @@ def test_file_dl2(request, dl2_shower_geometry_file, dl2_shower_geometry_file_ty
 
     return request.param, f
 
+def test_get_tel_ids(test_file):
+
+    from ctapipe.io.tableloader import get_tel_ids
+    from ctapipe.instrument import SubarrayDescription
+    from ctapipe.instrument import TelescopeDescription
+
+    _, dl1_file = test_file
+
+    sst = TelescopeDescription(tel_type="SST", name="ASTRI", optics="ASTRI", camera="CHEC")
+    
+    subarray = SubarrayDescription.from_hdf(dl1_file)
+
+    labels = [1,2,"MST_MST_FlashCam", sst]
+
+    tel_ids = get_tel_ids(subarray, labels)
+
+    true_tel_ids = (subarray.get_tel_ids_for_type("MST_MST_FlashCam") + 
+                       subarray.get_tel_ids_for_type(sst) +
+                       [1,2])
+
+    assert sorted(tel_ids) == sorted(true_tel_ids)
 
 def test_get_structure(test_file):
     from ctapipe.io.tableloader import get_structure

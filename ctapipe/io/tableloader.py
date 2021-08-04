@@ -8,7 +8,7 @@ from ..core import Component, traits
 from ..instrument import SubarrayDescription
 from .astropy_helpers import read_table
 
-__all__ = ["get_structure", "TableLoader"]
+__all__ = ["get_tel_ids", "get_structure", "TableLoader"]
 
 PARAMETERS_GROUP = "/dl1/event/telescope/parameters"
 IMAGES_GROUP = "/dl1/event/telescope/images"
