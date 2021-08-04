@@ -166,12 +166,12 @@ class TableLoader(Component):
                     join_type="outer",
                 )
 
-        if self.shower_table is not None:
+        if self.shower_table is not None and len(table > 0)):
             table = join(
                 table, self.shower_table, keys=["obs_id", "event_id"], join_type="inner"
             )
 
-        if self.load_trigger and len(table) > 0:
+        if self.load_trigger:
             table = join(
                 table,
                 self.trigger_table,
