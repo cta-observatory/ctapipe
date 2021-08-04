@@ -237,7 +237,20 @@ def test_quickstart(tmp_path):
     from ctapipe.tools.quickstart import QuickStartTool, CONFIGS_TO_WRITE
 
     tool = QuickStartTool()
-    run_tool(tool, cwd=tmp_path, argv=["--workdir", "ProdX"])
+    run_tool(
+        tool,
+        cwd=tmp_path,
+        argv=[
+            "--workdir",
+            "ProdX",
+            "--name",
+            "test",
+            "--email",
+            "a@b.com",
+            "--org",
+            "CTA",
+        ],
+    )
 
     assert (tmp_path / "ProdX" / "README.md").exists()
 

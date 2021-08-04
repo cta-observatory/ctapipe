@@ -7,11 +7,12 @@ try:
 except ImportError:
     from importlib_resources import files
 
-import shutil
+from pathlib import Path
 
-from ..core import Tool, Provenance
-from ..core import traits
+from ..core import Provenance, Tool, traits
 from ..version import __version__ as VERSION
+
+__all__ = ["QuickStartTool"]
 
 CONFIGS_TO_WRITE = ["stage1_config.json", "stage2_config.json", "training_config.json"]
 
@@ -45,13 +46,42 @@ This file was generated using ctapipe version {VERSION}
 """
 
 
+def copy_with_transforms(input_file: Path, output_file: Path, transforms: dict):
+    """reads input_file and writes output_file, swapping text listed in the
+    transformations dict
+
+    Parameters
+    ----------
+    input_file: str
+        template file to read
+    output_file: str
+        file to write
+    transformations: Dict[str, str]
+        dict of search and replacement strings
+    """
+
+    input_file = Path(input_file)
+    output_file = Path(output_file)
+
+    template = input_file.read_text()
+    for find, replace in transforms.items():
+        template = template.replace(find, replace)
+
+    output_file.write_text(template)
+    print(f"wrote {output_file}")
+
+
 class QuickStartTool(Tool):
-    """ Generate quick start files and directory structure """
+    """
+    Generate quick start files and directory structure.
+    """
 
     name = "ctapipe-quickstart"
     description = __doc__
     examples = """
     ctapipe-quickstart --workdir MyProduction
+
+    ctapipe-quickstart --name "my name" --contact "me@thing.com" --workdir Work
     """
 
     workdir = traits.Path(
@@ -61,12 +91,42 @@ class QuickStartTool(Tool):
         help="working directory where configuration files should be written",
     ).tag(config=True)
 
-    aliases = {("d", "workdir"): "QuickStartTool.workdir"}
+    contact_name = traits.Unicode("", help="Contact name").tag(config=True)
+    contact_email = traits.Unicode("", help="Contact email").tag(config=True)
+    contact_organization = traits.Unicode("", help="Contact organization").tag(
+        config=True
+    )
+
+    aliases = {
+        ("d", "workdir"): "QuickStartTool.workdir",
+        ("n", "name"): "QuickStartTool.contact_name",
+        ("e", "email"): "QuickStartTool.contact_email",
+        ("o", "org"): "QuickStartTool.contact_organization",
+    }
 
     def setup(self):
         self.workdir.mkdir(parents=True, exist_ok=True)
 
+        if self.contact_name == "":
+            print("Enter your contact name: ", end="")
+            self.contact_name = input()
+
+        if self.contact_email == "":
+            print("Enter your contact email: ", end="")
+            self.contact_email = input()
+
+        if self.contact_organization == "":
+            print("Enter your organization: ", end="")
+            self.contact_organization = input()
+
+        self.transforms = {
+            "YOUR NAME HERE": self.contact_name,
+            "youremail@example.org": self.contact_email,
+            "CTA Consortium": self.contact_organization,
+        }
+
     def start(self):
+
         for filename in CONFIGS_TO_WRITE:
             config = files("ctapipe.tools.tests.resources").joinpath(filename)
             destination = self.workdir / filename
@@ -78,14 +138,13 @@ class QuickStartTool(Tool):
                 )
                 continue
 
-            shutil.copy(config, destination)
+            copy_with_transforms(config, destination, transforms=self.transforms)
             Provenance().add_output_file(destination, role="ctapipe-quickstart config")
 
         # also generate a README file
         readme = self.workdir / "README.md"
         if not readme.exists():
-            with open(readme, "w") as outfile:
-                outfile.write(README_TEXT)
+            readme.write_text(README_TEXT)
             Provenance().add_output_file(readme, role="ctapipe-quickstart README")
 
     def finish(self):
