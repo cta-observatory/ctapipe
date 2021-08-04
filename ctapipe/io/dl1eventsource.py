@@ -11,6 +11,7 @@ from ..containers import (
     ArrayEventContainer,
     DL1CameraContainer,
     EventIndexContainer,
+    CameraHillasParametersContainer,
     HillasParametersContainer,
     IntensityStatisticsContainer,
     LeakageContainer,
@@ -19,6 +20,7 @@ from ..containers import (
     SimulatedShowerContainer,
     SimulatedEventContainer,
     PeakTimeStatisticsContainer,
+    CameraTimingParametersContainer,
     TimingParametersContainer,
     TriggerContainer,
     ImageParametersContainer,
@@ -43,6 +45,7 @@ COMPATIBLE_DL1_VERSIONS = [
     "v1.1.0",
     "v1.2.0",
     "v2.0.0",
+    "v2.1.0",
 ]
 
 
@@ -265,8 +268,16 @@ class DL1EventSource(EventSource):
                 tel.name: self.reader.read(
                     f"/dl1/event/telescope/parameters/{tel.name}",
                     containers=[
-                        HillasParametersContainer(),
-                        TimingParametersContainer(),
+                        (
+                            HillasParametersContainer()
+                            if (self.datamodel_version >= "v2.1.0")
+                            else CameraHillasParametersContainer(prefix="hillas")
+                        ),
+                        (
+                            TimingParametersContainer()
+                            if (self.datamodel_version >= "v2.1.0")
+                            else CameraTimingParametersContainer(prefix="timing")
+                        ),
                         LeakageContainer(),
                         ConcentrationContainer(),
                         MorphologyContainer(),
@@ -282,7 +293,11 @@ class DL1EventSource(EventSource):
                     tel.name: self.reader.read(
                         f"/simulation/event/telescope/parameters/{tel.name}",
                         containers=[
-                            HillasParametersContainer(),
+                            (
+                                HillasParametersContainer()
+                                if (self.datamodel_version >= "v2.1.0")
+                                else CameraHillasParametersContainer(prefix="hillas")
+                            ),
                             LeakageContainer(),
                             ConcentrationContainer(),
                             MorphologyContainer(),
@@ -406,7 +421,6 @@ class DL1EventSource(EventSource):
                         intensity_statistics=params[5],
                         peak_time_statistics=params[6],
                     )
-
                     if self.has_simulated_dl1:
                         if f"tel_{tel:03d}" not in param_readers.keys():
                             logger.debug(

@@ -10,7 +10,10 @@ from ctapipe.instrument import (
     TelescopeDescription,
     PixelShape,
 )
-from ctapipe.containers import HillasParametersContainer
+from ctapipe.containers import (
+    CameraHillasParametersContainer,
+    HillasParametersContainer,
+)
 import numpy as np
 from astropy import units as u
 
@@ -49,7 +52,7 @@ def test_hillas_overlay():
     from ctapipe.visualization import CameraDisplay
 
     disp = CameraDisplay(CameraGeometry.from_name("LSTCam"))
-    hillas = HillasParametersContainer(
+    hillas = CameraHillasParametersContainer(
         x=0.1 * u.m, y=-0.1 * u.m, length=0.5 * u.m, width=0.2 * u.m, psi=90 * u.deg
     )
 
@@ -141,12 +144,12 @@ def test_array_display():
 
     geom = CameraGeometry.from_name("LSTCam")
     rot_angle = 20 * u.deg
-    hillas = HillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=rot_angle)
+    hillas = CameraHillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=rot_angle)
 
     # test using hillas params CameraFrame:
     hillas_dict = {
-        1: HillasParametersContainer(length=100.0 * u.m, psi=90 * u.deg),
-        2: HillasParametersContainer(length=20000 * u.cm, psi="95deg"),
+        1: CameraHillasParametersContainer(length=100.0 * u.m, psi=90 * u.deg),
+        2: CameraHillasParametersContainer(length=20000 * u.cm, psi="95deg"),
     }
 
     grad = 2
@@ -161,9 +164,8 @@ def test_array_display():
     )
     gradient_dict = {1: timing_rot20.slope.value, 2: timing_rot20.slope.value}
     core_dict = {
-            tel_id: dl1.parameters.core.psi
-            for tel_id, dl1 in event.dl1.tel.items()
-        }
+        tel_id: dl1.parameters.core.psi for tel_id, dl1 in event.dl1.tel.items()
+    }
     ad.set_vector_hillas(
         hillas_dict=hillas_dict,
         core_dict=core_dict,
@@ -176,16 +178,10 @@ def test_array_display():
     # test using hillas params for divergent pointing in telescopeframe:
     hillas_dict = {
         1: HillasParametersContainer(
-            x=1.0 * u.deg,
-            y=1.0 * u.deg,
-            length=1.0 * u.deg,
-            psi=90 * u.deg,
+            fov_lon=1.0 * u.deg, fov_lat=1.0 * u.deg, length=1.0 * u.deg, psi=90 * u.deg
         ),
         2: HillasParametersContainer(
-            x=1.0 * u.deg,
-            y=1.0 * u.deg,
-            length=1.0 * u.deg,
-            psi=95 * u.deg,
+            fov_lon=1.0 * u.deg, fov_lat=1.0 * u.deg, length=1.0 * u.deg, psi=95 * u.deg
         ),
     }
     ad.set_vector_hillas(
@@ -200,16 +196,10 @@ def test_array_display():
     # test using hillas params for parallel pointing in telescopeframe:
     hillas_dict = {
         1: HillasParametersContainer(
-            x=1.0 * u.deg,
-            y=1.0 * u.deg,
-            length=1.0 * u.deg,
-            psi=90 * u.deg,
+            fov_lon=1.0 * u.deg, fov_lat=1.0 * u.deg, length=1.0 * u.deg, psi=90 * u.deg
         ),
         2: HillasParametersContainer(
-            x=1.0 * u.deg,
-            y=1.0 * u.deg,
-            length=1.0 * u.deg,
-            psi=95 * u.deg,
+            fov_lon=1.0 * u.deg, fov_lat=1.0 * u.deg, length=1.0 * u.deg, psi=95 * u.deg
         ),
     }
     ad.set_vector_hillas(
@@ -221,10 +211,7 @@ def test_array_display():
     )
 
     # test negative time_gradients
-    gradient_dict = {
-        1: -0.03,
-        2: -0.02,
-    }
+    gradient_dict = {1: -0.03, 2: -0.02}
     ad.set_vector_hillas(
         hillas_dict=hillas_dict,
         core_dict=core_dict,
@@ -233,10 +220,7 @@ def test_array_display():
         angle_offset=0 * u.deg,
     )
     # and very small
-    gradient_dict = {
-        1: 0.003,
-        2: 0.002,
-    }
+    gradient_dict = {1: 0.003, 2: 0.002}
     ad.set_vector_hillas(
         hillas_dict=hillas_dict,
         core_dict=core_dict,

@@ -37,8 +37,9 @@ tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many dataset
 #   (meaning readers need to update scripts)
 # - increase the minor number if new columns or datasets are added
 # - increase the patch number if there is a small bugfix to the model.
-DATA_MODEL_VERSION = "v2.0.0"
+DATA_MODEL_VERSION = "v2.1.0"
 DATA_MODEL_CHANGE_HISTORY = """
+- v2.1.0: hillas and timing parameters are per default saved in telescope frame (degree) as opposed to camera frame (m)
 - v2.0.0: Match optics and camera tables using indices instead of names
 - v1.2.0: change to more general data model, including also DL2 (DL1 unchanged)
 - v1.1.0: images and peak_times can be stored as scaled integers
