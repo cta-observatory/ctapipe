@@ -44,6 +44,12 @@ class ProcessorTool(Tool):
     """
 
     progress_bar = Bool(help="show progress bar during processing").tag(config=True)
+    force_recompute_dl1 = Bool(
+        help="Enforce dl1 recomputation even if already present in the input file"
+    ).tag(config=True)
+    force_recompute_dl2 = Bool(
+        help="Enforce dl2 recomputation even if already present in the input file"
+    ).tag(config=True)
 
     aliases = {
         ("i", "input"): "EventSource.input_url",
@@ -69,6 +75,18 @@ class ProcessorTool(Tool):
             "ProcessorTool.progress_bar",
             "show a progress bar during event processing",
             "don't show a progress bar during event processing",
+        ),
+        **flag(
+            "recompute_dl1",
+            "ProcessorTool.force_recompute_dl1",
+            "Enforce DL1 recomputation even if already present in the input file",
+            "Only compute DL1 if there are no DL1b parameters in the file",
+        ),
+        **flag(
+            "recompute_dl2",
+            "ProcessorTool.force_recompute_dl2",
+            "Enforce DL2 recomputation even if already present in the input file",
+            "Only compute DL2 if there is no shower reconstruction in the file",
         ),
         **flag(
             "write-images",
@@ -150,11 +168,15 @@ class ProcessorTool(Tool):
     @property
     def should_compute_dl2(self):
         """ returns true if we should compute DL2 info """
+        if self.force_recompute_dl2:
+            return True
         return self.write.write_stereo_shower or self.write.write_mono_shower
 
     @property
     def should_compute_dl1(self):
         """returns true if we should compute DL1 info"""
+        if self.force_recompute_dl1:
+            return True
         if DataLevel.DL1_PARAMETERS in self.event_source.datalevels:
             return False
 
