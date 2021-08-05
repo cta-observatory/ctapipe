@@ -199,8 +199,8 @@ class TableLoader(Component):
 
         Parameters
         ----------
-        labels: list
-            Any list combination of tel_ids, tel_types, or telescope_descriptions.
+        labels: List[Union[int, str, TelescopeDescription]]
+            Any list containing a combination of telescope IDs or telescope_descriptions.
 
         Returns
         -------
@@ -227,8 +227,8 @@ class TableLoader(Component):
 
         Parameters
         ----------
-        labels: list
-            Any list combination of tel_ids, tel_types, or telescope_descriptions.
+        labels: List[Union[int, str, TelescopeDescription]]
+            Any list containing a combination of telescope IDs or telescope_descriptions.
 
         Returns
         -------
