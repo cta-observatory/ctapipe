@@ -118,6 +118,21 @@ def test_true_images(test_file):
         assert "true_image" in table.colnames
 
 
+def test_true_parameters(test_file):
+    from ctapipe.io.tableloader import TableLoader
+
+    _, dl1_file = test_file
+
+    with TableLoader(
+        dl1_file, load_dl1_parameters=False,
+        load_true_images=True,
+        load_true_parameters=True
+    ) as table_loader:
+        table = table_loader.read_telescope_events_for_id(tel_id=25)
+        assert "true_image" in table.colnames
+        assert "true_hillas_intensity" in table.colnames
+
+
 def test_read_subarray_events(test_file_dl2):
 
     from ctapipe.io.tableloader import TableLoader

@@ -21,6 +21,7 @@ GEOMETRY_GROUP = "/dl2/event/subarray/geometry"
 TRIGGER_TABLE = "/dl1/event/subarray/trigger"
 SHOWER_TABLE = "/simulation/event/subarray/shower"
 TRUE_IMAGES_GROUP = "/simulation/event/telescope/images"
+TRUE_PARAMETERS_GROUP = "/simulation/event/telescope/parameters"
 
 by_id_RE = re.compile(r"tel_\d+")
 
@@ -77,6 +78,8 @@ class TableLoader(Component):
         False, help="load simulated shower information").tag(config=True)
     load_true_images = traits.Bool(
         False, help="load simulated shower images").tag(config=True)
+    load_true_parameters = traits.Bool(
+        False, help="load image parameters obtained from true images").tag(config=True)
     load_trigger = traits.Bool(
         True, help="load subarray trigger information").tag(config=True)
     load_instrument = traits.Bool(
@@ -328,6 +331,20 @@ class TableLoader(Component):
                 table = join(
                     table,
                     true_images,
+                    keys=["obs_id", "event_id", "tel_id"],
+                    join_type="outer",
+                )
+
+        if self.load_true_parameters:
+            true_parameters = self._read_telescope_table(TRUE_PARAMETERS_GROUP, tel_id)
+            for col in set(true_parameters.colnames) - {"obs_id", "event_id", "tel_id"}:
+                true_parameters.rename_column(col, f"true_{col}")
+            if table is None or len(table) == 0:
+                table = true_parameters
+            else:
+                table = join(
+                    table,
+                    true_parameters,
                     keys=["obs_id", "event_id", "tel_id"],
                     join_type="outer",
                 )
