@@ -56,7 +56,11 @@ def get_structure(h5file):
 
 
 class TableLoader(Component):
-    """ A helper class to load and join tables from a DL1 file"""
+    """ A helper class to load and join tables from an HDF5 file produced with ctapipe-process.
+
+    It is recommended to use the methods 'read_events' for a single table based on telescope IDs and
+    'read_events_by_type' for a dictionary of tables based on telescope types.
+    """
 
     input_url = traits.Path(directory_ok=False, exists=True).tag(config=True)
 
