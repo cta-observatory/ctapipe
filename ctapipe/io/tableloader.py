@@ -9,7 +9,7 @@ import numpy as np
 import tables
 from astropy.table import join, vstack, Table
 
-from ..core import Component, traits
+from ..core import Component, traits, Provenance
 from ..instrument import SubarrayDescription, TelescopeDescription
 from .astropy_helpers import read_table
 
@@ -86,6 +86,8 @@ class TableLoader(Component):
 
         self.subarray = SubarrayDescription.from_hdf(self.input_url)
         self.h5file = tables.open_file(self.input_url, mode="r")
+
+        Provenance().add_input_file(self.input_url, role="Event data")
 
         try:
             self.structure = get_structure(self.h5file)
