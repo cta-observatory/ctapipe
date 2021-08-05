@@ -77,13 +77,13 @@ class ProcessorTool(Tool):
             "don't show a progress bar during event processing",
         ),
         **flag(
-            "recompute_dl1",
+            "recompute-dl1",
             "ProcessorTool.force_recompute_dl1",
             "Enforce DL1 recomputation even if already present in the input file",
             "Only compute DL1 if there are no DL1b parameters in the file",
         ),
         **flag(
-            "recompute_dl2",
+            "recompute-dl2",
             "ProcessorTool.force_recompute_dl2",
             "Enforce DL2 recomputation even if already present in the input file",
             "Only compute DL2 if there is no shower reconstruction in the file",
