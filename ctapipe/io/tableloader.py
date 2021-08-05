@@ -253,12 +253,12 @@ class TableLoader(Component):
         return tables
 
     def read_events_for_type(self, tel_type):
-        """Read telescope-based event information.
+        """Read event information for a single telescope type.
 
         Parameters
         ----------
-        labels: list
-            Any list combination of tel_ids, tel_types, or telescope_descriptions.
+        tel_type: str or ctapipe.instrument.TelescopeDescription
+            Identifier for the telescope describing type, optics and camera.
 
         Returns
         -------
@@ -282,6 +282,18 @@ class TableLoader(Component):
         return table
 
     def read_telescope_events_for_id(self, tel_id):
+        """Read telescope-based event information for a single telescope.
+
+        Parameters
+        ----------
+        tel_id: int
+            Telescope identification number.
+
+        Returns
+        -------
+        table: astropy.io.Table
+            Table with primary column "tel_id".
+        """
 
         if tel_id is None:
             raise ValueError("Please, specify a telescope ID.")
