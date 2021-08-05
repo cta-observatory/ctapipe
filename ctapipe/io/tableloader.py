@@ -64,13 +64,19 @@ class TableLoader(Component):
 
     input_url = traits.Path(directory_ok=False, exists=True).tag(config=True)
 
-    load_dl1_images = traits.Bool(False).tag(config=True)
-    load_dl1_parameters = traits.Bool(True).tag(config=True)
-    load_dl2_geometry = traits.Bool(False).tag(config=True)
-    load_simulated = traits.Bool(False).tag(config=True)
-    load_true_images = traits.Bool(False).tag(config=True)
-    load_trigger = traits.Bool(True).tag(config=True)
-    load_instrument = traits.Bool(False).tag(config=True)
+    load_dl1_images = traits.Bool(False, help="load extracted images").tag(config=True)
+    load_dl1_parameters = traits.Bool(
+        True, help="load reconstructed image parameters").tag(config=True)
+    load_dl2_geometry = traits.Bool(
+        False, help="load reconstructed shower geometry information").tag(config=True)
+    load_simulated = traits.Bool(
+        False, help="load simulated shower information").tag(config=True)
+    load_true_images = traits.Bool(
+        False, help="load simulated shower images").tag(config=True)
+    load_trigger = traits.Bool(
+        True, help="load subarray trigger information").tag(config=True)
+    load_instrument = traits.Bool(
+        False, help="join subarray instrument information to each event").tag(config=True)
 
     def __init__(self, input_url=None, **kwargs):
         # enable using input_url as posarg
