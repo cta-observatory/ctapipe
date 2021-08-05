@@ -31,9 +31,13 @@ def get_tel_ids(
 ) -> List[int]:
     ids = set()
 
+    valid_tel_types = [str(tel_type) for tel_type in subarray.telescope_types]
+
     for telescope in telescopes:
         if isinstance(telescope, int):
             ids.add(telescope)
+        if isinstance(telescope, str) and (telescope not in valid_tel_types):
+            raise ValueError("Invalid telescope type input.")
         ids.update(subarray.get_tel_ids_for_type(telescope))
 
     return sorted(ids)

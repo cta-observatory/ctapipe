@@ -46,6 +46,10 @@ def test_get_tel_ids(test_file):
 
     assert sorted(tel_ids) == sorted(true_tel_ids)
 
+    # test invalid telescope type
+    with pytest.raises(Exception):
+        tel_ids = get_tel_ids(subarray, ["It's a-me, Mario!"])
+
 
 def test_get_structure(test_file):
     from ctapipe.io.tableloader import get_structure
