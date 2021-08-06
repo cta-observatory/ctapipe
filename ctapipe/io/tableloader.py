@@ -3,17 +3,16 @@ Class and functions to read DL1 (a,b) and/or DL2 (a) data from an HDF5 file prod
 """
 
 import re
-from typing import List, Union
 
 import numpy as np
 import tables
 from astropy.table import join, vstack, Table
 
 from ..core import Component, traits, Provenance
-from ..instrument import SubarrayDescription, TelescopeDescription
+from ..instrument import SubarrayDescription
 from .astropy_helpers import read_table
 
-__all__ = ["get_tel_ids", "get_structure", "TableLoader"]
+__all__ = ["get_structure", "TableLoader"]
 
 PARAMETERS_GROUP = "/dl1/event/telescope/parameters"
 IMAGES_GROUP = "/dl1/event/telescope/images"
@@ -24,24 +23,6 @@ TRUE_IMAGES_GROUP = "/simulation/event/telescope/images"
 TRUE_PARAMETERS_GROUP = "/simulation/event/telescope/parameters"
 
 by_id_RE = re.compile(r"tel_\d+")
-
-
-def get_tel_ids(
-    subarray: SubarrayDescription,
-    telescopes: List[Union[int, str, TelescopeDescription]]
-) -> List[int]:
-    ids = set()
-
-    valid_tel_types = [str(tel_type) for tel_type in subarray.telescope_types]
-
-    for telescope in telescopes:
-        if isinstance(telescope, int):
-            ids.add(telescope)
-        if isinstance(telescope, str) and (telescope not in valid_tel_types):
-            raise ValueError("Invalid telescope type input.")
-        ids.update(subarray.get_tel_ids_for_type(telescope))
-
-    return sorted(ids)
 
 
 def get_structure(h5file):
@@ -71,19 +52,26 @@ class TableLoader(Component):
 
     load_dl1_images = traits.Bool(False, help="load extracted images").tag(config=True)
     load_dl1_parameters = traits.Bool(
-        True, help="load reconstructed image parameters").tag(config=True)
+        True, help="load reconstructed image parameters"
+    ).tag(config=True)
     load_dl2_geometry = traits.Bool(
-        False, help="load reconstructed shower geometry information").tag(config=True)
-    load_simulated = traits.Bool(
-        False, help="load simulated shower information").tag(config=True)
-    load_true_images = traits.Bool(
-        False, help="load simulated shower images").tag(config=True)
+        False, help="load reconstructed shower geometry information"
+    ).tag(config=True)
+    load_simulated = traits.Bool(False, help="load simulated shower information").tag(
+        config=True
+    )
+    load_true_images = traits.Bool(False, help="load simulated shower images").tag(
+        config=True
+    )
     load_true_parameters = traits.Bool(
-        False, help="load image parameters obtained from true images").tag(config=True)
-    load_trigger = traits.Bool(
-        True, help="load subarray trigger information").tag(config=True)
+        False, help="load image parameters obtained from true images"
+    ).tag(config=True)
+    load_trigger = traits.Bool(True, help="load subarray trigger information").tag(
+        config=True
+    )
     load_instrument = traits.Bool(
-        False, help="join subarray instrument information to each event").tag(config=True)
+        False, help="join subarray instrument information to each event"
+    ).tag(config=True)
 
     def __init__(self, input_url=None, **kwargs):
         # enable using input_url as posarg
@@ -157,7 +145,7 @@ class TableLoader(Component):
                     table,
                     self.shower_table,
                     keys=["obs_id", "event_id"],
-                    join_type="inner"
+                    join_type="inner",
                 )
             else:
                 table = self.shower_table
@@ -197,11 +185,13 @@ class TableLoader(Component):
 
     def read_telescope_events(self, tel_ids):
 
-        table = vstack([self.read_telescope_events_for_id(tel_id) for tel_id in tel_ids])
+        table = vstack(
+            [self.read_telescope_events_for_id(tel_id) for tel_id in tel_ids]
+        )
 
         return table
 
-    def read_events(self, labels=None):
+    def read_events(self, telescopes=None):
         """Read telescope-based event information.
 
         Parameters
@@ -211,14 +201,14 @@ class TableLoader(Component):
 
         Returns
         -------
-        table: astropy.io.Table
+        events: astropy.io.Table
             Table with primary columns "obs_id", "event_id" and "tel_id".
         """
 
-        if labels is None:
+        if telescopes is None:
             tel_ids = self.subarray.tel.keys()
         else:
-            tel_ids = get_tel_ids(self.subarray, labels)
+            tel_ids = self.subarray.get_tel_ids(telescopes)
 
         if any([self.load_dl1_images, self.load_dl1_parameters, self.load_true_images]):
             table = self.read_telescope_events(tel_ids)
@@ -229,12 +219,12 @@ class TableLoader(Component):
 
         return table
 
-    def read_events_by_tel_type(self, labels=None):
+    def read_events_by_tel_type(self, telescopes=None):
         """Read telescope-based event information.
 
         Parameters
         ----------
-        labels: List[Union[int, str, TelescopeDescription]]
+        telescopes: List[Union[int, str, TelescopeDescription]]
             Any list containing a combination of telescope IDs or telescope_descriptions.
 
         Returns
@@ -244,10 +234,10 @@ class TableLoader(Component):
             with primary columns "obs_id", "event_id".
         """
 
-        if labels is None:
+        if telescopes is None:
             tel_ids = self.subarray.tel.keys()
         else:
-            tel_ids = get_tel_ids(self.subarray, labels)
+            tel_ids = self.subarray.get_tel_ids(telescopes)
 
         selected_subarray = self.subarray.select_subarray(tel_ids)
         selected_tel_types = selected_subarray.telescope_types
@@ -273,11 +263,7 @@ class TableLoader(Component):
             Dictionary of tables organized by telescope types
             with primary columns "obs_id", "event_id".
         """
-
-        if tel_type is None:
-            raise ValueError("Please, specify a telescope description.")
-        else:
-            tel_ids = self.subarray.get_tel_ids_for_type(tel_type)
+        tel_ids = self.subarray.get_tel_ids_for_type(tel_type)
 
         if any([self.load_dl1_images, self.load_dl1_parameters, self.load_true_images]):
             table = self.read_telescope_events(tel_ids)
