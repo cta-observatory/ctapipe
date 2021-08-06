@@ -406,7 +406,7 @@ class SubarrayDescription:
         telescopes: List[Union[int, str, TelescopeDescription]]
             List of Telescope IDs and descriptions.
             Supported inputs for telescope descriptions are instances of
-            `TelescopeDescription` as well as their string representation.
+            `~ctapipe.instrument.TelescopeDescription` as well as their string representation.
 
         Returns
         -------
