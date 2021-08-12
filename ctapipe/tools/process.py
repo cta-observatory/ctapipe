@@ -43,12 +43,16 @@ class ProcessorTool(Tool):
     example, see ctapipe/examples/stage1_config.json in the main code repo.
     """
 
-    progress_bar = Bool(help="show progress bar during processing").tag(config=True)
+    progress_bar = Bool(
+        help="show progress bar during processing", default_value=False
+    ).tag(config=True)
     force_recompute_dl1 = Bool(
-        help="Enforce dl1 recomputation even if already present in the input file"
+        help="Enforce dl1 recomputation even if already present in the input file",
+        default_value=False,
     ).tag(config=True)
     force_recompute_dl2 = Bool(
-        help="Enforce dl2 recomputation even if already present in the input file"
+        help="Enforce dl2 recomputation even if already present in the input file",
+        default_value=False,
     ).tag(config=True)
 
     aliases = {

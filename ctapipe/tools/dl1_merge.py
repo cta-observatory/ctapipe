@@ -122,8 +122,12 @@ class MergeTool(Tool):
     skip_broken_files = Bool(
         help="Skip broken files instead of raising an error", default_value=False
     ).tag(config=True)
-    overwrite = Bool(help="Overwrite output file if it exists").tag(config=True)
-    progress_bar = Bool(help="Show progress bar during processing").tag(config=True)
+    overwrite = Bool(
+        help="Overwrite output file if it exists", default_value=False
+    ).tag(config=True)
+    progress_bar = Bool(
+        help="Show progress bar during processing", default_value=False
+    ).tag(config=True)
     file_pattern = Unicode(
         default_value="*.h5", help="Give a specific file pattern for the input files"
     ).tag(config=True)
