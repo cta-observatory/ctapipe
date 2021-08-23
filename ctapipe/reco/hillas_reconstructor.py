@@ -8,7 +8,10 @@ from ctapipe.reco.reco_algorithms import (
     InvalidWidthException,
     TooFewTelescopesException,
 )
-from ctapipe.containers import ReconstructedGeometryContainer
+from ctapipe.containers import (
+    ReconstructedGeometryContainer,
+    CameraHillasParametersContainer,
+)
 from itertools import combinations
 
 from ctapipe.coordinates import (
@@ -351,7 +354,9 @@ class HillasReconstructor(Reconstructor):
 
             focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
 
-            if moments.x.unit.is_equivalent(u.m):  # Image parameters are in CameraFrame
+            if isinstance(
+                moments, CameraHillasParametersContainer
+            ):  # Image parameters are in CameraFrame
 
                 # we just need any point on the main shower axis a bit away from the cog
                 p2_x = moments.x + 0.1 * self._cam_radius_m[camera] * np.cos(
@@ -371,17 +376,19 @@ class HillasReconstructor(Reconstructor):
             else:  # Image parameters are already in TelescopeFrame
 
                 # we just need any point on the main shower axis a bit away from the cog
-                p2_delta_alt = moments.y + 0.1 * self._cam_radius_deg[camera] * np.sin(
-                    moments.psi
-                )
-                p2_delta_az = moments.x + 0.1 * self._cam_radius_deg[camera] * np.cos(
-                    moments.psi
-                )
+                p2_delta_alt = moments.fov_lat + 0.1 * self._cam_radius_deg[
+                    camera
+                ] * np.sin(moments.psi)
+                p2_delta_az = moments.fov_lon + 0.1 * self._cam_radius_deg[
+                    camera
+                ] * np.cos(moments.psi)
 
                 telescope_frame = TelescopeFrame(telescope_pointing=pointing)
 
                 cog_coord = SkyCoord(
-                    fov_lon=moments.x, fov_lat=moments.y, frame=telescope_frame
+                    fov_lon=moments.fov_lon,
+                    fov_lat=moments.fov_lat,
+                    frame=telescope_frame,
                 )
                 p2_coord = SkyCoord(
                     fov_lon=p2_delta_az, fov_lat=p2_delta_alt, frame=telescope_frame

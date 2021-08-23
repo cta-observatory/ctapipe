@@ -16,18 +16,22 @@ from ctapipe.reco.reco_algorithms import (
     InvalidWidthException,
     TooFewTelescopesException,
 )
-from ctapipe.containers import ReconstructedGeometryContainer
+from ctapipe.containers import (
+    ReconstructedGeometryContainer,
+    CameraHillasParametersContainer,
+    HillasParametersContainer,
+)
 from ctapipe.instrument import get_atmosphere_profile_functions
 
 from astropy.coordinates import SkyCoord
 from ctapipe.coordinates import (
     NominalFrame,
     CameraFrame,
+    TelescopeFrame,
     TiltedGroundFrame,
     project_to_ground,
     MissingFrameAttributeWarning,
 )
-import copy
 import warnings
 
 from ctapipe.core import traits
@@ -144,33 +148,49 @@ class HillasIntersection(Reconstructor):
 
         nom_frame = NominalFrame(origin=array_pointing)
 
-        hillas_dict_mod = copy.deepcopy(hillas_dict)
+        hillas_dict_mod = {}
 
-        for tel_id, hillas in hillas_dict_mod.items():
-            # prevent from using rads instead of meters as inputs
-            assert hillas.x.to(u.m).unit == u.Unit("m")
-
-            focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
-
-            camera_frame = CameraFrame(
-                telescope_pointing=telescopes_pointings[tel_id],
-                focal_length=focal_length,
+        for tel_id, hillas in hillas_dict.items():
+            if isinstance(hillas, CameraHillasParametersContainer):
+                focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
+                camera_frame = CameraFrame(
+                    telescope_pointing=telescopes_pointings[tel_id],
+                    focal_length=focal_length,
+                )
+                cog_coords = SkyCoord(x=hillas.x, y=hillas.y, frame=camera_frame)
+                cog_coords_nom = cog_coords.transform_to(nom_frame)
+            else:
+                telescope_frame = TelescopeFrame(
+                    telescope_pointing=telescopes_pointings[tel_id]
+                )
+                cog_coords = SkyCoord(
+                    fov_lon=hillas.fov_lon,
+                    fov_lat=hillas.fov_lat,
+                    frame=telescope_frame,
+                )
+                cog_coords_nom = cog_coords.transform_to(nom_frame)
+            hillas_dict_mod[tel_id] = HillasParametersContainer(
+                fov_lon=cog_coords_nom.fov_lon,
+                fov_lat=cog_coords_nom.fov_lat,
+                psi=hillas.psi,
+                width=hillas.width,
+                length=hillas.length,
+                intensity=hillas.intensity,
             )
-            cog_coords = SkyCoord(x=hillas.x, y=hillas.y, frame=camera_frame)
-            cog_coords_nom = cog_coords.transform_to(nom_frame)
-            hillas.x = cog_coords_nom.fov_lat
-            hillas.y = cog_coords_nom.fov_lon
 
-        src_x, src_y, err_x, err_y = self.reconstruct_nominal(hillas_dict_mod)
+        src_fov_lon, src_fov_lat, err_fov_lon, err_fov_lat = self.reconstruct_nominal(
+            hillas_dict_mod
+        )
         core_x, core_y, core_err_x, core_err_y = self.reconstruct_tilted(
             hillas_dict_mod, tel_x, tel_y
         )
 
-        err_x *= u.rad
-        err_y *= u.rad
+        err_fov_lon *= u.rad
+        err_fov_lat *= u.rad
 
-        nom = SkyCoord(fov_lat=src_x * u.rad, fov_lon=src_y * u.rad, frame=nom_frame)
-        # nom = sky_pos.transform_to(nom_frame)
+        nom = SkyCoord(
+            fov_lon=src_fov_lon * u.rad, fov_lat=src_fov_lat * u.rad, frame=nom_frame
+        )
         sky_pos = nom.transform_to(array_pointing.frame)
         tilt = SkyCoord(x=core_x * u.m, y=core_y * u.m, frame=tilted_frame)
         grd = project_to_ground(tilt)
@@ -185,7 +205,7 @@ class HillasIntersection(Reconstructor):
             90 * u.deg - array_pointing.alt,
         )
 
-        src_error = np.sqrt(err_x ** 2 + err_y ** 2)
+        src_error = np.sqrt(err_fov_lon ** 2 + err_fov_lat ** 2)
 
         result = ReconstructedGeometryContainer(
             alt=sky_pos.altaz.alt.to(u.rad),
@@ -205,7 +225,6 @@ class HillasIntersection(Reconstructor):
             h_max_uncert=u.Quantity(np.nan * x_max.unit),
             goodness_of_fit=np.nan,
         )
-
         return result
 
     def reconstruct_nominal(self, hillas_parameters):
@@ -235,8 +254,8 @@ class HillasIntersection(Reconstructor):
             map(
                 lambda h: [
                     h[0].psi.to_value(u.rad),
-                    h[0].x.to_value(u.rad),
-                    h[0].y.to_value(u.rad),
+                    h[0].fov_lon.to_value(u.rad),
+                    h[0].fov_lat.to_value(u.rad),
                     h[0].intensity,
                 ],
                 hillas_pairs,
@@ -249,8 +268,8 @@ class HillasIntersection(Reconstructor):
             map(
                 lambda h: [
                     h[1].psi.to_value(u.rad),
-                    h[1].x.to_value(u.rad),
-                    h[1].y.to_value(u.rad),
+                    h[1].fov_lon.to_value(u.rad),
+                    h[1].fov_lat.to_value(u.rad),
                     h[1].intensity,
                 ],
                 hillas_pairs,
@@ -392,8 +411,8 @@ class HillasIntersection(Reconstructor):
 
         # Loops over telescopes in event
         for tel in hillas_parameters.keys():
-            cog_x.append(hillas_parameters[tel].x.to_value(u.rad))
-            cog_y.append(hillas_parameters[tel].y.to_value(u.rad))
+            cog_x.append(hillas_parameters[tel].fov_lon.to_value(u.rad))
+            cog_y.append(hillas_parameters[tel].fov_lat.to_value(u.rad))
             amp.append(hillas_parameters[tel].intensity)
 
             tx.append(tel_x[tel].to_value(u.m))

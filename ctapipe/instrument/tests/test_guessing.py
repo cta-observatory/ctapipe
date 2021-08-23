@@ -22,3 +22,22 @@ def test_guessing():
 
     assert guess.camera_name == "FlashCam"
     assert guess.type == "MST"
+
+
+def test_unknown_telescope():
+    from ctapipe.instrument.guess import unknown_telescope
+
+    tel = unknown_telescope(486, 1855)
+    assert tel.type == "LST"
+    assert tel.name == "UNKNOWN-486M2"
+    assert tel.camera_name == "UNKNOWN-1855PX"
+
+    tel = unknown_telescope(10, 2048)
+    assert tel.type == "SST"
+    assert tel.name == "UNKNOWN-10M2"
+    assert tel.camera_name == "UNKNOWN-2048PX"
+
+    tel = unknown_telescope(100 * u.m ** 2, 2048)
+    assert tel.type == "MST"
+    assert tel.name == "UNKNOWN-100M2"
+    assert tel.camera_name == "UNKNOWN-2048PX"

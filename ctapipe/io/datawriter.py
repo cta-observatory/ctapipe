@@ -31,9 +31,17 @@ __all__ = ["DataWriter", "DATA_MODEL_VERSION", "write_reference_metadata_headers
 
 tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many datasets
 
-DATA_MODEL_VERSION = "v1.3.0"
+# define the version of the DL1 data model written here. This should be updated
+# when necessary:
+# - increase the major number if there is a breaking change to the model
+#   (meaning readers need to update scripts)
+# - increase the minor number if new columns or datasets are added
+# - increase the patch number if there is a small bugfix to the model.
+DATA_MODEL_VERSION = "v3.0.0"
 DATA_MODEL_CHANGE_HISTORY = """
-- v1.3.0: reconstructed core uncertainties splitted in their X-Y components
+- v3.0.0: reconstructed core uncertainties splitted in their X-Y components
+- v2.1.0: hillas and timing parameters are per default saved in telescope frame (degree) as opposed to camera frame (m)
+- v2.0.0: Match optics and camera tables using indices instead of names
 - v1.2.0: change to more general data model, including also DL2 (DL1 unchanged)
 - v1.1.0: images and peak_times can be stored as scaled integers
 - v1.0.3: true_image dtype changed from float32 to int32
@@ -47,7 +55,7 @@ def write_reference_metadata_headers(
 ):
     """
     Attaches Core Provenence headers to an output HDF5 file.
-    Right now this is hard-coded for use with the ctapipe-stage1-process tool
+    Right now this is hard-coded for use with the ctapipe-process tool
 
     Parameters
     ----------
@@ -313,11 +321,16 @@ class DataWriter(Component):
         PROV.add_output_file(str(self.output_path), role="DL1/Event")
 
         # check that options make sense
-        if self.write_parameters is False and self.write_images is False:
+        if (
+            self.write_parameters is False
+            and self.write_images is False
+            and self.write_mono_shower is False
+            and self.write_stereo_shower is False
+        ):
             raise ToolConfigurationError(
-                "The options 'write_parameters' and 'write_images' are "
-                "both set to False. No output will be generated in that case. "
-                "Please enable one or both of these options."
+                "The options 'write_parameters',  'write_images', 'write_mono_shower', "
+                "and 'write_stereo_shower are all False. No output will be generated in "
+                "that case. Please enable one of these options."
             )
 
     def _setup_writer(self):

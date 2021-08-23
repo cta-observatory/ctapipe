@@ -8,6 +8,8 @@
         "overwrite": false,
         "write_images": true,
         "write_parameters": true,
+        "write_stereo_shower": false,
+        "write_mono_shower": false,
         "transform_image": true,
         "transform_peak_time": true
     },
@@ -17,7 +19,7 @@
     "ImageProcessor": {
         "image_cleaner_type": "TailcutsImageCleaner",
         "TailcutsImageCleaner": {
-            "picture_threshold_pe":  [
+            "picture_threshold_pe": [
                 ["type", "*", 10.0],
                 ["type", "LST_LST_LSTCam", 5.0],
                 ["type", "MST_MST_NectarCam", 5.0],
@@ -29,14 +31,21 @@
                 ["type", "MST_MST_NectarCam", 2.5],
                 ["type", "SST_ASTRI_CHEC", 1.5]
             ],
-            "min_picture_neighbors":[
-                ["type", "*", 2]
-            ]
+            "min_picture_neighbors": [["type", "*", 2]]
         },
         "ImageQualityQuery": {
             "quality_criteria": [
                 ["enough_pixels", "lambda im: np.count_nonzero(im) > 2"],
                 ["enough_charge", "lambda im: im.sum() > 50"]
+            ]
+        }
+    },
+    "ShowerProcessor": {
+        "ShowerQualityQuery": {
+            "quality_criteria": [
+                ["enough intensity", "lambda p: p.hillas.intensity > 50"],
+                ["Positive width", "lambda p: p.hillas.width.value > 0"],
+                ["enough pixels", "lambda p: p.morphology.num_pixels > 3"]
             ]
         }
     }
