@@ -25,21 +25,23 @@ class EventSeeker(Component):
     filled with the event information using the methods defined in the
     event_source for that file format.
 
-    To obtain a particular event in a hessio file:
+    To obtain a particular event in a simtel file:
 
     >>> from ctapipe.io import SimTelEventSource
-    >>> event_source = SimTelEventSource(input_url="/path/to/file")
+    >>> event_source = SimTelEventSource(input_url="dataset://gamma_test_large.simtel.gz")
     >>> seeker = EventSeeker(event_source=event_source)
     >>> event = seeker.get_event_index(2)
     >>> print(event.count)
+    2
 
-    To obtain a particular event in a hessio file from its event_id:
+    To obtain a particular event in a simtel file from its event_id:
 
     >>> from ctapipe.io import SimTelEventSource
-    >>> event_source = SimTelEventSource(input_url="/path/to/file")
+    >>> event_source = SimTelEventSource(input_url="dataset://gamma_test_large.simtel.gz", back_seekable=True)
     >>> seeker = EventSeeker(event_source=event_source)
-    >>> event = seeker.get_event_id(101)
+    >>> event = seeker.get_event_id(31007)
     >>> print(event.count)
+    1
 
     **NOTE**: Event_index refers to the number associated to the event
     assigned by ctapipe (``event.count``), based on the order the events are

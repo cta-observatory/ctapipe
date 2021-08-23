@@ -1,9 +1,9 @@
 """ Tests for SubarrayDescriptions """
-import tempfile
 import numpy as np
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 from ctapipe.coordinates import TelescopeFrame
+from copy import deepcopy
 
 from ctapipe.instrument import (
     CameraDescription,
@@ -110,37 +110,39 @@ def test_get_tel_ids_for_type(example_subarray):
         assert len(sub.get_tel_ids_for_type(str(teltype))) > 0
 
 
-def test_hdf(example_subarray):
+def test_hdf(example_subarray, tmp_path):
     import tables
 
-    with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
+    path = tmp_path / "subarray.h5"
 
-        example_subarray.to_hdf(f.name)
-        read = SubarrayDescription.from_hdf(f.name)
+    example_subarray.to_hdf(path)
+    read = SubarrayDescription.from_hdf(path)
 
-        assert example_subarray == read
+    assert example_subarray == read
 
-        # test we can write the read subarray
-        read.to_hdf(f.name, overwrite=True)
+    # test we can write the read subarray
+    read.to_hdf(path, overwrite=True)
 
-        for tel_id, tel in read.tel.items():
-            assert (
-                tel.camera.geometry.frame.focal_length
-                == tel.optics.equivalent_focal_length
-            )
+    # test we have a frame attached to the geometry with correction information
+    for tel_id, tel in read.tel.items():
+        assert (
+            tel.camera.geometry.frame.focal_length == tel.optics.equivalent_focal_length
+        )
+        # test if transforming works
+        tel.camera.geometry.transform_to(TelescopeFrame())
 
-            # test if transforming works
-            tel.camera.geometry.transform_to(TelescopeFrame())
+    # test that subarrays without name (v0.8.0) work:
+    with tables.open_file(path, "r+") as hdf:
+        del hdf.root.configuration.instrument.subarray._v_attrs.name
 
-        # test that subarrays without name (v0.8.0) work:
-        with tables.open_file(f.name, "r+") as hdf:
-            del hdf.root.configuration.instrument.subarray._v_attrs.name
+    no_name = SubarrayDescription.from_hdf(path)
+    assert no_name.name == "Unknown"
 
-        no_name = SubarrayDescription.from_hdf(f.name)
-        assert no_name.name == "Unknown"
 
-    # test with a subarray that has two different telescopes with the same
-    # camera
+def test_hdf_same_camera(tmp_path):
+    """Test writing / reading subarray to hdf5 with a subarray that has two
+    different telescopes with the same camera
+    """
     tel = {
         1: TelescopeDescription.from_name(optics_name="SST-ASTRI", camera_name="CHEC"),
         2: TelescopeDescription.from_name(optics_name="SST-GCT", camera_name="CHEC"),
@@ -149,9 +151,40 @@ def test_hdf(example_subarray):
 
     array = SubarrayDescription("test array", tel_positions=pos, tel_descriptions=tel)
 
-    with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
+    path = tmp_path / "subarray.h5"
+    array.to_hdf(path)
+    read = SubarrayDescription.from_hdf(path)
+    assert array == read
 
-        array.to_hdf(f.name)
-        read = SubarrayDescription.from_hdf(f.name)
 
-        assert array == read
+def test_hdf_duplicate_string_repr(tmp_path):
+    """Test writing and reading of a subarray with two telescopes that
+    are different but have the same name.
+    """
+    # test with a subarray that has two different telescopes with the same
+    # camera
+    tel1 = TelescopeDescription.from_name(optics_name="LST", camera_name="LSTCam")
+
+    # second telescope is almost the same and as the same str repr
+    tel2 = deepcopy(tel1)
+    # e.g. one mirror fell off
+    tel2.optics.num_mirror_tiles = tel1.optics.num_mirror_tiles - 1
+
+    array = SubarrayDescription(
+        "test array",
+        tel_positions={1: [0, 0, 0] * u.m, 2: [50, 0, 0] * u.m},
+        tel_descriptions={1: tel1, 2: tel2},
+    )
+
+    # defensive checks to make sure we are actually testing this
+    assert len(array.telescope_types) == 2
+    assert str(tel1) == str(tel2)
+    assert tel1 != tel2
+
+    path = tmp_path / "subarray.h5"
+    array.to_hdf(path)
+    read = SubarrayDescription.from_hdf(path)
+    assert array == read
+    assert (
+        read.tel[1].optics.num_mirror_tiles == read.tel[2].optics.num_mirror_tiles + 1
+    )

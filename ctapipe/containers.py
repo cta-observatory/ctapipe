@@ -25,6 +25,7 @@ __all__ = [
     "EventType",
     "FlatFieldContainer",
     "HillasParametersContainer",
+    "CoreParametersContainer",
     "ImageParametersContainer",
     "LeakageContainer",
     "MonitoringCameraContainer",
@@ -34,6 +35,9 @@ __all__ = [
     "MuonParametersContainer",
     "MuonCollectionContainer",
     "MuonRingContainer",
+    "BaseHillasParametersContainer",
+    "CameraHillasParametersContainer",
+    "CameraTimingParametersContainer",
     "ParticleClassificationContainer",
     "PedestalContainer",
     "PixelStatusContainer",
@@ -49,6 +53,7 @@ __all__ = [
     "SimulatedShowerDistribution",
     "SimulationConfigContainer",
     "TelEventIndexContainer",
+    "BaseTimingParametersContainer",
     "TimingParametersContainer",
     "TriggerContainer",
     "WaveformCalibrationContainer",
@@ -110,11 +115,25 @@ class TelEventIndexContainer(Container):
     tel_id = Field(0, "telescope identifier")
 
 
-class HillasParametersContainer(Container):
-    container_prefix = "hillas"
+class BaseHillasParametersContainer(Container):
+    """
+    Base container for hillas parameters to
+    allow the CameraHillasParametersContainer to
+    be assigned to an ImageParametersContainer as well.
+    """
 
     intensity = Field(nan, "total intensity (size)")
+    skewness = Field(nan, "measure of the asymmetry")
+    kurtosis = Field(nan, "measure of the tailedness")
 
+
+class CameraHillasParametersContainer(BaseHillasParametersContainer):
+    """
+    Hillas Parameters in the camera frame. The cog position
+    is given in meter from the camera center.
+    """
+
+    container_prefix = "camera_frame_hillas"
     x = Field(nan * u.m, "centroid x coordinate", unit=u.m)
     y = Field(nan * u.m, "centroid x coordinate", unit=u.m)
     r = Field(nan * u.m, "radial coordinate of centroid", unit=u.m)
@@ -126,8 +145,33 @@ class HillasParametersContainer(Container):
     width_uncertainty = Field(nan * u.m, "uncertainty of width", unit=u.m)
     psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
 
-    skewness = Field(nan, "measure of the asymmetry")
-    kurtosis = Field(nan, "measure of the tailedness")
+
+class HillasParametersContainer(BaseHillasParametersContainer):
+    """
+    Hillas Parameters in a spherical system centered on the pointing position
+    (TelescopeFrame). The cog position is given as offset in
+    longitude and latitude in degree.
+    """
+
+    container_prefix = "hillas"
+    fov_lon = Field(
+        nan * u.deg,
+        "longitude angle in a spherical system centered on the pointing position",
+        unit=u.deg,
+    )
+    fov_lat = Field(
+        nan * u.deg,
+        "latitude angle in a spherical system centered on the pointing position",
+        unit=u.deg,
+    )
+    r = Field(nan * u.deg, "radial coordinate of centroid", unit=u.deg)
+    phi = Field(nan * u.deg, "polar coordinate of centroid", unit=u.deg)
+
+    length = Field(nan * u.deg, "standard deviation along the major-axis", unit=u.deg)
+    length_uncertainty = Field(nan * u.deg, "uncertainty of length", unit=u.deg)
+    width = Field(nan * u.deg, "standard spread along the minor-axis", unit=u.deg)
+    width_uncertainty = Field(nan * u.deg, "uncertainty of width", unit=u.deg)
+    psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
 
 
 class LeakageContainer(Container):
@@ -170,21 +214,43 @@ class ConcentrationContainer(Container):
     pixel = Field(nan, "Percentage of photo-electrons in the brightest pixel")
 
 
-class TimingParametersContainer(Container):
+class BaseTimingParametersContainer(Container):
     """
-    Slope and Intercept of a linear regression of the arrival times
-    along the shower main axis
+    Base container for timing parameters to
+    allow the CameraTimingParametersContainer to
+    be assigned to an ImageParametersContainer as well.
     """
 
-    container_prefix = "timing"
-    slope = Field(
-        nan / u.m, "Slope of arrival times along main shower axis", unit=1 / u.m
-    )
     intercept = Field(nan, "intercept of arrival times along main shower axis")
     deviation = Field(
         nan,
         "Root-mean-square deviation of the pulse times "
         "with respect to the predicted time",
+    )
+
+
+class CameraTimingParametersContainer(BaseTimingParametersContainer):
+    """
+    Slope and Intercept of a linear regression of the arrival times
+    along the shower main axis in the camera frame.
+    """
+
+    container_prefix = "camera_frame_timing"
+    slope = Field(
+        nan / u.m, "Slope of arrival times along main shower axis", unit=1 / u.m
+    )
+
+
+class TimingParametersContainer(BaseTimingParametersContainer):
+    """
+    Slope and Intercept of a linear regression of the arrival times
+    along the shower main axis in a
+    spherical system centered on the pointing position (TelescopeFrame)
+    """
+
+    container_prefix = "timing"
+    slope = Field(
+        nan / u.deg, "Slope of arrival times along main shower axis", unit=1 / u.deg
     )
 
 
@@ -217,12 +283,27 @@ class PeakTimeStatisticsContainer(StatisticsContainer):
     container_prefix = "peak_time"
 
 
+class CoreParametersContainer(Container):
+    """Telescope-wise shower's direction in the Tilted/Ground Frame"""
+
+    container_prefix = "core"
+    psi = Field(nan * u.deg, "Image direction in the Tilted/Ground Frame", unit="deg")
+
+
 class ImageParametersContainer(Container):
     """ Collection of image parameters """
 
     container_prefix = "params"
-    hillas = Field(HillasParametersContainer(), "Hillas Parameters")
-    timing = Field(TimingParametersContainer(), "Timing Parameters")
+    hillas = Field(
+        HillasParametersContainer(),
+        "Hillas Parameters",
+        type=BaseHillasParametersContainer,
+    )
+    timing = Field(
+        TimingParametersContainer(),
+        "Timing Parameters",
+        type=BaseTimingParametersContainer,
+    )
     leakage = Field(LeakageContainer(), "Leakage Parameters")
     concentration = Field(ConcentrationContainer(), "Concentration Parameters")
     morphology = Field(MorphologyContainer(), "Image Morphology Parameters")
@@ -231,6 +312,9 @@ class ImageParametersContainer(Container):
     )
     peak_time_statistics = Field(
         PeakTimeStatisticsContainer(), "Peak time image statistics"
+    )
+    core = Field(
+        CoreParametersContainer(), "Image direction in the Tilted/Ground Frame"
     )
 
 
@@ -297,7 +381,6 @@ class DL1CameraContainer(Container):
         dtype=np.float32,
         ndim=1,
     )
-
     image_mask = Field(
         None,
         "Boolean numpy array where True means the pixel has passed cleaning."
@@ -305,7 +388,6 @@ class DL1CameraContainer(Container):
         dtype=np.bool_,
         ndim=1,
     )
-
     parameters = Field(None, "Image parameters", type=ImageParametersContainer)
 
     muon_parameters = Field(None, "Muon image parameters", type=MuonCollectionContainer)

@@ -1,34 +1,44 @@
 """
 Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
 """
+# pylint: disable=W0201
 import sys
+from tqdm.auto import tqdm
 
-from tqdm.autonotebook import tqdm
-
-from ..calib.camera import CameraCalibrator, GainSelector
-from ..core import Tool
+from ..calib import CameraCalibrator, GainSelector
+from ..core import QualityQuery, Tool
 from ..core.traits import Bool, classes_with_traits, flag
 from ..image import ImageCleaner, ImageProcessor
 from ..image.extractor import ImageExtractor
 from ..image.muon.muon_processor import MuonProcessor
 from ..io import DataLevel, DataWriter, EventSource, SimTelEventSource
 from ..io.datawriter import DATA_MODEL_VERSION
+from ..reco import ShowerProcessor
+
+COMPATIBLE_DATALEVELS = [
+    DataLevel.R1,
+    DataLevel.DL0,
+    DataLevel.DL1_IMAGES,
+    DataLevel.DL1_PARAMETERS,
+]
 
 
-class Stage1Tool(Tool):
+class ProcessorTool(Tool):
     """
     Process data from lower-data levels up to DL1, including both image
     extraction and optinally image parameterization
     """
 
-    name = "ctapipe-stage1"
-    description = __doc__ + f" This currently writes {DATA_MODEL_VERSION} DL1 data"
+    name = "ctapipe-process"
+    description = (
+        __doc__ + f" This currently uses data model version {DATA_MODEL_VERSION}"
+    )
     examples = """
     To process data with all default values:
-    > ctapipe-stage1 --input events.simtel.gz --output events.dl1.h5 --progress
+    > ctapipe-process --input events.simtel.gz --output events.dl1.h5 --progress
 
     Or use an external configuration file, where you can specify all options:
-    > ctapipe-stage1 --config stage1_config.json --progress
+    > ctapipe-process --config stage1_config.json --progress
 
     The config file should be in JSON or python format (see traitlets docs). For an
     example, see ctapipe/examples/stage1_config.json in the main code repo.
@@ -57,7 +67,7 @@ class Stage1Tool(Tool):
         ),
         **flag(
             "progress",
-            "Stage1Tool.progress_bar",
+            "ProcessorTool.progress_bar",
             "show a progress bar during event processing",
             "don't show a progress bar during event processing",
         ),
@@ -74,10 +84,21 @@ class Stage1Tool(Tool):
             "don't store DL1/Event/Telescope parameters in output",
         ),
         **flag(
+            "write-stereo-shower",
+            "DataWriter.write_stereo_shower",
+            "store DL2/Event/Subarray parameters in output",
+            "don't DL2/Event/Subarray parameters in output",
+        ),
+        **flag(
+            "write-mono-shower",
+            "DataWriter.write_mono_shower",
+            "store DL2/Event/Telescope parameters in output",
+            "don't store DL2/Event/Telescope parameters in output",
+        ),
+        **flag(
             "write-index-tables",
             "DataWriter.write_index_tables",
             "generate PyTables index tables for the parameter and image datasets",
-            "don't generate PyTables index tables for the parameter and image datasets",
         ),
         **flag(
             "write-muons",
@@ -88,23 +109,25 @@ class Stage1Tool(Tool):
     }
 
     classes = (
-        [CameraCalibrator, DataWriter, ImageProcessor, MuonProcessor]
+        [CameraCalibrator, DataWriter, ImageProcessor, ShowerProcessor, MuonProcessor]
         + classes_with_traits(EventSource)
         + classes_with_traits(ImageCleaner)
         + classes_with_traits(ImageExtractor)
         + classes_with_traits(GainSelector)
+        + classes_with_traits(QualityQuery)
     )
 
     def setup(self):
 
         # setup components:
         self.event_source = EventSource(parent=self)
-        compatible_datalevels = [DataLevel.R1, DataLevel.DL0, DataLevel.DL1_IMAGES]
-        if not self.event_source.has_any_datalevel(compatible_datalevels):
+        if not self.event_source.has_any_datalevel(COMPATIBLE_DATALEVELS):
             self.log.critical(
-                f"{self.name} needs the EventSource to provide "
-                f"either R1 or DL0 or DL1A data"
-                f", {self.event_source} provides only {self.event_source.datalevels}"
+                "%s  needs the EventSource to provide either R1 or DL0 or DL1A data"
+                ", %s provides only %s",
+                self.name,
+                self.event_source,
+                self.event_source.datalevels,
             )
             sys.exit(1)
 
@@ -112,11 +135,12 @@ class Stage1Tool(Tool):
             parent=self, subarray=self.event_source.subarray
         )
         self.process_images = ImageProcessor(
-            subarray=self.event_source.subarray,
-            is_simulation=self.event_source.is_simulation,
-            parent=self,
+            subarray=self.event_source.subarray, parent=self
         )
-        self.write_dl1 = DataWriter(event_source=self.event_source, parent=self)
+        self.process_shower = ShowerProcessor(
+            subarray=self.event_source.subarray, parent=self
+        )
+        self.write = DataWriter(event_source=self.event_source, parent=self)
 
         # warn if max_events prevents writing the histograms
         if (
@@ -134,19 +158,46 @@ class Stage1Tool(Tool):
             subarray=self.event_source.subarray, parent=self
         )
 
+    @property
+    def should_compute_dl2(self):
+        """ returns true if we should compute DL2 info """
+        return self.write.write_stereo_shower or self.write.write_mono_shower
+
+    @property
+    def should_compute_dl1(self):
+        """returns true if we should compute DL1 info"""
+        if DataLevel.DL1_PARAMETERS in self.event_source.datalevels:
+            return False
+
+        return self.write.write_parameters or self.should_compute_dl2
+
     def _write_processing_statistics(self):
         """write out the event selection stats, etc."""
         # NOTE: don't remove this, not part of DataWriter
-        image_stats = self.process_images.check_image.to_table(functions=True)
-        image_stats.write(
-            self.write_dl1.output_path,
-            path="/dl1/service/image_statistics",
-            append=True,
-            serialize_meta=True,
-        )
+
+        if self.should_compute_dl1:
+            image_stats = self.process_images.check_image.to_table(functions=True)
+            image_stats.write(
+                self.write.output_path,
+                path="/dl1/service/image_statistics",
+                append=True,
+                serialize_meta=True,
+            )
+
+        if self.should_compute_dl2:
+            shower_stats = self.process_shower.check_shower.to_table(functions=True)
+            shower_stats.write(
+                self.write.output_path,
+                path="/dl2/service/image_statistics",
+                append=True,
+                serialize_meta=True,
+            )
 
     def start(self):
+        self.log.info("(re)compute DL1: %s", self.should_compute_dl1)
+        self.log.info("(re)compute DL2: %s", self.should_compute_dl2)
         self.event_source.subarray.info(printer=self.log.info)
+
         for event in tqdm(
             self.event_source,
             desc=self.event_source.__class__.__name__,
@@ -155,25 +206,31 @@ class Stage1Tool(Tool):
             disable=not self.progress_bar,
         ):
 
-            self.log.log(9, "Processessing event_id=%s", event.index.event_id)
+            self.log.debug("Processessing event_id=%s", event.index.event_id)
             self.calibrate(event)
-            if self.write_dl1.write_parameters:
+
+            if self.should_compute_dl1:
                 self.process_images(event)
 
-            if self.write_dl1.write_muons:
+            if self.write.write_muons:
                 self.process_muon(event)
 
-            self.write_dl1(event)
+            self.write(event)
+
+            if self.should_compute_dl2:
+                self.process_shower(event)
+
+            self.write(event)
 
     def finish(self):
-        self.write_dl1.write_simulation_histograms(self.event_source)
-        self.write_dl1.finish()
+        self.write.write_simulation_histograms(self.event_source)
+        self.write.finish()
         self._write_processing_statistics()
 
 
 def main():
-    """run the tool"""
-    tool = Stage1Tool()
+    """ run the tool"""
+    tool = ProcessorTool()
     tool.run()
 
 

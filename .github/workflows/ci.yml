@@ -20,6 +20,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: cache test data
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/ctapipe
+          key: ctapipe-test-data
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
@@ -33,7 +40,7 @@ jobs:
           source .github/install.sh
           python --version
           pip install codecov pytest-cov pyflakes pytest-xdist
-          pip install -e .[all]
+          pip install .[all]
           pip freeze
 
       - name: Static codechecks
@@ -46,7 +53,7 @@ jobs:
         # need to use a login shell for the conda setup to work
         shell: bash -leo pipefail {0}
         run: |
-          pytest --cov --cov-report=xml -n auto --dist loadscope
+          pytest -n auto --dist loadscope --cov --cov-report=xml --doctest-modules --doctest-glob='*.rst' ctapipe docs
           ctapipe-info --version
 
       - uses: codecov/codecov-action@v1

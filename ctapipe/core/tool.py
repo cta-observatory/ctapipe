@@ -122,6 +122,8 @@ class Tool(Application):
     config_file = Path(
         exists=True,
         directory_ok=False,
+        allow_none=True,
+        default_value=None,
         help=(
             "name of a configuration file with "
             "parameters to load in addition to "
@@ -131,7 +133,11 @@ class Tool(Application):
 
     log_config = Dict(default_value=DEFAULT_LOGGING).tag(config=True)
     log_file = Path(
-        default_value=None, exists=None, directory_ok=False, help="Filename for the log"
+        default_value=None,
+        exists=None,
+        directory_ok=False,
+        help="Filename for the log",
+        allow_none=True,
     ).tag(config=True)
     log_file_level = Enum(
         values=Application.log_level.values,
@@ -353,6 +359,11 @@ class Tool(Application):
             "<table>",
         ]
         for key, val in self.get_current_config()[name].items():
+            # after running setup, also the subcomponents are in the current config
+            # which are not in traits
+            if key not in traits:
+                continue
+
             default = traits[key].default_value
             thehelp = f"{traits[key].help} (default: {default})"
             lines.append(f"<tr><th>{key}</th>")
@@ -361,6 +372,7 @@ class Tool(Application):
             else:
                 lines.append(f"<td>{val}</td>")
             lines.append(f'<td style="text-align:left"><i>{thehelp}</i></td></tr>')
+
         lines.append("</table>")
         lines.append("<p><i>Components:</i>")
         lines.append(", ".join([x.__name__ for x in self.classes]))

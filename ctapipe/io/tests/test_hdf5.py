@@ -70,7 +70,7 @@ def test_append_container(tmp_path):
 def test_read_multiple_containers(tmp_path):
     path = tmp_path / "test_append.h5"
     hillas_parameter_container = HillasParametersContainer(
-        x=1 * u.m, y=1 * u.m, length=1 * u.m, width=1 * u.m
+        fov_lon=1 * u.deg, fov_lat=1 * u.deg, length=1 * u.deg, width=1 * u.deg
     )
 
     leakage_container = LeakageContainer(
@@ -83,7 +83,7 @@ def test_read_multiple_containers(tmp_path):
         writer.write("params", [hillas_parameter_container, leakage_container])
 
     df = pd.read_hdf(path, key="/dl1/params")
-    assert "hillas_x" in df.columns
+    assert "hillas_fov_lon" in df.columns
     assert "leakage_pixels_width_1" in df.columns
 
     # test reading both containers separately
@@ -129,7 +129,7 @@ def test_read_without_prefixes(tmp_path):
     path = tmp_path / "test.h5"
 
     hillas_parameter_container = HillasParametersContainer(
-        x=1 * u.m, y=1 * u.m, length=1 * u.m, width=1 * u.m
+        fov_lon=1 * u.deg, fov_lat=1 * u.deg, length=1 * u.deg, width=1 * u.deg
     )
 
     leakage_container = LeakageContainer(
@@ -143,7 +143,7 @@ def test_read_without_prefixes(tmp_path):
         writer.write("params", [hillas_parameter_container, leakage_container])
 
     df = pd.read_hdf(path, key="/dl1/params")
-    assert "x" in df.columns
+    assert "fov_lon" in df.columns
     assert "pixels_width_1" in df.columns
 
     # call with prefixes=False
@@ -189,18 +189,26 @@ def test_read_duplicated_container_types(tmp_path):
     path = tmp_path / "test.h5"
 
     hillas_config_1 = HillasParametersContainer(
-        x=1 * u.m, y=2 * u.m, length=3 * u.m, width=4 * u.m, prefix="hillas_1"
+        fov_lon=1 * u.deg,
+        fov_lat=2 * u.deg,
+        length=3 * u.deg,
+        width=4 * u.deg,
+        prefix="hillas_1",
     )
     hillas_config_2 = HillasParametersContainer(
-        x=2 * u.m, y=3 * u.m, length=4 * u.m, width=5 * u.m, prefix="hillas_2"
+        fov_lon=2 * u.deg,
+        fov_lat=3 * u.deg,
+        length=4 * u.deg,
+        width=5 * u.deg,
+        prefix="hillas_2",
     )
 
     with HDF5TableWriter(path, group_name="dl1", add_prefix=True) as writer:
         writer.write("params", [hillas_config_1, hillas_config_2])
 
     df = pd.read_hdf(path, key="/dl1/params")
-    assert "hillas_1_x" in df.columns
-    assert "hillas_2_x" in df.columns
+    assert "hillas_1_fov_lon" in df.columns
+    assert "hillas_2_fov_lon" in df.columns
 
     with HDF5TableReader(path) as reader:
         generator = reader.read(
@@ -225,7 +233,7 @@ def test_custom_prefix(tmp_path):
     path = tmp_path / "test.h5"
 
     container = HillasParametersContainer(
-        x=1 * u.m, y=1 * u.m, length=1 * u.m, width=1 * u.m
+        fov_lon=1 * u.deg, fov_lat=1 * u.deg, length=1 * u.deg, width=1 * u.deg
     )
     container.prefix = "custom"
     with HDF5TableWriter(path, group_name="dl1", add_prefix=True) as writer:

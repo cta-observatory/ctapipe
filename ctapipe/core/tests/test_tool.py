@@ -74,33 +74,49 @@ def test_provenance_log_help(tmpdir):
 def test_export_config_to_yaml():
     """ test that we can export a Tool's config to YAML"""
     import yaml
-    from ctapipe.tools.stage1 import Stage1Tool
+    from ctapipe.tools.process import ProcessorTool
 
-    tool = Stage1Tool()
+    tool = ProcessorTool()
     tool.progress_bar = True
     yaml_string = export_tool_config_to_commented_yaml(tool)
 
     # check round-trip back from yaml:
     config_dict = yaml.load(yaml_string, Loader=yaml.SafeLoader)
 
-    assert config_dict["Stage1Tool"]["progress_bar"] is True
+    assert config_dict["ProcessorTool"]["progress_bar"] is True
 
 
-def test_tool_html_rep():
+def test_tool_html_rep(tmp_path):
     """ check that the HTML rep for Jupyter notebooks works"""
 
     class MyTool(Tool):
         description = "test"
         userparam = Float(5.0, help="parameter").tag(config=True)
 
+    tool = MyTool()
+    assert len(tool._repr_html_()) > 0
+
+    class MyComponent(Component):
+        val = Float(1.0, help="val").tag(config=True)
+
     class MyTool2(Tool):
         """ A docstring description"""
 
         userparam = Float(5.0, help="parameter").tag(config=True)
 
-    tool = MyTool()
+        classes = [MyComponent]
+
+        def setup(self):
+            self.comp = MyComponent(parent=self)
+
+        def start(self):
+            pass
+
     tool2 = MyTool2()
-    assert len(tool._repr_html_()) > 0
+    assert len(tool2._repr_html_()) > 0
+
+    # make sure html repr works also after tool was run
+    assert run_tool(tool2, argv=[], cwd=tmp_path) == 0
     assert len(tool2._repr_html_()) > 0
 
 

@@ -22,7 +22,7 @@ def dl1_muon_file():
     DL1 file containing only images from a muon simulation set.
     """
     command = (
-        "ctapipe-stage1 "
+        "ctapipe-process "
         f"--input {LST_MUONS} "
         f"--output {tmp_dir.name}/muons.dl1.h5 "
         "--write-images"
@@ -32,12 +32,12 @@ def dl1_muon_file():
 
 
 def test_muon_reconstruction(tmpdir, dl1_muon_file):
-    from ctapipe.tools.stage1 import Stage1Tool
+    from ctapipe.tools.process import ProcessorTool
 
     muon_simtel_output_file = tmp_dir.name + "/muon_reco_on_simtel.h5"
     assert (
         run_tool(
-            Stage1Tool(),
+            ProcessorTool(),
             argv=[
                 f"--input={LST_MUONS}",
                 f"--output={muon_simtel_output_file}",
@@ -57,7 +57,7 @@ def test_muon_reconstruction(tmpdir, dl1_muon_file):
     muon_dl1_output_file = tmp_dir.name + "/muon_reco_on_dl1a.h5"
     assert (
         run_tool(
-            Stage1Tool(),
+            ProcessorTool(),
             argv=[
                 f"--input={dl1_muon_file}",
                 f"--output={muon_dl1_output_file}",
@@ -74,4 +74,4 @@ def test_muon_reconstruction(tmpdir, dl1_muon_file):
         assert len(table) > 20
         assert np.count_nonzero(np.isnan(table["muonring_radius"])) == 0
 
-    assert run_tool(Stage1Tool(), ["--help-all"]) == 0
+    assert run_tool(ProcessorTool(), ["--help-all"]) == 0

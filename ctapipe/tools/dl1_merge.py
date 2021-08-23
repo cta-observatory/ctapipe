@@ -1,5 +1,5 @@
 """
-Merge DL1-files from stage1-process tool
+Merge DL1-files from ctapipe-process tool
 """
 import sys
 import os
@@ -92,9 +92,18 @@ class MergeTool(Tool):
     If no pattern is given, all .h5 files of the given directory will be taken as input.
     """
     input_dir = traits.Path(
-        help="Input dl1-directory", exists=True, directory_ok=True, file_ok=False
+        help="Input dl1-directory",
+        default_value=None,
+        allow_none=True,
+        exists=True,
+        directory_ok=True,
+        file_ok=False,
     ).tag(config=True)
-    input_files = List(default_value=[], help="Input dl1-files").tag(config=True)
+    input_files = List(
+        traits.Path(exists=True, directory_ok=False),
+        default_value=[],
+        help="Input dl1-files",
+    ).tag(config=True)
     output_path = traits.Path(
         help="Merged-DL1 output filename", directory_ok=False
     ).tag(config=True)
