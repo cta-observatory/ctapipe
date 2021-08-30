@@ -65,7 +65,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: 3.8
@@ -79,7 +79,7 @@ jobs:
           python -c 'import ctapipe; print(ctapipe.__version__)'
 
       - name: Build docs
-        run: make doc
+        run: make doc SPHINXOPTS="-W --keep-going -n --color -j auto"
 
       - name: Deploy to gihub pages
         # only run on push to master
