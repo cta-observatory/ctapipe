@@ -79,9 +79,7 @@ jobs:
           python -c 'import ctapipe; print(ctapipe.__version__)'
 
       - name: Build docs
-        run: |
-          # treat warnings as errors, make sure links are working
-          make html SPHINXOPTS="-W --keep-going -n --color -w /tmp/sphinx-log"
+        run: make doc
 
       - name: Deploy to gihub pages
         # only run on push to master
