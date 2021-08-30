@@ -28,7 +28,8 @@ from collections import OrderedDict
 
 from astropy.time import Time
 from tables import NaturalNameWarning
-from traitlets import Enum, HasTraits, Instance, List, Unicode, default
+from traitlets import Enum, Instance, List, Unicode, default, HasTraits
+from traitlets.config import Configurable
 
 from ..core.traits import AstroTime
 from .datalevels import DataLevel
@@ -47,12 +48,15 @@ __all__ = [
 CONVERSIONS = {Time: lambda t: t.utc.iso, list: str}
 
 
-class Contact(HasTraits):
+class Contact(Configurable):
     """ Contact information """
 
-    name = Unicode("unknown")
-    email = Unicode("unknown")
-    organization = Unicode("unknown")
+    name = Unicode("unknown").tag(config=True)
+    email = Unicode("unknown").tag(config=True)
+    organization = Unicode("unknown").tag(config=True)
+
+    def __repr__(self):
+        return f"Contact(name={self.name}, email={self.email}, organization={self.organization})"
 
 
 class Product(HasTraits):
@@ -165,7 +169,11 @@ def _to_dict(hastraits_instance, prefix=""):
     """
     res = {}
 
+    ignore = {"parent", "config"}
     for k, trait in hastraits_instance.traits().items():
+        if k in ignore:
+            continue
+
         key = (prefix + k.upper().replace("_", " ")).replace("  ", " ").strip()
         val = trait.get(hastraits_instance)
 

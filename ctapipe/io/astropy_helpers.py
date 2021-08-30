@@ -21,7 +21,7 @@ from contextlib import ExitStack
 __all__ = ["read_table"]
 
 
-def read_table(h5file, path, start=None, stop=None, step=None) -> Table:
+def read_table(h5file, path, start=None, stop=None, step=None, condition=None) -> Table:
     """Read a table from an HDF5 file
 
     This reads a table written in the ctapipe format table as an `astropy.table.Table`
@@ -30,12 +30,24 @@ def read_table(h5file, path, start=None, stop=None, step=None) -> Table:
     This uses the same conventions as the `~ctapipe.io.HDF5TableWriter`,
     with the exception of Enums, that will remain as integers.
 
+    (start, stop, step) behave like python slices.
+
     Parameters
     ----------
     h5file: Union[str, Path, tables.file.File]
         input filename or PyTables file handle
     path: str
         path to table in the file
+    start: int or None
+        if given, this is the first row to be loaded
+    stop: int or None
+        if given, this is the last row to be loaded (not inclusive)
+    step: int or None
+        step between rows.
+    condition: str
+        A numexpr expression to only load rows fulfilling this condition.
+        For example, use "hillas_length > 0" to only load rows where the
+        hillas length is larger than 0 (so not nan and not 0).
 
     Returns
     -------
@@ -58,7 +70,15 @@ def read_table(h5file, path, start=None, stop=None, step=None) -> Table:
 
         table = h5file.get_node(path)
         transforms, descriptions, meta = _parse_hdf5_attrs(table)
-        astropy_table = Table(table[slice(start, stop, step)], meta=meta)
+
+        if condition is None:
+            array = table.read(start=start, stop=stop, step=step)
+        else:
+            array = table.read_where(
+                condition=condition, start=start, stop=stop, step=step
+            )
+
+        astropy_table = Table(array, meta=meta, copy=False)
         for column, tr in transforms.items():
             astropy_table[column] = tr.inverse(astropy_table[column])
 

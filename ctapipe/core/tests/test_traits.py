@@ -39,6 +39,40 @@ def mock_subarray():
     return subarray
 
 
+def test_path_allow_none_false():
+    class C(Component):
+        path = Path(allow_none=False)
+
+    c = C()
+
+    # accessing path is now an error
+    with pytest.raises(TraitError):
+        c.path
+
+    # setting to None should also fail
+    with pytest.raises(TraitError):
+        c.path = None
+
+    c.path = "foo.txt"
+    assert c.path == pathlib.Path("foo.txt").absolute()
+
+
+def test_path_allow_none_true(tmp_path):
+    class C(Component):
+        path = Path(exists=True, allow_none=True, default_value=None)
+
+    c = C()
+    assert c.path is None
+
+    with open(tmp_path / "foo.txt", "w"):
+        pass
+
+    c.path = tmp_path / "foo.txt"
+
+    c.path = None
+    assert c.path is None
+
+
 def test_path_exists():
     """ require existence of path """
 
@@ -83,15 +117,6 @@ def test_bytes():
     c1 = C1()
     c1.p = b"/home/foo"
     assert c1.p == pathlib.Path("/home/foo")
-
-
-def test_path_none():
-    class C1(Component):
-        thepath = Path(exists=False)
-
-    c1 = C1()
-    c1.thepath = "foo"
-    c1.thepath = None
 
 
 def test_path_directory_ok():
@@ -321,7 +346,9 @@ def test_telescope_parameter_path(mock_subarray):
     # test with none default:
     class SomeComponent(TelescopeComponent):
         path = TelescopeParameter(
-            Path(exists=True, directory_ok=False), default_value=None, allow_none=True
+            Path(exists=True, directory_ok=False, allow_none=True, default_value=None),
+            default_value=None,
+            allow_none=True,
         )
 
     s = SomeComponent(subarray=mock_subarray)
@@ -473,7 +500,9 @@ def test_telescope_parameter_from_cli(mock_subarray):
     from ctapipe.core import Tool, run_tool
 
     class SomeComponent(TelescopeComponent):
-        path = TelescopeParameter(Path(), default_value=None).tag(config=True)
+        path = TelescopeParameter(
+            Path(allow_none=True, default_value=None), default_value=None
+        ).tag(config=True)
         val = TelescopeParameter(Float(), default_value=1.0).tag(config=True)
         flag = TelescopeParameter(Bool(), default_value=True).tag(config=True)
 

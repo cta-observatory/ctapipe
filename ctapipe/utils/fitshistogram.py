@@ -38,7 +38,7 @@ class Histogram:
     --------
 
     >>> hist = Histogram(nbins=(10,10), ranges=[[-1,1], [-1,1]])
-    >>> data = np.random.normal(shape=(2*100)) # make 100 random 2D events
+    >>> data = np.random.normal(size=(100, 2)) # make 100 random 2D events
     >>> hist.fill(data)
 
 
@@ -180,12 +180,6 @@ class Histogram:
         """
         Convert the `Histogram` into an `astropy.io.fits.ImageHDU`,
         suitable for writing to a file.
-
-        Examples
-        --------
-
-        >>> myhist.to_fits().writeto("outputfile.fits.gz", overwrite=True)
-
         """
         ohdu = fits.ImageHDU(data=self.data.transpose())
         ohdu.name = self.name
