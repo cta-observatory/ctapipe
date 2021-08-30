@@ -85,7 +85,7 @@ class QuickStartTool(Tool):
 
     Or specify it all in the command-line:
 
-        ctapipe-quickstart --name "my name" --contact "me@thing.com" --org "My Organization" --workdir Work
+        ctapipe-quickstart --name "my name" --email "me@thing.com" --org "My Organization" --workdir Work
     """
 
     workdir = traits.Path(
