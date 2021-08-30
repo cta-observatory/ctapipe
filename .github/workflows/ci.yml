@@ -72,7 +72,7 @@ jobs:
 
       - name: Install doc dependencies
         run: |
-          sudo apt update --yes && sudo apt install --yes git build-essential pandoc
+          sudo apt update --yes && sudo apt install --yes git build-essential pandoc graphviz
           pip install -U pip setuptools wheel
           pip install -e .[docs]
           git describe --tags
