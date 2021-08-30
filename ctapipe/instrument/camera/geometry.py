@@ -398,8 +398,8 @@ class CameraGeometry:
         Beware, that this means the pixel geometries on this
         grid to not match the one in the geometry.
 
-        Returns:
-        --------
+        Returns
+        -------
         (rows, columns) of each pixel if transformed onto an orthogonal grid
         """
         if self.pix_type in {PixelShape.HEXAGON, PixelShape.CIRCLE}:
@@ -450,14 +450,14 @@ class CameraGeometry:
         In the case of hexagonal pixels, the resulting
         image is skewed to match a rectangular grid.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         image: np.ndarray
             One or multiple images of shape
             (n_images, n_pixels) or (n_pixels) for a single image.
 
-        Returns:
-        --------
+        Returns
+        -------
         image_2s: np.ndarray
             The transformed image of shape (n_images, n_rows, n_cols).
             For a single image the leading dimension is omitted.
@@ -476,16 +476,16 @@ class CameraGeometry:
         """
         Create a 1D-array from a given 2D image.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         image_2d: np.ndarray
             2D image created by the `image_to_cartesian_representation` function
             of the same geometry.
             shape is expected to be:
             (n_images, n_rows, n_cols) or (n_rows, n_cols) for a single image.
 
-        Returns:
-        --------
+        Returns
+        -------
         1d array
             The image in the 1D format, which has shape (n_images, n_pixels).
             For single images the leading dimension is omitted.
