@@ -65,6 +65,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
       - name: Install doc dependencies
         run: |
           apt update --yes && apt install --yes git build-essential pandoc
