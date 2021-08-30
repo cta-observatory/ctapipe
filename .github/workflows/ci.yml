@@ -65,18 +65,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: ammaraskar/sphinx-action@master
-        with:
-          docs-folder: "docs/"
-          pre-build-command: |
-            apt update --yes && apt install --yes git build-essential pandoc
-            pip install -U pip setuptools wheel
-            pip install -e .[docs]
-            git describe --tags
-            python -c 'import ctapipe; print(ctapipe.__version__)'
+      - name: Install doc dependencies
+        run: |
+          apt update --yes && apt install --yes git build-essential pandoc
+          pip install -U pip setuptools wheel
+          pip install -e .[docs]
+          git describe --tags
+          python -c 'import ctapipe; print(ctapipe.__version__)'
 
+      - name: Build docs
+        run: |
           # treat warnings as errors, make sure links are working
-          build-command: make html SPHINXOPTS="-W --keep-going -n --color -w /tmp/sphinx-log"
+          make html SPHINXOPTS="-W --keep-going -n --color -w /tmp/sphinx-log"
 
       - name: Deploy to gihub pages
         # only run on push to master
