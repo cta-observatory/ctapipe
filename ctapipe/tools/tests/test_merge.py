@@ -122,18 +122,21 @@ def test_allowed_tels(tmp_path, dl1_file, dl1_proton_file):
     )
     assert ret == 0
 
+    s = SubarrayDescription.from_hdf(output)
+    assert s.tel.keys() == {1, 2}
 
-def test_split_datasets_by(tmp_path, gamma_dl1_path, proton_dl1_path):
+
+def test_split_datasets_by(tmp_path, dl1_file, dl1_proton_file):
     from ctapipe.tools.dl1_merge import MergeTool
 
-    # create a second file so we can test the split by tel type
+    # create file 'split_datasets_by' option
     output = tmp_path / "split_datasets_by_tel_type.dl1.h5"
 
     ret = run_tool(
         MergeTool(),
         argv=[
-            str(gamma_dl1_path),
-            str(proton_dl1_path),
+            str(dl1_file),
+            str(dl1_proton_file),
             f"--output={output}",
             "--split_datasets_by=tel_type",
             "--overwrite",
@@ -142,5 +145,3 @@ def test_split_datasets_by(tmp_path, gamma_dl1_path, proton_dl1_path):
     )
     assert ret == 0
 
-    s = SubarrayDescription.from_hdf(output)
-    assert s.tel.keys() == {1, 2}
