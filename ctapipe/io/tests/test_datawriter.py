@@ -6,6 +6,7 @@ from pathlib import Path
 
 import numpy as np
 import tables
+from traitlets.config import Config
 from astropy import units as u
 from ctapipe.calib import CameraCalibrator
 from ctapipe.instrument import SubarrayDescription
@@ -213,3 +214,39 @@ def test_dl1writer_no_events(tmpdir: Path):
     with tables.open_file(output_path) as h5file:
         assert h5file.get_node("/configuration/simulation/run") is not None
         assert h5file.get_node("/simulation/service/shower_distribution") is not None
+
+
+def test_metadata(tmpdir: Path):
+    output_path = Path(tmpdir / "metadata.dl1.h5")
+
+    dataset = "lst_prod3_calibration_and_mcphotons.simtel.zst"
+
+    config = Config(
+        {
+            "DataWriter": {
+                "Contact": {
+                    "name": "Maximilian Nöthe",
+                    "email": "maximilian.noethe@tu-dortmund.de",
+                    "organization": "TU Dortmund",
+                }
+            }
+        }
+    )
+
+    with EventSource(get_dataset_path(dataset)) as source:
+        with DataWriter(
+            event_source=source,
+            output_path=output_path,
+            write_parameters=True,
+            write_images=True,
+            config=config,
+        ):
+            pass
+
+        assert output_path.exists()
+
+        with tables.open_file(output_path) as h5file:
+            meta = h5file.root._v_attrs
+            assert meta["CTA CONTACT NAME"] == "Maximilian Nöthe"
+            assert meta["CTA CONTACT EMAIL"] == "maximilian.noethe@tu-dortmund.de"
+            assert meta["CTA CONTACT ORGANIZATION"] == "TU Dortmund"

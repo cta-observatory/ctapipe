@@ -27,7 +27,6 @@ This module contains the following sub-modules, but the most important functions
   pixel_likelihood
   extractor
   reducers
-  geometry_converter
 
 
 

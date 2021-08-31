@@ -1,5 +1,5 @@
 """
-Merge DL1-files from stage1-process tool
+Merge DL1-files from ctapipe-process tool
 """
 import sys
 import os
@@ -92,9 +92,18 @@ class MergeTool(Tool):
     If no pattern is given, all .h5 files of the given directory will be taken as input.
     """
     input_dir = traits.Path(
-        help="Input dl1-directory", exists=True, directory_ok=True, file_ok=False
+        help="Input dl1-directory",
+        default_value=None,
+        allow_none=True,
+        exists=True,
+        directory_ok=True,
+        file_ok=False,
     ).tag(config=True)
-    input_files = List(default_value=[], help="Input dl1-files").tag(config=True)
+    input_files = List(
+        traits.Path(exists=True, directory_ok=False),
+        default_value=[],
+        help="Input dl1-files",
+    ).tag(config=True)
     output_path = traits.Path(
         help="Merged-DL1 output filename", directory_ok=False
     ).tag(config=True)
@@ -118,8 +127,12 @@ class MergeTool(Tool):
         default_value="tel_id",
         help="Splitting level for the DL1 parameters and images datasets",
     ).tag(config=True)
-    overwrite = Bool(help="Overwrite output file if it exists").tag(config=True)
-    progress_bar = Bool(help="Show progress bar during processing").tag(config=True)
+    overwrite = Bool(
+        help="Overwrite output file if it exists", default_value=False
+    ).tag(config=True)
+    progress_bar = Bool(
+        help="Show progress bar during processing", default_value=False
+    ).tag(config=True)
     file_pattern = Unicode(
         default_value="*.h5", help="Give a specific file pattern for the input files"
     ).tag(config=True)

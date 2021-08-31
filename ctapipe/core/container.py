@@ -204,14 +204,16 @@ class Container(metaclass=ContainerMeta):
     For hierarchical data structures, Field can use `Container`
     subclasses or a `Map` as the default value.
 
-    >>>    class MyContainer(Container):
-    >>>        x = Field(100,"The X value")
-    >>>        energy = Field(-1, "Energy measurement", unit=u.TeV)
-    >>>
-    >>>    cont = MyContainer()
-    >>>    print(cont.x)
-    >>>    # metadata will become header keywords in an output file:
-    >>>    cont.meta['KEY'] = value
+    >>> import astropy.units as u
+    >>> class MyContainer(Container):
+    ...     x = Field(100, "The X value")
+    ...     energy = Field(-1, "Energy measurement", unit=u.TeV)
+    ...
+    >>> cont = MyContainer()
+    >>> print(cont.x)
+    100
+    >>> # metadata will become header keywords in an output file:
+    >>> cont.meta["KEY"] = "value"
 
     `Fields <Field>`_ inside `Containers <Container>`_ can contain instances of other
     containers, to allow for a hierarchy of containers, and can also
@@ -220,8 +222,8 @@ class Container(metaclass=ContainerMeta):
     of this can be found in `ctapipe.containers`
 
     `Container` works by shadowing all class variables (which must be
-    instances of `Field`) with instance variables of the same name the
-    hold the value expected. If ``reset`` is called, all
+    instances of `Field`) with instance variables of the same name that
+    hold the actual data. If ``reset`` is called, all
     instance variables are reset to their default values as defined in
     the class.
 

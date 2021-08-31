@@ -18,6 +18,8 @@ logger = logging.getLogger(__name__)
 
 
 class ToyEventSource(EventSource, TelescopeComponent):
+    # override input url from EventSource, we don't need one here
+    input_url = traits.Path(allow_none=True, default_value=None).tag(config=True)
 
     trigger_probability = traits.FloatTelescopeParameter(
         default_value=0.5, help="Probability that the telescope has an event"

@@ -134,3 +134,20 @@ def test_file_closed(tmp_path):
     # the file
     with tables.open_file(path, "w"):
         pass
+
+
+def test_condition(tmp_path):
+    # write a simple hdf5 file using
+
+    container = ReconstructedEnergyContainer()
+    filename = tmp_path / "test_astropy_table.h5"
+
+    with HDF5TableWriter(filename) as writer:
+        for energy in [np.nan, 100, np.nan, 50, -1.0] * u.TeV:
+            container.energy = energy
+            writer.write("events", container)
+
+    # try opening the result
+    table = read_table(filename, "/events", condition="energy > 0")
+    assert len(table) == 2
+    assert np.all(table["energy"] == [100, 50] * u.TeV)
