@@ -490,6 +490,10 @@ class TelescopeParameter(List):
         return normalized_value
 
     def set(self, obj, value):
+        # Support a single value for all (check and convert into a default value)
+        if not isinstance(value, (list, List, UserList, TelescopePatternList)):
+            value = [("type", "*", self._trait.validate(obj, value))]
+
         # Retain existing subarray description
         # when setting new value for TelescopeParameter
         try:
