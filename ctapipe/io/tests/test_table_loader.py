@@ -32,7 +32,7 @@ def test_get_structure(test_file):
         assert get_structure(f) == expected
 
 
-def test_read_events_for_tel_id(test_file):
+def test_telescope_events_for_tel_id(test_file):
     from ctapipe.io.tableloader import TableLoader
 
     _, dl1_file = test_file
@@ -40,14 +40,14 @@ def test_read_events_for_tel_id(test_file):
     loader = TableLoader(dl1_file, load_dl1_parameters=True, load_trigger=True)
 
     with loader as table_loader:
-        table = table_loader.read_events([25])
+        table = table_loader.read_telescope_events([25])
         assert "hillas_length" in table.colnames
         assert "time" in table.colnames
         assert "event_type" in table.colnames
         assert np.all(table["tel_id"] == 25)
 
     with TableLoader(dl1_file, load_dl1_images=True) as table_loader:
-        table = table_loader.read_events([25])
+        table = table_loader.read_telescope_events([25])
         assert "image" in table.colnames
         assert np.all(table["tel_id"] == 25)
 
@@ -61,7 +61,7 @@ def test_load_instrument(test_file):
 
     with TableLoader(dl1_file, load_instrument=True) as table_loader:
         expected = table_loader.subarray.tel[25].optics.equivalent_focal_length
-        table = table_loader.read_telescope_events_for_id(tel_id=25)
+        table = table_loader.read_telescope_events([25])
         assert "equivalent_focal_length" in table.colnames
         assert np.all(table["equivalent_focal_length"] == expected)
 
@@ -72,7 +72,10 @@ def test_load_simulated(test_file):
     _, dl1_file = test_file
 
     with TableLoader(dl1_file, load_simulated=True) as table_loader:
-        table = table_loader.read_events([25])
+        table = table_loader.read_subarray_events()
+        assert "true_energy" in table.colnames
+
+        table = table_loader.read_telescope_events([25])
         assert "true_energy" in table.colnames
 
 
@@ -84,7 +87,7 @@ def test_true_images(test_file):
     with TableLoader(
         dl1_file, load_dl1_parameters=False, load_true_images=True
     ) as table_loader:
-        table = table_loader.read_telescope_events_for_id(tel_id=25)
+        table = table_loader.read_telescope_events(["MST_MST_NectarCam"])
         assert "true_image" in table.colnames
 
 
@@ -94,13 +97,9 @@ def test_true_parameters(test_file):
     _, dl1_file = test_file
 
     with TableLoader(
-        dl1_file,
-        load_dl1_parameters=False,
-        load_true_images=True,
-        load_true_parameters=True,
+        dl1_file, load_dl1_parameters=False, load_true_parameters=True
     ) as table_loader:
-        table = table_loader.read_telescope_events_for_id(tel_id=25)
-        assert "true_image" in table.colnames
+        table = table_loader.read_telescope_events()
         assert "true_hillas_intensity" in table.colnames
 
 
@@ -111,21 +110,15 @@ def test_read_subarray_events(test_file_dl2):
     _, dl2_file = test_file_dl2
 
     with TableLoader(
-        dl2_file,
-        load_dl1_images=False,
-        load_dl1_parameters=False,
-        load_dl2_geometry=True,
-        load_simulated=True,
-        load_true_images=False,
-        load_trigger=True,
-        load_instrument=False,
+        dl2_file, load_dl2_geometry=True, load_simulated=True, load_trigger=True
     ) as table_loader:
         table = table_loader.read_subarray_events()
         assert "HillasReconstructor_alt" in table.colnames
         assert "true_energy" in table.colnames
+        assert "time" in table.colnames
 
 
-def test_read_events(test_file_dl2):
+def test_read_telescope_events_type(test_file_dl2):
 
     from ctapipe.io.tableloader import TableLoader
 
@@ -142,7 +135,7 @@ def test_read_events(test_file_dl2):
         load_instrument=True,
     ) as table_loader:
 
-        table = table_loader.read_events(["MST_MST_FlashCam"])
+        table = table_loader.read_telescope_events(["MST_MST_FlashCam"])
 
         assert "HillasReconstructor_alt" in table.colnames
         assert "true_energy" in table.colnames
@@ -151,7 +144,7 @@ def test_read_events(test_file_dl2):
         assert "equivalent_focal_length" in table.colnames
 
 
-def test_read_events_by_tel_type(test_file_dl2):
+def test_read_telescope_events_by_type(test_file_dl2):
 
     from ctapipe.io.tableloader import TableLoader
 
@@ -168,7 +161,7 @@ def test_read_events_by_tel_type(test_file_dl2):
         load_instrument=True,
     ) as table_loader:
 
-        tables = table_loader.read_events_by_tel_type([25, 130])
+        tables = table_loader.read_telescope_events_by_type([25, 130])
 
         for tel_type in ["MST_MST_NectarCam", "MST_MST_FlashCam"]:
 
@@ -179,16 +172,3 @@ def test_read_events_by_tel_type(test_file_dl2):
             assert "true_image" in table.colnames
             assert set(table["tel_id"].data).issubset([25, 125, 130])
             assert "equivalent_focal_length" in table.colnames
-
-
-@pytest.mark.parametrize(
-    "telescope_description", ["MST_MST_NectarCam", "MST_MST_FlashCam"]
-)
-def test_read_events_for_type(telescope_description, test_file):
-    from ctapipe.io.tableloader import TableLoader
-
-    _, dl1_file = test_file
-
-    with TableLoader(dl1_file, load_instrument=True) as table_loader:
-        table = table_loader.read_events_for_type(telescope_description)
-        assert np.all(table["tel_description"] == telescope_description)

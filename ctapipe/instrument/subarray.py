@@ -363,17 +363,17 @@ class SubarrayDescription:
             plt.tight_layout()
 
     @lazyproperty
-    def telescope_types(self):
+    def telescope_types(self) -> List[TelescopeDescription]:
         """ list of telescope types in the array"""
         return list({tel for tel in self.tel.values()})
 
     @lazyproperty
-    def camera_types(self):
+    def camera_types(self) -> List[CameraDescription]:
         """ list of camera types in the array """
         return list({tel.camera for tel in self.tel.values()})
 
     @lazyproperty
-    def optics_types(self):
+    def optics_types(self) -> List[OpticsDescription]:
         """ list of optics types in the array """
         return list({tel.optics for tel in self.tel.values()})
 
