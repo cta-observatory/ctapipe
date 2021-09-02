@@ -115,7 +115,6 @@ def test_allowed_tels(tmp_path, dl1_file, dl1_proton_file):
             str(dl1_proton_file),
             f"--output={output}",
             "--allowed-tels=[1,2]",
-            "--split_datasets_by=tel_type",
             "--overwrite",
         ],
         cwd=tmp_path,
@@ -126,8 +125,9 @@ def test_allowed_tels(tmp_path, dl1_file, dl1_proton_file):
     assert s.tel.keys() == {1, 2}
 
 
-def test_split_datasets_by(tmp_path, dl1_file, dl1_proton_file):
+def test_split_datasets_by(tmp_path, dl1_file):
     from ctapipe.tools.dl1_merge import MergeTool
+    from ctapipe.io import read_table
 
     # create file 'split_datasets_by' option
     output = tmp_path / "split_datasets_by_tel_type.dl1.h5"
@@ -136,7 +136,27 @@ def test_split_datasets_by(tmp_path, dl1_file, dl1_proton_file):
         MergeTool(),
         argv=[
             str(dl1_file),
-            str(dl1_proton_file),
+            f"--output={output}",
+            "--allowed-tels=[25,125]",
+            "--split_datasets_by=tel_type",
+            "--overwrite",
+        ],
+        cwd=tmp_path,
+    )
+    assert ret == 0
+
+    original_table_length = 0
+    for tel_id in [25, 125]:
+        original_table_length += len(read_table(str(dl1_file), f"/dl1/event/telescope/parameters/tel_{tel_id:03d}"))
+
+    merged_table_length = len(read_table(output, f"/dl1/event/telescope/parameters/MST_MST_FlashCam"))
+
+    assert original_table_length == merged_table_length
+
+    ret = run_tool(
+        MergeTool(),
+        argv=[
+            str(dl1_file),
             f"--output={output}",
             "--split_datasets_by=tel_type",
             "--overwrite",
@@ -145,3 +165,7 @@ def test_split_datasets_by(tmp_path, dl1_file, dl1_proton_file):
     )
     assert ret == 0
 
+    original_table_length = len(read_table(str(dl1_file), f"/dl1/event/telescope/parameters/tel_130"))
+    merged_table_length = len(read_table(output, f"/dl1/event/telescope/parameters/MST_MST_NectarCam"))
+
+    assert original_table_length == merged_table_length
