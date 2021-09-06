@@ -40,6 +40,37 @@ def test_non_abstract_children():
     assert AbstractChild not in kids
 
 
+def test_get_config_from_hierarchy():
+    from ctapipe.core.component import find_config_in_hierarchy
+
+    class Bottom(Component):
+        val = Float(0).tag(config=True)
+
+    class Middle(Component):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            self.bottom = Bottom(parent=self)
+
+    class Top(Component):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            self.middle = Middle(parent=self)
+
+    # test with root present
+    c = Config({"Top": {"Middle": {"Bottom": {"val": 5}}}})
+    t = Top(config=c)
+
+    val = find_config_in_hierarchy(t.middle, "Bottom", "val")
+    assert val == 5
+
+    # test with root not present
+    c = Config({"Middle": {"Bottom": {"val": 5}}})
+    t = Top(config=c)
+
+    val = find_config_in_hierarchy(t.middle, "Bottom", "val")
+    assert val == 5
+
+
 class SubComponent(Component):
     """ An Example Component, this is the help text"""
 
@@ -257,11 +288,9 @@ def test_extra_config_missing():
     config = Config()
     config["ExampleSubclass1"] = Config()
     config["ExampleSubclass1"]["extra"] = 199.0
-    with pytest.warns(UserWarning):
-        comp = ExampleSubclass1(config=config)
-    assert comp.has_trait("extra") is False
-    with pytest.raises(AttributeError):
-        assert comp.extra == 229.0
+
+    with pytest.raises(TraitError):
+        ExampleSubclass1(config=config)
 
 
 def test_default():

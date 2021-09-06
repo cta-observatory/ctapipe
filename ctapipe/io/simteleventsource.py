@@ -9,18 +9,26 @@ from astropy.coordinates import Angle
 from astropy.time import Time
 from eventio.file_types import is_eventio
 from eventio.simtel.simtelfile import SimTelFile
-from traitlets import observe
 
 from ..calib.camera.gainselection import GainSelector
 from ..containers import (
     ArrayEventContainer,
     EventType,
+    SimulatedEventContainer,
     SimulationConfigContainer,
     SimulatedCameraContainer,
     SimulatedShowerContainer,
+    TelescopePointingContainer,
+    TelescopeTriggerContainer,
 )
 from ..coordinates import CameraFrame
-from ..core.traits import Bool, CaselessStrEnum, create_class_enum_trait
+from ..core.traits import (
+    Bool,
+    Float,
+    CaselessStrEnum,
+    create_class_enum_trait,
+    Undefined,
+)
 from ..instrument import (
     CameraDescription,
     CameraGeometry,
@@ -30,7 +38,7 @@ from ..instrument import (
     TelescopeDescription,
 )
 from ..instrument.camera import UnknownPixelShapeWarning
-from ..instrument.guess import UNKNOWN_TELESCOPE, guess_telescope
+from ..instrument.guess import unknown_telescope, guess_telescope
 from .datalevels import DataLevel
 from .eventsource import EventSource
 
@@ -50,12 +58,13 @@ SIMTEL_TO_CTA_EVENT_TYPE = {
 }
 
 
+NANOSECONDS_PER_DAY = (1 * u.day).to_value(u.ns)
+
+
 def parse_simtel_time(simtel_time):
+    """Convert a unix time second / nanosecond tuple into astropy.time.Time"""
     return Time(
-        u.Quantity(simtel_time[0], u.s),
-        u.Quantity(simtel_time[1], u.ns),
-        format="unix",
-        scale="utc",
+        simtel_time[0], simtel_time[1] * 1e-9, format="unix", scale="utc"  # ns to s
     )
 
 
@@ -97,7 +106,9 @@ def build_camera(cam_settings, pixel_settings, telescope, frame):
     )
 
 
-def apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe, gain_selector):
+def apply_simtel_r1_calibration(
+    r0_waveforms, pedestal, dc_to_pe, gain_selector, calib_scale=1.0, calib_shift=0.0
+):
     """
     Perform the R1 calibration for R0 simtel waveforms. This includes:
         - Gain selection
@@ -120,6 +131,14 @@ def apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe, gain_selector)
         simtel file for each gain channel
         Shape: (n_channels, n_pixels)
     gain_selector : ctapipe.calib.camera.gainselection.GainSelector
+    calib_scale : float
+        Extra global scale factor for calibration.
+        Conversion factor to transform the integrated charges
+        (in ADC counts) into number of photoelectrons on top of dc_to_pe.
+        Defaults to no scaling.
+    calib_shift: float
+        Shift the resulting R1 output in p.e. for simulating miscalibration.
+        Defaults to no shift.
 
     Returns
     -------
@@ -132,8 +151,9 @@ def apply_simtel_r1_calibration(r0_waveforms, pedestal, dc_to_pe, gain_selector)
     """
     n_channels, n_pixels, n_samples = r0_waveforms.shape
     ped = pedestal[..., np.newaxis]
-    gain = dc_to_pe[..., np.newaxis]
-    r1_waveforms = (r0_waveforms - ped) * gain
+    DC_to_PHE = dc_to_pe[..., np.newaxis]
+    gain = DC_to_PHE * calib_scale
+    r1_waveforms = (r0_waveforms - ped) * gain + calib_shift
     if n_channels == 1:
         selected_gain_channel = np.zeros(n_pixels, dtype=np.int8)
         r1_waveforms = r1_waveforms[0]
@@ -175,7 +195,23 @@ class SimTelEventSource(EventSource):
         base_class=GainSelector, default_value="ThresholdGainSelector"
     ).tag(config=True)
 
-    def __init__(self, input_url=None, config=None, parent=None, **kwargs):
+    calib_scale = Float(
+        default_value=1.0,
+        help=(
+            "Factor to transform ADC counts into number of photoelectrons."
+            " Corrects the DC_to_PHE factor."
+        ),
+    ).tag(config=True)
+
+    calib_shift = Float(
+        default_value=0.0,
+        help=(
+            "Factor to shift the R1 photoelectron samples. "
+            "Can be used to simulate mis-calibration."
+        ),
+    ).tag(config=True)
+
+    def __init__(self, input_url=Undefined, config=None, parent=None, **kwargs):
         """
         EventSource for simtelarray files using the pyeventio library.
 
@@ -194,8 +230,6 @@ class SimTelEventSource(EventSource):
         kwargs
         """
         super().__init__(input_url=input_url, config=config, parent=parent, **kwargs)
-
-        self._camera_cache = {}
 
         self.file_ = SimTelFile(
             self.input_url.expanduser(),
@@ -216,13 +250,6 @@ class SimTelEventSource(EventSource):
             self.gain_selector_type, parent=self
         )
         self.log.debug(f"Using gain selector {self.gain_selector}")
-
-    @observe("allowed_tels")
-    def _observe_allowed_tels(self, change):
-        # this can run in __init__ before file_ is created
-        if hasattr(self, "file_"):
-            allowed_tels = set(self.allowed_tels) if self.allowed_tels else None
-            self.file_.allowed_telescopes = allowed_tels
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
@@ -278,6 +305,7 @@ class SimTelEventSource(EventSource):
 
             n_pixels = cam_settings["n_pixels"]
             focal_length = u.Quantity(cam_settings["focal_length"], u.m)
+            mirror_area = u.Quantity(cam_settings["mirror_area"], u.m ** 2)
 
             if self.focal_length_choice == "effective":
                 try:
@@ -294,25 +322,22 @@ class SimTelEventSource(EventSource):
             try:
                 telescope = guess_telescope(n_pixels, focal_length)
             except ValueError:
-                telescope = UNKNOWN_TELESCOPE
+                telescope = unknown_telescope(mirror_area, n_pixels)
 
             optics = OpticsDescription(
                 name=telescope.name,
                 num_mirrors=telescope.n_mirrors,
                 equivalent_focal_length=focal_length,
-                mirror_area=u.Quantity(cam_settings["mirror_area"], u.m ** 2),
+                mirror_area=mirror_area,
                 num_mirror_tiles=cam_settings["n_mirrors"],
             )
 
-            camera = self._camera_cache.get(telescope.camera_name)
-            if camera is None:
-                camera = build_camera(
-                    cam_settings,
-                    pixel_settings,
-                    telescope,
-                    frame=CameraFrame(focal_length=optics.equivalent_focal_length),
-                )
-                self._camera_cache[telescope.camera_name] = camera
+            camera = build_camera(
+                cam_settings,
+                pixel_settings,
+                telescope,
+                frame=CameraFrame(focal_length=optics.equivalent_focal_length),
+            )
 
             tel_descriptions[tel_id] = TelescopeDescription(
                 name=telescope.name,
@@ -324,11 +349,15 @@ class SimTelEventSource(EventSource):
             tel_idx = np.where(header["tel_id"] == tel_id)[0][0]
             tel_positions[tel_id] = header["tel_pos"][tel_idx] * u.m
 
-        return SubarrayDescription(
-            "MonteCarloArray",
+        subarray = SubarrayDescription(
+            name="MonteCarloArray",
             tel_positions=tel_positions,
             tel_descriptions=tel_descriptions,
         )
+
+        if self.allowed_tels:
+            subarray = subarray.select_subarray(self.allowed_tels)
+        return subarray
 
     @staticmethod
     def is_compatible(file_path):
@@ -354,6 +383,7 @@ class SimTelEventSource(EventSource):
 
     def _generate_events(self):
         data = ArrayEventContainer()
+        data.simulation = SimulatedEventContainer()
         data.meta["origin"] = "hessio"
         data.meta["input_url"] = self.input_url
         data.meta["max_events"] = self.max_events
@@ -395,34 +425,51 @@ class SimTelEventSource(EventSource):
                 true_image = (
                     array_event.get("photoelectrons", {})
                     .get(tel_id - 1, {})
-                    .get("photoelectrons", np.zeros(n_pixels, dtype="float32"))
+                    .get("photoelectrons", None)
                 )
 
                 data.simulation.tel[tel_id] = SimulatedCameraContainer(
                     true_image=true_image
                 )
 
-                self._fill_event_pointing(
-                    data.pointing.tel[tel_id], tracking_positions[tel_id]
+                data.pointing.tel[tel_id] = self._fill_event_pointing(
+                    tracking_positions[tel_id]
                 )
 
                 r0 = data.r0.tel[tel_id]
                 r1 = data.r1.tel[tel_id]
                 r0.waveform = adc_samples
 
-                mon = array_event["camera_monitorings"][tel_id]
-                pedestal = mon["pedestal"] / mon["n_ped_slices"]
+                cam_mon = array_event["camera_monitorings"][tel_id]
+                pedestal = cam_mon["pedestal"] / cam_mon["n_ped_slices"]
                 dc_to_pe = array_event["laser_calibrations"][tel_id]["calib"]
-                # todo: store pedestal and dc_to_pe somewhere?
-                #
+
+                # fill dc_to_pe and pedestal_per_sample info into monitoring
+                # container
+                mon = data.mon.tel[tel_id]
+                mon.calibration.dc_to_pe = dc_to_pe
+                mon.calibration.pedestal_per_sample = pedestal
+
                 r1.waveform, r1.selected_gain_channel = apply_simtel_r1_calibration(
-                    adc_samples, pedestal, dc_to_pe, self.gain_selector
+                    adc_samples,
+                    pedestal,
+                    dc_to_pe,
+                    self.gain_selector,
+                    self.calib_scale,
+                    self.calib_shift,
                 )
+
+                # get time_shift from laser calibration
+                time_calib = array_event["laser_calibrations"][tel_id]["tm_calib"]
+                pix_index = np.arange(n_pixels)
+
+                dl1_calib = data.calibration.tel[tel_id].dl1
+                dl1_calib.time_shift = time_calib[r1.selected_gain_channel, pix_index]
 
             yield data
 
     @staticmethod
-    def _fill_event_pointing(pointing, tracking_position):
+    def _fill_event_pointing(tracking_position):
         azimuth_raw = tracking_position["azimuth_raw"]
         altitude_raw = tracking_position["altitude_raw"]
         azimuth_cor = tracking_position.get("azimuth_cor", np.nan)
@@ -430,18 +477,19 @@ class SimTelEventSource(EventSource):
 
         # take pointing corrected position if available
         if np.isnan(azimuth_cor):
-            pointing.azimuth = u.Quantity(azimuth_raw, u.rad)
+            azimuth = u.Quantity(azimuth_raw, u.rad, copy=False)
         else:
-            pointing.azimuth = u.Quantity(azimuth_cor, u.rad)
+            azimuth = u.Quantity(azimuth_cor, u.rad, copy=False)
 
         # take pointing corrected position if available
         if np.isnan(altitude_cor):
-            pointing.altitude = u.Quantity(altitude_raw, u.rad)
+            altitude = u.Quantity(altitude_raw, u.rad, copy=False)
         else:
-            pointing.altitude = u.Quantity(altitude_cor, u.rad)
+            altitude = u.Quantity(altitude_cor, u.rad, copy=False)
 
-    @staticmethod
-    def _fill_trigger_info(data, array_event):
+        return TelescopePointingContainer(azimuth=azimuth, altitude=altitude)
+
+    def _fill_trigger_info(self, data, array_event):
         trigger = array_event["trigger_information"]
 
         if array_event["type"] == "data":
@@ -457,23 +505,45 @@ class SimTelEventSource(EventSource):
             data.trigger.event_type = EventType.UNKNOWN
 
         data.trigger.tels_with_trigger = trigger["triggered_telescopes"]
-        data.trigger.time = parse_simtel_time(trigger["gps_time"])
+        if self.allowed_tels:
+            data.trigger.tels_with_trigger = np.intersect1d(
+                data.trigger.tels_with_trigger,
+                self.subarray.tel_ids,
+                assume_unique=True,
+            )
+        central_time = parse_simtel_time(trigger["gps_time"])
+        data.trigger.time = central_time
 
         for tel_id, time in zip(
             trigger["triggered_telescopes"], trigger["trigger_times"]
         ):
-            # time is relative to central trigger in nano seconds
-            trigger = data.trigger.tel[tel_id]
-            trigger.time = data.trigger.time + u.Quantity(time, u.ns)
+            if self.allowed_tels and tel_id not in self.allowed_tels:
+                continue
+            # telescope time is relative to central trigger in ns
+            time = Time(
+                central_time.jd1,
+                central_time.jd2 + time / NANOSECONDS_PER_DAY,
+                scale=central_time.scale,
+                format="jd",
+            )
 
             # triggered pixel info
+            n_trigger_pixels = -1
+            trigger_pixels = None
+
             tel_event = array_event["telescope_events"].get(tel_id)
             if tel_event:
                 # code 0 = trigger pixels
                 pixel_list = tel_event["pixel_lists"].get(0)
                 if pixel_list:
-                    trigger.n_trigger_pixels = pixel_list["pixels"]
-                    trigger.trigger_pixels = pixel_list["pixel_list"]
+                    n_trigger_pixels = pixel_list["pixels"]
+                    trigger_pixels = pixel_list["pixel_list"]
+
+            trigger = data.trigger.tel[tel_id] = TelescopeTriggerContainer(
+                time=time,
+                n_trigger_pixels=n_trigger_pixels,
+                trigger_pixels=trigger_pixels,
+            )
 
     def _fill_array_pointing(self, data):
         if self.file_.header["tracking_mode"] == 0:
@@ -524,7 +594,6 @@ class SimTelEventSource(EventSource):
             corsika_wlen_max=mc_run_head["corsika_wlen_max"] * u.nm,
             corsika_low_E_detail=mc_run_head["corsika_low_E_detail"],
             corsika_high_E_detail=mc_run_head["corsika_high_E_detail"],
-            run_array_direction=Angle(self.file_.header["direction"] * u.rad),
         )
 
     @staticmethod

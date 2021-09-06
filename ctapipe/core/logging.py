@@ -18,13 +18,8 @@ class ColoredFormatter(logging.Formatter):
 
     def format(self, record):
         """Format the LogRecord."""
-        rec = record.__dict__.copy()
-
-        rec["asctime"] = self.formatTime(record, self.datefmt)
-        rec["levelname"] = apply_colors(record.levelname)
-        rec["message"] = record.getMessage()
-
-        return self._fmt % rec
+        s = super().format(record)
+        return s.replace(record.levelname, apply_colors(record.levelname))
 
 
 def apply_colors(levelname: str):
@@ -53,6 +48,7 @@ def recursive_update(d1, d2, copy=False):
     {'a': {'b': 'foo', 'c': 'foo'}}
     >>> # As opposed to
     >>> d1.update(d2)
+    >>> d1
     {'a': {'c': 'foo'}}
     """
     if not isinstance(d1, Mapping) or not isinstance(d2, Mapping):

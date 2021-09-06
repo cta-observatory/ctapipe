@@ -20,8 +20,10 @@ class Histogram:
     All axes are assumed to be linear, with equally spaced bins
     (otherwise they could not be stored in a FITS image HDU)
 
-    Parameters
+    Attributes
     ----------
+    data: np.ndarray
+        the histogram counts.
     nbins: array_like(int)
         list of number of bins for each dimension
     ranges: list(tuple)
@@ -36,7 +38,7 @@ class Histogram:
     --------
 
     >>> hist = Histogram(nbins=(10,10), ranges=[[-1,1], [-1,1]])
-    >>> data = np.random.normal(shape=(2*100)) # make 100 random 2D events
+    >>> data = np.random.normal(size=(100, 2)) # make 100 random 2D events
     >>> hist.fill(data)
 
 
@@ -178,12 +180,6 @@ class Histogram:
         """
         Convert the `Histogram` into an `astropy.io.fits.ImageHDU`,
         suitable for writing to a file.
-
-        Examples
-        --------
-
-        >>> myhist.to_fits().writeto("outputfile.fits.gz", overwrite=True)
-
         """
         ohdu = fits.ImageHDU(data=self.data.transpose())
         ohdu.name = self.name
@@ -348,7 +344,7 @@ class Histogram:
         dims: (int,int)
             indices of which dimensions to draw
         kwargs:
-            arguments to pass to matplotlib `pcolormesh` command
+            arguments to pass to matplotlib `~matplotlib.pyplot.pcolormesh` command
         """
         from matplotlib import pyplot
 
@@ -377,7 +373,7 @@ class Histogram:
     def resample_inplace(self, nbins):
         """
         Change the shape of the histogram using an n-dimensional
-        interpolation function (via `ndimage.map_coordinates`).
+        interpolation function (via ``ndimage.map_coordinates``).
 
         Parameters
         ----------
@@ -402,6 +398,6 @@ class Histogram:
 
     @property
     def hist(self):
-        """ for backward compatibility. Use `Histogram.data` for read/write
+        """ for backward compatibility. Use ``Histogram.data`` for read/write
         access"""
         return self.data

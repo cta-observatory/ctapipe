@@ -6,9 +6,43 @@ from logging import getLogger
 from traitlets import TraitError
 from traitlets.config import Configurable
 
-from ctapipe.core.plugins import detect_and_import_io_plugins
+import warnings
+
 
 __all__ = ["non_abstract_children", "Component", "TelescopeComponent"]
+
+
+def find_config_in_hierarchy(parent, class_name, trait_name):
+    """
+    Find the value of a config item in the hierarchy by going up the hierarchy
+    from the parent and then down again to the child.
+    This is needed as parent.config is the full config and not the
+    config starting at the level of the parent.
+    """
+
+    config = parent.config
+
+    # find the path from the config root to the desired object
+    hierarchy = [class_name]
+    while parent is not None:
+        hierarchy.append(parent.__class__.__name__)
+        parent = parent.parent
+
+    hierarchy = list(reversed(hierarchy))
+
+    # go down to the config value searched
+
+    # root key is optional
+    root = hierarchy.pop(0)
+    if root in config:
+        subconfig = config[root]
+    else:
+        subconfig = config
+
+    for name in hierarchy:
+        subconfig = subconfig[name]
+
+    return subconfig[trait_name]
 
 
 def non_abstract_children(base):
@@ -48,17 +82,17 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
     Components are classes that are configurable via traitlets
     and setup a logger in the ctapipe logging hierarchy.
 
-    `traitlets` can validate values and provide defaults and
+    ``traitlets`` can validate values and provide defaults and
     descriptions. These will be automatically translated into
     configuration parameters (command-line, config file, etc). Note
     that any parameter that should be externally configurable must
-    have its `config` attribute set to `True`, e.g. defined like
-    `myparam = Integer(0, help='the parameter').tag(config=True)`.
+    have its ``config`` attribute set to ``True``, e.g. defined like
+    ``myparam = Integer(0, help='the parameter').tag(config=True)``.
 
-    All components also contain a `logger` instance in their `log`
+    All components also contain a ``Logger`` instance in their ``log``
     attribute, that you must use to output info, debugging data,
-    warnings, etc (do not use `print()` statements, instead use
-    `self.log.info()`, `self.log.warning()`, `self.log.debug()`, etc).
+    warnings, etc (do not use ``print()`` statements, instead use
+    ``self.log.info()``, ``self.log.warning()``, ``self.log.debug()``, etc).
 
     Components are generally used within `ctapipe.core.Tool`
     subclasses, which provide configuration handling and command-line
@@ -106,11 +140,6 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
                 " If you create a Component as part of another, give `parent=self`"
                 " and not `config`"
             )
-        super().__init__(parent=parent, config=config, **kwargs)
-
-        for key, value in kwargs.items():
-            if not self.has_trait(key):
-                raise TraitError(f"Traitlet does not exist: {key}")
 
         # set up logging (for some reason the logger registered by LoggingConfig
         # doesn't use a child logger of the parent by default)
@@ -120,6 +149,20 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
             self.log = getLogger(
                 self.__class__.__module__ + "." + self.__class__.__name__
             )
+
+        # Transform warning about wrong traitlets in the config to an error
+        # Only works for Components, unfortunately not for Tools, since
+        # Tools use `log.warning` instead of `warnings.warn`
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error", message=".*Config option.*not recognized")
+            try:
+                super().__init__(parent=parent, config=config, **kwargs)
+            except UserWarning as e:
+                raise TraitError(e) from None
+
+        for key in kwargs:
+            if not self.has_trait(key):
+                raise TraitError(f"Traitlet does not exist: {key}")
 
     @classmethod
     def from_name(cls, name, config=None, parent=None, **kwargs):
@@ -156,8 +199,6 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         get dict{name: cls} of non abstract subclasses,
         subclasses can possibly be definded in plugins
         """
-        detect_and_import_io_plugins()
-
         subclasses = {base.__name__: base for base in non_abstract_children(cls)}
         return subclasses
 
@@ -199,8 +240,9 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
 
 class TelescopeComponent(Component):
     """
-    A component that needs a SubarrayDescription to be constructed, and which
-    contains configurable `TelescopeParameters` that must be configured on construction.
+    A component that needs a `~ctapipe.instrument.SubarrayDescription` to be constructed,
+    and which contains configurable `~ctapipe.core.traits.TelescopeParameter` fields
+    that must be configured on construction.
     """
 
     def __init__(self, subarray, config=None, parent=None, **kwargs):

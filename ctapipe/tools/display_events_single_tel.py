@@ -12,11 +12,11 @@ is not a fast operation)
 
 from matplotlib import pyplot as plt
 from matplotlib.patches import Ellipse
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Tool
-from ctapipe.core.traits import Float, Dict, List, Path
+from ctapipe.core.traits import Float, Dict
 from ctapipe.core.traits import Unicode, Int, Bool
 from ctapipe.image import tailcuts_clean, hillas_parameters, HillasParameterizationError
 from ctapipe.io import EventSource
@@ -27,21 +27,24 @@ class SingleTelEventDisplay(Tool):
     name = "ctapipe-display-televents"
     description = Unicode(__doc__)
 
-    infile = Path(help="input file to read", exists=True, directory_ok=False).tag(
-        config=True
-    )
     tel = Int(help="Telescope ID to display", default_value=0).tag(config=True)
+
     write = Bool(help="Write out images to PNG files", default_value=False).tag(
         config=True
     )
+
     clean = Bool(help="Apply image cleaning", default_value=False).tag(config=True)
+
     hillas = Bool(
         help="Apply and display Hillas parametrization", default_value=False
     ).tag(config=True)
+
     samples = Bool(help="Show each sample", default_value=False).tag(config=True)
+
     display = Bool(
         help="Display results in interactive window", default_value=True
     ).tag(config=True)
+
     delay = Float(help="delay between events in s", default_value=0.01, min=0.001).tag(
         config=True
     )
@@ -49,7 +52,7 @@ class SingleTelEventDisplay(Tool):
 
     aliases = Dict(
         {
-            "infile": "SingleTelEventDisplay.infile",
+            "input": "EventSource.input_url",
             "tel": "SingleTelEventDisplay.tel",
             "max-events": "EventSource.max_events",
             "write": "SingleTelEventDisplay.write",
@@ -62,15 +65,13 @@ class SingleTelEventDisplay(Tool):
         }
     )
 
-    classes = List([EventSource, CameraCalibrator])
+    classes = [EventSource, CameraCalibrator]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
     def setup(self):
-        print("TOLLES INFILE", self.infile)
-        self.event_source = EventSource.from_url(self.infile, parent=self)
-        self.event_source.allowed_tels = {self.tel}
+        self.event_source = EventSource(parent=self, allowed_tels={self.tel})
 
         self.calibrator = CameraCalibrator(
             parent=self, subarray=self.event_source.subarray

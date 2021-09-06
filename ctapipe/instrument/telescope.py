@@ -14,21 +14,18 @@ Todo:
 
 """
 from .camera import CameraDescription
-from .guess import UNKNOWN_TELESCOPE, guess_telescope
+from .guess import unknown_telescope, guess_telescope
 from .optics import OpticsDescription
 from ..coordinates import CameraFrame
 
 
+__all__ = ["TelescopeDescription"]
+
+
 class TelescopeDescription:
     """
-    Describes a Cherenkov Telescope and it's associated `OpticsDescription` and
-    `CameraDescription`
-
-    The string representation is a combination of the optics and
-    camera, separated by a colon: "optics:camera" (e.g. "SST-1m:DigiCam")
-
-    The `TelescopeDescription.guess()` constructor can be used to fill in
-    info from metadata, e.g. for Monte-Carlo files.
+    Describes a Cherenkov Telescope and its associated
+    `~ctapipe.instrument.OpticsDescription` and `~ctapipe.instrument.CameraDescription`
 
     Parameters
     ----------
@@ -56,8 +53,7 @@ class TelescopeDescription:
         return hash((self.optics, self.camera))
 
     def __eq__(self, other):
-        """Make this hashable, so it can be used as dict keys or in sets"""
-        return hash(self) == hash(other)
+        return self.optics == other.optics and self.camera == other.camera
 
     @classmethod
     def from_name(cls, optics_name, camera_name):
@@ -88,7 +84,7 @@ class TelescopeDescription:
                 camera.geometry.n_pixels, optics.equivalent_focal_length
             )
         except ValueError:
-            result = UNKNOWN_TELESCOPE
+            result = unknown_telescope(optics.mirror_area, camera.geometry.n_pixels)
 
         return cls(name=result.name, tel_type=result.type, optics=optics, camera=camera)
 

@@ -4,10 +4,12 @@ import pytest
 from numpy.testing import assert_allclose, assert_equal
 from scipy.stats import norm
 from traitlets.config.loader import Config
+from traitlets.traitlets import TraitError
 
 from ctapipe.core import non_abstract_children
 from ctapipe.image.extractor import (
     extract_around_peak,
+    extract_sliding_window,
     neighbor_average_waveform,
     subtract_baseline,
     integration_correction,
@@ -16,8 +18,11 @@ from ctapipe.image.extractor import (
     NeighborPeakWindowSum,
     TwoPassWindowSum,
     FullWaveformSum,
+    SlidingWindowMaxSum,
 )
-from ctapipe.image.toymodel import WaveformModel
+from ctapipe.image.toymodel import (SkewedGaussian,
+                                    obtain_time_image,
+                                    WaveformModel)
 from ctapipe.instrument import SubarrayDescription, TelescopeDescription
 
 extractors = non_abstract_children(ImageExtractor)
@@ -57,6 +62,17 @@ def subarray():
     return subarray
 
 
+@pytest.fixture(scope="module")
+def subarray_1_LST():
+    subarray = SubarrayDescription("One LST",
+                tel_positions={1: np.zeros(3) * u.m},
+                tel_descriptions={1: TelescopeDescription.from_name(
+                    optics_name="LST", camera_name="LSTCam"
+                    ),
+                },
+               )
+    return subarray
+
 def get_test_toymodel(subarray, minCharge=100, maxCharge=1000):
     telid = list(subarray.tel.keys())[0]
     n_pixels = subarray.tel[telid].camera.geometry.n_pixels
@@ -71,7 +87,7 @@ def get_test_toymodel(subarray, minCharge=100, maxCharge=1000):
     waveform_model = WaveformModel.from_camera_readout(readout)
     waveform = waveform_model.get_waveform(charge, time, n_samples)
 
-    selected_gain_channel = np.zeros(charge.size, dtype=np.int)
+    selected_gain_channel = np.zeros(charge.size, dtype=np.int64)
 
     return waveform, subarray, telid, selected_gain_channel, charge, time
 
@@ -85,7 +101,7 @@ def test_extract_around_peak(toymodel):
     waveforms, _, _, _, _, _ = toymodel
     n_pixels, n_samples = waveforms.shape
     rand = np.random.RandomState(1)
-    peak_index = rand.uniform(0, n_samples, n_pixels).astype(np.int)
+    peak_index = rand.uniform(0, n_samples, n_pixels).astype(np.int64)
     charge, peak_time = extract_around_peak(waveforms, peak_index, 7, 3, 1)
     assert (charge >= 0).all()
     assert (peak_time >= 0).all() and (peak_time <= n_samples).all()
@@ -99,6 +115,26 @@ def test_extract_around_peak(toymodel):
     # Test negative amplitude
     y_offset = y - y.max() / 2
     charge, _ = extract_around_peak(y_offset[np.newaxis, :], 0, x.size, 0, 1)
+    assert_allclose(charge, y_offset.sum(), rtol=1e-3)
+    assert charge.dtype == np.float32
+
+
+def test_extract_sliding_window(toymodel):
+    waveforms, _, _, _, _, _ = toymodel
+    n_pixels, n_samples = waveforms.shape
+    charge, peak_time = extract_sliding_window(waveforms, 7, 1)
+    assert (charge >= 0).all()
+    assert (peak_time >= 0).all() and (peak_time <= n_samples).all()
+
+    x = np.arange(100)
+    y = norm.pdf(x, 41.2, 6)
+    charge, peak_time = extract_sliding_window(y[np.newaxis, :], x.size, 1)
+    assert_allclose(charge[0], 1.0, rtol=1e-3)
+    assert_allclose(peak_time[0], 41.2, rtol=1e-3)
+
+    # Test negative amplitude
+    y_offset = y - y.max() / 2
+    charge, _ = extract_sliding_window(y_offset[np.newaxis, :], x.size, 1)
     assert_allclose(charge, y_offset.sum(), rtol=1e-3)
     assert charge.dtype == np.float32
 
@@ -289,6 +325,15 @@ def test_fixed_window_sum(toymodel):
     assert_allclose(peak_time, true_time, rtol=0.1)
 
 
+def test_sliding_window_max_sum(toymodel):
+    waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
+    extractor = SlidingWindowMaxSum(subarray=subarray)
+    charge, peak_time = extractor(waveforms, telid, selected_gain_channel)
+    print(true_charge, charge, true_time, peak_time)
+    assert_allclose(charge, true_charge, rtol=0.1)
+    assert_allclose(peak_time, true_time, rtol=0.1)
+
+
 def test_neighbor_peak_window_sum_lwt(toymodel):
     waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
     extractor = NeighborPeakWindowSum(subarray=subarray, lwt=4)
@@ -298,24 +343,107 @@ def test_neighbor_peak_window_sum_lwt(toymodel):
     assert_allclose(peak_time, true_time, rtol=0.1)
 
 
-def test_two_pass_window_sum(subarray):
-    extractor = TwoPassWindowSum(subarray=subarray)
-    min_charges = [1, 10, 100]
-    max_charges = [10, 100, 1000]
-    for minCharge, maxCharge in zip(min_charges, max_charges):
-        toymodel = get_test_toymodel(subarray, minCharge, maxCharge)
-        (
-            waveforms,
-            subarray,
-            telid,
-            selected_gain_channel,
-            true_charge,
-            true_time,
-        ) = toymodel
-        charge, pulse_time = extractor(waveforms, telid, selected_gain_channel)
-        assert_allclose(charge, true_charge, rtol=0.1)
-        assert_allclose(pulse_time, true_time, rtol=0.1)
+def test_Two_pass_window_sum_no_noise(subarray_1_LST):
 
+    rng = np.random.default_rng(0)
+
+    subarray = subarray_1_LST
+
+    camera = subarray.tel[1].camera
+    geometry = camera.geometry
+    readout = camera.readout
+    sampling_rate = readout.sampling_rate.to_value("GHz")
+    n_samples = 30  # LSTCam & NectarCam specific
+    max_time_readout = (n_samples / sampling_rate) * u.ns
+
+    # True image settings
+    x = 0. * u.m
+    y = 0. * u.m
+    length = 0.2 * u.m
+    width = 0.05 * u.m
+    psi = 45.0 * u.deg
+    skewness = 0.
+    # build the true time evolution in a way that
+    # the whole image is about the readout window
+    time_gradient = u.Quantity(max_time_readout.value / length.value, u.ns / u.m)
+    time_intercept = u.Quantity(max_time_readout.value / 2, u.ns)
+    intensity = 600
+    nsb_level_pe = 0
+
+    # create the image
+    m = SkewedGaussian(x, y, length, width, psi, skewness)
+    true_charge, true_signal, true_noise = m.generate_image(geometry,
+                                                            intensity=intensity,
+                                                            nsb_level_pe=nsb_level_pe,
+                                                            rng=rng)
+    signal_pixels = true_signal > 2
+    # create a pulse-times image without noise
+    # we can make new functions later
+    time_noise = rng.uniform(0, 0, geometry.n_pixels)
+    time_signal = obtain_time_image(geometry.pix_x,
+                                    geometry.pix_y,
+                                    x,
+                                    y,
+                                    psi,
+                                    time_gradient,
+                                    time_intercept)
+
+    true_charge[(time_signal < 0) | (time_signal > (n_samples / sampling_rate))] = 0
+
+    true_time = np.average(
+        np.column_stack([time_noise, time_signal]),
+        weights=np.column_stack([true_noise, true_signal]) + 1,
+        axis=1
+    )
+
+    # Define the model for the waveforms to fill with the information from
+    # the simulated image
+    waveform_model = WaveformModel.from_camera_readout(readout)
+    waveforms = waveform_model.get_waveform(true_charge, true_time, n_samples)
+    selected_gain_channel = np.zeros(true_charge.size, dtype=np.int64)
+
+    # Define the extractor
+    extractor = TwoPassWindowSum(subarray=subarray)
+
+    # Select the signal pixels for which the integration window is well inside
+    # the readout window (in this case we should require more accuracy)
+    true_peaks = np.rint(true_time * sampling_rate).astype(np.int64)
+
+    # integration of 5 samples centered on peak + 1 sample of error
+    # to not be really on the edge
+    min_good_sample = 2 + 1
+    max_good_sample = n_samples - 1 - min_good_sample
+    integration_window_inside = (true_peaks >= min_good_sample) & (true_peaks < max_good_sample)
+
+    # Test only the 1st pass
+    extractor.disable_second_pass = True
+    charge_1, pulse_time_1 = extractor(waveforms, 1, selected_gain_channel)
+    assert_allclose(charge_1[signal_pixels & integration_window_inside],
+                    true_charge[signal_pixels & integration_window_inside], rtol=0.15)
+    assert_allclose(pulse_time_1[signal_pixels & integration_window_inside],
+                    true_time[signal_pixels & integration_window_inside], rtol=0.15)
+
+    # Test also the 2nd pass
+    extractor.disable_second_pass = False
+    charge_2, pulse_time_2 = extractor(waveforms, 1, selected_gain_channel)
+
+    # Check that we have gained signal charge by using the 2nd pass
+    # This also checks that the test image has triggered the 2nd pass
+    # (i.e. it is not so bad to have <3 pixels in the preliminary cleaned image)
+    reco_charge1 = np.sum(charge_1[signal_pixels & integration_window_inside])
+    reco_charge2 = np.sum(charge_2[signal_pixels & integration_window_inside])
+    # since there is no noise in this test, 1st pass will find the peak and 2nd
+    # can at most to the same
+    assert (reco_charge2 / reco_charge1) < 1
+
+    # Test only signal pixels for which it is expected to find most of the
+    # charge well inside the readout window
+    assert_allclose(charge_2[signal_pixels & integration_window_inside],
+                    true_charge[signal_pixels & integration_window_inside],
+                    rtol=0.3, atol = 2.0)
+    assert_allclose(pulse_time_2[signal_pixels & integration_window_inside],
+                    true_time[signal_pixels & integration_window_inside],
+                    rtol=0.3, atol = 2.0)
 
 def test_waveform_extractor_factory(toymodel):
     waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
@@ -337,7 +465,9 @@ def test_waveform_extractor_factory_args(subarray):
     assert extractor.window_width.tel[None] == 20
     assert extractor.window_shift.tel[None] == 3
 
-    with pytest.warns(UserWarning):
+    # this basically tests that traitlets do not accept unknown traits,
+    # which is tested for all traitlets in the core tests already
+    with pytest.raises(TraitError):
         ImageExtractor.from_name("FullWaveformSum", config=config, subarray=subarray)
 
 

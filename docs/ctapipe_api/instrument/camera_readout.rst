@@ -11,21 +11,21 @@ shape.
 
 There are several ways to obtain a `CameraReadout`:
 
-* Through the `SubarrayDescription` of an `EventSource`
+* Through the `SubarrayDescription` of an `~ctapipe.io.EventSource`
 
 * use the `CameraReadout` constructor, where one has to specify all
   necessary information
 
-* use `CameraReadout.from_name(telescope, revision)` (ex: `readout =
-  CameraReadout.from_name('HESS',1)`).  This reads the telescope def
-  from the `$CTAPIPE_EXTRA` directory
+* use ``CameraReadout.from_name(telescope, revision)`` (ex: ``readout =
+  CameraReadout.from_name('HESS', 1)``).  This tries to read the corresponding data
+  from through the service data utilities.
 
 * load it from a pre-written file (which can be in any format
-  supported by `astropy.table`, as long as that format allows for
+  supported by ``astropy.table.Table``, as long as that format allows for
   header-keywords as well as table entries.
 
 
-`CameraReadout` is used by the `ImageExtractor` in the `ctapipe.image` module
+`CameraReadout` is used by the `~ctapipe.image.extractor.ImageExtractor` in the `ctapipe.image` module
 to ensure the images are scaled to the correct units.
 
 Input/Output
@@ -33,8 +33,8 @@ Input/Output
 
 
 You can write out a `CameraReadout` by using the `CameraReadout.to_table()`
- method to turn it into an `astropy.table.Table`, and then call its `write()`
-  function.  Reading it back in can be done with `CameraReadout.from_table()`
+ method to turn it into an ``astropy.table.Table``, and then call its ``write()``
+  function.  Reading it back in can be done with ``CameraReadout.from_table()``
 
 .. code-block:: python
 
@@ -49,3 +49,10 @@ You can write out a `CameraReadout` by using the `CameraReadout.to_table()`
    readout = CameraReadout.from_table('mycam.ecsv', format='ascii.ecsv')
    readout = CameraReadout.from_table('mycam.fits.gz')
    readout = CameraReadout.from_table('mycam.h5', path='/cameras/mycam')
+
+
+Reference/API
+=============
+
+.. automodapi:: ctapipe.instrument.camera.readout
+    :no-inheritance-diagram:

@@ -9,7 +9,7 @@ import numpy as np
 from astropy.units import Quantity
 from numba import njit
 
-from ..containers import HillasParametersContainer
+from ..containers import CameraHillasParametersContainer, HillasParametersContainer
 
 HILLAS_ATOL = np.finfo(np.float64).eps
 
@@ -131,17 +131,32 @@ def hillas_parameters(geom, image):
             "intensity=0, cannot calculate HillasParameters"
         )
 
+    if unit.is_equivalent(u.m):
+        return CameraHillasParametersContainer(
+            x=u.Quantity(cog_x, unit),
+            y=u.Quantity(cog_y, unit),
+            r=u.Quantity(cog_r, unit),
+            phi=Angle(cog_phi, unit=u.rad),
+            intensity=size,
+            length=u.Quantity(length, unit),
+            length_uncertainty=u.Quantity(length_uncertainty, unit),
+            width=u.Quantity(width, unit),
+            width_uncertainty=u.Quantity(width_uncertainty, unit),
+            psi=Angle(psi, unit=u.rad),
+            skewness=skewness_long,
+            kurtosis=kurtosis_long,
+        )
     return HillasParametersContainer(
-        x=u.Quantity(cog_x, unit),
-        y=u.Quantity(cog_y, unit),
+        fov_lon=u.Quantity(cog_x, unit),
+        fov_lat=u.Quantity(cog_y, unit),
         r=u.Quantity(cog_r, unit),
-        phi=u.Quantity(cog_phi, unit=u.rad),
+        phi=Angle(cog_phi, unit=u.rad),
         intensity=size,
         length=u.Quantity(length, unit),
         length_uncertainty=u.Quantity(length_uncertainty, unit),
         width=u.Quantity(width, unit),
         width_uncertainty=u.Quantity(width_uncertainty, unit),
-        psi=u.Quantity(psi_rad, unit=u.rad),
+        psi=Angle(psi, unit=u.rad),
         skewness=skewness_long,
         kurtosis=kurtosis_long,
     )
@@ -241,6 +256,7 @@ def hillas_parameters_fast(pix_x, pix_y, image):
     vx, vy = eig_vecs[0, 1], eig_vecs[1, 1]
 
     # avoid divide by 0 warnings
+    # psi will be consistently defined in the range (-pi/2, pi/2)
     if length == 0:
         psi_rad = skewness_long = kurtosis_long = np.nan
     else:

@@ -6,6 +6,13 @@ import warnings
 import numpy as np
 from astropy.units import UnitConversionError, Quantity, Unit
 
+import logging
+
+
+log = logging.getLogger(__name__)
+
+__all__ = ["Container", "Field", "FieldValidationError", "Map"]
+
 
 class FieldValidationError(ValueError):
     pass
@@ -13,21 +20,24 @@ class FieldValidationError(ValueError):
 
 class Field:
     """
-    Class for storing data in `Containers`.
+    Class for storing data in a `Container`.
 
     Parameters
     ----------
     default:
         default value of the item (this will be set when the `Container`
-        is constructed, as well as when  `Container.reset()` is called
+        is constructed, as well as when  ``Container.reset`` is called
     description: str
         Help text associated with the item
     unit: str or astropy.units.core.UnitBase
         unit to convert to when writing output, or None for no conversion
     ucd: str
         universal content descriptor (see Virtual Observatory standards)
+    type: type
+        expected type of value
     dtype: str or np.dtype
         expected data type of the value, None to ignore in validation.
+        Means value is expected to be a numpy array or astropy quantity
     ndim: int or None
         expected dimensionality of the data, for arrays, None to ignore
     allow_none:
@@ -41,6 +51,7 @@ class Field:
         unit=None,
         ucd=None,
         dtype=None,
+        type=None,
         ndim=None,
         allow_none=True,
     ):
@@ -50,6 +61,7 @@ class Field:
         self.unit = Unit(unit) if unit is not None else None
         self.ucd = ucd
         self.dtype = np.dtype(dtype) if dtype is not None else None
+        self.type = type
         self.ndim = ndim
         self.allow_none = allow_none
 
@@ -83,6 +95,11 @@ class Field:
             return
 
         errorstr = f"the value '{value}' ({type(value)}) is invalid: "
+
+        if self.type is not None and not isinstance(value, self.type):
+            raise FieldValidationError(
+                f"{errorstr} Should be an instance of {self.type}"
+            )
 
         if self.unit is not None:
             if not isinstance(value, Quantity):
@@ -131,7 +148,7 @@ class DeprecatedField(Field):
 
 class ContainerMeta(type):
     """
-    The MetaClass for the Containers
+    The MetaClass for `Container`
 
     It reserves __slots__ for every class variable,
     that is of instance `Field` and sets all other class variables
@@ -175,11 +192,11 @@ class Container(metaclass=ContainerMeta):
     such as a description, defaults, and units for each item in the
     container.
 
-    Containers can transform the data into a `dict` using the `
-    Container.as_dict()` method.  This allows them to be written to an
+    Containers can transform the data into a `dict` using the
+    ``as_dict`` method.  This allows them to be written to an
     output table for example, where each Field defines a column. The
     `dict` conversion can be made recursively and even flattened so
-    that a nested set of `Containers` can be translated into a set of
+    that a nested set of `Containers <Container>`_ can be translated into a set of
     columns in a flat table without naming conflicts (the name of the
     parent Field is pre-pended).
 
@@ -187,28 +204,30 @@ class Container(metaclass=ContainerMeta):
     For hierarchical data structures, Field can use `Container`
     subclasses or a `Map` as the default value.
 
-    >>>    class MyContainer(Container):
-    >>>        x = Field(100,"The X value")
-    >>>        energy = Field(-1, "Energy measurement", unit=u.TeV)
-    >>>
-    >>>    cont = MyContainer()
-    >>>    print(cont.x)
-    >>>    # metadata will become header keywords in an output file:
-    >>>    cont.meta['KEY'] = value
+    >>> import astropy.units as u
+    >>> class MyContainer(Container):
+    ...     x = Field(100, "The X value")
+    ...     energy = Field(-1, "Energy measurement", unit=u.TeV)
+    ...
+    >>> cont = MyContainer()
+    >>> print(cont.x)
+    100
+    >>> # metadata will become header keywords in an output file:
+    >>> cont.meta["KEY"] = "value"
 
-    `Field`s inside `Containers` can contain instances of other
-    `Containers`, to allow for a hierarchy of containers, and can also
+    `Fields <Field>`_ inside `Containers <Container>`_ can contain instances of other
+    containers, to allow for a hierarchy of containers, and can also
     contain a `Map` for the case where one wants e.g. a set of
-    sub-classes indexed by a value like the `telescope_id`. Examples
+    sub-classes indexed by a value like the ``telescope_id``. Examples
     of this can be found in `ctapipe.containers`
 
-    `Containers` work by shadowing all class variables (which must be
-    instances of `Field`) with instance variables of the same name the
-    hold the value expected. If `Container.reset()` is called, all
+    `Container` works by shadowing all class variables (which must be
+    instances of `Field`) with instance variables of the same name that
+    hold the actual data. If ``reset`` is called, all
     instance variables are reset to their default values as defined in
     the class.
 
-    Finally, `Containers` can have associated metadata via their
+    Finally, a Container can have associated metadata via its
     `meta` attribute, which is a `dict` of keywords to values.
 
     """
@@ -221,7 +240,13 @@ class Container(metaclass=ContainerMeta):
         self.prefix = self.container_prefix
 
         for k in set(self.fields).difference(fields):
-            setattr(self, k, deepcopy(self.fields[k].default))
+
+            # deepcopy of None is surprisingly slow
+            default = self.fields[k].default
+            if default is not None:
+                default = deepcopy(default)
+
+            setattr(self, k, default)
 
         for k, v in fields.items():
             setattr(self, k, v)
@@ -249,7 +274,7 @@ class Container(metaclass=ContainerMeta):
 
     def as_dict(self, recursive=False, flatten=False, add_prefix=False):
         """
-        convert the `Container` into a dictionary
+        Convert the `Container` into a dictionary
 
         Parameters
         ----------
@@ -285,7 +310,15 @@ class Container(metaclass=ContainerMeta):
             return d
 
     def reset(self, recursive=True):
-        """ set all values back to their default values"""
+        """
+        Reset all values back to their default values
+
+        Parameters
+        ----------
+        recursive: bool
+            If true, also reset all sub-containers
+        """
+
         for name, value in self.fields.items():
             if isinstance(value, Container):
                 if recursive:
@@ -340,7 +373,7 @@ class Container(metaclass=ContainerMeta):
 class Map(defaultdict):
     """A dictionary of sub-containers that can be added to a Container. This
     may be used e.g. to store a set of identical sub-Containers (e.g. indexed
-    by `tel_id` or algorithm name).
+    by ``tel_id`` or algorithm name).
     """
 
     def as_dict(self, recursive=False, flatten=False, add_prefix=False):
@@ -368,6 +401,7 @@ class Map(defaultdict):
             return d
 
     def reset(self, recursive=True):
+        """Calls all ``Container.reset`` for all values in the Map"""
         for val in self.values():
             if isinstance(val, Container):
                 val.reset(recursive=recursive)

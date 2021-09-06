@@ -7,7 +7,9 @@ import pathlib
 
 from ctapipe.core import Component, TelescopeComponent
 from ctapipe.core.traits import (
+    List,
     Float,
+    Bool,
     Path,
     TraitError,
     classes_with_traits,
@@ -19,6 +21,7 @@ from ctapipe.core.traits import (
     AstroTime,
 )
 from ctapipe.image import ImageExtractor
+from ctapipe.utils.datasets import get_dataset_path, DEFAULT_URL
 
 
 @pytest.fixture(scope="module")
@@ -34,6 +37,40 @@ def mock_subarray():
         "MST_MST_FlashCam",
     ]
     return subarray
+
+
+def test_path_allow_none_false():
+    class C(Component):
+        path = Path(allow_none=False)
+
+    c = C()
+
+    # accessing path is now an error
+    with pytest.raises(TraitError):
+        c.path
+
+    # setting to None should also fail
+    with pytest.raises(TraitError):
+        c.path = None
+
+    c.path = "foo.txt"
+    assert c.path == pathlib.Path("foo.txt").absolute()
+
+
+def test_path_allow_none_true(tmp_path):
+    class C(Component):
+        path = Path(exists=True, allow_none=True, default_value=None)
+
+    c = C()
+    assert c.path is None
+
+    with open(tmp_path / "foo.txt", "w"):
+        pass
+
+    c.path = tmp_path / "foo.txt"
+
+    c.path = None
+    assert c.path is None
 
 
 def test_path_exists():
@@ -80,15 +117,6 @@ def test_bytes():
     c1 = C1()
     c1.p = b"/home/foo"
     assert c1.p == pathlib.Path("/home/foo")
-
-
-def test_path_none():
-    class C1(Component):
-        thepath = Path(exists=False)
-
-    c1 = C1()
-    c1.thepath = "foo"
-    c1.thepath = None
 
 
 def test_path_directory_ok():
@@ -151,9 +179,13 @@ def test_path_url():
     c.thepath = "file:///foo.hdf5"
     assert c.thepath == pathlib.Path("/foo.hdf5")
 
-    # test not other shemes raise trailet errors
-    with pytest.raises(TraitError):
-        c.thepath = "https://example.org/test.hdf5"
+    # test http downloading
+    c.thepath = DEFAULT_URL + "optics.ecsv.txt"
+    assert c.thepath.name == "optics.ecsv.txt"
+
+    # test dataset://
+    c.thepath = "dataset://optics.ecsv.txt"
+    assert c.thepath == get_dataset_path("optics.ecsv.txt")
 
 
 def test_enum_trait_default_is_right():
@@ -178,6 +210,30 @@ def test_enum_classes_with_traits():
     """ test that we can get a list of classes that have traits """
     list_of_classes = classes_with_traits(ImageExtractor)
     assert list_of_classes  # should not be empty
+
+
+def test_classes_with_traits():
+    from ctapipe.core import Tool
+
+    class CompA(Component):
+        a = Int().tag(config=True)
+
+    class CompB(Component):
+        classes = List([CompA])
+        b = Int().tag(config=True)
+
+    class CompC(Component):
+        c = Int().tag(config=True)
+
+    class MyTool(Tool):
+        classes = [CompB, CompC]
+
+    with_traits = classes_with_traits(MyTool)
+    assert len(with_traits) == 4
+    assert MyTool in with_traits
+    assert CompA in with_traits
+    assert CompB in with_traits
+    assert CompC in with_traits
 
 
 def test_has_traits():
@@ -290,7 +346,9 @@ def test_telescope_parameter_path(mock_subarray):
     # test with none default:
     class SomeComponent(TelescopeComponent):
         path = TelescopeParameter(
-            Path(exists=True, directory_ok=False), default_value=None, allow_none=True
+            Path(exists=True, directory_ok=False, allow_none=True, default_value=None),
+            default_value=None,
+            allow_none=True,
         )
 
     s = SomeComponent(subarray=mock_subarray)
@@ -431,6 +489,54 @@ def test_telescope_parameter_to_config(mock_subarray):
     component.tel_param1 = 6.0
     config = component.get_current_config()
     assert config["SomeComponent"]["tel_param1"] == [("type", "*", 6.0)]
+
+
+def test_telescope_parameter_from_cli(mock_subarray):
+    """
+    Test we can pass single default for telescope components via cli
+    see #1559
+    """
+
+    from ctapipe.core import Tool, run_tool
+
+    class SomeComponent(TelescopeComponent):
+        path = TelescopeParameter(
+            Path(allow_none=True, default_value=None), default_value=None
+        ).tag(config=True)
+        val = TelescopeParameter(Float(), default_value=1.0).tag(config=True)
+        flag = TelescopeParameter(Bool(), default_value=True).tag(config=True)
+
+    # test with and without SomeComponent in classes
+    for tool_classes in [[], [SomeComponent]]:
+
+        class TelescopeTool(Tool):
+            classes = tool_classes
+
+            def setup(self):
+                self.comp = SomeComponent(subarray=mock_subarray, parent=self)
+
+        tool = TelescopeTool()
+        assert run_tool(tool) == 0
+        assert tool.comp.path == [("type", "*", None)]
+        assert tool.comp.val == [("type", "*", 1.0)]
+        assert tool.comp.flag == [("type", "*", True)]
+
+        tool = TelescopeTool()
+        result = run_tool(
+            tool,
+            [
+                "--SomeComponent.path",
+                "test.h5",
+                "--SomeComponent.val",
+                "2.0",
+                "--SomeComponent.flag",
+                "False",
+            ],
+        )
+        assert result == 0
+        assert tool.comp.path == [("type", "*", pathlib.Path("test.h5").absolute())]
+        assert tool.comp.val == [("type", "*", 2.0)]
+        assert tool.comp.flag == [("type", "*", False)]
 
 
 def test_datetimes():

@@ -25,11 +25,16 @@ them (as in `Activity.from_provenance()`)
 import uuid
 import warnings
 from collections import OrderedDict
+import os
+import pwd
 
-from traitlets import Enum, Unicode, Int, HasTraits, default, Instance
+from astropy.time import Time
+from tables import NaturalNameWarning
+from traitlets import Enum, Instance, List, Unicode, default, HasTraits
+from traitlets.config import Configurable
 
-from ctapipe.core.provenance import _ActivityProvenance
-from ctapipe.core.traits import AstroTime
+from ..core.traits import AstroTime
+from .datalevels import DataLevel
 
 __all__ = [
     "Reference",
@@ -41,18 +46,27 @@ __all__ = [
     "write_to_hdf5",
 ]
 
-from astropy.time import Time
+
+CONVERSIONS = {Time: lambda t: t.utc.iso, list: str}
 
 
-CONVERSIONS = {Time: lambda t: t.utc.iso}
-
-
-class Contact(HasTraits):
+class Contact(Configurable):
     """ Contact information """
 
-    name = Unicode("unknown")
-    email = Unicode("unknown")
-    organization = Unicode("unknown")
+    name = Unicode("unknown").tag(config=True)
+    email = Unicode("unknown").tag(config=True)
+    organization = Unicode("unknown").tag(config=True)
+
+    @default("name")
+    def default_name(self):
+        """ if no name specified, use the system's user name"""
+        try:
+            return pwd.getpwuid(os.getuid()).pw_gecos
+        except RuntimeError:
+            return ""
+
+    def __repr__(self):
+        return f"Contact(name={self.name}, email={self.email}, organization={self.organization})"
 
 
 class Product(HasTraits):
@@ -61,10 +75,8 @@ class Product(HasTraits):
     description = Unicode("unknown")
     creation_time = AstroTime()
     id_ = Unicode(help="leave unspecified to automatically generate a UUID")
-    data_category = Enum(["S", "A", "B", "C", "Other"], "Other")
-    data_level = Enum(
-        ["R0", "R1", "DL0", "DL1", "DL2", "DL3", "DL4", "DL5", "DL6", "Other"], "Other"
-    )
+    data_category = Enum(["Sim", "A", "B", "C", "Other"], "Other")
+    data_level = List(Enum([level.name for level in DataLevel]))
     data_association = Enum(["Subarray", "Telescope", "Target", "Other"], "Other")
     data_model_name = Unicode("unknown")
     data_model_version = Unicode("unknown")
@@ -88,14 +100,14 @@ class Process(HasTraits):
 
     type_ = Enum(["Observation", "Simulation", "Other"], "Other")
     subtype = Unicode("")
-    id_ = Int()
+    id_ = Unicode("")
 
 
 class Activity(HasTraits):
     """ Activity (tool) information """
 
     @classmethod
-    def from_provenance(cls, activity: _ActivityProvenance):
+    def from_provenance(cls, activity):
         """ construct Activity metadata from existing ActivityProvenance object"""
         return Activity(
             name=activity["activity_name"],
@@ -167,9 +179,13 @@ def _to_dict(hastraits_instance, prefix=""):
     """
     res = {}
 
-    for k, tr in hastraits_instance.traits().items():
+    ignore = {"parent", "config"}
+    for k, trait in hastraits_instance.traits().items():
+        if k in ignore:
+            continue
+
         key = (prefix + k.upper().replace("_", " ")).replace("  ", " ").strip()
-        val = tr.get(hastraits_instance)
+        val = trait.get(hastraits_instance)
 
         # apply type conversions
         val = CONVERSIONS.get(type(val), lambda v: v)(val)
@@ -192,7 +208,7 @@ class Reference(HasTraits):
         """
         convert Reference metadata to a flat dict.
 
-        If `fits=True`, this will include the `HIERARCH` keyword in front.
+        If ``fits=True``, this will include the ``HIERARCH`` keyword in front.
         """
         prefix = "CTA " if fits is False else "HIERARCH CTA "
 
@@ -216,8 +232,6 @@ def write_to_hdf5(metadata, h5file):
     h5file: tables.file.File
         pytables filehandle
     """
-    from tables import NaturalNameWarning
-
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", NaturalNameWarning)
         for key, value in metadata.items():

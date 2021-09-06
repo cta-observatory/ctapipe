@@ -1,10 +1,8 @@
 """ Tests for CameraGeometry """
 import numpy as np
 from astropy import units as u
-from ctapipe.instrument import CameraDescription, CameraGeometry, PixelShape
+from ctapipe.instrument import CameraGeometry, PixelShape
 import pytest
-
-camera_names = CameraDescription.get_known_camera_names()
 
 
 def test_construct():
@@ -93,15 +91,13 @@ def test_find_neighbor_pixels():
     assert set(neigh[11]) == {16, 6, 10, 12}
 
 
-@pytest.mark.parametrize("camera_name", camera_names)
-def test_neighbor_pixels(camera_name):
+def test_neighbor_pixels(camera_geometry):
     """
     test if each camera has a reasonable number of neighbor pixels (4 for
     rectangular, and 6 for hexagonal.  Other than edge pixels, the majority
     should have the same value
     """
-
-    geom = CameraGeometry.from_name(camera_name)
+    geom = camera_geometry
     n_pix = len(geom.pix_id)
     n_neighbors = [len(x) for x in geom.neighbors]
 
@@ -116,7 +112,7 @@ def test_neighbor_pixels(camera_name):
 
     # whipple has inhomogenious pixels that mess with pixel neighborhood
     # calculation
-    if camera_name != "Whipple490":
+    if not geom.camera_name.startswith("Whipple"):
         assert np.all(geom.neighbor_matrix == geom.neighbor_matrix.T)
         assert n_neighbors.count(1) == 0  # no pixel should have a single neighbor
 
@@ -229,15 +225,13 @@ def test_slicing():
     assert len(sliced2.pix_x) == 5
 
 
-@pytest.mark.parametrize("camera_name", camera_names)
-def test_slicing_rotation(camera_name):
+def test_slicing_rotation(camera_geometry):
     """ Check that we can rotate and slice """
-    cam = CameraGeometry.from_name(camera_name)
-    cam.rotate("25d")
+    camera_geometry.rotate("25d")
 
-    sliced1 = cam[5:10]
+    sliced1 = camera_geometry[5:10]
 
-    assert sliced1.pix_x[0] == cam.pix_x[5]
+    assert sliced1.pix_x[0] == camera_geometry.pix_x[5]
 
 
 def test_rectangle_patch_neighbors():
@@ -296,19 +290,17 @@ def test_hashing():
     assert len(set([cam1, cam2, cam3])) == 2
 
 
-@pytest.mark.parametrize("camera_name", camera_names)
-def test_camera_from_name(camera_name):
+def test_camera_from_name(camera_geometry):
     """ check we can construct all cameras from name"""
-    camera = CameraGeometry.from_name(camera_name)
-    assert str(camera) == camera_name
+    camera = CameraGeometry.from_name(camera_geometry.camera_name)
+    assert str(camera) == camera_geometry.camera_name
 
 
-@pytest.mark.parametrize("camera_name", camera_names)
-def test_camera_coordinate_transform(camera_name):
+def test_camera_coordinate_transform(camera_geometry):
     """test conversion of the coordinates stored in a camera frame"""
     from ctapipe.coordinates import EngineeringCameraFrame, CameraFrame, TelescopeFrame
 
-    geom = CameraGeometry.from_name(camera_name)
+    geom = camera_geometry
     trans_geom = geom.transform_to(EngineeringCameraFrame())
 
     unit = geom.pix_x.unit

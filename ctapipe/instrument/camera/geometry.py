@@ -4,7 +4,6 @@ Utilities for reading or working with Camera geometry files
 """
 import logging
 import warnings
-from typing import TypeVar
 
 import numpy as np
 from astropy import units as u
@@ -16,24 +15,36 @@ from scipy.sparse import lil_matrix, csr_matrix
 from scipy.spatial import cKDTree as KDTree
 
 from ctapipe.coordinates import CameraFrame
+from .image_conversion import (
+    unskew_hex_pixel_grid,
+    get_orthogonal_grid_edges,
+    get_orthogonal_grid_indices,
+)
 from ctapipe.utils import get_table_dataset
 from ctapipe.utils.linalg import rotation_matrix_2d
 from enum import Enum, unique
 
-__all__ = ["CameraGeometry", "UnknownPixelShapeWarning"]
+__all__ = ["CameraGeometry", "UnknownPixelShapeWarning", "PixelShape"]
 
 logger = logging.getLogger(__name__)
-CG = TypeVar("CG", bound="CameraGeometry")  # for forward-referencing type hints
 
 
 @unique
 class PixelShape(Enum):
+    """Supported Pixel Shapes Enum"""
+
     CIRCLE = "circle"
     SQUARE = "square"
     HEXAGON = "hexagon"
 
     @classmethod
     def from_string(cls, name):
+        """
+        Convert a string represenation to the enum value
+
+        This function supports abbreviations and for backwards compatibility
+        "rect" as alias for "square".
+        """
         name = name.lower()
 
         if name.startswith("hex"):
@@ -48,7 +59,7 @@ class PixelShape(Enum):
         raise TypeError(f"Unknown pixel shape {name}")
 
 
-#: mapper from simtel pixel shape integerrs to our shape and rotation angle
+#: mapper from simtel pixel shape integers to our shape and rotation angle
 SIMTEL_PIXEL_SHAPES = {
     0: (PixelShape.CIRCLE, Angle(0, u.deg)),
     1: (PixelShape.HEXAGON, Angle(0, u.deg)),
@@ -69,12 +80,6 @@ class CameraGeometry:
     The class is intended to be generic, and work with any Cherenkov
     Camera geometry, including those that have square vs hexagonal
     pixels, gaps between pixels, etc.
-
-    You can construct a CameraGeometry either by specifying all data,
-    or using the `CameraGeometry.guess()` constructor, which takes metadata
-    like the pixel positions and telescope focal length to look up the rest
-    of the data. Note that this function is memoized, so calling it multiple
-    times with the same inputs will give back the same object (for speed).
 
     Parameters
     ----------
@@ -115,7 +120,6 @@ class CameraGeometry:
         apply_derotation=True,
         frame=None,
     ):
-
         if pix_x.ndim != 1 or pix_y.ndim != 1:
             raise ValueError(
                 f"Pixel coordinates must be 1 dimensional, got {pix_x.ndim}"
@@ -137,8 +141,16 @@ class CameraGeometry:
         self.pix_y = pix_y
         self.pix_area = pix_area
         self.pix_type = pix_type
-        self.pix_rotation = Angle(pix_rotation)
-        self.cam_rotation = Angle(cam_rotation)
+
+        if not isinstance(pix_rotation, Angle):
+            pix_rotation = Angle(pix_rotation)
+
+        if not isinstance(cam_rotation, Angle):
+            cam_rotation = Angle(cam_rotation)
+
+        self.pix_rotation = pix_rotation
+        self.cam_rotation = cam_rotation
+
         self._neighbors = neighbors
         self.frame = frame
 
@@ -155,11 +167,9 @@ class CameraGeometry:
             self.pix_area = self.guess_pixel_area(pix_x, pix_y, pix_type)
 
         if apply_derotation:
-            # todo: this should probably not be done, but need to fix
-            # GeometryConverter and reco algorithms if we change it.
-            self.rotate(cam_rotation)
+            self.rotate(self.cam_rotation)
 
-        # cache border pixel mask per instance
+            # cache border pixel mask per instance
         self.border_cache = {}
 
     def __eq__(self, other):
@@ -172,11 +182,11 @@ class CameraGeometry:
         if self.pix_type != other.pix_type:
             return False
 
-        if self.pix_rotation != other.pix_rotation:
+        if not u.isclose(self.pix_rotation, other.pix_rotation):
             return False
 
         return all(
-            [(self.pix_x == other.pix_x).all(), (self.pix_y == other.pix_y).all()]
+            [u.allclose(self.pix_x, other.pix_x), u.allclose(self.pix_y, other.pix_y)]
         )
 
     def guess_radius(self):
@@ -192,13 +202,14 @@ class CameraGeometry:
             (self.pix_x[border] - cx) ** 2 + (self.pix_y[border] - cy) ** 2
         ).mean()
 
-    def transform_to(self, frame: BaseCoordinateFrame) -> CG:
+    def transform_to(self, frame: BaseCoordinateFrame):
         """Transform the pixel coordinates stored in this geometry and the pixel
         and camera rotations to another camera coordinate frame.
 
-        Note that `geom.frame` must contain all the necessary attributes needed
-        to transform into the requested frame, i.e. if going from `CameraFrame`
-        to `TelescopeFrame`, it should contain a `focal_length` attribute.
+        Note that ``geom.frame`` must contain all the necessary attributes needed
+        to transform into the requested frame, i.e. if going from
+        `~ctapipe.coordinates.CameraFrame` to `~ctapipe.coordinates.TelescopeFrame`,
+        it should contain the correct data in the ``focal_length`` attribute.
 
         Parameters
         ----------
@@ -224,13 +235,11 @@ class CameraGeometry:
         # use the same x/y attributes. Therefore we get the component names, and
         # access them by string:
         frame_attrs = list(uv_trans.frame.get_representation_component_names().keys())
-        uv_x = getattr(uv_trans, frame_attrs[0])
         uv_y = getattr(uv_trans, frame_attrs[1])
         trans_x = getattr(trans, frame_attrs[0])
         trans_y = getattr(trans, frame_attrs[1])
 
         rot = np.arctan2(uv_y[0], uv_y[1])
-        det = np.linalg.det([uv_x.value, uv_y.value])
 
         cam_rotation = rot - self.cam_rotation
         pix_rotation = rot - self.pix_rotation
@@ -337,8 +346,7 @@ class CameraGeometry:
 
     @lazyproperty
     def _pixel_circumradius(self):
-        """ pixel circumference radius/radii based on pixel area and layout
-        """
+        """pixel circumference radius/radii based on pixel area and layout"""
 
         if self.pix_type == PixelShape.HEXAGON:
             circum_rad = self.pixel_width / np.sqrt(3)
@@ -379,14 +387,131 @@ class CameraGeometry:
         """
         return ~np.any(~np.isclose(self.pix_area.value, self.pix_area[0].value), axis=0)
 
+    @lazyproperty
+    def _pixel_positions_2d(self):
+        """
+        Pixel positions on the orthogonal grid of the 2d image.
+        In order for hexagonal pixels to behave as if they were
+        square, the grid has to be distorted.
+        Namely, slanting and stretching of the 1d pixel positions
+        to align them nicely.
+        Beware, that this means the pixel geometries on this
+        grid to not match the one in the geometry.
+
+        Returns
+        -------
+        (rows, columns) of each pixel if transformed onto an orthogonal grid
+        """
+        if self.pix_type in {PixelShape.HEXAGON, PixelShape.CIRCLE}:
+            # cam rotation should be 0 unless the derotation is turned off in the init
+            rot_x, rot_y = unskew_hex_pixel_grid(
+                self.pix_x,
+                self.pix_y,
+                cam_angle=30 * u.deg - self.pix_rotation - self.cam_rotation,
+            )
+            x_edges, y_edges, _ = get_orthogonal_grid_edges(
+                rot_x.to_value(u.m), rot_y.to_value(u.m)
+            )
+            square_mask = np.histogramdd(
+                [rot_x.to_value(u.m), rot_y.to_value(u.m)], bins=(x_edges, y_edges)
+            )[0].astype(bool)
+            hex_to_rect_map = np.histogramdd(
+                [rot_x.to_value(u.m), rot_y.to_value(u.m)],
+                bins=(x_edges, y_edges),
+                weights=np.arange(len(self.pix_y)),
+            )[0].astype(int)
+            hex_to_rect_map[~square_mask] = -1
+            rows_2d = np.zeros(hex_to_rect_map.shape)
+            rows_2d.T[:] = np.arange(hex_to_rect_map.shape[0])
+            rows_1d = np.zeros(self.pix_x.shape, dtype=np.int32)
+            rows_1d[hex_to_rect_map[..., square_mask]] = np.squeeze(
+                np.rollaxis(np.atleast_3d(rows_2d), 2, 0)
+            )[..., square_mask]
+            cols_2d = np.zeros(hex_to_rect_map.shape)
+            cols_2d[:] = np.arange(hex_to_rect_map.shape[1])
+            cols_1d = np.zeros(self.pix_x.shape, dtype=np.int32)
+            cols_1d[hex_to_rect_map[..., square_mask]] = np.squeeze(
+                np.rollaxis(np.atleast_3d(cols_2d), 2, 0)
+            )[..., square_mask]
+            pixel_row = rows_1d
+            pixel_column = cols_1d
+
+        elif self.pix_type is PixelShape.SQUARE:
+            pixel_row = get_orthogonal_grid_indices(self.pix_y, np.sqrt(self.pix_area))
+            pixel_column = get_orthogonal_grid_indices(
+                self.pix_x, np.sqrt(self.pix_area)
+            )
+
+        return pixel_row, pixel_column
+
+    def image_to_cartesian_representation(self, image):
+        """
+        Create a 2D-image from a given flat image or multiple flat images.
+        In the case of hexagonal pixels, the resulting
+        image is skewed to match a rectangular grid.
+
+        Parameters
+        ----------
+        image: np.ndarray
+            One or multiple images of shape
+            (n_images, n_pixels) or (n_pixels) for a single image.
+
+        Returns
+        -------
+        image_2s: np.ndarray
+            The transformed image of shape (n_images, n_rows, n_cols).
+            For a single image the leading dimension is omitted.
+        """
+        rows, cols = self._pixel_positions_2d
+        image = np.atleast_2d(image)  # this allows for multiple images at once
+        image_2d = np.full((image.shape[0], rows.max() + 1, cols.max() + 1), np.nan)
+        image_2d[:, rows, cols] = image
+        if self.pix_type == PixelShape.SQUARE:
+            image_2d = np.flip(image_2d, axis=1)
+        else:
+            image_2d = np.flip(image_2d)
+        return np.squeeze(image_2d)  # removes the extra dimension for single images
+
+    def image_from_cartesian_representation(self, image_2d):
+        """
+        Create a 1D-array from a given 2D image.
+
+        Parameters
+        ----------
+        image_2d: np.ndarray
+            2D image created by the `image_to_cartesian_representation` function
+            of the same geometry.
+            shape is expected to be:
+            (n_images, n_rows, n_cols) or (n_rows, n_cols) for a single image.
+
+        Returns
+        -------
+        1d array
+            The image in the 1D format, which has shape (n_images, n_pixels).
+            For single images the leading dimension is omitted.
+        """
+        rows, cols = self._pixel_positions_2d
+        # np.atleast3d would introduce the extra dimension at the end, which leads
+        # to a different shape compared to a multi image array
+        if image_2d.ndim == 2:
+            image_2d = image_2d[np.newaxis, :]
+        if self.pix_type == PixelShape.SQUARE:
+            image_2d = np.flip(image_2d, axis=1)
+        else:
+            image_2d = np.flip(image_2d)
+        image_flat = np.zeros((image_2d.shape[0], rows.shape[0]), dtype=image_2d.dtype)
+        image_flat[:] = image_2d[:, rows, cols]
+        image_1d = image_flat
+        return np.squeeze(image_1d)
+
     @classmethod
     def from_name(cls, camera_name="NectarCam", version=None):
         """
         Construct a CameraGeometry using the name of the camera and array.
 
-        This expects that there is a resource in the `ctapipe_resources` module
-        called "[array]-[camera].camgeom.fits.gz" or "[array]-[camera]-[
-        version].camgeom.fits.gz"
+        This expects that there is a resource accessible via
+        `~ctapipe.utils.get_table_dataset` called ``"[array]-[camera].camgeom.fits.gz"``
+        or ``"[array]-[camera]-[version].camgeom.fits.gz"``
 
         Parameters
         ----------
@@ -415,7 +540,7 @@ class CameraGeometry:
         """ convert this to an `astropy.table.Table` """
         # currently the neighbor list is not supported, since
         # var-length arrays are not supported by astropy.table.Table
-        return Table(
+        t = Table(
             [self.pix_id, self.pix_x, self.pix_y, self.pix_area],
             names=["pix_id", "pix_x", "pix_y", "pix_area"],
             meta=dict(
@@ -428,18 +553,28 @@ class CameraGeometry:
             ),
         )
 
+        # clear `info` member from quantities set by table creation
+        # which impacts indexing performance because it is deepcopied
+        # in Quantity.__getitem__, see https://github.com/astropy/astropy/issues/11066
+        for q in (self.pix_id, self.pix_x, self.pix_y, self.pix_area):
+            if hasattr(q, "__dict__"):
+                if "info" in q.__dict__:
+                    del q.__dict__["info"]
+
+        return t
+
     @classmethod
     def from_table(cls, url_or_table, **kwargs):
         """
         Load a CameraGeometry from an `astropy.table.Table` instance or a
-        file that is readable by `astropy.table.Table.read()`
+        file that is readable by `astropy.table.Table.read`
 
         Parameters
         ----------
         url_or_table: string or astropy.table.Table
             either input filename/url or a Table instance
         kwargs: extra keyword arguments
-            extra arguments passed to `astropy.table.read()`, depending on
+            extra arguments passed to `astropy.table.Table.read`, depending on
             file type (e.g. format, hdu, path)
 
 
@@ -623,12 +758,15 @@ class CameraGeometry:
             rotation angle with unit (e.g. 12 * u.deg), or "12d"
 
         """
+        angle = Angle(angle)
         rotmat = rotation_matrix_2d(angle)
         rotated = np.dot(rotmat.T, [self.pix_x.value, self.pix_y.value])
         self.pix_x = rotated[0] * self.pix_x.unit
         self.pix_y = rotated[1] * self.pix_x.unit
-        self.pix_rotation -= Angle(angle)
-        self.cam_rotation -= Angle(angle)
+
+        # do not use -=, copy is intentional here
+        self.pix_rotation = self.pix_rotation - angle
+        self.cam_rotation = Angle(0, unit=u.deg)
 
     def info(self, printer=print):
         """ print detailed info about this camera """
@@ -800,7 +938,9 @@ class CameraGeometry:
     @staticmethod
     def simtel_shape_to_type(pixel_shape):
         try:
-            return SIMTEL_PIXEL_SHAPES[pixel_shape]
+            shape, rotation = SIMTEL_PIXEL_SHAPES[pixel_shape]
+            # make sure we don't introduce a mutable global state
+            return shape, rotation.copy()
         except KeyError:
             raise ValueError(f"Unknown pixel_shape {pixel_shape}") from None
 

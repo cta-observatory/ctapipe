@@ -1,18 +1,19 @@
-from tqdm import tqdm
+from tqdm.auto import tqdm
 import numpy as np
 from astropy.coordinates import SkyCoord
-from ctapipe.containers import TelEventIndexContainer
 
-from ctapipe.calib import CameraCalibrator
-from ctapipe.core import Provenance
-from ctapipe.core import Tool, ToolConfigurationError
-from ctapipe.core import traits
-from ctapipe.io import EventSource
-from ctapipe.io import HDF5TableWriter
-from ctapipe.image.cleaning import TailcutsImageCleaner
-from ctapipe.coordinates import TelescopeFrame, CameraFrame
-from ctapipe.containers import MuonParametersContainer
-from ctapipe.instrument import CameraGeometry
+from ..containers import TelEventIndexContainer
+from ..calib import CameraCalibrator
+from ..core import Provenance
+from ..core import Tool, ToolConfigurationError
+from ..core import traits
+from ..core.traits import flag
+from ..io import EventSource
+from ..io import HDF5TableWriter
+from ..image.cleaning import TailcutsImageCleaner
+from ..coordinates import TelescopeFrame, CameraFrame
+from ..containers import MuonParametersContainer
+from ..instrument import CameraGeometry
 
 from ctapipe.image.muon import (
     MuonRingFitter,
@@ -77,16 +78,20 @@ class MuonAnalysis(Tool):
     ]
 
     aliases = {
-        "i": "EventSource.input_url",
-        "input": "EventSource.input_url",
-        "o": "MuonAnalysis.output",
-        "output": "MuonAnalysis.output",
-        "max-events": "EventSource.max_events",
-        "allowed-tels": "EventSource.allowed_tels",
+        ("i", "input"): "EventSource.input_url",
+        ("o", "output"): "MuonAnalysis.output",
+        ("m", "max-events"): "EventSource.max_events",
+        ("t", "allowed-tels"): "EventSource.allowed_tels",
     }
 
     flags = {
-        "overwrite": ({"MuonAnalysis": {"overwrite": True}}, "overwrite output file")
+        "f": ({"MuonAnalysis": {"overwrite": True}}, "Overwrite output file"),
+        **flag(
+            "overwrite",
+            "MuonAnalysis.overwrite",
+            "Overwrite output file",
+            "Don't overwrite output file",
+        ),
     }
 
     def setup(self):
@@ -98,7 +103,7 @@ class MuonAnalysis(Tool):
                 "Outputfile {self.output} already exists, use `--overwrite` to overwrite"
             )
 
-        self.source = EventSource.from_config(parent=self)
+        self.source = EventSource(parent=self)
         subarray = self.source.subarray
 
         self.calib = CameraCalibrator(subarray=subarray, parent=self)
@@ -141,9 +146,10 @@ class MuonAnalysis(Tool):
 
         self.log.debug(f"Processing event {event_id}, telescope {tel_id}")
         image = dl1.image
-        clean_mask = self.cleaning(tel_id, image)
+        if dl1.image_mask is None:
+            dl1.image_mask = self.cleaning(tel_id, image)
 
-        if np.count_nonzero(clean_mask) <= self.min_pixels.tel[tel_id]:
+        if np.count_nonzero(dl1.image_mask) <= self.min_pixels.tel[tel_id]:
             self.log.debug(
                 f"Skipping event {event_id}-{tel_id}:"
                 f" has less then {self.min_pixels.tel[tel_id]} pixels after cleaning"
@@ -155,7 +161,7 @@ class MuonAnalysis(Tool):
         # iterative ring fit.
         # First use cleaning pixels, then only pixels close to the ring
         # three iterations seems to be enough for most rings
-        mask = clean_mask
+        mask = dl1.image_mask
         for i in range(3):
             ring = self.ring_fitter(x, y, image, mask)
             dist = np.sqrt((x - ring.center_x) ** 2 + (y - ring.center_y) ** 2)
@@ -176,8 +182,7 @@ class MuonAnalysis(Tool):
             )
             return
 
-        parameters = self.calculate_muon_parameters(tel_id, image, clean_mask, ring)
-
+        parameters = self.calculate_muon_parameters(tel_id, image, dl1.image_mask, ring)
         # intensity_fitter does not support a mask yet, set ignored pixels to 0
         image[~mask] = 0
 

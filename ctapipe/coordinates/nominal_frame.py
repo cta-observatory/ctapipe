@@ -25,6 +25,8 @@ from astropy.coordinates import (
     AltAz,
 )
 
+__all__ = ["NominalFrame"]
+
 
 class NominalFrame(BaseCoordinateFrame):
     """

@@ -16,19 +16,22 @@ from ctapipe.reco.reco_algorithms import (
     InvalidWidthException,
     TooFewTelescopesException,
 )
-from ctapipe.containers import ReconstructedShowerContainer
+from ctapipe.containers import (
+    ReconstructedGeometryContainer,
+    CameraHillasParametersContainer,
+    HillasParametersContainer,
+)
 from ctapipe.instrument import get_atmosphere_profile_functions
 
 from astropy.coordinates import SkyCoord
 from ctapipe.coordinates import (
     NominalFrame,
     CameraFrame,
+    TelescopeFrame,
     TiltedGroundFrame,
     project_to_ground,
-    GroundFrame,
     MissingFrameAttributeWarning,
 )
-import copy
 import warnings
 
 from ctapipe.core import traits
@@ -42,7 +45,7 @@ class HillasIntersection(Reconstructor):
     reconstruction. e.g. https://arxiv.org/abs/astro-ph/0607333
 
     In this case the Hillas parameters are all constructed in the shared
-    angular ( Nominal) system. Direction reconstruction is performed by
+    angular (Nominal) system. Direction reconstruction is performed by
     extrapolation of the major axes of the Hillas parameters in the nominal
     system and the weighted average of the crossing points is taken. Core
     reconstruction is performed by performing the same procedure in the
@@ -54,10 +57,12 @@ class HillasIntersection(Reconstructor):
     Uncertainties on the positions are provided by taking the spread of the
     crossing points, however this means that no uncertainty can be provided
     for multiplicity 2 events.
+
+    Note: only input from CameraFrame is currently supported
     """
 
     atmosphere_profile_name = traits.CaselessStrEnum(
-        ["paranal",], default_value="paranal", help="name of atmosphere profile to use"
+        ["paranal"], default_value="paranal", help="name of atmosphere profile to use"
     ).tag(config=True)
 
     weighting = traits.CaselessStrEnum(
@@ -126,52 +131,68 @@ class HillasIntersection(Reconstructor):
             }
 
         tilted_frame = TiltedGroundFrame(pointing_direction=array_pointing)
-
-        ground_positions = subarray.tel_coords
-        grd_coord = GroundFrame(
-            x=ground_positions.x, y=ground_positions.y, z=ground_positions.z
-        )
-
+        grd_coord = subarray.tel_coords
         tilt_coord = grd_coord.transform_to(tilted_frame)
 
+        tel_ids = list(hillas_dict.keys())
+        tel_indices = subarray.tel_ids_to_indices(tel_ids)
+
         tel_x = {
-            tel_id: tilt_coord.x[tel_id - 1] for tel_id in list(hillas_dict.keys())
+            tel_id: tilt_coord.x[tel_index]
+            for tel_id, tel_index in zip(tel_ids, tel_indices)
         }
         tel_y = {
-            tel_id: tilt_coord.y[tel_id - 1] for tel_id in list(hillas_dict.keys())
+            tel_id: tilt_coord.y[tel_index]
+            for tel_id, tel_index in zip(tel_ids, tel_indices)
         }
 
         nom_frame = NominalFrame(origin=array_pointing)
 
-        hillas_dict_mod = copy.deepcopy(hillas_dict)
+        hillas_dict_mod = {}
 
-        for tel_id, hillas in hillas_dict_mod.items():
-            # prevent from using rads instead of meters as inputs
-            assert hillas.x.to(u.m).unit == u.Unit("m")
-
-            focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
-
-            camera_frame = CameraFrame(
-                telescope_pointing=telescopes_pointings[tel_id],
-                focal_length=focal_length,
+        for tel_id, hillas in hillas_dict.items():
+            if isinstance(hillas, CameraHillasParametersContainer):
+                focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
+                camera_frame = CameraFrame(
+                    telescope_pointing=telescopes_pointings[tel_id],
+                    focal_length=focal_length,
+                )
+                cog_coords = SkyCoord(x=hillas.x, y=hillas.y, frame=camera_frame)
+                cog_coords_nom = cog_coords.transform_to(nom_frame)
+            else:
+                telescope_frame = TelescopeFrame(
+                    telescope_pointing=telescopes_pointings[tel_id]
+                )
+                cog_coords = SkyCoord(
+                    fov_lon=hillas.fov_lon,
+                    fov_lat=hillas.fov_lat,
+                    frame=telescope_frame,
+                )
+                cog_coords_nom = cog_coords.transform_to(nom_frame)
+            hillas_dict_mod[tel_id] = HillasParametersContainer(
+                fov_lon=cog_coords_nom.fov_lon,
+                fov_lat=cog_coords_nom.fov_lat,
+                psi=hillas.psi,
+                width=hillas.width,
+                length=hillas.length,
+                intensity=hillas.intensity,
             )
-            cog_coords = SkyCoord(x=hillas.x, y=hillas.y, frame=camera_frame)
-            cog_coords_nom = cog_coords.transform_to(nom_frame)
-            hillas.x = cog_coords_nom.fov_lat
-            hillas.y = cog_coords_nom.fov_lon
 
-        src_x, src_y, err_x, err_y = self.reconstruct_nominal(hillas_dict_mod)
+        src_fov_lon, src_fov_lat, err_fov_lon, err_fov_lat = self.reconstruct_nominal(
+            hillas_dict_mod
+        )
         core_x, core_y, core_err_x, core_err_y = self.reconstruct_tilted(
             hillas_dict_mod, tel_x, tel_y
         )
 
-        err_x *= u.rad
-        err_y *= u.rad
+        err_fov_lon *= u.rad
+        err_fov_lat *= u.rad
 
-        nom = SkyCoord(fov_lon=src_x * u.rad, fov_lat=src_y * u.rad, frame=nom_frame)
-        # nom = sky_pos.transform_to(nom_frame)
+        nom = SkyCoord(
+            fov_lon=src_fov_lon * u.rad, fov_lat=src_fov_lat * u.rad, frame=nom_frame
+        )
         sky_pos = nom.transform_to(array_pointing.frame)
-        tilt = SkyCoord(x=core_x * u.m, y=core_y * u.m, frame=tilted_frame,)
+        tilt = SkyCoord(x=core_x * u.m, y=core_y * u.m, frame=tilted_frame)
         grd = project_to_ground(tilt)
         x_max = self.reconstruct_xmax(
             nom.fov_lon,
@@ -184,9 +205,9 @@ class HillasIntersection(Reconstructor):
             90 * u.deg - array_pointing.alt,
         )
 
-        src_error = np.sqrt(err_x ** 2 + err_y ** 2)
+        src_error = np.sqrt(err_fov_lon ** 2 + err_fov_lat ** 2)
 
-        result = ReconstructedShowerContainer(
+        result = ReconstructedGeometryContainer(
             alt=sky_pos.altaz.alt.to(u.rad),
             az=sky_pos.altaz.az.to(u.rad),
             core_x=grd.x,
@@ -201,7 +222,6 @@ class HillasIntersection(Reconstructor):
             h_max_uncert=u.Quantity(np.nan * x_max.unit),
             goodness_of_fit=np.nan,
         )
-
         return result
 
     def reconstruct_nominal(self, hillas_parameters):
@@ -231,8 +251,8 @@ class HillasIntersection(Reconstructor):
             map(
                 lambda h: [
                     h[0].psi.to_value(u.rad),
-                    h[0].x.to_value(u.rad),
-                    h[0].y.to_value(u.rad),
+                    h[0].fov_lon.to_value(u.rad),
+                    h[0].fov_lat.to_value(u.rad),
                     h[0].intensity,
                 ],
                 hillas_pairs,
@@ -245,8 +265,8 @@ class HillasIntersection(Reconstructor):
             map(
                 lambda h: [
                     h[1].psi.to_value(u.rad),
-                    h[1].x.to_value(u.rad),
-                    h[1].y.to_value(u.rad),
+                    h[1].fov_lon.to_value(u.rad),
+                    h[1].fov_lat.to_value(u.rad),
                     h[1].intensity,
                 ],
                 hillas_pairs,
@@ -388,8 +408,8 @@ class HillasIntersection(Reconstructor):
 
         # Loops over telescopes in event
         for tel in hillas_parameters.keys():
-            cog_x.append(hillas_parameters[tel].x.to_value(u.rad))
-            cog_y.append(hillas_parameters[tel].y.to_value(u.rad))
+            cog_x.append(hillas_parameters[tel].fov_lon.to_value(u.rad))
+            cog_y.append(hillas_parameters[tel].fov_lat.to_value(u.rad))
             amp.append(hillas_parameters[tel].intensity)
 
             tx.append(tel_x[tel].to_value(u.m))
@@ -430,6 +450,7 @@ class HillasIntersection(Reconstructor):
     def intersect_lines(xp1, yp1, phi1, xp2, yp2, phi2):
         """
         Perform intersection of two lines. This code is borrowed from read_hess.
+
         Parameters
         ----------
         xp1: ndarray

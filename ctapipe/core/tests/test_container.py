@@ -248,6 +248,11 @@ def test_field_validation():
     with pytest.raises(FieldValidationError):
         field_n2.validate(None)
 
+    field_type = Field(None, "foo", type=str)
+    field_type.validate("foo")
+    with pytest.raises(FieldValidationError):
+        field_type.validate(5)
+
 
 def test_container_validation():
     """ check that we can validate all fields in a container"""

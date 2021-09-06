@@ -20,7 +20,7 @@ v0.6.1
 * Fix/muon bugs (#762) @kosack
 * Implement hillas features usen eigh (#748) @MaxNoe
 * Use HillasParametersContainer only (#763) @MaxNoe
-* Regression features in `RegressorClassifierBase` (#764) @vuillaut
+* Regression features in ``RegressorClassifierBase`` (#764) @vuillaut
 * Adding an example notebook no how to convert hex geometry to square and back (#767) @vuillaut
 * Wrong angle in ArrayDisplay. changed phi to psi. (#771) @thomasgas
 * Unstructured interpolator (#770) @ParsonsRD
@@ -52,11 +52,11 @@ intended yet for production.
 
 Some Major changes since last release:
 
-* new `EventSource` class hierarchy for reading event data, which now supports simulation and testbench data from multiple camera prototypes (notably CHEC, SST-1M, NectarCam)
-* new `EventSeeker` class for (inefficient) random event access.
-* a much improved `Factory` class
+* new ``EventSource`` class hierarchy for reading event data, which now supports simulation and testbench data from multiple camera prototypes (notably CHEC, SST-1M, NectarCam)
+* new ``EventSeeker`` class for (inefficient) random event access.
+* a much improved ``Factory`` class
 * re-organized event data structure (still evolving) - all scripts not in ctapipe must be changed to work with the new data items that were re-named  (a migration guide will be given in the 0.7 release)
-* better HDF5 table output, supporting merging multiple `Containers` into a single output table
+* better HDF5 table output, supporting merging multiple ``Containers`` into a single output table
 * improvements to Muon analysis, and the muon example script
 * improvements to the calibration classes
 * big improvements to the Instrument classes
@@ -67,57 +67,57 @@ v0.5.3 (unlreleased)
 --------------------
 
 * Major speed improvements to calibration code, particuarly
-   `NeighborPeakIntegrator` (Jason Watson, #490), which now uses some
+   ``NeighborPeakIntegrator`` (Jason Watson, #490), which now uses some
    compiled c-code for speed.
 
-* `GeometryConverter` now works for all cameras (Tino Michael, #)
+* ``GeometryConverter`` now works for all cameras (Tino Michael, #)
 
 * Plotting improvements when overlays are used (Max Noe, #489)
 
-* Fixes to coordinate `PlanarRepresentation` (Max Noe, #506)
+* Fixes to coordinate ``PlanarRepresentation`` (Max Noe, #506)
 
 * HDF5 output for charge resolution calculation (Jason Watons, #488)
 
 * Stastical errors added to sensitivity calculation (Tino Michel, #508)
 
 * Error estimator for direction and h_max fits in
-  `HillasReconstructor` (Tino Michael, #509, #510)
-  
+  ``HillasReconstructor`` (Tino Michael, #509, #510)
+
 
 v0.5.2 (2017-07-31)
 -------------------
 
-* improvements to `core.Container` (Max Noe)
+* improvements to ``core.Container`` (Max Noe)
 
-* `TableWriter` correctly handles units and metadata
+* ``TableWriter`` correctly handles units and metadata
 
-* `ctapipe.instrument` now has much more rich functionality
+* ``ctapipe.instrument`` now has much more rich functionality
   (SubarrayDescription, TelescopeDescription, OpticsDescription
   classes added)
 
-* no more need to construct `CameraGeometry` manually, they are
-  created in the `hessio_event_source`, all new code should use
-  `event.inst.subarray`. The old inst.tel_pos, inst.optics_foclen,
+* no more need to construct ``CameraGeometry`` manually, they are
+  created in the ``hessio_event_source``, all new code should use
+  ``event.inst.subarray``. The old inst.tel_pos, inst.optics_foclen,
   etc, will be phased out in the next point release (but still exist
   in this release) (K. Kosack)
 
-* `ctapipe-dump-instrument` script added
+* ``ctapipe-dump-instrument`` script added
 
-* improvements to `Regressor` and Classifier code (Tino Michael)
+* improvements to ``Regressor`` and Classifier code (Tino Michael)
 
 * provenance system includes actor roles
 
 * fixes to likelihood tests (Dan Parsons)
 
 
-  
+
 v0.5.1 (2016-07-20)
 -------------------
 
 
 * TQDM and iminuit are now accepted dependencies
 
-* Implementation of ImPACT reconstruction and `TableInterpolator`
+* Implementation of ImPACT reconstruction and ``TableInterpolator``
   class (Dan Parsons)
 
 * improved handling of atmosphere profiles
@@ -126,15 +126,15 @@ v0.5.1 (2016-07-20)
   (Alison Mitchell)
 
 * unified camera and telescope names
-  
-* better dataset handling (`ctapipe.utils.datasets`), and now
-  automatically find datasets and tables in `ctapipe-extra` or in any
-  directory listed in the user-defined `$CTAPIPE_SVC_PATH` path.
+
+* better dataset handling (``ctapipe.utils.datasets``), and now
+  automatically find datasets and tables in ``ctapipe-extra`` or in any
+  directory listed in the user-defined ``$CTAPIPE_SVC_PATH`` path.
 
 * TableWriter class (HDF5TableWriter) for writing out any
-  `core.Container` to an HDF5 table via `pytables` (Karl Kosack)
+  ``core.Container`` to an HDF5 table via ``pytables`` (Karl Kosack)
 
-* Improvements to `flow` framework (Jean Jacquemier)
+* Improvements to ``flow`` framework (Jean Jacquemier)
 
 * Travis CI now builds automatically for multiply python versions and
   uploads lates documentation
@@ -143,4 +143,3 @@ v0.5.1 (2016-07-20)
 
 * code for calculating sensitivity curves using event-weighting method
   (Tino Michael)
-

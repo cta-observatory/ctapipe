@@ -8,11 +8,14 @@ To do:
 
 """
 import numpy as np
+
+from math import erf
+from numba import vectorize, double
+
 from scipy.ndimage.filters import correlate1d
 from iminuit import Minuit
 from astropy import units as u
 from scipy.constants import alpha
-from scipy.stats import norm
 from astropy.coordinates import SkyCoord
 from functools import lru_cache
 
@@ -22,44 +25,48 @@ from ...core import TelescopeComponent
 from ...core.traits import FloatTelescopeParameter, IntTelescopeParameter
 
 
+__all__ = ["MuonIntensityFitter"]
+
+
 # ratio of the areas of the unit circle and a square of side lengths 2
 CIRCLE_SQUARE_AREA_RATIO = np.pi / 4
 
+# Sqrt of 2, as it is needed multiple times
+SQRT2 = np.sqrt(2)
 
+
+@vectorize([double(double, double, double)])
 def chord_length(radius, rho, phi):
     """
     Function for integrating the length of a chord across a circle
 
     Parameters
     ----------
-    radius: float
+    radius: float or ndarray
         radius of circle
-    rho: float
+    rho: float or ndarray
         fractional distance of impact point from circle center
-    phi: ndarray in radians
+    phi: float or ndarray in radians
         rotation angles to calculate length
 
     Returns
     -------
-    ndarray: chord length
+    float or ndarray:
+        chord length
     """
-    scalar = np.isscalar(phi)
-    phi = np.array(phi, ndmin=1, copy=False)
-
     chord = 1 - (rho ** 2 * np.sin(phi) ** 2)
     valid = chord >= 0
 
+    if not valid:
+        return 0
+
     if rho <= 1.0:
         # muon has hit the mirror
-        chord[valid] = radius * (np.sqrt(chord[valid]) + rho * np.cos(phi[valid]))
+        chord = radius * (np.sqrt(chord) + rho * np.cos(phi))
     else:
         # muon did not hit the mirror
-        chord[valid] = 2 * radius * np.sqrt(chord[valid])
+        chord = 2 * radius * np.sqrt(chord)
 
-    chord[~valid] = 0
-
-    if scalar:
-        return chord[0]
     return chord
 
 
@@ -195,6 +202,28 @@ def image_prediction(
     )
 
 
+@vectorize([double(double, double, double)])
+def gaussian_cdf(x, mu, sig):
+    """
+    Function to compute values of a given gaussians
+    cumulative distribution function (cdf)
+
+    Parameters
+    ----------
+    x: float or ndarray
+        point, at which the cdf should be evaluated
+    mu: float or ndarray
+        gaussian mean
+    sig: float or ndarray
+        gaussian standard deviation
+
+    Returns
+    -------
+    float or ndarray: cdf-value at x
+    """
+    return 0.5 * (1 + erf((x - mu) / (SQRT2 * sig)))
+
+
 def image_prediction_no_units(
     mirror_radius_m,
     hole_radius_m,
@@ -241,7 +270,7 @@ def image_prediction_no_units(
     # The weight is the integral of the ring's radial gaussian profile inside the
     # ring's width
     delta = pixel_diameter_rad / 2
-    cdfs = norm.cdf(
+    cdfs = gaussian_cdf(
         [radial_dist + delta, radial_dist - delta], radius_rad, ring_width_rad
     )
     gauss = cdfs[0] - cdfs[1]
@@ -272,6 +301,7 @@ def image_prediction_no_units(
     # circle's area and that of the square whose side is equal to the circle's
     # diameter. In any case, since in the end we do a data-MC comparison of the muon
     # ring analysis outputs, it is not critical that this value is exact.
+
     pred *= CIRCLE_SQUARE_AREA_RATIO
 
     return pred
@@ -445,7 +475,6 @@ class MuonIntensityFitter(TelescopeComponent):
         help="Oversampling for the line integration", default_value=3
     ).tag(config=True)
 
-
     def __call__(self, tel_id, center_x, center_y, radius, image, pedestal, mask=None):
         """
 
@@ -488,37 +517,30 @@ class MuonIntensityFitter(TelescopeComponent):
             pedestal=pedestal,
             hole_radius=self.hole_radius_m.tel[tel_id] * u.m,
         )
+        negative_log_likelihood.errordef = Minuit.LIKELIHOOD
 
         initial_guess = create_initial_guess(center_x, center_y, radius, telescope)
-
-        step_sizes = {}
-        step_sizes["error_impact_parameter"] = 0.5
-        step_sizes["error_phi"] = np.deg2rad(0.5)
-        step_sizes["error_ring_width"] = 0.001 * radius.to_value(u.rad)
-        step_sizes["error_optical_efficiency_muon"] = 0.05
-
-        constraints = {}
-        constraints["limit_impact_parameter"] = (0, None)
-        constraints["limit_phi"] = (-np.pi, np.pi)
-        constraints["fix_radius"] = True
-        constraints["fix_center_x"] = True
-        constraints["fix_center_y"] = True
-        constraints["limit_ring_width"] = (0.0, None)
-        constraints["limit_optical_efficiency_muon"] = (0.0, None)
 
         # Create Minuit object with first guesses at parameters
         # strip away the units as Minuit doesnt like them
 
-        minuit = Minuit(
-            negative_log_likelihood,
-            # forced_parameters=parameter_names,
-            **initial_guess,
-            **step_sizes,
-            **constraints,
-            errordef=0.5,
-            print_level=0,
-            pedantic=True,
-        )
+        minuit = Minuit(negative_log_likelihood, **initial_guess)
+
+        minuit.print_level = 0
+
+        minuit.errors["impact_parameter"] = 0.5
+        minuit.errors["phi"] = np.deg2rad(0.5)
+        minuit.errors["ring_width"] = 0.001 * radius.to_value(u.rad)
+        minuit.errors["optical_efficiency_muon"] = 0.05
+
+        minuit.limits["impact_parameter"] = (0, None)
+        minuit.limits["phi"] = (-np.pi, np.pi)
+        minuit.limits["ring_width"] = (0.0, None)
+        minuit.limits["optical_efficiency_muon"] = (0.0, None)
+
+        minuit.fixed["radius"] = True
+        minuit.fixed["center_x"] = True
+        minuit.fixed["center_y"] = True
 
         # Perform minimisation
         minuit.migrad()

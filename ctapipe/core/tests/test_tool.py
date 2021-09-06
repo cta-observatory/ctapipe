@@ -2,7 +2,8 @@ import os
 import logging
 import tempfile
 import pytest
-from traitlets import Float, TraitError, List, Dict, Int
+import json
+from traitlets import Float, TraitError, Dict, Int
 from traitlets.config import Config
 from pathlib import Path
 
@@ -73,33 +74,49 @@ def test_provenance_log_help(tmpdir):
 def test_export_config_to_yaml():
     """ test that we can export a Tool's config to YAML"""
     import yaml
-    from ctapipe.tools.camdemo import CameraDemo
+    from ctapipe.tools.process import ProcessorTool
 
-    tool = CameraDemo()
-    tool.num_events = 2
+    tool = ProcessorTool()
+    tool.progress_bar = True
     yaml_string = export_tool_config_to_commented_yaml(tool)
 
     # check round-trip back from yaml:
     config_dict = yaml.load(yaml_string, Loader=yaml.SafeLoader)
 
-    assert config_dict["CameraDemo"]["num_events"] == 2
+    assert config_dict["ProcessorTool"]["progress_bar"] is True
 
 
-def test_tool_html_rep():
+def test_tool_html_rep(tmp_path):
     """ check that the HTML rep for Jupyter notebooks works"""
 
     class MyTool(Tool):
         description = "test"
         userparam = Float(5.0, help="parameter").tag(config=True)
 
+    tool = MyTool()
+    assert len(tool._repr_html_()) > 0
+
+    class MyComponent(Component):
+        val = Float(1.0, help="val").tag(config=True)
+
     class MyTool2(Tool):
         """ A docstring description"""
 
         userparam = Float(5.0, help="parameter").tag(config=True)
 
-    tool = MyTool()
+        classes = [MyComponent]
+
+        def setup(self):
+            self.comp = MyComponent(parent=self)
+
+        def start(self):
+            pass
+
     tool2 = MyTool2()
-    assert len(tool._repr_html_()) > 0
+    assert len(tool2._repr_html_()) > 0
+
+    # make sure html repr works also after tool was run
+    assert run_tool(tool2, argv=[], cwd=tmp_path) == 0
     assert len(tool2._repr_html_()) > 0
 
 
@@ -190,7 +207,7 @@ def test_tool_command_line_precedence():
         description = "test"
         userparam = Float(5.0, help="parameter").tag(config=True)
 
-        classes = List([SubComponent])
+        classes = [SubComponent]
         aliases = Dict({"component_param": "SubComponent.component_param"})
 
         def setup(self):
@@ -304,3 +321,22 @@ def test_tool_logging_quiet(capsys):
     log = capsys.readouterr().err
 
     assert len(log) == 0
+
+
+def test_invalid_traits(tmp_path, caplog):
+    caplog.set_level(logging.INFO, logger="ctapipe")
+
+    class MyTool(Tool):
+        name = "test"
+        description = "test"
+        param = Float(5.0, help="parameter").tag(config=True)
+
+    # 2 means trait error
+    assert run_tool(MyTool(), ["--MyTool.foo=5"]) == 2
+
+    # test that it also works for config files
+    config = tmp_path / "config.json"
+    with config.open("w") as f:
+        json.dump({"MyTool": {"foo": 5}}, f)
+
+    assert run_tool(MyTool(), [f"--config={config}"]) == 2

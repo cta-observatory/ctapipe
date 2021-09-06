@@ -3,15 +3,7 @@
 
 # import ah_bootstrap
 from setuptools import setup, find_packages
-
-import sys
 import os
-
-# pep 517 builds do not have cwd in PATH by default
-sys.path.insert(0, os.path.dirname(__file__))
-# Get the long and version description from the package's docstring
-import ctapipe  # noqa
-
 
 # Define entry points for command-line scripts
 # TODO: this shuold be automated (e.g. look for main functions and
@@ -21,8 +13,6 @@ entry_points["console_scripts"] = [
     "ctapipe-info = ctapipe.tools.info:main",
     "ctapipe-camdemo = ctapipe.tools.camdemo:main",
     "ctapipe-dump-triggers = ctapipe.tools.dump_triggers:main",
-    "ctapipe-chargeres-extract = ctapipe.tools.extract_charge_resolution:main",
-    "ctapipe-chargeres-plot = ctapipe.tools.plot_charge_resolution:main",
     "ctapipe-dump-instrument=ctapipe.tools.dump_instrument:main",
     "ctapipe-event-viewer = ctapipe.tools.bokeh.file_viewer:main",
     "ctapipe-display-tel-events = ctapipe.tools.display_events_single_tel:main",
@@ -30,41 +20,37 @@ entry_points["console_scripts"] = [
     "ctapipe-reconstruct-muons = ctapipe.tools.muon_reconstruction:main",
     "ctapipe-display-integration = ctapipe.tools.display_integrator:main",
     "ctapipe-display-dl1 = ctapipe.tools.display_dl1:main",
-    "ctapipe-stage1 = ctapipe.tools.stage1:main",
+    "ctapipe-process = ctapipe.tools.process:main",
     "ctapipe-merge = ctapipe.tools.dl1_merge:main",
+    "ctapipe-fileinfo = ctapipe.tools.fileinfo:main",
+    "ctapipe-quickstart = ctapipe.tools.quickstart:main",
 ]
-tests_require = [
-    "pytest",
-    "ctapipe-extra @ https://github.com/cta-observatory/ctapipe-extra/archive/v0.3.1.tar.gz",
-]
+tests_require = ["pytest", "pandas>=0.24.0", "importlib_resources;python_version<'3.9'"]
 docs_require = [
     "sphinx_rtd_theme",
     "sphinx_automodapi",
-    "sphinx",
+    "sphinx~=3.5",
     "nbsphinx",
     "numpydoc",
     "jupyter",
     "notebook",
-    "travis-sphinx",
     "graphviz",
+    "pandas",
 ]
-
-ctapipe.version.update_release_version()
 
 setup(
     packages=find_packages(),
-    version=ctapipe.version.get_version(pep440=True),
     python_requires=">=3.7",
     install_requires=[
-        "astropy>=3,<5",
+        "astropy>=4.0.5,<5",
         "bokeh~=1.0",
-        "eventio>=1.1.1,<2.0.0a0",  # at least 1.1.1, but not 2
-        "iminuit>=1.3",
+        "eventio>=1.5.0,<2.0.0a0",
+        "h5py",
+        "iminuit>=2",
         "joblib",
         "matplotlib~=3.0",
         "numba>=0.43",
         "numpy~=1.16",
-        "pandas>=0.24.0",
         "psutil",
         "scikit-learn",
         "scipy~=1.2",
@@ -72,9 +58,9 @@ setup(
         "tqdm>=4.32",
         "traitlets~=5.0,>=5.0.5",
         "zstandard",
-        # needed for astropy hdf5 io. Version 3 breaks copying those tables
-        # with pytables du to variable length strings.
-        "h5py~=2.0",
+        "requests",
+        "setuptools_scm>=3.4",
+        "importlib_resources;python_version<'3.9'",
     ],
     # here are optional dependencies (as "tag" : "dependency spec")
     extras_require={
@@ -82,8 +68,9 @@ setup(
         "tests": tests_require,
         "docs": docs_require,
     },
+    use_scm_version={"write_to": os.path.join("ctapipe", "_version.py")},
     tests_require=tests_require,
-    setup_requires=["pytest_runner"],
+    setup_requires=["pytest_runner", "setuptools_scm"],
     classifiers=[
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: BSD License",
@@ -97,5 +84,7 @@ setup(
     ],
     zip_safe=False,
     entry_points=entry_points,
-    package_data={"": ["tools/bokeh/*.yaml", "tools/bokeh/templates/*.html"]},
+    package_data={
+        "": ["tools/bokeh/*.yaml", "tools/bokeh/templates/*.html", "resources/*"]
+    },
 )

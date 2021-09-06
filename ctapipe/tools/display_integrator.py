@@ -5,23 +5,23 @@ with the integration window.
 """
 import numpy as np
 from matplotlib import pyplot as plt
-from traitlets import Dict, List, Int, Bool, Enum
 
-from ctapipe.core import traits
-from ctapipe.calib import CameraCalibrator
-from ctapipe.core import Tool
-from ctapipe.image.extractor import ImageExtractor
-from ctapipe.io import EventSource
-from ctapipe.io.eventseeker import EventSeeker
-from ctapipe.visualization import CameraDisplay
+from ..calib import CameraCalibrator
+from ..core import Tool
+from ..core.traits import Int, Bool, Enum, flag, classes_with_traits
+from ..io import EventSource
+from ..io.eventseeker import EventSeeker
+from ..visualization import CameraDisplay
 
 
 def plot(subarray, event, telid, chan, extractor_name):
     # Extract required images
     dl0 = event.dl0.tel[telid].waveform
 
-    t_pe = event.simulation.tel[telid].true_image
     dl1 = event.dl1.tel[telid].image
+    t_pe = event.simulation.tel[telid].true_image
+    if t_pe is None:
+        t_pe = np.zeros_like(dl1)
     max_time = np.unravel_index(np.argmax(dl0), dl0.shape)[1]
     max_charges = np.max(dl0, axis=1)
     max_pix = int(np.argmax(max_charges))
@@ -99,7 +99,7 @@ def plot(subarray, event, telid, chan, extractor_name):
             ax.set_ylim(max_ylim)
 
     # Draw cameras
-    nei_camera = np.zeros_like(max_charges, dtype=np.int)
+    nei_camera = np.zeros_like(max_charges, dtype=np.int64)
     nei_camera[min_pixel_nei] = 2
     nei_camera[min_pix] = 1
     nei_camera[max_pixel_nei] = 3
@@ -224,24 +224,20 @@ class DisplayIntegrator(Tool):
     ).tag(config=True)
     channel = Enum([0, 1], 0, help="Channel to view").tag(config=True)
 
-    aliases = Dict(
-        dict(
-            f="EventSource.input_url",
-            max_events="EventSource.max_events",
-            E="DisplayIntegrator.event_index",
-            T="DisplayIntegrator.telescope",
-            C="DisplayIntegrator.channel",
-        )
+    aliases = {
+        ("i", "input"): "EventSource.input_url",
+        ("m", "max-events"): "EventSource.max_events",
+        ("e", "event-index"): "DisplayIntegrator.event_index",
+        ("t", "telescope"): "DisplayIntegrator.telescope",
+        ("C", "channel"): "DisplayIntegrator.channel",
+    }
+    flags = flag(
+        "id",
+        "DisplayDL1Calib.use_event_index",
+        "event_index will obtain an event using event_id instead of index.",
+        "event_index will obtain an event using index.",
     )
-    flags = Dict(
-        dict(
-            id=(
-                {"DisplayDL1Calib": {"use_event_index": True}},
-                "event_index will obtain an event using event_id instead of index.",
-            )
-        )
-    )
-    classes = List([EventSource] + traits.classes_with_traits(ImageExtractor))
+    classes = classes_with_traits(EventSource)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -253,7 +249,7 @@ class DisplayIntegrator(Tool):
     def setup(self):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
 
-        event_source = EventSource.from_config(parent=self)
+        event_source = EventSource(parent=self)
         self.subarray = event_source.subarray
         self.eventseeker = EventSeeker(event_source, parent=self)
         self.calibrate = CameraCalibrator(parent=self, subarray=self.subarray)
@@ -279,7 +275,7 @@ class DisplayIntegrator(Tool):
             )
             exit()
 
-        extractor_name = self.calibrate.image_extractor.__class__.__name__
+        extractor_name = self.calibrate.image_extractor_type.tel[telid]
 
         plot(self.subarray, event, telid, self.channel, extractor_name)
 

@@ -6,12 +6,10 @@ process the events and apply pre-selection cuts to the images
 An HDF5 file is written with image MC and moment parameters
 (e.g. length, width, image amplitude, etc.).
 """
-
-import numpy as np
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from ctapipe.core import Tool
-from ctapipe.core.traits import Path, Unicode, List, Dict, Bool
+from ctapipe.core.traits import Path, Unicode, Dict, Bool
 from ctapipe.io import EventSource, HDF5TableWriter
 
 from ctapipe.calib import CameraCalibrator
@@ -23,38 +21,35 @@ class SimpleEventWriter(Tool):
     name = "ctapipe-simple-event-writer"
     description = Unicode(__doc__)
 
-    infile = Path(
-        default_value=get_dataset_path(
-            "lst_prod3_calibration_and_mcphotons.simtel.zst"
-        ),
-        help="input file to read",
-        directory_ok=False,
-        exists=True,
-    ).tag(config=True)
-    outfile = Path(
+    output = Path(
         help="output file name", directory_ok=False, default_value="output.h5"
     ).tag(config=True)
+
     progress = Bool(help="display progress bar", default_value=True).tag(config=True)
 
     aliases = Dict(
         {
-            "infile": "EventSource.input_url",
-            "outfile": "SimpleEventWriter.outfile",
+            "input": "EventSource.input_url",
+            "output": "SimpleEventWriter.outfile",
             "max-events": "EventSource.max_events",
             "progress": "SimpleEventWriter.progress",
         }
     )
-    classes = List([EventSource, CameraCalibrator])
+    classes = [EventSource, CameraCalibrator]
 
     def setup(self):
         self.log.info("Configure EventSource...")
 
-        self.event_source = EventSource.from_url(self.infile, parent=self)
+        EventSource.input_url.default_value = get_dataset_path(
+            "lst_prod3_calibration_and_mcphotons.simtel.zst"
+        )
+        self.event_source = EventSource(parent=self)
+
         self.calibrator = CameraCalibrator(
             subarray=self.event_source.subarray, parent=self
         )
         self.writer = HDF5TableWriter(
-            filename=self.outfile, group_name="image_infos", overwrite=True, parent=self
+            filename=self.output, group_name="image_infos", overwrite=True, parent=self
         )
 
     def start(self):

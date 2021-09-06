@@ -11,8 +11,8 @@ __all__ = ["CameraDescription"]
 
 class CameraDescription:
     """
-    Describes a Cherenkov camera and it's associated `CameraGeometry` and
-    `CameraReadout`
+    Describes a Cherenkov camera and its associated
+    `~ctapipe.instrument.CameraGeometry` and `~ctapipe.instrument.CameraReadout`
 
     Parameters
     ----------
@@ -35,15 +35,14 @@ class CameraDescription:
         return hash((self.geometry, self.readout))
 
     def __eq__(self, other):
-        """Make this hashable, so it can be used as dict keys or in sets"""
-        return hash(self) == hash(other)
+        return self.geometry == other.geometry and self.readout == other.readout
 
     @classmethod
     def get_known_camera_names(cls):
         """
-        Returns a list of camera names that are registered in
-        `ctapipe_resources`. These are all the camera names that can be
-        instantiated by the `from_name` method
+        Returns a list of camera names that are available currently on the system.
+        Beware that the `from_name` method also tries to download camera descriptions
+        from the data server, so this list might not be exhaustive.
 
         Returns
         -------
@@ -70,7 +69,10 @@ class CameraDescription:
         """
 
         geometry = CameraGeometry.from_name(camera_name)
-        readout = CameraReadout.from_name(camera_name)
+        try:
+            readout = CameraReadout.from_name(camera_name)
+        except FileNotFoundError:
+            readout = None
         return cls(camera_name=camera_name, geometry=geometry, readout=readout)
 
     def __str__(self):
