@@ -115,7 +115,7 @@ def hillas_parameters(geom, image):
         cog_x,
         cog_y,
         cog_r,
-        cog_phi,
+        cog_phi_rad,
         size,
         length,
         length_uncertainty,
@@ -136,13 +136,13 @@ def hillas_parameters(geom, image):
             x=u.Quantity(cog_x, unit),
             y=u.Quantity(cog_y, unit),
             r=u.Quantity(cog_r, unit),
-            phi=Angle(cog_phi, unit=u.rad),
+            phi=u.Quantity(cog_phi_rad, u.rad),
             intensity=size,
             length=u.Quantity(length, unit),
             length_uncertainty=u.Quantity(length_uncertainty, unit),
             width=u.Quantity(width, unit),
             width_uncertainty=u.Quantity(width_uncertainty, unit),
-            psi=Angle(psi, unit=u.rad),
+            psi=u.Quantity(psi_rad, u.rad),
             skewness=skewness_long,
             kurtosis=kurtosis_long,
         )
@@ -150,13 +150,13 @@ def hillas_parameters(geom, image):
         fov_lon=u.Quantity(cog_x, unit),
         fov_lat=u.Quantity(cog_y, unit),
         r=u.Quantity(cog_r, unit),
-        phi=Angle(cog_phi, unit=u.rad),
+        phi=u.Quantity(cog_phi_rad, u.rad),
         intensity=size,
         length=u.Quantity(length, unit),
         length_uncertainty=u.Quantity(length_uncertainty, unit),
         width=u.Quantity(width, unit),
         width_uncertainty=u.Quantity(width_uncertainty, unit),
-        psi=Angle(psi, unit=u.rad),
+        psi=u.Quantity(psi_rad, u.rad),
         skewness=skewness_long,
         kurtosis=kurtosis_long,
     )
@@ -177,7 +177,7 @@ def covariance_2d(delta_x, delta_y, weights_normed):
     """covariance assuming x and y are already weighted-mean subtracted
     and the weights are normalized"""
     w2_sum = (weights_normed ** 2).sum()
-    if (w2_sum - 1) < HILLAS_ATOL:
+    if np.abs(w2_sum - 1) < HILLAS_ATOL:
         return 0
 
     return np.sum(weights_normed * delta_x * delta_y) / (1.0 - w2_sum)

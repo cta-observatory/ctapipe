@@ -9,7 +9,12 @@ from ctapipe.containers import (
 )
 from ctapipe.coordinates import CameraFrame, TelescopeFrame
 from ctapipe.image import tailcuts_clean, toymodel
-from ctapipe.image.hillas import HillasParameterizationError, hillas_parameters
+from ctapipe.image.hillas import (
+    HillasParameterizationError,
+    hillas_parameters,
+    weighted_average_1d,
+    covariance_matrix_2d,
+)
 from ctapipe.instrument import CameraGeometry
 from numpy import isclose, zeros_like
 from pytest import approx
@@ -143,7 +148,7 @@ def test_with_toy():
 
     xs = u.Quantity([0.5, 0.5, -0.5, -0.5], u.m)
     ys = u.Quantity([0.5, -0.5, 0.5, -0.5], u.m)
-    psis = Angle([-90, -45, 0, 45, 90], unit="deg")
+    psis = u.Quantity([-90, -45, 0, 45, 90], unit="deg")
 
     for x, y in zip(xs, ys):
         for psi in psis:
@@ -164,9 +169,11 @@ def test_with_toy():
             assert u.isclose(result.width_uncertainty, width_uncertainty, rtol=0.4)
             assert u.isclose(result.length, length, rtol=0.1)
             assert u.isclose(result.length_uncertainty, length_uncertainty, rtol=0.4)
-            assert (result.psi.to_value(u.deg) == approx(psi.deg, abs=2)) or abs(
-                result.psi.to_value(u.deg) - psi.deg
-            ) == approx(180.0, abs=2)
+            assert (
+                result.psi.to_value(u.deg) == approx(psi.to_value(u.deg), abs=2)
+            ) or abs(result.psi.to_value(u.deg) - psi.to_value(u.deg)) == approx(
+                180.0, abs=2
+            )
 
             assert signal.sum() == result.intensity
 
@@ -182,7 +189,7 @@ def test_skewness():
 
     xs = u.Quantity([0.5, 0.5, -0.5, -0.5], u.m)
     ys = u.Quantity([0.5, -0.5, 0.5, -0.5], u.m)
-    psis = Angle([-90, -45, 0, 45, 90], unit="deg")
+    psis = u.Quantity([-90, -45, 0, 45, 90], unit="deg")
     skews = [0, 0.3, 0.6]
 
     for x, y, psi, skew in itertools.product(xs, ys, psis, skews):
@@ -203,8 +210,10 @@ def test_skewness():
         assert u.isclose(result.width, width, rtol=0.1)
         assert u.isclose(result.length, length, rtol=0.1)
 
-        psi_same = result.psi.to_value(u.deg) == approx(psi.deg, abs=3)
-        psi_opposite = abs(result.psi.to_value(u.deg) - psi.deg) == approx(180.0, abs=3)
+        psi_same = result.psi.to_value(u.deg) == approx(psi.to_value(u.deg), abs=3)
+        psi_opposite = abs(result.psi.to_value(u.deg) - psi.to_value(u.deg)) == approx(
+            180.0, abs=3
+        )
         assert psi_same or psi_opposite
 
         # if we have delta the other way around, we get a negative sign for skewness
@@ -278,6 +287,9 @@ def test_reconstruction_in_telescope_frame():
     Compare the reconstruction in the telescope
     and camera frame.
     """
+
+    from astropy.coordinates import SkyCoord
+
     np.random.seed(42)
 
     telescope_frame = TelescopeFrame()
@@ -293,7 +305,7 @@ def test_reconstruction_in_telescope_frame():
 
     xs = u.Quantity([0.5, 0.5, -0.5, -0.5], u.m)
     ys = u.Quantity([0.5, -0.5, 0.5, -0.5], u.m)
-    psis = Angle([-90, -45, 0, 45, 90], unit="deg")
+    psis = u.Quantity([-90, -45, 0, 45, 90], unit="deg")
 
     def distance(coord):
         return np.sqrt(np.diff(coord.x) ** 2 + np.diff(coord.y) ** 2) / 2
