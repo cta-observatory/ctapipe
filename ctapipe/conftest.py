@@ -137,10 +137,13 @@ def prod5_proton_simtel_path():
 
 @pytest.fixture(scope="session")
 def dl1_tmp_path(tmp_path_factory):
+    """Temporary directory for global dl1 test data"""
     return tmp_path_factory.mktemp("dl1")
+
 
 @pytest.fixture(scope="session")
 def dl2_tmp_path(tmp_path_factory):
+    """Temporary directory for global dl2 test data"""
     return tmp_path_factory.mktemp("dl2")
 
 
@@ -168,6 +171,7 @@ def dl2_shower_geometry_file(dl2_tmp_path, prod5_gamma_simtel_path):
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
         return output
+
 
 @pytest.fixture(scope="session")
 def dl2_shower_geometry_file_type(dl2_tmp_path, prod5_gamma_simtel_path):

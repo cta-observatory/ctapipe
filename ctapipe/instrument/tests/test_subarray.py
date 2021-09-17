@@ -1,11 +1,12 @@
 """ Tests for SubarrayDescriptions """
+from copy import deepcopy
+
 import numpy as np
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-from ctapipe.coordinates import TelescopeFrame
-from copy import deepcopy
 import pytest
 
+from ctapipe.coordinates import TelescopeFrame
 from ctapipe.instrument import (
     CameraDescription,
     OpticsDescription,
@@ -192,8 +193,7 @@ def test_hdf_duplicate_string_repr(tmp_path):
 
 
 def test_get_tel_ids(example_subarray):
-    from ctapipe.instrument import TelescopeDescription
-
+    """Test for SubarrayDescription.get_tel_ids"""
     subarray = example_subarray
     sst = TelescopeDescription.from_name("SST-ASTRI", "CHEC")
 

@@ -5,6 +5,7 @@ import numpy as np
 
 @pytest.fixture(params=["by_type", "by_id"])
 def test_file(request, dl1_file, dl1_by_type_file):
+    """Test dl1 files in both structures"""
     if request.param == "by_type":
         f = dl1_by_type_file
     else:
@@ -15,6 +16,7 @@ def test_file(request, dl1_file, dl1_by_type_file):
 
 @pytest.fixture(params=["by_type", "by_id"])
 def test_file_dl2(request, dl2_shower_geometry_file, dl2_shower_geometry_file_type):
+    """Test dl2 files in both structures"""
     if request.param == "by_type":
         f = dl2_shower_geometry_file
     else:
@@ -24,15 +26,17 @@ def test_file_dl2(request, dl2_shower_geometry_file, dl2_shower_geometry_file_ty
 
 
 def test_get_structure(test_file):
-    from ctapipe.io.tableloader import get_structure
+    """Test _get_structure"""
+    from ctapipe.io.tableloader import _get_structure
 
     expected, path = test_file
 
     with tables.open_file(path, "r") as f:
-        assert get_structure(f) == expected
+        assert _get_structure(f) == expected
 
 
 def test_telescope_events_for_tel_id(test_file):
+    """Test loading data for a single telescope"""
     from ctapipe.io.tableloader import TableLoader
 
     _, dl1_file = test_file
@@ -55,6 +59,7 @@ def test_telescope_events_for_tel_id(test_file):
 
 
 def test_load_instrument(test_file):
+    """Test joining instrument data onto telescope events"""
     from ctapipe.io.tableloader import TableLoader
 
     _, dl1_file = test_file
@@ -67,6 +72,7 @@ def test_load_instrument(test_file):
 
 
 def test_load_simulated(test_file):
+    """Test joining simulation info onto telescope events"""
     from ctapipe.io.tableloader import TableLoader
 
     _, dl1_file = test_file
@@ -80,6 +86,7 @@ def test_load_simulated(test_file):
 
 
 def test_true_images(test_file):
+    """Test joining true images onto telescope events"""
     from ctapipe.io.tableloader import TableLoader
 
     _, dl1_file = test_file
@@ -92,6 +99,7 @@ def test_true_images(test_file):
 
 
 def test_true_parameters(test_file):
+    """Test joining true parameters onto telescope events"""
     from ctapipe.io.tableloader import TableLoader
 
     _, dl1_file = test_file
@@ -104,6 +112,7 @@ def test_true_parameters(test_file):
 
 
 def test_read_subarray_events(test_file_dl2):
+    """Test reading subarray events"""
 
     from ctapipe.io.tableloader import TableLoader
 
@@ -119,6 +128,7 @@ def test_read_subarray_events(test_file_dl2):
 
 
 def test_read_telescope_events_type(test_file_dl2):
+    """Test reading telescope events for a given telescope type"""
 
     from ctapipe.io.tableloader import TableLoader
 
@@ -145,6 +155,7 @@ def test_read_telescope_events_type(test_file_dl2):
 
 
 def test_read_telescope_events_by_type(test_file_dl2):
+    """Test reading telescope events for by types"""
 
     from ctapipe.io.tableloader import TableLoader
 

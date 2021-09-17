@@ -1,6 +1,7 @@
 """
 Description of Arrays or Subarrays of telescopes
 """
+from typing import Dict, List, Union
 from pathlib import Path
 import warnings
 
@@ -19,9 +20,6 @@ from ..coordinates import GroundFrame, CameraFrame
 from .telescope import TelescopeDescription
 from .camera import CameraDescription, CameraReadout, CameraGeometry
 from .optics import OpticsDescription
-
-
-from typing import Dict, List, Union
 
 
 __all__ = ["SubarrayDescription"]
@@ -406,7 +404,8 @@ class SubarrayDescription:
         telescopes: List[Union[int, str, TelescopeDescription]]
             List of Telescope IDs and descriptions.
             Supported inputs for telescope descriptions are instances of
-            `~ctapipe.instrument.TelescopeDescription` as well as their string representation.
+            `~ctapipe.instrument.TelescopeDescription` as well as their
+            string representation.
 
         Returns
         -------
