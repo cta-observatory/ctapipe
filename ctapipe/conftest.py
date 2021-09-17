@@ -160,6 +160,7 @@ def dl1_file(dl1_tmp_path, prod5_gamma_simtel_path):
             f"--output={output}",
             "--write-images",
             "--max-events=20",
+            "--DataWriter.Contact.name='αℓℓ the äüöß'",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
@@ -186,6 +187,7 @@ def dl1_image_file(dl1_tmp_path, prod5_gamma_simtel_path):
             "--write-images",
             "--DataWriter.write_parameters=False",
             "--max-events=20",
+            "--DataWriter.Contact.name='αℓℓ the äüöß'",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
@@ -211,6 +213,7 @@ def dl1_parameters_file(dl1_tmp_path, prod5_gamma_simtel_path):
             f"--output={output}",
             "--write-parameters",
             "--max-events=20",
+            "--DataWriter.Contact.name='αℓℓ the äüöß'",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
@@ -237,6 +240,7 @@ def dl1_muon_file(dl1_tmp_path):
             f"--output={output}",
             "--write-images",
             "--DataWriter.write_parameters=False",
+            "--DataWriter.Contact.name='αℓℓ the äüöß'",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
@@ -260,6 +264,7 @@ def dl1_proton_file(dl1_tmp_path, prod5_proton_simtel_path):
             f"--input={prod5_proton_simtel_path}",
             f"--output={output}",
             "--write-images",
+            "--DataWriter.Contact.name='αℓℓ the äüöß'",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
