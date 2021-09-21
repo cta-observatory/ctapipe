@@ -227,29 +227,31 @@ class CameraGeometry:
         coord = SkyCoord(self.pix_x, self.pix_y, frame=self.frame)
         trans = coord.transform_to(frame)
 
-        # also transform the unit vectors, to get rotation / mirroring
+        # also transform the unit vectors, to get rotation / mirroring, scale
         uv = SkyCoord([1, 0], [0, 1], unit=self.pix_x.unit, frame=self.frame)
         uv_trans = uv.transform_to(frame)
 
-        # some trickery has to be done to deal with the fact that not all frames
-        # use the same x/y attributes. Therefore we get the component names, and
-        # access them by string:
-        frame_attrs = list(uv_trans.frame.get_representation_component_names().keys())
-        uv_y = getattr(uv_trans, frame_attrs[1])
-        trans_x = getattr(trans, frame_attrs[0])
-        trans_y = getattr(trans, frame_attrs[1])
+        trans_x_name, trans_y_name = list(
+            uv_trans.frame.get_representation_component_names().keys()
+        )
+        uv_trans_x = getattr(uv_trans, trans_x_name)
+        uv_trans_y = getattr(uv_trans, trans_y_name)
 
-        rot = np.arctan2(uv_y[0], uv_y[1])
-
+        rot = np.arctan2(uv_trans_y[0], uv_trans_y[1])
         cam_rotation = rot - self.cam_rotation
         pix_rotation = rot - self.pix_rotation
+
+        scale = np.sqrt(uv_trans_x[0] ** 2 + uv_trans_y[0] ** 2) / self.pix_x.unit
+        trans_x = getattr(trans, trans_x_name)
+        trans_y = getattr(trans, trans_y_name)
+        pix_area = (self.pix_area * scale ** 2).to(trans_x.unit ** 2)
 
         return CameraGeometry(
             camera_name=self.camera_name,
             pix_id=self.pix_id,
             pix_x=trans_x,
             pix_y=trans_y,
-            pix_area=self.guess_pixel_area(trans_x, trans_y, self.pix_type),
+            pix_area=pix_area,
             pix_type=self.pix_type,
             pix_rotation=pix_rotation,
             cam_rotation=cam_rotation,
