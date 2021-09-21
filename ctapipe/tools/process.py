@@ -21,6 +21,8 @@ COMPATIBLE_DATALEVELS = [
     DataLevel.DL1_PARAMETERS,
 ]
 
+__all__ = ["ProcessorTool"]
+
 
 class ProcessorTool(Tool):
     """
@@ -209,6 +211,9 @@ class ProcessorTool(Tool):
             )
 
     def start(self):
+        """
+        Process events
+        """
         self.log.info("(re)compute DL1: %s", self.should_compute_dl1)
         self.log.info("(re)compute DL2: %s", self.should_compute_dl2)
         self.event_source.subarray.info(printer=self.log.info)
@@ -233,6 +238,9 @@ class ProcessorTool(Tool):
             self.write(event)
 
     def finish(self):
+        """
+        Last steps after processing events.
+        """
         self.write.write_simulation_histograms(self.event_source)
         self.write.finish()
         self._write_processing_statistics()

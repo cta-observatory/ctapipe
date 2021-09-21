@@ -29,7 +29,7 @@ def fileinfo(args):
     Optionally create an index table from all headers
     """
 
-    info_total = {}  # accumulated info for table output
+    files = []  # accumulated info for table output
 
     for filename in args.files:
         info = {}
@@ -49,25 +49,27 @@ def fileinfo(args):
                         for name in infile.root._v_attrs._f_list()
                     }
                     if args.flat:
-                        info[filename] = attrs
+                        info[filename] = attrs.copy()
                     else:
                         info[filename] = unflatten(attrs)
 
                     if args.output_table:
-                        info_total[filename] = attrs
+                        attrs["PATH"] = filename
+                        files.append(attrs)
+
             except tables.exceptions.HDF5ExtError as err:
                 info[filename] = f"ERROR {err}"
 
         print(yaml.dump(info, indent=4))
 
     if args.output_table:
-        # use pandas' ability to convert a dict of flat values to a table
-        import pandas as pd  #  pylint: disable=C0415
+        if args.output_table.endswith(".fits") or args.output_table.endswith(
+            ".fits.gz"
+        ):
+            files = [{k: v.encode("utf-8") for k, v in info.items()} for info in files]
 
-        dataframe = pd.DataFrame(info_total)
-        Table.from_pandas(dataframe.T, index=True).write(
-            args.output_table, format=args.table_format, overwrite=True
-        )
+        table = Table(files)
+        table.write(args.output_table, format=args.table_format, overwrite=True)
 
 
 def main():

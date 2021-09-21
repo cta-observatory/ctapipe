@@ -27,7 +27,7 @@ class TelescopeDescription:
     Describes a Cherenkov Telescope and its associated
     `~ctapipe.instrument.OpticsDescription` and `~ctapipe.instrument.CameraDescription`
 
-    Parameters
+    Attributes
     ----------
     name: str
         Telescope name
@@ -40,8 +40,24 @@ class TelescopeDescription:
     """
 
     def __init__(
-        self, name, tel_type, optics: OpticsDescription, camera: CameraDescription
+        self,
+        name: str,
+        tel_type: str,
+        optics: OpticsDescription,
+        camera: CameraDescription,
     ):
+
+        if not isinstance(name, str):
+            raise TypeError("`name` must be a str")
+
+        if not isinstance(tel_type, str):
+            raise TypeError("`tel_type` must be a str")
+
+        if not isinstance(optics, OpticsDescription):
+            raise TypeError("`optics` must be an instance of `OpticsDescription`")
+
+        if not isinstance(camera, CameraDescription):
+            raise TypeError("`camera` must be an instance of `CameraDescription`")
 
         self.name = name
         self.type = tel_type

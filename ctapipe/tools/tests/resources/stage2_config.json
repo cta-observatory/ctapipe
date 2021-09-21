@@ -1,5 +1,10 @@
 {
     "DataWriter": {
+        "Contact": {
+            "name": "YOUR-NAME-HERE",
+            "email": "YOUREMAIL@EXAMPLE.ORG",
+            "organization": "YOUR-ORGANIZATION"
+        },
         "overwrite": false,
         "write_images": false,
         "write_parameters": false,
