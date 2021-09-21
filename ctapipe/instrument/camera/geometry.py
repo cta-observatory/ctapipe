@@ -12,7 +12,7 @@ from astropy.coordinates import BaseCoordinateFrame
 from astropy.table import Table
 from astropy.utils import lazyproperty
 from scipy.sparse import lil_matrix, csr_matrix
-from scipy.spatial import cKDTree as KDTree
+from scipy.spatial import cKDTree
 
 from ctapipe.coordinates import CameraFrame
 from .image_conversion import (
@@ -373,7 +373,7 @@ class CameraGeometry:
         """
 
         pixel_centers = np.column_stack([self.pix_x.value, self.pix_y.value])
-        return KDTree(pixel_centers)
+        return cKDTree(pixel_centers)
 
     @lazyproperty
     def _all_pixel_areas_equal(self):
@@ -636,8 +636,6 @@ class CameraGeometry:
         diagonal: bool
             If rectangular geometry, also add diagonal neighbors
         """
-        neighbors = lil_matrix((self.n_pixels, self.n_pixels), dtype=bool)
-
         # assume circle pixels are also on a hex grid
         if self.pix_type in (PixelShape.HEXAGON, PixelShape.CIRCLE):
             max_neighbors = 6
@@ -663,31 +661,33 @@ class CameraGeometry:
                 radius = 1.5
                 norm = 1
 
-        for i, pixel in enumerate(self._kdtree.data):
-            # as the pixel itself is in the tree, look for max_neighbors + 1
-            distances, neighbor_candidates = self._kdtree.query(
-                pixel, k=max_neighbors + 1, p=norm
-            )
+        distances, neighbor_candidates = self._kdtree.query(
+            self._kdtree.data, k=max_neighbors + 1, p=norm
+        )
 
-            # remove self-reference
-            distances = distances[1:]
-            neighbor_candidates = neighbor_candidates[1:]
+        # remove self reference
+        distances = distances[:, 1:]
+        neighbor_candidates = neighbor_candidates[:, 1:]
 
-            # remove too far away pixels
-            inside_max_distance = distances < radius * np.min(distances)
-            neighbors[i, neighbor_candidates[inside_max_distance]] = True
+        min_distance = np.min(distances, axis=1)[:, np.newaxis]
+        inside_max_distance = distances < (radius * min_distance)
+        pixels, neigbor_index = np.nonzero(inside_max_distance)
+        neighbors = neighbor_candidates[pixels, neigbor_index]
+        data = np.ones(len(pixels), dtype=bool)
+
+        neighbor_matrix = csr_matrix((data, (pixels, neighbors)))
 
         # filter annoying deprecation warning from within scipy
         # scipy still uses np.matrix in scipy.sparse, but we do not
         # explicitly use any feature of np.matrix, so we can ignore this here
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=PendingDeprecationWarning)
-            if (neighbors.T != neighbors).sum() > 0:
+            if (neighbor_matrix.T != neighbor_matrix).sum() > 0:
                 warnings.warn(
                     "Neighbor matrix is not symmetric. Is camera geometry irregular?"
                 )
 
-        return neighbors.tocsr()
+        return neighbor_matrix
 
     @lazyproperty
     def pixel_moment_matrix(self):
