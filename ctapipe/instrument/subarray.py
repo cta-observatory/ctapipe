@@ -1,6 +1,7 @@
 """
 Description of Arrays or Subarrays of telescopes
 """
+from typing import Dict, List, Union
 from pathlib import Path
 import warnings
 
@@ -74,7 +75,7 @@ class SubarrayDescription:
     def __init__(self, name, tel_positions=None, tel_descriptions=None):
         self.name = name
         self.positions = tel_positions or dict()
-        self.tels = tel_descriptions or dict()
+        self.tels: Dict[int, TelescopeDescription] = tel_descriptions or dict()
 
         if self.positions.keys() != self.tels.keys():
             raise ValueError("Telescope ids in positions and descriptions do not match")
@@ -360,17 +361,17 @@ class SubarrayDescription:
             plt.tight_layout()
 
     @lazyproperty
-    def telescope_types(self):
+    def telescope_types(self) -> List[TelescopeDescription]:
         """ list of telescope types in the array"""
         return list({tel for tel in self.tel.values()})
 
     @lazyproperty
-    def camera_types(self):
+    def camera_types(self) -> List[CameraDescription]:
         """ list of camera types in the array """
         return list({tel.camera for tel in self.tel.values()})
 
     @lazyproperty
-    def optics_types(self):
+    def optics_types(self) -> List[OpticsDescription]:
         """ list of optics types in the array """
         return list({tel.optics for tel in self.tel.values()})
 
@@ -390,6 +391,41 @@ class SubarrayDescription:
             tel_str = tel_type
 
         return [id for id, descr in self.tels.items() if str(descr) == tel_str]
+
+    def get_tel_ids(
+        self, telescopes: List[Union[int, str, TelescopeDescription]]
+    ) -> List[int]:
+        """
+        Convert a list of telescope ids and telescope descriptions to
+        a list of unique telescope ids.
+
+        Parameters
+        ----------
+        telescopes: List[Union[int, str, TelescopeDescription]]
+            List of Telescope IDs and descriptions.
+            Supported inputs for telescope descriptions are instances of
+            `~ctapipe.instrument.TelescopeDescription` as well as their
+            string representation.
+
+        Returns
+        -------
+        tel_ids: List[int]
+            List of unique telescope ids matching ``telescopes``
+        """
+        ids = set()
+
+        valid_tel_types = {str(tel_type) for tel_type in self.telescope_types}
+
+        for telescope in telescopes:
+            if isinstance(telescope, int):
+                ids.add(telescope)
+
+            if isinstance(telescope, str) and telescope not in valid_tel_types:
+                raise ValueError("Invalid telescope type input.")
+
+            ids.update(self.get_tel_ids_for_type(telescope))
+
+        return sorted(ids)
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):

@@ -52,8 +52,8 @@ class Tool(Application):
     ``name``, ``description`` and ``examples`` class attributes as
     strings. The ``aliases`` attribute can be set to cause a lower-level
     `~ctapipe.core.Component` parameter to become a high-level command-line
-    parameter (See example below). The `setup()`, `start()`, and
-    `finish()` methods should be defined in the sub-class.
+    parameter (See example below). The `setup`, `start`, and
+    `finish` methods should be defined in the sub-class.
 
     Additionally, any `ctapipe.core.Component` used within the `Tool`
     should have their class in a list in the ``classes`` attribute,
@@ -61,7 +61,7 @@ class Tool(Application):
     tool.
 
     Once a tool is constructed and the virtual methods defined, the
-    user can call the `run()` method to setup and start it.
+    user can call the `run` method to setup and start it.
 
 
     .. code:: python
@@ -254,14 +254,14 @@ class Tool(Application):
     @abstractmethod
     def start(self):
         """main body of tool (override in subclass). This is  automatically
-        called after `initialize()` when the `run()` is called.
+        called after `Tool.initialize` when the `Tool.run` is called.
         """
         pass
 
     @abstractmethod
     def finish(self):
         """finish up (override in subclass). This is called automatically
-        after `start()` when `run()` is called."""
+        after `Tool.start` when `Tool.run` is called."""
         self.log.info("Goodbye")
 
     def run(self, argv=None):

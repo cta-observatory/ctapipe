@@ -165,6 +165,9 @@ Reference/API
 .. automodapi:: ctapipe.io.tableio
     :no-inheritance-diagram:
 
+.. automodapi:: ctapipe.io.tableloader
+    :no-inheritance-diagram:
+
 .. automodapi:: ctapipe.io.hdf5tableio
     :no-inheritance-diagram:
 
