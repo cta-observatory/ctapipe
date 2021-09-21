@@ -29,7 +29,7 @@ camera_names = [
 ]
 
 
-@pytest.fixture(scope="session", params=camera_names)
+@pytest.fixture(scope="function", params=camera_names)
 def camera_geometry(request):
     return CameraGeometry.from_name(request.param)
 
