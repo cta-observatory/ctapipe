@@ -278,7 +278,7 @@ class CameraDisplay:
                 "'log','symlog', or a matplotlib Normalize object".format(norm)
             )
 
-        self.update(force=True)
+        self.update()
         self.pixels.autoscale()
 
     @property
@@ -322,19 +322,16 @@ class CameraDisplay:
             self.pixels.autoscale()
         self._update()
 
-    def _update(self, force=False):
+    def _update(self):
         """ signal a redraw if autoupdate is turned on """
         if self.autoupdate:
-            self.update(force)
+            self.update()
 
-    def update(self, force=False):
+    def update(self):
         """ redraw the display now """
         self.axes.figure.canvas.draw()
         if self.colorbar is not None:
-            if force is True:
-                self.colorbar.update_bruteforce(self.pixels)
-            else:
-                self.colorbar.update_normal(self.pixels)
+            self.colorbar.update_normal(self.pixels)
             self.colorbar.draw_all()
 
     def add_colorbar(self, **kwargs):
