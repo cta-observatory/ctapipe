@@ -161,7 +161,7 @@ def test_fileinfo(tmp_path, dl1_image_file):
     command = f"ctapipe-fileinfo {dl1_image_file} --output-table {index_file}"
     output = subprocess.run(command.split(" "), capture_output=True, encoding="utf-8")
     assert output.returncode == 0, output.stderr
-    header = yaml.load(output.stdout)
+    header = yaml.safe_load(output.stdout)
     assert "ID" in header[str(dl1_image_file)]["CTA"]["ACTIVITY"]
 
     tab = Table.read(index_file)
@@ -170,7 +170,7 @@ def test_fileinfo(tmp_path, dl1_image_file):
     command = f"ctapipe-fileinfo {dl1_image_file} --flat"
     output = subprocess.run(command.split(" "), capture_output=True, encoding="utf-8")
     assert output.returncode == 0, output.stderr
-    header = yaml.load(output.stdout)
+    header = yaml.safe_load(output.stdout)
     assert "CTA ACTIVITY ID" in header[str(dl1_image_file)]
 
 
