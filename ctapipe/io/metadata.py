@@ -26,6 +26,7 @@ import uuid
 import warnings
 from collections import OrderedDict
 
+import tables
 from astropy.time import Time
 from tables import NaturalNameWarning
 from traitlets import Enum, Instance, List, Unicode, default, HasTraits
@@ -226,3 +227,22 @@ def write_to_hdf5(metadata, h5file):
         warnings.simplefilter("ignore", NaturalNameWarning)
         for key, value in metadata.items():
             h5file.root._v_attrs[key] = value  # pylint: disable=protected-access
+
+
+
+def read_metadata(h5filename):
+    """
+    Read metadata from an hdf5 file
+
+    Parameters
+    ----------
+    h5filename: string
+        path to the hdf5 file on disk
+
+    Returns
+    -------
+    metadata: dictionnary
+    """
+    with tables.open_file(h5filename) as file:
+        metadata = {key: file.root._v_attrs[key] for key in file.root._v_attrs._f_list()}
+    return metadata

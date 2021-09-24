@@ -4,8 +4,9 @@ Test CTA Reference metadata functionality
 
 from ctapipe.io import metadata as meta
 from ctapipe.core.provenance import Provenance
+import pytest
 
-
+@pytest.fixture
 def test_construct_and_write_metadata(tmp_path):
     """ basic test of making a Reference object and writing it"""
 
@@ -67,5 +68,14 @@ def test_construct_and_write_metadata(tmp_path):
 
     import tables  # pylint: disable=import-outside-toplevel
 
-    with tables.open_file(tmp_path / "test.h5", mode="w") as h5file:
+    output_filename = tmp_path / "test.h5"
+    with tables.open_file(output_filename, mode="w") as h5file:
         meta.write_to_hdf5(ref_dict, h5file)
+
+    return output_filename
+
+
+def test_read_metadata(test_construct_and_write_metadata):
+    metadata = meta.read_metadata(test_construct_and_write_metadata)
+    assert isinstance(metadata, dict)
+    assert metadata['CTA ACTIVITY SOFTWARE NAME'] == 'ctapipe'
