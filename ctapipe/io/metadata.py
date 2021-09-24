@@ -229,7 +229,6 @@ def write_to_hdf5(metadata, h5file):
             h5file.root._v_attrs[key] = value  # pylint: disable=protected-access
 
 
-
 def read_metadata(h5filename):
     """
     Read metadata from an hdf5 file
