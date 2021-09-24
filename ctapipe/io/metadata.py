@@ -31,6 +31,8 @@ from astropy.time import Time
 from tables import NaturalNameWarning
 from traitlets import Enum, Instance, List, Unicode, default, HasTraits
 from traitlets.config import Configurable
+from contextlib import ExitStack
+from pathlib import Path
 
 from ..core.traits import AstroTime
 from .datalevels import DataLevel
@@ -230,19 +232,29 @@ def write_to_hdf5(metadata, h5file):
             h5file.root._v_attrs[key] = value  # pylint: disable=protected-access
 
 
-def read_metadata(h5filename):
+def read_metadata(h5file):
     """
     Read metadata from an hdf5 file
 
     Parameters
     ----------
-    h5filename: string
-        path to the hdf5 file on disk
+    h5filename: string, Path, or `tables.file.File`
+        hdf5 file
 
     Returns
     -------
     metadata: dictionnary
     """
-    with tables.open_file(h5filename) as file:
-        metadata = {key: file.root._v_attrs[key] for key in file.root._v_attrs._f_list()}
+    with ExitStack() as stack:
+        if isinstance(h5file, (str, Path)):
+            h5file = stack.enter_context(tables.open_file(h5file))
+        elif isinstance(h5file, tables.file.File):
+            pass
+        else:
+            raise ValueError(
+                f"expected a string, Path, or PyTables "
+                f"filehandle for argument 'h5file', got {h5file}"
+            )
+
+        metadata = {key: h5file.root._v_attrs[key] for key in h5file.root._v_attrs._f_list()}
     return metadata
