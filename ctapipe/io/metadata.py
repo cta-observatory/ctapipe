@@ -43,6 +43,7 @@ __all__ = [
     "Activity",
     "Instrument",
     "write_to_hdf5",
+    "read_metadata",
 ]
 
 
