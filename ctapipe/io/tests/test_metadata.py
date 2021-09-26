@@ -79,14 +79,15 @@ def test_read_metadata(tmp_path):
         'SOFTWARE': 'ctapipe',
         'FOO': 'BAR'
     }
-
+    metadata_path = '/node/subnode'
     with tables.open_file(filename, mode="w") as h5file:
-        meta.write_to_hdf5(metadata_in, h5file)
+        h5file.create_group(where='/node', name='subnode', createparents=True)
+        meta.write_to_hdf5(metadata_in, h5file, path=metadata_path)
 
-    metadata_out = meta.read_metadata(filename)
+    metadata_out = meta.read_metadata(filename, path=metadata_path)
     assert metadata_out == metadata_in
 
     with tables.open_file(filename, 'r') as file:
-        metadata_out = meta.read_metadata(file)
+        metadata_out = meta.read_metadata(file, path=metadata_path)
 
     assert metadata_out == metadata_in
