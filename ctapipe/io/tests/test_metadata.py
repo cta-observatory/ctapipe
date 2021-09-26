@@ -69,7 +69,8 @@ def test_construct_and_write_metadata(tmp_path):
     import tables  # pylint: disable=import-outside-toplevel
 
     with tables.open_file(tmp_path / "test.h5", mode="w") as h5file:
-        meta.write_to_hdf5(ref_dict, h5file)
+        h5file.create_group(where='/', name='node')
+        meta.write_to_hdf5(ref_dict, h5file, path='/node')
 
 
 def test_read_metadata(tmp_path):
