@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
+import warnings
 import numpy as np
 from astropy import units as u
 import tables
 import pytest
 from astropy.time import Time
+
+from astropy.io.fits.verify import VerifyWarning
 
 from ctapipe.core import Container, Field
 from ctapipe.containers import ReconstructedEnergyContainer, TelescopeTriggerContainer
@@ -36,7 +39,10 @@ def test_read_table(tmp_path):
 
     # test write the table back out to some other format:
     table.write(tmp_path / "test_output.ecsv")
-    table.write(tmp_path / "test_output.fits.gz")
+    with warnings.catch_warnings():
+        # ignore warnings about too long keywords stored using HIERARCH
+        warnings.simplefilter("ignore", VerifyWarning)
+        table.write(tmp_path / "test_output.fits.gz")
 
     # test using a file handle
     with tables.open_file(filename) as handle:

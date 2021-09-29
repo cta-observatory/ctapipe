@@ -6,7 +6,7 @@ Functions to help adapt internal ctapipe data to astropy formats and conventions
 from pathlib import Path
 
 import tables
-from astropy.table import Table
+from astropy.table import Table, join
 import numpy as np
 
 from .tableio import (
@@ -18,7 +18,7 @@ from .hdf5tableio import get_hdf5_attr
 
 from contextlib import ExitStack
 
-__all__ = ["read_table"]
+__all__ = ["read_table", "join_allow_empty"]
 
 
 def read_table(h5file, path, start=None, stop=None, step=None, condition=None) -> Table:
@@ -119,3 +119,41 @@ def _parse_hdf5_attrs(table):
             other_attrs[attr] = str(value) if isinstance(value, np.str_) else value
 
     return column_transforms, column_descriptions, other_attrs
+
+
+def join_allow_empty(left, right, keys, join_type="left", **kwargs):
+    """
+    Join two astropy tables, allowing both sides to be empty tables.
+
+    See https://github.com/astropy/astropy/issues/12012 for why
+    this is necessary.
+
+    This behaves as `~astropy.table.join`, with the only difference of
+    allowing empty tables to be joined.
+    """
+
+    left_empty = len(left) == 0
+    right_empty = len(right) == 0
+
+    if join_type == "inner":
+        if left_empty:
+            return left.copy()
+        if right_empty:
+            return right.copy()
+
+    elif join_type == "left":
+        if left_empty or right_empty:
+            return left.copy()
+
+    elif join_type == "right":
+        if left_empty or right_empty:
+            return right.copy()
+
+    elif join_type == "outer":
+        if left_empty:
+            return right.copy()
+
+        if right_empty:
+            return left.copy()
+
+    return join(left, right, keys, join_type=join_type, **kwargs)
