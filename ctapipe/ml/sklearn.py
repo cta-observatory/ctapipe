@@ -1,37 +1,18 @@
 """
 Component Wrappers around sklearn models
 """
-from inspect import isabstract
-from importlib import import_module
 
 import numpy as np
 from traitlets import Dict, List, Unicode, Enum, Integer
-from sklearn.base import is_classifier, is_regressor
 import joblib
+from sklearn.utils import all_estimators
 
 from ..core import Component
 from .preprocessing import check_valid_rows, table_to_float
 
 
-sklearn_modules = {
-    name: import_module(f"sklearn.{name}")
-    for name in ["ensemble", "linear_model", "neighbors", "svm", "tree", "naive_bayes"]
-}
-
-
-def get_models(filter_func=is_classifier):
-    models = {}
-    for module in sklearn_modules.values():
-        for cls_name in dir(module):
-            cls = getattr(module, cls_name)
-            if filter_func(cls) and not isabstract(cls):
-                models[cls.__name__] = cls
-
-    return models
-
-
-SUPPORTED_CLASSIFIERS = get_models(is_classifier)
-SUPPORTED_REGRESSORS = get_models(is_regressor)
+SUPPORTED_CLASSIFIERS = dict(all_estimators("classifier"))
+SUPPORTED_REGRESSORS = dict(all_estimators("regressor"))
 SUPPORTED_MODELS = {**SUPPORTED_CLASSIFIERS, **SUPPORTED_REGRESSORS}
 
 
@@ -103,6 +84,7 @@ class Classifier(Model):
     model_cls = Enum(
         SUPPORTED_CLASSIFIERS.keys(), default_value=None, allow_none=False
     ).tag(config=True)
+
     invalid_class = Integer(-1).tag(config=True)
 
     def predict(self, table):
