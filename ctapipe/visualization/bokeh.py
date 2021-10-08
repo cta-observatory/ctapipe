@@ -1,12 +1,10 @@
 import sys
-from bokeh.events import Tap
 import numpy as np
 from bokeh.io import output_notebook, push_notebook, show, output_file
 from bokeh.plotting import figure
 from bokeh.models import (
     ColumnDataSource,
     TapTool,
-    Span,
     ColorBar,
     LinearColorMapper,
     LogColorMapper,
@@ -19,12 +17,9 @@ from bokeh.models import (
 )
 from bokeh.palettes import Viridis256, Magma256, Inferno256, Greys256, d3
 import tempfile
-from threading import Timer
-from functools import wraps
 import astropy.units as u
 
 from ctapipe.instrument import CameraGeometry, PixelShape
-from ctapipe.coordinates import GroundFrame
 
 
 PLOTARGS = dict(tools="", toolbar_location=None, outline_line_color="#595959")
