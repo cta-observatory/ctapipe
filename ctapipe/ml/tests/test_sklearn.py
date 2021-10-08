@@ -23,12 +23,34 @@ def test_supported_classifiers():
     assert SUPPORTED_CLASSIFIERS["RandomForestClassifier"] is RandomForestClassifier
 
 
+def make_positive_regression(n_samples, n_features, n_informative, random_state=0):
+    rng = np.random.default_rng(random_state)
+
+    y = rng.uniform(1, 1000, n_samples)
+
+    X = np.zeros((n_samples, n_features))
+
+    coeffs = rng.normal(0, 10, size=n_informative)
+    X[:, :n_informative] = y[:, np.newaxis] * coeffs
+    # add some noise
+    noise = rng.normal(0, np.sqrt(y)[:, np.newaxis], (n_samples, n_informative))
+    X[:, :n_informative] += noise
+
+    n_random = n_features - n_informative
+    means = rng.uniform(-10, 10, n_random)[np.newaxis, :]
+    stds = rng.uniform(0.1, 10, n_random)[np.newaxis, :]
+    X[:, n_informative:] = rng.normal(means, stds, (n_samples, n_random))
+    return X, y
+
+
 @pytest.fixture()
 def example_table():
     from sklearn.datasets import make_regression
     from sklearn.datasets import make_blobs
 
-    X, y = make_regression(n_samples=100, n_features=5, n_informative=3, random_state=0)
+    X, y = make_positive_regression(
+        n_samples=100, n_features=5, n_informative=3, random_state=0
+    )
     t = Table({f"X{i}": col for i, col in enumerate(X.T)})
     t["energy"] = y
     t["X0"][10] = np.nan
@@ -80,6 +102,23 @@ def test_regressor(model_cls, example_table):
 
     regressor = Regressor(
         model_cls=model_cls, target="energy", features=[f"X{i}" for i in range(8)]
+    )
+
+    regressor.fit(example_table)
+    prediction = regressor.predict(example_table)
+    assert prediction.shape == (100,)
+    assert np.isnan(prediction[10])
+    assert np.isnan(prediction[30])
+
+
+def test_regressor_log_target(example_table):
+    from ctapipe.ml.sklearn import Regressor
+
+    regressor = Regressor(
+        model_cls="LinearRegression",
+        target="energy",
+        log_target=True,
+        features=[f"X{i}" for i in range(8)],
     )
 
     regressor.fit(example_table)
