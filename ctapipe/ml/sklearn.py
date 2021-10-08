@@ -3,7 +3,7 @@ Component Wrappers around sklearn models
 """
 
 import numpy as np
-from traitlets import Dict, List, Unicode, Enum, Integer
+from traitlets import Dict, List, Unicode, Enum, Integer, Bool
 import joblib
 from sklearn.utils import all_estimators
 
@@ -36,12 +36,12 @@ class Model(Component):
         X = table_to_float(feature_table[valid])
         return X, valid
 
-    def table_to_y(self, table):
-        return np.array(table[self.target])
+    def table_to_y(self, table, mask=None):
+        return np.array(table[self.target][mask])
 
     def fit(self, table):
         X, valid = self.table_to_X(table)
-        y = self.table_to_y(table)[valid]
+        y = self.table_to_y(table, mask=valid)
         self.model.fit(X, y)
 
     def predict(self, table):
@@ -78,6 +78,26 @@ class Regressor(Model):
     model_cls = Enum(
         SUPPORTED_REGRESSORS.keys(), default_value=None, allow_none=False
     ).tag(config=True)
+
+    log_target = Bool(default_value=False).tag(config=True)
+
+    def table_to_y(self, table, mask=None):
+        y = super().table_to_y(table, mask=mask)
+
+        if self.log_target:
+            if np.any(y <= 0):
+                raise ValueError("y contains negative values, cannot apply log")
+            return np.log(y)
+        return y
+
+    def predict(self, table):
+        prediction = super().predict(table)
+
+        if self.log_target:
+            with np.errstate(invalid="ignore"):
+                return np.exp(prediction)
+
+        return prediction
 
 
 class Classifier(Model):
