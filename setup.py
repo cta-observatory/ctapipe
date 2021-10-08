@@ -13,7 +13,6 @@ entry_points["console_scripts"] = [
     "ctapipe-info = ctapipe.tools.info:main",
     "ctapipe-dump-triggers = ctapipe.tools.dump_triggers:main",
     "ctapipe-dump-instrument=ctapipe.tools.dump_instrument:main",
-    "ctapipe-event-viewer = ctapipe.tools.bokeh.file_viewer:main",
     "ctapipe-reconstruct-muons = ctapipe.tools.muon_reconstruction:main",
     "ctapipe-display-dl1 = ctapipe.tools.display_dl1:main",
     "ctapipe-process = ctapipe.tools.process:main",
@@ -80,7 +79,5 @@ setup(
     ],
     zip_safe=False,
     entry_points=entry_points,
-    package_data={
-        "": ["tools/bokeh/*.yaml", "tools/bokeh/templates/*.html", "resources/*"]
-    },
+    package_data={"": ["resources/*"]},
 )
