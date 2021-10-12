@@ -7,6 +7,7 @@ Class to write DL1 (a,b) and DL2 (a) data from an event stream
 import pathlib
 from collections import defaultdict
 from typing import DefaultDict, Tuple
+from numpy.ma import default_fill_value
 from traitlets import Instance
 
 import numpy as np
@@ -128,6 +129,14 @@ class DataWriter(Component):
         help="output filename", default_value=pathlib.Path("events.dl1.h5")
     ).tag(config=True)
 
+    write_raw_waveforms = Bool(
+        help="Store R0 waveforms if available", default_fill_value=False
+    ).tag(config=True)
+
+    write_waveforms = Bool(
+        help="Store R1 waveforms if available", default_fill_value=False
+    ).tag(config=True)
+
     write_images = Bool(help="Store DL1 Images if available", default_value=False).tag(
         config=True
     )
@@ -171,6 +180,11 @@ class DataWriter(Component):
     ).tag(config=True)
 
     overwrite = Bool(help="overwrite output file if it exists").tag(config=True)
+
+    transform_waveform = Bool(default_value=False).tag(config=True)
+    waveform_dtype = Unicode(default_value="int32").tag(config=True)
+    waveform_offset = Int(default_value=0).tag(config=True)
+    waveform_scale = Float(default_value=1000.0).tag(config=True)
 
     transform_image = Bool(default_value=False).tag(config=True)
     image_dtype = Unicode(default_value="int32").tag(config=True)
@@ -248,6 +262,12 @@ class DataWriter(Component):
                 table_name="simulation/event/subarray/shower",
                 containers=[event.index, event.simulation.shower],
             )
+
+        if self.write_waveforms:
+            self._write_r1_telescope_events(self._writer, event)
+
+        if self.write_raw_waveforms:
+            self._write_r0_telescope_events(self._writer, event)
 
         # write telescope event data
         self._write_dl1_telescope_events(self._writer, event)
@@ -393,6 +413,17 @@ class DataWriter(Component):
                 "dl1/event/telescope/images/.*", "image", transform
             )
 
+        if self.transform_waveform:
+            transform = FixedPointColumnTransform(
+                scale=self.waveform_scale,
+                offset=self.waveform_offset,
+                source_dtype=np.float32,
+                target_dtype=np.dtype(self.image_dtype),
+            )
+            writer.add_column_transform_regexp(
+                "r1/event/telescope/.*", "waveform", transform
+            )
+
         if self.transform_peak_time:
             transform = FixedPointColumnTransform(
                 scale=self.peak_time_scale,
@@ -519,6 +550,38 @@ class DataWriter(Component):
     def table_name(self, tel_id, tel_type):
         """construct dataset table names depending on chosen split method"""
         return f"tel_{tel_id:03d}" if self.split_datasets_by == "tel_id" else tel_type
+
+    def _write_r1_telescope_events(
+        self, writer: TableWriter, event: ArrayEventContainer
+    ):
+        for tel_id, r1_tel in event.r1.tel.items():
+
+            tel_index = TelEventIndexContainer(
+                obs_id=event.index.obs_id,
+                event_id=event.index.event_id,
+                tel_id=np.int16(tel_id),
+            )
+            telescope = self._subarray.tel[tel_id]
+            table_name = self.table_name(tel_id, str(telescope))
+
+            r1_tel.prefix = ""
+            writer.write(f"r1/event/telescope/{table_name}", [tel_index, r1_tel])
+
+    def _write_r0_telescope_events(
+        self, writer: TableWriter, event: ArrayEventContainer
+    ):
+        for tel_id, r0_tel in event.r0.tel.items():
+
+            tel_index = TelEventIndexContainer(
+                obs_id=event.index.obs_id,
+                event_id=event.index.event_id,
+                tel_id=np.int16(tel_id),
+            )
+            telescope = self._subarray.tel[tel_id]
+            table_name = self.table_name(tel_id, str(telescope))
+
+            r0_tel.prefix = ""
+            writer.write(f"r0/event/telescope/{table_name}", [tel_index, r0_tel])
 
     def _write_dl1_telescope_events(
         self, writer: TableWriter, event: ArrayEventContainer
