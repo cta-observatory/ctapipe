@@ -12,7 +12,23 @@ from ctapipe.instrument import (
     OpticsDescription,
     SubarrayDescription,
     TelescopeDescription,
+    read_prod5_layout_file,
 )
+
+try:
+    from importlib.resources import files
+except ImportError:
+    from importlib_resources import files
+
+
+def test_read_prod5_layout_file():
+    """ Test that the layout file is parsed correctly"""
+    layout_file = files("ctapipe.instrument.tests.resources").joinpath(
+        "layout_file.lis"
+    )
+    tel_ids, names = read_prod5_layout_file(layout_file)
+    assert np.array_equal(tel_ids, [1, 5])
+    assert np.array_equal(names, ["L-01", "M-01"])
 
 
 def example_subarray(n_tels=10):
@@ -64,6 +80,25 @@ def test_subarray_description():
 
     assert len(sub.to_table(kind="optics")) == 1
     assert sub.telescope_types[0] == sub.tel[1]
+
+
+def test_telescope_renaming():
+    n_tels = 10
+    sub = example_subarray(n_tels)
+    sub.rename_telescopes({5: "the_chosen_one"})
+    assert sub.tel[5].name == "the_chosen_one"
+    assert sub.num_tels == n_tels
+    assert len(sub.tel_ids) == n_tels
+    assert len(sub.telescope_types) == 1  # only have one type in this array
+    assert len(sub.optics_types) == 1  # only have one type in this array
+    assert len(sub.camera_types) == 1  # only have one type in this array
+
+    subsub = sub.select_subarray(
+        [2, 3, 4, 6], name="newsub", tel_names={2: "subsub1", 4: "subsub2"}
+    )
+    assert set(subsub.tels.keys()) == {2, 3, 4, 6}
+    assert subsub.tel[2].name == "subsub1"
+    assert subsub.tel[4].name == "subsub2"
 
 
 def test_to_table(example_subarray):
