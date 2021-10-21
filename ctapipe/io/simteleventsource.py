@@ -356,7 +356,11 @@ class SimTelEventSource(EventSource):
         )
 
         if self.allowed_tels:
-            subarray = subarray.select_subarray(self.allowed_tels)
+            if self.subarray_layout_file:
+                _, tel_names = read_prod5_layout_file(self.subarray_layout_file)
+            else:
+                tel_names = None
+            subarray = subarray.select_subarray(self.allowed_tels, tel_names=tel_names)
         return subarray
 
     @staticmethod

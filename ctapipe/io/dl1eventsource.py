@@ -110,8 +110,12 @@ class DL1EventSource(EventSource):
         self._full_subarray_info = SubarrayDescription.from_hdf(self.input_url)
 
         if self.allowed_tels:
+            if self.subarray_layout_file:
+                _, tel_names = read_prod5_layout_file(self.subarray_layout_file)
+            else:
+                tel_names = None
             self._subarray_info = self._full_subarray_info.select_subarray(
-                self.allowed_tels
+                self.allowed_tels, tel_names=tel_names
             )
         else:
             self._subarray_info = self._full_subarray_info

@@ -5,7 +5,7 @@ from abc import abstractmethod
 from traitlets.config.loader import LazyConfigValue
 from typing import Tuple, List, Generator
 
-from ..instrument import SubarrayDescription
+from ..instrument import SubarrayDescription, read_prod5_layout_file
 from .datalevels import DataLevel
 from ..containers import ArrayEventContainer
 from ..core import ToolConfigurationError, Provenance
@@ -106,6 +106,17 @@ class EventSource(Component):
         ),
     ).tag(config=True)
 
+    subarray_layout_file = Path(
+        None,
+        directory_ok=False,
+        exists=True,
+        help=(
+            "Path to a prod5 layout file. All telescopes in the file will be selected. "
+            "Avoid using this with allowed_tels. The behaviour might differ between "
+            "different event sources."
+        ),
+    ).tag(config=True)
+
     def __new__(cls, input_url=Undefined, config=None, parent=None, **kwargs):
         """
         Returns a compatible subclass for given input url, either
@@ -158,6 +169,17 @@ class EventSource(Component):
 
         if self.max_events:
             self.log.info(f"Max events being read = {self.max_events}")
+
+        if self.subarray_layout_file:
+            # This avoids having to worry about priority or intersecting both lists
+            if self.allowed_tels:
+                raise Exception(
+                    "Multiple subarray selections given. "
+                    "Adapt your layout file if you want to further change your subarray."
+                )
+            # A telescope_names property does not make very much sense
+            # on an event source. Handling the names is left to the subclasses
+            self.allowed_tels, _ = read_prod5_layout_file(self.subarray_layout_file)
 
         Provenance().add_input_file(str(self.input_url), role="DL0/Event")
 
