@@ -27,8 +27,8 @@ def test_read_prod5_layout_file():
         "layout_file.lis"
     )
     tel_ids, names = read_prod5_layout_file(layout_file)
-    assert np.array_equal(tel_ids, [1, 5])
-    assert np.array_equal(names, ["L-01", "M-01"])
+    assert tel_ids == {1, 5}
+    assert names == {1: "L-01", 5: "M-01"}
 
 
 def example_subarray(n_tels=10):
