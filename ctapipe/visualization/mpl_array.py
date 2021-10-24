@@ -289,8 +289,8 @@ class ArrayDisplay:
     def add_labels(self):
         px = self.tel_coords.x.to_value("m")
         py = self.tel_coords.y.to_value("m")
-        for tel, x, y in zip(self.subarray.tels, px, py):
-            name = str(tel)
+        for tel, x, y in zip(self.subarray.tels.values(), px, py):
+            name = tel.name
             lab = self.axes.text(x, y, name, fontsize=8, clip_on=True)
             self._labels.append(lab)
 
