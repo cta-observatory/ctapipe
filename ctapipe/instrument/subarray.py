@@ -52,7 +52,18 @@ def read_prod5_layout_file(path):
             ("tel_name", "U8"),
         ],
     )
-    return layout_selection["tel_id"], layout_selection["tel_name"]
+    unique, counts = np.unique(layout_selection["tel_id"], return_counts=True)
+    # This would create issues since we need a set for the event sources
+    assert unique[counts > 1].size == 0, "There are duplicate ids in the layout file"
+    assert np.all(
+        layout_selection["tel_id"][:-1] <= layout_selection["tel_id"][1:]
+    ), "The telescope ids in the layout file are not sorted"
+    # Since its sorted, we can safely convert to a set
+    tel_ids = layout_selection["tel_id"]
+    return (
+        set(tel_ids),
+        {tid: name for tid, name in zip(tel_ids, layout_selection["tel_name"])},
+    )
 
 
 def _group_consecutives(sequence):
@@ -358,7 +369,7 @@ class SubarrayDescription:
         newsub = SubarrayDescription(
             name, tel_positions=tel_positions, tel_descriptions=tel_descriptions
         )
-        if tel_names:
+        if tel_names is not None:
             newsub.rename_telescopes(tel_names)
         return newsub
 

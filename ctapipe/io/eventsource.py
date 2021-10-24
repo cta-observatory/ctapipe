@@ -3,6 +3,7 @@ Handles reading of different event/waveform containing files
 """
 from abc import abstractmethod
 from traitlets.config.loader import LazyConfigValue
+from traitlets import Undefined
 from typing import Tuple, List, Generator
 
 from ..instrument import SubarrayDescription, read_prod5_layout_file
@@ -107,9 +108,9 @@ class EventSource(Component):
     ).tag(config=True)
 
     subarray_layout_file = Path(
-        None,
         directory_ok=False,
-        exists=True,
+        allow_none=True,
+        #        exists=False,
         help=(
             "Path to a prod5 layout file. All telescopes in the file will be selected. "
             "Avoid using this with allowed_tels. The behaviour might differ between "
@@ -170,7 +171,7 @@ class EventSource(Component):
         if self.max_events:
             self.log.info(f"Max events being read = {self.max_events}")
 
-        if self.subarray_layout_file:
+        if self.subarray_layout_file is not Undefined:
             # This avoids having to worry about priority or intersecting both lists
             if self.allowed_tels:
                 raise Exception(

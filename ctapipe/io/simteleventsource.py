@@ -36,6 +36,7 @@ from ..instrument import (
     OpticsDescription,
     SubarrayDescription,
     TelescopeDescription,
+    read_prod5_layout_file,
 )
 from ..instrument.camera import UnknownPixelShapeWarning
 from ..instrument.guess import unknown_telescope, guess_telescope
