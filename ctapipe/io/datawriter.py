@@ -130,11 +130,11 @@ class DataWriter(Component):
     ).tag(config=True)
 
     write_raw_waveforms = Bool(
-        help="Store R0 waveforms if available", default_fill_value=False
+        help="Store R0 waveforms if available", default_value=False
     ).tag(config=True)
 
     write_waveforms = Bool(
-        help="Store R1 waveforms if available", default_fill_value=False
+        help="Store R1 waveforms if available", default_value=False
     ).tag(config=True)
 
     write_images = Bool(help="Store DL1 Images if available", default_value=False).tag(
