@@ -242,6 +242,7 @@ class CameraDisplay:
         zmax = np.nanmax(self.pixels.get_array())
         if isinstance(self.pixels.norm, LogNorm):
             zmin = zmin if zmin > 0 else 0.1
+            zmax = zmax if zmax > 0 else 0.1
 
         dz = zmax - zmin
         frac = percent / 100.0
