@@ -7,7 +7,6 @@ Class to write DL1 (a,b) and DL2 (a) data from an event stream
 import pathlib
 from collections import defaultdict
 from typing import DefaultDict, Tuple
-from numpy.ma import default_fill_value
 from traitlets import Instance
 
 import numpy as np
