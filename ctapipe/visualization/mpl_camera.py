@@ -261,14 +261,17 @@ class CameraDisplay:
 
     @norm.setter
     def norm(self, norm):
+        vmin, vmax = self.pixels.norm.vmin, self.pixels.norm.vmax
 
         if norm == "lin":
             self.pixels.norm = Normalize()
         elif norm == "log":
-            self.pixels.norm = LogNorm()
+            vmin = 0.1 if vmin < 0 else vmin
+            vmax = 0.2 if vmax < 0 else vmax
+            self.pixels.norm = LogNorm(vmin=vmin, vmax=vmax)
             self.pixels.autoscale()  # this is to handle matplotlib bug #5424
         elif norm == "symlog":
-            self.pixels.norm = SymLogNorm(linthresh=1.0, base=10)
+            self.pixels.norm = SymLogNorm(linthresh=1.0, base=10, vmin=vmin, vmax=vmax)
             self.pixels.autoscale()
         elif isinstance(norm, Normalize):
             self.pixels.norm = norm
