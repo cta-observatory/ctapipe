@@ -240,6 +240,9 @@ class CameraDisplay:
         """ auto-scale the color range to percent of maximum """
         zmin = np.nanmin(self.pixels.get_array())
         zmax = np.nanmax(self.pixels.get_array())
+        if isinstance(self.pixels.norm, LogNorm):
+            zmin = zmin if zmin > 0 else 0.1
+
         dz = zmax - zmin
         frac = percent / 100.0
         self.autoscale = False
