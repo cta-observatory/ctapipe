@@ -340,6 +340,15 @@ class DL1CameraContainer(Container):
         dtype=np.bool_,
         ndim=1,
     )
+    is_valid = Field(
+        False,
+        (
+            "True if image extraction succeeded, False if failed "
+            "or in the case of TwoPass methods, that the first "
+            "pass only was returned."
+        ),
+    )
+
     parameters = Field(None, "Image parameters", type=ImageParametersContainer)
 
 
