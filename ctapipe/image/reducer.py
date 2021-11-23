@@ -180,7 +180,7 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         camera_geom = self.subarray.tel[telid].camera.geometry
         # Pulse-integrate waveforms
         extractor = self.image_extractors[self.image_extractor_type.tel[telid]]
-        charge, peaktime, is_valid = extractor(
+        charge, _, is_valid = extractor(
             waveforms, telid=telid, selected_gain_channel=selected_gain_channel
         )
 
