@@ -213,11 +213,11 @@ class PedestalIntegrator(PedestalCalculator):
         charge = 0
         peak_pos = 0
         if self.extractor:
-            charge, peak_pos = self.extractor(
+            charge, peak_pos, is_valid = self.extractor(
                 waveforms, self.tel_id, selected_gain_channel
             )
 
-        return charge, peak_pos
+        return charge, peak_pos, is_valid
 
     def calculate_pedestals(self, event):
         """
@@ -251,7 +251,10 @@ class PedestalIntegrator(PedestalCalculator):
 
         # extract the charge of the event and
         # the peak position (assumed as time for the moment)
-        charge = self._extract_charge(event)[0]
+        charge, _, is_valid = self._extract_charge(event)
+
+        if not is_valid:
+            return False
 
         self.collect_sample(charge, pixel_mask)
 
