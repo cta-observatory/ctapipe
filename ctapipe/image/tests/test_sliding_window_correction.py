@@ -53,6 +53,7 @@ def test_sw_pulse_lst():
         "SlidingWindowMaxSum", subarray=subarray, config=config
     )
 
-    charge, _ = extractor(waveform, telid, selected_gain_channel)
+    charge, _, is_valid = extractor(waveform, telid, selected_gain_channel)
     print(charge / charge_true)
     assert_allclose(charge, charge_true, rtol=0.02)
+    assert is_valid

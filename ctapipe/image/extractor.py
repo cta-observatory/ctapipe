@@ -367,7 +367,9 @@ class ImageExtractor(TelescopeComponent):
         }
 
     @abstractmethod
-    def __call__(self, waveforms, telid, selected_gain_channel):
+    def __call__(
+        self, waveforms, telid, selected_gain_channel
+    ) -> Tuple[np.ndarray, np.ndarray, bool]:
         """
         Call the relevant functions to fully extract the charge and time
         for the particular extractor.
@@ -393,6 +395,8 @@ class ImageExtractor(TelescopeComponent):
         peak_time : ndarray
             Floating point pulse time in each pixel in units "ns"
             Shape: (n_pix)
+        is_valid: bool
+            True=succeeded, False=Failed or partially failed
         """
 
 
@@ -405,7 +409,7 @@ class FullWaveformSum(ImageExtractor):
         charge, peak_time = extract_around_peak(
             waveforms, 0, waveforms.shape[-1], 0, self.sampling_rate_ghz[telid]
         )
-        return charge, peak_time
+        return charge, peak_time, True
 
 
 class FixedWindowSum(ImageExtractor):
@@ -468,7 +472,7 @@ class FixedWindowSum(ImageExtractor):
         )
         if self.apply_integration_correction.tel[telid]:
             charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
-        return charge, peak_time
+        return charge, peak_time, True
 
 
 class GlobalPeakWindowSum(ImageExtractor):
@@ -531,7 +535,7 @@ class GlobalPeakWindowSum(ImageExtractor):
         )
         if self.apply_integration_correction.tel[telid]:
             charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
-        return charge, peak_time
+        return charge, peak_time, True
 
 
 class LocalPeakWindowSum(ImageExtractor):
@@ -594,7 +598,7 @@ class LocalPeakWindowSum(ImageExtractor):
         )
         if self.apply_integration_correction.tel[telid]:
             charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
-        return charge, peak_time
+        return charge, peak_time, True
 
 
 class SlidingWindowMaxSum(ImageExtractor):
@@ -669,7 +673,7 @@ class SlidingWindowMaxSum(ImageExtractor):
         )
         if self.apply_integration_correction.tel[telid]:
             charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
-        return charge, peak_time
+        return charge, peak_time, True
 
 
 class NeighborPeakWindowSum(ImageExtractor):
@@ -745,7 +749,7 @@ class NeighborPeakWindowSum(ImageExtractor):
         )
         if self.apply_integration_correction.tel[telid]:
             charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
-        return charge, peak_time
+        return charge, peak_time, True
 
 
 class BaselineSubtractedNeighborPeakWindowSum(NeighborPeakWindowSum):
@@ -971,6 +975,8 @@ class TwoPassWindowSum(ImageExtractor):
             Samples in which the waveform peak has been recognized.
             Same specifications as above.
             Shape: (n_pix)
+        is_valid: bool
+            True=second-pass succeeded, False=second-pass failed, first pass used
         """
         # STEP 2
 
@@ -999,21 +1005,25 @@ class TwoPassWindowSum(ImageExtractor):
 
         if num_islands > 0:
             # ...find the brightest one
-            mask_brightest_island = brightest_island(num_islands, labels, charge_1stpass)
+            mask_brightest_island = brightest_island(
+                num_islands, labels, charge_1stpass
+            )
         else:
             mask_brightest_island = mask_clean
 
         # for all pixels except the core ones in the main island of the
         # preliminary image, the waveform will be integrated once more (2nd pass)
 
-        mask_2nd_pass = ~mask_brightest_island | (mask_brightest_island & (charge_1stpass < core_th))
+        mask_2nd_pass = ~mask_brightest_island | (
+            mask_brightest_island & (charge_1stpass < core_th)
+        )
 
         # STEP 4
 
         # if the resulting image has less then 3 pixels
         if np.count_nonzero(mask_brightest_island) < 3:
             # we return the 1st pass information
-            return charge_1stpass, pulse_time_1stpass
+            return charge_1stpass, pulse_time_1stpass, False
 
         # otherwise we proceed by parametrizing the image
         camera_geometry_brightest = camera_geometry[mask_brightest_island]
@@ -1034,7 +1044,7 @@ class TwoPassWindowSum(ImageExtractor):
 
         # If the fit returns nan
         if np.isnan(timing.slope):
-            return charge_1stpass, pulse_time_1stpass
+            return charge_1stpass, pulse_time_1stpass, False
 
         # get projected distances along main image axis
         longitude, _ = camera_to_shower_coordinates(
@@ -1070,16 +1080,18 @@ class TwoPassWindowSum(ImageExtractor):
         # on the peak
         window_width_default = 5
         window_shift_default = 2
-        
+
         # first we find where the integration window edges WOULD BE
         integration_windows_start = predicted_peaks - window_shift_default
-        integration_windows_end   = integration_windows_start + window_width_default
-        
+        integration_windows_end = integration_windows_start + window_width_default
+
         # then we define 2 possible edge cases
         # the predicted integration window falls before the readout window
         integration_before_readout = integration_windows_start < 0
         # or after
-        integration_after_readout  = integration_windows_end > (waveforms_to_repass.shape[1] - 1)
+        integration_after_readout = integration_windows_end > (
+            waveforms_to_repass.shape[1] - 1
+        )
 
         # If the resulting 5-samples window falls before the readout
         # window we take the first 5 samples
@@ -1143,8 +1155,12 @@ class TwoPassWindowSum(ImageExtractor):
                 telid, window_width_after, window_shift_after
             )[selected_gain_channel][mask_2nd_pass]
 
-            correction[integration_before_readout] = correction_before[integration_before_readout]
-            correction[integration_after_readout] = correction_after[integration_after_readout]
+            correction[integration_before_readout] = correction_before[
+                integration_before_readout
+            ]
+            correction[integration_after_readout] = correction_after[
+                integration_after_readout
+            ]
 
             reintegrated_charge *= correction
 
@@ -1165,7 +1181,7 @@ class TwoPassWindowSum(ImageExtractor):
         pulse_time_2ndpass = pulse_time_1stpass.copy()
         pulse_time_2ndpass[mask_2nd_pass] = reestimated_pulse_times
 
-        return charge_2ndpass, pulse_time_2ndpass
+        return charge_2ndpass, pulse_time_2ndpass, True
 
     def __call__(self, waveforms, telid, selected_gain_channel):
         """
@@ -1198,10 +1214,11 @@ class TwoPassWindowSum(ImageExtractor):
             return (
                 (charge1 * correction1[selected_gain_channel]).astype("float32"),
                 pulse_time1.astype("float32"),
+                True,
             )
 
-        charge2, pulse_time2 = self._apply_second_pass(
+        charge2, pulse_time2, is_valid = self._apply_second_pass(
             waveforms, telid, selected_gain_channel, charge1, pulse_time1, correction1
         )
         # FIXME: properly make sure that output is 32Bit instead of downcasting here
-        return charge2.astype("float32"), pulse_time2.astype("float32")
+        return charge2.astype("float32"), pulse_time2.astype("float32"), is_valid

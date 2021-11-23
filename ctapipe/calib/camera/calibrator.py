@@ -174,6 +174,7 @@ class CameraCalibrator(TelescopeComponent):
         time_shift = event.calibration.tel[telid].dl1.time_shift
         readout = self.subarray.tel[telid].camera.readout
         n_pixels, n_samples = waveforms.shape
+        is_valid = True
 
         # subtract any remaining pedestal before extraction
         if dl1_calib.pedestal_offset is not None:
@@ -205,7 +206,7 @@ class CameraCalibrator(TelescopeComponent):
                     remaining_shift = time_shift
 
             extractor = self.image_extractors[self.image_extractor_type.tel[telid]]
-            charge, peak_time = extractor(
+            charge, peak_time, is_valid = extractor(
                 waveforms, telid=telid, selected_gain_channel=selected_gain_channel
             )
 
@@ -218,6 +219,7 @@ class CameraCalibrator(TelescopeComponent):
 
         event.dl1.tel[telid].image = charge
         event.dl1.tel[telid].peak_time = peak_time
+        event.dl1.tel[telid].is_valid = is_valid
 
     def __call__(self, event):
         """
