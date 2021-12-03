@@ -83,3 +83,6 @@ Reference/API
 
 .. automodapi:: ctapipe.tools
     :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.tools.process
+    :no-inheritance-diagram:

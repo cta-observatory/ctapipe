@@ -5,11 +5,16 @@ import shutil
 from ctapipe.core import run_tool
 from pathlib import Path
 
-from ctapipe.tools.stage1 import Stage1Tool
+from ctapipe.tools.process import ProcessorTool
+
+try:
+    from importlib.resources import files
+except ImportError:
+    from importlib_resources import files
 
 
 def run_stage1(input_path, cwd, output_path=None):
-    config = Path("./examples/stage1_config.json").absolute()
+    config = files("ctapipe.tools.tests.resources").joinpath("stage1_config.json")
 
     if output_path is None:
         output_path = Path(
@@ -17,7 +22,7 @@ def run_stage1(input_path, cwd, output_path=None):
         ).absolute()
 
     ret = run_tool(
-        Stage1Tool(),
+        ProcessorTool(),
         argv=[
             f"--config={config}",
             f"--input={input_path}",
@@ -108,7 +113,8 @@ def test_allowed_tels(tmp_path, dl1_file, dl1_proton_file):
             str(dl1_file),
             str(dl1_proton_file),
             f"--output={output}",
-            "--allowed-tels=[1,2]",
+            "--allowed-tels=1",
+            "--allowed-tels=2",
             "--overwrite",
         ],
         cwd=tmp_path,

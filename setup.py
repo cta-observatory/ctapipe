@@ -20,10 +20,12 @@ entry_points["console_scripts"] = [
     "ctapipe-reconstruct-muons = ctapipe.tools.muon_reconstruction:main",
     "ctapipe-display-integration = ctapipe.tools.display_integrator:main",
     "ctapipe-display-dl1 = ctapipe.tools.display_dl1:main",
-    "ctapipe-stage1 = ctapipe.tools.stage1:main",
+    "ctapipe-process = ctapipe.tools.process:main",
     "ctapipe-merge = ctapipe.tools.dl1_merge:main",
+    "ctapipe-fileinfo = ctapipe.tools.fileinfo:main",
+    "ctapipe-quickstart = ctapipe.tools.quickstart:main",
 ]
-tests_require = ["pytest", "pandas>=0.24.0"]
+tests_require = ["pytest", "pandas>=0.24.0", "importlib_resources;python_version<'3.9'"]
 docs_require = [
     "sphinx_rtd_theme",
     "sphinx_automodapi",
@@ -58,6 +60,7 @@ setup(
         "zstandard",
         "requests",
         "setuptools_scm>=3.4",
+        "importlib_resources;python_version<'3.9'",
     ],
     # here are optional dependencies (as "tag" : "dependency spec")
     extras_require={
@@ -81,5 +84,7 @@ setup(
     ],
     zip_safe=False,
     entry_points=entry_points,
-    package_data={"": ["tools/bokeh/*.yaml", "tools/bokeh/templates/*.html"]},
+    package_data={
+        "": ["tools/bokeh/*.yaml", "tools/bokeh/templates/*.html", "resources/*"]
+    },
 )

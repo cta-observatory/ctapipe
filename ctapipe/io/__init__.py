@@ -2,9 +2,10 @@ from .eventseeker import EventSeeker
 from .eventsource import EventSource
 from .hdf5tableio import HDF5TableReader, HDF5TableWriter
 from .tableio import TableWriter, TableReader
+from .tableloader import TableLoader
 from .datalevels import DataLevel
 from .astropy_helpers import read_table
-from .datawriter import DataWriter
+from .datawriter import DataWriter, DATA_MODEL_VERSION
 
 from ..core.plugins import detect_and_import_io_plugins
 
@@ -21,6 +22,7 @@ __all__ = [
     "HDF5TableReader",
     "TableWriter",
     "TableReader",
+    "TableLoader",
     "EventSeeker",
     "EventSource",
     "SimTelEventSource",
@@ -28,4 +30,5 @@ __all__ = [
     "DataLevel",
     "read_table",
     "DataWriter",
+    "DATA_MODEL_VERSION",
 ]

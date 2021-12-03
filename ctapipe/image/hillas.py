@@ -8,16 +8,13 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import Angle
 from astropy.units import Quantity
-from ..containers import HillasParametersContainer
+from ..containers import CameraHillasParametersContainer, HillasParametersContainer
 
 
 HILLAS_ATOL = np.finfo(np.float64).eps
 
 
-__all__ = [
-    "hillas_parameters",
-    "HillasParameterizationError",
-]
+__all__ = ["hillas_parameters", "HillasParameterizationError"]
 
 
 def camera_to_shower_coordinates(x, y, cog_x, cog_y, psi):
@@ -198,9 +195,24 @@ def hillas_parameters(geom, image):
             np.sum(((((b * A) + (a * B) + (-c * C))) ** 2.0) * image)
         ) / (2 * width)
 
+    if unit.is_equivalent(u.m):
+        return CameraHillasParametersContainer(
+            x=u.Quantity(cog_x, unit),
+            y=u.Quantity(cog_y, unit),
+            r=u.Quantity(cog_r, unit),
+            phi=Angle(cog_phi, unit=u.rad),
+            intensity=size,
+            length=u.Quantity(length, unit),
+            length_uncertainty=u.Quantity(length_uncertainty, unit),
+            width=u.Quantity(width, unit),
+            width_uncertainty=u.Quantity(width_uncertainty, unit),
+            psi=Angle(psi, unit=u.rad),
+            skewness=skewness_long,
+            kurtosis=kurtosis_long,
+        )
     return HillasParametersContainer(
-        x=u.Quantity(cog_x, unit),
-        y=u.Quantity(cog_y, unit),
+        fov_lon=u.Quantity(cog_x, unit),
+        fov_lat=u.Quantity(cog_y, unit),
         r=u.Quantity(cog_r, unit),
         phi=Angle(cog_phi, unit=u.rad),
         intensity=size,

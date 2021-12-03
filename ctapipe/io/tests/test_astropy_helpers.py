@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
+import warnings
 import numpy as np
 from astropy import units as u
 import tables
 import pytest
 from astropy.time import Time
+
+from astropy.io.fits.verify import VerifyWarning
 
 from ctapipe.core import Container, Field
 from ctapipe.containers import ReconstructedEnergyContainer, TelescopeTriggerContainer
@@ -36,7 +39,10 @@ def test_read_table(tmp_path):
 
     # test write the table back out to some other format:
     table.write(tmp_path / "test_output.ecsv")
-    table.write(tmp_path / "test_output.fits.gz")
+    with warnings.catch_warnings():
+        # ignore warnings about too long keywords stored using HIERARCH
+        warnings.simplefilter("ignore", VerifyWarning)
+        table.write(tmp_path / "test_output.fits.gz")
 
     # test using a file handle
     with tables.open_file(filename) as handle:
@@ -134,3 +140,20 @@ def test_file_closed(tmp_path):
     # the file
     with tables.open_file(path, "w"):
         pass
+
+
+def test_condition(tmp_path):
+    # write a simple hdf5 file using
+
+    container = ReconstructedEnergyContainer()
+    filename = tmp_path / "test_astropy_table.h5"
+
+    with HDF5TableWriter(filename) as writer:
+        for energy in [np.nan, 100, np.nan, 50, -1.0] * u.TeV:
+            container.energy = energy
+            writer.write("events", container)
+
+    # try opening the result
+    table = read_table(filename, "/events", condition="energy > 0")
+    assert len(table) == 2
+    assert np.all(table["energy"] == [100, 50] * u.TeV)

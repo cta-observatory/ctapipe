@@ -21,8 +21,11 @@ class ImagePlotter(Component):
     display = Bool(
         True, help="Display the photoelectron images on-screen as they are produced."
     ).tag(config=True)
+
     output_path = Path(
         directory_ok=False,
+        allow_none=True,
+        default_value=None,
         help=(
             "Output path for the pdf containing all the images."
             " Set to None for no saved output."
@@ -90,7 +93,7 @@ class ImagePlotter(Component):
                 self.cb_intensity = self.c_intensity.colorbar
             else:
                 self.c_intensity.colorbar = self.cb_intensity
-                self.c_intensity.update(True)
+                self.c_intensity.update()
             if not self.cb_peak_time:
                 self.c_peak_time.add_colorbar(
                     ax=self.ax_peak_time, label="Pulse Time (ns)"
@@ -98,7 +101,7 @@ class ImagePlotter(Component):
                 self.cb_peak_time = self.c_peak_time.colorbar
             else:
                 self.c_peak_time.colorbar = self.cb_peak_time
-                self.c_peak_time.update(True)
+                self.c_peak_time.update()
 
         self.c_intensity.image = image
         self.c_peak_time.image = peak_time

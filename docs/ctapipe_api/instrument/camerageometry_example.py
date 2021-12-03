@@ -11,5 +11,3 @@ plt.title("Pixel Neighbor Matrix")
 plt.subplot(1, 2, 2)
 plt.scatter(geom.pix_x, geom.pix_y)
 plt.title("Pixel Positions")
-
-plt.show()
