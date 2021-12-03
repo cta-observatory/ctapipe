@@ -146,20 +146,20 @@ class HillasIntersection(Reconstructor):
 
         hillas_dict_mod = copy.deepcopy(hillas_dict)
 
-        for tel_id, hillas in hillas_dict_mod.items():
-            # prevent from using rads instead of meters as inputs
-            assert hillas.x.to(u.m).unit == u.Unit("m")
+        #for tel_id, hillas in hillas_dict_mod.items():
+        #    # prevent from using rads instead of meters as inputs
+        #    assert hillas.x.to(u.m).unit == u.Unit("m")
 
-            focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
+        #    focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
 
-            camera_frame = CameraFrame(
-                telescope_pointing=telescopes_pointings[tel_id],
-                focal_length=focal_length,
-            )
-            cog_coords = SkyCoord(x=hillas.x, y=hillas.y, frame=camera_frame)
-            cog_coords_nom = cog_coords.transform_to(nom_frame)
-            hillas.x = cog_coords_nom.fov_lat
-            hillas.y = cog_coords_nom.fov_lon
+        #    camera_frame = CameraFrame(
+        #        telescope_pointing=telescopes_pointings[tel_id],
+        #        focal_length=focal_length,
+        #    )
+        #    cog_coords = SkyCoord(x=hillas.x, y=hillas.y, frame=camera_frame)
+        #    cog_coords_nom = cog_coords.transform_to(nom_frame)
+        #    hillas.x = cog_coords_nom.fov_lat
+        #    hillas.y = cog_coords_nom.fov_lon
 
         src_x, src_y, err_x, err_y = self.reconstruct_nominal(hillas_dict_mod)
         core_x, core_y, core_err_x, core_err_y = self.reconstruct_tilted(
@@ -169,9 +169,10 @@ class HillasIntersection(Reconstructor):
         err_x *= u.rad
         err_y *= u.rad
 
-        nom = SkyCoord(fov_lat=src_x * u.rad, fov_lon=src_y * u.rad, frame=nom_frame)
+        nom = SkyCoord(fov_lat=src_y * u.rad, fov_lon=src_x * u.rad, frame=nom_frame)
         # nom = sky_pos.transform_to(nom_frame)
         sky_pos = nom.transform_to(array_pointing.frame)
+
         tilt = SkyCoord(x=core_x * u.m, y=core_y * u.m, frame=tilted_frame)
         grd = project_to_ground(tilt)
         x_max = self.reconstruct_xmax(
@@ -332,8 +333,8 @@ class HillasIntersection(Reconstructor):
         hillas2 = np.transpose(hillas2)
 
         # Perform intersection
-        crossing_x, crossing_y = self.intersect_lines(
-            tel_x[:, 0], tel_y[:, 0], hillas1[0], tel_x[:, 1], tel_y[:, 1], hillas2[0]
+        crossing_y, crossing_x = self.intersect_lines(
+            tel_y[:, 0], tel_x[:, 0], hillas1[0], tel_y[:, 1], tel_x[:, 1], hillas2[0]
         )
 
         # Weight by chosen method
@@ -521,5 +522,4 @@ def get_shower_height(
 
     # Distance above telescope is ration of these two (small angle)
     height = impact / disp
-
     return height

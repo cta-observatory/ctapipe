@@ -1,7 +1,11 @@
 import numpy as np
 import astropy.units as u
+from astropy.units import Quantity
+from scipy.stats import norm 
+from astropy.table import Table
+from scipy.interpolate import interp1d
 
-__all__ = ["spread_line_seed", "create_seed", "rotate_translate",
+__all__ = ["spread_line_seed", "create_seed", "rotate_translate", "get_atmosphere_profile",
 "guess_shower_depth", "energy_prior", "xmax_prior", "EmptyImages"]
 
 
@@ -24,7 +28,7 @@ def guess_shower_depth(energy):
     float: Expected depth of shower maximum
     """
 
-    x_max_exp = 300 + 93 * np.log10(energy)
+    x_max_exp = 300 + (93 * np.log10(energy))
 
     return x_max_exp
 
@@ -112,35 +116,19 @@ def spread_line_seed(
     -------
     list of seed positions to try
     """
-    centre_x, centre_y, amp = list(), list(), list()
-
-    for tel_hillas in hillas:
-        centre_x.append(tel_hillas.x.to(u.rad).value)
-        centre_y.append(tel_hillas.y.to(u.rad).value)
-        amp.append(tel_hillas.intensity)
-
-    centre_x = np.average(centre_x, weights=amp)
-    centre_y = np.average(centre_y, weights=amp)
-    centre_tel_x = np.average(tel_x, weights=amp)
-    centre_tel_y = np.average(tel_y, weights=amp)
-
-    diff_x = source_x - centre_x
-    diff_y = source_y - centre_y
-    diff_tel_x = tilt_x - centre_tel_x
-    diff_tel_y = tilt_y - centre_tel_y
 
     seed_list = list()
 
-    for shift in shift_frac:
-        seed_list.append(
-            create_seed(
-                centre_x + (diff_x * shift),
-                centre_y + (diff_y * shift),
-                centre_tel_x + (diff_tel_x * shift),
-                centre_tel_y + (diff_tel_y * shift),
-                energy,
-            )
+    seed_list.append(
+        create_seed(
+            source_x,
+            source_y,
+            tilt_x,
+            tilt_y,
+            energy,
         )
+    )
+
     return seed_list
 
 
@@ -165,7 +153,7 @@ def create_seed(source_x, source_y, tilt_x, tilt_y, energy):
     -------
     tuple of seed, steps size and fit limits
     """
-    lower_en_limit = energy * 0.5
+    lower_en_limit = energy * 0.1
     en_seed = energy
 
     # If our energy estimate falls outside of the range of our templates set it to
@@ -175,10 +163,10 @@ def create_seed(source_x, source_y, tilt_x, tilt_y, energy):
         en_seed = 0.01
 
     # Take the seed from Hillas-based reconstruction
-    seed = (source_x, source_y, tilt_x, tilt_y, en_seed, 1)
+    seed = (source_x, source_y, tilt_x, tilt_y, en_seed, 1.)
 
     # Take a reasonable first guess at step size
-    step = [0.04 / 57.3, 0.04 / 57.3, 5, 5, en_seed * 0.1, 0.05]
+    step = [0.0001 / 57.3, 0.0001 / 57.3, 10, 10, en_seed * 0.05, 0.05, 0.]
     # And some sensible limits of the fit range
     limits = [
         [source_x - 0.5/57.3, source_x + 0.5/57.3],
@@ -186,8 +174,49 @@ def create_seed(source_x, source_y, tilt_x, tilt_y, energy):
         [tilt_x - 100, tilt_x + 100],
         [tilt_y - 100, tilt_y + 100],
         [lower_en_limit, en_seed * 2],
-        [0.5, 2],
-        [False, False]
+        [0.8, 1.2],
+        [0.0, 0.01]
     ]
 
     return seed, step, limits
+
+def get_atmosphere_profile(filename, with_units=True):
+    """
+    Gives atmospheric profile as a continuous function thickness(
+    altitude), and it's inverse altitude(thickness)  in m and g/cm^2
+    respectively.
+
+    Parameters
+    ----------
+    atmosphere_name: str
+        identifier of atmosphere profile
+    with_units: bool
+       if true, return functions that accept and return unit quantities.
+       Otherwise assume units are 'm' and 'g cm-2'
+
+    Returns
+    -------
+    functions: thickness(alt), alt(thickness)
+    """
+
+    data = Table()
+    
+    tab = data.read(filename)
+    alt = tab["altitude"].to("m")
+    thick = (tab["thickness"]).to("g cm-2")
+
+    alt_to_thickness = interp1d(x=np.array(alt), y=np.array(thick))
+    thickness_to_alt = interp1d(x=np.array(thick), y=np.array(alt))
+
+    if with_units:
+
+        def thickness(a):
+            return Quantity(alt_to_thickness(a.to("m")), "g cm-2")
+
+        def altitude(a):
+            return Quantity(thickness_to_alt(a.to("g cm-2")), "m")
+
+        return thickness, altitude
+
+    return alt_to_thickness, thickness_to_alt
+

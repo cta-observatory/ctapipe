@@ -231,11 +231,11 @@ class UnstructuredInterpolator:
         scaled_points[0] = (
             (scaled_points[0] - (self._bounds[0][0]))
             / (self._bounds[0][1] - self._bounds[0][0])
-        ) * (vals.shape[-2] - 1)
+        ) * (vals.shape[-2])# - 1)
         scaled_points[1] += (
             (scaled_points[1] - (self._bounds[1][0]))
             / (self._bounds[1][1] - self._bounds[1][0])
-        ) * (vals.shape[-1] - 1)
+        ) * (vals.shape[-1])# - 1)
         scaled_points = np.vstack((it, scaled_points))
 
         output = np.zeros(scaled_points.T.shape[:-1])
