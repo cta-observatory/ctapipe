@@ -5,7 +5,7 @@ from scipy.stats import norm
 from astropy.table import Table
 from scipy.interpolate import interp1d
 
-__all__ = ["spread_line_seed", "create_seed", "rotate_translate", "get_atmosphere_profile",
+__all__ = ["create_seed", "rotate_translate", "get_atmosphere_profile",
 "guess_shower_depth", "energy_prior", "xmax_prior", "EmptyImages"]
 
 
@@ -77,59 +77,6 @@ def rotate_translate(pixel_pos_x, pixel_pos_y, x_trans, y_trans, phi):
             pixel_pos_y - y_trans
     ) * cosine_angle
     return pixel_pos_trans_x, pixel_pos_trans_y
-
-
-def spread_line_seed(
-    hillas,
-    tel_x,
-    tel_y,
-    source_x,
-    source_y,
-    tilt_x,
-    tilt_y,
-    energy,
-    shift_frac=[2, 1.5, 1, 0.5, 0, -0.5, -1, -1.5],
-):
-    """
-    Parameters
-    ----------
-    hillas: list
-        Hillas parameters in event
-    tel_x: list
-        telescope X positions in tilted system
-    tel_y: list
-        telescope Y positions in tilted system
-    source_x: float
-        Source X position in nominal system (radians)
-    source_y:float
-        Source Y position in nominal system (radians)
-    tilt_x: float
-        Core X position in tilited system (radians)
-    tilt_y: float
-        Core Y position in tilited system (radians)
-    energy: float
-        Energy in TeV
-    shift_frac: list
-        Fractional values to shist source and core positions
-
-    Returns
-    -------
-    list of seed positions to try
-    """
-
-    seed_list = list()
-
-    seed_list.append(
-        create_seed(
-            source_x,
-            source_y,
-            tilt_x,
-            tilt_y,
-            energy,
-        )
-    )
-
-    return seed_list
 
 
 def create_seed(source_x, source_y, tilt_x, tilt_y, energy):

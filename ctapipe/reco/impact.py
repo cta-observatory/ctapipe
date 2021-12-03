@@ -153,8 +153,7 @@ class ImPACTReconstructor(Reconstructor):
         event : container
             `ctapipe.containers.ArrayEventContainer`
         """
-        hillas_dict =  event.dl2.stereo.geometry['HillasReconstructor']
-        event.dl1
+        hillas_dict = event.dl1.parameters.hillas
 
         # Due to tracking the pointing of the array will never be a constant
         array_pointing = SkyCoord(
@@ -162,7 +161,7 @@ class ImPACTReconstructor(Reconstructor):
             alt=event.pointing.array_altitude,
             frame=AltAz(),
         )
-
+        # And the pointing direction of the telescopes may not be the same
         telescope_pointings = {
             tel_id: SkyCoord(
                 alt=event.pointing.tel[tel_id].altitude,
@@ -172,20 +171,18 @@ class ImPACTReconstructor(Reconstructor):
             for tel_id in hillas_dict.keys()
         }
 
-        mask_dict = {
-            tel_id: dilate(self.subarray.tel[tel_id].camera.geometry,
-                    dilate(self.subarray.tel[tel_id].camera.geometry,
-                        dilate(self.subarray.tel[tel_id].camera.geometry,
-                            tailcuts_clean(self.subarray.tel[tel_id].camera.geometry,
-                                  event.dl1.tel[tel_id].image, 
-                                  picture_thresh=10.0, boundary_thresh=5.0))))
-            for tel_id in hillas_dict.keys()
-        }
+        # Finally get the telescope images and and the selection masks
+        mask_dict, image_dict = {}, {}
+        for tel_id in hillas_dict.keys():
+            image = event.dl1.tel[tel_id].image
+            image_dict[tel_id] = image
+            mask = event.dl1.tel[tel_id].image_mask
 
-        image_dict = {
-            tel_id: event.dl1.tel[tel_id].image
-            for tel_id in hillas_dict.keys()
-        }
+            # Dilate the images around the original cleaning to help the fit
+            for i in range(2):
+                mask = dilate(self.subarray.tel[tel_id].camera.geometry, mask)
+            mask_dict[tel_id] = mask
+
 
         # This is a placeholder for proper energy reconstruction
         reconstructor_prediction = event.dl2.stereo.geometry["HillasReconstructor"]
@@ -262,18 +259,7 @@ class ImPACTReconstructor(Reconstructor):
         # Maybe a vectorize?
         tel_num = 0
 
-        for hillas in self.hillas_parameters:
-            mask = self.image[tel_num].mask == False
-            unmasked_amp = self.image[tel_num][mask]
-            unmasked_x = self.pixel_x[tel_num][mask]
-            unmasked_y = self.pixel_y[tel_num][mask]
-
-            highest_amplitude = np.argsort(unmasked_amp)[-1:]
-            peak_x[tel_num] = np.sum(unmasked_amp[highest_amplitude] * unmasked_x[highest_amplitude]) / np.sum(unmasked_amp[highest_amplitude])
-            peak_y[tel_num] = np.sum(unmasked_amp[highest_amplitude] * unmasked_y[highest_amplitude]) / np.sum(unmasked_amp[highest_amplitude])
-            peak_amp[tel_num] = np.sum(unmasked_amp[highest_amplitude])
-            #print(peak_x[tel_num], peak_y[tel_num])
-
+        for hillas in self.hillas_parameters:           
             peak_x[tel_num] = hillas.x.to(u.rad).value  # Fill up array
             peak_y[tel_num] = hillas.y.to(u.rad).value
             peak_amp[tel_num] = hillas.intensity
@@ -689,7 +675,7 @@ class ImPACTReconstructor(Reconstructor):
         self.get_hillas_mean()
         self.initialise_templates(type_tel)
 
-    def predict(self,hillas_dict, subarray, array_pointing, telescope_pointings=None,
+    def predict(self, hillas_dict, subarray, array_pointing, telescope_pointings=None,
                 image_dict=None, mask_dict=None, shower_seed=None, energy_seed=None):
         """Predict method for the ImPACT reconstructor.
         Used to calculate the reconstructed ImPACT shower geometry and energy.
@@ -713,11 +699,14 @@ class ImPACTReconstructor(Reconstructor):
 
         self.reset_interpolator()
 
+        # Copy all of our seed parameters out of the shower objects
+        # We need to convert the shower direction to the nominal system
         horizon_seed = SkyCoord(az=shower_seed.az, alt=shower_seed.alt, frame=AltAz())
         nominal_seed = horizon_seed.transform_to(self.nominal_frame)
 
         source_x = nominal_seed.fov_lon.to_value(u.rad)
         source_y = nominal_seed.fov_lat.to_value(u.rad)
+        # And the core position to the tilted ground frame
         ground = GroundFrame(x=shower_seed.core_x, y=shower_seed.core_y, z=0 * u.m)
         tilted = ground.transform_to(
             TiltedGroundFrame(pointing_direction=self.array_direction)
@@ -726,33 +715,24 @@ class ImPACTReconstructor(Reconstructor):
         tilt_y = tilted.y.to(u.m).value
         zenith = 90 * u.deg - self.array_direction.alt
 
-        seeds = spread_line_seed(
-            self.hillas_parameters,
-            self.tel_pos_x,
-            self.tel_pos_y,
-            source_x,
-            source_y,
-            tilt_x,
-            tilt_y,
-            energy_seed.energy.value,
-            shift_frac=[1],
-        )
+        energy = 0
+        preminimise = True
+        # If we have a seed energy we can skip the minimisation step
+        if energy_seed is not None:
+            energy = energy_seed.energy.value
+            preminimise = False
+        seed = create_seed(source_x, source_y,
+                           tilt_x, tilt_y, 
+                           energy)
 
-        like_min = 1e9
-        fit_params_min = 0
 
-        for seed in seeds:
-            # Perform maximum likelihood fit
-            fit_params, errors, like = self.minimise(
-                params=seed[0],
-                step=seed[1],
-                limits=seed[2],
-                minimiser_name=self.minimiser_name,
-            )
-            if like<like_min:
-                fit_params_min = fit_params
-                
-        fit_params = fit_params_min
+        # Perform maximum likelihood fit
+        fit_params, errors, like = self.minimise(params=seed[0],
+                                                 step=seed[1],
+                                                 limits=seed[2],
+                                                 energy_preminimisation=preminimise)
+
+
         # Create a container class for reconstructed shower
         shower_result = ReconstructedGeometryContainer()
 
@@ -765,6 +745,7 @@ class ImPACTReconstructor(Reconstructor):
         )
         horizon = nominal.transform_to(AltAz())
 
+        # Transform everything back to a useful system
         shower_result.alt, shower_result.az = horizon.alt, horizon.az
         tilted = TiltedGroundFrame(
             x=fit_params[2] * u.m,
@@ -791,6 +772,7 @@ class ImPACTReconstructor(Reconstructor):
             fit_params[3],
             zenith.to(u.rad).value,
         )
+        # this should be h_max, but is currently x_max
         shower_result.h_max *= np.cos(zenith)
         shower_result.h_max_uncert = errors[5] * shower_result.h_max
 
@@ -805,7 +787,7 @@ class ImPACTReconstructor(Reconstructor):
 
         return shower_result, energy_result
 
-    def minimise(self, params, step, limits, minimiser_name="minuit", energy_preminimisation=True):
+    def minimise(self, params, step, limits, energy_preminimisation=True):
         """
 
         Parameters
@@ -825,97 +807,80 @@ class ImPACTReconstructor(Reconstructor):
         tuple: best fit parameters and errors
         """
         limits = np.asarray(limits)
-        if minimiser_name == "minuit":
-            
-            energy = params[4]
-            xmax_scale = 1
+        
+        energy = params[4]
+        xmax_scale = 1
 
-            if energy_preminimisation:
+        # In this case we perform a pre minimisation on the energy in the case that we have no seed
+        # it takes a little extra time, but not too much
+
+        if energy_preminimisation:
+            likelihood = 1e9
+            # Try a few different seed energies to be sure we get the right one
+            for seed_energy in [0.03, 0.1, 1, 10, 100]:
                 self.min = Minuit(
                     self.get_likelihood,
-                    source_x=params[0],
-                    source_y=params[1],
-                    core_x=params[2],
-                    core_y=params[3],
-                    energy=params[4],
-                    x_max_scale=params[5],
+                    source_x=params[0],source_y=params[1],
+                    core_x=params[2],core_y=params[3],
+                    energy=seed_energy,x_max_scale=params[5],
                     goodness_of_fit=False,
                 )
 
+                # Fix everything but the energy
                 self.min.fixed = [True, True, True, True, False, True, True]
-                self.min.errors = [0,0,0,0,0.1,0,0]
-                self.min.limits = [[-1,1],[-1,1], 
-                                    [-1000,1000], [-1000,1000],
-                                    [0.01, 500],
-                                    [0.5,1.5], [False, False]]
+                self.min.errors = [0,0,0,0,seed_energy*0.1,0,0]
+                self.min.limits = [[-1,1],[-1,1], [-1000,1000], [-1000,1000],
+                                    [0.01, 500],[0.5,1.5], [False, False]]
 
+                # Set loose limits as we only need rough numbers
                 self.min.errordef = 1.0
                 self.min.tol *= 1000
                 self.min.strategy = 0
 
                 migrad = self.min.migrad(iterate=1)
                 fit_params = self.min.values
-                energy = fit_params["energy"]
-                limits[4] = [energy*0.1, energy*2.]
-                xmax_scale = fit_params["x_max_scale"]
 
-            self.min = Minuit(
-                self.get_likelihood,
-                source_x=params[0],
-                source_y=params[1],
-                core_x=params[2],
-                core_y=params[3],
-                energy=energy,
-                x_max_scale=xmax_scale,
-                goodness_of_fit=False,
-            )
+                # Only use if our value is better that the previous ones
+                if migrad.fval < likelihood:
+                    energy = fit_params["energy"]
+                    limits[4] = [energy*0.1, energy*2.]
 
-            self.min.fixed = [False, False, False, False, False, False, True]
+        # Now do the minimisation proper
+        self.min = Minuit(
+            self.get_likelihood,
+            source_x=params[0], source_y=params[1],
+            core_x=params[2], core_y=params[3],
+            energy=energy, x_max_scale=xmax_scale,
+            goodness_of_fit=False,
+        )
+        # This time leave everything free
+        self.min.fixed = [False, False, False, False, False, False, True]
 
-            self.min.errors = step
-            #print(self.min.errors)
-            self.min.limits = limits
-            self.min.errordef = 1.0
+        self.min.errors = step
+        self.min.limits = limits
+        self.min.errordef = 1.0
+        
+        # Tighter fit tolerances
+        self.min.tol *= 1000
+        self.min.strategy = 1
 
-            self.min.tol *= 1000
-            self.min.strategy = 1
-            #self.min.precision = 1e-4
-
-            migrad = self.min.migrad(iterate=1)
-            fit_params = self.min.values
-            errors = self.min.errors
-            return (
-                (
-                    fit_params["source_x"],
-                    fit_params["source_y"],
-                    fit_params["core_x"],
-                    fit_params["core_y"],
-                    fit_params["energy"],
-                    fit_params["x_max_scale"],
-                ),
-                (
-                    errors["source_x"],
-                    errors["source_y"],
-                    errors["core_x"],
-                    errors["core_x"],
-                    errors["energy"],
-                    errors["x_max_scale"],
-                ),
-                self.min.fval,
-            )
-
-        else:
-            from scipy.optimize import minimize
-            min = minimize(
-                self.get_likelihood_min,
-                np.array(params),
-                method=minimiser_name,
-                bounds=limits[:-1],
-                options={"disp": False},
-                tol=1e-5,
-            )
-
-            return np.array(min.x), (0, 0, 0, 0, 0, 0), self.get_likelihood_min(min.x)
+        # Fit and output parameters and errors
+        migrad = self.min.migrad(iterate=1)
+        fit_params = self.min.values
+        errors = self.min.errors
+        return (
+            (
+                fit_params["source_x"], fit_params["source_y"],
+                fit_params["core_x"], fit_params["core_y"],
+                fit_params["energy"], fit_params["x_max_scale"],
+            ),
+            (
+                errors["source_x"], errors["source_y"],
+                errors["core_x"], errors["core_x"],
+                errors["energy"], errors["x_max_scale"],
+            ),
+            self.min.fval,
+        )
 
     def reset_interpolator(self):
         """
