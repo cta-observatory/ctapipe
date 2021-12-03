@@ -112,7 +112,7 @@ class ImPACTReconstructor(Reconstructor):
         (
             self.thickness_profile,
             self.altitude_profile,
-        ) = get_atmosphere_profile("./atmosphere_hess.ecsv")#get_atmosphere_profile_functions("paranal", with_units=False)
+        ) = get_atmosphere_profile("./atmosphere.ecsv")#get_atmosphere_profile_functions("paranal", with_units=False)
 
         # Next we need the position, area and amplitude from each pixel in the event
         # making this a class member makes passing them around much easier
