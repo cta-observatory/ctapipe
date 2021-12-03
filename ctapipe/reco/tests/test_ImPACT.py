@@ -11,7 +11,7 @@ from ctapipe.containers import (
 from ctapipe.reco.impact import ImPACTReconstructor
 from ctapipe.reco.impact_utilities import *
 
-from ctapipe.containers import CameraHillasParametersContainer
+from ctapipe.containers import HillasParametersContainer
 from astropy.coordinates import Angle, AltAz, SkyCoord
 
 from ctapipe.utils import get_dataset_path
