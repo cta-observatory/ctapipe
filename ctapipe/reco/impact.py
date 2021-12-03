@@ -76,7 +76,7 @@ class ImPACTReconstructor(Reconstructor):
         "CHEC": 0.5,
         "ASTRICam": 0.5,
         "DUMMY": 0,
-        "UNKNOWN": 1.,
+        "UNKNOWN-960PX": 1.,
 
     }
     spe = 0.5  # Also hard code single p.e. distribution width
@@ -260,8 +260,8 @@ class ImPACTReconstructor(Reconstructor):
         tel_num = 0
 
         for hillas in self.hillas_parameters:           
-            peak_x[tel_num] = hillas.x.to(u.rad).value  # Fill up array
-            peak_y[tel_num] = hillas.y.to(u.rad).value
+            peak_x[tel_num] = hillas.fov_lon.to(u.rad).value  # Fill up array
+            peak_y[tel_num] = hillas.fov_lat.to(u.rad).value
             peak_amp[tel_num] = hillas.intensity
             #print(tel_num, peak_x[tel_num], peak_y[tel_num], peak_amp[tel_num])
 

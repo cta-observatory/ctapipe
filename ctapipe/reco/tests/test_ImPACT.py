@@ -9,7 +9,7 @@ from ctapipe.containers import (
 )
 
 from ctapipe.reco.impact import ImPACTReconstructor
-from ctapipe.reco.ImPACT_utilities import *
+from ctapipe.reco.impact_utilities import *
 
 from ctapipe.containers import CameraHillasParametersContainer
 from astropy.coordinates import Angle, AltAz, SkyCoord
@@ -24,9 +24,9 @@ class TestImPACT:
         self.impact_reco = ImPACTReconstructor(root_dir=".", dummy_reconstructor=True)
         self.horizon_frame = AltAz()
 
-        self.h1 = CameraHillasParametersContainer(
-            x=1 * u.deg,
-            y=1 * u.deg,
+        self.h1 = HillasParametersContainer(
+            fov_lon=1 * u.deg,
+            fov_lat=1 * u.deg,
             r=1 * u.deg,
             phi=Angle(0 * u.deg),
             intensity=100,
