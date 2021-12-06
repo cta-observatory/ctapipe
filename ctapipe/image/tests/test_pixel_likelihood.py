@@ -23,7 +23,7 @@ def test_chi_squared():
 
 def test_mean_poisson_likelihoood_gaussian():
     prediction = np.array([1, 1, 1], dtype="float")
-    spe = 0.5
+    spe = np.array([0.5])
 
     small_mean_likelihood = mean_poisson_likelihood_gaussian(prediction, spe, 0)
     large_mean_likelihood = mean_poisson_likelihood_gaussian(prediction, spe, 1)
@@ -48,8 +48,8 @@ def test_full_likelihood():
     signal cases. Check that full calculation and the gaussian approx become
     equal at high signal.
     """
-    spe = 0.5  # Single photo-electron width
-    pedestal = 1  # width of the pedestal distribution
+    spe = np.array([0.5, 0.5, 0.5])  # Single photo-electron width
+    pedestal = np.array([1, 1, 1])  # width of the pedestal distribution
 
     image_small = np.array([0, 1, 2])
     expectation_small = np.array([1, 1, 1])

@@ -51,27 +51,6 @@ def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
 
     Gaussian approximation from [denaurois2009]_, p. 22 (equation between (24) and (25)).
 
-    Simplification:
-
-    .. math::
-
-        θ = σ_p^2 + μ · (1 + σ_γ^2)
-
-        → P = \\frac{1}{\\sqrt{2 π θ}} · \\exp\\left(- \\frac{(s - μ)^2}{2 θ}\\right)
-
-        \\ln{P} = \\ln{\\frac{1}{\\sqrt{2 π θ}}} - \\frac{(s - μ)^2}{2 θ}
-
-                = \\ln{1} - \\ln{\\sqrt{2 π θ}} - \\frac{(s - μ)^2}{2 θ}
-
-                = - \\frac{\\ln{2 π θ}}{2} - \\frac{(s - μ)^2}{2 θ}
-
-                = - \\frac{\\ln{2 π} + \\ln{θ}}{2} - \\frac{(s - μ)^2}{2 θ}
-
-        - \\ln{P} = \\frac{\\ln{2 π} + \\ln{θ}}{2} + \\frac{(s - μ)^2}{2 θ}
-
-    and since we can remove constants and factors in the minimization:
-
-    .. math::
 
         - \\ln{P} = \\ln{θ} + \\frac{(s - μ)^2}{θ}
 
@@ -91,11 +70,22 @@ def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
     -------
     float
     """
-    theta = pedestal ** 2 + prediction * (1 + spe_width ** 2)
+    image = np.asarray(image)
+    prediction = np.asarray(prediction)
+    spe_width = np.asarray(spe_width)
+    ped = np.asarray(pedestal)
+    sq = 1. / np.sqrt(2 * np.pi * (np.power(ped, 2)
+                                + prediction * (1 + np.power(spe_width, 2))))
+                                
+    diff = np.power(image - prediction, 2.)
+    denom = 2 * (np.power(ped, 2) + prediction * (1 + np.power(spe_width, 2)))
+    expo = np.asarray(np.exp(-1 * diff / denom))
+    
+    # If we are outside of the range of datatype, fix to lower bound
+    min_prob = np.finfo(expo.dtype).tiny
+    expo[expo < min_prob] = min_prob
 
-    neg_log_l = np.log(theta) + (image - prediction) ** 2 / theta
-
-    return np.sum(neg_log_l)
+    return -2 * np.log(sq * expo)
 
 
 def neg_log_likelihood_numeric(
@@ -123,18 +113,17 @@ def neg_log_likelihood_numeric(
     float
     """
 
-    epsilon = np.finfo(np.float64).eps
+    epsilon = np.finfo(np.float).eps
 
     prediction = prediction + epsilon
-
     likelihood = epsilon
 
     ns = np.arange(*poisson(np.max(prediction)).ppf(confidence))
-
     ns = ns[ns >= 0]
 
     for n in ns:
         theta = pedestal ** 2 + n * spe_width ** 2
+
         _l = (
             prediction ** n
             * np.exp(-prediction)
@@ -173,16 +162,17 @@ def neg_log_likelihood(image, prediction, spe_width, pedestal, prediction_safety
     """
 
     approx_mask = prediction > prediction_safety
-
     neg_log_l = 0
     if np.any(approx_mask):
         neg_log_l += neg_log_likelihood_approx(
-            image[approx_mask], prediction[approx_mask], spe_width, pedestal
+            image[approx_mask], prediction[approx_mask], 
+            spe_width[approx_mask], pedestal[approx_mask]
         )
 
     if not np.all(approx_mask):
         neg_log_l += neg_log_likelihood_numeric(
-            image[~approx_mask], prediction[~approx_mask], spe_width, pedestal
+            image[~approx_mask], prediction[~approx_mask], 
+            spe_width[~approx_mask], pedestal[~approx_mask]
         )
 
     return neg_log_l

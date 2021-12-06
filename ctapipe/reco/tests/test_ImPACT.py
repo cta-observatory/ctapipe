@@ -7,31 +7,41 @@ from ctapipe.containers import (
     ReconstructedGeometryContainer,
     ReconstructedEnergyContainer,
 )
+
 from ctapipe.reco.impact import ImPACTReconstructor
-from ctapipe.containers import CameraHillasParametersContainer
+from ctapipe.reco.impact_utilities import *
+
+from ctapipe.containers import HillasParametersContainer
 from astropy.coordinates import Angle, AltAz, SkyCoord
+
+from ctapipe.utils import get_dataset_path
+from ctapipe.io import EventSource
 
 
 class TestImPACT:
     @classmethod
     def setup_class(self):
-        self.impact_reco = ImPACTReconstructor(root_dir=".")
+        self.impact_reco = ImPACTReconstructor(root_dir=".", dummy_reconstructor=True)
         self.horizon_frame = AltAz()
 
-        self.h1 = CameraHillasParametersContainer(
-            x=1 * u.deg,
-            y=1 * u.deg,
+        self.h1 = HillasParametersContainer(
+            fov_lon=1 * u.deg,
+            fov_lat=1 * u.deg,
             r=1 * u.deg,
-            phi=Angle(0 * u.rad),
+            phi=Angle(0 * u.deg),
             intensity=100,
             length=0.4 * u.deg,
             width=0.4 * u.deg,
-            psi=Angle(0 * u.rad),
+            psi=Angle(0 * u.deg),
             skewness=0,
             kurtosis=0,
         )
 
-    # @pytest.mark.skip('need a dataset for this to work')
+        #filename = get_dataset_path("gamma_test_large.simtel.gz")
+        #source = EventSource(filename, max_events=1)
+
+        #self.subarray = source.subarray
+
     def test_brightest_mean_average(self):
         """
         Test that averaging of the brightest pixel position give a sensible outcome
@@ -40,19 +50,9 @@ class TestImPACT:
         pixel_x = np.array([0.0, 1.0, 0.0, -1.0]) * u.deg
         pixel_y = np.array([-1.0, 0.0, 1.0, 0.0]) * u.deg
 
-        array_pointing = SkyCoord(alt=0 * u.deg, az=0 * u.deg, frame=self.horizon_frame)
-
-        self.impact_reco.set_event_properties(
-            {1: image},
-            {1: image},
-            {1: pixel_x},
-            {1: pixel_y},
-            {1: "DUMMY"},
-            {1: 0 * u.m},
-            {1: 0 * u.m},
-            array_direction=array_pointing,
-            hillas={1: self.h1},
-        )
+        self.impact_reco.hillas_parameters = [self.h1]
+        self.impact_reco.pixel_x = [pixel_x]
+        self.impact_reco.pixel_y = [pixel_y]
 
         self.impact_reco.get_hillas_mean()
 
@@ -68,11 +68,11 @@ class TestImPACT:
         x = np.array([1])
         y = np.array([0])
 
-        xt, yt = ImPACTReconstructor.rotate_translate(x, y, 0, 0, np.deg2rad(90))
+        xt, yt = rotate_translate(x, y, 0, 0, np.deg2rad(90))
         assert_allclose(xt, 0, rtol=0, atol=0.001)
         assert_allclose(yt, 1, rtol=0, atol=0.001)
 
-        xt, yt = ImPACTReconstructor.rotate_translate(x, y, 0, 0, np.deg2rad(180))
+        xt, yt = rotate_translate(x, y, 0, 0, np.deg2rad(180))
         assert_allclose(xt, 1, rtol=0, atol=0.001)
         assert_allclose(yt, 0, rtol=0, atol=0.001)
 
@@ -81,7 +81,7 @@ class TestImPACT:
         x = np.array([0])
         y = np.array([0])
 
-        xt, yt = ImPACTReconstructor.rotate_translate(x, y, 1, 1, np.array([0]))
+        xt, yt = rotate_translate(x, y, 1, 1, np.array([0]))
         assert_allclose(xt, 1, rtol=0, atol=0.001)
         assert_allclose(yt, -1, rtol=0, atol=0.001)
 
@@ -92,24 +92,19 @@ class TestImPACT:
         pixel_x = np.array([1, 1, 1]) * u.deg
         pixel_y = np.array([1, 1, 1]) * u.deg
 
-        array_pointing = SkyCoord(alt=0 * u.deg, az=0 * u.deg, frame=self.horizon_frame)
+        self.impact_reco.hillas_parameters = [self.h1]
+        self.impact_reco.pixel_x = np.array([pixel_x])
+        self.impact_reco.pixel_y = np.array([pixel_y])
+        self.impact_reco.tel_pos_x = np.array([0.])
+        self.impact_reco.tel_pos_y = np.array([0.])
 
-        self.impact_reco.set_event_properties(
-            {1: image},
-            {1: image},
-            {1: pixel_x},
-            {1: pixel_y},
-            {1: "DUMMY"},
-            {1: 0 * u.m},
-            {1: 0 * u.m},
-            array_direction=array_pointing,
-            hillas={1: self.h1},
-        )
+        self.impact_reco.get_hillas_mean()
 
         shower_max = self.impact_reco.get_shower_max(0, 0, 0, 100, 0)
         assert_allclose(shower_max, 484.2442217190515, rtol=0.01)
 
     @pytest.mark.skip("need a dataset for this to work")
+
     def test_image_prediction(self):
         pixel_x = np.array([0]) * u.deg
         pixel_y = np.array([0]) * u.deg
@@ -162,22 +157,24 @@ class TestImPACT:
 
     @pytest.mark.skip("need a dataset for this to work")
     def test_likelihood(self):
-        pixel_x = np.array([0]) * u.deg
-        pixel_y = np.array([0]) * u.deg
 
-        image = np.array([1])
-        pixel_area = np.array([1]) * u.deg * u.deg
+        image = np.array([1, 1, 1])
+        pixel_x = np.array([1, 1, 1]) * u.deg
+        pixel_y = np.array([1, 1, 1]) * u.deg
+        array_pointing = SkyCoord(alt=0 * u.deg, az=0 * u.deg, 
+                                  frame=self.horizon_frame)
+        
+        self.impact_reco.tel_types = np.array(["LSTCam"])
+        self.impact_reco.initialise_templates({1: "LSTCam"})
 
-        self.impact_reco.set_event_properties(
-            {1: image},
-            {1: pixel_x},
-            {1: pixel_y},
-            {1: pixel_area},
-            {1: "CHEC"},
-            {1: 0 * u.m},
-            {1: 0 * u.m},
-            array_direction=[0 * u.deg, 0 * u.deg],
-        )
+        self.impact_reco.image = image
+        self.impact_reco.hillas_parameters = [self.h1]
+        self.impact_reco.pixel_x = pixel_x
+        self.impact_reco.pixel_y = pixel_y
+        self.impact_reco.tel_pos_x = np.array([0.])
+        self.impact_reco.tel_pos_y = np.array([0.])
+        self.impact_reco.array_direction = array_pointing
 
+        self.impact_reco.get_hillas_mean()
         like = self.impact_reco.get_likelihood(0, 0, 0, 100, 1, 0)
         assert like is not np.nan and like > 0
