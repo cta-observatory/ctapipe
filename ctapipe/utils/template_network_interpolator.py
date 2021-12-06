@@ -4,13 +4,6 @@ import pickle
 import gzip
 import numpy.ma as ma
 
-from .unstructured_interpolator import UnstructuredInterpolator
-import numpy as np
-import pickle
-import gzip
-import numpy.ma as ma
-
-
 class BaseTemplate:
     """
     Base class for template interpolators, cheifly associated with code for the special
@@ -339,7 +332,11 @@ class TimeGradientInterpolator:
 
         file_list = gzip.open(template_file)
         input_dict = pickle.load(file_list)
-        self.interpolator = UnstructuredInterpolator(input_dict, remember_last=False)
+
+        keys = np.array(list(input_dict.keys()))
+        values = np.array(list(input_dict.values()), dtype=np.float32)
+
+        self.interpolator = UnstructuredInterpolator(keys, values, remember_last=False)
 
     def __call__(self, energy, impact, xmax):
         """

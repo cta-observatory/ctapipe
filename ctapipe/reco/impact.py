@@ -20,13 +20,12 @@ from ctapipe.coordinates import (
     GroundFrame,
     project_to_ground,
 )
-from ctapipe.image import neg_log_likelihood, mean_poisson_likelihood_gaussian
-from ctapipe.instrument import get_atmosphere_profile_functions
+
 from ctapipe.containers import (
     ReconstructedGeometryContainer,
     ReconstructedEnergyContainer,
 )
-from ctapipe.reco.reco_algorithms import Reconstructor, TooFewTelescopesException
+from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.utils.template_network_interpolator import (
     TemplateNetworkInterpolator,
     TimeGradientInterpolator,
@@ -34,8 +33,8 @@ from ctapipe.utils.template_network_interpolator import (
     DummyTimeInterpolator
 )
 from ctapipe.reco.impact_utilities import *
-from ctapipe.image.pixel_likelihood import neg_log_likelihood_approx
-from ctapipe.image.cleaning import tailcuts_clean, dilate
+from ctapipe.image.pixel_likelihood import neg_log_likelihood_approx, mean_poisson_likelihood_gaussian
+from ctapipe.image.cleaning import dilate
 
 from ctapipe.core import Provenance
 PROV = Provenance()
@@ -153,7 +152,14 @@ class ImPACTReconstructor(Reconstructor):
         event : container
             `ctapipe.containers.ArrayEventContainer`
         """
-        hillas_dict = event.dl1.parameters.hillas
+
+        hillas_dict = {}
+        for tel_id, dl1 in event.dl1.tel.items():
+            hillas = dl1.parameters.hillas
+            if hillas is not None:
+                if np.isfinite(dl1.parameters.hillas.intensity) and dl1.parameters.hillas.intensity>0:
+                    hillas_dict[tel_id] = hillas
+
 
         # Due to tracking the pointing of the array will never be a constant
         array_pointing = SkyCoord(
@@ -161,6 +167,7 @@ class ImPACTReconstructor(Reconstructor):
             alt=event.pointing.array_altitude,
             frame=AltAz(),
         )
+
         # And the pointing direction of the telescopes may not be the same
         telescope_pointings = {
             tel_id: SkyCoord(
@@ -185,7 +192,7 @@ class ImPACTReconstructor(Reconstructor):
 
 
         # This is a placeholder for proper energy reconstruction
-        reconstructor_prediction = event.dl2.stereo.geometry["HillasReconstructor"]
+        reconstructor_prediction = event.dl2.stereo.geometry["HillasIntersection"]
 
         shower_result, energy_result = self.predict(hillas_dict=hillas_dict, subarray=self.subarray, 
                                                     array_pointing=array_pointing, telescope_pointings=telescope_pointings,

@@ -11,6 +11,11 @@ performance
 import numpy as np
 import itertools
 import astropy.units as u
+from astropy.coordinates import (
+    SkyCoord,
+    AltAz
+)
+
 from ctapipe.reco.reco_algorithms import (
     Reconstructor,
     InvalidWidthException,
@@ -21,7 +26,6 @@ from ctapipe.containers import (
     CameraHillasParametersContainer,
     HillasParametersContainer,
 )
-from ctapipe.instrument import get_atmosphere_profile_functions
 
 from astropy.coordinates import SkyCoord
 from ctapipe.coordinates import (
@@ -69,7 +73,7 @@ class HillasIntersection(Reconstructor):
         ["Konrad", "hess"], default_value="Konrad", help="Weighting Method name"
     ).tag(config=True)
 
-    def __init__(self, config=None, parent=None, **kwargs):
+    def __init__(self, subarray, config=None, parent=None, **kwargs):
         """
         Weighting must be a function similar to the weight_konrad already implemented
         """
@@ -78,6 +82,55 @@ class HillasIntersection(Reconstructor):
         # other weighting schemes can be implemented. just add them as additional methods
         if self.weighting == "Konrad":
             self._weight_method = self.weight_konrad
+        self.subarray = subarray
+
+    def __call__(self, event):
+        """
+        Perform the full shower geometry reconstruction on the input event.
+
+        Parameters
+        ----------
+        event : container
+            `ctapipe.containers.ArrayEventContainer`
+        """
+
+        # Read only valid HillasContainers
+        #hillas_dict = {
+        #    tel_id: dl1.parameters.hillas
+        #    for tel_id, dl1 in event.dl1.tel.items()
+        #    if np.isfinite(dl1.parameters.hillas.intensity)
+        #}
+        hillas_dict = {}
+        for tel_id, dl1 in event.dl1.tel.items():
+            if  dl1.parameters is not None:
+                hillas = dl1.parameters.hillas
+                if np.isfinite(dl1.parameters.hillas.intensity) and dl1.parameters.hillas.intensity>0:
+                    hillas_dict[tel_id] = hillas
+
+        # Due to tracking the pointing of the array will never be a constant
+        array_pointing = SkyCoord(
+            az=event.pointing.array_azimuth,
+            alt=event.pointing.array_altitude,
+            frame=AltAz(),
+        )
+
+        telescope_pointings = {
+            tel_id: SkyCoord(
+                alt=event.pointing.tel[tel_id].altitude,
+                az=event.pointing.tel[tel_id].azimuth,
+                frame=AltAz(),
+            )
+            for tel_id in event.dl1.tel.keys()
+        }
+
+        try:
+            result = self.predict(
+                hillas_dict, self.subarray, array_pointing, telescope_pointings
+            )
+        except (TooFewTelescopesException, InvalidWidthException):
+            result = ReconstructedGeometryContainer()
+
+        event.dl2.stereo.geometry["HillasIntersection"] = result
 
     def predict(self, hillas_dict, subarray, array_pointing, telescopes_pointings=None):
         """
