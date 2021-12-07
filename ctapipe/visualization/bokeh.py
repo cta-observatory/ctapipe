@@ -1,5 +1,8 @@
 import sys
+import tempfile
+
 import numpy as np
+
 from bokeh.io import output_notebook, push_notebook, show, output_file
 from bokeh.plotting import figure
 from bokeh.models import (
@@ -16,10 +19,9 @@ from bokeh.models import (
     Label,
 )
 from bokeh.palettes import Viridis256, Magma256, Inferno256, Greys256, d3
-import tempfile
 import astropy.units as u
 
-from ctapipe.instrument import CameraGeometry, PixelShape
+from ..instrument import CameraGeometry, PixelShape
 
 
 PLOTARGS = dict(tools="", toolbar_location=None, outline_line_color="#595959")
@@ -36,6 +38,7 @@ CMAPS = {
 
 
 def palette_from_mpl_name(name):
+    """Create a bokeh palette from a matplotlib colormap name"""
     if name in CMAPS:
         return CMAPS[name]
 
@@ -58,6 +61,7 @@ def is_notebook():
 
 
 def generate_hex_vertices(geom):
+    """Generate vertices of pixels for a hexagonal grid camera geometry"""
     phi = np.arange(0, 2 * np.pi, np.pi / 3)
 
     # apply pixel rotation and conversion from flat top to pointy top
@@ -69,19 +73,20 @@ def generate_hex_vertices(geom):
     x = geom.pix_x.value
     y = geom.pix_y.value
 
-    xs = x[:, np.newaxis] + r[:, np.newaxis] * np.cos(phi)[np.newaxis]
-    ys = y[:, np.newaxis] + r[:, np.newaxis] * np.sin(phi)[np.newaxis]
-
-    return xs, ys
+    return (
+        x[:, np.newaxis] + r[:, np.newaxis] * np.cos(phi)[np.newaxis],
+        y[:, np.newaxis] + r[:, np.newaxis] * np.sin(phi)[np.newaxis],
+    )
 
 
 def generate_square_vertices(geom):
-    w = geom.pixel_width.value / 2
+    """Generate vertices of pixels for a square grid camera geometry"""
+    width = geom.pixel_width.value / 2
     x = geom.pix_x.value
     y = geom.pix_y.value
 
-    x_offset = w[:, np.newaxis] * np.array([-1, -1, 1, 1])
-    y_offset = w[:, np.newaxis] * np.array([1, -1, -1, 1])
+    x_offset = width[:, np.newaxis] * np.array([-1, -1, 1, 1])
+    y_offset = width[:, np.newaxis] * np.array([1, -1, -1, 1])
 
     xs = x[:, np.newaxis] + x_offset
     ys = y[:, np.newaxis] + y_offset
@@ -89,6 +94,8 @@ def generate_square_vertices(geom):
 
 
 class BokehPlot:
+    """Base class for bokeh plots"""
+
     def __init__(self, autoshow=True, use_notebook=None, **figure_kwargs):
         # only use autoshow / use_notebook by default if we are in a notebook
         self._use_notebook = use_notebook if use_notebook is not None else is_notebook()
@@ -103,6 +110,7 @@ class BokehPlot:
                     tool.match_aspect = True
 
     def show(self):
+        """Display the figure"""
         if self._use_notebook:
             output_notebook()
         else:
@@ -112,6 +120,7 @@ class BokehPlot:
         self._handle = show(self.figure, notebook_handle=self._use_notebook)
 
     def update(self):
+        """Update the figure"""
         if self._use_notebook and self._handle:
             push_notebook(handle=self._handle)
 
@@ -186,20 +195,20 @@ class CameraDisplay(BokehPlot):
         )
 
         if self._geometry.pix_type == PixelShape.HEXAGON:
-            xs, ys = generate_hex_vertices(self._geometry)
+            x, y = generate_hex_vertices(self._geometry)
 
         elif self._geometry.pix_type == PixelShape.SQUARE:
-            xs, ys = generate_square_vertices(self._geometry)
+            x, y = generate_square_vertices(self._geometry)
 
         elif self._geometry.pix_type == PixelShape.CIRCLE:
-            xs, ys = self._geometry.pix_x.value, self._geometry.pix_y.value
+            x, y = self._geometry.pix_x.value, self._geometry.pix_y.value
             data["radius"] = self._geometry.pixel_width / 2
         else:
             raise NotImplementedError(
                 f"Unsupported pixel shape {self._geometry.pix_type}"
             )
 
-        data["xs"], data["ys"] = xs.tolist(), ys.tolist()
+        data["xs"], data["ys"] = x.tolist(), y.tolist()
 
         if self.datasource is None:
             self.datasource = ColumnDataSource(data=data)
@@ -220,6 +229,7 @@ class CameraDisplay(BokehPlot):
             self._pixels = self.figure.circle(x="xs", y="ys", radius="radius", **kwargs)
 
     def clear_overlays(self):
+        """Remove any added overlays from the figure"""
         while self._annotations:
             self.figure.renderers.remove(self._annotations.pop())
 
@@ -227,6 +237,7 @@ class CameraDisplay(BokehPlot):
             self.figure.center.remove(self._labels.pop())
 
     def add_colorbar(self):
+        """Add a colorbar to the figure"""
         self._color_bar = ColorBar(
             color_mapper=self._color_mapper,
             label_standoff=12,
@@ -237,6 +248,7 @@ class CameraDisplay(BokehPlot):
         self.update()
 
     def rescale(self):
+        """Scale pixel colors to min/max range"""
         low = self.datasource.data["image"].min()
         high = self.datasource.data["image"].max()
 
@@ -248,15 +260,18 @@ class CameraDisplay(BokehPlot):
         self.set_limits_minmax(low, high)
 
     def enable_pixel_picker(self, callback):
+        """Call `callback`` when a pixel is clicked"""
         if self._tap_tool is None:
             self.figure.add_tools(TapTool())
         self.datasource.selected.on_change("indices", callback)
 
     def set_limits_minmax(self, zmin, zmax):
+        """Set the limits of the color range to ``zmin`` / ``zmax``"""
         self._color_mapper.update(low=zmin, high=zmax)
         self.update()
 
     def set_limits_percent(self, percent=95):
+        """Set the limits to min / fraction of max value"""
         zmin = np.nanmin(self.image)
         zmax = np.nanmax(self.image)
         dz = zmax - zmin
@@ -300,10 +315,12 @@ class CameraDisplay(BokehPlot):
 
     @property
     def cmap(self):
+        """Get the current colormap"""
         return self._palette
 
     @cmap.setter
     def cmap(self, cmap):
+        """Set colormap"""
         if isinstance(cmap, str):
             cmap = palette_from_mpl_name(cmap)
 
@@ -322,10 +339,12 @@ class CameraDisplay(BokehPlot):
 
     @property
     def geometry(self):
+        """Get the current geometry"""
         return self._geometry
 
     @geometry.setter
     def geometry(self, new_geometry):
+        """Set the geometry"""
         self._geometry = new_geometry
         if self._pixels in self.figure.renderers:
             self.figure.renderers.remove(self._pixels)
@@ -336,10 +355,12 @@ class CameraDisplay(BokehPlot):
 
     @property
     def image(self):
+        """Get the current image"""
         return self.datasource.data["image"]
 
     @image.setter
     def image(self, new_image):
+        """Set the image"""
         self.datasource.patch({"image": [(slice(None), new_image)]})
         if self.autoscale:
             self.rescale()
@@ -359,6 +380,7 @@ class CameraDisplay(BokehPlot):
 
     @norm.setter
     def norm(self, norm):
+        """Set the norm"""
         if not isinstance(norm, ContinuousColorMapper):
             if norm == "lin":
                 norm = LinearColorMapper

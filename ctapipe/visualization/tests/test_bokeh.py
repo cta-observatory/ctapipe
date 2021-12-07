@@ -1,7 +1,9 @@
+import tempfile
+
 from ctapipe.coordinates import TelescopeFrame
 import numpy as np
+
 from bokeh.io import save, output_file
-import tempfile
 
 
 def test_create_display_without_geometry(example_event, example_subarray):
