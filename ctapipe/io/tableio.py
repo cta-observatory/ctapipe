@@ -358,11 +358,54 @@ class FixedPointColumnTransform(ColumnTransform):
         self.source_dtype = np.dtype(source_dtype)
         self.target_dtype = np.dtype(target_dtype)
 
+        iinfo = np.iinfo(self.target_dtype)
+
+        # use three highest values for nan markers for unsigned case
+        if self.target_dtype.kind == "u":
+            self.neginf = iinfo.max - 2
+            self.nan = iinfo.max - 1
+            self.posinf = iinfo.max
+        else:
+            self.neginf = iinfo.min
+            self.nan = iinfo.min + 1
+            self.posinf = iinfo.max
+
     def __call__(self, value):
-        return (value * self.scale).astype(self.target_dtype) + self.offset
+        scalar = np.array(value, copy=False).shape == ()
+
+        result = (value * self.scale).astype(self.target_dtype) + self.offset
+
+        nans = np.isnan(value)
+        pos_inf = np.isposinf(value)
+        neg_inf = np.isneginf(value)
+
+        result[nans] = self.nan
+        result[neg_inf] = self.neginf
+        result[pos_inf] = self.posinf
+
+        if scalar:
+            return np.squeeze(result)
+
+        return result
 
     def inverse(self, value):
-        return (value - self.offset).astype(self.source_dtype) / self.scale
+        scalar = np.array(value, copy=False).shape == ()
+
+        result = (value - self.offset).astype(self.source_dtype) / self.scale
+        result = np.atleast_1d(result)
+
+        nans = value == self.nan
+        pos_inf = value == self.posinf
+        neg_inf = value == self.neginf
+
+        result[nans] = np.nan
+        result[neg_inf] = -np.inf
+        result[pos_inf] = np.inf
+
+        if scalar:
+            return np.squeeze(result)
+
+        return result
 
     def get_meta(self, colname: str):
         return {
