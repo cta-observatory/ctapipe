@@ -510,17 +510,7 @@ class SubarrayDescription:
         # here to prevent circular import
         from ..io import read_table
 
-        # for backwards compatibility with astropy written subarrays
-        def _read_table(file_path, path, table_cls=Table):
-            with tables.open_file(file_path, "r") as f:
-                is_astropy = f"{path}.__table_column_meta__" in f.root
-
-                if not is_astropy:
-                    return read_table(f, path, table_cls=table_cls)
-
-            return table_cls.read(file_path, path)
-
-        layout = _read_table(
+        layout = read_table(
             path, "/configuration/instrument/subarray/layout", table_cls=QTable
         )
 
@@ -532,12 +522,12 @@ class SubarrayDescription:
 
         for idx in set(layout["camera_index"]):
             geometry = CameraGeometry.from_table(
-                _read_table(
+                read_table(
                     path, f"/configuration/instrument/telescope/camera/geometry_{idx}"
                 )
             )
             readout = CameraReadout.from_table(
-                _read_table(
+                read_table(
                     path, f"/configuration/instrument/telescope/camera/readout_{idx}"
                 )
             )
@@ -545,7 +535,7 @@ class SubarrayDescription:
                 camera_name=geometry.camera_name, readout=readout, geometry=geometry
             )
 
-        optics_table = _read_table(
+        optics_table = read_table(
             path, "/configuration/instrument/telescope/optics", table_cls=QTable
         )
         # for backwards compatibility

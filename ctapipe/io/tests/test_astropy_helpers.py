@@ -5,6 +5,7 @@ from astropy import units as u
 import tables
 import pytest
 from astropy.time import Time
+from astropy.table import Table
 
 from astropy.io.fits.verify import VerifyWarning
 
@@ -157,3 +158,21 @@ def test_condition(tmp_path):
     table = read_table(filename, "/events", condition="energy > 0")
     assert len(table) == 2
     assert np.all(table["energy"] == [100, 50] * u.TeV)
+
+
+def test_read_table_astropy(tmp_path):
+    """Test that ctapipe.io.read_table can also read a table written Table.write"""
+    from ctapipe.io import read_table
+
+    table = Table(
+        {
+            "a": [1, 2, 3],
+            "b": np.array([1, 2, 3], dtype=np.uint16),
+            "speed": [2.0, 3.0, 4.2] * (u.m / u.s),
+        }
+    )
+
+    path = tmp_path / "test.h5"
+    table.write(path, "/group/table")
+    read = read_table(path, "/group/table")
+    assert (table == read).all()

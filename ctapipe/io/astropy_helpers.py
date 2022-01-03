@@ -54,6 +54,7 @@ def read_table(
         A numexpr expression to only load rows fulfilling this condition.
         For example, use "hillas_length > 0" to only load rows where the
         hillas length is larger than 0 (so not nan and not 0).
+        Ignored when reading tables that were written using astropy.
 
     Returns
     -------
@@ -73,6 +74,13 @@ def read_table(
                 f"expected a string, Path, or PyTables "
                 f"filehandle for argument 'h5file', got {h5file}"
             )
+
+        # check if the table was written using astropy table io, if yes
+        # just use astropy
+        is_astropy = f"{path}.__table_column_meta__" in h5file.root
+        if is_astropy:
+            sl = slice(start, stop, step)
+            return table_cls.read(h5file.filename, path)[sl]
 
         table = h5file.get_node(path)
         transforms, descriptions, meta = _parse_hdf5_attrs(table)
