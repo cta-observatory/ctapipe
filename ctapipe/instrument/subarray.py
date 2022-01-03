@@ -457,7 +457,8 @@ class SubarrayDescription:
         subarray : ctapipe.instrument.SubarrayDescription
             subarray description
         """
-        serialize_meta = True
+        # here to prevent circular import
+        from ..io import write_table
 
         output_path = Path(output_path)
         if output_path.suffix not in (".h5", ".hdf", ".hdf5"):
@@ -465,42 +466,63 @@ class SubarrayDescription:
                 f"This function can only write to hdf files, got {output_path.suffix}"
             )
 
-        self.to_table().write(
-            output_path,
-            path="/configuration/instrument/subarray/layout",
-            serialize_meta=serialize_meta,
-            append=True,
-            overwrite=overwrite,
-        )
-        self.to_table(kind="optics").write(
-            output_path,
-            path="/configuration/instrument/telescope/optics",
-            append=True,
-            serialize_meta=serialize_meta,
-            overwrite=overwrite,
-        )
-        for i, camera in enumerate(self.camera_types):
-            camera.geometry.to_table().write(
-                output_path,
-                path=f"/configuration/instrument/telescope/camera/geometry_{i}",
-                append=True,
-                serialize_meta=serialize_meta,
-                overwrite=overwrite,
-            )
-            camera.readout.to_table().write(
-                output_path,
-                path=f"/configuration/instrument/telescope/camera/readout_{i}",
-                append=True,
-                serialize_meta=serialize_meta,
-                overwrite=overwrite,
-            )
+        with tables.open_file(output_path, mode="a") as f:
 
-        with tables.open_file(output_path, mode="r+") as f:
+            if "/configuration/instrument/subarray" in f.root:
+                if overwrite is False:
+                    raise IOError(
+                        "File already contains a SubarrayDescription and overwrite=False"
+                    )
+
+                f.remove_node("/configuration/instrument/", "subarray", recursive=True)
+                f.remove_node("/configuration/instrument/", "telescope", recursive=True)
+
+            write_table(
+                self.to_table(),
+                f,
+                path="/configuration/instrument/subarray/layout",
+                mode="a",
+            )
+            write_table(
+                self.to_table(kind="optics"),
+                f,
+                path="/configuration/instrument/telescope/optics",
+                mode="a",
+            )
+            for i, camera in enumerate(self.camera_types):
+                write_table(
+                    camera.geometry.to_table(),
+                    f,
+                    path=f"/configuration/instrument/telescope/camera/geometry_{i}",
+                    mode="a",
+                )
+                write_table(
+                    camera.readout.to_table(),
+                    f,
+                    path=f"/configuration/instrument/telescope/camera/readout_{i}",
+                    mode="a",
+                )
+
             f.root.configuration.instrument.subarray._v_attrs.name = self.name
 
     @classmethod
     def from_hdf(cls, path):
-        layout = QTable.read(path, path="/configuration/instrument/subarray/layout")
+        # here to prevent circular import
+        from ..io import read_table
+
+        # for backwards compatibility with astropy written subarrays
+        def _read_table(file_path, path, table_cls=Table):
+            with tables.open_file(file_path, "r") as f:
+                is_astropy = f"{path}.__table_column_meta__" in f.root
+
+                if not is_astropy:
+                    return read_table(f, path, table_cls=table_cls)
+
+            return table_cls.read(file_path, path)
+
+        layout = _read_table(
+            path, "/configuration/instrument/subarray/layout", table_cls=QTable
+        )
 
         cameras = {}
 
@@ -510,23 +532,21 @@ class SubarrayDescription:
 
         for idx in set(layout["camera_index"]):
             geometry = CameraGeometry.from_table(
-                Table.read(
-                    path,
-                    path=f"/configuration/instrument/telescope/camera/geometry_{idx}",
+                _read_table(
+                    path, f"/configuration/instrument/telescope/camera/geometry_{idx}"
                 )
             )
             readout = CameraReadout.from_table(
-                Table.read(
-                    path,
-                    path=f"/configuration/instrument/telescope/camera/readout_{idx}",
+                _read_table(
+                    path, f"/configuration/instrument/telescope/camera/readout_{idx}"
                 )
             )
             cameras[idx] = CameraDescription(
                 camera_name=geometry.camera_name, readout=readout, geometry=geometry
             )
 
-        optics_table = QTable.read(
-            path, path="/configuration/instrument/telescope/optics"
+        optics_table = _read_table(
+            path, "/configuration/instrument/telescope/optics", table_cls=QTable
         )
         # for backwards compatibility
         # if optics_index not in table, guess via telescope_description string

@@ -4,24 +4,30 @@ Functions to help adapt internal ctapipe data to astropy formats and conventions
 """
 
 from pathlib import Path
+import os
+from contextlib import ExitStack
+from typing import Union
 
 import tables
-from astropy.table import Table, join
+from astropy.table import Table, QTable, join
+from astropy.time import Time
 import numpy as np
 
 from .tableio import (
     FixedPointColumnTransform,
     QuantityColumnTransform,
     TimeColumnTransform,
+    StringTransform,
 )
-from .hdf5tableio import get_hdf5_attr
+from .hdf5tableio import DEFAULT_FILTERS, get_hdf5_attr
 
-from contextlib import ExitStack
 
 __all__ = ["read_table", "join_allow_empty"]
 
 
-def read_table(h5file, path, start=None, stop=None, step=None, condition=None) -> Table:
+def read_table(
+    h5file, path, start=None, stop=None, step=None, condition=None, table_cls=Table
+) -> Union[Table, QTable]:
     """Read a table from an HDF5 file
 
     This reads a table written in the ctapipe format table as an `astropy.table.Table`
@@ -78,7 +84,7 @@ def read_table(h5file, path, start=None, stop=None, step=None, condition=None) -
                 condition=condition, start=start, stop=stop, step=step
             )
 
-        astropy_table = Table(array, meta=meta, copy=False)
+        astropy_table = table_cls(array, meta=meta, copy=False)
         for column, tr in transforms.items():
             astropy_table[column] = tr.inverse(astropy_table[column])
 
@@ -86,6 +92,101 @@ def read_table(h5file, path, start=None, stop=None, step=None, condition=None) -
             astropy_table[column].description = desc
 
         return astropy_table
+
+
+def write_table(table, h5file, path, append=False, mode="a", filters=DEFAULT_FILTERS):
+    """Write a table to an HDF5 file
+
+    This writes a table in the ctapipe format into ``h5file``.
+
+                attrs.update(transform.get_meta(name))
+
+    Parameters
+    ----------
+    table: astropy.table.Table
+        The table to be written.
+    h5file: Union[str, Path, tables.file.File]
+        input filename or PyTables file handle. If a PyTables file handle,
+        must be opened writable.
+    path: str
+        dataset path inside the ``h5file``
+    append: bool
+        Wether to try to append to or replace an existing table
+    mode: str
+        If given a path for ``h5file``, it will be opened in this mode.
+        See the docs of ``tables.open_file``.
+    """
+    copied = False
+
+    with ExitStack() as stack:
+
+        if isinstance(h5file, (str, Path)):
+            h5file = stack.enter_context(tables.open_file(h5file, mode=mode))
+        elif isinstance(h5file, tables.file.File):
+            pass
+        else:
+            raise ValueError(
+                f"expected a string, Path, or PyTables "
+                f"filehandle for argument 'h5file', got {h5file}"
+            )
+
+        attrs = {}
+        for colname, column in table.columns.items():
+            if hasattr(column, "description") and column.description is not None:
+                attrs[f"{colname}_DESC"] = column.description
+
+            if isinstance(column, Time):
+                transform = TimeColumnTransform(scale="tai", format="mjd")
+                attrs.update(transform.get_meta(colname))
+
+                if copied is False:
+                    table = table.copy()
+                    copied = True
+
+                table[colname] = transform(column)
+
+            # convert unicode to fixed-lenth bytes
+            # TODO use variable length strings as soon as tables supports them
+            # This also only supports asscii
+            elif column.dtype.kind == "U":
+                if copied is False:
+                    table = table.copy()
+                    copied = True
+
+                table[colname] = np.array([s.encode("utf-8") for s in column])
+                transform = StringTransform(table[colname].dtype.itemsize)
+                attrs.update(transform.get_meta(colname))
+
+            elif column.unit is not None:
+                transform = QuantityColumnTransform(column.unit)
+                attrs.update(transform.get_meta(colname))
+
+        parent, table_name = os.path.split(path)
+
+        already_exists = path in h5file.root
+
+        if already_exists and not append:
+            h5file.remove_node(parent, table_name)
+            already_exists = False
+
+        if not already_exists:
+            h5_table = h5file.create_table(
+                parent,
+                table_name,
+                filters=filters,
+                expectedrows=len(table),
+                createparents=True,
+                obj=table.as_array(),
+            )
+        else:
+            h5_table = h5file.get_node(path)
+            h5_table.append(table.as_array())
+
+        for key, val in table.meta.items():
+            h5_table.attrs[key] = val
+
+        for key, val in attrs.items():
+            h5_table.attrs[key] = val
 
 
 def _parse_hdf5_attrs(table):
@@ -112,6 +213,13 @@ def _parse_hdf5_attrs(table):
                 source_dtype=table.attrs[f"{colname}_TRANSFORM_DTYPE"],
                 target_dtype=table.col(colname).dtype,
             )
+        elif attr.endswith("_TRANSFORM"):
+            if table.attrs[attr] == "string":
+                colname, _, _ = attr.rpartition("_TRANSFORM")
+                column_transforms[colname] = StringTransform(
+                    table.attrs[f"{colname}_MAXLEN"]
+                )
+
         else:
             # need to convert to str() here so they are python strings, not
             # numpy strings

@@ -8,6 +8,7 @@ from collections import defaultdict
 import numpy as np
 from astropy.time import Time
 from astropy.units import Quantity
+import codecs
 
 from ..instrument import SubarrayDescription
 from ..core import Component
@@ -468,6 +469,53 @@ class EnumColumnTransform(ColumnTransform):
 
     def get_meta(self, colname):
         return {f"{colname}_TRANSFORM": "enum", f"{colname}_ENUM": self.enum}
+
+
+def _ignore_unexpected_end_of_data(exc):
+    """Error handler that ignores invalid utf-8 due to truncated bytes"""
+    if exc.reason == "unexpected end of data":
+        return "", exc.end
+
+    raise exc
+
+
+codecs.register_error("ignore_unexpected_end", _ignore_unexpected_end_of_data)
+
+
+class StringTransform(ColumnTransform):
+    """
+    Encode strings as utf-8 bytes using a max_length
+
+    Byte values are truncated after ``max_length``, this might result
+    in invalid utf-8!. Trailing utf-8 bytes are ignored when inversing the
+    transform.
+
+    Should not be used anymore when tables starts supporting
+    variable length strings in tables.
+    """
+
+    def __init__(self, max_length):
+        self.max_length = max_length
+        self.dtype = f"S{max_length:d}"
+
+    def __call__(self, value):
+        if isinstance(value, str):
+            return value.encode("utf-8")[: self.max_length]
+        return np.array([v.encode("utf-8") for v in value]).astype(self.dtype)
+
+    def inverse(self, value):
+        if isinstance(value, bytes):
+            return value.decode("utf-8")
+
+        # astropy table columns somehow try to handle byte columns as strings
+        # when iterating, this does not work here, convert to np.array
+        value = np.array(value, copy=False)
+        return np.array(
+            [v.decode("utf-8", errors="ignore_unexpected_end") for v in value]
+        )
+
+    def get_meta(self, colname):
+        return {f"{colname}_TRANSFORM": "string", f"{colname}_MAXLEN": self.max_length}
 
 
 class TelListToMaskTransform(ColumnTransform):
