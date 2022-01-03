@@ -3,6 +3,7 @@ from astropy.time import Time
 from astropy.table import Table
 import astropy.units as u
 import numpy as np
+import pytest
 
 
 def test_write_table(tmp_path):
@@ -20,6 +21,7 @@ def test_write_table(tmp_path):
     )
 
     table.meta["FOO"] = "bar"
+    table["speed"].description = "Speed of stuff"
 
     output_path = tmp_path = tmp_path / "table.h5"
     table_path = "/foo/bar"
@@ -41,6 +43,7 @@ def test_write_table(tmp_path):
 
     assert "FOO" in read.meta
     assert read.meta["FOO"] == "bar"
+    assert read["speed"].description == "Speed of stuff"
 
     # test we can append
     write_table(table, output_path, table_path, append=True)
@@ -50,3 +53,12 @@ def test_write_table(tmp_path):
     # test we can overwrite
     write_table(table, output_path, table_path, append=False)
     assert len(read_table(output_path, table_path)) == len(table)
+
+
+def test_invalid_input():
+    """Test invalid path argument raises"""
+    from ctapipe.io.astropy_helpers import write_table
+
+    with pytest.raises(ValueError):
+        invalid_path = 5
+        write_table(Table({"a": [1, 2, 3]}), invalid_path, "/temp")

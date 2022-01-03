@@ -1,6 +1,7 @@
 """
 Base functionality for reading and writing tabular data
 """
+from codecs import encode
 import re
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
@@ -8,7 +9,6 @@ from collections import defaultdict
 import numpy as np
 from astropy.time import Time
 from astropy.units import Quantity
-import codecs
 
 from ..instrument import SubarrayDescription
 from ..core import Component
@@ -471,15 +471,30 @@ class EnumColumnTransform(ColumnTransform):
         return {f"{colname}_TRANSFORM": "enum", f"{colname}_ENUM": self.enum}
 
 
-def _ignore_unexpected_end_of_data(exc):
-    """Error handler that ignores invalid utf-8 due to truncated bytes"""
-    if exc.reason == "unexpected end of data":
-        return "", exc.end
+def encode_utf8_max_len(string, max_length):
+    """Encode a string to utf-8 with max length in bytes
 
-    raise exc
+    This will not create invalid utf-8 data and thus the resulting
+    bytes object might be shorter than ``max_length`` if max_length
+    falls into a multi-byte codepoint.
 
+    This might still create nonsensical output for cases like combining
+    diacritics and emoji, but
+    a) it will always successfully decode as utf-8
+    b) we can probably live with not supporting all emojis
+    when truncating strings in hdf5 data of ctapipe
 
-codecs.register_error("ignore_unexpected_end", _ignore_unexpected_end_of_data)
+    See https://stackoverflow.com/a/56724327/3838691
+    """
+    utf8 = string.encode("utf-8")
+
+    if len(utf8) <= max_length:
+        return utf8
+
+    while (utf8[max_length] & 0b1100_0000) == 0b1000_0000:
+        max_length -= 1
+
+    return utf8[:max_length]
 
 
 class StringTransform(ColumnTransform):
@@ -500,8 +515,11 @@ class StringTransform(ColumnTransform):
 
     def __call__(self, value):
         if isinstance(value, str):
-            return value.encode("utf-8")[: self.max_length]
-        return np.array([v.encode("utf-8") for v in value]).astype(self.dtype)
+            return encode_utf8_max_len(value, self.max_length)
+
+        return np.array(
+            [encode_utf8_max_len(v, self.max_length) for v in value]
+        ).astype(self.dtype)
 
     def inverse(self, value):
         if isinstance(value, bytes):
@@ -510,9 +528,7 @@ class StringTransform(ColumnTransform):
         # astropy table columns somehow try to handle byte columns as strings
         # when iterating, this does not work here, convert to np.array
         value = np.array(value, copy=False)
-        return np.array(
-            [v.decode("utf-8", errors="ignore_unexpected_end") for v in value]
-        )
+        return np.array([v.decode("utf-8") for v in value])
 
     def get_meta(self, colname):
         return {f"{colname}_TRANSFORM": "string", f"{colname}_MAXLEN": self.max_length}
