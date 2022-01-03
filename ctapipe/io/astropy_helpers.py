@@ -6,10 +6,9 @@ Functions to help adapt internal ctapipe data to astropy formats and conventions
 from pathlib import Path
 import os
 from contextlib import ExitStack
-from typing import Union
 
 import tables
-from astropy.table import Table, QTable, join
+from astropy.table import Table, join
 from astropy.time import Time
 import numpy as np
 
@@ -27,7 +26,7 @@ __all__ = ["read_table", "join_allow_empty"]
 
 def read_table(
     h5file, path, start=None, stop=None, step=None, condition=None, table_cls=Table
-) -> Union[Table, QTable]:
+):
     """Read a table from an HDF5 file
 
     This reads a table written in the ctapipe format table as an `astropy.table.Table`
