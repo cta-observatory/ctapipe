@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-Class to write DL1 data from an event stream
+Class to write DL1 (a,b) and DL2 (a) data from an event stream
 """
 
 
 import pathlib
 from collections import defaultdict
 from typing import DefaultDict, Tuple
+from traitlets import Instance
 
 import numpy as np
 import tables
@@ -18,19 +19,29 @@ from ..containers import (
     TelEventIndexContainer,
 )
 from ..core import Component, Container, Field, Provenance, ToolConfigurationError
-from ..core.traits import Bool, CaselessStrEnum, Int, Path, Float, Unicode
-from ..io import EventSource, HDF5TableWriter, TableWriter
-from ..io.simteleventsource import SimTelEventSource
-from ..io import metadata as meta
-from ..io.tableio import FixedPointColumnTransform
+from ..core.traits import Bool, CaselessStrEnum, Float, Int, Path, Unicode
 from ..instrument import SubarrayDescription
+from . import EventSource, HDF5TableWriter, TableWriter
+from . import metadata as meta
+from .datalevels import DataLevel
+from .simteleventsource import SimTelEventSource
+from .tableio import FixedPointColumnTransform, TelListToMaskTransform
 
-__all__ = ["DL1Writer", "DL1_DATA_MODEL_VERSION", "write_reference_metadata_headers"]
+__all__ = ["DataWriter", "DATA_MODEL_VERSION", "write_reference_metadata_headers"]
 
 tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many datasets
 
-DL1_DATA_MODEL_VERSION = "v1.1.0"
-DL1_DATA_MODEL_CHANGE_HISTORY = """
+# define the version of the DL1 data model written here. This should be updated
+# when necessary:
+# - increase the major number if there is a breaking change to the model
+#   (meaning readers need to update scripts)
+# - increase the minor number if new columns or datasets are added
+# - increase the patch number if there is a small bugfix to the model.
+DATA_MODEL_VERSION = "v2.1.0"
+DATA_MODEL_CHANGE_HISTORY = """
+- v2.1.0: hillas and timing parameters are per default saved in telescope frame (degree) as opposed to camera frame (m)
+- v2.0.0: Match optics and camera tables using indices instead of names
+- v1.2.0: change to more general data model, including also DL2 (DL1 unchanged)
 - v1.1.0: images and peak_times can be stored as scaled integers
 - v1.0.3: true_image dtype changed from float32 to int32
 """
@@ -38,10 +49,12 @@ DL1_DATA_MODEL_CHANGE_HISTORY = """
 PROV = Provenance()
 
 
-def write_reference_metadata_headers(obs_ids, subarray, writer, is_simulation):
+def write_reference_metadata_headers(
+    obs_ids, subarray, writer, is_simulation, data_levels, contact_info
+):
     """
     Attaches Core Provenence headers to an output HDF5 file.
-    Right now this is hard-coded for use with the ctapipe-stage1-process tool
+    Right now this is hard-coded for use with the ctapipe-process tool
 
     Parameters
     ----------
@@ -53,25 +66,29 @@ def write_reference_metadata_headers(obs_ids, subarray, writer, is_simulation):
         SubarrayDescription to get metadata from
     writer: HDF5TableWriter
         output
+    data_levels: List[DataLevel]
+        list of data levels that were requested/generated
+        (e.g. from `DataWriter.datalevels`)
     """
     activity = PROV.current_activity.provenance
+    category = "Sim" if is_simulation else "Other"
 
     reference = meta.Reference(
-        contact=meta.Contact(name="", email="", organization="CTA Consortium"),
+        contact=contact_info,
         product=meta.Product(
-            description="DL1 Data Product",
-            data_category="S",
-            data_level="DL1",
+            description="ctapipe Data Product",
+            data_category=category,
+            data_level=[l.name for l in data_levels],
             data_association="Subarray",
-            data_model_name="ASWG DL1",
-            data_model_version=DL1_DATA_MODEL_VERSION,
+            data_model_name="ASWG",
+            data_model_version=DATA_MODEL_VERSION,
             data_model_url="",
             format="hdf5",
         ),
         process=meta.Process(
             type_="Simulation" if is_simulation else "Observation",
             subtype="",
-            id_=int(min(obs_ids)),  # FIXME: hack, proper id needs to be defined
+            id_=",".join(str(x) for x in obs_ids),
         ),
         activity=meta.Activity.from_provenance(activity),
         instrument=meta.Instrument(
@@ -83,12 +100,11 @@ def write_reference_metadata_headers(obs_ids, subarray, writer, is_simulation):
         ),
     )
 
-    # TODO: add activity_stop_time?
     headers = reference.to_dict()
-    meta.write_to_hdf5(headers, writer._h5file)
+    meta.write_to_hdf5(headers, writer.h5file)
 
 
-class DL1Writer(Component):
+class DataWriter(Component):
     """
     Serialize a sequence of events into a HDF5 DL1 file, in the correct format
 
@@ -98,24 +114,35 @@ class DL1Writer(Component):
 
     .. code-block:: python
 
-        with DL1Writer(parent=self) as write_dl1:
+        with DataWriter(parent=self) as write_data:
             for event in source:
                 calibrate(event)
                 process_images(event)
-                write_dl1(event)
+                write_data(event)
     """
 
+    # pylint: disable=too-many-instance-attributes
+    contact_info = Instance(meta.Contact, kw={}).tag(config=True)
+
     output_path = Path(
-        help="DL1 output filename", default_value=pathlib.Path("events.dl1.h5")
+        help="output filename", default_value=pathlib.Path("events.dl1.h5")
     ).tag(config=True)
 
-    write_images = Bool(
-        help="Store DL1/Event/Image data in output", default_value=False
-    ).tag(config=True)
-
-    write_parameters = Bool(help="Store image parameters", default_value=True).tag(
+    write_images = Bool(help="Store DL1 Images if available", default_value=False).tag(
         config=True
     )
+
+    write_parameters = Bool(
+        help="Store DL1 image parameters if available", default_value=True
+    ).tag(config=True)
+
+    write_stereo_shower = Bool(
+        help="Store DL2 stereo shower parameters if available", default_value=False
+    ).tag(config=True)
+
+    write_mono_shower = Bool(
+        help="Store DL2 mono parameters if available", default_value=False
+    ).tag(config=True)
 
     compression_level = Int(
         help="compression level, 0=None, 9=maximum", default_value=5, min=0, max=9
@@ -124,7 +151,7 @@ class DL1Writer(Component):
     split_datasets_by = CaselessStrEnum(
         values=["tel_id", "tel_type"],
         default_value="tel_id",
-        help="Splitting level for the parameters and images datasets",
+        help="Splitting level for the DL1 parameters and images datasets",
     ).tag(config=True)
 
     compression_type = CaselessStrEnum(
@@ -174,10 +201,9 @@ class DL1Writer(Component):
         """
         super().__init__(config=config, parent=parent, **kwargs)
 
-        # here we just set up data, but all real initializtion should be in
-        # setup(), which is called when the first event is read.
-
         self.event_source = event_source
+        self.contact_info = meta.Contact(parent=self)
+
         self._at_least_one_event = False
         self._is_simulation = event_source.is_simulation
         self._subarray: SubarrayDescription = event_source.subarray
@@ -185,7 +211,7 @@ class DL1Writer(Component):
         self._hdf5_filters = None
         self._last_pointing_tel: DefaultDict[Tuple] = None
         self._last_pointing: Tuple = None
-        self._writer: TableWriter = None
+        self._writer: HDF5TableWriter = None
 
         self._setup_output_path()
         self._subarray.to_hdf(self.output_path)  # must be first (uses astropy io)
@@ -212,7 +238,7 @@ class DL1Writer(Component):
         # Write subarray event data
         self._write_subarray_pointing(event, writer=self._writer)
 
-        self.log.debug(f"WRITING EVENT {event.index}")
+        self.log.debug("WRITING EVENT %s", event.index)
         self._writer.write(
             table_name="dl1/event/subarray/trigger",
             containers=[event.index, event.trigger],
@@ -224,7 +250,14 @@ class DL1Writer(Component):
             )
 
         # write telescope event data
-        self._write_telescope_events(self._writer, event)
+        self._write_dl1_telescope_events(self._writer, event)
+
+        # write DL2 info if requested
+        if self.write_mono_shower:
+            self._write_dl2_telescope_events(self._writer, event)
+
+        if self.write_stereo_shower:
+            self._write_dl2_stereo_event(self._writer, event)
 
     def finish(self):
         """ called after all events are done """
@@ -234,14 +267,30 @@ class DL1Writer(Component):
         if self._writer:
             if self.write_index_tables:
                 self._generate_indices()
+
             write_reference_metadata_headers(
                 subarray=self._subarray,
                 obs_ids=self.event_source.obs_ids,
                 writer=self._writer,
                 is_simulation=self._is_simulation,
+                data_levels=self.datalevels,
+                contact_info=self.contact_info,
             )
             self._writer.close()
             self._writer = None
+
+    @property
+    def datalevels(self):
+        """ returns a list of data levels requested """
+        data_levels = []
+        if self.write_images:
+            data_levels.append(DataLevel.DL1_IMAGES)
+        if self.write_parameters:
+            data_levels.append(DataLevel.DL1_PARAMETERS)
+        if self.write_stereo_shower or self.write_mono_shower:
+            data_levels.append(DataLevel.DL2)
+
+        return data_levels
 
     def _setup_compression(self):
         """ setup HDF5 compression"""
@@ -260,7 +309,7 @@ class DL1Writer(Component):
         self.output_path = self.output_path.expanduser()
         if self.output_path.exists():
             if self.overwrite:
-                self.log.warning(f"Overwriting {self.output_path}")
+                self.log.warning("Overwriting %s", self.output_path)
                 self.output_path.unlink()
             else:
                 raise ToolConfigurationError(
@@ -271,11 +320,16 @@ class DL1Writer(Component):
         PROV.add_output_file(str(self.output_path), role="DL1/Event")
 
         # check that options make sense
-        if self.write_parameters is False and self.write_images is False:
+        if (
+            self.write_parameters is False
+            and self.write_images is False
+            and self.write_mono_shower is False
+            and self.write_stereo_shower is False
+        ):
             raise ToolConfigurationError(
-                "The options 'write_parameters' and 'write_images' are "
-                "both set to False. No output will be generated in that case. "
-                "Please enable one or both of these options."
+                "The options 'write_parameters',  'write_images', 'write_mono_shower', "
+                "and 'write_stereo_shower are all False. No output will be generated in "
+                "that case. Please enable one of these options."
             )
 
     def _setup_writer(self):
@@ -291,82 +345,76 @@ class DL1Writer(Component):
             filters=self._hdf5_filters,
         )
 
+        tr_tel_list_to_mask = TelListToMaskTransform(self._subarray)
+
         writer.add_column_transform(
             table_name="dl1/event/subarray/trigger",
             col_name="tels_with_trigger",
-            transform=self._subarray.tel_ids_to_mask,
+            transform=tr_tel_list_to_mask,
         )
 
-        # exclude some columns that are not writable
+        # avoid some warnings about unwritable columns (which here are just
+        # sub-containers)
         writer.exclude("dl1/event/subarray/trigger", "tel")
         writer.exclude("dl1/monitoring/subarray/pointing", "tel")
+        writer.exclude("/dl1/event/telescope/images/.*", "parameters")
+
+        # currently the trigger info is used for the event time, but we dont'
+        # want the other bits of the trigger container in the pointing or other
+        # montitoring containers
         writer.exclude("dl1/monitoring/subarray/pointing", "event_type")
         writer.exclude("dl1/monitoring/subarray/pointing", "tels_with_trigger")
         writer.exclude("dl1/monitoring/subarray/pointing", "n_trigger_pixels")
         writer.exclude("/dl1/event/telescope/trigger", "trigger_pixels")
+        writer.exclude("/dl1/monitoring/telescope/pointing/.*", "n_trigger_pixels")
+        writer.exclude("/dl1/monitoring/telescope/pointing/.*", "trigger_pixels")
+        writer.exclude("/dl1/monitoring/event/pointing/.*", "event_type")
 
-        table_names_tel_id = [f"tel_{tel_id:03d}" for tel_id in self._subarray.tel]
-        table_names_tel_type = [
-            str(telescope) for telescope in self._subarray.telescope_types
-        ]
+        if self.write_parameters is False:
+            writer.exclude("/dl1/event/telescope/images/.*", "image_mask")
 
-        if self.split_datasets_by == "tel_id":
-            table_names = table_names_tel_id
-        elif self.split_datasets_by == "tel_type":
-            table_names = table_names_tel_type
-        else:
-            table_names = []
+        if self._is_simulation:
+            writer.exclude("/simulation/event/telescope/images/.*", "true_parameters")
+            # no timing information yet for true images
+            writer.exclude("/simulation/event/telescope/parameters/.*", r"peak_time_.*")
+            writer.exclude("/simulation/event/telescope/parameters/.*", "timing_.*")
+            writer.exclude("/simulation/event/subarray/shower", "true_tel")
 
-        for table_name in table_names:
-            if self.write_parameters is False:
-                writer.exclude(
-                    f"/dl1/event/telescope/images/{table_name}", "image_mask"
-                )
+        # Set up transforms
 
-            tel_pointing = f"/dl1/monitoring/telescope/pointing/{table_name}"
-            writer.exclude(tel_pointing, "n_trigger_pixels")
-            writer.exclude(tel_pointing, "trigger_pixels")
-            writer.exclude(f"/dl1/event/telescope/images/{table_name}", "parameters")
+        if self.transform_image:
+            transform = FixedPointColumnTransform(
+                scale=self.image_scale,
+                offset=self.image_offset,
+                source_dtype=np.float32,
+                target_dtype=np.dtype(self.image_dtype),
+            )
+            writer.add_column_transform_regexp(
+                "dl1/event/telescope/images/.*", "image", transform
+            )
 
-            if self.transform_image:
-                tr = FixedPointColumnTransform(
-                    scale=self.image_scale,
-                    offset=self.image_offset,
-                    source_dtype=np.float32,
-                    target_dtype=np.dtype(self.image_dtype),
-                )
-                writer.add_column_transform(
-                    f"dl1/event/telescope/images/{table_name}", "image", tr
-                )
+        if self.transform_peak_time:
+            transform = FixedPointColumnTransform(
+                scale=self.peak_time_scale,
+                offset=self.peak_time_offset,
+                source_dtype=np.float32,
+                target_dtype=np.dtype(self.peak_time_dtype),
+            )
+            writer.add_column_transform_regexp(
+                "dl1/event/telescope/images/.*", "peak_time", transform
+            )
 
-            if self.transform_peak_time:
-                tr = FixedPointColumnTransform(
-                    scale=self.peak_time_scale,
-                    offset=self.peak_time_offset,
-                    source_dtype=np.float32,
-                    target_dtype=np.dtype(self.peak_time_dtype),
-                )
-                writer.add_column_transform(
-                    f"dl1/event/telescope/images/{table_name}", "peak_time", tr
-                )
+        # set up DL2 transforms:
+        # - the single-tel output has no list of tel_ids
+        # - the stereo output tel_ids list needs to be transformed to a pattern
+        writer.exclude("dl2/event/telescope/.*", "tel_ids")
+        writer.add_column_transform_regexp(
+            table_regexp="dl2/event/subarray/.*",
+            col_regexp="tel_ids",
+            transform=tr_tel_list_to_mask,
+        )
 
-            if self._is_simulation:
-                writer.exclude(
-                    f"/simulation/event/telescope/images/{table_name}",
-                    "true_parameters",
-                )
-                # no timing information yet for true images
-                writer.exclude(
-                    f"/simulation/event/telescope/parameters/{table_name}",
-                    r"peak_time_.*",
-                )
-                writer.exclude(
-                    f"/simulation/event/telescope/parameters/{table_name}", r"timing_.*"
-                )
-                writer.exclude("/simulation/event/subarray/shower", "true_tel")
-
-        for table_name in table_names_tel_id:
-            writer.exclude(f"/dl1/monitoring/event/pointing/{table_name}", "event_type")
+        # final initialization
 
         self._writer = writer
         self.log.debug("Writer initialized: %s", self._writer)
@@ -390,6 +438,8 @@ class DL1Writer(Component):
         self.log.debug("Writing simulation configuration")
 
         class ExtraSimInfo(Container):
+            """just to contain obs_id"""
+
             container_prefix = ""
             obs_id = Field(0, "Simulation Run Identifier")
 
@@ -409,19 +459,15 @@ class DL1Writer(Component):
     def write_simulation_histograms(self, event_source):
         """Write the distribution of thrown showers
 
-        TODO: this needs to be fixed, since it currently requires access to the
-        low-level _file attribute of the SimTelEventSource.  Instead, SimTelEventSource should
-        provide this as header info, like ``source.simulation_config``
-
         Notes
         -----
-        - this only runs if this is a simulation file. The current implementation is
-          a bit of a hack and implies we should improve SimTelEventSource to read this
-          info.
-        - Currently the histograms are at the end of the simtel file, so if max_events
-          is set to non-zero, the end of the file may not be read, and this no
-          histograms will be found.
+        - this only runs if this is a simulation file. The current
+          implementation is a bit of a hack and implies we should improve
+          SimTelEventSource to read this info.
 
+        - Currently the histograms are at the end of the simtel file, so if
+          max_events is set to non-zero, the end of the file may not be read,
+          and this no histograms will be found.
         """
         if not self._is_simulation:
             self.log.debug("Not writing simulation histograms for observed data")
@@ -470,7 +516,13 @@ class DL1Writer(Component):
                         containers=hist_container,
                     )
 
-    def _write_telescope_events(self, writer: TableWriter, event: ArrayEventContainer):
+    def table_name(self, tel_id, tel_type):
+        """construct dataset table names depending on chosen split method"""
+        return f"tel_{tel_id:03d}" if self.split_datasets_by == "tel_id" else tel_type
+
+    def _write_dl1_telescope_events(
+        self, writer: TableWriter, event: ArrayEventContainer
+    ):
         """
         add entries to the event/telescope tables for each telescope in a single
         event
@@ -481,7 +533,6 @@ class DL1Writer(Component):
         for tel_id, dl1_camera in event.dl1.tel.items():
             dl1_camera.prefix = ""  # don't want a prefix for this container
             telescope = self._subarray.tel[tel_id]
-            tel_type = str(telescope)
             self.log.debug("WRITING TELESCOPE %s: %s", tel_id, telescope)
 
             tel_index = TelEventIndexContainer(
@@ -500,9 +551,7 @@ class DL1Writer(Component):
                 )
                 self._last_pointing_tel[tel_id] = current_pointing
 
-            table_name = (
-                f"tel_{tel_id:03d}" if self.split_datasets_by == "tel_id" else tel_type
-            )
+            table_name = self.table_name(tel_id, str(telescope))
 
             writer.write(
                 "dl1/event/telescope/trigger", [tel_index, event.trigger.tel[tel_id]]
@@ -544,11 +593,56 @@ class DL1Writer(Component):
                         [tel_index, event.simulation.tel[tel_id]],
                     )
 
+    def _write_dl2_telescope_events(
+        self, writer: TableWriter, event: ArrayEventContainer
+    ):
+        """
+        write per-telescope DL2 shower information.
+
+        Currently this writes to a single table per type of shower
+        reconstruction and per algorithm, with all telescopes combined.
+        """
+
+        for tel_id, dl2_tel in event.dl2.tel.items():
+
+            telescope = self._subarray.tel[tel_id]
+            table_name = self.table_name(tel_id, str(telescope))
+
+            tel_index = TelEventIndexContainer(
+                obs_id=event.index.obs_id,
+                event_id=event.index.event_id,
+                tel_id=np.int16(tel_id),
+            )
+
+            for container_name, algorithm_map in dl2_tel.items():
+                for algorithm, container in algorithm_map.items():
+                    name = (
+                        f"dl2/event/telescope/{container_name}/{algorithm}/{table_name}"
+                    )
+
+                    writer.write(table_name=name, containers=[tel_index, container])
+
+    def _write_dl2_stereo_event(self, writer: TableWriter, event: ArrayEventContainer):
+        """
+        write per-telescope DL2 shower information to e.g.
+        `/dl2/event/stereo/{geometry,energy,classification}/<algorithm_name>`
+        """
+        # pylint: disable=no-self-use
+        for container_name, algorithm_map in event.dl2.stereo.items():
+            for algorithm, container in algorithm_map.items():
+                # note this will only write info if the particular algorithm
+                # generated it (otherwise the algorithm map is empty, and no
+                # data will be written)
+                writer.write(
+                    table_name=f"dl2/event/subarray/{container_name}/{algorithm}",
+                    containers=[event.index, container],
+                )
+
     def _generate_table_indices(self, h5file, start_node):
         """ helper to generate PyTables index tabnles for common columns """
         for node in h5file.iter_nodes(start_node):
             if not isinstance(node, tables.group.Group):
-                self.log.debug(f"gen indices for: {node}")
+                self.log.debug("generating indices for node: %s", node)
                 if "event_id" in node.colnames:
                     node.cols.event_id.create_index()
                     self.log.debug("generated event_id index")
@@ -567,19 +661,19 @@ class DL1Writer(Component):
         self.log.debug("Writing index tables")
         if self.write_images:
             self._generate_table_indices(
-                self._writer._h5file, "/dl1/event/telescope/images"
+                self._writer.h5file, "/dl1/event/telescope/images"
             )
             if self._is_simulation:
                 self._generate_table_indices(
-                    self._writer._h5file, "/simulation/event/telescope/images"
+                    self._writer.h5file, "/simulation/event/telescope/images"
                 )
         if self.write_parameters:
             self._generate_table_indices(
-                self._writer._h5file, "/dl1/event/telescope/parameters"
+                self._writer.h5file, "/dl1/event/telescope/parameters"
             )
             if self._is_simulation:
                 self._generate_table_indices(
-                    self._writer._h5file, "/simulation/event/telescope/parameters"
+                    self._writer.h5file, "/simulation/event/telescope/parameters"
                 )
 
-        self._generate_table_indices(self._writer._h5file, "/dl1/event/subarray")
+        self._generate_table_indices(self._writer.h5file, "/dl1/event/subarray")

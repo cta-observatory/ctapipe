@@ -20,6 +20,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: cache test data
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/ctapipe
+          key: ctapipe-test-data
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
@@ -32,19 +39,21 @@ jobs:
         run: |
           source .github/install.sh
           python --version
-          pip install codecov pytest-cov
-          pip install -e .[all]
+          pip install codecov pytest-cov pyflakes pytest-xdist
+          pip install .[all]
           pip freeze
 
-      - name: Tests
-        env:
-          INSTALL_METHOD: ${{ matrix.install-method }}
+      - name: Static codechecks
+        # need to use a login shell for the conda setup to work
+        shell: bash -leo pipefail {0}
         run: |
-          if [[ "$INSTALL_METHOD" == "conda" ]]; then
-            source $CONDA/etc/profile.d/conda.sh
-            conda activate ci;
-          fi
-          pytest --cov --cov-report=xml
+          pyflakes ctapipe
+
+      - name: Tests
+        # need to use a login shell for the conda setup to work
+        shell: bash -leo pipefail {0}
+        run: |
+          pytest -n auto --dist loadscope --cov --cov-report=xml --doctest-modules --doctest-glob='*.rst' ctapipe docs
           ctapipe-info --version
 
       - uses: codecov/codecov-action@v1
@@ -56,18 +65,21 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: ammaraskar/sphinx-action@master
+      - name: Set up Python
+        uses: actions/setup-python@v2
         with:
-          docs-folder: "docs/"
-          pre-build-command: |
-            apt update --yes && apt install --yes git build-essential pandoc
-            pip install -U pip setuptools wheel
-            pip install -e .[docs]
-            git describe --tags
-            python -c 'import ctapipe; print(ctapipe.__version__)'
+          python-version: 3.8
 
-          # treat warnings as errors, make sure links are working
-          build-command: make html SPHINXOPTS="-W --keep-going -n --color -w /tmp/sphinx-log"
+      - name: Install doc dependencies
+        run: |
+          sudo apt update --yes && sudo apt install --yes git build-essential pandoc graphviz
+          pip install -U pip setuptools wheel
+          pip install -e .[docs]
+          git describe --tags
+          python -c 'import ctapipe; print(ctapipe.__version__)'
+
+      - name: Build docs
+        run: make doc SPHINXOPTS="-W --keep-going -n --color -j auto"
 
       - name: Deploy to gihub pages
         # only run on push to master

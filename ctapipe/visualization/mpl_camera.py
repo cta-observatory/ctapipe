@@ -11,7 +11,6 @@ from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.colors import Normalize, LogNorm, SymLogNorm
 from matplotlib.patches import Ellipse, RegularPolygon, Rectangle, Circle
-from numpy import sqrt
 
 from ctapipe.instrument import PixelShape
 
@@ -241,6 +240,10 @@ class CameraDisplay:
         """ auto-scale the color range to percent of maximum """
         zmin = np.nanmin(self.pixels.get_array())
         zmax = np.nanmax(self.pixels.get_array())
+        if isinstance(self.pixels.norm, LogNorm):
+            zmin = zmin if zmin > 0 else 0.1
+            zmax = zmax if zmax > 0 else 0.1
+
         dz = zmax - zmin
         frac = percent / 100.0
         self.autoscale = False
@@ -262,14 +265,17 @@ class CameraDisplay:
 
     @norm.setter
     def norm(self, norm):
+        vmin, vmax = self.pixels.norm.vmin, self.pixels.norm.vmax
 
         if norm == "lin":
             self.pixels.norm = Normalize()
         elif norm == "log":
-            self.pixels.norm = LogNorm()
+            vmin = 0.1 if vmin < 0 else vmin
+            vmax = 0.2 if vmax < 0 else vmax
+            self.pixels.norm = LogNorm(vmin=vmin, vmax=vmax)
             self.pixels.autoscale()  # this is to handle matplotlib bug #5424
         elif norm == "symlog":
-            self.pixels.norm = SymLogNorm(linthresh=1.0, base=10)
+            self.pixels.norm = SymLogNorm(linthresh=1.0, base=10, vmin=vmin, vmax=vmax)
             self.pixels.autoscale()
         elif isinstance(norm, Normalize):
             self.pixels.norm = norm
@@ -279,7 +285,7 @@ class CameraDisplay:
                 "'log','symlog', or a matplotlib Normalize object".format(norm)
             )
 
-        self.update(force=True)
+        self.update()
         self.pixels.autoscale()
 
     @property
@@ -323,19 +329,16 @@ class CameraDisplay:
             self.pixels.autoscale()
         self._update()
 
-    def _update(self, force=False):
+    def _update(self):
         """ signal a redraw if autoupdate is turned on """
         if self.autoupdate:
-            self.update(force)
+            self.update()
 
-    def update(self, force=False):
+    def update(self):
         """ redraw the display now """
         self.axes.figure.canvas.draw()
         if self.colorbar is not None:
-            if force is True:
-                self.colorbar.update_bruteforce(self.pixels)
-            else:
-                self.colorbar.update_normal(self.pixels)
+            self.colorbar.update_normal(self.pixels)
             self.colorbar.draw_all()
 
     def add_colorbar(self, **kwargs):

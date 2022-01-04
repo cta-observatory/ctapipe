@@ -1,13 +1,13 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-from .reco_algorithms import Reconstructor
 from .hillas_reconstructor import HillasReconstructor
-from .impact import ImPACTReconstructor
+from .reco_algorithms import Reconstructor
+from .shower_processor import ShowerProcessor
 from .hillas_intersection import HillasIntersection
+from .impact import ImPACTReconstructor
 
 
-__all__ = [
-    "Reconstructor",
-    "HillasReconstructor",
-    "HillasIntersection",
-    "ImPACTReconstructor",
-]
+__all__ = ["Reconstructor",
+           "ShowerProcessor",
+           "HillasReconstructor",
+           "ImPACTReconstructor",
+           "HillasIntersection"]

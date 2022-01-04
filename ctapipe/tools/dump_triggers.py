@@ -7,9 +7,9 @@ import numpy as np
 from astropy import units as u
 from astropy.table import Table
 
-from ctapipe.io import EventSource
-from ctapipe.core import Provenance, ToolConfigurationError
-from ctapipe.core.traits import Unicode, Dict, Bool, Path
+from ..io import EventSource
+from ..core import Provenance, ToolConfigurationError
+from ..core.traits import Unicode, Dict, Bool, Path, flag
 from ..core import Tool
 
 MAX_TELS = 1000
@@ -43,14 +43,18 @@ class DumpTriggersTool(Tool):
         {"infile": "DumpTriggersTool.infile", "outfile": "DumpTriggersTool.outfile"}
     )
 
-    flags = Dict(
-        {
-            "overwrite": (
-                {"DumpTriggersTool": {"overwrite": True}},
-                "Enable overwriting of output file",
-            )
-        }
-    )
+    flags = {
+        "f": (
+            {"DumpTriggersTool": {"overwrite": True}},
+            "Enable overwriting of output file",
+        ),
+        **flag(
+            "overwrite"
+            "DumpTriggersTool.overwrite"
+            "Enable overwriting of output file.",
+            "Disable overwriting of output file.",
+        ),
+    }
 
     examples = (
         "ctapipe-dump-triggers --infile gamma.simtel.gz "

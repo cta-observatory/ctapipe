@@ -1,6 +1,5 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """ print information about ctapipe and its command-line tools. """
-import importlib
 import logging
 import os
 import sys
@@ -75,9 +74,8 @@ def info(
     plugins=False,
     show_all=False,
 ):
-    """Print various info to the console.
-
-    TODO: explain.
+    """
+    Display information about the current ctapipe installation.
     """
     logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(message)s")
 

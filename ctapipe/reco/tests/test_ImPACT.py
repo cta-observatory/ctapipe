@@ -4,11 +4,11 @@ import pytest
 from numpy.testing import assert_allclose
 
 from ctapipe.containers import (
-    ReconstructedShowerContainer,
+    ReconstructedGeometryContainer,
     ReconstructedEnergyContainer,
 )
 from ctapipe.reco.impact import ImPACTReconstructor
-from ctapipe.containers import HillasParametersContainer
+from ctapipe.containers import CameraHillasParametersContainer
 from astropy.coordinates import Angle, AltAz, SkyCoord
 
 
@@ -18,7 +18,7 @@ class TestImPACT:
         self.impact_reco = ImPACTReconstructor(root_dir=".")
         self.horizon_frame = AltAz()
 
-        self.h1 = HillasParametersContainer(
+        self.h1 = CameraHillasParametersContainer(
             x=1 * u.deg,
             y=1 * u.deg,
             r=1 * u.deg,
@@ -143,7 +143,7 @@ class TestImPACT:
         assert np.sum(pred) != 0
 
         """Then check helper function gives the same answer"""
-        shower = ReconstructedShowerContainer()
+        shower = ReconstructedGeometryContainer()
         shower.is_valid = True
         shower.alt = 0 * u.deg
         shower.az = 0 * u.deg

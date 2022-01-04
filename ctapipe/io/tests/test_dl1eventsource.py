@@ -1,38 +1,8 @@
-from ctapipe.utils import get_dataset_path
-from ctapipe.io import DataLevel
-from ctapipe.io.dl1eventsource import DL1EventSource
-from ctapipe.io import EventSource
 import astropy.units as u
-import subprocess
 import numpy as np
-import tempfile
-import pytest
-
-d = tempfile.TemporaryDirectory()
-
-
-@pytest.fixture(scope="module")
-def dl1_file():
-    simtel_path = get_dataset_path("gamma_test_large.simtel.gz")
-    command = f"ctapipe-stage1 --input {simtel_path} --output {d.name}/testfile.dl1.h5 --write-parameters --write-images --max-events 20 --allowed-tels=[1,2,3]"
-    subprocess.call(command.split(), stdout=subprocess.PIPE)
-    return f"{d.name}/testfile.dl1.h5"
-
-
-@pytest.fixture(scope="module")
-def dl1b_only_file():
-    simtel_path = get_dataset_path("gamma_test_large.simtel.gz")
-    command = f"ctapipe-stage1 --input {simtel_path} --output {d.name}/testfile_only_b.dl1.h5 --write-parameters --max-events 20 --allowed-tels=[1,2,3]"
-    subprocess.call(command.split(), stdout=subprocess.PIPE)
-    return f"{d.name}/testfile_only_b.dl1.h5"
-
-
-@pytest.fixture(scope="module")
-def dl1a_only_file():
-    simtel_path = get_dataset_path("gamma_test_large.simtel.gz")
-    command = f"ctapipe-stage1 --input {simtel_path} --output {d.name}/testfile_only_a.dl1.h5 --write-images --max-events 20 --allowed-tels=[1,2,3]"
-    subprocess.call(command.split(), stdout=subprocess.PIPE)
-    return f"{d.name}/testfile_only_a.dl1.h5"
+from ctapipe.io import DataLevel, EventSource
+from ctapipe.io.dl1eventsource import DL1EventSource
+from ctapipe.utils import get_dataset_path
 
 
 def test_is_compatible(dl1_file):
@@ -47,8 +17,8 @@ def test_metadata(dl1_file):
     with DL1EventSource(input_url=dl1_file) as source:
         assert source.is_simulation
         assert source.datalevels == (DataLevel.DL1_IMAGES, DataLevel.DL1_PARAMETERS)
-        assert list(source.obs_ids) == [7514]
-        assert source.simulation_config.corsika_version == 6990
+        assert list(source.obs_ids) == [2]
+        assert source.simulation_config.corsika_version == 7710
 
 
 def test_subarray(dl1_file):
@@ -58,14 +28,13 @@ def test_subarray(dl1_file):
         assert source.subarray.optics_types
 
 
-def test_max_events(dl1_file):
-    max_events = 5
-    with DL1EventSource(input_url=dl1_file, max_events=max_events) as source:
-        count = 0
+def test_max_events(dl1_proton_file):
+    max_events = 3
+    with DL1EventSource(input_url=dl1_proton_file, max_events=max_events) as source:
         assert source.max_events == max_events  # stop iterating after max_events
-        assert len(source) == 20  # total events in file
-        for _ in source:
-            count += 1
+        assert len(source) == 4  # total events in file
+        for count, _ in enumerate(source, start=1):
+            pass
         assert count == max_events
 
 
@@ -81,37 +50,68 @@ def test_allowed_tels(dl1_file):
 
 
 def test_simulation_info(dl1_file):
+    """
+    Test that the simulated event information is plausible.
+    In particular this means simulated event information is finite
+    for all events and parameters calculated on the true images
+    are not all nan with the same number of nans in different columns.
+    """
+    reco_lons = []
+    reco_concentrations = []
     with DL1EventSource(input_url=dl1_file) as source:
         for event in source:
             assert np.isfinite(event.simulation.shower.energy)
-            # the currently used file does not include true dl1 information
-            # this is skipped for that reason
             for tel in event.simulation.tel:
                 assert tel in event.simulation.tel
                 assert event.simulation.tel[tel].true_image is not None
-                assert event.simulation.tel[tel].true_parameters.hillas.x != np.nan
+                reco_lons.append(
+                    event.simulation.tel[tel].true_parameters.hillas.fov_lon.value
+                )
+                reco_concentrations.append(
+                    event.simulation.tel[tel].true_parameters.concentration.core
+                )
+    assert not np.isnan(reco_lons).all()
+    assert sum(np.isnan(reco_lons)) == sum(np.isnan(reco_concentrations))
 
 
-def test_dl1_a_only_data(dl1a_only_file):
-    with DL1EventSource(input_url=dl1a_only_file) as source:
+def test_dl1_a_only_data(dl1_image_file):
+    with DL1EventSource(input_url=dl1_image_file) as source:
         for event in source:
             for tel in event.dl1.tel:
                 assert event.dl1.tel[tel].image.any()
 
 
-def test_dl1_b_only_data(dl1b_only_file):
-    with DL1EventSource(input_url=dl1b_only_file) as source:
+def test_dl1_b_only_data(dl1_parameters_file):
+    reco_lons = []
+    reco_concentrations = []
+    with DL1EventSource(input_url=dl1_parameters_file) as source:
         for event in source:
             for tel in event.dl1.tel:
-                assert event.dl1.tel[tel].parameters.hillas.x != np.nan
+                reco_lons.append(
+                    event.simulation.tel[tel].true_parameters.hillas.fov_lon.value
+                )
+                reco_concentrations.append(
+                    event.simulation.tel[tel].true_parameters.concentration.core
+                )
+    assert not np.isnan(reco_lons).all()
+    assert sum(np.isnan(reco_lons)) == sum(np.isnan(reco_concentrations))
 
 
 def test_dl1_data(dl1_file):
+    reco_lons = []
+    reco_concentrations = []
     with DL1EventSource(input_url=dl1_file) as source:
         for event in source:
             for tel in event.dl1.tel:
                 assert event.dl1.tel[tel].image.any()
-                assert event.dl1.tel[tel].parameters.hillas.x != np.nan
+                reco_lons.append(
+                    event.simulation.tel[tel].true_parameters.hillas.fov_lon.value
+                )
+                reco_concentrations.append(
+                    event.simulation.tel[tel].true_parameters.concentration.core
+                )
+    assert not np.isnan(reco_lons).all()
+    assert sum(np.isnan(reco_lons)) == sum(np.isnan(reco_concentrations))
 
 
 def test_pointing(dl1_file):

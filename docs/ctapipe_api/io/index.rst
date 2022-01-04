@@ -118,20 +118,20 @@ only supports scalar values).
 Writing Output Files:
 =====================
 
-The `DL1Writer` Component allows one to write a series of events (stored in
-`~ctapipe.containers.ArrayEventContainer`) to a standardized HDF5 format DL1 file
-following the DL1 data model. This includes all related datasets such as the
-instrument and simulation configuration information, simulated shower and image
-information, and observed images and parameters. It can be used in an event loop
-like:
+The `DataWriter` Component allows one to write a series of events (stored in
+`ctapipe.containers.ArrayEventContainer`) to a standardized HDF5 format file
+following the data model (see :ref:`datamodels`). This includes all related datasets
+such as the instrument and simulation configuration information, simulated
+shower and image information, observed images and parameters and reconstruction
+information. It can be used in an event loop like:
 
 .. code-block:: python
 
-    with DL1Writer(event_source=source, output_path="events.dl1.h5") as write_dl1:
+    with DataWriter(event_source=source, output_path="events.dl1.h5") as write_data:
         for event in source:
             calibrate(event)
-            write_dl1(event)
-
+            write_data(event)
+    
 Reading Output Tables:
 ======================
 In addition to using an `EventSource` to read R0-DL1 data files, one can also access full *tables* for files that are in HDF5 format (e.g. DL1 files).
@@ -163,6 +163,9 @@ Reference/API
     :no-inheritance-diagram:
 
 .. automodapi:: ctapipe.io.tableio
+    :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.io.tableloader
     :no-inheritance-diagram:
 
 .. automodapi:: ctapipe.io.hdf5tableio

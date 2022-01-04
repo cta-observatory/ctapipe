@@ -15,17 +15,15 @@ __all__ = [
 class ArgparseFormatter(
     argparse.ArgumentDefaultsHelpFormatter, argparse.RawTextHelpFormatter
 ):
-    """ArgumentParser formatter_class argument.
-    """
+    """ArgumentParser formatter_class argument."""
 
     pass
 
 
 def get_parser(function=None, description="N/A"):
-    """Make an ArgumentParser how we like it.
-    """
+    """Make an ArgumentParser how we like it."""
     if function:
-        description = function.__doc__.split("\n")[0]
+        description = function.__doc__
     parser = argparse.ArgumentParser(
         description=description, formatter_class=ArgparseFormatter
     )

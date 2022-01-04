@@ -1,18 +1,42 @@
 #!/usr/bin/env python3
 
-import numpy as np
-from ctapipe.io.dl1writer import DL1Writer, DL1_DATA_MODEL_VERSION
-from ctapipe.utils import get_dataset_path
-from ctapipe.io import EventSource
-from ctapipe.calib import CameraCalibrator
-from pathlib import Path
-from ctapipe.instrument import SubarrayDescription
-from copy import deepcopy
-import tables
 import logging
+from copy import deepcopy
+from pathlib import Path
+
+import numpy as np
+import tables
+from traitlets.config import Config
+from astropy import units as u
+from ctapipe.calib import CameraCalibrator
+from ctapipe.instrument import SubarrayDescription
+from ctapipe.io import DataLevel, EventSource
+from ctapipe.io.datawriter import DATA_MODEL_VERSION, DataWriter
+from ctapipe.utils import get_dataset_path
 
 
-def test_dl1writer(tmpdir: Path):
+def generate_dummy_dl2(event):
+    """ generate some dummy DL2 info and see if we can write it """
+
+    algos = ["HillasReconstructor", "ImPACTReconstructor"]
+
+    for algo in algos:
+        for tel_id in event.dl1.tel:
+            event.dl2.tel[tel_id].geometry[algo].alt = 70 * u.deg
+            event.dl2.tel[tel_id].geometry[algo].az = 120 * u.deg
+            event.dl2.tel[tel_id].energy[algo].energy = 10 * u.TeV
+            event.dl2.tel[tel_id].classification[algo].prediction = 0.9
+
+        event.dl2.stereo.geometry[algo].alt = 72 * u.deg
+        event.dl2.stereo.geometry[algo].az = 121 * u.deg
+        event.dl2.stereo.geometry[algo].tel_ids = [1, 2, 4]
+        event.dl2.stereo.energy[algo].tel_ids = [1, 2, 4]
+        event.dl2.stereo.energy[algo].energy = 10 * u.TeV
+        event.dl2.stereo.classification[algo].prediction = 0.9
+        event.dl2.stereo.classification[algo].tel_ids = [1, 2, 4]
+
+
+def test_dl1(tmpdir: Path):
     """
     Check that we can write DL1 files
 
@@ -30,7 +54,7 @@ def test_dl1writer(tmpdir: Path):
     )
     calibrate = CameraCalibrator(subarray=source.subarray)
 
-    with DL1Writer(
+    with DataWriter(
         event_source=source,
         output_path=output_path,
         write_parameters=False,
@@ -57,7 +81,7 @@ def test_dl1writer(tmpdir: Path):
             h5file.root._v_attrs[
                 "CTA PRODUCT DATA MODEL VERSION"
             ]  # pylint: disable=protected-access
-            == DL1_DATA_MODEL_VERSION
+            == DATA_MODEL_VERSION
         )
         shower = h5file.get_node("/simulation/event/subarray/shower")
         assert len(shower) > 0
@@ -67,9 +91,9 @@ def test_dl1writer(tmpdir: Path):
         )  # pylint: disable=protected-access
 
 
-def test_dl1writer_int(tmpdir: Path):
+def test_roundtrip(tmpdir: Path):
     """
-    Check that we can write DL1 files
+    Check that we can write DL1+DL2 info to files and read them back
 
     Parameters
     ----------
@@ -77,7 +101,7 @@ def test_dl1writer_int(tmpdir: Path):
         temp directory fixture
     """
 
-    output_path = Path(tmpdir / "events.dl1.h5")
+    output_path = Path(tmpdir / "events.DL1DL2.h5")
     source = EventSource(
         get_dataset_path("gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"),
         max_events=20,
@@ -87,7 +111,7 @@ def test_dl1writer_int(tmpdir: Path):
 
     events = []
 
-    with DL1Writer(
+    with DataWriter(
         event_source=source,
         output_path=output_path,
         write_parameters=False,
@@ -98,13 +122,19 @@ def test_dl1writer_int(tmpdir: Path):
         transform_peak_time=True,
         peak_time_dtype="int16",
         peak_time_scale=100,
-    ) as write_dl1:
-        write_dl1.log.level = logging.DEBUG
+        write_stereo_shower=True,
+        write_mono_shower=True,
+    ) as write:
+        write.log.level = logging.DEBUG
         for event in source:
             calibrate(event)
-            write_dl1(event)
+            write(event)
+            generate_dummy_dl2(event)
             events.append(deepcopy(event))
-        write_dl1.write_simulation_histograms(source)
+        write.write_simulation_histograms(source)
+        assert DataLevel.DL1_IMAGES in write.datalevels
+        assert DataLevel.DL1_PARAMETERS not in write.datalevels
+        assert DataLevel.DL2 in write.datalevels
 
     assert output_path.exists()
 
@@ -121,6 +151,17 @@ def test_dl1writer_int(tmpdir: Path):
         assert images.col("image").dtype == np.int32
         assert images.col("peak_time").dtype == np.int16
         assert images.col("image").max() > 0.0
+
+        # check that DL2 info is there
+        dl2_energy = h5file.get_node("/dl2/event/subarray/energy/ImPACTReconstructor")
+        assert np.allclose(dl2_energy.col("energy"), 10)
+        assert np.count_nonzero(dl2_energy.col("tel_ids")[0]) == 3
+
+        dl2_tel_energy = h5file.get_node(
+            "/dl2/event/telescope/energy/HillasReconstructor/tel_001"
+        )
+        assert np.allclose(dl2_tel_energy.col("energy"), 10)
+        assert "tel_ids" not in dl2_tel_energy
 
     # make sure it is readable by the event source and matches the images
 
@@ -155,14 +196,14 @@ def test_dl1writer_no_events(tmpdir: Path):
 
     assert source.file_.histograms is not None
 
-    with DL1Writer(
+    with DataWriter(
         event_source=source,
         output_path=output_path,
         write_parameters=True,
         write_images=True,
-    ) as write_dl1:
-        write_dl1.log.level = logging.DEBUG
-        write_dl1.write_simulation_histograms(source)
+    ) as writer:
+        writer.log.level = logging.DEBUG
+        writer.write_simulation_histograms(source)
 
     assert output_path.exists()
 
@@ -173,3 +214,39 @@ def test_dl1writer_no_events(tmpdir: Path):
     with tables.open_file(output_path) as h5file:
         assert h5file.get_node("/configuration/simulation/run") is not None
         assert h5file.get_node("/simulation/service/shower_distribution") is not None
+
+
+def test_metadata(tmpdir: Path):
+    output_path = Path(tmpdir / "metadata.dl1.h5")
+
+    dataset = "lst_prod3_calibration_and_mcphotons.simtel.zst"
+
+    config = Config(
+        {
+            "DataWriter": {
+                "Contact": {
+                    "name": "Maximilian Nöthe",
+                    "email": "maximilian.noethe@tu-dortmund.de",
+                    "organization": "TU Dortmund",
+                }
+            }
+        }
+    )
+
+    with EventSource(get_dataset_path(dataset)) as source:
+        with DataWriter(
+            event_source=source,
+            output_path=output_path,
+            write_parameters=True,
+            write_images=True,
+            config=config,
+        ):
+            pass
+
+        assert output_path.exists()
+
+        with tables.open_file(output_path) as h5file:
+            meta = h5file.root._v_attrs
+            assert meta["CTA CONTACT NAME"] == "Maximilian Nöthe"
+            assert meta["CTA CONTACT EMAIL"] == "maximilian.noethe@tu-dortmund.de"
+            assert meta["CTA CONTACT ORGANIZATION"] == "TU Dortmund"

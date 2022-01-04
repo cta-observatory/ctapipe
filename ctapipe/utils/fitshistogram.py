@@ -38,7 +38,7 @@ class Histogram:
     --------
 
     >>> hist = Histogram(nbins=(10,10), ranges=[[-1,1], [-1,1]])
-    >>> data = np.random.normal(shape=(2*100)) # make 100 random 2D events
+    >>> data = np.random.normal(size=(100, 2)) # make 100 random 2D events
     >>> hist.fill(data)
 
 
@@ -62,7 +62,7 @@ class Histogram:
 
     """
 
-    def __init__(self, nbins=None, ranges=None, name="Histogram", axis_names=None):
+    def __init__(self, nbins, ranges, name="Histogram", axis_names=None):
         """ Initialize an unfilled histogram (need to call fill()  put data into it)
 
         see also
@@ -85,6 +85,7 @@ class Histogram:
 
         if self.ndims < 1:
             raise ValueError("No dimensions specified")
+
         if self.ndims != len(self._ranges):
             raise ValueError(
                 "Dimensions of ranges {} don't match bins {}".format(
@@ -180,12 +181,6 @@ class Histogram:
         """
         Convert the `Histogram` into an `astropy.io.fits.ImageHDU`,
         suitable for writing to a file.
-
-        Examples
-        --------
-
-        >>> myhist.to_fits().writeto("outputfile.fits.gz", overwrite=True)
-
         """
         ohdu = fits.ImageHDU(data=self.data.transpose())
         ohdu.name = self.name
@@ -235,8 +230,8 @@ class Histogram:
 
         return ohdu
 
-    @staticmethod
-    def from_fits(input_fits):
+    @classmethod
+    def from_fits(cls, input_fits):
         """
         Construct a `Histogram` from a previously written FITS histogram file
         or HDU (see `Histogram.to_fits()`)
@@ -249,41 +244,39 @@ class Histogram:
             general FITS images)
         """
 
-        hist = Histogram()
-
         if type(input_fits) == str:
             hdu = fits.open(input_fits)[1]
         else:
             hdu = input_fits
 
-        hist.data = hdu.data.transpose()
-        hist._nbins = hist.data.shape
-
+        data = hdu.data.T
+        nbins = data.shape
         wcs = WCS(hdu.header)
-        ndim = len(hist._nbins)
+        ndim = len(nbins)
 
         edges = []
-        hist._ranges = []
+        ranges = []
         axis_names = []
-        hist._ctypes = []
+        ctypes = []
 
         for dim in range(ndim):
             # note that histogramdd returns edges for 0-N+1 (including
             # the lower edge of the non-existant next bin), so we do
             # the same here to keep things the same
-            ax = np.zeros((hist._nbins[dim] + 1, ndim))
-            ax[:, dim] = np.arange(hist._nbins[dim] + 1) + 0.5
+            ax = np.zeros((nbins[dim] + 1, ndim))
+            ax[:, dim] = np.arange(nbins[dim] + 1) + 0.5
             edges.append(wcs.wcs_pix2world(ax, 1)[:, dim])
-            hist._ranges.append((edges[dim][0], edges[dim][-1]))
-            hist._ctypes.append(hdu.header["CTYPE%d" % (dim + 1)])
+            ranges.append((edges[dim][0], edges[dim][-1]))
+            ctypes.append(hdu.header["CTYPE%d" % (dim + 1)])
             if hdu.header.get("CNAME%d" % (dim + 1)):
                 axis_names.append(hdu.header["CNAME%d" % (dim + 1)])
             else:
-                axis_names.append(hist._ctypes[dim][0:4])
+                axis_names.append(ctypes[dim][0:4])
 
+        hist = cls(nbins=data.shape, ranges=ranges)
+        hist.data = data
         hist.axis_names = np.array(axis_names)
         hist._bin_lower_edges = edges
-        hist._ranges = np.array(hist._ranges)
 
         if hdu.header.get("BSCALE"):
             hist.value_scale = hdu.header["BSCALE"]

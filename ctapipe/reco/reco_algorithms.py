@@ -1,5 +1,5 @@
 from ctapipe.core import Component
-from ctapipe.containers import ReconstructedShowerContainer
+from ctapipe.containers import ReconstructedGeometryContainer
 
 __all__ = ["Reconstructor", "TooFewTelescopesException", "InvalidWidthException"]
 
@@ -35,7 +35,7 @@ class Reconstructor(Component):
 
         Returns
         -------
-        `~ctapipe.containers.ReconstructedShowerContainer`
+        `~ctapipe.containers.ReconstructedGeometryContainer`
 
         """
-        return ReconstructedShowerContainer()
+        return ReconstructedGeometryContainer()

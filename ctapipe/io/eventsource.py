@@ -3,10 +3,14 @@ Handles reading of different event/waveform containing files
 """
 from abc import abstractmethod
 from traitlets.config.loader import LazyConfigValue
+from typing import Tuple, List, Generator
 
+from ..instrument import SubarrayDescription
+from .datalevels import DataLevel
+from ..containers import ArrayEventContainer
 from ..core import ToolConfigurationError, Provenance
 from ..core.component import Component, non_abstract_children, find_config_in_hierarchy
-from ..core.traits import Path, Int, CInt, Set
+from ..core.traits import Path, Int, CInt, Set, Undefined
 
 
 __all__ = ["EventSource"]
@@ -32,30 +36,33 @@ class EventSource(Component):
     appropriate subclass if a compatible source is found for the given
     ``input_url``.
 
-    >>> dataset = get_dataset_path('gamma_test_large.simtel.gz')
-    >>> event_source = EventSource(input_url=dataset)
-    <ctapipe.io.simteleventsource.SimTelEventSource at ...>
+    >>> EventSource(input_url="dataset://gamma_test_large.simtel.gz")
+    <ctapipe.io.simteleventsource.SimTelEventSource ...>
 
     An ``EventSource`` can also be created through the configuration system,
     by passing ``config`` or ``parent`` as appropriate.
     E.g. if using ``EventSource`` inside of a ``Tool``, you would do:
-    >>> self.event_source = EventSource(parent=self)
+    >>> self.source = EventSource(parent=self) # doctest: +SKIP
 
     To loop through the events in a file:
-    >>> event_source = EventSource(input_url="/path/to/file")
-    >>> for event in event_source:
-    >>>    print(event.count)
+    >>> source = EventSource(input_url="dataset://gamma_test_large.simtel.gz", max_events=2)
+    >>> for event in source:
+    ...     print(event.count)
+    0
+    1
 
-    **NOTE**: Every time a new loop is started through the event_source,
+    **NOTE**: Every time a new loop is started through the source,
     it tries to restart from the first event, which might not be supported
     by the event source.
 
     It is encouraged to use ``EventSource`` in a context manager to ensure
-    the correct cleanups are performed when you are finished with the event_source:
+    the correct cleanups are performed when you are finished with the source:
 
-    >>> with EventSource(input_url="/path/to/file") as event_source:
-    >>>    for event in event_source:
-    >>>       print(event.count)
+    >>> with EventSource(input_url="dataset://gamma_test_large.simtel.gz", max_events=2) as source:
+    ...    for event in source:
+    ...        print(event.count)
+    0
+    1
 
     **NOTE**: For effiency reasons, most sources only use a single ``ArrayEvent`` instance
     and update it with new data on iteration, which might lead to surprising
@@ -99,7 +106,7 @@ class EventSource(Component):
         ),
     ).tag(config=True)
 
-    def __new__(cls, input_url=None, config=None, parent=None, **kwargs):
+    def __new__(cls, input_url=Undefined, config=None, parent=None, **kwargs):
         """
         Returns a compatible subclass for given input url, either
         directly or via config / parent
@@ -110,10 +117,10 @@ class EventSource(Component):
             return super().__new__(cls)
 
         # check we have at least one of these to be able to determine the subclass
-        if input_url is None and config is None and parent is None:
+        if input_url in {None, Undefined} and config is None and parent is None:
             raise ValueError("One of `input_url`, `config`, `parent` is required")
 
-        if input_url is None:
+        if input_url in {None, Undefined}:
             input_url = cls._find_input_url_in_config(config=config, parent=parent)
 
         subcls = cls._find_compatible_source(input_url)
@@ -141,7 +148,7 @@ class EventSource(Component):
         # and getting the kwarg with a None value.
         # the latter overrides the value in the config with None, the former
         # enables getting it from the config.
-        if input_url is not None:
+        if input_url not in {None, Undefined}:
             kwargs["input_url"] = input_url
 
         super().__init__(config=config, parent=parent, **kwargs)
@@ -191,7 +198,7 @@ class EventSource(Component):
 
     @property
     @abstractmethod
-    def subarray(self):
+    def subarray(self) -> SubarrayDescription:
         """
         Obtain the subarray from the EventSource
 
@@ -203,7 +210,7 @@ class EventSource(Component):
 
     @property
     @abstractmethod
-    def is_simulation(self):
+    def is_simulation(self) -> bool:
         """
         Weither the currently opened file is simulated
 
@@ -215,7 +222,7 @@ class EventSource(Component):
 
     @property
     @abstractmethod
-    def datalevels(self):
+    def datalevels(self) -> Tuple[DataLevel]:
         """
         The datalevels provided by this event source
 
@@ -224,7 +231,7 @@ class EventSource(Component):
         tuple[ctapipe.io.DataLevel]
         """
 
-    def has_any_datalevel(self, datalevels):
+    def has_any_datalevel(self, datalevels) -> bool:
         """
         Check if any of `datalevels` is in self.datalevels
 
@@ -237,7 +244,7 @@ class EventSource(Component):
 
     @property
     @abstractmethod
-    def obs_ids(self):
+    def obs_ids(self) -> List[int]:
         """
         The observation ids of the runs located in the file
         Unmerged files should only contain a single obs id.
@@ -248,7 +255,7 @@ class EventSource(Component):
         """
 
     @abstractmethod
-    def _generator(self):
+    def _generator(self) -> Generator[ArrayEventContainer, None, None]:
         """
         Abstract method to be defined in child class.
 
@@ -281,7 +288,7 @@ class EventSource(Component):
 
     @classmethod
     def _find_compatible_source(cls, input_url):
-        if input_url == "" or input_url is None:
+        if input_url == "" or input_url in {None, Undefined}:
             raise ToolConfigurationError("EventSource: No input_url was specified")
 
         # validate input url with the traitel validate method
