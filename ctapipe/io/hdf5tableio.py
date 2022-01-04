@@ -10,6 +10,7 @@ from astropy.units import Quantity, Unit
 
 import ctapipe
 from .tableio import (
+    StringTransform,
     TableWriter,
     TableReader,
     FixedPointColumnTransform,
@@ -136,6 +137,78 @@ class HDF5TableWriter(TableWriter):
     def close(self):
         self.h5file.close()
 
+
+    def _add_column_to_schema(self, table_name, schema, meta, pos, field, name, value):
+        typename = ""
+        shape = 1
+
+        if self._is_column_excluded(table_name, name):
+            self.log.debug(f"excluded column: {table_name}/{name}")
+            return
+
+        if name in schema.columns:
+            self.log.warning(f"Found duplicated column {name}, skipping")
+            return
+
+        # apply any user-defined transforms first
+        value = self._apply_col_transform(table_name, name, value)
+
+        # now set up automatic transforms to make values that cannot be
+        # written in their default form into a form that is serializable
+        if isinstance(value, enum.Enum):
+            tr = EnumColumnTransform(enum=value.__class__)
+            value = tr(value)
+            self.add_column_transform(table_name, name, tr)
+
+        if isinstance(value, Quantity):
+            unit = field.unit or value.unit
+            tr = QuantityColumnTransform(unit=unit)
+            value = tr(value)
+            self.add_column_transform(table_name, name, tr)
+
+        if isinstance(value, np.ndarray):
+            typename = value.dtype.name
+            coltype = PYTABLES_TYPE_MAP[typename]
+            shape = value.shape
+            schema.columns[name] = coltype(shape=shape, pos=pos)
+
+        elif isinstance(value, Time):
+            # TODO: really should use MET, but need a func for that
+            schema.columns[name] = tables.Float64Col(pos=pos)
+            tr = TimeColumnTransform(scale="tai", format="mjd")
+            self.add_column_transform(table_name, name, tr)
+
+        elif type(value).__name__ in PYTABLES_TYPE_MAP:
+            typename = type(value).__name__
+            coltype = PYTABLES_TYPE_MAP[typename]
+            schema.columns[name] = coltype(pos=pos)
+
+        elif isinstance(value, str):
+            max_length = field.max_length or len(value.encode('utf-8'))
+            tr = StringTransform(max_length)
+            self.add_column_transform(table_name, name, tr)
+            schema.columns[name] = tables.StringCol(itemsize=max_length)
+
+        else:
+            raise ValueError(f'Column {name} not writable')
+
+        # add meta fields of transform
+        transform = self._transforms[table_name].get(name)
+        if transform is not None:
+            if hasattr(transform, "get_meta"):
+                meta.update(transform.get_meta(name))
+
+        # add desription to metadata
+        meta[f"{name}_DESC"] = field.description
+
+        self.log.debug(
+            f"Table {table_name}: "
+            f"added col: {name} type: "
+            f"{typename} shape: {shape} "
+            f"with transform: {transform} "
+        )
+
+
     def _create_hdf5_table_schema(self, table_name, containers):
         """
         Creates a pytables description class for the given containers
@@ -169,87 +242,20 @@ class HDF5TableWriter(TableWriter):
 
             container.validate()  # ensure the data are complete
 
-            for col_name, value in container.items(add_prefix=self.add_prefix):
-
-                typename = ""
-                shape = 1
-
-                if self._is_column_excluded(table_name, col_name):
-                    self.log.debug(f"excluded column: {table_name}/{col_name}")
-                    continue
-
-                if col_name in Schema.columns:
-                    self.log.warning(f"Found duplicated column {col_name}, skipping")
-                    continue
-
-                # apply any user-defined transforms first
-                value = self._apply_col_transform(table_name, col_name, value)
-
-                # now set up automatic transforms to make values that cannot be
-                # written in their default form into a form that is serializable
-                if isinstance(value, enum.Enum):
-                    tr = EnumColumnTransform(enum=value.__class__)
-                    value = tr(value)
-                    self.add_column_transform(table_name, col_name, tr)
-
-                if isinstance(value, Quantity):
-                    if self.add_prefix and container.prefix:
-                        key = col_name.replace(container.prefix + "_", "")
-                    else:
-                        key = col_name
-
-                    unit = container.fields[key].unit or value.unit
-                    tr = QuantityColumnTransform(unit=unit)
-                    value = tr(value)
-                    self.add_column_transform(table_name, col_name, tr)
-
-                if isinstance(value, np.ndarray):
-                    typename = value.dtype.name
-                    coltype = PYTABLES_TYPE_MAP[typename]
-                    shape = value.shape
-                    Schema.columns[col_name] = coltype(shape=shape, pos=pos)
-
-                elif isinstance(value, Time):
-                    # TODO: really should use MET, but need a func for that
-                    Schema.columns[col_name] = tables.Float64Col(pos=pos)
-                    tr = TimeColumnTransform(scale="tai", format="mjd")
-                    self.add_column_transform(table_name, col_name, tr)
-
-                elif type(value).__name__ in PYTABLES_TYPE_MAP:
-                    typename = type(value).__name__
-                    coltype = PYTABLES_TYPE_MAP[typename]
-                    Schema.columns[col_name] = coltype(pos=pos)
-                else:
+            it = zip(container.items(add_prefix=self.add_prefix), container.fields.values())
+            for (col_name, value), field in it:
+                try:
+                    self._add_column_to_schema(
+                        table_name=table_name, schema=Schema, meta=meta,
+                        pos=pos, field=field, name=col_name, value=value,
+                    )
+                    pos += 1
+                except ValueError:
                     self.log.warning(
                         f"Column {col_name} of "
                         f"container {container.__class__.__name__} in "
                         f"table {table_name} not writable, skipping"
                     )
-                    continue
-
-                # add meta fields of transform
-                transform = self._transforms[table_name].get(col_name)
-                if transform is not None:
-                    if hasattr(transform, "get_meta"):
-                        meta.update(transform.get_meta(col_name))
-
-                pos += 1
-
-                # add desription to metadata
-                if self.add_prefix:
-                    meta[f"{col_name}_DESC"] = container.fields[
-                        re.sub(f"^{container.prefix}_", "", col_name)
-                    ].description
-                else:
-                    meta[f"{col_name}_DESC"] = container.fields[col_name].description
-
-                self.log.debug(
-                    f"Table {table_name}: "
-                    f"added col: {col_name} type: "
-                    f"{typename} shape: {shape} "
-                    f"with transform: {transform} "
-                )
-
         self._schemas[table_name] = Schema
         meta["CTAPIPE_VERSION"] = ctapipe.__version__
         return meta
@@ -441,6 +447,12 @@ class HDF5TableReader(TableReader):
                     target_dtype=tab.dtype[colname].base,
                 )
                 self.add_column_transform(table_name, colname, tr)
+            elif attr.endswith('_TRANSFORM'):
+                colname, _, _ = attr.rpartition("_TRANSFORM")
+                if tab.attrs[attr] == 'string':
+                    maxlen = tab.attrs[f'{colname}_MAXLEN']
+                    tr = StringTransform(maxlen)
+                    self.add_column_transform(table_name, colname, tr)
 
     def _map_table_to_containers(
         self, table_name, containers, prefixes, ignore_columns

@@ -26,7 +26,7 @@ __all__ = ["read_table", "join_allow_empty"]
 
 def read_table(
     h5file, path, start=None, stop=None, step=None, condition=None, table_cls=Table
-):
+) -> Table:
     """Read a table from an HDF5 file
 
     This reads a table written in the ctapipe format table as an `astropy.table.Table`
