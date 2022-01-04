@@ -65,7 +65,7 @@ def test_read_table(tmp_path):
         table = read_table(handle, "/events")
 
     # test a bad input
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         table = read_table(12345, "/events")
 
 

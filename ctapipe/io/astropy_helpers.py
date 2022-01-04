@@ -64,15 +64,8 @@ def read_table(
 
     with ExitStack() as stack:
 
-        if isinstance(h5file, (str, Path)):
+        if not isinstance(h5file, tables.File):
             h5file = stack.enter_context(tables.open_file(h5file))
-        elif isinstance(h5file, tables.file.File):
-            pass
-        else:
-            raise ValueError(
-                f"expected a string, Path, or PyTables "
-                f"filehandle for argument 'h5file', got {h5file}"
-            )
 
         # check if the table was written using astropy table io, if yes
         # just use astropy
@@ -81,6 +74,9 @@ def read_table(
             sl = slice(start, stop, step)
             return table_cls.read(h5file.filename, path)[sl]
 
+        # support leaving out the leading '/' for consistency with other
+        # methods
+        path = os.path.join('/', path)
         table = h5file.get_node(path)
         transforms, descriptions, meta = _parse_hdf5_attrs(table)
 
