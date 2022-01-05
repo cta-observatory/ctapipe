@@ -1,9 +1,9 @@
 {
     "DataWriter": {
         "Contact": {
-            "name": "YOUR NAME HERE",
-            "email": "youremail@example.org",
-            "organization": "CTA Consortium"
+            "name": "YOUR-NAME-HERE",
+            "email": "YOUREMAIL@EXAMPLE.ORG",
+            "organization": "YOUR-ORGANIZATION"
         },
         "overwrite": false,
         "write_images": true,

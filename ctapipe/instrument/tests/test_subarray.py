@@ -1,10 +1,12 @@
 """ Tests for SubarrayDescriptions """
+from copy import deepcopy
+
 import numpy as np
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-from ctapipe.coordinates import TelescopeFrame
-from copy import deepcopy
+import pytest
 
+from ctapipe.coordinates import TelescopeFrame
 from ctapipe.instrument import (
     CameraDescription,
     OpticsDescription,
@@ -188,3 +190,24 @@ def test_hdf_duplicate_string_repr(tmp_path):
     assert (
         read.tel[1].optics.num_mirror_tiles == read.tel[2].optics.num_mirror_tiles + 1
     )
+
+
+def test_get_tel_ids(example_subarray):
+    """Test for SubarrayDescription.get_tel_ids"""
+    subarray = example_subarray
+    sst = TelescopeDescription.from_name("SST-ASTRI", "CHEC")
+
+    telescopes = [1, 2, "MST_MST_FlashCam", sst]
+    tel_ids = subarray.get_tel_ids(telescopes)
+
+    true_tel_ids = (
+        subarray.get_tel_ids_for_type("MST_MST_FlashCam")
+        + subarray.get_tel_ids_for_type(sst)
+        + [1, 2]
+    )
+
+    assert sorted(tel_ids) == sorted(true_tel_ids)
+
+    # test invalid telescope type
+    with pytest.raises(Exception):
+        tel_ids = subarray.get_tel_ids(["It's a-me, Mario!"])

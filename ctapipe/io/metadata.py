@@ -25,6 +25,8 @@ them (as in `Activity.from_provenance()`)
 import uuid
 import warnings
 from collections import OrderedDict
+import os
+import pwd
 
 import tables
 from astropy.time import Time
@@ -55,6 +57,14 @@ class Contact(Configurable):
     name = Unicode("unknown").tag(config=True)
     email = Unicode("unknown").tag(config=True)
     organization = Unicode("unknown").tag(config=True)
+
+    @default("name")
+    def default_name(self):
+        """ if no name specified, use the system's user name"""
+        try:
+            return pwd.getpwuid(os.getuid()).pw_gecos
+        except RuntimeError:
+            return ""
 
     def __repr__(self):
         return f"Contact(name={self.name}, email={self.email}, organization={self.organization})"

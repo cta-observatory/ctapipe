@@ -106,6 +106,7 @@ nitpick_ignore = [
     ("py:class", "traitlets.config.application.Application"),
     ("py:obj", "traitlets.config.boolean_flag"),
     ("py:obj", "traitlets.TraitError"),
+    ("py:obj", "-v"),
     ("py:meth", "MetaHasDescriptors.__init__"),
     ("py:meth", "HasTraits.__new__"),
     ("py:meth", "BaseDescriptor.instance_init"),

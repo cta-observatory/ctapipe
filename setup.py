@@ -23,6 +23,7 @@ entry_points["console_scripts"] = [
     "ctapipe-process = ctapipe.tools.process:main",
     "ctapipe-merge = ctapipe.tools.dl1_merge:main",
     "ctapipe-fileinfo = ctapipe.tools.fileinfo:main",
+    "ctapipe-quickstart = ctapipe.tools.quickstart:main",
 ]
 tests_require = ["pytest", "pandas>=0.24.0", "importlib_resources;python_version<'3.9'"]
 docs_require = [
@@ -59,6 +60,7 @@ setup(
         "zstandard",
         "requests",
         "setuptools_scm>=3.4",
+        "importlib_resources;python_version<'3.9'",
     ],
     # here are optional dependencies (as "tag" : "dependency spec")
     extras_require={
