@@ -1,7 +1,6 @@
 """Implementations of TableWriter and -Reader for HDF5 files"""
 import enum
 from pathlib import PurePath
-import re
 
 import numpy as np
 import tables
@@ -137,7 +136,6 @@ class HDF5TableWriter(TableWriter):
     def close(self):
         self.h5file.close()
 
-
     def _add_column_to_schema(self, table_name, schema, meta, pos, field, name, value):
         typename = ""
         shape = 1
@@ -184,13 +182,13 @@ class HDF5TableWriter(TableWriter):
             schema.columns[name] = coltype(pos=pos)
 
         elif isinstance(value, str):
-            max_length = field.max_length or len(value.encode('utf-8'))
+            max_length = field.max_length or len(value.encode("utf-8"))
             tr = StringTransform(max_length)
             self.add_column_transform(table_name, name, tr)
             schema.columns[name] = tables.StringCol(itemsize=max_length)
 
         else:
-            raise ValueError(f'Column {name} not writable')
+            raise ValueError(f"Column {name} not writable")
 
         # add meta fields of transform
         transform = self._transforms[table_name].get(name)
@@ -207,7 +205,6 @@ class HDF5TableWriter(TableWriter):
             f"{typename} shape: {shape} "
             f"with transform: {transform} "
         )
-
 
     def _create_hdf5_table_schema(self, table_name, containers):
         """
@@ -242,12 +239,19 @@ class HDF5TableWriter(TableWriter):
 
             container.validate()  # ensure the data are complete
 
-            it = zip(container.items(add_prefix=self.add_prefix), container.fields.values())
+            it = zip(
+                container.items(add_prefix=self.add_prefix), container.fields.values()
+            )
             for (col_name, value), field in it:
                 try:
                     self._add_column_to_schema(
-                        table_name=table_name, schema=Schema, meta=meta,
-                        pos=pos, field=field, name=col_name, value=value,
+                        table_name=table_name,
+                        schema=Schema,
+                        meta=meta,
+                        pos=pos,
+                        field=field,
+                        name=col_name,
+                        value=value,
                     )
                     pos += 1
                 except ValueError:
@@ -447,10 +451,10 @@ class HDF5TableReader(TableReader):
                     target_dtype=tab.dtype[colname].base,
                 )
                 self.add_column_transform(table_name, colname, tr)
-            elif attr.endswith('_TRANSFORM'):
+            elif attr.endswith("_TRANSFORM"):
                 colname, _, _ = attr.rpartition("_TRANSFORM")
-                if tab.attrs[attr] == 'string':
-                    maxlen = tab.attrs[f'{colname}_MAXLEN']
+                if tab.attrs[attr] == "string":
+                    maxlen = tab.attrs[f"{colname}_MAXLEN"]
                     tr = StringTransform(maxlen)
                     self.add_column_transform(table_name, colname, tr)
 
