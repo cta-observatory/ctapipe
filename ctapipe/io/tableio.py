@@ -350,6 +350,24 @@ class FixedPointColumnTransform(ColumnTransform):
 
     Can be used to store values as fixed point by using an integer dtype
     and a scale that is a power of 10.
+
+    The transforms reserves 3 integers to represent -inf, nan and inf.
+    Underflowing values are converted to -inf and overflowing to inf.
+
+    For unsigned target dtype:
+    -inf: maxval - 2
+    nan: maxval - 1
+    inf: maxval
+
+    For signed target dtype:
+    -inf: minval
+    nan: minval + 1
+    inf: maxval
+
+    When reading, these special values must not be interpreted as valid integer
+    values but be transformed back into -inf, nan, inf respectively.
+
+    This is a lossy transformation.
     """
 
     def __init__(self, scale, offset, source_dtype, target_dtype):
@@ -357,41 +375,57 @@ class FixedPointColumnTransform(ColumnTransform):
         self.offset = offset
         self.source_dtype = np.dtype(source_dtype)
         self.target_dtype = np.dtype(target_dtype)
+        self.unsigned = self.target_dtype.kind == "u"
 
         iinfo = np.iinfo(self.target_dtype)
 
         # use three highest values for nan markers for unsigned case
-        if self.target_dtype.kind == "u":
+        if self.unsigned:
             self.neginf = iinfo.max - 2
             self.nan = iinfo.max - 1
             self.posinf = iinfo.max
+
+            # this leaves this inclusive range for the valid values
+            self.minval = 0
+            self.maxval = iinfo.max - 3
         else:
             self.neginf = iinfo.min
             self.nan = iinfo.min + 1
             self.posinf = iinfo.max
 
+            # this leaves this inclusive range for the valid values
+            self.minval = iinfo.min + 2
+            self.maxval = iinfo.max - 1
+
     def __call__(self, value):
-        scalar = np.array(value, copy=False).shape == ()
+        is_scalar = np.array(value, copy=False).shape == ()
+        value = np.atleast_1d(value).astype(self.source_dtype, copy=False)
 
-        result = (value * self.scale).astype(self.target_dtype) + self.offset
+        scaled = np.round(value * self.scale) + self.offset
 
-        nans = np.isnan(value)
-        pos_inf = np.isposinf(value)
-        neg_inf = np.isneginf(value)
+        # convert under/overflow values to -inf/inf
+        scaled[scaled > self.maxval] = np.inf
+        scaled[scaled < self.minval] = -np.inf
 
+        nans = np.isnan(scaled)
+        pos_inf = np.isposinf(scaled)
+        neg_inf = np.isneginf(scaled)
+
+        result = scaled.astype(self.target_dtype)
         result[nans] = self.nan
         result[neg_inf] = self.neginf
         result[pos_inf] = self.posinf
 
-        if scalar:
+        if is_scalar:
             return np.squeeze(result)
 
         return result
 
     def inverse(self, value):
-        scalar = np.array(value, copy=False).shape == ()
+        is_scalar = np.array(value, copy=False).shape == ()
+        value = np.atleast_1d(value)
 
-        result = (value - self.offset).astype(self.source_dtype) / self.scale
+        result = (value.astype(self.source_dtype) - self.offset) / self.scale
         result = np.atleast_1d(result)
 
         nans = value == self.nan
@@ -402,7 +436,7 @@ class FixedPointColumnTransform(ColumnTransform):
         result[neg_inf] = -np.inf
         result[pos_inf] = np.inf
 
-        if scalar:
+        if is_scalar:
             return np.squeeze(result)
 
         return result
@@ -413,6 +447,9 @@ class FixedPointColumnTransform(ColumnTransform):
             f"{colname}_TRANSFORM_SCALE": self.scale,
             f"{colname}_TRANSFORM_DTYPE": str(self.source_dtype),
             f"{colname}_TRANSFORM_OFFSET": self.offset,
+            f"{colname}_NAN_VALUE": self.nan,
+            f"{colname}_POSINF_VALUE": self.posinf,
+            f"{colname}_NEGINF_VALUE": self.neginf,
         }
 
 
