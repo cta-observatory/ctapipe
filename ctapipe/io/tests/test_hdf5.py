@@ -640,7 +640,7 @@ def test_column_transforms(tmp_path):
         assert isinstance(data.time, Time)
         assert data.time == NAN_TIME
         # rounded to two digits
-        assert np.all(data.image == np.array([1.23, 123.45]))
+        assert np.all(data.image == np.array([1.23, 123.46]))
 
 
 def test_fixed_point_column_transform(tmp_path):
