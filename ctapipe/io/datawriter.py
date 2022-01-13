@@ -655,7 +655,7 @@ class DataWriter(Component):
             if self.write_images:
                 if dl1_camera.image is None:
                     raise ValueError(
-                        "DataWrite.write_images is True but event does not contain image"
+                        "DataWriter.write_images is True but event does not contain image"
                     )
                 # note that we always write the image, even if the image quality
                 # criteria are not met (those are only to determine if the parameters
