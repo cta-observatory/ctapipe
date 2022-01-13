@@ -27,6 +27,10 @@ jobs:
             ~/.cache/ctapipe
           key: ctapipe-test-data
 
+      - name: debug cache
+        run: |
+          find ~/.cache/ctapipe -type f | sort
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
