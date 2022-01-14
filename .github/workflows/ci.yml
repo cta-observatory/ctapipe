@@ -29,6 +29,7 @@ jobs:
 
       - name: debug cache
         run: |
+          echo $HOME
           find ~/.cache/ctapipe -type f | sort
 
       - name: Set up Python ${{ matrix.python-version }}
