@@ -8,8 +8,14 @@ import pytest
 
 
 @pytest.mark.parametrize("seed", [None, 0])
-def test_intensity(seed):
-    from ctapipe.image.toymodel import Gaussian
+def test_intensity(seed, monkeypatch):
+    """
+    Test generation of the toymodel roughly follows the given intensity.
+
+    Tests once with passing a custom rng instance, once with relying on the
+    modules rng.
+    """
+    from ctapipe.image import toymodel
 
     geom = CameraGeometry.from_name("LSTCam")
 
@@ -19,8 +25,12 @@ def test_intensity(seed):
     intensity = 200
     psi = "30d"
 
+    # make sure we set a fixed seed for this test even when testing the
+    # API without giving the rng
+    monkeypatch.setattr(toymodel, "TOYMODEL_RNG", np.random.default_rng(0))
+
     # make a toymodel shower model
-    model = Gaussian(x=x, y=y, width=width, length=length, psi=psi)
+    model = toymodel.Gaussian(x=x, y=y, width=width, length=length, psi=psi)
 
     if seed is None:
         _, signal, _ = model.generate_image(geom, intensity=intensity, nsb_level_pe=5)

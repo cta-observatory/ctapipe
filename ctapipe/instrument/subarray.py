@@ -417,7 +417,7 @@ class SubarrayDescription:
         valid_tel_types = {str(tel_type) for tel_type in self.telescope_types}
 
         for telescope in telescopes:
-            if isinstance(telescope, int):
+            if isinstance(telescope, (int, np.integer)):
                 ids.add(telescope)
 
             if isinstance(telescope, str) and telescope not in valid_tel_types:
