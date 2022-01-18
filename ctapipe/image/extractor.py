@@ -475,6 +475,11 @@ class GlobalPeakWindowSum(ImageExtractor):
     """
     Extractor which sums in a window about the
     peak from the global average waveform.
+
+    To reduce the influence of noise pixels, the average can be calculated
+    only on the ``pixel_fraction`` brightest pixels.
+    The "brightest" pixels are determined by sorting the waveforms by their
+    maximum value.
     """
 
     window_width = IntTelescopeParameter(
@@ -489,6 +494,16 @@ class GlobalPeakWindowSum(ImageExtractor):
 
     apply_integration_correction = BoolTelescopeParameter(
         default_value=True, help="Apply the integration window correction"
+    ).tag(config=True)
+
+    pixel_fraction = FloatTelescopeParameter(
+        default_value=1.0,
+        help=(
+            "Fraction of pixels to use for finding the integration window."
+            " By default, the full camera is used."
+            " If fraction is smaller 1, only the brightest pixels will be averaged"
+            " to find the peak position"
+        ),
     ).tag(config=True)
 
     @lru_cache(maxsize=128)
@@ -521,7 +536,13 @@ class GlobalPeakWindowSum(ImageExtractor):
         )
 
     def __call__(self, waveforms, telid, selected_gain_channel):
-        peak_index = waveforms.mean(axis=-2).argmax(axis=-1)
+        if self.pixel_fraction.tel[telid] == 1.0:
+            peak_index = waveforms.mean(axis=-2).argmax(axis=-1)
+        else:
+            n_pixels = int(self.pixel_fraction.tel[telid] * waveforms.shape[-2])
+            brightest = np.argsort(waveforms.max(axis=-1))[..., -n_pixels:]
+            peak_index = np.mean(waveforms[brightest], axis=-2).argmax()
+
         charge, peak_time = extract_around_peak(
             waveforms,
             peak_index,
@@ -999,14 +1020,18 @@ class TwoPassWindowSum(ImageExtractor):
 
         if num_islands > 0:
             # ...find the brightest one
-            mask_brightest_island = brightest_island(num_islands, labels, charge_1stpass)
+            mask_brightest_island = brightest_island(
+                num_islands, labels, charge_1stpass
+            )
         else:
             mask_brightest_island = mask_clean
 
         # for all pixels except the core ones in the main island of the
         # preliminary image, the waveform will be integrated once more (2nd pass)
 
-        mask_2nd_pass = ~mask_brightest_island | (mask_brightest_island & (charge_1stpass < core_th))
+        mask_2nd_pass = ~mask_brightest_island | (
+            mask_brightest_island & (charge_1stpass < core_th)
+        )
 
         # STEP 4
 
@@ -1070,16 +1095,18 @@ class TwoPassWindowSum(ImageExtractor):
         # on the peak
         window_width_default = 5
         window_shift_default = 2
-        
+
         # first we find where the integration window edges WOULD BE
         integration_windows_start = predicted_peaks - window_shift_default
-        integration_windows_end   = integration_windows_start + window_width_default
-        
+        integration_windows_end = integration_windows_start + window_width_default
+
         # then we define 2 possible edge cases
         # the predicted integration window falls before the readout window
         integration_before_readout = integration_windows_start < 0
         # or after
-        integration_after_readout  = integration_windows_end > (waveforms_to_repass.shape[1] - 1)
+        integration_after_readout = integration_windows_end > (
+            waveforms_to_repass.shape[1] - 1
+        )
 
         # If the resulting 5-samples window falls before the readout
         # window we take the first 5 samples
@@ -1143,8 +1170,12 @@ class TwoPassWindowSum(ImageExtractor):
                 telid, window_width_after, window_shift_after
             )[selected_gain_channel][mask_2nd_pass]
 
-            correction[integration_before_readout] = correction_before[integration_before_readout]
-            correction[integration_after_readout] = correction_after[integration_after_readout]
+            correction[integration_before_readout] = correction_before[
+                integration_before_readout
+            ]
+            correction[integration_after_readout] = correction_after[
+                integration_after_readout
+            ]
 
             reintegrated_charge *= correction
 
