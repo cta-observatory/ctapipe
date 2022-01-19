@@ -537,11 +537,14 @@ class GlobalPeakWindowSum(ImageExtractor):
 
     def __call__(self, waveforms, telid, selected_gain_channel):
         if self.pixel_fraction.tel[telid] == 1.0:
-            peak_index = waveforms.mean(axis=-2).argmax(axis=-1)
+            # average over pixels then argmax over samples
+            peak_index = waveforms.mean(axis=-2).argmax()
         else:
             n_pixels = int(self.pixel_fraction.tel[telid] * waveforms.shape[-2])
             brightest = np.argsort(waveforms.max(axis=-1))[..., -n_pixels:]
-            peak_index = np.mean(waveforms[brightest], axis=-2).argmax()
+
+            # average over brightest pixels then argmax over samples
+            peak_index = waveforms[brightest].mean(axis=-2).argmax()
 
         charge, peak_time = extract_around_peak(
             waveforms,
