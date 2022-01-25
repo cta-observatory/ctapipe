@@ -11,7 +11,6 @@ import os
 entry_points = {}
 entry_points["console_scripts"] = [
     "ctapipe-info = ctapipe.tools.info:main",
-    "ctapipe-camdemo = ctapipe.tools.camdemo:main",
     "ctapipe-dump-triggers = ctapipe.tools.dump_triggers:main",
     "ctapipe-dump-instrument=ctapipe.tools.dump_instrument:main",
     "ctapipe-event-viewer = ctapipe.tools.bokeh.file_viewer:main",

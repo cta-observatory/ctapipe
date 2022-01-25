@@ -194,19 +194,6 @@ def test_dump_instrument(tmp_path):
     assert run_tool(tool, ["--help-all"], cwd=tmp_path) == 0
 
 
-def test_camdemo(tmp_path):
-    from ctapipe.tools.camdemo import CameraDemo
-
-    sys.argv = ["camera_demo"]
-    tool = CameraDemo()
-    tool.num_events = 10
-    tool.cleanframes = 2
-    tool.display = False
-
-    assert run_tool(tool, cwd=tmp_path) == 0
-    assert run_tool(tool, ["--help-all"]) == 0
-
-
 def test_bokeh_file_viewer(tmp_path):
     from ctapipe.tools.bokeh.file_viewer import BokehFileViewer
 
