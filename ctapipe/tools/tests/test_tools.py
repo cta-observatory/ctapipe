@@ -63,22 +63,6 @@ def test_muon_reconstruction_dl1(tmp_path, dl1_muon_file):
     assert run_tool(MuonAnalysis(), ["--help-all"]) == 0
 
 
-def test_display_summed_images(tmp_path):
-    from ctapipe.tools.display_summed_images import ImageSumDisplayerTool
-
-    mpl.use("Agg")
-    assert (
-        run_tool(
-            ImageSumDisplayerTool(),
-            argv=[f"--infile={GAMMA_TEST_LARGE}", "--max-events=2"],
-            cwd=tmp_path,
-        )
-        == 0
-    )
-
-    assert run_tool(ImageSumDisplayerTool(), ["--help-all"]) == 0
-
-
 def test_display_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
     from ctapipe.tools.display_dl1 import DisplayDL1Calib
 

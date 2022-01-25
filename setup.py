@@ -14,7 +14,6 @@ entry_points["console_scripts"] = [
     "ctapipe-dump-triggers = ctapipe.tools.dump_triggers:main",
     "ctapipe-dump-instrument=ctapipe.tools.dump_instrument:main",
     "ctapipe-event-viewer = ctapipe.tools.bokeh.file_viewer:main",
-    "ctapipe-display-imagesums = ctapipe.tools.display_summed_images:main",
     "ctapipe-reconstruct-muons = ctapipe.tools.muon_reconstruction:main",
     "ctapipe-display-dl1 = ctapipe.tools.display_dl1:main",
     "ctapipe-process = ctapipe.tools.process:main",
