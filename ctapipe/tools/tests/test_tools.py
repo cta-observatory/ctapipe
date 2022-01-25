@@ -79,23 +79,6 @@ def test_display_summed_images(tmp_path):
     assert run_tool(ImageSumDisplayerTool(), ["--help-all"]) == 0
 
 
-def test_display_integrator(tmp_path):
-    from ctapipe.tools.display_integrator import DisplayIntegrator
-
-    mpl.use("Agg")
-
-    assert (
-        run_tool(
-            DisplayIntegrator(),
-            argv=[f"--input={GAMMA_TEST_LARGE}", "--max-events=1"],
-            cwd=tmp_path,
-        )
-        == 0
-    )
-
-    assert run_tool(DisplayIntegrator(), ["--help-all"]) == 0
-
-
 def test_display_events_single_tel(tmp_path):
     from ctapipe.tools.display_events_single_tel import SingleTelEventDisplay
 

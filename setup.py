@@ -18,7 +18,6 @@ entry_points["console_scripts"] = [
     "ctapipe-display-tel-events = ctapipe.tools.display_events_single_tel:main",
     "ctapipe-display-imagesums = ctapipe.tools.display_summed_images:main",
     "ctapipe-reconstruct-muons = ctapipe.tools.muon_reconstruction:main",
-    "ctapipe-display-integration = ctapipe.tools.display_integrator:main",
     "ctapipe-display-dl1 = ctapipe.tools.display_dl1:main",
     "ctapipe-process = ctapipe.tools.process:main",
     "ctapipe-merge = ctapipe.tools.dl1_merge:main",
