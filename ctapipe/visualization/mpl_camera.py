@@ -486,12 +486,7 @@ class CameraDisplay:
         x = self.geom.pix_x[pix_id].value
         y = self.geom.pix_y[pix_id].value
 
-        if self.geom.pix_type in (PixelShape.HEXAGON, PixelShape.CIRCLE):
-            self._active_pixel.xy = (x, y)
-        else:
-            w = self.geom.pixel_width.value[0]
-            self._active_pixel.xy = (x - w / 2.0, y - w / 2.0)
-
+        self._active_pixel.xy = (x, y)
         self._active_pixel.set_visible(True)
         self._active_pixel_label.set_x(x)
         self._active_pixel_label.set_y(y)
