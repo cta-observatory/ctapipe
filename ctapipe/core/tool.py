@@ -83,11 +83,11 @@ class Tool(Application):
                                  allow_none=False).tag(config=True)
 
             def setup_comp(self):
-                self.comp = MyComponent(self, config=self.config)
-                self.comp2 = SecondaryMyComponent(self, config=self.config)
+                self.comp = MyComponent(self, parent=self)
+                self.comp2 = SecondaryMyComponent(self, parent=self)
 
             def setup_advanced(self):
-                self.advanced = AdvancedComponent(self, config=self.config)
+                self.advanced = AdvancedComponent(self, parent=self)
 
             def setup(self):
                 self.setup_comp()
