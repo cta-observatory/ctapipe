@@ -196,10 +196,14 @@ def mean_poisson_likelihood_gaussian(prediction, spe_width, pedestal):
     -------
     float
     """
-    theta = pedestal ** 2 + prediction * (1 + spe_width ** 2)
-    mean_log_likelihood = 1 + np.log(2 * np.pi) + np.log(theta)
+    prediction = np.asarray(prediction)
+    spe_width = np.asarray(spe_width)
+    ped = np.asarray(pedestal)
 
-    return np.sum(mean_log_likelihood)
+    mean_like = 1 + np.log(2 * np.pi)
+    mean_like += np.log(ped * ped + prediction * (1 + spe_width * spe_width))
+
+    return mean_like
 
 
 def _integral_poisson_likelihood_full(image, prediction, spe_width, ped):

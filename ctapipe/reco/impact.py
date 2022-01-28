@@ -69,16 +69,16 @@ class ImPACTReconstructor(Reconstructor):
     # currently this is not availible from the calibration,
     # so for now lets hard code it in a dict
     ped_table = {
-        "LSTCam": 2.8,
-        "NectarCam": 2.3,
-        "FlashCam": 2.3,
+        "LSTCam": 1.4,
+        "NectarCam": 1.3,
+        "FlashCam": 1.3,
         "CHEC": 0.5,
         "ASTRICam": 0.5,
         "DUMMY": 0,
         "UNKNOWN-960PX": 1.,
 
     }
-    spe = 0.5  # Also hard code single p.e. distribution width
+    spe = 1.6  # Also hard code single p.e. distribution width
 
     def __init__(
         self,
@@ -155,10 +155,11 @@ class ImPACTReconstructor(Reconstructor):
 
         hillas_dict = {}
         for tel_id, dl1 in event.dl1.tel.items():
-            hillas = dl1.parameters.hillas
-            if hillas is not None:
-                if np.isfinite(dl1.parameters.hillas.intensity) and dl1.parameters.hillas.intensity>0:
-                    hillas_dict[tel_id] = hillas
+            if dl1.parameters is not None:
+                hillas = dl1.parameters.hillas
+                if hillas is not None:
+                    if np.isfinite(dl1.parameters.hillas.intensity) and dl1.parameters.hillas.intensity>0:
+                        hillas_dict[tel_id] = hillas
 
 
         # Due to tracking the pointing of the array will never be a constant
@@ -192,13 +193,12 @@ class ImPACTReconstructor(Reconstructor):
 
 
         # This is a placeholder for proper energy reconstruction
-        reconstructor_prediction = event.dl2.stereo.geometry["HillasIntersection"]
-
+        reconstructor_prediction = event.dl2.stereo.geometry#["HillasIntersection"]
         shower_result, energy_result = self.predict(hillas_dict=hillas_dict, subarray=self.subarray, 
                                                     array_pointing=array_pointing, telescope_pointings=telescope_pointings,
                                                     image_dict=image_dict, mask_dict=mask_dict,
                                                     shower_seed=reconstructor_prediction)
-
+        
         #print(energy_result.energy/event.simulation.shower.energy)
         event.dl2.stereo.geometry["ImPACTReconstructor"] = shower_result
         event.dl2.stereo.energy['ImPACTReconstructor'] = energy_result
@@ -227,7 +227,7 @@ class ImPACTReconstructor(Reconstructor):
             else:
                 filename = self.amplitude_template.substitute(base=self.root_dir, camera=tel_type[t])
                 self.prediction[tel_type[t]] = TemplateNetworkInterpolator(filename,
-                                                                            bounds=((-4.4, 1), (-1.5, 1.5)))
+                                                                            bounds=((-5, 1), (-1.5, 1.5)))
                 PROV.add_input_file(filename, role="ImPACT Template file for " + tel_type[t])
 
             if self.use_time_gradient:
@@ -323,13 +323,13 @@ class ImPACTReconstructor(Reconstructor):
         # we should convert to height above ground
         #mean_height *= np.cos(zen)
         # Add on the height of the detector above sea level
-        mean_height += 1835#2150
+        mean_height += 2150
 
         if mean_height > 100000 or np.isnan(mean_height):
             mean_height = 100000
 
         # Lookup this height in the depth tables, the convert Hmax to Xmax
-        x_max = self.thickness_profile(mean_height * u.m).to("g cm-2").value
+        x_max = self.thickness_profile(mean_height)
         # Convert to slant depth
         x_max /= np.cos(zen)
         #print(disp, impact, height, x_max)
@@ -423,8 +423,8 @@ class ImPACTReconstructor(Reconstructor):
         # everything in the correct units when loading in the class
         # and ignore them from then on
 
-        zenith = (np.pi / 2) - self.array_direction.alt.to(u.rad).value
-        azimuth = self.array_direction.az.to(u.deg).value
+        zenith = self.zenith
+        azimuth = self.azimuth
         
         # Geometrically calculate the depth of maximum given this test position
         x_max = self.get_shower_max(source_x, source_y, core_x, core_y, zenith)
@@ -437,10 +437,10 @@ class ImPACTReconstructor(Reconstructor):
         x_max_bin = x_max - x_max_exp
 
         # Check for range
-        if x_max_bin > 150:
-            x_max_bin = 150
-        if x_max_bin < -100:
-            x_max_bin = -100
+        if x_max_bin > 200:
+            x_max_bin = 200
+        if x_max_bin < -150:
+            x_max_bin = -150
 
         # Calculate impact distance for all telescopes
         impact = np.sqrt(
@@ -452,7 +452,7 @@ class ImPACTReconstructor(Reconstructor):
         # Rotate and translate all pixels such that they match the
         # template orientation
         pix_x_rot, pix_y_rot = rotate_translate(
-            self.pixel_y, self.pixel_x, source_y, source_x, -1 * phi
+            self.pixel_y, self.pixel_x, source_y, source_x, -1 * phi 
         )
 
         # In the interpolator class we can gain speed advantages by using masked arrays
@@ -503,25 +503,38 @@ class ImPACTReconstructor(Reconstructor):
                 rv.pdf((time_fit - time_gradients.T[0]) / time_gradients.T[1])
             )
 
+        
         # Likelihood function will break if we find a NaN or a 0
         prediction[np.isnan(prediction)] = 1e-8
         prediction[prediction < 1e-8] = 1e-8
         prediction *= self.scale_factor[:, np.newaxis]
+        
+        if False:#goodness_of_fit:
+            import matplotlib.pyplot as plt
+            for i in range(prediction.shape[0]):
+                fig, (ax1, ax2) = plt.subplots(1, 2)
+                print(source_x*57.3, source_y*57.3)
+                ax1.scatter(self.pixel_y[i] * 57.3, self.pixel_x[i] * 57.3, c=self.image[i], s=100)
+                ax2.scatter(self.pixel_y[i] * 57.3, self.pixel_x[i] * 57.3, c=prediction[i], s=100)
+                plt.show()
 
         # Get likelihood that the prediction matched the camera image
         mask =  ma.getmask(self.image)
 
         like = neg_log_likelihood_approx(self.image, prediction, self.spe, self.ped)
         like[mask] = 0
+
         like = np.sum(like)
         if goodness_of_fit:
-            return like - mean_poisson_likelihood_gaussian(prediction, self.spe, self.ped)
+            like_expectation = mean_poisson_likelihood_gaussian(prediction, self.spe, self.ped)
+            like_expectation[mask] = 0
+            #print(like, np.sum(like_expectation), np.sum(np.invert(mask)))
+            return (like - np.sum(like_expectation))/np.sqrt(2 * (np.sum(np.invert(mask))-6))
 
         prior_pen = 0
         # Add prior penalities if we have them
         if "energy" in self.priors:
             prior_pen += energy_prior(energy, index=-1)
-            print("here")
         if "xmax" in self.priors:
             prior_pen += xmax_prior(energy, x_max)
 
@@ -604,16 +617,21 @@ class ImPACTReconstructor(Reconstructor):
         # Get telescope positions in tilted frame
         tilted_frame = TiltedGroundFrame(pointing_direction=array_pointing)
         ground_positions = subarray.tel_coords
-        grd_coord = GroundFrame(
-            x=ground_positions.x, y=ground_positions.y, z=ground_positions.z
+        grd_coord = SkyCoord(
+            x=ground_positions.x, y=ground_positions.y, z=ground_positions.z,
+            frame=GroundFrame()
         )
 
         self.array_direction = array_pointing
+        self.zenith = (np.pi / 2) - self.array_direction.alt.to(u.rad).value
+        self.azimuth = self.array_direction.az.to(u.deg).value
+
         self.nominal_frame = NominalFrame(origin=self.array_direction)
 
         tilt_coord = grd_coord.transform_to(tilted_frame)
-
         type_tel = {}
+        indices = subarray.tel_ids_to_indices(list(hillas_dict.keys()))
+
         # So here we must loop over the telescopes
         for tel_id, i in zip(hillas_dict, range(len(hillas_dict))):
 
@@ -641,8 +659,9 @@ class ImPACTReconstructor(Reconstructor):
             self.ped[i] = self.ped_table[type]
             self.tel_types.append(type)
             self.tel_id.append(tel_id)
-            self.tel_pos_x[i] = tilt_coord[tel_id-1].x.to(u.m).value
-            self.tel_pos_y[i] = tilt_coord[tel_id-1].y.to(u.m).value
+            
+            self.tel_pos_x[i] = tilt_coord[indices[i]].x.to(u.m).value
+            self.tel_pos_y[i] = tilt_coord[indices[i]].y.to(u.m).value
 
             self.hillas_parameters.append(hillas_dict[tel_id])
             self.scale_factor[i] = self.template_scale[tel_id]
@@ -670,7 +689,7 @@ class ImPACTReconstructor(Reconstructor):
             self.image[i][:array_len] = pa[i]
             self.time[i][:array_len] = pt[i]
             self.ped[i][:array_len] = self.ped_table[self.tel_types[i]]
-            self.spe[i][:array_len] = 0.5
+            self.spe[i][:array_len] = 0.8
 
         # Set the image mask
         mask = self.image == 0.0
@@ -705,40 +724,59 @@ class ImPACTReconstructor(Reconstructor):
                                   telescope_pointings)
 
         self.reset_interpolator()
+        
+        like_min = 1e9
+        fit_params = None
 
-        # Copy all of our seed parameters out of the shower objects
-        # We need to convert the shower direction to the nominal system
-        horizon_seed = SkyCoord(az=shower_seed.az, alt=shower_seed.alt, frame=AltAz())
-        nominal_seed = horizon_seed.transform_to(self.nominal_frame)
+        for cleaning in shower_seed:
+            # Copy all of our seed parameters out of the shower objects
+            # We need to convert the shower direction to the nominal system
+            horizon_seed = SkyCoord(az=shower_seed[cleaning].az, alt=shower_seed[cleaning].alt, frame=AltAz())
+            nominal_seed = horizon_seed.transform_to(self.nominal_frame)
+            
+            source_x = nominal_seed.fov_lon.to_value(u.rad)
+            source_y = nominal_seed.fov_lat.to_value(u.rad)
+            # And the core position to the tilted ground frame
+            ground = SkyCoord(x=shower_seed[cleaning].core_x, y=shower_seed[cleaning].core_y, z=0 * u.m, frame=GroundFrame)
+            tilted = ground.transform_to(
+                TiltedGroundFrame(pointing_direction=self.array_direction)
+            )
+            tilt_x = tilted.x.to(u.m).value
+            tilt_y = tilted.y.to(u.m).value
+            zenith = 90 * u.deg - self.array_direction.alt
+            
+            energy = 0
+            preminimise = True
+            # If we have a seed energy we can skip the minimisation step
+            if energy_seed is not None:
+                energy = energy_seed.energy.value
+                preminimise = False
+            seed = create_seed(source_x, source_y,
+                               tilt_x, tilt_y,
+                               energy)
 
-        source_x = nominal_seed.fov_lon.to_value(u.rad)
-        source_y = nominal_seed.fov_lat.to_value(u.rad)
-        # And the core position to the tilted ground frame
-        ground = GroundFrame(x=shower_seed.core_x, y=shower_seed.core_y, z=0 * u.m)
-        tilted = ground.transform_to(
-            TiltedGroundFrame(pointing_direction=self.array_direction)
-        )
-        tilt_x = tilted.x.to(u.m).value
-        tilt_y = tilted.y.to(u.m).value
-        zenith = 90 * u.deg - self.array_direction.alt
 
-        energy = 0
-        preminimise = True
-        # If we have a seed energy we can skip the minimisation step
-        if energy_seed is not None:
-            energy = energy_seed.energy.value
-            preminimise = False
-        seed = create_seed(source_x, source_y,
-                           tilt_x, tilt_y, 
-                           energy)
+            # Perform maximum likelihood fit
+            fit_params_min, errors, like = self.minimise(params=seed[0],
+                                                         step=seed[1],
+                                                         limits=seed[2],
+                                                         energy_preminimisation=preminimise,
+                                                         preminimisation_only=preminimise)
+
+            if like < like_min:
+                fit_params = fit_params_min
+                like_min = like
 
 
-        # Perform maximum likelihood fit
+        # Now do full minimisation
+        seed = create_seed(fit_params[0], fit_params[1],
+                           fit_params[2], fit_params[3],
+                           fit_params[4])
+
         fit_params, errors, like = self.minimise(params=seed[0],
-                                                 step=seed[1],
-                                                 limits=seed[2],
-                                                 energy_preminimisation=preminimise)
-
+                                                     step=seed[1],
+                                                     limits=seed[2],
+                                                     energy_preminimisation=False)
 
         # Create a container class for reconstructed shower
         shower_result = ReconstructedGeometryContainer()
@@ -754,15 +792,15 @@ class ImPACTReconstructor(Reconstructor):
 
         # Transform everything back to a useful system
         shower_result.alt, shower_result.az = horizon.alt, horizon.az
-        tilted = TiltedGroundFrame(
+        tilted = SkyCoord(
             x=fit_params[2] * u.m,
             y=fit_params[3] * u.m,
-            pointing_direction=self.array_direction,
+            frame=TiltedGroundFrame(pointing_direction=self.array_direction),
         )
         ground = project_to_ground(tilted)
 
-        shower_result.core_x = ground.x
-        shower_result.core_y = ground.y
+        shower_result.core_x = ground.x 
+        shower_result.core_y = ground.y 
 
         shower_result.is_valid = True
 
@@ -782,8 +820,13 @@ class ImPACTReconstructor(Reconstructor):
         # this should be h_max, but is currently x_max
         shower_result.h_max *= np.cos(zenith)
         shower_result.h_max_uncert = errors[5] * shower_result.h_max
-
-        shower_result.goodness_of_fit = like
+        
+        goodness_of_fit = self.get_likelihood(fit_params[0], fit_params[1],
+                                              fit_params[2], fit_params[3],
+                                              fit_params[4], fit_params[5], True)
+        
+        shower_result.goodness_of_fit = goodness_of_fit
+        #print(goodness_of_fit, like)
 
         # Create a container class for reconstructed energy
         energy_result = ReconstructedEnergyContainer()
@@ -794,7 +837,7 @@ class ImPACTReconstructor(Reconstructor):
 
         return shower_result, energy_result
 
-    def minimise(self, params, step, limits, energy_preminimisation=True):
+    def minimise(self, params, step, limits, energy_preminimisation=True, preminimisation_only=False):
         """
 
         Parameters
@@ -845,12 +888,24 @@ class ImPACTReconstructor(Reconstructor):
                 self.min.strategy = 0
 
                 migrad = self.min.migrad(iterate=1)
-                fit_params = self.min.values
 
                 # Only use if our value is better that the previous ones
-                if migrad.fval < likelihood:
+                if migrad.fval < likelihood and self.min.values["energy"]>0.01: 
+                    fit_params = self.min.values
                     energy = fit_params["energy"]
                     limits[4] = [energy*0.1, energy*2.]
+                    likelihood = migrad.fval
+                    
+        if preminimisation_only:
+            return  (
+                (
+                    fit_params["source_x"], fit_params["source_y"],
+                    fit_params["core_x"], fit_params["core_y"],
+                    fit_params["energy"], fit_params["x_max_scale"],
+                ),
+                None,
+                likelihood,
+            )
 
         # Now do the minimisation proper
         self.min = Minuit(
@@ -870,7 +925,7 @@ class ImPACTReconstructor(Reconstructor):
         # Tighter fit tolerances
         self.min.tol *= 1000
         self.min.strategy = 1
-
+        
         # Fit and output parameters and errors
         migrad = self.min.migrad(iterate=1)
         fit_params = self.min.values
