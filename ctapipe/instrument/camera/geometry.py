@@ -617,8 +617,8 @@ class CameraGeometry:
 
     def __repr__(self):
         return (
-            "CameraGeometry(camera_name='{camera_name}', pix_type={pix_type!r}, "
-            "npix={npix}, cam_rot={camrot}, pix_rot={pixrot}, frame={frame})"
+            "CameraGeometry(camera_name='{camera_name}', pix_type={pix_type}, "
+            "npix={npix}, cam_rot={camrot:.3f}, pix_rot={pixrot:.3f}, frame={frame})"
         ).format(
             camera_name=self.camera_name,
             pix_type=self.pix_type,
