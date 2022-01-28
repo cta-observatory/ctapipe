@@ -317,7 +317,7 @@ def test_telescope_parameter_patterns(mock_subarray):
         comp.tel_param_int = [(12, "", 5)]  # command not string
 
 
-def test_telescope_parameter_path(mock_subarray):
+def test_telescope_parameter_path(mock_subarray, tmp_path):
     class SomeComponent(TelescopeComponent):
         path = TelescopeParameter(Path(exists=True, directory_ok=False))
 
@@ -353,8 +353,10 @@ def test_telescope_parameter_path(mock_subarray):
 
     s = SomeComponent(subarray=mock_subarray)
     assert s.path.tel[1] is None
-    s.path = [("type", "*", "setup.py")]
-    assert s.path.tel[1] == pathlib.Path("setup.py").absolute()
+    path = tmp_path / "foo"
+    path.open("w").close()
+    s.path = [("type", "*", path)]
+    assert s.path.tel[1] == path
 
 
 def test_telescope_parameter_scalar_default(mock_subarray):
