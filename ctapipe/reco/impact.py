@@ -191,14 +191,6 @@ class ImPACTReconstructor(Reconstructor):
         in an event which will be used later in the Xmax calculation. Peak is
         found by taking the average position of the n hottest pixels in the
         image.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-            None
-
         """
         peak_x = np.zeros([len(self.pixel_x)])  # Create blank arrays for peaks
         # rather than a dict (faster)

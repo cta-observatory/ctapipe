@@ -44,7 +44,7 @@ jobs:
         run: |
           source .github/install.sh
           python --version
-          pip install codecov pytest-cov pyflakes pytest-xdist
+          pip install codecov pytest-cov pyflakes pytest-xdist 'coverage!=6.3.0'
           pip install .[all]
           pip freeze
 
