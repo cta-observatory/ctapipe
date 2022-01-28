@@ -42,10 +42,13 @@ def xmax_prior(energy, xmax, width=100):
     diff = xmax - x_max_exp
     return -2 * np.log(norm.pdf(diff / width))
 
+import numba
 
+@numba.jit
 def rotate_translate(pixel_pos_x, pixel_pos_y, x_trans, y_trans, phi):
     """
-    Function to perform rotation and translation of pixel lists
+    Function to perform rotation and translation of pixel lists. Array 
+    manipulation slowing this function significantly. Now Numba accelerated.
 
     Parameters
     ----------
@@ -64,20 +67,21 @@ def rotate_translate(pixel_pos_x, pixel_pos_y, x_trans, y_trans, phi):
     -------
         ndarray,ndarray: Transformed pixel x and y coordinates
 
-    """
-
-    cosine_angle = np.cos(phi[..., np.newaxis])
-    sin_angle = np.sin(phi[..., np.newaxis])
-
-    pixel_pos_trans_x = (x_trans - pixel_pos_x) * cosine_angle - (
-            y_trans - pixel_pos_y
-    ) * sin_angle
-
-    pixel_pos_trans_y = (pixel_pos_x - x_trans) * sin_angle + (
-            pixel_pos_y - y_trans
-    ) * cosine_angle
+    """    
+    shape = pixel_pos_x.shape
+    pixel_pos_trans_x, pixel_pos_trans_y = np.zeros(shape), np.zeros(shape)
+    
+    for i in range(shape[0]):
+        cosine_angle = np.cos(phi[i])
+        sin_angle = np.sin(phi[i])
+        
+        for j in range(shape[1]):
+            pixel_pos_trans_x[i][j] = (x_trans - pixel_pos_x[i][j]) * cosine_angle - \
+                                      (y_trans - pixel_pos_y[i][j]) * sin_angle
+            pixel_pos_trans_y[i][j] = (pixel_pos_x[i][j] - x_trans) * sin_angle + \
+                                      (pixel_pos_y[i][j] - y_trans) * cosine_angle
+            
     return pixel_pos_trans_x, pixel_pos_trans_y
-
 
 def create_seed(source_x, source_y, tilt_x, tilt_y, energy):
     """
@@ -105,15 +109,17 @@ def create_seed(source_x, source_y, tilt_x, tilt_y, energy):
 
     # If our energy estimate falls outside of the range of our templates set it to
     # the edge
-    if lower_en_limit < 0.01:
-        lower_en_limit = 0.01
-        en_seed = 0.01
+    if lower_en_limit < 0.02:
+        lower_en_limit = 0.02
+#        en_seed = 0.01
 
     # Take the seed from Hillas-based reconstruction
     seed = (source_x, source_y, tilt_x, tilt_y, en_seed, 1.)
+    if energy > 2:
+        seed = (source_x, source_y, tilt_x, tilt_y, en_seed, 1.2)
 
     # Take a reasonable first guess at step size
-    step = [0.0001 / 57.3, 0.0001 / 57.3, 10, 10, en_seed * 0.05, 0.05, 0.]
+    step = [0.04 / 57.3, 0.04 / 57.3, 10, 10, en_seed * 0.05, 0.05, 0.]
     # And some sensible limits of the fit range
     limits = [
         [source_x - 0.5/57.3, source_x + 0.5/57.3],
@@ -149,21 +155,11 @@ def get_atmosphere_profile(filename, with_units=True):
     data = Table()
     
     tab = data.read(filename)
-    alt = tab["altitude"].to("m")
-    thick = (tab["thickness"]).to("g cm-2")
+    alt = tab["altitude"].to("m").value
+    thick = (tab["thickness"]).to("g cm-2").value
 
-    alt_to_thickness = interp1d(x=np.array(alt), y=np.array(thick))
-    thickness_to_alt = interp1d(x=np.array(thick), y=np.array(alt))
-
-    if with_units:
-
-        def thickness(a):
-            return Quantity(alt_to_thickness(a.to("m")), "g cm-2")
-
-        def altitude(a):
-            return Quantity(thickness_to_alt(a.to("g cm-2")), "m")
-
-        return thickness, altitude
+    alt_to_thickness = interp1d(x=np.array(alt), y=np.array(thick), assume_sorted=True)
+    thickness_to_alt = interp1d(x=np.array(thick), y=np.array(alt), assume_sorted=True)
 
     return alt_to_thickness, thickness_to_alt
 

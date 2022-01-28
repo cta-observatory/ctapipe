@@ -129,8 +129,9 @@ class HillasIntersection(Reconstructor):
             )
         except (TooFewTelescopesException, InvalidWidthException):
             result = ReconstructedGeometryContainer()
-
-        event.dl2.stereo.geometry["HillasIntersection"] = result
+            
+        if result is not None:
+            event.dl2.stereo.geometry["HillasIntersection"] = result
 
     def predict(self, hillas_dict, subarray, array_pointing, telescopes_pointings=None):
         """
@@ -193,7 +194,7 @@ class HillasIntersection(Reconstructor):
             tel_id: tilt_coord.y[tel_index]
             for tel_id, tel_index in zip(tel_ids, tel_indices)
         }
-
+        
         nom_frame = NominalFrame(origin=array_pointing)
 
         hillas_dict_mod = {}
@@ -235,11 +236,14 @@ class HillasIntersection(Reconstructor):
 
         err_fov_lon *= u.rad
         err_fov_lat *= u.rad
-
-        nom = SkyCoord(
-            fov_lon=src_fov_lon * u.rad, fov_lat=src_fov_lat * u.rad, frame=nom_frame
-        )
-        sky_pos = nom.transform_to(array_pointing.frame)
+        
+        try:
+            nom = SkyCoord(
+                fov_lon=src_fov_lon * u.rad, fov_lat=src_fov_lat * u.rad, frame=nom_frame
+            )
+            sky_pos = nom.transform_to(array_pointing.frame)
+        except ValueError:
+            return None
 
         tilt = SkyCoord(x=core_x * u.m, y=core_y * u.m, frame=tilted_frame)
         grd = project_to_ground(tilt)

@@ -12,7 +12,19 @@ import numpy as np
 from scipy.spatial import Delaunay
 from scipy.ndimage import map_coordinates
 import numpy.ma as ma
+import numba
 
+@numba.jit(nopython=True)
+def _get_array(vals, point_num):
+    output = np.zeros((point_num.shape[0], vals.shape[1], vals.shape[2]))
+    shape = output.shape
+
+    for i in range(shape[0]):
+        for j in range(shape[1]):
+            for k in range(shape[2]):
+                output[i][j][k] = vals[point_num[i]][j][k]
+
+    return output
 
 class UnstructuredInterpolator:
     """
@@ -69,8 +81,17 @@ class UnstructuredInterpolator:
 
         self._remember = remember_last
         self.reset()
+        bounds = np.array(bounds, dtype=dtype)
         self._bounds = bounds
-
+        
+        scale = []
+        table_shape = self.values[0].shape
+        for i in range(bounds.shape[0]):
+            scale_dimemsion = bounds[i][1] - bounds[i][0]
+            scale_dimemsion = scale_dimemsion/float(table_shape[i]-1)
+            scale.append(scale_dimemsion)
+        self.scale = np.array(scale, dtype=dtype)
+        
     def reset(self):
         """
         Function used to reset some class values stored after previous event
@@ -78,11 +99,13 @@ class UnstructuredInterpolator:
         self._previous_v = None
         self._previous_m = None
         self._previous_shape = None
+        self._previous_hull = None
 
     def __call__(self, points, eval_points=None):
 
         # Convert to a numpy array here incase we get a list
-        points = np.array(points)
+        points = np.array(points, dtype=self._bounds.dtype)
+        eval_points = eval_points.astype(self._bounds.dtype)
 
         if len(points.shape) == 1:
             points = np.array([points])
@@ -92,7 +115,11 @@ class UnstructuredInterpolator:
         if self._remember and self._previous_v is not None:
 
             previous_keys = self.keys[self._previous_v.ravel()]
-            hull = Delaunay(previous_keys)
+            if self._previous_hull is None:
+                hull = Delaunay(previous_keys)
+                self._previous_hull = hull
+            else:
+                hull = self._previous_hull
 
             if np.all(eval_points is not None):
                 shape_check = eval_points.shape == self._previous_shape
@@ -108,6 +135,8 @@ class UnstructuredInterpolator:
                 m = self._tri.transform[s]
                 self._previous_v = v
                 self._previous_m = m
+                self._previous_hull = None
+
                 if np.all(eval_points is not None):
                     self._previous_shape = eval_points.shape
         else:
@@ -165,7 +194,6 @@ class UnstructuredInterpolator:
         -------
         ndarray: output from member function
         """
-
         outputs = list()
         shape = point_num.shape
 
@@ -194,54 +222,65 @@ class UnstructuredInterpolator:
 
         return outputs
 
+#    @numba.jit(nopython=True)
+#    def _get_array(self, vals, point_num, output, shape):
+    
+#        output = np.zeros((point_num.shape[0], vals.shape[1], vals.shape[2]))
+#        shape = output.shape
+
+#        for i in range(shape[0]):
+#            for j in range(shape[1]):
+#                for k in range(shape[2]):
+#                    output[i][j][k] = vals[point_num[i]][j][k]
+    
+#        return output
+
     def _numpy_interpolation(self, point_num, eval_points):
         """
         Parameters
         ----------
         point_num: int
-            Index of class position in values list
+        Index of class position in values list
         eval_points: ndarray
-            Inputs used to evaluate class member function
+        Inputs used to evaluate class member function
         Returns
         -------
         ndarray: output from member function
         """
         is_masked = ma.is_masked(eval_points)
-
+        
         shape = point_num.shape
         ev_shape = eval_points.shape
-
+#        vals = _get_array(self.values, point_num.ravel())#values[point_num.ravel()]
         vals = self.values[point_num.ravel()]
         eval_points = np.repeat(eval_points, shape[1], axis=0)
         it = np.arange(eval_points.shape[0])
 
         it = np.repeat(it, eval_points.shape[1], axis=0)
-
+        
         eval_points = eval_points.reshape(
             eval_points.shape[0] * eval_points.shape[1], eval_points.shape[-1]
         )
-
         scaled_points = eval_points.T
         if is_masked:
             mask = np.invert(ma.getmask(scaled_points[0]))
         else:
-            mask = np.ones_like(scaled_points[0], dtype=bool)
+            mask = np.zeros_like(scaled_points[0], dtype=bool)
 
         it = ma.masked_array(it, mask)
-        scaled_points[0] = (
-            (scaled_points[0] - (self._bounds[0][0]))
-            / (self._bounds[0][1] - self._bounds[0][0])
-        ) * (vals.shape[-2])# - 1)
-        scaled_points[1] += (
-            (scaled_points[1] - (self._bounds[1][0]))
-            / (self._bounds[1][1] - self._bounds[1][0])
-        ) * (vals.shape[-1])# - 1)
+    
+        if not is_masked:
+            mask = ~mask
+
+        scaled_points[0] = (scaled_points[0] - self._bounds[0][0]) / self.scale[0]
+        scaled_points[1] = (scaled_points[1] - self._bounds[1][0]) / self.scale[1]
         scaled_points = np.vstack((it, scaled_points))
+        scaled_points = scaled_points.astype(self.values.dtype)
 
         output = np.zeros(scaled_points.T.shape[:-1])
-        output[mask] = map_coordinates(vals, scaled_points.T[mask].T, order=1)
-
+        output = map_coordinates(vals, scaled_points, order=1, output=self.values.dtype)
+        
         new_shape = (*shape, ev_shape[-2])
         output = output.reshape(new_shape)
-
-        return ma.masked_array(output, mask=mask)
+        
+        return ma.masked_array(output, mask=mask, dtype=self.values.dtype)
