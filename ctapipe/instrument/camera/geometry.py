@@ -618,13 +618,14 @@ class CameraGeometry:
     def __repr__(self):
         return (
             "CameraGeometry(camera_name='{camera_name}', pix_type={pix_type!r}, "
-            "npix={npix}, cam_rot={camrot}, pix_rot={pixrot})"
+            "npix={npix}, cam_rot={camrot}, pix_rot={pixrot}, frame={frame})"
         ).format(
             camera_name=self.camera_name,
             pix_type=self.pix_type,
             npix=len(self.pix_id),
             pixrot=self.pix_rotation,
             camrot=self.cam_rotation,
+            frame=self.frame.__class__.__name__ if self.frame is not None else "None",
         )
 
     def __str__(self):
