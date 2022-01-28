@@ -625,7 +625,7 @@ class CameraGeometry:
             npix=len(self.pix_id),
             pixrot=self.pix_rotation,
             camrot=self.cam_rotation,
-            frame=self.frame.__class__.__name__ if self.frame is not None else "None",
+            frame=self.frame if self.frame is not None else "None",
         )
 
     def __str__(self):
