@@ -63,60 +63,6 @@ def test_muon_reconstruction_dl1(tmp_path, dl1_muon_file):
     assert run_tool(MuonAnalysis(), ["--help-all"]) == 0
 
 
-def test_display_summed_images(tmp_path):
-    from ctapipe.tools.display_summed_images import ImageSumDisplayerTool
-
-    mpl.use("Agg")
-    assert (
-        run_tool(
-            ImageSumDisplayerTool(),
-            argv=[f"--infile={GAMMA_TEST_LARGE}", "--max-events=2"],
-            cwd=tmp_path,
-        )
-        == 0
-    )
-
-    assert run_tool(ImageSumDisplayerTool(), ["--help-all"]) == 0
-
-
-def test_display_integrator(tmp_path):
-    from ctapipe.tools.display_integrator import DisplayIntegrator
-
-    mpl.use("Agg")
-
-    assert (
-        run_tool(
-            DisplayIntegrator(),
-            argv=[f"--input={GAMMA_TEST_LARGE}", "--max-events=1"],
-            cwd=tmp_path,
-        )
-        == 0
-    )
-
-    assert run_tool(DisplayIntegrator(), ["--help-all"]) == 0
-
-
-def test_display_events_single_tel(tmp_path):
-    from ctapipe.tools.display_events_single_tel import SingleTelEventDisplay
-
-    mpl.use("Agg")
-
-    assert (
-        run_tool(
-            SingleTelEventDisplay(),
-            argv=[
-                f"--input={GAMMA_TEST_LARGE}",
-                "--tel=11",
-                "--max-events=2",  # <--- inconsistent!!!
-            ],
-            cwd=tmp_path,
-        )
-        == 0
-    )
-
-    assert run_tool(SingleTelEventDisplay(), ["--help-all"]) == 0
-
-
 def test_display_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
     from ctapipe.tools.display_dl1 import DisplayDL1Calib
 
@@ -209,19 +155,6 @@ def test_dump_instrument(tmp_path):
     assert (tmp_path / "subarray.h5").exists()
 
     assert run_tool(tool, ["--help-all"], cwd=tmp_path) == 0
-
-
-def test_camdemo(tmp_path):
-    from ctapipe.tools.camdemo import CameraDemo
-
-    sys.argv = ["camera_demo"]
-    tool = CameraDemo()
-    tool.num_events = 10
-    tool.cleanframes = 2
-    tool.display = False
-
-    assert run_tool(tool, cwd=tmp_path) == 0
-    assert run_tool(tool, ["--help-all"]) == 0
 
 
 def test_bokeh_file_viewer(tmp_path):
