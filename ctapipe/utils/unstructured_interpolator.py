@@ -14,18 +14,6 @@ from scipy.ndimage import map_coordinates
 import numpy.ma as ma
 import numba
 
-@numba.jit(nopython=True)
-def _get_array(vals, point_num):
-    output = np.zeros((point_num.shape[0], vals.shape[1], vals.shape[2]))
-    shape = output.shape
-
-    for i in range(shape[0]):
-        for j in range(shape[1]):
-            for k in range(shape[2]):
-                output[i][j][k] = vals[point_num[i]][j][k]
-
-    return output
-
 class UnstructuredInterpolator:
     """
     This class performs linear interpolation between an unstructured set of data
@@ -102,7 +90,6 @@ class UnstructuredInterpolator:
         self._previous_hull = None
 
     def __call__(self, points, eval_points=None):
-
         # Convert to a numpy array here incase we get a list
         points = np.array(points, dtype=self._bounds.dtype)
         eval_points = eval_points.astype(self._bounds.dtype)
@@ -222,19 +209,6 @@ class UnstructuredInterpolator:
 
         return outputs
 
-#    @numba.jit(nopython=True)
-#    def _get_array(self, vals, point_num, output, shape):
-    
-#        output = np.zeros((point_num.shape[0], vals.shape[1], vals.shape[2]))
-#        shape = output.shape
-
-#        for i in range(shape[0]):
-#            for j in range(shape[1]):
-#                for k in range(shape[2]):
-#                    output[i][j][k] = vals[point_num[i]][j][k]
-    
-#        return output
-
     def _numpy_interpolation(self, point_num, eval_points):
         """
         Parameters
@@ -248,16 +222,21 @@ class UnstructuredInterpolator:
         ndarray: output from member function
         """
         is_masked = ma.is_masked(eval_points)
-        
+        #print(is_masked)
+
         shape = point_num.shape
         ev_shape = eval_points.shape
-#        vals = _get_array(self.values, point_num.ravel())#values[point_num.ravel()]
         vals = self.values[point_num.ravel()]
+
+        scaled_points = eval_points.T
+        scaled_points[0] = (scaled_points[0] - self._bounds[0][0]) / self.scale[0]
+        scaled_points[1] = (scaled_points[1] - self._bounds[1][0]) / self.scale[1]
+        eval_points = scaled_points.T
+
         eval_points = np.repeat(eval_points, shape[1], axis=0)
         it = np.arange(eval_points.shape[0])
-
         it = np.repeat(it, eval_points.shape[1], axis=0)
-        
+
         eval_points = eval_points.reshape(
             eval_points.shape[0] * eval_points.shape[1], eval_points.shape[-1]
         )
@@ -267,13 +246,14 @@ class UnstructuredInterpolator:
         else:
             mask = np.zeros_like(scaled_points[0], dtype=bool)
 
+        #print(mask.shape, eval_points.shape)
         it = ma.masked_array(it, mask)
     
         if not is_masked:
             mask = ~mask
 
-        scaled_points[0] = (scaled_points[0] - self._bounds[0][0]) / self.scale[0]
-        scaled_points[1] = (scaled_points[1] - self._bounds[1][0]) / self.scale[1]
+        #scaled_points[0] = (scaled_points[0] - self._bounds[0][0]) / self.scale[0]
+        #scaled_points[1] = (scaled_points[1] - self._bounds[1][0]) / self.scale[1]
         scaled_points = np.vstack((it, scaled_points))
         scaled_points = scaled_points.astype(self.values.dtype)
 
@@ -282,5 +262,5 @@ class UnstructuredInterpolator:
         
         new_shape = (*shape, ev_shape[-2])
         output = output.reshape(new_shape)
-        
+
         return ma.masked_array(output, mask=mask, dtype=self.values.dtype)

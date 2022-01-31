@@ -867,7 +867,7 @@ class ImPACTReconstructor(Reconstructor):
         if energy_preminimisation:
             likelihood = 1e9
             # Try a few different seed energies to be sure we get the right one
-            for seed_energy in [0.03, 0.1, 1, 10, 100]:
+            for seed_energy in  [0.1, 1, 10]:#[0.03, 0.1, 1, 10, 100]:
                 self.min = Minuit(
                     self.get_likelihood,
                     source_x=params[0],source_y=params[1],
@@ -887,7 +887,7 @@ class ImPACTReconstructor(Reconstructor):
                 self.min.tol *= 1000
                 self.min.strategy = 0
 
-                migrad = self.min.migrad(iterate=1)
+                migrad = self.min.simplex(20)
 
                 # Only use if our value is better that the previous ones
                 if migrad.fval < likelihood and self.min.values["energy"]>0.01: 
@@ -930,6 +930,8 @@ class ImPACTReconstructor(Reconstructor):
         migrad = self.min.migrad(iterate=1)
         fit_params = self.min.values
         errors = self.min.errors
+        print(migrad)
+
         return (
             (
                 fit_params["source_x"], fit_params["source_y"],
