@@ -146,7 +146,8 @@ def test_dump_instrument(tmp_path):
         run_tool(tool, [f"--input={GAMMA_TEST_LARGE}", "--format=ecsv"], cwd=tmp_path)
         == 0
     )
-    assert (tmp_path / "MonteCarloArray.optics.ecsv.txt").exists()
+
+    assert (tmp_path / "MonteCarloArray.optics.ecsv").exists()
 
     assert (
         run_tool(tool, [f"--input={GAMMA_TEST_LARGE}", "--format=hdf5"], cwd=tmp_path)
