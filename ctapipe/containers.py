@@ -493,6 +493,9 @@ class SimulatedCameraContainer(Container):
 
     container_prefix = ""
 
+    true_image_sum = Field(
+        np.nan, "Sum of the detected Cherenkov photons in the camera"
+    )
     true_image = Field(
         None,
         "Numpy array of camera image in PE as simulated before noise has been added. "

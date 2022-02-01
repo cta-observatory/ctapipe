@@ -430,7 +430,7 @@ def test_Two_pass_window_sum_no_noise(subarray_1_LST):
         true_time[signal_pixels & integration_window_inside],
         rtol=0.15,
     )
-    assert is_valid == True
+    assert is_valid is True
 
     # Test also the 2nd pass
     extractor.disable_second_pass = False
@@ -527,3 +527,42 @@ def test_dtype(Extractor, subarray):
     charge, peak_time, is_valid = extractor(waveforms, tel_id, selected_gain_channel)
     assert charge.dtype == np.float32
     assert peak_time.dtype == np.float32
+
+
+def test_global_peak_window_sum_with_pixel_fraction(subarray):
+    from ctapipe.image.extractor import GlobalPeakWindowSum
+
+    tel_id = 1
+    camera = subarray.tel[tel_id].camera
+    sample_rate = camera.readout.sampling_rate.to_value(u.ns ** -1)
+    n_pixels = camera.geometry.n_pixels
+    selected_gain_channel = np.zeros(n_pixels, dtype=np.uint8)
+
+    bright_pixels = np.zeros(n_pixels, dtype=bool)
+    bright_pixels[np.random.choice(n_pixels, size=int(0.1 * n_pixels))] = True
+
+    # signal in dim pixels is in slice 10, signal in bright pixels is in slice 30
+    waveforms = np.zeros((n_pixels, 50), dtype="float64")
+    waveforms[~bright_pixels, 9] = 3
+    waveforms[~bright_pixels, 10] = 5
+    waveforms[~bright_pixels, 11] = 2
+    waveforms[bright_pixels, 29] = 5
+    waveforms[bright_pixels, 30] = 10
+    waveforms[bright_pixels, 31] = 3
+
+    extractor = GlobalPeakWindowSum(
+        subarray=subarray,
+        window_width=8,
+        window_shift=4,
+        pixel_fraction=0.05,
+        apply_integration_correction=False,
+    )
+
+    charge, peak_time, is_valid = extractor(waveforms, tel_id, selected_gain_channel)
+
+    assert is_valid
+    assert np.allclose(charge[bright_pixels], 18)
+    assert np.allclose(charge[~bright_pixels], 0)
+
+    expected = np.average([29, 30, 31], weights=[5, 10, 3])
+    assert np.allclose(peak_time[bright_pixels], expected / sample_rate)

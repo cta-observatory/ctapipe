@@ -107,7 +107,7 @@ class HillasPlane:
         to the camera.
 
         Parameters
-        -----------
+        ----------
         p1: astropy.coordinates.SkyCoord
             One of two direction vectors which define the plane.
             This coordinate has to be defined in the ctapipe.coordinates.AltAz

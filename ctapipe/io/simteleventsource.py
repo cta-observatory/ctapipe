@@ -299,6 +299,8 @@ class SimTelEventSource(EventSource):
         tel_descriptions = {}  # tel_id : TelescopeDescription
         tel_positions = {}  # tel_id : TelescopeDescription
 
+        self.telescope_indices_original = {}
+
         for tel_id, telescope_description in telescope_descriptions.items():
             cam_settings = telescope_description["camera_settings"]
             pixel_settings = telescope_description["pixel_settings"]
@@ -347,6 +349,7 @@ class SimTelEventSource(EventSource):
             )
 
             tel_idx = np.where(header["tel_id"] == tel_id)[0][0]
+            self.telescope_indices_original[tel_id] = tel_idx
             tel_positions[tel_id] = header["tel_pos"][tel_idx] * u.m
 
         subarray = SubarrayDescription(
@@ -355,8 +358,11 @@ class SimTelEventSource(EventSource):
             tel_descriptions=tel_descriptions,
         )
 
+        self.n_telescopes_original = len(subarray)
+
         if self.allowed_tels:
             subarray = subarray.select_subarray(self.allowed_tels)
+
         return subarray
 
     @staticmethod
@@ -416,6 +422,10 @@ class SimTelEventSource(EventSource):
             telescope_events = array_event["telescope_events"]
             tracking_positions = array_event["tracking_positions"]
 
+            true_image_sums = array_event.get("photoelectron_sums", {}).get(
+                "n_pe", np.full(self.n_telescopes_original, np.nan)
+            )
+
             for tel_id, telescope_event in telescope_events.items():
                 adc_samples = telescope_event.get("adc_samples")
                 if adc_samples is None:
@@ -429,7 +439,10 @@ class SimTelEventSource(EventSource):
                 )
 
                 data.simulation.tel[tel_id] = SimulatedCameraContainer(
-                    true_image=true_image
+                    true_image_sum=true_image_sums[
+                        self.telescope_indices_original[tel_id]
+                    ],
+                    true_image=true_image,
                 )
 
                 data.pointing.tel[tel_id] = self._fill_event_pointing(

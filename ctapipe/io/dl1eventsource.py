@@ -46,6 +46,7 @@ COMPATIBLE_DL1_VERSIONS = [
     "v1.2.0",
     "v2.0.0",
     "v2.1.0",
+    "v2.2.0",
 ]
 
 
