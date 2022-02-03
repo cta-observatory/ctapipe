@@ -318,7 +318,10 @@ class DataWriter(Component):
             data_levels.append(DataLevel.DL1_PARAMETERS)
         if self.write_stereo_shower or self.write_mono_shower:
             data_levels.append(DataLevel.DL2)
-
+        if self.write_raw_waveforms:
+            data_levels.append(DataLevel.R0)
+        if self.write_waveforms:
+            data_levels.append(DataLevel.R1)
         return data_levels
 
     def _setup_compression(self):
