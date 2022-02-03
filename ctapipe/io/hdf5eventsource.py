@@ -52,6 +52,22 @@ COMPATIBLE_DL1_VERSIONS = [
 ]
 
 
+def get_hdf5_datalevels(h5file):
+    """Get the data levels present in the hdf5 file"""
+    datalevels = []
+
+    if "/r1/event/telescope" in h5file.root:
+        datalevels.append(DataLevel.R1)
+
+    if "/dl1/event/telescope/images" in h5file.root:
+        datalevels.append(DataLevel.DL1_IMAGES)
+
+    if "/dl1/event/telescope/parameters" in h5file.root:
+        datalevels.append(DataLevel.DL1_PARAMETERS)
+
+    return tuple(datalevels)
+
+
 class HDF5EventSource(EventSource):
     """
     Event source for files in the ctapipe DL1 format.
@@ -183,18 +199,7 @@ class HDF5EventSource(EventSource):
 
     @lazyproperty
     def datalevels(self):
-        datalevels = []
-
-        if "/r1/event/telescope" in self.file_.root:
-            datalevels.append(DataLevel.R1)
-
-        if "/dl1/event/telescope/images" in self.file_.root:
-            datalevels.append(DataLevel.DL1_IMAGES)
-
-        if "/dl1/event/telescope/parameters" in self.file_.root:
-            datalevels.append(DataLevel.DL1_PARAMETERS)
-
-        return tuple(datalevels)
+        return get_hdf5_datalevels(self.file_)
 
     @lazyproperty
     def obs_ids(self):

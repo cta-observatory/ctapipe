@@ -11,7 +11,7 @@ import tables
 import numpy as np
 from tqdm.auto import tqdm
 
-from ..io import metadata as meta, HDF5EventSource
+from ..io import metadata as meta, HDF5EventSource, get_hdf5_datalevels
 from ..io import HDF5TableWriter
 from ..core import Provenance, Tool, traits
 from ..core.traits import Bool, Set, Unicode, flag, CInt
@@ -425,7 +425,9 @@ class MergeTool(Tool):
         )
 
     def finish(self):
+        datalevels = [d.name for d in get_hdf5_datalevels(self.output_file)]
         self.output_file.close()
+
         activity = PROV.current_activity.provenance
         process_type_ = "Observation"
         if self.is_simulation is True:
@@ -436,7 +438,7 @@ class MergeTool(Tool):
             product=meta.Product(
                 description="Merged DL1 Data Product",
                 data_category="Sim",  # TODO: copy this from the inputs
-                data_level=["DL1"],  # TODO: copy this from inputs
+                data_level=datalevels,
                 data_association="Subarray",
                 data_model_name="ASWG",  # TODO: copy this from inputs
                 data_model_version=self.data_model_version,
