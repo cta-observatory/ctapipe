@@ -11,7 +11,7 @@ import tables
 import numpy as np
 from tqdm.auto import tqdm
 
-from ..io import metadata as meta, DL1EventSource
+from ..io import metadata as meta, HDF5EventSource
 from ..io import HDF5TableWriter
 from ..core import Provenance, Tool, traits
 from ..core.traits import Bool, Set, Unicode, flag, CInt
@@ -382,7 +382,7 @@ class MergeTool(Tool):
             )
         ):
 
-            if not DL1EventSource.is_compatible(current_file):
+            if not HDF5EventSource.is_compatible(current_file):
                 self.log.critical(
                     f"input file {current_file} is not a supported DL1 file"
                 )
