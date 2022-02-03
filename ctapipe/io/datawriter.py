@@ -431,7 +431,7 @@ class DataWriter(Component):
                 scale=self.waveform_scale,
                 offset=self.waveform_offset,
                 source_dtype=np.float32,
-                target_dtype=np.dtype(self.image_dtype),
+                target_dtype=np.dtype(self.waveform_dtype),
             )
             writer.add_column_transform_regexp(
                 "r1/event/telescope/.*", "waveform", transform
