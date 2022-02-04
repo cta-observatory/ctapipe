@@ -25,14 +25,15 @@ from .cleaning import (
     TailcutsImageCleaner,
 )
 from .pixel_likelihood import (
-    neg_log_likelihood_approx,
-    neg_log_likelihood_numeric,
-    neg_log_likelihood,
+    poisson_likelihood_gaussian,
+    poisson_likelihood_full,
+    poisson_likelihood,
     mean_poisson_likelihood_gaussian,
     mean_poisson_likelihood_full,
     PixelLikelihoodError,
     chi_squared,
 )
+
 from .extractor import (
     ImageExtractor,
     FullWaveformSum,
@@ -61,7 +62,6 @@ from .muon import (
 )
 from .image_processor import ImageProcessor
 
-
 __all__ = [
     "ImageProcessor",
     "hillas_parameters",
@@ -83,9 +83,9 @@ __all__ = [
     "apply_time_delta_cleaning",
     "ImageCleaner",
     "TailcutsImageCleaner",
-    "neg_log_likelihood_approx",
-    "neg_log_likelihood_numeric",
-    "neg_log_likelihood",
+    "poisson_likelihood_gaussian",
+    "poisson_likelihood_full",
+    "poisson_likelihood",
     "mean_poisson_likelihood_gaussian",
     "mean_poisson_likelihood_full",
     "PixelLikelihoodError",
