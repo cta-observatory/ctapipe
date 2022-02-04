@@ -12,7 +12,6 @@ import numpy as np
 from scipy.spatial import Delaunay
 from scipy.ndimage import map_coordinates
 import numpy.ma as ma
-import numba
 
 class UnstructuredInterpolator:
     """
@@ -76,7 +75,7 @@ class UnstructuredInterpolator:
         table_shape = self.values[0].shape
         for i in range(bounds.shape[0]):
             scale_dimemsion = bounds[i][1] - bounds[i][0]
-            scale_dimemsion = scale_dimemsion/float(table_shape[i]-1)
+            scale_dimemsion = scale_dimemsion/float(table_shape[i])
             scale.append(scale_dimemsion)
         self.scale = np.array(scale, dtype=dtype)
         
@@ -88,11 +87,13 @@ class UnstructuredInterpolator:
         self._previous_m = None
         self._previous_shape = None
         self._previous_hull = None
+        self._previous_points = None
 
     def __call__(self, points, eval_points=None):
         # Convert to a numpy array here incase we get a list
         points = np.array(points, dtype=self._bounds.dtype)
-        eval_points = eval_points.astype(self._bounds.dtype)
+        if eval_points is not None:
+            eval_points = eval_points.astype(self._bounds.dtype)
 
         if len(points.shape) == 1:
             points = np.array([points])
@@ -100,32 +101,38 @@ class UnstructuredInterpolator:
         # First find simplexes that contain interpolated points
         # In
         if self._remember and self._previous_v is not None:
-
-            previous_keys = self.keys[self._previous_v.ravel()]
-            if self._previous_hull is None:
-                hull = Delaunay(previous_keys)
-                self._previous_hull = hull
-            else:
-                hull = self._previous_hull
-
-            if np.all(eval_points is not None):
-                shape_check = eval_points.shape == self._previous_shape
-            else:
-                shape_check = True
-
-            if np.all(hull.find_simplex(points) >= 0) and shape_check:
+            #print(points, self._previous_points, np.all(points == self._previous_points))
+            if np.all(points == self._previous_points):
                 v = self._previous_v
                 m = self._previous_m
             else:
-                s = self._tri.find_simplex(points)
-                v = self._tri.vertices[s]
-                m = self._tri.transform[s]
-                self._previous_v = v
-                self._previous_m = m
-                self._previous_hull = None
+                previous_keys = self.keys[self._previous_v.ravel()]
+                self._previous_points = points
+
+                if self._previous_hull is None:
+                    hull = Delaunay(previous_keys)
+                    self._previous_hull = hull
+                else:
+                    hull = self._previous_hull
 
                 if np.all(eval_points is not None):
-                    self._previous_shape = eval_points.shape
+                    shape_check = eval_points.shape == self._previous_shape
+                else:
+                    shape_check = True
+
+                if np.all(hull.find_simplex(points) >= 0) and shape_check:
+                    v = self._previous_v
+                    m = self._previous_m
+                else:
+                    s = self._tri.find_simplex(points)
+                    v = self._tri.vertices[s]
+                    m = self._tri.transform[s]
+                    self._previous_v = v
+                    self._previous_m = m
+                    self._previous_hull = None
+
+                    if np.all(eval_points is not None):
+                        self._previous_shape = eval_points.shape
         else:
             s = self._tri.find_simplex(points)
             # get the vertices for each simplex
@@ -134,6 +141,7 @@ class UnstructuredInterpolator:
             m = self._tri.transform[s]
             self._previous_v = v
             self._previous_m = m
+            self._previous_points = points
             if np.all(eval_points is not None):
                 self._previous_shape = eval_points.shape
 
@@ -222,7 +230,6 @@ class UnstructuredInterpolator:
         ndarray: output from member function
         """
         is_masked = ma.is_masked(eval_points)
-        #print(is_masked)
 
         shape = point_num.shape
         ev_shape = eval_points.shape
@@ -234,19 +241,20 @@ class UnstructuredInterpolator:
         eval_points = scaled_points.T
 
         eval_points = np.repeat(eval_points, shape[1], axis=0)
+
         it = np.arange(eval_points.shape[0])
         it = np.repeat(it, eval_points.shape[1], axis=0)
 
         eval_points = eval_points.reshape(
             eval_points.shape[0] * eval_points.shape[1], eval_points.shape[-1]
         )
+
         scaled_points = eval_points.T
         if is_masked:
             mask = np.invert(ma.getmask(scaled_points[0]))
         else:
             mask = np.zeros_like(scaled_points[0], dtype=bool)
 
-        #print(mask.shape, eval_points.shape)
         it = ma.masked_array(it, mask)
     
         if not is_masked:
