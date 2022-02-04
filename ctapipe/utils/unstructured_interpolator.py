@@ -5,6 +5,7 @@ perform interpolation between the results of a member function of that class. Cu
 the name of the target interpolation function is passed in a string at initialisation.
 TODO:
 - Figure out what to do when out of bounds of interpolation range
+- Implement for higher dimensions
 - Create function to append points to the interpolator
 """
 
@@ -67,10 +68,11 @@ class UnstructuredInterpolator:
             self._function_name = "__call__"
 
         self._remember = remember_last
-        self.reset()
         bounds = np.array(bounds, dtype=dtype)
         self._bounds = bounds
         
+        # Calculate the scaling factor to convert from bin number to real 
+        # coordinates for all axes
         scale = []
         table_shape = self.values[0].shape
         for i in range(bounds.shape[0]):
@@ -79,9 +81,18 @@ class UnstructuredInterpolator:
             scale.append(scale_dimemsion)
         self.scale = np.array(scale, dtype=dtype)
         
+        self._previous_v = None
+        self._previous_m = None
+        self._previous_shape = None
+        self._previous_hull = None
+        self._previous_points = None
+        self.reset()
+
+
     def reset(self):
         """
-        Function used to reset some class values stored after previous event
+        Function used to reset some class values stored after previous event,
+        also used as their initialisation in the init function
         """
         self._previous_v = None
         self._previous_m = None
@@ -99,13 +110,19 @@ class UnstructuredInterpolator:
             points = np.array([points])
 
         # First find simplexes that contain interpolated points
-        # In
+
         if self._remember and self._previous_v is not None:
-            #print(points, self._previous_points, np.all(points == self._previous_points))
+            # We have a few different options here in the case that the points we get are similar
+            # to the last set given
+
+            # Our first check is if the interpolation points are exactly the same
+            # in this case just use the previous set of vertices
             if np.all(points == self._previous_points):
                 v = self._previous_v
                 m = self._previous_m
             else:
+                # If not we can check if our point set exists within the previous
+                # simplax
                 previous_keys = self.keys[self._previous_v.ravel()]
                 self._previous_points = points
 
@@ -119,10 +136,12 @@ class UnstructuredInterpolator:
                     shape_check = eval_points.shape == self._previous_shape
                 else:
                     shape_check = True
-
+                
+                # If it does then we can use this simplex
                 if np.all(hull.find_simplex(points) >= 0) and shape_check:
                     v = self._previous_v
                     m = self._previous_m
+                # If not we have to search through our point space
                 else:
                     s = self._tri.find_simplex(points)
                     v = self._tri.vertices[s]
@@ -133,6 +152,7 @@ class UnstructuredInterpolator:
 
                     if np.all(eval_points is not None):
                         self._previous_shape = eval_points.shape
+        # If remember last is disabled we search our point space for every attempt
         else:
             s = self._tri.find_simplex(points)
             # get the vertices for each simplex
@@ -219,6 +239,8 @@ class UnstructuredInterpolator:
 
     def _numpy_interpolation(self, point_num, eval_points):
         """
+        Perform 2D interpolation of numpy array
+
         Parameters
         ----------
         point_num: int
@@ -229,19 +251,25 @@ class UnstructuredInterpolator:
         -------
         ndarray: output from member function
         """
-        is_masked = ma.is_masked(eval_points)
 
+        # Check if our array is masked and remember its shape
+        is_masked = ma.is_masked(eval_points)
         shape = point_num.shape
+
+        # Get the list of templates that we want to interpolate between
         ev_shape = eval_points.shape
         vals = self.values[point_num.ravel()]
-
+        
+        # Scale the template x and y axes to convert into bin coordinates
         scaled_points = eval_points.T
         scaled_points[0] = (scaled_points[0] - self._bounds[0][0]) / self.scale[0]
         scaled_points[1] = (scaled_points[1] - self._bounds[1][0]) / self.scale[1]
         eval_points = scaled_points.T
-
+        
+        #This gets a bit ugly now but the general logic is...
+        # for each point in the phase space repeat the x-y points by the number
+        # of points which define the simplex
         eval_points = np.repeat(eval_points, shape[1], axis=0)
-
         it = np.arange(eval_points.shape[0])
         it = np.repeat(it, eval_points.shape[1], axis=0)
 
@@ -249,6 +277,7 @@ class UnstructuredInterpolator:
             eval_points.shape[0] * eval_points.shape[1], eval_points.shape[-1]
         )
 
+        # Make a mask to be sure masked array values are not included
         scaled_points = eval_points.T
         if is_masked:
             mask = np.invert(ma.getmask(scaled_points[0]))
@@ -260,8 +289,7 @@ class UnstructuredInterpolator:
         if not is_masked:
             mask = ~mask
 
-        #scaled_points[0] = (scaled_points[0] - self._bounds[0][0]) / self.scale[0]
-        #scaled_points[1] = (scaled_points[1] - self._bounds[1][0]) / self.scale[1]
+        # Then stack up all the templates and do a 3d interpolation of points in all templates
         scaled_points = np.vstack((it, scaled_points))
         scaled_points = scaled_points.astype(self.values.dtype)
 
@@ -270,5 +298,6 @@ class UnstructuredInterpolator:
         
         new_shape = (*shape, ev_shape[-2])
         output = output.reshape(new_shape)
-
+        
+        # Return a masked array of interpolated values
         return ma.masked_array(output, mask=mask, dtype=self.values.dtype)
