@@ -33,7 +33,8 @@ from ctapipe.utils.template_network_interpolator import (
     DummyTimeInterpolator
 )
 from ctapipe.reco.impact_utilities import *
-from ctapipe.image.pixel_likelihood import neg_log_likelihood_approx, mean_poisson_likelihood_gaussian
+from ctapipe.image.pixel_likelihood import poisson_likelihood_gaussian, \
+    poisson_likelihood_full, mean_poisson_likelihood_gaussian, mean_poisson_likelihood_full
 from ctapipe.image.cleaning import dilate
 
 from ctapipe.core import Provenance
@@ -78,7 +79,7 @@ class ImPACTReconstructor(Reconstructor):
         "UNKNOWN-960PX": 1.,
 
     }
-    spe = 1.6  # Also hard code single p.e. distribution width
+    spe = 0.6  # Also hard code single p.e. distribution width
 
     def __init__(
         self,
@@ -187,7 +188,7 @@ class ImPACTReconstructor(Reconstructor):
             mask = event.dl1.tel[tel_id].image_mask
 
             # Dilate the images around the original cleaning to help the fit
-            for i in range(2):
+            for i in range(5):
                 mask = dilate(self.subarray.tel[tel_id].camera.geometry, mask)
             mask_dict[tel_id] = mask
 
@@ -521,15 +522,16 @@ class ImPACTReconstructor(Reconstructor):
         # Get likelihood that the prediction matched the camera image
         mask =  ma.getmask(self.image)
 
-        like = neg_log_likelihood_approx(self.image, prediction, self.spe, self.ped)
+        like = poisson_likelihood_gaussian(self.image, prediction, self.spe, self.ped)
         like[mask] = 0
 
-        like = np.sum(like)
         if goodness_of_fit:
-            like_expectation = mean_poisson_likelihood_gaussian(prediction, self.spe, self.ped)
-            like_expectation[mask] = 0
-            #print(like, np.sum(like_expectation), np.sum(np.invert(mask)))
-            return (like - np.sum(like_expectation))/np.sqrt(2 * (np.sum(np.invert(mask))-6))
+            like_expectation_gaus = mean_poisson_likelihood_gaussian(prediction, self.spe, self.ped)
+            like_expectation_gaus[mask] = 0
+            mask_shower = np.invert(mask)
+            return (np.sum(like[mask_shower] - like_expectation_gaus[mask_shower]))/np.sqrt(2 * (np.sum(mask_shower)-6))
+
+        like = np.sum(like)
 
         prior_pen = 0
         # Add prior penalities if we have them
@@ -688,8 +690,8 @@ class ImPACTReconstructor(Reconstructor):
             self.pixel_y[i][:array_len] = py[i]
             self.image[i][:array_len] = pa[i]
             self.time[i][:array_len] = pt[i]
-            self.ped[i][:array_len] = self.ped_table[self.tel_types[i]]
-            self.spe[i][:array_len] = 0.8
+            self.ped[i][:] = self.ped_table[self.tel_types[i]] 
+            self.spe[i][:] = 0.5
 
         # Set the image mask
         mask = self.image == 0.0
