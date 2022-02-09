@@ -35,7 +35,7 @@ docs_require = [
 ]
 
 setup(
-    packages=find_packages(),
+    packages=find_packages(exclude="ctapipe._dev_version"),
     python_requires=">=3.7",
     install_requires=[
         "astropy>=4.0.5,<5",
