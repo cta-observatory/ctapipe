@@ -397,18 +397,6 @@ class SimTelEventSource(EventSource):
         self._fill_array_pointing(data)
 
         for counter, array_event in enumerate(self.file_):
-
-            event_id = array_event.get("event_id", -1)
-            obs_id = self.file_.header["run"]
-            data.count = counter
-            data.index.obs_id = obs_id
-            data.index.event_id = event_id
-
-            self._fill_trigger_info(data, array_event)
-
-            if data.trigger.event_type == EventType.SUBARRAY:
-                self._fill_simulated_event_information(data, array_event)
-
             # this should be done in a nicer way to not re-allocate the
             # data each time (right now it's just deleted and garbage
             # collected)
@@ -418,6 +406,17 @@ class SimTelEventSource(EventSource):
             data.dl1.tel.clear()
             data.pointing.tel.clear()
             data.simulation.tel.clear()
+            data.trigger.tel.clear()
+
+            event_id = array_event.get("event_id", -1)
+            obs_id = self.file_.header["run"]
+            data.count = counter
+            data.index.obs_id = obs_id
+            data.index.event_id = event_id
+
+            self._fill_trigger_info(data, array_event)
+            if data.trigger.event_type == EventType.SUBARRAY:
+                self._fill_simulated_event_information(data, array_event)
 
             telescope_events = array_event["telescope_events"]
             tracking_positions = array_event["tracking_positions"]

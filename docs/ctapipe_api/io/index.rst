@@ -180,7 +180,7 @@ Reference/API
 .. automodapi:: ctapipe.io.simteleventsource
     :no-inheritance-diagram:
 
-.. automodapi:: ctapipe.io.dl1eventsource
+.. automodapi:: ctapipe.io.hdf5eventsource
     :no-inheritance-diagram:
 
 .. automodapi:: ctapipe.io.eventseeker
