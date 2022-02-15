@@ -5,6 +5,7 @@
 import math
 from string import Template
 import copy
+from time import time
 
 import numpy as np
 import numpy.ma as ma
@@ -12,6 +13,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord, AltAz
 from iminuit import Minuit
 from scipy.stats import norm
+from sklearn.feature_selection import chi2
 
 from ctapipe.coordinates import (
     CameraFrame,
@@ -36,6 +38,7 @@ from ctapipe.reco.impact_utilities import *
 from ctapipe.image.pixel_likelihood import poisson_likelihood_gaussian, \
     poisson_likelihood_full, mean_poisson_likelihood_gaussian, mean_poisson_likelihood_full
 from ctapipe.image.cleaning import dilate
+from ..fitting import lts_linear_regression
 
 from ctapipe.core import Provenance
 PROV = Provenance()
@@ -181,10 +184,11 @@ class ImPACTReconstructor(Reconstructor):
         }
 
         # Finally get the telescope images and and the selection masks
-        mask_dict, image_dict = {}, {}
+        mask_dict, image_dict, time_dict = {}, {}, {}
         for tel_id in hillas_dict.keys():
             image = event.dl1.tel[tel_id].image
             image_dict[tel_id] = image
+            time_dict[tel_id] = event.dl1.tel[tel_id].peak_time
             mask = event.dl1.tel[tel_id].image_mask
 
             # Dilate the images around the original cleaning to help the fit
@@ -197,7 +201,7 @@ class ImPACTReconstructor(Reconstructor):
         reconstructor_prediction = event.dl2.stereo.geometry#["HillasIntersection"]
         shower_result, energy_result = self.predict(hillas_dict=hillas_dict, subarray=self.subarray, 
                                                     array_pointing=array_pointing, telescope_pointings=telescope_pointings,
-                                                    image_dict=image_dict, mask_dict=mask_dict,
+                                                    image_dict=image_dict, mask_dict=mask_dict, time_dict=time_dict,
                                                     shower_seed=reconstructor_prediction)
         
         #print(energy_result.energy/event.simulation.shower.energy)
@@ -363,7 +367,7 @@ class ImPACTReconstructor(Reconstructor):
         """
         return self.prediction[tel_type](zenith, azimuth, energy, impact, x_max, pix_x, pix_y)
 
-    def predict_time(self, tel_type, energy, impact, x_max):
+    def predict_time(self, tel_type, zenith, azimuth, energy, impact, x_max):
         """Creates predicted image for the specified pixels, interpolated
         from the template library.
 
@@ -383,7 +387,8 @@ class ImPACTReconstructor(Reconstructor):
         ndarray: predicted amplitude for all pixels
 
         """
-        return self.time_prediction[tel_type](energy, impact, x_max)
+        time = self.time_prediction[tel_type](zenith, azimuth, energy, impact, x_max)
+        return time.T[0], time.T[1]
 
     def get_likelihood(
         self,
@@ -461,7 +466,7 @@ class ImPACTReconstructor(Reconstructor):
         prediction = ma.zeros(self.image.shape)
         prediction.mask = ma.getmask(self.image)
 
-        time_gradients = np.zeros((self.image.shape[0], 2))
+        time_gradients, time_gradients_uncertainty = np.zeros(self.image.shape[0]), np.zeros(self.image.shape[0])
         #print(zenith, azimuth, energy, impact, x_max_bin)
         # Loop over all telescope types and get prediction
         for tel_type in np.unique(self.tel_types).tolist():
@@ -478,46 +483,32 @@ class ImPACTReconstructor(Reconstructor):
             )
 
             if self.use_time_gradient:
-                time_gradients[type_mask] = self.predict_time(
+                tg, tgu = self.predict_time(
                     tel_type,
+                    np.rad2deg(zenith), azimuth,
                     energy * np.ones_like(impact[type_mask]),
                     impact[type_mask],
                     x_max_bin * np.ones_like(impact[type_mask]),
                 )
-
+                time_gradients[type_mask] = tg
+                time_gradients_uncertainty[type_mask] = tgu
         if self.use_time_gradient:
-            time_mask = np.logical_and(np.invert(ma.getmask(self.image)), self.time > 0)
-            weight = np.sqrt(self.image) * time_mask
-            rv = norm()
+            time_gradients_uncertainty[time_gradients_uncertainty == 0] = 1e-6
 
-            sx = pix_x_rot * weight
-            sxx = pix_x_rot * pix_x_rot * weight
-
-            sy = self.time * weight
-            sxy = self.time * pix_x_rot * weight
-            d = weight.sum(axis=1) * sxx.sum(axis=1) - sx.sum(axis=1) * sx.sum(axis=1)
-            time_fit = (
-                weight.sum(axis=1) * sxy.sum(axis=1) - sx.sum(axis=1) * sy.sum(axis=1)
-            ) / d
-            time_fit /= -1 * (180 / math.pi)
-            chi2 = -2 * np.log(
-                rv.pdf((time_fit - time_gradients.T[0]) / time_gradients.T[1])
-            )
-
+            chi2 = 0
+            for telescope_index in range(self.time.shape[0]):
+                time_mask = np.logical_and(np.invert(ma.getmask(self.image[telescope_index])), self.time[telescope_index] > 0)
+                time_mask = np.logical_and(time_mask, self.image[telescope_index]> 5)
+                if(np.sum(time_mask)>3):
+                    time_slope = lts_linear_regression(x=np.rad2deg(pix_x_rot[telescope_index][time_mask]), 
+                                                    y=self.time[telescope_index][time_mask], samples=3)[0][0]
+                    chi2_tel = (time_slope - time_gradients[telescope_index])**2 / time_gradients_uncertainty[telescope_index]
+                    chi2 += chi2_tel
         
         # Likelihood function will break if we find a NaN or a 0
         prediction[np.isnan(prediction)] = 1e-8
         prediction[prediction < 1e-8] = 1e-8
         prediction *= self.scale_factor[:, np.newaxis]
-        
-        if False:#goodness_of_fit:
-            import matplotlib.pyplot as plt
-            for i in range(prediction.shape[0]):
-                fig, (ax1, ax2) = plt.subplots(1, 2)
-                print(source_x*57.3, source_y*57.3)
-                ax1.scatter(self.pixel_y[i] * 57.3, self.pixel_x[i] * 57.3, c=self.image[i], s=100)
-                ax2.scatter(self.pixel_y[i] * 57.3, self.pixel_x[i] * 57.3, c=prediction[i], s=100)
-                plt.show()
 
         # Get likelihood that the prediction matched the camera image
         mask =  ma.getmask(self.image)
@@ -542,7 +533,7 @@ class ImPACTReconstructor(Reconstructor):
 
         final_sum = like
         if self.use_time_gradient:
-            final_sum += chi2.sum()  # * np.sum(ma.getmask(self.image))
+            final_sum += chi2  # * np.sum(ma.getmask(self.image))
 
         return final_sum
 
@@ -704,7 +695,7 @@ class ImPACTReconstructor(Reconstructor):
         self.initialise_templates(type_tel)
 
     def predict(self, hillas_dict, subarray, array_pointing, telescope_pointings=None,
-                image_dict=None, mask_dict=None, shower_seed=None, energy_seed=None):
+                image_dict=None, mask_dict=None, time_dict=None, shower_seed=None, energy_seed=None):
         """Predict method for the ImPACT reconstructor.
         Used to calculate the reconstructed ImPACT shower geometry and energy.
 
@@ -722,7 +713,7 @@ class ImPACTReconstructor(Reconstructor):
         if image_dict is None:
             raise EmptyImages("Images not passed to ImPACT reconstructor")
 
-        self.set_event_properties(copy.deepcopy(hillas_dict), image_dict, image_dict, mask_dict, subarray, array_pointing,
+        self.set_event_properties(copy.deepcopy(hillas_dict), image_dict, time_dict, mask_dict, subarray, array_pointing,
                                   telescope_pointings)
 
         self.reset_interpolator()

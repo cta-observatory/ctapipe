@@ -68,18 +68,20 @@ class UnstructuredInterpolator:
             self._function_name = "__call__"
 
         self._remember = remember_last
-        bounds = np.array(bounds, dtype=dtype)
-        self._bounds = bounds
-        
-        # Calculate the scaling factor to convert from bin number to real 
-        # coordinates for all axes
-        scale = []
-        table_shape = self.values[0].shape
-        for i in range(bounds.shape[0]):
-            scale_dimemsion = bounds[i][1] - bounds[i][0]
-            scale_dimemsion = scale_dimemsion/float(table_shape[i])
-            scale.append(scale_dimemsion)
-        self.scale = np.array(scale, dtype=dtype)
+
+        if bounds is not None:
+            bounds = np.array(bounds, dtype=dtype)
+            self._bounds = bounds
+            
+            # Calculate the scaling factor to convert from bin number to real 
+            # coordinates for all axes
+            scale = []
+            table_shape = self.values[0].shape
+            for i in range(bounds.shape[0]):
+                scale_dimemsion = bounds[i][1] - bounds[i][0]
+                scale_dimemsion = scale_dimemsion/float(table_shape[i])
+                scale.append(scale_dimemsion)
+            self.scale = np.array(scale, dtype=dtype)
         
         self._previous_v = None
         self._previous_m = None
@@ -102,9 +104,9 @@ class UnstructuredInterpolator:
 
     def __call__(self, points, eval_points=None):
         # Convert to a numpy array here incase we get a list
-        points = np.array(points, dtype=self._bounds.dtype)
+        points = np.array(points, dtype=np.float32)
         if eval_points is not None:
-            eval_points = eval_points.astype(self._bounds.dtype)
+            eval_points = eval_points.astype(np.float32)
 
         if len(points.shape) == 1:
             points = np.array([points])

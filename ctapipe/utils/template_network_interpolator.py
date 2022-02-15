@@ -317,7 +317,7 @@ class TemplateNetworkInterpolator(BaseTemplate):
         return interpolated_value
 
 
-class TimeGradientInterpolator:
+class TimeGradientInterpolator(BaseTemplate):
     """
     Class for interpolating between the time gradient predictions
     """
@@ -330,15 +330,28 @@ class TimeGradientInterpolator:
             Location of pickle file containing ImPACT NN templates
         """
 
+
+        super().__init__()
         file_list = gzip.open(template_file)
         input_dict = pickle.load(file_list)
 
         keys = np.array(list(input_dict.keys()))
         values = np.array(list(input_dict.values()), dtype=np.float32)
+        self.no_zenaz = False
 
-        self.interpolator = UnstructuredInterpolator(keys, values, remember_last=False)
+        # First check if we even have a zen and azimuth entry
+        if len(keys[0]) > 3:
+            # If we do then for the sake of speed lets
+            self._create_table_matrix(keys, values)
+        else:
+            # If not we work as before
+            self.interpolator = UnstructuredInterpolator(
+                keys, values, remember_last=True
+            )
+            self.no_zenaz = True
 
-    def __call__(self, energy, impact, xmax):
+
+    def __call__(self, zenith, azimuth, energy, impact, xmax):
         """
         Evaluate expected time gradient for a set of shower parameters and pixel positions
         Parameters
@@ -355,7 +368,14 @@ class TimeGradientInterpolator:
         """
         array = np.stack((energy, impact, xmax), axis=-1)
 
-        interpolated_value = self.interpolator(array)
+        if self.no_zenaz:
+            interpolated_value = self.interpolator(array, None)
+        else:
+            interpolated_value = self.perform_interpolation(
+                zenith, azimuth, array, None
+            )
+
+        interpolated_value = interpolated_value
 
         return interpolated_value
 
