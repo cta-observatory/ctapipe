@@ -188,7 +188,7 @@ class HDF5TableWriter(TableWriter):
             schema.columns[name] = tables.StringCol(itemsize=max_length)
 
         else:
-            raise ValueError(f"Column {name} not writable")
+            raise ValueError(f"Column {name} of type {type(value)} not writable")
 
         # add meta fields of transform
         transform = self._transforms[table_name].get(name)

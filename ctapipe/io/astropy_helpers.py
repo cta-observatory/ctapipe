@@ -76,7 +76,7 @@ def read_table(
 
         # support leaving out the leading '/' for consistency with other
         # methods
-        path = os.path.join('/', path)
+        path = os.path.join("/", path)
         table = h5file.get_node(path)
         transforms, descriptions, meta = _parse_hdf5_attrs(table)
 
@@ -148,9 +148,8 @@ def write_table(table, h5file, path, append=False, mode="a", filters=DEFAULT_FIL
 
                 table[colname] = transform(column)
 
-            # convert unicode to fixed-lenth bytes
-            # TODO use variable length strings as soon as tables supports them
-            # This also only supports asscii
+            # TODO: use variable length strings as soon as tables supports them.
+            # See PyTables/PyTables#48
             elif column.dtype.kind == "U":
                 if copied is False:
                     table = table.copy()
