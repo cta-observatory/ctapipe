@@ -947,3 +947,5 @@ class ImPACTReconstructor(Reconstructor):
         """
         for key in self.prediction:
             self.prediction[key].reset()
+        for key in self.time_prediction:
+            self.time_prediction[key].reset()
