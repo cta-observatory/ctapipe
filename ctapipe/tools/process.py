@@ -13,6 +13,8 @@ from ..image.extractor import ImageExtractor
 from ..io import DataLevel, DataWriter, EventSource, SimTelEventSource
 from ..io.datawriter import DATA_MODEL_VERSION
 from ..reco import ShowerProcessor
+from ..utils import EventTypeFilter
+
 
 COMPATIBLE_DATALEVELS = [
     DataLevel.R1,
@@ -48,10 +50,12 @@ class ProcessorTool(Tool):
     progress_bar = Bool(
         help="show progress bar during processing", default_value=False
     ).tag(config=True)
+
     force_recompute_dl1 = Bool(
         help="Enforce dl1 recomputation even if already present in the input file",
         default_value=False,
     ).tag(config=True)
+
     force_recompute_dl2 = Bool(
         help="Enforce dl2 recomputation even if already present in the input file",
         default_value=False,
@@ -136,6 +140,7 @@ class ProcessorTool(Tool):
         + classes_with_traits(ImageExtractor)
         + classes_with_traits(GainSelector)
         + classes_with_traits(QualityQuery)
+        + classes_with_traits(EventTypeFilter)
     )
 
     def setup(self):
@@ -162,6 +167,7 @@ class ProcessorTool(Tool):
             subarray=self.event_source.subarray, parent=self
         )
         self.write = DataWriter(event_source=self.event_source, parent=self)
+        self.event_type_filter = EventTypeFilter(parent=self)
 
         # warn if max_events prevents writing the histograms
         if (
@@ -187,6 +193,7 @@ class ProcessorTool(Tool):
         """returns true if we should compute DL1 info"""
         if self.force_recompute_dl1:
             return True
+
         if DataLevel.DL1_PARAMETERS in self.event_source.datalevels:
             return False
 
@@ -248,6 +255,9 @@ class ProcessorTool(Tool):
         ):
 
             self.log.debug("Processessing event_id=%s", event.index.event_id)
+
+            if not self.event_type_filter(event):
+                continue
 
             if self.should_calibrate:
                 self.calibrate(event)
