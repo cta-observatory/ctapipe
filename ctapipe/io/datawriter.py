@@ -17,6 +17,7 @@ from ..containers import (
     ArrayEventContainer,
     SimulatedShowerDistribution,
     TelEventIndexContainer,
+    MonitoringContainer,
 )
 from ..core import Component, Container, Field, Provenance, ToolConfigurationError
 from ..core.traits import Bool, CaselessStrEnum, Float, Int, Path, Unicode
@@ -287,6 +288,15 @@ class DataWriter(Component):
 
         if self.write_stereo_shower:
             self._write_dl2_stereo_event(self._writer, event)
+
+    def write_monitoring(self, mon: MonitoringContainer):
+        """Write monitoring container into output file"""
+        for tel_id, tel_mon in mon.tel.items():
+            for name, container in tel_mon.items():
+                self._writer.write(
+                    table_name=f"monitoring/{name}/tel_{tel_id:03d}",
+                    containers=container,
+                )
 
     def finish(self):
         """ called after all events are done """

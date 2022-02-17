@@ -238,6 +238,7 @@ class ProcessorTool(Tool):
         self.log.info("(re)compute DL2: %s", self.should_compute_dl2)
         self.event_source.subarray.info(printer=self.log.info)
 
+        event = None
         for event in tqdm(
             self.event_source,
             desc=self.event_source.__class__.__name__,
@@ -258,6 +259,9 @@ class ProcessorTool(Tool):
                 self.process_shower(event)
 
             self.write(event)
+
+        if event is not None and event.mon is not None:
+            self.write.write_monitoring(event.mon)
 
     def finish(self):
         """
