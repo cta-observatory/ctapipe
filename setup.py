@@ -46,7 +46,7 @@ setup(
         "eventio>=1.5.0,<2.0.0a0",
         "iminuit~=1.3",
         "joblib",
-        "matplotlib~=3.0",
+        "matplotlib~=3.2.0",
         "numba>=0.43",
         "numpy~=1.16",
         "pandas>=0.24.0",
