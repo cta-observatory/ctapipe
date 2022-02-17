@@ -394,9 +394,7 @@ class HDF5EventSource(EventSource):
             if self.is_simulation:
                 data.simulation.shower = next(mc_shower_reader)
 
-            print(data.index.event_id, data.trigger.tels_with_trigger)
             for tel in data.trigger.tel.keys():
-                print(data.index.event_id, tel)
                 key = f"tel_{tel:03d}"
                 if self.allowed_tels and tel not in self.allowed_tels:
                     continue
