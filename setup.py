@@ -46,7 +46,7 @@ setup(
         "h5py",
         "iminuit~=1.3",
         "joblib",
-        "matplotlib~=3.0",
+        "matplotlib~=3.2.0",
         "numba>=0.43",
         "numpy~=1.16",
         "psutil",
