@@ -93,3 +93,24 @@ def test_cameras(camera_geometry, tmp_path):
     output_path = tmp_path / "test.html"
     output_file(output_path)
     save(display.figure, filename=output_path)
+
+
+def test_array_display_no_values(example_subarray, tmp_path):
+    from ctapipe.visualization.bokeh import ArrayDisplay
+
+    display = ArrayDisplay(example_subarray)
+
+    output_path = tmp_path / "test.html"
+    output_file(output_path)
+    save(display.figure, filename=output_path)
+
+
+def test_array_display(example_subarray, tmp_path):
+    from ctapipe.visualization.bokeh import ArrayDisplay
+
+    display = ArrayDisplay(example_subarray, values=np.arange(len(example_subarray)))
+    display.add_colorbar()
+
+    output_path = tmp_path / "test.html"
+    output_file(output_path)
+    save(display.figure, filename=output_path)

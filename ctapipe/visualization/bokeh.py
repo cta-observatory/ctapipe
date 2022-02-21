@@ -1,5 +1,6 @@
 import sys
 import tempfile
+from abc import ABCMeta
 
 import numpy as np
 
@@ -93,14 +94,35 @@ def generate_square_vertices(geom):
     return xs, ys
 
 
-class BokehPlot:
+class BokehPlot(metaclass=ABCMeta):
     """Base class for bokeh plots"""
 
-    def __init__(self, use_notebook=None, **figure_kwargs):
+    def __init__(
+        self,
+        use_notebook=None,
+        autoscale=True,
+        cmap="inferno",
+        norm="lin",
+        **figure_kwargs,
+    ):
         # only use autoshow / use_notebook by default if we are in a notebook
         self._use_notebook = use_notebook if use_notebook is not None else is_notebook()
+        self._patches = None
         self._handle = None
+        self._color_bar = None
+        self._color_mapper = None
+        self._palette = None
+        self._annotations = []
+        self._labels = []
+
+        self.cmap = cmap
+        self.norm = norm
+
+        self.autoscale = autoscale
+
+        self.datasource = ColumnDataSource(data={})
         self.figure = figure(**figure_kwargs)
+        self.figure.add_tools(HoverTool(tooltips=[("id", "@id"), ("value", "@values")]))
 
         if figure_kwargs.get("match_aspect"):
             # Make sure the box zoom tool does not distort the camera display
@@ -123,6 +145,109 @@ class BokehPlot:
         if self._use_notebook and self._handle:
             push_notebook(handle=self._handle)
 
+    def add_colorbar(self):
+        self._color_bar = ColorBar(
+            color_mapper=self._color_mapper,
+            label_standoff=12,
+            border_line_color=None,
+            location=(0, 0),
+        )
+        self.figure.add_layout(self._color_bar, "right")
+        self.update()
+
+    def set_limits_minmax(self, zmin, zmax):
+        """Set the limits of the color range to ``zmin`` / ``zmax``"""
+        self._color_mapper.update(low=zmin, high=zmax)
+        self.update()
+
+    def set_limits_percent(self, percent=95):
+        """Set the limits to min / fraction of max value"""
+        low = np.nanmin(self.datasource.data["values"])
+        high = np.nanmax(self.datasource.data["values"])
+
+        frac = percent / 100.0
+        self.set_limits_minmax(low, high - (1.0 - frac) * (high - low))
+
+    @property
+    def cmap(self):
+        """Get the current colormap"""
+        return self._palette
+
+    @cmap.setter
+    def cmap(self, cmap):
+        """Set colormap"""
+        if isinstance(cmap, str):
+            cmap = palette_from_mpl_name(cmap)
+
+        self._palette = cmap
+        # might be called in __init__ before color mapper is setup
+        if self._color_mapper is not None:
+            self._color_mapper.palette = cmap
+            self._trigger_cm_update()
+            self.update()
+
+    def _trigger_cm_update(self):
+        # it seems changing palette does not trigger a color change,
+        # so we reassign a property
+        if isinstance(self._color_mapper, CategoricalColorMapper):
+            self._color_mapper.update(factors=self._color_mapper.factors)
+        else:
+            self._color_mapper.update(low=self._color_mapper.low)
+
+    def clear_overlays(self):
+        """Remove any added overlays from the figure"""
+        while self._annotations:
+            self.figure.renderers.remove(self._annotations.pop())
+
+        while self._labels:
+            self.figure.center.remove(self._labels.pop())
+
+    def rescale(self):
+        """Scale pixel colors to min/max range"""
+        low = self.datasource.data["values"].min()
+        high = self.datasource.data["values"].max()
+
+        # force color to be at lower end of the colormap if
+        # data is all equal
+        if low == high:
+            high += 1
+
+        self.set_limits_minmax(low, high)
+
+    @property
+    def norm(self):
+        """
+        The norm instance of the Display
+
+        Possible values:
+
+        - "lin": linear scale
+        - "log": log scale (cannot have negative values)
+        - "symlog": symmetric log scale (negative values are ok)
+        """
+        return self._color_mapper
+
+    @norm.setter
+    def norm(self, norm):
+        """Set the norm"""
+        if not isinstance(norm, ContinuousColorMapper):
+            if norm == "lin":
+                norm = LinearColorMapper
+            elif norm == "log":
+                norm = LogColorMapper
+            else:
+                raise ValueError(f"Unsupported norm {norm}")
+
+        self._color_mapper = norm(self.cmap)
+        if self._patches is not None:
+            color = dict(transform=self._color_mapper)
+            self._patches.glyph.update(fill_color=color, line_color=color)
+
+        if self._color_bar is not None:
+            self._color_bar.update(color_mapper=self._color_mapper)
+
+        self.update()
+
 
 class CameraDisplay(BokehPlot):
     """
@@ -140,21 +265,21 @@ class CameraDisplay(BokehPlot):
         title=None,
         # bokeh specific options
         use_notebook=None,
+        **figure_kwargs,
     ):
         super().__init__(
-            use_notebook=use_notebook, title=title, match_aspect=True, aspect_scale=1
+            use_notebook=use_notebook,
+            cmap=cmap,
+            norm=norm,
+            autoscale=autoscale,
+            title=title,
+            match_aspect=True,
+            aspect_scale=1,
+            **figure_kwargs,
         )
 
         self._geometry = geometry
-        self._color_bar = None
-        self._color_mapper = None
-        self._pixels = None
         self._tap_tool = None
-
-        self._annotations = []
-        self._labels = []
-        self.datasource = None
-        self.figure.add_tools(HoverTool(tooltips=[("id", "@id"), ("value", "@image")]))
 
         if geometry is not None:
             self._init_datasource(image)
@@ -171,7 +296,6 @@ class CameraDisplay(BokehPlot):
         # order is important because steps depend on each other
         self.cmap = cmap
         self.norm = norm
-        self.autoscale = autoscale
         if geometry is not None:
             self.rescale()
             self._setup_camera()
@@ -182,7 +306,7 @@ class CameraDisplay(BokehPlot):
 
         data = dict(
             id=self._geometry.pix_id,
-            image=image,
+            values=image,
             line_width=np.zeros(self._geometry.n_pixels),
             line_color=["green"] * self._geometry.n_pixels,
             line_alpha=np.zeros(self._geometry.n_pixels),
@@ -204,73 +328,28 @@ class CameraDisplay(BokehPlot):
 
         data["xs"], data["ys"] = x.tolist(), y.tolist()
 
-        if self.datasource is None:
-            self.datasource = ColumnDataSource(data=data)
-        else:
-            self.datasource.update(data=data)
+        self.datasource.update(data=data)
 
     def _setup_camera(self):
         kwargs = dict(
-            fill_color=dict(field="image", transform=self.norm),
+            fill_color=dict(field="values", transform=self.norm),
             line_width="line_width",
             line_color="line_color",
             line_alpha="line_alpha",
             source=self.datasource,
         )
         if self._geometry.pix_type in (PixelShape.SQUARE, PixelShape.HEXAGON):
-            self._pixels = self.figure.patches(xs="xs", ys="ys", **kwargs)
+            self._patches = self.figure.patches(xs="xs", ys="ys", **kwargs)
         elif self._geometry.pix_type == PixelShape.CIRCLE:
-            self._pixels = self.figure.circle(x="xs", y="ys", radius="radius", **kwargs)
-
-    def clear_overlays(self):
-        """Remove any added overlays from the figure"""
-        while self._annotations:
-            self.figure.renderers.remove(self._annotations.pop())
-
-        while self._labels:
-            self.figure.center.remove(self._labels.pop())
-
-    def add_colorbar(self):
-        """Add a colorbar to the figure"""
-        self._color_bar = ColorBar(
-            color_mapper=self._color_mapper,
-            label_standoff=12,
-            border_line_color=None,
-            location=(0, 0),
-        )
-        self.figure.add_layout(self._color_bar, "right")
-        self.update()
-
-    def rescale(self):
-        """Scale pixel colors to min/max range"""
-        low = self.datasource.data["image"].min()
-        high = self.datasource.data["image"].max()
-
-        # force color to be at lower end of the colormap if
-        # data is all equal
-        if low == high:
-            high += 1
-
-        self.set_limits_minmax(low, high)
+            self._patches = self.figure.circle(
+                x="xs", y="ys", radius="radius", **kwargs
+            )
 
     def enable_pixel_picker(self, callback):
         """Call `callback`` when a pixel is clicked"""
         if self._tap_tool is None:
             self.figure.add_tools(TapTool())
         self.datasource.selected.on_change("indices", callback)
-
-    def set_limits_minmax(self, zmin, zmax):
-        """Set the limits of the color range to ``zmin`` / ``zmax``"""
-        self._color_mapper.update(low=zmin, high=zmax)
-        self.update()
-
-    def set_limits_percent(self, percent=95):
-        """Set the limits to min / fraction of max value"""
-        zmin = np.nanmin(self.image)
-        zmax = np.nanmax(self.image)
-        dz = zmax - zmin
-        frac = percent / 100.0
-        self.set_limits_minmax(zmin, zmax - (1.0 - frac) * dz)
 
     def highlight_pixels(self, pixels, color="g", linewidth=1, alpha=0.75):
         """
@@ -308,30 +387,6 @@ class CameraDisplay(BokehPlot):
         self.update()
 
     @property
-    def cmap(self):
-        """Get the current colormap"""
-        return self._palette
-
-    @cmap.setter
-    def cmap(self, cmap):
-        """Set colormap"""
-        if isinstance(cmap, str):
-            cmap = palette_from_mpl_name(cmap)
-
-        self._palette = cmap
-        # might be called in __init__ before color mapper is setup
-        if self._color_mapper is not None:
-            self._color_mapper.palette = cmap
-            self._trigger_cm_update()
-            self.update()
-
-    def _trigger_cm_update(self):
-        # it seems changing palette does not trigger a color change,
-        # so we reassign limits
-        low = self._color_mapper.low
-        self._color_mapper.update(low=low)
-
-    @property
     def geometry(self):
         """Get the current geometry"""
         return self._geometry
@@ -340,8 +395,8 @@ class CameraDisplay(BokehPlot):
     def geometry(self, new_geometry):
         """Set the geometry"""
         self._geometry = new_geometry
-        if self._pixels in self.figure.renderers:
-            self.figure.renderers.remove(self._pixels)
+        if self._patches in self.figure.renderers:
+            self.figure.renderers.remove(self._patches)
         self._init_datasource()
         self._setup_camera()
         self.rescale()
@@ -350,47 +405,14 @@ class CameraDisplay(BokehPlot):
     @property
     def image(self):
         """Get the current image"""
-        return self.datasource.data["image"]
+        return self.datasource.data["values"]
 
     @image.setter
     def image(self, new_image):
         """Set the image"""
-        self.datasource.patch({"image": [(slice(None), new_image)]})
+        self.datasource.patch({"values": [(slice(None), new_image)]})
         if self.autoscale:
             self.rescale()
-
-    @property
-    def norm(self):
-        """
-        The norm instance of the Display
-
-        Possible values:
-
-        - "lin": linear scale
-        - "log": log scale (cannot have negative values)
-        - "symlog": symmetric log scale (negative values are ok)
-        """
-        return self._color_mapper
-
-    @norm.setter
-    def norm(self, norm):
-        """Set the norm"""
-        if not isinstance(norm, ContinuousColorMapper):
-            if norm == "lin":
-                norm = LinearColorMapper
-            elif norm == "log":
-                norm = LogColorMapper
-            else:
-                raise ValueError(f"Unsupported norm {norm}")
-
-        self._color_mapper = norm(self.cmap)
-        if self._pixels is not None:
-            self._pixels.glyph.fill_color.update(transform=self._color_mapper)
-
-        if self._color_bar is not None:
-            self._color_bar.update(color_mapper=self._color_mapper)
-
-        self.update()
 
     def add_ellipse(self, centroid, length, width, angle, asymmetry=0.0, **kwargs):
         """
@@ -520,21 +542,38 @@ class ArrayDisplay(BokehPlot):
         alpha=1.0,
         title=None,
         cmap=None,
+        norm="lin",
         radius=None,
         use_notebook=None,
         values=None,
+        **figure_kwargs,
     ):
         if title is None:
             frame_name = (frame or subarray.tel_coords.frame).__class__.__name__
             title = f"{subarray.name} ({frame_name})"
 
         super().__init__(
-            use_notebook=use_notebook, title=title, match_aspect=True, aspect_scale=1
+            use_notebook=use_notebook,
+            title=title,
+            match_aspect=True,
+            aspect_scale=1,
+            cmap=cmap,
+            norm=norm,
+            **figure_kwargs,
         )
+
+        # color by type if no value given
+        if values is None:
+            types = list({str(t) for t in subarray.telescope_types})
+            cmap = cmap or d3["Category10"][10][: len(types)]
+            self._color_mapper = CategoricalColorMapper(palette=cmap, factors=types)
+            field = "type"
+        else:
+            self.cmap = "inferno"
+            field = "values"
 
         self.frame = frame
         self.subarray = subarray
-        self.datasource = None
 
         self._init_datasource(
             subarray,
@@ -545,26 +584,8 @@ class ArrayDisplay(BokehPlot):
             alpha=alpha,
         )
 
-        self.figure = figure(title=title, match_aspect=True, aspect_scale=1)
-
-        if isinstance(cmap, str):
-            cmap = palette_from_mpl_name(cmap)
-
-        # color by type if no value given
-        if values is None:
-            types = list({str(t) for t in subarray.telescope_types})
-            n_types = len(types)
-            palette = cmap or d3["Category10"][10][:n_types]
-            self._color_mapper = CategoricalColorMapper(palette=palette, factors=types)
-            field = "type"
-        else:
-            palette = cmap or Inferno256
-            self._color_mapper = LinearColorMapper(palette=palette)
-            field = "values"
-
         color = dict(field=field, transform=self._color_mapper)
-
-        self._telescopes = self.figure.circle(
+        self._patches = self.figure.circle(
             x="x",
             y="y",
             radius="radius",
@@ -580,16 +601,6 @@ class ArrayDisplay(BokehPlot):
         )
         self.figure.legend.orientation = "horizontal"
         self.figure.legend.location = "top_left"
-
-    def add_colorbar(self):
-        self._color_bar = ColorBar(
-            color_mapper=self._color_mapper,
-            label_standoff=12,
-            border_line_color=None,
-            location=(0, 0),
-        )
-        self.figure.add_layout(self._color_bar, "right")
-        self.update()
 
     def _init_datasource(self, subarray, values, *, radius, frame, scale, alpha):
         telescope_ids = subarray.tel_ids
@@ -609,6 +620,9 @@ class ArrayDisplay(BokehPlot):
             mirror_area = telescope.optics.mirror_area.to_value(u.m ** 2)
             mirror_radii[i] = np.sqrt(mirror_area) / np.pi
 
+        if values is None:
+            values = np.zeros(len(subarray))
+
         if np.isscalar(alpha):
             alpha = np.full(len(telescope_ids), alpha)
         else:
@@ -620,15 +634,36 @@ class ArrayDisplay(BokehPlot):
             "y": tel_coords.y.to_value(u.m).tolist(),
             "z": tel_coords.z.to_value(u.m).tolist(),
             "alpha": alpha.tolist(),
+            "values": values,
             "type": tel_types,
             "mirror_radius": mirror_radii.tolist(),
             "radius": (radius if radius is not None else mirror_radii * scale).tolist(),
         }
 
-        if values is not None:
-            data["values"] = values
+        self.datasource.update(data=data)
 
-        if self.datasource is None:
-            self.datasource = ColumnDataSource(data=data)
-        else:
-            self.datasource.update(data=data)
+    @property
+    def values(self):
+        """Get the current image"""
+        return self.datasource.data["values"]
+
+    @values.setter
+    def values(self, new_values):
+        """Set the image"""
+        # currently displaying telescope types
+        if self._patches.glyph.fill_color["field"] == "type":
+            self.norm = "lin"
+            self.cmap = "inferno"
+            color = dict(field="values", transform=self._color_mapper)
+            self._patches.glyph.update(fill_color=color, line_color=color)
+
+            # recreate color bar, updating does not work here
+            if self._color_bar is not None:
+                self.figure.right.remove(self._color_bar)
+                self.add_colorbar()
+
+            self.update()
+
+        self.datasource.patch({"values": [(slice(None), new_values)]})
+        if self.autoscale:
+            self.rescale()
