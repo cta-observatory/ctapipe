@@ -1,12 +1,11 @@
-import tempfile
+import numpy as np
+from bokeh.io import output_file, save
 
 from ctapipe.coordinates import TelescopeFrame
-import numpy as np
-
-from bokeh.io import save, output_file
 
 
 def test_create_display_without_geometry(example_event, example_subarray):
+    """Test we can create a display without giving the geometry to init"""
     from ctapipe.visualization.bokeh import CameraDisplay
 
     # test we can create it without geometry, and then set all the stuff
@@ -18,6 +17,7 @@ def test_create_display_without_geometry(example_event, example_subarray):
 
 
 def test_camera_display_creation(example_event, example_subarray):
+    """Test we can create a display and check the resulting pixel coordinates"""
     from ctapipe.visualization.bokeh import CameraDisplay
 
     t = list(example_event.r0.tel.keys())[0]
@@ -29,6 +29,7 @@ def test_camera_display_creation(example_event, example_subarray):
 
 
 def test_camera_display_telescope_frame(example_event, example_subarray):
+    """Test we can create a display in telescope frame"""
     from ctapipe.visualization.bokeh import CameraDisplay
 
     t = list(example_event.r0.tel.keys())[0]
@@ -39,7 +40,8 @@ def test_camera_display_telescope_frame(example_event, example_subarray):
     assert np.allclose(np.mean(display.datasource.data["ys"], axis=1), geom.pix_y.value)
 
 
-def test_camera_image(example_event, example_subarray):
+def test_camera_image(example_event, example_subarray, tmp_path):
+    """Test we set an image"""
     from ctapipe.visualization.bokeh import CameraDisplay
 
     t = list(example_event.r0.tel.keys())[0]
@@ -52,9 +54,9 @@ def test_camera_image(example_event, example_subarray):
     display.image = np.random.normal(size=geom.n_pixels)
     assert np.all(display.image == image)
 
-    with tempfile.NamedTemporaryFile(suffix=".png") as f:
-        output_file(f.name)
-        save(display.figure, filename=f.name)
+    output_path = tmp_path / "test.html"
+    output_file(output_path)
+    save(display.figure, filename=output_path)
 
 
 def test_camera_enable_pixel_picker(example_event, example_subarray):
@@ -70,3 +72,24 @@ def test_camera_enable_pixel_picker(example_event, example_subarray):
         print(attr, new, old)
 
     c_display.enable_pixel_picker(callback)
+
+
+def test_matplotlib_cmaps(example_subarray):
+    from ctapipe.visualization.bokeh import CameraDisplay
+
+    geom = example_subarray.tel[1].camera.geometry
+    image = np.ones(len(geom))
+    display = CameraDisplay(geom, image)
+    display.cmap = "viridis"
+    display.cmap = "RdBu"
+
+
+def test_cameras(camera_geometry, tmp_path):
+    from ctapipe.visualization.bokeh import CameraDisplay
+
+    image = np.random.normal(size=len(camera_geometry))
+    display = CameraDisplay(camera_geometry, image)
+
+    output_path = tmp_path / "test.html"
+    output_file(output_path)
+    save(display.figure, filename=output_path)
