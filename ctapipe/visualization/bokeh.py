@@ -96,12 +96,11 @@ def generate_square_vertices(geom):
 class BokehPlot:
     """Base class for bokeh plots"""
 
-    def __init__(self, autoshow=True, use_notebook=None, **figure_kwargs):
+    def __init__(self, use_notebook=None, **figure_kwargs):
         # only use autoshow / use_notebook by default if we are in a notebook
         self._use_notebook = use_notebook if use_notebook is not None else is_notebook()
         self._handle = None
         self.figure = figure(**figure_kwargs)
-        self.autoshow = autoshow
 
         if figure_kwargs.get("match_aspect"):
             # Make sure the box zoom tool does not distort the camera display
@@ -141,14 +140,9 @@ class CameraDisplay(BokehPlot):
         title=None,
         # bokeh specific options
         use_notebook=None,
-        autoshow=True,
     ):
         super().__init__(
-            autoshow=autoshow,
-            use_notebook=use_notebook,
-            title=title,
-            match_aspect=True,
-            aspect_scale=1,
+            use_notebook=use_notebook, title=title, match_aspect=True, aspect_scale=1
         )
 
         self._geometry = geometry
@@ -528,7 +522,6 @@ class ArrayDisplay(BokehPlot):
         cmap=None,
         radius=None,
         use_notebook=None,
-        autoshow=True,
         values=None,
     ):
         if title is None:
@@ -536,11 +529,7 @@ class ArrayDisplay(BokehPlot):
             title = f"{subarray.name} ({frame_name})"
 
         super().__init__(
-            autoshow=autoshow,
-            use_notebook=use_notebook,
-            title=title,
-            match_aspect=True,
-            aspect_scale=1,
+            use_notebook=use_notebook, title=title, match_aspect=True, aspect_scale=1
         )
 
         self.frame = frame

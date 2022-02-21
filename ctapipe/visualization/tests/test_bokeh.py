@@ -22,7 +22,7 @@ def test_camera_display_creation(example_event, example_subarray):
 
     t = list(example_event.r0.tel.keys())[0]
     geom = example_subarray.tel[t].camera.geometry
-    display = CameraDisplay(geom, autoshow=False)
+    display = CameraDisplay(geom)
 
     assert np.allclose(np.mean(display.datasource.data["xs"], axis=1), geom.pix_x.value)
     assert np.allclose(np.mean(display.datasource.data["ys"], axis=1), geom.pix_y.value)
@@ -33,7 +33,7 @@ def test_camera_display_telescope_frame(example_event, example_subarray):
 
     t = list(example_event.r0.tel.keys())[0]
     geom = example_subarray.tel[t].camera.geometry.transform_to(TelescopeFrame())
-    display = CameraDisplay(geom, autoshow=False)
+    display = CameraDisplay(geom)
 
     assert np.allclose(np.mean(display.datasource.data["xs"], axis=1), geom.pix_x.value)
     assert np.allclose(np.mean(display.datasource.data["ys"], axis=1), geom.pix_y.value)
@@ -46,7 +46,7 @@ def test_camera_image(example_event, example_subarray):
     geom = example_subarray.tel[t].camera.geometry
     image = np.ones(geom.n_pixels)
 
-    display = CameraDisplay(geom, image, autoshow=False)
+    display = CameraDisplay(geom, image)
     assert np.all(display.image == image)
 
     display.image = np.random.normal(size=geom.n_pixels)
@@ -64,7 +64,7 @@ def test_camera_enable_pixel_picker(example_event, example_subarray):
     geom = example_subarray.tel[t].camera.geometry
     n_pixels = geom.pix_x.value.size
     image = np.ones(n_pixels)
-    c_display = CameraDisplay(geom, image, autoshow=False)
+    c_display = CameraDisplay(geom, image)
 
     def callback(attr, new, old):
         print(attr, new, old)
