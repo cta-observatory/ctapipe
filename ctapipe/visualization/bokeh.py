@@ -1,6 +1,8 @@
 import sys
 import tempfile
 from abc import ABCMeta
+import matplotlib.pyplot as plt
+from matplotlib.colors import to_hex
 
 import numpy as np
 
@@ -43,11 +45,6 @@ def palette_from_mpl_name(name):
     if name in CMAPS:
         return CMAPS[name]
 
-    # TODO: make optional if we decide to make one of the plotting
-    # TODO: libraries optional
-    import matplotlib.pyplot as plt
-    from matplotlib.colors import to_hex
-
     rgba = plt.get_cmap(name)(np.linspace(0, 1, 256))
     palette = [to_hex(color) for color in rgba]
     return palette
@@ -89,9 +86,9 @@ def generate_square_vertices(geom):
     x_offset = width[:, np.newaxis] * np.array([-1, -1, 1, 1])
     y_offset = width[:, np.newaxis] * np.array([1, -1, -1, 1])
 
-    xs = x[:, np.newaxis] + x_offset
-    ys = y[:, np.newaxis] + y_offset
-    return xs, ys
+    x = x[:, np.newaxis] + x_offset
+    y = y[:, np.newaxis] + y_offset
+    return x, y
 
 
 class BokehPlot(metaclass=ABCMeta):
@@ -252,6 +249,24 @@ class BokehPlot(metaclass=ABCMeta):
 class CameraDisplay(BokehPlot):
     """
     CameraDisplay implementation in Bokeh
+
+    Parameters
+    ----------
+    geometry: CameraGeometry
+        CameraGeometry for the display
+    image: array
+        Values to display for each pixel
+    cmap: str or bokeh.palette.Palette
+        matplotlib colormap name or bokeh palette for color mapping values
+    norm: str or bokeh.
+        lin, log, symlog or a bokeh.models.ColorMapper instance
+    autoscale: bool
+        Whether to automatically adjust color range after updating image
+    use_notebook: bool or None
+        Whether to use bokehs notebook output. If None, tries to autodetect
+        running in a notebook.
+
+    **figure_kwargs are passed to bokeh.plots.figure
     """
 
     def __init__(
@@ -521,23 +536,35 @@ class ArrayDisplay(BokehPlot):
     ----------
     subarray: ctapipe.instrument.SubarrayDescription
         the array layout to display
-    axes: matplotlib.axes.Axes
-        matplotlib axes to plot on, or None to use current one
+    values: array
+        Value to display for each telescope. If None, the telescope type will
+        be used.
+    scale: float
+        scaling between telescope mirror radius in m to displayed size
     title: str
         title of array plot
-    tel_scale: float
-        scaling between telescope mirror radius in m to displayed size
-    autoupdate: bool
-        redraw when the input changes
+    alpha: float
+        Alpha value for telescopes
+    cmap: str or bokeh.palette.Palette
+        matplotlib colormap name or bokeh palette for color mapping values
+    norm: str or bokeh.
+        lin, log, symlog or a bokeh.models.ColorMapper instance
     radius: Union[float, list, None]
         set telescope radius to value, list/array of values. If None, radius
         is taken from the telescope's mirror size.
+    use_notebook: bool or None
+        Whether to use bokehs notebook output. If None, tries to autodetect
+        running in a notebook.
+    frame: GroundFrame or TiltedGroundFrame
+        If given, transform telescope positions into this frame
+
+    **figure_kwargs are passed to bokeh.plots.figure
     """
 
     def __init__(
         self,
         subarray,
-        frame=None,
+        values=None,
         scale=5.0,
         alpha=1.0,
         title=None,
@@ -545,7 +572,7 @@ class ArrayDisplay(BokehPlot):
         norm="lin",
         radius=None,
         use_notebook=None,
-        values=None,
+        frame=None,
         **figure_kwargs,
     ):
         if title is None:

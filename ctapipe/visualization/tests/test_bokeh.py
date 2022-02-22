@@ -1,3 +1,4 @@
+"""Tests for the bokeh visualization"""
 import numpy as np
 from bokeh.io import output_file, save
 
@@ -60,6 +61,7 @@ def test_camera_image(example_event, example_subarray, tmp_path):
 
 
 def test_camera_enable_pixel_picker(example_event, example_subarray):
+    """Test we can call enable_pixel_picker"""
     from ctapipe.visualization.bokeh import CameraDisplay
 
     t = list(example_event.r0.tel.keys())[0]
@@ -75,6 +77,7 @@ def test_camera_enable_pixel_picker(example_event, example_subarray):
 
 
 def test_matplotlib_cmaps(example_subarray):
+    """Test using matplotlib colormap names works"""
     from ctapipe.visualization.bokeh import CameraDisplay
 
     geom = example_subarray.tel[1].camera.geometry
@@ -85,6 +88,7 @@ def test_matplotlib_cmaps(example_subarray):
 
 
 def test_cameras(camera_geometry, tmp_path):
+    """Test for all known camera geometries"""
     from ctapipe.visualization.bokeh import CameraDisplay
 
     image = np.random.normal(size=len(camera_geometry))
@@ -96,6 +100,7 @@ def test_cameras(camera_geometry, tmp_path):
 
 
 def test_array_display_no_values(example_subarray, tmp_path):
+    """Test plain array display"""
     from ctapipe.visualization.bokeh import ArrayDisplay
 
     display = ArrayDisplay(example_subarray)
@@ -106,6 +111,7 @@ def test_array_display_no_values(example_subarray, tmp_path):
 
 
 def test_array_display(example_subarray, tmp_path):
+    """Test array display with values for each telescope"""
     from ctapipe.visualization.bokeh import ArrayDisplay
 
     display = ArrayDisplay(example_subarray, values=np.arange(len(example_subarray)))
