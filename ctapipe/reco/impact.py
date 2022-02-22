@@ -192,7 +192,7 @@ class ImPACTReconstructor(Reconstructor):
             mask = event.dl1.tel[tel_id].image_mask
 
             # Dilate the images around the original cleaning to help the fit
-            for i in range(5):
+            for i in range(3):
                 mask = dilate(self.subarray.tel[tel_id].camera.geometry, mask)
             mask_dict[tel_id] = mask
 
@@ -424,6 +424,9 @@ class ImPACTReconstructor(Reconstructor):
         float: Likelihood the model represents the camera image at this position
 
         """
+        if np.isnan(source_x) or np.isnan(source_y):
+            return 1e8
+
         # First we add units back onto everything.  Currently not
         # handled very well, maybe in future we could just put
         # everything in the correct units when loading in the class
@@ -503,7 +506,7 @@ class ImPACTReconstructor(Reconstructor):
                     time_slope = lts_linear_regression(x=np.rad2deg(pix_x_rot[telescope_index][time_mask]), 
                                                     y=self.time[telescope_index][time_mask], samples=3)[0][0]
                     chi2_tel = (time_slope - time_gradients[telescope_index])**2 / time_gradients_uncertainty[telescope_index]
-                    chi2 += chi2_tel
+                    chi2 += chi2_tel * np.sum(time_mask)
         
         # Likelihood function will break if we find a NaN or a 0
         prediction[np.isnan(prediction)] = 1e-8
@@ -681,7 +684,7 @@ class ImPACTReconstructor(Reconstructor):
             self.pixel_y[i][:array_len] = py[i]
             self.image[i][:array_len] = pa[i]
             self.time[i][:array_len] = pt[i]
-            self.ped[i][:] = self.ped_table[self.tel_types[i]] 
+            self.ped[i][:] = self.ped_table[self.tel_types[i]]
             self.spe[i][:] = 0.5
 
         # Set the image mask
@@ -744,18 +747,18 @@ class ImPACTReconstructor(Reconstructor):
             if energy_seed is not None:
                 energy = energy_seed.energy.value
                 preminimise = False
-            seed = create_seed(source_x, source_y,
-                               tilt_x, tilt_y,
-                               energy)
+            seed, step, limits = create_seed(source_x, source_y,
+                                             tilt_x, tilt_y,
+                                             energy)
 
 
             # Perform maximum likelihood fit
-            fit_params_min, errors, like = self.minimise(params=seed[0],
-                                                         step=seed[1],
-                                                         limits=seed[2],
+            fit_params_min, errors, like = self.minimise(params=seed,
+                                                         step=step,
+                                                         limits=limits,
                                                          energy_preminimisation=preminimise,
                                                          preminimisation_only=preminimise)
-
+#            fit_params_min, like = self.energy_guess(seed)
             if like < like_min:
                 fit_params = fit_params_min
                 like_min = like
@@ -860,7 +863,7 @@ class ImPACTReconstructor(Reconstructor):
         if energy_preminimisation:
             likelihood = 1e9
             # Try a few different seed energies to be sure we get the right one
-            for seed_energy in  [0.1, 1, 10]:#[0.03, 0.1, 1, 10, 100]:
+            for seed_energy in  [1.]:#[0.03, 0.1, 1, 10, 100]:
                 self.min = Minuit(
                     self.get_likelihood,
                     source_x=params[0],source_y=params[1],

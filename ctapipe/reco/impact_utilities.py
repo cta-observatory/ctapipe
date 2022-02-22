@@ -114,9 +114,9 @@ def create_seed(source_x, source_y, tilt_x, tilt_y, energy):
 #        en_seed = 0.01
 
     # Take the seed from Hillas-based reconstruction
-    seed = (source_x, source_y, tilt_x, tilt_y, en_seed, 1.)
+    seed = [source_x, source_y, tilt_x, tilt_y, en_seed, 1.0]
     if energy > 2:
-        seed = (source_x, source_y, tilt_x, tilt_y, en_seed, 1.2)
+        seed = [source_x, source_y, tilt_x, tilt_y, en_seed, 1.2]
 
     # Take a reasonable first guess at step size
     step = [0.04 / 57.3, 0.04 / 57.3, 10, 10, en_seed * 0.05, 0.05, 0.]
