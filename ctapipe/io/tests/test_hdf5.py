@@ -640,7 +640,43 @@ def test_column_transforms(tmp_path):
         assert isinstance(data.time, Time)
         assert data.time == NAN_TIME
         # rounded to two digits
-        assert np.all(data.image == np.array([1.23, 123.45]))
+        assert np.all(data.image == np.array([1.23, 123.46]))
+
+
+def test_fixed_point_column_transform(tmp_path):
+    """ ensure a user-added column transform is applied """
+    from ctapipe.io.tableio import FixedPointColumnTransform
+
+    tmp_file = tmp_path / "test_column_transforms.hdf5"
+
+    class SomeContainer(Container):
+        container_prefix = ""
+        image = Field(np.array([np.nan, np.inf, -np.inf]))
+
+    cont = SomeContainer()
+
+    with HDF5TableWriter(tmp_file, group_name="data") as writer:
+        writer.add_column_transform(
+            "signed", "image", FixedPointColumnTransform(100, 0, np.float64, np.int32)
+        )
+        writer.add_column_transform(
+            "unsigned",
+            "image",
+            FixedPointColumnTransform(100, 0, np.float64, np.uint32),
+        )
+        # add user generated transform for the "value" column
+        writer.write("signed", cont)
+        writer.write("unsigned", cont)
+
+    with HDF5TableReader(tmp_file, mode="r") as reader:
+        signed = next(reader.read("/data/signed", SomeContainer()))
+        unsigned = next(reader.read("/data/unsigned", SomeContainer()))
+
+        for data in (signed, unsigned):
+            # check we get our original nans back
+            assert np.isnan(data.image[0])
+            assert np.isposinf(data.image[1])
+            assert np.isneginf(data.image[2])
 
 
 def test_column_transforms_regexps(tmp_path):
