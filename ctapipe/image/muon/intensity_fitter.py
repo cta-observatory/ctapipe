@@ -12,7 +12,7 @@ import numpy as np
 from math import erf
 from numba import vectorize, double
 
-from scipy.ndimage.filters import correlate1d
+from scipy.ndimage import correlate1d
 from iminuit import Minuit
 from astropy import units as u
 from scipy.constants import alpha
