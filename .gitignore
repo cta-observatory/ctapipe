@@ -26,15 +26,17 @@ MANIFEST
 docs/api
 docs/_build
 
-# Eclipse editor project files
+# Editors and IDEs
+
+# Visual Studio Code
+.vscode
+# Eclipse
 .project
 .pydevproject
 .settings
-
-# Pycharm editor project files
+# Pycharm
 .idea
-
-# KDevelop editor project files
+# KDevelop
 *kdev4
 
 # Packages/installer info
