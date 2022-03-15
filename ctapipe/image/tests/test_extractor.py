@@ -1,5 +1,6 @@
 import astropy.units as u
 import numpy as np
+from ctapipe.containers import DL1CameraContainer
 import pytest
 from ctapipe.core import non_abstract_children
 from ctapipe.image.extractor import (
@@ -554,6 +555,10 @@ def test_global_peak_window_sum_with_pixel_fraction(subarray):
         window_shift=4,
         pixel_fraction=0.05,
         apply_integration_correction=False,
+    )
+
+    dl1 = extractor(
+        waveforms=waveforms, telid=tel_id, selected_gain_channel=selected_gain_channel
     )
 
     assert np.allclose(dl1.image[bright_pixels], 18)
