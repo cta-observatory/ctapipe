@@ -11,6 +11,7 @@ from .datasets import (
 from .astro import get_bright_stars
 from .cutflow import CutFlow, PureCountingCut, UndefinedCut
 from .index_finder import IndexFinder
+from .event_type_filter import EventTypeFilter
 
 
 __all__ = [
@@ -26,4 +27,5 @@ __all__ = [
     "PureCountingCut",
     "UndefinedCut",
     "IndexFinder",
+    "EventTypeFilter",
 ]
