@@ -32,7 +32,7 @@ development. It is not recommended for production use unless you are an
 expert or developer!
 
 * Code: https://github.com/cta-observatory/ctapipe
-* Docs: https://cta-observatory.github.io/ctapipe/
+* Docs: https://ctapipe.readthedocs.io/
 * Slack: Contact Karl Kosack for invite
 
 Citing this software
@@ -57,11 +57,17 @@ environment (this is optional).
 The following command will set up a conda virtual environment, add the
 necessary package channels, and install ctapipe specified version and its dependencies::
 
-  CTAPIPE_VER=0.11.0
-  wget https://raw.githubusercontent.com/cta-observatory/ctapipe/v$CTAPIPE_VER/environment.yml
-  conda env create -n cta -f environment.yml
-  conda activate cta
-  conda install -c conda-forge ctapipe=$CTAPIPE_VER
+    CTAPIPE_VER=0.11.0
+    wget https://raw.githubusercontent.com/cta-observatory/ctapipe/v$CTAPIPE_VER/environment.yml
+    conda env create -n cta -f environment.yml
+    conda activate cta
+    conda install -c conda-forge ctapipe=$CTAPIPE_VER
+
+
+**Note**: To prevent packages you installed with `pip install --user` from taking precedence over the conda environment, run::
+
+    conda env config vars set PYTHONNOUSERSITE=1 -n cta
+
   
 **Note**: this environment contains many useful packages that are not strictly requirements of ctapipe.
 To get only ctapipe and its direct dependencies, just do ``conda install -c conda-forge ctapipe[=<version>]`` in an environment

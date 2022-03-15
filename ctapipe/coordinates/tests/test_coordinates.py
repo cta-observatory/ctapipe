@@ -235,3 +235,13 @@ def test_ground_to_tilt_many_to_many():
     with raises(ValueError):
         # there will be a shape mismatch in matrix multiplication
         grd_coord.transform_to(TiltedGroundFrame(pointing_direction=pointing_direction))
+
+
+def test_camera_missing_focal_length():
+    from ctapipe.coordinates import CameraFrame, TelescopeFrame
+
+    camera_frame = CameraFrame()
+    coord = SkyCoord(x=0 * u.m, y=2 * u.m, frame=camera_frame)
+
+    with raises(ValueError):
+        coord.transform_to(TelescopeFrame())

@@ -2,6 +2,7 @@
 """
 Utilities for reading or working with Camera geometry files
 """
+from copy import deepcopy
 import logging
 import warnings
 
@@ -224,11 +225,20 @@ class CameraGeometry:
         if self.frame is None:
             self.frame = CameraFrame()
 
-        coord = SkyCoord(self.pix_x, self.pix_y, frame=self.frame)
+        # we have to derotate, transformations only provide sensible
+        # results after derotation from the camera coordinate system with
+        # custom angle into a not-rotate frame
+        if self.cam_rotation.value != 0:
+            cam = deepcopy(self)
+            cam.rotate(self.cam_rotation)
+        else:
+            cam = self
+
+        coord = SkyCoord(cam.pix_x, cam.pix_y, frame=cam.frame)
         trans = coord.transform_to(frame)
 
         # also transform the unit vectors, to get rotation / mirroring, scale
-        uv = SkyCoord([1, 0], [0, 1], unit=self.pix_x.unit, frame=self.frame)
+        uv = SkyCoord([1, 0], [0, 1], unit=cam.pix_x.unit, frame=cam.frame)
         uv_trans = uv.transform_to(frame)
 
         trans_x_name, trans_y_name = list(
@@ -237,25 +247,33 @@ class CameraGeometry:
         uv_trans_x = getattr(uv_trans, trans_x_name)
         uv_trans_y = getattr(uv_trans, trans_y_name)
 
-        rot = np.arctan2(uv_trans_y[0], uv_trans_y[1])
-        cam_rotation = rot - self.cam_rotation
-        pix_rotation = rot - self.pix_rotation
+        matrix = np.vstack([uv_trans_x.value, uv_trans_y.value])
+        is_mirrored = np.linalg.det(matrix) < 0
 
-        scale = np.sqrt(uv_trans_x[0] ** 2 + uv_trans_y[0] ** 2) / self.pix_x.unit
+        rot = np.arctan2(uv_trans_y[0], uv_trans_y[1])
+
+        if is_mirrored:
+            cam_rotation = -cam.cam_rotation
+            pix_rotation = rot - cam.pix_rotation
+        else:
+            cam_rotation = cam.cam_rotation
+            pix_rotation = cam.pix_rotation - rot
+
+        scale = np.sqrt(uv_trans_x[0] ** 2 + uv_trans_y[0] ** 2) / cam.pix_x.unit
         trans_x = getattr(trans, trans_x_name)
         trans_y = getattr(trans, trans_y_name)
-        pix_area = (self.pix_area * scale ** 2).to(trans_x.unit ** 2)
+        pix_area = (cam.pix_area * scale ** 2).to(trans_x.unit ** 2)
 
         return CameraGeometry(
-            camera_name=self.camera_name,
-            pix_id=self.pix_id,
+            camera_name=cam.camera_name,
+            pix_id=cam.pix_id,
             pix_x=trans_x,
             pix_y=trans_y,
             pix_area=pix_area,
-            pix_type=self.pix_type,
+            pix_type=cam.pix_type,
             pix_rotation=pix_rotation,
             cam_rotation=cam_rotation,
-            neighbors=self._neighbors,
+            neighbors=cam._neighbors,
             apply_derotation=False,
             frame=frame,
         )
@@ -599,14 +617,15 @@ class CameraGeometry:
 
     def __repr__(self):
         return (
-            "CameraGeometry(camera_name='{camera_name}', pix_type={pix_type!r}, "
-            "npix={npix}, cam_rot={camrot}, pix_rot={pixrot})"
+            "CameraGeometry(camera_name='{camera_name}', pix_type={pix_type}, "
+            "npix={npix}, cam_rot={camrot:.3f}, pix_rot={pixrot:.3f}, frame={frame})"
         ).format(
             camera_name=self.camera_name,
             pix_type=self.pix_type,
             npix=len(self.pix_id),
             pixrot=self.pix_rotation,
             camrot=self.cam_rotation,
+            frame=self.frame,
         )
 
     def __str__(self):

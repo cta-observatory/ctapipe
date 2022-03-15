@@ -31,6 +31,15 @@ __all__ = ["DataWriter", "DATA_MODEL_VERSION", "write_reference_metadata_headers
 
 tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many datasets
 
+
+def _get_tel_index(event, tel_id):
+    return TelEventIndexContainer(
+        obs_id=event.index.obs_id,
+        event_id=event.index.event_id,
+        tel_id=np.int16(tel_id),
+    )
+
+
 # define the version of the DL1 data model written here. This should be updated
 # when necessary:
 # - increase the major number if there is a breaking change to the model
@@ -40,6 +49,7 @@ tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many dataset
 DATA_MODEL_VERSION = "v3.0.0"
 DATA_MODEL_CHANGE_HISTORY = """
 - v3.0.0: reconstructed core uncertainties splitted in their X-Y components
+- v2.2.0: added R0 and R1 outputs
 - v2.1.0: hillas and timing parameters are per default saved in telescope frame (degree) as opposed to camera frame (m)
 - v2.0.0: Match optics and camera tables using indices instead of names
 - v1.2.0: change to more general data model, including also DL2 (DL1 unchanged)
@@ -129,6 +139,14 @@ class DataWriter(Component):
         help="output filename", default_value=pathlib.Path("events.dl1.h5")
     ).tag(config=True)
 
+    write_raw_waveforms = Bool(
+        help="Store R0 waveforms if available", default_value=False
+    ).tag(config=True)
+
+    write_waveforms = Bool(
+        help="Store R1 waveforms if available", default_value=False
+    ).tag(config=True)
+
     write_images = Bool(help="Store DL1 Images if available", default_value=False).tag(
         config=True
     )
@@ -172,6 +190,11 @@ class DataWriter(Component):
     ).tag(config=True)
 
     overwrite = Bool(help="overwrite output file if it exists").tag(config=True)
+
+    transform_waveform = Bool(default_value=False).tag(config=True)
+    waveform_dtype = Unicode(default_value="int32").tag(config=True)
+    waveform_offset = Int(default_value=0).tag(config=True)
+    waveform_scale = Float(default_value=1000.0).tag(config=True)
 
     transform_image = Bool(default_value=False).tag(config=True)
     image_dtype = Unicode(default_value="int32").tag(config=True)
@@ -250,6 +273,12 @@ class DataWriter(Component):
                 containers=[event.index, event.simulation.shower],
             )
 
+        if self.write_waveforms:
+            self._write_r1_telescope_events(self._writer, event)
+
+        if self.write_raw_waveforms:
+            self._write_r0_telescope_events(self._writer, event)
+
         # write telescope event data
         self._write_dl1_telescope_events(self._writer, event)
 
@@ -290,7 +319,10 @@ class DataWriter(Component):
             data_levels.append(DataLevel.DL1_PARAMETERS)
         if self.write_stereo_shower or self.write_mono_shower:
             data_levels.append(DataLevel.DL2)
-
+        if self.write_raw_waveforms:
+            data_levels.append(DataLevel.R0)
+        if self.write_waveforms:
+            data_levels.append(DataLevel.R1)
         return data_levels
 
     def _setup_compression(self):
@@ -321,16 +353,17 @@ class DataWriter(Component):
         PROV.add_output_file(str(self.output_path), role="DL1/Event")
 
         # check that options make sense
-        if (
-            self.write_parameters is False
-            and self.write_images is False
-            and self.write_mono_shower is False
-            and self.write_stereo_shower is False
-        ):
+        writable_things = [
+            self.write_parameters,
+            self.write_images,
+            self.write_mono_shower,
+            self.write_stereo_shower,
+            self.write_waveforms,
+            self.write_parameters,
+        ]
+        if not any(writable_things):
             raise ToolConfigurationError(
-                "The options 'write_parameters',  'write_images', 'write_mono_shower', "
-                "and 'write_stereo_shower are all False. No output will be generated in "
-                "that case. Please enable one of these options."
+                "DataWriter configured to write no information"
             )
 
     def _setup_writer(self):
@@ -392,6 +425,17 @@ class DataWriter(Component):
             )
             writer.add_column_transform_regexp(
                 "dl1/event/telescope/images/.*", "image", transform
+            )
+
+        if self.transform_waveform:
+            transform = FixedPointColumnTransform(
+                scale=self.waveform_scale,
+                offset=self.waveform_offset,
+                source_dtype=np.float32,
+                target_dtype=np.dtype(self.waveform_dtype),
+            )
+            writer.add_column_transform_regexp(
+                "r1/event/telescope/.*", "waveform", transform
             )
 
         if self.transform_peak_time:
@@ -521,6 +565,38 @@ class DataWriter(Component):
         """construct dataset table names depending on chosen split method"""
         return f"tel_{tel_id:03d}" if self.split_datasets_by == "tel_id" else tel_type
 
+    def _write_r1_telescope_events(
+        self, writer: TableWriter, event: ArrayEventContainer
+    ):
+        for tel_id, r1_tel in event.r1.tel.items():
+
+            tel_index = TelEventIndexContainer(
+                obs_id=event.index.obs_id,
+                event_id=event.index.event_id,
+                tel_id=np.int16(tel_id),
+            )
+            telescope = self._subarray.tel[tel_id]
+            table_name = self.table_name(tel_id, str(telescope))
+
+            r1_tel.prefix = ""
+            writer.write(f"r1/event/telescope/{table_name}", [tel_index, r1_tel])
+
+    def _write_r0_telescope_events(
+        self, writer: TableWriter, event: ArrayEventContainer
+    ):
+        for tel_id, r0_tel in event.r0.tel.items():
+
+            tel_index = TelEventIndexContainer(
+                obs_id=event.index.obs_id,
+                event_id=event.index.event_id,
+                tel_id=np.int16(tel_id),
+            )
+            telescope = self._subarray.tel[tel_id]
+            table_name = self.table_name(tel_id, str(telescope))
+
+            r0_tel.prefix = ""
+            writer.write(f"r0/event/telescope/{table_name}", [tel_index, r0_tel])
+
     def _write_dl1_telescope_events(
         self, writer: TableWriter, event: ArrayEventContainer
     ):
@@ -531,18 +607,8 @@ class DataWriter(Component):
 
         # write the telescope tables
 
-        for tel_id, dl1_camera in event.dl1.tel.items():
-            dl1_camera.prefix = ""  # don't want a prefix for this container
-            telescope = self._subarray.tel[tel_id]
-            self.log.debug("WRITING TELESCOPE %s: %s", tel_id, telescope)
-
-            tel_index = TelEventIndexContainer(
-                obs_id=event.index.obs_id,
-                event_id=event.index.event_id,
-                tel_id=np.int16(tel_id),
-            )
-
-            pnt = event.pointing.tel[tel_id]
+        # pointing info
+        for tel_id, pnt in event.pointing.tel.items():
             current_pointing = (pnt.azimuth, pnt.altitude)
             if current_pointing != self._last_pointing_tel[tel_id]:
                 pnt.prefix = ""
@@ -552,11 +618,20 @@ class DataWriter(Component):
                 )
                 self._last_pointing_tel[tel_id] = current_pointing
 
-            table_name = self.table_name(tel_id, str(telescope))
-
+        # trigger info
+        for tel_id, trigger in event.trigger.tel.items():
             writer.write(
-                "dl1/event/telescope/trigger", [tel_index, event.trigger.tel[tel_id]]
+                "dl1/event/telescope/trigger", [_get_tel_index(event, tel_id), trigger]
             )
+
+        for tel_id, dl1_camera in event.dl1.tel.items():
+            tel_index = _get_tel_index(event, tel_id)
+
+            dl1_camera.prefix = ""  # don't want a prefix for this container
+            telescope = self._subarray.tel[tel_id]
+            self.log.debug("WRITING TELESCOPE %s: %s", tel_id, telescope)
+
+            table_name = self.table_name(tel_id, str(telescope))
 
             has_sim_camera = self._is_simulation and (
                 tel_id in event.simulation.tel
@@ -579,6 +654,10 @@ class DataWriter(Component):
                     )
 
             if self.write_images:
+                if dl1_camera.image is None:
+                    raise ValueError(
+                        "DataWriter.write_images is True but event does not contain image"
+                    )
                 # note that we always write the image, even if the image quality
                 # criteria are not met (those are only to determine if the parameters
                 # can be computed).
