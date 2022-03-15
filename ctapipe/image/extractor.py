@@ -31,7 +31,7 @@ from ctapipe.core.traits import (
 )
 from ctapipe.core import TelescopeComponent
 from numba import njit, prange, guvectorize, float64, float32, int64
-from scipy.ndimage.filters import convolve1d
+from scipy.ndimage import convolve1d
 from typing import Tuple
 
 from . import number_of_islands, tailcuts_clean, brightest_island
@@ -479,6 +479,11 @@ class GlobalPeakWindowSum(ImageExtractor):
     """
     Extractor which sums in a window about the
     peak from the global average waveform.
+
+    To reduce the influence of noise pixels, the average can be calculated
+    only on the ``pixel_fraction`` brightest pixels.
+    The "brightest" pixels are determined by sorting the waveforms by their
+    maximum value.
     """
 
     window_width = IntTelescopeParameter(
@@ -493,6 +498,16 @@ class GlobalPeakWindowSum(ImageExtractor):
 
     apply_integration_correction = BoolTelescopeParameter(
         default_value=True, help="Apply the integration window correction"
+    ).tag(config=True)
+
+    pixel_fraction = FloatTelescopeParameter(
+        default_value=1.0,
+        help=(
+            "Fraction of pixels to use for finding the integration window."
+            " By default, the full camera is used."
+            " If fraction is smaller 1, only the brightest pixels will be averaged"
+            " to find the peak position"
+        ),
     ).tag(config=True)
 
     @lru_cache(maxsize=128)
@@ -525,7 +540,16 @@ class GlobalPeakWindowSum(ImageExtractor):
         )
 
     def __call__(self, waveforms, telid, selected_gain_channel):
-        peak_index = waveforms.mean(axis=-2).argmax(axis=-1)
+        if self.pixel_fraction.tel[telid] == 1.0:
+            # average over pixels then argmax over samples
+            peak_index = waveforms.mean(axis=-2).argmax()
+        else:
+            n_pixels = int(self.pixel_fraction.tel[telid] * waveforms.shape[-2])
+            brightest = np.argsort(waveforms.max(axis=-1))[..., -n_pixels:]
+
+            # average over brightest pixels then argmax over samples
+            peak_index = waveforms[brightest].mean(axis=-2).argmax()
+
         charge, peak_time = extract_around_peak(
             waveforms,
             peak_index,

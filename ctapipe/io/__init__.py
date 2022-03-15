@@ -11,7 +11,7 @@ from ..core.plugins import detect_and_import_io_plugins
 
 # import event sources to make them visible to EventSource.from_url
 from .simteleventsource import SimTelEventSource
-from .dl1eventsource import DL1EventSource
+from .hdf5eventsource import HDF5EventSource, get_hdf5_datalevels
 
 # import IO plugins with their event sources
 detect_and_import_io_plugins()
@@ -26,9 +26,10 @@ __all__ = [
     "EventSeeker",
     "EventSource",
     "SimTelEventSource",
-    "DL1EventSource",
+    "HDF5EventSource",
     "DataLevel",
     "read_table",
     "DataWriter",
     "DATA_MODEL_VERSION",
+    "get_hdf5_datalevels",
 ]

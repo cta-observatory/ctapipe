@@ -299,6 +299,8 @@ class SimTelEventSource(EventSource):
         tel_descriptions = {}  # tel_id : TelescopeDescription
         tel_positions = {}  # tel_id : TelescopeDescription
 
+        self.telescope_indices_original = {}
+
         for tel_id, telescope_description in telescope_descriptions.items():
             cam_settings = telescope_description["camera_settings"]
             pixel_settings = telescope_description["pixel_settings"]
@@ -347,6 +349,7 @@ class SimTelEventSource(EventSource):
             )
 
             tel_idx = np.where(header["tel_id"] == tel_id)[0][0]
+            self.telescope_indices_original[tel_id] = tel_idx
             tel_positions[tel_id] = header["tel_pos"][tel_idx] * u.m
 
         subarray = SubarrayDescription(
@@ -355,8 +358,11 @@ class SimTelEventSource(EventSource):
             tel_descriptions=tel_descriptions,
         )
 
+        self.n_telescopes_original = len(subarray)
+
         if self.allowed_tels:
             subarray = subarray.select_subarray(self.allowed_tels)
+
         return subarray
 
     @staticmethod
@@ -391,18 +397,6 @@ class SimTelEventSource(EventSource):
         self._fill_array_pointing(data)
 
         for counter, array_event in enumerate(self.file_):
-
-            event_id = array_event.get("event_id", -1)
-            obs_id = self.file_.header["run"]
-            data.count = counter
-            data.index.obs_id = obs_id
-            data.index.event_id = event_id
-
-            self._fill_trigger_info(data, array_event)
-
-            if data.trigger.event_type == EventType.SUBARRAY:
-                self._fill_simulated_event_information(data, array_event)
-
             # this should be done in a nicer way to not re-allocate the
             # data each time (right now it's just deleted and garbage
             # collected)
@@ -412,9 +406,24 @@ class SimTelEventSource(EventSource):
             data.dl1.tel.clear()
             data.pointing.tel.clear()
             data.simulation.tel.clear()
+            data.trigger.tel.clear()
+
+            event_id = array_event.get("event_id", -1)
+            obs_id = self.file_.header["run"]
+            data.count = counter
+            data.index.obs_id = obs_id
+            data.index.event_id = event_id
+
+            self._fill_trigger_info(data, array_event)
+            if data.trigger.event_type == EventType.SUBARRAY:
+                self._fill_simulated_event_information(data, array_event)
 
             telescope_events = array_event["telescope_events"]
             tracking_positions = array_event["tracking_positions"]
+
+            true_image_sums = array_event.get("photoelectron_sums", {}).get(
+                "n_pe", np.full(self.n_telescopes_original, np.nan)
+            )
 
             for tel_id, telescope_event in telescope_events.items():
                 adc_samples = telescope_event.get("adc_samples")
@@ -429,7 +438,10 @@ class SimTelEventSource(EventSource):
                 )
 
                 data.simulation.tel[tel_id] = SimulatedCameraContainer(
-                    true_image=true_image
+                    true_image_sum=true_image_sums[
+                        self.telescope_indices_original[tel_id]
+                    ],
+                    true_image=true_image,
                 )
 
                 data.pointing.tel[tel_id] = self._fill_event_pointing(

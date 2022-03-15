@@ -9,11 +9,15 @@ env:
 
 jobs:
   tests:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ubuntu-latest, macos-latest]
         python-version: [3.7, 3.8]
         install-method: ["pip", "conda"]
+    defaults:
+      run:
+        shell: bash -l {0}
 
     steps:
       - uses: actions/checkout@v2
@@ -27,10 +31,10 @@ jobs:
             ~/.cache/ctapipe
           key: ctapipe-test-data
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+      - uses: conda-incubator/setup-miniconda@v2
         with:
-          python-version: ${{ matrix.python-version }}
+          auto-activate-base: true
+          activate-environment: ""
 
       - name: Install dependencies
         env:
@@ -39,7 +43,7 @@ jobs:
         run: |
           source .github/install.sh
           python --version
-          pip install codecov pytest-cov pyflakes pytest-xdist
+          pip install codecov pytest-cov pyflakes pytest-xdist 'coverage!=6.3.0'
           pip install .[all]
           pip freeze
 
