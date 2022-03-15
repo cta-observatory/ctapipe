@@ -1,27 +1,26 @@
 import astropy.units as u
 import numpy as np
 import pytest
+from ctapipe.core import non_abstract_children
+from ctapipe.image.extractor import (
+    FixedWindowSum,
+    FullWaveformSum,
+    ImageExtractor,
+    NeighborPeakWindowSum,
+    SlidingWindowMaxSum,
+    TwoPassWindowSum,
+    extract_around_peak,
+    extract_sliding_window,
+    integration_correction,
+    neighbor_average_waveform,
+    subtract_baseline,
+)
+from ctapipe.image.toymodel import SkewedGaussian, WaveformModel, obtain_time_image
+from ctapipe.instrument import SubarrayDescription, TelescopeDescription
 from numpy.testing import assert_allclose, assert_equal
 from scipy.stats import norm
 from traitlets.config.loader import Config
 from traitlets.traitlets import TraitError
-
-from ctapipe.core import non_abstract_children
-from ctapipe.image.extractor import (
-    extract_around_peak,
-    extract_sliding_window,
-    neighbor_average_waveform,
-    subtract_baseline,
-    integration_correction,
-    ImageExtractor,
-    FixedWindowSum,
-    NeighborPeakWindowSum,
-    TwoPassWindowSum,
-    FullWaveformSum,
-    SlidingWindowMaxSum,
-)
-from ctapipe.image.toymodel import SkewedGaussian, obtain_time_image, WaveformModel
-from ctapipe.instrument import SubarrayDescription, TelescopeDescription
 
 extractors = non_abstract_children(ImageExtractor)
 # FixedWindowSum has no peak finding and need to be set manually
@@ -419,7 +418,6 @@ def test_Two_pass_window_sum_no_noise(subarray_1_LST):
 
     # Test only the 1st pass
     extractor.disable_second_pass = True
-
     dl1_pass1 = extractor(waveforms, 1, selected_gain_channel)
     assert_allclose(
         dl1_pass1.image[signal_pixels & integration_window_inside],
@@ -431,7 +429,6 @@ def test_Two_pass_window_sum_no_noise(subarray_1_LST):
         true_time[signal_pixels & integration_window_inside],
         rtol=0.15,
     )
-    assert dl1_pass1.is_valid == True
 
     # Test also the 2nd pass
     extractor.disable_second_pass = False
@@ -558,8 +555,6 @@ def test_global_peak_window_sum_with_pixel_fraction(subarray):
         pixel_fraction=0.05,
         apply_integration_correction=False,
     )
-
-    dl1 = extractor(waveforms, tel_id, selected_gain_channel)
 
     assert np.allclose(dl1.image[bright_pixels], 18)
     assert np.allclose(dl1.image[~bright_pixels], 0)
