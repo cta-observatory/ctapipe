@@ -31,7 +31,7 @@ from ctapipe.core.traits import (
 )
 from ctapipe.core import TelescopeComponent
 from numba import njit, prange, guvectorize, float64, float32, int64
-from scipy.ndimage.filters import convolve1d
+from scipy.ndimage import convolve1d
 from typing import Tuple
 
 from . import number_of_islands, tailcuts_clean, brightest_island
