@@ -4,6 +4,7 @@
 if [[ "$INSTALL_METHOD" == "conda" ]]; then
   echo "Using conda located at "
   echo $CONDA
+  which conda
   sudo chown -R $USER $CONDA # Give CONDA permission to its own files
   source $CONDA/etc/profile.d/conda.sh
   conda config --set always_yes yes --set changeps1 no
@@ -18,6 +19,10 @@ if [[ "$INSTALL_METHOD" == "conda" ]]; then
   echo 'source $CONDA/etc/profile.d/conda.sh' >> ~/.bash_profile
   echo 'conda activate ci' >> ~/.bash_profile
 else
+  echo "Using conda located at "
+  echo $CONDA
+  which conda
+  conda install python=$PYTHON_VERSION pip
   echo "Using pip"
   pip install -U pip setuptools wheel
 fi
