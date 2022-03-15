@@ -603,12 +603,12 @@ class ReconstructedGeometryContainer(Container):
     )
     core_uncert_x = Field(
         nan * u.m,
-        "uncertainty of the reconstructed core position along the X axis in the ground frame",
+        "reconstructed core position uncertainty along ground frame X axis",
         unit=u.m
     )
     core_uncert_y = Field(
         nan * u.m,
-        "uncertainty of the reconstructed core position along the Y axis in the ground frame",
+        "reconstructed core position uncertainty along ground frame Y axis",
         unit=u.m
     )
     core_tilted_x = Field(
@@ -621,12 +621,12 @@ class ReconstructedGeometryContainer(Container):
     )
     core_tilted_uncert_x = Field(
         nan * u.m,
-        "uncertainty of the reconstructed core position along the X axis in the tilted frame",
+        "reconstructed core position uncertainty along tilted frame X axis",
         unit=u.m
     )
     core_tilted_uncert_y = Field(
         nan * u.m,
-        "uncertainty of the reconstructed core position along the Y axis  in the tilted frame",
+        "reconstructed core position uncertainty along tilted frame Y axis",
         unit=u.m
     )
     h_max = Field(nan * u.m, "reconstructed height of the shower maximum", unit=u.m)
