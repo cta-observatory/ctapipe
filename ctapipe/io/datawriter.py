@@ -31,6 +31,15 @@ __all__ = ["DataWriter", "DATA_MODEL_VERSION", "write_reference_metadata_headers
 
 tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many datasets
 
+
+def _get_tel_index(event, tel_id):
+    return TelEventIndexContainer(
+        obs_id=event.index.obs_id,
+        event_id=event.index.event_id,
+        tel_id=np.int16(tel_id),
+    )
+
+
 # define the version of the DL1 data model written here. This should be updated
 # when necessary:
 # - increase the major number if there is a breaking change to the model
@@ -309,7 +318,10 @@ class DataWriter(Component):
             data_levels.append(DataLevel.DL1_PARAMETERS)
         if self.write_stereo_shower or self.write_mono_shower:
             data_levels.append(DataLevel.DL2)
-
+        if self.write_raw_waveforms:
+            data_levels.append(DataLevel.R0)
+        if self.write_waveforms:
+            data_levels.append(DataLevel.R1)
         return data_levels
 
     def _setup_compression(self):
@@ -340,16 +352,17 @@ class DataWriter(Component):
         PROV.add_output_file(str(self.output_path), role="DL1/Event")
 
         # check that options make sense
-        if (
-            self.write_parameters is False
-            and self.write_images is False
-            and self.write_mono_shower is False
-            and self.write_stereo_shower is False
-        ):
+        writable_things = [
+            self.write_parameters,
+            self.write_images,
+            self.write_mono_shower,
+            self.write_stereo_shower,
+            self.write_waveforms,
+            self.write_parameters,
+        ]
+        if not any(writable_things):
             raise ToolConfigurationError(
-                "The options 'write_parameters',  'write_images', 'write_mono_shower', "
-                "and 'write_stereo_shower are all False. No output will be generated in "
-                "that case. Please enable one of these options."
+                "DataWriter configured to write no information"
             )
 
     def _setup_writer(self):
@@ -418,7 +431,7 @@ class DataWriter(Component):
                 scale=self.waveform_scale,
                 offset=self.waveform_offset,
                 source_dtype=np.float32,
-                target_dtype=np.dtype(self.image_dtype),
+                target_dtype=np.dtype(self.waveform_dtype),
             )
             writer.add_column_transform_regexp(
                 "r1/event/telescope/.*", "waveform", transform
@@ -593,18 +606,8 @@ class DataWriter(Component):
 
         # write the telescope tables
 
-        for tel_id, dl1_camera in event.dl1.tel.items():
-            dl1_camera.prefix = ""  # don't want a prefix for this container
-            telescope = self._subarray.tel[tel_id]
-            self.log.debug("WRITING TELESCOPE %s: %s", tel_id, telescope)
-
-            tel_index = TelEventIndexContainer(
-                obs_id=event.index.obs_id,
-                event_id=event.index.event_id,
-                tel_id=np.int16(tel_id),
-            )
-
-            pnt = event.pointing.tel[tel_id]
+        # pointing info
+        for tel_id, pnt in event.pointing.tel.items():
             current_pointing = (pnt.azimuth, pnt.altitude)
             if current_pointing != self._last_pointing_tel[tel_id]:
                 pnt.prefix = ""
@@ -614,11 +617,20 @@ class DataWriter(Component):
                 )
                 self._last_pointing_tel[tel_id] = current_pointing
 
-            table_name = self.table_name(tel_id, str(telescope))
-
+        # trigger info
+        for tel_id, trigger in event.trigger.tel.items():
             writer.write(
-                "dl1/event/telescope/trigger", [tel_index, event.trigger.tel[tel_id]]
+                "dl1/event/telescope/trigger", [_get_tel_index(event, tel_id), trigger]
             )
+
+        for tel_id, dl1_camera in event.dl1.tel.items():
+            tel_index = _get_tel_index(event, tel_id)
+
+            dl1_camera.prefix = ""  # don't want a prefix for this container
+            telescope = self._subarray.tel[tel_id]
+            self.log.debug("WRITING TELESCOPE %s: %s", tel_id, telescope)
+
+            table_name = self.table_name(tel_id, str(telescope))
 
             has_sim_camera = self._is_simulation and (
                 tel_id in event.simulation.tel
@@ -641,6 +653,10 @@ class DataWriter(Component):
                     )
 
             if self.write_images:
+                if dl1_camera.image is None:
+                    raise ValueError(
+                        "DataWriter.write_images is True but event does not contain image"
+                    )
                 # note that we always write the image, even if the image quality
                 # criteria are not met (those are only to determine if the parameters
                 # can be computed).

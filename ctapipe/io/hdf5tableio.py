@@ -539,23 +539,24 @@ class HDF5TableReader(TableReader):
         else:
             tab = self._tables[table_name]
 
-        row_count = 0
+        missing = self._missing_cols[table_name]
 
-        while 1:
-            try:
-                row = tab[row_count]
-            except IndexError:
-                return  # stop generator when done
+        for row_index in range(len(tab)):
+            # looping over table yields Row instances.
+            # __getitem__ just gives plain numpy data
+            row = tab[row_index]
 
-            missing = self._missing_cols[table_name]
             for container, prefix, missing_cols in zip(containers, prefixes, missing):
                 for fieldname in container.keys():
+
                     if prefix:
                         colname = f"{prefix}_{fieldname}"
                     else:
                         colname = fieldname
+
                     if colname not in self._cols_to_read[table_name]:
                         continue
+
                     container[fieldname] = self._apply_col_transform(
                         table_name, colname, row[colname]
                     )
@@ -568,4 +569,3 @@ class HDF5TableReader(TableReader):
                 yield containers
             else:
                 yield containers[0]
-            row_count += 1

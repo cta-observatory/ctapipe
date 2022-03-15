@@ -264,3 +264,8 @@ def test_metadata(tmpdir: Path):
             assert meta["CTA CONTACT NAME"] == "Maximilian Nöthe"
             assert meta["CTA CONTACT EMAIL"] == "maximilian.noethe@tu-dortmund.de"
             assert meta["CTA CONTACT ORGANIZATION"] == "TU Dortmund"
+
+
+def test_write_only_r1(r1_hdf5_file):
+    with tables.open_file(r1_hdf5_file, "r") as f:
+        assert "r1/event/telescope/tel_001" in f.root

@@ -3,6 +3,7 @@ from astropy.utils.decorators import lazyproperty
 import logging
 import numpy as np
 import tables
+from ast import literal_eval
 
 from ..core import Container, Field
 from ..instrument import SubarrayDescription
@@ -24,6 +25,7 @@ from ..containers import (
     TimingParametersContainer,
     TriggerContainer,
     ImageParametersContainer,
+    R1CameraContainer,
 )
 from .eventsource import EventSource
 from .hdf5tableio import HDF5TableReader
@@ -31,7 +33,7 @@ from .datalevels import DataLevel
 from ..utils import IndexFinder
 
 
-__all__ = ["DL1EventSource"]
+__all__ = ["HDF5EventSource"]
 
 
 logger = logging.getLogger(__name__)
@@ -50,7 +52,23 @@ COMPATIBLE_DL1_VERSIONS = [
 ]
 
 
-class DL1EventSource(EventSource):
+def get_hdf5_datalevels(h5file):
+    """Get the data levels present in the hdf5 file"""
+    datalevels = []
+
+    if "/r1/event/telescope" in h5file.root:
+        datalevels.append(DataLevel.R1)
+
+    if "/dl1/event/telescope/images" in h5file.root:
+        datalevels.append(DataLevel.DL1_IMAGES)
+
+    if "/dl1/event/telescope/parameters" in h5file.root:
+        datalevels.append(DataLevel.DL1_PARAMETERS)
+
+    return tuple(datalevels)
+
+
+class HDF5EventSource(EventSource):
     """
     Event source for files in the ctapipe DL1 format.
     For general information about the concept of event sources,
@@ -86,7 +104,6 @@ class DL1EventSource(EventSource):
     has_simulated_dl1: Boolean
         Whether the file contains simulated camera images and/or
         image parameters evaluated on these.
-
     """
 
     def __init__(self, input_url=None, config=None, parent=None, **kwargs):
@@ -120,14 +137,6 @@ class DL1EventSource(EventSource):
         self.datamodel_version = self.file_.root._v_attrs[
             "CTA PRODUCT DATA MODEL VERSION"
         ]
-        params = "parameters" in self.file_.root.dl1.event.telescope
-        images = "images" in self.file_.root.dl1.event.telescope
-        if params and images:
-            self._datalevels = (DataLevel.DL1_IMAGES, DataLevel.DL1_PARAMETERS)
-        elif params:
-            self._datalevels = (DataLevel.DL1_PARAMETERS,)
-        elif images:
-            self._datalevels = (DataLevel.DL1_IMAGES,)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
@@ -137,6 +146,7 @@ class DL1EventSource(EventSource):
 
     @staticmethod
     def is_compatible(file_path):
+
         with open(file_path, "rb") as f:
             magic_number = f.read(8)
 
@@ -148,7 +158,9 @@ class DL1EventSource(EventSource):
             if "CTA PRODUCT DATA LEVEL" not in metadata._v_attrnames:
                 return False
 
-            if "DL1" not in metadata["CTA PRODUCT DATA LEVEL"]:
+            # we can now read both R1 and DL1
+            datalevels = set(literal_eval(metadata["CTA PRODUCT DATA LEVEL"]))
+            if not datalevels.intersection(("R1", "DL1_IMAGES", "DL1_PARAMETERS")):
                 return False
 
             if "CTA PRODUCT DATA MODEL VERSION" not in metadata._v_attrnames:
@@ -161,6 +173,7 @@ class DL1EventSource(EventSource):
                     f", supported versions are {COMPATIBLE_DL1_VERSIONS}"
                 )
                 return False
+
         return True
 
     @property
@@ -184,9 +197,9 @@ class DL1EventSource(EventSource):
     def subarray(self):
         return self._subarray_info
 
-    @property
+    @lazyproperty
     def datalevels(self):
-        return self._datalevels
+        return get_hdf5_datalevels(self.file_)
 
     @lazyproperty
     def obs_ids(self):
@@ -232,6 +245,7 @@ class DL1EventSource(EventSource):
             )
             for (config, index) in reader:
                 simulation_configs[index.obs_id] = config
+
         return simulation_configs
 
     def _generate_events(self):
@@ -246,6 +260,14 @@ class DL1EventSource(EventSource):
         data.meta["max_events"] = self.max_events
 
         self.reader = HDF5TableReader(self.file_)
+
+        if DataLevel.R1 in self.datalevels:
+            waveform_readers = {
+                tel.name: self.reader.read(
+                    f"/r1/event/telescope/{tel.name}", R1CameraContainer()
+                )
+                for tel in self.file_.root.r1.event.telescope
+            }
 
         if DataLevel.DL1_IMAGES in self.datalevels:
             image_readers = {
@@ -376,6 +398,10 @@ class DL1EventSource(EventSource):
                 key = f"tel_{tel:03d}"
                 if self.allowed_tels and tel not in self.allowed_tels:
                     continue
+
+                if DataLevel.R1 in self.datalevels:
+                    data.r1.tel[tel] = next(waveform_readers[key])
+
                 if self.has_simulated_dl1:
                     simulated = data.simulation.tel[tel]
 

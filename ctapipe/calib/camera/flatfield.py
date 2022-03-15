@@ -91,7 +91,7 @@ class FlatFieldCalculator(Component):
         super().__init__(**kwargs)
         # load the waveform charge extractor
         self.extractor = ImageExtractor.from_name(
-            self.charge_product, config=self.config, subarray=subarray
+            self.charge_product, parent=self, subarray=subarray
         )
 
         self.log.info(f"extractor {self.extractor}")
