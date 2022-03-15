@@ -1,6 +1,5 @@
 import astropy.units as u
 import numpy as np
-from ctapipe.containers import DL1CameraContainer
 import pytest
 from ctapipe.core import non_abstract_children
 from ctapipe.image.extractor import (
