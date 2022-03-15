@@ -7,6 +7,7 @@ import numpy as np
 import astropy.units as u
 from numpy.testing import assert_allclose
 from traitlets.config.loader import Config
+from ctapipe.containers import DL1CameraContainer
 
 from ctapipe.image.extractor import SlidingWindowMaxSum, ImageExtractor
 from ctapipe.image.toymodel import WaveformModel
@@ -53,7 +54,7 @@ def test_sw_pulse_lst():
         "SlidingWindowMaxSum", subarray=subarray, config=config
     )
 
-    charge, _, is_valid = extractor(waveform, telid, selected_gain_channel)
-    print(charge / charge_true)
-    assert_allclose(charge, charge_true, rtol=0.02)
-    assert is_valid
+    dl1: DL1CameraContainer = extractor(waveform, telid, selected_gain_channel)
+    print(dl1.image / charge_true)
+    assert_allclose(dl1.image, charge_true, rtol=0.02)
+    assert dl1.is_valid

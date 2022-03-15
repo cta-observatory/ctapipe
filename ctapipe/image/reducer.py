@@ -3,6 +3,7 @@ Algorithms for the data volume reduction.
 """
 from abc import abstractmethod
 import numpy as np
+from ctapipe.containers import DL1CameraContainer
 from ctapipe.image import TailcutsImageCleaner
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
@@ -180,14 +181,14 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         camera_geom = self.subarray.tel[telid].camera.geometry
         # Pulse-integrate waveforms
         extractor = self.image_extractors[self.image_extractor_type.tel[telid]]
-        charge, _, is_valid = extractor(
+        dl1: DL1CameraContainer = extractor(
             waveforms, telid=telid, selected_gain_channel=selected_gain_channel
         )
 
         # 1) Step: TailcutCleaning at first
-        mask = self.cleaner(telid, charge)
+        mask = self.cleaner(telid, dl1.image)
         pixels_above_boundary_thresh = (
-            charge >= self.cleaner.boundary_threshold_pe.tel[telid]
+            dl1.image >= self.cleaner.boundary_threshold_pe.tel[telid]
         )
         mask_in_loop = np.array([])
         # 2) Step: Add iteratively all pixels with Signal

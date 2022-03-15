@@ -4,19 +4,19 @@ calibration and image extraction, as well as supporting algorithms.
 """
 
 import warnings
-import numpy as np
-import astropy.units as u
 
+import astropy.units as u
+import numpy as np
+from ctapipe.containers import DL1CameraContainer
 from ctapipe.core import TelescopeComponent
-from ctapipe.image.extractor import ImageExtractor
-from ctapipe.image.reducer import DataVolumeReducer
 from ctapipe.core.traits import (
+    BoolTelescopeParameter,
     TelescopeParameter,
     create_class_enum_trait,
-    BoolTelescopeParameter,
 )
-
-from numba import guvectorize, float64, float32, int64
+from ctapipe.image.extractor import ImageExtractor
+from ctapipe.image.reducer import DataVolumeReducer
+from numba import float32, float64, guvectorize, int64
 
 __all__ = ["CameraCalibrator"]
 
@@ -189,8 +189,11 @@ class CameraCalibrator(TelescopeComponent):
             #   - Read into dl1 container directly?
             #   - Don't do anything if dl1 container already filled
             #   - Update on SST review decision
-            charge = waveforms[..., 0].astype(np.float32)
-            peak_time = np.zeros(n_pixels, dtype=np.float32)
+            dl1 = DL1CameraContainer(
+                image=waveforms[..., 0].astype(np.float32),
+                peak_time=np.zeros(n_pixels, dtype=np.float32),
+                is_valid=True,
+            )
         else:
 
             # shift waveforms if time_shift calibration is available
@@ -206,20 +209,19 @@ class CameraCalibrator(TelescopeComponent):
                     remaining_shift = time_shift
 
             extractor = self.image_extractors[self.image_extractor_type.tel[telid]]
-            charge, peak_time, is_valid = extractor(
+            dl1 = extractor(
                 waveforms, telid=telid, selected_gain_channel=selected_gain_channel
             )
 
             # correct non-integer remainder of the shift if given
             if self.apply_peak_time_shift.tel[telid] and time_shift is not None:
-                peak_time -= remaining_shift
+                dl1.peak_time -= remaining_shift
 
         # Calibrate extracted charge
-        charge *= dl1_calib.relative_factor / dl1_calib.absolute_factor
+        dl1.image *= dl1_calib.relative_factor / dl1_calib.absolute_factor
 
-        event.dl1.tel[telid].image = charge
-        event.dl1.tel[telid].peak_time = peak_time
-        event.dl1.tel[telid].is_valid = is_valid
+        # store the results in the event structure
+        event.dl1.tel[telid] = dl1
 
     def __call__(self, event):
         """
