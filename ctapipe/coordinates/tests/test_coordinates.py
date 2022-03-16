@@ -245,3 +245,12 @@ def test_camera_missing_focal_length():
 
     with raises(ValueError):
         coord.transform_to(TelescopeFrame())
+
+
+def test_camera_focal_length_array():
+    from ctapipe.coordinates import CameraFrame, TelescopeFrame
+
+    tel_coord = SkyCoord([1, 2] * u.deg, [0, 1] * u.deg, frame=TelescopeFrame())
+    cam_coord = tel_coord.transform_to(CameraFrame(focal_length=[28, 17] * u.m))
+    assert not np.isnan(cam_coord.x).any()
+    assert not np.isnan(cam_coord.y).any()
