@@ -59,6 +59,6 @@ def test_invalid_input():
     """Test invalid path argument raises"""
     from ctapipe.io.astropy_helpers import write_table
 
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         invalid_path = 5
         write_table(Table({"a": [1, 2, 3]}), invalid_path, "/temp")

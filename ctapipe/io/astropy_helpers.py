@@ -2,8 +2,6 @@
 """
 Functions to help adapt internal ctapipe data to astropy formats and conventions
 """
-
-from pathlib import Path
 import os
 from contextlib import ExitStack
 
@@ -122,16 +120,8 @@ def write_table(table, h5file, path, append=False, mode="a", filters=DEFAULT_FIL
     copied = False
 
     with ExitStack() as stack:
-
-        if isinstance(h5file, (str, Path)):
+        if not isinstance(h5file, tables.File):
             h5file = stack.enter_context(tables.open_file(h5file, mode=mode))
-        elif isinstance(h5file, tables.file.File):
-            pass
-        else:
-            raise ValueError(
-                f"expected a string, Path, or PyTables "
-                f"filehandle for argument 'h5file', got {h5file}"
-            )
 
         attrs = {}
         for colname, column in table.columns.items():
