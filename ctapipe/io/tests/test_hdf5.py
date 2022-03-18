@@ -843,41 +843,40 @@ def test_write_default_container(cls, tmp_path):
 
 
 def test_strings(tmp_path):
-    '''Test we can write unicode strings'''
+    """Test we can write unicode strings"""
     from ctapipe.core import Container
     from ctapipe.io import read_table
 
     # when not giving a max_len, should be taken from the first container
-    class Container(Container):
+    class Container1(Container):
         container_prefix = ""
         string = Field("", "test string")
 
-    path = tmp_path / 'test.h5'
+    path = tmp_path / "test.h5"
 
-    strings = ['Hello', 'öäα']
+    strings = ["Hello", "öäα"]
 
     with HDF5TableWriter(path, mode="w") as writer:
         for string in strings:
-            writer.write("strings", Container(string=string))
+            writer.write("strings", Container1(string=string))
 
     table = read_table(path, "/strings")
 
     # the α is above the max length estimated from the first element
     assert table["string"].tolist() == ["Hello", "öä"]
 
-
-    class Container(Container):
+    class Container2(Container):
         container_prefix = ""
         string = Field("", "test string", max_length=10)
 
-    path = tmp_path / 'test.h5'
+    path = tmp_path / "test.h5"
 
-    strings = ['Hello', 'öäα', '12345678910']
+    strings = ["Hello", "öäα", "12345678910"]
     expected = ["Hello", "öäα", "1234567891"]
 
     with HDF5TableWriter(path, mode="w") as writer:
         for string in strings:
-            writer.write("strings", Container(string=string))
+            writer.write("strings", Container2(string=string))
 
     table = read_table(path, "/strings")
 
@@ -886,7 +885,7 @@ def test_strings(tmp_path):
 
     # test this also works with table reader
     with HDF5TableReader(path) as reader:
-        generator = reader.read("/strings", Container())
+        generator = reader.read("/strings", Container2())
         for string in expected:
             c = next(generator)
             assert c.string == string
