@@ -2,6 +2,7 @@ import numpy as np
 from numpy.testing import assert_allclose
 import astropy.units as u
 from ctapipe.image.toymodel import Gaussian
+import pytest
 
 
 def create_mock_image(geom, psi=25 * u.deg):
@@ -50,3 +51,9 @@ def test_multiple_images(camera_geometry):
     # in general this introduces extra pixels in the 2d array, which are set to nan
     assert np.nansum(images) == np.nansum(images_2d)
     assert_allclose(images, images_1d)
+
+
+@pytest.mark.parametrize("pixel_id", [0, 1, 100])
+def test_pixel_coordinates_roundtrip(pixel_id, camera_geometry):
+    row, col = camera_geometry.pixel_id_to_index2d(pixel_id)
+    assert camera_geometry.index2d_to_pixel_id(row, col) == pixel_id

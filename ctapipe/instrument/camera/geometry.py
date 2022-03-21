@@ -407,6 +407,21 @@ class CameraGeometry:
         """
         return ~np.any(~np.isclose(self.pix_area.value, self.pix_area[0].value), axis=0)
 
+    
+    def pixel_id_to_index2d(self, pixel_id):
+        rows, cols = self._pixel_positions_2d
+        return rows[pixel_id], cols[pixel_id]
+
+    def index2d_to_pixel_id(self, row, col):
+        return self._pixel_ids_2d[row, col]
+
+    @lazyproperty
+    def _pixel_ids_2d(self):
+        img = self.pix_id
+        img2d = self.image_to_cartesian_representation(img)
+        img2d = np.nan_to_num(img2d, nan=-1).astype(np.int32)
+        return img2d
+
     @lazyproperty
     def _pixel_positions_2d(self):
         """
@@ -484,12 +499,15 @@ class CameraGeometry:
         """
         rows, cols = self._pixel_positions_2d
         image = np.atleast_2d(image)  # this allows for multiple images at once
+
         image_2d = np.full((image.shape[0], rows.max() + 1, cols.max() + 1), np.nan)
         image_2d[:, rows, cols] = image
+
         if self.pix_type == PixelShape.SQUARE:
             image_2d = np.flip(image_2d, axis=1)
         else:
             image_2d = np.flip(image_2d)
+
         return np.squeeze(image_2d)  # removes the extra dimension for single images
 
     def image_from_cartesian_representation(self, image_2d):
