@@ -471,11 +471,20 @@ class CameraGeometry:
             pixel_row = rows_1d
             pixel_column = cols_1d
 
+            # flip image so that imshow looks like original camera display
+            pixel_row = pixel_row.max() - pixel_row
+            pixel_column = pixel_column.max() - pixel_column
+
         elif self.pix_type is PixelShape.SQUARE:
             pixel_row = get_orthogonal_grid_indices(self.pix_y, np.sqrt(self.pix_area))
             pixel_column = get_orthogonal_grid_indices(
                 self.pix_x, np.sqrt(self.pix_area)
             )
+
+            # flip image so that imshow looks like original camera display
+            pixel_row = pixel_row.max() - pixel_row
+        else:
+            raise ValueError(f"Unsupported pixel shape {self.pix_type}")
 
         return pixel_row, pixel_column
 
@@ -503,11 +512,6 @@ class CameraGeometry:
         image_2d = np.full((image.shape[0], rows.max() + 1, cols.max() + 1), np.nan)
         image_2d[:, rows, cols] = image
 
-        if self.pix_type == PixelShape.SQUARE:
-            image_2d = np.flip(image_2d, axis=1)
-        else:
-            image_2d = np.flip(image_2d)
-
         return np.squeeze(image_2d)  # removes the extra dimension for single images
 
     def image_from_cartesian_representation(self, image_2d):
@@ -533,10 +537,7 @@ class CameraGeometry:
         # to a different shape compared to a multi image array
         if image_2d.ndim == 2:
             image_2d = image_2d[np.newaxis, :]
-        if self.pix_type == PixelShape.SQUARE:
-            image_2d = np.flip(image_2d, axis=1)
-        else:
-            image_2d = np.flip(image_2d)
+
         image_flat = np.zeros((image_2d.shape[0], rows.shape[0]), dtype=image_2d.dtype)
         image_flat[:] = image_2d[:, rows, cols]
         image_1d = image_flat
