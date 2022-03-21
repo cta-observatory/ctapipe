@@ -407,19 +407,25 @@ class CameraGeometry:
         """
         return ~np.any(~np.isclose(self.pix_area.value, self.pix_area[0].value), axis=0)
 
-    
-    def pixel_id_to_index2d(self, pixel_id):
+    def image_index_to_cartesian_index(self, pixel_index):
+        '''
+        Convert pixel index in the 1d image representation to row and col
+        '''
         rows, cols = self._pixel_positions_2d
-        return rows[pixel_id], cols[pixel_id]
+        return rows[pixel_index], cols[pixel_index]
 
-    def index2d_to_pixel_id(self, row, col):
-        return self._pixel_ids_2d[row, col]
+    def cartesian_index_to_image_index(self, row, col):
+        '''
+        Convert cartesian index (row, col) to pixel index in 1d representation.
+        '''
+        return self._pixel_indices_cartesian[row, col]
 
     @lazyproperty
-    def _pixel_ids_2d(self):
-        img = self.pix_id
+    def _pixel_indices_cartesian(self):
+        img = np.arange(self.n_pixels)
         img2d = self.image_to_cartesian_representation(img)
-        img2d = np.nan_to_num(img2d, nan=-1).astype(np.int32)
+        invalid = np.iinfo(np.int32).min
+        img2d = np.nan_to_num(img2d, nan=invalid).astype(np.int32)
         return img2d
 
     @lazyproperty

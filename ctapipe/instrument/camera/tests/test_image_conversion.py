@@ -55,5 +55,5 @@ def test_multiple_images(camera_geometry):
 
 @pytest.mark.parametrize("pixel_id", [0, 1, 100])
 def test_pixel_coordinates_roundtrip(pixel_id, camera_geometry):
-    row, col = camera_geometry.pixel_id_to_index2d(pixel_id)
-    assert camera_geometry.index2d_to_pixel_id(row, col) == pixel_id
+    row, col = camera_geometry.image_index_to_cartesian_index(pixel_id)
+    assert camera_geometry.cartesian_index_to_image_index(row, col) == pixel_id
