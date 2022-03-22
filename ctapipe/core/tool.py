@@ -211,7 +211,7 @@ class Tool(Application):
 
         self.log.info(f"ctapipe version {self.version_string}")
 
-    def load_config_file(self, path: Union[std, pathlib.Path]):
+    def load_config_file(self, path: Union[str, pathlib.Path]):
 
         path = pathlib.Path(path)
 
