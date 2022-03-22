@@ -28,7 +28,7 @@ def test_read_yaml_toml_config(dl1_image_file):
         config = files("ctapipe.tools.tests.resources").joinpath(config_base)
         tool.load_config_file(config)
 
-    tool.EventSource.input_url = dl1_image_file
+    tool.config.EventSource.input_url = dl1_image_file
     tool.setup()
     assert tool.config.DataWriter.name == "YOUR-NAME-HERE"
 

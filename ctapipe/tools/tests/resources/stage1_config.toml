@@ -20,9 +20,9 @@ image_extractor_type = "NeighborPeakWindowSum"
 image_cleaner_type = "TailcutsImageCleaner"
 
 [ImageProcessor.TailcutsImageCleaner]
-picture_threshold_pe = [ [ "type", "*", 10.0,], [ "type", "LST_LST_LSTCam", 5.0,], [ "type", "MST_MST_NectarCam", 5.0,], [ "type", "SST_ASTRI_CHEC", 3.0,],]
-boundary_threshold_pe = [ [ "type", "*", 5.0,], [ "type", "LST_LST_LSTCam", 2.5,], [ "type", "MST_MST_NectarCam", 2.5,], [ "type", "SST_ASTRI_CHEC", 1.5,],]
-min_picture_neighbors = [ [ "type", "*", 2,],]
+picture_threshold_pe = [ [ "type", "*", "10.0",], [ "type", "LST_LST_LSTCam", "5.0",], [ "type", "MST_MST_NectarCam", "5.0",], [ "type", "SST_ASTRI_CHEC", "3.0",],]
+boundary_threshold_pe = [ [ "type", "*", "5.0",], [ "type", "LST_LST_LSTCam", "2.5",], [ "type", "MST_MST_NectarCam", "2.5",], [ "type", "SST_ASTRI_CHEC", "1.5",],]
+min_picture_neighbors = [ [ "type", "*", "2",],]
 
 [ImageProcessor.ImageQualityQuery]
 quality_criteria = [ [ "enough_pixels", "lambda im: np.count_nonzero(im) > 2",], [ "enough_charge", "lambda im: im.sum() > 50",],]
