@@ -7,8 +7,16 @@ import pathlib
 import os
 import re
 
+try:
+    import yaml
+
+    HAS_YAML = True
+except ImportError:
+    HAS_YAML = False
+    pass  # no support for YAML
+
 from traitlets import default
-from traitlets.config import Application, Configurable
+from traitlets.config import Application, Configurable, Config
 
 from .. import __version__ as version
 from .traits import Path, Enum, Bool, Dict
@@ -189,17 +197,30 @@ class Tool(Application):
         self.update_logging_config()
 
         if self.config_file is not None:
-            self.log.debug(f"Loading config from '{self.config_file}'")
+            self.log.info(f"Loading config from '{self.config_file}'")
             try:
-                self.load_config_file(self.config_file)
+                self._load_tool_config_file(self.config_file)
             except Exception as err:
-                raise ToolConfigurationError(f"Couldn't read config file: {err}")
+                raise ToolConfigurationError(
+                    f"Couldn't read config file: {err} {type(err)}"
+                )
 
         # ensure command-line takes precedence over config file options:
         self.update_config(self.cli_config)
         self.update_logging_config()
 
         self.log.info(f"ctapipe version {self.version_string}")
+
+    def _load_tool_config_file(self, path: pathlib.Path):
+
+        if path.suffix in [".yaml", ".yml"] and HAS_YAML:
+            # do our own YAML loading
+            with open(path, "r") as infile:
+                config = Config(yaml.safe_load(infile))
+            self.update_config(config)
+        else:
+            # fall back to traitlets.config.Application's implementation
+            self.load_config_file(str(path))
 
     def update_logging_config(self):
         """Update the configuration of loggers."""
@@ -334,7 +355,7 @@ class Tool(Application):
         return f"{version}"
 
     def get_current_config(self):
-        """ return the current configuration as a dict (e.g. the values
+        """return the current configuration as a dict (e.g. the values
         of all traits, even if they were not set during configuration)
         """
         conf = {
