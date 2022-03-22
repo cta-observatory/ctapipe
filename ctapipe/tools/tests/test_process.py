@@ -24,7 +24,7 @@ GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
     """  check simtel to DL1 conversion """
 
-    config = files("ctapipe.tools.tests.resources").joinpath("stage1_config.json")
+    config = files("ctapipe.tools.tests.resources").joinpath("stage1_config.yaml")
     # DL1A file as input
     dl1b_from_dl1a_file = tmp_path / "dl1b_fromdl1a.dl1.h5"
     assert (
