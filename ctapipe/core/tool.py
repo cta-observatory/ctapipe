@@ -23,7 +23,7 @@ try:
 except ImportError:
     HAS_TOML = False
 
-from traitlets import default
+from traitlets import default, List
 from traitlets.config import Application, Config, Configurable
 
 from .. import __version__ as version
@@ -134,16 +134,18 @@ class Tool(Application):
 
     """
 
-    config_file = Path(
-        exists=True,
-        directory_ok=False,
-        allow_none=True,
-        default_value=None,
-        help=(
-            "name of a configuration file with "
-            "parameters to load in addition to "
-            "command-line parameters"
-        ),
+    config_file = List(
+        trait=Path(
+            exists=True,
+            directory_ok=False,
+            allow_none=True,
+            default_value=None,
+            help=(
+                "name of a configuration file with "
+                "parameters to load in addition to "
+                "command-line parameters"
+            ),
+        )
     ).tag(config=True)
 
     log_config = Dict(default_value=DEFAULT_LOGGING).tag(config=True)
@@ -206,7 +208,8 @@ class Tool(Application):
         if self.config_file is not None:
             self.log.info(f"Loading config from '{self.config_file}'")
             try:
-                self.load_config_file(self.config_file)
+                for config_file in self.config_file:
+                    self.load_config_file(config_file)
             except Exception as err:
                 raise ToolConfigurationError(
                     f"Couldn't read config file: {err} {type(err)}"
