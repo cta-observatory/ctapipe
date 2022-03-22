@@ -212,7 +212,7 @@ class Tool(Application):
                     self.load_config_file(config_file)
             except Exception as err:
                 raise ToolConfigurationError(
-                    f"Couldn't read config file: {err} {type(err)}"
+                    f"Couldn't read config file: {err} ({type(err)})"
                 )
 
         # ensure command-line takes precedence over config file options:
@@ -512,7 +512,6 @@ def run_tool(tool: Tool, argv=None, cwd=None):
         # switch to cwd for running and back after
         os.chdir(cwd)
         tool.run(argv or [])
-        return 0
     except SystemExit as e:
         return e.code
     finally:
