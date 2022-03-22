@@ -17,11 +17,16 @@ except ImportError:
     pass  # no support for YAML
 
 try:
-    import toml
+    import tomli
 
     HAS_TOML = True
 except ImportError:
-    HAS_TOML = False
+    try:
+        import toml
+
+        HAS_TOML = True
+    except ImportError:
+        HAS_TOML = False
 
 from traitlets import default
 from traitlets.config import Application, Config, Configurable
