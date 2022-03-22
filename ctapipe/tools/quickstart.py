@@ -14,7 +14,12 @@ from ..version import __version__ as VERSION
 
 __all__ = ["QuickStartTool"]
 
-CONFIGS_TO_WRITE = ["stage1_config.json", "stage2_config.json", "training_config.json"]
+CONFIGS_TO_WRITE = [
+    "stage1_config.yaml",
+    "stage1_config.json",
+    "stage2_config.json",
+    "training_config.json",
+]
 
 README_TEXT = f"""
 ctapipe working directory
