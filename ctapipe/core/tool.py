@@ -17,7 +17,7 @@ except ImportError:
     pass  # no support for YAML
 
 try:
-    import tomli
+    import tomli as toml
 
     HAS_TOML = True
 except ImportError:
