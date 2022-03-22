@@ -21,6 +21,18 @@ except ImportError:
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 
 
+def test_read_yaml_toml_config(dl1_image_file):
+    tool = ProcessorTool()
+
+    for config_base in ["stage1_config.yaml", "stage1_config.toml"]:
+        config = files("ctapipe.tools.tests.resources").joinpath(config_base)
+        tool.load_config_file(config)
+
+    tool.EventSource.input_url = dl1_image_file
+    tool.setup()
+    assert tool.config.DataWriter.name == "YOUR-NAME-HERE"
+
+
 def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
     """  check simtel to DL1 conversion """
 
@@ -131,7 +143,7 @@ def test_stage1_datalevels(tmp_path):
         infile.write(b"dummy")
         infile.flush()
 
-    config = files("ctapipe.tools.tests.resources").joinpath("stage1_config.json")
+    config = files("ctapipe.tools.tests.resources").joinpath("stage1_config.toml")
     tool = ProcessorTool()
 
     assert (

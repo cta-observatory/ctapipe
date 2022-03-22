@@ -16,6 +16,7 @@ __all__ = ["QuickStartTool"]
 
 CONFIGS_TO_WRITE = [
     "stage1_config.yaml",
+    "stage1_config.toml",
     "stage1_config.json",
     "stage2_config.json",
     "training_config.json",
