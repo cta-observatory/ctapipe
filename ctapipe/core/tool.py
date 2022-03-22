@@ -238,7 +238,7 @@ class Tool(Application):
             self.update_config(config)
         else:
             # fall back to traitlets.config.Application's implementation
-            super(self).load_config_file(str(path))
+            super().load_config_file(str(path))
 
     def update_logging_config(self):
         """Update the configuration of loggers."""
