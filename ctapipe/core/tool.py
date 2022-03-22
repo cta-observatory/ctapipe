@@ -1,11 +1,12 @@
 """Classes to handle configurable command-line user interfaces."""
 import logging
 import logging.config
+import os
+import pathlib
+import re
 import textwrap
 from abc import abstractmethod
-import pathlib
-import os
-import re
+from typing import Union
 
 try:
     import yaml
@@ -16,14 +17,13 @@ except ImportError:
     pass  # no support for YAML
 
 from traitlets import default
-from traitlets.config import Application, Configurable, Config
+from traitlets.config import Application, Config, Configurable
 
 from .. import __version__ as version
-from .traits import Path, Enum, Bool, Dict
 from . import Provenance
 from .component import Component
-from .logging import create_logging_config, ColoredFormatter, DEFAULT_LOGGING
-
+from .logging import DEFAULT_LOGGING, ColoredFormatter, create_logging_config
+from .traits import Bool, Dict, Enum, Path
 
 __all__ = ["Tool", "ToolConfigurationError"]
 
@@ -199,7 +199,7 @@ class Tool(Application):
         if self.config_file is not None:
             self.log.info(f"Loading config from '{self.config_file}'")
             try:
-                self._load_tool_config_file(self.config_file)
+                self.load_config_file(self.config_file)
             except Exception as err:
                 raise ToolConfigurationError(
                     f"Couldn't read config file: {err} {type(err)}"
@@ -211,7 +211,9 @@ class Tool(Application):
 
         self.log.info(f"ctapipe version {self.version_string}")
 
-    def _load_tool_config_file(self, path: pathlib.Path):
+    def load_config_file(self, path: Union[std, pathlib.Path]):
+
+        path = pathlib.Path(path)
 
         if path.suffix in [".yaml", ".yml"] and HAS_YAML:
             # do our own YAML loading
@@ -220,7 +222,7 @@ class Tool(Application):
             self.update_config(config)
         else:
             # fall back to traitlets.config.Application's implementation
-            self.load_config_file(str(path))
+            super(self).load_config_file(str(path))
 
     def update_logging_config(self):
         """Update the configuration of loggers."""
