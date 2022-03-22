@@ -32,6 +32,7 @@ docs_require = [
     "notebook",
     "graphviz",
     "pandas",
+    "tomli",
 ]
 
 setup(

@@ -29,8 +29,12 @@ def test_read_yaml_toml_config(dl1_image_file):
         tool.load_config_file(config)
 
     tool.config.EventSource.input_url = dl1_image_file
+    tool.config.DataWriter.overwrite = True
     tool.setup()
-    assert tool.config.DataWriter.name == "YOUR-NAME-HERE"
+    assert (
+        tool.get_current_config()["ProcessorTool"]["DataWriter"]["contact_info"].name
+        == "YOUR-NAME-HERE"
+    )
 
 
 def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):

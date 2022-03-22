@@ -21,12 +21,7 @@ try:
 
     HAS_TOML = True
 except ImportError:
-    try:
-        import toml
-
-        HAS_TOML = True
-    except ImportError:
-        HAS_TOML = False
+    HAS_TOML = False
 
 from traitlets import default
 from traitlets.config import Application, Config, Configurable
@@ -233,7 +228,7 @@ class Tool(Application):
                 config = Config(yaml.safe_load(infile))
             self.update_config(config)
         elif path.suffix == ".toml" and HAS_TOML:
-            with open(path, "r") as infile:
+            with open(path, "rb") as infile:
                 config = Config(toml.load(infile))
             self.update_config(config)
         else:
