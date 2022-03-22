@@ -16,6 +16,13 @@ except ImportError:
     HAS_YAML = False
     pass  # no support for YAML
 
+try:
+    import toml
+
+    HAS_TOML = True
+except ImportError:
+    HAS_TOML = False
+
 from traitlets import default
 from traitlets.config import Application, Config, Configurable
 
@@ -219,6 +226,10 @@ class Tool(Application):
             # do our own YAML loading
             with open(path, "r") as infile:
                 config = Config(yaml.safe_load(infile))
+            self.update_config(config)
+        elif path.suffix == ".toml" and HAS_TOML:
+            with open(path, "r") as infile:
+                config = Config(toml.load(infile))
             self.update_config(config)
         else:
             # fall back to traitlets.config.Application's implementation
