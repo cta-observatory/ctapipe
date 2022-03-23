@@ -145,7 +145,8 @@ class Tool(Application):
                 "in addition to command-line parameters. "
                 "The order listed is the order of precendence (later config parameters "
                 "overwrite earlier ones), however parameters specified on the "
-                "command line always have the highest precendence."
+                "command line always have the highest precendence. "
+                "Config files may be in JSON, YAML, TOML, or Python format"
             ),
         )
     ).tag(config=True)
