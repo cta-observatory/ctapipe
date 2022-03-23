@@ -1,5 +1,6 @@
 class Singleton(type):
     """" metaclass for singleton pattern """
+
     instance = None
 
     def __call__(cls, *args, **kw):

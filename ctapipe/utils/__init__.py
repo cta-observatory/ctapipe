@@ -1,9 +1,31 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 from .fitshistogram import Histogram
-from .json2fits import json_to_fits
-from .dynamic_class import dynamic_class_from_module
 from .table_interpolator import TableInterpolator
 from .unstructured_interpolator import UnstructuredInterpolator
-from .datasets import (find_all_matching_datasets, get_table_dataset, get_dataset_path,
-                       find_in_path, get_dataset)
-from .CutFlow import CutFlow, PureCountingCut, UndefinedCut
+from .datasets import (
+    find_all_matching_datasets,
+    get_table_dataset,
+    get_dataset_path,
+    find_in_path,
+)
+from .astro import get_bright_stars
+from .cutflow import CutFlow, PureCountingCut, UndefinedCut
+from .index_finder import IndexFinder
+from .event_type_filter import EventTypeFilter
+
+
+__all__ = [
+    "Histogram",
+    "TableInterpolator",
+    "UnstructuredInterpolator",
+    "find_all_matching_datasets",
+    "get_table_dataset",
+    "get_dataset_path",
+    "find_in_path",
+    "get_bright_stars",
+    "CutFlow",
+    "PureCountingCut",
+    "UndefinedCut",
+    "IndexFinder",
+    "EventTypeFilter",
+]

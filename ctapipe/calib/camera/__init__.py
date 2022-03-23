@@ -3,7 +3,7 @@
 Camera calibration module.
 """
 
-from .r1 import *
-from .dl0 import *
-from .dl1 import *
-from .calibrator import *
+from .calibrator import CameraCalibrator
+from .gainselection import GainSelector
+
+__all__ = ["CameraCalibrator", "GainSelector"]

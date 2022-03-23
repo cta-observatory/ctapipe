@@ -7,14 +7,14 @@ Getting Started For Developers
 .. warning::
 
    the following guide is used only if you want to *develop* the
-   `ctapipe` package, if you just want to write code that uses it
-   externally, you can install `ctapipe` as a conda package
-   with `conda install -c cta-observatory ctapipe`.
+   ``ctapipe`` package, if you just want to write code that uses it
+   externally, you can install ``ctapipe`` as a conda package
+   with ``conda install -c conda-forge ctapipe``.
 
 This guide assumes you are using the *Anaconda* python distribution,
 installed locally (*miniconda* should also work).
 
-You can use *python 3.5* or above (we currently test on 3.5 and 3.6)
+You can use *python 3.7* or above (we currently test on 3.7 and 3.8)
 
 ------------------------
 Get the ctapipe software
@@ -64,16 +64,16 @@ You now need to tell Git that this repo where the master CTA version is:
     $ git remote add upstream https://github.com/cta-observatory/ctapipe.git
 
 If that worked, then you should see a *upstream* target in
-addition to *origin* when typing `git remote -v`.  Later if you want
+addition to *origin* when typing ``git remote -v``.  Later if you want
 to pull in any changes from the master repo, you just need to type
-`git pull upstream master`.
+``git pull upstream master``.
 
 
 +++++++++++++++++++++++++++++++++++++++
 Step 4: Set up your package environment
 +++++++++++++++++++++++++++++++++++++++
 
-Change to the directory where you cloned `ctapipe`, and type:
+Change to the directory where you cloned ``ctapipe``, and type:
 
 .. code-block:: console
 
@@ -81,7 +81,7 @@ Change to the directory where you cloned `ctapipe`, and type:
     $ conda env create -n cta-dev -f environment.yml
 
 
-This will create a conda virtual environment called `cta-dev` with all
+This will create a conda virtual environment called ``cta-dev`` with all
 the ctapipe dependencies and a few useful packages for development and
 interaction. Next, switch to this new virtual environment:
 
@@ -103,7 +103,7 @@ Step 5: Setup ctapipe for development
 
 Now setup this cloned version for development. The following command
 will make symlinks in your python library directory to your ctapipe
-installation (it creates a `.pth` file, there is no need to set
+installation (it creates a ``.pth`` file, there is no need to set
 PYTHONPATH, in fact it should be blank to avoid other problems). From
 then on, all the ctapipe binaries and the library itself will be
 usable from anywhere.
@@ -112,20 +112,12 @@ usable from anywhere.
 
     $ pip install -e .
 
-.. note::
-
-   If the previous command fails with an error similar to "*no module
-   named ctapipe._version_cache*", it is because the version tags are
-   missing in your git repo (a problem with older versions of git
-   before 1.9.0). To fix the problem, simply type `git fetch upstream
-   --tags` and try `make develop` again)
-
 
 Run the tests to make sure everything is OK:
 
 .. code-block:: console
 
-    $ pytest    # if using an older version of python, type py.test instead
+    $ pytest
 
 Build the HTML docs locally and open them in your web browser:
 
@@ -158,11 +150,17 @@ to your local working copy):
 Developing a new feature or code change
 ---------------------------------------
 
+We adhere to the PEP8 coding style (see our :doc:`/development/style-guide`).
+To enforce this, setup the
+`pre-commit hook <https://pre-commit.com/>`_::
+
+    $ pre-commit install
+
 You should always create a branch when developing some new code (unless it is
-a very small change).  Genearlly make a new branch for each new feature, so
+a very small change).  Generally make a new branch for each new feature, so
 that you can make pull-requests for each one separately and not mix code
-from each.  Remember that `git checkout <name>` switches between branches,
-`git checkout -b <name>` creates a new branch, and `git branch` on it's own
+from each.  Remember that ``git switch <name>`` switches between branches,
+``git switch -c <name>`` creates a new branch, and ``git branch`` on it's own
 will tell you which branches are available and which one you are currently on.
 
 First think of a name for your code change, here we'll use
@@ -200,20 +198,20 @@ linked to the commit in the issue tracker.  An example commit message::
   - changed the order of if statements to avoid logical error
   - added unit test to check for regression
 
-Of course,make sure you frequently test via `make test` (or `py.test` in a
+Of course, make sure you frequently test via ``make test`` (or ``pytest`` in a
 sub-module), check the style, and make sure the docs render correctly
-(both code and top-level) using `make doc`.
+(both code and top-level) using ``make doc``.
 
 .. note::
 
    A git commit should ideally contain one and only one feature change
    (e.g it should not mix changes that are logically different
-   together). Therefore it's best to group related changes with `git
-   add <files>`. You may even commit only *parts* of a changed file
-   using and `git add -p`.  If you want to keep your git commit
-   history clean, learn to use commands like `git commit --ammend`
+   together). Therefore it's best to group related changes with ``git
+   add <files>``. You may even commit only *parts* of a changed file
+   using and ``git add -p``.  If you want to keep your git commit
+   history clean, learn to use commands like ``git commit --ammend``
    (append to previous commit without creating a new one, e.g. when
-   you find a typo or something small)
+   you find a typo or something small).
 
    A clean history and a chain of well-written commit messages will
    make it easier on code reviews to see what you did.
@@ -265,10 +263,10 @@ Keep in mind the following:
   by Travis.  It is your responsibility to run "make doc" and check
   that you don't have any syntax errors in your docstrings.
 * All code you have written should follow the style guide (e.g. no
-  warnings when you run the `flake8` syntax checker)
+  warnings when you run the ``flake8`` syntax checker)
 
-If the reviewer asks for changes, all you need to do is make them, `git
-commit` them and then run `git push` and the reviewer will see the changes.
+If the reviewer asks for changes, all you need to do is make them, ``git
+commit`` them and then run ``git push`` and the reviewer will see the changes.
 
 When the PR is accepted, the reviewer will merge your branch into the
 *master* repo on cta-observatory's account.
@@ -307,4 +305,3 @@ automatically. It provides a graphical view of your fork and the
 upstream cta-observatory repository, so you can see easily what
 version you are working on. It will handle the forking, syncing, and
 even allow you to issue pull-requests.
-

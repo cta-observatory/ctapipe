@@ -1,6 +1,5 @@
-import numpy as np
 from bokeh.layouts import layout, column
-from bokeh.models import Select, Span
+from bokeh.models import Select
 from ctapipe.core import Component
 from ctapipe.visualization.bokeh import CameraDisplay, WaveformDisplay
 
@@ -9,7 +8,7 @@ class BokehEventViewerCamera(CameraDisplay):
     def __init__(self, event_viewer, fig=None):
         """
         A `ctapipe.visualization.bokeh.CameraDisplay` modified to utilise a
-        `ctapipe.core.container.DataContainer` directly.
+        `ctapipe.core.container.ArrayEventContainer` directly.
 
         Parameters
         ----------
@@ -19,19 +18,18 @@ class BokehEventViewerCamera(CameraDisplay):
             Figure to store the bokeh plot onto (optional)
         """
         self._event = None
-        self._view = 'r0'
+        self._view = "r0"
         self._telid = None
         self._channel = 0
         self._time = 0
         super().__init__(fig=fig)
 
         self._view_options = {
-            'r0': lambda e, t, c, time: e.r0.tel[t].waveform[c, :, time],
-            'r1': lambda e, t, c, time: e.r1.tel[t].waveform[c, :, time],
-            'dl0': lambda e, t, c, time: e.dl0.tel[t].waveform[c, :, time],
-            'dl1': lambda e, t, c, time: e.dl1.tel[t].image[c, :],
-            'peakpos': lambda e, t, c, time: e.dl1.tel[t].peakpos[c, :],
-            'cleaned': lambda e, t, c, time: e.dl1.tel[t].cleaned[c, :, time],
+            "r0": lambda e, t, c, time: e.r0.tel[t].waveform[c, :, time],
+            "r1": lambda e, t, c, time: e.r1.tel[t].waveform[:, time],
+            "dl0": lambda e, t, c, time: e.dl0.tel[t].waveform[:, time],
+            "dl1": lambda e, t, c, time: e.dl1.tel[t].image[:],
+            "peak_time": lambda e, t, c, time: e.dl1.tel[t].peak_time[:],
         }
 
         self.w_view = None
@@ -53,7 +51,7 @@ class BokehEventViewerCamera(CameraDisplay):
             self.event_viewer.log.warning("No event has been provided")
             return
 
-        tels = list(e.r0.tels_with_data)
+        tels = list(e.r0.tel.keys())
         if t is None:
             t = tels[0]
         if t not in tels:
@@ -61,7 +59,7 @@ class BokehEventViewerCamera(CameraDisplay):
 
         try:
             self.image = self._view_options[v](e, t, c, time)
-            self.fig.title.text = f'{v} (T = {time})'
+            self.fig.title.text = f"{v} (T = {time})"
         except TypeError:
             self.image = None
 
@@ -71,7 +69,7 @@ class BokehEventViewerCamera(CameraDisplay):
         if e:
             # Check if geom actually needs to be changed
             if not t == self._geom_tel:
-                self.geom = e.inst.subarray.tel[t].camera
+                self.geom = self.event_viewer.subarray.tel[t].camera.geometry
                 self._geom_tel = t
         else:
             self.event_viewer.log.warning("No event has been provided")
@@ -143,7 +141,7 @@ class BokehEventViewerCamera(CameraDisplay):
 
     def create_view_widget(self):
         self.w_view = Select(title="View:", value="", options=[], width=5)
-        self.w_view.on_change('value', self.on_view_widget_change)
+        self.w_view.on_change("value", self.on_view_widget_change)
         self.layout = column([self.w_view, self.layout])
 
     def update_view_widget(self):
@@ -159,7 +157,7 @@ class BokehEventViewerWaveform(WaveformDisplay):
     def __init__(self, event_viewer, fig=None):
         """
         A `ctapipe.visualization.bokeh.WaveformDisplay` modified to utilise a
-        `ctapipe.core.container.DataContainer` directly.
+        `ctapipe.core.container.ArrayEventContainer` directly.
 
         Parameters
         ----------
@@ -169,18 +167,16 @@ class BokehEventViewerWaveform(WaveformDisplay):
             Figure to store the bokeh plot onto (optional)
         """
         self._event = None
-        self._view = 'r0'
+        self._view = "r0"
         self._telid = None
         self._channel = 0
         self._pixel = 0
         super().__init__(fig=fig)
-        self._draw_integration_window()
 
         self._view_options = {
-            'r0': lambda e, t, c, p: e.r0.tel[t].waveform[c, p],
-            'r1': lambda e, t, c, p: e.r1.tel[t].waveform[c, p],
-            'dl0': lambda e, t, c, p: e.dl0.tel[t].waveform[c, p],
-            'cleaned': lambda e, t, c, p: e.dl1.tel[t].cleaned[c, p],
+            "r0": lambda e, t, c, p: e.r0.tel[t].waveform[c, p],
+            "r1": lambda e, t, c, p: e.r1.tel[t].waveform[p],
+            "dl0": lambda e, t, c, p: e.dl0.tel[t].waveform[p],
         }
 
         self.w_view = None
@@ -201,7 +197,7 @@ class BokehEventViewerWaveform(WaveformDisplay):
             self.event_viewer.log.warning("No event has been provided")
             return
 
-        tels = list(e.r0.tels_with_data)
+        tels = list(e.r0.tel.keys())
         if t is None:
             t = tels[0]
         if t not in tels:
@@ -209,38 +205,12 @@ class BokehEventViewerWaveform(WaveformDisplay):
 
         try:
             self.waveform = self._view_options[v](e, t, c, p)
-            self.fig.title.text = f'{v} (Pixel = {p})'
+            self.fig.title.text = f"{v} (Pixel = {p})"
         except TypeError:
             self.waveform = None
 
-    def _draw_integration_window(self):
-        self.intwin1 = Span(location=0, dimension='height',
-                            line_color='green', line_dash='dotted')
-        self.intwin2 = Span(location=0, dimension='height',
-                            line_color='green', line_dash='dotted')
-        self.fig.add_layout(self.intwin1)
-        self.fig.add_layout(self.intwin2)
-
-    def _set_integration_window(self):
-        e = self.event
-        t = self.telid
-        c = self.channel
-        p = self.pixel
-        if e:
-            if e.dl1.tel[t].extracted_samples is not None:
-                # Get Windows
-                windows = e.dl1.tel[t].extracted_samples[c, p]
-                length = np.sum(windows)
-                start = np.argmax(windows)
-                end = start + length - 1
-                self.intwin1.location = start
-                self.intwin2.location = end
-        else:
-            self.event_viewer.log.warning("No event has been provided")
-
     def refresh(self):
         self._set_waveform()
-        self._set_integration_window()
 
     @property
     def event(self):
@@ -250,7 +220,6 @@ class BokehEventViewerWaveform(WaveformDisplay):
     def event(self, val):
         self._event = val
         self._set_waveform()
-        self._set_integration_window()
 
     def change_event(self, event, telid):
         if self.event:  # Only reset when an event exists
@@ -268,7 +237,6 @@ class BokehEventViewerWaveform(WaveformDisplay):
             raise ValueError(f"View is not valid: {val}")
         self._view = val
         self._set_waveform()
-        self._set_integration_window()
 
     @property
     def telid(self):
@@ -280,7 +248,6 @@ class BokehEventViewerWaveform(WaveformDisplay):
             self._reset()
         self._telid = val
         self._set_waveform()
-        self._set_integration_window()
 
     @property
     def channel(self):
@@ -290,7 +257,6 @@ class BokehEventViewerWaveform(WaveformDisplay):
     def channel(self, val):
         self._channel = val
         self._set_waveform()
-        self._set_integration_window()
 
     @property
     def pixel(self):
@@ -300,7 +266,6 @@ class BokehEventViewerWaveform(WaveformDisplay):
     def pixel(self, val):
         self._pixel = val
         self._set_waveform()
-        self._set_integration_window()
 
     def _on_waveform_click(self, time):
         super()._on_waveform_click(time)
@@ -308,7 +273,7 @@ class BokehEventViewerWaveform(WaveformDisplay):
 
     def create_view_widget(self):
         self.w_view = Select(title="View:", value="", options=[], width=5)
-        self.w_view.on_change('value', self.on_view_widget_change)
+        self.w_view.on_change("value", self.on_view_widget_change)
         self.layout = column([self.w_view, self.layout])
 
     def update_view_widget(self):
@@ -323,17 +288,18 @@ class BokehEventViewerWaveform(WaveformDisplay):
 class BokehEventViewer(Component):
     def __init__(
         self,
+        subarray,
         config=None,
-        tool=None,
+        parent=None,
         num_cameras=1,
         num_waveforms=2,
-        **kwargs
+        **kwargs,
     ):
         """
         A class to organise the interface between
         `ctapipe.visualization.bokeh.CameraDisplay`,
         `ctapipe.visualization.bokeh.WaveformDisplay` and
-        `ctapipe.core.container.DataContainer`.
+        `ctapipe.core.container.ArrayEventContainer`.
 
         Parameters
         ----------
@@ -351,10 +317,10 @@ class BokehEventViewer(Component):
             Number of waveform figures to handle
         kwargs
         """
-        super().__init__(config=config, tool=tool, **kwargs)
+        super().__init__(config=config, parent=parent, **kwargs)
 
         self._event = None
-        self._view = 'r0'
+        self._view = "r0"
         self._telid = None
         self._channel = 0
 
@@ -365,6 +331,7 @@ class BokehEventViewer(Component):
         self.camera_layouts = []
         self.waveforms = []
         self.waveform_layouts = []
+        self.subarray = subarray
 
         self.layout = None
 
@@ -382,7 +349,7 @@ class BokehEventViewer(Component):
         for iwav in range(self.num_waveforms):
             wav = BokehEventViewerWaveform(self)
             active_color = self.cameras[0].active_colors[iwav]
-            wav.fig.select(name='line')[0].glyph.line_color = active_color
+            wav.fig.select(name="line")[0].glyph.line_color = active_color
             wav.enable_time_picker()
             wav.create_view_widget()
             wav.update_view_widget()
@@ -390,9 +357,9 @@ class BokehEventViewer(Component):
             self.waveforms.append(wav)
             self.waveform_layouts.append(wav.layout)
 
-        self.layout = layout([
-            [column(self.camera_layouts), column(self.waveform_layouts)],
-        ])
+        self.layout = layout(
+            [[column(self.camera_layouts), column(self.waveform_layouts)]]
+        )
 
     def enable_automatic_index_increment(self):
         for cam in self.cameras:
@@ -423,7 +390,7 @@ class BokehEventViewer(Component):
     def event(self, val):
         if self._event != val:
             self._event = val
-            tels = list(val.r0.tels_with_data)
+            tels = list(val.r0.tel.keys())
             if self.telid not in tels:
                 self._telid = tels[0]
             for sub in self.sub_event_viewer_generator():

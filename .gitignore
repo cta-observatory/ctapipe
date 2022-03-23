@@ -1,4 +1,5 @@
 .pytest_cache
+*.log
 
 # Compiled files
 *.py[co]
@@ -9,6 +10,7 @@ __pycache__
 
 # ignore version cache file (generated automatically when setup.py is run)
 ctapipe/_version_cache.py
+ctapipe/_version.py
 
 # Ignore .c files by default to avoid including generated code. If you want to
 # add a non-generated .c extension, use `git add -f filename.c`.
@@ -17,7 +19,7 @@ ctapipe/_version_cache.py
 # Other generated files
 */cython_version.py
 htmlcov
-.coverage
+.coverage*
 MANIFEST
 
 # Sphinx
@@ -84,3 +86,5 @@ target
 
 examples/notebooks/*.html
 examples/notebooks/*.png
+
+provenance.log

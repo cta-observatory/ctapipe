@@ -1,8 +1,8 @@
 .. _image:
 
-=================
-Imaging (`image`)
-=================
+==========================
+Imaging (`~ctapipe.image`)
+==========================
 
 .. currentmodule:: ctapipe.image
 
@@ -25,9 +25,8 @@ This module contains the following sub-modules, but the most important functions
   muon
   toymodel
   pixel_likelihood
-  charge_extractors
+  extractor
   reducers
-  geometry_converter
 
 
 

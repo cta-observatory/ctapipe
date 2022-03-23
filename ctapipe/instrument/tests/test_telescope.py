@@ -1,17 +1,41 @@
-from ctapipe.instrument import TelescopeDescription
-from astropy import units as u
-import numpy as np
+""" Tests for TelescopeDescriptions """
+import pytest
+
+from ctapipe.instrument.camera import CameraDescription
+from ctapipe.instrument.optics import OpticsDescription
+from ctapipe.instrument.telescope import TelescopeDescription
 
 
-def test_telescope_description():
+def test_hash():
 
-    # setup a dummy telescope that look like an MST with FlashCam
-    foclen = 16 * u.m
-    pix_x = np.arange(1764, dtype=np.float) * u.m
-    pix_y = np.arange(1764, dtype=np.float) * u.m
+    types = ["LST", "MST", "SST"]
+    names = ["LST", "MST", "SST-1M"]
+    cameras = ["LSTCam", "FlashCam", "DigiCam"]
 
-    tel = TelescopeDescription.guess(pix_x, pix_y, foclen)
+    telescopes = []
+    for name, type, camera in zip(names, types, cameras):
+        for i in range(3):
 
-    assert tel.camera.cam_id == 'FlashCam'
-    assert tel.optics.tel_type == 'MST'
-    assert str(tel) == 'MST:FlashCam'
+            telescopes.append(
+                TelescopeDescription(
+                    name=name,
+                    tel_type=type,
+                    optics=OpticsDescription.from_name(name),
+                    camera=CameraDescription.from_name(camera),
+                )
+            )
+
+    assert len(telescopes) == 9
+    assert len(set(telescopes)) == 3
+
+
+@pytest.mark.parametrize("optics_name", ["LST", "MST"])
+def test_telescope_from_name(optics_name, camera_geometry):
+    """ Check we can construct all telescopes from their names """
+    camera_name = camera_geometry.camera_name
+    tel = TelescopeDescription.from_name(optics_name, camera_name)
+    assert optics_name in str(tel)
+    assert camera_name in str(tel)
+    assert tel.camera.geometry.pix_x.shape[0] > 0
+    assert tel.optics.equivalent_focal_length.to("m") > 0
+    assert tel.type in {"MST", "SST", "LST", "UNKNOWN"}

@@ -1,10 +1,10 @@
-'''
+"""
 The code in this module is basically a copy of
 http://docs.astropy.org/en/stable/_modules/astropy/coordinates/builtin_frames/skyoffset.html
 
 We are just not creating a metaclass and a factory but directly building the
 corresponding class.
-'''
+"""
 import astropy.units as u
 from astropy.coordinates.matrix_utilities import (
     rotation_matrix,
@@ -22,13 +22,14 @@ from astropy.coordinates import (
     EarthLocationAttribute,
     RepresentationMapping,
     Angle,
+    AltAz,
 )
 
-from .horizon_frame import HorizonFrame
+__all__ = ["NominalFrame"]
 
 
 class NominalFrame(BaseCoordinateFrame):
-    '''
+    """
     Nominal coordinate frame.
 
     A Frame using a UnitSphericalRepresentation.
@@ -42,22 +43,23 @@ class NominalFrame(BaseCoordinateFrame):
     Attributes
     ----------
 
-    origin: SkyCoord[HorizonFrame]
+    origin: SkyCoord[AltAz]
         Origin of this frame as a HorizonCoordinate
     obstime: Tiem
         Observation time
     location: EarthLocation
         Location of the telescope
-    '''
+    """
+
     frame_specific_representation_info = {
         UnitSphericalRepresentation: [
-            RepresentationMapping('lon', 'delta_az'),
-            RepresentationMapping('lat', 'delta_alt'),
+            RepresentationMapping("lon", "fov_lon"),
+            RepresentationMapping("lat", "fov_lat"),
         ]
     }
     default_representation = UnitSphericalRepresentation
 
-    origin = CoordinateAttribute(default=None, frame=HorizonFrame)
+    origin = CoordinateAttribute(default=None, frame=AltAz)
 
     obstime = TimeAttribute(default=None)
     location = EarthLocationAttribute(default=None)
@@ -74,28 +76,24 @@ class NominalFrame(BaseCoordinateFrame):
 def skyoffset_to_skyoffset(from_telescope_coord, to_telescope_frame):
     """Transform between two skyoffset frames."""
 
-    intermediate_from = from_telescope_coord.transform_to(
-        from_telescope_coord.origin
-    )
-    intermediate_to = intermediate_from.transform_to(
-        to_telescope_frame.origin
-    )
+    intermediate_from = from_telescope_coord.transform_to(from_telescope_coord.origin)
+    intermediate_to = intermediate_from.transform_to(to_telescope_frame.origin)
     return intermediate_to.transform_to(to_telescope_frame)
 
 
-@frame_transform_graph.transform(DynamicMatrixTransform, HorizonFrame, NominalFrame)
+@frame_transform_graph.transform(DynamicMatrixTransform, AltAz, NominalFrame)
 def reference_to_skyoffset(reference_frame, telescope_frame):
     """Convert a reference coordinate to an sky offset frame."""
 
     # Define rotation matrices along the position angle vector, and
     # relative to the origin.
     origin = telescope_frame.origin.spherical
-    mat1 = rotation_matrix(-origin.lat, 'y')
-    mat2 = rotation_matrix(origin.lon, 'z')
+    mat1 = rotation_matrix(-origin.lat, "y")
+    mat2 = rotation_matrix(origin.lon, "z")
     return matrix_product(mat1, mat2)
 
 
-@frame_transform_graph.transform(DynamicMatrixTransform, NominalFrame, HorizonFrame)
+@frame_transform_graph.transform(DynamicMatrixTransform, NominalFrame, AltAz)
 def skyoffset_to_reference(skyoffset_coord, reference_frame):
     """Convert an sky offset frame coordinate to the reference frame"""
 

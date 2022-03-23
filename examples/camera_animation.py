@@ -15,42 +15,38 @@ from ctapipe.image import toymodel
 from ctapipe.instrument import TelescopeDescription
 from ctapipe.visualization import CameraDisplay
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     plt.style.use("ggplot")
     fig, ax = plt.subplots()
 
     # load the camera
     tel = TelescopeDescription.from_name("SST-1M", "DigiCam")
-    geom = tel.camera
+    geom = tel.camera.geometry
 
     fov = 0.3
     maxwid = 0.05
     maxlen = 0.1
 
     disp = CameraDisplay(geom, ax=ax)
-    disp.cmap = 'inferno'
+    disp.cmap = "inferno"
     disp.add_colorbar(ax=ax)
 
     def update(frame):
-        centroid = np.random.uniform(-fov, fov, size=2)
+        x, y = np.random.uniform(-fov, fov, size=2)
         width = np.random.uniform(0.01, maxwid)
         length = np.random.uniform(width, maxlen)
         angle = np.random.uniform(0, 180)
         intens = width * length * (5e4 + 1e5 * np.random.exponential(2))
 
-        model = toymodel.generate_2d_shower_model(
-            centroid=centroid,
-            width=width,
-            length=length,
+        model = toymodel.Gaussian(
+            x=x * u.m,
+            y=y * u.m,
+            width=width * u.m,
+            length=length * u.m,
             psi=angle * u.deg,
         )
-        image, sig, bg = toymodel.make_toymodel_shower_image(
-            geom,
-            model.pdf,
-            intensity=intens,
-            nsb_level_pe=5,
-        )
+        image, _, _ = model.generate_image(geom, intensity=intens, nsb_level_pe=5,)
         disp.image = image
 
     anim = FuncAnimation(fig, update, interval=500)

@@ -1,0 +1,11 @@
+# This file defines the primary maintainers for areas of the ctapipe codebase
+# Utilises the Github codeowner functionality to automatically request reviews for PRs that edit corresponding code
+# https://help.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners
+
+ctapipe/calib/camera  @watsonjj
+ctapipe/image/extractor.py  @watsonjj @HealthyPear
+
+ctapipe/reco/HillasReconstructor.py  @HealthyPear
+ctapipe/reco/tests/test_HillasReconstructor.py  @HealthyPear
+
+examples/stereo_reconstruction_core_and_direction.py  @HealthyPear

@@ -1,0 +1,97 @@
+name: CI
+
+on: [push, pull_request]
+
+env:
+  NUMBA_NUM_THREADS: 1
+  MPLBACKEND: Agg
+  PYTEST_ADDOPTS: --color=yes
+
+jobs:
+  tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: [3.7, 3.8]
+        install-method: ["pip", "conda"]
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: cache test data
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/ctapipe
+          key: ctapipe-test-data
+
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-activate-base: true
+          activate-environment: ""
+
+      - name: Install dependencies
+        env:
+          INSTALL_METHOD: ${{ matrix.install-method }}
+          PYTHON_VERSION: ${{ matrix.python-version }}
+        run: |
+          source .github/install.sh
+          python --version
+          pip install codecov pytest-cov pyflakes pytest-xdist 'coverage!=6.3.0'
+          pip install .[all]
+          pip freeze
+
+      - name: Static codechecks
+        # need to use a login shell for the conda setup to work
+        shell: bash -leo pipefail {0}
+        run: |
+          pyflakes ctapipe
+
+      - name: Tests
+        # need to use a login shell for the conda setup to work
+        shell: bash -leo pipefail {0}
+        run: |
+          pytest -n auto --dist loadscope --cov --cov-report=xml --doctest-modules --doctest-glob='*.rst' ctapipe docs
+          ctapipe-info --version
+
+      - uses: codecov/codecov-action@v1
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install doc dependencies
+        run: |
+          sudo apt update --yes && sudo apt install --yes git build-essential pandoc graphviz
+          pip install -U pip setuptools wheel
+          pip install -e .[docs]
+          git describe --tags
+          python -c 'import ctapipe; print(ctapipe.__version__)'
+
+      - name: Build docs
+        run: make doc SPHINXOPTS="-W --keep-going -n --color -j auto"
+
+      - name: Deploy to gihub pages
+        # only run on push to master
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+        uses: JamesIves/github-pages-deploy-action@3.7.1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: gh-pages
+          FOLDER: docs/_build/html
+          CLEAN: true
+          SINGLE_COMMIT: true

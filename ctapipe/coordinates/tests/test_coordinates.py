@@ -1,19 +1,21 @@
 import numpy as np
 import astropy.units as u
-from astropy.coordinates import SkyCoord, EarthLocation
+from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 from astropy.time import Time
-from pytest import approx
+from pytest import approx, raises
 
-location = EarthLocation.of_site('Roque de los Muchachos')
+location = EarthLocation.of_site("Roque de los Muchachos")
 
 
 def test_cam_to_nominal():
-    from ctapipe.coordinates import CameraFrame, HorizonFrame, NominalFrame
+    from ctapipe.coordinates import CameraFrame, NominalFrame
 
-    telescope_pointing = SkyCoord(alt=70 * u.deg, az=0 * u.deg, frame=HorizonFrame())
-    array_pointing = SkyCoord(alt=72 * u.deg, az=0 * u.deg, frame=HorizonFrame())
+    telescope_pointing = SkyCoord(alt=70 * u.deg, az=0 * u.deg, frame=AltAz())
+    array_pointing = SkyCoord(alt=72 * u.deg, az=0 * u.deg, frame=AltAz())
 
-    cam_frame = CameraFrame(focal_length=28 * u.m, telescope_pointing=telescope_pointing)
+    cam_frame = CameraFrame(
+        focal_length=28 * u.m, telescope_pointing=telescope_pointing
+    )
     cam = SkyCoord(x=0.5 * u.m, y=0.1 * u.m, frame=cam_frame)
 
     nom_frame = NominalFrame(origin=array_pointing)
@@ -21,23 +23,24 @@ def test_cam_to_nominal():
 
 
 def test_icrs_to_camera():
-    from ctapipe.coordinates import CameraFrame, HorizonFrame
+    from ctapipe.coordinates import CameraFrame
 
-    obstime = Time('2013-11-01T03:00')
-    location = EarthLocation.of_site('Roque de los Muchachos')
-    horizon_frame = HorizonFrame(location=location, obstime=obstime)
+    obstime = Time("2013-11-01T03:00")
+    location = EarthLocation.of_site("Roque de los Muchachos")
+    horizon_frame = AltAz(location=location, obstime=obstime)
 
     # simulate crab "on" observations
-    crab = SkyCoord(ra='05h34m31.94s', dec='22d00m52.2s')
+    crab = SkyCoord(ra="05h34m31.94s", dec="22d00m52.2s")
     telescope_pointing = crab.transform_to(horizon_frame)
 
     camera_frame = CameraFrame(
         focal_length=28 * u.m,
         telescope_pointing=telescope_pointing,
-        location=location, obstime=obstime,
+        location=location,
+        obstime=obstime,
     )
 
-    ceta_tauri = SkyCoord(ra='5h37m38.6854231s', dec='21d08m33.158804s')
+    ceta_tauri = SkyCoord(ra="5h37m38.6854231s", dec="21d08m33.158804s")
     ceta_tauri_camera = ceta_tauri.transform_to(camera_frame)
 
     camera_center = SkyCoord(0 * u.m, 0 * u.m, frame=camera_frame)
@@ -51,42 +54,32 @@ def test_icrs_to_camera():
 
 
 def test_telescope_separation():
-    from ctapipe.coordinates import TelescopeFrame, HorizonFrame
+    from ctapipe.coordinates import TelescopeFrame
 
-    telescope_pointing = SkyCoord(
-        alt=70 * u.deg,
-        az=0 * u.deg,
-        frame=HorizonFrame()
-    )
+    telescope_pointing = SkyCoord(alt=70 * u.deg, az=0 * u.deg, frame=AltAz())
 
     telescope_frame = TelescopeFrame(telescope_pointing=telescope_pointing)
-    tel1 = SkyCoord(
-        delta_az=0 * u.deg, delta_alt=0 * u.deg, frame=telescope_frame
-    )
-    tel2 = SkyCoord(
-        delta_az=0 * u.deg, delta_alt=1 * u.deg, frame=telescope_frame
-    )
+    tel1 = SkyCoord(fov_lon=0 * u.deg, fov_lat=0 * u.deg, frame=telescope_frame)
+    tel2 = SkyCoord(fov_lon=0 * u.deg, fov_lat=1 * u.deg, frame=telescope_frame)
 
     assert tel1.separation(tel2) == u.Quantity(1, u.deg)
 
 
 def test_separation_is_the_same():
-    from ctapipe.coordinates import TelescopeFrame, HorizonFrame
+    from ctapipe.coordinates import TelescopeFrame
 
-    obstime = Time('2013-11-01T03:00')
-    location = EarthLocation.of_site('Roque de los Muchachos')
-    horizon_frame = HorizonFrame(location=location, obstime=obstime)
+    obstime = Time("2013-11-01T03:00")
+    location = EarthLocation.of_site("Roque de los Muchachos")
+    horizon_frame = AltAz(location=location, obstime=obstime)
 
-    crab = SkyCoord(ra='05h34m31.94s', dec='22d00m52.2s')
-    ceta_tauri = SkyCoord(ra='5h37m38.6854231s', dec='21d08m33.158804s')
+    crab = SkyCoord(ra="05h34m31.94s", dec="22d00m52.2s")
+    ceta_tauri = SkyCoord(ra="5h37m38.6854231s", dec="21d08m33.158804s")
 
     # simulate crab "on" observations
     telescope_pointing = crab.transform_to(horizon_frame)
 
     telescope_frame = TelescopeFrame(
-        telescope_pointing=telescope_pointing,
-        location=location,
-        obstime=obstime,
+        telescope_pointing=telescope_pointing, location=location, obstime=obstime
     )
 
     ceta_tauri_telescope = ceta_tauri.transform_to(telescope_frame)
@@ -114,12 +107,12 @@ def test_cam_to_tel():
     # making sure to give the required values for the conversion
     # (these are not checked yet)
     telescope_coord = camera_coord.transform_to(TelescopeFrame())
-    assert telescope_coord.delta_az[0] == (1 / 15) * u.rad
+    assert telescope_coord.fov_lon[0] == (1 / 15) * u.rad
 
     # check rotation
     camera_coord = SkyCoord(pix_x, pix_y, frame=camera_frame)
     telescope_coord_rot = camera_coord.transform_to(TelescopeFrame())
-    assert telescope_coord_rot.delta_alt[0] - (1 / 15) * u.rad < 1e-6 * u.rad
+    assert telescope_coord_rot.fov_lat[0] - (1 / 15) * u.rad < 1e-6 * u.rad
 
     # The Transform back
     camera_coord2 = telescope_coord.transform_to(camera_frame)
@@ -128,12 +121,38 @@ def test_cam_to_tel():
     assert camera_coord.separation_3d(camera_coord2)[0] == 0 * u.m
 
 
+def test_cam_to_hor():
+    from ctapipe.coordinates import CameraFrame
+
+    # Coordinates in any frame can be given as a numpy array of the xyz positions
+    # e.g. in this case the position on pixels in the camera
+    pix_x = [1] * u.m
+    pix_y = [1] * u.m
+
+    focal_length = 15000 * u.mm
+
+    # first define the camera frame
+    pointing = SkyCoord(alt=70 * u.deg, az=0 * u.deg, frame=AltAz())
+    camera_frame = CameraFrame(focal_length=focal_length, telescope_pointing=pointing)
+
+    # transform
+    camera_coord = SkyCoord(pix_x, pix_y, frame=camera_frame)
+    altaz_coord = camera_coord.transform_to(AltAz())
+
+    # transform back
+    altaz_coord2 = SkyCoord(az=altaz_coord.az, alt=altaz_coord.alt, frame=AltAz())
+    camera_coord2 = altaz_coord2.transform_to(camera_frame)
+
+    # check transform
+    assert np.isclose(camera_coord.x.to_value(u.m), camera_coord2.y.to_value(u.m))
+
+
 def test_ground_to_tilt():
-    from ctapipe.coordinates import GroundFrame, TiltedGroundFrame, HorizonFrame
+    from ctapipe.coordinates import GroundFrame, TiltedGroundFrame
 
     # define ground coordinate
     grd_coord = GroundFrame(x=1 * u.m, y=2 * u.m, z=0 * u.m)
-    pointing_direction = SkyCoord(alt=90 * u.deg, az=0 * u.deg, frame=HorizonFrame())
+    pointing_direction = SkyCoord(alt=90 * u.deg, az=0 * u.deg, frame=AltAz())
 
     # Convert to tilted frame at zenith (should be the same)
     tilt_coord = grd_coord.transform_to(
@@ -142,15 +161,96 @@ def test_ground_to_tilt():
     assert tilt_coord.separation_3d(grd_coord) == 0 * u.m
 
     # Check 180 degree rotation reverses y coordinate
-    pointing_direction = SkyCoord(alt=90 * u.deg, az=180 * u.deg, frame=HorizonFrame())
+    pointing_direction = SkyCoord(alt=90 * u.deg, az=180 * u.deg, frame=AltAz())
     tilt_coord = grd_coord.transform_to(
         TiltedGroundFrame(pointing_direction=pointing_direction)
     )
-    assert np.abs(tilt_coord.y + 2. * u.m) < 1e-5 * u.m
+    assert np.abs(tilt_coord.y + 2.0 * u.m) < 1e-5 * u.m
 
     # Check that if we look at horizon the x coordinate is 0
-    pointing_direction = SkyCoord(alt=0 * u.deg, az=0 * u.deg, frame=HorizonFrame())
+    pointing_direction = SkyCoord(alt=0 * u.deg, az=0 * u.deg, frame=AltAz())
     tilt_coord = grd_coord.transform_to(
         TiltedGroundFrame(pointing_direction=pointing_direction)
     )
     assert np.abs(tilt_coord.x) < 1e-5 * u.m
+
+
+def test_ground_to_tilt_one_to_one():
+    from ctapipe.coordinates import GroundFrame, TiltedGroundFrame
+
+    # define ground coordinate
+    grd_coord = GroundFrame(x=[1, 1] * u.m, y=[2, 2] * u.m, z=[0, 0] * u.m)
+    pointing_direction = SkyCoord(alt=[90, 90], az=[0, 0], frame=AltAz(), unit=u.deg)
+
+    # Convert to tilted frame at zenith (should be the same)
+    tilt_coord = grd_coord.transform_to(
+        TiltedGroundFrame(pointing_direction=pointing_direction)
+    )
+
+    # We do a one-to-one conversion
+    assert len(tilt_coord.data) == 2
+
+
+def test_ground_to_tilt_one_to_many():
+    from ctapipe.coordinates import GroundFrame, TiltedGroundFrame
+
+    # define ground coordinate
+    grd_coord = GroundFrame(x=[1] * u.m, y=[2] * u.m, z=[0] * u.m)
+    pointing_direction = SkyCoord(alt=[90, 90], az=[0, 0], frame=AltAz(), unit=u.deg)
+
+    # Convert to tilted frame at zenith (should be the same)
+    tilt_coord = grd_coord.transform_to(
+        TiltedGroundFrame(pointing_direction=pointing_direction)
+    )
+
+    # We do a one-to-one conversion
+    assert len(tilt_coord.data) == 2
+
+
+def test_ground_to_tilt_many_to_one():
+    from ctapipe.coordinates import GroundFrame, TiltedGroundFrame
+
+    # define ground coordinate
+    grd_coord = GroundFrame(x=[1, 1] * u.m, y=[2, 2] * u.m, z=[0, 0] * u.m)
+    pointing_direction = SkyCoord(alt=90, az=0, frame=AltAz(), unit=u.deg)
+
+    # Convert to tilted frame at zenith (should be the same)
+    tilt_coord = grd_coord.transform_to(
+        TiltedGroundFrame(pointing_direction=pointing_direction)
+    )
+
+    # We do a one-to-one conversion
+    assert len(tilt_coord.data) == 2
+
+
+def test_ground_to_tilt_many_to_many():
+    from ctapipe.coordinates import GroundFrame, TiltedGroundFrame
+
+    # define ground coordinate
+    grd_coord = GroundFrame(x=[1, 1] * u.m, y=[2, 2] * u.m, z=[0, 0] * u.m)
+    pointing_direction = SkyCoord(
+        alt=[90, 90, 90], az=[0, 0, 90], frame=AltAz(), unit=u.deg
+    )
+
+    with raises(ValueError):
+        # there will be a shape mismatch in matrix multiplication
+        grd_coord.transform_to(TiltedGroundFrame(pointing_direction=pointing_direction))
+
+
+def test_camera_missing_focal_length():
+    from ctapipe.coordinates import CameraFrame, TelescopeFrame
+
+    camera_frame = CameraFrame()
+    coord = SkyCoord(x=0 * u.m, y=2 * u.m, frame=camera_frame)
+
+    with raises(ValueError):
+        coord.transform_to(TelescopeFrame())
+
+
+def test_camera_focal_length_array():
+    from ctapipe.coordinates import CameraFrame, TelescopeFrame
+
+    tel_coord = SkyCoord([1, 2] * u.deg, [0, 1] * u.deg, frame=TelescopeFrame())
+    cam_coord = tel_coord.transform_to(CameraFrame(focal_length=[28, 17] * u.m))
+    assert not np.isnan(cam_coord.x).any()
+    assert not np.isnan(cam_coord.y).any()

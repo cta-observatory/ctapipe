@@ -12,7 +12,7 @@ from bokeh.models import (
 )
 from ctapipe.utils.rgbtohex import intensity_to_hex
 
-PLOTARGS = dict(tools="", toolbar_location=None, outline_line_color='#595959')
+PLOTARGS = dict(tools="", toolbar_location=None, outline_line_color="#595959")
 
 
 class CameraDisplay:
@@ -46,10 +46,15 @@ class CameraDisplay:
         self.cm = None
         self.cb = None
 
-        cdsource_d = dict(image=[],
-                          x=[], y=[],
-                          width=[], height=[],
-                          outline_color=[], outline_alpha=[])
+        cdsource_d = dict(
+            image=[],
+            x=[],
+            y=[],
+            width=[],
+            height=[],
+            outline_color=[],
+            outline_alpha=[],
+        )
         self.cdsource = ColumnDataSource(data=cdsource_d)
 
         self._active_pixels = []
@@ -92,20 +97,24 @@ class CameraDisplay:
             self._pix_y = val.pix_y.value
 
         self._n_pixels = self._pix_x.size
-        if self._n_pixels == len(self.cdsource.data['x']):
-            self.cdsource.data['x'] = self._pix_x
-            self.cdsource.data['y'] = self._pix_y
-            self.cdsource.data['width'] = self._pix_sizes
-            self.cdsource.data['height'] = self._pix_sizes
+        if self._n_pixels == len(self.cdsource.data["x"]):
+            self.cdsource.data["x"] = self._pix_x
+            self.cdsource.data["y"] = self._pix_y
+            self.cdsource.data["width"] = self._pix_sizes
+            self.cdsource.data["height"] = self._pix_sizes
         else:
             self._image = np.empty(self._pix_x.shape)
             alpha = [0] * self._n_pixels
-            color = ['black'] * self._n_pixels
-            cdsource_d = dict(image=self.image,
-                              x=self._pix_x, y=self._pix_y,
-                              width=self._pix_sizes, height=self._pix_sizes,
-                              outline_color=color, outline_alpha=alpha
-                              )
+            color = ["black"] * self._n_pixels
+            cdsource_d = dict(
+                image=self.image,
+                x=self._pix_x,
+                y=self._pix_y,
+                width=self._pix_sizes,
+                height=self._pix_sizes,
+                outline_color=color,
+                outline_alpha=alpha,
+            )
             self.cdsource.data = cdsource_d
 
         self.active_pixels = [0] * len(self.active_pixels)
@@ -119,8 +128,8 @@ class CameraDisplay:
         if val is None:
             val = np.zeros(self._n_pixels)
 
-        image_min = val.min()
-        image_max = val.max()
+        image_min = np.nanmin(val)
+        image_max = np.nanmax(val)
         if image_max == image_min:
             image_min -= 1
             image_max += 1
@@ -133,12 +142,13 @@ class CameraDisplay:
 
         if len(colors) == self._n_pixels:
             with warnings.catch_warnings():
-                warnings.simplefilter(action='ignore', category=FutureWarning)
-                self.cdsource.data['image'] = colors
+                warnings.simplefilter(action="ignore", category=FutureWarning)
+                self.cdsource.data["image"] = colors
         else:
-            raise ValueError("Image has a different size {} than the current "
-                             "CameraGeometry n_pixels {}"
-                             .format(colors.size, self._n_pixels))
+            raise ValueError(
+                "Image has a different size {} than the current "
+                "CameraGeometry n_pixels {}".format(colors.size, self._n_pixels)
+            )
 
     @property
     def image_min(self):
@@ -148,7 +158,7 @@ class CameraDisplay:
     def image_min(self, val):
         self._image_min = val
         if self.cb:
-            self.cm.low = np.asscalar(val)
+            self.cm.low = val.item()
 
     @property
     def image_max(self):
@@ -158,7 +168,7 @@ class CameraDisplay:
     def image_max(self, val):
         self._image_max = val
         if self.cb:
-            self.cm.high = np.asscalar(val)
+            self.cm.high = val.item()
 
     @property
     def active_pixels(self):
@@ -169,9 +179,8 @@ class CameraDisplay:
         self._active_pixels = listval
 
         palette = palettes.Set1[9]
-        palette = [palette[0]] + palette[3:]
-        self.active_colors = [palette[i % (len(palette))]
-                              for i in range(len(listval))]
+        palette = tuple([palette[0]] + list(palette[3:]))
+        self.active_colors = [palette[i % (len(palette))] for i in range(len(listval))]
         self.highlight_pixels()
 
     def reset_pixels(self):
@@ -181,15 +190,19 @@ class CameraDisplay:
         # TODO: Support other pixel shapes OR switch to ellipse
         # after https://github.com/bokeh/bokeh/issues/6985
         self.glyphs = self.fig.ellipse(
-            'x', 'y', color='image', width='width', height='height',
-            line_color='outline_color',
-            line_alpha='outline_alpha',
+            "x",
+            "y",
+            color="image",
+            width="width",
+            height="height",
+            line_color="outline_color",
+            line_alpha="outline_alpha",
             line_width=2,
-            nonselection_fill_color='image',
+            nonselection_fill_color="image",
             nonselection_fill_alpha=1,
-            nonselection_line_color='outline_color',
-            nonselection_line_alpha='outline_alpha',
-            source=self.cdsource
+            nonselection_line_color="outline_color",
+            nonselection_line_alpha="outline_alpha",
+            source=self.cdsource,
         )
 
     def enable_pixel_picker(self, n_active):
@@ -216,7 +229,7 @@ class CameraDisplay:
                 if self.automatic_index_increment:
                     self.active_index = (ai + 1) % len(self.active_pixels)
 
-        self.cdsource.selected.on_change('indices', source_change_response)
+        self.cdsource.selected.on_change("indices", source_change_response)
 
     def _on_pixel_click(self, pix_id):
         print(f"Clicked pixel_id: {pix_id}")
@@ -224,24 +237,27 @@ class CameraDisplay:
 
     def highlight_pixels(self):
         alpha = [0] * self._n_pixels
-        color = ['black'] * self._n_pixels
+        color = ["black"] * self._n_pixels
         for i, pix in enumerate(self.active_pixels):
             alpha[pix] = 1
             color[pix] = self.active_colors[i]
-        self.cdsource.data['outline_alpha'] = alpha
-        self.cdsource.data['outline_color'] = color
+        self.cdsource.data["outline_alpha"] = alpha
+        self.cdsource.data["outline_color"] = color
 
     def add_colorbar(self):
-        self.cm = LinearColorMapper(palette="Viridis256", low=0, high=100,
-                                    low_color='white', high_color='red')
-        self.cb = ColorBar(color_mapper=self.cm,
-                           border_line_color=None,
-                           background_fill_alpha=0,
-                           major_label_text_color='green',
-                           location=(0, 0))
-        self.fig.add_layout(self.cb, 'right')
-        self.cm.low = np.asscalar(self.image_min)
-        self.cm.high = np.asscalar(self.image_max)
+        self.cm = LinearColorMapper(
+            palette="Viridis256", low=0, high=100, low_color="white", high_color="red"
+        )
+        self.cb = ColorBar(
+            color_mapper=self.cm,
+            border_line_color=None,
+            background_fill_alpha=0,
+            major_label_text_color="green",
+            location=(0, 0),
+        )
+        self.fig.add_layout(self.cb, "right")
+        self.cm.low = self.image_min.item()
+        self.cm.high = self.image_max.item()
 
 
 class FastCameraDisplay:
@@ -262,12 +278,18 @@ class FastCameraDisplay:
         self._image = None
         n_pix = x_pix.size
 
-        cdsource_d = dict(image=np.empty(n_pix, dtype='<U8'), x=x_pix, y=y_pix)
+        cdsource_d = dict(image=np.empty(n_pix, dtype="<U8"), x=x_pix, y=y_pix)
         self.cdsource = ColumnDataSource(cdsource_d)
         self.fig = figure(plot_width=400, plot_height=400, **PLOTARGS)
         self.fig.grid.grid_line_color = None
-        self.fig.rect('x', 'y', color='image', source=self.cdsource,
-                      width=pix_size[0], height=pix_size[0])
+        self.fig.rect(
+            "x",
+            "y",
+            color="image",
+            source=self.cdsource,
+            width=pix_size[0],
+            height=pix_size[0],
+        )
 
         self.layout = self.fig
 
@@ -284,7 +306,7 @@ class FastCameraDisplay:
             Array containing the image values, already converted into
             hexidecimal strings
         """
-        self.cdsource.data['image'] = val
+        self.cdsource.data["image"] = val
 
 
 class WaveformDisplay:
@@ -336,8 +358,8 @@ class WaveformDisplay:
 
         self._waveform = val
 
-        if len(val) == len(self.cdsource.data['t']):
-            self.cdsource.data['samples'] = val
+        if len(val) == len(self.cdsource.data["t"]):
+            self.cdsource.data["samples"] = val
         else:
             cdsource_d = dict(t=np.arange(val.size), samples=val)
             self.cdsource.data = cdsource_d
@@ -348,7 +370,7 @@ class WaveformDisplay:
 
     @active_time.setter
     def active_time(self, val):
-        max_t = self.cdsource.data['t'][-1]
+        max_t = self.cdsource.data["t"][-1]
         if val is None:
             val = 0
         if val < 0:
@@ -359,14 +381,15 @@ class WaveformDisplay:
         self._active_time = val
 
     def _draw_waveform(self):
-        self.fig.line(x="t", y="samples", source=self.cdsource, name='line')
+        self.fig.line(x="t", y="samples", source=self.cdsource, name="line")
 
     def enable_time_picker(self):
         """
         Enables the selection of a time by clicking on the waveform
         """
-        self.span = Span(location=0, dimension='height',
-                         line_color='red', line_dash='dashed')
+        self.span = Span(
+            location=0, dimension="height", line_color="red", line_dash="dashed"
+        )
         self.fig.add_layout(self.span)
 
         taptool = TapTool()

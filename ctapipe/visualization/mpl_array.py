@@ -20,15 +20,15 @@ class ArrayDisplay:
     telescopes in the subarray, colored by telescope type, however you can
     also color the telescopes by a value (like trigger pattern, or some other
     scalar per-telescope parameter). To set the color value, simply set the
-    `value` attribute, and the fill color will be updated with the value. You
+    ``value`` attribute, and the fill color will be updated with the value. You
     might want to set the border color to zero to avoid confusion between the
     telescope type color and the value color (
-    `array_disp.telescope.set_linewidth(0)`)
+    ``array_disp.telescope.set_linewidth(0)``)
 
     To display a vector field over the telescope positions, e.g. for
-    reconstruction, call `set_uv()` to set cartesian vectors, or `set_r_phi()`
-    to set polar coordinate vectors.  These both take an array of length
-    N_tels, or a single value.
+    reconstruction, call `set_vector_uv()` to set cartesian vectors,
+    or `set_vector_rho_phi()` to set polar coordinate vectors.
+    These both take an array of length N_tels, or a single value.
 
 
     Parameters
@@ -50,9 +50,17 @@ class ArrayDisplay:
         plot circles for telescope positions
     """
 
-    def __init__(self, subarray, axes=None, autoupdate=True,
-                 tel_scale=2.0, alpha=0.7, title=None,
-                 radius=None, frame=GroundFrame(), plot_tels=True):
+    def __init__(
+        self,
+        subarray,
+        axes=None,
+        autoupdate=True,
+        tel_scale=2.0,
+        alpha=0.7,
+        title=None,
+        radius=None,
+        frame=GroundFrame(),
+    ):
 
         self.frame = frame
         self.subarray = subarray
@@ -65,14 +73,16 @@ class ArrayDisplay:
         tel_types = [str(tel) for tel in subarray.tels.values()]
         if radius is None:
             # set radius to the mirror radius (so big tels appear big)
-            radius = [np.sqrt(tel.optics.mirror_area.to("m2").value) * tel_scale
-                      for tel in subarray.tel.values()]
+            radius = [
+                np.sqrt(tel.optics.mirror_area.to("m2").value) * tel_scale
+                for tel in subarray.tel.values()
+            ]
 
         if title is None:
             title = subarray.name
 
         # get default matplotlib color cycle (depends on the current style)
-        color_cycle = cycle(plt.rcParams['axes.prop_cycle'].by_key()['color'])
+        color_cycle = cycle(plt.rcParams["axes.prop_cycle"].by_key()["color"])
 
         # map a color to each telescope type:
         tel_type_to_color = {}
@@ -82,28 +92,29 @@ class ArrayDisplay:
         tel_color = [tel_type_to_color[ttype] for ttype in tel_types]
 
         patches = []
-        for x, y, r, c in zip(list(self.tel_coords.x.value),
-                              list(self.tel_coords.y.value),
-                              list(radius),
-                              tel_color):
-            patches.append(
-                Circle(
-                    xy=(x, y),
-                    radius=r,
-                    fill=True,
-                    color=c,
-                    alpha=alpha,
-                )
-            )
+        for x, y, r, c in zip(
+            list(self.tel_coords.x.to_value("m")),
+            list(self.tel_coords.y.to_value("m")),
+            list(radius),
+            tel_color,
+        ):
+            patches.append(Circle(xy=(x, y), radius=r, fill=True, color=c, alpha=alpha))
 
         # build the legend:
         legend_elements = []
         for ttype in list(set(tel_types)):
             color = tel_type_to_color[ttype]
             legend_elements.append(
-                Line2D([0], [0], marker='o', color=color,
-                       label=ttype, markersize=10, alpha=alpha,
-                       linewidth=0)
+                Line2D(
+                    [0],
+                    [0],
+                    marker="o",
+                    color=color,
+                    label=ttype,
+                    markersize=10,
+                    alpha=alpha,
+                    linewidth=0,
+                )
             )
         if plot_tels:
             plt.legend(handles=legend_elements)
@@ -130,39 +141,54 @@ class ArrayDisplay:
     @values.setter
     def values(self, values):
         """ set the telescope colors to display  """
-        self.telescopes.set_array(values)
+        self.telescopes.set_array(np.ma.masked_invalid(values))
         self._update()
 
-    def set_vector_uv(self, u, v, c=None, **kwargs):
+    def set_vector_uv(self, uu, vv, c=None, **kwargs):
         """ sets the vector field U,V and color for all telescopes
 
         Parameters
         ----------
-        u: array[num_tels]
+        uu: array[num_tels]
             x-component of direction vector
-        v: array[num_tels]
+        vv: array[num_tels]
             y-component of direction vector
         c: color or list of colors
             vector color for each telescope (or one for all)
         kwargs:
             extra args passed to plt.quiver(), ignored on subsequent updates
         """
+        coords = self.tel_coords
+        uu = u.Quantity(uu).to_value("m")
+        vv = u.Quantity(vv).to_value("m")
+        N = len(coords.x)
+
+        # matplotlib since 3.2 does not allow scalars anymore
+        # if quiver was already created with a certain number of arrows
+        if np.isscalar(uu):
+            uu = np.full(N, uu)
+        if np.isscalar(vv):
+            vv = np.full(N, vv)
+
+        # passing in None for C does not work, we need to provide
+        # a variadic number of arguments
+        args = [coords.x.to_value("m"), coords.y.to_value("m"), uu, vv]
+
         if c is None:
-            c = self.tel_colors
+            # use colors by telescope type if the user did not provide any
+            kwargs["color"] = kwargs.get("color", self.tel_colors)
+        else:
+            # same as above, enable use of scalar to set all values at once
+            if np.isscalar(c):
+                c = np.full(N, c)
+            args.append(c)
 
         if self._quiver is None:
-            coords = self.tel_coords
             self._quiver = self.axes.quiver(
-                coords.x, coords.y,
-                u, v,
-                color=c,
-                scale_units='xy',
-                angles='xy',
-                scale=1,
-                **kwargs
+                *args, scale_units="xy", angles="xy", scale=1, **kwargs
             )
         else:
-            self._quiver.set_UVC(u, v)
+            self._quiver.set_UVC(uu, vv, c)
 
     def set_vector_rho_phi(self, rho, phi, c=None, **kwargs):
         """sets the vector field using R, Phi for each telescope
@@ -177,10 +203,12 @@ class ArrayDisplay:
             vector color for each telescope (or one for all)
         """
         phi = Angle(phi).rad
-        u, v = polar_to_cart(rho, phi)
-        self.set_vector_uv(u, v, c=c, **kwargs)
+        uu, vv = polar_to_cart(rho, phi)
+        self.set_vector_uv(uu, vv, c=c, **kwargs)
 
-    def set_vector_hillas(self, hillas_dict, length, time_gradient, angle_offset):
+    def set_vector_hillas(
+        self, hillas_dict, core_dict, length, time_gradient, angle_offset
+    ):
         """
         Function to set the vector angle and length from a set of Hillas parameters.
 
@@ -196,12 +224,14 @@ class ArrayDisplay:
         ----------
         hillas_dict: Dict[int, HillasParametersContainer]
             mapping of tel_id to Hillas parameters
+        core_dict : Dict[int, CoreParameters]
+            mapping of tel_id to CoreParametersContainer
         length: Float
             length of the arrow (in meters)
         time_gradient: Dict[int, value of time gradient (no units)]
             dictionary for value of the time gradient for each telescope
         angle_offset: Float
-            This should be the event.mcheader.run_array_direction[0] parameter
+            This should be the ``event.pointing.array_azimuth`` parameter
 
         """
 
@@ -210,31 +240,35 @@ class ArrayDisplay:
         rot_angle_ellipse = np.zeros(self.subarray.num_tels) * u.deg
 
         for tel_id, params in hillas_dict.items():
+
             idx = self.subarray.tel_indices[tel_id]
-            rho[idx] = length * u.m
+            rho[idx] = u.Quantity(length, u.m)
+
+            psi = core_dict[tel_id]
 
             if time_gradient[tel_id] > 0.01:
-                params.psi = Angle(params.psi)
                 angle_offset = Angle(angle_offset)
-                rot_angle_ellipse[idx] = params.psi + angle_offset + 180 * u.deg
+                rot_angle_ellipse[idx] = psi + angle_offset + 180 * u.deg
             elif time_gradient[tel_id] < -0.01:
-                rot_angle_ellipse[idx] = params.psi + angle_offset
+                rot_angle_ellipse[idx] = psi + angle_offset
             else:
                 rho[idx] = 0 * u.m
 
         self.set_vector_rho_phi(rho=rho, phi=rot_angle_ellipse)
 
-    def set_line_hillas(self, hillas_dict, range, color=None,
-                        weights=None, cmap="inferno", **kwargs):
+    def set_line_hillas(self, hillas_dict, core_dict, range, **kwargs):
         """
-        Function to plot a segment of length 2*range for each telescope from a set of Hillas parameters.
-        The segment is centered on the telescope position.
-        A point is added at each telescope position for better visualization.
+        Plot the telescope-wise direction of the shower as a segment.
+
+        Each segment will be centered with a point on the telescope position
+        and will be 2*range long.
 
         Parameters
         ----------
         hillas_dict: Dict[int, HillasParametersContainer]
             mapping of tel_id to Hillas parameters
+        core_dict : Dict[int, CoreParameters]
+            mapping of tel_id to CoreParametersContainer
         range: float
             half of the length of the segments to be plotted (in meters)
         """
@@ -242,61 +276,23 @@ class ArrayDisplay:
         coords = self.tel_coords
         c = self.tel_colors
 
-        if weights is not None:
-            from matplotlib.cm import get_cmap
-            cmap = get_cmap(cmap)
-
-            min_w = min(weights.values())
-            max_w = max(weights.values())
-            c_weight = dict((tel_id, cmap((value - min_w) / (max_w - min_w)))
-                            for tel_id, value in weights.items())
-        else:
-            c_weight = dict((tel_id, None) for tel_id in hillas_dict.keys())
-
         r = np.array([-range, range])
+
         for tel_id, params in hillas_dict.items():
             idx = self.subarray.tel_indices[tel_id]
-            cc = color or c_weight[tel_id] or c[idx]
-
             x_0 = coords[idx].x.to_value(u.m)
             y_0 = coords[idx].y.to_value(u.m)
-            x = x_0 + np.cos(params.psi) * r
-            y = y_0 + np.sin(params.psi) * r
-            #self.axes.plot(x[mask], y[mask], color=cc, **kwargs)
-            self.axes.plot(x, y, color=cc, **kwargs)
-            #self.axes.scatter(x_0, y_0, color=c[idx])
 
+            psi = core_dict[tel_id]
 
-    def set_ellips_hillas(self, hillas_dict, scale=1, color=None, **kwargs):
-        """
-        Function to plot the Hillas ellipse on the array from a set of Hillas
-        parameters. The total area of the ellipse is proportional to the
-        intensity. The size of all ellipses can be scaled.
-
-        Parameters
-        ----------
-        hillas_dict: Dict[int, HillasParametersContainer]
-        scale: float
-        """
-        coords = self.tel_coords
-        c = self.tel_colors
-
-        from matplotlib.patches import Ellipse
-
-        for tel_id, params in hillas_dict.items():
-            idx = self.subarray.tel_indices[tel_id]
-            ratio = params.width / params.length
-            a = np.sqrt(scale * params.intensity / (np.pi * ratio))
-            b = a * ratio
-            x_0 = coords[idx].x.value
-            y_0 = coords[idx].y.value
-            cc = color or c[idx]
-            e = Ellipse((x_0, y_0), a, b, Angle(params.psi), color=cc, **kwargs)
-            self.axes.add_patch(e)
+            x = x_0 + np.cos(psi).value * r
+            y = y_0 + np.sin(psi).value * r
+            self.axes.plot(x, y, color=c[idx], **kwargs)
+            self.axes.scatter(x_0, y_0, color=c[idx])
 
     def add_labels(self):
-        px = self.tel_coords.x.value
-        py = self.tel_coords.y.value
+        px = self.tel_coords.x.to_value("m")
+        py = self.tel_coords.y.to_value("m")
         for tel, x, y in zip(self.subarray.tels, px, py):
             name = str(tel)
             lab = self.axes.text(x, y, name, fontsize=8, clip_on=True)

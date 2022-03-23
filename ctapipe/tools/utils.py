@@ -2,30 +2,31 @@
 """Utils to create scripts and command-line tools"""
 import argparse
 import importlib
-import re
 from collections import OrderedDict
 
-__all__ = ['ArgparseFormatter',
-           'get_parser',
-           'get_installed_tools',
-           'get_all_descriptions',
-           ]
+__all__ = [
+    "ArgparseFormatter",
+    "get_parser",
+    "get_installed_tools",
+    "get_all_descriptions",
+]
 
 
-class ArgparseFormatter(argparse.ArgumentDefaultsHelpFormatter,
-                        argparse.RawTextHelpFormatter):
-    """ArgumentParser formatter_class argument.
-    """
+class ArgparseFormatter(
+    argparse.ArgumentDefaultsHelpFormatter, argparse.RawTextHelpFormatter
+):
+    """ArgumentParser formatter_class argument."""
+
     pass
 
 
-def get_parser(function=None, description='N/A'):
-    """Make an ArgumentParser how we like it.
-    """
+def get_parser(function=None, description="N/A"):
+    """Make an ArgumentParser how we like it."""
     if function:
-        description = function.__doc__.split('\n')[0]
-    parser = argparse.ArgumentParser(description=description,
-                                     formatter_class=ArgparseFormatter)
+        description = function.__doc__
+    parser = argparse.ArgumentParser(
+        description=description, formatter_class=ArgparseFormatter
+    )
     return parser
 
 
@@ -38,7 +39,8 @@ def get_installed_tools():
     of installed packages matches the available scripts somehow?
     """
     from pkg_resources import get_entry_map
-    console_tools = get_entry_map('ctapipe')['console_scripts']
+
+    console_tools = get_entry_map("ctapipe")["console_scripts"]
     return console_tools
 
 
@@ -49,16 +51,14 @@ def get_all_descriptions():
     descriptions = OrderedDict()
     for name, info in tools.items():
         module = importlib.import_module(info.module_name)
-        if hasattr(module, '__doc__') and module.__doc__ is not None:
+        if hasattr(module, "__doc__") and module.__doc__ is not None:
             try:
-                descrip = re.match(r'(?:[^.:;]+[.:;]){1}',
-                                   module.__doc__).group()
+                descrip = module.__doc__
                 descrip.replace("\n", "")
                 descriptions[name] = descrip
-            except RuntimeError as err:
+            except Exception as err:
                 descriptions[name] = f"[Couldn't parse docstring: {err}]"
         else:
             descriptions[name] = "[no documentation. Please add a docstring]"
 
     return descriptions
-

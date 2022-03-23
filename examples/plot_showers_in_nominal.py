@@ -1,87 +1,86 @@
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, AltAz
 import astropy.units as u
-from ctapipe.io import event_source
+from ctapipe.io import EventSource
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.calib import CameraCalibrator
 from ctapipe.utils.datasets import get_dataset_path
 import matplotlib.pyplot as plt
 import numpy as np
+import warnings
 
-from ctapipe.coordinates import HorizonFrame, CameraFrame, NominalFrame
+from ctapipe.coordinates import CameraFrame, NominalFrame, MissingFrameAttributeWarning
+
+
+warnings.filterwarnings("ignore", category=MissingFrameAttributeWarning)
 
 
 cleaning_level = {
-    'LSTCam': (3.5, 7.5, 2),  # ?? (3, 6) for Abelardo...
-    'FlashCam': (4, 8, 2),  # there is some scaling missing?
-    'ASTRICam': (5, 7, 2),
+    "LSTCam": (3.5, 7.5, 2),  # ?? (3, 6) for Abelardo...
+    "FlashCam": (4, 8, 2),  # there is some scaling missing?
+    "ASTRICam": (5, 7, 2),
 }
 
 
-input_url = get_dataset_path('gamma_test_large.simtel.gz')
+input_url = get_dataset_path("gamma_test_large.simtel.gz")
 
 
-with event_source(input_url=input_url) as source:
-    calibrator = CameraCalibrator(
-        eventsource=source,
-    )
+with EventSource(input_url=input_url) as source:
+    calibrator = CameraCalibrator(subarray=source.subarray)
 
     for event in source:
 
-        calibrator.calibrate(event)
+        calibrator(event)
 
         nominal_frame = NominalFrame(
-            origin=SkyCoord(alt=70 * u.deg, az=0 * u.deg, frame=HorizonFrame)
+            origin=SkyCoord(alt=70 * u.deg, az=0 * u.deg, frame=AltAz)
         )
 
-        nom_delta_az = []
-        nom_delta_alt = []
+        nom_fov_lon = []
+        nom_fov_lat = []
         photons = []
 
-        for tel_id, dl1 in event.dl1.tel.items():
-            camera = event.inst.subarray.tels[tel_id].camera
-            focal_length = event.inst.subarray.tels[tel_id].optics.equivalent_focal_length
-            image = dl1.image[0]
+        subarray = source.subarray
 
-            # telescope mc info
-            mc_tel = event.mc.tel[tel_id]
+        for tel_id, dl1 in event.dl1.tel.items():
+            geom = subarray.tels[tel_id].camera.geometry
+            focal_length = subarray.tels[tel_id].optics.equivalent_focal_length
+            image = dl1.image
 
             telescope_pointing = SkyCoord(
-                alt=mc_tel['altitude_raw'],
-                az=mc_tel['azimuth_raw'],
-                unit='rad', frame=HorizonFrame(),
+                alt=event.pointing.tel[tel_id].altitude,
+                az=event.pointing.tel[tel_id].azimuth,
+                frame=AltAz(),
             )
             camera_frame = CameraFrame(
                 telescope_pointing=telescope_pointing, focal_length=focal_length
             )
 
-            boundary, picture, min_neighbors = cleaning_level[camera.cam_id]
+            boundary, picture, min_neighbors = cleaning_level[geom.camera_name]
             clean = tailcuts_clean(
-                camera,
+                geom,
                 image,
                 boundary_thresh=boundary,
                 picture_thresh=picture,
-                min_number_picture_neighbors=min_neighbors
+                min_number_picture_neighbors=min_neighbors,
             )
 
             cam_coords = SkyCoord(
-                camera.pix_x[clean],
-                camera.pix_y[clean],
-                frame=camera_frame
+                geom.pix_x[clean], geom.pix_y[clean], frame=camera_frame
             )
             nom = cam_coords.transform_to(nominal_frame)
-            nom_delta_az.append(nom.delta_az.to_value(u.deg))
-            nom_delta_alt.append(nom.delta_alt.to_value(u.deg))
+            nom_fov_lon.append(nom.fov_lon.to_value(u.deg))
+            nom_fov_lat.append(nom.fov_lat.to_value(u.deg))
             photons.append(image[clean])
 
-        nom_delta_az = np.concatenate(nom_delta_az)
-        nom_delta_alt = np.concatenate(nom_delta_alt)
+        nom_fov_lon = np.concatenate(nom_fov_lon)
+        nom_fov_lat = np.concatenate(nom_fov_lat)
         photons = np.concatenate(photons)
 
-        nom_delta_az = np.repeat(nom_delta_az, photons.astype(int))
-        nom_delta_alt = np.repeat(nom_delta_alt, photons.astype(int))
+        nom_fov_lon = np.repeat(nom_fov_lon, photons.astype(int))
+        nom_fov_lat = np.repeat(nom_fov_lat, photons.astype(int))
 
-        plt.hexbin(nom_delta_az, nom_delta_alt, gridsize=50, extent=[-5, 5, -5, 5])
-        plt.xlabel('delta_az / deg')
-        plt.ylabel('delta_alt / deg')
+        plt.hexbin(nom_fov_lon, nom_fov_lat, gridsize=50, extent=[-5, 5, -5, 5])
+        plt.xlabel("fov_lon / deg")
+        plt.ylabel("fov_lat / deg")
         plt.gca().set_aspect(1)
         plt.show()

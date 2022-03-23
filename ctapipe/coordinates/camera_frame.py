@@ -4,21 +4,45 @@ from astropy.coordinates import (
     BaseCoordinateFrame,
     CoordinateAttribute,
     QuantityAttribute,
+    Attribute,
     TimeAttribute,
     EarthLocationAttribute,
     FunctionTransform,
     frame_transform_graph,
     CartesianRepresentation,
     UnitSphericalRepresentation,
+    AltAz,
+    AffineTransform,
 )
 
-from .horizon_frame import HorizonFrame
 from .telescope_frame import TelescopeFrame
 from .representation import PlanarRepresentation
 
 
+__all__ = ["CameraFrame"]
+
+
+class MirrorAttribute(Attribute):
+    """A frame Attribute that can only store the integers 1 and 2"""
+
+    def convert_input(self, value):
+        """make sure input is 1 or 2"""
+        if value in (1, 2):
+            return value, False
+
+        raise ValueError("Only 1 or 2 mirrors supported")
+
+
+# Go from SimTel / HESS to MAGIC/FACT/Engineering frame and back
+CAMERA_TO_ENGINEERING_1M_MATRIX = np.array([[0, -1, 0], [-1, 0, 0], [0, 0, 1]])
+ENGINEERING_1M_TO_CAMERA_MATRIX = CAMERA_TO_ENGINEERING_1M_MATRIX
+CAMERA_TO_ENGINEERING_2M_MATRIX = np.array([[0, 1, 0], [-1, 0, 0], [0, 0, 1]])
+ENGINEERING_2M_TO_CAMERA_MATRIX = CAMERA_TO_ENGINEERING_2M_MATRIX.T
+ZERO_OFFSET = CartesianRepresentation(0, 0, 0, unit=u.m)
+
+
 class CameraFrame(BaseCoordinateFrame):
-    '''
+    """
     Camera coordinate frame.
 
     The camera frame is a 2d cartesian frame,
@@ -41,29 +65,60 @@ class CameraFrame(BaseCoordinateFrame):
         Focal length of the telescope as a unit quantity (usually meters)
     rotation : u.Quantity[angle]
         Rotation angle of the camera (0 deg in most cases)
-    telescope_pointing : SkyCoord[HorizonFrame]
-        Pointing direction of the telescope as SkyCoord in HorizonFrame
+    telescope_pointing : SkyCoord[AltAz]
+        Pointing direction of the telescope as SkyCoord in AltAz
     obstime : Time
         Observation time
     location : EarthLocation
         location of the telescope
-    '''
+    """
+
     default_representation = PlanarRepresentation
 
     focal_length = QuantityAttribute(default=0, unit=u.m)
     rotation = QuantityAttribute(default=0 * u.deg, unit=u.rad)
-    telescope_pointing = CoordinateAttribute(frame=HorizonFrame, default=None)
+    telescope_pointing = CoordinateAttribute(frame=AltAz, default=None)
 
     obstime = TimeAttribute(default=None)
     location = EarthLocationAttribute(default=None)
 
 
+class EngineeringCameraFrame(CameraFrame):
+    """
+    Engineering camera coordinate frame.
+
+    The camera frame is a 2d cartesian frame,
+    describing position of objects in the focal plane of the telescope.
+
+    The frame is defined as in MAGIC and FACT.
+    Standing in the dish, looking onto the camera, x points right and y points up.
+
+    HESS, ctapipe and sim_telarray use a different camera coordinate system:
+    To transform H.E.S.S./ctapipe -> FACT/MAGIC, do x' = -y, y' = -x.
+
+    Attributes
+    ----------
+    focal_length : u.Quantity[length]
+        Focal length of the telescope as a unit quantity (usually meters)
+    rotation : u.Quantity[angle]
+        Rotation angle of the camera (0 deg in most cases)
+    telescope_pointing : SkyCoord[AltAz]
+        Pointing direction of the telescope as SkyCoord in AltAz
+    obstime : Time
+        Observation time
+    location : EarthLocation
+        location of the telescope
+    """
+
+    n_mirrors = MirrorAttribute(default=1)
+
+
 @frame_transform_graph.transform(FunctionTransform, CameraFrame, TelescopeFrame)
 def camera_to_telescope(camera_coord, telescope_frame):
-    '''
+    """
     Transformation between CameraFrame and TelescopeFrame.
     Is called when a SkyCoord is transformed from CameraFrame into TelescopeFrame
-    '''
+    """
     x_pos = camera_coord.cartesian.x
     y_pos = camera_coord.cartesian.y
 
@@ -78,6 +133,10 @@ def camera_to_telescope(camera_coord, telescope_frame):
         y_rotated = x_pos * sinrot + y_pos * cosrot
 
     focal_length = camera_coord.focal_length
+    if focal_length.shape == () and focal_length.value == 0:
+        raise ValueError(
+            "Coordinate in CameraFrame is missing focal_length information"
+        )
 
     # this assumes an equidistant mapping function of the telescope optics
     # or a small angle approximation of most other mapping functions
@@ -85,23 +144,27 @@ def camera_to_telescope(camera_coord, telescope_frame):
     # as an Attribute of `CameraFrame` that maps f(r, focal_length) -> theta,
     # where theta is the angle to the optical axis and r is the distance
     # to the camera center in the focal plane
-    delta_alt = u.Quantity((x_rotated / focal_length).to_value(), u.rad)
-    delta_az = u.Quantity((y_rotated / focal_length).to_value(), u.rad)
+    fov_lat = u.Quantity(
+        (x_rotated / focal_length).to_value(u.dimensionless_unscaled), u.rad, copy=False
+    )
+    fov_lon = u.Quantity(
+        (y_rotated / focal_length).to_value(u.dimensionless_unscaled), u.rad, copy=False
+    )
 
-    representation = UnitSphericalRepresentation(lat=delta_alt, lon=delta_az)
+    representation = UnitSphericalRepresentation(lat=fov_lat, lon=fov_lon)
 
     return telescope_frame.realize_frame(representation)
 
 
 @frame_transform_graph.transform(FunctionTransform, TelescopeFrame, CameraFrame)
 def telescope_to_camera(telescope_coord, camera_frame):
-    '''
+    """
     Transformation between TelescopeFrame and CameraFrame
 
     Is called when a SkyCoord is transformed from TelescopeFrame into CameraFrame
-    '''
-    x_pos = telescope_coord.delta_alt
-    y_pos = telescope_coord.delta_az
+    """
+    x_pos = telescope_coord.fov_lat
+    y_pos = telescope_coord.fov_lon
     # reverse the rotation applied to get to this system
     rot = -camera_frame.rotation
 
@@ -115,6 +178,8 @@ def telescope_to_camera(telescope_coord, camera_frame):
         y_rotated = x_pos * sinrot + y_pos * cosrot
 
     focal_length = camera_frame.focal_length
+    if focal_length.shape == () and focal_length.value == 0:
+        raise ValueError("CameraFrame is missing focal_length information")
 
     # this assumes an equidistant mapping function of the telescope optics
     # or a small angle approximation of most other mapping functions
@@ -125,10 +190,21 @@ def telescope_to_camera(telescope_coord, camera_frame):
     x_rotated = x_rotated.to_value(u.rad) * focal_length
     y_rotated = y_rotated.to_value(u.rad) * focal_length
 
-    representation = CartesianRepresentation(
-        x_rotated,
-        y_rotated,
-        0 * u.m
-    )
+    representation = CartesianRepresentation(x_rotated, y_rotated, 0 * u.m)
 
     return camera_frame.realize_frame(representation)
+
+
+@frame_transform_graph.transform(AffineTransform, CameraFrame, EngineeringCameraFrame)
+def camera_to_engineering(from_coord, to_frame):
+    if to_frame.n_mirrors == 1:
+        return CAMERA_TO_ENGINEERING_1M_MATRIX, ZERO_OFFSET
+
+    return CAMERA_TO_ENGINEERING_2M_MATRIX, ZERO_OFFSET
+
+
+@frame_transform_graph.transform(AffineTransform, EngineeringCameraFrame, CameraFrame)
+def engineering_to_camera(from_coord, to_frame):
+    if from_coord.n_mirrors == 1:
+        return ENGINEERING_1M_TO_CAMERA_MATRIX, ZERO_OFFSET
+    return ENGINEERING_2M_TO_CAMERA_MATRIX, ZERO_OFFSET
