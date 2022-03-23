@@ -238,6 +238,8 @@ class Tool(Application):
             # fall back to traitlets.config.Application's implementation
             super().load_config_file(str(path))
 
+        Provenance().add_input_file(path, role="Tool Configuration")
+
     def update_logging_config(self):
         """Update the configuration of loggers."""
         cfg = create_logging_config(
