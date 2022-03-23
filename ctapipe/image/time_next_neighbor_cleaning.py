@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.spatial import cKDTree as KDTree
-from ctapipe.instrument.camera import _get_min_pixel_seperation
 from scipy.interpolate import interp1d
 
 import astropy.units as u
@@ -532,7 +531,7 @@ class TimeNextNeighborCleaning:
         # construct an kdtree that with only the points that are not masked.
         # TODO: Check the updates on the calculation of neighbors in ctapipe.
         kdtree, points = self.get_kdtree(mask)
-        dist = _get_min_pixel_seperation(self._geometry.pix_x,
+        dist = self._geometry.guess_pixel_width(self._geometry.pix_x,
                                          self._geometry.pix_y)
 
         # kdtree implementation to get the possible combinations of pairs
