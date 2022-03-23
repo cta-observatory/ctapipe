@@ -46,8 +46,6 @@ class ArrayDisplay:
     radius: Union[float, list, None]
         set telescope radius to value, list/array of values. If None, radius
         is taken from the telescope's mirror size.
-    plot_tels: bool
-        plot circles for telescope positions
     """
 
     def __init__(
@@ -116,8 +114,7 @@ class ArrayDisplay:
                     linewidth=0,
                 )
             )
-        if plot_tels:
-            plt.legend(handles=legend_elements)
+        plt.legend(handles=legend_elements)
 
         self.tel_colors = tel_color
         self.autoupdate = autoupdate
@@ -125,8 +122,7 @@ class ArrayDisplay:
         self.telescopes.set_linewidth(2.0)
 
         self.axes = axes or plt.gca()
-        if plot_tels:
-            self.axes.add_collection(self.telescopes)
+        self.axes.add_collection(self.telescopes)
         self.axes.set_aspect(1.0)
         self.axes.set_title(title)
         self._labels = []
