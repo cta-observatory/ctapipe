@@ -141,9 +141,11 @@ class Tool(Application):
             allow_none=True,
             default_value=None,
             help=(
-                "name of a configuration file with "
-                "parameters to load in addition to "
-                "command-line parameters"
+                "List of configuration files with parameters to load "
+                "in addition to command-line parameters. "
+                "The order listed is the order of precendence (later config parameters "
+                "overwrite earlier ones), however parameters specified on the "
+                "command line always have the highest precendence."
             ),
         )
     ).tag(config=True)
