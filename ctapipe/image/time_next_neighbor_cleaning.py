@@ -7,6 +7,31 @@ import warnings
 import json
 
 
+def arrays_to_lists(input_dict):
+    """
+    Transform a dict of arrays to a dict of lists and convert numpy integers to python integers
+
+    Parameters
+    ----------
+    input_dict
+
+    Returns
+    -------
+    Dict of same dimensions as the original (input_dict)
+    """
+    out = {}
+    for k, v in input_dict.items():
+        if isinstance(v, u.Quantity):
+            out[k] = {"value": v.value.tolist(), "unit": v.unit.to_string()}
+        elif isinstance(v, (np.ndarray, np.number)):
+            out[k] = v.tolist()
+        elif isinstance(v, dict):
+            out[k] = arrays_to_lists(v)
+        else:
+            out[k] = v
+    return out
+
+
 def get_n_order_neighbor_matrix(geometry, order):
     """
     Get a matrix of the first and second order neighbors for each pixel.
@@ -120,7 +145,7 @@ class TimeNextNeighborCleaning:
 
         """
         with open(file, "w") as f:
-            json.dump(self.IPR_dict, f, sort_keys=True, indent=4)
+            json.dump(arrays_to_lists(self.IPR_dict), f, sort_keys=True, indent=4)
 
     def fill_individual_pixel_rate(self, geo, image, trace_length, charge_steps):
         """
@@ -180,14 +205,15 @@ class TimeNextNeighborCleaning:
 
         """
         for event in source:
-            calibrator.calibrate(event)
-            for tel_id in event.r0.tels_with_data:
-                geometry = event.inst.subarray.tel[tel_id].camera
-                image = event.dl1.tel[tel_id].image[0]
+            calibrator(event)
+            for tel_id, dl1 in event.dl1.tel.items():
+                geometry = source.subarray.tel[tel_id].camera.geometry
+                image = dl1.image
 
-                n_samples = event.r0.tel[tel_id].num_samples
-                sample_time = u.Quantity(event.mc.tel[tel_id].time_slice, u.ns)
-                sum_time = sample_time * n_samples
+                n_samples = event.r1.tel[tel_id].waveform.shape[-1]
+                sum_time = (
+                    n_samples / source.subarray.tel[1].camera.readout.sampling_rate
+                )
 
                 self.fill_individual_pixel_rate(geometry, image, sum_time, charge_steps)
 
