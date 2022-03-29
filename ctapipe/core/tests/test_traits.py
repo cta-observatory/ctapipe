@@ -1,32 +1,32 @@
+import os
+import pathlib
 import tempfile
-from unittest.mock import MagicMock
+from unittest import mock
 
 import pytest
-from traitlets import CaselessStrEnum, HasTraits, Int
-import pathlib
-
 from ctapipe.core import Component, TelescopeComponent
 from ctapipe.core.traits import (
-    List,
-    Float,
+    AstroTime,
     Bool,
+    Float,
+    FloatTelescopeParameter,
+    IntTelescopeParameter,
+    List,
     Path,
+    TelescopeParameter,
+    TelescopeParameterLookup,
     TraitError,
     classes_with_traits,
     has_traits,
-    TelescopeParameterLookup,
-    TelescopeParameter,
-    FloatTelescopeParameter,
-    IntTelescopeParameter,
-    AstroTime,
 )
 from ctapipe.image import ImageExtractor
-from ctapipe.utils.datasets import get_dataset_path, DEFAULT_URL
+from ctapipe.utils.datasets import DEFAULT_URL, get_dataset_path
+from traitlets import CaselessStrEnum, HasTraits, Int
 
 
 @pytest.fixture(scope="module")
 def mock_subarray():
-    subarray = MagicMock()
+    subarray = mock.MagicMock()
     subarray.tel_ids = [1, 2, 3, 4]
     subarray.get_tel_ids_for_type = (
         lambda x: [3, 4] if x == "LST_LST_LSTCam" else [1, 2]
@@ -186,6 +186,17 @@ def test_path_url():
     # test dataset://
     c.thepath = "dataset://optics.ecsv.txt"
     assert c.thepath == get_dataset_path("optics.ecsv.txt")
+
+
+@mock.patch.dict(os.environ, {"ANALYSIS_DIR": "/home/foo"})
+def test_path_envvars():
+    class C(Component):
+        thepath = Path()
+
+    c = C()
+    c.thepath = "$ANALYSIS_DIR/test.txt"
+
+    assert str(c.thepath) == "/home/foo/test.txt"
 
 
 def test_enum_trait_default_is_right():
@@ -376,7 +387,7 @@ def test_telescope_parameter_scalar_default(mock_subarray):
 
 
 def test_telescope_parameter_resolver():
-    """ check that you can resolve the rules specified in a
+    """check that you can resolve the rules specified in a
     TelescopeParameter trait"""
 
     class SomeComponent(Component):
@@ -404,7 +415,7 @@ def test_telescope_parameter_resolver():
     comp = SomeComponent()
 
     # need to mock a SubarrayDescription
-    subarray = MagicMock()
+    subarray = mock.MagicMock()
     subarray.tel_ids = [1, 2, 3, 4]
     subarray.get_tel_ids_for_type = (
         lambda x: [3, 4] if x == "LST_LST_LSTCam" else [1, 2]
