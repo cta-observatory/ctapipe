@@ -36,9 +36,9 @@ docs_require = [
 
 setup(
     packages=find_packages(exclude="ctapipe._dev_version"),
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     install_requires=[
-        "astropy>=4.0.5,<5",
+        "astropy~=5.0",
         "bokeh~=1.0",
         "eventio>=1.5.0,<2.0.0a0",
         "h5py",
@@ -72,9 +72,9 @@ setup(
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: BSD License",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: Implementation :: CPython",
         "Topic :: Scientific/Engineering :: Astronomy",
         "Development Status :: 3 - Alpha",

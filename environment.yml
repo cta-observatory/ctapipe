@@ -6,7 +6,7 @@ channels:
 dependencies:
   - python=3.8
   - pip
-  - astropy
+  - astropy=5
   - black
   - bokeh=1
   - nbsphinx
