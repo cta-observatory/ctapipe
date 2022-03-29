@@ -44,3 +44,5 @@ dependencies:
   - zlib
   - zstandard
   - eventio>=1.5.0
+  # for bokeh=1, remove when updating bokeh
+  - jinja2=3.0
