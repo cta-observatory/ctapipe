@@ -265,9 +265,9 @@ def test_units(tmp_path):
         writer.write("units", c)
 
     with tables.open_file(path, "r") as f:
-        assert f.root.data.units.attrs["inverse_length_UNIT"] == "m-1"
+        assert f.root.data.units.attrs["inverse_length_UNIT"] == "m**-1"
         assert f.root.data.units.attrs["time_UNIT"] == "s"
-        assert f.root.data.units.attrs["grammage_UNIT"] == "cm-2 g"
+        assert f.root.data.units.attrs["grammage_UNIT"] == "cm**-2.g"
 
 
 def test_write_containers(tmp_path):
