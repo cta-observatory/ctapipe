@@ -269,7 +269,9 @@ class MergeTool(Tool):
             self.first_subarray = self.first_subarray.select_subarray(
                 tel_ids=self.allowed_tels
             )
-            self.allowed_tel_names = {"tel_%03d" % i for i in self.allowed_tels}
+            self.allowed_tel_names = {
+                f"tel_{tel_id:03d}" for tel_id in self.allowed_tels
+            }
 
         self.first_subarray.to_hdf(self.output_path)
         self.output_file = tables.open_file(self.output_path, mode="a")
@@ -354,7 +356,7 @@ class MergeTool(Tool):
             self._create_group(node_path)
 
         for tel_name, table in input_node._v_children.items():
-            if not self.allowed_tels or tel_name in self.allowed_tels:
+            if not self.allowed_tels or tel_name in self.allowed_tel_names:
                 self._merge_table(file, table)
 
     def _merge_table(self, file, input_node):

@@ -111,28 +111,26 @@ def test_allowed_tels(tmp_path, dl1_file, dl1_proton_file):
 
     # create file to test 'allowed-tels' option
     output = tmp_path / "merged_allowed_tels.dl1.h5"
-    ret = run_tool(
-        MergeTool(),
-        argv=[
-            str(dl1_file),
-            str(dl1_proton_file),
-            f"--output={output}",
-            "--allowed-tels=1",
-            "--allowed-tels=2",
-            "--overwrite",
-        ],
-        cwd=tmp_path,
-    )
+
+    allowed_tels = {25, 125}
+
+    argv = [str(dl1_file), str(dl1_proton_file), f"--output={output}", "--overwrite"]
+    for tel_id in allowed_tels:
+        argv.append(f"--allowed-tels={tel_id}")
+
+    ret = run_tool(MergeTool(), argv=argv, cwd=tmp_path)
     assert ret == 0
 
     s = SubarrayDescription.from_hdf(output)
-    assert s.tel.keys() == {1, 2}
+    assert s.tel.keys() == allowed_tels
 
-    tel_keys = {"tel_001", "tel_002"}
+    tel_keys = {f"tel_{tel_id:03d}" for tel_id in allowed_tels}
     with tables.open_file(output) as f:
         assert set(f.root.dl1.event.telescope.parameters._v_children).issubset(tel_keys)
         assert set(f.root.dl1.event.telescope.images._v_children).issubset(tel_keys)
-        assert set(f.root.monitoring.telescope.pointing._v_children).issubset(tel_keys)
+        assert set(f.root.dl1.monitoring.telescope.pointing._v_children).issubset(
+            tel_keys
+        )
 
 
 def test_dl2(tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_file):
