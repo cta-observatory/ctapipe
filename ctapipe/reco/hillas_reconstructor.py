@@ -230,7 +230,7 @@ class HillasReconstructor(Reconstructor):
         class are set to np.nan
 
         Parameters
-        -----------
+        ----------
         hillas_dict: dict
             dictionary with telescope IDs as key and
             HillasParametersContainer instances as values
@@ -467,14 +467,14 @@ class HillasReconstructor(Reconstructor):
         Estimate the core position by intersection the major ellipse lines of each telescope.
 
         Parameters
-        -----------
+        ----------
         hillas_dict: dict[HillasContainer]
             dictionary of hillas moments
         array_pointing: SkyCoord[HorizonFrame]
             Pointing direction of the array
 
         Returns
-        -----------
+        -------
         core_x: u.Quantity
             estimated x position of impact
         core_y: u.Quantity
@@ -535,7 +535,7 @@ class HillasReconstructor(Reconstructor):
         Estimate the max height by intersecting the lines of the cog directions of each telescope.
 
         Returns
-        -----------
+        -------
         astropy.unit.Quantity
             the estimated max height
         """

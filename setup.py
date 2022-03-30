@@ -13,7 +13,6 @@ entry_points["console_scripts"] = [
     "ctapipe-info = ctapipe.tools.info:main",
     "ctapipe-dump-triggers = ctapipe.tools.dump_triggers:main",
     "ctapipe-dump-instrument=ctapipe.tools.dump_instrument:main",
-    "ctapipe-event-viewer = ctapipe.tools.bokeh.file_viewer:main",
     "ctapipe-reconstruct-muons = ctapipe.tools.muon_reconstruction:main",
     "ctapipe-display-dl1 = ctapipe.tools.display_dl1:main",
     "ctapipe-process = ctapipe.tools.process:main",
@@ -39,7 +38,7 @@ setup(
     python_requires=">=3.8",
     install_requires=[
         "astropy~=5.0",
-        "bokeh~=1.0",
+        "bokeh~=2.0",
         "eventio>=1.5.0,<2.0.0a0",
         "h5py",
         "iminuit>=2",
@@ -57,7 +56,7 @@ setup(
         "requests",
         "setuptools_scm>=3.4",
         "importlib_resources;python_version<'3.9'",
-        "jinja2~=3.0.2",  # for bokeh=1, remove when updaiting bokeh
+        "jinja2~=3.0.2",  # for sphinx 3.5, update when moving to 4.x
     ],
     # here are optional dependencies (as "tag" : "dependency spec")
     extras_require={
@@ -81,7 +80,5 @@ setup(
     ],
     zip_safe=False,
     entry_points=entry_points,
-    package_data={
-        "": ["tools/bokeh/*.yaml", "tools/bokeh/templates/*.html", "resources/*"]
-    },
+    package_data={"": ["resources/*"]},
 )

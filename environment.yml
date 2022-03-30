@@ -8,7 +8,7 @@ dependencies:
   - pip
   - astropy=5
   - black
-  - bokeh=1
+  - bokeh=2
   - nbsphinx
   - cython
   - graphviz
@@ -44,5 +44,4 @@ dependencies:
   - zlib
   - zstandard
   - eventio>=1.5.0
-  # for bokeh=1, remove when updating bokeh
-  - jinja2=3.0
+  - jinja2=3.0 # for sphinx 3.5, remove when updating to 4.x

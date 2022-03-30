@@ -85,16 +85,18 @@ class CameraDisplay:
 
     def __init__(
         self,
+        # same options as bokeh display
         geometry,
         image=None,
-        ax=None,
-        title=None,
+        cmap="inferno",
         norm="lin",
-        cmap=None,
+        autoscale=True,
+        title=None,
+        # mpl specific options
         allow_pick=False,
         autoupdate=True,
-        autoscale=True,
         show_frame=True,
+        ax=None,
     ):
         self.axes = ax if ax is not None else plt.gca()
         self.pixels = None
@@ -266,7 +268,6 @@ class CameraDisplay:
     def set_limits_minmax(self, zmin, zmax):
         """ set the color scale limits from min to max """
         self.pixels.set_clim(zmin, zmax)
-        self.autoscale = False
         self._update()
 
     def set_limits_percent(self, percent=95):
@@ -279,7 +280,6 @@ class CameraDisplay:
 
         dz = zmax - zmin
         frac = percent / 100.0
-        self.autoscale = False
         self.set_limits_minmax(zmin, zmax - (1.0 - frac) * dz)
 
     @property
@@ -453,7 +453,7 @@ class CameraDisplay:
             centroid=(cen_x, cen_y),
             length=length * 2,
             width=width * 2,
-            angle=hillas_parameters.psi.to_value("rad"),
+            angle=hillas_parameters.psi.to_value(u.rad),
             **kwargs,
         )
 

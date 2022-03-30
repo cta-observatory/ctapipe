@@ -156,13 +156,3 @@ def test_dump_instrument(tmp_path):
     assert (tmp_path / "subarray.h5").exists()
 
     assert run_tool(tool, ["--help-all"], cwd=tmp_path) == 0
-
-
-def test_bokeh_file_viewer(tmp_path):
-    from ctapipe.tools.bokeh.file_viewer import BokehFileViewer
-
-    sys.argv = ["bokeh_file_viewer"]
-    tool = BokehFileViewer(disable_server=True)
-    assert run_tool(tool, cwd=tmp_path) == 0
-    assert tool.reader.input_url == get_dataset_path("gamma_test_large.simtel.gz")
-    assert run_tool(tool, ["--help-all"]) == 0
