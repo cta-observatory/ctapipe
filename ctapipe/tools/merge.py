@@ -233,17 +233,6 @@ class MergeTool(Tool):
             )
             sys.exit(1)
 
-        # create output file with subarray from first file
-        self.first_subarray = SubarrayDescription.from_hdf(self.input_files[0])
-        if self.allowed_tels:
-            self.first_subarray = self.first_subarray.select_subarray(
-                tel_ids=self.allowed_tels
-            )
-            self.allowed_tel_names = {"tel_%03d" % i for i in self.allowed_tels}
-
-        self.first_subarray.to_hdf(self.output_path)
-        self.output_file = tables.open_file(self.output_path, mode="a")
-
         # setup required nodes
         self.usable_nodes = all_nodes.copy()
 
@@ -255,6 +244,35 @@ class MergeTool(Tool):
 
         if self.skip_parameters is True:
             self.usable_nodes -= parameter_nodes
+
+        # Use first file as reference to setup nodes to merge
+        with tables.open_file(self.input_files[0], "r") as h5file:
+            self.data_model_version = h5file.root._v_attrs[VERSION_KEY]
+
+            # Check if first file is simulation
+            if "/simulation" not in h5file.root:
+                self.usable_nodes = self.usable_nodes - simu_nodes
+                self.log.info("Merging observed data")
+                self.is_simulation = False
+            else:
+                self.log.info("Merging simulated data")
+                self.is_simulation = True
+
+            # do not try to merge optional nodes not present in first file
+            for node in filter(lambda n: n not in h5file, optional_nodes):
+                self.log.info(f"First file does not contain {node}, ignoring")
+                self.usable_nodes.remove(node)
+
+        # create output file with subarray from first file
+        self.first_subarray = SubarrayDescription.from_hdf(self.input_files[0])
+        if self.allowed_tels:
+            self.first_subarray = self.first_subarray.select_subarray(
+                tel_ids=self.allowed_tels
+            )
+            self.allowed_tel_names = {"tel_%03d" % i for i in self.allowed_tels}
+
+        self.first_subarray.to_hdf(self.output_path)
+        self.output_file = tables.open_file(self.output_path, mode="a")
 
     def check_file_broken(self, file):
         # Check that the file is not broken or any node is missing
@@ -386,56 +404,33 @@ class MergeTool(Tool):
     def start(self):
         merged_files_counter = 0
 
-        for i, current_file in enumerate(
-            tqdm(
-                self.input_files,
-                desc="Merging",
-                unit="Files",
-                disable=not self.progress_bar,
-            )
+        for input_path in tqdm(
+            self.input_files,
+            desc="Merging",
+            unit="Files",
+            disable=not self.progress_bar,
         ):
-
-            if not HDF5EventSource.is_compatible(current_file):
-                self.log.critical(
-                    f"input file {current_file} is not a supported DL1 file"
-                )
+            if not HDF5EventSource.is_compatible(input_path):
+                self.log.critical(f"input file {input_path} is not a supported file")
                 if self.skip_broken_files:
                     continue
                 else:
                     sys.exit(1)
 
-            with tables.open_file(current_file, mode="r") as file:
-                if i == 0:
-                    self.data_model_version = file.root._v_attrs[VERSION_KEY]
+            with tables.open_file(input_path, mode="r") as h5file:
 
-                    # Check if first file is simulation
-                    if "/simulation" not in file.root:
-                        self.usable_nodes = self.usable_nodes - simu_nodes
-                        self.log.info("Merging real data")
-                        self.is_simulation = False
-                    else:
-                        self.log.info("Merging simulation files")
-                        self.is_simulation = True
-
-                    for node in optional_nodes:
-                        if node not in file.root:
-                            self.log.info(
-                                f"Optional node {node} not in first file, ignoring"
-                            )
-                            self.usable_nodes.remove(node)
-
-                if self.check_file_broken(file) is True:
+                if self.check_file_broken(h5file) is True:
                     if self.skip_broken_files is True:
                         continue
                     else:
                         self.log.critical("Broken file detected.")
                         sys.exit(1)
 
-                self.merge_tables(file)
-                if IMAGE_STATISTICS_PATH in file:
-                    self.add_image_statistics(file)
+                self.merge_tables(h5file)
+                if IMAGE_STATISTICS_PATH in h5file:
+                    self.add_image_statistics(h5file)
 
-            PROV.add_input_file(str(current_file))
+            PROV.add_input_file(str(input_path))
             merged_files_counter += 1
 
         self.log.info(
