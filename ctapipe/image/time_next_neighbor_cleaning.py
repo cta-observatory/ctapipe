@@ -518,12 +518,11 @@ class TimeNextNeighborCleaning:
                         result.append(c)
                     result.append(n)
 
-        # bring the result into the correct shape
-        result = np.reshape(result, (-1, len(combinations[0]) + 1))
-
         # As it might happen, that a combination is added multiple times, those
         # duplicates are removed.
         if len(result) > 0:
+            # bring the result into the correct shape
+            result = np.reshape(result, (-1, len(combinations[0]) + 1))
             result = np.sort(result, axis=1)
             result = np.unique(result, axis=0)
         else:
