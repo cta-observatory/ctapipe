@@ -40,7 +40,7 @@ optional_nodes = {
     "/dl2/event/subarray/geometry",
 }
 
-simu_nodes = {
+simulation_nodes = {
     "/simulation/event/subarray/shower",
     "/simulation/event/telescope/parameters",
     "/simulation/event/telescope/images",
@@ -64,7 +64,7 @@ parameter_nodes = {
     "/dl1/event/telescope/parameters",
 }
 
-simu_images = {"/simulation/event/telescope/images"}
+simulation_images = {"/simulation/event/telescope/images"}
 
 dl2_subarray_nodes = {"/dl2/event/subarray/geometry"}
 
@@ -72,13 +72,12 @@ dl2_subarray_nodes = {"/dl2/event/subarray/geometry"}
 all_nodes = (
     required_nodes
     | optional_nodes
-    | simu_nodes
+    | simulation_nodes
     | service_nodes
     | nodes_with_tels
     | image_nodes
     | parameter_nodes
-    | simu_images
-    | simu_images
+    | simulation_images
     | dl2_subarray_nodes
 )
 
@@ -237,7 +236,7 @@ class MergeTool(Tool):
         self.usable_nodes = all_nodes.copy()
 
         if self.skip_simu_images is True:
-            self.usable_nodes -= simu_images
+            self.usable_nodes -= simulation_images
 
         if self.skip_images is True:
             self.usable_nodes -= image_nodes
@@ -251,8 +250,8 @@ class MergeTool(Tool):
 
             # Check if first file is simulation
             if "/simulation" not in h5file.root:
-                self.usable_nodes = self.usable_nodes - simu_nodes
                 self.log.info("Merging observed data")
+                self.usable_nodes -= simulation_nodes
                 self.is_simulation = False
             else:
                 self.log.info("Merging simulated data")
@@ -348,7 +347,7 @@ class MergeTool(Tool):
     def _merge_tel_group(self, file, input_node):
         """Add a group that has one child table per telescope (type) to outputfile"""
         if not isinstance(input_node, tables.Group):
-            raise TypeError(f"node must be a `tables.Table`, got {input_node}")
+            raise TypeError(f"node must be a `tables.Group`, got {input_node}")
 
         node_path = input_node._v_pathname
 
