@@ -18,9 +18,31 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        python-version: ["3.8", ]
-        install-method: ["pip", "conda"]
+        include:
+          - os: ubuntu-latest
+            python-version: "3.8"
+            install-method: conda
+
+          - os: ubuntu-latest
+            python-version: "3.9"
+            install-method: conda
+
+          - os: ubuntu-latest
+            python-version: "3.10"
+            install-method: conda
+
+          - os: ubuntu-latest
+            python-version: "3.10"
+            install-method: pip
+
+          - os: macos-latest
+            python-version: "3.8"
+            install-method: conda
+
+          - os: macos-latest
+            python-version: "3.8"
+            install-method: pip
+
     defaults:
       run:
         shell: bash -l {0}
