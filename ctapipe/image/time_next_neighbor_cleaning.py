@@ -702,7 +702,7 @@ class TimeNextNeighborCleaning:
             time_diff = np.max(combination_times, axis=1) - np.min(
                 combination_times, axis=1
             )
-            time_diff = time_diff * sample_time
+            time_diff = time_diff * u.ns
 
             # Apply the cut in the time and charge parameter space to check
             # which group of pixels are valid. The pixels can appear in
@@ -754,8 +754,7 @@ class TimeNextNeighborCleaning:
                 time_diff = np.max(combination_times, axis=1) - np.min(
                     combination_times, axis=1
                 )
-                time_diff = time_diff * sample_time
-
+                time_diff = time_diff * u.ns
                 min_charge = np.min(combination_image, axis=1)
                 valid_groups = self.cut_time_charge(
                     min_charge, time_diff, rate_acc.to("Hz"), nfold
