@@ -16,7 +16,7 @@ entry_points["console_scripts"] = [
     "ctapipe-reconstruct-muons = ctapipe.tools.muon_reconstruction:main",
     "ctapipe-display-dl1 = ctapipe.tools.display_dl1:main",
     "ctapipe-process = ctapipe.tools.process:main",
-    "ctapipe-merge = ctapipe.tools.dl1_merge:main",
+    "ctapipe-merge = ctapipe.tools.merge:main",
     "ctapipe-fileinfo = ctapipe.tools.fileinfo:main",
     "ctapipe-quickstart = ctapipe.tools.quickstart:main",
 ]
