@@ -18,9 +18,31 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        python-version: ["3.8", ]
-        install-method: ["pip", "conda"]
+        include:
+          - os: ubuntu-latest
+            python-version: "3.8"
+            install-method: conda
+
+          - os: ubuntu-latest
+            python-version: "3.9"
+            install-method: conda
+
+          - os: ubuntu-latest
+            python-version: "3.10"
+            install-method: conda
+
+          - os: ubuntu-latest
+            python-version: "3.10"
+            install-method: pip
+
+          - os: macos-latest
+            python-version: "3.10"
+            install-method: conda
+
+          - os: macos-latest
+            python-version: "3.8"
+            install-method: pip
+
     defaults:
       run:
         shell: bash -l {0}
@@ -82,7 +104,12 @@ jobs:
         # need to use a login shell for the conda setup to work
         shell: bash -leo pipefail {0}
         run: |
-          pytest -n auto --dist loadscope --cov --cov-report=xml --doctest-modules --doctest-glob='*.rst' ctapipe docs
+          pytest -n auto --dist loadscope \
+            --cov --cov-report=xml \
+            --doctest-modules --doctest-glob='*.rst' \
+            --ignore=docs/conf.py \
+            ctapipe docs
+
           ctapipe-info --version
 
       - uses: codecov/codecov-action@v1
