@@ -275,6 +275,7 @@ class ProcessorTool(Tool):
         """
         self.write.write_simulation_histograms(self.event_source)
         self.write.finish()
+        self.event_source.close()
         self._write_processing_statistics()
 
 

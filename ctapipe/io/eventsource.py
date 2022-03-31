@@ -385,3 +385,10 @@ class EventSource(Component):
         """
         input_url = cls._find_input_url_in_config(config=config, parent=parent)
         return cls.from_url(input_url, config=config, parent=parent, **kwargs)
+
+    def close(self):
+        """Close this event source.
+
+        No-op by default. Should be overriden by sources needing a cleanup-step
+        """
+        pass
