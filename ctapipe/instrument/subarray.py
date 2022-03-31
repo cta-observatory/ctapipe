@@ -458,9 +458,9 @@ class SubarrayDescription:
             Path or already opened tables.File with write permission
         overwrite : False
             If the output path already contains a subarray, by default
-            an error will be raised. Set `overwrite=True` to overwrite an
+            an error will be raised. Set ``overwrite=True`` to overwrite an
             existing subarray. This does not affect other content of the file.
-            User `mode="w"` to completely overwrite the output path.
+            Use ``mode="w"`` to completely overwrite the output path.
         mode : str
             If h5file is not an already opened file, the output file will
             be opened with the given mode. Must be a mode that enables writing.
