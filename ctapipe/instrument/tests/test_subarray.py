@@ -140,11 +140,12 @@ def test_hdf(example_subarray, tmp_path):
     no_name = SubarrayDescription.from_hdf(path)
     assert no_name.name == "Unknown"
 
-    # Test we can also write to an already opened h5file
+    # Test we can also write and read to an already opened h5file
     with tables.open_file(path, "w") as h5file:
         example_subarray.to_hdf(h5file)
 
-    assert SubarrayDescription.from_hdf(path) == example_subarray
+    with tables.open_file(path, "r") as h5file:
+        assert SubarrayDescription.from_hdf(h5file) == example_subarray
 
 
 def test_hdf_same_camera(tmp_path):

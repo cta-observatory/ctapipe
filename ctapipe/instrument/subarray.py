@@ -454,17 +454,23 @@ class SubarrayDescription:
 
         Parameters
         ----------
-        output_path : str, bytes, path or tables.File
-            
+        h5file : str, bytes, path or tables.File
+            Path or already opened tables.File with write permission
+        overwrite : False
+            If the output path already contains a subarray, by default
+            an error will be raised. Set `overwrite=True` to overwrite an
+            existing subarray. This does not affect other content of the file.
+            User `mode="w"` to completely overwrite the output path.
+        mode : str
+            If h5file is not an already opened file, the output file will
+            be opened with the given mode. Must be a mode that enables writing.
         """
         # here to prevent circular import
         from ..io import write_table
 
         with ExitStack() as stack:
             if not isinstance(h5file, tables.File):
-                h5file: tables.File = stack.enter_context(
-                    tables.open_file(h5file, mode=mode)
-                )
+                h5file = stack.enter_context(tables.open_file(h5file, mode=mode))
 
             if "/configuration/instrument/subarray" in h5file.root:
                 if overwrite is False:
@@ -582,12 +588,14 @@ class SubarrayDescription:
 
         positions = np.column_stack([layout[f"pos_{c}"] for c in "xyz"])
 
-        with tables.open_file(path, mode="r") as f:
-            attrs = f.root.configuration.instrument.subarray._v_attrs
+        name = "Unknown"
+        with ExitStack() as stack:
+            if not isinstance(path, tables.File):
+                path = stack.enter_context(tables.open_file(path, mode="r"))
+
+            attrs = path.root.configuration.instrument.subarray._v_attrs
             if "name" in attrs:
                 name = str(attrs.name)
-            else:
-                name = "Unknown"
 
         return cls(
             name=name,
