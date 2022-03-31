@@ -81,6 +81,8 @@ jobs:
         if: matrix.install-method == 'pip'
         uses: conda-incubator/setup-miniconda@v2
         with:
+          mamba-version: "*"
+          channels: conda-forge,default
           python-version: ${{ matrix.python-version }}
 
       - name: Update pip
