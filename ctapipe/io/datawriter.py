@@ -6,7 +6,6 @@ Class to write DL1 (a,b) and DL2 (a) data from an event stream
 
 import pathlib
 from collections import defaultdict
-from typing import DefaultDict, Tuple
 from traitlets import Instance
 
 import numpy as np
@@ -232,19 +231,21 @@ class DataWriter(Component):
         self._subarray: SubarrayDescription = event_source.subarray
 
         self._hdf5_filters = None
-        self._last_pointing_tel: DefaultDict[Tuple] = None
-        self._last_pointing: Tuple = None
         self._writer: HDF5TableWriter = None
 
         self._setup_output_path()
-        self._subarray.to_hdf(self.output_path)  # must be first (uses astropy io)
         self._setup_compression()
         self._setup_writer()
-        if self._is_simulation:
-            self._write_simulation_configuration()
+        self._setup_outputfile()
 
         # store last pointing to only write unique poitings
+        self._last_pointing = None
         self._last_pointing_tel = defaultdict(lambda: (np.nan * u.deg, np.nan * u.deg))
+
+    def _setup_outputfile(self):
+        self._subarray.to_hdf(self._writer.h5file)
+        if self._is_simulation:
+            self._write_simulation_configuration()
 
     def __enter__(self):
         return self
@@ -459,7 +460,6 @@ class DataWriter(Component):
         )
 
         # final initialization
-
         self._writer = writer
         self.log.debug("Writer initialized: %s", self._writer)
 

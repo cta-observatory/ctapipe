@@ -2,7 +2,7 @@
 Description of Arrays or Subarrays of telescopes
 """
 from typing import Dict, List, Union
-from pathlib import Path
+from contextlib import ExitStack
 import warnings
 
 import numpy as np
@@ -449,61 +449,69 @@ class SubarrayDescription:
                 return False
         return True
 
-    def to_hdf(self, output_path, overwrite=False):
+    def to_hdf(self, h5file, overwrite=False, mode="a"):
         """write the SubarrayDescription
 
         Parameters
         ----------
-        subarray : ctapipe.instrument.SubarrayDescription
-            subarray description
+        h5file : str, bytes, path or tables.File
+            Path or already opened tables.File with write permission
+        overwrite : False
+            If the output path already contains a subarray, by default
+            an error will be raised. Set ``overwrite=True`` to overwrite an
+            existing subarray. This does not affect other content of the file.
+            Use ``mode="w"`` to completely overwrite the output path.
+        mode : str
+            If h5file is not an already opened file, the output file will
+            be opened with the given mode. Must be a mode that enables writing.
         """
         # here to prevent circular import
         from ..io import write_table
 
-        output_path = Path(output_path)
-        if output_path.suffix not in (".h5", ".hdf", ".hdf5"):
-            raise ValueError(
-                f"This function can only write to hdf files, got {output_path.suffix}"
-            )
+        with ExitStack() as stack:
+            if not isinstance(h5file, tables.File):
+                h5file = stack.enter_context(tables.open_file(h5file, mode=mode))
 
-        with tables.open_file(output_path, mode="a") as f:
-
-            if "/configuration/instrument/subarray" in f.root:
+            if "/configuration/instrument/subarray" in h5file.root:
                 if overwrite is False:
                     raise IOError(
                         "File already contains a SubarrayDescription and overwrite=False"
                     )
 
-                f.remove_node("/configuration/instrument/", "subarray", recursive=True)
-                f.remove_node("/configuration/instrument/", "telescope", recursive=True)
+                h5file.remove_node(
+                    "/configuration/instrument/", "subarray", recursive=True
+                )
+                h5file.remove_node(
+                    "/configuration/instrument/", "telescope", recursive=True
+                )
 
             write_table(
                 self.to_table(),
-                f,
+                h5file,
                 path="/configuration/instrument/subarray/layout",
                 mode="a",
             )
             write_table(
                 self.to_table(kind="optics"),
-                f,
+                h5file,
                 path="/configuration/instrument/telescope/optics",
                 mode="a",
             )
             for i, camera in enumerate(self.camera_types):
                 write_table(
                     camera.geometry.to_table(),
-                    f,
+                    h5file,
                     path=f"/configuration/instrument/telescope/camera/geometry_{i}",
                     mode="a",
                 )
                 write_table(
                     camera.readout.to_table(),
-                    f,
+                    h5file,
                     path=f"/configuration/instrument/telescope/camera/readout_{i}",
                     mode="a",
                 )
 
-            f.root.configuration.instrument.subarray._v_attrs.name = self.name
+            h5file.root.configuration.instrument.subarray._v_attrs.name = self.name
 
     @classmethod
     def from_hdf(cls, path):
@@ -580,12 +588,14 @@ class SubarrayDescription:
 
         positions = np.column_stack([layout[f"pos_{c}"] for c in "xyz"])
 
-        with tables.open_file(path, mode="r") as f:
-            attrs = f.root.configuration.instrument.subarray._v_attrs
+        name = "Unknown"
+        with ExitStack() as stack:
+            if not isinstance(path, tables.File):
+                path = stack.enter_context(tables.open_file(path, mode="r"))
+
+            attrs = path.root.configuration.instrument.subarray._v_attrs
             if "name" in attrs:
                 name = str(attrs.name)
-            else:
-                name = "Unknown"
 
         return cls(
             name=name,
