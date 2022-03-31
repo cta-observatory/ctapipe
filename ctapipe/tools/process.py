@@ -10,7 +10,7 @@ from ..core import QualityQuery, Tool
 from ..core.traits import Bool, classes_with_traits, flag
 from ..image import ImageCleaner, ImageProcessor
 from ..image.extractor import ImageExtractor
-from ..io import DataLevel, DataWriter, EventSource, SimTelEventSource
+from ..io import DataLevel, DataWriter, EventSource, SimTelEventSource, write_table
 from ..io.datawriter import DATA_MODEL_VERSION
 from ..reco import ShowerProcessor
 from ..utils import EventTypeFilter
@@ -221,20 +221,20 @@ class ProcessorTool(Tool):
 
         if self.should_compute_dl1:
             image_stats = self.process_images.check_image.to_table(functions=True)
-            image_stats.write(
+            write_table(
+                image_stats,
                 self.write.output_path,
                 path="/dl1/service/image_statistics",
                 append=True,
-                serialize_meta=True,
             )
 
         if self.should_compute_dl2:
             shower_stats = self.process_shower.check_shower.to_table(functions=True)
-            shower_stats.write(
+            write_table(
+                shower_stats,
                 self.write.output_path,
-                path="/dl2/service/image_statistics",
+                "/dl2/service/image_statistics",
                 append=True,
-                serialize_meta=True,
             )
 
     def start(self):
@@ -275,6 +275,7 @@ class ProcessorTool(Tool):
         """
         self.write.write_simulation_histograms(self.event_source)
         self.write.finish()
+        self.event_source.close()
         self._write_processing_statistics()
 
 

@@ -151,6 +151,9 @@ class Path(TraitType):
         if not isinstance(value, (str, pathlib.Path)):
             return self.error(obj, value)
 
+        # expand any environment variables in the path:
+        value = os.path.expandvars(value)
+
         if isinstance(value, str):
             if value == "":
                 return self.error(obj, value)
@@ -218,8 +221,8 @@ def create_class_enum_trait(base_class, default_value, help=None):
 
 
 def classes_with_traits(base_class):
-    """ Returns a list of the base class plus its non-abstract children
-    if they have traits """
+    """Returns a list of the base class plus its non-abstract children
+    if they have traits"""
     all_classes = [base_class] + non_abstract_children(base_class)
     with_traits = []
 

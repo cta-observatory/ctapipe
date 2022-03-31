@@ -120,7 +120,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
        waveform time
 
 
-     Parameters:
+     Parameters
      ----------
      charge_cut_outliers : List[2]
          Interval of accepted charge values (fraction with respect to camera median value)

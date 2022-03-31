@@ -21,11 +21,15 @@ except ImportError:
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 
 
+def resource_file(filename):
+    return files("ctapipe.tools.tests").joinpath("resources", filename)
+
+
 def test_read_yaml_toml_config(dl1_image_file):
     tool = ProcessorTool()
 
     for config_base in ["stage1_config.yaml", "stage1_config.toml"]:
-        config = files("ctapipe.tools.tests.resources").joinpath(config_base)
+        config = resource_file(config_base)
         tool.load_config_file(config)
 
     tool.config.EventSource.input_url = dl1_image_file
@@ -39,8 +43,8 @@ def test_read_yaml_toml_config(dl1_image_file):
 
 def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
     """  check simtel to DL1 conversion """
+    config = resource_file("stage1_config.json")
 
-    config = files("ctapipe.tools.tests.resources").joinpath("stage1_config.yaml")
     # DL1A file as input
     dl1b_from_dl1a_file = tmp_path / "dl1b_fromdl1a.dl1.h5"
     assert (
@@ -147,7 +151,7 @@ def test_stage1_datalevels(tmp_path):
         infile.write(b"dummy")
         infile.flush()
 
-    config = files("ctapipe.tools.tests.resources").joinpath("stage1_config.toml")
+    config = resource_file("stage1_config.json")
     tool = ProcessorTool()
 
     assert (
@@ -170,7 +174,7 @@ def test_stage1_datalevels(tmp_path):
 
 def test_stage_2_from_simtel(tmp_path):
     """ check we can go to DL2 geometry from simtel file """
-    config = files("ctapipe.tools.tests.resources").joinpath("stage2_config.json")
+    config = resource_file("stage2_config.json")
     output = tmp_path / "test_stage2_from_simtel.DL2.h5"
 
     assert (
@@ -195,7 +199,7 @@ def test_stage_2_from_simtel(tmp_path):
 
 def test_stage_2_from_dl1_images(tmp_path, dl1_image_file):
     """ check we can go to DL2 geometry from DL1 images """
-    config = files("ctapipe.tools.tests.resources").joinpath("stage2_config.json")
+    config = resource_file("stage2_config.json")
     output = tmp_path / "test_stage2_from_dl1image.DL2.h5"
 
     assert (
@@ -220,7 +224,7 @@ def test_stage_2_from_dl1_images(tmp_path, dl1_image_file):
 def test_stage_2_from_dl1_params(tmp_path, dl1_parameters_file):
     """ check we can go to DL2 geometry from DL1 parameters """
 
-    config = files("ctapipe.tools.tests.resources").joinpath("stage2_config.json")
+    config = resource_file("stage2_config.json")
     output = tmp_path / "test_stage2_from_dl1param.DL2.h5"
 
     assert (
@@ -245,7 +249,7 @@ def test_stage_2_from_dl1_params(tmp_path, dl1_parameters_file):
 def test_training_from_simtel(tmp_path):
     """ check we can write both dl1 and dl2 info (e.g. for training input) """
 
-    config = files("ctapipe.tools.tests.resources").joinpath("training_config.json")
+    config = resource_file("training_config.json")
     output = tmp_path / "test_training.DL1DL2.h5"
 
     assert (
@@ -272,7 +276,7 @@ def test_training_from_simtel(tmp_path):
 @pytest.mark.parametrize("filename", CONFIGS_TO_WRITE)
 def test_quickstart_templates(filename):
     """ ensure template configs have an appropriate placeholder for the contact info """
-    config = files("ctapipe.tools.tests.resources").joinpath(filename)
+    config = resource_file(filename)
     text = config.read_text()
 
     assert "YOUR-NAME-HERE" in text, "Missing expected name placeholder"

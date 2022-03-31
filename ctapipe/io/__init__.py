@@ -4,7 +4,7 @@ from .hdf5tableio import HDF5TableReader, HDF5TableWriter
 from .tableio import TableWriter, TableReader
 from .tableloader import TableLoader
 from .datalevels import DataLevel
-from .astropy_helpers import read_table
+from .astropy_helpers import read_table, write_table
 from .datawriter import DataWriter, DATA_MODEL_VERSION
 
 from ..core.plugins import detect_and_import_io_plugins
@@ -29,6 +29,7 @@ __all__ = [
     "HDF5EventSource",
     "DataLevel",
     "read_table",
+    "write_table",
     "DataWriter",
     "DATA_MODEL_VERSION",
     "get_hdf5_datalevels",
