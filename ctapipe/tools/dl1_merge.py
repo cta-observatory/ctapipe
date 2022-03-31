@@ -315,7 +315,8 @@ class MergeTool(Tool):
             )
 
             for node in service_nodes:
-                file.copy_node(node, newparent=target_group)
+                if node in file:
+                    file.copy_node(node, newparent=target_group)
 
     def merge_tables(self, file):
         # Loop over all nodes listed in usable_nodes. Appends table to output_file
