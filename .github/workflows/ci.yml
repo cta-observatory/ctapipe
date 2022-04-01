@@ -30,6 +30,7 @@ jobs:
           - os: ubuntu-latest
             python-version: "3.10"
             install-method: conda
+            codecov: true
 
           - os: ubuntu-latest
             python-version: "3.10"
@@ -115,6 +116,7 @@ jobs:
           ctapipe-info --version
 
       - uses: codecov/codecov-action@v1
+        if: matrix.codecov
 
   docs:
     runs-on: ubuntu-latest
