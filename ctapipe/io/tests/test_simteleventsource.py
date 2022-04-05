@@ -68,12 +68,16 @@ def test_additional_meta_data_from_simulation_config():
     from astropy import units as u
     from astropy.coordinates import Angle
 
-    assert reader.simulation_config.corsika_version == 6990
-    assert reader.simulation_config.spectral_index == -2.0
-    assert reader.simulation_config.shower_reuse == 20
-    assert reader.simulation_config.core_pos_mode == 1
-    assert reader.simulation_config.diffuse == 1
-    assert reader.simulation_config.atmosphere == 26
+    # There should be only one observation
+    assert len(reader.obs_ids) == 1
+    simulation_config = reader.simulation_config[reader.obs_ids[0]]
+
+    assert simulation_config.corsika_version == 6990
+    assert simulation_config.spectral_index == -2.0
+    assert simulation_config.shower_reuse == 20
+    assert simulation_config.core_pos_mode == 1
+    assert simulation_config.diffuse == 1
+    assert simulation_config.atmosphere == 26
 
     # value read by hand from input card
     name_expectation = {
@@ -91,7 +95,7 @@ def test_additional_meta_data_from_simulation_config():
     }
 
     for name, expectation in name_expectation.items():
-        value = getattr(reader.simulation_config, name)
+        value = getattr(simulation_config, name)
 
         assert value.unit == expectation.unit
         assert np.isclose(
@@ -103,9 +107,9 @@ def test_properties():
     source = SimTelEventSource(input_url=gamma_test_large_path)
 
     assert source.is_simulation
-    assert source.simulation_config.corsika_version == 6990
     assert source.datalevels == (DataLevel.R0, DataLevel.R1)
     assert source.obs_ids == [7514]
+    assert source.simulation_config[7514].corsika_version == 6990
 
 
 def test_gamma_file():

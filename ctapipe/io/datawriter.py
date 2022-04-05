@@ -290,7 +290,7 @@ class DataWriter(Component):
             self._write_dl2_stereo_event(self._writer, event)
 
     def finish(self):
-        """ called after all events are done """
+        """called after all events are done"""
         self.log.info("Finishing DL1 output")
         if not self._at_least_one_event:
             self.log.warning("No events have been written to the output file")
@@ -311,7 +311,7 @@ class DataWriter(Component):
 
     @property
     def datalevels(self):
-        """ returns a list of data levels requested """
+        """returns a list of data levels requested"""
         data_levels = []
         if self.write_images:
             data_levels.append(DataLevel.DL1_IMAGES)
@@ -326,7 +326,7 @@ class DataWriter(Component):
         return data_levels
 
     def _setup_compression(self):
-        """ setup HDF5 compression"""
+        """setup HDF5 compression"""
         self._hdf5_filters = tables.Filters(
             complevel=self.compression_level,
             complib=self.compression_type,
@@ -464,7 +464,7 @@ class DataWriter(Component):
         self.log.debug("Writer initialized: %s", self._writer)
 
     def _write_subarray_pointing(self, event: ArrayEventContainer, writer: TableWriter):
-        """ store subarray pointing info in a monitoring table """
+        """store subarray pointing info in a monitoring table"""
         pnt = event.pointing
         current_pointing = (pnt.array_azimuth, pnt.array_altitude)
         if current_pointing != self._last_pointing:
@@ -487,15 +487,8 @@ class DataWriter(Component):
             container_prefix = ""
             obs_id = Field(0, "Simulation Run Identifier")
 
-        if len(self.event_source.obs_ids) > 1:
-            for obs_id, config in self.event_source.simulation_config.items():
-                extramc = ExtraSimInfo(obs_id=obs_id)
-                config.prefix = ""
-
-                self._writer.write("configuration/simulation/run", [extramc, config])
-        else:
-            extramc = ExtraSimInfo(obs_id=self.event_source.obs_ids[0])
-            config = self.event_source.simulation_config
+        for obs_id, config in self.event_source.simulation_config.items():
+            extramc = ExtraSimInfo(obs_id=obs_id)
             config.prefix = ""
 
             self._writer.write("configuration/simulation/run", [extramc, config])
@@ -526,7 +519,7 @@ class DataWriter(Component):
         def fill_from_simtel(
             obs_id, eventio_hist, container: SimulatedShowerDistribution
         ):
-            """ fill from a SimTel Histogram entry"""
+            """fill from a SimTel Histogram entry"""
             container.obs_id = obs_id
             container.hist_id = eventio_hist["id"]
             container.num_entries = eventio_hist["entries"]
@@ -542,7 +535,7 @@ class DataWriter(Component):
             )
 
             container.bins_core_dist = xbins * u.m
-            container.bins_energy = 10 ** ybins * u.TeV
+            container.bins_energy = 10**ybins * u.TeV
             container.histogram = eventio_hist["data"]
             container.meta["hist_title"] = eventio_hist["title"]
             container.meta["x_label"] = "Log10 E (TeV)"
@@ -718,7 +711,7 @@ class DataWriter(Component):
                 )
 
     def _generate_table_indices(self, h5file, start_node):
-        """ helper to generate PyTables index tabnles for common columns """
+        """helper to generate PyTables index tabnles for common columns"""
         for node in h5file.iter_nodes(start_node):
             if not isinstance(node, tables.group.Group):
                 self.log.debug("generating indices for node: %s", node)
@@ -736,7 +729,7 @@ class DataWriter(Component):
                 self._generate_table_indices(h5file, node)
 
     def _generate_indices(self):
-        """ generate PyTables index tables for common columns """
+        """generate PyTables index tables for common columns"""
         self.log.debug("Writing index tables")
         if self.write_images:
             self._generate_table_indices(

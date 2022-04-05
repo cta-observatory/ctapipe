@@ -42,7 +42,7 @@ from ..instrument.guess import unknown_telescope, guess_telescope
 from .datalevels import DataLevel
 from .eventsource import EventSource
 
-X_MAX_UNIT = u.g / (u.cm ** 2)
+X_MAX_UNIT = u.g / (u.cm**2)
 
 
 __all__ = ["SimTelEventSource"]
@@ -85,7 +85,7 @@ def build_camera(cam_settings, pixel_settings, telescope, frame):
         pix_id=np.arange(cam_settings["n_pixels"]),
         pix_x=u.Quantity(cam_settings["pixel_x"], u.m),
         pix_y=u.Quantity(cam_settings["pixel_y"], u.m),
-        pix_area=u.Quantity(cam_settings["pixel_area"], u.m ** 2),
+        pix_area=u.Quantity(cam_settings["pixel_area"], u.m**2),
         pix_type=pix_type,
         pix_rotation=pix_rotation,
         cam_rotation=-Angle(cam_settings["cam_rot"], u.rad),
@@ -164,7 +164,7 @@ def apply_simtel_r1_calibration(
 
 
 class SimTelEventSource(EventSource):
-    """ Read events from a SimTelArray data file (in EventIO format)."""
+    """Read events from a SimTelArray data file (in EventIO format)."""
 
     skip_calibration_events = Bool(True, help="Skip calibration events").tag(
         config=True
@@ -307,7 +307,7 @@ class SimTelEventSource(EventSource):
 
             n_pixels = cam_settings["n_pixels"]
             focal_length = u.Quantity(cam_settings["focal_length"], u.m)
-            mirror_area = u.Quantity(cam_settings["mirror_area"], u.m ** 2)
+            mirror_area = u.Quantity(cam_settings["mirror_area"], u.m**2)
 
             if self.focal_length_choice == "effective":
                 try:
@@ -568,9 +568,19 @@ class SimTelEventSource(EventSource):
             data.pointing.array_dec = u.Quantity(dec, u.rad)
 
     def _parse_simulation_header(self):
+        """
+        Parse the simulation infos and return a dict with
+        observation ids mapped to SimulationConfigContainers.
+        As merged simtel files are not supported at this
+        point in time, this dictionary will always have
+        length 1.
+        """
+        assert len(self.obs_ids) == 1
+        obs_id = self.obs_ids[0]
+        # With only one run, we can take the first entry:
         mc_run_head = self.file_.mc_run_headers[-1]
 
-        return SimulationConfigContainer(
+        simulation_config = SimulationConfigContainer(
             corsika_version=mc_run_head["shower_prog_vers"],
             simtel_version=mc_run_head["detector_prog_vers"],
             energy_range_min=mc_run_head["E_range"][0] * u.TeV,
@@ -607,6 +617,7 @@ class SimTelEventSource(EventSource):
             corsika_low_E_detail=mc_run_head["corsika_low_E_detail"],
             corsika_high_E_detail=mc_run_head["corsika_high_E_detail"],
         )
+        return {obs_id: simulation_config}
 
     @staticmethod
     def _fill_simulated_event_information(data, array_event):
