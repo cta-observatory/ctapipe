@@ -1,7 +1,8 @@
 import numpy as np
 from numba import njit
 from ..core.component import TelescopeComponent
-from ..core.traits import FloatTelescopeParameter, BoolTelescopeParameter
+from ..core.traits import FloatTelescopeParameter, BoolTelescopeParameter, Int
+from ..instrument import SubarrayDescription
 
 
 def add_noise(image, noise_level, rng=None, correct_bias=True):
@@ -124,6 +125,31 @@ class ImageModifier(TelescopeComponent):
     correct_bias = BoolTelescopeParameter(
         default_value=True, help="If True subtract the expected noise from the image."
     ).tag(config=True)
+    rng_seed = Int(default_value=1337, help="Seed for the random number generator").tag(
+        config=True
+    )
+
+    def __init__(
+        self, subarray: SubarrayDescription, config=None, parent=None, **kwargs
+    ):
+        """
+        Parameters
+        ----------
+        subarray: SubarrayDescription
+            Description of the subarray. Provides information about the
+            camera which are useful in calibration. Also required for
+            configuring the TelescopeParameter traitlets.
+        config: traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            This is mutually exclusive with passing a ``parent``.
+        parent: ctapipe.core.Component or ctapipe.core.Tool
+            Parent of this component in the configuration hierarchy,
+            this is mutually exclusive with passing ``config``
+        """
+
+        super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
+        self.rng = np.random.default_rng(self.rng_seed)
 
     def __call__(self, tel_id, image, rng=None):
         geom = self.subarray.tel[tel_id].camera.geometry
@@ -133,6 +159,7 @@ class ImageModifier(TelescopeComponent):
             indices=geom.neighbor_matrix_sparse.indices,
             indptr=geom.neighbor_matrix_sparse.indptr,
             smear_probabilities=np.full(geom.max_neighbors, 1 / geom.max_neighbors),
+            seed=self.rng.integers(0, np.iinfo(np.int64).max),
         )
 
         noise = np.where(
@@ -141,7 +168,10 @@ class ImageModifier(TelescopeComponent):
             self.dim_pixel_noise.tel[tel_id],
         )
         image_with_noise = add_noise(
-            smeared_image, noise, rng=rng, correct_bias=self.correct_bias.tel[tel_id]
+            smeared_image,
+            noise,
+            rng=self.rng,
+            correct_bias=self.correct_bias.tel[tel_id],
         )
         bias = np.where(
             image > self.transition_charge.tel[tel_id],
