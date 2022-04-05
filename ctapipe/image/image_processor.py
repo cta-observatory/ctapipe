@@ -16,6 +16,7 @@ from ..core.traits import Bool, List, create_class_enum_trait
 from ..instrument import SubarrayDescription
 from . import (
     ImageCleaner,
+    ImageModifier,
     concentration_parameters,
     descriptive_statistics,
     hillas_parameters,
@@ -89,6 +90,8 @@ class ImageProcessor(TelescopeComponent):
         self.clean = ImageCleaner.from_name(
             self.image_cleaner_type, subarray=subarray, parent=self
         )
+        self.modify = ImageModifier(subarray=subarray, parent=self)
+
         self.check_image = ImageQualityQuery(parent=self)
         if self.use_telescope_frame:
             telescope_frame = TelescopeFrame()
@@ -194,6 +197,7 @@ class ImageProcessor(TelescopeComponent):
             else:
                 geometry = self.subarray.tel[tel_id].camera.geometry
             # compute image parameters only if requested to write them
+            dl1_camera.image = self.modify(tel_id=tel_id, image=dl1_camera.image)
             dl1_camera.image_mask = self.clean(
                 tel_id=tel_id,
                 image=dl1_camera.image,
