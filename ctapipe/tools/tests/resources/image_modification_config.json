@@ -40,22 +40,22 @@
             ]
         },
         "ImageModifier": {
-            "smear_factor": [
+            "psf_smear_factor": [
                 ["type", "*", 0.2]
             ],
-            "transition_charge": [
+            "noise_transition_charge": [
                 ["type", "*", 0.8]
             ],
-            "dim_pixel_bias": [
+            "noise_bias_dim_pixels": [
                 ["type", "*", 0.6]
             ],
-            "dim_pixel_noise": [
+            "noise_level_dim_pixels": [
                 ["type", "*", 1.5]
             ],
-            "bright_pixel_noise": [
+            "noise_level_bright_pixels": [
                 ["type", "*", 1.44]
             ],
-            "correct_bias": [
+            "noise_correct_bias": [
                 ["type", "*", true]
             ]
         }

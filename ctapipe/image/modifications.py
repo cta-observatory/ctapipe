@@ -107,22 +107,22 @@ class ImageModifier(TelescopeComponent):
     - Adding a bias to dim pixel charges (see above)
     """
 
-    smear_factor = FloatTelescopeParameter(
+    psf_smear_factor = FloatTelescopeParameter(
         default_value=0.0, help="Fraction of light to move to each neighbor"
     ).tag(config=True)
-    transition_charge = FloatTelescopeParameter(
+    noise_transition_charge = FloatTelescopeParameter(
         default_value=0.0, help="separation between dim and bright pixels"
     ).tag(config=True)
-    dim_pixel_bias = FloatTelescopeParameter(
+    noise_bias_dim_pixels = FloatTelescopeParameter(
         default_value=0.0, help="extra bias to add in dim pixels"
     ).tag(config=True)
-    dim_pixel_noise = FloatTelescopeParameter(
+    noise_level_dim_pixels = FloatTelescopeParameter(
         default_value=0.0, help="expected extra noise in dim pixels"
     ).tag(config=True)
-    bright_pixel_noise = FloatTelescopeParameter(
+    noise_level_bright_pixels = FloatTelescopeParameter(
         default_value=0.0, help="expected extra noise in bright pixels"
     ).tag(config=True)
-    correct_bias = BoolTelescopeParameter(
+    noise_correct_bias = BoolTelescopeParameter(
         default_value=True, help="If True subtract the expected noise from the image."
     ).tag(config=True)
     rng_seed = Int(default_value=1337, help="Seed for the random number generator").tag(
@@ -155,7 +155,7 @@ class ImageModifier(TelescopeComponent):
         geom = self.subarray.tel[tel_id].camera.geometry
         smeared_image = smear_psf_randomly(
             image=image,
-            fraction=self.smear_factor.tel[tel_id],
+            fraction=self.psf_smear_factor.tel[tel_id],
             indices=geom.neighbor_matrix_sparse.indices,
             indptr=geom.neighbor_matrix_sparse.indptr,
             smear_probabilities=np.full(geom.max_neighbors, 1 / geom.max_neighbors),
@@ -163,19 +163,19 @@ class ImageModifier(TelescopeComponent):
         )
 
         noise = np.where(
-            image > self.transition_charge.tel[tel_id],
-            self.bright_pixel_noise.tel[tel_id],
-            self.dim_pixel_noise.tel[tel_id],
+            image > self.noise_transition_charge.tel[tel_id],
+            self.noise_level_bright_pixels.tel[tel_id],
+            self.noise_level_dim_pixels.tel[tel_id],
         )
         image_with_noise = add_noise(
             smeared_image,
             noise,
             rng=self.rng,
-            correct_bias=self.correct_bias.tel[tel_id],
+            correct_bias=self.noise_correct_bias.tel[tel_id],
         )
         bias = np.where(
-            image > self.transition_charge.tel[tel_id],
+            image > self.noise_transition_charge.tel[tel_id],
             0,
-            self.dim_pixel_bias.tel[tel_id],
+            self.noise_bias_dim_pixels.tel[tel_id],
         )
         return (image_with_noise + bias).astype(np.float32)
