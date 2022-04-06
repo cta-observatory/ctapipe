@@ -1,56 +1,13 @@
 import numpy as np
 from scipy.spatial import cKDTree as KDTree
 from scipy.interpolate import interp1d
+from ..containers import EventType
+from functools import lru_cache
+from tqdm.auto import tqdm
 
 import astropy.units as u
 import warnings
 import json
-
-
-def arrays_to_lists(input_dict):
-    """
-    Transform a dict of arrays to a dict of lists and convert numpy integers to python integers
-
-    Parameters
-    ----------
-    input_dict
-
-    Returns
-    -------
-    Dict of same dimensions as the original (input_dict)
-    """
-    out = {}
-    for k, v in input_dict.items():
-        if isinstance(v, u.Quantity):
-            out[k] = {"value": v.value.tolist(), "unit": v.unit.to_string()}
-        elif isinstance(v, (np.ndarray, np.number)):
-            out[k] = v.tolist()
-        elif isinstance(v, dict):
-            out[k] = arrays_to_lists(v)
-        else:
-            out[k] = v
-    return out
-
-
-def get_n_order_neighbor_matrix(geometry, order):
-    """
-    Get a matrix of the first and second order neighbors for each pixel.
-
-    Parameters
-    ----------
-    geometry
-
-    Returns
-    -------
-    Boolean matrix of dimension (n_pix, n_pix) with the first and second
-    neighbors for all pixels.
-    """
-    neighbors = geometry.neighbor_matrix_sparse
-    for i in range(order - 1):
-        neighbors = neighbors.dot(geometry.neighbor_matrix_sparse)
-    neighbors = neighbors.toarray()
-    np.fill_diagonal(neighbors, 0)
-    return neighbors
 
 
 def dilate_matrix(mask, matrix):
@@ -58,8 +15,8 @@ def dilate_matrix(mask, matrix):
 
 
 def check_number_of_neighbors(mask, geo, min_neighbors=3, order=2, keep_neighbors=True):
-    neighbor_matrix = get_n_order_neighbor_matrix(geo, order)
-    n_neighbors = np.sum(mask * neighbor_matrix, axis=1) - 1
+    neighbor_matrix = geo.get_n_order_neighbor_matrix(order)
+    n_neighbors = np.count_nonzero(mask * neighbor_matrix, axis=1) - 1
 
     valid_pixels = n_neighbors >= min_neighbors
     if keep_neighbors:
@@ -84,70 +41,8 @@ class TimeNextNeighborCleaning:
     def __init__(self):
         self.IPR_dict = None
         self._multiplicity_dict = {"4nn": 4, "3nn": 3, "2+1": 3, "2nn": 2}
-        self.__geometry = None
-        self._camera_name = None
-        self._IPR = None
-        self.__neighbor_group = None
-        self._multiplicity = None
 
-    @property
-    def _geometry(self):
-        """
-        Get or set the current `_geometry. Setting it to the new value also
-        sets `_camera_name` and selects the corresponding `_IPR` from `IPR_dict`.
-        """
-        return self.__geometry
-
-    @_geometry.setter
-    def _geometry(self, geometry):
-        self.__geometry = geometry
-        self._camera_name = geometry.camera_name
-        try:
-            self._IPR = self.IPR_dict[geometry.camera_name]
-        except KeyError as e:
-            raise KeyError(
-                f"No IPR graph for {geometry.camera_name} in" f" self.IPR_dict."
-            ) from e
-
-    @property
-    def _neighbor_group(self):
-        """
-        Get or set the current _neighbor_group. Setting the _neighbor_group to
-        a new value also changes `_multiplicity' to the corresponding value.
-        """
-        return self.__neighbor_group
-
-    @_neighbor_group.setter
-    def _neighbor_group(self, nfold):
-        self.__neighbor_group = nfold
-        self._multiplicity = self._multiplicity_dict[nfold]
-
-    def load_individual_pixel_rates(self, file):
-        """
-        Load the IPR graphs from a json file. The dictionaries should contain
-        one dictionary for each camera_id with the pixel rates and charges.
-
-        Parameters
-        ----------
-        file: string
-            json file in which the IPR graphs is stored
-        """
-        with open(file, "r") as f:
-            self.IPR_dict = json.load(f)
-
-    def dump_individual_pixel_rates(self, file):
-        """
-        Dump the IPR graph to file using json.
-
-        Parameters
-        ----------
-        file: string
-
-        """
-        with open(file, "w") as f:
-            json.dump(arrays_to_lists(self.IPR_dict), f, sort_keys=True, indent=4)
-
-    def fill_individual_pixel_rate(self, geo, image, trace_length, charge_steps):
+    def fill_individual_pixel_rate(self, tel_id, image, trace_length, charge_steps):
         """
         Count the number of pixels in images about a given charge threshold
         and fill dictionary with individual pixel noise rate (IPR).
@@ -164,8 +59,8 @@ class TimeNextNeighborCleaning:
 
         self.IPR_dict = self.IPR_dict if self.IPR_dict else {}
 
-        if geo.camera_name not in self.IPR_dict:
-            self.IPR_dict[geo.camera_name] = {
+        if tel_id not in self.IPR_dict:
+            self.IPR_dict[tel_id] = {
                 "counter": 0,
                 "charge": charge_steps,
                 "npix": np.zeros(charge_steps.shape[0]),
@@ -174,19 +69,18 @@ class TimeNextNeighborCleaning:
             }
 
         # count number of pixels
-        self.IPR_dict[geo.camera_name]["counter"] += np.sum(image >= 0)
-        for thbin, charge in enumerate(self.IPR_dict[geo.camera_name]["charge"]):
-            self.IPR_dict[geo.camera_name]["npix"][thbin] += np.sum(image > charge)
+        charge_steps = np.append(charge_steps, np.inf)
+        self.IPR_dict[tel_id]["counter"] += np.sum(image >= 0)
+        self.IPR_dict[tel_id]["charge"] = charge_steps[:-1]
+        self.IPR_dict[tel_id]["npix"] += np.cumsum(
+            np.histogram(image, charge_steps)[0][::-1]
+        )[::-1]
 
         # convert count of number of pixels above threshold into rate
-        sample_to_hz = (
-            1 / (trace_length * self.IPR_dict[geo.camera_name]["counter"])
-        ).to("Hz")
-        self.IPR_dict[geo.camera_name]["rate"] = (
-            self.IPR_dict[geo.camera_name]["npix"] * sample_to_hz
-        )
-        self.IPR_dict[geo.camera_name]["rate_err"] = (
-            np.sqrt(self.IPR_dict[geo.camera_name]["npix"]) * sample_to_hz
+        sample_to_hz = (1 / (trace_length * self.IPR_dict[tel_id]["counter"])).to("Hz")
+        self.IPR_dict[tel_id]["rate"] = self.IPR_dict[tel_id]["npix"] * sample_to_hz
+        self.IPR_dict[tel_id]["rate_err"] = (
+            np.sqrt(self.IPR_dict[tel_id]["npix"]) * sample_to_hz
         )
 
     def calculate_ipr_from_source(self, source, calibrator, charge_steps):
@@ -204,7 +98,9 @@ class TimeNextNeighborCleaning:
             array storing the steps in charge used to create the IPR graph
 
         """
-        for event in source:
+        for event in tqdm(source):
+            if event.trigger.event_type != EventType.SKY_PEDESTAL:
+                continue
             calibrator(event)
             for tel_id, dl1 in event.dl1.tel.items():
                 geometry = source.subarray.tel[tel_id].camera.geometry
@@ -212,39 +108,13 @@ class TimeNextNeighborCleaning:
 
                 n_samples = event.r1.tel[tel_id].waveform.shape[-1]
                 sum_time = (
-                    n_samples / source.subarray.tel[1].camera.readout.sampling_rate
+                    n_samples / source.subarray.tel[tel_id].camera.readout.sampling_rate
                 )
 
-                self.fill_individual_pixel_rate(geometry, image, sum_time, charge_steps)
+                self.fill_individual_pixel_rate(tel_id, image, sum_time, charge_steps)
 
-    def scaled_combfactor_event_display(self):
-        """
-        Hardcoded values from EventDisplay scaled from 2400 pixels to the
-        number of pixels. Nobody really understands where these numbers come
-        from. Should use `combfactor_from_geometry` instead.
-
-        Returns
-        -------
-        comb_factor: ndarray
-            scales combinatorial factor
-        """
-        comb_factor = {
-            "4nn": 12e5,
-            "2+1": 95e4,
-            "3nn": 13e4,
-            "2nn": 6e3,
-            "bound": 2,
-        }  # for 2400 pixels
-
-        comb_factor.update(
-            (x, y * self._geometry.n_pixels / 2400) for (x, y) in comb_factor.items()
-        )
-
-        return comb_factor[self._neighbor_group]
-
-    def combfactor_from_geometry(
-        self, neighbor_group=None, camera_name=None, calculate=False
-    ):
+    @lru_cache()
+    def combfactor_from_geometry(self, geometry, nfold=None, calculate=False):
         """
         Get the combinatorial factors from the geometry of the camera by
         counting the number of possible combinations for a given group of
@@ -256,8 +126,9 @@ class TimeNextNeighborCleaning:
 
         Parameters
         ----------
-        camera_name: string, None
-        neighbor_group: string, None
+        geometry: array
+            Camera geometry information
+        nfold: string, None
         calculate: bool
             If true, the value will be calculated from the geometry of the
             camera. Otherwise the values from a pre filled lookup table are
@@ -271,44 +142,21 @@ class TimeNextNeighborCleaning:
         """
         # Allow to specify camera and neighbor group by hand. If not set, use
         # currently selected values.
-        camera_name = camera_name if camera_name else self._camera_name
-        neighbor_group = neighbor_group if neighbor_group else self._neighbor_group
 
-        if not calculate:
-            lookup = dict(
-                LSTCam={"4nn": 75302, "3nn": 19269, "2nn": 5394, "2+1": 71712},
-                ASTRICam={"4nn": 41953, "3nn": 13548, "2nn": 4624, "2+1": 70904},
-                DigiCam={"4nn": 51843, "3nn": 13327, "2nn": 3744, "2+1": 49320},
-                FlashCam={"4nn": 71559, "3nn": 18319, "2nn": 5124, "2+1": 68112},
-                NectarCam={"4nn": 75302, "3nn": 19269, "2nn": 5394, "2+1": 71712},
-                CHEC={"4nn": 36289, "3nn": 11720, "2nn": 4000, "2+1": 61432},
-            )
-            comb_factor = lookup[camera_name][neighbor_group]
-
-        else:
-            from ctapipe.instrument import CameraGeometry
-
-            geometry = CameraGeometry.from_name(camera_name)
-            comb_factor = len(
-                self.get_combinations(
-                    nfold=neighbor_group, mask=geometry, d2=2.4, d1=1.4
-                )
-            )
-            if neighbor_group == "2+1":
-                # current implementation returns 2+1 and 3nn combinations for
-                # 2+1 group search. Need to correct to get correct number.
-                comb_3nn = len(
-                    self.get_combinations(nfold="3nn", mask=geometry, d2=2.4, d1=1.4)
-                )
-                comb_factor -= comb_3nn
+        comb_factor = len(self.get_combinations(geometry, nfold, d2=2.4, d1=1.4))
+        if nfold == "2+1":
+            # current implementation returns 2+1 and 3nn combinations for
+            # 2+1 group search. Need to correct to get correct number.
+            comb_3nn = len(self.get_combinations(geometry, nfold="3nn", d2=2.4, d1=1.4))
+            comb_factor -= comb_3nn
 
         return comb_factor
 
-    def get_time_coincidence(self, charge, accidental_rate, neighbor_group=None):
+    def get_time_coincidence(self, geometry, charge, tel_id, nfold, accidental_rate):
         """
         Get the time coincidence for a given charge (equation 2 of
         https://arxiv.org/pdf/1307.4939.pdf). The cut on the time coincidence
-        depends on the charge, the multiplicity, combinatorial factor and the
+        depends on the charge, the _multiplicity, combinatorial factor and the
         accepted accidental rate.
 
         Parameters
@@ -316,7 +164,7 @@ class TimeNextNeighborCleaning:
         charge: numpy.ndarray
         accidental_rate: astropy.Quantity
             Allowed accidental rate for thi
-        neighbor_group: string
+        nfold: string
             name of neighbor group. Select from 4nn, 3nn, 2+1 and 2nn
 
         Returns
@@ -325,37 +173,27 @@ class TimeNextNeighborCleaning:
             array of same shape of `charge` filled with the corresponding cut
             in time
         """
-        if neighbor_group is not None:
-            self._neighbor_group = neighbor_group
-
         ipr_graph = interp1d(
-            self._IPR["charge"], self._IPR["rate"], "linear", fill_value="extrapolate"
+            self.IPR_dict[tel_id]["charge"],
+            self.IPR_dict[tel_id]["rate"],
+            "linear",
+            fill_value="extrapolate",
         )
 
-        try:
-            value_ipr = ipr_graph(charge)
-        except ValueError as e:
-            warnings.warn(
-                f"Interpolation raised exception: '{e}' Will try "
-                f"solution for charges above of IPR graph."
-            )
-            # too large charge replaced by minimum rate
-            mask = charge > max(ipr_graph.x)
-            value_ipr = np.zeros_like(charge)
-            value_ipr[~mask] = ipr_graph(charge[~mask])
-            value_ipr[mask] = min(ipr_graph.y)
-
-        nfold = self._multiplicity
-        cfactor = self.combfactor_from_geometry(neighbor_group=None)
-
+        value_ipr = ipr_graph(charge)
+        cfactor = self.combfactor_from_geometry(geometry, nfold)
         time_coincidence = np.exp(
-            (1 / (nfold - 1))
-            * np.log(accidental_rate.to("Hz").value / (cfactor * value_ipr ** nfold))
+            (1 / (self._multiplicity_dict[nfold] - 1))
+            * np.log(
+                accidental_rate.to("Hz").value
+                / (cfactor * value_ipr ** self._multiplicity_dict[nfold])
+            )
         )
-
         return u.Quantity(time_coincidence * 1e9, "ns")
 
-    def cut_time_charge(self, charge, time_difference, accidental_rate, neighbor_group):
+    def cut_time_charge(
+        self, geometry, charge, tel_id, time_difference, accidental_rate, nfold
+    ):
         """
         Apply cut in time difference and charge parameter space.
 
@@ -364,7 +202,7 @@ class TimeNextNeighborCleaning:
         charge: ndarry
         time_difference: astropy.units.Quantity
         accidental_rate:
-        neighbor_group: string
+        nfold: string
 
         Returns
         -------
@@ -374,38 +212,15 @@ class TimeNextNeighborCleaning:
         """
 
         time_coincidence = self.get_time_coincidence(
-            charge, accidental_rate, neighbor_group
+            geometry, charge, tel_id, nfold, accidental_rate
         )
+        self.IPR_dict[tel_id]["dt"] = time_coincidence
         valid_pixels = time_difference < time_coincidence
 
         return valid_pixels
 
-    def pre_threshold_event_display(self):
-        """
-        The pre threshold that where hardcoded in EventDisplay. Not sure how
-        they where selected.
-
-        Returns
-        -------
-        pre_threshold : float
-            Charge of pixels with rate below threshold
-
-        """
-        thresh_freqency = {
-            "4nn": u.Quantity(8.5e6, "Hz"),
-            "2+1": u.Quantity(2.4e6, "Hz"),
-            "3nn": u.Quantity(4.2e6, "Hz"),
-            "2nn": u.Quantity(1.5e5, "Hz"),
-        }
-
-        bins_above_thresh = np.sum(
-            self._IPR["rate"] >= thresh_freqency[self._neighbor_group]
-        )
-
-        return self._IPR["charge"][bins_above_thresh - 1]
-
     def pre_threshold_from_sample_time(
-        self, accidental_rate, sample_time, neighbor_group=None, factor=0.2
+        self, geometry, tel_id, nfold, accidental_rate, sample_time, factor=0.2
     ):
         """
         Get the pre threshold from the sampling time. The charge of all pixels
@@ -417,7 +232,7 @@ class TimeNextNeighborCleaning:
         accidental_rate: float
         sample_time: astropy.units.Quantity
             Sampling time of the camera
-        neighbor_group: string, None
+        nfold: string, None
             Group of pixels to consider
         factor: float
 
@@ -429,12 +244,12 @@ class TimeNextNeighborCleaning:
         """
         charges = np.linspace(0, 20, 1000)
         dt = self.get_time_coincidence(
-            charges, accidental_rate, neighbor_group=neighbor_group
+            geometry, charges, tel_id, nfold, accidental_rate
         )
 
         return np.min(charges[dt > factor * sample_time])
 
-    def get_kdtree(self, mask=None):
+    def get_kdtree(self, geometry, mask=None):
         """
         Initialize a KDtree for this camera considering only pixels that are
         not masked.
@@ -451,9 +266,9 @@ class TimeNextNeighborCleaning:
             points used in the tree
         """
         if mask is None:
-            mask = np.ones_like(self._geometry.pix_id, bool)
+            mask = np.ones_like(geometry.pix_id, bool)
 
-        points = np.array([self._geometry.pix_x[mask], self._geometry.pix_y[mask]]).T
+        points = np.array([geometry.pix_x[mask], geometry.pix_y[mask]]).T
         kdtree = KDTree(points)
 
         return kdtree, points
@@ -530,7 +345,7 @@ class TimeNextNeighborCleaning:
 
         return result
 
-    def get_combinations(self, nfold, mask=None, d2=2.4, d1=1.4):
+    def get_combinations(self, geometry, nfold, mask=None, d2=2.4, d1=1.4):
         """
         Get a list a all possible combinations of pixels for a given geometry.
         The implementation is based on constructing a KDtree for the pixels not
@@ -561,18 +376,17 @@ class TimeNextNeighborCleaning:
         """
 
         if mask is None:
-            mask = np.ones(self._geometry.n_pixels, bool)
+            mask = np.ones(geometry.n_pixels, bool)
 
         # construct an kdtree that with only the points that are not masked.
         # TODO: Check the updates on the calculation of neighbors in ctapipe.
-        kdtree, points = self.get_kdtree(mask)
-        dist = self._geometry.guess_pixel_width(
-            self._geometry.pix_x, self._geometry.pix_y
-        )
+        kdtree, points = self.get_kdtree(geometry, mask)
+        dist = geometry.guess_pixel_width(geometry.pix_x, geometry.pix_y)
 
         # kdtree implementation to get the possible combinations of pairs
         # within a given distance.
         combs = kdtree.query_pairs(r=d1 * dist.value)
+
         if nfold == "2nn":
             combs = list(combs)
         elif nfold == "2+1":
@@ -593,9 +407,9 @@ class TimeNextNeighborCleaning:
                 combs = self.add_neighbors_to_combinations(combs, neighbors)
         else:
             NotImplementedError(f"Search for {nfold}-group not implemented.")
-
         if len(combs) > 0:
-            combs = np.array([self._geometry.pix_id[mask]])[0, combs]
+            combs = np.array([geometry.pix_id[mask]])[0, combs]
+
         else:
             combs = np.array([])
 
@@ -624,13 +438,14 @@ class TimeNextNeighborCleaning:
 
     def clean(
         self,
+        tel_id,
         geometry,
         image,
         arrival_times,
         sample_time,
         sum_time,
         fake_prob=0.001,
-        factor=1,
+        factor=0.2,
     ):
         """
         Main function of time next neighbor cleaning developed by M. Shayduk.
@@ -662,25 +477,22 @@ class TimeNextNeighborCleaning:
         survived_pixels: numpy.ndarray
             mask with pixels that survived the image cleaning
         """
-        self._geometry = geometry
-
         survived_pixels = np.zeros(geometry.n_pixels, bool)
         # for nfold in ["4nn", "3nn", "2+1", "2nn"]:
         for nfold in ["2nn", "3nn", "4nn", "2+1"]:
-            self._neighbor_group = nfold
 
             # determine the accidental rate from fake proability
-            rate_acc = fake_prob / (sum_time * self._multiplicity)
+            rate_acc = fake_prob / (sum_time * self._multiplicity_dict[nfold])
             pre_threshold = self.pre_threshold_from_sample_time(
-                rate_acc, sample_time, factor=factor
+                geometry, tel_id, nfold, rate_acc, sample_time, factor
             )
             candidates = image > pre_threshold
-            if sum(candidates) == 0:
+            if not candidates.any():
                 continue
 
             # Calculate the possible combinations form the candidates that
             # passed the pre-threshold.
-            combinations = self.get_combinations(nfold, candidates)
+            combinations = self.get_combinations(geometry, nfold, candidates)
             if len(combinations) < 1:
                 continue
             # It can be that all pixels of a found combination already passed
@@ -708,42 +520,52 @@ class TimeNextNeighborCleaning:
             # which group of pixels are valid. The pixels can appear in
             # multiple groups.
             valid_groups = self.cut_time_charge(
-                min_charge, time_diff, rate_acc.to("Hz"), nfold
+                geometry, min_charge, tel_id, time_diff, rate_acc.to("Hz"), nfold
             )
             valid_pixels = np.unique(combinations[valid_groups])
 
             survived_pixels[valid_pixels] = True
 
-        survived_pixels = check_number_of_neighbors(
-            survived_pixels, self._geometry, 4, 2
-        )
+        survived_pixels = check_number_of_neighbors(survived_pixels, geometry, 4, 2)
         bound = self.boundary_search(
+            tel_id,
+            geometry,
             survived_pixels,
             image,
             arrival_times,
             sample_time,
             sum_time,
+            nfold,
             fake_prob=0.001,
         )
 
         return survived_pixels, bound
 
     def boundary_search(
-        self, mask, image, arrival_times, sample_time, sum_time, fake_prob=0.001
+        self,
+        tel_id,
+        geometry,
+        mask,
+        image,
+        arrival_times,
+        sample_time,
+        sum_time,
+        nfold,
+        fake_prob=0.001,
     ):
 
-        bound = np.zeros(self._geometry.n_pixels, bool)
-        if any(mask):
-            second_matrix = get_n_order_neighbor_matrix(self._geometry, 2)
+        bound = np.zeros(geometry.n_pixels, bool)
+        if mask.any():
+            second_matrix = geometry.get_n_order_neighbor_matrix(2)
             candidates = dilate_matrix(mask, second_matrix)
             candidates[image <= 0] = 0
 
             # Calculate the possible combinations form the candidates that
-            # passed the pre-threshold.
+            # passed the pre-threshold
             for nfold in ["2nn", "3nn", "4nn", "2+1"]:
-                rate_acc = fake_prob * 50 / (sum_time * self._multiplicity)
+                rate_acc = fake_prob / (sum_time * self._multiplicity_dict[nfold])
 
-                combinations = self.get_combinations(nfold, candidates)
+                combinations = self.get_combinations(geometry, nfold, candidates)
                 if len(combinations) < 1:
                     continue
                 # checked_combinations = self.check_combinations(combinations, mask)
@@ -757,7 +579,7 @@ class TimeNextNeighborCleaning:
                 time_diff = time_diff * u.ns
                 min_charge = np.min(combination_image, axis=1)
                 valid_groups = self.cut_time_charge(
-                    min_charge, time_diff, rate_acc.to("Hz"), nfold
+                    geometry, min_charge, tel_id, time_diff, rate_acc.to("Hz"), nfold
                 )
 
                 valid_pixels = np.unique(combinations[valid_groups])
