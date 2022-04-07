@@ -16,11 +16,14 @@ def _add_noise(image, noise_level, rng=None, correct_bias=True):
     """
     if not rng:
         rng = np.random.default_rng()
+
     noisy_image = image.copy()
-    noise = rng.poisson(noise_level)
+    noise = rng.poisson(noise_level, size=image.shape)
     noisy_image += noise
+
     if correct_bias:
         noisy_image -= noise_level
+
     return noisy_image
 
 
