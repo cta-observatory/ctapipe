@@ -5,7 +5,12 @@ from ..core.traits import FloatTelescopeParameter, BoolTelescopeParameter, Int
 from ..instrument import SubarrayDescription
 
 
-def add_noise(image, noise_level, rng=None, correct_bias=True):
+__all__ = [
+    "ImageModifier",
+]
+
+
+def _add_noise(image, noise_level, rng=None, correct_bias=True):
     """
     Create a new image with added poissonian noise
     """
@@ -20,7 +25,7 @@ def add_noise(image, noise_level, rng=None, correct_bias=True):
 
 
 @njit(cache=True)
-def smear_psf_randomly(
+def _smear_psf_randomly(
     image, fraction, indices, indptr, smear_probabilities, seed=None
 ):
     """
@@ -153,7 +158,7 @@ class ImageModifier(TelescopeComponent):
 
     def __call__(self, tel_id, image, rng=None):
         geom = self.subarray.tel[tel_id].camera.geometry
-        smeared_image = smear_psf_randomly(
+        smeared_image = _smear_psf_randomly(
             image=image,
             fraction=self.psf_smear_factor.tel[tel_id],
             indices=geom.neighbor_matrix_sparse.indices,
@@ -167,7 +172,7 @@ class ImageModifier(TelescopeComponent):
             self.noise_level_bright_pixels.tel[tel_id],
             self.noise_level_dim_pixels.tel[tel_id],
         )
-        image_with_noise = add_noise(
+        image_with_noise = _add_noise(
             smeared_image,
             noise,
             rng=self.rng,

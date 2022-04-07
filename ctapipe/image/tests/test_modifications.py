@@ -12,18 +12,18 @@ def test_add_noise():
     rng = np.random.default_rng(42)
     # test different noise per pixel:
     noise = [6, 8, 0, 7, 9, 12]
-    noisy = modifications.add_noise(image, noise, rng, correct_bias=False)
+    noisy = modifications._add_noise(image, noise, rng, correct_bias=False)
     assert image[2] == noisy[2]
     # For other seeds there exists a probability > 0 for no noise added at all
     assert noisy.sum() > image.sum()
 
     # test scalar
-    noisy = modifications.add_noise(image, 20, rng, correct_bias=False)
+    noisy = modifications._add_noise(image, 20, rng, correct_bias=False)
     diff_no_bias = noisy - image
     assert (noisy > image).all()
 
     # test bias
-    noisy = modifications.add_noise(image, 20, rng, correct_bias=True)
+    noisy = modifications._add_noise(image, 20, rng, correct_bias=True)
     assert np.sum(diff_no_bias) > np.sum(noisy - image)
 
 
@@ -52,7 +52,7 @@ def test_smear_image():
         for fraction in [0, 0.2, 1]:
             # random smearing
             # The seed is important here (See below)
-            smeared = modifications.smear_psf_randomly(
+            smeared = modifications._smear_psf_randomly(
                 image,
                 fraction=fraction,
                 indices=geom.neighbor_matrix_sparse.indices,
