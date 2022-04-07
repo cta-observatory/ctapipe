@@ -1,0 +1,72 @@
+{
+    "DataWriter": {
+        "Contact": {
+            "name": "YOUR NAME HERE",
+            "email": "youremail@example.org",
+            "organization": "CTA Consortium"
+        },
+        "overwrite": false,
+        "write_images": true,
+        "write_parameters": true,
+        "write_stereo_shower": false,
+        "write_mono_shower": false,
+        "transform_image": true,
+        "transform_peak_time": true
+    },
+    "CameraCalibrator": {
+        "image_extractor_type": "NeighborPeakWindowSum"
+    },
+    "ImageProcessor": {
+        "image_cleaner_type": "TailcutsImageCleaner",
+        "TailcutsImageCleaner": {
+            "picture_threshold_pe": [
+                ["type", "*", 10.0],
+                ["type", "LST_LST_LSTCam", 5.0],
+                ["type", "MST_MST_NectarCam", 5.0],
+                ["type", "SST_ASTRI_CHEC", 3.0]
+            ],
+            "boundary_threshold_pe": [
+                ["type", "*", 5.0],
+                ["type", "LST_LST_LSTCam", 2.5],
+                ["type", "MST_MST_NectarCam", 2.5],
+                ["type", "SST_ASTRI_CHEC", 1.5]
+            ],
+            "min_picture_neighbors": [["type", "*", 2]]
+        },
+        "ImageQualityQuery": {
+            "quality_criteria": [
+                ["enough_pixels", "lambda im: np.count_nonzero(im) > 2"],
+                ["enough_charge", "lambda im: im.sum() > 50"]
+            ]
+        },
+        "ImageModifier": {
+            "psf_smear_factor": [
+                ["type", "*", 0.2]
+            ],
+            "noise_transition_charge": [
+                ["type", "*", 0.8]
+            ],
+            "noise_bias_dim_pixels": [
+                ["type", "*", 0.6]
+            ],
+            "noise_level_dim_pixels": [
+                ["type", "*", 1.5]
+            ],
+            "noise_level_bright_pixels": [
+                ["type", "*", 1.44]
+            ],
+            "noise_correct_bias": [
+                ["type", "*", true]
+            ]
+        }
+    },
+    "ShowerProcessor": {
+        "ShowerQualityQuery": {
+            "quality_criteria": [
+                ["enough intensity", "lambda p: p.hillas.intensity > 50"],
+                ["Positive width", "lambda p: p.hillas.width.value > 0"],
+                ["enough pixels", "lambda p: p.morphology.num_pixels > 3"]
+            ]
+        }
+    }
+}

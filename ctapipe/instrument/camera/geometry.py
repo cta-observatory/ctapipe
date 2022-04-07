@@ -408,16 +408,16 @@ class CameraGeometry:
         return ~np.any(~np.isclose(self.pix_area.value, self.pix_area[0].value), axis=0)
 
     def image_index_to_cartesian_index(self, pixel_index):
-        '''
+        """
         Convert pixel index in the 1d image representation to row and col
-        '''
+        """
         rows, cols = self._pixel_positions_2d
         return rows[pixel_index], cols[pixel_index]
 
     def cartesian_index_to_image_index(self, row, col):
-        '''
+        """
         Convert cartesian index (row, col) to pixel index in 1d representation.
-        '''
+        """
         return self._pixel_indices_cartesian[row, col]
 
     @lazyproperty
@@ -664,6 +664,10 @@ class CameraGeometry:
     @lazyproperty
     def neighbor_matrix(self):
         return self.neighbor_matrix_sparse.A
+
+    @lazyproperty
+    def max_neighbors(self):
+        return self.neighbor_matrix_sparse.sum(axis=1).max()
 
     @lazyproperty
     def neighbor_matrix_sparse(self):

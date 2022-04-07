@@ -35,7 +35,8 @@ PYTABLES_TYPE_MAP = {
     "uint16": tables.UInt16Col,
     "uint32": tables.UInt32Col,
     "uint64": tables.UInt64Col,
-    "bool": tables.BoolCol,
+    "bool": tables.BoolCol,     # python bool
+    "bool_": tables.BoolCol,    # np.bool_
 }
 
 
@@ -256,9 +257,10 @@ class HDF5TableWriter(TableWriter):
                     pos += 1
                 except ValueError:
                     self.log.warning(
-                        f"Column {col_name} of "
-                        f"container {container.__class__.__name__} in "
-                        f"table {table_name} not writable, skipping"
+                        f"Column {col_name}"
+                        f" with value {value!r} of type {type(value)} "
+                        f" of container {container.__class__.__name__} in"
+                        f" table {table_name} not writable, skipping"
                     )
         self._schemas[table_name] = Schema
         meta["CTAPIPE_VERSION"] = ctapipe.__version__

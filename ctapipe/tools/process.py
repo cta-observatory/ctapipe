@@ -8,7 +8,7 @@ from tqdm.auto import tqdm
 from ..calib import CameraCalibrator, GainSelector
 from ..core import QualityQuery, Tool
 from ..core.traits import Bool, classes_with_traits, flag
-from ..image import ImageCleaner, ImageProcessor
+from ..image import ImageCleaner, ImageProcessor, ImageModifier
 from ..image.extractor import ImageExtractor
 from ..io import DataLevel, DataWriter, EventSource, SimTelEventSource, write_table
 from ..io.datawriter import DATA_MODEL_VERSION
@@ -140,6 +140,7 @@ class ProcessorTool(Tool):
         + classes_with_traits(ImageExtractor)
         + classes_with_traits(GainSelector)
         + classes_with_traits(QualityQuery)
+        + classes_with_traits(ImageModifier)
         + classes_with_traits(EventTypeFilter)
     )
 
