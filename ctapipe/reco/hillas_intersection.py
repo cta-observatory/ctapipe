@@ -101,7 +101,7 @@ class HillasIntersection(Reconstructor):
 
         Returns
         -------
-        ReconstructedShowerContainer:
+        ReconstructedGeometryContainer:
 
         """
 
@@ -212,7 +212,10 @@ class HillasIntersection(Reconstructor):
             az=sky_pos.altaz.az.to(u.rad),
             core_x=grd.x,
             core_y=grd.y,
-            core_uncert=u.Quantity(np.sqrt(core_err_x ** 2 + core_err_y ** 2), u.m),
+            core_tilted_x = core_x,
+            core_tilted_y = core_y,
+            core_tilted_uncert_x=u.Quantity(core_err_x, u.m),
+            core_tilted_uncert_y=u.Quantity(core_err_y, u.m),
             tel_ids=[h for h in hillas_dict_mod.keys()],
             average_intensity=np.mean([h.intensity for h in hillas_dict_mod.values()]),
             is_valid=True,
