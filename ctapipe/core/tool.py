@@ -204,7 +204,7 @@ class Tool(Application):
         self.update_logging_config()
 
     def initialize(self, argv=None):
-        """ handle config and any other low-level setup """
+        """handle config and any other low-level setup"""
         self.parse_command_line(argv)
         self.update_logging_config()
 
@@ -216,7 +216,7 @@ class Tool(Application):
             except Exception as err:
                 raise ToolConfigurationError(
                     f"Couldn't read config file: {err} ({type(err)})"
-                )
+                ) from err
 
         # ensure command-line takes precedence over config file options:
         self.update_config(self.cli_config)
@@ -224,7 +224,16 @@ class Tool(Application):
 
         self.log.info(f"ctapipe version {self.version_string}")
 
-    def load_config_file(self, path: Union[str, pathlib.Path]):
+    def load_config_file(self, path: Union[str, pathlib.Path]) -> None:
+        """
+        Load a configuration file in one of the supported formats, and merge it with
+        the current config if it exists.
+
+        Parameters
+        ----------
+        path: Union[str, pathlib.Path]
+            config file to load. [yaml, toml, json, py] formats are supported
+        """
 
         path = pathlib.Path(path)
 
@@ -372,7 +381,7 @@ class Tool(Application):
 
     @property
     def version_string(self):
-        """ a formatted version string with version, release, and git hash"""
+        """a formatted version string with version, release, and git hash"""
         return f"{version}"
 
     def get_current_config(self):
@@ -392,7 +401,7 @@ class Tool(Application):
         return conf
 
     def _repr_html_(self):
-        """ nice HTML rep, with blue for non-default values"""
+        """nice HTML rep, with blue for non-default values"""
         traits = self.traits()
         name = self.__class__.__name__
         lines = [
