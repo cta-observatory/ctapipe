@@ -1,5 +1,6 @@
 # ==========================================================================
 # ctapipe-process configuration file.
+# version: VERSION
 #
 # This configuration contains a subset of options needed for a basic analysis.
 # Not all possible options are shown. To get a complete list, run:
