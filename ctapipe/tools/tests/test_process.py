@@ -33,7 +33,8 @@ def resource_file(filename):
         ("stage1_config.json",),
     ],
 )
-def test_read_yaml_toml_config(dl1_image_file, config_files):
+def test_read_yaml_toml_json_config(dl1_image_file, config_files):
+    """check that we can read multiple formats of config file"""
     tool = ProcessorTool()
 
     for config_base in config_files:
@@ -50,6 +51,7 @@ def test_read_yaml_toml_config(dl1_image_file, config_files):
 
 
 def test_multiple_configs(dl1_image_file):
+    """ensure a config file loaded later overwrites keys from an earlier one"""
     tool = ProcessorTool()
 
     tool.load_config_file(resource_file("base_config.yaml"))
