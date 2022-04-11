@@ -32,8 +32,8 @@ CameraCalibrator:
   #'LocalPeakWindowSum', 'SlidingWindowMaxSum', 'NeighborPeakWindowSum',
   #'TwoPassWindowSum', 'BaselineSubtractedNeighborPeakWindowSum'
   #
-  #Note this is a telescope-wise parameter, so can be specified per telescope if
-  #necessary (see below for an example)
+  # Note this is a telescope-wise parameter, so can be specified per telescope
+  # if necessary (see below for an example)
   image_extractor_type: NeighborPeakWindowSum
 
 # The ImageProcessor performs the DL1a-> DL1b (image parameters) transition. It
