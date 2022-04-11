@@ -14,7 +14,6 @@ try:
     HAS_YAML = True
 except ImportError:
     HAS_YAML = False
-    pass  # no support for YAML
 
 try:
     import tomli as toml
@@ -134,7 +133,7 @@ class Tool(Application):
 
     """
 
-    config_file = List(
+    config_files = List(
         trait=Path(
             exists=True,
             directory_ok=False,
@@ -178,7 +177,7 @@ class Tool(Application):
         # make sure there are some default aliases in all Tools:
         super().__init__(**kwargs)
         aliases = {
-            ("c", "config"): "Tool.config_file",
+            ("c", "config"): "Tool.config_files",
             "log-level": "Tool.log_level",
             ("l", "log-file"): "Tool.log_file",
             "log-file-level": "Tool.log_file_level",
@@ -208,10 +207,10 @@ class Tool(Application):
         self.parse_command_line(argv)
         self.update_logging_config()
 
-        if self.config_file is not None:
-            self.log.info(f"Loading config from '{self.config_file}'")
+        if self.config_files is not None:
+            self.log.info(f"Loading config from '%s'", self.config_files)
             try:
-                for config_file in self.config_file:
+                for config_file in self.config_files:
                     self.load_config_file(config_file)
             except Exception as err:
                 raise ToolConfigurationError(
