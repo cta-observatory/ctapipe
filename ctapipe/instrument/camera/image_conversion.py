@@ -272,8 +272,8 @@ def get_orthogonal_grid_edges(pix_x, pix_y, scale_aspect=True):
 
     # finding the size of the square patches
 
-    d_x = 99
-    d_y = 99
+    d_x = np.inf
+    d_y = np.inf
     x_base = pix_x[0]
     y_base = pix_y[0]
     for x, y in zip(pix_x, pix_y):

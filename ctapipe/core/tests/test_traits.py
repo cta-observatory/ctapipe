@@ -41,7 +41,7 @@ def mock_subarray():
 
 def test_path_allow_none_false():
     class C(Component):
-        path = Path(allow_none=False)
+        path = Path(default_value=None, allow_none=False)
 
     c = C()
 

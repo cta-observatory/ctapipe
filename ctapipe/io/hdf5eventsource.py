@@ -49,6 +49,7 @@ COMPATIBLE_DL1_VERSIONS = [
     "v2.0.0",
     "v2.1.0",
     "v2.2.0",
+    "v3.0.0"
 ]
 
 
@@ -208,11 +209,9 @@ class HDF5EventSource(EventSource):
     @property
     def simulation_config(self):
         """
-        Returns the simulation config.
-        In case of a merged file, this will be a list of simulation configs.
+        Returns the simulation config(s) as
+        a dict mapping obs_id to the respective config.
         """
-        if len(self._simulation_configs) == 1:
-            return next(iter(self._simulation_configs.values()))
         return self._simulation_configs
 
     def _generator(self):
@@ -366,8 +365,10 @@ class HDF5EventSource(EventSource):
             data.count = counter
             data.trigger = trigger
             data.index = index
-            data.trigger.tels_with_trigger = self._full_subarray_info.tel_mask_to_tel_ids(
-                data.trigger.tels_with_trigger
+            data.trigger.tels_with_trigger = (
+                self._full_subarray_info.tel_mask_to_tel_ids(
+                    data.trigger.tels_with_trigger
+                )
             )
             if self.allowed_tels:
                 data.trigger.tels_with_trigger = np.intersect1d(

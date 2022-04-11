@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 import tables
 from ctapipe.core import run_tool
-from ctapipe.io import DataLevel, EventSource
+from ctapipe.io import DataLevel, EventSource, read_table
 from ctapipe.tools.process import ProcessorTool
 from ctapipe.tools.quickstart import CONFIGS_TO_WRITE, QuickStartTool
 from ctapipe.utils import get_dataset_path
@@ -271,6 +271,37 @@ def test_training_from_simtel(tmp_path):
     with tables.open_file(output, mode="r") as testfile:
         assert testfile.root.dl1.event.telescope.parameters.tel_002
         assert testfile.root.dl2.event.subarray.geometry.HillasReconstructor
+
+
+def test_image_modifications(tmp_path, dl1_image_file):
+    """
+    Test that running ctapipe-process with an ImageModifier set
+    produces a file with different images.
+    """
+
+    unmodified_images = read_table(
+        dl1_image_file, "/dl1/event/telescope/images/tel_025"
+    )
+    noise_config = resource_file("image_modification_config.json")
+
+    dl1_modified = tmp_path / "dl1_modified.dl1.h5"
+    assert (
+        run_tool(
+            ProcessorTool(),
+            argv=[
+                f"--config={noise_config}",
+                f"--input={dl1_image_file}",
+                f"--output={dl1_modified}",
+                "--write-parameters",
+                "--overwrite",
+            ],
+            cwd=tmp_path,
+        )
+        == 0
+    )
+    modified_images = read_table(dl1_modified, "/dl1/event/telescope/images/tel_025")
+    # Test that significantly more light is recorded (bias in dim pixels)
+    assert modified_images["image"].sum() / unmodified_images["image"].sum() > 1.5
 
 
 @pytest.mark.parametrize("filename", CONFIGS_TO_WRITE)

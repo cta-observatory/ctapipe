@@ -5,6 +5,7 @@ Factory for the estimation of the flat field coefficients
 from abc import abstractmethod
 import numpy as np
 from astropy import units as u
+from ctapipe.containers import DL1CameraContainer
 from ctapipe.core import Component
 
 
@@ -195,29 +196,27 @@ class PedestalIntegrator(PedestalCalculator):
         self.charges = None  # charge per event in sample
         self.sample_masked_pixels = None  # pixels tp be masked per event in sample
 
-    def _extract_charge(self, event):
+    def _extract_charge(self, event) -> DL1CameraContainer:
         """
         Extract the charge and the time from a pedestal event
 
         Parameters
         ----------
+        event: ArrayEventContainer
+            general event container
 
-        event : general event container
-
+        Returns
+        -------
+        DL1CameraContainer
         """
-
         waveforms = event.r1.tel[self.tel_id].waveform
         selected_gain_channel = event.r1.tel[self.tel_id].selected_gain_channel
 
         # Extract charge and time
-        charge = 0
-        peak_pos = 0
         if self.extractor:
-            charge, peak_pos = self.extractor(
-                waveforms, self.tel_id, selected_gain_channel
-            )
-
-        return charge, peak_pos
+            return self.extractor(waveforms, self.tel_id, selected_gain_channel)
+        else:
+            return DL1CameraContainer(image=0, peak_pos=0, is_valid=False)
 
     def calculate_pedestals(self, event):
         """
@@ -251,9 +250,12 @@ class PedestalIntegrator(PedestalCalculator):
 
         # extract the charge of the event and
         # the peak position (assumed as time for the moment)
-        charge = self._extract_charge(event)[0]
+        dl1: DL1CameraContainer = self._extract_charge(event)
 
-        self.collect_sample(charge, pixel_mask)
+        if not dl1.is_valid:
+            return False
+
+        self.collect_sample(dl1.image, pixel_mask)
 
         sample_age = trigger_time - self.time_start
 
