@@ -49,6 +49,23 @@ def test_read_yaml_toml_config(dl1_image_file, config_files):
     )
 
 
+def test_multiple_configs(dl1_image_file):
+    tool = ProcessorTool()
+
+    tool.load_config_file(resource_file("base_config.yaml"))
+    tool.load_config_file(resource_file("stage2_config.yaml"))
+
+    tool.config.EventSource.input_url = dl1_image_file
+    tool.config.DataWriter.overwrite = True
+    tool.setup()
+
+    # ensure the overwriting works (base config has this option disabled)
+    assert (
+        tool.get_current_config()["ProcessorTool"]["DataWriter"]["write_stereo_shower"]
+        == True
+    )
+
+
 def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
     """check simtel to DL1 conversion"""
     config = resource_file("stage1_config.json")
