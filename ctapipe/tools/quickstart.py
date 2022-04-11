@@ -28,7 +28,10 @@ ctapipe working directory
 This working directory contains some example configuration files that are useful
 for processing data with `ctapipe-process`. These include:
 
-- base_config.yaml: stanard configuration options, to be included always
+- base_config.yaml: standard configuration options, to be included always
+
+In addition several sub-configurations to be included after base_config.yaml
+
 - stage1_config.yaml: generate DL1 data from lower data levels
 - stage2_config.yaml: generate DL2 shower geometry from DL1 or lower levels
 - training_config.yaml: generate both DL1 parameter and DL2 shower geometry
