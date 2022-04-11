@@ -25,10 +25,18 @@ def resource_file(filename):
     return files("ctapipe.tools.tests").joinpath("resources", filename)
 
 
-def test_read_yaml_toml_config(dl1_image_file):
+@pytest.mark.parametrize(
+    "config_files",
+    [
+        ("base_config.yaml", "stage1_config.yaml"),
+        ("stage1_config.toml",),
+        ("stage1_config.json",),
+    ],
+)
+def test_read_yaml_toml_config(dl1_image_file, config_files):
     tool = ProcessorTool()
 
-    for config_base in ["stage1_config.yaml", "stage1_config.toml"]:
+    for config_base in config_files:
         config = resource_file(config_base)
         tool.load_config_file(config)
 
@@ -42,7 +50,7 @@ def test_read_yaml_toml_config(dl1_image_file):
 
 
 def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
-    """  check simtel to DL1 conversion """
+    """check simtel to DL1 conversion"""
     config = resource_file("stage1_config.json")
 
     # DL1A file as input
@@ -118,7 +126,7 @@ def test_stage1_datalevels(tmp_path):
     """test the dl1 tool on a file not providing r1, dl0 or dl1a"""
 
     class DummyEventSource(EventSource):
-        """ for testing """
+        """for testing"""
 
         @staticmethod
         def is_compatible(file_path):
@@ -173,7 +181,7 @@ def test_stage1_datalevels(tmp_path):
 
 
 def test_stage_2_from_simtel(tmp_path):
-    """ check we can go to DL2 geometry from simtel file """
+    """check we can go to DL2 geometry from simtel file"""
     config = resource_file("stage2_config.json")
     output = tmp_path / "test_stage2_from_simtel.DL2.h5"
 
@@ -198,7 +206,7 @@ def test_stage_2_from_simtel(tmp_path):
 
 
 def test_stage_2_from_dl1_images(tmp_path, dl1_image_file):
-    """ check we can go to DL2 geometry from DL1 images """
+    """check we can go to DL2 geometry from DL1 images"""
     config = resource_file("stage2_config.json")
     output = tmp_path / "test_stage2_from_dl1image.DL2.h5"
 
@@ -222,7 +230,7 @@ def test_stage_2_from_dl1_images(tmp_path, dl1_image_file):
 
 
 def test_stage_2_from_dl1_params(tmp_path, dl1_parameters_file):
-    """ check we can go to DL2 geometry from DL1 parameters """
+    """check we can go to DL2 geometry from DL1 parameters"""
 
     config = resource_file("stage2_config.json")
     output = tmp_path / "test_stage2_from_dl1param.DL2.h5"
@@ -247,7 +255,7 @@ def test_stage_2_from_dl1_params(tmp_path, dl1_parameters_file):
 
 
 def test_training_from_simtel(tmp_path):
-    """ check we can write both dl1 and dl2 info (e.g. for training input) """
+    """check we can write both dl1 and dl2 info (e.g. for training input)"""
 
     config = resource_file("training_config.json")
     output = tmp_path / "test_training.DL1DL2.h5"
@@ -306,7 +314,7 @@ def test_image_modifications(tmp_path, dl1_image_file):
 
 @pytest.mark.parametrize("filename", CONFIGS_TO_WRITE)
 def test_quickstart_templates(filename):
-    """ ensure template configs have an appropriate placeholder for the contact info """
+    """ensure template configs have an appropriate placeholder for the contact info"""
     config = resource_file(filename)
     text = config.read_text()
 
@@ -316,7 +324,7 @@ def test_quickstart_templates(filename):
 
 
 def test_quickstart(tmp_path):
-    """ ensure quickstart tool generates expected output """
+    """ensure quickstart tool generates expected output"""
 
     tool = QuickStartTool()
     run_tool(
