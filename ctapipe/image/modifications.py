@@ -192,4 +192,4 @@ class ImageModifier(TelescopeComponent):
 
             image[~bright_pixels] += self.noise_bias_dim_pixels.tel[tel_id]
 
-        return image.astype(dtype)
+        return image.astype(dtype, copy=False)
