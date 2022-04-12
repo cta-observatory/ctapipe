@@ -2,6 +2,7 @@
 Component Wrappers around sklearn models
 """
 
+from copy import deepcopy
 import numpy as np
 from traitlets import Dict, List, Unicode, Enum, Integer, Bool
 import joblib
@@ -72,6 +73,12 @@ class Model(Component):
             )
 
         return model
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state['_trait_values']['parent'] = None
+        state['_trait_notifiers'] = {}
+        return state
 
 
 class Regressor(Model):
