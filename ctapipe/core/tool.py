@@ -208,7 +208,7 @@ class Tool(Application):
         self.update_logging_config()
 
         if self.config_files is not None:
-            self.log.info(f"Loading config from '%s'", self.config_files)
+            self.log.info("Loading config from '%s'", self.config_files)
             try:
                 for config_file in self.config_files:
                     self.load_config_file(config_file)
