@@ -2,7 +2,7 @@ import numpy as np
 import astropy.units as u
 from numpy.testing import assert_allclose
 from ctapipe.instrument.camera import CameraGeometry
-from ctapipe.containers import HillasParametersContainer
+from ctapipe.containers import CameraHillasParametersContainer
 
 
 def test_psi_0():
@@ -17,9 +17,9 @@ def test_psi_0():
     deviation = 0.1
 
     geom = CameraGeometry.from_name("LSTCam")
-    hillas = HillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=0 * u.deg)
+    hillas = CameraHillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=0 * u.deg)
 
-    random = np.random.RandomState(1)
+    random = np.random.default_rng(0)
     peak_time = intercept + grad * geom.pix_x.value
     peak_time += random.normal(0, deviation, geom.n_pixels)
 
@@ -47,9 +47,9 @@ def test_psi_20():
 
     geom = CameraGeometry.from_name("LSTCam")
     psi = 20 * u.deg
-    hillas = HillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=psi)
+    hillas = CameraHillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=psi)
 
-    random = np.random.RandomState(1)
+    random = np.random.default_rng(0)
     peak_time = intercept + grad * (
         np.cos(psi) * geom.pix_x.value + np.sin(psi) * geom.pix_y.value
     )
@@ -77,9 +77,9 @@ def test_ignore_negative():
     deviation = 0.1
 
     geom = CameraGeometry.from_name("LSTCam")
-    hillas = HillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=0 * u.deg)
+    hillas = CameraHillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=0 * u.deg)
 
-    random = np.random.RandomState(1)
+    random = np.random.default_rng(0)
     peak_time = intercept + grad * geom.pix_x.value
     peak_time += random.normal(0, deviation, geom.n_pixels)
 

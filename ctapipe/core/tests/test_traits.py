@@ -1,31 +1,32 @@
+import os
+import pathlib
 import tempfile
-from unittest.mock import MagicMock
+from unittest import mock
 
 import pytest
-from traitlets import CaselessStrEnum, HasTraits, Int
-import pathlib
-
 from ctapipe.core import Component, TelescopeComponent
 from ctapipe.core.traits import (
-    List,
-    Float,
+    AstroTime,
     Bool,
+    Float,
+    FloatTelescopeParameter,
+    IntTelescopeParameter,
+    List,
     Path,
+    TelescopeParameter,
+    TelescopeParameterLookup,
     TraitError,
     classes_with_traits,
     has_traits,
-    TelescopeParameterLookup,
-    TelescopeParameter,
-    FloatTelescopeParameter,
-    IntTelescopeParameter,
-    AstroTime,
 )
 from ctapipe.image import ImageExtractor
+from ctapipe.utils.datasets import DEFAULT_URL, get_dataset_path
+from traitlets import CaselessStrEnum, HasTraits, Int
 
 
 @pytest.fixture(scope="module")
 def mock_subarray():
-    subarray = MagicMock()
+    subarray = mock.MagicMock()
     subarray.tel_ids = [1, 2, 3, 4]
     subarray.get_tel_ids_for_type = (
         lambda x: [3, 4] if x == "LST_LST_LSTCam" else [1, 2]
@@ -36,6 +37,40 @@ def mock_subarray():
         "MST_MST_FlashCam",
     ]
     return subarray
+
+
+def test_path_allow_none_false():
+    class C(Component):
+        path = Path(default_value=None, allow_none=False)
+
+    c = C()
+
+    # accessing path is now an error
+    with pytest.raises(TraitError):
+        c.path
+
+    # setting to None should also fail
+    with pytest.raises(TraitError):
+        c.path = None
+
+    c.path = "foo.txt"
+    assert c.path == pathlib.Path("foo.txt").absolute()
+
+
+def test_path_allow_none_true(tmp_path):
+    class C(Component):
+        path = Path(exists=True, allow_none=True, default_value=None)
+
+    c = C()
+    assert c.path is None
+
+    with open(tmp_path / "foo.txt", "w"):
+        pass
+
+    c.path = tmp_path / "foo.txt"
+
+    c.path = None
+    assert c.path is None
 
 
 def test_path_exists():
@@ -82,15 +117,6 @@ def test_bytes():
     c1 = C1()
     c1.p = b"/home/foo"
     assert c1.p == pathlib.Path("/home/foo")
-
-
-def test_path_none():
-    class C1(Component):
-        thepath = Path(exists=False)
-
-    c1 = C1()
-    c1.thepath = "foo"
-    c1.thepath = None
 
 
 def test_path_directory_ok():
@@ -153,9 +179,24 @@ def test_path_url():
     c.thepath = "file:///foo.hdf5"
     assert c.thepath == pathlib.Path("/foo.hdf5")
 
-    # test not other shemes raise trailet errors
-    with pytest.raises(TraitError):
-        c.thepath = "https://example.org/test.hdf5"
+    # test http downloading
+    c.thepath = DEFAULT_URL + "optics.ecsv.txt"
+    assert c.thepath.name == "optics.ecsv.txt"
+
+    # test dataset://
+    c.thepath = "dataset://optics.ecsv.txt"
+    assert c.thepath == get_dataset_path("optics.ecsv.txt")
+
+
+@mock.patch.dict(os.environ, {"ANALYSIS_DIR": "/home/foo"})
+def test_path_envvars():
+    class C(Component):
+        thepath = Path()
+
+    c = C()
+    c.thepath = "$ANALYSIS_DIR/test.txt"
+
+    assert str(c.thepath) == "/home/foo/test.txt"
 
 
 def test_enum_trait_default_is_right():
@@ -287,7 +328,7 @@ def test_telescope_parameter_patterns(mock_subarray):
         comp.tel_param_int = [(12, "", 5)]  # command not string
 
 
-def test_telescope_parameter_path(mock_subarray):
+def test_telescope_parameter_path(mock_subarray, tmp_path):
     class SomeComponent(TelescopeComponent):
         path = TelescopeParameter(Path(exists=True, directory_ok=False))
 
@@ -316,13 +357,17 @@ def test_telescope_parameter_path(mock_subarray):
     # test with none default:
     class SomeComponent(TelescopeComponent):
         path = TelescopeParameter(
-            Path(exists=True, directory_ok=False), default_value=None, allow_none=True
+            Path(exists=True, directory_ok=False, allow_none=True, default_value=None),
+            default_value=None,
+            allow_none=True,
         )
 
     s = SomeComponent(subarray=mock_subarray)
     assert s.path.tel[1] is None
-    s.path = [("type", "*", "setup.py")]
-    assert s.path.tel[1] == pathlib.Path("setup.py").absolute()
+    path = tmp_path / "foo"
+    path.open("w").close()
+    s.path = [("type", "*", path)]
+    assert s.path.tel[1] == path
 
 
 def test_telescope_parameter_scalar_default(mock_subarray):
@@ -342,7 +387,7 @@ def test_telescope_parameter_scalar_default(mock_subarray):
 
 
 def test_telescope_parameter_resolver():
-    """ check that you can resolve the rules specified in a
+    """check that you can resolve the rules specified in a
     TelescopeParameter trait"""
 
     class SomeComponent(Component):
@@ -370,7 +415,7 @@ def test_telescope_parameter_resolver():
     comp = SomeComponent()
 
     # need to mock a SubarrayDescription
-    subarray = MagicMock()
+    subarray = mock.MagicMock()
     subarray.tel_ids = [1, 2, 3, 4]
     subarray.get_tel_ids_for_type = (
         lambda x: [3, 4] if x == "LST_LST_LSTCam" else [1, 2]
@@ -468,7 +513,9 @@ def test_telescope_parameter_from_cli(mock_subarray):
     from ctapipe.core import Tool, run_tool
 
     class SomeComponent(TelescopeComponent):
-        path = TelescopeParameter(Path(), default_value=None).tag(config=True)
+        path = TelescopeParameter(
+            Path(allow_none=True, default_value=None), default_value=None
+        ).tag(config=True)
         val = TelescopeParameter(Float(), default_value=1.0).tag(config=True)
         flag = TelescopeParameter(Bool(), default_value=True).tag(config=True)
 

@@ -15,14 +15,17 @@ from contextlib import contextmanager
 from importlib import import_module
 from os.path import abspath
 
+import pkg_resources
+
 import psutil
 from astropy.time import Time
 from pkg_resources import get_distribution
 
 import ctapipe
-from .support import Singleton
 from collections import UserList
 from pathlib import Path
+
+from .support import Singleton
 
 log = logging.getLogger(__name__)
 
@@ -61,9 +64,9 @@ class Provenance(metaclass=Singleton):
     """
     Manage the provenance info for a stack of *activities*
 
-    use `start_activity(name)` to start an activity. Any calls to
-    `add_input_entity()` or `add_output_entity()` will register files within
-    that activity. Finish the current activity with `finish_activity()`.
+    use `start_activity(name) <start_activity>`_ to start an activity. Any calls to
+    `add_input_file` or `add_output_file` will register files within
+    that activity. Finish the current activity with `finish_activity`.
 
     Nested activities are allowed, and handled as a stack. The final output
     is not hierarchical, but a flat list of activities (however hierarchical
@@ -166,7 +169,7 @@ class Provenance(metaclass=Singleton):
 
     def as_json(self, **kwargs):
         """return all finished provenance as JSON.  Kwargs for `json.dumps`
-        may be included, e.g. `indent=4`"""
+        may be included, e.g. ``indent=4``"""
 
         def set_default(obj):
             """ handle sets (not part of JSON) by converting to list"""
@@ -282,6 +285,13 @@ class _ActivityProvenance:
         return self._prov
 
 
+def _get_python_packages():
+    return [
+        {"name": p.project_name, "version": p.version, "path": p.module_path}
+        for p in sorted(pkg_resources.working_set, key=lambda p: p.project_name)
+    ]
+
+
 def _get_system_provenance():
     """return JSON string containing provenance for all things that are
     fixed during the runtime"""
@@ -312,6 +322,7 @@ def _get_system_provenance():
             version=platform.python_version_tuple(),
             compiler=platform.python_compiler(),
             implementation=platform.python_implementation(),
+            packages=_get_python_packages(),
         ),
         environment=_get_env_vars(),
         arguments=sys.argv,

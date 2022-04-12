@@ -2,9 +2,9 @@
 """
 Utilities for reading or working with Camera geometry files
 """
+from copy import deepcopy
 import logging
 import warnings
-from typing import TypeVar
 
 import numpy as np
 from astropy import units as u
@@ -13,27 +13,39 @@ from astropy.coordinates import BaseCoordinateFrame
 from astropy.table import Table
 from astropy.utils import lazyproperty
 from scipy.sparse import lil_matrix, csr_matrix
-from scipy.spatial import cKDTree as KDTree
+from scipy.spatial import cKDTree
 
 from ctapipe.coordinates import CameraFrame
+from .image_conversion import (
+    unskew_hex_pixel_grid,
+    get_orthogonal_grid_edges,
+    get_orthogonal_grid_indices,
+)
 from ctapipe.utils import get_table_dataset
 from ctapipe.utils.linalg import rotation_matrix_2d
 from enum import Enum, unique
 
-__all__ = ["CameraGeometry", "UnknownPixelShapeWarning"]
+__all__ = ["CameraGeometry", "UnknownPixelShapeWarning", "PixelShape"]
 
 logger = logging.getLogger(__name__)
-CG = TypeVar("CG", bound="CameraGeometry")  # for forward-referencing type hints
 
 
 @unique
 class PixelShape(Enum):
+    """Supported Pixel Shapes Enum"""
+
     CIRCLE = "circle"
     SQUARE = "square"
     HEXAGON = "hexagon"
 
     @classmethod
     def from_string(cls, name):
+        """
+        Convert a string represenation to the enum value
+
+        This function supports abbreviations and for backwards compatibility
+        "rect" as alias for "square".
+        """
         name = name.lower()
 
         if name.startswith("hex"):
@@ -48,7 +60,7 @@ class PixelShape(Enum):
         raise TypeError(f"Unknown pixel shape {name}")
 
 
-#: mapper from simtel pixel shape integerrs to our shape and rotation angle
+#: mapper from simtel pixel shape integers to our shape and rotation angle
 SIMTEL_PIXEL_SHAPES = {
     0: (PixelShape.CIRCLE, Angle(0, u.deg)),
     1: (PixelShape.HEXAGON, Angle(0, u.deg)),
@@ -69,12 +81,6 @@ class CameraGeometry:
     The class is intended to be generic, and work with any Cherenkov
     Camera geometry, including those that have square vs hexagonal
     pixels, gaps between pixels, etc.
-
-    You can construct a CameraGeometry either by specifying all data,
-    or using the `CameraGeometry.guess()` constructor, which takes metadata
-    like the pixel positions and telescope focal length to look up the rest
-    of the data. Note that this function is memoized, so calling it multiple
-    times with the same inputs will give back the same object (for speed).
 
     Parameters
     ----------
@@ -164,7 +170,7 @@ class CameraGeometry:
         if apply_derotation:
             self.rotate(self.cam_rotation)
 
-        # cache border pixel mask per instance
+            # cache border pixel mask per instance
         self.border_cache = {}
 
     def __eq__(self, other):
@@ -197,13 +203,14 @@ class CameraGeometry:
             (self.pix_x[border] - cx) ** 2 + (self.pix_y[border] - cy) ** 2
         ).mean()
 
-    def transform_to(self, frame: BaseCoordinateFrame) -> CG:
+    def transform_to(self, frame: BaseCoordinateFrame):
         """Transform the pixel coordinates stored in this geometry and the pixel
         and camera rotations to another camera coordinate frame.
 
-        Note that `geom.frame` must contain all the necessary attributes needed
-        to transform into the requested frame, i.e. if going from `CameraFrame`
-        to `TelescopeFrame`, it should contain a `focal_length` attribute.
+        Note that ``geom.frame`` must contain all the necessary attributes needed
+        to transform into the requested frame, i.e. if going from
+        `~ctapipe.coordinates.CameraFrame` to `~ctapipe.coordinates.TelescopeFrame`,
+        it should contain the correct data in the ``focal_length`` attribute.
 
         Parameters
         ----------
@@ -218,36 +225,55 @@ class CameraGeometry:
         if self.frame is None:
             self.frame = CameraFrame()
 
-        coord = SkyCoord(self.pix_x, self.pix_y, frame=self.frame)
+        # we have to derotate, transformations only provide sensible
+        # results after derotation from the camera coordinate system with
+        # custom angle into a not-rotate frame
+        if self.cam_rotation.value != 0:
+            cam = deepcopy(self)
+            cam.rotate(self.cam_rotation)
+        else:
+            cam = self
+
+        coord = SkyCoord(cam.pix_x, cam.pix_y, frame=cam.frame)
         trans = coord.transform_to(frame)
 
-        # also transform the unit vectors, to get rotation / mirroring
-        uv = SkyCoord([1, 0], [0, 1], unit=self.pix_x.unit, frame=self.frame)
+        # also transform the unit vectors, to get rotation / mirroring, scale
+        uv = SkyCoord([1, 0], [0, 1], unit=cam.pix_x.unit, frame=cam.frame)
         uv_trans = uv.transform_to(frame)
 
-        # some trickery has to be done to deal with the fact that not all frames
-        # use the same x/y attributes. Therefore we get the component names, and
-        # access them by string:
-        frame_attrs = list(uv_trans.frame.get_representation_component_names().keys())
-        uv_y = getattr(uv_trans, frame_attrs[1])
-        trans_x = getattr(trans, frame_attrs[0])
-        trans_y = getattr(trans, frame_attrs[1])
+        trans_x_name, trans_y_name = list(
+            uv_trans.frame.get_representation_component_names().keys()
+        )
+        uv_trans_x = getattr(uv_trans, trans_x_name)
+        uv_trans_y = getattr(uv_trans, trans_y_name)
 
-        rot = np.arctan2(uv_y[0], uv_y[1])
+        matrix = np.vstack([uv_trans_x.value, uv_trans_y.value])
+        is_mirrored = np.linalg.det(matrix) < 0
 
-        cam_rotation = rot - self.cam_rotation
-        pix_rotation = rot - self.pix_rotation
+        rot = np.arctan2(uv_trans_y[0], uv_trans_y[1])
+
+        if is_mirrored:
+            cam_rotation = -cam.cam_rotation
+            pix_rotation = rot - cam.pix_rotation
+        else:
+            cam_rotation = cam.cam_rotation
+            pix_rotation = cam.pix_rotation - rot
+
+        scale = np.sqrt(uv_trans_x[0] ** 2 + uv_trans_y[0] ** 2) / cam.pix_x.unit
+        trans_x = getattr(trans, trans_x_name)
+        trans_y = getattr(trans, trans_y_name)
+        pix_area = (cam.pix_area * scale ** 2).to(trans_x.unit ** 2)
 
         return CameraGeometry(
-            camera_name=self.camera_name,
-            pix_id=self.pix_id,
+            camera_name=cam.camera_name,
+            pix_id=cam.pix_id,
             pix_x=trans_x,
             pix_y=trans_y,
-            pix_area=self.guess_pixel_area(trans_x, trans_y, self.pix_type),
-            pix_type=self.pix_type,
+            pix_area=pix_area,
+            pix_type=cam.pix_type,
             pix_rotation=pix_rotation,
             cam_rotation=cam_rotation,
-            neighbors=self._neighbors,
+            neighbors=cam._neighbors,
             apply_derotation=False,
             frame=frame,
         )
@@ -340,8 +366,7 @@ class CameraGeometry:
 
     @lazyproperty
     def _pixel_circumradius(self):
-        """ pixel circumference radius/radii based on pixel area and layout
-        """
+        """pixel circumference radius/radii based on pixel area and layout"""
 
         if self.pix_type == PixelShape.HEXAGON:
             circum_rad = self.pixel_width / np.sqrt(3)
@@ -368,7 +393,7 @@ class CameraGeometry:
         """
 
         pixel_centers = np.column_stack([self.pix_x.value, self.pix_y.value])
-        return KDTree(pixel_centers)
+        return cKDTree(pixel_centers)
 
     @lazyproperty
     def _all_pixel_areas_equal(self):
@@ -382,14 +407,156 @@ class CameraGeometry:
         """
         return ~np.any(~np.isclose(self.pix_area.value, self.pix_area[0].value), axis=0)
 
+    def image_index_to_cartesian_index(self, pixel_index):
+        """
+        Convert pixel index in the 1d image representation to row and col
+        """
+        rows, cols = self._pixel_positions_2d
+        return rows[pixel_index], cols[pixel_index]
+
+    def cartesian_index_to_image_index(self, row, col):
+        """
+        Convert cartesian index (row, col) to pixel index in 1d representation.
+        """
+        return self._pixel_indices_cartesian[row, col]
+
+    @lazyproperty
+    def _pixel_indices_cartesian(self):
+        img = np.arange(self.n_pixels)
+        img2d = self.image_to_cartesian_representation(img)
+        invalid = np.iinfo(np.int32).min
+        img2d = np.nan_to_num(img2d, nan=invalid).astype(np.int32)
+        return img2d
+
+    @lazyproperty
+    def _pixel_positions_2d(self):
+        """
+        Pixel positions on the orthogonal grid of the 2d image.
+        In order for hexagonal pixels to behave as if they were
+        square, the grid has to be distorted.
+        Namely, slanting and stretching of the 1d pixel positions
+        to align them nicely.
+        Beware, that this means the pixel geometries on this
+        grid to not match the one in the geometry.
+
+        Returns
+        -------
+        (rows, columns) of each pixel if transformed onto an orthogonal grid
+        """
+        if self.pix_type in {PixelShape.HEXAGON, PixelShape.CIRCLE}:
+            # cam rotation should be 0 unless the derotation is turned off in the init
+            rot_x, rot_y = unskew_hex_pixel_grid(
+                self.pix_x,
+                self.pix_y,
+                cam_angle=30 * u.deg - self.pix_rotation - self.cam_rotation,
+            )
+            x_edges, y_edges, _ = get_orthogonal_grid_edges(
+                rot_x.to_value(u.m), rot_y.to_value(u.m)
+            )
+            square_mask = np.histogramdd(
+                [rot_x.to_value(u.m), rot_y.to_value(u.m)], bins=(x_edges, y_edges)
+            )[0].astype(bool)
+            hex_to_rect_map = np.histogramdd(
+                [rot_x.to_value(u.m), rot_y.to_value(u.m)],
+                bins=(x_edges, y_edges),
+                weights=np.arange(len(self.pix_y)),
+            )[0].astype(int)
+            hex_to_rect_map[~square_mask] = -1
+            rows_2d = np.zeros(hex_to_rect_map.shape)
+            rows_2d.T[:] = np.arange(hex_to_rect_map.shape[0])
+            rows_1d = np.zeros(self.pix_x.shape, dtype=np.int32)
+            rows_1d[hex_to_rect_map[..., square_mask]] = np.squeeze(
+                np.rollaxis(np.atleast_3d(rows_2d), 2, 0)
+            )[..., square_mask]
+            cols_2d = np.zeros(hex_to_rect_map.shape)
+            cols_2d[:] = np.arange(hex_to_rect_map.shape[1])
+            cols_1d = np.zeros(self.pix_x.shape, dtype=np.int32)
+            cols_1d[hex_to_rect_map[..., square_mask]] = np.squeeze(
+                np.rollaxis(np.atleast_3d(cols_2d), 2, 0)
+            )[..., square_mask]
+            pixel_row = rows_1d
+            pixel_column = cols_1d
+
+            # flip image so that imshow looks like original camera display
+            pixel_row = pixel_row.max() - pixel_row
+            pixel_column = pixel_column.max() - pixel_column
+
+        elif self.pix_type is PixelShape.SQUARE:
+            pixel_row = get_orthogonal_grid_indices(self.pix_y, np.sqrt(self.pix_area))
+            pixel_column = get_orthogonal_grid_indices(
+                self.pix_x, np.sqrt(self.pix_area)
+            )
+
+            # flip image so that imshow looks like original camera display
+            pixel_row = pixel_row.max() - pixel_row
+        else:
+            raise ValueError(f"Unsupported pixel shape {self.pix_type}")
+
+        return pixel_row, pixel_column
+
+    def image_to_cartesian_representation(self, image):
+        """
+        Create a 2D-image from a given flat image or multiple flat images.
+        In the case of hexagonal pixels, the resulting
+        image is skewed to match a rectangular grid.
+
+        Parameters
+        ----------
+        image: np.ndarray
+            One or multiple images of shape
+            (n_images, n_pixels) or (n_pixels) for a single image.
+
+        Returns
+        -------
+        image_2s: np.ndarray
+            The transformed image of shape (n_images, n_rows, n_cols).
+            For a single image the leading dimension is omitted.
+        """
+        rows, cols = self._pixel_positions_2d
+        image = np.atleast_2d(image)  # this allows for multiple images at once
+
+        image_2d = np.full((image.shape[0], rows.max() + 1, cols.max() + 1), np.nan)
+        image_2d[:, rows, cols] = image
+
+        return np.squeeze(image_2d)  # removes the extra dimension for single images
+
+    def image_from_cartesian_representation(self, image_2d):
+        """
+        Create a 1D-array from a given 2D image.
+
+        Parameters
+        ----------
+        image_2d: np.ndarray
+            2D image created by the `image_to_cartesian_representation` function
+            of the same geometry.
+            shape is expected to be:
+            (n_images, n_rows, n_cols) or (n_rows, n_cols) for a single image.
+
+        Returns
+        -------
+        1d array
+            The image in the 1D format, which has shape (n_images, n_pixels).
+            For single images the leading dimension is omitted.
+        """
+        rows, cols = self._pixel_positions_2d
+        # np.atleast3d would introduce the extra dimension at the end, which leads
+        # to a different shape compared to a multi image array
+        if image_2d.ndim == 2:
+            image_2d = image_2d[np.newaxis, :]
+
+        image_flat = np.zeros((image_2d.shape[0], rows.shape[0]), dtype=image_2d.dtype)
+        image_flat[:] = image_2d[:, rows, cols]
+        image_1d = image_flat
+        return np.squeeze(image_1d)
+
     @classmethod
     def from_name(cls, camera_name="NectarCam", version=None):
         """
         Construct a CameraGeometry using the name of the camera and array.
 
-        This expects that there is a resource in the `ctapipe_resources` module
-        called "[array]-[camera].camgeom.fits.gz" or "[array]-[camera]-[
-        version].camgeom.fits.gz"
+        This expects that there is a resource accessible via
+        `~ctapipe.utils.get_table_dataset` called ``"[array]-[camera].camgeom.fits.gz"``
+        or ``"[array]-[camera]-[version].camgeom.fits.gz"``
 
         Parameters
         ----------
@@ -445,14 +612,14 @@ class CameraGeometry:
     def from_table(cls, url_or_table, **kwargs):
         """
         Load a CameraGeometry from an `astropy.table.Table` instance or a
-        file that is readable by `astropy.table.Table.read()`
+        file that is readable by `astropy.table.Table.read`
 
         Parameters
         ----------
         url_or_table: string or astropy.table.Table
             either input filename/url or a Table instance
         kwargs: extra keyword arguments
-            extra arguments passed to `astropy.table.read()`, depending on
+            extra arguments passed to `astropy.table.Table.read`, depending on
             file type (e.g. format, hdu, path)
 
 
@@ -475,14 +642,15 @@ class CameraGeometry:
 
     def __repr__(self):
         return (
-            "CameraGeometry(camera_name='{camera_name}', pix_type={pix_type!r}, "
-            "npix={npix}, cam_rot={camrot}, pix_rot={pixrot})"
+            "CameraGeometry(camera_name='{camera_name}', pix_type={pix_type}, "
+            "npix={npix}, cam_rot={camrot:.3f}, pix_rot={pixrot:.3f}, frame={frame})"
         ).format(
             camera_name=self.camera_name,
             pix_type=self.pix_type,
             npix=len(self.pix_id),
             pixrot=self.pix_rotation,
             camrot=self.cam_rotation,
+            frame=self.frame,
         )
 
     def __str__(self):
@@ -496,6 +664,10 @@ class CameraGeometry:
     @lazyproperty
     def neighbor_matrix(self):
         return self.neighbor_matrix_sparse.A
+
+    @lazyproperty
+    def max_neighbors(self):
+        return self.neighbor_matrix_sparse.sum(axis=1).max()
 
     @lazyproperty
     def neighbor_matrix_sparse(self):
@@ -514,8 +686,6 @@ class CameraGeometry:
         diagonal: bool
             If rectangular geometry, also add diagonal neighbors
         """
-        neighbors = lil_matrix((self.n_pixels, self.n_pixels), dtype=bool)
-
         # assume circle pixels are also on a hex grid
         if self.pix_type in (PixelShape.HEXAGON, PixelShape.CIRCLE):
             max_neighbors = 6
@@ -541,31 +711,33 @@ class CameraGeometry:
                 radius = 1.5
                 norm = 1
 
-        for i, pixel in enumerate(self._kdtree.data):
-            # as the pixel itself is in the tree, look for max_neighbors + 1
-            distances, neighbor_candidates = self._kdtree.query(
-                pixel, k=max_neighbors + 1, p=norm
-            )
+        distances, neighbor_candidates = self._kdtree.query(
+            self._kdtree.data, k=max_neighbors + 1, p=norm
+        )
 
-            # remove self-reference
-            distances = distances[1:]
-            neighbor_candidates = neighbor_candidates[1:]
+        # remove self reference
+        distances = distances[:, 1:]
+        neighbor_candidates = neighbor_candidates[:, 1:]
 
-            # remove too far away pixels
-            inside_max_distance = distances < radius * np.min(distances)
-            neighbors[i, neighbor_candidates[inside_max_distance]] = True
+        min_distance = np.min(distances, axis=1)[:, np.newaxis]
+        inside_max_distance = distances < (radius * min_distance)
+        pixels, neigbor_index = np.nonzero(inside_max_distance)
+        neighbors = neighbor_candidates[pixels, neigbor_index]
+        data = np.ones(len(pixels), dtype=bool)
+
+        neighbor_matrix = csr_matrix((data, (pixels, neighbors)))
 
         # filter annoying deprecation warning from within scipy
         # scipy still uses np.matrix in scipy.sparse, but we do not
         # explicitly use any feature of np.matrix, so we can ignore this here
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=PendingDeprecationWarning)
-            if (neighbors.T != neighbors).sum() > 0:
+            if (neighbor_matrix.T != neighbor_matrix).sum() > 0:
                 warnings.warn(
                     "Neighbor matrix is not symmetric. Is camera geometry irregular?"
                 )
 
-        return neighbors.tocsr()
+        return neighbor_matrix
 
     @lazyproperty
     def pixel_moment_matrix(self):

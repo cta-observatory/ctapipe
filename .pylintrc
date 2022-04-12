@@ -425,6 +425,8 @@ good-names=i,
            x,
            y,
            n,
+           f,
+           r,
            ex,
            _
 

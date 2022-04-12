@@ -38,7 +38,6 @@ def get_searchpath_dirs(searchpath=os.getenv("CTAPIPE_SVC_PATH"), url=DEFAULT_UR
         searchpaths = []
     else:
         searchpaths = [Path(p) for p in os.path.expandvars(searchpath).split(":")]
-
     searchpaths.append(get_cache_path(url))
     return searchpaths
 

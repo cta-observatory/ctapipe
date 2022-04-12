@@ -1,7 +1,6 @@
 """Implementations of TableWriter and -Reader for HDF5 files"""
 import enum
 from pathlib import PurePath
-import re
 
 import numpy as np
 import tables
@@ -10,6 +9,7 @@ from astropy.units import Quantity, Unit
 
 import ctapipe
 from .tableio import (
+    StringTransform,
     TableWriter,
     TableReader,
     FixedPointColumnTransform,
@@ -35,7 +35,8 @@ PYTABLES_TYPE_MAP = {
     "uint16": tables.UInt16Col,
     "uint32": tables.UInt32Col,
     "uint64": tables.UInt64Col,
-    "bool": tables.BoolCol,
+    "bool": tables.BoolCol,     # python bool
+    "bool_": tables.BoolCol,    # np.bool_
 }
 
 
@@ -59,17 +60,17 @@ class HDF5TableWriter(TableWriter):
     container. This is intended as a building block to create a more complex
     I/O system.
 
-    It works by creating a HDF5 Table description from the `Field`s inside a
-    container, where each item becomes a column in the table. The first time
-    `HDF5TableWriter.write()` is called, the container(s) are registered
-    and the table created in the output file.
+    It works by creating a HDF5 Table description from the `~ctapipe.core.Field`
+    definitions inside a container, where each item becomes a column in the table.
+    The first time `HDF5TableWriter.write()` is called, the container(s) are
+    registered and the table created in the output file.
 
     Each item in the container can also have an optional transform function
     that is called before writing to transform the value.  For example,
     unit quantities always have their units removed, or converted to a
-    common unit if specified in the `Field`.
+    common unit if specified in the `~ctapipe.core.Field`.
 
-    Any metadata in the `Container` (stored in `Container.meta`) will be
+    Any metadata in the `~ctapipe.core.Container` (stored in ``Container.meta``) will be
     written to the table's header on the first call to write()
 
     Multiple tables may be written at once in a single file, as long as you
@@ -77,7 +78,7 @@ class HDF5TableWriter(TableWriter):
     to.  Likewise multiple Containers can be merged into a single output
     table by passing a list of containers to `write()`.
 
-    To append to existing files, pass the `mode='a'`  option to the
+    To append to existing files, pass the ``mode='a'``  option to the
     constructor.
 
     Parameters
@@ -93,12 +94,12 @@ class HDF5TableWriter(TableWriter):
         'w' if you want to overwrite the file
         'a' if you want to append data to the file
     root_uep : str
-        root location of the `group_name`
+        root location of the ``group_name``
     filters: pytables.Filters
         A set of filters (compression settings) to be used for
         all datasets created by this writer.
     kwargs:
-        any other arguments that will be passed through to `pytables.open()`.
+        any other arguments that will be passed through to ``pytables.open_file``.
     """
 
     def __init__(
@@ -127,14 +128,84 @@ class HDF5TableWriter(TableWriter):
         self._group = "/" + group_name
         self.filters = filters
 
-        self.log.debug("h5file: %s", self._h5file)
+        self.log.debug("h5file: %s", self.h5file)
 
     def open(self, filename, **kwargs):
         self.log.debug("kwargs for tables.open_file: %s", kwargs)
-        self._h5file = tables.open_file(filename, **kwargs)
+        self.h5file = tables.open_file(filename, **kwargs)
 
     def close(self):
-        self._h5file.close()
+        self.h5file.close()
+
+    def _add_column_to_schema(self, table_name, schema, meta, pos, field, name, value):
+        typename = ""
+        shape = 1
+
+        if self._is_column_excluded(table_name, name):
+            self.log.debug(f"excluded column: {table_name}/{name}")
+            return
+
+        if name in schema.columns:
+            self.log.warning(f"Found duplicated column {name}, skipping")
+            return
+
+        # apply any user-defined transforms first
+        value = self._apply_col_transform(table_name, name, value)
+
+        # now set up automatic transforms to make values that cannot be
+        # written in their default form into a form that is serializable
+        if isinstance(value, enum.Enum):
+            tr = EnumColumnTransform(enum=value.__class__)
+            value = tr(value)
+            self.add_column_transform(table_name, name, tr)
+
+        if isinstance(value, Quantity):
+            unit = field.unit or value.unit
+            tr = QuantityColumnTransform(unit=unit)
+            value = tr(value)
+            self.add_column_transform(table_name, name, tr)
+
+        if isinstance(value, np.ndarray):
+            typename = value.dtype.name
+            coltype = PYTABLES_TYPE_MAP[typename]
+            shape = value.shape
+            schema.columns[name] = coltype(shape=shape, pos=pos)
+
+        elif isinstance(value, Time):
+            # TODO: really should use MET, but need a func for that
+            schema.columns[name] = tables.Float64Col(pos=pos)
+            tr = TimeColumnTransform(scale="tai", format="mjd")
+            self.add_column_transform(table_name, name, tr)
+
+        elif type(value).__name__ in PYTABLES_TYPE_MAP:
+            typename = type(value).__name__
+            coltype = PYTABLES_TYPE_MAP[typename]
+            schema.columns[name] = coltype(pos=pos)
+
+        elif isinstance(value, str):
+            max_length = field.max_length or len(value.encode("utf-8"))
+            tr = StringTransform(max_length)
+            self.add_column_transform(table_name, name, tr)
+            schema.columns[name] = tables.StringCol(itemsize=max_length)
+
+        else:
+            raise ValueError(f"Column {name} of type {type(value)} not writable")
+
+        # add meta fields of transform
+        transform = self._transforms[table_name].get(name)
+        if transform is not None:
+            if hasattr(transform, "get_meta"):
+                meta.update(transform.get_meta(name))
+
+        # add desription to metadata
+        meta[f"{name}_DESC"] = field.description
+
+        self.log.debug(
+            f"Table {table_name}: "
+            f"added col: {name} type: "
+            f"{typename} shape: {shape} "
+            f"with transform: {transform} "
+        )
 
     def _create_hdf5_table_schema(self, table_name, containers):
         """
@@ -158,91 +229,39 @@ class HDF5TableWriter(TableWriter):
 
         meta = {}  # any extra meta-data generated here (like units, etc)
 
+        # set up any column tranforms that were requested as regexps (i.e.
+        # convert them to explicit transform in the _transforms dict if they
+        # match)
+        self._realize_regexp_transforms(table_name, containers)
+
         # create pytables schema description for the given container
         pos = 0
         for container in containers:
 
             container.validate()  # ensure the data are complete
 
-            for col_name, value in container.items(add_prefix=self.add_prefix):
-
-                typename = ""
-                shape = 1
-
-                if self._is_column_excluded(table_name, col_name):
-                    self.log.debug(f"excluded column: {table_name}/{col_name}")
-                    continue
-
-                if col_name in Schema.columns:
-                    self.log.warning(f"Found duplicated column {col_name}, skipping")
-                    continue
-
-                # apply any user-defined transforms first
-                value = self._apply_col_transform(table_name, col_name, value)
-
-                if isinstance(value, enum.Enum):
-                    tr = EnumColumnTransform(enum=value.__class__)
-                    value = tr(value)
-                    self.add_column_transform(table_name, col_name, tr)
-
-                if isinstance(value, Quantity):
-                    if self.add_prefix and container.prefix:
-                        key = col_name.replace(container.prefix + "_", "")
-                    else:
-                        key = col_name
-
-                    unit = container.fields[key].unit or value.unit
-                    tr = QuantityColumnTransform(unit=unit)
-                    value = tr(value)
-                    self.add_column_transform(table_name, col_name, tr)
-
-                if isinstance(value, np.ndarray):
-                    typename = value.dtype.name
-                    coltype = PYTABLES_TYPE_MAP[typename]
-                    shape = value.shape
-                    Schema.columns[col_name] = coltype(shape=shape, pos=pos)
-
-                elif isinstance(value, Time):
-                    # TODO: really should use MET, but need a func for that
-                    Schema.columns[col_name] = tables.Float64Col(pos=pos)
-                    tr = TimeColumnTransform(scale="tai", format="mjd")
-                    self.add_column_transform(table_name, col_name, tr)
-
-                elif type(value).__name__ in PYTABLES_TYPE_MAP:
-                    typename = type(value).__name__
-                    coltype = PYTABLES_TYPE_MAP[typename]
-                    Schema.columns[col_name] = coltype(pos=pos)
-                else:
-                    self.log.warning(
-                        f"Column {col_name} of "
-                        f"container {container.__class__.__name__} in "
-                        f"table {table_name} not writable, skipping"
+            it = zip(
+                container.items(add_prefix=self.add_prefix), container.fields.values()
+            )
+            for (col_name, value), field in it:
+                try:
+                    self._add_column_to_schema(
+                        table_name=table_name,
+                        schema=Schema,
+                        meta=meta,
+                        pos=pos,
+                        field=field,
+                        name=col_name,
+                        value=value,
                     )
-                    continue
-
-                # add meta fields of transform
-                transform = self._transforms[table_name].get(col_name)
-                if transform is not None:
-                    if hasattr(transform, "get_meta"):
-                        meta.update(transform.get_meta(col_name))
-
-                pos += 1
-
-                # add desription to metadata
-                if self.add_prefix:
-                    meta[f"{col_name}_DESC"] = container.fields[
-                        re.sub(f"^{container.prefix}_", "", col_name)
-                    ].description
-                else:
-                    meta[f"{col_name}_DESC"] = container.fields[col_name].description
-
-                self.log.debug(
-                    f"Table {table_name}: "
-                    f"added col: {col_name} type: "
-                    f"{typename} shape: {shape} "
-                    f"with transform: {transform} "
-                )
-
+                    pos += 1
+                except ValueError:
+                    self.log.warning(
+                        f"Column {col_name}"
+                        f" with value {value!r} of type {type(value)} "
+                        f" of container {container.__class__.__name__} in"
+                        f" table {table_name} not writable, skipping"
+                    )
         self._schemas[table_name] = Schema
         meta["CTAPIPE_VERSION"] = ctapipe.__version__
         return meta
@@ -264,8 +283,8 @@ class HDF5TableWriter(TableWriter):
         for container in containers:
             meta.update(container.meta)  # copy metadata from container
 
-        if table_path not in self._h5file:
-            table = self._h5file.create_table(
+        if table_path not in self.h5file:
+            table = self.h5file.create_table(
                 where=table_group,
                 name=table_basename,
                 title="Storage of {}".format(
@@ -279,7 +298,7 @@ class HDF5TableWriter(TableWriter):
             for key, val in meta.items():
                 table.attrs[key] = val
         else:
-            table = self._h5file.get_node(table_path)
+            table = self.h5file.get_node(table_path)
 
         self._tables[table_name] = table
 
@@ -336,7 +355,7 @@ class HDF5TableReader(TableReader):
     """
     Reader that reads a single row of an HDF5 table at once into a Container.
     Simply construct a `HDF5TableReader` with an input HDF5 file,
-    and call the `read(path, container)` method to get a generator that fills
+    and call the `read(path, container) <read>`_ method to get a generator that fills
     the given container with a new row of the table on each access.
 
     Columns in the table are automatically mapped to container fields by
@@ -365,11 +384,13 @@ class HDF5TableReader(TableReader):
             name of hdf5 file or file handle
         kwargs:
             any other arguments that will be passed through to
-            `pytables.open()`.
+            `pytables.file.open_file`.
         """
 
         super().__init__()
         self._tables = {}
+        self._cols_to_read = {}
+        self._missing_cols = {}
         kwargs.update(mode="r")
 
         if isinstance(filename, str) or isinstance(filename, PurePath):
@@ -417,9 +438,9 @@ class HDF5TableReader(TableReader):
             elif attr.endswith("_TIME_SCALE"):
                 colname, _, _ = attr.rpartition("_TIME_SCALE")
                 scale = tab.attrs[attr]
-                format = get_hdf5_attr(tab.attrs, colname + "_TIME_FORMAT", "mjd")
-                tr = TimeColumnTransform(scale=scale, format=format)
-                self.add_column_transform(table_name, colname, tr)
+                time_format = get_hdf5_attr(tab.attrs, colname + "_TIME_FORMAT", "mjd")
+                transform = TimeColumnTransform(scale=scale, format=time_format)
+                self.add_column_transform(table_name, colname, transform)
 
             elif attr.endswith("_TRANSFORM_SCALE"):
                 colname, _, _ = attr.rpartition("_TRANSFORM_SCALE")
@@ -432,6 +453,12 @@ class HDF5TableReader(TableReader):
                     target_dtype=tab.dtype[colname].base,
                 )
                 self.add_column_transform(table_name, colname, tr)
+            elif attr.endswith("_TRANSFORM"):
+                colname, _, _ = attr.rpartition("_TRANSFORM")
+                if tab.attrs[attr] == "string":
+                    maxlen = tab.attrs[f"{colname}_MAXLEN"]
+                    tr = StringTransform(maxlen)
+                    self.add_column_transform(table_name, colname, tr)
 
     def _map_table_to_containers(
         self, table_name, containers, prefixes, ignore_columns
@@ -440,7 +467,10 @@ class HDF5TableReader(TableReader):
         by comparing their names including an optional prefix."""
         tab = self._tables[table_name]
         self._cols_to_read[table_name] = []
+        self._missing_cols[table_name] = []
         for container, prefix in zip(containers, prefixes):
+            self._missing_cols[table_name].append([])
+
             for colname in tab.colnames:
                 if prefix and colname.startswith(prefix):
                     colname_without_prefix = colname[len(prefix) + 1 :]
@@ -466,6 +496,7 @@ class HDF5TableReader(TableReader):
                     colname_with_prefix = colname
 
                 if colname_with_prefix not in self._cols_to_read[table_name]:
+                    self._missing_cols[table_name][-1].append(colname)
                     self.log.warning(
                         f"Table {table_name} is missing column {colname_with_prefix} "
                         f"that is in container {container.__class__.__name__}. "
@@ -526,26 +557,33 @@ class HDF5TableReader(TableReader):
         else:
             tab = self._tables[table_name]
 
-        row_count = 0
+        missing = self._missing_cols[table_name]
 
-        while 1:
-            try:
-                row = tab[row_count]
-            except IndexError:
-                return  # stop generator when done
-            for container, prefix in zip(containers, prefixes):
+        for row_index in range(len(tab)):
+            # looping over table yields Row instances.
+            # __getitem__ just gives plain numpy data
+            row = tab[row_index]
+
+            for container, prefix, missing_cols in zip(containers, prefixes, missing):
                 for fieldname in container.keys():
+
                     if prefix:
                         colname = f"{prefix}_{fieldname}"
                     else:
                         colname = fieldname
+
                     if colname not in self._cols_to_read[table_name]:
                         continue
+
                     container[fieldname] = self._apply_col_transform(
                         table_name, colname, row[colname]
                     )
+
+                # set missing fields to None
+                for fieldname in missing_cols:
+                    container[fieldname] = None
+
             if return_iterable:
                 yield containers
             else:
                 yield containers[0]
-            row_count += 1

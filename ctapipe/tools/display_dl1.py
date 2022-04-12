@@ -4,26 +4,28 @@ Calibrate dl0 data to dl1, and plot the photoelectron images.
 from copy import copy
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from traitlets import Bool, Dict, Int
 
-from ctapipe.calib import CameraCalibrator
-from ctapipe.core import Component, Tool
-from ctapipe.core import traits
-from ctapipe.image.extractor import ImageExtractor
-from ctapipe.io import EventSource
-from ctapipe.io.datalevels import DataLevel
-from ctapipe.utils import get_dataset_path
-from ctapipe.visualization import CameraDisplay
+from ..calib import CameraCalibrator
+from ..core import Component, Tool
+from ..core.traits import Bool, Path, flag, Int, classes_with_traits
+from ..image.extractor import ImageExtractor
+from ..io import EventSource
+from ..io.datalevels import DataLevel
+from ..utils import get_dataset_path
+from ..visualization import CameraDisplay
 
 
 class ImagePlotter(Component):
-    """ Plotter for camera images """
+    """Plotter for camera images"""
 
     display = Bool(
         True, help="Display the photoelectron images on-screen as they are produced."
     ).tag(config=True)
-    output_path = traits.Path(
+
+    output_path = Path(
         directory_ok=False,
+        allow_none=True,
+        default_value=None,
         help=(
             "Output path for the pdf containing all the images."
             " Set to None for no saved output."
@@ -91,7 +93,7 @@ class ImagePlotter(Component):
                 self.cb_intensity = self.c_intensity.colorbar
             else:
                 self.c_intensity.colorbar = self.cb_intensity
-                self.c_intensity.update(True)
+                self.c_intensity.update()
             if not self.cb_peak_time:
                 self.c_peak_time.add_colorbar(
                     ax=self.ax_peak_time, label="Pulse Time (ns)"
@@ -99,7 +101,7 @@ class ImagePlotter(Component):
                 self.cb_peak_time = self.c_peak_time.colorbar
             else:
                 self.c_peak_time.colorbar = self.cb_peak_time
-                self.c_peak_time.update(True)
+                self.c_peak_time.update()
 
         self.c_intensity.image = image
         self.c_peak_time.image = peak_time
@@ -136,23 +138,19 @@ class DisplayDL1Calib(Tool):
         help="Telescope to view. Set to None to display all telescopes.",
     ).tag(config=True)
 
-    aliases = Dict(
-        dict(
-            input="EventSource.input_url",
-            max_events="EventSource.max_events",
-            T="DisplayDL1Calib.telescope",
-            O="ImagePlotter.output_path",
-        )
+    aliases = {
+        ("i", "input"): "EventSource.input_url",
+        ("m", "max-events"): "EventSource.max_events",
+        ("t", "telescope"): "DisplayDL1Calib.telescope",
+        ("o", "output"): "ImagePlotter.output_path",
+    }
+    flags = flag(
+        "display",
+        "ImagePlotter.display",
+        "Display the photo-electron images on-screen as they are produced.",
     )
-    flags = Dict(
-        dict(
-            D=(
-                {"ImagePlotter": {"display": True}},
-                "Display the photo-electron images on-screen as they are produced.",
-            )
-        )
-    )
-    classes = [EventSource, ImagePlotter] + traits.classes_with_traits(ImageExtractor)
+
+    classes = [EventSource, ImagePlotter] + classes_with_traits(ImageExtractor)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

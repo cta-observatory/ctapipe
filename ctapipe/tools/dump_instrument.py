@@ -69,7 +69,7 @@ class DumpInstrumentTool(Tool):
         if format_name == "fits":
             return "fits.gz", dict()
         elif format_name == "ecsv":
-            return "ecsv.txt", dict(format="ascii.ecsv")
+            return "ecsv", dict()
         else:
             raise NameError(f"format {format_name} not supported")
 

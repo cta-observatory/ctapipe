@@ -7,7 +7,7 @@ import pathlib
 import os
 import re
 
-from traitlets import default, TraitError
+from traitlets import default
 from traitlets.config import Application, Configurable
 
 from .. import __version__ as version
@@ -15,6 +15,9 @@ from .traits import Path, Enum, Bool, Dict
 from . import Provenance
 from .component import Component
 from .logging import create_logging_config, ColoredFormatter, DEFAULT_LOGGING
+
+
+__all__ = ["Tool", "ToolConfigurationError"]
 
 
 class CollectTraitWarningsHandler(logging.NullHandler):
@@ -46,19 +49,19 @@ class Tool(Application):
 
     Tool developers should create sub-classes, and a name,
     description, usage examples should be added by defining the
-    `name`, `description` and `examples` class attributes as
-    strings. The `aliases` attribute can be set to cause a lower-level
-    `Component` parameter to become a high-level command-line
-    parameter (See example below). The `setup()`, `start()`, and
-    `finish()` methods should be defined in the sub-class.
+    ``name``, ``description`` and ``examples`` class attributes as
+    strings. The ``aliases`` attribute can be set to cause a lower-level
+    `~ctapipe.core.Component` parameter to become a high-level command-line
+    parameter (See example below). The `setup`, `start`, and
+    `finish` methods should be defined in the sub-class.
 
     Additionally, any `ctapipe.core.Component` used within the `Tool`
-    should have their class in a list in the `classes` attribute,
+    should have their class in a list in the ``classes`` attribute,
     which will automatically add their configuration parameters to the
     tool.
 
     Once a tool is constructed and the virtual methods defined, the
-    user can call the `run()` method to setup and start it.
+    user can call the `run` method to setup and start it.
 
 
     .. code:: python
@@ -80,11 +83,11 @@ class Tool(Application):
                                  allow_none=False).tag(config=True)
 
             def setup_comp(self):
-                self.comp = MyComponent(self, config=self.config)
-                self.comp2 = SecondaryMyComponent(self, config=self.config)
+                self.comp = MyComponent(self, parent=self)
+                self.comp2 = SecondaryMyComponent(self, parent=self)
 
             def setup_advanced(self):
-                self.advanced = AdvancedComponent(self, config=self.config)
+                self.advanced = AdvancedComponent(self, parent=self)
 
             def setup(self):
                 self.setup_comp()
@@ -110,15 +113,17 @@ class Tool(Application):
            main()
 
 
-    If this `main()` method is registered in `setup.py` under
+    If this ``main()`` function is registered in ``setup.py`` under
     *entry_points*, it will become a command-line tool (see examples
-    in the `ctapipe/tools` subdirectory).
+    in the ``ctapipe/tools`` subdirectory).
 
     """
 
     config_file = Path(
         exists=True,
         directory_ok=False,
+        allow_none=True,
+        default_value=None,
         help=(
             "name of a configuration file with "
             "parameters to load in addition to "
@@ -128,7 +133,11 @@ class Tool(Application):
 
     log_config = Dict(default_value=DEFAULT_LOGGING).tag(config=True)
     log_file = Path(
-        default_value=None, exists=None, directory_ok=False, help="Filename for the log"
+        default_value=None,
+        exists=None,
+        directory_ok=False,
+        help="Filename for the log",
+        allow_none=True,
     ).tag(config=True)
     log_file_level = Enum(
         values=Application.log_level.values,
@@ -149,14 +158,20 @@ class Tool(Application):
         # make sure there are some default aliases in all Tools:
         super().__init__(**kwargs)
         aliases = {
-            "config": "Tool.config_file",
+            ("c", "config"): "Tool.config_file",
             "log-level": "Tool.log_level",
             ("l", "log-file"): "Tool.log_file",
             "log-file-level": "Tool.log_file_level",
         }
-        self.aliases.update(aliases)
+        # makes sure user defined aliases override default aliases
+        self.aliases = {**aliases, **self.aliases}
+
         flags = {
-            ("q", "quiet"): ({"Tool": {"quiet": True}}, "Disable console logging.")
+            ("q", "quiet"): ({"Tool": {"quiet": True}}, "Disable console logging."),
+            ("v", "verbose"): (
+                {"Tool": {"log_level": "DEBUG"}},
+                "Set log level to DEBUG",
+            ),
         }
         self.flags.update(flags)
 
@@ -233,20 +248,20 @@ class Tool(Application):
     @abstractmethod
     def setup(self):
         """set up the tool (override in subclass). Here the user should
-        construct all `Components` and open files, etc."""
+        construct all ``Components`` and open files, etc."""
         pass
 
     @abstractmethod
     def start(self):
         """main body of tool (override in subclass). This is  automatically
-        called after `initialize()` when the `run()` is called.
+        called after `Tool.initialize` when the `Tool.run` is called.
         """
         pass
 
     @abstractmethod
     def finish(self):
         """finish up (override in subclass). This is called automatically
-        after `start()` when `run()` is called."""
+        after `Tool.start` when `Tool.run` is called."""
         self.log.info("Goodbye")
 
     def run(self, argv=None):
@@ -277,7 +292,7 @@ class Tool(Application):
 
             # check for any traitlets warnings using our custom handler
             if len(self.trait_warning_handler.errors) > 0:
-                raise ToolConfigurationError(f"Found config errors")
+                raise ToolConfigurationError("Found config errors")
 
             # remove handler to not impact performance with regex matching
             self.log.removeHandler(self.trait_warning_handler)
@@ -344,6 +359,11 @@ class Tool(Application):
             "<table>",
         ]
         for key, val in self.get_current_config()[name].items():
+            # after running setup, also the subcomponents are in the current config
+            # which are not in traits
+            if key not in traits:
+                continue
+
             default = traits[key].default_value
             thehelp = f"{traits[key].help} (default: {default})"
             lines.append(f"<tr><th>{key}</th>")
@@ -352,6 +372,7 @@ class Tool(Application):
             else:
                 lines.append(f"<td>{val}</td>")
             lines.append(f'<td style="text-align:left"><i>{thehelp}</i></td></tr>')
+
         lines.append("</table>")
         lines.append("<p><i>Components:</i>")
         lines.append(", ".join([x.__name__ for x in self.classes]))

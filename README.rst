@@ -21,6 +21,8 @@ ctapipe |ci| |codacy| |coverage| |conda| |doilatest|
    :target: https://doi.org/10.5281/zenodo.4084989
 .. |doiv010| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4581045.svg
    :target: https://doi.org/10.5281/zenodo.4581045
+.. |doiv011| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4746317.svg
+   :target: https://doi.org/10.5281/zenodo.4746317
 
 Low-level data processing pipeline software for
 `CTA <www.cta-observatory.org>`_ (the Cherenkov Telescope Array)
@@ -30,13 +32,14 @@ development. It is not recommended for production use unless you are an
 expert or developer!
 
 * Code: https://github.com/cta-observatory/ctapipe
-* Docs: https://cta-observatory.github.io/ctapipe/
+* Docs: https://ctapipe.readthedocs.io/
 * Slack: Contact Karl Kosack for invite
 
 Citing this software
 --------------------
 If you use this software for a publication, please cite the proper version using the following DOIs:
 
+- v0.11.0 : |doiv011|
 - v0.10.5 : |doiv010|
 - v0.9.1 : |doiv09|
 - v0.8.0 : |doiv08|
@@ -54,11 +57,17 @@ environment (this is optional).
 The following command will set up a conda virtual environment, add the
 necessary package channels, and install ctapipe specified version and its dependencies::
 
-  CTAPIPE_VER=0.10.5
-  wget https://raw.githubusercontent.com/cta-observatory/ctapipe/v$CTAPIPE_VER/environment.yml
-  conda env create -n cta -f environment.yml
-  conda activate cta
-  conda install -c conda-forge ctapipe=$CTAPIPE_VER
+    CTAPIPE_VER=0.11.0
+    wget https://raw.githubusercontent.com/cta-observatory/ctapipe/v$CTAPIPE_VER/environment.yml
+    conda env create -n cta -f environment.yml
+    conda activate cta
+    conda install -c conda-forge ctapipe=$CTAPIPE_VER
+
+
+**Note**: To prevent packages you installed with `pip install --user` from taking precedence over the conda environment, run::
+
+    conda env config vars set PYTHONNOUSERSITE=1 -n cta
+
   
 **Note**: this environment contains many useful packages that are not strictly requirements of ctapipe.
 To get only ctapipe and its direct dependencies, just do ``conda install -c conda-forge ctapipe[=<version>]`` in an environment

@@ -20,15 +20,15 @@ class ArrayDisplay:
     telescopes in the subarray, colored by telescope type, however you can
     also color the telescopes by a value (like trigger pattern, or some other
     scalar per-telescope parameter). To set the color value, simply set the
-    `value` attribute, and the fill color will be updated with the value. You
+    ``value`` attribute, and the fill color will be updated with the value. You
     might want to set the border color to zero to avoid confusion between the
     telescope type color and the value color (
-    `array_disp.telescope.set_linewidth(0)`)
+    ``array_disp.telescope.set_linewidth(0)``)
 
     To display a vector field over the telescope positions, e.g. for
-    reconstruction, call `set_uv()` to set cartesian vectors, or `set_r_phi()`
-    to set polar coordinate vectors.  These both take an array of length
-    N_tels, or a single value.
+    reconstruction, call `set_vector_uv()` to set cartesian vectors,
+    or `set_vector_rho_phi()` to set polar coordinate vectors.
+    These both take an array of length N_tels, or a single value.
 
 
     Parameters
@@ -202,7 +202,9 @@ class ArrayDisplay:
         uu, vv = polar_to_cart(rho, phi)
         self.set_vector_uv(uu, vv, c=c, **kwargs)
 
-    def set_vector_hillas(self, hillas_dict, length, time_gradient, angle_offset):
+    def set_vector_hillas(
+        self, hillas_dict, core_dict, length, time_gradient, angle_offset
+    ):
         """
         Function to set the vector angle and length from a set of Hillas parameters.
 
@@ -218,12 +220,14 @@ class ArrayDisplay:
         ----------
         hillas_dict: Dict[int, HillasParametersContainer]
             mapping of tel_id to Hillas parameters
+        core_dict : Dict[int, CoreParameters]
+            mapping of tel_id to CoreParametersContainer
         length: Float
             length of the arrow (in meters)
         time_gradient: Dict[int, value of time gradient (no units)]
             dictionary for value of the time gradient for each telescope
         angle_offset: Float
-            This should be the `event.pointing.array_azimuth` parameter
+            This should be the ``event.pointing.array_azimuth`` parameter
 
         """
 
@@ -232,30 +236,35 @@ class ArrayDisplay:
         rot_angle_ellipse = np.zeros(self.subarray.num_tels) * u.deg
 
         for tel_id, params in hillas_dict.items():
+
             idx = self.subarray.tel_indices[tel_id]
             rho[idx] = u.Quantity(length, u.m)
 
+            psi = core_dict[tel_id]
+
             if time_gradient[tel_id] > 0.01:
-                params.psi = Angle(params.psi)
                 angle_offset = Angle(angle_offset)
-                rot_angle_ellipse[idx] = params.psi + angle_offset + 180 * u.deg
+                rot_angle_ellipse[idx] = psi + angle_offset + 180 * u.deg
             elif time_gradient[tel_id] < -0.01:
-                rot_angle_ellipse[idx] = params.psi + angle_offset
+                rot_angle_ellipse[idx] = psi + angle_offset
             else:
                 rho[idx] = 0 * u.m
 
         self.set_vector_rho_phi(rho=rho, phi=rot_angle_ellipse)
 
-    def set_line_hillas(self, hillas_dict, range, **kwargs):
+    def set_line_hillas(self, hillas_dict, core_dict, range, **kwargs):
         """
-        Function to plot a segment of length 2*range for each telescope from a set of Hillas parameters.
-        The segment is centered on the telescope position.
-        A point is added at each telescope position for better visualization.
+        Plot the telescope-wise direction of the shower as a segment.
+
+        Each segment will be centered with a point on the telescope position
+        and will be 2*range long.
 
         Parameters
         ----------
         hillas_dict: Dict[int, HillasParametersContainer]
             mapping of tel_id to Hillas parameters
+        core_dict : Dict[int, CoreParameters]
+            mapping of tel_id to CoreParametersContainer
         range: float
             half of the length of the segments to be plotted (in meters)
         """
@@ -264,12 +273,16 @@ class ArrayDisplay:
         c = self.tel_colors
 
         r = np.array([-range, range])
+
         for tel_id, params in hillas_dict.items():
             idx = self.subarray.tel_indices[tel_id]
             x_0 = coords[idx].x.to_value(u.m)
             y_0 = coords[idx].y.to_value(u.m)
-            x = x_0 + np.cos(params.psi) * r
-            y = y_0 + np.sin(params.psi) * r
+
+            psi = core_dict[tel_id]
+
+            x = x_0 + np.cos(psi).value * r
+            y = y_0 + np.sin(psi).value * r
             self.axes.plot(x, y, color=c[idx], **kwargs)
             self.axes.scatter(x_0, y_0, color=c[idx])
 

@@ -1,7 +1,7 @@
 from collections import OrderedDict
 import numpy as np
 from pytest import raises, warns
-from ctapipe.utils.CutFlow import CutFlow, UndefinedCut, PureCountingCut
+from ctapipe.utils.cutflow import CutFlow, UndefinedCut, PureCountingCut
 
 
 def smaller2(x):
