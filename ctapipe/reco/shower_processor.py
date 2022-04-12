@@ -42,14 +42,6 @@ class ShowerProcessor(Component):
     classification.
     """
 
-    min_multiplicity = Int(
-        default_value=2,
-        help=(
-            "Minimum number of telescopes fullfilling quality criteria needed"
-            "to perform stereo reconstruction",
-        ),
-    ).tag(config=True)
-
     def __init__(
         self, subarray: SubarrayDescription, config=None, parent=None, **kwargs
     ):
@@ -104,15 +96,12 @@ class ShowerProcessor(Component):
         }
         self.log.debug("shower_criteria:\n %s", self.check_shower)
 
-        # Reconstruct the shower only if all shower criteria are met
-        if len(hillas_dict) >= self.min_multiplicity:
+        # Reconstruct the shower only if we have at least two images that
+        # meet all shower criteria
+        if len(hillas_dict) >= 2:
             self.reconstructor(event)
         else:
-            self.log.debug(
-                """Less than %d images passed the quality cuts.
-                Returning default ReconstructedGeometryContainer container""",
-                self.min_multiplicity
-            )
+            self.log.debug("Less than 2 images passed the quality cuts")
             event.dl2.stereo.geometry["HillasReconstructor"] = default
 
     def process_shower_geometry(self, event: ArrayEventContainer):
