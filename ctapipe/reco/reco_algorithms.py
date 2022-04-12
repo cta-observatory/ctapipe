@@ -1,4 +1,4 @@
-from ctapipe.core import TelescopeComponent, QualityQuery
+from ctapipe.core import Component, QualityQuery
 from ctapipe.containers import ReconstructedGeometryContainer, ArrayEventContainer
 from abc import abstractmethod
 
@@ -15,11 +15,15 @@ class InvalidWidthException(Exception):
     pass
 
 
-class Reconstructor(TelescopeComponent):
+class Reconstructor(Component):
     """
     This is the base class from which all direction reconstruction
     algorithms should inherit from
     """
+
+    def __init__(self, subarray, **kwargs):
+        super().__init__(**kwargs)
+        self.subarray = subarray
 
     @abstractmethod
     def __call__(self, event: ArrayEventContainer):

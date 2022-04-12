@@ -166,9 +166,8 @@ class HillasReconstructor(Reconstructor):
 
     """
 
-    def __init__(self, subarray, config=None, parent=None, **kwargs):
-        super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
-        self.subarray = subarray
+    def __init__(self, subarray, **kwargs):
+        super().__init__(subarray=subarray, **kwargs)
         self.check_parameters = ShowerQualityQuery(parent=self)
 
         self._cam_radius_m = {

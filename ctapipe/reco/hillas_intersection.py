@@ -73,11 +73,11 @@ class HillasIntersection(Reconstructor):
         ["Konrad", "hess"], default_value="Konrad", help="Weighting Method name"
     ).tag(config=True)
 
-    def __init__(self, subarray, config=None, parent=None, **kwargs):
+    def __init__(self, subarray, **kwargs):
         """
         Weighting must be a function similar to the weight_konrad already implemented
         """
-        super().__init__(subarray, config=config, parent=parent, **kwargs)
+        super().__init__(subarray, **kwargs)
 
         # We need a conversion function from height above ground to depth of maximum
         # To do this we need the conversion table from CORSIKA
