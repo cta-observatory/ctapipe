@@ -575,3 +575,34 @@ class FACTImageCleaner(TailcutsImageCleaner):
             min_number_neighbors=self.min_picture_neighbors.tel[tel_id],
             time_limit=self.time_limit_ns.tel[tel_id],
         )
+
+
+class TimeConstrainedImageCleaner(TailcutsImageCleaner):
+    """
+    MAGIC-like Image cleaner with timing information (See `ctapipe.image.time_constrained_clean`)
+    """
+
+    time_limit_core_ns = FloatTelescopeParameter(
+        default_value=4.5, help="arrival time limit for neighboring " "core pixels, in ns"
+    ).tag(config=True)
+    time_limit_boundary_ns = FloatTelescopeParameter(
+        default_value=1.5, help="arrival time limit for neighboring " "boundary pixels, in ns"
+    ).tag(config=True)
+
+    def __call__(
+        self, tel_id: int, image: np.ndarray, arrival_times=None
+    ) -> np.ndarray:
+        """
+        Apply MAGIC-like image cleaning with timing information. See `ImageCleaner.__call__()`
+        """
+
+        return mars_cleaning_1st_pass(
+            self.subarray.tel[tel_id].camera.geometry,
+            image,
+            arrival_times=arrival_times,
+            picture_thresh=self.picture_threshold_pe.tel[tel_id],
+            boundary_thresh=self.boundary_threshold_pe.tel[tel_id],
+            min_number_picture_neighbors=self.min_picture_neighbors.tel[tel_id],
+            time_limit_core=self.time_limit_core_ns.tel[tel_id],
+            time_limit_boundary=self.time_limit_boundary_ns.tel[tel_id]
+        )
