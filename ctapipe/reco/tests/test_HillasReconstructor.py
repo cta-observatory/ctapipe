@@ -265,7 +265,7 @@ def test_CameraFrame_against_TelescopeFrame(filename):
     # too few events survive for this test with the defautl quality criteria,
     # use less restrictive ones
     config = Config({
-        "ShowerQualityQuery": {
+        "StereoQualityQuery": {
             "quality_criteria": [
                 ("valid_width", "lambda p: p.hillas.width.value > 0"),
             ]

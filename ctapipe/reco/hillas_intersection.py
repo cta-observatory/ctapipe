@@ -15,7 +15,7 @@ from ctapipe.reco.reco_algorithms import (
     Reconstructor,
     InvalidWidthException,
     TooFewTelescopesException,
-    ShowerQualityQuery,
+    StereoQualityQuery,
 )
 from ctapipe.containers import (
     ReconstructedGeometryContainer,
@@ -88,16 +88,22 @@ class HillasIntersection(Reconstructor):
         if self.weighting == "Konrad":
             self._weight_method = self.weight_konrad
 
-        self.check_parameters = ShowerQualityQuery(parent=self)
-
 
     def __call__(self, event):
-        hillas_dict = {
-            tel_id: dl1.parameters.hillas
-            for tel_id, dl1 in event.dl1.tel.items()
-            if all(self.check_parameters(dl1.parameters))
-        }
+        '''
+        Perform stereo reconstruction on event.
 
+        Parameters
+        ----------
+        event: `ctapipe.containers.ArrayEventContainer`
+            The event, needs to have dl1 parameters
+
+        Returns
+        -------
+        ReconstructedGeometryContainer
+        '''
+        
+        hillas_dict = self._create_hillas_dict(event)
         if len(hillas_dict) < 2:
             return INVALID
 
@@ -108,14 +114,7 @@ class HillasIntersection(Reconstructor):
             frame=AltAz(),
         )
 
-        telescope_pointings = {
-            tel_id: SkyCoord(
-                alt=event.pointing.tel[tel_id].altitude,
-                az=event.pointing.tel[tel_id].azimuth,
-                frame=AltAz(),
-            )
-            for tel_id in event.dl1.tel.keys()
-        }
+        telescope_pointings = self._get_telescope_pointings(event)
 
         try:
             return self.predict(

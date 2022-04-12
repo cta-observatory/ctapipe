@@ -6,7 +6,7 @@ and core position of a shower.
 from ctapipe.reco.reco_algorithms import (
     Reconstructor,
     InvalidWidthException,
-    ShowerQualityQuery,
+    StereoQualityQuery,
 )
 from ctapipe.containers import (
     ReconstructedGeometryContainer,
@@ -167,8 +167,6 @@ class HillasReconstructor(Reconstructor):
 
     def __init__(self, subarray, **kwargs):
         super().__init__(subarray=subarray, **kwargs)
-        self.check_parameters = ShowerQualityQuery(parent=self)
-
         self._cam_radius_m = {
             cam: cam.geometry.guess_radius() for cam in subarray.camera_types
         }
@@ -188,13 +186,12 @@ class HillasReconstructor(Reconstructor):
         ----------
         event : container
             `ctapipe.containers.ArrayEventContainer`
-        """
-        hillas_dict = {
-            tel_id: dl1.parameters.hillas
-            for tel_id, dl1 in event.dl1.tel.items()
-            if all(self.check_parameters(dl1.parameters))
-        }
 
+        Returns
+        -------
+        ReconstructedGeometryContainer
+        """
+        hillas_dict = self._create_hillas_dict(event)
         if len(hillas_dict) < 2:
             return INVALID
 
