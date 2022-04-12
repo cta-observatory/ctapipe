@@ -20,7 +20,6 @@ def test_intersect():
     Simple test to check the intersection of lines. Try to intersect positions at (0,1) and (1,0)
     with angles perpendicular and test they cross at (0,0)
     """
-    hill = HillasIntersection()
     x1 = 0
     y1 = 1
     theta1 = 90 * u.deg
@@ -29,7 +28,7 @@ def test_intersect():
     y2 = 0
     theta2 = 0 * u.deg
 
-    sx, sy = hill.intersect_lines(x1, y1, theta1, x2, y2, theta2)
+    sx, sy = HillasIntersection.intersect_lines(x1, y1, theta1, x2, y2, theta2)
 
     assert_allclose(sx, 0, atol=1e-6)
     assert_allclose(sy, 0, atol=1e-6)
@@ -40,7 +39,6 @@ def test_parallel():
     Simple test to check the intersection of lines. Try to intersect positions at (0,0) and (0,1)
     with angles parallel and check the behaviour
     """
-    hill = HillasIntersection()
     x1 = 0
     y1 = 0
     theta1 = 0 * u.deg
@@ -49,29 +47,29 @@ def test_parallel():
     y2 = 0
     theta2 = 0 * u.deg
 
-    sx, sy = hill.intersect_lines(x1, y1, theta1, x2, y2, theta2)
+    sx, sy = HillasIntersection.intersect_lines(x1, y1, theta1, x2, y2, theta2)
     assert_allclose(sx, np.nan, atol=1e-6)
     assert_allclose(sy, np.nan, atol=1e-6)
 
 
-def test_intersection_xmax_reco():
+def test_intersection_xmax_reco(example_subarray):
     """
     Test the reconstruction of xmax with two LSTs that are pointing at zenith = 0.
     The telescopes are places along the x and y axis at the same distance from the center.
     The impact point is hard-coded to be happening in the center of this cartesian system.
     """
-    hill_inter = HillasIntersection()
+    hill_inter = HillasIntersection(subarray=example_subarray)
 
-    horizon_frame = AltAz()
+    altaz = AltAz()
     zen_pointing = 10 * u.deg
 
     array_direction = SkyCoord(
-        alt=90 * u.deg - zen_pointing, az=0 * u.deg, frame=horizon_frame
+        alt=90 * u.deg - zen_pointing, az=0 * u.deg, frame=altaz
     )
     nom_frame = NominalFrame(origin=array_direction)
 
     source_sky_pos_reco = SkyCoord(
-        alt=90 * u.deg - zen_pointing, az=0 * u.deg, frame=horizon_frame
+        alt=90 * u.deg - zen_pointing, az=0 * u.deg, frame=altaz
     )
 
     nom_pos_reco = source_sky_pos_reco.transform_to(nom_frame)
@@ -106,13 +104,13 @@ def test_intersection_xmax_reco():
     print(x_max)
 
 
-def test_intersection_reco_impact_point_tilted():
+def test_intersection_reco_impact_point_tilted(example_subarray):
     """
     Function to test the reconstruction of the impact point in the tilted frame.
     This is done using a squared configuration, of which the impact point occupies a vertex,
     ad the three telescopes the other three vertices.
     """
-    hill_inter = HillasIntersection()
+    hill_inter = HillasIntersection(example_subarray)
 
     delta = 100 * u.m
     tel_x_dict = {1: delta, 2: -delta, 3: -delta}
@@ -132,11 +130,11 @@ def test_intersection_reco_impact_point_tilted():
     np.testing.assert_allclose(reco_konrad[1], -delta.to_value(u.m), atol=1e-8)
 
 
-def test_intersection_weighting_spoiled_parameters():
+def test_intersection_weighting_spoiled_parameters(example_subarray):
     """
     Test that the weighting scheme is useful especially when a telescope is 90 deg with respect to the other two
     """
-    hill_inter = HillasIntersection()
+    hill_inter = HillasIntersection(example_subarray)
 
     delta = 100 * u.m
     tel_x_dict = {1: delta, 2: -delta, 3: -delta}
@@ -157,13 +155,13 @@ def test_intersection_weighting_spoiled_parameters():
     np.testing.assert_allclose(reco_konrad_spoiled[1], -delta.to_value(u.m), atol=1e-1)
 
 
-def test_intersection_nominal_reconstruction():
+def test_intersection_nominal_reconstruction(example_subarray):
     """
     Testing the reconstruction of the position in the nominal frame with a three-telescopes system.
     This is done using a squared configuration, of which the impact point occupies a vertex,
     ad the three telescopes the other three vertices.
     """
-    hill_inter = HillasIntersection()
+    hill_inter = HillasIntersection(example_subarray)
 
     delta = 1.0 * u.m
     horizon_frame = AltAz()
@@ -227,7 +225,7 @@ def test_intersection_nominal_reconstruction():
     )
 
 
-def test_reconstruction():
+def test_reconstruction(example_subarray):
     """
     a test of the complete fit procedure on one event including:
     • tailcut cleaning
@@ -239,7 +237,7 @@ def test_reconstruction():
 
     filename = get_dataset_path("gamma_test_large.simtel.gz")
 
-    fit = HillasIntersection()
+    fit = HillasIntersection(example_subarray)
 
     source = EventSource(filename, max_events=10)
     calib = CameraCalibrator(source.subarray)
@@ -301,7 +299,7 @@ def test_reconstruction():
 
 def test_reconstruction_works(subarray_and_event_gamma_off_axis_500_gev):
     subarray, event = subarray_and_event_gamma_off_axis_500_gev
-    reconstructor = HillasIntersection()
+    reconstructor = HillasIntersection(subarray)
 
     array_pointing = SkyCoord(
         az=event.pointing.array_azimuth,
@@ -340,7 +338,7 @@ def test_selected_subarray(subarray_and_event_gamma_off_axis_500_gev):
     # with arbirary telescope ids
     subarray = subarray.select_subarray([1, 4])
 
-    reconstructor = HillasIntersection()
+    reconstructor = HillasIntersection(subarray)
     array_pointing = SkyCoord(
         az=event.pointing.array_azimuth,
         alt=event.pointing.array_altitude,

@@ -1,5 +1,8 @@
-from ctapipe.core import Component
-from ctapipe.containers import ReconstructedGeometryContainer
+from ctapipe.core import TelescopeComponent, QualityQuery
+from ctapipe.containers import ReconstructedGeometryContainer, ArrayEventContainer
+from abc import abstractmethod
+
+from ctapipe.core.traits import List
 
 __all__ = ["Reconstructor", "TooFewTelescopesException", "InvalidWidthException"]
 
@@ -12,19 +15,14 @@ class InvalidWidthException(Exception):
     pass
 
 
-class Reconstructor(Component):
+class Reconstructor(TelescopeComponent):
     """
     This is the base class from which all direction reconstruction
     algorithms should inherit from
     """
 
-    def __init__(self, *args, **kwargs):
-        """
-        Create a new instance of ImPACTReconstructor
-        """
-        super().__init__(*args, **kwargs)
-
-    def predict(self, tels_dict):
+    @abstractmethod
+    def __call__(self, event: ArrayEventContainer):
         """overwrite this method with your favourite direction reconstruction
         algorithm
 
@@ -39,3 +37,16 @@ class Reconstructor(Component):
 
         """
         return ReconstructedGeometryContainer()
+
+
+class ShowerQualityQuery(QualityQuery):
+    """Configuring shower-wise data checks."""
+
+    quality_criteria = List(
+        default_value=[
+            ("> 50 phe", "lambda p: p.hillas.intensity > 50"),
+            ("Positive width", "lambda p: p.hillas.width.value > 0"),
+            ("> 3 pixels", "lambda p: p.morphology.num_pixels > 3"),
+        ],
+        help=QualityQuery.quality_criteria.help,
+    ).tag(config=True)

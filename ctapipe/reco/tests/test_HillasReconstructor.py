@@ -3,7 +3,12 @@ import numpy as np
 from astropy import units as u
 import pytest
 
-from ctapipe.containers import ImageParametersContainer, HillasParametersContainer
+from traitlets.config import Config
+from ctapipe.containers import (
+    ImageParametersContainer,
+    HillasParametersContainer,
+    ReconstructedGeometryContainer,
+)
 from ctapipe.instrument import SubarrayDescription, TelescopeDescription
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
@@ -229,9 +234,7 @@ def test_reconstruction_against_simulation(subarray_and_event_gamma_off_axis_500
             continue
 
     # Get shower geometry
-    reconstructor(event)
-    # get the result from the correct DL2 container
-    result = event.dl2.stereo.geometry["HillasReconstructor"]
+    result = reconstructor(event)
 
     # get the reconstructed coordinates in the sky
     reco_coord = SkyCoord(alt=result.alt, az=result.az, frame=AltAz())
@@ -244,9 +247,13 @@ def test_reconstruction_against_simulation(subarray_and_event_gamma_off_axis_500
     assert reco_coord.separation(true_coord) < 0.1 * u.deg
 
 
-@pytest.mark.parametrize("filename", 
-                         ["gamma_divergent_LaPalma_baseline_20Zd_180Az_prod3_test.simtel.gz",
-                         "gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"])
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "gamma_divergent_LaPalma_baseline_20Zd_180Az_prod3_test.simtel.gz",
+        "gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"
+    ]
+)
 def test_CameraFrame_against_TelescopeFrame(filename):
 
     input_file = get_dataset_path(
@@ -255,8 +262,18 @@ def test_CameraFrame_against_TelescopeFrame(filename):
 
     source = SimTelEventSource(input_file, max_events=10)
 
+    # too few events survive for this test with the defautl quality criteria,
+    # use less restrictive ones
+    config = Config({
+        "ShowerQualityQuery": {
+            "quality_criteria": [
+                ("valid_width", "lambda p: p.hillas.width.value > 0"),
+            ]
+        }
+    })
+
     calib = CameraCalibrator(subarray=source.subarray)
-    reconstructor = HillasReconstructor(source.subarray)
+    reconstructor = HillasReconstructor(source.subarray, config=config)
 
     reconstructed_events = 0
 
@@ -320,23 +337,17 @@ def test_CameraFrame_against_TelescopeFrame(filename):
                 print(e)
                 continue
 
-        if (len(hillas_dict_camera_frame) > 2) and (len(hillas_dict_telescope_frame) > 2):
-            reconstructor(event_camera_frame)
-            reconstructor(event)
+        result_camera_frame = reconstructor(event_camera_frame)
+        result_telescope_frame = reconstructor(event)
+
+        assert result_camera_frame.is_valid == result_telescope_frame.is_valid
+
+        if result_telescope_frame.is_valid:
             reconstructed_events += 1
-        else:  # this event was not good enough to be tested on
-            continue
 
-        # Compare old approach with new approach
-        result_camera_frame = event_camera_frame.dl2.stereo.geometry["HillasReconstructor"]
-        result_telescope_frame = event.dl2.stereo.geometry["HillasReconstructor"]
-
-        assert result_camera_frame.is_valid
-        assert result_telescope_frame.is_valid
-
-        for field in event.dl2.stereo.geometry["HillasReconstructor"].as_dict():
-            C = np.asarray(result_camera_frame.as_dict()[field])
-            T = np.asarray(result_telescope_frame.as_dict()[field])
-            assert (np.isclose(C, T, rtol=1e-03, atol=1e-03, equal_nan=True)).all()
+            for field in ReconstructedGeometryContainer().keys():
+                C = np.asarray(result_camera_frame.as_dict()[field])
+                T = np.asarray(result_telescope_frame.as_dict()[field])
+                assert (np.isclose(C, T, rtol=1e-03, atol=1e-03, equal_nan=True)).all()
 
     assert reconstructed_events > 0 # check that we reconstruct at least 1 event

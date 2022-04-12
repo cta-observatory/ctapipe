@@ -7,40 +7,26 @@ This processor will be able to process a shower/event in 3 steps:
 - estimation of classification (optional, currently unavailable)
 
 """
-from ctapipe.core import Component, QualityQuery
-from ctapipe.core.traits import Int, List
-from ctapipe.containers import ArrayEventContainer, ReconstructedGeometryContainer
+from ctapipe.core import Component
+from ctapipe.core.traits import create_class_enum_trait
+from ctapipe.containers import ArrayEventContainer
 from ctapipe.instrument import SubarrayDescription
-from ctapipe.reco import HillasReconstructor
-
-
-DEFAULT_SHOWER_PARAMETERS = ReconstructedGeometryContainer(tel_ids=[])
-
-
-class ShowerQualityQuery(QualityQuery):
-    """Configuring shower-wise data checks."""
-
-    quality_criteria = List(
-        default_value=[
-            ("> 50 phe", "lambda p: p.hillas.intensity > 50"),
-            ("Positive width", "lambda p: p.hillas.width.value > 0"),
-            ("> 3 pixels", "lambda p: p.morphology.num_pixels > 3"),
-        ],
-        help=QualityQuery.quality_criteria.help,
-    ).tag(config=True)
+from ctapipe.reco import Reconstructor
 
 
 class ShowerProcessor(Component):
     """
-    Needs DL1_PARAMETERS as input.
-    Should be run after ImageProcessor which produces such information.
+    Run the stereo event reconstruction on the input events.
 
-    For the moment it only supports the reconstruction of the shower geometry
-    using ctapipe.reco.HillasReconstructor.
+    This is mainly needed, so that the type of reconstructor can be chosen
+    via the configuration system.
 
-    It is planned to support also energy reconstruction and particle type
-    classification.
+    Input events must already contain dl1 parameters.
     """
+    reconstructor_type = create_class_enum_trait(
+        Reconstructor, default_value="HillasReconstructor",
+        help="The stereo geometry reconstructor to be used",
+    )
 
     def __init__(
         self, subarray: SubarrayDescription, config=None, parent=None, **kwargs
@@ -63,54 +49,10 @@ class ShowerProcessor(Component):
 
         super().__init__(config=config, parent=parent, **kwargs)
         self.subarray = subarray
-        self.check_shower = ShowerQualityQuery(parent=self)
-        self.reconstructor = HillasReconstructor(self.subarray)
-
-    def reconstruct_geometry(self, event, default=DEFAULT_SHOWER_PARAMETERS):
-        """Perform shower reconstruction.
-
-        Parameters
-        ----------
-        event : container
-            A ``ctapipe`` event container
-        default: container
-            The default 'ReconstructedGeometryContainer' which is
-            filled with NaNs.
-        Returns
-        -------
-        ReconstructedGeometryContainer:
-            direction in the sky with uncertainty,
-            core position on the ground with uncertainty,
-            h_max with uncertainty,
-            is_valid boolean for successfull reconstruction,
-            average intensity of the intensities used for reconstruction,
-            measure of algorithm success (if fit),
-            list of tel_ids used if stereo, or None if Mono
-        """
-
-        # Select only images which pass the shower quality criteria
-        hillas_dict = {
-            tel_id: dl1.parameters.hillas
-            for tel_id, dl1 in event.dl1.tel.items()
-            if all(self.check_shower(dl1.parameters))
-        }
-        self.log.debug("shower_criteria:\n %s", self.check_shower)
-
-        # Reconstruct the shower only if we have at least two images that
-        # meet all shower criteria
-        if len(hillas_dict) >= 2:
-            self.reconstructor(event)
-        else:
-            self.log.debug("Less than 2 images passed the quality cuts")
-            event.dl2.stereo.geometry["HillasReconstructor"] = default
-
-    def process_shower_geometry(self, event: ArrayEventContainer):
-        """Record the reconstructed shower geometry into the ArrayEventContainer."""
-
-        self.reconstruct_geometry(event)
-
-        self.log.debug(
-            "shower geometry:\n %s", event.dl2.stereo.geometry["HillasReconstructor"]
+        self.reconstructor = Reconstructor.from_name(
+            self.reconstructor_type,
+            subarray=self.subarray,
+            parent=self,
         )
 
     def __call__(self, event: ArrayEventContainer):
@@ -125,6 +67,5 @@ class ShowerProcessor(Component):
         event : ctapipe.containers.ArrayEventContainer
             Top-level container for all event information.
         """
-
-        # This is always done when calling the ShowerProcessor
-        self.process_shower_geometry(event)
+        k = self.reconstructor_type
+        event.dl2.stereo.geometry[k] = self.reconstructor(event)

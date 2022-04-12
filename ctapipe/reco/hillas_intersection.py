@@ -15,6 +15,7 @@ from ctapipe.reco.reco_algorithms import (
     Reconstructor,
     InvalidWidthException,
     TooFewTelescopesException,
+    ShowerQualityQuery,
 )
 from ctapipe.containers import (
     ReconstructedGeometryContainer,
@@ -23,7 +24,7 @@ from ctapipe.containers import (
 )
 from ctapipe.instrument import get_atmosphere_profile_functions
 
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, AltAz
 from ctapipe.coordinates import (
     NominalFrame,
     CameraFrame,
@@ -37,6 +38,9 @@ import warnings
 from ctapipe.core import traits
 
 __all__ = ["HillasIntersection"]
+
+
+INVALID = ReconstructedGeometryContainer()
 
 
 class HillasIntersection(Reconstructor):
@@ -69,11 +73,11 @@ class HillasIntersection(Reconstructor):
         ["Konrad", "hess"], default_value="Konrad", help="Weighting Method name"
     ).tag(config=True)
 
-    def __init__(self, config=None, parent=None, **kwargs):
+    def __init__(self, subarray, config=None, parent=None, **kwargs):
         """
         Weighting must be a function similar to the weight_konrad already implemented
         """
-        super().__init__(config=config, parent=parent, **kwargs)
+        super().__init__(subarray, config=config, parent=parent, **kwargs)
 
         # We need a conversion function from height above ground to depth of maximum
         # To do this we need the conversion table from CORSIKA
@@ -83,6 +87,43 @@ class HillasIntersection(Reconstructor):
         # other weighting schemes can be implemented. just add them as additional methods
         if self.weighting == "Konrad":
             self._weight_method = self.weight_konrad
+
+        self.check_parameters = ShowerQualityQuery(parent=self)
+
+
+    def __call__(self, event):
+        hillas_dict = {
+            tel_id: dl1.parameters.hillas
+            for tel_id, dl1 in event.dl1.tel.items()
+            if all(self.check_parameters(dl1.parameters))
+        }
+
+        if len(hillas_dict) < 2:
+            return INVALID
+
+        # Due to tracking the pointing of the array will never be a constant
+        array_pointing = SkyCoord(
+            az=event.pointing.array_azimuth,
+            alt=event.pointing.array_altitude,
+            frame=AltAz(),
+        )
+
+        telescope_pointings = {
+            tel_id: SkyCoord(
+                alt=event.pointing.tel[tel_id].altitude,
+                az=event.pointing.tel[tel_id].azimuth,
+                frame=AltAz(),
+            )
+            for tel_id in event.dl1.tel.keys()
+        }
+
+        try:
+            return self.predict(
+                hillas_dict, self.subarray, array_pointing, telescope_pointings
+            )
+        except InvalidWidthException:
+            return INVALID
+
 
     def predict(self, hillas_dict, subarray, array_pointing, telescopes_pointings=None):
         """
@@ -115,12 +156,12 @@ class HillasIntersection(Reconstructor):
             )
 
         # check for np.nan or 0 width's as these screw up weights
-        if any([np.isnan(hillas_dict[tel]["width"].value) for tel in hillas_dict]):
+        if any([np.isnan(h.width.value) for h in hillas_dict.values()]):
             raise InvalidWidthException(
                 "A HillasContainer contains an ellipse of width==np.nan"
             )
 
-        if any([hillas_dict[tel]["width"].value == 0 for tel in hillas_dict]):
+        if any([h.width.value == 0 for h in hillas_dict.values()]):
             raise InvalidWidthException(
                 "A HillasContainer contains an ellipse of width==0"
             )

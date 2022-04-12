@@ -7,6 +7,7 @@ from ctapipe.reco.reco_algorithms import (
     Reconstructor,
     InvalidWidthException,
     TooFewTelescopesException,
+    ShowerQualityQuery,
 )
 from ctapipe.containers import (
     ReconstructedGeometryContainer,
@@ -35,6 +36,9 @@ import numpy as np
 from astropy import units as u
 
 __all__ = ["HillasPlane", "HillasReconstructor"]
+
+
+INVALID = ReconstructedGeometryContainer()
 
 
 def angle(v1, v2):
@@ -163,8 +167,9 @@ class HillasReconstructor(Reconstructor):
     """
 
     def __init__(self, subarray, config=None, parent=None, **kwargs):
-        super().__init__(config=config, parent=parent, **kwargs)
+        super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
         self.subarray = subarray
+        self.check_parameters = ShowerQualityQuery(parent=self)
 
         self._cam_radius_m = {
             cam: cam.geometry.guess_radius() for cam in subarray.camera_types
@@ -186,13 +191,14 @@ class HillasReconstructor(Reconstructor):
         event : container
             `ctapipe.containers.ArrayEventContainer`
         """
-
-        # Read only valid HillasContainers
         hillas_dict = {
             tel_id: dl1.parameters.hillas
             for tel_id, dl1 in event.dl1.tel.items()
-            if np.isfinite(dl1.parameters.hillas.intensity)
+            if np.all(self.check_parameters(dl1.parameters))
         }
+
+        if len(hillas_dict) < 2:
+            return INVALID
 
         # Due to tracking the pointing of the array will never be a constant
         array_pointing = SkyCoord(
@@ -211,13 +217,11 @@ class HillasReconstructor(Reconstructor):
         }
 
         try:
-            result = self._predict(
+            return self._predict(
                 event, hillas_dict, self.subarray, array_pointing, telescope_pointings
             )
-        except (TooFewTelescopesException, InvalidWidthException):
-            result = ReconstructedGeometryContainer()
-
-        event.dl2.stereo.geometry["HillasReconstructor"] = result
+        except InvalidWidthException:
+            return INVALID
 
     def _predict(
         self, event, hillas_dict, subarray, array_pointing, telescopes_pointings
@@ -256,17 +260,13 @@ class HillasReconstructor(Reconstructor):
         # This should be substituted by a DL1 QualityQuery specific to this
         # reconstructor
 
-        # stereoscopy needs at least two telescopes
-        if len(hillas_dict) < 2:
-            raise TooFewTelescopesException(
-                "need at least two telescopes, have {}".format(len(hillas_dict))
-            )
         # check for np.nan or 0 width's as these screw up weights
-        if any([np.isnan(hillas_dict[tel]["width"].value) for tel in hillas_dict]):
+        if any([np.isnan(h.width.value) for h in hillas_dict.values()]):
             raise InvalidWidthException(
                 "A HillasContainer contains an ellipse of width==np.nan"
             )
-        if any([hillas_dict[tel]["width"].value == 0 for tel in hillas_dict]):
+
+        if any([h.width.value == 0 for h in hillas_dict.values()]):
             raise InvalidWidthException(
                 "A HillasContainer contains an ellipse of width==0"
             )
