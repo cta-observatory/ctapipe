@@ -70,3 +70,16 @@ def test_smear_image():
             # drawn from the poissonian (especially with signal value 1)
             if fraction > 0:
                 assert not ((image > 0) == (smeared > 0)).all()
+
+
+def test_defaults_no_change(example_subarray):
+    """Test that the default settings do not change the input image"""
+    rng = np.random.default_rng(0)
+
+    modifier = modifications.ImageModifier(example_subarray)
+    tel_id = 1
+    n_pixels = example_subarray.tel[tel_id].camera.geometry.n_pixels
+    image = rng.normal(50, 15, size=n_pixels).astype(np.float32)
+
+    new_image = modifier(tel_id=tel_id, image=image)
+    assert np.all(image == new_image)

@@ -18,6 +18,7 @@
     },
     "ImageProcessor": {
         "image_cleaner_type": "TailcutsImageCleaner",
+        "apply_image_modifier": [["type", "*", true]],
         "TailcutsImageCleaner": {
             "picture_threshold_pe": [
                 ["type", "*", 10.0],
