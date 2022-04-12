@@ -6,7 +6,6 @@ and core position of a shower.
 from ctapipe.reco.reco_algorithms import (
     Reconstructor,
     InvalidWidthException,
-    TooFewTelescopesException,
     ShowerQualityQuery,
 )
 from ctapipe.containers import (
@@ -193,7 +192,7 @@ class HillasReconstructor(Reconstructor):
         hillas_dict = {
             tel_id: dl1.parameters.hillas
             for tel_id, dl1 in event.dl1.tel.items()
-            if np.all(self.check_parameters(dl1.parameters))
+            if all(self.check_parameters(dl1.parameters))
         }
 
         if len(hillas_dict) < 2:
@@ -246,8 +245,6 @@ class HillasReconstructor(Reconstructor):
 
         Raises
         ------
-        TooFewTelescopesException
-            if len(hillas_dict) < 2
         InvalidWidthException
             if any width is np.nan or 0
         """

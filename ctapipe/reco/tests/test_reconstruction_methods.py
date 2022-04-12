@@ -1,16 +1,10 @@
 from astropy import units as u
-import numpy as np
 
-from ctapipe.containers import ImageParametersContainer, HillasParametersContainer
-from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image import ImageProcessor
 from ctapipe.io import EventSource
 from ctapipe.reco import HillasReconstructor, HillasIntersection
 
-from ctapipe.reco.reco_algorithms import InvalidWidthException
-
 from ctapipe.utils import get_dataset_path
-from astropy.coordinates import SkyCoord, AltAz
 from ctapipe.calib import CameraCalibrator
 
 import pytest
@@ -40,7 +34,6 @@ def test_reconstructors(reconstructors):
     subarray = source.subarray
     calib = CameraCalibrator(source.subarray)
     image_processor = ImageProcessor(source.subarray)
-    horizon_frame = AltAz()
 
     for event in source:
         calib(event)
