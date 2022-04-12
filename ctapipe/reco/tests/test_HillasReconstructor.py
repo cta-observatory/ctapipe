@@ -345,9 +345,14 @@ def test_CameraFrame_against_TelescopeFrame(filename):
         if result_telescope_frame.is_valid:
             reconstructed_events += 1
 
-            for field in ReconstructedGeometryContainer().keys():
-                C = np.asarray(result_camera_frame.as_dict()[field])
-                T = np.asarray(result_telescope_frame.as_dict()[field])
-                assert (np.isclose(C, T, rtol=1e-03, atol=1e-03, equal_nan=True)).all()
+            for field, cam in result_camera_frame.items():
+                tel = getattr(result_telescope_frame, field)
+
+                if hasattr(cam, "unit"):
+                    assert u.isclose(cam, tel, rtol=1e-3, atol=1e-3 * tel.unit, equal_nan=True)
+                elif isinstance(cam, list):
+                    assert cam == tel
+                else:
+                    assert np.isclose(cam, tel, rtol=1e-3, atol=1e-3, equal_nan=True)
 
     assert reconstructed_events > 0 # check that we reconstruct at least 1 event
