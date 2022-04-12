@@ -5,6 +5,8 @@ from traitlets.config import Config
 from traitlets import TraitError
 from astropy.table import Table
 from numpy.testing import assert_array_equal
+from ctapipe.core import Component
+from ctapipe.ml.sklearn import Classifier, Regressor
 
 
 def test_supported_regressors():
@@ -172,6 +174,38 @@ def test_io(example_table, tmp_path):
     assert loaded.features == classifier.features
     assert_array_equal(
         loaded.model.feature_importances_, classifier.model.feature_importances_
+    )
+
+    with pytest.raises(TypeError):
+        Regressor.load(path)
+
+
+class Parent(Component):
+    def __init__(self, config):
+        super().__init__(config=config)
+        self.classifier = Classifier(parent=self)
+
+
+def test_io_with_parent(example_table, tmp_path):
+    config = Config(dict(
+        Classifier=dict(
+            model_cls="RandomForestClassifier",
+            model_config=dict(n_estimators=5, max_depth=3),
+            target="particle",
+            features=[f"X{i}" for i in range(8)],
+        )
+    ))
+
+    parent = Parent(config=config)
+    parent.classifier.fit(example_table)
+    path = tmp_path / "classifier.pkl"
+
+    parent.classifier.write(path)
+    loaded = Classifier.load(path)
+    assert loaded.features == parent.classifier.features
+    assert_array_equal(
+        loaded.model.feature_importances_,
+        parent.classifier.model.feature_importances_
     )
 
     with pytest.raises(TypeError):
