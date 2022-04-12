@@ -4,19 +4,12 @@ from astropy import units as u
 import pytest
 
 from traitlets.config import Config
-from ctapipe.containers import (
-    ImageParametersContainer,
-    HillasParametersContainer,
-    ReconstructedGeometryContainer,
-)
+from ctapipe.containers import HillasParametersContainer
 from ctapipe.image.image_processor import ImageProcessor
 from ctapipe.instrument import SubarrayDescription, TelescopeDescription
-from ctapipe.image.cleaning import tailcuts_clean
-from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.io import SimTelEventSource
 from ctapipe.reco.hillas_reconstructor import HillasReconstructor, HillasPlane
 from ctapipe.utils import get_dataset_path
-from ctapipe.coordinates import TelescopeFrame
 from astropy.coordinates import SkyCoord, AltAz
 from ctapipe.calib import CameraCalibrator
 

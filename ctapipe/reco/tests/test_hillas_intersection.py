@@ -3,15 +3,8 @@ import astropy.units as u
 from numpy.testing import assert_allclose
 import numpy as np
 from astropy.coordinates import SkyCoord
-from ctapipe.coordinates import NominalFrame, AltAz, CameraFrame, TelescopeFrame
+from ctapipe.coordinates import NominalFrame, AltAz, CameraFrame
 from ctapipe.containers import HillasParametersContainer
-
-from ctapipe.io import EventSource
-
-from ctapipe.utils import get_dataset_path
-
-from ctapipe.image import ImageProcessor
-from ctapipe.calib import CameraCalibrator
 
 
 def test_intersect():
