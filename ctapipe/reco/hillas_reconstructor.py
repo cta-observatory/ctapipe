@@ -6,7 +6,7 @@ and core position of a shower.
 from ctapipe.reco.reco_algorithms import (
     Reconstructor,
     InvalidWidthException,
-    StereoQualityQuery,
+    TooFewTelescopesException,
 )
 from ctapipe.containers import (
     ReconstructedGeometryContainer,
@@ -184,15 +184,16 @@ class HillasReconstructor(Reconstructor):
 
         Parameters
         ----------
-        event : container
-            `ctapipe.containers.ArrayEventContainer`
+        event: `ctapipe.containers.ArrayEventContainer`
+            The event, needs to have dl1 parameters
 
         Returns
         -------
         ReconstructedGeometryContainer
         """
-        hillas_dict = self._create_hillas_dict(event)
-        if len(hillas_dict) < 2:
+        try:
+            hillas_dict = self._create_hillas_dict(event)
+        except (TooFewTelescopesException, InvalidWidthException):
             return INVALID
 
         # Due to tracking the pointing of the array will never be a constant
@@ -211,15 +212,12 @@ class HillasReconstructor(Reconstructor):
             for tel_id in event.dl1.tel.keys()
         }
 
-        try:
-            return self._predict(
-                event, hillas_dict, self.subarray, array_pointing, telescope_pointings
-            )
-        except InvalidWidthException:
-            return INVALID
+        return self._predict(
+            event, hillas_dict, array_pointing, telescope_pointings
+        )
 
     def _predict(
-        self, event, hillas_dict, subarray, array_pointing, telescopes_pointings
+        self, event, hillas_dict, array_pointing, telescopes_pointings
     ):
         """
         The function you want to call for the reconstruction of the
@@ -253,19 +251,8 @@ class HillasReconstructor(Reconstructor):
         # This should be substituted by a DL1 QualityQuery specific to this
         # reconstructor
 
-        # check for np.nan or 0 width's as these screw up weights
-        if any([np.isnan(h.width.value) for h in hillas_dict.values()]):
-            raise InvalidWidthException(
-                "A HillasContainer contains an ellipse of width==np.nan"
-            )
-
-        if any([h.width.value == 0 for h in hillas_dict.values()]):
-            raise InvalidWidthException(
-                "A HillasContainer contains an ellipse of width==0"
-            )
-
         hillas_planes, psi_core_dict = self.initialize_hillas_planes(
-            hillas_dict, subarray, telescopes_pointings, array_pointing
+            hillas_dict, self.subarray, telescopes_pointings, array_pointing
         )
 
         # algebraic direction estimate

@@ -1,6 +1,8 @@
+from abc import abstractmethod
+import numpy as np
+
 from ctapipe.core import Component, QualityQuery
 from ctapipe.containers import ReconstructedGeometryContainer, ArrayEventContainer
-from abc import abstractmethod
 from astropy.coordinates import SkyCoord, AltAz
 
 from ctapipe.core.traits import List
@@ -59,11 +61,27 @@ class Reconstructor(Component):
         return ReconstructedGeometryContainer()
 
     def _create_hillas_dict(self, event):
-        return {
+        hillas_dict = {
             tel_id: dl1.parameters.hillas
             for tel_id, dl1 in event.dl1.tel.items()
             if all(self.check_parameters(dl1.parameters))
         }
+
+        if len(hillas_dict) < 2:
+            raise TooFewTelescopesException()
+
+        # check for np.nan or 0 width's as these screw up weights
+        if any([np.isnan(h.width.value) for h in hillas_dict.values()]):
+            raise InvalidWidthException(
+                "A HillasContainer contains an ellipse of width=np.nan"
+            )
+
+        if any([h.width.value == 0 for h in hillas_dict.values()]):
+            raise InvalidWidthException(
+                "A HillasContainer contains an ellipse of width=0"
+            )
+
+        return hillas_dict
 
     @staticmethod
     def _get_telescope_pointings(event):

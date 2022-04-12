@@ -15,7 +15,6 @@ from ctapipe.reco.reco_algorithms import (
     Reconstructor,
     InvalidWidthException,
     TooFewTelescopesException,
-    StereoQualityQuery,
 )
 from ctapipe.containers import (
     ReconstructedGeometryContainer,
@@ -103,8 +102,9 @@ class HillasIntersection(Reconstructor):
         ReconstructedGeometryContainer
         '''
         
-        hillas_dict = self._create_hillas_dict(event)
-        if len(hillas_dict) < 2:
+        try:
+            hillas_dict = self._create_hillas_dict(event)
+        except (TooFewTelescopesException, InvalidWidthException):
             return INVALID
 
         # Due to tracking the pointing of the array will never be a constant
@@ -116,15 +116,10 @@ class HillasIntersection(Reconstructor):
 
         telescope_pointings = self._get_telescope_pointings(event)
 
-        try:
-            return self.predict(
-                hillas_dict, self.subarray, array_pointing, telescope_pointings
-            )
-        except InvalidWidthException:
-            return INVALID
+        return self._predict(hillas_dict, array_pointing, telescope_pointings)
 
 
-    def predict(self, hillas_dict, subarray, array_pointing, telescopes_pointings=None):
+    def _predict(self, hillas_dict, array_pointing, telescopes_pointings=None):
         """
 
         Parameters
@@ -171,11 +166,11 @@ class HillasIntersection(Reconstructor):
             }
 
         tilted_frame = TiltedGroundFrame(pointing_direction=array_pointing)
-        grd_coord = subarray.tel_coords
+        grd_coord = self.subarray.tel_coords
         tilt_coord = grd_coord.transform_to(tilted_frame)
 
         tel_ids = list(hillas_dict.keys())
-        tel_indices = subarray.tel_ids_to_indices(tel_ids)
+        tel_indices = self.subarray.tel_ids_to_indices(tel_ids)
 
         tel_x = {
             tel_id: tilt_coord.x[tel_index]
@@ -192,7 +187,7 @@ class HillasIntersection(Reconstructor):
 
         for tel_id, hillas in hillas_dict.items():
             if isinstance(hillas, CameraHillasParametersContainer):
-                focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
+                focal_length = self.subarray.tel[tel_id].optics.equivalent_focal_length
                 camera_frame = CameraFrame(
                     telescope_pointing=telescopes_pointings[tel_id],
                     focal_length=focal_length,
