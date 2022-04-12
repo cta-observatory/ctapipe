@@ -8,7 +8,7 @@ This processor will be able to process a shower/event in 3 steps:
 
 """
 from ctapipe.core import Component, QualityQuery
-from ctapipe.core.traits import List
+from ctapipe.core.traits import Int, List
 from ctapipe.containers import ArrayEventContainer, ReconstructedGeometryContainer
 from ctapipe.instrument import SubarrayDescription
 from ctapipe.reco import HillasReconstructor
@@ -41,6 +41,14 @@ class ShowerProcessor(Component):
     It is planned to support also energy reconstruction and particle type
     classification.
     """
+
+    min_multiplicity = Int(
+        default_value=2,
+        help=(
+            "Minimum number of telescopes fullfilling quality criteria needed"
+            "to perform stereo reconstruction",
+        ),
+    ).tag(config=True)
 
     def __init__(
         self, subarray: SubarrayDescription, config=None, parent=None, **kwargs
@@ -97,14 +105,13 @@ class ShowerProcessor(Component):
         self.log.debug("shower_criteria:\n %s", self.check_shower)
 
         # Reconstruct the shower only if all shower criteria are met
-        if len(hillas_dict) > 2:
-
+        if len(hillas_dict) >= self.min_multiplicity:
             self.reconstructor(event)
-
         else:
             self.log.debug(
-                """Less than 2 images passed the quality cuts.
-                Returning default ReconstructedGeometryContainer container"""
+                """Less than %d images passed the quality cuts.
+                Returning default ReconstructedGeometryContainer container""",
+                self.min_multiplicity
             )
             event.dl2.stereo.geometry["HillasReconstructor"] = default
 
