@@ -15,6 +15,5 @@ Reference/API
 =============
 
 .. automodapi:: ctapipe.core.traits
-    :skip: Bool, CaselessStrEnum, Dict, Enum, Float, Int, Integer, List
-    :skip: Long, TraitError, Unicode, observe, Set, CRegExp
-    :skip: flag
+    :include-all-objects:
+    :no-inheritance-diagram:

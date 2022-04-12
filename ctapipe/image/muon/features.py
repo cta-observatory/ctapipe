@@ -2,6 +2,14 @@ import numpy as np
 from ...utils.quantities import all_to_value
 
 
+__all__ = [
+    "mean_squared_error",
+    "intensity_ratio_inside_ring",
+    "ring_completeness",
+    "ring_containment",
+]
+
+
 def mean_squared_error(pixel_x, pixel_y, weights, radius, center_x, center_y):
     """
     Calculate the weighted mean squared error for a circle
@@ -64,7 +72,7 @@ def intensity_ratio_inside_ring(
 
 
 def ring_completeness(
-    pixel_x, pixel_y, weights, radius, center_x, center_y, threshold=30, bins=30,
+    pixel_x, pixel_y, weights, radius, center_x, center_y, threshold=30, bins=30
 ):
     """
     Estimate how complete a ring is.
@@ -128,7 +136,7 @@ def ring_containment(radius, center_x, center_y, camera_radius):
         radius of the camera
 
     Returns
-    ------
+    -------
     ringcontainment: float
         the ratio of ring inside the camera
     """

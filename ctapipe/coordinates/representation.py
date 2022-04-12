@@ -1,13 +1,13 @@
 """
 This module defines any reference systems which may be needed in addition
 """
-from astropy.coordinates import (
-    BaseRepresentation,
-    CartesianRepresentation,
-)
+from astropy.coordinates import BaseRepresentation, CartesianRepresentation
 import astropy.units as u
 from collections import OrderedDict
 from numpy import broadcast_arrays
+
+
+__all__ = ["PlanarRepresentation"]
 
 
 class PlanarRepresentation(BaseRepresentation):

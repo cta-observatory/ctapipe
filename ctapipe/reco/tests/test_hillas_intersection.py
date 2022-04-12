@@ -3,7 +3,7 @@ import astropy.units as u
 from numpy.testing import assert_allclose
 import numpy as np
 from astropy.coordinates import SkyCoord
-from ctapipe.coordinates import NominalFrame, AltAz, CameraFrame
+from ctapipe.coordinates import NominalFrame, AltAz, CameraFrame, TelescopeFrame
 from ctapipe.containers import HillasParametersContainer
 
 from ctapipe.io import EventSource
@@ -82,13 +82,13 @@ def test_intersection_xmax_reco():
 
     hillas_dict = {
         1: HillasParametersContainer(
-            x=-(delta / focal_length) * u.rad,
-            y=((0 * u.m) / focal_length) * u.rad,
+            fov_lon=-(delta / focal_length) * u.rad,
+            fov_lat=((0 * u.m) / focal_length) * u.rad,
             intensity=1,
         ),
         2: HillasParametersContainer(
-            x=((0 * u.m) / focal_length) * u.rad,
-            y=-(delta / focal_length) * u.rad,
+            fov_lon=((0 * u.m) / focal_length) * u.rad,
+            fov_lat=-(delta / focal_length) * u.rad,
             intensity=1,
         ),
     }
@@ -180,32 +180,31 @@ def test_intersection_nominal_reconstruction():
         focal_length=focal_length, telescope_pointing=array_direction
     )
 
-    cog_coords_camera_1 = SkyCoord(x=delta, y=0 * u.m, frame=camera_frame)
-    cog_coords_camera_2 = SkyCoord(x=delta / 0.7, y=delta / 0.7, frame=camera_frame)
-    cog_coords_camera_3 = SkyCoord(x=0 * u.m, y=delta, frame=camera_frame)
+    cog_coords_camera_1 = SkyCoord(y=delta, x=0 * u.m, frame=camera_frame)
+    cog_coords_camera_2 = SkyCoord(y=delta / 0.7, x=delta / 0.7, frame=camera_frame)
+    cog_coords_camera_3 = SkyCoord(y=0 * u.m, x=delta, frame=camera_frame)
 
     cog_coords_nom_1 = cog_coords_camera_1.transform_to(nominal_frame)
     cog_coords_nom_2 = cog_coords_camera_2.transform_to(nominal_frame)
     cog_coords_nom_3 = cog_coords_camera_3.transform_to(nominal_frame)
 
-    #  x-axis is along the altitude and y-axis is along the azimuth
     hillas_1 = HillasParametersContainer(
-        x=cog_coords_nom_1.fov_lat,
-        y=cog_coords_nom_1.fov_lon,
+        fov_lat=cog_coords_nom_1.fov_lat,
+        fov_lon=cog_coords_nom_1.fov_lon,
         intensity=100,
         psi=0 * u.deg,
     )
 
     hillas_2 = HillasParametersContainer(
-        x=cog_coords_nom_2.fov_lat,
-        y=cog_coords_nom_2.fov_lon,
+        fov_lat=cog_coords_nom_2.fov_lat,
+        fov_lon=cog_coords_nom_2.fov_lon,
         intensity=100,
         psi=45 * u.deg,
     )
 
     hillas_3 = HillasParametersContainer(
-        x=cog_coords_nom_3.fov_lat,
-        y=cog_coords_nom_3.fov_lon,
+        fov_lat=cog_coords_nom_3.fov_lat,
+        fov_lon=cog_coords_nom_3.fov_lon,
         intensity=100,
         psi=90 * u.deg,
     )
@@ -257,10 +256,11 @@ def test_reconstruction():
 
         hillas_dict = {}
         telescope_pointings = {}
-
+        telescope_frame = TelescopeFrame()
         for tel_id, dl1 in event.dl1.tel.items():
 
             geom = source.subarray.tel[tel_id].camera.geometry
+            geom_tel_frame = geom.transform_to(telescope_frame)
 
             telescope_pointings[tel_id] = SkyCoord(
                 alt=event.pointing.tel[tel_id].altitude,
@@ -273,7 +273,7 @@ def test_reconstruction():
             )
 
             try:
-                moments = hillas_parameters(geom[mask], dl1.image[mask])
+                moments = hillas_parameters(geom_tel_frame[mask], dl1.image[mask])
                 hillas_dict[tel_id] = moments
             except HillasParameterizationError as e:
                 print(e)
@@ -301,7 +301,6 @@ def test_reconstruction():
 
 def test_reconstruction_works(subarray_and_event_gamma_off_axis_500_gev):
     subarray, event = subarray_and_event_gamma_off_axis_500_gev
-
     reconstructor = HillasIntersection()
 
     array_pointing = SkyCoord(
@@ -321,14 +320,44 @@ def test_reconstruction_works(subarray_and_event_gamma_off_axis_500_gev):
         for tel_id, pointing in event.pointing.tel.items()
         if tel_id in hillas_dict
     }
-
-    result = reconstructor.predict(
-        hillas_dict, subarray, array_pointing, telescope_pointings
-    )
-
-    reco_coord = SkyCoord(alt=result.alt, az=result.az, frame=AltAz())
     true_coord = SkyCoord(
         alt=event.simulation.shower.alt, az=event.simulation.shower.az, frame=AltAz()
     )
 
+    result = reconstructor.predict(
+        hillas_dict, subarray, array_pointing, telescope_pointings
+    )
+    reco_coord = SkyCoord(alt=result.alt, az=result.az, frame=AltAz())
+
     assert reco_coord.separation(true_coord) < 0.1 * u.deg
+
+
+def test_selected_subarray(subarray_and_event_gamma_off_axis_500_gev):
+    """test that reconstructor also works with "missing" ids"""
+    subarray, event = subarray_and_event_gamma_off_axis_500_gev
+
+    # remove telescopes 2 and 3 to see that HillasIntersection can work
+    # with arbirary telescope ids
+    subarray = subarray.select_subarray([1, 4])
+
+    reconstructor = HillasIntersection()
+    array_pointing = SkyCoord(
+        az=event.pointing.array_azimuth,
+        alt=event.pointing.array_altitude,
+        frame=AltAz(),
+    )
+
+    # again, only use telescopes 1 and 4
+    hillas_dict = {
+        tel_id: dl1.parameters.hillas
+        for tel_id, dl1 in event.dl1.tel.items()
+        if dl1.parameters.hillas.width.value > 0 and tel_id in {1, 4}
+    }
+
+    telescope_pointings = {
+        tel_id: SkyCoord(alt=pointing.altitude, az=pointing.azimuth, frame=AltAz())
+        for tel_id, pointing in event.pointing.tel.items()
+        if tel_id in hillas_dict
+    }
+
+    reconstructor.predict(hillas_dict, subarray, array_pointing, telescope_pointings)

@@ -1,6 +1,12 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '**'
+  pull_request:
 
 env:
   NUMBA_NUM_THREADS: 1
@@ -9,45 +15,108 @@ env:
 
 jobs:
   tests:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: [3.7, 3.8]
-        install-method: ["pip", "conda"]
+        include:
+          - os: ubuntu-latest
+            python-version: "3.8"
+            install-method: conda
+
+          - os: ubuntu-latest
+            python-version: "3.9"
+            install-method: conda
+
+          - os: ubuntu-latest
+            python-version: "3.10"
+            install-method: conda
+            codecov: true
+
+          - os: ubuntu-latest
+            python-version: "3.10"
+            install-method: pip
+
+          - os: macos-latest
+            python-version: "3.10"
+            install-method: conda
+
+          - os: macos-latest
+            python-version: "3.8"
+            install-method: pip
+
+    defaults:
+      run:
+        shell: bash -l {0}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+      - name: cache test data
+        uses: actions/cache@v2
         with:
-          python-version: ${{ matrix.python-version }}
+          path: ~/.cache/ctapipe
+          key: ctapipe-test-data
 
-      - name: Install dependencies
+      - name: Prepare conda installation
+        if: matrix.install-method == 'conda'
         env:
-          INSTALL_METHOD: ${{ matrix.install-method }}
           PYTHON_VERSION: ${{ matrix.python-version }}
         run: |
-          source .github/install.sh
+          # fix mamba error that the directory does not exist
+          mkdir -p ~/conda_pkgs_dir/cache
+          # setup correct python version
+          sed -i -e "s/- python=.*/- python=$PYTHON_VERSION/g" environment.yml
+
+      - name: Conda setup
+        if: matrix.install-method == 'conda'
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          mamba-version: "*"
+          auto-update-conda: true
+          activate-environment: "cta-dev"
+          environment-file: environment.yml
+
+      - name: Python setup
+        if: matrix.install-method == 'pip'
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          mamba-version: "*"
+          channels: conda-forge,default
+          python-version: ${{ matrix.python-version }}
+
+      - name: Update pip
+        if: matrix.install-method == 'pip'
+        run: pip install -U pip
+
+      - name: Install dependencies
+        run: |
           python --version
-          pip install codecov pytest-cov
-          pip install --use-feature=2020-resolver -e .[all]
+          pip install codecov pytest-cov pyflakes pytest-xdist 'coverage!=6.3.0'
+          pip install .[all]
           pip freeze
 
-      - name: Tests
-        env:
-          INSTALL_METHOD: ${{ matrix.install-method }}
+      - name: Static codechecks
+        # need to use a login shell for the conda setup to work
+        shell: bash -leo pipefail {0}
         run: |
-          if [[ "$INSTALL_METHOD" == "conda" ]]; then
-            source $CONDA/etc/profile.d/conda.sh
-            conda activate ci;
-          fi
-          pytest --cov --cov-report=xml
+          pyflakes ctapipe
+
+      - name: Tests
+        # need to use a login shell for the conda setup to work
+        shell: bash -leo pipefail {0}
+        run: |
+          pytest -n auto --dist loadscope \
+            --cov --cov-report=xml \
+            --doctest-modules --doctest-glob='*.rst' \
+            --ignore=docs/conf.py \
+            ctapipe docs
+
           ctapipe-info --version
 
       - uses: codecov/codecov-action@v1
+        if: matrix.codecov
 
   docs:
     runs-on: ubuntu-latest
@@ -56,15 +125,21 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: ammaraskar/sphinx-action@master
+      - name: Set up Python
+        uses: actions/setup-python@v2
         with:
-          docs-folder: "docs/"
-          pre-build-command: |
-            apt update --yes && apt install --yes git build-essential pandoc
-            pip install -U pip setuptools wheel
-            pip install --use-feature=2020-resolver -e .[docs]
-            git describe --tags
-            python -c 'import ctapipe; print(ctapipe.__version__)'
+          python-version: 3.8
+
+      - name: Install doc dependencies
+        run: |
+          sudo apt update --yes && sudo apt install --yes git build-essential pandoc graphviz
+          pip install -U pip setuptools wheel
+          pip install -e .[docs]
+          git describe --tags
+          python -c 'import ctapipe; print(ctapipe.__version__)'
+
+      - name: Build docs
+        run: make doc SPHINXOPTS="-W --keep-going -n --color -j auto"
 
       - name: Deploy to gihub pages
         # only run on push to master

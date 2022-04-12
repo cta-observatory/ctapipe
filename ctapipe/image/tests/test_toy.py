@@ -4,12 +4,19 @@ from ctapipe.image.toymodel import obtain_time_image, WaveformModel
 from pytest import approx
 from scipy.stats import poisson, skewnorm, norm
 import astropy.units as u
+import pytest
 
 
-def test_intensity():
-    from ctapipe.image.toymodel import Gaussian
+@pytest.mark.parametrize("seed", [None, 0])
+def test_intensity(seed, monkeypatch):
+    """
+    Test generation of the toymodel roughly follows the given intensity.
 
-    np.random.seed(0)
+    Tests once with passing a custom rng instance, once with relying on the
+    modules rng.
+    """
+    from ctapipe.image import toymodel
+
     geom = CameraGeometry.from_name("LSTCam")
 
     x, y = u.Quantity([0.2, 0.3], u.m)
@@ -18,10 +25,20 @@ def test_intensity():
     intensity = 200
     psi = "30d"
 
-    # make a toymodel shower model
-    model = Gaussian(x=x, y=y, width=width, length=length, psi=psi)
+    # make sure we set a fixed seed for this test even when testing the
+    # API without giving the rng
+    monkeypatch.setattr(toymodel, "TOYMODEL_RNG", np.random.default_rng(0))
 
-    _, signal, _ = model.generate_image(geom, intensity=intensity, nsb_level_pe=5)
+    # make a toymodel shower model
+    model = toymodel.Gaussian(x=x, y=y, width=width, length=length, psi=psi)
+
+    if seed is None:
+        _, signal, _ = model.generate_image(geom, intensity=intensity, nsb_level_pe=5)
+    else:
+        rng = np.random.default_rng(seed)
+        _, signal, _ = model.generate_image(
+            geom, intensity=intensity, nsb_level_pe=5, rng=rng
+        )
 
     # test if signal reproduces given cog values
     assert np.average(geom.pix_x.to_value(u.m), weights=signal) == approx(0.2, rel=0.15)
@@ -43,7 +60,7 @@ def test_skewed():
 
     # test if the parameters we calculated for the skew normal
     # distribution produce the correct moments
-    np.random.seed(0)
+    rng = np.random.default_rng(0)
     geom = CameraGeometry.from_name("LSTCam")
 
     x, y = u.Quantity([0.2, 0.3], u.m)
@@ -56,7 +73,7 @@ def test_skewed():
     model = SkewedGaussian(
         x=x, y=y, width=width, length=length, psi=psi, skewness=skewness
     )
-    model.generate_image(geom, intensity=intensity, nsb_level_pe=5)
+    model.generate_image(geom, intensity=intensity, nsb_level_pe=5, rng=rng)
 
     a, loc, scale = model._moments_to_parameters()
     mean, var, skew = skewnorm(a=a, loc=loc, scale=scale).stats(moments="mvs")

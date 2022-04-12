@@ -10,57 +10,65 @@ import pathlib
 from urllib.parse import urlparse
 import os
 
-from traitlets import (
-    Bool,
-    CaselessStrEnum,
-    Dict,
-    Enum,
-    Float,
-    Int,
-    Integer,
-    List,
-    Long,
-    TraitError,
-    TraitType,
-    Unicode,
-    observe,
-    Set,
-    CRegExp,
-    Undefined,
-)
-from traitlets.config import boolean_flag as flag
+import traitlets
+import traitlets.config
+from traitlets import Undefined
 
 from .component import non_abstract_children
 
 __all__ = [
+    # Implemented here
+    "AstroTime",
+    "BoolTelescopeParameter",
+    "IntTelescopeParameter",
+    "FloatTelescopeParameter",
+    "TelescopeParameter",
+    "classes_with_traits",
+    "create_class_enum_trait",
+    "has_traits",
+    # imported from traitlets
     "Path",
+    "Bool",
+    "CRegExp",
+    "CaselessStrEnum",
+    "CInt",
+    "Dict",
+    "Enum",
+    "Float",
     "Int",
     "Integer",
-    "Float",
-    "Unicode",
-    "Enum",
-    "Long",
     "List",
-    "Bool",
+    "Long",
     "Set",
-    "CRegExp",
-    "Dict",
-    "flag",
     "TraitError",
+    "Unicode",
+    "flag",
     "observe",
-    "CaselessStrEnum",
-    "create_class_enum_trait",
-    "classes_with_traits",
-    "has_traits",
-    "TelescopeParameter",
-    "FloatTelescopeParameter",
-    "IntTelescopeParameter",
-    "AstroTime",
 ]
 
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+# Aliases
+Bool = traitlets.Bool
+Int = traitlets.Int
+CInt = traitlets.CInt
+Integer = traitlets.Integer
+Float = traitlets.Float
+Long = traitlets.Long
+Unicode = traitlets.Unicode
+Dict = traitlets.Dict
+Enum = traitlets.Enum
+List = traitlets.List
+Set = traitlets.Set
+CRegExp = traitlets.CRegExp
+CaselessStrEnum = traitlets.CaselessStrEnum
+TraitError = traitlets.TraitError
+TraitType = traitlets.TraitType
+observe = traitlets.observe
+flag = traitlets.config.boolean_flag
 
 
 class AstroTime(TraitType):
@@ -86,11 +94,10 @@ class Path(TraitType):
     """
     A path Trait for input/output files.
 
-    Parameters
+    Attributes
     ----------
     exists: boolean or None
         If True, path must exist, if False path must not exist
-
     directory_ok: boolean
         If False, path must not be a directory
     file_ok: boolean
@@ -99,14 +106,13 @@ class Path(TraitType):
 
     def __init__(
         self,
-        *args,
-        default_value=None,
+        default_value=Undefined,
         exists=None,
         directory_ok=True,
         file_ok=True,
         **kwargs,
     ):
-        super().__init__(*args, default_value=default_value, allow_none=True, **kwargs)
+        super().__init__(default_value=default_value, **kwargs)
         self.exists = exists
         self.directory_ok = directory_ok
         self.file_ok = file_ok
@@ -136,14 +142,17 @@ class Path(TraitType):
         if isinstance(value, bytes):
             value = os.fsdecode(value)
 
-        if value is None:
+        if value is None or value is Undefined:
             if self.allow_none:
-                return None
+                return value
             else:
                 self.error(obj, value)
 
         if not isinstance(value, (str, pathlib.Path)):
             return self.error(obj, value)
+
+        # expand any environment variables in the path:
+        value = os.path.expandvars(value)
 
         if isinstance(value, str):
             if value == "":
@@ -154,10 +163,22 @@ class Path(TraitType):
             except ValueError:
                 return self.error(obj, value)
 
-            if url.scheme not in ("", "file"):
-                return self.error(obj, value)
+            if url.scheme in ("http", "https"):
+                # here to avoid circular import, since every module imports
+                # from ctapipe.core
+                from ctapipe.utils.download import download_cached
 
-            value = pathlib.Path(url.netloc, url.path)
+                value = download_cached(value, progress=True)
+            elif url.scheme == "dataset":
+                # here to avoid circular import, since every module imports
+                # from ctapipe.core
+                from ctapipe.utils import get_dataset_path
+
+                value = get_dataset_path(value.partition("dataset://")[2])
+            elif url.scheme in ("", "file"):
+                value = pathlib.Path(url.netloc, url.path)
+            else:
+                return self.error(obj, value)
 
         value = value.absolute()
         exists = value.exists()
@@ -182,7 +203,7 @@ def create_class_enum_trait(base_class, default_value, help=None):
 
     the enumeration should contain all names of non_abstract_children()
     of said baseclass and the default choice should be given by
-    `base_class._default` name.
+    ``base_class._default`` name.
 
     default must be specified and must be the name of one child-class
     """
@@ -200,8 +221,8 @@ def create_class_enum_trait(base_class, default_value, help=None):
 
 
 def classes_with_traits(base_class):
-    """ Returns a list of the base class plus its non-abstract children
-    if they have traits """
+    """Returns a list of the base class plus its non-abstract children
+    if they have traits"""
     all_classes = [base_class] + non_abstract_children(base_class)
     with_traits = []
 
@@ -371,15 +392,15 @@ class TelescopeParameter(List):
     or as a list of patterns that match different telescopes.
 
     The patterns are given as a list of 3-tuples in the
-    form: `[(command, argument, value), ...]`.
+    form: ``[(command, argument, value), ...]``.
 
     Command can be one of:
 
-    - 'type': argument is then a telescope type  string (e.g.
-      `('type', 'SST_ASTRI_CHEC', 4.0)` to apply to all telescopes of that type,
+    - ``'type'``: argument is then a telescope type  string (e.g.
+      ``('type', 'SST_ASTRI_CHEC', 4.0)`` to apply to all telescopes of that type,
       or use a wildcard like "LST*", or "*" to set a pure default value for all
       telescopes.
-    - 'id':  argument is a specific telescope ID `['id', 89, 5.0]`)
+    - ``'id'``:  argument is a specific telescope ID ``['id', 89, 5.0]``)
 
     These are evaluated in-order, so you can first set a default value, and then set
     values for specific telescopes or types to override them.
@@ -407,6 +428,9 @@ class TelescopeParameter(List):
     _valid_defaults = (object,)  # allow everything, we validate the default ourselves
 
     def __init__(self, trait, default_value=Undefined, **kwargs):
+        """
+        Create a new TelescopeParameter
+        """
 
         if not isinstance(trait, TraitType):
             raise TypeError("trait must be a TraitType instance")
@@ -469,6 +493,10 @@ class TelescopeParameter(List):
         return normalized_value
 
     def set(self, obj, value):
+        # Support a single value for all (check and convert into a default value)
+        if not isinstance(value, (list, List, UserList, TelescopePatternList)):
+            value = [("type", "*", self._trait.validate(obj, value))]
+
         # Retain existing subarray description
         # when setting new value for TelescopeParameter
         try:
@@ -483,21 +511,24 @@ class TelescopeParameter(List):
 
 
 class FloatTelescopeParameter(TelescopeParameter):
-    """ a `TelescopeParameter` with float type (see docs for `TelescopeParameter`)"""
+    """ a `~ctapipe.core.traits.TelescopeParameter` with Float trait type"""
 
     def __init__(self, **kwargs):
+        """Create a new IntTelescopeParameter"""
         super().__init__(trait=Float(), **kwargs)
 
 
 class IntTelescopeParameter(TelescopeParameter):
-    """ a `TelescopeParameter` with int type (see docs for `TelescopeParameter`)"""
+    """ a `~ctapipe.core.traits.TelescopeParameter` with Int trait type"""
 
     def __init__(self, **kwargs):
+        """Create a new IntTelescopeParameter"""
         super().__init__(trait=Int(), **kwargs)
 
 
 class BoolTelescopeParameter(TelescopeParameter):
-    """ a `TelescopeParameter` with int type (see docs for `TelescopeParameter`)"""
+    """ a `~ctapipe.core.traits.TelescopeParameter` with Bool trait type"""
 
     def __init__(self, **kwargs):
+        """Create a new BoolTelescopeParameter"""
         super().__init__(trait=Bool(), **kwargs)

@@ -1,8 +1,8 @@
 .. _core:
 
-==============================================
-Core Structures and Base Classes (`core`)
-==============================================
+==================================================
+Core Structures and Base Classes (`~ctapipe.core`)
+==================================================
 
 .. currentmodule:: ctapipe.core
 
@@ -26,8 +26,8 @@ to provide a common interface and to make use of the configuration system.
 
 For details about creating command-line tools, see :ref:`tools`
 
-The following shows the conceptual difference between `Tools` and
-`Components` with overall pipelines and stages.
+The following shows the conceptual difference between `Tools <Tool>`_ and
+`Components <Compenent>`_ with overall pipelines and stages.
 Serialization and Deserialization are simply specialized Components that perform data access.
 
 .. image:: tool-component.png
@@ -43,3 +43,13 @@ Reference/API
 =============
 
 .. automodapi:: ctapipe.core
+    :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.core.component
+    :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.core.tool
+    :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.core.container
+    :no-inheritance-diagram:

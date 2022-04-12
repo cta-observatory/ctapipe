@@ -9,8 +9,11 @@ Examples:
 
     >>> from ctapipe.instrument import CameraGeometry
     >>> geom = CameraGeometry.make_rectangular(20, 20)
-    >>> showermodel = Gaussian(x=0.25 * u.m, y=0.0 * u.m,
-    length=0.1 * u.m, width=0.02 * u.m, psi='40d')
+    >>> showermodel = Gaussian(
+    ...    x=0.25 * u.m, y=0.0 * u.m,
+    ...    length=0.1 * u.m, width=0.02 * u.m,
+    ...    psi='40d'
+    ... )
     >>> image, signal, noise = showermodel.generate_image(geom, intensity=1000)
     >>> print(image.shape)
     (400,)
@@ -23,6 +26,7 @@ from astropy.coordinates import Angle
 from scipy.stats import multivariate_normal, skewnorm, norm
 from scipy.ndimage import convolve1d
 from abc import ABCMeta, abstractmethod
+from numpy.random import default_rng
 
 __all__ = [
     "WaveformModel",
@@ -31,6 +35,9 @@ __all__ = [
     "ImageModel",
     "obtain_time_image",
 ]
+
+
+TOYMODEL_RNG = default_rng(0)
 
 
 @u.quantity_input(
@@ -182,12 +189,12 @@ class ImageModel(metaclass=ABCMeta):
         """Probability density function.
         """
 
-    def generate_image(self, camera, intensity=50, nsb_level_pe=20):
+    def generate_image(self, camera, intensity=50, nsb_level_pe=20, rng=None):
         """Generate a randomized DL1 shower image.
         For the signal, poisson random numbers are drawn from
         the expected signal distribution for each pixel.
         For the background, for each pixel a poisson random number
-        if drawn with mean `nsb_level_pe`.
+        if drawn with mean ``nsb_level_pe``.
 
         Parameters
         ----------
@@ -205,10 +212,13 @@ class ImageModel(metaclass=ABCMeta):
         noise: only the noise part of image
 
         """
+        if rng is None:
+            rng = TOYMODEL_RNG
+
         expected_signal = self.expected_signal(camera, intensity)
 
-        signal = np.random.poisson(expected_signal)
-        noise = np.random.poisson(nsb_level_pe, size=signal.shape)
+        signal = rng.poisson(expected_signal)
+        noise = rng.poisson(nsb_level_pe, size=signal.shape)
         image = (signal + noise) - np.mean(noise)
 
         return image, signal, noise

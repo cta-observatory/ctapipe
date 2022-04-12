@@ -10,8 +10,7 @@ from astropy import units as u
 from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.colors import Normalize, LogNorm, SymLogNorm
-from matplotlib.patches import Ellipse, RegularPolygon, Rectangle, Circle
-from numpy import sqrt
+from matplotlib.patches import Ellipse, RegularPolygon, Circle
 
 from ctapipe.instrument import PixelShape
 
@@ -41,7 +40,7 @@ class CameraDisplay:
         A matplotlib axes object to plot on, or None to create a new one
     title : str (default "Camera")
         Title to put on camera plot
-    norm : str or `matplotlib.color.Normalize` instance (default 'lin')
+    norm : str or `matplotlib.colors.Normalize` instance (default 'lin')
         Normalization for the color scale.
         Supported str arguments are
         - 'lin': linear scale
@@ -54,7 +53,7 @@ class CameraDisplay:
         redraw automatically (otherwise need to call plt.draw())
     autoscale : bool (default True)
         rescale the vmin/vmax values when the image changes.
-        This is set to False if `set_limits_*` is called to explicity
+        This is set to False if ``set_limits_*`` is called to explicity
         set data limits.
 
     Notes
@@ -75,7 +74,7 @@ class CameraDisplay:
         `matplotlib.collections.PatchCollection` of Polygons (either 6
         or 4 sided).  You can access the PatchCollection directly (to
         e.g. change low-level style parameters) via
-        `CameraDisplay.pixels`
+        ``CameraDisplay.pixels``
 
     Output:
         Since CameraDisplay uses matplotlib, any display can be
@@ -86,16 +85,18 @@ class CameraDisplay:
 
     def __init__(
         self,
+        # same options as bokeh display
         geometry,
         image=None,
-        ax=None,
-        title=None,
+        cmap="inferno",
         norm="lin",
-        cmap=None,
+        autoscale=True,
+        title=None,
+        # mpl specific options
         allow_pick=False,
         autoupdate=True,
-        autoscale=True,
         show_frame=True,
+        ax=None,
     ):
         self.axes = ax if ax is not None else plt.gca()
         self.pixels = None
@@ -106,7 +107,9 @@ class CameraDisplay:
         self._active_pixel_label = None
         self._axes_overlays = []
 
-        self.geom = geometry
+        # derotate camera so we don't duplicate the rotation handling code
+        self.geom = copy.deepcopy(geometry)
+        self.geom.rotate(self.geom.cam_rotation)
 
         if title is None:
             title = f"{geometry.camera_name}"
@@ -114,41 +117,20 @@ class CameraDisplay:
         # initialize the plot and generate the pixels as a
         # RegularPolyCollection
 
-        patches = []
-
         if hasattr(self.geom, "mask"):
             self.mask = self.geom.mask
         else:
             self.mask = np.ones_like(self.geom.pix_x.value, dtype=bool)
 
-        pix_x = self.geom.pix_x.value[self.mask]
-        pix_y = self.geom.pix_y.value[self.mask]
-        pix_width = self.geom.pixel_width.value[self.mask]
-
-        for x, y, w in zip(pix_x, pix_y, pix_width):
-            if self.geom.pix_type == PixelShape.HEXAGON:
-                r = w / np.sqrt(3)
-                patch = RegularPolygon(
-                    (x, y),
-                    6,
-                    radius=r,
-                    orientation=self.geom.pix_rotation.to_value(u.rad),
-                    fill=True,
-                )
-            elif self.geom.pix_type == PixelShape.CIRCLE:
-                patch = Circle((x, y), radius=w / 2, fill=True)
-            elif self.geom.pix_type == PixelShape.SQUARE:
-                patch = Rectangle(
-                    (x - w / 2, y - w / 2),
-                    width=w,
-                    height=w,
-                    angle=self.geom.pix_rotation.to_value(u.deg),
-                    fill=True,
-                )
-
-            patches.append(patch)
-
+        patches = self.create_patches(
+            shape=self.geom.pix_type,
+            pix_x=self.geom.pix_x.value[self.mask],
+            pix_y=self.geom.pix_y.value[self.mask],
+            pix_width=self.geom.pixel_width.value[self.mask],
+            pix_rotation=self.geom.pix_rotation,
+        )
         self.pixels = PatchCollection(patches, cmap=cmap, linewidth=0)
+
         self.axes.add_collection(self.pixels)
 
         self.pixel_highlighting = copy.copy(self.pixels)
@@ -198,6 +180,60 @@ class CameraDisplay:
         self.norm = norm
         self.auto_set_axes_labels()
 
+    @staticmethod
+    def create_patches(shape, pix_x, pix_y, pix_width, pix_rotation=0 * u.deg):
+        if shape == PixelShape.HEXAGON:
+            return CameraDisplay._create_hex_patches(
+                pix_x, pix_y, pix_width, pix_rotation
+            )
+
+        if shape == PixelShape.CIRCLE:
+            return CameraDisplay._create_circle_patches(pix_x, pix_y, pix_width)
+
+        if shape == PixelShape.SQUARE:
+            return CameraDisplay._create_square_patches(
+                pix_x, pix_y, pix_width, pix_rotation
+            )
+
+        raise ValueError(f"Unsupported pixel shape {shape}")
+
+    @staticmethod
+    def _create_hex_patches(pix_x, pix_y, pix_width, pix_rotation):
+        orientation = pix_rotation.to_value(u.rad)
+        return [
+            RegularPolygon(
+                (x, y),
+                6,
+                # convert from incircle to outer circle radius
+                radius=w / np.sqrt(3),
+                orientation=orientation,
+                fill=True,
+            )
+            for x, y, w in zip(pix_x, pix_y, pix_width)
+        ]
+
+    @staticmethod
+    def _create_circle_patches(pix_x, pix_y, pix_width):
+        return [
+            Circle((x, y), radius=w / 2, fill=True)
+            for x, y, w in zip(pix_x, pix_y, pix_width)
+        ]
+
+    @staticmethod
+    def _create_square_patches(pix_x, pix_y, pix_width, pix_rotation):
+        orientation = (pix_rotation + 45 * u.deg).to_value(u.rad)
+        return [
+            RegularPolygon(
+                (x, y),
+                4,
+                # convert from edge length to outer circle radius
+                radius=w / np.sqrt(2),
+                orientation=orientation,
+                fill=True,
+            )
+            for x, y, w in zip(pix_x, pix_y, pix_width)
+        ]
+
     def highlight_pixels(self, pixels, color="g", linewidth=1, alpha=0.75):
         """
         Highlight the given pixels with a colored line around them
@@ -225,26 +261,25 @@ class CameraDisplay:
 
     def enable_pixel_picker(self):
         """ enable ability to click on pixels """
-        self.pixels.set_picker(True)  # enable click
-        self.pixels.set_pickradius(
-            sqrt(u.Quantity(self.geom.pix_area[0]).value) / np.pi
-        )
-        self.pixels.set_snap(True)  # snap cursor to pixel center
+        self.pixels.set_picker(True)
+        self.pixels.set_pickradius(self.geom.pixel_width.value[0] / 2)
         self.axes.figure.canvas.mpl_connect("pick_event", self._on_pick)
 
     def set_limits_minmax(self, zmin, zmax):
         """ set the color scale limits from min to max """
         self.pixels.set_clim(zmin, zmax)
-        self.autoscale = False
         self._update()
 
     def set_limits_percent(self, percent=95):
         """ auto-scale the color range to percent of maximum """
         zmin = np.nanmin(self.pixels.get_array())
         zmax = np.nanmax(self.pixels.get_array())
+        if isinstance(self.pixels.norm, LogNorm):
+            zmin = zmin if zmin > 0 else 0.1
+            zmax = zmax if zmax > 0 else 0.1
+
         dz = zmax - zmin
         frac = percent / 100.0
-        self.autoscale = False
         self.set_limits_minmax(zmin, zmax - (1.0 - frac) * dz)
 
     @property
@@ -263,14 +298,17 @@ class CameraDisplay:
 
     @norm.setter
     def norm(self, norm):
+        vmin, vmax = self.pixels.norm.vmin, self.pixels.norm.vmax
 
         if norm == "lin":
             self.pixels.norm = Normalize()
         elif norm == "log":
-            self.pixels.norm = LogNorm()
+            vmin = 0.1 if vmin < 0 else vmin
+            vmax = 0.2 if vmax < 0 else vmax
+            self.pixels.norm = LogNorm(vmin=vmin, vmax=vmax)
             self.pixels.autoscale()  # this is to handle matplotlib bug #5424
         elif norm == "symlog":
-            self.pixels.norm = SymLogNorm(linthresh=1.0, base=10)
+            self.pixels.norm = SymLogNorm(linthresh=1.0, base=10, vmin=vmin, vmax=vmax)
             self.pixels.autoscale()
         elif isinstance(norm, Normalize):
             self.pixels.norm = norm
@@ -280,14 +318,13 @@ class CameraDisplay:
                 "'log','symlog', or a matplotlib Normalize object".format(norm)
             )
 
-        self.update(force=True)
+        self.update()
         self.pixels.autoscale()
 
     @property
     def cmap(self):
         """
-        Color map to use. Either a name or  `matplotlib.colors.ColorMap`
-        instance, e.g. from `matplotlib.pyplot.cm`
+        Color map to use. Either name or `matplotlib.colors.Colormap`
         """
         return self.pixels.get_cmap()
 
@@ -325,25 +362,22 @@ class CameraDisplay:
             self.pixels.autoscale()
         self._update()
 
-    def _update(self, force=False):
+    def _update(self):
         """ signal a redraw if autoupdate is turned on """
         if self.autoupdate:
-            self.update(force)
+            self.update()
 
-    def update(self, force=False):
+    def update(self):
         """ redraw the display now """
         self.axes.figure.canvas.draw()
         if self.colorbar is not None:
-            if force is True:
-                self.colorbar.update_bruteforce(self.pixels)
-            else:
-                self.colorbar.update_normal(self.pixels)
+            self.colorbar.update_normal(self.pixels)
             self.colorbar.draw_all()
 
     def add_colorbar(self, **kwargs):
         """
         add a colorbar to the camera plot
-        kwargs are passed to `figure.colorbar(self.pixels, **kwargs)`
+        kwargs are passed to ``figure.colorbar(self.pixels, **kwargs)``
         See matplotlib documentation for the supported kwargs:
         http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure.colorbar
         """
@@ -392,7 +426,7 @@ class CameraDisplay:
     def overlay_moments(
         self, hillas_parameters, with_label=True, keep_old=False, **kwargs
     ):
-        """helper to overlay ellipse from a `HillasParametersContainer` structure
+        """helper to overlay ellipse from a `~ctapipe.containers.HillasParametersContainer` structure
 
         Parameters
         ----------
@@ -419,7 +453,7 @@ class CameraDisplay:
             centroid=(cen_x, cen_y),
             length=length * 2,
             width=width * 2,
-            angle=hillas_parameters.psi.to_value("rad"),
+            angle=hillas_parameters.psi.to_value(u.rad),
             **kwargs,
         )
 
@@ -449,19 +483,13 @@ class CameraDisplay:
     def _on_pick(self, event):
         """ handler for when a pixel is clicked """
         pix_id = event.ind[-1]
-        xx, yy, aa = (
-            u.Quantity(self.geom.pix_x[pix_id]).value,
-            u.Quantity(self.geom.pix_y[pix_id]).value,
-            u.Quantity(np.array(self.geom.pix_area)[pix_id]),
-        )
-        if self.geom.pix_type.startswith("hex"):
-            self._active_pixel.xy = (xx, yy)
-        else:
-            rr = sqrt(aa)
-            self._active_pixel.xy = (xx - rr / 2.0, yy - rr / 2.0)
+        x = self.geom.pix_x[pix_id].value
+        y = self.geom.pix_y[pix_id].value
+
+        self._active_pixel.xy = (x, y)
         self._active_pixel.set_visible(True)
-        self._active_pixel_label.set_x(xx)
-        self._active_pixel_label.set_y(yy)
+        self._active_pixel_label.set_x(x)
+        self._active_pixel_label.set_y(y)
         self._active_pixel_label.set_text(f"{pix_id:003d}")
         self._active_pixel_label.set_visible(True)
         self._update()

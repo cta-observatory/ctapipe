@@ -3,12 +3,13 @@ Factory for the estimation of the flat field coefficients
 """
 
 from abc import abstractmethod
+
 import numpy as np
 from astropy import units as u
+from ctapipe.containers import DL1CameraContainer
 from ctapipe.core import Component
+from ctapipe.core.traits import Int, List, Unicode
 from ctapipe.image.extractor import ImageExtractor
-from ctapipe.core.traits import Int, Unicode, List
-
 
 __all__ = ["FlatFieldCalculator", "FlasherFlatFieldCalculator"]
 
@@ -91,7 +92,7 @@ class FlatFieldCalculator(Component):
         super().__init__(**kwargs)
         # load the waveform charge extractor
         self.extractor = ImageExtractor.from_name(
-            self.charge_product, config=self.config, subarray=subarray
+            self.charge_product, parent=self, subarray=subarray
         )
 
         self.log.info(f"extractor {self.extractor}")
@@ -120,7 +121,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
        waveform time
 
 
-     Parameters:
+     Parameters
      ----------
      charge_cut_outliers : List[2]
          Interval of accepted charge values (fraction with respect to camera median value)
@@ -165,7 +166,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         self.arrival_times = None  # arrival time per event in sample
         self.sample_masked_pixels = None  # masked pixels per event in sample
 
-    def _extract_charge(self, event):
+    def _extract_charge(self, event) -> DL1CameraContainer:
         """
         Extract the charge and the time from a calibration event
 
@@ -173,20 +174,19 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         ----------
         event : general event container
 
+        Returns
+        -------
+        DL1CameraContainer
         """
 
         waveforms = event.r1.tel[self.tel_id].waveform
         selected_gain_channel = event.r1.tel[self.tel_id].selected_gain_channel
 
         # Extract charge and time
-        charge = 0
-        peak_pos = 0
         if self.extractor:
-            charge, peak_pos = self.extractor(
-                waveforms, self.tel_id, selected_gain_channel
-            )
-
-        return charge, peak_pos
+            return self.extractor(waveforms, self.tel_id, selected_gain_channel)
+        else:
+            return DL1CameraContainer(image=0, peak_pos=0, is_valid=False)
 
     def calculate_relative_gain(self, event):
         """
@@ -228,9 +228,12 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
 
         # extract the charge of the event and
         # the peak position (assumed as time for the moment)
-        charge, arrival_time = self._extract_charge(event)
+        dl1: DL1CameraContainer = self._extract_charge(event)
 
-        self.collect_sample(charge, pixel_mask, arrival_time)
+        if not dl1.is_valid:
+            return False
+
+        self.collect_sample(dl1.image, pixel_mask, dl1.peak_time)
 
         sample_age = trigger_time - self.time_start
 

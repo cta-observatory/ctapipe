@@ -20,9 +20,6 @@ class OpticsDescription:
     of the telescope-type and sub-type as follows: "type-subtype". You can
     also get each individually.
 
-    The `OpticsDescription.guess()` constructor can be used to fill in info
-    from metadata, e.g. for Monte-Carlo files.
-
     Parameters
     ----------
     num_mirrors: int
@@ -77,9 +74,10 @@ class OpticsDescription:
     @classmethod
     def from_name(cls, name, optics_table="optics"):
         """
-        Construct an OpticsDescription from the name. This is loaded from
-        `optics.fits.gz`, which should be in `ctapipe_resources` or in a
-        directory listed in `CTAPIPE_SVC_PATH`.
+        Construct an OpticsDescription from the name.
+
+        This needs the ``optics`` table dataset to be accessible via
+        ``~ctapipe.utils.get_table_dataset``.
 
         Parameters
         ----------

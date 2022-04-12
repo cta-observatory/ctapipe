@@ -1,10 +1,8 @@
 """ Tests for CameraGeometry """
 import numpy as np
 from astropy import units as u
-from ctapipe.instrument import CameraDescription, CameraReadout
+from ctapipe.instrument import CameraReadout
 import pytest
-
-camera_names = CameraDescription.get_known_camera_names()
 
 
 def test_construct():
@@ -142,8 +140,13 @@ def test_hashing():
     assert len({readout1, readout2, readout3}) == 2
 
 
-@pytest.mark.parametrize("camera_name", camera_names)
-def test_camera_from_name(camera_name):
+def test_camera_from_name(camera_geometry):
     """ check we can construct all cameras from name"""
-    camera = CameraReadout.from_name(camera_name)
-    assert str(camera) == camera_name
+
+    try:
+        camera = CameraReadout.from_name(camera_geometry.camera_name)
+        assert str(camera) == camera_geometry.camera_name
+    except FileNotFoundError:
+        # Most non-cta cameras don't have readout provided on the data server
+        if camera_geometry.camera_name in ["LSTCam", "NectarCam", "FlashCam", "CHEC"]:
+            raise

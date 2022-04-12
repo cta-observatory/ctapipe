@@ -1,10 +1,12 @@
 """ Tests for SubarrayDescriptions """
-import tempfile
+from copy import deepcopy
+
 import numpy as np
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-from ctapipe.coordinates import TelescopeFrame
+import pytest
 
+from ctapipe.coordinates import TelescopeFrame
 from ctapipe.instrument import (
     CameraDescription,
     OpticsDescription,
@@ -15,6 +17,8 @@ from ctapipe.instrument import (
 
 def example_subarray(n_tels=10):
     """ generate a simple subarray for testing purposes """
+    rng = np.random.default_rng(0)
+
     pos = {}
     tel = {}
 
@@ -22,7 +26,7 @@ def example_subarray(n_tels=10):
         tel[tel_id] = TelescopeDescription.from_name(
             optics_name="MST", camera_name="NectarCam"
         )
-        pos[tel_id] = np.random.uniform(-100, 100, size=3) * u.m
+        pos[tel_id] = rng.uniform(-100, 100, size=3) * u.m
 
     return SubarrayDescription("test array", tel_positions=pos, tel_descriptions=tel)
 
@@ -52,7 +56,7 @@ def test_subarray_description():
     assert isinstance(sub.tel_coords, SkyCoord)
     assert len(sub.tel_coords) == n_tels
 
-    subsub = sub.select_subarray("newsub", [2, 3, 4, 6])
+    subsub = sub.select_subarray([2, 3, 4, 6], name="newsub")
     assert subsub.num_tels == 4
     assert set(subsub.tels.keys()) == {2, 3, 4, 6}
     assert subsub.tel_indices[6] == 3
@@ -108,37 +112,46 @@ def test_get_tel_ids_for_type(example_subarray):
         assert len(sub.get_tel_ids_for_type(str(teltype))) > 0
 
 
-def test_hdf(example_subarray):
+def test_hdf(example_subarray, tmp_path):
     import tables
 
-    with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
+    path = tmp_path / "subarray.h5"
 
-        example_subarray.to_hdf(f.name)
-        read = SubarrayDescription.from_hdf(f.name)
+    example_subarray.to_hdf(path)
+    read = SubarrayDescription.from_hdf(path)
 
-        assert example_subarray == read
+    assert example_subarray == read
 
-        # test we can write the read subarray
-        read.to_hdf(f.name, overwrite=True)
+    # test we can write the read subarray
+    read.to_hdf(path, overwrite=True)
 
-        for tel_id, tel in read.tel.items():
-            assert (
-                tel.camera.geometry.frame.focal_length
-                == tel.optics.equivalent_focal_length
-            )
+    # test we have a frame attached to the geometry with correction information
+    for tel_id, tel in read.tel.items():
+        assert (
+            tel.camera.geometry.frame.focal_length == tel.optics.equivalent_focal_length
+        )
+        # test if transforming works
+        tel.camera.geometry.transform_to(TelescopeFrame())
 
-            # test if transforming works
-            tel.camera.geometry.transform_to(TelescopeFrame())
+    # test that subarrays without name (v0.8.0) work:
+    with tables.open_file(path, "r+") as hdf:
+        del hdf.root.configuration.instrument.subarray._v_attrs.name
 
-        # test that subarrays without name (v0.8.0) work:
-        with tables.open_file(f.name, "r+") as hdf:
-            del hdf.root.configuration.instrument.subarray._v_attrs.name
+    no_name = SubarrayDescription.from_hdf(path)
+    assert no_name.name == "Unknown"
 
-        no_name = SubarrayDescription.from_hdf(f.name)
-        assert no_name.name == "Unknown"
+    # Test we can also write and read to an already opened h5file
+    with tables.open_file(path, "w") as h5file:
+        example_subarray.to_hdf(h5file)
 
-    # test with a subarray that has two different telescopes with the same
-    # camera
+    with tables.open_file(path, "r") as h5file:
+        assert SubarrayDescription.from_hdf(h5file) == example_subarray
+
+
+def test_hdf_same_camera(tmp_path):
+    """Test writing / reading subarray to hdf5 with a subarray that has two
+    different telescopes with the same camera
+    """
     tel = {
         1: TelescopeDescription.from_name(optics_name="SST-ASTRI", camera_name="CHEC"),
         2: TelescopeDescription.from_name(optics_name="SST-GCT", camera_name="CHEC"),
@@ -147,9 +160,61 @@ def test_hdf(example_subarray):
 
     array = SubarrayDescription("test array", tel_positions=pos, tel_descriptions=tel)
 
-    with tempfile.NamedTemporaryFile(suffix=".hdf5") as f:
+    path = tmp_path / "subarray.h5"
+    array.to_hdf(path)
+    read = SubarrayDescription.from_hdf(path)
+    assert array == read
 
-        array.to_hdf(f.name)
-        read = SubarrayDescription.from_hdf(f.name)
 
-        assert array == read
+def test_hdf_duplicate_string_repr(tmp_path):
+    """Test writing and reading of a subarray with two telescopes that
+    are different but have the same name.
+    """
+    # test with a subarray that has two different telescopes with the same
+    # camera
+    tel1 = TelescopeDescription.from_name(optics_name="LST", camera_name="LSTCam")
+
+    # second telescope is almost the same and as the same str repr
+    tel2 = deepcopy(tel1)
+    # e.g. one mirror fell off
+    tel2.optics.num_mirror_tiles = tel1.optics.num_mirror_tiles - 1
+
+    array = SubarrayDescription(
+        "test array",
+        tel_positions={1: [0, 0, 0] * u.m, 2: [50, 0, 0] * u.m},
+        tel_descriptions={1: tel1, 2: tel2},
+    )
+
+    # defensive checks to make sure we are actually testing this
+    assert len(array.telescope_types) == 2
+    assert str(tel1) == str(tel2)
+    assert tel1 != tel2
+
+    path = tmp_path / "subarray.h5"
+    array.to_hdf(path)
+    read = SubarrayDescription.from_hdf(path)
+    assert array == read
+    assert (
+        read.tel[1].optics.num_mirror_tiles == read.tel[2].optics.num_mirror_tiles + 1
+    )
+
+
+def test_get_tel_ids(example_subarray):
+    """Test for SubarrayDescription.get_tel_ids"""
+    subarray = example_subarray
+    sst = TelescopeDescription.from_name("SST-ASTRI", "CHEC")
+
+    telescopes = [1, 2, "MST_MST_FlashCam", sst]
+    tel_ids = subarray.get_tel_ids(telescopes)
+
+    true_tel_ids = (
+        subarray.get_tel_ids_for_type("MST_MST_FlashCam")
+        + subarray.get_tel_ids_for_type(sst)
+        + [1, 2]
+    )
+
+    assert sorted(tel_ids) == sorted(true_tel_ids)
+
+    # test invalid telescope type
+    with pytest.raises(Exception):
+        tel_ids = subarray.get_tel_ids(["It's a-me, Mario!"])

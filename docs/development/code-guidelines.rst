@@ -44,15 +44,14 @@ All code your write should have associated *unit tests* to ensure the
 code works, gives resonable results, handles error cases properly, and
 to keep bugs at a minimum
 
-Unit tests in `ctapipe` use the `PyTest system
-<http://docs.pytest.org>`_ .  Each module should put tests in a
-`[module_name]/test` subdirectory, which can contain one or more files
-called `test_[X]` containing tests to run (these are automatically
-discovered by name).
+Unit tests in ``ctapipe`` uses `pytest <http://docs.pytest.org>`_ .
+Each module should put tests in a ``[module_name]/test`` subdirectory,
+which can contain one or more files called ``test_[X]`` containing tests to run,
+which are then automatically discovered.
 
-To run the test suite, you can run `make test` from the top-level
-ctapipe directory (which is just an alias to `python -m pytest`).  You
-can also run tests in subdirectories to limit which ones are run.
+To run the test suite, you can run ``make test`` from the top-level
+ctapipe directory (which is just an alias to ``python -m pytest``).
+You can also run tests in subdirectories to limit which ones are run.
 
 Follow these basic guidelines:
 
@@ -73,46 +72,39 @@ Data Structures
 ---------------
 
 Python is very flexible with data structures: data can be in classes,
-dictionaries, lists, tuples, and numpy `NDArrays`.  Furthermore, the
+dictionaries, lists, tuples, and numpy ``NDArrays``.  Furthermore, the
 structure of a class or dict is flexible: members can be added or
 removed at runtime.  Therefore, we should be careful to follow some
 basic guidelines:
 
-* basic array-like data should be in an `numpy.NDArray`, with a suitable
-  `dtype` (fixed data type)
+* basic array-like data should be in an ``numpy.NDArray``, with a suitable
+  ``dtype`` (fixed data type)
 
 * for complex sets of arrays, each with a column name and unit, can be
-  managed via an `astropy.table.Table` object (which also provides
+  managed via an ``astropy.table.Table`` object (which also provides
   methods to read and write such a table to/from nearly any file
-  format, including FITS and HDF5). Other packages like `pandas` or
-  `dask` may be explored.
+  format, including FITS and HDF5).
+  Other packages like ``pandas`` or ``dask`` may be explored.
 
-* `dict` s or classes can be used for more flexible containers for
-  output parameters.
-
-* `ctapipe.core.Container` should be used for any
+* ``ctapipe.core.Container`` should be used for any
   high-level data structures that you want to be able to write to
   disk (they are not necessary for simple function return values)
-
-* Classes don't need to sub-class `object`, because we only support
-  Python 3 and new-style classes are the default, i.e. subclassing
-  `object` is superfluous.
 
 
 Logging and debugging
 ---------------------
 
-* do not use `print()` statements to output text. Instead use the
-  common logging failities of `ctapipe`.  Log messages should be
+* do not use the ``print()`` function to output text. Instead use the
+  common logging failities of ``ctapipe``.  Log messages should be
   simple, and no not include the filename, function name, time, or any
   other metadata (which can be attached automatically by the logging
   system). See https://docs.python.org/3/howto/logging.html for more info
 
-* Logging within a `Tool` or `Component` subclass: use the `self.log` logger
+* Logging within a ``Tool`` or ``Component`` subclass: use the ``self.log`` logger
   instance
 
 * logging in a library file that is not part of Tool or Component: define a
-  logger at the top of the python file, and name it by using `__name__` as
+  logger at the top of the python file, and name it by using ``__name__`` as
   follows:
 
 
@@ -143,7 +135,7 @@ Some logging guidelines:
 * you should **not** include the name of your function/class, line number, name
   of the file, or similar info in a log message. That information can be added
   automatically by the logger by changing the log format if needed (all log
-  messages come with an attached `LogRecord` which contains all of the
+  messages come with an attached ``LogRecord`` which contains all of the
   necessary metadata: name, level, pathname, filename, line number, message,
   arguments,exc_info (for exceptions), function name, stack info, process name, and
   optinal user-defined fields.
@@ -152,8 +144,8 @@ Some logging guidelines:
   familiar with the code what is happening.
 
 * if the message refers to a value, you can insert it into the message using
-  format `logger.debug("some message: {}".format(val)")` or the log syntax
-  `logger.debug("some message: %d", val)`
+  format ``logger.debug("some message: {}".format(val)")`` or the log syntax
+  ``logger.debug("some message: %d", val)``
 
 
 Function or method Input/Output
@@ -170,7 +162,7 @@ Unit Quantities
 ---------------
 
 When approprate (e.g. in high-level algorithms APIs), use
-`astropy.units` for any quantity where the unit may be ambiguous or
+``astropy.units`` for any quantity where the unit may be ambiguous or
 where units need to be transformed.  Internally in a function, this is not necessary since the coder can ensure unit consistency, but for public APIs (function inputs, etc), units are useful.  You can even enforce a function to have particular unit inputs:
 
 .. code-block:: python
@@ -216,7 +208,7 @@ Note that if you write an algorithm, it may be used in many ways: in a
 command-line tool used in a batch-based system, in a server that
 processes events or data in real-time on-line, or in a variety of
 other data processing systems (map-reduce, Spark, dask,
-etc). Therefore the main request of `ctapipe` managers is that
+etc). Therefore the main request of ``ctapipe`` managers is that
 algorithms should be written as simply as possible without depending
 on any particular data flow mechanism. The following guidelines can
 help when writing algorithms:
@@ -230,7 +222,7 @@ help when writing algorithms:
   - do not parse command-line or other options
   - do not make a way to choose a method from input parameters
   - do not write data streams to disk yourself (use framework
-  features, or just `print()` until they are available) data flow
+  features, or just ``print()`` until they are available) data flow
   between algorithms, etc).
   - If a framework feature is missing, request it via the issue
   tracker.
@@ -240,22 +232,22 @@ help when writing algorithms:
 
   .. code-block:: python
 
-	 def mangle_signal(signal, px, py, centerpoint=(0,0), setpoint=2.0*u.m):
-		 """
-	 Mangles an image
+	def mangle_signal(signal, px, py, center_point=(0, 0), setpoint=2.0 * u.m):
+        """
+        Mangles an image
 
-	 Parameters:
-	 -----------
-	 signal : np.ndarray
-		 array of signal values for each point in space
-	 px,py  : np.ndarray
-		 arrays of x and y valyes of each signal value
-	 centerpoint : (x,y)
-		 center value in pixel coordinates
-	 setpoint : float quantity
-		 a parameter in meters
-	 """
-	 ...
+        Parameters:
+        -----------
+        signal : np.ndarray
+            array of signal values for each point in space
+        px,py  : np.ndarray
+            arrays of x and y valyes of each signal value
+        centerpoint : (x,y)
+            center value in pixel coordinates
+        setpoint : float quantity
+            a parameter in meters
+        """
+	    ...
 
 
 * if the algorithm must maintain some state information between calls
@@ -264,15 +256,15 @@ help when writing algorithms:
 
   .. code-block:: python
 
-	 class SignalMangler:
+    class SignalMangler:
 
-		 def __init__(self, px, py, lookup_table_filename):
-			 self.transform_table = Table.read(lookup_table_filename)
-		 self.px = px
-		 self.py = py
+        def __init__(self, px, py, lookup_table_filename):
+            self.transform_table = Table.read(lookup_table_filename)
+            self.px = px
+            self.py = py
 
-	 def mangle(self, signal):
-		 ...
+        def mangle(self, signal):
+            ...
 
 * if there are multiple implemenations of the same generic algorithm,
   a *class hierarchy* should be use where the base class defines the
@@ -281,7 +273,7 @@ help when writing algorithms:
 
 * Algorithms that need user-definable parameters (that end up in a
   config file or as command-line parameters), need to use
-  `ctapipe.core.Component` as a base class, and follow its guidelines
+  :py:class:`ctapipe.core.Component` as a base class, and follow its guidelines
   (see related documentation)
 
 
@@ -313,17 +305,7 @@ help when writing algorithms:
 
 
 * When your algorithm test code (as above) works well and you are
-  happy with the results, you can do two things:
-
-  1. convert your test code into a `ctapipe.core.Tool` so that it
-	 becomes a command-line program released with ctapipe (with no
-	 modification to the data flow).  This should be done anyway, if
-	 it is useful, since the `Tool` you create can be refactored
-	 later.
-  2. request to the framework experts to have each algorithm wrapped
-	 in a chainable flow framework to allow parallelization and other
-	 advanced features.  Note that the choice of flow-framework is
-	 under study, so leaving things simple as above lets multiple
-	 systems be tested.
-
-
+  happy with the results, you should convert your test code into a set of
+  :py:class:`ctapipe.core.Component` or :py:class:`ctapipe.core.Tool`
+  so that it is usable with the configuration system or becomes a
+  command-line program released with ctapipe.

@@ -14,23 +14,20 @@ Todo:
 
 """
 from .camera import CameraDescription
-from .guess import UNKNOWN_TELESCOPE, guess_telescope
+from .guess import unknown_telescope, guess_telescope
 from .optics import OpticsDescription
 from ..coordinates import CameraFrame
 
 
+__all__ = ["TelescopeDescription"]
+
+
 class TelescopeDescription:
     """
-    Describes a Cherenkov Telescope and it's associated `OpticsDescription` and
-    `CameraDescription`
+    Describes a Cherenkov Telescope and its associated
+    `~ctapipe.instrument.OpticsDescription` and `~ctapipe.instrument.CameraDescription`
 
-    The string representation is a combination of the optics and
-    camera, separated by a colon: "optics:camera" (e.g. "SST-1m:DigiCam")
-
-    The `TelescopeDescription.guess()` constructor can be used to fill in
-    info from metadata, e.g. for Monte-Carlo files.
-
-    Parameters
+    Attributes
     ----------
     name: str
         Telescope name
@@ -43,8 +40,24 @@ class TelescopeDescription:
     """
 
     def __init__(
-        self, name, tel_type, optics: OpticsDescription, camera: CameraDescription
+        self,
+        name: str,
+        tel_type: str,
+        optics: OpticsDescription,
+        camera: CameraDescription,
     ):
+
+        if not isinstance(name, str):
+            raise TypeError("`name` must be a str")
+
+        if not isinstance(tel_type, str):
+            raise TypeError("`tel_type` must be a str")
+
+        if not isinstance(optics, OpticsDescription):
+            raise TypeError("`optics` must be an instance of `OpticsDescription`")
+
+        if not isinstance(camera, CameraDescription):
+            raise TypeError("`camera` must be an instance of `CameraDescription`")
 
         self.name = name
         self.type = tel_type
@@ -87,7 +100,7 @@ class TelescopeDescription:
                 camera.geometry.n_pixels, optics.equivalent_focal_length
             )
         except ValueError:
-            result = UNKNOWN_TELESCOPE
+            result = unknown_telescope(optics.mirror_area, camera.geometry.n_pixels)
 
         return cls(name=result.name, tel_type=result.type, optics=optics, camera=camera)
 

@@ -18,17 +18,22 @@ __all__ = [
     "DL1CameraCalibrationContainer",
     "DL1CameraContainer",
     "DL1Container",
+    "DL2Container",
     "EventCalibrationContainer",
     "EventCameraCalibrationContainer",
     "EventIndexContainer",
     "EventType",
     "FlatFieldContainer",
     "HillasParametersContainer",
+    "CoreParametersContainer",
     "ImageParametersContainer",
     "LeakageContainer",
     "MonitoringCameraContainer",
     "MonitoringContainer",
     "MorphologyContainer",
+    "BaseHillasParametersContainer",
+    "CameraHillasParametersContainer",
+    "CameraTimingParametersContainer",
     "ParticleClassificationContainer",
     "PedestalContainer",
     "PixelStatusContainer",
@@ -38,15 +43,19 @@ __all__ = [
     "R1Container",
     "ReconstructedContainer",
     "ReconstructedEnergyContainer",
-    "ReconstructedShowerContainer",
+    "ReconstructedGeometryContainer",
     "SimulatedCameraContainer",
     "SimulatedShowerContainer",
     "SimulatedShowerDistribution",
     "SimulationConfigContainer",
     "TelEventIndexContainer",
+    "BaseTimingParametersContainer",
     "TimingParametersContainer",
     "TriggerContainer",
     "WaveformCalibrationContainer",
+    "StatisticsContainer",
+    "IntensityStatisticsContainer",
+    "PeakTimeStatisticsContainer",
 ]
 
 
@@ -102,11 +111,25 @@ class TelEventIndexContainer(Container):
     tel_id = Field(0, "telescope identifier")
 
 
-class HillasParametersContainer(Container):
-    container_prefix = "hillas"
+class BaseHillasParametersContainer(Container):
+    """
+    Base container for hillas parameters to
+    allow the CameraHillasParametersContainer to
+    be assigned to an ImageParametersContainer as well.
+    """
 
     intensity = Field(nan, "total intensity (size)")
+    skewness = Field(nan, "measure of the asymmetry")
+    kurtosis = Field(nan, "measure of the tailedness")
 
+
+class CameraHillasParametersContainer(BaseHillasParametersContainer):
+    """
+    Hillas Parameters in the camera frame. The cog position
+    is given in meter from the camera center.
+    """
+
+    container_prefix = "camera_frame_hillas"
     x = Field(nan * u.m, "centroid x coordinate", unit=u.m)
     y = Field(nan * u.m, "centroid x coordinate", unit=u.m)
     r = Field(nan * u.m, "radial coordinate of centroid", unit=u.m)
@@ -118,8 +141,33 @@ class HillasParametersContainer(Container):
     width_uncertainty = Field(nan * u.m, "uncertainty of width", unit=u.m)
     psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
 
-    skewness = Field(nan, "measure of the asymmetry")
-    kurtosis = Field(nan, "measure of the tailedness")
+
+class HillasParametersContainer(BaseHillasParametersContainer):
+    """
+    Hillas Parameters in a spherical system centered on the pointing position
+    (TelescopeFrame). The cog position is given as offset in
+    longitude and latitude in degree.
+    """
+
+    container_prefix = "hillas"
+    fov_lon = Field(
+        nan * u.deg,
+        "longitude angle in a spherical system centered on the pointing position",
+        unit=u.deg,
+    )
+    fov_lat = Field(
+        nan * u.deg,
+        "latitude angle in a spherical system centered on the pointing position",
+        unit=u.deg,
+    )
+    r = Field(nan * u.deg, "radial coordinate of centroid", unit=u.deg)
+    phi = Field(nan * u.deg, "polar coordinate of centroid", unit=u.deg)
+
+    length = Field(nan * u.deg, "standard deviation along the major-axis", unit=u.deg)
+    length_uncertainty = Field(nan * u.deg, "uncertainty of length", unit=u.deg)
+    width = Field(nan * u.deg, "standard spread along the minor-axis", unit=u.deg)
+    width_uncertainty = Field(nan * u.deg, "uncertainty of width", unit=u.deg)
+    psi = Field(nan * u.deg, "rotation angle of ellipse", unit=u.deg)
 
 
 class LeakageContainer(Container):
@@ -162,21 +210,43 @@ class ConcentrationContainer(Container):
     pixel = Field(nan, "Percentage of photo-electrons in the brightest pixel")
 
 
-class TimingParametersContainer(Container):
+class BaseTimingParametersContainer(Container):
     """
-    Slope and Intercept of a linear regression of the arrival times
-    along the shower main axis
+    Base container for timing parameters to
+    allow the CameraTimingParametersContainer to
+    be assigned to an ImageParametersContainer as well.
     """
 
-    container_prefix = "timing"
-    slope = Field(
-        nan / u.m, "Slope of arrival times along main shower axis", unit=1 / u.m
-    )
     intercept = Field(nan, "intercept of arrival times along main shower axis")
     deviation = Field(
         nan,
         "Root-mean-square deviation of the pulse times "
         "with respect to the predicted time",
+    )
+
+
+class CameraTimingParametersContainer(BaseTimingParametersContainer):
+    """
+    Slope and Intercept of a linear regression of the arrival times
+    along the shower main axis in the camera frame.
+    """
+
+    container_prefix = "camera_frame_timing"
+    slope = Field(
+        nan / u.m, "Slope of arrival times along main shower axis", unit=1 / u.m
+    )
+
+
+class TimingParametersContainer(BaseTimingParametersContainer):
+    """
+    Slope and Intercept of a linear regression of the arrival times
+    along the shower main axis in a
+    spherical system centered on the pointing position (TelescopeFrame)
+    """
+
+    container_prefix = "timing"
+    slope = Field(
+        nan / u.deg, "Slope of arrival times along main shower axis", unit=1 / u.deg
     )
 
 
@@ -209,12 +279,27 @@ class PeakTimeStatisticsContainer(StatisticsContainer):
     container_prefix = "peak_time"
 
 
+class CoreParametersContainer(Container):
+    """Telescope-wise shower's direction in the Tilted/Ground Frame"""
+
+    container_prefix = "core"
+    psi = Field(nan * u.deg, "Image direction in the Tilted/Ground Frame", unit="deg")
+
+
 class ImageParametersContainer(Container):
     """ Collection of image parameters """
 
     container_prefix = "params"
-    hillas = Field(HillasParametersContainer(), "Hillas Parameters")
-    timing = Field(TimingParametersContainer(), "Timing Parameters")
+    hillas = Field(
+        HillasParametersContainer(),
+        "Hillas Parameters",
+        type=BaseHillasParametersContainer,
+    )
+    timing = Field(
+        TimingParametersContainer(),
+        "Timing Parameters",
+        type=BaseTimingParametersContainer,
+    )
     leakage = Field(LeakageContainer(), "Leakage Parameters")
     concentration = Field(ConcentrationContainer(), "Concentration Parameters")
     morphology = Field(MorphologyContainer(), "Image Morphology Parameters")
@@ -223,6 +308,9 @@ class ImageParametersContainer(Container):
     )
     peak_time_statistics = Field(
         PeakTimeStatisticsContainer(), "Peak time image statistics"
+    )
+    core = Field(
+        CoreParametersContainer(), "Image direction in the Tilted/Ground Frame"
     )
 
 
@@ -245,13 +333,20 @@ class DL1CameraContainer(Container):
         dtype=np.float32,
         ndim=1,
     )
-
     image_mask = Field(
         None,
         "Boolean numpy array where True means the pixel has passed cleaning."
         " Shape: (n_pixel, )",
         dtype=np.bool_,
         ndim=1,
+    )
+    is_valid = Field(
+        False,
+        (
+            "True if image extraction succeeded, False if failed "
+            "or in the case of TwoPass methods, that the first "
+            "pass only was returned."
+        ),
     )
 
     parameters = Field(None, "Image parameters", type=ImageParametersContainer)
@@ -398,6 +493,9 @@ class SimulatedCameraContainer(Container):
 
     container_prefix = ""
 
+    true_image_sum = Field(
+        np.nan, "Sum of the detected Cherenkov photons in the camera"
+    )
     true_image = Field(
         None,
         "Numpy array of camera image in PE as simulated before noise has been added. "
@@ -487,16 +585,18 @@ class TriggerContainer(Container):
     container_prefix = ""
     time = Field(NAN_TIME, "central average time stamp")
     tels_with_trigger = Field(
-        [], "List of telescope ids that triggered the array event"
+        None, "List of telescope ids that triggered the array event"
     )
     event_type = Field(EventType.SUBARRAY, "Event type")
     tel = Field(Map(TelescopeTriggerContainer), "telescope-wise trigger information")
 
 
-class ReconstructedShowerContainer(Container):
+class ReconstructedGeometryContainer(Container):
     """
     Standard output of algorithms reconstructing shower geometry
     """
+
+    container_prefix = ""
 
     alt = Field(nan * u.deg, "reconstructed altitude", unit=u.deg)
     alt_uncert = Field(nan * u.deg, "reconstructed altitude uncertainty", unit=u.deg)
@@ -506,10 +606,37 @@ class ReconstructedShowerContainer(Container):
         nan * u.m, "reconstructed x coordinate of the core position", unit=u.m
     )
     core_y = Field(
-        nan * u.m, "reconstructed y coordinate of the core position", unit=u.m
+        nan * u.m,
+        "reconstructed y coordinate of the core position",
+        unit=u.m
     )
-    core_uncert = Field(
-        nan * u.m, "uncertainty of the reconstructed core position", unit=u.m
+    core_uncert_x = Field(
+        nan * u.m,
+        "reconstructed core position uncertainty along ground frame X axis",
+        unit=u.m
+    )
+    core_uncert_y = Field(
+        nan * u.m,
+        "reconstructed core position uncertainty along ground frame Y axis",
+        unit=u.m
+    )
+    core_tilted_x = Field(
+        nan * u.m, "reconstructed x coordinate of the core position", unit=u.m
+    )
+    core_tilted_y = Field(
+        nan * u.m,
+        "reconstructed y coordinate of the core position",
+        unit=u.m
+    )
+    core_tilted_uncert_x = Field(
+        nan * u.m,
+        "reconstructed core position uncertainty along tilted frame X axis",
+        unit=u.m
+    )
+    core_tilted_uncert_y = Field(
+        nan * u.m,
+        "reconstructed core position uncertainty along tilted frame Y axis",
+        unit=u.m
     )
     h_max = Field(nan * u.m, "reconstructed height of the shower maximum", unit=u.m)
     h_max_uncert = Field(nan * u.m, "uncertainty of h_max", unit=u.m)
@@ -520,19 +647,19 @@ class ReconstructedShowerContainer(Container):
             "was properly reconstructed by the algorithm"
         ),
     )
-    tel_ids = Field(
-        [], ("list of the telescope ids used in the" " reconstruction of the shower")
-    )
     average_intensity = Field(
         nan, "average intensity of the intensities used for reconstruction"
     )
     goodness_of_fit = Field(nan, "measure of algorithm success (if fit)")
+    tel_ids = Field(None, "list of tel_ids used if stereo, or None if Mono")
 
 
 class ReconstructedEnergyContainer(Container):
     """
     Standard output of algorithms estimating energy
     """
+
+    container_prefix = ""
 
     energy = Field(nan * u.TeV, "reconstructed energy", unit=u.TeV)
     energy_uncert = Field(nan * u.TeV, "reconstructed energy uncertainty", unit=u.TeV)
@@ -544,14 +671,8 @@ class ReconstructedEnergyContainer(Container):
             "algorithm"
         ),
     )
-    tel_ids = Field(
-        [],
-        (
-            "array containing the telescope ids used in the"
-            " reconstruction of the shower"
-        ),
-    )
-    goodness_of_fit = Field(0.0, "goodness of the algorithm fit")
+    goodness_of_fit = Field(nan, "goodness of the algorithm fit")
+    tel_ids = Field(None, "list of tel_ids used if stereo, or None if Mono")
 
 
 class ParticleClassificationContainer(Container):
@@ -559,11 +680,13 @@ class ParticleClassificationContainer(Container):
     Standard output of gamma/hadron classification algorithms
     """
 
+    container_prefix = ""
+
     # TODO: Do people agree on this? This is very MAGIC-like.
     # TODO: Perhaps an integer classification to support different classes?
     # TODO: include an error on the prediction?
     prediction = Field(
-        0.0,
+        nan,
         (
             "prediction of the classifier, defined between "
             "[0,1], where values close to 0 are more "
@@ -571,40 +694,47 @@ class ParticleClassificationContainer(Container):
             "hadron-like"
         ),
     )
-    is_valid = Field(
-        False,
-        (
-            "classificator validity flag. True if the "
-            "predition was successful within the algorithm "
-            "validity range"
-        ),
-    )
-
-    # TODO: KPK: is this different than the list in the reco
-    # container? Why repeat?
-    tel_ids = Field(
-        [],
-        (
-            "array containing the telescope ids used "
-            "in the reconstruction of the shower"
-        ),
-    )
-    goodness_of_fit = Field(0.0, "goodness of the algorithm fit")
+    is_valid = Field(False, "true if classification parameters are valid")
+    goodness_of_fit = Field(nan, "goodness of the algorithm fit")
+    tel_ids = Field(None, "list of tel_ids used if stereo, or None if Mono")
 
 
 class ReconstructedContainer(Container):
-    """ collect reconstructed shower info from multiple algorithms """
+    """ Reconstructed shower info from multiple algorithms """
 
-    shower = Field(
-        Map(ReconstructedShowerContainer), "Map of algorithm name to shower info"
+    # Note: there is a reason why the hiererchy is
+    # `event.dl2.stereo.geometry[algorithm]` and not
+    # `event.dl2[algorithm].stereo.geometry` and that is because when writing
+    # the data, the former makes it easier to only write information that a
+    # particular reconstructor generates, e.g. only write the geometry in cases
+    # where energy is not yet computed. Some algorithms will compute all three,
+    # but most will compute only fill or two of these sub-Contaiers:
+
+    geometry = Field(
+        Map(ReconstructedGeometryContainer),
+        "map of algorithm to reconstructed shower parameters",
     )
     energy = Field(
-        Map(ReconstructedEnergyContainer), "Map of algorithm name to energy info"
+        Map(ReconstructedEnergyContainer),
+        "map of algorithm to reconstructed energy parameters",
     )
     classification = Field(
         Map(ParticleClassificationContainer),
-        "Map of algorithm name to classification info",
+        "map of algorithm to classification parameters",
     )
+
+
+class DL2Container(Container):
+    """Reconstructed Shower information for a given reconstruction algorithm,
+    including optionally both per-telescope mono reconstruction and per-shower
+    stereo reconstructions
+    """
+
+    tel = Field(
+        Map(ReconstructedContainer),
+        "map of tel_id to single-telescope reconstruction (DL2a)",
+    )
+    stereo = Field(ReconstructedContainer(), "Stereo Shower reconstruction results")
 
 
 class TelescopePointingContainer(Container):
@@ -882,7 +1012,7 @@ class ArrayEventContainer(Container):
     r1 = Field(R1Container(), "R1 Calibrated Data")
     dl0 = Field(DL0Container(), "DL0 Data Volume Reduced Data")
     dl1 = Field(DL1Container(), "DL1 Calibrated image")
-    dl2 = Field(ReconstructedContainer(), "Reconstructed Shower Information")
+    dl2 = Field(DL2Container(), "DL2 reconstruction info")
     simulation = Field(
         None, "Simulated Event Information", type=SimulatedEventContainer
     )

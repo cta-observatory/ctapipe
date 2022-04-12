@@ -19,6 +19,9 @@ from .telescope_frame import TelescopeFrame
 from .representation import PlanarRepresentation
 
 
+__all__ = ["CameraFrame"]
+
+
 class MirrorAttribute(Attribute):
     """A frame Attribute that can only store the integers 1 and 2"""
 
@@ -130,6 +133,10 @@ def camera_to_telescope(camera_coord, telescope_frame):
         y_rotated = x_pos * sinrot + y_pos * cosrot
 
     focal_length = camera_coord.focal_length
+    if focal_length.shape == () and focal_length.value == 0:
+        raise ValueError(
+            "Coordinate in CameraFrame is missing focal_length information"
+        )
 
     # this assumes an equidistant mapping function of the telescope optics
     # or a small angle approximation of most other mapping functions
@@ -138,14 +145,10 @@ def camera_to_telescope(camera_coord, telescope_frame):
     # where theta is the angle to the optical axis and r is the distance
     # to the camera center in the focal plane
     fov_lat = u.Quantity(
-        (x_rotated / focal_length).to_value(u.dimensionless_unscaled),
-        u.rad,
-        copy=False,
+        (x_rotated / focal_length).to_value(u.dimensionless_unscaled), u.rad, copy=False
     )
     fov_lon = u.Quantity(
-        (y_rotated / focal_length).to_value(u.dimensionless_unscaled),
-        u.rad,
-        copy=False,
+        (y_rotated / focal_length).to_value(u.dimensionless_unscaled), u.rad, copy=False
     )
 
     representation = UnitSphericalRepresentation(lat=fov_lat, lon=fov_lon)
@@ -175,6 +178,8 @@ def telescope_to_camera(telescope_coord, camera_frame):
         y_rotated = x_pos * sinrot + y_pos * cosrot
 
     focal_length = camera_frame.focal_length
+    if focal_length.shape == () and focal_length.value == 0:
+        raise ValueError("CameraFrame is missing focal_length information")
 
     # this assumes an equidistant mapping function of the telescope optics
     # or a small angle approximation of most other mapping functions

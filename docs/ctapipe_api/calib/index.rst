@@ -1,8 +1,8 @@
 .. _calib:
 
-======================
- Calibration (`calib`)
-======================
+===============================
+ Calibration (`~ctapipe.calib`)
+===============================
 
 .. currentmodule:: ctapipe.calib
 
