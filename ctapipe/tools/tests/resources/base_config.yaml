@@ -87,14 +87,19 @@ ImageProcessor:
 # The ShowerProcessor performs the DL1 to DL2a (reconstructed shower geometry)
 # transition. It is run only if the parameter DataWriter.write_stereo_shower=True.
 ShowerProcessor:
-  # Choose which telescope events should be included in the reconstruction.
-  ShowerQualityQuery:
-    # the quality criteria here should again be a list of [name,
-    # filter_function_string] pairs, with filter functions that take the set of
-    # image parameters, p (a `ctapipe.containers.ImageParametersContainer`), as
-    # an argument.
-    quality_criteria:
-      - [enough intensity, "lambda p: p.hillas.intensity > 50"]
-      - [Positive width, "lambda p: p.hillas.width.value > 0"]
-      - [enough pixels, "lambda p: p.morphology.num_pixels > 3"]
-      - [not clipped, "lambda p: p.leakage.intensity_width_2 < 0.8"]
+  # choose between HillasReconstructor and HillasIntersection (two
+  # implementations of the standard stereo line-intersection method)
+  reconstructor_type: HillasReconstructor
+
+  HillasReconstructor:
+    # Choose which telescope events should be included in the reconstruction.
+    StereoQualityQuery:
+      # the quality criteria here should again be a list of [name,
+      # filter_function_string] pairs, with filter functions that take the set of
+      # image parameters, `p` (a `ctapipe.containers.ImageParametersContainer`), as
+      # an argument.
+      quality_criteria:
+        - [enough intensity, "lambda p: p.hillas.intensity > 50"]
+        - [Positive width, "lambda p: p.hillas.width.value > 0"]
+        - [enough pixels, "lambda p: p.morphology.num_pixels > 3"]
+        - [not clipped, "lambda p: p.leakage.intensity_width_2 < 0.8"]
