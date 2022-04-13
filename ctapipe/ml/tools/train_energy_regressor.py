@@ -7,7 +7,6 @@ from ctapipe.io import TableLoader
 from ..sklearn import Regressor
 
 
-
 class TrainEnergyRegressor(Tool):
 
     output_path = Path(
@@ -17,8 +16,9 @@ class TrainEnergyRegressor(Tool):
     ).tag(config=True)
 
     aliases = {
-        ('i', 'input'): 'TableLoader.input_url',
-        ('o', 'output'): 'TrainEnergyRegressor.output_path',
+        ("i", "input"): "TableLoader.input_url",
+        ("o", "output"): "TrainEnergyRegressor.output_path",
+        "model": "TrainEnergyRegressor.Regressor.model_cls",
     }
 
     classes = [
@@ -27,7 +27,7 @@ class TrainEnergyRegressor(Tool):
     ]
 
     def setup(self):
-        ''''''
+        """"""
         self.loader = TableLoader(
             parent=self,
             load_dl1_images=False,
@@ -37,29 +37,17 @@ class TrainEnergyRegressor(Tool):
         )
 
     def start(self):
-        self.models = {}
-        for tel_type in self.loader.subarray.telescope_types:
-            self.log.info("Training model for type %s", tel_type)
-            self.models[tel_type] = Regressor(
-                parent=self,
-                target="true_energy",
-                features=[
-                    "hillas_intensity",
-                    "hillas_width",
-                    "hillas_length",
-                    "morphology_num_pixels",
-                    "concentration_cog",
-                    "concentration_core",
-                ]
-            )
-            table = self.loader.read_telescope_events([tel_type])
-            self.models[tel_type].fit(table)
+        self.model = Regressor(
+            parent=self,
+            target="true_energy",
+        )
+        table = self.loader.read_telescope_events()
+        self.model.fit(table)
 
     def finish(self):
-        with open(self.output_path, 'wb') as f:
-            pickle.dump(self.models, f)
+        self.model.write(self.output_path)
+        self.loader.close()
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     TrainEnergyRegressor().run()
