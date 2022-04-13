@@ -331,7 +331,9 @@ def test_image_modifications(tmp_path, dl1_image_file):
     assert modified_images["image"].sum() / unmodified_images["image"].sum() > 1.5
 
 
-@pytest.mark.parametrize("filename", CONFIGS_TO_WRITE)
+@pytest.mark.parametrize(
+    "filename", ["base_config.yaml", "stage1_config.json", "stage1_config.toml"]
+)
 def test_quickstart_templates(filename):
     """ensure template configs have an appropriate placeholder for the contact info"""
     config = resource_file(filename)
