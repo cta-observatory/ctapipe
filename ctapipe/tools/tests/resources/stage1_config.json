@@ -41,12 +41,15 @@
         }
     },
     "ShowerProcessor": {
-        "ShowerQualityQuery": {
-            "quality_criteria": [
-                ["enough intensity", "lambda p: p.hillas.intensity > 50"],
-                ["Positive width", "lambda p: p.hillas.width.value > 0"],
-                ["enough pixels", "lambda p: p.morphology.num_pixels > 3"]
-            ]
+        "reconstructor_type": "HillasReconstructor",
+        "HillasReconstructor": {
+            "StereoQualityQuery": {
+                "quality_criteria": [
+                    ["enough intensity", "lambda p: p.hillas.intensity > 50"],
+                    ["Positive width", "lambda p: p.hillas.width.value > 0"],
+                    ["enough pixels", "lambda p: p.morphology.num_pixels > 3"]
+                ]
+            }
         }
     }
 }

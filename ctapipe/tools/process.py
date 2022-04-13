@@ -230,9 +230,9 @@ class ProcessorTool(Tool):
             )
 
         if self.should_compute_dl2:
-            shower_stats = self.process_shower.check_shower.to_table(functions=True)
+            reconstructor = self.process_shower.reconstructor
             write_table(
-                shower_stats,
+                reconstructor.check_parameters.to_table(functions=True),
                 self.write.output_path,
                 "/dl2/service/image_statistics",
                 append=True,
