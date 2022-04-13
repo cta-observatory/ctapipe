@@ -55,7 +55,8 @@ class Model(Component):
             shape = (len(table),)
 
         prediction = np.full(shape, np.nan)
-        prediction[valid] = self.model.predict(X)
+        if np.any(valid):
+            prediction[valid] = self.model.predict(X)
         return prediction
 
     def write(self, path):
@@ -124,7 +125,8 @@ class Classifier(Model):
             shape = (len(table),)
 
         prediction = np.full(shape, self.invalid_class, dtype=np.int8)
-        prediction[valid] = self.model.predict(X)
+        if np.any(valid):
+            prediction[valid] = self.model.predict(X)
         return prediction
 
     def predict_score(self, table):
@@ -135,12 +137,14 @@ class Classifier(Model):
         shape = (n_rows, n_classes) if n_classes > 2 else (n_rows,)
 
         scores = np.full(shape, np.nan)
-        prediction = self.model.predict_proba(X)[:]
 
-        if n_classes > 2:
-            scores[valid] = prediction
-        else:
-            # only return one score for the positive class
-            scores[valid] = prediction[:, 1]
+        if np.any(valid):
+            prediction = self.model.predict_proba(X)[:]
+
+            if n_classes > 2:
+                scores[valid] = prediction
+            else:
+                # only return one score for the positive class
+                scores[valid] = prediction[:, 1]
 
         return scores
