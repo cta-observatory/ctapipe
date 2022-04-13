@@ -37,7 +37,7 @@ from astropy import units as u
 __all__ = ["HillasPlane", "HillasReconstructor"]
 
 
-INVALID = ReconstructedGeometryContainer()
+INVALID = ReconstructedGeometryContainer(tel_ids=[])
 
 
 def angle(v1, v2):

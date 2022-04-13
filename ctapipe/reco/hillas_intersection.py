@@ -39,7 +39,7 @@ from ctapipe.core import traits
 __all__ = ["HillasIntersection"]
 
 
-INVALID = ReconstructedGeometryContainer()
+INVALID = ReconstructedGeometryContainer(tel_ids=[])
 
 
 class HillasIntersection(Reconstructor):
