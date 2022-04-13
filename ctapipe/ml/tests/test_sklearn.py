@@ -113,6 +113,27 @@ def test_regressor(model_cls, example_table):
     assert np.isnan(prediction[30])
 
 
+@pytest.mark.parametrize("model_cls", ["LinearRegression", "RandomForestRegressor"])
+def test_regressor_single_event(model_cls, example_table):
+    from ctapipe.ml.sklearn import Regressor
+
+    regressor = Regressor(
+        model_cls=model_cls, target="energy", features=[f"X{i}" for i in range(8)]
+    )
+
+    regressor.fit(example_table)
+    prediction = regressor.predict(example_table[[0]])
+    assert prediction.shape == (1,)
+
+    # no test with a single invalid event
+    invalid = example_table[[0]].copy()
+    for col in filter(lambda col: col.startswith('X'), invalid.colnames):
+        invalid[col][:] = np.nan
+
+    prediction = regressor.predict(invalid)
+    assert prediction.shape == (1,)
+
+
 def test_regressor_log_target(example_table):
     from ctapipe.ml.sklearn import Regressor
 
