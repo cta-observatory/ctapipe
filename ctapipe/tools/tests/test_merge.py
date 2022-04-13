@@ -18,7 +18,7 @@ except ImportError:
 
 
 def run_stage1(input_path, cwd, output_path=None):
-    config = files("ctapipe.tools.tests").joinpath("resources", "stage1_config.json")
+    config = files("ctapipe").joinpath("resources", "stage1_config.json")
 
     if output_path is None:
         output_path = Path(

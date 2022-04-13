@@ -22,7 +22,7 @@ GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 
 
 def resource_file(filename):
-    return files("ctapipe.tools.tests").joinpath("resources", filename)
+    return files("ctapipe").joinpath("resources", filename)
 
 
 @pytest.mark.parametrize(

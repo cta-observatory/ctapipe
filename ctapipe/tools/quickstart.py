@@ -144,7 +144,7 @@ class QuickStartTool(Tool):
     def start(self):
 
         for filename in CONFIGS_TO_WRITE:
-            config = files("ctapipe.tools.tests").joinpath("resources", filename)
+            config = files("ctapipe").joinpath("resources", filename)
             destination = self.workdir / filename
 
             if destination.exists():
