@@ -269,11 +269,7 @@ def apply_time_average_cleaning(
     Returns
     -------
 
-    A boolean mask of *clean* pixels.  To get a zero-suppressed image and pixel
-    list, use `image[mask], geom.pix_id[mask]`, or to keep the same
-    image size and just set unclean pixels to 0 or similar, use
-    `image[~mask] = 0`
-
+    A boolean mask of *clean* pixels.
     """
     mask = mask.copy()
     if np.count_nonzero(mask) > 0:
@@ -421,11 +417,7 @@ def time_constrained_clean(
 
     Returns
     -------
-    A boolean mask of *clean* pixels.  To get a zero-suppressed image and pixel
-    list, use `image[mask], geom.pix_id[mask]`, or to keep the same
-    image size and just set unclean pixels to 0 or similar, use
-    `image[~mask] = 0`
-
+    A boolean mask of *clean* pixels.
     """
 
     # find core pixels that pass a picture threshold
