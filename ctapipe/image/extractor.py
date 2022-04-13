@@ -194,7 +194,7 @@ def extract_sliding_window(waveforms, width, sampling_rate_ghz, sum_, peak_time)
     peak_time[0] /= sampling_rate_ghz
 
 
-@njit(parallel=True, cache=True)
+@njit(cache=True)
 def neighbor_average_waveform(waveforms, neighbors_indices, neighbors_indptr, lwt):
     """
     Obtain the average waveform built from the neighbors of each pixel
