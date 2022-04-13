@@ -7,13 +7,7 @@ import re
 import textwrap
 from abc import abstractmethod
 from typing import Union
-
-try:
-    import yaml
-
-    HAS_YAML = True
-except ImportError:
-    HAS_YAML = False
+import yaml
 
 try:
     import tomli as toml
@@ -236,7 +230,7 @@ class Tool(Application):
 
         path = pathlib.Path(path)
 
-        if path.suffix in [".yaml", ".yml"] and HAS_YAML:
+        if path.suffix in [".yaml", ".yml"]:
             # do our own YAML loading
             with open(path, "r") as infile:
                 config = Config(yaml.safe_load(infile))
