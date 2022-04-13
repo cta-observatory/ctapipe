@@ -67,10 +67,12 @@ ImageProcessor:
     picture_threshold_pe: # top-level threshold in photoelectrons
       - [type, "LST*", 6.0]
       - [type, "MST*NectarCam", 8.0]
+      - [type, "MST*FlashCam", 10000] # disabled for now
       - [type, "SST_ASTRI_CHEC", 4.0]
     boundary_threshold_pe: # second-level threshold in photoelectrons
       - [type, "LST*", 3.0]
       - [type, "MST*NectarCam", 4.0]
+      - [type, "MST*FlashCam", 10000] # disabled for now
       - [type, "SST_ASTRI_CHEC", 2.0]
     keep_isolated_pixels: False # If False, pixels with  < min_picture_neighbors are removed.
     min_picture_neighbors: 2 # Minimum number of neighbors above threshold to consider
