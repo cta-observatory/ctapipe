@@ -71,15 +71,15 @@ class Model(Component):
 
         if check_cls is True and not model.__class__ is cls:
             raise TypeError(
-                "File did not contain an instance of {cls}, got {model.__class__}"
+                f"File did not contain an instance of {cls}, got {model.__class__}"
             )
 
         return model
 
     def __getstate__(self):
         state = self.__dict__.copy()
-        state['_trait_values']['parent'] = None
-        state['_trait_notifiers'] = {}
+        state["_trait_values"]["parent"] = None
+        state["_trait_notifiers"] = {}
         return state
 
 
