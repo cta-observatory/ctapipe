@@ -160,30 +160,36 @@ class ImageModifier(TelescopeComponent):
         self.rng = np.random.default_rng(self.rng_seed)
 
     def __call__(self, tel_id, image, rng=None):
-        geom = self.subarray.tel[tel_id].camera.geometry
-        smeared_image = _smear_psf_randomly(
-            image=image,
-            fraction=self.psf_smear_factor.tel[tel_id],
-            indices=geom.neighbor_matrix_sparse.indices,
-            indptr=geom.neighbor_matrix_sparse.indptr,
-            smear_probabilities=np.full(geom.max_neighbors, 1 / geom.max_neighbors),
-            seed=self.rng.integers(0, np.iinfo(np.int64).max),
-        )
+        dtype = image.dtype
 
-        noise = np.where(
-            image > self.noise_transition_charge.tel[tel_id],
-            self.noise_level_bright_pixels.tel[tel_id],
-            self.noise_level_dim_pixels.tel[tel_id],
-        )
-        image_with_noise = _add_noise(
-            smeared_image,
-            noise,
-            rng=self.rng,
-            correct_bias=self.noise_correct_bias.tel[tel_id],
-        )
-        bias = np.where(
-            image > self.noise_transition_charge.tel[tel_id],
-            0,
-            self.noise_bias_dim_pixels.tel[tel_id],
-        )
-        return (image_with_noise + bias).astype(np.float32)
+        if self.psf_smear_factor.tel[tel_id] > 0:
+            geom = self.subarray.tel[tel_id].camera.geometry
+            image = _smear_psf_randomly(
+                image=image,
+                fraction=self.psf_smear_factor.tel[tel_id],
+                indices=geom.neighbor_matrix_sparse.indices,
+                indptr=geom.neighbor_matrix_sparse.indptr,
+                smear_probabilities=np.full(geom.max_neighbors, 1 / geom.max_neighbors),
+                seed=self.rng.integers(0, np.iinfo(np.int64).max),
+            )
+
+        if (
+            self.noise_level_dim_pixels.tel[tel_id] > 0
+            or self.noise_level_bright_pixels.tel[tel_id] > 0
+        ):
+            bright_pixels = image > self.noise_transition_charge.tel[tel_id]
+            noise = np.where(
+                bright_pixels,
+                self.noise_level_bright_pixels.tel[tel_id],
+                self.noise_level_dim_pixels.tel[tel_id],
+            )
+            image = _add_noise(
+                image,
+                noise,
+                rng=self.rng,
+                correct_bias=self.noise_correct_bias.tel[tel_id],
+            )
+
+            image[~bright_pixels] += self.noise_bias_dim_pixels.tel[tel_id]
+
+        return image.astype(dtype, copy=False)

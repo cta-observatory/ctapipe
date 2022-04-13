@@ -12,7 +12,7 @@ from ..containers import (
     PeakTimeStatisticsContainer,
 )
 from ..core import QualityQuery, TelescopeComponent
-from ..core.traits import Bool, List, create_class_enum_trait
+from ..core.traits import Bool, BoolTelescopeParameter, List, create_class_enum_trait
 from ..instrument import SubarrayDescription
 from . import (
     ImageCleaner,
@@ -61,9 +61,15 @@ class ImageProcessor(TelescopeComponent):
     image_cleaner_type = create_class_enum_trait(
         base_class=ImageCleaner, default_value="TailcutsImageCleaner"
     )
+
     use_telescope_frame = Bool(
         default_value=True,
         help="Whether to calculate parameters in the telescope or camera frame",
+    ).tag(config=True)
+
+    apply_image_modifier = BoolTelescopeParameter(
+        default_value=False,
+        help="If true, apply ImageModifier to dl1 images"
     ).tag(config=True)
 
     def __init__(
@@ -196,8 +202,10 @@ class ImageProcessor(TelescopeComponent):
                 geometry = self.telescope_frame_geometries[tel_id]
             else:
                 geometry = self.subarray.tel[tel_id].camera.geometry
-            # compute image parameters only if requested to write them
-            dl1_camera.image = self.modify(tel_id=tel_id, image=dl1_camera.image)
+
+            if self.apply_image_modifier.tel[tel_id]:
+                dl1_camera.image = self.modify(tel_id=tel_id, image=dl1_camera.image)
+
             dl1_camera.image_mask = self.clean(
                 tel_id=tel_id,
                 image=dl1_camera.image,

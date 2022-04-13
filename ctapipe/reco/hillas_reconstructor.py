@@ -37,6 +37,9 @@ from astropy import units as u
 __all__ = ["HillasPlane", "HillasReconstructor"]
 
 
+INVALID = ReconstructedGeometryContainer(tel_ids=[])
+
+
 def angle(v1, v2):
     """ computes the angle between two vectors
         assuming cartesian coordinates
@@ -162,10 +165,8 @@ class HillasReconstructor(Reconstructor):
 
     """
 
-    def __init__(self, subarray, config=None, parent=None, **kwargs):
-        super().__init__(config=config, parent=parent, **kwargs)
-        self.subarray = subarray
-
+    def __init__(self, subarray, **kwargs):
+        super().__init__(subarray=subarray, **kwargs)
         self._cam_radius_m = {
             cam: cam.geometry.guess_radius() for cam in subarray.camera_types
         }
@@ -183,16 +184,17 @@ class HillasReconstructor(Reconstructor):
 
         Parameters
         ----------
-        event : container
-            `ctapipe.containers.ArrayEventContainer`
-        """
+        event: `ctapipe.containers.ArrayEventContainer`
+            The event, needs to have dl1 parameters
 
-        # Read only valid HillasContainers
-        hillas_dict = {
-            tel_id: dl1.parameters.hillas
-            for tel_id, dl1 in event.dl1.tel.items()
-            if np.isfinite(dl1.parameters.hillas.intensity)
-        }
+        Returns
+        -------
+        ReconstructedGeometryContainer
+        """
+        try:
+            hillas_dict = self._create_hillas_dict(event)
+        except (TooFewTelescopesException, InvalidWidthException):
+            return INVALID
 
         # Due to tracking the pointing of the array will never be a constant
         array_pointing = SkyCoord(
@@ -210,17 +212,12 @@ class HillasReconstructor(Reconstructor):
             for tel_id in event.dl1.tel.keys()
         }
 
-        try:
-            result = self._predict(
-                event, hillas_dict, self.subarray, array_pointing, telescope_pointings
-            )
-        except (TooFewTelescopesException, InvalidWidthException):
-            result = ReconstructedGeometryContainer()
-
-        event.dl2.stereo.geometry["HillasReconstructor"] = result
+        return self._predict(
+            event, hillas_dict, array_pointing, telescope_pointings
+        )
 
     def _predict(
-        self, event, hillas_dict, subarray, array_pointing, telescopes_pointings
+        self, event, hillas_dict, array_pointing, telescopes_pointings
     ):
         """
         The function you want to call for the reconstruction of the
@@ -243,8 +240,6 @@ class HillasReconstructor(Reconstructor):
 
         Raises
         ------
-        TooFewTelescopesException
-            if len(hillas_dict) < 2
         InvalidWidthException
             if any width is np.nan or 0
         """
@@ -256,23 +251,8 @@ class HillasReconstructor(Reconstructor):
         # This should be substituted by a DL1 QualityQuery specific to this
         # reconstructor
 
-        # stereoscopy needs at least two telescopes
-        if len(hillas_dict) < 2:
-            raise TooFewTelescopesException(
-                "need at least two telescopes, have {}".format(len(hillas_dict))
-            )
-        # check for np.nan or 0 width's as these screw up weights
-        if any([np.isnan(hillas_dict[tel]["width"].value) for tel in hillas_dict]):
-            raise InvalidWidthException(
-                "A HillasContainer contains an ellipse of width==np.nan"
-            )
-        if any([hillas_dict[tel]["width"].value == 0 for tel in hillas_dict]):
-            raise InvalidWidthException(
-                "A HillasContainer contains an ellipse of width==0"
-            )
-
         hillas_planes, psi_core_dict = self.initialize_hillas_planes(
-            hillas_dict, subarray, telescopes_pointings, array_pointing
+            hillas_dict, self.subarray, telescopes_pointings, array_pointing
         )
 
         # algebraic direction estimate
