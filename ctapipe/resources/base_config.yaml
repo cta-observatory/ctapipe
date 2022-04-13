@@ -17,8 +17,9 @@ DataWriter:
     email: YOUREMAIL@EXAMPLE.ORG
     organization: YOUR-ORGANIZATION
 
-  # options that control what is stored in the output file
-  # by default here we write nothing (overide these in
+  # options that control what is stored in the output file by default here we
+  # write nothing (can be overridden on the command-line or in subsequent config
+  # files)
   overwrite: false # do not overwrite existing files
   write_images: false # store DL1 images
   write_parameters: false # store DL1 parameters
