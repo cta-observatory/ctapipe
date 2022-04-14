@@ -1,5 +1,5 @@
 from astropy.table import Table
-from ctapipe.containers import ArrayEventContainer, ReconstructedEnergyContainer
+from ctapipe.containers import ArrayEventContainer
 from ctapipe.core import Component
 
 from .sklearn import Regressor
@@ -11,8 +11,8 @@ class EnergyReconstructor(Component):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def __call__(self, event: ArrayEventContainer) -> ReconstructedEnergyContainer:
-        return ReconstructedEnergyContainer()
+    def __call__(self, event: ArrayEventContainer) -> None:
+        return None
 
 
 class EnergyRegressor(EnergyReconstructor):
@@ -30,7 +30,10 @@ class EnergyRegressor(EnergyReconstructor):
         # TODO: use config system
         self.features = features
 
-    def __call__(self, event: ArrayEventContainer) -> ReconstructedEnergyContainer:
+
+
+
+    def __call__(self, event: ArrayEventContainer) -> None:
         """EventSource Loop"""
         for tel_id in event.trigger.tels_with_trigger:
             features = dict()
