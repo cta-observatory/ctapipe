@@ -1,37 +1,39 @@
 from astropy.table import Table
 from ctapipe.containers import ArrayEventContainer
 from ctapipe.core import Component
+from ctapipe.core.traits import Path
 
 from .sklearn import Regressor
 
 
-class EnergyReconstructor(Component):
-    """Base class for energy estimation."""
+class RegressionReconstructor(Component):
+    """Base class for sklearn regressors."""
+
+    model_path = Path(
+        default_value=None,
+        allow_none=False,
+        directory_ok=False,
+    ).tag(config=True)
+
+    # TODO: update model config (?)
+    #       only settings that make sense, e.g. verbose, n_jobs
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.model = Regressor.load(self.model_path)
 
     def __call__(self, event: ArrayEventContainer) -> None:
         return None
 
 
-class EnergyRegressor(EnergyReconstructor):
-    """sklearn-based energy regression"""
+class EnergyRegressor(RegressionReconstructor):
+    """"""
 
     # TODO: models per tel type
     #       but this needs to be done in the Trainer first
 
-    def __init__(self, features, model_path, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.model = Regressor.load(model_path)
-        # TODO: update model config
-        self.model.model.n_jobs = -1
-        self.model.model.verbose = 0
-        # TODO: use config system
-        self.features = features
-
-
-
 
     def __call__(self, event: ArrayEventContainer) -> None:
         """EventSource Loop"""
