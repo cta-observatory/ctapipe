@@ -1,3 +1,6 @@
+from abc import abstractmethod
+
+import numpy as np
 from astropy.table import Table
 from ctapipe.containers import ArrayEventContainer
 from ctapipe.core import Component
@@ -22,8 +25,20 @@ class RegressionReconstructor(Component):
         super().__init__(*args, **kwargs)
         self.model = Regressor.load(self.model_path)
 
+    @abstractmethod
     def __call__(self, event: ArrayEventContainer) -> None:
-        return None
+        """Event-wise prediction for the EventSource-Loop.
+
+        Fill the event.dl2.<your-feature> container.
+
+        Parameters
+        ----------
+        event: ArrayEventContainer
+        """
+
+    def predict(self, table: Table) -> np.array:
+        """Tool"""
+        return self.model.predict(table)
 
 
 class EnergyRegressor(RegressionReconstructor):
@@ -36,28 +51,24 @@ class EnergyRegressor(RegressionReconstructor):
         super().__init__(*args, **kwargs)
 
     def __call__(self, event: ArrayEventContainer) -> None:
-        """EventSource Loop"""
         for tel_id in event.trigger.tels_with_trigger:
-            features = dict()
+            features = self._collect_features(event, tel_id)
+            prediction = self.model.predict(features)
 
-            for container in (
-                *event.dl1.tel[tel_id]
-                .parameters.as_dict(add_prefix=True, recursive=True)
-                .values(),
-                *event.dl2.tel[tel_id]
-                .as_dict(add_prefix=True, recursive=True)
-                .values(),
-            ):
-                for key, value in container.items():
-                    features.update({key: [value]})
-
-            feature_array = Table(features)
-
-            prediction = self.model.predict(feature_array)
             event.dl2.tel[tel_id].energy.energy = prediction
             event.dl2.tel[tel_id].energy.is_valid = True
             event.dl2.tel[tel_id].energy.tel_ids = [tel_id]
 
-    def predict(self, table: Table) -> Table:
-        """"""
-        raise NotImplementedError
+    def _collect_features(self, event: ArrayEventContainer, tel_id: int) -> Table:
+        features = dict()
+
+        for container in (
+            *event.dl1.tel[tel_id]
+            .parameters.as_dict(add_prefix=True, recursive=True)
+            .values(),
+            *event.dl2.tel[tel_id].as_dict(add_prefix=True, recursive=True).values(),
+        ):
+            for key, value in container.items():
+                features.update({key: [value]})
+
+        return Table(features)
