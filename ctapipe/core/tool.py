@@ -1,21 +1,29 @@
 """Classes to handle configurable command-line user interfaces."""
 import logging
 import logging.config
+import os
+import pathlib
+import re
 import textwrap
 from abc import abstractmethod
-import pathlib
-import os
-import re
+from typing import Union
+import yaml
 
-from traitlets import default
-from traitlets.config import Application, Configurable
+try:
+    import tomli as toml
+
+    HAS_TOML = True
+except ImportError:
+    HAS_TOML = False
+
+from traitlets import default, List
+from traitlets.config import Application, Config, Configurable
 
 from .. import __version__ as version
-from .traits import Path, Enum, Bool, Dict
 from . import Provenance
 from .component import Component
-from .logging import create_logging_config, ColoredFormatter, DEFAULT_LOGGING
-
+from .logging import DEFAULT_LOGGING, ColoredFormatter, create_logging_config
+from .traits import Bool, Dict, Enum, Path
 
 __all__ = ["Tool", "ToolConfigurationError"]
 
@@ -119,16 +127,21 @@ class Tool(Application):
 
     """
 
-    config_file = Path(
-        exists=True,
-        directory_ok=False,
-        allow_none=True,
-        default_value=None,
-        help=(
-            "name of a configuration file with "
-            "parameters to load in addition to "
-            "command-line parameters"
-        ),
+    config_files = List(
+        trait=Path(
+            exists=True,
+            directory_ok=False,
+            allow_none=True,
+            default_value=None,
+            help=(
+                "List of configuration files with parameters to load "
+                "in addition to command-line parameters. "
+                "The order listed is the order of precendence (later config parameters "
+                "overwrite earlier ones), however parameters specified on the "
+                "command line always have the highest precendence. "
+                "Config files may be in JSON, YAML, TOML, or Python format"
+            ),
+        )
     ).tag(config=True)
 
     log_config = Dict(default_value=DEFAULT_LOGGING).tag(config=True)
@@ -158,7 +171,7 @@ class Tool(Application):
         # make sure there are some default aliases in all Tools:
         super().__init__(**kwargs)
         aliases = {
-            ("c", "config"): "Tool.config_file",
+            ("c", "config"): "Tool.config_files",
             "log-level": "Tool.log_level",
             ("l", "log-file"): "Tool.log_file",
             "log-file-level": "Tool.log_file_level",
@@ -184,22 +197,53 @@ class Tool(Application):
         self.update_logging_config()
 
     def initialize(self, argv=None):
-        """ handle config and any other low-level setup """
+        """handle config and any other low-level setup"""
         self.parse_command_line(argv)
         self.update_logging_config()
 
-        if self.config_file is not None:
-            self.log.debug(f"Loading config from '{self.config_file}'")
+        if self.config_files is not None:
+            self.log.info("Loading config from '%s'", self.config_files)
             try:
-                self.load_config_file(self.config_file)
+                for config_file in self.config_files:
+                    self.load_config_file(config_file)
             except Exception as err:
-                raise ToolConfigurationError(f"Couldn't read config file: {err}")
+                raise ToolConfigurationError(
+                    f"Couldn't read config file: {err} ({type(err)})"
+                ) from err
 
         # ensure command-line takes precedence over config file options:
         self.update_config(self.cli_config)
         self.update_logging_config()
 
         self.log.info(f"ctapipe version {self.version_string}")
+
+    def load_config_file(self, path: Union[str, pathlib.Path]) -> None:
+        """
+        Load a configuration file in one of the supported formats, and merge it with
+        the current config if it exists.
+
+        Parameters
+        ----------
+        path: Union[str, pathlib.Path]
+            config file to load. [yaml, toml, json, py] formats are supported
+        """
+
+        path = pathlib.Path(path)
+
+        if path.suffix in [".yaml", ".yml"]:
+            # do our own YAML loading
+            with open(path, "r") as infile:
+                config = Config(yaml.safe_load(infile))
+            self.update_config(config)
+        elif path.suffix == ".toml" and HAS_TOML:
+            with open(path, "rb") as infile:
+                config = Config(toml.load(infile))
+            self.update_config(config)
+        else:
+            # fall back to traitlets.config.Application's implementation
+            super().load_config_file(str(path))
+
+        Provenance().add_input_file(path, role="Tool Configuration")
 
     def update_logging_config(self):
         """Update the configuration of loggers."""
@@ -330,11 +374,11 @@ class Tool(Application):
 
     @property
     def version_string(self):
-        """ a formatted version string with version, release, and git hash"""
+        """a formatted version string with version, release, and git hash"""
         return f"{version}"
 
     def get_current_config(self):
-        """ return the current configuration as a dict (e.g. the values
+        """return the current configuration as a dict (e.g. the values
         of all traits, even if they were not set during configuration)
         """
         conf = {
@@ -350,7 +394,7 @@ class Tool(Application):
         return conf
 
     def _repr_html_(self):
-        """ nice HTML rep, with blue for non-default values"""
+        """nice HTML rep, with blue for non-default values"""
         traits = self.traits()
         name = self.__class__.__name__
         lines = [
@@ -475,7 +519,6 @@ def run_tool(tool: Tool, argv=None, cwd=None):
         # switch to cwd for running and back after
         os.chdir(cwd)
         tool.run(argv or [])
-        return 0
     except SystemExit as e:
         return e.code
     finally:
