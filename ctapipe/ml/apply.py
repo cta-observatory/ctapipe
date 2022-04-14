@@ -48,15 +48,10 @@ class EnergyRegressor(EnergyReconstructor):
 
             feature_array = Table(features)
 
-            # TODO: since a single nan is enough for a single row to be discarded,
-            #       find it earlier for small performance reasons
-            if np.count_nonzero(feature_array.to_pandas().isna()):
-                continue
-            else:
-                prediction = self.model.predict(feature_array)
-                event.dl2.tel[tel_id].energy.energy = prediction
-                event.dl2.tel[tel_id].energy.is_valid = True
-                event.dl2.tel[tel_id].energy.tel_ids = [tel_id]
+            prediction = self.model.predict(feature_array)
+            event.dl2.tel[tel_id].energy.energy = prediction
+            event.dl2.tel[tel_id].energy.is_valid = True
+            event.dl2.tel[tel_id].energy.tel_ids = [tel_id]
 
     def predict(self, table: Table) -> Table:
         """"""
