@@ -1,4 +1,3 @@
-import numpy as np
 from astropy.table import Table
 from ctapipe.containers import ArrayEventContainer, ReconstructedEnergyContainer
 from ctapipe.core import Component
@@ -36,11 +35,16 @@ class EnergyRegressor(EnergyReconstructor):
         for tel_id in event.trigger.tels_with_trigger:
             features = dict()
 
-            for name, container in event.dl1.tel[tel_id].parameters.as_dict().items():
+            for container in (
+                *event.dl1.tel[tel_id]
+                .parameters.as_dict(add_prefix=True, recursive=True)
+                .values(),
+                *event.dl2.tel[tel_id]
+                .as_dict(add_prefix=True, recursive=True)
+                .values(),
+            ):
                 for key, value in container.items():
-                    # TODO: find a better way of creating these values (prefix?)
-                    features.update({f"{name}_{key}": [value]})
-            # TODO: get all possible features
+                    features.update({key: [value]})
 
             feature_array = Table(features)
 
