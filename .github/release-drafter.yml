@@ -36,7 +36,7 @@ template: |
 
   $CONTRIBUTORS
 
-  ## What is changed since $PREVIOUS_TAG
+  ## What has changed since $PREVIOUS_TAG
 
   Pull-requests containing changes of multiple nature are repeated.
 
