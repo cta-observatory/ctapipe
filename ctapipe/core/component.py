@@ -58,7 +58,7 @@ def non_abstract_children(base):
     -------
     non_abstract : dict
         dict of all non-abstract subclasses
-     """
+    """
     subclasses = base.__subclasses__() + [
         g for s in base.__subclasses__() for g in non_abstract_children(s)
     ]
@@ -143,8 +143,8 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
 
         # set up logging (for some reason the logger registered by LoggingConfig
         # doesn't use a child logger of the parent by default)
-        if self.parent:
-            self.log = self.parent.log.getChild(self.__class__.__name__)
+        if parent is not None:
+            self.log = parent.log.getChild(self.__class__.__name__)
         else:
             self.log = getLogger(
                 self.__class__.__module__ + "." + self.__class__.__name__
@@ -203,7 +203,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         return subclasses
 
     def get_current_config(self):
-        """ return the current configuration as a dict (e.g. the values
+        """return the current configuration as a dict (e.g. the values
         of all traits, even if they were not set during configuration)
         """
         name = self.__class__.__name__
@@ -216,7 +216,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         return config
 
     def _repr_html_(self):
-        """ nice HTML rep, with blue for non-default values"""
+        """nice HTML rep, with blue for non-default values"""
         traits = self.traits()
         name = self.__class__.__name__
         lines = [
