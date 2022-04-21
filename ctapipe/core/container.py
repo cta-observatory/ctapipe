@@ -293,26 +293,27 @@ class Container(metaclass=ContainerMeta):
         """
         if not recursive:
             return dict(self.items(add_prefix=add_prefix))
-        else:
-            d = dict()
-            for key, val in self.items(add_prefix=add_prefix):
-                if isinstance(val, Container) or isinstance(val, Map):
-                    if flatten:
-                        d.update(
-                            {
-                                f"{key}_{k}": v
-                                for k, v in val.as_dict(
-                                    recursive, add_prefix=add_prefix
-                                ).items()
-                            }
-                        )
-                    else:
-                        d[key] = val.as_dict(
-                            recursive=recursive, flatten=flatten, add_prefix=add_prefix
-                        )
+
+        d = dict()
+        for key, val in self.items(add_prefix=add_prefix):
+            if isinstance(val, Container) or isinstance(val, Map):
+                if flatten:
+                    d.update(
+                        {
+                            k: v
+                            for k, v in val.as_dict(
+                                recursive, add_prefix=add_prefix,
+                                flatten=flatten
+                            ).items()
+                        }
+                    )
                 else:
-                    d[key] = val
-            return d
+                    d[key] = val.as_dict(
+                        recursive=recursive, flatten=flatten, add_prefix=add_prefix
+                    )
+            else:
+                d[key] = val
+        return d
 
     def reset(self, recursive=True):
         """

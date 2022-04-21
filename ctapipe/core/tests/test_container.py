@@ -159,13 +159,34 @@ def test_container_as_dict():
         x = Field(0, "some value")
         child = Field(ChildContainer(), "a child")
 
+    class GrandParentContainer(Container):
+        y = Field(2, "some other value")
+        child = Field(ParentContainer(), "child")
+
     cont = ParentContainer()
 
-    the_flat_dict = cont.as_dict(recursive=True, flatten=True)
-    the_dict = cont.as_dict(recursive=True, flatten=False)
+    assert cont.as_dict() == {"x": 0, "child": cont.child}
+    assert cont.as_dict(recursive=True) == {"x": 0, "child": {"z": 1}}
+    assert cont.as_dict(recursive=True, add_prefix=True) == {
+        "parent_x": 0,
+        "parent_child": {
+            "child_z": 1
+        }
+    }
 
-    assert "child_z" in the_flat_dict
-    assert "child" in the_dict and "z" in the_dict["child"]
+    assert cont.as_dict(recursive=True, flatten=True, add_prefix=False) == {
+        "x": 0,
+        "z": 1,
+    }
+
+    assert cont.as_dict(recursive=True, flatten=True, add_prefix=True) == {
+        "parent_x": 0,
+        "child_z": 1,
+    }
+
+    d = GrandParentContainer().as_dict(recursive=True, flatten=True, add_prefix=True)
+    assert d == {'parent_x': 0, 'child_z': 1, 'grandparent_y': 2}
+
 
 
 def test_container_brackets():
