@@ -145,21 +145,18 @@ class TableQualityQuery(Component):
         help=("List of strings used in `numpexpr.eval`"),
     ).tag(config=True)
 
-    def __init__(self, config=None, parent=None, **kwargs):
-        super().__init__(config=config, parent=parent, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._selectors = "(" + ") & (".join(self.quality_criteria) + ")"
 
     def __call__(self, table) -> np.array:
         """Check all quality_criteria on an astropy table."""
-        valid = []
+        try:
+            valid = numexpr.evaluate(self._selectors, table)
+        except KeyError as key:
+            raise QualityCriteriaError(
+                f"Couldn't evaluate selection expression '{self._selectors}' "
+                f"because key {key} was not found in table."
+            ) from None
 
-        for expr in self.quality_criteria:
-            try:
-                v = numexpr.evaluate(expr, table)
-            except KeyError as err:
-                raise QualityCriteriaError(
-                    f"Couldn't evaluate selection expression '{expr}' "
-                    f"because key {err} was not found in table."
-                )
-            valid.append(v)
-
-        return np.prod(valid, axis=0).astype("bool")
+        return valid
