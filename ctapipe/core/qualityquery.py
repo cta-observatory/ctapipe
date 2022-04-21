@@ -7,6 +7,7 @@ __all__ = ["QualityQuery", "QualityCriteriaError"]
 from collections.abc import Callable
 
 import astropy.units as u  # for use in selection functions
+import numexpr
 import numpy as np  # for use in selection functions
 
 from .component import Component
@@ -18,7 +19,7 @@ ALLOWED_GLOBALS = {"u": u, "np": np}  # astropy units  # numpy
 
 
 class QualityCriteriaError(TypeError):
-    """ Signal a problem with a user-defined selection criteria function"""
+    """Signal a problem with a user-defined selection criteria function"""
 
     pass
 
@@ -77,7 +78,7 @@ class QualityQuery(Component):
         self._cumulative_counts = np.zeros(len(self._selectors), dtype=np.int64)
 
     def __len__(self):
-        """ return number of events processed"""
+        """return number of events processed"""
         return self._counts[0]
 
     def to_table(self, functions=False):
@@ -135,3 +136,30 @@ class QualityQuery(Component):
         self._counts += result.astype(int)
         self._cumulative_counts += result.cumprod()
         return result[1:]  # strip off TOTAL criterion, since redundant
+
+
+class TableQualityQuery(Component):
+    quality_criteria = List(
+        default=None,
+        allow_none=False,
+        help=("List of strings used in `numpexpr.eval`"),
+    ).tag(config=True)
+
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
+
+    def __call__(self, table) -> np.array:
+        """Check all quality_criteria on an astropy table."""
+        valid = []
+
+        for expr in self.quality_criteria:
+            try:
+                v = numexpr.evaluate(expr, table)
+            except KeyError as err:
+                raise QualityCriteriaError(
+                    f"Couldn't evaluate selection expression '{expr}' "
+                    f"because key {err} was not found in table."
+                )
+            valid.append(v)
+
+        return np.prod(valid, axis=0).astype("bool")

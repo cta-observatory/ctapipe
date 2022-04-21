@@ -1,12 +1,17 @@
 """ Tests of Selectors """
 import pytest
 
-from ctapipe.core.qualityquery import QualityQuery, QualityCriteriaError
+from ctapipe.core.qualityquery import (
+    QualityQuery,
+    QualityCriteriaError,
+    TableQualityQuery,
+)
 from ctapipe.core.traits import List
+import numpy as np
 
 
 def test_selector():
-    """ test the functionality of an example Selector subclass"""
+    """test the functionality of an example Selector subclass"""
 
     class ExampleQualityQuery(QualityQuery):
         quality_criteria = List(
@@ -67,7 +72,7 @@ def test_selector():
 
 
 def test_bad_selector():
-    """ ensure failure if a selector function is not a function or can't be evaluated"""
+    """ensure failure if a selector function is not a function or can't be evaluated"""
 
     with pytest.raises(QualityCriteriaError):
         s = QualityQuery(
@@ -96,3 +101,24 @@ def test_bad_selector():
     with pytest.raises(NameError):
         s = QualityQuery(quality_criteria=[("dangerous", "lambda x: Component()")])
         s(10)
+
+
+def test_table_selector():
+    from astropy.table import Table
+
+    table = Table({"a": [1, 2, 3], "b": [1, 2, 3]})
+
+    check = TableQualityQuery(quality_criteria=["a > 1", "b > 2"])
+
+    np.testing.assert_array_equal(check(table), [False, False, True])
+
+
+def test_table_selector_bad():
+    from astropy.table import Table
+
+    table = Table({"a": [1, 2, 3], "b": [1, 2, 3]})
+
+    check = TableQualityQuery(quality_criteria=["c > 0"])
+
+    with pytest.raises(QualityCriteriaError):
+        check(table)
