@@ -3,14 +3,15 @@ Component Wrappers around sklearn models
 """
 
 from copy import deepcopy
-import numpy as np
-from traitlets import Dict, List, Unicode, Enum, Integer, Bool
+
 import joblib
+import numpy as np
+from traitlets import Bool, Dict, Enum, Integer, List, Unicode
+
 from sklearn.utils import all_estimators
 
 from ..core import Component
 from .preprocessing import check_valid_rows, table_to_float
-
 
 SUPPORTED_CLASSIFIERS = dict(all_estimators("classifier"))
 SUPPORTED_REGRESSORS = dict(all_estimators("regressor"))
@@ -69,7 +70,7 @@ class Model(Component):
         with open(path, "rb") as f:
             model = joblib.load(f)
 
-        if check_cls is True and not model.__class__ is cls:
+        if check_cls is True and model.__class__ is not cls:
             raise TypeError(
                 f"File did not contain an instance of {cls}, got {model.__class__}"
             )
