@@ -2,6 +2,7 @@
 """
 Utilities for reading or working with Camera geometry files
 """
+from copy import deepcopy
 import logging
 import warnings
 
@@ -224,11 +225,20 @@ class CameraGeometry:
         if self.frame is None:
             self.frame = CameraFrame()
 
-        coord = SkyCoord(self.pix_x, self.pix_y, frame=self.frame)
+        # we have to derotate, transformations only provide sensible
+        # results after derotation from the camera coordinate system with
+        # custom angle into a not-rotate frame
+        if self.cam_rotation.value != 0:
+            cam = deepcopy(self)
+            cam.rotate(self.cam_rotation)
+        else:
+            cam = self
+
+        coord = SkyCoord(cam.pix_x, cam.pix_y, frame=cam.frame)
         trans = coord.transform_to(frame)
 
         # also transform the unit vectors, to get rotation / mirroring, scale
-        uv = SkyCoord([1, 0], [0, 1], unit=self.pix_x.unit, frame=self.frame)
+        uv = SkyCoord([1, 0], [0, 1], unit=cam.pix_x.unit, frame=cam.frame)
         uv_trans = uv.transform_to(frame)
 
         trans_x_name, trans_y_name = list(
@@ -237,25 +247,33 @@ class CameraGeometry:
         uv_trans_x = getattr(uv_trans, trans_x_name)
         uv_trans_y = getattr(uv_trans, trans_y_name)
 
-        rot = np.arctan2(uv_trans_y[0], uv_trans_y[1])
-        cam_rotation = rot - self.cam_rotation
-        pix_rotation = rot - self.pix_rotation
+        matrix = np.vstack([uv_trans_x.value, uv_trans_y.value])
+        is_mirrored = np.linalg.det(matrix) < 0
 
-        scale = np.sqrt(uv_trans_x[0] ** 2 + uv_trans_y[0] ** 2) / self.pix_x.unit
+        rot = np.arctan2(uv_trans_y[0], uv_trans_y[1])
+
+        if is_mirrored:
+            cam_rotation = -cam.cam_rotation
+            pix_rotation = rot - cam.pix_rotation
+        else:
+            cam_rotation = cam.cam_rotation
+            pix_rotation = cam.pix_rotation - rot
+
+        scale = np.sqrt(uv_trans_x[0] ** 2 + uv_trans_y[0] ** 2) / cam.pix_x.unit
         trans_x = getattr(trans, trans_x_name)
         trans_y = getattr(trans, trans_y_name)
-        pix_area = (self.pix_area * scale ** 2).to(trans_x.unit ** 2)
+        pix_area = (cam.pix_area * scale ** 2).to(trans_x.unit ** 2)
 
         return CameraGeometry(
-            camera_name=self.camera_name,
-            pix_id=self.pix_id,
+            camera_name=cam.camera_name,
+            pix_id=cam.pix_id,
             pix_x=trans_x,
             pix_y=trans_y,
             pix_area=pix_area,
-            pix_type=self.pix_type,
+            pix_type=cam.pix_type,
             pix_rotation=pix_rotation,
             cam_rotation=cam_rotation,
-            neighbors=self._neighbors,
+            neighbors=cam._neighbors,
             apply_derotation=False,
             frame=frame,
         )
@@ -389,6 +407,27 @@ class CameraGeometry:
         """
         return ~np.any(~np.isclose(self.pix_area.value, self.pix_area[0].value), axis=0)
 
+    def image_index_to_cartesian_index(self, pixel_index):
+        """
+        Convert pixel index in the 1d image representation to row and col
+        """
+        rows, cols = self._pixel_positions_2d
+        return rows[pixel_index], cols[pixel_index]
+
+    def cartesian_index_to_image_index(self, row, col):
+        """
+        Convert cartesian index (row, col) to pixel index in 1d representation.
+        """
+        return self._pixel_indices_cartesian[row, col]
+
+    @lazyproperty
+    def _pixel_indices_cartesian(self):
+        img = np.arange(self.n_pixels)
+        img2d = self.image_to_cartesian_representation(img)
+        invalid = np.iinfo(np.int32).min
+        img2d = np.nan_to_num(img2d, nan=invalid).astype(np.int32)
+        return img2d
+
     @lazyproperty
     def _pixel_positions_2d(self):
         """
@@ -438,11 +477,20 @@ class CameraGeometry:
             pixel_row = rows_1d
             pixel_column = cols_1d
 
+            # flip image so that imshow looks like original camera display
+            pixel_row = pixel_row.max() - pixel_row
+            pixel_column = pixel_column.max() - pixel_column
+
         elif self.pix_type is PixelShape.SQUARE:
             pixel_row = get_orthogonal_grid_indices(self.pix_y, np.sqrt(self.pix_area))
             pixel_column = get_orthogonal_grid_indices(
                 self.pix_x, np.sqrt(self.pix_area)
             )
+
+            # flip image so that imshow looks like original camera display
+            pixel_row = pixel_row.max() - pixel_row
+        else:
+            raise ValueError(f"Unsupported pixel shape {self.pix_type}")
 
         return pixel_row, pixel_column
 
@@ -466,12 +514,10 @@ class CameraGeometry:
         """
         rows, cols = self._pixel_positions_2d
         image = np.atleast_2d(image)  # this allows for multiple images at once
+
         image_2d = np.full((image.shape[0], rows.max() + 1, cols.max() + 1), np.nan)
         image_2d[:, rows, cols] = image
-        if self.pix_type == PixelShape.SQUARE:
-            image_2d = np.flip(image_2d, axis=1)
-        else:
-            image_2d = np.flip(image_2d)
+
         return np.squeeze(image_2d)  # removes the extra dimension for single images
 
     def image_from_cartesian_representation(self, image_2d):
@@ -497,10 +543,7 @@ class CameraGeometry:
         # to a different shape compared to a multi image array
         if image_2d.ndim == 2:
             image_2d = image_2d[np.newaxis, :]
-        if self.pix_type == PixelShape.SQUARE:
-            image_2d = np.flip(image_2d, axis=1)
-        else:
-            image_2d = np.flip(image_2d)
+
         image_flat = np.zeros((image_2d.shape[0], rows.shape[0]), dtype=image_2d.dtype)
         image_flat[:] = image_2d[:, rows, cols]
         image_1d = image_flat
@@ -599,14 +642,15 @@ class CameraGeometry:
 
     def __repr__(self):
         return (
-            "CameraGeometry(camera_name='{camera_name}', pix_type={pix_type!r}, "
-            "npix={npix}, cam_rot={camrot}, pix_rot={pixrot})"
+            "CameraGeometry(camera_name='{camera_name}', pix_type={pix_type}, "
+            "npix={npix}, cam_rot={camrot:.3f}, pix_rot={pixrot:.3f}, frame={frame})"
         ).format(
             camera_name=self.camera_name,
             pix_type=self.pix_type,
             npix=len(self.pix_id),
             pixrot=self.pix_rotation,
             camrot=self.cam_rotation,
+            frame=self.frame,
         )
 
     def __str__(self):
@@ -620,6 +664,10 @@ class CameraGeometry:
     @lazyproperty
     def neighbor_matrix(self):
         return self.neighbor_matrix_sparse.A
+
+    @lazyproperty
+    def max_neighbors(self):
+        return self.neighbor_matrix_sparse.sum(axis=1).max()
 
     @lazyproperty
     def neighbor_matrix_sparse(self):

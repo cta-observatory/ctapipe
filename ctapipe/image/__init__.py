@@ -59,10 +59,12 @@ from .muon import (
     ring_completeness,
     ring_containment,
 )
+from .modifications import ImageModifier
 from .image_processor import ImageProcessor
 
 
 __all__ = [
+    "ImageModifier",
     "ImageProcessor",
     "hillas_parameters",
     "HillasParameterizationError",

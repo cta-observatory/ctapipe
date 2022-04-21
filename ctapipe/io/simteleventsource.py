@@ -42,7 +42,7 @@ from ..instrument.guess import unknown_telescope, guess_telescope
 from .datalevels import DataLevel
 from .eventsource import EventSource
 
-X_MAX_UNIT = u.g / (u.cm ** 2)
+X_MAX_UNIT = u.g / (u.cm**2)
 
 
 __all__ = ["SimTelEventSource"]
@@ -85,7 +85,7 @@ def build_camera(cam_settings, pixel_settings, telescope, frame):
         pix_id=np.arange(cam_settings["n_pixels"]),
         pix_x=u.Quantity(cam_settings["pixel_x"], u.m),
         pix_y=u.Quantity(cam_settings["pixel_y"], u.m),
-        pix_area=u.Quantity(cam_settings["pixel_area"], u.m ** 2),
+        pix_area=u.Quantity(cam_settings["pixel_area"], u.m**2),
         pix_type=pix_type,
         pix_rotation=pix_rotation,
         cam_rotation=-Angle(cam_settings["cam_rot"], u.rad),
@@ -164,7 +164,7 @@ def apply_simtel_r1_calibration(
 
 
 class SimTelEventSource(EventSource):
-    """ Read events from a SimTelArray data file (in EventIO format)."""
+    """Read events from a SimTelArray data file (in EventIO format)."""
 
     skip_calibration_events = Bool(True, help="Skip calibration events").tag(
         config=True
@@ -299,13 +299,15 @@ class SimTelEventSource(EventSource):
         tel_descriptions = {}  # tel_id : TelescopeDescription
         tel_positions = {}  # tel_id : TelescopeDescription
 
+        self.telescope_indices_original = {}
+
         for tel_id, telescope_description in telescope_descriptions.items():
             cam_settings = telescope_description["camera_settings"]
             pixel_settings = telescope_description["pixel_settings"]
 
             n_pixels = cam_settings["n_pixels"]
             focal_length = u.Quantity(cam_settings["focal_length"], u.m)
-            mirror_area = u.Quantity(cam_settings["mirror_area"], u.m ** 2)
+            mirror_area = u.Quantity(cam_settings["mirror_area"], u.m**2)
 
             if self.focal_length_choice == "effective":
                 try:
@@ -347,6 +349,7 @@ class SimTelEventSource(EventSource):
             )
 
             tel_idx = np.where(header["tel_id"] == tel_id)[0][0]
+            self.telescope_indices_original[tel_id] = tel_idx
             tel_positions[tel_id] = header["tel_pos"][tel_idx] * u.m
 
         subarray = SubarrayDescription(
@@ -355,8 +358,11 @@ class SimTelEventSource(EventSource):
             tel_descriptions=tel_descriptions,
         )
 
+        self.n_telescopes_original = len(subarray)
+
         if self.allowed_tels:
             subarray = subarray.select_subarray(self.allowed_tels)
+
         return subarray
 
     @staticmethod
@@ -391,18 +397,6 @@ class SimTelEventSource(EventSource):
         self._fill_array_pointing(data)
 
         for counter, array_event in enumerate(self.file_):
-
-            event_id = array_event.get("event_id", -1)
-            obs_id = self.file_.header["run"]
-            data.count = counter
-            data.index.obs_id = obs_id
-            data.index.event_id = event_id
-
-            self._fill_trigger_info(data, array_event)
-
-            if data.trigger.event_type == EventType.SUBARRAY:
-                self._fill_simulated_event_information(data, array_event)
-
             # this should be done in a nicer way to not re-allocate the
             # data each time (right now it's just deleted and garbage
             # collected)
@@ -412,9 +406,24 @@ class SimTelEventSource(EventSource):
             data.dl1.tel.clear()
             data.pointing.tel.clear()
             data.simulation.tel.clear()
+            data.trigger.tel.clear()
+
+            event_id = array_event.get("event_id", -1)
+            obs_id = self.file_.header["run"]
+            data.count = counter
+            data.index.obs_id = obs_id
+            data.index.event_id = event_id
+
+            self._fill_trigger_info(data, array_event)
+            if data.trigger.event_type == EventType.SUBARRAY:
+                self._fill_simulated_event_information(data, array_event)
 
             telescope_events = array_event["telescope_events"]
             tracking_positions = array_event["tracking_positions"]
+
+            true_image_sums = array_event.get("photoelectron_sums", {}).get(
+                "n_pe", np.full(self.n_telescopes_original, np.nan)
+            )
 
             for tel_id, telescope_event in telescope_events.items():
                 adc_samples = telescope_event.get("adc_samples")
@@ -429,7 +438,10 @@ class SimTelEventSource(EventSource):
                 )
 
                 data.simulation.tel[tel_id] = SimulatedCameraContainer(
-                    true_image=true_image
+                    true_image_sum=true_image_sums[
+                        self.telescope_indices_original[tel_id]
+                    ],
+                    true_image=true_image,
                 )
 
                 data.pointing.tel[tel_id] = self._fill_event_pointing(
@@ -556,9 +568,19 @@ class SimTelEventSource(EventSource):
             data.pointing.array_dec = u.Quantity(dec, u.rad)
 
     def _parse_simulation_header(self):
+        """
+        Parse the simulation infos and return a dict with
+        observation ids mapped to SimulationConfigContainers.
+        As merged simtel files are not supported at this
+        point in time, this dictionary will always have
+        length 1.
+        """
+        assert len(self.obs_ids) == 1
+        obs_id = self.obs_ids[0]
+        # With only one run, we can take the first entry:
         mc_run_head = self.file_.mc_run_headers[-1]
 
-        return SimulationConfigContainer(
+        simulation_config = SimulationConfigContainer(
             corsika_version=mc_run_head["shower_prog_vers"],
             simtel_version=mc_run_head["detector_prog_vers"],
             energy_range_min=mc_run_head["E_range"][0] * u.TeV,
@@ -595,6 +617,7 @@ class SimTelEventSource(EventSource):
             corsika_low_E_detail=mc_run_head["corsika_low_E_detail"],
             corsika_high_E_detail=mc_run_head["corsika_high_E_detail"],
         )
+        return {obs_id: simulation_config}
 
     @staticmethod
     def _fill_simulated_event_information(data, array_event):

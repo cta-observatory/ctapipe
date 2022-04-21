@@ -265,9 +265,9 @@ def test_units(tmp_path):
         writer.write("units", c)
 
     with tables.open_file(path, "r") as f:
-        assert f.root.data.units.attrs["inverse_length_UNIT"] == "m-1"
+        assert f.root.data.units.attrs["inverse_length_UNIT"] == "m**-1"
         assert f.root.data.units.attrs["time_UNIT"] == "s"
-        assert f.root.data.units.attrs["grammage_UNIT"] == "cm-2 g"
+        assert f.root.data.units.attrs["grammage_UNIT"] == "cm**-2.g"
 
 
 def test_write_containers(tmp_path):
@@ -640,7 +640,43 @@ def test_column_transforms(tmp_path):
         assert isinstance(data.time, Time)
         assert data.time == NAN_TIME
         # rounded to two digits
-        assert np.all(data.image == np.array([1.23, 123.45]))
+        assert np.all(data.image == np.array([1.23, 123.46]))
+
+
+def test_fixed_point_column_transform(tmp_path):
+    """ ensure a user-added column transform is applied """
+    from ctapipe.io.tableio import FixedPointColumnTransform
+
+    tmp_file = tmp_path / "test_column_transforms.hdf5"
+
+    class SomeContainer(Container):
+        container_prefix = ""
+        image = Field(np.array([np.nan, np.inf, -np.inf]))
+
+    cont = SomeContainer()
+
+    with HDF5TableWriter(tmp_file, group_name="data") as writer:
+        writer.add_column_transform(
+            "signed", "image", FixedPointColumnTransform(100, 0, np.float64, np.int32)
+        )
+        writer.add_column_transform(
+            "unsigned",
+            "image",
+            FixedPointColumnTransform(100, 0, np.float64, np.uint32),
+        )
+        # add user generated transform for the "value" column
+        writer.write("signed", cont)
+        writer.write("unsigned", cont)
+
+    with HDF5TableReader(tmp_file, mode="r") as reader:
+        signed = next(reader.read("/data/signed", SomeContainer()))
+        unsigned = next(reader.read("/data/unsigned", SomeContainer()))
+
+        for data in (signed, unsigned):
+            # check we get our original nans back
+            assert np.isnan(data.image[0])
+            assert np.isposinf(data.image[1])
+            assert np.isneginf(data.image[2])
 
 
 def test_column_transforms_regexps(tmp_path):
@@ -804,3 +840,52 @@ def test_write_default_container(cls, tmp_path):
                 pytest.xfail()
             else:
                 raise
+
+
+def test_strings(tmp_path):
+    """Test we can write unicode strings"""
+    from ctapipe.core import Container
+    from ctapipe.io import read_table
+
+    # when not giving a max_len, should be taken from the first container
+    class Container1(Container):
+        container_prefix = ""
+        string = Field("", "test string")
+
+    path = tmp_path / "test.h5"
+
+    strings = ["Hello", "öäα"]
+
+    with HDF5TableWriter(path, mode="w") as writer:
+        for string in strings:
+            writer.write("strings", Container1(string=string))
+
+    table = read_table(path, "/strings")
+
+    # the α is above the max length estimated from the first element
+    assert table["string"].tolist() == ["Hello", "öä"]
+
+    class Container2(Container):
+        container_prefix = ""
+        string = Field("", "test string", max_length=10)
+
+    path = tmp_path / "test.h5"
+
+    strings = ["Hello", "öäα", "12345678910"]
+    expected = ["Hello", "öäα", "1234567891"]
+
+    with HDF5TableWriter(path, mode="w") as writer:
+        for string in strings:
+            writer.write("strings", Container2(string=string))
+
+    table = read_table(path, "/strings")
+
+    # the α is above the max length estimated from the first element
+    assert table["string"].tolist() == expected
+
+    # test this also works with table reader
+    with HDF5TableReader(path) as reader:
+        generator = reader.read("/strings", Container2())
+        for string in expected:
+            c = next(generator)
+            assert c.string == string

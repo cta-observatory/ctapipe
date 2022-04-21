@@ -12,6 +12,7 @@ from iminuit import Minuit
 from scipy.optimize import minimize, least_squares
 from scipy.stats import norm
 
+from ctapipe.core import Component
 from ctapipe.coordinates import (
     NominalFrame,
     TiltedGroundFrame,
@@ -24,7 +25,6 @@ from ctapipe.containers import (
     ReconstructedGeometryContainer,
     ReconstructedEnergyContainer,
 )
-from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.utils.template_network_interpolator import (
     TemplateNetworkInterpolator,
     TimeGradientInterpolator,
@@ -63,7 +63,7 @@ def xmax_prior(energy, xmax, width=100):
     return -2 * np.log(norm.pdf(diff / width))
 
 
-class ImPACTReconstructor(Reconstructor):
+class ImPACTReconstructor(Component):
     """This class is an implementation if the impact_reco Monte Carlo
     Template based image fitting method from parsons14.  This method uses a
     comparision of the predicted image from a library of image
@@ -191,14 +191,6 @@ class ImPACTReconstructor(Reconstructor):
         in an event which will be used later in the Xmax calculation. Peak is
         found by taking the average position of the n hottest pixels in the
         image.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-            None
-
         """
         peak_x = np.zeros([len(self.pixel_x)])  # Create blank arrays for peaks
         # rather than a dict (faster)

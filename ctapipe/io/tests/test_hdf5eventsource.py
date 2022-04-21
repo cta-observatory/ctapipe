@@ -1,28 +1,30 @@
 import astropy.units as u
 import numpy as np
-from ctapipe.io import DataLevel, EventSource
-from ctapipe.io.dl1eventsource import DL1EventSource
+from ctapipe.io import DataLevel, EventSource, HDF5EventSource
 from ctapipe.utils import get_dataset_path
 
 
 def test_is_compatible(dl1_file):
     simtel_path = get_dataset_path("gamma_test_large.simtel.gz")
-    assert not DL1EventSource.is_compatible(simtel_path)
-    assert DL1EventSource.is_compatible(dl1_file)
+    assert not HDF5EventSource.is_compatible(simtel_path)
+    assert HDF5EventSource.is_compatible(dl1_file)
     with EventSource(input_url=dl1_file) as source:
-        assert isinstance(source, DL1EventSource)
+        assert isinstance(source, HDF5EventSource)
 
 
 def test_metadata(dl1_file):
-    with DL1EventSource(input_url=dl1_file) as source:
+    with HDF5EventSource(input_url=dl1_file) as source:
         assert source.is_simulation
-        assert source.datalevels == (DataLevel.DL1_IMAGES, DataLevel.DL1_PARAMETERS)
+        assert set(source.datalevels) == {
+            DataLevel.DL1_IMAGES,
+            DataLevel.DL1_PARAMETERS,
+        }
         assert list(source.obs_ids) == [2]
-        assert source.simulation_config.corsika_version == 7710
+        assert source.simulation_config[2].corsika_version == 7710
 
 
 def test_subarray(dl1_file):
-    with DL1EventSource(input_url=dl1_file) as source:
+    with HDF5EventSource(input_url=dl1_file) as source:
         assert source.subarray.telescope_types
         assert source.subarray.camera_types
         assert source.subarray.optics_types
@@ -30,7 +32,7 @@ def test_subarray(dl1_file):
 
 def test_max_events(dl1_proton_file):
     max_events = 3
-    with DL1EventSource(input_url=dl1_proton_file, max_events=max_events) as source:
+    with HDF5EventSource(input_url=dl1_proton_file, max_events=max_events) as source:
         assert source.max_events == max_events  # stop iterating after max_events
         assert len(source) == 4  # total events in file
         for count, _ in enumerate(source, start=1):
@@ -40,7 +42,7 @@ def test_max_events(dl1_proton_file):
 
 def test_allowed_tels(dl1_file):
     allowed_tels = {1, 2}
-    with DL1EventSource(input_url=dl1_file, allowed_tels=allowed_tels) as source:
+    with HDF5EventSource(input_url=dl1_file, allowed_tels=allowed_tels) as source:
         assert not allowed_tels.symmetric_difference(source.subarray.tel_ids)
         assert source.allowed_tels == allowed_tels
         for event in source:
@@ -58,7 +60,7 @@ def test_simulation_info(dl1_file):
     """
     reco_lons = []
     reco_concentrations = []
-    with DL1EventSource(input_url=dl1_file) as source:
+    with HDF5EventSource(input_url=dl1_file) as source:
         for event in source:
             assert np.isfinite(event.simulation.shower.energy)
             for tel in event.simulation.tel:
@@ -75,7 +77,7 @@ def test_simulation_info(dl1_file):
 
 
 def test_dl1_a_only_data(dl1_image_file):
-    with DL1EventSource(input_url=dl1_image_file) as source:
+    with HDF5EventSource(input_url=dl1_image_file) as source:
         for event in source:
             for tel in event.dl1.tel:
                 assert event.dl1.tel[tel].image.any()
@@ -84,7 +86,7 @@ def test_dl1_a_only_data(dl1_image_file):
 def test_dl1_b_only_data(dl1_parameters_file):
     reco_lons = []
     reco_concentrations = []
-    with DL1EventSource(input_url=dl1_parameters_file) as source:
+    with HDF5EventSource(input_url=dl1_parameters_file) as source:
         for event in source:
             for tel in event.dl1.tel:
                 reco_lons.append(
@@ -100,7 +102,7 @@ def test_dl1_b_only_data(dl1_parameters_file):
 def test_dl1_data(dl1_file):
     reco_lons = []
     reco_concentrations = []
-    with DL1EventSource(input_url=dl1_file) as source:
+    with HDF5EventSource(input_url=dl1_file) as source:
         for event in source:
             for tel in event.dl1.tel:
                 assert event.dl1.tel[tel].image.any()
@@ -115,7 +117,7 @@ def test_dl1_data(dl1_file):
 
 
 def test_pointing(dl1_file):
-    with DL1EventSource(input_url=dl1_file) as source:
+    with HDF5EventSource(input_url=dl1_file) as source:
         for event in source:
             assert np.isclose(event.pointing.array_azimuth.to_value(u.deg), 0)
             assert np.isclose(event.pointing.array_altitude.to_value(u.deg), 70)
@@ -123,3 +125,15 @@ def test_pointing(dl1_file):
             for tel in event.pointing.tel:
                 assert np.isclose(event.pointing.tel[tel].azimuth.to_value(u.deg), 0)
                 assert np.isclose(event.pointing.tel[tel].altitude.to_value(u.deg), 70)
+
+
+def test_read_r1(r1_hdf5_file):
+    print(r1_hdf5_file)
+    with HDF5EventSource(input_url=r1_hdf5_file) as source:
+        e = None
+
+        for e in source:
+            pass
+
+        assert e is not None
+        assert e.count == 4

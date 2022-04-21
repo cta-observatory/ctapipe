@@ -38,7 +38,7 @@ development. It is not recommended for production use unless you are an
 expert or developer!
 
 * Code: https://github.com/cta-observatory/ctapipe
-* Docs: https://cta-observatory.github.io/ctapipe/
+* Docs: https://ctapipe.readthedocs.io/
 * Slack: Contact Karl Kosack for invite
 
 Citing this software

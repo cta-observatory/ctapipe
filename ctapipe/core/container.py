@@ -42,6 +42,9 @@ class Field:
         expected dimensionality of the data, for arrays, None to ignore
     allow_none:
         if the value of None is given to this Field, skip validation
+    max_len:
+        if type is str, max_len is the maximum number of bytes of the utf-8
+        encoded string to be used.
     """
 
     def __init__(
@@ -54,6 +57,7 @@ class Field:
         type=None,
         ndim=None,
         allow_none=True,
+        max_length=None,
     ):
 
         self.default = default
@@ -64,6 +68,7 @@ class Field:
         self.type = type
         self.ndim = ndim
         self.allow_none = allow_none
+        self.max_length = max_length
 
     def __repr__(self):
         desc = f"{self.description}"

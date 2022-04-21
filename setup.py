@@ -11,21 +11,21 @@ import os
 entry_points = {}
 entry_points["console_scripts"] = [
     "ctapipe-info = ctapipe.tools.info:main",
-    "ctapipe-camdemo = ctapipe.tools.camdemo:main",
     "ctapipe-dump-triggers = ctapipe.tools.dump_triggers:main",
     "ctapipe-dump-instrument=ctapipe.tools.dump_instrument:main",
-    "ctapipe-event-viewer = ctapipe.tools.bokeh.file_viewer:main",
-    "ctapipe-display-tel-events = ctapipe.tools.display_events_single_tel:main",
-    "ctapipe-display-imagesums = ctapipe.tools.display_summed_images:main",
     "ctapipe-reconstruct-muons = ctapipe.tools.muon_reconstruction:main",
-    "ctapipe-display-integration = ctapipe.tools.display_integrator:main",
     "ctapipe-display-dl1 = ctapipe.tools.display_dl1:main",
     "ctapipe-process = ctapipe.tools.process:main",
-    "ctapipe-merge = ctapipe.tools.dl1_merge:main",
+    "ctapipe-merge = ctapipe.tools.merge:main",
     "ctapipe-fileinfo = ctapipe.tools.fileinfo:main",
     "ctapipe-quickstart = ctapipe.tools.quickstart:main",
 ]
-tests_require = ["pytest", "pandas>=0.24.0", "importlib_resources;python_version<'3.9'"]
+tests_require = [
+    "pytest",
+    "pandas>=0.24.0",
+    "importlib_resources;python_version<'3.9'",
+    "tomli",
+]
 docs_require = [
     "sphinx_rtd_theme",
     "sphinx_automodapi",
@@ -39,11 +39,11 @@ docs_require = [
 ]
 
 setup(
-    packages=find_packages(),
-    python_requires=">=3.7",
+    packages=find_packages(exclude="ctapipe._dev_version"),
+    python_requires=">=3.8",
     install_requires=[
-        "astropy>=4.0.5,<5",
-        "bokeh~=1.0",
+        "astropy~=5.0",
+        "bokeh~=2.0",
         "eventio>=1.5.0,<2.0.0a0",
         "h5py",
         "iminuit>=2",
@@ -61,6 +61,8 @@ setup(
         "requests",
         "setuptools_scm>=3.4",
         "importlib_resources;python_version<'3.9'",
+        "jinja2~=3.0.2",  # for sphinx 3.5, update when moving to 4.x
+        "pyyaml>=5.1",
     ],
     # here are optional dependencies (as "tag" : "dependency spec")
     extras_require={
@@ -75,16 +77,14 @@ setup(
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: BSD License",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: Implementation :: CPython",
         "Topic :: Scientific/Engineering :: Astronomy",
         "Development Status :: 3 - Alpha",
     ],
     zip_safe=False,
     entry_points=entry_points,
-    package_data={
-        "": ["tools/bokeh/*.yaml", "tools/bokeh/templates/*.html", "resources/*"]
-    },
+    package_data={"": ["resources/*"]},
 )

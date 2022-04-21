@@ -37,6 +37,9 @@ from astropy import units as u
 __all__ = ["HillasPlane", "HillasReconstructor"]
 
 
+INVALID = ReconstructedGeometryContainer(tel_ids=[])
+
+
 def angle(v1, v2):
     """ computes the angle between two vectors
         assuming cartesian coordinates
@@ -107,7 +110,7 @@ class HillasPlane:
         to the camera.
 
         Parameters
-        -----------
+        ----------
         p1: astropy.coordinates.SkyCoord
             One of two direction vectors which define the plane.
             This coordinate has to be defined in the ctapipe.coordinates.AltAz
@@ -162,10 +165,8 @@ class HillasReconstructor(Reconstructor):
 
     """
 
-    def __init__(self, subarray, config=None, parent=None, **kwargs):
-        super().__init__(config=config, parent=parent, **kwargs)
-        self.subarray = subarray
-
+    def __init__(self, subarray, **kwargs):
+        super().__init__(subarray=subarray, **kwargs)
         self._cam_radius_m = {
             cam: cam.geometry.guess_radius() for cam in subarray.camera_types
         }
@@ -183,16 +184,17 @@ class HillasReconstructor(Reconstructor):
 
         Parameters
         ----------
-        event : container
-            `ctapipe.containers.ArrayEventContainer`
-        """
+        event: `ctapipe.containers.ArrayEventContainer`
+            The event, needs to have dl1 parameters
 
-        # Read only valid HillasContainers
-        hillas_dict = {
-            tel_id: dl1.parameters.hillas
-            for tel_id, dl1 in event.dl1.tel.items()
-            if np.isfinite(dl1.parameters.hillas.intensity)
-        }
+        Returns
+        -------
+        ReconstructedGeometryContainer
+        """
+        try:
+            hillas_dict = self._create_hillas_dict(event)
+        except (TooFewTelescopesException, InvalidWidthException):
+            return INVALID
 
         # Due to tracking the pointing of the array will never be a constant
         array_pointing = SkyCoord(
@@ -210,17 +212,12 @@ class HillasReconstructor(Reconstructor):
             for tel_id in event.dl1.tel.keys()
         }
 
-        try:
-            result = self._predict(
-                event, hillas_dict, self.subarray, array_pointing, telescope_pointings
-            )
-        except (TooFewTelescopesException, InvalidWidthException):
-            result = ReconstructedGeometryContainer()
-
-        event.dl2.stereo.geometry["HillasReconstructor"] = result
+        return self._predict(
+            event, hillas_dict, array_pointing, telescope_pointings
+        )
 
     def _predict(
-        self, event, hillas_dict, subarray, array_pointing, telescopes_pointings
+        self, event, hillas_dict, array_pointing, telescopes_pointings
     ):
         """
         The function you want to call for the reconstruction of the
@@ -230,7 +227,7 @@ class HillasReconstructor(Reconstructor):
         class are set to np.nan
 
         Parameters
-        -----------
+        ----------
         hillas_dict: dict
             dictionary with telescope IDs as key and
             HillasParametersContainer instances as values
@@ -243,8 +240,6 @@ class HillasReconstructor(Reconstructor):
 
         Raises
         ------
-        TooFewTelescopesException
-            if len(hillas_dict) < 2
         InvalidWidthException
             if any width is np.nan or 0
         """
@@ -256,30 +251,15 @@ class HillasReconstructor(Reconstructor):
         # This should be substituted by a DL1 QualityQuery specific to this
         # reconstructor
 
-        # stereoscopy needs at least two telescopes
-        if len(hillas_dict) < 2:
-            raise TooFewTelescopesException(
-                "need at least two telescopes, have {}".format(len(hillas_dict))
-            )
-        # check for np.nan or 0 width's as these screw up weights
-        if any([np.isnan(hillas_dict[tel]["width"].value) for tel in hillas_dict]):
-            raise InvalidWidthException(
-                "A HillasContainer contains an ellipse of width==np.nan"
-            )
-        if any([hillas_dict[tel]["width"].value == 0 for tel in hillas_dict]):
-            raise InvalidWidthException(
-                "A HillasContainer contains an ellipse of width==0"
-            )
-
         hillas_planes, psi_core_dict = self.initialize_hillas_planes(
-            hillas_dict, subarray, telescopes_pointings, array_pointing
+            hillas_dict, self.subarray, telescopes_pointings, array_pointing
         )
 
         # algebraic direction estimate
         direction, err_est_dir = self.estimate_direction(hillas_planes)
 
         # array pointing is needed to define the tilted frame
-        core_pos = self.estimate_core_position(
+        core_pos_ground, core_pos_tilted = self.estimate_core_position(
             event, hillas_dict, array_pointing, psi_core_dict, hillas_planes
         )
 
@@ -295,8 +275,10 @@ class HillasReconstructor(Reconstructor):
         result = ReconstructedGeometryContainer(
             alt=lat,
             az=-lon,
-            core_x=core_pos[0],
-            core_y=core_pos[1],
+            core_x=core_pos_ground.x,
+            core_y=core_pos_ground.y,
+            core_tilted_x=core_pos_tilted.x,
+            core_tilted_y=core_pos_tilted.y,
             tel_ids=[h for h in hillas_dict.keys()],
             average_intensity=np.mean([h.intensity for h in hillas_dict.values()]),
             is_valid=True,
@@ -467,14 +449,14 @@ class HillasReconstructor(Reconstructor):
         Estimate the core position by intersection the major ellipse lines of each telescope.
 
         Parameters
-        -----------
+        ----------
         hillas_dict: dict[HillasContainer]
             dictionary of hillas moments
         array_pointing: SkyCoord[HorizonFrame]
             Pointing direction of the array
 
         Returns
-        -----------
+        -------
         core_x: u.Quantity
             estimated x position of impact
         core_y: u.Quantity
@@ -526,16 +508,16 @@ class HillasReconstructor(Reconstructor):
             x=core_position[0] * u.m, y=core_position[1] * u.m, frame=tilted_frame
         )
 
-        core_pos = project_to_ground(core_pos_tilted)
+        core_pos_ground = project_to_ground(core_pos_tilted)
 
-        return core_pos.x, core_pos.y
+        return core_pos_ground, core_pos_tilted
 
     def estimate_h_max(self, hillas_planes):
         """
         Estimate the max height by intersecting the lines of the cog directions of each telescope.
 
         Returns
-        -----------
+        -------
         astropy.unit.Quantity
             the estimated max height
         """

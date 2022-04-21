@@ -133,6 +133,10 @@ def camera_to_telescope(camera_coord, telescope_frame):
         y_rotated = x_pos * sinrot + y_pos * cosrot
 
     focal_length = camera_coord.focal_length
+    if focal_length.shape == () and focal_length.value == 0:
+        raise ValueError(
+            "Coordinate in CameraFrame is missing focal_length information"
+        )
 
     # this assumes an equidistant mapping function of the telescope optics
     # or a small angle approximation of most other mapping functions
@@ -174,6 +178,8 @@ def telescope_to_camera(telescope_coord, camera_frame):
         y_rotated = x_pos * sinrot + y_pos * cosrot
 
     focal_length = camera_frame.focal_length
+    if focal_length.shape == () and focal_length.value == 0:
+        raise ValueError("CameraFrame is missing focal_length information")
 
     # this assumes an equidistant mapping function of the telescope optics
     # or a small angle approximation of most other mapping functions

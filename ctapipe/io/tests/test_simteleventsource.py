@@ -68,12 +68,16 @@ def test_additional_meta_data_from_simulation_config():
     from astropy import units as u
     from astropy.coordinates import Angle
 
-    assert reader.simulation_config.corsika_version == 6990
-    assert reader.simulation_config.spectral_index == -2.0
-    assert reader.simulation_config.shower_reuse == 20
-    assert reader.simulation_config.core_pos_mode == 1
-    assert reader.simulation_config.diffuse == 1
-    assert reader.simulation_config.atmosphere == 26
+    # There should be only one observation
+    assert len(reader.obs_ids) == 1
+    simulation_config = reader.simulation_config[reader.obs_ids[0]]
+
+    assert simulation_config.corsika_version == 6990
+    assert simulation_config.spectral_index == -2.0
+    assert simulation_config.shower_reuse == 20
+    assert simulation_config.core_pos_mode == 1
+    assert simulation_config.diffuse == 1
+    assert simulation_config.atmosphere == 26
 
     # value read by hand from input card
     name_expectation = {
@@ -91,7 +95,7 @@ def test_additional_meta_data_from_simulation_config():
     }
 
     for name, expectation in name_expectation.items():
-        value = getattr(reader.simulation_config, name)
+        value = getattr(simulation_config, name)
 
         assert value.unit == expectation.unit
         assert np.isclose(
@@ -103,9 +107,9 @@ def test_properties():
     source = SimTelEventSource(input_url=gamma_test_large_path)
 
     assert source.is_simulation
-    assert source.simulation_config.corsika_version == 6990
     assert source.datalevels == (DataLevel.R0, DataLevel.R1)
     assert source.obs_ids == [7514]
+    assert source.simulation_config[7514].corsika_version == 6990
 
 
 def test_gamma_file():
@@ -230,10 +234,7 @@ def test_apply_simtel_r1_calibration_1_channel():
 
     gain_selector = ThresholdGainSelector(threshold=90)
     r1_waveforms, selected_gain_channel = apply_simtel_r1_calibration(
-        r0_waveforms,
-        pedestal,
-        dc_to_pe,
-        gain_selector
+        r0_waveforms, pedestal, dc_to_pe, gain_selector
     )
 
     assert (selected_gain_channel == 0).all()
@@ -264,10 +265,7 @@ def test_apply_simtel_r1_calibration_2_channel():
 
     gain_selector = ThresholdGainSelector(threshold=90)
     r1_waveforms, selected_gain_channel = apply_simtel_r1_calibration(
-        r0_waveforms,
-        pedestal,
-        dc_to_pe,
-        gain_selector
+        r0_waveforms, pedestal, dc_to_pe, gain_selector
     )
 
     assert selected_gain_channel[0] == 1
@@ -319,9 +317,7 @@ def test_calibscale_and_calibshift(prod5_gamma_simtel_path):
 
     telid = 25
 
-    with SimTelEventSource(
-        input_url=prod5_gamma_simtel_path, max_events=1
-    ) as source:
+    with SimTelEventSource(input_url=prod5_gamma_simtel_path, max_events=1) as source:
 
         for event in source:
             pass
@@ -335,9 +331,11 @@ def test_calibscale_and_calibshift(prod5_gamma_simtel_path):
         for event_scaled in source:
             pass
 
-    np.testing.assert_allclose(event.r1.tel[telid].waveform[0],
-                               event_scaled.r1.tel[telid].waveform[0] / calib_scale,
-                               rtol=0.1)
+    np.testing.assert_allclose(
+        event.r1.tel[telid].waveform[0],
+        event_scaled.r1.tel[telid].waveform[0] / calib_scale,
+        rtol=0.1,
+    )
 
     calib_shift = 2.0  # p.e.
 
@@ -348,6 +346,33 @@ def test_calibscale_and_calibshift(prod5_gamma_simtel_path):
         for event_shifted in source:
             pass
 
-    np.testing.assert_allclose(event.r1.tel[telid].waveform[0],
-                               event_shifted.r1.tel[telid].waveform[0] - calib_shift,
-                               rtol=0.1)
+    np.testing.assert_allclose(
+        event.r1.tel[telid].waveform[0],
+        event_shifted.r1.tel[telid].waveform[0] - calib_shift,
+        rtol=0.1,
+    )
+
+
+def test_true_image_sum():
+    # this file does not contain true pe info
+    with SimTelEventSource(gamma_test_large_path) as s:
+        e = next(iter(s))
+        assert np.all(np.isnan(sim.true_image_sum) for sim in e.simulation.tel.values())
+
+    with SimTelEventSource(calib_events_path) as s:
+        e = next(iter(s))
+
+        true_image_sums = {}
+        for tel_id, sim_camera in e.simulation.tel.items():
+            # since the test file contains both sums and individual pixel values
+            # we can compare.
+            assert sim_camera.true_image_sum == sim_camera.true_image.sum()
+            true_image_sums[tel_id] = sim_camera.true_image_sum
+
+    # check it also works with allowed_tels, since the values
+    # are stored in a flat array in simtel
+    with SimTelEventSource(calib_events_path, allowed_tels={2, 3}) as s:
+        e = next(iter(s))
+
+        assert e.simulation.tel[2].true_image_sum == true_image_sums[2]
+        assert e.simulation.tel[3].true_image_sum == true_image_sums[3]
