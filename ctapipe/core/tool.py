@@ -175,6 +175,7 @@ class Tool(Application):
             "log-level": "Tool.log_level",
             ("l", "log-file"): "Tool.log_file",
             "log-file-level": "Tool.log_file_level",
+            "provenance-log": "Tool.provenance_log",
         }
         # makes sure user defined aliases override default aliases
         self.aliases = {**aliases, **self.aliases}
