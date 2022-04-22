@@ -1,4 +1,5 @@
 import numpy as np
+from numba import njit
 from scipy.spatial import cKDTree as KDTree
 from scipy.interpolate import interp1d
 from ..containers import EventType
@@ -8,6 +9,114 @@ from tqdm.auto import tqdm
 import astropy.units as u
 import warnings
 import json
+
+
+def _get_neighbors_of(pixel_id, indptr, indices):
+    first = indptr[pixel_id]
+    last = indptr[pixel_id + 1]
+    return indices[first:last]
+
+
+def _get_groups_2nn(indptr, indices):
+    n_pixels = len(indptr) - 1
+    combinations = []
+    for pixel_id in range(n_pixels):
+        neighbors = _get_neighbors_of(pixel_id, indptr, indices)
+        for neighbor in neighbors:
+            if neighbor > pixel_id:
+                combinations.append((pixel_id, neighbor))
+
+    return np.array(combinations, dtype=np.uint16)
+
+
+def _get_groups_3nn(groups_2nn, indptr, indices):
+    combinations = []
+    for group in groups_2nn:
+        p1, p2 = group
+        neighbors_p1 = _get_neighbors_of(p1, indptr, indices)
+        neighbors_p2 = _get_neighbors_of(p2, indptr, indices)
+        for neighbor in np.intersect1d(neighbors_p1, neighbors_p2):
+            if neighbor > p1:
+                if neighbor > p2:
+                    combinations.append((p1, p2, np.uint16(neighbor)))
+
+    return np.array(combinations, dtype=np.uint16)
+
+
+def _get_groups_4nn_from_2nn(groups_2nn, indptr, indices):
+    combinations = []
+    for group in groups_2nn:
+        p1, p2 = group
+        neighbors_p1 = _get_neighbors_of(p1, indptr, indices)
+        neighbors_p2 = _get_neighbors_of(p2, indptr, indices)
+        common_neighbors = np.intersect1d(neighbors_p1, neighbors_p2).tolist()
+        if len(common_neighbors) == 2:
+            n_1, n_2 = common_neighbors
+            combinations.append((p1, p2, np.uint16(n_1), np.uint16(n_2)))
+
+    return np.array(combinations, dtype=np.uint16)
+
+
+def _get_groups_2_1nn(groups_2nn, indptr, indices):
+    combinations = []
+    for group in groups_2nn:
+        p1, p2 = group
+        exclusion = set(_get_neighbors_of(p1, indptr, indices).tolist())
+        exclusion |= set(_get_neighbors_of(p2, indptr, indices).tolist())
+        candidates = set(exclusion)
+        for core_pixel in exclusion:
+            candidates |= set(_get_neighbors_of(core_pixel, indptr, indices).tolist())
+        candidates = list(candidates - exclusion)
+        for candidate in candidates:
+            combinations.append((p1, p2, np.uint16(candidate)))
+
+    return np.array(combinations, dtype=np.uint16)
+
+
+def _get_pixel_groups(indptr, indices):
+    groups_2nn = _get_groups_2nn(indptr, indices)
+    groups_3nn = _get_groups_3nn(groups_2nn, indptr, indices)
+    groups_4nn = _get_groups_4nn_from_2nn(groups_2nn, indptr, indices)
+    groups_21nn = _get_groups_2_1nn(groups_2nn, indptr, indices)
+    groups = {
+        "2nn": groups_2nn,
+        "3nn": groups_3nn,
+        "4nn": groups_4nn,
+        "2+1": groups_21nn,
+    }
+    return groups
+
+
+@lru_cache(maxsize=None)
+def get_pixel_groups(geometry):
+    return _get_pixel_groups(
+        geometry.neighbor_matrix_sparse.indptr, geometry.neighbor_matrix_sparse.indices
+    )
+
+
+@njit
+def _is_group_in_mask(group, mask):
+    for member in group:
+        if not mask[member]:
+            return False
+    return True
+
+
+@njit
+def _flag_groups_where_mask(n_pixels, groups, mask):
+    valid_indices = np.zeros(len(groups), dtype=np.bool_)
+    for index in np.arange(len(groups)):
+        if _is_group_in_mask(groups[index], mask):
+            valid_indices[index] = True
+    return valid_indices
+
+
+def get_valid_groups(n_pixels, all_groups, mask):
+    filtered_groups = {}
+    for nfold, groups in all_groups.items():
+        valid_indices = _flag_groups_where_mask(n_pixels, groups, mask)
+        filtered_groups[nfold] = groups[valid_indices]
+    return filtered_groups
 
 
 def dilate_matrix(mask, matrix):
@@ -40,7 +149,7 @@ class TimeNextNeighborCleaning:
 
     def __init__(self):
         self.IPR_dict = None
-        self._multiplicity_dict = {"4nn": 4, "3nn": 3, "2+1": 3, "2nn": 2}
+        self._multiplicity_dict = {"2nn": 2, "3nn": 3, "4nn": 4, "2+1": 3}
 
     def fill_individual_pixel_rate(self, tel_id, image, trace_length, charge_steps):
         """
@@ -49,8 +158,10 @@ class TimeNextNeighborCleaning:
 
         Parameters
         ----------
-        geo: ctapipe.instrument.CameraGeometry
+        tel_id: int
+            Telescope indexing number specific per source
         image: numpy.ndarray
+            pixel values
         trace_length: astropy.units.Quantity
             total length of the trace, e.g. number of samples times sample_time
         charge_steps: numpy.ndarray
@@ -93,7 +204,9 @@ class TimeNextNeighborCleaning:
         Parameters
         ----------
         source:
+            EventSource type
         calibrator:
+            CameraCalibrator type, LocalPeakWindowSum returns good results
         charge_steps: numpy.ndarray
             array storing the steps in charge used to create the IPR graph
 
@@ -129,6 +242,7 @@ class TimeNextNeighborCleaning:
         geometry: array
             Camera geometry information
         nfold: string, None
+            Name of neighbor group. Select from 4nn, 3nn, 2+1 and 2nn
         calculate: bool
             If true, the value will be calculated from the geometry of the
             camera. Otherwise the values from a pre filled lookup table are
@@ -142,15 +256,8 @@ class TimeNextNeighborCleaning:
         """
         # Allow to specify camera and neighbor group by hand. If not set, use
         # currently selected values.
-
-        comb_factor = len(self.get_combinations(geometry, nfold, d2=2.4, d1=1.4))
-        if nfold == "2+1":
-            # current implementation returns 2+1 and 3nn combinations for
-            # 2+1 group search. Need to correct to get correct number.
-            comb_3nn = len(self.get_combinations(geometry, nfold="3nn", d2=2.4, d1=1.4))
-            comb_factor -= comb_3nn
-
-        return comb_factor
+        comb_factor = self.get_combinations(geometry, nfold)
+        return len(comb_factor[nfold])
 
     def get_time_coincidence(self, geometry, charge, tel_id, nfold, accidental_rate):
         """
@@ -162,10 +269,11 @@ class TimeNextNeighborCleaning:
         Parameters
         ----------
         charge: numpy.ndarray
+            Pixel intensity
         accidental_rate: astropy.Quantity
-            Allowed accidental rate for thi
+            False positive rate to return
         nfold: string
-            name of neighbor group. Select from 4nn, 3nn, 2+1 and 2nn
+            Name of neighbor group. Select from 4nn, 3nn, 2+1 and 2nn
 
         Returns
         -------
@@ -200,10 +308,13 @@ class TimeNextNeighborCleaning:
         Parameters
         ----------
         charge: ndarry
+            Pixel intensity
         time_difference: astropy.units.Quantity
+            Duration between first and last record
         accidental_rate:
+            False positive rate to return
         nfold: string
-
+            Name of neighbor group. Select from 4nn, 3nn, 2+1 and 2nn
         Returns
         -------
         valid_pixels: ndarray
@@ -220,7 +331,7 @@ class TimeNextNeighborCleaning:
         return valid_pixels
 
     def pre_threshold_from_sample_time(
-        self, geometry, tel_id, nfold, accidental_rate, sample_time, factor=0.2
+        self, geometry, tel_id, nfold, accidental_rate, sample_time, factor=0.5
     ):
         """
         Get the pre threshold from the sampling time. The charge of all pixels
@@ -230,11 +341,13 @@ class TimeNextNeighborCleaning:
         Parameters
         ----------
         accidental_rate: float
+            False positive rate to return
         sample_time: astropy.units.Quantity
             Sampling time of the camera
         nfold: string, None
-            Group of pixels to consider
+            Group of neigboring pixels to consider
         factor: float
+            Optional scaling for pre cleaning threshold
 
         Returns
         -------
@@ -247,31 +360,7 @@ class TimeNextNeighborCleaning:
             geometry, charges, tel_id, nfold, accidental_rate
         )
 
-        return np.min(charges[dt > factor * sample_time])
-
-    def get_kdtree(self, geometry, mask=None):
-        """
-        Initialize a KDtree for this camera considering only pixels that are
-        not masked.
-
-        Parameters
-        ----------
-        mask: list
-            boolean list specifying pixels to consider in the tree
-
-        Returns
-        -------
-        kdtree: scipy.spatial.cKDTree
-        points: numpy.ndarray
-            points used in the tree
-        """
-        if mask is None:
-            mask = np.ones_like(geometry.pix_id, bool)
-
-        points = np.array([geometry.pix_x[mask], geometry.pix_y[mask]]).T
-        kdtree = KDTree(points)
-
-        return kdtree, points
+        return charges[dt > factor * sample_time][0]
 
     @staticmethod
     def add_neighbors_to_combinations(combinations, neighbors):
@@ -345,75 +434,31 @@ class TimeNextNeighborCleaning:
 
         return result
 
-    def get_combinations(self, geometry, nfold, mask=None, d2=2.4, d1=1.4):
+    def get_combinations(self, geometry, nfold, mask=None):
         """
         Get a list a all possible combinations of pixels for a given geometry.
-        The implementation is based on constructing a KDtree for the pixels not
-        masked. For considering two pixels as neighbors, the minimum distance
-        between two pixels is considered. Direct neighbors are closer than d1
-        times the min distance while the second nearest neighbors for the 2+1
-        group takes d2 instead.
-        First the 2nn pairs are calculated and the candidate neighbors are
-        added to these pairs (iteratively) to construct the 3nn, 4nn and 2+1
-        groups.
+        The implementation is based on finding each pixel's neighbors via lookup in the sparse neighbor matrix.
+        "2nn" pairs are straight fowrward and do not contain backward duplicates.
+        "3nn" and "4nn" groups are derived from "2nn" pairs with their additional neighboring pixels thereby forming a compact group.
+        "2+3" are "2nn" pairs with a separate nonneighbor pixel one pixel away from the group.
+        The mask is only considered when assigning pixels to groups therefore no group is cut off and the singular pixel in "2+1" groups can skip gaps in the threshold mask.
 
         Parameters
         ----------
         mask: numpy.ndarray
-            boolean mask of pixels to consider for search
-        d1: float
-            Search for first neighbors in `d1` times the minimum distance
-            between pixels.
-        d2: float
-            Search for second neighbors in `d2` times the minimum distance
-            between pixels.
+            mask of pixels above threshold
         nfold: string
-
+            neighbor group geometry type
         Returns
         -------
         combs: numpy.ndarray
             array of all possible combinations for given neighbor group
         """
-
-        if mask is None:
-            mask = np.ones(geometry.n_pixels, bool)
-
-        # construct an kdtree that with only the points that are not masked.
-        # TODO: Check the updates on the calculation of neighbors in ctapipe.
-        kdtree, points = self.get_kdtree(geometry, mask)
-        dist = geometry.guess_pixel_width(geometry.pix_x, geometry.pix_y)
-
-        # kdtree implementation to get the possible combinations of pairs
-        # within a given distance.
-        combs = kdtree.query_pairs(r=d1 * dist.value)
-
-        if nfold == "2nn":
-            combs = list(combs)
-        elif nfold == "2+1":
-            # Returns all possible 2+1 one AND 3nn combinations. As 3nn cut
-            # is looser than 2+1 cut anyway, this will not influence the result
-            # but will imply some unnescessary testing of combinations.
-            neighbors2 = [kdtree.query_ball_point(p, d2 * dist.value) for p in points]
-            combs = self.add_neighbors_to_combinations(combs, neighbors2)
-
-        elif nfold in ("3nn", "4nn"):
-            # add one neighbor to 2nn combinations
-            neighbors = [kdtree.query_ball_point(p, d1 * dist.value) for p in points]
-            combs = self.add_neighbors_to_combinations(combs, neighbors)
-
-            if nfold == "4nn":
-                # add one more neighbor to the 3nn combinations to get possible
-                # 4nn combinations.
-                combs = self.add_neighbors_to_combinations(combs, neighbors)
-        else:
-            NotImplementedError(f"Search for {nfold}-group not implemented.")
-        if len(combs) > 0:
-            combs = np.array([geometry.pix_id[mask]])[0, combs]
-
-        else:
-            combs = np.array([])
-
-        return combs
+        groups = get_pixel_groups(geometry)
+        if mask is not None:
+            valid_groups = get_valid_groups(geometry.n_pixels, groups, mask)[nfold]
+            return valid_groups
+        return groups
 
     @staticmethod
     def check_combinations(combinations, mask):
@@ -445,7 +490,7 @@ class TimeNextNeighborCleaning:
         sample_time,
         sum_time,
         fake_prob=0.001,
-        factor=0.2,
+        factor=0.5,
     ):
         """
         Main function of time next neighbor cleaning developed by M. Shayduk.
@@ -463,13 +508,17 @@ class TimeNextNeighborCleaning:
         Parameters
         ----------
         geometry: ctapipe.instrument.CameraGeometry
+            Camera geometry information
         sample_time: astropy.units.Quantity
             timing information for each sample
         image: numpy.ndarray
+            pixel values
         arrival_times: numpy.ndarray
             arrival time in number of samples
         fake_prob: float
+            false positive rate to return
         sum_time: astropy.units.Quantity
+            total sampling duration
         factor: float
 
         Returns
@@ -486,6 +535,7 @@ class TimeNextNeighborCleaning:
             pre_threshold = self.pre_threshold_from_sample_time(
                 geometry, tel_id, nfold, rate_acc, sample_time, factor
             )
+            # print(pre_threshold)
             candidates = image > pre_threshold
             if not candidates.any():
                 continue
@@ -553,6 +603,20 @@ class TimeNextNeighborCleaning:
         nfold,
         fake_prob=0.001,
     ):
+        """
+        Find boundary pixels around core pixels.
+        These pass a different lower threshold than core pixels and recieve their own mask.
+
+        Parameters
+        ----------
+        source:
+            EventSource type
+        calibrator:
+            CameraCalibrator type, LocalPeakWindowSum returns good results
+        charge_steps: numpy.ndarray
+            array storing the steps in charge used to create the IPR graph
+
+        """
 
         bound = np.zeros(geometry.n_pixels, bool)
         if mask.any():
