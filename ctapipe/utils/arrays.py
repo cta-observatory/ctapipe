@@ -1,13 +1,16 @@
+'''
+Some utility functions to work with numpy (rec) arrays
+'''
 import numpy as np
 from numpy.lib.recfunctions import repack_fields
 
 
-def recarray_drop_columns(a, columns):
+def recarray_drop_columns(array, columns):
     '''
     Remove columns from rec array
     '''
-    to_use = [col for col in a.dtype.names if col not in columns]
-    subset = a.view(subset_dtype(a.dtype, to_use))
+    to_use = [col for col in array.dtype.names if col not in columns]
+    subset = array.view(subset_dtype(array.dtype, to_use))
     return repack_fields(subset)
 
 
