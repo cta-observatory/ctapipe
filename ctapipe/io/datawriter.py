@@ -6,12 +6,12 @@ Class to write DL1 (a,b) and DL2 (a) data from an event stream
 
 import pathlib
 from collections import defaultdict
-from traitlets import Instance, Dict
 from typing import List
 
 import numpy as np
 import tables
 from astropy import units as u
+from traitlets import Dict, Instance
 
 from ..containers import (
     ArrayEventContainer,
