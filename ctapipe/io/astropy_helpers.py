@@ -76,6 +76,8 @@ def read_table(
         # methods
         path = os.path.join("/", path)
         table = h5file.get_node(path)
+        if not isinstance(table, tables.Table):
+            raise IOError(f"Node {path} is a {table.__class__.__name__}, must be a Table")
         transforms, descriptions, meta = _parse_hdf5_attrs(table)
 
         if condition is None:
