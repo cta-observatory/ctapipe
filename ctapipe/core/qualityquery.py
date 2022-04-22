@@ -139,6 +139,12 @@ class QualityQuery(Component):
 
 
 class TableQualityQuery(Component):
+    """
+    Manages a set of user-configurable (at runtime or in a config file) selection
+    criteria that operate on a table basis.  The call returns a boolean array indicating
+    which rows meet the criteria.
+    """
+
     quality_criteria = List(
         default=None,
         allow_none=False,

@@ -1,13 +1,13 @@
 """ Tests of Selectors """
+import numpy as np
 import pytest
-
+from astropy.table import Table
 from ctapipe.core.qualityquery import (
-    QualityQuery,
     QualityCriteriaError,
+    QualityQuery,
     TableQualityQuery,
 )
 from ctapipe.core.traits import List
-import numpy as np
 
 
 def test_selector():
@@ -104,7 +104,7 @@ def test_bad_selector():
 
 
 def test_table_selector():
-    from astropy.table import Table
+    """Test the functionality of an example TableQualityQuery"""
 
     table = Table({"a": [1, 2, 3], "b": [1, 2, 3]})
 
@@ -114,7 +114,7 @@ def test_table_selector():
 
 
 def test_table_selector_bad():
-    from astropy.table import Table
+    """Missing key raises custom Exception"""
 
     table = Table({"a": [1, 2, 3], "b": [1, 2, 3]})
 
