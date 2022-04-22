@@ -296,17 +296,9 @@ class Container(metaclass=ContainerMeta):
 
         d = dict()
         for key, val in self.items(add_prefix=add_prefix):
-            if isinstance(val, Container) or isinstance(val, Map):
+            if isinstance(val, (Container, Map)):
                 if flatten:
-                    d.update(
-                        {
-                            k: v
-                            for k, v in val.as_dict(
-                                recursive, add_prefix=add_prefix,
-                                flatten=flatten
-                            ).items()
-                        }
-                    )
+                    d.update(val.as_dict(recursive, add_prefix=add_prefix, flatten=flatten))
                 else:
                     d[key] = val.as_dict(
                         recursive=recursive, flatten=flatten, add_prefix=add_prefix
