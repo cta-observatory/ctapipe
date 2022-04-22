@@ -16,7 +16,7 @@ from ctapipe.utils import get_dataset_path
 
 
 def generate_dummy_dl2(event):
-    """ generate some dummy DL2 info and see if we can write it """
+    """generate some dummy DL2 info and see if we can write it"""
 
     algos = ["HillasReconstructor", "ImPACTReconstructor"]
 
@@ -242,7 +242,9 @@ def test_metadata(tmpdir: Path):
                     "name": "Maximilian Nöthe",
                     "email": "maximilian.noethe@tu-dortmund.de",
                     "organization": "TU Dortmund",
-                }
+                },
+                "Instrument": {"site": "CTA-North", "id_": "alpha"},
+                "context_metadata": {"EXAMPLE": "test_value"},
             }
         }
     )
@@ -264,6 +266,9 @@ def test_metadata(tmpdir: Path):
             assert meta["CTA CONTACT NAME"] == "Maximilian Nöthe"
             assert meta["CTA CONTACT EMAIL"] == "maximilian.noethe@tu-dortmund.de"
             assert meta["CTA CONTACT ORGANIZATION"] == "TU Dortmund"
+            assert meta["CTA INSTRUMENT SITE"] == "CTA-North"
+            assert meta["CTA INSTRUMENT ID"] == "alpha"
+            assert meta["CONTEXT EXAMPLE"] == "test_value"
 
 
 def test_write_only_r1(r1_hdf5_file):
