@@ -21,6 +21,7 @@ PARAMETERS_GROUP = "/dl1/event/telescope/parameters"
 IMAGES_GROUP = "/dl1/event/telescope/images"
 GEOMETRY_GROUP = "/dl2/event/subarray/geometry"
 TRIGGER_TABLE = "/dl1/event/subarray/trigger"
+POINTING_TABLE = "/dl1/monitoring/subarray/pointing"
 SHOWER_TABLE = "/simulation/event/subarray/shower"
 TRUE_IMAGES_GROUP = "/simulation/event/telescope/images"
 TRUE_PARAMETERS_GROUP = "/simulation/event/telescope/parameters"
@@ -110,6 +111,9 @@ class TableLoader(Component):
     load_instrument = traits.Bool(
         False, help="join subarray instrument information to each event"
     ).tag(config=True)
+    load_pointings = traits.Bool(
+        False, help="join subarray pointings information"
+    ).tag(config=True)
 
     def __init__(self, input_url=None, **kwargs):
         # enable using input_url as posarg
@@ -172,6 +176,18 @@ class TableLoader(Component):
 
         return table
 
+    def _join_interp_pointings(self, table):
+        pointings = read_table(self.h5file, POINTING_TABLE)
+        for col in set(pointings.colnames) - set(["time"]):
+            interp = np.interp(table['time'].value,
+                               pointings['time'].value, pointings[col].value)
+            table[col] = interp
+
+        if not self.load_trigger:
+            table.remove_columns(["tels_with_trigger", "event_type"])
+
+        return table
+
     def read_subarray_events(self):
         """Read subarray-based event information.
 
@@ -185,6 +201,12 @@ class TableLoader(Component):
         if self.load_trigger:
             trigger = read_table(self.h5file, TRIGGER_TABLE)
             table = join_allow_empty(table, trigger, SUBARRAY_EVENT_KEYS, "outer")
+
+        if self.load_pointings:
+            if not self.load_trigger:
+                trigger = read_table(self.h5file, TRIGGER_TABLE)
+                table = join_allow_empty(table, trigger, SUBARRAY_EVENT_KEYS, "outer")
+            table = self._join_interp_pointings(table)
 
         if self.load_simulated and SHOWER_TABLE in self.h5file:
             showers = read_table(self.h5file, SHOWER_TABLE)
@@ -302,8 +324,11 @@ class TableLoader(Component):
             tel_ids = self.subarray.get_tel_ids(telescopes)
 
         table = self._read_telescope_events_for_ids(tel_ids)
-
-        if any([self.load_trigger, self.load_simulated, self.load_dl2_geometry]):
+        
+        # TODO: load telescope trigger and pointing tables instead of appending the
+        # subarray one
+        if any([self.load_trigger, self.load_simulated, 
+                self.load_dl2_geometry, self.load_pointings]):
             table = self._join_subarray_info(table)
 
         return table
@@ -336,7 +361,8 @@ class TableLoader(Component):
 
         by_type = {k: vstack(ts) for k, ts in by_type.items()}
 
-        if any([self.load_trigger, self.load_simulated, self.load_dl2_geometry]):
+        if any([self.load_trigger, self.load_simulated, 
+                self.load_dl2_geometry, self.load_pointings]):
             for key, table in by_type.items():
                 by_type[key] = self._join_subarray_info(table)
 
