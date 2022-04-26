@@ -5,6 +5,8 @@ import numpy as np
 import tables
 from ast import literal_eval
 
+from ctapipe.io.astropy_helpers import read_table
+
 from ..core import Container, Field
 from ..instrument import SubarrayDescription
 from ..containers import (
@@ -49,7 +51,7 @@ COMPATIBLE_DL1_VERSIONS = [
     "v2.0.0",
     "v2.1.0",
     "v2.2.0",
-    "v3.0.0"
+    "v3.0.0",
 ]
 
 
@@ -355,6 +357,13 @@ class HDF5EventSource(EventSource):
             for tel in self.file_.root.dl1.monitoring.telescope.pointing
         }
 
+        tel_trigger = read_table(self.file_, "/dl1/event/telescope/trigger")
+        if "telescopetrigger_time" in tel_trigger.colnames:
+            tel_trigger.rename_column("telescopetrigger_time", "time")
+
+        tel_trigger.add_index(["obs_id", "event_id"])
+        tel_trigger_index = tel_trigger.indices["obs_id", "event_id"]
+
         for counter, (trigger, index) in enumerate(events):
             data.dl1.tel.clear()
             if self.is_simulation:
@@ -379,15 +388,14 @@ class HDF5EventSource(EventSource):
             # Beware: tels_with_trigger contains all triggered telescopes whereas
             # the telescope trigger table contains only the subset of
             # allowed_tels given during the creation of the dl1 file
-            for i in self.file_.root.dl1.event.telescope.trigger.where(
-                f"(obs_id=={data.index.obs_id}) & (event_id=={data.index.event_id})"
+            for row_idx in tel_trigger_index.find(
+                (data.index.obs_id, data.index.event_id)
             ):
-                if self.allowed_tels and i["tel_id"] not in self.allowed_tels:
+                row = tel_trigger[row_idx]
+                if self.allowed_tels and row["tel_id"] not in self.allowed_tels:
                     continue
-                if self.datamodel_version == "v1.0.0":
-                    data.trigger.tel[i["tel_id"]].time = i["telescopetrigger_time"]
-                else:
-                    data.trigger.tel[i["tel_id"]].time = i["time"]
+
+                data.trigger.tel[row["tel_id"]].time = row["time"]
 
             self._fill_array_pointing(data, array_pointing_finder)
             self._fill_telescope_pointing(data, tel_pointing_finder)
@@ -507,7 +515,7 @@ class HDF5EventSource(EventSource):
                 f"tel_{tel:03d}"
             ]
             closest_time_index = tel_pointing_finder[f"tel_{tel:03d}"].closest(
-                data.trigger.tel[tel].time
+                data.trigger.tel[tel].time.mjd,
             )
             pointing_telescope = tel_pointing_table
             data.pointing.tel[tel].azimuth = u.Quantity(
