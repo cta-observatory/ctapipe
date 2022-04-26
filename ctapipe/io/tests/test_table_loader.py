@@ -113,7 +113,6 @@ def test_true_parameters(test_file):
 
 def test_read_subarray_events(test_file_dl2):
     """Test reading subarray events"""
-
     from ctapipe.io.tableloader import TableLoader
 
     _, dl2_file = test_file_dl2
@@ -127,9 +126,19 @@ def test_read_subarray_events(test_file_dl2):
         assert "time" in table.colnames
 
 
+def test_pointings(test_file):
+    """Test joining true_parameters poitning information onto subarray events"""
+    from ctapipe.io.tableloader import TableLoader
+
+    _, dl1_file = test_file
+
+    with TableLoader(dl1_file, load_pointings=True) as table_loader:
+        table = table_loader.read_subarray_events()
+        assert "array_altitude" in table.colnames
+
+
 def test_read_telescope_events_type(test_file_dl2):
     """Test reading telescope events for a given telescope type"""
-
     from ctapipe.io.tableloader import TableLoader
 
     _, dl2_file = test_file_dl2
@@ -156,7 +165,6 @@ def test_read_telescope_events_type(test_file_dl2):
 
 def test_read_telescope_events_by_type(test_file_dl2):
     """Test reading telescope events for by types"""
-
     from ctapipe.io.tableloader import TableLoader
 
     _, dl2_file = test_file_dl2
