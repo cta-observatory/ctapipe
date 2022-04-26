@@ -34,7 +34,7 @@ def test_max_events(dl1_proton_file):
     max_events = 3
     with HDF5EventSource(input_url=dl1_proton_file, max_events=max_events) as source:
         assert source.max_events == max_events  # stop iterating after max_events
-        assert len(source) == 4  # total events in file
+        assert len(source) == 3
         for count, _ in enumerate(source, start=1):
             pass
         assert count == max_events

@@ -49,7 +49,7 @@ COMPATIBLE_DL1_VERSIONS = [
     "v2.0.0",
     "v2.1.0",
     "v2.2.0",
-    "v3.0.0"
+    "v3.0.0",
 ]
 
 
@@ -218,7 +218,10 @@ class HDF5EventSource(EventSource):
         yield from self._generate_events()
 
     def __len__(self):
-        return len(self.file_.root.dl1.event.subarray.trigger)
+        n_events = len(self.file_.root.dl1.event.subarray.trigger)
+        if self.max_events is not None:
+            return min(n_events, self.max_events)
+        return n_events
 
     def _parse_simulation_configs(self):
         """
