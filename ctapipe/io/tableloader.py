@@ -176,15 +176,11 @@ class TableLoader(Component):
 
         return table
 
-    def _join_interp_pointings(self, table):
-        pointings = read_table(self.h5file, POINTING_TABLE)
+    def _join_interp_pointings(self, table, pointings):
         for col in set(pointings.colnames) - set(["time"]):
             interp = np.interp(table['time'].value,
                                pointings['time'].value, pointings[col].value)
             table[col] = interp
-
-        if not self.load_trigger:
-            table.remove_columns(["tels_with_trigger", "event_type"])
 
         return table
 
@@ -206,7 +202,9 @@ class TableLoader(Component):
             if not self.load_trigger:
                 trigger = read_table(self.h5file, TRIGGER_TABLE)
                 table = join_allow_empty(table, trigger, SUBARRAY_EVENT_KEYS, "outer")
-            table = self._join_interp_pointings(table)
+                table.remove_columns(["tels_with_trigger", "event_type"])
+            pointings = read_table(self.h5file, POINTING_TABLE)
+            table = self._join_interp_pointings(table, pointings)
 
         if self.load_simulated and SHOWER_TABLE in self.h5file:
             showers = read_table(self.h5file, SHOWER_TABLE)
