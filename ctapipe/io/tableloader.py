@@ -178,9 +178,9 @@ class TableLoader(Component):
 
     def _join_interp_pointings(self, table, pointings):
         for col in set(pointings.colnames) - set(["time"]):
-            interp = np.interp(table['time'].value,
-                               pointings['time'].value, pointings[col].value)
-            table[col] = interp
+            table[col] = np.interp(table['time'].mjd, pointings['time'].mjd,
+                                        pointings[col]).astype(pointings[col].dtype)
+            table[col].unit = pointings[col].unit 
 
         return table
 
