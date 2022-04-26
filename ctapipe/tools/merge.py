@@ -439,8 +439,18 @@ class MergeTool(Tool):
             "has been merged!"
         )
 
+    def _create_indices(self):
+        """Create pytables indices that improve reading performance by a lot"""
+        tables = {
+            "/dl1/event/telescope/trigger": ["obs_id", "event_id"],
+        }
+        for table, cols in tables.items():
+            for col in cols:
+                getattr(self.output_file.root[table].cols, col).create_index()
+
     def finish(self):
         datalevels = [d.name for d in get_hdf5_datalevels(self.output_file)]
+        self._create_indices()
         self.output_file.close()
 
         activity = PROV.current_activity.provenance

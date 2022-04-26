@@ -711,22 +711,20 @@ class DataWriter(Component):
                     containers=[event.index, container],
                 )
 
-    def _generate_table_indices(self, h5file, start_node):
-        """helper to generate PyTables index tabnles for common columns"""
-        for node in h5file.iter_nodes(start_node):
-            if not isinstance(node, tables.group.Group):
-                self.log.debug("generating indices for node: %s", node)
-                if "event_id" in node.colnames:
-                    node.cols.event_id.create_index()
-                    self.log.debug("generated event_id index")
-                if "tel_id" in node.colnames:
-                    node.cols.tel_id.create_index()
-                    self.log.debug("generated tel_id index")
-                if "obs_id" in node.colnames:
-                    self.log.debug("generated obs_id index")
-                    node.cols.obs_id.create_index(kind="ultralight")
-            else:
-                # recurse
+    def _generate_table_indices(self, h5file, node_path):
+        """helper to generate PyTables index tables for common columns"""
+        node = h5file.root[node_path]
+
+        if isinstance(node, tables.Table):
+            self.log.debug("generating indices for node: %s", node)
+            for col in ["obs_id", "event_id", "tel_id"]:
+                if "col" in node.colnames:
+                    getattr(node, col).create_index()
+                    self.log.debug("generated %s index for node %s", col)
+
+        elif isinstance(node, tables.Group):
+            # recurse
+            for node in h5file.iter_nodes(node_path):
                 self._generate_table_indices(h5file, node)
 
     def _generate_indices(self):
@@ -750,3 +748,6 @@ class DataWriter(Component):
                 )
 
         self._generate_table_indices(self._writer.h5file, "/dl1/event/subarray")
+        self._generate_table_indices(
+            self._writer.h5file, "/dl1/event/telescope/trigger"
+        )
