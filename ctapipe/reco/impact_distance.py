@@ -2,11 +2,12 @@
 
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, spherical_to_cartesian
 
 from ..containers import ReconstructedGeometryContainer
 from ..coordinates import GroundFrame, TiltedGroundFrame
 from ..instrument.subarray import SubarrayDescription
+
 
 __all__ = ["shower_impact_distance"]
 
@@ -57,9 +58,10 @@ def shower_impact_distance(
     )
 
     # sky direction of the shower (defines the shower axis)
-    sky_direction = SkyCoord(
-        alt=shower_geom.alt, az=shower_geom.az, frame="altaz"
-    ).cartesian.xyz.value
+    # NOTE: remember that in sky direction the azimuth needs to be negative
+    sky_direction = spherical_to_cartesian(
+        r=1, lat=shower_geom.alt, lon=-shower_geom.az
+    )
 
     # telescope positions in the ground frame
     telescope_positions = subarray.tel_coords.cartesian.xyz.to_value("m").T
