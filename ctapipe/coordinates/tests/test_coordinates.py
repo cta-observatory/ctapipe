@@ -3,8 +3,15 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 from astropy.time import Time
 from pytest import approx, raises
+from ctapipe.coordinates import altaz_to_righthanded_cartesian
 
 location = EarthLocation.of_site("Roque de los Muchachos")
+
+
+def test_altaz_to_righthanded_cartesian():
+
+    vec = altaz_to_righthanded_cartesian(alt=0 * u.deg, az=90 * u.deg)
+    assert np.allclose(vec, [0, -1, 0])
 
 
 def test_cam_to_nominal():
