@@ -111,9 +111,9 @@ class TableLoader(Component):
     load_instrument = traits.Bool(
         False, help="join subarray instrument information to each event"
     ).tag(config=True)
-    load_pointings = traits.Bool(
-        False, help="join subarray pointings information"
-    ).tag(config=True)
+    load_pointings = traits.Bool(False, help="join subarray pointings information").tag(
+        config=True
+    )
 
     def __init__(self, input_url=None, **kwargs):
         # enable using input_url as posarg
@@ -178,9 +178,10 @@ class TableLoader(Component):
 
     def _join_interp_pointings(self, table, pointings):
         for col in set(pointings.colnames) - set(["time"]):
-            table[col] = np.interp(table['time'].mjd, pointings['time'].mjd,
-                                        pointings[col]).astype(pointings[col].dtype)
-            table[col].unit = pointings[col].unit 
+            table[col] = np.interp(
+                table["time"].mjd, pointings["time"].mjd, pointings[col]
+            ).astype(pointings[col].dtype)
+            table[col].unit = pointings[col].unit
 
         return table
 
@@ -322,11 +323,17 @@ class TableLoader(Component):
             tel_ids = self.subarray.get_tel_ids(telescopes)
 
         table = self._read_telescope_events_for_ids(tel_ids)
-        
+
         # TODO: load telescope trigger and pointing tables instead of appending the
         # subarray one
-        if any([self.load_trigger, self.load_simulated, 
-                self.load_dl2_geometry, self.load_pointings]):
+        if any(
+            [
+                self.load_trigger,
+                self.load_simulated,
+                self.load_dl2_geometry,
+                self.load_pointings,
+            ]
+        ):
             table = self._join_subarray_info(table)
 
         return table
@@ -359,8 +366,14 @@ class TableLoader(Component):
 
         by_type = {k: vstack(ts) for k, ts in by_type.items()}
 
-        if any([self.load_trigger, self.load_simulated, 
-                self.load_dl2_geometry, self.load_pointings]):
+        if any(
+            [
+                self.load_trigger,
+                self.load_simulated,
+                self.load_dl2_geometry,
+                self.load_pointings,
+            ]
+        ):
             for key, table in by_type.items():
                 by_type[key] = self._join_subarray_info(table)
 
