@@ -175,6 +175,7 @@ class Tool(Application):
             "log-level": "Tool.log_level",
             ("l", "log-file"): "Tool.log_file",
             "log-file-level": "Tool.log_file_level",
+            "provenance-log": "Tool.provenance_log",
         }
         # makes sure user defined aliases override default aliases
         self.aliases = {**aliases, **self.aliases}
@@ -192,7 +193,10 @@ class Tool(Application):
         self.version = version
         self.raise_config_file_errors = True  # override traitlets.Application default
 
-        self.log = logging.getLogger("ctapipe." + self.name)
+        # tools defined in other modules should have those modules as base
+        # logging name
+        module_name = self.__class__.__module__.split(".")[0]
+        self.log = logging.getLogger(f"{module_name}.{self.name}")
         self.trait_warning_handler = CollectTraitWarningsHandler()
         self.update_logging_config()
 
