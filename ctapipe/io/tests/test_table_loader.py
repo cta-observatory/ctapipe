@@ -127,7 +127,7 @@ def test_read_subarray_events(test_file_dl2):
 
 
 def test_pointings(test_file):
-    """Test joining true_parameters poitning information onto subarray events"""
+    """Test joining true_parameters pointing information onto subarray events"""
     from ctapipe.io.tableloader import TableLoader
 
     _, dl1_file = test_file
