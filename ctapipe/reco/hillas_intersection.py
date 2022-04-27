@@ -87,9 +87,8 @@ class HillasIntersection(Reconstructor):
         if self.weighting == "Konrad":
             self._weight_method = self.weight_konrad
 
-
     def __call__(self, event):
-        '''
+        """
         Perform stereo reconstruction on event.
 
         Parameters
@@ -100,8 +99,8 @@ class HillasIntersection(Reconstructor):
         Returns
         -------
         ReconstructedGeometryContainer
-        '''
-        
+        """
+
         try:
             hillas_dict = self._create_hillas_dict(event)
         except (TooFewTelescopesException, InvalidWidthException):
@@ -117,7 +116,6 @@ class HillasIntersection(Reconstructor):
         telescope_pointings = self._get_telescope_pointings(event)
 
         return self._predict(hillas_dict, array_pointing, telescope_pointings)
-
 
     def _predict(self, hillas_dict, array_pointing, telescopes_pointings=None):
         """
@@ -227,7 +225,7 @@ class HillasIntersection(Reconstructor):
             fov_lon=src_fov_lon * u.rad, fov_lat=src_fov_lat * u.rad, frame=nom_frame
         )
         sky_pos = nom.transform_to(array_pointing.frame)
-        tilt = SkyCoord(x=core_x * u.m, y=core_y * u.m, frame=tilted_frame)
+        tilt = SkyCoord(x=core_x * u.m, y=core_y * u.m, z=0 * u.m, frame=tilted_frame)
         grd = project_to_ground(tilt)
         x_max = self.reconstruct_xmax(
             nom.fov_lon,
@@ -240,15 +238,15 @@ class HillasIntersection(Reconstructor):
             90 * u.deg - array_pointing.alt,
         )
 
-        src_error = np.sqrt(err_fov_lon ** 2 + err_fov_lat ** 2)
+        src_error = np.sqrt(err_fov_lon**2 + err_fov_lat**2)
 
         result = ReconstructedGeometryContainer(
             alt=sky_pos.altaz.alt.to(u.rad),
             az=sky_pos.altaz.az.to(u.rad),
             core_x=grd.x,
             core_y=grd.y,
-            core_tilted_x = core_x,
-            core_tilted_y = core_y,
+            core_tilted_x=core_x,
+            core_tilted_y=core_y,
             core_tilted_uncert_x=u.Quantity(core_err_x, u.m),
             core_tilted_uncert_y=u.Quantity(core_err_y, u.m),
             tel_ids=[h for h in hillas_dict_mod.keys()],
