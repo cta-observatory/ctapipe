@@ -132,7 +132,7 @@ def test_pointings(test_file):
 
     _, dl1_file = test_file
 
-    with TableLoader(dl1_file, load_pointings=True) as table_loader:
+    with TableLoader(dl1_file, load_pointings=True, load_trigger=False) as table_loader:
         table = table_loader.read_subarray_events()
         assert "array_altitude" in table.colnames
 
