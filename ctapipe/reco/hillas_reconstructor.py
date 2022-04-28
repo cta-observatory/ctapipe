@@ -138,8 +138,8 @@ class HillasPlane:
 
         # astropy's coordinates system rotates counter clockwise. Apparently we assume it to
         # be clockwise
-        self.a = np.array(altaz_to_righthanded_cartesian(alt=p1.alt, az=p1.az)).ravel()
-        self.b = np.array(altaz_to_righthanded_cartesian(alt=p2.alt, az=p2.az)).ravel()
+        self.a = altaz_to_righthanded_cartesian(alt=p1.alt, az=p1.az)
+        self.b = altaz_to_righthanded_cartesian(alt=p2.alt, az=p2.az)
 
         # a and c form an orthogonal basis for the great circle
         # not really necessary since the norm can be calculated
