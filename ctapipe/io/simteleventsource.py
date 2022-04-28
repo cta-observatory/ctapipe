@@ -20,6 +20,7 @@ from ..containers import (
     SimulatedShowerContainer,
     TelescopePointingContainer,
     TelescopeTriggerContainer,
+    TrackingMode,
 )
 from ..coordinates import CameraFrame
 from ..core.traits import (
@@ -585,6 +586,13 @@ class SimTelEventSource(EventSource):
         # With only one run, we can take the first entry:
         mc_run_head = self.file_.mc_run_headers[-1]
 
+        if self.file_.header["tracking_mode"] == 0:
+            tracking_mode = TrackingMode.ALTAZ
+        elif self.file.header["tracking_mode"] == 1:
+            tracking_mode = TrackingMode.ICRS
+        else:
+            tracking_mode = TrackingMode.UNKNOWN
+
         simulation_config = SimulationConfigContainer(
             corsika_version=mc_run_head["shower_prog_vers"],
             simtel_version=mc_run_head["detector_prog_vers"],
@@ -621,6 +629,7 @@ class SimTelEventSource(EventSource):
             corsika_wlen_max=mc_run_head["corsika_wlen_max"] * u.nm,
             corsika_low_E_detail=mc_run_head["corsika_low_E_detail"],
             corsika_high_E_detail=mc_run_head["corsika_high_E_detail"],
+            tracking_mode=tracking_mode,
         )
         return {obs_id: simulation_config}
 

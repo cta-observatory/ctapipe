@@ -91,8 +91,22 @@ class EventType(enum.Enum):
     UNKNOWN = 255
 
 
+class TrackingMode(enum.Enum):
+    """
+    TrackingMode of the telescopes.
+
+    Defines which coordinates are supposed to be constant during the run.
+    """
+
+    UNKNOWN = -1
+    #: Telescopes are tracking a constant alt/az position for the run
+    ALTAZ = 0
+    #: Telescopes are tracking a constant ra/dec position for the run
+    ICRS = 1
+
+
 class EventIndexContainer(Container):
-    """ index columns to include in event lists, common to all data levels"""
+    """index columns to include in event lists, common to all data levels"""
 
     container_prefix = ""  # don't want to prefix these
     obs_id = Field(0, "observation identifier")
@@ -251,7 +265,7 @@ class TimingParametersContainer(BaseTimingParametersContainer):
 
 
 class MorphologyContainer(Container):
-    """ Parameters related to pixels surviving image cleaning """
+    """Parameters related to pixels surviving image cleaning"""
 
     num_pixels = Field(-1, "Number of usable pixels")
     num_islands = Field(-1, "Number of distinct islands in the image")
@@ -287,7 +301,7 @@ class CoreParametersContainer(Container):
 
 
 class ImageParametersContainer(Container):
-    """ Collection of image parameters """
+    """Collection of image parameters"""
 
     container_prefix = "params"
     hillas = Field(
@@ -353,7 +367,7 @@ class DL1CameraContainer(Container):
 
 
 class DL1Container(Container):
-    """ DL1 Calibrated Camera Images and associated data"""
+    """DL1 Calibrated Camera Images and associated data"""
 
     tel = Field(Map(DL1CameraContainer), "map of tel_id to DL1CameraContainer")
 
@@ -475,7 +489,7 @@ class SimulatedShowerContainer(Container):
     core_y = Field(nan * u.m, "Simulated core position (y)", unit=u.m)
     h_first_int = Field(nan * u.m, "Height of first interaction", unit=u.m)
     x_max = Field(
-        nan * u.g / (u.cm ** 2), "Simulated Xmax value", unit=u.g / (u.cm ** 2)
+        nan * u.g / (u.cm**2), "Simulated Xmax value", unit=u.g / (u.cm**2)
     )
     shower_primary_id = Field(
         -1,
@@ -572,6 +586,9 @@ class SimulationConfigContainer(Container):
     corsika_high_E_detail = Field(
         nan, "More details on high E interaction model (version etc.)"
     )
+    tracking_mode = Field(
+        TrackingMode.UNKNOWN, "Tracking Mode (see docs of `TrackingMode`)"
+    )
 
 
 class TelescopeTriggerContainer(Container):
@@ -606,37 +623,33 @@ class ReconstructedGeometryContainer(Container):
         nan * u.m, "reconstructed x coordinate of the core position", unit=u.m
     )
     core_y = Field(
-        nan * u.m,
-        "reconstructed y coordinate of the core position",
-        unit=u.m
+        nan * u.m, "reconstructed y coordinate of the core position", unit=u.m
     )
     core_uncert_x = Field(
         nan * u.m,
         "reconstructed core position uncertainty along ground frame X axis",
-        unit=u.m
+        unit=u.m,
     )
     core_uncert_y = Field(
         nan * u.m,
         "reconstructed core position uncertainty along ground frame Y axis",
-        unit=u.m
+        unit=u.m,
     )
     core_tilted_x = Field(
         nan * u.m, "reconstructed x coordinate of the core position", unit=u.m
     )
     core_tilted_y = Field(
-        nan * u.m,
-        "reconstructed y coordinate of the core position",
-        unit=u.m
+        nan * u.m, "reconstructed y coordinate of the core position", unit=u.m
     )
     core_tilted_uncert_x = Field(
         nan * u.m,
         "reconstructed core position uncertainty along tilted frame X axis",
-        unit=u.m
+        unit=u.m,
     )
     core_tilted_uncert_y = Field(
         nan * u.m,
         "reconstructed core position uncertainty along tilted frame Y axis",
-        unit=u.m
+        unit=u.m,
     )
     h_max = Field(nan * u.m, "reconstructed height of the shower maximum", unit=u.m)
     h_max_uncert = Field(nan * u.m, "uncertainty of h_max", unit=u.m)
@@ -700,7 +713,7 @@ class ParticleClassificationContainer(Container):
 
 
 class ReconstructedContainer(Container):
-    """ Reconstructed shower info from multiple algorithms """
+    """Reconstructed shower info from multiple algorithms"""
 
     # Note: there is a reason why the hiererchy is
     # `event.dl2.stereo.geometry[algorithm]` and not
@@ -745,12 +758,14 @@ class TelescopePointingContainer(Container):
     between camera and sky coordinates.
     """
 
+    time = Field(NAN_TIME, "Timestamp of the pointing position")
     azimuth = Field(nan * u.rad, "Azimuth, measured N->E", unit=u.rad)
     altitude = Field(nan * u.rad, "Altitude", unit=u.rad)
 
 
 class PointingContainer(Container):
     tel = Field(Map(TelescopePointingContainer), "Telescope pointing positions")
+    time = Field(NAN_TIME, "Timestamp of the pointing position")
     array_azimuth = Field(nan * u.rad, "Array pointing azimuth", unit=u.rad)
     array_altitude = Field(nan * u.rad, "Array pointing altitude", unit=u.rad)
     array_ra = Field(nan * u.rad, "Array pointing right ascension", unit=u.rad)
@@ -1005,7 +1020,7 @@ class SimulatedShowerDistribution(Container):
 
 
 class ArrayEventContainer(Container):
-    """ Top-level container for all event information """
+    """Top-level container for all event information"""
 
     index = Field(EventIndexContainer(), "event indexing information")
     r0 = Field(R0Container(), "Raw Data")

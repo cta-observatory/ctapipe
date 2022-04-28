@@ -1,4 +1,5 @@
 import copy
+from ctapipe.containers import TrackingMode
 from ctapipe.instrument.camera.geometry import UnknownPixelShapeWarning
 
 import numpy as np
@@ -94,15 +95,19 @@ def test_additional_meta_data_from_simulation_config():
         "min_alt": 1.2217305 * u.rad,
         "max_viewcone_radius": 10.0 * u.deg,
         "corsika_wlen_min": 240 * u.nm,
+        "tracking_mode": TrackingMode.ALTAZ,
     }
 
     for name, expectation in name_expectation.items():
         value = getattr(simulation_config, name)
 
-        assert value.unit == expectation.unit
-        assert np.isclose(
-            value.to_value(expectation.unit), expectation.to_value(expectation.unit)
-        )
+        if hasattr(expectation, "unit"):
+            assert value.unit == expectation.unit
+            assert np.isclose(
+                value.to_value(expectation.unit), expectation.to_value(expectation.unit)
+            )
+        else:
+            assert value == expectation
 
 
 def test_properties():
