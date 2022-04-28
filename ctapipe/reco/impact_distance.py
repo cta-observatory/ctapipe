@@ -8,7 +8,7 @@ from ..containers import ReconstructedGeometryContainer
 from ..coordinates import GroundFrame, TiltedGroundFrame, altaz_to_righthanded_cartesian
 from ..instrument.subarray import SubarrayDescription
 
-__all__ = ["shower_impact_distance"]
+__all__ = ["shower_impact_distance", "impact_distance"]
 
 
 def impact_distance(point: np.ndarray, direction: np.ndarray, test_points: np.ndarray):
