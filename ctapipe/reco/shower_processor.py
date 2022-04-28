@@ -7,11 +7,12 @@ This processor will be able to process a shower/event in 3 steps:
 - estimation of classification (optional, currently unavailable)
 
 """
-from ctapipe.core import Component
-from ctapipe.core.traits import create_class_enum_trait
-from ctapipe.containers import ArrayEventContainer
-from ctapipe.instrument import SubarrayDescription
-from ctapipe.reco import Reconstructor
+from ..containers import ArrayEventContainer, TelescopeImpactParameterContainer
+from ..core import Component
+from ..core.traits import create_class_enum_trait
+from ..instrument import SubarrayDescription
+from . import Reconstructor
+from .impact_distance import shower_impact_distance
 
 
 class ShowerProcessor(Component):
@@ -23,8 +24,10 @@ class ShowerProcessor(Component):
 
     Input events must already contain dl1 parameters.
     """
+
     reconstructor_type = create_class_enum_trait(
-        Reconstructor, default_value="HillasReconstructor",
+        Reconstructor,
+        default_value="HillasReconstructor",
         help="The stereo geometry reconstructor to be used",
     )
 
@@ -69,3 +72,18 @@ class ShowerProcessor(Component):
         """
         k = self.reconstructor_type
         event.dl2.stereo.geometry[k] = self.reconstructor(event)
+
+        # compute and store the impact parameter for each reconstruction (for
+        # now there is only one, but in the future this should be a loop over
+        # reconstructors)
+
+        # for the stereo reconstructor:
+        impact_distances = shower_impact_distance(
+            shower_geom=event.dl2.stereo.geometry[k], subarray=self.subarray
+        )
+
+        for tel_index, impact_distance in enumerate(impact_distances):
+            tel_id = self.subarray.tel_ids[tel_index]
+            event.dl2.tel[tel_id].impact[k] = TelescopeImpactParameterContainer(
+                distance=impact_distance
+            )
