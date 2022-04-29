@@ -154,12 +154,8 @@ class DataWriter(Component):
         help="Store DL1 image parameters if available", default_value=True
     ).tag(config=True)
 
-    write_stereo_shower = Bool(
+    write_showers = Bool(
         help="Store DL2 stereo shower parameters if available", default_value=False
-    ).tag(config=True)
-
-    write_mono_shower = Bool(
-        help="Store DL2 mono parameters if available", default_value=False
     ).tag(config=True)
 
     compression_level = Int(
@@ -284,10 +280,8 @@ class DataWriter(Component):
         self._write_dl1_telescope_events(self._writer, event)
 
         # write DL2 info if requested
-        if self.write_mono_shower:
+        if self.write_showers:
             self._write_dl2_telescope_events(self._writer, event)
-
-        if self.write_stereo_shower:
             self._write_dl2_stereo_event(self._writer, event)
 
     def finish(self):
@@ -318,7 +312,7 @@ class DataWriter(Component):
             data_levels.append(DataLevel.DL1_IMAGES)
         if self.write_parameters:
             data_levels.append(DataLevel.DL1_PARAMETERS)
-        if self.write_stereo_shower or self.write_mono_shower:
+        if self.write_showers:
             data_levels.append(DataLevel.DL2)
         if self.write_raw_waveforms:
             data_levels.append(DataLevel.R0)
@@ -357,8 +351,7 @@ class DataWriter(Component):
         writable_things = [
             self.write_parameters,
             self.write_images,
-            self.write_mono_shower,
-            self.write_stereo_shower,
+            self.write_showers,
             self.write_waveforms,
             self.write_parameters,
         ]

@@ -16,7 +16,7 @@ from ctapipe.utils import get_dataset_path
 
 
 def generate_dummy_dl2(event):
-    """ generate some dummy DL2 info and see if we can write it """
+    """generate some dummy DL2 info and see if we can write it"""
 
     algos = ["HillasReconstructor", "ImPACTReconstructor"]
 
@@ -60,8 +60,7 @@ def test_write(tmpdir: Path):
         output_path=output_path,
         write_parameters=False,
         write_images=True,
-        write_stereo_shower=True,
-        write_mono_shower=True,
+        write_showers=True,
         write_raw_waveforms=True,
         write_waveforms=True,
     ) as writer:
@@ -149,8 +148,7 @@ def test_roundtrip(tmpdir: Path):
         transform_peak_time=True,
         peak_time_dtype="int16",
         peak_time_scale=100,
-        write_stereo_shower=True,
-        write_mono_shower=True,
+        write_showers=True,
     ) as write:
         write.log.level = logging.DEBUG
         for event in source:
