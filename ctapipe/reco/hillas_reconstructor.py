@@ -41,7 +41,7 @@ INVALID = ReconstructedGeometryContainer(tel_ids=[])
 
 
 def angle(v1, v2):
-    """ computes the angle between two vectors
+    """computes the angle between two vectors
         assuming cartesian coordinates
 
     Parameters
@@ -58,7 +58,7 @@ def angle(v1, v2):
 
 
 def normalise(vec):
-    """ Sets the length of the vector to 1
+    """Sets the length of the vector to 1
         without changing its direction
 
     Parameters
@@ -212,13 +212,9 @@ class HillasReconstructor(Reconstructor):
             for tel_id in event.dl1.tel.keys()
         }
 
-        return self._predict(
-            event, hillas_dict, array_pointing, telescope_pointings
-        )
+        return self._predict(event, hillas_dict, array_pointing, telescope_pointings)
 
-    def _predict(
-        self, event, hillas_dict, array_pointing, telescopes_pointings
-    ):
+    def _predict(self, event, hillas_dict, array_pointing, telescopes_pointings):
         """
         The function you want to call for the reconstruction of the
         event. It takes care of setting up the event and consecutively
@@ -505,7 +501,10 @@ class HillasReconstructor(Reconstructor):
         core_position = line_line_intersection_3d(uvw_vectors, positions)
 
         core_pos_tilted = SkyCoord(
-            x=core_position[0] * u.m, y=core_position[1] * u.m, frame=tilted_frame
+            x=core_position[0] * u.m,
+            y=core_position[1] * u.m,
+            z=0 * u.m,
+            frame=tilted_frame,
         )
 
         core_pos_ground = project_to_ground(core_pos_tilted)

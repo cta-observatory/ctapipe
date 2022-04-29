@@ -25,9 +25,11 @@ from astropy.coordinates import (
 from astropy.coordinates import frame_transform_graph
 from numpy import cos, sin
 
-from .representation import PlanarRepresentation
-
-__all__ = ["GroundFrame", "TiltedGroundFrame", "project_to_ground"]
+__all__ = [
+    "GroundFrame",
+    "TiltedGroundFrame",
+    "project_to_ground",
+]
 
 
 class GroundFrame(BaseCoordinateFrame):
@@ -59,7 +61,7 @@ class TiltedGroundFrame(BaseCoordinateFrame):
 
     """
 
-    default_representation = PlanarRepresentation
+    default_representation = CartesianRepresentation
     # Pointing direction of the tilted system (alt,az),
     # could be the telescope pointing direction or the reconstructed shower
     # direction
@@ -117,18 +119,18 @@ def ground_to_tilted(ground_coord, tilted_frame):
     -------
     SkyCoordinate transformed to `tilted_frame` coordinates
     """
-    x_grd = ground_coord.cartesian.x
-    y_grd = ground_coord.cartesian.y
-    z_grd = ground_coord.cartesian.z
+    x_grd, y_grd, z_grd = ground_coord.cartesian.xyz
 
-    altitude = tilted_frame.pointing_direction.alt.to(u.rad)
-    azimuth = tilted_frame.pointing_direction.az.to(u.rad)
+    altitude = tilted_frame.pointing_direction.alt.to_value(u.rad)
+    azimuth = tilted_frame.pointing_direction.az.to_value(u.rad)
+
     trans = get_shower_trans_matrix(azimuth, altitude)
 
     x_tilt = trans[0, 0] * x_grd + trans[0, 1] * y_grd + trans[0, 2] * z_grd
     y_tilt = trans[1, 0] * x_grd + trans[1, 1] * y_grd + trans[1, 2] * z_grd
+    z_tilt = trans[2, 0] * x_grd + trans[2, 1] * y_grd + trans[2, 2] * z_grd
 
-    representation = PlanarRepresentation(x_tilt, y_tilt)
+    representation = CartesianRepresentation(x_tilt, y_tilt, z_tilt)
 
     return tilted_frame.realize_frame(representation)
 
@@ -149,17 +151,16 @@ def tilted_to_ground(tilted_coord, ground_frame):
     -------
     GroundFrame coordinates
     """
-    x_tilt = tilted_coord.x
-    y_tilt = tilted_coord.y
+    x_tilt, y_tilt, z_tilt = tilted_coord.cartesian.xyz
 
     altitude = tilted_coord.pointing_direction.alt.to(u.rad)
     azimuth = tilted_coord.pointing_direction.az.to(u.rad)
 
     trans = get_shower_trans_matrix(azimuth, altitude)
 
-    x_grd = trans[0][0] * x_tilt + trans[1][0] * y_tilt
-    y_grd = trans[0][1] * x_tilt + trans[1][1] * y_tilt
-    z_grd = trans[0][2] * x_tilt + trans[1][2] * y_tilt
+    x_grd = trans[0][0] * x_tilt + trans[1][0] * y_tilt + trans[2][0] * z_tilt
+    y_grd = trans[0][1] * x_tilt + trans[1][1] * y_tilt + trans[2][1] * z_tilt
+    z_grd = trans[0][2] * x_tilt + trans[1][2] * y_tilt + trans[2][2] * z_tilt
 
     representation = CartesianRepresentation(x_grd, y_grd, z_grd)
 
