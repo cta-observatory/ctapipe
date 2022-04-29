@@ -18,6 +18,7 @@ from ..containers import (
     SimulatedEventContainer,
     SimulatedShowerContainer,
     SimulationConfigContainer,
+    TelescopeImpactParameterContainer,
     TelescopePointingContainer,
     TelescopeTriggerContainer,
 )
@@ -471,6 +472,24 @@ class SimTelEventSource(EventSource):
                             self.subarray.tel_index_array[tel_id]
                         ],
                     )
+
+                if data.simulation.shower is not None:
+                    impact_container = TelescopeImpactParameterContainer(
+                        distance=impact_distances[self.subarray.tel_index_array[tel_id]],
+                        distance_uncert=0 * u.m,
+                    )
+                else:
+                    impact_container = TelescopeImpactParameterContainer()
+
+                impact_container.prefix = "true_impact"
+
+                data.simulation.tel[tel_id] = SimulatedCameraContainer(
+                    true_image_sum=true_image_sums[
+                        self.telescope_indices_original[tel_id]
+                    ],
+                    true_image=true_image,
+                    impact=impact_container,
+                )
 
                 data.pointing.tel[tel_id] = self._fill_event_pointing(
                     tracking_positions[tel_id]
