@@ -20,10 +20,12 @@ __all__ = ["TableLoader"]
 
 PARAMETERS_GROUP = "/dl1/event/telescope/parameters"
 IMAGES_GROUP = "/dl1/event/telescope/images"
+GEOMETRY_GROUP = "/dl2/event/subarray/geometry"
 TRIGGER_TABLE = "/dl1/event/subarray/trigger"
 SHOWER_TABLE = "/simulation/event/subarray/shower"
 TRUE_IMAGES_GROUP = "/simulation/event/telescope/images"
 TRUE_PARAMETERS_GROUP = "/simulation/event/telescope/parameters"
+TRUE_IMPACT_GROUP = "/simulation/event/telescope/impact"
 
 DL2_SUBARRAY_GROUP = "/dl2/event/subarray"
 DL2_TELESCOPE_GROUP = "/dl2/event/telescope"
@@ -314,6 +316,10 @@ class TableLoader(Component):
             table = join_allow_empty(
                 table, self.instrument_table, keys=["tel_id"], join_type="left"
             )
+
+        if self.load_simulated and TRUE_IMPACT_GROUP in self.h5file.root:
+            impacts = self._read_telescope_table(TRUE_IMPACT_GROUP, tel_id)
+            table = _join_telescope_events(table, impacts)
 
         return table
 
