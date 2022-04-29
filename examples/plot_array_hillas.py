@@ -73,6 +73,7 @@ if __name__ == "__main__":
         core_coord = SkyCoord(
             x=event.simulation.shower.core_x,
             y=event.simulation.shower.core_y,
+            z=0 * u.m,
             frame=tiltedframe,
         ).transform_to(array_disp.frame)
 

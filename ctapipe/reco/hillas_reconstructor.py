@@ -501,7 +501,10 @@ class HillasReconstructor(Reconstructor):
         core_position = line_line_intersection_3d(uvw_vectors, positions)
 
         core_pos_tilted = SkyCoord(
-            x=core_position[0] * u.m, y=core_position[1] * u.m, frame=tilted_frame
+            x=core_position[0] * u.m,
+            y=core_position[1] * u.m,
+            z=0 * u.m,
+            frame=tilted_frame,
         )
 
         core_pos_ground = project_to_ground(core_pos_tilted)

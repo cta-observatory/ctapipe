@@ -54,7 +54,7 @@ def guess_shower_depth(energy):
 
 
 def energy_prior(energy, index=-1):
-    return -2 * np.log(energy ** index)
+    return -2 * np.log(energy**index)
 
 
 def xmax_prior(energy, xmax, width=100):
@@ -731,6 +731,7 @@ class ImPACTReconstructor(Component):
         tilted = TiltedGroundFrame(
             x=fit_params[2] * u.m,
             y=fit_params[3] * u.m,
+            z=0 * u.m,
             pointing_direction=self.array_direction,
         )
         ground = project_to_ground(tilted)

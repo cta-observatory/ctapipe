@@ -261,3 +261,17 @@ def test_camera_focal_length_array():
     cam_coord = tel_coord.transform_to(CameraFrame(focal_length=[28, 17] * u.m))
     assert not np.isnan(cam_coord.x).any()
     assert not np.isnan(cam_coord.y).any()
+
+
+def test_ground_frame_roundtrip():
+    from ctapipe.coordinates import GroundFrame, TiltedGroundFrame
+
+    normal = SkyCoord(alt=70 * u.deg, az=0 * u.deg, frame=AltAz())
+    coord = SkyCoord(x=0, y=10, z=5, unit=u.m, frame=GroundFrame())
+    tilted = coord.transform_to(TiltedGroundFrame(pointing_direction=normal))
+
+    back = tilted.transform_to(GroundFrame())
+
+    assert u.isclose(coord.x, back.x)
+    assert u.isclose(coord.y, back.y)
+    assert u.isclose(coord.z, back.z)
