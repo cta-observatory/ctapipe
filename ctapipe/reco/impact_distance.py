@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
+from typing import Union
+
 import numpy as np
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from ..containers import ReconstructedGeometryContainer
+from ..containers import ReconstructedGeometryContainer, SimulatedShowerContainer
 from ..coordinates import GroundFrame, TiltedGroundFrame, altaz_to_righthanded_cartesian
 from ..instrument.subarray import SubarrayDescription
 
@@ -30,7 +32,8 @@ def impact_distance(point: np.ndarray, direction: np.ndarray, test_points: np.nd
 
 
 def shower_impact_distance(
-    shower_geom: ReconstructedGeometryContainer, subarray: SubarrayDescription
+    shower_geom: Union[ReconstructedGeometryContainer, SimulatedShowerContainer],
+    subarray: SubarrayDescription,
 ):
     """computes the impact distance of the shower axis to the telescope positions
 

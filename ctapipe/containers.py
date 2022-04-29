@@ -508,6 +508,10 @@ class SimulatedCameraContainer(Container):
         None, "Parameters derived from the true_image", type=ImageParametersContainer
     )
 
+    true_impact_distance = Field(
+        nan * u.m, "Distance from shower axis to telescope position", unit=u.m
+    )
+
 
 class SimulatedEventContainer(Container):
     shower = Field(SimulatedShowerContainer(), "True event information")

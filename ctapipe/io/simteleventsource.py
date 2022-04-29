@@ -14,20 +14,20 @@ from ..calib.camera.gainselection import GainSelector
 from ..containers import (
     ArrayEventContainer,
     EventType,
-    SimulatedEventContainer,
-    SimulationConfigContainer,
     SimulatedCameraContainer,
+    SimulatedEventContainer,
     SimulatedShowerContainer,
+    SimulationConfigContainer,
     TelescopePointingContainer,
     TelescopeTriggerContainer,
 )
 from ..coordinates import CameraFrame
 from ..core.traits import (
     Bool,
-    Float,
     CaselessStrEnum,
-    create_class_enum_trait,
+    Float,
     Undefined,
+    create_class_enum_trait,
 )
 from ..instrument import (
     CameraDescription,
@@ -38,7 +38,8 @@ from ..instrument import (
     TelescopeDescription,
 )
 from ..instrument.camera import UnknownPixelShapeWarning
-from ..instrument.guess import unknown_telescope, guess_telescope
+from ..instrument.guess import guess_telescope, unknown_telescope
+from ..reco.impact_distance import shower_impact_distance
 from .datalevels import DataLevel
 from .eventsource import EventSource
 
@@ -440,6 +441,14 @@ class SimTelEventSource(EventSource):
             else:
                 true_image_sums = np.full(self.n_telescopes_original, np.nan)
 
+            if data.simulation.shower is not None:
+                # compute impact distances of the shower to the telescopes
+                impact_distances = shower_impact_distance(
+                    shower_geom=data.simulation.shower, subarray=self.subarray
+                )
+            else:
+                impact_distances = np.full(len(self.subarray), np.nan) * u.m
+
             for tel_id, telescope_event in telescope_events.items():
                 adc_samples = telescope_event.get("adc_samples")
                 if adc_samples is None:
@@ -458,6 +467,9 @@ class SimTelEventSource(EventSource):
                             self.telescope_indices_original[tel_id]
                         ],
                         true_image=true_image,
+                        true_impact_distance=impact_distances[
+                            self.subarray.tel_index_array[tel_id]
+                        ],
                     )
 
                 data.pointing.tel[tel_id] = self._fill_event_pointing(
