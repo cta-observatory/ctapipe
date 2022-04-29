@@ -23,8 +23,7 @@ def r1_hdf5_file(r1_path):
         output_path=path,
         write_parameters=False,
         write_images=False,
-        write_stereo_shower=False,
-        write_mono_shower=False,
+        write_showers=False,
         write_raw_waveforms=False,
         write_waveforms=True,
     )
