@@ -466,6 +466,19 @@ class DL0Container(Container):
     tel = Field(Map(DL0CameraContainer), "map of tel_id to DL0CameraContainer")
 
 
+class TelescopeImpactParameterContainer(Container):
+    """
+    Impact Parameter computed from reconstructed shower geometry
+    """
+
+    container_prefix = "impact"
+
+    distance = Field(
+        nan * u.m, "distance of the telescope to the shower axis", unit=u.m
+    )
+    distance_uncert = Field(nan * u.m, "uncertainty in impact_parameter", unit=u.m)
+
+
 class SimulatedShowerContainer(Container):
     container_prefix = "true"
     energy = Field(nan * u.TeV, "Simulated Energy", unit=u.TeV)
@@ -508,9 +521,7 @@ class SimulatedCameraContainer(Container):
         None, "Parameters derived from the true_image", type=ImageParametersContainer
     )
 
-    true_impact_distance = Field(
-        nan * u.m, "Distance from shower axis to telescope position", unit=u.m
-    )
+    impact = Field(TelescopeImpactParameterContainer(), "true impact parameter")
 
 
 class SimulatedEventContainer(Container):
@@ -697,19 +708,6 @@ class ParticleClassificationContainer(Container):
     is_valid = Field(False, "true if classification parameters are valid")
     goodness_of_fit = Field(nan, "goodness of the algorithm fit")
     tel_ids = Field(None, "list of tel_ids used if stereo, or None if Mono")
-
-
-class TelescopeImpactParameterContainer(Container):
-    """
-    Impact Parameter computed from reconstructed shower geometry
-    """
-
-    container_prefix = "impact"
-
-    distance = Field(
-        nan * u.m, "distance of the telescope to the shower axis", unit=u.m
-    )
-    distance_uncert = Field(nan * u.m, "uncertainty in impact_parameter", unit=u.m)
 
 
 class ReconstructedContainer(Container):

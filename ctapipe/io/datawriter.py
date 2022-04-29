@@ -645,6 +645,13 @@ class DataWriter(Component):
                             *event.simulation.tel[tel_id].true_parameters.values(),
                         ],
                     )
+                    writer.write(
+                        f"simulation/event/telescope/impact/{table_name}",
+                        [
+                            tel_index,
+                            event.simulation.tel[tel_id].impact,
+                        ],
+                    )
 
             if self.write_images:
                 if dl1_camera.image is None:
