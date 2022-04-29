@@ -20,10 +20,12 @@ __all__ = ["TableLoader"]
 PARAMETERS_GROUP = "/dl1/event/telescope/parameters"
 IMAGES_GROUP = "/dl1/event/telescope/images"
 GEOMETRY_GROUP = "/dl2/event/subarray/geometry"
+IMPACT_GROUP = "/dl2/event/telescope/impact"
 TRIGGER_TABLE = "/dl1/event/subarray/trigger"
 SHOWER_TABLE = "/simulation/event/subarray/shower"
 TRUE_IMAGES_GROUP = "/simulation/event/telescope/images"
 TRUE_PARAMETERS_GROUP = "/simulation/event/telescope/parameters"
+TRUE_IMPACT_GROUP = "/simulation/event/telescope/impact"
 
 by_id_RE = re.compile(r"tel_\d+")
 
@@ -259,6 +261,27 @@ class TableLoader(Component):
             table = join_allow_empty(
                 table, self.instrument_table, keys=["tel_id"], join_type="left"
             )
+
+        if self.load_simulated and TRUE_IMPACT_GROUP in self.h5file.root:
+            impacts = self._read_telescope_table(TRUE_IMPACT_GROUP, tel_id)
+            table = join_allow_empty(
+                table, impacts, join_type="outer", keys=TELESCOPE_EVENT_KEYS
+            )
+
+        if self.load_dl2_geometry and IMPACT_GROUP in self.h5file.root:
+            telescope_impact_group = self.h5file.root[IMPACT_GROUP]
+
+            for reconstructor in telescope_impact_group._v_children:
+                impact_table = self._read_telescope_table(
+                    f"{IMPACT_GROUP}/{reconstructor}", tel_id
+                )
+
+                for col in set(impact_table.colnames) - set(TELESCOPE_EVENT_KEYS):
+                    impact_table.rename_column(col, f"{reconstructor}_{col}")
+
+                table = join_allow_empty(
+                    table, impact_table, TELESCOPE_EVENT_KEYS, "outer"
+                )
 
         return table
 
