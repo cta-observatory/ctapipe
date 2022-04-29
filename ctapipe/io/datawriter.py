@@ -638,6 +638,7 @@ class DataWriter(Component):
                             *event.simulation.tel[tel_id].true_parameters.values(),
                         ],
                     )
+                if self._is_simulation:
                     writer.write(
                         f"simulation/event/telescope/impact/{table_name}",
                         [
