@@ -36,9 +36,8 @@ def _get_groups_3nn(groups_2nn, indptr, indices):
         neighbors_p1 = _get_neighbors_of(p1, indptr, indices)
         neighbors_p2 = _get_neighbors_of(p2, indptr, indices)
         for neighbor in np.intersect1d(neighbors_p1, neighbors_p2):
-            if neighbor > p1:
-                if neighbor > p2:
-                    combinations.append((p1, p2, np.uint16(neighbor)))
+            if neighbor > p1 and neighbor > p2:
+                combinations.append((p1, p2, np.uint16(neighbor)))
 
     return np.array(combinations, dtype=np.uint16)
 
@@ -125,6 +124,7 @@ def dilate_matrix(mask, matrix):
 
 def check_number_of_neighbors(mask, geo, min_neighbors=3, order=2, keep_neighbors=True):
     neighbor_matrix = geo.get_n_order_neighbor_matrix(order)
+
     n_neighbors = np.count_nonzero(mask * neighbor_matrix, axis=1) - 1
 
     valid_pixels = n_neighbors >= min_neighbors
@@ -257,7 +257,7 @@ class TimeNextNeighborCleaning:
         # Allow to specify camera and neighbor group by hand. If not set, use
         # currently selected values.
         comb_factor = self.get_combinations(geometry, nfold)
-        return len(comb_factor[nfold])
+        return len(comb_factor)
 
     def get_time_coincidence(self, geometry, charge, tel_id, nfold, accidental_rate):
         """
@@ -325,7 +325,7 @@ class TimeNextNeighborCleaning:
         time_coincidence = self.get_time_coincidence(
             geometry, charge, tel_id, nfold, accidental_rate
         )
-        self.IPR_dict[tel_id]["dt"] = time_coincidence
+        # self.IPR_dict[tel_id]["dt"] = time_coincidence
         valid_pixels = time_difference < time_coincidence
 
         return valid_pixels
@@ -359,7 +359,6 @@ class TimeNextNeighborCleaning:
         dt = self.get_time_coincidence(
             geometry, charges, tel_id, nfold, accidental_rate
         )
-
         return charges[dt > factor * sample_time][0]
 
     @staticmethod
@@ -458,7 +457,7 @@ class TimeNextNeighborCleaning:
         if mask is not None:
             valid_groups = get_valid_groups(geometry.n_pixels, groups, mask)[nfold]
             return valid_groups
-        return groups
+        return groups[nfold]
 
     @staticmethod
     def check_combinations(combinations, mask):
@@ -491,6 +490,7 @@ class TimeNextNeighborCleaning:
         sum_time,
         fake_prob=0.001,
         factor=0.5,
+        apply_pre_threshold=True,
     ):
         """
         Main function of time next neighbor cleaning developed by M. Shayduk.
@@ -536,9 +536,12 @@ class TimeNextNeighborCleaning:
                 geometry, tel_id, nfold, rate_acc, sample_time, factor
             )
             # print(pre_threshold)
-            candidates = image > pre_threshold
-            if not candidates.any():
-                continue
+            if apply_pre_threshold:
+                candidates = None
+            else:
+                candidates = image > pre_threshold
+                if not candidates.any():
+                    continue
 
             # Calculate the possible combinations form the candidates that
             # passed the pre-threshold.
