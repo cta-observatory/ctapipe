@@ -150,7 +150,7 @@ def test_read_telescope_events_type(test_file_dl2):
         assert "HillasReconstructor_alt" in table.colnames
         assert "true_energy" in table.colnames
         assert "true_image" in table.colnames
-        assert set(table["tel_id"].data).issubset([25, 125, 130])
+        assert {25, 125, 127}.issubset(set(table["tel_id"].data))
         assert "equivalent_focal_length" in table.colnames
 
 
