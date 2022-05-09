@@ -166,7 +166,7 @@ def dl2_shower_geometry_file(dl2_tmp_path, prod5_gamma_simtel_path):
             f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
             "--write-images",
-            "--write-stereo-shower",
+            "--write-showers",
             "--max-events=20",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
@@ -192,7 +192,7 @@ def dl2_proton_geometry_file(dl2_tmp_path, prod5_proton_simtel_path):
             f"--input={prod5_proton_simtel_path}",
             f"--output={output}",
             "--write-images",
-            "--write-stereo-shower",
+            "--write-showers",
             "--max-events=20",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
@@ -218,7 +218,7 @@ def dl2_shower_geometry_file_type(dl2_tmp_path, prod5_gamma_simtel_path):
             f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
             "--write-images",
-            "--write-stereo-shower",
+            "--write-showers",
             "--max-events=20",
             "--DataWriter.split_datasets_by=tel_type",
         ]
