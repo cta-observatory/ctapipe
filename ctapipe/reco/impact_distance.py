@@ -65,15 +65,16 @@ def shower_impact_distance(
     )
 
     # telescope positions in the ground frame
-    telescope_positions = subarray.tel_coords.cartesian.xyz.to_value("m").T
+    telescope_positions = subarray.tel_coords.cartesian.xyz.to_value(u.m).T
 
-    return (
+    return u.Quantity(
         impact_distance(
             point=core_position,
             direction=sky_direction,
             test_points=telescope_positions,
-        )
-        * u.m
+        ),
+        u.m,
+        copy=False,
     )
 
 
