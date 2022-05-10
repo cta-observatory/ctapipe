@@ -153,16 +153,64 @@ class TableQualityQuery(Component):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._selectors = "(" + ") & (".join(self.quality_criteria) + ")"
+
+        self.quality_criteria.insert(0, ("TOTAL", "True"))
+
+        self._selectors = [crit for _, crit in self.quality_criteria]
+        self.selection_function_strings = self._selectors
+        self.criteria_names = [name for name, _ in self.quality_criteria]
+
+        self._counts = np.zeros(len(self._selectors), dtype=np.int64)
+        self._cumulative_counts = np.zeros(len(self._selectors), dtype=np.int64)
 
     def __call__(self, table) -> np.array:
         """Check all quality_criteria on an astropy table."""
-        try:
-            valid = numexpr.evaluate(self._selectors, table)
-        except KeyError as key:
-            raise QualityCriteriaError(
-                f"Couldn't evaluate selection expression '{self._selectors}' "
-                f"because key {key} was not found in table."
-            ) from None
+        valid = []
+        for criterium in self._selectors:
+            if criterium == "True":
+                # otherwise numexpr returns a single True, not an array
+                continue
+            try:
+                valid.append(numexpr.evaluate(criterium, table))
+            except KeyError as key:
+                raise QualityCriteriaError(
+                    f"Couldn't evaluate selection expression '{criterium}' "
+                    f"because key {key} was not found in table."
+                ) from None
 
-        return valid
+        # re-attach TOTAL criterium
+        valid.insert(0, np.ones(len(table), dtype=np.bool_))
+        counts = np.sum(valid, axis=1)
+        self._counts += counts
+        self._cumulative_counts += np.cumsum(counts, axis=0)
+
+        return np.prod(valid[1:], axis=0)  # skip TOTAL criterium
+
+    def to_table(self, functions=False):
+        """
+        Return a tabular view of the latest quality summary
+
+        The columns are
+        - *criteria*: name of each criterion
+        - *counts*: counts of each criterion independently
+        - *cum_counts*: counts of cumulative application of each criterion in order
+
+        Parameters
+        ----------
+        functions: bool:
+            include the function string as a column
+
+        Returns
+        -------
+        astropy.table.Table
+        """
+        from astropy.table import Table
+
+        cols = {
+            "criteria": self.criteria_names,
+            "counts": self._counts,
+            "cumulative_counts": self._cumulative_counts,
+        }
+        if functions:
+            cols["func"] = self.selection_function_strings
+        return Table(cols)
