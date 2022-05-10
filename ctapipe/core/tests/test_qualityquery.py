@@ -111,7 +111,7 @@ def test_table_selector():
     query = TableQualityQuery(
         quality_criteria=[
             ("enough intensity", "intensity > 1"),
-            ("elipticity", "length / width > 1"),
+            ("ellipticity", "length / width > 1"),
         ]
     )
 
@@ -129,7 +129,7 @@ def test_table_selector():
     assert tab["counts"][1] == 2
     assert tab["cumulative_counts"][1]
 
-    assert tab["criteria"][2] == "elipticity"
+    assert tab["criteria"][2] == "ellipticity"
     assert tab["counts"][2] == 1
     assert tab["cumulative_counts"][2]
 
