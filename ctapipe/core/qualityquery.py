@@ -179,12 +179,18 @@ class TableQualityQuery(Component):
                 ) from None
 
         # re-attach TOTAL criterium
-        valid.insert(0, np.ones(len(table), dtype=np.bool_))
-        counts = np.sum(valid, axis=1)
+        counts = np.sum(
+            np.append(
+                np.ones((1, len(table)), dtype=np.bool_),
+                valid,
+                axis=0,
+            ),
+            axis=1,
+        )
         self._counts += counts
         self._cumulative_counts += np.cumsum(counts, axis=0)
 
-        return np.prod(valid[1:], axis=0)  # skip TOTAL criterium
+        return np.prod(valid, axis=0)
 
     def to_table(self, functions=False):
         """
