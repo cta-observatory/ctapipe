@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+"""
+tests for impact distance computations
+"""
+
 import numpy as np
 from astropy import units as u
 from ctapipe.containers import ReconstructedGeometryContainer

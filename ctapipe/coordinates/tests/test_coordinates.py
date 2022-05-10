@@ -9,6 +9,9 @@ location = EarthLocation.of_site("Roque de los Muchachos")
 
 
 def test_altaz_to_righthanded_cartesian():
+    """
+    check the handedness of the transform
+    """
 
     vec = altaz_to_righthanded_cartesian(alt=0 * u.deg, az=90 * u.deg)
     assert np.allclose(vec, [0, -1, 0])
