@@ -273,7 +273,9 @@ class TableLoader(Component):
         if self.load_dl2_geometry and IMPACT_GROUP in self.h5file.root:
             telescope_impact_group = self.h5file.root[IMPACT_GROUP]
 
-            for reconstructor in telescope_impact_group._v_children:
+            for (
+                reconstructor
+            ) in telescope_impact_group._v_children:  # pylint: disable=W0212
                 impact_table = self._read_telescope_table(
                     f"{IMPACT_GROUP}/{reconstructor}", tel_id
                 )
