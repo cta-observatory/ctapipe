@@ -108,16 +108,16 @@ def test_table_selector():
 
     table = Table({"intensity": [1, 2, 3], "length": [1, 2, 3], "width": [2, 3, 2]})
 
-    check = TableQualityQuery(
+    query = TableQualityQuery(
         quality_criteria=[
             ("enough intensity", "intensity > 1"),
             ("elipticity", "length / width > 1"),
         ]
     )
 
-    np.testing.assert_array_equal(check(table), [False, False, True])
+    np.testing.assert_array_equal(query(table), [False, False, True])
 
-    tab = check.to_table()
+    tab = query.to_table()
 
     assert tab["criteria"][0] == "TOTAL"
     assert tab["counts"][0] == len(table)
@@ -137,7 +137,7 @@ def test_table_selector_bad():
 
     table = Table({"a": [1, 2, 3], "b": [1, 2, 3]})
 
-    check = TableQualityQuery(quality_criteria=[("will fail", "c > 0")])
+    query = TableQualityQuery(quality_criteria=[("will fail", "c > 0")])
 
     with pytest.raises(QualityCriteriaError):
-        check(table)
+        query(table)
