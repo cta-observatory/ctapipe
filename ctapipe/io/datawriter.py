@@ -625,26 +625,26 @@ class DataWriter(Component):
             )
 
             if self.write_parameters:
+
                 writer.write(
                     table_name=f"dl1/event/telescope/parameters/{table_name}",
                     containers=[tel_index, *dl1_camera.parameters.values()],
                 )
 
-                if has_sim_camera:
+                if self._is_simulation:
+                    sim_containers = [
+                        tel_index,
+                        event.simulation.tel[tel_id].impact,
+                    ]
+
+                    if has_sim_camera:
+                        sim_containers.extend(
+                            event.simulation.tel[tel_id].true_parameters.values()
+                        )
+
                     writer.write(
                         f"simulation/event/telescope/parameters/{table_name}",
-                        [
-                            tel_index,
-                            *event.simulation.tel[tel_id].true_parameters.values(),
-                        ],
-                    )
-                if self._is_simulation:
-                    writer.write(
-                        f"simulation/event/telescope/impact/{table_name}",
-                        [
-                            tel_index,
-                            event.simulation.tel[tel_id].impact,
-                        ],
+                        sim_containers,
                     )
 
             if self.write_images:
