@@ -44,7 +44,9 @@ class QualityQuery(Component):
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
+        self._setup()
 
+    def _setup(self):
         # add a selection to count all entries and make it the first one
         self.quality_criteria.insert(0, ("TOTAL", "lambda x: True"))
         self.criteria_names = []
@@ -138,7 +140,7 @@ class QualityQuery(Component):
         return result[1:]  # strip off TOTAL criterion, since redundant
 
 
-class TableQualityQuery(Component):
+class TableQualityQuery(QualityQuery):
     """
     Manages a set of user-configurable (at runtime or in a config file) selection
     criteria that operate on a table basis.  The call returns a boolean array indicating
@@ -154,6 +156,7 @@ class TableQualityQuery(Component):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+    def _setup(self):
         self.quality_criteria.insert(0, ("TOTAL", "True"))
 
         self._selectors = [crit for _, crit in self.quality_criteria]
@@ -191,32 +194,3 @@ class TableQualityQuery(Component):
         self._cumulative_counts += np.cumsum(counts, axis=0)
 
         return np.prod(valid, axis=0)
-
-    def to_table(self, functions=False):
-        """
-        Return a tabular view of the latest quality summary
-
-        The columns are
-        - *criteria*: name of each criterion
-        - *counts*: counts of each criterion independently
-        - *cum_counts*: counts of cumulative application of each criterion in order
-
-        Parameters
-        ----------
-        functions: bool:
-            include the function string as a column
-
-        Returns
-        -------
-        astropy.table.Table
-        """
-        from astropy.table import Table
-
-        cols = {
-            "criteria": self.criteria_names,
-            "counts": self._counts,
-            "cumulative_counts": self._cumulative_counts,
-        }
-        if functions:
-            cols["func"] = self.selection_function_strings
-        return Table(cols)

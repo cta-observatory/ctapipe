@@ -117,6 +117,8 @@ def test_table_selector():
 
     np.testing.assert_array_equal(query(table), [False, False, True])
 
+    assert len(query) == len(table)
+
     tab = query.to_table()
 
     assert tab["criteria"][0] == "TOTAL"
