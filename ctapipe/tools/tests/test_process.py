@@ -64,7 +64,7 @@ def test_multiple_configs(dl1_image_file):
     # ensure the overwriting works (base config has this option disabled)
     assert (
         tool.get_current_config()["ProcessorTool"]["DataWriter"]["write_showers"]
-        == True
+        is True
     )
 
 

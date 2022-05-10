@@ -92,8 +92,8 @@ def test_shower_impact_distance():
 def test_compare_3d_and_frame_impact_distance(
     example_subarray: SubarrayDescription,
 ):
-    """Test another (slower) way of computing the impact distance, using Frames and compare
-    to the implemented method.
+    """Test another (slower) way of computing the impact distance, using Frames
+    and compare to the implemented method.
     """
 
     for alt in [90, 0, 50, 60] * u.deg:
