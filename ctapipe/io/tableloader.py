@@ -195,7 +195,9 @@ class TableLoader(Component):
         if self.load_dl2_geometry:
             shower_geometry_group = self.h5file.root[GEOMETRY_GROUP]
 
-            for reconstructor in shower_geometry_group._v_children:
+            for (
+                reconstructor
+            ) in shower_geometry_group._v_children:  # pylint: disable=W0212
                 geometry = read_table(self.h5file, f"{GEOMETRY_GROUP}/{reconstructor}")
 
                 # rename DL2 columns to explicit reconstructor
