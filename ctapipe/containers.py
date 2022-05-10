@@ -589,6 +589,20 @@ class SimulationConfigContainer(Container):
     tracking_mode = Field(
         TrackingMode.UNKNOWN, "Tracking Mode (see docs of `TrackingMode`)"
     )
+    array_ra = Field(
+        np.nan * u.rad,
+        "Array Pointing right ascension, only filled of constant for the run",
+    )
+    array_dec = Field(
+        np.nan * u.rad,
+        "Array Pointing declination, only filled of constant for the run",
+    )
+    array_alt = Field(
+        np.nan * u.rad, "Array Pointing altitude, only filled of constant for the run"
+    )
+    array_az = Field(
+        np.nan * u.rad, "Array Pointing azimuth, only filled of constant for the run"
+    )
 
 
 class TelescopeTriggerContainer(Container):
