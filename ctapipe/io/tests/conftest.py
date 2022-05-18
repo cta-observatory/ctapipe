@@ -9,11 +9,11 @@ def r1_path(tmp_path_factory):
 
 
 @pytest.fixture(scope="session")
-def r1_hdf5_file(r1_path):
+def r1_hdf5_file(prod5_proton_simtel_path, r1_path):
     source = EventSource(
-        get_dataset_path("gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"),
+        prod5_proton_simtel_path,
         max_events=5,
-        allowed_tels=[1, 2, 3, 4],
+        # allowed_tels=[1, 2, 3, 4],
     )
 
     path = r1_path / "test_r1.h5"

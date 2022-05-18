@@ -136,4 +136,4 @@ def test_read_r1(r1_hdf5_file):
             pass
 
         assert e is not None
-        assert e.count == 4
+        assert e.count == 3

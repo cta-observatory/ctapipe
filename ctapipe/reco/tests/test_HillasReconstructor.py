@@ -197,11 +197,11 @@ def test_reconstruction_against_simulation(subarray_and_event_gamma_off_axis_500
 )
 def test_CameraFrame_against_TelescopeFrame(filename):
 
-    input_file = get_dataset_path(
-        "gamma_divergent_LaPalma_baseline_20Zd_180Az_prod3_test.simtel.gz"
-    )
+    input_file = get_dataset_path(filename)
+        # "gamma_divergent_LaPalma_baseline_20Zd_180Az_prod3_test.simtel.gz"
+    # )
 
-    source = SimTelEventSource(input_file, max_events=10)
+    source = SimTelEventSource(input_file, max_events=10, focal_length_choice="nominal")
 
     # too few events survive for this test with the defautl quality criteria,
     # use less restrictive ones

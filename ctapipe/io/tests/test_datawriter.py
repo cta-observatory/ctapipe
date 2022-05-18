@@ -51,6 +51,7 @@ def test_write(tmpdir: Path):
         get_dataset_path("gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"),
         max_events=20,
         allowed_tels=[1, 2, 3, 4],
+        focal_length_choice='nominal',
     )
     calibrate = CameraCalibrator(subarray=source.subarray)
 
@@ -131,6 +132,7 @@ def test_roundtrip(tmpdir: Path):
         get_dataset_path("gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"),
         max_events=20,
         allowed_tels=[1, 2, 3, 4],
+        focal_length_choice='nominal',
     )
     calibrate = CameraCalibrator(subarray=source.subarray)
 
@@ -203,7 +205,7 @@ def test_dl1writer_no_events(tmpdir: Path):
 
     output_path = Path(tmpdir / "no_events.dl1.h5")
     dataset = "lst_prod3_calibration_and_mcphotons.simtel.zst"
-    with EventSource(get_dataset_path(dataset)) as source:
+    with EventSource(get_dataset_path(dataset), focal_length_choice='nominal') as source:
         # exhaust source
         for _ in source:
             pass
@@ -233,7 +235,7 @@ def test_dl1writer_no_events(tmpdir: Path):
 def test_metadata(tmpdir: Path):
     output_path = Path(tmpdir / "metadata.dl1.h5")
 
-    dataset = "lst_prod3_calibration_and_mcphotons.simtel.zst"
+    dataset = "gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst"
 
     config = Config(
         {

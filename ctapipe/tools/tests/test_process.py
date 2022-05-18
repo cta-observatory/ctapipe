@@ -213,6 +213,7 @@ def test_stage_2_from_simtel(tmp_path):
                 f"--output={output}",
                 "--max-events=5",
                 "--overwrite",
+                "--SimTelEventSource.focal_length_choice=nominal",
             ],
             cwd=tmp_path,
         )
@@ -288,6 +289,7 @@ def test_training_from_simtel(tmp_path):
                 f"--output={output}",
                 "--max-events=5",
                 "--overwrite",
+                "--SimTelEventSource.focal_length_choice=nominal",
             ],
             cwd=tmp_path,
         )
