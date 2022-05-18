@@ -20,6 +20,7 @@ from ctapipe.io import DataLevel
 gamma_test_large_path = get_dataset_path("gamma_test_large.simtel.gz")
 gamma_test_path = get_dataset_path("gamma_test.simtel.gz")
 calib_events_path = get_dataset_path("lst_prod3_calibration_and_mcphotons.simtel.zst")
+prod5b_path = get_dataset_path("gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst")
 
 
 def test_positional_input():
@@ -278,31 +279,23 @@ def test_apply_simtel_r1_calibration_2_channel():
     assert r1_waveforms[1, 0] == (r0_waveforms[0, 1, 0] - ped[0, 1]) * dc_to_pe[0, 1]
 
 
-def test_effective_focal_length():
-    test_file_url = (
-        "https://github.com/cta-observatory/pyeventio/raw/master/tests"
-        "/resources/prod4_pixelsettings_v3.gz"
-    )
-    test_file = download_file(test_file_url)
+def test_focal_length_choice():
+    # this file does not contain the effective focal length
+    with pytest.raises(RuntimeError):
+        SimTelEventSource(gamma_test_large_path)
 
-    focal_length_nominal = 0
-    focal_length_effective = 0
+    with pytest.raises(RuntimeError):
+        SimTelEventSource(gamma_test_large_path, focal_length_choice='effective')
 
-    with SimTelEventSource(
-        input_url=test_file, focal_length_choice="nominal"
-    ) as source:
-        subarray = source.subarray
-        focal_length_nominal = subarray.tel[1].optics.equivalent_focal_length
+    s = SimTelEventSource(gamma_test_large_path, focal_length_choice='nominal')
+    assert s.subarray.tel[1].optics.equivalent_focal_length == 28 * u.m
 
-    with SimTelEventSource(
-        input_url=test_file, focal_length_choice="effective"
-    ) as source:
-        subarray = source.subarray
-        focal_length_effective = subarray.tel[1].optics.equivalent_focal_length
-
-    assert focal_length_nominal > 0
-    assert focal_length_effective > 0
-    assert focal_length_nominal != focal_length_effective
+    # this file does
+    s = SimTelEventSource(prod5b_path, focal_length_choice='effective')
+    assert u.isclose(s.subarray.tel[1].optics.equivalent_focal_length, 29.3 * u.m, atol=0.05 * u.m)
+    s = SimTelEventSource(prod5b_path, focal_length_choice='nominal')
+    assert u.isclose(s.subarray.tel[1].optics.equivalent_focal_length, 28.0 * u.m, atol=0.05 * u.m)
+    
 
 
 def test_only_config():
@@ -376,3 +369,5 @@ def test_true_image_sum():
 
         assert e.simulation.tel[2].true_image_sum == true_image_sums[2]
         assert e.simulation.tel[3].true_image_sum == true_image_sums[3]
+
+
