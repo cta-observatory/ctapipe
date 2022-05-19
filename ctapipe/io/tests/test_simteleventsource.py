@@ -317,8 +317,13 @@ def test_focal_length_choice():
     # this file does
     s = SimTelEventSource(prod5b_path, focal_length_choice='effective')
     assert u.isclose(s.subarray.tel[1].optics.equivalent_focal_length, 29.3 * u.m, atol=0.05 * u.m)
+    # check guessing of the name is not affected by focal length choice
+    assert str(s.subarray.tel[1]) == 'LST_LST_LSTCam'
+
     s = SimTelEventSource(prod5b_path, focal_length_choice='nominal')
     assert u.isclose(s.subarray.tel[1].optics.equivalent_focal_length, 28.0 * u.m, atol=0.05 * u.m)
+    # check guessing of the name is not affected by focal length choice
+    assert str(s.subarray.tel[1]) == 'LST_LST_LSTCam'
 
 
 
