@@ -13,6 +13,7 @@ TODO:
 
 - Tests Tests Tests!
 """
+from astropy.coordinates import SkyCoord
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import (
@@ -21,6 +22,7 @@ from astropy.coordinates import (
     FunctionTransform,
     CoordinateAttribute,
     AltAz,
+    RepresentationMapping,
 )
 from astropy.coordinates import frame_transform_graph
 from numpy import cos, sin
@@ -29,6 +31,7 @@ __all__ = [
     "GroundFrame",
     "TiltedGroundFrame",
     "project_to_ground",
+    "EastingNorthingFrame",
 ]
 
 
@@ -45,6 +48,25 @@ class GroundFrame(BaseCoordinateFrame):
     """
 
     default_representation = CartesianRepresentation
+
+
+class EastingNorthingFrame(BaseCoordinateFrame):
+    """GroundFrame but in standard Easting/Northing coordinates instead of
+    SimTel/Corsika conventions
+
+    Frame attributes: None
+
+    """
+
+    default_representation = CartesianRepresentation
+
+    frame_specific_representation_info = {
+        CartesianRepresentation: [
+            RepresentationMapping("x", "easting"),
+            RepresentationMapping("y", "northing"),
+            RepresentationMapping("z", "height"),
+        ]
+    }
 
 
 class TiltedGroundFrame(BaseCoordinateFrame):
@@ -200,3 +222,38 @@ def project_to_ground(tilt_system):
     y_projected = y_initial - trans[2][1] * z_initial / trans[2][2]
 
     return GroundFrame(x=x_projected * unit, y=y_projected * unit, z=0 * unit)
+
+
+@frame_transform_graph.transform(FunctionTransform, GroundFrame, GroundFrame)
+def ground_to_ground(ground_coords, ground_frame):
+    return ground_coords
+
+
+@frame_transform_graph.transform(FunctionTransform, GroundFrame, EastingNorthingFrame)
+def ground_to_easting_northing(ground_coords, eastnorth_frame):
+    """
+    convert GroundFrame points into eastings/northings for plotting purposes
+
+    """
+
+    return eastnorth_frame.realize_frame(
+        CartesianRepresentation(
+            x=-ground_coords.y, y=ground_coords.x, z=ground_coords.z
+        )
+    )
+
+
+@frame_transform_graph.transform(FunctionTransform, EastingNorthingFrame, GroundFrame)
+def ground_to_easting_northing(eastnorth_coords, ground_frame):
+    """
+    convert GroundFrame points into eastings/northings for plotting purposes
+
+    """
+
+    return ground_frame.realize_frame(
+        CartesianRepresentation(
+            x=eastnorth_coords.northing,
+            y=-eastnorth_coords.easting,
+            z=eastnorth_coords.height,
+        )
+    )

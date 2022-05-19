@@ -268,3 +268,15 @@ def test_ground_frame_roundtrip():
     assert u.isclose(coord.x, back.x)
     assert u.isclose(coord.y, back.y)
     assert u.isclose(coord.z, back.z)
+
+
+def test_ground_to_eastnorth_roundtrip():
+    from ctapipe.coordinates import GroundFrame, EastingNorthingFrame
+
+    ground = SkyCoord(x=[1, 2, 3], y=[-2, 5, 2], z=[1, -1, 2], frame=GroundFrame())
+    eastnorth = ground.transform_to(EastingNorthingFrame())
+    ground2 = eastnorth.transform_to(GroundFrame())
+
+    assert u.isclose(ground.x, ground2.x).all()
+    assert u.isclose(ground.y, ground2.y).all()
+    assert u.isclose(ground.z, ground2.z).all()
