@@ -1,26 +1,24 @@
 """
 Description of Arrays or Subarrays of telescopes
 """
-from typing import Dict, List, Union
-from contextlib import ExitStack
 import warnings
+from contextlib import ExitStack
+from copy import copy
+from itertools import groupby
+from typing import Dict, List, Union
 
+import ctapipe
 import numpy as np
+import tables
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.table import QTable, Table
 from astropy.utils import lazyproperty
-import tables
-from copy import copy
-from itertools import groupby
 
-import ctapipe
-
-from ..coordinates import GroundFrame, CameraFrame
-from .telescope import TelescopeDescription
-from .camera import CameraDescription, CameraReadout, CameraGeometry
+from ..coordinates import CameraFrame, GroundFrame
+from .camera import CameraDescription, CameraGeometry, CameraReadout
 from .optics import OpticsDescription
-
+from .telescope import TelescopeDescription
 
 __all__ = ["SubarrayDescription"]
 
@@ -332,13 +330,9 @@ class SubarrayDescription:
         """
         Draw a quick matplotlib plot of the array
         """
-        from matplotlib import pyplot as plt
-        from astropy.visualization import quantity_support
-        from ctapipe.visualization import ArrayDisplay
         from ctapipe.coordinates.ground_frames import EastingNorthingFrame
-
-        types = set(self.tels.values())
-        tab = self.to_table()
+        from ctapipe.visualization import ArrayDisplay
+        from matplotlib import pyplot as plt
 
         plt.figure(figsize=(8, 8))
         ad = ArrayDisplay(subarray=self, frame=EastingNorthingFrame(), tel_scale=0.75)

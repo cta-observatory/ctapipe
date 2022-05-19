@@ -13,18 +13,17 @@ TODO:
 
 - Tests Tests Tests!
 """
-from astropy.coordinates import SkyCoord
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import (
+    AltAz,
     BaseCoordinateFrame,
     CartesianRepresentation,
-    FunctionTransform,
     CoordinateAttribute,
-    AltAz,
+    FunctionTransform,
     RepresentationMapping,
+    frame_transform_graph,
 )
-from astropy.coordinates import frame_transform_graph
 from numpy import cos, sin
 
 __all__ = [
@@ -244,7 +243,7 @@ def ground_to_easting_northing(ground_coords, eastnorth_frame):
 
 
 @frame_transform_graph.transform(FunctionTransform, EastingNorthingFrame, GroundFrame)
-def ground_to_easting_northing(eastnorth_coords, ground_frame):
+def easting_northing_to_ground(eastnorth_coords, ground_frame):
     """
     convert GroundFrame points into eastings/northings for plotting purposes
 
