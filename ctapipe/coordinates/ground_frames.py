@@ -14,6 +14,7 @@ TODO:
 - Tests Tests Tests!
 """
 import astropy.units as u
+from astropy.units.quantity import Quantity
 import numpy as np
 from astropy.coordinates import (
     AltAz,
@@ -229,24 +230,26 @@ def ground_to_ground(ground_coords, ground_frame):
     return ground_coords
 
 
+# Matrices for transforming between GroundFrame and EastingNorthingFrame
+NO_OFFSET = CartesianRepresentation(Quantity([0, 0, 0], u.m))
+GROUND_TO_EASTNORTH = np.asarray([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
+EASTNORTH_TO_GROUND = np.asarray([[0, 1, 0], [-1, 0, 0], [0, 0, 1]])
+
+
 @frame_transform_graph.transform(AffineTransform, GroundFrame, EastingNorthingFrame)
 def ground_to_easting_northing(ground_coords, eastnorth_frame):
     """
     convert GroundFrame points into eastings/northings for plotting purposes
 
     """
-    offset = CartesianRepresentation([0, 0, 0] * u.m)
-    matrix = np.asarray([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
-    return matrix, offset
+
+    return GROUND_TO_EASTNORTH, NO_OFFSET
 
 
 @frame_transform_graph.transform(AffineTransform, EastingNorthingFrame, GroundFrame)
 def easting_northing_to_ground(eastnorth_coords, ground_frame):
     """
-    convert GroundFrame points into eastings/northings for plotting purposes
+    convert  eastings/northings back to GroundFrame
 
     """
-
-    offset = CartesianRepresentation([0, 0, 0] * u.m)
-    matrix = np.asarray([[0, 1, 0], [-1, 0, 0], [0, 0, 1]])
-    return matrix, offset
+    return EASTNORTH_TO_GROUND, NO_OFFSET
