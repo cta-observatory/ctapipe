@@ -23,6 +23,7 @@ from astropy.coordinates import (
     FunctionTransform,
     RepresentationMapping,
     frame_transform_graph,
+    AffineTransform,
 )
 from numpy import cos, sin
 
@@ -228,31 +229,24 @@ def ground_to_ground(ground_coords, ground_frame):
     return ground_coords
 
 
-@frame_transform_graph.transform(FunctionTransform, GroundFrame, EastingNorthingFrame)
+@frame_transform_graph.transform(AffineTransform, GroundFrame, EastingNorthingFrame)
 def ground_to_easting_northing(ground_coords, eastnorth_frame):
     """
     convert GroundFrame points into eastings/northings for plotting purposes
 
     """
-
-    return eastnorth_frame.realize_frame(
-        CartesianRepresentation(
-            x=-ground_coords.y, y=ground_coords.x, z=ground_coords.z
-        )
-    )
+    offset = CartesianRepresentation([0, 0, 0] * u.m)
+    matrix = np.asarray([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
+    return matrix, offset
 
 
-@frame_transform_graph.transform(FunctionTransform, EastingNorthingFrame, GroundFrame)
+@frame_transform_graph.transform(AffineTransform, EastingNorthingFrame, GroundFrame)
 def easting_northing_to_ground(eastnorth_coords, ground_frame):
     """
     convert GroundFrame points into eastings/northings for plotting purposes
 
     """
 
-    return ground_frame.realize_frame(
-        CartesianRepresentation(
-            x=eastnorth_coords.northing,
-            y=-eastnorth_coords.easting,
-            z=eastnorth_coords.height,
-        )
-    )
+    offset = CartesianRepresentation([0, 0, 0] * u.m)
+    matrix = np.asarray([[0, 1, 0], [-1, 0, 0], [0, 0, 1]])
+    return matrix, offset
