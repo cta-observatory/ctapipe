@@ -7,7 +7,6 @@ from copy import copy
 from itertools import groupby
 from typing import Dict, List, Union
 
-import ctapipe
 import numpy as np
 import tables
 from astropy import units as u
@@ -15,6 +14,7 @@ from astropy.coordinates import SkyCoord
 from astropy.table import QTable, Table
 from astropy.utils import lazyproperty
 
+from .. import __version__ as CTAPIPE_VERSION
 from ..coordinates import CameraFrame, GroundFrame
 from .camera import CameraDescription, CameraGeometry, CameraReadout
 from .optics import OpticsDescription
@@ -236,7 +236,7 @@ class SubarrayDescription:
         meta = {
             "ORIGIN": "ctapipe.instrument.SubarrayDescription",
             "SUBARRAY": self.name,
-            "SOFT_VER": ctapipe.__version__,
+            "SOFT_VER": CTAPIPE_VERSION,
             "TAB_TYPE": kind,
         }
 

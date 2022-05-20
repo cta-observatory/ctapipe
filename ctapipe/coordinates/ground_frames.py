@@ -227,6 +227,8 @@ def project_to_ground(tilt_system):
 
 @frame_transform_graph.transform(FunctionTransform, GroundFrame, GroundFrame)
 def ground_to_ground(ground_coords, ground_frame):
+    """Null transform for going from ground to ground, since there are no
+    attributes of the GroundSystem"""
     return ground_coords
 
 

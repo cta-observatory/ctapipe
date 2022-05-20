@@ -154,7 +154,15 @@ class ArrayDisplay:
         self._update()
 
     def add_radial_grid(self, spacing=100 * u.m):
-        # add some dotted circles for distance estimation:
+        """add some dotted rings for distance estimation. The number of rings
+        is estimated automatically from the spacing and the array footprint.
+
+        Parameters
+        ----------
+        spacing: Quantity
+            spacing between rings
+
+        """
 
         n_circles = np.round(
             (np.sqrt(self.subarray.footprint / np.pi) / spacing).to_value(""),

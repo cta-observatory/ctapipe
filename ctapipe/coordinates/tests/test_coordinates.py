@@ -257,6 +257,7 @@ def test_camera_focal_length_array():
 
 
 def test_ground_frame_roundtrip():
+    """test transform from sky to ground roundtrip"""
     from ctapipe.coordinates import GroundFrame, TiltedGroundFrame
 
     normal = SkyCoord(alt=70 * u.deg, az=0 * u.deg, frame=AltAz())
@@ -271,6 +272,7 @@ def test_ground_frame_roundtrip():
 
 
 def test_ground_to_eastnorth_roundtrip():
+    """Check Ground to EastingNorthing and the round-trip"""
     from ctapipe.coordinates import GroundFrame, EastingNorthingFrame
 
     ground = SkyCoord(
