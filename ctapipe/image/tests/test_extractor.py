@@ -23,7 +23,12 @@ from ctapipe.image.extractor import (
     subtract_baseline,
 )
 from ctapipe.image.toymodel import SkewedGaussian, WaveformModel, obtain_time_image
-from ctapipe.instrument import SubarrayDescription
+from ctapipe.instrument import SubarrayDescription, TelescopeDescription
+from numpy.testing import assert_allclose, assert_equal
+from scipy.stats import norm
+from traitlets.config.loader import Config
+from traitlets.traitlets import TraitError
+from ctapipe.io import EventSource
 
 extractors = non_abstract_children(ImageExtractor)
 # FixedWindowSum has no peak finding and need to be set manually
@@ -617,3 +622,10 @@ def test_global_peak_window_sum_with_pixel_fraction(subarray):
 
     expected = np.average([29, 30, 31], weights=[5, 10, 3])
     assert np.allclose(dl1.peak_time[bright_pixels], expected / sample_rate)
+
+
+def test_flashcam_extractor(tmp_path):
+    path = "gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst"
+    source = EventSource(f"dataset://{path}")
+    subarray = source.subarray
+    print(subarray.get_tel_ids_for_type("MST_MST_FlashCam"))
