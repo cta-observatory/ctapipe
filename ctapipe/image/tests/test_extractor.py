@@ -21,6 +21,7 @@ from numpy.testing import assert_allclose, assert_equal
 from scipy.stats import norm
 from traitlets.config.loader import Config
 from traitlets.traitlets import TraitError
+from ctapipe.io import EventSource
 
 extractors = non_abstract_children(ImageExtractor)
 # FixedWindowSum has no peak finding and need to be set manually
@@ -532,7 +533,7 @@ def test_global_peak_window_sum_with_pixel_fraction(subarray):
 
     tel_id = 1
     camera = subarray.tel[tel_id].camera
-    sample_rate = camera.readout.sampling_rate.to_value(u.ns ** -1)
+    sample_rate = camera.readout.sampling_rate.to_value(u.ns**-1)
     n_pixels = camera.geometry.n_pixels
     selected_gain_channel = np.zeros(n_pixels, dtype=np.uint8)
 
@@ -565,3 +566,10 @@ def test_global_peak_window_sum_with_pixel_fraction(subarray):
 
     expected = np.average([29, 30, 31], weights=[5, 10, 3])
     assert np.allclose(dl1.peak_time[bright_pixels], expected / sample_rate)
+
+
+def test_flashcam_extractor(tmp_path):
+    path = "gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst"
+    source = EventSource(f"dataset://{path}")
+    subarray = source.subarray
+    print(subarray.get_tel_ids_for_type("MST_MST_FlashCam"))
