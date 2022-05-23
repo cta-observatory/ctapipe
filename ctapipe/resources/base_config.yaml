@@ -39,7 +39,12 @@ CameraCalibrator:
   #
   # Note this is a telescope-wise parameter, so can be specified per telescope
   # if necessary (see below for an example)
-  image_extractor_type: NeighborPeakWindowSum
+  image_extractor_type:
+    - ['type', '*', 'NeighborPeakWindowSum']
+    - ['type', '*FlashCam', 'FlashCamExtractor']
+
+  FlashCamExtractor:
+    exponential_scale: 7.5
 
 # The ImageProcessor performs the DL1a-> DL1b (image parameters) transition. It
 # is run only if the parameters `DataWriter.write_image_parameters=True` and the

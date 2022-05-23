@@ -1285,3 +1285,19 @@ class TwoPassWindowSum(ImageExtractor):
             peak_time=pulse_time2.astype("float32"),
             is_valid=is_valid,
         )
+
+
+@lru_cache
+def exponential_scale_from_pulse_shape(camera: CameraDescription):
+    pulse_shape = camera.readout.reference_pulse_shape
+    sample_width = camera.readout.reference_pulse_sample_width
+
+
+class FlashCamExtractor(ImageExtractor):
+    def __call__(self, waveforms, telid, selected_gain_channel) -> DL1CameraContainer:
+
+        return DL1CameraContainer(
+            image=np.zeros(...),
+            peak_time=...,
+            is_valid=True,
+        )
