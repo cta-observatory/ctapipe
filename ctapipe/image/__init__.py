@@ -45,7 +45,7 @@ from .extractor import (
     TwoPassWindowSum,
     extract_around_peak,
     extract_sliding_window,
-    neighbor_average_waveform,
+    neighbor_average_maximum,
     subtract_baseline,
     integration_correction,
 )
@@ -110,7 +110,7 @@ __all__ = [
     "TwoPassWindowSum",
     "extract_around_peak",
     "extract_sliding_window",
-    "neighbor_average_waveform",
+    "neighbor_average_maximum",
     "subtract_baseline",
     "integration_correction",
     "DataVolumeReducer",
