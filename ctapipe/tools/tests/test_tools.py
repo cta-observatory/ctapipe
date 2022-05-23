@@ -13,6 +13,7 @@ from ctapipe.utils import get_dataset_path
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 LST_MUONS = get_dataset_path("lst_muons.simtel.zst")
+PROD5B_PATH = get_dataset_path("gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst")
 
 
 def test_muon_reconstruction_simtel(tmp_path):
@@ -25,6 +26,7 @@ def test_muon_reconstruction_simtel(tmp_path):
             argv=[
                 f"--input={LST_MUONS}",
                 f"--output={muon_simtel_output_file}",
+                "--SimTelEventSource.focal_length_choice=nominal",
                 "--overwrite",
             ],
             cwd=tmp_path,
@@ -71,7 +73,12 @@ def test_display_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
     # test simtel
     assert (
         run_tool(
-            DisplayDL1Calib(), argv=["--max-events=1", "--telescope=11"], cwd=tmp_path
+            DisplayDL1Calib(),
+            argv=[
+                "--max-events=1", "--telescope=11",
+                "--SimTelEventSource.focal_length_choice=nominal",
+            ],
+            cwd=tmp_path
         )
         == 0
     )
@@ -125,7 +132,7 @@ def test_dump_triggers(tmp_path):
 
     sys.argv = ["dump_triggers"]
     outfile = tmp_path / "triggers.fits"
-    tool = DumpTriggersTool(infile=GAMMA_TEST_LARGE, outfile=str(outfile))
+    tool = DumpTriggersTool(infile=PROD5B_PATH, outfile=str(outfile))
 
     assert run_tool(tool, cwd=tmp_path) == 0
 
@@ -139,18 +146,18 @@ def test_dump_instrument(tmp_path):
     sys.argv = ["dump_instrument"]
     tool = DumpInstrumentTool()
 
-    assert run_tool(tool, [f"--input={GAMMA_TEST_LARGE}"], cwd=tmp_path) == 0
+    assert run_tool(tool, [f"--input={PROD5B_PATH}"], cwd=tmp_path) == 0
     assert (tmp_path / "FlashCam.camgeom.fits.gz").exists()
 
     assert (
-        run_tool(tool, [f"--input={GAMMA_TEST_LARGE}", "--format=ecsv"], cwd=tmp_path)
+        run_tool(tool, [f"--input={PROD5B_PATH}", "--format=ecsv"], cwd=tmp_path)
         == 0
     )
 
     assert (tmp_path / "MonteCarloArray.optics.ecsv").exists()
 
     assert (
-        run_tool(tool, [f"--input={GAMMA_TEST_LARGE}", "--format=hdf5"], cwd=tmp_path)
+        run_tool(tool, [f"--input={PROD5B_PATH}", "--format=hdf5"], cwd=tmp_path)
         == 0
     )
     assert (tmp_path / "subarray.h5").exists()

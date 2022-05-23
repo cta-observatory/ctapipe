@@ -30,7 +30,7 @@ def test_reconstructors(reconstructors):
         "gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"
     )
 
-    source = EventSource(filename, max_events=10)
+    source = EventSource(filename, max_events=10, focal_length_choice="nominal")
     subarray = source.subarray
     calib = CameraCalibrator(source.subarray)
     image_processor = ImageProcessor(source.subarray)
