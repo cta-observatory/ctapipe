@@ -235,7 +235,6 @@ def ground_to_ground(ground_coords, ground_frame):
 # Matrices for transforming between GroundFrame and EastingNorthingFrame
 NO_OFFSET = CartesianRepresentation(Quantity([0, 0, 0], u.m))
 GROUND_TO_EASTNORTH = np.asarray([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
-EASTNORTH_TO_GROUND = np.asarray([[0, 1, 0], [-1, 0, 0], [0, 0, 1]])
 
 
 @frame_transform_graph.transform(AffineTransform, GroundFrame, EastingNorthingFrame)
@@ -254,4 +253,4 @@ def easting_northing_to_ground(eastnorth_coords, ground_frame):
     convert  eastings/northings back to GroundFrame
 
     """
-    return EASTNORTH_TO_GROUND, NO_OFFSET
+    return GROUND_TO_EASTNORTH.T, NO_OFFSET
