@@ -364,7 +364,8 @@ class HDF5EventSource(EventSource):
             for tel in self.file_.root.dl1.monitoring.telescope.pointing
         }
 
-        for counter, (trigger, index) in enumerate(events):
+        counter = 0
+        for trigger, index in events:
             data.dl1.tel.clear()
             if self.is_simulation:
                 data.simulation.tel.clear()
@@ -393,6 +394,10 @@ class HDF5EventSource(EventSource):
                     continue
 
                 data.trigger.tel[tel_index.tel_id] = deepcopy(tel_trigger)
+
+            # this needs to stay *after* reading the telescope trigger table
+            if len(data.trigger.tels_with_trigger) == 0:
+                continue
 
             self._fill_array_pointing(data, array_pointing_finder)
             self._fill_telescope_pointing(data, tel_pointing_finder)
@@ -474,6 +479,7 @@ class HDF5EventSource(EventSource):
                         )
 
             yield data
+            counter += 1
 
     def _fill_array_pointing(self, data, array_pointing_finder):
         """

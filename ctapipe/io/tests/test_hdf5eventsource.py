@@ -148,5 +148,6 @@ def test_trigger_allowed_tels(dl1_proton_file):
         for i, e in enumerate(s):
             assert e.count == i
             assert set(e.trigger.tels_with_trigger) == e.trigger.tel.keys()
+            assert len(e.trigger.tels_with_trigger) > 1
 
         assert i == 1
