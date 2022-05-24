@@ -137,3 +137,17 @@ def test_read_r1(r1_hdf5_file):
 
         assert e is not None
         assert e.count == 3
+
+
+def test_trigger_allowed_tels(dl1_proton_file):
+    with HDF5EventSource(
+        input_url=dl1_proton_file, allowed_tels={1, 2, 3, 4, 5, 10}
+    ) as s:
+        print()
+        i = 0
+        for i, e in enumerate(s):
+            assert e.count == i
+            assert set(e.trigger.tels_with_trigger) == e.trigger.tel.keys()
+            assert len(e.trigger.tels_with_trigger) > 1
+
+        assert i == 1

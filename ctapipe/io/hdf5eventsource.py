@@ -4,6 +4,7 @@ import logging
 import numpy as np
 import tables
 from ast import literal_eval
+from copy import deepcopy
 
 from ..core import Container, Field
 from ..instrument import SubarrayDescription
@@ -25,6 +26,8 @@ from ..containers import (
     TimingParametersContainer,
     TriggerContainer,
     ImageParametersContainer,
+    TelEventIndexContainer,
+    TelescopeTriggerContainer,
     R1CameraContainer,
 )
 from .eventsource import EventSource
@@ -126,14 +129,12 @@ class HDF5EventSource(EventSource):
         super().__init__(input_url=input_url, config=config, parent=parent, **kwargs)
 
         self.file_ = tables.open_file(self.input_url)
-        self._full_subarray_info = SubarrayDescription.from_hdf(self.input_url)
+        self._full_subarray = SubarrayDescription.from_hdf(self.input_url)
 
         if self.allowed_tels:
-            self._subarray_info = self._full_subarray_info.select_subarray(
-                self.allowed_tels
-            )
+            self._subarray = self._full_subarray.select_subarray(self.allowed_tels)
         else:
-            self._subarray_info = self._full_subarray_info
+            self._subarray = self._full_subarray
         self._simulation_configs = self._parse_simulation_configs()
         self.datamodel_version = self.file_.root._v_attrs[
             "CTA PRODUCT DATA MODEL VERSION"
@@ -196,7 +197,7 @@ class HDF5EventSource(EventSource):
 
     @property
     def subarray(self):
-        return self._subarray_info
+        return self._subarray
 
     @lazyproperty
     def datalevels(self):
@@ -348,6 +349,11 @@ class HDF5EventSource(EventSource):
             [TriggerContainer(), EventIndexContainer()],
             ignore_columns={"tel"},
         )
+        telescope_trigger_reader = HDF5TableReader(self.file_).read(
+            "/dl1/event/telescope/trigger",
+            [TelEventIndexContainer(), TelescopeTriggerContainer()],
+            ignore_columns={"trigger_pixels"},
+        )
 
         array_pointing_finder = IndexFinder(
             self.file_.root.dl1.monitoring.subarray.pointing.col("time")
@@ -358,7 +364,8 @@ class HDF5EventSource(EventSource):
             for tel in self.file_.root.dl1.monitoring.telescope.pointing
         }
 
-        for counter, (trigger, index) in enumerate(events):
+        counter = 0
+        for trigger, index in events:
             data.dl1.tel.clear()
             if self.is_simulation:
                 data.simulation.tel.clear()
@@ -368,29 +375,29 @@ class HDF5EventSource(EventSource):
             data.count = counter
             data.trigger = trigger
             data.index = index
-            data.trigger.tels_with_trigger = (
-                self._full_subarray_info.tel_mask_to_tel_ids(
-                    data.trigger.tels_with_trigger
-                )
+            data.trigger.tels_with_trigger = self._full_subarray.tel_mask_to_tel_ids(
+                data.trigger.tels_with_trigger
             )
+            full_tels_with_trigger = data.trigger.tels_with_trigger.copy()
             if self.allowed_tels:
                 data.trigger.tels_with_trigger = np.intersect1d(
                     data.trigger.tels_with_trigger, np.array(list(self.allowed_tels))
                 )
 
-            # Maybe there is a simpler way  to do this
-            # Beware: tels_with_trigger contains all triggered telescopes whereas
-            # the telescope trigger table contains only the subset of
-            # allowed_tels given during the creation of the dl1 file
-            for i in self.file_.root.dl1.event.telescope.trigger.where(
-                f"(obs_id=={data.index.obs_id}) & (event_id=={data.index.event_id})"
-            ):
-                if self.allowed_tels and i["tel_id"] not in self.allowed_tels:
+            # the telescope trigger table contains triggers for all telescopes
+            # that participated in the event, so we need to read a row for each
+            # of them, ignoring the ones not in allowed_tels after reading
+            for tel_id in full_tels_with_trigger:
+                tel_index, tel_trigger = next(telescope_trigger_reader)
+
+                if self.allowed_tels and tel_id not in self.allowed_tels:
                     continue
-                if self.datamodel_version == "v1.0.0":
-                    data.trigger.tel[i["tel_id"]].time = i["telescopetrigger_time"]
-                else:
-                    data.trigger.tel[i["tel_id"]].time = i["time"]
+
+                data.trigger.tel[tel_index.tel_id] = deepcopy(tel_trigger)
+
+            # this needs to stay *after* reading the telescope trigger table
+            if len(data.trigger.tels_with_trigger) == 0:
+                continue
 
             self._fill_array_pointing(data, array_pointing_finder)
             self._fill_telescope_pointing(data, tel_pointing_finder)
@@ -472,6 +479,7 @@ class HDF5EventSource(EventSource):
                         )
 
             yield data
+            counter += 1
 
     def _fill_array_pointing(self, data, array_pointing_finder):
         """
@@ -510,7 +518,7 @@ class HDF5EventSource(EventSource):
                 f"tel_{tel:03d}"
             ]
             closest_time_index = tel_pointing_finder[f"tel_{tel:03d}"].closest(
-                data.trigger.tel[tel].time
+                data.trigger.tel[tel].time.mjd
             )
             pointing_telescope = tel_pointing_table
             data.pointing.tel[tel].azimuth = u.Quantity(
