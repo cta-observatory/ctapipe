@@ -597,10 +597,10 @@ class SimulationConfigContainer(Container):
         np.nan * u.rad,
         "Array Pointing declination, only filled of constant for the run",
     )
-    array_alt = Field(
+    array_altitude = Field(
         np.nan * u.rad, "Array Pointing altitude, only filled of constant for the run"
     )
-    array_az = Field(
+    array_azimuth = Field(
         np.nan * u.rad, "Array Pointing azimuth, only filled of constant for the run"
     )
 
@@ -784,6 +784,7 @@ class PointingContainer(Container):
     array_altitude = Field(nan * u.rad, "Array pointing altitude", unit=u.rad)
     array_ra = Field(nan * u.rad, "Array pointing right ascension", unit=u.rad)
     array_dec = Field(nan * u.rad, "Array pointing declination", unit=u.rad)
+    tracking_mode = Field(TrackingMode.UNKNOWN, "Tracking mode")
 
 
 class EventCameraCalibrationContainer(Container):

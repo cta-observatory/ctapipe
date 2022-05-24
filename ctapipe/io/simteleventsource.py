@@ -564,14 +564,13 @@ class SimTelEventSource(EventSource):
             )
 
     def _fill_array_pointing(self, data):
-        if self.file_.header["tracking_mode"] == 0:
-            az, alt = self.file_.header["direction"]
-            data.pointing.array_altitude = u.Quantity(alt, u.rad)
-            data.pointing.array_azimuth = u.Quantity(az, u.rad)
-        else:
-            ra, dec = self.file_.header["direction"]
-            data.pointing.array_ra = u.Quantity(ra, u.rad)
-            data.pointing.array_dec = u.Quantity(dec, u.rad)
+        obs_id = self.obs_ids[0]
+        config = self._simulation_config[obs_id]
+        data.pointing.tracking_mode = config.tracking_mode
+        data.pointing.array_altitude = config.array_altitude
+        data.pointing.array_azimuth = config.array_azimuth
+        data.pointing.array_ra = config.array_ra
+        data.pointing.array_dec = config.array_dec
 
     def _parse_simulation_header(self):
         """
@@ -586,12 +585,26 @@ class SimTelEventSource(EventSource):
         # With only one run, we can take the first entry:
         mc_run_head = self.file_.mc_run_headers[-1]
 
-        if self.file_.header["tracking_mode"] == 0:
-            tracking_mode = TrackingMode.ALTAZ
-        elif self.file.header["tracking_mode"] == 1:
-            tracking_mode = TrackingMode.ICRS
+        tracking_mode = TrackingMode(self.file_.header.get("tracking_mode", -1))
+        if tracking_mode == TrackingMode.ALTAZ:
+            az, alt = self.file_.header["direction"]
+            array_altitude = u.Quantity(alt, u.rad)
+            array_azimuth = u.Quantity(az, u.rad)
+            array_ra = u.Quantity(np.nan, u.rad)
+            array_dec = u.Quantity(np.nan, u.rad)
+        elif tracking_mode == TrackingMode.ICRS:
+            ra, dec = self.file_.header["direction"]
+            array_altitude = u.Quantity(np.nan, u.rad)
+            array_azimuth = u.Quantity(np.nan, u.rad)
+            array_ra = u.Quantity(ra, u.rad)
+            array_dec = u.Quantity(dec, u.rad)
         else:
+            warnings.warn("Unknown tracking mode: {}")
             tracking_mode = TrackingMode.UNKNOWN
+            array_altitude = u.Quantity(np.nan, u.rad)
+            array_azimuth = u.Quantity(np.nan, u.rad)
+            array_ra = u.Quantity(np.nan, u.rad)
+            array_dec = u.Quantity(np.nan, u.rad)
 
         simulation_config = SimulationConfigContainer(
             corsika_version=mc_run_head["shower_prog_vers"],
@@ -630,6 +643,10 @@ class SimTelEventSource(EventSource):
             corsika_low_E_detail=mc_run_head["corsika_low_E_detail"],
             corsika_high_E_detail=mc_run_head["corsika_high_E_detail"],
             tracking_mode=tracking_mode,
+            array_altitude=array_altitude,
+            array_azimuth=array_azimuth,
+            array_ra=array_ra,
+            array_dec=array_dec,
         )
         return {obs_id: simulation_config}
 
