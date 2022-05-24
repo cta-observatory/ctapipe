@@ -14,6 +14,7 @@ from ctapipe.utils.filelock import FileLock
 from pytest_astropy_header.display import PYTEST_HEADER_MODULES
 
 PYTEST_HEADER_MODULES.clear()
+PYTEST_HEADER_MODULES["eventio"] = "eventio"
 PYTEST_HEADER_MODULES["numpy"] = "numpy"
 PYTEST_HEADER_MODULES["scipy"] = "scipy"
 PYTEST_HEADER_MODULES["astropy"] = "astropy"
