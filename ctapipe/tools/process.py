@@ -99,20 +99,20 @@ class ProcessorTool(Tool):
             "Only compute DL2 if there is no shower reconstruction in the file",
         ),
         **flag(
-            "write-images",
-            "DataWriter.write_images",
+            "write-dl1-images",
+            "DataWriter.write_dl1_images",
             "store DL1/Event/Telescope images in output",
             "don't store DL1/Event/Telescope images in output",
         ),
         **flag(
-            "write-parameters",
-            "DataWriter.write_parameters",
+            "write-dl1-parameters",
+            "DataWriter.write_dl1_parameters",
             "store DL1/Event/Telescope parameters in output",
             "don't store DL1/Event/Telescope parameters in output",
         ),
         **flag(
-            "write-showers",
-            "DataWriter.write_showers",
+            "write-dl2",
+            "DataWriter.write_dl2",
             "store DL2/Event parameters in output",
             "don't DL2/Event parameters in output",
         ),
@@ -181,7 +181,7 @@ class ProcessorTool(Tool):
         """returns true if we should compute DL2 info"""
         if self.force_recompute_dl2:
             return True
-        return self.write.write_showers
+        return self.write.write_dl2
 
     @property
     def should_compute_dl1(self):
@@ -192,7 +192,7 @@ class ProcessorTool(Tool):
         if DataLevel.DL1_PARAMETERS in self.event_source.datalevels:
             return False
 
-        return self.write.write_parameters or self.should_compute_dl2
+        return self.write.write_dl1_parameters or self.should_compute_dl2
 
     @property
     def should_calibrate(self):
@@ -200,7 +200,7 @@ class ProcessorTool(Tool):
             True
 
         if (
-            self.write.write_images
+            self.write.write_dl1_images
             and DataLevel.DL1_IMAGES not in self.event_source.datalevels
         ):
             return True

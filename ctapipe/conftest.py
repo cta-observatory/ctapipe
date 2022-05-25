@@ -165,8 +165,8 @@ def dl2_shower_geometry_file(dl2_tmp_path, prod5_gamma_simtel_path):
         argv = [
             f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
-            "--write-images",
-            "--write-showers",
+            "--write-dl1-images",
+            "--write-dl2",
             "--max-events=20",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
@@ -191,8 +191,8 @@ def dl2_proton_geometry_file(dl2_tmp_path, prod5_proton_simtel_path):
         argv = [
             f"--input={prod5_proton_simtel_path}",
             f"--output={output}",
-            "--write-images",
-            "--write-showers",
+            "--write-dl1-images",
+            "--write-dl2",
             "--max-events=20",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
@@ -217,8 +217,8 @@ def dl2_shower_geometry_file_type(dl2_tmp_path, prod5_gamma_simtel_path):
         argv = [
             f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
-            "--write-images",
-            "--write-showers",
+            "--write-dl1-images",
+            "--write-dl2",
             "--max-events=20",
             "--DataWriter.split_datasets_by=tel_type",
         ]
@@ -244,7 +244,7 @@ def dl1_file(dl1_tmp_path, prod5_gamma_simtel_path):
         argv = [
             f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
-            "--write-images",
+            "--write-dl1-images",
             "--max-events=20",
             "--DataWriter.Contact.name=αℓℓ the äüöß",
         ]
@@ -270,7 +270,7 @@ def dl1_by_type_file(dl1_tmp_path, prod5_gamma_simtel_path):
         argv = [
             f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
-            "--write-images",
+            "--write-dl1-images",
             "--max-events=20",
             "--DataWriter.split_datasets_by=tel_type",
         ]
@@ -296,8 +296,8 @@ def dl1_image_file(dl1_tmp_path, prod5_gamma_simtel_path):
         argv = [
             f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
-            "--write-images",
-            "--DataWriter.write_parameters=False",
+            "--write-dl1-images",
+            "--DataWriter.write_dl1_parameters=False",
             "--max-events=20",
             "--DataWriter.Contact.name=αℓℓ the äüöß",
         ]
@@ -323,7 +323,7 @@ def dl1_parameters_file(dl1_tmp_path, prod5_gamma_simtel_path):
         argv = [
             f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
-            "--write-parameters",
+            "--write-dl1-parameters",
             "--max-events=20",
             "--DataWriter.Contact.name=αℓℓ the äüöß",
         ]
@@ -350,8 +350,8 @@ def dl1_muon_file(dl1_tmp_path):
         argv = [
             f"--input={infile}",
             f"--output={output}",
-            "--write-images",
-            "--DataWriter.write_parameters=False",
+            "--write-dl1-images",
+            "--DataWriter.write_dl1_parameters=False",
             "--DataWriter.Contact.name=αℓℓ the äüöß",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
@@ -375,7 +375,7 @@ def dl1_proton_file(dl1_tmp_path, prod5_proton_simtel_path):
         argv = [
             f"--input={prod5_proton_simtel_path}",
             f"--output={output}",
-            "--write-images",
+            "--write-dl1-images",
             "--DataWriter.Contact.name=αℓℓ the äüöß",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0

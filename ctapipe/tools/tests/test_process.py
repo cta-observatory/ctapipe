@@ -62,10 +62,7 @@ def test_multiple_configs(dl1_image_file):
     tool.setup()
 
     # ensure the overwriting works (base config has this option disabled)
-    assert (
-        tool.get_current_config()["ProcessorTool"]["DataWriter"]["write_showers"]
-        is True
-    )
+    assert tool.get_current_config()["ProcessorTool"]["DataWriter"]["write_dl2"] is True
 
 
 def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
@@ -82,7 +79,7 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
                 f"--input={dl1_image_file}",
                 f"--output={dl1b_from_dl1a_file}",
                 "--camera-frame",
-                "--write-parameters",
+                "--write-dl1-parameters",
                 "--overwrite",
             ],
             cwd=tmp_path,
@@ -132,7 +129,7 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
                 f"--config={config}",
                 f"--input={dl1_parameters_file}",
                 f"--output={tmp_path}/dl1b_from_dl1b.dl1.h5",
-                "--write-parameters",
+                "--write-dl1-parameters",
                 "--overwrite",
             ],
             cwd=tmp_path,
@@ -188,7 +185,7 @@ def test_stage1_datalevels(tmp_path):
                 f"--config={config}",
                 f"--input={dummy_file}",
                 f"--output={out_file}",
-                "--write-images",
+                "--write-dl1-images",
                 "--overwrite",
             ],
             cwd=tmp_path,
@@ -319,7 +316,7 @@ def test_image_modifications(tmp_path, dl1_image_file):
                 f"--config={noise_config}",
                 f"--input={dl1_image_file}",
                 f"--output={dl1_modified}",
-                "--write-parameters",
+                "--write-dl1-parameters",
                 "--overwrite",
             ],
             cwd=tmp_path,

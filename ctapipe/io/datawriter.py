@@ -138,24 +138,24 @@ class DataWriter(Component):
         help="output filename", default_value=pathlib.Path("events.dl1.h5")
     ).tag(config=True)
 
-    write_raw_waveforms = Bool(
+    write_r0_waveforms = Bool(
         help="Store R0 waveforms if available", default_value=False
     ).tag(config=True)
 
-    write_waveforms = Bool(
+    write_r1_waveforms = Bool(
         help="Store R1 waveforms if available", default_value=False
     ).tag(config=True)
 
-    write_images = Bool(help="Store DL1 Images if available", default_value=False).tag(
-        config=True
-    )
+    write_dl1_images = Bool(
+        help="Store DL1 Images if available", default_value=False
+    ).tag(config=True)
 
-    write_parameters = Bool(
+    write_dl1_parameters = Bool(
         help="Store DL1 image parameters if available", default_value=True
     ).tag(config=True)
 
-    write_showers = Bool(
-        help="Store DL2 stereo shower parameters if available", default_value=False
+    write_dl2 = Bool(
+        help="Store DL2 information if available", default_value=False
     ).tag(config=True)
 
     compression_level = Int(
@@ -270,17 +270,17 @@ class DataWriter(Component):
                 containers=[event.index, event.simulation.shower],
             )
 
-        if self.write_waveforms:
+        if self.write_r1_waveforms:
             self._write_r1_telescope_events(self._writer, event)
 
-        if self.write_raw_waveforms:
+        if self.write_r0_waveforms:
             self._write_r0_telescope_events(self._writer, event)
 
         # write telescope event data
         self._write_dl1_telescope_events(self._writer, event)
 
         # write DL2 info if requested
-        if self.write_showers:
+        if self.write_dl2:
             self._write_dl2_telescope_events(self._writer, event)
             self._write_dl2_stereo_event(self._writer, event)
 
@@ -308,15 +308,15 @@ class DataWriter(Component):
     def datalevels(self):
         """returns a list of data levels requested"""
         data_levels = []
-        if self.write_images:
+        if self.write_dl1_images:
             data_levels.append(DataLevel.DL1_IMAGES)
-        if self.write_parameters:
+        if self.write_dl1_parameters:
             data_levels.append(DataLevel.DL1_PARAMETERS)
-        if self.write_showers:
+        if self.write_dl2:
             data_levels.append(DataLevel.DL2)
-        if self.write_raw_waveforms:
+        if self.write_r0_waveforms:
             data_levels.append(DataLevel.R0)
-        if self.write_waveforms:
+        if self.write_r1_waveforms:
             data_levels.append(DataLevel.R1)
         return data_levels
 
@@ -349,11 +349,11 @@ class DataWriter(Component):
 
         # check that options make sense
         writable_things = [
-            self.write_parameters,
-            self.write_images,
-            self.write_showers,
-            self.write_waveforms,
-            self.write_parameters,
+            self.write_dl1_parameters,
+            self.write_dl1_images,
+            self.write_dl2,
+            self.write_r1_waveforms,
+            self.write_dl1_parameters,
         ]
         if not any(writable_things):
             raise ToolConfigurationError(
@@ -398,7 +398,7 @@ class DataWriter(Component):
         writer.exclude("/dl1/monitoring/telescope/pointing/.*", "trigger_pixels")
         writer.exclude("/dl1/monitoring/event/pointing/.*", "event_type")
 
-        if self.write_parameters is False:
+        if self.write_dl1_parameters is False:
             writer.exclude("/dl1/event/telescope/images/.*", "image_mask")
 
         if self._is_simulation:
@@ -624,7 +624,7 @@ class DataWriter(Component):
                 and event.simulation.tel[tel_id].true_image is not None
             )
 
-            if self.write_parameters:
+            if self.write_dl1_parameters:
 
                 writer.write(
                     table_name=f"dl1/event/telescope/parameters/{table_name}",
@@ -647,10 +647,10 @@ class DataWriter(Component):
                         sim_containers,
                     )
 
-            if self.write_images:
+            if self.write_dl1_images:
                 if dl1_camera.image is None:
                     raise ValueError(
-                        "DataWriter.write_images is True but event does not contain image"
+                        "DataWriter.write_dl1_images is True but event does not contain image"
                     )
                 # note that we always write the image, even if the image quality
                 # criteria are not met (those are only to determine if the parameters
@@ -733,7 +733,7 @@ class DataWriter(Component):
     def _generate_indices(self):
         """generate PyTables index tables for common columns"""
         self.log.debug("Writing index tables")
-        if self.write_images:
+        if self.write_dl1_images:
             self._generate_table_indices(
                 self._writer.h5file, "/dl1/event/telescope/images"
             )
@@ -741,7 +741,7 @@ class DataWriter(Component):
                 self._generate_table_indices(
                     self._writer.h5file, "/simulation/event/telescope/images"
                 )
-        if self.write_parameters:
+        if self.write_dl1_parameters:
             self._generate_table_indices(
                 self._writer.h5file, "/dl1/event/telescope/parameters"
             )

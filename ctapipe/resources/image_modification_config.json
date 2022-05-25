@@ -6,9 +6,9 @@
             "organization": "CTA Consortium"
         },
         "overwrite": false,
-        "write_images": true,
-        "write_parameters": true,
-        "write_showers": false,
+        "write_dl1_images": true,
+        "write_dl1_parameters": true,
+        "write_dl2": false,
         "transform_image": true,
         "transform_peak_time": true
     },
@@ -40,24 +40,12 @@
             ]
         },
         "ImageModifier": {
-            "psf_smear_factor": [
-                ["type", "*", 0.2]
-            ],
-            "noise_transition_charge": [
-                ["type", "*", 0.8]
-            ],
-            "noise_bias_dim_pixels": [
-                ["type", "*", 0.6]
-            ],
-            "noise_level_dim_pixels": [
-                ["type", "*", 1.5]
-            ],
-            "noise_level_bright_pixels": [
-                ["type", "*", 1.44]
-            ],
-            "noise_correct_bias": [
-                ["type", "*", true]
-            ]
+            "psf_smear_factor": [["type", "*", 0.2]],
+            "noise_transition_charge": [["type", "*", 0.8]],
+            "noise_bias_dim_pixels": [["type", "*", 0.6]],
+            "noise_level_dim_pixels": [["type", "*", 1.5]],
+            "noise_level_bright_pixels": [["type", "*", 1.44]],
+            "noise_correct_bias": [["type", "*", true]]
         }
     },
     "ShowerProcessor": {
