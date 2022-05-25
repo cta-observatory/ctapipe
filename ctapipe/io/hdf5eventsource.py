@@ -4,7 +4,6 @@ import logging
 import numpy as np
 import tables
 from ast import literal_eval
-from copy import deepcopy
 
 from ..core import Container, Field
 from ..instrument import SubarrayDescription
@@ -244,7 +243,7 @@ class HDF5EventSource(EventSource):
         if "simulation" in self.file_.root.configuration:
             reader = HDF5TableReader(self.file_).read(
                 "/configuration/simulation/run",
-                containers=[SimulationConfigContainer(), ObsIdContainer()],
+                containers=(SimulationConfigContainer, ObsIdContainer),
             )
             for (config, index) in reader:
                 simulation_configs[index.obs_id] = config
@@ -267,7 +266,7 @@ class HDF5EventSource(EventSource):
         if DataLevel.R1 in self.datalevels:
             waveform_readers = {
                 tel.name: self.reader.read(
-                    f"/r1/event/telescope/{tel.name}", R1CameraContainer()
+                    f"/r1/event/telescope/{tel.name}", R1CameraContainer
                 )
                 for tel in self.file_.root.r1.event.telescope
             }
@@ -276,7 +275,7 @@ class HDF5EventSource(EventSource):
             image_readers = {
                 tel.name: self.reader.read(
                     f"/dl1/event/telescope/images/{tel.name}",
-                    DL1CameraContainer(),
+                    DL1CameraContainer,
                     ignore_columns={"parameters"},
                 )
                 for tel in self.file_.root.dl1.event.telescope.images
@@ -290,27 +289,35 @@ class HDF5EventSource(EventSource):
                 }
 
         if DataLevel.DL1_PARAMETERS in self.datalevels:
+            # FIXME: check units or config, not version. We have a switch.
+            if self.datamodel_version >= "v2.1.0":
+                hillas_cls = HillasParametersContainer
+                timing_cls = TimingParametersContainer
+            else:
+                hillas_cls = CameraHillasParametersContainer
+                timing_cls = CameraTimingParametersContainer
+
             param_readers = {
                 tel.name: self.reader.read(
                     f"/dl1/event/telescope/parameters/{tel.name}",
-                    containers=[
-                        (
-                            HillasParametersContainer()
-                            if (self.datamodel_version >= "v2.1.0")
-                            else CameraHillasParametersContainer(prefix="hillas")
-                        ),
-                        (
-                            TimingParametersContainer()
-                            if (self.datamodel_version >= "v2.1.0")
-                            else CameraTimingParametersContainer(prefix="timing")
-                        ),
-                        LeakageContainer(),
-                        ConcentrationContainer(),
-                        MorphologyContainer(),
-                        IntensityStatisticsContainer(),
-                        PeakTimeStatisticsContainer(),
+                    containers=(
+                        hillas_cls,
+                        timing_cls,
+                        LeakageContainer,
+                        ConcentrationContainer,
+                        MorphologyContainer,
+                        IntensityStatisticsContainer,
+                        PeakTimeStatisticsContainer,
+                    ),
+                    prefixes=[
+                        "hillas",
+                        "timing",
+                        "leakage",
+                        "concentration",
+                        "morphology",
+                        "intensity",
+                        "peak_time",
                     ],
-                    prefixes=True,
                 )
                 for tel in self.file_.root.dl1.event.telescope.parameters
             }
@@ -319,15 +326,11 @@ class HDF5EventSource(EventSource):
                     tel.name: self.reader.read(
                         f"/simulation/event/telescope/parameters/{tel.name}",
                         containers=[
-                            (
-                                HillasParametersContainer()
-                                if (self.datamodel_version >= "v2.1.0")
-                                else CameraHillasParametersContainer(prefix="hillas")
-                            ),
-                            LeakageContainer(),
-                            ConcentrationContainer(),
-                            MorphologyContainer(),
-                            IntensityStatisticsContainer(),
+                            hillas_cls,
+                            LeakageContainer,
+                            ConcentrationContainer,
+                            MorphologyContainer,
+                            IntensityStatisticsContainer,
                         ],
                         prefixes=True,
                     )
@@ -338,7 +341,7 @@ class HDF5EventSource(EventSource):
             # simulated shower wide information
             mc_shower_reader = HDF5TableReader(self.file_).read(
                 "/simulation/event/subarray/shower",
-                SimulatedShowerContainer(),
+                SimulatedShowerContainer,
                 prefixes="true",
             )
             data.simulation = SimulatedEventContainer()
@@ -346,12 +349,12 @@ class HDF5EventSource(EventSource):
         # Setup iterators for the array events
         events = HDF5TableReader(self.file_).read(
             "/dl1/event/subarray/trigger",
-            [TriggerContainer(), EventIndexContainer()],
+            [TriggerContainer, EventIndexContainer],
             ignore_columns={"tel"},
         )
         telescope_trigger_reader = HDF5TableReader(self.file_).read(
             "/dl1/event/telescope/trigger",
-            [TelEventIndexContainer(), TelescopeTriggerContainer()],
+            [TelEventIndexContainer, TelescopeTriggerContainer],
             ignore_columns={"trigger_pixels"},
         )
 
@@ -393,7 +396,7 @@ class HDF5EventSource(EventSource):
                 if self.allowed_tels and tel_id not in self.allowed_tels:
                     continue
 
-                data.trigger.tel[tel_index.tel_id] = deepcopy(tel_trigger)
+                data.trigger.tel[tel_index.tel_id] = tel_trigger
 
             # this needs to stay *after* reading the telescope trigger table
             if len(data.trigger.tels_with_trigger) == 0:

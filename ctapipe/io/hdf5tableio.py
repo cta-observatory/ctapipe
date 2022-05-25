@@ -35,8 +35,8 @@ PYTABLES_TYPE_MAP = {
     "uint16": tables.UInt16Col,
     "uint32": tables.UInt32Col,
     "uint64": tables.UInt64Col,
-    "bool": tables.BoolCol,     # python bool
-    "bool_": tables.BoolCol,    # np.bool_
+    "bool": tables.BoolCol,  # python bool
+    "bool_": tables.BoolCol,  # np.bool_
 }
 
 
@@ -267,8 +267,8 @@ class HDF5TableWriter(TableWriter):
         return meta
 
     def _setup_new_table(self, table_name, containers):
-        """ set up the table. This is called the first time `write()`
-        is called on a new table """
+        """set up the table. This is called the first time `write()`
+        is called on a new table"""
         self.log.debug("Initializing table '%s' in group '%s'", table_name, self._group)
         meta = self._create_hdf5_table_schema(table_name, containers)
 
@@ -391,6 +391,7 @@ class HDF5TableReader(TableReader):
         self._tables = {}
         self._cols_to_read = {}
         self._missing_cols = {}
+        self._meta = {}
         kwargs.update(mode="r")
 
         if isinstance(filename, str) or isinstance(filename, PurePath):
@@ -463,7 +464,7 @@ class HDF5TableReader(TableReader):
     def _map_table_to_containers(
         self, table_name, containers, prefixes, ignore_columns
     ):
-        """ identifies which columns in the table to read into the containers,
+        """identifies which columns in the table to read into the containers,
         by comparing their names including an optional prefix."""
         tab = self._tables[table_name]
         self._cols_to_read[table_name] = []
@@ -499,13 +500,14 @@ class HDF5TableReader(TableReader):
                     self._missing_cols[table_name][-1].append(colname)
                     self.log.warning(
                         f"Table {table_name} is missing column {colname_with_prefix} "
-                        f"that is in container {container.__class__.__name__}. "
+                        f"that is in container {container}. "
                         "It will be skipped."
                     )
 
-            # copy all user-defined attributes back to Container.meta
+            # store the meta
+            self._meta[table_name] = {}
             for key in tab.attrs._f_list():
-                container.meta[key] = tab.attrs[key]
+                self._meta[table_name][key] = tab.attrs[key]
 
         # check if the table has additional columns not present in any container
         for colname in tab.colnames:
@@ -525,8 +527,8 @@ class HDF5TableReader(TableReader):
         ----------
         table_name: str
             name of table to read from
-        container : ctapipe.core.Container
-            Container instance to fill
+        containers : Iterable[ctapipe.core.Container]
+            Container classes to fill
         prefix: bool, str or list
             Prefix that was added while writing the file.
             If True, the container prefix is taken into consideration, when
@@ -540,17 +542,28 @@ class HDF5TableReader(TableReader):
         ignore_columns = set(ignore_columns) if ignore_columns is not None else set()
 
         return_iterable = True
+
         if isinstance(containers, Container):
+            raise TypeError("Expected container *classes*, not *instances*")
+
+        # check for a single container
+        if isinstance(containers, type):
             containers = (containers,)
             return_iterable = False
+
+        for container in containers:
+            if isinstance(container, Container):
+                raise TypeError("Expected container *classes*, not *instances*")
 
         if prefixes is False:
             prefixes = ["" for _ in containers]
         elif prefixes is True:
-            prefixes = [container.prefix for container in containers]
+            prefixes = [container.container_prefix for container in containers]
         elif isinstance(prefixes, str):
             prefixes = [prefixes for _ in containers]
-        assert len(prefixes) == len(containers)
+
+        if len(prefixes) != len(containers):
+            raise ValueError("Length of provided prefixes does not match containers")
 
         if table_name not in self._tables:
             tab = self._setup_table(table_name, containers, prefixes, ignore_columns)
@@ -564,7 +577,9 @@ class HDF5TableReader(TableReader):
             # __getitem__ just gives plain numpy data
             row = tab[row_index]
 
-            for container, prefix, missing_cols in zip(containers, prefixes, missing):
+            ret = []
+            for cls, prefix, missing_cols in zip(containers, prefixes, missing):
+                container = cls()
                 for fieldname in container.keys():
 
                     if prefix:
@@ -583,7 +598,10 @@ class HDF5TableReader(TableReader):
                 for fieldname in missing_cols:
                     container[fieldname] = None
 
+                container.meta = self._meta[table_name]
+                ret.append(container)
+
             if return_iterable:
-                yield containers
+                yield ret
             else:
-                yield containers[0]
+                yield ret[0]
