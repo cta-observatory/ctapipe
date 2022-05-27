@@ -62,7 +62,7 @@ def test_telescope_separation():
     tel1 = SkyCoord(fov_lon=0 * u.deg, fov_lat=0 * u.deg, frame=telescope_frame)
     tel2 = SkyCoord(fov_lon=0 * u.deg, fov_lat=1 * u.deg, frame=telescope_frame)
 
-    assert tel1.separation(tel2) == u.Quantity(1, u.deg)
+    assert u.isclose(tel1.separation(tel2), 1 * u.deg)
 
 
 def test_separation_is_the_same():
