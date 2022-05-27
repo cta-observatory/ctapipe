@@ -265,6 +265,6 @@ def test_ground_frame_roundtrip():
 
     back = tilted.transform_to(GroundFrame())
 
-    assert u.isclose(coord.x, back.x)
-    assert u.isclose(coord.y, back.y)
-    assert u.isclose(coord.z, back.z)
+    assert u.isclose(coord.x, back.x, atol=1e-12 * u.m)
+    assert u.isclose(coord.y, back.y, atol=1e-12 * u.m)
+    assert u.isclose(coord.z, back.z, atol=1e-12 * u.m)
