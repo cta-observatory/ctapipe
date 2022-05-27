@@ -70,8 +70,8 @@ def test_append_container(tmp_path):
 def test_reader_container_reuse(test_h5_file):
     """Test the reader does not reuse the same container instance"""
     with HDF5TableReader(test_h5_file) as reader:
-        it = reader.read("/R0/sim_shower", SimulatedShowerContainer)
-        assert next(it) is not next(it)
+        iterator = reader.read("/R0/sim_shower", SimulatedShowerContainer)
+        assert next(iterator) is not next(iterator)
 
 
 def test_read_multiple_containers(tmp_path):
@@ -453,24 +453,24 @@ def test_append_mode(tmp_path):
     class ContainerA(Container):
         a = Field(int)
 
-    a = ContainerA(a=1)
+    container = ContainerA(a=1)
 
     # First open with 'w' mode to clear the file and add a Container
     with HDF5TableWriter(path, "group") as h5:
-        h5.write("table_1", a)
+        h5.write("table_1", container)
 
     # Try to append A again
     with HDF5TableWriter(path, "group", mode="a") as h5:
-        h5.write("table_2", a)
+        h5.write("table_2", container)
 
     # Check if file has two tables with a = 1
     with HDF5TableReader(path) as h5:
 
-        for a in h5.read("/group/table_1", ContainerA):
-            assert a.a == 1
+        for container in h5.read("/group/table_1", ContainerA):
+            assert container.a == 1
 
-        for a in h5.read("/group/table_2", ContainerA):
-            assert a.a == 1
+        for container in h5.read("/group/table_2", ContainerA):
+            assert container.a == 1
 
 
 def test_write_to_any_location(tmp_path):
@@ -480,20 +480,20 @@ def test_write_to_any_location(tmp_path):
     class ContainerA(Container):
         a = Field(0, "some integer field")
 
-    a = ContainerA(a=1)
+    container = ContainerA(a=1)
 
     with HDF5TableWriter(path, group_name=loc + "/group_1") as h5:
         for _ in range(5):
-            h5.write("table", a)
-            h5.write("deeper/table2", a)
+            h5.write("table", container)
+            h5.write("deeper/table2", container)
 
     with HDF5TableReader(path) as h5:
-        for a in h5.read("/" + loc + "/group_1/table", ContainerA):
-            assert a.a == 1
+        for container in h5.read(f"/{loc}/group_1/table", ContainerA):
+            assert container.a == 1
 
     with HDF5TableReader(path) as h5:
-        for a in h5.read("/" + loc + "/group_1/deeper/table2", ContainerA):
-            assert a.a == 1
+        for container in h5.read(f"/{loc}/group_1/deeper/table2", ContainerA):
+            assert container.a == 1
 
 
 class WithNormalEnum(Container):
