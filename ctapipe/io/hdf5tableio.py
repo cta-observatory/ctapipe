@@ -579,8 +579,8 @@ class HDF5TableReader(TableReader):
 
             ret = []
             for cls, prefix, missing_cols in zip(containers, prefixes, missing):
-                container = cls()
-                for fieldname in container.keys():
+                kwargs = {}
+                for fieldname in cls.fields.keys():
 
                     if prefix:
                         colname = f"{prefix}_{fieldname}"
@@ -590,14 +590,15 @@ class HDF5TableReader(TableReader):
                     if colname not in self._cols_to_read[table_name]:
                         continue
 
-                    container[fieldname] = self._apply_col_transform(
+                    kwargs[fieldname] = self._apply_col_transform(
                         table_name, colname, row[colname]
                     )
 
                 # set missing fields to None
                 for fieldname in missing_cols:
-                    container[fieldname] = None
+                    kwargs[fieldname] = None
 
+                container = cls(**kwargs)
                 container.meta = self._meta[table_name]
                 ret.append(container)
 
