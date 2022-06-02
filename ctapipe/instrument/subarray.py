@@ -1,26 +1,24 @@
 """
 Description of Arrays or Subarrays of telescopes
 """
-from typing import Dict, List, Union
-from contextlib import ExitStack
 import warnings
+from contextlib import ExitStack
+from copy import copy
+from itertools import groupby
+from typing import Dict, List, Union
 
 import numpy as np
+import tables
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.table import QTable, Table
 from astropy.utils import lazyproperty
-import tables
-from copy import copy
-from itertools import groupby
 
-import ctapipe
-
-from ..coordinates import GroundFrame, CameraFrame
-from .telescope import TelescopeDescription
-from .camera import CameraDescription, CameraReadout, CameraGeometry
+from .. import __version__ as CTAPIPE_VERSION
+from ..coordinates import CameraFrame, GroundFrame
+from .camera import CameraDescription, CameraGeometry, CameraReadout
 from .optics import OpticsDescription
-
+from .telescope import TelescopeDescription
 
 __all__ = ["SubarrayDescription"]
 
@@ -90,7 +88,7 @@ class SubarrayDescription:
 
     @property
     def tel(self):
-        """ for backward compatibility"""
+        """for backward compatibility"""
         return self.tels
 
     @property
@@ -132,7 +130,7 @@ class SubarrayDescription:
 
     @lazyproperty
     def tel_coords(self):
-        """ returns telescope positions as astropy.coordinates.SkyCoord"""
+        """returns telescope positions as astropy.coordinates.SkyCoord"""
 
         pos_x = np.array([p[0].to("m").value for p in self.positions.values()]) * u.m
         pos_y = np.array([p[1].to("m").value for p in self.positions.values()]) * u.m
@@ -142,7 +140,7 @@ class SubarrayDescription:
 
     @lazyproperty
     def tel_ids(self):
-        """ telescope IDs as an array"""
+        """telescope IDs as an array"""
         return np.array(list(self.tel.keys()))
 
     @lazyproperty
@@ -238,7 +236,7 @@ class SubarrayDescription:
         meta = {
             "ORIGIN": "ctapipe.instrument.SubarrayDescription",
             "SUBARRAY": self.name,
-            "SOFT_VER": ctapipe.__version__,
+            "SOFT_VER": CTAPIPE_VERSION,
             "TAB_TYPE": kind,
         }
 
@@ -277,8 +275,8 @@ class SubarrayDescription:
             unique_types = self.telescope_types
 
             mirror_area = u.Quantity(
-                [t.optics.mirror_area.to_value(u.m ** 2) for t in unique_types],
-                u.m ** 2,
+                [t.optics.mirror_area.to_value(u.m**2) for t in unique_types],
+                u.m**2,
             )
             focal_length = u.Quantity(
                 [t.optics.equivalent_focal_length.to_value(u.m) for t in unique_types],
@@ -332,47 +330,29 @@ class SubarrayDescription:
         """
         Draw a quick matplotlib plot of the array
         """
+        from ctapipe.coordinates.ground_frames import EastingNorthingFrame
+        from ctapipe.visualization import ArrayDisplay
         from matplotlib import pyplot as plt
-        from astropy.visualization import quantity_support
-
-        types = set(self.tels.values())
-        tab = self.to_table()
 
         plt.figure(figsize=(8, 8))
-
-        with quantity_support():
-            for tel_type in types:
-                tels = tab[tab["tel_description"] == str(tel_type)]["tel_id"]
-                sub = self.select_subarray(tels, name=tel_type)
-                tel_coords = sub.tel_coords
-                radius = np.array(
-                    [
-                        np.sqrt(tel.optics.mirror_area / np.pi).value
-                        for tel in sub.tels.values()
-                    ]
-                )
-
-                plt.scatter(
-                    tel_coords.x, tel_coords.y, s=radius * 8, alpha=0.5, label=tel_type
-                )
-
-            plt.legend(loc="best")
-            plt.title(self.name)
-            plt.tight_layout()
+        ad = ArrayDisplay(subarray=self, frame=EastingNorthingFrame(), tel_scale=0.75)
+        ad.add_labels()
+        plt.title(self.name)
+        plt.tight_layout()
 
     @lazyproperty
     def telescope_types(self) -> List[TelescopeDescription]:
-        """ list of telescope types in the array"""
+        """list of telescope types in the array"""
         return list({tel for tel in self.tel.values()})
 
     @lazyproperty
     def camera_types(self) -> List[CameraDescription]:
-        """ list of camera types in the array """
+        """list of camera types in the array"""
         return list({tel.camera for tel in self.tel.values()})
 
     @lazyproperty
     def optics_types(self) -> List[OpticsDescription]:
-        """ list of optics types in the array """
+        """list of optics types in the array"""
         return list({tel.optics for tel in self.tel.values()})
 
     def get_tel_ids_for_type(self, tel_type):
