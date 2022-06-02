@@ -14,7 +14,7 @@ __all__ = [
     "TwoPassWindowSum",
     "extract_around_peak",
     "extract_sliding_window",
-    "neighbor_average_waveform",
+    "neighbor_average_maximum",
     "subtract_baseline",
     "integration_correction",
 ]
@@ -195,7 +195,7 @@ def extract_sliding_window(waveforms, width, sampling_rate_ghz, sum_, peak_time)
 
 
 @njit(cache=True)
-def neighbor_average_waveform(waveforms, neighbors_indices, neighbors_indptr, lwt):
+def neighbor_average_maximum(waveforms, neighbors_indices, neighbors_indptr, lwt):
     """
     Obtain the average waveform built from the neighbors of each pixel
 
@@ -228,19 +228,18 @@ def neighbor_average_waveform(waveforms, neighbors_indices, neighbors_indptr, lw
 
     # initialize to waveforms weighted with lwt
     # so the value of the pixel itself is already taken into account
-    average = waveforms * lwt
+    peak_pos = np.empty(n_pixels, dtype=np.int64)
 
     for pixel in prange(n_pixels):
+        average = waveforms[pixel] * lwt
         neighbors = indices[indptr[pixel] : indptr[pixel + 1]]
 
-        n = lwt
         for neighbor in neighbors:
-            average[pixel] += waveforms[neighbor]
-            n += 1
+            average += waveforms[neighbor]
 
-        average[pixel] /= n
+        peak_pos[pixel] = np.argmax(average)
 
-    return average
+    return peak_pos
 
 
 def subtract_baseline(waveforms, baseline_start, baseline_end):
@@ -751,13 +750,12 @@ class NeighborPeakWindowSum(ImageExtractor):
 
     def __call__(self, waveforms, telid, selected_gain_channel):
         neighbors = self.subarray.tel[telid].camera.geometry.neighbor_matrix_sparse
-        average_wfs = neighbor_average_waveform(
+        peak_index = neighbor_average_maximum(
             waveforms,
             neighbors_indices=neighbors.indices,
             neighbors_indptr=neighbors.indptr,
             lwt=self.lwt.tel[telid],
         )
-        peak_index = average_wfs.argmax(axis=-1)
         charge, peak_time = extract_around_peak(
             waveforms,
             peak_index,

@@ -257,10 +257,10 @@ class MergeTool(Tool):
                 self.log.info("Merging simulated data")
                 self.is_simulation = True
 
-            # do not try to merge optional nodes not present in first file
-            for node in filter(lambda n: n not in h5file, optional_nodes):
-                self.log.info(f"First file does not contain {node}, ignoring")
-                self.usable_nodes.remove(node)
+            for node in optional_nodes:
+                if node in self.usable_nodes and node not in h5file:
+                    self.log.info(f"First file does not contain {node}, ignoring")
+                    self.usable_nodes.remove(node)
 
         # create output file with subarray from first file
         self.first_subarray = SubarrayDescription.from_hdf(self.input_files[0])

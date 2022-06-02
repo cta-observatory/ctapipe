@@ -12,7 +12,7 @@ from ctapipe.image.extractor import (
     extract_around_peak,
     extract_sliding_window,
     integration_correction,
-    neighbor_average_waveform,
+    neighbor_average_maximum,
     subtract_baseline,
 )
 from ctapipe.image.toymodel import SkewedGaussian, WaveformModel, obtain_time_image
@@ -191,10 +191,10 @@ def test_extract_around_peak_charge_expected(toymodel):
     assert_equal(charge, n_samples)
 
 
-def test_neighbor_average_waveform(toymodel):
+def test_neighbor_average_peakpos(toymodel):
     waveforms, subarray, telid, _, _, _ = toymodel
     neighbors = subarray.tel[telid].camera.geometry.neighbor_matrix_sparse
-    average_wf = neighbor_average_waveform(
+    peak_pos = neighbor_average_maximum(
         waveforms,
         neighbors_indices=neighbors.indices,
         neighbors_indptr=neighbors.indptr,
@@ -204,10 +204,11 @@ def test_neighbor_average_waveform(toymodel):
     pixel = 0
     _, nei_pixel = np.where(neighbors[pixel].A)
     expected_average = waveforms[nei_pixel].sum(0) / len(nei_pixel)
-    assert_allclose(average_wf[pixel], expected_average, rtol=1e-3)
+    expected_peak_pos = np.argmax(expected_average, axis=-1)
+    assert (peak_pos[pixel] == expected_peak_pos).all()
 
     lwt = 4
-    average_wf = neighbor_average_waveform(
+    peak_pos = neighbor_average_maximum(
         waveforms,
         neighbors_indices=neighbors.indices,
         neighbors_indptr=neighbors.indptr,
@@ -218,7 +219,8 @@ def test_neighbor_average_waveform(toymodel):
     _, nei_pixel = np.where(neighbors[pixel].A)
     nei_pixel = np.concatenate([nei_pixel, [pixel] * lwt])
     expected_average = waveforms[nei_pixel].sum(0) / len(nei_pixel)
-    assert_allclose(average_wf[pixel], expected_average, rtol=1e-3)
+    expected_peak_pos = np.argmax(expected_average, axis=-1)
+    assert (peak_pos[pixel] == expected_peak_pos).all()
 
 
 def test_extract_peak_time_within_range():
@@ -532,7 +534,7 @@ def test_global_peak_window_sum_with_pixel_fraction(subarray):
 
     tel_id = 1
     camera = subarray.tel[tel_id].camera
-    sample_rate = camera.readout.sampling_rate.to_value(u.ns ** -1)
+    sample_rate = camera.readout.sampling_rate.to_value(u.ns**-1)
     n_pixels = camera.geometry.n_pixels
     selected_gain_channel = np.zeros(n_pixels, dtype=np.uint8)
 

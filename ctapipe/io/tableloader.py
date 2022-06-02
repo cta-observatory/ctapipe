@@ -77,13 +77,13 @@ class TableLoader(Component):
 
     The following `TableLoader` methods load data from all relevant tables,
     depending on the options, and joins them into single tables:
+
     * `TableLoader.read_subarray_events`
     * `TableLoader.read_telescope_events`
-
-    `TableLoader.read_telescope_events_by_type` retuns a dict with a table per
-    telescope type, which is needed for e.g. DL1 image data that might have
-    different shapes for each of the telescope types as tables do not support
-    variable length columns.
+    * `TableLoader.read_telescope_events_by_type` retuns a dict with a table per
+      telescope type, which is needed for e.g. DL1 image data that might have
+      different shapes for each of the telescope types as tables do not support
+      variable length columns.
     """
 
     input_url = traits.Path(directory_ok=False, exists=True).tag(config=True)
