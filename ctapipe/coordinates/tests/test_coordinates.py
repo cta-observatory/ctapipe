@@ -62,7 +62,7 @@ def test_telescope_separation():
     tel1 = SkyCoord(fov_lon=0 * u.deg, fov_lat=0 * u.deg, frame=telescope_frame)
     tel2 = SkyCoord(fov_lon=0 * u.deg, fov_lat=1 * u.deg, frame=telescope_frame)
 
-    assert tel1.separation(tel2) == u.Quantity(1, u.deg)
+    assert u.isclose(tel1.separation(tel2), 1 * u.deg)
 
 
 def test_separation_is_the_same():
@@ -265,6 +265,6 @@ def test_ground_frame_roundtrip():
 
     back = tilted.transform_to(GroundFrame())
 
-    assert u.isclose(coord.x, back.x)
-    assert u.isclose(coord.y, back.y)
-    assert u.isclose(coord.z, back.z)
+    assert u.isclose(coord.x, back.x, atol=1e-12 * u.m)
+    assert u.isclose(coord.y, back.y, atol=1e-12 * u.m)
+    assert u.isclose(coord.z, back.z, atol=1e-12 * u.m)
