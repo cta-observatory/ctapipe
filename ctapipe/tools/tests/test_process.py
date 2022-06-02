@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import tables
+
 from ctapipe.core import run_tool
 from ctapipe.instrument.subarray import SubarrayDescription
 from ctapipe.io import DataLevel, EventSource, read_table
@@ -215,11 +216,9 @@ def test_stage_2_from_simtel(tmp_path):
             ProcessorTool(),
             argv=[
                 f"--config={config}",
-                f"--input={GAMMA_TEST_LARGE}",
+                "--input=dataset://gamma_prod5.simtel.zst",
                 f"--output={output}",
-                "--max-events=5",
                 "--overwrite",
-                "--SimTelEventSource.focal_length_choice=nominal",
             ],
             cwd=tmp_path,
         )

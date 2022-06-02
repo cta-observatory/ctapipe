@@ -128,7 +128,7 @@ def test_hdf(example_subarray, tmp_path):
     path = tmp_path / "subarray.h5"
 
     example_subarray.to_hdf(path)
-    read = SubarrayDescription.from_hdf(path)
+    read = SubarrayDescription.from_hdf(path, focal_length_choice="nominal")
 
     assert example_subarray == read
 
@@ -147,7 +147,7 @@ def test_hdf(example_subarray, tmp_path):
     with tables.open_file(path, "r+") as hdf:
         del hdf.root.configuration.instrument.subarray._v_attrs.name
 
-    no_name = SubarrayDescription.from_hdf(path)
+    no_name = SubarrayDescription.from_hdf(path, focal_length_choice="nominal")
     assert no_name.name == "Unknown"
 
     # Test we can also write and read to an already opened h5file
@@ -155,7 +155,8 @@ def test_hdf(example_subarray, tmp_path):
         example_subarray.to_hdf(h5file)
 
     with tables.open_file(path, "r") as h5file:
-        assert SubarrayDescription.from_hdf(h5file) == example_subarray
+        read = SubarrayDescription.from_hdf(h5file, focal_length_choice="nominal")
+        assert read == example_subarray
 
 
 def test_hdf_same_camera(tmp_path):
@@ -172,7 +173,7 @@ def test_hdf_same_camera(tmp_path):
 
     path = tmp_path / "subarray.h5"
     array.to_hdf(path)
-    read = SubarrayDescription.from_hdf(path)
+    read = SubarrayDescription.from_hdf(path, focal_length_choice="nominal")
     assert array == read
 
 
@@ -202,7 +203,7 @@ def test_hdf_duplicate_string_repr(tmp_path):
 
     path = tmp_path / "subarray.h5"
     array.to_hdf(path)
-    read = SubarrayDescription.from_hdf(path)
+    read = SubarrayDescription.from_hdf(path, focal_length_choice="nominal")
     assert array == read
     assert (
         read.tel[1].optics.num_mirror_tiles == read.tel[2].optics.num_mirror_tiles + 1

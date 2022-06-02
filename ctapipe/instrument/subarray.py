@@ -547,7 +547,7 @@ class SubarrayDescription:
                 meta["reference_itrs_z"] = itrs.z.to_value(u.m)
 
     @classmethod
-    def from_hdf(cls, path):
+    def from_hdf(cls, path, focal_length_choice="effective"):
         # here to prevent circular import
         from ..io import read_table
 
@@ -616,9 +616,20 @@ class SubarrayDescription:
             # copy to support different telescopes with same camera geom
             camera = copy(cameras[row["camera_index"]])
             optics = optic_descriptions[row["optics_index"]]
-            focal_length = optics.equivalent_focal_length
-            camera.geometry.frame = CameraFrame(focal_length=focal_length)
 
+            if focal_length_choice == "effective":
+                focal_length = optics.effective_focal_length
+                if np.isnan(focal_length.value):
+                    raise RuntimeError(
+                        "`focal_length_choice` was set to 'effective', but the"
+                        " effective focal length was not present in the file. "
+                        " Use nominal focal length or adapt configuration"
+                        " to include the effective focal length"
+                    )
+            else:
+                focal_length = optics.equivalent_focal_length
+
+            camera.geometry.frame = CameraFrame(focal_length=focal_length)
             telescope_descriptions[row["tel_id"]] = TelescopeDescription(
                 name=row["name"], tel_type=row["type"], optics=optics, camera=camera
             )

@@ -322,8 +322,10 @@ def test_focal_length_choice():
         SimTelEventSource(gamma_test_large_path, focal_length_choice="effective")
 
     s = SimTelEventSource(gamma_test_large_path, focal_length_choice="nominal")
-    assert s.subarray.tel[1].camera.geometry.frame.focal_length == 28 * u.m
-    assert np.isnan(s.subarray.tel[1].camera.geometry.frame.focal_length)
+    tel = s.subarray.tel[1]
+    assert tel.camera.geometry.frame.focal_length == 28 * u.m
+    assert u.isclose(tel.optics.equivalent_focal_length, 28.0 * u.m, atol=0.05 * u.m)
+    assert np.isnan(tel.optics.effective_focal_length)
 
     # this file does
     s = SimTelEventSource(prod5b_path, focal_length_choice="effective")

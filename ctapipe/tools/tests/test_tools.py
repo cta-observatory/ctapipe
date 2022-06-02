@@ -13,7 +13,9 @@ from ctapipe.utils import get_dataset_path
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 LST_MUONS = get_dataset_path("lst_muons.simtel.zst")
-PROD5B_PATH = get_dataset_path("gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst")
+PROD5B_PATH = get_dataset_path(
+    "gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst"
+)
 
 
 def test_muon_reconstruction_simtel(tmp_path):
@@ -50,6 +52,7 @@ def test_muon_reconstruction_dl1(tmp_path, dl1_muon_file):
             argv=[
                 f"--input={dl1_muon_file}",
                 f"--output={muon_dl1_output_file}",
+                "--HDF5EventSource.focal_length_choice=nominal",
                 "--overwrite",
             ],
             cwd=tmp_path,
@@ -75,10 +78,11 @@ def test_display_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
         run_tool(
             DisplayDL1Calib(),
             argv=[
-                "--max-events=1", "--telescope=11",
+                "--max-events=1",
+                "--telescope=11",
                 "--SimTelEventSource.focal_length_choice=nominal",
             ],
-            cwd=tmp_path
+            cwd=tmp_path,
         )
         == 0
     )
@@ -106,7 +110,7 @@ def test_info():
 
 
 def test_fileinfo(tmp_path, dl1_image_file):
-    """ check we can run ctapipe-fileinfo and get results """
+    """check we can run ctapipe-fileinfo and get results"""
     import yaml
     from astropy.table import Table
 
@@ -150,15 +154,13 @@ def test_dump_instrument(tmp_path):
     assert (tmp_path / "FlashCam.camgeom.fits.gz").exists()
 
     assert (
-        run_tool(tool, [f"--input={PROD5B_PATH}", "--format=ecsv"], cwd=tmp_path)
-        == 0
+        run_tool(tool, [f"--input={PROD5B_PATH}", "--format=ecsv"], cwd=tmp_path) == 0
     )
 
     assert (tmp_path / "MonteCarloArray.optics.ecsv").exists()
 
     assert (
-        run_tool(tool, [f"--input={PROD5B_PATH}", "--format=hdf5"], cwd=tmp_path)
-        == 0
+        run_tool(tool, [f"--input={PROD5B_PATH}", "--format=hdf5"], cwd=tmp_path) == 0
     )
     assert (tmp_path / "subarray.h5").exists()
 
