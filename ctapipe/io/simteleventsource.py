@@ -190,12 +190,13 @@ class SimTelEventSource(EventSource):
         ["nominal", "effective"],
         default_value="effective",
         help=(
-            "if both nominal and effective focal lengths are available in the "
-            "SimTelArray file, which one to use when constructing the "
-            "SubarrayDescription (which will be used in CameraFrame to TelescopeFrame "
-            "coordinate transforms. The 'nominal' focal length is the one used during "
-            "the simulation, the 'effective' focal length is computed using specialized "
-            "ray-tracing from a point light source"
+            "If both nominal and effective focal lengths are available in the"
+            " SimTelArray file, which one to use for the `CameraFrame` attached"
+            " to the `CameraGeometry` instances in the `SubarrayDescription`"
+            ", which will be used in CameraFrame to TelescopeFrame coordinate"
+            " transforms. The 'nominal' focal length is the one used during "
+            " the simulation, the 'effective' focal length is computed using specialized "
+            " ray-tracing from a point light source"
         ),
     ).tag(config=True)
 
@@ -326,6 +327,15 @@ class SimTelEventSource(EventSource):
             except ValueError:
                 telescope = unknown_telescope(mirror_area, n_pixels)
 
+            optics = OpticsDescription(
+                name=telescope.name,
+                num_mirrors=telescope.n_mirrors,
+                equivalent_focal_length=nominal_focal_length,
+                effective_focal_length=effective_focal_length,
+                mirror_area=mirror_area,
+                num_mirror_tiles=cam_settings["n_mirrors"],
+            )
+
             if self.focal_length_choice == "effective":
                 if np.isnan(effective_focal_length):
                     raise RuntimeError(
@@ -339,19 +349,11 @@ class SimTelEventSource(EventSource):
             else:
                 focal_length = nominal_focal_length
 
-            optics = OpticsDescription(
-                name=telescope.name,
-                num_mirrors=telescope.n_mirrors,
-                equivalent_focal_length=focal_length,
-                mirror_area=mirror_area,
-                num_mirror_tiles=cam_settings["n_mirrors"],
-            )
-
             camera = build_camera(
                 cam_settings,
                 pixel_settings,
                 telescope,
-                frame=CameraFrame(focal_length=optics.equivalent_focal_length),
+                frame=CameraFrame(focal_length=focal_length),
             )
 
             tel_descriptions[tel_id] = TelescopeDescription(

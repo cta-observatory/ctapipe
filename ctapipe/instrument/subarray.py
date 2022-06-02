@@ -320,17 +320,25 @@ class SubarrayDescription:
                 [t.optics.equivalent_focal_length.to_value(u.m) for t in unique_types],
                 u.m,
             )
-            cols = {
-                "description": [str(t) for t in unique_types],
-                "name": [t.name for t in unique_types],
-                "type": [t.type for t in unique_types],
-                "mirror_area": mirror_area,
-                "num_mirrors": [t.optics.num_mirrors for t in unique_types],
-                "num_mirror_tiles": [t.optics.num_mirror_tiles for t in unique_types],
-                "equivalent_focal_length": focal_length,
-            }
-            tab = Table(cols)
-            tab.meta["TAB_VER"] = "2.0"
+            effective_focal_length = u.Quantity(
+                [t.optics.effective_focal_length.to_value(u.m) for t in unique_types],
+                u.m,
+            )
+            tab = Table(
+                {
+                    "description": [str(t) for t in unique_types],
+                    "name": [t.name for t in unique_types],
+                    "type": [t.type for t in unique_types],
+                    "mirror_area": mirror_area,
+                    "num_mirrors": [t.optics.num_mirrors for t in unique_types],
+                    "num_mirror_tiles": [
+                        t.optics.num_mirror_tiles for t in unique_types
+                    ],
+                    "equivalent_focal_length": focal_length,
+                    "effective_focal_length": effective_focal_length,
+                }
+            )
+            tab.meta["TAB_VER"] = "3.0"
         else:
             raise ValueError(f"Table type '{kind}' not known")
 
@@ -591,6 +599,7 @@ class SubarrayDescription:
                 row["name"],
                 num_mirrors=row["num_mirrors"],
                 equivalent_focal_length=row["equivalent_focal_length"],
+                effective_focal_length=row["effective_focal_length"],
                 mirror_area=row["mirror_area"],
                 num_mirror_tiles=row["num_mirror_tiles"],
             )
