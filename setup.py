@@ -25,6 +25,7 @@ tests_require = [
     "pandas>=0.24.0",
     "importlib_resources;python_version<'3.9'",
     "tomli",
+    "pytest_astropy_header",
 ]
 docs_require = [
     "sphinx_rtd_theme",

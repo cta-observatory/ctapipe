@@ -11,6 +11,15 @@ from ctapipe.io import SimTelEventSource
 from ctapipe.utils import get_dataset_path
 from ctapipe.utils.filelock import FileLock
 
+from pytest_astropy_header.display import PYTEST_HEADER_MODULES
+
+PYTEST_HEADER_MODULES.clear()
+PYTEST_HEADER_MODULES["eventio"] = "eventio"
+PYTEST_HEADER_MODULES["numpy"] = "numpy"
+PYTEST_HEADER_MODULES["scipy"] = "scipy"
+PYTEST_HEADER_MODULES["astropy"] = "astropy"
+PYTEST_HEADER_MODULES["numba"] = "numba"
+
 # names of camera geometries available on the data server
 camera_names = [
     "ASTRICam",
@@ -45,7 +54,7 @@ def _global_example_event():
     print("******************** LOAD TEST EVENT ***********************")
 
     # FIXME: switch to prod5b+ file that contains effective focal length
-    with SimTelEventSource(input_url=filename, focal_length_choice='nominal') as reader:
+    with SimTelEventSource(input_url=filename, focal_length_choice="nominal") as reader:
         event = next(iter(reader))
 
     return event
@@ -60,7 +69,7 @@ def example_subarray():
 
     print("******************** LOAD TEST EVENT ***********************")
 
-    with SimTelEventSource(input_url=filename, focal_length_choice='nominal') as reader:
+    with SimTelEventSource(input_url=filename, focal_length_choice="nominal") as reader:
         return reader.subarray
 
 
@@ -85,7 +94,7 @@ def _subarray_and_event_gamma_off_axis_500_gev():
 
     path = get_dataset_path("lst_prod3_calibration_and_mcphotons.simtel.zst")
 
-    with SimTelEventSource(path, focal_length_choice='nominal') as source:
+    with SimTelEventSource(path, focal_length_choice="nominal") as source:
         it = iter(source)
         # we want the second event, first event is a corner clipper
         next(it)

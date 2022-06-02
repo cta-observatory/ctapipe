@@ -29,6 +29,7 @@ dependencies:
   - pytest
   - pytest-cov
   - pytest-runner
+  - pytest-astropy-header
   - pyyaml
   - scikit-learn
   - scipy
