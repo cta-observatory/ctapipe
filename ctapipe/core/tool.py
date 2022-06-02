@@ -8,6 +8,8 @@ import textwrap
 from abc import abstractmethod
 from typing import Union
 import yaml
+from docutils.core import publish_parts
+from inspect import cleandoc
 
 try:
     import tomli as toml
@@ -401,30 +403,47 @@ class Tool(Application):
         """nice HTML rep, with blue for non-default values"""
         traits = self.traits()
         name = self.__class__.__name__
+        docstring = (
+            publish_parts(
+                cleandoc(self.__class__.__doc__ or self.description), writer_name="html"
+            )["html_body"]
+            or "Undocumented"
+        )
         lines = [
             f"<b>{name}</b>",
-            f"<p> {self.__class__.__doc__ or self.description} </p>",
+            f"<p> {docstring} </p>",
             "<table>",
+            "    <colgroup>",
+            "        <col span='1' style=' '>",
+            "        <col span='1' style='width: 20em;'>",
+            "        <col span='1' >",
+            "    </colgroup>",
+            "    <tbody>",
         ]
         for key, val in self.get_current_config()[name].items():
-            # after running setup, also the subcomponents are in the current config
-            # which are not in traits
-            if key not in traits:
-                continue
+            htmlval = (
+                str(val).replace("/", "/<wbr>").replace("_", "_<wbr>")
+            )  # allow breaking at boundary
 
-            default = traits[key].default_value
-            thehelp = f"{traits[key].help} (default: {default})"
-            lines.append(f"<tr><th>{key}</th>")
-            if val != default:
-                lines.append(f"<td><span style='color:blue'>{val}</span></td>")
-            else:
-                lines.append(f"<td>{val}</td>")
-            lines.append(f'<td style="text-align:left"><i>{thehelp}</i></td></tr>')
-
+            # traits of the current component
+            if key in traits:
+                thehelp = f"{traits[key].help} (default: {traits[key].default_value})"
+                lines.append(f"<tr><th>{key}</th>")
+                if val != traits[key].default_value:
+                    lines.append(
+                        f"<td style='text-align: left;'><span style='color:blue; max-width:30em;'>{htmlval}</span></td>"
+                    )
+                else:
+                    lines.append(f"<td style='text-align: left;'>{htmlval}</td>")
+                lines.append(
+                    f"<td style='text-align: left;'><i>{thehelp}</i></td></tr>"
+                )
+        lines.append("    </tbody>")
         lines.append("</table>")
-        lines.append("<p><i>Components:</i>")
+        lines.append("<p><b>Components:</b>")
         lines.append(", ".join([x.__name__ for x in self.classes]))
         lines.append("</p>")
+        lines.append("</div>")
 
         return "\n".join(lines)
 
