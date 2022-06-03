@@ -426,9 +426,13 @@ class SimTelEventSource(EventSource):
             telescope_events = array_event["telescope_events"]
             tracking_positions = array_event["tracking_positions"]
 
-            true_image_sums = array_event.get("photoelectron_sums", {}).get(
-                "n_pe", np.full(self.n_telescopes_original, np.nan)
-            )
+            photoelectron_sums = array_event.get("photoelectron_sums")
+            if photoelectron_sums is not None:
+                true_image_sums = photoelectron_sums.get(
+                    "n_pe", np.full(self.n_telescopes_original, np.nan)
+                )
+            else:
+                true_image_sums = np.full(self.n_telescopes_original, np.nan)
 
             for tel_id, telescope_event in telescope_events.items():
                 adc_samples = telescope_event.get("adc_samples")
@@ -442,12 +446,13 @@ class SimTelEventSource(EventSource):
                     .get("photoelectrons", None)
                 )
 
-                data.simulation.tel[tel_id] = SimulatedCameraContainer(
-                    true_image_sum=true_image_sums[
-                        self.telescope_indices_original[tel_id]
-                    ],
-                    true_image=true_image,
-                )
+                if data.simulation is not None:
+                    data.simulation.tel[tel_id] = SimulatedCameraContainer(
+                        true_image_sum=true_image_sums[
+                            self.telescope_indices_original[tel_id]
+                        ],
+                        true_image=true_image,
+                    )
 
                 data.pointing.tel[tel_id] = self._fill_event_pointing(
                     tracking_positions[tel_id]
@@ -628,6 +633,9 @@ class SimTelEventSource(EventSource):
     def _fill_simulated_event_information(data, array_event):
         mc_event = array_event["mc_event"]
         mc_shower = array_event["mc_shower"]
+        if mc_shower is None:
+            data.simulation.shower = None
+            return
 
         data.simulation.shower = SimulatedShowerContainer(
             energy=u.Quantity(mc_shower["energy"], u.TeV),
