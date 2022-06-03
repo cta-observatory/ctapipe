@@ -25,12 +25,17 @@ from .optics import OpticsDescription
 __all__ = ["SubarrayDescription"]
 
 
+class UnknownTelescopeID(KeyError):
+    """Raised when an unknown telescope id is encountered"""
+
+
 def _group_consecutives(sequence):
     """
     Turn consequtive lists into ranges (used in SubarrayDescription.info())
 
     from https://codereview.stackexchange.com/questions/214820/codewars-range-extraction
     """
+    sequence = sorted(sequence)
     for _, g in groupby(enumerate(sequence), lambda i_x: i_x[0] - i_x[1]):
         r = [x for _, x in g]
         if len(r) > 2:
@@ -90,7 +95,7 @@ class SubarrayDescription:
 
     @property
     def tel(self):
-        """ for backward compatibility"""
+        """for backward compatibility"""
         return self.tels
 
     @property
@@ -132,7 +137,7 @@ class SubarrayDescription:
 
     @lazyproperty
     def tel_coords(self):
-        """ returns telescope positions as astropy.coordinates.SkyCoord"""
+        """returns telescope positions as astropy.coordinates.SkyCoord"""
 
         pos_x = np.array([p[0].to("m").value for p in self.positions.values()]) * u.m
         pos_y = np.array([p[1].to("m").value for p in self.positions.values()]) * u.m
@@ -142,7 +147,7 @@ class SubarrayDescription:
 
     @lazyproperty
     def tel_ids(self):
-        """ telescope IDs as an array"""
+        """telescope IDs as an array"""
         return np.array(list(self.tel.keys()))
 
     @lazyproperty
@@ -277,8 +282,8 @@ class SubarrayDescription:
             unique_types = self.telescope_types
 
             mirror_area = u.Quantity(
-                [t.optics.mirror_area.to_value(u.m ** 2) for t in unique_types],
-                u.m ** 2,
+                [t.optics.mirror_area.to_value(u.m**2) for t in unique_types],
+                u.m**2,
             )
             focal_length = u.Quantity(
                 [t.optics.equivalent_focal_length.to_value(u.m) for t in unique_types],
@@ -316,11 +321,15 @@ class SubarrayDescription:
         SubarrayDescription
         """
 
+        unknown_tel_ids = set(tel_ids).difference(self.tel.keys())
+        if len(unknown_tel_ids) > 0:
+            known = _range_extraction(self.tel.keys())
+            raise UnknownTelescopeID(f"{unknown_tel_ids}, known telescopes: {known}")
+
         tel_positions = {tid: self.positions[tid] for tid in tel_ids}
         tel_descriptions = {tid: self.tel[tid] for tid in tel_ids}
 
         if not name:
-            tel_ids = sorted(tel_ids)
             name = self.name + "_" + _range_extraction(tel_ids)
 
         newsub = SubarrayDescription(
@@ -362,17 +371,17 @@ class SubarrayDescription:
 
     @lazyproperty
     def telescope_types(self) -> List[TelescopeDescription]:
-        """ list of telescope types in the array"""
+        """list of telescope types in the array"""
         return list({tel for tel in self.tel.values()})
 
     @lazyproperty
     def camera_types(self) -> List[CameraDescription]:
-        """ list of camera types in the array """
+        """list of camera types in the array"""
         return list({tel.camera for tel in self.tel.values()})
 
     @lazyproperty
     def optics_types(self) -> List[OpticsDescription]:
-        """ list of optics types in the array """
+        """list of optics types in the array"""
         return list({tel.optics for tel in self.tel.values()})
 
     def get_tel_ids_for_type(self, tel_type):
