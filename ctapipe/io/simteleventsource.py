@@ -182,7 +182,7 @@ class SimTelEventSource(EventSource):
 
     focal_length_choice = CaselessStrEnum(
         ["nominal", "effective"],
-        default_value="nominal",
+        default_value="effective",
         help=(
             "if both nominal and effective focal lengths are available in the "
             "SimTelArray file, which one to use when constructing the "
@@ -308,25 +308,30 @@ class SimTelEventSource(EventSource):
             pixel_settings = telescope_description["pixel_settings"]
 
             n_pixels = cam_settings["n_pixels"]
-            focal_length = u.Quantity(cam_settings["focal_length"], u.m)
             mirror_area = u.Quantity(cam_settings["mirror_area"], u.m**2)
 
-            if self.focal_length_choice == "effective":
-                try:
-                    focal_length = u.Quantity(
-                        cam_settings["effective_focal_length"], u.m
-                    )
-                except KeyError as err:
-                    raise RuntimeError(
-                        f"the SimTelEventSource option 'focal_length_choice' was set to "
-                        f"{self.focal_length_choice}, but the effective focal length "
-                        f"was not present in the file. ({err})"
-                    )
+            nominal_focal_length = u.Quantity(cam_settings["focal_length"], u.m)
+            effective_focal_length = u.Quantity(
+                cam_settings.get("effective_focal_length", np.nan), u.m
+            )
 
             try:
-                telescope = guess_telescope(n_pixels, focal_length)
+                telescope = guess_telescope(n_pixels, nominal_focal_length)
             except ValueError:
                 telescope = unknown_telescope(mirror_area, n_pixels)
+
+            if self.focal_length_choice == "effective":
+                if np.isnan(effective_focal_length):
+                    raise RuntimeError(
+                        f"`SimTelEventSource.focal_length_choice` was set to"
+                        f" {self.focal_length_choice!r}, but the effective focal length"
+                        f" was not present in the file. "
+                        " Use nominal focal length or adapt your simulation configuration"
+                        " to include the effective focal length"
+                    )
+                focal_length = effective_focal_length
+            else:
+                focal_length = nominal_focal_length
 
             optics = OpticsDescription(
                 name=telescope.name,

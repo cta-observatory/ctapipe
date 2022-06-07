@@ -77,7 +77,9 @@ class Field:
         if self.ndim is not None:
             desc += f" as a {self.ndim}-D array"
         if self.dtype is not None:
-            desc += f" with type {self.dtype}"
+            desc += f" with dtype {self.dtype}"
+        if self.type is not None:
+            desc += f" with type {self.type}"
 
         return desc
 
@@ -143,7 +145,7 @@ class Field:
 
 
 class DeprecatedField(Field):
-    """ used to mark which fields may be removed in next version """
+    """used to mark which fields may be removed in next version"""
 
     def __init__(self, default, description="", unit=None, ucd=None, reason=""):
         super().__init__(default=default, description=description, unit=unit, ucd=ucd)

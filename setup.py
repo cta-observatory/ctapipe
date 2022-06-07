@@ -25,6 +25,7 @@ tests_require = [
     "pandas>=0.24.0",
     "importlib_resources;python_version<'3.9'",
     "tomli",
+    "pytest_astropy_header",
 ]
 docs_require = [
     "sphinx_rtd_theme",
@@ -63,6 +64,7 @@ setup(
         "importlib_resources;python_version<'3.9'",
         "jinja2~=3.0.2",  # for sphinx 3.5, update when moving to 4.x
         "pyyaml>=5.1",
+        "docutils",
     ],
     # here are optional dependencies (as "tag" : "dependency spec")
     extras_require={

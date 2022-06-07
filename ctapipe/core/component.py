@@ -2,6 +2,8 @@
 from abc import ABCMeta
 from inspect import isabstract
 from logging import getLogger
+from docutils.core import publish_parts
+from inspect import cleandoc
 
 from traitlets import TraitError
 from traitlets.config import Configurable
@@ -219,22 +221,45 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         """nice HTML rep, with blue for non-default values"""
         traits = self.traits()
         name = self.__class__.__name__
+        docstring = (
+            publish_parts(cleandoc(self.__class__.__doc__), writer_name="html")[
+                "html_body"
+            ]
+            or "Undocumented"
+        )
         lines = [
+            "<div style='border:1px solid black; max-width: 700px; padding:2em'; word-wrap:break-word;>",
             f"<b>{name}</b>",
-            f"<p> {self.__class__.__doc__ or 'Undocumented!'} </p>",
+            f"<p> {docstring} </p>",
             "<table>",
+            "    <colgroup>",
+            "        <col span='1' style=' '>",
+            "        <col span='1' style='width: 20em;'>",
+            "        <col span='1' >",
+            "    </colgroup>",
+            "    <tbody>",
         ]
         for key, val in self.get_current_config()[name].items():
+            htmlval = (
+                str(val).replace("/", "/<wbr>").replace("_", "_<wbr>")
+            )  # allow breaking at boundary
+
             # traits of the current component
             if key in traits:
                 thehelp = f"{traits[key].help} (default: {traits[key].default_value})"
                 lines.append(f"<tr><th>{key}</th>")
                 if val != traits[key].default_value:
-                    lines.append(f"<td><span style='color:blue'>{val}</span></td>")
+                    lines.append(
+                        f"<td style='text-align: left;'><span style='color:blue; max-width:30em;'>{htmlval}</span></td>"
+                    )
                 else:
-                    lines.append(f"<td>{val}</td>")
-                lines.append(f'<td style="text-align:left"><i>{thehelp}</i></td></tr>')
+                    lines.append(f"<td style='text-align: left;'>{htmlval}</td>")
+                lines.append(
+                    f"<td style='text-align: left;'><i>{thehelp}</i></td></tr>"
+                )
+        lines.append("    </tbody>")
         lines.append("</table>")
+        lines.append("</div>")
         return "\n".join(lines)
 
 

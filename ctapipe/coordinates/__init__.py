@@ -14,7 +14,12 @@ from astropy.coordinates import (
 import warnings
 from .telescope_frame import TelescopeFrame
 from .nominal_frame import NominalFrame
-from .ground_frames import GroundFrame, TiltedGroundFrame, project_to_ground
+from .ground_frames import (
+    GroundFrame,
+    TiltedGroundFrame,
+    project_to_ground,
+    EastingNorthingFrame,
+)
 from .camera_frame import CameraFrame, EngineeringCameraFrame
 
 
@@ -25,6 +30,7 @@ __all__ = [
     "NominalFrame",
     "GroundFrame",
     "TiltedGroundFrame",
+    "EastingNorthingFrame",
     "MissingFrameAttributeWarning",
     "altaz_to_righthanded_cartesian",
     "project_to_ground",
