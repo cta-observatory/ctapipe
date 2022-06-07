@@ -23,12 +23,17 @@ from .telescope import TelescopeDescription
 __all__ = ["SubarrayDescription"]
 
 
+class UnknownTelescopeID(KeyError):
+    """Raised when an unknown telescope id is encountered"""
+
+
 def _group_consecutives(sequence):
     """
     Turn consequtive lists into ranges (used in SubarrayDescription.info())
 
     from https://codereview.stackexchange.com/questions/214820/codewars-range-extraction
     """
+    sequence = sorted(sequence)
     for _, g in groupby(enumerate(sequence), lambda i_x: i_x[0] - i_x[1]):
         r = [x for _, x in g]
         if len(r) > 2:
@@ -314,11 +319,15 @@ class SubarrayDescription:
         SubarrayDescription
         """
 
+        unknown_tel_ids = set(tel_ids).difference(self.tel.keys())
+        if len(unknown_tel_ids) > 0:
+            known = _range_extraction(self.tel.keys())
+            raise UnknownTelescopeID(f"{unknown_tel_ids}, known telescopes: {known}")
+
         tel_positions = {tid: self.positions[tid] for tid in tel_ids}
         tel_descriptions = {tid: self.tel[tid] for tid in tel_ids}
 
         if not name:
-            tel_ids = sorted(tel_ids)
             name = self.name + "_" + _range_extraction(tel_ids)
 
         newsub = SubarrayDescription(
