@@ -20,7 +20,9 @@ from ctapipe.io import DataLevel
 gamma_test_large_path = get_dataset_path("gamma_test_large.simtel.gz")
 gamma_test_path = get_dataset_path("gamma_test.simtel.gz")
 calib_events_path = get_dataset_path("lst_prod3_calibration_and_mcphotons.simtel.zst")
-prod5b_path = get_dataset_path("gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst")
+prod5b_path = get_dataset_path(
+    "gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst"
+)
 
 
 def test_positional_input():
@@ -32,8 +34,9 @@ def test_simtel_event_source_on_gamma_test_one_event():
     assert SimTelEventSource.is_compatible(gamma_test_large_path)
 
     with SimTelEventSource(
-        input_url=gamma_test_large_path, back_seekable=True,
-        focal_length_choice='nominal',
+        input_url=gamma_test_large_path,
+        back_seekable=True,
+        focal_length_choice="nominal",
     ) as reader:
         assert not reader.is_stream
 
@@ -66,7 +69,7 @@ def test_that_event_is_not_modified_after_loop():
 def test_additional_meta_data_from_simulation_config():
     with SimTelEventSource(
         input_url=gamma_test_large_path,
-        focal_length_choice='nominal',
+        focal_length_choice="nominal",
     ) as reader:
         pass
 
@@ -108,7 +111,7 @@ def test_additional_meta_data_from_simulation_config():
 def test_properties():
     source = SimTelEventSource(
         input_url=gamma_test_large_path,
-        focal_length_choice='nominal',
+        focal_length_choice="nominal",
     )
 
     assert source.is_simulation
@@ -123,7 +126,7 @@ def test_gamma_file_prod2():
     with pytest.warns(UnknownPixelShapeWarning):
         with SimTelEventSource(
             input_url=dataset,
-            focal_length_choice='nominal',
+            focal_length_choice="nominal",
         ) as reader:
             assert reader.is_compatible(dataset)
             assert reader.is_stream  # using gzip subprocess makes it a stream
@@ -144,7 +147,7 @@ def test_max_events():
     with SimTelEventSource(
         input_url=gamma_test_large_path,
         max_events=max_events,
-        focal_length_choice='nominal',
+        focal_length_choice="nominal",
     ) as reader:
         count = 0
         for _ in reader:
@@ -156,7 +159,7 @@ def test_pointing():
     with SimTelEventSource(
         input_url=gamma_test_large_path,
         max_events=3,
-        focal_length_choice='nominal',
+        focal_length_choice="nominal",
     ) as reader:
         for e in reader:
             assert np.isclose(e.pointing.array_altitude.to_value(u.deg), 70)
@@ -174,8 +177,10 @@ def test_allowed_telescopes():
     # test that the allowed_tels mask works:
     allowed_tels = {3, 4}
     with SimTelEventSource(
-        input_url=gamma_test_large_path, allowed_tels=allowed_tels, max_events=5,
-        focal_length_choice='nominal',
+        input_url=gamma_test_large_path,
+        allowed_tels=allowed_tels,
+        max_events=5,
+        focal_length_choice="nominal",
     ) as reader:
         assert not allowed_tels.symmetric_difference(reader.subarray.tel_ids)
         for event in reader:
@@ -203,8 +208,9 @@ def test_calibration_events():
         EventType.SUBARRAY,
     ]
     with SimTelEventSource(
-        input_url=calib_events_path, skip_calibration_events=False,
-        focal_length_choice='nominal',
+        input_url=calib_events_path,
+        skip_calibration_events=False,
+        focal_length_choice="nominal",
     ) as reader:
 
         for event, expected_type in zip_longest(reader, expected_types):
@@ -215,7 +221,7 @@ def test_trigger_times():
 
     source = SimTelEventSource(
         input_url=calib_events_path,
-        focal_length_choice='nominal',
+        focal_length_choice="nominal",
     )
     t0 = Time("2020-05-06T15:30:00")
     t1 = Time("2020-05-06T15:40:00")
@@ -230,7 +236,7 @@ def test_trigger_times():
 def test_true_image():
     with SimTelEventSource(
         input_url=calib_events_path,
-        focal_length_choice='nominal',
+        focal_length_choice="nominal",
     ) as reader:
 
         for event in reader:
@@ -242,7 +248,7 @@ def test_instrument():
     """Test if same telescope types share a single instance of CameraGeometry"""
     source = SimTelEventSource(
         input_url=gamma_test_large_path,
-        focal_length_choice='nominal',
+        focal_length_choice="nominal",
     )
     subarray = source.subarray
     assert subarray.tel[1].optics.num_mirrors == 1
@@ -309,22 +315,25 @@ def test_focal_length_choice():
         SimTelEventSource(gamma_test_large_path)
 
     with pytest.raises(RuntimeError):
-        SimTelEventSource(gamma_test_large_path, focal_length_choice='effective')
+        SimTelEventSource(gamma_test_large_path, focal_length_choice="effective")
 
-    s = SimTelEventSource(gamma_test_large_path, focal_length_choice='nominal')
+    s = SimTelEventSource(gamma_test_large_path, focal_length_choice="nominal")
     assert s.subarray.tel[1].optics.equivalent_focal_length == 28 * u.m
 
     # this file does
-    s = SimTelEventSource(prod5b_path, focal_length_choice='effective')
-    assert u.isclose(s.subarray.tel[1].optics.equivalent_focal_length, 29.3 * u.m, atol=0.05 * u.m)
+    s = SimTelEventSource(prod5b_path, focal_length_choice="effective")
+    assert u.isclose(
+        s.subarray.tel[1].optics.equivalent_focal_length, 29.3 * u.m, atol=0.05 * u.m
+    )
     # check guessing of the name is not affected by focal length choice
-    assert str(s.subarray.tel[1]) == 'LST_LST_LSTCam'
+    assert str(s.subarray.tel[1]) == "LST_LST_LSTCam"
 
-    s = SimTelEventSource(prod5b_path, focal_length_choice='nominal')
-    assert u.isclose(s.subarray.tel[1].optics.equivalent_focal_length, 28.0 * u.m, atol=0.05 * u.m)
+    s = SimTelEventSource(prod5b_path, focal_length_choice="nominal")
+    assert u.isclose(
+        s.subarray.tel[1].optics.equivalent_focal_length, 28.0 * u.m, atol=0.05 * u.m
+    )
     # check guessing of the name is not affected by focal length choice
-    assert str(s.subarray.tel[1]) == 'LST_LST_LSTCam'
-
+    assert str(s.subarray.tel[1]) == "LST_LST_LSTCam"
 
 
 def test_only_config():
@@ -379,14 +388,14 @@ def test_true_image_sum():
     # this file does not contain true pe info
     with SimTelEventSource(
         gamma_test_large_path,
-        focal_length_choice='nominal',
+        focal_length_choice="nominal",
     ) as s:
         e = next(iter(s))
         assert np.all(np.isnan(sim.true_image_sum) for sim in e.simulation.tel.values())
 
     with SimTelEventSource(
         calib_events_path,
-        focal_length_choice='nominal',
+        focal_length_choice="nominal",
     ) as s:
         e = next(iter(s))
 
@@ -400,9 +409,16 @@ def test_true_image_sum():
     # check it also works with allowed_tels, since the values
     # are stored in a flat array in simtel
     with SimTelEventSource(
-        calib_events_path, allowed_tels={2, 3},
-        focal_length_choice='nominal',
+        calib_events_path,
+        allowed_tels={2, 3},
+        focal_length_choice="nominal",
     ) as s:
         e = next(iter(s))
         assert e.simulation.tel[2].true_image_sum == true_image_sums[2]
         assert e.simulation.tel[3].true_image_sum == true_image_sums[3]
+
+
+def test_extracted_calibevents():
+    with SimTelEventSource("dataset://extracted_pedestals.simtel.zst") as s:
+        for e in s:
+            print(e.index.event_id)
