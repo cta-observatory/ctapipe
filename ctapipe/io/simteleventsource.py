@@ -398,6 +398,8 @@ class SimTelEventSource(EventSource):
         data.meta["origin"] = "hessio"
         data.meta["input_url"] = self.input_url
         data.meta["max_events"] = self.max_events
+        # for events without event_id, we use negative event_ids
+        pseudo_event_id = 0
 
         self._fill_array_pointing(data)
 
@@ -413,7 +415,11 @@ class SimTelEventSource(EventSource):
             data.simulation.tel.clear()
             data.trigger.tel.clear()
 
-            event_id = array_event.get("event_id", -1)
+            event_id = array_event.get("event_id", 0)
+            if event_id == 0:
+                pseudo_event_id -= 1
+                event_id = pseudo_event_id
+
             obs_id = self.file_.header["run"]
             data.count = counter
             data.index.obs_id = obs_id

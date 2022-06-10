@@ -207,14 +207,18 @@ def test_calibration_events():
         EventType.SUBARRAY,
         EventType.SUBARRAY,
     ]
+
+    expected_ids = [-1, -2, -3, -4, -5, -6, -7, -8, 100, 200]
     with SimTelEventSource(
         input_url=calib_events_path,
         skip_calibration_events=False,
         focal_length_choice="nominal",
     ) as reader:
-
-        for event, expected_type in zip_longest(reader, expected_types):
+        for event, expected_type, expected_id in zip_longest(
+            reader, expected_types, expected_ids
+        ):
             assert event.trigger.event_type is expected_type
+            assert event.index.event_id == expected_id
 
 
 def test_trigger_times():
