@@ -424,5 +424,10 @@ def test_true_image_sum():
 
 def test_extracted_calibevents():
     with SimTelEventSource("dataset://extracted_pedestals.simtel.zst") as s:
+        i = 0
         for e in s:
-            print(e.index.event_id)
+            i = e.count
+            # these events are simulated but do not have shower information
+            assert e.simulation is not None
+            assert e.simulation.shower is None
+        assert i == 4
