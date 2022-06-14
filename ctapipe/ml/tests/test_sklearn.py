@@ -107,10 +107,12 @@ def test_regressor(model_cls, example_table):
     )
 
     regressor.fit(example_table)
-    prediction = regressor.predict(example_table)
+    prediction, valid = regressor.predict(example_table)
     assert prediction.shape == (100,)
-    assert np.isnan(prediction[10])
-    assert np.isnan(prediction[30])
+    assert not valid[10]
+    assert not valid[30]
+    assert np.isfinite(prediction[valid]).all()
+    assert np.isnan(prediction[~valid]).all()
 
 
 @pytest.mark.parametrize("model_cls", ["LinearRegression", "RandomForestRegressor"])
@@ -122,16 +124,17 @@ def test_regressor_single_event(model_cls, example_table):
     )
 
     regressor.fit(example_table)
-    prediction = regressor.predict(example_table[[0]])
+    prediction, valid = regressor.predict(example_table[[0]])
     assert prediction.shape == (1,)
 
-    # no test with a single invalid event
+    # now test with a single invalid event
     invalid = example_table[[0]].copy()
-    for col in filter(lambda col: col.startswith('X'), invalid.colnames):
+    for col in filter(lambda col: col.startswith("X"), invalid.colnames):
         invalid[col][:] = np.nan
 
-    prediction = regressor.predict(invalid)
+    prediction, valid = regressor.predict(invalid)
     assert prediction.shape == (1,)
+    assert valid[0] == False
 
 
 def test_regressor_log_target(example_table):
@@ -145,10 +148,12 @@ def test_regressor_log_target(example_table):
     )
 
     regressor.fit(example_table)
-    prediction = regressor.predict(example_table)
+    prediction, valid = regressor.predict(example_table)
     assert prediction.shape == (100,)
     assert np.isnan(prediction[10])
     assert np.isnan(prediction[30])
+    assert not valid[10]
+    assert not valid[30]
 
 
 @pytest.mark.parametrize(
@@ -162,16 +167,20 @@ def test_classifier(model_cls, example_table):
     )
 
     classifier.fit(example_table)
-    prediction = classifier.predict(example_table)
+    prediction, valid = classifier.predict(example_table)
     assert prediction.shape == (100,)
     assert_array_equal(np.unique(prediction), [-1, 0, 1])
     assert prediction[10] == -1
     assert prediction[30] == -1
+    assert not valid[10]
+    assert not valid[30]
 
-    score = classifier.predict_score(example_table)
+    score, valid = classifier.predict_score(example_table)
     assert score.shape == (100,)
     assert np.isnan(score[10])
     assert np.isnan(score[30])
+    assert not valid[10]
+    assert not valid[30]
 
     valid = np.isfinite(score)
     assert_array_equal((score[valid] > 0.5).astype(int), prediction[valid])
@@ -208,14 +217,16 @@ class Parent(Component):
 
 
 def test_io_with_parent(example_table, tmp_path):
-    config = Config(dict(
-        Classifier=dict(
-            model_cls="RandomForestClassifier",
-            model_config=dict(n_estimators=5, max_depth=3),
-            target="particle",
-            features=[f"X{i}" for i in range(8)],
+    config = Config(
+        dict(
+            Classifier=dict(
+                model_cls="RandomForestClassifier",
+                model_config=dict(n_estimators=5, max_depth=3),
+                target="particle",
+                features=[f"X{i}" for i in range(8)],
+            )
         )
-    ))
+    )
 
     parent = Parent(config=config)
     parent.classifier.fit(example_table)
@@ -225,8 +236,7 @@ def test_io_with_parent(example_table, tmp_path):
     loaded = Classifier.load(path)
     assert loaded.features == parent.classifier.features
     assert_array_equal(
-        loaded.model.feature_importances_,
-        parent.classifier.model.feature_importances_
+        loaded.model.feature_importances_, parent.classifier.model.feature_importances_
     )
 
     with pytest.raises(TypeError):
