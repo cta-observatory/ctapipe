@@ -2,15 +2,13 @@
 Component Wrappers around sklearn models
 """
 
-from copy import deepcopy
-
 import joblib
 import numpy as np
 from traitlets import Bool, Dict, Enum, Integer, List, Unicode
 
 from sklearn.utils import all_estimators
 
-from ..core import Component
+from ..core import Component, Provenance
 from .preprocessing import check_valid_rows, table_to_float
 
 SUPPORTED_CLASSIFIERS = dict(all_estimators("classifier"))
@@ -62,6 +60,7 @@ class Model(Component):
         return prediction, valid
 
     def write(self, path):
+        Provenance().add_output_file(path, role="ml-model")
         with open(path, "wb") as f:
             joblib.dump(self, f, compress=True)
 
