@@ -19,11 +19,13 @@ __all__ = ["TableLoader"]
 
 PARAMETERS_GROUP = "/dl1/event/telescope/parameters"
 IMAGES_GROUP = "/dl1/event/telescope/images"
-GEOMETRY_GROUP = "/dl2/event/subarray/geometry"
 TRIGGER_TABLE = "/dl1/event/subarray/trigger"
 SHOWER_TABLE = "/simulation/event/subarray/shower"
 TRUE_IMAGES_GROUP = "/simulation/event/telescope/images"
 TRUE_PARAMETERS_GROUP = "/simulation/event/telescope/parameters"
+
+DL2_SUBARRAY_GROUP = "/dl2/event/subarray"
+DL2_TELESCOPE_GROUP = "/dl2/event/telescope"
 
 by_id_RE = re.compile(r"tel_\d+")
 
@@ -97,9 +99,11 @@ class TableLoader(Component):
     load_dl1_parameters = traits.Bool(
         True, help="load reconstructed image parameters"
     ).tag(config=True)
-    load_dl2_geometry = traits.Bool(
-        False, help="load reconstructed shower geometry information"
-    ).tag(config=True)
+
+    load_dl2 = traits.Bool(False, help="load available dl2 stereo parameters").tag(
+        config=True
+    )
+
     load_simulated = traits.Bool(False, help="load simulated shower information").tag(
         config=True
     )
@@ -195,20 +199,24 @@ class TableLoader(Component):
             showers = read_table(self.h5file, SHOWER_TABLE)
             table = join_allow_empty(table, showers, SUBARRAY_EVENT_KEYS, "outer")
 
-        if self.load_dl2_geometry:
-            shower_geometry_group = self.h5file.root[GEOMETRY_GROUP]
+        if self.load_dl2:
+            if DL2_SUBARRAY_GROUP in self.h5file:
+                for group_name in self.h5file.root[DL2_SUBARRAY_GROUP]._v_children:
+                    group_path = f"{DL2_SUBARRAY_GROUP}/{group_name}"
+                    group = self.h5file.root[group_path]
 
-            for reconstructor in shower_geometry_group._v_children:
-                geometry = read_table(self.h5file, f"{GEOMETRY_GROUP}/{reconstructor}")
+                    for algorithm in group._v_children:
+                        dl2 = read_table(self.h5file, f"{group_path}/{algorithm}")
 
-                # rename DL2 columns to explicit reconstructor
-                # TBD: we could skip this if only 1 reconstructor is present
-                # or simply find another way to deal with multiple reconstructions
-                for col in set(geometry.colnames) - set(SUBARRAY_EVENT_KEYS):
-                    geometry.rename_column(col, f"{reconstructor}_{col}")
+                        # rename DL2 columns to explicit reconstructor
+                        # TBD: we could skip this if only 1 reconstructor is present
+                        # or simply find another way to deal with multiple reconstructions
+                        for col in set(dl2.colnames) - set(SUBARRAY_EVENT_KEYS):
+                            dl2.rename_column(col, f"{algorithm}_{col}")
 
-                table = join_allow_empty(table, geometry, SUBARRAY_EVENT_KEYS, "outer")
-
+                        table = join_allow_empty(
+                            table, dl2, SUBARRAY_EVENT_KEYS, "outer"
+                        )
         return table
 
     def _read_telescope_events_for_id(self, tel_id):
@@ -243,6 +251,26 @@ class TableLoader(Component):
             table = join_allow_empty(
                 table, images, join_type="outer", keys=TELESCOPE_EVENT_KEYS
             )
+
+        if self.load_dl2:
+            if DL2_TELESCOPE_GROUP in self.h5file:
+                for group_name in self.h5file[DL2_TELESCOPE_GROUP]._v_children:
+                    group_path = f"{DL2_TELESCOPE_GROUP}/{group_name}"
+                    group = self.h5file.root[group_path]
+
+                    for algorithm in group._v_children:
+                        path = f"{group_path}/{algorithm}"
+                        dl2 = self._read_telescope_table(path, tel_id)
+
+                        # rename DL2 columns to explicit reconstructor
+                        # TBD: we could skip this if only 1 reconstructor is present
+                        # or simply find another way to deal with multiple reconstructions
+                        for col in set(dl2.colnames) - set(TELESCOPE_EVENT_KEYS):
+                            dl2.rename_column(col, f"{algorithm}_{col}")
+
+                        table = join_allow_empty(
+                            table, dl2, TELESCOPE_EVENT_KEYS, "outer"
+                        )
 
         if self.load_true_images:
             true_images = self._read_telescope_table(TRUE_IMAGES_GROUP, tel_id)
@@ -308,7 +336,7 @@ class TableLoader(Component):
 
         table = self._read_telescope_events_for_ids(tel_ids)
 
-        if any([self.load_trigger, self.load_simulated, self.load_dl2_geometry]):
+        if any([self.load_trigger, self.load_simulated, self.load_dl2]):
             table = self._join_subarray_info(table)
 
         return table
@@ -341,7 +369,7 @@ class TableLoader(Component):
 
         by_type = {k: vstack(ts) for k, ts in by_type.items()}
 
-        if any([self.load_trigger, self.load_simulated, self.load_dl2_geometry]):
+        if any([self.load_trigger, self.load_simulated, self.load_dl2]):
             for key, table in by_type.items():
                 by_type[key] = self._join_subarray_info(table)
 
