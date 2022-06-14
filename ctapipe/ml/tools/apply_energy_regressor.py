@@ -52,5 +52,9 @@ class ApplyEnergyRegressor(Tool):
         self.loader.close()
 
 
-if __name__ == "__main__":
+def main():
     ApplyEnergyRegressor().run()
+
+
+if __name__ == "__main__":
+    main()
