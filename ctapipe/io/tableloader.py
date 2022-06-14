@@ -70,6 +70,24 @@ def _get_structure(h5file):
     return "by_type"
 
 
+def _add_column_prefix(table, prefix, ignore=()):
+    """
+    Add a prefix to all columns in table besides columns in ``ignore``.
+    """
+    for col in set(table.colnames) - set(ignore):
+        table.rename_column(col, f"{prefix}_{col}")
+
+
+def _join_subarray_events(table1, table2):
+    """Outer join two tables on the telescope subarray keys"""
+    return join_allow_empty(table1, table2, SUBARRAY_EVENT_KEYS, "outer")
+
+
+def _join_telescope_events(table1, table2):
+    """Outer join two tables on the telescope event keys"""
+    return join_allow_empty(table1, table2, TELESCOPE_EVENT_KEYS, "outer")
+
+
 class TableLoader(Component):
     """
     Load telescope-event or subarray-event data from ctapipe HDF5 files
@@ -193,11 +211,11 @@ class TableLoader(Component):
 
         if self.load_trigger:
             trigger = read_table(self.h5file, TRIGGER_TABLE)
-            table = join_allow_empty(table, trigger, SUBARRAY_EVENT_KEYS, "outer")
+            table = _join_subarray_events(table, trigger)
 
         if self.load_simulated and SHOWER_TABLE in self.h5file:
             showers = read_table(self.h5file, SHOWER_TABLE)
-            table = join_allow_empty(table, showers, SUBARRAY_EVENT_KEYS, "outer")
+            table = _join_subarray_events(table, showers)
 
         if self.load_dl2:
             if DL2_SUBARRAY_GROUP in self.h5file:
@@ -208,15 +226,12 @@ class TableLoader(Component):
                     for algorithm in group._v_children:
                         dl2 = read_table(self.h5file, f"{group_path}/{algorithm}")
 
-                        # rename DL2 columns to explicit reconstructor
-                        # TBD: we could skip this if only 1 reconstructor is present
-                        # or simply find another way to deal with multiple reconstructions
-                        for col in set(dl2.colnames) - set(SUBARRAY_EVENT_KEYS):
-                            dl2.rename_column(col, f"{algorithm}_{col}")
-
-                        table = join_allow_empty(
-                            table, dl2, SUBARRAY_EVENT_KEYS, "outer"
+                        # add the algorithm as prefix to distinguish multiple
+                        # algorithms predicting the same quantities
+                        _add_column_prefix(
+                            dl2, prefix=algorithm, ignore=SUBARRAY_EVENT_KEYS
                         )
+                        table = _join_subarray_events(table, dl2)
         return table
 
     def _read_telescope_events_for_id(self, tel_id):
@@ -242,15 +257,11 @@ class TableLoader(Component):
 
         if self.load_dl1_parameters:
             parameters = self._read_telescope_table(PARAMETERS_GROUP, tel_id)
-            table = join_allow_empty(
-                table, parameters, join_type="outer", keys=TELESCOPE_EVENT_KEYS
-            )
+            table = _join_telescope_events(table, parameters)
 
         if self.load_dl1_images:
             images = self._read_telescope_table(IMAGES_GROUP, tel_id)
-            table = join_allow_empty(
-                table, images, join_type="outer", keys=TELESCOPE_EVENT_KEYS
-            )
+            table = _join_telescope_events(table, images)
 
         if self.load_dl2:
             if DL2_TELESCOPE_GROUP in self.h5file:
@@ -262,21 +273,16 @@ class TableLoader(Component):
                         path = f"{group_path}/{algorithm}"
                         dl2 = self._read_telescope_table(path, tel_id)
 
-                        # rename DL2 columns to explicit reconstructor
-                        # TBD: we could skip this if only 1 reconstructor is present
-                        # or simply find another way to deal with multiple reconstructions
-                        for col in set(dl2.colnames) - set(TELESCOPE_EVENT_KEYS):
-                            dl2.rename_column(col, f"{algorithm}_{col}")
-
-                        table = join_allow_empty(
-                            table, dl2, TELESCOPE_EVENT_KEYS, "outer"
+                        # add the algorithm as prefix to distinguish multiple
+                        # algorithms predicting the same quantities
+                        _add_column_prefix(
+                            dl2, prefix=algorithm, ignore=TELESCOPE_EVENT_KEYS
                         )
+                        table = _join_telescope_events(table, dl2)
 
         if self.load_true_images:
             true_images = self._read_telescope_table(TRUE_IMAGES_GROUP, tel_id)
-            table = join_allow_empty(
-                table, true_images, join_type="outer", keys=TELESCOPE_EVENT_KEYS
-            )
+            table = _join_telescope_events(table, true_images)
 
         if self.load_true_parameters:
             true_parameters = self._read_telescope_table(TRUE_PARAMETERS_GROUP, tel_id)
@@ -284,9 +290,7 @@ class TableLoader(Component):
             for col in set(true_parameters.colnames) - set(TELESCOPE_EVENT_KEYS):
                 true_parameters.rename_column(col, f"true_{col}")
 
-            table = join_allow_empty(
-                table, true_parameters, join_type="outer", keys=TELESCOPE_EVENT_KEYS
-            )
+            table = _join_telescope_events(table, true_parameters)
 
         if self.load_instrument:
             table = join_allow_empty(
