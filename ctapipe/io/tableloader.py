@@ -84,6 +84,11 @@ class TableLoader(Component):
       telescope type, which is needed for e.g. DL1 image data that might have
       different shapes for each of the telescope types as tables do not support
       variable length columns.
+
+    Attributes
+    ----------
+    subarray : `~ctapipe.instrument.SubarrayDescription`
+        The subarray as read from `input_url`.
     """
 
     input_url = traits.Path(directory_ok=False, exists=True).tag(config=True)

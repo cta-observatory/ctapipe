@@ -131,10 +131,66 @@ information. It can be used in an event loop like:
         for event in source:
             calibrate(event)
             write_data(event)
-    
+
 Reading Output Tables:
 ======================
-In addition to using an `EventSource` to read R0-DL1 data files, one can also access full *tables* for files that are in HDF5 format (e.g. DL1 files).
+In addition to using an `EventSource` to read R0-DL1 data files, one can also access full *tables* for files that are in HDF5 format (e.g. DL1 and higher files).
+
+
+`~ctapipe.io.TableLoader`: is a a convenient way to load and join together the
+tables in a ctapipe output file into one or more high-level tables useful for analysis.
+Which information is read and joined is controlled by the TableLoader's configuration
+options. 
+
+By default, TableLoader will read the dl1 parameters for each telescope
+into one big table, joining the simulation information if available:
+
+.. code-block:: python
+
+    from ctapipe.io import TableLoader
+
+    loader = TableLoader("events.dl1.h5")
+    events = loader.read_subarray_events()
+    tel_events = loader.read_telescope_events()
+
+    print(loader.subarray, len(events), len(tel_events))
+
+
+You can also load telescope events for specific selections of telescopes:
+.. code-block:: python
+
+   # by str representation of the type
+   loader.read_telescope_events(["LST_LST_LSTCam"])
+
+   # by telescope ids
+   loader.read_telescope_events([1, 2, 3, 15])
+
+   # mixture
+   loader.read_telescope_events([1, 2, 3, 4, "MST_MST_NectarCam"])
+
+
+Loading the DL1 image data for telescopes with different numbers of pixels
+does not work as astropy tables do not support heterogenous data in columns.
+In this case, use:
+
+.. code-block:: python
+
+    from ctapipe.io import TableLoader
+
+    loader = TableLoader("events.dl1.h5", load_dl1_images=True)
+
+    # tel_events is now a dict[str] -> Table mapping telescope type names to
+    # table for that telescope type
+    tel_events = loader.read_telescope_events_by_type()
+    print(tel_events["LST_LST_LSTCam"])
+
+
+For more examples, see `~ctapipe.io.TableLoader`.
+
+Reading Single HDF5 Tables
+--------------------------
+
+
 The `read_table` function will load any table in an HDF5 table into an ``astropy.table.QTable`` in memory,
 while maintaining units, column descriptions, and other ctapipe metadata.
 Astropy Tables can also be converted to Pandas tables via their ``to_pandas()`` method,
