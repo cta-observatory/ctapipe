@@ -461,24 +461,21 @@ class SubarrayDescription:
             if not isinstance(h5file, tables.File):
                 h5file = stack.enter_context(tables.open_file(h5file, mode=mode))
 
-            if "/configuration/instrument/subarray" in h5file.root:
-                if overwrite is False:
-                    raise IOError(
-                        "File already contains a SubarrayDescription and overwrite=False"
-                    )
+            if "/configuration/instrument/subarray" in h5file.root and not overwrite:
+                raise IOError(
+                    "File already contains a SubarrayDescription and overwrite=False"
+                )
 
             write_table(
                 self.to_table(),
                 h5file,
                 path="/configuration/instrument/subarray/layout",
-                mode="a",
                 overwrite=overwrite,
             )
             write_table(
                 self.to_table(kind="optics"),
                 h5file,
                 path="/configuration/instrument/telescope/optics",
-                mode="a",
                 overwrite=overwrite,
             )
             for i, camera in enumerate(self.camera_types):
@@ -486,13 +483,13 @@ class SubarrayDescription:
                     camera.geometry.to_table(),
                     h5file,
                     path=f"/configuration/instrument/telescope/camera/geometry_{i}",
-                    mode="a",
+                    overwrite=overwrite,
                 )
                 write_table(
                     camera.readout.to_table(),
                     h5file,
                     path=f"/configuration/instrument/telescope/camera/readout_{i}",
-                    mode="a",
+                    overwrite=overwrite,
                 )
 
             h5file.root.configuration.instrument.subarray._v_attrs.name = self.name
