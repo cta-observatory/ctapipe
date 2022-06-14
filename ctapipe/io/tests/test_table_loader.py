@@ -183,3 +183,22 @@ def test_read_telescope_events_by_type(test_file_dl2):
             assert "true_image" in table.colnames
             assert set(table["tel_id"].data).issubset([25, 125, 130])
             assert "equivalent_focal_length" in table.colnames
+
+
+def test_h5file(test_file_dl2):
+    """Test we can also pass an already open h5file"""
+    from ctapipe.io.tableloader import TableLoader
+
+    _, dl2_file = test_file_dl2
+
+    # no input raises error
+    with pytest.raises(ValueError):
+        with TableLoader():
+            pass
+
+    # test we can use an already open file
+    with tables.open_file(dl2_file, mode="r+") as h5file:
+        with TableLoader(h5file=h5file) as loader:
+            assert 25 in loader.subarray.tel
+            loader.read_subarray_events()
+            loader.read_telescope_events()
