@@ -3,6 +3,7 @@ Class and related functions to read DL1 (a,b) and/or DL2 (a) data
 from an HDF5 file produced with ctapipe-process.
 """
 
+from pathlib import Path
 import re
 from collections import defaultdict
 from typing import Dict
@@ -10,6 +11,7 @@ from typing import Dict
 import numpy as np
 from astropy.table import join, vstack, Table
 import tables
+from traitlets.traitlets import Instance
 
 from ..core import Component, traits, Provenance
 from ..instrument import SubarrayDescription
@@ -91,7 +93,10 @@ class TableLoader(Component):
         The subarray as read from `input_url`.
     """
 
-    input_url = traits.Path(directory_ok=False, exists=True).tag(config=True)
+    input_url = traits.Path(
+        directory_ok=False, exists=True, allow_none=True, default_value=None
+    ).tag(config=True)
+    h5file = Instance(tables.File, default_value=None, allow_none=True).tag(config=True)
 
     load_dl1_images = traits.Bool(False, help="load extracted images").tag(config=True)
     load_dl1_parameters = traits.Bool(
@@ -118,12 +123,24 @@ class TableLoader(Component):
 
     def __init__(self, input_url=None, **kwargs):
         # enable using input_url as posarg
-        if input_url not in {None, traits.Undefined}:
+        if input_url not in {None, traits.Undefined} and not isinstance(
+            input_url, tables.File
+        ):
             kwargs["input_url"] = input_url
+
         super().__init__(**kwargs)
 
-        self.subarray = SubarrayDescription.from_hdf(self.input_url)
-        self.h5file = tables.open_file(self.input_url, mode="r")
+        if self.h5file is None and self.input_url is None:
+            raise ValueError("Need to specify either input_url or h5file")
+
+        self._should_close = False
+        if self.h5file is None:
+            self.h5file = tables.open_file(self.input_url, mode="r")
+            self._should_close = True
+        else:
+            self.input_url = Path(self.h5file.filename)
+
+        self.subarray = SubarrayDescription.from_hdf(self.h5file)
 
         Provenance().add_input_file(self.input_url, role="Event data")
 
@@ -151,7 +168,8 @@ class TableLoader(Component):
 
     def close(self):
         """Close the underlying hdf5 file"""
-        self.h5file.close()
+        if self._should_close:
+            self.h5file.close()
 
     def __del__(self):
         self.close()
