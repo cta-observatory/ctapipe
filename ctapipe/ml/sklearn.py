@@ -57,7 +57,8 @@ class Model(Component):
         prediction = np.full(shape, np.nan)
         if np.any(valid):
             prediction[valid] = self.model.predict(X)
-        return prediction
+
+        return prediction, valid
 
     def write(self, path):
         with open(path, "wb") as f:
@@ -99,13 +100,12 @@ class Regressor(Model):
         return y
 
     def predict(self, table):
-        prediction = super().predict(table)
+        prediction, valid = super().predict(table)
 
         if self.log_target:
-            with np.errstate(invalid="ignore"):
-                return np.exp(prediction)
+            prediction[valid] = np.exp(prediction[valid])
 
-        return prediction
+        return prediction, valid
 
 
 class Classifier(Model):
@@ -127,7 +127,8 @@ class Classifier(Model):
         prediction = np.full(shape, self.invalid_class, dtype=np.int8)
         if np.any(valid):
             prediction[valid] = self.model.predict(X)
-        return prediction
+
+        return prediction, valid
 
     def predict_score(self, table):
         X, valid = self.table_to_X(table)
@@ -147,4 +148,4 @@ class Classifier(Model):
                 # only return one score for the positive class
                 scores[valid] = prediction[:, 1]
 
-        return scores
+        return scores, valid
