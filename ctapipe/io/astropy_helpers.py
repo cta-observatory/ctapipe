@@ -131,6 +131,9 @@ def write_table(
     copied = False
     parent, table_name = os.path.split(path)
 
+    if append and overwrite:
+        raise ValueError("overwrite and append are mutually exclusive")
+
     with ExitStack() as stack:
         if not isinstance(h5file, tables.File):
             h5file = stack.enter_context(tables.open_file(h5file, mode=mode))
