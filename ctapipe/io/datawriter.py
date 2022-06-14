@@ -268,7 +268,7 @@ class DataWriter(Component):
             table_name="dl1/event/subarray/trigger",
             containers=[event.index, event.trigger],
         )
-        if self._is_simulation:
+        if event.simulation is not None and event.simulation.shower is not None:
             self._writer.write(
                 table_name="simulation/event/subarray/shower",
                 containers=[event.index, event.simulation.shower],
