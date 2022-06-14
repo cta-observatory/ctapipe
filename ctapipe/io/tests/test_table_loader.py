@@ -202,3 +202,55 @@ def test_h5file(test_file_dl2):
             assert 25 in loader.subarray.tel
             loader.read_subarray_events()
             loader.read_telescope_events()
+
+
+def test_chunked(dl2_shower_geometry_file):
+    """Test chunked reading"""
+    from ctapipe.io.tableloader import TableLoader, read_table
+
+    trigger = read_table(dl2_shower_geometry_file, "/dl1/event/subarray/trigger")
+    n_events = len(trigger)
+    n_read = 0
+
+    n_chunks = 2
+    chunksize = int(np.ceil(n_events / n_chunks))
+
+    with TableLoader(
+        dl2_shower_geometry_file,
+        load_dl1_images=False,
+        load_true_images=False,
+        load_dl1_parameters=True,
+        load_dl2=True,
+        load_simulated=True,
+        load_trigger=True,
+    ) as table_loader:
+
+        for chunk in range(n_chunks):
+            start = chunk * chunksize
+            stop = (chunk + 1) * chunksize
+
+            events = table_loader.read_subarray_events(start=start, stop=stop)
+            n_read += len(events)
+
+            tel_events = table_loader.read_telescope_events(start=start, stop=stop)
+
+            # last chunk might be smaller
+            if chunk == (n_chunks - 1):
+                assert len(events) == n_events % chunksize
+            else:
+                assert len(events) == chunksize
+
+            assert len(tel_events) == np.sum(events["tels_with_trigger"])
+
+            unique_events_from_tel_table = np.unique(tel_events[["obs_id", "event_id"]])
+
+            # test we get matching obs_ids / event_ids
+            idx = events[["obs_id", "event_id"]].argsort()
+            sorted_index = np.array(events[["obs_id", "event_id"]][idx])
+            # for some reason the dtypes don't match and comparing structured
+            # arrays with different dtypes just comparse false
+            assert (
+                unique_events_from_tel_table.astype(sorted_index.dtype) == sorted_index
+            ).all()
+
+    assert n_read == n_events

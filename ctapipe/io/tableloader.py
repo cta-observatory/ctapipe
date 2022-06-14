@@ -279,7 +279,6 @@ class TableLoader(Component):
         table: astropy.io.Table
             Table with primary index columns "obs_id", "event_id" and "tel_id".
         """
-
         if tel_id is None:
             raise ValueError("Please, specify a telescope ID.")
 
