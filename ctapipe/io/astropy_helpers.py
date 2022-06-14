@@ -95,7 +95,15 @@ def read_table(
         return astropy_table
 
 
-def write_table(table, h5file, path, append=False, mode="a", filters=DEFAULT_FILTERS):
+def write_table(
+    table,
+    h5file,
+    path,
+    append=False,
+    overwrite=False,
+    mode="a",
+    filters=DEFAULT_FILTERS,
+):
     """Write a table to an HDF5 file
 
     This writes a table in the ctapipe format into ``h5file``.
@@ -113,15 +121,30 @@ def write_table(table, h5file, path, append=False, mode="a", filters=DEFAULT_FIL
         dataset path inside the ``h5file``
     append: bool
         Wether to try to append to or replace an existing table
+    overwrite: bool
+        If table is already in file and overwrite and append are false,
+        raise an error.
     mode: str
         If given a path for ``h5file``, it will be opened in this mode.
         See the docs of ``tables.open_file``.
     """
     copied = False
+    parent, table_name = os.path.split(path)
 
     with ExitStack() as stack:
         if not isinstance(h5file, tables.File):
             h5file = stack.enter_context(tables.open_file(h5file, mode=mode))
+
+        already_exists = path in h5file.root
+        if already_exists:
+            if overwrite and not append:
+                h5file.remove_node(parent, table_name)
+                already_exists = False
+
+            elif not overwrite and not append:
+                raise IOError(
+                    f"Table {path} already exists in output file, use append or overwrite"
+                )
 
         attrs = {}
         for colname, column in table.columns.items():
@@ -152,14 +175,6 @@ def write_table(table, h5file, path, append=False, mode="a", filters=DEFAULT_FIL
             elif column.unit is not None:
                 transform = QuantityColumnTransform(column.unit)
                 attrs.update(transform.get_meta(colname))
-
-        parent, table_name = os.path.split(path)
-
-        already_exists = path in h5file.root
-
-        if already_exists and not append:
-            h5file.remove_node(parent, table_name)
-            already_exists = False
 
         if not already_exists:
             h5_table = h5file.create_table(

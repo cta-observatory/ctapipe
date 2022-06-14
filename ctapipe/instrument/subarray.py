@@ -467,24 +467,19 @@ class SubarrayDescription:
                         "File already contains a SubarrayDescription and overwrite=False"
                     )
 
-                h5file.remove_node(
-                    "/configuration/instrument/", "subarray", recursive=True
-                )
-                h5file.remove_node(
-                    "/configuration/instrument/", "telescope", recursive=True
-                )
-
             write_table(
                 self.to_table(),
                 h5file,
                 path="/configuration/instrument/subarray/layout",
                 mode="a",
+                overwrite=overwrite,
             )
             write_table(
                 self.to_table(kind="optics"),
                 h5file,
                 path="/configuration/instrument/telescope/optics",
                 mode="a",
+                overwrite=overwrite,
             )
             for i, camera in enumerate(self.camera_types):
                 write_table(

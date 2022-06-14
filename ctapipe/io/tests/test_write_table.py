@@ -45,13 +45,17 @@ def test_write_table(tmp_path):
     assert read.meta["FOO"] == "bar"
     assert read["speed"].description == "Speed of stuff"
 
+    # test error for already existing table
+    with pytest.raises(IOError):
+        write_table(table, output_path, table_path)
+
     # test we can append
     write_table(table, output_path, table_path, append=True)
     read = read_table(output_path, table_path)
     assert len(read) == 2 * len(table)
 
     # test we can overwrite
-    write_table(table, output_path, table_path, append=False)
+    write_table(table, output_path, table_path, overwrite=True)
     assert len(read_table(output_path, table_path)) == len(table)
 
 
