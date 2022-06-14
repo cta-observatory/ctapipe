@@ -94,9 +94,14 @@ class TrainEnergyRegressor(Tool):
         )
 
     def finish(self):
+        self.log.info("Writing output")
         self.model.write(self.output_path)
         self.loader.close()
 
 
-if __name__ == "__main__":
+def main():
     TrainEnergyRegressor().run()
+
+
+if __name__ == "__main__":
+    main()

@@ -19,6 +19,8 @@ entry_points["console_scripts"] = [
     "ctapipe-merge = ctapipe.tools.merge:main",
     "ctapipe-fileinfo = ctapipe.tools.fileinfo:main",
     "ctapipe-quickstart = ctapipe.tools.quickstart:main",
+    "ctapipe-ml-train-energy-regressor = ctapipe.ml.tools.train_energy_regressor:main",
+    "ctapipe-ml-apply-energy-regressor = ctapipe.ml.tools.apply_energy_regressor:main",
 ]
 tests_require = [
     "pytest",
