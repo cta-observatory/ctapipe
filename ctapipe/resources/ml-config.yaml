@@ -14,7 +14,6 @@ TrainEnergyRegressor:
       - hillas_r
       - hillas_skewness
       - timing_slope
-      - timing_intercept
       - leakage_intensity_width_1
       - leakage_intensity_width_2
       - leakage_pixels_width_1
@@ -22,3 +21,5 @@ TrainEnergyRegressor:
       - concentration_cog
       - concentration_core
       - morphology_num_pixels
+      - HillasReconstructor_average_intensity
+      - mirror_area
