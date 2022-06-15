@@ -20,6 +20,11 @@ try:
 except ImportError:
     has_resources = False
 
+try:
+    from importlib.resources import files
+except ImportError:
+    from importlib_resources import files
+
 
 from ..core import Provenance
 
@@ -32,7 +37,7 @@ DEFAULT_URL = "http://cccta-dataserver.in2p3.fr/data/ctapipe-extra/v0.3.4/"
 
 
 def get_searchpath_dirs(searchpath=os.getenv("CTAPIPE_SVC_PATH"), url=DEFAULT_URL):
-    """ returns a list of dirs in specified searchpath"""
+    """returns a list of dirs in specified searchpath"""
 
     if searchpath == "" or searchpath is None:
         searchpaths = []
@@ -291,3 +296,8 @@ def get_structured_dataset(basename, role="resource", **kwargs):
     # table.read()
     structured_types = {".yaml": load_yaml, ".yml": load_yaml, ".json": load_json}
     return try_filetypes(basename, role, structured_types, **kwargs)
+
+
+def resource_file(filename):
+    """Get the absoulte path of ctapipe resource files."""
+    return files("ctapipe").joinpath("resources", filename)
