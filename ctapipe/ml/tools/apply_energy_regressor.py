@@ -58,7 +58,7 @@ class ApplyEnergyRegressor(Tool):
             h5file=self.h5file,
             load_dl1_images=False,
             load_dl1_parameters=True,
-            load_dl2_geometry=True,
+            load_dl2=True,
             load_simulated=True,
         )
 
