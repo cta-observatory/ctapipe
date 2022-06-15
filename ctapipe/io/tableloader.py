@@ -37,6 +37,58 @@ SUBARRAY_EVENT_KEYS = ["obs_id", "event_id"]
 TELESCOPE_EVENT_KEYS = ["obs_id", "event_id", "tel_id"]
 
 
+class ChunkIterator:
+    """An iterator that calls a function on advancemnt
+
+    Parameters
+    ----------
+    func : Callable
+        Signature must be ``function(*args, start=start, stop=stop, **kwargs)``
+        Where start and stop are the first and last (noninclusive) indicies of
+        a chunk.
+    n_total : int
+        Total number of elements
+    chunk_size : size of one chunk, last chunk will have size <= chunk_size
+
+    *args and **kwargs will be passed to `func`
+
+    """
+
+    def __init__(
+        self,
+        func,
+        n_total,
+        chunk_size,
+        *args,
+        **kwargs,
+    ):
+        self.func = func
+        self.n_total = n_total
+        self.chunk_size = chunk_size
+        self._current_chunk = 0
+        self.n_chunks = int(np.ceil(self.n_total / self.chunk_size))
+        self.args = args
+        self.kwargs = kwargs
+
+    def __len__(self):
+        return self.n_chunks
+
+    def __iter__(self):
+        self._current_chunk = 0
+        return self
+
+    def __next__(self):
+        if self._current_chunk == self.n_chunks:
+            raise StopIteration
+
+        chunk = self._current_chunk
+        start = chunk * self.chunk_size
+        stop = min(self.n_total, (chunk + 1) * self.chunk_size)
+
+        self._current_chunk += 1
+        return self.func(*self.args, start=start, stop=stop, **self.kwargs)
+
+
 def _empty_telescope_events_table():
     """
     Create a new astropy table with correct column names and dtypes
@@ -260,6 +312,23 @@ class TableLoader(Component):
                         table = _join_subarray_events(table, dl2)
         return table
 
+    def read_subarray_events_chunked(self, chunk_size):
+        """
+        Iterate over chunks of subarray events.
+
+        Parameters
+        ----------
+        chunk_size: int
+            Number of subarray events to load per chunk
+        """
+        n_events = self.h5file.root[TRIGGER_TABLE].shape[0]
+
+        return ChunkIterator(
+            self.read_subarray_events,
+            n_total=n_events,
+            chunk_size=chunk_size,
+        )
+
     def _read_telescope_events_for_id(self, tel_id, start=None, stop=None):
         """Read telescope-based event information for a single telescope.
 
@@ -414,6 +483,28 @@ class TableLoader(Component):
             table = self._join_subarray_info(table, start=start, stop=stop)
 
         return table
+
+    def read_telescope_events_chunked(self, chunk_size, **kwargs):
+        """
+        Iterate over chunks of telescope events.
+
+        Parameters
+        ----------
+        chunk_size: int
+            Number of subarray events to load per chunk.
+            The telescope tables might be larger or smaller than chunk_size
+            depending on the selected telescopes.
+
+        **kwargs are passed to `read_telescope_events`
+        """
+        n_events = self.h5file.root[TRIGGER_TABLE].shape[0]
+
+        return ChunkIterator(
+            self.read_telescope_events,
+            n_total=n_events,
+            chunk_size=chunk_size,
+            **kwargs,
+        )
 
     @lazyproperty
     def _n_telescope_events(self):

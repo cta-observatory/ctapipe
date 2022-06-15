@@ -222,7 +222,7 @@ def test_chunked(dl2_shower_geometry_file):
     n_read = 0
 
     n_chunks = 2
-    chunksize = int(np.ceil(n_events / n_chunks))
+    chunk_size = int(np.ceil(n_events / n_chunks))
 
     with TableLoader(
         dl2_shower_geometry_file,
@@ -234,20 +234,17 @@ def test_chunked(dl2_shower_geometry_file):
         load_trigger=True,
     ) as table_loader:
 
-        for chunk in range(n_chunks):
-            start = chunk * chunksize
-            stop = (chunk + 1) * chunksize
+        tel_event_it = table_loader.read_telescope_events_chunked(chunk_size)
+        event_it = table_loader.read_subarray_events_chunked(chunk_size)
 
-            events = table_loader.read_subarray_events(start=start, stop=stop)
+        for chunk, (events, tel_events) in enumerate(zip(event_it, tel_event_it)):
             n_read += len(events)
-
-            tel_events = table_loader.read_telescope_events(start=start, stop=stop)
 
             # last chunk might be smaller
             if chunk == (n_chunks - 1):
-                assert len(events) == n_events % chunksize
+                assert len(events) == n_events % chunk_size
             else:
-                assert len(events) == chunksize
+                assert len(events) == chunk_size
 
             assert len(tel_events) == np.sum(events["tels_with_trigger"])
 
