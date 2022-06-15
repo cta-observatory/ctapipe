@@ -285,7 +285,8 @@ class TableLoader(Component):
 
         if self.load_dl2:
             if DL2_TELESCOPE_GROUP in self.h5file:
-                for group_name in self.h5file[DL2_TELESCOPE_GROUP]._v_children:
+                dl2_tel_group = self.h5file.root[DL2_TELESCOPE_GROUP]
+                for group_name in dl2_tel_group._v_children:
                     group_path = f"{DL2_TELESCOPE_GROUP}/{group_name}"
                     group = self.h5file.root[group_path]
 
