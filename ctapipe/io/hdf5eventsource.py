@@ -28,6 +28,7 @@ from ..containers import (
     TelEventIndexContainer,
     TelescopeTriggerContainer,
     R1CameraContainer,
+    TelescopeImpactParameterContainer,
 )
 from .eventsource import EventSource
 from .hdf5tableio import HDF5TableReader
@@ -337,6 +338,7 @@ class HDF5EventSource(EventSource):
                     for tel in self.file_.root.dl1.event.telescope.parameters
                 }
 
+        impact_readers = {}
         if self.is_simulation:
             # simulated shower wide information
             mc_shower_reader = HDF5TableReader(self.file_).read(
@@ -345,6 +347,15 @@ class HDF5EventSource(EventSource):
                 prefixes="true",
             )
             data.simulation = SimulatedEventContainer()
+            if "impact" in self.file_.root.simulation.event.telescope:
+                impact_readers = {
+                    tel.name: self.reader.read(
+                        f"/simulation/event/telescope/impact/{tel.name}",
+                        containers=TelescopeImpactParameterContainer,
+                        prefixes=["true_impact"],
+                    )
+                    for tel in self.file_.root.simulation.event.telescope.impact
+                }
 
         # Setup iterators for the array events
         events = HDF5TableReader(self.file_).read(
@@ -412,6 +423,9 @@ class HDF5EventSource(EventSource):
                 key = f"tel_{tel:03d}"
                 if self.allowed_tels and tel not in self.allowed_tels:
                     continue
+
+                if key in impact_readers:
+                    data.simulation.tel[tel].impact = next(impact_readers[key])
 
                 if DataLevel.R1 in self.datalevels:
                     data.r1.tel[tel] = next(waveform_readers[key])
