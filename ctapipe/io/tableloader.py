@@ -423,16 +423,16 @@ class TableLoader(Component):
         """
         # we need to load the trigger table until "stop" to
         # know which telescopes participated in which events
-        trigger = read_table(
-            self.h5file,
-            TRIGGER_TABLE,
-        )
-        # insert zeros for first event
-        return np.append(
-            np.zeros((1, len(self.subarray)), dtype=int),
-            np.cumsum(trigger["tels_with_trigger"], axis=0),
-            axis=0,
-        )
+        table = self.h5file.root[TRIGGER_TABLE]
+        n_events = table.shape[0]
+        n_telescopes = table.coldescrs["tels_with_trigger"].shape[0]
+
+        tels_with_trigger = np.zeros((n_events + 1, n_telescopes), dtype=np.bool_)
+        table.read(field="tels_with_trigger", out=tels_with_trigger[1:])
+        tels_with_trigger = tels_with_trigger.astype(np.uint32)
+
+        np.cumsum(tels_with_trigger, out=tels_with_trigger, axis=0)
+        return tels_with_trigger
 
     def read_telescope_events_by_type(self, telescopes=None) -> Dict[str, Table]:
         """Read telescope-based event information.
