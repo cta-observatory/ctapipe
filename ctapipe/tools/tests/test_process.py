@@ -14,18 +14,9 @@ from ctapipe.instrument.subarray import SubarrayDescription
 from ctapipe.io import DataLevel, EventSource, read_table
 from ctapipe.tools.process import ProcessorTool
 from ctapipe.tools.quickstart import CONFIGS_TO_WRITE, QuickStartTool
-from ctapipe.utils import get_dataset_path
-
-try:
-    from importlib.resources import files
-except ImportError:
-    from importlib_resources import files
+from ctapipe.utils import get_dataset_path, resource_file
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
-
-
-def resource_file(filename):
-    return files("ctapipe").joinpath("resources", filename)
 
 
 @pytest.mark.parametrize(
