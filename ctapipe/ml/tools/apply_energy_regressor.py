@@ -60,6 +60,7 @@ class ApplyEnergyRegressor(Tool):
             load_dl1_parameters=True,
             load_dl2=True,
             load_simulated=True,
+            load_instrument=True,
         )
 
     def start(self):
