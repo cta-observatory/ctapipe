@@ -350,42 +350,39 @@ def test_only_config():
 
 def test_calibscale_and_calibshift(prod5_gamma_simtel_path):
 
-    telid = 25
-
     with SimTelEventSource(input_url=prod5_gamma_simtel_path, max_events=1) as source:
+        event = next(iter(source))
 
-        for event in source:
-            pass
+    # make sure we actually have data
+    assert len(event.r1.tel) > 0
 
     calib_scale = 2.0
 
     with SimTelEventSource(
         input_url=prod5_gamma_simtel_path, max_events=1, calib_scale=calib_scale
     ) as source:
+        event_scaled = next(iter(source))
 
-        for event_scaled in source:
-            pass
-
-    np.testing.assert_allclose(
-        event.r1.tel[telid].waveform[0],
-        event_scaled.r1.tel[telid].waveform[0] / calib_scale,
-        rtol=0.1,
-    )
+    for tel_id, r1 in event.r1.tel.items():
+        np.testing.assert_allclose(
+            r1.waveform[0],
+            event_scaled.r1.tel[tel_id].waveform[0] / calib_scale,
+            rtol=0.1,
+        )
 
     calib_shift = 2.0  # p.e.
 
     with SimTelEventSource(
         input_url=prod5_gamma_simtel_path, max_events=1, calib_shift=calib_shift
     ) as source:
+        event_shifted = next(iter(source))
 
-        for event_shifted in source:
-            pass
-
-    np.testing.assert_allclose(
-        event.r1.tel[telid].waveform[0],
-        event_shifted.r1.tel[telid].waveform[0] - calib_shift,
-        rtol=0.1,
-    )
+    for tel_id, r1 in event.r1.tel.items():
+        np.testing.assert_allclose(
+            r1.waveform[0],
+            event_shifted.r1.tel[tel_id].waveform[0] - calib_shift,
+            rtol=0.1,
+        )
 
 
 def test_true_image_sum():
