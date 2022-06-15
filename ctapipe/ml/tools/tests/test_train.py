@@ -12,7 +12,7 @@ def test_train_energy_regressor(tmp_path):
     ret = run_tool(
         tool,
         argv=[
-            f"--input=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
+            "--input=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
             f"--output={out_file}",
             f"--config={config}",
             "--log-level=INFO",
