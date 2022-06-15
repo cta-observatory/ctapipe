@@ -20,7 +20,6 @@ __all__ = ["TableLoader"]
 
 PARAMETERS_GROUP = "/dl1/event/telescope/parameters"
 IMAGES_GROUP = "/dl1/event/telescope/images"
-GEOMETRY_GROUP = "/dl2/event/subarray/geometry"
 TRIGGER_TABLE = "/dl1/event/subarray/trigger"
 SHOWER_TABLE = "/simulation/event/subarray/shower"
 TRUE_IMAGES_GROUP = "/simulation/event/telescope/images"
