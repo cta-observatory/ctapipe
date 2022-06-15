@@ -42,7 +42,7 @@ def _empty_telescope_events_table():
     Create a new astropy table with correct column names and dtypes
     for telescope event based data.
     """
-    return Table(names=TELESCOPE_EVENT_KEYS, dtype=[np.int64, np.int64, np.int16])
+    return Table(names=TELESCOPE_EVENT_KEYS, dtype=[np.int32, np.int64, np.int16])
 
 
 def _empty_subarray_events_table():
@@ -50,7 +50,7 @@ def _empty_subarray_events_table():
     Create a new astropy table with correct column names and dtypes
     for subarray event based data.
     """
-    return Table(names=SUBARRAY_EVENT_KEYS, dtype=[np.int64, np.int64])
+    return Table(names=SUBARRAY_EVENT_KEYS, dtype=[np.int32, np.int64])
 
 
 def _get_structure(h5file):
