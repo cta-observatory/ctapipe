@@ -1,14 +1,6 @@
 from ctapipe.core import run_tool
 from ctapipe.ml import TrainEnergyRegressor
-
-try:
-    from importlib.resources import files
-except ImportError:
-    from importlib_resources import files
-
-
-def resource_file(filename):
-    return files("ctapipe").joinpath("resources", filename)
+from ctapipe.utils import resource_file
 
 
 def test_train_energy_regressor(tmp_path, dl2_shower_geometry_file):
