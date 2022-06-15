@@ -2,11 +2,20 @@ import astropy.units as u
 import numpy as np
 import pytest
 from ctapipe.atmosphere import model
+from ctapipe.utils import get_dataset_path
+
+
+simtel_path = get_dataset_path(
+    "gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst"
+)
 
 
 @pytest.mark.parametrize(
     "density_model",
-    [model.ExponentialAtmosphereDensityProfile()],
+    [
+        model.ExponentialAtmosphereDensityProfile(),
+        model.TableAtmosphereDensityProfile.from_simtel(simtel_path),
+    ],
 )
 def test_models(density_model):
     """check that a set of model classes work"""
@@ -14,9 +23,16 @@ def test_models(density_model):
     # test we can convert to correct units
     density_model(10 * u.km).to(u.kg / u.m**3)
 
+    # ensure units are properly taken into account
+    assert np.isclose(density_model(1 * u.km), density_model(1000 * u.m))
+
     # check we can also compute the integral
     column_density = density_model.integral(10 * u.km)
     assert column_density.unit.is_equivalent(u.g / u.cm**2)
+
+    assert np.isclose(
+        density_model.integral(1 * u.km), density_model.integral(1000 * u.m)
+    )
 
 
 def test_exponential_model():
