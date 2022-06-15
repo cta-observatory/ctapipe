@@ -154,7 +154,6 @@ class TableLoader(Component):
         if h5file is None and self.input_url is None:
             raise ValueError("Need to specify either input_url or h5file")
 
-        self._should_close = False
         if h5file is None:
             self.h5file = tables.open_file(self.input_url, mode="r")
             self._should_close = True
