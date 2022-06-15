@@ -1,6 +1,5 @@
 from ctapipe.core import run_tool
 from ctapipe.ml import TrainEnergyRegressor
-from ctapipe.utils import get_dataset_path
 
 try:
     from importlib.resources import files
