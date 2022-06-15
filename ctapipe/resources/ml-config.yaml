@@ -1,0 +1,7 @@
+TrainEnergyRegressor:
+  Regressor:
+    model_cls: RandomForestRegressor
+    features: [hillas_intensity]
+    model_config:
+      n_estimators: 1
+      max_depth: 1
