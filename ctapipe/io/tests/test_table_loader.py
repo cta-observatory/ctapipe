@@ -119,7 +119,7 @@ def test_read_subarray_events(test_file_dl2):
     _, dl2_file = test_file_dl2
 
     with TableLoader(
-        dl2_file, load_dl2_geometry=True, load_simulated=True, load_trigger=True
+        dl2_file, load_dl2=True, load_simulated=True, load_trigger=True
     ) as table_loader:
         table = table_loader.read_subarray_events()
         assert "HillasReconstructor_alt" in table.colnames
@@ -138,7 +138,7 @@ def test_read_telescope_events_type(test_file_dl2):
         dl2_file,
         load_dl1_images=False,
         load_dl1_parameters=False,
-        load_dl2_geometry=True,
+        load_dl2=True,
         load_simulated=True,
         load_true_images=True,
         load_trigger=False,
@@ -165,7 +165,7 @@ def test_read_telescope_events_by_type(test_file_dl2):
         dl2_file,
         load_dl1_images=False,
         load_dl1_parameters=False,
-        load_dl2_geometry=True,
+        load_dl2=True,
         load_simulated=True,
         load_true_images=True,
         load_trigger=False,
