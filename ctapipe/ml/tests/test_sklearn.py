@@ -1,12 +1,11 @@
-import pytest
-
 import numpy as np
-from traitlets.config import Config
-from traitlets import TraitError
+import pytest
 from astropy.table import Table
-from numpy.testing import assert_array_equal
 from ctapipe.core import Component
 from ctapipe.ml.sklearn import Classifier, Regressor
+from numpy.testing import assert_array_equal
+from traitlets import TraitError
+from traitlets.config import Config
 
 
 def test_supported_regressors():
@@ -47,7 +46,6 @@ def make_positive_regression(n_samples, n_features, n_informative, random_state=
 
 @pytest.fixture()
 def example_table():
-    from sklearn.datasets import make_regression
     from sklearn.datasets import make_blobs
 
     X, y = make_positive_regression(
