@@ -7,6 +7,7 @@ from .datasets import (
     get_table_dataset,
     get_dataset_path,
     find_in_path,
+    resource_file,
 )
 from .astro import get_bright_stars
 from .cutflow import CutFlow, PureCountingCut, UndefinedCut
@@ -22,6 +23,7 @@ __all__ = [
     "get_table_dataset",
     "get_dataset_path",
     "find_in_path",
+    "resource_file",
     "get_bright_stars",
     "CutFlow",
     "PureCountingCut",
