@@ -11,7 +11,6 @@ from typing import Dict
 import numpy as np
 from astropy.table import join, vstack, Table
 import tables
-from traitlets.traitlets import Instance
 
 from ..core import Component, traits, Provenance
 from ..instrument import SubarrayDescription
@@ -116,7 +115,6 @@ class TableLoader(Component):
     input_url = traits.Path(
         directory_ok=False, exists=True, allow_none=True, default_value=None
     ).tag(config=True)
-    h5file = Instance(tables.File, default_value=None, allow_none=True).tag(config=True)
 
     load_dl1_images = traits.Bool(False, help="load extracted images").tag(config=True)
     load_dl1_parameters = traits.Bool(
@@ -143,24 +141,26 @@ class TableLoader(Component):
         False, help="join subarray instrument information to each event"
     ).tag(config=True)
 
-    def __init__(self, input_url=None, **kwargs):
+    def __init__(self, input_url=None, h5file=None, **kwargs):
+        self._should_close = False
+
         # enable using input_url as posarg
-        if input_url not in {None, traits.Undefined} and not isinstance(
-            input_url, tables.File
-        ):
+        if input_url not in {None, traits.Undefined}:
             kwargs["input_url"] = input_url
 
         super().__init__(**kwargs)
-
-        if self.h5file is None and self.input_url is None:
+        if h5file is None and self.input_url is None:
             raise ValueError("Need to specify either input_url or h5file")
 
         self._should_close = False
-        if self.h5file is None:
+        if h5file is None:
             self.h5file = tables.open_file(self.input_url, mode="r")
             self._should_close = True
         else:
-            self.input_url = Path(self.h5file.filename)
+            if not isinstance(h5file, tables.File):
+                raise TypeError("h5file must be a tables.File")
+            self.input_url = Path(h5file.filename)
+            self.h5file = h5file
 
         self.subarray = SubarrayDescription.from_hdf(self.h5file)
 
