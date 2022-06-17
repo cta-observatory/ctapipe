@@ -2,6 +2,8 @@
 common pytest fixtures for tests in ctapipe
 """
 
+from astropy.table import Table
+import astropy.units as u
 from copy import deepcopy
 
 import pytest
@@ -10,6 +12,7 @@ from ctapipe.instrument import CameraGeometry
 from ctapipe.io import SimTelEventSource
 from ctapipe.utils import get_dataset_path
 from ctapipe.utils.filelock import FileLock
+from ctapipe.io import write_table
 
 from pytest_astropy_header.display import PYTEST_HEADER_MODULES
 
@@ -180,6 +183,21 @@ def dl2_shower_geometry_file(dl2_tmp_path, prod5_gamma_simtel_path):
             "--max-events=20",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
+        # TODO: Remove once #1767 is merged
+        # We do not have mono dl2 data in the file yet, so we add a dummy table
+        dl2_telescope_table = Table(
+            {
+                "obs_id": [1, 1, 2],
+                "event_id": [1, 2, 1],
+                "tel_id": [25, 25, 25],
+                "energy": u.Quantity([100, 120, 90], u.GeV),
+            }
+        )
+        write_table(
+            dl2_telescope_table,
+            output,
+            "/dl2/event/telescope/energy/dummy/tel_025",
+        )
         return output
 
 
@@ -206,6 +224,22 @@ def dl2_proton_geometry_file(dl2_tmp_path, prod5_proton_simtel_path):
             "--max-events=20",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
+        # TODO: Remove once #1767 is merged
+        # We do not have mono dl2 data in the file yet, so we add a dummy table
+        dl2_telescope_table = Table(
+            {
+                "obs_id": [1, 1, 2],
+                "event_id": [1, 2, 1],
+                "tel_id": [25, 25, 25],
+                "energy": u.Quantity([100, 120, 90], u.GeV),
+            }
+        )
+        write_table(
+            dl2_telescope_table,
+            output,
+            "/dl2/event/telescope/energy/dummy/tel_025",
+        )
+
         return output
 
 
@@ -233,6 +267,22 @@ def dl2_shower_geometry_file_type(dl2_tmp_path, prod5_gamma_simtel_path):
             "--DataWriter.split_datasets_by=tel_type",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
+        # TODO: Remove once #1767 is merged
+        # We do not have mono dl2 data in the file yet, so we add a dummy table
+        dl2_telescope_table = Table(
+            {
+                "obs_id": [1, 1, 2],
+                "event_id": [1, 2, 1],
+                "tel_id": [25, 25, 25],
+                "energy": u.Quantity([100, 120, 90], u.GeV),
+            }
+        )
+        write_table(
+            dl2_telescope_table,
+            output,
+            "/dl2/event/telescope/energy/dummy/MST_MST_FlashCam",
+        )
+
         return output
 
 
