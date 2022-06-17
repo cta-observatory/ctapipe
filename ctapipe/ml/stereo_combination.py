@@ -11,7 +11,7 @@ def _create_array_tel_mapping(tel_events_table):
         return_inverse=True,
         return_counts=True,
     )
-    return len(unique), n_tels_per_event, indices
+    return unique, n_tels_per_event, indices
 
 
 def _calculate_ufunc_of_telescope_values(tel_data, n_array_events, indices, ufunc):
@@ -73,10 +73,13 @@ class StereoMeanCombiner(StereoCombiner):
         """
         valid_rows = self.check_valid(mono_predictions)
         valid_predictions = mono_predictions[valid_rows]
-        n_array_events, n_tels_per_event, indices = _create_array_tel_mapping(
+        array_events, n_tels_per_event, indices = _create_array_tel_mapping(
             valid_predictions
         )
+        stereo_table = Table(array_events)
+        n_array_events = len(array_events)
         weights = self._construct_weights(valid_predictions)
+
         if weights is not None:
             sum_prediction = _calculate_ufunc_of_telescope_values(
                 valid_predictions[self.mono_prediction_column] * weights,
@@ -95,4 +98,7 @@ class StereoMeanCombiner(StereoCombiner):
                 np.add,
             )
             sum_of_weights = n_tels_per_event
-        return sum_prediction / sum_of_weights
+        stereo_table[f"mean_{self.mono_prediction_column}"] = (
+            sum_prediction / sum_of_weights
+        )
+        return stereo_table
