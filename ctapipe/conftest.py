@@ -40,6 +40,15 @@ camera_names = [
     "Whipple490",
 ]
 
+dl2_telescope_dummy_table = Table(
+    {
+        "obs_id": [1, 1, 2],
+        "event_id": [1, 2, 1],
+        "tel_id": [25, 25, 25],
+        "energy": u.Quantity([100, 120, 90], u.GeV),
+    }
+)
+
 
 @pytest.fixture(scope="function", params=camera_names)
 def camera_geometry(request):
@@ -185,16 +194,8 @@ def dl2_shower_geometry_file(dl2_tmp_path, prod5_gamma_simtel_path):
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
         # TODO: Remove once #1767 is merged
         # We do not have mono dl2 data in the file yet, so we add a dummy table
-        dl2_telescope_table = Table(
-            {
-                "obs_id": [1, 1, 2],
-                "event_id": [1, 2, 1],
-                "tel_id": [25, 25, 25],
-                "energy": u.Quantity([100, 120, 90], u.GeV),
-            }
-        )
         write_table(
-            dl2_telescope_table,
+            dl2_telescope_dummy_table,
             output,
             "/dl2/event/telescope/energy/dummy/tel_025",
         )
@@ -226,20 +227,11 @@ def dl2_proton_geometry_file(dl2_tmp_path, prod5_proton_simtel_path):
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
         # TODO: Remove once #1767 is merged
         # We do not have mono dl2 data in the file yet, so we add a dummy table
-        dl2_telescope_table = Table(
-            {
-                "obs_id": [1, 1, 2],
-                "event_id": [1, 2, 1],
-                "tel_id": [25, 25, 25],
-                "energy": u.Quantity([100, 120, 90], u.GeV),
-            }
-        )
         write_table(
-            dl2_telescope_table,
+            dl2_telescope_dummy_table,
             output,
             "/dl2/event/telescope/energy/dummy/tel_025",
         )
-
         return output
 
 
@@ -269,20 +261,11 @@ def dl2_shower_geometry_file_type(dl2_tmp_path, prod5_gamma_simtel_path):
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
         # TODO: Remove once #1767 is merged
         # We do not have mono dl2 data in the file yet, so we add a dummy table
-        dl2_telescope_table = Table(
-            {
-                "obs_id": [1, 1, 2],
-                "event_id": [1, 2, 1],
-                "tel_id": [25, 25, 25],
-                "energy": u.Quantity([100, 120, 90], u.GeV),
-            }
-        )
         write_table(
-            dl2_telescope_table,
+            dl2_telescope_dummy_table,
             output,
             "/dl2/event/telescope/energy/dummy/MST_MST_FlashCam",
         )
-
         return output
 
 
