@@ -5,15 +5,6 @@ from ctapipe.core import Component
 from ctapipe.ml.preprocessing import check_valid_rows
 
 
-def _create_array_tel_mapping(tel_events_table):
-    unique, indices, n_tels_per_event = np.unique(
-        tel_events_table[["obs_id", "event_id"]],
-        return_inverse=True,
-        return_counts=True,
-    )
-    return unique, n_tels_per_event, indices
-
-
 def _calculate_ufunc_of_telescope_values(tel_data, n_array_events, indices, ufunc):
     mean_values = np.zeros(n_array_events)
     ufunc.at(mean_values, indices, tel_data)
@@ -73,8 +64,11 @@ class StereoMeanCombiner(StereoCombiner):
         """
         valid_rows = self.check_valid(mono_predictions)
         valid_predictions = mono_predictions[valid_rows]
-        array_events, n_tels_per_event, indices = _create_array_tel_mapping(
-            valid_predictions
+
+        array_events, indices, n_tels_per_event = np.unique(
+            mono_predictions[["obs_id", "event_id"]],
+            return_inverse=True,
+            return_counts=True,
         )
         stereo_table = Table(array_events)
         n_array_events = len(array_events)
