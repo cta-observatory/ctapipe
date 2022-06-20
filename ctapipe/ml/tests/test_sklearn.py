@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 from astropy.table import Table
+import astropy.units as u
 from ctapipe.core import Component
 from ctapipe.ml.sklearn import Classifier, Regressor
 from numpy.testing import assert_array_equal
@@ -52,7 +53,7 @@ def example_table():
         n_samples=100, n_features=5, n_informative=3, random_state=0
     )
     t = Table({f"X{i}": col for i, col in enumerate(X.T)})
-    t["energy"] = y
+    t["energy"] = y * u.TeV
     t["X0"][10] = np.nan
     t["X1"][30] = np.nan
 
@@ -123,6 +124,7 @@ def test_regressor_single_event(model_cls, example_table):
 
     regressor.fit(example_table)
     prediction, valid = regressor.predict(example_table[[0]])
+    assert prediction.unit == u.TeV
     assert prediction.shape == (1,)
 
     # now test with a single invalid event
