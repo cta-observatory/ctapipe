@@ -177,7 +177,6 @@ def dl2_shower_geometry_file(dl2_tmp_path, prod5_gamma_simtel_path):
             f"--output={output}",
             "--write-images",
             "--write-showers",
-            "--max-events=20",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
         return output
