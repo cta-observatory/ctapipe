@@ -17,6 +17,8 @@ from ..containers import (
     IntensityStatisticsContainer,
     LeakageContainer,
     MorphologyContainer,
+    ParticleClassificationContainer,
+    ReconstructedEnergyContainer,
     SimulationConfigContainer,
     SimulatedShowerContainer,
     SimulatedEventContainer,
@@ -28,17 +30,26 @@ from ..containers import (
     TelEventIndexContainer,
     TelescopeTriggerContainer,
     R1CameraContainer,
+    ReconstructedGeometryContainer,
 )
 from .eventsource import EventSource
 from .hdf5tableio import HDF5TableReader
 from .datalevels import DataLevel
 from ..utils import IndexFinder
 
+from .tableloader import DL2_SUBARRAY_GROUP, DL2_TELESCOPE_GROUP
 
 __all__ = ["HDF5EventSource"]
 
 
 logger = logging.getLogger(__name__)
+
+
+DL2_CONTAINERS = {
+    "energy": ReconstructedEnergyContainer,
+    "geometry": ReconstructedGeometryContainer,
+    "classification": ParticleClassificationContainer,
+}
 
 
 COMPATIBLE_DL1_VERSIONS = [
@@ -337,6 +348,47 @@ class HDF5EventSource(EventSource):
                     for tel in self.file_.root.dl1.event.telescope.parameters
                 }
 
+        dl2_readers = {}
+        if DL2_SUBARRAY_GROUP in self.file_.root:
+            dl2_group = self.file_.root[DL2_SUBARRAY_GROUP]
+
+            for kind, group in dl2_group._v_children.items():
+
+                try:
+                    container = DL2_CONTAINERS[kind]
+                except KeyError:
+                    self.log.warning("Unknown DL2 stereo group %s", kind)
+                    continue
+
+                dl2_readers[kind] = {
+                    algorithm: HDF5TableReader(self.file_).read(
+                        table._v_pathname,
+                        containers=container,
+                    )
+                    for algorithm, table in group._v_children.items()
+                }
+
+        dl2_tel_readers = {}
+        if DL2_TELESCOPE_GROUP in self.file_.root:
+            dl2_group = self.file_.root[DL2_TELESCOPE_GROUP]
+
+            for kind, group in dl2_group._v_children.items():
+                try:
+                    container = DL2_CONTAINERS[kind]
+                except KeyError:
+                    self.log.warning("Unknown DL2 stereo group %s", kind)
+                    continue
+
+                dl2_tel_readers[kind] = {}
+                for name, algorithm_group in group._v_children.items():
+                    dl2_tel_readers[kind][name] = {
+                        key: HDF5TableReader(self.file_).read(
+                            table._v_pathname,
+                            containers=(ReconstructedGeometryContainer, ),
+                        )
+                        for key, table in algorithm_group._v_children.items()
+                    }
+
         if self.is_simulation:
             # simulated shower wide information
             mc_shower_reader = HDF5TableReader(self.file_).read(
@@ -437,9 +489,7 @@ class HDF5EventSource(EventSource):
                                 "reconstructed image table."
                             )
                             continue
-                        simulated_image_row = next(
-                            simulated_image_iterators[f"tel_{tel:03d}"]
-                        )
+                        simulated_image_row = next(simulated_image_iterators[key])
                         simulated.true_image = simulated_image_row["true_image"]
 
                 if DataLevel.DL1_PARAMETERS in self.datalevels:
@@ -452,7 +502,7 @@ class HDF5EventSource(EventSource):
                     # Is there a smarter way to unpack this?
                     # Best would probbaly be if we could directly read
                     # into the ImageParametersContainer
-                    params = next(param_readers[f"tel_{tel:03d}"])
+                    params = next(param_readers[key])
                     data.dl1.tel[tel].parameters = ImageParametersContainer(
                         hillas=params[0],
                         timing=params[1],
@@ -480,6 +530,16 @@ class HDF5EventSource(EventSource):
                             morphology=simulated_params[3],
                             intensity_statistics=simulated_params[4],
                         )
+
+                for kind, algorithms in dl2_tel_readers.items():
+                    c = getattr(data.dl2.tel[tel_id], kind)
+                    for algorithm, readers in algorithms.items():
+                        c[algorithm] = next(readers[key])
+
+            for kind, readers in dl2_readers.items():
+                c = getattr(data.dl2.stereo, kind)
+                for algorithm, reader in readers.items():
+                    c[algorithm] = next(reader)
 
             yield data
             counter += 1
