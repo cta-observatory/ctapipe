@@ -11,7 +11,7 @@ import numpy as np
 import tables
 from astropy import units as u
 from astropy.coordinates import SkyCoord
-from astropy.table import QTable, Table
+from astropy.table import QTable, Table, join
 from astropy.utils import lazyproperty
 
 from .. import __version__ as CTAPIPE_VERSION
@@ -237,6 +237,24 @@ class SubarrayDescription:
         kind: str
             which table to generate (subarray or optics)
         """
+
+        if kind == 'joined':
+            table = self.to_table()
+            optics = self.to_table(kind="optics")
+            optics["optics_index"] = np.arange(len(optics))
+            optics.remove_columns(["name", "description", "type"])
+            table = join(
+                table,
+                optics,
+                keys="optics_index",
+                # conflicts for TAB_VER, TAB_TYPE, not needed here, ignore
+                metadata_conflicts="silent",
+            )
+
+            table.remove_columns(["optics_index", "camera_index"])
+            table.add_index('tel_id')
+            return table
+
 
         meta = {
             "ORIGIN": "ctapipe.instrument.SubarrayDescription",
