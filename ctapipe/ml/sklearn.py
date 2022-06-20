@@ -4,6 +4,7 @@ Component Wrappers around sklearn models
 
 import joblib
 import numpy as np
+import astropy.units as u
 from traitlets import Bool, Dict, Enum, Integer, List, Unicode
 
 from sklearn.utils import all_estimators
@@ -29,6 +30,7 @@ class Model(Component):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.model = SUPPORTED_MODELS[self.model_cls](**self.model_config)
+        self.unit = None
 
     def table_to_X(self, table):
         feature_table = table[self.features]
@@ -42,6 +44,7 @@ class Model(Component):
     def fit(self, table):
         X, valid = self.table_to_X(table)
         y = self.table_to_y(table, mask=valid)
+        self.unit = table[self.target].unit
         self.model.fit(X, y)
 
     def predict(self, table):
@@ -56,6 +59,9 @@ class Model(Component):
         prediction = np.full(shape, np.nan)
         if np.any(valid):
             prediction[valid] = self.model.predict(X)
+
+        if self.unit is not None:
+            prediction = u.Quantity(prediction, self.unit, copy=False)
 
         return prediction, valid
 
@@ -96,6 +102,9 @@ class Regressor(Model):
         if self.log_target:
             if np.any(y <= 0):
                 raise ValueError("y contains negative values, cannot apply log")
+
+            if self.unit is not None:
+                y = y.to_value(self.unit)
             return np.log(y)
         return y
 
@@ -103,7 +112,10 @@ class Regressor(Model):
         prediction, valid = super().predict(table)
 
         if self.log_target:
-            prediction[valid] = np.exp(prediction[valid])
+            if prediction.unit is not None:
+                prediction.value[valid] = np.exp(prediction[valid].value)
+            else:
+                prediction[valid] = np.exp(prediction[valid])
 
         return prediction, valid
 
