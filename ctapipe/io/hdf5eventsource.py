@@ -17,6 +17,8 @@ from ..containers import (
     IntensityStatisticsContainer,
     LeakageContainer,
     MorphologyContainer,
+    ParticleClassificationContainer,
+    ReconstructedEnergyContainer,
     SimulationConfigContainer,
     SimulatedShowerContainer,
     SimulatedEventContainer,
@@ -29,17 +31,27 @@ from ..containers import (
     TelescopeTriggerContainer,
     R1CameraContainer,
     TelescopeImpactParameterContainer,
+    ReconstructedGeometryContainer,
 )
 from .eventsource import EventSource
 from .hdf5tableio import HDF5TableReader
 from .datalevels import DataLevel
 from ..utils import IndexFinder
 
+from .tableloader import DL2_SUBARRAY_GROUP, DL2_TELESCOPE_GROUP
 
 __all__ = ["HDF5EventSource"]
 
 
 logger = logging.getLogger(__name__)
+
+
+DL2_CONTAINERS = {
+    "energy": ReconstructedEnergyContainer,
+    "geometry": ReconstructedGeometryContainer,
+    "classification": ParticleClassificationContainer,
+    "impact": TelescopeImpactParameterContainer,
+}
 
 
 COMPATIBLE_DL1_VERSIONS = [
@@ -338,7 +350,49 @@ class HDF5EventSource(EventSource):
                     for tel in self.file_.root.dl1.event.telescope.parameters
                 }
 
-        impact_readers = {}
+        dl2_readers = {}
+        if DL2_SUBARRAY_GROUP in self.file_.root:
+            dl2_group = self.file_.root[DL2_SUBARRAY_GROUP]
+
+            for kind, group in dl2_group._v_children.items():
+
+                try:
+                    container = DL2_CONTAINERS[kind]
+                except KeyError:
+                    self.log.warning("Unknown DL2 stereo group %s", kind)
+                    continue
+
+                dl2_readers[kind] = {
+                    algorithm: HDF5TableReader(self.file_).read(
+                        table._v_pathname,
+                        containers=container,
+                    )
+                    for algorithm, table in group._v_children.items()
+                }
+
+        dl2_tel_readers = {}
+        if DL2_TELESCOPE_GROUP in self.file_.root:
+            dl2_group = self.file_.root[DL2_TELESCOPE_GROUP]
+
+            for kind, group in dl2_group._v_children.items():
+                try:
+                    container = DL2_CONTAINERS[kind]
+                except KeyError:
+                    self.log.warning("Unknown DL2 telescope group %s", kind)
+                    continue
+
+                dl2_tel_readers[kind] = {}
+                for name, algorithm_group in group._v_children.items():
+                    dl2_tel_readers[kind][name] = {
+                        key: HDF5TableReader(self.file_).read(
+                            table._v_pathname,
+                            containers=container,
+                            prefixes=True,
+                        )
+                        for key, table in algorithm_group._v_children.items()
+                    }
+
+        true_impact_readers = {}
         if self.is_simulation:
             # simulated shower wide information
             mc_shower_reader = HDF5TableReader(self.file_).read(
@@ -348,7 +402,7 @@ class HDF5EventSource(EventSource):
             )
             data.simulation = SimulatedEventContainer()
             if "impact" in self.file_.root.simulation.event.telescope:
-                impact_readers = {
+                true_impact_readers = {
                     tel.name: self.reader.read(
                         f"/simulation/event/telescope/impact/{tel.name}",
                         containers=TelescopeImpactParameterContainer,
@@ -419,55 +473,53 @@ class HDF5EventSource(EventSource):
             if self.is_simulation:
                 data.simulation.shower = next(mc_shower_reader)
 
-            for tel in data.trigger.tel.keys():
-                key = f"tel_{tel:03d}"
-                if self.allowed_tels and tel not in self.allowed_tels:
+            for tel_id in data.trigger.tel.keys():
+                key = f"tel_{tel_id:03d}"
+                if self.allowed_tels and tel_id not in self.allowed_tels:
                     continue
 
-                if key in impact_readers:
-                    data.simulation.tel[tel].impact = next(impact_readers[key])
+                if key in true_impact_readers:
+                    data.simulation.tel[tel_id].impact = next(true_impact_readers[key])
 
                 if DataLevel.R1 in self.datalevels:
-                    data.r1.tel[tel] = next(waveform_readers[key])
+                    data.r1.tel[tel_id] = next(waveform_readers[key])
 
                 if self.has_simulated_dl1:
-                    simulated = data.simulation.tel[tel]
+                    simulated = data.simulation.tel[tel_id]
 
                 if DataLevel.DL1_IMAGES in self.datalevels:
                     if key not in image_readers:
                         logger.debug(
-                            f"Triggered telescope {tel} is missing "
+                            f"Triggered telescope {tel_id} is missing "
                             "from the image table."
                         )
                         continue
 
-                    data.dl1.tel[tel] = next(image_readers[key])
+                    data.dl1.tel[tel_id] = next(image_readers[key])
 
                     if self.has_simulated_dl1:
                         if key not in simulated_image_iterators:
                             logger.warning(
-                                f"Triggered telescope {tel} is missing "
+                                f"Triggered telescope {tel_id} is missing "
                                 "from the simulated image table, but was present at the "
                                 "reconstructed image table."
                             )
                             continue
-                        simulated_image_row = next(
-                            simulated_image_iterators[f"tel_{tel:03d}"]
-                        )
+                        simulated_image_row = next(simulated_image_iterators[key])
                         simulated.true_image = simulated_image_row["true_image"]
 
                 if DataLevel.DL1_PARAMETERS in self.datalevels:
-                    if f"tel_{tel:03d}" not in param_readers.keys():
+                    if f"tel_{tel_id:03d}" not in param_readers.keys():
                         logger.debug(
-                            f"Triggered telescope {tel} is missing "
+                            f"Triggered telescope {tel_id} is missing "
                             "from the parameters table."
                         )
                         continue
                     # Is there a smarter way to unpack this?
                     # Best would probbaly be if we could directly read
                     # into the ImageParametersContainer
-                    params = next(param_readers[f"tel_{tel:03d}"])
-                    data.dl1.tel[tel].parameters = ImageParametersContainer(
+                    params = next(param_readers[key])
+                    data.dl1.tel[tel_id].parameters = ImageParametersContainer(
                         hillas=params[0],
                         timing=params[1],
                         leakage=params[2],
@@ -477,15 +529,15 @@ class HDF5EventSource(EventSource):
                         peak_time_statistics=params[6],
                     )
                     if self.has_simulated_dl1:
-                        if f"tel_{tel:03d}" not in param_readers.keys():
+                        if f"tel_{tel_id:03d}" not in param_readers.keys():
                             logger.debug(
-                                f"Triggered telescope {tel} is missing "
+                                f"Triggered telescope {tel_id} is missing "
                                 "from the simulated parameters table, but was "
                                 "present at the reconstructed parameters table."
                             )
                             continue
                         simulated_params = next(
-                            simulated_param_readers[f"tel_{tel:03d}"]
+                            simulated_param_readers[f"tel_{tel_id:03d}"]
                         )
                         simulated.true_parameters = ImageParametersContainer(
                             hillas=simulated_params[0],
@@ -494,6 +546,16 @@ class HDF5EventSource(EventSource):
                             morphology=simulated_params[3],
                             intensity_statistics=simulated_params[4],
                         )
+
+                for kind, algorithms in dl2_tel_readers.items():
+                    c = getattr(data.dl2.tel[tel_id], kind)
+                    for algorithm, readers in algorithms.items():
+                        c[algorithm] = next(readers[key])
+
+            for kind, readers in dl2_readers.items():
+                c = getattr(data.dl2.stereo, kind)
+                for algorithm, reader in readers.items():
+                    c[algorithm] = next(reader)
 
             yield data
             counter += 1
