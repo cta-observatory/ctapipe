@@ -63,11 +63,12 @@ class StereoMeanCombiner(StereoCombiner):
         This means you might end up with less events if
         all telescope predictions of a shower are invalid.
         """
+
         valid_rows = self.check_valid(mono_predictions)
         valid_predictions = mono_predictions[valid_rows]
 
         array_events, indices, n_tels_per_event = np.unique(
-            mono_predictions[["obs_id", "event_id"]],
+            valid_predictions[["obs_id", "event_id"]],
             return_inverse=True,
             return_counts=True,
         )
