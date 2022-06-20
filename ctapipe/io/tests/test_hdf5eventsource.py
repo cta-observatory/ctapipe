@@ -151,3 +151,10 @@ def test_trigger_allowed_tels(dl1_proton_file):
             assert len(e.trigger.tels_with_trigger) > 1
 
         assert i == 1
+
+
+def test_read_dl2(dl2_shower_geometry_file):
+    with HDF5EventSource(dl2_shower_geometry_file) as s:
+        e = next(iter(s))
+        assert 'HillasReconstructor' in e.dl2.stereo.geometry
+
