@@ -1,6 +1,7 @@
 from abc import abstractmethod
 import numpy as np
 from astropy.table import Table
+from scipy.ndimage import median
 from ctapipe.core import Component
 from ctapipe.ml.preprocessing import check_valid_rows
 
@@ -94,5 +95,37 @@ class StereoMeanCombiner(StereoCombiner):
             sum_of_weights = n_tels_per_event
         stereo_table[f"mean_{self.mono_prediction_column}"] = (
             sum_prediction / sum_of_weights
+        )
+        return stereo_table
+
+
+class StereoMedianCombiner(StereoCombiner):
+    """
+    Calculates array-wide (stereo) predictions as the median of
+    the reconstruction on telescope-level.
+    """
+
+    def __call__(self, mono_predictions: Table) -> Table:
+        """
+        Calculates the (array-)event-wise median of
+        `mono_prediction_column`.
+        Telescope events, that are nan, get discarded.
+        This means you might end up with less events if
+        all telescope predictions of a shower are invalid.
+        """
+        valid_rows = self.check_valid(mono_predictions)
+        valid_predictions = mono_predictions[valid_rows]
+        array_events, indices, n_tels_per_event = np.unique(
+            mono_predictions[["obs_id", "event_id"]],
+            return_inverse=True,
+            return_counts=True,
+        )
+        stereo_table = Table(array_events)
+        # There is no ufunc for the median in numpy, but
+        # scipy offers something similar
+        stereo_table[f"median_{self.mono_prediction_column}"] = median(
+            valid_predictions[self.mono_prediction_column],
+            labels=indices,
+            index=np.unique(indices),
         )
         return stereo_table
