@@ -56,7 +56,7 @@ class ApplyEnergyRegressor(Tool):
         self.estimator = EnergyRegressor.read(self.model_path, parent=self)
         self.combine = StereoCombiner.from_name(
             self.stereo_combiner_type,
-            mono_prediction_column="reconstructed_energy_energy",
+            mono_prediction_column=f"{self.estimator.model.model_cls}_reconstructed_energy_energy",
             parent=self,
         )
         self.h5file = tables.open_file(self.input_url, mode="r+")
@@ -98,8 +98,19 @@ class ApplyEnergyRegressor(Tool):
         self.loader.load_dl1_parameters = False
         # TODO: Use chunks here once #1935 is merged and in the ml branch
         # TODO: This currently fails due to the bug described in #1938
-        mono_predictions = loader.read_telescope_events()
-        stereo_predictions = self.combine(telescope_predictions)
+        # TODO: The column selection is a quickfix to avoid issues with the check for valid rows
+        # (time objects and all nan columns like uncertainty estimates)
+        # We should either use only the valid flag from the reconstructor itself or
+        # a proper quality query on the table
+        columns = [
+            "obs_id",
+            "event_id",
+            f"{self.estimator.model.model_cls}_reconstructed_energy_energy",
+        ]
+        if self.combine.weight_column:
+            columns += self.combine.weight_column
+        mono_predictions = self.loader.read_telescope_events()[columns]
+        stereo_predictions = self.combine(mono_predictions)
         write_table(
             stereo_predictions,
             self.loader.input_url,
