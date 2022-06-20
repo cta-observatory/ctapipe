@@ -1,12 +1,13 @@
 from astropy.table import Table
 import tables
 from ctapipe.core.tool import Tool
-from ctapipe.core.traits import Bool, Path, flag
+from ctapipe.core.traits import Bool, Path, flag, create_class_enum_trait
 from ctapipe.io import TableLoader, write_table
 from tqdm.auto import tqdm
 
 from ..sklearn import Regressor
 from ..apply import EnergyRegressor
+from ..stereo_combination import StereoCombiner
 
 
 class ApplyEnergyRegressor(Tool):
@@ -41,6 +42,10 @@ class ApplyEnergyRegressor(Tool):
         ),
     }
 
+    stereo_combiner_type = create_class_enum_trait(
+        base_class=StereoCombiner, default_value="StereoMeanCombiner"
+    )
+
     classes = [
         TableLoader,
         Regressor,
@@ -49,6 +54,11 @@ class ApplyEnergyRegressor(Tool):
     def setup(self):
         """"""
         self.estimator = EnergyRegressor.read(self.model_path, parent=self)
+        self.combine = StereoCombiner.from_name(
+            self.stereo_combiner_type,
+            mono_prediction_column="reconstructed_energy_energy",
+            parent=self,
+        )
         self.h5file = tables.open_file(self.input_url, mode="r+")
         self.loader = TableLoader(
             parent=self,
@@ -83,6 +93,20 @@ class ApplyEnergyRegressor(Tool):
                 mode="a",
                 overwrite=self.overwrite,
             )
+        self.loader.load_instrument = False
+        # TODO: Might need to turn this on if we want to use dl1 features as weights
+        self.loader.load_dl1_parameters = False
+        # TODO: Use chunks here once #1935 is merged and in the ml branch
+        # TODO: This currently fails due to the bug described in #1938
+        mono_predictions = loader.read_telescope_events()
+        stereo_predictions = self.combine(telescope_predictions)
+        write_table(
+            stereo_predictions,
+            self.loader.input_url,
+            f"/dl2/event/subarray/energy/{self.estimator.model.model_cls}",
+            mode="a",
+            overwrite=self.overwrite,
+        )
 
     def finish(self):
         self.h5file.close()
