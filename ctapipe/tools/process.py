@@ -8,7 +8,7 @@ from tqdm.auto import tqdm
 
 from ..calib import CameraCalibrator, GainSelector
 from ..core import QualityQuery, Tool
-from ..core.traits import Bool, classes_with_traits, flag
+from ..core.traits import Bool, classes_with_traits, flag, Path
 from ..image import ImageCleaner, ImageModifier, ImageProcessor
 from ..image.extractor import ImageExtractor
 from ..io import (
@@ -63,6 +63,11 @@ class ProcessorTool(Tool):
         default_value=False,
     ).tag(config=True)
 
+    energy_regressor_path = Path(
+        default_value=None, allow_none=True, exists=True, directory_ok=False,
+        help='Path to a trained energy regression model (see ctapipe-ml-train-energy-regressor)'
+    ).tag(config=True)
+
     force_recompute_dl2 = Bool(
         help="Enforce dl2 recomputation even if already present in the input file",
         default_value=False,
@@ -73,6 +78,7 @@ class ProcessorTool(Tool):
         ("o", "output"): "DataWriter.output_path",
         ("t", "allowed-tels"): "EventSource.allowed_tels",
         ("m", "max-events"): "EventSource.max_events",
+        ("e", "energy-regressor"): "ProcessorTool.energy_regressor_path",
         "image-cleaner-type": "ImageProcessor.image_cleaner_type",
     }
 
@@ -178,6 +184,14 @@ class ProcessorTool(Tool):
         self.write = DataWriter(event_source=self.event_source, parent=self)
         self.event_type_filter = EventTypeFilter(parent=self)
 
+        self.energy_regressor = None
+        if self.energy_regressor_path is not None:
+            self.energy_regressor = EnergyRegressor.read(
+                self.energy_regressor_path,
+                self.event_source.subarray,
+                parent=self,
+            )
+
         # warn if max_events prevents writing the histograms
         if (
             isinstance(self.event_source, SimTelEventSource)
@@ -195,7 +209,11 @@ class ProcessorTool(Tool):
         """returns true if we should compute DL2 info"""
         if self.force_recompute_dl2:
             return True
-        return self.write.write_showers
+
+        return (
+            self.write.write_showers
+            or self.energy_regressor_path
+        )
 
     @property
     def should_compute_dl1(self):
@@ -279,6 +297,8 @@ class ProcessorTool(Tool):
 
             if self.should_compute_dl2:
                 self.process_shower(event)
+                if self.energy_regressor is not None:
+                    self.energy_regressor(event)
 
             self.write(event)
 
