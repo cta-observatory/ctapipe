@@ -270,6 +270,14 @@ class DataWriter(Component):
                 containers=[event.index, event.simulation.shower],
             )
 
+            for tel_id, sim in event.simulation.tel.items():
+                table_name = self.table_name(tel_id, self._subarray.tel[tel_id])
+                tel_index = _get_tel_index(event, tel_id)
+                self._writer.write(
+                    f"simulation/event/telescope/impact/{table_name}",
+                    [tel_index, sim.impact],
+                )
+
         if self.write_waveforms:
             self._write_r1_telescope_events(self._writer, event)
 
@@ -556,11 +564,7 @@ class DataWriter(Component):
     ):
         for tel_id, r1_tel in event.r1.tel.items():
 
-            tel_index = TelEventIndexContainer(
-                obs_id=event.index.obs_id,
-                event_id=event.index.event_id,
-                tel_id=np.int16(tel_id),
-            )
+            tel_index = _get_tel_index(event, tel_id)
             telescope = self._subarray.tel[tel_id]
             table_name = self.table_name(tel_id, str(telescope))
 
@@ -572,11 +576,7 @@ class DataWriter(Component):
     ):
         for tel_id, r0_tel in event.r0.tel.items():
 
-            tel_index = TelEventIndexContainer(
-                obs_id=event.index.obs_id,
-                event_id=event.index.event_id,
-                tel_id=np.int16(tel_id),
-            )
+            tel_index = _get_tel_index(event, tel_id)
             telescope = self._subarray.tel[tel_id]
             table_name = self.table_name(tel_id, str(telescope))
 
@@ -623,12 +623,6 @@ class DataWriter(Component):
                 tel_id in event.simulation.tel
                 and event.simulation.tel[tel_id].true_image is not None
             )
-
-            if event.simulation is not None:
-                writer.write(
-                    f"simulation/event/telescope/impact/{table_name}",
-                    [tel_index, event.simulation.tel[tel_id].impact],
-                )
 
             if self.write_parameters:
                 writer.write(
@@ -680,12 +674,7 @@ class DataWriter(Component):
             telescope = self._subarray.tel[tel_id]
             table_name = self.table_name(tel_id, str(telescope))
 
-            tel_index = TelEventIndexContainer(
-                obs_id=event.index.obs_id,
-                event_id=event.index.event_id,
-                tel_id=np.int16(tel_id),
-            )
-
+            tel_index = _get_tel_index(event, tel_id)
             for container_name, algorithm_map in dl2_tel.items():
                 for algorithm, container in algorithm_map.items():
                     name = (
