@@ -1,18 +1,26 @@
 from abc import abstractmethod
+from typing import Tuple
 
 import numpy as np
 from astropy.table import Table
-from ctapipe.containers import (
+from traitlets import Instance
+
+from ..containers import (
     ArrayEventContainer,
     ParticleClassificationContainer,
     ReconstructedEnergyContainer,
 )
-from ctapipe.core import Component
-
-from traitlets import Instance
+from ..core import Component
 from .sklearn import Classifier, Regressor, Model
 
-from typing import Tuple
+
+__all__ = [
+    'Reconstructor',
+    'ClassificationReconstructor',
+    'RegressionReconstructor',
+    'EnergyRegressor',
+    'ParticleIdClassifier',
+]
 
 
 class Reconstructor(Component):
@@ -20,10 +28,18 @@ class Reconstructor(Component):
 
     # TODO: update model config (?)
     #       only settings that make sense, e.g. verbose, n_jobs
+    model_cls = Model
     model = Instance(Model).tag(config=True)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, subarray, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.subarray = subarray
+        self.instrument_table = self.subarray.to_table('joined')
+
+    @classmethod
+    def read(cls, path, subarray, *args, **kwargs):
+        model = cls.model_cls.load(path)
+        return cls(subarray, *args, model=model, **kwargs)
 
     @abstractmethod
     def __call__(self, event: ArrayEventContainer) -> None:
@@ -57,24 +73,36 @@ class Reconstructor(Component):
             *event.dl1.tel[tel_id]
             .parameters.as_dict(add_prefix=True, recursive=True)
             .values(),
-            *event.dl2.tel[tel_id].as_dict(add_prefix=True, recursive=True).values(),
         ):
-            for key, value in container.items():
-                features.update({key: [value]})
+            features.update(container)
 
-        return Table(features)
+        # for key, container in event.dl2.tel[tel_id]:
+
+        for containers in event.dl2.stereo.values():
+            for algorithm, container in containers.items():
+                prefix = container.prefix
+                if prefix:
+                    container.prefix = f'{algorithm}_{prefix}'
+                else:
+                    container.prefix = algorithm
+
+                features.update(container.as_dict(add_prefix=True))
+                container.prefix = ''
+
+        features.update(self.instrument_table.loc[tel_id])
+        return Table({k: [v] for k, v in features.items()})
 
 
 class RegressionReconstructor(Reconstructor):
     """Base class for sklearn regressors."""
-
-    model = Instance(Regressor).tag(config=True)
+    model_cls = Regressor
+    model = Instance(model_cls).tag(config=True)
 
 
 class ClassificationReconstructor(Reconstructor):
     """Base class for sklearn regressors."""
-
-    model = Instance(Classifier).tag(config=True)
+    model_cls = Classifier
+    model = Instance(model_cls).tag(config=True)
 
 
 class EnergyRegressor(RegressionReconstructor):
