@@ -48,10 +48,7 @@ class ApplyEnergyRegressor(Tool):
 
     def setup(self):
         """"""
-        self.estimator = EnergyRegressor(
-            parent=self,
-            model=Regressor.load(self.model_path),
-        )
+        self.estimator = EnergyRegressor.read(self.model_path, parent=self)
         self.h5file = tables.open_file(self.input_url, mode="r+")
         self.loader = TableLoader(
             parent=self,
