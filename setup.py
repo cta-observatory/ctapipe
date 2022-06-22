@@ -52,6 +52,7 @@ setup(
         "matplotlib~=3.0",
         "numba>=0.43",
         "numpy~=1.16",
+        "numexpr",
         "psutil",
         "scikit-learn",
         "scipy~=1.2",

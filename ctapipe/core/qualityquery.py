@@ -6,6 +6,7 @@ __all__ = ["QualityQuery", "QualityCriteriaError"]
 
 import astropy.units as u  # for use in selection functions
 import numpy as np  # for use in selection functions
+import numexpr
 
 from .component import Component
 from .traits import List
@@ -13,6 +14,10 @@ from .traits import List
 # the following are what are allowed to be used
 # in selection functions (passed to eval())
 ALLOWED_GLOBALS = {"u": u, "np": np}  # astropy units  # numpy
+
+for func in ('sin', 'cos', 'tan', 'arctan2', 'log', 'log10', 'exp', 'sqrt'):
+    ALLOWED_GLOBALS[func] = getattr(np, func)
+
 
 
 class QualityCriteriaError(TypeError):
@@ -94,7 +99,7 @@ class QualityQuery(Component):
         """Print a formatted string representation of the entire table."""
         return self.to_table().pprint_all(show_unit=True, show_dtype=True)
 
-    def __call__(self, **kwargs) -> np.ndarray:
+    def __call__(self, *, engine="python", **kwargs) -> np.ndarray:
         """
         Test that value passes all cuts
 
@@ -110,12 +115,41 @@ class QualityQuery(Component):
         """
         # add 1 for total
         result = np.ones(len(self.quality_criteria) + 1, dtype=bool)
-        for i, expression in enumerate(self._compiled_expressions, start=1):
-            try:
-                result[i] = bool(eval(expression, ALLOWED_GLOBALS, kwargs))
-            except Exception:
-                raise QualityCriteriaError("Error evaluating quality query")
 
+        if engine == 'numexpr':
+            expressions = self.expressions
+        else:
+            expressions = self._compiled_expressions
+
+        _evaluate_expression(expressions, result, kwargs, engine)
         self._counts += result.astype(int)
         self._cumulative_counts += result.cumprod()
         return result[1:]  # strip off TOTAL criterion, since redundant
+
+    def get_table_mask(self, table, engine="numexpr"):
+        n_criteria = len(self.quality_criteria) + 1
+        result = np.ones((n_criteria, len(table)), dtype=bool)
+
+        if engine == 'numexpr':
+            expressions = self.expressions
+        else:
+            expressions = self._compiled_expressions
+
+        _evaluate_expression(expressions, result, table, engine)
+
+        self._counts += np.count_nonzero(result, axis=1)
+        self._cumulative_counts += np.count_nonzero(np.cumprod(result, axis=0), axis=1)
+        return np.all(result, axis=0)
+
+
+def _evaluate_expression(expressions, result, locals, engine):
+    try:
+        for i, expression in enumerate(expressions, start=1):
+            if engine == 'numexpr':
+                result[i] = numexpr.evaluate(expression, locals, ALLOWED_GLOBALS)
+            else:
+                result[i] = eval(expression, ALLOWED_GLOBALS, locals)
+    except Exception:
+        if engine == 'numexpr':
+            raise QualityCriteriaError("Error evaluating quality query using numexpr, try engine='python'")
+        raise QualityCriteriaError("Error evaluating quality query")

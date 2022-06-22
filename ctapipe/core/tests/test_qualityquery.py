@@ -1,11 +1,14 @@
 """ Tests of Selectors """
+import numpy as np
 import pytest
 
 from ctapipe.core.qualityquery import QualityQuery, QualityCriteriaError
 from ctapipe.core.traits import List
+from astropy.table import Table
 
 
-def test_selector():
+@pytest.mark.parametrize("engine", ["numexpr", "python"])
+def test_selector(engine):
     """ test the functionality of an example Selector subclass"""
 
     class ExampleQualityQuery(QualityQuery):
@@ -14,23 +17,23 @@ def test_selector():
             default_value=[
                 ("high_enough", "x > 3"),
                 ("a_value_not_too_high", "x < 100"),
-                ("smallish", "x < np.sqrt(100)"),
+                ("smallish", "x < sqrt(100)"),
             ],
         ).tag(config=True)
 
     query = ExampleQualityQuery()
 
-    criteria1 = query(x=0)  # pass smallish
+    criteria1 = query(x=0, engine=engine)  # pass smallish
     assert len(criteria1) == 3
     assert (criteria1 == [False, True, True]).all()
 
-    criteria2 = query(x=20)  # pass high_enough + not_too_high
+    criteria2 = query(x=20, engine=engine)  # pass high_enough + not_too_high
     assert (criteria2 == [True, True, False]).all()
 
-    criteria3 = query(x=200)  # pass high_enough, fail not_too_high
+    criteria3 = query(x=200, engine=engine)  # pass high_enough, fail not_too_high
     assert (criteria3 == [True, False, False]).all()
 
-    criteria4 = query(x=8)  # pass all
+    criteria4 = query(x=8, engine=engine)  # pass all
     assert (criteria4 == True).all()
 
     tab = query.to_table()
@@ -98,3 +101,26 @@ def test_bad_selector():
     # test we only support expressions, not statements
     with pytest.raises(QualityCriteriaError):
         s = QualityQuery(quality_criteria=[("dangerous", "import numpy; np.array([])")])
+
+
+@pytest.mark.parametrize("engine", ["numexpr", "python"])
+def test_table_mask(engine):
+    s = QualityQuery(
+        quality_criteria=[
+            ("foo", "(x**2 + y**2) < 1.0"),
+            ("bar", "x < 0.5"),
+        ],
+    )
+
+    t = Table({
+        'x': [1.0, 0.2, -0.5, 0.6, 0.7],
+        'y': [0.0, 0.5, 1.0, 0.2, 0.1 ]
+    })
+
+    mask = s.get_table_mask(t, engine=engine)
+    assert len(mask) == len(t)
+    assert mask.dtype == np.bool_
+    np.testing.assert_equal(mask, [False, True, False, False, False])
+    stats = s.to_table()
+    np.testing.assert_equal(stats['counts'], [5, 3, 2])
+    np.testing.assert_equal(stats['cumulative_counts'], [5, 3, 1])
