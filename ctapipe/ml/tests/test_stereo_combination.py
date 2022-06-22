@@ -40,7 +40,7 @@ def test_mean_prediction(mono_table):
     combine_dummy_weights = StereoMeanCombiner(
         mono_prediction_column="prediction", weight_column="dummy_weight"
     )
-    stereo_dummy_weights = combine_no_weights(mono_table)
+    stereo_dummy_weights = combine_dummy_weights(mono_table)
     assert_array_equal(stereo_no_weights, stereo_dummy_weights)
 
     combine_weights = StereoMeanCombiner(
