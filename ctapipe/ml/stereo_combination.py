@@ -1,6 +1,7 @@
 from abc import abstractmethod
 import numpy as np
 from astropy.table import Table
+import astropy.units as u
 from scipy.ndimage import median
 from ctapipe.core import Component
 from ctapipe.ml.preprocessing import check_valid_rows
@@ -66,6 +67,7 @@ class StereoMeanCombiner(StereoCombiner):
 
         valid_rows = self.check_valid(mono_predictions)
         valid_predictions = mono_predictions[valid_rows]
+        prediction_unit = valid_predictions[self.mono_prediction_column].unit
 
         array_events, indices, n_tels_per_event = np.unique(
             valid_predictions[["obs_id", "event_id"]],
@@ -94,8 +96,8 @@ class StereoMeanCombiner(StereoCombiner):
                 np.add,
             )
             sum_of_weights = n_tels_per_event
-        stereo_table[f"mean_{self.mono_prediction_column}"] = (
-            sum_prediction / sum_of_weights
+        stereo_table[f"mean_{self.mono_prediction_column}"] = u.Quantity(
+            sum_prediction / sum_of_weights, prediction_unit, copy=False
         )
         return stereo_table
 
@@ -116,6 +118,8 @@ class StereoMedianCombiner(StereoCombiner):
         """
         valid_rows = self.check_valid(mono_predictions)
         valid_predictions = mono_predictions[valid_rows]
+        prediction_unit = valid_predictions[self.mono_prediction_column].unit
+
         array_events, indices, n_tels_per_event = np.unique(
             mono_predictions[["obs_id", "event_id"]],
             return_inverse=True,
@@ -124,9 +128,14 @@ class StereoMedianCombiner(StereoCombiner):
         stereo_table = Table(array_events)
         # There is no ufunc for the median in numpy, but
         # scipy offers something similar
-        stereo_table[f"median_{self.mono_prediction_column}"] = median(
+        median_without_unit = median(
             valid_predictions[self.mono_prediction_column],
             labels=indices,
             index=np.unique(indices),
+        )
+        stereo_table[f"median_{self.mono_prediction_column}"] = u.Quantity(
+            median_without_unit,
+            prediction_unit,
+            copy=False,
         )
         return stereo_table
