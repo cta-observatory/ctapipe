@@ -50,21 +50,3 @@ def test_mean_prediction(mono_table):
     assert_array_equal(
         stereo_weights["mean_prediction"], u.Quantity(np.array([3, 6, 1]), u.TeV)
     )
-
-
-@pytest.mark.skip("Not implemented as of now")
-def test_mean_with_quality_query():
-    return False
-
-
-def test_median_prediction(mono_table):
-    from ctapipe.ml.stereo_combination import StereoMedianCombiner
-
-    combine = StereoMedianCombiner(mono_prediction_column="prediction")
-    stereo = combine(mono_table)
-    assert stereo.colnames == ["obs_id", "event_id", "median_prediction"]
-    assert_array_equal(stereo["obs_id"], np.array([1, 1, 2]))
-    assert_array_equal(stereo["event_id"], np.array([1, 2, 1]))
-    assert_array_equal(
-        stereo["median_prediction"], u.Quantity(np.array([1, 7.5, 1]), u.TeV)
-    )
