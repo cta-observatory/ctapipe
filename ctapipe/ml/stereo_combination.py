@@ -5,6 +5,11 @@ import astropy.units as u
 from scipy.ndimage import median
 from ctapipe.core import Component
 from ctapipe.ml.preprocessing import check_valid_rows
+from ..containers import (
+    ArrayEventContainer,
+    ParticleClassificationContainer,
+    ReconstructedEnergyContainer,
+)
 
 
 def _calculate_ufunc_of_telescope_values(tel_data, n_array_events, indices, ufunc):
@@ -20,7 +25,13 @@ class StereoCombiner(Component):
         self.mono_prediction_column = mono_prediction_column
 
     @abstractmethod
-    def __call__(self, mono_predictions: Table) -> np.ndarray:
+    def __call__(self, event: ArrayEventContainer) -> None:
+        """
+        Fill event container with stereo predictions
+        """
+
+    @abstractmethod
+    def predict(self, mono_predictions: Table) -> np.ndarray:
         """
         Constructs stereo predictions from a table of
         telescope events.
@@ -56,7 +67,10 @@ class StereoMeanCombiner(StereoCombiner):
         else:
             return None
 
-    def __call__(self, mono_predictions: Table) -> Table:
+    def __call__(self, event: ArrayEventContainer) -> None:
+        pass
+
+    def predict(self, mono_predictions: Table) -> Table:
         """
         Calculates the (array-)event-wise mean of
         `mono_prediction_column`.
