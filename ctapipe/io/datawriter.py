@@ -6,11 +6,12 @@ Class to write DL1 (a,b) and DL2 (a) data from an event stream
 
 import pathlib
 from collections import defaultdict
-from traitlets import Instance
+from typing import List
 
 import numpy as np
 import tables
 from astropy import units as u
+from traitlets import Dict, Instance
 
 from ..containers import (
     ArrayEventContainer,
@@ -60,8 +61,14 @@ PROV = Provenance()
 
 
 def write_reference_metadata_headers(
-    obs_ids, subarray, writer, is_simulation, data_levels, contact_info
-):
+    obs_ids: List[int],
+    subarray: SubarrayDescription,
+    writer: "DataWriter",
+    is_simulation: bool,
+    data_levels,
+    contact_info: meta.Contact,
+    instrument_info: meta.Instrument,
+) -> None:
     """
     Attaches Core Provenence headers to an output HDF5 file.
     Right now this is hard-coded for use with the ctapipe-process tool
@@ -79,6 +86,10 @@ def write_reference_metadata_headers(
     data_levels: List[DataLevel]
         list of data levels that were requested/generated
         (e.g. from `DataWriter.datalevels`)
+    contact_info: meta.Contact
+        contact metadata
+    instrument_info: meta.Instrument
+        instrument metadata
     """
     activity = PROV.current_activity.provenance
     category = "Sim" if is_simulation else "Other"
@@ -101,14 +112,11 @@ def write_reference_metadata_headers(
             id_=",".join(str(x) for x in obs_ids),
         ),
         activity=meta.Activity.from_provenance(activity),
-        instrument=meta.Instrument(
-            site="Other",  # need a way to detect site...
-            class_="Subarray",
-            type_="unknown",
-            version="unknown",
-            id_=subarray.name,
-        ),
+        instrument=instrument_info,
     )
+
+    if reference.instrument.id_ == "unspecified":
+        reference.instrument.id_ = subarray.name
 
     headers = reference.to_dict()
     meta.write_to_hdf5(headers, writer.h5file)
@@ -133,6 +141,17 @@ class DataWriter(Component):
 
     # pylint: disable=too-many-instance-attributes
     contact_info = Instance(meta.Contact, kw={}).tag(config=True)
+    instrument_info = Instance(meta.Instrument, kw={}).tag(config=True)
+
+    context_metadata = Dict(
+        help=(
+            "Additional metadata keywords and values that describe this data. "
+            "This should be a dictionary where the keys will be appended to the "
+            "CONTEXT section of the output file's attributes. Keys can be hierarchical "
+            "by using a space between each level, e.g. `SIMULATION PRODUCTION` "
+            "would make a key PRODUCTION grouped under the key SIMULATION"
+        )
+    ).tag(config=True)
 
     output_path = Path(
         help="output filename", default_value=pathlib.Path("events.dl1.h5")
@@ -226,6 +245,7 @@ class DataWriter(Component):
 
         self.event_source = event_source
         self.contact_info = meta.Contact(parent=self)
+        self.instrument_info = meta.Instrument(parent=self)
 
         self._at_least_one_event = False
         self._is_simulation = event_source.is_simulation
@@ -306,7 +326,11 @@ class DataWriter(Component):
                 is_simulation=self._is_simulation,
                 data_levels=self.datalevels,
                 contact_info=self.contact_info,
+                instrument_info=self.instrument_info,
             )
+
+            self._write_context_metadata_headers()
+
             self._writer.close()
             self._writer = None
 
@@ -751,3 +775,23 @@ class DataWriter(Component):
                 )
 
         self._generate_table_indices(self._writer.h5file, "/dl1/event/subarray")
+
+    def _write_context_metadata_headers(self):
+        """write out any user-defined metadata in the context_metadata field to the
+        headers.
+
+        This will create a set of headers that start with CONTEXT <KEY> = value
+
+        Keys can be hierarchical separated by spaces
+
+        """
+
+        # first append CONTEXT to each key in the dict
+
+        context_dict = {}
+
+        for key, value in self.context_metadata.items():
+            key = " ".join(["CONTEXT", key])
+            context_dict[key] = value
+
+        meta.write_to_hdf5(context_dict, self._writer.h5file)

@@ -14,6 +14,7 @@ from ..io import DataLevel, DataWriter, EventSource, SimTelEventSource, write_ta
 from ..io.datawriter import DATA_MODEL_VERSION
 from ..reco import ShowerProcessor
 from ..utils import EventTypeFilter
+from ..io import metadata
 
 
 COMPATIBLE_DATALEVELS = [
@@ -134,7 +135,14 @@ class ProcessorTool(Tool):
     }
 
     classes = (
-        [CameraCalibrator, DataWriter, ImageProcessor, ShowerProcessor]
+        [
+            CameraCalibrator,
+            DataWriter,
+            ImageProcessor,
+            ShowerProcessor,
+            metadata.Instrument,
+            metadata.Contact,
+        ]
         + classes_with_traits(EventSource)
         + classes_with_traits(ImageCleaner)
         + classes_with_traits(ImageExtractor)
@@ -184,7 +192,7 @@ class ProcessorTool(Tool):
 
     @property
     def should_compute_dl2(self):
-        """ returns true if we should compute DL2 info """
+        """returns true if we should compute DL2 info"""
         if self.force_recompute_dl2:
             return True
         return self.write.write_stereo_shower or self.write.write_mono_shower
@@ -281,7 +289,7 @@ class ProcessorTool(Tool):
 
 
 def main():
-    """ run the tool"""
+    """run the tool"""
     tool = ProcessorTool()
     tool.run()
 
