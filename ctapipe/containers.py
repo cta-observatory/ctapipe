@@ -494,7 +494,7 @@ class SimulatedCameraContainer(Container):
     container_prefix = ""
 
     true_image_sum = Field(
-        np.nan, "Sum of the detected Cherenkov photons in the camera"
+        np.int32(-1), "Total number of detected Cherenkov photons in the camera"
     )
     true_image = Field(
         None,

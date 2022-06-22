@@ -405,7 +405,10 @@ class DataWriter(Component):
         writer.exclude("/dl1/monitoring/telescope/pointing/.*", "trigger_pixels")
         writer.exclude("/dl1/monitoring/event/pointing/.*", "event_type")
 
-        if self.write_parameters is False:
+        if not self.write_images:
+            writer.exclude("/simulation/event/telescope/images/.*", "true_image")
+
+        if not self.write_parameters:
             writer.exclude("/dl1/event/telescope/images/.*", "image_mask")
 
         if self._is_simulation:
@@ -626,18 +629,35 @@ class DataWriter(Component):
 
             table_name = self.table_name(tel_id, str(telescope))
 
-            has_sim_camera = self._is_simulation and (
-                tel_id in event.simulation.tel
-                and event.simulation.tel[tel_id].true_image is not None
-            )
-
             if self.write_parameters:
                 writer.write(
                     table_name=f"dl1/event/telescope/parameters/{table_name}",
                     containers=[tel_index, *dl1_camera.parameters.values()],
                 )
 
-                if has_sim_camera:
+            if self.write_images:
+                if dl1_camera.image is None:
+                    raise ValueError(
+                        "DataWriter.write_images is True but event does not contain image"
+                    )
+
+                writer.write(
+                    table_name=f"dl1/event/telescope/images/{table_name}",
+                    containers=[tel_index, dl1_camera],
+                )
+
+            if self._is_simulation:
+                # always write this, so that at least the sum is included
+                writer.write(
+                    f"simulation/event/telescope/images/{table_name}",
+                    [tel_index, event.simulation.tel[tel_id]],
+                )
+
+                has_sim_image = (
+                    tel_id in event.simulation.tel
+                    and event.simulation.tel[tel_id].true_image is not None
+                )
+                if self.write_parameters and has_sim_image:
                     writer.write(
                         f"simulation/event/telescope/parameters/{table_name}",
                         [
@@ -646,25 +666,6 @@ class DataWriter(Component):
                         ],
                     )
 
-            if self.write_images:
-                if dl1_camera.image is None:
-                    raise ValueError(
-                        "DataWriter.write_images is True but event does not contain image"
-                    )
-                # note that we always write the image, even if the image quality
-                # criteria are not met (those are only to determine if the parameters
-                # can be computed).
-                self.log.debug("WRITING IMAGES")
-                writer.write(
-                    table_name=f"dl1/event/telescope/images/{table_name}",
-                    containers=[tel_index, dl1_camera],
-                )
-
-                if self._is_simulation and has_sim_camera:
-                    writer.write(
-                        f"simulation/event/telescope/images/{table_name}",
-                        [tel_index, event.simulation.tel[tel_id]],
-                    )
 
     def _write_dl2_telescope_events(
         self, writer: TableWriter, event: ArrayEventContainer
