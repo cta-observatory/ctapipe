@@ -45,7 +45,7 @@ def test_shower_processor_geometry(example_event, example_subarray, reconstructo
 
     # Increase some quality cuts and check that we get defaults
     config[reconstructor_type].StereoQualityQuery.quality_criteria = [
-        ("> 500 phes", "lambda p: p.hillas.intensity > 500")
+        ("> 500 phes", "parameters.hillas.intensity > 500")
     ]
 
     process_shower = ShowerProcessor(

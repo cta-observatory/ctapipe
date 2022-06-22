@@ -24,9 +24,9 @@ class StereoQualityQuery(QualityQuery):
 
     quality_criteria = List(
         default_value=[
-            ("> 50 phe", "lambda p: p.hillas.intensity > 50"),
-            ("Positive width", "lambda p: p.hillas.width.value > 0"),
-            ("> 3 pixels", "lambda p: p.morphology.num_pixels > 3"),
+            ("> 50 phe", "parameters.hillas.intensity > 50"),
+            ("Positive width", "parameters.hillas.width.value > 0"),
+            ("> 3 pixels", "parameters.morphology.num_pixels > 3"),
         ],
         help=QualityQuery.quality_criteria.help,
     ).tag(config=True)
@@ -64,7 +64,7 @@ class Reconstructor(Component):
         hillas_dict = {
             tel_id: dl1.parameters.hillas
             for tel_id, dl1 in event.dl1.tel.items()
-            if all(self.check_parameters(dl1.parameters))
+            if all(self.check_parameters(parameters=dl1.parameters))
         }
 
         if len(hillas_dict) < 2:

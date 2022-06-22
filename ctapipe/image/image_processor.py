@@ -46,7 +46,7 @@ class ImageQualityQuery(QualityQuery):
 
     quality_criteria = List(
         default_value=[
-            ("size_greater_0", "lambda image_selected: image_selected.sum() > 0")
+            ("size_greater_0", "image.sum() > 0")
         ],
         help=QualityQuery.quality_criteria.help,
     ).tag(config=True)
@@ -140,7 +140,7 @@ class ImageProcessor(TelescopeComponent):
         image_selected = image[signal_pixels]
 
         # check if image can be parameterized:
-        image_criteria = self.check_image(image_selected)
+        image_criteria = self.check_image(image=image_selected)
         self.log.debug(
             "image_criteria: %s",
             list(zip(self.check_image.criteria_names[1:], image_criteria)),

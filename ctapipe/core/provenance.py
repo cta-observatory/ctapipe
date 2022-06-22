@@ -127,7 +127,7 @@ class Provenance(metaclass=Singleton):
         Parameters
         ----------
         config: dict
-            configuration paramters
+            configuration parameters
         """
         self.current_activity.register_config(config)
 

@@ -9,27 +9,28 @@ def test_selector():
     """ test the functionality of an example Selector subclass"""
 
     class ExampleQualityQuery(QualityQuery):
+        """Available variables: x"""
         quality_criteria = List(
             default_value=[
-                ("high_enough", "lambda x: x > 3"),
-                ("a_value_not_too_high", "lambda x: x < 100"),
-                ("smallish", "lambda x: x < np.sqrt(100)"),
+                ("high_enough", "x > 3"),
+                ("a_value_not_too_high", "x < 100"),
+                ("smallish", "x < np.sqrt(100)"),
             ],
         ).tag(config=True)
 
     query = ExampleQualityQuery()
 
-    criteria1 = query(0)  # pass smallish
+    criteria1 = query(x=0)  # pass smallish
     assert len(criteria1) == 3
     assert (criteria1 == [False, True, True]).all()
 
-    criteria2 = query(20)  # pass high_enough + not_too_high
+    criteria2 = query(x=20)  # pass high_enough + not_too_high
     assert (criteria2 == [True, True, False]).all()
 
-    criteria3 = query(200)  # pass high_enough, fail not_too_high
+    criteria3 = query(x=200)  # pass high_enough, fail not_too_high
     assert (criteria3 == [True, False, False]).all()
 
-    criteria4 = query(8)  # pass all
+    criteria4 = query(x=8)  # pass all
     assert (criteria4 == True).all()
 
     tab = query.to_table()
@@ -55,44 +56,45 @@ def test_selector():
     assert tab["cumulative_counts"][2] == 2
     assert tab["cumulative_counts"][3] == 1
 
-    # check that the order is preserved
-    assert query.criteria_names[1] == "high_enough"
-    assert query.criteria_names[2] == "a_value_not_too_high"
-    assert query.criteria_names[3] == "smallish"
 
-    # check we can get back the correct function string:
-    assert query.selection_function_strings[1] == "lambda x: x > 3"
+def test_invalid_input():
+    class ExampleQualityQuery(QualityQuery):
+        """Available variables: x"""
+        quality_criteria = List(
+            default_value=[
+                ("high_enough", "x > 3"),
+                ("a_value_not_too_high", "x < 100"),
+                ("smallish", "x < np.sqrt(100)"),
+            ],
+        ).tag(config=True)
 
-    assert len(query) == 4  # 4 events counted
+    query = ExampleQualityQuery()
+    with pytest.raises(QualityCriteriaError):
+        query(y=5)
 
 
 def test_bad_selector():
     """ ensure failure if a selector function is not a function or can't be evaluated"""
 
+    s = QualityQuery(
+        quality_criteria=[
+            ("high_enough", "x > 3"),
+            ("not_good", "foo"),
+            ("smallish", "x < 10"),
+        ]
+    )
     with pytest.raises(QualityCriteriaError):
-        s = QualityQuery(
-            quality_criteria=[
-                ("high_enough", "lambda x: x > 3"),
-                ("not_good", "3"),
-                ("smallish", "lambda x: x < 10"),
-            ]
-        )
-        assert s
+        s(x=5)
 
-    with pytest.raises(QualityCriteriaError):
-        s = QualityQuery(
-            quality_criteria=[
-                ("high_enough", "lambda x: x > 3"),
-                ("not_good", "x == 3"),
-                ("smallish", "lambda x: x < 10"),
-            ]
-        )
-        assert s
 
     # ensure we can't run arbitrary code.
     # try to construct something that is not in the
     # ALLOWED_GLOBALS list, but which is imported in selector.py
     # and see if it works in a function
-    with pytest.raises(NameError):
-        s = QualityQuery(quality_criteria=[("dangerous", "lambda x: Component()")])
-        s(10)
+    with pytest.raises(QualityCriteriaError):
+        s = QualityQuery(quality_criteria=[("dangerous", "Component()")])
+        s(x=10)
+
+    # test we only support expressions, not statements
+    with pytest.raises(QualityCriteriaError):
+        s = QualityQuery(quality_criteria=[("dangerous", "import numpy; np.array([])")])
