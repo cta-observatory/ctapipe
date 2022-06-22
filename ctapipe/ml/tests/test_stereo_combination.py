@@ -16,7 +16,7 @@ def mono_table():
             "obs_id": [1, 1, 1, 1, 1, 2],
             "event_id": [1, 1, 1, 2, 2, 1],
             "tel_id": [1, 2, 3, 5, 7, 1],
-            "prediction": [1, 5, 0, 5, 10, 1],
+            "prediction": u.Quantity([1, 5, 0, 5, 10, 1], u.TeV),
             "dummy_weight": [1, 1, 1, 1, 1, 1],
             "weight": [0.5, 0.5, 0, 4, 1, 1],
         }
@@ -31,7 +31,11 @@ def test_mean_prediction(mono_table):
     assert stereo_no_weights.colnames == ["obs_id", "event_id", "mean_prediction"]
     assert_array_equal(stereo_no_weights["obs_id"], np.array([1, 1, 2]))
     assert_array_equal(stereo_no_weights["event_id"], np.array([1, 2, 1]))
-    assert_array_equal(stereo_no_weights["mean_prediction"], np.array([2, 7.5, 1]))
+    print(mono_table)
+    print(stereo_no_weights)
+    assert_array_equal(
+        stereo_no_weights["mean_prediction"], u.Quantity(np.array([2, 7.5, 1]), u.TeV)
+    )
 
     combine_dummy_weights = StereoMeanCombiner(
         mono_prediction_column="prediction", weight_column="dummy_weight"
@@ -43,7 +47,9 @@ def test_mean_prediction(mono_table):
         mono_prediction_column="prediction", weight_column="weight"
     )
     stereo_weights = combine_weights(mono_table)
-    assert_array_equal(stereo_weights["mean_prediction"], np.array([3, 6, 1]))
+    assert_array_equal(
+        stereo_weights["mean_prediction"], u.Quantity(np.array([3, 6, 1]), u.TeV)
+    )
 
 
 @pytest.mark.skip("Not implemented as of now")
@@ -59,4 +65,6 @@ def test_median_prediction(mono_table):
     assert stereo.colnames == ["obs_id", "event_id", "median_prediction"]
     assert_array_equal(stereo["obs_id"], np.array([1, 1, 2]))
     assert_array_equal(stereo["event_id"], np.array([1, 2, 1]))
-    assert_array_equal(stereo["median_prediction"], np.array([1, 7.5, 1]))
+    assert_array_equal(
+        stereo["median_prediction"], u.Quantity(np.array([1, 7.5, 1]), u.TeV)
+    )
