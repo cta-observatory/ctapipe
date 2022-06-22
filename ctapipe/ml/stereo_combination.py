@@ -8,9 +8,9 @@ from ctapipe.ml.preprocessing import check_valid_rows
 
 
 def _calculate_ufunc_of_telescope_values(tel_data, n_array_events, indices, ufunc):
-    mean_values = np.zeros(n_array_events)
-    ufunc.at(mean_values, indices, tel_data)
-    return mean_values
+    combined_values = np.zeros(n_array_events)
+    ufunc.at(combined_values, indices, tel_data)
+    return combined_values
 
 
 class StereoCombiner(Component):
