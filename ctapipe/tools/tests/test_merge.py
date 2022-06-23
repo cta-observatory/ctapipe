@@ -97,12 +97,17 @@ def test_skip_images(tmp_path, dl1_file, dl1_proton_file):
         ],
         cwd=tmp_path,
     )
+    assert ret == 0
 
     with tables.open_file(output, "r") as f:
         assert "images" not in f.root.dl1.event.telescope
+        assert "images" in f.root.simulation.event.telescope
         assert "parameters" in f.root.dl1.event.telescope
 
-    assert ret == 0
+    t = read_table(output, "/simulation/event/telescope/images/tel_001")
+    assert "true_image" not in t.colnames
+    assert "true_image_sum" in t.colnames
+
 
 
 def test_allowed_tels(tmp_path, dl1_file, dl1_proton_file):

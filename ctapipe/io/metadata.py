@@ -55,7 +55,7 @@ CONVERSIONS = {Time: lambda t: t.utc.iso, list: str}
 
 
 class Contact(Configurable):
-    """ Contact information """
+    """Contact information"""
 
     name = Unicode("unknown").tag(config=True)
     email = Unicode("unknown").tag(config=True)
@@ -63,7 +63,7 @@ class Contact(Configurable):
 
     @default("name")
     def default_name(self):
-        """ if no name specified, use the system's user name"""
+        """if no name specified, use the system's user name"""
         try:
             return pwd.getpwuid(os.getuid()).pw_gecos
         except RuntimeError:
@@ -90,17 +90,17 @@ class Product(HasTraits):
     # pylint: disable=no-self-use
     @default("creation_time")
     def default_time(self):
-        """ return current time by default """
+        """return current time by default"""
         return Time.now().iso
 
     @default("id_")
     def default_product_id(self):
-        """ default id is a UUID """
+        """default id is a UUID"""
         return str(uuid.uuid4())
 
 
 class Process(HasTraits):
-    """ Process (top-level workflow) information """
+    """Process (top-level workflow) information"""
 
     type_ = Enum(["Observation", "Simulation", "Other"], "Other")
     subtype = Unicode("")
@@ -108,11 +108,11 @@ class Process(HasTraits):
 
 
 class Activity(HasTraits):
-    """ Activity (tool) information """
+    """Activity (tool) information"""
 
     @classmethod
     def from_provenance(cls, activity):
-        """ construct Activity metadata from existing ActivityProvenance object"""
+        """construct Activity metadata from existing ActivityProvenance object"""
         return Activity(
             name=activity["activity_name"],
             type_="software",
@@ -132,12 +132,12 @@ class Activity(HasTraits):
     # pylint: disable=no-self-use
     @default("start_time")
     def default_time(self):
-        """ default time is now """
+        """default time is now"""
         return Time.now().iso
 
 
-class Instrument(HasTraits):
-    """ Instrumental Context """
+class Instrument(Configurable):
+    """Instrumental Context"""
 
     site = Enum(
         [
@@ -155,7 +155,7 @@ class Instrument(HasTraits):
         "Other",
         help="Which site of CTA (or external telescope) "
         "this instrument is associated with",
-    )
+    ).tag(config=True)
     class_ = Enum(
         [
             "Array",
@@ -170,15 +170,21 @@ class Instrument(HasTraits):
             "Other",
         ],
         "Other",
-    )
-    type_ = Unicode("unspecified")
-    subtype = Unicode("unspecified")
-    version = Unicode("unspecified")
-    id_ = Unicode("unspecified")
+    ).tag(config=True)
+    type_ = Unicode("unspecified").tag(config=True)
+    subtype = Unicode("unspecified").tag(config=True)
+    version = Unicode("unspecified").tag(config=True)
+    id_ = Unicode("unspecified").tag(config=True)
+
+    def __repr__(self):
+        return (
+            f"Contact({self.site=}, {self.class_=}, {self.type_=}, "
+            f"{self.subtype=}, {self.version=}, {self.id_=})"
+        )
 
 
 def _to_dict(hastraits_instance, prefix=""):
-    """ helper to convert a HasTraits to a dict with keys
+    """helper to convert a HasTraits to a dict with keys
     in the required CTA format (upper-case, space separated)
     """
     res = {}
@@ -199,8 +205,8 @@ def _to_dict(hastraits_instance, prefix=""):
 
 
 class Reference(HasTraits):
-    """ All the reference Metadata required for a CTA output file, plus a way to turn
-    it into a dict() for easy addition to the header of a file """
+    """All the reference Metadata required for a CTA output file, plus a way to turn
+    it into a dict() for easy addition to the header of a file"""
 
     contact = Instance(Contact)
     product = Instance(Product)
@@ -225,7 +231,7 @@ class Reference(HasTraits):
         return meta
 
 
-def write_to_hdf5(metadata, h5file, path='/'):
+def write_to_hdf5(metadata, h5file, path="/"):
     """
     Write metadata fields to a PyTables HDF5 file handle.
 
@@ -246,7 +252,7 @@ def write_to_hdf5(metadata, h5file, path='/'):
             node._v_attrs[key] = value  # pylint: disable=protected-access
 
 
-def read_metadata(h5file, path='/'):
+def read_metadata(h5file, path="/"):
     """
     Read metadata from an hdf5 file
 

@@ -14,6 +14,7 @@ from ..io import DataLevel, DataWriter, EventSource, SimTelEventSource, write_ta
 from ..io.datawriter import DATA_MODEL_VERSION
 from ..reco import ShowerProcessor
 from ..utils import EventTypeFilter
+from ..io import metadata
 
 
 COMPATIBLE_DATALEVELS = [
@@ -128,7 +129,14 @@ class ProcessorTool(Tool):
     }
 
     classes = (
-        [CameraCalibrator, DataWriter, ImageProcessor, ShowerProcessor]
+        [
+            CameraCalibrator,
+            DataWriter,
+            ImageProcessor,
+            ShowerProcessor,
+            metadata.Instrument,
+            metadata.Contact,
+        ]
         + classes_with_traits(EventSource)
         + classes_with_traits(ImageCleaner)
         + classes_with_traits(ImageExtractor)
