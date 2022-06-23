@@ -24,41 +24,48 @@ def mono_table():
             "obs_id": [1, 1, 1, 1, 1, 2],
             "event_id": [1, 1, 1, 2, 2, 1],
             "tel_id": [1, 2, 3, 5, 7, 1],
-            "prediction": u.Quantity([1, 5, 0, 5, 10, 1], u.TeV),
-            "dummy_weight": [1, 1, 1, 1, 1, 1],
-            "weight": [0.5, 0.5, 0, 4, 1, 1],
+            "dummy_reconstructed_energy_energy": u.Quantity(
+                [1, 10, 4, 0.5, 0.7, 1], u.TeV
+            ),
+            "dummy_reconstructed_energy_is_valid": [
+                True,
+                True,
+                True,
+                True,
+                False,
+                False,
+            ],
         }
     )
 
 
 def test_mean_prediction_table(mono_table):
-    combine_no_weights = StereoMeanCombiner(mono_prediction_column="prediction")
-    stereo_no_weights = combine_no_weights.predict(mono_table)
-    assert stereo_no_weights.colnames == ["obs_id", "event_id", "mean_prediction"]
-    assert_array_equal(stereo_no_weights["obs_id"], np.array([1, 1, 2]))
-    assert_array_equal(stereo_no_weights["event_id"], np.array([1, 2, 1]))
+    combine = StereoMeanCombiner(algorithm="dummy", combine_property="energy")
+    stereo = combine.predict(mono_table)
+    assert stereo.colnames == [
+        "obs_id",
+        "event_id",
+        "dummy_reconstructed_energy_tel_ids",
+        "dummy_reconstructed_energy_energy",
+        "dummy_reconstructed_energy_energy_uncert",
+        "dummy_reconstructed_energy_is_valid",
+        "dummy_reconstructed_energy_goodness_of_fit",
+    ]
+    assert_array_equal(stereo["obs_id"], np.array([1, 1]))
+    assert_array_equal(stereo["event_id"], np.array([1, 2]))
     assert_array_equal(
-        stereo_no_weights["mean_prediction"], u.Quantity(np.array([2, 7.5, 1]), u.TeV)
+        stereo["dummy_reconstructed_energy_energy"],
+        u.Quantity(np.array([5, 0.5]), u.TeV),
     )
-
-    combine_dummy_weights = StereoMeanCombiner(
-        mono_prediction_column="prediction", weight_column="dummy_weight"
-    )
-    stereo_dummy_weights = combine_dummy_weights.predict(mono_table)
-    assert_array_equal(stereo_no_weights, stereo_dummy_weights)
-
-    combine_weights = StereoMeanCombiner(
-        mono_prediction_column="prediction", weight_column="weight"
-    )
-    stereo_weights = combine_weights.predict(mono_table)
     assert_array_equal(
-        stereo_weights["mean_prediction"], u.Quantity(np.array([3, 6, 1]), u.TeV)
+        stereo["dummy_reconstructed_energy_tel_ids"][0], np.array([1, 2, 3])
     )
+    assert_array_equal(stereo["dummy_reconstructed_energy_tel_ids"][1], 5)
+    # TODO Test case for classification as well
 
 
 def test_mean_prediction_single_event():
     event = ArrayEventContainer()
-    # These are actually in the file
     event.dl2.tel[25] = ReconstructedContainer(
         energy={
             "dummy": ReconstructedEnergyContainer(energy=10 * u.GeV, is_valid=True)
@@ -84,8 +91,11 @@ def test_mean_prediction_single_event():
         },
     )
 
-    combine = StereoMeanCombiner(algorithm="dummy", energy=True, classification=True)
-    combine(event)
+    combine_energy = StereoMeanCombiner(algorithm="dummy", combine_property="energy")
+    combine_energy(event)
+    combine_classification = StereoMeanCombiner(
+        algorithm="dummy", combine_property="classification"
+    )
+    combine_classification(event)
     assert event.dl2.stereo.energy["dummy"].energy == 20 * u.GeV
     assert event.dl2.stereo.classification["dummy"].prediction == 0.6
-    assert False
