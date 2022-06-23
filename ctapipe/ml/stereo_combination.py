@@ -1,9 +1,11 @@
 from abc import abstractmethod
+from ctapipe.core import traits
 import numpy as np
 from astropy.table import Table
 import astropy.units as u
 from scipy.ndimage import median
-from ctapipe.core import Component
+from ctapipe.core import Component, Container
+from ctapipe.core.traits import CaselessStrEnum, Unicode
 from ctapipe.ml.preprocessing import check_valid_rows
 from ..containers import (
     ArrayEventContainer,
@@ -20,9 +22,10 @@ def _calculate_ufunc_of_telescope_values(tel_data, n_array_events, indices, ufun
 
 class StereoCombiner(Component):
     # TODO: Add quality query (after #1888)
-    def __init__(self, algorithm, *args, **kwargs):
+    algorithm = Unicode().tag(config=True)
+
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.algorithm = algorithm
 
     @abstractmethod
     def __call__(self, event: ArrayEventContainer) -> None:
@@ -37,17 +40,6 @@ class StereoCombiner(Component):
         telescope events.
         """
 
-    def check_valid(self, table: Table) -> np.ndarray:
-        """
-        Selects the telescope events, that should be used
-        for the stereo reconstruction.
-        Due to the quality query only operating on single events currently,
-        as of now this only discards rows with nans in them.
-        """
-        valid = check_valid_rows(table)
-        # TODO: Add quality query (after #1888)
-        return valid
-
 
 class StereoMeanCombiner(StereoCombiner):
     """
@@ -55,17 +47,49 @@ class StereoMeanCombiner(StereoCombiner):
     the reconstruction on telescope-level with an optional weighting.
     """
 
-    def __init__(self, weight_column=None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.weight_column = weight_column
+    weights = CaselessStrEnum(
+        ["none", "intensity", "konrad"], default_value="none"
+    ).tag(config=True)
+    combine_property = CaselessStrEnum(["energy", "classification", "direction"]).tag(
+        config=True
+    )
 
-    def _construct_weights(self, table):
-        # TODO: Do we want to calculate weights on the fly or do it externally?
-        # If we dont want to do that here, this might as well be removed
-        if self.weight_column:
-            return table[self.weight_column]
-        else:
-            return None
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def _calculate_weights(self, dl1):
+        """ """
+        if isinstance(dl1, Container):
+            if self.weights == "intensity":
+                return dl1.hillas["intensity"]
+            elif self.weights == "konrad":
+                return (
+                    dl1.hillas["intensity"] * dl1.hillas["length"] / dl1.hillas["width"]
+                )
+            else:
+                return 1
+        elif isinstance(dl1, Table):
+            if self.weights == "intensity":
+                return dl1["hillas_intensity"]
+            elif self.weights == "konrad":
+                return (
+                    dl1["hillas_intensity"] * dl1["hillas_length"] / dl1["hillas_width"]
+                )
+            else:
+                return np.ones(len(dl1))
+        return 1
+
+    def _weighted_mean_ufunc(self, tel_values, weights, n_array_events, indices):
+        sum_prediction = _calculate_ufunc_of_telescope_values(
+            tel_values * weights,
+            n_array_events,
+            indices,
+            np.add,
+        )
+        sum_of_weights = _calculate_ufunc_of_telescope_values(
+            weights, n_array_events, indices, np.add
+        )
+        return sum_prediction / sum_of_weights
 
     def __call__(self, event: ArrayEventContainer) -> None:
         """
@@ -74,19 +98,22 @@ class StereoMeanCombiner(StereoCombiner):
         TODO: This only uses the nominal telescope values, not their respective uncertainties!
         (Which we dont have right now)
         """
-        mono_energies = {"ids": [], "values": [], "weights": None}
-        mono_classifications = {"ids": [], "values": [], "weights": None}
+        mono_energies = {"ids": [], "values": [], "weights": []}
+        mono_classifications = {"ids": [], "values": [], "weights": []}
 
         for tel_id, dl2 in event.dl2.tel.items():
-            if self.algorithm in dl2.energy:
+            dl1 = event.dl1.tel[tel_id].parameters
+            if self.combine_property == "energy":
                 mono = dl2.energy[self.algorithm]
                 if mono.is_valid:
                     mono_energies["values"].append(mono.energy.to_value(u.TeV))
+                    mono_energies["weights"].append(self._calculate_weights(dl1))
                     mono_energies["ids"].append(tel_id)
-            if self.algorithm in dl2.classification:
+            if self.combine_property == "classification":
                 mono = dl2.classification[self.algorithm]
                 if mono.is_valid:
                     mono_classifications["values"].append(mono.prediction)
+                    mono_classifications["weights"].append(self._calculate_weights(dl1))
                     mono_classifications["ids"].append(tel_id)
         if mono_energies["ids"]:
             weighted_mean = np.average(
@@ -95,7 +122,10 @@ class StereoMeanCombiner(StereoCombiner):
             stereo_energy = ReconstructedEnergyContainer(
                 energy=u.Quantity(weighted_mean, u.TeV, copy=False),
                 energy_uncert=u.Quantity(
-                    np.average((weighted_mean - mono_energies["values"]) ** 2),
+                    np.average(
+                        (weighted_mean - mono_energies["values"]) ** 2,
+                        weights=mono_energies["weights"],
+                    ),
                     u.TeV,
                     copy=False,
                 ),
@@ -121,38 +151,70 @@ class StereoMeanCombiner(StereoCombiner):
         all telescope predictions of a shower are invalid.
         """
 
-        valid_rows = self.check_valid(mono_predictions)
-        valid_predictions = mono_predictions[valid_rows]
-        prediction_unit = valid_predictions[self.mono_prediction_column].unit
+        if self.combine_property == "energy":
+            # TODO: Integrate table quality query once its done #1888
+            valid_rows = mono_predictions[
+                f"{self.algorithm}_reconstructed_energy_is_valid"
+            ]
+            valid_predictions = mono_predictions[valid_rows]
 
-        array_events, indices, n_tels_per_event = np.unique(
-            valid_predictions[["obs_id", "event_id"]],
-            return_inverse=True,
-            return_counts=True,
-        )
-        stereo_table = Table(array_events)
-        n_array_events = len(array_events)
-        weights = self._construct_weights(valid_predictions)
+            array_events, split_index, indices = np.unique(
+                valid_predictions[["obs_id", "event_id"]],
+                return_inverse=True,
+                return_index=True,
+            )
+            stereo_table = Table(array_events)
+            n_array_events = len(array_events)
 
-        if weights is not None:
-            sum_prediction = _calculate_ufunc_of_telescope_values(
-                valid_predictions[self.mono_prediction_column] * weights,
-                n_array_events,
-                indices,
-                np.add,
+            weights = self._calculate_weights(valid_predictions)
+
+            # TODO
+            # this needs to be a true/false mask, not a list of ids!
+            stereo_table[f"{self.algorithm}_reconstructed_energy_tel_ids"] = np.split(
+                valid_predictions["tel_id"].value, split_index
+            )[1:]
+            mono_energies = valid_predictions[
+                f"{self.algorithm}_reconstructed_energy_energy"
+            ].quantity.to_value(u.TeV)
+            stereo_energy = self._weighted_mean_ufunc(
+                mono_energies, weights, n_array_events, indices
             )
-            sum_of_weights = _calculate_ufunc_of_telescope_values(
-                weights, n_array_events, indices, np.add
+            stereo_table[f"{self.algorithm}_reconstructed_energy_energy"] = u.Quantity(
+                stereo_energy, u.TeV, copy=False
             )
+
+            # This subtracts the array-event-wise mean from each telescope event
+            # The split works the same as for the tel_ids above, but since the groups are of uneven
+            # size, numpy does not allow them to be in one array without turning the dtype to object,
+            # which is why the subtraction is performed in each array individually
+            # Akward arrays might fit here
+            centered_mono_energies = np.concatenate(
+                [
+                    tel - mean
+                    for tel, mean in zip(
+                        np.split(mono_energies, split_index)[1:], stereo_energy
+                    )
+                ]
+            )
+            stereo_energy_uncert = np.sqrt(
+                self._weighted_mean_ufunc(
+                    centered_mono_energies**2, weights, n_array_events, indices
+                )
+            )
+            stereo_table[
+                f"{self.algorithm}_reconstructed_energy_energy_uncert"
+            ] = u.Quantity(stereo_energy_uncert, u.TeV, copy=False)
+            stereo_table[
+                f"{self.algorithm}_reconstructed_energy_is_valid"
+            ] = np.isfinite(stereo_energy)
+            stereo_table[
+                f"{self.algorithm}_reconstructed_energy_goodness_of_fit"
+            ] = np.nan
+
+        # TODO: Now do the same for classification
+        elif self.combine_property == "classification":
+            pass
         else:
-            sum_prediction = _calculate_ufunc_of_telescope_values(
-                valid_predictions[self.mono_prediction_column],
-                n_array_events,
-                indices,
-                np.add,
-            )
-            sum_of_weights = n_tels_per_event
-        stereo_table[f"mean_{self.mono_prediction_column}"] = u.Quantity(
-            sum_prediction / sum_of_weights, prediction_unit, copy=False
-        )
+            raise NotImplementedError()
+
         return stereo_table
