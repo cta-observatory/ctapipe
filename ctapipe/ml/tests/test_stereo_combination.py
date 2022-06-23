@@ -24,6 +24,7 @@ def mono_table():
             "obs_id": [1, 1, 1, 1, 1, 2],
             "event_id": [1, 1, 1, 2, 2, 1],
             "tel_id": [1, 2, 3, 5, 7, 1],
+            "hillas_intensity": [1, 2, 0, 1, 5, 9],
             "dummy_reconstructed_energy_energy": u.Quantity(
                 [1, 10, 4, 0.5, 0.7, 1], u.TeV
             ),
@@ -40,7 +41,9 @@ def mono_table():
 
 
 def test_mean_prediction_table(mono_table):
-    combine = StereoMeanCombiner(algorithm="dummy", combine_property="energy")
+    combine = StereoMeanCombiner(
+        algorithm="dummy", combine_property="energy", weights="intensity"
+    )
     stereo = combine.predict(mono_table)
     assert stereo.colnames == [
         "obs_id",
@@ -55,7 +58,7 @@ def test_mean_prediction_table(mono_table):
     assert_array_equal(stereo["event_id"], np.array([1, 2]))
     assert_array_equal(
         stereo["dummy_reconstructed_energy_energy"],
-        u.Quantity(np.array([5, 0.5]), u.TeV),
+        u.Quantity(np.array([7, 0.5]), u.TeV),
     )
     assert_array_equal(
         stereo["dummy_reconstructed_energy_tel_ids"][0], np.array([1, 2, 3])
