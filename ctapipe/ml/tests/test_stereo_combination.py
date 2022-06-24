@@ -36,11 +36,20 @@ def mono_table():
                 False,
                 False,
             ],
+            "classifier_particle_classification_prediction": [1, 0, 0.5, 0, 0.6, 1],
+            "classifier_particle_classification_is_valid": [
+                True,
+                True,
+                False,
+                True,
+                True,
+                True,
+            ],
         }
     )
 
 
-def test_mean_prediction_table(mono_table):
+def test_predict_mean_energy(mono_table):
     combine = StereoMeanCombiner(
         algorithm="dummy", combine_property="energy", weights="intensity"
     )
@@ -64,7 +73,32 @@ def test_mean_prediction_table(mono_table):
         stereo["dummy_reconstructed_energy_tel_ids"][0], np.array([1, 2, 3])
     )
     assert_array_equal(stereo["dummy_reconstructed_energy_tel_ids"][1], 5)
-    # TODO Test case for classification as well
+
+
+def test_predict_mean_classification(mono_table):
+    combine = StereoMeanCombiner(
+        algorithm="classifier", combine_property="classification"
+    )
+    stereo = combine.predict(mono_table)
+    assert stereo.colnames == [
+        "obs_id",
+        "event_id",
+        "classifier_particle_classification_tel_ids",
+        "classifier_particle_classification_prediction",
+        "classifier_particle_classification_is_valid",
+        "classifier_particle_classification_goodness_of_fit",
+    ]
+    assert_array_equal(stereo["obs_id"], np.array([1, 1, 2]))
+    assert_array_equal(stereo["event_id"], np.array([1, 2, 1]))
+    assert_array_equal(
+        stereo["classifier_particle_classification_prediction"],
+        [0.5, 0.3, 1],
+    )
+    assert_array_equal(
+        stereo["classifier_particle_classification_tel_ids"][0], np.array([1, 2])
+    )
+    assert_array_equal(stereo["classifier_particle_classification_tel_ids"][1], [5, 7])
+    assert_array_equal(stereo["classifier_particle_classification_tel_ids"][2], 1)
 
 
 def test_mean_prediction_single_event():
@@ -95,10 +129,10 @@ def test_mean_prediction_single_event():
     )
 
     combine_energy = StereoMeanCombiner(algorithm="dummy", combine_property="energy")
-    combine_energy(event)
     combine_classification = StereoMeanCombiner(
         algorithm="dummy", combine_property="classification"
     )
+    combine_energy(event)
     combine_classification(event)
     assert event.dl2.stereo.energy["dummy"].energy == 20 * u.GeV
     assert event.dl2.stereo.classification["dummy"].prediction == 0.6
