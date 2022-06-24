@@ -159,10 +159,9 @@ class StereoMeanCombiner(StereoCombiner):
         """
 
         if self.combine_property == "energy":
+            column_prefix = f"{self.algorithm}_reconstructed_energy"
             # TODO: Integrate table quality query once its done #1888
-            valid_rows = mono_predictions[
-                f"{self.algorithm}_reconstructed_energy_is_valid"
-            ]
+            valid_rows = mono_predictions[f"{column_prefix}_is_valid"]
             valid_predictions = mono_predictions[valid_rows]
 
             array_events, split_index, indices = np.unique(
@@ -175,16 +174,16 @@ class StereoMeanCombiner(StereoCombiner):
 
             weights = self._calculate_weights(valid_predictions)
 
-            stereo_table[f"{self.algorithm}_reconstructed_energy_tel_ids"] = np.split(
+            stereo_table[f"{column_prefix}_tel_ids"] = np.split(
                 valid_predictions["tel_id"].value, split_index
             )[1:]
             mono_energies = valid_predictions[
-                f"{self.algorithm}_reconstructed_energy_energy"
+                f"{column_prefix}_energy"
             ].quantity.to_value(u.TeV)
             stereo_energy = _weighted_mean_ufunc(
                 mono_energies, weights, n_array_events, indices
             )
-            stereo_table[f"{self.algorithm}_reconstructed_energy_energy"] = u.Quantity(
+            stereo_table[f"{column_prefix}_energy"] = u.Quantity(
                 stereo_energy, u.TeV, copy=False
             )
 
@@ -206,21 +205,17 @@ class StereoMeanCombiner(StereoCombiner):
                     centered_mono_energies**2, weights, n_array_events, indices
                 )
             )
-            stereo_table[
-                f"{self.algorithm}_reconstructed_energy_energy_uncert"
-            ] = u.Quantity(stereo_energy_uncert, u.TeV, copy=False)
-            stereo_table[
-                f"{self.algorithm}_reconstructed_energy_is_valid"
-            ] = np.isfinite(stereo_energy)
-            stereo_table[
-                f"{self.algorithm}_reconstructed_energy_goodness_of_fit"
-            ] = np.nan
+            stereo_table[f"{column_prefix}_energy_uncert"] = u.Quantity(
+                stereo_energy_uncert, u.TeV, copy=False
+            )
+            stereo_table[f"{column_prefix}_is_valid"] = np.isfinite(stereo_energy)
+            stereo_table[f"{column_prefix}_goodness_of_fit"] = np.nan
 
         elif self.combine_property == "classification":
+            column_prefix = f"{self.algorithm}_particle_classification"
+
             # TODO: Integrate table quality query once its done #1888
-            valid_rows = mono_predictions[
-                f"{self.algorithm}_particle_classification_is_valid"
-            ]
+            valid_rows = mono_predictions[f"{column_prefix}_is_valid"]
             valid_predictions = mono_predictions[valid_rows]
 
             array_events, split_index, indices = np.unique(
@@ -232,24 +227,18 @@ class StereoMeanCombiner(StereoCombiner):
             n_array_events = len(array_events)
             weights = self._calculate_weights(valid_predictions)
 
-            stereo_table[
-                f"{self.algorithm}_particle_classification_tel_ids"
-            ] = np.split(valid_predictions["tel_id"].value, split_index)[1:]
-            mono_predictions = valid_predictions[
-                f"{self.algorithm}_particle_classification_prediction"
-            ]
+            stereo_table[f"{column_prefix}_tel_ids"] = np.split(
+                valid_predictions["tel_id"].value, split_index
+            )[1:]
+            mono_predictions = valid_predictions[f"{column_prefix}_prediction"]
             stereo_predictions = _weighted_mean_ufunc(
                 mono_predictions, weights, n_array_events, indices
             )
-            stereo_table[
-                f"{self.algorithm}_particle_classification_prediction"
-            ] = stereo_predictions
-            stereo_table[f"{self.algorithm}_particle_classification_is_valid"] = (
-                stereo_predictions >= 0
-            ) & (stereo_predictions <= 1)
-            stereo_table[
-                f"{self.algorithm}_particle_classification_goodness_of_fit"
-            ] = np.nan
+            stereo_table[f"{column_prefix}_prediction"] = stereo_predictions
+            stereo_table[f"{column_prefix}_is_valid"] = (stereo_predictions >= 0) & (
+                stereo_predictions <= 1
+            )
+            stereo_table[f"{column_prefix}_goodness_of_fit"] = np.nan
 
         else:
             raise NotImplementedError()
