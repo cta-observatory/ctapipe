@@ -17,7 +17,7 @@ from .tableio import (
     EnumColumnTransform,
     QuantityColumnTransform,
 )
-from ..core import Container
+from ..core import Container, Map
 
 __all__ = ["HDF5TableWriter", "HDF5TableReader"]
 
@@ -140,6 +140,14 @@ class HDF5TableWriter(TableWriter):
     def _add_column_to_schema(self, table_name, schema, meta, pos, field, name, value):
         typename = ""
         shape = 1
+
+        if isinstance(value, Container):
+            self.log.debug(f"Ignoring sub-container: {table_name}/{name}")
+            return
+
+        if isinstance(value, Map):
+            self.log.debug(f"Ignoring map-field: {table_name}/{name}")
+            return
 
         if self._is_column_excluded(table_name, name):
             self.log.debug(f"excluded column: {table_name}/{name}")
