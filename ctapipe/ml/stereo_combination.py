@@ -61,11 +61,9 @@ class StereoMeanCombiner(StereoCombiner):
         """ """
         if isinstance(dl1, Container):
             if self.weights == "intensity":
-                return dl1.hillas["intensity"]
+                return dl1.hillas.intensity
             elif self.weights == "konrad":
-                return (
-                    dl1.hillas["intensity"] * dl1.hillas["length"] / dl1.hillas["width"]
-                )
+                return dl1.hillas.intensity * dl1.hillas.length / dl1.hillas.width
             else:
                 return 1
         elif isinstance(dl1, Table):
@@ -77,7 +75,11 @@ class StereoMeanCombiner(StereoCombiner):
                 )
             else:
                 return np.ones(len(dl1))
-        return 1
+        else:
+            print(type(dl1))
+            raise TypeError(
+                "Dl1 data needs to be provided in the form of a container or astropy.table.Table"
+            )
 
     def _weighted_mean_ufunc(self, tel_values, weights, n_array_events, indices):
         sum_prediction = _calculate_ufunc_of_telescope_values(
@@ -107,13 +109,17 @@ class StereoMeanCombiner(StereoCombiner):
                 mono = dl2.energy[self.algorithm]
                 if mono.is_valid:
                     mono_energies["values"].append(mono.energy.to_value(u.TeV))
-                    mono_energies["weights"].append(self._calculate_weights(dl1))
+                    mono_energies["weights"].append(
+                        self._calculate_weights(dl1) if dl1 else 1
+                    )
                     mono_energies["ids"].append(tel_id)
             if self.combine_property == "classification":
                 mono = dl2.classification[self.algorithm]
                 if mono.is_valid:
                     mono_classifications["values"].append(mono.prediction)
-                    mono_classifications["weights"].append(self._calculate_weights(dl1))
+                    mono_classifications["weights"].append(
+                        self._calculate_weights(dl1) if dl1 else 1
+                    )
                     mono_classifications["ids"].append(tel_id)
         if mono_energies["ids"]:
             weighted_mean = np.average(
