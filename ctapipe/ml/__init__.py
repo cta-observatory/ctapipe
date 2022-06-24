@@ -1,6 +1,5 @@
 from .tools import TrainEnergyRegressor
 from .apply import (
-    EnergyRegressor,
     Reconstructor,
     ClassificationReconstructor,
     RegressionReconstructor,

@@ -9,7 +9,7 @@ from collections import defaultdict
 from typing import Dict
 
 import numpy as np
-from astropy.table import join, vstack, Table
+from astropy.table import vstack, Table
 import tables
 
 from ..core import Component, traits, Provenance
