@@ -40,6 +40,7 @@ __all__ = ["HillasIntersection"]
 
 
 INVALID = ReconstructedGeometryContainer(tel_ids=[])
+INVALID.prefix = 'HillasIntersection'
 
 
 class HillasIntersection(Reconstructor):
@@ -258,6 +259,7 @@ class HillasIntersection(Reconstructor):
             h_max_uncert=u.Quantity(np.nan * x_max.unit),
             goodness_of_fit=np.nan,
         )
+        result.prefix = self.__class__.__name__
         return result
 
     def reconstruct_nominal(self, hillas_parameters):

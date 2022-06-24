@@ -757,11 +757,12 @@ class ImPACTReconstructor(Component):
 
         shower_result.h_max *= np.cos(zenith)
         shower_result.h_max_uncert = errors[5] * shower_result.h_max
-
         shower_result.goodness_of_fit = like
+        shower_result.prefix = self.__class__.__name__
 
         # Create a container class for reconstructed energy
         energy_result = ReconstructedEnergyContainer()
+        energy_result.prefix = self.__class__.__name__
         # Fill with results
         energy_result.energy = fit_params[4] * u.TeV
         energy_result.energy_uncert = errors[4] * u.TeV

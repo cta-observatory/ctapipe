@@ -38,6 +38,7 @@ __all__ = ["HillasPlane", "HillasReconstructor"]
 
 
 INVALID = ReconstructedGeometryContainer(tel_ids=[])
+INVALID.prefix = 'HillasReconstructor'
 
 
 def angle(v1, v2):
@@ -282,7 +283,7 @@ class HillasReconstructor(Reconstructor):
             az_uncert=err_est_dir,
             h_max=h_max,
         )
-
+        result.prefix = self.__class__.__name__
         return result
 
     def initialize_hillas_planes(

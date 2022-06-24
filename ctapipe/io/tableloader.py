@@ -117,14 +117,6 @@ def _get_structure(h5file):
     return "by_type"
 
 
-def _add_column_prefix(table, prefix, ignore=()):
-    """
-    Add a prefix to all columns in table besides columns in ``ignore``.
-    """
-    for col in set(table.colnames) - set(ignore):
-        table.rename_column(col, f"{prefix}_{col}")
-
-
 def _join_subarray_events(table1, table2):
     """Outer join two tables on the telescope subarray keys"""
     return join_allow_empty(table1, table2, SUBARRAY_EVENT_KEYS, "left")
@@ -318,12 +310,6 @@ class TableLoader(Component):
                             start=start,
                             stop=stop,
                         )
-
-                        # add the algorithm as prefix to distinguish multiple
-                        # algorithms predicting the same quantities
-                        _add_column_prefix(
-                            dl2, prefix=algorithm, ignore=SUBARRAY_EVENT_KEYS
-                        )
                         table = _join_subarray_events(table, dl2)
 
         if keep_order:
@@ -393,12 +379,6 @@ class TableLoader(Component):
                         dl2 = self._read_telescope_table(
                             path, tel_id, start=start, stop=stop
                         )
-
-                        # add the algorithm as prefix to distinguish multiple
-                        # algorithms predicting the same quantities
-                        _add_column_prefix(
-                            dl2, prefix=algorithm, ignore=TELESCOPE_EVENT_KEYS
-                        )
                         table = _join_telescope_events(table, dl2)
 
         if self.load_true_images:
@@ -411,7 +391,6 @@ class TableLoader(Component):
             true_parameters = self._read_telescope_table(
                 TRUE_PARAMETERS_GROUP, tel_id, start=start, stop=stop
             )
-            _add_column_prefix(true_parameters, "true", ignore=TELESCOPE_EVENT_KEYS)
             table = _join_telescope_events(table, true_parameters)
 
         if self.load_instrument:
