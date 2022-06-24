@@ -142,19 +142,19 @@ class HDF5TableWriter(TableWriter):
         shape = 1
 
         if isinstance(value, Container):
-            self.log.debug(f"Ignoring sub-container: {table_name}/{name}")
+            self.log.debug("Ignoring sub-container: %s/%s", table_name, name)
             return
 
         if isinstance(value, Map):
-            self.log.debug(f"Ignoring map-field: {table_name}/{name}")
+            self.log.debug("Ignoring map-field: %s/%s", table_name, name)
             return
 
         if self._is_column_excluded(table_name, name):
-            self.log.debug(f"excluded column: {table_name}/{name}")
+            self.log.debug("excluded column: %s/%s", table_name, name)
             return
 
         if name in schema.columns:
-            self.log.warning(f"Found duplicated column {name}, skipping")
+            self.log.warning("Found duplicated column %s, skipping", name)
             return
 
         # apply any user-defined transforms first
