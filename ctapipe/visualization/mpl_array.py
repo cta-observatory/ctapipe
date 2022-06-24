@@ -120,7 +120,7 @@ class ArrayDisplay:
                     linewidth=0,
                 )
             )
-        plt.legend(handles=legend_elements)
+        self.axes.legend(handles=legend_elements)
 
         self.add_radial_grid()
 
