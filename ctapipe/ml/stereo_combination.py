@@ -20,6 +20,19 @@ def _calculate_ufunc_of_telescope_values(tel_data, n_array_events, indices, ufun
     return combined_values
 
 
+def _weighted_mean_ufunc(tel_values, weights, n_array_events, indices):
+    sum_prediction = _calculate_ufunc_of_telescope_values(
+        tel_values * weights,
+        n_array_events,
+        indices,
+        np.add,
+    )
+    sum_of_weights = _calculate_ufunc_of_telescope_values(
+        weights, n_array_events, indices, np.add
+    )
+    return sum_prediction / sum_of_weights
+
+
 class StereoCombiner(Component):
     # TODO: Add quality query (after #1888)
     algorithm = Unicode().tag(config=True)
@@ -80,18 +93,6 @@ class StereoMeanCombiner(StereoCombiner):
             raise TypeError(
                 "Dl1 data needs to be provided in the form of a container or astropy.table.Table"
             )
-
-    def _weighted_mean_ufunc(self, tel_values, weights, n_array_events, indices):
-        sum_prediction = _calculate_ufunc_of_telescope_values(
-            tel_values * weights,
-            n_array_events,
-            indices,
-            np.add,
-        )
-        sum_of_weights = _calculate_ufunc_of_telescope_values(
-            weights, n_array_events, indices, np.add
-        )
-        return sum_prediction / sum_of_weights
 
     def __call__(self, event: ArrayEventContainer) -> None:
         """
@@ -180,7 +181,7 @@ class StereoMeanCombiner(StereoCombiner):
             mono_energies = valid_predictions[
                 f"{self.algorithm}_reconstructed_energy_energy"
             ].quantity.to_value(u.TeV)
-            stereo_energy = self._weighted_mean_ufunc(
+            stereo_energy = _weighted_mean_ufunc(
                 mono_energies, weights, n_array_events, indices
             )
             stereo_table[f"{self.algorithm}_reconstructed_energy_energy"] = u.Quantity(
@@ -201,7 +202,7 @@ class StereoMeanCombiner(StereoCombiner):
                 ]
             )
             stereo_energy_uncert = np.sqrt(
-                self._weighted_mean_ufunc(
+                _weighted_mean_ufunc(
                     centered_mono_energies**2, weights, n_array_events, indices
                 )
             )
@@ -237,7 +238,7 @@ class StereoMeanCombiner(StereoCombiner):
             mono_predictions = valid_predictions[
                 f"{self.algorithm}_particle_classification_prediction"
             ]
-            stereo_predictions = self._weighted_mean_ufunc(
+            stereo_predictions = _weighted_mean_ufunc(
                 mono_predictions, weights, n_array_events, indices
             )
             stereo_table[
