@@ -168,8 +168,6 @@ class StereoMeanCombiner(StereoCombiner):
 
             weights = self._calculate_weights(valid_predictions)
 
-            # TODO
-            # this needs to be a true/false mask, not a list of ids!
             stereo_table[f"{self.algorithm}_reconstructed_energy_tel_ids"] = np.split(
                 valid_predictions["tel_id"].value, split_index
             )[1:]
@@ -227,8 +225,6 @@ class StereoMeanCombiner(StereoCombiner):
             n_array_events = len(array_events)
             weights = self._calculate_weights(valid_predictions)
 
-            # TODO
-            # this needs to be a true/false mask, not a list of ids!
             stereo_table[
                 f"{self.algorithm}_particle_classification_tel_ids"
             ] = np.split(valid_predictions["tel_id"].value, split_index)[1:]
