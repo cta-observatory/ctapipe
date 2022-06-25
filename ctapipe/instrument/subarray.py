@@ -137,11 +137,11 @@ class SubarrayDescription:
     def tel_coords(self):
         """returns telescope positions as astropy.coordinates.SkyCoord"""
 
-        pos_x = np.array([p[0].to("m").value for p in self.positions.values()]) * u.m
-        pos_y = np.array([p[1].to("m").value for p in self.positions.values()]) * u.m
-        pos_z = np.array([p[2].to("m").value for p in self.positions.values()]) * u.m
+        pos_x = [p[0].to_value(u.m) for p in self.positions.values()]
+        pos_y = [p[1].to_value(u.m) for p in self.positions.values()]
+        pos_z = [p[2].to_value(u.m) for p in self.positions.values()]
 
-        return SkyCoord(x=pos_x, y=pos_y, z=pos_z, frame=GroundFrame())
+        return SkyCoord(x=pos_x, y=pos_y, z=pos_z, unit=u.m, frame=GroundFrame())
 
     @lazyproperty
     def tel_ids(self):
