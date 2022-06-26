@@ -173,7 +173,7 @@ class TableLoader(Component):
 
         self.instrument_table = None
         if self.load_instrument:
-            self.instrument_table = self.subarray.to_table('joined')
+            self.instrument_table = self.subarray.to_table("joined")
 
     def close(self):
         """Close the underlying hdf5 file"""
@@ -233,9 +233,12 @@ class TableLoader(Component):
 
                         # add the algorithm as prefix to distinguish multiple
                         # algorithms predicting the same quantities
-                        _add_column_prefix(
-                            dl2, prefix=algorithm, ignore=SUBARRAY_EVENT_KEYS
-                        )
+                        if group_name == "geometry":
+                            _add_column_prefix(
+                                dl2,
+                                prefix=algorithm,
+                                ignore=SUBARRAY_EVENT_KEYS,
+                            )
                         table = _join_subarray_events(table, dl2)
         return table
 
@@ -280,9 +283,12 @@ class TableLoader(Component):
 
                         # add the algorithm as prefix to distinguish multiple
                         # algorithms predicting the same quantities
-                        _add_column_prefix(
-                            dl2, prefix=algorithm, ignore=TELESCOPE_EVENT_KEYS
-                        )
+                        if group_name == "geometry":
+                            _add_column_prefix(
+                                dl2,
+                                prefix=algorithm,
+                                ignore=TELESCOPE_EVENT_KEYS,
+                            )
                         table = _join_telescope_events(table, dl2)
 
         if self.load_true_images:
@@ -315,7 +321,13 @@ class TableLoader(Component):
     def _join_subarray_info(self, table):
         subarray_events = self.read_subarray_events()
         table = join_allow_empty(
-            table, subarray_events, keys=SUBARRAY_EVENT_KEYS, join_type="left"
+            table,
+            subarray_events,
+            keys=SUBARRAY_EVENT_KEYS,
+            join_type="left",
+            # add suffix mono on duplicated columns, avoid underscore for stereo
+            table_names=["_mono", ""],
+            uniq_col_name="{col_name}{table_name}",
         )
         return table
 
