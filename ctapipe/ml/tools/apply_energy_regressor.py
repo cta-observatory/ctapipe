@@ -84,6 +84,14 @@ class ApplyEnergyRegressor(Tool):
 
         tables = []
         for tel_id, tel in tqdm(self.loader.subarray.tel.items()):
+            if tel not in self.estimator.model.models:
+                self.log.warning(
+                    "No model for telescope type %s, skipping tel %d",
+                    tel,
+                    tel_id,
+                )
+                continue
+
             table = self.loader.read_telescope_events([tel_id])
             if len(table) == 0:
                 continue
