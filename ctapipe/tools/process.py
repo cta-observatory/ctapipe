@@ -8,7 +8,15 @@ from tqdm.auto import tqdm
 
 from ..calib import CameraCalibrator, GainSelector
 from ..core import QualityQuery, Tool
-from ..core.traits import Bool, classes_with_traits, flag, Path
+from ..core.traits import (
+    Bool,
+    Dict,
+    List,
+    classes_with_traits,
+    create_class_enum_trait,
+    flag,
+    Path,
+)
 from ..image import ImageCleaner, ImageModifier, ImageProcessor
 from ..image.extractor import ImageExtractor
 from ..io import DataLevel, DataWriter, EventSource, SimTelEventSource, write_table
@@ -16,7 +24,7 @@ from ..io.datawriter import DATA_MODEL_VERSION
 from ..reco import ShowerProcessor
 from ..utils import EventTypeFilter
 from ..io import metadata
-from ..ml import EnergyRegressor
+from ..ml import EnergyRegressor, StereoCombiner
 
 COMPATIBLE_DATALEVELS = [
     DataLevel.R1,
@@ -59,14 +67,19 @@ class ProcessorTool(Tool):
     ).tag(config=True)
 
     energy_regressor_path = Path(
-        default_value=None, allow_none=True, exists=True, directory_ok=False,
-        help='Path to a trained energy regression model (see ctapipe-ml-train-energy-regressor)'
+        default_value=None,
+        allow_none=True,
+        exists=True,
+        directory_ok=False,
+        help="Path to a trained energy regression model (see ctapipe-ml-train-energy-regressor)",
     ).tag(config=True)
 
     force_recompute_dl2 = Bool(
         help="Enforce dl2 recomputation even if already present in the input file",
         default_value=False,
     ).tag(config=True)
+
+    stereo_combiner_configs = List(Dict()).tag(config=True)
 
     aliases = {
         ("i", "input"): "EventSource.input_url",
@@ -193,6 +206,14 @@ class ProcessorTool(Tool):
                 parent=self,
             )
 
+        self.stereo_combiners = []
+        for stereo_combiner in self.stereo_combiner_configs:
+            cfg = stereo_combiner.copy()
+            name = cfg.pop("type", "StereoMeanCombiner")
+            self.stereo_combiners.append(
+                StereoCombiner.from_name(name, **cfg, parent=self)
+            )
+
         # warn if max_events prevents writing the histograms
         if (
             isinstance(self.event_source, SimTelEventSource)
@@ -296,6 +317,9 @@ class ProcessorTool(Tool):
                 self.process_shower(event)
                 if self.energy_regressor is not None:
                     self.energy_regressor(event)
+
+            for combiner in self.stereo_combiners:
+                combiner(event)
 
             self.write(event)
 
