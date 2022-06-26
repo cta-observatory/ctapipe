@@ -22,8 +22,13 @@ class ApplyEnergyRegressor(Tool):
         directory_ok=False,
         exists=True,
     ).tag(config=True)
+
     model_path = Path(
         default_value=None, allow_none=False, exists=True, directory_ok=False
+    ).tag(config=True)
+
+    stereo_combiner_type = create_class_enum_trait(
+        base_class=StereoCombiner, default_value="StereoMeanCombiner"
     ).tag(config=True)
 
     aliases = {
@@ -44,13 +49,10 @@ class ApplyEnergyRegressor(Tool):
         ),
     }
 
-    stereo_combiner_type = create_class_enum_trait(
-        base_class=StereoCombiner, default_value="StereoMeanCombiner"
-    )
-
     classes = [
         TableLoader,
         Regressor,
+        StereoCombiner,
     ]
 
     def setup(self):
