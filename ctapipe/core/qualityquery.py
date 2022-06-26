@@ -6,7 +6,6 @@ __all__ = ["QualityQuery", "QualityCriteriaError"]
 
 import astropy.units as u  # for use in selection functions
 import numpy as np  # for use in selection functions
-import numexpr
 
 from .component import Component
 from .traits import List
@@ -51,7 +50,12 @@ class QualityQuery(Component):
         self._compiled_expressions = []
         for name, e in self.quality_criteria:
             if "lambda" in e:
-                raise ValueError("As of ctapipe 0.16, do not give lambda expressions to QualityQuery. Directly give the expression. E.g. instead of lambda p: p.hillas.width.value > 0 do parameters.hillas.width.value > 0")
+                raise ValueError(
+                    "As of ctapipe 0.16, do not give lambda expressions"
+                    " to QualityQuery. Directly give the expression."
+                    " E.g. instead of `lambda p: p.hillas.width.value > 0`"
+                    " use `parameters.hillas.width.value > 0`"
+                )
             try:
                 self._compiled_expressions.append(compile(e, __name__, mode='eval'))
             except Exception:
@@ -99,7 +103,7 @@ class QualityQuery(Component):
         """Print a formatted string representation of the entire table."""
         return self.to_table().pprint_all(show_unit=True, show_dtype=True)
 
-    def __call__(self, *, engine="python", **kwargs) -> np.ndarray:
+    def __call__(self, **kwargs) -> np.ndarray:
         """
         Test that value passes all cuts
 
@@ -116,40 +120,25 @@ class QualityQuery(Component):
         # add 1 for total
         result = np.ones(len(self.quality_criteria) + 1, dtype=bool)
 
-        if engine == 'numexpr':
-            expressions = self.expressions
-        else:
-            expressions = self._compiled_expressions
-
-        _evaluate_expression(expressions, result, kwargs, engine)
+        _evaluate_expression(self._compiled_expressions, result, kwargs)
         self._counts += result.astype(int)
         self._cumulative_counts += result.cumprod()
         return result[1:]  # strip off TOTAL criterion, since redundant
 
-    def get_table_mask(self, table, engine="numexpr"):
+    def get_table_mask(self, table):
         n_criteria = len(self.quality_criteria) + 1
         result = np.ones((n_criteria, len(table)), dtype=bool)
 
-        if engine == 'numexpr':
-            expressions = self.expressions
-        else:
-            expressions = self._compiled_expressions
-
-        _evaluate_expression(expressions, result, table, engine)
+        _evaluate_expression(self._compiled_expressions, result, table)
 
         self._counts += np.count_nonzero(result, axis=1)
         self._cumulative_counts += np.count_nonzero(np.cumprod(result, axis=0), axis=1)
         return np.all(result, axis=0)
 
 
-def _evaluate_expression(expressions, result, locals, engine):
+def _evaluate_expression(expressions, result, locals):
     try:
         for i, expression in enumerate(expressions, start=1):
-            if engine == 'numexpr':
-                result[i] = numexpr.evaluate(expression, locals, ALLOWED_GLOBALS)
-            else:
-                result[i] = eval(expression, ALLOWED_GLOBALS, locals)
+            result[i] = eval(expression, ALLOWED_GLOBALS, locals)
     except Exception:
-        if engine == 'numexpr':
-            raise QualityCriteriaError("Error evaluating quality query using numexpr, try engine='python'")
         raise QualityCriteriaError("Error evaluating quality query")

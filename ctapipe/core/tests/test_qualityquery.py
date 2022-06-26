@@ -7,8 +7,7 @@ from ctapipe.core.traits import List
 from astropy.table import Table
 
 
-@pytest.mark.parametrize("engine", ["numexpr", "python"])
-def test_selector(engine):
+def test_selector():
     """ test the functionality of an example Selector subclass"""
 
     class ExampleQualityQuery(QualityQuery):
@@ -23,17 +22,17 @@ def test_selector(engine):
 
     query = ExampleQualityQuery()
 
-    criteria1 = query(x=0, engine=engine)  # pass smallish
+    criteria1 = query(x=0)  # pass smallish
     assert len(criteria1) == 3
     assert (criteria1 == [False, True, True]).all()
 
-    criteria2 = query(x=20, engine=engine)  # pass high_enough + not_too_high
+    criteria2 = query(x=20)  # pass high_enough + not_too_high
     assert (criteria2 == [True, True, False]).all()
 
-    criteria3 = query(x=200, engine=engine)  # pass high_enough, fail not_too_high
+    criteria3 = query(x=200)  # pass high_enough, fail not_too_high
     assert (criteria3 == [True, False, False]).all()
 
-    criteria4 = query(x=8, engine=engine)  # pass all
+    criteria4 = query(x=8)  # pass all
     assert (criteria4 == True).all()
 
     tab = query.to_table()
@@ -103,8 +102,7 @@ def test_bad_selector():
         s = QualityQuery(quality_criteria=[("dangerous", "import numpy; np.array([])")])
 
 
-@pytest.mark.parametrize("engine", ["numexpr", "python"])
-def test_table_mask(engine):
+def test_table_mask():
     s = QualityQuery(
         quality_criteria=[
             ("foo", "(x**2 + y**2) < 1.0"),
@@ -117,7 +115,7 @@ def test_table_mask(engine):
         'y': [0.0, 0.5, 1.0, 0.2, 0.1 ]
     })
 
-    mask = s.get_table_mask(t, engine=engine)
+    mask = s.get_table_mask(t)
     assert len(mask) == len(t)
     assert mask.dtype == np.bool_
     np.testing.assert_equal(mask, [False, True, False, False, False])
