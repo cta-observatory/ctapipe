@@ -6,6 +6,7 @@ from .apply import (
     EnergyRegressor,
     ParticleIdClassifier,
 )
+from .stereo_combination import StereoCombiner, StereoMeanCombiner
 
 __all__ = [
     "ClassificationReconstructor",
@@ -14,4 +15,6 @@ __all__ = [
     "Reconstructor",
     "RegressionReconstructor",
     "TrainEnergyRegressor",
+    "StereoMeanCombiner",
+    "StereoCombiner",
 ]
