@@ -84,19 +84,20 @@ class ApplyEnergyRegressor(Tool):
             table = self.loader.read_telescope_events([tel_id])
 
             prediction, valid = self.estimator.predict(table)
+            prefix = self.estimator.model.model_cls
             table = Table(
                 {
                     "obs_id": table["obs_id"],
                     "event_id": table["event_id"],
                     "tel_id": table["tel_id"],
-                    "reconstructed_energy_energy": prediction,
-                    "reconstructed_energy_is_valid": valid,
+                    f"{prefix}_energy": prediction,
+                    f"{prefix}_is_valid": valid,
                 }
             )
             write_table(
                 table,
                 self.loader.input_url,
-                f"/dl2/event/telescope/energy/{self.estimator.model.model_cls}/tel_{tel_id:03d}",
+                f"/dl2/event/telescope/energy/{prefix}/tel_{tel_id:03d}",
                 mode="a",
                 overwrite=self.overwrite,
             )

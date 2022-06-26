@@ -30,7 +30,10 @@ def _weighted_mean_ufunc(tel_values, weights, n_array_events, indices):
     sum_of_weights = _calculate_ufunc_of_telescope_values(
         weights, n_array_events, indices, np.add
     )
-    return sum_prediction / sum_of_weights
+    mean = np.full(n_array_events, np.nan)
+    valid = sum_of_weights > 0
+    mean[valid] = sum_prediction[valid] / sum_of_weights[valid]
+    return mean
 
 
 class StereoCombiner(Component):
@@ -67,29 +70,30 @@ class StereoMeanCombiner(StereoCombiner):
         config=True
     )
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def _calculate_weights(self, data):
+        """"""
 
-    def _calculate_weights(self, dl1):
-        """ """
-        if isinstance(dl1, Container):
+        if isinstance(data, Container):
             if self.weights == "intensity":
-                return dl1.hillas.intensity
-            elif self.weights == "konrad":
-                return dl1.hillas.intensity * dl1.hillas.length / dl1.hillas.width
-            else:
-                return 1
-        elif isinstance(dl1, Table):
+                return data.hillas.intensity
+
+            if self.weights == "konrad":
+                return data.hillas.intensity * data.hillas.length / data.hillas.width
+
+            return 1
+
+        elif isinstance(data, Table):
             if self.weights == "intensity":
-                return dl1["hillas_intensity"]
-            elif self.weights == "konrad":
+                return data["hillas_intensity"]
+
+            if self.weights == "konrad":
                 return (
-                    dl1["hillas_intensity"] * dl1["hillas_length"] / dl1["hillas_width"]
+                    data["hillas_intensity"] * data["hillas_length"] / data["hillas_width"]
                 )
-            else:
-                return np.ones(len(dl1))
+
+            return np.ones(len(data))
+
         else:
-            print(type(dl1))
             raise TypeError(
                 "Dl1 data needs to be provided in the form of a container or astropy.table.Table"
             )
@@ -157,32 +161,39 @@ class StereoMeanCombiner(StereoCombiner):
         all telescope predictions of a shower are invalid.
         """
 
-        if self.combine_property == "energy":
-            column_prefix = f"{self.algorithm}_reconstructed_energy"
-            # TODO: Integrate table quality query once its done #1888
-            valid_rows = mono_predictions[f"{column_prefix}_is_valid"]
-            valid_predictions = mono_predictions[valid_rows]
+        prefix = self.algorithm
+        # TODO: Integrate table quality query once its done
+        valid = mono_predictions[f"{prefix}_is_valid"]
+        valid_predictions = mono_predictions[valid]
 
-            array_events, split_index, indices = np.unique(
-                valid_predictions[["obs_id", "event_id"]],
-                return_inverse=True,
-                return_index=True,
+        array_events, split_index, indices = np.unique(
+            mono_predictions[["obs_id", "event_id"]],
+            return_inverse=True,
+            return_index=True,
+        )
+        stereo_table = Table(array_events)
+        n_array_events = len(array_events)
+        weights = self._calculate_weights(valid_predictions)
+
+        if self.combine_property == "classification":
+            mono_predictions = valid_predictions[f"{prefix}_prediction"]
+            stereo_predictions = _weighted_mean_ufunc(
+                mono_predictions, weights, n_array_events, indices[valid]
             )
-            stereo_table = Table(array_events)
-            n_array_events = len(array_events)
+            stereo_table[f"{prefix}_prediction"] = stereo_predictions
+            stereo_table[f"{prefix}_is_valid"] = np.isfinite(stereo_predictions)
+            stereo_table[f"{prefix}_goodness_of_fit"] = np.nan
 
-            weights = self._calculate_weights(valid_predictions)
-
-            stereo_table[f"{column_prefix}_tel_ids"] = np.split(
-                valid_predictions["tel_id"].value, split_index
-            )[1:]
-            mono_energies = valid_predictions[
-                f"{column_prefix}_energy"
-            ].quantity.to_value(u.TeV)
+        elif self.combine_property == "energy":
+            mono_energies = valid_predictions[f"{prefix}_energy"].quantity.to_value(u.TeV)
             stereo_energy = _weighted_mean_ufunc(
-                mono_energies, weights, n_array_events, indices
+                mono_energies,
+                weights,
+                n_array_events,
+                indices[valid],
             )
-            stereo_table[f"{column_prefix}_energy"] = u.Quantity(
+
+            stereo_table[f"{prefix}_energy"] = u.Quantity(
                 stereo_energy, u.TeV, copy=False
             )
 
@@ -201,45 +212,23 @@ class StereoMeanCombiner(StereoCombiner):
             )
             stereo_energy_uncert = np.sqrt(
                 _weighted_mean_ufunc(
-                    centered_mono_energies**2, weights, n_array_events, indices
+                    centered_mono_energies**2, weights, n_array_events, indices[valid]
                 )
             )
-            stereo_table[f"{column_prefix}_energy_uncert"] = u.Quantity(
+            stereo_table[f"{prefix}_energy_uncert"] = u.Quantity(
                 stereo_energy_uncert, u.TeV, copy=False
             )
-            stereo_table[f"{column_prefix}_is_valid"] = np.isfinite(stereo_energy)
-            stereo_table[f"{column_prefix}_goodness_of_fit"] = np.nan
-
-        elif self.combine_property == "classification":
-            column_prefix = f"{self.algorithm}_particle_classification"
-
-            # TODO: Integrate table quality query once its done #1888
-            valid_rows = mono_predictions[f"{column_prefix}_is_valid"]
-            valid_predictions = mono_predictions[valid_rows]
-
-            array_events, split_index, indices = np.unique(
-                valid_predictions[["obs_id", "event_id"]],
-                return_inverse=True,
-                return_index=True,
-            )
-            stereo_table = Table(array_events)
-            n_array_events = len(array_events)
-            weights = self._calculate_weights(valid_predictions)
-
-            stereo_table[f"{column_prefix}_tel_ids"] = np.split(
-                valid_predictions["tel_id"].value, split_index
-            )[1:]
-            mono_predictions = valid_predictions[f"{column_prefix}_prediction"]
-            stereo_predictions = _weighted_mean_ufunc(
-                mono_predictions, weights, n_array_events, indices
-            )
-            stereo_table[f"{column_prefix}_prediction"] = stereo_predictions
-            stereo_table[f"{column_prefix}_is_valid"] = (stereo_predictions >= 0) & (
-                stereo_predictions <= 1
-            )
-            stereo_table[f"{column_prefix}_goodness_of_fit"] = np.nan
+            stereo_table[f"{prefix}_is_valid"] = np.isfinite(stereo_energy)
+            stereo_table[f"{prefix}_goodness_of_fit"] = np.nan
 
         else:
             raise NotImplementedError()
 
+        tel_ids = [[] for _ in range(n_array_events)]
+
+        for index, tel_id in zip(indices[valid], valid_predictions['tel_id']):
+            tel_ids[index].append(tel_id)
+
+        k = f"{prefix}_tel_ids"
+        stereo_table[k] = tel_ids
         return stereo_table
