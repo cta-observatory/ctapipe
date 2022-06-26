@@ -83,12 +83,12 @@ class ApplyEnergyRegressor(Tool):
         self.log.info("Applying model")
 
         tables = []
-        for tel_id in tqdm(self.loader.subarray.tel):
+        for tel_id, tel in tqdm(self.loader.subarray.tel.items()):
             table = self.loader.read_telescope_events([tel_id])
             if len(table) == 0:
                 continue
 
-            prediction, valid = self.estimator.predict(table)
+            prediction, valid = self.estimator.predict(tel, table)
             prefix = self.estimator.model.model_cls
 
             energy_col = f"{prefix}_energy"

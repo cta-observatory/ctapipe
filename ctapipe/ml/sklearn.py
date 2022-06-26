@@ -29,8 +29,15 @@ class Model(Component):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.model = SUPPORTED_MODELS[self.model_cls](**self.model_config)
+
+        # to verify settings
+        self.new_model()
+
+        self.models = {}
         self.unit = None
+
+    def new_model(self):
+        return SUPPORTED_MODELS[self.model_cls](**self.model_config)
 
     def table_to_X(self, table):
         feature_table = table[self.features]
@@ -41,15 +48,19 @@ class Model(Component):
     def table_to_y(self, table, mask=None):
         return np.array(table[self.target][mask])
 
-    def fit(self, table):
+    def fit(self, key, table):
+        self.models[key] = self.new_model()
+
         X, valid = self.table_to_X(table)
         y = self.table_to_y(table, mask=valid)
         self.unit = table[self.target].unit
-        self.model.fit(X, y)
+        self.models[key].fit(X, y)
 
-    def predict(self, table):
+    def predict(self, key, table):
+        if key not in self.models:
+            raise KeyError(f"No model available for key {key}")
         X, valid = self.table_to_X(table)
-        n_outputs = getattr(self.model, "n_outputs_", 1)
+        n_outputs = getattr(self.models[key], "n_outputs_", 1)
 
         if n_outputs > 1:
             shape = (len(table), n_outputs)
@@ -58,7 +69,7 @@ class Model(Component):
 
         prediction = np.full(shape, np.nan)
         if np.any(valid):
-            prediction[valid] = self.model.predict(X)
+            prediction[valid] = self.models[key].predict(X)
 
         if self.unit is not None:
             prediction = u.Quantity(prediction, self.unit, copy=False)
@@ -108,8 +119,8 @@ class Regressor(Model):
             return np.log(y)
         return y
 
-    def predict(self, table):
-        prediction, valid = super().predict(table)
+    def predict(self, key, table):
+        prediction, valid = super().predict(key, table)
 
         if self.log_target:
             if prediction.unit is not None:
@@ -127,9 +138,12 @@ class Classifier(Model):
 
     invalid_class = Integer(-1).tag(config=True)
 
-    def predict(self, table):
+    def predict(self, key, table):
+        if key not in self.models:
+            raise KeyError(f"No model available for key {key}")
+
         X, valid = self.table_to_X(table)
-        n_outputs = getattr(self.model, "n_outputs_", 1)
+        n_outputs = getattr(self.models[key], "n_outputs_", 1)
 
         if n_outputs > 1:
             shape = (len(table), n_outputs)
@@ -138,21 +152,24 @@ class Classifier(Model):
 
         prediction = np.full(shape, self.invalid_class, dtype=np.int8)
         if np.any(valid):
-            prediction[valid] = self.model.predict(X)
+            prediction[valid] = self.models[key].predict(X)
 
         return prediction, valid
 
-    def predict_score(self, table):
+    def predict_score(self, key, table):
+        if key not in self.models:
+            raise KeyError(f"No model available for key {key}")
+
         X, valid = self.table_to_X(table)
 
-        n_classes = getattr(self.model, "n_classes_", 2)
+        n_classes = getattr(self.models[key], "n_classes_", 2)
         n_rows = len(table)
         shape = (n_rows, n_classes) if n_classes > 2 else (n_rows,)
 
         scores = np.full(shape, np.nan)
 
         if np.any(valid):
-            prediction = self.model.predict_proba(X)[:]
+            prediction = self.models[key].predict_proba(X)[:]
 
             if n_classes > 2:
                 scores[valid] = prediction

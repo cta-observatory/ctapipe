@@ -8,6 +8,8 @@ from numpy.testing import assert_array_equal
 from traitlets import TraitError
 from traitlets.config import Config
 
+KEY = "LST_LST_LSTCam"
+
 
 def test_supported_regressors():
     from ctapipe.ml.sklearn import SUPPORTED_REGRESSORS
@@ -79,22 +81,23 @@ def test_model_init():
 
     # should create class with sklearn defaults
     c = Classifier(model_cls="RandomForestClassifier")
-    assert isinstance(c.model, RandomForestClassifier)
+    assert isinstance(c.new_model(), RandomForestClassifier)
 
     config = Config(
         {
             "Classifier": {
                 "model_cls": "RandomForestClassifier",
-                "model_config": {"n_estimators": 10, "max_depth": 15},
+                "model_config": {"n_estimators": 20, "max_depth": 15},
             }
         }
     )
 
     # should create class with sklearn defaults
     c = Classifier(config=config)
-    assert isinstance(c.model, RandomForestClassifier)
-    assert c.model.n_estimators == 10
-    assert c.model.max_depth == 15
+    clf = c.new_model()
+    assert isinstance(clf, RandomForestClassifier)
+    assert clf.n_estimators == 20
+    assert clf.max_depth == 15
 
 
 @pytest.mark.parametrize("model_cls", ["LinearRegression", "RandomForestRegressor"])
@@ -105,8 +108,8 @@ def test_regressor(model_cls, example_table):
         model_cls=model_cls, target="energy", features=[f"X{i}" for i in range(8)]
     )
 
-    regressor.fit(example_table)
-    prediction, valid = regressor.predict(example_table)
+    regressor.fit(KEY, example_table)
+    prediction, valid = regressor.predict(KEY, example_table)
     assert prediction.shape == (100,)
     assert not valid[10]
     assert not valid[30]
@@ -122,8 +125,8 @@ def test_regressor_single_event(model_cls, example_table):
         model_cls=model_cls, target="energy", features=[f"X{i}" for i in range(8)]
     )
 
-    regressor.fit(example_table)
-    prediction, valid = regressor.predict(example_table[[0]])
+    regressor.fit(KEY, example_table)
+    prediction, valid = regressor.predict(KEY, example_table[[0]])
     assert prediction.unit == u.TeV
     assert prediction.shape == (1,)
 
@@ -132,7 +135,7 @@ def test_regressor_single_event(model_cls, example_table):
     for col in filter(lambda col: col.startswith("X"), invalid.colnames):
         invalid[col][:] = np.nan
 
-    prediction, valid = regressor.predict(invalid)
+    prediction, valid = regressor.predict(KEY, invalid)
     assert prediction.shape == (1,)
     assert valid[0] == False
 
@@ -147,8 +150,8 @@ def test_regressor_log_target(example_table):
         features=[f"X{i}" for i in range(8)],
     )
 
-    regressor.fit(example_table)
-    prediction, valid = regressor.predict(example_table)
+    regressor.fit(KEY, example_table)
+    prediction, valid = regressor.predict(KEY, example_table)
     assert prediction.shape == (100,)
     assert np.isnan(prediction[10])
     assert np.isnan(prediction[30])
@@ -166,8 +169,8 @@ def test_classifier(model_cls, example_table):
         model_cls=model_cls, target="particle", features=[f"X{i}" for i in range(8)]
     )
 
-    classifier.fit(example_table)
-    prediction, valid = classifier.predict(example_table)
+    classifier.fit(KEY, example_table)
+    prediction, valid = classifier.predict(KEY, example_table)
     assert prediction.shape == (100,)
     assert_array_equal(np.unique(prediction), [-1, 0, 1])
     assert prediction[10] == -1
@@ -175,7 +178,7 @@ def test_classifier(model_cls, example_table):
     assert not valid[10]
     assert not valid[30]
 
-    score, valid = classifier.predict_score(example_table)
+    score, valid = classifier.predict_score(KEY, example_table)
     assert score.shape == (100,)
     assert np.isnan(score[10])
     assert np.isnan(score[30])
@@ -196,14 +199,17 @@ def test_io(example_table, tmp_path):
         features=[f"X{i}" for i in range(8)],
     )
 
-    classifier.fit(example_table)
+    classifier.fit(KEY, example_table)
     path = tmp_path / "classifier.pkl"
 
     classifier.write(path)
     loaded = Classifier.load(path)
     assert loaded.features == classifier.features
+    assert len(loaded.models) == 1
+    assert KEY in loaded.models
     assert_array_equal(
-        loaded.model.feature_importances_, classifier.model.feature_importances_
+        loaded.models[KEY].feature_importances_,
+        classifier.models[KEY].feature_importances_,
     )
 
     with pytest.raises(TypeError):
@@ -229,14 +235,15 @@ def test_io_with_parent(example_table, tmp_path):
     )
 
     parent = Parent(config=config)
-    parent.classifier.fit(example_table)
+    parent.classifier.fit(KEY, example_table)
     path = tmp_path / "classifier.pkl"
 
     parent.classifier.write(path)
     loaded = Classifier.load(path)
     assert loaded.features == parent.classifier.features
     assert_array_equal(
-        loaded.model.feature_importances_, parent.classifier.model.feature_importances_
+        loaded.models[KEY].feature_importances_,
+        parent.classifier.models[KEY].feature_importances_,
     )
 
     with pytest.raises(TypeError):
