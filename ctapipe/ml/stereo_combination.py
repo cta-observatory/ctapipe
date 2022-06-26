@@ -101,21 +101,24 @@ class StereoMeanCombiner(StereoCombiner):
         for tel_id, dl2 in event.dl2.tel.items():
             mono = dl2.energy[self.algorithm]
             if mono.is_valid:
-                values.append(mono.energy.to_value(u.TeV))
                 dl1 = event.dl1.tel[tel_id].parameters
+                values.append(mono.energy.to_value(u.TeV))
                 weights.append(self._calculate_weights(dl1) if dl1 else 1)
                 ids.append(tel_id)
 
         if len(values) > 0:
             mean = np.average(values, weights=weights)
             std = np.sqrt(np.cov(values, aweights=weights))
+            valid = True
         else:
             mean = std = np.nan
+            valid = False
 
         event.dl2.stereo.energy[self.algorithm] = ReconstructedEnergyContainer(
             energy=u.Quantity(mean, u.TeV, copy=False),
             energy_uncert=u.Quantity(std, u.TeV, copy=False),
             tel_ids=ids,
+            is_valid=valid,
         )
         event.dl2.stereo.energy[self.algorithm].prefix = self.algorithm
 
@@ -134,16 +137,16 @@ class StereoMeanCombiner(StereoCombiner):
 
         if len(values) > 0:
             mean = np.average(values, weights=weights)
+            valid = True
         else:
             mean = np.nan
+            valid = False
 
-        event.dl2.stereo.classification[
-            self.algorithm
-        ] = ParticleClassificationContainer(
-            prediction=mean,
-            tel_ids=ids,
+        container = ParticleClassificationContainer(
+            prediction=mean, tel_ids=ids, is_valid=valid
         )
-        event.dl2.stereo.classification[self.algorithm].prefix = self.algorithm
+        container.prefix = self.algorithm
+        event.dl2.stereo.classification[self.algorithm] = container
 
     def __call__(self, event: ArrayEventContainer) -> None:
         """
