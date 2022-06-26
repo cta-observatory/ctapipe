@@ -1,4 +1,5 @@
 from astropy.table import Table
+from astropy.table.operations import vstack
 import tables
 from ctapipe.core.tool import Tool
 from ctapipe.core.traits import Bool, Path, flag, create_class_enum_trait
@@ -82,6 +83,7 @@ class ApplyEnergyRegressor(Tool):
     def start(self):
         self.log.info("Applying model")
 
+        tables = []
         for tel_id in tqdm(self.loader.subarray.tel):
             table = self.loader.read_telescope_events([tel_id])
 
@@ -103,19 +105,12 @@ class ApplyEnergyRegressor(Tool):
                 mode="a",
                 overwrite=self.overwrite,
             )
-        self.loader.load_instrument = False
-        # TODO: Might need to turn this on if we want to use dl1 features as weights
-        self.loader.load_dl1_parameters = False
-        # TODO: Use chunks here once #1935 is merged and in the ml branch
-        # TODO: This currently fails due to the bug described in #1938
-        # TODO: The column selection is a quickfix to avoid issues with the check for valid rows
-        # (time objects and all nan columns like uncertainty estimates)
-        # We should either use only the valid flag from the reconstructor itself or
-        # a proper quality query on the table
-        mono_predictions = self.loader.read_telescope_events()
+            tables.append(table)
+
+        mono_predictions = vstack(tables)
         stereo_predictions = self.combine.predict(mono_predictions)
         trafo = TelListToMaskTransform(self.loader.subarray)
-        for k, c in filter(lambda c: c[0].endswith('tel_ids'), stereo_predictions.columns.items()):
+        for c in filter(lambda c: c.name.endswith('tel_ids'), stereo_predictions.columns.values()):
             stereo_predictions[c.name] = np.array([trafo(r) for r in c])
 
         write_table(
