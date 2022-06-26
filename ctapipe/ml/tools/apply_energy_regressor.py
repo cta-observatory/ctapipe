@@ -4,6 +4,8 @@ from ctapipe.core.tool import Tool
 from ctapipe.core.traits import Bool, Path, flag, create_class_enum_trait
 from ctapipe.io import TableLoader, write_table
 from tqdm.auto import tqdm
+from ctapipe.io.tableio import TelListToMaskTransform
+import numpy as np
 
 from ..sklearn import Regressor
 from ..apply import EnergyRegressor
@@ -53,12 +55,6 @@ class ApplyEnergyRegressor(Tool):
 
     def setup(self):
         """"""
-        self.estimator = EnergyRegressor.read(self.model_path, parent=self)
-        self.combine = StereoCombiner.from_name(
-            self.stereo_combiner_type,
-            mono_prediction_column=f"{self.estimator.model.model_cls}_reconstructed_energy_energy",
-            parent=self,
-        )
         self.h5file = tables.open_file(self.input_url, mode="r+")
         self.loader = TableLoader(
             parent=self,
@@ -68,6 +64,17 @@ class ApplyEnergyRegressor(Tool):
             load_dl2=True,
             load_simulated=True,
             load_instrument=True,
+        )
+        self.estimator = EnergyRegressor.read(
+            self.model_path,
+            self.loader.subarray,
+            parent=self,
+        )
+        self.combine = StereoCombiner.from_name(
+            self.stereo_combiner_type,
+            combine_property='energy',
+            algorithm=self.estimator.model.model_cls,
+            parent=self,
         )
 
     def start(self):
@@ -102,15 +109,12 @@ class ApplyEnergyRegressor(Tool):
         # (time objects and all nan columns like uncertainty estimates)
         # We should either use only the valid flag from the reconstructor itself or
         # a proper quality query on the table
-        columns = [
-            "obs_id",
-            "event_id",
-            f"{self.estimator.model.model_cls}_reconstructed_energy_energy",
-        ]
-        if self.combine.weight_column:
-            columns += self.combine.weight_column
-        mono_predictions = self.loader.read_telescope_events()[columns]
-        stereo_predictions = self.combine(mono_predictions)
+        mono_predictions = self.loader.read_telescope_events()
+        stereo_predictions = self.combine.predict(mono_predictions)
+        trafo = TelListToMaskTransform(self.loader.subarray)
+        for k, c in filter(lambda c: c[0].endswith('tel_ids'), stereo_predictions.columns.items()):
+            stereo_predictions[c.name] = np.array([trafo(r) for r in c])
+
         write_table(
             stereo_predictions,
             self.loader.input_url,
