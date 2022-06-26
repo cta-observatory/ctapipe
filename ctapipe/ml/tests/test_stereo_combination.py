@@ -4,6 +4,8 @@ import astropy.units as u
 import numpy as np
 from numpy.testing import assert_array_equal
 from ctapipe.containers import (
+    HillasParametersContainer,
+    ImageParametersContainer,
     ReconstructedEnergyContainer,
     ParticleClassificationContainer,
     ArrayEventContainer,
@@ -102,8 +104,19 @@ def test_predict_mean_classification(mono_table):
     assert_array_equal(tel_ids[2], [1])
 
 
-def test_mean_prediction_single_event():
+@pytest.mark.parametrize("weights", ["konrad", "intensity", "none"])
+def test_mean_prediction_single_event(weights):
     event = ArrayEventContainer()
+
+    for tel_id, intensity in zip((25, 125, 130), (100, 200, 400)):
+        event.dl1.tel[tel_id].parameters = ImageParametersContainer(
+            hillas=HillasParametersContainer(
+                intensity=intensity,
+                width=0.1 * u.deg,
+                length=0.3 * u.deg,
+            )
+        )
+
     event.dl2.tel[25] = ReconstructedContainer(
         energy={
             "dummy": ReconstructedEnergyContainer(energy=10 * u.GeV, is_valid=True)
@@ -122,18 +135,27 @@ def test_mean_prediction_single_event():
     )
     event.dl2.tel[130] = ReconstructedContainer(
         energy={
-            "dummy": ReconstructedEnergyContainer(energy=0.03 * u.TeV, is_valid=True)
+            "dummy": ReconstructedEnergyContainer(energy=0.04 * u.TeV, is_valid=True)
         },
         classification={
             "dummy": ParticleClassificationContainer(prediction=0.8, is_valid=True)
         },
     )
 
-    combine_energy = StereoMeanCombiner(algorithm="dummy", combine_property="energy")
+    combine_energy = StereoMeanCombiner(
+        algorithm="dummy",
+        combine_property="energy",
+        weights=weights,
+    )
     combine_classification = StereoMeanCombiner(
-        algorithm="dummy", combine_property="classification"
+        algorithm="dummy",
+        combine_property="classification",
+        weights=weights,
     )
     combine_energy(event)
     combine_classification(event)
-    assert event.dl2.stereo.energy["dummy"].energy == 20 * u.GeV
+    if weights == "none":
+        assert u.isclose(event.dl2.stereo.energy["dummy"].energy, (70 / 3) * u.GeV)
+    elif weights == "intensity":
+        assert u.isclose(event.dl2.stereo.energy["dummy"].energy, 30 * u.GeV)
     assert event.dl2.stereo.classification["dummy"].prediction == 0.6

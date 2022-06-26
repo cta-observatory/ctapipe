@@ -63,7 +63,8 @@ class StereoMeanCombiner(StereoCombiner):
     """
 
     weights = CaselessStrEnum(
-        ["none", "intensity", "konrad"], default_value="none"
+        ["none", "intensity", "konrad"],
+        default_value="none",
     ).tag(config=True)
 
     def _calculate_weights(self, data):
@@ -103,10 +104,16 @@ class StereoMeanCombiner(StereoCombiner):
         for tel_id, dl2 in event.dl2.tel.items():
             mono = dl2.energy[self.algorithm]
             if mono.is_valid:
-                dl1 = event.dl1.tel[tel_id].parameters
                 values.append(mono.energy.to_value(u.TeV))
-                weights.append(self._calculate_weights(dl1) if dl1 else 1)
+                if tel_id not in event.dl1.tel:
+                    raise ValueError("No parameters for weighting available")
+                weights.append(
+                    self._calculate_weights(event.dl1.tel[tel_id].parameters)
+                )
                 ids.append(tel_id)
+
+        weights = np.array(weights, dtype=np.float64)
+        weights /= weights.max()
 
         if len(values) > 0:
             mean = np.average(values, weights=weights)
