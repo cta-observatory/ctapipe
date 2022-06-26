@@ -163,10 +163,10 @@ class StereoMeanCombiner(StereoCombiner):
         valid = mono_predictions[f"{prefix}_is_valid"]
         valid_predictions = mono_predictions[valid]
 
-        array_events, split_index, indices = np.unique(
+        array_events, indices, multiplicity = np.unique(
             mono_predictions[["obs_id", "event_id"]],
             return_inverse=True,
-            return_index=True,
+            return_counts=True,
         )
         stereo_table = Table(array_events)
         n_array_events = len(array_events)
@@ -194,26 +194,14 @@ class StereoMeanCombiner(StereoCombiner):
                 stereo_energy, u.TeV, copy=False
             )
 
-            # This subtracts the array-event-wise mean from each telescope event
-            # The split works the same as for the tel_ids above, but since the groups are of uneven
-            # size, numpy does not allow them to be in one array without turning the dtype to object,
-            # which is why the subtraction is performed in each array individually
-            # Akward arrays might fit here
-            centered_mono_energies = np.concatenate(
-                [
-                    tel - mean
-                    for tel, mean in zip(
-                        np.split(mono_energies, split_index)[1:], stereo_energy
-                    )
-                ]
-            )
-            stereo_energy_uncert = np.sqrt(
-                _weighted_mean_ufunc(
-                    centered_mono_energies**2, weights, n_array_events, indices[valid]
-                )
+            variance = _weighted_mean_ufunc(
+                (mono_energies - np.repeat(stereo_energy, multiplicity)[valid])**2,
+                weights,
+                n_array_events,
+                indices[valid]
             )
             stereo_table[f"{prefix}_energy_uncert"] = u.Quantity(
-                stereo_energy_uncert, u.TeV, copy=False
+                np.sqrt(variance), u.TeV, copy=False
             )
             stereo_table[f"{prefix}_is_valid"] = np.isfinite(stereo_energy)
             stereo_table[f"{prefix}_goodness_of_fit"] = np.nan
