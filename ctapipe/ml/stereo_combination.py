@@ -36,9 +36,9 @@ def _weighted_mean_ufunc(tel_values, weights, n_array_events, indices):
 class StereoCombiner(Component):
     # TODO: Add quality query (after #1888)
     algorithm = Unicode().tag(config=True)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    combine_property = CaselessStrEnum(["energy", "classification", "direction"]).tag(
+        config=True
+    )
 
     @abstractmethod
     def __call__(self, event: ArrayEventContainer) -> None:
@@ -47,7 +47,7 @@ class StereoCombiner(Component):
         """
 
     @abstractmethod
-    def predict(self, mono_predictions: Table) -> np.ndarray:
+    def predict(self, mono_predictions: Table) -> Table:
         """
         Constructs stereo predictions from a table of
         telescope events.
@@ -63,9 +63,6 @@ class StereoMeanCombiner(StereoCombiner):
     weights = CaselessStrEnum(
         ["none", "intensity", "konrad"], default_value="none"
     ).tag(config=True)
-    combine_property = CaselessStrEnum(["energy", "classification", "direction"]).tag(
-        config=True
-    )
 
     def _calculate_weights(self, data):
         """"""
@@ -79,76 +76,85 @@ class StereoMeanCombiner(StereoCombiner):
 
             return 1
 
-        elif isinstance(data, Table):
+        if isinstance(data, Table):
             if self.weights == "intensity":
                 return data["hillas_intensity"]
 
             if self.weights == "konrad":
                 return (
-                    data["hillas_intensity"] * data["hillas_length"] / data["hillas_width"]
+                    data["hillas_intensity"]
+                    * data["hillas_length"]
+                    / data["hillas_width"]
                 )
 
             return np.ones(len(data))
 
+        raise TypeError(
+            "Dl1 data needs to be provided in the form of a container or astropy.table.Table"
+        )
+
+    def _combine_energy(self, event):
+        ids = []
+        values = []
+        weights = []
+
+        for tel_id, dl2 in event.dl2.tel.items():
+            mono = dl2.energy[self.algorithm]
+            if mono.is_valid:
+                values.append(mono.energy.to_value(u.TeV))
+                dl1 = event.dl1.tel[tel_id].parameters
+                weights.append(self._calculate_weights(dl1) if dl1 else 1)
+                ids.append(tel_id)
+
+        if len(values) > 0:
+            mean = np.average(values, weights=weights)
+            std = np.sqrt(np.cov(values, aweights=weights))
         else:
-            raise TypeError(
-                "Dl1 data needs to be provided in the form of a container or astropy.table.Table"
-            )
+            mean = std = np.nan
+
+        event.dl2.stereo.energy[self.algorithm] = ReconstructedEnergyContainer(
+            energy=u.Quantity(mean, u.TeV, copy=False),
+            energy_uncert=u.Quantity(std, u.TeV, copy=False),
+            tel_ids=ids,
+        )
+        event.dl2.stereo.energy[self.algorithm].prefix = self.algorithm
+
+    def _combine_classification(self, event):
+        ids = []
+        values = []
+        weights = []
+
+        for tel_id, dl2 in event.dl2.tel.items():
+            mono = dl2.classification[self.algorithm]
+            if mono.is_valid:
+                values.append(mono.prediction)
+                dl1 = event.dl1.tel[tel_id].parameters
+                weights.append(self._calculate_weights(dl1) if dl1 else 1)
+                ids.append(tel_id)
+
+        if len(values) > 0:
+            mean = np.average(values, weights=weights)
+        else:
+            mean = np.nan
+
+        event.dl2.stereo.classification[
+            self.algorithm
+        ] = ParticleClassificationContainer(
+            prediction=mean,
+            tel_ids=ids,
+        )
+        event.dl2.stereo.classification[self.algorithm].prefix = self.algorithm
 
     def __call__(self, event: ArrayEventContainer) -> None:
         """
-        Calculate the mean energy / classification prediction for a single
-        array event.
-        TODO: This only uses the nominal telescope values, not their respective uncertainties!
-        (Which we dont have right now)
+        Calculate the mean prediction for a single array event.
         """
-        mono_energies = {"ids": [], "values": [], "weights": []}
-        mono_classifications = {"ids": [], "values": [], "weights": []}
-
-        for tel_id, dl2 in event.dl2.tel.items():
-            dl1 = event.dl1.tel[tel_id].parameters
-            if self.combine_property == "energy":
-                mono = dl2.energy[self.algorithm]
-                if mono.is_valid:
-                    mono_energies["values"].append(mono.energy.to_value(u.TeV))
-                    mono_energies["weights"].append(
-                        self._calculate_weights(dl1) if dl1 else 1
-                    )
-                    mono_energies["ids"].append(tel_id)
-            if self.combine_property == "classification":
-                mono = dl2.classification[self.algorithm]
-                if mono.is_valid:
-                    mono_classifications["values"].append(mono.prediction)
-                    mono_classifications["weights"].append(
-                        self._calculate_weights(dl1) if dl1 else 1
-                    )
-                    mono_classifications["ids"].append(tel_id)
-        if mono_energies["ids"]:
-            weighted_mean = np.average(
-                mono_energies["values"], weights=mono_energies["weights"]
-            )
-            stereo_energy = ReconstructedEnergyContainer(
-                energy=u.Quantity(weighted_mean, u.TeV, copy=False),
-                energy_uncert=u.Quantity(
-                    np.average(
-                        (weighted_mean - mono_energies["values"]) ** 2,
-                        weights=mono_energies["weights"],
-                    ),
-                    u.TeV,
-                    copy=False,
-                ),
-                tel_ids=mono_energies["ids"],
-            )
-            event.dl2.stereo.energy[self.algorithm] = stereo_energy
-        if mono_classifications["ids"]:
-            stereo_classification = ParticleClassificationContainer(
-                prediction=np.average(
-                    mono_classifications["values"],
-                    weights=mono_classifications["weights"],
-                ),
-                tel_ids=mono_classifications["ids"],
-            )
-            event.dl2.stereo.classification[self.algorithm] = stereo_classification
+        if self.combine_property == "energy":
+            self._combine_energy(event)
+        elif self.combine_property == "classification":
+            self._combine_classification(event)
+        else:
+            raise NotImplementedError(f"Cannot combine {self.combine_property}")
 
     def predict(self, mono_predictions: Table) -> Table:
         """
@@ -182,7 +188,9 @@ class StereoMeanCombiner(StereoCombiner):
             stereo_table[f"{prefix}_goodness_of_fit"] = np.nan
 
         elif self.combine_property == "energy":
-            mono_energies = valid_predictions[f"{prefix}_energy"].quantity.to_value(u.TeV)
+            mono_energies = valid_predictions[f"{prefix}_energy"].quantity.to_value(
+                u.TeV
+            )
             stereo_energy = _weighted_mean_ufunc(
                 mono_energies,
                 weights,
@@ -195,10 +203,10 @@ class StereoMeanCombiner(StereoCombiner):
             )
 
             variance = _weighted_mean_ufunc(
-                (mono_energies - np.repeat(stereo_energy, multiplicity)[valid])**2,
+                (mono_energies - np.repeat(stereo_energy, multiplicity)[valid]) ** 2,
                 weights,
                 n_array_events,
-                indices[valid]
+                indices[valid],
             )
             stereo_table[f"{prefix}_energy_uncert"] = u.Quantity(
                 np.sqrt(variance), u.TeV, copy=False
@@ -211,7 +219,7 @@ class StereoMeanCombiner(StereoCombiner):
 
         tel_ids = [[] for _ in range(n_array_events)]
 
-        for index, tel_id in zip(indices[valid], valid_predictions['tel_id']):
+        for index, tel_id in zip(indices[valid], valid_predictions["tel_id"]):
             tel_ids[index].append(tel_id)
 
         k = f"{prefix}_tel_ids"
