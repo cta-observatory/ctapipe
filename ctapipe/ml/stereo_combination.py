@@ -112,10 +112,9 @@ class StereoMeanCombiner(StereoCombiner):
                 )
                 ids.append(tel_id)
 
-        weights = np.array(weights, dtype=np.float64)
-        weights /= weights.max()
-
         if len(values) > 0:
+            weights = np.array(weights, dtype=np.float64)
+            weights /= weights.max()
             mean = np.average(values, weights=weights)
             std = np.sqrt(np.cov(values, aweights=weights))
             valid = True
