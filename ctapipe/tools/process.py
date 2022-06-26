@@ -13,7 +13,6 @@ from ..core.traits import (
     Dict,
     List,
     classes_with_traits,
-    create_class_enum_trait,
     flag,
     Path,
 )
