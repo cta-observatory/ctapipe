@@ -173,12 +173,8 @@ class DataWriter(Component):
         help="Store DL1 image parameters if available", default_value=True
     ).tag(config=True)
 
-    write_stereo_shower = Bool(
+    write_showers = Bool(
         help="Store DL2 stereo shower parameters if available", default_value=False
-    ).tag(config=True)
-
-    write_mono_shower = Bool(
-        help="Store DL2 mono parameters if available", default_value=False
     ).tag(config=True)
 
     compression_level = Int(
@@ -294,6 +290,14 @@ class DataWriter(Component):
                 containers=[event.index, event.simulation.shower],
             )
 
+            for tel_id, sim in event.simulation.tel.items():
+                table_name = self.table_name(tel_id, self._subarray.tel[tel_id])
+                tel_index = _get_tel_index(event, tel_id)
+                self._writer.write(
+                    f"simulation/event/telescope/impact/{table_name}",
+                    [tel_index, sim.impact],
+                )
+
         if self.write_waveforms:
             self._write_r1_telescope_events(self._writer, event)
 
@@ -304,10 +308,8 @@ class DataWriter(Component):
         self._write_dl1_telescope_events(self._writer, event)
 
         # write DL2 info if requested
-        if self.write_mono_shower:
+        if self.write_showers:
             self._write_dl2_telescope_events(self._writer, event)
-
-        if self.write_stereo_shower:
             self._write_dl2_stereo_event(self._writer, event)
 
     def finish(self):
@@ -342,7 +344,7 @@ class DataWriter(Component):
             data_levels.append(DataLevel.DL1_IMAGES)
         if self.write_parameters:
             data_levels.append(DataLevel.DL1_PARAMETERS)
-        if self.write_stereo_shower or self.write_mono_shower:
+        if self.write_showers:
             data_levels.append(DataLevel.DL2)
         if self.write_raw_waveforms:
             data_levels.append(DataLevel.R0)
@@ -381,8 +383,7 @@ class DataWriter(Component):
         writable_things = [
             self.write_parameters,
             self.write_images,
-            self.write_mono_shower,
-            self.write_stereo_shower,
+            self.write_showers,
             self.write_waveforms,
             self.write_parameters,
         ]
@@ -437,6 +438,7 @@ class DataWriter(Component):
 
         if self._is_simulation:
             writer.exclude("/simulation/event/telescope/images/.*", "true_parameters")
+            writer.exclude("/simulation/event/telescope/images/.*", "impact")
             # no timing information yet for true images
             writer.exclude("/simulation/event/telescope/parameters/.*", r"peak_time_.*")
             writer.exclude("/simulation/event/telescope/parameters/.*", "timing_.*")
@@ -590,11 +592,7 @@ class DataWriter(Component):
     ):
         for tel_id, r1_tel in event.r1.tel.items():
 
-            tel_index = TelEventIndexContainer(
-                obs_id=event.index.obs_id,
-                event_id=event.index.event_id,
-                tel_id=np.int16(tel_id),
-            )
+            tel_index = _get_tel_index(event, tel_id)
             telescope = self._subarray.tel[tel_id]
             table_name = self.table_name(tel_id, str(telescope))
 
@@ -606,11 +604,7 @@ class DataWriter(Component):
     ):
         for tel_id, r0_tel in event.r0.tel.items():
 
-            tel_index = TelEventIndexContainer(
-                obs_id=event.index.obs_id,
-                event_id=event.index.event_id,
-                tel_id=np.int16(tel_id),
-            )
+            tel_index = _get_tel_index(event, tel_id)
             telescope = self._subarray.tel[tel_id]
             table_name = self.table_name(tel_id, str(telescope))
 
@@ -686,8 +680,8 @@ class DataWriter(Component):
                         f"simulation/event/telescope/parameters/{table_name}",
                         [
                             tel_index,
-                            *event.simulation.tel[tel_id].true_parameters.values(),
-                        ],
+                            *event.simulation.tel[tel_id].true_parameters.values()
+                        ]
                     )
 
 
@@ -706,12 +700,7 @@ class DataWriter(Component):
             telescope = self._subarray.tel[tel_id]
             table_name = self.table_name(tel_id, str(telescope))
 
-            tel_index = TelEventIndexContainer(
-                obs_id=event.index.obs_id,
-                event_id=event.index.event_id,
-                tel_id=np.int16(tel_id),
-            )
-
+            tel_index = _get_tel_index(event, tel_id)
             for container_name, algorithm_map in dl2_tel.items():
                 for algorithm, container in algorithm_map.items():
                     name = (

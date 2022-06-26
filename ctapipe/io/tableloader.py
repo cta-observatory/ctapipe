@@ -24,6 +24,7 @@ TRIGGER_TABLE = "/dl1/event/subarray/trigger"
 SHOWER_TABLE = "/simulation/event/subarray/shower"
 TRUE_IMAGES_GROUP = "/simulation/event/telescope/images"
 TRUE_PARAMETERS_GROUP = "/simulation/event/telescope/parameters"
+TRUE_IMPACT_GROUP = "/simulation/event/telescope/impact"
 
 DL2_SUBARRAY_GROUP = "/dl2/event/subarray"
 DL2_TELESCOPE_GROUP = "/dl2/event/telescope"
@@ -152,7 +153,6 @@ class TableLoader(Component):
         if h5file is None and self.input_url is None:
             raise ValueError("Need to specify either input_url or h5file")
 
-        self._should_close = False
         if h5file is None:
             self.h5file = tables.open_file(self.input_url, mode="r")
             self._should_close = True
@@ -283,7 +283,8 @@ class TableLoader(Component):
 
         if self.load_dl2:
             if DL2_TELESCOPE_GROUP in self.h5file:
-                for group_name in self.h5file[DL2_TELESCOPE_GROUP]._v_children:
+                dl2_tel_group = self.h5file.root[DL2_TELESCOPE_GROUP]
+                for group_name in dl2_tel_group._v_children:
                     group_path = f"{DL2_TELESCOPE_GROUP}/{group_name}"
                     group = self.h5file.root[group_path]
 
@@ -314,6 +315,10 @@ class TableLoader(Component):
             table = join_allow_empty(
                 table, self.instrument_table, keys=["tel_id"], join_type="left"
             )
+
+        if self.load_simulated and TRUE_IMPACT_GROUP in self.h5file.root:
+            impacts = self._read_telescope_table(TRUE_IMPACT_GROUP, tel_id)
+            table = _join_telescope_events(table, impacts)
 
         return table
 

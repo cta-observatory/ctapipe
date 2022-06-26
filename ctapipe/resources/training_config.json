@@ -8,8 +8,7 @@
         "overwrite": false,
         "write_images": false,
         "write_parameters": true,
-        "write_stereo_shower": true,
-        "write_mono_shower": true,
+        "write_showers": true,
         "transform_image": true,
         "transform_peak_time": true
     },

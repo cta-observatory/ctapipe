@@ -112,16 +112,10 @@ class ProcessorTool(Tool):
             "don't store DL1/Event/Telescope parameters in output",
         ),
         **flag(
-            "write-stereo-shower",
-            "DataWriter.write_stereo_shower",
-            "store DL2/Event/Subarray parameters in output",
-            "don't DL2/Event/Subarray parameters in output",
-        ),
-        **flag(
-            "write-mono-shower",
-            "DataWriter.write_mono_shower",
-            "store DL2/Event/Telescope parameters in output",
-            "don't store DL2/Event/Telescope parameters in output",
+            "write-showers",
+            "DataWriter.write_showers",
+            "store DL2/Event parameters in output",
+            "don't DL2/Event parameters in output",
         ),
         **flag(
             "write-index-tables",
@@ -195,7 +189,7 @@ class ProcessorTool(Tool):
         """returns true if we should compute DL2 info"""
         if self.force_recompute_dl2:
             return True
-        return self.write.write_stereo_shower or self.write.write_mono_shower
+        return self.write.write_showers
 
     @property
     def should_compute_dl1(self):
