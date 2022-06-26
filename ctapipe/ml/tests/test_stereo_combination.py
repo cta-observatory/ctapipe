@@ -24,9 +24,9 @@ def mono_table():
             "event_id": [1, 1, 1, 2, 2, 1],
             "tel_id": [1, 2, 3, 5, 7, 1],
             "hillas_intensity": [1, 2, 0, 1, 5, 9],
-            "dummy_energy": u.Quantity(
-                [1, 10, 4, 0.5, 0.7, 1], u.TeV
-            ),
+            "hillas_width": [0.1, 0.2, 0.1, 0.1, 0.2, 0.1] * u.deg,
+            "hillas_length": 3 * ([0.1, 0.2, 0.1, 0.1, 0.2, 0.1] * u.deg),
+            "dummy_energy": [1, 10, 4, 0.5, 0.7, 1] * u.TeV,
             "dummy_is_valid": [
                 True,
                 True,
@@ -48,9 +48,12 @@ def mono_table():
     )
 
 
-def test_predict_mean_energy(mono_table):
+@pytest.mark.parametrize("weights", ["konrad", "intensity", "none"])
+def test_predict_mean_energy(weights, mono_table):
     combine = StereoMeanCombiner(
-        algorithm="dummy", combine_property="energy", weights="intensity"
+        algorithm="dummy",
+        combine_property="energy",
+        weights=weights,
     )
     stereo = combine.predict(mono_table)
     assert stereo.colnames == [
@@ -64,7 +67,11 @@ def test_predict_mean_energy(mono_table):
     ]
     assert_array_equal(stereo["obs_id"], np.array([1, 1, 2]))
     assert_array_equal(stereo["event_id"], np.array([1, 2, 1]))
-    assert_array_equal(stereo["dummy_energy"], [7, 0.5, np.nan] * u.TeV)
+    if weights == "intensity":
+        assert_array_equal(stereo["dummy_energy"], [7, 0.5, np.nan] * u.TeV)
+    elif weights == "none":
+        assert_array_equal(stereo["dummy_energy"], [5, 0.5, np.nan] * u.TeV)
+
     assert_array_equal(stereo["dummy_tel_ids"][0], np.array([1, 2, 3]))
     assert_array_equal(stereo["dummy_tel_ids"][1], 5)
 
@@ -89,7 +96,7 @@ def test_predict_mean_classification(mono_table):
         stereo["classifier_prediction"],
         [0.5, 0.3, 1],
     )
-    tel_ids = stereo['classifier_tel_ids']
+    tel_ids = stereo["classifier_tel_ids"]
     assert_array_equal(tel_ids[0], [1, 2])
     assert_array_equal(tel_ids[1], [5, 7])
     assert_array_equal(tel_ids[2], [1])
