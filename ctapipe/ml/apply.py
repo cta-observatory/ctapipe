@@ -15,11 +15,11 @@ from .sklearn import Classifier, Regressor, Model
 
 
 __all__ = [
-    'Reconstructor',
-    'ClassificationReconstructor',
-    'RegressionReconstructor',
-    'EnergyRegressor',
-    'ParticleIdClassifier',
+    "Reconstructor",
+    "ClassificationReconstructor",
+    "RegressionReconstructor",
+    "EnergyRegressor",
+    "ParticleIdClassifier",
 ]
 
 
@@ -34,7 +34,7 @@ class Reconstructor(Component):
     def __init__(self, subarray, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.subarray = subarray
-        self.instrument_table = self.subarray.to_table('joined')
+        self.instrument_table = self.subarray.to_table("joined")
 
     @classmethod
     def read(cls, path, subarray, *args, **kwargs):
@@ -82,12 +82,12 @@ class Reconstructor(Component):
             for algorithm, container in containers.items():
                 prefix = container.prefix
                 if prefix:
-                    container.prefix = f'{algorithm}_{prefix}'
+                    container.prefix = f"{algorithm}_{prefix}"
                 else:
                     container.prefix = algorithm
 
                 features.update(container.as_dict(add_prefix=True))
-                container.prefix = ''
+                container.prefix = ""
 
         features.update(self.instrument_table.loc[tel_id])
         return Table({k: [v] for k, v in features.items()})
@@ -95,12 +95,14 @@ class Reconstructor(Component):
 
 class RegressionReconstructor(Reconstructor):
     """Base class for sklearn regressors."""
+
     model_cls = Regressor
     model = Instance(model_cls).tag(config=True)
 
 
 class ClassificationReconstructor(Reconstructor):
     """Base class for sklearn regressors."""
+
     model_cls = Classifier
     model = Instance(model_cls).tag(config=True)
 
@@ -113,8 +115,8 @@ class EnergyRegressor(RegressionReconstructor):
             features = self._collect_features(event, tel_id)
             prediction, valid = self.model.predict(features)
             container = ReconstructedEnergyContainer(
-                energy=prediction,
-                is_valid=valid,
+                energy=prediction[0],
+                is_valid=valid[0],
             )
             event.dl2.tel[tel_id].energy[self.model.model_cls] = container
 
@@ -128,7 +130,7 @@ class ParticleIdClassifier(ClassificationReconstructor):
             prediction, valid = self.model.predict(features)
 
             container = ParticleClassificationContainer(
-                prediction=prediction,
-                is_valid=valid,
+                prediction=prediction[0],
+                is_valid=valid[0],
             )
             event.dl2.tel[tel_id].classification[self.model.model_cls] = container
