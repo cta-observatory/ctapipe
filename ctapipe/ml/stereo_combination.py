@@ -1,12 +1,9 @@
 from abc import abstractmethod
-from ctapipe.core import traits
 import numpy as np
 from astropy.table import Table
 import astropy.units as u
-from scipy.ndimage import median
 from ctapipe.core import Component, Container
 from ctapipe.core.traits import CaselessStrEnum, Unicode
-from ctapipe.ml.preprocessing import check_valid_rows
 from ..containers import (
     ArrayEventContainer,
     ParticleClassificationContainer,
