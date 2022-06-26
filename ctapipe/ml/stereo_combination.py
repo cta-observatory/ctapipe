@@ -18,6 +18,8 @@ def _calculate_ufunc_of_telescope_values(tel_data, n_array_events, indices, ufun
 
 
 def _weighted_mean_ufunc(tel_values, weights, n_array_events, indices):
+    # avoid numerical problems by very large or small weights
+    weights = weights / weights.max()
     sum_prediction = _calculate_ufunc_of_telescope_values(
         tel_values * weights,
         n_array_events,
