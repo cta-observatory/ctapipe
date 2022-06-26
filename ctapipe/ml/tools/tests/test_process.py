@@ -5,13 +5,26 @@ import json
 
 def test_process_apply_energy(tmp_path, energy_regressor_path):
     from ctapipe.tools.process import ProcessorTool
+    from ctapipe.io import SimTelEventSource
 
     output = tmp_path / "gamma_prod5.dl2_energy.h5"
 
     config_path = tmp_path / "config.json"
 
+    input_url = "dataset://gamma_prod5.simtel.zst"
+
+    with SimTelEventSource(input_url) as s:
+        subarray = s.subarray
+
+    allowed_tels = subarray.get_tel_ids_for_type(
+        "LST_LST_LSTCam"
+    ) + subarray.get_tel_ids_for_type("MST_MST_NectarCam")
+
     config = {
         "ProcessorTool": {
+            "EventSource": {
+                "allowed_tels": allowed_tels,
+            },
             "stereo_combiner_configs": [
                 {
                     "type": "StereoMeanCombiner",
@@ -19,7 +32,7 @@ def test_process_apply_energy(tmp_path, energy_regressor_path):
                     "algorithm": "ExtraTreesRegressor",
                     "weights": "konrad",
                 }
-            ]
+            ],
         }
     }
 
@@ -27,7 +40,7 @@ def test_process_apply_energy(tmp_path, energy_regressor_path):
         json.dump(config, f)
 
     argv = [
-        "--input=dataset://gamma_prod5.simtel.zst",
+        f"--input={input_url}",
         f"--output={output}",
         "--write-images",
         "--write-stereo-shower",
