@@ -321,9 +321,12 @@ class TableLoader(Component):
 
                         # add the algorithm as prefix to distinguish multiple
                         # algorithms predicting the same quantities
-                        _add_column_prefix(
-                            dl2, prefix=algorithm, ignore=SUBARRAY_EVENT_KEYS
-                        )
+                        if group_name == "geometry":
+                            _add_column_prefix(
+                                dl2,
+                                prefix=algorithm,
+                                ignore=SUBARRAY_EVENT_KEYS,
+                            )
                         table = _join_subarray_events(table, dl2)
 
         if keep_order:
@@ -396,9 +399,12 @@ class TableLoader(Component):
 
                         # add the algorithm as prefix to distinguish multiple
                         # algorithms predicting the same quantities
-                        _add_column_prefix(
-                            dl2, prefix=algorithm, ignore=TELESCOPE_EVENT_KEYS
-                        )
+                        if group_name == "geometry":
+                            _add_column_prefix(
+                                dl2,
+                                prefix=algorithm,
+                                ignore=TELESCOPE_EVENT_KEYS,
+                            )
                         table = _join_telescope_events(table, dl2)
 
         if self.load_true_images:
@@ -453,7 +459,13 @@ class TableLoader(Component):
             keep_order=False,
         )
         table = join_allow_empty(
-            table, subarray_events, keys=SUBARRAY_EVENT_KEYS, join_type="left"
+            table,
+            subarray_events,
+            keys=SUBARRAY_EVENT_KEYS,
+            join_type="left",
+            # add suffix mono on duplicated columns, avoid underscore for stereo
+            table_names=["_mono", ""],
+            uniq_col_name="{col_name}{table_name}",
         )
         return table
 
