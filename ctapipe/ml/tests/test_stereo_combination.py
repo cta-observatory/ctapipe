@@ -9,7 +9,6 @@ from ctapipe.containers import (
     ArrayEventContainer,
     ReconstructedContainer,
 )
-from ctapipe.io import EventSource
 from ctapipe.ml.stereo_combination import StereoMeanCombiner
 
 
