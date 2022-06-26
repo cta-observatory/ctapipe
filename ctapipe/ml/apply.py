@@ -52,9 +52,9 @@ class Reconstructor(Component):
         event: ArrayEventContainer
         """
 
-    def predict(self, table: Table) -> Tuple[np.ndarray, np.ndarray]:
+    def predict(self, key, table: Table) -> Tuple[np.ndarray, np.ndarray]:
         """Predict on a table of events"""
-        return self.model.predict(table)
+        return self.model.predict(key, table)
 
     def _collect_features(self, event: ArrayEventContainer, tel_id: int) -> Table:
         """Loop over all containers with features.
@@ -113,7 +113,11 @@ class EnergyRegressor(RegressionReconstructor):
     def __call__(self, event: ArrayEventContainer) -> None:
         for tel_id in event.trigger.tels_with_trigger:
             features = self._collect_features(event, tel_id)
-            prediction, valid = self.model.predict(features)
+            prediction, valid = self.model.predict(
+                self.subarray.tel[tel_id],
+                features,
+            )
+
             container = ReconstructedEnergyContainer(
                 energy=prediction[0],
                 is_valid=valid[0],
@@ -127,7 +131,10 @@ class ParticleIdClassifier(ClassificationReconstructor):
     def __call__(self, event: ArrayEventContainer) -> None:
         for tel_id in event.trigger.tels_with_trigger:
             features = self._collect_features(event, tel_id)
-            prediction, valid = self.model.predict(features)
+            prediction, valid = self.model.predict(
+                self.subarray.tel[tel_id],
+                features,
+            )
 
             container = ParticleClassificationContainer(
                 prediction=prediction[0],

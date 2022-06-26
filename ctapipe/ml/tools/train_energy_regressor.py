@@ -51,15 +51,21 @@ class TrainEnergyRegressor(Tool):
         self.rng = np.random.default_rng(self.random_seed)
 
     def start(self):
-        self.log.info("Loading events from %s", self.loader.input_url)
-        table = self._read_table()
-        self._cross_validate(table)
 
-        self.log.info("Performing final fit")
-        self.model.fit(table)
+        types = self.loader.subarray.telescope_types
+        self.log.info("Inputfile: %s", self.loader.input_url)
+        self.log.info("Training models for %d types", len(types))
+        for tel_type in types:
+            self.log.info("Loading events for %s", tel_type)
+            table = self._read_table(tel_type)
+            self._cross_validate(tel_type, table)
 
-    def _read_table(self):
-        table = self.loader.read_telescope_events()
+            self.log.info("Performing final fit for %s", tel_type)
+            self.model.fit(tel_type, table)
+            self.log.info("done")
+
+    def _read_table(self, telescope_type):
+        table = self.loader.read_telescope_events([telescope_type])
 
         feature_names = self.model.features + [self.target]
         table = table[feature_names]
@@ -78,7 +84,7 @@ class TrainEnergyRegressor(Tool):
 
         return table
 
-    def _cross_validate(self, table):
+    def _cross_validate(self, telescope_type, table):
         n_cv = self.n_cross_validation
         self.log.info(f"Starting cross-validation with {n_cv} folds.")
 
@@ -95,8 +101,8 @@ class TrainEnergyRegressor(Tool):
             train = table[train_indices]
             test = table[test_indices]
 
-            self.model.fit(train)
-            prediction, _ = self.model.predict(test)
+            self.model.fit(telescope_type, train)
+            prediction, _ = self.model.predict(telescope_type, test)
             scores.append(metrics.r2_score(test["true_energy"], prediction))
 
         scores = np.array(scores)
