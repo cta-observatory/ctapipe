@@ -21,6 +21,7 @@ from ..containers import (
     TelescopeImpactParameterContainer,
     TelescopePointingContainer,
     TelescopeTriggerContainer,
+    DL2Container,
 )
 from ..coordinates import CameraFrame
 from ..core.traits import (
@@ -413,6 +414,7 @@ class SimTelEventSource(EventSource):
             data.r1.tel.clear()
             data.dl0.tel.clear()
             data.dl1.tel.clear()
+            data.dl2 = DL2Container()
             data.pointing.tel.clear()
             data.simulation.tel.clear()
             data.trigger.tel.clear()
