@@ -1,4 +1,3 @@
-from astropy.table import Table
 from astropy.table.operations import vstack
 import tables
 from ctapipe.core.tool import Tool
@@ -75,7 +74,7 @@ class ApplyEnergyRegressor(Tool):
         )
         self.combine = StereoCombiner.from_name(
             self.stereo_combiner_type,
-            combine_property='energy',
+            combine_property="energy",
             algorithm=self.estimator.model.model_cls,
             parent=self,
         )
@@ -107,7 +106,9 @@ class ApplyEnergyRegressor(Tool):
         mono_predictions = vstack(tables)
         stereo_predictions = self.combine.predict(mono_predictions)
         trafo = TelListToMaskTransform(self.loader.subarray)
-        for c in filter(lambda c: c.name.endswith('tel_ids'), stereo_predictions.columns.values()):
+        for c in filter(
+            lambda c: c.name.endswith("tel_ids"), stereo_predictions.columns.values()
+        ):
             stereo_predictions[c.name] = np.array([trafo(r) for r in c])
 
         write_table(
