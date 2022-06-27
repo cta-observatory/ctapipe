@@ -205,19 +205,48 @@ class ParticleIdClassifier(ClassificationReconstructor):
     """
     Predict dl2 particle classification
     """
-
     target = "true_shower_primary_id"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # gammas is parcile_id == 0
+        self.model.positive_class = 0
 
     def __call__(self, event: ArrayEventContainer) -> None:
         for tel_id in event.trigger.tels_with_trigger:
             features = self._collect_features(event, tel_id)
-            prediction, valid = self.model.predict_score(
-                self.subarray.tel[tel_id],
-                features,
-            )
+            query = self.qualityquery.get_table_mask(features)
 
-            container = ParticleClassificationContainer(
-                prediction=prediction[0],
-                is_valid=valid[0],
-            )
+            if query[0]:
+                prediction, valid = self.model.predict_score(
+                    self.subarray.tel[tel_id],
+                    features,
+                )
+
+                container = ParticleClassificationContainer(
+                    prediction=prediction[0],
+                    is_valid=valid[0],
+                )
+            else:
+                container = ParticleClassificationContainer(
+                    prediction=np.nan, is_valid=False
+                )
+
             event.dl2.tel[tel_id].classification[self.model.model_cls] = container
+
+    def predict(self, key, table: Table) -> Table:
+        """Predict on a table of events"""
+        n_rows = len(table)
+        score = np.full(n_rows, np.nan)
+        is_valid = np.full(n_rows, False)
+
+        mask = self.qualityquery.get_table_mask(table)
+        score[mask], is_valid[mask] = self.model.predict_score(key, table[mask])
+
+        result = Table(
+            {
+                f"{self.model.model_cls}_prediction": score,
+                f"{self.model.model_cls}_is_valid": is_valid,
+            }
+        )
+        return result

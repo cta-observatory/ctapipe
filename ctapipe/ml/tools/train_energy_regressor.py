@@ -20,7 +20,6 @@ class TrainEnergyRegressor(Tool):
         directory_ok=False,
     ).tag(config=True)
 
-    target = Unicode(default_value="true_energy").tag(config=True)
     n_cross_validation = Int(default_value=5).tag(config=True)
     n_events = Int(default_value=None, allow_none=True).tag(config=True)
     random_seed = Int(default_value=0).tag(config=True)
@@ -71,7 +70,7 @@ class TrainEnergyRegressor(Tool):
         table = table[mask]
         self.log.info(f"Events after applying quality query: %d", len(table))
 
-        feature_names = self.regressor.model.features + [self.target]
+        feature_names = self.regressor.model.features + [self.regressor.target]
         table = table[feature_names]
 
         valid = check_valid_rows(table)

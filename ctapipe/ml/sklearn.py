@@ -140,6 +140,7 @@ class Classifier(Model):
     ).tag(config=True)
 
     invalid_class = Integer(-1).tag(config=True)
+    positive_class = Integer(default_value=1).tag(config=True)
 
     def predict(self, key, table):
         if key not in self.models:
@@ -184,6 +185,9 @@ class Classifier(Model):
                 scores[valid] = prediction
             else:
                 # only return one score for the positive class
-                scores[valid] = prediction[:, 1]
+                scores[valid] = prediction[:, self._get_positive_index(key)]
 
         return scores, valid
+
+    def _get_positive_index(self, key):
+        return np.nonzero(self.models[key].classes_ == self.positive_class)[0][0]

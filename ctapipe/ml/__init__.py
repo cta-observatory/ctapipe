@@ -1,4 +1,3 @@
-from .tools import TrainEnergyRegressor
 from .apply import (
     Reconstructor,
     ClassificationReconstructor,
@@ -6,6 +5,7 @@ from .apply import (
     EnergyRegressor,
     ParticleIdClassifier,
 )
+
 from .stereo_combination import StereoCombiner, StereoMeanCombiner
 
 __all__ = [
@@ -14,7 +14,6 @@ __all__ = [
     "ParticleIdClassifier",
     "Reconstructor",
     "RegressionReconstructor",
-    "TrainEnergyRegressor",
     "StereoMeanCombiner",
     "StereoCombiner",
 ]
