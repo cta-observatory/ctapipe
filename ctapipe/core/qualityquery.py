@@ -102,7 +102,7 @@ class QualityQuery(Component):
 
     def __str__(self):
         """Print a formatted string representation of the entire table."""
-        return self.to_table().pprint_all(show_unit=True, show_dtype=True)
+        return str(self.to_table())
 
     def __call__(self, **kwargs) -> np.ndarray:
         """

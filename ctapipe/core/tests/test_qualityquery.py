@@ -123,3 +123,12 @@ def test_table_mask():
     stats = query.to_table()
     np.testing.assert_equal(stats["counts"], [5, 3, 2])
     np.testing.assert_equal(stats["cumulative_counts"], [5, 3, 1])
+
+
+def test_printing():
+    """Just check the query can be stringified correctly"""
+    query = QualityQuery(
+        quality_criteria=[("check", "x>3")],
+    )
+
+    assert isinstance(str(query), str)
