@@ -153,7 +153,12 @@ class TrainParticleIdClassifier(Tool):
             test = table[test_indices]
             self.classifier.model.fit(telescope_type, train)
             prediction, _ = self.classifier.model.predict_score(telescope_type, test)
-            scores.append(metrics.roc_auc_score(test[target], prediction))
+            truth = np.where(
+                test[target] == self.classifier.model.positive_class,
+                1,
+                0,
+            )
+            scores.append(metrics.roc_auc_score(truth, prediction))
 
         scores = np.array(scores)
 

@@ -94,6 +94,8 @@ class ApplyParticleIdClassifier(Tool):
                 continue
 
             table = self.loader.read_telescope_events([tel_id])
+            table.remove_columns([c for c in table.colnames if c.startswith(prefix)])
+
             if len(table) == 0:
                 self.log.warning("No events for telescope %d", tel_id)
                 continue
