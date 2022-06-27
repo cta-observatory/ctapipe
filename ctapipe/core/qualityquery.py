@@ -14,13 +14,12 @@ from .traits import List
 # in selection functions (passed to eval())
 ALLOWED_GLOBALS = {"u": u, "np": np}  # astropy units  # numpy
 
-for func in ('sin', 'cos', 'tan', 'arctan2', 'log', 'log10', 'exp', 'sqrt'):
+for func in ("sin", "cos", "tan", "arctan2", "log", "log10", "exp", "sqrt"):
     ALLOWED_GLOBALS[func] = getattr(np, func)
 
 
-
 class QualityCriteriaError(TypeError):
-    """ Signal a problem with a user-defined selection criteria function"""
+    """Signal a problem with a user-defined selection criteria function"""
 
 
 class QualityQuery(Component):
@@ -57,9 +56,11 @@ class QualityQuery(Component):
                     " use `parameters.hillas.width.value > 0`"
                 )
             try:
-                self._compiled_expressions.append(compile(e, __name__, mode='eval'))
+                self._compiled_expressions.append(compile(e, __name__, mode="eval"))
             except Exception:
-                raise QualityCriteriaError(f"Error compiling expression '{e}' for check {name}")
+                raise QualityCriteriaError(
+                    f"Error compiling expression '{e}' for check {name}"
+                )
 
         # arrays for recording overall statistics, add one for total count
         n = len(self.quality_criteria) + 1
@@ -126,6 +127,20 @@ class QualityQuery(Component):
         return result[1:]  # strip off TOTAL criterion, since redundant
 
     def get_table_mask(self, table):
+        """
+        Get a boolean mask for the entries that pass the quality checks.
+
+        Parameters
+        ----------
+        table : `~astropy.table.Table`
+            Table with columns matching the expressions used in the
+            `QualityQuery.quality_criteria`.
+
+        Returns
+        -------
+        mask : np.ndarray[bool]
+            Boolean mask of valid entries.
+        """
         n_criteria = len(self.quality_criteria) + 1
         result = np.ones((n_criteria, len(table)), dtype=bool)
 

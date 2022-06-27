@@ -1,17 +1,18 @@
 """ Tests of Selectors """
-import numpy as np
 import pytest
+import numpy as np
+from astropy.table import Table
 
 from ctapipe.core.qualityquery import QualityQuery, QualityCriteriaError
 from ctapipe.core.traits import List
-from astropy.table import Table
 
 
 def test_selector():
-    """ test the functionality of an example Selector subclass"""
+    """test the functionality of an example Selector subclass"""
 
     class ExampleQualityQuery(QualityQuery):
         """Available variables: x"""
+
         quality_criteria = List(
             default_value=[
                 ("high_enough", "x > 3"),
@@ -62,6 +63,7 @@ def test_selector():
 def test_invalid_input():
     class ExampleQualityQuery(QualityQuery):
         """Available variables: x"""
+
         quality_criteria = List(
             default_value=[
                 ("high_enough", "x > 3"),
@@ -76,9 +78,9 @@ def test_invalid_input():
 
 
 def test_bad_selector():
-    """ ensure failure if a selector function is not a function or can't be evaluated"""
+    """ensure failure if a selector function is not a function or can't be evaluated"""
 
-    s = QualityQuery(
+    query = QualityQuery(
         quality_criteria=[
             ("high_enough", "x > 3"),
             ("not_good", "foo"),
@@ -86,39 +88,38 @@ def test_bad_selector():
         ]
     )
     with pytest.raises(QualityCriteriaError):
-        s(x=5)
-
+        query(x=5)
 
     # ensure we can't run arbitrary code.
     # try to construct something that is not in the
     # ALLOWED_GLOBALS list, but which is imported in selector.py
     # and see if it works in a function
     with pytest.raises(QualityCriteriaError):
-        s = QualityQuery(quality_criteria=[("dangerous", "Component()")])
-        s(x=10)
+        query = QualityQuery(quality_criteria=[("dangerous", "Component()")])
+        query(x=10)
 
     # test we only support expressions, not statements
     with pytest.raises(QualityCriteriaError):
-        s = QualityQuery(quality_criteria=[("dangerous", "import numpy; np.array([])")])
+        query = QualityQuery(
+            quality_criteria=[("dangerous", "import numpy; np.array([])")]
+        )
 
 
 def test_table_mask():
-    s = QualityQuery(
+    """Test getting a mask for a whole table"""
+    query = QualityQuery(
         quality_criteria=[
             ("foo", "(x**2 + y**2) < 1.0"),
             ("bar", "x < 0.5"),
         ],
     )
 
-    t = Table({
-        'x': [1.0, 0.2, -0.5, 0.6, 0.7],
-        'y': [0.0, 0.5, 1.0, 0.2, 0.1 ]
-    })
+    table = Table({"x": [1.0, 0.2, -0.5, 0.6, 0.7], "y": [0.0, 0.5, 1.0, 0.2, 0.1]})
 
-    mask = s.get_table_mask(t)
-    assert len(mask) == len(t)
+    mask = query.get_table_mask(table)
+    assert len(mask) == len(table)
     assert mask.dtype == np.bool_
     np.testing.assert_equal(mask, [False, True, False, False, False])
-    stats = s.to_table()
-    np.testing.assert_equal(stats['counts'], [5, 3, 2])
-    np.testing.assert_equal(stats['cumulative_counts'], [5, 3, 1])
+    stats = query.to_table()
+    np.testing.assert_equal(stats["counts"], [5, 3, 2])
+    np.testing.assert_equal(stats["cumulative_counts"], [5, 3, 1])
