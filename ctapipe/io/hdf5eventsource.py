@@ -362,8 +362,7 @@ class HDF5EventSource(EventSource):
 
                 dl2_readers[kind] = {
                     algorithm: HDF5TableReader(self.file_).read(
-                        table._v_pathname,
-                        containers=container,
+                        table._v_pathname, containers=container, prefixes=[algorithm]
                     )
                     for algorithm, table in group._v_children.items()
                 }
@@ -384,7 +383,8 @@ class HDF5EventSource(EventSource):
                     dl2_tel_readers[kind][name] = {
                         key: HDF5TableReader(self.file_).read(
                             table._v_pathname,
-                            containers=(ReconstructedGeometryContainer, ),
+                            containers=container,
+                            prefixes=[name + "_mono"],
                         )
                         for key, table in algorithm_group._v_children.items()
                     }

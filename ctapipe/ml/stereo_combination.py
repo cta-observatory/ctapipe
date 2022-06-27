@@ -175,7 +175,7 @@ class StereoMeanCombiner(StereoCombiner):
         all telescope predictions of a shower are invalid.
         """
 
-        prefix = self.algorithm
+        prefix = self.algorithm + "_mono"
         # TODO: Integrate table quality query once its done
         valid = mono_predictions[f"{prefix}_is_valid"]
         valid_predictions = mono_predictions[valid]

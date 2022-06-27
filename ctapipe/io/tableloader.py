@@ -325,9 +325,6 @@ class TableLoader(Component):
             subarray_events,
             keys=SUBARRAY_EVENT_KEYS,
             join_type="left",
-            # add suffix mono on duplicated columns, avoid underscore for stereo
-            table_names=["_mono", ""],
-            uniq_col_name="{col_name}{table_name}",
         )
         return table
 

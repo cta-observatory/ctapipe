@@ -118,6 +118,7 @@ class EnergyRegressor(RegressionReconstructor):
                 energy=prediction[0],
                 is_valid=valid[0],
             )
+            container.prefix = self.model.model_cls + "_mono"
             event.dl2.tel[tel_id].energy[self.model.model_cls] = container
 
 
@@ -133,4 +134,5 @@ class ParticleIdClassifier(ClassificationReconstructor):
                 prediction=prediction[0],
                 is_valid=valid[0],
             )
+            container.prefix = self.model.model_cls + "_mono"
             event.dl2.tel[tel_id].classification[self.model.model_cls] = container
