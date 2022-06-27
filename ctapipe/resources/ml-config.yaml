@@ -21,7 +21,6 @@ TrainEnergyRegressor:
       - concentration_cog
       - concentration_core
       - morphology_num_pixels
-      - HillasReconstructor_average_intensity
       - mirror_area
 
 
@@ -48,5 +47,4 @@ TrainParticleIdClassifier:
       - concentration_cog
       - concentration_core
       - morphology_num_pixels
-      - HillasReconstructor_average_intensity
       - mirror_area

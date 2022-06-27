@@ -3,15 +3,13 @@ from ctapipe.io import TableLoader
 import shutil
 
 
-def test_apply_energy_regressor(
-    energy_regressor_path, dl2_shower_geometry_file, tmp_path
-):
+def test_apply_energy_regressor(energy_regressor_path, dl1_parameters_file, tmp_path):
     from ctapipe.ml.tools.apply_energy_regressor import ApplyEnergyRegressor
 
-    input_path = tmp_path / dl2_shower_geometry_file.name
+    input_path = tmp_path / dl1_parameters_file.name
 
     # create copy to not mutate common test file
-    shutil.copy2(dl2_shower_geometry_file, input_path)
+    shutil.copy2(dl1_parameters_file, input_path)
 
     ret = run_tool(
         ApplyEnergyRegressor(),
