@@ -233,7 +233,7 @@ class TableLoader(Component):
 
                         # add the algorithm as prefix to distinguish multiple
                         # algorithms predicting the same quantities
-                        if group_name == "geometry":
+                        if group_name in {"geometry", "impact"}:
                             _add_column_prefix(
                                 dl2,
                                 prefix=algorithm,
@@ -284,7 +284,7 @@ class TableLoader(Component):
 
                         # add the algorithm as prefix to distinguish multiple
                         # algorithms predicting the same quantities
-                        if group_name == "geometry":
+                        if group_name in {"geometry", "impact"}:
                             _add_column_prefix(
                                 dl2,
                                 prefix=algorithm,
