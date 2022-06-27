@@ -60,7 +60,10 @@ class Model(Component):
 
     def predict(self, key, table):
         if key not in self.models:
-            raise KeyError(f"No model available for key {key}")
+            raise KeyError(
+                f"No model available for key {key},"
+                f" available modes: {self.models.keys()}"
+            )
         X, valid = self.table_to_X(table)
         n_outputs = getattr(self.models[key], "n_outputs_", 1)
 
@@ -140,7 +143,10 @@ class Classifier(Model):
 
     def predict(self, key, table):
         if key not in self.models:
-            raise KeyError(f"No model available for key {key}")
+            raise KeyError(
+                f"No model available for key {key},"
+                f" available modes: {self.models.keys()}"
+            )
 
         X, valid = self.table_to_X(table)
         n_outputs = getattr(self.models[key], "n_outputs_", 1)
@@ -158,7 +164,10 @@ class Classifier(Model):
 
     def predict_score(self, key, table):
         if key not in self.models:
-            raise KeyError(f"No model available for key {key}")
+            raise KeyError(
+                f"No model available for key {key},"
+                f" available modes: {self.models.keys()}"
+            )
 
         X, valid = self.table_to_X(table)
 
