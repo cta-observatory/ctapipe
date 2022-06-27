@@ -82,8 +82,8 @@ class ShowerProcessor(Component):
             shower_geom=event.dl2.stereo.geometry[k], subarray=self.subarray
         )
 
-        for tel_index, impact_distance in enumerate(impact_distances):
-            tel_id = self.subarray.tel_ids[tel_index]
+        for tel_id in event.trigger.tels_with_trigger:
+            tel_index = self.subarray.tel_indices[tel_id]
             event.dl2.tel[tel_id].impact[k] = TelescopeImpactParameterContainer(
-                distance=impact_distance
+                distance=impact_distances[tel_index]
             )
