@@ -1,10 +1,12 @@
 import numpy as np
-from ctapipe.core import Tool, QualityQuery
+from ctapipe.core import Tool
 from ctapipe.core.traits import Path, Unicode, Int
 from ctapipe.io import TableLoader
 from sklearn import metrics
 from sklearn.model_selection import KFold
 from tqdm.auto import tqdm
+
+from ctapipe.ml.apply import EnergyRegressor
 
 from ..preprocessing import check_valid_rows
 from ..sklearn import Regressor
@@ -44,12 +46,8 @@ class TrainEnergyRegressor(Tool):
             load_instrument=True,
         )
 
-        self.model = Regressor(
-            parent=self,
-            target=self.target,
-        )
+        self.regressor = EnergyRegressor(self.loader.subarray, parent=self)
         self.rng = np.random.default_rng(self.random_seed)
-        self.qualityquery = QualityQuery(parent=self)
 
     def start(self):
 
@@ -62,18 +60,18 @@ class TrainEnergyRegressor(Tool):
             self._cross_validate(tel_type, table)
 
             self.log.info("Performing final fit for %s", tel_type)
-            self.model.fit(tel_type, table)
+            self.regressor.model.fit(tel_type, table)
             self.log.info("done")
 
     def _read_table(self, telescope_type):
         table = self.loader.read_telescope_events([telescope_type])
 
         self.log.info(f"Events read from input: %d", len(table))
-        mask = self.qualityquery.get_table_mask(table)
+        mask = self.regressor.qualityquery.get_table_mask(table)
         table = table[mask]
         self.log.info(f"Events after applying quality query: %d", len(table))
 
-        feature_names = self.model.features + [self.target]
+        feature_names = self.regressor.model.features + [self.target]
         table = table[feature_names]
 
         valid = check_valid_rows(table)
@@ -93,7 +91,11 @@ class TrainEnergyRegressor(Tool):
 
     def _cross_validate(self, telescope_type, table):
         n_cv = self.n_cross_validation
-        self.log.info(f"Starting cross-validation with {n_cv} folds.")
+        self.log.info(
+            "Starting cross-validation with %d folds for type %s.",
+            n_cv,
+            telescope_type,
+        )
 
         scores = []
 
@@ -108,22 +110,23 @@ class TrainEnergyRegressor(Tool):
             train = table[train_indices]
             test = table[test_indices]
 
-            self.model.fit(telescope_type, train)
-            prediction, _ = self.model.predict(telescope_type, test)
+            self.regressor.model.fit(telescope_type, train)
+            prediction, _ = self.regressor.model.predict(telescope_type, test)
             scores.append(metrics.r2_score(test["true_energy"], prediction))
 
         scores = np.array(scores)
 
-        self.log.info(f"Cross validated R^2 scores: {scores}")
-        self.log.info(
-            "Mean R^2 score from CV: %s ± %s",
-            scores.mean(),
-            scores.std(),
-        )
+        with np.printoptions(precision=4):
+            self.log.info(f"Cross validated R^2 scores: {scores}")
+            self.log.info(
+                "Mean R^2 score from CV: %.4f ± %.4f",
+                scores.mean(),
+                scores.std(),
+            )
 
     def finish(self):
         self.log.info("Writing output")
-        self.model.write(self.output_path)
+        self.regressor.write(self.output_path)
         self.loader.close()
 
 
