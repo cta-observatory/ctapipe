@@ -154,7 +154,13 @@ def test_trigger_allowed_tels(dl1_proton_file):
 
 
 def test_read_dl2(dl2_shower_geometry_file):
+    algorithm = "HillasReconstructor"
+
     with HDF5EventSource(dl2_shower_geometry_file) as s:
         e = next(iter(s))
-        assert 'HillasReconstructor' in e.dl2.stereo.geometry
-
+        assert algorithm in e.dl2.stereo.geometry
+        tel_mask = e.dl2.stereo.geometry[algorithm].tel_ids
+        tel_ids = s.subarray.tel_mask_to_tel_ids(tel_mask)
+        for tel_id in tel_ids:
+            assert algorithm in e.dl2.tel[tel_id].impact
+            assert e.dl2.tel[tel_id].impact[algorithm].distance is not None
