@@ -78,6 +78,14 @@ class ProcessorTool(Tool):
         help="Path to a trained energy regression model (see ctapipe-ml-train-energy-regressor)",
     ).tag(config=True)
 
+    particle_classifier_path = Path(
+        default_value=None,
+        allow_none=True,
+        exists=True,
+        directory_ok=False,
+        help="Path to a trained particle id classifier model (see ctapipe-ml-train-particle-classifier)",
+    ).tag(config=True)
+
     force_recompute_dl2 = Bool(
         help="Enforce dl2 recomputation even if already present in the input file",
         default_value=False,
@@ -91,6 +99,7 @@ class ProcessorTool(Tool):
         ("t", "allowed-tels"): "EventSource.allowed_tels",
         ("m", "max-events"): "EventSource.max_events",
         ("e", "energy-regressor"): "ProcessorTool.energy_regressor_path",
+        ("particle-classifier"): "ProcessorTool.particle_classifier_path",
         "image-cleaner-type": "ImageProcessor.image_cleaner_type",
     }
 
@@ -203,6 +212,13 @@ class ProcessorTool(Tool):
                 self.event_source.subarray,
                 parent=self,
             )
+        self.particle_classifier = None
+        if self.particle_classifier_path is not None:
+            self.particle_classifier = ParticleIdClassifier.read(
+                self.particle_classifier_path,
+                self.event_source.subarray,
+                parent=self,
+            )
 
         self.stereo_combiners = []
         for stereo_combiner in self.stereo_combiner_configs:
@@ -233,6 +249,7 @@ class ProcessorTool(Tool):
         return (
             self.write.write_showers
             or self.energy_regressor_path
+            or self.particle_classifier_path
         )
 
     @property
@@ -319,6 +336,8 @@ class ProcessorTool(Tool):
                 self.process_shower(event)
                 if self.energy_regressor is not None:
                     self.energy_regressor(event)
+                if self.particle_classifier is not None:
+                    self.particle_classifier(event)
 
             for combiner in self.stereo_combiners:
                 combiner(event)
