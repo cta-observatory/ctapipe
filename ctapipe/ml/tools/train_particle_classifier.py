@@ -1,6 +1,6 @@
 import numpy as np
 from ctapipe.core.tool import Tool
-from ctapipe.core.traits import Path, Unicode, Int
+from ctapipe.core.traits import Path, Int
 from ctapipe.io import TableLoader
 from sklearn import metrics
 from sklearn.model_selection import StratifiedKFold
