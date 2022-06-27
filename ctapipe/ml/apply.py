@@ -77,7 +77,7 @@ class Reconstructor(Component):
     def __call__(self, event: ArrayEventContainer) -> None:
         """Event-wise prediction for the EventSource-Loop.
 
-        Fill the event.dl2.<your-feature>[name] container.
+        Fills the event.dl2.<your-feature>[name] container.
 
         Parameters
         ----------
@@ -85,8 +85,21 @@ class Reconstructor(Component):
         """
 
     @abstractmethod
-    def predict(self, key, table: Table) -> Tuple[np.ndarray, np.ndarray]:
-        """Predict on a table of events"""
+    def predict(self, key, table: Table) -> Table:
+        """
+        Predict on a table of events
+
+        Parameters
+        ----------
+        table : `~astropy.table.Table`
+            Table of features
+
+        Returns
+        -------
+        table : `~astropy.table.Table`
+            Table with predictions, matches the corresponding
+            container definition
+        """
 
     def _collect_features(self, event: ArrayEventContainer, tel_id: int) -> Table:
         """Loop over all containers with features.
@@ -140,11 +153,16 @@ class ClassificationReconstructor(Reconstructor):
 
 
 class EnergyRegressor(RegressionReconstructor):
-    """"""
+    """
+    Predict dl2 energy for each telescope
+    """
 
     target = "true_energy"
 
     def __call__(self, event: ArrayEventContainer) -> None:
+        """
+        Apply the quality query and model and fill the corresponding container
+        """
         for tel_id in event.trigger.tels_with_trigger:
             features = self._collect_features(event, tel_id)
             query = self.qualityquery.get_table_mask(features)
@@ -184,7 +202,9 @@ class EnergyRegressor(RegressionReconstructor):
 
 
 class ParticleIdClassifier(ClassificationReconstructor):
-    """"""
+    """
+    Predict dl2 particle classification
+    """
 
     target = "true_shower_primary_id"
 
