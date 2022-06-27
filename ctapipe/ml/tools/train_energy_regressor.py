@@ -1,5 +1,5 @@
 import numpy as np
-from ctapipe.core.tool import Tool
+from ctapipe.core import Tool, QualityQuery
 from ctapipe.core.traits import Path, Unicode, Int
 from ctapipe.io import TableLoader
 from sklearn import metrics
@@ -49,6 +49,7 @@ class TrainEnergyRegressor(Tool):
             target=self.target,
         )
         self.rng = np.random.default_rng(self.random_seed)
+        self.qualityquery = QualityQuery(parent=self)
 
     def start(self):
 
@@ -67,12 +68,18 @@ class TrainEnergyRegressor(Tool):
     def _read_table(self, telescope_type):
         table = self.loader.read_telescope_events([telescope_type])
 
+        self.log.info(f"Events read from input: %d", len(table))
+        mask = self.qualityquery.get_table_mask(table)
+        table = table[mask]
+        self.log.info(f"Events after applying quality query: %d", len(table))
+
         feature_names = self.model.features + [self.target]
         table = table[feature_names]
 
         valid = check_valid_rows(table)
-        self.log.warning("Dropping non-predictable events.")
-        table = table[valid]
+        if np.any(~valid):
+            self.log.warning("Dropping non-predictable events.")
+            table = table[valid]
 
         if self.n_events is not None:
             n_events = min(self.n_events, len(table))

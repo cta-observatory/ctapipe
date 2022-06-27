@@ -7,6 +7,7 @@
 
 TrainEnergyRegressor:
   n_cross_validation: 5
+
   Regressor:
     model_cls: ExtraTreesRegressor
     model_config:
@@ -55,3 +56,11 @@ TrainParticleIdClassifier:
       - concentration_core
       - morphology_num_pixels
       - mirror_area
+
+  QualityQuery:
+    quality_criteria:
+      - ["HillasValid", "HillasReconstructor_is_valid"]
+      - ["enough intensity", "hillas_intensity > 50"]
+      - ["Positive width", "hillas_width > 0"]
+      - ["enough pixels", "morphology_num_pixels > 3"]
+      - ["not clipped", "leakage_intensity_width_2 < 0.5"]
