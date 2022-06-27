@@ -22,6 +22,7 @@ entry_points["console_scripts"] = [
     "ctapipe-ml-train-energy-regressor = ctapipe.ml.tools.train_energy_regressor:main",
     "ctapipe-ml-apply-energy-regressor = ctapipe.ml.tools.apply_energy_regressor:main",
     "ctapipe-ml-train-particle-classifier = ctapipe.ml.tools.train_particle_classifier:main",
+    "ctapipe-ml-apply-particle-classifier = ctapipe.ml.tools.apply_particle_classifier:main",
 ]
 tests_require = [
     "pytest",
