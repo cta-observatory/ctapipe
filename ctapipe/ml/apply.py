@@ -131,7 +131,7 @@ class ParticleIdClassifier(ClassificationReconstructor):
     def __call__(self, event: ArrayEventContainer) -> None:
         for tel_id in event.trigger.tels_with_trigger:
             features = self._collect_features(event, tel_id)
-            prediction, valid = self.model.predict(
+            prediction, valid = self.model.predict_score(
                 self.subarray.tel[tel_id],
                 features,
             )
