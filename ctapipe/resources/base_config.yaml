@@ -87,8 +87,8 @@ ImageProcessor:
     # filter_function_string] The filter function should take a single value
     # which is the image itself, a 1D np.array.
     quality_criteria:
-      - ["enough_pixels", "lambda im: np.count_nonzero(im) > 2"]
-      - ["enough_charge", "lambda im: im.sum() > 50"]
+      - ["enough_pixels", "np.count_nonzero(image) > 2"]
+      - ["enough_charge", "image.sum() > 50"]
 
 # The ShowerProcessor performs the DL1 to DL2a (reconstructed shower geometry)
 # transition. It is run only if the parameter DataWriter.write_showers=True.
@@ -105,7 +105,7 @@ ShowerProcessor:
       # image parameters, `p` (a `ctapipe.containers.ImageParametersContainer`), as
       # an argument.
       quality_criteria:
-        - [enough intensity, "lambda p: p.hillas.intensity > 50"]
-        - [Positive width, "lambda p: p.hillas.width.value > 0"]
-        - [enough pixels, "lambda p: p.morphology.num_pixels > 3"]
-        - [not clipped, "lambda p: p.leakage.intensity_width_2 < 0.8"]
+        - [enough intensity, "parameters.hillas.intensity > 50"]
+        - [Positive width, "parameters.hillas.width.value > 0"]
+        - [enough pixels, "parameters.morphology.num_pixels > 3"]
+        - [not clipped, "parameters.leakage.intensity_width_2 < 0.8"]
