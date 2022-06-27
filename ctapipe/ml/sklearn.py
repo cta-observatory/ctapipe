@@ -46,6 +46,8 @@ class Model(Component):
         return X, valid
 
     def table_to_y(self, table, mask=None):
+        if self.unit is not None:
+            return table[mask][self.target].quantity.to_value(self.unit)
         return np.array(table[self.target][mask])
 
     def fit(self, key, table):
@@ -114,8 +116,6 @@ class Regressor(Model):
             if np.any(y <= 0):
                 raise ValueError("y contains negative values, cannot apply log")
 
-            if self.unit is not None:
-                y = y.to_value(self.unit)
             return np.log(y)
         return y
 
