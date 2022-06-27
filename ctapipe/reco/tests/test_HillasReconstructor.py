@@ -208,7 +208,7 @@ def test_CameraFrame_against_TelescopeFrame(filename):
     config = Config({
         "StereoQualityQuery": {
             "quality_criteria": [
-                ("valid_width", "lambda p: p.hillas.width.value > 0"),
+                ("valid_width", "parameters.hillas.width.value > 0"),
             ]
         }
     })
