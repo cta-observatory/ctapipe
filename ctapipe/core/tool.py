@@ -164,6 +164,13 @@ class Tool(Application):
     _log_formatter_cls = ColoredFormatter
 
     provenance_log = Path(directory_ok=False).tag(config=True)
+    debug = Bool(
+        default_value=False,
+        help=(
+            "Raise exceptions instead of transforming them"
+            "into log message and exit codes"
+        ),
+    ).tag(config=True)
 
     @default("provenance_log")
     def _default_provenance_log(self):
@@ -347,11 +354,16 @@ class Tool(Application):
             # remove handler to not impact performance with regex matching
             self.log.removeHandler(self.trait_warning_handler)
 
-            self.start()
+            ret = self.start()
+            if ret is not None:
+                exit_status = ret
+
             self.finish()
             self.log.info(f"Finished: {self.name}")
             Provenance().finish_activity(activity_name=self.name)
         except ToolConfigurationError as err:
+            if self.debug:
+                raise
             self.log.error(f"{err}.  Use --help for more info")
             exit_status = 2  # wrong cmd line parameter
         except KeyboardInterrupt:
@@ -359,6 +371,9 @@ class Tool(Application):
             Provenance().finish_activity(activity_name=self.name, status="interrupted")
             exit_status = 130  # Script terminated by Control-C
         except Exception as err:
+            if self.debug:
+                raise
+
             self.log.exception(f"Caught unexpected exception: {err}")
             Provenance().finish_activity(activity_name=self.name, status="error")
             exit_status = 1  # any other error
@@ -538,6 +553,8 @@ def run_tool(tool: Tool, argv=None, cwd=None):
     """
     current_cwd = pathlib.Path().absolute()
     cwd = pathlib.Path(cwd) if cwd is not None else current_cwd
+    before = tool.debug
+    tool.debug = True
     try:
         # switch to cwd for running and back after
         os.chdir(cwd)
@@ -545,4 +562,5 @@ def run_tool(tool: Tool, argv=None, cwd=None):
     except SystemExit as e:
         return e.code
     finally:
+        tool.debug = before
         os.chdir(current_cwd)
