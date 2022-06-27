@@ -43,8 +43,7 @@ def test_process_apply_energy(tmp_path, energy_regressor_path):
         f"--input={input_url}",
         f"--output={output}",
         "--write-images",
-        "--write-stereo-shower",
-        "--write-mono-shower",
+        "--write-showers",
         f"--energy-regressor={energy_regressor_path}",
         f"--config={config_path}",
     ]
