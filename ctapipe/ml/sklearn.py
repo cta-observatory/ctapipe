@@ -62,7 +62,7 @@ class Model(Component):
         if key not in self.models:
             raise KeyError(
                 f"No model available for key {key},"
-                f" available modes: {self.models.keys()}"
+                f" available models: {self.models.keys()}"
             )
         X, valid = self.table_to_X(table)
         n_outputs = getattr(self.models[key], "n_outputs_", 1)
@@ -145,7 +145,7 @@ class Classifier(Model):
         if key not in self.models:
             raise KeyError(
                 f"No model available for key {key},"
-                f" available modes: {self.models.keys()}"
+                f" available models: {self.models.keys()}"
             )
 
         X, valid = self.table_to_X(table)
@@ -166,7 +166,7 @@ class Classifier(Model):
         if key not in self.models:
             raise KeyError(
                 f"No model available for key {key},"
-                f" available modes: {self.models.keys()}"
+                f" available models: {self.models.keys()}"
             )
 
         X, valid = self.table_to_X(table)
