@@ -11,36 +11,26 @@ import tables
 import numpy as np
 from tqdm.auto import tqdm
 
-from ..io import metadata as meta, DL1EventSource
+from ctapipe.utils.arrays import recarray_drop_columns
+
+from ..io import metadata as meta, HDF5EventSource, get_hdf5_datalevels
 from ..io import HDF5TableWriter
 from ..core import Provenance, Tool, traits
 from ..core.traits import Bool, Set, Unicode, flag, CInt
 from ..instrument import SubarrayDescription
 
-import warnings
-
-warnings.filterwarnings("ignore", category=tables.NaturalNameWarning)
 
 PROV = Provenance()
 
 VERSION_KEY = "CTA PRODUCT DATA MODEL VERSION"
 IMAGE_STATISTICS_PATH = "/dl1/service/image_statistics"
 
-all_nodes = {
-    "/dl1/monitoring/subarray/pointing",
-    "/dl1/monitoring/telescope/pointing",
-    "/dl1/service/image_statistics",
-    "/dl1/service/image_statistics.__table_column_meta__",
+required_nodes = {
     "/dl1/event/subarray/trigger",
     "/dl1/event/telescope/trigger",
-    "/dl1/event/telescope/parameters",
-    "/dl1/event/telescope/images",
-    "/configuration/simulation/run",
-    "/simulation/event/subarray/shower",
-    "/simulation/event/telescope/parameters",
-    "/simulation/event/telescope/images",
-    "/simulation/service/shower_distribution",
+    "/dl1/monitoring/subarray/pointing",
 }
+
 optional_nodes = {
     "/simulation/service/shower_distribution",
     "/simulation/event/telescope/images",
@@ -49,8 +39,10 @@ optional_nodes = {
     "/dl1/event/telescope/images",
     "/dl1/service/image_statistics",
     "/dl1/service/image_statistics.__table_column_meta__",
+    "/dl2/event/subarray/geometry",
 }
-simu_nodes = {
+
+simulation_nodes = {
     "/simulation/event/subarray/shower",
     "/simulation/event/telescope/parameters",
     "/simulation/event/telescope/images",
@@ -68,12 +60,31 @@ nodes_with_tels = {
     "/simulation/event/telescope/parameters",
     "/simulation/event/telescope/images",
 }
-image_nodes = {"/simulation/event/telescope/images", "/dl1/event/telescope/images"}
+image_nodes = {
+    "/dl1/event/telescope/images",
+}
 parameter_nodes = {
     "/simulation/event/telescope/parameters",
     "/dl1/event/telescope/parameters",
 }
-simu_images = {"/simulation/event/telescope/images"}
+
+SIMULATED_IMAGE_GROUP = "/simulation/event/telescope/images"
+simulation_images = {SIMULATED_IMAGE_GROUP}
+
+dl2_subarray_nodes = {"/dl2/event/subarray/geometry"}
+
+
+all_nodes = (
+    required_nodes
+    | optional_nodes
+    | simulation_nodes
+    | service_nodes
+    | nodes_with_tels
+    | image_nodes
+    | parameter_nodes
+    | simulation_images
+    | dl2_subarray_nodes
+)
 
 
 class MergeTool(Tool):
@@ -226,28 +237,48 @@ class MergeTool(Tool):
             )
             sys.exit(1)
 
+        # setup required nodes
+        self.usable_nodes = all_nodes.copy()
+
+        if self.skip_simu_images:
+            self.usable_nodes -= simulation_images
+
+        if self.skip_images:
+            self.usable_nodes -= image_nodes
+
+        if self.skip_parameters:
+            self.usable_nodes -= parameter_nodes
+
+        # Use first file as reference to setup nodes to merge
+        with tables.open_file(self.input_files[0], "r") as h5file:
+            self.data_model_version = h5file.root._v_attrs[VERSION_KEY]
+
+            # Check if first file is simulation
+            if "/simulation" not in h5file.root:
+                self.log.info("Merging observed data")
+                self.usable_nodes -= simulation_nodes
+                self.is_simulation = False
+            else:
+                self.log.info("Merging simulated data")
+                self.is_simulation = True
+
+            for node in optional_nodes:
+                if node in self.usable_nodes and node not in h5file:
+                    self.log.info(f"First file does not contain {node}, ignoring")
+                    self.usable_nodes.remove(node)
+
         # create output file with subarray from first file
         self.first_subarray = SubarrayDescription.from_hdf(self.input_files[0])
         if self.allowed_tels:
             self.first_subarray = self.first_subarray.select_subarray(
                 tel_ids=self.allowed_tels
             )
-            self.allowed_tel_names = {"tel_%03d" % i for i in self.allowed_tels}
+            self.allowed_tel_names = {
+                f"tel_{tel_id:03d}" for tel_id in self.allowed_tels
+            }
 
         self.first_subarray.to_hdf(self.output_path)
         self.output_file = tables.open_file(self.output_path, mode="a")
-
-        # setup required nodes
-        self.usable_nodes = all_nodes
-
-        if self.skip_simu_images is True:
-            self.usable_nodes = self.usable_nodes - simu_images
-
-        if self.skip_images is True:
-            self.usable_nodes = self.usable_nodes - image_nodes
-
-        if self.skip_parameters is True:
-            self.usable_nodes = self.usable_nodes - parameter_nodes
 
     def check_file_broken(self, file):
         # Check that the file is not broken or any node is missing
@@ -315,56 +346,78 @@ class MergeTool(Tool):
             )
 
             for node in service_nodes:
-                file.copy_node(node, newparent=target_group)
-
-    def merge_tables(self, file):
-        # Loop over all nodes listed in usable_nodes. Appends table to output_file
-        # if it already exists, otherwise creates group and copies node.
-        for node in self.usable_nodes:
-            if node in service_nodes:
-                continue
-
-            if node in file:
-                if node in nodes_with_tels:
-                    if node not in self.output_file:
-                        self._create_group(node)
-
-                    if self.allowed_tels:
-                        for tel_name in self.allowed_tel_names:
-                            if tel_name in file.root[node]:
-                                self._copy_or_append_tel_table(file, node, tel_name)
-
-                        continue
-
-                    for tel in file.root[node]:
-                        self._copy_or_append_tel_table(file, node, tel.name)
-
-                    continue
-
-                if node in self.output_file:
-                    data = file.root[node][:]
-                    output_node = self.output_file.get_node(node)
-                    output_node.append(data)
-                else:
-                    group_path, _ = os.path.split(node)
-                    if group_path not in self.output_file:
-                        self._create_group(group_path)
-
-                    target_group = self.output_file.root[group_path]
+                if node in file:
                     file.copy_node(node, newparent=target_group)
 
-    def _copy_or_append_tel_table(self, file, node, tel_name):
-        tel_node_path = node + "/" + tel_name
-        if tel_node_path in self.output_file:
-            output_node = self.output_file.get_node(tel_node_path)
-            input_node = file.root[tel_node_path]
+    def _merge_tel_group(self, file, input_node, filter_columns=None):
+        """Add a group that has one child table per telescope (type) to outputfile"""
+        if not isinstance(input_node, tables.Group):
+            raise TypeError(f"node must be a `tables.Group`, got {input_node}")
 
-            # cast needed for some image parameters that are sometimes
-            # float32 and sometimes float64
-            output_node.append(input_node[:].astype(output_node.dtype))
+        node_path = input_node._v_pathname
+
+        if input_node not in self.output_file:
+            self._create_group(node_path)
+
+        for tel_name, table in input_node._v_children.items():
+            if not self.allowed_tels or tel_name in self.allowed_tel_names:
+                self._merge_table(file, table, filter_columns=filter_columns)
+
+    def _merge_table(self, file, input_node, filter_columns=None):
+        if not isinstance(input_node, tables.Table):
+            raise TypeError(f"node must be a `tables.Table`, got {input_node}")
+
+        node_path = input_node._v_pathname
+        if node_path in self.output_file:
+            output_table = self.output_file.get_node(node_path)
+            input_table = input_node[:]
+            if filter_columns is not None:
+                input_table = recarray_drop_columns(input_table, filter_columns)
+            output_table.append(input_table.astype(output_table.dtype))
         else:
-            target_group = self.output_file.root[node]
-            file.copy_node(tel_node_path, newparent=target_group)
+            group_path, _ = os.path.split(node_path)
+            if group_path not in self.output_file:
+                self._create_group(group_path)
+
+            target_group = self.output_file.root[group_path]
+            if filter_columns is None:
+                file.copy_node(node_path, newparent=target_group)
+            else:
+                input_table = recarray_drop_columns(input_node[:], filter_columns)
+                where, name = os.path.split(node_path)
+                self.output_file.create_table(
+                    where, name, filters=input_node.filters,
+                    createparents=True,
+                    obj=input_table,
+                )
+
+    def merge_tables(self, file):
+        """Go over all mergeable nodes and append to outputfile"""
+        for node_path in self.usable_nodes:
+
+            # skip service nodes that should only be included from the first file
+            if node_path in service_nodes:
+                continue
+
+            if node_path in file:
+                node = file.root[node_path]
+
+                # nodes with child tables per telescope (type)
+                if node_path in nodes_with_tels:
+                    if node_path == SIMULATED_IMAGE_GROUP and self.skip_images:
+                        filter_columns = ["true_image"]
+                    else:
+                        filter_columns = None
+                    self._merge_tel_group(file, node, filter_columns=filter_columns)
+
+                # groups of tables (e.g. dl2)
+                elif isinstance(node, tables.Group):
+                    for table in node._v_children.values():
+                        self._merge_table(file, table)
+
+                # single table
+                else:
+                    self._merge_table(file, node)
 
     def _create_group(self, node):
         head, tail = os.path.split(node)
@@ -373,50 +426,33 @@ class MergeTool(Tool):
     def start(self):
         merged_files_counter = 0
 
-        for i, current_file in enumerate(
-            tqdm(
-                self.input_files,
-                desc="Merging",
-                unit="Files",
-                disable=not self.progress_bar,
-            )
+        for input_path in tqdm(
+            self.input_files,
+            desc="Merging",
+            unit="Files",
+            disable=not self.progress_bar,
         ):
-
-            if not DL1EventSource.is_compatible(current_file):
-                self.log.critical(
-                    f"input file {current_file} is not a supported DL1 file"
-                )
+            if not HDF5EventSource.is_compatible(input_path):
+                self.log.critical(f"input file {input_path} is not a supported file")
                 if self.skip_broken_files:
                     continue
                 else:
                     sys.exit(1)
 
-            with tables.open_file(current_file, mode="r") as file:
-                if i == 0:
-                    self.data_model_version = file.root._v_attrs[VERSION_KEY]
+            with tables.open_file(input_path, mode="r") as h5file:
 
-                    # Check if first file is simulation
-
-                    if "/simulation" not in file.root:
-                        self.usable_nodes = self.usable_nodes - simu_nodes
-                        self.log.info("Merging real data")
-                        self.is_simulation = False
-                    else:
-                        self.log.info("Merging simulation-files")
-                        self.is_simulation = True
-
-                if self.check_file_broken(file) is True:
+                if self.check_file_broken(h5file) is True:
                     if self.skip_broken_files is True:
                         continue
                     else:
                         self.log.critical("Broken file detected.")
                         sys.exit(1)
 
-                self.merge_tables(file)
-                if IMAGE_STATISTICS_PATH in file:
-                    self.add_image_statistics(file)
+                self.merge_tables(h5file)
+                if IMAGE_STATISTICS_PATH in h5file:
+                    self.add_image_statistics(h5file)
 
-            PROV.add_input_file(str(current_file))
+            PROV.add_input_file(str(input_path))
             merged_files_counter += 1
 
         self.log.info(
@@ -425,7 +461,9 @@ class MergeTool(Tool):
         )
 
     def finish(self):
+        datalevels = [d.name for d in get_hdf5_datalevels(self.output_file)]
         self.output_file.close()
+
         activity = PROV.current_activity.provenance
         process_type_ = "Observation"
         if self.is_simulation is True:
@@ -436,7 +474,7 @@ class MergeTool(Tool):
             product=meta.Product(
                 description="Merged DL1 Data Product",
                 data_category="Sim",  # TODO: copy this from the inputs
-                data_level=["DL1"],  # TODO: copy this from inputs
+                data_level=datalevels,
                 data_association="Subarray",
                 data_model_name="ASWG",  # TODO: copy this from inputs
                 data_model_version=self.data_model_version,

@@ -42,6 +42,9 @@ class Field:
         expected dimensionality of the data, for arrays, None to ignore
     allow_none:
         if the value of None is given to this Field, skip validation
+    max_len:
+        if type is str, max_len is the maximum number of bytes of the utf-8
+        encoded string to be used.
     """
 
     def __init__(
@@ -54,6 +57,7 @@ class Field:
         type=None,
         ndim=None,
         allow_none=True,
+        max_length=None,
     ):
 
         self.default = default
@@ -64,6 +68,7 @@ class Field:
         self.type = type
         self.ndim = ndim
         self.allow_none = allow_none
+        self.max_length = max_length
 
     def __repr__(self):
         desc = f"{self.description}"
@@ -72,7 +77,9 @@ class Field:
         if self.ndim is not None:
             desc += f" as a {self.ndim}-D array"
         if self.dtype is not None:
-            desc += f" with type {self.dtype}"
+            desc += f" with dtype {self.dtype}"
+        if self.type is not None:
+            desc += f" with type {self.type}"
 
         return desc
 
@@ -138,7 +145,7 @@ class Field:
 
 
 class DeprecatedField(Field):
-    """ used to mark which fields may be removed in next version """
+    """used to mark which fields may be removed in next version"""
 
     def __init__(self, default, description="", unit=None, ucd=None, reason=""):
         super().__init__(default=default, description=description, unit=unit, ucd=ucd)

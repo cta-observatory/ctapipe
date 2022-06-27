@@ -83,6 +83,7 @@ def test_load_simulated(test_file):
 
         table = table_loader.read_telescope_events([25])
         assert "true_energy" in table.colnames
+        assert "true_impact_distance" in table.colnames
 
 
 def test_true_images(test_file):
@@ -119,7 +120,7 @@ def test_read_subarray_events(test_file_dl2):
     _, dl2_file = test_file_dl2
 
     with TableLoader(
-        dl2_file, load_dl2_geometry=True, load_simulated=True, load_trigger=True
+        dl2_file, load_dl2=True, load_simulated=True, load_trigger=True
     ) as table_loader:
         table = table_loader.read_subarray_events()
         assert "HillasReconstructor_alt" in table.colnames
@@ -138,7 +139,7 @@ def test_read_telescope_events_type(test_file_dl2):
         dl2_file,
         load_dl1_images=False,
         load_dl1_parameters=False,
-        load_dl2_geometry=True,
+        load_dl2=True,
         load_simulated=True,
         load_true_images=True,
         load_trigger=False,
@@ -150,8 +151,9 @@ def test_read_telescope_events_type(test_file_dl2):
         assert "HillasReconstructor_alt" in table.colnames
         assert "true_energy" in table.colnames
         assert "true_image" in table.colnames
-        assert set(table["tel_id"].data).issubset([25, 125, 130])
+        assert {25, 125, 127}.issubset(set(table["tel_id"].data))
         assert "equivalent_focal_length" in table.colnames
+        assert "HillasReconstructor_impact_distance" in table.colnames
 
 
 def test_read_telescope_events_by_type(test_file_dl2):
@@ -165,7 +167,7 @@ def test_read_telescope_events_by_type(test_file_dl2):
         dl2_file,
         load_dl1_images=False,
         load_dl1_parameters=False,
-        load_dl2_geometry=True,
+        load_dl2=True,
         load_simulated=True,
         load_true_images=True,
         load_trigger=False,
@@ -183,3 +185,22 @@ def test_read_telescope_events_by_type(test_file_dl2):
             assert "true_image" in table.colnames
             assert set(table["tel_id"].data).issubset([25, 125, 130])
             assert "equivalent_focal_length" in table.colnames
+
+
+def test_h5file(test_file_dl2):
+    """Test we can also pass an already open h5file"""
+    from ctapipe.io.tableloader import TableLoader
+
+    _, dl2_file = test_file_dl2
+
+    # no input raises error
+    with pytest.raises(ValueError):
+        with TableLoader():
+            pass
+
+    # test we can use an already open file
+    with tables.open_file(dl2_file, mode="r+") as h5file:
+        with TableLoader(h5file=h5file) as loader:
+            assert 25 in loader.subarray.tel
+            loader.read_subarray_events()
+            loader.read_telescope_events()

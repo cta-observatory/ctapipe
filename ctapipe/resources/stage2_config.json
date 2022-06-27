@@ -8,8 +8,7 @@
         "overwrite": false,
         "write_images": false,
         "write_parameters": false,
-        "write_stereo_shower": true,
-        "write_mono_shower": true,
+        "write_showers": true,
         "transform_image": true,
         "transform_peak_time": true
     },
@@ -41,13 +40,15 @@
         }
     },
     "ShowerProcessor": {
-        "ShowerQualityQuery": {
-            "quality_criteria": [
-                ["enough intensity", "lambda p: p.hillas.intensity > 50"],
-                ["positive width", "lambda p: p.hillas.width.value > 0"],
-                ["enough pixels", "lambda p: p.morphology.num_pixels > 3"],
-                ["not clipped", "lambda p: p.leakage.intensity_width_2 < 2"]
-            ]
+        "reconstructor_type": "HillasReconstructor",
+        "HillasReconstructor": {
+            "StereoQualityQuery": {
+                "quality_criteria": [
+                    ["enough intensity", "lambda p: p.hillas.intensity > 50"],
+                    ["Positive width", "lambda p: p.hillas.width.value > 0"],
+                    ["enough pixels", "lambda p: p.morphology.num_pixels > 3"]
+                ]
+            }
         }
     }
 }

@@ -136,7 +136,7 @@ def ring_containment(radius, center_x, center_y, camera_radius):
         radius of the camera
 
     Returns
-    ------
+    -------
     ringcontainment: float
         the ratio of ring inside the camera
     """

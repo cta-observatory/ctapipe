@@ -1,15 +1,15 @@
 # A conda environment with all useful package for ctapipe developers
 name: cta-dev
 channels:
+  - conda-forge
   - default
-  - cta-observatory
 dependencies:
-  - python=3.7
+  - python=3.9
   - pip
-  - astropy
+  - astropy=5
   - black
-  - bokeh=1
-  - conda-forge::nbsphinx
+  - bokeh=2
+  - nbsphinx
   - cython
   - graphviz
   - h5py
@@ -29,6 +29,7 @@ dependencies:
   - pytest
   - pytest-cov
   - pytest-runner
+  - pytest-astropy-header
   - pyyaml
   - scikit-learn
   - scipy
@@ -36,6 +37,7 @@ dependencies:
   - sphinx=3.5
   - sphinx-automodapi
   - sphinx_rtd_theme
+  - tomli
   - tqdm
   - traitlets
   - vitables
@@ -43,5 +45,5 @@ dependencies:
   - xz
   - zlib
   - zstandard
-  - conda-forge::eventio>=1.5.0
-  - conda-forge::corsikaio
+  - eventio>=1.9.1
+  - jinja2=3.0 # for sphinx 3.5, remove when updating to 4.x

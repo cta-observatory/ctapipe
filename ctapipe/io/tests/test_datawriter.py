@@ -16,7 +16,7 @@ from ctapipe.utils import get_dataset_path
 
 
 def generate_dummy_dl2(event):
-    """ generate some dummy DL2 info and see if we can write it """
+    """generate some dummy DL2 info and see if we can write it"""
 
     algos = ["HillasReconstructor", "ImPACTReconstructor"]
 
@@ -36,9 +36,9 @@ def generate_dummy_dl2(event):
         event.dl2.stereo.classification[algo].tel_ids = [1, 2, 4]
 
 
-def test_dl1(tmpdir: Path):
+def test_write(tmpdir: Path):
     """
-    Check that we can write DL1 files
+    Check that we can write and read data from R0-DL2 to files
 
     Parameters
     ----------
@@ -51,6 +51,7 @@ def test_dl1(tmpdir: Path):
         get_dataset_path("gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"),
         max_events=20,
         allowed_tels=[1, 2, 3, 4],
+        focal_length_choice='nominal',
     )
     calibrate = CameraCalibrator(subarray=source.subarray)
 
@@ -59,12 +60,16 @@ def test_dl1(tmpdir: Path):
         output_path=output_path,
         write_parameters=False,
         write_images=True,
-    ) as write_dl1:
-        write_dl1.log.level = logging.DEBUG
+        write_showers=True,
+        write_raw_waveforms=True,
+        write_waveforms=True,
+    ) as writer:
+        writer.log.level = logging.DEBUG
         for event in source:
             calibrate(event)
-            write_dl1(event)
-        write_dl1.write_simulation_histograms(source)
+            generate_dummy_dl2(event)
+            writer(event)
+        writer.write_simulation_histograms(source)
 
     assert output_path.exists()
 
@@ -75,6 +80,15 @@ def test_dl1(tmpdir: Path):
     # check a few things in the output just to make sure there is output. For a
     # full test of the data model, a verify tool should be created.
     with tables.open_file(output_path) as h5file:
+        # check R0:
+        r0tel = h5file.get_node("/r0/event/telescope/tel_001")
+        assert r0tel.col("waveform").max() > 0
+
+        # check R1:
+        r1tel = h5file.get_node("/r1/event/telescope/tel_001")
+        assert r1tel.col("waveform").max() > 0
+
+        # check DL1:
         images = h5file.get_node("/dl1/event/telescope/images/tel_001")
         assert images.col("image").max() > 0.0
         assert (
@@ -89,6 +103,17 @@ def test_dl1(tmpdir: Path):
         assert (
             shower._v_attrs["true_alt_UNIT"] == "deg"
         )  # pylint: disable=protected-access
+
+        # check DL2:
+        dl2_energy = h5file.get_node("/dl2/event/subarray/energy/ImPACTReconstructor")
+        assert np.allclose(dl2_energy.col("energy"), 10)
+        assert np.count_nonzero(dl2_energy.col("tel_ids")[0]) == 3
+
+        dl2_tel_energy = h5file.get_node(
+            "/dl2/event/telescope/energy/HillasReconstructor/tel_002"
+        )
+        assert np.allclose(dl2_tel_energy.col("energy"), 10)
+        assert "tel_ids" not in dl2_tel_energy
 
 
 def test_roundtrip(tmpdir: Path):
@@ -106,6 +131,7 @@ def test_roundtrip(tmpdir: Path):
         get_dataset_path("gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"),
         max_events=20,
         allowed_tels=[1, 2, 3, 4],
+        focal_length_choice='nominal',
     )
     calibrate = CameraCalibrator(subarray=source.subarray)
 
@@ -122,14 +148,13 @@ def test_roundtrip(tmpdir: Path):
         transform_peak_time=True,
         peak_time_dtype="int16",
         peak_time_scale=100,
-        write_stereo_shower=True,
-        write_mono_shower=True,
+        write_showers=True,
     ) as write:
         write.log.level = logging.DEBUG
         for event in source:
             calibrate(event)
-            write(event)
             generate_dummy_dl2(event)
+            write(event)
             events.append(deepcopy(event))
         write.write_simulation_histograms(source)
         assert DataLevel.DL1_IMAGES in write.datalevels
@@ -151,17 +176,6 @@ def test_roundtrip(tmpdir: Path):
         assert images.col("image").dtype == np.int32
         assert images.col("peak_time").dtype == np.int16
         assert images.col("image").max() > 0.0
-
-        # check that DL2 info is there
-        dl2_energy = h5file.get_node("/dl2/event/subarray/energy/ImPACTReconstructor")
-        assert np.allclose(dl2_energy.col("energy"), 10)
-        assert np.count_nonzero(dl2_energy.col("tel_ids")[0]) == 3
-
-        dl2_tel_energy = h5file.get_node(
-            "/dl2/event/telescope/energy/HillasReconstructor/tel_001"
-        )
-        assert np.allclose(dl2_tel_energy.col("energy"), 10)
-        assert "tel_ids" not in dl2_tel_energy
 
     # make sure it is readable by the event source and matches the images
 
@@ -189,7 +203,7 @@ def test_dl1writer_no_events(tmpdir: Path):
 
     output_path = Path(tmpdir / "no_events.dl1.h5")
     dataset = "lst_prod3_calibration_and_mcphotons.simtel.zst"
-    with EventSource(get_dataset_path(dataset)) as source:
+    with EventSource(get_dataset_path(dataset), focal_length_choice='nominal') as source:
         # exhaust source
         for _ in source:
             pass
@@ -219,7 +233,7 @@ def test_dl1writer_no_events(tmpdir: Path):
 def test_metadata(tmpdir: Path):
     output_path = Path(tmpdir / "metadata.dl1.h5")
 
-    dataset = "lst_prod3_calibration_and_mcphotons.simtel.zst"
+    dataset = "gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst"
 
     config = Config(
         {
@@ -228,7 +242,9 @@ def test_metadata(tmpdir: Path):
                     "name": "Maximilian Nöthe",
                     "email": "maximilian.noethe@tu-dortmund.de",
                     "organization": "TU Dortmund",
-                }
+                },
+                "Instrument": {"site": "CTA-North", "id_": "alpha"},
+                "context_metadata": {"EXAMPLE": "test_value"},
             }
         }
     )
@@ -250,3 +266,11 @@ def test_metadata(tmpdir: Path):
             assert meta["CTA CONTACT NAME"] == "Maximilian Nöthe"
             assert meta["CTA CONTACT EMAIL"] == "maximilian.noethe@tu-dortmund.de"
             assert meta["CTA CONTACT ORGANIZATION"] == "TU Dortmund"
+            assert meta["CTA INSTRUMENT SITE"] == "CTA-North"
+            assert meta["CTA INSTRUMENT ID"] == "alpha"
+            assert meta["CONTEXT EXAMPLE"] == "test_value"
+
+
+def test_write_only_r1(r1_hdf5_file):
+    with tables.open_file(r1_hdf5_file, "r") as f:
+        assert "r1/event/telescope/tel_001" in f.root

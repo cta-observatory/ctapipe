@@ -14,20 +14,21 @@ from ..calib.camera.gainselection import GainSelector
 from ..containers import (
     ArrayEventContainer,
     EventType,
-    SimulatedEventContainer,
-    SimulationConfigContainer,
     SimulatedCameraContainer,
+    SimulatedEventContainer,
     SimulatedShowerContainer,
+    SimulationConfigContainer,
+    TelescopeImpactParameterContainer,
     TelescopePointingContainer,
     TelescopeTriggerContainer,
 )
 from ..coordinates import CameraFrame
 from ..core.traits import (
     Bool,
-    Float,
     CaselessStrEnum,
-    create_class_enum_trait,
+    Float,
     Undefined,
+    create_class_enum_trait,
 )
 from ..instrument import (
     CameraDescription,
@@ -38,11 +39,12 @@ from ..instrument import (
     TelescopeDescription,
 )
 from ..instrument.camera import UnknownPixelShapeWarning
-from ..instrument.guess import unknown_telescope, guess_telescope
+from ..instrument.guess import guess_telescope, unknown_telescope
+from ..reco.impact_distance import shower_impact_distance
 from .datalevels import DataLevel
 from .eventsource import EventSource
 
-X_MAX_UNIT = u.g / (u.cm ** 2)
+X_MAX_UNIT = u.g / (u.cm**2)
 
 
 __all__ = ["SimTelEventSource"]
@@ -85,7 +87,7 @@ def build_camera(cam_settings, pixel_settings, telescope, frame):
         pix_id=np.arange(cam_settings["n_pixels"]),
         pix_x=u.Quantity(cam_settings["pixel_x"], u.m),
         pix_y=u.Quantity(cam_settings["pixel_y"], u.m),
-        pix_area=u.Quantity(cam_settings["pixel_area"], u.m ** 2),
+        pix_area=u.Quantity(cam_settings["pixel_area"], u.m**2),
         pix_type=pix_type,
         pix_rotation=pix_rotation,
         cam_rotation=-Angle(cam_settings["cam_rot"], u.rad),
@@ -164,7 +166,7 @@ def apply_simtel_r1_calibration(
 
 
 class SimTelEventSource(EventSource):
-    """ Read events from a SimTelArray data file (in EventIO format)."""
+    """Read events from a SimTelArray data file (in EventIO format)."""
 
     skip_calibration_events = Bool(True, help="Skip calibration events").tag(
         config=True
@@ -180,7 +182,7 @@ class SimTelEventSource(EventSource):
 
     focal_length_choice = CaselessStrEnum(
         ["nominal", "effective"],
-        default_value="nominal",
+        default_value="effective",
         help=(
             "if both nominal and effective focal lengths are available in the "
             "SimTelArray file, which one to use when constructing the "
@@ -299,30 +301,37 @@ class SimTelEventSource(EventSource):
         tel_descriptions = {}  # tel_id : TelescopeDescription
         tel_positions = {}  # tel_id : TelescopeDescription
 
+        self.telescope_indices_original = {}
+
         for tel_id, telescope_description in telescope_descriptions.items():
             cam_settings = telescope_description["camera_settings"]
             pixel_settings = telescope_description["pixel_settings"]
 
             n_pixels = cam_settings["n_pixels"]
-            focal_length = u.Quantity(cam_settings["focal_length"], u.m)
-            mirror_area = u.Quantity(cam_settings["mirror_area"], u.m ** 2)
+            mirror_area = u.Quantity(cam_settings["mirror_area"], u.m**2)
 
-            if self.focal_length_choice == "effective":
-                try:
-                    focal_length = u.Quantity(
-                        cam_settings["effective_focal_length"], u.m
-                    )
-                except KeyError as err:
-                    raise RuntimeError(
-                        f"the SimTelEventSource option 'focal_length_choice' was set to "
-                        f"{self.focal_length_choice}, but the effective focal length "
-                        f"was not present in the file. ({err})"
-                    )
+            nominal_focal_length = u.Quantity(cam_settings["focal_length"], u.m)
+            effective_focal_length = u.Quantity(
+                cam_settings.get("effective_focal_length", np.nan), u.m
+            )
 
             try:
-                telescope = guess_telescope(n_pixels, focal_length)
+                telescope = guess_telescope(n_pixels, nominal_focal_length)
             except ValueError:
                 telescope = unknown_telescope(mirror_area, n_pixels)
+
+            if self.focal_length_choice == "effective":
+                if np.isnan(effective_focal_length):
+                    raise RuntimeError(
+                        f"`SimTelEventSource.focal_length_choice` was set to"
+                        f" {self.focal_length_choice!r}, but the effective focal length"
+                        f" was not present in the file. "
+                        " Use nominal focal length or adapt your simulation configuration"
+                        " to include the effective focal length"
+                    )
+                focal_length = effective_focal_length
+            else:
+                focal_length = nominal_focal_length
 
             optics = OpticsDescription(
                 name=telescope.name,
@@ -347,6 +356,7 @@ class SimTelEventSource(EventSource):
             )
 
             tel_idx = np.where(header["tel_id"] == tel_id)[0][0]
+            self.telescope_indices_original[tel_id] = tel_idx
             tel_positions[tel_id] = header["tel_pos"][tel_idx] * u.m
 
         subarray = SubarrayDescription(
@@ -355,8 +365,11 @@ class SimTelEventSource(EventSource):
             tel_descriptions=tel_descriptions,
         )
 
+        self.n_telescopes_original = len(subarray)
+
         if self.allowed_tels:
             subarray = subarray.select_subarray(self.allowed_tels)
+
         return subarray
 
     @staticmethod
@@ -387,22 +400,12 @@ class SimTelEventSource(EventSource):
         data.meta["origin"] = "hessio"
         data.meta["input_url"] = self.input_url
         data.meta["max_events"] = self.max_events
+        # for events without event_id, we use negative event_ids
+        pseudo_event_id = 0
 
         self._fill_array_pointing(data)
 
         for counter, array_event in enumerate(self.file_):
-
-            event_id = array_event.get("event_id", -1)
-            obs_id = self.file_.header["run"]
-            data.count = counter
-            data.index.obs_id = obs_id
-            data.index.event_id = event_id
-
-            self._fill_trigger_info(data, array_event)
-
-            if data.trigger.event_type == EventType.SUBARRAY:
-                self._fill_simulated_event_information(data, array_event)
-
             # this should be done in a nicer way to not re-allocate the
             # data each time (right now it's just deleted and garbage
             # collected)
@@ -412,9 +415,40 @@ class SimTelEventSource(EventSource):
             data.dl1.tel.clear()
             data.pointing.tel.clear()
             data.simulation.tel.clear()
+            data.trigger.tel.clear()
+
+            event_id = array_event.get("event_id", 0)
+            if event_id == 0:
+                pseudo_event_id -= 1
+                event_id = pseudo_event_id
+
+            obs_id = self.file_.header["run"]
+            data.count = counter
+            data.index.obs_id = obs_id
+            data.index.event_id = event_id
+
+            self._fill_trigger_info(data, array_event)
+            if data.trigger.event_type == EventType.SUBARRAY:
+                self._fill_simulated_event_information(data, array_event)
 
             telescope_events = array_event["telescope_events"]
             tracking_positions = array_event["tracking_positions"]
+
+            photoelectron_sums = array_event.get("photoelectron_sums")
+            if photoelectron_sums is not None:
+                true_image_sums = photoelectron_sums.get(
+                    "n_pe", np.full(self.n_telescopes_original, np.nan)
+                )
+            else:
+                true_image_sums = np.full(self.n_telescopes_original, np.nan)
+
+            if data.simulation.shower is not None:
+                # compute impact distances of the shower to the telescopes
+                impact_distances = shower_impact_distance(
+                    shower_geom=data.simulation.shower, subarray=self.subarray
+                )
+            else:
+                impact_distances = np.full(len(self.subarray), np.nan) * u.m
 
             for tel_id, telescope_event in telescope_events.items():
                 adc_samples = telescope_event.get("adc_samples")
@@ -428,9 +462,24 @@ class SimTelEventSource(EventSource):
                     .get("photoelectrons", None)
                 )
 
-                data.simulation.tel[tel_id] = SimulatedCameraContainer(
-                    true_image=true_image
-                )
+                if data.simulation is not None:
+                    if data.simulation.shower is not None:
+                        impact_container = TelescopeImpactParameterContainer(
+                            distance=impact_distances[self.subarray.tel_index_array[tel_id]],
+                            distance_uncert=0 * u.m,
+                        )
+                    else:
+                        impact_container = TelescopeImpactParameterContainer()
+
+                    impact_container.prefix = "true_impact"
+
+                    data.simulation.tel[tel_id] = SimulatedCameraContainer(
+                        true_image_sum=true_image_sums[
+                            self.telescope_indices_original[tel_id]
+                        ],
+                        true_image=true_image,
+                        impact=impact_container,
+                    )
 
                 data.pointing.tel[tel_id] = self._fill_event_pointing(
                     tracking_positions[tel_id]
@@ -556,9 +605,19 @@ class SimTelEventSource(EventSource):
             data.pointing.array_dec = u.Quantity(dec, u.rad)
 
     def _parse_simulation_header(self):
+        """
+        Parse the simulation infos and return a dict with
+        observation ids mapped to SimulationConfigContainers.
+        As merged simtel files are not supported at this
+        point in time, this dictionary will always have
+        length 1.
+        """
+        assert len(self.obs_ids) == 1
+        obs_id = self.obs_ids[0]
+        # With only one run, we can take the first entry:
         mc_run_head = self.file_.mc_run_headers[-1]
 
-        return SimulationConfigContainer(
+        simulation_config = SimulationConfigContainer(
             corsika_version=mc_run_head["shower_prog_vers"],
             simtel_version=mc_run_head["detector_prog_vers"],
             energy_range_min=mc_run_head["E_range"][0] * u.TeV,
@@ -595,11 +654,15 @@ class SimTelEventSource(EventSource):
             corsika_low_E_detail=mc_run_head["corsika_low_E_detail"],
             corsika_high_E_detail=mc_run_head["corsika_high_E_detail"],
         )
+        return {obs_id: simulation_config}
 
     @staticmethod
     def _fill_simulated_event_information(data, array_event):
         mc_event = array_event["mc_event"]
         mc_shower = array_event["mc_shower"]
+        if mc_shower is None:
+            data.simulation.shower = None
+            return
 
         data.simulation.shower = SimulatedShowerContainer(
             energy=u.Quantity(mc_shower["energy"], u.TeV),

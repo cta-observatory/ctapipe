@@ -92,7 +92,7 @@ class EventType(enum.Enum):
 
 
 class EventIndexContainer(Container):
-    """ index columns to include in event lists, common to all data levels"""
+    """index columns to include in event lists, common to all data levels"""
 
     container_prefix = ""  # don't want to prefix these
     obs_id = Field(0, "observation identifier")
@@ -251,7 +251,7 @@ class TimingParametersContainer(BaseTimingParametersContainer):
 
 
 class MorphologyContainer(Container):
-    """ Parameters related to pixels surviving image cleaning """
+    """Parameters related to pixels surviving image cleaning"""
 
     num_pixels = Field(-1, "Number of usable pixels")
     num_islands = Field(-1, "Number of distinct islands in the image")
@@ -287,7 +287,7 @@ class CoreParametersContainer(Container):
 
 
 class ImageParametersContainer(Container):
-    """ Collection of image parameters """
+    """Collection of image parameters"""
 
     container_prefix = "params"
     hillas = Field(
@@ -340,11 +340,20 @@ class DL1CameraContainer(Container):
         dtype=np.bool_,
         ndim=1,
     )
+    is_valid = Field(
+        False,
+        (
+            "True if image extraction succeeded, False if failed "
+            "or in the case of TwoPass methods, that the first "
+            "pass only was returned."
+        ),
+    )
+
     parameters = Field(None, "Image parameters", type=ImageParametersContainer)
 
 
 class DL1Container(Container):
-    """ DL1 Calibrated Camera Images and associated data"""
+    """DL1 Calibrated Camera Images and associated data"""
 
     tel = Field(Map(DL1CameraContainer), "map of tel_id to DL1CameraContainer")
 
@@ -457,6 +466,19 @@ class DL0Container(Container):
     tel = Field(Map(DL0CameraContainer), "map of tel_id to DL0CameraContainer")
 
 
+class TelescopeImpactParameterContainer(Container):
+    """
+    Impact Parameter computed from reconstructed shower geometry
+    """
+
+    container_prefix = "impact"
+
+    distance = Field(
+        nan * u.m, "distance of the telescope to the shower axis", unit=u.m
+    )
+    distance_uncert = Field(nan * u.m, "uncertainty in impact_parameter", unit=u.m)
+
+
 class SimulatedShowerContainer(Container):
     container_prefix = "true"
     energy = Field(nan * u.TeV, "Simulated Energy", unit=u.TeV)
@@ -466,7 +488,7 @@ class SimulatedShowerContainer(Container):
     core_y = Field(nan * u.m, "Simulated core position (y)", unit=u.m)
     h_first_int = Field(nan * u.m, "Height of first interaction", unit=u.m)
     x_max = Field(
-        nan * u.g / (u.cm ** 2), "Simulated Xmax value", unit=u.g / (u.cm ** 2)
+        nan * u.g / (u.cm**2), "Simulated Xmax value", unit=u.g / (u.cm**2)
     )
     shower_primary_id = Field(
         -1,
@@ -484,6 +506,9 @@ class SimulatedCameraContainer(Container):
 
     container_prefix = ""
 
+    true_image_sum = Field(
+        np.int32(-1), "Total number of detected Cherenkov photons in the camera"
+    )
     true_image = Field(
         None,
         "Numpy array of camera image in PE as simulated before noise has been added. "
@@ -495,6 +520,8 @@ class SimulatedCameraContainer(Container):
     true_parameters = Field(
         None, "Parameters derived from the true_image", type=ImageParametersContainer
     )
+
+    impact = Field(TelescopeImpactParameterContainer(), "true impact parameter")
 
 
 class SimulatedEventContainer(Container):
@@ -596,8 +623,31 @@ class ReconstructedGeometryContainer(Container):
     core_y = Field(
         nan * u.m, "reconstructed y coordinate of the core position", unit=u.m
     )
-    core_uncert = Field(
-        nan * u.m, "uncertainty of the reconstructed core position", unit=u.m
+    core_uncert_x = Field(
+        nan * u.m,
+        "reconstructed core position uncertainty along ground frame X axis",
+        unit=u.m,
+    )
+    core_uncert_y = Field(
+        nan * u.m,
+        "reconstructed core position uncertainty along ground frame Y axis",
+        unit=u.m,
+    )
+    core_tilted_x = Field(
+        nan * u.m, "reconstructed x coordinate of the core position", unit=u.m
+    )
+    core_tilted_y = Field(
+        nan * u.m, "reconstructed y coordinate of the core position", unit=u.m
+    )
+    core_tilted_uncert_x = Field(
+        nan * u.m,
+        "reconstructed core position uncertainty along tilted frame X axis",
+        unit=u.m,
+    )
+    core_tilted_uncert_y = Field(
+        nan * u.m,
+        "reconstructed core position uncertainty along tilted frame Y axis",
+        unit=u.m,
     )
     h_max = Field(nan * u.m, "reconstructed height of the shower maximum", unit=u.m)
     h_max_uncert = Field(nan * u.m, "uncertainty of h_max", unit=u.m)
@@ -661,7 +711,7 @@ class ParticleClassificationContainer(Container):
 
 
 class ReconstructedContainer(Container):
-    """ Reconstructed shower info from multiple algorithms """
+    """Reconstructed shower info from multiple algorithms"""
 
     # Note: there is a reason why the hiererchy is
     # `event.dl2.stereo.geometry[algorithm]` and not
@@ -685,6 +735,15 @@ class ReconstructedContainer(Container):
     )
 
 
+class TelescopeReconstructedContainer(ReconstructedContainer):
+    """Telescope-wise reconstructed quantities"""
+
+    impact = Field(
+        Map(TelescopeImpactParameterContainer),
+        "map of algorithm to impact parameter info",
+    )
+
+
 class DL2Container(Container):
     """Reconstructed Shower information for a given reconstruction algorithm,
     including optionally both per-telescope mono reconstruction and per-shower
@@ -692,7 +751,7 @@ class DL2Container(Container):
     """
 
     tel = Field(
-        Map(ReconstructedContainer),
+        Map(TelescopeReconstructedContainer),
         "map of tel_id to single-telescope reconstruction (DL2a)",
     )
     stereo = Field(ReconstructedContainer(), "Stereo Shower reconstruction results")
@@ -966,7 +1025,7 @@ class SimulatedShowerDistribution(Container):
 
 
 class ArrayEventContainer(Container):
-    """ Top-level container for all event information """
+    """Top-level container for all event information"""
 
     index = Field(EventIndexContainer(), "event indexing information")
     r0 = Field(R0Container(), "Raw Data")

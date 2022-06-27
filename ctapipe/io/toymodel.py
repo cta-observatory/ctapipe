@@ -129,7 +129,10 @@ class ToyEventSource(EventSource, TelescopeComponent):
             width = self.calc_width(eccentricity, length)
 
             psi = self.rng.uniform(0, 360)
-            intensity = self.rng.poisson(int(1e5 * width * length))
+            shower_area_ratio = (
+                2 * np.pi * width * length / cam.pix_area.mean().to_value(u.m ** 2)
+            )
+            intensity = self.rng.poisson(50) * shower_area_ratio
             skewness = self.rng.uniform(
                 self.min_skewness.tel[tel_id], self.max_skewness.tel[tel_id]
             )

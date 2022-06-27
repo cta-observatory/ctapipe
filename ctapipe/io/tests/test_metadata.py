@@ -2,11 +2,11 @@
 Test CTA Reference metadata functionality
 """
 
+import tables
 from ctapipe.io import metadata as meta
 from ctapipe.core.provenance import Provenance
-import pytest
 
-@pytest.fixture
+
 def test_construct_and_write_metadata(tmp_path):
     """ basic test of making a Reference object and writing it"""
 
@@ -68,14 +68,27 @@ def test_construct_and_write_metadata(tmp_path):
 
     import tables  # pylint: disable=import-outside-toplevel
 
-    output_filename = tmp_path / "test.h5"
-    with tables.open_file(output_filename, mode="w") as h5file:
-        meta.write_to_hdf5(ref_dict, h5file)
-
-    return output_filename
+    with tables.open_file(tmp_path / "test.h5", mode="w") as h5file:
+        h5file.create_group(where='/', name='node')
+        meta.write_to_hdf5(ref_dict, h5file, path='/node')
 
 
-def test_read_metadata(test_construct_and_write_metadata):
-    metadata = meta.read_metadata(test_construct_and_write_metadata)
-    assert isinstance(metadata, dict)
-    assert metadata['CTA ACTIVITY SOFTWARE NAME'] == 'ctapipe'
+def test_read_metadata(tmp_path):
+    # Testing one can read both a path as well as a PyTables file object
+    filename = tmp_path / "test.h5"
+    metadata_in = {
+        'SOFTWARE': 'ctapipe',
+        'FOO': 'BAR'
+    }
+    metadata_path = '/node/subnode'
+    with tables.open_file(filename, mode="w") as h5file:
+        h5file.create_group(where='/node', name='subnode', createparents=True)
+        meta.write_to_hdf5(metadata_in, h5file, path=metadata_path)
+
+    metadata_out = meta.read_metadata(filename, path=metadata_path)
+    assert metadata_out == metadata_in
+
+    with tables.open_file(filename, 'r') as file:
+        metadata_out = meta.read_metadata(file, path=metadata_path)
+
+    assert metadata_out == metadata_in

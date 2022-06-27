@@ -16,7 +16,7 @@ from ctapipe.instrument import (
 
 
 def example_subarray(n_tels=10):
-    """ generate a simple subarray for testing purposes """
+    """generate a simple subarray for testing purposes"""
     rng = np.random.default_rng(0)
 
     pos = {}
@@ -32,7 +32,7 @@ def example_subarray(n_tels=10):
 
 
 def test_subarray_description():
-    """ Test SubarrayDescription functionality """
+    """Test SubarrayDescription functionality"""
     n_tels = 10
     sub = example_subarray(n_tels)
     sub.peek()
@@ -67,14 +67,14 @@ def test_subarray_description():
 
 
 def test_to_table(example_subarray):
-    """ Check that we can generate astropy Tables from the SubarrayDescription """
+    """Check that we can generate astropy Tables from the SubarrayDescription"""
     sub = example_subarray
     assert len(sub.to_table(kind="subarray")) == sub.num_tels
     assert len(sub.to_table(kind="optics")) == len(sub.optics_types)
 
 
 def test_tel_indexing(example_subarray):
-    """ Check that we can convert between telescope_id and telescope_index """
+    """Check that we can convert between telescope_id and telescope_index"""
     sub = example_subarray
 
     assert sub.tel_indices[1] == 0  # first tel_id is in slot 0
@@ -139,6 +139,13 @@ def test_hdf(example_subarray, tmp_path):
 
     no_name = SubarrayDescription.from_hdf(path)
     assert no_name.name == "Unknown"
+
+    # Test we can also write and read to an already opened h5file
+    with tables.open_file(path, "w") as h5file:
+        example_subarray.to_hdf(h5file)
+
+    with tables.open_file(path, "r") as h5file:
+        assert SubarrayDescription.from_hdf(h5file) == example_subarray
 
 
 def test_hdf_same_camera(tmp_path):
@@ -211,3 +218,10 @@ def test_get_tel_ids(example_subarray):
     # test invalid telescope type
     with pytest.raises(Exception):
         tel_ids = subarray.get_tel_ids(["It's a-me, Mario!"])
+
+
+def test_unknown_telescopes(example_subarray):
+    from ctapipe.instrument import UnknownTelescopeID
+
+    with pytest.raises(UnknownTelescopeID):
+        example_subarray.select_subarray([300, 201])

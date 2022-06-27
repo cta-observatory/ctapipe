@@ -8,11 +8,14 @@ from tqdm.auto import tqdm
 from ..calib import CameraCalibrator, GainSelector
 from ..core import QualityQuery, Tool
 from ..core.traits import Bool, classes_with_traits, flag
-from ..image import ImageCleaner, ImageProcessor
+from ..image import ImageCleaner, ImageProcessor, ImageModifier
 from ..image.extractor import ImageExtractor
-from ..io import DataLevel, DataWriter, EventSource, SimTelEventSource
+from ..io import DataLevel, DataWriter, EventSource, SimTelEventSource, write_table
 from ..io.datawriter import DATA_MODEL_VERSION
 from ..reco import ShowerProcessor
+from ..utils import EventTypeFilter
+from ..io import metadata
+
 
 COMPATIBLE_DATALEVELS = [
     DataLevel.R1,
@@ -48,10 +51,12 @@ class ProcessorTool(Tool):
     progress_bar = Bool(
         help="show progress bar during processing", default_value=False
     ).tag(config=True)
+
     force_recompute_dl1 = Bool(
         help="Enforce dl1 recomputation even if already present in the input file",
         default_value=False,
     ).tag(config=True)
+
     force_recompute_dl2 = Bool(
         help="Enforce dl2 recomputation even if already present in the input file",
         default_value=False,
@@ -107,16 +112,10 @@ class ProcessorTool(Tool):
             "don't store DL1/Event/Telescope parameters in output",
         ),
         **flag(
-            "write-stereo-shower",
-            "DataWriter.write_stereo_shower",
-            "store DL2/Event/Subarray parameters in output",
-            "don't DL2/Event/Subarray parameters in output",
-        ),
-        **flag(
-            "write-mono-shower",
-            "DataWriter.write_mono_shower",
-            "store DL2/Event/Telescope parameters in output",
-            "don't store DL2/Event/Telescope parameters in output",
+            "write-showers",
+            "DataWriter.write_showers",
+            "store DL2/Event parameters in output",
+            "don't DL2/Event parameters in output",
         ),
         **flag(
             "write-index-tables",
@@ -130,12 +129,21 @@ class ProcessorTool(Tool):
     }
 
     classes = (
-        [CameraCalibrator, DataWriter, ImageProcessor, ShowerProcessor]
+        [
+            CameraCalibrator,
+            DataWriter,
+            ImageProcessor,
+            ShowerProcessor,
+            metadata.Instrument,
+            metadata.Contact,
+        ]
         + classes_with_traits(EventSource)
         + classes_with_traits(ImageCleaner)
         + classes_with_traits(ImageExtractor)
         + classes_with_traits(GainSelector)
         + classes_with_traits(QualityQuery)
+        + classes_with_traits(ImageModifier)
+        + classes_with_traits(EventTypeFilter)
     )
 
     def setup(self):
@@ -162,6 +170,7 @@ class ProcessorTool(Tool):
             subarray=self.event_source.subarray, parent=self
         )
         self.write = DataWriter(event_source=self.event_source, parent=self)
+        self.event_type_filter = EventTypeFilter(parent=self)
 
         # warn if max_events prevents writing the histograms
         if (
@@ -177,20 +186,37 @@ class ProcessorTool(Tool):
 
     @property
     def should_compute_dl2(self):
-        """ returns true if we should compute DL2 info """
+        """returns true if we should compute DL2 info"""
         if self.force_recompute_dl2:
             return True
-        return self.write.write_stereo_shower or self.write.write_mono_shower
+        return self.write.write_showers
 
     @property
     def should_compute_dl1(self):
         """returns true if we should compute DL1 info"""
         if self.force_recompute_dl1:
             return True
+
         if DataLevel.DL1_PARAMETERS in self.event_source.datalevels:
             return False
 
         return self.write.write_parameters or self.should_compute_dl2
+
+    @property
+    def should_calibrate(self):
+        if self.force_recompute_dl1:
+            True
+
+        if (
+            self.write.write_images
+            and DataLevel.DL1_IMAGES not in self.event_source.datalevels
+        ):
+            return True
+
+        if self.should_compute_dl1:
+            return DataLevel.DL1_IMAGES not in self.event_source.datalevels
+
+        return False
 
     def _write_processing_statistics(self):
         """write out the event selection stats, etc."""
@@ -198,20 +224,20 @@ class ProcessorTool(Tool):
 
         if self.should_compute_dl1:
             image_stats = self.process_images.check_image.to_table(functions=True)
-            image_stats.write(
+            write_table(
+                image_stats,
                 self.write.output_path,
                 path="/dl1/service/image_statistics",
                 append=True,
-                serialize_meta=True,
             )
 
         if self.should_compute_dl2:
-            shower_stats = self.process_shower.check_shower.to_table(functions=True)
-            shower_stats.write(
+            reconstructor = self.process_shower.reconstructor
+            write_table(
+                reconstructor.check_parameters.to_table(functions=True),
                 self.write.output_path,
-                path="/dl2/service/image_statistics",
+                "/dl2/service/image_statistics",
                 append=True,
-                serialize_meta=True,
             )
 
     def start(self):
@@ -231,7 +257,12 @@ class ProcessorTool(Tool):
         ):
 
             self.log.debug("Processessing event_id=%s", event.index.event_id)
-            self.calibrate(event)
+
+            if not self.event_type_filter(event):
+                continue
+
+            if self.should_calibrate:
+                self.calibrate(event)
 
             if self.should_compute_dl1:
                 self.process_images(event)
@@ -247,11 +278,12 @@ class ProcessorTool(Tool):
         """
         self.write.write_simulation_histograms(self.event_source)
         self.write.finish()
+        self.event_source.close()
         self._write_processing_statistics()
 
 
 def main():
-    """ run the tool"""
+    """run the tool"""
     tool = ProcessorTool()
     tool.run()
 

@@ -36,7 +36,7 @@ class EventSource(Component):
     appropriate subclass if a compatible source is found for the given
     ``input_url``.
 
-    >>> EventSource(input_url="dataset://gamma_test_large.simtel.gz")
+    >>> EventSource(input_url="dataset://gamma_prod5.simtel.zst")
     <ctapipe.io.simteleventsource.SimTelEventSource ...>
 
     An ``EventSource`` can also be created through the configuration system,
@@ -45,7 +45,7 @@ class EventSource(Component):
     >>> self.source = EventSource(parent=self) # doctest: +SKIP
 
     To loop through the events in a file:
-    >>> source = EventSource(input_url="dataset://gamma_test_large.simtel.gz", max_events=2)
+    >>> source = EventSource(input_url="dataset://gamma_prod5.simtel.zst", max_events=2)
     >>> for event in source:
     ...     print(event.count)
     0
@@ -58,7 +58,7 @@ class EventSource(Component):
     It is encouraged to use ``EventSource`` in a context manager to ensure
     the correct cleanups are performed when you are finished with the source:
 
-    >>> with EventSource(input_url="dataset://gamma_test_large.simtel.gz", max_events=2) as source:
+    >>> with EventSource(input_url="dataset://gamma_prod5.simtel.zst", max_events=2) as source:
     ...    for event in source:
     ...        print(event.count)
     0
@@ -385,3 +385,10 @@ class EventSource(Component):
         """
         input_url = cls._find_input_url_in_config(config=config, parent=parent)
         return cls.from_url(input_url, config=config, parent=parent, **kwargs)
+
+    def close(self):
+        """Close this event source.
+
+        No-op by default. Should be overriden by sources needing a cleanup-step
+        """
+        pass

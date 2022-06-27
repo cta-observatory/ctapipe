@@ -11,6 +11,15 @@ from ctapipe.io import SimTelEventSource
 from ctapipe.utils import get_dataset_path
 from ctapipe.utils.filelock import FileLock
 
+from pytest_astropy_header.display import PYTEST_HEADER_MODULES
+
+PYTEST_HEADER_MODULES.clear()
+PYTEST_HEADER_MODULES["eventio"] = "eventio"
+PYTEST_HEADER_MODULES["numpy"] = "numpy"
+PYTEST_HEADER_MODULES["scipy"] = "scipy"
+PYTEST_HEADER_MODULES["astropy"] = "astropy"
+PYTEST_HEADER_MODULES["numba"] = "numba"
+
 # names of camera geometries available on the data server
 camera_names = [
     "ASTRICam",
@@ -44,7 +53,8 @@ def _global_example_event():
 
     print("******************** LOAD TEST EVENT ***********************")
 
-    with SimTelEventSource(input_url=filename) as reader:
+    # FIXME: switch to prod5b+ file that contains effective focal length
+    with SimTelEventSource(input_url=filename, focal_length_choice="nominal") as reader:
         event = next(iter(reader))
 
     return event
@@ -59,7 +69,7 @@ def example_subarray():
 
     print("******************** LOAD TEST EVENT ***********************")
 
-    with SimTelEventSource(input_url=filename) as reader:
+    with SimTelEventSource(input_url=filename, focal_length_choice="nominal") as reader:
         return reader.subarray
 
 
@@ -84,7 +94,7 @@ def _subarray_and_event_gamma_off_axis_500_gev():
 
     path = get_dataset_path("lst_prod3_calibration_and_mcphotons.simtel.zst")
 
-    with SimTelEventSource(path) as source:
+    with SimTelEventSource(path, focal_length_choice="nominal") as source:
         it = iter(source)
         # we want the second event, first event is a corner clipper
         next(it)
@@ -166,7 +176,33 @@ def dl2_shower_geometry_file(dl2_tmp_path, prod5_gamma_simtel_path):
             f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
             "--write-images",
-            "--write-stereo-shower",
+            "--write-showers",
+            "--max-events=20",
+        ]
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
+        return output
+
+
+@pytest.fixture(scope="session")
+def dl2_proton_geometry_file(dl2_tmp_path, prod5_proton_simtel_path):
+    """
+    File containing both parameters and shower geometry from a gamma simulation set.
+    """
+    from ctapipe.core import run_tool
+    from ctapipe.tools.process import ProcessorTool
+
+    output = dl2_tmp_path / "proton.training.h5"
+
+    # prevent running process multiple times in case of parallel tests
+    with FileLock(output.with_suffix(output.suffix + ".lock")):
+        if output.is_file():
+            return output
+
+        argv = [
+            f"--input={prod5_proton_simtel_path}",
+            f"--output={output}",
+            "--write-images",
+            "--write-showers",
             "--max-events=20",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
@@ -192,7 +228,7 @@ def dl2_shower_geometry_file_type(dl2_tmp_path, prod5_gamma_simtel_path):
             f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
             "--write-images",
-            "--write-stereo-shower",
+            "--write-showers",
             "--max-events=20",
             "--DataWriter.split_datasets_by=tel_type",
         ]
@@ -327,6 +363,7 @@ def dl1_muon_file(dl1_tmp_path):
             "--write-images",
             "--DataWriter.write_parameters=False",
             "--DataWriter.Contact.name=αℓℓ the äüöß",
+            "--SimTelEventSource.focal_length_choice=nominal",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
