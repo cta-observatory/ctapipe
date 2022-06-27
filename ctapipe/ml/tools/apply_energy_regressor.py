@@ -94,6 +94,7 @@ class ApplyEnergyRegressor(Tool):
 
             table = self.loader.read_telescope_events([tel_id])
             if len(table) == 0:
+                self.log.warning("No events for telescope %d", tel_id)
                 continue
 
             prediction, valid = self.estimator.predict(tel, table)
@@ -112,6 +113,9 @@ class ApplyEnergyRegressor(Tool):
                 overwrite=self.overwrite,
             )
             tables.append(table)
+
+        if len(tables) == 0:
+            raise ValueError("No predictions made for any telescope")
 
         mono_predictions = vstack(tables)
         stereo_predictions = self.combine.predict(mono_predictions)
