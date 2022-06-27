@@ -385,11 +385,12 @@ class HDF5EventSource(EventSource):
                     dl2_tel_readers[kind][name] = {
                         key: HDF5TableReader(self.file_).read(
                             table._v_pathname,
-                            containers=(ReconstructedGeometryContainer, ),
+                            containers=(ReconstructedGeometryContainer,),
                         )
                         for key, table in algorithm_group._v_children.items()
                     }
 
+        impact_readers = {}
         if self.is_simulation:
             # simulated shower wide information
             mc_shower_reader = HDF5TableReader(self.file_).read(
