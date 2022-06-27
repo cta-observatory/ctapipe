@@ -31,6 +31,8 @@ TrainEnergyRegressor:
         - concentration_core
         - morphology_num_pixels
         - mirror_area
+        - HillasReconstructor_average_intensity
+        - HillasReconstructor_h_max
 
     QualityQuery:
       quality_criteria:
@@ -67,6 +69,8 @@ TrainParticleIdClassifier:
         - concentration_core
         - morphology_num_pixels
         - mirror_area
+        - HillasReconstructor_average_intensity
+        - HillasReconstructor_h_max
 
     QualityQuery:
       quality_criteria:
