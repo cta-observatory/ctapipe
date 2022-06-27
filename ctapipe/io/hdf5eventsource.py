@@ -391,6 +391,8 @@ class HDF5EventSource(EventSource):
                         )
                         for key, table in algorithm_group._v_children.items()
                     }
+
+        true_impact_readers = {}
         if self.is_simulation:
             # simulated shower wide information
             mc_shower_reader = HDF5TableReader(self.file_).read(
@@ -400,7 +402,7 @@ class HDF5EventSource(EventSource):
             )
             data.simulation = SimulatedEventContainer()
             if "impact" in self.file_.root.simulation.event.telescope:
-                impact_readers = {
+                true_impact_readers = {
                     tel.name: self.reader.read(
                         f"/simulation/event/telescope/impact/{tel.name}",
                         containers=TelescopeImpactParameterContainer,
@@ -476,8 +478,8 @@ class HDF5EventSource(EventSource):
                 if self.allowed_tels and tel not in self.allowed_tels:
                     continue
 
-                if key in impact_readers:
-                    data.simulation.tel[tel].impact = next(impact_readers[key])
+                if key in true_impact_readers:
+                    data.simulation.tel[tel].impact = next(true_impact_readers[key])
 
                 if DataLevel.R1 in self.datalevels:
                     data.r1.tel[tel] = next(waveform_readers[key])
