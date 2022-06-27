@@ -101,11 +101,15 @@ def test_model_init():
 
 
 @pytest.mark.parametrize("model_cls", ["LinearRegression", "RandomForestRegressor"])
-def test_regressor(model_cls, example_table):
+@pytest.mark.parametrize("log_target", (False, True))
+def test_regressor(model_cls, example_table, log_target):
     from ctapipe.ml.sklearn import Regressor
 
     regressor = Regressor(
-        model_cls=model_cls, target="energy", features=[f"X{i}" for i in range(8)]
+        model_cls=model_cls,
+        target="energy",
+        features=[f"X{i}" for i in range(8)],
+        log_target=log_target,
     )
 
     regressor.fit(KEY, example_table)
