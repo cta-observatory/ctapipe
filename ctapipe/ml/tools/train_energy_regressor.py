@@ -1,6 +1,6 @@
 import numpy as np
 from ctapipe.core import Tool
-from ctapipe.core.traits import Path, Unicode, Int
+from ctapipe.core.traits import Path, Int
 from ctapipe.io import TableLoader
 from sklearn import metrics
 from sklearn.model_selection import KFold
@@ -65,10 +65,10 @@ class TrainEnergyRegressor(Tool):
     def _read_table(self, telescope_type):
         table = self.loader.read_telescope_events([telescope_type])
 
-        self.log.info(f"Events read from input: %d", len(table))
+        self.log.info("Events read from input: %d", len(table))
         mask = self.regressor.qualityquery.get_table_mask(table)
         table = table[mask]
-        self.log.info(f"Events after applying quality query: %d", len(table))
+        self.log.info("Events after applying quality query: %d", len(table))
 
         feature_names = self.regressor.model.features + [self.regressor.target]
         table = table[feature_names]

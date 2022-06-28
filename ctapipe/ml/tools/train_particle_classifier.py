@@ -103,10 +103,10 @@ class TrainParticleIdClassifier(Tool):
     def _read_table(self, telescope_type, loader, n_events=None):
         table = loader.read_telescope_events([telescope_type])
 
-        self.log.info(f"Events read from input: %d", len(table))
+        self.log.info("Events read from input: %d", len(table))
         mask = self.classifier.qualityquery.get_table_mask(table)
         table = table[mask]
-        self.log.info(f"Events after applying quality query: %d", len(table))
+        self.log.info("Events after applying quality query: %d", len(table))
 
         columns = self.classifier.model.features + [self.classifier.target]
         table = table[columns]

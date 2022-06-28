@@ -1,5 +1,4 @@
 from abc import abstractmethod
-from typing import Tuple
 from astropy.utils.decorators import lazyproperty
 
 import astropy.units as u
