@@ -830,8 +830,8 @@ class ParticleClassificationContainer(Container):
         nan,
         (
             "prediction of the classifier, defined between "
-            "[0,1], where values close to 0 are more "
-            "gamma-like, and values close to 1 more "
+            "[0,1], where values close to 1 are more "
+            "gamma-like, and values close to 0 more "
             "hadron-like"
         ),
     )

@@ -38,8 +38,8 @@ def particle_classifier_path(model_tmp_path):
     ret = run_tool(
         tool,
         argv=[
-            "--input-background=dataset://proton_dl2_train_small.dl2.h5",
-            "--input-signal=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
+            "--signal=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
+            "--background=dataset://proton_dl2_train_small.dl2.h5",
             f"--output={out_file}",
             f"--config={config}",
             "--log-level=INFO",

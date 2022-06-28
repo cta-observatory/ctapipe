@@ -190,35 +190,44 @@ class StereoMeanCombiner(StereoCombiner):
         weights = self._calculate_weights(valid_predictions)
 
         if self.combine_property == "classification":
-            mono_predictions = valid_predictions[f"{prefix}_prediction"]
-            stereo_predictions = _weighted_mean_ufunc(
-                mono_predictions, weights, n_array_events, indices[valid]
-            )
+            if len(valid_predictions) > 0:
+                mono_predictions = valid_predictions[f"{prefix}_prediction"]
+                stereo_predictions = _weighted_mean_ufunc(
+                    mono_predictions, weights, n_array_events, indices[valid]
+                )
+            else:
+                stereo_predictions = np.full(n_array_events, np.nan)
+
             stereo_table[f"{prefix}_prediction"] = stereo_predictions
             stereo_table[f"{prefix}_is_valid"] = np.isfinite(stereo_predictions)
             stereo_table[f"{prefix}_goodness_of_fit"] = np.nan
 
         elif self.combine_property == "energy":
-            mono_energies = valid_predictions[f"{prefix}_energy"].quantity.to_value(
-                u.TeV
-            )
-            stereo_energy = _weighted_mean_ufunc(
-                mono_energies,
-                weights,
-                n_array_events,
-                indices[valid],
-            )
+            if len(valid_predictions) > 0:
+                mono_energies = valid_predictions[f"{prefix}_energy"].quantity.to_value(
+                    u.TeV
+                )
+                stereo_energy = _weighted_mean_ufunc(
+                    mono_energies,
+                    weights,
+                    n_array_events,
+                    indices[valid],
+                )
+                variance = _weighted_mean_ufunc(
+                    (mono_energies - np.repeat(stereo_energy, multiplicity)[valid])
+                    ** 2,
+                    weights,
+                    n_array_events,
+                    indices[valid],
+                )
+            else:
+                stereo_energy = np.full(n_array_events, np.nan)
+                variance = np.full(n_array_events, np.nan)
 
             stereo_table[f"{prefix}_energy"] = u.Quantity(
                 stereo_energy, u.TeV, copy=False
             )
 
-            variance = _weighted_mean_ufunc(
-                (mono_energies - np.repeat(stereo_energy, multiplicity)[valid]) ** 2,
-                weights,
-                n_array_events,
-                indices[valid],
-            )
             stereo_table[f"{prefix}_energy_uncert"] = u.Quantity(
                 np.sqrt(variance), u.TeV, copy=False
             )
