@@ -3,13 +3,17 @@ from ctapipe.io import TableLoader
 import shutil
 
 
-def test_apply_energy_regressor(energy_regressor_path, dl1_parameters_file, tmp_path):
+def test_apply_energy_regressor(
+    energy_regressor_path,
+    dl2_shower_geometry_file_lapalma,
+    tmp_path,
+):
     from ctapipe.ml.tools.apply_energy_regressor import ApplyEnergyRegressor
 
-    input_path = tmp_path / dl1_parameters_file.name
+    input_path = tmp_path / dl2_shower_geometry_file_lapalma.name
 
     # create copy to not mutate common test file
-    shutil.copy2(dl1_parameters_file, input_path)
+    shutil.copy2(dl2_shower_geometry_file_lapalma, input_path)
 
     ret = run_tool(
         ApplyEnergyRegressor(),
@@ -39,14 +43,16 @@ def test_apply_energy_regressor(energy_regressor_path, dl1_parameters_file, tmp_
 
 
 def test_apply_particle_classifier(
-    particle_classifier_path, dl1_parameters_file, tmp_path
+    particle_classifier_path,
+    dl2_shower_geometry_file_lapalma,
+    tmp_path,
 ):
     from ctapipe.ml.tools.apply_particle_classifier import ApplyParticleIdClassifier
 
-    input_path = tmp_path / dl1_parameters_file.name
+    input_path = tmp_path / dl2_shower_geometry_file_lapalma.name
 
     # create copy to not mutate common test file
-    shutil.copy2(dl1_parameters_file, input_path)
+    shutil.copy2(dl2_shower_geometry_file_lapalma, input_path)
 
     ret = run_tool(
         ApplyParticleIdClassifier(),
