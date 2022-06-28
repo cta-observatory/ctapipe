@@ -251,11 +251,11 @@ def test_stage_2_from_dl1_params(tmp_path, dl1_parameters_file):
         assert testfile.root.dl2.event.subarray.geometry.HillasReconstructor
 
 
-def test_training_from_simtel(tmp_path):
-    """check we can write both dl1 and dl2 info (e.g. for training input)"""
+def test_ml_preprocessing_from_simtel(tmp_path):
+    """check we can write both dl1 and dl2 info (e.g. for ml_preprocessing input)"""
 
-    config = resource_file("training_config.json")
-    output = tmp_path / "test_training.DL1DL2.h5"
+    config = resource_file("ml_preprocessing_config.json")
+    output = tmp_path / "test_ml_preprocessing.DL1DL2.h5"
 
     assert (
         run_tool(

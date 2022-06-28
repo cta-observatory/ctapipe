@@ -1,3 +1,10 @@
+# ======================================================================
+# ctapipe-ml-train-energy-regressor configuration file.
+# version: VERSION
+#
+# Configuration for training and executing machine-learning models
+# ======================================================================
+
 TrainEnergyRegressor:
   n_cross_validation: 5
   Regressor:
