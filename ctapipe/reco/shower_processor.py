@@ -85,5 +85,6 @@ class ShowerProcessor(Component):
         for tel_id in event.trigger.tels_with_trigger:
             tel_index = self.subarray.tel_indices[tel_id]
             event.dl2.tel[tel_id].impact[k] = TelescopeImpactParameterContainer(
-                distance=impact_distances[tel_index]
+                distance=impact_distances[tel_index],
+                prefix=f"{self.reconstructor_type}_impact",
             )
