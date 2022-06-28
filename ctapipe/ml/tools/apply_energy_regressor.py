@@ -1,6 +1,6 @@
 from astropy.table.operations import vstack
 import tables
-from ctapipe.core.tool import Tool
+from ctapipe.core.tool import Tool, ToolConfigurationError
 from ctapipe.core.traits import Bool, Path, flag, create_class_enum_trait
 from ctapipe.io import TableLoader, write_table
 from tqdm.auto import tqdm
@@ -18,7 +18,7 @@ class ApplyEnergyRegressor(Tool):
 
     input_url = Path(
         default_value=None,
-        allow_none=False,
+        allow_none=True,
         directory_ok=False,
         exists=True,
     ).tag(config=True)
@@ -57,6 +57,12 @@ class ApplyEnergyRegressor(Tool):
 
     def setup(self):
         """"""
+
+        if self.input_url is None:
+            raise ToolConfigurationError(
+                "You must specify an input_url (--input / -i <URL>) !"
+            )
+
         self.h5file = tables.open_file(self.input_url, mode="r+")
         self.loader = TableLoader(
             parent=self,
