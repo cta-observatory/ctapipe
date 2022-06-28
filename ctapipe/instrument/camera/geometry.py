@@ -262,7 +262,7 @@ class CameraGeometry:
         scale = np.sqrt(uv_trans_x[0] ** 2 + uv_trans_y[0] ** 2) / cam.pix_x.unit
         trans_x = getattr(trans, trans_x_name)
         trans_y = getattr(trans, trans_y_name)
-        pix_area = (cam.pix_area * scale ** 2).to(trans_x.unit ** 2)
+        pix_area = (cam.pix_area * scale**2).to(trans_x.unit**2)
 
         return CameraGeometry(
             camera_name=cam.camera_name,
@@ -282,10 +282,10 @@ class CameraGeometry:
         return hash(
             (
                 self.camera_name,
-                self.pix_x[0].value,
-                self.pix_y[0].value,
+                round(self.pix_x[0].value, 3),
+                round(self.pix_y[0].value, 3),
                 self.pix_type,
-                self.pix_rotation.deg,
+                round(self.pix_rotation.deg, 3),
             )
         )
 
@@ -321,7 +321,7 @@ class CameraGeometry:
         if pix_type == PixelShape.HEXAGON:
             area = 2 * np.sqrt(3) * (dist / 2) ** 2
         elif pix_type == PixelShape.SQUARE:
-            area = dist ** 2
+            area = dist**2
         else:
             raise KeyError("unsupported pixel type")
 
@@ -582,7 +582,7 @@ class CameraGeometry:
         return CameraGeometry.from_table(table)
 
     def to_table(self):
-        """ convert this to an `astropy.table.Table` """
+        """convert this to an `astropy.table.Table`"""
         # currently the neighbor list is not supported, since
         # var-length arrays are not supported by astropy.table.Table
         t = Table(
@@ -771,18 +771,18 @@ class CameraGeometry:
             [
                 x,
                 y,
-                x ** 2,
+                x**2,
                 x * y,
-                y ** 2,
-                x ** 3,
-                x ** 2 * y,
-                x * y ** 2,
-                y ** 3,
-                x ** 4,
-                x ** 3 * y,
-                x ** 2 * y ** 2,
-                x * y ** 3,
-                y ** 4,
+                y**2,
+                x**3,
+                x**2 * y,
+                x * y**2,
+                y**3,
+                x**4,
+                x**3 * y,
+                x**2 * y**2,
+                x * y**3,
+                y**4,
             ]
         )
 
@@ -819,7 +819,7 @@ class CameraGeometry:
         self.cam_rotation = Angle(0, unit=u.deg)
 
     def info(self, printer=print):
-        """ print detailed info about this camera """
+        """print detailed info about this camera"""
         printer(f'CameraGeometry: "{self}"')
         printer("   - num-pixels: {}".format(len(self.pix_id)))
         printer(f"   - pixel-type: {self.pix_type}")
