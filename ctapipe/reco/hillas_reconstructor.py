@@ -37,8 +37,10 @@ from astropy import units as u
 __all__ = ["HillasPlane", "HillasReconstructor"]
 
 
-INVALID = ReconstructedGeometryContainer(tel_ids=[])
-INVALID.prefix = 'HillasReconstructor'
+INVALID = ReconstructedGeometryContainer(
+    tel_ids=[],
+    prefix="HillasReconstructor",
+)
 
 
 def angle(v1, v2):

@@ -716,7 +716,9 @@ class ImPACTReconstructor(Component):
         )
 
         # Create a container class for reconstructed shower
-        shower_result = ReconstructedGeometryContainer()
+        shower_result = ReconstructedGeometryContainer(
+            prefix=self.__class__.__name__,
+        )
 
         # Convert the best fits direction and core to Horizon and ground systems and
         # copy to the shower container
@@ -758,15 +760,14 @@ class ImPACTReconstructor(Component):
         shower_result.h_max *= np.cos(zenith)
         shower_result.h_max_uncert = errors[5] * shower_result.h_max
         shower_result.goodness_of_fit = like
-        shower_result.prefix = self.__class__.__name__
 
         # Create a container class for reconstructed energy
-        energy_result = ReconstructedEnergyContainer()
-        energy_result.prefix = self.__class__.__name__
-        # Fill with results
-        energy_result.energy = fit_params[4] * u.TeV
-        energy_result.energy_uncert = errors[4] * u.TeV
-        energy_result.is_valid = True
+        energy_result = ReconstructedEnergyContainer(
+            prefix=self.__class__.__name__,
+            energy=fit_params[4] * u.TeV,
+            energy_uncert=errors[4] * u.TeV,
+            is_valid=True,
+        )
 
         return shower_result, energy_result
 

@@ -39,8 +39,10 @@ from ctapipe.core import traits
 __all__ = ["HillasIntersection"]
 
 
-INVALID = ReconstructedGeometryContainer(tel_ids=[])
-INVALID.prefix = 'HillasIntersection'
+INVALID = ReconstructedGeometryContainer(
+    tel_ids=[],
+    prefix="HillasIntersection",
+)
 
 
 class HillasIntersection(Reconstructor):
