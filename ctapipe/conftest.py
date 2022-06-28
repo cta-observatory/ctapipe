@@ -140,7 +140,9 @@ def prod5_gamma_simtel_path():
 
 @pytest.fixture(scope="session")
 def prod5_gamma_lapalma_simtel_path():
-    return "/home/maxnoe/Uni/CTA/data/prod5b_reference_samples/gamma_20deg_0deg_run1___cta-prod5-lapalma_desert-2158m-LaPalma-dark_100evts.simtel.zst"
+    return get_dataset_path(
+        "gamma_20deg_0deg_run1___cta-prod5-lapalma_desert-2158m-LaPalma-dark_100evts.simtel.zst"
+    )
 
 
 @pytest.fixture(scope="session")
