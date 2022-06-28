@@ -13,7 +13,7 @@ def energy_regressor_path(model_tmp_path):
     from ctapipe.ml.tools.train_energy_regressor import TrainEnergyRegressor
 
     tool = TrainEnergyRegressor()
-    config = resource_file("ml-config.yaml")
+    config = resource_file("ml_config.yaml")
     out_file = model_tmp_path / "energy.pkl"
     ret = run_tool(
         tool,
@@ -33,7 +33,7 @@ def particle_classifier_path(model_tmp_path):
     from ctapipe.ml.tools.train_particle_classifier import TrainParticleIdClassifier
 
     tool = TrainParticleIdClassifier()
-    config = resource_file("ml-config.yaml")
+    config = resource_file("ml_config.yaml")
     out_file = model_tmp_path / "particle_classifier.pkl"
     ret = run_tool(
         tool,
