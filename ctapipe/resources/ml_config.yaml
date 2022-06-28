@@ -1,8 +1,8 @@
 # ======================================================================
-# ctapipe-ml-train-energy-regressor configuration file.
+# ctapipe-ml-train-{energy-regressor,particle-classifier} config file.
 # version: VERSION
 #
-# Configuration for training and executing machine-learning models
+# Configuration for training machine-learning models
 # ======================================================================
 
 TrainEnergyRegressor:
