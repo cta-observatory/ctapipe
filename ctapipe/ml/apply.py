@@ -205,11 +205,12 @@ class ParticleIdClassifier(ClassificationReconstructor):
     """
     Predict dl2 particle classification
     """
+
     target = "true_shower_primary_id"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # gammas is parcile_id == 0
+        # gammas have true_shower_primary_id = 0
         self.model.positive_class = 0
 
     def __call__(self, event: ArrayEventContainer) -> None:
