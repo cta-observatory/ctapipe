@@ -5,7 +5,7 @@
 # Perform Stage 1 and Stage 2a processing to generate features needed for
 # training machine learning algorithms.
 #
-#  Note that here write_images is disabled by default (to avoid very large
+# Note that here write_images is disabled by default (to avoid very large
 # files), however for training deep learning algorithms, it should be turned on.
 # ======================================================================
 #
