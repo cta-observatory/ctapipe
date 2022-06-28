@@ -260,8 +260,8 @@ class ContainerMeta(type):
         new_cls = type.__new__(cls, name, bases, dct)
 
         # if prefix was not set as a class variable, build a default one
-        if "container_prefix" not in dct:
-            new_cls.container_prefix = name.lower().replace("container", "")
+        if "default_prefix" not in dct:
+            new_cls.default_prefix = name.lower().replace("container", "")
 
         return new_cls
 
@@ -317,12 +317,12 @@ class Container(metaclass=ContainerMeta):
 
     """
 
-    def __init__(self, **fields):
+    def __init__(self, prefix=None, **fields):
         self.meta = {}
         # __slots__ cannot be provided with defaults
-        # via class variables, so we use a `container_prefix` class variable
+        # via class variables, so we use a `default_prefix` class variable
         # and an instance variable `prefix` in `__slots__`
-        self.prefix = self.container_prefix
+        self.prefix = prefix if prefix is not None else self.default_prefix
 
         for k in set(self.fields).difference(fields):
 

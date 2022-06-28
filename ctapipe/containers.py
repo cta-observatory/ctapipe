@@ -95,7 +95,7 @@ class EventType(enum.Enum):
 class EventIndexContainer(Container):
     """index columns to include in event lists, common to all data levels"""
 
-    container_prefix = ""  # don't want to prefix these
+    default_prefix = ""  # don't want to prefix these
     obs_id = Field(0, "observation identifier")
     event_id = Field(0, "event identifier")
 
@@ -106,7 +106,7 @@ class TelEventIndexContainer(Container):
     levels that have telescope-wise information
     """
 
-    container_prefix = ""  # don't want to prefix these
+    default_prefix = ""  # don't want to prefix these
     obs_id = Field(0, "observation identifier")
     event_id = Field(0, "event identifier")
     tel_id = Field(0, "telescope identifier")
@@ -130,7 +130,7 @@ class CameraHillasParametersContainer(BaseHillasParametersContainer):
     is given in meter from the camera center.
     """
 
-    container_prefix = "camera_frame_hillas"
+    default_prefix = "camera_frame_hillas"
     x = Field(nan * u.m, "centroid x coordinate", unit=u.m)
     y = Field(nan * u.m, "centroid x coordinate", unit=u.m)
     r = Field(nan * u.m, "radial coordinate of centroid", unit=u.m)
@@ -150,7 +150,7 @@ class HillasParametersContainer(BaseHillasParametersContainer):
     longitude and latitude in degree.
     """
 
-    container_prefix = "hillas"
+    default_prefix = "hillas"
     fov_lon = Field(
         nan * u.deg,
         "longitude angle in a spherical system centered on the pointing position",
@@ -177,7 +177,7 @@ class LeakageContainer(Container):
     camera, measured in number of signal pixels or in intensity.
     """
 
-    container_prefix = "leakage"
+    default_prefix = "leakage"
 
     pixels_width_1 = Field(
         nan, "fraction of pixels after cleaning that are in camera border of width=1"
@@ -203,7 +203,7 @@ class ConcentrationContainer(Container):
     in certain areas of the image and the full image.
     """
 
-    container_prefix = "concentration"
+    default_prefix = "concentration"
     cog = Field(
         nan, "Percentage of photo-electrons inside one pixel diameter of the cog"
     )
@@ -232,7 +232,7 @@ class CameraTimingParametersContainer(BaseTimingParametersContainer):
     along the shower main axis in the camera frame.
     """
 
-    container_prefix = "camera_frame_timing"
+    default_prefix = "camera_frame_timing"
     slope = Field(
         nan / u.m, "Slope of arrival times along main shower axis", unit=1 / u.m
     )
@@ -245,7 +245,7 @@ class TimingParametersContainer(BaseTimingParametersContainer):
     spherical system centered on the pointing position (TelescopeFrame)
     """
 
-    container_prefix = "timing"
+    default_prefix = "timing"
     slope = Field(
         nan / u.deg, "Slope of arrival times along main shower axis", unit=1 / u.deg
     )
@@ -273,24 +273,24 @@ class StatisticsContainer(Container):
 
 
 class IntensityStatisticsContainer(StatisticsContainer):
-    container_prefix = "intensity"
+    default_prefix = "intensity"
 
 
 class PeakTimeStatisticsContainer(StatisticsContainer):
-    container_prefix = "peak_time"
+    default_prefix = "peak_time"
 
 
 class CoreParametersContainer(Container):
     """Telescope-wise shower's direction in the Tilted/Ground Frame"""
 
-    container_prefix = "core"
+    default_prefix = "core"
     psi = Field(nan * u.deg, "Image direction in the Tilted/Ground Frame", unit="deg")
 
 
 class ImageParametersContainer(Container):
     """Collection of image parameters"""
 
-    container_prefix = "params"
+    default_prefix = "params"
     hillas = Field(
         default_factory=HillasParametersContainer,
         description="Hillas Parameters",
@@ -497,7 +497,7 @@ class TelescopeImpactParameterContainer(Container):
     Impact Parameter computed from reconstructed shower geometry
     """
 
-    container_prefix = "impact"
+    default_prefix = "impact"
 
     distance = Field(
         nan * u.m, "distance of the telescope to the shower axis", unit=u.m
@@ -506,7 +506,7 @@ class TelescopeImpactParameterContainer(Container):
 
 
 class SimulatedShowerContainer(Container):
-    container_prefix = "true"
+    default_prefix = "true"
     energy = Field(nan * u.TeV, "Simulated Energy", unit=u.TeV)
     alt = Field(nan * u.deg, "Simulated altitude", unit=u.deg)
     az = Field(nan * u.deg, "Simulated azimuth", unit=u.deg)
@@ -530,7 +530,7 @@ class SimulatedCameraContainer(Container):
     but for simulated data.
     """
 
-    container_prefix = ""
+    default_prefix = ""
 
     true_image_sum = Field(
         np.int32(-1), "Total number of detected Cherenkov photons in the camera"
@@ -650,7 +650,7 @@ class SimulationConfigContainer(Container):
 
 
 class TelescopeTriggerContainer(Container):
-    container_prefix = ""
+    default_prefix = ""
     time = Field(NAN_TIME, description="Telescope trigger time")
     n_trigger_pixels = Field(
         -1, description="Number of trigger groups (sectors) listed"
@@ -659,7 +659,7 @@ class TelescopeTriggerContainer(Container):
 
 
 class TriggerContainer(Container):
-    container_prefix = ""
+    default_prefix = ""
     time = Field(NAN_TIME, description="central average time stamp")
     tels_with_trigger = Field(
         None, description="List of telescope ids that triggered the array event"
@@ -676,7 +676,7 @@ class ReconstructedGeometryContainer(Container):
     Standard output of algorithms reconstructing shower geometry
     """
 
-    container_prefix = ""
+    default_prefix = ""
 
     alt = Field(nan * u.deg, "reconstructed altitude", unit=u.deg)
     alt_uncert = Field(nan * u.deg, "reconstructed altitude uncertainty", unit=u.deg)
@@ -735,7 +735,7 @@ class ReconstructedEnergyContainer(Container):
     Standard output of algorithms estimating energy
     """
 
-    container_prefix = ""
+    default_prefix = ""
 
     energy = Field(nan * u.TeV, "reconstructed energy", unit=u.TeV)
     energy_uncert = Field(nan * u.TeV, "reconstructed energy uncertainty", unit=u.TeV)
@@ -756,7 +756,7 @@ class ParticleClassificationContainer(Container):
     Standard output of gamma/hadron classification algorithms
     """
 
-    container_prefix = ""
+    default_prefix = ""
 
     # TODO: Do people agree on this? This is very MAGIC-like.
     # TODO: Perhaps an integer classification to support different classes?
@@ -1091,7 +1091,7 @@ class SimulatedShowerDistribution(Container):
     core distance.
     """
 
-    container_prefix = ""
+    default_prefix = ""
 
     obs_id = Field(-1, description="links to which events this corresponds to")
     hist_id = Field(-1, description="Histogram ID")

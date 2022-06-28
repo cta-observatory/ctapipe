@@ -504,7 +504,7 @@ class DataWriter(Component):
         class ExtraSimInfo(Container):
             """just to contain obs_id"""
 
-            container_prefix = ""
+            default_prefix = ""
             obs_id = Field(0, "Simulation Run Identifier")
 
         for obs_id, config in self.event_source.simulation_config.items():
@@ -670,10 +670,9 @@ class DataWriter(Component):
                         f"simulation/event/telescope/parameters/{table_name}",
                         [
                             tel_index,
-                            *event.simulation.tel[tel_id].true_parameters.values()
-                        ]
+                            *event.simulation.tel[tel_id].true_parameters.values(),
+                        ],
                     )
-
 
     def _write_dl2_telescope_events(
         self, writer: TableWriter, event: ArrayEventContainer

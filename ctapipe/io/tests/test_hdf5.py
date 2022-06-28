@@ -571,7 +571,7 @@ def test_column_exclusions(tmp_path):
     tmp_file = tmp_path / "test_column_exclusions.hdf5"
 
     class SomeContainer(Container):
-        container_prefix = ""
+        default_prefix = ""
         hillas_x = Field(None)
         hillas_y = Field(None)
         impact_x = Field(None)
@@ -615,7 +615,7 @@ def test_column_transforms(tmp_path):
     tmp_file = tmp_path / "test_column_transforms.hdf5"
 
     class SomeContainer(Container):
-        container_prefix = ""
+        default_prefix = ""
 
         current = Field(1 * u.A, unit=u.uA)
         time = Field(NAN_TIME)
@@ -648,7 +648,7 @@ def test_fixed_point_column_transform(tmp_path):
     tmp_file = tmp_path / "test_column_transforms.hdf5"
 
     class SomeContainer(Container):
-        container_prefix = ""
+        default_prefix = ""
         image = Field(np.array([np.nan, np.inf, -np.inf]))
 
     cont = SomeContainer()
@@ -686,7 +686,7 @@ def test_column_transforms_regexps(tmp_path):
         return x * 10
 
     class SomeContainer(Container):
-        container_prefix = ""
+        default_prefix = ""
         hillas_x = Field(1)
         hillas_y = Field(1)
 
@@ -847,7 +847,7 @@ def test_strings(tmp_path):
 
     # when not giving a max_len, should be taken from the first container
     class Container1(Container):
-        container_prefix = ""
+        default_prefix = ""
         string = Field("", "test string")
 
     path = tmp_path / "test.h5"
@@ -864,7 +864,7 @@ def test_strings(tmp_path):
     assert table["string"].tolist() == ["Hello", "öä"]
 
     class Container2(Container):
-        container_prefix = ""
+        default_prefix = ""
         string = Field("", "test string", max_length=10)
 
     path = tmp_path / "test.h5"

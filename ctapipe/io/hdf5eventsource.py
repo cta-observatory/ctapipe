@@ -246,7 +246,7 @@ class HDF5EventSource(EventSource):
         # Alternatively this becomes a flat list
         # and the obs_id matching part needs to be done in _generate_events()
         class ObsIdContainer(Container):
-            container_prefix = ""
+            default_prefix = ""
             obs_id = Field(-1)
 
         simulation_configs = {}
