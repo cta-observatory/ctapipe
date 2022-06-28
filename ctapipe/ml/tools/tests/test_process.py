@@ -3,23 +3,19 @@ from ctapipe.io import read_table
 import json
 
 
-def test_process_apply_energy(tmp_path, energy_regressor_path):
+def test_process_apply_energy(
+    tmp_path, energy_regressor_path, prod5_gamma_lapalma_simtel_path
+):
     from ctapipe.tools.process import ProcessorTool
-    from ctapipe.io import SimTelEventSource
 
     output = tmp_path / "gamma_prod5.dl2_energy.h5"
 
     config_path = tmp_path / "config.json"
 
-    input_url = "dataset://gamma_prod5.simtel.zst"
+    input_url = prod5_gamma_lapalma_simtel_path
 
-    with SimTelEventSource(input_url) as s:
-        subarray = s.subarray
-
-    allowed_tels = subarray.get_tel_ids_for_type(
-        "LST_LST_LSTCam"
-    ) + subarray.get_tel_ids_for_type("MST_MST_NectarCam")
-
+    # la palma alpha config
+    allowed_tels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 19, 35]
     config = {
         "ProcessorTool": {
             "EventSource": {
@@ -53,23 +49,18 @@ def test_process_apply_energy(tmp_path, energy_regressor_path):
     print(read_table(output, "/dl2/event/subarray/energy/ExtraTreesRegressor"))
 
 
-def test_process_apply_classification(tmp_path, particle_classifier_path):
+def test_process_apply_classification(
+    tmp_path, particle_classifier_path, prod5_gamma_lapalma_simtel_path
+):
     from ctapipe.tools.process import ProcessorTool
-    from ctapipe.io import SimTelEventSource
 
     output = tmp_path / "gamma_prod5.dl2_energy.h5"
 
     config_path = tmp_path / "config.json"
 
-    input_url = "dataset://gamma_prod5.simtel.zst"
+    input_url = prod5_gamma_lapalma_simtel_path
 
-    with SimTelEventSource(input_url) as s:
-        subarray = s.subarray
-
-    allowed_tels = subarray.get_tel_ids_for_type(
-        "LST_LST_LSTCam"
-    ) + subarray.get_tel_ids_for_type("MST_MST_NectarCam")
-
+    allowed_tels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 19, 35]
     config = {
         "ProcessorTool": {
             "EventSource": {

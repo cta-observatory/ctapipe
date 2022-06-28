@@ -1,4 +1,4 @@
-from astropy.table.operations import vstack
+from astropy.table.operations import hstack, vstack
 import tables
 from ctapipe.core.tool import Tool, ToolConfigurationError
 from ctapipe.core.traits import Bool, Path, flag, create_class_enum_trait
@@ -73,24 +73,21 @@ class ApplyEnergyRegressor(Tool):
             load_simulated=True,
             load_instrument=True,
         )
-        self.estimator = EnergyRegressor.read(
-            self.model_path,
-            self.loader.subarray,
-            parent=self,
-        )
+        self.regressor = EnergyRegressor.read(self.model_path, parent=self)
         self.combine = StereoCombiner.from_name(
             self.stereo_combiner_type,
             combine_property="energy",
-            algorithm=self.estimator.model.model_cls,
+            algorithm=self.regressor.model.model_cls,
             parent=self,
         )
 
     def start(self):
         self.log.info("Applying model")
+        prefix = self.regressor.model.model_cls
 
         tables = []
         for tel_id, tel in tqdm(self.loader.subarray.tel.items()):
-            if tel not in self.estimator.model.models:
+            if tel not in self.regressor.model.models:
                 self.log.warning(
                     "No model for telescope type %s, skipping tel %d",
                     tel,
@@ -99,20 +96,19 @@ class ApplyEnergyRegressor(Tool):
                 continue
 
             table = self.loader.read_telescope_events([tel_id])
+            table.remove_columns([c for c in table.colnames if c.startswith(prefix)])
+
             if len(table) == 0:
                 self.log.warning("No events for telescope %d", tel_id)
                 continue
 
-            prediction, valid = self.estimator.predict(tel, table)
-            prefix = self.estimator.model.model_cls
-
-            energy_col = f"{prefix}_energy"
-            valid_col = f"{prefix}_is_valid"
-            table[energy_col] = prediction
-            table[valid_col] = valid
+            predictions = self.regressor.predict(tel, table)
+            table = hstack(
+                [table, predictions], join_type="exact", metadata_conflicts="ignore"
+            )
 
             write_table(
-                table[["obs_id", "event_id", "tel_id", energy_col, valid_col]],
+                table[["obs_id", "event_id", "tel_id"] + predictions.colnames],
                 self.loader.input_url,
                 f"/dl2/event/telescope/energy/{prefix}/tel_{tel_id:03d}",
                 mode="a",
@@ -134,7 +130,7 @@ class ApplyEnergyRegressor(Tool):
         write_table(
             stereo_predictions,
             self.loader.input_url,
-            f"/dl2/event/subarray/energy/{self.estimator.model.model_cls}",
+            f"/dl2/event/subarray/energy/{self.regressor.model.model_cls}",
             mode="a",
             overwrite=self.overwrite,
         )

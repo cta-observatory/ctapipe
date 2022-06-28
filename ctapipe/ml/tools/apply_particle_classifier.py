@@ -1,4 +1,4 @@
-from astropy.table.operations import vstack
+from astropy.table.operations import hstack, vstack
 import tables
 from ctapipe.core.tool import Tool
 from ctapipe.core.traits import Bool, Path, flag, create_class_enum_trait
@@ -67,7 +67,7 @@ class ApplyParticleIdClassifier(Tool):
             load_simulated=True,
             load_instrument=True,
         )
-        self.estimator = ParticleIdClassifier.read(
+        self.classifier = ParticleIdClassifier.read(
             self.model_path,
             self.loader.subarray,
             parent=self,
@@ -75,16 +75,17 @@ class ApplyParticleIdClassifier(Tool):
         self.combine = StereoCombiner.from_name(
             self.stereo_combiner_type,
             combine_property="classification",
-            algorithm=self.estimator.model.model_cls,
+            algorithm=self.classifier.model.model_cls,
             parent=self,
         )
 
     def start(self):
         self.log.info("Applying model")
+        prefix = self.classifier.model.model_cls
 
         tables = []
         for tel_id, tel in tqdm(self.loader.subarray.tel.items()):
-            if tel not in self.estimator.model.models:
+            if tel not in self.classifier.model.models:
                 self.log.warning(
                     "No model for telescope type %s, skipping tel %d",
                     tel,
@@ -93,20 +94,19 @@ class ApplyParticleIdClassifier(Tool):
                 continue
 
             table = self.loader.read_telescope_events([tel_id])
+            table.remove_columns([c for c in table.colnames if c.startswith(prefix)])
+
             if len(table) == 0:
                 self.log.warning("No events for telescope %d", tel_id)
                 continue
 
-            prediction, valid = self.estimator.predict(tel, table)
-            prefix = self.estimator.model.model_cls
-
-            class_col = f"{prefix}_prediction"
-            valid_col = f"{prefix}_is_valid"
-            table[class_col] = prediction
-            table[valid_col] = valid
+            predictions = self.classifier.predict(tel, table)
+            table = hstack(
+                [table, predictions], join_type="exact", metadata_conflicts="ignore"
+            )
 
             write_table(
-                table[["obs_id", "event_id", "tel_id", class_col, valid_col]],
+                table[["obs_id", "event_id", "tel_id"] + predictions.colnames],
                 self.loader.input_url,
                 f"/dl2/event/telescope/classification/{prefix}/tel_{tel_id:03d}",
                 mode="a",
@@ -128,7 +128,7 @@ class ApplyParticleIdClassifier(Tool):
         write_table(
             stereo_predictions,
             self.loader.input_url,
-            f"/dl2/event/subarray/classification/{self.estimator.model.model_cls}",
+            f"/dl2/event/subarray/classification/{self.classifier.model.model_cls}",
             mode="a",
             overwrite=self.overwrite,
         )

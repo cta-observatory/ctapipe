@@ -146,6 +146,13 @@ def prod5_gamma_simtel_path():
 
 
 @pytest.fixture(scope="session")
+def prod5_gamma_lapalma_simtel_path():
+    return get_dataset_path(
+        "gamma_20deg_0deg_run1___cta-prod5-lapalma_desert-2158m-LaPalma-dark_100evts.simtel.zst"
+    )
+
+
+@pytest.fixture(scope="session")
 def prod5_proton_simtel_path():
     return get_dataset_path(
         "proton_20deg_0deg_run4___cta-prod5-paranal_desert-2147m-Paranal-dark-100evts.simtel.zst"
@@ -211,6 +218,31 @@ def dl2_shower_geometry_file(dl2_tmp_path, prod5_gamma_simtel_path):
 
         argv = [
             f"--input={prod5_gamma_simtel_path}",
+            f"--output={output}",
+            "--write-images",
+            "--write-showers",
+        ]
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
+        return output
+
+
+@pytest.fixture(scope="session")
+def dl2_shower_geometry_file_lapalma(dl2_tmp_path, prod5_gamma_lapalma_simtel_path):
+    """
+    File containing both parameters and shower geometry from a gamma simulation set.
+    """
+    from ctapipe.core import run_tool
+    from ctapipe.tools.process import ProcessorTool
+
+    output = dl2_tmp_path / "gamma_lapalma.training.h5"
+
+    # prevent running process multiple times in case of parallel tests
+    with FileLock(output.with_suffix(output.suffix + ".lock")):
+        if output.is_file():
+            return output
+
+        argv = [
+            f"--input={prod5_gamma_lapalma_simtel_path}",
             f"--output={output}",
             "--write-images",
             "--write-showers",
