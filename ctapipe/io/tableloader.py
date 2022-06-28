@@ -9,7 +9,7 @@ from collections import defaultdict
 from typing import Dict
 
 import numpy as np
-from astropy.table import join, vstack, Table
+from astropy.table import vstack, Table
 import tables
 
 from ..core import Component, traits, Provenance
@@ -173,20 +173,7 @@ class TableLoader(Component):
 
         self.instrument_table = None
         if self.load_instrument:
-            table = self.subarray.to_table()
-            optics = self.subarray.to_table(kind="optics")
-            optics["optics_index"] = np.arange(len(optics))
-            optics.remove_columns(["name", "description", "type"])
-            table = join(
-                table,
-                optics,
-                keys="optics_index",
-                # conflicts for TAB_VER, TAB_TYPE, not needed here, ignore
-                metadata_conflicts="silent",
-            )
-
-            table.remove_columns(["optics_index", "camera_index"])
-            self.instrument_table = table
+            self.instrument_table = self.subarray.to_table('joined')
 
     def close(self):
         """Close the underlying hdf5 file"""
