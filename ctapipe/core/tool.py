@@ -24,7 +24,7 @@ from traitlets.config import Application, Config, Configurable
 from .. import __version__ as version
 from . import Provenance
 from .component import Component
-from .logging import DEFAULT_LOGGING, ColoredFormatter, create_logging_config
+from .logging import ColoredFormatter, create_logging_config
 from .traits import Bool, Dict, Enum, Path
 
 __all__ = ["Tool", "ToolConfigurationError"]
@@ -133,8 +133,6 @@ class Tool(Application):
         trait=Path(
             exists=True,
             directory_ok=False,
-            allow_none=True,
-            default_value=None,
             help=(
                 "List of configuration files with parameters to load "
                 "in addition to command-line parameters. "
@@ -146,7 +144,7 @@ class Tool(Application):
         )
     ).tag(config=True)
 
-    log_config = Dict(default_value=DEFAULT_LOGGING).tag(config=True)
+    log_config = Dict(default_value={}).tag(config=True)
     log_file = Path(
         default_value=None,
         exists=None,
@@ -197,8 +195,8 @@ class Tool(Application):
 
         # tools defined in other modules should have those modules as base
         # logging name
-        module_name = self.__class__.__module__.split(".")[0]
-        self.log = logging.getLogger(f"{module_name}.{self.name}")
+        self.module_name = self.__class__.__module__.split(".")[0]
+        self.log = logging.getLogger(f"{self.module_name}.{self.name}")
         self.trait_warning_handler = CollectTraitWarningsHandler()
         self.update_logging_config()
 
@@ -233,7 +231,6 @@ class Tool(Application):
         path: Union[str, pathlib.Path]
             config file to load. [yaml, toml, json, py] formats are supported
         """
-
         path = pathlib.Path(path)
 
         if path.suffix in [".yaml", ".yml"]:
@@ -259,6 +256,7 @@ class Tool(Application):
             log_file_level=self.log_file_level,
             log_config=self.log_config,
             quiet=self.quiet,
+            module=self.module_name,
         )
 
         logging.config.dictConfig(cfg)

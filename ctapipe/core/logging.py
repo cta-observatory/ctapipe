@@ -68,10 +68,15 @@ def recursive_update(d1, d2, copy=False):
 
 
 def create_logging_config(
-    log_level, log_file, log_file_level, log_config: dict, quiet: bool
+    log_level,
+    log_file,
+    log_file_level,
+    log_config: dict,
+    quiet: bool,
+    module="ctapipe",
 ):
     """Update logging level for console and file according to CLI arguments."""
-    config = recursive_update(DEFAULT_LOGGING, log_config)
+    config = recursive_update(get_default_logging(module), log_config)
 
     if quiet:
         config["handlers"]["console"] = {"class": "logging.NullHandler"}
@@ -89,15 +94,13 @@ def create_logging_config(
             }
         }
         config["handlers"].update(file_handler)
-        config["loggers"]["ctapipe"]["handlers"].append("ctapipe-file")
+        config["loggers"][module]["handlers"].append("ctapipe-file")
 
         # level of logger must be at least that of all their handlers
-        config["loggers"]["ctapipe"]["level"] = get_lower_level(
-            log_level, log_file_level
-        )
+        config["loggers"][module]["level"] = get_lower_level(log_level, log_file_level)
 
     else:
-        config["loggers"]["ctapipe"]["level"] = log_level
+        config["loggers"][module]["level"] = log_level
 
     return config
 
@@ -112,32 +115,33 @@ def get_lower_level(l0, l1):
     return l0 if l0 < l1 else l1
 
 
-DEFAULT_LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "file": {"()": PlainFormatter, "fmt": DEFAULT_LOGGING_FORMAT},
-        "console": {"()": ColoredFormatter, "fmt": DEFAULT_LOGGING_FORMAT},
-    },
-    "handlers": {
-        "ctapipe-console": {
-            "class": "logging.StreamHandler",
-            "formatter": "console",
-            "stream": "ext://sys.stderr",
-            "level": "NOTSET",
+def get_default_logging(module="ctapipe"):
+    return {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {
+            "file": {"()": PlainFormatter, "fmt": DEFAULT_LOGGING_FORMAT},
+            "console": {"()": ColoredFormatter, "fmt": DEFAULT_LOGGING_FORMAT},
         },
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "console",
-            "stream": "ext://sys.stderr",
-            "level": "NOTSET",
+        "handlers": {
+            "ctapipe-console": {
+                "class": "logging.StreamHandler",
+                "formatter": "console",
+                "stream": "ext://sys.stderr",
+                "level": "NOTSET",
+            },
+            "console": {
+                "class": "logging.StreamHandler",
+                "formatter": "console",
+                "stream": "ext://sys.stderr",
+                "level": "NOTSET",
+            },
         },
-    },
-    "loggers": {
-        "ctapipe": {
-            "level": "WARN",
-            "handlers": ["ctapipe-console"],
-            "propagate": False,
-        }
-    },
-}
+        "loggers": {
+            module: {
+                "level": "WARN",
+                "handlers": ["ctapipe-console"],
+                "propagate": False,
+            }
+        },
+    }
