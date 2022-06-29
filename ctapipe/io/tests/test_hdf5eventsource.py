@@ -159,8 +159,13 @@ def test_read_dl2(dl2_shower_geometry_file):
     with HDF5EventSource(dl2_shower_geometry_file) as s:
         e = next(iter(s))
         assert algorithm in e.dl2.stereo.geometry
+        assert e.dl2.stereo.geometry[algorithm].alt is not None
+        assert e.dl2.stereo.geometry[algorithm].az is not None
+        assert e.dl2.stereo.geometry[algorithm].prefix == algorithm
+
         tel_mask = e.dl2.stereo.geometry[algorithm].tel_ids
         tel_ids = s.subarray.tel_mask_to_tel_ids(tel_mask)
         for tel_id in tel_ids:
             assert algorithm in e.dl2.tel[tel_id].impact
+            assert e.dl2.tel[tel_id].impact[algorithm].prefix == algorithm + "_tel"
             assert e.dl2.tel[tel_id].impact[algorithm].distance is not None
