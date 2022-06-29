@@ -215,9 +215,6 @@ class HDF5EventSource(EventSource):
         """
         return self._simulation_configs
 
-    def _generator(self):
-        yield from self._generate_events()
-
     def __len__(self):
         n_events = len(self.file_.root.dl1.event.subarray.trigger)
         if self.max_events is not None:
@@ -251,17 +248,10 @@ class HDF5EventSource(EventSource):
 
         return simulation_configs
 
-    def _generate_events(self):
+    def _generator(self):
         """
         Yield ArrayEventContainer to iterate through events.
         """
-        data = ArrayEventContainer()
-        # Maybe take some other metadata, but there are still some 'unknown'
-        # written out by the stage1 tool
-        data.meta["origin"] = self.file_.root._v_attrs["CTA PROCESS TYPE"]
-        data.meta["input_url"] = self.input_url
-        data.meta["max_events"] = self.max_events
-
         self.reader = HDF5TableReader(self.file_)
 
         if DataLevel.R1 in self.datalevels:
@@ -346,7 +336,6 @@ class HDF5EventSource(EventSource):
                 SimulatedShowerContainer,
                 prefixes="true",
             )
-            data.simulation = SimulatedEventContainer()
             if "impact" in self.file_.root.simulation.event.telescope:
                 impact_readers = {
                     tel.name: self.reader.read(
@@ -380,15 +369,18 @@ class HDF5EventSource(EventSource):
 
         counter = 0
         for trigger, index in events:
-            data.dl1.tel.clear()
-            if self.is_simulation:
-                data.simulation.tel.clear()
-            data.pointing.tel.clear()
-            data.trigger.tel.clear()
+            data = ArrayEventContainer(
+                trigger=trigger,
+                count=counter,
+                index=index,
+                simulation=SimulatedEventContainer() if self.is_simulation else None,
+            )
+            # Maybe take some other metadata, but there are still some 'unknown'
+            # written out by the stage1 tool
+            data.meta["origin"] = self.file_.root._v_attrs["CTA PROCESS TYPE"]
+            data.meta["input_url"] = self.input_url
+            data.meta["max_events"] = self.max_events
 
-            data.count = counter
-            data.trigger = trigger
-            data.index = index
             data.trigger.tels_with_trigger = self._full_subarray.tel_mask_to_tel_ids(
                 data.trigger.tels_with_trigger
             )
