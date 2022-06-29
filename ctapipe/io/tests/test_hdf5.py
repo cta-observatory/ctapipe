@@ -887,3 +887,24 @@ def test_strings(tmp_path):
         for string in expected:
             c = next(generator)
             assert c.string == string
+
+
+def test_prefix_in_output_container(tmp_path):
+    """Test that output containers retain the used prefix"""
+
+    class Container1(Container):
+        default_prefix = ""
+        value = Field(-1, "value")
+
+    path = tmp_path / "prefix.h5"
+    with HDF5TableWriter(path, mode="w", add_prefix=True) as writer:
+        for value in (1, 2, 3):
+            writer.write("values", Container1(value=value, prefix="custom_prefix"))
+
+    with HDF5TableReader(path) as reader:
+        generator = reader.read("/values", Container1, prefixes="custom_prefix")
+
+        for value in (1, 2, 3):
+            c = next(generator)
+            assert c.prefix == "custom_prefix"
+            assert c.value == value

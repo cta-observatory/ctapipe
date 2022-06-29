@@ -606,7 +606,7 @@ class HDF5TableReader(TableReader):
                 for fieldname in missing_cols:
                     kwargs[fieldname] = None
 
-                container = cls(**kwargs)
+                container = cls(**kwargs, prefix=prefix)
                 container.meta = self._meta[table_name]
                 ret.append(container)
 

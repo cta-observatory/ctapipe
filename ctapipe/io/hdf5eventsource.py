@@ -356,6 +356,7 @@ class HDF5EventSource(EventSource):
                     algorithm: HDF5TableReader(self.file_).read(
                         table._v_pathname,
                         containers=container,
+                        prefixes=(algorithm,),
                     )
                     for algorithm, table in group._v_children.items()
                 }
@@ -372,12 +373,12 @@ class HDF5EventSource(EventSource):
                     continue
 
                 dl2_tel_readers[kind] = {}
-                for name, algorithm_group in group._v_children.items():
-                    dl2_tel_readers[kind][name] = {
+                for algorithm, algorithm_group in group._v_children.items():
+                    dl2_tel_readers[kind][algorithm] = {
                         key: HDF5TableReader(self.file_).read(
                             table._v_pathname,
                             containers=container,
-                            prefixes=True,
+                            prefixes=(f"{algorithm}_tel",),
                         )
                         for key, table in algorithm_group._v_children.items()
                     }
