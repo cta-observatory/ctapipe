@@ -74,6 +74,7 @@ class SchedulingBlockType(enum.Enum):
     Types of Scheduling Block
     """
 
+    UNKNOWN = -1
     OBSERVATION = 0
     CALIBRATION = 1
     ENGINEERING = 2
@@ -84,23 +85,33 @@ class ObservationBlockState(enum.Enum):
     Observation Block State, from XXX
     """
 
+    UNKNOWN = -1
     FAILED = 0
-    COMPLETED_SUCCEDED = (1,)
-    COMPLETED_CANCELED = (2,)
-    COMPLETED_TRUNCATED = (3,)
+    COMPLETED_SUCCEDED = 1
+    COMPLETED_CANCELED = 2
+    COMPLETED_TRUNCATED = 3
     ARCHIVED = 4
 
 
 class ObservingMode(enum.Enum):
     """How a scheduling block is observed."""
 
+    UNKNOWN = -1
     WOBBLE = 0
     ON_OFF = 1
     GRID = 2
     CUSTOM = 3
 
 
+class PointingMode(enum.Enum):
+    UNKNOWN = -1
+    TRACK = 0  # track a fixed point that moves with the sky
+    DRIFT = 1  # track a fixed alt/az point
+
+
 class CoordinateFrameType(enum.Enum):
+
+    UNKNOWN = -1
     ALTAZ = 0
     ICRS = 1
     GALACTIC = 2
@@ -1096,15 +1107,17 @@ class SchedulingBlockContainer(Container):
     container_prefix = "sb"
     id = Field(-1, "Scheduling block ID", type=np.int64)
     type = Field(
-        SchedulingBlockType.OBSERVATION,
+        SchedulingBlockType.UNKNOWN,
         description="Type of scheduling block",
         type=SchedulingBlockType,
     )
-    observing_mode = Field(ObservingMode.CUSTOM, "Observing mode", type=ObservingMode)
+    observing_mode = Field(
+        ObservingMode.UNKNOWN,
+        "Defines how observations within the Scheduling Block are distributed in space",
+        type=ObservingMode,
+    )
     pointing_mode = Field(
-        None,
-        "Pointing Mode is the coordinate frame in which the pointing position is non-moving",
-        type=CoordinateFrameType,
+        PointingMode.UNKNOWN, "Defines how the telescope drives move", type=PointingMode
     )
 
 
@@ -1118,7 +1131,7 @@ class ObservationBlockContainer(Container):
         "Origin of the obs_id, i.e. name of the telescope site or 'simulation'",
     )
     state = Field(
-        ObservationBlockState.FAILED, "State of this OB", type=ObservationBlockState
+        ObservationBlockState.UNKNOWN, "State of this OB", type=ObservationBlockState
     )
 
     subarray_pointing_lat = Field(
@@ -1134,7 +1147,7 @@ class ObservationBlockContainer(Container):
     )
 
     subarray_pointing_frame = Field(
-        None,
+        CoordinateFrameType.UNKNOWN,
         (
             "Frame in which the subarray_target is non-moving. If the frame is altaz, "
             "The meaning of lat,lon is altitude,azimuth.  If it is icrs, the meaning is "

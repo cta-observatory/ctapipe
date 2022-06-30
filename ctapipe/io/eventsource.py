@@ -210,9 +210,9 @@ class EventSource(Component):
 
     @property
     @abstractmethod
-    def obs_config(self) -> ObservationConfigurationContainer:
+    def obs_config(self) -> list[ObservationConfigurationContainer]:
         """
-        Obtain the ObservationConfiguration from the EventSource
+        Obtain the ObservationConfigurations from the EventSource
         """
         pass
 
