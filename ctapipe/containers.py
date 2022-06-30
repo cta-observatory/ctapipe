@@ -4,8 +4,9 @@ Container structures for data that should be read or written to disk
 import enum
 
 from astropy import units as u
+from astropy.coordinates.sky_coordinate import SkyCoord
 from astropy.time import Time
-from numpy import nan
+from numpy import int64, nan
 import numpy as np
 
 from .core import Container, Field, Map
@@ -56,11 +57,53 @@ __all__ = [
     "StatisticsContainer",
     "IntensityStatisticsContainer",
     "PeakTimeStatisticsContainer",
+    "SchedulingBlockContainer",
+    "ObservationBlockContainer",
+    "ObservationConfigurationContainer",
+    "ObservingMode",
+    "ObservationBlockState",
 ]
 
 
 # see https://github.com/astropy/astropy/issues/6509
 NAN_TIME = Time(0, format="mjd", scale="tai")
+
+
+class SchedulingBlockType(enum.Enum):
+    """
+    Types of Scheduling Block
+    """
+
+    OBSERVATION = 0
+    CALIBRATION = 1
+    ENGINEERING = 2
+
+
+class ObservationBlockState(enum.Enum):
+    """
+    Observation Block State, from XXX
+    """
+
+    FAILED = 0
+    COMPLETED_SUCCEDED = (1,)
+    COMPLETED_CANCELED = (2,)
+    COMPLETED_TRUNCATED = (3,)
+    ARCHIVED = 4
+
+
+class ObservingMode(enum.Enum):
+    """How a scheduling block is observed."""
+
+    WOBBLE = 0
+    ON_OFF = 1
+    GRID = 2
+    CUSTOM = 3
+
+
+class CoordinateFrameType(enum.Enum):
+    ALTAZ = 0
+    ICRS = 1
+    GALACTIC = 2
 
 
 class EventType(enum.Enum):
@@ -1044,3 +1087,86 @@ class ArrayEventContainer(Container):
         "Container for calibration coefficients for the current event",
     )
     mon = Field(MonitoringContainer(), "container for event-wise monitoring data (MON)")
+
+
+class SchedulingBlockContainer(Container):
+    """Stores information about the scheduling block. This is a simplified version
+    of the SB model, only storing what is necessary for analysis."""
+
+    container_prefix = "sb"
+    id = Field(-1, "Scheduling block ID", type=np.int64)
+    type = Field(
+        SchedulingBlockType.OBSERVATION,
+        description="Type of scheduling block",
+        type=SchedulingBlockType,
+    )
+    observing_mode = Field(ObservingMode.CUSTOM, "Observing mode", type=ObservingMode)
+    pointing_mode = Field(
+        None,
+        "Pointing Mode is the coordinate frame in which the pointing position is non-moving",
+        type=CoordinateFrameType,
+    )
+
+
+class ObservationBlockContainer(Container):
+    """Stores information about the observation"""
+
+    container_prefix = "obs"
+    id = Field(None, "Observation Block ID", type=np.int64)
+    producer_id = Field(
+        "unknown",
+        "Origin of the obs_id, i.e. name of the telescope site or 'simulation'",
+    )
+    state = Field(
+        ObservationBlockState.FAILED, "State of this OB", type=ObservationBlockState
+    )
+
+    subarray_pointing_lat = Field(
+        None,
+        "latitude of the nominal center coordinate of this observation",
+        unit=u.deg,
+    )
+
+    subarray_pointing_lon = Field(
+        None,
+        "longitude of the nominal center coordinate of this observation",
+        unit=u.deg,
+    )
+
+    subarray_pointing_frame = Field(
+        None,
+        (
+            "Frame in which the subarray_target is non-moving. If the frame is altaz, "
+            "The meaning of lat,lon is altitude,azimuth.  If it is icrs, the meaning is "
+            "RA,Dec"
+        ),
+        type=CoordinateFrameType,
+    )
+
+    scheduled_duration = Field(None, "expected duration from scheduler", unit=u.min)
+    scheduled_start_time = Field(NAN_TIME, "expected start time from scheduler")
+    actual_start_time = Field(NAN_TIME, "true start time")
+    actual_duration = Field(None, "true duration", unit=u.min)
+
+
+class ObservationConfigurationContainer(Container):
+    """Observation Configuration, provided by an EventSource. This stores the
+    nominal pointing and target information and durations for both real and
+    simulated data.
+
+    References
+    ----------
+    .. [sb-ob] Oya et al, Scheduling Block Data Model Specification,
+        CTA-SPE-COM-000000-0003, Issue 1, Rev. c
+    """
+
+    scheduling_block = Field(
+        None,
+        "Scheduling block associated to this observation",
+        type=SchedulingBlockContainer,
+    )
+    observation_block = Field(
+        None,
+        "Scheduling block associated to this observation",
+        type=ObservationBlockContainer,
+    )

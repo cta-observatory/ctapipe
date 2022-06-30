@@ -7,7 +7,7 @@ from typing import Tuple, List, Generator
 
 from ..instrument import SubarrayDescription
 from .datalevels import DataLevel
-from ..containers import ArrayEventContainer
+from ..containers import ArrayEventContainer, ObservationConfigurationContainer
 from ..core import ToolConfigurationError, Provenance
 from ..core.component import Component, non_abstract_children, find_config_in_hierarchy
 from ..core.traits import Path, Int, CInt, Set, Undefined
@@ -207,6 +207,14 @@ class EventSource(Component):
         ctapipe.instrument.SubarrayDecription
 
         """
+
+    @property
+    @abstractmethod
+    def obs_config(self) -> ObservationConfigurationContainer:
+        """
+        Obtain the ObservationConfiguration from the EventSource
+        """
+        pass
 
     @property
     @abstractmethod
