@@ -97,14 +97,6 @@ def _empty_telescope_events_table():
     return Table(names=TELESCOPE_EVENT_KEYS, dtype=[np.int32, np.int64, np.int16])
 
 
-def _empty_subarray_events_table():
-    """
-    Create a new astropy table with correct column names and dtypes
-    for subarray event based data.
-    """
-    return Table(names=SUBARRAY_EVENT_KEYS, dtype=[np.int32, np.int64])
-
-
 def _get_structure(h5file):
     """
     Check if data is stored by telescope id or by telescope type in h5file.
@@ -135,12 +127,18 @@ def _add_column_prefix(table, prefix, ignore=()):
 
 def _join_subarray_events(table1, table2):
     """Outer join two tables on the telescope subarray keys"""
-    return join_allow_empty(table1, table2, SUBARRAY_EVENT_KEYS, "outer")
+    return join_allow_empty(table1, table2, SUBARRAY_EVENT_KEYS, "left")
 
 
 def _join_telescope_events(table1, table2):
     """Outer join two tables on the telescope event keys"""
-    return join_allow_empty(table1, table2, TELESCOPE_EVENT_KEYS, "outer")
+    # we start with an empty table, but after the first non-empty, we perform
+    # left joins
+    if len(table1) == 0:
+        how = "right"
+    else:
+        how = "left"
+    return join_allow_empty(table1, table2, TELESCOPE_EVENT_KEYS, how)
 
 
 class TableLoader(Component):
@@ -188,9 +186,7 @@ class TableLoader(Component):
     load_true_parameters = traits.Bool(
         False, help="load image parameters obtained from true images"
     ).tag(config=True)
-    load_trigger = traits.Bool(True, help="load subarray trigger information").tag(
-        config=True
-    )
+
     load_instrument = traits.Bool(
         False, help="join subarray instrument information to each event"
     ).tag(config=True)
@@ -259,7 +255,37 @@ class TableLoader(Component):
 
         return table
 
-    def read_subarray_events(self, start=None, stop=None):
+    def _get_sort_index(self, start=None, stop=None):
+        """
+        Get plain index of increasing integers in the order in the file.
+
+        Astropy.table.join orders by the join keys, we want to keep
+        the original order. Adding an index before the first join and then
+        using that in the end to sort back to the original order solves this.
+        """
+        table = read_table(
+            self.h5file,
+            TRIGGER_TABLE,
+            start=start,
+            stop=stop,
+        )[["obs_id", "event_id"]]
+        self._add_index_if_needed(table)
+        return table
+
+    @staticmethod
+    def _sort_to_original_order(table, include_tel_id=False):
+        if include_tel_id:
+            table.sort(("__index__", "tel_id"))
+        else:
+            table.sort("__index__")
+        table.remove_column("__index__")
+
+    @staticmethod
+    def _add_index_if_needed(table):
+        if "__index__" not in table.colnames:
+            table["__index__"] = np.arange(len(table))
+
+    def read_subarray_events(self, start=None, stop=None, keep_order=True):
         """Read subarray-based event information.
 
         Returns
@@ -267,11 +293,9 @@ class TableLoader(Component):
         table: astropy.io.Table
             Table with primary index columns "obs_id" and "event_id".
         """
-        table = _empty_subarray_events_table()
-
-        if self.load_trigger:
-            trigger = read_table(self.h5file, TRIGGER_TABLE, start=start, stop=stop)
-            table = _join_subarray_events(table, trigger)
+        table = read_table(self.h5file, TRIGGER_TABLE, start=start, stop=stop)
+        if keep_order:
+            self._add_index_if_needed(table)
 
         if self.load_simulated and SHOWER_TABLE in self.h5file:
             showers = read_table(self.h5file, SHOWER_TABLE, start=start, stop=stop)
@@ -297,6 +321,9 @@ class TableLoader(Component):
                             dl2, prefix=algorithm, ignore=SUBARRAY_EVENT_KEYS
                         )
                         table = _join_subarray_events(table, dl2)
+
+        if keep_order:
+            self._sort_to_original_order(table)
         return table
 
     def read_subarray_events_chunked(self, chunk_size):
@@ -392,7 +419,10 @@ class TableLoader(Component):
 
         if self.load_simulated and TRUE_IMPACT_GROUP in self.h5file.root:
             impacts = self._read_telescope_table(
-                TRUE_IMPACT_GROUP, tel_id, start=start, stop=stop
+                TRUE_IMPACT_GROUP,
+                tel_id,
+                start=start,
+                stop=stop,
             )
             table = _join_telescope_events(table, impacts)
 
@@ -415,7 +445,11 @@ class TableLoader(Component):
         return table
 
     def _join_subarray_info(self, table, start=None, stop=None):
-        subarray_events = self.read_subarray_events(start=start, stop=stop)
+        subarray_events = self.read_subarray_events(
+            start=start,
+            stop=stop,
+            keep_order=False,
+        )
         table = join_allow_empty(
             table, subarray_events, keys=SUBARRAY_EVENT_KEYS, join_type="left"
         )
@@ -472,9 +506,13 @@ class TableLoader(Component):
                     tel_stop = self._n_telescope_events[stop][indices]
 
         table = self._read_telescope_events_for_ids(tel_ids, tel_start, tel_stop)
+        table = self._join_subarray_info(table, start=start, stop=stop)
 
-        if any([self.load_trigger, self.load_simulated, self.load_dl2]):
-            table = self._join_subarray_info(table, start=start, stop=stop)
+        # sort back to order in the file
+        table = _join_subarray_events(
+            table, self._get_sort_index(start=start, stop=stop)
+        )
+        self._sort_to_original_order(table, include_tel_id=True)
 
         return table
 
@@ -547,8 +585,9 @@ class TableLoader(Component):
 
         by_type = {k: vstack(ts) for k, ts in by_type.items()}
 
-        if any([self.load_trigger, self.load_simulated, self.load_dl2]):
-            for key, table in by_type.items():
-                by_type[key] = self._join_subarray_info(table)
+        for key, table in by_type.items():
+            by_type[key] = self._join_subarray_info(table)
+            table = _join_subarray_events(table, self._get_sort_index())
+            self._sort_to_original_order(table, include_tel_id=True)
 
         return by_type
