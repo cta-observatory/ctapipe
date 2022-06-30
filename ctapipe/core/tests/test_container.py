@@ -22,15 +22,11 @@ def test_prefix():
     r = ReallyAwesomeContainer()
     assert r.prefix == "test"
 
+    # new instance should have the new prefix,
+    # old instance the one it was created with
     ReallyAwesomeContainer.default_prefix = "test2"
-    # new instance should have the old prefix, old instance
-    # the one it was created with
     assert ReallyAwesomeContainer().prefix == "test2"
     assert r.prefix == "test"
-
-    # Make sure we can set the class level prefix at runtime
-    ReallyAwesomeContainer.default_prefix = "foo"
-    assert ReallyAwesomeContainer().prefix == "foo"
 
     # make sure we can assign instance level prefixes
     c1 = ReallyAwesomeContainer()
