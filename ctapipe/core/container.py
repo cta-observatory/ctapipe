@@ -115,7 +115,10 @@ class Field:
         if isinstance(value, Map):
             for key, map_value in value.items():
                 if isinstance(map_value, Container):
-                    map_value.validate()
+                    try:
+                        map_value.validate()
+                    except FieldValidationError as err:
+                        raise FieldValidationError(f"[{key}]: {err} ")
 
         if self.unit is not None:
             if not isinstance(value, Quantity):
