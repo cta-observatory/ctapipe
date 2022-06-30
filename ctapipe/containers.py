@@ -1141,7 +1141,7 @@ class ObservationBlockContainer(Container):
     )
 
     subarray_pointing_lon = Field(
-        None,
+        nan * u.deg,
         "longitude of the nominal center coordinate of this observation",
         unit=u.deg,
     )
@@ -1156,10 +1156,12 @@ class ObservationBlockContainer(Container):
         type=CoordinateFrameType,
     )
 
-    scheduled_duration = Field(None, "expected duration from scheduler", unit=u.min)
+    scheduled_duration = Field(
+        nan * u.min, "expected duration from scheduler", unit=u.min
+    )
     scheduled_start_time = Field(NAN_TIME, "expected start time from scheduler")
     actual_start_time = Field(NAN_TIME, "true start time")
-    actual_duration = Field(None, "true duration", unit=u.min)
+    actual_duration = Field(nan * u.min, "true duration", unit=u.min)
 
 
 class ObservationConfigurationContainer(Container):
