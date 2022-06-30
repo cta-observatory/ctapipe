@@ -34,7 +34,7 @@ def test_prefix():
     c3 = ReallyAwesomeContainer(prefix="c3")
     c2.prefix = "c2"
 
-    assert c1.prefix == "foo"
+    assert c1.prefix == "test2"
     assert c2.prefix == "c2"
     assert c3.prefix == "c3"
 

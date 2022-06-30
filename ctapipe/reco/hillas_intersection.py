@@ -243,7 +243,7 @@ class HillasIntersection(Reconstructor):
 
         src_error = np.sqrt(err_fov_lon**2 + err_fov_lat**2)
 
-        result = ReconstructedGeometryContainer(
+        return ReconstructedGeometryContainer(
             alt=sky_pos.altaz.alt.to(u.rad),
             az=sky_pos.altaz.az.to(u.rad),
             core_x=grd.x,
@@ -260,9 +260,8 @@ class HillasIntersection(Reconstructor):
             h_max=x_max,
             h_max_uncert=u.Quantity(np.nan * x_max.unit),
             goodness_of_fit=np.nan,
+            prefix=self.__class__.__name__,
         )
-        result.prefix = self.__class__.__name__
-        return result
 
     def reconstruct_nominal(self, hillas_parameters):
         """
