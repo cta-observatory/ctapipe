@@ -413,12 +413,6 @@ class DataWriter(Component):
             transform=tr_tel_list_to_mask,
         )
 
-        # avoid some warnings about unwritable columns (which here are just
-        # sub-containers)
-        writer.exclude("dl1/event/subarray/trigger", "tel")
-        writer.exclude("dl1/monitoring/subarray/pointing", "tel")
-        writer.exclude("/dl1/event/telescope/images/.*", "parameters")
-
         # currently the trigger info is used for the event time, but we dont'
         # want the other bits of the trigger container in the pointing or other
         # montitoring containers
@@ -437,15 +431,11 @@ class DataWriter(Component):
             writer.exclude("/dl1/event/telescope/images/.*", "image_mask")
 
         if self._is_simulation:
-            writer.exclude("/simulation/event/telescope/images/.*", "true_parameters")
-            writer.exclude("/simulation/event/telescope/images/.*", "impact")
             # no timing information yet for true images
             writer.exclude("/simulation/event/telescope/parameters/.*", r"peak_time_.*")
             writer.exclude("/simulation/event/telescope/parameters/.*", "timing_.*")
-            writer.exclude("/simulation/event/subarray/shower", "true_tel")
 
         # Set up transforms
-
         if self.transform_image:
             transform = FixedPointColumnTransform(
                 scale=self.image_scale,
