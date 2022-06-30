@@ -475,7 +475,7 @@ class DataWriter(Component):
         writer.exclude("dl2/event/telescope/.*", "tel_ids")
         writer.add_column_transform_regexp(
             table_regexp="dl2/event/subarray/.*",
-            col_regexp="tel_ids",
+            col_regexp=".*_tel_ids",
             transform=tr_tel_list_to_mask,
         )
 
