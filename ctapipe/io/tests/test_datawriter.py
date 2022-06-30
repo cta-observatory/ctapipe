@@ -9,6 +9,11 @@ import tables
 from traitlets.config import Config
 from astropy import units as u
 from ctapipe.calib import CameraCalibrator
+from ctapipe.containers import (
+    ParticleClassificationContainer,
+    ReconstructedGeometryContainer,
+    ReconstructedEnergyContainer,
+)
 from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import DataLevel, EventSource
 from ctapipe.io.datawriter import DATA_MODEL_VERSION, DataWriter
@@ -22,18 +27,40 @@ def generate_dummy_dl2(event):
 
     for algo in algos:
         for tel_id in event.dl1.tel:
-            event.dl2.tel[tel_id].geometry[algo].alt = 70 * u.deg
-            event.dl2.tel[tel_id].geometry[algo].az = 120 * u.deg
-            event.dl2.tel[tel_id].energy[algo].energy = 10 * u.TeV
-            event.dl2.tel[tel_id].classification[algo].prediction = 0.9
+            event.dl2.tel[tel_id].geometry[algo] = ReconstructedGeometryContainer(
+                alt=70 * u.deg,
+                az=120 * u.deg,
+                prefix=f"{algo}_tel",
+            )
 
-        event.dl2.stereo.geometry[algo].alt = 72 * u.deg
-        event.dl2.stereo.geometry[algo].az = 121 * u.deg
-        event.dl2.stereo.geometry[algo].tel_ids = [1, 2, 4]
-        event.dl2.stereo.energy[algo].tel_ids = [1, 2, 4]
-        event.dl2.stereo.energy[algo].energy = 10 * u.TeV
-        event.dl2.stereo.classification[algo].prediction = 0.9
-        event.dl2.stereo.classification[algo].tel_ids = [1, 2, 4]
+            event.dl2.tel[tel_id].energy[algo] = ReconstructedEnergyContainer(
+                energy=10 * u.TeV,
+                prefix=f"{algo}_tel",
+            )
+            event.dl2.tel[tel_id].classification[
+                algo
+            ] = ParticleClassificationContainer(
+                prediction=0.9,
+                prefix=f"{algo}_tel",
+            )
+
+        event.dl2.stereo.geometry[algo] = ReconstructedGeometryContainer(
+            alt=72 * u.deg,
+            az=121 * u.deg,
+            tel_ids=[1, 2, 4],
+            prefix=algo,
+        )
+
+        event.dl2.stereo.energy[algo] = ReconstructedEnergyContainer(
+            energy=10 * u.TeV,
+            tel_ids=[1, 2, 4],
+            prefix=algo,
+        )
+        event.dl2.stereo.classification[algo] = ParticleClassificationContainer(
+            prediction=0.9,
+            tel_ids=[1, 2, 4],
+            prefix=algo,
+        )
 
 
 def test_write(tmpdir: Path):
@@ -51,7 +78,7 @@ def test_write(tmpdir: Path):
         get_dataset_path("gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"),
         max_events=20,
         allowed_tels=[1, 2, 3, 4],
-        focal_length_choice='nominal',
+        focal_length_choice="nominal",
     )
     calibrate = CameraCalibrator(subarray=source.subarray)
 
@@ -104,16 +131,17 @@ def test_write(tmpdir: Path):
             shower._v_attrs["true_alt_UNIT"] == "deg"
         )  # pylint: disable=protected-access
 
-        # check DL2:
-        dl2_energy = h5file.get_node("/dl2/event/subarray/energy/ImPACTReconstructor")
-        assert np.allclose(dl2_energy.col("energy"), 10)
-        assert np.count_nonzero(dl2_energy.col("tel_ids")[0]) == 3
+        # check DL2
+        for prefix in ("ImPACTReconstructor", "HillasReconstructor"):
+            dl2_energy = h5file.get_node(f"/dl2/event/subarray/energy/{prefix}")
+            assert np.allclose(dl2_energy.col(f"{prefix}_energy"), 10)
+            assert np.count_nonzero(dl2_energy.col(f"{prefix}_tel_ids")[0]) == 3
 
-        dl2_tel_energy = h5file.get_node(
-            "/dl2/event/telescope/energy/HillasReconstructor/tel_002"
-        )
-        assert np.allclose(dl2_tel_energy.col("energy"), 10)
-        assert "tel_ids" not in dl2_tel_energy
+            dl2_tel_energy = h5file.get_node(
+                f"/dl2/event/telescope/energy/{prefix}/tel_002"
+            )
+            assert np.allclose(dl2_tel_energy.col(f"{prefix}_tel_energy"), 10)
+            assert "tel_ids" not in dl2_tel_energy
 
 
 def test_roundtrip(tmpdir: Path):
@@ -131,7 +159,7 @@ def test_roundtrip(tmpdir: Path):
         get_dataset_path("gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"),
         max_events=20,
         allowed_tels=[1, 2, 3, 4],
-        focal_length_choice='nominal',
+        focal_length_choice="nominal",
     )
     calibrate = CameraCalibrator(subarray=source.subarray)
 
@@ -203,7 +231,9 @@ def test_dl1writer_no_events(tmpdir: Path):
 
     output_path = Path(tmpdir / "no_events.dl1.h5")
     dataset = "lst_prod3_calibration_and_mcphotons.simtel.zst"
-    with EventSource(get_dataset_path(dataset), focal_length_choice='nominal') as source:
+    with EventSource(
+        get_dataset_path(dataset), focal_length_choice="nominal"
+    ) as source:
         # exhaust source
         for _ in source:
             pass

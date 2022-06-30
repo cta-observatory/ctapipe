@@ -268,25 +268,21 @@ class HillasReconstructor(Reconstructor):
         # estimate max height of shower
         h_max = self.estimate_h_max(hillas_planes)
 
-        # astropy's coordinates system rotates counter-clockwise.
-        # Apparently we assume it to be clockwise.
-        # that's why lon get's a sign
-        result = ReconstructedGeometryContainer(
+        return ReconstructedGeometryContainer(
             alt=lat,
-            az=-lon,
+            az=-lon,  # az is clockwise, lon counter-clockwise
             core_x=core_pos_ground.x,
             core_y=core_pos_ground.y,
             core_tilted_x=core_pos_tilted.x,
             core_tilted_y=core_pos_tilted.y,
-            tel_ids=[h for h in hillas_dict.keys()],
+            tel_ids=[tel_id for tel_id in hillas_dict.keys()],
             average_intensity=np.mean([h.intensity for h in hillas_dict.values()]),
             is_valid=True,
             alt_uncert=err_est_dir,
             az_uncert=err_est_dir,
             h_max=h_max,
+            prefix=self.__class__.__name__,
         )
-        result.prefix = self.__class__.__name__
-        return result
 
     def initialize_hillas_planes(
         self, hillas_dict, subarray, telescopes_pointings, array_pointing

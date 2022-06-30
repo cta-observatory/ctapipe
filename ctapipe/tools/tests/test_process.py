@@ -4,10 +4,12 @@
 Test ctapipe-process on a few different use cases
 """
 
+import numpy as np
 import pandas as pd
 import pytest
 import tables
 from ctapipe.core import run_tool
+from ctapipe.instrument.subarray import SubarrayDescription
 from ctapipe.io import DataLevel, EventSource, read_table
 from ctapipe.tools.process import ProcessorTool
 from ctapipe.tools.quickstart import CONFIGS_TO_WRITE, QuickStartTool
@@ -222,7 +224,16 @@ def test_stage_2_from_simtel(tmp_path):
 
     # check tables were written
     with tables.open_file(output, mode="r") as testfile:
-        assert testfile.root.dl2.event.subarray.geometry.HillasReconstructor
+        dl2 = read_table(
+            testfile,
+            "/dl2/event/subarray/geometry/HillasReconstructor",
+        )
+        subarray = SubarrayDescription.from_hdf(testfile)
+
+        # test tel_ids are included and transformed correctly
+        assert "HillasReconstructor_tel_ids" in dl2.colnames
+        assert dl2["HillasReconstructor_tel_ids"].dtype == np.bool_
+        assert dl2["HillasReconstructor_tel_ids"].shape[1] == len(subarray)
 
 
 def test_stage_2_from_dl1_images(tmp_path, dl1_image_file):

@@ -167,6 +167,9 @@ def test_read_dl2(dl2_shower_geometry_file):
         tel_mask = e.dl2.stereo.geometry[algorithm].tel_ids
         tel_ids = s.subarray.tel_mask_to_tel_ids(tel_mask)
         for tel_id in tel_ids:
+            assert tel_id in e.dl2.tel
             assert algorithm in e.dl2.tel[tel_id].impact
-            assert e.dl2.tel[tel_id].impact[algorithm].prefix == algorithm + "_tel"
-            assert e.dl2.tel[tel_id].impact[algorithm].distance is not None
+            impact = e.dl2.tel[tel_id].impact[algorithm]
+            assert impact.prefix == algorithm + "_tel"
+            assert impact.distance is not None
+            assert impact.tel_ids is None
