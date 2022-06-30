@@ -108,6 +108,10 @@ class Field:
                 f"{errorstr} Should be an instance of {self.type}"
             )
 
+        if isinstance(value, Container):
+            # recursively check sub-containers
+            value.validate()
+
         if self.unit is not None:
             if not isinstance(value, Quantity):
                 raise FieldValidationError(
