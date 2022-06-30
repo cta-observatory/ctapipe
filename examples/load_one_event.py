@@ -15,9 +15,11 @@ if __name__ == "__main__":
     if len(sys.argv) >= 2:
         filename = sys.argv[1]
     else:
-        filename = get_dataset_path("gamma_test_large.simtel.gz")
+        filename = get_dataset_path(
+            "gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"
+        )
 
-    with EventSource(filename, max_events=1) as source:
+    with EventSource(filename, max_events=1, focal_length_choice="nominal") as source:
         calib = CameraCalibrator(subarray=source.subarray)
         process_images = ImageProcessor(subarray=source.subarray)
         process_shower = ShowerProcessor(subarray=source.subarray)
