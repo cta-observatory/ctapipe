@@ -126,21 +126,25 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
     for feature in features:
         assert feature in dl1_features.columns
 
-    # DL1B file as input
-    assert (
-        run_tool(
-            ProcessorTool(),
-            argv=[
-                f"--config={config}",
-                f"--input={dl1_parameters_file}",
-                f"--output={tmp_path}/dl1b_from_dl1b.dl1.h5",
-                "--write-parameters",
-                "--overwrite",
-            ],
-            cwd=tmp_path,
-        )
-        == 1
+    true_impact = read_table(
+        dl1b_from_dl1a_file,
+        "/simulation/event/telescope/impact/tel_025",
     )
+    assert "true_impact_distance" in true_impact.colnames
+
+    # DL1B file as input
+    ret = run_tool(
+        ProcessorTool(),
+        argv=[
+            f"--config={config}",
+            f"--input={dl1_parameters_file}",
+            f"--output={tmp_path}/dl1b_from_dl1b.dl1.h5",
+            "--write-parameters",
+            "--overwrite",
+        ],
+        cwd=tmp_path,
+    )
+    assert ret == 1
 
 
 def test_stage1_datalevels(tmp_path):
