@@ -133,9 +133,7 @@ def subarray_and_event_gamma_off_axis_500_gev(
 
 @pytest.fixture(scope="session")
 def prod5_gamma_simtel_path():
-    return get_dataset_path(
-        "gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst"
-    )
+    return get_dataset_path("gamma_prod5.simtel.zst")
 
 
 @pytest.fixture(scope="session")

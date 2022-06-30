@@ -2,6 +2,8 @@ import pytest
 import tables
 import numpy as np
 
+from ctapipe.instrument.subarray import SubarrayDescription
+
 
 @pytest.fixture(params=["by_type", "by_id"])
 def test_file(request, dl1_file, dl1_by_type_file):
@@ -44,16 +46,17 @@ def test_telescope_events_for_tel_id(test_file):
     loader = TableLoader(dl1_file, load_dl1_parameters=True, load_trigger=True)
 
     with loader as table_loader:
-        table = table_loader.read_telescope_events([25])
+        table = table_loader.read_telescope_events([8])
         assert "hillas_length" in table.colnames
         assert "time" in table.colnames
         assert "event_type" in table.colnames
-        assert np.all(table["tel_id"] == 25)
+        assert np.all(table["tel_id"] == 8)
 
     with TableLoader(dl1_file, load_dl1_images=True) as table_loader:
-        table = table_loader.read_telescope_events([25])
+        table = table_loader.read_telescope_events([8])
         assert "image" in table.colnames
-        assert np.all(table["tel_id"] == 25)
+        assert np.all(table["tel_id"] == 8)
+        assert table["obs_id"].dtype == np.int32
 
     assert not table_loader.h5file.isopen
 
@@ -65,8 +68,8 @@ def test_load_instrument(test_file):
     _, dl1_file = test_file
 
     with TableLoader(dl1_file, load_instrument=True) as table_loader:
-        expected = table_loader.subarray.tel[25].optics.equivalent_focal_length
-        table = table_loader.read_telescope_events([25])
+        expected = table_loader.subarray.tel[8].optics.equivalent_focal_length
+        table = table_loader.read_telescope_events([8])
         assert "equivalent_focal_length" in table.colnames
         assert np.all(table["equivalent_focal_length"] == expected)
 
@@ -80,8 +83,9 @@ def test_load_simulated(test_file):
     with TableLoader(dl1_file, load_simulated=True) as table_loader:
         table = table_loader.read_subarray_events()
         assert "true_energy" in table.colnames
+        assert table["obs_id"].dtype == np.int32
 
-        table = table_loader.read_telescope_events([25])
+        table = table_loader.read_telescope_events([8])
         assert "true_energy" in table.colnames
         assert "true_impact_distance" in table.colnames
 
@@ -135,6 +139,8 @@ def test_read_telescope_events_type(test_file_dl2):
 
     _, dl2_file = test_file_dl2
 
+    subarray = SubarrayDescription.from_hdf(dl2_file)
+
     with TableLoader(
         dl2_file,
         load_dl1_images=False,
@@ -151,7 +157,8 @@ def test_read_telescope_events_type(test_file_dl2):
         assert "HillasReconstructor_alt" in table.colnames
         assert "true_energy" in table.colnames
         assert "true_image" in table.colnames
-        assert set(table["tel_id"].data).issubset([25, 125, 130])
+        expected_ids = subarray.get_tel_ids_for_type("MST_MST_FlashCam")
+        assert set(table["tel_id"].data).issubset(expected_ids)
         assert "equivalent_focal_length" in table.colnames
         assert "HillasReconstructor_impact_distance" in table.colnames
 
@@ -162,6 +169,7 @@ def test_read_telescope_events_by_type(test_file_dl2):
     from ctapipe.io.tableloader import TableLoader
 
     _, dl2_file = test_file_dl2
+    subarray = SubarrayDescription.from_hdf(dl2_file)
 
     with TableLoader(
         dl2_file,
@@ -183,7 +191,8 @@ def test_read_telescope_events_by_type(test_file_dl2):
             assert "HillasReconstructor_alt" in table.colnames
             assert "true_energy" in table.colnames
             assert "true_image" in table.colnames
-            assert set(table["tel_id"].data).issubset([25, 125, 130])
+            expected_ids = subarray.get_tel_ids_for_type(tel_type)
+            assert set(table["tel_id"].data).issubset(expected_ids)
             assert "equivalent_focal_length" in table.colnames
 
 
@@ -204,3 +213,48 @@ def test_h5file(test_file_dl2):
             assert 25 in loader.subarray.tel
             loader.read_subarray_events()
             loader.read_telescope_events()
+
+
+def test_chunked(dl2_shower_geometry_file):
+    """Test chunked reading"""
+    from ctapipe.io.tableloader import TableLoader, read_table
+
+    trigger = read_table(dl2_shower_geometry_file, "/dl1/event/subarray/trigger")
+    n_events = len(trigger)
+    n_read = 0
+
+    n_chunks = 2
+    chunk_size = int(np.ceil(n_events / n_chunks))
+
+    with TableLoader(
+        dl2_shower_geometry_file,
+        load_dl1_images=False,
+        load_true_images=False,
+        load_dl1_parameters=True,
+        load_dl2=True,
+        load_simulated=True,
+        load_trigger=True,
+    ) as table_loader:
+
+        tel_event_it = table_loader.read_telescope_events_chunked(chunk_size)
+        event_it = table_loader.read_subarray_events_chunked(chunk_size)
+
+        for chunk, (events, tel_events) in enumerate(zip(event_it, tel_event_it)):
+            n_read += len(events)
+
+            # last chunk might be smaller
+            if chunk == (n_chunks - 1):
+                assert len(events) == n_events % chunk_size
+            else:
+                assert len(events) == chunk_size
+
+            assert len(tel_events) == np.sum(events["tels_with_trigger"])
+
+            unique_events_from_tel_table = np.unique(tel_events[["obs_id", "event_id"]])
+
+            # test we get matching obs_ids / event_ids
+            idx = events[["obs_id", "event_id"]].argsort()
+            sorted_index = np.array(events[["obs_id", "event_id"]][idx])
+            assert (unique_events_from_tel_table == sorted_index).all()
+
+    assert n_read == n_events

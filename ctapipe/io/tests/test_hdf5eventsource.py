@@ -19,8 +19,8 @@ def test_metadata(dl1_file):
             DataLevel.DL1_IMAGES,
             DataLevel.DL1_PARAMETERS,
         }
-        assert list(source.obs_ids) == [2]
-        assert source.simulation_config[2].corsika_version == 7710
+        assert list(source.obs_ids) == [1]
+        assert source.simulation_config[1].corsika_version == 7710
 
 
 def test_subarray(dl1_file):
