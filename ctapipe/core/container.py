@@ -112,6 +112,11 @@ class Field:
             # recursively check sub-containers
             value.validate()
 
+        if isinstance(value, Map):
+            for key, map_value in value.items():
+                if isinstance(map_value, Container):
+                    map_value.validate()
+
         if self.unit is not None:
             if not isinstance(value, Quantity):
                 raise FieldValidationError(

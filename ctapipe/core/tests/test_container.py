@@ -271,11 +271,22 @@ def test_container_validation():
 
 
 def test_recursive_validation():
+    """
+    Check both sub-containers and Maps work with recursive validation
+    """
+
     class ChildContainer(Container):
         x = Field(3.2 * u.m, "test", unit="m")
 
     class ParentContainer(Container):
         cont = Field(None, "test sub", type=ChildContainer)
+        map = Field(Map(ChildContainer), "many children")
 
     with pytest.raises(FieldValidationError):
         ParentContainer(cont=ChildContainer(x=1 * u.s)).validate()
+
+    with pytest.raises(FieldValidationError):
+        cont = ParentContainer(cont=ChildContainer(x=1 * u.m))
+        cont.map[0] = ChildContainer(x=1 * u.m)
+        cont.map[1] = ChildContainer(x=1 * u.s)
+        cont.validate()
