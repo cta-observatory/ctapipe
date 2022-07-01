@@ -434,14 +434,17 @@ class TableLoader(Component):
         tel_start = tel_start if tel_start is not None else [None] * len(tel_ids)
         tel_stop = tel_stop if tel_stop is not None else [None] * len(tel_ids)
 
-        table = vstack(
-            [
-                self._read_telescope_events_for_id(tel_id, start=start, stop=stop)
-                for tel_id, start, stop in zip(tel_ids, tel_start, tel_stop)
-            ]
-        )
+        tables = []
+        for tel_id, start, stop in zip(tel_ids, tel_start, tel_stop):
+            # no events for this telescope in chunk
+            if start is not None and stop is not None and (stop - start) == 0:
+                continue
 
-        return table
+            tables.append(
+                self._read_telescope_events_for_id(tel_id, start=start, stop=stop)
+            )
+
+        return vstack(tables)
 
     def _join_subarray_info(self, table, start=None, stop=None):
         subarray_events = self.read_subarray_events(
@@ -580,28 +583,31 @@ class TableLoader(Component):
         else:
             tel_ids = self.subarray.get_tel_ids(telescopes)
 
-        tel_starts, tel_stops = self._get_tel_start_stop(tel_ids, start, stop)
-        tel_starts = tel_starts if tel_starts is not None else [None] * len(tel_ids)
-        tel_stops = tel_stops if tel_stops is not None else [None] * len(tel_ids)
+        tel_start, tel_stop = self._get_tel_start_stop(tel_ids, start, stop)
+        tel_start = tel_start if tel_start is not None else [None] * len(tel_ids)
+        tel_stop = tel_stop if tel_stop is not None else [None] * len(tel_ids)
 
         by_type = defaultdict(list)
+        sort_index = self._get_sort_index(start=start, stop=stop)
 
-        for tel_id, tel_start, tel_stop in zip(tel_ids, tel_starts, tel_stops):
+        for tel_id, start, stop in zip(tel_ids, tel_start, tel_stop):
+            # no events for this telescope in range start/stop
+            if start is not None and stop is not None and (stop - start) == 0:
+                continue
+
             key = str(self.subarray.tel[tel_id])
             by_type[key].append(
-                self._read_telescope_events_for_id(
-                    tel_id, start=tel_start, stop=tel_stop
-                )
+                self._read_telescope_events_for_id(tel_id, start=start, stop=stop)
             )
 
         by_type = {k: vstack(ts) for k, ts in by_type.items()}
 
-        for key, table in by_type.items():
-            by_type[key] = self._join_subarray_info(table, start=start, stop=stop)
-            table = _join_subarray_events(
-                table, self._get_sort_index(start=start, stop=stop)
+        for key in by_type.keys():
+            by_type[key] = self._join_subarray_info(
+                by_type[key], start=start, stop=stop
             )
-            self._sort_to_original_order(table, include_tel_id=True)
+            by_type[key] = _join_subarray_events(by_type[key], sort_index)
+            self._sort_to_original_order(by_type[key], include_tel_id=True)
 
         return by_type
 

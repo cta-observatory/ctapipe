@@ -337,8 +337,8 @@ def test_chunked(dl2_shower_geometry_file):
             assert len(tel_events) == np.count_nonzero(events["tels_with_trigger"])
 
             n_events_by_type = 0
-            for tel in table_loader.subarray.telescope_types:
-                n_events_by_type += len(by_type[str(tel)])
+            for table in by_type.values():
+                n_events_by_type += len(table)
 
             assert n_events_by_type == len(tel_events)
 
