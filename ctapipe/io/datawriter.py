@@ -432,8 +432,8 @@ class DataWriter(Component):
 
         if self._is_simulation:
             # no timing information yet for true images
-            writer.exclude("/simulation/event/telescope/parameters/.*", r"peak_time_.*")
-            writer.exclude("/simulation/event/telescope/parameters/.*", "timing_.*")
+            writer.exclude("/simulation/event/telescope/parameters/.*", r".*_peak_time_.*")
+            writer.exclude("/simulation/event/telescope/parameters/.*", r".*_timing_.*")
 
         # Set up transforms
         if self.transform_image:

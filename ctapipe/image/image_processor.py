@@ -234,7 +234,8 @@ class ImageProcessor(TelescopeComponent):
                     default=DEFAULT_TRUE_IMAGE_PARAMETERS,
                 )
                 for container in sim_camera.true_parameters.values():
-                    container.prefix = "true_" + container.prefix
+                    if not container.prefix.startswith("true_"):
+                        container.prefix = f"true_{container.prefix}"
 
                 self.log.debug(
                     "sim params: %s",

@@ -335,7 +335,13 @@ class HDF5EventSource(EventSource):
                             MorphologyContainer,
                             IntensityStatisticsContainer,
                         ],
-                        prefixes=True,
+                        prefixes=[
+                            "true_hillas",
+                            "true_leakage",
+                            "true_concentration",
+                            "true_morphology",
+                            "true_intensity",
+                        ],
                     )
                     for tel in self.file_.root.dl1.event.telescope.parameters
                 }
