@@ -115,18 +115,18 @@ class FlatFieldCalculator(Component):
 
 class FlasherFlatFieldCalculator(FlatFieldCalculator):
     """Calculates flat-field parameters from flasher data
-       based on the best algorithm described by S. Fegan in MST-CAM-TN-0060 (eq. 19)
-       Pixels are defined as outliers on the base of a cut on the pixel charge median
-       over the full sample distribution and the pixel signal time inside the
-       waveform time
+      based on the best algorithm described by S. Fegan in MST-CAM-TN-0060 (eq. 19)
+      Pixels are defined as outliers on the base of a cut on the pixel charge median
+      over the full sample distribution and the pixel signal time inside the
+      waveform time
 
 
-     Parameters
-     ----------
-     charge_cut_outliers : List[2]
-         Interval of accepted charge values (fraction with respect to camera median value)
-     time_cut_outliers : List[2]
-         Interval (in waveform samples) of accepted time values
+    Parameters
+    ----------
+    charge_cut_outliers : List[2]
+        Interval of accepted charge values (fraction with respect to camera median value)
+    time_cut_outliers : List[2]
+        Interval (in waveform samples) of accepted time values
 
     """
 
@@ -140,18 +140,18 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
 
     def __init__(self, **kwargs):
         """Calculates flat-field parameters from flasher data
-           based on the best algorithm described by S. Fegan in MST-CAM-TN-0060 (eq. 19)
-           Pixels are defined as outliers on the base of a cut on the pixel charge median
-           over the full sample distribution and the pixel signal time inside the
-           waveform time
+          based on the best algorithm described by S. Fegan in MST-CAM-TN-0060 (eq. 19)
+          Pixels are defined as outliers on the base of a cut on the pixel charge median
+          over the full sample distribution and the pixel signal time inside the
+          waveform time
 
 
-         Parameters:
-         ----------
-         charge_cut_outliers : List[2]
-             Interval of accepted charge values (fraction with respect to camera median value)
-         time_cut_outliers : List[2]
-             Interval (in waveform samples) of accepted time values
+        Parameters:
+        ----------
+        charge_cut_outliers : List[2]
+            Interval of accepted charge values (fraction with respect to camera median value)
+        time_cut_outliers : List[2]
+            Interval (in waveform samples) of accepted time values
 
         """
         super().__init__(**kwargs)
@@ -190,14 +190,14 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
 
     def calculate_relative_gain(self, event):
         """
-         calculate the flatfield statistical values
-         and fill mon.tel[tel_id].flatfield container
+        calculate the flatfield statistical values
+        and fill mon.tel[tel_id].flatfield container
 
-         Parameters
-         ----------
-         event : general event container
+        Parameters
+        ----------
+        event : general event container
 
-         """
+        """
 
         # initialize the np array at each cycle
         waveform = event.r1.tel[self.tel_id].waveform
@@ -235,7 +235,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
 
         self.collect_sample(dl1.image, pixel_mask, dl1.peak_time)
 
-        sample_age = trigger_time - self.time_start
+        sample_age = (trigger_time - self.time_start).to_value(u.s)
 
         # check if to create a calibration event
         if (
@@ -296,7 +296,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
     def calculate_time_results(
         self, trace_time, masked_pixels_of_sample, time_start, trigger_time
     ):
-        """Calculate and return the time results """
+        """Calculate and return the time results"""
         masked_trace_time = np.ma.array(trace_time, mask=masked_pixels_of_sample)
 
         # median over the sample per pixel
