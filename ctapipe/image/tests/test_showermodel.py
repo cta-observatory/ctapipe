@@ -7,33 +7,64 @@ from pytest import approx
 def test_gaussian():
     from ctapipe.image import showermodel
 
-    # This is a shower straight from above
-    Nc = 15000  # cherenkov photons
-    x = 0 * u.meter  # position of intersection on ground
-    y = 0 * u.meter  # position of intersection on ground
-    phi = 0 * u.deg  # phi orientation spherical coords
-    theta = 0 * u.deg  # theta orientation spherical coords
-    h_bary = 20000 * u.meter  # height of the barycenter
-    width = 10 * u.meter  # width of shower
-    length = 3000 * u.meter  # length of shower
+    # This is a shower straight from (45deg,45deg)
+    n_ch = 15000
+    x = 0 * u.meter
+    y = 0 * u.meter
+    phi = 45 * u.deg
+    theta = 45 * u.deg
+    first_interaction = 20000 * u.meter
+    width = 10 * u.meter
+    length = 3000 * u.meter
 
     model = showermodel.Gaussian(
-        Nc=Nc, x=x, y=y, phi=phi, theta=theta, h_bary=h_bary, width=width, length=length
+        n_ch=n_ch,
+        x=x,
+        y=y,
+        phi=phi,
+        theta=theta,
+        first_interaction=first_interaction,
+        width=width,
+        length=length,
     )
 
-    # integration over x and z axis
+    # integration over x and y axis
+    trigs = np.cos(phi.to_value(u.rad)) * np.sin(
+        theta.to_value(u.rad)
+    )  # only calculate trigonometric functions once since angle is 45 deg
+    proj_first_inter = first_interaction / np.cos(
+        theta.to_value(u.rad)
+    )  # calculate radius on sphere where height/z equals first_interaction
+
     def integral(z):
         return dblquad(
             model.density,
-            -width.value,
-            width.value,
+            ((proj_first_inter - length / 2) * trigs).value - width.value,
+            ((proj_first_inter - length / 2) * trigs).value + width.value,
             lambda x: 0,
             lambda x: 1,
             args=(z,),
         )
 
-    zs = np.linspace(h_bary - 20 * u.meter, h_bary + 20 * u.meter, 41)
-    print(zs)
+    zs = np.linspace(
+        (proj_first_inter - length / 2) * np.cos(theta.to_value(u.rad)) - 20 * u.meter,
+        (proj_first_inter - length / 2) * np.cos(theta.to_value(u.rad)) + 20 * u.meter,
+        41,
+    )
+
     # one dimensional distriubtion along z axis
     dist = np.array([integral(z.value)[0] for z in zs])
-    assert zs[np.argmax(dist)].value == approx(h_bary.value)
+    assert zs[np.argmax(dist)].value == approx(
+        (proj_first_inter.value - length.value / 2) * np.cos(theta.to_value(u.rad)),
+        rel=0.49,
+    )
+    assert model.barycenter.value == approx(
+        np.array(
+            [
+                (proj_first_inter.value - length.value / 2) * trigs,
+                (proj_first_inter.value - length.value / 2) * trigs,
+                (proj_first_inter.value - length.value / 2)
+                * np.cos(theta.to_value(u.rad)),
+            ]
+        )
+    )
