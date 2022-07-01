@@ -20,6 +20,13 @@ def parse_dotted_version(version):
 
 
 class CameraReadout:
+    __slots__ = (
+        "camera_name",
+        "sampling_rate",
+        "reference_pulse_shape",
+        "reference_pulse_sample_width",
+    )
+
     def __init__(
         self,
         camera_name,

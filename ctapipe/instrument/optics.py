@@ -40,7 +40,15 @@ class OpticsDescription:
         if the units of one of the inputs are missing or incompatible
     """
 
-    @u.quantity_input(mirror_area=u.m ** 2, equivalent_focal_length=u.m)
+    __slots__ = (
+        "equivalent_focal_length",
+        "mirror_area",
+        "name",
+        "num_mirror_tiles",
+        "num_mirrors",
+    )
+
+    @u.quantity_input(mirror_area=u.m**2, equivalent_focal_length=u.m)
     def __init__(
         self,
         name,

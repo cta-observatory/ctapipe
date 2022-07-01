@@ -105,8 +105,6 @@ class CameraGeometry:
     cam_rotation: overall camera rotation with units
     """
 
-    _geometry_cache = {}  # dictionary CameraGeometry instances for speed
-
     def __init__(
         self,
         camera_name,
@@ -171,7 +169,7 @@ class CameraGeometry:
             self.rotate(self.cam_rotation)
 
             # cache border pixel mask per instance
-        self.border_cache = {}
+        self._border_cache = {}
 
     def __eq__(self, other):
         if self.camera_name != other.camera_name:
@@ -884,8 +882,8 @@ class CameraGeometry:
         mask: array
             A boolean mask, True if pixel is in the border of the specified width
         """
-        if width in self.border_cache:
-            return self.border_cache[width]
+        if width in self._border_cache:
+            return self._border_cache[width]
 
         # filter annoying deprecation warning from within scipy
         # scipy still uses np.matrix in scipy.sparse, but we do not
@@ -901,7 +899,7 @@ class CameraGeometry:
                 n = self.neighbor_matrix
                 mask = (n & self.get_border_pixel_mask(width - 1)).any(axis=1)
 
-        self.border_cache[width] = mask
+        self._border_cache[width] = mask
         return mask
 
     def position_to_pix_index(self, x, y):
