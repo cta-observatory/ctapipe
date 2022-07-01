@@ -423,6 +423,8 @@ class DataWriter(Component):
         writer.exclude("/dl1/monitoring/telescope/pointing/.*", "n_trigger_pixels")
         writer.exclude("/dl1/monitoring/telescope/pointing/.*", "trigger_pixels")
         writer.exclude("/dl1/monitoring/event/pointing/.*", "event_type")
+        writer.exclude("/dl1/event/telescope/images/.*", "parameters")
+        writer.exclude("/simulation/event/telescope/images/.*", "true_parameters")
 
         if not self.write_images:
             writer.exclude("/simulation/event/telescope/images/.*", "true_image")
