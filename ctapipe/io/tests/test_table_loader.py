@@ -314,8 +314,11 @@ def test_chunked(dl2_shower_geometry_file):
 
         tel_event_it = table_loader.read_telescope_events_chunked(chunk_size)
         event_it = table_loader.read_subarray_events_chunked(chunk_size)
+        by_type_it = table_loader.read_telescope_events_by_type_chunked(chunk_size)
 
-        for chunk, (events, tel_events) in enumerate(zip(event_it, tel_event_it)):
+        iters = (event_it, tel_event_it, by_type_it)
+
+        for chunk, (events, tel_events, by_type) in enumerate(zip(*iters)):
             n_read += len(events)
             start = chunk * chunk_size
             stop = min(n_events, (chunk + 1) * chunk_size)
@@ -332,5 +335,11 @@ def test_chunked(dl2_shower_geometry_file):
 
             # check number of telescope events is correct
             assert len(tel_events) == np.count_nonzero(events["tels_with_trigger"])
+
+            n_events_by_type = 0
+            for tel in table_loader.subarray.telescope_types:
+                n_events_by_type += len(by_type[str(tel)])
+
+            assert n_events_by_type == len(tel_events)
 
     assert n_read == n_events
