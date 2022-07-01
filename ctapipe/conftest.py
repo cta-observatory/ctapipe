@@ -234,6 +234,30 @@ def dl2_shower_geometry_file_type(dl2_tmp_path, prod5_gamma_simtel_path):
 
 
 @pytest.fixture(scope="session")
+def dl2_merged_file(dl2_tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_file):
+    """
+    File containing both parameters and shower geometry from a gamma simulation set.
+    """
+    from ctapipe.core import run_tool
+    from ctapipe.tools.merge import MergeTool
+
+    output = dl2_tmp_path / "merged.training.h5"
+
+    # prevent running process multiple times in case of parallel tests
+    with FileLock(output.with_suffix(output.suffix + ".lock")):
+        if output.is_file():
+            return output
+
+        argv = [
+            f"--output={output}",
+            str(dl2_proton_geometry_file),
+            str(dl2_shower_geometry_file),
+        ]
+        assert run_tool(MergeTool(), argv=argv, cwd=dl2_tmp_path) == 0
+        return output
+
+
+@pytest.fixture(scope="session")
 def dl1_file(dl1_tmp_path, prod5_gamma_simtel_path):
     """
     DL1 file containing both images and parameters from a gamma simulation set.
