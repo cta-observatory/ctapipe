@@ -226,7 +226,7 @@ class TableLoader(Component):
 
         self.instrument_table = None
         if self.load_instrument:
-            self.instrument_table = self.subarray.to_table('joined')
+            self.instrument_table = self.subarray.to_table("joined")
 
     def close(self):
         """Close the underlying hdf5 file"""
@@ -391,7 +391,9 @@ class TableLoader(Component):
             )
 
         if self.load_simulated and TRUE_IMPACT_GROUP in self.h5file.root:
-            impacts = self._read_telescope_table(TRUE_IMPACT_GROUP, tel_id)
+            impacts = self._read_telescope_table(
+                TRUE_IMPACT_GROUP, tel_id, start=start, stop=stop
+            )
             table = _join_telescope_events(table, impacts)
 
         return table

@@ -1,4 +1,3 @@
-from collections import defaultdict
 import warnings
 from gzip import GzipFile
 from io import BufferedReader
@@ -29,6 +28,7 @@ from ..containers import (
     TriggerContainer,
 )
 from ..coordinates import CameraFrame
+from ..core import Map
 from ..core.traits import (
     Bool,
     CaselessStrEnum,
@@ -567,7 +567,7 @@ class SimTelEventSource(EventSource):
 
         central_time = parse_simtel_time(trigger["gps_time"])
 
-        tel = defaultdict(TelescopeTriggerContainer)
+        tel = Map(TelescopeTriggerContainer)
         for tel_id, time in zip(
             trigger["triggered_telescopes"], trigger["trigger_times"]
         ):
