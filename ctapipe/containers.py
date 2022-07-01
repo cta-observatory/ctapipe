@@ -1135,7 +1135,7 @@ class ObservationBlockContainer(Container):
     )
 
     subarray_pointing_lat = Field(
-        None,
+        nan * u.deg,
         "latitude of the nominal center coordinate of this observation",
         unit=u.deg,
     )
