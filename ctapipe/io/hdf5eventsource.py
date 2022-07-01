@@ -17,6 +17,7 @@ from ..containers import (
     IntensityStatisticsContainer,
     LeakageContainer,
     MorphologyContainer,
+    ObservationConfigurationContainer,
     ParticleClassificationContainer,
     ReconstructedEnergyContainer,
     SimulationConfigContainer,
@@ -220,12 +221,16 @@ class HDF5EventSource(EventSource):
         return list(np.unique(self.file_.root.dl1.event.subarray.trigger.col("obs_id")))
 
     @property
-    def simulation_config(self):
+    def simulation_config(self) -> Dict[SimulationConfigContainer]:
         """
         Returns the simulation config(s) as
         a dict mapping obs_id to the respective config.
         """
         return self._simulation_configs
+
+    @property
+    def observation_config(self) -> Dict[ObservationConfigurationContainer]:
+        raise NotImplementedError()
 
     def __len__(self):
         n_events = len(self.file_.root.dl1.event.subarray.trigger)

@@ -1,4 +1,5 @@
 import warnings
+from collections import defaultdict
 from gzip import GzipFile
 from io import BufferedReader
 from pathlib import Path
@@ -13,11 +14,15 @@ from eventio.simtel.simtelfile import SimTelFile
 from ..calib.camera.gainselection import GainSelector
 from ..containers import (
     ArrayEventContainer,
+    CoordinateFrameType,
     EventIndexContainer,
     EventType,
+    ObservationConfigurationContainer,
+    ObservingMode,
     PointingContainer,
     R0CameraContainer,
     R1CameraContainer,
+    SchedulingBlockType,
     SimulatedCameraContainer,
     SimulatedEventContainer,
     SimulatedShowerContainer,
@@ -279,8 +284,12 @@ class SimTelEventSource(EventSource):
         return [self.file_.header["run"]]
 
     @property
-    def simulation_config(self) -> SimulationConfigContainer:
+    def simulation_config(self) -> Dict[SimulationConfigContainer]:
         return self._simulation_config
+
+    @property
+    def observation_config(self) -> Dict[ObservationConfigurationContainer]:
+        raise NotImplementedError()
 
     @property
     def is_stream(self):
