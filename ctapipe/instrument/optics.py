@@ -60,8 +60,8 @@ class OpticsDescription:
         """Make this hashable, so it can be used as dict keys or in sets"""
         return hash(
             (
-                self.equivalent_focal_length.to_value(u.m),
-                self.mirror_area,
+                round(self.equivalent_focal_length.to_value(u.m), 3),
+                round(self.mirror_area.to_value(u.m**2), 3),
                 self.num_mirrors,
                 self.num_mirror_tiles,
             )
