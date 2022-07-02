@@ -1,5 +1,5 @@
 from collections import defaultdict
-from copy import deepcopy
+from functools import partial
 from pprint import pformat
 from textwrap import wrap, dedent
 import warnings
@@ -15,6 +15,10 @@ log = logging.getLogger(__name__)
 __all__ = ["Container", "Field", "FieldValidationError", "Map"]
 
 
+def _fqdn(obj):
+    return f"{obj.__module__}.{obj.__qualname__}"
+
+
 class FieldValidationError(ValueError):
     pass
 
@@ -26,8 +30,10 @@ class Field:
     Parameters
     ----------
     default :
-        default value of the item. This will be set when the `Container`
-        is constructed, as well as when  ``Container.reset`` is called
+        Default value of the item. This will be set when the `Container`
+        is constructed, as well as when  ``Container.reset`` is called.
+        This should only be used for immutable values. For mutable values,
+        use ``default_factory`` instead.
     description : str
         Help text associated with the item
     unit : str or astropy.units.core.UnitBase
@@ -46,6 +52,8 @@ class Field:
     max_len : int
         if type is str, max_len is the maximum number of bytes of the utf-8
         encoded string to be used.
+    default_factory : Callable
+        A callable providing a fresh instance as default value.
     """
 
     def __init__(
@@ -59,8 +67,10 @@ class Field:
         ndim=None,
         allow_none=True,
         max_length=None,
+        default_factory=None,
     ):
         self.default = default
+        self.default_factory = default_factory
         self.description = description
         self.unit = Unit(unit) if unit is not None else None
         self.ucd = ucd
@@ -70,15 +80,23 @@ class Field:
         self.allow_none = allow_none
         self.max_length = max_length
 
+        if default_factory is not None and default is not None:
+            raise ValueError("Must only provide one of default or default_factory")
+
     def __repr__(self):
-        if isinstance(self.default, Container):
-            default = f"{self.default.__class__.__name__}"
-        elif isinstance(self.default, Map):
-            if isclass(self.default.default_factory):
-                cls = self.default.default_factory
-                default = f"Map({cls.__module__}.{cls.__name__})"
+        if self.default_factory is not None:
+            if isclass(self.default_factory):
+                default = _fqdn(self.default_factory)
+            elif isinstance(self.default_factory, partial):
+                # case for `partial(Map, Container)`
+                cls = _fqdn(self.default_factory.args[0])
+                if self.default_factory.func is Map:
+                    func = "Map"
+                else:
+                    func = repr(self.default_factory.func)
+                default = f"{func}({cls})"
             else:
-                default = f"Map({repr(self.default.default_factory)}"
+                default = str(self.default_factory())
         else:
             default = str(self.default)
         cmps = [f"Field(default={default}"]
@@ -295,10 +313,11 @@ class Container(metaclass=ContainerMeta):
         for k in set(self.fields).difference(fields):
 
             # deepcopy of None is surprisingly slow
-            default = self.fields[k].default
-            if default is not None:
-                default = deepcopy(default)
-
+            field = self.fields[k]
+            if field.default_factory is not None:
+                default = field.default_factory()
+            else:
+                default = field.default
             setattr(self, k, default)
 
         for k, v in fields.items():
@@ -362,7 +381,7 @@ class Container(metaclass=ContainerMeta):
                     d[key] = val
             return d
 
-    def reset(self, recursive=True):
+    def reset(self):
         """
         Reset all values back to their default values
 
@@ -372,12 +391,11 @@ class Container(metaclass=ContainerMeta):
             If true, also reset all sub-containers
         """
 
-        for name, value in self.fields.items():
-            if isinstance(value, Container):
-                if recursive:
-                    getattr(self, name).reset()
+        for name, field in self.fields.items():
+            if field.default_factory is not None:
+                setattr(self, name, field.default_factory())
             else:
-                setattr(self, name, deepcopy(self.fields[name].default))
+                setattr(self, name, field.default)
 
     def update(self, **values):
         """
@@ -458,3 +476,10 @@ class Map(defaultdict):
         for val in self.values():
             if isinstance(val, Container):
                 val.reset(recursive=recursive)
+
+    def __repr__(self):
+        if isclass(self.default_factory):
+            default = _fqdn(self.default_factory)
+        else:
+            default = repr(self.default_factory)
+        return f"{self.__class__.__name__}({default}, {dict.__repr__(self)!s})"

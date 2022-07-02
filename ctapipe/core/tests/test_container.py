@@ -126,7 +126,7 @@ def test_child_containers():
 
     class ParentContainer(Container):
         x = Field(0, "some value")
-        child = Field(ChildContainer(), "a child")
+        child = Field(default_factory=ChildContainer, description="a child")
 
     cont = ParentContainer()
     assert cont.child.z == 1
@@ -138,7 +138,7 @@ def test_map_containers():
 
     class ParentContainer(Container):
         x = Field(0, "some value")
-        children = Field(Map(), "map of tel_id to child")
+        children = Field(default_factory=Map, description="map of tel_id to child")
 
     cont = ParentContainer()
     cont.children[10] = ChildContainer()
@@ -157,7 +157,7 @@ def test_container_as_dict():
 
     class ParentContainer(Container):
         x = Field(0, "some value")
-        child = Field(ChildContainer(), "a child")
+        child = Field(default_factory=ChildContainer, description="a child")
 
     cont = ParentContainer()
 
@@ -255,7 +255,7 @@ def test_field_validation():
 
 
 def test_container_validation():
-    """ check that we can validate all fields in a container"""
+    """check that we can validate all fields in a container"""
 
     class MyContainer(Container):
         x = Field(3.2, "test", unit="m")
