@@ -1,10 +1,11 @@
 from collections import defaultdict
 from copy import deepcopy
 from pprint import pformat
-from textwrap import wrap
+from textwrap import wrap, dedent
 import warnings
 import numpy as np
 from astropy.units import UnitConversionError, Quantity, Unit
+from inspect import isclass
 
 import logging
 
@@ -24,25 +25,25 @@ class Field:
 
     Parameters
     ----------
-    default:
-        default value of the item (this will be set when the `Container`
+    default :
+        default value of the item. This will be set when the `Container`
         is constructed, as well as when  ``Container.reset`` is called
-    description: str
+    description : str
         Help text associated with the item
-    unit: str or astropy.units.core.UnitBase
+    unit : str or astropy.units.core.UnitBase
         unit to convert to when writing output, or None for no conversion
-    ucd: str
+    ucd : str
         universal content descriptor (see Virtual Observatory standards)
-    type: type
+    type : type
         expected type of value
-    dtype: str or np.dtype
+    dtype : str or np.dtype
         expected data type of the value, None to ignore in validation.
         Means value is expected to be a numpy array or astropy quantity
-    ndim: int or None
+    ndim : int or None
         expected dimensionality of the data, for arrays, None to ignore
-    allow_none:
+    allow_none : bool
         if the value of None is given to this Field, skip validation
-    max_len:
+    max_len : int
         if type is str, max_len is the maximum number of bytes of the utf-8
         encoded string to be used.
     """
@@ -59,7 +60,6 @@ class Field:
         allow_none=True,
         max_length=None,
     ):
-
         self.default = default
         self.description = description
         self.unit = Unit(unit) if unit is not None else None
@@ -71,7 +71,34 @@ class Field:
         self.max_length = max_length
 
     def __repr__(self):
-        desc = f"{self.description}"
+        if isinstance(self.default, Container):
+            default = f"{self.default.__class__.__name__}"
+        elif isinstance(self.default, Map):
+            if isclass(self.default.default_factory):
+                cls = self.default.default_factory
+                default = f"Map({cls.__module__}.{cls.__name__})"
+            else:
+                default = f"Map({repr(self.default.default_factory)}"
+        else:
+            default = str(self.default)
+        cmps = [f"Field(default={default}"]
+        if self.unit is not None:
+            cmps.append(f", unit={self.unit}")
+        if self.dtype is not None:
+            cmps.append(f", dtype={self.dtype}")
+        if self.ndim is not None:
+            cmps.append(f", ndim={self.ndim}")
+        if self.type is not None:
+            cmps.append(f", type={self.type.__name__}")
+        if self.allow_none is False:
+            cmps.append(", allow_none=False")
+        if self.max_length is not None:
+            cmps.append(f", max_length={self.max_length}")
+        cmps.append(")")
+        return "".join(cmps)
+
+    def __str__(self):
+        desc = f"{self.description} with default {self.default}"
         if self.unit is not None:
             desc += f" [{self.unit}]"
         if self.ndim is not None:
@@ -153,6 +180,23 @@ class DeprecatedField(Field):
         self.reason = reason
 
 
+_doc_template = """{doc}
+
+Attributes
+----------
+{fields}
+meta : dict
+    dict of attached metadata
+prefix : str
+    Prefix attached to column names when saved to a table or file
+"""
+
+
+def _build_docstring(doc, fields):
+    fields = [f"{k} : {f!r}\n    {f.description}" for k, f in fields.items()]
+    return _doc_template.format(doc=dedent(doc), fields="\n".join(fields))
+
+
 class ContainerMeta(type):
     """
     The MetaClass for `Container`
@@ -178,6 +222,8 @@ class ContainerMeta(type):
 
         for k in field_names:
             dct["fields"][k] = dct.pop(k)
+
+        dct["__doc__"] = _build_docstring(dct.get("__doc__", ""), dct["fields"])
 
         new_cls = type.__new__(cls, name, bases, dct)
 
@@ -352,7 +398,7 @@ class Container(metaclass=ContainerMeta):
                 extra = ".*"
             if isinstance(getattr(self, name), Map):
                 extra = "[*]"
-            desc = "{:>30s}: {}".format(name + extra, repr(item))
+            desc = "{:>30s}: {}".format(name + extra, str(item))
             lines = wrap(desc, 80, subsequent_indent=" " * 32)
             text.extend(lines)
         return "\n".join(text)
