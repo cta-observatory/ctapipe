@@ -122,18 +122,6 @@ def dilate_matrix(mask, matrix):
     return np.dot(matrix, mask)
 
 
-def check_number_of_neighbors(mask, geo, min_neighbors=3, order=2, keep_neighbors=True):
-    neighbor_matrix = geo.get_n_order_neighbor_matrix(order)
-
-    n_neighbors = np.count_nonzero(mask * neighbor_matrix, axis=1) - 1
-
-    valid_pixels = n_neighbors >= min_neighbors
-    if keep_neighbors:
-        valid_pixels = dilate_matrix(valid_pixels, neighbor_matrix)
-
-    return valid_pixels & mask
-
-
 class TimeNextNeighborCleaning:
     """
     Class to perform the time next-neighbor cleaning defined in
@@ -281,6 +269,7 @@ class TimeNextNeighborCleaning:
             array of same shape of `charge` filled with the corresponding cut
             in time
         """
+
         ipr_graph = interp1d(
             self.IPR_dict[tel_id]["charge"],
             self.IPR_dict[tel_id]["rate"],
@@ -331,7 +320,7 @@ class TimeNextNeighborCleaning:
         return valid_pixels
 
     def pre_threshold_from_sample_time(
-        self, geometry, tel_id, nfold, accidental_rate, sample_time, factor=0.5
+        self, geometry, tel_id, nfold, accidental_rate, sample_time
     ):
         """
         Get the pre threshold from the sampling time. The charge of all pixels
@@ -359,7 +348,7 @@ class TimeNextNeighborCleaning:
         dt = self.get_time_coincidence(
             geometry, charges, tel_id, nfold, accidental_rate
         )
-        return charges[dt > factor * sample_time][0]
+        return charges[dt > sample_time][0]
 
     @staticmethod
     def add_neighbors_to_combinations(combinations, neighbors):
@@ -489,8 +478,7 @@ class TimeNextNeighborCleaning:
         sample_time,
         sum_time,
         fake_prob=0.001,
-        factor=0.5,
-        apply_pre_threshold=True,
+        apply_pre_threshold=False,
     ):
         """
         Main function of time next neighbor cleaning developed by M. Shayduk.
@@ -522,7 +510,7 @@ class TimeNextNeighborCleaning:
         factor: float
 
         Returns
-        -------
+        -------True
         survived_pixels: numpy.ndarray
             mask with pixels that survived the image cleaning
         """
@@ -532,13 +520,13 @@ class TimeNextNeighborCleaning:
 
             # determine the accidental rate from fake proability
             rate_acc = fake_prob / (sum_time * self._multiplicity_dict[nfold])
-            pre_threshold = self.pre_threshold_from_sample_time(
-                geometry, tel_id, nfold, rate_acc, sample_time, factor
-            )
-            # print(pre_threshold)
-            if apply_pre_threshold:
+
+            if apply_pre_threshold == False:
                 candidates = None
             else:
+                pre_threshold = self.pre_threshold_from_sample_time(
+                    geometry, tel_id, nfold, rate_acc, sample_time
+                )
                 candidates = image > pre_threshold
                 if not candidates.any():
                     continue
@@ -579,7 +567,6 @@ class TimeNextNeighborCleaning:
 
             survived_pixels[valid_pixels] = True
 
-        survived_pixels = check_number_of_neighbors(survived_pixels, geometry, 4, 2)
         bound = self.boundary_search(
             tel_id,
             geometry,
