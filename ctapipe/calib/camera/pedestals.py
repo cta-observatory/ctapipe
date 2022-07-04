@@ -72,8 +72,7 @@ class PedestalCalculator(Component):
         Set to None if no configuration to pass.
 
     kwargs
-
-"""
+    """
 
     tel_id = Int(0, help="id of the telescope to calculate the pedestal values").tag(
         config=True
@@ -115,7 +114,7 @@ class PedestalCalculator(Component):
 
         kwargs
 
-    """
+        """
 
         super().__init__(**kwargs)
 
@@ -143,21 +142,21 @@ class PedestalCalculator(Component):
 
 class PedestalIntegrator(PedestalCalculator):
     """Calculates pedestal parameters integrating the charge of pedestal events:
-       the pedestal value corresponds to the charge estimated with the selected
-       charge extractor
-       The pixels are set as outliers on the base of a cut on the pixel charge median
-       over the pedestal sample and the pixel charge standard deviation over
-       the pedestal sample with respect to the camera median values
+      the pedestal value corresponds to the charge estimated with the selected
+      charge extractor
+      The pixels are set as outliers on the base of a cut on the pixel charge median
+      over the pedestal sample and the pixel charge standard deviation over
+      the pedestal sample with respect to the camera median values
 
 
-     Parameters:
-     ----------
-     charge_median_cut_outliers : List[2]
-         Interval (number of std) of accepted charge values around camera median value
-     charge_std_cut_outliers : List[2]
-         Interval (number of std) of accepted charge standard deviation around camera median value
+    Parameters:
+    ----------
+    charge_median_cut_outliers : List[2]
+        Interval (number of std) of accepted charge values around camera median value
+    charge_std_cut_outliers : List[2]
+        Interval (number of std) of accepted charge standard deviation around camera median value
 
-     """
+    """
 
     charge_median_cut_outliers = List(
         [-3, 3],
@@ -170,19 +169,19 @@ class PedestalIntegrator(PedestalCalculator):
 
     def __init__(self, **kwargs):
         """Calculates pedestal parameters integrating the charge of pedestal events:
-           the pedestal value corresponds to the charge estimated with the selected
-           charge extractor
-           The pixels are set as outliers on the base of a cut on the pixel charge median
-           over the pedestal sample and the pixel charge standard deviation over
-           the pedestal sample with respect to the camera median values
+          the pedestal value corresponds to the charge estimated with the selected
+          charge extractor
+          The pixels are set as outliers on the base of a cut on the pixel charge median
+          over the pedestal sample and the pixel charge standard deviation over
+          the pedestal sample with respect to the camera median values
 
 
-         Parameters:
-         ----------
-         charge_median_cut_outliers : List[2]
-             Interval (number of std) of accepted charge values around camera median value
-         charge_std_cut_outliers : List[2]
-             Interval (number of std) of accepted charge standard deviation around camera median value
+        Parameters:
+        ----------
+        charge_median_cut_outliers : List[2]
+            Interval (number of std) of accepted charge values around camera median value
+        charge_std_cut_outliers : List[2]
+            Interval (number of std) of accepted charge standard deviation around camera median value
         """
 
         super().__init__(**kwargs)
@@ -257,7 +256,7 @@ class PedestalIntegrator(PedestalCalculator):
 
         self.collect_sample(dl1.image, pixel_mask)
 
-        sample_age = trigger_time - self.time_start
+        sample_age = (trigger_time - self.time_start).to_value(u.s)
 
         # check if to create a calibration event
         if (
