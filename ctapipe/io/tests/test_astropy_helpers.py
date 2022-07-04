@@ -188,3 +188,22 @@ def test_read_table_astropy(tmp_path):
     table.write(path, "/group/table", serialize_meta=True)
     read = read_table(path, "/group/table")
     assert_table_equal(table, read)
+
+
+def test_unknown_meta(tmp_path):
+    """Test read_table ignores unknown metadata
+
+    Regression test for https://github.com/cta-observatory/ctapipe/issues/1785
+    """
+    container = ReconstructedEnergyContainer()
+    filename = tmp_path / "test_astropy_table.h5"
+
+    with HDF5TableWriter(filename) as writer:
+        for energy in [np.nan, 100, np.nan, 50, -1.0] * u.TeV:
+            container.energy = energy
+            writer.write("events", container)
+
+        # unknown column matching ctapipe metadata
+        writer.h5file.root.events._v_attrs["foo_UNIT"] = "TeV"
+
+    read_table(filename, "/events", condition="energy > 0")
