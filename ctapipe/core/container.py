@@ -135,6 +135,20 @@ class Field:
                 f"{errorstr} Should be an instance of {self.type}"
             )
 
+        if isinstance(value, Container):
+            # recursively check sub-containers
+            value.validate()
+            return
+
+        if isinstance(value, Map):
+            for key, map_value in value.items():
+                if isinstance(map_value, Container):
+                    try:
+                        map_value.validate()
+                    except FieldValidationError as err:
+                        raise FieldValidationError(f"[{key}]: {err} ")
+            return
+
         if self.unit is not None:
             if not isinstance(value, Quantity):
                 raise FieldValidationError(
