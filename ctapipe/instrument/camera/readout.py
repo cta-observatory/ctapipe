@@ -20,6 +20,13 @@ def parse_dotted_version(version):
 
 
 class CameraReadout:
+    __slots__ = (
+        "camera_name",
+        "sampling_rate",
+        "reference_pulse_shape",
+        "reference_pulse_sample_width",
+    )
+
     def __init__(
         self,
         camera_name,
@@ -67,9 +74,9 @@ class CameraReadout:
         return hash(
             (
                 self.camera_name,
-                self.sampling_rate.to_value(u.GHz),
+                round(self.sampling_rate.to_value(u.GHz), 3),
                 self.reference_pulse_shape.size,
-                self.reference_pulse_sample_width.to_value(u.ns),
+                round(self.reference_pulse_sample_width.to_value(u.ns), 2),
             )
         )
 

@@ -40,7 +40,15 @@ class OpticsDescription:
         if the units of one of the inputs are missing or incompatible
     """
 
-    @u.quantity_input(mirror_area=u.m ** 2, equivalent_focal_length=u.m)
+    __slots__ = (
+        "equivalent_focal_length",
+        "mirror_area",
+        "name",
+        "num_mirror_tiles",
+        "num_mirrors",
+    )
+
+    @u.quantity_input(mirror_area=u.m**2, equivalent_focal_length=u.m)
     def __init__(
         self,
         name,
@@ -60,8 +68,8 @@ class OpticsDescription:
         """Make this hashable, so it can be used as dict keys or in sets"""
         return hash(
             (
-                self.equivalent_focal_length.to_value(u.m),
-                self.mirror_area,
+                round(self.equivalent_focal_length.to_value(u.m), 3),
+                round(self.mirror_area.to_value(u.m**2), 3),
                 self.num_mirrors,
                 self.num_mirror_tiles,
             )

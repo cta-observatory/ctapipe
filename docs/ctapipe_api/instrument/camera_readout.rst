@@ -32,9 +32,9 @@ Input/Output
 ------------
 
 
-You can write out a `CameraReadout` by using the `CameraReadout.to_table()`
- method to turn it into an ``astropy.table.Table``, and then call its ``write()``
-  function.  Reading it back in can be done with ``CameraReadout.from_table()``
+You can write out a `CameraReadout` by using the ``CameraReadout.to_table()``
+ method to turn it into a `~astropy.table.Table`, and then call its ``write()``
+  function.  Reading it back in can be done with ``CameraReadout.from_table()``.
 
 .. code-block:: python
 
