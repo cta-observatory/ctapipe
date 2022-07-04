@@ -238,6 +238,10 @@ class TableLoader(Component):
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
+    def __len__(self):
+        """Number of subarray events in input file"""
+        return self.h5file.root[TRIGGER_TABLE].shape[0]
+
     def _read_telescope_table(self, group, tel_id, start=None, stop=None):
         if self.structure == "by_id":
             key = f"{group}/tel_{tel_id:03d}"
@@ -335,11 +339,9 @@ class TableLoader(Component):
         chunk_size: int
             Number of subarray events to load per chunk
         """
-        n_events = self.h5file.root[TRIGGER_TABLE].shape[0]
-
         return ChunkIterator(
             self.read_subarray_events,
-            n_total=n_events,
+            n_total=len(self),
             chunk_size=chunk_size,
         )
 
@@ -429,20 +431,20 @@ class TableLoader(Component):
         return table
 
     def _read_telescope_events_for_ids(self, tel_ids, tel_start=None, tel_stop=None):
-        if tel_start is None:
-            tel_start = [None] * len(tel_ids)
+        tel_start = tel_start if tel_start is not None else [None] * len(tel_ids)
+        tel_stop = tel_stop if tel_stop is not None else [None] * len(tel_ids)
 
-        if tel_stop is None:
-            tel_stop = [None] * len(tel_ids)
+        tables = []
+        for tel_id, start, stop in zip(tel_ids, tel_start, tel_stop):
+            # no events for this telescope in chunk
+            if start is not None and stop is not None and (stop - start) == 0:
+                continue
 
-        table = vstack(
-            [
+            tables.append(
                 self._read_telescope_events_for_id(tel_id, start=start, stop=stop)
-                for tel_id, start, stop in zip(tel_ids, tel_start, tel_stop)
-            ]
-        )
+            )
 
-        return table
+        return vstack(tables)
 
     def _join_subarray_info(self, table, start=None, stop=None):
         subarray_events = self.read_subarray_events(
@@ -454,6 +456,25 @@ class TableLoader(Component):
             table, subarray_events, keys=SUBARRAY_EVENT_KEYS, join_type="left"
         )
         return table
+
+    def _get_tel_start_stop(self, tel_ids, start, stop):
+        tel_start = None
+        tel_stop = None
+        if start is not None or stop is not None:
+
+            indices = self.subarray.tel_ids_to_indices(tel_ids)
+
+            # find first/last row for each telescope
+            if start is not None:
+                tel_start = self._n_telescope_events[start][indices]
+
+            if stop is not None:
+                if stop >= len(self._n_telescope_events):
+                    tel_stop = None
+                else:
+                    tel_stop = self._n_telescope_events[stop][indices]
+
+        return tel_start, tel_stop
 
     def read_telescope_events(self, telescopes=None, start=None, stop=None):
         """
@@ -489,22 +510,7 @@ class TableLoader(Component):
         else:
             tel_ids = self.subarray.get_tel_ids(telescopes)
 
-        tel_start = None
-        tel_stop = None
-        if start is not None or stop is not None:
-
-            indices = self.subarray.tel_ids_to_indices(tel_ids)
-
-            # find first/last row for each telescope
-            if start is not None:
-                tel_start = self._n_telescope_events[start][indices]
-
-            if stop is not None:
-                if stop >= len(self._n_telescope_events):
-                    tel_stop = None
-                else:
-                    tel_stop = self._n_telescope_events[stop][indices]
-
+        tel_start, tel_stop = self._get_tel_start_stop(tel_ids, start, stop)
         table = self._read_telescope_events_for_ids(tel_ids, tel_start, tel_stop)
         table = self._join_subarray_info(table, start=start, stop=stop)
 
@@ -529,11 +535,9 @@ class TableLoader(Component):
 
         **kwargs are passed to `read_telescope_events`
         """
-        n_events = self.h5file.root[TRIGGER_TABLE].shape[0]
-
         return ChunkIterator(
             self.read_telescope_events,
-            n_total=n_events,
+            n_total=len(self),
             chunk_size=chunk_size,
             **kwargs,
         )
@@ -557,7 +561,9 @@ class TableLoader(Component):
         np.cumsum(tels_with_trigger, out=tels_with_trigger, axis=0)
         return tels_with_trigger
 
-    def read_telescope_events_by_type(self, telescopes=None) -> Dict[str, Table]:
+    def read_telescope_events_by_type(
+        self, telescopes=None, start=None, stop=None
+    ) -> Dict[str, Table]:
         """Read telescope-based event information.
 
         Parameters
@@ -573,21 +579,54 @@ class TableLoader(Component):
         """
 
         if telescopes is None:
-            tel_ids = self.subarray.tel.keys()
+            tel_ids = tuple(self.subarray.tel.keys())
         else:
             tel_ids = self.subarray.get_tel_ids(telescopes)
 
-        by_type = defaultdict(list)
+        tel_start, tel_stop = self._get_tel_start_stop(tel_ids, start, stop)
+        tel_start = tel_start if tel_start is not None else [None] * len(tel_ids)
+        tel_stop = tel_stop if tel_stop is not None else [None] * len(tel_ids)
 
-        for tel_id in tel_ids:
+        by_type = defaultdict(list)
+        sort_index = self._get_sort_index(start=start, stop=stop)
+
+        for tel_id, start, stop in zip(tel_ids, tel_start, tel_stop):
+            # no events for this telescope in range start/stop
+            if start is not None and stop is not None and (stop - start) == 0:
+                continue
+
             key = str(self.subarray.tel[tel_id])
-            by_type[key].append(self._read_telescope_events_for_id(tel_id))
+            by_type[key].append(
+                self._read_telescope_events_for_id(tel_id, start=start, stop=stop)
+            )
 
         by_type = {k: vstack(ts) for k, ts in by_type.items()}
 
-        for key, table in by_type.items():
-            by_type[key] = self._join_subarray_info(table)
-            table = _join_subarray_events(table, self._get_sort_index())
-            self._sort_to_original_order(table, include_tel_id=True)
+        for key in by_type.keys():
+            by_type[key] = self._join_subarray_info(
+                by_type[key], start=start, stop=stop
+            )
+            by_type[key] = _join_subarray_events(by_type[key], sort_index)
+            self._sort_to_original_order(by_type[key], include_tel_id=True)
 
         return by_type
+
+    def read_telescope_events_by_type_chunked(self, chunk_size, **kwargs):
+        """
+        Iterate over chunks of telescope events.
+
+        Parameters
+        ----------
+        chunk_size: int
+            Number of subarray events to load per chunk.
+            The telescope tables might be larger or smaller than chunk_size
+            depending on the selected telescopes.
+
+        **kwargs are passed to `read_telescope_events`
+        """
+        return ChunkIterator(
+            self.read_telescope_events_by_type,
+            n_total=len(self),
+            chunk_size=chunk_size,
+            **kwargs,
+        )
