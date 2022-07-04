@@ -1,5 +1,6 @@
 """ Tests for SubarrayDescriptions """
 from copy import deepcopy
+from astropy.coordinates.earth import EarthLocation
 
 import numpy as np
 from astropy import units as u
@@ -28,7 +29,16 @@ def example_subarray(n_tels=10):
         )
         pos[tel_id] = rng.uniform(-100, 100, size=3) * u.m
 
-    return SubarrayDescription("test array", tel_positions=pos, tel_descriptions=tel)
+    return SubarrayDescription(
+        "test array",
+        tel_positions=pos,
+        tel_descriptions=tel,
+        reference_location=EarthLocation(
+            lon=-17 * u.deg,
+            lat=28 * u.deg,
+            height=2200 * u.m,
+        ),
+    )
 
 
 def test_subarray_description():

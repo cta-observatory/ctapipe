@@ -6,6 +6,7 @@ from contextlib import ExitStack
 from copy import copy
 from itertools import groupby
 from typing import Dict, List, Union
+from astropy.coordinates.earth import EarthLocation
 
 import numpy as np
 import tables
@@ -51,16 +52,6 @@ class SubarrayDescription:
     Collects the `~ctapipe.instrument.TelescopeDescription` of all telescopes
     along with their positions on the ground.
 
-    Parameters
-    ----------
-    name: str
-        name of this subarray
-    tel_positions: Dict[Array]
-        dict of x,y,z telescope positions on the ground by tel_id. These are
-        converted internally to a coordinate in the `~ctapipe.coordinates.GroundFrame`
-    tel_descriptions: Dict[TelescopeDescription]
-        dict of TelescopeDescriptions by tel_id
-
     Attributes
     ----------
     name: str
@@ -69,16 +60,35 @@ class SubarrayDescription:
        coordinates of all telescopes
     tels:
        dict of TelescopeDescription for each telescope in the subarray
-    tel_ids: np.ndarray
-        array of tel_ids
-    tel_indices: dict
-        dict mapping tel_id to index in array attributes
     """
 
-    def __init__(self, name, tel_positions=None, tel_descriptions=None):
+    def __init__(
+        self,
+        name,
+        tel_positions=None,
+        tel_descriptions=None,
+        reference_location=None,
+    ):
+        """
+        Initialize a new SubarrayDescription
+
+        Parameters
+        ----------
+        name : str
+            name of this subarray
+        tel_positions : Dict[int, np.ndarray]
+            dict of x,y,z telescope positions on the ground by tel_id. These are
+            converted internally to a coordinate in the `~ctapipe.coordinates.GroundFrame`
+        tel_descriptions : Dict[TelescopeDescription]
+            dict of TelescopeDescriptions by tel_id
+        reference_location : `astropy.coordinates.EarthLocation`
+            EarthLocation of the array reference position, (0, 0, 0) of the
+            coordinate system used for `tel_positions`.
+        """
         self.name = name
         self.positions = tel_positions or dict()
         self.tels: Dict[int, TelescopeDescription] = tel_descriptions or dict()
+        self.reference_location = reference_location
 
         if self.positions.keys() != self.tels.keys():
             raise ValueError("Telescope ids in positions and descriptions do not match")
@@ -92,8 +102,8 @@ class SubarrayDescription:
         )
 
     @property
-    def tel(self):
-        """for backward compatibility"""
+    def tel(self) -> Dict[int, TelescopeDescription]:
+        """Dictionary mapping tel_ids to TelescopeDescriptions"""
         return self.tels
 
     @property
@@ -238,7 +248,7 @@ class SubarrayDescription:
             which table to generate (subarray or optics)
         """
 
-        if kind == 'joined':
+        if kind == "joined":
             table = self.to_table()
             optics = self.to_table(kind="optics")
             optics["optics_index"] = np.arange(len(optics))
@@ -252,9 +262,8 @@ class SubarrayDescription:
             )
 
             table.remove_columns(["optics_index", "camera_index"])
-            table.add_index('tel_id')
+            table.add_index("tel_id")
             return table
-
 
         meta = {
             "ORIGIN": "ctapipe.instrument.SubarrayDescription",
@@ -262,6 +271,12 @@ class SubarrayDescription:
             "SOFT_VER": CTAPIPE_VERSION,
             "TAB_TYPE": kind,
         }
+
+        if self.reference_location is not None:
+            itrs = self.reference_location.itrs
+            meta["OBSGEO-X"] = itrs.x.to_value(u.m)
+            meta["OBSGEO-Y"] = itrs.y.to_value(u.m)
+            meta["OBSGEO-Z"] = itrs.z.to_value(u.m)
 
         if kind == "subarray":
 
@@ -447,6 +462,9 @@ class SubarrayDescription:
         if self.positions.keys() != other.positions.keys():
             return False
 
+        if self.reference_location != other.reference_location:
+            return False
+
         for tel_id in self.tels.keys():
             if self.tels[tel_id] != other.tels[tel_id]:
                 return False
@@ -454,6 +472,7 @@ class SubarrayDescription:
         for tel_id in self.tels.keys():
             if np.any(self.positions[tel_id] != other.positions[tel_id]):
                 return False
+
         return True
 
     def to_hdf(self, h5file, overwrite=False, mode="a"):
@@ -510,7 +529,13 @@ class SubarrayDescription:
                     overwrite=overwrite,
                 )
 
-            h5file.root.configuration.instrument.subarray._v_attrs.name = self.name
+            meta = h5file.root.configuration.instrument.subarray._v_attrs
+            meta["name"] = self.name
+            if self.reference_location is not None:
+                itrs = self.reference_location.itrs
+                meta["reference_itrs_x"] = itrs.x.to_value(u.m)
+                meta["reference_itrs_y"] = itrs.y.to_value(u.m)
+                meta["reference_itrs_z"] = itrs.z.to_value(u.m)
 
     @classmethod
     def from_hdf(cls, path):
@@ -588,6 +613,7 @@ class SubarrayDescription:
         positions = np.column_stack([layout[f"pos_{c}"] for c in "xyz"])
 
         name = "Unknown"
+        reference_location = None
         with ExitStack() as stack:
             if not isinstance(path, tables.File):
                 path = stack.enter_context(tables.open_file(path, mode="r"))
@@ -596,10 +622,18 @@ class SubarrayDescription:
             if "name" in attrs:
                 name = str(attrs.name)
 
+            if "reference_itrs_x" in attrs:
+                reference_location = EarthLocation(
+                    x=attrs["reference_itrs_x"] * u.m,
+                    y=attrs["reference_itrs_y"] * u.m,
+                    z=attrs["reference_itrs_z"] * u.m,
+                )
+
         return cls(
             name=name,
             tel_positions={
                 tel_id: pos for tel_id, pos in zip(layout["tel_id"], positions)
             },
             tel_descriptions=telescope_descriptions,
+            reference_location=reference_location,
         )
