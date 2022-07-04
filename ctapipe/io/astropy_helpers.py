@@ -89,9 +89,15 @@ def read_table(
 
         astropy_table = table_cls(array, meta=meta, copy=False)
         for column, tr in transforms.items():
+            if column not in astropy_table.colnames:
+                continue
+
             astropy_table[column] = tr.inverse(astropy_table[column])
 
         for column, desc in descriptions.items():
+            if column not in astropy_table.colnames:
+                continue
+
             astropy_table[column].description = desc
 
         return astropy_table
