@@ -508,7 +508,7 @@ class HDF5EventSource(EventSource):
                         simulated.true_image = simulated_image_row["true_image"]
 
                 if DataLevel.DL1_PARAMETERS in self.datalevels:
-                    if f"tel_{tel_id:03d}" not in param_readers.keys():
+                    if f"tel_{tel_id:03d}" not in param_readers:
                         logger.debug(
                             f"Triggered telescope {tel_id} is missing "
                             "from the parameters table."
@@ -528,7 +528,7 @@ class HDF5EventSource(EventSource):
                         peak_time_statistics=params[6],
                     )
                     if self.has_simulated_dl1:
-                        if f"tel_{tel_id:03d}" not in param_readers.keys():
+                        if f"tel_{tel_id:03d}" not in simulated_param_readers:
                             logger.debug(
                                 f"Triggered telescope {tel_id} is missing "
                                 "from the simulated parameters table, but was "

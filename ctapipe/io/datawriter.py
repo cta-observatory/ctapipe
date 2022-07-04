@@ -432,11 +432,6 @@ class DataWriter(Component):
         if not self.write_parameters:
             writer.exclude("/dl1/event/telescope/images/.*", "image_mask")
 
-        if self._is_simulation:
-            # no timing information yet for true images
-            writer.exclude("/simulation/event/telescope/parameters/.*", r".*_peak_time_.*")
-            writer.exclude("/simulation/event/telescope/parameters/.*", r".*_timing_.*")
-
         # Set up transforms
         if self.transform_image:
             transform = FixedPointColumnTransform(
@@ -668,11 +663,18 @@ class DataWriter(Component):
                     and event.simulation.tel[tel_id].true_image is not None
                 )
                 if self.write_parameters and has_sim_image:
+                    true_parameters = event.simulation.tel[tel_id].true_parameters
+                    # only write the available containers, no peak time related
+                    # features for true image available.
                     writer.write(
                         f"simulation/event/telescope/parameters/{table_name}",
                         [
                             tel_index,
-                            *event.simulation.tel[tel_id].true_parameters.values(),
+                            true_parameters.hillas,
+                            true_parameters.leakage,
+                            true_parameters.concentration,
+                            true_parameters.morphology,
+                            true_parameters.intensity_statistics,
                         ],
                     )
 
