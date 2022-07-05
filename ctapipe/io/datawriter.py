@@ -46,8 +46,11 @@ def _get_tel_index(event, tel_id):
 #   (meaning readers need to update scripts)
 # - increase the minor number if new columns or datasets are added
 # - increase the patch number if there is a small bugfix to the model.
-DATA_MODEL_VERSION = "v3.0.0"
+DATA_MODEL_VERSION = "v4.0.0"
 DATA_MODEL_CHANGE_HISTORY = """
+- v4.0.0: Container prefixes are now included for reconstruction algorithms
+          and true parameters.
+          Telescope Impact Parameters were added.
 - v3.0.0: reconstructed core uncertainties splitted in their X-Y components
 - v2.2.0: added R0 and R1 outputs
 - v2.1.0: hillas and timing parameters are per default saved in telescope frame (degree) as opposed to camera frame (m)

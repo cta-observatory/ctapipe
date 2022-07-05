@@ -54,7 +54,7 @@ DL2_CONTAINERS = {
 }
 
 
-COMPATIBLE_DL1_VERSIONS = [
+COMPATIBLE_DATA_MODEL_VERSIONS = [
     "v1.0.0",
     "v1.0.1",
     "v1.0.2",
@@ -65,6 +65,7 @@ COMPATIBLE_DL1_VERSIONS = [
     "v2.1.0",
     "v2.2.0",
     "v3.0.0",
+    "v4.0.0",
 ]
 
 
@@ -181,10 +182,10 @@ class HDF5EventSource(EventSource):
                 return False
 
             version = metadata["CTA PRODUCT DATA MODEL VERSION"]
-            if version not in COMPATIBLE_DL1_VERSIONS:
+            if version not in COMPATIBLE_DATA_MODEL_VERSIONS:
                 logger.error(
                     f"File is DL1 file but has unsupported version {version}"
-                    f", supported versions are {COMPATIBLE_DL1_VERSIONS}"
+                    f", supported versions are {COMPATIBLE_DATA_MODEL_VERSIONS}"
                 )
                 return False
 
