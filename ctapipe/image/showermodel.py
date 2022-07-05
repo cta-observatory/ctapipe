@@ -2,6 +2,7 @@ import astropy.units as u
 import numpy as np
 from scipy.stats import multivariate_normal
 from scipy.spatial.transform import Rotation as R
+from astropy.utils.decorators import lazyproperty
 
 
 __all__ = [
@@ -52,7 +53,6 @@ class Gaussian:
         self.first_interaction = first_interaction
         self.width = width
         self.length = length
-        self.barycenter = self.calcBC()
 
         # Calculate 3d gaussian with barycenter as the mean and width and height in the covariance matrix.
         # Rotate covariance matrix
@@ -72,7 +72,8 @@ class Gaussian:
         """Evaluate 3D gaussian."""
         return self.total_photons * self.gauss.pdf(np.array([x, y, z]))
 
-    def calcBC(self):
+    @lazyproperty
+    def barycenter(self):
         """Calculates barycenter of the shower.
         This is given by the vector defined by phi and theta in spherical coords + vector pointing to the first_interaction
         minus half length back to shower center.
