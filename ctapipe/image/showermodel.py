@@ -19,13 +19,15 @@ class Gaussian:
         width=u.m,
         length=u.m,
     )
-    def __init__(self, n_ch, x, y, phi, theta, first_interaction, width, length):
+    def __init__(
+        self, total_photons, x, y, phi, theta, first_interaction, width, length
+    ):
         """Create a 3D gaussian shower model for imaging.
         This is based on https://arxiv.org/pdf/astro-ph/0601373.pdf.
 
         Parameters
         ----------
-        n_ch : int
+        total_photons : int
             Number of cherenkov photons in shower
         x : u.Quantity[length]
             x coord of shower intersection on ground
@@ -42,7 +44,7 @@ class Gaussian:
         length : u.Quantity[length]
             length of the shower
         """
-        self.n_ch = n_ch
+        self.total_photons = total_photons
         self.x = x
         self.y = y
         self.phi = phi
@@ -69,7 +71,7 @@ class Gaussian:
             mean=self.barycenter.to_value(u.m), cov=cov.to_value(u.m)
         )
 
-        return self.n_ch * gauss.pdf(np.array([x, y, z]))
+        return self.total_photons * gauss.pdf(np.array([x, y, z]))
 
     def calcBC(self):
         """Calculates barycenter of the shower.

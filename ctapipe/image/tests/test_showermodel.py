@@ -8,7 +8,7 @@ def test_gaussian():
     from ctapipe.image import showermodel
 
     # This is a shower straight from (45deg,45deg)
-    n_ch = 15000
+    total_photons = 15000
     x = 0 * u.meter
     y = 0 * u.meter
     phi = 45 * u.deg
@@ -18,7 +18,7 @@ def test_gaussian():
     length = 3000 * u.meter
 
     model = showermodel.Gaussian(
-        n_ch=n_ch,
+        total_photons=total_photons,
         x=x,
         y=y,
         phi=phi,
