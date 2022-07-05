@@ -54,7 +54,13 @@ class Gaussian:
         self.width = width
         self.length = length
 
-        # Calculate 3d gaussian with barycenter as the mean and width and height in the covariance matrix.
+    def density(self, x, y, z):
+        """Evaluate 3D gaussian."""
+        return self.total_photons * self._gauss.pdf(np.array([x, y, z]))
+
+    @lazyproperty
+    def _gauss(self):
+        """Calculate 3d gaussian with barycenter as the mean and width and height in the covariance matrix."""
         # Rotate covariance matrix
         cov = np.zeros((3, 3)) * u.m
         cov[0, 0] = self.width
@@ -64,16 +70,14 @@ class Gaussian:
         r = R.from_rotvec([0, self.theta.to_value(u.rad), self.phi.to_value(u.rad)])
         cov = r.as_matrix().T @ cov @ r.as_matrix()
 
-        self.gauss = multivariate_normal(
-            mean=self.barycenter.to_value(u.m), cov=cov.to_value(u.m)
+        gauss = multivariate_normal(
+            mean=self._barycenter.to_value(u.m), cov=cov.to_value(u.m)
         )
 
-    def density(self, x, y, z):
-        """Evaluate 3D gaussian."""
-        return self.total_photons * self.gauss.pdf(np.array([x, y, z]))
+        return gauss
 
     @lazyproperty
-    def barycenter(self):
+    def _barycenter(self):
         """Calculates barycenter of the shower.
         This is given by the vector defined by phi and theta in spherical coords + vector pointing to the first_interaction
         minus half length back to shower center.

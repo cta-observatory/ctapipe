@@ -58,7 +58,7 @@ def test_gaussian():
         (proj_first_inter.value - length.value / 2) * np.cos(theta.to_value(u.rad)),
         rel=0.49,
     )
-    assert model.barycenter.value == approx(
+    assert model._barycenter.value == approx(
         np.array(
             [
                 (proj_first_inter.value - length.value / 2) * trigs,
