@@ -275,11 +275,17 @@ class HDF5EventSource(EventSource):
             }
 
         if DataLevel.DL1_IMAGES in self.datalevels:
+            ignore_columns = {"parameters"}
+
+            # if there are no parameters, there are no image_mask, avoids warnings
+            if DataLevel.DL1_PARAMETERS not in self.datalevels:
+                ignore_columns.add("image_mask")
+
             image_readers = {
                 tel.name: self.reader.read(
                     f"/dl1/event/telescope/images/{tel.name}",
                     DL1CameraContainer,
-                    ignore_columns={"parameters"},
+                    ignore_columns=ignore_columns,
                 )
                 for tel in self.file_.root.dl1.event.telescope.images
             }
