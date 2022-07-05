@@ -578,7 +578,7 @@ class TimeNextNeighborCleaning:
             sample_time,
             sum_time,
             nfold,
-            fake_prob=0.001,
+            fake_prob=fake_prob,
         )
 
         return survived_pixels, bound
