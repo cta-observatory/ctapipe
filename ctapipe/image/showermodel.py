@@ -21,6 +21,7 @@ class Gaussian:
     )
     def __init__(self, n_ch, x, y, phi, theta, first_interaction, width, length):
         """Create a 3D gaussian shower model for imaging.
+        This is based on https://arxiv.org/pdf/astro-ph/0601373.pdf.
 
         Parameters
         ----------
