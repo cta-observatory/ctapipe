@@ -269,6 +269,8 @@ class TimeNextNeighborCleaning:
             array of same shape of `charge` filled with the corresponding cut
             in time
         """
+        if tel_id not in list(self.IPR_dict.keys()):
+            self.IPR_dict[tel_id] = self.IPR_dict[list(self.IPR_dict.keys())[0]]
 
         ipr_graph = interp1d(
             self.IPR_dict[tel_id]["charge"],
