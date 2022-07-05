@@ -54,10 +54,7 @@ class Gaussian:
         self.length = length
         self.barycenter = self.calcBC()
 
-    def density(self, x, y, z):
-        """Evaluates 3D gaussian with barycenter as the mean and width and height in the covariance matrix.
-        This matrix is rotated with the azimuthal and polar angle.
-        """
+        # Calculate 3d gaussian with barycenter as the mean and width and height in the covariance matrix.
         # Rotate covariance matrix
         cov = np.zeros((3, 3)) * u.m
         cov[0, 0] = self.width
@@ -67,11 +64,13 @@ class Gaussian:
         r = R.from_rotvec([0, self.theta.to_value(u.rad), self.phi.to_value(u.rad)])
         cov = r.as_matrix().T @ cov @ r.as_matrix()
 
-        gauss = multivariate_normal(
+        self.gauss = multivariate_normal(
             mean=self.barycenter.to_value(u.m), cov=cov.to_value(u.m)
         )
 
-        return self.total_photons * gauss.pdf(np.array([x, y, z]))
+    def density(self, x, y, z):
+        """Evaluate 3D gaussian."""
+        return self.total_photons * self.gauss.pdf(np.array([x, y, z]))
 
     def calcBC(self):
         """Calculates barycenter of the shower.
