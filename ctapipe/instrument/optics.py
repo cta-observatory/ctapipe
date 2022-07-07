@@ -24,10 +24,19 @@ class OpticsDescription:
     ----------
     num_mirrors: int
         Number of mirrors, i. e. 2 for Schwarzschild-Couder else 1
-    equivalent_focal_length: Quantity(float)
-        effective focal-length of telescope, independent of which type of
-        optics (as in the Monte-Carlo)
-    mirror_area: float
+    equivalent_focal_length : astropy.units.Quantity[length]
+        Equivalent focal-length of telescope, independent of which type of
+        optics (as in the Monte-Carlo). This is the nominal focal length
+        for single mirror telescopes and the equivalent focal length for dual
+        mirror telescopes.
+    effective_focal_length : astropy.units.Quantity[length]
+        The effective_focal_length is the focal length estimated from
+        ray tracing to correct for koma aberration. It is thus not automatically
+        available for all simulations, but only if it was set before hand
+        in the simtel configuration. This is the focal length that should be
+        used for transforming from camera frame to telescope frame for all
+        reconstruction tasks to correct for the mean aberration.
+    mirror_area: astropy.units.Quantity[area]
         total reflective surface area of the optical system (in m^2)
     num_mirror_tiles: int
         number of mirror facets
