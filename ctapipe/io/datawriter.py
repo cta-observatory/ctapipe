@@ -48,9 +48,11 @@ def _get_tel_index(event, tel_id):
 # - increase the patch number if there is a small bugfix to the model.
 DATA_MODEL_VERSION = "v4.0.0"
 DATA_MODEL_CHANGE_HISTORY = """
-- v4.0.0: Container prefixes are now included for reconstruction algorithms
-          and true parameters.
-          Telescope Impact Parameters were added.
+- v4.0.0: - Container prefixes are now included for reconstruction algorithms
+            and true parameters.
+          - Telescope Impact Parameters were added.
+          - Effective focal length and nominal focal length are both included
+            in the optics description now.
 - v3.0.0: reconstructed core uncertainties splitted in their X-Y components
 - v2.2.0: added R0 and R1 outputs
 - v2.1.0: hillas and timing parameters are per default saved in telescope frame (degree) as opposed to camera frame (m)
@@ -102,7 +104,7 @@ def write_reference_metadata_headers(
         product=meta.Product(
             description="ctapipe Data Product",
             data_category=category,
-            data_level=[l.name for l in data_levels],
+            data_level=[level.name for level in data_levels],
             data_association="Subarray",
             data_model_name="ASWG",
             data_model_version=DATA_MODEL_VERSION,
