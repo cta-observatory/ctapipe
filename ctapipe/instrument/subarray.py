@@ -6,12 +6,12 @@ from contextlib import ExitStack
 from copy import copy
 from itertools import groupby
 from typing import Dict, List, Union
-from astropy.coordinates.earth import EarthLocation
 
 import numpy as np
 import tables
 from astropy import units as u
 from astropy.coordinates import SkyCoord
+from astropy.coordinates.earth import EarthLocation
 from astropy.table import QTable, Table, join
 from astropy.utils import lazyproperty
 
@@ -380,9 +380,10 @@ class SubarrayDescription:
         """
         Draw a quick matplotlib plot of the array
         """
+        from matplotlib import pyplot as plt
+
         from ctapipe.coordinates.ground_frames import EastingNorthingFrame
         from ctapipe.visualization import ArrayDisplay
-        from matplotlib import pyplot as plt
 
         plt.figure(figsize=(8, 8))
         ad = ArrayDisplay(subarray=self, frame=EastingNorthingFrame(), tel_scale=0.75)
@@ -594,12 +595,15 @@ class SubarrayDescription:
                     " Reprocessing the data with ctapipe >= 0.12 will fix this problem."
                 )
 
+        has_eff = "effective_focal_length" in optics_table.colnames
         optic_descriptions = [
             OpticsDescription(
                 row["name"],
                 num_mirrors=row["num_mirrors"],
                 equivalent_focal_length=row["equivalent_focal_length"],
-                effective_focal_length=row["effective_focal_length"],
+                effective_focal_length=(
+                    row["effective_focal_length"] if has_eff else np.nan * u.m
+                ),
                 mirror_area=row["mirror_area"],
                 num_mirror_tiles=row["num_mirror_tiles"],
             )

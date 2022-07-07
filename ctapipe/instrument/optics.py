@@ -60,8 +60,8 @@ class OpticsDescription:
         num_mirrors,
         equivalent_focal_length,
         effective_focal_length,
-        mirror_area=None,
-        num_mirror_tiles=None,
+        mirror_area,
+        num_mirror_tiles,
     ):
 
         self.name = name
@@ -84,7 +84,7 @@ class OpticsDescription:
             (
                 round(self.equivalent_focal_length.to_value(u.m), 4),
                 round(effective_focal_length, 4),
-                self.mirror_area,
+                round(self.mirror_area.to_value(u.m**2)),
                 self.num_mirrors,
                 self.num_mirror_tiles,
             )
