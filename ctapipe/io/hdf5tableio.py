@@ -566,7 +566,7 @@ class HDF5TableReader(TableReader):
         if prefixes is False:
             prefixes = ["" for _ in containers]
         elif prefixes is True:
-            prefixes = [container.container_prefix for container in containers]
+            prefixes = [container.default_prefix for container in containers]
         elif isinstance(prefixes, str):
             prefixes = [prefixes for _ in containers]
 
@@ -606,7 +606,7 @@ class HDF5TableReader(TableReader):
                 for fieldname in missing_cols:
                     kwargs[fieldname] = None
 
-                container = cls(**kwargs)
+                container = cls(**kwargs, prefix=prefix)
                 container.meta = self._meta[table_name]
                 ret.append(container)
 

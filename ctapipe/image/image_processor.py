@@ -42,12 +42,10 @@ DEFAULT_PEAKTIME_STATISTICS = PeakTimeStatisticsContainer()
 
 
 class ImageQualityQuery(QualityQuery):
-    """ for configuring image-wise data checks """
+    """for configuring image-wise data checks"""
 
     quality_criteria = List(
-        default_value=[
-            ("size_greater_0", "image.sum() > 0")
-        ],
+        default_value=[("size_greater_0", "image.sum() > 0")],
         help=QualityQuery.quality_criteria.help,
     ).tag(config=True)
 
@@ -68,8 +66,7 @@ class ImageProcessor(TelescopeComponent):
     ).tag(config=True)
 
     apply_image_modifier = BoolTelescopeParameter(
-        default_value=False,
-        help="If true, apply ImageModifier to dl1 images"
+        default_value=False, help="If true, apply ImageModifier to dl1 images"
     ).tag(config=True)
 
     def __init__(
@@ -236,6 +233,10 @@ class ImageProcessor(TelescopeComponent):
                     peak_time=None,  # true image from simulation has no peak time
                     default=DEFAULT_TRUE_IMAGE_PARAMETERS,
                 )
+                for container in sim_camera.true_parameters.values():
+                    if not container.prefix.startswith("true_"):
+                        container.prefix = f"true_{container.prefix}"
+
                 self.log.debug(
                     "sim params: %s",
                     event.simulation.tel[tel_id].true_parameters.as_dict(

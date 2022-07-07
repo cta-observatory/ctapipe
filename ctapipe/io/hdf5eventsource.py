@@ -54,7 +54,7 @@ DL2_CONTAINERS = {
 }
 
 
-COMPATIBLE_DL1_VERSIONS = [
+COMPATIBLE_DATA_MODEL_VERSIONS = [
     "v1.0.0",
     "v1.0.1",
     "v1.0.2",
@@ -65,6 +65,7 @@ COMPATIBLE_DL1_VERSIONS = [
     "v2.1.0",
     "v2.2.0",
     "v3.0.0",
+    "v4.0.0",
 ]
 
 
@@ -181,10 +182,10 @@ class HDF5EventSource(EventSource):
                 return False
 
             version = metadata["CTA PRODUCT DATA MODEL VERSION"]
-            if version not in COMPATIBLE_DL1_VERSIONS:
+            if version not in COMPATIBLE_DATA_MODEL_VERSIONS:
                 logger.error(
                     f"File is DL1 file but has unsupported version {version}"
-                    f", supported versions are {COMPATIBLE_DL1_VERSIONS}"
+                    f", supported versions are {COMPATIBLE_DATA_MODEL_VERSIONS}"
                 )
                 return False
 
@@ -246,7 +247,7 @@ class HDF5EventSource(EventSource):
         # Alternatively this becomes a flat list
         # and the obs_id matching part needs to be done in _generate_events()
         class ObsIdContainer(Container):
-            container_prefix = ""
+            default_prefix = ""
             obs_id = Field(-1)
 
         simulation_configs = {}
@@ -341,7 +342,13 @@ class HDF5EventSource(EventSource):
                             MorphologyContainer,
                             IntensityStatisticsContainer,
                         ],
-                        prefixes=True,
+                        prefixes=[
+                            "true_hillas",
+                            "true_leakage",
+                            "true_concentration",
+                            "true_morphology",
+                            "true_intensity",
+                        ],
                     )
                     for tel in self.file_.root.dl1.event.telescope.parameters
                 }
@@ -362,6 +369,7 @@ class HDF5EventSource(EventSource):
                     algorithm: HDF5TableReader(self.file_).read(
                         table._v_pathname,
                         containers=container,
+                        prefixes=(algorithm,),
                     )
                     for algorithm, table in group._v_children.items()
                 }
@@ -378,12 +386,12 @@ class HDF5EventSource(EventSource):
                     continue
 
                 dl2_tel_readers[kind] = {}
-                for name, algorithm_group in group._v_children.items():
-                    dl2_tel_readers[kind][name] = {
+                for algorithm, algorithm_group in group._v_children.items():
+                    dl2_tel_readers[kind][algorithm] = {
                         key: HDF5TableReader(self.file_).read(
                             table._v_pathname,
                             containers=container,
-                            prefixes=True,
+                            prefixes=(f"{algorithm}_tel",),
                         )
                         for key, table in algorithm_group._v_children.items()
                     }
@@ -507,7 +515,7 @@ class HDF5EventSource(EventSource):
                         simulated.true_image = simulated_image_row["true_image"]
 
                 if DataLevel.DL1_PARAMETERS in self.datalevels:
-                    if f"tel_{tel_id:03d}" not in param_readers.keys():
+                    if f"tel_{tel_id:03d}" not in param_readers:
                         logger.debug(
                             f"Triggered telescope {tel_id} is missing "
                             "from the parameters table."
@@ -527,7 +535,7 @@ class HDF5EventSource(EventSource):
                         peak_time_statistics=params[6],
                     )
                     if self.has_simulated_dl1:
-                        if f"tel_{tel_id:03d}" not in param_readers.keys():
+                        if f"tel_{tel_id:03d}" not in simulated_param_readers:
                             logger.debug(
                                 f"Triggered telescope {tel_id} is missing "
                                 "from the simulated parameters table, but was "

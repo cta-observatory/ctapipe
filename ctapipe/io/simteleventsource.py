@@ -468,11 +468,12 @@ class SimTelEventSource(EventSource):
                                 self.subarray.tel_index_array[tel_id]
                             ],
                             distance_uncert=0 * u.m,
+                            prefix="true_impact",
                         )
                     else:
-                        impact_container = TelescopeImpactParameterContainer()
-
-                    impact_container.prefix = "true_impact"
+                        impact_container = TelescopeImpactParameterContainer(
+                            prefix="true_impact",
+                        )
 
                     data.simulation.tel[tel_id] = SimulatedCameraContainer(
                         true_image_sum=true_image_sums[
