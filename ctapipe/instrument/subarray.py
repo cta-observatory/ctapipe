@@ -560,10 +560,6 @@ class SubarrayDescription:
 
         cameras = {}
 
-        # backwards compatibility for older tables, index is the name
-        if "camera_index" not in layout.colnames:
-            layout["camera_index"] = layout["camera_type"]
-
         for idx in set(layout["camera_index"]):
             geometry = CameraGeometry.from_table(
                 read_table(
@@ -582,6 +578,13 @@ class SubarrayDescription:
         optics_table = read_table(
             path, "/configuration/instrument/telescope/optics", table_cls=QTable
         )
+        optics_version = optics_table.meta["TAB_VER"]
+        if optics_version != "3.0":
+            raise IOError(
+                "Inputfile contains unsupported optics table version."
+                f"Supported: 3.0, got {optics_version}"
+            )
+
         # for backwards compatibility
         # if optics_index not in table, guess via telescope_description string
         # might not result in correct array when there are duplicated telescope_description

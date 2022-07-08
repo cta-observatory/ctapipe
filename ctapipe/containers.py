@@ -4,10 +4,10 @@ Container structures for data that should be read or written to disk
 import enum
 from functools import partial
 
+import numpy as np
 from astropy import units as u
 from astropy.time import Time
 from numpy import nan
-import numpy as np
 
 from .core import Container, Field, Map
 
@@ -83,7 +83,6 @@ DATA_MODEL_CHANGE_HISTORY = """
 - v1.1.0: images and peak_times can be stored as scaled integers
 - v1.0.3: true_image dtype changed from float32 to int32
 """
-
 
 
 # see https://github.com/astropy/astropy/issues/6509
