@@ -12,11 +12,16 @@ from ..utils import get_table_dataset
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "OpticsDescription",
+    "FocalLengthKind",
+]
+
 
 @unique
 class FocalLengthKind(Enum):
     """
-    Enumeration for the different kinds.
+    Enumeration for the different kinds of focal lengths.
     """
 
     #: Effective focal length computed from ray tracing a point source
