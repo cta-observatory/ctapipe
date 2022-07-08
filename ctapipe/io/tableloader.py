@@ -2,8 +2,6 @@
 Class and related functions to read DL1 (a,b) and/or DL2 (a) data
 from an HDF5 file produced with ctapipe-process.
 """
-
-import re
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict
@@ -31,9 +29,6 @@ TRUE_IMPACT_GROUP = "/simulation/event/telescope/impact"
 
 DL2_SUBARRAY_GROUP = "/dl2/event/subarray"
 DL2_TELESCOPE_GROUP = "/dl2/event/telescope"
-
-by_id_RE = re.compile(r"tel_\d+")
-
 
 SUBARRAY_EVENT_KEYS = ["obs_id", "event_id"]
 TELESCOPE_EVENT_KEYS = ["obs_id", "event_id", "tel_id"]
@@ -97,26 +92,6 @@ def _empty_telescope_events_table():
     for telescope event based data.
     """
     return Table(names=TELESCOPE_EVENT_KEYS, dtype=[np.int32, np.int64, np.int16])
-
-
-def _get_structure(h5file):
-    """
-    Check if data is stored by telescope id or by telescope type in h5file.
-    """
-
-    if PARAMETERS_GROUP in h5file:
-        group = h5file.root[PARAMETERS_GROUP]
-    elif IMAGES_GROUP in h5file:
-        group = h5file.root[IMAGES_GROUP]
-    else:
-        raise ValueError(f"No DL1 parameters data in h5file: {h5file}")
-
-    key = next(iter(group._v_children))  # pylint: disable=protected-access
-
-    if by_id_RE.fullmatch(key):
-        return "by_id"
-
-    return "by_type"
 
 
 def _join_subarray_events(table1, table2):
@@ -225,11 +200,6 @@ class TableLoader(Component):
 
         Provenance().add_input_file(self.input_url, role="Event data")
 
-        try:
-            self.structure = _get_structure(self.h5file)
-        except ValueError:
-            self.structure = None
-
         self.instrument_table = None
         if self.load_instrument:
             self.instrument_table = self.subarray.to_table("joined")
@@ -253,17 +223,10 @@ class TableLoader(Component):
         return self.h5file.root[TRIGGER_TABLE].shape[0]
 
     def _read_telescope_table(self, group, tel_id, start=None, stop=None):
-        if self.structure == "by_id":
-            key = f"{group}/tel_{tel_id:03d}"
-            condition = None
-        else:
-            key = f"{group}/{self.subarray.tel[tel_id]!s}"
-            condition = f"tel_id == {tel_id}"
+        key = f"{group}/tel_{tel_id:03d}"
 
         if key in self.h5file:
-            table = read_table(
-                self.h5file, key, condition=condition, start=start, stop=stop
-            )
+            table = read_table(self.h5file, key, start=start, stop=stop)
         else:
             table = _empty_telescope_events_table()
 
