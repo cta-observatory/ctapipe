@@ -101,8 +101,8 @@ class AtmosphereDensityProfile:
             ax[1].plot(distance, column_density, label=f"$\\Psi$={zenith_angle}")
 
         ax[1].legend(loc="best")
-        ax[1].set_xlabel(f"Distance / {height.unit.to_string('latex')}")
-        ax[1].set_ylabel(f"Column Density / {density.unit.to_string('latex')}")
+        ax[1].set_xlabel(f"Distance / {distance.unit.to_string('latex')}")
+        ax[1].set_ylabel(f"Column Density / {column_density.unit.to_string('latex')}")
         ax[1].grid(True)
 
         zenith_angle = np.linspace(0, 80, 20) * u.deg
@@ -114,7 +114,7 @@ class AtmosphereDensityProfile:
         ax[2].set_xlabel(
             f"Zenith Angle $\\Psi$ / {zenith_angle.unit.to_string('latex')}"
         )
-        ax[2].set_ylabel(f"Column Density / {density.unit.to_string('latex')}")
+        ax[2].set_ylabel(f"Column Density / {column_density.unit.to_string('latex')}")
         ax[2].grid(True)
 
         plt.show()
