@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
-"""
-Atmosphere density models and functions to transform between column density
+"""Atmosphere density models and functions to transform between column density
 (X in grammage units) and height (meters) units.
 
-TODO: include zenith-angle effects
-TODO: add simtel models (load from file)
+Zenith angle is taken into account in the line-of-sight integral to compute the
+column density X assuming Earth as a flat plane (the curvature is not taken into
+account)
+
 """
 
 import abc
@@ -32,16 +33,89 @@ class AtmosphereDensityProfile:
     @abc.abstractmethod
     def __call__(self, h: u.Quantity) -> u.Quantity:
         """
-        Return the density at height h
+        Returns
+        -------
+        u.Quantity["g cm-3"]
+            the density at height h
         """
         raise NotImplementedError()
 
     @abc.abstractmethod
     def integral(self, h: u.Quantity, output_units=u.g / u.cm**2) -> u.Quantity:
         """
-        Integral of the profile from height `h` to infinity.
+        Integral of the profile along the height axis
+
+        Returns
+        -------
+        u.Quantity["g/cm2"]:
+            Integral of the density from height h to infinity
         """
         raise NotImplementedError()
+
+    def line_of_sight_integral(
+        self, distance: u.Quantity, zenith_angle=0 * u.deg, output_units=u.g / u.cm**2
+    ):
+        """Line-of-sight integral from the shower distance to infinity, along
+        the direction specified by the zenith angle. The atmosphere here is
+        assumed to be Cartesian, the curvature of the Earth is not taken into account.
+
+        .. math:: X(h', \\Psi) = \\int_{h'}^{\\infty} \\rho(h \\cos{\\Psi}) dh'
+
+        Parameters
+        ----------
+        distance: u.Quantity["length"]
+           line-of-site distance from observer to point
+        zenith_angle: u.Quantity["angle"]
+           zenith angle of observation
+        output_units: u.Unit
+           unit to output (must be convertible to g/cm2)
+        """
+
+        return (
+            self.integral(distance * np.cos(zenith_angle)) / np.cos(zenith_angle)
+        ).to(output_units)
+
+    def peek(self):
+        """
+        Draw quick plot of profile
+        """
+        import matplotlib.pyplot as plt
+
+        fig, ax = plt.subplots(1, 3, constrained_layout=True, figsize=(10, 3))
+
+        fig.suptitle(self.__class__.__name__)
+        height = np.geomspace(1, 20, 100) * u.km
+        density = self(height)
+        ax[0].set_xscale("linear")
+        ax[0].set_yscale("log")
+        ax[0].plot(height, density)
+        ax[0].set_xlabel(f"Height / {height.unit.to_string('latex')}")
+        ax[0].set_ylabel(f"Density / {density.unit.to_string('latex')}")
+        ax[0].grid(True)
+
+        distance = np.geomspace(1, 20, 100) * u.km
+        for zenith_angle in [0, 40, 50, 70] * u.deg:
+            column_density = self.line_of_sight_integral(distance, zenith_angle)
+            ax[1].plot(distance, column_density, label=f"$\Psi$={zenith_angle}")
+
+        ax[1].legend(loc="best")
+        ax[1].set_xlabel(f"Distance / {height.unit.to_string('latex')}")
+        ax[1].set_ylabel(f"Column Density / {density.unit.to_string('latex')}")
+        ax[1].grid(True)
+
+        zenith_angle = np.linspace(0, 80, 20) * u.deg
+        for distance in [0, 5, 10, 20] * u.km:
+            column_density = self.line_of_sight_integral(distance, zenith_angle)
+            ax[2].plot(zenith_angle, column_density, label=f"Height={distance}")
+
+        ax[2].legend(loc="best")
+        ax[2].set_xlabel(
+            f"Zenith Angle $\Psi$ / {zenith_angle.unit.to_string('latex')}"
+        )
+        ax[2].set_ylabel(f"Column Density / {density.unit.to_string('latex')}")
+        ax[2].grid(True)
+
+        plt.show()
 
 
 @dataclass
@@ -65,13 +139,17 @@ class ExponentialAtmosphereDensityProfile(AtmosphereDensityProfile):
     h0: u.Quantity = 8 * u.km
     rho0: u.Quantity = 0.00125 * u.g / (u.cm**3)
 
-    @u.quantity_input(h=u.m)
-    def __call__(self, h: u.Quantity) -> u.Quantity:
+    @u.quantity_input
+    def __call__(self, h: u.m) -> u.Quantity:
         return self.rho0 * np.exp(-h / self.h0)
 
-    @u.quantity_input(h=u.m)
-    def integral(self, h: u.Quantity, output_units=u.g / u.cm**2) -> u.Quantity:
-        return (self.rho0 * self.h0 * np.exp(-h / self.h0)).to(output_units)
+    @u.quantity_input
+    def integral(
+        self,
+        h: u.m,
+        output_units=u.g / u.cm**2,
+    ) -> u.Quantity:
+        return self.rho0 * self.h0 * np.exp(-h / self.h0)
 
 
 class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
@@ -120,11 +198,13 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
         """
         return cls(table=read_simtel_profile(simtel_filename)[profile_number])
 
-    def __call__(self, h: u.Quantity) -> u.Quantity:
-        return self._density_interp(h.to_value(u.km)) * u.g / u.cm**3
+    @u.quantity_input
+    def __call__(self, h: u.m) -> u.Quantity:
+        return u.Quantity(self._density_interp(h.to_value(u.km)), u.g / u.cm**3)
 
-    def integral(self, h: u.Quantity) -> u.Quantity:
-        return self._col_density_interp(h.to_value(u.km)) * u.g / u.cm**2
+    @u.quantity_input
+    def integral(self, h: u.m) -> u.Quantity:
+        return u.Quantity(self._col_density_interp(h.to_value(u.km)), u.g / u.cm**2)
 
     def __repr__(self):
         return (
