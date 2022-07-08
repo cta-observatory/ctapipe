@@ -14,6 +14,7 @@ from astropy import units as u
 from traitlets import Dict, Instance
 
 from ..containers import (
+    DATA_MODEL_VERSION,
     ArrayEventContainer,
     SimulatedShowerDistribution,
     TelEventIndexContainer,
@@ -27,7 +28,10 @@ from .datalevels import DataLevel
 from .simteleventsource import SimTelEventSource
 from .tableio import FixedPointColumnTransform, TelListToMaskTransform
 
-__all__ = ["DataWriter", "DATA_MODEL_VERSION", "write_reference_metadata_headers"]
+__all__ = [
+    "DataWriter",
+    "write_reference_metadata_headers",
+]
 
 tables.parameters.NODE_CACHE_SLOTS = 3000  # fixes problem with too many datasets
 
@@ -39,28 +43,6 @@ def _get_tel_index(event, tel_id):
         tel_id=np.int16(tel_id),
     )
 
-
-# define the version of the DL1 data model written here. This should be updated
-# when necessary:
-# - increase the major number if there is a breaking change to the model
-#   (meaning readers need to update scripts)
-# - increase the minor number if new columns or datasets are added
-# - increase the patch number if there is a small bugfix to the model.
-DATA_MODEL_VERSION = "v4.0.0"
-DATA_MODEL_CHANGE_HISTORY = """
-- v4.0.0: - Container prefixes are now included for reconstruction algorithms
-            and true parameters.
-          - Telescope Impact Parameters were added.
-          - Effective focal length and nominal focal length are both included
-            in the optics description now.
-- v3.0.0: reconstructed core uncertainties splitted in their X-Y components
-- v2.2.0: added R0 and R1 outputs
-- v2.1.0: hillas and timing parameters are per default saved in telescope frame (degree) as opposed to camera frame (m)
-- v2.0.0: Match optics and camera tables using indices instead of names
-- v1.2.0: change to more general data model, including also DL2 (DL1 unchanged)
-- v1.1.0: images and peak_times can be stored as scaled integers
-- v1.0.3: true_image dtype changed from float32 to int32
-"""
 
 PROV = Provenance()
 
