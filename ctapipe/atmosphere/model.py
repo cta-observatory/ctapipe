@@ -61,7 +61,7 @@ class AtmosphereDensityProfile:
         the direction specified by the zenith angle. The atmosphere here is
         assumed to be Cartesian, the curvature of the Earth is not taken into account.
 
-        .. math:: X(h', \\Psi) = \\int_{h'}^{\\infty} \\rho(h \\cos{\\Psi}) dh'
+        .. math:: X(h', \\Psi) = \\int_{h'}^{\\infty} \\rho(h \\cos{\\Psi}) dh
 
         Parameters
         ----------
