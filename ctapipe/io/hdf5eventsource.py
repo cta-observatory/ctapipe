@@ -1,43 +1,43 @@
-import astropy.units as u
-from astropy.utils.decorators import lazyproperty
 import logging
-import numpy as np
-import tables
 from ast import literal_eval
 
-from ..core import Container, Field
-from ..instrument import SubarrayDescription
+import astropy.units as u
+import numpy as np
+import tables
+from astropy.utils.decorators import lazyproperty
+
 from ..containers import (
-    ConcentrationContainer,
     ArrayEventContainer,
+    CameraHillasParametersContainer,
+    CameraTimingParametersContainer,
+    ConcentrationContainer,
     DL1CameraContainer,
     EventIndexContainer,
-    CameraHillasParametersContainer,
     HillasParametersContainer,
+    ImageParametersContainer,
     IntensityStatisticsContainer,
     LeakageContainer,
     MorphologyContainer,
     ParticleClassificationContainer,
-    ReconstructedEnergyContainer,
-    SimulationConfigContainer,
-    SimulatedShowerContainer,
-    SimulatedEventContainer,
     PeakTimeStatisticsContainer,
-    CameraTimingParametersContainer,
+    R1CameraContainer,
+    ReconstructedEnergyContainer,
+    ReconstructedGeometryContainer,
+    SimulatedEventContainer,
+    SimulatedShowerContainer,
+    SimulationConfigContainer,
+    TelescopeImpactParameterContainer,
+    TelescopeTriggerContainer,
+    TelEventIndexContainer,
     TimingParametersContainer,
     TriggerContainer,
-    ImageParametersContainer,
-    TelEventIndexContainer,
-    TelescopeTriggerContainer,
-    R1CameraContainer,
-    TelescopeImpactParameterContainer,
-    ReconstructedGeometryContainer,
 )
+from ..core import Container, Field
+from ..instrument import SubarrayDescription
+from ..utils import IndexFinder
+from .datalevels import DataLevel
 from .eventsource import EventSource
 from .hdf5tableio import HDF5TableReader
-from .datalevels import DataLevel
-from ..utils import IndexFinder
-
 from .tableloader import DL2_SUBARRAY_GROUP, DL2_TELESCOPE_GROUP
 
 __all__ = ["HDF5EventSource"]
@@ -81,6 +81,9 @@ def get_hdf5_datalevels(h5file):
 
     if "/dl1/event/telescope/parameters" in h5file.root:
         datalevels.append(DataLevel.DL1_PARAMETERS)
+
+    if "/dl2" in h5file.root:
+        datalevels.append(DataLevel.DL2)
 
     return tuple(datalevels)
 

@@ -1,5 +1,6 @@
 import astropy.units as u
 import numpy as np
+
 from ctapipe.io import DataLevel, EventSource, HDF5EventSource
 from ctapipe.utils import get_dataset_path
 
@@ -78,6 +79,7 @@ def test_simulation_info(dl1_file):
 
 def test_dl1_a_only_data(dl1_image_file):
     with HDF5EventSource(input_url=dl1_image_file) as source:
+        assert source.datalevels == (DataLevel.DL1_IMAGES,)
         for event in source:
             for tel in event.dl1.tel:
                 assert event.dl1.tel[tel].image.any()
@@ -87,6 +89,7 @@ def test_dl1_b_only_data(dl1_parameters_file):
     reco_lons = []
     reco_concentrations = []
     with HDF5EventSource(input_url=dl1_parameters_file) as source:
+        assert source.datalevels == (DataLevel.DL1_PARAMETERS,)
         for event in source:
             for tel in event.dl1.tel:
                 reco_lons.append(
@@ -132,6 +135,8 @@ def test_read_r1(r1_hdf5_file):
     with HDF5EventSource(input_url=r1_hdf5_file) as source:
         e = None
 
+        assert source.datalevels == (DataLevel.R1,)
+
         for e in source:
             pass
 
@@ -157,6 +162,12 @@ def test_read_dl2(dl2_shower_geometry_file):
     algorithm = "HillasReconstructor"
 
     with HDF5EventSource(dl2_shower_geometry_file) as s:
+        assert s.datalevels == (
+            DataLevel.DL1_IMAGES,
+            DataLevel.DL1_PARAMETERS,
+            DataLevel.DL2,
+        )
+
         e = next(iter(s))
         assert algorithm in e.dl2.stereo.geometry
         assert e.dl2.stereo.geometry[algorithm].alt is not None
