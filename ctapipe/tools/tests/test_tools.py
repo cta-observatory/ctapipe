@@ -8,6 +8,7 @@ import sys
 import matplotlib as mpl
 import numpy as np
 import tables
+
 from ctapipe.core import run_tool
 from ctapipe.utils import get_dataset_path
 
@@ -28,7 +29,7 @@ def test_muon_reconstruction_simtel(tmp_path):
             argv=[
                 f"--input={LST_MUONS}",
                 f"--output={muon_simtel_output_file}",
-                "--SimTelEventSource.focal_length_choice=nominal",
+                "--SimTelEventSource.focal_length_choice=EQUIVALENT",
                 "--overwrite",
             ],
             cwd=tmp_path,
@@ -52,7 +53,7 @@ def test_muon_reconstruction_dl1(tmp_path, dl1_muon_file):
             argv=[
                 f"--input={dl1_muon_file}",
                 f"--output={muon_dl1_output_file}",
-                "--HDF5EventSource.focal_length_choice=nominal",
+                "--HDF5EventSource.focal_length_choice=EQUIVALENT",
                 "--overwrite",
             ],
             cwd=tmp_path,
@@ -80,7 +81,7 @@ def test_display_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
             argv=[
                 "--max-events=1",
                 "--telescope=11",
-                "--SimTelEventSource.focal_length_choice=nominal",
+                "--SimTelEventSource.focal_length_choice=EQUIVALENT",
             ],
             cwd=tmp_path,
         )

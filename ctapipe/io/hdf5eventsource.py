@@ -1,44 +1,46 @@
-import astropy.units as u
-from astropy.utils.decorators import lazyproperty
 import logging
-import numpy as np
-import tables
 from ast import literal_eval
 
-from ..core import Container, Field
-from ..core.traits import CaselessStrEnum
-from ..instrument import SubarrayDescription
+import astropy.units as u
+import numpy as np
+import tables
+from astropy.utils.decorators import lazyproperty
+
+from ctapipe.instrument.optics import FocalLengthKind
+
 from ..containers import (
-    ConcentrationContainer,
     ArrayEventContainer,
+    CameraHillasParametersContainer,
+    CameraTimingParametersContainer,
+    ConcentrationContainer,
     DL1CameraContainer,
     EventIndexContainer,
-    CameraHillasParametersContainer,
     HillasParametersContainer,
+    ImageParametersContainer,
     IntensityStatisticsContainer,
     LeakageContainer,
     MorphologyContainer,
     ParticleClassificationContainer,
-    ReconstructedEnergyContainer,
-    SimulationConfigContainer,
-    SimulatedShowerContainer,
-    SimulatedEventContainer,
     PeakTimeStatisticsContainer,
-    CameraTimingParametersContainer,
+    R1CameraContainer,
+    ReconstructedEnergyContainer,
+    ReconstructedGeometryContainer,
+    SimulatedEventContainer,
+    SimulatedShowerContainer,
+    SimulationConfigContainer,
+    TelescopeImpactParameterContainer,
+    TelescopeTriggerContainer,
+    TelEventIndexContainer,
     TimingParametersContainer,
     TriggerContainer,
-    ImageParametersContainer,
-    TelEventIndexContainer,
-    TelescopeTriggerContainer,
-    R1CameraContainer,
-    TelescopeImpactParameterContainer,
-    ReconstructedGeometryContainer,
 )
+from ..core import Container, Field
+from ..core.traits import UseEnum
+from ..instrument import SubarrayDescription
+from ..utils import IndexFinder
+from .datalevels import DataLevel
 from .eventsource import EventSource
 from .hdf5tableio import HDF5TableReader
-from .datalevels import DataLevel
-from ..utils import IndexFinder
-
 from .tableloader import DL2_SUBARRAY_GROUP, DL2_TELESCOPE_GROUP
 
 __all__ = ["HDF5EventSource"]
@@ -124,9 +126,9 @@ class HDF5EventSource(EventSource):
         image parameters evaluated on these.
     """
 
-    focal_length_choice = CaselessStrEnum(
-        ["nominal", "effective"],
-        default_value="effective",
+    focal_length_choice = UseEnum(
+        FocalLengthKind,
+        default_value=FocalLengthKind.EFFECTIVE,
         help=(
             "If both nominal and effective focal lengths are available, "
             " which one to use for the `CameraFrame` attached"

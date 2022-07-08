@@ -29,17 +29,12 @@ from ..containers import (
 )
 from ..coordinates import CameraFrame
 from ..core import Map
-from ..core.traits import (
-    Bool,
-    CaselessStrEnum,
-    Float,
-    Undefined,
-    create_class_enum_trait,
-)
+from ..core.traits import Bool, Float, Undefined, UseEnum, create_class_enum_trait
 from ..instrument import (
     CameraDescription,
     CameraGeometry,
     CameraReadout,
+    FocalLengthKind,
     OpticsDescription,
     SubarrayDescription,
     TelescopeDescription,
@@ -186,9 +181,9 @@ class SimTelEventSource(EventSource):
         ),
     ).tag(config=True)
 
-    focal_length_choice = CaselessStrEnum(
-        ["nominal", "effective"],
-        default_value="effective",
+    focal_length_choice = UseEnum(
+        FocalLengthKind,
+        default_value=FocalLengthKind.EFFECTIVE,
         help=(
             "If both nominal and effective focal lengths are available in the"
             " SimTelArray file, which one to use for the `CameraFrame` attached"
@@ -317,26 +312,26 @@ class SimTelEventSource(EventSource):
             n_pixels = cam_settings["n_pixels"]
             mirror_area = u.Quantity(cam_settings["mirror_area"], u.m**2)
 
-            nominal_focal_length = u.Quantity(cam_settings["focal_length"], u.m)
+            equivalent_focal_length = u.Quantity(cam_settings["focal_length"], u.m)
             effective_focal_length = u.Quantity(
                 cam_settings.get("effective_focal_length", np.nan), u.m
             )
 
             try:
-                telescope = guess_telescope(n_pixels, nominal_focal_length)
+                telescope = guess_telescope(n_pixels, equivalent_focal_length)
             except ValueError:
                 telescope = unknown_telescope(mirror_area, n_pixels)
 
             optics = OpticsDescription(
                 name=telescope.name,
                 num_mirrors=telescope.n_mirrors,
-                equivalent_focal_length=nominal_focal_length,
+                equivalent_focal_length=equivalent_focal_length,
                 effective_focal_length=effective_focal_length,
                 mirror_area=mirror_area,
                 num_mirror_tiles=cam_settings["n_mirrors"],
             )
 
-            if self.focal_length_choice == "effective":
+            if self.focal_length_choice is FocalLengthKind.EFFECTIVE:
                 if np.isnan(effective_focal_length):
                     raise RuntimeError(
                         f"`SimTelEventSource.focal_length_choice` was set to"
@@ -346,8 +341,12 @@ class SimTelEventSource(EventSource):
                         " to include the effective focal length"
                     )
                 focal_length = effective_focal_length
+            elif self.focal_length_choice is FocalLengthKind.EQUIVALENT:
+                focal_length = equivalent_focal_length
             else:
-                focal_length = nominal_focal_length
+                raise ValueError(
+                    f"Invalid focal length choice: {self.focal_length_choice}"
+                )
 
             camera = build_camera(
                 cam_settings,

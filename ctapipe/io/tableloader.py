@@ -3,19 +3,21 @@ Class and related functions to read DL1 (a,b) and/or DL2 (a) data
 from an HDF5 file produced with ctapipe-process.
 """
 
-from pathlib import Path
 import re
 from collections import defaultdict
+from pathlib import Path
 from typing import Dict
-from astropy.utils.decorators import lazyproperty
 
 import numpy as np
-from astropy.table import vstack, Table
 import tables
+from astropy.table import Table, vstack
+from astropy.utils.decorators import lazyproperty
 
-from ..core import Component, traits, Provenance
+from ctapipe.instrument.optics import FocalLengthKind
+
+from ..core import Component, Provenance, traits
 from ..instrument import SubarrayDescription
-from .astropy_helpers import read_table, join_allow_empty
+from .astropy_helpers import join_allow_empty, read_table
 
 __all__ = ["TableLoader"]
 
@@ -183,9 +185,9 @@ class TableLoader(Component):
         False, help="join subarray instrument information to each event"
     ).tag(config=True)
 
-    focal_length_choice = traits.CaselessStrEnum(
-        ["nominal", "effective"],
-        default_value="effective",
+    focal_length_choice = traits.UseEnum(
+        FocalLengthKind,
+        default_value=FocalLengthKind.EFFECTIVE,
         help=(
             "If both nominal and effective focal lengths are available, "
             " which one to use for the `CameraFrame` attached"

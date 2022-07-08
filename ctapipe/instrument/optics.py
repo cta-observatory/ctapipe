@@ -3,6 +3,7 @@ Classes and functions related to telescope Optics
 """
 
 import logging
+from enum import Enum, auto, unique
 
 import astropy.units as u
 import numpy as np
@@ -10,6 +11,23 @@ import numpy as np
 from ..utils import get_table_dataset
 
 logger = logging.getLogger(__name__)
+
+
+@unique
+class FocalLengthKind(Enum):
+    """
+    Enumeration for the different kinds.
+    """
+
+    #: Effective focal length computed from ray tracing a point source
+    #: and calculating the off-axis center of mass of the light distribution.
+    #: This focal length should be used in coordinate transforms between camera
+    #: frame and telescope frame to correct for the mean effect of coma abberation.
+    EFFECTIVE = auto()
+    #: Equivalent focal length is the nominal focal length of the main reflector
+    #: for single mirror telescopes and the thin-lens equivalent for dual mirror
+    #: telescopes.
+    EQUIVALENT = auto()
 
 
 class OpticsDescription:
@@ -31,8 +49,8 @@ class OpticsDescription:
         mirror telescopes.
     effective_focal_length : astropy.units.Quantity[length]
         The effective_focal_length is the focal length estimated from
-        ray tracing to correct for koma aberration. It is thus not automatically
-        available for all simulations, but only if it was set before hand
+        ray tracing to correct for coma aberration. It is thus not automatically
+        available for all simulations, but only if it was set beforehand
         in the simtel configuration. This is the focal length that should be
         used for transforming from camera frame to telescope frame for all
         reconstruction tasks to correct for the mean aberration.

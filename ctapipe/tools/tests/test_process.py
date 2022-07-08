@@ -303,7 +303,7 @@ def test_training_from_simtel(tmp_path):
                 f"--output={output}",
                 "--max-events=5",
                 "--overwrite",
-                "--SimTelEventSource.focal_length_choice=nominal",
+                "--SimTelEventSource.focal_length_choice=EQUIVALENT",
             ],
             cwd=tmp_path,
         )

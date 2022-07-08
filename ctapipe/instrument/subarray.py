@@ -18,7 +18,7 @@ from astropy.utils import lazyproperty
 from .. import __version__ as CTAPIPE_VERSION
 from ..coordinates import CameraFrame, GroundFrame
 from .camera import CameraDescription, CameraGeometry, CameraReadout
-from .optics import OpticsDescription
+from .optics import FocalLengthKind, OpticsDescription
 from .telescope import TelescopeDescription
 
 __all__ = ["SubarrayDescription"]
@@ -547,9 +547,12 @@ class SubarrayDescription:
                 meta["reference_itrs_z"] = itrs.z.to_value(u.m)
 
     @classmethod
-    def from_hdf(cls, path, focal_length_choice="effective"):
+    def from_hdf(cls, path, focal_length_choice=FocalLengthKind.EFFECTIVE):
         # here to prevent circular import
         from ..io import read_table
+
+        if isinstance(focal_length_choice, str):
+            focal_length_choice = FocalLengthKind[focal_length_choice.upper()]
 
         layout = read_table(
             path, "/configuration/instrument/subarray/layout", table_cls=QTable
@@ -617,7 +620,7 @@ class SubarrayDescription:
             camera = copy(cameras[row["camera_index"]])
             optics = optic_descriptions[row["optics_index"]]
 
-            if focal_length_choice == "effective":
+            if focal_length_choice is FocalLengthKind.EFFECTIVE:
                 focal_length = optics.effective_focal_length
                 if np.isnan(focal_length.value):
                     raise RuntimeError(
@@ -626,8 +629,10 @@ class SubarrayDescription:
                         " Use nominal focal length or adapt configuration"
                         " to include the effective focal length"
                     )
-            else:
+            elif focal_length_choice is FocalLengthKind.EQUIVALENT:
                 focal_length = optics.equivalent_focal_length
+            else:
+                raise ValueError(f"Invalid focal length choice: {focal_length_choice}")
 
             camera.geometry.frame = CameraFrame(focal_length=focal_length)
             telescope_descriptions[row["tel_id"]] = TelescopeDescription(
