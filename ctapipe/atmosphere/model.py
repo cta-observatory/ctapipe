@@ -17,6 +17,8 @@ from astropy import units as u
 from astropy.table import Table
 from scipy.interpolate import interp1d
 
+from ..core import Provenance
+
 __all__ = [
     "AtmosphereDensityProfile",
     "ExponentialAtmosphereDensityProfile",
@@ -96,7 +98,7 @@ class AtmosphereDensityProfile:
         distance = np.geomspace(1, 20, 100) * u.km
         for zenith_angle in [0, 40, 50, 70] * u.deg:
             column_density = self.line_of_sight_integral(distance, zenith_angle)
-            ax[1].plot(distance, column_density, label=f"$\Psi$={zenith_angle}")
+            ax[1].plot(distance, column_density, label=f"$\\Psi$={zenith_angle}")
 
         ax[1].legend(loc="best")
         ax[1].set_xlabel(f"Distance / {height.unit.to_string('latex')}")
@@ -110,7 +112,7 @@ class AtmosphereDensityProfile:
 
         ax[2].legend(loc="best")
         ax[2].set_xlabel(
-            f"Zenith Angle $\Psi$ / {zenith_angle.unit.to_string('latex')}"
+            f"Zenith Angle $\\Psi$ / {zenith_angle.unit.to_string('latex')}"
         )
         ax[2].set_ylabel(f"Column Density / {density.unit.to_string('latex')}")
         ax[2].grid(True)
@@ -171,7 +173,7 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
         """
 
         for col in ["height", "density", "column_density"]:
-            if not col in table.colnames:
+            if col not in table.colnames:
                 raise ValueError(f"Missing expected column: {col} in table")
 
         self.table = table
@@ -226,6 +228,10 @@ def read_simtel_profile(simtelfile: str) -> Table:
 
     tables = []
     with eventio.SimTelFile(simtelfile) as simtel:
+        Provenance().add_input_file(
+            filename=simtelfile, role="ctapipe.atmosphere.model"
+        )
+
         for atmo in simtel.atmospheric_profiles:
             table = Table(
                 dict(
