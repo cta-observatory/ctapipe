@@ -1,14 +1,13 @@
+import logging
+import warnings
 from collections import defaultdict
 from functools import partial
-from pprint import pformat
-from textwrap import wrap, dedent
-import warnings
-import numpy as np
-from astropy.units import UnitConversionError, Quantity, Unit
 from inspect import isclass
+from pprint import pformat
+from textwrap import dedent, wrap
 
-import logging
-
+import numpy as np
+from astropy.units import Quantity, Unit, UnitConversionError
 
 log = logging.getLogger(__name__)
 
@@ -254,6 +253,9 @@ class ContainerMeta(type):
 
         for k in field_names:
             dct["fields"][k] = dct.pop(k)
+
+        for field_name, field in dct["fields"].items():
+            field.name = field_name
 
         dct["__doc__"] = _build_docstring(dct.get("__doc__", ""), dct["fields"])
 

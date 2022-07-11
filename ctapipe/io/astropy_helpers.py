@@ -5,19 +5,18 @@ Functions to help adapt internal ctapipe data to astropy formats and conventions
 import os
 from contextlib import ExitStack
 
+import numpy as np
 import tables
 from astropy.table import Table, join
 from astropy.time import Time
-import numpy as np
 
+from .hdf5tableio import DEFAULT_FILTERS, get_transforms_for_table, read_column_attrs
 from .tableio import (
-    FixedPointColumnTransform,
+    EnumColumnTransform,
     QuantityColumnTransform,
-    TimeColumnTransform,
     StringTransform,
+    TimeColumnTransform,
 )
-from .hdf5tableio import DEFAULT_FILTERS, get_hdf5_attr
-
 
 __all__ = ["read_table", "join_allow_empty"]
 
@@ -77,7 +76,9 @@ def read_table(
         path = os.path.join("/", path)
         table = h5file.get_node(path)
         if not isinstance(table, tables.Table):
-            raise IOError(f"Node {path} is a {table.__class__.__name__}, must be a Table")
+            raise IOError(
+                f"Node {path} is a {table.__class__.__name__}, must be a Table"
+            )
         transforms, descriptions, meta = _parse_hdf5_attrs(table)
 
         if condition is None:
@@ -90,6 +91,10 @@ def read_table(
         astropy_table = table_cls(array, meta=meta, copy=False)
         for column, tr in transforms.items():
             if column not in astropy_table.colnames:
+                continue
+
+            # keep enums as integers, much easier to deal with in tables
+            if isinstance(tr, EnumColumnTransform):
                 continue
 
             astropy_table[column] = tr.inverse(astropy_table[column])
@@ -158,13 +163,13 @@ def write_table(
                 )
 
         attrs = {}
-        for colname, column in table.columns.items():
+        for pos, (colname, column) in enumerate(table.columns.items()):
             if hasattr(column, "description") and column.description is not None:
-                attrs[f"{colname}_DESC"] = column.description
+                attrs[f"CTAFIELD_{pos}_DESC"] = column.description
 
             if isinstance(column, Time):
                 transform = TimeColumnTransform(scale="tai", format="mjd")
-                attrs.update(transform.get_meta(colname))
+                attrs.update(transform.get_meta(pos))
 
                 if copied is False:
                     table = table.copy()
@@ -181,11 +186,11 @@ def write_table(
 
                 table[colname] = np.array([s.encode("utf-8") for s in column])
                 transform = StringTransform(table[colname].dtype.itemsize)
-                attrs.update(transform.get_meta(colname))
+                attrs.update(transform.get_meta(pos))
 
             elif column.unit is not None:
                 transform = QuantityColumnTransform(column.unit)
-                attrs.update(transform.get_meta(colname))
+                attrs.update(transform.get_meta(pos))
 
         if not already_exists:
             h5_table = h5file.create_table(
@@ -208,43 +213,27 @@ def write_table(
 
 
 def _parse_hdf5_attrs(table):
-    other_attrs = {}
-    column_descriptions = {}
-    column_transforms = {}
-    for attr in table.attrs._f_list():  # pylint: disable=W0212
-        if attr.endswith("_UNIT"):
-            colname = attr[:-5]
-            column_transforms[colname] = QuantityColumnTransform(unit=table.attrs[attr])
-        elif attr.endswith("_DESC"):
-            colname = attr[:-5]
-            column_descriptions[colname] = str(table.attrs[attr])
-        elif attr.endswith("_TIME_SCALE"):
-            colname, _, _ = attr.rpartition("_TIME_SCALE")
-            scale = table.attrs[attr].lower()
-            fmt = get_hdf5_attr(table.attrs, f"{colname}_TIME_FORMAT", "mjd").lower()
-            column_transforms[colname] = TimeColumnTransform(scale=scale, format=fmt)
-        elif attr.endswith("_TRANSFORM_SCALE"):
-            colname, _, _ = attr.rpartition("_TRANSFORM_SCALE")
-            column_transforms[colname] = FixedPointColumnTransform(
-                scale=table.attrs[attr],
-                offset=table.attrs[f"{colname}_TRANSFORM_OFFSET"],
-                source_dtype=table.attrs[f"{colname}_TRANSFORM_DTYPE"],
-                target_dtype=table.col(colname).dtype,
-            )
-        elif attr.endswith("_TRANSFORM"):
-            if table.attrs[attr] == "string":
-                colname, _, _ = attr.rpartition("_TRANSFORM")
-                column_transforms[colname] = StringTransform(
-                    table.attrs[f"{colname}_MAXLEN"]
-                )
+    descriptions = {
+        col_name: str(attrs["DESC"])
+        for col_name, attrs in read_column_attrs(table).items()
+        if "DESC" in attrs
+    }
 
-        else:
-            # need to convert to str() here so they are python strings, not
-            # numpy strings
-            value = table.attrs[attr]
-            other_attrs[attr] = str(value) if isinstance(value, np.str_) else value
+    transforms = get_transforms_for_table(table)
 
-    return column_transforms, column_descriptions, other_attrs
+    meta = {
+        key: table.attrs[key]
+        for key in table.attrs._v_attrnamesuser
+        if not key.startswith("CTAFIELD_") and not key.startswith("FIELD_")
+    }
+
+    # transform np.str_ to python str
+    meta = {
+        key: str(value) if isinstance(value, np.str_) else value
+        for key, value in meta.items()
+    }
+
+    return transforms, descriptions, meta
 
 
 def join_allow_empty(left, right, keys, join_type="left", **kwargs):
