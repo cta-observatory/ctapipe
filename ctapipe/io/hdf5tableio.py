@@ -8,16 +8,17 @@ from astropy.time import Time
 from astropy.units import Quantity, Unit
 
 import ctapipe
-from .tableio import (
-    StringTransform,
-    TableWriter,
-    TableReader,
-    FixedPointColumnTransform,
-    TimeColumnTransform,
-    EnumColumnTransform,
-    QuantityColumnTransform,
-)
+
 from ..core import Container, Map
+from .tableio import (
+    EnumColumnTransform,
+    FixedPointColumnTransform,
+    QuantityColumnTransform,
+    StringTransform,
+    TableReader,
+    TableWriter,
+    TimeColumnTransform,
+)
 
 __all__ = ["HDF5TableWriter", "HDF5TableReader"]
 
@@ -424,6 +425,7 @@ class HDF5TableReader(TableReader):
         tab = self._h5file.get_node(table_name)
         self._tables[table_name] = tab
         self._map_table_to_containers(table_name, containers, prefixes, ignore_columns)
+        self._handle_metadata(table_name, containers, prefixes, ignore_columns)
         self._map_transforms_from_table_header(table_name)
         return tab
 
@@ -469,6 +471,14 @@ class HDF5TableReader(TableReader):
                     tr = StringTransform(maxlen)
                     self.add_column_transform(table_name, colname, tr)
 
+    def _handle_metadata(self, table_name, containers, prefixes, ignore_columns):
+        tab = self._tables[table_name]
+        for container, prefix in zip(containers, prefixes):
+            # store the meta
+            self._meta[table_name] = {}
+            for key in tab.attrs._f_list():
+                self._meta[table_name][key] = tab.attrs[key]
+
     def _map_table_to_containers(
         self, table_name, containers, prefixes, ignore_columns
     ):
@@ -511,11 +521,6 @@ class HDF5TableReader(TableReader):
                         f"that is in container {container}. "
                         "It will be skipped."
                     )
-
-            # store the meta
-            self._meta[table_name] = {}
-            for key in tab.attrs._f_list():
-                self._meta[table_name][key] = tab.attrs[key]
 
         # check if the table has additional columns not present in any container
         for colname in tab.colnames:
