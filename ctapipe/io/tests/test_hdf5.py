@@ -1,22 +1,23 @@
 import enum
+
 import numpy as np
+import pandas as pd
 import pytest
 import tables
-import pandas as pd
 from astropy import units as u
 from astropy.time import Time
 
-from ctapipe.core.container import Container, Field
 from ctapipe import containers
 from ctapipe.containers import (
+    HillasParametersContainer,
+    LeakageContainer,
     R0CameraContainer,
     SimulatedShowerContainer,
-    HillasParametersContainer,
     TelEventIndexContainer,
-    LeakageContainer,
 )
-from ctapipe.io.hdf5tableio import HDF5TableWriter, HDF5TableReader
+from ctapipe.core.container import Container, Field
 from ctapipe.io import read_table
+from ctapipe.io.hdf5tableio import HDF5TableReader, HDF5TableWriter
 
 
 @pytest.fixture(scope="session")
@@ -270,9 +271,9 @@ def test_units(tmp_path):
         writer.write("units", c)
 
     with tables.open_file(path, "r") as f:
-        assert f.root.data.units.attrs["inverse_length_UNIT"] == "m**-1"
-        assert f.root.data.units.attrs["time_UNIT"] == "s"
-        assert f.root.data.units.attrs["grammage_UNIT"] == "cm**-2.g"
+        assert f.root.data.units.attrs["CTAFIELD_0_UNIT"] == "m**-1"
+        assert f.root.data.units.attrs["CTAFIELD_1_UNIT"] == "s"
+        assert f.root.data.units.attrs["CTAFIELD_2_UNIT"] == "cm**-2.g"
 
 
 def test_write_containers(tmp_path):

@@ -5,19 +5,20 @@ from pathlib import PurePath
 import numpy as np
 import tables
 from astropy.time import Time
-from astropy.units import Quantity, Unit
+from astropy.units import Quantity
 
 import ctapipe
-from .tableio import (
-    StringTransform,
-    TableWriter,
-    TableReader,
-    FixedPointColumnTransform,
-    TimeColumnTransform,
-    EnumColumnTransform,
-    QuantityColumnTransform,
-)
+
 from ..core import Container, Map
+from .tableio import (
+    EnumColumnTransform,
+    FixedPointColumnTransform,
+    QuantityColumnTransform,
+    StringTransform,
+    TableReader,
+    TableWriter,
+    TimeColumnTransform,
+)
 
 __all__ = ["HDF5TableWriter", "HDF5TableReader"]
 
@@ -51,6 +52,62 @@ def get_hdf5_attr(attrs, name, default=None):
     if name in attrs:
         return attrs[name]
     return default
+
+
+def read_column_attrs(table):
+    """Read custom ctapipe column metadata from hdf5 table"""
+    attrs = table.attrs
+
+    column_attrs = {}
+    for name, desc in table.coldescrs.items():
+        pos = desc._v_pos
+        column_attrs[name] = {
+            k.partition(f"CTAFIELD_{pos}_")[2]: attrs[k]
+            for k in attrs._v_attrnames
+            if k.startswith(f"CTAFIELD_{pos}_")
+        }
+
+    return column_attrs
+
+
+def get_transforms_for_table(table):
+    """
+    create any transforms needed to "undo" ones in the writer
+    """
+    attrs = read_column_attrs(table)
+    transforms = {}
+    for colname, desc in table.coldescrs.items():
+        col_attrs = attrs.get(colname, {})
+
+        if unit := col_attrs.get("UNIT"):
+            transform = QuantityColumnTransform(unit=unit)
+            transforms[colname] = transform
+
+        elif enum := col_attrs.get("ENUM"):
+            transform = EnumColumnTransform(enum)
+            transforms[colname] = transform
+
+        elif scale := col_attrs.get("TIME_SCALE"):
+            scale = scale.lower()
+            time_format = col_attrs.get("TIME_FORMAT", "mjd")
+            transform = TimeColumnTransform(scale=scale, format=time_format)
+            transforms[colname] = transform
+
+        elif scale := col_attrs.get("TRANSFORM_SCALE"):
+            transform = FixedPointColumnTransform(
+                scale=scale,
+                offset=col_attrs.get("TRANSFORM_OFFSET", 0),
+                source_dtype=col_attrs.get("TRANSFORM_DTYPE", "float32"),
+                target_dtype=desc.dtype.base,
+            )
+            transforms[colname] = transform
+
+        elif col_attrs.get("TRANSFORM") == "string":
+            maxlen = col_attrs["MAXLEN"]
+            transform = StringTransform(maxlen)
+            transforms[colname] = transform
+
+    return transforms
 
 
 class HDF5TableWriter(TableWriter):
@@ -137,9 +194,11 @@ class HDF5TableWriter(TableWriter):
     def close(self):
         self.h5file.close()
 
-    def _add_column_to_schema(self, table_name, schema, meta, pos, field, name, value):
+    def _add_column_to_schema(self, table_name, schema, meta, field, name, value):
         typename = ""
         shape = 1
+
+        pos = len(schema.columns)
 
         if isinstance(value, Container):
             self.log.debug("Ignoring sub-container: %s/%s", table_name, name)
@@ -203,10 +262,14 @@ class HDF5TableWriter(TableWriter):
         transform = self._transforms[table_name].get(name)
         if transform is not None:
             if hasattr(transform, "get_meta"):
-                meta.update(transform.get_meta(name))
+                meta.update(transform.get_meta(pos))
+
+        # add original field name name, without prefix
+        meta[f"CTAFIELD_{pos}_NAME"] = field.name
+        meta[f"CTAFIELD_{pos}_PREFIX"] = name.rpartition(field.name)[0].rstrip("_")
 
         # add desription to metadata
-        meta[f"{name}_DESC"] = field.description
+        meta[f"CTAFIELD_{pos}_DESC"] = field.description
 
         self.log.debug(
             f"Table {table_name}: "
@@ -214,6 +277,8 @@ class HDF5TableWriter(TableWriter):
             f"{typename} shape: {shape} "
             f"with transform: {transform} "
         )
+
+        return True
 
     def _create_hdf5_table_schema(self, table_name, containers):
         """
@@ -243,7 +308,6 @@ class HDF5TableWriter(TableWriter):
         self._realize_regexp_transforms(table_name, containers)
 
         # create pytables schema description for the given container
-        pos = 0
         for container in containers:
 
             container.validate()  # ensure the data are complete
@@ -257,12 +321,10 @@ class HDF5TableWriter(TableWriter):
                         table_name=table_name,
                         schema=Schema,
                         meta=meta,
-                        pos=pos,
                         field=field,
                         name=col_name,
                         value=value,
                     )
-                    pos += 1
                 except ValueError:
                     self.log.warning(
                         f"Column {col_name}"
@@ -424,50 +486,10 @@ class HDF5TableReader(TableReader):
         tab = self._h5file.get_node(table_name)
         self._tables[table_name] = tab
         self._map_table_to_containers(table_name, containers, prefixes, ignore_columns)
-        self._map_transforms_from_table_header(table_name)
+        transforms = get_transforms_for_table(tab)
+        for col_name, transform in transforms.items():
+            self.add_column_transform(table_name, col_name, transform)
         return tab
-
-    def _map_transforms_from_table_header(self, table_name):
-        """
-        create any transforms needed to "undo" ones in the writer
-        """
-        tab = self._tables[table_name]
-        attrs = tab.attrs._f_list()
-        for attr in attrs:
-            if attr.endswith("_UNIT"):
-                colname = attr[:-5]
-                tr = QuantityColumnTransform(unit=Unit(tab.attrs[attr]))
-                self.add_column_transform(table_name, colname, tr)
-
-            elif attr.endswith("_ENUM"):
-                colname = attr[:-5]
-                tr = EnumColumnTransform(tab.attrs[attr])
-                self.add_column_transform(table_name, colname, tr)
-
-            elif attr.endswith("_TIME_SCALE"):
-                colname, _, _ = attr.rpartition("_TIME_SCALE")
-                scale = tab.attrs[attr]
-                time_format = get_hdf5_attr(tab.attrs, colname + "_TIME_FORMAT", "mjd")
-                transform = TimeColumnTransform(scale=scale, format=time_format)
-                self.add_column_transform(table_name, colname, transform)
-
-            elif attr.endswith("_TRANSFORM_SCALE"):
-                colname, _, _ = attr.rpartition("_TRANSFORM_SCALE")
-                tr = FixedPointColumnTransform(
-                    scale=tab.attrs[attr],
-                    offset=get_hdf5_attr(tab.attrs, colname + "_TRANSFORM_OFFSET", 0),
-                    source_dtype=get_hdf5_attr(
-                        tab.attrs, colname + "_TRANSFORM_DTYPE", "float32"
-                    ),
-                    target_dtype=tab.dtype[colname].base,
-                )
-                self.add_column_transform(table_name, colname, tr)
-            elif attr.endswith("_TRANSFORM"):
-                colname, _, _ = attr.rpartition("_TRANSFORM")
-                if tab.attrs[attr] == "string":
-                    maxlen = tab.attrs[f"{colname}_MAXLEN"]
-                    tr = StringTransform(maxlen)
-                    self.add_column_transform(table_name, colname, tr)
 
     def _map_table_to_containers(
         self, table_name, containers, prefixes, ignore_columns
@@ -513,9 +535,11 @@ class HDF5TableReader(TableReader):
                     )
 
             # store the meta
-            self._meta[table_name] = {}
-            for key in tab.attrs._f_list():
-                self._meta[table_name][key] = tab.attrs[key]
+            self._meta[table_name] = {
+                k: tab.attrs[k]
+                for k in tab.attrs._v_attrnamesuser
+                if not k.startswith("CTAFIELD_")
+            }
 
         # check if the table has additional columns not present in any container
         for colname in tab.colnames:
