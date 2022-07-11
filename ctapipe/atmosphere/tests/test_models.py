@@ -1,11 +1,11 @@
 import astropy.units as u
 import numpy as np
 import pytest
+
 from ctapipe.atmosphere import model
 from ctapipe.utils import get_dataset_path
 
-
-simtel_path = get_dataset_path(
+SIMTEL_PATH = get_dataset_path(
     "gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst"
 )
 
@@ -14,7 +14,7 @@ simtel_path = get_dataset_path(
     "density_model",
     [
         model.ExponentialAtmosphereDensityProfile(),
-        model.TableAtmosphereDensityProfile.from_simtel(simtel_path),
+        model.TableAtmosphereDensityProfile.from_simtel(SIMTEL_PATH),
     ],
 )
 def test_models(density_model):
@@ -43,3 +43,22 @@ def test_exponential_model():
     )
     assert np.isclose(density_model(1_000_000 * u.km), 0 * u.g / u.cm**3)
     assert np.isclose(density_model(0 * u.km), density_model.rho0)
+
+
+def test_load_atmosphere_from_simtel(prod5_gamma_simtel_path):
+    from ctapipe.atmosphere.model import (
+        AtmosphereProfileNotFoundError,
+        read_simtel_profile,
+    )
+
+    tables = read_simtel_profile(prod5_gamma_simtel_path)
+
+    for table in tables:
+        assert "height" in table.colnames
+        assert "density" in table.colnames
+        assert "column_density" in table.colnames
+
+    with pytest.raises(AtmosphereProfileNotFoundError):
+        # old simtel files don't have the profile in them
+        simtel_path_old = get_dataset_path("gamma_test_large.simtel.gz")
+        read_simtel_profile(simtel_path_old)

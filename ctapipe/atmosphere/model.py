@@ -250,7 +250,7 @@ def read_simtel_profile(simtelfile: str) -> Table:
 
         if (
             not hasattr(simtel, "atmospheric_profiles")
-            or len(simtel.atmosphere_profiles) == 0
+            or len(simtel.atmospheric_profiles) == 0
         ):
             raise AtmosphereProfileNotFoundError(simtelfile)
 
