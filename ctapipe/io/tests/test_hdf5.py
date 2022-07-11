@@ -132,7 +132,11 @@ def test_read_multiple_containers(tmp_path):
 
 
 def test_read_trigger_container_and_another(dl1_parameters_file):
-    from ctapipe.containers import EventIndexContainer, TriggerContainer
+    from ctapipe.containers import (
+        EventIndexContainer,
+        PointingContainer,
+        TriggerContainer,
+    )
 
     with HDF5TableReader(dl1_parameters_file) as reader:
         generator = reader.read(
@@ -145,17 +149,50 @@ def test_read_trigger_container_and_another(dl1_parameters_file):
     # with #1785 metadata is duplicated
     assert not trigger.meta == event_index.meta
 
-    # check some keys that should / should not be present
-    only_in_event_index = "obs_id_DESC"
-    only_in_trigger = "time_DESC"
-    in_both = "CTAPIPE_VERSION"
+    # check keys that should / should not be present
+    only_in_event_index = {"event_id_DESC", "obs_id_DESC"}
+    only_in_trigger = {
+        "event_type_DESC",
+        "event_type_ENUM",
+        "event_type_TRANSFORM",
+        "tels_with_trigger_DESC",
+        "tels_with_trigger_TRANSFORM",
+        "time_DESC",
+        "time_TIME_FORMAT",
+        "time_TIME_SCALE",
+        "time_TRANSFORM",
+    }
+    in_both = {"CTAPIPE_VERSION"}
 
-    assert only_in_event_index in event_index.meta.keys()
-    assert only_in_trigger in trigger.meta.keys()
-    assert in_both in event_index.meta.keys()
-    assert in_both in trigger.meta.keys()
-    assert only_in_event_index not in trigger.meta.keys()
-    assert only_in_trigger not in event_index.meta.keys()
+    for key in only_in_event_index:
+        assert key in event_index.meta.keys()
+        assert key not in trigger.meta.keys()
+    for key in only_in_trigger:
+        assert key in trigger.meta.keys()
+        assert key not in event_index.meta.keys()
+    for key in in_both:
+        assert key in event_index.meta.keys()
+        assert key in trigger.meta.keys()
+
+    with HDF5TableReader(dl1_parameters_file) as reader:
+        generator = reader.read(
+            "/dl1/monitoring/subarray/pointing",
+            [TriggerContainer, PointingContainer],
+            ignore_columns={"tel"},
+        )
+        trigger, pointing = next(generator)
+
+    assert not trigger.meta == pointing.meta
+
+    trigger_keys = {
+        "event_type_DESC",
+        "event_type_ENUM",
+        "event_type_TRANSFORM",
+        "tels_with_trigger_TRANSFORM",
+        "tels_with_trigger_DESC",
+    }
+    for key in trigger_keys:
+        assert key not in pointing.meta.keys()
 
 
 def test_read_without_prefixes(tmp_path):
