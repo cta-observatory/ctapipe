@@ -85,6 +85,9 @@ def get_hdf5_datalevels(h5file):
     if "/dl1/event/telescope/parameters" in h5file.root:
         datalevels.append(DataLevel.DL1_PARAMETERS)
 
+    if "/dl2" in h5file.root:
+        datalevels.append(DataLevel.DL2)
+
     return tuple(datalevels)
 
 
