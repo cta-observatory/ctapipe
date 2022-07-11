@@ -5,10 +5,10 @@ purposes
 import sys
 
 from ctapipe.calib import CameraCalibrator
-from ctapipe.io import EventSource
-from ctapipe.utils import get_dataset_path
 from ctapipe.image import ImageProcessor
+from ctapipe.io import EventSource
 from ctapipe.reco import ShowerProcessor
+from ctapipe.utils import get_dataset_path
 
 if __name__ == "__main__":
 
@@ -19,7 +19,9 @@ if __name__ == "__main__":
             "gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"
         )
 
-    with EventSource(filename, max_events=1, focal_length_choice="nominal") as source:
+    with EventSource(
+        filename, max_events=1, focal_length_choice="EQUIVALENT"
+    ) as source:
         calib = CameraCalibrator(subarray=source.subarray)
         process_images = ImageProcessor(subarray=source.subarray)
         process_shower = ShowerProcessor(subarray=source.subarray)

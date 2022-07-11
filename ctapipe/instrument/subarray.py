@@ -6,19 +6,19 @@ from contextlib import ExitStack
 from copy import copy
 from itertools import groupby
 from typing import Dict, List, Union
-from astropy.coordinates.earth import EarthLocation
 
 import numpy as np
 import tables
 from astropy import units as u
 from astropy.coordinates import SkyCoord
+from astropy.coordinates.earth import EarthLocation
 from astropy.table import QTable, Table, join
 from astropy.utils import lazyproperty
 
 from .. import __version__ as CTAPIPE_VERSION
 from ..coordinates import CameraFrame, GroundFrame
 from .camera import CameraDescription, CameraGeometry, CameraReadout
-from .optics import OpticsDescription
+from .optics import FocalLengthKind, OpticsDescription
 from .telescope import TelescopeDescription
 
 __all__ = ["SubarrayDescription"]
@@ -320,17 +320,25 @@ class SubarrayDescription:
                 [t.optics.equivalent_focal_length.to_value(u.m) for t in unique_types],
                 u.m,
             )
-            cols = {
-                "description": [str(t) for t in unique_types],
-                "name": [t.name for t in unique_types],
-                "type": [t.type for t in unique_types],
-                "mirror_area": mirror_area,
-                "num_mirrors": [t.optics.num_mirrors for t in unique_types],
-                "num_mirror_tiles": [t.optics.num_mirror_tiles for t in unique_types],
-                "equivalent_focal_length": focal_length,
-            }
-            tab = Table(cols)
-            tab.meta["TAB_VER"] = "2.0"
+            effective_focal_length = u.Quantity(
+                [t.optics.effective_focal_length.to_value(u.m) for t in unique_types],
+                u.m,
+            )
+            tab = Table(
+                {
+                    "description": [str(t) for t in unique_types],
+                    "name": [t.name for t in unique_types],
+                    "type": [t.type for t in unique_types],
+                    "mirror_area": mirror_area,
+                    "num_mirrors": [t.optics.num_mirrors for t in unique_types],
+                    "num_mirror_tiles": [
+                        t.optics.num_mirror_tiles for t in unique_types
+                    ],
+                    "equivalent_focal_length": focal_length,
+                    "effective_focal_length": effective_focal_length,
+                }
+            )
+            tab.meta["TAB_VER"] = "3.0"
         else:
             raise ValueError(f"Table type '{kind}' not known")
 
@@ -372,9 +380,10 @@ class SubarrayDescription:
         """
         Draw a quick matplotlib plot of the array
         """
+        from matplotlib import pyplot as plt
+
         from ctapipe.coordinates.ground_frames import EastingNorthingFrame
         from ctapipe.visualization import ArrayDisplay
-        from matplotlib import pyplot as plt
 
         plt.figure(figsize=(8, 8))
         ad = ArrayDisplay(subarray=self, frame=EastingNorthingFrame(), tel_scale=0.75)
@@ -538,9 +547,12 @@ class SubarrayDescription:
                 meta["reference_itrs_z"] = itrs.z.to_value(u.m)
 
     @classmethod
-    def from_hdf(cls, path):
+    def from_hdf(cls, path, focal_length_choice=FocalLengthKind.EFFECTIVE):
         # here to prevent circular import
         from ..io import read_table
+
+        if isinstance(focal_length_choice, str):
+            focal_length_choice = FocalLengthKind[focal_length_choice.upper()]
 
         layout = read_table(
             path, "/configuration/instrument/subarray/layout", table_cls=QTable
@@ -586,11 +598,15 @@ class SubarrayDescription:
                     " Reprocessing the data with ctapipe >= 0.12 will fix this problem."
                 )
 
+        has_eff = "effective_focal_length" in optics_table.colnames
         optic_descriptions = [
             OpticsDescription(
                 row["name"],
                 num_mirrors=row["num_mirrors"],
                 equivalent_focal_length=row["equivalent_focal_length"],
+                effective_focal_length=(
+                    row["effective_focal_length"] if has_eff else np.nan * u.m
+                ),
                 mirror_area=row["mirror_area"],
                 num_mirror_tiles=row["num_mirror_tiles"],
             )
@@ -603,9 +619,22 @@ class SubarrayDescription:
             # copy to support different telescopes with same camera geom
             camera = copy(cameras[row["camera_index"]])
             optics = optic_descriptions[row["optics_index"]]
-            focal_length = optics.equivalent_focal_length
-            camera.geometry.frame = CameraFrame(focal_length=focal_length)
 
+            if focal_length_choice is FocalLengthKind.EFFECTIVE:
+                focal_length = optics.effective_focal_length
+                if np.isnan(focal_length.value):
+                    raise RuntimeError(
+                        "`focal_length_choice` was set to 'effective', but the"
+                        " effective focal length was not present in the file. "
+                        " Use nominal focal length or adapt configuration"
+                        " to include the effective focal length"
+                    )
+            elif focal_length_choice is FocalLengthKind.EQUIVALENT:
+                focal_length = optics.equivalent_focal_length
+            else:
+                raise ValueError(f"Invalid focal length choice: {focal_length_choice}")
+
+            camera.geometry.frame = CameraFrame(focal_length=focal_length)
             telescope_descriptions[row["tel_id"]] = TelescopeDescription(
                 name=row["name"], tel_type=row["type"], optics=optics, camera=camera
             )

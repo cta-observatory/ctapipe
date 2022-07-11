@@ -6,6 +6,8 @@ import numpy as np
 import tables
 from astropy.utils.decorators import lazyproperty
 
+from ctapipe.instrument.optics import FocalLengthKind
+
 from ..containers import (
     ArrayEventContainer,
     CameraHillasParametersContainer,
@@ -33,6 +35,7 @@ from ..containers import (
     TriggerContainer,
 )
 from ..core import Container, Field
+from ..core.traits import UseEnum
 from ..instrument import SubarrayDescription
 from ..utils import IndexFinder
 from .datalevels import DataLevel
@@ -126,6 +129,20 @@ class HDF5EventSource(EventSource):
         image parameters evaluated on these.
     """
 
+    focal_length_choice = UseEnum(
+        FocalLengthKind,
+        default_value=FocalLengthKind.EFFECTIVE,
+        help=(
+            "If both nominal and effective focal lengths are available, "
+            " which one to use for the `CameraFrame` attached"
+            " to the `CameraGeometry` instances in the `SubarrayDescription`"
+            ", which will be used in CameraFrame to TelescopeFrame coordinate"
+            " transforms. The 'nominal' focal length is the one used during "
+            " the simulation, the 'effective' focal length is computed using specialized "
+            " ray-tracing from a point light source"
+        ),
+    ).tag(config=True)
+
     def __init__(self, input_url=None, config=None, parent=None, **kwargs):
         """
         EventSource for dl1 files in the standard DL1 data format
@@ -145,7 +162,10 @@ class HDF5EventSource(EventSource):
         super().__init__(input_url=input_url, config=config, parent=parent, **kwargs)
 
         self.file_ = tables.open_file(self.input_url)
-        self._full_subarray = SubarrayDescription.from_hdf(self.input_url)
+        self._full_subarray = SubarrayDescription.from_hdf(
+            self.input_url,
+            focal_length_choice=self.focal_length_choice,
+        )
 
         if self.allowed_tels:
             self._subarray = self._full_subarray.select_subarray(self.allowed_tels)

@@ -13,7 +13,7 @@ from ctapipe.utils.datasets import get_dataset_path
 
 
 def test_guess_optics():
-    """ make sure we can guess an optics type from metadata"""
+    """make sure we can guess an optics type from metadata"""
     from ctapipe.instrument import guess_telescope
 
     answer = guess_telescope(1855, 28.0 * u.m)
@@ -31,8 +31,9 @@ def test_construct_optics():
         name="test",
         num_mirrors=1,
         num_mirror_tiles=100,
-        mirror_area=u.Quantity(550, u.m ** 2),
+        mirror_area=u.Quantity(550, u.m**2),
         equivalent_focal_length=u.Quantity(10, u.m),
+        effective_focal_length=u.Quantity(11, u.m),
     )
 
     with pytest.raises(TypeError):
@@ -42,12 +43,13 @@ def test_construct_optics():
             num_mirror_tiles=100,
             mirror_area=550,
             equivalent_focal_length=10,
+            effective_focal_length=11,
         )
 
 
 @pytest.mark.parametrize("optics_name", OpticsDescription.get_known_optics_names())
 def test_optics_from_name(optics_name):
-    """ try constructing all by name """
+    """try constructing all by name"""
     optics = OpticsDescription.from_name(optics_name)
     assert optics.equivalent_focal_length > 0
     # make sure the string rep gives back the name:
@@ -58,7 +60,7 @@ def test_optics_from_name_user_supplied_table():
     table = get_table_dataset("optics", role="")
     optics = OpticsDescription.from_name("SST-GCT", optics_table=table)
     assert optics.name == "SST-GCT"
-    assert optics.mirror_area > 1.0 * u.m ** 2
+    assert optics.mirror_area > 1.0 * u.m**2
 
 
 def test_optics_from_dump_instrument():
