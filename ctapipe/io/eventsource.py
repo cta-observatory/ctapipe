@@ -254,16 +254,18 @@ class EventSource(Component):
         """
 
     @property
-    def atmosphere_density_profiles(self) -> Tuple[AtmosphereDensityProfile]:
-        """List of atmosphere density profiles that can be integrated to
-        convert between h_max and X_max.
+    def atmosphere_density_profile(self) -> AtmosphereDensityProfile:
+        """atmosphere density profile that can be integrated to
+        convert between h_max and X_max.  This should correspond
+        either to what was used in a simualtion, or a measurment
+        for use with observed data.
 
         Returns
         -------
-        list[AtmosphereDensityProfile]:
-           list of profiles to be used
+        AtmosphereDensityProfile:
+           profile to be used
         """
-        return ()
+        return None
 
     @abstractmethod
     def _generator(self) -> Generator[ArrayEventContainer, None, None]:

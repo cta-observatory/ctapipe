@@ -4,7 +4,7 @@ from contextlib import nullcontext
 from gzip import GzipFile
 from io import BufferedReader
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import List, Union
 
 import numpy as np
 from astropy import units as u
@@ -419,9 +419,9 @@ class SimTelEventSource(EventSource):
             self.gain_selector_type, parent=self
         )
 
-        self._atmosphere_density_profiles = tuple(
-            read_atmosphere_profile_from_simtel(self.file_)
-        )
+        self._atmosphere_density_profile = read_atmosphere_profile_from_simtel(
+            self.file_
+        )[0]
 
         self.log.debug(f"Using gain selector {self.gain_selector}")
 
@@ -445,8 +445,8 @@ class SimTelEventSource(EventSource):
         return [self.file_.header["run"]]
 
     @property
-    def atmosphere_density_profiles(self) -> Tuple[AtmosphereDensityProfile]:
-        return self._atmosphere_density_profiles
+    def atmosphere_density_profile(self) -> AtmosphereDensityProfile:
+        return self._atmosphere_density_profile
 
     @property
     def simulation_config(self) -> SimulationConfigContainer:

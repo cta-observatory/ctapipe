@@ -9,6 +9,7 @@ from astropy.coordinates import Angle
 from astropy.time import Time
 from traitlets.config import Config
 
+from ctapipe.atmosphere.model import AtmosphereDensityProfile
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 from ctapipe.instrument.camera.geometry import UnknownPixelShapeWarning
 from ctapipe.instrument.optics import ReflectorShape
@@ -534,3 +535,10 @@ def test_load_atmosphere_from_simtel(prod5_gamma_simtel_path):
     simtel_path_old = get_dataset_path("gamma_test_large.simtel.gz")
     tables = read_atmosphere_profile_from_simtel(simtel_path_old)
     assert len(tables) == 0
+
+
+def test_atmosphere_profile(prod5_gamma_simtel_path):
+    """check that for a file with a profile in it that we get it back"""
+
+    with SimTelEventSource(prod5_gamma_simtel_path) as source:
+        assert issubclass(AtmosphereDensityProfile, source.atmosphere_density_profile)
