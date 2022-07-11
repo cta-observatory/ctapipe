@@ -473,11 +473,12 @@ class HDF5TableReader(TableReader):
 
     def _handle_metadata(self, table_name, containers, prefixes, ignore_columns):
         tab = self._tables[table_name]
+        self._meta[table_name] = {}
         for container, prefix in zip(containers, prefixes):
-            # store the meta
-            self._meta[table_name] = {}
+            container_name = container.__name__
+            self._meta[table_name][container_name] = {}
             for key in tab.attrs._f_list():
-                self._meta[table_name][key] = tab.attrs[key]
+                self._meta[table_name][container_name][key] = tab.attrs[key]
 
     def _map_table_to_containers(
         self, table_name, containers, prefixes, ignore_columns
@@ -612,7 +613,7 @@ class HDF5TableReader(TableReader):
                     kwargs[fieldname] = None
 
                 container = cls(**kwargs, prefix=prefix)
-                container.meta = self._meta[table_name]
+                container.meta = self._meta[table_name][container.__class__.__name__]
                 ret.append(container)
 
             if return_iterable:
