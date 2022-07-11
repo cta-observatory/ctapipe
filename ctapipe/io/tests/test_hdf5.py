@@ -1,22 +1,23 @@
 import enum
+
 import numpy as np
+import pandas as pd
 import pytest
 import tables
-import pandas as pd
 from astropy import units as u
 from astropy.time import Time
 
-from ctapipe.core.container import Container, Field
 from ctapipe import containers
 from ctapipe.containers import (
+    HillasParametersContainer,
+    LeakageContainer,
     R0CameraContainer,
     SimulatedShowerContainer,
-    HillasParametersContainer,
     TelEventIndexContainer,
-    LeakageContainer,
 )
-from ctapipe.io.hdf5tableio import HDF5TableWriter, HDF5TableReader
+from ctapipe.core.container import Container, Field
 from ctapipe.io import read_table
+from ctapipe.io.hdf5tableio import HDF5TableReader, HDF5TableWriter
 
 
 @pytest.fixture(scope="session")
@@ -128,6 +129,33 @@ def test_read_multiple_containers(tmp_path):
         hillas_parameter_container.as_dict().values(), hillas_.as_dict().values()
     ):
         np.testing.assert_equal(value, read_value)
+
+
+def test_read_trigger_container_and_another(dl1_parameters_file):
+    from ctapipe.containers import EventIndexContainer, TriggerContainer
+
+    with HDF5TableReader(dl1_parameters_file) as reader:
+        generator = reader.read(
+            "/dl1/event/subarray/trigger",
+            [TriggerContainer, EventIndexContainer],
+            ignore_columns={"tel"},
+        )
+        trigger, event_index = next(generator)
+
+    # with #1785 metadata is duplicated
+    assert not trigger.meta == event_index.meta
+
+    # check some keys that should / should not be present
+    only_in_event_index = "obs_id_DESC"
+    only_in_trigger = "time_DESC"
+    in_both = "CTAPIPE_VERSION"
+
+    assert only_in_event_index in event_index.meta.keys()
+    assert only_in_trigger in trigger.meta.keys()
+    assert in_both in event_index.meta.keys()
+    assert in_both in trigger.meta.keys()
+    assert only_in_event_index not in trigger.meta.keys()
+    assert only_in_trigger not in event_index.meta.keys()
 
 
 def test_read_without_prefixes(tmp_path):
