@@ -1,7 +1,8 @@
-from ctapipe.utils import get_dataset_path
+import pytest
+
 from ctapipe.io import SimTelEventSource
 from ctapipe.io.eventseeker import EventSeeker
-import pytest
+from ctapipe.utils import get_dataset_path
 
 dataset = get_dataset_path("gamma_test_large.simtel.gz")
 
@@ -11,7 +12,7 @@ def test_eventseeker():
     with SimTelEventSource(
         input_url=dataset,
         back_seekable=True,
-        focal_length_choice='nominal',
+        focal_length_choice="EQUIVALENT",
     ) as reader:
 
         seeker = EventSeeker(event_source=reader)
@@ -37,8 +38,10 @@ def test_eventseeker():
             seeker.get_event_index(dict())
 
     with SimTelEventSource(
-        input_url=dataset, max_events=5, back_seekable=True,
-        focal_length_choice='nominal',
+        input_url=dataset,
+        max_events=5,
+        back_seekable=True,
+        focal_length_choice="EQUIVALENT",
     ) as reader:
         seeker = EventSeeker(event_source=reader)
         with pytest.raises(IndexError):
@@ -48,8 +51,9 @@ def test_eventseeker():
 
 def test_eventseeker_edit():
     with SimTelEventSource(
-        input_url=dataset, back_seekable=True,
-        focal_length_choice='nominal',
+        input_url=dataset,
+        back_seekable=True,
+        focal_length_choice="EQUIVALENT",
     ) as reader:
         seeker = EventSeeker(event_source=reader)
         event = seeker.get_event_index(1)
@@ -63,8 +67,9 @@ def test_eventseeker_edit():
 def test_eventseeker_simtel():
     # Ensure the EventSeeker can forward seek even if back-seeking is not possible
     with SimTelEventSource(
-        input_url=dataset, back_seekable=False,
-        focal_length_choice='nominal',
+        input_url=dataset,
+        back_seekable=False,
+        focal_length_choice="EQUIVALENT",
     ) as reader:
         seeker = EventSeeker(event_source=reader)
         event = seeker.get_event_index(1)

@@ -84,6 +84,7 @@ def setup(app):
         "Set",
         "TraitError",
         "Unicode",
+        "UseEnum",
     ]
     for alias in aliases:
         getattr(traits, alias).__name__ = alias

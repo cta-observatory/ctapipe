@@ -5,13 +5,12 @@ common pytest fixtures for tests in ctapipe
 from copy import deepcopy
 
 import pytest
+from pytest_astropy_header.display import PYTEST_HEADER_MODULES
 
 from ctapipe.instrument import CameraGeometry
 from ctapipe.io import SimTelEventSource
 from ctapipe.utils import get_dataset_path
 from ctapipe.utils.filelock import FileLock
-
-from pytest_astropy_header.display import PYTEST_HEADER_MODULES
 
 PYTEST_HEADER_MODULES.clear()
 PYTEST_HEADER_MODULES["eventio"] = "eventio"
@@ -54,7 +53,9 @@ def _global_example_event():
     print("******************** LOAD TEST EVENT ***********************")
 
     # FIXME: switch to prod5b+ file that contains effective focal length
-    with SimTelEventSource(input_url=filename, focal_length_choice="nominal") as reader:
+    with SimTelEventSource(
+        input_url=filename, focal_length_choice="EQUIVALENT"
+    ) as reader:
         event = next(iter(reader))
 
     return event
@@ -69,7 +70,9 @@ def example_subarray():
 
     print("******************** LOAD TEST EVENT ***********************")
 
-    with SimTelEventSource(input_url=filename, focal_length_choice="nominal") as reader:
+    with SimTelEventSource(
+        input_url=filename, focal_length_choice="EQUIVALENT"
+    ) as reader:
         return reader.subarray
 
 
@@ -94,7 +97,7 @@ def _subarray_and_event_gamma_off_axis_500_gev():
 
     path = get_dataset_path("lst_prod3_calibration_and_mcphotons.simtel.zst")
 
-    with SimTelEventSource(path, focal_length_choice="nominal") as source:
+    with SimTelEventSource(path, focal_length_choice="EQUIVALENT") as source:
         it = iter(source)
         # we want the second event, first event is a corner clipper
         next(it)
@@ -288,8 +291,8 @@ def dl1_by_type_file(dl1_tmp_path, prod5_gamma_simtel_path):
     """
     DL1 file containing both images and parameters from a gamma simulation set.
     """
-    from ctapipe.tools.process import ProcessorTool
     from ctapipe.core import run_tool
+    from ctapipe.tools.process import ProcessorTool
 
     output = dl1_tmp_path / "gamma_by_type.dl1.h5"
 
@@ -384,7 +387,7 @@ def dl1_muon_file(dl1_tmp_path):
             "--write-images",
             "--DataWriter.write_parameters=False",
             "--DataWriter.Contact.name=αℓℓ the äüöß",
-            "--SimTelEventSource.focal_length_choice=nominal",
+            "--SimTelEventSource.focal_length_choice=EQUIVALENT",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
         return output
@@ -395,8 +398,8 @@ def dl1_proton_file(dl1_tmp_path, prod5_proton_simtel_path):
     """
     DL1 file containing images and parameters for a prod5 proton run
     """
-    from ctapipe.tools.process import ProcessorTool
     from ctapipe.core import run_tool
+    from ctapipe.tools.process import ProcessorTool
 
     output = dl1_tmp_path / "proton.dl1.h5"
 
