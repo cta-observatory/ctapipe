@@ -5,6 +5,9 @@ from ..core.traits import Set, UseEnum
 __all__ = ["EventTypeFilter"]
 
 
+_values = ", ".join([f"{e.name} or {e.value}" for e in EventType])
+
+
 class EventTypeFilter(Component):
     """Check that an event has one of the allowed types"""
 
@@ -14,7 +17,10 @@ class EventTypeFilter(Component):
         trait=UseEnum(EventType),
         default_value=None,
         allow_none=True,
-        help="The allowed types. Set to None to allow all types.",
+        help=(
+            "The allowed types. Set to None to allow all types."
+            f"Possible values: {_values}."
+        ),
     ).tag(config=True)
 
     def __init__(self, *args, **kwargs):
