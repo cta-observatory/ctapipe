@@ -459,8 +459,9 @@ class HDF5TableReader(TableReader):
 
         super().__init__()
         self._tables = {}
-        self._cols_to_read = {}
-        self._missing_cols = {}
+        self._col_mapping = {}
+        self._prefixes = {}
+        self._missing_fields = {}
         self._meta = {}
         kwargs.update(mode="r")
 
@@ -475,11 +476,9 @@ class HDF5TableReader(TableReader):
             )
 
     def open(self, filename, **kwargs):
-
         self._h5file = tables.open_file(filename, **kwargs)
 
     def close(self):
-
         self._h5file.close()
 
     def _setup_table(self, table_name, containers, prefixes, ignore_columns):
@@ -492,64 +491,76 @@ class HDF5TableReader(TableReader):
         return tab
 
     def _map_table_to_containers(
-        self, table_name, containers, prefixes, ignore_columns
+        self,
+        table_name,
+        containers,
+        prefixes,
+        ignore_columns,
     ):
         """identifies which columns in the table to read into the containers,
         by comparing their names including an optional prefix."""
         tab = self._tables[table_name]
-        self._cols_to_read[table_name] = []
-        self._missing_cols[table_name] = []
+        self._missing_fields[table_name] = []
+        self._col_mapping[table_name] = []
+        self._prefixes[table_name] = []
+
+        inverse_mapping = {}
+        attrs = read_column_attrs(tab)
+        for colname, col_attrs in attrs.items():
+            name = col_attrs.get("NAME")
+            if name is not None:
+                inverse_mapping[name] = colname
+
+        cols_to_read = set()
         for container, prefix in zip(containers, prefixes):
-            self._missing_cols[table_name].append([])
+            col_mapping = {}
+            missing = []
 
-            for colname in tab.colnames:
-                if prefix and colname.startswith(prefix):
-                    colname_without_prefix = colname[len(prefix) + 1 :]
+            for field_name in container.fields:
+                if prefix is None:
+                    col_name = inverse_mapping.get(field_name)
                 else:
-                    colname_without_prefix = colname
-                if colname_without_prefix in container.fields:
-                    self._cols_to_read[table_name].append(colname)
-                else:
-                    self.log.debug(
-                        f"Table {table_name} has column {colname_without_prefix} that is not in "
-                        f"container {container.__class__.__name__}. It will be skipped."
-                    )
+                    col_name = field_name if prefix == "" else f"{prefix}_{field_name}"
 
-            # also check that the container doesn't have fields that are not
-            # in the table:
-            for colname in container.fields:
-                if colname in ignore_columns:
+                if col_name in ignore_columns:
                     continue
-
-                if prefix:
-                    colname_with_prefix = f"{prefix}_{colname}"
-                else:
-                    colname_with_prefix = colname
-
-                if colname_with_prefix not in self._cols_to_read[table_name]:
-                    self._missing_cols[table_name][-1].append(colname)
+                elif col_name is None or col_name not in tab.colnames:
+                    missing.append(field_name)
                     self.log.warning(
-                        f"Table {table_name} is missing column {colname_with_prefix} "
-                        f"that is in container {container}. "
-                        "It will be skipped."
+                        f"Table {table_name} is missing column {col_name}"
+                        f" of container {container}. It will be skipped."
                     )
+                else:
+                    if col_name in cols_to_read:
+                        raise IOError(
+                            "Mapping of column names to container fields is not unique, prefixes are required."
+                        )
 
-            # store the meta
-            self._meta[table_name] = {
-                k: tab.attrs[k]
-                for k in tab.attrs._v_attrnamesuser
-                if not k.startswith("CTAFIELD_")
-            }
+                    if prefix is None:
+                        prefix = attrs[col_name].get("PREFIX")
+                    col_mapping[field_name] = col_name
+                    cols_to_read.add(col_name)
+
+            self._prefixes[table_name].append(prefix)
+            self._missing_fields[table_name].append(missing)
+            self._col_mapping[table_name].append(col_mapping)
+
+        # store the meta
+        self._meta[table_name] = {
+            k: tab.attrs[k]
+            for k in tab.attrs._v_attrnamesuser
+            if not k.startswith("CTAFIELD_")
+        }
 
         # check if the table has additional columns not present in any container
         for colname in tab.colnames:
-            if colname not in self._cols_to_read[table_name]:
+            if colname not in cols_to_read:
                 self.log.debug(
                     f"Table {table_name} contains column {colname} "
                     "that does not map to any of the specified containers"
                 )
 
-    def read(self, table_name, containers, prefixes=False, ignore_columns=None):
+    def read(self, table_name, containers, prefixes=None, ignore_columns=None):
         """
         Returns a generator that reads the next row from the table into the
         given container. The generator returns the same container. Note that
@@ -563,8 +574,10 @@ class HDF5TableReader(TableReader):
             Container classes to fill
         prefix: bool, str or list
             Prefix that was added while writing the file.
-            If True, the container prefix is taken into consideration, when
-            comparing column names and container fields.
+            If None, the prefix in the file are used. This only works
+            when the mapping from column name without prefix to container
+            is unique.
+            If True, the ``default_prefix`` attribute of the containers is used
             If False, no prefix is used.
             If a string is provided, it is used as prefix for all containers.
             If a list is provided, the length needs to match th number
@@ -593,16 +606,25 @@ class HDF5TableReader(TableReader):
             prefixes = [container.default_prefix for container in containers]
         elif isinstance(prefixes, str):
             prefixes = [prefixes for _ in containers]
+        elif prefixes is None:
+            prefixes = [None] * len(containers)
 
         if len(prefixes) != len(containers):
             raise ValueError("Length of provided prefixes does not match containers")
 
         if table_name not in self._tables:
-            tab = self._setup_table(table_name, containers, prefixes, ignore_columns)
+            tab = self._setup_table(
+                table_name,
+                containers=containers,
+                prefixes=prefixes,
+                ignore_columns=ignore_columns,
+            )
         else:
             tab = self._tables[table_name]
 
-        missing = self._missing_cols[table_name]
+        prefixes = self._prefixes[table_name]
+        missing = self._missing_fields[table_name]
+        mappings = self._col_mapping[table_name]
 
         for row_index in range(len(tab)):
             # looping over table yields Row instances.
@@ -610,27 +632,21 @@ class HDF5TableReader(TableReader):
             row = tab[row_index]
 
             ret = []
-            for cls, prefix, missing_cols in zip(containers, prefixes, missing):
-                kwargs = {}
-                for fieldname in cls.fields.keys():
-
-                    if prefix:
-                        colname = f"{prefix}_{fieldname}"
-                    else:
-                        colname = fieldname
-
-                    if colname not in self._cols_to_read[table_name]:
-                        continue
-
-                    kwargs[fieldname] = self._apply_col_transform(
-                        table_name, colname, row[colname]
+            for cls, prefix, mapping, missing_fields in zip(
+                containers, prefixes, mappings, missing
+            ):
+                data = {
+                    field_name: self._apply_col_transform(
+                        table_name, col_name, row[col_name]
                     )
+                    for field_name, col_name in mapping.items()
+                }
 
                 # set missing fields to None
-                for fieldname in missing_cols:
-                    kwargs[fieldname] = None
+                for field_name in missing_fields:
+                    data[field_name] = None
 
-                container = cls(**kwargs, prefix=prefix)
+                container = cls(**data, prefix=prefix)
                 container.meta = self._meta[table_name]
                 ret.append(container)
 

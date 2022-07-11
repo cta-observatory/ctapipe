@@ -909,3 +909,67 @@ def test_prefix_in_output_container(tmp_path):
             c = next(generator)
             assert c.prefix == "custom_prefix"
             assert c.value == value
+
+
+def test_can_read_without_prefix_given(tmp_path):
+    """Test that output containers retain the used prefix"""
+
+    class Container1(Container):
+        default_prefix = ""
+        value = Field(-1, "value")
+
+    path = tmp_path / "prefix.h5"
+    with HDF5TableWriter(path, mode="w", add_prefix=True) as writer:
+        for value in (1, 2, 3):
+            writer.write("values", Container1(value=value, prefix="custom_prefix"))
+
+    # test we can read back the data without knowing the "custom_prefix"
+    with HDF5TableReader(path) as reader:
+        generator = reader.read("/values", Container1)
+
+        for value in (1, 2, 3):
+            c = next(generator)
+            assert c.value == value
+            assert c.prefix == "custom_prefix"
+
+
+def test_can_read_same_containers(tmp_path):
+    """Test we can read two identical containers with different prefixes"""
+
+    class Container1(Container):
+        default_prefix = ""
+        value = Field(-1, "value")
+
+    # test with two of the same container with different prefixes
+    path = tmp_path / "two_containers.h5"
+    with HDF5TableWriter(path, mode="w", add_prefix=True) as writer:
+        for value in (1, 2, 3):
+            writer.write(
+                "values",
+                [
+                    Container1(value=value, prefix="foo"),
+                    Container1(value=5 * value, prefix="bar"),
+                ],
+            )
+
+    # This needs to fail since the mapping is not unique
+    with HDF5TableReader(path) as reader:
+        with pytest.raises(IOError):
+            generator = reader.read("/values", [Container1, Container1])
+            next(generator)
+
+    # But when explicitly giving the prefixes, this works and order
+    # should not be important
+    reader = HDF5TableReader(path)
+    generator = reader.read(
+        "/values",
+        [Container1, Container1],
+        prefixes=["bar", "foo"],
+    )
+
+    for value in (1, 2, 3):
+        c1, c2 = next(generator)
+        assert c1.value == 5 * value
+        assert c1.prefix == "bar"
+        assert c2.value == value
+        assert c2.prefix == "foo"
