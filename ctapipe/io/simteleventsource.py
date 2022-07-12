@@ -318,7 +318,11 @@ class SimTelEventSource(EventSource):
             )
 
             try:
-                telescope = guess_telescope(n_pixels, equivalent_focal_length)
+                telescope = guess_telescope(
+                    n_pixels,
+                    equivalent_focal_length,
+                    cam_settings["n_mirrors"],
+                )
             except ValueError:
                 telescope = unknown_telescope(mirror_area, n_pixels)
 
