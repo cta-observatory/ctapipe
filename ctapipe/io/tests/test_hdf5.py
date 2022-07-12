@@ -48,6 +48,45 @@ def test_h5_file(tmp_path_factory):
     return path
 
 
+def test_read_meta(test_h5_file):
+    """Test reading meta information"""
+    from ctapipe import __version__
+    from ctapipe.io.hdf5tableio import get_node_meta
+
+    with tables.open_file(test_h5_file, "r") as f:
+        meta = get_node_meta(f.root["/R0/tel_001"])
+
+        # check we don't have anything else
+        # system attributes and column metadata should be excluded
+        assert len(meta) == 3
+        assert meta["CTAPIPE_VERSION"] == __version__
+        assert type(meta["CTAPIPE_VERSION"]) is str
+
+        assert meta["date"] == "2020-10-10"
+        assert type(meta["date"]) is str
+
+        assert meta["test_attribute"] == 3.14159
+        assert type(meta["test_attribute"]) is float
+
+
+def test_read_column_attrs(test_h5_file):
+    """Test reading meta information"""
+    from ctapipe.io.hdf5tableio import get_column_attrs
+
+    with tables.open_file(test_h5_file, "r") as f:
+        column_attrs = get_column_attrs(f.root["/R0/sim_shower"])
+        assert len(column_attrs) == len(SimulatedShowerContainer.fields)
+        assert column_attrs["energy"]["POS"] == 0
+        assert column_attrs["energy"]["TRANSFORM"] == "quantity"
+        assert column_attrs["energy"]["UNIT"] == "TeV"
+        assert column_attrs["energy"]["DTYPE"] == np.float64
+
+        assert column_attrs["alt"]["POS"] == 1
+        assert column_attrs["alt"]["TRANSFORM"] == "quantity"
+        assert column_attrs["alt"]["UNIT"] == "deg"
+        assert column_attrs["alt"]["DTYPE"] == np.float64
+
+
 def test_append_container(tmp_path):
     path = tmp_path / "test_append.h5"
     with HDF5TableWriter(path, mode="w") as writer:

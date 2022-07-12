@@ -40,7 +40,7 @@ from ..instrument import SubarrayDescription
 from ..utils import IndexFinder
 from .datalevels import DataLevel
 from .eventsource import EventSource
-from .hdf5tableio import HDF5TableReader, read_column_attrs
+from .hdf5tableio import HDF5TableReader, get_column_attrs
 from .tableloader import DL2_SUBARRAY_GROUP, DL2_TELESCOPE_GROUP
 
 __all__ = ["HDF5EventSource"]
@@ -582,12 +582,12 @@ class HDF5EventSource(EventSource):
     @lazyproperty
     def _subarray_pointing_attrs(self):
         table = self.file_.root.dl1.monitoring.subarray.pointing
-        return read_column_attrs(table)
+        return get_column_attrs(table)
 
     @lru_cache(maxsize=1000)
     def _telescope_pointing_attrs(self, tel_id):
         pointing_group = self.file_.root.dl1.monitoring.telescope.pointing
-        return read_column_attrs(pointing_group[f"tel_{tel_id:03d}"])
+        return get_column_attrs(pointing_group[f"tel_{tel_id:03d}"])
 
     def _fill_array_pointing(self, data, array_pointing_finder):
         """
