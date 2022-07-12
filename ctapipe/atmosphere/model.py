@@ -175,21 +175,34 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
             if col not in table.colnames:
                 raise ValueError(f"Missing expected column: {col} in table")
 
-        self.table = table
+        self.table = table[
+            (table["height"] >= 0)
+            & (table["density"] > 0)
+            & (table["column_density"] > 0)
+        ]
+
+        # interpolation is done in log-log space to minimize spline wobble
+
         self._density_interp = interp1d(
-            table["height"].to("km"), table["density"].to("g cm-3")
+            self.table["height"].to("km").value,
+            np.log10(self.table["density"].to("g cm-3").value),
+            kind="cubic",
         )
         self._col_density_interp = interp1d(
-            table["height"].to("km"), table["column_density"].to("g cm-2")
+            self.table["height"].to("km").value,
+            np.log10(self.table["column_density"].to("g cm-2").value),
+            kind="cubic",
         )
 
     @u.quantity_input
     def __call__(self, h: u.m) -> u.Quantity:
-        return u.Quantity(self._density_interp(h.to_value(u.km)), u.g / u.cm**3)
+        return u.Quantity(10 ** self._density_interp(h.to_value(u.km)), u.g / u.cm**3)
 
     @u.quantity_input
     def integral(self, h: u.m) -> u.Quantity:
-        return u.Quantity(self._col_density_interp(h.to_value(u.km)), u.g / u.cm**2)
+        return u.Quantity(
+            10 ** self._col_density_interp(h.to_value(u.km)), u.g / u.cm**2
+        )
 
     def __repr__(self):
         return (
