@@ -1,26 +1,34 @@
-from astropy.table.operations import hstack, vstack
-import tables
-from ctapipe.core.tool import Tool, ToolConfigurationError
-from ctapipe.core.traits import Bool, Path, flag, create_class_enum_trait
-from ctapipe.io import TableLoader, write_table
-from tqdm.auto import tqdm
-from ctapipe.io.tableio import TelListToMaskTransform
-import numpy as np
+import shutil
 
-from ..sklearn import Regressor
-from ..apply import EnergyRegressor
+import joblib
+import numpy as np
+import tables
+from astropy.table.operations import hstack, vstack
+from ctapipe.core.tool import Tool
+from ctapipe.core.traits import Bool, Path, create_class_enum_trait, flag
+from ctapipe.io import TableLoader, write_table
+from ctapipe.io.tableio import TelListToMaskTransform
+from tqdm.auto import tqdm
+
+from ..apply import EnergyRegressor, ParticleIdClassifier, Reconstructor
+from ..sklearn import Classifier, Model, Regressor
 from ..stereo_combination import StereoCombiner
 
 
-class ApplyEnergyRegressor(Tool):
+class Apply(Tool):
 
     overwrite = Bool(default_value=False).tag(config=True)
 
     input_url = Path(
         default_value=None,
-        allow_none=True,
+        allow_none=False,
         directory_ok=False,
         exists=True,
+    ).tag(config=True)
+    output_path = Path(
+        default_value=None,
+        allow_none=False,
+        directory_ok=False,
     ).tag(config=True)
 
     model_path = Path(
@@ -32,19 +40,20 @@ class ApplyEnergyRegressor(Tool):
     ).tag(config=True)
 
     aliases = {
-        ("i", "input"): "ApplyEnergyRegressor.input_url",
-        ("m", "model"): "ApplyEnergyRegressor.model_path",
+        ("i", "input"): "Apply.input_url",
+        ("m", "model"): "Apply.model_path",
+        ("o", "output"): "Apply.output_path",
     }
 
     flags = {
         **flag(
             "overwrite",
-            "ApplyEnergyRegressor.overwrite",
+            "Apply.overwrite",
             "Overwrite tables in output file if it exists",
             "Don't overwrite tables in output file if it exists",
         ),
         "f": (
-            {"ApplyEnergyRegressor": {"overwrite": True}},
+            {"Apply": {"overwrite": True}},
             "Overwrite output file if it exists",
         ),
     }
@@ -52,18 +61,15 @@ class ApplyEnergyRegressor(Tool):
     classes = [
         TableLoader,
         Regressor,
+        Classifier,
         StereoCombiner,
     ]
 
     def setup(self):
         """"""
-
-        if self.input_url is None:
-            raise ToolConfigurationError(
-                "You must specify an input_url (--input / -i <URL>) !"
-            )
-
-        self.h5file = tables.open_file(self.input_url, mode="r+")
+        self.log.info("Copying to output destination.")
+        shutil.copy(self.input_url, self.output_path)
+        self.h5file = tables.open_file(self.output_path, mode="r+")
         self.loader = TableLoader(
             parent=self,
             h5file=self.h5file,
@@ -73,21 +79,41 @@ class ApplyEnergyRegressor(Tool):
             load_simulated=True,
             load_instrument=True,
         )
-        self.regressor = EnergyRegressor.read(self.model_path, parent=self)
+
+        with open(self.model_path, "rb") as f:
+            model, *_ = joblib.load(f)
+
+        if isinstance(model, Regressor):
+            self.reco = EnergyRegressor.read(
+                self.model_path,
+                self.loader.subarray,
+                parent=self,
+            )
+            self.property = "energy"
+        elif isinstance(model, Classifier):
+            self.reco = ParticleIdClassifier.read(
+                self.model_path,
+                self.loader.subarray,
+                parent=self,
+            )
+            self.property = "classification"
+        else:
+            raise TypeError(f"Unsupported model class {type(model)}")
+
         self.combine = StereoCombiner.from_name(
             self.stereo_combiner_type,
-            combine_property="energy",
-            algorithm=self.regressor.model.model_cls,
+            combine_property=self.property,
+            algorithm=self.reco.model.model_cls,
             parent=self,
         )
 
     def start(self):
         self.log.info("Applying model")
-        prefix = self.regressor.model.model_cls
+        prefix = self.reco.model.model_cls
 
         tables = []
         for tel_id, tel in tqdm(self.loader.subarray.tel.items()):
-            if tel not in self.regressor.model.models:
+            if tel not in self.reco.model.models:
                 self.log.warning(
                     "No model for telescope type %s, skipping tel %d",
                     tel,
@@ -102,7 +128,7 @@ class ApplyEnergyRegressor(Tool):
                 self.log.warning("No events for telescope %d", tel_id)
                 continue
 
-            predictions = self.regressor.predict(tel, table)
+            predictions = self.reco.predict(tel, table)
             table = hstack(
                 [table, predictions], join_type="exact", metadata_conflicts="ignore"
             )
@@ -110,7 +136,7 @@ class ApplyEnergyRegressor(Tool):
             write_table(
                 table[["obs_id", "event_id", "tel_id"] + predictions.colnames],
                 self.loader.input_url,
-                f"/dl2/event/telescope/energy/{prefix}/tel_{tel_id:03d}",
+                f"/dl2/event/telescope/{self.property}/{prefix}/tel_{tel_id:03d}",
                 mode="a",
                 overwrite=self.overwrite,
             )
@@ -127,10 +153,11 @@ class ApplyEnergyRegressor(Tool):
         ):
             stereo_predictions[c.name] = np.array([trafo(r) for r in c])
 
+        print(self.loader.input_url)
         write_table(
             stereo_predictions,
             self.loader.input_url,
-            f"/dl2/event/subarray/energy/{self.regressor.model.model_cls}",
+            f"/dl2/event/subarray/{self.property}/{self.reco.model.model_cls}",
             mode="a",
             overwrite=self.overwrite,
         )
@@ -140,7 +167,7 @@ class ApplyEnergyRegressor(Tool):
 
 
 def main():
-    ApplyEnergyRegressor().run()
+    Apply().run()
 
 
 if __name__ == "__main__":
