@@ -10,17 +10,22 @@ SIMTEL_PATH = get_dataset_path(
 )
 
 
-def get_model_from_simtel():
+@pytest.fixture(scope="session")
+def table_profile():
+    return get_simtel_profile()
+
+
+def get_simtel_profile():
     """get a TableAtmosphereDensityModel from a simtel file"""
     from ctapipe.io import EventSource
 
     with EventSource(SIMTEL_PATH) as source:
-        return source.atmosphere_density_profiles[0]
+        return source.atmosphere_density_profile
 
 
 @pytest.mark.parametrize(
     "density_model",
-    [model.ExponentialAtmosphereDensityProfile(), get_model_from_simtel()],
+    [model.ExponentialAtmosphereDensityProfile(), get_simtel_profile()],
 )
 def test_models(density_model):
     """check that a set of model classes work"""
@@ -48,3 +53,16 @@ def test_exponential_model():
     )
     assert np.isclose(density_model(1_000_000 * u.km), 0 * u.g / u.cm**3)
     assert np.isclose(density_model(0 * u.km), density_model.rho0)
+
+
+def test_table_model_interpolation(table_profile):
+    """check that interpolation is reasonable"""
+
+    np.testing.assert_allclose(
+        table_profile(table_profile.table["height"].to("km")),
+        table_profile.table["density"].to("g cm-3"),
+    )
+
+    # check that fine interpolation up to 100 km :
+    height_fine = np.linspace(0, 100, 1000) * u.km
+    assert np.isfinite(table_profile.integral(height_fine)).all()

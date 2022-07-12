@@ -541,4 +541,4 @@ def test_atmosphere_profile(prod5_gamma_simtel_path):
     """check that for a file with a profile in it that we get it back"""
 
     with SimTelEventSource(prod5_gamma_simtel_path) as source:
-        assert issubclass(AtmosphereDensityProfile, source.atmosphere_density_profile)
+        assert isinstance(source.atmosphere_density_profile, AtmosphereDensityProfile)

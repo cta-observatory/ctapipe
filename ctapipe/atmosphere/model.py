@@ -181,7 +181,7 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
             & (table["column_density"] > 0)
         ]
 
-        # interpolation is done in log-log space to minimize spline wobble
+        # interpolation is done in log-y to minimize spline wobble
 
         self._density_interp = interp1d(
             self.table["height"].to("km").value,
