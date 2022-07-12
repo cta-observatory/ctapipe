@@ -10,7 +10,12 @@ import tables
 from astropy.table import Table, join
 from astropy.time import Time
 
-from .hdf5tableio import DEFAULT_FILTERS, get_transforms_for_table, read_column_attrs
+from .hdf5tableio import (
+    DEFAULT_FILTERS,
+    get_column_attrs,
+    get_column_transforms,
+    get_node_meta,
+)
 from .tableio import (
     EnumColumnTransform,
     QuantityColumnTransform,
@@ -213,26 +218,12 @@ def write_table(
 
 
 def _parse_hdf5_attrs(table):
+    column_attrs = get_column_attrs(table)
     descriptions = {
-        col_name: str(attrs["DESC"])
-        for col_name, attrs in read_column_attrs(table).items()
-        if "DESC" in attrs
+        col_name: attrs.get("DESC", "") for col_name, attrs in column_attrs.items()
     }
-
-    transforms = get_transforms_for_table(table)
-
-    meta = {
-        key: table.attrs[key]
-        for key in table.attrs._v_attrnamesuser
-        if not key.startswith("CTAFIELD_") and not key.startswith("FIELD_")
-    }
-
-    # transform np.str_ to python str
-    meta = {
-        key: str(value) if isinstance(value, np.str_) else value
-        for key, value in meta.items()
-    }
-
+    transforms = get_column_transforms(column_attrs)
+    meta = get_node_meta(table)
     return transforms, descriptions, meta
 
 

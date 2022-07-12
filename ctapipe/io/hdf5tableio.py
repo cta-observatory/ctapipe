@@ -54,31 +54,78 @@ def get_hdf5_attr(attrs, name, default=None):
     return default
 
 
-def read_column_attrs(table):
-    """Read custom ctapipe column metadata from hdf5 table"""
+def get_column_attrs(table):
+    """
+    Read custom ctapipe column metadata from hdf5 table
+
+    Parameters
+    ----------
+    table : `tables.Table`
+        The table for which to parse the column metadata attributes
+    """
     attrs = table.attrs
 
     column_attrs = {}
     for name, desc in table.coldescrs.items():
         pos = desc._v_pos
-        column_attrs[name] = {
-            k.partition(f"CTAFIELD_{pos}_")[2]: attrs[k]
-            for k in attrs._v_attrnames
-            if k.startswith(f"CTAFIELD_{pos}_")
+        prefix = f"CTAFIELD_{pos}_"
+        current = {
+            "POS": pos,
+            "DTYPE": desc.dtype,
         }
 
+        for full_key in filter(lambda k: k.startswith(prefix), attrs._v_attrnamesuser):
+            value = attrs[full_key]
+            key = full_key[len(prefix) :]
+
+            # convert numpy scalars to plain python objects
+            if isinstance(value, (np.str_, np.bool_, np.number)):
+                value = value.item()
+
+            current[key] = value
+
+        current["PREFIX"] = name.rpartition(current.get("NAME", name))[0].rstrip("_")
+        column_attrs[name] = current
     return column_attrs
 
 
-def get_transforms_for_table(table):
+def get_node_meta(node):
+    """Return the metadata attached to a table object
+
+    This does not include ctapipe-attached column descriptions and transform
+    metadata, only any additional attributes defined.
+
+    Parameters
+    ----------
+    node : `tables.Node`
+        The node for which to parse the metadata attributes
+    """
+    ignore_column_descriptions = lambda k: not k.startswith("CTAFIELD_")
+    meta = {}
+    attrs = node._v_attrs
+    for key in filter(ignore_column_descriptions, attrs._v_attrnamesuser):
+        value = attrs[key]
+
+        # convert numpy scalars to plain python objects
+        if isinstance(value, (np.str_, np.bool_, np.number)):
+            value = value.item()
+
+        meta[key] = value
+
+    return meta
+
+
+def get_column_transforms(column_attrs):
     """
     create any transforms needed to "undo" ones in the writer
-    """
-    attrs = read_column_attrs(table)
-    transforms = {}
-    for colname, desc in table.coldescrs.items():
-        col_attrs = attrs.get(colname, {})
 
+    Parameters
+    ----------
+    column_attrs : dict
+        Column attrs, as returned by `get_column_attrs`
+    """
+    transforms = {}
+    for colname, col_attrs in column_attrs.items():
         if unit := col_attrs.get("UNIT"):
             transform = QuantityColumnTransform(unit=unit)
             transforms[colname] = transform
@@ -98,7 +145,7 @@ def get_transforms_for_table(table):
                 scale=scale,
                 offset=col_attrs.get("TRANSFORM_OFFSET", 0),
                 source_dtype=col_attrs.get("TRANSFORM_DTYPE", "float32"),
-                target_dtype=desc.dtype.base,
+                target_dtype=col_attrs["DTYPE"].base,
             )
             transforms[colname] = transform
 
@@ -266,7 +313,6 @@ class HDF5TableWriter(TableWriter):
 
         # add original field name name, without prefix
         meta[f"CTAFIELD_{pos}_NAME"] = field.name
-        meta[f"CTAFIELD_{pos}_PREFIX"] = name.rpartition(field.name)[0].rstrip("_")
 
         # add desription to metadata
         meta[f"CTAFIELD_{pos}_DESC"] = field.description
@@ -482,31 +528,43 @@ class HDF5TableReader(TableReader):
         self._h5file.close()
 
     def _setup_table(self, table_name, containers, prefixes, ignore_columns):
-        tab = self._h5file.get_node(table_name)
-        self._tables[table_name] = tab
-        self._map_table_to_containers(table_name, containers, prefixes, ignore_columns)
-        transforms = get_transforms_for_table(tab)
+        table = self._h5file.get_node(table_name)
+        self._tables[table_name] = table
+        column_attrs = get_column_attrs(table)
+
+        self._map_table_to_containers(
+            table_name=table_name,
+            column_attrs=column_attrs,
+            containers=containers,
+            prefixes=prefixes,
+            ignore_columns=ignore_columns,
+        )
+
+        # setup transforms
+        transforms = get_column_transforms(column_attrs)
         for col_name, transform in transforms.items():
             self.add_column_transform(table_name, col_name, transform)
-        return tab
+
+        # store the meta
+        self._meta[table_name] = get_node_meta(table)
+        return table
 
     def _map_table_to_containers(
         self,
         table_name,
+        column_attrs,
         containers,
         prefixes,
         ignore_columns,
     ):
         """identifies which columns in the table to read into the containers,
         by comparing their names including an optional prefix."""
-        tab = self._tables[table_name]
         self._missing_fields[table_name] = []
         self._col_mapping[table_name] = []
         self._prefixes[table_name] = []
 
         inverse_mapping = {}
-        attrs = read_column_attrs(tab)
-        for colname, col_attrs in attrs.items():
+        for colname, col_attrs in column_attrs.items():
             name = col_attrs.get("NAME")
             if name is not None:
                 inverse_mapping[name] = colname
@@ -524,7 +582,8 @@ class HDF5TableReader(TableReader):
 
                 if col_name in ignore_columns:
                     continue
-                elif col_name is None or col_name not in tab.colnames:
+
+                elif col_name is None or col_name not in column_attrs:
                     missing.append(field_name)
                     self.log.warning(
                         f"Table {table_name} is missing column {col_name}"
@@ -533,11 +592,13 @@ class HDF5TableReader(TableReader):
                 else:
                     if col_name in cols_to_read:
                         raise IOError(
-                            "Mapping of column names to container fields is not unique, prefixes are required."
+                            "Mapping of column names to container fields is not unique"
+                            ", prefixes are required."
                         )
 
                     if prefix is None:
-                        prefix = attrs[col_name].get("PREFIX")
+                        prefix = column_attrs[col_name].get("PREFIX")
+
                     col_mapping[field_name] = col_name
                     cols_to_read.add(col_name)
 
@@ -545,15 +606,8 @@ class HDF5TableReader(TableReader):
             self._missing_fields[table_name].append(missing)
             self._col_mapping[table_name].append(col_mapping)
 
-        # store the meta
-        self._meta[table_name] = {
-            k: tab.attrs[k]
-            for k in tab.attrs._v_attrnamesuser
-            if not k.startswith("CTAFIELD_")
-        }
-
         # check if the table has additional columns not present in any container
-        for colname in tab.colnames:
+        for colname in column_attrs:
             if colname not in cols_to_read:
                 self.log.debug(
                     f"Table {table_name} contains column {colname} "
