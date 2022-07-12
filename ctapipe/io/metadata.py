@@ -22,19 +22,19 @@ them (as in `Activity.from_provenance()`)
     some_astropy_table.write("output.ecsv")
 
 """
+import os
+import pwd
 import uuid
 import warnings
 from collections import OrderedDict
-import os
-import pwd
+from contextlib import ExitStack
+from pathlib import Path
 
 import tables
 from astropy.time import Time
 from tables import NaturalNameWarning
-from traitlets import Enum, Instance, List, Unicode, default, HasTraits
+from traitlets import Enum, HasTraits, Instance, List, Unicode, UseEnum, default
 from traitlets.config import Configurable
-from contextlib import ExitStack
-from pathlib import Path
 
 from ..core.traits import AstroTime
 from .datalevels import DataLevel
@@ -51,7 +51,18 @@ __all__ = [
 ]
 
 
-CONVERSIONS = {Time: lambda t: t.utc.iso, list: str}
+CONVERSIONS = {
+    Time: lambda t: t.utc.iso,
+    list: lambda l: ",".join([convert(elem) for elem in l]),
+    DataLevel: lambda d: d.name,
+}
+
+
+def convert(value):
+    """Convert to representation suitable for header infos, such as hdf5 or fits"""
+    if (conv := CONVERSIONS.get(type(value))) is not None:
+        return conv(value)
+    return value
 
 
 class Contact(Configurable):
@@ -80,7 +91,7 @@ class Product(HasTraits):
     creation_time = AstroTime()
     id_ = Unicode(help="leave unspecified to automatically generate a UUID")
     data_category = Enum(["Sim", "A", "B", "C", "Other"], "Other")
-    data_level = List(Enum([level.name for level in DataLevel]))
+    data_levels = List(UseEnum(DataLevel))
     data_association = Enum(["Subarray", "Telescope", "Target", "Other"], "Other")
     data_model_name = Unicode("unknown")
     data_model_version = Unicode("unknown")
@@ -198,7 +209,7 @@ def _to_dict(hastraits_instance, prefix=""):
         val = trait.get(hastraits_instance)
 
         # apply type conversions
-        val = CONVERSIONS.get(type(val), lambda v: v)(val)
+        val = convert(val)
         res[key] = val
 
     return res
@@ -280,4 +291,4 @@ def read_metadata(h5file, path="/"):
 
         node = h5file.get_node(path)
         metadata = {key: node._v_attrs[key] for key in node._v_attrs._f_list()}
-    return metadata
+        return metadata

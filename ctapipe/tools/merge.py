@@ -1,24 +1,23 @@
 """
 Merge DL1-files from ctapipe-process tool
 """
-import sys
 import os
+import sys
 from argparse import ArgumentParser
 from pathlib import Path
-from traitlets import List
 
-import tables
 import numpy as np
+import tables
 from tqdm.auto import tqdm
+from traitlets import List
 
 from ctapipe.utils.arrays import recarray_drop_columns
 
-from ..io import metadata as meta, HDF5EventSource, get_hdf5_datalevels
-from ..io import HDF5TableWriter
 from ..core import Provenance, Tool, traits
-from ..core.traits import Bool, Set, Unicode, flag, CInt
+from ..core.traits import Bool, CInt, Set, Unicode, flag
 from ..instrument import SubarrayDescription
-
+from ..io import HDF5EventSource, HDF5TableWriter, get_hdf5_datalevels
+from ..io import metadata as meta
 
 PROV = Provenance()
 
@@ -386,7 +385,9 @@ class MergeTool(Tool):
                 input_table = recarray_drop_columns(input_node[:], filter_columns)
                 where, name = os.path.split(node_path)
                 self.output_file.create_table(
-                    where, name, filters=input_node.filters,
+                    where,
+                    name,
+                    filters=input_node.filters,
                     createparents=True,
                     obj=input_table,
                 )
@@ -474,7 +475,7 @@ class MergeTool(Tool):
             product=meta.Product(
                 description="Merged DL1 Data Product",
                 data_category="Sim",  # TODO: copy this from the inputs
-                data_level=datalevels,
+                data_levels=datalevels,
                 data_association="Subarray",
                 data_model_name="ASWG",  # TODO: copy this from inputs
                 data_model_version=self.data_model_version,
