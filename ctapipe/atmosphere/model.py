@@ -129,6 +129,13 @@ class ExponentialAtmosphereDensityProfile(AtmosphereDensityProfile):
     .. math:: \\rho(h) = \\rho_0 e^{-h/h_0}
 
 
+    .. code-block:: python
+
+        from ctapipe.atmosphere import ExponentialAtmosphereDensityProfile
+        density_profile = ExponentialAtmosphereDensityProfile()
+        density_profile.peek()
+
+
     Attributes
     ----------
     h0: u.Quantity["m"]
@@ -157,10 +164,34 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
     """Tabular profile from a table that has both the density and it's integral
     pre-computed.  The table is interpolated to return the density and its integral.
 
+    .. code-block:: python
+
+        from astropy.table import Table
+        from astropy import units as u
+
+        from ctapipe.atmosphere import TableAtmosphereDensityProfile
+
+        table = Table(
+            dict(
+                height=[1,10,20] * u.km,
+                density=[0.00099,0.00042, 0.00009] * u.g / u.cm**3
+                column_density=[1044.0, 284.0, 57.0] * u.g / u.cm**2
+            )
+        )
+
+        profile = TableAtmosphereDensityProfile(table=table)
+        print(profile(10 * u.km))
+
+
     Attributes
     ----------
     table: Table
         Points that define the model
+
+    See Also
+    --------
+    ctapipe.io.EventSource.atmosphere_profile:
+        load a TableAtmosphereDensityProfile from a supported EventSource
     """
 
     def __init__(self, table: Table):
