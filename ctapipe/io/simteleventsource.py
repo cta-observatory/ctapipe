@@ -4,7 +4,7 @@ from contextlib import nullcontext
 from gzip import GzipFile
 from io import BufferedReader
 from pathlib import Path
-from typing import List, Union
+from typing import Optional, Union
 
 import numpy as np
 from astropy import units as u
@@ -252,7 +252,7 @@ def apply_simtel_r1_calibration(
 
 def read_atmosphere_profile_from_simtel(
     simtelfile: Union[str, SimTelFile]
-) -> List[TableAtmosphereDensityProfile]:
+) -> Optional[TableAtmosphereDensityProfile]:
     """Read an atmosphere profile from a SimTelArray file as an astropy Table
 
     Parameters
@@ -262,10 +262,8 @@ def read_atmosphere_profile_from_simtel(
 
     Returns
     -------
-    list[Table]:
-        list of tables with columns `height`, `density`, and `column_density`
-        along with associated metadata. An empty list is returned if the input
-        file has no atmosphere profiles in it.
+    Optional[TableAtmosphereDensityProfile]:
+        Profile read from a table, with interpolation
     """
 
     profiles = []
@@ -303,7 +301,10 @@ def read_atmosphere_profile_from_simtel(
             )
             profiles.append(TableAtmosphereDensityProfile(table=table))
 
-    return profiles
+    if len(profiles) > 0:
+        return profiles[0]
+    else:
+        return None
 
 
 class SimTelEventSource(EventSource):
@@ -421,7 +422,7 @@ class SimTelEventSource(EventSource):
 
         self._atmosphere_density_profile = read_atmosphere_profile_from_simtel(
             self.file_
-        )[0]
+        )
 
         self.log.debug(f"Using gain selector {self.gain_selector}")
 
