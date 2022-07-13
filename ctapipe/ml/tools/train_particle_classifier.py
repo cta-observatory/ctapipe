@@ -1,11 +1,12 @@
 import numpy as np
-from ctapipe.core.tool import Tool, ToolConfigurationError
-from ctapipe.core.traits import Path, Int
-from ctapipe.io import TableLoader
+from astropy.table import vstack
 from sklearn import metrics
 from sklearn.model_selection import StratifiedKFold
 from tqdm.auto import tqdm
-from astropy.table import vstack
+
+from ctapipe.core.tool import Tool, ToolConfigurationError
+from ctapipe.core.traits import Int, Path
+from ctapipe.io import TableLoader
 
 from ..apply import ParticleIdClassifier
 from ..preprocessing import check_valid_rows
@@ -121,6 +122,7 @@ class TrainParticleIdClassifier(Tool):
             idx = self.rng.choice(len(table), n_events, replace=False)
             idx.sort()
             table = table[idx]
+
         return table
 
     def _read_input_data(self, tel_type):
@@ -128,6 +130,11 @@ class TrainParticleIdClassifier(Tool):
         background = self._read_table(
             tel_type, self.background_loader, self.n_background
         )
+        if (len(signal) <= self.n_cross_validation) or (
+            len(background) <= self.n_cross_validation
+        ):
+            raise ValueError(f"Too few events for {tel_type}.")
+
         table = vstack([signal, background])
         self.log.info(
             "Train on %s signal and %s background events", len(signal), len(background)
