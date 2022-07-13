@@ -390,7 +390,7 @@ def time_constrained_clean(
     Cleaning contains the following steps:
     - Find core pixels (containing more photons than a picture threshold)
     - Remove pixels with less than N neighbors
-    - Remove pixels whose arrival times are within a time limit of the average time
+    - Keep core pixels whose arrival times are within a time limit of the average time
     - Find boundary pixels (containing more photons than a boundary threshold)
     - Remove pixels with less than N neighbors arriving within a given timeframe
 
