@@ -38,11 +38,11 @@ You can also get a quick plot of any profile:
 
 
 Reading an atmosphere from a file
----------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A `~ctapipe.atmosphere.TableAtmosphereDensityProfile` can be constructed from an input
-`~astropy.table.Table` that has columns named `HEIGHT`, `DENSITY` and
-`COLUMN_DENSITY`.
+`~astropy.table.Table` that has columns named ``HEIGHT``, ``DENSITY`` and
+``COLUMN_DENSITY``.
 
 .. code-block:: python
 
@@ -65,7 +65,7 @@ A `~ctapipe.atmosphere.TableAtmosphereDensityProfile` can be constructed from an
 
 Some `~ctapipe.io.EventSource` implementations also support reading and creating
 a `~ctapipe.atmosphere.TableAtmosphereDensityProfile` from a file automatically. They provide a
-`~atmosphere_density_profile` property as follows:
+`~ctapipe.io.EventSource.atmosphere_density_profile` property as follows:
 
 .. code-block:: python
 
