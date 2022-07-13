@@ -13,3 +13,5 @@ Reference/API
 =============
 
 .. automodapi:: ctapipe.atmosphere
+
+.. automodapi:: ctapipe.atmosphere.model
