@@ -190,7 +190,7 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
 
     See Also
     --------
-    ctapipe.io.EventSource.atmosphere_profile:
+    ctapipe.io.eventsource.EventSource.atmosphere_profile:
         load a TableAtmosphereDensityProfile from a supported EventSource
     """
 
