@@ -1,6 +1,5 @@
 from ctapipe.core import run_tool
 from ctapipe.io import TableLoader
-import shutil
 
 
 def test_apply_energy_regressor(
@@ -8,19 +7,18 @@ def test_apply_energy_regressor(
     dl2_shower_geometry_file_lapalma,
     tmp_path,
 ):
-    from ctapipe.ml.tools.apply_energy_regressor import ApplyEnergyRegressor
+    from ctapipe.ml.tools.apply import Apply
 
-    input_path = tmp_path / dl2_shower_geometry_file_lapalma.name
-
-    # create copy to not mutate common test file
-    shutil.copy2(dl2_shower_geometry_file_lapalma, input_path)
+    input_path = dl2_shower_geometry_file_lapalma
+    output_path = tmp_path / "energy.dl2.h5"
 
     ret = run_tool(
-        ApplyEnergyRegressor(),
+        Apply(),
         argv=[
             f"--input={input_path}",
-            f"--model={energy_regressor_path}",
-            "--ApplyEnergyRegressor.StereoMeanCombiner.weights=konrad",
+            f"--output={output_path}",
+            f"--regressor={energy_regressor_path}",
+            "--Apply.StereoMeanCombiner.weights=konrad",
         ],
     )
     assert ret == 0
@@ -47,19 +45,18 @@ def test_apply_particle_classifier(
     dl2_shower_geometry_file_lapalma,
     tmp_path,
 ):
-    from ctapipe.ml.tools.apply_particle_classifier import ApplyParticleIdClassifier
+    from ctapipe.ml.tools.apply import Apply
 
-    input_path = tmp_path / dl2_shower_geometry_file_lapalma.name
-
-    # create copy to not mutate common test file
-    shutil.copy2(dl2_shower_geometry_file_lapalma, input_path)
+    input_path = dl2_shower_geometry_file_lapalma
+    output_path = tmp_path / "particle.dl2.h5"
 
     ret = run_tool(
-        ApplyParticleIdClassifier(),
+        Apply(),
         argv=[
             f"--input={input_path}",
-            f"--model={particle_classifier_path}",
-            "--ApplyParticleIdClassifier.StereoMeanCombiner.weights=konrad",
+            f"--output={output_path}",
+            f"--classifier={particle_classifier_path}",
+            "--Apply.StereoMeanCombiner.weights=konrad",
         ],
     )
     assert ret == 0
@@ -79,3 +76,37 @@ def test_apply_particle_classifier(
 
     assert "ExtraTreesClassifier_prediction_mono" in events.colnames
     assert "ExtraTreesClassifier_is_valid_mono" in events.colnames
+
+
+def test_apply_both(
+    energy_regressor_path,
+    particle_classifier_path,
+    dl2_shower_geometry_file_lapalma,
+    tmp_path,
+):
+    from ctapipe.ml.tools.apply import Apply
+
+    input_path = dl2_shower_geometry_file_lapalma
+    output_path = tmp_path / "particle-and-aenergy.dl2.h5"
+
+    ret = run_tool(
+        Apply(),
+        argv=[
+            f"--input={input_path}",
+            f"--output={output_path}",
+            f"--classifier={particle_classifier_path}",
+            f"--regressor={energy_regressor_path}",
+            "--Apply.StereoMeanCombiner.weights=konrad",
+        ],
+    )
+    assert ret == 0
+
+    loader = TableLoader(input_path, load_dl2=True)
+
+    events = loader.read_subarray_events()
+    assert "ExtraTreesRegressor_energy" in events.colnames
+    assert "ExtraTreesClassifier_prediction" in events.colnames
+
+    events = loader.read_telescope_events()
+    assert "ExtraTreesClassifier_prediction" in events.colnames
+    assert "ExtraTreesRegressor_energy" in events.colnames
