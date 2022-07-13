@@ -1,11 +1,11 @@
 import numpy as np
-from ctapipe.core import Tool
-from ctapipe.core.traits import Path, Int
-from ctapipe.io import TableLoader
 from sklearn import metrics
 from sklearn.model_selection import KFold
 from tqdm.auto import tqdm
 
+from ctapipe.core import Tool
+from ctapipe.core.traits import Int, Path
+from ctapipe.io import TableLoader
 from ctapipe.ml.apply import EnergyRegressor
 
 from ..preprocessing import check_valid_rows
@@ -56,6 +56,11 @@ class TrainEnergyRegressor(Tool):
         for tel_type in types:
             self.log.info("Loading events for %s", tel_type)
             table = self._read_table(tel_type)
+
+            if len(table) <= self.n_cross_validation:
+                raise ValueError(f"Too few events for {tel_type}.")
+
+            self.log.info("Train on %s events", len(table))
             self._cross_validate(tel_type, table)
 
             self.log.info("Performing final fit for %s", tel_type)
@@ -83,8 +88,6 @@ class TrainEnergyRegressor(Tool):
             idx = self.rng.choice(len(table), n_events, replace=False)
             idx.sort()
             table = table[idx]
-
-        self.log.info("Train on %s events", len(table))
 
         return table
 
