@@ -24,6 +24,7 @@ from .image_conversion import (
 from ctapipe.utils import get_table_dataset
 from ctapipe.utils.linalg import rotation_matrix_2d
 from enum import Enum, unique
+from functools import lru_cache
 
 __all__ = ["CameraGeometry", "UnknownPixelShapeWarning", "PixelShape"]
 
@@ -673,6 +674,27 @@ class CameraGeometry:
             return self._neighbors
         else:
             return self.calc_pixel_neighbors(diagonal=False)
+
+    @lru_cache()
+    def get_n_order_neighbor_matrix(self, order):
+        """
+        Get a matrix of the first and second order neighbors for each pixel.
+
+        Parameters
+        ----------
+        geometry
+
+        Returns
+        -------
+        Boolean matrix of dimension (n_pix, n_pix) with the first and second
+        neighbors for all pixels.
+        """
+        neighbors = self.neighbor_matrix_sparse
+        for i in range(order - 1):
+            neighbors = neighbors.dot(self.neighbor_matrix_sparse)
+        neighbors = neighbors.toarray()
+        np.fill_diagonal(neighbors, 0)
+        return neighbors
 
     def calc_pixel_neighbors(self, diagonal=False):
         """
