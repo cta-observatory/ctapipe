@@ -83,7 +83,7 @@ class AtmosphereDensityProfile:
         fig, ax = plt.subplots(1, 3, constrained_layout=True, figsize=(10, 3))
 
         fig.suptitle(self.__class__.__name__)
-        height = np.geomspace(1, 100, 500) * u.km
+        height = np.linspace(1, 100, 500) * u.km
         density = self(height)
         ax[0].set_xscale("linear")
         ax[0].set_yscale("log")
@@ -92,7 +92,7 @@ class AtmosphereDensityProfile:
         ax[0].set_ylabel(f"Density / {density.unit.to_string('latex')}")
         ax[0].grid(True)
 
-        distance = np.geomspace(1, 100, 500) * u.km
+        distance = np.linspace(1, 100, 500) * u.km
         for zenith_angle in [0, 40, 50, 70] * u.deg:
             column_density = self.line_of_sight_integral(distance, zenith_angle)
             ax[1].plot(distance, column_density, label=f"$\\Psi$={zenith_angle}")
