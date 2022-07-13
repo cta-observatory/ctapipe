@@ -1,5 +1,4 @@
 import logging
-from ast import literal_eval
 
 import astropy.units as u
 import numpy as np
@@ -193,11 +192,11 @@ class HDF5EventSource(EventSource):
 
         with tables.open_file(file_path) as f:
             metadata = f.root._v_attrs
-            if "CTA PRODUCT DATA LEVEL" not in metadata._v_attrnames:
+            if "CTA PRODUCT DATA LEVELS" not in metadata._v_attrnames:
                 return False
 
             # we can now read both R1 and DL1
-            datalevels = set(literal_eval(metadata["CTA PRODUCT DATA LEVEL"]))
+            datalevels = set(metadata["CTA PRODUCT DATA LEVELS"].split(","))
             if not datalevels.intersection(("R1", "DL1_IMAGES", "DL1_PARAMETERS")):
                 return False
 

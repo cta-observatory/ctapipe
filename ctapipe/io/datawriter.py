@@ -104,7 +104,7 @@ def write_reference_metadata_headers(
         product=meta.Product(
             description="ctapipe Data Product",
             data_category=category,
-            data_level=[level.name for level in data_levels],
+            data_levels=data_levels,
             data_association="Subarray",
             data_model_name="ASWG",
             data_model_version=DATA_MODEL_VERSION,
