@@ -1,4 +1,14 @@
+from abc import abstractmethod
+
 import numpy as np
+
+from ..core.component import TelescopeComponent
+from .cleaning import ImageCleaner
+from ..core.traits import (
+    FloatTelescopeParameter,
+    IntTelescopeParameter,
+    BoolTelescopeParameter,
+)
 from numba import njit
 from scipy.spatial import cKDTree as KDTree
 from scipy.interpolate import interp1d
@@ -169,11 +179,10 @@ class TimeNextNeighborCleaning:
 
         # count number of pixels
         charge_steps = np.append(charge_steps, np.inf)
-        self.IPR_dict[tel_id]["counter"] += np.sum(image >= 0)
+        hist, _ = np.histogram(image, charge_steps)
+        self.IPR_dict[tel_id]["counter"] += len(image)
         self.IPR_dict[tel_id]["charge"] = charge_steps[:-1]
-        self.IPR_dict[tel_id]["npix"] += np.cumsum(
-            np.histogram(image, charge_steps)[0][::-1]
-        )[::-1]
+        self.IPR_dict[tel_id]["npix"] += np.cumsum(hist[::-1])[::-1]
 
         # convert count of number of pixels above threshold into rate
         sample_to_hz = (1 / (trace_length * self.IPR_dict[tel_id]["counter"])).to("Hz")
@@ -269,8 +278,8 @@ class TimeNextNeighborCleaning:
             array of same shape of `charge` filled with the corresponding cut
             in time
         """
-        if tel_id not in list(self.IPR_dict.keys()):
-            self.IPR_dict[tel_id] = self.IPR_dict[list(self.IPR_dict.keys())[0]]
+        if tel_id not in self.IPR_dict:
+            raise RuntimeError(f"No IPR for tel_id {tel_id}")
 
         ipr_graph = interp1d(
             self.IPR_dict[tel_id]["charge"],
@@ -284,11 +293,11 @@ class TimeNextNeighborCleaning:
         time_coincidence = np.exp(
             (1 / (self._multiplicity_dict[nfold] - 1))
             * np.log(
-                accidental_rate.to("Hz").value
+                accidental_rate.to_value(u.Hz)
                 / (cfactor * value_ipr ** self._multiplicity_dict[nfold])
             )
         )
-        return u.Quantity(time_coincidence * 1e9, "ns")
+        return u.Quantity(time_coincidence * 1e9, u.ns)
 
     def cut_time_charge(
         self, geometry, charge, tel_id, time_difference, accidental_rate, nfold
@@ -346,7 +355,7 @@ class TimeNextNeighborCleaning:
             Charge of pixels with rate below threshold
 
         """
-        charges = np.linspace(0, 20, 1000)
+        charges = np.linspace(-10, 20, 1000)
         dt = self.get_time_coincidence(
             geometry, charges, tel_id, nfold, accidental_rate
         )
@@ -542,17 +551,19 @@ class TimeNextNeighborCleaning:
             # the cuts fo a different neighbor group. Those don't have to be
             # double checked and are therefore removed. This improves a little
             # bit the performance for large images.
-            checked_combinations = self.check_combinations(
-                combinations, survived_pixels
-            )
-            combinations = combinations[checked_combinations]
+
+            ###################################
+            # checked_combinations = self.check_combinations(
+            #    combinations, survived_pixels
+            # )
+            # combinations = combinations[checked_combinations]
 
             # Get the charges and times for all combinations. For the charge
             # the minimum value of this group is considered while the time
             # time difference is the maximum in this group. With this
             # definitions the cuts applied should be more conservative.
-            combination_image = np.array([image])[0, combinations]
-            combination_times = np.array([arrival_times])[0, combinations]
+            combination_image = image[combinations]
+            combination_times = arrival_times[combinations]
             min_charge = np.min(combination_image, axis=1)
             time_diff = np.max(combination_times, axis=1) - np.min(
                 combination_times, axis=1
@@ -642,3 +653,36 @@ class TimeNextNeighborCleaning:
                 bound[valid_pixels] = True
 
         return bound
+
+
+class TimeNextNeighborImageCleaner(ImageCleaner):
+    """
+    Clean images using the optimised next neighbor technique. See
+    `ctapipe.image.tnn`
+    """
+
+    accidental_rate = FloatTelescopeParameter(
+        default_value=0.01, help="False image error rate"
+    ).tag(config=True)
+
+    apply_pre_threshold = BoolTelescopeParameter(
+        default_value=True, help="If False, skip runtime optimisation."
+    ).tag(config=True)
+
+    def __call__(
+        self, tel_id: int, image: np.ndarray, arrival_times: np.ndarray, samples: int
+    ) -> np.ndarray:
+        """
+        Apply time optimised cleaning. See `ImageCleaner.__call__()`
+        """
+
+        return clean(
+            tel_id=tel_id,
+            geometry=subarray.tel[tel_id].camera.geometry,
+            image=image,
+            arrival_times=arrival_times,
+            sum_time=samples / self.subarray.tel[tel_id].camera.readout.sampling_rate,
+            sample_time=1 / self.subarray.tel[tel_id].camera.readout.sampling_rate,
+            fake_prob=prob,
+            apply_pre_threshold=True,
+        )
