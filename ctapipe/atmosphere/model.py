@@ -140,14 +140,14 @@ class ExponentialAtmosphereDensityProfile(AtmosphereDensityProfile):
     h0: u.Quantity = 8 * u.km
     rho0: u.Quantity = 0.00125 * u.g / (u.cm**3)
 
-    @u.quantity_input
-    def __call__(self, h: u.m) -> u.Quantity:
+    @u.quantity_input(h=u.m)
+    def __call__(self, h) -> u.Quantity:
         return self.rho0 * np.exp(-h / self.h0)
 
-    @u.quantity_input
+    @u.quantity_input(h=u.m)
     def integral(
         self,
-        h: u.m,
+        h,
         output_units=u.g / u.cm**2,
     ) -> u.Quantity:
         return self.rho0 * self.h0 * np.exp(-h / self.h0)
@@ -194,12 +194,12 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
             kind="cubic",
         )
 
-    @u.quantity_input
-    def __call__(self, h: u.m) -> u.Quantity:
+    @u.quantity_input(h=u.m)
+    def __call__(self, h) -> u.Quantity:
         return u.Quantity(10 ** self._density_interp(h.to_value(u.km)), u.g / u.cm**3)
 
-    @u.quantity_input
-    def integral(self, h: u.m) -> u.Quantity:
+    @u.quantity_input(h=u.m)
+    def integral(self, h) -> u.Quantity:
         return u.Quantity(
             10 ** self._col_density_interp(h.to_value(u.km)), u.g / u.cm**2
         )
