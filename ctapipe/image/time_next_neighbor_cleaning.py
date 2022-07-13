@@ -1,24 +1,17 @@
-from abc import abstractmethod
-
 import numpy as np
 
-from ..core.component import TelescopeComponent
 from .cleaning import ImageCleaner
 from ..core.traits import (
     FloatTelescopeParameter,
-    IntTelescopeParameter,
     BoolTelescopeParameter,
 )
 from numba import njit
-from scipy.spatial import cKDTree as KDTree
 from scipy.interpolate import interp1d
 from ..containers import EventType
 from functools import lru_cache
 from tqdm.auto import tqdm
 
 import astropy.units as u
-import warnings
-import json
 
 
 def _get_neighbors_of(pixel_id, indptr, indices):
@@ -86,12 +79,12 @@ def _get_pixel_groups(indptr, indices):
     groups_2nn = _get_groups_2nn(indptr, indices)
     groups_3nn = _get_groups_3nn(groups_2nn, indptr, indices)
     groups_4nn = _get_groups_4nn_from_2nn(groups_2nn, indptr, indices)
-    groups_21nn = _get_groups_2_1nn(groups_2nn, indptr, indices)
+    # groups_21nn = _get_groups_2_1nn(groups_2nn, indptr, indices)
     groups = {
         "2nn": groups_2nn,
         "3nn": groups_3nn,
         "4nn": groups_4nn,
-        "2+1": groups_21nn,
+        # "2+1": groups_21nn,
     }
     return groups
 
@@ -112,7 +105,7 @@ def _is_group_in_mask(group, mask):
 
 
 @njit
-def _flag_groups_where_mask(n_pixels, groups, mask):
+def _flag_groups_where_mask(groups, mask):
     valid_indices = np.zeros(len(groups), dtype=np.bool_)
     for index in np.arange(len(groups)):
         if _is_group_in_mask(groups[index], mask):
@@ -120,10 +113,10 @@ def _flag_groups_where_mask(n_pixels, groups, mask):
     return valid_indices
 
 
-def get_valid_groups(n_pixels, all_groups, mask):
+def get_valid_groups(all_groups, mask):
     filtered_groups = {}
     for nfold, groups in all_groups.items():
-        valid_indices = _flag_groups_where_mask(n_pixels, groups, mask)
+        valid_indices = _flag_groups_where_mask(groups, mask)
         filtered_groups[nfold] = groups[valid_indices]
     return filtered_groups
 
@@ -132,7 +125,10 @@ def dilate_matrix(mask, matrix):
     return np.dot(matrix, mask)
 
 
-class TimeNextNeighborCleaning:
+MULTIPLICITY = {"2nn": 2, "3nn": 3, "4nn": 4, "2+1": 3}
+
+
+class TimeNextNeighborCleaning(ImageCleaner):
     """
     Class to perform the time next-neighbor cleaning defined in
     https://arxiv.org/pdf/1307.4939.pdf . During the cleaning procedure, it is
@@ -145,11 +141,114 @@ class TimeNextNeighborCleaning:
     (i.e. images without Cherenkov signal but pure night sky background).
     """
 
-    def __init__(self):
-        self.IPR_dict = None
-        self._multiplicity_dict = {"2nn": 2, "3nn": 3, "4nn": 4, "2+1": 3}
+    fake_probability = FloatTelescopeParameter(
+        default_value=0.01, help="False image error rate"
+    ).tag(config=True)
 
-    def fill_individual_pixel_rate(self, tel_id, image, trace_length, charge_steps):
+    apply_pre_threshold = BoolTelescopeParameter(
+        default_value=False, help="If False, skip runtime optimisation."
+    ).tag(config=True)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.IPR_dict = {}
+        self._ipr_interpolators = {}
+
+    def __call__(
+        self, tel_id: int, image: np.ndarray, arrival_times: np.ndarray = None
+    ) -> np.ndarray:
+        r"""
+        Main function of time next neighbor cleaning developed by M. Shayduk.
+        See https://arxiv.org/pdf/1307.4939.pdf.
+        Search for 2nn, 3nn, 4nn and 2+1 neighbors group with a minimum charge
+        and small difference in arrival time. For each potential combination of
+        pixels, the minimum charge and the maximum time difference are
+        considered for checking the validity with the cut in the charge-time
+        space.
+
+        Additionally a pre-cut on the charge can be applied. The strength of
+        this cut is specified by the factor. The cut is selected by evaluating
+        the Q-dT cut at time difference of :math:`factor \times sampling time`
+
+        Parameters
+        ----------
+        tel_id : int
+            telescope_id
+        image : numpy.ndarray
+            pixel values
+        arrival_times : numpy.ndarray
+            arrival time in number of samples
+        fake_prob : float
+            false positive rate to return
+        waveform_duration : astropy.units.Quantity
+            total sampling duration
+
+        Returns
+        -------
+        survived_pixels : numpy.ndarray
+            mask with pixels that survived the image cleaning
+        """
+        camera = self.subarray.tel[tel_id].camera
+        geometry = camera.geometry
+        survived_pixels = np.zeros(geometry.n_pixels, bool)
+        n_samples = self.IPR_dict[tel_id]["n_samples"]
+        sample_time = 1 / camera.readout.sampling_rate
+        waveform_duration = n_samples * sample_time
+
+        for nfold in ["2nn", "3nn", "4nn"]:
+
+            # determine the accidental rate from fake proability
+            accidental_rate = self.fake_probability.tel[tel_id] / (waveform_duration * MULTIPLICITY[nfold])
+
+            if self.apply_pre_threshold.tel[tel_id] == False:
+                candidates = None
+            else:
+                pre_threshold = self.pre_threshold_from_sample_time(
+                    tel_id, nfold, accidental_rate, sample_time
+                )
+                candidates = image > pre_threshold
+                if not candidates.any():
+                    continue
+
+            # Calculate the possible combinations form the candidates that
+            # passed the pre-threshold.
+            combinations = self.get_combinations(geometry, nfold, candidates)
+            if len(combinations) == 0:
+                continue
+            # It can be that all pixels of a found combination already passed
+            # the cuts fo a different neighbor group. Those don't have to be
+            # double checked and are therefore removed. This improves a little
+            # bit the performance for large images.
+
+            # Get the charges and times for all combinations. For the charge
+            # the minimum value of this group is considered while the time
+            # time difference is the maximum in this group. With this
+            # definitions the cuts applied should be more conservative.
+            combination_image = image[combinations]
+            combination_times = arrival_times[combinations]
+
+            min_charge = np.min(combination_image, axis=1)
+            min_time = np.min(combination_times, axis=1)
+            max_time = np.max(combination_times, axis=1)
+            time_diff = max_time - min_time
+
+            # Apply the cut in the time and charge parameter space to check
+            # which group of pixels are valid. The pixels can appear in
+            # multiple groups.
+            valid_groups = self.cut_time_charge(
+                tel_id=tel_id,
+                min_charge=min_charge,
+                time_difference=time_diff,
+                accidental_rate=accidental_rate,
+                nfold=nfold,
+            )
+            valid_pixels = np.unique(combinations[valid_groups])
+            survived_pixels[valid_pixels] = True
+
+        return survived_pixels
+
+    def fill_individual_pixel_rate(self, tel_id, image, n_samples, charge_steps):
         """
         Count the number of pixels in images about a given charge threshold
         and fill dictionary with individual pixel noise rate (IPR).
@@ -175,17 +274,21 @@ class TimeNextNeighborCleaning:
                 "npix": np.zeros(charge_steps.shape[0]),
                 "rate": np.zeros(charge_steps.shape[0]),
                 "rate_err": np.zeros(charge_steps.shape[0]),
+                "n_samples": n_samples,
             }
 
         # count number of pixels
         charge_steps = np.append(charge_steps, np.inf)
         hist, _ = np.histogram(image, charge_steps)
-        self.IPR_dict[tel_id]["counter"] += len(image)
+        self.IPR_dict[tel_id]["counter"] += hist.sum()
         self.IPR_dict[tel_id]["charge"] = charge_steps[:-1]
         self.IPR_dict[tel_id]["npix"] += np.cumsum(hist[::-1])[::-1]
 
         # convert count of number of pixels above threshold into rate
-        sample_to_hz = (1 / (trace_length * self.IPR_dict[tel_id]["counter"])).to("Hz")
+        sampling_rate = self.subarray.tel[tel_id].camera.readout.sampling_rate
+        waveform_duration = n_samples / sampling_rate
+        sample_to_hz = (1 / (waveform_duration * self.IPR_dict[tel_id]["counter"])).to("Hz")
+
         self.IPR_dict[tel_id]["rate"] = self.IPR_dict[tel_id]["npix"] * sample_to_hz
         self.IPR_dict[tel_id]["rate_err"] = (
             np.sqrt(self.IPR_dict[tel_id]["npix"]) * sample_to_hz
@@ -211,17 +314,13 @@ class TimeNextNeighborCleaning:
         for event in tqdm(source):
             if event.trigger.event_type != EventType.SKY_PEDESTAL:
                 continue
+
             calibrator(event)
             for tel_id, dl1 in event.dl1.tel.items():
-                geometry = source.subarray.tel[tel_id].camera.geometry
                 image = dl1.image
 
                 n_samples = event.r1.tel[tel_id].waveform.shape[-1]
-                sum_time = (
-                    n_samples / source.subarray.tel[tel_id].camera.readout.sampling_rate
-                )
-
-                self.fill_individual_pixel_rate(tel_id, image, sum_time, charge_steps)
+                self.fill_individual_pixel_rate(tel_id, image, n_samples, charge_steps)
 
     @lru_cache()
     def combfactor_from_geometry(self, geometry, nfold=None, calculate=False):
@@ -256,7 +355,7 @@ class TimeNextNeighborCleaning:
         comb_factor = self.get_combinations(geometry, nfold)
         return len(comb_factor)
 
-    def get_time_coincidence(self, geometry, charge, tel_id, nfold, accidental_rate):
+    def get_time_coincidence(self, tel_id, min_charge, nfold, accidental_rate):
         """
         Get the time coincidence for a given charge (equation 2 of
         https://arxiv.org/pdf/1307.4939.pdf). The cut on the time coincidence
@@ -281,26 +380,29 @@ class TimeNextNeighborCleaning:
         if tel_id not in self.IPR_dict:
             raise RuntimeError(f"No IPR for tel_id {tel_id}")
 
-        ipr_graph = interp1d(
-            self.IPR_dict[tel_id]["charge"],
-            self.IPR_dict[tel_id]["rate"],
-            "linear",
-            fill_value="extrapolate",
-        )
-
-        value_ipr = ipr_graph(charge)
-        cfactor = self.combfactor_from_geometry(geometry, nfold)
-        time_coincidence = np.exp(
-            (1 / (self._multiplicity_dict[nfold] - 1))
-            * np.log(
-                accidental_rate.to_value(u.Hz)
-                / (cfactor * value_ipr ** self._multiplicity_dict[nfold])
+        if tel_id not in self._ipr_interpolators:
+            self._ipr_interpolators[tel_id] = interp1d(
+                self.IPR_dict[tel_id]["charge"],
+                self.IPR_dict[tel_id]["rate"].to_value(u.Hz),
+                "linear",
+                fill_value="extrapolate",
             )
+
+        ipr = self._ipr_interpolators[tel_id](min_charge)
+
+        multiplicity = MULTIPLICITY[nfold]
+        cfactor = self.combfactor_from_geometry(
+            geometry=self.subarray.tel[tel_id].camera.geometry,
+            nfold=nfold,
         )
-        return u.Quantity(time_coincidence * 1e9, u.ns)
+        time_coincidence = np.exp(
+            (1 / (multiplicity - 1))
+            * np.log(accidental_rate.to_value(u.Hz) / (cfactor * ipr ** multiplicity))
+        )
+        return time_coincidence * 1e9
 
     def cut_time_charge(
-        self, geometry, charge, tel_id, time_difference, accidental_rate, nfold
+        self, tel_id, min_charge, time_difference, accidental_rate, nfold
     ):
         """
         Apply cut in time difference and charge parameter space.
@@ -323,15 +425,13 @@ class TimeNextNeighborCleaning:
         """
 
         time_coincidence = self.get_time_coincidence(
-            geometry, charge, tel_id, nfold, accidental_rate
+            tel_id, min_charge, nfold, accidental_rate
         )
-        # self.IPR_dict[tel_id]["dt"] = time_coincidence
-        valid_pixels = time_difference < time_coincidence
+        return time_difference < time_coincidence
 
-        return valid_pixels
-
+    @lru_cache(maxsize=1000)
     def pre_threshold_from_sample_time(
-        self, geometry, tel_id, nfold, accidental_rate, sample_time
+        self, tel_id, nfold, accidental_rate, sample_time
     ):
         """
         Get the pre threshold from the sampling time. The charge of all pixels
@@ -355,83 +455,14 @@ class TimeNextNeighborCleaning:
             Charge of pixels with rate below threshold
 
         """
-        charges = np.linspace(-10, 20, 1000)
+        min_charge = np.arange(0, 20, 0.25)
         dt = self.get_time_coincidence(
-            geometry, charges, tel_id, nfold, accidental_rate
+            tel_id=tel_id,
+            min_charge=min_charge,
+            accidental_rate=accidental_rate,
+            nfold=nfold,
         )
-        return charges[dt > sample_time][0]
-
-    @staticmethod
-    def add_neighbors_to_combinations(combinations, neighbors):
-        """
-        For each combination in the combinations list, the neighbors specified
-        are added resulting in all possible combinations with one pixel more
-        than the input combinations.
-
-        Parameters
-        ----------
-        combinations: list, tuple, numpy.ndarray
-            input of N pairs of combinations of M pixels
-        neighbors: list
-            2d list with pixel IDs considered as neighbors of each pixel
-
-        Returns
-        -------
-        result: numpy.array
-            array with all possible combinations of M+1 pixels
-        """
-        # Convert ndarray to list as adding values is faster
-        # TODO: Is this still needed?
-        if not isinstance(combinations, list):
-            combinations = list(combinations)
-
-        """
-        result = []
-        for comb in combinations:
-            neigh = []
-            # Found that it's faster to do this in two passes: first get
-            # the list of all neighbors to comb. This can have the same pixel
-            # multiple times so later only unique are selected. This is faster
-            # than checking if this value already is in the list each time.
-            for c in comb:
-                neigh += neighbors[c]
-            neigh = np.unique(neigh)
-
-            # Add the combinations of initial combination plus the neighbors
-            # of it to the result. If the neighbor is already in the
-            # combination this one will not be considered.
-            for n in neigh:
-                if n in comb:
-                    continue
-                if type(comb) == tuple:
-                    result.append(comb + (n,))
-                elif type(comb) == list:
-                    result.append(comb + [n])
-        """
-        # Factor ~2 faster when doing when generating neighbor list on the fly.
-        result = []
-        for comb in combinations:
-            for c in comb:
-                for n in neighbors[c]:
-                    if n in comb:
-                        # make sure each pixel is only once in a combination
-                        continue
-                    # same speed but works with lists and tuples
-                    for c in comb:
-                        result.append(c)
-                    result.append(n)
-
-        # As it might happen, that a combination is added multiple times, those
-        # duplicates are removed.
-        if len(result) > 0:
-            # bring the result into the correct shape
-            result = np.reshape(result, (-1, len(combinations[0]) + 1))
-            result = np.sort(result, axis=1)
-            result = np.unique(result, axis=0)
-        else:
-            result = np.array(result)
-
-        return result
+        return min_charge[dt > sample_time.to_value(u.ns)][0]
 
     def get_combinations(self, geometry, nfold, mask=None):
         """
@@ -455,144 +486,9 @@ class TimeNextNeighborCleaning:
         """
         groups = get_pixel_groups(geometry)
         if mask is not None:
-            valid_groups = get_valid_groups(geometry.n_pixels, groups, mask)[nfold]
+            valid_groups = get_valid_groups(groups, mask)[nfold]
             return valid_groups
         return groups[nfold]
-
-    @staticmethod
-    def check_combinations(combinations, mask):
-        """
-        Check if all pixels of the combination already passed the cut. If so,
-        those don't need to be double checked for other neighbor groups
-        Faster than using numpy.all by factor ~3.
-
-        Parameters
-        ----------
-        combinations: numpy.ndarray
-            array storing the indices of the combinations.
-        mask: boolean ndarray
-        """
-        passed_pixel = mask[combinations]
-
-        all_pixels = np.zeros(len(combinations), bool)
-        for i in range(passed_pixel.shape[1]):
-            all_pixels += ~passed_pixel[:, i]
-
-        return all_pixels
-
-    def clean(
-        self,
-        tel_id,
-        geometry,
-        image,
-        arrival_times,
-        sample_time,
-        sum_time,
-        fake_prob=0.001,
-        apply_pre_threshold=False,
-    ):
-        """
-        Main function of time next neighbor cleaning developed by M. Shayduk.
-        See https://arxiv.org/pdf/1307.4939.pdf.
-        Search for 2nn, 3nn, 4nn and 2+1 neighbors group with a minimum charge
-        and small difference in arrival time. For each potential combination of
-        pixels, the minimum charge and the maximum time difference are
-        considered for checking the validity with the cut in the charge-time
-        space.
-
-        Additionally a pre-cut on the charge can be applied. The strength of
-        this cut is specified by the factor. The cut is selected by evaluating
-        the Q-dT cut at time difference of :math:`factor \times sampling time`
-
-        Parameters
-        ----------
-        geometry: ctapipe.instrument.CameraGeometry
-            Camera geometry information
-        sample_time: astropy.units.Quantity
-            timing information for each sample
-        image: numpy.ndarray
-            pixel values
-        arrival_times: numpy.ndarray
-            arrival time in number of samples
-        fake_prob: float
-            false positive rate to return
-        sum_time: astropy.units.Quantity
-            total sampling duration
-        factor: float
-
-        Returns
-        -------True
-        survived_pixels: numpy.ndarray
-            mask with pixels that survived the image cleaning
-        """
-        survived_pixels = np.zeros(geometry.n_pixels, bool)
-        # for nfold in ["4nn", "3nn", "2+1", "2nn"]:
-        for nfold in ["2nn", "3nn", "4nn", "2+1"]:
-
-            # determine the accidental rate from fake proability
-            rate_acc = fake_prob / (sum_time * self._multiplicity_dict[nfold])
-
-            if apply_pre_threshold == False:
-                candidates = None
-            else:
-                pre_threshold = self.pre_threshold_from_sample_time(
-                    geometry, tel_id, nfold, rate_acc, sample_time
-                )
-                candidates = image > pre_threshold
-                if not candidates.any():
-                    continue
-
-            # Calculate the possible combinations form the candidates that
-            # passed the pre-threshold.
-            combinations = self.get_combinations(geometry, nfold, candidates)
-            if len(combinations) < 1:
-                continue
-            # It can be that all pixels of a found combination already passed
-            # the cuts fo a different neighbor group. Those don't have to be
-            # double checked and are therefore removed. This improves a little
-            # bit the performance for large images.
-
-            ###################################
-            # checked_combinations = self.check_combinations(
-            #    combinations, survived_pixels
-            # )
-            # combinations = combinations[checked_combinations]
-
-            # Get the charges and times for all combinations. For the charge
-            # the minimum value of this group is considered while the time
-            # time difference is the maximum in this group. With this
-            # definitions the cuts applied should be more conservative.
-            combination_image = image[combinations]
-            combination_times = arrival_times[combinations]
-            min_charge = np.min(combination_image, axis=1)
-            time_diff = np.max(combination_times, axis=1) - np.min(
-                combination_times, axis=1
-            )
-            time_diff = time_diff * u.ns
-
-            # Apply the cut in the time and charge parameter space to check
-            # which group of pixels are valid. The pixels can appear in
-            # multiple groups.
-            valid_groups = self.cut_time_charge(
-                geometry, min_charge, tel_id, time_diff, rate_acc.to("Hz"), nfold
-            )
-            valid_pixels = np.unique(combinations[valid_groups])
-
-            survived_pixels[valid_pixels] = True
-
-        bound = self.boundary_search(
-            tel_id,
-            geometry,
-            survived_pixels,
-            image,
-            arrival_times,
-            sample_time,
-            sum_time,
-            nfold,
-            fake_prob=fake_prob,
-        )
-
-        return survived_pixels, bound
 
     def boundary_search(
         self,
@@ -602,7 +498,7 @@ class TimeNextNeighborCleaning:
         image,
         arrival_times,
         sample_time,
-        sum_time,
+        waveform_duration,
         nfold,
         fake_prob=0.001,
     ):
@@ -629,60 +525,30 @@ class TimeNextNeighborCleaning:
 
             # Calculate the possible combinations form the candidates that
             # passed the pre-threshold
-            for nfold in ["2nn", "3nn", "4nn", "2+1"]:
-                rate_acc = fake_prob / (sum_time * self._multiplicity_dict[nfold])
+            # for nfold in ["2nn", "3nn", "4nn", "2+1"]:
+            for nfold in ["2nn", "3nn", "4nn"]:
+                accidental_rate = fake_prob / (waveform_duration * MULTIPLICITY[nfold])
 
                 combinations = self.get_combinations(geometry, nfold, candidates)
                 if len(combinations) < 1:
                     continue
-                # checked_combinations = self.check_combinations(combinations, mask)
-                # combinations = combinations[checked_combinations]
 
-                combination_image = np.array([image])[0, combinations]
-                combination_times = np.array([arrival_times])[0, combinations]
-                time_diff = np.max(combination_times, axis=1) - np.min(
-                    combination_times, axis=1
-                )
-                time_diff = time_diff * u.ns
+                combination_image = image[combinations]
+                combination_times = arrival_times[combinations]
+
+                max_time = np.max(combination_times, axis=1)
+                min_time = np.min(combination_times, axis=1)
+                time_diff = max_time - min_time
                 min_charge = np.min(combination_image, axis=1)
                 valid_groups = self.cut_time_charge(
-                    geometry, min_charge, tel_id, time_diff, rate_acc.to("Hz"), nfold
+                    tel_id=tel_id,
+                    min_charge=min_charge,
+                    time_difference=time_diff,
+                    accidental_rate=accidental_rate,
+                    nfold=nfold,
                 )
 
                 valid_pixels = np.unique(combinations[valid_groups])
                 bound[valid_pixels] = True
 
         return bound
-
-
-class TimeNextNeighborImageCleaner(ImageCleaner):
-    """
-    Clean images using the optimised next neighbor technique. See
-    `ctapipe.image.tnn`
-    """
-
-    accidental_rate = FloatTelescopeParameter(
-        default_value=0.01, help="False image error rate"
-    ).tag(config=True)
-
-    apply_pre_threshold = BoolTelescopeParameter(
-        default_value=True, help="If False, skip runtime optimisation."
-    ).tag(config=True)
-
-    def __call__(
-        self, tel_id: int, image: np.ndarray, arrival_times: np.ndarray, samples: int
-    ) -> np.ndarray:
-        """
-        Apply time optimised cleaning. See `ImageCleaner.__call__()`
-        """
-
-        return clean(
-            tel_id=tel_id,
-            geometry=subarray.tel[tel_id].camera.geometry,
-            image=image,
-            arrival_times=arrival_times,
-            sum_time=samples / self.subarray.tel[tel_id].camera.readout.sampling_rate,
-            sample_time=1 / self.subarray.tel[tel_id].camera.readout.sampling_rate,
-            fake_prob=prob,
-            apply_pre_threshold=True,
-        )
