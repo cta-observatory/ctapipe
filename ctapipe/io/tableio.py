@@ -278,7 +278,7 @@ class ColumnTransform(metaclass=ABCMeta):
     A Transformation to be applied before serialization / after deserialization.
 
     The ``TableWriter`` will call the transform on the data to be stored and
-    ``TableReader`` will call `.inverse`` the reverse the transformation
+    ``TableReader`` will call `.inverse`` to reverse the transformation
     when a transformation is detected in the file through metadata.
 
     Transformations implement ``get_meta`` to provide the necessary metadata
@@ -291,12 +291,16 @@ class ColumnTransform(metaclass=ABCMeta):
 
     @abstractmethod
     def inverse(self, value):
-        """No inverse transform by default"""
+        """Invert the transformation applied in ``__call__``"""
         return value
 
     @abstractmethod
     def get_meta(self, colname):
-        """Empty meta by default"""
+        """Metadata to be stored in the header information of the table
+
+        Needs to fully describe the transformation so upon reading, the
+        transformation can be inverted based on this metadata.
+        """
         return {}
 
 
