@@ -594,6 +594,7 @@ class HDF5TableReader(TableReader):
                         raise IOError(
                             "Mapping of column names to container fields is not unique"
                             ", prefixes are required."
+                            f" Duplicated column: {col_name} / {field_name}"
                         )
 
                     if prefix is None:
