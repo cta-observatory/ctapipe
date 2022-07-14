@@ -42,7 +42,6 @@ docs_require = [
 
 setup(
     packages=find_packages(exclude="ctapipe._dev_version"),
-    python_requires=">=3.8",
     install_requires=[
         "astropy~=5.0",
         "bokeh~=2.0",
