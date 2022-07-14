@@ -34,9 +34,9 @@ import ctapipe
 conf = ConfigParser()
 conf.read([os.path.join(os.path.dirname(__file__), "..", "setup.cfg")])
 setup_cfg = dict(conf.items("metadata"))
+
 # If your documentation needs a minimal Sphinx version, state it here.
-#
-needs_sphinx = "1.5"
+needs_sphinx = "5.0"
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -57,10 +57,6 @@ extensions = [
 
 numpydoc_show_class_members = False
 nbsphinx_timeout = 200  # allow max 2 minutes to build each notebook
-
-
-# Add any paths that contain templates here, relative to this directory.
-templates_path = ["_templates"]
 
 
 def setup(app):
@@ -115,6 +111,11 @@ nitpick_ignore = [
     ("py:obj", "name"),
     ("py:class", "astropy.coordinates.baseframe.BaseCoordinateFrame"),
     ("py:class", "astropy.table.table.Table"),
+    ("py:class", "t.Any"),
+    ("py:class", "t.Dict"),
+    ("py:class", "t.Type"),
+    ("py:class", "t.List"),
+    ("py:class", "t.Optional"),
 ]
 
 # The suffix(es) of source filenames.
@@ -170,7 +171,7 @@ todo_include_todos = True
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "default"
+html_theme = "sphinx_rtd_theme"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -185,7 +186,7 @@ html_theme = "default"
 html_static_path = ["_static"]
 
 html_context = {
-    "css_files": ["_static/theme_overrides.css"]  # override wide tables in RTD theme
+    # "css_files": ["_static/theme_overrides.css"]  # override wide tables in RTD theme
 }
 
 
@@ -260,19 +261,3 @@ intersphinx_mapping = {
     "iminuit": ("https://iminuit.readthedocs.io/en/latest/", None),
     "traitlets": ("https://traitlets.readthedocs.io/en/stable/", None),
 }
-
-# on_rtd is whether we are on readthedocs.org
-on_rtd = os.environ.get("READTHEDOCS", None) == "True"
-
-if not on_rtd:  # only import and set the theme if we're building docs locally
-    try:
-        import sphinx_rtd_theme
-    except ImportError:
-        raise ImportError(
-            "It looks like you don't have the sphinx_rtd_theme "
-            "package installed. This documentation "
-            "uses the Read The Docs theme, so you must install this "
-            "first. For example, pip install sphinx_rtd_theme"
-        )
-    html_theme = "sphinx_rtd_theme"
-    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]

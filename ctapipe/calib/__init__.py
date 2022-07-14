@@ -2,6 +2,10 @@
 """
 Calibration
 """
-from .camera import CameraCalibrator, GainSelector
+from .camera.calibrator import CameraCalibrator
+from .camera.gainselection import GainSelector
 
-__all__ = ["CameraCalibrator", "GainSelector"]
+__all__ = [
+    "CameraCalibrator",
+    "GainSelector",
+]

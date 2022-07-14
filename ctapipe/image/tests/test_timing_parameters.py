@@ -1,8 +1,9 @@
-import numpy as np
 import astropy.units as u
+import numpy as np
 from numpy.testing import assert_allclose
-from ctapipe.instrument.camera import CameraGeometry
+
 from ctapipe.containers import CameraHillasParametersContainer
+from ctapipe.instrument import CameraGeometry
 
 
 def test_psi_0():

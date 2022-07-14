@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
-# import ah_bootstrap
-from setuptools import setup, find_packages
 import os
+
+# import ah_bootstrap
+from setuptools import find_packages, setup
 
 # Define entry points for command-line scripts
 # TODO: this shuold be automated (e.g. look for main functions and
@@ -30,7 +31,7 @@ tests_require = [
 docs_require = [
     "sphinx_rtd_theme",
     "sphinx_automodapi",
-    "sphinx~=3.5",
+    "sphinx~=5.0",
     "nbsphinx",
     "numpydoc",
     "jupyter",
@@ -62,7 +63,6 @@ setup(
         "requests",
         "setuptools_scm>=3.4",
         "importlib_resources;python_version<'3.9'",
-        "jinja2~=3.0.2",  # for sphinx 3.5, update when moving to 4.x
         "pyyaml>=5.1",
         "docutils",
     ],

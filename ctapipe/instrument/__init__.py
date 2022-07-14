@@ -1,5 +1,11 @@
 from .atmosphere import get_atmosphere_profile_functions
-from .camera import CameraDescription, CameraGeometry, CameraReadout, PixelShape
+from .camera import (
+    CameraDescription,
+    CameraGeometry,
+    CameraReadout,
+    PixelShape,
+    UnknownPixelShapeWarning,
+)
 from .guess import guess_telescope
 from .optics import FocalLengthKind, OpticsDescription
 from .subarray import SubarrayDescription, UnknownTelescopeID
@@ -16,5 +22,6 @@ __all__ = [
     "SubarrayDescription",
     "TelescopeDescription",
     "UnknownTelescopeID",
+    "UnknownPixelShapeWarning",
     "FocalLengthKind",
 ]

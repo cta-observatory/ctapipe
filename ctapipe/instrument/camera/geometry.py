@@ -2,30 +2,34 @@
 """
 Utilities for reading or working with Camera geometry files
 """
-from copy import deepcopy
 import logging
 import warnings
+from copy import deepcopy
+from enum import Enum, unique
 
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import Angle, SkyCoord
-from astropy.coordinates import BaseCoordinateFrame
+from astropy.coordinates import Angle, BaseCoordinateFrame, SkyCoord
 from astropy.table import Table
 from astropy.utils import lazyproperty
-from scipy.sparse import lil_matrix, csr_matrix
+from scipy.sparse import csr_matrix, lil_matrix
 from scipy.spatial import cKDTree
 
 from ctapipe.coordinates import CameraFrame
-from .image_conversion import (
-    unskew_hex_pixel_grid,
-    get_orthogonal_grid_edges,
-    get_orthogonal_grid_indices,
-)
 from ctapipe.utils import get_table_dataset
 from ctapipe.utils.linalg import rotation_matrix_2d
-from enum import Enum, unique
 
-__all__ = ["CameraGeometry", "UnknownPixelShapeWarning", "PixelShape"]
+from .image_conversion import (
+    get_orthogonal_grid_edges,
+    get_orthogonal_grid_indices,
+    unskew_hex_pixel_grid,
+)
+
+__all__ = [
+    "CameraGeometry",
+    "PixelShape",
+    "UnknownPixelShapeWarning",
+]
 
 logger = logging.getLogger(__name__)
 

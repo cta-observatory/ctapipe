@@ -4,7 +4,7 @@
 Camera Calibration
 ##################
 
-.. currentmodule:: ctapipe.calib.camera
+.. currentmodule:: ctapipe.calib
 
 
 ************
@@ -38,11 +38,3 @@ Reference/API
 *************
 
 .. automodapi:: ctapipe.calib.camera
-
-------------------------------
-
-.. automodapi:: ctapipe.calib.camera.calibrator
-    :no-inheritance-diagram:
-
-.. automodapi:: ctapipe.calib.camera.gainselection
-    :no-inheritance-diagram:

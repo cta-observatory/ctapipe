@@ -1,6 +1,6 @@
 import pytest
 
-from ctapipe.instrument.camera import UnknownPixelShapeWarning
+from ctapipe.instrument import UnknownPixelShapeWarning
 from ctapipe.io.simteleventsource import SimTelEventSource
 from ctapipe.utils import get_dataset_path
 

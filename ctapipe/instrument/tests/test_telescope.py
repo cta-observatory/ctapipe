@@ -1,9 +1,11 @@
 """ Tests for TelescopeDescriptions """
 import pytest
 
-from ctapipe.instrument.camera import CameraDescription
-from ctapipe.instrument.optics import OpticsDescription
-from ctapipe.instrument.telescope import TelescopeDescription
+from ctapipe.instrument import (
+    CameraDescription,
+    OpticsDescription,
+    TelescopeDescription,
+)
 
 
 def test_hash():
@@ -14,8 +16,7 @@ def test_hash():
 
     telescopes = []
     for name, type, camera in zip(names, types, cameras):
-        for i in range(3):
-
+        for _ in range(3):
             telescopes.append(
                 TelescopeDescription(
                     name=name,
@@ -31,7 +32,7 @@ def test_hash():
 
 @pytest.mark.parametrize("optics_name", ["LST", "MST"])
 def test_telescope_from_name(optics_name, camera_geometry):
-    """ Check we can construct all telescopes from their names """
+    """Check we can construct all telescopes from their names"""
     camera_name = camera_geometry.camera_name
     tel = TelescopeDescription.from_name(optics_name, camera_name)
     assert optics_name in str(tel)
