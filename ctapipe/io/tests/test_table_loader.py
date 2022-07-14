@@ -367,7 +367,16 @@ def test_read_shower_distributions(dl2_merged_file):
 
 def test_read_unavailable_telescope(dl2_shower_geometry_file):
     """Reading a telescope that is not part of the subarray of the file should fail."""
-    assert False
+    from ctapipe.io import TableLoader
+
+    with TableLoader(
+        dl2_shower_geometry_file,
+        load_dl1_parameters=False,
+        load_dl2=True,
+    ) as loader:
+        tel_id = max(loader.subarray.tel.keys()) + 1
+        with pytest.raises(ValueError):
+            loader.read_telescope_events([tel_id])
 
 
 def test_read_empty_table(dl2_shower_geometry_file):
