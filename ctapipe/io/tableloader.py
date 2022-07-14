@@ -28,6 +28,7 @@ SHOWER_TABLE = "/simulation/event/subarray/shower"
 TRUE_IMAGES_GROUP = "/simulation/event/telescope/images"
 TRUE_PARAMETERS_GROUP = "/simulation/event/telescope/parameters"
 TRUE_IMPACT_GROUP = "/simulation/event/telescope/impact"
+SIMULATION_CONFIG_TABLE = "/configuration/simulation/run"
 
 DL2_SUBARRAY_GROUP = "/dl2/event/subarray"
 DL2_TELESCOPE_GROUP = "/dl2/event/telescope"
@@ -298,6 +299,12 @@ class TableLoader(Component):
     def _add_index_if_needed(table):
         if "__index__" not in table.colnames:
             table["__index__"] = np.arange(len(table))
+
+    def read_simulation_configuration(self):
+        """
+        Read the simulation configuration table
+        """
+        return read_table(self.h5file, SIMULATION_CONFIG_TABLE)
 
     def read_subarray_events(self, start=None, stop=None, keep_order=True):
         """Read subarray-based event information.
