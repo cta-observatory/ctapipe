@@ -4,18 +4,11 @@ Data Quality selection
 
 __all__ = ["QualityQuery", "QualityCriteriaError"]
 
-import astropy.units as u  # for use in selection functions
 import numpy as np  # for use in selection functions
 
 from .component import Component
+from .expression_engine import ExpressionEngine, _evaluate_expression
 from .traits import List
-
-# the following are what are allowed to be used
-# in selection functions (passed to eval())
-ALLOWED_GLOBALS = {"u": u, "np": np}  # astropy units  # numpy
-
-for func in ("sin", "cos", "tan", "arctan2", "log", "log10", "exp", "sqrt"):
-    ALLOWED_GLOBALS[func] = getattr(np, func)
 
 
 class QualityCriteriaError(TypeError):
@@ -46,7 +39,10 @@ class QualityQuery(Component):
         # add a selection to count all entries and make it the first one
         self.criteria_names = [n for (n, _) in self.quality_criteria]
         self.expressions = [e for (_, e) in self.quality_criteria]
-        self._compiled_expressions = []
+
+        self.expression_engine = ExpressionEngine(
+            parent=self, expressions=self.quality_criteria
+        )
         for name, e in self.quality_criteria:
             if "lambda" in e:
                 raise ValueError(
@@ -55,12 +51,7 @@ class QualityQuery(Component):
                     " E.g. instead of `lambda p: p.hillas.width.value > 0`"
                     " use `parameters.hillas.width.value > 0`"
                 )
-            try:
-                self._compiled_expressions.append(compile(e, __name__, mode="eval"))
-            except Exception:
-                raise QualityCriteriaError(
-                    f"Error compiling expression '{e}' for check {name}"
-                )
+        self._compiled_expressions = self.expression_engine()
 
         # arrays for recording overall statistics, add one for total count
         n = len(self.quality_criteria) + 1
@@ -149,11 +140,3 @@ class QualityQuery(Component):
         self._counts += np.count_nonzero(result, axis=1)
         self._cumulative_counts += np.count_nonzero(np.cumprod(result, axis=0), axis=1)
         return np.all(result, axis=0)
-
-
-def _evaluate_expression(expressions, result, locals):
-    try:
-        for i, expression in enumerate(expressions, start=1):
-            result[i] = eval(expression, ALLOWED_GLOBALS, locals)
-    except Exception:
-        raise QualityCriteriaError("Error evaluating quality query")

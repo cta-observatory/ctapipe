@@ -1,9 +1,10 @@
 """ Tests of Selectors """
-import pytest
 import numpy as np
+import pytest
 from astropy.table import Table
 
-from ctapipe.core.qualityquery import QualityQuery, QualityCriteriaError
+from ctapipe.core.expression_engine import ExpressionError
+from ctapipe.core.qualityquery import QualityQuery
 from ctapipe.core.traits import List
 
 
@@ -34,7 +35,7 @@ def test_selector():
     assert (criteria3 == [True, False, False]).all()
 
     criteria4 = query(x=8)  # pass all
-    assert (criteria4 == True).all()
+    assert np.all(criteria4)
 
     tab = query.to_table()
     html = query._repr_html_()
@@ -73,7 +74,7 @@ def test_invalid_input():
         ).tag(config=True)
 
     query = ExampleQualityQuery()
-    with pytest.raises(QualityCriteriaError):
+    with pytest.raises(ExpressionError):
         query(y=5)
 
 
@@ -87,19 +88,19 @@ def test_bad_selector():
             ("smallish", "x < 10"),
         ]
     )
-    with pytest.raises(QualityCriteriaError):
+    with pytest.raises(ExpressionError):
         query(x=5)
 
     # ensure we can't run arbitrary code.
     # try to construct something that is not in the
     # ALLOWED_GLOBALS list, but which is imported in selector.py
     # and see if it works in a function
-    with pytest.raises(QualityCriteriaError):
+    with pytest.raises(ExpressionError):
         query = QualityQuery(quality_criteria=[("dangerous", "Component()")])
         query(x=10)
 
     # test we only support expressions, not statements
-    with pytest.raises(QualityCriteriaError):
+    with pytest.raises(ExpressionError):
         query = QualityQuery(
             quality_criteria=[("dangerous", "import numpy; np.array([])")]
         )
