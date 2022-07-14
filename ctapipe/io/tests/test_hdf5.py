@@ -1012,3 +1012,29 @@ def test_can_read_same_containers(tmp_path):
         assert c1.prefix == "bar"
         assert c2.value == value
         assert c2.prefix == "foo"
+
+
+def test_read_into_dict(tmp_path):
+    """Test that columns are written in the order the containers define them"""
+    path = tmp_path / "test.h5"
+
+    class Container1(Container):
+        value1 = Field(-1)
+
+    class Container2(Container):
+        value2 = Field(-1)
+
+    with HDF5TableWriter(path, mode="w") as writer:
+        for i in range(5):
+            writer.write("foo", [Container1(value1=i), Container2(value2=2 * i + 1)])
+
+    with HDF5TableReader(path) as reader:
+        generator = reader.read("/foo", {"c1": Container1, "c2": Container2})
+        for i in range(5):
+            data = next(generator)
+            assert isinstance(data, dict)
+            assert data.keys() == {"c1", "c2"}
+            assert isinstance(data["c1"], Container1)
+            assert isinstance(data["c2"], Container2)
+            assert data["c1"].value1 == i
+            assert data["c2"].value2 == 2 * i + 1

@@ -625,8 +625,9 @@ class HDF5TableReader(TableReader):
         ----------
         table_name: str
             name of table to read from
-        containers : Iterable[ctapipe.core.Container]
-            Container classes to fill
+        containers : Iterable[ctapipe.core.Container] or Dict[str, ctapipe.core.Container]
+            Container classes to fill. If given as dict, a dict will also be
+            returned with the same keys.
         prefix: bool, str or list
             Prefix that was added while writing the file.
             If None, the prefix in the file are used. This only works
@@ -637,6 +638,15 @@ class HDF5TableReader(TableReader):
             If a string is provided, it is used as prefix for all containers.
             If a list is provided, the length needs to match th number
             of containers.
+
+        Returns
+        -------
+        data : Container, List[Container] or Dict[Any, Container]
+            The data read from the file. If ``containers`` was a single container
+            class, also  a single container instance with the read data is returned.
+            If ``containers`` is an iterable of containers, a list is returned.
+            If ``containers`` is a dict, a dict with the same keys mapping to the
+            corresponding containers is returned.
         """
 
         ignore_columns = set(ignore_columns) if ignore_columns is not None else set()
@@ -650,6 +660,11 @@ class HDF5TableReader(TableReader):
         if isinstance(containers, type):
             containers = (containers,)
             return_iterable = False
+
+        keys = None
+        if isinstance(containers, dict):
+            keys = tuple(containers.keys())
+            containers = tuple(containers.values())
 
         for container in containers:
             if isinstance(container, Container):
@@ -705,7 +720,9 @@ class HDF5TableReader(TableReader):
                 container.meta = self._meta[table_name]
                 ret.append(container)
 
-            if return_iterable:
+            if keys is not None:
+                yield dict(zip(keys, ret))
+            elif return_iterable:
                 yield ret
             else:
                 yield ret[0]

@@ -323,15 +323,15 @@ class HDF5EventSource(EventSource):
             param_readers = {
                 table.name: self.reader.read(
                     f"/dl1/event/telescope/parameters/{table.name}",
-                    containers=(
-                        hillas_cls,
-                        timing_cls,
-                        LeakageContainer,
-                        ConcentrationContainer,
-                        MorphologyContainer,
-                        IntensityStatisticsContainer,
-                        PeakTimeStatisticsContainer,
-                    ),
+                    containers={
+                        "hillas": hillas_cls,
+                        "timing": timing_cls,
+                        "leakage": LeakageContainer,
+                        "concentration": ConcentrationContainer,
+                        "morphology": MorphologyContainer,
+                        "intensity_statistics": IntensityStatisticsContainer,
+                        "peak_time_statistics": PeakTimeStatisticsContainer,
+                    },
                     prefixes=[
                         "hillas",
                         "timing",
@@ -348,13 +348,13 @@ class HDF5EventSource(EventSource):
                 simulated_param_readers = {
                     table.name: self.reader.read(
                         f"/simulation/event/telescope/parameters/{table.name}",
-                        containers=[
-                            hillas_cls,
-                            LeakageContainer,
-                            ConcentrationContainer,
-                            MorphologyContainer,
-                            IntensityStatisticsContainer,
-                        ],
+                        containers={
+                            "hillas": hillas_cls,
+                            "leakage": LeakageContainer,
+                            "concentration": ConcentrationContainer,
+                            "morphology": MorphologyContainer,
+                            "intensity_statistics": IntensityStatisticsContainer,
+                        },
                         prefixes=[
                             "true_hillas",
                             "true_leakage",
@@ -537,15 +537,8 @@ class HDF5EventSource(EventSource):
                     # Is there a smarter way to unpack this?
                     # Best would probbaly be if we could directly read
                     # into the ImageParametersContainer
-                    params = next(param_readers[key])
                     data.dl1.tel[tel_id].parameters = ImageParametersContainer(
-                        hillas=params[0],
-                        timing=params[1],
-                        leakage=params[2],
-                        concentration=params[3],
-                        morphology=params[4],
-                        intensity_statistics=params[5],
-                        peak_time_statistics=params[6],
+                        **next(param_readers[key])
                     )
                     if self.has_simulated_dl1:
                         if f"tel_{tel_id:03d}" not in simulated_param_readers:
@@ -555,15 +548,8 @@ class HDF5EventSource(EventSource):
                                 "present at the reconstructed parameters table."
                             )
                             continue
-                        simulated_params = next(
-                            simulated_param_readers[f"tel_{tel_id:03d}"]
-                        )
                         simulated.true_parameters = ImageParametersContainer(
-                            hillas=simulated_params[0],
-                            leakage=simulated_params[1],
-                            concentration=simulated_params[2],
-                            morphology=simulated_params[3],
-                            intensity_statistics=simulated_params[4],
+                            **next(simulated_param_readers[f"tel_{tel_id:03d}"]),
                         )
 
                 for kind, algorithms in dl2_tel_readers.items():
