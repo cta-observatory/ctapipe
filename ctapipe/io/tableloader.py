@@ -29,6 +29,7 @@ TRUE_IMAGES_GROUP = "/simulation/event/telescope/images"
 TRUE_PARAMETERS_GROUP = "/simulation/event/telescope/parameters"
 TRUE_IMPACT_GROUP = "/simulation/event/telescope/impact"
 SIMULATION_CONFIG_TABLE = "/configuration/simulation/run"
+SHOWER_DISTRIBUTION_TABLE = "/simulation/service/shower_distribution"
 
 DL2_SUBARRAY_GROUP = "/dl2/event/subarray"
 DL2_TELESCOPE_GROUP = "/dl2/event/telescope"
@@ -305,6 +306,12 @@ class TableLoader(Component):
         Read the simulation configuration table
         """
         return read_table(self.h5file, SIMULATION_CONFIG_TABLE)
+
+    def read_shower_distribution(self):
+        """
+        Read the simulated shower distribution histograms
+        """
+        return read_table(self.h5file, SHOWER_DISTRIBUTION_TABLE)
 
     def read_subarray_events(self, start=None, stop=None, keep_order=True):
         """Read subarray-based event information.

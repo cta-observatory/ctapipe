@@ -352,3 +352,14 @@ def test_read_simulation_config(dl2_merged_file):
         assert len(runs) == 2
         assert np.all(runs["obs_id"] == [4, 1])
         assert u.allclose(runs["energy_range_min"].quantity, [0.004, 0.003] * u.TeV)
+
+
+def test_read_shower_distributions(dl2_merged_file):
+    from ctapipe.io import TableLoader
+
+    with TableLoader(dl2_merged_file) as table_loader:
+        histograms = table_loader.read_shower_distribution()
+        assert len(histograms) == 2
+        assert np.all(histograms["obs_id"] == [4, 1])
+        assert np.all(histograms["num_entries"] == [2000, 1000])
+        assert np.all(histograms["histogram"].sum(axis=(1, 2)) == [2000, 1000])
