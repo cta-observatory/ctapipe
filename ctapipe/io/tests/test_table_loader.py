@@ -1,8 +1,10 @@
+import astropy.units as u
+import numpy as np
 import pytest
 import tables
-import numpy as np
 from astropy.table import Table
 
+from ctapipe.instrument.subarray import SubarrayDescription
 from ctapipe.io.astropy_helpers import read_table
 
 
@@ -61,9 +63,6 @@ def test_check_order():
         Table({"obs_id": [1, 1, 3, 2, 2], "event_id": [1, 2, 1, 1, 2]}),
         Table({"obs_id": [1, 1, 3, 2, 2], "event_id": [1, 2, 1, 1, 2]}),
     )
-
-
-from ctapipe.instrument.subarray import SubarrayDescription
 
 
 @pytest.fixture(params=["by_type", "by_id"])
@@ -343,3 +342,24 @@ def test_chunked(dl2_shower_geometry_file):
             assert n_events_by_type == len(tel_events)
 
     assert n_read == n_events
+
+
+def test_read_simulation_config(dl2_merged_file):
+    from ctapipe.io import TableLoader
+
+    with TableLoader(dl2_merged_file) as table_loader:
+        runs = table_loader.read_simulation_configuration()
+        assert len(runs) == 2
+        assert np.all(runs["obs_id"] == [4, 1])
+        assert u.allclose(runs["energy_range_min"].quantity, [0.004, 0.003] * u.TeV)
+
+
+def test_read_shower_distributions(dl2_merged_file):
+    from ctapipe.io import TableLoader
+
+    with TableLoader(dl2_merged_file) as table_loader:
+        histograms = table_loader.read_shower_distribution()
+        assert len(histograms) == 2
+        assert np.all(histograms["obs_id"] == [4, 1])
+        assert np.all(histograms["num_entries"] == [2000, 1000])
+        assert np.all(histograms["histogram"].sum(axis=(1, 2)) == [2000, 1000])
