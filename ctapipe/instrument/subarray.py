@@ -449,6 +449,10 @@ class SubarrayDescription:
 
         for telescope in telescopes:
             if isinstance(telescope, (int, np.integer)):
+                if telescope not in self.tel_ids:
+                    raise ValueError(
+                        f"Telescope with tel_id={telescope} not in subarray."
+                    )
                 ids.add(telescope)
 
             if isinstance(telescope, str) and telescope not in valid_tel_types:
