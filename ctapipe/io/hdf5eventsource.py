@@ -187,14 +187,6 @@ class HDF5EventSource(EventSource):
 
         with tables.open_file(path) as f:
             metadata = f.root._v_attrs
-            if "CTA PRODUCT DATA LEVELS" not in metadata._v_attrnames:
-                return False
-
-            datalevels = set(metadata["CTA PRODUCT DATA LEVELS"].split(","))
-            if not datalevels.intersection(
-                ("R1", "DL1_IMAGES", "DL1_PARAMETERS", "DL2")
-            ):
-                return False
 
             if "CTA PRODUCT DATA MODEL VERSION" not in metadata._v_attrnames:
                 return False
@@ -202,9 +194,21 @@ class HDF5EventSource(EventSource):
             version = metadata["CTA PRODUCT DATA MODEL VERSION"]
             if version not in COMPATIBLE_DATA_MODEL_VERSIONS:
                 logger.error(
-                    f"File is DL1 file but has unsupported version {version}"
-                    f", supported versions are {COMPATIBLE_DATA_MODEL_VERSIONS}"
+                    "File is a ctapipe HDF5 file but has unsupported data model"
+                    f" version {version}"
+                    f", supported versions are {COMPATIBLE_DATA_MODEL_VERSIONS}."
+                    " You may need to downgrade ctapipe (if the file version is older)"
+                    ", update ctapipe (if the file version is newer) or"
+                    " reproduce the file with your current ctapipe version."
                 )
+                return False
+
+            if "CTA PRODUCT DATA LEVELS" not in metadata._v_attrnames:
+                return False
+
+            # we can now read both R1 and DL1
+            datalevels = set(metadata["CTA PRODUCT DATA LEVELS"].split(","))
+            if not datalevels.intersection(("R1", "DL1_IMAGES", "DL1_PARAMETERS")):
                 return False
 
         return True
