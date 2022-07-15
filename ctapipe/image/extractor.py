@@ -25,6 +25,10 @@ from functools import lru_cache
 from typing import Tuple
 
 import numpy as np
+from numba import float32, float64, guvectorize, int64, njit, prange
+from scipy.ndimage import convolve1d
+from traitlets import Bool, Int
+
 from ctapipe.containers import DL1CameraContainer
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
@@ -32,9 +36,6 @@ from ctapipe.core.traits import (
     FloatTelescopeParameter,
     IntTelescopeParameter,
 )
-from numba import float32, float64, guvectorize, int64, njit, prange
-from scipy.ndimage import convolve1d
-from traitlets import Bool, Int
 
 from . import brightest_island, number_of_islands, tailcuts_clean
 from .hillas import camera_to_shower_coordinates, hillas_parameters
@@ -195,7 +196,9 @@ def extract_sliding_window(waveforms, width, sampling_rate_ghz, sum_, peak_time)
 
 
 @njit(cache=True)
-def neighbor_average_maximum(waveforms, neighbors_indices, neighbors_indptr, lwt):
+def neighbor_average_maximum(
+    waveforms, neighbors_indices, neighbors_indptr, local_weight, broken_pixels
+):
     """
     Obtain the average waveform built from the neighbors of each pixel
 
@@ -210,9 +213,12 @@ def neighbor_average_maximum(waveforms, neighbors_indices, neighbors_indptr, lwt
     neighbors_indptr : ndarray
         indptr of a scipy csr sparse matrix of neighbors, i.e.
         ``ctapipe.instrument.CameraGeometry.neighbor_matrix_sparse.indptr``.
-    lwt: int
+    local_weight : int
         Weight of the local pixel (0: peak from neighbors only,
         1: local pixel counts as much as any neighbor)
+    broken_pixels : ndarray
+        Mask of broken pixels. Broken pixels are ignored in the sum over the
+        neighbors.
 
     Returns
     -------
@@ -226,15 +232,18 @@ def neighbor_average_maximum(waveforms, neighbors_indices, neighbors_indptr, lwt
     indptr = neighbors_indptr
     indices = neighbors_indices
 
-    # initialize to waveforms weighted with lwt
+    # initialize to waveforms weighted with local_weight
     # so the value of the pixel itself is already taken into account
     peak_pos = np.empty(n_pixels, dtype=np.int64)
 
     for pixel in prange(n_pixels):
-        average = waveforms[pixel] * lwt
+        average = waveforms[pixel] * local_weight
         neighbors = indices[indptr[pixel] : indptr[pixel + 1]]
 
         for neighbor in neighbors:
+            if broken_pixels[neighbor]:
+                continue
+
             average += waveforms[neighbor]
 
         peak_pos[pixel] = np.argmax(average)
@@ -368,7 +377,9 @@ class ImageExtractor(TelescopeComponent):
         }
 
     @abstractmethod
-    def __call__(self, waveforms, telid, selected_gain_channel) -> DL1CameraContainer:
+    def __call__(
+        self, waveforms, telid, selected_gain_channel, broken_pixels
+    ) -> DL1CameraContainer:
         """
         Call the relevant functions to fully extract the charge and time
         for the particular extractor.
@@ -398,7 +409,9 @@ class FullWaveformSum(ImageExtractor):
     Extractor that sums the entire waveform.
     """
 
-    def __call__(self, waveforms, telid, selected_gain_channel):
+    def __call__(
+        self, waveforms, telid, selected_gain_channel, broken_pixels
+    ) -> DL1CameraContainer:
         charge, peak_time = extract_around_peak(
             waveforms, 0, waveforms.shape[-1], 0, self.sampling_rate_ghz[telid]
         )
@@ -455,7 +468,9 @@ class FixedWindowSum(ImageExtractor):
             self.window_shift.tel[telid],
         )
 
-    def __call__(self, waveforms, telid, selected_gain_channel):
+    def __call__(
+        self, waveforms, telid, selected_gain_channel, broken_pixels
+    ) -> DL1CameraContainer:
         charge, peak_time = extract_around_peak(
             waveforms,
             self.peak_index.tel[telid],
@@ -532,13 +547,17 @@ class GlobalPeakWindowSum(ImageExtractor):
             self.window_shift.tel[telid],
         )
 
-    def __call__(self, waveforms, telid, selected_gain_channel):
+    def __call__(
+        self, waveforms, telid, selected_gain_channel, broken_pixels
+    ) -> DL1CameraContainer:
         if self.pixel_fraction.tel[telid] == 1.0:
             # average over pixels then argmax over samples
-            peak_index = waveforms.mean(axis=-2).argmax()
+            peak_index = waveforms[~broken_pixels].mean(axis=-2).argmax()
         else:
             n_pixels = int(self.pixel_fraction.tel[telid] * waveforms.shape[-2])
-            brightest = np.argsort(waveforms.max(axis=-1))[..., -n_pixels:]
+            brightest = np.argsort(waveforms.max(axis=-1))[~broken_pixels][
+                ..., -n_pixels:
+            ]
 
             # average over brightest pixels then argmax over samples
             peak_index = waveforms[brightest].mean(axis=-2).argmax()
@@ -604,7 +623,9 @@ class LocalPeakWindowSum(ImageExtractor):
             self.window_shift.tel[telid],
         )
 
-    def __call__(self, waveforms, telid, selected_gain_channel):
+    def __call__(
+        self, waveforms, telid, selected_gain_channel, broken_pixels
+    ) -> DL1CameraContainer:
         peak_index = waveforms.argmax(axis=-1).astype(np.int64)
         charge, peak_time = extract_around_peak(
             waveforms,
@@ -684,7 +705,9 @@ class SlidingWindowMaxSum(ImageExtractor):
 
         return correction
 
-    def __call__(self, waveforms, telid, selected_gain_channel):
+    def __call__(
+        self, waveforms, telid, selected_gain_channel, broken_pixels
+    ) -> DL1CameraContainer:
         charge, peak_time = extract_sliding_window(
             waveforms, self.window_width.tel[telid], self.sampling_rate_ghz[telid]
         )
@@ -709,7 +732,7 @@ class NeighborPeakWindowSum(ImageExtractor):
         "from the peak_index (peak_index - shift)",
     ).tag(config=True)
 
-    lwt = IntTelescopeParameter(
+    local_weight = IntTelescopeParameter(
         default_value=0,
         help="Weight of the local pixel (0: peak from neighbors only, "
         "1: local pixel counts as much as any neighbor)",
@@ -748,13 +771,16 @@ class NeighborPeakWindowSum(ImageExtractor):
             self.window_shift.tel[telid],
         )
 
-    def __call__(self, waveforms, telid, selected_gain_channel):
+    def __call__(
+        self, waveforms, telid, selected_gain_channel, broken_pixels
+    ) -> DL1CameraContainer:
         neighbors = self.subarray.tel[telid].camera.geometry.neighbor_matrix_sparse
         peak_index = neighbor_average_maximum(
             waveforms,
             neighbors_indices=neighbors.indices,
             neighbors_indptr=neighbors.indptr,
-            lwt=self.lwt.tel[telid],
+            local_weight=self.local_weight.tel[telid],
+            broken_pixels=broken_pixels,
         )
         charge, peak_time = extract_around_peak(
             waveforms,
@@ -779,11 +805,15 @@ class BaselineSubtractedNeighborPeakWindowSum(NeighborPeakWindowSum):
     )
     baseline_end = Int(10, help="End sample for baseline estimation").tag(config=True)
 
-    def __call__(self, waveforms, telid, selected_gain_channel):
+    def __call__(
+        self, waveforms, telid, selected_gain_channel, broken_pixels
+    ) -> DL1CameraContainer:
         baseline_corrected = subtract_baseline(
             waveforms, self.baseline_start, self.baseline_end
         )
-        return super().__call__(baseline_corrected, telid, selected_gain_channel)
+        return super().__call__(
+            baseline_corrected, telid, selected_gain_channel, broken_pixels
+        )
 
 
 class TwoPassWindowSum(ImageExtractor):
@@ -1201,7 +1231,9 @@ class TwoPassWindowSum(ImageExtractor):
 
         return charge_2ndpass, pulse_time_2ndpass, True
 
-    def __call__(self, waveforms, telid, selected_gain_channel):
+    def __call__(
+        self, waveforms, telid, selected_gain_channel, broken_pixels
+    ) -> DL1CameraContainer:
         charge1, pulse_time1, correction1 = self._apply_first_pass(waveforms, telid)
 
         # FIXME: properly make sure that output is 32Bit instead of downcasting here

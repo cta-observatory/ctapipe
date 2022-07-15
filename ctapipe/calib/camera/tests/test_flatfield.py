@@ -8,6 +8,7 @@ from traitlets.config.loader import Config
 from ctapipe.calib.camera.flatfield import FlasherFlatFieldCalculator
 from ctapipe.containers import ArrayEventContainer
 from ctapipe.instrument import SubarrayDescription
+from traitlets.config.loader import Config
 
 
 def test_flasherflatfieldcalculator(prod5_sst):
@@ -52,6 +53,7 @@ def test_flasherflatfieldcalculator(prod5_sst):
         (n_gain, n_pixels), dtype=bool
     )
     data.r1.tel[tel_id].waveform = np.zeros((n_gain, n_pixels, 40))
+    data.r1.tel[tel_id].selected_gain_channel = np.zeros(n_pixels, dtype=np.uint8)
 
     # flat-field signal put == delta function of height ff_level at sample 20
     data.r1.tel[tel_id].waveform[:, :, 20] = ff_level

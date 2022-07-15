@@ -181,16 +181,23 @@ class CameraCalibrator(TelescopeComponent):
 
     def _calibrate_dl1(self, event, tel_id):
         waveforms = event.dl0.tel[tel_id].waveform
-        selected_gain_channel = event.dl0.tel[tel_id].selected_gain_channel
-        dl1_calib = event.calibration.tel[tel_id].dl1
-
         if self._check_dl0_empty(waveforms):
             return
+
+        n_pixels, n_samples = waveforms.shape
+
+        selected_gain_channel = event.dl0.tel[tel_id].selected_gain_channel
+        broken_pixels = _get_broken_pixels(
+            n_pixels,
+            event.mon.tel[tel_id].pixel_status,
+            selected_gain_channel,
+        )
+
+        dl1_calib = event.calibration.tel[tel_id].dl1
 
         selected_gain_channel = event.r1.tel[tel_id].selected_gain_channel
         time_shift = event.calibration.tel[tel_id].dl1.time_shift
         readout = self.subarray.tel[tel_id].camera.readout
-        n_pixels, n_samples = waveforms.shape
 
         # subtract any remaining pedestal before extraction
         if dl1_calib.pedestal_offset is not None:
@@ -226,7 +233,10 @@ class CameraCalibrator(TelescopeComponent):
 
             extractor = self.image_extractors[self.image_extractor_type.tel[tel_id]]
             dl1 = extractor(
-                waveforms, telid=tel_id, selected_gain_channel=selected_gain_channel
+                waveforms,
+                telid=tel_id,
+                selected_gain_channel=selected_gain_channel,
+                broken_pixels=broken_pixels,
             )
 
             # correct non-integer remainder of the shift if given
@@ -237,12 +247,6 @@ class CameraCalibrator(TelescopeComponent):
         dl1.image *= dl1_calib.relative_factor / dl1_calib.absolute_factor
 
         # interpolate broken pixels
-        broken_pixels = _get_broken_pixels(
-            n_pixels,
-            event.mon.tel[tel_id].pixel_status,
-            selected_gain_channel,
-        )
-
         dl1.image, dl1.peak_time = interpolate_pixels(
             dl1.image,
             dl1.peak_time,

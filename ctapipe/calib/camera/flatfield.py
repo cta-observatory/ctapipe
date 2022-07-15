@@ -6,10 +6,13 @@ from abc import abstractmethod
 
 import numpy as np
 from astropy import units as u
+
 from ctapipe.containers import DL1CameraContainer
 from ctapipe.core import Component
 from ctapipe.core.traits import Int, List, Unicode
 from ctapipe.image.extractor import ImageExtractor
+
+from .calibrator import _get_broken_pixels
 
 __all__ = ["FlatFieldCalculator", "FlasherFlatFieldCalculator"]
 
@@ -181,10 +184,16 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
 
         waveforms = event.r1.tel[self.tel_id].waveform
         selected_gain_channel = event.r1.tel[self.tel_id].selected_gain_channel
-
+        broken_pixels = _get_broken_pixels(
+            n_pixels=waveforms.shape[-2],
+            pixel_status=event.mon.tel[self.tel_id].pixel_status,
+            selected_gain_channel=selected_gain_channel,
+        )
         # Extract charge and time
         if self.extractor:
-            return self.extractor(waveforms, self.tel_id, selected_gain_channel)
+            return self.extractor(
+                waveforms, self.tel_id, selected_gain_channel, broken_pixels
+            )
         else:
             return DL1CameraContainer(image=0, peak_pos=0, is_valid=False)
 
