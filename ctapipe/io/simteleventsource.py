@@ -15,6 +15,7 @@ from ..containers import (
     ArrayEventContainer,
     EventIndexContainer,
     EventType,
+    PixelStatusContainer,
     PointingContainer,
     R0CameraContainer,
     R1CameraContainer,
@@ -505,6 +506,7 @@ class SimTelEventSource(EventSource):
                 mon = data.mon.tel[tel_id]
                 mon.calibration.dc_to_pe = dc_to_pe
                 mon.calibration.pedestal_per_sample = pedestal
+                mon.pixel_status = self._get_pixels_status(tel_id)
 
                 r1_waveform, selected_gain_channel = apply_simtel_r1_calibration(
                     adc_samples,
@@ -527,6 +529,22 @@ class SimTelEventSource(EventSource):
                 dl1_calib.time_shift = time_calib[selected_gain_channel, pix_index]
 
             yield data
+
+    def _get_pixels_status(self, tel_id):
+        tel = self.file_.telescope_descriptions[tel_id]
+        n_pixels = tel["camera_organization"]["n_pixels"]
+        n_gains = tel["camera_organization"]["n_gains"]
+
+        tel = self.file_.telescope_descriptions[tel_id]
+        disabled_ids = tel["disabled_pixels"]["HV_disabled"]
+        disabled_pixels = np.zeros((n_gains, n_pixels), dtype=bool)
+        disabled_pixels[:, disabled_ids] = True
+
+        return PixelStatusContainer(
+            hardware_failing_pixels=disabled_pixels,
+            pedestal_failing_pixels=disabled_pixels.copy(),
+            flatfield_failing_pixels=disabled_pixels.copy(),
+        )
 
     @staticmethod
     def _fill_event_pointing(tracking_position):
