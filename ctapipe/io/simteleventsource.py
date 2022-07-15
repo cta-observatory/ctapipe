@@ -100,8 +100,12 @@ def _location_from_meta(global_meta):
     )
 
 
-def build_camera(cam_settings, pixel_settings, telescope, frame):
-    pixel_shape = cam_settings["pixel_shape"][0]
+def build_camera(simtel_telescope, telescope, frame):
+    camera_settings = simtel_telescope["camera_settings"]
+    pixel_settings = simtel_telescope["pixel_settings"]
+    camera_organization = simtel_telescope["camera_organization"]
+
+    pixel_shape = camera_settings["pixel_shape"][0]
     try:
         pix_type, pix_rotation = CameraGeometry.simtel_shape_to_type(pixel_shape)
     except ValueError:
@@ -114,13 +118,13 @@ def build_camera(cam_settings, pixel_settings, telescope, frame):
 
     geometry = CameraGeometry(
         telescope.camera_name,
-        pix_id=np.arange(cam_settings["n_pixels"]),
-        pix_x=u.Quantity(cam_settings["pixel_x"], u.m),
-        pix_y=u.Quantity(cam_settings["pixel_y"], u.m),
-        pix_area=u.Quantity(cam_settings["pixel_area"], u.m**2),
+        pix_id=np.arange(camera_settings["n_pixels"]),
+        pix_x=u.Quantity(camera_settings["pixel_x"], u.m),
+        pix_y=u.Quantity(camera_settings["pixel_y"], u.m),
+        pix_area=u.Quantity(camera_settings["pixel_area"], u.m**2),
         pix_type=pix_type,
         pix_rotation=pix_rotation,
-        cam_rotation=-Angle(cam_settings["cam_rot"], u.rad),
+        cam_rotation=-Angle(camera_settings["cam_rot"], u.rad),
         apply_derotation=True,
         frame=frame,
     )
@@ -131,6 +135,9 @@ def build_camera(cam_settings, pixel_settings, telescope, frame):
         reference_pulse_sample_width=u.Quantity(
             pixel_settings["ref_step"], u.ns, dtype="float64"
         ),
+        n_channels=camera_organization["n_gains"],
+        n_pixels=camera_organization["n_pixels"],
+        n_samples=pixel_settings["sum_bins"],
     )
 
     return CameraDescription(
@@ -382,7 +389,6 @@ class SimTelEventSource(EventSource):
 
         for tel_id, telescope_description in telescope_descriptions.items():
             cam_settings = telescope_description["camera_settings"]
-            pixel_settings = telescope_description["pixel_settings"]
 
             n_pixels = cam_settings["n_pixels"]
             mirror_area = u.Quantity(cam_settings["mirror_area"], u.m**2)
@@ -442,8 +448,7 @@ class SimTelEventSource(EventSource):
                 )
 
             camera = build_camera(
-                cam_settings,
-                pixel_settings,
+                telescope_description,
                 telescope,
                 frame=CameraFrame(focal_length=focal_length),
             )
