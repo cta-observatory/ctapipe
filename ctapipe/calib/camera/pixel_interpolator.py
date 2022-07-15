@@ -1,12 +1,37 @@
+"""
+Methods to interpolate broken pixels
+"""
 import numpy as np
+
+__all__ = [
+    "interpolate_pixels",
+]
 
 
 def interpolate_pixels(image, peak_time, pixel_mask, geometry):
-    """Interpolate pixels
+    """Interpolate pixels in dl1 images and peak_times
 
     Pixels to be interpolated are replaced by the average value their neighbors.
 
     Pixels where no valid neighbors are available are filled with zeros.
+
+    Parameters
+    ----------
+    image : np.ndarray
+        Array of pixel image values
+    peak_time : np.ndarray
+        Array of pixel peak_time values
+    pixel_mask : np.ndarray
+        Boolean mask of the pixels to be interpolated
+    geometry : ctapipe.instrument.CameraGeometry
+        camera geometry corresponding to the image
+
+    Returns
+    -------
+    image : np.ndarray
+        Image with interpolated values
+    peak_time : np.ndarray
+        peak_time with interpolated values
     """
 
     n_interpolated = np.count_nonzero(pixel_mask)
