@@ -15,6 +15,10 @@ __all__ = ["CameraReadout"]
 logger = logging.getLogger(__name__)
 
 
+CURRENT_TAB_VERSION = "3.0"
+SUPPORTED_TAB_VERSIONS = {"3.0"}
+
+
 def parse_dotted_version(version):
     return tuple(map(int, version.split(".")))
 
@@ -202,6 +206,13 @@ class CameraReadout:
 
         """
         tab = url_or_table
+        version = tab.meta.get("TAB_VER", "")
+        if version not in SUPPORTED_TAB_VERSIONS:
+            raise IOError(
+                f"CameraReadout table has unsupported version: {version},"
+                f" supported are: {SUPPORTED_TAB_VERSIONS}."
+            )
+
         if not isinstance(url_or_table, Table):
             tab = Table.read(url_or_table, **kwargs)
 
