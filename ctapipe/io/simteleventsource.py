@@ -385,7 +385,10 @@ class SimTelEventSource(EventSource):
 
     @staticmethod
     def is_compatible(file_path):
-        return is_eventio(Path(file_path).expanduser())
+        path = Path(file_path).expanduser()
+        if not path.is_file():
+            return False
+        return is_eventio(path)
 
     @property
     def subarray(self):

@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 import astropy.units as u
 import numpy as np
@@ -183,21 +184,25 @@ class HDF5EventSource(EventSource):
 
     @staticmethod
     def is_compatible(file_path):
+        path = Path(file_path).expanduser()
+        if not path.is_file():
+            return False
 
-        with open(file_path, "rb") as f:
+        with path.open("rb") as f:
             magic_number = f.read(8)
 
         if magic_number != b"\x89HDF\r\n\x1a\n":
             return False
 
-        with tables.open_file(file_path) as f:
+        with tables.open_file(path) as f:
             metadata = f.root._v_attrs
             if "CTA PRODUCT DATA LEVELS" not in metadata._v_attrnames:
                 return False
 
-            # we can now read both R1 and DL1
             datalevels = set(metadata["CTA PRODUCT DATA LEVELS"].split(","))
-            if not datalevels.intersection(("R1", "DL1_IMAGES", "DL1_PARAMETERS")):
+            if not datalevels.intersection(
+                ("R1", "DL1_IMAGES", "DL1_PARAMETERS", "DL2")
+            ):
                 return False
 
             if "CTA PRODUCT DATA MODEL VERSION" not in metadata._v_attrnames:
