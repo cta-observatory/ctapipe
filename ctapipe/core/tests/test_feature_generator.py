@@ -51,3 +51,19 @@ def test_missing_colname():
 
     with pytest.raises(ExpressionError):
         generator(table)
+
+
+def test_to_unit():
+    """Test chaning the unit of a feature"""
+    from astropy import units as u
+
+    expressions = {
+        "length_meter": "length.to(u.m)",
+        "log_length_meter": "log10(length.to(u.m).value)",
+    }
+    generator = FeatureGenerator(features=expressions)
+    table = Table({"length": [1 * u.km]})
+
+    table = generator(table)
+    assert table["length_meter"] == 1000
+    assert table["log_length_meter"] == 3
