@@ -3,16 +3,17 @@ import numpy as np
 import pytest
 from astropy.table import Table
 
+from ctapipe.core.expression_engine import ExpressionError
 from ctapipe.core.feature_generator import FeatureGenerator, FeatureGeneratorException
 
 
 def test_generate_features():
     """Test if generating features works."""
-    expressions = [
-        ("log_intensity", "log10(intensity)"),
-        ("area", "length * width"),
-        ("eccentricity", "sqrt(1 - width ** 2 / length ** 2)"),
-    ]
+    expressions = {
+        "log_intensity": "log10(intensity)",
+        "area": "length * width",
+        "eccentricity": "sqrt(1 - width ** 2 / length ** 2)",
+    }
 
     generator = FeatureGenerator(features=expressions)
 
@@ -34,7 +35,7 @@ def test_generate_features():
 
 def test_existing_feature():
     """If the feature already exists, fail"""
-    expressions = [("foo", "bar")]
+    expressions = {"foo": "bar"}
     generator = FeatureGenerator(features=expressions)
     table = Table({"foo": [1], "bar": [1]})
 
@@ -44,9 +45,9 @@ def test_existing_feature():
 
 def test_missing_colname():
     """If the column to create a feature misses, fail"""
-    expressions = [("foo", "bar")]
+    expressions = {"foo": "bar"}
     generator = FeatureGenerator(features=expressions)
     table = Table({"baz": [1]})
 
-    with pytest.raises(FeatureGeneratorException):
+    with pytest.raises(ExpressionError):
         generator(table)

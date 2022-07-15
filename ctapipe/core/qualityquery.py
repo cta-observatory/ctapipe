@@ -7,7 +7,7 @@ __all__ = ["QualityQuery", "QualityCriteriaError"]
 import numpy as np  # for use in selection functions
 
 from .component import Component
-from .expression_engine import ExpressionEngine, _evaluate_expression
+from .expression_engine import ExpressionEngine
 from .traits import List
 
 
@@ -40,18 +40,17 @@ class QualityQuery(Component):
         self.criteria_names = [n for (n, _) in self.quality_criteria]
         self.expressions = [e for (_, e) in self.quality_criteria]
 
-        self.expression_engine = ExpressionEngine(
-            parent=self, expressions=self.quality_criteria
+        self.engine = ExpressionEngine(
+            parent=self, expressions=dict(self.quality_criteria)
         )
-        for name, e in self.quality_criteria:
-            if "lambda" in e:
+        for _, expr in self.quality_criteria:
+            if "lambda" in expr:
                 raise ValueError(
                     "As of ctapipe 0.16, do not give lambda expressions"
                     " to QualityQuery. Directly give the expression."
                     " E.g. instead of `lambda p: p.hillas.width.value > 0`"
                     " use `parameters.hillas.width.value > 0`"
                 )
-        self._compiled_expressions = self.expression_engine()
 
         # arrays for recording overall statistics, add one for total count
         n = len(self.quality_criteria) + 1
@@ -112,7 +111,9 @@ class QualityQuery(Component):
         # add 1 for total
         result = np.ones(len(self.quality_criteria) + 1, dtype=bool)
 
-        _evaluate_expression(self._compiled_expressions, result, kwargs)
+        for i, res in enumerate(self.engine(kwargs), start=1):
+            result[i] = res
+
         self._counts += result.astype(int)
         self._cumulative_counts += result.cumprod()
         return result[1:]  # strip off TOTAL criterion, since redundant
@@ -135,7 +136,8 @@ class QualityQuery(Component):
         n_criteria = len(self.quality_criteria) + 1
         result = np.ones((n_criteria, len(table)), dtype=bool)
 
-        _evaluate_expression(self._compiled_expressions, result, table)
+        for i, res in enumerate(self.engine(table), start=1):
+            result[i] = res
 
         self._counts += np.count_nonzero(result, axis=1)
         self._cumulative_counts += np.count_nonzero(np.cumprod(result, axis=0), axis=1)

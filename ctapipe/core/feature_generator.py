@@ -1,6 +1,9 @@
+"""
+Generate Features.
+"""
 from .component import Component
-from .expression_engine import ALLOWED_GLOBALS, ExpressionEngine
-from .traits import List
+from .expression_engine import ExpressionEngine
+from .traits import Dict
 
 
 class FeatureGeneratorException(TypeError):
@@ -8,23 +11,31 @@ class FeatureGeneratorException(TypeError):
 
 
 class FeatureGenerator(Component):
-    features = List().tag(config=True)
+    """
+    Generate features for astropy.table.Table.
+
+    Raises Exceptions in two cases:
+    1. If a feature already exists in the table
+    2. If a feature cannot be built with the given expression
+    """
+
+    features = Dict(
+        help=(
+            "Keys are the names for the new features."
+            " Values are the expressions that generate the new feature."
+        )
+    ).tag(config=True)
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
-
-        self.expression_engine = ExpressionEngine(
-            parent=self, expressions=self.features
-        )
-        self.expressions = self.expression_engine()
-        self.feature_names = [n for n, _ in self.features]
+        self.engine = ExpressionEngine(parent=self, expressions=self.features)
 
     def __call__(self, table):
-        for e, n in zip(self.expressions, self.feature_names):
-            if n in table.colnames:
-                raise FeatureGeneratorException(f"{n} is already a column of table.")
+        for result, name in zip(self.engine(table), self.features.keys()):
+            if name in table.colnames:
+                raise FeatureGeneratorException(f"{name} is already a column of table.")
             try:
-                table[n] = eval(e, ALLOWED_GLOBALS, table)
-            except Exception:
-                raise FeatureGeneratorException(f"{e} is already a column of table.")
+                table[name] = result
+            except Exception as err:
+                raise err
         return table
