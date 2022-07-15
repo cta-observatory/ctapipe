@@ -1,3 +1,4 @@
+import enum
 import warnings
 from gzip import GzipFile
 from io import BufferedReader
@@ -5,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import Angle
+from astropy.coordinates import Angle, EarthLocation
 from astropy.time import Time
 from eventio.file_types import is_eventio
 from eventio.simtel.simtelfile import SimTelFile
@@ -45,9 +46,6 @@ from ..reco.impact_distance import shower_impact_distance
 from .datalevels import DataLevel
 from .eventsource import EventSource
 
-X_MAX_UNIT = u.g / (u.cm**2)
-
-
 __all__ = ["SimTelEventSource"]
 
 # Mapping of SimTelArray Calibration trigger types to EventType:
@@ -61,6 +59,14 @@ SIMTEL_TO_CTA_EVENT_TYPE = {
 }
 
 
+@enum.unique
+class MirrorClass(enum.Enum):
+    SINGLE_SEGMENTED_MIRROR = 0
+    SINGLE_SOLID_PARABOLIC_MIRROR = 1
+    DUAL_MIRROR = 2
+
+
+X_MAX_UNIT = u.g / (u.cm**2)
 NANOSECONDS_PER_DAY = (1 * u.day).to_value(u.ns)
 
 
@@ -68,6 +74,22 @@ def parse_simtel_time(simtel_time):
     """Convert a unix time second / nanosecond tuple into astropy.time.Time"""
     return Time(
         simtel_time[0], simtel_time[1] * 1e-9, format="unix", scale="utc"  # ns to s
+    )
+
+
+def _location_from_meta(global_meta):
+    """Extract reference location of subarray from metadata"""
+    lat = global_meta.get(b"*LATITUDE")
+    lon = global_meta.get(b"*LONGITUDE")
+    height = global_meta.get(b"ALTITUDE")
+
+    if lat is None or lon is None or height is None:
+        return None
+
+    return EarthLocation(
+        lon=float(lon) * u.deg,
+        lat=float(lat) * u.deg,
+        height=float(height) * u.m,
     )
 
 
@@ -373,6 +395,7 @@ class SimTelEventSource(EventSource):
             name="MonteCarloArray",
             tel_positions=tel_positions,
             tel_descriptions=tel_descriptions,
+            reference_location=_location_from_meta(self.file_.global_meta),
         )
 
         self.n_telescopes_original = len(subarray)
