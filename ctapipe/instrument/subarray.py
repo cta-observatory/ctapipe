@@ -670,3 +670,19 @@ class SubarrayDescription:
             tel_descriptions=telescope_descriptions,
             reference_location=reference_location,
         )
+
+    @staticmethod
+    def read(path, **kwargs):
+        """Read subarray from path
+
+        This uses the `~ctapipe.io.EventSource` mechanism, so it should be
+        able to read a subarray from any file supported by ctapipe or an
+        installed io plugin.
+
+        kwargs are passed to the event source
+        """
+        # here to prevent circular import
+        from ..io import EventSource
+
+        with EventSource(path, **kwargs) as s:
+            return s.subarray

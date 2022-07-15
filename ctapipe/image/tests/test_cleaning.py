@@ -1,12 +1,13 @@
+import astropy.units as u
 import numpy as np
 from numpy.testing import assert_allclose
+
 from ctapipe.image import cleaning
 from ctapipe.instrument import CameraGeometry
-import astropy.units as u
 
 
-def test_tailcuts_clean_simple():
-    geom = CameraGeometry.from_name("LSTCam")
+def test_tailcuts_clean_simple(prod5_lst):
+    geom = prod5_lst.camera.geometry
     image = np.zeros_like(geom.pix_id, dtype=np.float64)
 
     num_pix = 40
@@ -22,8 +23,8 @@ def test_tailcuts_clean_simple():
     assert np.count_nonzero(mask) == 4
 
 
-def test_dilate():
-    geom = CameraGeometry.from_name("LSTCam")
+def test_dilate(prod5_lst):
+    geom = prod5_lst.camera.geometry
     mask = np.zeros_like(geom.pix_id, dtype=bool)
 
     mask[100] = True  # a single pixel far from a border is true.
@@ -70,10 +71,10 @@ def test_tailcuts_clean():
         assert (result == mask).all()
 
 
-def test_tailcuts_clean_threshold_array():
+def test_tailcuts_clean_threshold_array(prod5_lst):
     """Tests that tailcuts can also work with individual thresholds per pixel"""
     rng = np.random.default_rng(1337)
-    geom = CameraGeometry.from_name("LSTCam")
+    geom = prod5_lst.camera.geometry
 
     # artifical event having a "shower" and a "star" at these locations
     star_x = 0.5 * u.m
@@ -255,9 +256,9 @@ def test_tailcuts_clean_with_isolated_pixels():
         assert (result == mask).all()
 
 
-def test_fact_image_cleaning():
+def test_fact_image_cleaning(prod3_lst):
     # use LST pixel geometry
-    geom = CameraGeometry.from_name("LSTCam")
+    geom = prod3_lst.camera.geometry
     # create some signal pixels
     values = np.zeros(len(geom))
     timing = np.zeros(len(geom))
@@ -287,8 +288,8 @@ def test_fact_image_cleaning():
     assert_allclose(mask, expected_mask)
 
 
-def test_apply_time_delta_cleaning():
-    geom = CameraGeometry.from_name("LSTCam")
+def test_apply_time_delta_cleaning(prod3_lst):
+    geom = prod3_lst.camera.geometry
     peak_time = np.zeros(geom.n_pixels, dtype=np.float64)
 
     pixel = 40

@@ -1,6 +1,13 @@
+from copy import deepcopy
+
 import astropy.units as u
 import numpy as np
 import pytest
+from numpy.testing import assert_allclose, assert_equal
+from scipy.stats import norm
+from traitlets.config.loader import Config
+from traitlets.traitlets import TraitError
+
 from ctapipe.core import non_abstract_children
 from ctapipe.image.extractor import (
     FixedWindowSum,
@@ -16,11 +23,7 @@ from ctapipe.image.extractor import (
     subtract_baseline,
 )
 from ctapipe.image.toymodel import SkewedGaussian, WaveformModel, obtain_time_image
-from ctapipe.instrument import SubarrayDescription, TelescopeDescription
-from numpy.testing import assert_allclose, assert_equal
-from scipy.stats import norm
-from traitlets.config.loader import Config
-from traitlets.traitlets import TraitError
+from ctapipe.instrument import SubarrayDescription
 
 extractors = non_abstract_children(ImageExtractor)
 # FixedWindowSum has no peak finding and need to be set manually
@@ -28,17 +31,13 @@ extractors.remove(FixedWindowSum)
 
 
 @pytest.fixture(scope="module")
-def subarray():
+def subarray(prod5_sst):
     subarray = SubarrayDescription(
         "test array",
         tel_positions={1: np.zeros(3) * u.m, 2: np.zeros(3) * u.m},
         tel_descriptions={
-            1: TelescopeDescription.from_name(
-                optics_name="SST-ASTRI", camera_name="CHEC"
-            ),
-            2: TelescopeDescription.from_name(
-                optics_name="SST-ASTRI", camera_name="CHEC"
-            ),
+            1: deepcopy(prod5_sst),
+            2: deepcopy(prod5_sst),
         },
     )
 
@@ -60,13 +59,11 @@ def subarray():
 
 
 @pytest.fixture(scope="module")
-def subarray_1_LST():
+def subarray_1_LST(prod3_lst):
     subarray = SubarrayDescription(
         "One LST",
         tel_positions={1: np.zeros(3) * u.m},
-        tel_descriptions={
-            1: TelescopeDescription.from_name(optics_name="LST", camera_name="LSTCam")
-        },
+        tel_descriptions={1: prod3_lst},
     )
     return subarray
 

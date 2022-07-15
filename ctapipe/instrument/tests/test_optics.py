@@ -1,14 +1,14 @@
 """ Tests for OpticsDescriptions"""
-import pytest
-from astropy import units as u
 import os
 import tempfile
 
-from ctapipe.instrument.optics import OpticsDescription
+import pytest
+from astropy import units as u
 
-from ctapipe.utils import get_table_dataset
 from ctapipe.core.tool import run_tool
+from ctapipe.instrument.optics import OpticsDescription
 from ctapipe.tools.dump_instrument import DumpInstrumentTool
+from ctapipe.utils import get_table_dataset
 from ctapipe.utils.datasets import get_dataset_path
 
 
@@ -18,10 +18,8 @@ def test_guess_optics():
 
     answer = guess_telescope(1855, 28.0 * u.m)
 
-    od = OpticsDescription.from_name(answer.name)
-
-    assert od.equivalent_focal_length.to_value(u.m) == 28
-    assert od.num_mirrors == 1
+    assert answer.name == "LST"
+    assert answer.n_mirrors == 1
 
 
 def test_construct_optics():

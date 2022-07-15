@@ -7,7 +7,7 @@ from copy import deepcopy
 import pytest
 from pytest_astropy_header.display import PYTEST_HEADER_MODULES
 
-from ctapipe.instrument import CameraGeometry
+from ctapipe.instrument import CameraGeometry, SubarrayDescription
 from ctapipe.io import SimTelEventSource
 from ctapipe.utils import get_dataset_path
 from ctapipe.utils.filelock import FileLock
@@ -39,7 +39,8 @@ camera_names = [
 
 @pytest.fixture(scope="function", params=camera_names)
 def camera_geometry(request):
-    return CameraGeometry.from_name(request.param)
+    path = get_dataset_path(f"{request.param}.camgeom.fits.gz")
+    return CameraGeometry.from_table(path)
 
 
 @pytest.fixture(scope="session")
@@ -62,18 +63,24 @@ def _global_example_event():
 
 
 @pytest.fixture(scope="session")
-def example_subarray():
+def subarray_prod5_paranal(prod5_gamma_simtel_path):
+    return SubarrayDescription.read(prod5_gamma_simtel_path)
+
+
+@pytest.fixture(scope="session")
+def subarray_prod3_paranal():
+    return SubarrayDescription.read(
+        "dataset://gamma_test_large.simtel.gz",
+        focal_length_choice="EQUIVALENT",
+    )
+
+
+@pytest.fixture(scope="session")
+def example_subarray(subarray_prod3_paranal):
     """
     Subarray corresponding to the example event
     """
-    filename = get_dataset_path("gamma_test_large.simtel.gz")
-
-    print("******************** LOAD TEST EVENT ***********************")
-
-    with SimTelEventSource(
-        input_url=filename, focal_length_choice="EQUIVALENT"
-    ) as reader:
-        return reader.subarray
+    return subarray_prod3_paranal
 
 
 @pytest.fixture(scope="function")
@@ -144,6 +151,36 @@ def prod5_proton_simtel_path():
     return get_dataset_path(
         "proton_20deg_0deg_run4___cta-prod5-paranal_desert-2147m-Paranal-dark-100evts.simtel.zst"
     )
+
+
+@pytest.fixture(scope="session")
+def prod5_lst(subarray_prod5_paranal):
+    return subarray_prod5_paranal.tel[1]
+
+
+@pytest.fixture(scope="session")
+def prod3_lst(subarray_prod3_paranal):
+    return subarray_prod3_paranal.tel[1]
+
+
+@pytest.fixture(scope="session")
+def prod5_mst_flashcam(subarray_prod5_paranal):
+    return subarray_prod5_paranal.tel[5]
+
+
+@pytest.fixture(scope="session")
+def prod5_mst_nectarcam(subarray_prod5_paranal):
+    return subarray_prod5_paranal.tel[100]
+
+
+@pytest.fixture(scope="session")
+def prod5_sst(subarray_prod5_paranal):
+    return subarray_prod5_paranal.tel[60]
+
+
+@pytest.fixture(scope="session")
+def prod3_astri(subarray_prod3_paranal):
+    return subarray_prod3_paranal.tel[98]
 
 
 @pytest.fixture(scope="session")

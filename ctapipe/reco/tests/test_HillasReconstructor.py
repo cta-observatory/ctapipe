@@ -9,13 +9,13 @@ from traitlets.config import Config
 from ctapipe.calib import CameraCalibrator
 from ctapipe.containers import HillasParametersContainer
 from ctapipe.image.image_processor import ImageProcessor
-from ctapipe.instrument import SubarrayDescription, TelescopeDescription
+from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import SimTelEventSource
 from ctapipe.reco.hillas_reconstructor import HillasPlane, HillasReconstructor
 from ctapipe.utils import get_dataset_path
 
 
-def test_estimator_results():
+def test_estimator_results(prod5_sst):
     """
     creating some planes pointing in different directions (two
     north-south, two east-west) and that have a slight position errors (+-
@@ -43,11 +43,7 @@ def test_estimator_results():
     subarray = SubarrayDescription(
         "test array",
         tel_positions={1: np.zeros(3) * u.m},
-        tel_descriptions={
-            1: TelescopeDescription.from_name(
-                optics_name="SST-ASTRI", camera_name="CHEC"
-            )
-        },
+        tel_descriptions={1: prod5_sst},
     )
 
     # creating the fit class and setting the the great circle member

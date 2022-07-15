@@ -11,16 +11,15 @@ shape.
 
 There are several ways to obtain a `CameraReadout`:
 
-* Through the `SubarrayDescription` of an `~ctapipe.io.EventSource`
+* Through the `SubarrayDescription` of an `~ctapipe.io.EventSource` or `~ctapipe.io.TableLoader`
+
+* Through reading a `SubarrayDescription` from an input file using `SubarrayDescription.from_hdf`
+  or `SubarrayDescription.read`
 
 * use the `CameraReadout` constructor, where one has to specify all
   necessary information
 
-* use ``CameraReadout.from_name(telescope, revision)`` (ex: ``readout =
-  CameraReadout.from_name('HESS', 1)``).  This tries to read the corresponding data
-  from through the service data utilities.
-
-* load it from a pre-written file (which can be in any format
+* load it from a pre-written file, which can be in any format
   supported by ``astropy.table.Table``, as long as that format allows for
   header-keywords as well as table entries.
 

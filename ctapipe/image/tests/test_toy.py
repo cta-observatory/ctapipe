@@ -1,14 +1,16 @@
-import numpy as np
-from ctapipe.instrument import CameraGeometry, CameraReadout
-from ctapipe.image.toymodel import obtain_time_image, WaveformModel
-from pytest import approx
-from scipy.stats import poisson, skewnorm, norm
+from copy import deepcopy
+
 import astropy.units as u
+import numpy as np
 import pytest
+from pytest import approx
+from scipy.stats import norm, poisson, skewnorm
+
+from ctapipe.image.toymodel import WaveformModel, obtain_time_image
 
 
 @pytest.mark.parametrize("seed", [None, 0])
-def test_intensity(seed, monkeypatch):
+def test_intensity(seed, monkeypatch, prod5_lst):
     """
     Test generation of the toymodel roughly follows the given intensity.
 
@@ -17,7 +19,7 @@ def test_intensity(seed, monkeypatch):
     """
     from ctapipe.image import toymodel
 
-    geom = CameraGeometry.from_name("LSTCam")
+    geom = prod5_lst.camera.geometry
 
     x, y = u.Quantity([0.2, 0.3], u.m)
     width = 0.05 * u.m
@@ -55,13 +57,13 @@ def test_intensity(seed, monkeypatch):
     assert poisson(intensity).ppf(0.05) <= signal.sum() <= poisson(intensity).ppf(0.95)
 
 
-def test_skewed():
+def test_skewed(prod5_lst):
     from ctapipe.image.toymodel import SkewedGaussian
 
     # test if the parameters we calculated for the skew normal
     # distribution produce the correct moments
     rng = np.random.default_rng(0)
-    geom = CameraGeometry.from_name("LSTCam")
+    geom = prod5_lst.camera.geometry
 
     x, y = u.Quantity([0.2, 0.3], u.m)
     width = 0.05 * u.m
@@ -83,10 +85,10 @@ def test_skewed():
     assert np.isclose(skew, skewness)
 
 
-def test_compare():
-    from ctapipe.image.toymodel import SkewedGaussian, Gaussian
+def test_compare(prod5_lst):
+    from ctapipe.image.toymodel import Gaussian, SkewedGaussian
 
-    geom = CameraGeometry.from_name("LSTCam")
+    geom = prod5_lst.camera.geometry
 
     x, y = u.Quantity([0.2, 0.3], u.m)
     width = 0.05 * u.m
@@ -103,8 +105,9 @@ def test_compare():
     assert np.isclose(signal_skewed, signal_normal).all()
 
 
-def test_obtain_time_image():
-    geom = CameraGeometry.from_name("CHEC")
+def test_obtain_time_image(prod5_sst):
+    geom = prod5_sst.camera.geometry
+
     centroid_x = u.Quantity(0.05, u.m)
     centroid_y = u.Quantity(0.05, u.m)
     psi = u.Quantity(70, u.deg)
@@ -146,7 +149,7 @@ def test_obtain_time_image():
         time_gradient,
         time_intercept,
     )
-    np.testing.assert_allclose(time.std(), 1.710435)
+    np.testing.assert_allclose(time.std(), 1.710435, rtol=0.1)
 
     time_gradient = u.Quantity(20, u.ns / u.m)
     time_intercept = u.Quantity(40, u.ns)
@@ -162,11 +165,12 @@ def test_obtain_time_image():
     np.testing.assert_allclose(time, 40)
 
 
-def test_waveform_model():
+def test_waveform_model(prod5_sst):
     from ctapipe.image.toymodel import Gaussian
 
-    geom = CameraGeometry.from_name("CHEC")
-    readout = CameraReadout.from_name("CHEC")
+    prod5_sst = deepcopy(prod5_sst)
+    geom = prod5_sst.camera.geometry
+    readout = prod5_sst.camera.readout
 
     ref_duration = 67
     n_ref_samples = 100

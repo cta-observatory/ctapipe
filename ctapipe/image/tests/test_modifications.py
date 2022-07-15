@@ -1,6 +1,7 @@
 import numpy as np
-from ctapipe.instrument import CameraGeometry
+
 from ctapipe.image import modifications
+from ctapipe.instrument import CameraGeometry
 
 
 def test_add_noise():
@@ -27,7 +28,7 @@ def test_add_noise():
     assert np.sum(diff_no_bias) > np.sum(noisy - image)
 
 
-def test_smear_image():
+def test_smear_image(prod5_lst):
     """
     Test that smearing the image leads to the expected results.
     For random smearing this will not work with all seeds.
@@ -41,35 +42,37 @@ def test_smear_image():
     seed = 20
 
     # Hexagonal geometry -> Thats why we divide by 6 below
-    geom = CameraGeometry.from_name("LSTCam")
+    geom: CameraGeometry = prod5_lst.camera.geometry
     image = np.zeros_like(geom.pix_id, dtype=np.float64)
     # select two pixels, one at the edge with only 5 neighbors
-    signal_pixels = [1, 1853]
-    neighbors = geom.neighbor_matrix[signal_pixels]
 
-    for signal_value in [1, 5]:
-        image[signal_pixels] = signal_value
-        for fraction in [0, 0.2, 1]:
-            # random smearing
-            # The seed is important here (See below)
-            smeared = modifications._smear_psf_randomly(
-                image,
-                fraction=fraction,
-                indices=geom.neighbor_matrix_sparse.indices,
-                indptr=geom.neighbor_matrix_sparse.indptr,
-                smear_probabilities=np.full(6, 1 / 6),
-                seed=seed,
-            )
-            neighbors_1 = smeared[neighbors[0]]
+    border_mask = geom.get_border_pixel_mask()
+    # one border pixel, one central pixel
+    signal_pixels = [np.nonzero(~border_mask)[0][0], np.nonzero(border_mask)[0][0]]
 
-            # this can be False if the "pseudo neighbor" of pixel
-            # 1853 is selected (outside of the camera)
-            assert np.isclose(image.sum(), smeared.sum())
-            assert np.isclose(np.sum(neighbors_1) + smeared[1], image[1])
-            # this can be False if for both pixels a 0 is
-            # drawn from the poissonian (especially with signal value 1)
-            if fraction > 0:
-                assert not ((image > 0) == (smeared > 0)).all()
+    signal_value = 10
+
+    for signal_pixel in signal_pixels:
+        for signal_value in [1, 10]:
+            image[signal_pixel] = signal_value
+            for fraction in [0, 0.2, 1]:
+                smeared = modifications._smear_psf_randomly(
+                    image,
+                    fraction=fraction,
+                    indices=geom.neighbor_matrix_sparse.indices,
+                    indptr=geom.neighbor_matrix_sparse.indptr,
+                    smear_probabilities=np.full(6, 1 / 6),
+                    seed=seed,
+                )
+
+                # we may loose charge at the border of the camera
+                if border_mask[signal_pixel]:
+                    assert image.sum() >= smeared.sum()
+                else:
+                    assert image.sum() == smeared.sum()
+
+                if fraction > 0:
+                    assert image[signal_pixel] >= smeared[signal_pixel]
 
 
 def test_defaults_no_change(example_subarray):
