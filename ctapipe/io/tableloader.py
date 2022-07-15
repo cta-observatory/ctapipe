@@ -290,6 +290,8 @@ class TableLoader(Component):
 
     @staticmethod
     def _sort_to_original_order(table, include_tel_id=False):
+        if len(table) == 0:
+            return
         if include_tel_id:
             table.sort(("__index__", "tel_id"))
         else:

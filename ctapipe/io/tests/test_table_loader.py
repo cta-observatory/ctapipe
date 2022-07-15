@@ -363,3 +363,30 @@ def test_read_shower_distributions(dl2_merged_file):
         assert np.all(histograms["obs_id"] == [4, 1])
         assert np.all(histograms["num_entries"] == [2000, 1000])
         assert np.all(histograms["histogram"].sum(axis=(1, 2)) == [2000, 1000])
+
+
+def test_read_unavailable_telescope(dl2_shower_geometry_file):
+    """Reading a telescope that is not part of the subarray of the file should fail."""
+    from ctapipe.io import TableLoader
+
+    with TableLoader(
+        dl2_shower_geometry_file,
+        load_dl1_parameters=False,
+        load_dl2=True,
+    ) as loader:
+        tel_id = max(loader.subarray.tel.keys()) + 1
+        with pytest.raises(ValueError):
+            loader.read_telescope_events([tel_id])
+
+
+def test_read_empty_table(dl2_shower_geometry_file):
+    """Reading an empty table should return an empty table."""
+    from ctapipe.io import TableLoader
+
+    with TableLoader(
+        dl2_shower_geometry_file,
+        load_dl1_parameters=False,
+        load_dl2=True,
+    ) as loader:
+        table = loader.read_telescope_events([6])
+        assert len(table) == 0
