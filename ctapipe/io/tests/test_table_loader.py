@@ -388,4 +388,5 @@ def test_read_empty_table(dl2_shower_geometry_file):
         load_dl1_parameters=False,
         load_dl2=True,
     ) as loader:
-        loader.read_telescope_events([6])
+        table = loader.read_telescope_events([6])
+        assert len(table) == 0
