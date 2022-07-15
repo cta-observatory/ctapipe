@@ -7,6 +7,9 @@ import warnings
 
 import astropy.units as u
 import numpy as np
+from numba import float32, float64, guvectorize, int64
+
+from ctapipe.calib.camera.pixel_interpolator import interpolate_pixels
 from ctapipe.containers import DL1CameraContainer
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
@@ -16,9 +19,23 @@ from ctapipe.core.traits import (
 )
 from ctapipe.image.extractor import ImageExtractor
 from ctapipe.image.reducer import DataVolumeReducer
-from numba import float32, float64, guvectorize, int64
 
 __all__ = ["CameraCalibrator"]
+
+
+def _get_broken_pixels(n_pixels, pixel_status, selected_gain_channel):
+    broken_pixels = np.zeros(n_pixels, dtype=bool)
+    index = np.arange(n_pixels)
+    masks = (
+        pixel_status.hardware_failing_pixels,
+        pixel_status.pedestal_failing_pixels,
+        pixel_status.flatfield_failing_pixels,
+    )
+    for mask in masks:
+        if mask is not None:
+            broken_pixels |= mask[selected_gain_channel, index]
+
+    return broken_pixels
 
 
 class CameraCalibrator(TelescopeComponent):
@@ -162,17 +179,17 @@ class CameraCalibrator(TelescopeComponent):
         event.dl0.tel[telid].waveform = waveforms_copy
         event.dl0.tel[telid].selected_gain_channel = selected_gain_channel
 
-    def _calibrate_dl1(self, event, telid):
-        waveforms = event.dl0.tel[telid].waveform
-        selected_gain_channel = event.dl0.tel[telid].selected_gain_channel
-        dl1_calib = event.calibration.tel[telid].dl1
+    def _calibrate_dl1(self, event, tel_id):
+        waveforms = event.dl0.tel[tel_id].waveform
+        selected_gain_channel = event.dl0.tel[tel_id].selected_gain_channel
+        dl1_calib = event.calibration.tel[tel_id].dl1
 
         if self._check_dl0_empty(waveforms):
             return
 
-        selected_gain_channel = event.r1.tel[telid].selected_gain_channel
-        time_shift = event.calibration.tel[telid].dl1.time_shift
-        readout = self.subarray.tel[telid].camera.readout
+        selected_gain_channel = event.r1.tel[tel_id].selected_gain_channel
+        time_shift = event.calibration.tel[tel_id].dl1.time_shift
+        readout = self.subarray.tel[tel_id].camera.readout
         n_pixels, n_samples = waveforms.shape
 
         # subtract any remaining pedestal before extraction
@@ -197,7 +214,7 @@ class CameraCalibrator(TelescopeComponent):
 
             # shift waveforms if time_shift calibration is available
             if time_shift is not None:
-                if self.apply_waveform_time_shift.tel[telid]:
+                if self.apply_waveform_time_shift.tel[tel_id]:
                     sampling_rate = readout.sampling_rate.to_value(u.GHz)
                     time_shift_samples = time_shift * sampling_rate
                     waveforms, remaining_shift = shift_waveforms(
@@ -207,20 +224,34 @@ class CameraCalibrator(TelescopeComponent):
                 else:
                     remaining_shift = time_shift
 
-            extractor = self.image_extractors[self.image_extractor_type.tel[telid]]
+            extractor = self.image_extractors[self.image_extractor_type.tel[tel_id]]
             dl1 = extractor(
-                waveforms, telid=telid, selected_gain_channel=selected_gain_channel
+                waveforms, telid=tel_id, selected_gain_channel=selected_gain_channel
             )
 
             # correct non-integer remainder of the shift if given
-            if self.apply_peak_time_shift.tel[telid] and time_shift is not None:
+            if self.apply_peak_time_shift.tel[tel_id] and time_shift is not None:
                 dl1.peak_time -= remaining_shift
 
         # Calibrate extracted charge
         dl1.image *= dl1_calib.relative_factor / dl1_calib.absolute_factor
 
+        # interpolate broken pixels
+        broken_pixels = _get_broken_pixels(
+            n_pixels,
+            event.mon.tel[tel_id].pixel_status,
+            selected_gain_channel,
+        )
+
+        dl1.image, dl1.peak_time = interpolate_pixels(
+            dl1.image,
+            dl1.peak_time,
+            broken_pixels,
+            self.subarray.tel[tel_id].camera.geometry,
+        )
+
         # store the results in the event structure
-        event.dl1.tel[telid] = dl1
+        event.dl1.tel[tel_id] = dl1
 
     def __call__(self, event):
         """
