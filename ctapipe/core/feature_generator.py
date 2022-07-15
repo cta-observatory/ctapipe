@@ -39,3 +39,6 @@ class FeatureGenerator(Component):
             except Exception as err:
                 raise err
         return table
+
+    def __len__(self):
+        return len(self.features)
