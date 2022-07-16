@@ -209,15 +209,9 @@ class TableReader(Component, metaclass=ABCMeta):
 
     def __init__(self):
         super().__init__()
-        self._transforms = defaultdict(dict)
+        self._transforms = {}
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
-
-    def add_column_transform(self, table_name, col_name, transform):
+    def add_column_transform(self, col_name, transform):
         """
         Add a transformation function for a column. This function will be
         called on the value in the container before it is written to the
@@ -232,45 +226,36 @@ class TableReader(Component, metaclass=ABCMeta):
         transform: callable
             function that take a value and returns a new one
         """
-        self._transforms[table_name][col_name] = transform
-        self.log.debug(
-            "Added transform: {}/{} -> {}".format(table_name, col_name, transform)
-        )
+        self._transforms[col_name] = transform
+        self.log.debug("Added transform: {} -> {}".format(col_name, transform))
 
-    def _apply_col_transform(self, table_name, col_name, value):
+    def _apply_col_transform(self, col_name, value):
         """
         apply value transform function if it exists for this column
         """
-        if col_name in self._transforms[table_name]:
-            tr = self._transforms[table_name][col_name]
-            value = tr.inverse(value)
+        if (transform := self._transforms.get(col_name)) is not None:
+            value = transform.inverse(value)
         return value
-
-    @abstractmethod
-    def read(self, table_name, containers, prefixes, **kwargs):
-        """
-        Returns a generator that reads the next row from the table into the
-        given container.  The generator returns the same container. Note that
-        no containers are copied, the data are overwritten inside.
-
-        Parameters
-        ----------
-        table_name: str
-            name of table to read from
-        containers: ctapipe.core.Container or iterable thereof
-            Container instance(s) to fill
-        prefixes: bool, str or iterable of str
-            prefixes used during writing of the table
-        """
-        pass
-
-    @abstractmethod
-    def open(self, filename, **kwargs):
-        pass
 
     @abstractmethod
     def close(self):
         pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+
+class RandomAccessTableReader(TableReader):
+    @abstractmethod
+    def __len__(self):
+        """Length of Container"""
+
+    @abstractmethod
+    def __getitem__(self, idx):
+        """Get the nth row of the table"""
 
 
 class ColumnTransform(metaclass=ABCMeta):

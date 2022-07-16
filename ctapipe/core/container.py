@@ -18,6 +18,15 @@ def _fqdn(obj):
     return f"{obj.__module__}.{obj.__qualname__}"
 
 
+def join_prefix(field_name, prefix):
+    """Add prefix to field_name with an underscore
+    If prefix is None or the empty string, field_name is return unchanged.
+    """
+    if prefix in {None, ""}:
+        return field_name
+    return f"{prefix}_{field_name}"
+
+
 class FieldValidationError(ValueError):
     pass
 
@@ -347,17 +356,21 @@ class Container(metaclass=ContainerMeta):
 
     def items(self, add_prefix=False):
         """Generator over (key, value) pairs for the items"""
-        if not add_prefix or self.prefix == "":
+        if not add_prefix:
             return ((k, getattr(self, k)) for k in self.fields.keys())
 
-        return ((self.prefix + "_" + k, getattr(self, k)) for k in self.fields.keys())
+        return (
+            (join_prefix(k, self.prefix), getattr(self, k)) for k in self.fields.keys()
+        )
 
-    def keys(self):
+    def keys(self, add_prefix=False):
         """Get the keys of the container"""
+        if add_prefix:
+            return (join_prefix(k, self.prefix) for k in self.fields)
         return self.fields.keys()
 
     def values(self):
-        """Get the keys of the container"""
+        """Get the values of the container"""
         return (getattr(self, k) for k in self.fields.keys())
 
     def as_dict(self, recursive=False, flatten=False, add_prefix=False):
@@ -383,7 +396,7 @@ class Container(metaclass=ContainerMeta):
                     if flatten:
                         d.update(
                             {
-                                f"{key}_{k}": v
+                                join_prefix(k, key): v
                                 for k, v in val.as_dict(
                                     recursive, add_prefix=add_prefix
                                 ).items()
@@ -473,7 +486,7 @@ class Map(defaultdict):
                     if flatten:
                         d.update(
                             {
-                                f"{key}_{k}": v
+                                join_prefix(k, key): v
                                 for k, v in val.as_dict(
                                     recursive, add_prefix=add_prefix
                                 ).items()

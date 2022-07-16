@@ -1,4 +1,5 @@
 import enum
+from itertools import zip_longest
 
 import numpy as np
 import pandas as pd
@@ -35,8 +36,9 @@ def test_h5_file(tmp_path_factory):
         path, group_name="R0", filters=tables.Filters(complevel=7)
     ) as writer:
 
-        for _ in range(100):
+        for i in range(100):
             r0.waveform[:] = np.random.uniform(size=(50, 10))
+            shower.shower_primary_id = i + 1
             shower.energy = 10 ** np.random.uniform(1, 2) * u.TeV
             shower.core_x = np.random.uniform(-1, 1) * u.m
             shower.core_y = np.random.uniform(-1, 1) * u.m
@@ -109,8 +111,10 @@ def test_append_container(tmp_path):
 
 def test_reader_container_reuse(test_h5_file):
     """Test the reader does not reuse the same container instance"""
-    with HDF5TableReader(test_h5_file) as reader:
-        iterator = reader.read("/R0/sim_shower", SimulatedShowerContainer)
+    with HDF5TableReader(
+        test_h5_file, "/R0/sim_shower", SimulatedShowerContainer
+    ) as reader:
+        iterator = iter(reader)
         assert next(iterator) is not next(iterator)
 
 
@@ -134,30 +138,34 @@ def test_read_multiple_containers(tmp_path):
     assert "leakage_pixels_width_1" in df.columns
 
     # test reading both containers separately
-    with HDF5TableReader(path) as reader:
-        generator = reader.read("/dl1/params", HillasParametersContainer, prefixes=True)
-        hillas = next(generator)
+    with HDF5TableReader(
+        path, "/dl1/params", HillasParametersContainer, prefixes=True
+    ) as reader:
+        hillas = reader[0]
+
     for value, read_value in zip(
         hillas_parameter_container.as_dict().values(), hillas.as_dict().values()
     ):
         np.testing.assert_equal(value, read_value)
 
-    with HDF5TableReader(path) as reader:
-        generator = reader.read("/dl1/params", LeakageContainer, prefixes=True)
-        leakage = next(generator)
+    with HDF5TableReader(
+        path, "/dl1/params", LeakageContainer, prefixes=True
+    ) as reader:
+        leakage = reader[0]
+
     for value, read_value in zip(
         leakage_container.as_dict().values(), leakage.as_dict().values()
     ):
         np.testing.assert_equal(value, read_value)
 
     # test reading both containers simultaneously
-    with HDF5TableReader(path) as reader:
-        generator = reader.read(
-            "/dl1/params",
-            (HillasParametersContainer, LeakageContainer),
-            prefixes=True,
-        )
-        hillas_, leakage_ = next(generator)
+    with HDF5TableReader(
+        path,
+        "/dl1/params",
+        (HillasParametersContainer, LeakageContainer),
+        prefixes=True,
+    ) as reader:
+        hillas_, leakage_ = reader[0]
 
     for value, read_value in zip(
         leakage_container.as_dict().values(), leakage_.as_dict().values()
@@ -192,13 +200,13 @@ def test_read_without_prefixes(tmp_path):
     assert "pixels_width_1" in df.columns
 
     # call with prefixes=False
-    with HDF5TableReader(path) as reader:
-        generator = reader.read(
-            "/dl1/params",
-            (HillasParametersContainer, LeakageContainer),
-            prefixes=False,
-        )
-        hillas_, leakage_ = next(generator)
+    with HDF5TableReader(
+        path,
+        "/dl1/params",
+        (HillasParametersContainer, LeakageContainer),
+        prefixes=False,
+    ) as reader:
+        hillas_, leakage_ = reader[0]
 
     for value, read_value in zip(
         leakage_container.as_dict().values(), leakage_.as_dict().values()
@@ -211,13 +219,13 @@ def test_read_without_prefixes(tmp_path):
         np.testing.assert_equal(value, read_value)
 
     # call with manually removed prefixes
-    with HDF5TableReader(path) as reader:
-        generator = reader.read(
-            "/dl1/params",
-            (HillasParametersContainer, LeakageContainer),
-            prefixes=["", ""],
-        )
-        hillas_, leakage_ = next(generator)
+    with HDF5TableReader(
+        path,
+        "/dl1/params",
+        (HillasParametersContainer, LeakageContainer),
+        prefixes=["", ""],
+    ) as reader:
+        hillas_, leakage_ = reader[0]
 
     for value, read_value in zip(
         leakage_container.as_dict().values(), leakage_.as_dict().values()
@@ -255,13 +263,13 @@ def test_read_duplicated_container_types(tmp_path):
     assert "hillas_1_fov_lon" in df.columns
     assert "hillas_2_fov_lon" in df.columns
 
-    with HDF5TableReader(path) as reader:
-        generator = reader.read(
-            "/dl1/params",
-            (HillasParametersContainer, HillasParametersContainer),
-            prefixes=["hillas_1", "hillas_2"],
-        )
-        hillas_1, hillas_2 = next(generator)
+    with HDF5TableReader(
+        path,
+        "/dl1/params",
+        (HillasParametersContainer, HillasParametersContainer),
+        prefixes=["hillas_1", "hillas_2"],
+    ) as reader:
+        hillas_1, hillas_2 = reader[0]
 
     for value, read_value in zip(
         hillas_config_1.as_dict().values(), hillas_1.as_dict().values()
@@ -284,11 +292,11 @@ def test_custom_prefix(tmp_path):
     with HDF5TableWriter(path, group_name="dl1", add_prefix=True) as writer:
         writer.write("params", container)
 
-    with HDF5TableReader(path) as reader:
-        generator = reader.read(
-            "/dl1/params", HillasParametersContainer, prefixes="custom"
-        )
-        read_container = next(generator)
+    with HDF5TableReader(
+        path, "/dl1/params", HillasParametersContainer, prefixes="custom"
+    ) as reader:
+        read_container = reader[0]
+
     assert isinstance(read_container, HillasParametersContainer)
     for value, read_value in zip(
         container.as_dict().values(), read_container.as_dict().values()
@@ -343,11 +351,9 @@ def test_write_bool(tmp_path):
             c = C(boolean=(i % 2 == 0))
             writer.write("c", c)
 
-    c = C()
-    with HDF5TableReader(path) as reader:
-        c_reader = reader.read("/test/c", C)
+    with HDF5TableReader(path, "/test/c", C) as reader:
         for i in range(2):
-            cur = next(c_reader)
+            cur = reader[i]
             expected = (i % 2) == 0
             assert isinstance(cur.boolean, np.bool_)
             assert cur.boolean == expected
@@ -366,44 +372,48 @@ def test_write_large_integer(tmp_path):
             writer.write("c", c)
 
     c = C()
-    with HDF5TableReader(path) as reader:
-        c_reader = reader.read("/test/c", C)
-        for exp in exps:
-            cur = next(c_reader)
+    with HDF5TableReader(path, "/test/c", C) as reader:
+        for cur, exp in zip_longest(reader, exps):
             assert cur.value == 2**exp - 1
 
 
 def test_read_container(test_h5_file):
-    with HDF5TableReader(test_h5_file) as reader:
 
-        # get the generators for each table
+    with tables.open_file(test_h5_file) as h5file:
+
+        # get the readers for each table
         # test supplying a single container as well as an
         # iterable with one entry only
-        simtab = reader.read("/R0/sim_shower", (SimulatedShowerContainer,))
-        r0tab1 = reader.read("/R0/tel_001", R0CameraContainer)
-        r0tab2 = reader.read("/R0/tel_002", R0CameraContainer)
+        simtab = HDF5TableReader(h5file, "/R0/sim_shower", (SimulatedShowerContainer,))
+        r0tab1 = HDF5TableReader(h5file, "/R0/tel_001", R0CameraContainer)
+        r0tab2 = HDF5TableReader(h5file, "/R0/tel_002", R0CameraContainer)
 
         # read all 3 tables in sync
-        for _ in range(3):
+        for i in range(3):
 
-            m = next(simtab)[0]
-            r0_1 = next(r0tab1)
-            r0_2 = next(r0tab2)
+            m = simtab[i][0]
+            r0_1 = r0tab1[i]
+            r0_2 = r0tab2[i]
 
             print("sim_shower:", m)
             print("t0:", r0_1.waveform)
             print("t1:", r0_2.waveform)
             print("---------------------------")
 
-        assert "test_attribute" in r0_1.meta
-        assert r0_1.meta["date"] == "2020-10-10"
+        assert "test_attribute" in r0tab1.meta
+        assert "test_attribute" in r0tab2.meta
+        assert r0tab1.meta["date"] == "2020-10-10"
+        assert r0tab2.meta["date"] == "2020-10-10"
 
 
 def test_read_whole_table(test_h5_file):
-
-    with HDF5TableReader(test_h5_file) as reader:
-        for cont in reader.read("/R0/sim_shower", SimulatedShowerContainer):
-            print(cont)
+    with HDF5TableReader(
+        test_h5_file, "/R0/sim_shower", SimulatedShowerContainer
+    ) as reader:
+        count = 0
+        for count, container in enumerate(reader, start=1):
+            assert container.shower_primary_id == count
+        assert count == 100
 
 
 def test_with_context_writer(tmp_path):
@@ -431,30 +441,33 @@ def test_writer_closes_file(tmp_path):
 
 
 def test_reader_closes_file(test_h5_file):
-    with HDF5TableReader(test_h5_file) as h5_table:
-
-        assert h5_table._h5file.isopen == 1
-
-    assert h5_table._h5file.isopen == 0
+    with HDF5TableReader(
+        test_h5_file,
+        "/R0/sim_shower",
+        SimulatedShowerContainer,
+    ) as reader:
+        assert reader._h5file.isopen == 1
+    assert reader._h5file.isopen == 0
 
 
 def test_with_context_reader(test_h5_file):
 
-    with HDF5TableReader(test_h5_file) as h5_table:
+    with HDF5TableReader(
+        test_h5_file,
+        "/R0/sim_shower",
+        SimulatedShowerContainer,
+    ) as reader:
+        assert reader._h5file.isopen == 1
+        for _ in reader:
+            pass
 
-        assert h5_table._h5file.isopen == 1
-
-        for cont in h5_table.read("/R0/sim_shower", SimulatedShowerContainer):
-            print(cont)
-
-    assert h5_table._h5file.isopen == 0
+    assert reader._h5file.isopen == 0
 
 
 def test_closing_reader(test_h5_file):
 
-    f = HDF5TableReader(test_h5_file)
+    f = HDF5TableReader(test_h5_file, "/R0/sim_shower", SimulatedShowerContainer)
     f.close()
-
     assert f._h5file.isopen == 0
 
 
@@ -470,21 +483,6 @@ def test_cannot_read_with_writer(tmp_path):
     with pytest.raises(IOError):
         with HDF5TableWriter(tmp_path / "test.h5", "test", mode="r"):
             pass
-
-
-def test_cannot_write_with_reader(test_h5_file):
-    with HDF5TableReader(test_h5_file, mode="w") as h5:
-        assert h5._h5file.mode == "r"
-
-
-def test_cannot_append_with_reader(test_h5_file):
-    with HDF5TableReader(test_h5_file, mode="a") as h5:
-        assert h5._h5file.mode == "r"
-
-
-def test_cannot_r_plus_with_reader(test_h5_file):
-    with HDF5TableReader(test_h5_file, mode="r+") as h5:
-        assert h5._h5file.mode == "r"
 
 
 def test_append_mode(tmp_path):
@@ -504,12 +502,12 @@ def test_append_mode(tmp_path):
         h5.write("table_2", container)
 
     # Check if file has two tables with a = 1
-    with HDF5TableReader(path) as h5:
+    with tables.open_file(path) as h5:
 
-        for container in h5.read("/group/table_1", ContainerA):
+        for container in HDF5TableReader(h5, "/group/table_1", ContainerA):
             assert container.a == 1
 
-        for container in h5.read("/group/table_2", ContainerA):
+        for container in HDF5TableReader(h5, "/group/table_2", ContainerA):
             assert container.a == 1
 
 
@@ -527,12 +525,12 @@ def test_write_to_any_location(tmp_path):
             h5.write("table", container)
             h5.write("deeper/table2", container)
 
-    with HDF5TableReader(path) as h5:
-        for container in h5.read(f"/{loc}/group_1/table", ContainerA):
+    with HDF5TableReader(path, f"/{loc}/group_1/table", ContainerA) as h5:
+        for container in h5:
             assert container.a == 1
 
-    with HDF5TableReader(path) as h5:
-        for container in h5.read(f"/{loc}/group_1/deeper/table2", ContainerA):
+    with HDF5TableReader(path, f"/{loc}/group_1/deeper/table2", ContainerA) as h5:
+        for container in h5:
             assert container.a == 1
 
 
@@ -567,11 +565,9 @@ def test_read_write_container_with_enum(tmp_path):
         for data in create_stream(10):
             h5_table.write("table", data)
 
-    with HDF5TableReader(tmp_file, mode="r") as h5_table:
-        for group_name in ["data/"]:
-            group_name = "/{}table".format(group_name)
-            for data in h5_table.read(group_name, WithNormalEnum):
-                assert isinstance(data.event_type, WithNormalEnum.EventType)
+    with HDF5TableReader(tmp_file, "/data/table", WithNormalEnum) as h5_table:
+        for data in h5_table:
+            assert isinstance(data.event_type, WithNormalEnum.EventType)
 
 
 class WithIntEnum(Container):
@@ -599,11 +595,9 @@ def test_read_write_container_with_int_enum(tmp_path):
         for data in create_stream(10):
             h5_table.write("table", data)
 
-    with HDF5TableReader(tmp_file, mode="r") as h5_table:
-        for group_name in ["data/"]:
-            group_name = "/{}table".format(group_name)
-            for data in h5_table.read(group_name, WithIntEnum):
-                assert isinstance(data.event_type, WithIntEnum.EventType)
+    with HDF5TableReader(tmp_file, "/data/table", WithIntEnum) as h5_table:
+        for data in h5_table:
+            assert isinstance(data.event_type, WithIntEnum.EventType)
 
 
 def test_column_exclusions(tmp_path):
@@ -633,14 +627,15 @@ def test_column_exclusions(tmp_path):
 
     # check that we get back the transformed values (note here a round trip will
     # not work, as there is no inverse transform in this test)
-    with HDF5TableReader(tmp_file, mode="r") as reader:
-        data = next(reader.read("/data/mytable", SomeContainer))
+    with HDF5TableReader(tmp_file, "/data/mytable", SomeContainer) as reader:
+        data = reader[0]
         assert data.hillas_x is None
         assert data.hillas_y is None
         assert data.impact_x == 15
         assert data.impact_y == 15
 
-        data = next(reader.read("/data/anothertable", SomeContainer))
+    with HDF5TableReader(tmp_file, "/data/anothertable", SomeContainer) as reader:
+        data = reader[0]
         assert data.hillas_x is None
         assert data.hillas_y is None
         assert data.impact_x is None
@@ -671,8 +666,8 @@ def test_column_transforms(tmp_path):
         writer.write("mytable", cont)
 
     # check that we get a length-3 array when reading back
-    with HDF5TableReader(tmp_file, mode="r") as reader:
-        data = next(reader.read("/data/mytable", SomeContainer))
+    with HDF5TableReader(tmp_file, "/data/mytable", SomeContainer) as reader:
+        data = reader[0]
         assert data.current.value == 1e6
         assert data.current.unit == u.uA
         assert isinstance(data.time, Time)
@@ -706,9 +701,9 @@ def test_fixed_point_column_transform(tmp_path):
         writer.write("signed", cont)
         writer.write("unsigned", cont)
 
-    with HDF5TableReader(tmp_file, mode="r") as reader:
-        signed = next(reader.read("/data/signed", SomeContainer))
-        unsigned = next(reader.read("/data/unsigned", SomeContainer))
+    with tables.open_file(tmp_file, mode="r") as h5:
+        signed = HDF5TableReader(h5, "/data/signed", SomeContainer)[0]
+        unsigned = HDF5TableReader(h5, "/data/unsigned", SomeContainer)[0]
 
         for data in (signed, unsigned):
             # check we get our original nans back
@@ -741,12 +736,12 @@ def test_column_transforms_regexps(tmp_path):
 
     # check that we get back the transformed values (note here a round trip will
     # not work, as there is no inverse transform in this test)
-    with HDF5TableReader(tmp_file, mode="r") as reader:
-        data = next(reader.read("/data/mytable", SomeContainer))
+    with tables.open_file(tmp_file, mode="r") as h5:
+        data = HDF5TableReader(h5, "/data/mytable", SomeContainer)[0]
         assert data.hillas_x == 10
         assert data.hillas_y == 10
 
-        data = next(reader.read("/data/anothertable", SomeContainer))
+        data = HDF5TableReader(h5, "/data/anothertable", SomeContainer)[0]
         assert data.hillas_x == 1
         assert data.hillas_y == 10
 
@@ -764,12 +759,12 @@ def test_time(tmp_path):
         # add user generated transform for the "value" column
         writer.write("table", container)
 
-    with HDF5TableReader(tmp_file, mode="r") as reader:
-        for data in reader.read("/data/table", TimeContainer):
-            assert isinstance(data.time, Time)
-            assert data.time.scale == "tai"
-            assert data.time.format == "mjd"
-            assert (data.time - time).to(u.s).value < 1e-7
+    with HDF5TableReader(tmp_file, "/data/table", TimeContainer) as reader:
+        data = reader[0]
+        assert isinstance(data.time, Time)
+        assert data.time.scale == "tai"
+        assert data.time.format == "mjd"
+        assert (data.time - time).to(u.s).value < 1e-7
 
 
 def test_filters(tmp_path):
@@ -922,10 +917,10 @@ def test_strings(tmp_path):
     assert table["string"].tolist() == expected
 
     # test this also works with table reader
-    with HDF5TableReader(path) as reader:
-        generator = reader.read("/strings", Container2)
+    with HDF5TableReader(path, "/strings", Container2) as reader:
+        iterator = iter(reader)
         for string in expected:
-            c = next(generator)
+            c = next(iterator)
             assert c.string == string
 
 
@@ -941,11 +936,11 @@ def test_prefix_in_output_container(tmp_path):
         for value in (1, 2, 3):
             writer.write("values", Container1(value=value, prefix="custom_prefix"))
 
-    with HDF5TableReader(path) as reader:
-        generator = reader.read("/values", Container1, prefixes="custom_prefix")
-
-        for value in (1, 2, 3):
-            c = next(generator)
+    with HDF5TableReader(
+        path, "/values", Container1, prefixes="custom_prefix"
+    ) as reader:
+        for i, value in enumerate((1, 2, 3)):
+            c = reader[i]
             assert c.prefix == "custom_prefix"
             assert c.value == value
 
@@ -963,11 +958,9 @@ def test_can_read_without_prefix_given(tmp_path):
             writer.write("values", Container1(value=value, prefix="custom_prefix"))
 
     # test we can read back the data without knowing the "custom_prefix"
-    with HDF5TableReader(path) as reader:
-        generator = reader.read("/values", Container1)
-
-        for value in (1, 2, 3):
-            c = next(generator)
+    with HDF5TableReader(path, "/values", Container1) as reader:
+        for i, value in enumerate((1, 2, 3)):
+            c = reader[i]
             assert c.value == value
             assert c.prefix == "custom_prefix"
 
@@ -992,23 +985,20 @@ def test_can_read_same_containers(tmp_path):
             )
 
     # This needs to fail since the mapping is not unique
-    with HDF5TableReader(path) as reader:
-        with pytest.raises(IOError):
-            generator = reader.read("/values", [Container1, Container1])
-            next(generator)
+    with pytest.raises(IOError):
+        HDF5TableReader(path, "/values", [Container1, Container1])
 
     # But when explicitly giving the prefixes, this works and order
     # should not be important
-    reader = HDF5TableReader(path)
-    generator = reader.read(
+    with HDF5TableReader(
+        path,
         "/values",
         [Container1, Container1],
         prefixes=["bar", "foo"],
-    )
-
-    for value in (1, 2, 3):
-        c1, c2 = next(generator)
-        assert c1.value == 5 * value
-        assert c1.prefix == "bar"
-        assert c2.value == value
-        assert c2.prefix == "foo"
+    ) as reader:
+        for i, value in enumerate((1, 2, 3)):
+            c1, c2 = reader[i]
+            assert c1.value == 5 * value
+            assert c1.prefix == "bar"
+            assert c2.value == value
+            assert c2.prefix == "foo"

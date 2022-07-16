@@ -1,6 +1,6 @@
 import logging
-from pathlib import Path
 from functools import lru_cache
+from pathlib import Path
 
 import astropy.units as u
 import numpy as np
@@ -274,9 +274,12 @@ class HDF5EventSource(EventSource):
 
         simulation_configs = {}
         if "simulation" in self.file_.root.configuration:
-            reader = HDF5TableReader(self.file_).read(
-                "/configuration/simulation/run",
-                containers=(SimulationConfigContainer, ObsIdContainer),
+            reader = iter(
+                HDF5TableReader(
+                    self.file_,
+                    "/configuration/simulation/run",
+                    containers=(SimulationConfigContainer, ObsIdContainer),
+                )
             )
             for (config, index) in reader:
                 simulation_configs[index.obs_id] = config
@@ -287,12 +290,15 @@ class HDF5EventSource(EventSource):
         """
         Yield ArrayEventContainer to iterate through events.
         """
-        self.reader = HDF5TableReader(self.file_)
 
         if DataLevel.R1 in self.datalevels:
             waveform_readers = {
-                table.name: self.reader.read(
-                    f"/r1/event/telescope/{table.name}", R1CameraContainer
+                table.name: iter(
+                    HDF5TableReader(
+                        self.file_,
+                        f"/r1/event/telescope/{table.name}",
+                        R1CameraContainer,
+                    )
                 )
                 for table in self.file_.root.r1.event.telescope
             }
@@ -305,10 +311,13 @@ class HDF5EventSource(EventSource):
                 ignore_columns.add("image_mask")
 
             image_readers = {
-                table.name: self.reader.read(
-                    f"/dl1/event/telescope/images/{table.name}",
-                    DL1CameraContainer,
-                    ignore_columns=ignore_columns,
+                table.name: iter(
+                    HDF5TableReader(
+                        self.file_,
+                        f"/dl1/event/telescope/images/{table.name}",
+                        DL1CameraContainer,
+                        ignore_columns=ignore_columns,
+                    )
                 )
                 for table in self.file_.root.dl1.event.telescope.images
             }
@@ -330,47 +339,53 @@ class HDF5EventSource(EventSource):
                 timing_cls = CameraTimingParametersContainer
 
             param_readers = {
-                table.name: self.reader.read(
-                    f"/dl1/event/telescope/parameters/{table.name}",
-                    containers=(
-                        hillas_cls,
-                        timing_cls,
-                        LeakageContainer,
-                        ConcentrationContainer,
-                        MorphologyContainer,
-                        IntensityStatisticsContainer,
-                        PeakTimeStatisticsContainer,
-                    ),
-                    prefixes=[
-                        "hillas",
-                        "timing",
-                        "leakage",
-                        "concentration",
-                        "morphology",
-                        "intensity",
-                        "peak_time",
-                    ],
+                table.name: iter(
+                    HDF5TableReader(
+                        self.file_,
+                        f"/dl1/event/telescope/parameters/{table.name}",
+                        containers=(
+                            hillas_cls,
+                            timing_cls,
+                            LeakageContainer,
+                            ConcentrationContainer,
+                            MorphologyContainer,
+                            IntensityStatisticsContainer,
+                            PeakTimeStatisticsContainer,
+                        ),
+                        prefixes=[
+                            "hillas",
+                            "timing",
+                            "leakage",
+                            "concentration",
+                            "morphology",
+                            "intensity",
+                            "peak_time",
+                        ],
+                    )
                 )
                 for table in self.file_.root.dl1.event.telescope.parameters
             }
             if self.has_simulated_dl1:
                 simulated_param_readers = {
-                    table.name: self.reader.read(
-                        f"/simulation/event/telescope/parameters/{table.name}",
-                        containers=[
-                            hillas_cls,
-                            LeakageContainer,
-                            ConcentrationContainer,
-                            MorphologyContainer,
-                            IntensityStatisticsContainer,
-                        ],
-                        prefixes=[
-                            "true_hillas",
-                            "true_leakage",
-                            "true_concentration",
-                            "true_morphology",
-                            "true_intensity",
-                        ],
+                    table.name: iter(
+                        HDF5TableReader(
+                            self.file_,
+                            f"/simulation/event/telescope/parameters/{table.name}",
+                            containers=[
+                                hillas_cls,
+                                LeakageContainer,
+                                ConcentrationContainer,
+                                MorphologyContainer,
+                                IntensityStatisticsContainer,
+                            ],
+                            prefixes=[
+                                "true_hillas",
+                                "true_leakage",
+                                "true_concentration",
+                                "true_morphology",
+                                "true_intensity",
+                            ],
+                        )
                     )
                     for table in self.file_.root.dl1.event.telescope.parameters
                 }
@@ -388,10 +403,13 @@ class HDF5EventSource(EventSource):
                     continue
 
                 dl2_readers[kind] = {
-                    algorithm: HDF5TableReader(self.file_).read(
-                        table._v_pathname,
-                        containers=container,
-                        prefixes=(algorithm,),
+                    algorithm: iter(
+                        HDF5TableReader(
+                            self.file_,
+                            table._v_pathname,
+                            containers=container,
+                            prefixes=(algorithm,),
+                        )
                     )
                     for algorithm, table in group._v_children.items()
                 }
@@ -410,10 +428,13 @@ class HDF5EventSource(EventSource):
                 dl2_tel_readers[kind] = {}
                 for algorithm, algorithm_group in group._v_children.items():
                     dl2_tel_readers[kind][algorithm] = {
-                        key: HDF5TableReader(self.file_).read(
-                            table._v_pathname,
-                            containers=container,
-                            prefixes=(f"{algorithm}_tel",),
+                        key: iter(
+                            HDF5TableReader(
+                                self.file_,
+                                table._v_pathname,
+                                containers=container,
+                                prefixes=(f"{algorithm}_tel",),
+                            )
                         )
                         for key, table in algorithm_group._v_children.items()
                     }
@@ -421,31 +442,41 @@ class HDF5EventSource(EventSource):
         true_impact_readers = {}
         if self.is_simulation:
             # simulated shower wide information
-            mc_shower_reader = HDF5TableReader(self.file_).read(
-                "/simulation/event/subarray/shower",
-                SimulatedShowerContainer,
-                prefixes="true",
+            mc_shower_reader = iter(
+                HDF5TableReader(
+                    self.file_,
+                    "/simulation/event/subarray/shower",
+                    SimulatedShowerContainer,
+                    prefixes="true",
+                )
             )
             if "impact" in self.file_.root.simulation.event.telescope:
                 true_impact_readers = {
-                    table.name: self.reader.read(
-                        f"/simulation/event/telescope/impact/{table.name}",
-                        containers=TelescopeImpactParameterContainer,
-                        prefixes=["true_impact"],
+                    table.name: iter(
+                        HDF5TableReader(
+                            self.file_,
+                            f"/simulation/event/telescope/impact/{table.name}",
+                            containers=TelescopeImpactParameterContainer,
+                            prefixes=["true_impact"],
+                        )
                     )
                     for table in self.file_.root.simulation.event.telescope.impact
                 }
 
         # Setup iterators for the array events
-        events = HDF5TableReader(self.file_).read(
+        events = HDF5TableReader(
+            self.file_,
             "/dl1/event/subarray/trigger",
             [TriggerContainer, EventIndexContainer],
             ignore_columns={"tel"},
         )
-        telescope_trigger_reader = HDF5TableReader(self.file_).read(
-            "/dl1/event/telescope/trigger",
-            [TelEventIndexContainer, TelescopeTriggerContainer],
-            ignore_columns={"trigger_pixels"},
+        telescope_trigger_reader = iter(
+            HDF5TableReader(
+                self.file_,
+                "/dl1/event/telescope/trigger",
+                [TelEventIndexContainer, TelescopeTriggerContainer],
+                ignore_columns={"trigger_pixels"},
+            )
         )
 
         array_pointing_finder = IndexFinder(
