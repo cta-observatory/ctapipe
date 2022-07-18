@@ -332,3 +332,8 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
             condlist=condlist,
             funclist=self._funcs,
         ).to(u.g / u.cm**2)
+
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__}(meta={self.table.meta}, rows={len(self.table)})"
+        )
