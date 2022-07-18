@@ -310,6 +310,10 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
             names=["height", "a", "b", "c", "1/c"],
             units=["cm", "g/cm2", "g/cm2", "cm", "cm-1"],
         )
+        table.meta = dict(
+            TAB_VER=1,
+            TAB_TYPE="ctapipe.atmosphere.model.FiveLayerAtmosphereDensityProfile",
+        )
         return cls(table)
 
     @u.quantity_input(h=u.m)

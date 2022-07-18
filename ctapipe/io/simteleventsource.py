@@ -302,6 +302,8 @@ def read_atmosphere_profile_from_simtel(
                         column_density=atmo["thickness"] * u.g / u.cm**2,
                     ),
                     meta=dict(
+                        TAB_TYPE="ctapipe.atmosphere.model.TableAtmosphereDensityProfile",
+                        TAB_VER=1,
                         obs_level=atmo["obslevel"] * u.cm,
                         atmo_id=atmo["id"],
                         atmo_name=atmo["name"],
