@@ -283,7 +283,6 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
 
     def __init__(self, table: Table):
         self.table = table
-        self._funcs = []
 
         param_a = self.table["a"].to("g/cm2")
         param_b = self.table["b"].to("g/cm2")
