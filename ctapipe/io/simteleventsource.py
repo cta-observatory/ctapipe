@@ -338,11 +338,10 @@ class SimTelEventSource(EventSource):
             if self.focal_length_choice is FocalLengthKind.EFFECTIVE:
                 if np.isnan(effective_focal_length):
                     raise RuntimeError(
-                        f"`SimTelEventSource.focal_length_choice` was set to"
-                        f" {self.focal_length_choice!r}, but the effective focal length"
-                        f" was not present in the file. "
-                        " Use nominal focal length or adapt your simulation configuration"
-                        " to include the effective focal length"
+                        "`SimTelEventSource.focal_length_choice` was set to 'EFFECTIVE'"
+                        ", but the effective focal length was not present in the file."
+                        " Set `focal_length_choice='EQUIVALENT'` or make sure"
+                        " input files contain the effective focal length"
                     )
                 focal_length = effective_focal_length
             elif self.focal_length_choice is FocalLengthKind.EQUIVALENT:
