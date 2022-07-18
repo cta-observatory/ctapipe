@@ -59,7 +59,7 @@ def test_to_unit():
 
     expressions = {
         "length_meter": "length.to(u.m)",
-        "log_length_meter": "log10(length.to(u.m).value)",
+        "log_length_meter": "log10(length.quantity.to_value(u.m))",
     }
     generator = FeatureGenerator(features=expressions)
     table = Table({"length": [1 * u.km]})
