@@ -308,8 +308,8 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
 
         table = Table(
             array,
-            names=["height", "a", "b", "c", "?"],
-            units=["cm", "g/cm2", "g/cm2", "cm", ""],
+            names=["height", "a", "b", "c", "1/c"],
+            units=["cm", "g/cm2", "g/cm2", "cm", "cm-1"],
         )
         return cls(table)
 
