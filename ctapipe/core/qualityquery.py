@@ -8,7 +8,7 @@ import numpy as np  # for use in selection functions
 
 from .component import Component
 from .expression_engine import ExpressionEngine
-from .traits import List
+from .traits import List, Tuple, Unicode
 
 
 class QualityCriteriaError(TypeError):
@@ -25,12 +25,13 @@ class QualityQuery(Component):
     """
 
     quality_criteria = List(
+        Tuple(Unicode(), Unicode()),
         help=(
             "list of tuples of ('<description', 'expression string') to accept "
             "(select) a given data value.  E.g. `[('mycut', 'x > 3'),]. "
             "You may use `numpy` as `np` and `astropy.units` as `u`, but no other"
             " modules."
-        )
+        ),
     ).tag(config=True)
 
     def __init__(self, config=None, parent=None, **kwargs):
@@ -41,7 +42,8 @@ class QualityQuery(Component):
         self.expressions = [e for (_, e) in self.quality_criteria]
 
         self.engine = ExpressionEngine(
-            parent=self, expressions=dict(self.quality_criteria)
+            parent=self,
+            expressions=self.quality_criteria,
         )
         for _, expr in self.quality_criteria:
             if "lambda" in expr:

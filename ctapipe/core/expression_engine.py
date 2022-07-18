@@ -5,7 +5,7 @@ import astropy.units as u  # for use in selection functions
 import numpy as np  # for use in selection functions
 
 from .component import Component
-from .traits import Dict
+from .traits import List, Tuple, Unicode
 
 # the following are what are allowed to be used
 # in selection functions (passed to eval())
@@ -24,13 +24,16 @@ class ExpressionEngine(Component):
     Compile expressions on init, evaluate on call.
     """
 
-    expressions = Dict(help="Mapping of names to expressions.").tag(config=True)
+    expressions = List(
+        Tuple(Unicode(), Unicode()),
+        help="List of 2-Tuples of Strings: ('name', 'expression').",
+    ).tag(config=True)
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
 
         self.compiled = []
-        for name, expression in self.expressions.items():
+        for name, expression in self.expressions:
             try:
                 self.compiled.append(compile(expression, __name__, mode="eval"))
             except Exception:

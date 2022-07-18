@@ -133,3 +133,15 @@ def test_printing():
     )
 
     assert isinstance(str(query), str)
+
+
+def test_setup():
+    """Test that tuples can only have length 2"""
+    from traitlets import TraitError
+
+    # 2-tuple works
+    QualityQuery(quality_criteria=[("1", "2")])
+
+    # 3-tuple fails
+    with pytest.raises(TraitError):
+        QualityQuery(quality_criteria=[("1", "2", "3")])

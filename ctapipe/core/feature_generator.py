@@ -3,7 +3,7 @@ Generate Features.
 """
 from .component import Component
 from .expression_engine import ExpressionEngine
-from .traits import Dict
+from .traits import List, Tuple, Unicode
 
 
 class FeatureGeneratorException(TypeError):
@@ -19,19 +19,23 @@ class FeatureGenerator(Component):
     2. If a feature cannot be built with the given expression
     """
 
-    features = Dict(
+    features = List(
+        Tuple(Unicode(), Unicode()),
         help=(
-            "Keys are the names for the new features."
-            " Values are the expressions that generate the new feature."
-        )
+            "List of 2-Tuples of Strings: ('new_feature_name', 'expression to generate feature'). "
+            "You can use `numpy` as `np` and `astropy.units` as `u`. "
+            "Several math functions are usable without the `np`-prefix. "
+            "Use `feature.quantity.to_value(unit)` to create features without units."
+        ),
     ).tag(config=True)
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
         self.engine = ExpressionEngine(parent=self, expressions=self.features)
+        self._feature_names = [name for name, _ in self.features]
 
     def __call__(self, table):
-        for result, name in zip(self.engine(table), self.features.keys()):
+        for result, name in zip(self.engine(table), self._feature_names):
             if name in table.colnames:
                 raise FeatureGeneratorException(f"{name} is already a column of table.")
             try:

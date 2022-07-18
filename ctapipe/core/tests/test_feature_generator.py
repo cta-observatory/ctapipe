@@ -9,11 +9,11 @@ from ctapipe.core.feature_generator import FeatureGenerator, FeatureGeneratorExc
 
 def test_generate_features():
     """Test if generating features works."""
-    expressions = {
-        "log_intensity": "log10(intensity)",
-        "area": "length * width",
-        "eccentricity": "sqrt(1 - width ** 2 / length ** 2)",
-    }
+    expressions = [
+        ("log_intensity", "log10(intensity)"),
+        ("area", "length * width"),
+        ("eccentricity", "sqrt(1 - width ** 2 / length ** 2)"),
+    ]
 
     generator = FeatureGenerator(features=expressions)
 
@@ -35,7 +35,7 @@ def test_generate_features():
 
 def test_existing_feature():
     """If the feature already exists, fail"""
-    expressions = {"foo": "bar"}
+    expressions = [("foo", "bar")]
     generator = FeatureGenerator(features=expressions)
     table = Table({"foo": [1], "bar": [1]})
 
@@ -45,7 +45,7 @@ def test_existing_feature():
 
 def test_missing_colname():
     """If the column to create a feature misses, fail"""
-    expressions = {"foo": "bar"}
+    expressions = [("foo", "bar")]
     generator = FeatureGenerator(features=expressions)
     table = Table({"baz": [1]})
 
@@ -57,10 +57,10 @@ def test_to_unit():
     """Test chaning the unit of a feature"""
     from astropy import units as u
 
-    expressions = {
-        "length_meter": "length.to(u.m)",
-        "log_length_meter": "log10(length.quantity.to_value(u.m))",
-    }
+    expressions = [
+        ("length_meter", "length.to(u.m)"),
+        ("log_length_meter", "log10(length.quantity.to_value(u.m))"),
+    ]
     generator = FeatureGenerator(features=expressions)
     table = Table({"length": [1 * u.km]})
 

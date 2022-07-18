@@ -41,6 +41,7 @@ __all__ = [
     "Long",
     "Set",
     "TraitError",
+    "Tuple",
     "Unicode",
     "flag",
     "observe",
@@ -68,6 +69,7 @@ CaselessStrEnum = traitlets.CaselessStrEnum
 UseEnum = traitlets.UseEnum
 TraitError = traitlets.TraitError
 TraitType = traitlets.TraitType
+Tuple = traitlets.Tuple
 observe = traitlets.observe
 flag = traitlets.config.boolean_flag
 
