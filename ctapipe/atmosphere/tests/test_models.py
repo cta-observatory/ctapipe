@@ -26,7 +26,7 @@ def get_simtel_profile_from_eventsource():
 def get_simtel_fivelayer_profile():
     from ctapipe.io.simteleventsource import read_atmosphere_profile_from_simtel
 
-    read_atmosphere_profile_from_simtel(SIMTEL_PATH, kind="fivelayer")
+    return read_atmosphere_profile_from_simtel(SIMTEL_PATH, kind="fivelayer")
 
 
 @pytest.mark.parametrize(
