@@ -9,7 +9,6 @@ from astropy.coordinates import Angle
 from astropy.time import Time
 from traitlets.config import Config
 
-from ctapipe.atmosphere.model import AtmosphereDensityProfile
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 from ctapipe.instrument.camera.geometry import UnknownPixelShapeWarning
 from ctapipe.instrument.optics import ReflectorShape
@@ -523,22 +522,33 @@ def test_simtel_no_metadata(monkeypatch):
 
 
 def test_load_atmosphere_from_simtel(prod5_gamma_simtel_path):
-
-    tables = read_atmosphere_profile_from_simtel(prod5_gamma_simtel_path)
-
-    for table in tables:
-        assert "height" in table.colnames
-        assert "density" in table.colnames
-        assert "column_density" in table.colnames
+    from ctapipe.atmosphere.model import (
+        FiveLayerAtmosphereDensityProfile,
+        TableAtmosphereDensityProfile,
+    )
 
     # old simtel files don't have the profile in them, so a null list should be returned
+    profile = read_atmosphere_profile_from_simtel(prod5_gamma_simtel_path, kind="auto")
+    assert isinstance(profile, TableAtmosphereDensityProfile)
+
+    profile = read_atmosphere_profile_from_simtel(prod5_gamma_simtel_path, kind="table")
+    assert isinstance(profile, TableAtmosphereDensityProfile)
+
+    profile = read_atmosphere_profile_from_simtel(
+        prod5_gamma_simtel_path, kind="fivelayer"
+    )
+    assert isinstance(profile, FiveLayerAtmosphereDensityProfile)
+
+    # old simtel files don't have the profile in them, so a null list should be
+    # returned
     simtel_path_old = get_dataset_path("gamma_test_large.simtel.gz")
-    tables = read_atmosphere_profile_from_simtel(simtel_path_old)
-    assert len(tables) == 0
+    profile = read_atmosphere_profile_from_simtel(simtel_path_old)
+    assert not profile
 
 
 def test_atmosphere_profile(prod5_gamma_simtel_path):
     """check that for a file with a profile in it that we get it back"""
+    from ctapipe.atmosphere.model import AtmosphereDensityProfile
 
     with SimTelEventSource(prod5_gamma_simtel_path) as source:
         assert isinstance(source.atmosphere_density_profile, AtmosphereDensityProfile)

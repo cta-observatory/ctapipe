@@ -14,7 +14,11 @@ from astropy.time import Time
 from eventio.file_types import is_eventio
 from eventio.simtel.simtelfile import SimTelFile
 
-from ..atmosphere import AtmosphereDensityProfile, TableAtmosphereDensityProfile
+from ..atmosphere import (
+    AtmosphereDensityProfile,
+    FiveLayerAtmosphereDensityProfile,
+    TableAtmosphereDensityProfile,
+)
 from ..calib.camera.gainselection import GainSelector
 from ..containers import (
     ArrayEventContainer,
@@ -251,7 +255,7 @@ def apply_simtel_r1_calibration(
 
 
 def read_atmosphere_profile_from_simtel(
-    simtelfile: Union[str, SimTelFile]
+    simtelfile: Union[str, Path, SimTelFile], kind="auto"
 ) -> Optional[TableAtmosphereDensityProfile]:
     """Read an atmosphere profile from a SimTelArray file as an astropy Table
 
@@ -259,6 +263,9 @@ def read_atmosphere_profile_from_simtel(
     ----------
     simtelfile: str | eventio.simtel.simtelfile.SimTelFile
         filename of a SimTelArray file containing an atmosphere profile
+    kind: str
+        "table",  "fivelayer", "auto" : which type of model to load.
+        In auto mode, table is tried first, and if it doesn't exist, fivelayer is used.
 
     Returns
     -------
@@ -268,7 +275,7 @@ def read_atmosphere_profile_from_simtel(
 
     profiles = []
 
-    if isinstance(simtelfile, str):
+    if isinstance(simtelfile, (str, Path)):
         context_manager = SimTelFile(simtelfile)
         Provenance().add_input_file(
             filename=simtelfile, role="ctapipe.atmosphere.model"
@@ -286,22 +293,34 @@ def read_atmosphere_profile_from_simtel(
             return []
 
         for atmo in simtel.atmospheric_profiles:
-            table = Table(
-                dict(
-                    height=atmo["altitude_km"] * u.km,
-                    density=atmo["rho"] * u.g / u.cm**3,
-                    column_density=atmo["thickness"] * u.g / u.cm**2,
-                ),
-                meta=dict(
-                    obs_level=atmo["obslevel"] * u.cm,
-                    atmo_id=atmo["id"],
-                    atmo_name=atmo["name"],
-                    htoa=atmo["htoa"],  # what is this?,
-                ),
-            )
-            profiles.append(TableAtmosphereDensityProfile(table=table))
 
-    if len(profiles) > 0:
+            if kind == "table" or kind == "auto" and "altitude_km" in atmo:
+                table = Table(
+                    dict(
+                        height=atmo["altitude_km"] * u.km,
+                        density=atmo["rho"] * u.g / u.cm**3,
+                        column_density=atmo["thickness"] * u.g / u.cm**2,
+                    ),
+                    meta=dict(
+                        obs_level=atmo["obslevel"] * u.cm,
+                        atmo_id=atmo["id"],
+                        atmo_name=atmo["name"],
+                        htoa=atmo["htoa"],  # what is this?,
+                    ),
+                )
+                profiles.append(TableAtmosphereDensityProfile(table=table))
+
+            elif kind == "fivelayer" and "five_layer_atmosphere" in atmo:
+                profiles.append(
+                    FiveLayerAtmosphereDensityProfile.from_array(
+                        atmo["five_layer_atmosphere"]
+                    )
+                )
+
+            else:
+                raise ValueError(f"Couldn't  load requested profile '{kind}'")
+
+    if profiles:
         return profiles[0]
     else:
         return None

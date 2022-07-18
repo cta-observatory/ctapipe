@@ -12,10 +12,10 @@ SIMTEL_PATH = get_dataset_path(
 
 @pytest.fixture(scope="session")
 def table_profile():
-    return get_simtel_profile()
+    return get_simtel_profile_from_eventsource()
 
 
-def get_simtel_profile():
+def get_simtel_profile_from_eventsource():
     """get a TableAtmosphereDensityModel from a simtel file"""
     from ctapipe.io import EventSource
 
@@ -23,9 +23,19 @@ def get_simtel_profile():
         return source.atmosphere_density_profile
 
 
+def get_simtel_fivelayer_profile():
+    from ctapipe.io.simteleventsource import read_atmosphere_profile_from_simtel
+
+    read_atmosphere_profile_from_simtel(SIMTEL_PATH, kind="fivelayer")
+
+
 @pytest.mark.parametrize(
     "density_model",
-    [model.ExponentialAtmosphereDensityProfile(), get_simtel_profile()],
+    [
+        model.ExponentialAtmosphereDensityProfile(),
+        get_simtel_profile_from_eventsource(),
+        get_simtel_fivelayer_profile(),
+    ],
 )
 def test_models(density_model):
     """check that a set of model classes work"""

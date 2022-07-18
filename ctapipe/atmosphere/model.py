@@ -11,6 +11,7 @@ account)
 
 import abc
 from dataclasses import dataclass
+from functools import partial
 
 import numpy as np
 from astropy import units as u
@@ -21,6 +22,7 @@ __all__ = [
     "AtmosphereDensityProfile",
     "ExponentialAtmosphereDensityProfile",
     "TableAtmosphereDensityProfile",
+    "FiveLayerAtmosphereDensityProfile",
 ]
 
 
@@ -239,3 +241,94 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
         return (
             f"{self.__class__.__name__}(meta={self.table.meta}, rows={len(self.table)})"
         )
+
+
+def _exponential(h, a, b, c):
+    """exponential atmosphere"""
+    return a + b * np.exp(-h / c)
+
+
+def _d_exponential(h, a, b, c):
+    """derivative of exponential atmosphere"""
+    return -b / c * np.exp(-h / c)
+
+
+def _linear(h, a, b, c):
+    """linear atmosphere"""
+    return a - b * h / c
+
+
+def _d_linear(h, a, b, c):
+    """derivative of linear atmosphere"""
+    return -b / c
+
+
+class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
+    r"""
+    CORSIKA 5-layer atmosphere model
+
+    Layers 1-4  are modeled with:
+
+    .. math:: T(h) = a_i + b_i \exp{-h/c_i}
+
+    Layer 5 is modeled with:
+
+    ..math:: T(h) = a_5 - b_5 \frac{h}{c_5}
+
+    References
+    ----------
+    [corsika-user] D. Heck and T. Pierog, "Extensive Air Shower Simulation with CORSIKA:
+        A User’s Guide", 2021, Appendix F
+    """
+
+    def __init__(self, table: Table):
+        self.table = table
+        self._funcs = []
+
+        param_a = self.table["a"].to("g/cm2")
+        param_b = self.table["b"].to("g/cm2")
+        param_c = self.table["c"].to("km")
+
+        # build list of column density functions and their derivatives:
+        self._funcs = [
+            partial(f, a=param_a[i], b=param_b[i], c=param_c[i])
+            for i, f in enumerate([_exponential] * 4 + [_linear])
+        ]
+        self._d_funcs = [
+            partial(f, a=param_a[i], b=param_b[i], c=param_c[i])
+            for i, f in enumerate([_d_exponential] * 4 + [_d_linear])
+        ]
+
+    @classmethod
+    def from_array(cls, array: np.ndarray):
+        """construct from a 5x5 array as provided by eventio"""
+
+        if array.shape != (5, 5):
+            raise ValueError("expected ndarray with shape (5,5)")
+
+        table = Table(
+            array,
+            names=["height", "a", "b", "c", "?"],
+            units=["cm", "g/cm2", "g/cm2", "cm", ""],
+        )
+        return cls(table)
+
+    @u.quantity_input(h=u.m)
+    def __call__(self, h) -> u.Quantity:
+        which_func = np.digitize(h, self.table["height"]) - 1
+        condlist = [which_func == i for i in range(5)]
+        return -1 * np.piecewise(
+            h,
+            condlist=condlist,
+            funclist=self._d_funcs,
+        ).to(u.g / u.cm**3)
+
+    @u.quantity_input(h=u.m)
+    def integral(self, h) -> u.Quantity:
+        which_func = np.digitize(h, self.table["height"]) - 1
+        condlist = [which_func == i for i in range(5)]
+        return np.piecewise(
+            x=h,
+            condlist=condlist,
+            funclist=self._funcs,
+        ).to(u.g / u.cm**2)
