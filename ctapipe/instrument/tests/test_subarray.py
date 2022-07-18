@@ -16,7 +16,7 @@ from ctapipe.instrument import (
 )
 
 
-def example_subarray(tel_type, n_tels=10):
+def create_subarray(tel_type, n_tels=10):
     """generate a simple subarray for testing purposes"""
     rng = np.random.default_rng(0)
 
@@ -42,7 +42,7 @@ def example_subarray(tel_type, n_tels=10):
 def test_subarray_description(prod5_mst_nectarcam):
     """Test SubarrayDescription functionality"""
     n_tels = 10
-    sub = example_subarray(prod5_mst_nectarcam, n_tels)
+    sub = create_subarray(prod5_mst_nectarcam, n_tels)
     sub.peek()
 
     assert len(sub.telescope_types) == 1
@@ -118,6 +118,9 @@ def test_get_tel_ids_for_type(example_subarray):
     for teltype in types:
         assert len(sub.get_tel_ids_for_type(teltype)) > 0
         assert len(sub.get_tel_ids_for_type(str(teltype))) > 0
+
+    with pytest.raises(ValueError):
+        sub.get_tel_ids_for_type("NON_EXISTENT_TYPE")
 
 
 def test_hdf(example_subarray, tmp_path):
@@ -224,7 +227,7 @@ def test_get_tel_ids(example_subarray, prod3_astri):
     true_tel_ids = (
         subarray.get_tel_ids_for_type("MST_MST_FlashCam")
         + subarray.get_tel_ids_for_type(prod3_astri)
-        + [1, 2]
+        + (1, 2)
     )
 
     assert sorted(tel_ids) == sorted(true_tel_ids)
@@ -232,6 +235,20 @@ def test_get_tel_ids(example_subarray, prod3_astri):
     # test invalid telescope type
     with pytest.raises(Exception):
         tel_ids = subarray.get_tel_ids(["It's a-me, Mario!"])
+
+    # test single string
+    tel_ids = subarray.get_tel_ids("LST_LST_LSTCam") == (1, 2, 3, 4)
+
+    # test single id
+    tel_ids = subarray.get_tel_ids(1) == (1,)
+
+    # test invalid id
+    with pytest.raises(ValueError):
+        subarray.get_tel_ids(500)
+
+    # test invalid description
+    with pytest.raises(ValueError):
+        subarray.get_tel_ids("It's a-me, Mario!")
 
 
 def test_unknown_telescopes(example_subarray):
