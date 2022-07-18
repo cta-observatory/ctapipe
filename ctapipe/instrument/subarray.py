@@ -628,10 +628,10 @@ class SubarrayDescription:
                 focal_length = optics.effective_focal_length
                 if np.isnan(focal_length.value):
                     raise RuntimeError(
-                        "`focal_length_choice` was set to 'effective', but the"
+                        "`focal_length_choice` was set to 'EFFECTIVE', but the"
                         " effective focal length was not present in the file. "
-                        " Use nominal focal length or adapt configuration"
-                        " to include the effective focal length"
+                        " Set `focal_length_choice='EQUIVALENT'` or make sure"
+                        " input files contain the effective focal length"
                     )
             elif focal_length_choice is FocalLengthKind.EQUIVALENT:
                 focal_length = optics.equivalent_focal_length
