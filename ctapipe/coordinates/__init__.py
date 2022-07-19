@@ -1,27 +1,26 @@
 """
 Coordinates.
 """
+import warnings
 
-import numpy as np
-
+import astropy.units as u
 from astropy.coordinates import (
+    CIRS,
     AltAz,
     FunctionTransformWithFiniteDifference,
-    CIRS,
     frame_transform_graph,
-    spherical_to_cartesian,
 )
-import warnings
-from .telescope_frame import TelescopeFrame
-from .nominal_frame import NominalFrame
+from erfa.ufunc import s2p as spherical_to_cartesian
+
+from .camera_frame import CameraFrame, EngineeringCameraFrame
 from .ground_frames import (
+    EastingNorthingFrame,
     GroundFrame,
     TiltedGroundFrame,
     project_to_ground,
-    EastingNorthingFrame,
 )
-from .camera_frame import CameraFrame, EngineeringCameraFrame
-
+from .nominal_frame import NominalFrame
+from .telescope_frame import TelescopeFrame
 
 __all__ = [
     "TelescopeFrame",
@@ -85,4 +84,8 @@ def altaz_to_righthanded_cartesian(alt, az):
     az: u.Quantity
         azimuth
     """
-    return np.array(spherical_to_cartesian(r=1, lat=alt, lon=-az))
+    if hasattr(az, "unit"):
+        az = az.to_value(u.rad)
+        alt = alt.to_value(u.rad)
+
+    return spherical_to_cartesian(-az, alt, 1.0)

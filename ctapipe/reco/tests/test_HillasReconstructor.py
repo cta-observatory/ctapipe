@@ -8,93 +8,51 @@ from traitlets.config import Config
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.containers import HillasParametersContainer
+from ctapipe.coordinates import GroundFrame, altaz_to_righthanded_cartesian
 from ctapipe.image.image_processor import ImageProcessor
-from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import SimTelEventSource
-from ctapipe.reco.hillas_reconstructor import HillasPlane, HillasReconstructor
+from ctapipe.reco.hillas_reconstructor import HillasReconstructor
 from ctapipe.utils import get_dataset_path
 
 
-def test_estimator_results(prod5_sst):
-    """
-    creating some planes pointing in different directions (two
-    north-south, two east-west) and that have a slight position errors (+-
-    0.1 m in one of the four cardinal directions"""
-    horizon_frame = AltAz()
+def test_estimator_results():
+    """Test direction results from cog and point 2 (along the main axis) coordinates"""
 
-    p1 = SkyCoord(alt=43 * u.deg, az=45 * u.deg, frame=horizon_frame)
-    p2 = SkyCoord(alt=47 * u.deg, az=45 * u.deg, frame=horizon_frame)
-    circle1 = HillasPlane(p1=p1, p2=p2, telescope_position=[0, 1, 0] * u.m)
+    weight = np.ones(4)
+    cog_alt = [43, 44, 44.5, 43.5] * u.deg
+    cog_az = [45, 90, 45, 90] * u.deg
 
-    p1 = SkyCoord(alt=44 * u.deg, az=90 * u.deg, frame=horizon_frame)
-    p2 = SkyCoord(alt=46 * u.deg, az=90 * u.deg, frame=horizon_frame)
-    circle2 = HillasPlane(p1=p1, p2=p2, telescope_position=[1, 0, 0] * u.m)
+    p2_alt = [47, 45, 46.5, 45.5] * u.deg
+    p2_az = [45, 90, 45, 90] * u.deg
 
-    p1 = SkyCoord(alt=44.5 * u.deg, az=45 * u.deg, frame=horizon_frame)
-    p2 = SkyCoord(alt=46.5 * u.deg, az=45 * u.deg, frame=horizon_frame)
-    circle3 = HillasPlane(p1=p1, p2=p2, telescope_position=[0, -1, 0] * u.m)
+    cog_cart = altaz_to_righthanded_cartesian(cog_alt, cog_az)
+    p2_cart = altaz_to_righthanded_cartesian(p2_alt, p2_az)
+    norm = np.cross(cog_cart, p2_cart)
 
-    p1 = SkyCoord(alt=43.5 * u.deg, az=90 * u.deg, frame=horizon_frame)
-    p2 = SkyCoord(alt=45.5 * u.deg, az=90 * u.deg, frame=horizon_frame)
-    circle4 = HillasPlane(p1=p1, p2=p2, telescope_position=[-1, 0, 0] * u.m)
+    direction, _ = HillasReconstructor.estimate_direction(norm, weight)
+    assert np.allclose(direction, [0, 0, 1])
 
-    # Create a dummy subarray
-    # (not used here, but required to initialize the reconstructor)
-    subarray = SubarrayDescription(
-        "test array",
-        tel_positions={1: np.zeros(3) * u.m},
-        tel_descriptions={1: prod5_sst},
+
+def test_h_max_results():
+    """test h_max estimation from cog coordinates"""
+    cog_alt = [45.0, 45.0, 45.0, 45.0] * u.deg
+    cog_az = [180, 90, 0, -90.0] * u.deg
+
+    positions = [[1, 0, 0], [0, 1, 0], [-1, 0, 0], [0, -1, 0]] * u.km
+    positions = SkyCoord(
+        x=positions[:, 0], y=positions[:, 1], z=positions[:, 2], frame=GroundFrame()
     )
 
+    cog_cart = altaz_to_righthanded_cartesian(cog_alt, cog_az)
+
     # creating the fit class and setting the the great circle member
-    fit = HillasReconstructor(subarray)
-    hillas_planes = {1: circle1, 2: circle2, 3: circle3, 4: circle4}
 
     # performing the direction fit with the minimisation algorithm
     # and a seed that is perpendicular to the up direction
-    dir_fit_minimise, _ = fit.estimate_direction(hillas_planes)
-    print("direction fit test minimise:", dir_fit_minimise)
-
-
-def test_h_max_results(example_subarray):
-    """
-    creating some planes pointing in different directions (two
-    north-south, two east-west) and that have a slight position errors (+-
-    0.1 m in one of the four cardinal directions"""
-    horizon_frame = AltAz()
-
-    p1 = SkyCoord(alt=0 * u.deg, az=45 * u.deg, frame=horizon_frame)
-    p2 = SkyCoord(alt=0 * u.deg, az=45 * u.deg, frame=horizon_frame)
-    circle1 = HillasPlane(p1=p1, p2=p2, telescope_position=[0, 1, 0] * u.m)
-
-    p1 = SkyCoord(alt=0 * u.deg, az=90 * u.deg, frame=horizon_frame)
-    p2 = SkyCoord(alt=0 * u.deg, az=90 * u.deg, frame=horizon_frame)
-    circle2 = HillasPlane(p1=p1, p2=p2, telescope_position=[1, 0, 0] * u.m)
-
-    p1 = SkyCoord(alt=0 * u.deg, az=45 * u.deg, frame=horizon_frame)
-    p2 = SkyCoord(alt=0 * u.deg, az=45 * u.deg, frame=horizon_frame)
-    circle3 = HillasPlane(p1=p1, p2=p2, telescope_position=[0, -1, 0] * u.m)
-
-    p1 = SkyCoord(alt=0 * u.deg, az=90 * u.deg, frame=horizon_frame)
-    p2 = SkyCoord(alt=0 * u.deg, az=90 * u.deg, frame=horizon_frame)
-    circle4 = HillasPlane(p1=p1, p2=p2, telescope_position=[-1, 0, 0] * u.m)
-
-    # Create a dummy subarray
-    # (not used here, but required to initialize the reconstructor)
-    subarray = example_subarray
-
-    # creating the fit class and setting the the great circle member
-    fit = HillasReconstructor(subarray)
-    hillas_planes = {1: circle1, 2: circle2, 3: circle3, 4: circle4}
-
-    # performing the direction fit with the minimisation algorithm
-    # and a seed that is perpendicular to the up direction
-    h_max_reco = fit.estimate_h_max(hillas_planes)
-    print("h max fit test minimise:", h_max_reco)
+    h_max_reco = HillasReconstructor.estimate_h_max(cog_cart, positions)
 
     # the results should be close to the direction straight up
-    np.testing.assert_allclose(h_max_reco.value, 0, atol=1e-8)
-    # np.testing.assert_allclose(fitted_core_position.value, [0, 0], atol=1e-3)
+    assert u.isclose(h_max_reco, 1 * u.km)
 
 
 def test_invalid_events(subarray_and_event_gamma_off_axis_500_gev):
@@ -162,7 +120,9 @@ def test_invalid_events(subarray_and_event_gamma_off_axis_500_gev):
     assert not result.is_valid
 
 
-def test_reconstruction_against_simulation(subarray_and_event_gamma_off_axis_500_gev):
+def test_reconstruction_against_simulation_telescope_frame(
+    subarray_and_event_gamma_off_axis_500_gev,
+):
     """Reconstruction is here done only in the TelescopeFrame,
     since the previous tests test already for the compatibility between
     frames"""
@@ -309,3 +269,15 @@ def test_CameraFrame_against_TelescopeFrame(filename):
                     assert np.isclose(cam, tel, rtol=1e-3, atol=1e-3, equal_nan=True)
 
     assert reconstructed_events > 0  # check that we reconstruct at least 1 event
+
+
+def test_angle():
+    from ctapipe.reco.hillas_reconstructor import angle
+
+    # test it works with single vectors
+    assert np.isclose(angle(np.array([0, 0, 1]), np.array([1, 0, 0])), np.pi / 2)
+
+    # and with an array of vectors
+    a = np.array([[1, 0, 0], [1, 0, 0]])
+    b = np.array([[1, 0, 0], [0, 1, 0]])
+    assert np.allclose(angle(a, b), [0, np.pi / 2])

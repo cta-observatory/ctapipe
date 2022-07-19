@@ -18,7 +18,6 @@ def test_reconstructors(reconstructors):
     a test of the complete fit procedure on one event including:
     • tailcut cleaning
     • hillas parametrisation
-    • HillasPlane creation
     • direction fit
     • position fit
 
