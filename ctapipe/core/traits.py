@@ -199,7 +199,7 @@ class Path(TraitType):
         return value
 
 
-def create_class_enum_trait(base_class, default_value, help=None):
+def create_class_enum_trait(base_class, default_value, help=None, allow_none=False):
     """create a configurable CaselessStrEnum traitlet from baseclass
 
     the enumeration should contain all names of non_abstract_children()
@@ -217,7 +217,10 @@ def create_class_enum_trait(base_class, default_value, help=None):
         raise ValueError(f"{default_value} is not in choices: {choices}")
 
     return CaselessStrEnum(
-        choices, default_value=default_value, allow_none=False, help=help
+        choices,
+        default_value=default_value,
+        help=help,
+        allow_none=allow_none,
     ).tag(config=True)
 
 

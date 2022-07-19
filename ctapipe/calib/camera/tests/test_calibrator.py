@@ -281,22 +281,31 @@ def test_invalid_pixels(example_event, example_subarray):
             }
         }
     )
+    # going to modify this
+    event = deepcopy(example_event)
+    tel_id = list(event.r0.tel)[0]
+    camera = example_subarray.tel[tel_id].camera
+    sampling_rate = camera.readout.sampling_rate.to_value(u.GHz)
+
+    event.mon.tel[tel_id].pixel_status.flatfield_failing_pixels[:, 0] = True
+    event.r1.tel[tel_id].waveform[0:, :] = 0.0
+    event.r1.tel[tel_id].waveform[1:, 20] = 1.0
+    event.r1.tel[tel_id].waveform[0, 10] = 9999
+
     calibrator = CameraCalibrator(
         subarray=example_subarray,
         config=config,
     )
-
-    # going to modify this
-    event = deepcopy(example_event)
-    tel_id = list(event.r0.tel)[0]
-
-    event.mon.tel[tel_id].pixel_status.flatfield_failing_pixels[:, 0] = True
-    event.r1.tel[tel_id].waveform[1:, :] = 0.0
-    event.r1.tel[tel_id].waveform[1:, 20] = 1.0
-    event.r1.tel[tel_id].waveform[0, :] = 9999
-
     calibrator(event)
-    camera = example_subarray.tel[tel_id].camera
-    sampling_rate = camera.readout.sampling_rate.to_value(u.GHz)
     assert np.all(event.dl1.tel[tel_id].image == 1.0)
     assert np.all(event.dl1.tel[tel_id].peak_time == 20.0 / sampling_rate)
+
+    # test we can set the invalid pixel handler to None
+    config.CameraCalibrator.invalid_pixel_handler_type = None
+    calibrator = CameraCalibrator(
+        subarray=example_subarray,
+        config=config,
+    )
+    calibrator(event)
+    assert event.dl1.tel[tel_id].image[0] == 9999
+    assert event.dl1.tel[tel_id].peak_time[0] == 10.0 / sampling_rate

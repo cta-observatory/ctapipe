@@ -69,6 +69,7 @@ class CameraCalibrator(TelescopeComponent):
         InvalidPixelHandler,
         default_value="NeighborAverage",
         help="Name of the InvalidPixelHandler to use",
+        allow_none=True,
     ).tag(config=True)
 
     apply_waveform_time_shift = BoolTelescopeParameter(
@@ -146,11 +147,13 @@ class CameraCalibrator(TelescopeComponent):
         else:
             self.data_volume_reducer = data_volume_reducer
 
-        self.invalid_pixel_handler = InvalidPixelHandler.from_name(
-            self.invalid_pixel_handler_type,
-            subarray=self.subarray,
-            parent=self,
-        )
+        self.invalid_pixel_handler = None
+        if self.invalid_pixel_handler_type is not None:
+            self.invalid_pixel_handler = InvalidPixelHandler.from_name(
+                self.invalid_pixel_handler_type,
+                subarray=self.subarray,
+                parent=self,
+            )
 
     def _check_r1_empty(self, waveforms):
         if waveforms is None:
@@ -259,12 +262,13 @@ class CameraCalibrator(TelescopeComponent):
         dl1.image *= dl1_calib.relative_factor / dl1_calib.absolute_factor
 
         # handle invalid pixels
-        dl1.image, dl1.peak_time = self.invalid_pixel_handler(
-            tel_id,
-            dl1.image,
-            dl1.peak_time,
-            broken_pixels,
-        )
+        if self.invalid_pixel_handler is not None:
+            dl1.image, dl1.peak_time = self.invalid_pixel_handler(
+                tel_id,
+                dl1.image,
+                dl1.peak_time,
+                broken_pixels,
+            )
 
         # store the results in the event structure
         event.dl1.tel[tel_id] = dl1

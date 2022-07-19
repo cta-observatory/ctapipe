@@ -881,15 +881,18 @@ class TwoPassWindowSum(ImageExtractor):
         InvalidPixelHandler,
         default_value="NeighborAverage",
         help="Name of the InvalidPixelHandler to apply in the first pass.",
+        allow_none=True,
     ).tag(config=True)
 
     def __init__(self, subarray, **kwargs):
         super().__init__(subarray=subarray, **kwargs)
-        self.invalid_pixel_handler = InvalidPixelHandler.from_name(
-            self.invalid_pixel_handler_type,
-            self.subarray,
-            parent=self,
-        )
+        self.invalid_pixel_handler = None
+        if self.invalid_pixel_handler_type is not None:
+            self.invalid_pixel_handler = InvalidPixelHandler.from_name(
+                self.invalid_pixel_handler_type,
+                self.subarray,
+                parent=self,
+            )
 
     @lru_cache(maxsize=4096)
     def _calculate_correction(self, telid, width, shift):
@@ -1049,12 +1052,13 @@ class TwoPassWindowSum(ImageExtractor):
         charge_1stpass = charge_1stpass_uncorrected * correction[selected_gain_channel]
 
         camera_geometry = self.subarray.tel[telid].camera.geometry
-        charge_1stpass, pulse_time_1stpass = self.invalid_pixel_handler(
-            telid,
-            charge_1stpass,
-            pulse_time_1stpass,
-            broken_pixels,
-        )
+        if self.invalid_pixel_handler is not None:
+            charge_1stpass, pulse_time_1stpass = self.invalid_pixel_handler(
+                telid,
+                charge_1stpass,
+                pulse_time_1stpass,
+                broken_pixels,
+            )
 
         # Set thresholds for core-pixels depending on telescope
         core_th = self.core_threshold.tel[telid]
