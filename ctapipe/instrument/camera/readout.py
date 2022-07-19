@@ -15,15 +15,16 @@ __all__ = ["CameraReadout"]
 logger = logging.getLogger(__name__)
 
 
-CURRENT_TAB_VERSION = "3.0"
-SUPPORTED_TAB_VERSIONS = {"3.0"}
-
-
 def parse_dotted_version(version):
     return tuple(map(int, version.split(".")))
 
 
 class CameraReadout:
+    """Stores properties related to the readout of a Cherenkov Camera."""
+
+    CURRENT_TAB_VERSION = "3.0"
+    SUPPORTED_TAB_VERSIONS = {"3.0"}
+
     __slots__ = (
         "camera_name",
         "sampling_rate",
@@ -169,7 +170,7 @@ class CameraReadout:
         ]
         meta = dict(
             TAB_TYPE="ctapipe.instrument.CameraReadout",
-            TAB_VER=CURRENT_TAB_VERSION,
+            TAB_VER=self.CURRENT_TAB_VERSION,
             CAM_ID=self.camera_name,
             NCHAN=n_channels,
             NPIXELS=self.n_pixels,
@@ -203,10 +204,10 @@ class CameraReadout:
         """
         tab = url_or_table
         version = tab.meta.get("TAB_VER", "")
-        if version not in SUPPORTED_TAB_VERSIONS:
+        if version not in cls.SUPPORTED_TAB_VERSIONS:
             raise IOError(
                 f"CameraReadout table has unsupported version: {version},"
-                f" supported are: {SUPPORTED_TAB_VERSIONS}."
+                f" supported are: {cls.SUPPORTED_TAB_VERSIONS}."
             )
 
         if not isinstance(url_or_table, Table):
