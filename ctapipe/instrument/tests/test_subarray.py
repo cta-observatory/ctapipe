@@ -234,13 +234,13 @@ def test_get_tel_ids(example_subarray, prod3_astri):
 
     # test invalid telescope type
     with pytest.raises(Exception):
-        tel_ids = subarray.get_tel_ids(["It's a-me, Mario!"])
+        subarray.get_tel_ids(["It's a-me, Mario!"])
 
     # test single string
-    tel_ids = subarray.get_tel_ids("LST_LST_LSTCam") == (1, 2, 3, 4)
+    assert subarray.get_tel_ids("LST_LST_LSTCam") == (1, 2, 3, 4)
 
     # test single id
-    tel_ids = subarray.get_tel_ids(1) == (1,)
+    assert subarray.get_tel_ids(1) == (1,)
 
     # test invalid id
     with pytest.raises(ValueError):
