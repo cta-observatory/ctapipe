@@ -989,6 +989,7 @@ class TwoPassWindowSum(ImageExtractor):
         charge_1stpass_uncorrected,
         pulse_time_1stpass,
         correction,
+        broken_pixels,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Follow steps from 2 to 7.
@@ -1026,17 +1027,23 @@ class TwoPassWindowSum(ImageExtractor):
         is_valid: bool
             True=second-pass succeeded, False=second-pass failed, first pass used
         """
-        # STEP 2
+        # here to avoid circular import
+        from ..calib.camera.pixel_interpolator import interpolate_pixels
 
+        # STEP 2
         # Apply correction to 1st pass charges
         charge_1stpass = charge_1stpass_uncorrected * correction[selected_gain_channel]
+
+        camera_geometry = self.subarray.tel[telid].camera.geometry
+        charge_1stpass, pulse_time_1stpass = interpolate_pixels(
+            charge_1stpass, pulse_time_1stpass, broken_pixels, camera_geometry
+        )
 
         # Set thresholds for core-pixels depending on telescope
         core_th = self.core_threshold.tel[telid]
         # Boundary thresholds will be half of core thresholds.
 
         # Preliminary image cleaning with simple two-level tail-cut
-        camera_geometry = self.subarray.tel[telid].camera.geometry
         mask_clean = tailcuts_clean(
             camera_geometry,
             charge_1stpass,
@@ -1245,7 +1252,13 @@ class TwoPassWindowSum(ImageExtractor):
             )
 
         charge2, pulse_time2, is_valid = self._apply_second_pass(
-            waveforms, telid, selected_gain_channel, charge1, pulse_time1, correction1
+            waveforms,
+            telid,
+            selected_gain_channel,
+            charge1,
+            pulse_time1,
+            correction1,
+            broken_pixels,
         )
         # FIXME: properly make sure that output is 32Bit instead of downcasting here
         return DL1CameraContainer(
