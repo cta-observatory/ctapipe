@@ -7,8 +7,8 @@ Hillas-style moment-based shower image parametrization.
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import Angle
-from ..containers import CameraHillasParametersContainer, HillasParametersContainer
 
+from ..containers import CameraHillasParametersContainer, HillasParametersContainer
 
 HILLAS_ATOL = np.finfo(np.float64).eps
 
@@ -66,37 +66,18 @@ def hillas_parameters(geom, image):
     from
     https://github.com/fact-project/fact-tools
 
-    The image passed to this function can be in three forms:
-
-    >>> from ctapipe.image.hillas import hillas_parameters
-    >>> from ctapipe.image.tests.test_hillas import create_sample_image, compare_hillas
-    >>> geom, image, clean_mask = create_sample_image(psi='0d')
-    >>>
-    >>> # Fastest
-    >>> geom_selected = geom[clean_mask]
-    >>> image_selected = image[clean_mask]
-    >>> hillas_selected = hillas_parameters(geom_selected, image_selected)
-    >>>
-    >>> # Mid (1.45 times longer than fastest)
-    >>> image_zeros = image.copy()
-    >>> image_zeros[~clean_mask] = 0
-    >>> hillas_zeros = hillas_parameters(geom, image_zeros)
-    >>>
-    >>> # Slowest (1.51 times longer than fastest)
-    >>> image_masked = np.ma.masked_array(image, mask=~clean_mask)
-    >>> hillas_masked = hillas_parameters(geom, image_masked)
-    >>>
-    >>> compare_hillas(hillas_selected, hillas_zeros)
-    >>> compare_hillas(hillas_selected, hillas_masked)
+    The recommended form is to pass only the sliced geometry and image
+    for the pixels to be considered.
 
     Each method gives the same result, but vary in efficiency
 
     Parameters
     ----------
     geom: ctapipe.instrument.CameraGeometry
-        Camera geometry
+        Camera geometry, the cleaning mask should be applied to improve performance
     image : array_like
-        Charge in each pixel
+        Charge in each pixel, the cleaning mask should already be applied to
+        improve performance.
 
     Returns
     -------

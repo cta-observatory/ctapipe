@@ -16,7 +16,7 @@ from ctapipe.instrument import (
 )
 
 
-def example_subarray(n_tels=10):
+def example_subarray(tel_type, n_tels=10):
     """generate a simple subarray for testing purposes"""
     rng = np.random.default_rng(0)
 
@@ -24,9 +24,7 @@ def example_subarray(n_tels=10):
     tel = {}
 
     for tel_id in range(1, n_tels + 1):
-        tel[tel_id] = TelescopeDescription.from_name(
-            optics_name="MST", camera_name="NectarCam"
-        )
+        tel[tel_id] = tel_type
         pos[tel_id] = rng.uniform(-100, 100, size=3) * u.m
 
     return SubarrayDescription(
@@ -41,10 +39,10 @@ def example_subarray(n_tels=10):
     )
 
 
-def test_subarray_description():
+def test_subarray_description(prod5_mst_nectarcam):
     """Test SubarrayDescription functionality"""
     n_tels = 10
-    sub = example_subarray(n_tels)
+    sub = example_subarray(prod5_mst_nectarcam, n_tels)
     sub.peek()
 
     assert len(sub.telescope_types) == 1
@@ -62,7 +60,8 @@ def test_subarray_description():
     assert len(sub.telescope_types) == 1  # only have one type in this array
     assert len(sub.optics_types) == 1  # only have one type in this array
     assert len(sub.camera_types) == 1  # only have one type in this array
-    assert sub.optics_types[0].equivalent_focal_length.to_value(u.m) == 16.0
+    assert u.isclose(sub.optics_types[0].equivalent_focal_length, 16.0 * u.m)
+    assert u.isclose(sub.optics_types[0].effective_focal_length, 16.445 * u.m)
     assert isinstance(sub.tel_coords, SkyCoord)
     assert len(sub.tel_coords) == n_tels
 
@@ -95,12 +94,11 @@ def test_tel_indexing(example_subarray):
     assert np.all(sub.tel_ids_to_indices([1, 2, 3]) == np.array([0, 1, 2]))
 
 
-def test_tel_ids_to_mask(example_subarray):
-    lst = TelescopeDescription.from_name("LST", "LSTCam")
+def test_tel_ids_to_mask(prod5_lst):
     subarray = SubarrayDescription(
         "someone_counted_in_binary",
         tel_positions={1: [0, 0, 0] * u.m, 10: [50, 0, 0] * u.m},
-        tel_descriptions={1: lst, 10: lst},
+        tel_descriptions={1: prod5_lst, 10: prod5_lst},
     )
 
     assert np.all(subarray.tel_ids_to_mask([]) == [False, False])
@@ -159,13 +157,19 @@ def test_hdf(example_subarray, tmp_path):
         assert read == example_subarray
 
 
-def test_hdf_same_camera(tmp_path):
+def test_hdf_same_camera(tmp_path, prod5_lst, prod5_mst_flashcam):
     """Test writing / reading subarray to hdf5 with a subarray that has two
     different telescopes with the same camera
     """
+    frankenstein_lst = TelescopeDescription(
+        name="LST",
+        tel_type="LST",
+        optics=prod5_lst.optics,
+        camera=prod5_mst_flashcam.camera,
+    )
     tel = {
-        1: TelescopeDescription.from_name(optics_name="SST-ASTRI", camera_name="CHEC"),
-        2: TelescopeDescription.from_name(optics_name="SST-GCT", camera_name="CHEC"),
+        1: prod5_lst,
+        2: frankenstein_lst,
     }
     pos = {1: [0, 0, 0] * u.m, 2: [50, 0, 0] * u.m}
 
@@ -177,13 +181,13 @@ def test_hdf_same_camera(tmp_path):
     assert array == read
 
 
-def test_hdf_duplicate_string_repr(tmp_path):
+def test_hdf_duplicate_string_repr(tmp_path, prod5_lst):
     """Test writing and reading of a subarray with two telescopes that
     are different but have the same name.
     """
     # test with a subarray that has two different telescopes with the same
     # camera
-    tel1 = TelescopeDescription.from_name(optics_name="LST", camera_name="LSTCam")
+    tel1 = prod5_lst
 
     # second telescope is almost the same and as the same str repr
     tel2 = deepcopy(tel1)
@@ -210,17 +214,16 @@ def test_hdf_duplicate_string_repr(tmp_path):
     )
 
 
-def test_get_tel_ids(example_subarray):
+def test_get_tel_ids(example_subarray, prod3_astri):
     """Test for SubarrayDescription.get_tel_ids"""
     subarray = example_subarray
-    sst = TelescopeDescription.from_name("SST-ASTRI", "CHEC")
 
-    telescopes = [1, 2, "MST_MST_FlashCam", sst]
+    telescopes = [1, 2, "MST_MST_FlashCam", prod3_astri]
     tel_ids = subarray.get_tel_ids(telescopes)
 
     true_tel_ids = (
         subarray.get_tel_ids_for_type("MST_MST_FlashCam")
-        + subarray.get_tel_ids_for_type(sst)
+        + subarray.get_tel_ids_for_type(prod3_astri)
         + [1, 2]
     )
 

@@ -16,18 +16,13 @@ common way to describe all cameras.
 
 So far there are several ways to construct a `CameraGeometry`:
 
+* `~ctapipe.io.EventSource` instances have a ``subarray`` attribute,
+  e.g. to obtain the geometry for the telescope with id 1, use:
+  ``source.subarray.tel[1].camera.geometry``.
+  `~ctapipe.io.TableLoader` also has the ``.subarray`` attribute.
+
 * use the `CameraGeometry` constructor, where one has to specify all
   necessary information (pixel positions, types, areas, etc)
-
-* use ``CameraGeometry.from_name(telescope, revision)`` (ex: ``geom =
-  CameraGeometry.from_name('HESS',1)``).  This reads the telescope def
-  from the ``$CTAPIPE_EXTRA`` directory, and so far we only have HESS
-  telescopes there (more to come)
-
-* load a Monte-Carlo file, get the list of pixel X and Y positions and
-  the telescope focal length and use
-  ``CameraGeometry.guess(x,y,flen)`` - this will work for all telescopes
-  in CTA so far
 
 * load it from a pre-written file (which can be in any format
   supported by ``astropy.table``, as long as that format allows for
