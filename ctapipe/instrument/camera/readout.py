@@ -82,19 +82,20 @@ class CameraReadout:
         self.n_samples_long = n_samples_long
 
     def __eq__(self, other):
-        if self.camera_name != other.camera_name:
+        if not isinstance(other, self.__class__):
             return False
 
-        if self.sampling_rate != other.sampling_rate:
-            return False
-
-        if (self.reference_pulse_shape != other.reference_pulse_shape).all():
-            return False
-
-        if self.reference_pulse_sample_width != other.reference_pulse_sample_width:
-            return False
-
-        return True
+        return (
+            self.n_pixels == other.n_pixels
+            and self.n_samples == other.n_samples
+            and self.n_samples_long == other.n_samples_long
+            and self.camera_name == other.camera_name
+            and u.isclose(self.sampling_rate, other.sampling_rate)
+            and u.isclose(
+                self.reference_pulse_sample_width, other.reference_pulse_sample_width
+            )
+            and np.allclose(self.reference_pulse_shape, other.reference_pulse_shape)
+        )
 
     def __hash__(self):
         return hash(
