@@ -35,10 +35,13 @@ from ctapipe.core.traits import (
     BoolTelescopeParameter,
     FloatTelescopeParameter,
     IntTelescopeParameter,
+    create_class_enum_trait,
 )
 
-from . import brightest_island, number_of_islands, tailcuts_clean
+from .cleaning import tailcuts_clean
 from .hillas import camera_to_shower_coordinates, hillas_parameters
+from .invalid_pixels import InvalidPixelHandler
+from .morphology import brightest_island, number_of_islands
 from .timing import timing_parameters
 
 
@@ -874,6 +877,20 @@ class TwoPassWindowSum(ImageExtractor):
         default_value=True, help="Apply the integration window correction"
     ).tag(config=True)
 
+    invalid_pixel_handler_type = create_class_enum_trait(
+        InvalidPixelHandler,
+        default_value="NeighborAverage",
+        help="Name of the InvalidPixelHandler to apply in the first pass.",
+    ).tag(config=True)
+
+    def __init__(self, subarray, **kwargs):
+        super().__init__(subarray=subarray, **kwargs)
+        self.invalid_pixel_handler = InvalidPixelHandler.from_name(
+            self.invalid_pixel_handler_type,
+            self.subarray,
+            parent=self,
+        )
+
     @lru_cache(maxsize=4096)
     def _calculate_correction(self, telid, width, shift):
         """Obtain the correction for the integration window specified for each
@@ -1027,16 +1044,16 @@ class TwoPassWindowSum(ImageExtractor):
         is_valid: bool
             True=second-pass succeeded, False=second-pass failed, first pass used
         """
-        # here to avoid circular import
-        from ..calib.camera.pixel_interpolator import interpolate_pixels
-
         # STEP 2
         # Apply correction to 1st pass charges
         charge_1stpass = charge_1stpass_uncorrected * correction[selected_gain_channel]
 
         camera_geometry = self.subarray.tel[telid].camera.geometry
-        charge_1stpass, pulse_time_1stpass = interpolate_pixels(
-            charge_1stpass, pulse_time_1stpass, broken_pixels, camera_geometry
+        charge_1stpass, pulse_time_1stpass = self.invalid_pixel_handler(
+            telid,
+            charge_1stpass,
+            pulse_time_1stpass,
+            broken_pixels,
         )
 
         # Set thresholds for core-pixels depending on telescope

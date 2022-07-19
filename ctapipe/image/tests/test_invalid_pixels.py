@@ -3,12 +3,14 @@ import numpy as np
 from ctapipe.io.eventsource import EventSource
 
 
-def test_interpolate_pixels(prod5_gamma_simtel_path):
-    from ctapipe.calib.camera.pixel_interpolator import interpolate_pixels
+def test_neighor_average(prod5_gamma_simtel_path):
+    from ctapipe.image.invalid_pixels import NeighborAverage
 
     with EventSource(prod5_gamma_simtel_path) as source:
         subarray = source.subarray
         geometry = subarray.tel[1].camera.geometry
+
+    neighbor_average = NeighborAverage(subarray)
 
     broken_pixels = np.zeros(geometry.n_pixels, dtype=bool)
 
@@ -22,8 +24,8 @@ def test_interpolate_pixels(prod5_gamma_simtel_path):
     peak_time = np.full(geometry.n_pixels, 20.0)
     peak_time[broken_pixels] = -1
 
-    interpolated_image, interpolated_peaktime = interpolate_pixels(
-        image, peak_time, broken_pixels, geometry
+    interpolated_image, interpolated_peaktime = neighbor_average(
+        tel_id=1, image=image, peak_time=peak_time, pixel_mask=broken_pixels
     )
 
     assert np.allclose(interpolated_image[broken_pixels], 1.0)
@@ -32,11 +34,13 @@ def test_interpolate_pixels(prod5_gamma_simtel_path):
 
 def test_negative_image(prod5_gamma_simtel_path):
     """Test with negative charges"""
-    from ctapipe.calib.camera.pixel_interpolator import interpolate_pixels
+    from ctapipe.image.invalid_pixels import NeighborAverage
 
     with EventSource(prod5_gamma_simtel_path) as source:
         subarray = source.subarray
         geometry = subarray.tel[1].camera.geometry
+
+    neighbor_average = NeighborAverage(subarray)
 
     broken_pixels = np.zeros(geometry.n_pixels, dtype=bool)
 
@@ -50,8 +54,8 @@ def test_negative_image(prod5_gamma_simtel_path):
     peak_time = np.full(geometry.n_pixels, 20.0)
     peak_time[broken_pixels] = -1
 
-    interpolated_image, interpolated_peaktime = interpolate_pixels(
-        image, peak_time, broken_pixels, geometry
+    interpolated_image, interpolated_peaktime = neighbor_average(
+        tel_id=1, image=image, peak_time=peak_time, pixel_mask=broken_pixels
     )
     assert np.allclose(interpolated_image[broken_pixels], -10)
     assert np.allclose(interpolated_peaktime[broken_pixels], 20.0)

@@ -9,7 +9,6 @@ import astropy.units as u
 import numpy as np
 from numba import float32, float64, guvectorize, int64
 
-from ctapipe.calib.camera.pixel_interpolator import interpolate_pixels
 from ctapipe.containers import DL1CameraContainer
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
@@ -18,12 +17,13 @@ from ctapipe.core.traits import (
     create_class_enum_trait,
 )
 from ctapipe.image.extractor import ImageExtractor
+from ctapipe.image.invalid_pixels import InvalidPixelHandler
 from ctapipe.image.reducer import DataVolumeReducer
 
 __all__ = ["CameraCalibrator"]
 
 
-def _get_broken_pixels(n_pixels, pixel_status, selected_gain_channel):
+def _get_invalid_pixels(n_pixels, pixel_status, selected_gain_channel):
     broken_pixels = np.zeros(n_pixels, dtype=bool)
     index = np.arange(n_pixels)
     masks = (
@@ -63,6 +63,12 @@ class CameraCalibrator(TelescopeComponent):
         ),
         default_value="NeighborPeakWindowSum",
         help="Name of the ImageExtractor subclass to be used.",
+    ).tag(config=True)
+
+    invalid_pixel_handler_type = create_class_enum_trait(
+        InvalidPixelHandler,
+        default_value="NeighborAverage",
+        help="Name of the InvalidPixelHandler to use",
     ).tag(config=True)
 
     apply_waveform_time_shift = BoolTelescopeParameter(
@@ -140,6 +146,12 @@ class CameraCalibrator(TelescopeComponent):
         else:
             self.data_volume_reducer = data_volume_reducer
 
+        self.invalid_pixel_handler = InvalidPixelHandler.from_name(
+            self.invalid_pixel_handler_type,
+            subarray=self.subarray,
+            parent=self,
+        )
+
     def _check_r1_empty(self, waveforms):
         if waveforms is None:
             if not self._r1_empty_warn:
@@ -187,7 +199,7 @@ class CameraCalibrator(TelescopeComponent):
         n_pixels, n_samples = waveforms.shape
 
         selected_gain_channel = event.dl0.tel[tel_id].selected_gain_channel
-        broken_pixels = _get_broken_pixels(
+        broken_pixels = _get_invalid_pixels(
             n_pixels,
             event.mon.tel[tel_id].pixel_status,
             selected_gain_channel,
@@ -246,12 +258,12 @@ class CameraCalibrator(TelescopeComponent):
         # Calibrate extracted charge
         dl1.image *= dl1_calib.relative_factor / dl1_calib.absolute_factor
 
-        # interpolate broken pixels
-        dl1.image, dl1.peak_time = interpolate_pixels(
+        # handle invalid pixels
+        dl1.image, dl1.peak_time = self.invalid_pixel_handler(
+            tel_id,
             dl1.image,
             dl1.peak_time,
             broken_pixels,
-            self.subarray.tel[tel_id].camera.geometry,
         )
 
         # store the results in the event structure

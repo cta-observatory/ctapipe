@@ -1,22 +1,23 @@
 """
 Tests for CameraCalibrator and related functions
 """
+from copy import deepcopy
+
 import astropy.units as u
 import numpy as np
 import pytest
 from scipy.stats import norm
-from traitlets.config.configurable import Config
+from traitlets.config import Config
 
 from ctapipe.calib.camera.calibrator import CameraCalibrator
+from ctapipe.containers import ArrayEventContainer
 from ctapipe.image.extractor import (
-    NeighborPeakWindowSum,
-    LocalPeakWindowSum,
     FullWaveformSum,
     GlobalPeakWindowSum,
+    LocalPeakWindowSum,
+    NeighborPeakWindowSum,
 )
 from ctapipe.image.reducer import NullDataVolumeReducer, TailCutsDataVolumeReducer
-from copy import deepcopy
-from ctapipe.containers import ArrayEventContainer
 
 
 def test_camera_calibrator(example_event, example_subarray):
@@ -263,3 +264,39 @@ def test_shift_waveforms():
     assert shifted_waveforms[2, 12] == 1
     assert shifted_waveforms[3, 7] == 1
     assert shifted_waveforms[4, 14] == 1
+
+
+def test_invalid_pixels(example_event, example_subarray):
+
+    # switching off the corrections makes it easier to test for
+    # the exact value of 1.0
+    config = Config(
+        {
+            "CameraCalibrator": {
+                "image_extractor_type": "LocalPeakWindowSum",
+                "apply_peak_time_shift": False,
+                "LocalPeakWindowSum": {
+                    "apply_integration_correction": False,
+                },
+            }
+        }
+    )
+    calibrator = CameraCalibrator(
+        subarray=example_subarray,
+        config=config,
+    )
+
+    # going to modify this
+    event = deepcopy(example_event)
+    tel_id = list(event.r0.tel)[0]
+
+    event.mon.tel[tel_id].pixel_status.flatfield_failing_pixels[:, 0] = True
+    event.r1.tel[tel_id].waveform[1:, :] = 0.0
+    event.r1.tel[tel_id].waveform[1:, 20] = 1.0
+    event.r1.tel[tel_id].waveform[0, :] = 9999
+
+    calibrator(event)
+    camera = example_subarray.tel[tel_id].camera
+    sampling_rate = camera.readout.sampling_rate.to_value(u.GHz)
+    assert np.all(event.dl1.tel[tel_id].image == 1.0)
+    assert np.all(event.dl1.tel[tel_id].peak_time == 20.0 / sampling_rate)
