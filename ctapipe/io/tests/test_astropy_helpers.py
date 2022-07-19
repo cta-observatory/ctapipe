@@ -1,32 +1,31 @@
 #!/usr/bin/env python3
 import warnings
-import numpy as np
-from astropy import units as u
-import tables
-import pytest
-from astropy.time import Time
-from astropy.table import Table
-from astropy.utils.diff import report_diff_values
-
-from astropy.io.fits.verify import VerifyWarning
-
-from ctapipe.core import Container, Field
-from ctapipe.containers import ReconstructedEnergyContainer, TelescopeTriggerContainer
-from ctapipe.io import HDF5TableWriter
-from ctapipe.io.astropy_helpers import read_table
 from io import StringIO
 
+import numpy as np
+import pytest
+import tables
+from astropy import units as u
+from astropy.io.fits.verify import VerifyWarning
+from astropy.table import Table
+from astropy.time import Time
+from astropy.utils.diff import report_diff_values
+
+from ctapipe.containers import ReconstructedEnergyContainer, TelescopeTriggerContainer
+from ctapipe.core import Container, Field
+from ctapipe.io import HDF5TableWriter
+from ctapipe.io.astropy_helpers import read_table
 
 
 def assert_table_equal(a, b):
-    '''
+    """
     Assert that two astropy tables are the same.
 
     Compares two tables using the astropy diff utility
     and use the report as error message in case they don't match
-    '''
+    """
     msg = StringIO()
-    msg.write('\n')
+    msg.write("\n")
     valid = report_diff_values(a, b, fileobj=msg)
     msg.seek(0)
     assert valid, msg.read()
@@ -132,9 +131,9 @@ def test_transforms(tmp_path):
 
     with tables.open_file(path, "w") as f:
         f.create_table("/data", "test", obj=data, createparents=True)
-        f.root.data.test.attrs["waveform_TRANSFORM_SCALE"] = 100.0
-        f.root.data.test.attrs["waveform_TRANSFORM_OFFSET"] = 200
-        f.root.data.test.attrs["waveform_TRANSFORM_DTYPE"] = "float64"
+        f.root.data.test.attrs["CTAFIELD_0_TRANSFORM_SCALE"] = 100.0
+        f.root.data.test.attrs["CTAFIELD_0_TRANSFORM_OFFSET"] = 200
+        f.root.data.test.attrs["CTAFIELD_0_TRANSFORM_DTYPE"] = "float64"
 
     table = read_table(path, "/data/test")
 

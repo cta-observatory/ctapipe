@@ -48,7 +48,9 @@ def _get_tel_index(event, tel_id):
 # - increase the patch number if there is a small bugfix to the model.
 DATA_MODEL_VERSION = "v4.0.0"
 DATA_MODEL_CHANGE_HISTORY = """
-- v4.0.0: - Container prefixes are now included for reconstruction algorithms
+- v4.0.0: - Changed how ctapipe-specific metadata is stored in hdf5 attributes.
+            This breaks backwards and forwards compatibility for almost everything.
+          - Container prefixes are now included for reconstruction algorithms
             and true parameters.
           - Telescope Impact Parameters were added.
           - Effective focal length and nominal focal length are both included

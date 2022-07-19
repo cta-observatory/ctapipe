@@ -18,6 +18,7 @@ from ctapipe.containers import (
 from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import DataLevel, EventSource
 from ctapipe.io.datawriter import DATA_MODEL_VERSION, DataWriter
+from ctapipe.io.hdf5tableio import get_column_attrs
 from ctapipe.utils import get_dataset_path
 
 
@@ -119,11 +120,10 @@ def test_write(tmpdir: Path):
             == DATA_MODEL_VERSION
         )
         shower = h5file.get_node("/simulation/event/subarray/shower")
+        shower_attrs = get_column_attrs(shower)
         assert len(shower) > 0
         assert shower.col("true_alt").mean() > 0.0
-        assert (
-            shower._v_attrs["true_alt_UNIT"] == "deg"
-        )  # pylint: disable=protected-access
+        assert shower_attrs["true_alt"]["UNIT"] == "deg"
 
         # check DL2
         for prefix in ("ImPACTReconstructor", "HillasReconstructor"):

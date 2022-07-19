@@ -395,7 +395,6 @@ def dl1_parameters_file(dl1_tmp_path, prod5_gamma_simtel_path):
             f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
             "--write-parameters",
-            "--max-events=20",
             "--DataWriter.Contact.name=αℓℓ the äüöß",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
