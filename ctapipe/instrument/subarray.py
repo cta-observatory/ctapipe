@@ -285,7 +285,8 @@ class SubarrayDescription:
             descs = [str(t) for t in self.tels.values()]
             tel_names = [t.name for t in self.tels.values()]
             tel_types = [t.optics.size_type.value for t in self.tels.values()]
-            cam_types = [t.camera.camera_name for t in self.tels.values()]
+            cam_names = [t.camera.camera_name for t in self.tels.values()]
+            optics_names = [t.optics.name for t in self.tels.values()]
             optics_index = [unique_optics.index(t.optics) for t in self.tels.values()]
             camera_index = [
                 self.camera_types.index(t.camera) for t in self.tels.values()
@@ -300,7 +301,8 @@ class SubarrayDescription:
                     pos_x=tel_coords.x,
                     pos_y=tel_coords.y,
                     pos_z=tel_coords.z,
-                    camera_type=cam_types,
+                    camera_name=cam_names,
+                    optics_name=optics_names,
                     camera_index=camera_index,
                     optics_index=optics_index,
                     tel_description=descs,
