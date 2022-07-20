@@ -17,12 +17,20 @@ def test_construct():
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
         reference_pulse_sample_width=reference_pulse_sample_width,
+        n_pixels=1000,
+        n_channels=2,
+        n_samples=40,
+        n_samples_long=80,
     )
 
     assert readout.camera_name == camera_name
     assert readout.sampling_rate == sampling_rate
     assert (readout.reference_pulse_shape == reference_pulse_shape).all()
     assert readout.reference_pulse_sample_width == reference_pulse_sample_width
+    assert readout.n_pixels == 1000
+    assert readout.n_channels == 2
+    assert readout.n_samples == 40
+    assert readout.n_samples_long == 80
 
 
 @pytest.fixture(scope="module")
@@ -36,6 +44,10 @@ def readout():
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
         reference_pulse_sample_width=reference_pulse_sample_width,
+        n_pixels=1000,
+        n_channels=2,
+        n_samples=40,
+        n_samples_long=80,
     )
 
 
@@ -79,6 +91,10 @@ def test_equals():
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
         reference_pulse_sample_width=reference_pulse_sample_width,
+        n_pixels=1000,
+        n_channels=2,
+        n_samples=40,
+        n_samples_long=80,
     )
 
     readout2 = CameraReadout(
@@ -86,6 +102,10 @@ def test_equals():
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
         reference_pulse_sample_width=reference_pulse_sample_width,
+        n_pixels=1000,
+        n_channels=2,
+        n_samples=40,
+        n_samples_long=80,
     )
 
     readout3 = CameraReadout(
@@ -93,6 +113,10 @@ def test_equals():
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
         reference_pulse_sample_width=reference_pulse_sample_width,
+        n_pixels=1000,
+        n_channels=2,
+        n_samples=40,
+        n_samples_long=80,
     )
 
     readout4 = CameraReadout(
@@ -100,6 +124,10 @@ def test_equals():
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
         reference_pulse_sample_width=u.Quantity(1, u.ns),
+        n_pixels=1000,
+        n_channels=2,
+        n_samples=40,
+        n_samples_long=80,
     )
 
     assert readout1 is not readout2
@@ -122,6 +150,10 @@ def test_hashing():
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
         reference_pulse_sample_width=reference_pulse_sample_width,
+        n_pixels=1000,
+        n_channels=2,
+        n_samples=40,
+        n_samples_long=80,
     )
 
     readout2 = CameraReadout(
@@ -129,6 +161,10 @@ def test_hashing():
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
         reference_pulse_sample_width=reference_pulse_sample_width,
+        n_pixels=1000,
+        n_channels=2,
+        n_samples=40,
+        n_samples_long=80,
     )
 
     readout3 = CameraReadout(
@@ -136,18 +172,21 @@ def test_hashing():
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
         reference_pulse_sample_width=reference_pulse_sample_width,
+        n_pixels=1000,
+        n_channels=2,
+        n_samples=40,
+        n_samples_long=80,
     )
 
     assert len({readout1, readout2, readout3}) == 2
 
 
-def test_camera_from_name(camera_geometry):
+@pytest.mark.parametrize("name", ["LSTCam", "FlashCam", "NectarCam", "CHEC"])
+def test_camera_from_name(name, svc_path):
     """check we can construct all cameras from name"""
+    import os
 
-    try:
-        camera = CameraReadout.from_name(camera_geometry.camera_name)
-        assert str(camera) == camera_geometry.camera_name
-    except FileNotFoundError:
-        # Most non-cta cameras don't have readout provided on the data server
-        if camera_geometry.camera_name in ["LSTCam", "NectarCam", "FlashCam", "CHEC"]:
-            raise
+    print(os.environ["CTAPIPE_SVC_PATH"], svc_path)
+
+    camera = CameraReadout.from_name(name)
+    assert str(camera) == name
