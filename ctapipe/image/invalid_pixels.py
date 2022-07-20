@@ -15,6 +15,10 @@ __all__ = [
 
 
 class InvalidPixelHandler(TelescopeComponent, metaclass=ABCMeta):
+    """
+    An abtract base class for algorithms treating invalid pixel data in images
+    """
+
     @abstractmethod
     def __call__(
         self, tel_id, image, peak_time, pixel_mask
