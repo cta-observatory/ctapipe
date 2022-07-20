@@ -202,6 +202,9 @@ class CameraReadout:
 
         """
         tab = url_or_table
+        if not isinstance(url_or_table, Table):
+            tab = Table.read(url_or_table, **kwargs)
+
         version = tab.meta.get("TAB_VER", "")
         if version not in cls.SUPPORTED_TAB_VERSIONS:
             raise IOError(
