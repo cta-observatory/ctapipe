@@ -5,7 +5,7 @@ import warnings
 from contextlib import ExitStack
 from copy import copy
 from itertools import groupby
-from typing import Dict, List, Union
+from typing import Dict, Iterable, Tuple, Union
 
 import numpy as np
 import tables
@@ -392,40 +392,46 @@ class SubarrayDescription:
         plt.tight_layout()
 
     @lazyproperty
-    def telescope_types(self) -> List[TelescopeDescription]:
+    def telescope_types(self) -> Tuple[TelescopeDescription]:
         """list of telescope types in the array"""
-        return list({tel for tel in self.tel.values()})
+        return tuple({tel for tel in self.tel.values()})
 
     @lazyproperty
-    def camera_types(self) -> List[CameraDescription]:
+    def camera_types(self) -> Tuple[CameraDescription]:
         """list of camera types in the array"""
-        return list({tel.camera for tel in self.tel.values()})
+        return tuple({tel.camera for tel in self.tel.values()})
 
     @lazyproperty
-    def optics_types(self) -> List[OpticsDescription]:
+    def optics_types(self) -> Tuple[OpticsDescription]:
         """list of optics types in the array"""
-        return list({tel.optics for tel in self.tel.values()})
+        return tuple({tel.optics for tel in self.tel.values()})
 
-    def get_tel_ids_for_type(self, tel_type):
+    def get_tel_ids_for_type(self, tel_type) -> Tuple[int]:
         """
         return list of tel_ids that have the given tel_type
 
         Parameters
         ----------
         tel_type: str or TelescopeDescription
-           telescope type string (e.g. 'MST:NectarCam')
-
+           telescope type string (e.g. 'MST_MST_NectarCam')
         """
         if isinstance(tel_type, TelescopeDescription):
-            tel_str = str(tel_type)
+            if tel_type not in self.telescope_types:
+                raise ValueError(f"{tel_type} not in subarray: {self.telescope_types}")
+            return tuple(
+                tel_id for tel_id, descr in self.tels.items() if descr == tel_type
+            )
         else:
-            tel_str = tel_type
-
-        return [id for id, descr in self.tels.items() if str(descr) == tel_str]
+            valid = {str(tel) for tel in self.telescope_types}
+            if tel_type not in valid:
+                raise ValueError(f"{tel_type} not in subarray: {valid}")
+            return tuple(
+                tel_id for tel_id, descr in self.tels.items() if str(descr) == tel_type
+            )
 
     def get_tel_ids(
-        self, telescopes: List[Union[int, str, TelescopeDescription]]
-    ) -> List[int]:
+        self, telescopes: Iterable[Union[int, str, TelescopeDescription]]
+    ) -> Tuple[int]:
         """
         Convert a list of telescope ids and telescope descriptions to
         a list of unique telescope ids.
@@ -445,22 +451,21 @@ class SubarrayDescription:
         """
         ids = set()
 
-        valid_tel_types = {str(tel_type) for tel_type in self.telescope_types}
+        # support single telescope element
+        if isinstance(telescopes, (int, str, TelescopeDescription)):
+            telescopes = (telescopes,)
 
         for telescope in telescopes:
             if isinstance(telescope, (int, np.integer)):
-                if telescope not in self.tel_ids:
+                if telescope not in self.tel:
                     raise ValueError(
                         f"Telescope with tel_id={telescope} not in subarray."
                     )
                 ids.add(telescope)
+            else:
+                ids.update(self.get_tel_ids_for_type(telescope))
 
-            if isinstance(telescope, str) and telescope not in valid_tel_types:
-                raise ValueError("Invalid telescope type input.")
-
-            ids.update(self.get_tel_ids_for_type(telescope))
-
-        return sorted(ids)
+        return tuple(sorted(ids))
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
