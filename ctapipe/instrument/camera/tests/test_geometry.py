@@ -4,6 +4,7 @@ from copy import deepcopy
 import numpy as np
 import pytest
 from astropy import units as u
+from astropy.coordinates import AltAz, SkyCoord
 
 from ctapipe.instrument import CameraGeometry, PixelShape
 
@@ -295,7 +296,12 @@ def test_camera_from_name(camera_geometry):
 
 def test_camera_coordinate_transform(camera_geometry):
     """test conversion of the coordinates stored in a camera frame"""
-    from ctapipe.coordinates import CameraFrame, EngineeringCameraFrame, TelescopeFrame
+    from ctapipe.coordinates import (
+        CameraFrame,
+        EngineeringCameraFrame,
+        NominalFrame,
+        TelescopeFrame,
+    )
 
     geom = camera_geometry
     trans_geom = geom.transform_to(EngineeringCameraFrame())
@@ -307,15 +313,25 @@ def test_camera_coordinate_transform(camera_geometry):
     # also test converting into a spherical frame:
     focal_length = 1.2 * u.m
     geom.frame = CameraFrame(focal_length=focal_length)
-    telescope_frame = TelescopeFrame()
-    sky_geom = geom.transform_to(telescope_frame)
 
-    x = sky_geom.pix_x.to_value(u.deg)
+    pointing_position = SkyCoord(alt=70 * u.deg, az=0 * u.deg, frame=AltAz())
+    telescope_frame = TelescopeFrame(telescope_pointing=pointing_position)
+    geom_tel_frame = geom.transform_to(telescope_frame)
+
+    x = geom_tel_frame.pix_x.to_value(u.deg)
     assert len(x) == len(geom.pix_x)
+
+    # nominal frame with large offset, regression test for #2028
+    origin = pointing_position.directional_offset_by(0 * u.deg, 5 * u.deg)
+    nominal_frame = NominalFrame(origin=origin)
+
+    geom_nominal = geom_tel_frame.transform_to(nominal_frame)
+    # test that pixel sizes are still the same, i.e. calculation is taking translation into account
+    assert u.allclose(geom_nominal.pix_area, geom_tel_frame.pix_area)
 
     # and test going backward from spherical to cartesian:
 
-    geom_cam = sky_geom.transform_to(CameraFrame(focal_length=focal_length))
+    geom_cam = geom_tel_frame.transform_to(CameraFrame(focal_length=focal_length))
     assert np.allclose(geom_cam.pix_x.to_value(unit), geom.pix_x.to_value(unit))
 
 
