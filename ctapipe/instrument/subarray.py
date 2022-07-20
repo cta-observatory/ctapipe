@@ -271,13 +271,12 @@ class SubarrayDescription:
             "TAB_TYPE": kind,
         }
 
-        if self.reference_location is not None:
-            itrs = self.reference_location.itrs
-            meta["OBSGEO-X"] = itrs.x.to_value(u.m)
-            meta["OBSGEO-Y"] = itrs.y.to_value(u.m)
-            meta["OBSGEO-Z"] = itrs.z.to_value(u.m)
-
         if kind == "subarray":
+            if self.reference_location is not None:
+                itrs = self.reference_location.itrs
+                meta["OBSGEO-X"] = itrs.x.to_value(u.m)
+                meta["OBSGEO-Y"] = itrs.y.to_value(u.m)
+                meta["OBSGEO-Z"] = itrs.z.to_value(u.m)
 
             unique_optics = self.optics_types
 
@@ -520,12 +519,14 @@ class SubarrayDescription:
                     "File already contains a SubarrayDescription and overwrite=False"
                 )
 
-            write_table(
-                self.to_table(),
-                h5file,
-                path="/configuration/instrument/subarray/layout",
-                overwrite=overwrite,
-            )
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=tables.NaturalNameWarning)
+                write_table(
+                    self.to_table(),
+                    h5file,
+                    path="/configuration/instrument/subarray/layout",
+                    overwrite=overwrite,
+                )
             write_table(
                 self.to_table(kind="optics"),
                 h5file,
