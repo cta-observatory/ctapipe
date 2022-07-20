@@ -3,12 +3,11 @@ from copy import deepcopy
 import astropy.units as u
 import numpy as np
 from astropy.time import Time
-from traitlets.config.loader import Config
+from traitlets.config import Config
 
 from ctapipe.calib.camera.flatfield import FlasherFlatFieldCalculator
 from ctapipe.containers import ArrayEventContainer
 from ctapipe.instrument import SubarrayDescription
-from traitlets.config.loader import Config
 
 
 def test_flasherflatfieldcalculator(prod5_sst):
