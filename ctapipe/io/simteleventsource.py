@@ -458,8 +458,9 @@ class SimTelEventSource(EventSource):
             self.telescope_indices_original[tel_id] = tel_idx
             tel_positions[tel_id] = header["tel_pos"][tel_idx] * u.m
 
+        name = self.file_.global_meta.get(b"ARRAY_CONFIG_NAME", b"MonteCarloArray")
         subarray = SubarrayDescription(
-            name="MonteCarloArray",
+            name=name.decode(),
             tel_positions=tel_positions,
             tel_descriptions=tel_descriptions,
             reference_location=_location_from_meta(self.file_.global_meta),
