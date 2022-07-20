@@ -13,11 +13,10 @@ Todo:
   telescope :-))
 
 """
-from .camera import CameraDescription
-from .guess import unknown_telescope, guess_telescope
-from .optics import OpticsDescription
 from ..coordinates import CameraFrame
-
+from .camera import CameraDescription
+from .guess import guess_telescope, unknown_telescope
+from .optics import OpticsDescription
 
 __all__ = ["TelescopeDescription"]
 
@@ -49,16 +48,12 @@ class TelescopeDescription:
     def __init__(
         self,
         name: str,
-        tel_type: str,
         optics: OpticsDescription,
         camera: CameraDescription,
     ):
 
         if not isinstance(name, str):
             raise TypeError("`name` must be a str")
-
-        if not isinstance(tel_type, str):
-            raise TypeError("`tel_type` must be a str")
 
         if not isinstance(optics, OpticsDescription):
             raise TypeError("`optics` must be an instance of `OpticsDescription`")
@@ -67,7 +62,6 @@ class TelescopeDescription:
             raise TypeError("`camera` must be an instance of `CameraDescription`")
 
         self.name = name
-        self.type = tel_type
         self.optics = optics
         self.camera = camera
 
@@ -109,10 +103,11 @@ class TelescopeDescription:
         except ValueError:
             result = unknown_telescope(optics.mirror_area, camera.geometry.n_pixels)
 
-        return cls(name=result.name, tel_type=result.type, optics=optics, camera=camera)
+        return cls(name=result.name, optics=optics, camera=camera)
 
     def __str__(self):
-        return f"{self.type}_{self.optics}_{self.camera}"
+        o = self.optics
+        return f"{o.size_type.value}_{o.name}_{self.camera.camera_name}"
 
     def __repr__(self):
         return "{}(type={}, name={}, optics={}, camera={})".format(

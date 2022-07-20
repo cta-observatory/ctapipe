@@ -37,6 +37,7 @@ from ..instrument import (
     CameraReadout,
     FocalLengthKind,
     OpticsDescription,
+    ReflectorShape,
     SubarrayDescription,
     TelescopeDescription,
 )
@@ -156,10 +157,27 @@ def _telescope_from_meta(telescope_meta, mirror_area):
     telescope_type = type_from_mirror_area(mirror_area)
 
     mirror_class = MirrorClass(int(mirror_class))
+
+    reflector_shape = ReflectorShape.UNKNOWN
+    if mirror_class is MirrorClass.DUAL_MIRROR:
+        reflector_shape = ReflectorShape.SCHWARZSCHILD_COUDER
+    elif mirror_class is MirrorClass.SINGLE_SEGMENTED_MIRROR:
+        if int(telescope_meta.get(b"PARABOLIC_DISH", 0)) == 1:
+            reflector_shape = ReflectorShape.PARABOLIC
+        else:
+            reflector_shape = ReflectorShape.DAVIES_COTTON
+
+            shape_length = float(telescope_meta.get(b"DISH_SHAPE_Length", 0))
+            focal_length = float(telescope_meta.get(b"FOCAL_Length", 0))
+
+            if shape_length != focal_length:
+                reflector_shape = ReflectorShape.HYBRID
+
     n_mirrors = 2 if mirror_class is MirrorClass.DUAL_MIRROR else 1
 
     return GuessingResult(
         type=telescope_type,
+        reflector_shape=reflector_shape,
         name=optics_name.decode("utf-8"),
         camera_name=camera_name.decode("utf-8"),
         n_mirrors=n_mirrors,
@@ -424,6 +442,8 @@ class SimTelEventSource(EventSource):
 
             optics = OpticsDescription(
                 name=telescope.name,
+                size_type=telescope.type,
+                reflector_shape=telescope.reflector_shape,
                 num_mirrors=telescope.n_mirrors,
                 equivalent_focal_length=equivalent_focal_length,
                 effective_focal_length=effective_focal_length,
@@ -455,7 +475,6 @@ class SimTelEventSource(EventSource):
 
             tel_descriptions[tel_id] = TelescopeDescription(
                 name=telescope.name,
-                tel_type=telescope.type,
                 optics=optics,
                 camera=camera,
             )

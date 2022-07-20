@@ -252,7 +252,6 @@ class SubarrayDescription:
             table = self.to_table()
             optics = self.to_table(kind="optics")
             optics["optics_index"] = np.arange(len(optics))
-            optics.remove_columns(["name", "description", "type"])
             table = join(
                 table,
                 optics,
@@ -280,14 +279,14 @@ class SubarrayDescription:
 
         if kind == "subarray":
 
-            unique_types = self.telescope_types
+            unique_optics = self.optics_types
 
             ids = list(self.tels.keys())
             descs = [str(t) for t in self.tels.values()]
             tel_names = [t.name for t in self.tels.values()]
-            tel_types = [t.type for t in self.tels.values()]
+            tel_types = [t.optics.size_type.value for t in self.tels.values()]
             cam_types = [t.camera.camera_name for t in self.tels.values()]
-            optics_index = [unique_types.index(t) for t in self.tels.values()]
+            optics_index = [unique_optics.index(t.optics) for t in self.tels.values()]
             camera_index = [
                 self.camera_types.index(t.camera) for t in self.tels.values()
             ]
@@ -296,49 +295,47 @@ class SubarrayDescription:
             tab = Table(
                 dict(
                     tel_id=np.array(ids, dtype=np.short),
+                    name=tel_names,
+                    type=tel_types,
                     pos_x=tel_coords.x,
                     pos_y=tel_coords.y,
                     pos_z=tel_coords.z,
-                    name=tel_names,
-                    type=tel_types,
                     camera_type=cam_types,
                     camera_index=camera_index,
                     optics_index=optics_index,
                     tel_description=descs,
                 )
             )
-            tab.meta["TAB_VER"] = "1.0"
+            tab.meta["TAB_VER"] = "2.0"
 
         elif kind == "optics":
-            unique_types = self.telescope_types
+            unique_optics = self.optics_types
 
             mirror_area = u.Quantity(
-                [t.optics.mirror_area.to_value(u.m**2) for t in unique_types],
+                [o.mirror_area.to_value(u.m**2) for o in unique_optics],
                 u.m**2,
             )
             focal_length = u.Quantity(
-                [t.optics.equivalent_focal_length.to_value(u.m) for t in unique_types],
+                [o.equivalent_focal_length.to_value(u.m) for o in unique_optics],
                 u.m,
             )
             effective_focal_length = u.Quantity(
-                [t.optics.effective_focal_length.to_value(u.m) for t in unique_types],
+                [o.effective_focal_length.to_value(u.m) for o in unique_optics],
                 u.m,
             )
             tab = Table(
                 {
-                    "description": [str(t) for t in unique_types],
-                    "name": [t.name for t in unique_types],
-                    "type": [t.type for t in unique_types],
+                    "optics_name": [o.name for o in unique_optics],
+                    "size_type": [o.size_type.value for o in unique_optics],
+                    "reflector_shape": [o.reflector_shape.value for o in unique_optics],
                     "mirror_area": mirror_area,
-                    "num_mirrors": [t.optics.num_mirrors for t in unique_types],
-                    "num_mirror_tiles": [
-                        t.optics.num_mirror_tiles for t in unique_types
-                    ],
+                    "num_mirrors": [o.num_mirrors for o in unique_optics],
+                    "num_mirror_tiles": [o.num_mirror_tiles for o in unique_optics],
                     "equivalent_focal_length": focal_length,
                     "effective_focal_length": effective_focal_length,
                 }
             )
-            tab.meta["TAB_VER"] = "3.0"
+            tab.meta["TAB_VER"] = "4.0"
         else:
             raise ValueError(f"Table type '{kind}' not known")
 
@@ -607,15 +604,14 @@ class SubarrayDescription:
                     " Reprocessing the data with ctapipe >= 0.12 will fix this problem."
                 )
 
-        has_eff = "effective_focal_length" in optics_table.colnames
         optic_descriptions = [
             OpticsDescription(
-                row["name"],
+                name=row["optics_name"],
+                size_type=row["size_type"],
+                reflector_shape=row["reflector_shape"],
                 num_mirrors=row["num_mirrors"],
                 equivalent_focal_length=row["equivalent_focal_length"],
-                effective_focal_length=(
-                    row["effective_focal_length"] if has_eff else np.nan * u.m
-                ),
+                effective_focal_length=row["effective_focal_length"],
                 mirror_area=row["mirror_area"],
                 num_mirror_tiles=row["num_mirror_tiles"],
             )
@@ -645,7 +641,7 @@ class SubarrayDescription:
 
             camera.geometry.frame = CameraFrame(focal_length=focal_length)
             telescope_descriptions[row["tel_id"]] = TelescopeDescription(
-                name=row["name"], tel_type=row["type"], optics=optics, camera=camera
+                name=row["name"], optics=optics, camera=camera
             )
 
         positions = np.column_stack([layout[f"pos_{c}"] for c in "xyz"])

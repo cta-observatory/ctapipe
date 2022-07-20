@@ -166,7 +166,6 @@ def test_hdf_same_camera(tmp_path, prod5_lst, prod5_mst_flashcam):
     """
     frankenstein_lst = TelescopeDescription(
         name="LST",
-        tel_type="LST",
         optics=prod5_lst.optics,
         camera=prod5_mst_flashcam.camera,
     )
