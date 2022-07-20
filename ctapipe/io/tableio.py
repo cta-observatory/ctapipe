@@ -9,9 +9,8 @@ import numpy as np
 from astropy.time import Time
 from astropy.units import Quantity
 
-from ..instrument import SubarrayDescription
 from ..core import Component
-
+from ..instrument import SubarrayDescription
 
 __all__ = ["TableReader", "TableWriter"]
 
@@ -187,7 +186,7 @@ class TableWriter(Component, metaclass=ABCMeta):
 
     @abstractmethod
     def close(self):
-        """ Close open writer """
+        """Close open writer"""
         pass
 
     def _apply_col_transform(self, table_name, col_name, value):
@@ -279,7 +278,7 @@ class ColumnTransform(metaclass=ABCMeta):
     A Transformation to be applied before serialization / after deserialization.
 
     The ``TableWriter`` will call the transform on the data to be stored and
-    ``TableReader`` will call `.inverse`` the reverse the transformation 
+    ``TableReader`` will call `.inverse`` to reverse the transformation
     when a transformation is detected in the file through metadata.
 
     Transformations implement ``get_meta`` to provide the necessary metadata
@@ -292,12 +291,16 @@ class ColumnTransform(metaclass=ABCMeta):
 
     @abstractmethod
     def inverse(self, value):
-        """No inverse transform by default"""
+        """Invert the transformation applied in ``__call__``"""
         return value
 
     @abstractmethod
     def get_meta(self, colname):
-        """Empty meta by default"""
+        """Metadata to be stored in the header information of the table
+
+        Needs to fully describe the transformation so upon reading, the
+        transformation can be inverted based on this metadata.
+        """
         return {}
 
 
@@ -319,14 +322,14 @@ class TimeColumnTransform(ColumnTransform):
 
     def get_meta(self, colname):
         return {
-            f"{colname}_TRANSFORM": "time",
-            f"{colname}_TIME_FORMAT": self.format,
-            f"{colname}_TIME_SCALE": self.scale,
+            f"CTAFIELD_{colname}_TRANSFORM": "time",
+            f"CTAFIELD_{colname}_TIME_FORMAT": self.format,
+            f"CTAFIELD_{colname}_TIME_SCALE": self.scale,
         }
 
 
 class QuantityColumnTransform(ColumnTransform):
-    """ A Column Transform that transforms quantities to their values in the given unit"""
+    """A Column Transform that transforms quantities to their values in the given unit"""
 
     def __init__(self, unit):
         self.unit = unit
@@ -339,8 +342,8 @@ class QuantityColumnTransform(ColumnTransform):
 
     def get_meta(self, colname):
         return {
-            f"{colname}_TRANSFORM": "quantity",
-            f"{colname}_UNIT": self.unit.to_string("vounit"),
+            f"CTAFIELD_{colname}_TRANSFORM": "quantity",
+            f"CTAFIELD_{colname}_UNIT": self.unit.to_string("vounit"),
         }
 
 
@@ -443,13 +446,13 @@ class FixedPointColumnTransform(ColumnTransform):
 
     def get_meta(self, colname: str):
         return {
-            f"{colname}_TRANSFORM": "fixed_point",
-            f"{colname}_TRANSFORM_SCALE": self.scale,
-            f"{colname}_TRANSFORM_DTYPE": str(self.source_dtype),
-            f"{colname}_TRANSFORM_OFFSET": self.offset,
-            f"{colname}_NAN_VALUE": self.nan,
-            f"{colname}_POSINF_VALUE": self.posinf,
-            f"{colname}_NEGINF_VALUE": self.neginf,
+            f"CTAFIELD_{colname}_TRANSFORM": "fixed_point",
+            f"CTAFIELD_{colname}_TRANSFORM_SCALE": self.scale,
+            f"CTAFIELD_{colname}_TRANSFORM_DTYPE": str(self.source_dtype),
+            f"CTAFIELD_{colname}_TRANSFORM_OFFSET": self.offset,
+            f"CTAFIELD_{colname}_NAN_VALUE": self.nan,
+            f"CTAFIELD_{colname}_POSINF_VALUE": self.posinf,
+            f"CTAFIELD_{colname}_NEGINF_VALUE": self.neginf,
         }
 
 
@@ -467,7 +470,10 @@ class EnumColumnTransform(ColumnTransform):
         return self.enum(value)
 
     def get_meta(self, colname):
-        return {f"{colname}_TRANSFORM": "enum", f"{colname}_ENUM": self.enum}
+        return {
+            f"CTAFIELD_{colname}_TRANSFORM": "enum",
+            f"CTAFIELD_{colname}_ENUM": self.enum,
+        }
 
 
 def encode_utf8_max_len(string, max_length):
@@ -530,11 +536,14 @@ class StringTransform(ColumnTransform):
         return np.array([v.decode("utf-8") for v in value])
 
     def get_meta(self, colname):
-        return {f"{colname}_TRANSFORM": "string", f"{colname}_MAXLEN": self.max_length}
+        return {
+            f"CTAFIELD_{colname}_TRANSFORM": "string",
+            f"CTAFIELD_{colname}_MAXLEN": self.max_length,
+        }
 
 
 class TelListToMaskTransform(ColumnTransform):
-    """ convert variable-length list of tel_ids to a fixed-length mask """
+    """convert variable-length list of tel_ids to a fixed-length mask"""
 
     def __init__(self, subarray: SubarrayDescription):
         self._forward = subarray.tel_ids_to_mask
@@ -552,4 +561,4 @@ class TelListToMaskTransform(ColumnTransform):
         return self._inverse(value)
 
     def get_meta(self, colname):
-        return {f"{colname}_TRANSFORM": "tel_list_to_mask"}
+        return {f"CTAFIELD_{colname}_TRANSFORM": "tel_list_to_mask"}

@@ -34,17 +34,12 @@ from ..containers import (
 )
 from ..coordinates import CameraFrame
 from ..core import Map
-from ..core.traits import (
-    Bool,
-    CaselessStrEnum,
-    Float,
-    Undefined,
-    create_class_enum_trait,
-)
+from ..core.traits import Bool, Float, Undefined, UseEnum, create_class_enum_trait
 from ..instrument import (
     CameraDescription,
     CameraGeometry,
     CameraReadout,
+    FocalLengthKind,
     OpticsDescription,
     SubarrayDescription,
     TelescopeDescription,
@@ -191,16 +186,17 @@ class SimTelEventSource(EventSource):
         ),
     ).tag(config=True)
 
-    focal_length_choice = CaselessStrEnum(
-        ["nominal", "effective"],
-        default_value="effective",
+    focal_length_choice = UseEnum(
+        FocalLengthKind,
+        default_value=FocalLengthKind.EFFECTIVE,
         help=(
-            "if both nominal and effective focal lengths are available in the "
-            "SimTelArray file, which one to use when constructing the "
-            "SubarrayDescription (which will be used in CameraFrame to TelescopeFrame "
-            "coordinate transforms. The 'nominal' focal length is the one used during "
-            "the simulation, the 'effective' focal length is computed using specialized "
-            "ray-tracing from a point light source"
+            "If both nominal and effective focal lengths are available in the"
+            " SimTelArray file, which one to use for the `CameraFrame` attached"
+            " to the `CameraGeometry` instances in the `SubarrayDescription`"
+            ", which will be used in CameraFrame to TelescopeFrame coordinate"
+            " transforms. The 'nominal' focal length is the one used during "
+            " the simulation, the 'effective' focal length is computed using specialized "
+            " ray-tracing from a point light source"
         ),
     ).tag(config=True)
 
@@ -325,42 +321,50 @@ class SimTelEventSource(EventSource):
             n_pixels = cam_settings["n_pixels"]
             mirror_area = u.Quantity(cam_settings["mirror_area"], u.m**2)
 
-            nominal_focal_length = u.Quantity(cam_settings["focal_length"], u.m)
+            equivalent_focal_length = u.Quantity(cam_settings["focal_length"], u.m)
             effective_focal_length = u.Quantity(
                 cam_settings.get("effective_focal_length", np.nan), u.m
             )
 
             try:
-                telescope = guess_telescope(n_pixels, nominal_focal_length)
+                telescope = guess_telescope(
+                    n_pixels,
+                    equivalent_focal_length,
+                    cam_settings["n_mirrors"],
+                )
             except ValueError:
                 telescope = unknown_telescope(mirror_area, n_pixels)
-
-            if self.focal_length_choice == "effective":
-                if np.isnan(effective_focal_length):
-                    raise RuntimeError(
-                        f"`SimTelEventSource.focal_length_choice` was set to"
-                        f" {self.focal_length_choice!r}, but the effective focal length"
-                        f" was not present in the file. "
-                        " Use nominal focal length or adapt your simulation configuration"
-                        " to include the effective focal length"
-                    )
-                focal_length = effective_focal_length
-            else:
-                focal_length = nominal_focal_length
 
             optics = OpticsDescription(
                 name=telescope.name,
                 num_mirrors=telescope.n_mirrors,
-                equivalent_focal_length=focal_length,
+                equivalent_focal_length=equivalent_focal_length,
+                effective_focal_length=effective_focal_length,
                 mirror_area=mirror_area,
                 num_mirror_tiles=cam_settings["n_mirrors"],
             )
+
+            if self.focal_length_choice is FocalLengthKind.EFFECTIVE:
+                if np.isnan(effective_focal_length):
+                    raise RuntimeError(
+                        "`SimTelEventSource.focal_length_choice` was set to 'EFFECTIVE'"
+                        ", but the effective focal length was not present in the file."
+                        " Set `focal_length_choice='EQUIVALENT'` or make sure"
+                        " input files contain the effective focal length"
+                    )
+                focal_length = effective_focal_length
+            elif self.focal_length_choice is FocalLengthKind.EQUIVALENT:
+                focal_length = equivalent_focal_length
+            else:
+                raise ValueError(
+                    f"Invalid focal length choice: {self.focal_length_choice}"
+                )
 
             camera = build_camera(
                 cam_settings,
                 pixel_settings,
                 telescope,
-                frame=CameraFrame(focal_length=optics.equivalent_focal_length),
+                frame=CameraFrame(focal_length=focal_length),
             )
 
             tel_descriptions[tel_id] = TelescopeDescription(
@@ -389,7 +393,10 @@ class SimTelEventSource(EventSource):
 
     @staticmethod
     def is_compatible(file_path):
-        return is_eventio(Path(file_path).expanduser())
+        path = Path(file_path).expanduser()
+        if not path.is_file():
+            return False
+        return is_eventio(path)
 
     @property
     def subarray(self):
@@ -477,11 +484,12 @@ class SimTelEventSource(EventSource):
                                 self.subarray.tel_index_array[tel_id]
                             ],
                             distance_uncert=0 * u.m,
+                            prefix="true_impact",
                         )
                     else:
-                        impact_container = TelescopeImpactParameterContainer()
-
-                    impact_container.prefix = "true_impact"
+                        impact_container = TelescopeImpactParameterContainer(
+                            prefix="true_impact",
+                        )
 
                     data.simulation.tel[tel_id] = SimulatedCameraContainer(
                         true_image_sum=true_image_sums[

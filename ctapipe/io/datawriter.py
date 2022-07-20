@@ -46,8 +46,15 @@ def _get_tel_index(event, tel_id):
 #   (meaning readers need to update scripts)
 # - increase the minor number if new columns or datasets are added
 # - increase the patch number if there is a small bugfix to the model.
-DATA_MODEL_VERSION = "v3.0.0"
+DATA_MODEL_VERSION = "v4.0.0"
 DATA_MODEL_CHANGE_HISTORY = """
+- v4.0.0: - Changed how ctapipe-specific metadata is stored in hdf5 attributes.
+            This breaks backwards and forwards compatibility for almost everything.
+          - Container prefixes are now included for reconstruction algorithms
+            and true parameters.
+          - Telescope Impact Parameters were added.
+          - Effective focal length and nominal focal length are both included
+            in the optics description now.
 - v3.0.0: reconstructed core uncertainties splitted in their X-Y components
 - v2.2.0: added R0 and R1 outputs
 - v2.1.0: hillas and timing parameters are per default saved in telescope frame (degree) as opposed to camera frame (m)
@@ -99,7 +106,7 @@ def write_reference_metadata_headers(
         product=meta.Product(
             description="ctapipe Data Product",
             data_category=category,
-            data_level=[l.name for l in data_levels],
+            data_levels=data_levels,
             data_association="Subarray",
             data_model_name="ASWG",
             data_model_version=DATA_MODEL_VERSION,
@@ -423,17 +430,14 @@ class DataWriter(Component):
         writer.exclude("/dl1/monitoring/telescope/pointing/.*", "n_trigger_pixels")
         writer.exclude("/dl1/monitoring/telescope/pointing/.*", "trigger_pixels")
         writer.exclude("/dl1/monitoring/event/pointing/.*", "event_type")
+        writer.exclude("/dl1/event/telescope/images/.*", "parameters")
+        writer.exclude("/simulation/event/telescope/images/.*", "true_parameters")
 
         if not self.write_images:
             writer.exclude("/simulation/event/telescope/images/.*", "true_image")
 
         if not self.write_parameters:
             writer.exclude("/dl1/event/telescope/images/.*", "image_mask")
-
-        if self._is_simulation:
-            # no timing information yet for true images
-            writer.exclude("/simulation/event/telescope/parameters/.*", r"peak_time_.*")
-            writer.exclude("/simulation/event/telescope/parameters/.*", "timing_.*")
 
         # Set up transforms
         if self.transform_image:
@@ -472,10 +476,10 @@ class DataWriter(Component):
         # set up DL2 transforms:
         # - the single-tel output has no list of tel_ids
         # - the stereo output tel_ids list needs to be transformed to a pattern
-        writer.exclude("dl2/event/telescope/.*", "tel_ids")
+        writer.exclude("dl2/event/telescope/.*", ".*_tel_ids")
         writer.add_column_transform_regexp(
             table_regexp="dl2/event/subarray/.*",
-            col_regexp="tel_ids",
+            col_regexp=".*_tel_ids",
             transform=tr_tel_list_to_mask,
         )
 
@@ -504,7 +508,7 @@ class DataWriter(Component):
         class ExtraSimInfo(Container):
             """just to contain obs_id"""
 
-            container_prefix = ""
+            default_prefix = ""
             obs_id = Field(0, "Simulation Run Identifier")
 
         for obs_id, config in self.event_source.simulation_config.items():
@@ -666,14 +670,20 @@ class DataWriter(Component):
                     and event.simulation.tel[tel_id].true_image is not None
                 )
                 if self.write_parameters and has_sim_image:
+                    true_parameters = event.simulation.tel[tel_id].true_parameters
+                    # only write the available containers, no peak time related
+                    # features for true image available.
                     writer.write(
                         f"simulation/event/telescope/parameters/{table_name}",
                         [
                             tel_index,
-                            *event.simulation.tel[tel_id].true_parameters.values()
-                        ]
+                            true_parameters.hillas,
+                            true_parameters.leakage,
+                            true_parameters.concentration,
+                            true_parameters.morphology,
+                            true_parameters.intensity_statistics,
+                        ],
                     )
-
 
     def _write_dl2_telescope_events(
         self, writer: TableWriter, event: ArrayEventContainer

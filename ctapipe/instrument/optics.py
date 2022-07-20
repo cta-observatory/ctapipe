@@ -3,6 +3,7 @@ Classes and functions related to telescope Optics
 """
 
 import logging
+from enum import Enum, auto, unique
 
 import astropy.units as u
 import numpy as np
@@ -10,6 +11,28 @@ import numpy as np
 from ..utils import get_table_dataset
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "OpticsDescription",
+    "FocalLengthKind",
+]
+
+
+@unique
+class FocalLengthKind(Enum):
+    """
+    Enumeration for the different kinds of focal lengths.
+    """
+
+    #: Effective focal length computed from ray tracing a point source
+    #: and calculating the off-axis center of mass of the light distribution.
+    #: This focal length should be used in coordinate transforms between camera
+    #: frame and telescope frame to correct for the mean effect of coma abberation.
+    EFFECTIVE = auto()
+    #: Equivalent focal length is the nominal focal length of the main reflector
+    #: for single mirror telescopes and the thin-lens equivalent for dual mirror
+    #: telescopes.
+    EQUIVALENT = auto()
 
 
 class OpticsDescription:
@@ -24,10 +47,19 @@ class OpticsDescription:
     ----------
     num_mirrors: int
         Number of mirrors, i. e. 2 for Schwarzschild-Couder else 1
-    equivalent_focal_length: Quantity(float)
-        effective focal-length of telescope, independent of which type of
-        optics (as in the Monte-Carlo)
-    mirror_area: float
+    equivalent_focal_length : astropy.units.Quantity[length]
+        Equivalent focal-length of telescope, independent of which type of
+        optics (as in the Monte-Carlo). This is the nominal focal length
+        for single mirror telescopes and the equivalent focal length for dual
+        mirror telescopes.
+    effective_focal_length : astropy.units.Quantity[length]
+        The effective_focal_length is the focal length estimated from
+        ray tracing to correct for coma aberration. It is thus not automatically
+        available for all simulations, but only if it was set beforehand
+        in the simtel configuration. This is the focal length that should be
+        used for transforming from camera frame to telescope frame for all
+        reconstruction tasks to correct for the mean aberration.
+    mirror_area: astropy.units.Quantity[area]
         total reflective surface area of the optical system (in m^2)
     num_mirror_tiles: int
         number of mirror facets
@@ -40,28 +72,51 @@ class OpticsDescription:
         if the units of one of the inputs are missing or incompatible
     """
 
-    @u.quantity_input(mirror_area=u.m ** 2, equivalent_focal_length=u.m)
+    __slots__ = (
+        "name",
+        "effective_focal_length",
+        "equivalent_focal_length",
+        "mirror_area",
+        "num_mirrors",
+        "num_mirror_tiles",
+    )
+
+    @u.quantity_input(
+        mirror_area=u.m**2,
+        equivalent_focal_length=u.m,
+        effective_focal_length=u.m,
+    )
     def __init__(
         self,
         name,
         num_mirrors,
         equivalent_focal_length,
-        mirror_area=None,
-        num_mirror_tiles=None,
+        effective_focal_length,
+        mirror_area,
+        num_mirror_tiles,
     ):
 
         self.name = name
         self.equivalent_focal_length = equivalent_focal_length.to(u.m)
+        self.effective_focal_length = effective_focal_length.to(u.m)
         self.mirror_area = mirror_area
         self.num_mirrors = num_mirrors
         self.num_mirror_tiles = num_mirror_tiles
 
     def __hash__(self):
         """Make this hashable, so it can be used as dict keys or in sets"""
+        # From python >= 3.10, hash of nan is random, we want a fixed hash also for
+        # unknown effective focal length:
+        if np.isnan(self.effective_focal_length.value):
+            effective_focal_length = -1
+        else:
+            effective_focal_length = self.effective_focal_length.to_value(u.m)
+
         return hash(
             (
-                self.equivalent_focal_length.to_value(u.m),
-                self.mirror_area,
+                round(self.equivalent_focal_length.to_value(u.m), 4),
+                round(effective_focal_length, 4),
+                round(self.mirror_area.to_value(u.m**2)),
                 self.num_mirrors,
                 self.num_mirror_tiles,
             )
@@ -113,7 +168,7 @@ class OpticsDescription:
 
         if version == "1.0":
             mask = table["tel_description"] == name
-        elif version == "2.0":
+        else:
             mask = table["description"] == name
 
         if np.count_nonzero(mask) == 0:
@@ -121,19 +176,24 @@ class OpticsDescription:
 
         if version == "1.0":
             num_mirrors = 1 if table["mirror_type"][mask][0] == "DC" else 2
-        elif version == "2.0":
+        else:
             num_mirrors = table["num_mirrors"][mask][0]
 
-        flen = table["equivalent_focal_length"][mask].quantity[0]
+        if version in {"1.0", "2.0"}:
+            eff_focal_length = np.nan * u.m
+        else:
+            eff_focal_length = table["effective_focal_length"][mask].quantity[0]
 
-        optics = cls(
+        focal_length = table["equivalent_focal_length"][mask].quantity[0]
+
+        return cls(
             name=name,
             num_mirrors=num_mirrors,
-            equivalent_focal_length=flen,
+            equivalent_focal_length=focal_length,
+            effective_focal_length=eff_focal_length,
             mirror_area=table["mirror_area"][mask].quantity[0],
             num_mirror_tiles=table["num_mirror_tiles"][mask][0],
         )
-        return optics
 
     @classmethod
     def get_known_optics_names(cls, optics_table="optics"):
@@ -159,6 +219,7 @@ class OpticsDescription:
             f"{self.__class__.__name__}"
             f"(name={self.name}"
             f", equivalent_focal_length={self.equivalent_focal_length:.2f}"
+            f", effective_focal_length={self.effective_focal_length:.2f}"
             f", num_mirrors={self.num_mirrors}"
             f", mirror_area={self.mirror_area:.2f}"
             ")"

@@ -1,8 +1,68 @@
+import astropy.units as u
+import numpy as np
 import pytest
 import tables
-import numpy as np
+from astropy.table import Table
 
 from ctapipe.instrument.subarray import SubarrayDescription
+from ctapipe.io.astropy_helpers import read_table
+
+
+def check_equal_array_event_order(table1, table2):
+    """
+    Check that values and order of array events is consistent in two tables.
+
+    Works for both tables of subarray events (obs_id, tel_id) and
+    tables of telescope events (obs_id, tel_id, event_id) and combinations
+    of the two.
+    """
+
+    def unique_events(table):
+        return np.unique(np.array(table[["obs_id", "event_id"]]), return_index=True)
+
+    unique_events1, indicies1 = unique_events(table1)
+    unique_events2, indicies2 = unique_events(table2)
+
+    if len(unique_events1) != len(unique_events2):
+        raise ValueError("Tables have different numbers of events")
+
+    if np.any(unique_events1 != unique_events2):
+        raise ValueError("Tables have different subarray events")
+
+    # we expect the rank in which the events appear in indicies to be the
+    # same, that means argsort should produce the same result on both:
+    order1 = np.argsort(indicies1)
+    order2 = np.argsort(indicies2)
+
+    if np.any(order1 != order2):
+        raise ValueError("Tables have subarray events in different order")
+
+
+def test_check_order():
+    with pytest.raises(ValueError, match="Tables have different numbers"):
+        check_equal_array_event_order(
+            Table({"obs_id": [1, 1, 2, 2, 3], "event_id": [1, 2, 1, 2, 1]}),
+            Table({"obs_id": [1, 1, 2, 2], "event_id": [1, 2, 1, 2]}),
+        )
+
+    with pytest.raises(ValueError, match="Tables have different subarray events"):
+        check_equal_array_event_order(
+            Table({"obs_id": [1, 1, 2, 2, 3], "event_id": [1, 2, 1, 2, 1]}),
+            Table({"obs_id": [1, 1, 2, 2, 4], "event_id": [1, 2, 1, 2, 1]}),
+        )
+
+    with pytest.raises(
+        ValueError, match="Tables have subarray events in different order"
+    ):
+        check_equal_array_event_order(
+            Table({"obs_id": [1, 1, 3, 2, 2], "event_id": [1, 2, 1, 1, 2]}),
+            Table({"obs_id": [1, 1, 2, 2, 3], "event_id": [1, 2, 1, 2, 1]}),
+        )
+
+    check_equal_array_event_order(
+        Table({"obs_id": [1, 1, 3, 2, 2], "event_id": [1, 2, 1, 1, 2]}),
+        Table({"obs_id": [1, 1, 3, 2, 2], "event_id": [1, 2, 1, 1, 2]}),
+    )
 
 
 @pytest.fixture(params=["by_type", "by_id"])
@@ -43,7 +103,7 @@ def test_telescope_events_for_tel_id(test_file):
 
     _, dl1_file = test_file
 
-    loader = TableLoader(dl1_file, load_dl1_parameters=True, load_trigger=True)
+    loader = TableLoader(dl1_file, load_dl1_parameters=True)
 
     with loader as table_loader:
         table = table_loader.read_telescope_events([8])
@@ -118,18 +178,34 @@ def test_true_parameters(test_file):
 
 def test_read_subarray_events(test_file_dl2):
     """Test reading subarray events"""
-
     from ctapipe.io.tableloader import TableLoader
 
     _, dl2_file = test_file_dl2
 
-    with TableLoader(
-        dl2_file, load_dl2=True, load_simulated=True, load_trigger=True
-    ) as table_loader:
+    with TableLoader(dl2_file, load_dl2=True, load_simulated=True) as table_loader:
         table = table_loader.read_subarray_events()
         assert "HillasReconstructor_alt" in table.colnames
         assert "true_energy" in table.colnames
         assert "time" in table.colnames
+
+
+def test_table_loader_keeps_original_order(dl2_merged_file):
+    """Test reading subarray events keeps order in file"""
+    from ctapipe.io.tableloader import TableLoader
+
+    # check that the order is the same as in the file itself
+    trigger = read_table(dl2_merged_file, "/dl1/event/subarray/trigger")
+    # check we actually have unsorted input
+    assert not np.all(np.diff(trigger["obs_id"]) >= 0)
+
+    with TableLoader(
+        dl2_merged_file, load_dl2=True, load_simulated=True
+    ) as table_loader:
+        events = table_loader.read_subarray_events()
+        tel_events = table_loader.read_telescope_events()
+
+    check_equal_array_event_order(events, trigger)
+    check_equal_array_event_order(events, tel_events)
 
 
 def test_read_telescope_events_type(test_file_dl2):
@@ -148,7 +224,6 @@ def test_read_telescope_events_type(test_file_dl2):
         load_dl2=True,
         load_simulated=True,
         load_true_images=True,
-        load_trigger=False,
         load_instrument=True,
     ) as table_loader:
 
@@ -160,7 +235,7 @@ def test_read_telescope_events_type(test_file_dl2):
         expected_ids = subarray.get_tel_ids_for_type("MST_MST_FlashCam")
         assert set(table["tel_id"].data).issubset(expected_ids)
         assert "equivalent_focal_length" in table.colnames
-        assert "HillasReconstructor_impact_distance" in table.colnames
+        assert "HillasReconstructor_tel_distance" in table.colnames
 
 
 def test_read_telescope_events_by_type(test_file_dl2):
@@ -178,7 +253,6 @@ def test_read_telescope_events_by_type(test_file_dl2):
         load_dl2=True,
         load_simulated=True,
         load_true_images=True,
-        load_trigger=False,
         load_instrument=True,
     ) as table_loader:
 
@@ -225,6 +299,8 @@ def test_chunked(dl2_shower_geometry_file):
 
     n_chunks = 2
     chunk_size = int(np.ceil(n_events / n_chunks))
+    start = 0
+    stop = chunk_size
 
     with TableLoader(
         dl2_shower_geometry_file,
@@ -233,14 +309,18 @@ def test_chunked(dl2_shower_geometry_file):
         load_dl1_parameters=True,
         load_dl2=True,
         load_simulated=True,
-        load_trigger=True,
     ) as table_loader:
 
         tel_event_it = table_loader.read_telescope_events_chunked(chunk_size)
         event_it = table_loader.read_subarray_events_chunked(chunk_size)
+        by_type_it = table_loader.read_telescope_events_by_type_chunked(chunk_size)
 
-        for chunk, (events, tel_events) in enumerate(zip(event_it, tel_event_it)):
+        iters = (event_it, tel_event_it, by_type_it)
+
+        for chunk, (events, tel_events, by_type) in enumerate(zip(*iters)):
             n_read += len(events)
+            start = chunk * chunk_size
+            stop = min(n_events, (chunk + 1) * chunk_size)
 
             # last chunk might be smaller
             if chunk == (n_chunks - 1):
@@ -248,13 +328,65 @@ def test_chunked(dl2_shower_geometry_file):
             else:
                 assert len(events) == chunk_size
 
-            assert len(tel_events) == np.sum(events["tels_with_trigger"])
+            # check events are in compatible order
+            check_equal_array_event_order(events, tel_events)
+            check_equal_array_event_order(trigger[start:stop], events)
 
-            unique_events_from_tel_table = np.unique(tel_events[["obs_id", "event_id"]])
+            # check number of telescope events is correct
+            assert len(tel_events) == np.count_nonzero(events["tels_with_trigger"])
 
-            # test we get matching obs_ids / event_ids
-            idx = events[["obs_id", "event_id"]].argsort()
-            sorted_index = np.array(events[["obs_id", "event_id"]][idx])
-            assert (unique_events_from_tel_table == sorted_index).all()
+            n_events_by_type = 0
+            for table in by_type.values():
+                n_events_by_type += len(table)
+
+            assert n_events_by_type == len(tel_events)
 
     assert n_read == n_events
+
+
+def test_read_simulation_config(dl2_merged_file):
+    from ctapipe.io import TableLoader
+
+    with TableLoader(dl2_merged_file) as table_loader:
+        runs = table_loader.read_simulation_configuration()
+        assert len(runs) == 2
+        assert np.all(runs["obs_id"] == [4, 1])
+        assert u.allclose(runs["energy_range_min"].quantity, [0.004, 0.003] * u.TeV)
+
+
+def test_read_shower_distributions(dl2_merged_file):
+    from ctapipe.io import TableLoader
+
+    with TableLoader(dl2_merged_file) as table_loader:
+        histograms = table_loader.read_shower_distribution()
+        assert len(histograms) == 2
+        assert np.all(histograms["obs_id"] == [4, 1])
+        assert np.all(histograms["num_entries"] == [2000, 1000])
+        assert np.all(histograms["histogram"].sum(axis=(1, 2)) == [2000, 1000])
+
+
+def test_read_unavailable_telescope(dl2_shower_geometry_file):
+    """Reading a telescope that is not part of the subarray of the file should fail."""
+    from ctapipe.io import TableLoader
+
+    with TableLoader(
+        dl2_shower_geometry_file,
+        load_dl1_parameters=False,
+        load_dl2=True,
+    ) as loader:
+        tel_id = max(loader.subarray.tel.keys()) + 1
+        with pytest.raises(ValueError):
+            loader.read_telescope_events([tel_id])
+
+
+def test_read_empty_table(dl2_shower_geometry_file):
+    """Reading an empty table should return an empty table."""
+    from ctapipe.io import TableLoader
+
+    with TableLoader(
+        dl2_shower_geometry_file,
+        load_dl1_parameters=False,
+        load_dl2=True,
+    ) as loader:
+        table = loader.read_telescope_events([6])
+        assert len(table) == 0

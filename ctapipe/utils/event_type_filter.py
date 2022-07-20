@@ -1,9 +1,11 @@
-from ..core import Component
-from ..core.traits import Enum, Set
 from ..containers import EventType
-
+from ..core import Component
+from ..core.traits import Set, UseEnum
 
 __all__ = ["EventTypeFilter"]
+
+
+_values = ", ".join([f"{e.name} or {e.value}" for e in EventType])
 
 
 class EventTypeFilter(Component):
@@ -12,17 +14,17 @@ class EventTypeFilter(Component):
     allowed_types = Set(
         # add both the enum instance and the integer values to support
         # giving the integers in config files.
-        trait=Enum(list(EventType) + [t.value for t in EventType]),
+        trait=UseEnum(EventType),
         default_value=None,
         allow_none=True,
-        help="The allowed types. Set to None to allow all types.",
+        help=(
+            "The allowed types. Set to None to allow all types."
+            f"Possible values: {_values}."
+        ),
     ).tag(config=True)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # convert ints to enum type
-        if self.allowed_types is not None:
-            self.allowed_types = {EventType(e) for e in self.allowed_types}
 
     def __call__(self, event):
         """Returns True if the event should be kept"""

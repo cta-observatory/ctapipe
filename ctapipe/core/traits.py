@@ -1,17 +1,17 @@
 """
 Traitlet implementations for ctapipe
 """
+import copy
+import os
+import pathlib
 from collections import UserList
 from fnmatch import fnmatch
 from typing import Optional
-import copy
-from astropy.time import Time
-import pathlib
 from urllib.parse import urlparse
-import os
 
 import traitlets
 import traitlets.config
+from astropy.time import Time
 from traitlets import Undefined
 
 from .component import non_abstract_children
@@ -65,6 +65,7 @@ List = traitlets.List
 Set = traitlets.Set
 CRegExp = traitlets.CRegExp
 CaselessStrEnum = traitlets.CaselessStrEnum
+UseEnum = traitlets.UseEnum
 TraitError = traitlets.TraitError
 TraitType = traitlets.TraitType
 observe = traitlets.observe
@@ -72,10 +73,10 @@ flag = traitlets.config.boolean_flag
 
 
 class AstroTime(TraitType):
-    """ A trait representing a point in Time, as understood by `astropy.time`"""
+    """A trait representing a point in Time, as understood by `astropy.time`"""
 
     def validate(self, obj, value):
-        """ try to parse and return an ISO time string """
+        """try to parse and return an ISO time string"""
         try:
             the_time = Time(value)
             the_time.format = "iso"
@@ -273,7 +274,7 @@ class TelescopePatternList(UserList):
 
     @property
     def tel(self):
-        """ access the value per telescope_id, e.g. `param.tel[2]`"""
+        """access the value per telescope_id, e.g. `param.tel[2]`"""
         if self._lookup:
             return self._lookup
         else:
@@ -511,7 +512,7 @@ class TelescopeParameter(List):
 
 
 class FloatTelescopeParameter(TelescopeParameter):
-    """ a `~ctapipe.core.traits.TelescopeParameter` with Float trait type"""
+    """a `~ctapipe.core.traits.TelescopeParameter` with Float trait type"""
 
     def __init__(self, **kwargs):
         """Create a new IntTelescopeParameter"""
@@ -519,7 +520,7 @@ class FloatTelescopeParameter(TelescopeParameter):
 
 
 class IntTelescopeParameter(TelescopeParameter):
-    """ a `~ctapipe.core.traits.TelescopeParameter` with Int trait type"""
+    """a `~ctapipe.core.traits.TelescopeParameter` with Int trait type"""
 
     def __init__(self, **kwargs):
         """Create a new IntTelescopeParameter"""
@@ -527,7 +528,7 @@ class IntTelescopeParameter(TelescopeParameter):
 
 
 class BoolTelescopeParameter(TelescopeParameter):
-    """ a `~ctapipe.core.traits.TelescopeParameter` with Bool trait type"""
+    """a `~ctapipe.core.traits.TelescopeParameter` with Bool trait type"""
 
     def __init__(self, **kwargs):
         """Create a new BoolTelescopeParameter"""

@@ -1,22 +1,23 @@
 import enum
+
 import numpy as np
+import pandas as pd
 import pytest
 import tables
-import pandas as pd
 from astropy import units as u
 from astropy.time import Time
 
-from ctapipe.core.container import Container, Field
 from ctapipe import containers
 from ctapipe.containers import (
+    HillasParametersContainer,
+    LeakageContainer,
     R0CameraContainer,
     SimulatedShowerContainer,
-    HillasParametersContainer,
     TelEventIndexContainer,
-    LeakageContainer,
 )
-from ctapipe.io.hdf5tableio import HDF5TableWriter, HDF5TableReader
+from ctapipe.core.container import Container, Field
 from ctapipe.io import read_table
+from ctapipe.io.hdf5tableio import HDF5TableReader, HDF5TableWriter
 
 
 @pytest.fixture(scope="session")
@@ -45,6 +46,45 @@ def test_h5_file(tmp_path_factory):
             writer.write("sim_shower", shower)
 
     return path
+
+
+def test_read_meta(test_h5_file):
+    """Test reading meta information"""
+    from ctapipe import __version__
+    from ctapipe.io.hdf5tableio import get_node_meta
+
+    with tables.open_file(test_h5_file, "r") as f:
+        meta = get_node_meta(f.root["/R0/tel_001"])
+
+        # check we don't have anything else
+        # system attributes and column metadata should be excluded
+        assert len(meta) == 3
+        assert meta["CTAPIPE_VERSION"] == __version__
+        assert type(meta["CTAPIPE_VERSION"]) is str
+
+        assert meta["date"] == "2020-10-10"
+        assert type(meta["date"]) is str
+
+        assert meta["test_attribute"] == 3.14159
+        assert type(meta["test_attribute"]) is float
+
+
+def test_read_column_attrs(test_h5_file):
+    """Test reading meta information"""
+    from ctapipe.io.hdf5tableio import get_column_attrs
+
+    with tables.open_file(test_h5_file, "r") as f:
+        column_attrs = get_column_attrs(f.root["/R0/sim_shower"])
+        assert len(column_attrs) == len(SimulatedShowerContainer.fields)
+        assert column_attrs["energy"]["POS"] == 0
+        assert column_attrs["energy"]["TRANSFORM"] == "quantity"
+        assert column_attrs["energy"]["UNIT"] == "TeV"
+        assert column_attrs["energy"]["DTYPE"] == np.float64
+
+        assert column_attrs["alt"]["POS"] == 1
+        assert column_attrs["alt"]["TRANSFORM"] == "quantity"
+        assert column_attrs["alt"]["UNIT"] == "deg"
+        assert column_attrs["alt"]["DTYPE"] == np.float64
 
 
 def test_append_container(tmp_path):
@@ -270,9 +310,9 @@ def test_units(tmp_path):
         writer.write("units", c)
 
     with tables.open_file(path, "r") as f:
-        assert f.root.data.units.attrs["inverse_length_UNIT"] == "m**-1"
-        assert f.root.data.units.attrs["time_UNIT"] == "s"
-        assert f.root.data.units.attrs["grammage_UNIT"] == "cm**-2.g"
+        assert f.root.data.units.attrs["CTAFIELD_0_UNIT"] == "m**-1"
+        assert f.root.data.units.attrs["CTAFIELD_1_UNIT"] == "s"
+        assert f.root.data.units.attrs["CTAFIELD_2_UNIT"] == "cm**-2.g"
 
 
 def test_write_containers(tmp_path):
@@ -571,7 +611,7 @@ def test_column_exclusions(tmp_path):
     tmp_file = tmp_path / "test_column_exclusions.hdf5"
 
     class SomeContainer(Container):
-        container_prefix = ""
+        default_prefix = ""
         hillas_x = Field(None)
         hillas_y = Field(None)
         impact_x = Field(None)
@@ -615,7 +655,7 @@ def test_column_transforms(tmp_path):
     tmp_file = tmp_path / "test_column_transforms.hdf5"
 
     class SomeContainer(Container):
-        container_prefix = ""
+        default_prefix = ""
 
         current = Field(1 * u.A, unit=u.uA)
         time = Field(NAN_TIME)
@@ -648,7 +688,7 @@ def test_fixed_point_column_transform(tmp_path):
     tmp_file = tmp_path / "test_column_transforms.hdf5"
 
     class SomeContainer(Container):
-        container_prefix = ""
+        default_prefix = ""
         image = Field(np.array([np.nan, np.inf, -np.inf]))
 
     cont = SomeContainer()
@@ -686,7 +726,7 @@ def test_column_transforms_regexps(tmp_path):
         return x * 10
 
     class SomeContainer(Container):
-        container_prefix = ""
+        default_prefix = ""
         hillas_x = Field(1)
         hillas_y = Field(1)
 
@@ -847,7 +887,7 @@ def test_strings(tmp_path):
 
     # when not giving a max_len, should be taken from the first container
     class Container1(Container):
-        container_prefix = ""
+        default_prefix = ""
         string = Field("", "test string")
 
     path = tmp_path / "test.h5"
@@ -864,7 +904,7 @@ def test_strings(tmp_path):
     assert table["string"].tolist() == ["Hello", "öä"]
 
     class Container2(Container):
-        container_prefix = ""
+        default_prefix = ""
         string = Field("", "test string", max_length=10)
 
     path = tmp_path / "test.h5"
@@ -887,3 +927,88 @@ def test_strings(tmp_path):
         for string in expected:
             c = next(generator)
             assert c.string == string
+
+
+def test_prefix_in_output_container(tmp_path):
+    """Test that output containers retain the used prefix"""
+
+    class Container1(Container):
+        default_prefix = ""
+        value = Field(-1, "value")
+
+    path = tmp_path / "prefix.h5"
+    with HDF5TableWriter(path, mode="w", add_prefix=True) as writer:
+        for value in (1, 2, 3):
+            writer.write("values", Container1(value=value, prefix="custom_prefix"))
+
+    with HDF5TableReader(path) as reader:
+        generator = reader.read("/values", Container1, prefixes="custom_prefix")
+
+        for value in (1, 2, 3):
+            c = next(generator)
+            assert c.prefix == "custom_prefix"
+            assert c.value == value
+
+
+def test_can_read_without_prefix_given(tmp_path):
+    """Test that output containers retain the used prefix"""
+
+    class Container1(Container):
+        default_prefix = ""
+        value = Field(-1, "value")
+
+    path = tmp_path / "prefix.h5"
+    with HDF5TableWriter(path, mode="w", add_prefix=True) as writer:
+        for value in (1, 2, 3):
+            writer.write("values", Container1(value=value, prefix="custom_prefix"))
+
+    # test we can read back the data without knowing the "custom_prefix"
+    with HDF5TableReader(path) as reader:
+        generator = reader.read("/values", Container1)
+
+        for value in (1, 2, 3):
+            c = next(generator)
+            assert c.value == value
+            assert c.prefix == "custom_prefix"
+
+
+def test_can_read_same_containers(tmp_path):
+    """Test we can read two identical containers with different prefixes"""
+
+    class Container1(Container):
+        default_prefix = ""
+        value = Field(-1, "value")
+
+    # test with two of the same container with different prefixes
+    path = tmp_path / "two_containers.h5"
+    with HDF5TableWriter(path, mode="w", add_prefix=True) as writer:
+        for value in (1, 2, 3):
+            writer.write(
+                "values",
+                [
+                    Container1(value=value, prefix="foo"),
+                    Container1(value=5 * value, prefix="bar"),
+                ],
+            )
+
+    # This needs to fail since the mapping is not unique
+    with HDF5TableReader(path) as reader:
+        with pytest.raises(IOError):
+            generator = reader.read("/values", [Container1, Container1])
+            next(generator)
+
+    # But when explicitly giving the prefixes, this works and order
+    # should not be important
+    reader = HDF5TableReader(path)
+    generator = reader.read(
+        "/values",
+        [Container1, Container1],
+        prefixes=["bar", "foo"],
+    )
+
+    for value in (1, 2, 3):
+        c1, c2 = next(generator)
+        assert c1.value == 5 * value
+        assert c1.prefix == "bar"
+        assert c2.value == value
+        assert c2.prefix == "foo"
