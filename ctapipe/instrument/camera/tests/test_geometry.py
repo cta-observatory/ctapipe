@@ -327,7 +327,7 @@ def test_camera_coordinate_transform(camera_geometry):
 
     geom_nominal = geom_tel_frame.transform_to(nominal_frame)
     # test that pixel sizes are still the same, i.e. calculation is taking translation into account
-    assert u.allclose(geom_nominal.pix_area, geom_tel_frame.pix_area)
+    assert u.allclose(geom_nominal.pix_area, geom_tel_frame.pix_area, rtol=0.01)
 
     # and test going backward from spherical to cartesian:
 

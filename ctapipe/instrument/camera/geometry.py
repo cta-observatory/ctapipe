@@ -2,32 +2,36 @@
 """
 Utilities for reading or working with Camera geometry files
 """
-from copy import deepcopy
 import logging
 import warnings
+from copy import deepcopy
+from enum import Enum, unique
 
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import Angle, SkyCoord
-from astropy.coordinates import BaseCoordinateFrame
+from astropy.coordinates import Angle, BaseCoordinateFrame, SkyCoord
 from astropy.table import Table
 from astropy.utils import lazyproperty
-from scipy.sparse import lil_matrix, csr_matrix
+from scipy.sparse import csr_matrix, lil_matrix
 from scipy.spatial import cKDTree
 
 from ctapipe.coordinates import CameraFrame
-from .image_conversion import (
-    unskew_hex_pixel_grid,
-    get_orthogonal_grid_edges,
-    get_orthogonal_grid_indices,
-)
 from ctapipe.utils import get_table_dataset
 from ctapipe.utils.linalg import rotation_matrix_2d
-from enum import Enum, unique
+
+from .image_conversion import (
+    get_orthogonal_grid_edges,
+    get_orthogonal_grid_indices,
+    unskew_hex_pixel_grid,
+)
 
 __all__ = ["CameraGeometry", "UnknownPixelShapeWarning", "PixelShape"]
 
 logger = logging.getLogger(__name__)
+
+
+def _distance(x1, y1, x2, y2):
+    return np.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 
 
 @unique
@@ -235,20 +239,27 @@ class CameraGeometry:
         coord = SkyCoord(cam.pix_x, cam.pix_y, frame=cam.frame)
         trans = coord.transform_to(frame)
 
-        # also transform the unit vectors, to get rotation / mirroring, scale
-        uv = SkyCoord([1, 0], [0, 1], unit=cam.pix_x.unit, frame=cam.frame)
-        uv_trans = uv.transform_to(frame)
+        # also transform the origin and unit vectors,
+        # needed to account for translation, rotation / mirroring, scale
+        points = SkyCoord([0, 1, 0], [0, 0, 1], unit=cam.pix_x.unit, frame=cam.frame)
+        points_trans = points.transform_to(frame)
+
+        x_name, y_name = list(cam.frame.get_representation_component_names().keys())
+        points_x = getattr(points, x_name)
+        points_y = getattr(points, y_name)
 
         trans_x_name, trans_y_name = list(
-            uv_trans.frame.get_representation_component_names().keys()
+            frame.get_representation_component_names().keys()
         )
-        uv_trans_x = getattr(uv_trans, trans_x_name)
-        uv_trans_y = getattr(uv_trans, trans_y_name)
+        points_trans_x = getattr(points_trans, trans_x_name)
+        points_trans_y = getattr(points_trans, trans_y_name)
 
-        matrix = np.vstack([uv_trans_x.value, uv_trans_y.value])
+        matrix = np.vstack([points_trans_x[1:].value, points_trans_y[1:].value])
         is_mirrored = np.linalg.det(matrix) < 0
 
-        rot = np.arctan2(uv_trans_y[0], uv_trans_y[1])
+        rot = np.arctan2(
+            points_trans_y[1] - points_trans_y[0], points_trans_y[2] - points_trans_y[0]
+        )
 
         if is_mirrored:
             cam_rotation = -cam.cam_rotation
@@ -257,7 +268,20 @@ class CameraGeometry:
             cam_rotation = cam.cam_rotation
             pix_rotation = cam.pix_rotation - rot
 
-        scale = np.sqrt(uv_trans_x[0] ** 2 + uv_trans_y[0] ** 2) / cam.pix_x.unit
+        distance_before = _distance(
+            points_x[1],
+            points_y[1],
+            points_x[2],
+            points_y[2],
+        )
+        distance_after = _distance(
+            points_trans_x[1],
+            points_trans_y[1],
+            points_trans_x[2],
+            points_trans_y[2],
+        )
+        scale = distance_after / distance_before
+
         trans_x = getattr(trans, trans_x_name)
         trans_y = getattr(trans, trans_y_name)
         pix_area = (cam.pix_area * scale**2).to(trans_x.unit**2)
