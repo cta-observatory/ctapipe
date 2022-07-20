@@ -450,3 +450,26 @@ def test_extracted_calibevents():
             assert e.simulation is not None
             assert e.simulation.shower is None
         assert i == 4
+
+
+def test_simtel_metadata(monkeypatch):
+    from ctapipe.instrument import guess
+
+    path = "dataset://gamma_prod6_preliminary.simtel.zst"
+
+    with monkeypatch.context() as m:
+        # remove all guessing keys so we cannot use guessing
+        m.setattr(guess, "TELESCOPE_NAMES", [])
+
+        with SimTelEventSource(path) as source:
+            subarray = source.subarray
+
+    assert subarray.name == "Paranal-prod6"
+    assert subarray.tel[1].camera.camera_name == "LSTcam"
+    assert subarray.tel[1].optics.name == "LST"
+
+    assert subarray.tel[5].camera.camera_name == "FlashCam"
+    assert subarray.tel[5].optics.name == "MST"
+
+    assert subarray.tel[50].camera.camera_name == "SST-Camera"
+    assert subarray.tel[50].optics.name == "SST"
