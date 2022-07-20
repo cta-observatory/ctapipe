@@ -76,3 +76,40 @@ def test_table_model_interpolation(table_profile):
     # check that fine interpolation up to 100 km :
     height_fine = np.linspace(0, 100, 1000) * u.km
     assert np.isfinite(table_profile.integral(height_fine)).all()
+
+
+def test_against_reference():
+    """
+    Test five-layer and table methods against a reference analysis from
+    SimTelArray.  Data from communication with K. Bernloehr.
+
+    See https://github.com/cta-observatory/ctapipe/pull/2000
+    """
+    from ctapipe.utils import get_table_dataset
+
+    reference_table = get_table_dataset(
+        "atmosphere_profile_comparison_from_simtelarray"
+    )
+
+    fit_reference = np.array(
+        [
+            [0.00 * 100000, -140.508, 1178.05, 994186, 0],
+            [9.75 * 100000, -18.4377, 1265.08, 708915, 0],
+            [19.00 * 100000, 0.217565, 1349.22, 636143, 0],
+            [46.00 * 100000, -0.000201796, 703.745, 721128, 0],
+            [106.00 * 100000, 0.000763128, 1, 1.57247e10, 0],
+        ]
+    )
+
+    profile_5 = model.FiveLayerAtmosphereDensityProfile.from_array(fit_reference)
+
+    h = reference_table["Altitude_km"].to("km")
+
+    np.testing.assert_allclose(
+        1.0 - profile_5(h) / reference_table["rho_5"], 0, atol=1e-5
+    )
+    np.testing.assert_allclose(
+        1.0 - profile_5.line_of_sight_integral(h) / reference_table["thick_5"],
+        0,
+        atol=1e-5,
+    )
