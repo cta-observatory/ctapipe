@@ -9,6 +9,14 @@ from collections import namedtuple
 import astropy.units as u
 import numpy as np
 
+__all__ = [
+    "GuessingKey",
+    "GuessingResult",
+    "guess_telescope",
+    "unknown_telescope",
+    "type_from_mirror_area",
+]
+
 GuessingKey = namedtuple(
     "GuessingKey",
     ["n_pixels", "focal_length", "num_mirror_tiles"],

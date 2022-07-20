@@ -225,22 +225,23 @@ class SimTelEventSource(EventSource):
     Make sure you set this parameters in the simulation configuration to fully
     make use of ctapipe. In future, ctapipe might require these metadata parameters.
 
-    This includes
+    This includes:
+
     * Reference Point of the telescope coordinates. Make sure to include the
-      user-defined parameters ``LONGITUDE`` and ``LATITUDE`` with the geodetic
-      coordinates of the array reference point. Also make sure the ``ALTITUDE``
-      config parameter is included in the global metadata.
+        user-defined parameters ``LONGITUDE`` and ``LATITUDE`` with the geodetic
+        coordinates of the array reference point. Also make sure the ``ALTITUDE``
+        config parameter is included in the global metadata.
 
     * Names of the optical structures and the cameras are read from
-      ``OPTICS_CONFIG_NAME`` and ``CAMERA_CONFIG_NAME``, make sure to include
-      these in the telescope meta.
+        ``OPTICS_CONFIG_NAME`` and ``CAMERA_CONFIG_NAME``, make sure to include
+        these in the telescope meta.
 
     * The ``MIRROR_CLASS`` should also be included in the telescope meta
-      to correctly setup coordinate transforms.
+        to correctly setup coordinate transforms.
 
     If these parameters are not included in the input data, ctapipe will
     fallback guesses these based on avaible data and the list of known telescopes
-    in `ctapipe.instrument.guess`.
+    for `ctapipe.instrument.guess_telescope`.
     """
 
     skip_calibration_events = Bool(True, help="Skip calibration events").tag(
