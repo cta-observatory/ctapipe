@@ -535,7 +535,6 @@ class SimTelEventSource(EventSource):
         n_pixels = tel["camera_organization"]["n_pixels"]
         n_gains = tel["camera_organization"]["n_gains"]
 
-        tel = self.file_.telescope_descriptions[tel_id]
         disabled_ids = tel["disabled_pixels"]["HV_disabled"]
         disabled_pixels = np.zeros((n_gains, n_pixels), dtype=bool)
         disabled_pixels[:, disabled_ids] = True

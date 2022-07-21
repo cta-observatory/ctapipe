@@ -3,7 +3,7 @@ import numpy as np
 from ctapipe.io.eventsource import EventSource
 
 
-def test_neighor_average(prod5_gamma_simtel_path):
+def test_neighbor_average(prod5_gamma_simtel_path):
     from ctapipe.image.invalid_pixels import NeighborAverage
 
     with EventSource(prod5_gamma_simtel_path) as source:
