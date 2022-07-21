@@ -288,7 +288,7 @@ def test_invalid_pixels(example_event, example_subarray):
     sampling_rate = camera.readout.sampling_rate.to_value(u.GHz)
 
     event.mon.tel[tel_id].pixel_status.flatfield_failing_pixels[:, 0] = True
-    event.r1.tel[tel_id].waveform[0:, :] = 0.0
+    event.r1.tel[tel_id].waveform.fill(0.0)
     event.r1.tel[tel_id].waveform[1:, 20] = 1.0
     event.r1.tel[tel_id].waveform[0, 10] = 9999
 

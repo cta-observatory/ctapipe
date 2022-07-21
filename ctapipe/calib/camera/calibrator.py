@@ -209,8 +209,6 @@ class CameraCalibrator(TelescopeComponent):
         )
 
         dl1_calib = event.calibration.tel[tel_id].dl1
-
-        selected_gain_channel = event.r1.tel[tel_id].selected_gain_channel
         time_shift = event.calibration.tel[tel_id].dl1.time_shift
         readout = self.subarray.tel[tel_id].camera.readout
 
