@@ -11,6 +11,7 @@ from traitlets.config import Config
 
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 from ctapipe.instrument.camera.geometry import UnknownPixelShapeWarning
+from ctapipe.instrument.optics import ReflectorShape
 from ctapipe.io import DataLevel
 from ctapipe.io.simteleventsource import SimTelEventSource, apply_simtel_r1_calibration
 from ctapipe.utils import get_dataset_path
@@ -468,12 +469,16 @@ def test_simtel_metadata(monkeypatch):
     assert subarray.name == "Paranal-prod6"
     assert subarray.tel[1].camera.camera_name == "LSTcam"
     assert subarray.tel[1].optics.name == "LST"
+    assert subarray.tel[1].optics.reflector_shape is ReflectorShape.PARABOLIC
 
     assert subarray.tel[5].camera.camera_name == "FlashCam"
     assert subarray.tel[5].optics.name == "MST"
+    assert subarray.tel[5].optics.reflector_shape is ReflectorShape.HYBRID
 
-    assert subarray.tel[50].camera.camera_name == "SST-Camera"
-    assert subarray.tel[50].optics.name == "SST"
+    tel = subarray.tel[50]
+    assert tel.camera.camera_name == "SST-Camera"
+    assert tel.optics.name == "SST"
+    assert tel.optics.reflector_shape is ReflectorShape.SCHWARZSCHILD_COUDER
 
 
 def test_simtel_no_metadata(monkeypatch):
@@ -489,12 +494,16 @@ def test_simtel_no_metadata(monkeypatch):
     assert subarray.name == "MonteCarloArray"
     assert subarray.tel[1].camera.camera_name == "LSTCam"
     assert subarray.tel[1].optics.name == "LST"
+    assert subarray.tel[1].optics.reflector_shape is ReflectorShape.PARABOLIC
 
     assert subarray.tel[5].camera.camera_name == "FlashCam"
     assert subarray.tel[5].optics.name == "MST"
+    assert subarray.tel[5].optics.reflector_shape is ReflectorShape.HYBRID
 
-    assert subarray.tel[50].camera.camera_name == "CHEC"
-    assert subarray.tel[50].optics.name == "ASTRI"
+    tel = subarray.tel[50]
+    assert tel.camera.camera_name == "CHEC"
+    assert tel.optics.name == "ASTRI"
+    assert tel.optics.reflector_shape is ReflectorShape.SCHWARZSCHILD_COUDER
 
     # check we get all unknown telescopes if we remove the guessing keys
     with monkeypatch.context() as m:
