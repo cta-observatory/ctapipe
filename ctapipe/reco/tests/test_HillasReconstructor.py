@@ -192,6 +192,44 @@ def test_reconstruction_against_simulation(subarray_and_event_gamma_off_axis_500
     # check that we are not more far than 0.1 degrees
     assert reco_coord.separation(true_coord) < 0.1 * u.deg
 
+    assert u.isclose(result.core_x, event.simulation.shower.core_x, atol=25 * u.m)
+    assert u.isclose(result.core_y, event.simulation.shower.core_y, atol=25 * u.m)
+
+
+def test_reconstruction_against_simulation_camera_frame(
+    subarray_and_event_gamma_off_axis_500_gev,
+):
+    """Reconstruction is here done only in the TelescopeFrame,
+    since the previous tests test already for the compatibility between
+    frames"""
+
+    # 4-LST bright event already calibrated
+    # we'll clean it and parametrize it again in the TelescopeFrame
+    subarray, event = subarray_and_event_gamma_off_axis_500_gev
+
+    # define reconstructor
+    calib = CameraCalibrator(subarray)
+    image_processor = ImageProcessor(subarray, use_telescope_frame=False)
+    reconstructor = HillasReconstructor(subarray)
+
+    # Get shower geometry
+    calib(event)
+    image_processor(event)
+    result = reconstructor(event)
+
+    # get the reconstructed coordinates in the sky
+    reco_coord = SkyCoord(alt=result.alt, az=result.az, frame=AltAz())
+    # get the simulated coordinates in the sky
+    true_coord = SkyCoord(
+        alt=event.simulation.shower.alt, az=event.simulation.shower.az, frame=AltAz()
+    )
+
+    # check that we are not more far than 0.1 degrees
+    assert reco_coord.separation(true_coord) < 0.1 * u.deg
+
+    assert u.isclose(result.core_x, event.simulation.shower.core_x, atol=25 * u.m)
+    assert u.isclose(result.core_y, event.simulation.shower.core_y, atol=25 * u.m)
+
 
 @pytest.mark.parametrize(
     "filename",
