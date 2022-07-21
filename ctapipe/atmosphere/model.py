@@ -12,6 +12,7 @@ account)
 import abc
 from dataclasses import dataclass
 from functools import partial
+from typing import Dict
 
 import numpy as np
 from astropy import units as u
@@ -120,6 +121,23 @@ class AtmosphereDensityProfile:
 
         plt.show()
 
+    @classmethod
+    def from_table(cls, table: Table):
+        """return a subclass of AtmosphereDensityProfile from a serialized
+        table"""
+
+        if "TAB_TYPE" not in table.meta:
+            raise ValueError("expected a TAB_TYPE metadata field")
+
+        tabtype = table.meta.get("TAB_TYPE")
+
+        if tabtype == "ctapipe.atmosphere.model.TableAtmosphereDensityProfile":
+            return TableAtmosphereDensityProfile(table)
+        elif tabtype == "ctapipe.atmosphere.model.FiveLayerAtmosphereDensityProfile":
+            return FiveLayerAtmosphereDensityProfile(table)
+        else:
+            raise TypeError(f"Unknown AtmosphereDensityProfile type: '{tabtype}'")
+
 
 @dataclass
 class ExponentialAtmosphereDensityProfile(AtmosphereDensityProfile):
@@ -227,6 +245,12 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
             kind="cubic",
         )
 
+        # ensure it can be read back
+        self.table.meta[
+            "TAB_TYPE"
+        ] = "ctapipe.atmosphere.model.TableAtmosphereDensityModel"
+        self.table.meta["TAB_VER"] = 1
+
     @u.quantity_input(h=u.m)
     def __call__(self, h) -> u.Quantity:
         return u.Quantity(10 ** self._density_interp(h.to_value(u.km)), u.g / u.cm**3)
@@ -299,8 +323,11 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
         ]
 
     @classmethod
-    def from_array(cls, array: np.ndarray):
+    def from_array(cls, array: np.ndarray, metadata: Dict = None):
         """construct from a 5x5 array as provided by eventio"""
+
+        if metadata is None:
+            metadata = dict()
 
         if array.shape != (5, 5):
             raise ValueError("expected ndarray with shape (5,5)")
@@ -309,10 +336,14 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
             array,
             names=["height", "a", "b", "c", "1/c"],
             units=["cm", "g/cm2", "g/cm2", "cm", "cm-1"],
+            meta=metadata,
         )
-        table.meta = dict(
-            TAB_VER=1,
-            TAB_TYPE="ctapipe.atmosphere.model.FiveLayerAtmosphereDensityProfile",
+
+        table.meta.update(
+            dict(
+                TAB_VER=1,
+                TAB_TYPE="ctapipe.atmosphere.model.FiveLayerAtmosphereDensityProfile",
+            )
         )
         return cls(table)
 
