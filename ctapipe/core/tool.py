@@ -6,10 +6,11 @@ import pathlib
 import re
 import textwrap
 from abc import abstractmethod
+from inspect import cleandoc
 from typing import Union
+
 import yaml
 from docutils.core import publish_parts
-from inspect import cleandoc
 
 try:
     import tomli as toml
@@ -18,10 +19,9 @@ try:
 except ImportError:
     HAS_TOML = False
 
-from traitlets import default, List
+from traitlets import List, default
 from traitlets.config import Application, Config, Configurable
 
-from .. import __version__ as version
 from . import Provenance
 from .component import Component
 from .logging import ColoredFormatter, create_logging_config
@@ -168,6 +168,9 @@ class Tool(Application):
         return self.name + ".provenance.log"
 
     def __init__(self, **kwargs):
+        # here to prevent circular import
+        from .. import __version__ as version
+
         # make sure there are some default aliases in all Tools:
         super().__init__(**kwargs)
         aliases = {
@@ -379,7 +382,7 @@ class Tool(Application):
     @property
     def version_string(self):
         """a formatted version string with version, release, and git hash"""
-        return f"{version}"
+        return self.version
 
     def get_current_config(self):
         """return the current configuration as a dict (e.g. the values
