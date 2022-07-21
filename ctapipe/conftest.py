@@ -5,6 +5,7 @@ common pytest fixtures for tests in ctapipe
 from copy import deepcopy
 
 import pytest
+from astropy.io import fits
 from pytest_astropy_header.display import PYTEST_HEADER_MODULES
 
 from ctapipe.instrument import CameraGeometry, SubarrayDescription
