@@ -11,7 +11,6 @@ import numpy as np
 
 from .optics import ReflectorShape
 
-
 __all__ = [
     "GuessingKey",
     "GuessingResult",
@@ -59,6 +58,8 @@ _sc = ReflectorShape.SCHWARZSCHILD_COUDER
 _dc = ReflectorShape.DAVIES_COTTON
 _h = ReflectorShape.HYBRID
 _p = ReflectorShape.PARABOLIC
+
+# This is a list of tuples instead of a dict to be able to check for duplicates
 TELESCOPE_NAMES = [
     (GuessingKey(2048, 2.28), GuessingResult("SST", "GCT", "CHEC", 2, _sc)),
     (GuessingKey(2368, 2.15), GuessingResult("SST", "ASTRI", "ASTRICam", 2, _sc)),
