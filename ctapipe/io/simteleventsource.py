@@ -1,3 +1,4 @@
+import enum
 import warnings
 from gzip import GzipFile
 from io import BufferedReader
@@ -5,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import Angle
+from astropy.coordinates import Angle, EarthLocation
 from astropy.time import Time
 from eventio.file_types import is_eventio
 from eventio.simtel.simtelfile import SimTelFile
@@ -40,13 +41,15 @@ from ..instrument import (
     TelescopeDescription,
 )
 from ..instrument.camera import UnknownPixelShapeWarning
-from ..instrument.guess import guess_telescope, unknown_telescope
+from ..instrument.guess import (
+    GuessingResult,
+    guess_telescope,
+    type_from_mirror_area,
+    unknown_telescope,
+)
 from ..reco.impact_distance import shower_impact_distance
 from .datalevels import DataLevel
 from .eventsource import EventSource
-
-X_MAX_UNIT = u.g / (u.cm**2)
-
 
 __all__ = ["SimTelEventSource"]
 
@@ -61,6 +64,16 @@ SIMTEL_TO_CTA_EVENT_TYPE = {
 }
 
 
+@enum.unique
+class MirrorClass(enum.Enum):
+    """Enum for the sim_telarray MIRROR_CLASS values"""
+
+    SINGLE_SEGMENTED_MIRROR = 0
+    SINGLE_SOLID_PARABOLIC_MIRROR = 1
+    DUAL_MIRROR = 2
+
+
+X_MAX_UNIT = u.g / (u.cm**2)
 NANOSECONDS_PER_DAY = (1 * u.day).to_value(u.ns)
 
 
@@ -68,6 +81,22 @@ def parse_simtel_time(simtel_time):
     """Convert a unix time second / nanosecond tuple into astropy.time.Time"""
     return Time(
         simtel_time[0], simtel_time[1] * 1e-9, format="unix", scale="utc"  # ns to s
+    )
+
+
+def _location_from_meta(global_meta):
+    """Extract reference location of subarray from metadata"""
+    lat = global_meta.get(b"*LATITUDE")
+    lon = global_meta.get(b"*LONGITUDE")
+    height = global_meta.get(b"ALTITUDE")
+
+    if lat is None or lon is None or height is None:
+        return None
+
+    return EarthLocation(
+        lon=float(lon) * u.deg,
+        lat=float(lat) * u.deg,
+        height=float(height) * u.m,
     )
 
 
@@ -106,6 +135,27 @@ def build_camera(cam_settings, pixel_settings, telescope, frame):
 
     return CameraDescription(
         camera_name=telescope.camera_name, geometry=geometry, readout=readout
+    )
+
+
+def _telescope_from_meta(telescope_meta, mirror_area):
+    optics_name = telescope_meta.get(b"OPTICS_CONFIG_NAME")
+    camera_name = telescope_meta.get(b"CAMERA_CONFIG_NAME")
+    mirror_class = telescope_meta.get(b"MIRROR_CLASS")
+
+    if optics_name is None or camera_name is None or mirror_class is None:
+        return None
+
+    telescope_type = type_from_mirror_area(mirror_area)
+
+    mirror_class = MirrorClass(int(mirror_class))
+    n_mirrors = 2 if mirror_class is MirrorClass.DUAL_MIRROR else 1
+
+    return GuessingResult(
+        type=telescope_type,
+        name=optics_name.decode("utf-8"),
+        camera_name=camera_name.decode("utf-8"),
+        n_mirrors=n_mirrors,
     )
 
 
@@ -167,7 +217,32 @@ def apply_simtel_r1_calibration(
 
 
 class SimTelEventSource(EventSource):
-    """Read events from a SimTelArray data file (in EventIO format)."""
+    """
+    Read events from a SimTelArray data file (in EventIO format).
+
+    ctapipe makes use of the sim_telarray metadata system to fill some
+    information not directly accessible from the data inside the files itself.
+    Make sure you set this parameters in the simulation configuration to fully
+    make use of ctapipe. In future, ctapipe might require these metadata parameters.
+
+    This includes:
+
+    * Reference Point of the telescope coordinates. Make sure to include the
+        user-defined parameters ``LONGITUDE`` and ``LATITUDE`` with the geodetic
+        coordinates of the array reference point. Also make sure the ``ALTITUDE``
+        config parameter is included in the global metadata.
+
+    * Names of the optical structures and the cameras are read from
+        ``OPTICS_CONFIG_NAME`` and ``CAMERA_CONFIG_NAME``, make sure to include
+        these in the telescope meta.
+
+    * The ``MIRROR_CLASS`` should also be included in the telescope meta
+        to correctly setup coordinate transforms.
+
+    If these parameters are not included in the input data, ctapipe will
+    fallback guesses these based on avaible data and the list of known telescopes
+    for `ctapipe.instrument.guess_telescope`.
+    """
 
     skip_calibration_events = Bool(True, help="Skip calibration events").tag(
         config=True
@@ -317,14 +392,29 @@ class SimTelEventSource(EventSource):
                 cam_settings.get("effective_focal_length", np.nan), u.m
             )
 
-            try:
-                telescope = guess_telescope(
-                    n_pixels,
-                    equivalent_focal_length,
-                    cam_settings["n_mirrors"],
+            telescope = _telescope_from_meta(
+                self.file_.telescope_meta.get(tel_id, {}),
+                mirror_area,
+            )
+
+            if telescope is None:
+                try:
+                    telescope = guess_telescope(
+                        n_pixels,
+                        equivalent_focal_length,
+                        cam_settings["n_mirrors"],
+                    )
+                except ValueError:
+                    telescope = unknown_telescope(mirror_area, n_pixels)
+
+                # TODO: switch to warning or even an exception once
+                # we start relying on this.
+                self.log.info(
+                    "Could not determine telescope from sim_telarray metadata,"
+                    " guessing using builtin lookup-table: %d: %s",
+                    tel_id,
+                    telescope,
                 )
-            except ValueError:
-                telescope = unknown_telescope(mirror_area, n_pixels)
 
             optics = OpticsDescription(
                 name=telescope.name,
@@ -369,10 +459,12 @@ class SimTelEventSource(EventSource):
             self.telescope_indices_original[tel_id] = tel_idx
             tel_positions[tel_id] = header["tel_pos"][tel_idx] * u.m
 
+        name = self.file_.global_meta.get(b"ARRAY_CONFIG_NAME", b"MonteCarloArray")
         subarray = SubarrayDescription(
-            name="MonteCarloArray",
+            name=name.decode(),
             tel_positions=tel_positions,
             tel_descriptions=tel_descriptions,
+            reference_location=_location_from_meta(self.file_.global_meta),
         )
 
         self.n_telescopes_original = len(subarray)

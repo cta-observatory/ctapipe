@@ -450,3 +450,61 @@ def test_extracted_calibevents():
             assert e.simulation is not None
             assert e.simulation.shower is None
         assert i == 4
+
+
+def test_simtel_metadata(monkeypatch):
+    from ctapipe.instrument import guess
+
+    # prod6 is the first prod to use the metadata system
+    path = "dataset://gamma_prod6_preliminary.simtel.zst"
+
+    with monkeypatch.context() as m:
+        # remove all guessing keys so we cannot use guessing
+        m.setattr(guess, "LOOKUP_TREE", {})
+
+        with SimTelEventSource(path) as source:
+            subarray = source.subarray
+
+    assert subarray.name == "Paranal-prod6"
+    assert subarray.tel[1].camera.camera_name == "LSTcam"
+    assert subarray.tel[1].optics.name == "LST"
+
+    assert subarray.tel[5].camera.camera_name == "FlashCam"
+    assert subarray.tel[5].optics.name == "MST"
+
+    assert subarray.tel[50].camera.camera_name == "SST-Camera"
+    assert subarray.tel[50].optics.name == "SST"
+
+
+def test_simtel_no_metadata(monkeypatch):
+    from ctapipe.instrument import guess
+
+    # prod5 was before the metadata system was introduced
+    path = "dataset://gamma_prod5.simtel.zst"
+
+    # this will use the guessing system
+    with SimTelEventSource(path) as source:
+        subarray = source.subarray
+
+    assert subarray.name == "MonteCarloArray"
+    assert subarray.tel[1].camera.camera_name == "LSTCam"
+    assert subarray.tel[1].optics.name == "LST"
+
+    assert subarray.tel[5].camera.camera_name == "FlashCam"
+    assert subarray.tel[5].optics.name == "MST"
+
+    assert subarray.tel[50].camera.camera_name == "CHEC"
+    assert subarray.tel[50].optics.name == "ASTRI"
+
+    # check we get all unknown telescopes if we remove the guessing keys
+    with monkeypatch.context() as m:
+        # remove all guessing keys so we cannot use guessing
+        m.setattr(guess, "LOOKUP_TREE", {})
+
+        with SimTelEventSource(path) as source:
+            subarray = source.subarray
+
+        assert all(
+            [t.camera.camera_name.startswith("UNKNOWN") for t in subarray.tel.values()]
+        )
+        assert all([t.optics.name.startswith("UNKNOWN") for t in subarray.tel.values()])
