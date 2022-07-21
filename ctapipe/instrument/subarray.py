@@ -62,6 +62,9 @@ class SubarrayDescription:
        dict of TelescopeDescription for each telescope in the subarray
     """
 
+    CURRENT_TAB_VERSION = "2.0"
+    COMPATIBLE_VERSIONS = {"2.0"}
+
     def __init__(
         self,
         name,
@@ -307,7 +310,7 @@ class SubarrayDescription:
                     tel_description=descs,
                 )
             )
-            tab.meta["TAB_VER"] = "2.0"
+            tab.meta["TAB_VER"] = self.CURRENT_TAB_VERSION
 
         elif kind == "optics":
             unique_optics = self.optics_types
@@ -336,7 +339,7 @@ class SubarrayDescription:
                     "effective_focal_length": effective_focal_length,
                 }
             )
-            tab.meta["TAB_VER"] = "4.0"
+            tab.meta["TAB_VER"] = OpticsDescription.CURRENT_TAB_VERSION
         else:
             raise ValueError(f"Table type '{kind}' not known")
 
@@ -519,14 +522,22 @@ class SubarrayDescription:
                     "File already contains a SubarrayDescription and overwrite=False"
                 )
 
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", category=tables.NaturalNameWarning)
-                write_table(
-                    self.to_table(),
-                    h5file,
-                    path="/configuration/instrument/subarray/layout",
-                    overwrite=overwrite,
-                )
+            subarray_table = self.to_table(kind="subarray")
+            subarray_table.meta["name"] = self.name
+
+            if self.reference_location is not None:
+                # change FITS convention to something better fitting HDF
+                for direction in ("X", "Y", "Z"):
+                    fits_key = f"OBSGEO-{direction}"
+                    hdf_key = "reference_itrs_" + direction.lower()
+                    subarray_table.meta[hdf_key] = subarray_table.meta.pop(fits_key)
+
+            write_table(
+                subarray_table,
+                h5file,
+                path="/configuration/instrument/subarray/layout",
+                overwrite=overwrite,
+            )
             write_table(
                 self.to_table(kind="optics"),
                 h5file,
@@ -547,14 +558,6 @@ class SubarrayDescription:
                     overwrite=overwrite,
                 )
 
-            meta = h5file.root.configuration.instrument.subarray._v_attrs
-            meta["name"] = self.name
-            if self.reference_location is not None:
-                itrs = self.reference_location.itrs
-                meta["reference_itrs_x"] = itrs.x.to_value(u.m)
-                meta["reference_itrs_y"] = itrs.y.to_value(u.m)
-                meta["reference_itrs_z"] = itrs.z.to_value(u.m)
-
     @classmethod
     def from_hdf(cls, path, focal_length_choice=FocalLengthKind.EFFECTIVE):
         # here to prevent circular import
@@ -566,6 +569,10 @@ class SubarrayDescription:
         layout = read_table(
             path, "/configuration/instrument/subarray/layout", table_cls=QTable
         )
+
+        version = layout.meta.get("TAB_VER")
+        if version not in cls.COMPATIBLE_VERSIONS:
+            raise IOError("Unsupported version of subarray table: {version}")
 
         cameras = {}
 
@@ -593,7 +600,7 @@ class SubarrayDescription:
         )
 
         optics_version = optics_table.meta.get("TAB_VER")
-        if optics_version in OpticsDescription.COMPATIBLE_VERSIONS:
+        if optics_version not in OpticsDescription.COMPATIBLE_VERSIONS:
             raise IOError(f"Unsupported version of optics table: {optics_version}")
 
         # for backwards compatibility
@@ -654,22 +661,15 @@ class SubarrayDescription:
 
         positions = np.column_stack([layout[f"pos_{c}"] for c in "xyz"])
 
-        name = "Unknown"
         reference_location = None
-        with ExitStack() as stack:
-            if not isinstance(path, tables.File):
-                path = stack.enter_context(tables.open_file(path, mode="r"))
+        name = layout.meta.get("SUBARRAY", "Unknown")
 
-            attrs = path.root.configuration.instrument.subarray._v_attrs
-            if "name" in attrs:
-                name = str(attrs.name)
-
-            if "reference_itrs_x" in attrs:
-                reference_location = EarthLocation(
-                    x=attrs["reference_itrs_x"] * u.m,
-                    y=attrs["reference_itrs_y"] * u.m,
-                    z=attrs["reference_itrs_z"] * u.m,
-                )
+        if "reference_itrs_x" in layout.meta:
+            reference_location = EarthLocation(
+                x=layout.meta["reference_itrs_x"] * u.m,
+                y=layout.meta["reference_itrs_y"] * u.m,
+                z=layout.meta["reference_itrs_z"] * u.m,
+            )
 
         return cls(
             name=name,

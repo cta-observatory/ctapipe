@@ -144,13 +144,6 @@ def test_hdf(example_subarray, tmp_path):
         # test if transforming works
         tel.camera.geometry.transform_to(TelescopeFrame())
 
-    # test that subarrays without name (v0.8.0) work:
-    with tables.open_file(path, "r+") as hdf:
-        del hdf.root.configuration.instrument.subarray._v_attrs.name
-
-    no_name = SubarrayDescription.from_hdf(path, focal_length_choice="EQUIVALENT")
-    assert no_name.name == "Unknown"
-
     # Test we can also write and read to an already opened h5file
     with tables.open_file(path, "w") as h5file:
         example_subarray.to_hdf(h5file)
