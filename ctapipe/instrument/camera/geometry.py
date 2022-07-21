@@ -109,6 +109,9 @@ class CameraGeometry:
     cam_rotation: overall camera rotation with units
     """
 
+    CURRENT_TAB_VERSION = "2.0"
+    SUPPORTED_TAB_VERSIONS = {"1.0", "1", "1.1", "2.0"}
+
     def __init__(
         self,
         camera_name,
@@ -589,7 +592,7 @@ class CameraGeometry:
             meta=dict(
                 PIX_TYPE=self.pix_type.value,
                 TAB_TYPE="ctapipe.instrument.CameraGeometry",
-                TAB_VER="1.1",
+                TAB_VER=self.CURRENT_TAB_VERSION,
                 CAM_ID=self.camera_name,
                 PIX_ROT=self.pix_rotation.deg,
                 CAM_ROT=self.cam_rotation.deg,
@@ -624,6 +627,10 @@ class CameraGeometry:
         tab = url_or_table
         if not isinstance(url_or_table, Table):
             tab = Table.read(url_or_table, **kwargs)
+
+        version = tab.meta.get("TAB_VER")
+        if version not in cls.SUPPORTED_TAB_VERSIONS:
+            raise IOError(f"Unsupported camera geometry table version: {version}")
 
         return cls(
             camera_name=tab.meta.get("CAM_ID", "Unknown"),

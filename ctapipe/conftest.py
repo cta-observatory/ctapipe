@@ -5,6 +5,7 @@ common pytest fixtures for tests in ctapipe
 from copy import deepcopy
 
 import pytest
+from astropy.io import fits
 from pytest_astropy_header.display import PYTEST_HEADER_MODULES
 
 from ctapipe.instrument import CameraGeometry, SubarrayDescription
@@ -40,6 +41,12 @@ camera_names = [
 @pytest.fixture(scope="function", params=camera_names)
 def camera_geometry(request):
     path = get_dataset_path(f"{request.param}.camgeom.fits.gz")
+
+    # magic is missing TAB_VER info, but is actually compatible
+    if request.param == "MAGICCam":
+        with fits.open(path, mode="update") as f:
+            f[1].header["TAB_VER"] = CameraGeometry.CURRENT_TAB_VERSION
+
     return CameraGeometry.from_table(path)
 
 
