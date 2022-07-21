@@ -66,7 +66,7 @@ def altaz_to_altaz(from_coo, to_frame):
         location = to_frame.location
 
     if obstime is None or location is None:
-        return to_frame.realize_frame(from_coo.spherical)
+        return to_frame.realize_frame(from_coo.data)
 
     return from_coo.transform_to(CIRS(obstime=obstime)).transform_to(to_frame)
 
