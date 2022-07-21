@@ -294,6 +294,13 @@ def read_atmosphere_profile_from_simtel(
 
         for atmo in simtel.atmospheric_profiles:
 
+            metadata = dict(
+                obs_level=atmo["obslevel"] * u.cm,
+                atmo_id=atmo["id"],
+                atmo_name=atmo["name"],
+                htoa=atmo["htoa"],  # what is this?,
+            )
+
             if kind == "table" or kind == "auto" and "altitude_km" in atmo:
                 table = Table(
                     dict(
@@ -301,21 +308,14 @@ def read_atmosphere_profile_from_simtel(
                         density=atmo["rho"] * u.g / u.cm**3,
                         column_density=atmo["thickness"] * u.g / u.cm**2,
                     ),
-                    meta=dict(
-                        TAB_TYPE="ctapipe.atmosphere.model.TableAtmosphereDensityProfile",
-                        TAB_VER=1,
-                        obs_level=atmo["obslevel"] * u.cm,
-                        atmo_id=atmo["id"],
-                        atmo_name=atmo["name"],
-                        htoa=atmo["htoa"],  # what is this?,
-                    ),
+                    meta=metadata,
                 )
                 profiles.append(TableAtmosphereDensityProfile(table=table))
 
             elif kind == "fivelayer" and "five_layer_atmosphere" in atmo:
                 profiles.append(
                     FiveLayerAtmosphereDensityProfile.from_array(
-                        atmo["five_layer_atmosphere"]
+                        atmo["five_layer_atmosphere"], metadata=metadata
                     )
                 )
 

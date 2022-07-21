@@ -1,12 +1,13 @@
 import logging
-from pathlib import Path
 from functools import lru_cache
+from pathlib import Path
 
 import astropy.units as u
 import numpy as np
 import tables
 from astropy.utils.decorators import lazyproperty
 
+from ctapipe.atmosphere.model import AtmosphereDensityProfile
 from ctapipe.instrument.optics import FocalLengthKind
 
 from ..containers import (
@@ -39,6 +40,7 @@ from ..core import Container, Field
 from ..core.traits import UseEnum
 from ..instrument import SubarrayDescription
 from ..utils import IndexFinder
+from .astropy_helpers import read_table
 from .datalevels import DataLevel
 from .eventsource import EventSource
 from .hdf5tableio import HDF5TableReader, get_column_attrs
@@ -80,6 +82,33 @@ def get_hdf5_datalevels(h5file):
         datalevels.append(DataLevel.DL2)
 
     return tuple(datalevels)
+
+
+def read_atmosphere_density_profile(
+    h5file: tables.File, path="/simulation/service/atmosphere_density_profile"
+):
+    """return a subclass of AtmosphereDensityProfile by
+    reading a table in a h5 file
+
+    Parameters
+    ----------
+    h5file: tables.File
+        file handle of HDF5 file
+    path: str
+        path in the file where the serialized model is stored as an
+        astropy.table.Table
+
+    Returns
+    -------
+    AtmosphereDensityProfile:
+        subclass depending on type of table
+    """
+
+    if path not in h5file:
+        return None
+
+    table = read_table(h5file=h5file, path=path)
+    return AtmosphereDensityProfile.from_table(table)
 
 
 class HDF5EventSource(EventSource):
@@ -237,6 +266,10 @@ class HDF5EventSource(EventSource):
     @lazyproperty
     def datalevels(self):
         return get_hdf5_datalevels(self.file_)
+
+    @lazyproperty
+    def atmosphere_density_profile(self):
+        return read_atmosphere_density_profile(self.file_)
 
     @lazyproperty
     def obs_ids(self):

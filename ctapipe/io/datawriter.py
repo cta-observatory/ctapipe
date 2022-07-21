@@ -23,6 +23,7 @@ from ..core.traits import Bool, CaselessStrEnum, Float, Int, Path, Unicode
 from ..instrument import SubarrayDescription
 from . import EventSource, HDF5TableWriter, TableWriter
 from . import metadata as meta
+from .astropy_helpers import write_table
 from .datalevels import DataLevel
 from .simteleventsource import SimTelEventSource
 from .tableio import FixedPointColumnTransform, TelListToMaskTransform
@@ -270,6 +271,9 @@ class DataWriter(Component):
         self._subarray.to_hdf(self._writer.h5file)
         if self._is_simulation:
             self._write_simulation_configuration()
+            self._write_atmosphere_profile(
+                "/simulation/service/atmosphere_density_profile"
+            )
 
     def __enter__(self):
         return self
@@ -780,3 +784,24 @@ class DataWriter(Component):
             context_dict[key] = value
 
         meta.write_to_hdf5(context_dict, self._writer.h5file)
+
+    def _write_atmosphere_profile(self, path):
+        """
+        write atmosphere profiles if they are in a tabular format
+
+        Parameters
+        ----------
+        path: str
+            path in the HDF5 file where to place the profile
+
+        """
+
+        profile = self.event_source.atmosphere_density_profile
+
+        if profile and hasattr(profile, "table"):
+            write_table(
+                table=profile.table,
+                h5file=self._writer.h5file,
+                path=path,
+                append=False,
+            )
