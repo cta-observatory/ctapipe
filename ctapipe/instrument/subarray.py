@@ -591,6 +591,11 @@ class SubarrayDescription:
         optics_table = read_table(
             path, "/configuration/instrument/telescope/optics", table_cls=QTable
         )
+
+        optics_version = optics_table.meta.get("TAB_VER")
+        if optics_version in OpticsDescription.COMPATIBLE_VERSIONS:
+            raise IOError(f"Unsupported version of optics table: {optics_version}")
+
         # for backwards compatibility
         # if optics_index not in table, guess via telescope_description string
         # might not result in correct array when there are duplicated telescope_description
