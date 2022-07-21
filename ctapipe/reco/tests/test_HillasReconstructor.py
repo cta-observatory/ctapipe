@@ -259,14 +259,21 @@ def test_CameraFrame_against_TelescopeFrame(filename):
             for field, cam in result_camera_frame.items():
                 tel = getattr(result_telescope_frame, field)
 
+                kwargs = dict(rtol=6e-3, equal_nan=True)
+
                 if hasattr(cam, "unit"):
+                    if cam.value == 0 or tel.value == 0:
+                        kwargs["atol"] = 1e-6 * cam.unit
                     assert u.isclose(
-                        cam, tel, rtol=1e-3, atol=1e-3 * tel.unit, equal_nan=True
-                    )
+                        cam, tel, **kwargs
+                    ), f"attr {field} not matching, camera: {result_camera_frame!s} telescope: {result_telescope_frame!s}"
                 elif isinstance(cam, list):
                     assert cam == tel
                 else:
-                    assert np.isclose(cam, tel, rtol=1e-3, atol=1e-3, equal_nan=True)
+
+                    if cam == 0 or tel == 0:
+                        kwargs["atol"] = 1e-6
+                    assert np.isclose(cam, tel, **kwargs)
 
     assert reconstructed_events > 0  # check that we reconstruct at least 1 event
 
