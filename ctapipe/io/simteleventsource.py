@@ -261,7 +261,7 @@ def read_atmosphere_profile_from_simtel(
 
     Parameters
     ----------
-    simtelfile: str | eventio.simtel.simtelfile.SimTelFile
+    simtelfile: str | SimTelFile
         filename of a SimTelArray file containing an atmosphere profile
     kind: str
         "table",  "fivelayer", "auto" : which type of model to load.
