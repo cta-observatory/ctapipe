@@ -166,9 +166,6 @@ class CameraGeometry:
             else:
                 self._neighbors = csr_matrix(neighbors)
 
-        if self.pix_area is None:
-            self.pix_area = self.guess_pixel_area(pix_x, pix_y, pix_type)
-
         if apply_derotation:
             self.rotate(self.cam_rotation)
 
@@ -327,27 +324,6 @@ class CameraGeometry:
             neighbors=None,
             apply_derotation=False,
         )
-
-    @classmethod
-    def guess_pixel_area(cls, pix_x, pix_y, pix_type):
-        """
-        Guess pixel area based on the pixel type and layout.
-        This first uses `guess_pixel_width` and then calculates
-        area from the given pixel type.
-
-        Note this will not work on cameras with varying pixel sizes.
-        """
-
-        dist = cls.guess_pixel_width(pix_x, pix_y)
-
-        if pix_type == PixelShape.HEXAGON:
-            area = 2 * np.sqrt(3) * (dist / 2) ** 2
-        elif pix_type == PixelShape.SQUARE:
-            area = dist**2
-        else:
-            raise KeyError("unsupported pixel type")
-
-        return np.ones(pix_x.shape) * area
 
     @lazyproperty
     def pixel_width(self):
@@ -643,8 +619,6 @@ class CameraGeometry:
         kwargs: extra keyword arguments
             extra arguments passed to `astropy.table.Table.read`, depending on
             file type (e.g. format, hdu, path)
-
-
         """
 
         tab = url_or_table
@@ -658,8 +632,8 @@ class CameraGeometry:
             pix_y=tab["pix_y"].quantity,
             pix_area=tab["pix_area"].quantity,
             pix_type=tab.meta["PIX_TYPE"],
-            pix_rotation=Angle(tab.meta["PIX_ROT"] * u.deg),
-            cam_rotation=Angle(tab.meta["CAM_ROT"] * u.deg),
+            pix_rotation=Angle(tab.meta["PIX_ROT"], u.deg),
+            cam_rotation=Angle(tab.meta["CAM_ROT"], u.deg),
         )
 
     def __repr__(self):
