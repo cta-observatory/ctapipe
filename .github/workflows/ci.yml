@@ -95,6 +95,7 @@ jobs:
           python --version
           pip install codecov pytest-cov pyflakes pytest-xdist 'coverage!=6.3.0'
           pip install .[all]
+          pip install ./test_plugin
           pip freeze
 
       - name: Static codechecks

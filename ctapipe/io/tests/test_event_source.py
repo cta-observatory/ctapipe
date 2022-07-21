@@ -1,10 +1,10 @@
 import pytest
-from ctapipe.utils import get_dataset_path
-from ctapipe.io import EventSource, SimTelEventSource, DataLevel
-from traitlets.config.loader import Config
 from traitlets import TraitError
+from traitlets.config.loader import Config
 
 from ctapipe.core import Component
+from ctapipe.io import DataLevel, EventSource, SimTelEventSource
+from ctapipe.utils import get_dataset_path
 
 prod5_path = "gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst"
 
@@ -169,3 +169,19 @@ def test_allowed_tels_from_config():
     config = Config({"EventSource": {"input_url": dataset, "allowed_tels": {1, 3}}})
     reader = EventSource(config=config, parent=None)
     assert reader.allowed_tels == {1, 3}
+
+
+def test_plugin():
+    """Test that the test plugin is detected and its eventsource is available
+
+    Requires running `pip install [-e] test_plugin`
+    """
+    from ctapipe.core.plugins import IMPORTED_PLUGINS
+
+    assert (
+        "ctapipe_test_plugin" in IMPORTED_PLUGINS
+    ), "Did you run `pip install -e test_plugin`?"
+
+    source = EventSource("test.dummy")
+    assert source.__class__.__name__ == "PluginEventSource"
+    assert len(list(source)) == 10

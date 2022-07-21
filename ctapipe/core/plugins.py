@@ -1,17 +1,28 @@
 """ Functions for dealing with IO plugins """
-
 import importlib
+import logging
 import pkgutil
 
-
-def detect_and_import_plugins(prefix):
-    """ detect and import  plugin modules with given prefix, """
-    return {
-        name: importlib.import_module(name)
-        for finder, name, ispkg in pkgutil.iter_modules()
-        if name.startswith(prefix)
-    }
+__all__ = [
+    "detect_and_import_plugins",
+    "IMPORTED_PLUGINS",
+]
 
 
-def detect_and_import_io_plugins():
-    return detect_and_import_plugins(prefix="ctapipe_io_")
+log = logging.getLogger(__name__)
+
+IMPORTED_PLUGINS = {}
+
+
+def detect_and_import_plugins(prefix="ctapipe_"):
+    """detect and import  plugin modules with given prefix,"""
+
+    for _, name, _ in pkgutil.iter_modules():
+        if not name.startswith(prefix):
+            continue
+
+        try:
+            IMPORTED_PLUGINS[name] = importlib.import_module(name)
+            log.info("Imported plugin %s", name)
+        except Exception as e:
+            log.error("Failed to import pluging %s: %s", name, e)
