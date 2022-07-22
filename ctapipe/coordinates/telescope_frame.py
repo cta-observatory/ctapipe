@@ -28,6 +28,9 @@ from astropy.coordinates.matrix_utilities import (
 __all__ = ["TelescopeFrame"]
 
 
+_wrap_angle = Angle(180, unit=u.deg)
+
+
 class TelescopeFrame(BaseCoordinateFrame):
     """
     Telescope coordinate frame.
@@ -73,7 +76,7 @@ class TelescopeFrame(BaseCoordinateFrame):
 
         # make sure telescope coordinate is in range [-180°, 180°]
         if isinstance(self._data, UnitSphericalRepresentation):
-            self._data.lon.wrap_angle = Angle(180, unit=u.deg)
+            self._data.lon.wrap_angle = _wrap_angle
 
 
 @frame_transform_graph.transform(FunctionTransform, TelescopeFrame, TelescopeFrame)
