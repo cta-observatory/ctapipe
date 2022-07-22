@@ -59,7 +59,7 @@ DATA_MODEL_CHANGE_HISTORY = """
           - n_samples, n_samples_long, n_channels and n_pixels are now part
             of CameraReadout.
           - The reference_location (EarthLocation origin of the telescope coordinates)
-            is not included in SubarrayDescription
+            is now included in SubarrayDescription
           - Only unique optics are stored in the optics table
 - v3.0.0: reconstructed core uncertainties splitted in their X-Y components
 - v2.2.0: added R0 and R1 outputs
