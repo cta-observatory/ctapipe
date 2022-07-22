@@ -14,9 +14,9 @@ TODO:
 - Tests Tests Tests!
 """
 import astropy.units as u
-from astropy.units.quantity import Quantity
 import numpy as np
 from astropy.coordinates import (
+    AffineTransform,
     AltAz,
     BaseCoordinateFrame,
     CartesianRepresentation,
@@ -24,8 +24,8 @@ from astropy.coordinates import (
     FunctionTransform,
     RepresentationMapping,
     frame_transform_graph,
-    AffineTransform,
 )
+from astropy.units.quantity import Quantity
 from numpy import cos, sin
 
 __all__ = [
@@ -216,13 +216,18 @@ def project_to_ground(tilt_system):
     z_initial = ground_system.z.value
 
     trans = get_shower_trans_matrix(
-        tilt_system.pointing_direction.az, tilt_system.pointing_direction.alt
+        tilt_system.pointing_direction.az,
+        tilt_system.pointing_direction.alt,
     )
 
     x_projected = x_initial - trans[2][0] * z_initial / trans[2][2]
     y_projected = y_initial - trans[2][1] * z_initial / trans[2][2]
 
-    return GroundFrame(x=x_projected * unit, y=y_projected * unit, z=0 * unit)
+    return GroundFrame(
+        x=u.Quantity(x_projected, unit),
+        y=u.Quantity(y_projected, unit),
+        z=u.Quantity(0, unit),
+    )
 
 
 @frame_transform_graph.transform(FunctionTransform, GroundFrame, GroundFrame)
