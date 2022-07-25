@@ -364,8 +364,4 @@ def test_tool_raises():
     assert run_tool(ToolBad(), raises=False) == 1
 
     with pytest.raises(ValueError):
-        ret = run_tool(ToolBad(), raises=True)
-
-    # `ret` does not exist, because `run_tool` raised an Exception
-    with pytest.raises(UnboundLocalError):
-        assert ret == 1
+        run_tool(ToolBad(), raises=True)
