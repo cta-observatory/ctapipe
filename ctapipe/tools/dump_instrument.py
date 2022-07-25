@@ -6,30 +6,10 @@ automatically generated.
 """
 import os
 import pathlib
-from collections import defaultdict
 
 from ctapipe.core import Provenance, Tool
 from ctapipe.core.traits import Enum, Path, Unicode
 from ctapipe.io import EventSource
-
-
-def get_camera_types(subarray):
-    """return dict of camera names mapped to a list of tel_ids
-    that use that camera
-
-    Parameters
-    ----------
-    subarray: ctapipe.instrument.SubarrayDescription
-
-    """
-
-    cam_types = defaultdict(list)
-
-    for telid in subarray.tel:
-        geom = subarray.tel[telid].camera.geometry
-        cam_types[geom.camera_name].append(telid)
-
-    return cam_types
 
 
 class DumpInstrumentTool(Tool):
@@ -89,23 +69,21 @@ class DumpInstrumentTool(Tool):
 
     def write_camera_definitions(self):
         """writes out camgeom and camreadout files for each camera"""
-        cam_types = get_camera_types(self.subarray)
         self.subarray.info(printer=self.log.info)
-        for cam_name in cam_types:
+        for camera in self.subarray.camera_types:
             ext, args = self._get_file_format_info(self.format)
 
-            self.log.debug(f"writing {cam_name}")
-            tel_id = cam_types[cam_name].pop()
-            geom = self.subarray.tel[tel_id].camera.geometry
-            readout = self.subarray.tel[tel_id].camera.readout
+            self.log.debug("Writing camera %s", camera)
+            geom = camera.geometry
+            readout = camera.readout
 
             geom_table = geom.to_table()
             geom_table.meta["SOURCE"] = str(self.infile)
-            geom_filename = self.outdir / f"{cam_name}.camgeom.{ext}"
+            geom_filename = self.outdir / f"{camera.name}.camgeom.{ext}"
 
             readout_table = readout.to_table()
             readout_table.meta["SOURCE"] = str(self.infile)
-            readout_filename = self.outdir / f"{cam_name}.camreadout.{ext}"
+            readout_filename = self.outdir / f"{camera.name}.camreadout.{ext}"
 
             try:
                 geom_table.write(geom_filename, **args)

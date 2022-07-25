@@ -467,16 +467,16 @@ def test_simtel_metadata(monkeypatch):
             subarray = source.subarray
 
     assert subarray.name == "Paranal-prod6"
-    assert subarray.tel[1].camera.camera_name == "LSTcam"
+    assert subarray.tel[1].camera.name == "LSTcam"
     assert subarray.tel[1].optics.name == "LST"
     assert subarray.tel[1].optics.reflector_shape is ReflectorShape.PARABOLIC
 
-    assert subarray.tel[5].camera.camera_name == "FlashCam"
+    assert subarray.tel[5].camera.name == "FlashCam"
     assert subarray.tel[5].optics.name == "MST"
     assert subarray.tel[5].optics.reflector_shape is ReflectorShape.HYBRID
 
     tel = subarray.tel[50]
-    assert tel.camera.camera_name == "SST-Camera"
+    assert tel.camera.name == "SST-Camera"
     assert tel.optics.name == "SST"
     assert tel.optics.reflector_shape is ReflectorShape.SCHWARZSCHILD_COUDER
 
@@ -492,16 +492,16 @@ def test_simtel_no_metadata(monkeypatch):
         subarray = source.subarray
 
     assert subarray.name == "MonteCarloArray"
-    assert subarray.tel[1].camera.camera_name == "LSTCam"
+    assert subarray.tel[1].camera.name == "LSTCam"
     assert subarray.tel[1].optics.name == "LST"
     assert subarray.tel[1].optics.reflector_shape is ReflectorShape.PARABOLIC
 
-    assert subarray.tel[5].camera.camera_name == "FlashCam"
+    assert subarray.tel[5].camera.name == "FlashCam"
     assert subarray.tel[5].optics.name == "MST"
     assert subarray.tel[5].optics.reflector_shape is ReflectorShape.HYBRID
 
     tel = subarray.tel[50]
-    assert tel.camera.camera_name == "CHEC"
+    assert tel.camera.name == "CHEC"
     assert tel.optics.name == "ASTRI"
     assert tel.optics.reflector_shape is ReflectorShape.SCHWARZSCHILD_COUDER
 
@@ -513,7 +513,5 @@ def test_simtel_no_metadata(monkeypatch):
         with SimTelEventSource(path) as source:
             subarray = source.subarray
 
-        assert all(
-            [t.camera.camera_name.startswith("UNKNOWN") for t in subarray.tel.values()]
-        )
+        assert all([t.camera.name.startswith("UNKNOWN") for t in subarray.tel.values()])
         assert all([t.optics.name.startswith("UNKNOWN") for t in subarray.tel.values()])

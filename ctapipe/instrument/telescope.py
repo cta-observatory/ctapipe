@@ -79,9 +79,9 @@ class TelescopeDescription:
 
         Parameters
         ----------
-        camera_name: str
+        camera_name : str
            camera name
-        optics_name: str
+        optics_name : str
            optics name (e.g. LST, or SST-ASTRI), also called
            telescope_description
 
@@ -107,7 +107,7 @@ class TelescopeDescription:
     @property
     def camera_name(self):
         """Name of the camera"""
-        return self.camera.camera_name
+        return self.camera.name
 
     @property
     def optics_name(self):

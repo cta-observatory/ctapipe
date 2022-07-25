@@ -287,7 +287,7 @@ class SubarrayDescription:
             descs = [str(t) for t in self.tels.values()]
             tel_names = [t.name for t in self.tels.values()]
             tel_types = [t.optics.size_type.value for t in self.tels.values()]
-            cam_names = [t.camera.camera_name for t in self.tels.values()]
+            cam_names = [t.camera.name for t in self.tels.values()]
             optics_names = [t.optics.name for t in self.tels.values()]
             optics_index = [unique_optics.index(t.optics) for t in self.tels.values()]
             camera_index = [
@@ -592,7 +592,7 @@ class SubarrayDescription:
                 )
             )
             cameras[idx] = CameraDescription(
-                camera_name=geometry.camera_name, readout=readout, geometry=geometry
+                name=geometry.name, readout=readout, geometry=geometry
             )
 
         optics_table = read_table(

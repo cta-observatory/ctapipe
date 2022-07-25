@@ -143,7 +143,9 @@ def build_camera(simtel_telescope, telescope, frame):
     )
 
     return CameraDescription(
-        camera_name=telescope.camera_name, geometry=geometry, readout=readout
+        name=telescope.camera_name,
+        geometry=geometry,
+        readout=readout,
     )
 
 
