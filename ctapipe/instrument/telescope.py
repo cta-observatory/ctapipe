@@ -40,7 +40,6 @@ class TelescopeDescription:
 
     __slots__ = (
         "name",
-        "type",
         "optics",
         "camera",
     )
@@ -105,15 +104,26 @@ class TelescopeDescription:
 
         return cls(name=result.name, optics=optics, camera=camera)
 
+    @property
+    def camera_name(self):
+        return self.camera.camera_name
+
+    @property
+    def optics_name(self):
+        return self.optics.name
+
+    @property
+    def type(self):
+        return self.optics.size_type
+
     def __str__(self):
-        o = self.optics
-        return f"{o.size_type.value}_{o.name}_{self.camera.camera_name}"
+        return f"{self.type}_{self.optics_name}_{self.camera_name}"
 
     def __repr__(self):
-        return "{}(type={}, name={}, optics={}, camera={})".format(
-            self.__class__.__name__,
-            self.type,
-            self.name,
-            str(self.optics),
-            str(self.camera),
+        return (
+            f"{self.__class__.__name__}("
+            f"type={self.type.value!r}"
+            f", optics_name={self.optics_name!r}"
+            f", camera_name={self.camera_name!r}"
+            ")"
         )
