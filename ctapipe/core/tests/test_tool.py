@@ -361,6 +361,8 @@ def test_tool_raises():
 
     assert run_tool(ToolGood(), raises=True) == 0
 
+    assert run_tool(ToolBad(), raises=False) == 1
+
     with pytest.raises(ValueError):
         ret = run_tool(ToolBad(), raises=True)
 
