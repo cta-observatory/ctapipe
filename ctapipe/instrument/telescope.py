@@ -106,14 +106,17 @@ class TelescopeDescription:
 
     @property
     def camera_name(self):
+        """Name of the camera"""
         return self.camera.camera_name
 
     @property
     def optics_name(self):
+        """Name of the optics"""
         return self.optics.name
 
     @property
     def type(self):
+        """Size classification"""
         return self.optics.size_type
 
     def __str__(self):

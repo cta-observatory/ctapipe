@@ -1,3 +1,6 @@
+"""
+Common test fixtures for the instrument module
+"""
 import os
 import shutil
 

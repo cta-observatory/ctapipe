@@ -102,6 +102,7 @@ def _location_from_meta(global_meta):
 
 
 def build_camera(simtel_telescope, telescope, frame):
+    """Create CameraDescription from eventio data structures"""
     camera_settings = simtel_telescope["camera_settings"]
     pixel_settings = simtel_telescope["pixel_settings"]
     camera_organization = simtel_telescope["camera_organization"]
