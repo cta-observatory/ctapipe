@@ -6,10 +6,11 @@ import pathlib
 import re
 import textwrap
 from abc import abstractmethod
+from inspect import cleandoc
 from typing import Union
+
 import yaml
 from docutils.core import publish_parts
-from inspect import cleandoc
 
 try:
     import tomli as toml
@@ -18,7 +19,7 @@ try:
 except ImportError:
     HAS_TOML = False
 
-from traitlets import default, List
+from traitlets import List, default
 from traitlets.config import Application, Config, Configurable
 
 from .. import __version__ as version
@@ -312,7 +313,7 @@ class Tool(Application):
         after `Tool.start` when `Tool.run` is called."""
         self.log.info("Goodbye")
 
-    def run(self, argv=None):
+    def run(self, argv=None, raises=False):
         """Run the tool. This automatically calls `initialize()`,
         `start()` and `finish()`
 
@@ -357,6 +358,8 @@ class Tool(Application):
             Provenance().finish_activity(activity_name=self.name, status="interrupted")
             exit_status = 130  # Script terminated by Control-C
         except Exception as err:
+            if raises:
+                raise err
             self.log.exception(f"Caught unexpected exception: {err}")
             Provenance().finish_activity(activity_name=self.name, status="error")
             exit_status = 1  # any other error
@@ -525,7 +528,7 @@ def export_tool_config_to_commented_yaml(tool_instance: Tool, classes=None):
     return "\n".join(lines)
 
 
-def run_tool(tool: Tool, argv=None, cwd=None):
+def run_tool(tool: Tool, argv=None, cwd=None, raises=False):
     """
     Utility run a certain tool in a python session without exitinig
 
@@ -539,7 +542,7 @@ def run_tool(tool: Tool, argv=None, cwd=None):
     try:
         # switch to cwd for running and back after
         os.chdir(cwd)
-        tool.run(argv or [])
+        tool.run(argv or [], raises=raises)
     except SystemExit as e:
         return e.code
     finally:
