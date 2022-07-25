@@ -358,11 +358,11 @@ class Tool(Application):
             Provenance().finish_activity(activity_name=self.name, status="interrupted")
             exit_status = 130  # Script terminated by Control-C
         except Exception as err:
-            if raises:
-                raise err
             self.log.exception(f"Caught unexpected exception: {err}")
             Provenance().finish_activity(activity_name=self.name, status="error")
             exit_status = 1  # any other error
+            if raises:
+                raise err
         finally:
             if not {"-h", "--help", "--help-all"}.intersection(self.argv):
                 self.write_provenance()
