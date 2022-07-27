@@ -83,9 +83,9 @@ ImageProcessor:
 
   # Choose which images should be parameterized:
   ImageQualityQuery:
-    # quality critieria should be a list of pairs of [name,
-    # filter_function_string] The filter function should take a single value
-    # which is the image itself, a 1D np.array.
+    # quality critieria should be a list of pairs of [name, filter_expression]
+    # The filter expression should contain the variable `image` which is the
+    # image itself, a 1D np.array.
     quality_criteria:
       - ["enough_pixels", "np.count_nonzero(image) > 2"]
       - ["enough_charge", "image.sum() > 50"]
@@ -101,9 +101,9 @@ ShowerProcessor:
     # Choose which telescope events should be included in the reconstruction.
     StereoQualityQuery:
       # the quality criteria here should again be a list of [name,
-      # filter_function_string] pairs, with filter functions that take the set of
-      # image parameters, `p` (a `ctapipe.containers.ImageParametersContainer`), as
-      # an argument.
+      # filter_expression] pairs, filter_expression contains the variable
+      # `parameters` which is a `ctapipe.containers.ImageParametersContainer`
+      # for the current event)
       quality_criteria:
         - [enough intensity, "parameters.hillas.intensity > 50"]
         - [Positive width, "parameters.hillas.width.value > 0"]
