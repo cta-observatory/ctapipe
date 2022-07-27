@@ -1,30 +1,28 @@
 """
 High level image processing  (ImageProcessor Component)
 """
-from ctapipe.coordinates import TelescopeFrame
 import numpy as np
+
+from ctapipe.coordinates import TelescopeFrame
 
 from ..containers import (
     ArrayEventContainer,
-    IntensityStatisticsContainer,
     ImageParametersContainer,
-    TimingParametersContainer,
+    IntensityStatisticsContainer,
     PeakTimeStatisticsContainer,
+    TimingParametersContainer,
 )
 from ..core import QualityQuery, TelescopeComponent
 from ..core.traits import Bool, BoolTelescopeParameter, List, create_class_enum_trait
 from ..instrument import SubarrayDescription
-from . import (
-    ImageCleaner,
-    ImageModifier,
-    concentration_parameters,
-    descriptive_statistics,
-    hillas_parameters,
-    leakage_parameters,
-    morphology_parameters,
-    timing_parameters,
-)
-
+from .cleaning import ImageCleaner
+from .concentration import concentration_parameters
+from .hillas import hillas_parameters
+from .leakage import leakage_parameters
+from .modifications import ImageModifier
+from .morphology import morphology_parameters
+from .statistics import descriptive_statistics
+from .timing import timing_parameters
 
 # avoid use of base containers for unparameterized images
 DEFAULT_IMAGE_PARAMETERS = ImageParametersContainer()

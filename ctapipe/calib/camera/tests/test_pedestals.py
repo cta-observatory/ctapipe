@@ -15,7 +15,7 @@ from ctapipe.containers import ArrayEventContainer
 from ctapipe.instrument import SubarrayDescription
 
 
-def test_pedestal_calculator(prod5_sst):
+def test_pedestal_integrator(prod5_sst):
     """test of PedestalIntegrator"""
 
     tel_id = 0
@@ -48,6 +48,7 @@ def test_pedestal_calculator(prod5_sst):
         (n_gain, n_pixels), dtype=bool
     )
     data.r1.tel[tel_id].waveform = np.full((2, n_pixels, 40), ped_level)
+    data.r1.tel[tel_id].selected_gain_channel = np.zeros(n_pixels, dtype=np.uint8)
 
     while ped_calculator.num_events_seen < n_events:
         if ped_calculator.calculate_pedestals(data):

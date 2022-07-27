@@ -52,7 +52,10 @@ def test_sw_pulse_lst(prod5_lst):
         "SlidingWindowMaxSum", subarray=subarray, config=config
     )
 
-    dl1: DL1CameraContainer = extractor(waveform, telid, selected_gain_channel)
+    broken_pixels = np.zeros(n_pixels, dtype=bool)
+    dl1: DL1CameraContainer = extractor(
+        waveform, telid, selected_gain_channel, broken_pixels
+    )
     print(dl1.image / charge_true)
     assert_allclose(dl1.image, charge_true, rtol=0.02)
     assert dl1.is_valid

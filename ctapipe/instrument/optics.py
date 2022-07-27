@@ -7,6 +7,7 @@ from enum import Enum, auto, unique
 
 import astropy.units as u
 import numpy as np
+from astropy.table import QTable
 
 from ..utils import get_table_dataset
 
@@ -35,6 +36,40 @@ class FocalLengthKind(Enum):
     EQUIVALENT = auto()
 
 
+@unique
+class SizeType(str, Enum):
+    """
+    Enumeration of different telescope sizes (LST, MST, SST)
+    """
+
+    #: Unkown
+    UNKNOWN = "UNKNOWN"
+    #: A telescope with a mirror diameter larger than 16m
+    LST = "LST"
+    #: A telescope with a mirror diameter larger than 8m
+    MST = "MST"
+    #: Telescopes with a mirror diameter smaller than 8m
+    SST = "SST"
+
+
+@unique
+class ReflectorShape(Enum):
+    """
+    Enumeration of the different reflector shapes
+    """
+
+    #: Unkown
+    UNKNOWN = "UNKNOWN"
+    #: A telescope with a parabolic dish
+    PARABOLIC = "PARABOLIC"
+    #: A telescope with a Davies--Cotton dish
+    DAVIES_COTTON = "DAVIES_COTTON"
+    #: A telescope with a hybrid between parabolic and Davies--Cotton dish
+    HYBRID = "HYBRID"
+    #: A dual mirror Schwarzschild-Couder reflector
+    SCHWARZSCHILD_COUDER = "SCHWARZSCHILD_COUDER"
+
+
 class OpticsDescription:
     """
     Describes the optics of a Cherenkov Telescope mirror
@@ -45,7 +80,9 @@ class OpticsDescription:
 
     Parameters
     ----------
-    num_mirrors: int
+    name : str
+        Name of this optical system
+    num_mirrors : int
         Number of mirrors, i. e. 2 for Schwarzschild-Couder else 1
     equivalent_focal_length : astropy.units.Quantity[length]
         Equivalent focal-length of telescope, independent of which type of
@@ -59,9 +96,9 @@ class OpticsDescription:
         in the simtel configuration. This is the focal length that should be
         used for transforming from camera frame to telescope frame for all
         reconstruction tasks to correct for the mean aberration.
-    mirror_area: astropy.units.Quantity[area]
+    mirror_area : astropy.units.Quantity[area]
         total reflective surface area of the optical system (in m^2)
-    num_mirror_tiles: int
+    num_mirror_tiles : int
         number of mirror facets
 
     Raises
@@ -72,13 +109,18 @@ class OpticsDescription:
         if the units of one of the inputs are missing or incompatible
     """
 
+    CURRENT_TAB_VERSION = "4.0"
+    COMPATIBLE_VERSIONS = {"4.0"}
+
     __slots__ = (
         "name",
+        "size_type",
         "effective_focal_length",
         "equivalent_focal_length",
         "mirror_area",
         "num_mirrors",
         "num_mirror_tiles",
+        "reflector_shape",
     )
 
     @u.quantity_input(
@@ -89,14 +131,18 @@ class OpticsDescription:
     def __init__(
         self,
         name,
+        size_type,
         num_mirrors,
         equivalent_focal_length,
         effective_focal_length,
         mirror_area,
         num_mirror_tiles,
+        reflector_shape,
     ):
 
         self.name = name
+        self.size_type = SizeType(size_type)
+        self.reflector_shape = ReflectorShape(reflector_shape)
         self.equivalent_focal_length = equivalent_focal_length.to(u.m)
         self.effective_focal_length = effective_focal_length.to(u.m)
         self.mirror_area = mirror_area
@@ -117,13 +163,15 @@ class OpticsDescription:
                 round(self.equivalent_focal_length.to_value(u.m), 4),
                 round(effective_focal_length, 4),
                 round(self.mirror_area.to_value(u.m**2)),
+                self.size_type.value,
+                self.reflector_shape.value,
                 self.num_mirrors,
                 self.num_mirror_tiles,
             )
         )
 
     def __eq__(self, other):
-        """Make this hashable, so it can be used as dict keys or in sets"""
+        """For eq, we just compare equal hash"""
         return hash(self) == hash(other)
 
     @classmethod
@@ -154,45 +202,28 @@ class OpticsDescription:
 
         version = table.meta.get("TAB_VER")
 
-        # we introduced the TAB_VER after switching to the second version
-        # of this table, so when the version is missing, it can be either 1 or 2
-        # we guess the version by looking for the mirror_type attribute.
-        if version is None:
-            if "mirror_type" in table.colnames:
-                version = "1.0"
-            else:
-                version = "2.0"
-
-        if version not in {"1.0", "2.0"}:
+        if version not in cls.COMPATIBLE_VERSIONS:
             raise ValueError(f"Unsupported version of optics table: {version}")
 
-        if version == "1.0":
-            mask = table["tel_description"] == name
-        else:
-            mask = table["description"] == name
+        mask = table["optics_name"] == name
 
-        if np.count_nonzero(mask) == 0:
-            raise ValueError(f"Unknown telescope name {name}")
+        (idx,) = np.nonzero(mask)
+        if len(idx) == 0:
+            raise ValueError(f"Unknown optics name {name}")
 
-        if version == "1.0":
-            num_mirrors = 1 if table["mirror_type"][mask][0] == "DC" else 2
-        else:
-            num_mirrors = table["num_mirrors"][mask][0]
-
-        if version in {"1.0", "2.0"}:
-            eff_focal_length = np.nan * u.m
-        else:
-            eff_focal_length = table["effective_focal_length"][mask].quantity[0]
-
-        focal_length = table["equivalent_focal_length"][mask].quantity[0]
+        # QTable so that accessing row[col] is a quantity
+        table = QTable(table)
+        row = table[idx[0]]
 
         return cls(
             name=name,
-            num_mirrors=num_mirrors,
-            equivalent_focal_length=focal_length,
-            effective_focal_length=eff_focal_length,
-            mirror_area=table["mirror_area"][mask].quantity[0],
-            num_mirror_tiles=table["num_mirror_tiles"][mask][0],
+            size_type=row["size_type"],
+            reflector_shape=row["reflector_shape"],
+            num_mirrors=row["num_mirrors"],
+            equivalent_focal_length=row["equivalent_focal_length"],
+            effective_focal_length=row["effective_focal_length"],
+            mirror_area=row["mirror_area"],
+            num_mirror_tiles=row["num_mirror_tiles"],
         )
 
     @classmethod
@@ -212,12 +243,14 @@ class OpticsDescription:
             table = get_table_dataset(optics_table, role="get_known_optics_names")
         else:
             table = optics_table
-        return np.array(table["tel_description"])
+        return np.array(table["name"])
 
     def __repr__(self):
         return (
-            f"{self.__class__.__name__}"
-            f"(name={self.name}"
+            f"{self.__class__.__name__}("
+            f"name={self.name}"
+            f", size_type={self.size_type.value}"
+            f", reflector_shape={self.reflector_shape.value}"
             f", equivalent_focal_length={self.equivalent_focal_length:.2f}"
             f", effective_focal_length={self.effective_focal_length:.2f}"
             f", num_mirrors={self.num_mirrors}"
