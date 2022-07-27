@@ -270,6 +270,7 @@ class DataWriter(Component):
         self._subarray.to_hdf(self._writer.h5file)
         if self._is_simulation:
             self._write_simulation_configuration()
+        self._write_scheduling_and_observation_blocks
 
     def __enter__(self):
         return self
