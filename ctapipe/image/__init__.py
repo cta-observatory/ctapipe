@@ -1,29 +1,13 @@
-from .hillas import (
-    hillas_parameters,
-    HillasParameterizationError,
-    camera_to_shower_coordinates,
-)
-from .timing import timing_parameters
-from .leakage import leakage_parameters
-from .concentration import concentration_parameters
-from .statistics import descriptive_statistics
-from .morphology import (
-    number_of_islands,
-    number_of_island_sizes,
-    morphology_parameters,
-    largest_island,
-    brightest_island,
-)
-
 from .cleaning import (
-    tailcuts_clean,
-    dilate,
-    mars_cleaning_1st_pass,
-    fact_image_cleaning,
-    apply_time_delta_cleaning,
     ImageCleaner,
     TailcutsImageCleaner,
+    apply_time_delta_cleaning,
+    dilate,
+    fact_image_cleaning,
+    mars_cleaning_1st_pass,
+    tailcuts_clean,
 )
+
 from .pixel_likelihood import (
     poisson_likelihood_gaussian,
     poisson_likelihood_full,
@@ -34,35 +18,53 @@ from .pixel_likelihood import (
     chi_squared,
 )
 
+from .concentration import concentration_parameters
+
 from .extractor import (
-    ImageExtractor,
-    FullWaveformSum,
-    FixedWindowSum,
-    GlobalPeakWindowSum,
-    LocalPeakWindowSum,
-    SlidingWindowMaxSum,
-    NeighborPeakWindowSum,
     BaselineSubtractedNeighborPeakWindowSum,
+    FixedWindowSum,
+    FullWaveformSum,
+    GlobalPeakWindowSum,
+    ImageExtractor,
+    LocalPeakWindowSum,
+    NeighborPeakWindowSum,
+    SlidingWindowMaxSum,
     TwoPassWindowSum,
     extract_around_peak,
     extract_sliding_window,
-    neighbor_average_waveform,
-    subtract_baseline,
     integration_correction,
+    neighbor_average_maximum,
+    subtract_baseline,
 )
-from .reducer import DataVolumeReducer, NullDataVolumeReducer, TailCutsDataVolumeReducer
+from .hillas import (
+    HillasParameterizationError,
+    camera_to_shower_coordinates,
+    hillas_parameters,
+)
+from .image_processor import ImageProcessor
+from .invalid_pixels import InvalidPixelHandler, NeighborAverage
+from .leakage import leakage_parameters
+from .modifications import ImageModifier
+from .morphology import (
+    brightest_island,
+    largest_island,
+    morphology_parameters,
+    number_of_island_sizes,
+    number_of_islands,
+)
 from .muon import (
     MuonIntensityFitter,
     MuonRingFitter,
+    intensity_ratio_inside_ring,
     kundu_chaudhuri_circle_fit,
     mean_squared_error,
-    intensity_ratio_inside_ring,
     ring_completeness,
     ring_containment,
 )
 from .image_processor import ImageProcessor
 
 __all__ = [
+    "ImageModifier",
     "ImageProcessor",
     "hillas_parameters",
     "HillasParameterizationError",
@@ -108,10 +110,12 @@ __all__ = [
     "TwoPassWindowSum",
     "extract_around_peak",
     "extract_sliding_window",
-    "neighbor_average_waveform",
+    "neighbor_average_maximum",
     "subtract_baseline",
     "integration_correction",
     "DataVolumeReducer",
     "NullDataVolumeReducer",
     "TailCutsDataVolumeReducer",
+    "InvalidPixelHandler",
+    "NeighborAverage",
 ]

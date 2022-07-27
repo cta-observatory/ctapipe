@@ -1,56 +1,67 @@
+"""Tests for the bokeh visualization"""
 import numpy as np
-import pytest
+from bokeh.io import output_file, save
+
+from ctapipe.coordinates import TelescopeFrame
 
 
-def test_camera_display_create():
+def test_create_display_without_geometry(example_event, example_subarray):
+    """Test we can create a display without giving the geometry to init"""
     from ctapipe.visualization.bokeh import CameraDisplay
 
-    CameraDisplay()
+    # test we can create it without geometry, and then set all the stuff
+    display = CameraDisplay()
+
+    tel_id = next(iter(example_event.r0.tel.keys()))
+    display.geometry = example_subarray.tel[tel_id].camera.geometry
+    display.image = example_event.dl1.tel[tel_id].image
 
 
-def test_camera_geom(example_event, example_subarray):
+def test_camera_display_creation(example_event, example_subarray):
+    """Test we can create a display and check the resulting pixel coordinates"""
     from ctapipe.visualization.bokeh import CameraDisplay
 
     t = list(example_event.r0.tel.keys())[0]
     geom = example_subarray.tel[t].camera.geometry
-    c_display = CameraDisplay(geom)
+    display = CameraDisplay(geom)
 
-    assert (c_display.cdsource.data["x"] == geom.pix_x.value).all()
-    assert (c_display.cdsource.data["y"] == geom.pix_y.value).all()
-
-    t = list(example_event.r0.tel.keys())[1]
-    geom = example_subarray.tel[t].camera.geometry
-    c_display.geom = geom
-    assert (c_display.cdsource.data["x"] == geom.pix_x.value).all()
-    assert (c_display.cdsource.data["y"] == geom.pix_y.value).all()
+    assert np.allclose(np.mean(display.datasource.data["xs"], axis=1), geom.pix_x.value)
+    assert np.allclose(np.mean(display.datasource.data["ys"], axis=1), geom.pix_y.value)
 
 
-def test_camera_image(example_event, example_subarray):
-    from ctapipe.visualization.bokeh import CameraDisplay, intensity_to_hex
+def test_camera_display_telescope_frame(example_event, example_subarray):
+    """Test we can create a display in telescope frame"""
+    from ctapipe.visualization.bokeh import CameraDisplay
+
+    t = list(example_event.r0.tel.keys())[0]
+    geom = example_subarray.tel[t].camera.geometry.transform_to(TelescopeFrame())
+    display = CameraDisplay(geom)
+
+    assert np.allclose(np.mean(display.datasource.data["xs"], axis=1), geom.pix_x.value)
+    assert np.allclose(np.mean(display.datasource.data["ys"], axis=1), geom.pix_y.value)
+
+
+def test_camera_image(example_event, example_subarray, tmp_path):
+    """Test we set an image"""
+    from ctapipe.visualization.bokeh import CameraDisplay
 
     t = list(example_event.r0.tel.keys())[0]
     geom = example_subarray.tel[t].camera.geometry
-    n_pixels = geom.pix_x.value.size
-    image = np.ones(n_pixels)
-    colors = intensity_to_hex(image)
+    image = np.ones(geom.n_pixels)
 
-    with pytest.raises(ValueError):
-        CameraDisplay(None, image)
+    display = CameraDisplay(geom, image)
+    assert np.all(display.image == image)
 
-    c_display = CameraDisplay(geom, image)
-    assert (c_display.cdsource.data["image"] == colors).all()
-    assert c_display.image_min == 0
-    assert c_display.image_max == 2
+    display.image = np.random.normal(size=geom.n_pixels)
+    assert np.all(display.image == image)
 
-    image[5] = 5
-    colors = intensity_to_hex(image)
-    c_display.image = image
-    assert (c_display.cdsource.data["image"] == colors).all()
-    assert c_display.image_min == image.min()
-    assert c_display.image_max == image.max()
+    output_path = tmp_path / "test.html"
+    output_file(output_path)
+    save(display.figure, filename=output_path)
 
 
 def test_camera_enable_pixel_picker(example_event, example_subarray):
+    """Test we can call enable_pixel_picker"""
     from ctapipe.visualization.bokeh import CameraDisplay
 
     t = list(example_event.r0.tel.keys())[0]
@@ -59,82 +70,53 @@ def test_camera_enable_pixel_picker(example_event, example_subarray):
     image = np.ones(n_pixels)
     c_display = CameraDisplay(geom, image)
 
-    c_display.enable_pixel_picker(2)
-    assert len(c_display.active_pixels) == 2
+    def callback(attr, new, old):
+        print(attr, new, old)
 
-    c_display.enable_pixel_picker(3)
-    assert len(c_display.active_pixels) == 3
-
-
-def test_fast_camera_display_create(example_event, example_subarray):
-    from ctapipe.visualization.bokeh import FastCameraDisplay
-
-    t = list(example_event.r0.tel.keys())[0]
-    geom = example_subarray.tel[t].camera.geometry
-
-    x = geom.pix_x.value
-    y = geom.pix_y.value
-    area = geom.pix_area.value
-    size = np.sqrt(area)
-
-    FastCameraDisplay(x, y, size)
+    c_display.enable_pixel_picker(callback)
 
 
-def test_fast_camera_image(example_event, example_subarray):
-    from ctapipe.visualization.bokeh import FastCameraDisplay, intensity_to_hex
+def test_matplotlib_cmaps(example_subarray):
+    """Test using matplotlib colormap names works"""
+    from ctapipe.visualization.bokeh import CameraDisplay
 
-    t = list(example_event.r0.tel.keys())[0]
-    geom = example_subarray.tel[t].camera.geometry
-
-    x = geom.pix_x.value
-    y = geom.pix_y.value
-    area = geom.pix_area.value
-    size = np.sqrt(area)
-
-    c_display = FastCameraDisplay(x, y, size)
-
-    image = np.ones(x.size)
-    colors = intensity_to_hex(image)
-    c_display.image = colors
-
-    assert (c_display.cdsource.data["image"] == colors).all()
+    geom = example_subarray.tel[1].camera.geometry
+    image = np.ones(len(geom))
+    display = CameraDisplay(geom, image)
+    display.cmap = "viridis"
+    display.cmap = "RdBu"
 
 
-def test_waveform_display_create():
-    from ctapipe.visualization.bokeh import WaveformDisplay
+def test_cameras(camera_geometry, tmp_path):
+    """Test for all known camera geometries"""
+    from ctapipe.visualization.bokeh import CameraDisplay
 
-    WaveformDisplay()
+    image = np.random.normal(size=len(camera_geometry))
+    display = CameraDisplay(camera_geometry, image)
 
-
-def test_waveform_values():
-    from ctapipe.visualization.bokeh import WaveformDisplay
-
-    wf = np.ones(30)
-    w_display = WaveformDisplay(wf)
-
-    assert (w_display.cdsource.data["samples"] == wf).all()
-    assert (w_display.cdsource.data["t"] == np.arange(wf.size)).all()
-
-    wf[5] = 5
-    w_display.waveform = wf
-
-    assert (w_display.cdsource.data["samples"] == wf).all()
-    assert (w_display.cdsource.data["t"] == np.arange(wf.size)).all()
+    output_path = tmp_path / "test.html"
+    output_file(output_path)
+    save(display.figure, filename=output_path)
 
 
-def test_span():
-    from ctapipe.visualization.bokeh import WaveformDisplay
+def test_array_display_no_values(example_subarray, tmp_path):
+    """Test plain array display"""
+    from ctapipe.visualization.bokeh import ArrayDisplay
 
-    wf = np.ones(30)
-    w_display = WaveformDisplay(wf)
-    w_display.enable_time_picker()
-    w_display.active_time = 4
-    assert w_display.span.location == 4
+    display = ArrayDisplay(example_subarray)
 
-    w_display.active_time = -3
-    assert w_display.active_time == 0
-    assert w_display.span.location == 0
+    output_path = tmp_path / "test.html"
+    output_file(output_path)
+    save(display.figure, filename=output_path)
 
-    w_display.active_time = wf.size + 10
-    assert w_display.active_time == wf.size - 1
-    assert w_display.span.location == wf.size - 1
+
+def test_array_display(example_subarray, tmp_path):
+    """Test array display with values for each telescope"""
+    from ctapipe.visualization.bokeh import ArrayDisplay
+
+    display = ArrayDisplay(example_subarray, values=np.arange(len(example_subarray)))
+    display.add_colorbar()
+
+    output_path = tmp_path / "test.html"
+    output_file(output_path)
+    save(display.figure, filename=output_path)

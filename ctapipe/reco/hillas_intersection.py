@@ -27,7 +27,7 @@ from ctapipe.containers import (
     HillasParametersContainer,
 )
 
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, AltAz
 from ctapipe.coordinates import (
     NominalFrame,
     CameraFrame,
@@ -41,6 +41,12 @@ import warnings
 from ctapipe.core import traits
 
 __all__ = ["HillasIntersection"]
+
+
+INVALID = ReconstructedGeometryContainer(
+    tel_ids=[],
+    prefix="HillasIntersection",
+)
 
 
 class HillasIntersection(Reconstructor):
@@ -77,7 +83,7 @@ class HillasIntersection(Reconstructor):
         """
         Weighting must be a function similar to the weight_konrad already implemented
         """
-        super().__init__(config=config, parent=parent, **kwargs)
+        super().__init__(subarray, **kwargs)
 
         # other weighting schemes can be implemented. just add them as additional methods
         if self.weighting == "Konrad":
@@ -133,7 +139,37 @@ class HillasIntersection(Reconstructor):
         if result is not None:
             event.dl2.stereo.geometry["HillasIntersection"] = result
 
-    def predict(self, hillas_dict, subarray, array_pointing, telescopes_pointings=None):
+    def __call__(self, event):
+        """
+        Perform stereo reconstruction on event.
+
+        Parameters
+        ----------
+        event: `ctapipe.containers.ArrayEventContainer`
+            The event, needs to have dl1 parameters
+
+        Returns
+        -------
+        ReconstructedGeometryContainer
+        """
+
+        try:
+            hillas_dict = self._create_hillas_dict(event)
+        except (TooFewTelescopesException, InvalidWidthException):
+            return INVALID
+
+        # Due to tracking the pointing of the array will never be a constant
+        array_pointing = SkyCoord(
+            az=event.pointing.array_azimuth,
+            alt=event.pointing.array_altitude,
+            frame=AltAz(),
+        )
+
+        telescope_pointings = self._get_telescope_pointings(event)
+
+        return self._predict(hillas_dict, array_pointing, telescope_pointings)
+
+    def _predict(self, hillas_dict, array_pointing, telescopes_pointings=None):
         """
 
         Parameters
@@ -150,7 +186,7 @@ class HillasIntersection(Reconstructor):
 
         Returns
         -------
-        ReconstructedShowerContainer:
+        ReconstructedGeometryContainer:
 
         """
 
@@ -164,12 +200,12 @@ class HillasIntersection(Reconstructor):
             )
 
         # check for np.nan or 0 width's as these screw up weights
-        if any([np.isnan(hillas_dict[tel]["width"].value) for tel in hillas_dict]):
+        if any([np.isnan(h.width.value) for h in hillas_dict.values()]):
             raise InvalidWidthException(
                 "A HillasContainer contains an ellipse of width==np.nan"
             )
 
-        if any([hillas_dict[tel]["width"].value == 0 for tel in hillas_dict]):
+        if any([h.width.value == 0 for h in hillas_dict.values()]):
             raise InvalidWidthException(
                 "A HillasContainer contains an ellipse of width==0"
             )
@@ -180,11 +216,11 @@ class HillasIntersection(Reconstructor):
             }
 
         tilted_frame = TiltedGroundFrame(pointing_direction=array_pointing)
-        grd_coord = subarray.tel_coords
+        grd_coord = self.subarray.tel_coords
         tilt_coord = grd_coord.transform_to(tilted_frame)
 
         tel_ids = list(hillas_dict.keys())
-        tel_indices = subarray.tel_ids_to_indices(tel_ids)
+        tel_indices = self.subarray.tel_ids_to_indices(tel_ids)
 
         tel_x = {
             tel_id: tilt_coord.x[tel_index]
@@ -201,7 +237,7 @@ class HillasIntersection(Reconstructor):
 
         for tel_id, hillas in hillas_dict.items():
             if isinstance(hillas, CameraHillasParametersContainer):
-                focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
+                focal_length = self.subarray.tel[tel_id].optics.equivalent_focal_length
                 camera_frame = CameraFrame(
                     telescope_pointing=telescopes_pointings[tel_id],
                     focal_length=focal_length,
@@ -258,14 +294,17 @@ class HillasIntersection(Reconstructor):
             90 * u.deg - array_pointing.alt,
         )
 
-        src_error = np.sqrt(err_fov_lon ** 2 + err_fov_lat ** 2)
+        src_error = np.sqrt(err_fov_lon**2 + err_fov_lat**2)
 
-        result = ReconstructedGeometryContainer(
+        return ReconstructedGeometryContainer(
             alt=sky_pos.altaz.alt.to(u.rad),
             az=sky_pos.altaz.az.to(u.rad),
             core_x=grd.x,
             core_y=grd.y,
-            core_uncert=u.Quantity(np.sqrt(core_err_x ** 2 + core_err_y ** 2), u.m),
+            core_tilted_x=core_x,
+            core_tilted_y=core_y,
+            core_tilted_uncert_x=u.Quantity(core_err_x, u.m),
+            core_tilted_uncert_y=u.Quantity(core_err_y, u.m),
             tel_ids=[h for h in hillas_dict_mod.keys()],
             average_intensity=np.mean([h.intensity for h in hillas_dict_mod.values()]),
             is_valid=True,
@@ -274,8 +313,8 @@ class HillasIntersection(Reconstructor):
             h_max=x_max,
             h_max_uncert=u.Quantity(np.nan * x_max.unit),
             goodness_of_fit=np.nan,
+            prefix=self.__class__.__name__,
         )
-        return result
 
     def reconstruct_nominal(self, hillas_parameters):
         """

@@ -15,6 +15,7 @@ from iminuit import Minuit
 from scipy.stats import norm
 from sklearn.feature_selection import chi2
 
+from ctapipe.core import Component
 from ctapipe.coordinates import (
     CameraFrame,
     NominalFrame,
@@ -27,7 +28,6 @@ from ctapipe.containers import (
     ReconstructedGeometryContainer,
     ReconstructedEnergyContainer,
 )
-from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.utils.template_network_interpolator import (
     TemplateNetworkInterpolator,
     TimeGradientInterpolator,
@@ -43,10 +43,22 @@ from ..fitting import lts_linear_regression
 from ctapipe.core import Provenance
 PROV = Provenance()
 
+<<<<<<< HEAD
 __all__ = ["ImPACTReconstructor"]
+=======
+
+def energy_prior(energy, index=-1):
+    return -2 * np.log(energy**index)
 
 
-class ImPACTReconstructor(Reconstructor):
+def xmax_prior(energy, xmax, width=100):
+    x_max_exp = guess_shower_depth(energy)
+    diff = xmax - x_max_exp
+    return -2 * np.log(norm.pdf(diff / width))
+>>>>>>> cab4c77f0db703bf4eba150d7aa9d938aa5cddc1
+
+
+class ImPACTReconstructor(Component):
     """This class is an implementation if the impact_reco Monte Carlo
     Template based image fitting method from parsons14.  This method uses a
     comparision of the predicted image from a library of image
@@ -251,14 +263,6 @@ class ImPACTReconstructor(Reconstructor):
         in an event which will be used later in the Xmax calculation. Peak is
         found by taking the average position of the n hottest pixels in the
         image.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-            None
-
         """
         peak_x = np.zeros([len(self.pixel_x)])  # Create blank arrays for peaks
         # rather than a dict (faster)
@@ -432,9 +436,14 @@ class ImPACTReconstructor(Reconstructor):
         # everything in the correct units when loading in the class
         # and ignore them from then on
 
+<<<<<<< HEAD
         zenith = self.zenith
         azimuth = self.azimuth
         
+=======
+        zenith = self.array_direction.zen.to_value(u.rad)
+
+>>>>>>> cab4c77f0db703bf4eba150d7aa9d938aa5cddc1
         # Geometrically calculate the depth of maximum given this test position
         x_max = self.get_shower_max(source_x, source_y, core_x, core_y, zenith)
         x_max *= x_max_scale
@@ -719,6 +728,7 @@ class ImPACTReconstructor(Reconstructor):
         self.set_event_properties(copy.deepcopy(hillas_dict), image_dict, time_dict, mask_dict, subarray, array_pointing,
                                   telescope_pointings)
 
+<<<<<<< HEAD
         self.reset_interpolator()
         
         like_min = 1e9
@@ -773,9 +783,39 @@ class ImPACTReconstructor(Reconstructor):
                                                      step=seed[1],
                                                      limits=seed[2],
                                                      energy_preminimisation=False)
+=======
+        source_x = nominal_seed.fov_lon.to_value(u.rad)
+        source_y = nominal_seed.fov_lat.to_value(u.rad)
+        ground = GroundFrame(x=shower_seed.core_x, y=shower_seed.core_y, z=0 * u.m)
+        tilted = ground.transform_to(
+            TiltedGroundFrame(pointing_direction=self.array_direction)
+        )
+        tilt_x = tilted.x.to(u.m).value
+        tilt_y = tilted.y.to(u.m).value
+        zenith = self.array_direction.zen
+
+        seeds = spread_line_seed(
+            self.hillas_parameters,
+            self.tel_pos_x,
+            self.tel_pos_y,
+            source_x,
+            source_y,
+            tilt_x,
+            tilt_y,
+            energy_seed.energy.value,
+            shift_frac=[1],
+        )[0]
+
+        # Perform maximum likelihood fit
+        fit_params, errors, like = self.minimise(
+            params=seeds[0],
+            step=seeds[1],
+            limits=seeds[2],
+            minimiser_name=self.minimiser_name,
+        )
+>>>>>>> cab4c77f0db703bf4eba150d7aa9d938aa5cddc1
 
         # Create a container class for reconstructed shower
-        shower_result = ReconstructedGeometryContainer()
 
         # Convert the best fits direction and core to Horizon and ground systems and
         # copy to the shower container
@@ -786,6 +826,7 @@ class ImPACTReconstructor(Reconstructor):
         )
         horizon = nominal.transform_to(AltAz())
 
+<<<<<<< HEAD
         # Transform everything back to a useful system
         shower_result.alt, shower_result.az = horizon.alt, horizon.az
         tilted = SkyCoord(
@@ -823,13 +864,51 @@ class ImPACTReconstructor(Reconstructor):
         
         shower_result.goodness_of_fit = goodness_of_fit
         #print(goodness_of_fit, like)
+=======
+        tilted = TiltedGroundFrame(
+            x=fit_params[2] * u.m,
+            y=fit_params[3] * u.m,
+            z=0 * u.m,
+            pointing_direction=self.array_direction,
+        )
+        ground = project_to_ground(tilted)
+
+        h_max = (
+            fit_params[5]
+            * np.cos(zenith)
+            * self.get_shower_max(
+                fit_params[0],
+                fit_params[1],
+                fit_params[2],
+                fit_params[3],
+                zenith.to(u.rad).value,
+            )
+        )
+
+        shower_result = ReconstructedGeometryContainer(
+            alt=horizon.alt,
+            az=horizon.az,
+            core_x=ground.x,
+            core_y=ground.y,
+            is_valid=True,
+            alt_uncert=np.nan,
+            az_uncert=np.nan,
+            core_uncert=np.nan,
+            # Copy reconstructed hmax
+            h_max=h_max,
+            h_max_uncert=errors[5] * h_max,
+            goodness_of_fit=like,
+            prefix=self.__class__.__name__,
+        )
+>>>>>>> cab4c77f0db703bf4eba150d7aa9d938aa5cddc1
 
         # Create a container class for reconstructed energy
-        energy_result = ReconstructedEnergyContainer()
-        # Fill with results
-        energy_result.energy = fit_params[4] * u.TeV
-        energy_result.energy_uncert = errors[4] * u.TeV
-        energy_result.is_valid = True
+        energy_result = ReconstructedEnergyContainer(
+            prefix=self.__class__.__name__,
+            energy=fit_params[4] * u.TeV,
+            energy_uncert=errors[4] * u.TeV,
+            is_valid=True,
+        )
 
         return shower_result, energy_result
 

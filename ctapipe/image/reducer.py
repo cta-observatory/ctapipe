@@ -2,17 +2,20 @@
 Algorithms for the data volume reduction.
 """
 from abc import abstractmethod
+
 import numpy as np
-from ctapipe.image import TailcutsImageCleaner
+
+from ctapipe.containers import DL1CameraContainer
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
-    IntTelescopeParameter,
     BoolTelescopeParameter,
+    IntTelescopeParameter,
     TelescopeParameter,
     create_class_enum_trait,
 )
-from ctapipe.image.extractor import ImageExtractor
+from ctapipe.image import TailcutsImageCleaner
 from ctapipe.image.cleaning import dilate
+from ctapipe.image.extractor import ImageExtractor
 
 __all__ = ["DataVolumeReducer", "NullDataVolumeReducer", "TailCutsDataVolumeReducer"]
 
@@ -180,14 +183,19 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
         camera_geom = self.subarray.tel[telid].camera.geometry
         # Pulse-integrate waveforms
         extractor = self.image_extractors[self.image_extractor_type.tel[telid]]
-        charge, _ = extractor(
-            waveforms, telid=telid, selected_gain_channel=selected_gain_channel
+        # do not treat broken pixels in data volume reduction
+        broken_pixels = np.zeros(camera_geom.n_pixels, dtype=bool)
+        dl1: DL1CameraContainer = extractor(
+            waveforms,
+            telid=telid,
+            selected_gain_channel=selected_gain_channel,
+            broken_pixels=broken_pixels,
         )
 
         # 1) Step: TailcutCleaning at first
-        mask = self.cleaner(telid, charge)
+        mask = self.cleaner(telid, dl1.image)
         pixels_above_boundary_thresh = (
-            charge >= self.cleaner.boundary_threshold_pe.tel[telid]
+            dl1.image >= self.cleaner.boundary_threshold_pe.tel[telid]
         )
         mask_in_loop = np.array([])
         # 2) Step: Add iteratively all pixels with Signal

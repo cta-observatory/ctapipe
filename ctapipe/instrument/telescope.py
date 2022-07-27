@@ -39,6 +39,13 @@ class TelescopeDescription:
        the camera associated with this telescope
     """
 
+    __slots__ = (
+        "name",
+        "type",
+        "optics",
+        "camera",
+    )
+
     def __init__(
         self,
         name: str,

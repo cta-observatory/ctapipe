@@ -4,29 +4,34 @@ Utilities for reading or working with Camera geometry files
 """
 import logging
 import warnings
+from copy import deepcopy
+from enum import Enum, unique
 
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import Angle, SkyCoord
-from astropy.coordinates import BaseCoordinateFrame
+from astropy.coordinates import Angle, BaseCoordinateFrame, SkyCoord
 from astropy.table import Table
 from astropy.utils import lazyproperty
-from scipy.sparse import lil_matrix, csr_matrix
+from scipy.sparse import csr_matrix, lil_matrix
 from scipy.spatial import cKDTree
 
 from ctapipe.coordinates import CameraFrame
-from .image_conversion import (
-    unskew_hex_pixel_grid,
-    get_orthogonal_grid_edges,
-    get_orthogonal_grid_indices,
-)
 from ctapipe.utils import get_table_dataset
 from ctapipe.utils.linalg import rotation_matrix_2d
-from enum import Enum, unique
+
+from .image_conversion import (
+    get_orthogonal_grid_edges,
+    get_orthogonal_grid_indices,
+    unskew_hex_pixel_grid,
+)
 
 __all__ = ["CameraGeometry", "UnknownPixelShapeWarning", "PixelShape"]
 
 logger = logging.getLogger(__name__)
+
+
+def _distance(x1, y1, x2, y2):
+    return np.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 
 
 @unique
@@ -104,8 +109,6 @@ class CameraGeometry:
     cam_rotation: overall camera rotation with units
     """
 
-    _geometry_cache = {}  # dictionary CameraGeometry instances for speed
-
     def __init__(
         self,
         camera_name,
@@ -170,7 +173,7 @@ class CameraGeometry:
             self.rotate(self.cam_rotation)
 
             # cache border pixel mask per instance
-        self.border_cache = {}
+        self._border_cache = {}
 
     def __eq__(self, other):
         if self.camera_name != other.camera_name:
@@ -224,38 +227,75 @@ class CameraGeometry:
         if self.frame is None:
             self.frame = CameraFrame()
 
-        coord = SkyCoord(self.pix_x, self.pix_y, frame=self.frame)
+        # we have to derotate, transformations only provide sensible
+        # results after derotation from the camera coordinate system with
+        # custom angle into a not-rotate frame
+        if self.cam_rotation.value != 0:
+            cam = deepcopy(self)
+            cam.rotate(self.cam_rotation)
+        else:
+            cam = self
+
+        coord = SkyCoord(cam.pix_x, cam.pix_y, frame=cam.frame)
         trans = coord.transform_to(frame)
 
-        # also transform the unit vectors, to get rotation / mirroring, scale
-        uv = SkyCoord([1, 0], [0, 1], unit=self.pix_x.unit, frame=self.frame)
-        uv_trans = uv.transform_to(frame)
+        # also transform the origin and unit vectors,
+        # needed to account for translation, rotation / mirroring, scale
+        points = SkyCoord([0, 1, 0], [0, 0, 1], unit=cam.pix_x.unit, frame=cam.frame)
+        points_trans = points.transform_to(frame)
+
+        x_name, y_name = list(cam.frame.get_representation_component_names().keys())
+        points_x = getattr(points, x_name)
+        points_y = getattr(points, y_name)
 
         trans_x_name, trans_y_name = list(
-            uv_trans.frame.get_representation_component_names().keys()
+            frame.get_representation_component_names().keys()
         )
-        uv_trans_x = getattr(uv_trans, trans_x_name)
-        uv_trans_y = getattr(uv_trans, trans_y_name)
+        points_trans_x = getattr(points_trans, trans_x_name)
+        points_trans_y = getattr(points_trans, trans_y_name)
 
-        rot = np.arctan2(uv_trans_y[0], uv_trans_y[1])
-        cam_rotation = rot - self.cam_rotation
-        pix_rotation = rot - self.pix_rotation
+        matrix = np.vstack([points_trans_x[1:].value, points_trans_y[1:].value])
+        is_mirrored = np.linalg.det(matrix) < 0
 
-        scale = np.sqrt(uv_trans_x[0] ** 2 + uv_trans_y[0] ** 2) / self.pix_x.unit
+        rot = np.arctan2(
+            points_trans_y[1] - points_trans_y[0], points_trans_y[2] - points_trans_y[0]
+        )
+
+        if is_mirrored:
+            cam_rotation = -cam.cam_rotation
+            pix_rotation = rot - cam.pix_rotation
+        else:
+            cam_rotation = cam.cam_rotation
+            pix_rotation = cam.pix_rotation - rot
+
+        distance_before = _distance(
+            points_x[1],
+            points_y[1],
+            points_x[2],
+            points_y[2],
+        )
+        distance_after = _distance(
+            points_trans_x[1],
+            points_trans_y[1],
+            points_trans_x[2],
+            points_trans_y[2],
+        )
+        scale = distance_after / distance_before
+
         trans_x = getattr(trans, trans_x_name)
         trans_y = getattr(trans, trans_y_name)
-        pix_area = (self.pix_area * scale ** 2).to(trans_x.unit ** 2)
+        pix_area = (cam.pix_area * scale**2).to(trans_x.unit**2)
 
         return CameraGeometry(
-            camera_name=self.camera_name,
-            pix_id=self.pix_id,
+            camera_name=cam.camera_name,
+            pix_id=cam.pix_id,
             pix_x=trans_x,
             pix_y=trans_y,
             pix_area=pix_area,
-            pix_type=self.pix_type,
+            pix_type=cam.pix_type,
             pix_rotation=pix_rotation,
             cam_rotation=cam_rotation,
-            neighbors=self._neighbors,
+            neighbors=cam._neighbors,
             apply_derotation=False,
             frame=frame,
         )
@@ -264,10 +304,10 @@ class CameraGeometry:
         return hash(
             (
                 self.camera_name,
-                self.pix_x[0].value,
-                self.pix_y[0].value,
+                round(self.pix_x[0].value, 3),
+                round(self.pix_y[0].value, 3),
                 self.pix_type,
-                self.pix_rotation.deg,
+                round(self.pix_rotation.deg, 3),
             )
         )
 
@@ -303,7 +343,7 @@ class CameraGeometry:
         if pix_type == PixelShape.HEXAGON:
             area = 2 * np.sqrt(3) * (dist / 2) ** 2
         elif pix_type == PixelShape.SQUARE:
-            area = dist ** 2
+            area = dist**2
         else:
             raise KeyError("unsupported pixel type")
 
@@ -389,6 +429,27 @@ class CameraGeometry:
         """
         return ~np.any(~np.isclose(self.pix_area.value, self.pix_area[0].value), axis=0)
 
+    def image_index_to_cartesian_index(self, pixel_index):
+        """
+        Convert pixel index in the 1d image representation to row and col
+        """
+        rows, cols = self._pixel_positions_2d
+        return rows[pixel_index], cols[pixel_index]
+
+    def cartesian_index_to_image_index(self, row, col):
+        """
+        Convert cartesian index (row, col) to pixel index in 1d representation.
+        """
+        return self._pixel_indices_cartesian[row, col]
+
+    @lazyproperty
+    def _pixel_indices_cartesian(self):
+        img = np.arange(self.n_pixels)
+        img2d = self.image_to_cartesian_representation(img)
+        invalid = np.iinfo(np.int32).min
+        img2d = np.nan_to_num(img2d, nan=invalid).astype(np.int32)
+        return img2d
+
     @lazyproperty
     def _pixel_positions_2d(self):
         """
@@ -438,11 +499,20 @@ class CameraGeometry:
             pixel_row = rows_1d
             pixel_column = cols_1d
 
+            # flip image so that imshow looks like original camera display
+            pixel_row = pixel_row.max() - pixel_row
+            pixel_column = pixel_column.max() - pixel_column
+
         elif self.pix_type is PixelShape.SQUARE:
             pixel_row = get_orthogonal_grid_indices(self.pix_y, np.sqrt(self.pix_area))
             pixel_column = get_orthogonal_grid_indices(
                 self.pix_x, np.sqrt(self.pix_area)
             )
+
+            # flip image so that imshow looks like original camera display
+            pixel_row = pixel_row.max() - pixel_row
+        else:
+            raise ValueError(f"Unsupported pixel shape {self.pix_type}")
 
         return pixel_row, pixel_column
 
@@ -466,12 +536,10 @@ class CameraGeometry:
         """
         rows, cols = self._pixel_positions_2d
         image = np.atleast_2d(image)  # this allows for multiple images at once
+
         image_2d = np.full((image.shape[0], rows.max() + 1, cols.max() + 1), np.nan)
         image_2d[:, rows, cols] = image
-        if self.pix_type == PixelShape.SQUARE:
-            image_2d = np.flip(image_2d, axis=1)
-        else:
-            image_2d = np.flip(image_2d)
+
         return np.squeeze(image_2d)  # removes the extra dimension for single images
 
     def image_from_cartesian_representation(self, image_2d):
@@ -497,10 +565,7 @@ class CameraGeometry:
         # to a different shape compared to a multi image array
         if image_2d.ndim == 2:
             image_2d = image_2d[np.newaxis, :]
-        if self.pix_type == PixelShape.SQUARE:
-            image_2d = np.flip(image_2d, axis=1)
-        else:
-            image_2d = np.flip(image_2d)
+
         image_flat = np.zeros((image_2d.shape[0], rows.shape[0]), dtype=image_2d.dtype)
         image_flat[:] = image_2d[:, rows, cols]
         image_1d = image_flat
@@ -539,7 +604,7 @@ class CameraGeometry:
         return CameraGeometry.from_table(table)
 
     def to_table(self):
-        """ convert this to an `astropy.table.Table` """
+        """convert this to an `astropy.table.Table`"""
         # currently the neighbor list is not supported, since
         # var-length arrays are not supported by astropy.table.Table
         t = Table(
@@ -599,14 +664,15 @@ class CameraGeometry:
 
     def __repr__(self):
         return (
-            "CameraGeometry(camera_name='{camera_name}', pix_type={pix_type!r}, "
-            "npix={npix}, cam_rot={camrot}, pix_rot={pixrot})"
+            "CameraGeometry(camera_name='{camera_name}', pix_type={pix_type}, "
+            "npix={npix}, cam_rot={camrot:.3f}, pix_rot={pixrot:.3f}, frame={frame})"
         ).format(
             camera_name=self.camera_name,
             pix_type=self.pix_type,
             npix=len(self.pix_id),
             pixrot=self.pix_rotation,
             camrot=self.cam_rotation,
+            frame=self.frame,
         )
 
     def __str__(self):
@@ -620,6 +686,10 @@ class CameraGeometry:
     @lazyproperty
     def neighbor_matrix(self):
         return self.neighbor_matrix_sparse.A
+
+    @lazyproperty
+    def max_neighbors(self):
+        return self.neighbor_matrix_sparse.sum(axis=1).max()
 
     @lazyproperty
     def neighbor_matrix_sparse(self):
@@ -723,18 +793,18 @@ class CameraGeometry:
             [
                 x,
                 y,
-                x ** 2,
+                x**2,
                 x * y,
-                y ** 2,
-                x ** 3,
-                x ** 2 * y,
-                x * y ** 2,
-                y ** 3,
-                x ** 4,
-                x ** 3 * y,
-                x ** 2 * y ** 2,
-                x * y ** 3,
-                y ** 4,
+                y**2,
+                x**3,
+                x**2 * y,
+                x * y**2,
+                y**3,
+                x**4,
+                x**3 * y,
+                x**2 * y**2,
+                x * y**3,
+                y**4,
             ]
         )
 
@@ -771,7 +841,7 @@ class CameraGeometry:
         self.cam_rotation = Angle(0, unit=u.deg)
 
     def info(self, printer=print):
-        """ print detailed info about this camera """
+        """print detailed info about this camera"""
         printer(f'CameraGeometry: "{self}"')
         printer("   - num-pixels: {}".format(len(self.pix_id)))
         printer(f"   - pixel-type: {self.pix_type}")
@@ -836,8 +906,8 @@ class CameraGeometry:
         mask: array
             A boolean mask, True if pixel is in the border of the specified width
         """
-        if width in self.border_cache:
-            return self.border_cache[width]
+        if width in self._border_cache:
+            return self._border_cache[width]
 
         # filter annoying deprecation warning from within scipy
         # scipy still uses np.matrix in scipy.sparse, but we do not
@@ -853,7 +923,7 @@ class CameraGeometry:
                 n = self.neighbor_matrix
                 mask = (n & self.get_border_pixel_mask(width - 1)).any(axis=1)
 
-        self.border_cache[width] = mask
+        self._border_cache[width] = mask
         return mask
 
     def position_to_pix_index(self, x, y):

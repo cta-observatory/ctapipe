@@ -1,23 +1,38 @@
 #!/usr/bin/env python3
 import warnings
+from io import StringIO
+
 import numpy as np
-from astropy import units as u
-import tables
 import pytest
-from astropy.time import Time
-
+import tables
+from astropy import units as u
 from astropy.io.fits.verify import VerifyWarning
+from astropy.table import Table
+from astropy.time import Time
+from astropy.utils.diff import report_diff_values
 
-from ctapipe.core import Container, Field
 from ctapipe.containers import ReconstructedEnergyContainer, TelescopeTriggerContainer
+from ctapipe.core import Container, Field
 from ctapipe.io import HDF5TableWriter
 from ctapipe.io.astropy_helpers import read_table
 
 
+def assert_table_equal(a, b):
+    """
+    Assert that two astropy tables are the same.
+
+    Compares two tables using the astropy diff utility
+    and use the report as error message in case they don't match
+    """
+    msg = StringIO()
+    msg.write("\n")
+    valid = report_diff_values(a, b, fileobj=msg)
+    msg.seek(0)
+    assert valid, msg.read()
+
+
 def test_read_table(tmp_path):
-
     # write a simple hdf5 file using
-
     container = ReconstructedEnergyContainer()
     filename = tmp_path / "test_astropy_table.h5"
 
@@ -49,7 +64,7 @@ def test_read_table(tmp_path):
         table = read_table(handle, "/events")
 
     # test a bad input
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         table = read_table(12345, "/events")
 
 
@@ -113,13 +128,12 @@ def test_transforms(tmp_path):
     path = tmp_path / "test_trans.hdf5"
 
     data = np.array([100, 110], dtype="int16").view([("waveform", "int16")])
-    print(data)
 
     with tables.open_file(path, "w") as f:
         f.create_table("/data", "test", obj=data, createparents=True)
-        f.root.data.test.attrs["waveform_TRANSFORM_SCALE"] = 100.0
-        f.root.data.test.attrs["waveform_TRANSFORM_OFFSET"] = 200
-        f.root.data.test.attrs["waveform_TRANSFORM_DTYPE"] = "float64"
+        f.root.data.test.attrs["CTAFIELD_0_TRANSFORM_SCALE"] = 100.0
+        f.root.data.test.attrs["CTAFIELD_0_TRANSFORM_OFFSET"] = 200
+        f.root.data.test.attrs["CTAFIELD_0_TRANSFORM_DTYPE"] = "float64"
 
     table = read_table(path, "/data/test")
 
@@ -157,3 +171,38 @@ def test_condition(tmp_path):
     table = read_table(filename, "/events", condition="energy > 0")
     assert len(table) == 2
     assert np.all(table["energy"] == [100, 50] * u.TeV)
+
+
+def test_read_table_astropy(tmp_path):
+    """Test that ctapipe.io.read_table can also read a table written Table.write"""
+    table = Table(
+        {
+            "a": [1, 2, 3],
+            "b": np.array([1, 2, 3], dtype=np.uint16),
+            "speed": [2.0, 3.0, 4.2] * (u.m / u.s),
+        }
+    )
+
+    path = tmp_path / "test.h5"
+    table.write(path, "/group/table", serialize_meta=True)
+    read = read_table(path, "/group/table")
+    assert_table_equal(table, read)
+
+
+def test_unknown_meta(tmp_path):
+    """Test read_table ignores unknown metadata
+
+    Regression test for https://github.com/cta-observatory/ctapipe/issues/1785
+    """
+    container = ReconstructedEnergyContainer()
+    filename = tmp_path / "test_astropy_table.h5"
+
+    with HDF5TableWriter(filename) as writer:
+        for energy in [np.nan, 100, np.nan, 50, -1.0] * u.TeV:
+            container.energy = energy
+            writer.write("events", container)
+
+        # unknown column matching ctapipe metadata
+        writer.h5file.root.events._v_attrs["foo_UNIT"] = "TeV"
+
+    read_table(filename, "/events", condition="energy > 0")

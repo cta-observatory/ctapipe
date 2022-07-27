@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import astropy.units as u
 import numpy as np
 import pytest
@@ -8,22 +10,20 @@ from traitlets.traitlets import TraitError
 
 from ctapipe.core import non_abstract_children
 from ctapipe.image.extractor import (
+    FixedWindowSum,
+    FullWaveformSum,
+    ImageExtractor,
+    NeighborPeakWindowSum,
+    SlidingWindowMaxSum,
+    TwoPassWindowSum,
     extract_around_peak,
     extract_sliding_window,
-    neighbor_average_waveform,
-    subtract_baseline,
     integration_correction,
-    ImageExtractor,
-    FixedWindowSum,
-    NeighborPeakWindowSum,
-    TwoPassWindowSum,
-    FullWaveformSum,
-    SlidingWindowMaxSum,
+    neighbor_average_maximum,
+    subtract_baseline,
 )
-from ctapipe.image.toymodel import (SkewedGaussian,
-                                    obtain_time_image,
-                                    WaveformModel)
-from ctapipe.instrument import SubarrayDescription, TelescopeDescription
+from ctapipe.image.toymodel import SkewedGaussian, WaveformModel, obtain_time_image
+from ctapipe.instrument import SubarrayDescription
 
 extractors = non_abstract_children(ImageExtractor)
 # FixedWindowSum has no peak finding and need to be set manually
@@ -31,17 +31,13 @@ extractors.remove(FixedWindowSum)
 
 
 @pytest.fixture(scope="module")
-def subarray():
+def subarray(prod5_sst):
     subarray = SubarrayDescription(
         "test array",
         tel_positions={1: np.zeros(3) * u.m, 2: np.zeros(3) * u.m},
         tel_descriptions={
-            1: TelescopeDescription.from_name(
-                optics_name="SST-ASTRI", camera_name="CHEC"
-            ),
-            2: TelescopeDescription.from_name(
-                optics_name="SST-ASTRI", camera_name="CHEC"
-            ),
+            1: deepcopy(prod5_sst),
+            2: deepcopy(prod5_sst),
         },
     )
 
@@ -63,15 +59,14 @@ def subarray():
 
 
 @pytest.fixture(scope="module")
-def subarray_1_LST():
-    subarray = SubarrayDescription("One LST",
-                tel_positions={1: np.zeros(3) * u.m},
-                tel_descriptions={1: TelescopeDescription.from_name(
-                    optics_name="LST", camera_name="LSTCam"
-                    ),
-                },
-               )
+def subarray_1_LST(prod3_lst):
+    subarray = SubarrayDescription(
+        "One LST",
+        tel_positions={1: np.zeros(3) * u.m},
+        tel_descriptions={1: prod3_lst},
+    )
     return subarray
+
 
 def get_test_toymodel(subarray, minCharge=100, maxCharge=1000):
     telid = list(subarray.tel.keys())[0]
@@ -193,34 +188,39 @@ def test_extract_around_peak_charge_expected(toymodel):
     assert_equal(charge, n_samples)
 
 
-def test_neighbor_average_waveform(toymodel):
+def test_neighbor_average_peakpos(toymodel):
     waveforms, subarray, telid, _, _, _ = toymodel
     neighbors = subarray.tel[telid].camera.geometry.neighbor_matrix_sparse
-    average_wf = neighbor_average_waveform(
+    broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
+    peak_pos = neighbor_average_maximum(
         waveforms,
         neighbors_indices=neighbors.indices,
         neighbors_indptr=neighbors.indptr,
-        lwt=0,
+        local_weight=0,
+        broken_pixels=broken_pixels,
     )
 
     pixel = 0
     _, nei_pixel = np.where(neighbors[pixel].A)
     expected_average = waveforms[nei_pixel].sum(0) / len(nei_pixel)
-    assert_allclose(average_wf[pixel], expected_average, rtol=1e-3)
+    expected_peak_pos = np.argmax(expected_average, axis=-1)
+    assert (peak_pos[pixel] == expected_peak_pos).all()
 
-    lwt = 4
-    average_wf = neighbor_average_waveform(
+    local_weight = 4
+    peak_pos = neighbor_average_maximum(
         waveforms,
         neighbors_indices=neighbors.indices,
         neighbors_indptr=neighbors.indptr,
-        lwt=lwt,
+        local_weight=local_weight,
+        broken_pixels=broken_pixels,
     )
 
     pixel = 1
     _, nei_pixel = np.where(neighbors[pixel].A)
-    nei_pixel = np.concatenate([nei_pixel, [pixel] * lwt])
+    nei_pixel = np.concatenate([nei_pixel, [pixel] * local_weight])
     expected_average = waveforms[nei_pixel].sum(0) / len(nei_pixel)
-    assert_allclose(average_wf[pixel], expected_average, rtol=1e-3)
+    expected_peak_pos = np.argmax(expected_average, axis=-1)
+    assert (peak_pos[pixel] == expected_peak_pos).all()
 
 
 def test_extract_peak_time_within_range():
@@ -295,9 +295,11 @@ def test_integration_correction_outofbounds(subarray):
 def test_extractors(Extractor, toymodel):
     waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
     extractor = Extractor(subarray=subarray)
-    charge, peak_time = extractor(waveforms, telid, selected_gain_channel)
-    assert_allclose(charge, true_charge, rtol=0.1)
-    assert_allclose(peak_time, true_time, rtol=0.1)
+    broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
+    dl1 = extractor(waveforms, telid, selected_gain_channel, broken_pixels)
+    assert_allclose(dl1.image, true_charge, rtol=0.1)
+    assert_allclose(dl1.peak_time, true_time, rtol=0.1)
+    assert dl1.is_valid == True
 
 
 @pytest.mark.parametrize("Extractor", extractors)
@@ -308,39 +310,48 @@ def test_integration_correction_off(Extractor, toymodel):
 
     waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
     extractor = Extractor(subarray=subarray, apply_integration_correction=False)
-    charge, peak_time = extractor(waveforms, telid, selected_gain_channel)
+    broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
+    dl1 = extractor(waveforms, telid, selected_gain_channel, broken_pixels)
+
+    assert dl1.is_valid == True
 
     # peak time should stay the same
-    assert_allclose(peak_time, true_time, rtol=0.1)
+    assert_allclose(dl1.peak_time, true_time, rtol=0.1)
 
     # charge should be too small without correction
-    assert np.all(charge <= true_charge)
+    assert np.all(dl1.image <= true_charge)
 
 
 def test_fixed_window_sum(toymodel):
     waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
     extractor = FixedWindowSum(subarray=subarray, peak_index=47)
-    charge, peak_time = extractor(waveforms, telid, selected_gain_channel)
-    assert_allclose(charge, true_charge, rtol=0.1)
-    assert_allclose(peak_time, true_time, rtol=0.1)
+    broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
+    dl1 = extractor(waveforms, telid, selected_gain_channel, broken_pixels)
+    assert_allclose(dl1.image, true_charge, rtol=0.1)
+    assert_allclose(dl1.peak_time, true_time, rtol=0.1)
+    assert dl1.is_valid == True
 
 
 def test_sliding_window_max_sum(toymodel):
     waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
     extractor = SlidingWindowMaxSum(subarray=subarray)
-    charge, peak_time = extractor(waveforms, telid, selected_gain_channel)
-    print(true_charge, charge, true_time, peak_time)
-    assert_allclose(charge, true_charge, rtol=0.1)
-    assert_allclose(peak_time, true_time, rtol=0.1)
+    broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
+    dl1 = extractor(waveforms, telid, selected_gain_channel, broken_pixels)
+    print(true_charge, dl1.image, true_time, dl1.peak_time)
+    assert_allclose(dl1.image, true_charge, rtol=0.1)
+    assert_allclose(dl1.peak_time, true_time, rtol=0.1)
+    assert dl1.is_valid == True
 
 
-def test_neighbor_peak_window_sum_lwt(toymodel):
+def test_neighbor_peak_window_sum_local_weight(toymodel):
     waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
-    extractor = NeighborPeakWindowSum(subarray=subarray, lwt=4)
-    assert extractor.lwt.tel[telid] == 4
-    charge, peak_time = extractor(waveforms, telid, selected_gain_channel)
-    assert_allclose(charge, true_charge, rtol=0.1)
-    assert_allclose(peak_time, true_time, rtol=0.1)
+    extractor = NeighborPeakWindowSum(subarray=subarray, local_weight=4)
+    assert extractor.local_weight.tel[telid] == 4
+    broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
+    dl1 = extractor(waveforms, telid, selected_gain_channel, broken_pixels)
+    assert_allclose(dl1.image, true_charge, rtol=0.1)
+    assert_allclose(dl1.peak_time, true_time, rtol=0.1)
+    assert dl1.is_valid == True
 
 
 def test_Two_pass_window_sum_no_noise(subarray_1_LST):
@@ -357,12 +368,12 @@ def test_Two_pass_window_sum_no_noise(subarray_1_LST):
     max_time_readout = (n_samples / sampling_rate) * u.ns
 
     # True image settings
-    x = 0. * u.m
-    y = 0. * u.m
+    x = 0.0 * u.m
+    y = 0.0 * u.m
     length = 0.2 * u.m
     width = 0.05 * u.m
     psi = 45.0 * u.deg
-    skewness = 0.
+    skewness = 0.0
     # build the true time evolution in a way that
     # the whole image is about the readout window
     time_gradient = u.Quantity(max_time_readout.value / length.value, u.ns / u.m)
@@ -372,28 +383,23 @@ def test_Two_pass_window_sum_no_noise(subarray_1_LST):
 
     # create the image
     m = SkewedGaussian(x, y, length, width, psi, skewness)
-    true_charge, true_signal, true_noise = m.generate_image(geometry,
-                                                            intensity=intensity,
-                                                            nsb_level_pe=nsb_level_pe,
-                                                            rng=rng)
+    true_charge, true_signal, true_noise = m.generate_image(
+        geometry, intensity=intensity, nsb_level_pe=nsb_level_pe, rng=rng
+    )
     signal_pixels = true_signal > 2
     # create a pulse-times image without noise
     # we can make new functions later
     time_noise = rng.uniform(0, 0, geometry.n_pixels)
-    time_signal = obtain_time_image(geometry.pix_x,
-                                    geometry.pix_y,
-                                    x,
-                                    y,
-                                    psi,
-                                    time_gradient,
-                                    time_intercept)
+    time_signal = obtain_time_image(
+        geometry.pix_x, geometry.pix_y, x, y, psi, time_gradient, time_intercept
+    )
 
     true_charge[(time_signal < 0) | (time_signal > (n_samples / sampling_rate))] = 0
 
     true_time = np.average(
         np.column_stack([time_noise, time_signal]),
         weights=np.column_stack([true_noise, true_signal]) + 1,
-        axis=1
+        axis=1,
     )
 
     # Define the model for the waveforms to fill with the information from
@@ -413,44 +419,63 @@ def test_Two_pass_window_sum_no_noise(subarray_1_LST):
     # to not be really on the edge
     min_good_sample = 2 + 1
     max_good_sample = n_samples - 1 - min_good_sample
-    integration_window_inside = (true_peaks >= min_good_sample) & (true_peaks < max_good_sample)
+    integration_window_inside = (true_peaks >= min_good_sample) & (
+        true_peaks < max_good_sample
+    )
 
     # Test only the 1st pass
     extractor.disable_second_pass = True
-    charge_1, pulse_time_1 = extractor(waveforms, 1, selected_gain_channel)
-    assert_allclose(charge_1[signal_pixels & integration_window_inside],
-                    true_charge[signal_pixels & integration_window_inside], rtol=0.15)
-    assert_allclose(pulse_time_1[signal_pixels & integration_window_inside],
-                    true_time[signal_pixels & integration_window_inside], rtol=0.15)
+    broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
+    dl1_pass1 = extractor(waveforms, 1, selected_gain_channel, broken_pixels)
+    assert_allclose(
+        dl1_pass1.image[signal_pixels & integration_window_inside],
+        true_charge[signal_pixels & integration_window_inside],
+        rtol=0.15,
+    )
+    assert_allclose(
+        dl1_pass1.peak_time[signal_pixels & integration_window_inside],
+        true_time[signal_pixels & integration_window_inside],
+        rtol=0.15,
+    )
 
     # Test also the 2nd pass
     extractor.disable_second_pass = False
-    charge_2, pulse_time_2 = extractor(waveforms, 1, selected_gain_channel)
+    dl1_pass2 = extractor(waveforms, 1, selected_gain_channel, broken_pixels)
 
     # Check that we have gained signal charge by using the 2nd pass
     # This also checks that the test image has triggered the 2nd pass
     # (i.e. it is not so bad to have <3 pixels in the preliminary cleaned image)
-    reco_charge1 = np.sum(charge_1[signal_pixels & integration_window_inside])
-    reco_charge2 = np.sum(charge_2[signal_pixels & integration_window_inside])
+    reco_charge1 = np.sum(dl1_pass1.image[signal_pixels & integration_window_inside])
+    reco_charge2 = np.sum(dl1_pass2.image[signal_pixels & integration_window_inside])
     # since there is no noise in this test, 1st pass will find the peak and 2nd
     # can at most to the same
     assert (reco_charge2 / reco_charge1) < 1
+    assert dl1_pass1.is_valid == True
 
     # Test only signal pixels for which it is expected to find most of the
     # charge well inside the readout window
-    assert_allclose(charge_2[signal_pixels & integration_window_inside],
-                    true_charge[signal_pixels & integration_window_inside],
-                    rtol=0.3, atol = 2.0)
-    assert_allclose(pulse_time_2[signal_pixels & integration_window_inside],
-                    true_time[signal_pixels & integration_window_inside],
-                    rtol=0.3, atol = 2.0)
+    assert_allclose(
+        dl1_pass2.image[signal_pixels & integration_window_inside],
+        true_charge[signal_pixels & integration_window_inside],
+        rtol=0.3,
+        atol=2.0,
+    )
+    assert_allclose(
+        dl1_pass2.peak_time[signal_pixels & integration_window_inside],
+        true_time[signal_pixels & integration_window_inside],
+        rtol=0.3,
+        atol=2.0,
+    )
+
 
 def test_waveform_extractor_factory(toymodel):
     waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
     extractor = ImageExtractor.from_name("LocalPeakWindowSum", subarray=subarray)
-    charge, peak_time = extractor(waveforms, telid, selected_gain_channel)
-    assert_allclose(charge, true_charge, rtol=0.1)
-    assert_allclose(peak_time, true_time, rtol=0.1)
+
+    broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
+    dl1 = extractor(waveforms, telid, selected_gain_channel, broken_pixels)
+    assert_allclose(dl1.image, true_charge, rtol=0.1)
+    assert_allclose(dl1.peak_time, true_time, rtol=0.1)
 
 
 def test_waveform_extractor_factory_args(subarray):
@@ -507,6 +532,46 @@ def test_dtype(Extractor, subarray):
 
     waveforms = np.ones((n_pixels, 50), dtype="float64")
     extractor = Extractor(subarray=subarray)
-    charge, peak_time = extractor(waveforms, tel_id, selected_gain_channel)
-    assert charge.dtype == np.float32
-    assert peak_time.dtype == np.float32
+    broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
+    dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
+    assert dl1.image.dtype == np.float32
+    assert dl1.peak_time.dtype == np.float32
+
+
+def test_global_peak_window_sum_with_pixel_fraction(subarray):
+    from ctapipe.image.extractor import GlobalPeakWindowSum
+
+    tel_id = 1
+    camera = subarray.tel[tel_id].camera
+    sample_rate = camera.readout.sampling_rate.to_value(u.ns**-1)
+    n_pixels = camera.geometry.n_pixels
+    selected_gain_channel = np.zeros(n_pixels, dtype=np.uint8)
+
+    bright_pixels = np.zeros(n_pixels, dtype=bool)
+    bright_pixels[np.random.choice(n_pixels, size=int(0.1 * n_pixels))] = True
+
+    # signal in dim pixels is in slice 10, signal in bright pixels is in slice 30
+    waveforms = np.zeros((n_pixels, 50), dtype="float64")
+    waveforms[~bright_pixels, 9] = 3
+    waveforms[~bright_pixels, 10] = 5
+    waveforms[~bright_pixels, 11] = 2
+    waveforms[bright_pixels, 29] = 5
+    waveforms[bright_pixels, 30] = 10
+    waveforms[bright_pixels, 31] = 3
+
+    extractor = GlobalPeakWindowSum(
+        subarray=subarray,
+        window_width=8,
+        window_shift=4,
+        pixel_fraction=0.05,
+        apply_integration_correction=False,
+    )
+
+    broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
+    dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
+
+    assert np.allclose(dl1.image[bright_pixels], 18)
+    assert np.allclose(dl1.image[~bright_pixels], 0)
+
+    expected = np.average([29, 30, 31], weights=[5, 10, 3])
+    assert np.allclose(dl1.peak_time[bright_pixels], expected / sample_rate)

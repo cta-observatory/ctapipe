@@ -4,11 +4,14 @@
 Test ctapipe-process on a few different use cases
 """
 
+import numpy as np
 import pandas as pd
 import pytest
 import tables
+
 from ctapipe.core import run_tool
-from ctapipe.io import DataLevel, EventSource
+from ctapipe.instrument.subarray import SubarrayDescription
+from ctapipe.io import DataLevel, EventSource, read_table
 from ctapipe.tools.process import ProcessorTool
 from ctapipe.tools.quickstart import CONFIGS_TO_WRITE, QuickStartTool
 from ctapipe.utils import get_dataset_path
@@ -21,10 +24,57 @@ except ImportError:
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 
 
-def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
-    """  check simtel to DL1 conversion """
+def resource_file(filename):
+    return files("ctapipe").joinpath("resources", filename)
 
-    config = files("ctapipe.tools.tests.resources").joinpath("stage1_config.json")
+
+@pytest.mark.parametrize(
+    "config_files",
+    [
+        ("base_config.yaml", "stage1_config.yaml"),
+        ("stage1_config.toml",),
+        ("stage1_config.json",),
+    ],
+)
+def test_read_yaml_toml_json_config(dl1_image_file, config_files):
+    """check that we can read multiple formats of config file"""
+    tool = ProcessorTool()
+
+    for config_base in config_files:
+        config = resource_file(config_base)
+        tool.load_config_file(config)
+
+    tool.config.EventSource.input_url = dl1_image_file
+    tool.config.DataWriter.overwrite = True
+    tool.setup()
+    assert (
+        tool.get_current_config()["ProcessorTool"]["DataWriter"]["contact_info"].name
+        == "YOUR-NAME-HERE"
+    )
+
+
+def test_multiple_configs(dl1_image_file):
+    """ensure a config file loaded later overwrites keys from an earlier one"""
+    tool = ProcessorTool()
+
+    tool.load_config_file(resource_file("base_config.yaml"))
+    tool.load_config_file(resource_file("stage2_config.yaml"))
+
+    tool.config.EventSource.input_url = dl1_image_file
+    tool.config.DataWriter.overwrite = True
+    tool.setup()
+
+    # ensure the overwriting works (base config has this option disabled)
+    assert (
+        tool.get_current_config()["ProcessorTool"]["DataWriter"]["write_showers"]
+        is True
+    )
+
+
+def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
+    """check simtel to DL1 conversion"""
+    config = resource_file("stage1_config.json")
+
     # DL1A file as input
     dl1b_from_dl1a_file = tmp_path / "dl1b_fromdl1a.dl1.h5"
     assert (
@@ -77,28 +127,32 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
     for feature in features:
         assert feature in dl1_features.columns
 
-    # DL1B file as input
-    assert (
-        run_tool(
-            ProcessorTool(),
-            argv=[
-                f"--config={config}",
-                f"--input={dl1_parameters_file}",
-                f"--output={tmp_path}/dl1b_from_dl1b.dl1.h5",
-                "--write-parameters",
-                "--overwrite",
-            ],
-            cwd=tmp_path,
-        )
-        == 1
+    true_impact = read_table(
+        dl1b_from_dl1a_file,
+        "/simulation/event/telescope/impact/tel_025",
     )
+    assert "true_impact_distance" in true_impact.colnames
+
+    # DL1B file as input
+    ret = run_tool(
+        ProcessorTool(),
+        argv=[
+            f"--config={config}",
+            f"--input={dl1_parameters_file}",
+            f"--output={tmp_path}/dl1b_from_dl1b.dl1.h5",
+            "--write-parameters",
+            "--overwrite",
+        ],
+        cwd=tmp_path,
+    )
+    assert ret == 1
 
 
 def test_stage1_datalevels(tmp_path):
     """test the dl1 tool on a file not providing r1, dl0 or dl1a"""
 
     class DummyEventSource(EventSource):
-        """ for testing """
+        """for testing"""
 
         @staticmethod
         def is_compatible(file_path):
@@ -131,7 +185,7 @@ def test_stage1_datalevels(tmp_path):
         infile.write(b"dummy")
         infile.flush()
 
-    config = files("ctapipe.tools.tests.resources").joinpath("stage1_config.json")
+    config = resource_file("stage1_config.json")
     tool = ProcessorTool()
 
     assert (
@@ -153,8 +207,8 @@ def test_stage1_datalevels(tmp_path):
 
 
 def test_stage_2_from_simtel(tmp_path):
-    """ check we can go to DL2 geometry from simtel file """
-    config = files("ctapipe.tools.tests.resources").joinpath("stage2_config.json")
+    """check we can go to DL2 geometry from simtel file"""
+    config = resource_file("stage2_config.json")
     output = tmp_path / "test_stage2_from_simtel.DL2.h5"
 
     assert (
@@ -162,9 +216,8 @@ def test_stage_2_from_simtel(tmp_path):
             ProcessorTool(),
             argv=[
                 f"--config={config}",
-                f"--input={GAMMA_TEST_LARGE}",
+                "--input=dataset://gamma_prod5.simtel.zst",
                 f"--output={output}",
-                "--max-events=5",
                 "--overwrite",
             ],
             cwd=tmp_path,
@@ -174,12 +227,21 @@ def test_stage_2_from_simtel(tmp_path):
 
     # check tables were written
     with tables.open_file(output, mode="r") as testfile:
-        assert testfile.root.dl2.event.subarray.geometry.HillasReconstructor
+        dl2 = read_table(
+            testfile,
+            "/dl2/event/subarray/geometry/HillasReconstructor",
+        )
+        subarray = SubarrayDescription.from_hdf(testfile)
+
+        # test tel_ids are included and transformed correctly
+        assert "HillasReconstructor_tel_ids" in dl2.colnames
+        assert dl2["HillasReconstructor_tel_ids"].dtype == np.bool_
+        assert dl2["HillasReconstructor_tel_ids"].shape[1] == len(subarray)
 
 
 def test_stage_2_from_dl1_images(tmp_path, dl1_image_file):
-    """ check we can go to DL2 geometry from DL1 images """
-    config = files("ctapipe.tools.tests.resources").joinpath("stage2_config.json")
+    """check we can go to DL2 geometry from DL1 images"""
+    config = resource_file("stage2_config.json")
     output = tmp_path / "test_stage2_from_dl1image.DL2.h5"
 
     assert (
@@ -202,9 +264,9 @@ def test_stage_2_from_dl1_images(tmp_path, dl1_image_file):
 
 
 def test_stage_2_from_dl1_params(tmp_path, dl1_parameters_file):
-    """ check we can go to DL2 geometry from DL1 parameters """
+    """check we can go to DL2 geometry from DL1 parameters"""
 
-    config = files("ctapipe.tools.tests.resources").joinpath("stage2_config.json")
+    config = resource_file("stage2_config.json")
     output = tmp_path / "test_stage2_from_dl1param.DL2.h5"
 
     assert (
@@ -227,9 +289,9 @@ def test_stage_2_from_dl1_params(tmp_path, dl1_parameters_file):
 
 
 def test_training_from_simtel(tmp_path):
-    """ check we can write both dl1 and dl2 info (e.g. for training input) """
+    """check we can write both dl1 and dl2 info (e.g. for training input)"""
 
-    config = files("ctapipe.tools.tests.resources").joinpath("training_config.json")
+    config = resource_file("training_config.json")
     output = tmp_path / "test_training.DL1DL2.h5"
 
     assert (
@@ -241,6 +303,7 @@ def test_training_from_simtel(tmp_path):
                 f"--output={output}",
                 "--max-events=5",
                 "--overwrite",
+                "--SimTelEventSource.focal_length_choice=EQUIVALENT",
             ],
             cwd=tmp_path,
         )
@@ -253,10 +316,43 @@ def test_training_from_simtel(tmp_path):
         assert testfile.root.dl2.event.subarray.geometry.HillasReconstructor
 
 
-@pytest.mark.parametrize("filename", CONFIGS_TO_WRITE)
+def test_image_modifications(tmp_path, dl1_image_file):
+    """
+    Test that running ctapipe-process with an ImageModifier set
+    produces a file with different images.
+    """
+
+    unmodified_images = read_table(
+        dl1_image_file, "/dl1/event/telescope/images/tel_025"
+    )
+    noise_config = resource_file("image_modification_config.json")
+
+    dl1_modified = tmp_path / "dl1_modified.dl1.h5"
+    assert (
+        run_tool(
+            ProcessorTool(),
+            argv=[
+                f"--config={noise_config}",
+                f"--input={dl1_image_file}",
+                f"--output={dl1_modified}",
+                "--write-parameters",
+                "--overwrite",
+            ],
+            cwd=tmp_path,
+        )
+        == 0
+    )
+    modified_images = read_table(dl1_modified, "/dl1/event/telescope/images/tel_025")
+    # Test that significantly more light is recorded (bias in dim pixels)
+    assert modified_images["image"].sum() / unmodified_images["image"].sum() > 1.5
+
+
+@pytest.mark.parametrize(
+    "filename", ["base_config.yaml", "stage1_config.json", "stage1_config.toml"]
+)
 def test_quickstart_templates(filename):
-    """ ensure template configs have an appropriate placeholder for the contact info """
-    config = files("ctapipe.tools.tests.resources").joinpath(filename)
+    """ensure template configs have an appropriate placeholder for the contact info"""
+    config = resource_file(filename)
     text = config.read_text()
 
     assert "YOUR-NAME-HERE" in text, "Missing expected name placeholder"
@@ -265,7 +361,7 @@ def test_quickstart_templates(filename):
 
 
 def test_quickstart(tmp_path):
-    """ ensure quickstart tool generates expected output """
+    """ensure quickstart tool generates expected output"""
 
     tool = QuickStartTool()
     run_tool(

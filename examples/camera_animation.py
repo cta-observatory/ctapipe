@@ -12,7 +12,7 @@ from astropy import units as u
 from matplotlib.animation import FuncAnimation
 
 from ctapipe.image import toymodel
-from ctapipe.instrument import TelescopeDescription
+from ctapipe.instrument import SubarrayDescription
 from ctapipe.visualization import CameraDisplay
 
 if __name__ == "__main__":
@@ -21,8 +21,8 @@ if __name__ == "__main__":
     fig, ax = plt.subplots()
 
     # load the camera
-    tel = TelescopeDescription.from_name("SST-1M", "DigiCam")
-    geom = tel.camera.geometry
+    subarray = SubarrayDescription.read("dataset://gamma_prod5.simtel.zst")
+    geom = subarray.tel[1].camera.geometry
 
     fov = 0.3
     maxwid = 0.05
@@ -46,7 +46,11 @@ if __name__ == "__main__":
             length=length * u.m,
             psi=angle * u.deg,
         )
-        image, _, _ = model.generate_image(geom, intensity=intens, nsb_level_pe=5,)
+        image, _, _ = model.generate_image(
+            geom,
+            intensity=intens,
+            nsb_level_pe=5,
+        )
         disp.image = image
 
     anim = FuncAnimation(fig, update, interval=500)

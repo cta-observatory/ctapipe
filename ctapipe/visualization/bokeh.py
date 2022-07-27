@@ -1,408 +1,696 @@
-import warnings
+import sys
+import tempfile
+from abc import ABCMeta
+import matplotlib.pyplot as plt
+from matplotlib.colors import to_hex
+
 import numpy as np
+
+from bokeh.io import output_notebook, push_notebook, show, output_file
 from bokeh.plotting import figure
-from bokeh.events import Tap
-from bokeh import palettes
 from bokeh.models import (
     ColumnDataSource,
     TapTool,
-    Span,
     ColorBar,
     LinearColorMapper,
+    LogColorMapper,
+    ContinuousColorMapper,
+    CategoricalColorMapper,
+    HoverTool,
+    BoxZoomTool,
+    Ellipse,
+    Label,
 )
-from ctapipe.utils.rgbtohex import intensity_to_hex
+from bokeh.palettes import Viridis256, Magma256, Inferno256, Greys256, d3
+import astropy.units as u
+
+from ..instrument import CameraGeometry, PixelShape
+
 
 PLOTARGS = dict(tools="", toolbar_location=None, outline_line_color="#595959")
 
 
-class CameraDisplay:
-    def __init__(self, geometry=None, image=None, fig=None):
-        """
-        Camera display that utilises the bokeh visualisation library
+# mapper to mpl names
+CMAPS = {
+    "viridis": Viridis256,
+    "magma": Magma256,
+    "inferno": Inferno256,
+    "grey": Greys256,
+    "gray": Greys256,
+}
 
-        Parameters
-        ----------
-        geometry : `~ctapipe.instrument.CameraGeometry`
-            Definition of the Camera/Image
-        image : ndarray
-            1D array containing the image values for each pixel
-        fig : bokeh.plotting.figure
-            Figure to store the bokeh plot onto (optional)
-        """
-        self._geom = None
-        self._image = None
-        self._colors = None
-        self._image_min = None
-        self._image_max = None
-        self._fig = None
 
-        self._n_pixels = None
-        self._pix_sizes = np.ones(1)
-        self._pix_areas = np.ones(1)
-        self._pix_x = np.zeros(1)
-        self._pix_y = np.zeros(1)
+def palette_from_mpl_name(name):
+    """Create a bokeh palette from a matplotlib colormap name"""
+    if name in CMAPS:
+        return CMAPS[name]
 
-        self.glyphs = None
-        self.cm = None
-        self.cb = None
+    rgba = plt.get_cmap(name)(np.linspace(0, 1, 256))
+    palette = [to_hex(color) for color in rgba]
+    return palette
 
-        cdsource_d = dict(
-            image=[],
-            x=[],
-            y=[],
-            width=[],
-            height=[],
-            outline_color=[],
-            outline_alpha=[],
-        )
-        self.cdsource = ColumnDataSource(data=cdsource_d)
 
-        self._active_pixels = []
-        self.active_index = 0
-        self.active_colors = []
-        self.automatic_index_increment = False
+def is_notebook():
+    """
+    Returns True if currently running in a notebook session,
+    see https://stackoverflow.com/a/37661854/3838691
+    """
+    return "ipykernel" in sys.modules
 
-        self.geom = geometry
-        self.image = image
-        self.fig = fig
 
-        self.layout = self.fig
+def generate_hex_vertices(geom):
+    """Generate vertices of pixels for a hexagonal grid camera geometry"""
+    phi = np.arange(0, 2 * np.pi, np.pi / 3)
 
-    @property
-    def fig(self):
-        return self._fig
+    # apply pixel rotation and conversion from flat top to pointy top
+    phi += geom.pix_rotation.rad + np.deg2rad(30)
 
-    @fig.setter
-    def fig(self, val):
-        if val is None:
-            val = figure(plot_width=550, plot_height=500, **PLOTARGS)
-        val.axis.visible = False
-        val.grid.grid_line_color = None
-        self._fig = val
+    # we need the circumcircle radius, pixel_width is incircle diameter
+    r = 2 / np.sqrt(3) * geom.pixel_width.value / 2
 
-        self._draw_camera()
+    x = geom.pix_x.value
+    y = geom.pix_y.value
 
-    @property
-    def geom(self):
-        return self._geom
+    return (
+        x[:, np.newaxis] + r[:, np.newaxis] * np.cos(phi)[np.newaxis],
+        y[:, np.newaxis] + r[:, np.newaxis] * np.sin(phi)[np.newaxis],
+    )
 
-    @geom.setter
-    def geom(self, val):
-        self._geom = val
 
-        if val is not None:
-            self._pix_areas = val.pix_area.value
-            self._pix_sizes = np.sqrt(self._pix_areas)
-            self._pix_x = val.pix_x.value
-            self._pix_y = val.pix_y.value
+def generate_square_vertices(geom):
+    """Generate vertices of pixels for a square grid camera geometry"""
+    width = geom.pixel_width.value / 2
+    x = geom.pix_x.value
+    y = geom.pix_y.value
 
-        self._n_pixels = self._pix_x.size
-        if self._n_pixels == len(self.cdsource.data["x"]):
-            self.cdsource.data["x"] = self._pix_x
-            self.cdsource.data["y"] = self._pix_y
-            self.cdsource.data["width"] = self._pix_sizes
-            self.cdsource.data["height"] = self._pix_sizes
+    x_offset = width[:, np.newaxis] * np.array([-1, -1, 1, 1])
+    y_offset = width[:, np.newaxis] * np.array([1, -1, -1, 1])
+
+    x = x[:, np.newaxis] + x_offset
+    y = y[:, np.newaxis] + y_offset
+    return x, y
+
+
+class BokehPlot(metaclass=ABCMeta):
+    """Base class for bokeh plots"""
+
+    def __init__(
+        self,
+        use_notebook=None,
+        autoscale=True,
+        cmap="inferno",
+        norm="lin",
+        **figure_kwargs,
+    ):
+        # only use autoshow / use_notebook by default if we are in a notebook
+        self._use_notebook = use_notebook if use_notebook is not None else is_notebook()
+        self._patches = None
+        self._handle = None
+        self._color_bar = None
+        self._color_mapper = None
+        self._palette = None
+        self._annotations = []
+        self._labels = []
+
+        self.cmap = cmap
+        self.norm = norm
+
+        self.autoscale = autoscale
+
+        self.datasource = ColumnDataSource(data={})
+        self.figure = figure(**figure_kwargs)
+        self.figure.add_tools(HoverTool(tooltips=[("id", "@id"), ("value", "@values")]))
+
+        if figure_kwargs.get("match_aspect"):
+            # Make sure the box zoom tool does not distort the camera display
+            for tool in self.figure.toolbar.tools:
+                if isinstance(tool, BoxZoomTool):
+                    tool.match_aspect = True
+
+    def show(self):
+        """Display the figure"""
+        if self._use_notebook:
+            output_notebook()
         else:
-            self._image = np.empty(self._pix_x.shape)
-            alpha = [0] * self._n_pixels
-            color = ["black"] * self._n_pixels
-            cdsource_d = dict(
-                image=self.image,
-                x=self._pix_x,
-                y=self._pix_y,
-                width=self._pix_sizes,
-                height=self._pix_sizes,
-                outline_color=color,
-                outline_alpha=alpha,
-            )
-            self.cdsource.data = cdsource_d
+            # this only sets the default name, created only when show is called
+            output_file(tempfile.mktemp(prefix="ctapipe_bokeh_", suffix=".html"))
 
-        self.active_pixels = [0] * len(self.active_pixels)
+        self._handle = show(self.figure, notebook_handle=self._use_notebook)
 
-    @property
-    def image(self):
-        return self._image
-
-    @image.setter
-    def image(self, val):
-        if val is None:
-            val = np.zeros(self._n_pixels)
-
-        image_min = np.nanmin(val)
-        image_max = np.nanmax(val)
-        if image_max == image_min:
-            image_min -= 1
-            image_max += 1
-        colors = intensity_to_hex(val, image_min, image_max)
-
-        self._image = val
-        self._colors = colors
-        self.image_min = image_min
-        self.image_max = image_max
-
-        if len(colors) == self._n_pixels:
-            with warnings.catch_warnings():
-                warnings.simplefilter(action="ignore", category=FutureWarning)
-                self.cdsource.data["image"] = colors
-        else:
-            raise ValueError(
-                "Image has a different size {} than the current "
-                "CameraGeometry n_pixels {}".format(colors.size, self._n_pixels)
-            )
-
-    @property
-    def image_min(self):
-        return self._image_min
-
-    @image_min.setter
-    def image_min(self, val):
-        self._image_min = val
-        if self.cb:
-            self.cm.low = val.item()
-
-    @property
-    def image_max(self):
-        return self._image_max
-
-    @image_max.setter
-    def image_max(self, val):
-        self._image_max = val
-        if self.cb:
-            self.cm.high = val.item()
-
-    @property
-    def active_pixels(self):
-        return self._active_pixels
-
-    @active_pixels.setter
-    def active_pixels(self, listval):
-        self._active_pixels = listval
-
-        palette = palettes.Set1[9]
-        palette = tuple([palette[0]] + list(palette[3:]))
-        self.active_colors = [palette[i % (len(palette))] for i in range(len(listval))]
-        self.highlight_pixels()
-
-    def reset_pixels(self):
-        self.active_pixels = [0] * len(self.active_pixels)
-
-    def _draw_camera(self):
-        # TODO: Support other pixel shapes OR switch to ellipse
-        # after https://github.com/bokeh/bokeh/issues/6985
-        self.glyphs = self.fig.ellipse(
-            "x",
-            "y",
-            color="image",
-            width="width",
-            height="height",
-            line_color="outline_color",
-            line_alpha="outline_alpha",
-            line_width=2,
-            nonselection_fill_color="image",
-            nonselection_fill_alpha=1,
-            nonselection_line_color="outline_color",
-            nonselection_line_alpha="outline_alpha",
-            source=self.cdsource,
-        )
-
-    def enable_pixel_picker(self, n_active):
-        """
-        Enables the selection of a pixel by clicking on it
-
-        Parameters
-        ----------
-        n_active : int
-            Number of active pixels to keep record of
-        """
-        self.active_pixels = [0] * n_active
-        self.fig.add_tools(TapTool())
-
-        def source_change_response(_, __, val):
-            if val:
-                pix = val[0]
-                ai = self.active_index
-                self.active_pixels[ai] = pix
-
-                self.highlight_pixels()
-                self._on_pixel_click(pix)
-
-                if self.automatic_index_increment:
-                    self.active_index = (ai + 1) % len(self.active_pixels)
-
-        self.cdsource.selected.on_change("indices", source_change_response)
-
-    def _on_pixel_click(self, pix_id):
-        print(f"Clicked pixel_id: {pix_id}")
-        print(f"Active Pixels: {self.active_pixels}")
-
-    def highlight_pixels(self):
-        alpha = [0] * self._n_pixels
-        color = ["black"] * self._n_pixels
-        for i, pix in enumerate(self.active_pixels):
-            alpha[pix] = 1
-            color[pix] = self.active_colors[i]
-        self.cdsource.data["outline_alpha"] = alpha
-        self.cdsource.data["outline_color"] = color
+    def update(self):
+        """Update the figure"""
+        if self._use_notebook and self._handle:
+            push_notebook(handle=self._handle)
 
     def add_colorbar(self):
-        self.cm = LinearColorMapper(
-            palette="Viridis256", low=0, high=100, low_color="white", high_color="red"
-        )
-        self.cb = ColorBar(
-            color_mapper=self.cm,
+        self._color_bar = ColorBar(
+            color_mapper=self._color_mapper,
+            label_standoff=12,
             border_line_color=None,
-            background_fill_alpha=0,
-            major_label_text_color="green",
             location=(0, 0),
         )
-        self.fig.add_layout(self.cb, "right")
-        self.cm.low = self.image_min.item()
-        self.cm.high = self.image_max.item()
+        self.figure.add_layout(self._color_bar, "right")
+        self.update()
 
+    def set_limits_minmax(self, zmin, zmax):
+        """Set the limits of the color range to ``zmin`` / ``zmax``"""
+        self._color_mapper.update(low=zmin, high=zmax)
+        self.update()
 
-class FastCameraDisplay:
-    def __init__(self, x_pix, y_pix, pix_size):
+    def set_limits_percent(self, percent=95):
+        """Set the limits to min / fraction of max value"""
+        low = np.nanmin(self.datasource.data["values"])
+        high = np.nanmax(self.datasource.data["values"])
+
+        frac = percent / 100.0
+        self.set_limits_minmax(low, high - (1.0 - frac) * (high - low))
+
+    @property
+    def cmap(self):
+        """Get the current colormap"""
+        return self._palette
+
+    @cmap.setter
+    def cmap(self, cmap):
+        """Set colormap"""
+        if isinstance(cmap, str):
+            cmap = palette_from_mpl_name(cmap)
+
+        self._palette = cmap
+        # might be called in __init__ before color mapper is setup
+        if self._color_mapper is not None:
+            self._color_mapper.palette = cmap
+            self._trigger_cm_update()
+            self.update()
+
+    def _trigger_cm_update(self):
+        # it seems changing palette does not trigger a color change,
+        # so we reassign a property
+        if isinstance(self._color_mapper, CategoricalColorMapper):
+            self._color_mapper.update(factors=self._color_mapper.factors)
+        else:
+            self._color_mapper.update(low=self._color_mapper.low)
+
+    def clear_overlays(self):
+        """Remove any added overlays from the figure"""
+        while self._annotations:
+            self.figure.renderers.remove(self._annotations.pop())
+
+        while self._labels:
+            self.figure.center.remove(self._labels.pop())
+
+    def rescale(self):
+        """Scale pixel colors to min/max range"""
+        low = self.datasource.data["values"].min()
+        high = self.datasource.data["values"].max()
+
+        # force color to be at lower end of the colormap if
+        # data is all equal
+        if low == high:
+            high += 1
+
+        self.set_limits_minmax(low, high)
+
+    @property
+    def norm(self):
         """
-        A fast and simple version of the bokeh camera plotter that does not
-        allow for geometry changes
+        The norm instance of the Display
+
+        Possible values:
+
+        - "lin": linear scale
+        - "log": log scale (cannot have negative values)
+        - "symlog": symmetric log scale (negative values are ok)
+        """
+        return self._color_mapper
+
+    @norm.setter
+    def norm(self, norm):
+        """Set the norm"""
+        if not isinstance(norm, ContinuousColorMapper):
+            if norm == "lin":
+                norm = LinearColorMapper
+            elif norm == "log":
+                norm = LogColorMapper
+            else:
+                raise ValueError(f"Unsupported norm {norm}")
+
+        self._color_mapper = norm(self.cmap)
+        if self._patches is not None:
+            color = dict(transform=self._color_mapper)
+            self._patches.glyph.update(fill_color=color, line_color=color)
+
+        if self._color_bar is not None:
+            self._color_bar.update(color_mapper=self._color_mapper)
+
+        self.update()
+
+
+class CameraDisplay(BokehPlot):
+    """
+    CameraDisplay implementation in Bokeh
+
+    Parameters
+    ----------
+    geometry: CameraGeometry
+        CameraGeometry for the display
+    image: array
+        Values to display for each pixel
+    cmap: str or bokeh.palette.Palette
+        matplotlib colormap name or bokeh palette for color mapping values
+    norm: str or bokeh.
+        lin, log, symlog or a bokeh.models.ColorMapper instance
+    autoscale: bool
+        Whether to automatically adjust color range after updating image
+    use_notebook: bool or None
+        Whether to use bokehs notebook output. If None, tries to autodetect
+        running in a notebook.
+
+    **figure_kwargs are passed to bokeh.plots.figure
+    """
+
+    def __init__(
+        # same options as MPL display
+        self,
+        geometry: CameraGeometry = None,
+        image=None,
+        cmap="inferno",
+        norm="lin",
+        autoscale=True,
+        title=None,
+        # bokeh specific options
+        use_notebook=None,
+        **figure_kwargs,
+    ):
+        super().__init__(
+            use_notebook=use_notebook,
+            cmap=cmap,
+            norm=norm,
+            autoscale=autoscale,
+            title=title,
+            match_aspect=True,
+            aspect_scale=1,
+            **figure_kwargs,
+        )
+
+        self._geometry = geometry
+        self._tap_tool = None
+
+        if geometry is not None:
+            self._init_datasource(image)
+
+            if title is None:
+                frame = (
+                    geometry.frame.__class__.__name__
+                    if geometry.frame
+                    else "CameraFrame"
+                )
+                title = f"{geometry} ({frame})"
+            self.figure.title = title
+
+        # order is important because steps depend on each other
+        self.cmap = cmap
+        self.norm = norm
+        if geometry is not None:
+            self.rescale()
+            self._setup_camera()
+
+    def _init_datasource(self, image=None):
+        if image is None:
+            image = np.zeros(self._geometry.n_pixels)
+
+        data = dict(
+            id=self._geometry.pix_id,
+            values=image,
+            line_width=np.zeros(self._geometry.n_pixels),
+            line_color=["green"] * self._geometry.n_pixels,
+            line_alpha=np.zeros(self._geometry.n_pixels),
+        )
+
+        if self._geometry.pix_type == PixelShape.HEXAGON:
+            x, y = generate_hex_vertices(self._geometry)
+
+        elif self._geometry.pix_type == PixelShape.SQUARE:
+            x, y = generate_square_vertices(self._geometry)
+
+        elif self._geometry.pix_type == PixelShape.CIRCLE:
+            x, y = self._geometry.pix_x.value, self._geometry.pix_y.value
+            data["radius"] = self._geometry.pixel_width / 2
+        else:
+            raise NotImplementedError(
+                f"Unsupported pixel shape {self._geometry.pix_type}"
+            )
+
+        data["xs"], data["ys"] = x.tolist(), y.tolist()
+
+        self.datasource.update(data=data)
+
+    def _setup_camera(self):
+        kwargs = dict(
+            fill_color=dict(field="values", transform=self.norm),
+            line_width="line_width",
+            line_color="line_color",
+            line_alpha="line_alpha",
+            source=self.datasource,
+        )
+        if self._geometry.pix_type in (PixelShape.SQUARE, PixelShape.HEXAGON):
+            self._patches = self.figure.patches(xs="xs", ys="ys", **kwargs)
+        elif self._geometry.pix_type == PixelShape.CIRCLE:
+            self._patches = self.figure.circle(
+                x="xs", y="ys", radius="radius", **kwargs
+            )
+
+    def enable_pixel_picker(self, callback):
+        """Call `callback`` when a pixel is clicked"""
+        if self._tap_tool is None:
+            self.figure.add_tools(TapTool())
+        self.datasource.selected.on_change("indices", callback)
+
+    def highlight_pixels(self, pixels, color="g", linewidth=1, alpha=0.75):
+        """
+        Highlight the given pixels with a colored line around them
 
         Parameters
         ----------
-        x_pix : ndarray
-            Pixel x positions
-        y_pix : ndarray
-            Pixel y positions
-        pix_size : ndarray
-            Pixel sizes
+        pixels : index-like
+            The pixels to highlight.
+            Can either be a list or array of integers or a
+            boolean mask of length number of pixels
+        color: a matplotlib conform color
+            the color for the pixel highlighting
+        linewidth: float
+            linewidth of the highlighting in points
+        alpha: 0 <= alpha <= 1
+            The transparency
         """
-        self._image = None
-        n_pix = x_pix.size
+        n_pixels = self._geometry.n_pixels
+        pixels = np.asanyarray(pixels)
 
-        cdsource_d = dict(image=np.empty(n_pix, dtype="<U8"), x=x_pix, y=y_pix)
-        self.cdsource = ColumnDataSource(cdsource_d)
-        self.fig = figure(plot_width=400, plot_height=400, **PLOTARGS)
-        self.fig.grid.grid_line_color = None
-        self.fig.rect(
-            "x",
-            "y",
-            color="image",
-            source=self.cdsource,
-            width=pix_size[0],
-            height=pix_size[0],
-        )
+        if pixels.dtype != np.bool:
+            selected = np.zeros(n_pixels, dtype=bool)
+            selected[pixels] = True
+            pixels = selected
 
-        self.layout = self.fig
+        new_data = {"line_alpha": [(slice(None), pixels.astype(float) * alpha)]}
+        if linewidth != self.datasource.data["line_width"][0]:
+            new_data["line_width"] = [(slice(None), np.full(n_pixels, linewidth))]
+
+        if color != self.datasource.data["line_color"][0]:
+            new_data["line_color"] = [(slice(None), [color] * n_pixels)]
+
+        self.datasource.patch(new_data)
+        self.update()
+
+    @property
+    def geometry(self):
+        """Get the current geometry"""
+        return self._geometry
+
+    @geometry.setter
+    def geometry(self, new_geometry):
+        """Set the geometry"""
+        self._geometry = new_geometry
+        if self._patches in self.figure.renderers:
+            self.figure.renderers.remove(self._patches)
+        self._init_datasource()
+        self._setup_camera()
+        self.rescale()
+        self.update()
 
     @property
     def image(self):
-        return self._image
+        """Get the current image"""
+        return self.datasource.data["values"]
 
     @image.setter
-    def image(self, val):
-        """
-        Parameters
-        ----------
-        val : ndarray
-            Array containing the image values, already converted into
-            hexidecimal strings
-        """
-        self.cdsource.data["image"] = val
+    def image(self, new_image):
+        """Set the image"""
+        self.datasource.patch({"values": [(slice(None), new_image)]})
+        if self.autoscale:
+            self.rescale()
 
-
-class WaveformDisplay:
-    def __init__(self, waveform=np.zeros(1), fig=None):
+    def add_ellipse(self, centroid, length, width, angle, asymmetry=0.0, **kwargs):
         """
-        Waveform display that utilises the bokeh visualisation library
+        plot an ellipse on top of the camera
 
         Parameters
         ----------
-        waveform : ndarray
-            1D array containing the waveform samples
-        fig : bokeh.plotting.figure
-            Figure to store the bokeh plot onto (optional)
+        centroid: (float, float)
+            position of centroid
+        length: float
+            major axis
+        width: float
+            minor axis
+        angle: float
+            rotation angle wrt x-axis about the centroid, anticlockwise, in radians
+        asymmetry: float
+            3rd-order moment for directionality if known
+        kwargs:
+            any MatPlotLib style arguments to pass to the Ellipse patch
+
         """
-        self._waveform = None
-        self._fig = None
-        self._active_time = 0
-
-        self.span = None
-
-        cdsource_d = dict(t=[], samples=[])
-        self.cdsource = ColumnDataSource(data=cdsource_d)
-
-        self.waveform = waveform
-        self.fig = fig
-
-        self.layout = self.fig
-
-    @property
-    def fig(self):
-        return self._fig
-
-    @fig.setter
-    def fig(self, val):
-        if val is None:
-            val = figure(plot_width=700, plot_height=180, **PLOTARGS)
-        self._fig = val
-
-        self._draw_waveform()
-
-    @property
-    def waveform(self):
-        return self._waveform
-
-    @waveform.setter
-    def waveform(self, val):
-        if val is None:
-            val = np.full(1, np.nan)
-
-        self._waveform = val
-
-        if len(val) == len(self.cdsource.data["t"]):
-            self.cdsource.data["samples"] = val
-        else:
-            cdsource_d = dict(t=np.arange(val.size), samples=val)
-            self.cdsource.data = cdsource_d
-
-    @property
-    def active_time(self):
-        return self._active_time
-
-    @active_time.setter
-    def active_time(self, val):
-        max_t = self.cdsource.data["t"][-1]
-        if val is None:
-            val = 0
-        if val < 0:
-            val = 0
-        if val > max_t:
-            val = max_t
-        self.span.location = val
-        self._active_time = val
-
-    def _draw_waveform(self):
-        self.fig.line(x="t", y="samples", source=self.cdsource, name="line")
-
-    def enable_time_picker(self):
-        """
-        Enables the selection of a time by clicking on the waveform
-        """
-        self.span = Span(
-            location=0, dimension="height", line_color="red", line_dash="dashed"
+        ellipse = Ellipse(
+            x=centroid[0],
+            y=centroid[1],
+            width=length,
+            height=width,
+            angle=angle,
+            fill_color=None,
+            **kwargs,
         )
-        self.fig.add_layout(self.span)
+        glyph = self.figure.add_glyph(ellipse)
+        self._annotations.append(glyph)
+        self.update()
+        return ellipse
 
-        taptool = TapTool()
-        self.fig.add_tools(taptool)
+    def overlay_moments(
+        self, hillas_parameters, with_label=True, keep_old=False, **kwargs
+    ):
+        """helper to overlay ellipse from a `HillasParametersContainer` structure
 
-        def wf_tap_response(event):
-            time = event.x
-            if time is not None:
-                self.active_time = time
-                self._on_waveform_click(time)
+        Parameters
+        ----------
+        hillas_parameters: `HillasParametersContainer`
+            structuring containing Hillas-style parameterization
+        with_label: bool
+            If True, show coordinates of centroid and width and length
+        keep_old: bool
+            If True, to not remove old overlays
+        kwargs: key=value
+            any style keywords to pass to matplotlib (e.g. color='red'
+            or linewidth=6)
+        """
+        if not keep_old:
+            self.clear_overlays()
 
-        self.fig.on_event(Tap, wf_tap_response)
+        # strip off any units
+        cen_x = u.Quantity(hillas_parameters.x).value
+        cen_y = u.Quantity(hillas_parameters.y).value
+        length = u.Quantity(hillas_parameters.length).value
+        width = u.Quantity(hillas_parameters.width).value
 
-    def _on_waveform_click(self, time):
-        print(f"Clicked time: {time}")
-        print(f"Active time: {self.active_time}")
+        el = self.add_ellipse(
+            centroid=(cen_x, cen_y),
+            length=length * 2,
+            width=width * 2,
+            angle=hillas_parameters.psi.to_value(u.rad),
+            **kwargs,
+        )
+
+        if with_label:
+            label = Label(
+                x=cen_x,
+                y=cen_y,
+                text="({:.02f},{:.02f})\n[w={:.02f},l={:.02f}]".format(
+                    hillas_parameters.x,
+                    hillas_parameters.y,
+                    hillas_parameters.width,
+                    hillas_parameters.length,
+                ),
+                text_color=el.line_color,
+            )
+            self.figure.add_layout(label, "center")
+            self._labels.append(label)
+
+
+class ArrayDisplay(BokehPlot):
+    """
+    Display a top-town view of a telescope array.
+
+    This can be used in two ways: by default, you get a display of all
+    telescopes in the subarray, colored by telescope type, however you can
+    also color the telescopes by a value (like trigger pattern, or some other
+    scalar per-telescope parameter). To set the color value, simply set the
+    `value` attribute, and the fill color will be updated with the value. You
+    might want to set the border color to zero to avoid confusion between the
+    telescope type color and the value color (
+    `array_disp.telescope.set_linewidth(0)`)
+
+    To display a vector field over the telescope positions, e.g. for
+    reconstruction, call `set_uv()` to set cartesian vectors, or `set_r_phi()`
+    to set polar coordinate vectors.  These both take an array of length
+    N_tels, or a single value.
+
+
+    Parameters
+    ----------
+    subarray: ctapipe.instrument.SubarrayDescription
+        the array layout to display
+    values: array
+        Value to display for each telescope. If None, the telescope type will
+        be used.
+    scale: float
+        scaling between telescope mirror radius in m to displayed size
+    title: str
+        title of array plot
+    alpha: float
+        Alpha value for telescopes
+    cmap: str or bokeh.palette.Palette
+        matplotlib colormap name or bokeh palette for color mapping values
+    norm: str or bokeh.
+        lin, log, symlog or a bokeh.models.ColorMapper instance
+    radius: Union[float, list, None]
+        set telescope radius to value, list/array of values. If None, radius
+        is taken from the telescope's mirror size.
+    use_notebook: bool or None
+        Whether to use bokehs notebook output. If None, tries to autodetect
+        running in a notebook.
+    frame: GroundFrame or TiltedGroundFrame
+        If given, transform telescope positions into this frame
+
+    **figure_kwargs are passed to bokeh.plots.figure
+    """
+
+    def __init__(
+        self,
+        subarray,
+        values=None,
+        scale=5.0,
+        alpha=1.0,
+        title=None,
+        cmap=None,
+        norm="lin",
+        radius=None,
+        use_notebook=None,
+        frame=None,
+        **figure_kwargs,
+    ):
+        if title is None:
+            frame_name = (frame or subarray.tel_coords.frame).__class__.__name__
+            title = f"{subarray.name} ({frame_name})"
+
+        super().__init__(
+            use_notebook=use_notebook,
+            title=title,
+            match_aspect=True,
+            aspect_scale=1,
+            cmap=cmap,
+            norm=norm,
+            **figure_kwargs,
+        )
+
+        # color by type if no value given
+        if values is None:
+            types = list({str(t) for t in subarray.telescope_types})
+            cmap = cmap or d3["Category10"][10][: len(types)]
+            self._color_mapper = CategoricalColorMapper(palette=cmap, factors=types)
+            field = "type"
+        else:
+            self.cmap = "inferno"
+            field = "values"
+
+        self.frame = frame
+        self.subarray = subarray
+
+        self._init_datasource(
+            subarray,
+            values=values,
+            radius=radius,
+            frame=frame,
+            scale=scale,
+            alpha=alpha,
+        )
+
+        color = dict(field=field, transform=self._color_mapper)
+        self._patches = self.figure.circle(
+            x="x",
+            y="y",
+            radius="radius",
+            alpha="alpha",
+            line_alpha="alpha",
+            fill_color=color,
+            line_color=color,
+            source=self.datasource,
+            legend_field="type",
+        )
+        self.figure.add_tools(
+            HoverTool(tooltips=[("id", "@id"), ("type", "@type"), ("z", "@z")])
+        )
+        self.figure.legend.orientation = "horizontal"
+        self.figure.legend.location = "top_left"
+
+    def _init_datasource(self, subarray, values, *, radius, frame, scale, alpha):
+        telescope_ids = subarray.tel_ids
+        tel_coords = subarray.tel_coords
+
+        # get the telescope positions. If a new frame is set, this will
+        # transform to the new frame.
+        if frame is not None:
+            tel_coords = tel_coords.transform_to(frame)
+
+        tel_types = []
+        mirror_radii = np.zeros(len(telescope_ids))
+
+        for i, telescope_id in enumerate(telescope_ids):
+            telescope = subarray.tel[telescope_id]
+            tel_types.append(str(telescope))
+            mirror_area = telescope.optics.mirror_area.to_value(u.m ** 2)
+            mirror_radii[i] = np.sqrt(mirror_area) / np.pi
+
+        if values is None:
+            values = np.zeros(len(subarray))
+
+        if np.isscalar(alpha):
+            alpha = np.full(len(telescope_ids), alpha)
+        else:
+            alpha = np.array(alpha)
+
+        data = {
+            "id": telescope_ids,
+            "x": tel_coords.x.to_value(u.m).tolist(),
+            "y": tel_coords.y.to_value(u.m).tolist(),
+            "z": tel_coords.z.to_value(u.m).tolist(),
+            "alpha": alpha.tolist(),
+            "values": values,
+            "type": tel_types,
+            "mirror_radius": mirror_radii.tolist(),
+            "radius": (radius if radius is not None else mirror_radii * scale).tolist(),
+        }
+
+        self.datasource.update(data=data)
+
+    @property
+    def values(self):
+        """Get the current image"""
+        return self.datasource.data["values"]
+
+    @values.setter
+    def values(self, new_values):
+        """Set the image"""
+        # currently displaying telescope types
+        if self._patches.glyph.fill_color["field"] == "type":
+            self.norm = "lin"
+            self.cmap = "inferno"
+            color = dict(field="values", transform=self._color_mapper)
+            self._patches.glyph.update(fill_color=color, line_color=color)
+
+            # recreate color bar, updating does not work here
+            if self._color_bar is not None:
+                self.figure.right.remove(self._color_bar)
+                self.add_colorbar()
+
+            self.update()
+
+        self.datasource.patch({"values": [(slice(None), new_values)]})
+        if self.autoscale:
+            self.rescale()

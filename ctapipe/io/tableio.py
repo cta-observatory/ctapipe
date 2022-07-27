@@ -9,9 +9,8 @@ import numpy as np
 from astropy.time import Time
 from astropy.units import Quantity
 
-from ..instrument import SubarrayDescription
 from ..core import Component
-
+from ..instrument import SubarrayDescription
 
 __all__ = ["TableReader", "TableWriter"]
 
@@ -187,7 +186,7 @@ class TableWriter(Component, metaclass=ABCMeta):
 
     @abstractmethod
     def close(self):
-        """ Close open writer """
+        """Close open writer"""
         pass
 
     def _apply_col_transform(self, table_name, col_name, value):
@@ -279,7 +278,7 @@ class ColumnTransform(metaclass=ABCMeta):
     A Transformation to be applied before serialization / after deserialization.
 
     The ``TableWriter`` will call the transform on the data to be stored and
-    ``TableReader`` will call `.inverse`` the reverse the transformation 
+    ``TableReader`` will call `.inverse`` to reverse the transformation
     when a transformation is detected in the file through metadata.
 
     Transformations implement ``get_meta`` to provide the necessary metadata
@@ -292,12 +291,16 @@ class ColumnTransform(metaclass=ABCMeta):
 
     @abstractmethod
     def inverse(self, value):
-        """No inverse transform by default"""
+        """Invert the transformation applied in ``__call__``"""
         return value
 
     @abstractmethod
     def get_meta(self, colname):
-        """Empty meta by default"""
+        """Metadata to be stored in the header information of the table
+
+        Needs to fully describe the transformation so upon reading, the
+        transformation can be inverted based on this metadata.
+        """
         return {}
 
 
@@ -319,14 +322,14 @@ class TimeColumnTransform(ColumnTransform):
 
     def get_meta(self, colname):
         return {
-            f"{colname}_TRANSFORM": "time",
-            f"{colname}_TIME_FORMAT": self.format,
-            f"{colname}_TIME_SCALE": self.scale,
+            f"CTAFIELD_{colname}_TRANSFORM": "time",
+            f"CTAFIELD_{colname}_TIME_FORMAT": self.format,
+            f"CTAFIELD_{colname}_TIME_SCALE": self.scale,
         }
 
 
 class QuantityColumnTransform(ColumnTransform):
-    """ A Column Transform that transforms quantities to their values in the given unit"""
+    """A Column Transform that transforms quantities to their values in the given unit"""
 
     def __init__(self, unit):
         self.unit = unit
@@ -339,8 +342,8 @@ class QuantityColumnTransform(ColumnTransform):
 
     def get_meta(self, colname):
         return {
-            f"{colname}_TRANSFORM": "quantity",
-            f"{colname}_UNIT": self.unit.to_string("vounit"),
+            f"CTAFIELD_{colname}_TRANSFORM": "quantity",
+            f"CTAFIELD_{colname}_UNIT": self.unit.to_string("vounit"),
         }
 
 
@@ -350,6 +353,24 @@ class FixedPointColumnTransform(ColumnTransform):
 
     Can be used to store values as fixed point by using an integer dtype
     and a scale that is a power of 10.
+
+    The transforms reserves 3 integers to represent -inf, nan and inf.
+    Underflowing values are converted to -inf and overflowing to inf.
+
+    For unsigned target dtype:
+    -inf: maxval - 2
+    nan: maxval - 1
+    inf: maxval
+
+    For signed target dtype:
+    -inf: minval
+    nan: minval + 1
+    inf: maxval
+
+    When reading, these special values must not be interpreted as valid integer
+    values but be transformed back into -inf, nan, inf respectively.
+
+    This is a lossy transformation.
     """
 
     def __init__(self, scale, offset, source_dtype, target_dtype):
@@ -357,19 +378,81 @@ class FixedPointColumnTransform(ColumnTransform):
         self.offset = offset
         self.source_dtype = np.dtype(source_dtype)
         self.target_dtype = np.dtype(target_dtype)
+        self.unsigned = self.target_dtype.kind == "u"
+
+        iinfo = np.iinfo(self.target_dtype)
+
+        # use three highest values for nan markers for unsigned case
+        if self.unsigned:
+            self.neginf = iinfo.max - 2
+            self.nan = iinfo.max - 1
+            self.posinf = iinfo.max
+
+            # this leaves this inclusive range for the valid values
+            self.minval = 0
+            self.maxval = iinfo.max - 3
+        else:
+            self.neginf = iinfo.min
+            self.nan = iinfo.min + 1
+            self.posinf = iinfo.max
+
+            # this leaves this inclusive range for the valid values
+            self.minval = iinfo.min + 2
+            self.maxval = iinfo.max - 1
 
     def __call__(self, value):
-        return (value * self.scale).astype(self.target_dtype) + self.offset
+        is_scalar = np.array(value, copy=False).shape == ()
+        value = np.atleast_1d(value).astype(self.source_dtype, copy=False)
+
+        scaled = np.round(value * self.scale) + self.offset
+
+        # convert under/overflow values to -inf/inf
+        scaled[scaled > self.maxval] = np.inf
+        scaled[scaled < self.minval] = -np.inf
+
+        nans = np.isnan(scaled)
+        pos_inf = np.isposinf(scaled)
+        neg_inf = np.isneginf(scaled)
+
+        result = scaled.astype(self.target_dtype)
+        result[nans] = self.nan
+        result[neg_inf] = self.neginf
+        result[pos_inf] = self.posinf
+
+        if is_scalar:
+            return np.squeeze(result)
+
+        return result
 
     def inverse(self, value):
-        return (value - self.offset).astype(self.source_dtype) / self.scale
+        is_scalar = np.array(value, copy=False).shape == ()
+        value = np.atleast_1d(value)
+
+        result = (value.astype(self.source_dtype) - self.offset) / self.scale
+        result = np.atleast_1d(result)
+
+        nans = value == self.nan
+        pos_inf = value == self.posinf
+        neg_inf = value == self.neginf
+
+        result[nans] = np.nan
+        result[neg_inf] = -np.inf
+        result[pos_inf] = np.inf
+
+        if is_scalar:
+            return np.squeeze(result)
+
+        return result
 
     def get_meta(self, colname: str):
         return {
-            f"{colname}_TRANSFORM": "fixed_point",
-            f"{colname}_TRANSFORM_SCALE": self.scale,
-            f"{colname}_TRANSFORM_DTYPE": str(self.source_dtype),
-            f"{colname}_TRANSFORM_OFFSET": self.offset,
+            f"CTAFIELD_{colname}_TRANSFORM": "fixed_point",
+            f"CTAFIELD_{colname}_TRANSFORM_SCALE": self.scale,
+            f"CTAFIELD_{colname}_TRANSFORM_DTYPE": str(self.source_dtype),
+            f"CTAFIELD_{colname}_TRANSFORM_OFFSET": self.offset,
+            f"CTAFIELD_{colname}_NAN_VALUE": self.nan,
+            f"CTAFIELD_{colname}_POSINF_VALUE": self.posinf,
+            f"CTAFIELD_{colname}_NEGINF_VALUE": self.neginf,
         }
 
 
@@ -387,11 +470,80 @@ class EnumColumnTransform(ColumnTransform):
         return self.enum(value)
 
     def get_meta(self, colname):
-        return {f"{colname}_TRANSFORM": "enum", f"{colname}_ENUM": self.enum}
+        return {
+            f"CTAFIELD_{colname}_TRANSFORM": "enum",
+            f"CTAFIELD_{colname}_ENUM": self.enum,
+        }
+
+
+def encode_utf8_max_len(string, max_length):
+    """Encode a string to utf-8 with max length in bytes
+
+    This will not create invalid utf-8 data and thus the resulting
+    bytes object might be shorter than ``max_length`` if max_length
+    falls into a multi-byte codepoint.
+
+    This might still create nonsensical output for cases like combining
+    diacritics and emoji, but
+    a) it will always successfully decode as utf-8
+    b) we can probably live with not supporting all emojis
+    when truncating strings in hdf5 data of ctapipe
+
+    See https://stackoverflow.com/a/56724327/3838691
+    """
+    utf8 = string.encode("utf-8")
+
+    if len(utf8) <= max_length:
+        return utf8
+
+    while (utf8[max_length] & 0b1100_0000) == 0b1000_0000:
+        max_length -= 1
+
+    return utf8[:max_length]
+
+
+class StringTransform(ColumnTransform):
+    """
+    Encode strings as utf-8 bytes using a max_length
+
+    Byte values are truncated after ``max_length``, this might result
+    in invalid utf-8!. Trailing utf-8 bytes are ignored when inversing the
+    transform.
+
+    Should not be used anymore when tables starts supporting
+    variable length strings in tables.
+    """
+
+    def __init__(self, max_length):
+        self.max_length = max_length
+        self.dtype = f"S{max_length:d}"
+
+    def __call__(self, value):
+        if isinstance(value, str):
+            return encode_utf8_max_len(value, self.max_length)
+
+        return np.array(
+            [encode_utf8_max_len(v, self.max_length) for v in value]
+        ).astype(self.dtype)
+
+    def inverse(self, value):
+        if isinstance(value, bytes):
+            return value.decode("utf-8")
+
+        # astropy table columns somehow try to handle byte columns as strings
+        # when iterating, this does not work here, convert to np.array
+        value = np.array(value, copy=False)
+        return np.array([v.decode("utf-8") for v in value])
+
+    def get_meta(self, colname):
+        return {
+            f"CTAFIELD_{colname}_TRANSFORM": "string",
+            f"CTAFIELD_{colname}_MAXLEN": self.max_length,
+        }
 
 
 class TelListToMaskTransform(ColumnTransform):
-    """ convert variable-length list of tel_ids to a fixed-length mask """
+    """convert variable-length list of tel_ids to a fixed-length mask"""
 
     def __init__(self, subarray: SubarrayDescription):
         self._forward = subarray.tel_ids_to_mask
@@ -409,4 +561,4 @@ class TelListToMaskTransform(ColumnTransform):
         return self._inverse(value)
 
     def get_meta(self, colname):
-        return {f"{colname}_TRANSFORM": "tel_list_to_mask"}
+        return {f"CTAFIELD_{colname}_TRANSFORM": "tel_list_to_mask"}

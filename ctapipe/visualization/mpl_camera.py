@@ -10,7 +10,7 @@ from astropy import units as u
 from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.colors import Normalize, LogNorm, SymLogNorm
-from matplotlib.patches import Ellipse, RegularPolygon, Rectangle, Circle
+from matplotlib.patches import Ellipse, RegularPolygon, Circle
 
 from ctapipe.instrument import PixelShape
 
@@ -85,16 +85,18 @@ class CameraDisplay:
 
     def __init__(
         self,
+        # same options as bokeh display
         geometry,
         image=None,
-        ax=None,
-        title=None,
+        cmap="inferno",
         norm="lin",
-        cmap=None,
+        autoscale=True,
+        title=None,
+        # mpl specific options
         allow_pick=False,
         autoupdate=True,
-        autoscale=True,
         show_frame=True,
+        ax=None,
     ):
         self.axes = ax if ax is not None else plt.gca()
         self.pixels = None
@@ -105,7 +107,9 @@ class CameraDisplay:
         self._active_pixel_label = None
         self._axes_overlays = []
 
-        self.geom = geometry
+        # derotate camera so we don't duplicate the rotation handling code
+        self.geom = copy.deepcopy(geometry)
+        self.geom.rotate(self.geom.cam_rotation)
 
         if title is None:
             title = f"{geometry.camera_name}"
@@ -113,43 +117,20 @@ class CameraDisplay:
         # initialize the plot and generate the pixels as a
         # RegularPolyCollection
 
-        patches = []
-
         if hasattr(self.geom, "mask"):
             self.mask = self.geom.mask
         else:
             self.mask = np.ones_like(self.geom.pix_x.value, dtype=bool)
 
-        pix_x = self.geom.pix_x.value[self.mask]
-        pix_y = self.geom.pix_y.value[self.mask]
-        pix_width = self.geom.pixel_width.value[self.mask]
-
-        for x, y, w in zip(pix_x, pix_y, pix_width):
-            if self.geom.pix_type == PixelShape.HEXAGON:
-                r = w / np.sqrt(3)
-                patch = RegularPolygon(
-                    (x, y),
-                    6,
-                    radius=r,
-                    orientation=self.geom.pix_rotation.to_value(u.rad),
-                    fill=True,
-                )
-            elif self.geom.pix_type == PixelShape.CIRCLE:
-                patch = Circle((x, y), radius=w / 2, fill=True)
-            elif self.geom.pix_type == PixelShape.SQUARE:
-                patch = Rectangle(
-                    (x - w / 2, y - w / 2),
-                    width=w,
-                    height=w,
-                    angle=self.geom.pix_rotation.to_value(u.deg),
-                    fill=True,
-                )
-            else:
-                raise ValueError(f"Unsupported pixel_shape {self.geom.pix_type}")
-
-            patches.append(patch)
-
+        patches = self.create_patches(
+            shape=self.geom.pix_type,
+            pix_x=self.geom.pix_x.value[self.mask],
+            pix_y=self.geom.pix_y.value[self.mask],
+            pix_width=self.geom.pixel_width.value[self.mask],
+            pix_rotation=self.geom.pix_rotation,
+        )
         self.pixels = PatchCollection(patches, cmap=cmap, linewidth=0)
+
         self.axes.add_collection(self.pixels)
 
         self.pixel_highlighting = copy.copy(self.pixels)
@@ -199,6 +180,60 @@ class CameraDisplay:
         self.norm = norm
         self.auto_set_axes_labels()
 
+    @staticmethod
+    def create_patches(shape, pix_x, pix_y, pix_width, pix_rotation=0 * u.deg):
+        if shape == PixelShape.HEXAGON:
+            return CameraDisplay._create_hex_patches(
+                pix_x, pix_y, pix_width, pix_rotation
+            )
+
+        if shape == PixelShape.CIRCLE:
+            return CameraDisplay._create_circle_patches(pix_x, pix_y, pix_width)
+
+        if shape == PixelShape.SQUARE:
+            return CameraDisplay._create_square_patches(
+                pix_x, pix_y, pix_width, pix_rotation
+            )
+
+        raise ValueError(f"Unsupported pixel shape {shape}")
+
+    @staticmethod
+    def _create_hex_patches(pix_x, pix_y, pix_width, pix_rotation):
+        orientation = pix_rotation.to_value(u.rad)
+        return [
+            RegularPolygon(
+                (x, y),
+                6,
+                # convert from incircle to outer circle radius
+                radius=w / np.sqrt(3),
+                orientation=orientation,
+                fill=True,
+            )
+            for x, y, w in zip(pix_x, pix_y, pix_width)
+        ]
+
+    @staticmethod
+    def _create_circle_patches(pix_x, pix_y, pix_width):
+        return [
+            Circle((x, y), radius=w / 2, fill=True)
+            for x, y, w in zip(pix_x, pix_y, pix_width)
+        ]
+
+    @staticmethod
+    def _create_square_patches(pix_x, pix_y, pix_width, pix_rotation):
+        orientation = (pix_rotation + 45 * u.deg).to_value(u.rad)
+        return [
+            RegularPolygon(
+                (x, y),
+                4,
+                # convert from edge length to outer circle radius
+                radius=w / np.sqrt(2),
+                orientation=orientation,
+                fill=True,
+            )
+            for x, y, w in zip(pix_x, pix_y, pix_width)
+        ]
+
     def highlight_pixels(self, pixels, color="g", linewidth=1, alpha=0.75):
         """
         Highlight the given pixels with a colored line around them
@@ -233,7 +268,6 @@ class CameraDisplay:
     def set_limits_minmax(self, zmin, zmax):
         """ set the color scale limits from min to max """
         self.pixels.set_clim(zmin, zmax)
-        self.autoscale = False
         self._update()
 
     def set_limits_percent(self, percent=95):
@@ -246,7 +280,6 @@ class CameraDisplay:
 
         dz = zmax - zmin
         frac = percent / 100.0
-        self.autoscale = False
         self.set_limits_minmax(zmin, zmax - (1.0 - frac) * dz)
 
     @property
@@ -420,7 +453,7 @@ class CameraDisplay:
             centroid=(cen_x, cen_y),
             length=length * 2,
             width=width * 2,
-            angle=hillas_parameters.psi.to_value("rad"),
+            angle=hillas_parameters.psi.to_value(u.rad),
             **kwargs,
         )
 
@@ -453,12 +486,7 @@ class CameraDisplay:
         x = self.geom.pix_x[pix_id].value
         y = self.geom.pix_y[pix_id].value
 
-        if self.geom.pix_type in (PixelShape.HEXAGON, PixelShape.CIRCLE):
-            self._active_pixel.xy = (x, y)
-        else:
-            w = self.geom.pixel_width.value[0]
-            self._active_pixel.xy = (x - w / 2.0, y - w / 2.0)
-
+        self._active_pixel.xy = (x, y)
         self._active_pixel.set_visible(True)
         self._active_pixel_label.set_x(x)
         self._active_pixel_label.set_y(y)

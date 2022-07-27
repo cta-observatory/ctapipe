@@ -3,13 +3,16 @@ Factory for the estimation of the flat field coefficients
 """
 
 from abc import abstractmethod
+
 import numpy as np
 from astropy import units as u
+
+from ctapipe.containers import DL1CameraContainer
 from ctapipe.core import Component
-
-
+from ctapipe.core.traits import Int, List, Unicode
 from ctapipe.image.extractor import ImageExtractor
-from ctapipe.core.traits import Int, Unicode, List
+
+from .calibrator import _get_invalid_pixels
 
 __all__ = ["calc_pedestals_from_traces", "PedestalCalculator", "PedestalIntegrator"]
 
@@ -71,8 +74,7 @@ class PedestalCalculator(Component):
         Set to None if no configuration to pass.
 
     kwargs
-
-"""
+    """
 
     tel_id = Int(0, help="id of the telescope to calculate the pedestal values").tag(
         config=True
@@ -114,13 +116,13 @@ class PedestalCalculator(Component):
 
         kwargs
 
-    """
+        """
 
         super().__init__(**kwargs)
 
         # load the waveform charge extractor
         self.extractor = ImageExtractor.from_name(
-            self.charge_product, config=self.config, subarray=subarray
+            self.charge_product, parent=self, subarray=subarray
         )
         self.log.info(f"extractor {self.extractor}")
 
@@ -142,21 +144,21 @@ class PedestalCalculator(Component):
 
 class PedestalIntegrator(PedestalCalculator):
     """Calculates pedestal parameters integrating the charge of pedestal events:
-       the pedestal value corresponds to the charge estimated with the selected
-       charge extractor
-       The pixels are set as outliers on the base of a cut on the pixel charge median
-       over the pedestal sample and the pixel charge standard deviation over
-       the pedestal sample with respect to the camera median values
+      the pedestal value corresponds to the charge estimated with the selected
+      charge extractor
+      The pixels are set as outliers on the base of a cut on the pixel charge median
+      over the pedestal sample and the pixel charge standard deviation over
+      the pedestal sample with respect to the camera median values
 
 
-     Parameters:
-     ----------
-     charge_median_cut_outliers : List[2]
-         Interval (number of std) of accepted charge values around camera median value
-     charge_std_cut_outliers : List[2]
-         Interval (number of std) of accepted charge standard deviation around camera median value
+    Parameters:
+    ----------
+    charge_median_cut_outliers : List[2]
+        Interval (number of std) of accepted charge values around camera median value
+    charge_std_cut_outliers : List[2]
+        Interval (number of std) of accepted charge standard deviation around camera median value
 
-     """
+    """
 
     charge_median_cut_outliers = List(
         [-3, 3],
@@ -169,19 +171,19 @@ class PedestalIntegrator(PedestalCalculator):
 
     def __init__(self, **kwargs):
         """Calculates pedestal parameters integrating the charge of pedestal events:
-           the pedestal value corresponds to the charge estimated with the selected
-           charge extractor
-           The pixels are set as outliers on the base of a cut on the pixel charge median
-           over the pedestal sample and the pixel charge standard deviation over
-           the pedestal sample with respect to the camera median values
+          the pedestal value corresponds to the charge estimated with the selected
+          charge extractor
+          The pixels are set as outliers on the base of a cut on the pixel charge median
+          over the pedestal sample and the pixel charge standard deviation over
+          the pedestal sample with respect to the camera median values
 
 
-         Parameters:
-         ----------
-         charge_median_cut_outliers : List[2]
-             Interval (number of std) of accepted charge values around camera median value
-         charge_std_cut_outliers : List[2]
-             Interval (number of std) of accepted charge standard deviation around camera median value
+        Parameters:
+        ----------
+        charge_median_cut_outliers : List[2]
+            Interval (number of std) of accepted charge values around camera median value
+        charge_std_cut_outliers : List[2]
+            Interval (number of std) of accepted charge standard deviation around camera median value
         """
 
         super().__init__(**kwargs)
@@ -195,29 +197,34 @@ class PedestalIntegrator(PedestalCalculator):
         self.charges = None  # charge per event in sample
         self.sample_masked_pixels = None  # pixels tp be masked per event in sample
 
-    def _extract_charge(self, event):
+    def _extract_charge(self, event) -> DL1CameraContainer:
         """
         Extract the charge and the time from a pedestal event
 
         Parameters
         ----------
+        event: ArrayEventContainer
+            general event container
 
-        event : general event container
-
+        Returns
+        -------
+        DL1CameraContainer
         """
-
         waveforms = event.r1.tel[self.tel_id].waveform
         selected_gain_channel = event.r1.tel[self.tel_id].selected_gain_channel
+        broken_pixels = _get_invalid_pixels(
+            n_pixels=waveforms.shape[-2],
+            pixel_status=event.mon.tel[self.tel_id].pixel_status,
+            selected_gain_channel=selected_gain_channel,
+        )
 
         # Extract charge and time
-        charge = 0
-        peak_pos = 0
         if self.extractor:
-            charge, peak_pos = self.extractor(
-                waveforms, self.tel_id, selected_gain_channel
+            return self.extractor(
+                waveforms, self.tel_id, selected_gain_channel, broken_pixels
             )
-
-        return charge, peak_pos
+        else:
+            return DL1CameraContainer(image=0, peak_pos=0, is_valid=False)
 
     def calculate_pedestals(self, event):
         """
@@ -251,11 +258,14 @@ class PedestalIntegrator(PedestalCalculator):
 
         # extract the charge of the event and
         # the peak position (assumed as time for the moment)
-        charge = self._extract_charge(event)[0]
+        dl1: DL1CameraContainer = self._extract_charge(event)
 
-        self.collect_sample(charge, pixel_mask)
+        if not dl1.is_valid:
+            return False
 
-        sample_age = trigger_time - self.time_start
+        self.collect_sample(dl1.image, pixel_mask)
+
+        sample_age = (trigger_time - self.time_start).to_value(u.s)
 
         # check if to create a calibration event
         if (

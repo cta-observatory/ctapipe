@@ -4,21 +4,38 @@ calibration and image extraction, as well as supporting algorithms.
 """
 
 import warnings
-import numpy as np
-import astropy.units as u
 
+import astropy.units as u
+import numpy as np
+from numba import float32, float64, guvectorize, int64
+
+from ctapipe.containers import DL1CameraContainer
 from ctapipe.core import TelescopeComponent
-from ctapipe.image.extractor import ImageExtractor
-from ctapipe.image.reducer import DataVolumeReducer
 from ctapipe.core.traits import (
+    BoolTelescopeParameter,
     TelescopeParameter,
     create_class_enum_trait,
-    BoolTelescopeParameter,
 )
-
-from numba import guvectorize, float64, float32, int64
+from ctapipe.image.extractor import ImageExtractor
+from ctapipe.image.invalid_pixels import InvalidPixelHandler
+from ctapipe.image.reducer import DataVolumeReducer
 
 __all__ = ["CameraCalibrator"]
+
+
+def _get_invalid_pixels(n_pixels, pixel_status, selected_gain_channel):
+    broken_pixels = np.zeros(n_pixels, dtype=bool)
+    index = np.arange(n_pixels)
+    masks = (
+        pixel_status.hardware_failing_pixels,
+        pixel_status.pedestal_failing_pixels,
+        pixel_status.flatfield_failing_pixels,
+    )
+    for mask in masks:
+        if mask is not None:
+            broken_pixels |= mask[selected_gain_channel, index]
+
+    return broken_pixels
 
 
 class CameraCalibrator(TelescopeComponent):
@@ -46,6 +63,13 @@ class CameraCalibrator(TelescopeComponent):
         ),
         default_value="NeighborPeakWindowSum",
         help="Name of the ImageExtractor subclass to be used.",
+    ).tag(config=True)
+
+    invalid_pixel_handler_type = create_class_enum_trait(
+        InvalidPixelHandler,
+        default_value="NeighborAverage",
+        help="Name of the InvalidPixelHandler to use",
+        allow_none=True,
     ).tag(config=True)
 
     apply_waveform_time_shift = BoolTelescopeParameter(
@@ -123,6 +147,14 @@ class CameraCalibrator(TelescopeComponent):
         else:
             self.data_volume_reducer = data_volume_reducer
 
+        self.invalid_pixel_handler = None
+        if self.invalid_pixel_handler_type is not None:
+            self.invalid_pixel_handler = InvalidPixelHandler.from_name(
+                self.invalid_pixel_handler_type,
+                subarray=self.subarray,
+                parent=self,
+            )
+
     def _check_r1_empty(self, waveforms):
         if waveforms is None:
             if not self._r1_empty_warn:
@@ -162,18 +194,23 @@ class CameraCalibrator(TelescopeComponent):
         event.dl0.tel[telid].waveform = waveforms_copy
         event.dl0.tel[telid].selected_gain_channel = selected_gain_channel
 
-    def _calibrate_dl1(self, event, telid):
-        waveforms = event.dl0.tel[telid].waveform
-        selected_gain_channel = event.dl0.tel[telid].selected_gain_channel
-        dl1_calib = event.calibration.tel[telid].dl1
-
+    def _calibrate_dl1(self, event, tel_id):
+        waveforms = event.dl0.tel[tel_id].waveform
         if self._check_dl0_empty(waveforms):
             return
 
-        selected_gain_channel = event.r1.tel[telid].selected_gain_channel
-        time_shift = event.calibration.tel[telid].dl1.time_shift
-        readout = self.subarray.tel[telid].camera.readout
         n_pixels, n_samples = waveforms.shape
+
+        selected_gain_channel = event.dl0.tel[tel_id].selected_gain_channel
+        broken_pixels = _get_invalid_pixels(
+            n_pixels,
+            event.mon.tel[tel_id].pixel_status,
+            selected_gain_channel,
+        )
+
+        dl1_calib = event.calibration.tel[tel_id].dl1
+        time_shift = event.calibration.tel[tel_id].dl1.time_shift
+        readout = self.subarray.tel[tel_id].camera.readout
 
         # subtract any remaining pedestal before extraction
         if dl1_calib.pedestal_offset is not None:
@@ -188,13 +225,16 @@ class CameraCalibrator(TelescopeComponent):
             #   - Read into dl1 container directly?
             #   - Don't do anything if dl1 container already filled
             #   - Update on SST review decision
-            charge = waveforms[..., 0].astype(np.float32)
-            peak_time = np.zeros(n_pixels, dtype=np.float32)
+            dl1 = DL1CameraContainer(
+                image=waveforms[..., 0].astype(np.float32),
+                peak_time=np.zeros(n_pixels, dtype=np.float32),
+                is_valid=True,
+            )
         else:
 
             # shift waveforms if time_shift calibration is available
             if time_shift is not None:
-                if self.apply_waveform_time_shift.tel[telid]:
+                if self.apply_waveform_time_shift.tel[tel_id]:
                     sampling_rate = readout.sampling_rate.to_value(u.GHz)
                     time_shift_samples = time_shift * sampling_rate
                     waveforms, remaining_shift = shift_waveforms(
@@ -204,20 +244,32 @@ class CameraCalibrator(TelescopeComponent):
                 else:
                     remaining_shift = time_shift
 
-            extractor = self.image_extractors[self.image_extractor_type.tel[telid]]
-            charge, peak_time = extractor(
-                waveforms, telid=telid, selected_gain_channel=selected_gain_channel
+            extractor = self.image_extractors[self.image_extractor_type.tel[tel_id]]
+            dl1 = extractor(
+                waveforms,
+                telid=tel_id,
+                selected_gain_channel=selected_gain_channel,
+                broken_pixels=broken_pixels,
             )
 
             # correct non-integer remainder of the shift if given
-            if self.apply_peak_time_shift.tel[telid] and time_shift is not None:
-                peak_time -= remaining_shift
+            if self.apply_peak_time_shift.tel[tel_id] and time_shift is not None:
+                dl1.peak_time -= remaining_shift
 
         # Calibrate extracted charge
-        charge *= dl1_calib.relative_factor / dl1_calib.absolute_factor
+        dl1.image *= dl1_calib.relative_factor / dl1_calib.absolute_factor
 
-        event.dl1.tel[telid].image = charge
-        event.dl1.tel[telid].peak_time = peak_time
+        # handle invalid pixels
+        if self.invalid_pixel_handler is not None:
+            dl1.image, dl1.peak_time = self.invalid_pixel_handler(
+                tel_id,
+                dl1.image,
+                dl1.peak_time,
+                broken_pixels,
+            )
+
+        # store the results in the event structure
+        event.dl1.tel[tel_id] = dl1
 
     def __call__(self, event):
         """

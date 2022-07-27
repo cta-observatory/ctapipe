@@ -8,11 +8,15 @@ import sys
 import matplotlib as mpl
 import numpy as np
 import tables
+
 from ctapipe.core import run_tool
 from ctapipe.utils import get_dataset_path
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 LST_MUONS = get_dataset_path("lst_muons.simtel.zst")
+PROD5B_PATH = get_dataset_path(
+    "gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst"
+)
 
 
 def test_muon_reconstruction_simtel(tmp_path):
@@ -25,6 +29,7 @@ def test_muon_reconstruction_simtel(tmp_path):
             argv=[
                 f"--input={LST_MUONS}",
                 f"--output={muon_simtel_output_file}",
+                "--SimTelEventSource.focal_length_choice=EQUIVALENT",
                 "--overwrite",
             ],
             cwd=tmp_path,
@@ -48,6 +53,7 @@ def test_muon_reconstruction_dl1(tmp_path, dl1_muon_file):
             argv=[
                 f"--input={dl1_muon_file}",
                 f"--output={muon_dl1_output_file}",
+                "--HDF5EventSource.focal_length_choice=EQUIVALENT",
                 "--overwrite",
             ],
             cwd=tmp_path,
@@ -63,60 +69,6 @@ def test_muon_reconstruction_dl1(tmp_path, dl1_muon_file):
     assert run_tool(MuonAnalysis(), ["--help-all"]) == 0
 
 
-def test_display_summed_images(tmp_path):
-    from ctapipe.tools.display_summed_images import ImageSumDisplayerTool
-
-    mpl.use("Agg")
-    assert (
-        run_tool(
-            ImageSumDisplayerTool(),
-            argv=[f"--infile={GAMMA_TEST_LARGE}", "--max-events=2"],
-            cwd=tmp_path,
-        )
-        == 0
-    )
-
-    assert run_tool(ImageSumDisplayerTool(), ["--help-all"]) == 0
-
-
-def test_display_integrator(tmp_path):
-    from ctapipe.tools.display_integrator import DisplayIntegrator
-
-    mpl.use("Agg")
-
-    assert (
-        run_tool(
-            DisplayIntegrator(),
-            argv=[f"--input={GAMMA_TEST_LARGE}", "--max-events=1"],
-            cwd=tmp_path,
-        )
-        == 0
-    )
-
-    assert run_tool(DisplayIntegrator(), ["--help-all"]) == 0
-
-
-def test_display_events_single_tel(tmp_path):
-    from ctapipe.tools.display_events_single_tel import SingleTelEventDisplay
-
-    mpl.use("Agg")
-
-    assert (
-        run_tool(
-            SingleTelEventDisplay(),
-            argv=[
-                f"--input={GAMMA_TEST_LARGE}",
-                "--tel=11",
-                "--max-events=2",  # <--- inconsistent!!!
-            ],
-            cwd=tmp_path,
-        )
-        == 0
-    )
-
-    assert run_tool(SingleTelEventDisplay(), ["--help-all"]) == 0
-
-
 def test_display_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
     from ctapipe.tools.display_dl1 import DisplayDL1Calib
 
@@ -125,7 +77,13 @@ def test_display_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
     # test simtel
     assert (
         run_tool(
-            DisplayDL1Calib(), argv=["--max-events=1", "--telescope=11"], cwd=tmp_path
+            DisplayDL1Calib(),
+            argv=[
+                "--max-events=1",
+                "--telescope=11",
+                "--SimTelEventSource.focal_length_choice=EQUIVALENT",
+            ],
+            cwd=tmp_path,
         )
         == 0
     )
@@ -153,7 +111,7 @@ def test_info():
 
 
 def test_fileinfo(tmp_path, dl1_image_file):
-    """ check we can run ctapipe-fileinfo and get results """
+    """check we can run ctapipe-fileinfo and get results"""
     import yaml
     from astropy.table import Table
 
@@ -179,7 +137,7 @@ def test_dump_triggers(tmp_path):
 
     sys.argv = ["dump_triggers"]
     outfile = tmp_path / "triggers.fits"
-    tool = DumpTriggersTool(infile=GAMMA_TEST_LARGE, outfile=str(outfile))
+    tool = DumpTriggersTool(infile=PROD5B_PATH, outfile=str(outfile))
 
     assert run_tool(tool, cwd=tmp_path) == 0
 
@@ -193,42 +151,18 @@ def test_dump_instrument(tmp_path):
     sys.argv = ["dump_instrument"]
     tool = DumpInstrumentTool()
 
-    assert run_tool(tool, [f"--input={GAMMA_TEST_LARGE}"], cwd=tmp_path) == 0
+    assert run_tool(tool, [f"--input={PROD5B_PATH}"], cwd=tmp_path) == 0
     assert (tmp_path / "FlashCam.camgeom.fits.gz").exists()
 
     assert (
-        run_tool(tool, [f"--input={GAMMA_TEST_LARGE}", "--format=ecsv"], cwd=tmp_path)
-        == 0
+        run_tool(tool, [f"--input={PROD5B_PATH}", "--format=ecsv"], cwd=tmp_path) == 0
     )
-    assert (tmp_path / "MonteCarloArray.optics.ecsv.txt").exists()
+
+    assert (tmp_path / "MonteCarloArray.optics.ecsv").exists()
 
     assert (
-        run_tool(tool, [f"--input={GAMMA_TEST_LARGE}", "--format=hdf5"], cwd=tmp_path)
-        == 0
+        run_tool(tool, [f"--input={PROD5B_PATH}", "--format=hdf5"], cwd=tmp_path) == 0
     )
     assert (tmp_path / "subarray.h5").exists()
 
     assert run_tool(tool, ["--help-all"], cwd=tmp_path) == 0
-
-
-def test_camdemo(tmp_path):
-    from ctapipe.tools.camdemo import CameraDemo
-
-    sys.argv = ["camera_demo"]
-    tool = CameraDemo()
-    tool.num_events = 10
-    tool.cleanframes = 2
-    tool.display = False
-
-    assert run_tool(tool, cwd=tmp_path) == 0
-    assert run_tool(tool, ["--help-all"]) == 0
-
-
-def test_bokeh_file_viewer(tmp_path):
-    from ctapipe.tools.bokeh.file_viewer import BokehFileViewer
-
-    sys.argv = ["bokeh_file_viewer"]
-    tool = BokehFileViewer(disable_server=True)
-    assert run_tool(tool, cwd=tmp_path) == 0
-    assert tool.reader.input_url == get_dataset_path("gamma_test_large.simtel.gz")
-    assert run_tool(tool, ["--help-all"]) == 0
