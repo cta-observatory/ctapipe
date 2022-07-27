@@ -1207,9 +1207,9 @@ class SchedulingBlockContainer(Container):
         CTA-SPE-COM-000000-0003, Issue 1, Rev. c
     """
 
-    container_prefix = "sb"
-    id = Field(-1, "Scheduling block ID", type=np.int64)
-    type = Field(
+    default_prefix = ""
+    sb_id = Field(-1, "Scheduling block ID", type=np.int64)
+    sb_type = Field(
         SchedulingBlockType.UNKNOWN,
         description="Type of scheduling block",
         type=SchedulingBlockType,
@@ -1227,8 +1227,8 @@ class SchedulingBlockContainer(Container):
 class ObservationBlockContainer(Container):
     """Stores information about the observation"""
 
-    container_prefix = "obs"
-    id = Field(None, "Observation Block ID", type=np.int64)
+    default_prefix = ""
+    obs_id = Field(None, "Observation Block ID", type=np.int64)
     producer_id = Field(
         "unknown",
         "Origin of the obs_id, i.e. name of the telescope site or 'simulation'",
