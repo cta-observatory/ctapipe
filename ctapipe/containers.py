@@ -4,11 +4,10 @@ Container structures for data that should be read or written to disk
 import enum
 from functools import partial
 
-from astropy import units as u
-from astropy.coordinates.sky_coordinate import SkyCoord
-from astropy.time import Time
-from numpy import int64, nan
 import numpy as np
+from astropy import units as u
+from astropy.time import Time
+from numpy import nan
 
 from .core import Container, Field, Map
 
@@ -60,7 +59,6 @@ __all__ = [
     "PeakTimeStatisticsContainer",
     "SchedulingBlockContainer",
     "ObservationBlockContainer",
-    "ObservationConfigurationContainer",
     "ObservingMode",
     "ObservationBlockState",
 ]
@@ -1201,7 +1199,13 @@ class ArrayEventContainer(Container):
 
 class SchedulingBlockContainer(Container):
     """Stores information about the scheduling block. This is a simplified version
-    of the SB model, only storing what is necessary for analysis."""
+    of the SB model, only storing what is necessary for analysis.
+
+    References
+    ----------
+    .. [sb-ob] Oya et al, Scheduling Block Data Model Specification,
+        CTA-SPE-COM-000000-0003, Issue 1, Rev. c
+    """
 
     container_prefix = "sb"
     id = Field(-1, "Scheduling block ID", type=np.int64)
@@ -1261,26 +1265,3 @@ class ObservationBlockContainer(Container):
     scheduled_start_time = Field(NAN_TIME, "expected start time from scheduler")
     actual_start_time = Field(NAN_TIME, "true start time")
     actual_duration = Field(nan * u.min, "true duration", unit=u.min)
-
-
-class ObservationConfigurationContainer(Container):
-    """Observation Configuration, provided by an EventSource. This stores the
-    nominal pointing and target information and durations for both real and
-    simulated data.
-
-    References
-    ----------
-    .. [sb-ob] Oya et al, Scheduling Block Data Model Specification,
-        CTA-SPE-COM-000000-0003, Issue 1, Rev. c
-    """
-
-    scheduling_block = Field(
-        None,
-        "Scheduling block associated to this observation",
-        type=SchedulingBlockContainer,
-    )
-    observation_block = Field(
-        None,
-        "Scheduling block associated to this observation",
-        type=ObservationBlockContainer,
-    )
