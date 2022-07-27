@@ -1,6 +1,7 @@
 import logging
-from pathlib import Path
 from functools import lru_cache
+from pathlib import Path
+from typing import Dict
 
 import astropy.units as u
 import numpy as np
@@ -21,12 +22,13 @@ from ..containers import (
     IntensityStatisticsContainer,
     LeakageContainer,
     MorphologyContainer,
-    ObservationConfigurationContainer,
+    ObservationBlockContainer,
     ParticleClassificationContainer,
     PeakTimeStatisticsContainer,
     R1CameraContainer,
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
+    SchedulingBlockContainer,
     SimulatedEventContainer,
     SimulatedShowerContainer,
     SimulationConfigContainer,
@@ -164,6 +166,10 @@ class HDF5EventSource(EventSource):
         else:
             self._subarray = self._full_subarray
         self._simulation_configs = self._parse_simulation_configs()
+        (
+            self._scheduling_block,
+            self._observation_block,
+        ) = self._parse_sb_and_ob_configs()
         self.datamodel_version = self.file_.root._v_attrs[
             "CTA PRODUCT DATA MODEL VERSION"
         ]
@@ -244,16 +250,20 @@ class HDF5EventSource(EventSource):
         return list(np.unique(self.file_.root.dl1.event.subarray.trigger.col("obs_id")))
 
     @property
-    def simulation_config(self) -> Dict[SimulationConfigContainer]:
+    def scheduling_block(self) -> Dict[int, SchedulingBlockContainer]:
+        return self._scheduling_block
+
+    @property
+    def observation_block(self) -> Dict[int, ObservationBlockContainer]:
+        return self._observation_block
+
+    @property
+    def simulation_config(self) -> Dict[int, SimulationConfigContainer]:
         """
         Returns the simulation config(s) as
         a dict mapping obs_id to the respective config.
         """
         return self._simulation_configs
-
-    @property
-    def observation_config(self) -> Dict[ObservationConfigurationContainer]:
-        raise NotImplementedError()
 
     def __len__(self):
         n_events = len(self.file_.root.dl1.event.subarray.trigger)
@@ -287,6 +297,30 @@ class HDF5EventSource(EventSource):
                 simulation_configs[index.obs_id] = config
 
         return simulation_configs
+
+    def _parse_sb_and_ob_configs(self):
+        """read Observation and Scheduling block configurations"""
+
+        scheduling_blocks = dict()
+        observation_blocks = dict()
+
+        sb_reader = HDF5TableReader(self.file_).read(
+            "/configuration/observation/scheduling_block",
+            containers=SchedulingBlockContainer,
+        )
+
+        for sb in sb_reader:
+            scheduling_blocks[sb.id] = sb
+
+        ob_reader = HDF5TableReader(self.file_).read(
+            "/configuration/observation/observation_block",
+            containers=ObservationBlockContainer,
+        )
+
+        for ob in ob_reader:
+            observation_blocks[ob.id] = sb
+
+        return scheduling_blocks, observation_blocks
 
     def _generator(self):
         """
