@@ -103,7 +103,7 @@ ShowerProcessor:
       # the quality criteria here should again be a list of [name,
       # filter_expression] pairs, filter_expression contains the variable
       # `parameters` which is a `ctapipe.containers.ImageParametersContainer`
-      # for the current event)
+      # for the current event
       quality_criteria:
         - [enough intensity, "parameters.hillas.intensity > 50"]
         - [Positive width, "parameters.hillas.width.value > 0"]
