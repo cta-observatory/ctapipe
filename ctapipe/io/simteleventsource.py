@@ -1,8 +1,8 @@
 import warnings
-from collections import defaultdict
 from gzip import GzipFile
 from io import BufferedReader
 from pathlib import Path
+from typing import Dict
 
 import numpy as np
 from astropy import units as u
@@ -17,11 +17,14 @@ from ..containers import (
     CoordinateFrameType,
     EventIndexContainer,
     EventType,
-    ObservationConfigurationContainer,
+    ObservationBlockContainer,
+    ObservationBlockState,
     ObservingMode,
     PointingContainer,
+    PointingMode,
     R0CameraContainer,
     R1CameraContainer,
+    SchedulingBlockContainer,
     SchedulingBlockType,
     SimulatedCameraContainer,
     SimulatedEventContainer,
@@ -253,6 +256,10 @@ class SimTelEventSource(EventSource):
             self.file_.telescope_descriptions, self.file_.header
         )
         self._simulation_config = self._parse_simulation_header()
+        (
+            self._scheduling_block,
+            self._observation_block,
+        ) = self._fill_scheduling_and_observation_blocks()
         self.start_pos = self.file_.tell()
 
         self.gain_selector = GainSelector.from_name(
@@ -280,12 +287,22 @@ class SimTelEventSource(EventSource):
         return [self.file_.header["run"]]
 
     @property
-    def simulation_config(self) -> Dict[SimulationConfigContainer]:
+    def simulation_config(self) -> Dict[int, SimulationConfigContainer]:
         return self._simulation_config
 
     @property
-    def observation_config(self) -> Dict[ObservationConfigurationContainer]:
-        raise NotImplementedError()
+    def observation_block(self) -> Dict[int, ObservationBlockContainer]:
+        """
+        Obtain the ObservationConfigurations from the EventSource, indexed by obs_id
+        """
+        return self._observation_block
+
+    @property
+    def scheduling_block(self) -> Dict[int, SchedulingBlockContainer]:
+        """
+        Obtain the ObservationConfigurations from the EventSource, indexed by obs_id
+        """
+        return self._scheduling_block
 
     @property
     def is_stream(self):
@@ -688,6 +705,35 @@ class SimTelEventSource(EventSource):
             corsika_high_E_detail=mc_run_head["corsika_high_E_detail"],
         )
         return {obs_id: simulation_config}
+
+    def _fill_scheduling_and_observation_blocks(self):
+        """fill scheduling and observation blocks must be run after the
+        simulation config is filled
+        """
+
+        az, alt = self.file_.header["direction"]
+        obs_id = self.obs_ids[0]
+        ob_dict = {
+            self.obs_ids[0]: ObservationBlockContainer(
+                id=obs_id,
+                producer_id="simulation",
+                state=ObservationBlockState.COMPLETED_SUCCEDED,
+                subarray_pointing_lat=alt,
+                subarray_pointing_lon=az,
+                subarray_pointing_frame=CoordinateFrameType.ALTAZ,
+            )
+        }
+
+        sb_dict = {
+            obs_id: SchedulingBlockContainer(
+                id=obs_id,
+                type=SchedulingBlockType.OBSERVATION,
+                observing_mode=ObservingMode.UNKNOWN,
+                pointing_mode=PointingMode.DRIFT,
+            )
+        }
+
+        return sb_dict, ob_dict
 
     @staticmethod
     def _fill_simulated_event_information(array_event):

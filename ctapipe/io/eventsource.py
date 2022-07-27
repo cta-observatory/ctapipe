@@ -3,17 +3,20 @@ Handles reading of different event/waveform containing files
 """
 import warnings
 from abc import abstractmethod
-from typing import Generator, List, Tuple
+from typing import Dict, Generator, List, Tuple
 
 from traitlets.config.loader import LazyConfigValue
 
-from ..containers import ArrayEventContainer, ObservationConfigurationContainer
+from ..containers import (
+    ArrayEventContainer,
+    ObservationBlockContainer,
+    SchedulingBlockContainer,
+)
 from ..core import Provenance, ToolConfigurationError
 from ..core.component import Component, find_config_in_hierarchy, non_abstract_children
 from ..core.traits import CInt, Int, Path, Set, TraitError, Undefined
 from ..instrument import SubarrayDescription
 from .datalevels import DataLevel
-
 
 __all__ = ["EventSource"]
 
@@ -208,7 +211,15 @@ class EventSource(Component):
 
     @property
     @abstractmethod
-    def observation_config(self) -> Dict[int, ObservationConfigurationContainer]:
+    def observation_block(self) -> Dict[int, ObservationBlockContainer]:
+        """
+        Obtain the ObservationConfigurations from the EventSource, indexed by obs_id
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def scheduling_block(self) -> Dict[int, SchedulingBlockContainer]:
         """
         Obtain the ObservationConfigurations from the EventSource, indexed by obs_id
         """
