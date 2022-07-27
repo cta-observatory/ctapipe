@@ -241,7 +241,10 @@ class CameraGeometry:
 
         # also transform the origin and unit vectors,
         # needed to account for translation, rotation / mirroring, scale
-        points = SkyCoord([0, 1, 0], [0, 0, 1], unit=cam.pix_x.unit, frame=cam.frame)
+        width = cam.pixel_width[0].to_value(cam.pix_x.unit)
+        points = SkyCoord(
+            [0, width, 0], [0, 0, width], unit=cam.pix_x.unit, frame=cam.frame
+        )
         points_trans = points.transform_to(frame)
 
         x_name, y_name = list(cam.frame.get_representation_component_names().keys())
