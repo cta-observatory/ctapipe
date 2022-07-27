@@ -496,6 +496,15 @@ class DataWriter(Component):
             writer.write("dl1/monitoring/subarray/pointing", [event.trigger, pnt])
             self._last_pointing = current_pointing
 
+    def _write_scheduling_and_observation_blocks(self, writer: TableWriter):
+        """write out SB and OB info"""
+
+        for sb in self.event_source.scheduling_block.values():
+            writer.write("configuration/observation/scheduling_block", sb)
+
+        for ob in self.event_source.observation_block.values():
+            writer.write("configuration/observation/observation_block", ob)
+
     def _write_simulation_configuration(self):
         """
         Write the simulation headers to a single row of a table. Later
