@@ -38,6 +38,7 @@ from ..instrument import (
     CameraReadout,
     FocalLengthKind,
     OpticsDescription,
+    ReflectorShape,
     SubarrayDescription,
     TelescopeDescription,
 )
@@ -101,8 +102,13 @@ def _location_from_meta(global_meta):
     )
 
 
-def build_camera(cam_settings, pixel_settings, telescope, frame):
-    pixel_shape = cam_settings["pixel_shape"][0]
+def build_camera(simtel_telescope, telescope, frame):
+    """Create CameraDescription from eventio data structures"""
+    camera_settings = simtel_telescope["camera_settings"]
+    pixel_settings = simtel_telescope["pixel_settings"]
+    camera_organization = simtel_telescope["camera_organization"]
+
+    pixel_shape = camera_settings["pixel_shape"][0]
     try:
         pix_type, pix_rotation = CameraGeometry.simtel_shape_to_type(pixel_shape)
     except ValueError:
@@ -115,13 +121,13 @@ def build_camera(cam_settings, pixel_settings, telescope, frame):
 
     geometry = CameraGeometry(
         telescope.camera_name,
-        pix_id=np.arange(cam_settings["n_pixels"]),
-        pix_x=u.Quantity(cam_settings["pixel_x"], u.m),
-        pix_y=u.Quantity(cam_settings["pixel_y"], u.m),
-        pix_area=u.Quantity(cam_settings["pixel_area"], u.m**2),
+        pix_id=np.arange(camera_settings["n_pixels"]),
+        pix_x=u.Quantity(camera_settings["pixel_x"], u.m),
+        pix_y=u.Quantity(camera_settings["pixel_y"], u.m),
+        pix_area=u.Quantity(camera_settings["pixel_area"], u.m**2),
         pix_type=pix_type,
         pix_rotation=pix_rotation,
-        cam_rotation=-Angle(cam_settings["cam_rot"], u.rad),
+        cam_rotation=-Angle(camera_settings["cam_rot"], u.rad),
         apply_derotation=True,
         frame=frame,
     )
@@ -132,10 +138,15 @@ def build_camera(cam_settings, pixel_settings, telescope, frame):
         reference_pulse_sample_width=u.Quantity(
             pixel_settings["ref_step"], u.ns, dtype="float64"
         ),
+        n_channels=camera_organization["n_gains"],
+        n_pixels=camera_organization["n_pixels"],
+        n_samples=pixel_settings["sum_bins"],
     )
 
     return CameraDescription(
-        camera_name=telescope.camera_name, geometry=geometry, readout=readout
+        name=telescope.camera_name,
+        geometry=geometry,
+        readout=readout,
     )
 
 
@@ -150,10 +161,27 @@ def _telescope_from_meta(telescope_meta, mirror_area):
     telescope_type = type_from_mirror_area(mirror_area)
 
     mirror_class = MirrorClass(int(mirror_class))
+
+    reflector_shape = ReflectorShape.UNKNOWN
+    if mirror_class is MirrorClass.DUAL_MIRROR:
+        reflector_shape = ReflectorShape.SCHWARZSCHILD_COUDER
+    elif mirror_class is MirrorClass.SINGLE_SEGMENTED_MIRROR:
+        if int(telescope_meta.get(b"PARABOLIC_DISH", 0)) == 1:
+            reflector_shape = ReflectorShape.PARABOLIC
+        else:
+            reflector_shape = ReflectorShape.DAVIES_COTTON
+
+            shape_length = float(telescope_meta.get(b"DISH_SHAPE_Length", 0))
+            focal_length = float(telescope_meta.get(b"FOCAL_Length", 0))
+
+            if shape_length != focal_length:
+                reflector_shape = ReflectorShape.HYBRID
+
     n_mirrors = 2 if mirror_class is MirrorClass.DUAL_MIRROR else 1
 
     return GuessingResult(
         type=telescope_type,
+        reflector_shape=reflector_shape,
         name=optics_name.decode("utf-8"),
         camera_name=camera_name.decode("utf-8"),
         n_mirrors=n_mirrors,
@@ -383,7 +411,6 @@ class SimTelEventSource(EventSource):
 
         for tel_id, telescope_description in telescope_descriptions.items():
             cam_settings = telescope_description["camera_settings"]
-            pixel_settings = telescope_description["pixel_settings"]
 
             n_pixels = cam_settings["n_pixels"]
             mirror_area = u.Quantity(cam_settings["mirror_area"], u.m**2)
@@ -419,6 +446,8 @@ class SimTelEventSource(EventSource):
 
             optics = OpticsDescription(
                 name=telescope.name,
+                size_type=telescope.type,
+                reflector_shape=telescope.reflector_shape,
                 num_mirrors=telescope.n_mirrors,
                 equivalent_focal_length=equivalent_focal_length,
                 effective_focal_length=effective_focal_length,
@@ -443,15 +472,13 @@ class SimTelEventSource(EventSource):
                 )
 
             camera = build_camera(
-                cam_settings,
-                pixel_settings,
+                telescope_description,
                 telescope,
                 frame=CameraFrame(focal_length=focal_length),
             )
 
             tel_descriptions[tel_id] = TelescopeDescription(
                 name=telescope.name,
-                tel_type=telescope.type,
                 optics=optics,
                 camera=camera,
             )

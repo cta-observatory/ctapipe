@@ -54,7 +54,13 @@ DATA_MODEL_CHANGE_HISTORY = """
             and true parameters.
           - Telescope Impact Parameters were added.
           - Effective focal length and nominal focal length are both included
-            in the optics description now.
+            in the optics description now. Moved `TelescopeDescription.type`
+            to `OpticsDescription.size_type`. Added `OpticsDescription.reflector_shape`.
+          - n_samples, n_samples_long, n_channels and n_pixels are now part
+            of CameraReadout.
+          - The reference_location (EarthLocation origin of the telescope coordinates)
+            is now included in SubarrayDescription
+          - Only unique optics are stored in the optics table
 - v3.0.0: reconstructed core uncertainties splitted in their X-Y components
 - v2.2.0: added R0 and R1 outputs
 - v2.1.0: hillas and timing parameters are per default saved in telescope frame (degree) as opposed to camera frame (m)

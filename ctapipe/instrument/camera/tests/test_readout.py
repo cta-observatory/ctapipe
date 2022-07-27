@@ -1,4 +1,6 @@
 """ Tests for CameraGeometry """
+from itertools import combinations
+
 import numpy as np
 import pytest
 from astropy import units as u
@@ -8,34 +10,46 @@ from ctapipe.instrument import CameraReadout
 
 def test_construct():
     """Check we can make a CameraReadout from scratch"""
-    camera_name = "Unknown"
+    name = "Unknown"
     sampling_rate = u.Quantity(2, u.GHz)
     reference_pulse_shape = np.ones((2, 20)).astype(np.float64)
     reference_pulse_sample_width = u.Quantity(0.5, u.ns)
     readout = CameraReadout(
-        camera_name=camera_name,
+        name=name,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
         reference_pulse_sample_width=reference_pulse_sample_width,
+        n_pixels=1000,
+        n_channels=2,
+        n_samples=40,
+        n_samples_long=80,
     )
 
-    assert readout.camera_name == camera_name
+    assert readout.name == name
     assert readout.sampling_rate == sampling_rate
     assert (readout.reference_pulse_shape == reference_pulse_shape).all()
     assert readout.reference_pulse_sample_width == reference_pulse_sample_width
+    assert readout.n_pixels == 1000
+    assert readout.n_channels == 2
+    assert readout.n_samples == 40
+    assert readout.n_samples_long == 80
 
 
 @pytest.fixture(scope="module")
 def readout():
-    camera_name = "Unknown"
+    name = "Unknown"
     sampling_rate = u.Quantity(2, u.GHz)
     reference_pulse_shape = np.ones((2, 20)).astype(np.float64)
     reference_pulse_sample_width = u.Quantity(0.5, u.ns)
     return CameraReadout(
-        camera_name=camera_name,
+        name=name,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
         reference_pulse_sample_width=reference_pulse_sample_width,
+        n_pixels=1000,
+        n_channels=2,
+        n_samples=40,
+        n_samples_long=80,
     )
 
 
@@ -49,7 +63,7 @@ def test_to_and_from_table(readout):
     tab = readout.to_table()
     readout2 = readout.from_table(tab)
 
-    assert readout.camera_name == readout2.camera_name
+    assert readout.name == readout2.name
     assert readout.sampling_rate == readout2.sampling_rate
     assert np.array_equal(readout.reference_pulse_shape, readout2.reference_pulse_shape)
     assert readout.reference_pulse_sample_width == readout2.reference_pulse_sample_width
@@ -62,7 +76,7 @@ def test_write_read(tmpdir, readout):
     readout.to_table().write(filename, overwrite=True)
     readout2 = readout.from_table(filename)
 
-    assert readout.camera_name == readout2.camera_name
+    assert readout.name == readout2.name
     assert readout.sampling_rate == readout2.sampling_rate
     assert np.array_equal(readout.reference_pulse_shape, readout2.reference_pulse_shape)
     assert readout.reference_pulse_sample_width == readout2.reference_pulse_sample_width
@@ -70,36 +84,52 @@ def test_write_read(tmpdir, readout):
 
 def test_equals():
     """check we can use the == operator"""
-    camera_name = "Unknown"
+    name = "Unknown"
     sampling_rate = u.Quantity(2, u.GHz)
     reference_pulse_shape = np.ones((2, 20)).astype(np.float64)
     reference_pulse_sample_width = u.Quantity(0.5, u.ns)
     readout1 = CameraReadout(
-        camera_name=camera_name,
+        name=name,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
         reference_pulse_sample_width=reference_pulse_sample_width,
+        n_pixels=1000,
+        n_channels=2,
+        n_samples=40,
+        n_samples_long=80,
     )
 
     readout2 = CameraReadout(
-        camera_name=camera_name,
+        name=name,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
         reference_pulse_sample_width=reference_pulse_sample_width,
+        n_pixels=1000,
+        n_channels=2,
+        n_samples=40,
+        n_samples_long=80,
     )
 
     readout3 = CameraReadout(
-        camera_name=4,
+        name=4,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
         reference_pulse_sample_width=reference_pulse_sample_width,
+        n_pixels=1000,
+        n_channels=2,
+        n_samples=40,
+        n_samples_long=80,
     )
 
     readout4 = CameraReadout(
-        camera_name=camera_name,
+        name=name,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
         reference_pulse_sample_width=u.Quantity(1, u.ns),
+        n_pixels=1000,
+        n_channels=2,
+        n_samples=40,
+        n_samples_long=80,
     )
 
     assert readout1 is not readout2
@@ -113,41 +143,81 @@ def test_equals():
 
 def test_hashing():
     """ " check that hashes are correctly computed"""
-    camera_name = "Unknown"
+    name = "Unknown"
     sampling_rate = u.Quantity(2, u.GHz)
     reference_pulse_shape = np.ones((2, 20)).astype(np.float64)
     reference_pulse_sample_width = u.Quantity(0.5, u.ns)
     readout1 = CameraReadout(
-        camera_name=camera_name,
+        name=name,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
         reference_pulse_sample_width=reference_pulse_sample_width,
+        n_pixels=1000,
+        n_channels=2,
+        n_samples=40,
+        n_samples_long=80,
     )
 
     readout2 = CameraReadout(
-        camera_name=camera_name,
+        name=name,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
         reference_pulse_sample_width=reference_pulse_sample_width,
+        n_pixels=1000,
+        n_channels=2,
+        n_samples=40,
+        n_samples_long=80,
     )
 
     readout3 = CameraReadout(
-        camera_name=4,
+        name=4,
         sampling_rate=sampling_rate,
         reference_pulse_shape=reference_pulse_shape,
         reference_pulse_sample_width=reference_pulse_sample_width,
+        n_pixels=1000,
+        n_channels=2,
+        n_samples=40,
+        n_samples_long=80,
     )
 
     assert len({readout1, readout2, readout3}) == 2
 
 
-def test_camera_from_name(camera_geometry):
+@pytest.mark.parametrize("name", ["LSTCam", "FlashCam", "NectarCam", "CHEC"])
+def test_camera_from_name(name, svc_path):
     """check we can construct all cameras from name"""
+    camera = CameraReadout.from_name(name)
+    assert str(camera) == name
 
-    try:
-        camera = CameraReadout.from_name(camera_geometry.camera_name)
-        assert str(camera) == camera_geometry.camera_name
-    except FileNotFoundError:
-        # Most non-cta cameras don't have readout provided on the data server
-        if camera_geometry.camera_name in ["LSTCam", "NectarCam", "FlashCam", "CHEC"]:
-            raise
+
+def test_eq(example_subarray):
+    """Test telescopes compare equal / non-equal as expected in example subarray"""
+    for tel1, tel2 in combinations(example_subarray.tel.values(), 2):
+        if tel1.camera_name == tel2.camera_name:
+            assert tel1.camera.readout == tel2.camera.readout
+        else:
+            assert tel1.camera.readout != tel2.camera.readout
+
+
+def test_hash(example_subarray):
+    """Test telescope hashes are equal / non-equal as expected in example subarray"""
+    for tel1, tel2 in combinations(example_subarray.tel.values(), 2):
+        if tel1.camera_name == tel2.camera_name:
+            assert hash(tel1.camera.readout) == hash(tel2.camera.readout)
+        else:
+            assert hash(tel1.camera.readout) != hash(tel2.camera.readout)
+
+
+def test_table_roundtrip(prod5_lst):
+    """Test we can roundtrip using from_table / to_table"""
+    from ctapipe.instrument import CameraReadout
+
+    camera_in = prod5_lst.camera.readout
+
+    table = camera_in.to_table()
+    assert table.meta["TAB_VER"] == CameraReadout.CURRENT_TAB_VERSION
+    assert table.meta["TAB_TYPE"] == "ctapipe.instrument.CameraReadout"
+    camera_out = CameraReadout.from_table(table)
+
+    assert camera_in == camera_out
+    assert hash(camera_in) == hash(camera_out)
