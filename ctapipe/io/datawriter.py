@@ -268,9 +268,9 @@ class DataWriter(Component):
 
     def _setup_outputfile(self):
         self._subarray.to_hdf(self._writer.h5file)
+        self._write_scheduling_and_observation_blocks()
         if self._is_simulation:
             self._write_simulation_configuration()
-        self._write_scheduling_and_observation_blocks
 
     def __enter__(self):
         return self
@@ -497,14 +497,20 @@ class DataWriter(Component):
             writer.write("dl1/monitoring/subarray/pointing", [event.trigger, pnt])
             self._last_pointing = current_pointing
 
-    def _write_scheduling_and_observation_blocks(self, writer: TableWriter):
+    def _write_scheduling_and_observation_blocks(self):
         """write out SB and OB info"""
 
+        self.log.debug(
+            "writing %d sbs and %d obs",
+            len(self.event_source.scheduling_block.values()),
+            len(self.event_source.observation_block.values()),
+        )
+
         for sb in self.event_source.scheduling_block.values():
-            writer.write("configuration/observation/scheduling_block", sb)
+            self._writer.write("configuration/observation/scheduling_block", sb)
 
         for ob in self.event_source.observation_block.values():
-            writer.write("configuration/observation/observation_block", ob)
+            self._writer.write("configuration/observation/observation_block", ob)
 
     def _write_simulation_configuration(self):
         """
