@@ -287,38 +287,30 @@ class HDF5EventSource(EventSource):
             default_prefix = ""
             obs_id = Field(-1)
 
-        simulation_configs = {}
         if "simulation" in self.file_.root.configuration:
             reader = HDF5TableReader(self.file_).read(
                 "/configuration/simulation/run",
                 containers=(SimulationConfigContainer, ObsIdContainer),
             )
-            for (config, index) in reader:
-                simulation_configs[index.obs_id] = config
-
-        return simulation_configs
+            return {index.obs_id: config for (config, index) in reader}
+        else:
+            return {}
 
     def _parse_sb_and_ob_configs(self):
         """read Observation and Scheduling block configurations"""
-
-        scheduling_blocks = dict()
-        observation_blocks = dict()
 
         sb_reader = HDF5TableReader(self.file_).read(
             "/configuration/observation/scheduling_block",
             containers=SchedulingBlockContainer,
         )
 
-        for sb in sb_reader:
-            scheduling_blocks[sb.id] = sb
+        scheduling_blocks = {sb: sb.sb_id for sb in sb_reader}
 
         ob_reader = HDF5TableReader(self.file_).read(
             "/configuration/observation/observation_block",
             containers=ObservationBlockContainer,
         )
-
-        for ob in ob_reader:
-            observation_blocks[ob.id] = sb
+        observation_blocks = {ob.obs_id: ob for ob in ob_reader}
 
         return scheduling_blocks, observation_blocks
 

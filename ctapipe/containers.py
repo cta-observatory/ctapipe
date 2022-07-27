@@ -1233,6 +1233,7 @@ class ObservationBlockContainer(Container):
         "unknown",
         "Origin of the obs_id, i.e. name of the telescope site or 'simulation'",
     )
+
     state = Field(
         ObservationBlockState.UNKNOWN, "State of this OB", type=ObservationBlockState
     )

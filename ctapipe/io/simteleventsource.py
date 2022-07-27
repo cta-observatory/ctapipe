@@ -713,8 +713,9 @@ class SimTelEventSource(EventSource):
 
         az, alt = self.file_.header["direction"]
         obs_id = self.obs_ids[0]
+
         ob_dict = {
-            self.obs_ids[0]: ObservationBlockContainer(
+            obs_id: ObservationBlockContainer(
                 obs_id=np.int64(obs_id),
                 producer_id="simulation",
                 state=ObservationBlockState.COMPLETED_SUCCEDED,
