@@ -7,6 +7,8 @@ from typing import Generator, List, Tuple
 
 from traitlets.config.loader import LazyConfigValue
 
+from ctapipe.atmosphere import AtmosphereDensityProfile
+
 from ..containers import ArrayEventContainer
 from ..core import Provenance, ToolConfigurationError
 from ..core.component import Component, find_config_in_hierarchy, non_abstract_children
@@ -250,6 +252,18 @@ class EventSource(Component):
         -------
         list[int]
         """
+
+    @property
+    def atmosphere_density_profiles(self) -> Tuple[AtmosphereDensityProfile]:
+        """List of atmosphere density profiles that can be integrated to
+        convert between h_max and X_max.
+
+        Returns
+        -------
+        list[AtmosphereDensityProfile]:
+           list of profiles to be used
+        """
+        return ()
 
     @abstractmethod
     def _generator(self) -> Generator[ArrayEventContainer, None, None]:

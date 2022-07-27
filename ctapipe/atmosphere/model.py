@@ -17,13 +17,10 @@ from astropy import units as u
 from astropy.table import Table
 from scipy.interpolate import interp1d
 
-from ..core import Provenance
-
 __all__ = [
     "AtmosphereDensityProfile",
     "ExponentialAtmosphereDensityProfile",
     "TableAtmosphereDensityProfile",
-    "read_simtel_profile",
 ]
 
 
@@ -186,22 +183,6 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
             table["height"].to("km"), table["column_density"].to("g cm-2")
         )
 
-    @classmethod
-    def from_simtel(
-        cls, simtel_filename: str, profile_number: int = 0
-    ) -> AtmosphereDensityProfile:
-        """Construct a TableAtmosphereDensityProfile from a simtel file
-        containing a set of atmosphere profiles.
-
-        Parameters
-        ----------
-        simtel_filename: str
-            filename of a SimTelArray data file
-        profile_number: int
-            index of profile in the file if there are more than one
-        """
-        return cls(table=read_simtel_profile(simtel_filename)[profile_number])
-
     @u.quantity_input
     def __call__(self, h: u.m) -> u.Quantity:
         return u.Quantity(self._density_interp(h.to_value(u.km)), u.g / u.cm**3)
@@ -214,59 +195,3 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
         return (
             f"{self.__class__.__name__}(meta={self.table.meta}, rows={len(self.table)})"
         )
-
-
-class AtmosphereProfileNotFoundError(RuntimeError):
-    pass
-
-
-def read_simtel_profile(simtelfile: str) -> Table:
-    """
-    Read an atmosphere profile from a SimTelArray file as an astropy Table
-
-    Parameters
-    ----------
-    simtelfile: str
-        filename of a SimTelArray file containing an atmosphere profile
-
-    Returns
-    -------
-    list[Table]:
-        list of tables with columns `height`, `density`, and `column_density`
-        along with associated metadata
-
-    Raises
-    ------
-    AtmosphereProfileNotFoundError:
-        if no atmosphere profile is found in the SimTelArray file
-    """
-    import eventio
-
-    tables = []
-    with eventio.SimTelFile(simtelfile) as simtel:
-        Provenance().add_input_file(
-            filename=simtelfile, role="ctapipe.atmosphere.model"
-        )
-
-        if (
-            not hasattr(simtel, "atmospheric_profiles")
-            or len(simtel.atmospheric_profiles) == 0
-        ):
-            raise AtmosphereProfileNotFoundError(simtelfile)
-
-        for atmo in simtel.atmospheric_profiles:
-            table = Table(
-                dict(
-                    height=atmo["altitude_km"] * u.km,
-                    density=atmo["rho"] * u.g / u.cm**3,
-                    column_density=atmo["thickness"] * u.g / u.cm**2,
-                ),
-                meta=dict(
-                    obs_level=atmo["obslevel"] * u.cm,
-                    atmo_id=atmo["id"],
-                    atmo_name=atmo["name"],
-                    htoa=atmo["htoa"],  # what is this?,
-                ),
-            )
-            tables.append(table)
-    return tables

@@ -13,7 +13,11 @@ from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 from ctapipe.instrument.camera.geometry import UnknownPixelShapeWarning
 from ctapipe.instrument.optics import ReflectorShape
 from ctapipe.io import DataLevel
-from ctapipe.io.simteleventsource import SimTelEventSource, apply_simtel_r1_calibration
+from ctapipe.io.simteleventsource import (
+    SimTelEventSource,
+    apply_simtel_r1_calibration,
+    read_atmosphere_profile_from_simtel,
+)
 from ctapipe.utils import get_dataset_path
 
 gamma_test_large_path = get_dataset_path("gamma_test_large.simtel.gz")
@@ -515,3 +519,18 @@ def test_simtel_no_metadata(monkeypatch):
 
         assert all([t.camera.name.startswith("UNKNOWN") for t in subarray.tel.values()])
         assert all([t.optics.name.startswith("UNKNOWN") for t in subarray.tel.values()])
+
+
+def test_load_atmosphere_from_simtel(prod5_gamma_simtel_path):
+
+    tables = read_atmosphere_profile_from_simtel(prod5_gamma_simtel_path)
+
+    for table in tables:
+        assert "height" in table.colnames
+        assert "density" in table.colnames
+        assert "column_density" in table.colnames
+
+    # old simtel files don't have the profile in them, so a null list should be returned
+    simtel_path_old = get_dataset_path("gamma_test_large.simtel.gz")
+    tables = read_atmosphere_profile_from_simtel(simtel_path_old)
+    assert len(tables) == 0

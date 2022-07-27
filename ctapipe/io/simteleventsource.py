@@ -1,16 +1,20 @@
 import enum
 import warnings
+from contextlib import nullcontext
 from gzip import GzipFile
 from io import BufferedReader
 from pathlib import Path
+from typing import List, Tuple, Union
 
 import numpy as np
 from astropy import units as u
 from astropy.coordinates import Angle, EarthLocation
+from astropy.table import Table
 from astropy.time import Time
 from eventio.file_types import is_eventio
 from eventio.simtel.simtelfile import SimTelFile
 
+from ..atmosphere import AtmosphereDensityProfile, TableAtmosphereDensityProfile
 from ..calib.camera.gainselection import GainSelector
 from ..containers import (
     ArrayEventContainer,
@@ -31,6 +35,7 @@ from ..containers import (
 )
 from ..coordinates import CameraFrame
 from ..core import Map
+from ..core.provenance import Provenance
 from ..core.traits import Bool, Float, Undefined, UseEnum, create_class_enum_trait
 from ..instrument import (
     CameraDescription,
@@ -53,7 +58,7 @@ from ..reco.impact_distance import shower_impact_distance
 from .datalevels import DataLevel
 from .eventsource import EventSource
 
-__all__ = ["SimTelEventSource"]
+__all__ = ["SimTelEventSource", "read_atmosphere_profile_from_simtel"]
 
 # Mapping of SimTelArray Calibration trigger types to EventType:
 # from simtelarray: type Dark (0), pedestal (1), in-lid LED (2) or laser/LED (3+) data.
@@ -245,6 +250,62 @@ def apply_simtel_r1_calibration(
     return r1_waveforms, selected_gain_channel
 
 
+def read_atmosphere_profile_from_simtel(
+    simtelfile: Union[str, SimTelFile]
+) -> List[TableAtmosphereDensityProfile]:
+    """Read an atmosphere profile from a SimTelArray file as an astropy Table
+
+    Parameters
+    ----------
+    simtelfile: str | eventio.SimTelFile
+        filename of a SimTelArray file containing an atmosphere profile
+
+    Returns
+    -------
+    list[Table]:
+        list of tables with columns `height`, `density`, and `column_density`
+        along with associated metadata. An empty list is returned if the input
+        file has no atmosphere profiles in it.
+    """
+
+    profiles = []
+
+    if isinstance(simtelfile, str):
+        context_manager = SimTelFile(simtelfile)
+        Provenance().add_input_file(
+            filename=simtelfile, role="ctapipe.atmosphere.model"
+        )
+
+    else:
+        context_manager = nullcontext(simtelfile)
+
+    with context_manager as simtel:
+
+        if (
+            not hasattr(simtel, "atmospheric_profiles")
+            or len(simtel.atmospheric_profiles) == 0
+        ):
+            return []
+
+        for atmo in simtel.atmospheric_profiles:
+            table = Table(
+                dict(
+                    height=atmo["altitude_km"] * u.km,
+                    density=atmo["rho"] * u.g / u.cm**3,
+                    column_density=atmo["thickness"] * u.g / u.cm**2,
+                ),
+                meta=dict(
+                    obs_level=atmo["obslevel"] * u.cm,
+                    atmo_id=atmo["id"],
+                    atmo_name=atmo["name"],
+                    htoa=atmo["htoa"],  # what is this?,
+                ),
+            )
+            profiles.append(TableAtmosphereDensityProfile(table=table))
+
+    return profiles
+
+
 class SimTelEventSource(EventSource):
     """
     Read events from a SimTelArray data file (in EventIO format).
@@ -357,6 +418,11 @@ class SimTelEventSource(EventSource):
         self.gain_selector = GainSelector.from_name(
             self.gain_selector_type, parent=self
         )
+
+        self._atmosphere_density_profiles = tuple(
+            read_atmosphere_profile_from_simtel(self.file_)
+        )
+
         self.log.debug(f"Using gain selector {self.gain_selector}")
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -377,6 +443,10 @@ class SimTelEventSource(EventSource):
     def obs_ids(self):
         # ToDo: This does not support merged simtel files!
         return [self.file_.header["run"]]
+
+    @property
+    def atmosphere_density_profiles(self) -> Tuple[AtmosphereDensityProfile]:
+        return self._atmosphere_density_profiles
 
     @property
     def simulation_config(self) -> SimulationConfigContainer:

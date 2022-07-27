@@ -10,12 +10,17 @@ SIMTEL_PATH = get_dataset_path(
 )
 
 
+def get_model_from_simtel():
+    """get a TableAtmosphereDensityModel from a simtel file"""
+    from ctapipe.io import EventSource
+
+    with EventSource(SIMTEL_PATH) as source:
+        return source.atmosphere_density_profiles[0]
+
+
 @pytest.mark.parametrize(
     "density_model",
-    [
-        model.ExponentialAtmosphereDensityProfile(),
-        model.TableAtmosphereDensityProfile.from_simtel(SIMTEL_PATH),
-    ],
+    [model.ExponentialAtmosphereDensityProfile(), get_model_from_simtel()],
 )
 def test_models(density_model):
     """check that a set of model classes work"""
@@ -43,22 +48,3 @@ def test_exponential_model():
     )
     assert np.isclose(density_model(1_000_000 * u.km), 0 * u.g / u.cm**3)
     assert np.isclose(density_model(0 * u.km), density_model.rho0)
-
-
-def test_load_atmosphere_from_simtel(prod5_gamma_simtel_path):
-    from ctapipe.atmosphere.model import (
-        AtmosphereProfileNotFoundError,
-        read_simtel_profile,
-    )
-
-    tables = read_simtel_profile(prod5_gamma_simtel_path)
-
-    for table in tables:
-        assert "height" in table.colnames
-        assert "density" in table.colnames
-        assert "column_density" in table.colnames
-
-    with pytest.raises(AtmosphereProfileNotFoundError):
-        # old simtel files don't have the profile in them
-        simtel_path_old = get_dataset_path("gamma_test_large.simtel.gz")
-        read_simtel_profile(simtel_path_old)
