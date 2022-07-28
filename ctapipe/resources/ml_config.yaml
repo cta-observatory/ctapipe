@@ -29,7 +29,7 @@ TrainEnergyRegressor:
         - leakage_pixels_width_2
         - concentration_cog
         - concentration_core
-        - morphology_num_pixels
+        - morphology_n_pixels
         - mirror_area
         - HillasReconstructor_average_intensity
         - HillasReconstructor_h_max
@@ -40,7 +40,7 @@ TrainEnergyRegressor:
         - ["HillasValid", "HillasReconstructor_is_valid"]
         - ["enough intensity", "hillas_intensity > 50"]
         - ["Positive width", "hillas_width > 0"]
-        - ["enough pixels", "morphology_num_pixels > 3"]
+        - ["enough pixels", "morphology_n_pixels > 3"]
         - ["not clipped", "leakage_intensity_width_2 < 0.5"]
 
     FeatureGenerator:
@@ -72,7 +72,7 @@ TrainParticleIdClassifier:
         - leakage_pixels_width_2
         - concentration_cog
         - concentration_core
-        - morphology_num_pixels
+        - morphology_n_pixels
         - mirror_area
         - HillasReconstructor_average_intensity
         - HillasReconstructor_h_max
@@ -83,7 +83,7 @@ TrainParticleIdClassifier:
         - ["HillasValid", "HillasReconstructor_is_valid"]
         - ["enough intensity", "hillas_intensity > 50"]
         - ["Positive width", "hillas_width > 0"]
-        - ["enough pixels", "morphology_num_pixels > 3"]
+        - ["enough pixels", "morphology_n_pixels > 3"]
         - ["not clipped", "leakage_intensity_width_2 < 0.5"]
 
     FeatureGenerator:
