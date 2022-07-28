@@ -1,23 +1,19 @@
 from abc import abstractmethod
-from astropy.utils.decorators import lazyproperty
 
 import astropy.units as u
+import joblib
 import numpy as np
 from astropy.table import Table
+from astropy.utils.decorators import lazyproperty
 from traitlets import Instance
-from ctapipe.core.provenance import Provenance
-
-from ctapipe.core.qualityquery import QualityQuery
-import joblib
 
 from ..containers import (
     ArrayEventContainer,
     ParticleClassificationContainer,
     ReconstructedEnergyContainer,
 )
-from ..core import Component
-from .sklearn import Classifier, Regressor, Model
-
+from ..core import Component, FeatureGenerator, Provenance, QualityQuery
+from .sklearn import Classifier, Model, Regressor
 
 __all__ = [
     "Reconstructor",
@@ -39,6 +35,8 @@ class Reconstructor(Component):
         super().__init__(*args, **kwargs)
         self.subarray = subarray
         self.qualityquery = QualityQuery(parent=self)
+        self.generate_features = FeatureGenerator(parent=self)
+
         if self.model is None:
             self.model = self.model_cls(parent=self, target=self.target)
 
@@ -163,13 +161,14 @@ class EnergyRegressor(RegressionReconstructor):
         Apply the quality query and model and fill the corresponding container
         """
         for tel_id in event.trigger.tels_with_trigger:
-            features = self._collect_features(event, tel_id)
-            query = self.qualityquery.get_table_mask(features)
+            table = self._collect_features(event, tel_id)
+            table = self.generate_features(table)
+            mask = self.qualityquery.get_table_mask(table)
 
-            if query[0]:
+            if mask[0]:
                 prediction, valid = self.model.predict(
                     self.subarray.tel[tel_id],
-                    features,
+                    table,
                 )
                 container = ReconstructedEnergyContainer(
                     energy=prediction[0],
@@ -184,6 +183,8 @@ class EnergyRegressor(RegressionReconstructor):
 
     def predict(self, key, table: Table) -> Table:
         """Predict on a table of events"""
+        table = self.generate_features(table)
+
         n_rows = len(table)
         energy = u.Quantity(np.full(n_rows, np.nan), self.model.unit, copy=False)
         is_valid = np.full(n_rows, False)
@@ -214,13 +215,14 @@ class ParticleIdClassifier(ClassificationReconstructor):
 
     def __call__(self, event: ArrayEventContainer) -> None:
         for tel_id in event.trigger.tels_with_trigger:
-            features = self._collect_features(event, tel_id)
-            query = self.qualityquery.get_table_mask(features)
+            table = self._collect_features(event, tel_id)
+            table = self.generate_features(table)
+            mask = self.qualityquery.get_table_mask(table)
 
-            if query[0]:
+            if mask[0]:
                 prediction, valid = self.model.predict_score(
                     self.subarray.tel[tel_id],
-                    features,
+                    table,
                 )
 
                 container = ParticleClassificationContainer(
@@ -236,6 +238,8 @@ class ParticleIdClassifier(ClassificationReconstructor):
 
     def predict(self, key, table: Table) -> Table:
         """Predict on a table of events"""
+        table = self.generate_features(table)
+
         n_rows = len(table)
         score = np.full(n_rows, np.nan)
         is_valid = np.full(n_rows, False)
