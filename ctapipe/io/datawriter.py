@@ -40,14 +40,15 @@ def _get_tel_index(event, tel_id):
     )
 
 
-# define the version of the DL1 data model written here. This should be updated
+# define the version of the data model written here. This should be updated
 # when necessary:
 # - increase the major number if there is a breaking change to the model
 #   (meaning readers need to update scripts)
 # - increase the minor number if new columns or datasets are added
 # - increase the patch number if there is a small bugfix to the model.
-DATA_MODEL_VERSION = "v4.0.0"
+DATA_MODEL_VERSION = "v4.1.0"
 DATA_MODEL_CHANGE_HISTORY = """
+- v4.1.0: - Include Observation Configuration in output
 - v4.0.0: - Changed how ctapipe-specific metadata is stored in hdf5 attributes.
             This breaks backwards and forwards compatibility for almost everything.
           - Container prefixes are now included for reconstruction algorithms
@@ -137,7 +138,7 @@ def write_reference_metadata_headers(
 
 class DataWriter(Component):
     """
-    Serialize a sequence of events into a HDF5 DL1 file, in the correct format
+    Serialize a sequence of events into a HDF5 file, in the correct format
 
     Examples
     --------
@@ -322,7 +323,7 @@ class DataWriter(Component):
 
     def finish(self):
         """called after all events are done"""
-        self.log.info("Finishing DL1 output")
+        self.log.info("Finishing output")
         if not self._at_least_one_event:
             self.log.warning("No events have been written to the output file")
         if self._writer:
