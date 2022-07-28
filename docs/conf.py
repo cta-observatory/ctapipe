@@ -83,6 +83,7 @@ def setup(app):
         "Long",
         "Set",
         "TraitError",
+        "Tuple",
         "Unicode",
         "UseEnum",
     ]

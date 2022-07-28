@@ -14,7 +14,7 @@ def test_construct():
     x = np.linspace(-10, 10, 100)
     y = np.linspace(-10, 10, 100)
     geom = CameraGeometry(
-        camera_name="Unknown",
+        name="Unknown",
         pix_id=np.arange(100),
         pix_x=x * u.m,
         pix_y=y * u.m,
@@ -24,14 +24,14 @@ def test_construct():
         cam_rotation="12d",
     )
 
-    assert geom.camera_name == "Unknown"
+    assert geom.name == "Unknown"
     assert geom.pix_area is not None
     assert (geom.pix_rotation.deg - 10) < 1e-5
     assert (geom.cam_rotation.deg - 10) < 1e-5
 
     with pytest.raises(TypeError):
         geom = CameraGeometry(
-            camera_name="Unknown",
+            name="Unknown",
             pix_id=np.arange(100),
             pix_x=x * u.m,
             pix_y=y * u.m,
@@ -43,7 +43,7 @@ def test_construct():
 
     # test from string:
     geom = CameraGeometry(
-        camera_name="Unknown",
+        name="Unknown",
         pix_id=np.arange(100),
         pix_x=x * u.m,
         pix_y=y * u.m,
@@ -114,7 +114,7 @@ def test_neighbor_pixels(camera_geometry):
 
     # whipple has inhomogenious pixels that mess with pixel neighborhood
     # calculation
-    if not geom.camera_name.startswith("Whipple"):
+    if not geom.name.startswith("Whipple"):
         assert np.all(geom.neighbor_matrix == geom.neighbor_matrix.T)
         assert n_neighbors.count(1) == 0  # no pixel should have a single neighbor
 
@@ -124,7 +124,7 @@ def test_calc_pixel_neighbors_square():
     x, y = np.meshgrid(np.arange(20), np.arange(20))
 
     cam = CameraGeometry(
-        camera_name="test",
+        name="test",
         pix_id=np.arange(400),
         pix_type="rectangular",
         pix_x=u.Quantity(x.ravel(), u.cm),
@@ -144,7 +144,7 @@ def test_calc_pixel_neighbors_square_diagonal():
     x, y = np.meshgrid(np.arange(20), np.arange(20))
 
     cam = CameraGeometry(
-        camera_name="test",
+        name="test",
         pix_id=np.arange(400),
         pix_type="rectangular",
         pix_x=u.Quantity(x.ravel(), u.cm),
@@ -162,7 +162,7 @@ def test_to_and_from_table(prod5_lst):
     tab = prod5_lst_cam.to_table()
     prod5_lst_cam2 = prod5_lst_cam.from_table(tab)
 
-    assert prod5_lst_cam.camera_name == prod5_lst_cam2.camera_name
+    assert prod5_lst_cam.name == prod5_lst_cam2.name
     assert (prod5_lst_cam.pix_x == prod5_lst_cam2.pix_x).all()
     assert (prod5_lst_cam.pix_y == prod5_lst_cam2.pix_y).all()
     assert (prod5_lst_cam.pix_area == prod5_lst_cam2.pix_area).all()
@@ -177,7 +177,7 @@ def test_write_read(tmpdir, prod5_lst):
     prod5_lst_cam.to_table().write(filename, overwrite=True)
     prod5_lst_cam2 = prod5_lst_cam.from_table(filename)
 
-    assert prod5_lst_cam.camera_name == prod5_lst_cam2.camera_name
+    assert prod5_lst_cam.name == prod5_lst_cam2.name
     assert (prod5_lst_cam.pix_x == prod5_lst_cam2.pix_x).all()
     assert (prod5_lst_cam.pix_y == prod5_lst_cam2.pix_y).all()
     assert (prod5_lst_cam.pix_area == prod5_lst_cam2.pix_area).all()
@@ -190,7 +190,7 @@ def test_precal_neighbors():
     overwritten by automatic ones
     """
     geom = CameraGeometry(
-        camera_name="TestCam",
+        name="TestCam",
         pix_id=np.arange(3),
         pix_x=np.arange(3) * u.deg,
         pix_y=np.arange(3) * u.deg,
@@ -239,7 +239,7 @@ def test_rectangle_patch_neighbors():
     pix_x = np.array([-1.1, 0.1, 0.9, -1, 0, 1, -0.9, -0.1, 1.1]) * u.m
     pix_y = np.array([1.1, 1, 0.9, -0.1, 0, 0.1, -0.9, -1, -1.1]) * u.m
     cam = CameraGeometry(
-        camera_name="testcam",
+        name="testcam",
         pix_id=np.arange(pix_x.size),
         pix_x=pix_x,
         pix_y=pix_y,
@@ -290,8 +290,8 @@ def test_hashing(prod5_lst, prod5_mst_nectarcam):
 
 def test_camera_from_name(camera_geometry):
     """check we can construct all cameras from name"""
-    camera = CameraGeometry.from_name(camera_geometry.camera_name)
-    assert str(camera) == camera_geometry.camera_name
+    camera = CameraGeometry.from_name(camera_geometry.name)
+    assert str(camera) == camera_geometry.name
 
 
 def test_camera_coordinate_transform(camera_geometry):
@@ -333,33 +333,6 @@ def test_camera_coordinate_transform(camera_geometry):
 
     geom_cam = geom_tel_frame.transform_to(CameraFrame(focal_length=focal_length))
     assert np.allclose(geom_cam.pix_x.to_value(unit), geom.pix_x.to_value(unit))
-
-
-def test_guess_area():
-    x = u.Quantity([0, 1, 2], u.cm)
-    y = u.Quantity([0, 0, 0], u.cm)
-    n_pixels = len(x)
-
-    geom = CameraGeometry(
-        "test",
-        pix_id=np.arange(n_pixels),
-        pix_area=None,
-        pix_x=x,
-        pix_y=y,
-        pix_type="rect",
-    )
-
-    assert np.all(geom.pix_area == 1 * u.cm**2)
-
-    geom = CameraGeometry(
-        "test",
-        pix_id=np.arange(n_pixels),
-        pix_area=None,
-        pix_x=x,
-        pix_y=y,
-        pix_type="hexagonal",
-    )
-    assert u.allclose(geom.pix_area, 2 * np.sqrt(3) * (0.5 * u.cm) ** 2)
 
 
 def test_guess_width():

@@ -11,6 +11,7 @@ from traitlets.config import Config
 
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 from ctapipe.instrument.camera.geometry import UnknownPixelShapeWarning
+from ctapipe.instrument.optics import ReflectorShape
 from ctapipe.io import DataLevel
 from ctapipe.io.simteleventsource import SimTelEventSource, apply_simtel_r1_calibration
 from ctapipe.utils import get_dataset_path
@@ -450,3 +451,67 @@ def test_extracted_calibevents():
             assert e.simulation is not None
             assert e.simulation.shower is None
         assert i == 4
+
+
+def test_simtel_metadata(monkeypatch):
+    from ctapipe.instrument import guess
+
+    # prod6 is the first prod to use the metadata system
+    path = "dataset://gamma_prod6_preliminary.simtel.zst"
+
+    with monkeypatch.context() as m:
+        # remove all guessing keys so we cannot use guessing
+        m.setattr(guess, "LOOKUP_TREE", {})
+
+        with SimTelEventSource(path) as source:
+            subarray = source.subarray
+
+    assert subarray.name == "Paranal-prod6"
+    assert subarray.tel[1].camera.name == "LSTcam"
+    assert subarray.tel[1].optics.name == "LST"
+    assert subarray.tel[1].optics.reflector_shape is ReflectorShape.PARABOLIC
+
+    assert subarray.tel[5].camera.name == "FlashCam"
+    assert subarray.tel[5].optics.name == "MST"
+    assert subarray.tel[5].optics.reflector_shape is ReflectorShape.HYBRID
+
+    tel = subarray.tel[50]
+    assert tel.camera.name == "SST-Camera"
+    assert tel.optics.name == "SST"
+    assert tel.optics.reflector_shape is ReflectorShape.SCHWARZSCHILD_COUDER
+
+
+def test_simtel_no_metadata(monkeypatch):
+    from ctapipe.instrument import guess
+
+    # prod5 was before the metadata system was introduced
+    path = "dataset://gamma_prod5.simtel.zst"
+
+    # this will use the guessing system
+    with SimTelEventSource(path) as source:
+        subarray = source.subarray
+
+    assert subarray.name == "MonteCarloArray"
+    assert subarray.tel[1].camera.name == "LSTCam"
+    assert subarray.tel[1].optics.name == "LST"
+    assert subarray.tel[1].optics.reflector_shape is ReflectorShape.PARABOLIC
+
+    assert subarray.tel[5].camera.name == "FlashCam"
+    assert subarray.tel[5].optics.name == "MST"
+    assert subarray.tel[5].optics.reflector_shape is ReflectorShape.HYBRID
+
+    tel = subarray.tel[50]
+    assert tel.camera.name == "CHEC"
+    assert tel.optics.name == "ASTRI"
+    assert tel.optics.reflector_shape is ReflectorShape.SCHWARZSCHILD_COUDER
+
+    # check we get all unknown telescopes if we remove the guessing keys
+    with monkeypatch.context() as m:
+        # remove all guessing keys so we cannot use guessing
+        m.setattr(guess, "LOOKUP_TREE", {})
+
+        with SimTelEventSource(path) as source:
+            subarray = source.subarray
+
+        assert all([t.camera.name.startswith("UNKNOWN") for t in subarray.tel.values()])
+        assert all([t.optics.name.startswith("UNKNOWN") for t in subarray.tel.values()])

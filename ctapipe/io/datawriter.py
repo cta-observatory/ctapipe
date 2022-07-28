@@ -54,7 +54,13 @@ DATA_MODEL_CHANGE_HISTORY = """
             and true parameters.
           - Telescope Impact Parameters were added.
           - Effective focal length and nominal focal length are both included
-            in the optics description now.
+            in the optics description now. Moved `TelescopeDescription.type`
+            to `OpticsDescription.size_type`. Added `OpticsDescription.reflector_shape`.
+          - n_samples, n_samples_long, n_channels and n_pixels are now part
+            of CameraReadout.
+          - The reference_location (EarthLocation origin of the telescope coordinates)
+            is now included in SubarrayDescription
+          - Only unique optics are stored in the optics table
 - v3.0.0: reconstructed core uncertainties splitted in their X-Y components
 - v2.2.0: added R0 and R1 outputs
 - v2.1.0: hillas and timing parameters are per default saved in telescope frame (degree) as opposed to camera frame (m)
@@ -188,12 +194,6 @@ class DataWriter(Component):
         help="compression level, 0=None, 9=maximum", default_value=5, min=0, max=9
     ).tag(config=True)
 
-    split_datasets_by = CaselessStrEnum(
-        values=["tel_id", "tel_type"],
-        default_value="tel_id",
-        help="Splitting level for the DL1 parameters and images datasets",
-    ).tag(config=True)
-
     compression_type = CaselessStrEnum(
         values=["blosc:zstd", "zlib"],
         help="compressor algorithm to use. ",
@@ -299,7 +299,7 @@ class DataWriter(Component):
             )
 
             for tel_id, sim in event.simulation.tel.items():
-                table_name = self.table_name(tel_id, self._subarray.tel[tel_id])
+                table_name = self.table_name(tel_id)
                 tel_index = _get_tel_index(event, tel_id)
                 self._writer.write(
                     f"simulation/event/telescope/impact/{table_name}",
@@ -593,9 +593,9 @@ class DataWriter(Component):
                         containers=hist_container,
                     )
 
-    def table_name(self, tel_id, tel_type):
+    def table_name(self, tel_id):
         """construct dataset table names depending on chosen split method"""
-        return f"tel_{tel_id:03d}" if self.split_datasets_by == "tel_id" else tel_type
+        return f"tel_{tel_id:03d}"
 
     def _write_r1_telescope_events(
         self, writer: TableWriter, event: ArrayEventContainer
@@ -603,8 +603,7 @@ class DataWriter(Component):
         for tel_id, r1_tel in event.r1.tel.items():
 
             tel_index = _get_tel_index(event, tel_id)
-            telescope = self._subarray.tel[tel_id]
-            table_name = self.table_name(tel_id, str(telescope))
+            table_name = self.table_name(tel_id)
 
             r1_tel.prefix = ""
             writer.write(f"r1/event/telescope/{table_name}", [tel_index, r1_tel])
@@ -615,8 +614,7 @@ class DataWriter(Component):
         for tel_id, r0_tel in event.r0.tel.items():
 
             tel_index = _get_tel_index(event, tel_id)
-            telescope = self._subarray.tel[tel_id]
-            table_name = self.table_name(tel_id, str(telescope))
+            table_name = self.table_name(tel_id)
 
             r0_tel.prefix = ""
             writer.write(f"r0/event/telescope/{table_name}", [tel_index, r0_tel])
@@ -655,7 +653,7 @@ class DataWriter(Component):
             telescope = self._subarray.tel[tel_id]
             self.log.debug("WRITING TELESCOPE %s: %s", tel_id, telescope)
 
-            table_name = self.table_name(tel_id, str(telescope))
+            table_name = self.table_name(tel_id)
 
             if self.write_parameters:
                 writer.write(
@@ -712,9 +710,7 @@ class DataWriter(Component):
         """
 
         for tel_id, dl2_tel in event.dl2.tel.items():
-
-            telescope = self._subarray.tel[tel_id]
-            table_name = self.table_name(tel_id, str(telescope))
+            table_name = self.table_name(tel_id)
 
             tel_index = _get_tel_index(event, tel_id)
             for container_name, algorithm_map in dl2_tel.items():

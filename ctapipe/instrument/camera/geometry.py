@@ -88,30 +88,33 @@ class CameraGeometry:
 
     Parameters
     ----------
-    self: type
+    self : type
         description
-    camera_name: str
+    name : str
          Camera name (e.g. NectarCam, LSTCam, ...)
-    pix_id: array(int)
+    pix_id : array(int)
         pixels id numbers
-    pix_x: array with units
+    pix_x : array with units
         position of each pixel (x-coordinate)
-    pix_y: array with units
+    pix_y : array with units
         position of each pixel (y-coordinate)
-    pix_area: array(float)
+    pix_area : array(float)
         surface area of each pixel, if None will be calculated
-    neighbors: list(arrays)
+    neighbors : list(arrays)
         adjacency list for each pixel
-    pix_type: string
+    pix_type : string
         either 'rectangular' or 'hexagonal'
-    pix_rotation: value convertable to an `astropy.coordinates.Angle`
+    pix_rotation : value convertable to an `astropy.coordinates.Angle`
         rotation angle with unit (e.g. 12 * u.deg), or "12d"
-    cam_rotation: overall camera rotation with units
+    cam_rotation : overall camera rotation with units
     """
+
+    CURRENT_TAB_VERSION = "2.0"
+    SUPPORTED_TAB_VERSIONS = {"1.0", "1", "1.1", "2.0"}
 
     def __init__(
         self,
-        camera_name,
+        name,
         pix_id,
         pix_x,
         pix_y,
@@ -138,7 +141,7 @@ class CameraGeometry:
             )
 
         self.n_pixels = len(pix_x)
-        self.camera_name = camera_name
+        self.name = name
         self.pix_id = pix_id
         self.pix_x = pix_x
         self.pix_y = pix_y
@@ -166,9 +169,6 @@ class CameraGeometry:
             else:
                 self._neighbors = csr_matrix(neighbors)
 
-        if self.pix_area is None:
-            self.pix_area = self.guess_pixel_area(pix_x, pix_y, pix_type)
-
         if apply_derotation:
             self.rotate(self.cam_rotation)
 
@@ -176,7 +176,10 @@ class CameraGeometry:
         self._border_cache = {}
 
     def __eq__(self, other):
-        if self.camera_name != other.camera_name:
+        if not isinstance(other, CameraGeometry):
+            return NotImplemented
+
+        if self.name != other.name:
             return False
 
         if self.n_pixels != other.n_pixels:
@@ -241,7 +244,10 @@ class CameraGeometry:
 
         # also transform the origin and unit vectors,
         # needed to account for translation, rotation / mirroring, scale
-        points = SkyCoord([0, 1, 0], [0, 0, 1], unit=cam.pix_x.unit, frame=cam.frame)
+        width = cam.pixel_width[0].to_value(cam.pix_x.unit)
+        points = SkyCoord(
+            [0, width, 0], [0, 0, width], unit=cam.pix_x.unit, frame=cam.frame
+        )
         points_trans = points.transform_to(frame)
 
         x_name, y_name = list(cam.frame.get_representation_component_names().keys())
@@ -287,7 +293,7 @@ class CameraGeometry:
         pix_area = (cam.pix_area * scale**2).to(trans_x.unit**2)
 
         return CameraGeometry(
-            camera_name=cam.camera_name,
+            name=cam.name,
             pix_id=cam.pix_id,
             pix_x=trans_x,
             pix_y=trans_y,
@@ -303,7 +309,7 @@ class CameraGeometry:
     def __hash__(self):
         return hash(
             (
-                self.camera_name,
+                self.name,
                 round(self.pix_x[0].value, 3),
                 round(self.pix_y[0].value, 3),
                 self.pix_type,
@@ -316,7 +322,7 @@ class CameraGeometry:
 
     def __getitem__(self, slice_):
         return CameraGeometry(
-            camera_name=" ".join([self.camera_name, " sliced"]),
+            name=" ".join([self.name, " sliced"]),
             pix_id=self.pix_id[slice_],
             pix_x=self.pix_x[slice_],
             pix_y=self.pix_y[slice_],
@@ -327,27 +333,6 @@ class CameraGeometry:
             neighbors=None,
             apply_derotation=False,
         )
-
-    @classmethod
-    def guess_pixel_area(cls, pix_x, pix_y, pix_type):
-        """
-        Guess pixel area based on the pixel type and layout.
-        This first uses `guess_pixel_width` and then calculates
-        area from the given pixel type.
-
-        Note this will not work on cameras with varying pixel sizes.
-        """
-
-        dist = cls.guess_pixel_width(pix_x, pix_y)
-
-        if pix_type == PixelShape.HEXAGON:
-            area = 2 * np.sqrt(3) * (dist / 2) ** 2
-        elif pix_type == PixelShape.SQUARE:
-            area = dist**2
-        else:
-            raise KeyError("unsupported pixel type")
-
-        return np.ones(pix_x.shape) * area
 
     @lazyproperty
     def pixel_width(self):
@@ -572,7 +557,7 @@ class CameraGeometry:
         return np.squeeze(image_1d)
 
     @classmethod
-    def from_name(cls, camera_name="NectarCam", version=None):
+    def from_name(cls, name="NectarCam", version=None):
         """
         Construct a CameraGeometry using the name of the camera and array.
 
@@ -582,10 +567,10 @@ class CameraGeometry:
 
         Parameters
         ----------
-        camera_name: str
+        name : str
             Camera name (e.g. NectarCam, LSTCam, ...)
-        version:
-            camera version id (currently unused)
+        version :
+            camera version id
 
         Returns
         -------
@@ -597,9 +582,7 @@ class CameraGeometry:
         else:
             verstr = f"-{version:03d}"
 
-        tabname = "{camera_name}{verstr}.camgeom".format(
-            camera_name=camera_name, verstr=verstr
-        )
+        tabname = "{name}{verstr}.camgeom".format(name=name, verstr=verstr)
         table = get_table_dataset(tabname, role="dl0.tel.svc.camera")
         return CameraGeometry.from_table(table)
 
@@ -613,8 +596,8 @@ class CameraGeometry:
             meta=dict(
                 PIX_TYPE=self.pix_type.value,
                 TAB_TYPE="ctapipe.instrument.CameraGeometry",
-                TAB_VER="1.1",
-                CAM_ID=self.camera_name,
+                TAB_VER=self.CURRENT_TAB_VERSION,
+                CAM_ID=self.name,
                 PIX_ROT=self.pix_rotation.deg,
                 CAM_ROT=self.cam_rotation.deg,
             ),
@@ -643,31 +626,33 @@ class CameraGeometry:
         kwargs: extra keyword arguments
             extra arguments passed to `astropy.table.Table.read`, depending on
             file type (e.g. format, hdu, path)
-
-
         """
 
         tab = url_or_table
         if not isinstance(url_or_table, Table):
             tab = Table.read(url_or_table, **kwargs)
 
+        version = tab.meta.get("TAB_VER")
+        if version not in cls.SUPPORTED_TAB_VERSIONS:
+            raise IOError(f"Unsupported camera geometry table version: {version}")
+
         return cls(
-            camera_name=tab.meta.get("CAM_ID", "Unknown"),
+            name=tab.meta.get("CAM_ID", "Unknown"),
             pix_id=tab["pix_id"],
             pix_x=tab["pix_x"].quantity,
             pix_y=tab["pix_y"].quantity,
             pix_area=tab["pix_area"].quantity,
             pix_type=tab.meta["PIX_TYPE"],
-            pix_rotation=Angle(tab.meta["PIX_ROT"] * u.deg),
-            cam_rotation=Angle(tab.meta["CAM_ROT"] * u.deg),
+            pix_rotation=Angle(tab.meta["PIX_ROT"], u.deg),
+            cam_rotation=Angle(tab.meta["CAM_ROT"], u.deg),
         )
 
     def __repr__(self):
         return (
-            "CameraGeometry(camera_name='{camera_name}', pix_type={pix_type}, "
+            "CameraGeometry(name='{name}', pix_type={pix_type}, "
             "npix={npix}, cam_rot={camrot:.3f}, pix_rot={pixrot:.3f}, frame={frame})"
         ).format(
-            camera_name=self.camera_name,
+            name=self.name,
             pix_type=self.pix_type,
             npix=len(self.pix_id),
             pixrot=self.pix_rotation,
@@ -676,7 +661,7 @@ class CameraGeometry:
         )
 
     def __str__(self):
-        return self.camera_name
+        return self.name
 
     @lazyproperty
     def neighbors(self):
@@ -883,13 +868,13 @@ class CameraGeometry:
         rr = np.ones_like(xx).value * (xx[1] - xx[0]) / 2.0
 
         return cls(
-            camera_name=-1,
+            name="RectangularCamera",
             pix_id=ids,
             pix_x=xx,
             pix_y=yy,
             pix_area=(2 * rr) ** 2,
             neighbors=None,
-            pix_type="rectangular",
+            pix_type=PixelShape.SQUARE,
         )
 
     def get_border_pixel_mask(self, width=1):

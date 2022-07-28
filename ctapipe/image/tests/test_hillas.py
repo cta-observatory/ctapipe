@@ -218,7 +218,7 @@ def test_straight_line_width_0():
                 y = dy - np.sin(psi) * long + np.cos(psi) * trans
 
                 geom = CameraGeometry(
-                    camera_name="testcam",
+                    name="testcam",
                     pix_id=pix_id,
                     pix_x=x * u.m,
                     pix_y=y * u.m,
@@ -238,7 +238,7 @@ def test_single_pixel():
     x, y = np.meshgrid(x, y)
 
     geom = CameraGeometry(
-        camera_name="testcam",
+        name="testcam",
         pix_id=np.arange(9),
         pix_x=x.ravel() * u.cm,
         pix_y=y.ravel() * u.cm,
