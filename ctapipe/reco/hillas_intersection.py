@@ -8,39 +8,39 @@ performance
 - Make intersect_lines code more readable
 
 """
-import numpy as np
 import itertools
+import warnings
+
 import astropy.units as u
-from ctapipe.reco.reco_algorithms import (
-    Reconstructor,
-    InvalidWidthException,
-    TooFewTelescopesException,
-)
+import numpy as np
+from astropy.coordinates import AltAz, SkyCoord
+
 from ctapipe.containers import (
-    ReconstructedGeometryContainer,
     CameraHillasParametersContainer,
     HillasParametersContainer,
+    ReconstructedGeometryContainer,
 )
-from ctapipe.instrument import get_atmosphere_profile_functions
-
-from astropy.coordinates import SkyCoord, AltAz
 from ctapipe.coordinates import (
-    NominalFrame,
     CameraFrame,
+    MissingFrameAttributeWarning,
+    NominalFrame,
     TelescopeFrame,
     TiltedGroundFrame,
     project_to_ground,
-    MissingFrameAttributeWarning,
 )
-import warnings
-
 from ctapipe.core import traits
+from ctapipe.instrument import get_atmosphere_profile_functions
+from ctapipe.reco.reco_algorithms import (
+    InvalidWidthException,
+    Reconstructor,
+    TooFewTelescopesException,
+)
 
 __all__ = ["HillasIntersection"]
 
 
 INVALID = ReconstructedGeometryContainer(
-    tel_ids=[],
+    telescopes=[],
     prefix="HillasIntersection",
 )
 
@@ -252,7 +252,7 @@ class HillasIntersection(Reconstructor):
             core_tilted_y=core_y,
             core_tilted_uncert_x=u.Quantity(core_err_x, u.m),
             core_tilted_uncert_y=u.Quantity(core_err_y, u.m),
-            tel_ids=[h for h in hillas_dict_mod.keys()],
+            telescopes=[h for h in hillas_dict_mod.keys()],
             average_intensity=np.mean([h.intensity for h in hillas_dict_mod.values()]),
             is_valid=True,
             alt_uncert=src_error.to(u.rad),

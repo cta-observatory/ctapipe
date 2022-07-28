@@ -225,9 +225,9 @@ def test_stage_2_from_simtel(tmp_path):
         subarray = SubarrayDescription.from_hdf(testfile)
 
         # test tel_ids are included and transformed correctly
-        assert "HillasReconstructor_tel_ids" in dl2.colnames
-        assert dl2["HillasReconstructor_tel_ids"].dtype == np.bool_
-        assert dl2["HillasReconstructor_tel_ids"].shape[1] == len(subarray)
+        assert "HillasReconstructor_telescopes" in dl2.colnames
+        assert dl2["HillasReconstructor_telescopes"].dtype == np.bool_
+        assert dl2["HillasReconstructor_telescopes"].shape[1] == len(subarray)
 
 
 def test_stage_2_from_dl1_images(tmp_path, dl1_image_file):
