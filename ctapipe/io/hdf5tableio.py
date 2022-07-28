@@ -300,8 +300,7 @@ class HDF5TableWriter(TableWriter):
             max_length = field.max_length or len(value.encode("utf-8"))
             tr = StringTransform(max_length)
             self.add_column_transform(table_name, name, tr)
-            schema.columns[name] = tables.StringCol(itemsize=max_length)
-
+            schema.columns[name] = tables.StringCol(itemsize=max_length, pos=pos)
         else:
             raise ValueError(f"Column {name} of type {type(value)} not writable")
 

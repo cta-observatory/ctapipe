@@ -306,11 +306,11 @@ class TimingParametersContainer(BaseTimingParametersContainer):
 class MorphologyContainer(Container):
     """Parameters related to pixels surviving image cleaning"""
 
-    num_pixels = Field(-1, "Number of usable pixels")
-    num_islands = Field(-1, "Number of distinct islands in the image")
-    num_small_islands = Field(-1, "Number of <= 2 pixel islands")
-    num_medium_islands = Field(-1, "Number of 2-50 pixel islands")
-    num_large_islands = Field(-1, "Number of > 50 pixel islands")
+    n_pixels = Field(-1, "Number of usable pixels")
+    n_islands = Field(-1, "Number of distinct islands in the image")
+    n_small_islands = Field(-1, "Number of <= 2 pixel islands")
+    n_medium_islands = Field(-1, "Number of 2-50 pixel islands")
+    n_large_islands = Field(-1, "Number of > 50 pixel islands")
 
 
 class StatisticsContainer(Container):
@@ -653,7 +653,7 @@ class SimulationConfigContainer(Container):
         nan, description="Time when detector simulation started"
     )
     detector_prog_id = Field(nan, description="simtelarray=1")
-    num_showers = Field(nan, description="Number of showers simulated")
+    n_showers = Field(nan, description="Number of showers simulated")
     shower_reuse = Field(nan, description="Numbers of uses of each shower")
     max_alt = Field(nan * u.rad, description="Maximimum shower altitude", unit=u.rad)
     min_alt = Field(nan * u.rad, description="Minimum shower altitude", unit=u.rad)
@@ -779,7 +779,7 @@ class ReconstructedGeometryContainer(Container):
         nan, "average intensity of the intensities used for reconstruction"
     )
     goodness_of_fit = Field(nan, "measure of algorithm success (if fit)")
-    tel_ids = Field(None, "list of tel_ids used if stereo, or None if Mono")
+    telescopes = Field(None, "Telescopes used if stereo, or None if Mono")
 
 
 class ReconstructedEnergyContainer(Container):
@@ -800,7 +800,7 @@ class ReconstructedEnergyContainer(Container):
         ),
     )
     goodness_of_fit = Field(nan, "goodness of the algorithm fit")
-    tel_ids = Field(None, "list of tel_ids used if stereo, or None if Mono")
+    telescopes = Field(None, "Telescopes used if stereo, or None if Mono")
 
 
 class ParticleClassificationContainer(Container):
@@ -824,7 +824,7 @@ class ParticleClassificationContainer(Container):
     )
     is_valid = Field(False, "true if classification parameters are valid")
     goodness_of_fit = Field(nan, "goodness of the algorithm fit")
-    tel_ids = Field(None, "list of tel_ids used if stereo, or None if Mono")
+    telescopes = Field(None, "Telescopes used if stereo, or None if Mono")
 
 
 class ReconstructedContainer(Container):
@@ -1147,7 +1147,7 @@ class SimulatedShowerDistribution(Container):
 
     obs_id = Field(-1, description="links to which events this corresponds to")
     hist_id = Field(-1, description="Histogram ID")
-    num_entries = Field(-1, description="Number of entries in the histogram")
+    n_entries = Field(-1, description="Number of entries in the histogram")
     bins_energy = Field(
         None,
         description="array of energy bin lower edges, as in np.histogram",

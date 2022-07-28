@@ -3,20 +3,24 @@ Plots the (rough) hillas parameters for each event on an ArrayDisplay
 """
 
 import sys
+import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
-from astropy.coordinates import SkyCoord, AltAz
 from astropy import units as u
+from astropy.coordinates import AltAz, SkyCoord
 
 from ctapipe.calib import CameraCalibrator
-from ctapipe.coordinates import TiltedGroundFrame, MissingFrameAttributeWarning
-from ctapipe.image import hillas_parameters, tailcuts_clean, HillasParameterizationError
-from ctapipe.image import timing_parameters
+from ctapipe.coordinates import MissingFrameAttributeWarning, TiltedGroundFrame
+from ctapipe.image import (
+    HillasParameterizationError,
+    hillas_parameters,
+    tailcuts_clean,
+    timing_parameters,
+)
 from ctapipe.io import EventSource
 from ctapipe.utils import datasets
 from ctapipe.visualization import ArrayDisplay
-import warnings
 
 if __name__ == "__main__":
     warnings.filterwarnings("ignore", category=MissingFrameAttributeWarning)
@@ -47,7 +51,7 @@ if __name__ == "__main__":
             array_disp.telescopes.set_linewidth(3)
             array_disp.add_labels()
             first_event = False
-            hit_pattern = np.zeros(subarray.num_tels)
+            hit_pattern = np.zeros(subarray.n_tels)
 
         if len(event.r0.tel.keys()) < 3:
             continue

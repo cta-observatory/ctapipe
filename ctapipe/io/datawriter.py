@@ -475,12 +475,12 @@ class DataWriter(Component):
             )
 
         # set up DL2 transforms:
-        # - the single-tel output has no list of tel_ids
-        # - the stereo output tel_ids list needs to be transformed to a pattern
-        writer.exclude("dl2/event/telescope/.*", ".*_tel_ids")
+        # - the single-tel output has no list of telescopes
+        # - the stereo output telescope list needs to be transformed to a pattern
+        writer.exclude("dl2/event/telescope/.*", ".*telescopes")
         writer.add_column_transform_regexp(
             table_regexp="dl2/event/subarray/.*",
-            col_regexp=".*_tel_ids",
+            col_regexp=".*telescopes",
             transform=tr_tel_list_to_mask,
         )
 
@@ -562,7 +562,7 @@ class DataWriter(Component):
             """fill from a SimTel Histogram entry"""
             container.obs_id = obs_id
             container.hist_id = eventio_hist["id"]
-            container.num_entries = eventio_hist["entries"]
+            container.n_entries = eventio_hist["entries"]
             xbins = np.linspace(
                 eventio_hist["lower_x"],
                 eventio_hist["upper_x"],

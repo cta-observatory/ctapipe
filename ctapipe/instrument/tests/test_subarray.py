@@ -48,7 +48,7 @@ def test_subarray_description(prod5_mst_nectarcam):
     assert len(sub.telescope_types) == 1
 
     assert str(sub) == "test array"
-    assert sub.num_tels == n_tels
+    assert sub.n_tels == n_tels
     assert len(sub.tel_ids) == n_tels
     assert sub.tel_ids[0] == 1
     assert sub.tel[1].camera is not None
@@ -66,7 +66,7 @@ def test_subarray_description(prod5_mst_nectarcam):
     assert len(sub.tel_coords) == n_tels
 
     subsub = sub.select_subarray([2, 3, 4, 6], name="newsub")
-    assert subsub.num_tels == 4
+    assert subsub.n_tels == 4
     assert set(subsub.tels.keys()) == {2, 3, 4, 6}
     assert subsub.tel_indices[6] == 3
     assert subsub.tel_ids[3] == 6
@@ -78,7 +78,7 @@ def test_subarray_description(prod5_mst_nectarcam):
 def test_to_table(example_subarray):
     """Check that we can generate astropy Tables from the SubarrayDescription"""
     sub = example_subarray
-    assert len(sub.to_table(kind="subarray")) == sub.num_tels
+    assert len(sub.to_table(kind="subarray")) == sub.n_tels
     assert len(sub.to_table(kind="optics")) == len(sub.optics_types)
 
 
@@ -187,7 +187,7 @@ def test_hdf_duplicate_string_repr(tmp_path, prod5_lst):
     # second telescope is almost the same and as the same str repr
     tel2 = deepcopy(tel1)
     # e.g. one mirror fell off
-    tel2.optics.num_mirror_tiles = tel1.optics.num_mirror_tiles - 1
+    tel2.optics.n_mirror_tiles = tel1.optics.n_mirror_tiles - 1
 
     array = SubarrayDescription(
         "test array",
@@ -204,9 +204,7 @@ def test_hdf_duplicate_string_repr(tmp_path, prod5_lst):
     array.to_hdf(path)
     read = SubarrayDescription.from_hdf(path, focal_length_choice="EQUIVALENT")
     assert array == read
-    assert (
-        read.tel[1].optics.num_mirror_tiles == read.tel[2].optics.num_mirror_tiles + 1
-    )
+    assert read.tel[1].optics.n_mirror_tiles == read.tel[2].optics.n_mirror_tiles + 1
 
 
 def test_get_tel_ids(example_subarray, prod3_astri):

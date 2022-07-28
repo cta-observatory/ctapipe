@@ -474,11 +474,11 @@ class SimTelEventSource(EventSource):
                 name=telescope.name,
                 size_type=telescope.type,
                 reflector_shape=telescope.reflector_shape,
-                num_mirrors=telescope.n_mirrors,
+                n_mirrors=telescope.n_mirrors,
                 equivalent_focal_length=equivalent_focal_length,
                 effective_focal_length=effective_focal_length,
                 mirror_area=mirror_area,
-                num_mirror_tiles=cam_settings["n_mirrors"],
+                n_mirror_tiles=cam_settings["n_mirrors"],
             )
 
             if self.focal_length_choice is FocalLengthKind.EFFECTIVE:
@@ -817,7 +817,7 @@ class SimTelEventSource(EventSource):
             shower_prog_id=mc_run_head["shower_prog_id"],
             detector_prog_start=mc_run_head["detector_prog_start"],
             detector_prog_id=mc_run_head["detector_prog_id"],
-            num_showers=mc_run_head["n_showers"],
+            n_showers=mc_run_head["n_showers"],
             shower_reuse=mc_run_head["n_use"],
             max_alt=mc_run_head["alt_range"][1] * u.rad,
             min_alt=mc_run_head["alt_range"][0] * u.rad,

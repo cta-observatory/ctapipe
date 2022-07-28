@@ -3,42 +3,37 @@ Line-intersection-based fitting for reconstruction of direction
 and core position of a shower.
 """
 
-from ctapipe.reco.reco_algorithms import (
-    Reconstructor,
-    InvalidWidthException,
-    TooFewTelescopesException,
-)
-from ctapipe.containers import (
-    ReconstructedGeometryContainer,
-    CameraHillasParametersContainer,
-)
+import warnings
 from itertools import combinations
 
+import numpy as np
+from astropy import units as u
+from astropy.coordinates import AltAz, SkyCoord, cartesian_to_spherical
+
+from ctapipe.containers import (
+    CameraHillasParametersContainer,
+    ReconstructedGeometryContainer,
+)
 from ctapipe.coordinates import (
     CameraFrame,
-    TelescopeFrame,
     GroundFrame,
-    TiltedGroundFrame,
-    project_to_ground,
     MissingFrameAttributeWarning,
+    TelescopeFrame,
+    TiltedGroundFrame,
     altaz_to_righthanded_cartesian,
+    project_to_ground,
 )
-from astropy.coordinates import (
-    SkyCoord,
-    AltAz,
-    cartesian_to_spherical,
+from ctapipe.reco.reco_algorithms import (
+    InvalidWidthException,
+    Reconstructor,
+    TooFewTelescopesException,
 )
-import warnings
-
-import numpy as np
-
-from astropy import units as u
 
 __all__ = ["HillasPlane", "HillasReconstructor"]
 
 
 INVALID = ReconstructedGeometryContainer(
-    tel_ids=[],
+    telescopes=[],
     prefix="HillasReconstructor",
 )
 
@@ -275,7 +270,7 @@ class HillasReconstructor(Reconstructor):
             core_y=core_pos_ground.y,
             core_tilted_x=core_pos_tilted.x,
             core_tilted_y=core_pos_tilted.y,
-            tel_ids=[tel_id for tel_id in hillas_dict.keys()],
+            telescopes=[tel_id for tel_id in hillas_dict.keys()],
             average_intensity=np.mean([h.intensity for h in hillas_dict.values()]),
             is_valid=True,
             alt_uncert=err_est_dir,

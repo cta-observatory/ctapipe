@@ -30,11 +30,11 @@ import numpy as np
 
 from ..core.component import TelescopeComponent
 from ..core.traits import (
+    BoolTelescopeParameter,
     FloatTelescopeParameter,
     IntTelescopeParameter,
-    BoolTelescopeParameter,
 )
-from .morphology import number_of_islands, brightest_island
+from .morphology import brightest_island, number_of_islands
 
 
 def tailcuts_clean(
@@ -275,8 +275,8 @@ def apply_time_average_cleaning(
     if np.count_nonzero(mask) > 0:
 
         # use main island (maximum charge) for time average calculation
-        num_islands, island_labels = number_of_islands(geom, mask)
-        mask_main = brightest_island(num_islands, island_labels, image)
+        n_islands, island_labels = number_of_islands(geom, mask)
+        mask_main = brightest_island(n_islands, island_labels, image)
         time_ave = np.average(arrival_times[mask_main], weights=image[mask_main] ** 2)
 
         time_diffs = np.abs(arrival_times[mask] - time_ave)
