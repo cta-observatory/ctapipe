@@ -304,7 +304,7 @@ class HDF5EventSource(EventSource):
             containers=SchedulingBlockContainer,
         )
 
-        scheduling_blocks = {sb: sb.sb_id for sb in sb_reader}
+        scheduling_blocks = {sb.sb_id: sb for sb in sb_reader}
 
         ob_reader = HDF5TableReader(self.file_).read(
             "/configuration/observation/observation_block",
