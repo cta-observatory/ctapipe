@@ -11,6 +11,7 @@ from ..containers import (
     ArrayEventContainer,
     ObservationBlockContainer,
     SchedulingBlockContainer,
+    SimulationConfigContainer,
 )
 from ..core import Provenance, ToolConfigurationError
 from ..core.component import Component, find_config_in_hierarchy, non_abstract_children
@@ -208,6 +209,17 @@ class EventSource(Component):
         ctapipe.instrument.SubarrayDecription
 
         """
+
+    @property
+    def simulation_config(self) -> Dict[int, SimulationConfigContainer]:
+        """The simulation configurations of all observations provided by the
+        EventSource, or None if the source does not provide simulated data
+
+        Returns
+        -------
+        Dict[int,ctapipe.containers.SimulationConfigContainer] | None
+        """
+        return None
 
     @property
     @abstractmethod
