@@ -179,20 +179,20 @@ class CameraCalibrator(TelescopeComponent):
         else:
             return False
 
-    def _calibrate_dl0(self, event, telid):
-        waveforms = event.r1.tel[telid].waveform
-        selected_gain_channel = event.r1.tel[telid].selected_gain_channel
+    def _calibrate_dl0(self, event, tel_id):
+        waveforms = event.r1.tel[tel_id].waveform
+        selected_gain_channel = event.r1.tel[tel_id].selected_gain_channel
         if self._check_r1_empty(waveforms):
             return
 
         reduced_waveforms_mask = self.data_volume_reducer(
-            waveforms, telid=telid, selected_gain_channel=selected_gain_channel
+            waveforms, tel_id=tel_id, selected_gain_channel=selected_gain_channel
         )
 
         waveforms_copy = waveforms.copy()
         waveforms_copy[~reduced_waveforms_mask] = 0
-        event.dl0.tel[telid].waveform = waveforms_copy
-        event.dl0.tel[telid].selected_gain_channel = selected_gain_channel
+        event.dl0.tel[tel_id].waveform = waveforms_copy
+        event.dl0.tel[tel_id].selected_gain_channel = selected_gain_channel
 
     def _calibrate_dl1(self, event, tel_id):
         waveforms = event.dl0.tel[tel_id].waveform
@@ -247,7 +247,7 @@ class CameraCalibrator(TelescopeComponent):
             extractor = self.image_extractors[self.image_extractor_type.tel[tel_id]]
             dl1 = extractor(
                 waveforms,
-                telid=tel_id,
+                tel_id=tel_id,
                 selected_gain_channel=selected_gain_channel,
                 broken_pixels=broken_pixels,
             )
@@ -282,11 +282,11 @@ class CameraCalibrator(TelescopeComponent):
         event : container
             A `~ctapipe.containers.ArrayEventContainer` event container
         """
-        # TODO: How to handle different calibrations depending on telid?
+        # TODO: How to handle different calibrations depending on tel_id?
         tel = event.r1.tel or event.dl0.tel or event.dl1.tel
-        for telid in tel.keys():
-            self._calibrate_dl0(event, telid)
-            self._calibrate_dl1(event, telid)
+        for tel_id in tel.keys():
+            self._calibrate_dl0(event, tel_id)
+            self._calibrate_dl1(event, tel_id)
 
 
 def shift_waveforms(waveforms, time_shift_samples):
