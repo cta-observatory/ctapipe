@@ -4,7 +4,6 @@ from sklearn import metrics
 from sklearn.model_selection import StratifiedKFold
 from tqdm.auto import tqdm
 
-from ctapipe.core import FeatureGenerator
 from ctapipe.core.tool import Tool, ToolConfigurationError
 from ctapipe.core.traits import Int, Path
 from ctapipe.io import TableLoader
@@ -46,7 +45,6 @@ class TrainParticleIdClassifier(Tool):
     classes = [
         TableLoader,
         ParticleIdClassifier,
-        FeatureGenerator,
     ]
 
     def setup(self):
@@ -86,8 +84,6 @@ class TrainParticleIdClassifier(Tool):
         )
         self.rng = np.random.default_rng(self.random_seed)
 
-        self.feature_generator = FeatureGenerator(parent=self)
-
     def start(self):
         # By construction both loaders have the same types defined
         types = self.signal_loader.subarray.telescope_types
@@ -112,9 +108,6 @@ class TrainParticleIdClassifier(Tool):
         mask = self.classifier.qualityquery.get_table_mask(table)
         table = table[mask]
         self.log.info("Events after applying quality query: %d", len(table))
-
-        self.log.info("Generating %d features", len(self.feature_generator))
-        table = self.feature_generator(table)
 
         columns = self.classifier.model.features + [self.classifier.target]
         table = table[columns]
