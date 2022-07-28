@@ -77,7 +77,7 @@ class EventSeeker(Component):
 
         self._event_source = event_source
 
-        self._num_events = None
+        self._n_events = None
         self._source = self._event_source.__iter__()
         self._current_event = None
         self._has_fast_seek = False  # By default seeking iterates through
@@ -236,11 +236,11 @@ class EventSeeker(Component):
 
         Returns
         -------
-        self._num_events : int
+        self._n_events : int
             Number of events in the file
         """
         # Only need to calculate once
-        if not self._num_events:
+        if not self._n_events:
             try:
                 count = len(self._event_source)
             except TypeError:
@@ -251,5 +251,5 @@ class EventSeeker(Component):
                 count = 0
                 for _ in self:
                     count += 1
-            self._num_events = count
-        return self._num_events
+            self._n_events = count
+        return self._n_events

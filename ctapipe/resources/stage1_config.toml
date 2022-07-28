@@ -50,5 +50,5 @@ quality_criteria = [
 quality_criteria = [
     [ "enough intensity", "parameters.hillas.intensity > 50",],
     [ "Positive width", "parameters.hillas.width.value > 0",],
-    [ "enough pixels", "parameters.morphology.num_pixels > 3",],
+    [ "enough pixels", "parameters.morphology.n_pixels > 3",],
 ]

@@ -100,8 +100,8 @@ class SubarrayDescription:
         return self.name
 
     def __repr__(self):
-        return "{}(name='{}', num_tels={})".format(
-            self.__class__.__name__, self.name, self.num_tels
+        return "{}(name='{}', n_tels={})".format(
+            self.__class__.__name__, self.name, self.n_tels
         )
 
     @property
@@ -110,7 +110,7 @@ class SubarrayDescription:
         return self.tels
 
     @property
-    def num_tels(self):
+    def n_tels(self):
         """number of telescopes in this subarray"""
         return len(self.tels)
 
@@ -122,7 +122,7 @@ class SubarrayDescription:
         print descriptive info about subarray
         """
         printer(f"Subarray : {self.name}")
-        printer(f"Num Tels : {self.num_tels}")
+        printer(f"Num Tels : {self.n_tels}")
         printer(f"Footprint: {self.footprint:.2f}")
         printer("")
 
@@ -199,7 +199,7 @@ class SubarrayDescription:
 
     def tel_ids_to_mask(self, tel_ids):
         """Convert a list of telescope ids to a boolean mask
-        of length ``num_tels`` where the **index** of the telescope
+        of length ``n_tels`` where the **index** of the telescope
         is set to ``True`` for each tel_id in tel_ids
 
         Parameters
@@ -210,10 +210,10 @@ class SubarrayDescription:
         Returns
         -------
         np.array[dtype=bool]:
-            Boolean array of length ``num_tels`` with indices of the
+            Boolean array of length ``n_tels`` with indices of the
             telescopes in ``tel_ids`` set to True.
         """
-        mask = np.zeros(self.num_tels, dtype=bool)
+        mask = np.zeros(self.n_tels, dtype=bool)
         indices = self.tel_ids_to_indices(tel_ids)
         mask[indices] = True
         return mask
@@ -225,7 +225,7 @@ class SubarrayDescription:
         Parameters
         ----------
         tel_mask: array-like
-            Boolean array of length ``num_tels`` with indices of the
+            Boolean array of length ``n_tels`` with indices of the
             telescopes in ``tel_ids`` set to True.
         Returns
         -------
@@ -333,8 +333,8 @@ class SubarrayDescription:
                     "size_type": [o.size_type.value for o in unique_optics],
                     "reflector_shape": [o.reflector_shape.value for o in unique_optics],
                     "mirror_area": mirror_area,
-                    "num_mirrors": [o.num_mirrors for o in unique_optics],
-                    "num_mirror_tiles": [o.num_mirror_tiles for o in unique_optics],
+                    "n_mirrors": [o.n_mirrors for o in unique_optics],
+                    "n_mirror_tiles": [o.n_mirror_tiles for o in unique_optics],
                     "equivalent_focal_length": focal_length,
                     "effective_focal_length": effective_focal_length,
                 }
@@ -624,11 +624,11 @@ class SubarrayDescription:
                 name=row["optics_name"],
                 size_type=row["size_type"],
                 reflector_shape=row["reflector_shape"],
-                num_mirrors=row["num_mirrors"],
+                n_mirrors=row["n_mirrors"],
                 equivalent_focal_length=row["equivalent_focal_length"],
                 effective_focal_length=row["effective_focal_length"],
                 mirror_area=row["mirror_area"],
-                num_mirror_tiles=row["num_mirror_tiles"],
+                n_mirror_tiles=row["n_mirror_tiles"],
             )
             for row in optics_table
         ]

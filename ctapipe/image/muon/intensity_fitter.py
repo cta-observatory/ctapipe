@@ -7,23 +7,21 @@ To do:
     - create container class for output
 
 """
-import numpy as np
-
-from math import erf
-from numba import vectorize, double
-
-from scipy.ndimage import correlate1d
-from iminuit import Minuit
-from astropy import units as u
-from scipy.constants import alpha
-from astropy.coordinates import SkyCoord
 from functools import lru_cache
+from math import erf
+
+import numpy as np
+from astropy import units as u
+from astropy.coordinates import SkyCoord
+from iminuit import Minuit
+from numba import double, vectorize
+from scipy.constants import alpha
+from scipy.ndimage import correlate1d
 
 from ...containers import MuonEfficiencyContainer
 from ...coordinates import CameraFrame, TelescopeFrame
 from ...core import TelescopeComponent
 from ...core.traits import FloatTelescopeParameter, IntTelescopeParameter
-
 
 __all__ = ["MuonIntensityFitter"]
 
@@ -54,7 +52,7 @@ def chord_length(radius, rho, phi):
     float or ndarray:
         chord length
     """
-    chord = 1 - (rho ** 2 * np.sin(phi) ** 2)
+    chord = 1 - (rho**2 * np.sin(phi) ** 2)
     valid = chord >= 0
 
     if not valid:
@@ -266,7 +264,7 @@ def image_prediction_no_units(
     )
 
     # Produce gaussian weight for each pixel given ring width
-    radial_dist = np.sqrt(dx ** 2 + dy ** 2)
+    radial_dist = np.sqrt(dx**2 + dy**2)
     # The weight is the integral of the ring's radial gaussian profile inside the
     # ring's width
     delta = pixel_diameter_rad / 2
@@ -282,7 +280,7 @@ def image_prediction_no_units(
     # get total number of photons per pixel
     # ^ would be per radian, but no need to put it here, would anyway cancel out below
 
-    pred *= alpha * (min_lambda_m ** -1 - max_lambda_m ** -1)
+    pred *= alpha * (min_lambda_m**-1 - max_lambda_m**-1)
     pred *= pixel_diameter_rad / radius_rad
     # multiply by angle (in radians) subtended by pixel width as seen from ring center
 
@@ -331,7 +329,7 @@ def build_negative_log_likelihood(
 
     # get all the neeed values and transform them into appropriate units
     optics = telescope_description.optics
-    mirror_area = optics.mirror_area.to_value(u.m ** 2)
+    mirror_area = optics.mirror_area.to_value(u.m**2)
     mirror_radius = np.sqrt(mirror_area / np.pi)
 
     focal_length = optics.equivalent_focal_length
@@ -416,7 +414,7 @@ def build_negative_log_likelihood(
         # A gaussian approximation is used here, where the total
         # standard deviation is the pedestal standard deviation (e.g. by NSB) and
         # the single photon resolution times the image magnitude.
-        sigma2 = pedestal ** 2 + prediction * (1 + spe_width ** 2)
+        sigma2 = pedestal**2 + prediction * (1 + spe_width**2)
 
         # gaussian negative log-likelihood, analytically simplified and
         # constant terms discarded
@@ -432,10 +430,10 @@ def create_initial_guess(center_x, center_y, radius, telescope_description):
     optics = telescope_description.optics
 
     focal_length = optics.equivalent_focal_length.to_value(u.m)
-    pixel_area = geometry.pix_area[0].to_value(u.m ** 2)
+    pixel_area = geometry.pix_area[0].to_value(u.m**2)
     pixel_radius = np.sqrt(pixel_area / np.pi) / focal_length
 
-    mirror_radius = np.sqrt(optics.mirror_area.to_value(u.m ** 2) / np.pi)
+    mirror_radius = np.sqrt(optics.mirror_area.to_value(u.m**2) / np.pi)
 
     initial_guess = {}
     initial_guess["impact_parameter"] = mirror_radius / 2
@@ -500,7 +498,7 @@ class MuonIntensityFitter(TelescopeComponent):
         MuonEfficiencyContainer
         """
         telescope = self.subarray.tel[tel_id]
-        if telescope.optics.num_mirrors != 1:
+        if telescope.optics.n_mirrors != 1:
             raise NotImplementedError(
                 "Currently only single mirror telescopes"
                 f" are supported in {self.__class__.__name__}"

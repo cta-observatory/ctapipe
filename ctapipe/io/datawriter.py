@@ -546,7 +546,7 @@ class DataWriter(Component):
             """fill from a SimTel Histogram entry"""
             container.obs_id = obs_id
             container.hist_id = eventio_hist["id"]
-            container.num_entries = eventio_hist["entries"]
+            container.n_entries = eventio_hist["entries"]
             xbins = np.linspace(
                 eventio_hist["lower_x"],
                 eventio_hist["upper_x"],
