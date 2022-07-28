@@ -3,7 +3,7 @@ from sklearn import metrics
 from sklearn.model_selection import KFold
 from tqdm.auto import tqdm
 
-from ctapipe.core import Tool
+from ctapipe.core import FeatureGenerator, Tool
 from ctapipe.core.traits import Int, Path
 from ctapipe.io import TableLoader
 from ctapipe.ml.apply import EnergyRegressor
@@ -32,6 +32,7 @@ class TrainEnergyRegressor(Tool):
     classes = [
         TableLoader,
         Regressor,
+        FeatureGenerator,
     ]
 
     def setup(self):
@@ -47,6 +48,8 @@ class TrainEnergyRegressor(Tool):
 
         self.regressor = EnergyRegressor(self.loader.subarray, parent=self)
         self.rng = np.random.default_rng(self.random_seed)
+
+        self.feature_generator = FeatureGenerator(parent=self)
 
     def start(self):
 
@@ -74,6 +77,9 @@ class TrainEnergyRegressor(Tool):
         mask = self.regressor.qualityquery.get_table_mask(table)
         table = table[mask]
         self.log.info("Events after applying quality query: %d", len(table))
+
+        self.log.info("Generating %d features", len(self.feature_generator))
+        table = self.feature_generator(table)
 
         feature_names = self.regressor.model.features + [self.regressor.target]
         table = table[feature_names]

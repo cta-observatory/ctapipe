@@ -33,6 +33,8 @@ TrainEnergyRegressor:
         - mirror_area
         - HillasReconstructor_average_intensity
         - HillasReconstructor_h_max
+        - log_intensity
+        - area
 
     QualityQuery:
       quality_criteria:
@@ -41,6 +43,11 @@ TrainEnergyRegressor:
         - ["Positive width", "hillas_width > 0"]
         - ["enough pixels", "morphology_num_pixels > 3"]
         - ["not clipped", "leakage_intensity_width_2 < 0.5"]
+
+  FeatureGenerator:
+    features:
+      - ["log_intensity", "log10(hillas_intensity)"]
+      - ["area", "hillas_width * hillas_length"]
 
 
 TrainParticleIdClassifier:
@@ -71,6 +78,8 @@ TrainParticleIdClassifier:
         - mirror_area
         - HillasReconstructor_average_intensity
         - HillasReconstructor_h_max
+        - log_intensity
+        - area
 
     QualityQuery:
       quality_criteria:
@@ -79,3 +88,8 @@ TrainParticleIdClassifier:
         - ["Positive width", "hillas_width > 0"]
         - ["enough pixels", "morphology_num_pixels > 3"]
         - ["not clipped", "leakage_intensity_width_2 < 0.5"]
+
+  FeatureGenerator:
+    features:
+      - ["log_intensity", "log10(hillas_intensity)"]
+      - ["area", "hillas_width * hillas_length"]
