@@ -727,7 +727,7 @@ class ReconstructedGeometryContainer(Container):
         nan, "average intensity of the intensities used for reconstruction"
     )
     goodness_of_fit = Field(nan, "measure of algorithm success (if fit)")
-    tel_ids = Field(None, "list of tel_ids used if stereo, or None if Mono")
+    telescopes = Field(None, "Telescopes used if stereo, or None if Mono")
 
 
 class ReconstructedEnergyContainer(Container):
@@ -748,7 +748,7 @@ class ReconstructedEnergyContainer(Container):
         ),
     )
     goodness_of_fit = Field(nan, "goodness of the algorithm fit")
-    tel_ids = Field(None, "list of tel_ids used if stereo, or None if Mono")
+    telescopes = Field(None, "Telescopes used if stereo, or None if Mono")
 
 
 class ParticleClassificationContainer(Container):
@@ -772,7 +772,7 @@ class ParticleClassificationContainer(Container):
     )
     is_valid = Field(False, "true if classification parameters are valid")
     goodness_of_fit = Field(nan, "goodness of the algorithm fit")
-    tel_ids = Field(None, "list of tel_ids used if stereo, or None if Mono")
+    telescopes = Field(None, "Telescopes used if stereo, or None if Mono")
 
 
 class ReconstructedContainer(Container):

@@ -49,18 +49,18 @@ def generate_dummy_dl2(event):
         event.dl2.stereo.geometry[algo] = ReconstructedGeometryContainer(
             alt=72 * u.deg,
             az=121 * u.deg,
-            tel_ids=[1, 2, 4],
+            telescopes=[1, 2, 4],
             prefix=algo,
         )
 
         event.dl2.stereo.energy[algo] = ReconstructedEnergyContainer(
             energy=10 * u.TeV,
-            tel_ids=[1, 2, 4],
+            telescopes=[1, 2, 4],
             prefix=algo,
         )
         event.dl2.stereo.classification[algo] = ParticleClassificationContainer(
             prediction=0.9,
-            tel_ids=[1, 2, 4],
+            telescopes=[1, 2, 4],
             prefix=algo,
         )
 
@@ -129,13 +129,13 @@ def test_write(tmpdir: Path):
         for prefix in ("ImPACTReconstructor", "HillasReconstructor"):
             dl2_energy = h5file.get_node(f"/dl2/event/subarray/energy/{prefix}")
             assert np.allclose(dl2_energy.col(f"{prefix}_energy"), 10)
-            assert np.count_nonzero(dl2_energy.col(f"{prefix}_tel_ids")[0]) == 3
+            assert np.count_nonzero(dl2_energy.col(f"{prefix}_telescopes")[0]) == 3
 
             dl2_tel_energy = h5file.get_node(
                 f"/dl2/event/telescope/energy/{prefix}/tel_004"
             )
             assert np.allclose(dl2_tel_energy.col(f"{prefix}_tel_energy"), 10)
-            assert "tel_ids" not in dl2_tel_energy
+            assert "telescopes" not in dl2_tel_energy
 
 
 def test_roundtrip(tmpdir: Path):
