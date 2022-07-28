@@ -1077,13 +1077,11 @@ class TwoPassWindowSum(ImageExtractor):
         # STEP 3
 
         # find all islands using this cleaning
-        num_islands, labels = number_of_islands(camera_geometry, mask_clean)
+        n_islands, labels = number_of_islands(camera_geometry, mask_clean)
 
-        if num_islands > 0:
+        if n_islands > 0:
             # ...find the brightest one
-            mask_brightest_island = brightest_island(
-                num_islands, labels, charge_1stpass
-            )
+            mask_brightest_island = brightest_island(n_islands, labels, charge_1stpass)
         else:
             mask_brightest_island = mask_clean
 

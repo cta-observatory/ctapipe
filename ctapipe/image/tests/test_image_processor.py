@@ -9,7 +9,7 @@ from ctapipe.image.cleaning import MARSImageCleaner
 
 
 def test_image_processor(example_event, example_subarray):
-    """ ensure we get parameters out when we input an event with images """
+    """ensure we get parameters out when we input an event with images"""
 
     calibrate = CameraCalibrator(subarray=example_subarray)
     process_images = ImageProcessor(
@@ -28,7 +28,7 @@ def test_image_processor(example_event, example_subarray):
         assert isfinite(dl1tel.parameters.timing.slope.value)
         assert isfinite(dl1tel.parameters.leakage.pixels_width_1)
         assert isfinite(dl1tel.parameters.concentration.cog)
-        assert isfinite(dl1tel.parameters.morphology.num_pixels)
+        assert isfinite(dl1tel.parameters.morphology.n_pixels)
         assert isfinite(dl1tel.parameters.intensity_statistics.max)
         assert isfinite(dl1tel.parameters.peak_time_statistics.max)
 
@@ -36,7 +36,7 @@ def test_image_processor(example_event, example_subarray):
 
 
 def test_image_processor_camera_frame(example_event, example_subarray):
-    """ ensure we get parameters in the camera frame if explicitly specified """
+    """ensure we get parameters in the camera frame if explicitly specified"""
 
     calibrate = CameraCalibrator(subarray=example_subarray)
     process_images = ImageProcessor(
@@ -57,7 +57,7 @@ def test_image_processor_camera_frame(example_event, example_subarray):
         assert isfinite(dl1tel.parameters.timing.slope.value)
         assert isfinite(dl1tel.parameters.leakage.pixels_width_1)
         assert isfinite(dl1tel.parameters.concentration.cog)
-        assert isfinite(dl1tel.parameters.morphology.num_pixels)
+        assert isfinite(dl1tel.parameters.morphology.n_pixels)
         assert isfinite(dl1tel.parameters.intensity_statistics.max)
         assert isfinite(dl1tel.parameters.peak_time_statistics.max)
 

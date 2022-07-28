@@ -1,10 +1,10 @@
 from abc import abstractmethod
+
 import numpy as np
+from astropy.coordinates import AltAz, SkyCoord
 
+from ctapipe.containers import ArrayEventContainer, ReconstructedGeometryContainer
 from ctapipe.core import Component, QualityQuery
-from ctapipe.containers import ReconstructedGeometryContainer, ArrayEventContainer
-from astropy.coordinates import SkyCoord, AltAz
-
 from ctapipe.core.traits import List
 
 __all__ = ["Reconstructor", "TooFewTelescopesException", "InvalidWidthException"]
@@ -26,7 +26,7 @@ class StereoQualityQuery(QualityQuery):
         default_value=[
             ("> 50 phe", "parameters.hillas.intensity > 50"),
             ("Positive width", "parameters.hillas.width.value > 0"),
-            ("> 3 pixels", "parameters.morphology.num_pixels > 3"),
+            ("> 3 pixels", "parameters.morphology.n_pixels > 3"),
         ],
         help=QualityQuery.quality_criteria.help,
     ).tag(config=True)

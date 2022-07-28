@@ -1,16 +1,16 @@
-import numpy as np
 import astropy.units as u
+import numpy as np
 
 from ctapipe.image.muon import kundu_chaudhuri_circle_fit
 
 
 def test_kundu_chaudhuri():
 
-    num_tests = 10
+    n_tests = 10
     rng = np.random.default_rng(0)
-    center_xs = rng.uniform(-1000, 1000, num_tests)
-    center_ys = rng.uniform(-1000, 1000, num_tests)
-    radii = rng.uniform(10, 1000, num_tests)
+    center_xs = rng.uniform(-1000, 1000, n_tests)
+    center_ys = rng.uniform(-1000, 1000, n_tests)
+    radii = rng.uniform(10, 1000, n_tests)
 
     for center_x, center_y, radius in zip(center_xs, center_ys, radii):
 

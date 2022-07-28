@@ -131,7 +131,7 @@ def test_array_display(prod5_mst_nectarcam):
     ad.set_vector_rho_phi(1 * u.m, 90 * u.deg)
 
     # try setting a value
-    vals = np.ones(sub.num_tels)
+    vals = np.ones(sub.n_tels)
     ad.values = vals
 
     assert (vals == ad.values).all()

@@ -254,7 +254,7 @@ def test_instrument():
         focal_length_choice="EQUIVALENT",
     )
     subarray = source.subarray
-    assert subarray.tel[1].optics.num_mirrors == 1
+    assert subarray.tel[1].optics.n_mirrors == 1
 
 
 def test_apply_simtel_r1_calibration_1_channel():

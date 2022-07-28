@@ -22,7 +22,7 @@ __all__ = [
 
 GuessingKey = namedtuple(
     "GuessingKey",
-    ["n_pixels", "focal_length", "num_mirror_tiles"],
+    ["n_pixels", "focal_length", "n_mirror_tiles"],
     defaults=(None,),  # Mirror Tiles are optional
 )
 
@@ -43,11 +43,11 @@ def _build_lookup_tree(telescopes):
 
         d = tree[k.n_pixels][k.focal_length]
 
-        if k.num_mirror_tiles in d:
-            other = d[k.num_mirror_tiles]
+        if k.n_mirror_tiles in d:
+            other = d[k.n_mirror_tiles]
             raise ValueError(f"GuessingKeys are not unique: {k}: {v}, {other}")
 
-        d[k.num_mirror_tiles] = v
+        d[k.n_mirror_tiles] = v
 
     return tree
 
@@ -87,7 +87,7 @@ TELESCOPE_NAMES = [
 LOOKUP_TREE = _build_lookup_tree(TELESCOPE_NAMES)
 
 
-def guess_telescope(n_pixels, focal_length, num_mirror_tiles=None):
+def guess_telescope(n_pixels, focal_length, n_mirror_tiles=None):
     """
     From n_pixels of the camera and the focal_length,
     guess which telescope we are dealing with.
@@ -110,8 +110,8 @@ def guess_telescope(n_pixels, focal_length, num_mirror_tiles=None):
 
     try:
         d = LOOKUP_TREE[n_pixels][focal_length]
-        # first check with num_mirror_tiles
-        tel = d.get(num_mirror_tiles)
+        # first check with n_mirror_tiles
+        tel = d.get(n_mirror_tiles)
         if tel is not None:
             return tel
 
