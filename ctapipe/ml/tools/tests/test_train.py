@@ -1,3 +1,5 @@
+import pytest
+
 from ctapipe.core import run_tool
 from ctapipe.utils.datasets import resource_file
 
@@ -24,28 +26,30 @@ def test_too_few_events(
     config = resource_file("ml_config.yaml")
     out_file = model_tmp_path / "energy.pkl"
 
-    ret = run_tool(
-        tool,
-        argv=[
-            f"--input={dl2_shower_geometry_file}",
-            f"--output={out_file}",
-            f"--config={config}",
-            "--log-level=INFO",
-        ],
-    )
-    assert ret == 1
+    with pytest.raises(ValueError):
+        run_tool(
+            tool,
+            argv=[
+                f"--input={dl2_shower_geometry_file}",
+                f"--output={out_file}",
+                f"--config={config}",
+                "--log-level=INFO",
+            ],
+            raises=True,
+        )
 
     tool = TrainParticleIdClassifier()
     out_file = model_tmp_path / "particle_classifier.pkl"
 
-    ret = run_tool(
-        tool,
-        argv=[
-            f"--signal={dl2_shower_geometry_file}",
-            f"--background={dl2_proton_geometry_file}",
-            f"--output={out_file}",
-            f"--config={config}",
-            "--log-level=INFO",
-        ],
-    )
-    assert ret == 1
+    with pytest.raises(ValueError):
+        run_tool(
+            tool,
+            argv=[
+                f"--signal={dl2_shower_geometry_file}",
+                f"--background={dl2_proton_geometry_file}",
+                f"--output={out_file}",
+                f"--config={config}",
+                "--log-level=INFO",
+            ],
+            raises=True,
+        )
