@@ -36,10 +36,11 @@ class ExpressionEngine(Component):
         for name, expression in self.expressions:
             try:
                 self.compiled.append(compile(expression, __name__, mode="eval"))
-            except Exception:
+            except Exception as err:
                 raise ExpressionError(
-                    f"Error compiling expression '{expression}' for {name}"
-                )
+                    f"Error compiling expression '{expression}' for {name}\n"
+                    f"{type(err).__name__}: {err}"
+                ) from err
 
     def __call__(self, locals):
         for expr in self.compiled:
@@ -48,4 +49,6 @@ class ExpressionEngine(Component):
             except NameError as err:
                 raise ExpressionError(f"Error evaluating expression '{expr}': {err}")
             except Exception as err:
-                raise ExpressionError(f"Error evaluating expression '{expr}'") from err
+                raise ExpressionError(
+                    f"Error evaluating expression '{expr}': {err}"
+                ) from err
