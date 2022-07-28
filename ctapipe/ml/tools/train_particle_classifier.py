@@ -109,6 +109,8 @@ class TrainParticleIdClassifier(Tool):
         table = table[mask]
         self.log.info("Events after applying quality query: %d", len(table))
 
+        table = self.classifier.generate_features(table)
+
         columns = self.classifier.model.features + [self.classifier.target]
         table = table[columns]
 
