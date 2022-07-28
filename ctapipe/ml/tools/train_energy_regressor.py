@@ -75,6 +75,8 @@ class TrainEnergyRegressor(Tool):
         table = table[mask]
         self.log.info("Events after applying quality query: %d", len(table))
 
+        table = self.regressor.generate_features(table)
+
         feature_names = self.regressor.model.features + [self.regressor.target]
         table = table[feature_names]
 
