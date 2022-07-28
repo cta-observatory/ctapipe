@@ -572,7 +572,7 @@ class SubarrayDescription:
 
         version = layout.meta.get("TAB_VER")
         if version not in cls.COMPATIBLE_VERSIONS:
-            raise IOError("Unsupported version of subarray table: {version}")
+            raise IOError(f"Unsupported version of subarray table: {version}")
 
         cameras = {}
 
