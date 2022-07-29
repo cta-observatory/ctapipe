@@ -9,11 +9,12 @@ This processor will be able to process a shower/event in 3 steps:
 """
 from ..containers import ArrayEventContainer, TelescopeImpactParameterContainer
 from ..core import Component
-from ..core.traits import create_class_enum_trait
+from ..core.traits import Bool, create_class_enum_trait
 from ..instrument import SubarrayDescription
 from . import Reconstructor
 from .impact_distance import shower_impact_distance
-
+from ctapipe.reco.impact import ImPACTReconstructor
+from ctapipe.core import traits
 
 class ShowerProcessor(Component):
     """
@@ -30,6 +31,8 @@ class ShowerProcessor(Component):
         default_value="HillasReconstructor",
         help="The stereo geometry reconstructor to be used",
     )
+
+    advanced_reconstructor_type = traits.CaselessStrEnum(["ImPACTReconstructor", ""], default_value="", help="name minimiser to use in the fit").tag(config=True)
 
     def __init__(
         self, subarray: SubarrayDescription, config=None, parent=None, **kwargs
@@ -57,6 +60,9 @@ class ShowerProcessor(Component):
             subarray=self.subarray,
             parent=self,
         )
+        if self.advanced_reconstructor_type is not "":
+            self.advanced_reconstructor = Reconstructor.from_name(self.advanced_reconstructor_type,
+            subarray=self.subarray, parent=self)
 
     def __call__(self, event: ArrayEventContainer):
         """
@@ -70,8 +76,13 @@ class ShowerProcessor(Component):
         event : ctapipe.containers.ArrayEventContainer
             Top-level container for all event information.
         """
-        k = self.reconstructor_type
+        k = self.reconstructor_type            
         event.dl2.stereo.geometry[k] = self.reconstructor(event)
+        
+        if self.advanced_reconstructor_type is not "":
+            geometry, energy = self.advanced_reconstructor(event)
+            event.dl2.stereo.geometry[self.advanced_reconstructor_type] = geometry
+            event.dl2.stereo.energy[self.advanced_reconstructor_type] = energy
 
         # compute and store the impact parameter for each reconstruction (for
         # now there is only one, but in the future this should be a loop over
