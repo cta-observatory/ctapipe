@@ -241,7 +241,7 @@ class EventSource(Component):
     @abstractmethod
     def is_simulation(self) -> bool:
         """
-        Weither the currently opened file is simulated
+        Whether the currently opened file is simulated
 
         Returns
         -------
