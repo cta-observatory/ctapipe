@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
-# import ah_bootstrap
-from setuptools import setup, find_packages
 import os
+
+# import ah_bootstrap
+from setuptools import find_packages, setup
 
 # Define entry points for command-line scripts
 # TODO: this shuold be automated (e.g. look for main functions and
@@ -19,10 +20,9 @@ entry_points["console_scripts"] = [
     "ctapipe-merge = ctapipe.tools.merge:main",
     "ctapipe-fileinfo = ctapipe.tools.fileinfo:main",
     "ctapipe-quickstart = ctapipe.tools.quickstart:main",
-    "ctapipe-ml-train-energy-regressor = ctapipe.ml.tools.train_energy_regressor:main",
-    "ctapipe-ml-apply-energy-regressor = ctapipe.ml.tools.apply_energy_regressor:main",
-    "ctapipe-ml-train-particle-classifier = ctapipe.ml.tools.train_particle_classifier:main",
-    "ctapipe-ml-apply-particle-classifier = ctapipe.ml.tools.apply_particle_classifier:main",
+    "ctapipe-ml-train-regressor = ctapipe.ml.tools.train_energy_regressor:main",
+    "ctapipe-ml-train-classifier = ctapipe.ml.tools.train_particle_classifier:main",
+    "ctapipe-ml-apply = ctapipe.ml.tools.apply:main",
 ]
 tests_require = [
     "pytest",
