@@ -83,8 +83,8 @@ class SchedulingBlockType(enum.Enum):
 
 
 class ObservationBlockState(enum.Enum):
-    """
-    Observation Block States
+    """Observation Block States. Part of the Observation Configuration data
+    model.
     """
 
     UNKNOWN = -1
@@ -96,7 +96,10 @@ class ObservationBlockState(enum.Enum):
 
 
 class ObservingMode(enum.Enum):
-    """How a scheduling block is observed."""
+    """How a scheduling block is observed. Part of the Observation Configuration
+    data model.
+
+    """
 
     UNKNOWN = -1
     WOBBLE = 0
@@ -106,6 +109,11 @@ class ObservingMode(enum.Enum):
 
 
 class PointingMode(enum.Enum):
+    """Describes how the telescopes move. Part of the Observation Configuration
+    data model.
+
+    """
+
     UNKNOWN = -1
     #: drives track a point that moves with the sky
     TRACK = 0
@@ -114,6 +122,10 @@ class PointingMode(enum.Enum):
 
 
 class CoordinateFrameType(enum.Enum):
+    """types of coordinate frames used in ObservationBlockContainers. Part of
+    the Observation Configuration data model.
+
+    """
 
     UNKNOWN = -1
     ALTAZ = 0
