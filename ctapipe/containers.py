@@ -68,7 +68,7 @@ __all__ = [
 NAN_TIME = Time(0, format="mjd", scale="tai")
 
 #: Used for unsigned integer obs_id or sb_id default values:
-UNKNOWN_ID = np.iinfo(np.uint64).max
+UNKNOWN_ID = np.uint64(np.iinfo(np.uint64).max)
 
 
 class SchedulingBlockType(enum.Enum):
