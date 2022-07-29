@@ -175,3 +175,10 @@ def test_dl2(tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_file):
 
     for col in ("counts", "cumulative_counts"):
         assert np.all(merged_stats[col] == (stats1[col] + stats2[col]))
+
+    # test reading configurations as well:
+    obs = read_table(output, "/configuration/observation/observation_block")
+    sbs = read_table(output, "/configuration/observation/scheduling_block")
+
+    assert len(obs) == 2, "should have two OB entries"
+    assert len(sbs) == 2, "should have two SB entries"
