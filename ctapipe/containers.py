@@ -1279,9 +1279,9 @@ class ObservationBlockContainer(Container):
     subarray_pointing_frame = Field(
         CoordinateFrameType.UNKNOWN,
         (
-            "Frame in which the subarray_target is non-moving. If the frame is altaz, "
-            "The meaning of lat,lon is altitude,azimuth.  If it is icrs, the meaning is "
-            "RA,Dec"
+            "Frame in which the subarray_target is non-moving. If the frame is ALTAZ, "
+            "the meaning of (lon,lat) is (azimuth, altitude) while for ICRS it is "
+            "(right-ascension, declination)"
         ),
         type=CoordinateFrameType,
     )
