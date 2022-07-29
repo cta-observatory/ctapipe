@@ -85,7 +85,9 @@ class ToyEventSource(EventSource, TelescopeComponent):
     @property
     def observation_blocks(self) -> Dict[int, ObservationBlockContainer]:
         return {
-            -1: ObservationBlockContainer(obs_id=-1, producer_id="ctapipe toymodel")
+            -1: ObservationBlockContainer(
+                obs_id=-1, sb_id=-1, producer_id="ctapipe toymodel"
+            )
         }
 
     @subarray.setter

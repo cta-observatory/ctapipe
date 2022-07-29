@@ -1240,6 +1240,7 @@ class ObservationBlockContainer(Container):
 
     default_prefix = ""
     obs_id = Field(UNKNOWN_ID, "Observation Block ID", type=np.uint64)
+    sb_id = Field(UNKNOWN_ID, "ID of the parent SchedulingBlock", type=np.uint64)
     producer_id = Field(
         "unknown",
         "Origin of the obs_id, i.e. name of the telescope site or 'simulation'",

@@ -845,24 +845,25 @@ class SimTelEventSource(EventSource):
         az, alt = self.file_.header["direction"]
         obs_id = self.file_.header["run"]
 
+        sb_dict = {
+            obs_id: SchedulingBlockContainer(
+                sb_id=np.uint64(obs_id),  # simulations have no SBs, use OB id
+                sb_type=SchedulingBlockType.OBSERVATION,
+                producer_id="simulation",
+                observing_mode=ObservingMode.UNKNOWN,
+                pointing_mode=PointingMode.DRIFT,
+            )
+        }
+
         ob_dict = {
             obs_id: ObservationBlockContainer(
                 obs_id=np.uint64(obs_id),
+                sb_id=np.uint64(obs_id),  # see comment above
                 producer_id="simulation",
                 state=ObservationBlockState.COMPLETED_SUCCEDED,
                 subarray_pointing_lat=alt * u.deg,
                 subarray_pointing_lon=az * u.deg,
                 subarray_pointing_frame=CoordinateFrameType.ALTAZ,
-            )
-        }
-
-        sb_dict = {
-            obs_id: SchedulingBlockContainer(
-                sb_id=np.uint64(obs_id),  # simulations have no SBs, so use the OB id
-                sb_type=SchedulingBlockType.OBSERVATION,
-                producer_id="simulation",
-                observing_mode=ObservingMode.UNKNOWN,
-                pointing_mode=PointingMode.DRIFT,
             )
         }
 
