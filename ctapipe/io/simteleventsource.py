@@ -861,8 +861,8 @@ class SimTelEventSource(EventSource):
                 sb_id=np.uint64(obs_id),  # see comment above
                 producer_id="simulation",
                 state=ObservationBlockState.COMPLETED_SUCCEDED,
-                subarray_pointing_lat=alt * u.deg,
-                subarray_pointing_lon=az * u.deg,
+                subarray_pointing_lat=alt * u.rad,
+                subarray_pointing_lon=az * u.rad,
                 subarray_pointing_frame=CoordinateFrameType.ALTAZ,
                 actual_start_time=Time(self.file_.header["time"], format="unix"),
                 scheduled_start_time=Time(self.file_.header["time"], format="unix"),
