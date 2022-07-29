@@ -80,15 +80,13 @@ class ToyEventSource(EventSource, TelescopeComponent):
 
     @property
     def scheduling_blocks(self) -> Dict[int, SchedulingBlockContainer]:
-        return {-1: SchedulingBlockContainer(sb_id=-1, producer_id="ctapipe toymodel")}
+        sb = SchedulingBlockContainer(producer_id="ctapipe toymodel")
+        return {sb.sb_id: sb}
 
     @property
     def observation_blocks(self) -> Dict[int, ObservationBlockContainer]:
-        return {
-            -1: ObservationBlockContainer(
-                obs_id=-1, sb_id=-1, producer_id="ctapipe toymodel"
-            )
-        }
+        ob = ObservationBlockContainer(producer_id="ctapipe toymodel")
+        return {ob.ob_id: ob}
 
     @subarray.setter
     def subarray(self, value):
