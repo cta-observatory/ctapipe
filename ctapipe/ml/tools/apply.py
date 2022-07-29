@@ -130,21 +130,21 @@ class Apply(Tool):
     def start(self):
         if self.apply_regressor:
             self.log.info("Apply regressor.")
-            mono_predictions = self._apply_regressor()
-            self._combine_regressor(mono_predictions)
+            mono_predictions = self._apply(self.regressor, "energy")
+            self._combine(self.regressor_combine, mono_predictions)
 
         if self.apply_classifier:
             self.log.info("Apply classifier.")
-            mono_predictions = self._apply_classifier()
-            self._combine_classifier(mono_predictions)
+            mono_predictions = self._apply(self.classifier, "classification")
+            self._combine(self.classifier_combine, mono_predictions)
 
-    def _apply_regressor(self):
-        prefix = self.regressor.model.model_cls
+    def _apply(self, reconstructor, parameter):
+        prefix = reconstructor.model.model_cls
 
         tables = []
 
         for tel_id, tel in tqdm(self.loader.subarray.tel.items()):
-            if tel not in self.regressor.model.models:
+            if tel not in reconstructor.model.models:
                 self.log.warning(
                     "No regressor model for telescope type %s, skipping tel %d",
                     tel,
@@ -159,7 +159,7 @@ class Apply(Tool):
 
             table.remove_columns([c for c in table.colnames if c.startswith(prefix)])
 
-            predictions = self.regressor.predict(tel, table)
+            predictions = reconstructor.predict(tel, table)
             table = hstack(
                 [table, predictions],
                 join_type="exact",
@@ -168,7 +168,7 @@ class Apply(Tool):
             write_table(
                 table[["obs_id", "event_id", "tel_id"] + predictions.colnames],
                 self.loader.input_url,
-                f"/dl2/event/telescope/energy/{prefix}/tel_{tel_id:03d}",
+                f"/dl2/event/telescope/{parameter}/{prefix}/tel_{tel_id:03d}",
                 mode="a",
                 overwrite=self.overwrite,
             )
@@ -179,8 +179,8 @@ class Apply(Tool):
 
         return vstack(tables)
 
-    def _combine_regressor(self, mono_predictions):
-        stereo_predictions = self.regressor_combine.predict(mono_predictions)
+    def _combine(self, combiner, mono_predictions):
+        stereo_predictions = combiner.predict(mono_predictions)
 
         trafo = TelListToMaskTransform(self.loader.subarray)
         for c in filter(
@@ -192,66 +192,7 @@ class Apply(Tool):
         write_table(
             stereo_predictions,
             self.loader.input_url,
-            f"/dl2/event/subarray/energy/{self.regressor.model.model_cls}",
-            mode="a",
-            overwrite=self.overwrite,
-        )
-
-    def _apply_classifier(self):
-        prefix = self.classifier.model.model_cls
-
-        tables = []
-
-        for tel_id, tel in tqdm(self.loader.subarray.tel.items()):
-            if tel not in self.classifier.model.models:
-                self.log.warning(
-                    "No classifier model for telescope type %s, skipping tel %d",
-                    tel,
-                    tel_id,
-                )
-                continue
-
-            table = self.loader.read_telescope_events([tel_id])
-            if len(table) == 0:
-                self.log.warning("No events for telescope %d", tel_id)
-                continue
-
-            table.remove_columns([c for c in table.colnames if c.startswith(prefix)])
-
-            predictions = self.classifier.predict(tel, table)
-            table = hstack(
-                [table, predictions],
-                join_type="exact",
-                metadata_conflicts="ignore",
-            )
-            write_table(
-                table[["obs_id", "event_id", "tel_id"] + predictions.colnames],
-                self.loader.input_url,
-                f"/dl2/event/telescope/classification/{prefix}/tel_{tel_id:03d}",
-                mode="a",
-                overwrite=self.overwrite,
-            )
-            tables.append(table)
-
-        if len(tables) == 0:
-            raise ValueError("No predictions made for any telescope")
-
-        return vstack(tables)
-
-    def _combine_classifier(self, mono_predictions):
-        stereo_predictions = self.classifier_combine.predict(mono_predictions)
-
-        trafo = TelListToMaskTransform(self.loader.subarray)
-        for c in filter(
-            lambda c: c.name.endswith("tel_ids"),
-            stereo_predictions.columns.values(),
-        ):
-            stereo_predictions[c.name] = np.array([trafo(r) for r in c])
-
-        write_table(
-            stereo_predictions,
-            self.loader.input_url,
-            f"/dl2/event/subarray/classification/{self.classifier.model.model_cls}",
+            f"/dl2/event/subarray/{combiner.combine_property}/{combiner.algorithm}",
             mode="a",
             overwrite=self.overwrite,
         )

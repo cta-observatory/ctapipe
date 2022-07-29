@@ -87,7 +87,7 @@ def test_apply_both(
     from ctapipe.ml.tools.apply import Apply
 
     input_path = dl2_shower_geometry_file_lapalma
-    output_path = tmp_path / "particle-and-aenergy.dl2.h5"
+    output_path = tmp_path / "particle-and-energy.dl2.h5"
 
     ret = run_tool(
         Apply(),
