@@ -272,7 +272,6 @@ class EventSource(Component):
         return any(dl in self.datalevels for dl in datalevels)
 
     @property
-    @abstractmethod
     def obs_ids(self) -> List[int]:
         """
         The observation ids of the runs located in the file
@@ -282,6 +281,7 @@ class EventSource(Component):
         -------
         list[int]
         """
+        return list(self.observation_blocks.keys())
 
     @abstractmethod
     def _generator(self) -> Generator[ArrayEventContainer, None, None]:

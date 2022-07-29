@@ -36,10 +36,6 @@ class DummyReader(EventSource):
         return False
 
     @property
-    def obs_ids(self):
-        return [1]
-
-    @property
     def scheduling_blocks(self):
         return dict()
 

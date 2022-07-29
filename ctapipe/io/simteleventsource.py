@@ -359,11 +359,11 @@ class SimTelEventSource(EventSource):
         self._subarray_info = self.prepare_subarray_info(
             self.file_.telescope_descriptions, self.file_.header
         )
-        self._simulation_config = self._parse_simulation_header()
         (
-            self._scheduling_block,
-            self._observation_block,
+            self._scheduling_blocks,
+            self._observation_blocks,
         ) = self._fill_scheduling_and_observation_blocks()
+        self._simulation_config = self._parse_simulation_header()
         self.start_pos = self.file_.tell()
 
         self.gain_selector = GainSelector.from_name(
@@ -386,11 +386,6 @@ class SimTelEventSource(EventSource):
         return (DataLevel.R0, DataLevel.R1)
 
     @property
-    def obs_ids(self):
-        # ToDo: This does not support merged simtel files!
-        return [self.file_.header["run"]]
-
-    @property
     def simulation_config(self) -> Dict[int, SimulationConfigContainer]:
         return self._simulation_config
 
@@ -399,14 +394,14 @@ class SimTelEventSource(EventSource):
         """
         Obtain the ObservationConfigurations from the EventSource, indexed by obs_id
         """
-        return self._observation_block
+        return self._observation_blocks
 
     @property
     def scheduling_blocks(self) -> Dict[int, SchedulingBlockContainer]:
         """
         Obtain the ObservationConfigurations from the EventSource, indexed by obs_id
         """
-        return self._scheduling_block
+        return self._scheduling_blocks
 
     @property
     def is_stream(self):
@@ -848,7 +843,7 @@ class SimTelEventSource(EventSource):
         """
 
         az, alt = self.file_.header["direction"]
-        obs_id = self.obs_ids[0]
+        obs_id = self.file_.header["run"]
 
         ob_dict = {
             obs_id: ObservationBlockContainer(

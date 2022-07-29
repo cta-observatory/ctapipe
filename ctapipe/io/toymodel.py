@@ -3,11 +3,18 @@
 Create a toymodel event stream of array events
 """
 import logging
+from typing import Dict
 
 import astropy.units as u
 import numpy as np
 
-from ..containers import ArrayEventContainer, DL1CameraContainer, EventIndexContainer
+from ..containers import (
+    ArrayEventContainer,
+    DL1CameraContainer,
+    EventIndexContainer,
+    ObservationBlockContainer,
+    SchedulingBlockContainer,
+)
 from ..core import TelescopeComponent, traits
 from ..image import toymodel
 from .datalevels import DataLevel
@@ -64,10 +71,6 @@ class ToyEventSource(EventSource, TelescopeComponent):
         return self._subarray
 
     @property
-    def obs_ids(self):
-        return [-1]
-
-    @property
     def is_simulation(self):
         return True
 
@@ -76,12 +79,14 @@ class ToyEventSource(EventSource, TelescopeComponent):
         return (DataLevel.DL1_IMAGES,)
 
     @property
-    def observation_blocks(self):
-        return dict()
+    def scheduling_blocks(self) -> Dict[int, SchedulingBlockContainer]:
+        return {-1: SchedulingBlockContainer(sb_id=-1, producer_id="ctapipe toymodel")}
 
     @property
-    def scheduling_blocks(self):
-        return dict()
+    def observation_blocks(self) -> Dict[int, ObservationBlockContainer]:
+        return {
+            -1: ObservationBlockContainer(obs_id=-1, producer_id="ctapipe toymodel")
+        }
 
     @subarray.setter
     def subarray(self, value):
