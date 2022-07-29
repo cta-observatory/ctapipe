@@ -122,11 +122,12 @@ class CoordinateFrameType(enum.Enum):
 
 
 class EventType(enum.Enum):
-    """Enum of EventTypes as defined in the CTA Data Model
+    """Enum of EventTypes as defined in the CTA Data Model [cta_r1event]_
 
     References
     ----------
-    [cta_r1event] CTA R1/Event Data Model Specification, 2022, version 1 revision C.
+    .. [cta_r1event] CTA R1/Event Data Model Specification, 2022, version 1
+        revision C.
     """
 
     # calibrations are 0-15
@@ -1205,11 +1206,11 @@ class ArrayEventContainer(Container):
 
 class SchedulingBlockContainer(Container):
     """Stores information about the scheduling block. This is a simplified version
-    of the SB model, only storing what is necessary for analysis.
+    of the SB model, only storing what is necessary for analysis. From [cta_sb_ob]_
 
     References
     ----------
-    .. [sb-ob] Oya et al, Scheduling Block Data Model Specification,
+    .. [cta_sb_ob] Oya et al, Scheduling Block Data Model Specification,
         CTA-SPE-COM-000000-0003, Issue 1, Rev. c
     """
 
