@@ -5,7 +5,7 @@ from scipy.stats import norm
 from astropy.table import Table
 from scipy.interpolate import interp1d
 
-__all__ = ["create_seed", "rotate_translate", "get_atmosphere_profile",
+__all__ = ["create_seed", "rotate_translate",
 "guess_shower_depth", "energy_prior", "xmax_prior", "EmptyImages"]
 
 
@@ -119,11 +119,11 @@ def create_seed(source_x, source_y, tilt_x, tilt_y, energy):
         seed = [source_x, source_y, tilt_x, tilt_y, en_seed, 1.2]
 
     # Take a reasonable first guess at step size
-    step = [0.04 / 57.3, 0.04 / 57.3, 10, 10, en_seed * 0.05, 0.05, 0.]
+    step = [0.04 / 57.3, 0.04 / 57.3, 10, 10, en_seed * 0.05, 0.05, 0.01]
     # And some sensible limits of the fit range
     limits = [
-        [source_x - 0.5/57.3, source_x + 0.5/57.3],
-        [source_y - 0.5/57.3, source_y + 0.5/57.3],
+        [source_x - 1.5/57.3, source_x + 1.5/57.3],
+        [source_y - 1.5/57.3, source_y + 1.5/57.3],
         [tilt_x - 100, tilt_x + 100],
         [tilt_y - 100, tilt_y + 100],
         [lower_en_limit, en_seed * 2],
@@ -132,34 +132,3 @@ def create_seed(source_x, source_y, tilt_x, tilt_y, energy):
     ]
 
     return seed, step, limits
-
-def get_atmosphere_profile(filename, with_units=True):
-    """
-    Gives atmospheric profile as a continuous function thickness(
-    altitude), and it's inverse altitude(thickness)  in m and g/cm^2
-    respectively.
-
-    Parameters
-    ----------
-    atmosphere_name: str
-        identifier of atmosphere profile
-    with_units: bool
-       if true, return functions that accept and return unit quantities.
-       Otherwise assume units are 'm' and 'g cm-2'
-
-    Returns
-    -------
-    functions: thickness(alt), alt(thickness)
-    """
-
-    data = Table()
-    
-    tab = data.read(filename)
-    alt = tab["altitude"].to("m").value
-    thick = (tab["thickness"]).to("g cm-2").value
-
-    alt_to_thickness = interp1d(x=np.array(alt), y=np.array(thick), assume_sorted=True)
-    thickness_to_alt = interp1d(x=np.array(thick), y=np.array(alt), assume_sorted=True)
-
-    return alt_to_thickness, thickness_to_alt
-
