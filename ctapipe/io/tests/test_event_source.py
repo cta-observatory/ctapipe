@@ -1,10 +1,10 @@
 import pytest
-from ctapipe.utils import get_dataset_path
-from ctapipe.io import EventSource, SimTelEventSource, DataLevel
-from traitlets.config.loader import Config
 from traitlets import TraitError
+from traitlets.config.loader import Config
 
 from ctapipe.core import Component
+from ctapipe.io import DataLevel, EventSource, SimTelEventSource
+from ctapipe.utils import get_dataset_path
 
 prod5_path = "gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst"
 
@@ -38,6 +38,14 @@ class DummyReader(EventSource):
     @property
     def obs_ids(self):
         return [1]
+
+    @property
+    def scheduling_block(self):
+        return dict()
+
+    @property
+    def observation_block(self):
+        return dict()
 
     @property
     def datalevels(self):

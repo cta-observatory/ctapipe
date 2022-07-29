@@ -67,6 +67,9 @@ __all__ = [
 # see https://github.com/astropy/astropy/issues/6509
 NAN_TIME = Time(0, format="mjd", scale="tai")
 
+#: Used for unsigned integer obs_id or sb_id default values:
+UNKNOWN_ID = np.iinfo(np.uint64).max
+
 
 class SchedulingBlockType(enum.Enum):
     """
@@ -81,7 +84,7 @@ class SchedulingBlockType(enum.Enum):
 
 class ObservationBlockState(enum.Enum):
     """
-    Observation Block State, from XXX
+    Observation Block States
     """
 
     UNKNOWN = -1
@@ -104,8 +107,10 @@ class ObservingMode(enum.Enum):
 
 class PointingMode(enum.Enum):
     UNKNOWN = -1
-    TRACK = 0  # track a fixed point that moves with the sky
-    DRIFT = 1  # track a fixed alt/az point
+    #: drives track a fixed point that moves with the sky
+    TRACK = 0
+    #: drives stay fixed at an alt/az point while the sky drifts by
+    DRIFT = 1
 
 
 class CoordinateFrameType(enum.Enum):
@@ -119,8 +124,9 @@ class CoordinateFrameType(enum.Enum):
 class EventType(enum.Enum):
     """Enum of EventTypes as defined in the CTA Data Model
 
-    These numbers come from  the document *CTA R1/Event Data Model Specification*
-    version 1 revision C.  They may be updated in future revisions
+    References
+    ----------
+    [cta_r1event] CTA R1/Event Data Model Specification, 2022, version 1 revision C.
     """
 
     # calibrations are 0-15
@@ -131,14 +137,14 @@ class EventType(enum.Enum):
     ELECTRONIC_PEDESTAL = 4
     OTHER_CALIBRATION = 15
 
-    # For mono-telescope triggers (not used in MC)
+    #: For mono-telescope triggers (not used in MC)
     MUON = 16
     HARDWARE_STEREO = 17
 
-    # ACADA (DAQ) software trigger
+    #: ACADA (DAQ) software trigger
     DAQ = 24
 
-    # Standard Physics  stereo trigger
+    #: Standard Physics  stereo trigger
     SUBARRAY = 32
 
     UNKNOWN = 255
@@ -1208,11 +1214,16 @@ class SchedulingBlockContainer(Container):
     """
 
     default_prefix = ""
-    sb_id = Field(-1, "Scheduling block ID", type=np.int64)
+    sb_id = Field(UNKNOWN_ID, "Scheduling block ID", type=np.uint64)
     sb_type = Field(
         SchedulingBlockType.UNKNOWN,
         description="Type of scheduling block",
         type=SchedulingBlockType,
+    )
+    producer_id = Field(
+        "unknown",
+        "Origin of the sb_id, i.e. name of the telescope site or 'simulation'",
+        type=str,
     )
     observing_mode = Field(
         ObservingMode.UNKNOWN,
@@ -1228,10 +1239,11 @@ class ObservationBlockContainer(Container):
     """Stores information about the observation"""
 
     default_prefix = ""
-    obs_id = Field(None, "Observation Block ID", type=np.int64)
+    obs_id = Field(UNKNOWN_ID, "Observation Block ID", type=np.uint64)
     producer_id = Field(
         "unknown",
         "Origin of the obs_id, i.e. name of the telescope site or 'simulation'",
+        type=str,
     )
 
     state = Field(
