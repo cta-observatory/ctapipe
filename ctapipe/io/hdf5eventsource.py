@@ -63,7 +63,6 @@ DL2_CONTAINERS = {
 
 COMPATIBLE_DATA_MODEL_VERSIONS = [
     "v4.0.0",
-    "v4.1.0",
 ]
 
 
