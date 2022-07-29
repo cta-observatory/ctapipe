@@ -107,7 +107,7 @@ class ObservingMode(enum.Enum):
 
 class PointingMode(enum.Enum):
     UNKNOWN = -1
-    #: drives track a fixed point that moves with the sky
+    #: drives track a point that moves with the sky
     TRACK = 0
     #: drives stay fixed at an alt/az point while the sky drifts by
     DRIFT = 1
