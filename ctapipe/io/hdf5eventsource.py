@@ -251,11 +251,11 @@ class HDF5EventSource(EventSource):
         return list(np.unique(self.file_.root.dl1.event.subarray.trigger.col("obs_id")))
 
     @property
-    def scheduling_block(self) -> Dict[int, SchedulingBlockContainer]:
+    def scheduling_blocks(self) -> Dict[int, SchedulingBlockContainer]:
         return self._scheduling_block
 
     @property
-    def observation_block(self) -> Dict[int, ObservationBlockContainer]:
+    def observation_blocks(self) -> Dict[int, ObservationBlockContainer]:
         return self._observation_block
 
     @property

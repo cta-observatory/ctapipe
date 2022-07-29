@@ -223,7 +223,7 @@ class EventSource(Component):
 
     @property
     @abstractmethod
-    def observation_block(self) -> Dict[int, ObservationBlockContainer]:
+    def observation_blocks(self) -> Dict[int, ObservationBlockContainer]:
         """
         Obtain the ObservationConfigurations from the EventSource, indexed by obs_id
         """
@@ -231,7 +231,7 @@ class EventSource(Component):
 
     @property
     @abstractmethod
-    def scheduling_block(self) -> Dict[int, SchedulingBlockContainer]:
+    def scheduling_blocks(self) -> Dict[int, SchedulingBlockContainer]:
         """
         Obtain the ObservationConfigurations from the EventSource, indexed by obs_id
         """

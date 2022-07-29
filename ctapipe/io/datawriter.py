@@ -503,14 +503,14 @@ class DataWriter(Component):
 
         self.log.debug(
             "writing %d sbs and %d obs",
-            len(self.event_source.scheduling_block.values()),
-            len(self.event_source.observation_block.values()),
+            len(self.event_source.scheduling_blocks.values()),
+            len(self.event_source.observation_blocks.values()),
         )
 
-        for sb in self.event_source.scheduling_block.values():
+        for sb in self.event_source.scheduling_blocks.values():
             self._writer.write("configuration/observation/scheduling_block", sb)
 
-        for ob in self.event_source.observation_block.values():
+        for ob in self.event_source.observation_blocks.values():
             self._writer.write("configuration/observation/observation_block", ob)
 
     def _write_simulation_configuration(self):

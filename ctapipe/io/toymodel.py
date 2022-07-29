@@ -76,11 +76,11 @@ class ToyEventSource(EventSource, TelescopeComponent):
         return (DataLevel.DL1_IMAGES,)
 
     @property
-    def observation_block(self):
+    def observation_blocks(self):
         return dict()
 
     @property
-    def scheduling_block(self):
+    def scheduling_blocks(self):
         return dict()
 
     @subarray.setter
