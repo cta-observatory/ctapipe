@@ -14,14 +14,14 @@ class Gaussian:
     @u.quantity_input(
         x=u.m,
         y=u.m,
-        phi=u.deg,
-        theta=u.deg,
+        azimuth=u.deg,
+        altitude=u.deg,
         first_interaction=u.m,
         width=u.m,
         length=u.m,
     )
     def __init__(
-        self, total_photons, x, y, phi, theta, first_interaction, width, length
+        self, total_photons, x, y, azimuth, altitude, first_interaction, width, length
     ):
         """Create a 3D gaussian shower model for imaging.
         This is based on https://arxiv.org/pdf/astro-ph/0601373.pdf.
@@ -34,10 +34,10 @@ class Gaussian:
             x coord of shower intersection on ground
         y : u.Quantity[length]
             y coord of shower intersection on ground
-        phi : u.Quantity[angle]
-            azimuthal angle defining orientation of shower
-        theta : u.Quantity[angle]
-            polar angle defining orientation of shower
+        azimuth : u.Quantity[angle]
+            azimuthal angle relative to the shower core
+        altitude : u.Quantity[angle]
+            altitude relative to the shower core
         first_interaction : u.Quantity[length]
             height of the first_interaction of the gamma above ground
         width : u.Quantity[length]
@@ -48,8 +48,8 @@ class Gaussian:
         self.total_photons = total_photons
         self.x = x
         self.y = y
-        self.phi = phi
-        self.theta = theta
+        self.azimuth = azimuth
+        self.zenith = 90 * u.deg - altitude
         self.first_interaction = first_interaction
         self.width = width
         self.length = length
@@ -67,7 +67,9 @@ class Gaussian:
         cov[1, 1] = self.width
         cov[2, 2] = self.length
 
-        r = R.from_rotvec([0, self.theta.to_value(u.rad), self.phi.to_value(u.rad)])
+        r = R.from_rotvec(
+            [0, self.zenith.to_value(u.rad), self.azimuth.to_value(u.rad)]
+        )
         cov = r.as_matrix().T @ cov @ r.as_matrix()
 
         gauss = multivariate_normal(
@@ -79,31 +81,31 @@ class Gaussian:
     @lazyproperty
     def _barycenter(self):
         """Calculates barycenter of the shower.
-        This is given by the vector defined by phi and theta in spherical coords + vector pointing to the first_interaction
+        This is given by the vector defined by azimuth and zenith in spherical coords + vector pointing to the first_interaction
         minus half length back to shower center.
         """
         b = np.zeros(3) * u.m
         b[0] = (
             self.first_interaction
-            * np.cos(self.phi.to_value(u.rad))
-            * np.tan(self.theta.to_value(u.rad))
+            * np.cos(self.azimuth.to_value(u.rad))
+            * np.tan(self.zenith.to_value(u.rad))
             + self.x
             - self.length
             / 2
-            * np.cos(self.phi.to_value(u.rad))
-            * np.sin(self.theta.to_value(u.rad))
+            * np.cos(self.azimuth.to_value(u.rad))
+            * np.sin(self.zenith.to_value(u.rad))
         )
         b[1] = (
             self.first_interaction
-            * np.sin(self.phi.to_value(u.rad))
-            * np.tan(self.theta.to_value(u.rad))
+            * np.sin(self.azimuth.to_value(u.rad))
+            * np.tan(self.zenith.to_value(u.rad))
             + self.y
             - self.length
             / 2
-            * np.sin(self.phi.to_value(u.rad))
-            * np.sin(self.theta.to_value(u.rad))
+            * np.sin(self.azimuth.to_value(u.rad))
+            * np.sin(self.zenith.to_value(u.rad))
         )
         b[2] = self.first_interaction - self.length / 2 * np.cos(
-            self.theta.to_value(u.rad)
+            self.zenith.to_value(u.rad)
         )
         return b
