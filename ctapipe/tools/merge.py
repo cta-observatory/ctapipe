@@ -39,6 +39,11 @@ optional_nodes = {
     "/dl2/event/subarray/geometry",
 }
 
+observation_configuration_nodes = {
+    "/configuration/observation/observation_block",
+    "/configuration/observation/scheduling_block",
+}
+
 simulation_nodes = {
     "/simulation/event/subarray/shower",
     "/simulation/event/telescope/parameters",
@@ -76,6 +81,7 @@ all_nodes = (
     | parameter_nodes
     | simulation_images
     | dl2_subarray_nodes
+    | observation_configuration_nodes
 )
 
 

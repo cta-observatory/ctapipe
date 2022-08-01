@@ -57,19 +57,84 @@ __all__ = [
     "StatisticsContainer",
     "IntensityStatisticsContainer",
     "PeakTimeStatisticsContainer",
+    "SchedulingBlockContainer",
+    "ObservationBlockContainer",
+    "ObservingMode",
+    "ObservationBlockState",
 ]
 
 
 # see https://github.com/astropy/astropy/issues/6509
 NAN_TIME = Time(0, format="mjd", scale="tai")
 
+#: Used for unsigned integer obs_id or sb_id default values:
+UNKNOWN_ID = np.uint64(np.iinfo(np.uint64).max)
+
+
+class SchedulingBlockType(enum.Enum):
+    """
+    Types of Scheduling Block
+    """
+
+    UNKNOWN = -1
+    OBSERVATION = 0
+    CALIBRATION = 1
+    ENGINEERING = 2
+
+
+class ObservationBlockState(enum.Enum):
+    """Observation Block States. Part of the Observation Configuration data
+    model.
+    """
+
+    UNKNOWN = -1
+    FAILED = 0
+    COMPLETED_SUCCEDED = 1
+    COMPLETED_CANCELED = 2
+    COMPLETED_TRUNCATED = 3
+    ARCHIVED = 4
+
+
+class ObservingMode(enum.Enum):
+    """How a scheduling block is observed. Part of the Observation Configuration
+    data model.
+
+    """
+
+    UNKNOWN = -1
+    WOBBLE = 0
+    ON_OFF = 1
+    GRID = 2
+    CUSTOM = 3
+
+
+class PointingMode(enum.Enum):
+    """Describes how the telescopes move. Part of the Observation Configuration
+    data model.
+
+    """
+
+    UNKNOWN = -1
+    #: drives track a point that moves with the sky
+    TRACK = 0
+    #: drives stay fixed at an alt/az point while the sky drifts by
+    DRIFT = 1
+
+
+class CoordinateFrameType(enum.Enum):
+    """types of coordinate frames used in ObservationBlockContainers. Part of
+    the Observation Configuration data model.
+
+    """
+
+    UNKNOWN = -1
+    ALTAZ = 0
+    ICRS = 1
+    GALACTIC = 2
+
 
 class EventType(enum.Enum):
-    """Enum of EventTypes as defined in the CTA Data Model
-
-    These numbers come from  the document *CTA R1/Event Data Model Specification*
-    version 1 revision C.  They may be updated in future revisions
-    """
+    """Enum of EventTypes as defined in the CTA Data Model [cta_r1event]_"""
 
     # calibrations are 0-15
     FLATFIELD = 0
@@ -79,14 +144,14 @@ class EventType(enum.Enum):
     ELECTRONIC_PEDESTAL = 4
     OTHER_CALIBRATION = 15
 
-    # For mono-telescope triggers (not used in MC)
+    #: For mono-telescope triggers (not used in MC)
     MUON = 16
     HARDWARE_STEREO = 17
 
-    # ACADA (DAQ) software trigger
+    #: ACADA (DAQ) software trigger
     DAQ = 24
 
-    # Standard Physics  stereo trigger
+    #: Standard Physics  stereo trigger
     SUBARRAY = 32
 
     UNKNOWN = 255
@@ -1143,3 +1208,78 @@ class ArrayEventContainer(Container):
         default_factory=MonitoringContainer,
         description="container for event-wise monitoring data (MON)",
     )
+
+
+class SchedulingBlockContainer(Container):
+    """Stores information about the scheduling block. This is a simplified
+    version of the SB model, only storing what is necessary for analysis. From
+    [cta_sb_ob]_
+
+    """
+
+    default_prefix = ""
+    sb_id = Field(UNKNOWN_ID, "Scheduling block ID", type=np.uint64)
+    sb_type = Field(
+        SchedulingBlockType.UNKNOWN,
+        description="Type of scheduling block",
+        type=SchedulingBlockType,
+    )
+    producer_id = Field(
+        "unknown",
+        "Origin of the sb_id, i.e. name of the telescope site or 'simulation'",
+        type=str,
+    )
+    observing_mode = Field(
+        ObservingMode.UNKNOWN,
+        "Defines how observations within the Scheduling Block are distributed in space",
+        type=ObservingMode,
+    )
+    pointing_mode = Field(
+        PointingMode.UNKNOWN, "Defines how the telescope drives move", type=PointingMode
+    )
+
+
+class ObservationBlockContainer(Container):
+    """Stores information about the observation"""
+
+    default_prefix = ""
+    obs_id = Field(UNKNOWN_ID, "Observation Block ID", type=np.uint64)
+    sb_id = Field(UNKNOWN_ID, "ID of the parent SchedulingBlock", type=np.uint64)
+    producer_id = Field(
+        "unknown",
+        "Origin of the obs_id, i.e. name of the telescope site or 'simulation'",
+        type=str,
+    )
+
+    state = Field(
+        ObservationBlockState.UNKNOWN, "State of this OB", type=ObservationBlockState
+    )
+
+    subarray_pointing_lat = Field(
+        nan * u.deg,
+        "latitude of the nominal center coordinate of this observation",
+        unit=u.deg,
+    )
+
+    subarray_pointing_lon = Field(
+        nan * u.deg,
+        "longitude of the nominal center coordinate of this observation",
+        unit=u.deg,
+    )
+
+    subarray_pointing_frame = Field(
+        CoordinateFrameType.UNKNOWN,
+        (
+            "Frame in which the subarray_target is non-moving. If the frame is ALTAZ, "
+            "the meaning of (lon,lat) is (azimuth, altitude) while for ICRS it is "
+            "(right-ascension, declination)"
+        ),
+        type=CoordinateFrameType,
+    )
+
+    scheduled_duration = Field(
+        nan * u.min, "expected duration from scheduler", unit=u.min
+    )
+    scheduled_start_time = Field(NAN_TIME, "expected start time from scheduler")
+    actual_start_time = Field(NAN_TIME, "true start time")
+    actual_duration = Field(nan * u.min, "true duration", unit=u.min)
