@@ -160,8 +160,12 @@ def test_stage1_datalevels(tmp_path):
             return True
 
         @property
-        def obs_ids(self):
-            return [1]
+        def scheduling_blocks(self):
+            return dict()
+
+        @property
+        def observation_blocks(self):
+            return dict()
 
         @property
         def subarray(self):

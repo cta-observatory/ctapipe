@@ -40,7 +40,7 @@ def _get_tel_index(event, tel_id):
     )
 
 
-# define the version of the DL1 data model written here. This should be updated
+# define the version of the data model written here. This should be updated
 # when necessary:
 # - increase the major number if there is a breaking change to the model
 #   (meaning readers need to update scripts)
@@ -61,6 +61,7 @@ DATA_MODEL_CHANGE_HISTORY = """
           - The reference_location (EarthLocation origin of the telescope coordinates)
             is now included in SubarrayDescription
           - Only unique optics are stored in the optics table
+          - include observation configuration
 - v3.0.0: reconstructed core uncertainties splitted in their X-Y components
 - v2.2.0: added R0 and R1 outputs
 - v2.1.0: hillas and timing parameters are per default saved in telescope frame (degree) as opposed to camera frame (m)
@@ -137,7 +138,7 @@ def write_reference_metadata_headers(
 
 class DataWriter(Component):
     """
-    Serialize a sequence of events into a HDF5 DL1 file, in the correct format
+    Serialize a sequence of events into a HDF5 file, in the correct format
 
     Examples
     --------
@@ -268,6 +269,7 @@ class DataWriter(Component):
 
     def _setup_outputfile(self):
         self._subarray.to_hdf(self._writer.h5file)
+        self._write_scheduling_and_observation_blocks()
         if self._is_simulation:
             self._write_simulation_configuration()
 
@@ -321,7 +323,7 @@ class DataWriter(Component):
 
     def finish(self):
         """called after all events are done"""
-        self.log.info("Finishing DL1 output")
+        self.log.info("Finishing output")
         if not self._at_least_one_event:
             self.log.warning("No events have been written to the output file")
         if self._writer:
@@ -495,6 +497,21 @@ class DataWriter(Component):
             pnt.prefix = ""
             writer.write("dl1/monitoring/subarray/pointing", [event.trigger, pnt])
             self._last_pointing = current_pointing
+
+    def _write_scheduling_and_observation_blocks(self):
+        """write out SB and OB info"""
+
+        self.log.debug(
+            "writing %d sbs and %d obs",
+            len(self.event_source.scheduling_blocks.values()),
+            len(self.event_source.observation_blocks.values()),
+        )
+
+        for sb in self.event_source.scheduling_blocks.values():
+            self._writer.write("configuration/observation/scheduling_block", sb)
+
+        for ob in self.event_source.observation_blocks.values():
+            self._writer.write("configuration/observation/observation_block", ob)
 
     def _write_simulation_configuration(self):
         """
