@@ -1,5 +1,5 @@
 import astropy.units as u
-from scipy.integrate import dblquad
+from scipy.integrate import quad, dblquad
 import numpy as np
 from pytest import approx
 
@@ -68,4 +68,37 @@ def test_gaussian():
                 * np.cos(zenith.to_value(u.rad)),
             ]
         )
+    )
+
+
+def test_emission():
+    from ctapipe.image import showermodel
+
+    # This is a shower straight from (45deg,45deg)
+    total_photons = 15000
+    x = 0 * u.meter
+    y = 0 * u.meter
+    azimuth = 45 * u.deg
+    altitude = 45 * u.deg
+    first_interaction = 20000 * u.meter
+    width = 10 * u.meter
+    length = 3000 * u.meter
+
+    model = showermodel.Gaussian(
+        total_photons=total_photons,
+        x=x,
+        y=y,
+        azimuth=azimuth,
+        altitude=altitude,
+        first_interaction=first_interaction,
+        width=width,
+        length=length,
+    )
+
+    assert (
+        approx(
+            quad(lambda x: 2 * np.pi * model.emission_probability(x) * x, 0, np.pi)[0],
+            1e-2,
+        )
+        == 1
     )
