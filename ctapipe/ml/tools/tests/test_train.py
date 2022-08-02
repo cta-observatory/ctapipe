@@ -53,3 +53,44 @@ def test_too_few_events(
             ],
             raises=True,
         )
+
+
+def test_cross_validation_results(model_tmp_path):
+    from ctapipe.ml.tools.train_energy_regressor import TrainEnergyRegressor
+    from ctapipe.ml.tools.train_particle_classifier import TrainParticleIdClassifier
+
+    tool = TrainEnergyRegressor()
+    config = resource_file("ml_config.yaml")
+    out_file = model_tmp_path / "energy_.pkl"
+    energy_cv_out_file = model_tmp_path / "energy_cv_results.h5"
+
+    ret = run_tool(
+        tool,
+        argv=[
+            "--input=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
+            f"--output={out_file}",
+            f"--config={config}",
+            "--log-level=INFO",
+            f"--CrossValidator.output_path={energy_cv_out_file}",
+        ],
+    )
+    assert ret == 0
+    assert energy_cv_out_file.exists()
+
+    tool = TrainParticleIdClassifier()
+    out_file = model_tmp_path / "particle_classifier_.pkl"
+    classifier_cv_out_file = model_tmp_path / "classifier_cv_results.h5"
+
+    ret = run_tool(
+        tool,
+        argv=[
+            "--signal=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
+            "--background=dataset://proton_dl2_train_small.dl2.h5",
+            f"--output={out_file}",
+            f"--config={config}",
+            "--log-level=INFO",
+            f"--CrossValidator.output_path={classifier_cv_out_file}",
+        ],
+    )
+    assert ret == 0
+    assert classifier_cv_out_file.exists()
