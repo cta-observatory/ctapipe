@@ -7,7 +7,7 @@ import numpy as np
 from astropy.table import Table, vstack
 from astropy.utils.decorators import lazyproperty
 from sklearn import metrics
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, StratifiedKFold
 from tqdm import tqdm
 from traitlets import Instance
 
@@ -294,8 +294,10 @@ class CrossValidator(Component):
         self.rng = np.random.default_rng(self.rng_seed)
         if isinstance(self.model_component, ClassificationReconstructor):
             self.calculate_metrics = self._cross_validate_classification
+            self.split_data = StratifiedKFold
         elif isinstance(self.model_component, RegressionReconstructor):
             self.calculate_metrics = self._cross_validate_energy
+            self.split_data = KFold
         else:
             raise KeyError(
                 "Unsupported Model of type %s supplied", self.model_component
@@ -314,7 +316,7 @@ class CrossValidator(Component):
         scores = defaultdict(list)
         predictions = []
 
-        kfold = KFold(
+        kfold = self.split_data(
             n_splits=self.n_cross_validations,
             shuffle=True,
             # sklearn does not support numpy's new random API yet
