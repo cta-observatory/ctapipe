@@ -1,14 +1,11 @@
 import numpy as np
 from astropy.table import vstack
-from sklearn import metrics
-from sklearn.model_selection import StratifiedKFold
-from tqdm.auto import tqdm
 
 from ctapipe.core.tool import Tool, ToolConfigurationError
 from ctapipe.core.traits import Int, Path
 from ctapipe.io import TableLoader
 
-from ..apply import ParticleIdClassifier
+from ..apply import CrossValidator, ParticleIdClassifier
 from ..preprocessing import check_valid_rows
 
 
@@ -31,7 +28,6 @@ class TrainParticleIdClassifier(Tool):
         directory_ok=False,
     ).tag(config=True)
 
-    n_cross_validation = Int(default_value=5).tag(config=True)
     n_signal = Int(default_value=None, allow_none=True).tag(config=True)
     n_background = Int(default_value=None, allow_none=True).tag(config=True)
     random_seed = Int(default_value=0).tag(config=True)
@@ -45,6 +41,7 @@ class TrainParticleIdClassifier(Tool):
     classes = [
         TableLoader,
         ParticleIdClassifier,
+        CrossValidator,
     ]
 
     def setup(self):
@@ -83,6 +80,9 @@ class TrainParticleIdClassifier(Tool):
             parent=self,
         )
         self.rng = np.random.default_rng(self.random_seed)
+        self.cross_validate = CrossValidator(
+            parent=self, model_component=self.classifier
+        )
 
     def start(self):
         # By construction both loaders have the same types defined
@@ -95,7 +95,7 @@ class TrainParticleIdClassifier(Tool):
         for tel_type in types:
             self.log.info("Loading events for %s", tel_type)
             table = self._read_input_data(tel_type)
-            self._cross_validate(tel_type, table)
+            self.cross_validate(tel_type, table)
 
             self.log.info("Performing final fit for %s", tel_type)
             self.classifier.model.fit(tel_type, table)
@@ -132,57 +132,19 @@ class TrainParticleIdClassifier(Tool):
         background = self._read_table(
             tel_type, self.background_loader, self.n_background
         )
-        if (len(signal) <= self.n_cross_validation) or (
-            len(background) <= self.n_cross_validation
-        ):
-            raise ValueError(f"Too few events for {tel_type}.")
-
         table = vstack([signal, background])
         self.log.info(
             "Train on %s signal and %s background events", len(signal), len(background)
         )
         return table
 
-    def _cross_validate(self, telescope_type, table):
-        n_cv = self.n_cross_validation
-        self.log.info(f"Starting cross-validation with {n_cv} folds.")
-
-        scores = []
-
-        target = self.classifier.target
-        kfold = StratifiedKFold(
-            n_splits=n_cv,
-            shuffle=True,
-            # sklearn does not support numpy's new random API yet
-            random_state=self.rng.integers(0, 2**31 - 1),
-        )
-        cv_it = kfold.split(table, table[target])
-        for (train_indices, test_indices) in tqdm(cv_it, total=n_cv):
-            train = table[train_indices]
-            test = table[test_indices]
-            self.classifier.model.fit(telescope_type, train)
-            prediction, _ = self.classifier.model.predict_score(telescope_type, test)
-            truth = np.where(
-                test[target] == self.classifier.model.positive_class,
-                1,
-                0,
-            )
-            scores.append(metrics.roc_auc_score(truth, prediction))
-
-        scores = np.array(scores)
-
-        self.log.info(f"Cross validated ROC AUC scores: {scores}")
-        self.log.info(
-            "Mean ROC AUC score from CV: %s ± %s",
-            scores.mean(),
-            scores.std(),
-        )
-
     def finish(self):
         self.log.info("Writing output")
         self.classifier.write(self.output_path)
         self.signal_loader.close()
         self.background_loader.close()
+        if self.cross_validate.output_path:
+            self.cross_validate.write()
 
 
 def main():
