@@ -1,11 +1,18 @@
 from abc import abstractmethod
+from collections import defaultdict
 
 import astropy.units as u
 import joblib
 import numpy as np
-from astropy.table import Table
+from astropy.table import Table, vstack
 from astropy.utils.decorators import lazyproperty
+from sklearn import metrics
+from sklearn.model_selection import KFold
+from tqdm import tqdm
 from traitlets import Instance
+
+from ctapipe.core.traits import Int, Path
+from ctapipe.io import write_table
 
 from ..containers import (
     ArrayEventContainer,
@@ -262,3 +269,107 @@ class ParticleIdClassifier(ClassificationReconstructor):
             }
         )
         return result
+
+
+class CrossValidator(Component):
+    n_cross_validations = Int(5).tag(config=True)
+    output_path = Path(
+        default_value=None,
+        allow_none=True,
+        directory_ok=False,
+    ).tag(config=True)
+    rng_seed = Int(default_value=1337, help="Seed for the random number generator").tag(
+        config=True
+    )
+
+    def __init__(self, model_component, **kwargs):
+        super().__init__(**kwargs)
+        self.cv_predictions = {}
+        self.model_component = model_component
+        self.rng = np.random.default_rng(self.rng_seed)
+        if isinstance(self.model_component, ClassificationReconstructor):
+            self.calculate_metrics = self._cross_validate_classification
+        elif isinstance(self.model_component, RegressionReconstructor):
+            self.calculate_metrics = self._cross_validate_energy
+        else:
+            raise KeyError(
+                "Unsupported Model of type %s supplied", self.model_component
+            )
+
+    def __call__(self, telescope_type, table):
+        if len(table) <= self.n_cross_validations:
+            raise ValueError(f"Too few events for {telescope_type}.")
+
+        self.log.info(
+            "Starting cross-validation with %d folds for type %s.",
+            self.n_cross_validations,
+            telescope_type,
+        )
+
+        scores = defaultdict(list)
+        predictions = []
+
+        kfold = KFold(
+            n_splits=self.n_cross_validations,
+            shuffle=True,
+            # sklearn does not support numpy's new random API yet
+            random_state=self.rng.integers(0, 2**31 - 1),
+        )
+
+        for fold, (train_indices, test_indices) in enumerate(
+            tqdm(kfold.split(table), total=self.n_cross_validations)
+        ):
+            train = table[train_indices]
+            test = table[test_indices]
+            cv_prediction, truth, metrics = self.calculate_metrics(
+                telescope_type, train, test
+            )
+            predictions.append(
+                Table(
+                    {
+                        "tel_type": [str(telescope_type)] * len(truth),
+                        "predictions": cv_prediction,
+                        "truth": truth,
+                    }
+                )
+            )
+
+            for metric, value in metrics.items():
+                scores[metric].append(value)
+
+        for metric, cv_values in scores.items():
+            cv_values = np.array(cv_values)
+            with np.printoptions(precision=4):
+                self.log.info(
+                    "Mean % score from CV: %.4f ± %.4f",
+                    metric,
+                    cv_values.mean(),
+                    cv_values.std(),
+                )
+        self.cv_predictions[telescope_type] = vstack(predictions)
+
+    def _cross_validate_energy(self, telescope_type, train, test):
+        regressor = self.model_component
+        regressor.model.fit(telescope_type, train)
+        prediction, _ = regressor.model.predict(telescope_type, test)
+        truth = test[regressor.target]
+        r2 = metrics.r2_score(truth, prediction)
+        return prediction, truth, {"R^2": r2}
+
+    def _cross_validate_classification(self, telescope_type, train, test):
+        classifier = self.model_component
+        classifier.model.fit(telescope_type, train)
+        prediction, _ = classifier.model.predict_score(telescope_type, test)
+        truth = np.where(
+            test[classifier.target] == classifier.model.positive_class,
+            1,
+            0,
+        )
+        roc_auc = metrics.roc_auc_score(truth, prediction)
+        return prediction, truth, {"ROC AUC": roc_auc}
+
+    def write(self):
+        Provenance().add_output_file(self.output_path, role="ml-cross-validation")
+        for tel_type, results in self.cv_predictions.items():
+            print(results, type(results))
+            write_table(results, self.output_path, f"cv_predictions_{tel_type}")

@@ -1,12 +1,9 @@
 import numpy as np
-from sklearn import metrics
-from sklearn.model_selection import KFold
-from tqdm.auto import tqdm
 
 from ctapipe.core import Tool
 from ctapipe.core.traits import Int, Path
 from ctapipe.io import TableLoader
-from ctapipe.ml.apply import EnergyRegressor
+from ctapipe.ml.apply import CrossValidator, EnergyRegressor
 
 from ..preprocessing import check_valid_rows
 from ..sklearn import Regressor
@@ -20,7 +17,6 @@ class TrainEnergyRegressor(Tool):
         directory_ok=False,
     ).tag(config=True)
 
-    n_cross_validation = Int(default_value=5).tag(config=True)
     n_events = Int(default_value=None, allow_none=True).tag(config=True)
     random_seed = Int(default_value=0).tag(config=True)
 
@@ -32,6 +28,7 @@ class TrainEnergyRegressor(Tool):
     classes = [
         TableLoader,
         Regressor,
+        CrossValidator,
     ]
 
     def setup(self):
@@ -46,6 +43,9 @@ class TrainEnergyRegressor(Tool):
         )
 
         self.regressor = EnergyRegressor(self.loader.subarray, parent=self)
+        self.cross_validate = CrossValidator(
+            parent=self, model_component=self.regressor
+        )
         self.rng = np.random.default_rng(self.random_seed)
 
     def start(self):
@@ -57,11 +57,8 @@ class TrainEnergyRegressor(Tool):
             self.log.info("Loading events for %s", tel_type)
             table = self._read_table(tel_type)
 
-            if len(table) <= self.n_cross_validation:
-                raise ValueError(f"Too few events for {tel_type}.")
-
             self.log.info("Train on %s events", len(table))
-            self._cross_validate(tel_type, table)
+            self.cross_validate(tel_type, table)
 
             self.log.info("Performing final fit for %s", tel_type)
             self.regressor.model.fit(tel_type, table)
@@ -93,44 +90,11 @@ class TrainEnergyRegressor(Tool):
 
         return table
 
-    def _cross_validate(self, telescope_type, table):
-        n_cv = self.n_cross_validation
-        self.log.info(
-            "Starting cross-validation with %d folds for type %s.",
-            n_cv,
-            telescope_type,
-        )
-
-        scores = []
-
-        kfold = KFold(
-            n_splits=n_cv,
-            shuffle=True,
-            # sklearn does not support numpy's new random API yet
-            random_state=self.rng.integers(0, 2**31 - 1),
-        )
-
-        for (train_indices, test_indices) in tqdm(kfold.split(table), total=n_cv):
-            train = table[train_indices]
-            test = table[test_indices]
-
-            self.regressor.model.fit(telescope_type, train)
-            prediction, _ = self.regressor.model.predict(telescope_type, test)
-            scores.append(metrics.r2_score(test["true_energy"], prediction))
-
-        scores = np.array(scores)
-
-        with np.printoptions(precision=4):
-            self.log.info(f"Cross validated R^2 scores: {scores}")
-            self.log.info(
-                "Mean R^2 score from CV: %.4f ± %.4f",
-                scores.mean(),
-                scores.std(),
-            )
-
     def finish(self):
         self.log.info("Writing output")
         self.regressor.write(self.output_path)
+        if self.cross_validate.output_path:
+            self.cross_validate.write()
         self.loader.close()
 
 
