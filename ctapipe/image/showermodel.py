@@ -109,3 +109,23 @@ class Gaussian:
             self.zenith.to_value(u.rad)
         )
         return b
+
+    def pixel_content(self):
+        # https://arxiv.org/pdf/astro-ph/0601373.pdf Appendix 1 Equation (5)
+        pass
+
+    def emission_probability(self, epsilon):
+        """Calculates the emission probability of a photon with angle epsilon to the shower axis. https://arxiv.org/pdf/astro-ph/0601373.pdf Assumption 2.2.2
+
+        Parameters
+        ----------
+        epsilon : u.Quantity[Angle]
+            Angle between pixel viewing diection and shower axis
+        """
+        eta = 15e-3 * np.sqrt(np.cos(self.zenith.to_value(u.rad)))  # 15mrad
+
+        normalization = 1 / (9 * np.pi * eta**2)
+        if epsilon < eta:
+            return normalization
+        else:
+            return normalization * eta / epsilon * np.exp(-(epsilon - eta) / (4 * eta))
