@@ -44,7 +44,12 @@ class Reconstructor(Component):
         Provenance().add_output_file(path, role="ml-model")
         with open(path, "wb") as f:
             joblib.dump(
-                (self.model, self.qualityquery.quality_criteria, self.subarray),
+                (
+                    self.model,
+                    self.qualityquery.quality_criteria,
+                    self.generate_features.features,
+                    self.subarray,
+                ),
                 f,
                 compress=True,
             )
@@ -52,7 +57,7 @@ class Reconstructor(Component):
     @classmethod
     def read(cls, path, check_cls=True, **kwargs):
         with open(path, "rb") as f:
-            model, quality_criteria, subarray = joblib.load(f)
+            model, quality_criteria, gen_features, subarray = joblib.load(f)
 
         if check_cls is True and model.__class__ is not cls.model_cls:
             raise TypeError(
@@ -63,6 +68,9 @@ class Reconstructor(Component):
         instance = cls(subarray=subarray, model=model, **kwargs)
         instance.qualityquery = QualityQuery(
             quality_criteria=quality_criteria, parent=instance
+        )
+        instance.generate_features = FeatureGenerator(
+            features=gen_features, parent=instance
         )
         return instance
 
