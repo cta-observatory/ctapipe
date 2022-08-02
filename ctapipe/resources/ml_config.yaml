@@ -6,7 +6,6 @@
 # ======================================================================
 
 TrainEnergyRegressor:
-  n_cross_validation: 5
 
   EnergyRegressor:
     Regressor:
@@ -47,9 +46,11 @@ TrainEnergyRegressor:
       features:
         - ["area", "hillas_width * hillas_length"]
 
+    CrossValidator:
+      n_cross_validations: 5
+
 
 TrainParticleIdClassifier:
-  n_cross_validation: 5
 
   ParticleIdClassifier:
     Classifier:
@@ -89,3 +90,6 @@ TrainParticleIdClassifier:
     FeatureGenerator:
       features:
         - ["area", "hillas_width * hillas_length"]
+
+    CrossValidator:
+      n_cross_validations: 5
