@@ -16,7 +16,7 @@ def table_profile():
 
 
 def get_simtel_profile_from_eventsource():
-    """get a TableAtmosphereDensityModel from a simtel file"""
+    """get a TableAtmosphereDensityProfile from a simtel file"""
     from ctapipe.io import EventSource
 
     with EventSource(SIMTEL_PATH) as source:

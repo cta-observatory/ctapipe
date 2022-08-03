@@ -248,7 +248,7 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
         # ensure it can be read back
         self.table.meta[
             "TAB_TYPE"
-        ] = "ctapipe.atmosphere.model.TableAtmosphereDensityModel"
+        ] = "ctapipe.atmosphere.model.TableAtmosphereDensityProfile"
         self.table.meta["TAB_VER"] = 1
 
     @u.quantity_input(h=u.m)
