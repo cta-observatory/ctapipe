@@ -1,6 +1,7 @@
+import json
+
 from ctapipe.core import run_tool
 from ctapipe.io import read_table
-import json
 
 
 def test_process_apply_energy(
@@ -43,7 +44,7 @@ def test_process_apply_energy(
         f"--energy-regressor={energy_regressor_path}",
         f"--config={config_path}",
     ]
-    assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path) == 0
+    assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path, raises=True) == 0
 
     print(read_table(output, "/dl2/event/telescope/energy/ExtraTreesRegressor/tel_004"))
     print(read_table(output, "/dl2/event/subarray/energy/ExtraTreesRegressor"))
@@ -87,7 +88,7 @@ def test_process_apply_classification(
         f"--particle-classifier={particle_classifier_path}",
         f"--config={config_path}",
     ]
-    assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path) == 0
+    assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path, raises=True) == 0
 
     print(
         read_table(

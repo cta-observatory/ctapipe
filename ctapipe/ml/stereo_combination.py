@@ -1,9 +1,12 @@
 from abc import abstractmethod
+
+import astropy.units as u
 import numpy as np
 from astropy.table import Table
-import astropy.units as u
+
 from ctapipe.core import Component, Container
 from ctapipe.core.traits import CaselessStrEnum, Unicode
+
 from ..containers import (
     ArrayEventContainer,
     ParticleClassificationContainer,
@@ -125,7 +128,7 @@ class StereoMeanCombiner(StereoCombiner):
         event.dl2.stereo.energy[self.algorithm] = ReconstructedEnergyContainer(
             energy=u.Quantity(mean, u.TeV, copy=False),
             energy_uncert=u.Quantity(std, u.TeV, copy=False),
-            tel_ids=ids,
+            telescopes=ids,
             is_valid=valid,
         )
         event.dl2.stereo.energy[self.algorithm].prefix = self.algorithm
@@ -151,7 +154,7 @@ class StereoMeanCombiner(StereoCombiner):
             valid = False
 
         container = ParticleClassificationContainer(
-            prediction=mean, tel_ids=ids, is_valid=valid
+            prediction=mean, telescopes=ids, is_valid=valid
         )
         container.prefix = self.algorithm
         event.dl2.stereo.classification[self.algorithm] = container

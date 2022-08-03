@@ -20,10 +20,11 @@ def test_apply_energy_regressor(
             f"--regressor={energy_regressor_path}",
             "--Apply.StereoMeanCombiner.weights=konrad",
         ],
+        raises=True,
     )
     assert ret == 0
 
-    loader = TableLoader(input_path, load_dl2=True)
+    loader = TableLoader(output_path, load_dl2=True)
     events = loader.read_subarray_events()
     assert "ExtraTreesRegressor_energy" in events.colnames
     assert "ExtraTreesRegressor_energy_uncert" in events.colnames
@@ -61,7 +62,7 @@ def test_apply_particle_classifier(
     )
     assert ret == 0
 
-    loader = TableLoader(input_path, load_dl2=True)
+    loader = TableLoader(output_path, load_dl2=True)
     events = loader.read_subarray_events()
     assert "ExtraTreesClassifier_prediction" in events.colnames
     assert "ExtraTreesClassifier_tel_ids" in events.colnames
@@ -101,7 +102,7 @@ def test_apply_both(
     )
     assert ret == 0
 
-    loader = TableLoader(input_path, load_dl2=True)
+    loader = TableLoader(output_path, load_dl2=True)
 
     events = loader.read_subarray_events()
     assert "ExtraTreesRegressor_energy" in events.colnames
