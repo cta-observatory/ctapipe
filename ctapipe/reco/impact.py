@@ -11,6 +11,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord, AltAz
 from iminuit import Minuit
 from ctapipe.core import traits
+from scipy.stats import norm
 
 from ctapipe.coordinates import (
     CameraFrame,
@@ -30,12 +31,14 @@ from ctapipe.containers import (
     ReconstructedGeometryContainer,
     ReconstructedEnergyContainer,
 )
+
 from ctapipe.utils.template_network_interpolator import (
     TemplateNetworkInterpolator,
     TimeGradientInterpolator,
     DummyTemplateInterpolator,
     DummyTimeInterpolator
 )
+
 from ctapipe.reco.impact_utilities import *
 from ctapipe.image.pixel_likelihood import poisson_likelihood_gaussian, \
     poisson_likelihood_full, mean_poisson_likelihood_gaussian, mean_poisson_likelihood_full
@@ -501,6 +504,7 @@ class ImPACTReconstructor(Reconstructor):
                 )
                 time_gradients[type_mask] = tg
                 time_gradients_uncertainty[type_mask] = tgu
+
         if self.use_time_gradient:
             time_gradients_uncertainty[time_gradients_uncertainty == 0] = 1e-6
 
@@ -509,11 +513,13 @@ class ImPACTReconstructor(Reconstructor):
                 time_mask = np.logical_and(np.invert(ma.getmask(self.image[telescope_index])), self.time[telescope_index] > 0)
                 time_mask = np.logical_and(time_mask, self.image[telescope_index]> 5)
                 if(np.sum(time_mask)>3):
-                    time_slope = lts_linear_regression(x=np.rad2deg(pix_x_rot[telescope_index][time_mask]), 
+                    time_slope = lts_linear_regression(x=np.rad2deg(pix_x_rot[telescope_index][time_mask]),
                                                     y=self.time[telescope_index][time_mask], samples=3)[0][0]
-                    chi2_tel = (time_slope - time_gradients[telescope_index])**2 / time_gradients_uncertainty[telescope_index]
-                    chi2 += chi2_tel * np.sum(time_mask)
-        
+                    
+                    time_like = -2 * norm.logpdf(time_slope, loc=time_gradients[telescope_index], scale=time_gradients_uncertainty[telescope_index])
+
+                    chi2 += time_like
+
         # Likelihood function will break if we find a NaN or a 0
         prediction[np.isnan(prediction)] = 1e-8
         prediction[prediction < 1e-8] = 1e-8
@@ -529,20 +535,14 @@ class ImPACTReconstructor(Reconstructor):
             like_expectation_gaus = mean_poisson_likelihood_gaussian(prediction, self.spe, self.ped)
             like_expectation_gaus[mask] = 0
             mask_shower = np.invert(mask)
-            return (np.sum(like[mask_shower] - like_expectation_gaus[mask_shower]))/np.sqrt(2 * (np.sum(mask_shower)-6))
+            goodness = np.sum(like - like_expectation_gaus, axis=-1) /np.sqrt(2 * (np.sum(mask_shower, axis=-1)-6))
+            return goodness
 
         like = np.sum(like)
 
-        #prior_pen = 0
-        # Add prior penalities if we have them
-        #if "energy" in self.priors:
-        #    prior_pen += energy_prior(energy, index=-1)
-        #if "xmax" in self.priors:
-        #    prior_pen += xmax_prior(energy, x_max)
-
         final_sum = like
         if self.use_time_gradient:
-            final_sum += chi2  # * np.sum(ma.getmask(self.image))
+            final_sum += chi2  
 
         return final_sum
 
@@ -808,11 +808,17 @@ class ImPACTReconstructor(Reconstructor):
         shower_result.core_x = ground.x 
         shower_result.core_y = ground.y 
 
+        shower_result.core_tilted_x = tilted.x 
+        shower_result.core_tilted_y = tilted.y 
+
+        shower_result.core_tilted_uncert_x = errors[2] * u.m
+        shower_result.core_tilted_uncert_y = errors[3] * u.m
+
         shower_result.is_valid = True
 
         # Currently no errors not available to copy NaN
-        shower_result.alt_uncert = 0 * u.deg
-        shower_result.az_uncert = 0 * u.deg
+        shower_result.alt_uncert = source_x * u.rad
+        shower_result.az_uncert = source_y * u.rad
         #shower_result.core_uncert = np.nan
 
         # Copy reconstructed Xmax
@@ -831,10 +837,9 @@ class ImPACTReconstructor(Reconstructor):
                                               fit_params[2], fit_params[3],
                                               fit_params[4], fit_params[5], True)
         
-        shower_result.goodness_of_fit = goodness_of_fit
+        shower_result.goodness_of_fit = np.sum(goodness_of_fit)
         shower_result.tel_ids=self.tel_id
         shower_result.is_valid=True 
-        #print(goodness_of_fit, like)
 
         # Create a container class for reconstructed energy
         energy_result = ReconstructedEnergyContainer(
