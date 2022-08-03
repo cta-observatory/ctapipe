@@ -271,13 +271,14 @@ def read_atmosphere_profile_from_simtel(
     simtelfile: str | SimTelFile
         filename of a SimTelArray file containing an atmosphere profile
     kind: str
-        "table",  "fivelayer", "auto" : which type of model to load.
-        In auto mode, table is tried first, and if it doesn't exist, fivelayer is used.
+        "table", "fivelayer", "auto" : which type of model to load. In auto
+        mode, table is tried first, and if it doesn't exist, fivelayer is used.
 
     Returns
     -------
     Optional[TableAtmosphereDensityProfile]:
         Profile read from a table, with interpolation
+
     """
 
     profiles = []
