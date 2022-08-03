@@ -34,6 +34,7 @@ optional_nodes = {
     "/simulation/service/shower_distribution",
     "/simulation/event/telescope/images",
     "/simulation/event/telescope/parameters",
+    "/simulation/event/telescope/impact",
     "/dl1/event/telescope/parameters",
     "/dl1/event/telescope/images",
     "/dl2/event/subarray/geometry",
@@ -57,6 +58,7 @@ nodes_with_tels = {
     "/dl1/event/telescope/images",
     "/simulation/event/telescope/parameters",
     "/simulation/event/telescope/images",
+    "/simulation/event/telescope/impact",
 }
 image_nodes = {
     "/dl1/event/telescope/images",
