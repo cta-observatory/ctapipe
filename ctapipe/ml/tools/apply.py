@@ -16,6 +16,13 @@ from ..stereo_combination import StereoCombiner
 
 
 class Apply(Tool):
+    """Apply machine learning models on data.
+
+    Predict (gamma)-energy and/or particle id.
+    """
+
+    name = "ctapipe-apply"
+    description = __doc__
 
     overwrite = Bool(default_value=False).tag(config=True)
 

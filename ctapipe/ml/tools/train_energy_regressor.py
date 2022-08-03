@@ -10,6 +10,10 @@ from ..sklearn import Regressor
 
 
 class TrainEnergyRegressor(Tool):
+    """Train a ML model for energy regression."""
+
+    name = "ctapipe-train-regressor"
+    description = __doc__
 
     output_path = Path(
         default_value=None,

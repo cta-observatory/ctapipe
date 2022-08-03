@@ -10,6 +10,11 @@ from ..preprocessing import check_valid_rows
 
 
 class TrainParticleIdClassifier(Tool):
+    """Train a ML model for particle id classification."""
+
+    name = "ctapipe-train-classifier"
+    description = __doc__
+
     input_url_signal = Path(
         default_value=None,
         allow_none=True,
