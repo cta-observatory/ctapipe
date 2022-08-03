@@ -1,28 +1,24 @@
-from tqdm.auto import tqdm
 import numpy as np
 from astropy.coordinates import SkyCoord
-
-from ..containers import TelEventIndexContainer
-from ..calib import CameraCalibrator
-from ..core import Provenance
-from ..core import Tool, ToolConfigurationError
-from ..core import traits
-from ..core.traits import flag
-from ..io import EventSource
-from ..io import HDF5TableWriter
-from ..image.cleaning import TailcutsImageCleaner
-from ..coordinates import TelescopeFrame, CameraFrame
-from ..containers import MuonParametersContainer
-from ..instrument import CameraGeometry
+from tqdm.auto import tqdm
 
 from ctapipe.image.muon import (
-    MuonRingFitter,
     MuonIntensityFitter,
-    ring_containment,
-    ring_completeness,
+    MuonRingFitter,
     intensity_ratio_inside_ring,
     mean_squared_error,
+    ring_completeness,
+    ring_containment,
 )
+
+from ..calib import CameraCalibrator
+from ..containers import MuonParametersContainer, TelEventIndexContainer
+from ..coordinates import CameraFrame, TelescopeFrame
+from ..core import Provenance, Tool, ToolConfigurationError, traits
+from ..core.traits import flag
+from ..image.cleaning import TailcutsImageCleaner
+from ..instrument import CameraGeometry
+from ..io import EventSource, HDF5TableWriter
 
 
 class MuonAnalysis(Tool):
@@ -137,7 +133,7 @@ class MuonAnalysis(Tool):
     def process_telescope_event(self, event_index, tel_id, dl1):
         event_id = event_index.event_id
 
-        if self.source.subarray.tel[tel_id].optics.num_mirrors != 1:
+        if self.source.subarray.tel[tel_id].optics.n_mirrors != 1:
             self.log.warn(
                 f"Skipping non-single mirror telescope {tel_id}"
                 " set --allowed_tels to get rid of this warning"

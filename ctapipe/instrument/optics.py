@@ -82,7 +82,7 @@ class OpticsDescription:
     ----------
     name : str
         Name of this optical system
-    num_mirrors : int
+    n_mirrors : int
         Number of mirrors, i. e. 2 for Schwarzschild-Couder else 1
     equivalent_focal_length : astropy.units.Quantity[length]
         Equivalent focal-length of telescope, independent of which type of
@@ -98,7 +98,7 @@ class OpticsDescription:
         reconstruction tasks to correct for the mean aberration.
     mirror_area : astropy.units.Quantity[area]
         total reflective surface area of the optical system (in m^2)
-    num_mirror_tiles : int
+    n_mirror_tiles : int
         number of mirror facets
 
     Raises
@@ -118,8 +118,8 @@ class OpticsDescription:
         "effective_focal_length",
         "equivalent_focal_length",
         "mirror_area",
-        "num_mirrors",
-        "num_mirror_tiles",
+        "n_mirrors",
+        "n_mirror_tiles",
         "reflector_shape",
     )
 
@@ -132,11 +132,11 @@ class OpticsDescription:
         self,
         name,
         size_type,
-        num_mirrors,
+        n_mirrors,
         equivalent_focal_length,
         effective_focal_length,
         mirror_area,
-        num_mirror_tiles,
+        n_mirror_tiles,
         reflector_shape,
     ):
 
@@ -146,8 +146,8 @@ class OpticsDescription:
         self.equivalent_focal_length = equivalent_focal_length.to(u.m)
         self.effective_focal_length = effective_focal_length.to(u.m)
         self.mirror_area = mirror_area
-        self.num_mirrors = num_mirrors
-        self.num_mirror_tiles = num_mirror_tiles
+        self.n_mirrors = n_mirrors
+        self.n_mirror_tiles = n_mirror_tiles
 
     def __hash__(self):
         """Make this hashable, so it can be used as dict keys or in sets"""
@@ -165,8 +165,8 @@ class OpticsDescription:
                 round(self.mirror_area.to_value(u.m**2)),
                 self.size_type.value,
                 self.reflector_shape.value,
-                self.num_mirrors,
-                self.num_mirror_tiles,
+                self.n_mirrors,
+                self.n_mirror_tiles,
             )
         )
 
@@ -219,11 +219,11 @@ class OpticsDescription:
             name=name,
             size_type=row["size_type"],
             reflector_shape=row["reflector_shape"],
-            num_mirrors=row["num_mirrors"],
+            n_mirrors=row["n_mirrors"],
             equivalent_focal_length=row["equivalent_focal_length"],
             effective_focal_length=row["effective_focal_length"],
             mirror_area=row["mirror_area"],
-            num_mirror_tiles=row["num_mirror_tiles"],
+            n_mirror_tiles=row["n_mirror_tiles"],
         )
 
     @classmethod
@@ -253,7 +253,7 @@ class OpticsDescription:
             f", reflector_shape={self.reflector_shape.value}"
             f", equivalent_focal_length={self.equivalent_focal_length:.2f}"
             f", effective_focal_length={self.effective_focal_length:.2f}"
-            f", num_mirrors={self.num_mirrors}"
+            f", n_mirrors={self.n_mirrors}"
             f", mirror_area={self.mirror_area:.2f}"
             ")"
         )

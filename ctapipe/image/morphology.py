@@ -1,10 +1,11 @@
 import numpy as np
 from numba import njit
+
 from ..containers import MorphologyContainer
 
 
 @njit(cache=True)
-def _num_islands_sparse_indices(indices, indptr, mask):
+def _n_islands_sparse_indices(indices, indptr, mask):
 
     # non-signal pixel get label == 0, we marke the cleaning
     # pixels with -1, so we only have to check labels and not labels and mask
@@ -63,18 +64,18 @@ def number_of_islands(geom, mask):
 
     Returns
     -------
-    num_islands: int
+    n_islands: int
         Total number of clusters
     island_labels: ndarray
         Contains cluster membership of each pixel.
         Dimension equals input geometry.
-        Entries range from 0 (not in the pixel mask) to num_islands.
+        Entries range from 0 (not in the pixel mask) to n_islands.
     """
     neighbors = geom.neighbor_matrix_sparse
-    num_islands, island_labels = _num_islands_sparse_indices(
+    n_islands, island_labels = _n_islands_sparse_indices(
         neighbors.indices, neighbors.indptr, mask
     )
-    return num_islands, island_labels
+    return n_islands, island_labels
 
 
 def number_of_island_sizes(island_labels):
@@ -190,14 +191,14 @@ def morphology_parameters(geom, image_mask) -> MorphologyContainer:
     MorphologyContainer: parameters related to the morphology
     """
 
-    num_islands, island_labels = number_of_islands(geom=geom, mask=image_mask)
+    n_islands, island_labels = number_of_islands(geom=geom, mask=image_mask)
 
     n_small, n_medium, n_large = number_of_island_sizes(island_labels)
 
     return MorphologyContainer(
-        num_pixels=np.count_nonzero(image_mask),
-        num_islands=num_islands,
-        num_small_islands=n_small,
-        num_medium_islands=n_medium,
-        num_large_islands=n_large,
+        n_pixels=np.count_nonzero(image_mask),
+        n_islands=n_islands,
+        n_small_islands=n_small,
+        n_medium_islands=n_medium,
+        n_large_islands=n_large,
     )

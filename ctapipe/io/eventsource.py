@@ -3,13 +3,18 @@ Handles reading of different event/waveform containing files
 """
 import warnings
 from abc import abstractmethod
-from typing import Generator, List, Tuple
+from typing import Dict, Generator, List, Tuple
 
 from traitlets.config.loader import LazyConfigValue
 
 from ctapipe.atmosphere import AtmosphereDensityProfile
 
-from ..containers import ArrayEventContainer
+from ..containers import (
+    ArrayEventContainer,
+    ObservationBlockContainer,
+    SchedulingBlockContainer,
+    SimulationConfigContainer,
+)
 from ..core import Provenance, ToolConfigurationError
 from ..core.component import Component, find_config_in_hierarchy, non_abstract_children
 from ..core.traits import CInt, Int, Path, Set, TraitError, Undefined
@@ -208,10 +213,37 @@ class EventSource(Component):
         """
 
     @property
+    def simulation_config(self) -> Dict[int, SimulationConfigContainer]:
+        """The simulation configurations of all observations provided by the
+        EventSource, or None if the source does not provide simulated data
+
+        Returns
+        -------
+        Dict[int,ctapipe.containers.SimulationConfigContainer] | None
+        """
+        return None
+
+    @property
+    @abstractmethod
+    def observation_blocks(self) -> Dict[int, ObservationBlockContainer]:
+        """
+        Obtain the ObservationConfigurations from the EventSource, indexed by obs_id
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def scheduling_blocks(self) -> Dict[int, SchedulingBlockContainer]:
+        """
+        Obtain the ObservationConfigurations from the EventSource, indexed by obs_id
+        """
+        pass
+
+    @property
     @abstractmethod
     def is_simulation(self) -> bool:
         """
-        Weither the currently opened file is simulated
+        Whether the currently opened file is simulated
 
         Returns
         -------
@@ -242,7 +274,6 @@ class EventSource(Component):
         return any(dl in self.datalevels for dl in datalevels)
 
     @property
-    @abstractmethod
     def obs_ids(self) -> List[int]:
         """
         The observation ids of the runs located in the file
@@ -252,6 +283,7 @@ class EventSource(Component):
         -------
         list[int]
         """
+        return list(self.observation_blocks.keys())
 
     @property
     def atmosphere_density_profile(self) -> AtmosphereDensityProfile:

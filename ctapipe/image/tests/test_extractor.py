@@ -69,10 +69,10 @@ def subarray_1_LST(prod3_lst):
 
 
 def get_test_toymodel(subarray, minCharge=100, maxCharge=1000):
-    telid = list(subarray.tel.keys())[0]
-    n_pixels = subarray.tel[telid].camera.geometry.n_pixels
+    tel_id = list(subarray.tel.keys())[0]
+    n_pixels = subarray.tel[tel_id].camera.geometry.n_pixels
     n_samples = 96
-    readout = subarray.tel[telid].camera.readout
+    readout = subarray.tel[tel_id].camera.readout
 
     random = np.random.RandomState(1)
     charge = random.uniform(minCharge, maxCharge, n_pixels)
@@ -84,7 +84,7 @@ def get_test_toymodel(subarray, minCharge=100, maxCharge=1000):
 
     selected_gain_channel = np.zeros(charge.size, dtype=np.int64)
 
-    return waveform, subarray, telid, selected_gain_channel, charge, time
+    return waveform, subarray, tel_id, selected_gain_channel, charge, time
 
 
 @pytest.fixture(scope="module")
@@ -189,8 +189,8 @@ def test_extract_around_peak_charge_expected(toymodel):
 
 
 def test_neighbor_average_peakpos(toymodel):
-    waveforms, subarray, telid, _, _, _ = toymodel
-    neighbors = subarray.tel[telid].camera.geometry.neighbor_matrix_sparse
+    waveforms, subarray, tel_id, _, _, _ = toymodel
+    neighbors = subarray.tel[tel_id].camera.geometry.neighbor_matrix_sparse
     broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
     peak_pos = neighbor_average_maximum(
         waveforms,
@@ -293,10 +293,17 @@ def test_integration_correction_outofbounds(subarray):
 
 @pytest.mark.parametrize("Extractor", extractors)
 def test_extractors(Extractor, toymodel):
-    waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
+    (
+        waveforms,
+        subarray,
+        tel_id,
+        selected_gain_channel,
+        true_charge,
+        true_time,
+    ) = toymodel
     extractor = Extractor(subarray=subarray)
     broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
-    dl1 = extractor(waveforms, telid, selected_gain_channel, broken_pixels)
+    dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert_allclose(dl1.image, true_charge, rtol=0.1)
     assert_allclose(dl1.peak_time, true_time, rtol=0.1)
     assert dl1.is_valid == True
@@ -308,10 +315,17 @@ def test_integration_correction_off(Extractor, toymodel):
     if Extractor is FullWaveformSum:
         return
 
-    waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
+    (
+        waveforms,
+        subarray,
+        tel_id,
+        selected_gain_channel,
+        true_charge,
+        true_time,
+    ) = toymodel
     extractor = Extractor(subarray=subarray, apply_integration_correction=False)
     broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
-    dl1 = extractor(waveforms, telid, selected_gain_channel, broken_pixels)
+    dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
 
     assert dl1.is_valid == True
 
@@ -323,20 +337,34 @@ def test_integration_correction_off(Extractor, toymodel):
 
 
 def test_fixed_window_sum(toymodel):
-    waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
+    (
+        waveforms,
+        subarray,
+        tel_id,
+        selected_gain_channel,
+        true_charge,
+        true_time,
+    ) = toymodel
     extractor = FixedWindowSum(subarray=subarray, peak_index=47)
     broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
-    dl1 = extractor(waveforms, telid, selected_gain_channel, broken_pixels)
+    dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert_allclose(dl1.image, true_charge, rtol=0.1)
     assert_allclose(dl1.peak_time, true_time, rtol=0.1)
     assert dl1.is_valid == True
 
 
 def test_sliding_window_max_sum(toymodel):
-    waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
+    (
+        waveforms,
+        subarray,
+        tel_id,
+        selected_gain_channel,
+        true_charge,
+        true_time,
+    ) = toymodel
     extractor = SlidingWindowMaxSum(subarray=subarray)
     broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
-    dl1 = extractor(waveforms, telid, selected_gain_channel, broken_pixels)
+    dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     print(true_charge, dl1.image, true_time, dl1.peak_time)
     assert_allclose(dl1.image, true_charge, rtol=0.1)
     assert_allclose(dl1.peak_time, true_time, rtol=0.1)
@@ -344,11 +372,18 @@ def test_sliding_window_max_sum(toymodel):
 
 
 def test_neighbor_peak_window_sum_local_weight(toymodel):
-    waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
+    (
+        waveforms,
+        subarray,
+        tel_id,
+        selected_gain_channel,
+        true_charge,
+        true_time,
+    ) = toymodel
     extractor = NeighborPeakWindowSum(subarray=subarray, local_weight=4)
-    assert extractor.local_weight.tel[telid] == 4
+    assert extractor.local_weight.tel[tel_id] == 4
     broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
-    dl1 = extractor(waveforms, telid, selected_gain_channel, broken_pixels)
+    dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert_allclose(dl1.image, true_charge, rtol=0.1)
     assert_allclose(dl1.peak_time, true_time, rtol=0.1)
     assert dl1.is_valid == True
@@ -469,11 +504,18 @@ def test_Two_pass_window_sum_no_noise(subarray_1_LST):
 
 
 def test_waveform_extractor_factory(toymodel):
-    waveforms, subarray, telid, selected_gain_channel, true_charge, true_time = toymodel
+    (
+        waveforms,
+        subarray,
+        tel_id,
+        selected_gain_channel,
+        true_charge,
+        true_time,
+    ) = toymodel
     extractor = ImageExtractor.from_name("LocalPeakWindowSum", subarray=subarray)
 
     broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
-    dl1 = extractor(waveforms, telid, selected_gain_channel, broken_pixels)
+    dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert_allclose(dl1.image, true_charge, rtol=0.1)
     assert_allclose(dl1.peak_time, true_time, rtol=0.1)
 

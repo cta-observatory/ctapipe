@@ -50,7 +50,7 @@ def test_pedestal_integrator(prod5_sst):
     data.r1.tel[tel_id].waveform = np.full((2, n_pixels, 40), ped_level)
     data.r1.tel[tel_id].selected_gain_channel = np.zeros(n_pixels, dtype=np.uint8)
 
-    while ped_calculator.num_events_seen < n_events:
+    while ped_calculator.n_events_seen < n_events:
         if ped_calculator.calculate_pedestals(data):
             assert data.mon.tel[tel_id].pedestal
             assert np.mean(data.mon.tel[tel_id].pedestal.charge_median) == (

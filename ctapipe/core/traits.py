@@ -318,7 +318,7 @@ class TelescopeParameterLookup:
     def __init__(self, telescope_parameter_list):
         """
         Handles the lookup of corresponding configuration value from a list of
-        tuples for a telid.
+        tuples for a tel_id.
 
         Parameters
         ----------

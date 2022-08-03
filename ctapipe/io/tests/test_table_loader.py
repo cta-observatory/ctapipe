@@ -316,7 +316,7 @@ def test_read_shower_distributions(dl2_merged_file):
         histograms = table_loader.read_shower_distribution()
         assert len(histograms) == 2
         assert np.all(histograms["obs_id"] == [4, 1])
-        assert np.all(histograms["num_entries"] == [2000, 1000])
+        assert np.all(histograms["n_entries"] == [2000, 1000])
         assert np.all(histograms["histogram"].sum(axis=(1, 2)) == [2000, 1000])
 
 

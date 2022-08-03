@@ -4,7 +4,7 @@ from contextlib import nullcontext
 from gzip import GzipFile
 from io import BufferedReader
 from pathlib import Path
-from typing import Optional, Union
+from typing import Dict, Optional, Union
 
 import numpy as np
 from astropy import units as u
@@ -22,12 +22,19 @@ from ..atmosphere import (
 from ..calib.camera.gainselection import GainSelector
 from ..containers import (
     ArrayEventContainer,
+    CoordinateFrameType,
     EventIndexContainer,
     EventType,
+    ObservationBlockContainer,
+    ObservationBlockState,
+    ObservingMode,
     PixelStatusContainer,
     PointingContainer,
+    PointingMode,
     R0CameraContainer,
     R1CameraContainer,
+    SchedulingBlockContainer,
+    SchedulingBlockType,
     SimulatedCameraContainer,
     SimulatedEventContainer,
     SimulatedShowerContainer,
@@ -434,6 +441,10 @@ class SimTelEventSource(EventSource):
         self._subarray_info = self.prepare_subarray_info(
             self.file_.telescope_descriptions, self.file_.header
         )
+        (
+            self._scheduling_blocks,
+            self._observation_blocks,
+        ) = self._fill_scheduling_and_observation_blocks()
         self._simulation_config = self._parse_simulation_header()
         self.start_pos = self.file_.tell()
 
@@ -462,17 +473,26 @@ class SimTelEventSource(EventSource):
         return (DataLevel.R0, DataLevel.R1)
 
     @property
-    def obs_ids(self):
-        # ToDo: This does not support merged simtel files!
-        return [self.file_.header["run"]]
+    def simulation_config(self) -> Dict[int, SimulationConfigContainer]:
+        return self._simulation_config
 
     @property
     def atmosphere_density_profile(self) -> AtmosphereDensityProfile:
         return self._atmosphere_density_profile
 
     @property
-    def simulation_config(self) -> SimulationConfigContainer:
-        return self._simulation_config
+    def observation_blocks(self) -> Dict[int, ObservationBlockContainer]:
+        """
+        Obtain the ObservationConfigurations from the EventSource, indexed by obs_id
+        """
+        return self._observation_blocks
+
+    @property
+    def scheduling_blocks(self) -> Dict[int, SchedulingBlockContainer]:
+        """
+        Obtain the ObservationConfigurations from the EventSource, indexed by obs_id
+        """
+        return self._scheduling_blocks
 
     @property
     def is_stream(self):
@@ -540,11 +560,11 @@ class SimTelEventSource(EventSource):
                 name=telescope.name,
                 size_type=telescope.type,
                 reflector_shape=telescope.reflector_shape,
-                num_mirrors=telescope.n_mirrors,
+                n_mirrors=telescope.n_mirrors,
                 equivalent_focal_length=equivalent_focal_length,
                 effective_focal_length=effective_focal_length,
                 mirror_area=mirror_area,
-                num_mirror_tiles=cam_settings["n_mirrors"],
+                n_mirror_tiles=cam_settings["n_mirrors"],
             )
 
             if self.focal_length_choice is FocalLengthKind.EFFECTIVE:
@@ -883,7 +903,7 @@ class SimTelEventSource(EventSource):
             shower_prog_id=mc_run_head["shower_prog_id"],
             detector_prog_start=mc_run_head["detector_prog_start"],
             detector_prog_id=mc_run_head["detector_prog_id"],
-            num_showers=mc_run_head["n_showers"],
+            n_showers=mc_run_head["n_showers"],
             shower_reuse=mc_run_head["n_use"],
             max_alt=mc_run_head["alt_range"][1] * u.rad,
             min_alt=mc_run_head["alt_range"][0] * u.rad,
@@ -907,6 +927,40 @@ class SimTelEventSource(EventSource):
             corsika_high_E_detail=mc_run_head["corsika_high_E_detail"],
         )
         return {obs_id: simulation_config}
+
+    def _fill_scheduling_and_observation_blocks(self):
+        """fill scheduling and observation blocks must be run after the
+        simulation config is filled
+        """
+
+        az, alt = self.file_.header["direction"]
+        obs_id = self.file_.header["run"]
+
+        sb_dict = {
+            obs_id: SchedulingBlockContainer(
+                sb_id=np.uint64(obs_id),  # simulations have no SBs, use OB id
+                sb_type=SchedulingBlockType.OBSERVATION,
+                producer_id="simulation",
+                observing_mode=ObservingMode.UNKNOWN,
+                pointing_mode=PointingMode.DRIFT,
+            )
+        }
+
+        ob_dict = {
+            obs_id: ObservationBlockContainer(
+                obs_id=np.uint64(obs_id),
+                sb_id=np.uint64(obs_id),  # see comment above
+                producer_id="simulation",
+                state=ObservationBlockState.COMPLETED_SUCCEDED,
+                subarray_pointing_lat=alt * u.rad,
+                subarray_pointing_lon=az * u.rad,
+                subarray_pointing_frame=CoordinateFrameType.ALTAZ,
+                actual_start_time=Time(self.file_.header["time"], format="unix"),
+                scheduled_start_time=Time(self.file_.header["time"], format="unix"),
+            )
+        }
+
+        return sb_dict, ob_dict
 
     @staticmethod
     def _fill_simulated_event_information(array_event):
