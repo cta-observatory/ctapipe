@@ -126,27 +126,32 @@ class Reconstructor(Component):
         """
         features = dict()
 
-        for container in (
-            *event.dl1.tel[tel_id]
-            .parameters.as_dict(add_prefix=True, recursive=True)
-            .values(),
-        ):
-            features.update(container)
+        features.update(
+            event.dl1.tel[tel_id].parameters.as_dict(
+                add_prefix=True,
+                recursive=True,
+                flatten=True,
+            )
+        )
 
-        # for key, container in event.dl2.tel[tel_id]:
+        features.update(
+            event.dl2.tel[tel_id].as_dict(
+                add_prefix=False,  # would duplicate prefix, as this is part of the name of the container
+                recursive=True,
+                flatten=True,
+            )
+        )
 
-        for containers in event.dl2.stereo.values():
-            for algorithm, container in containers.items():
-                prefix = container.prefix
-                if prefix:
-                    container.prefix = f"{algorithm}_{prefix}"
-                else:
-                    container.prefix = algorithm
-
-                features.update(container.as_dict(add_prefix=True))
-                container.prefix = ""
+        features.update(
+            event.dl2.stereo.as_dict(
+                add_prefix=False,  # see above
+                recursive=True,
+                flatten=True,
+            )
+        )
 
         features.update(self.instrument_table.loc[tel_id])
+
         return Table({k: [v] for k, v in features.items()})
 
 

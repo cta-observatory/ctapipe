@@ -8,14 +8,7 @@ from tqdm.auto import tqdm
 
 from ..calib import CameraCalibrator, GainSelector
 from ..core import QualityQuery, Tool
-from ..core.traits import (
-    Bool,
-    Dict,
-    List,
-    classes_with_traits,
-    flag,
-    Path,
-)
+from ..core.traits import Bool, Dict, List, Path, classes_with_traits, flag
 from ..image import ImageCleaner, ImageModifier, ImageProcessor
 from ..image.extractor import ImageExtractor
 from ..io import (
@@ -27,6 +20,7 @@ from ..io import (
     write_table,
 )
 from ..io.datawriter import DATA_MODEL_VERSION
+from ..ml import EnergyRegressor, ParticleIdClassifier, StereoCombiner
 from ..reco import ShowerProcessor
 from ..utils import EventTypeFilter
 
