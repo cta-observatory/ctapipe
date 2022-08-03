@@ -4,12 +4,12 @@ import logging
 import os
 import sys
 
-from .utils import get_parser
+from pkg_resources import resource_filename
+
 from ..core import Provenance, get_module_version
 from ..core.plugins import detect_and_import_io_plugins
 from ..utils import datasets
-
-from pkg_resources import resource_filename
+from .utils import get_parser
 
 __all__ = ["info"]
 
@@ -56,6 +56,9 @@ def main(args=None):
         "--all", dest="show_all", action="store_true", help="show all info"
     )
     parser.add_argument("--plugins", action="store_true", help="Print plugin info")
+    parser.add_argument(
+        "--datamodel", action="store_true", help="Print data model info"
+    )
     args = parser.parse_args(args)
 
     if len(sys.argv) <= 1:
@@ -73,14 +76,18 @@ def info(
     system=False,
     plugins=False,
     show_all=False,
+    datamodel=False,
 ):
     """
     Display information about the current ctapipe installation.
     """
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(message)s")
+    logging.basicConfig(level=logging.CRITICAL, format="%(levelname)s - %(message)s")
 
     if version or show_all:
         _info_version()
+
+    if datamodel or show_all:
+        _info_datamodel()
 
     if tools or show_all:
         _info_tools()
@@ -119,8 +126,9 @@ def _info_tools():
     # full help text from the docstring or ArgumentParser?
     # This is the function names, we want the command-line names
     # that are defined in setup.py !???
-    from ctapipe.tools.utils import get_all_descriptions
     from textwrap import TextWrapper
+
+    from ctapipe.tools.utils import get_all_descriptions
 
     wrapper = TextWrapper(width=80, subsequent_indent=" " * 35)
 
@@ -148,7 +156,7 @@ def _info_dependencies():
 
 
 def _info_resources():
-    """ display all known resources """
+    """display all known resources"""
 
     print("\n*** ctapipe resources ***\n")
     print("CTAPIPE_SVC_PATH: (directories where resources are searched)")
@@ -207,6 +215,17 @@ def _info_plugins():
     for name in plugins:
         version = get_module_version(name)
         print(f"{name:>20s} -- {version}")
+
+
+def _info_datamodel():
+    from ctapipe.io.datawriter import DATA_MODEL_CHANGE_HISTORY, DATA_MODEL_VERSION
+    from ctapipe.io.hdf5eventsource import COMPATIBLE_DATA_MODEL_VERSIONS
+
+    print("\n*** ctapipe data model ***\n")
+    print(f"output version: {DATA_MODEL_VERSION}")
+    print(f"compatible input versions: {', '.join(COMPATIBLE_DATA_MODEL_VERSIONS)}")
+    print("change history:")
+    print(DATA_MODEL_CHANGE_HISTORY)
 
 
 if __name__ == "__main__":
