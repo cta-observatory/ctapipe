@@ -2,9 +2,10 @@ import numpy as np
 from scipy.stats import norm 
 import gzip
 import pickle
+import numba
 
 __all__ = ["create_seed", "rotate_translate", "generate_fake_template", "create_dummy_templates", 
-"guess_shower_depth", "energy_prior", "xmax_prior", "EmptyImages"]
+"guess_shower_depth", "EmptyImages"]
 
 
 class EmptyImages(Exception):
@@ -30,17 +31,6 @@ def guess_shower_depth(energy):
 
     return x_max_exp
 
-
-def energy_prior(energy, index=-1):
-    return -2 * np.log(energy ** index)
-
-
-def xmax_prior(energy, xmax, width=100):
-    x_max_exp = guess_shower_depth(energy)
-    diff = xmax - x_max_exp
-    return -2 * np.log(norm.pdf(diff / width))
-
-import numba
 
 @numba.jit
 def rotate_translate(pixel_pos_x, pixel_pos_y, x_trans, y_trans, phi):
@@ -109,7 +99,6 @@ def create_seed(source_x, source_y, tilt_x, tilt_y, energy):
     # the edge
     if lower_en_limit < 0.02:
         lower_en_limit = 0.02
-#        en_seed = 0.01
 
     # Take the seed from Hillas-based reconstruction
     seed = [source_x, source_y, tilt_x, tilt_y, en_seed, 1.0]
