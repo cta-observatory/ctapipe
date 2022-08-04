@@ -105,7 +105,7 @@ class ImPACTReconstructor(Reconstructor):
         "FlashCam": 1.3,
         "CHEC": 0.5,
         "ASTRICam": 0.5,
-        "DUMMY": 0,
+        "dummy": 0.01,
         "UNKNOWN-960PX": 1.,
 
     }
