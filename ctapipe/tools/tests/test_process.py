@@ -9,6 +9,7 @@ import pandas as pd
 import pytest
 import tables
 
+from ctapipe.conftest import MAX_EVENTS
 from ctapipe.core import run_tool
 from ctapipe.instrument.subarray import SubarrayDescription
 from ctapipe.io import DataLevel, EventSource, read_table
@@ -87,6 +88,7 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
                 "--camera-frame",
                 "--write-parameters",
                 "--overwrite",
+                MAX_EVENTS,
             ],
             cwd=tmp_path,
         )
@@ -142,6 +144,7 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
             f"--output={tmp_path}/dl1b_from_dl1b.dl1.h5",
             "--write-parameters",
             "--overwrite",
+            MAX_EVENTS,
         ],
         cwd=tmp_path,
     )
@@ -201,6 +204,7 @@ def test_stage1_datalevels(tmp_path):
                 f"--output={out_file}",
                 "--write-images",
                 "--overwrite",
+                MAX_EVENTS,
             ],
             cwd=tmp_path,
         )
@@ -223,6 +227,7 @@ def test_stage_2_from_simtel(tmp_path):
                 "--input=dataset://gamma_prod5.simtel.zst",
                 f"--output={output}",
                 "--overwrite",
+                MAX_EVENTS,
             ],
             cwd=tmp_path,
         )
@@ -256,6 +261,7 @@ def test_stage_2_from_dl1_images(tmp_path, dl1_image_file):
                 f"--input={dl1_image_file}",
                 f"--output={output}",
                 "--overwrite",
+                MAX_EVENTS,
             ],
             cwd=tmp_path,
         )
@@ -281,6 +287,7 @@ def test_stage_2_from_dl1_params(tmp_path, dl1_parameters_file):
                 f"--input={dl1_parameters_file}",
                 f"--output={output}",
                 "--overwrite",
+                MAX_EVENTS,
             ],
             cwd=tmp_path,
         )
@@ -305,7 +312,7 @@ def test_training_from_simtel(tmp_path):
                 f"--config={config}",
                 f"--input={GAMMA_TEST_LARGE}",
                 f"--output={output}",
-                "--max-events=5",
+                MAX_EVENTS,
                 "--overwrite",
                 "--SimTelEventSource.focal_length_choice=EQUIVALENT",
             ],
@@ -341,6 +348,7 @@ def test_image_modifications(tmp_path, dl1_image_file):
                 f"--output={dl1_modified}",
                 "--write-parameters",
                 "--overwrite",
+                MAX_EVENTS,
             ],
             cwd=tmp_path,
         )

@@ -7,8 +7,11 @@ from copy import deepcopy
 import pytest
 from pytest_astropy_header.display import PYTEST_HEADER_MODULES
 
+from ctapipe.core import run_tool
 from ctapipe.instrument import CameraGeometry, SubarrayDescription
 from ctapipe.io import SimTelEventSource
+from ctapipe.tools.merge import MergeTool
+from ctapipe.tools.process import ProcessorTool
 from ctapipe.utils import get_dataset_path
 from ctapipe.utils.filelock import FileLock
 
@@ -35,6 +38,8 @@ camera_names = [
     "VERITAS",
     "Whipple490",
 ]
+
+MAX_EVENTS = "--max-events=20"
 
 
 @pytest.fixture(scope="function", params=camera_names)
@@ -199,9 +204,6 @@ def dl2_shower_geometry_file(dl2_tmp_path, prod5_gamma_simtel_path):
     """
     File containing both parameters and shower geometry from a gamma simulation set.
     """
-    from ctapipe.core import run_tool
-    from ctapipe.tools.process import ProcessorTool
-
     output = dl2_tmp_path / "gamma.training.h5"
 
     # prevent running process multiple times in case of parallel tests
@@ -214,6 +216,7 @@ def dl2_shower_geometry_file(dl2_tmp_path, prod5_gamma_simtel_path):
             f"--output={output}",
             "--write-images",
             "--write-showers",
+            MAX_EVENTS,
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
         return output
@@ -224,9 +227,6 @@ def dl2_proton_geometry_file(dl2_tmp_path, prod5_proton_simtel_path):
     """
     File containing both parameters and shower geometry from a gamma simulation set.
     """
-    from ctapipe.core import run_tool
-    from ctapipe.tools.process import ProcessorTool
-
     output = dl2_tmp_path / "proton.training.h5"
 
     # prevent running process multiple times in case of parallel tests
@@ -239,7 +239,7 @@ def dl2_proton_geometry_file(dl2_tmp_path, prod5_proton_simtel_path):
             f"--output={output}",
             "--write-images",
             "--write-showers",
-            "--max-events=20",
+            MAX_EVENTS,
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl2_tmp_path) == 0
         return output
@@ -250,9 +250,6 @@ def dl2_merged_file(dl2_tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_
     """
     File containing both parameters and shower geometry from a gamma simulation set.
     """
-    from ctapipe.core import run_tool
-    from ctapipe.tools.merge import MergeTool
-
     output = dl2_tmp_path / "merged.training.h5"
 
     # prevent running process multiple times in case of parallel tests
@@ -274,9 +271,6 @@ def dl1_file(dl1_tmp_path, prod5_gamma_simtel_path):
     """
     DL1 file containing both images and parameters from a gamma simulation set.
     """
-    from ctapipe.core import run_tool
-    from ctapipe.tools.process import ProcessorTool
-
     output = dl1_tmp_path / "gamma.dl1.h5"
 
     # prevent running process multiple times in case of parallel tests
@@ -288,7 +282,7 @@ def dl1_file(dl1_tmp_path, prod5_gamma_simtel_path):
             f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
             "--write-images",
-            "--max-events=20",
+            MAX_EVENTS,
             "--DataWriter.Contact.name=αℓℓ the äüöß",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
@@ -300,9 +294,6 @@ def dl1_image_file(dl1_tmp_path, prod5_gamma_simtel_path):
     """
     DL1 file containing only images (DL1A) from a gamma simulation set.
     """
-    from ctapipe.core import run_tool
-    from ctapipe.tools.process import ProcessorTool
-
     output = dl1_tmp_path / "gamma_images.dl1.h5"
 
     # prevent running process multiple times in case of parallel tests
@@ -315,7 +306,7 @@ def dl1_image_file(dl1_tmp_path, prod5_gamma_simtel_path):
             f"--output={output}",
             "--write-images",
             "--DataWriter.write_parameters=False",
-            "--max-events=20",
+            MAX_EVENTS,
             "--DataWriter.Contact.name=αℓℓ the äüöß",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
@@ -327,9 +318,6 @@ def dl1_parameters_file(dl1_tmp_path, prod5_gamma_simtel_path):
     """
     DL1 File containing only parameters (DL1B) from a gamma simulation set.
     """
-    from ctapipe.core import run_tool
-    from ctapipe.tools.process import ProcessorTool
-
     output = dl1_tmp_path / "gamma_parameters.dl1.h5"
 
     # prevent running process multiple times in case of parallel tests
@@ -341,6 +329,7 @@ def dl1_parameters_file(dl1_tmp_path, prod5_gamma_simtel_path):
             f"--input={prod5_gamma_simtel_path}",
             f"--output={output}",
             "--write-parameters",
+            MAX_EVENTS,
             "--DataWriter.Contact.name=αℓℓ the äüöß",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
@@ -352,9 +341,6 @@ def dl1_muon_file(dl1_tmp_path):
     """
     DL1 file containing only images from a muon simulation set.
     """
-    from ctapipe.core import run_tool
-    from ctapipe.tools.process import ProcessorTool
-
     output = dl1_tmp_path / "muons.dl1.h5"
 
     # prevent running process multiple times in case of parallel tests
@@ -367,6 +353,7 @@ def dl1_muon_file(dl1_tmp_path):
             f"--input={infile}",
             f"--output={output}",
             "--write-images",
+            MAX_EVENTS,
             "--DataWriter.write_parameters=False",
             "--DataWriter.Contact.name=αℓℓ the äüöß",
             "--SimTelEventSource.focal_length_choice=EQUIVALENT",
@@ -380,9 +367,6 @@ def dl1_proton_file(dl1_tmp_path, prod5_proton_simtel_path):
     """
     DL1 file containing images and parameters for a prod5 proton run
     """
-    from ctapipe.core import run_tool
-    from ctapipe.tools.process import ProcessorTool
-
     output = dl1_tmp_path / "proton.dl1.h5"
 
     with FileLock(output.with_suffix(output.suffix + ".lock")):
@@ -393,6 +377,7 @@ def dl1_proton_file(dl1_tmp_path, prod5_proton_simtel_path):
             f"--input={prod5_proton_simtel_path}",
             f"--output={output}",
             "--write-images",
+            MAX_EVENTS,
             "--DataWriter.Contact.name=αℓℓ the äüöß",
         ]
         assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0

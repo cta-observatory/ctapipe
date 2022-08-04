@@ -9,8 +9,10 @@ from astropy.table import vstack
 from astropy.utils.diff import report_diff_values
 
 from ctapipe.core import run_tool
+from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import TableLoader
 from ctapipe.io.astropy_helpers import read_table
+from ctapipe.tools.merge import MergeTool
 from ctapipe.tools.process import ProcessorTool
 
 try:
@@ -36,7 +38,7 @@ def run_stage1(input_path, cwd, output_path=None):
             "--write-parameters",
             "--write-images",
             "--overwrite",
-            "--max-events=5",
+            "--max-events=1",
         ],
         cwd=cwd,
     )
@@ -44,7 +46,6 @@ def run_stage1(input_path, cwd, output_path=None):
 
 
 def test_simple(tmp_path, dl1_file, dl1_proton_file):
-    from ctapipe.tools.merge import MergeTool
 
     output = tmp_path / "merged_simple.dl1.h5"
     ret = run_tool(
@@ -57,7 +58,6 @@ def test_simple(tmp_path, dl1_file, dl1_proton_file):
 
 
 def test_pattern(tmp_path: Path, dl1_file, dl1_proton_file):
-    from ctapipe.tools.merge import MergeTool
 
     # touch a random file to test that the pattern does not use it
     open(dl1_file.parent / "foo.h5", "w").close()
@@ -84,7 +84,6 @@ def test_pattern(tmp_path: Path, dl1_file, dl1_proton_file):
 
 
 def test_skip_images(tmp_path, dl1_file, dl1_proton_file):
-    from ctapipe.tools.merge import MergeTool
 
     # create a second file so we can test the patterns
     output = tmp_path / "merged_no_images.dl1.h5"
@@ -112,8 +111,6 @@ def test_skip_images(tmp_path, dl1_file, dl1_proton_file):
 
 
 def test_allowed_tels(tmp_path, dl1_file, dl1_proton_file):
-    from ctapipe.instrument import SubarrayDescription
-    from ctapipe.tools.merge import MergeTool
 
     # create file to test 'allowed-tels' option
     output = tmp_path / "merged_allowed_tels.dl1.h5"
@@ -140,7 +137,6 @@ def test_allowed_tels(tmp_path, dl1_file, dl1_proton_file):
 
 
 def test_dl2(tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_file):
-    from ctapipe.tools.merge import MergeTool
 
     output = tmp_path / "merged.dl2.h5"
     ret = run_tool(
