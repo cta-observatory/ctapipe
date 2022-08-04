@@ -79,7 +79,7 @@ class UnstructuredInterpolator:
             table_shape = self.values[0].shape
             for i in range(bounds.shape[0]):
                 scale_dimemsion = bounds[i][1] - bounds[i][0]
-                scale_dimemsion = scale_dimemsion/float(table_shape[i])
+                scale_dimemsion = scale_dimemsion/float(table_shape[i] - 1)
                 scale.append(scale_dimemsion)
             self.scale = np.array(scale, dtype=dtype)
         
