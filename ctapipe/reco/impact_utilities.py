@@ -121,7 +121,7 @@ def create_seed(source_x, source_y, tilt_x, tilt_y, energy):
     return seed, step, limits
 
 
-def generate_fake_template(center, length, width=0.3, xb=300, yb=150, bounds=((-5, 1), (-1.5, 1.5))):
+def generate_fake_template(center, length, width=0.3, xb=301, yb=151, bounds=((-5, 1), (-1.5, 1.5))):
     """Simple function to generate template for testing
 
     Args:
