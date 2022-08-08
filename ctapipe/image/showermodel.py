@@ -1,6 +1,5 @@
 import astropy.units as u
 import numpy as np
-from numpy.linalg import norm
 from scipy.integrate import quad
 from scipy.stats import multivariate_normal
 from scipy.spatial.transform import Rotation as R
