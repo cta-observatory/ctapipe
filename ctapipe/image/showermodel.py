@@ -1,8 +1,11 @@
 import astropy.units as u
 import numpy as np
+from numpy.linalg import norm
+from scipy.integrate import quad
 from scipy.stats import multivariate_normal
 from scipy.spatial.transform import Rotation as R
 from astropy.utils.decorators import lazyproperty
+from astropy.coordinates import spherical_to_cartesian
 
 
 __all__ = [
@@ -49,6 +52,7 @@ class Gaussian:
         self.x = x
         self.y = y
         self.azimuth = azimuth
+        self.altitude = altitude
         self.zenith = 90 * u.deg - altitude
         self.first_interaction = first_interaction
         self.width = width
@@ -110,9 +114,46 @@ class Gaussian:
         )
         return b
 
-    def pixel_content(self):
+    def photon_integral(self, vec_oc, vec_los, epsilon):
         # https://arxiv.org/pdf/astro-ph/0601373.pdf Appendix 1 Equation (5)
-        pass
+        ce = np.cos(epsilon)
+        sig_L = self.length.to_value(u.m)
+        sig_T = self.width.to_value(u.m)
+
+        sig_u_sq = sig_T**2 * ce**2 + sig_L**2 * (1 - ce**2)
+        sig_D_sq = sig_L**2 - sig_T**2
+
+        B_p = np.dot(vec_oc, vec_los)
+        B_s = np.dot(vec_oc, self._vec_shower_axis)
+
+        delta_B_sq = np.dot(vec_oc, vec_oc) - B_p**2
+        C = 1 - self._freq(
+            -(sig_L**2 * B_p - sig_D_sq * ce * B_s)
+            / (np.sqrt(sig_u_sq) * sig_T * sig_L)
+        )
+        constant = self.total_photons * C / (2 * np.pi * np.sqrt(sig_u_sq) * sig_T)
+        return constant * np.exp(
+            -0.5
+            * (
+                delta_B_sq / sig_T**2
+                - sig_D_sq / (sig_T**2 * sig_u_sq) * (ce * B_p - B_s) ** 2
+            ).to_value(u.m**2)
+        )
+
+    def _freq(self, x):
+        """Helper function."""
+        return (
+            1
+            / np.sqrt(2 * np.pi)
+            * quad(lambda t: np.exp(-(t**2) / 2), -np.inf, x.to_value(u.m))[0]
+        )
+
+    @lazyproperty
+    def _vec_shower_axis(self):
+        """Calculates the unit vector of the shower axis."""
+        x, y, z = spherical_to_cartesian(1, lat=self.altitude, lon=self.azimuth)
+        vec = np.stack((x, y, z), -1)
+        return vec
 
     def emission_probability(self, epsilon):
         """Calculates the emission probability of a photon with angle epsilon to the shower axis. https://arxiv.org/pdf/astro-ph/0601373.pdf Assumption 2.2.2
