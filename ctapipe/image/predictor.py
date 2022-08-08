@@ -78,7 +78,7 @@ class Predictor:
         """Calculates vector of optical center of each telescope to the barycenter of the shower."""
         vec = {}
         for tel_id, position in self.tel_positions.items():
-            vec[tel_id] = self.showermodel._barycenter - position
+            vec[tel_id] = self.showermodel.barycenter - position
         return vec
 
     def _vec_los(self, pix_pointing):
@@ -125,8 +125,8 @@ class Predictor:
 
         vec_los = self._vec_los(pointing)
         epsilon = np.arccos(
-            np.dot(vec_los, self.showermodel._vec_shower_axis)
-            / (norm(vec_los) * norm(self.showermodel._vec_shower_axis))
+            np.dot(vec_los, self.showermodel.vec_shower_axis)
+            / (norm(vec_los) * norm(self.showermodel.vec_shower_axis))
         ).to_value(u.rad)
 
         theta = np.arccos(np.dot(vec_los, vec_axis) / (norm(vec_los) * norm(vec_axis)))

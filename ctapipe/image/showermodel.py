@@ -77,13 +77,13 @@ class Gaussian:
         cov = r.as_matrix().T @ cov @ r.as_matrix()
 
         gauss = multivariate_normal(
-            mean=self._barycenter.to_value(u.m), cov=cov.to_value(u.m)
+            mean=self.barycenter.to_value(u.m), cov=cov.to_value(u.m)
         )
 
         return gauss
 
     @lazyproperty
-    def _barycenter(self):
+    def barycenter(self):
         """Calculates barycenter of the shower.
         This is given by the vector defined by azimuth and zenith in spherical coords + vector pointing to the first_interaction
         minus half length back to shower center.
@@ -135,7 +135,7 @@ class Gaussian:
         sig_D_sq = sig_L**2 - sig_T**2
 
         B_p = np.dot(vec_oc, vec_los)
-        B_s = np.dot(vec_oc, self._vec_shower_axis)
+        B_s = np.dot(vec_oc, self.vec_shower_axis)
 
         delta_B_sq = np.dot(vec_oc, vec_oc) - B_p**2
         C = 1 - self._freq(
@@ -160,7 +160,7 @@ class Gaussian:
         )
 
     @lazyproperty
-    def _vec_shower_axis(self):
+    def vec_shower_axis(self):
         """Calculates the unit vector of the shower axis."""
         x, y, z = spherical_to_cartesian(1, lat=self.altitude, lon=self.azimuth)
         vec = np.stack((x, y, z), -1)
