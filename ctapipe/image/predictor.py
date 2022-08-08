@@ -91,7 +91,7 @@ class Predictor:
         """
         x, y, z = spherical_to_cartesian(1, lat=pix_pointing.alt, lon=pix_pointing.az)
         vec = np.stack((x, y, z), -1)
-        return vec
+        return vec * u.m
 
     def _telescope_axis(self, tel_pointing):
         """Calculates the unit vector of the telescope axis.
@@ -101,8 +101,12 @@ class Predictor:
         tel_pointing : u.Quantity[Angle]
             Pointing of the telescope in AltAz
         """
-        return np.stack(
-            (spherical_to_cartesian(1, lat=tel_pointing.alt, lon=tel_pointing.az)), -1
+        return (
+            np.stack(
+                (spherical_to_cartesian(1, lat=tel_pointing.alt, lon=tel_pointing.az)),
+                -1,
+            )
+            * u.m
         )
 
     def _photons(self, area, solid_angle, vec_oc, pointing, vec_axis):
@@ -122,7 +126,6 @@ class Predictor:
         vec_axis : u.Quantity[lenght]
             Unit vector along the telescope axis
         """
-
         vec_los = self._vec_los(pointing)
         epsilon = np.arccos(
             np.dot(vec_los, self.showermodel.vec_shower_axis)
