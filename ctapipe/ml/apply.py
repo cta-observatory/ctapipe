@@ -378,5 +378,4 @@ class CrossValidator(Component):
     def write(self):
         Provenance().add_output_file(self.output_path, role="ml-cross-validation")
         for tel_type, results in self.cv_predictions.items():
-            print(results, type(results))
             write_table(results, self.output_path, f"cv_predictions_{tel_type}")
