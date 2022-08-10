@@ -89,7 +89,7 @@ class ImPACTReconstructor(Reconstructor):
     ).tag(config=True)
 
     atmosphere_profile_name = traits.CaselessStrEnum(
-        ["paranal"], default_value="paranal", help="name of atmosphere profile to use"
+        ["paranal", "lapalma"], default_value="paranal", help="name of atmosphere profile to use"
     ).tag(config=True)
 
     use_time_gradient = traits.Bool(default_value=False, help="Use time gradient in ImPACT reconstrcution"
@@ -177,6 +177,7 @@ class ImPACTReconstructor(Reconstructor):
         event : container
             `ctapipe.containers.ArrayEventContainer`
         """
+
         try:
             hillas_dict = self._create_hillas_dict(event)
         except (TooFewTelescopesException, InvalidWidthException):
@@ -284,8 +285,6 @@ class ImPACTReconstructor(Reconstructor):
             peak_x[tel_num] = hillas.fov_lon.to(u.rad).value  # Fill up array
             peak_y[tel_num] = hillas.fov_lat.to(u.rad).value
             peak_amp[tel_num] = hillas.intensity
-            #print(tel_num, peak_x[tel_num], peak_y[tel_num], peak_amp[tel_num])
-
             tel_num += 1
 
         self.peak_x = peak_x  # * unit # Add to class member
@@ -346,7 +345,6 @@ class ImPACTReconstructor(Reconstructor):
         x_max = self.thickness_profile(mean_height)
         # Convert to slant depth
         x_max /= np.cos(zen)
-        #print(disp, impact, height, x_max)
 
         return x_max
 
@@ -479,7 +477,6 @@ class ImPACTReconstructor(Reconstructor):
         prediction.mask = ma.getmask(self.image)
 
         time_gradients, time_gradients_uncertainty = np.zeros(self.image.shape[0]), np.zeros(self.image.shape[0])
-        #print(zenith, azimuth, energy, impact, x_max_bin)
         # Loop over all telescope types and get prediction
         for tel_type in np.unique(self.tel_types).tolist():
             type_mask = self.tel_types == tel_type
@@ -881,7 +878,7 @@ class ImPACTReconstructor(Reconstructor):
         if energy_preminimisation:
             likelihood = 1e9
             # Try a few different seed energies to be sure we get the right one
-            for seed_energy in  [1.]:#[0.03, 0.1, 1, 10, 100]:
+            for seed_energy in [0.5, 20]:
                 self.min = Minuit(
                     self.get_likelihood,
                     source_x=params[0],source_y=params[1],
@@ -899,10 +896,10 @@ class ImPACTReconstructor(Reconstructor):
                 # Set loose limits as we only need rough numbers
                 self.min.errordef = 1.0
                 self.min.tol *= 1000
-                self.min.strategy = 0
+                self.min.strategy = 1
 
                 fit_params = self.min.values
-                migrad = self.min.simplex(20)
+                migrad = self.min.migrad(20)
 
                 # Only use if our value is better that the previous ones
                 if migrad.fval < likelihood and self.min.values["energy"]>0.01: 
@@ -910,7 +907,6 @@ class ImPACTReconstructor(Reconstructor):
                     energy = fit_params["energy"]
                     limits[4] = [energy*0.1, energy*2.]
                     step[4] = energy*0.1
-
                     likelihood = migrad.fval
         if preminimisation_only:
             return  (
