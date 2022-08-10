@@ -263,9 +263,11 @@ class TemplateNetworkInterpolator(BaseTemplate):
         """
 
         super().__init__()
-        file_list = gzip.open(template_file)
-        input_dict = pickle.load(file_list)
 
+        input_dict = None
+        with gzip.open(template_file, 'r') as file_list:
+            input_dict = pickle.load(file_list)
+        
         keys = np.array(list(input_dict.keys()))
         values = np.array(list(input_dict.values()), dtype=np.float32)
         self.no_zenaz = False
