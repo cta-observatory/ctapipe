@@ -95,6 +95,8 @@ class ImPACTReconstructor(Reconstructor):
     use_time_gradient = traits.Bool(default_value=False, help="Use time gradient in ImPACT reconstrcution"
     ).tag(config=True)
 
+    root_dir = traits.Unicode(default_value="./", help="Directory containing ImPACT tables").tag(config=True)
+
     # For likelihood calculation we need the with of the
     # pedestal distribution for each pixel
     # currently this is not availible from the calibration,
@@ -110,7 +112,6 @@ class ImPACTReconstructor(Reconstructor):
 
     }
     spe = 0.6  # Also hard code single p.e. distribution width
-    root_dir="."
 
     def __init__(
         self,
