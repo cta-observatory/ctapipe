@@ -39,7 +39,12 @@ from ctapipe.utils.template_network_interpolator import (
     DummyTimeInterpolator
 )
 
-from ctapipe.reco.impact_utilities import *
+from ctapipe.reco.impact_utilities import (
+    guess_shower_depth,
+    rotate_translate,
+    EmptyImages,
+    create_seed
+)
 from ctapipe.image.pixel_likelihood import neg_log_likelihood_approx, mean_poisson_likelihood_gaussian
 from ctapipe.image.cleaning import dilate
 from ..fitting import lts_linear_regression

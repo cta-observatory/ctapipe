@@ -13,7 +13,6 @@ from ..core.traits import Bool, create_class_enum_trait
 from ..instrument import SubarrayDescription
 from . import Reconstructor
 from .impact_distance import shower_impact_distance
-from ctapipe.reco.impact import ImPACTReconstructor
 from ctapipe.core import traits
 
 class ShowerProcessor(Component):
@@ -60,7 +59,7 @@ class ShowerProcessor(Component):
             subarray=self.subarray,
             parent=self,
         )
-        if self.advanced_reconstructor_type is not "":
+        if self.advanced_reconstructor_type != "":
             self.advanced_reconstructor = Reconstructor.from_name(self.advanced_reconstructor_type,
             subarray=self.subarray, parent=self)
 
@@ -79,7 +78,7 @@ class ShowerProcessor(Component):
         k = self.reconstructor_type            
         event.dl2.stereo.geometry[k] = self.reconstructor(event)
         
-        if self.advanced_reconstructor_type is not "":
+        if self.advanced_reconstructor_type != "":
             geometry, energy = self.advanced_reconstructor(event)
             event.dl2.stereo.geometry[self.advanced_reconstructor_type] = geometry
             event.dl2.stereo.energy[self.advanced_reconstructor_type] = energy

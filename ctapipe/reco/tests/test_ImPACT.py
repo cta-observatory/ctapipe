@@ -1,6 +1,5 @@
 import astropy.units as u
 import numpy as np
-import pytest
 from numpy.testing import assert_allclose
 from astropy.coordinates import Angle, AltAz, SkyCoord
 
@@ -47,7 +46,6 @@ class TestImPACT:
         """
         Test that averaging of the brightest pixel position give a sensible outcome
         """
-        image = np.array([1, 1, 1, 1])
         pixel_x = np.array([0.0, 1.0, 0.0, -1.0]) * u.deg
         pixel_y = np.array([-1.0, 0.0, 1.0, 0.0]) * u.deg
 
@@ -89,7 +87,6 @@ class TestImPACT:
     def test_xmax_calculation(self):
         """Test calculation of hmax and interpolation of Xmax tables"""
 
-        image = np.array([1, 1, 1])
         pixel_x = np.array([1, 1, 1]) * u.deg
         pixel_y = np.array([1, 1, 1]) * u.deg
 
