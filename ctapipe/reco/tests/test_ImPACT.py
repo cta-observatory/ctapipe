@@ -5,8 +5,12 @@ from astropy.coordinates import Angle, AltAz, SkyCoord
 
 
 from ctapipe.reco.impact import ImPACTReconstructor
-from ctapipe.reco.impact_utilities import rotate_translate, create_dummy_templates, \
-                                        generate_fake_template, create_seed
+from ctapipe.reco.impact_utilities import (
+    rotate_translate,
+    create_dummy_templates,
+    generate_fake_template,
+    create_seed,
+)
 
 from ctapipe.containers import HillasParametersContainer
 from ctapipe.instrument import SubarrayDescription
@@ -18,8 +22,7 @@ class TestImPACT:
     @classmethod
     def setup_class(self):
 
-        subarray = SubarrayDescription(
-            "test array")
+        subarray = SubarrayDescription("test array")
 
         self.impact_reco = ImPACTReconstructor(subarray)
         self.horizon_frame = AltAz()
@@ -37,10 +40,10 @@ class TestImPACT:
             kurtosis=0,
         )
 
-        #filename = get_dataset_path("gamma_test_large.simtel.gz")
-        #source = EventSource(filename, max_events=1)
+        # filename = get_dataset_path("gamma_test_large.simtel.gz")
+        # source = EventSource(filename, max_events=1)
 
-        #self.subarray = source.subarray
+        # self.subarray = source.subarray
 
     def test_brightest_mean_average(self):
         """
@@ -67,11 +70,15 @@ class TestImPACT:
         x = np.array([[1]])
         y = np.array([[0]])
 
-        xt, yt = rotate_translate(x, y, np.array([0]), np.array([[0]]), np.deg2rad(np.array([90])))
+        xt, yt = rotate_translate(
+            x, y, np.array([0]), np.array([[0]]), np.deg2rad(np.array([90]))
+        )
         assert_allclose(xt, 0, rtol=0, atol=0.001)
         assert_allclose(yt, 1, rtol=0, atol=0.001)
 
-        xt, yt = rotate_translate(x, y, np.array([0]), np.array([0]), np.deg2rad(np.array([180])))
+        xt, yt = rotate_translate(
+            x, y, np.array([0]), np.array([0]), np.deg2rad(np.array([180]))
+        )
         assert_allclose(xt, 1, rtol=0, atol=0.001)
         assert_allclose(yt, 0, rtol=0, atol=0.001)
 
@@ -93,8 +100,8 @@ class TestImPACT:
         self.impact_reco.hillas_parameters = [self.h1]
         self.impact_reco.pixel_x = np.array([pixel_x])
         self.impact_reco.pixel_y = np.array([pixel_y])
-        self.impact_reco.tel_pos_x = np.array([0.])
-        self.impact_reco.tel_pos_y = np.array([0.])
+        self.impact_reco.tel_pos_x = np.array([0.0])
+        self.impact_reco.tel_pos_y = np.array([0.0])
 
         self.impact_reco.get_hillas_mean()
 
@@ -111,10 +118,16 @@ class TestImPACT:
         self.impact_reco.root_dir = str(tmp_path)
         self.impact_reco.initialise_templates({1: "dummy"})
 
-
-        pred = self.impact_reco.image_prediction("dummy", 0, 0, 
-                             np.array([1]), np.array([100]), np.array([-150]), 
-                             x.ravel(), y.ravel())
+        pred = self.impact_reco.image_prediction(
+            "dummy",
+            0,
+            0,
+            np.array([1]),
+            np.array([100]),
+            np.array([-150]),
+            x.ravel(),
+            y.ravel(),
+        )
 
         assert_allclose(template.ravel() - pred, np.zeros_like(pred), atol=0.1)
 
@@ -122,7 +135,7 @@ class TestImPACT:
 
         create_dummy_templates(str(tmp_path) + "/dummy.template.gz", 1)
 
-        tel1, x, y = generate_fake_template(-1.5, 0.5, 0.3, 50, 50, ((-4,4), (-4,4)))
+        tel1, x, y = generate_fake_template(-1.5, 0.5, 0.3, 50, 50, ((-4, 4), (-4, 4)))
         tel2 = np.rot90(tel1)
         tel3 = np.rot90(tel2)
         tel4 = np.rot90(tel3)
@@ -131,33 +144,35 @@ class TestImPACT:
         pixel_x = np.array([x.ravel(), x.ravel(), x.ravel(), x.ravel()]) * u.deg
         pixel_y = np.array([y.ravel(), y.ravel(), y.ravel(), y.ravel()]) * u.deg
 
-        array_pointing = SkyCoord(alt=0 * u.deg, az=0 * u.deg, 
-                                frame=AltAz)
-                
-        self.impact_reco.tel_types = np.array(["dummy", "dummy", "dummy","dummy"])
-        self.impact_reco.initialise_templates({1: "dummy", 2: "dummy", 3: "dummy", 4: "dummy"})
-        self.impact_reco.zenith = 0 #*u.deg
-        self.impact_reco.azimuth = 0 #*u.deg
-        self.impact_reco.ped = np.ones_like(image) #*u.deg
+        array_pointing = SkyCoord(alt=0 * u.deg, az=0 * u.deg, frame=AltAz)
 
-        self.impact_reco.image = image * 1000 
+        self.impact_reco.tel_types = np.array(["dummy", "dummy", "dummy", "dummy"])
+        self.impact_reco.initialise_templates(
+            {1: "dummy", 2: "dummy", 3: "dummy", 4: "dummy"}
+        )
+        self.impact_reco.zenith = 0  # *u.deg
+        self.impact_reco.azimuth = 0  # *u.deg
+        self.impact_reco.ped = np.ones_like(image)  # *u.deg
+
+        self.impact_reco.image = image * 1000
         self.impact_reco.hillas_parameters = [self.h1, self.h1, self.h1, self.h1]
         self.impact_reco.pixel_x = np.deg2rad(pixel_x)
         self.impact_reco.pixel_y = np.deg2rad(pixel_y)
         self.impact_reco.tel_pos_x = np.array([0, 100, -0, -100])
-        self.impact_reco.tel_pos_y = np.array([-100., 0, 100, 0])
+        self.impact_reco.tel_pos_y = np.array([-100.0, 0, 100, 0])
         self.impact_reco.array_direction = array_pointing
 
         self.impact_reco.get_hillas_mean()
 
-        seed, step, limits = create_seed(0., 0., 0., 0., 0.8)
+        seed, step, limits = create_seed(0.0, 0.0, 0.0, 0.0, 0.8)
         vals, error, chi2 = self.impact_reco.minimise(seed, step, limits, True)
         assert_allclose(vals[4], 1, rtol=0.05)
 
         vals, error, chi2 = self.impact_reco.minimise(seed, step, limits, False)
         assert_allclose(vals[4], 1, rtol=0.05)
-        theta = np.sqrt(vals[0]**2 + vals[1]**2)
+        theta = np.sqrt(vals[0] ** 2 + vals[1] ** 2)
         assert_allclose(np.rad2deg(theta), 0, atol=0.02)
+
 
 def test_selected_subarray(subarray_and_event_gamma_off_axis_500_gev, tmp_path):
     """test that reconstructor also works with "missing" ids"""
@@ -169,7 +184,7 @@ def test_selected_subarray(subarray_and_event_gamma_off_axis_500_gev, tmp_path):
     shower_test = ReconstructedGeometryContainer()
     shower_test.prefix = "test"
     # Transform everything back to a useful system
-    shower_test.alt, shower_test.az = 70*u.deg, 0*u.deg
+    shower_test.alt, shower_test.az = 70 * u.deg, 0 * u.deg
 
     shower_test.core_x = 0 * u.m
     shower_test.core_y = 0 * u.m

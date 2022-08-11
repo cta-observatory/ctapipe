@@ -390,6 +390,7 @@ class ImageParametersContainer(Container):
         description="Image direction in the Tilted/Ground Frame",
     )
 
+
 class ImPACTLikelihoodContainer(Container):
     """
     Concentrations are ratios between light amount
@@ -400,7 +401,9 @@ class ImPACTLikelihoodContainer(Container):
     log_likelihood = Field(
         nan, "Per telescope likelihood of the ImPACT best fit location"
     )
-    impact_distance = Field(nan, "Distance (tilted frame) of telescope to fitted core position")
+    impact_distance = Field(
+        nan, "Distance (tilted frame) of telescope to fitted core position"
+    )
 
 
 class DL1CameraContainer(Container):

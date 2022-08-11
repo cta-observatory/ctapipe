@@ -4,6 +4,7 @@ import pickle
 import gzip
 import numpy.ma as ma
 
+
 class BaseTemplate:
     """
     Base class for template interpolators, cheifly associated with code for the special
@@ -143,7 +144,7 @@ class BaseTemplate:
             self.values[selection],
             remember_last=True,
             bounds=self.bounds,
-            dtype="float32"
+            dtype="float32",
         )
 
         # We can now remove these entries.
@@ -265,9 +266,9 @@ class TemplateNetworkInterpolator(BaseTemplate):
         super().__init__()
 
         input_dict = None
-        with gzip.open(template_file, 'r') as file_list:
+        with gzip.open(template_file, "r") as file_list:
             input_dict = pickle.load(file_list)
-        
+
         keys = np.array(list(input_dict.keys()))
         values = np.array(list(input_dict.values()), dtype=np.float32)
         self.no_zenaz = False
@@ -332,7 +333,6 @@ class TimeGradientInterpolator(BaseTemplate):
             Location of pickle file containing ImPACT NN templates
         """
 
-
         super().__init__()
         file_list = gzip.open(template_file)
         input_dict = pickle.load(file_list)
@@ -351,7 +351,6 @@ class TimeGradientInterpolator(BaseTemplate):
                 keys, values, remember_last=True
             )
             self.no_zenaz = True
-
 
     def __call__(self, zenith, azimuth, energy, impact, xmax):
         """
@@ -383,7 +382,6 @@ class TimeGradientInterpolator(BaseTemplate):
 
 
 class DummyTemplateInterpolator:
-
     def __call__(self, zenith, azimuth, energy, impact, xmax, xb, yb):
         return np.ones_like(xb)
 
@@ -392,7 +390,6 @@ class DummyTemplateInterpolator:
 
 
 class DummyTimeInterpolator:
-
     def __call__(self, energy, impact, xmax):
         return np.ones_like(energy)
 

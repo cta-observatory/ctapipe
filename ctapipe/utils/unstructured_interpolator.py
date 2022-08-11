@@ -14,6 +14,7 @@ import numpy.ma as ma
 from scipy.ndimage import map_coordinates
 from scipy.spatial import Delaunay
 
+
 class UnstructuredInterpolator:
     """
     This class performs linear interpolation between an unstructured set of data
@@ -72,24 +73,23 @@ class UnstructuredInterpolator:
         if bounds is not None:
             bounds = np.array(bounds, dtype=dtype)
             self._bounds = bounds
-            
-            # Calculate the scaling factor to convert from bin number to real 
+
+            # Calculate the scaling factor to convert from bin number to real
             # coordinates for all axes
             scale = []
             table_shape = self.values[0].shape
             for i in range(bounds.shape[0]):
                 scale_dimemsion = bounds[i][1] - bounds[i][0]
-                scale_dimemsion = scale_dimemsion/float(table_shape[i] - 1)
+                scale_dimemsion = scale_dimemsion / float(table_shape[i] - 1)
                 scale.append(scale_dimemsion)
             self.scale = np.array(scale, dtype=dtype)
-        
+
         self._previous_v = None
         self._previous_m = None
         self._previous_shape = None
         self._previous_hull = None
         self._previous_points = None
         self.reset()
-
 
     def reset(self):
         """
@@ -138,7 +138,7 @@ class UnstructuredInterpolator:
                     shape_check = eval_points.shape == self._previous_shape
                 else:
                     shape_check = True
-                
+
                 # If it does then we can use this simplex
                 if np.all(hull.find_simplex(points) >= 0) and shape_check:
                     v = self._previous_v
@@ -261,14 +261,14 @@ class UnstructuredInterpolator:
         # Get the list of templates that we want to interpolate between
         ev_shape = eval_points.shape
         vals = self.values[point_num.ravel()]
-        
+
         # Scale the template x and y axes to convert into bin coordinates
         scaled_points = eval_points.T
         scaled_points[0] = (scaled_points[0] - self._bounds[0][0]) / self.scale[0]
         scaled_points[1] = (scaled_points[1] - self._bounds[1][0]) / self.scale[1]
         eval_points = scaled_points.T
-        
-        #This gets a bit ugly now but the general logic is...
+
+        # This gets a bit ugly now but the general logic is...
         # for each point in the phase space repeat the x-y points by the number
         # of points which define the simplex
         eval_points = np.repeat(eval_points, shape[1], axis=0)
@@ -287,7 +287,7 @@ class UnstructuredInterpolator:
             mask = np.zeros_like(scaled_points[0], dtype=bool)
 
         it = ma.masked_array(it, mask)
-    
+
         if not is_masked:
             mask = ~mask
 
@@ -297,9 +297,9 @@ class UnstructuredInterpolator:
 
         output = np.zeros(scaled_points.T.shape[:-1])
         output = map_coordinates(vals, scaled_points, order=1, output=self.values.dtype)
-        
+
         new_shape = (*shape, ev_shape[-2])
         output = output.reshape(new_shape)
-        
+
         # Return a masked array of interpolated values
         return ma.masked_array(output, mask=mask, dtype=self.values.dtype)
