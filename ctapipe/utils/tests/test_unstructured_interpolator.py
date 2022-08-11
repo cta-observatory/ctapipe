@@ -12,7 +12,8 @@ def test_simple_interpolation():
 
     interpolation_points = {(0, 0): 0.0, (0, 1): 0.0, (1, 0): 1.0, (1, 1): 1.0}
 
-    interpolator = UnstructuredInterpolator(interpolation_points)
+    interpolator = UnstructuredInterpolator(list(interpolation_points.keys()), \
+                                            list(interpolation_points.values()))
 
     # OK lets first just check we get the values at the grid points back out again...
     interpolated_point = interpolator([[0, 0], [0, 1], [1, 0], [1, 1]])
@@ -37,7 +38,8 @@ def test_linear_nd():
     }
 
     # Create UnstructuredInterpolator and LinearNDInterpolator with these points
-    interpolator = UnstructuredInterpolator(interpolation_points)
+    interpolator = UnstructuredInterpolator(list(interpolation_points.keys()), \
+                                            list(interpolation_points.values()))
     linear_nd = LinearNDInterpolator(
         list(interpolation_points.keys()), list(interpolation_points.values())
     )
@@ -49,7 +51,7 @@ def test_linear_nd():
     linear_nd_points = linear_nd(points)
 
     # Check everything agrees to a reasonable precision
-    assert np.all(np.abs(interpolated_points - linear_nd_points) < 1e-10)
+    assert np.allclose(interpolated_points, linear_nd_points, rtol=1e-3)
 
 
 def test_remember_last():
@@ -66,8 +68,8 @@ def test_remember_last():
     }
 
     # Create UnstructuredInterpolator and LinearNDInterpolator with these points
-    interpolator = UnstructuredInterpolator(interpolation_points, remember_last=True)
-
+    interpolator = UnstructuredInterpolator(list(interpolation_points.keys()), \
+                                            list(interpolation_points.values()), remember_last=True)
     # Create some random coordinates in this space
     random_nums = np.random.rand(2, 2)
     points_mask = ma.masked_array(random_nums, mask=[[True, False], [True, False]])
@@ -77,7 +79,7 @@ def test_remember_last():
     interpolated_points_mask = interpolator(points_mask).T[0]
 
     # Check everything agrees to a reasonable precision
-    assert np.all(np.abs(interpolated_points - interpolated_points_mask) < 1e-10)
+    assert np.allclose(interpolated_points, interpolated_points_mask, rtol=0.01)
 
 
 def test_masked_input():
@@ -94,7 +96,8 @@ def test_masked_input():
     }
 
     # Create UnstructuredInterpolator and LinearNDInterpolator with these points
-    interpolator = UnstructuredInterpolator(interpolation_points, remember_last=True)
+    interpolator = UnstructuredInterpolator(list(interpolation_points.keys()), \
+                                            list(interpolation_points.values()), remember_last=True)
     linear_nd = LinearNDInterpolator(
         list(interpolation_points.keys()), list(interpolation_points.values())
     )
@@ -108,7 +111,7 @@ def test_masked_input():
     linear_nd_points = linear_nd(points)
 
     # Check everything agrees to a reasonable precision
-    assert np.all(np.abs(interpolated_points - linear_nd_points) < 1e-10)
+    assert np.allclose(interpolated_points, linear_nd_points, rtol=1e-3)
 
 
 def test_class_output():
@@ -135,7 +138,8 @@ def test_class_output():
     pts1 = np.random.rand(1, 2)
     pts2 = np.random.rand(10, 2)
 
-    interpolator = UnstructuredInterpolator(interpolation_points)
+    interpolator = UnstructuredInterpolator(list(interpolation_points.keys()), \
+                                            list(interpolation_points.values()), remember_last=True)
     unsort_value = interpolator(pts1, pts2)
 
     interpolation_points = {
@@ -155,7 +159,7 @@ def test_class_output():
     lin_nd_val = reg_interpolator(pts2)
 
     # Check they give the same answer
-    assert np.all(np.abs(unsort_value - lin_nd_val) < 1e-10)
+    assert np.allclose(unsort_value, lin_nd_val, rtol = 1e-3)
 
 
 def test_out_of_bounds():
@@ -166,8 +170,8 @@ def test_out_of_bounds():
 
     interpolation_points = {(0, 0): 0.0, (0, 1): 0.0, (1, 0): 1.0, (1, 1): 1.0}
 
-    interpolator = UnstructuredInterpolator(interpolation_points)
-
+    interpolator = UnstructuredInterpolator(list(interpolation_points.keys()), \
+                                            list(interpolation_points.values()), remember_last=True)
     interpolated_point = interpolator([[0, 2], [1, 2], [2, 2]])
     assert np.all(interpolated_point == [0.0, 1.0, 2.0])
 
