@@ -40,12 +40,10 @@ from ctapipe.utils.template_network_interpolator import (
 )
 
 from ctapipe.reco.impact_utilities import *
-from ctapipe.image.pixel_likelihood import poisson_likelihood_gaussian, \
-    poisson_likelihood_full, mean_poisson_likelihood_gaussian, mean_poisson_likelihood_full
+from ctapipe.image.pixel_likelihood import neg_log_likelihood_approx, mean_poisson_likelihood_gaussian
 from ctapipe.image.cleaning import dilate
 from ..fitting import lts_linear_regression
 from ctapipe.instrument import get_atmosphere_profile_functions
-from ctapipe.reco import HillasIntersection
 
 from ctapipe.core import Provenance
 PROV = Provenance()
@@ -522,7 +520,7 @@ class ImPACTReconstructor(Reconstructor):
         # Get likelihood that the prediction matched the camera image
         mask =  ma.getmask(self.image)
 
-        like = poisson_likelihood_gaussian(self.image, prediction, self.spe, self.ped)
+        like = neg_log_likelihood_approx(self.image, prediction, self.spe, self.ped)
         like[mask] = 0
 
         if goodness_of_fit:

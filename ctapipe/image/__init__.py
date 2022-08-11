@@ -9,9 +9,9 @@ from .cleaning import (
 )
 
 from .pixel_likelihood import (
-    poisson_likelihood_gaussian,
-    poisson_likelihood_full,
-    poisson_likelihood,
+    neg_log_likelihood_approx,
+    neg_log_likelihood_numeric,
+    neg_log_likelihood,
     mean_poisson_likelihood_gaussian,
     mean_poisson_likelihood_full,
     PixelLikelihoodError,
@@ -85,9 +85,9 @@ __all__ = [
     "apply_time_delta_cleaning",
     "ImageCleaner",
     "TailcutsImageCleaner",
-    "poisson_likelihood_gaussian",
-    "poisson_likelihood_full",
-    "poisson_likelihood",
+    "neg_log_likelihood_approx",
+    "neg_log_likelihood_numeric",
+    "neg_log_likelihood",
     "mean_poisson_likelihood_gaussian",
     "mean_poisson_likelihood_full",
     "PixelLikelihoodError",

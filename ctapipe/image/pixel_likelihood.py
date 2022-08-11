@@ -29,12 +29,12 @@ TODO:
 
 import numpy as np
 from scipy.integrate import quad
-from scipy.special import factorial
+from scipy.stats import poisson
 
 __all__ = [
-    "poisson_likelihood_gaussian",
-    "poisson_likelihood_full",
-    "poisson_likelihood",
+    "neg_log_likelihood_approx",
+    "neg_log_likelihood_numeric",
+    "neg_log_likelihood",
     "mean_poisson_likelihood_gaussian",
     "mean_poisson_likelihood_full",
     "PixelLikelihoodError",
@@ -46,229 +46,180 @@ class PixelLikelihoodError(RuntimeError):
     pass
 
 
-def poisson_likelihood_gaussian(image, prediction, spe_width, ped):
-    """
-    Calculate likelihood of prediction given the measured signal, gaussian approx from
-    de Naurois et al 2009
+def neg_log_likelihood_approx(image, prediction, spe_width, pedestal):
+    """Calculate negative log likelihood for telescope.
+
+    Gaussian approximation from [denaurois2009]_, p. 22 (equation between (24) and (25)).
+
+    Simplification:
+
+    .. math::
+
+        θ = σ_p^2 + μ · (1 + σ_γ^2)
+
+        → P = \\frac{1}{\\sqrt{2 π θ}} · \\exp\\left(- \\frac{(s - μ)^2}{2 θ}\\right)
+
+        \\ln{P} = \\ln{\\frac{1}{\\sqrt{2 π θ}}} - \\frac{(s - μ)^2}{2 θ}
+
+                = \\ln{1} - \\ln{\\sqrt{2 π θ}} - \\frac{(s - μ)^2}{2 θ}
+
+                = - \\frac{\\ln{2 π θ}}{2} - \\frac{(s - μ)^2}{2 θ}
+
+                = - \\frac{\\ln{2 π} + \\ln{θ}}{2} - \\frac{(s - μ)^2}{2 θ}
+
+        - \\ln{P} = \\frac{\\ln{2 π} + \\ln{θ}}{2} + \\frac{(s - μ)^2}{2 θ}
+
+    and since we can remove constants and factors in the minimization:
+
+    .. math::
+
+        - \\ln{P} = \\ln{θ} + \\frac{(s - μ)^2}{θ}
+
+
     Parameters
     ----------
     image: ndarray
-        Pixel amplitudes from image
+        Pixel amplitudes from image (:math:`s`).
     prediction: ndarray
-        Predicted pixel amplitudes from model
+        Predicted pixel amplitudes from model (:math:`μ`).
     spe_width: ndarray
-        width of single p.e. distributio
-    ped: ndarray
-        width of pedestal
+        Width of single p.e. peak (:math:`σ_γ`).
+    pedestal: ndarray
+        Width of pedestal (:math:`σ_p`).
+
     Returns
     -------
-    ndarray: likelihood for each pixel
+    float
     """
-    image = np.asarray(image)
-    prediction = np.asarray(prediction)
-    spe_width = np.asarray(spe_width)
-    ped = np.asarray(ped)
+    theta = 2 * (pedestal ** 2 + prediction * (1 + spe_width ** 2))
+    neg_log_l = np.log(np.pi * theta)/2. + (image - prediction) ** 2 / theta
 
-    sq = 1.0 / np.sqrt(2 * np.pi * (ped ** 2 + prediction * (1 + spe_width ** 2)))
-
-    diff = (image - prediction) ** 2
-    denom = 2 * (ped ** 2 + prediction * (1 + spe_width ** 2))
-    expo = np.asarray(np.exp(-1 * diff / denom))
-
-    # If we are outside of the range of datatype, fix to lower bound
-    min_prob = np.finfo(expo.dtype).tiny
-    expo[expo < min_prob] = min_prob
-
-    return -2 * np.log(sq * expo)
+    return 2 * neg_log_l
 
 
-from numba import jit
-#from numpy.math import factorial
-
-@jit(nopython=True) 
-def poisson_likelihood_full(
-    image, prediction, spe_width, ped, width_fac=3, dtype=np.float32
+def neg_log_likelihood_numeric(
+    image, prediction, spe_width, pedestal, confidence=(0.001, 0.999)
 ):
     """
     Calculate likelihood of prediction given the measured signal,
-    full numerical integration from de Naurois et al 2009.
-    The width factor included here defines  the range over
-    which photo electron contributions are summed, and is
-    defined as a multiple of the expected resolution of
-    the highest amplitude pixel. For most applications
-    the defult of 3 is sufficient.
+    full numerical integration from [denaurois2009]_.
+
     Parameters
     ----------
     image: ndarray
-        Pixel amplitudes from image
+        Pixel amplitudes from image (:math:`s`).
     prediction: ndarray
-        Predicted pixel amplitudes from model
+        Predicted pixel amplitudes from model (:math:`μ`).
     spe_width: ndarray
-        width of single p.e. distribution
-    ped: ndarray
-        width of pedestal
-    width_fac: float
-        Factor to determine range of summation on integral
-    dtype: datatype
-        Data type of output array
+        Width of single p.e. peak (:math:`σ_γ`).
+    pedestal: ndarray
+        Width of pedestal (:math:`σ_p`).
+    confidence: tuple(float, float), 0 < x < 1
+        Confidence interval of poisson integration.
+
     Returns
     -------
-    ndarray: likelihood for each pixel
+    float
     """
-    
-    shape = image.shape
-    image = image.ravel()
-    prediction = prediction.ravel()
-    spe_width = spe_width.ravel()
-    ped = ped.ravel()
-    
-    like = np.zeros_like(image)
-    max_pix = np.max(image) + 100
-    log_factorial = np.zeros(int(max_pix)+1)
-    
-    for i in range(1, int(max_pix)):
-        fi = float(i)
-        if i == 1:
-            log_factorial[i] = np.log(fi)
-        else:
-            log_factorial[i] = log_factorial[i-1] + np.log(fi)
-            
-    for pix in range(0, image.shape[0]):
 
-        max_sum = image[pix] + 100.
+    epsilon = np.finfo(np.float64).eps
 
-        total_probability = 0
-        for pe in range(0, int(max_sum)):
+    prediction = prediction + epsilon
 
-            pe_probability = (pe*np.log(prediction[pix]) + -1*prediction[pix]) -(log_factorial[pe])
-            pe_probability -= np.log(np.sqrt( 2*np.pi * (np.power(ped[pix],2) +(pe*np.power(spe_width[pix],2)))))
-            pe_probability += -1 *( np.power(image[pix]-pe,2) / (2*(np.power(ped[pix],2) + (pe*np.power(spe_width[pix],2)))))
+    likelihood = epsilon
 
-            if pe>image[pix]  and pe_probability<-40:
-                break
+    ns = np.arange(*poisson(np.max(prediction)).ppf(confidence))
 
-            if(np.isnan(pe_probability) is False and total_probability!=0.0):
-                total_probability=np.log(np.exp(total_probability-pe_probability)+1.0) + pe_probability
-            else:
-                total_probability=pe_probability
+    ns = ns[ns >= 0]
 
-            if pe>image[pix] and total_probability<-40:
-                break
-            
-        like[pix] = -2*total_probability
+    for n in ns:
+        theta = pedestal ** 2 + n * spe_width ** 2
+        _l = (
+            prediction ** n
+            * np.exp(-prediction)
+            / theta
+            * np.exp(-((image - n) ** 2) / (2 * theta))
+        )
+        likelihood += _l
 
-    return like.reshape(shape)
+    return -np.log(likelihood)
 
 
-def poisson_likelihood(
-    image,
-    prediction,
-    spe_width,
-    ped,
-    pedestal_safety=1.5,
-    width_fac=5,
-    dtype=np.float32,
-):
+def neg_log_likelihood(image, prediction, spe_width, pedestal, prediction_safety=20.0):
     """
     Safe implementation of the poissonian likelihood implementation,
     adaptively switches between the full solution and the gaussian
-    approx depending on the signal. Pedestal safety parameter 
-    determines cross over point between the two solutions,
-    based on the expected p.e. resolution of the image pixels.
-    Therefore the cross over point will change dependent on 
-    the single p.e. resolution and pedestal levels.
+    approx depending on the prediction. Prediction safety parameter
+    determines cross over point between the two solutions.
+
     Parameters
     ----------
     image: ndarray
-        Pixel amplitudes from image
+        Pixel amplitudes from image (:math:`s`).
     prediction: ndarray
-        Predicted pixel amplitudes from model
+        Predicted pixel amplitudes from model (:math:`μ`).
     spe_width: ndarray
-        width of single p.e. distribution
-    ped: ndarray
-        width of pedestal
-    pedestal_safety: float
-        Decision point to choose between poissonian likelihood 
-        and gaussian approximation (p.e. resolution)
-    width_fac: float
-        Factor to determine range of summation on integral
-    dtype: datatype
-        Data type of output array
+        Width of single p.e. peak (:math:`σ_γ`).
+    pedestal: ndarray
+        Width of pedestal (:math:`σ_p`).
+    prediction_safety: float
+        Decision point to choose between poissonian likelihood
+        and gaussian approximation.
+
     Returns
     -------
-    ndarray: pixel likelihoods
+    float
     """
-    # Convert everything to arrays to begin
-    image = np.asarray(image, dtype=dtype)
-    prediction = np.asarray(prediction, dtype=dtype)
-    spe_width = np.asarray(spe_width, dtype=dtype)
-    ped = np.asarray(ped, dtype=dtype)
 
-    # Calculate photoelectron resolution
+    approx_mask = prediction > prediction_safety
 
-    width = ped * ped + image * spe_width * spe_width
-    width = np.asarray(width)
-    width[width < 0] = 0  # Set width to 0 for negative pixel amplitudes
-    width = np.sqrt(width)
-
-    like = np.zeros(image.shape)
-    # If larger than safety value use gaussian approx
-    poisson_pix = width <= pedestal_safety
-    gaus_pix = width > pedestal_safety
-
-    if np.any(poisson_pix):
-        like[poisson_pix] = poisson_likelihood_full(
-            image[poisson_pix],
-            prediction[poisson_pix],
-            spe_width,
-            ped,
-            width_fac,
-            dtype,
-        )
-    if np.any(gaus_pix):
-        like[gaus_pix] = poisson_likelihood_gaussian(
-            image[gaus_pix], prediction[gaus_pix], spe_width, ped
+    neg_log_l = 0
+    if np.any(approx_mask):
+        neg_log_l += neg_log_likelihood_approx(
+            image[approx_mask], prediction[approx_mask], spe_width, pedestal
         )
 
-    return like
+    if not np.all(approx_mask):
+        neg_log_l += neg_log_likelihood_numeric(
+            image[~approx_mask], prediction[~approx_mask], spe_width, pedestal
+        )
+
+    return neg_log_l
 
 
-def mean_poisson_likelihood_gaussian(prediction, spe_width, ped):
-    """
-    Calculation of the mean  likelihood for a give expectation
+def mean_poisson_likelihood_gaussian(prediction, spe_width, pedestal):
+    """Calculation of the mean likelihood for a give expectation
     value of pixel intensity in the gaussian approximation.
     This is useful in the calculation of the goodness of fit.
+
     Parameters
     ----------
     prediction: ndarray
         Predicted pixel amplitudes from model
     spe_width: ndarray
-        width of single p.e. distribution
-    ped: ndarray
-        width of pedestal
+        Width of single p.e. distribution
+    pedestal: ndarray
+        Width of pedestal
+
     Returns
     -------
-    ndarray: mean likelihood for give pixel expectation
+    float
     """
-    prediction = np.asarray(prediction)
-    spe_width = np.asarray(spe_width)
-    ped = np.asarray(ped)
+    theta = pedestal ** 2 + prediction * (1 + spe_width ** 2)
+    mean_log_likelihood = 1 + np.log(2 * np.pi) + np.log(theta)
 
-    mean_like = 1 + np.log(2 * np.pi)
-    mean_like += np.log(ped * ped + prediction * (1 + spe_width * spe_width))
-
-    return mean_like
+    return mean_log_likelihood
 
 
-def _integral_poisson_likelihood_full(s, prediction, spe_width, ped):
+def _integral_poisson_likelihood_full(image, prediction, spe_width, ped):
     """
     Wrapper function around likelihood calculation, used in numerical
     integration.
     """
-    like = poisson_likelihood_full(np.array([s]), np.array([prediction]), 
-                                   np.array([spe_width]), np.array([ped]), 
-                                   width_fac=100)
-    return like * np.exp(like/-2.)
+    image = np.asarray(image)
+    prediction = np.asarray(prediction)
+    like = neg_log_likelihood(image, prediction, spe_width, ped)
+    return like * np.exp(-0.5 * like)
 
 
 def mean_poisson_likelihood_full(prediction, spe_width, ped):
@@ -278,77 +229,70 @@ def mean_poisson_likelihood_full(prediction, spe_width, ped):
     This is useful in the calculation of the goodness of fit.
     This numerical integration is very slow and really doesn't
     make a large difference in the goodness of fit in most cases.
+
     Parameters
     ----------
     prediction: ndarray
         Predicted pixel amplitudes from model
     spe_width: ndarray
-        width of single p.e. distribution
-    ped: ndarray
-        width of pedestal
+        Width of single p.e. distribution
+    pedestal: ndarray
+        Width of pedestal
+
     Returns
     -------
-    ndarray: mean likelihood for give pixel expectation
+    float
     """
-    prediction = np.asarray(prediction)
-    shape = prediction.shape
-    prediction = prediction.ravel()
-    spe_width = np.asarray(spe_width).ravel()
-    ped = np.asarray(ped).ravel()
 
-    if len(spe_width.shape) == 0:
-        spe_width = np.ones(prediction.shape) * spe_width
-    ped = np.asarray(ped)
-    if len(ped.shape) == 0:
-        ped = np.ones(prediction.shape) * ped
-    mean_like = np.zeros(prediction.shape)
+    if len(spe_width) == 1:
+        spe_width = np.full_like(prediction, spe_width)
 
-    for p in range(len(prediction)):
-        #print(prediction[p], spe_width[p], ped[p])
-        imin =  prediction[p] - 100
-        if imin<-20:
-            imin=-20
-        int_range = (imin, prediction[p] + 100 )
-        mean_like[p] = quad(
+    if len(ped) == 1:
+        ped = np.full_like(prediction, ped)
+
+    mean_like = 0
+
+    width = ped ** 2 + prediction * spe_width ** 2
+    width = np.sqrt(width)
+
+    for pred, w, spe, p in zip(prediction, width, spe_width, ped):
+        lower_integration_bound = pred - 10 * w
+        upper_integration_bound = pred + 10 * w
+
+        integral, *_ = quad(
             _integral_poisson_likelihood_full,
-            int_range[0],
-            int_range[1],
-            args=(prediction[p], spe_width[p], ped[p]),
-            epsrel=0.001,
-        )[0]
-    return mean_like.reshape(shape)
+            lower_integration_bound,
+            upper_integration_bound,
+            args=(pred, spe, p),
+            epsrel=0.05,
+        )
+
+        mean_like += integral
+
+    return mean_like
 
 
-def chi_squared(image, prediction, ped, error_factor=2.9):
+def chi_squared(image, prediction, pedestal, error_factor=2.9):
     """
     Simple chi-squared statistic from Le Bohec et al 2008
+
     Parameters
     ----------
     image: ndarray
-        Pixel amplitudes from image
+        Pixel amplitudes from image (:math:`s`).
     prediction: ndarray
-        Predicted pixel amplitudes from model
-    ped: ndarray
-        width of pedestal
+        Predicted pixel amplitudes from model (:math:`μ`).
+    pedestal: ndarray
+        Width of pedestal (:math:`σ_p`).
     error_factor: float
-        ad hoc error factor
+        Ad-hoc error factor
+
     Returns
     -------
-    ndarray: likelihood for each pixel
+    float
     """
 
-    image = np.asarray(image)
-    prediction = np.asarray(prediction)
-    ped = np.asarray(ped)
-
-    if image.shape is not prediction.shape:
-        PixelLikelihoodError(
-            "Image and prediction arrays have different dimensions Image "
-            "shape: {} Prediction shape: {}".format(image.shape, prediction.shape)
-        )
-
-    chi_square = (image - prediction) * (image - prediction)
-    chi_square /= ped + 0.5 * (image - prediction)
+    chi_square = (image - prediction) ** 2 / (pedestal + 0.5 * (image - prediction))
     chi_square *= 1.0 / error_factor
 
     return chi_square
