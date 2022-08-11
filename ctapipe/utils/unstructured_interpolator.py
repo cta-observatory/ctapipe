@@ -10,9 +10,9 @@ TODO:
 """
 
 import numpy as np
-from scipy.spatial import Delaunay
-from scipy.ndimage import map_coordinates
 import numpy.ma as ma
+from scipy.ndimage import map_coordinates
+from scipy.spatial import Delaunay
 
 class UnstructuredInterpolator:
     """
@@ -51,7 +51,7 @@ class UnstructuredInterpolator:
         else:
             self.values = np.array(values)
 
-        self._num_dimensions = len(self.keys[0])
+        self._n_dimensions = len(self.keys[0])
 
         # create an object with triangulation
         self._tri = Delaunay(self.keys)
@@ -174,8 +174,8 @@ class UnstructuredInterpolator:
         # the matrix m is related to
         b = np.einsum(
             "ijk,ik->ij",
-            m[:, : self._num_dimensions, : self._num_dimensions],
-            points - m[:, self._num_dimensions, :],
+            m[:, : self._n_dimensions, : self._n_dimensions],
+            points - m[:, self._n_dimensions, :],
         )
 
         # Use the above array to get the weights for the vertices; `b` contains an

@@ -10,16 +10,16 @@ def test_tailcuts_clean_simple(prod5_lst):
     geom = prod5_lst.camera.geometry
     image = np.zeros_like(geom.pix_id, dtype=np.float64)
 
-    num_pix = 40
-    some_neighs = geom.neighbors[num_pix][0:3]  # pick 3 neighbors
-    image[num_pix] = 5.0  # set a single image pixel
+    n_pix = 40
+    some_neighs = geom.neighbors[n_pix][0:3]  # pick 3 neighbors
+    image[n_pix] = 5.0  # set a single image pixel
     image[some_neighs] = 3.0  # make some boundaries that are neighbors
     image[10] = 3.0  # a boundary that is not a neighbor
 
     mask = cleaning.tailcuts_clean(geom, image, picture_thresh=4.5, boundary_thresh=2.5)
 
     assert 10 not in geom.pix_id[mask]
-    assert set(some_neighs).union({num_pix}) == set(geom.pix_id[mask])
+    assert set(some_neighs).union({n_pix}) == set(geom.pix_id[mask])
     assert np.count_nonzero(mask) == 4
 
 
@@ -386,7 +386,7 @@ def test_time_constrained_clean():
         time_limit_boundary=time_limit_boundary,
         min_number_picture_neighbors=min_number_picture_neighbors,
     )
-    ## removed pixels : boundary pixels
+    # removed pixels : boundary pixels
     test_mask = mask_signal.copy()
     test_mask[boundary_pixels] = 0
     assert (test_mask == mask_reco).all()
@@ -404,7 +404,7 @@ def test_time_constrained_clean():
         time_limit_boundary=time_limit_boundary,
         min_number_picture_neighbors=min_number_picture_neighbors,
     )
-    ## removed pixels : boundary pixels
+    # removed pixels : boundary pixels
     test_mask = mask_signal.copy()
     test_mask[boundary_pixels] = 0
     assert (test_mask == mask_reco).all()
@@ -423,7 +423,7 @@ def test_time_constrained_clean():
         time_limit_boundary=time_limit_boundary,
         min_number_picture_neighbors=min_number_picture_neighbors,
     )
-    ## removed pixels : the noise core neighbor pixel + one neighboring boundary
+    # removed pixels : the noise core neighbor pixel + one neighboring boundary
     test_mask = mask_signal.copy()
     test_mask[noise_core_neighbor] = 0
     noise_boundary = np.setdiff1d(
@@ -447,7 +447,7 @@ def test_time_constrained_clean():
         time_limit_boundary=time_limit_boundary,
         min_number_picture_neighbors=min_number_picture_neighbors,
     )
-    ## removed pixels : one neighboring boundary to the noise core pixel
+    # removed pixels : one neighboring boundary to the noise core pixel
     test_mask = mask_signal.copy()
     noise_boundary = np.setdiff1d(
         geom.neighbors[noise_core_neighbor],

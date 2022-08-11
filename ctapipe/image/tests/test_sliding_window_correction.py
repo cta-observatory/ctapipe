@@ -27,11 +27,11 @@ def test_sw_pulse_lst(prod5_lst):
         tel_descriptions={1: prod5_lst},
     )
 
-    telid = list(subarray.tel.keys())[0]
+    tel_id = list(subarray.tel.keys())[0]
 
-    n_pixels = subarray.tel[telid].camera.geometry.n_pixels
+    n_pixels = subarray.tel[tel_id].camera.geometry.n_pixels
     n_samples = 40
-    readout = subarray.tel[telid].camera.readout
+    readout = subarray.tel[tel_id].camera.readout
 
     random = np.random.RandomState(1)
     min_charge = 100
@@ -54,7 +54,7 @@ def test_sw_pulse_lst(prod5_lst):
 
     broken_pixels = np.zeros(n_pixels, dtype=bool)
     dl1: DL1CameraContainer = extractor(
-        waveform, telid, selected_gain_channel, broken_pixels
+        waveform, tel_id, selected_gain_channel, broken_pixels
     )
     print(dl1.image / charge_true)
     assert_allclose(dl1.image, charge_true, rtol=0.02)

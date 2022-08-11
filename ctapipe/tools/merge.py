@@ -6,7 +6,6 @@ import sys
 from argparse import ArgumentParser
 from pathlib import Path
 
-import numpy as np
 import tables
 from tqdm.auto import tqdm
 from traitlets import List
@@ -23,6 +22,7 @@ PROV = Provenance()
 
 VERSION_KEY = "CTA PRODUCT DATA MODEL VERSION"
 IMAGE_STATISTICS_PATH = "/dl1/service/image_statistics"
+DL2_STATISTICS_GROUP = "/dl2/service/tel_event_statistics"
 
 required_nodes = {
     "/dl1/event/subarray/trigger",
@@ -34,11 +34,15 @@ optional_nodes = {
     "/simulation/service/shower_distribution",
     "/simulation/event/telescope/images",
     "/simulation/event/telescope/parameters",
+    "/simulation/event/telescope/impact",
     "/dl1/event/telescope/parameters",
     "/dl1/event/telescope/images",
-    "/dl1/service/image_statistics",
-    "/dl1/service/image_statistics.__table_column_meta__",
     "/dl2/event/subarray/geometry",
+}
+
+observation_configuration_nodes = {
+    "/configuration/observation/observation_block",
+    "/configuration/observation/scheduling_block",
 }
 
 simulation_nodes = {
@@ -48,16 +52,13 @@ simulation_nodes = {
     "/simulation/service/shower_distribution",
     "/configuration/simulation/run",
 }
-service_nodes = {
-    "/dl1/service/image_statistics",
-    "/dl1/service/image_statistics.__table_column_meta__",
-}
 nodes_with_tels = {
     "/dl1/monitoring/telescope/pointing",
     "/dl1/event/telescope/parameters",
     "/dl1/event/telescope/images",
     "/simulation/event/telescope/parameters",
     "/simulation/event/telescope/images",
+    "/simulation/event/telescope/impact",
 }
 image_nodes = {
     "/dl1/event/telescope/images",
@@ -77,12 +78,12 @@ all_nodes = (
     required_nodes
     | optional_nodes
     | simulation_nodes
-    | service_nodes
     | nodes_with_tels
     | image_nodes
     | parameter_nodes
     | simulation_images
     | dl2_subarray_nodes
+    | observation_configuration_nodes
 )
 
 
@@ -322,31 +323,33 @@ class MergeTool(Tool):
 
         return broken
 
-    def add_image_statistics(self, file):
-        # Creates table for image statistics and adds the entries together.
-        # This does not append rows to the existing table
+    def add_statistics(self, file):
+        if IMAGE_STATISTICS_PATH in file.root:
+            self.add_statistics_node(file, IMAGE_STATISTICS_PATH)
 
-        if IMAGE_STATISTICS_PATH in self.output_file:
-            table_out = self.output_file.root[IMAGE_STATISTICS_PATH]
-            table_in = file.root[IMAGE_STATISTICS_PATH]
+        if DL2_STATISTICS_GROUP in file.root:
+            for node in file.root[DL2_STATISTICS_GROUP]._v_children.values():
+                self.add_statistics_node(file, node._v_pathname)
 
-            for row in range(len(table_in)):
-                table_out.cols.counts[row] = np.add(
-                    table_out.cols.counts[row], table_in.cols.counts[row]
+    def add_statistics_node(self, file, node_path):
+        """
+        Creates table for image statistics and adds the entries together.
+
+        This does not append rows to the existing table
+        """
+
+        table_in = file.root[node_path]
+
+        if node_path in self.output_file.root:
+            table_out = self.output_file.root[node_path]
+
+            for col in ["counts", "cumulative_counts"]:
+                table_out.modify_column(
+                    colname=col,
+                    column=table_out.col(col) + table_in.col(col),
                 )
-                table_out.cols.cumulative_counts[row] = np.add(
-                    table_out.cols.cumulative_counts[row],
-                    table_in.cols.cumulative_counts[row],
-                )
-
-        elif "/dl1/service" not in self.output_file:
-            target_group = self.output_file.create_group(
-                "/dl1", "service", createparents=True
-            )
-
-            for node in service_nodes:
-                if node in file:
-                    file.copy_node(node, newparent=target_group)
+        else:
+            self._copy_node(file, table_in)
 
     def _merge_tel_group(self, file, input_node, filter_columns=None):
         """Add a group that has one child table per telescope (type) to outputfile"""
@@ -378,9 +381,8 @@ class MergeTool(Tool):
             if group_path not in self.output_file:
                 self._create_group(group_path)
 
-            target_group = self.output_file.root[group_path]
             if filter_columns is None:
-                file.copy_node(node_path, newparent=target_group)
+                self._copy_node(file, input_node)
             else:
                 input_table = recarray_drop_columns(input_node[:], filter_columns)
                 where, name = os.path.split(node_path)
@@ -395,11 +397,6 @@ class MergeTool(Tool):
     def merge_tables(self, file):
         """Go over all mergeable nodes and append to outputfile"""
         for node_path in self.usable_nodes:
-
-            # skip service nodes that should only be included from the first file
-            if node_path in service_nodes:
-                continue
-
             if node_path in file:
                 node = file.root[node_path]
 
@@ -422,7 +419,17 @@ class MergeTool(Tool):
 
     def _create_group(self, node):
         head, tail = os.path.split(node)
-        self.output_file.create_group(head, tail, createparents=True)
+        return self.output_file.create_group(head, tail, createparents=True)
+
+    def _get_or_create_group(self, node):
+        if node in self.output_file.root:
+            return self.output_file.root[node]
+        return self._create_group(node)
+
+    def _copy_node(self, file, node):
+        group_path, _ = os.path.split(node._v_pathname)
+        target_group = self._get_or_create_group(group_path)
+        file.copy_node(node, newparent=target_group)
 
     def start(self):
         merged_files_counter = 0
@@ -450,8 +457,7 @@ class MergeTool(Tool):
                         sys.exit(1)
 
                 self.merge_tables(h5file)
-                if IMAGE_STATISTICS_PATH in h5file:
-                    self.add_image_statistics(h5file)
+                self.add_statistics(h5file)
 
             PROV.add_input_file(str(input_path))
             merged_files_counter += 1

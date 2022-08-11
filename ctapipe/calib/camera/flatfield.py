@@ -162,7 +162,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         self.log.info("Used events statistics : %d", self.sample_size)
 
         # members to keep state in calculate_relative_gain()
-        self.num_events_seen = 0
+        self.n_events_seen = 0
         self.time_start = None  # trigger time of first event in sample
         self.charge_medians = None  # med. charge in camera per event in sample
         self.charges = None  # charge per event in sample
@@ -213,8 +213,8 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         container = event.mon.tel[self.tel_id].flatfield
 
         # re-initialize counter
-        if self.num_events_seen == self.sample_size:
-            self.num_events_seen = 0
+        if self.n_events_seen == self.sample_size:
+            self.n_events_seen = 0
 
         # real data
         trigger_time = event.trigger.time
@@ -231,7 +231,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         else:  # patches for MC data
             pixel_mask = np.zeros(waveform.shape[1], dtype=bool)
 
-        if self.num_events_seen == 0:
+        if self.n_events_seen == 0:
             self.time_start = trigger_time
             self.setup_sample_buffers(waveform, self.sample_size)
 
@@ -247,10 +247,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         sample_age = (trigger_time - self.time_start).to_value(u.s)
 
         # check if to create a calibration event
-        if (
-            sample_age > self.sample_duration
-            or self.num_events_seen == self.sample_size
-        ):
+        if sample_age > self.sample_duration or self.n_events_seen == self.sample_size:
             relative_gain_results = self.calculate_relative_gain_results(
                 self.charge_medians, self.charges, self.sample_masked_pixels
             )
@@ -262,7 +259,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
             )
 
             result = {
-                "n_events": self.num_events_seen,
+                "n_events": self.n_events_seen,
                 **relative_gain_results,
                 **time_results,
             }
@@ -296,11 +293,11 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         good_charge = np.ma.array(charge, mask=pixel_mask)
         charge_median = np.ma.median(good_charge, axis=1)
 
-        self.charges[self.num_events_seen] = charge
-        self.arrival_times[self.num_events_seen] = arrival_time
-        self.sample_masked_pixels[self.num_events_seen] = pixel_mask
-        self.charge_medians[self.num_events_seen] = charge_median
-        self.num_events_seen += 1
+        self.charges[self.n_events_seen] = charge
+        self.arrival_times[self.n_events_seen] = arrival_time
+        self.sample_masked_pixels[self.n_events_seen] = pixel_mask
+        self.charge_medians[self.n_events_seen] = charge_median
+        self.n_events_seen += 1
 
     def calculate_time_results(
         self, trace_time, masked_pixels_of_sample, time_start, trigger_time

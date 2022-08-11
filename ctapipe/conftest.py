@@ -39,8 +39,7 @@ camera_names = [
 
 @pytest.fixture(scope="function", params=camera_names)
 def camera_geometry(request):
-    path = get_dataset_path(f"{request.param}.camgeom.fits.gz")
-    return CameraGeometry.from_table(path)
+    return CameraGeometry.from_name(request.param)
 
 
 @pytest.fixture(scope="session")

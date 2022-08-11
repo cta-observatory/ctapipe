@@ -808,6 +808,7 @@ def test_column_order_single_container(tmp_path):
 
     class Container1(Container):
         b = Field(1, "b")
+        c = Field("foo", "a", type=str, max_length=20)
         a = Field(2, "a")
 
     # test with single container
@@ -816,7 +817,7 @@ def test_column_order_single_container(tmp_path):
         writer.write("foo", c)
 
     with tables.open_file(path, "r") as f:
-        assert f.root.foo[:].dtype.names == ("b", "a")
+        assert f.root.foo[:].dtype.names == ("b", "c", "a")
 
 
 def test_column_order_multiple_containers(tmp_path):
