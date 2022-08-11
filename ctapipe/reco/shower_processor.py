@@ -9,7 +9,7 @@ This processor will be able to process a shower/event in 3 steps:
 """
 from ..containers import ArrayEventContainer, TelescopeImpactParameterContainer
 from ..core import Component
-from ..core.traits import Bool, create_class_enum_trait
+from ..core.traits import create_class_enum_trait
 from ..instrument import SubarrayDescription
 from . import Reconstructor
 from .impact_distance import shower_impact_distance
