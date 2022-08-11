@@ -136,15 +136,6 @@ class CoordinateFrameType(enum.Enum):
 class EventType(enum.Enum):
     """Enum of EventTypes as defined in the CTA Data Model [cta_r1event]_"""
 
-    UNKNOWN = -1
-    ALTAZ = 0
-    ICRS = 1
-    GALACTIC = 2
-
-
-class EventType(enum.Enum):
-    """Enum of EventTypes as defined in the CTA Data Model [cta_r1event]_"""
-
     # calibrations are 0-15
     FLATFIELD = 0
     SINGLE_PE = 1

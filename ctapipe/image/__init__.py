@@ -7,19 +7,7 @@ from .cleaning import (
     mars_cleaning_1st_pass,
     tailcuts_clean,
 )
-
-from .pixel_likelihood import (
-    neg_log_likelihood_approx,
-    neg_log_likelihood_numeric,
-    neg_log_likelihood,
-    mean_poisson_likelihood_gaussian,
-    mean_poisson_likelihood_full,
-    PixelLikelihoodError,
-    chi_squared,
-)
-
 from .concentration import concentration_parameters
-
 from .extractor import (
     BaselineSubtractedNeighborPeakWindowSum,
     FixedWindowSum,
@@ -60,6 +48,15 @@ from .muon import (
     mean_squared_error,
     ring_completeness,
     ring_containment,
+)
+from .pixel_likelihood import (
+    neg_log_likelihood_approx,
+    neg_log_likelihood_numeric,
+    neg_log_likelihood,
+    mean_poisson_likelihood_gaussian,
+    mean_poisson_likelihood_full,
+    PixelLikelihoodError,
+    chi_squared,
 )
 from .image_processor import ImageProcessor
 
