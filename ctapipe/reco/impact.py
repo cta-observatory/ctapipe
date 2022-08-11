@@ -49,10 +49,12 @@ from ctapipe.core import Provenance
 PROV = Provenance()
 
 INVALID = ReconstructedGeometryContainer(
+    telescopes=[],
     prefix="ImPACTReconstructor",
 )
 
 INVALID_ENERGY = ReconstructedEnergyContainer(
+    telescopes=[],
     prefix="ImPACTReconstructor",
 )
 
@@ -828,6 +830,7 @@ class ImPACTReconstructor(Reconstructor):
                                               fit_params[4], fit_params[5], True)
         
         shower_result.goodness_of_fit = np.sum(goodness_of_fit)
+        shower_result.telescopes = self.tel_id
         shower_result.is_valid=True 
 
         # Create a container class for reconstructed energy
@@ -835,6 +838,7 @@ class ImPACTReconstructor(Reconstructor):
             prefix=self.__class__.__name__,
             energy=fit_params[4] * u.TeV,
             energy_uncert=errors[4] * u.TeV,
+            telescopes = self.tel_id,
             is_valid=True,
         )
 
