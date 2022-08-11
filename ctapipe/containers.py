@@ -8,6 +8,7 @@ from astropy import units as u
 from astropy.time import Time
 from numpy import nan
 import numpy as np
+from sklearn.covariance import log_likelihood
 
 from .core import Container, Field, Map
 
@@ -324,6 +325,18 @@ class ImageParametersContainer(Container):
         default_factory=CoreParametersContainer,
         description="Image direction in the Tilted/Ground Frame",
     )
+
+class ImPACTLikelihoodContainer(Container):
+    """
+    Concentrations are ratios between light amount
+    in certain areas of the image and the full image.
+    """
+
+    default_prefix = "ImPACTLikelihood"
+    log_likelihood = Field(
+        nan, "Per telescope likelihood of the ImPACT best fit location"
+    )
+    impact_distance = Field(nan, "Distance (tilted frame) of telescope to fitted core position")
 
 
 class DL1CameraContainer(Container):
