@@ -31,7 +31,7 @@ from .hillas import (
 )
 from .image_processor import ImageProcessor
 from .invalid_pixels import InvalidPixelHandler, NeighborAverage
-from .leakage import leakage_parameters
+from .leakage import leakage_parameter
 from .modifications import ImageModifier
 from .morphology import (
     brightest_island,
@@ -58,7 +58,6 @@ from .pixel_likelihood import (
     neg_log_likelihood_approx,
     neg_log_likelihood_numeric,
 )
-from .image_processor import ImageProcessor
 from .reducer import DataVolumeReducer, NullDataVolumeReducer, TailCutsDataVolumeReducer
 from .statistics import descriptive_statistics
 from .timing import timing_parameters
