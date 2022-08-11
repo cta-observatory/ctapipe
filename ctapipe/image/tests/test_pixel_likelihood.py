@@ -70,7 +70,7 @@ def test_full_likelihood():
     exp_diff = np.sum(full_like_large) - np.sum(
         np.asarray([7.45489137, 5.99305388, 7.66226007])
     )
-    print(exp_diff, full_like_large, np.sum(full_like_large), exp_diff / np.sum(full_like_large))
+
     assert exp_diff / np.sum(full_like_large) < 3e-4
 
     gaus_like_large = neg_log_likelihood_approx(
