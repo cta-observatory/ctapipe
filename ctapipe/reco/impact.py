@@ -95,7 +95,7 @@ class ImPACTReconstructor(Reconstructor):
     use_time_gradient = traits.Bool(default_value=False, help="Use time gradient in ImPACT reconstrcution"
     ).tag(config=True)
 
-    root_dir = traits.Unicode(default_value="./", help="Directory containing ImPACT tables").tag(config=True)
+    root_dir = traits.Unicode(default_value=".", help="Directory containing ImPACT tables").tag(config=True)
 
     # For likelihood calculation we need the with of the
     # pedestal distribution for each pixel
@@ -161,10 +161,6 @@ class ImPACTReconstructor(Reconstructor):
 
         self.array_direction = None
         self.nominal_frame = None
-
-        # For now these factors are required to fix problems in templates
-        #self.template_scale = template_scale
-        #self.scale_factor = None
         
         self.min = None
         self.dummy_reconstructor = dummy_reconstructor

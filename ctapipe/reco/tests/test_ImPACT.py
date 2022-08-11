@@ -12,6 +12,8 @@ from ctapipe.reco.impact_utilities import rotate_translate, create_dummy_templat
 from ctapipe.containers import HillasParametersContainer
 from ctapipe.instrument import SubarrayDescription
 
+from ctapipe.containers import ReconstructedGeometryContainer
+
 
 class TestImPACT:
     @classmethod
@@ -159,3 +161,30 @@ class TestImPACT:
         assert_allclose(vals[4], 1, rtol=0.05)
         theta = np.sqrt(vals[0]**2 + vals[1]**2)
         assert_allclose(np.rad2deg(theta), 0, atol=0.02)
+
+def test_selected_subarray(subarray_and_event_gamma_off_axis_500_gev, tmp_path):
+    """test that reconstructor also works with "missing" ids"""
+
+    create_dummy_templates(str(tmp_path) + "/LSTCam.template.gz", 1)
+
+    subarray, event = subarray_and_event_gamma_off_axis_500_gev
+
+    shower_test = ReconstructedGeometryContainer()
+    shower_test.prefix = "test"
+    # Transform everything back to a useful system
+    shower_test.alt, shower_test.az = 70*u.deg, 0*u.deg
+
+    shower_test.core_x = 0 * u.m
+    shower_test.core_y = 0 * u.m
+    shower_test.core_tilted_x = 0 * u.m
+    shower_test.core_tilted_y = 0 * u.m
+
+    shower_test.is_valid = True
+
+    event.dl2.stereo.geometry["test"] = shower_test
+
+    reconstructor = ImPACTReconstructor(subarray)
+    reconstructor.root_dir = str(tmp_path)
+    result, energy = reconstructor(event)
+    assert result.is_valid
+    assert energy.is_valid
