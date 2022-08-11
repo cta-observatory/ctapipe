@@ -31,7 +31,7 @@ from .hillas import (
 )
 from .image_processor import ImageProcessor
 from .invalid_pixels import InvalidPixelHandler, NeighborAverage
-from .leakage import leakage_parameter
+from .leakage import leakage_parameters
 from .modifications import ImageModifier
 from .morphology import (
     brightest_island,
