@@ -49,12 +49,10 @@ from ctapipe.core import Provenance
 PROV = Provenance()
 
 INVALID = ReconstructedGeometryContainer(
-    tel_ids=[],
     prefix="ImPACTReconstructor",
 )
 
 INVALID_ENERGY = ReconstructedEnergyContainer(
-    tel_ids=[],
     prefix="ImPACTReconstructor",
 )
 
@@ -630,7 +628,7 @@ class ImPACTReconstructor(Reconstructor):
         for tel_id, i in zip(hillas_dict, range(len(hillas_dict))):
 
             geometry = subarray.tel[tel_id].camera.geometry
-            type = subarray.tel[tel_id].camera.camera_name
+            type = subarray.tel[tel_id].camera.name
             type_tel[tel_id] = type
 
             mask = mask_dict[tel_id]
@@ -830,7 +828,6 @@ class ImPACTReconstructor(Reconstructor):
                                               fit_params[4], fit_params[5], True)
         
         shower_result.goodness_of_fit = np.sum(goodness_of_fit)
-        shower_result.tel_ids=self.tel_id
         shower_result.is_valid=True 
 
         # Create a container class for reconstructed energy
