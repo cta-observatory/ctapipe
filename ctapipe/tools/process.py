@@ -3,19 +3,25 @@ Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
 """
 # pylint: disable=W0201
 import sys
+
 from tqdm.auto import tqdm
 
 from ..calib import CameraCalibrator, GainSelector
 from ..core import QualityQuery, Tool
 from ..core.traits import Bool, classes_with_traits, flag
-from ..image import ImageCleaner, ImageProcessor, ImageModifier
+from ..image import ImageCleaner, ImageModifier, ImageProcessor
 from ..image.extractor import ImageExtractor
-from ..io import DataLevel, DataWriter, EventSource, SimTelEventSource, write_table
+from ..io import (
+    DataLevel,
+    DataWriter,
+    EventSource,
+    SimTelEventSource,
+    metadata,
+    write_table,
+)
 from ..io.datawriter import DATA_MODEL_VERSION
 from ..reco import ShowerProcessor
 from ..utils import EventTypeFilter
-from ..io import metadata
-
 
 COMPATIBLE_DATALEVELS = [
     DataLevel.R1,
@@ -233,10 +239,11 @@ class ProcessorTool(Tool):
 
         if self.should_compute_dl2:
             reconstructor = self.process_shower.reconstructor
+            reconstructor_name = self.process_shower.reconstructor_type
             write_table(
                 reconstructor.check_parameters.to_table(functions=True),
                 self.write.output_path,
-                "/dl2/service/image_statistics",
+                f"/dl2/service/tel_event_statistics/{reconstructor_name}",
                 append=True,
             )
 

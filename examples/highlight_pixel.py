@@ -1,8 +1,8 @@
-from matplotlib import pyplot as plt
 import astropy.units as u
+from matplotlib import pyplot as plt
 
 from ctapipe.image import toymodel
-from ctapipe.instrument import CameraGeometry
+from ctapipe.instrument import SubarrayDescription
 from ctapipe.visualization import CameraDisplay
 
 if __name__ == "__main__":
@@ -12,7 +12,9 @@ if __name__ == "__main__":
     fig = plt.figure(figsize=(12, 8))
     ax = fig.add_subplot(1, 1, 1)
 
-    geom = CameraGeometry.from_name("NectarCam")
+    subarray = SubarrayDescription.read("dataset://gamma_prod5.simtel.zst")
+    geom = subarray.tel[1].camera.geometry
+
     disp = CameraDisplay(geom, ax=ax)
     disp.add_colorbar()
 

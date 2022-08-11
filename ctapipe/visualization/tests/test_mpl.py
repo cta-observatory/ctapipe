@@ -2,29 +2,31 @@
 Tests for array display
 """
 
+import numpy as np
+
 # skip these tests if matplotlib can't be imported
 import pytest
-from ctapipe.instrument import (
-    CameraGeometry,
-    SubarrayDescription,
-    TelescopeDescription,
-    PixelShape,
-)
+from astropy import units as u
+
 from ctapipe.containers import (
     CameraHillasParametersContainer,
     HillasParametersContainer,
 )
-import numpy as np
-from astropy import units as u
+from ctapipe.instrument import PixelShape, SubarrayDescription
 
 plt = pytest.importorskip("matplotlib.pyplot")
 
 
-def test_camera_display_single():
-    """ test CameraDisplay functionality """
+@pytest.fixture(scope="session")
+def prod5_lst_cam(prod5_lst):
+    return prod5_lst.camera.geometry
+
+
+def test_camera_display_single(prod5_lst_cam):
+    """test CameraDisplay functionality"""
     from ..mpl_camera import CameraDisplay
 
-    geom = CameraGeometry.from_name("LSTCam")
+    geom = prod5_lst_cam
     disp = CameraDisplay(geom)
     image = np.random.normal(size=len(geom.pix_x))
     disp.image = image
@@ -48,10 +50,10 @@ def test_camera_display_single():
     disp.clear_overlays()
 
 
-def test_hillas_overlay():
+def test_hillas_overlay(prod5_lst_cam):
     from ctapipe.visualization import CameraDisplay
 
-    disp = CameraDisplay(CameraGeometry.from_name("LSTCam"))
+    disp = CameraDisplay(prod5_lst_cam)
     hillas = CameraHillasParametersContainer(
         x=0.1 * u.m, y=-0.1 * u.m, length=0.5 * u.m, width=0.2 * u.m, psi=90 * u.deg
     )
@@ -60,11 +62,11 @@ def test_hillas_overlay():
 
 
 @pytest.mark.parametrize("pix_type", PixelShape.__members__.values())
-def test_pixel_shapes(pix_type):
-    """ test CameraDisplay functionality """
+def test_pixel_shapes(pix_type, prod5_lst_cam):
+    """test CameraDisplay functionality"""
     from ..mpl_camera import CameraDisplay
 
-    geom = CameraGeometry.from_name("LSTCam")
+    geom = prod5_lst_cam
     geom.pix_type = pix_type
 
     disp = CameraDisplay(geom)
@@ -75,11 +77,11 @@ def test_pixel_shapes(pix_type):
     disp.add_ellipse(centroid=(0, 0), width=0.1, length=0.1, angle=0.1)
 
 
-def test_camera_display_multiple():
-    """ create a figure with 2 subplots, each with a CameraDisplay """
+def test_camera_display_multiple(prod5_lst_cam):
+    """create a figure with 2 subplots, each with a CameraDisplay"""
     from ..mpl_camera import CameraDisplay
 
-    geom = CameraGeometry.from_name("LSTCam")
+    geom = prod5_lst_cam
     fig, ax = plt.subplots(2, 1)
 
     d1 = CameraDisplay(geom, ax=ax[0])
@@ -90,24 +92,23 @@ def test_camera_display_multiple():
     d2.image = image
 
 
-def test_array_display():
-    """ check that we can do basic array display functionality """
-    from ctapipe.visualization.mpl_array import ArrayDisplay
-    from ctapipe.image import timing_parameters
-
+def test_array_display(prod5_mst_nectarcam):
+    """check that we can do basic array display functionality"""
     from ctapipe.containers import (
         ArrayEventContainer,
-        DL1Container,
-        DL1CameraContainer,
-        ImageParametersContainer,
         CoreParametersContainer,
+        DL1CameraContainer,
+        DL1Container,
+        ImageParametersContainer,
     )
+    from ctapipe.image import timing_parameters
+    from ctapipe.visualization.mpl_array import ArrayDisplay
 
     # build a test subarray:
     tels = dict()
     tel_pos = dict()
     for ii, pos in enumerate([[0, 0, 0], [100, 0, 0], [-100, 0, 0]] * u.m):
-        tels[ii + 1] = TelescopeDescription.from_name("MST", "NectarCam")
+        tels[ii + 1] = prod5_mst_nectarcam
         tel_pos[ii + 1] = pos
 
     sub = SubarrayDescription(
@@ -130,7 +131,7 @@ def test_array_display():
     ad.set_vector_rho_phi(1 * u.m, 90 * u.deg)
 
     # try setting a value
-    vals = np.ones(sub.num_tels)
+    vals = np.ones(sub.n_tels)
     ad.values = vals
 
     assert (vals == ad.values).all()
@@ -142,7 +143,7 @@ def test_array_display():
     # ...with scalar color
     ad.set_vector_uv(np.array([1, 2, 3]) * u.m, np.array([1, 2, 3]) * u.m, c=3)
 
-    geom = CameraGeometry.from_name("LSTCam")
+    geom = prod5_mst_nectarcam.camera.geometry
     rot_angle = 20 * u.deg
     hillas = CameraHillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=rot_angle)
 
@@ -241,11 +242,12 @@ def test_array_display():
     ad.remove_labels()
 
 
-def test_picker():
-    from ctapipe.visualization import CameraDisplay
-    from matplotlib.backend_bases import MouseEvent, MouseButton
+def test_picker(prod5_lst_cam):
+    from matplotlib.backend_bases import MouseButton, MouseEvent
 
-    geom = CameraGeometry.from_name("LSTCam")
+    from ctapipe.visualization import CameraDisplay
+
+    geom = prod5_lst_cam
     clicked_pixels = []
 
     class PickingCameraDisplay(CameraDisplay):

@@ -3,16 +3,22 @@
 Create a toymodel event stream of array events
 """
 import logging
+from typing import Dict
 
-import numpy as np
 import astropy.units as u
+import numpy as np
 
-from ..containers import ArrayEventContainer, DL1CameraContainer, EventIndexContainer
-from ..core import traits
-from ..core import TelescopeComponent
+from ..containers import (
+    ArrayEventContainer,
+    DL1CameraContainer,
+    EventIndexContainer,
+    ObservationBlockContainer,
+    SchedulingBlockContainer,
+)
+from ..core import TelescopeComponent, traits
 from ..image import toymodel
-from .eventsource import EventSource
 from .datalevels import DataLevel
+from .eventsource import EventSource
 
 logger = logging.getLogger(__name__)
 
@@ -58,15 +64,11 @@ class ToyEventSource(EventSource, TelescopeComponent):
 
     @staticmethod
     def calc_width(eccentricity, length):
-        return length * np.sqrt(1 - eccentricity ** 2)
+        return length * np.sqrt(1 - eccentricity**2)
 
     @property
     def subarray(self):
         return self._subarray
-
-    @property
-    def obs_ids(self):
-        return [-1]
 
     @property
     def is_simulation(self):
@@ -75,6 +77,16 @@ class ToyEventSource(EventSource, TelescopeComponent):
     @property
     def datalevels(self):
         return (DataLevel.DL1_IMAGES,)
+
+    @property
+    def scheduling_blocks(self) -> Dict[int, SchedulingBlockContainer]:
+        sb = SchedulingBlockContainer(producer_id="ctapipe toymodel")
+        return {sb.sb_id: sb}
+
+    @property
+    def observation_blocks(self) -> Dict[int, ObservationBlockContainer]:
+        ob = ObservationBlockContainer(producer_id="ctapipe toymodel")
+        return {ob.ob_id: ob}
 
     @subarray.setter
     def subarray(self, value):
@@ -130,7 +142,7 @@ class ToyEventSource(EventSource, TelescopeComponent):
 
             psi = self.rng.uniform(0, 360)
             shower_area_ratio = (
-                2 * np.pi * width * length / cam.pix_area.mean().to_value(u.m ** 2)
+                2 * np.pi * width * length / cam.pix_area.mean().to_value(u.m**2)
             )
             intensity = self.rng.poisson(50) * shower_area_ratio
             skewness = self.rng.uniform(

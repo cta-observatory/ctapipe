@@ -3,41 +3,39 @@ Line-intersection-based fitting for reconstruction of direction
 and core position of a shower.
 """
 
-from ctapipe.reco.reco_algorithms import (
-    Reconstructor,
-    InvalidWidthException,
-    TooFewTelescopesException,
-)
-from ctapipe.containers import (
-    ReconstructedGeometryContainer,
-    CameraHillasParametersContainer,
-)
+import warnings
 from itertools import combinations
 
+import numpy as np
+from astropy import units as u
+from astropy.coordinates import AltAz, SkyCoord, cartesian_to_spherical
+
+from ctapipe.containers import (
+    CameraHillasParametersContainer,
+    ReconstructedGeometryContainer,
+)
 from ctapipe.coordinates import (
     CameraFrame,
-    TelescopeFrame,
     GroundFrame,
-    TiltedGroundFrame,
-    project_to_ground,
     MissingFrameAttributeWarning,
+    TelescopeFrame,
+    TiltedGroundFrame,
     altaz_to_righthanded_cartesian,
+    project_to_ground,
 )
-from astropy.coordinates import (
-    SkyCoord,
-    AltAz,
-    cartesian_to_spherical,
+from ctapipe.reco.reco_algorithms import (
+    InvalidWidthException,
+    Reconstructor,
+    TooFewTelescopesException,
 )
-import warnings
-
-import numpy as np
-
-from astropy import units as u
 
 __all__ = ["HillasPlane", "HillasReconstructor"]
 
 
-INVALID = ReconstructedGeometryContainer(tel_ids=[])
+INVALID = ReconstructedGeometryContainer(
+    telescopes=[],
+    prefix="HillasReconstructor",
+)
 
 
 def angle(v1, v2):
@@ -265,25 +263,21 @@ class HillasReconstructor(Reconstructor):
         # estimate max height of shower
         h_max = self.estimate_h_max(hillas_planes)
 
-        # astropy's coordinates system rotates counter-clockwise.
-        # Apparently we assume it to be clockwise.
-        # that's why lon get's a sign
-        result = ReconstructedGeometryContainer(
+        return ReconstructedGeometryContainer(
             alt=lat,
-            az=-lon,
+            az=-lon,  # az is clockwise, lon counter-clockwise
             core_x=core_pos_ground.x,
             core_y=core_pos_ground.y,
             core_tilted_x=core_pos_tilted.x,
             core_tilted_y=core_pos_tilted.y,
-            tel_ids=[h for h in hillas_dict.keys()],
+            telescopes=[tel_id for tel_id in hillas_dict.keys()],
             average_intensity=np.mean([h.intensity for h in hillas_dict.values()]),
             is_valid=True,
             alt_uncert=err_est_dir,
             az_uncert=err_est_dir,
             h_max=h_max,
+            prefix=self.__class__.__name__,
         )
-
-        return result
 
     def initialize_hillas_planes(
         self, hillas_dict, subarray, telescopes_pointings, array_pointing

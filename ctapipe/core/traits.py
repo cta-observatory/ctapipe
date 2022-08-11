@@ -1,17 +1,17 @@
 """
 Traitlet implementations for ctapipe
 """
+import copy
+import os
+import pathlib
 from collections import UserList
 from fnmatch import fnmatch
 from typing import Optional
-import copy
-from astropy.time import Time
-import pathlib
 from urllib.parse import urlparse
-import os
 
 import traitlets
 import traitlets.config
+from astropy.time import Time
 from traitlets import Undefined
 
 from .component import non_abstract_children
@@ -41,6 +41,7 @@ __all__ = [
     "Long",
     "Set",
     "TraitError",
+    "Tuple",
     "Unicode",
     "flag",
     "observe",
@@ -65,17 +66,19 @@ List = traitlets.List
 Set = traitlets.Set
 CRegExp = traitlets.CRegExp
 CaselessStrEnum = traitlets.CaselessStrEnum
+UseEnum = traitlets.UseEnum
 TraitError = traitlets.TraitError
 TraitType = traitlets.TraitType
+Tuple = traitlets.Tuple
 observe = traitlets.observe
 flag = traitlets.config.boolean_flag
 
 
 class AstroTime(TraitType):
-    """ A trait representing a point in Time, as understood by `astropy.time`"""
+    """A trait representing a point in Time, as understood by `astropy.time`"""
 
     def validate(self, obj, value):
-        """ try to parse and return an ISO time string """
+        """try to parse and return an ISO time string"""
         try:
             the_time = Time(value)
             the_time.format = "iso"
@@ -198,7 +201,7 @@ class Path(TraitType):
         return value
 
 
-def create_class_enum_trait(base_class, default_value, help=None):
+def create_class_enum_trait(base_class, default_value, help=None, allow_none=False):
     """create a configurable CaselessStrEnum traitlet from baseclass
 
     the enumeration should contain all names of non_abstract_children()
@@ -216,7 +219,10 @@ def create_class_enum_trait(base_class, default_value, help=None):
         raise ValueError(f"{default_value} is not in choices: {choices}")
 
     return CaselessStrEnum(
-        choices, default_value=default_value, allow_none=False, help=help
+        choices,
+        default_value=default_value,
+        help=help,
+        allow_none=allow_none,
     ).tag(config=True)
 
 
@@ -273,7 +279,7 @@ class TelescopePatternList(UserList):
 
     @property
     def tel(self):
-        """ access the value per telescope_id, e.g. `param.tel[2]`"""
+        """access the value per telescope_id, e.g. `param.tel[2]`"""
         if self._lookup:
             return self._lookup
         else:
@@ -312,7 +318,7 @@ class TelescopeParameterLookup:
     def __init__(self, telescope_parameter_list):
         """
         Handles the lookup of corresponding configuration value from a list of
-        tuples for a telid.
+        tuples for a tel_id.
 
         Parameters
         ----------
@@ -511,7 +517,7 @@ class TelescopeParameter(List):
 
 
 class FloatTelescopeParameter(TelescopeParameter):
-    """ a `~ctapipe.core.traits.TelescopeParameter` with Float trait type"""
+    """a `~ctapipe.core.traits.TelescopeParameter` with Float trait type"""
 
     def __init__(self, **kwargs):
         """Create a new IntTelescopeParameter"""
@@ -519,7 +525,7 @@ class FloatTelescopeParameter(TelescopeParameter):
 
 
 class IntTelescopeParameter(TelescopeParameter):
-    """ a `~ctapipe.core.traits.TelescopeParameter` with Int trait type"""
+    """a `~ctapipe.core.traits.TelescopeParameter` with Int trait type"""
 
     def __init__(self, **kwargs):
         """Create a new IntTelescopeParameter"""
@@ -527,7 +533,7 @@ class IntTelescopeParameter(TelescopeParameter):
 
 
 class BoolTelescopeParameter(TelescopeParameter):
-    """ a `~ctapipe.core.traits.TelescopeParameter` with Bool trait type"""
+    """a `~ctapipe.core.traits.TelescopeParameter` with Bool trait type"""
 
     def __init__(self, **kwargs):
         """Create a new BoolTelescopeParameter"""

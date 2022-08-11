@@ -1,18 +1,20 @@
-from astropy.coordinates import Angle, SkyCoord
-from astropy import units as u
-import numpy as np
-from numpy import isclose, zeros_like
-from pytest import approx
 import itertools
+
+import numpy as np
 import pytest
-from ctapipe.coordinates import TelescopeFrame, CameraFrame
-from ctapipe.instrument import CameraGeometry
-from ctapipe.image import tailcuts_clean, toymodel
-from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
+from astropy import units as u
+from astropy.coordinates import Angle, SkyCoord
+from numpy import isclose
+from pytest import approx
+
 from ctapipe.containers import (
-    HillasParametersContainer,
     CameraHillasParametersContainer,
+    HillasParametersContainer,
 )
+from ctapipe.coordinates import TelescopeFrame
+from ctapipe.image import tailcuts_clean, toymodel
+from ctapipe.image.hillas import HillasParameterizationError, hillas_parameters
+from ctapipe.instrument import CameraGeometry, SubarrayDescription
 
 
 def create_sample_image(
@@ -22,37 +24,26 @@ def create_sample_image(
     width=0.05 * u.m,
     length=0.15 * u.m,
     intensity=1500,
+    geometry=None,
 ):
 
-    geom = CameraGeometry.from_name("LSTCam")
+    if geometry is None:
+        s = SubarrayDescription.read("dataset://gamma_prod5.simtel.zst")
+        geometry = s.tel[1].camera.geometry
 
     # make a toymodel shower model
     model = toymodel.Gaussian(x=x, y=y, width=width, length=length, psi=psi)
 
     # generate toymodel image in camera for this shower model.
     rng = np.random.default_rng(0)
-    image, _, _ = model.generate_image(geom, intensity=1500, nsb_level_pe=3, rng=rng)
+    image, _, _ = model.generate_image(
+        geometry, intensity=intensity, nsb_level_pe=3, rng=rng
+    )
 
     # calculate pixels likely containing signal
-    clean_mask = tailcuts_clean(geom, image, 10, 5)
+    clean_mask = tailcuts_clean(geometry, image, 10, 5)
 
-    return geom, image, clean_mask
-
-
-def create_sample_image_zeros(psi="-30d"):
-
-    geom, image, clean_mask = create_sample_image(psi)
-
-    # threshold in pe
-    image[~clean_mask] = 0
-
-    return geom, image
-
-
-def create_sample_image_selected_pixel(psi="-30d"):
-    geom, image, clean_mask = create_sample_image(psi)
-
-    return geom[clean_mask], image[clean_mask]
+    return image, clean_mask
 
 
 def compare_result(x, y):
@@ -69,30 +60,37 @@ def compare_hillas(hillas1, hillas2):
         compare_result(hillas1_dict[key], hillas2_dict[key])
 
 
-def test_hillas_selected():
+def test_hillas_selected(prod5_lst):
     """
     test Hillas-parameter routines on a sample image with selected values
-    against a sample image with masked values set tozero
+    against a sample image with masked values set to zero
     """
-    geom, image = create_sample_image_zeros()
-    geom_selected, image_selected = create_sample_image_selected_pixel()
+    geom = prod5_lst.camera.geometry
+    image, clean_mask = create_sample_image(geometry=geom)
 
-    results = hillas_parameters(geom, image)
+    image_zeros = image.copy()
+    image_zeros[~clean_mask] = 0.0
+
+    image_selected = image[clean_mask]
+    geom_selected = geom[clean_mask]
+
+    results = hillas_parameters(geom, image_zeros)
     results_selected = hillas_parameters(geom_selected, image_selected)
 
     compare_hillas(results, results_selected)
 
 
-def test_hillas_failure():
-    geom, image = create_sample_image_zeros(psi="0d")
-    blank_image = zeros_like(image)
+def test_hillas_failure(prod5_lst):
+    geom = prod5_lst.camera.geometry
+    blank_image = np.zeros(geom.n_pixels)
 
     with pytest.raises(HillasParameterizationError):
         hillas_parameters(geom, blank_image)
 
 
-def test_hillas_masked_array():
-    geom, image, clean_mask = create_sample_image(psi="0d")
+def test_hillas_masked_array(prod5_lst):
+    geom = prod5_lst.camera.geometry
+    image, clean_mask = create_sample_image(psi="0d", geometry=geom)
 
     image_zeros = image.copy()
     image_zeros[~clean_mask] = 0
@@ -104,22 +102,22 @@ def test_hillas_masked_array():
     compare_hillas(hillas_zeros, hillas_masked)
 
 
-def test_hillas_container():
-    geom, image = create_sample_image_zeros(psi="0d")
+def test_hillas_container(prod5_lst):
+    geom = prod5_lst.camera.geometry
+    image, clean_mask = create_sample_image(psi="0d", geometry=geom)
 
-    params = hillas_parameters(geom, image)
+    params = hillas_parameters(geom[clean_mask], image[clean_mask])
     assert isinstance(params, CameraHillasParametersContainer)
 
-    geom.frame = CameraFrame(focal_length=28 * u.m)
     geom_telescope_frame = geom.transform_to(TelescopeFrame())
-    params = hillas_parameters(geom_telescope_frame, image)
+    params = hillas_parameters(geom_telescope_frame[clean_mask], image[clean_mask])
     assert isinstance(params, HillasParametersContainer)
 
 
-def test_with_toy():
+def test_with_toy(prod5_lst):
     rng = np.random.default_rng(42)
 
-    geom = CameraGeometry.from_name("LSTCam")
+    geom = prod5_lst.camera.geometry
 
     width = 0.03 * u.m
     length = 0.15 * u.m
@@ -157,10 +155,10 @@ def test_with_toy():
             assert signal.sum() == result.intensity
 
 
-def test_skewness():
+def test_skewness(prod5_lst):
     rng = np.random.default_rng(42)
 
-    geom = CameraGeometry.from_name("LSTCam")
+    geom = prod5_lst.camera.geometry
 
     width = 0.03 * u.m
     length = 0.15 * u.m
@@ -205,7 +203,7 @@ def test_skewness():
 
 @pytest.mark.filterwarnings("error")
 def test_straight_line_width_0():
-    """ Test that hillas_parameters.width is 0 for a straight line of pixels """
+    """Test that hillas_parameters.width is 0 for a straight line of pixels"""
     # three pixels in a straight line
     long = np.array([0, 1, 2]) * 0.01
     trans = np.zeros(len(long))
@@ -220,12 +218,12 @@ def test_straight_line_width_0():
                 y = dy - np.sin(psi) * long + np.cos(psi) * trans
 
                 geom = CameraGeometry(
-                    camera_name="testcam",
+                    name="testcam",
                     pix_id=pix_id,
                     pix_x=x * u.m,
                     pix_y=y * u.m,
                     pix_type="hexagonal",
-                    pix_area=1 * u.m ** 2,
+                    pix_area=1 * u.m**2,
                 )
 
                 img = rng.poisson(5, size=len(long))
@@ -240,12 +238,12 @@ def test_single_pixel():
     x, y = np.meshgrid(x, y)
 
     geom = CameraGeometry(
-        camera_name="testcam",
+        name="testcam",
         pix_id=np.arange(9),
         pix_x=x.ravel() * u.cm,
         pix_y=y.ravel() * u.cm,
         pix_type="rectangular",
-        pix_area=1 * u.cm ** 2,
+        pix_area=1 * u.cm**2,
     )
 
     image = np.zeros((3, 3))
@@ -259,18 +257,16 @@ def test_single_pixel():
     assert np.isnan(hillas.psi)
 
 
-def test_reconstruction_in_telescope_frame():
+def test_reconstruction_in_telescope_frame(prod5_lst):
     """
     Compare the reconstruction in the telescope
     and camera frame.
     """
     np.random.seed(42)
 
+    geom = prod5_lst.camera.geometry
     telescope_frame = TelescopeFrame()
-    camera_frame = CameraFrame(focal_length=28 * u.m)
-
-    geom = CameraGeometry.from_name("LSTCam")
-    geom.frame = camera_frame
+    camera_frame = geom.frame
     geom_nom = geom.transform_to(telescope_frame)
 
     width = 0.03 * u.m

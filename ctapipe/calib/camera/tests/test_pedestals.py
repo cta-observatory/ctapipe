@@ -1,20 +1,22 @@
 """
 Tests for pedestal calculator functionality
 """
+from copy import deepcopy
+
 import astropy.units as u
-from astropy.time import Time
 import numpy as np
+from astropy.time import Time
 
 from ctapipe.calib.camera.pedestals import (
     PedestalIntegrator,
     calc_pedestals_from_traces,
 )
-from ctapipe.instrument import SubarrayDescription, TelescopeDescription
 from ctapipe.containers import ArrayEventContainer
+from ctapipe.instrument import SubarrayDescription
 
 
-def test_pedestal_calculator():
-    """ test of PedestalIntegrator """
+def test_pedestal_integrator(prod5_sst):
+    """test of PedestalIntegrator"""
 
     tel_id = 0
     n_events = 10
@@ -25,11 +27,7 @@ def test_pedestal_calculator():
     subarray = SubarrayDescription(
         "test array",
         tel_positions={0: np.zeros(3) * u.m},
-        tel_descriptions={
-            0: TelescopeDescription.from_name(
-                optics_name="SST-ASTRI", camera_name="CHEC"
-            )
-        },
+        tel_descriptions={0: deepcopy(prod5_sst)},
     )
     subarray.tel[0].camera.readout.reference_pulse_shape = np.ones((1, 2))
     subarray.tel[0].camera.readout.reference_pulse_sample_width = u.Quantity(1, u.ns)
@@ -50,8 +48,9 @@ def test_pedestal_calculator():
         (n_gain, n_pixels), dtype=bool
     )
     data.r1.tel[tel_id].waveform = np.full((2, n_pixels, 40), ped_level)
+    data.r1.tel[tel_id].selected_gain_channel = np.zeros(n_pixels, dtype=np.uint8)
 
-    while ped_calculator.num_events_seen < n_events:
+    while ped_calculator.n_events_seen < n_events:
         if ped_calculator.calculate_pedestals(data):
             assert data.mon.tel[tel_id].pedestal
             assert np.mean(data.mon.tel[tel_id].pedestal.charge_median) == (
@@ -61,7 +60,7 @@ def test_pedestal_calculator():
 
 
 def test_calc_pedestals_from_traces():
-    """ test calc_pedestals_from_traces """
+    """test calc_pedestals_from_traces"""
     # create some test data (all ones, but with a 2 stuck in for good measure):
     npix = 1000
     nsamp = 32

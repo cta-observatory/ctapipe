@@ -9,8 +9,8 @@ import numpy as np
 from astropy import units as u
 from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
-from matplotlib.colors import Normalize, LogNorm, SymLogNorm
-from matplotlib.patches import Ellipse, RegularPolygon, Circle
+from matplotlib.colors import LogNorm, Normalize, SymLogNorm
+from matplotlib.patches import Circle, Ellipse, RegularPolygon
 
 from ctapipe.instrument import PixelShape
 
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 def polar_to_cart(rho, phi):
-    """"returns r, theta(degrees)"""
+    """ "returns r, theta(degrees)"""
     x = rho * np.cos(phi)
     y = rho * np.sin(phi)
     return x, y
@@ -112,7 +112,7 @@ class CameraDisplay:
         self.geom.rotate(self.geom.cam_rotation)
 
         if title is None:
-            title = f"{geometry.camera_name}"
+            title = geometry.name
 
         # initialize the plot and generate the pixels as a
         # RegularPolyCollection
@@ -252,26 +252,26 @@ class CameraDisplay:
             The transparency
         """
 
-        l = np.zeros_like(self.image)
-        l[pixels] = linewidth
-        self.pixel_highlighting.set_linewidth(l)
+        linewidths = np.zeros_like(self.image)
+        linewidths[pixels] = linewidth
+        self.pixel_highlighting.set_linewidth(linewidths)
         self.pixel_highlighting.set_alpha(alpha)
         self.pixel_highlighting.set_edgecolor(color)
         self._update()
 
     def enable_pixel_picker(self):
-        """ enable ability to click on pixels """
+        """enable ability to click on pixels"""
         self.pixels.set_picker(True)
         self.pixels.set_pickradius(self.geom.pixel_width.value[0] / 2)
         self.axes.figure.canvas.mpl_connect("pick_event", self._on_pick)
 
     def set_limits_minmax(self, zmin, zmax):
-        """ set the color scale limits from min to max """
+        """set the color scale limits from min to max"""
         self.pixels.set_clim(zmin, zmax)
         self._update()
 
     def set_limits_percent(self, percent=95):
-        """ auto-scale the color range to percent of maximum """
+        """auto-scale the color range to percent of maximum"""
         zmin = np.nanmin(self.pixels.get_array())
         zmax = np.nanmax(self.pixels.get_array())
         if isinstance(self.pixels.norm, LogNorm):
@@ -363,12 +363,12 @@ class CameraDisplay:
         self._update()
 
     def _update(self):
-        """ signal a redraw if autoupdate is turned on """
+        """signal a redraw if autoupdate is turned on"""
         if self.autoupdate:
             self.update()
 
     def update(self):
-        """ redraw the display now """
+        """redraw the display now"""
         self.axes.figure.canvas.draw()
         if self.colorbar is not None:
             self.colorbar.update_normal(self.pixels)
@@ -475,13 +475,13 @@ class CameraDisplay:
             self._axes_overlays.append(text)
 
     def clear_overlays(self):
-        """ Remove added overlays from the axes """
+        """Remove added overlays from the axes"""
         while self._axes_overlays:
             overlay = self._axes_overlays.pop()
             overlay.remove()
 
     def _on_pick(self, event):
-        """ handler for when a pixel is clicked """
+        """handler for when a pixel is clicked"""
         pix_id = event.ind[-1]
         x = self.geom.pix_x[pix_id].value
         y = self.geom.pix_y[pix_id].value
@@ -505,7 +505,7 @@ class CameraDisplay:
         self.axes.figure.show()
 
     def auto_set_axes_labels(self):
-        """ set the axes labels based on the Frame attribute"""
+        """set the axes labels based on the Frame attribute"""
         axes_labels = ("X", "Y")
         if self.geom.frame is not None:
             axes_labels = list(
@@ -516,7 +516,7 @@ class CameraDisplay:
         self.axes.set_ylabel(f"{axes_labels[1]}  ({self.geom.pix_y.unit})")
 
     def add_frame_name(self, color="grey"):
-        """ label the frame type of the display (e.g. CameraFrame) """
+        """label the frame type of the display (e.g. CameraFrame)"""
 
         frame_name = (
             self.geom.frame.__class__.__name__

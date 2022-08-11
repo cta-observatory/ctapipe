@@ -196,9 +196,9 @@ class ArrayDisplay:
 
         Parameters
         ----------
-        uu: array[num_tels]
+        uu: array[n_tels]
             x-component of direction vector
-        vv: array[num_tels]
+        vv: array[n_tels]
             y-component of direction vector
         c: color or list of colors
             vector color for each telescope (or one for all)
@@ -283,8 +283,8 @@ class ArrayDisplay:
         """
 
         # rot_angle_ellipse is psi parameter in HillasParametersContainer
-        rho = np.zeros(self.subarray.num_tels) * u.m
-        rot_angle_ellipse = np.zeros(self.subarray.num_tels) * u.deg
+        rho = np.zeros(self.subarray.n_tels) * u.m
+        rot_angle_ellipse = np.zeros(self.subarray.n_tels) * u.deg
 
         for tel_id, params in hillas_dict.items():
 

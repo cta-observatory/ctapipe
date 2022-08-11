@@ -1,9 +1,10 @@
 """ Tests of Selectors """
-import pytest
 import numpy as np
+import pytest
 from astropy.table import Table
 
-from ctapipe.core.qualityquery import QualityQuery, QualityCriteriaError
+from ctapipe.core.expression_engine import ExpressionError
+from ctapipe.core.qualityquery import QualityQuery
 from ctapipe.core.traits import List
 
 
@@ -34,7 +35,7 @@ def test_selector():
     assert (criteria3 == [True, False, False]).all()
 
     criteria4 = query(x=8)  # pass all
-    assert (criteria4 == True).all()
+    assert np.all(criteria4)
 
     tab = query.to_table()
     html = query._repr_html_()
@@ -73,7 +74,7 @@ def test_invalid_input():
         ).tag(config=True)
 
     query = ExampleQualityQuery()
-    with pytest.raises(QualityCriteriaError):
+    with pytest.raises(ExpressionError):
         query(y=5)
 
 
@@ -87,19 +88,19 @@ def test_bad_selector():
             ("smallish", "x < 10"),
         ]
     )
-    with pytest.raises(QualityCriteriaError):
+    with pytest.raises(ExpressionError):
         query(x=5)
 
     # ensure we can't run arbitrary code.
     # try to construct something that is not in the
     # ALLOWED_GLOBALS list, but which is imported in selector.py
     # and see if it works in a function
-    with pytest.raises(QualityCriteriaError):
+    with pytest.raises(ExpressionError):
         query = QualityQuery(quality_criteria=[("dangerous", "Component()")])
         query(x=10)
 
     # test we only support expressions, not statements
-    with pytest.raises(QualityCriteriaError):
+    with pytest.raises(ExpressionError):
         query = QualityQuery(
             quality_criteria=[("dangerous", "import numpy; np.array([])")]
         )
@@ -123,3 +124,24 @@ def test_table_mask():
     stats = query.to_table()
     np.testing.assert_equal(stats["counts"], [5, 3, 2])
     np.testing.assert_equal(stats["cumulative_counts"], [5, 3, 1])
+
+
+def test_printing():
+    """Just check the query can be stringified correctly"""
+    query = QualityQuery(
+        quality_criteria=[("check", "x>3")],
+    )
+
+    assert isinstance(str(query), str)
+
+
+def test_setup():
+    """Test that tuples can only have length 2"""
+    from traitlets import TraitError
+
+    # 2-tuple works
+    QualityQuery(quality_criteria=[("1", "2")])
+
+    # 3-tuple fails
+    with pytest.raises(TraitError):
+        QualityQuery(quality_criteria=[("1", "2", "3")])

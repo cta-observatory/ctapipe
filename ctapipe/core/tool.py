@@ -6,10 +6,11 @@ import pathlib
 import re
 import textwrap
 from abc import abstractmethod
+from inspect import cleandoc
 from typing import Union
+
 import yaml
 from docutils.core import publish_parts
-from inspect import cleandoc
 
 try:
     import tomli as toml
@@ -18,13 +19,13 @@ try:
 except ImportError:
     HAS_TOML = False
 
-from traitlets import default, List
+from traitlets import List, default
 from traitlets.config import Application, Config, Configurable
 
 from .. import __version__ as version
 from . import Provenance
 from .component import Component
-from .logging import DEFAULT_LOGGING, ColoredFormatter, create_logging_config
+from .logging import ColoredFormatter, create_logging_config
 from .traits import Bool, Dict, Enum, Path
 
 __all__ = ["Tool", "ToolConfigurationError"]
@@ -133,8 +134,6 @@ class Tool(Application):
         trait=Path(
             exists=True,
             directory_ok=False,
-            allow_none=True,
-            default_value=None,
             help=(
                 "List of configuration files with parameters to load "
                 "in addition to command-line parameters. "
@@ -146,7 +145,7 @@ class Tool(Application):
         )
     ).tag(config=True)
 
-    log_config = Dict(default_value=DEFAULT_LOGGING).tag(config=True)
+    log_config = Dict(default_value={}).tag(config=True)
     log_file = Path(
         default_value=None,
         exists=None,
@@ -197,8 +196,8 @@ class Tool(Application):
 
         # tools defined in other modules should have those modules as base
         # logging name
-        module_name = self.__class__.__module__.split(".")[0]
-        self.log = logging.getLogger(f"{module_name}.{self.name}")
+        self.module_name = self.__class__.__module__.split(".")[0]
+        self.log = logging.getLogger(f"{self.module_name}.{self.name}")
         self.trait_warning_handler = CollectTraitWarningsHandler()
         self.update_logging_config()
 
@@ -233,7 +232,6 @@ class Tool(Application):
         path: Union[str, pathlib.Path]
             config file to load. [yaml, toml, json, py] formats are supported
         """
-
         path = pathlib.Path(path)
 
         if path.suffix in [".yaml", ".yml"]:
@@ -259,6 +257,7 @@ class Tool(Application):
             log_file_level=self.log_file_level,
             log_config=self.log_config,
             quiet=self.quiet,
+            module=self.module_name,
         )
 
         logging.config.dictConfig(cfg)
@@ -314,7 +313,7 @@ class Tool(Application):
         after `Tool.start` when `Tool.run` is called."""
         self.log.info("Goodbye")
 
-    def run(self, argv=None):
+    def run(self, argv=None, raises=False):
         """Run the tool. This automatically calls `initialize()`,
         `start()` and `finish()`
 
@@ -362,6 +361,8 @@ class Tool(Application):
             self.log.exception(f"Caught unexpected exception: {err}")
             Provenance().finish_activity(activity_name=self.name, status="error")
             exit_status = 1  # any other error
+            if raises:
+                raise err
         finally:
             if not {"-h", "--help", "--help-all"}.intersection(self.argv):
                 self.write_provenance()
@@ -527,7 +528,7 @@ def export_tool_config_to_commented_yaml(tool_instance: Tool, classes=None):
     return "\n".join(lines)
 
 
-def run_tool(tool: Tool, argv=None, cwd=None):
+def run_tool(tool: Tool, argv=None, cwd=None, raises=False):
     """
     Utility run a certain tool in a python session without exitinig
 
@@ -541,7 +542,7 @@ def run_tool(tool: Tool, argv=None, cwd=None):
     try:
         # switch to cwd for running and back after
         os.chdir(cwd)
-        tool.run(argv or [])
+        tool.run(argv or [], raises=raises)
     except SystemExit as e:
         return e.code
     finally:

@@ -13,11 +13,10 @@ Todo:
   telescope :-))
 
 """
-from .camera import CameraDescription
-from .guess import unknown_telescope, guess_telescope
-from .optics import OpticsDescription
 from ..coordinates import CameraFrame
-
+from .camera import CameraDescription
+from .guess import guess_telescope, unknown_telescope
+from .optics import OpticsDescription
 
 __all__ = ["TelescopeDescription"]
 
@@ -39,19 +38,21 @@ class TelescopeDescription:
        the camera associated with this telescope
     """
 
+    __slots__ = (
+        "name",
+        "optics",
+        "camera",
+    )
+
     def __init__(
         self,
         name: str,
-        tel_type: str,
         optics: OpticsDescription,
         camera: CameraDescription,
     ):
 
         if not isinstance(name, str):
             raise TypeError("`name` must be a str")
-
-        if not isinstance(tel_type, str):
-            raise TypeError("`tel_type` must be a str")
 
         if not isinstance(optics, OpticsDescription):
             raise TypeError("`optics` must be an instance of `OpticsDescription`")
@@ -60,7 +61,6 @@ class TelescopeDescription:
             raise TypeError("`camera` must be an instance of `CameraDescription`")
 
         self.name = name
-        self.type = tel_type
         self.optics = optics
         self.camera = camera
 
@@ -79,9 +79,9 @@ class TelescopeDescription:
 
         Parameters
         ----------
-        camera_name: str
+        camera_name : str
            camera name
-        optics_name: str
+        optics_name : str
            optics name (e.g. LST, or SST-ASTRI), also called
            telescope_description
 
@@ -102,16 +102,31 @@ class TelescopeDescription:
         except ValueError:
             result = unknown_telescope(optics.mirror_area, camera.geometry.n_pixels)
 
-        return cls(name=result.name, tel_type=result.type, optics=optics, camera=camera)
+        return cls(name=result.name, optics=optics, camera=camera)
+
+    @property
+    def camera_name(self):
+        """Name of the camera"""
+        return self.camera.name
+
+    @property
+    def optics_name(self):
+        """Name of the optics"""
+        return self.optics.name
+
+    @property
+    def type(self):
+        """Size classification"""
+        return self.optics.size_type
 
     def __str__(self):
-        return f"{self.type}_{self.optics}_{self.camera}"
+        return f"{self.type}_{self.optics_name}_{self.camera_name}"
 
     def __repr__(self):
-        return "{}(type={}, name={}, optics={}, camera={})".format(
-            self.__class__.__name__,
-            self.type,
-            self.name,
-            str(self.optics),
-            str(self.camera),
+        return (
+            f"{self.__class__.__name__}("
+            f"type={self.type.value!r}"
+            f", optics_name={self.optics_name!r}"
+            f", camera_name={self.camera_name!r}"
+            ")"
         )

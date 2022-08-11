@@ -7,8 +7,8 @@ import logging
 import numpy as np
 from astropy import units as u
 from astropy.table import Table
-from ctapipe.utils import get_table_dataset
 
+from ctapipe.utils import get_table_dataset
 
 __all__ = ["CameraReadout"]
 
@@ -20,18 +20,38 @@ def parse_dotted_version(version):
 
 
 class CameraReadout:
+    """Stores properties related to the readout of a Cherenkov Camera."""
+
+    CURRENT_TAB_VERSION = "3.0"
+    SUPPORTED_TAB_VERSIONS = {"3.0"}
+
+    __slots__ = (
+        "name",
+        "sampling_rate",
+        "reference_pulse_shape",
+        "reference_pulse_sample_width",
+        "n_channels",
+        "n_pixels",
+        "n_samples",
+        "n_samples_long",
+    )
+
     def __init__(
         self,
-        camera_name,
+        name,
         sampling_rate,
         reference_pulse_shape,
         reference_pulse_sample_width,
+        n_channels,
+        n_pixels,
+        n_samples,
+        n_samples_long=None,
     ):
         """Stores properties related to the readout of a Cherenkov Camera.
 
         Parameters
         ----------
-        camera_name: str
+        name: str
              Camera name (e.g. NectarCam, LSTCam, ...)
         sampling_rate : u.Quantity[frequency]
             Sampling rate of the waveform
@@ -41,35 +61,53 @@ class CameraReadout:
         reference_pulse_sample_width : u.Quantity[time]
             The amount of time corresponding to each sample in the 2nd
             dimension of reference_pulse_shape
-
+        n_channels : int
+            Number of gain channels
+        n_pixels : int
+            Number of pixels
+        n_samples : int
+            Number of waveform samples for normal events
+        n_samples_long : int or None
+            Number of waveform samples for long events. Not all cameras
+            have long event types. Leave None if camera does not support long
+            events.
         """
-        self.camera_name = camera_name
+        self.name = name
         self.sampling_rate = sampling_rate
         self.reference_pulse_shape = reference_pulse_shape
         self.reference_pulse_sample_width = reference_pulse_sample_width
+        self.n_channels = n_channels
+        self.n_pixels = n_pixels
+        self.n_samples = n_samples
+        self.n_samples_long = n_samples_long
 
     def __eq__(self, other):
-        if self.camera_name != other.camera_name:
+        if not isinstance(other, self.__class__):
             return False
 
-        if self.sampling_rate != other.sampling_rate:
-            return False
-
-        if (self.reference_pulse_shape != other.reference_pulse_shape).all():
-            return False
-
-        if self.reference_pulse_sample_width != other.reference_pulse_sample_width:
-            return False
-
-        return True
+        return (
+            self.n_pixels == other.n_pixels
+            and self.n_samples == other.n_samples
+            and self.n_samples_long == other.n_samples_long
+            and self.name == other.name
+            and u.isclose(self.sampling_rate, other.sampling_rate)
+            and u.isclose(
+                self.reference_pulse_sample_width, other.reference_pulse_sample_width
+            )
+            and np.allclose(self.reference_pulse_shape, other.reference_pulse_shape)
+        )
 
     def __hash__(self):
         return hash(
             (
-                self.camera_name,
-                self.sampling_rate.to_value(u.GHz),
+                self.name,
+                round(self.sampling_rate.to_value(u.GHz), 3),
                 self.reference_pulse_shape.size,
-                self.reference_pulse_sample_width.to_value(u.ns),
+                self.n_channels,
+                self.n_pixels,
+                self.n_samples,
+                self.n_samples_long,
+                round(self.reference_pulse_sample_width.to_value(u.ns), 2),
             )
         )
 
@@ -88,7 +126,7 @@ class CameraReadout:
         return u.Quantity(sample_time, u.ns)
 
     @classmethod
-    def from_name(cls, camera_name="NectarCam", version=None):
+    def from_name(cls, name="NectarCam", version=None):
         """Construct a CameraReadout using the name of the camera and array.
 
         This expects that there is a resource accessible ``ctapipe_resources``
@@ -98,7 +136,7 @@ class CameraReadout:
 
         Parameters
         ----------
-        camera_name: str
+        name: str
              Camera name (e.g. NectarCam, LSTCam, ...)
         version:
            camera version id (currently unused)
@@ -114,16 +152,14 @@ class CameraReadout:
         else:
             verstr = f"-{version:03d}"
 
-        tabname = "{camera_name}{verstr}.camreadout".format(
-            camera_name=camera_name, verstr=verstr
-        )
+        tabname = "{name}{verstr}.camreadout".format(name=name, verstr=verstr)
         table = get_table_dataset(tabname, role="dl0.tel.svc.camera")
         return CameraReadout.from_table(table)
 
     def to_table(self):
         """Convert this to an `astropy.table.Table`."""
-        n_channels = len(self.reference_pulse_shape)
-        tables = [
+        n_channels = self.n_channels
+        columns = [
             *[self.reference_pulse_shape[i] for i in range(n_channels)],
             self.reference_pulse_sample_time,
         ]
@@ -131,18 +167,24 @@ class CameraReadout:
             *[f"reference_pulse_shape_channel{i}" for i in range(n_channels)],
             "reference_pulse_sample_time",
         ]
+        meta = dict(
+            TAB_TYPE="ctapipe.instrument.CameraReadout",
+            TAB_VER=self.CURRENT_TAB_VERSION,
+            CAM_ID=self.name,
+            NCHAN=n_channels,
+            NPIXELS=self.n_pixels,
+            NSAMPLES=self.n_samples,
+            SAMPFREQ=self.sampling_rate.to_value(u.GHz),
+            REFWIDTH=self.reference_pulse_sample_width.to_value(u.ns),
+        )
+
+        if self.n_samples_long is not None:
+            meta["NSAMPLNG"] = self.n_samples_long
 
         return Table(
-            tables,
+            columns,
             names=names,
-            meta=dict(
-                TAB_TYPE="ctapipe.instrument.CameraReadout",
-                TAB_VER="2.0",
-                CAM_ID=self.camera_name,
-                NCHAN=n_channels,
-                SAMPFREQ=self.sampling_rate.to_value(u.GHz),
-                REFWIDTH=self.reference_pulse_sample_width.to_value(u.ns),
-            ),
+            meta=meta,
         )
 
     @classmethod
@@ -163,36 +205,43 @@ class CameraReadout:
         if not isinstance(url_or_table, Table):
             tab = Table.read(url_or_table, **kwargs)
 
-        camera_name = tab.meta.get("CAM_ID", "Unknown")
+        version = tab.meta.get("TAB_VER", "")
+        if version not in cls.SUPPORTED_TAB_VERSIONS:
+            raise IOError(
+                f"CameraReadout table has unsupported version: {version},"
+                f" supported are: {cls.SUPPORTED_TAB_VERSIONS}."
+            )
+
+        name = tab.meta.get("CAM_ID", "Unknown")
         n_channels = tab.meta["NCHAN"]
         sampling_rate = u.Quantity(tab.meta["SAMPFREQ"], u.GHz)
 
-        if parse_dotted_version(tab.meta["TAB_VER"]) >= (2, 0):
-            ref_width_key = "REFWIDTH"
-        else:
-            ref_width_key = "REF_WIDTH"
-
-        reference_pulse_sample_width = u.Quantity(tab.meta[ref_width_key], u.ns)
+        reference_pulse_sample_width = u.Quantity(tab.meta["REFWIDTH"], u.ns)
         reference_pulse_shape = np.array(
             [tab[f"reference_pulse_shape_channel{i}"] for i in range(n_channels)]
         )
 
         return cls(
-            camera_name=camera_name,
+            name=name,
             sampling_rate=sampling_rate,
             reference_pulse_shape=reference_pulse_shape,
             reference_pulse_sample_width=reference_pulse_sample_width,
+            n_channels=tab.meta["NCHAN"],
+            n_pixels=tab.meta["NPIXELS"],
+            n_samples=tab.meta["NSAMPLES"],
+            n_samples_long=tab.meta.get("NSAMPLNG"),
         )
 
     def __repr__(self):
         return (
-            "CameraReadout(camera_name='{camera_name}', sampling_rate='{sampling_rate}', "
-            "reference_pulse_sample_width={reference_pulse_sample_width})"
-        ).format(
-            camera_name=self.camera_name,
-            sampling_rate=self.sampling_rate,
-            reference_pulse_sample_width=self.reference_pulse_sample_width,
+            f"CameraReadout(name={self.name!r}"
+            f", sampling_rate={self.sampling_rate}"
+            f", n_channels={self.n_channels}"
+            f", n_pixels={self.n_pixels}"
+            f", n_samples={self.n_samples}"
+            f", n_samples_long={self.n_samples_long}"
+            ")"
         )
 
     def __str__(self):
-        return self.camera_name
+        return self.name

@@ -1,8 +1,8 @@
-import pytest
 import astropy.units as u
-from ctapipe.instrument import CameraGeometry
-from ctapipe.image.muon import MuonRingFitter
+import pytest
+
 from ctapipe.image import tailcuts_clean, toymodel
+from ctapipe.image.muon import MuonRingFitter
 
 
 def test_MuonRingFitter_has_methods():
@@ -12,7 +12,7 @@ def test_MuonRingFitter_has_methods():
 
 
 @pytest.mark.parametrize("method", MuonRingFitter.fit_method.values)
-def test_MuonRingFitter(method):
+def test_MuonRingFitter(method, prod5_mst_flashcam):
     """test MuonRingFitter"""
     # flashCam example
     center_xs = 0.3 * u.m
@@ -21,12 +21,19 @@ def test_MuonRingFitter(method):
     width = 0.05 * u.m
 
     muon_model = toymodel.RingGaussian(
-        x=center_xs, y=center_ys, radius=radius, sigma=width,
+        x=center_xs,
+        y=center_ys,
+        radius=radius,
+        sigma=width,
     )
 
     # testing with flashcam
-    geom = CameraGeometry.from_name("FlashCam")
-    charge, _, _ = muon_model.generate_image(geom, intensity=1000, nsb_level_pe=5,)
+    geom = prod5_mst_flashcam.camera.geometry
+    charge, _, _ = muon_model.generate_image(
+        geom,
+        intensity=1000,
+        nsb_level_pe=5,
+    )
     survivors = tailcuts_clean(geom, charge, 10, 12)
 
     muonfit = MuonRingFitter(fit_method=method)

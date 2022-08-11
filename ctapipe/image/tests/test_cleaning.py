@@ -1,29 +1,30 @@
+import astropy.units as u
 import numpy as np
 from numpy.testing import assert_allclose
+
 from ctapipe.image import cleaning
 from ctapipe.instrument import CameraGeometry
-import astropy.units as u
 
 
-def test_tailcuts_clean_simple():
-    geom = CameraGeometry.from_name("LSTCam")
+def test_tailcuts_clean_simple(prod5_lst):
+    geom = prod5_lst.camera.geometry
     image = np.zeros_like(geom.pix_id, dtype=np.float64)
 
-    num_pix = 40
-    some_neighs = geom.neighbors[num_pix][0:3]  # pick 3 neighbors
-    image[num_pix] = 5.0  # set a single image pixel
+    n_pix = 40
+    some_neighs = geom.neighbors[n_pix][0:3]  # pick 3 neighbors
+    image[n_pix] = 5.0  # set a single image pixel
     image[some_neighs] = 3.0  # make some boundaries that are neighbors
     image[10] = 3.0  # a boundary that is not a neighbor
 
     mask = cleaning.tailcuts_clean(geom, image, picture_thresh=4.5, boundary_thresh=2.5)
 
     assert 10 not in geom.pix_id[mask]
-    assert set(some_neighs).union({num_pix}) == set(geom.pix_id[mask])
+    assert set(some_neighs).union({n_pix}) == set(geom.pix_id[mask])
     assert np.count_nonzero(mask) == 4
 
 
-def test_dilate():
-    geom = CameraGeometry.from_name("LSTCam")
+def test_dilate(prod5_lst):
+    geom = prod5_lst.camera.geometry
     mask = np.zeros_like(geom.pix_id, dtype=bool)
 
     mask[100] = True  # a single pixel far from a border is true.
@@ -70,10 +71,10 @@ def test_tailcuts_clean():
         assert (result == mask).all()
 
 
-def test_tailcuts_clean_threshold_array():
+def test_tailcuts_clean_threshold_array(prod5_lst):
     """Tests that tailcuts can also work with individual thresholds per pixel"""
     rng = np.random.default_rng(1337)
-    geom = CameraGeometry.from_name("LSTCam")
+    geom = prod5_lst.camera.geometry
 
     # artifical event having a "shower" and a "star" at these locations
     star_x = 0.5 * u.m
@@ -198,7 +199,7 @@ def test_tailcuts_clean_min_neighbors_1():
 
 
 def test_tailcuts_clean_min_neighbors_2():
-    """ requiring that picture pixels have at least two neighbors above
+    """requiring that picture pixels have at least two neighbors above
     picture_thresh"""
 
     # start with simple 3-pixel camera
@@ -255,9 +256,9 @@ def test_tailcuts_clean_with_isolated_pixels():
         assert (result == mask).all()
 
 
-def test_fact_image_cleaning():
+def test_fact_image_cleaning(prod3_lst):
     # use LST pixel geometry
-    geom = CameraGeometry.from_name("LSTCam")
+    geom = prod3_lst.camera.geometry
     # create some signal pixels
     values = np.zeros(len(geom))
     timing = np.zeros(len(geom))
@@ -287,8 +288,8 @@ def test_fact_image_cleaning():
     assert_allclose(mask, expected_mask)
 
 
-def test_apply_time_delta_cleaning():
-    geom = CameraGeometry.from_name("LSTCam")
+def test_apply_time_delta_cleaning(prod3_lst):
+    geom = prod3_lst.camera.geometry
     peak_time = np.zeros(geom.n_pixels, dtype=np.float64)
 
     pixel = 40
@@ -331,3 +332,128 @@ def test_apply_time_delta_cleaning():
     test_mask = mask.copy()
     test_mask[[41, 157]] = 0
     assert (test_mask == td_mask).all()
+
+
+def test_time_constrained_clean():
+    geom = CameraGeometry.from_name("LSTCam")
+    charge = np.zeros(geom.n_pixels, dtype=np.float64)
+    peak_time = np.zeros(geom.n_pixels, dtype=np.float64)
+
+    # define signal pixels and their charges/timings (1 core pixel + 6 neighboring core pixels + 12 neighboring boundary pixels)
+    core_pixel = 100
+    core_neighbors = geom.neighbors[core_pixel]
+    boundary_pixels = np.setdiff1d(
+        np.array([geom.neighbors[core_neighbor] for core_neighbor in core_neighbors]),
+        np.append(core_neighbors, core_pixel),
+    )
+    charge[core_pixel], charge[core_neighbors], charge[boundary_pixels] = 15, 10, 6
+    peak_time[core_pixel], peak_time[core_neighbors], peak_time[boundary_pixels] = (
+        18,
+        20,
+        21,
+    )
+
+    # define initial cleaning parameters
+    picture_thresh, boundary_thresh = 8, 4
+    time_limit_core, time_limit_boundary = 4.5, 1.5
+    min_number_picture_neighbors = 1
+
+    mask_signal = charge > 0
+
+    # 1. basic test
+    mask_reco = cleaning.time_constrained_clean(
+        geom,
+        charge,
+        peak_time,
+        picture_thresh=picture_thresh,
+        boundary_thresh=boundary_thresh,
+        time_limit_core=time_limit_core,
+        time_limit_boundary=time_limit_boundary,
+        min_number_picture_neighbors=min_number_picture_neighbors,
+    )
+    test_mask = mask_signal.copy()
+    assert (test_mask == mask_reco).all()
+
+    # 2. increased min_number_picture_neighbors test (here 3)
+    min_number_picture_neighbors = 3
+    mask_reco = cleaning.time_constrained_clean(
+        geom,
+        charge,
+        peak_time,
+        picture_thresh=picture_thresh,
+        boundary_thresh=boundary_thresh,
+        time_limit_core=time_limit_core,
+        time_limit_boundary=time_limit_boundary,
+        min_number_picture_neighbors=min_number_picture_neighbors,
+    )
+    # removed pixels : boundary pixels
+    test_mask = mask_signal.copy()
+    test_mask[boundary_pixels] = 0
+    assert (test_mask == mask_reco).all()
+
+    # 3. strict time_limit_boundary test (here 0.5)
+    min_number_picture_neighbors = 1
+    time_limit_boundary = 0.5
+    mask_reco = cleaning.time_constrained_clean(
+        geom,
+        charge,
+        peak_time,
+        picture_thresh=picture_thresh,
+        boundary_thresh=boundary_thresh,
+        time_limit_core=time_limit_core,
+        time_limit_boundary=time_limit_boundary,
+        min_number_picture_neighbors=min_number_picture_neighbors,
+    )
+    # removed pixels : boundary pixels
+    test_mask = mask_signal.copy()
+    test_mask[boundary_pixels] = 0
+    assert (test_mask == mask_reco).all()
+
+    # 4. time_limit_core test (one of core_neighbors have peak time >5 slice away from the average)
+    time_limit_boundary = 1.5
+    noise_core_neighbor = core_neighbors[0]
+    peak_time[noise_core_neighbor] = 25
+    mask_reco = cleaning.time_constrained_clean(
+        geom,
+        charge,
+        peak_time,
+        picture_thresh=picture_thresh,
+        boundary_thresh=boundary_thresh,
+        time_limit_core=time_limit_core,
+        time_limit_boundary=time_limit_boundary,
+        min_number_picture_neighbors=min_number_picture_neighbors,
+    )
+    # removed pixels : the noise core neighbor pixel + one neighboring boundary
+    test_mask = mask_signal.copy()
+    test_mask[noise_core_neighbor] = 0
+    noise_boundary = np.setdiff1d(
+        geom.neighbors[noise_core_neighbor],
+        np.array(
+            [geom.neighbors[core_neighbor] for core_neighbor in core_neighbors[1:]]
+        ),
+    )
+    test_mask[noise_boundary] = 0
+    assert (test_mask == mask_reco).all()
+
+    # 5. time_limit_core test for brighter pixels (one of core_neighbors have peak time >5 slice away from the average)
+    charge[core_pixel], charge[core_neighbors] = 30, 20
+    mask_reco = cleaning.time_constrained_clean(
+        geom,
+        charge,
+        peak_time,
+        picture_thresh=picture_thresh,
+        boundary_thresh=boundary_thresh,
+        time_limit_core=time_limit_core,
+        time_limit_boundary=time_limit_boundary,
+        min_number_picture_neighbors=min_number_picture_neighbors,
+    )
+    # removed pixels : one neighboring boundary to the noise core pixel
+    test_mask = mask_signal.copy()
+    noise_boundary = np.setdiff1d(
+        geom.neighbors[noise_core_neighbor],
+        np.array(
+            [geom.neighbors[core_neighbor] for core_neighbor in core_neighbors[1:]]
+        ),
+    )
+    test_mask[noise_boundary] = 0
+    assert (test_mask == mask_reco).all()

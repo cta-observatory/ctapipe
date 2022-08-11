@@ -28,6 +28,7 @@ This module contains the following sub-modules, but the most important functions
   extractor
   reducers
   modifications
+  invalid_pixels
 
 
 

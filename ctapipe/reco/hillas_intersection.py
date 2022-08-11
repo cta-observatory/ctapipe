@@ -8,38 +8,41 @@ performance
 - Make intersect_lines code more readable
 
 """
-import numpy as np
 import itertools
+import warnings
+
 import astropy.units as u
-from ctapipe.reco.reco_algorithms import (
-    Reconstructor,
-    InvalidWidthException,
-    TooFewTelescopesException,
-)
+import numpy as np
+from astropy.coordinates import AltAz, SkyCoord
+
 from ctapipe.containers import (
-    ReconstructedGeometryContainer,
     CameraHillasParametersContainer,
     HillasParametersContainer,
+    ReconstructedGeometryContainer,
 )
-from ctapipe.instrument import get_atmosphere_profile_functions
-
-from astropy.coordinates import SkyCoord, AltAz
 from ctapipe.coordinates import (
-    NominalFrame,
     CameraFrame,
+    MissingFrameAttributeWarning,
+    NominalFrame,
     TelescopeFrame,
     TiltedGroundFrame,
     project_to_ground,
-    MissingFrameAttributeWarning,
 )
-import warnings
-
 from ctapipe.core import traits
+from ctapipe.instrument import get_atmosphere_profile_functions
+from ctapipe.reco.reco_algorithms import (
+    InvalidWidthException,
+    Reconstructor,
+    TooFewTelescopesException,
+)
 
 __all__ = ["HillasIntersection"]
 
 
-INVALID = ReconstructedGeometryContainer(tel_ids=[])
+INVALID = ReconstructedGeometryContainer(
+    telescopes=[],
+    prefix="HillasIntersection",
+)
 
 
 class HillasIntersection(Reconstructor):
@@ -240,7 +243,7 @@ class HillasIntersection(Reconstructor):
 
         src_error = np.sqrt(err_fov_lon**2 + err_fov_lat**2)
 
-        result = ReconstructedGeometryContainer(
+        return ReconstructedGeometryContainer(
             alt=sky_pos.altaz.alt.to(u.rad),
             az=sky_pos.altaz.az.to(u.rad),
             core_x=grd.x,
@@ -249,7 +252,7 @@ class HillasIntersection(Reconstructor):
             core_tilted_y=core_y,
             core_tilted_uncert_x=u.Quantity(core_err_x, u.m),
             core_tilted_uncert_y=u.Quantity(core_err_y, u.m),
-            tel_ids=[h for h in hillas_dict_mod.keys()],
+            telescopes=[h for h in hillas_dict_mod.keys()],
             average_intensity=np.mean([h.intensity for h in hillas_dict_mod.values()]),
             is_valid=True,
             alt_uncert=src_error.to(u.rad),
@@ -257,8 +260,8 @@ class HillasIntersection(Reconstructor):
             h_max=x_max,
             h_max_uncert=u.Quantity(np.nan * x_max.unit),
             goodness_of_fit=np.nan,
+            prefix=self.__class__.__name__,
         )
-        return result
 
     def reconstruct_nominal(self, hillas_parameters):
         """
