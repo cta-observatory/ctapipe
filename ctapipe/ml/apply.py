@@ -348,7 +348,7 @@ class CrossValidator(Component):
             cv_values = np.array(cv_values)
             with np.printoptions(precision=4):
                 self.log.info(
-                    "Mean % score from CV: %.4f ± %.4f",
+                    "Mean %s score from CV: %.4f ± %.4f",
                     metric,
                     cv_values.mean(),
                     cv_values.std(),
