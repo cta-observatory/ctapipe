@@ -324,7 +324,7 @@ class CrossValidator(Component):
         )
 
         for fold, (train_indices, test_indices) in enumerate(
-            tqdm(kfold.split(table), total=self.n_cross_validations)
+            tqdm(kfold.split(table, table[self.model_component.target]), total=self.n_cross_validations)
         ):
             train = table[train_indices]
             test = table[test_indices]
