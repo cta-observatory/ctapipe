@@ -16,6 +16,7 @@ from tqdm import tqdm
 
 from ..containers import (
     ArrayEventContainer,
+    DispContainer,
     ParticleClassificationContainer,
     ReconstructedEnergyContainer,
 )
@@ -32,6 +33,8 @@ __all__ = [
     "SKLearnClassficationReconstructor",
     "EnergyRegressor",
     "ParticleIdClassifier",
+    "DispRegressor",
+    "DispClassifier",
 ]
 
 
@@ -402,6 +405,131 @@ class ParticleIdClassifier(SKLearnClassficationReconstructor):
         )
         add_defaults_and_meta(
             result, ParticleClassificationContainer, prefix=self.model_cls, stereo=False
+        )
+        return result
+
+
+class DispRegressor(SKLearnRegressionReconstructor):
+    """
+    Predict absolute value for disp origin reconstruction for each telescope
+    """
+
+    target = "true_norm"
+
+    def __call__(self, event: ArrayEventContainer) -> None:
+        """
+        Apply the quality query and model and fill the corresponding container
+        """
+        for tel_id in event.trigger.tels_with_trigger:
+            table = self._collect_features(event, tel_id)
+            table = self.generate_features(table)
+            mask = self.qualityquery.get_table_mask(table)
+
+            if mask[0]:
+                prediction, valid = self.model.predict(
+                    self.subarray.tel[tel_id],
+                    table,
+                )
+                if event.dl2.tel[tel_id].disp[self.model.model_cls] is None:
+                    event.dl2.tel[tel_id].disp[self.model.model_cls] = DispContainer(
+                        norm=prediction[0], norm_is_valid=valid[0]
+                    )
+                else:
+                    event.dl2.tel[tel_id].disp[self.model.model_cls].norm = prediction[
+                        0
+                    ]
+                    event.dl2.tel[tel_id].disp[
+                        self.model.model_cls
+                    ].norm_is_valid = valid[0]
+            else:
+                if event.dl2.tel[tel_id].disp[self.model.model_cls] is None:
+                    event.dl2.tel[tel_id].disp[self.model.model_cls] = DispContainer(
+                        norm=np.nan, norm_is_valid=False
+                    )
+                else:
+                    event.dl2.tel[tel_id].disp[self.model.model_cls].norm = np.nan
+                    event.dl2.tel[tel_id].disp[
+                        self.model.model_cls
+                    ].norm_is_valid = False
+
+    def predict(self, key, table: Table) -> Table:
+        """Predict on a table of events"""
+        table = self.generate_features(table)
+
+        n_rows = len(table)
+        norm = np.full(n_rows, np.nan)
+        is_valid = np.full(n_rows, False)
+
+        mask = self.qualityquery.get_table_mask(table)
+        norm[mask], is_valid[mask] = self.model.predict(key, table[mask])
+
+        result = Table(
+            {
+                f"{self.model.model_cls}_norm": norm,
+                f"{self.model.model_cls}_norm_is_valid": is_valid,
+            }
+        )
+        return result
+
+
+class DispClassifier(SKLearnClassficationReconstructor):
+    """
+    Predict sign for disp origin reconstruction for each telescope
+    """
+
+    target = "true_sign"
+
+    def __call__(self, event: ArrayEventContainer) -> None:
+        """
+        Apply the quality query and model and fill the corresponding container
+        """
+        for tel_id in event.trigger.tels_with_trigger:
+            table = self._collect_features(event, tel_id)
+            table = self.generate_features(table)
+            mask = self.qualityquery.get_table_mask(table)
+
+            if mask[0]:
+                prediction, valid = self.model.predict_score(
+                    self.subarray.tel[tel_id], table
+                )
+                if event.dl2.tel[tel_id].disp[self.model.model_cls] is None:
+                    event.dl2.tel[tel_id].disp[self.model.model_cls] = DispContainer(
+                        sign=prediction[0], sign_is_valid=valid[0]
+                    )
+                else:
+                    event.dl2.tel[tel_id].disp[self.model.model_cls].sign = prediction[
+                        0
+                    ]
+                    event.dl2.tel[tel_id].disp[
+                        self.model.model_cls
+                    ].sign_is_valid = valid[0]
+            else:
+                if event.dl2.tel[tel_id].disp[self.model.model_cls] is None:
+                    event.dl2.tel[tel_id].disp[self.model.model_cls] = DispContainer(
+                        sign=np.nan, sign_is_valid=False
+                    )
+                else:
+                    event.dl2.tel[tel_id].disp[self.model.model_cls].sign = np.nan
+                    event.dl2.tel[tel_id].disp[
+                        self.model.model_cls
+                    ].sign_is_valid = False
+
+    def predict(self, key, table: Table) -> Table:
+        """Predict on a table of events"""
+        table = self.generate_features(table)
+
+        n_rows = len(table)
+        sign = np.full(n_rows, np.nan)
+        is_valid = np.full(n_rows, False)
+
+        mask = self.qualityquery.get_table_mask(table)
+        sign[mask], is_valid[mask] = self.model.predict_score(key, table[mask])
+
+        result = Table(
+            {
+                f"{self.model.model_cls}_sign": sign,
+                f"{self.model.model_cls}_sign_is_valid": is_valid,
+            }
         )
         return result
 

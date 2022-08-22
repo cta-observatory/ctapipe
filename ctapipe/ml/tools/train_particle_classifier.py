@@ -107,6 +107,8 @@ class TrainParticleIdClassifier(Tool):
         for tel_type in types:
             self.log.info("Loading events for %s", tel_type)
             table = self._read_input_data(tel_type)
+
+            self.log.info("Train on %s events", len(table))
             self.cross_validate(tel_type, table)
 
             self.log.info("Performing final fit for %s", tel_type)

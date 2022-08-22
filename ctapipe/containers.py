@@ -45,6 +45,7 @@ __all__ = [
     "ReconstructedContainer",
     "ReconstructedEnergyContainer",
     "ReconstructedGeometryContainer",
+    "DispContainer",
     "SimulatedCameraContainer",
     "SimulatedShowerContainer",
     "SimulatedShowerDistribution",
@@ -836,16 +837,29 @@ class ParticleClassificationContainer(Container):
     telescopes = Field(None, "Telescopes used if stereo, or None if Mono")
 
 
+class DispContainer(Container):
+    """
+    Standard output of origin reconstruction algorithms using the disp method
+    """
+
+    default_prefix = ""
+
+    norm = Field(nan, "reconstructed absolute value for disp")
+    sign = Field(nan, "reconstructed sign for disp")
+    norm_is_valid = Field(False, "true if the norm prediction is valid")
+    sign_is_valid = Field(False, "true if the sign prediction is valid")
+
+
 class ReconstructedContainer(Container):
     """Reconstructed shower info from multiple algorithms"""
 
-    # Note: there is a reason why the hiererchy is
+    # Note: there is a reason why the hierarchy is
     # `event.dl2.stereo.geometry[algorithm]` and not
     # `event.dl2[algorithm].stereo.geometry` and that is because when writing
     # the data, the former makes it easier to only write information that a
     # particular reconstructor generates, e.g. only write the geometry in cases
     # where energy is not yet computed. Some algorithms will compute all three,
-    # but most will compute only fill or two of these sub-Contaiers:
+    # but most will compute only fill or two of these sub-Containers:
 
     geometry = Field(
         default_factory=partial(Map, ReconstructedGeometryContainer),
@@ -867,6 +881,10 @@ class TelescopeReconstructedContainer(ReconstructedContainer):
     impact = Field(
         default_factory=partial(Map, TelescopeImpactParameterContainer),
         description="map of algorithm to impact parameter info",
+    )
+    disp = Field(
+        default_factory=partial(Map, DispContainer),
+        description="map of algorithm to reconstructed disp parameters",
     )
 
 
