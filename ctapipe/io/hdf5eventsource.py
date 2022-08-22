@@ -215,7 +215,9 @@ class HDF5EventSource(EventSource):
 
             # we can now read both R1 and DL1
             datalevels = set(metadata["CTA PRODUCT DATA LEVELS"].split(","))
-            if not datalevels.intersection(("R1", "DL1_IMAGES", "DL1_PARAMETERS")):
+            if not datalevels.intersection(
+                ("R1", "DL1_IMAGES", "DL1_PARAMETERS", "DL2")
+            ):
                 return False
 
         return True

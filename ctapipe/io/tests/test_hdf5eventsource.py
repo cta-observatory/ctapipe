@@ -5,11 +5,14 @@ from ctapipe.io import DataLevel, EventSource, HDF5EventSource
 from ctapipe.utils import get_dataset_path
 
 
-def test_is_compatible(dl1_file):
+def test_is_compatible(dl1_file, dl2_only_file):
     simtel_path = get_dataset_path("gamma_test_large.simtel.gz")
     assert not HDF5EventSource.is_compatible(simtel_path)
     assert HDF5EventSource.is_compatible(dl1_file)
     with EventSource(input_url=dl1_file) as source:
+        assert isinstance(source, HDF5EventSource)
+    assert HDF5EventSource.is_compatible(dl2_only_file)
+    with EventSource(input_url=dl2_only_file) as source:
         assert isinstance(source, HDF5EventSource)
 
 
