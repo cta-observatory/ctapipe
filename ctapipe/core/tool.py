@@ -22,8 +22,7 @@ except ImportError:
 from traitlets import List, default
 from traitlets.config import Application, Config, Configurable
 
-from ctapipe import __version__ as version
-
+from .. import __version__ as version
 from . import Provenance
 from .component import Component
 from .logging import ColoredFormatter, create_logging_config
