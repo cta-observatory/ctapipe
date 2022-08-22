@@ -126,16 +126,15 @@ class TrainDispReconstructor(Tool):
         table_reg = self.regressor.generate_features(table_reg)
         table_clf = self.classifier.generate_features(table_clf)
 
-        table_reg = table_reg[self.regressor.model.features]
-        table_clf = table_clf[self.classifier.model.features]
-
-        # POTENTIAL PROBLEM with row order
         true_norm, _ = self._get_true_disp(
             table_reg, pointing_altitude, pointing_azimuth
         )
         _, true_sign = self._get_true_disp(
             table_clf, pointing_altitude, pointing_azimuth
         )
+
+        table_reg = table_reg[self.regressor.model.features]
+        table_clf = table_clf[self.classifier.model.features]
 
         table_reg[self.regressor.target] = true_norm
         table_clf[self.classifier.target] = true_sign
@@ -172,10 +171,10 @@ class TrainDispReconstructor(Tool):
             pointing_alt=pointing_altitude,
             pointing_az=pointing_azimuth,
         )
+        # should all this be calculated using delta, cog_x, cog_y based on the true image?
 
-        delta = table[self.delta_column].to(
-            u.rad
-        )  # numpy's trigonometric functions need radians
+        # numpy's trigonometric functions need radians
+        delta = table[self.delta_column].to(u.rad)
 
         delta_x = fov_lon - table[self.cog_x_column]
         delta_y = fov_lat - table[self.cog_y_column]
@@ -196,24 +195,36 @@ class TrainDispReconstructor(Tool):
         self.log.info("Writing output")
         self.regressor.write(self.output_path_reg)
         self.classifier.write(self.output_path_clf)
-        # write complete cv performance if at least one output_path is given
-        if self.cross_validate_reg.output_path and self.cross_validate_clf.output_path:
-            self.cross_validate_reg.write()
-            self.cross_validate_clf.write()
-        elif (
+        # write complete cv performance in two separate files, if at least one output path is given
+        if (
             self.cross_validate_reg.output_path
-            and not self.cross_validate_clf.output_path
+            and self.cross_validate_clf.output_path
+            and (
+                self.cross_validate_reg.output_path
+                != self.cross_validate_clf.output_path
+            )
         ):
-            self.cross_validate_clf.output_path = self.cross_validate_reg.output_path
             self.cross_validate_reg.write()
             self.cross_validate_clf.write()
-        elif (
-            self.cross_validate_clf.output_path
-            and not self.cross_validate_reg.output_path
-        ):
-            self.cross_validate_reg.output_path = self.cross_validate_clf.output_path
+        else:
+            if (
+                self.cross_validate_reg.output_path
+                and not self.cross_validate_clf.output_path
+            ):
+                outpath = self.cross_validate_reg.output_path
+            else:  # covers only clf output path given and same output path for both
+                outpath = self.cross_validate_clf.output_path
+
+            self.cross_validate_reg.output_path = outpath.parent / (
+                outpath.stem + "_regressor" + outpath.suffix
+            )
+            self.cross_validate_clf.output_path = outpath.parent / (
+                outpath.stem + "_classifier" + outpath.suffix
+            )
+
             self.cross_validate_reg.write()
             self.cross_validate_clf.write()
+
         self.loader.close()
 
 

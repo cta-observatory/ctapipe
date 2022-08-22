@@ -14,7 +14,6 @@ __all__ = ["horizontal_to_telescope", "telescope_to_horizontal"]
 def horizontal_to_telescope(
     alt: u.Quantity, az: u.Quantity, pointing_alt: u.Quantity, pointing_az: u.Quantity
 ):
-
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", MissingFrameAttributeWarning)
 
@@ -31,7 +30,6 @@ def horizontal_to_telescope(
 def telescope_to_horizontal(
     lon: u.Quantity, lat: u.Quantity, pointing_alt: u.Quantity, pointing_az: u.Quantity
 ):
-
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", MissingFrameAttributeWarning)
 
