@@ -544,6 +544,7 @@ class CrossValidator(Component):
     rng_seed = Int(default_value=1337, help="Seed for the random number generator").tag(
         config=True
     )
+    overwrite = Bool(default_value=False).tag(config=True)
 
     def __init__(self, model_component, **kwargs):
         super().__init__(**kwargs)
@@ -643,4 +644,9 @@ class CrossValidator(Component):
     def write(self):
         Provenance().add_output_file(self.output_path, role="ml-cross-validation")
         for tel_type, results in self.cv_predictions.items():
-            write_table(results, self.output_path, f"cv_predictions_{tel_type}")
+            write_table(
+                results,
+                self.output_path,
+                f"/cv_predictions_{tel_type}",
+                overwrite=self.overwrite,
+            )
