@@ -77,16 +77,16 @@ class TrainDispReconstructor(Tool):
         self.log.info("Inputfile: %s", self.loader.input_url)
 
         for event in self.source:
-            pointing_alt = event.pointing.array_altitude.to(u.deg)
-            pointing_az = event.pointing.array_azimuth.to(u.deg)
+            self.pointing_alt = event.pointing.array_altitude.to(u.deg)
+            self.pointing_az = event.pointing.array_azimuth.to(u.deg)
 
-        self.log.info("Simulated pointing altitude: %s", pointing_alt)
-        self.log.info("Simulated pointing azimuth: %s", pointing_az)
+        self.log.info("Simulated pointing altitude: %s", self.pointing_alt)
+        self.log.info("Simulated pointing azimuth: %s", self.pointing_az)
 
         self.log.info("Training models for %d types", len(types))
         for tel_type in types:
             self.log.info("Loading events for %s", tel_type)
-            table_reg, table_clf = self._read_table(tel_type, pointing_alt, pointing_az)
+            table_reg, table_clf = self._read_table(tel_type)
 
             self.log.info("Train regressor on %s events", len(table_reg))
             self.cross_validate_reg(tel_type, table_reg)
@@ -99,77 +99,58 @@ class TrainDispReconstructor(Tool):
             self.classifier.model.fit(tel_type, table_clf)
             self.log.info("done")
 
-    def _read_table(
-        self,
-        telescope_type,
-        pointing_altitude: u.Quantity,
-        pointing_azimuth: u.Quantity,
-    ):
+    def _read_table(self, telescope_type):
         table = self.loader.read_telescope_events([telescope_type])
         self.log.info("Events read from input: %d", len(table))
 
-        # TODO: De-spaghettify the following
-
         # Allow separate quality queries/ event lists for training the two models
-        mask_reg = self.regressor.qualityquery.get_table_mask(table)
-        table_reg = table[mask_reg]
-        self.log.info(
-            "Events after applying quality query for regressor: %d", len(table_reg)
-        )
-
-        mask_clf = self.classifier.qualityquery.get_table_mask(table)
-        table_clf = table[mask_clf]
-        self.log.info(
-            "Events after applying quality query for classifier: %d", len(table_clf)
-        )
-
-        table_reg = self.regressor.generate_features(table_reg)
-        table_clf = self.classifier.generate_features(table_clf)
-
-        true_norm, _ = self._get_true_disp(
-            table_reg, pointing_altitude, pointing_azimuth
-        )
-        _, true_sign = self._get_true_disp(
-            table_clf, pointing_altitude, pointing_azimuth
-        )
-
-        table_reg = table_reg[self.regressor.model.features]
-        table_clf = table_clf[self.classifier.model.features]
-
-        table_reg[self.regressor.target] = true_norm
-        table_clf[self.classifier.target] = true_sign
-
-        valid_reg = check_valid_rows(table_reg)
-        if np.any(~valid_reg):
-            self.log.warning("Dropping non-predictable events for regressor.")
-            table_reg = table_reg[valid_reg]
-
-        valid_clf = check_valid_rows(table_clf)
-        if np.any(~valid_clf):
-            self.log.warning("Dropping non-predictable events for classifier.")
-            table_clf = table_clf[valid_clf]
-
-        if self.n_events is not None:
-            n_events = min(self.n_events, len(table_reg))
-            idx = self.rng.choice(len(table_reg), n_events, replace=False)
-            idx.sort()
-            table_reg = table_reg[idx]
-
-            n_events = min(self.n_events, len(table_clf))
-            idx = self.rng.choice(len(table_clf), n_events, replace=False)
-            idx.sort()
-            table_clf = table_clf[idx]
+        # but dont load the events two times to shorten runtime
+        table_reg = self._get_reconstructor_table(table, self.regressor)
+        table_clf = self._get_reconstructor_table(table, self.classifier)
 
         return table_reg, table_clf
 
-    def _get_true_disp(
-        self, table, pointing_altitude: u.Quantity, pointing_azimuth: u.Quantity
-    ):
+    def _get_reconstructor_table(self, table, reconstructor):
+        mask = reconstructor.qualityquery.get_table_mask(table)
+        table = table[mask]
+        self.log.info(
+            "Events after applying quality query for %s: %d",
+            reconstructor.model.model_cls,
+            len(table),
+        )
+
+        table = reconstructor.generate_features(table)
+
+        if reconstructor == self.regressor:
+            target_values, _ = self._get_true_disp(table)
+        else:
+            _, target_values = self._get_true_disp(table)
+
+        table = table[reconstructor.model.features]
+
+        table[reconstructor.target] = target_values
+
+        valid = check_valid_rows(table)
+        if np.any(~valid):
+            self.log.warning(
+                "Dropping non-predictable events for %s.", reconstructor.model.model_cls
+            )
+            table = table[valid]
+
+        if self.n_events is not None:
+            n_events = min(self.n_events, len(table))
+            idx = self.rng.choice(len(table), n_events, replace=False)
+            idx.sort()
+            table = table[idx]
+
+        return table
+
+    def _get_true_disp(self, table):
         fov_lon, fov_lat = horizontal_to_telescope(
             alt=table[self.true_alt_column],
             az=table[self.true_az_column],
-            pointing_alt=pointing_altitude,
-            pointing_az=pointing_azimuth,
+            pointing_alt=self.pointing_alt,
+            pointing_az=self.pointing_az,
         )
         # should all this be calculated using delta, cog_x, cog_y based on the true image?
 
