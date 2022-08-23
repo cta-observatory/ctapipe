@@ -187,7 +187,7 @@ class TrainDispReconstructor(Tool):
         ):
             self.cross_validate_reg.write()
             self.cross_validate_clf.write()
-        else:
+        elif self.cross_validate_reg.output_path or self.cross_validate_clf.output_path:
             if (
                 self.cross_validate_reg.output_path
                 and not self.cross_validate_clf.output_path
