@@ -1,12 +1,12 @@
 import astropy.units as u
 import numpy as np
 
+from ctapipe.coordinates.disp import horizontal_to_telescope
 from ctapipe.core import Tool
-from ctapipe.core.traits import Bool, Int, Path, Unicode
+from ctapipe.core.traits import Bool, Int, Path
 from ctapipe.io import EventSource, TableLoader
 
 from ..apply import CrossValidator, DispClassifier, DispRegressor
-from ..coordinates import horizontal_to_telescope
 from ..preprocessing import check_valid_rows
 from ..sklearn import Classifier, Regressor
 
@@ -33,12 +33,6 @@ class TrainDispReconstructor(Tool):
     random_seed = Int(default_value=0).tag(config=True)
     project_disp = Bool(default_value=False).tag(config=True)
 
-    true_alt_column = Unicode(default_value=None, allow_none=False).tag(config=True)
-    true_az_column = Unicode(default_value=None, allow_none=False).tag(config=True)
-    delta_column = Unicode(default_value=None, allow_none=False).tag(config=True)
-    cog_x_column = Unicode(default_value=None, allow_none=False).tag(config=True)
-    cog_y_column = Unicode(default_value=None, allow_none=False).tag(config=True)
-
     aliases = {
         "input": "TableLoader.input_url",
         "output_regressor": "TrainDispReconstructor.output_path_reg",
@@ -57,9 +51,6 @@ class TrainDispReconstructor(Tool):
             load_simulated=True,
             load_instrument=True,
         )
-        # Atm pointing information can only be accessed using EventSource
-        # Pointing information will be added to HDF5 tables soon, see #1902
-        self.source = EventSource(self.loader.input_url, max_events=1)
 
         self.regressor = DispRegressor(self.loader.subarray, parent=self)
         self.classifier = DispClassifier(self.loader.subarray, parent=self)
@@ -76,7 +67,9 @@ class TrainDispReconstructor(Tool):
         types = self.loader.subarray.telescope_types
         self.log.info("Inputfile: %s", self.loader.input_url)
 
-        for event in self.source:
+        # Atm pointing information can only be accessed using EventSource
+        # Pointing information will be added to HDF5 tables soon, see #1902
+        for event in EventSource(self.loader.input_url, max_events=1):
             self.pointing_alt = event.pointing.array_altitude.to(u.deg)
             self.pointing_az = event.pointing.array_azimuth.to(u.deg)
 
@@ -147,18 +140,18 @@ class TrainDispReconstructor(Tool):
 
     def _get_true_disp(self, table):
         fov_lon, fov_lat = horizontal_to_telescope(
-            alt=table[self.true_alt_column],
-            az=table[self.true_az_column],
+            alt=table["true_alt"],
+            az=table["true_az"],
             pointing_alt=self.pointing_alt,
             pointing_az=self.pointing_az,
         )
         # should all this be calculated using delta, cog_x, cog_y based on the true image?
 
         # numpy's trigonometric functions need radians
-        delta = table[self.delta_column].to(u.rad)
+        delta = table["hillas_psi"].to(u.rad)
 
-        delta_x = fov_lon - table[self.cog_x_column]
-        delta_y = fov_lat - table[self.cog_y_column]
+        delta_x = fov_lon - table["hillas_fov_lon"]
+        delta_y = fov_lat - table["hillas_fov_lat"]
 
         true_disp = np.cos(delta) * delta_x + np.sin(delta) * delta_y
         true_sign = np.sign(true_disp)
@@ -167,7 +160,7 @@ class TrainDispReconstructor(Tool):
             true_norm = np.abs(true_disp)
         else:
             true_norm = euclidean_distance(
-                fov_lon, fov_lat, table[self.cog_x_column], table[self.cog_y_column]
+                fov_lon, fov_lat, table["hillas_fov_lon"], table["hillas_fov_lat"]
             )
 
         return true_norm, true_sign

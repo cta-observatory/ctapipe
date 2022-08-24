@@ -9,13 +9,13 @@ import tables
 from astropy.table.operations import hstack, vstack
 from tqdm.auto import tqdm
 
+from ctapipe.coordinates.disp import DispConverter
 from ctapipe.core.tool import Tool
-from ctapipe.core.traits import Bool, Path, Unicode, create_class_enum_trait, flag
+from ctapipe.core.traits import Bool, Path, create_class_enum_trait, flag
 from ctapipe.io import EventSource, TableLoader, write_table
 from ctapipe.io.tableio import TelListToMaskTransform
 
 from ..sklearn import DispClassifier, DispRegressor, EnergyRegressor, ParticleIdClassifier
-from ..coordinates import telescope_to_horizontal
 from ..stereo_combination import StereoCombiner
 
 
@@ -77,16 +77,6 @@ class ApplyModels(Tool):
         base_class=StereoCombiner,
         default_value="StereoMeanCombiner",
     ).tag(config=True)
-
-    delta_column = Unicode(default_value="hillas_psi", allow_none=False).tag(
-        config=True
-    )
-    cog_x_column = Unicode(default_value="hillas_fov_lon", allow_none=False).tag(
-        config=True
-    )
-    cog_y_column = Unicode(default_value="hillas_fov_lat", allow_none=False).tag(
-        config=True
-    )
 
     aliases = {
         ("i", "input"): "ApplyModels.input_url",
@@ -181,6 +171,7 @@ class ApplyModels(Tool):
             self.sign_classifier = DispClassifier.read(
                 self.sign_classifier_path, self.loader.subarray, parent=self
             )
+            self.disp_convert = DispConverter()
             self.disp_combine = StereoCombiner.from_name(
                 self.stereo_combiner_type,
                 combine_property="direction",
@@ -208,11 +199,17 @@ class ApplyModels(Tool):
         if self.apply_direction:
             self.log.info("Apply disp reconstructors.")
 
+            # Atm pointing information can only be accessed using EventSource
+            # Pointing information will be added to HDF5 tables soon, see #1902
             for event in EventSource(self.input_url, max_events=1):
-                pointing_alt = event.pointing.array_altitude.to(u.deg)
-                pointing_az = event.pointing.array_azimuth.to(u.deg)
+                self.disp_convert.pointing_altitude = event.pointing.array_altitude.to(
+                    u.deg
+                )
+                self.disp_convert.pointing_azimuth = event.pointing.array_azimuth.to(
+                    u.deg
+                )
 
-            mono_predictions = self._apply_disp(pointing_alt, pointing_az)
+            mono_predictions = self._apply_disp()
             self._combine(self.disp_combine, mono_predictions)
 
     def _apply(self, reconstructor, parameter):
@@ -259,16 +256,13 @@ class ApplyModels(Tool):
 
         return vstack(tel_tables)
 
-    def _apply_disp(self, pointing_altitude, pointing_azimuth):
+    def _apply_disp(self):
         # Different prefix? Two algorithms -> How to combine them?
         prefix = (
             self.disp_regressor.model.model_cls
             + "_"
             + self.sign_classifier.model.model_cls
         )
-
-        colname_norm = self.disp_regressor.model.model_cls + "_norm"
-        colname_sign = self.sign_classifier.model.model_cls + "_sign"
 
         tables = []
 
@@ -297,54 +291,39 @@ class ApplyModels(Tool):
                 [
                     c
                     for c in table.colnames
-                    if c.startswith((prefix, colname_norm, colname_sign))
+                    if c.startswith(
+                        (
+                            prefix,
+                            self.disp_regressor.model.model_cls + "_norm",
+                            self.sign_classifier.model.model_cls + "_sign",
+                        )
+                    )
                 ]
             )
 
             norm_predictions = self.disp_regressor.predict(tel, table)
             sign_predictions = self.sign_classifier.predict(tel, table)
-
             table = hstack(
                 [table, norm_predictions, sign_predictions],
                 join_type="exact",
                 metadata_conflicts="ignore",
             )
 
-            table[f"{prefix}_is_valid"] = np.logical_and(
-                norm_predictions.columns[1], sign_predictions.columns[1]
+            altaz_predictions = self.disp_convert.predict(
+                table,
+                self.disp_regressor.model.model_cls,
+                self.sign_classifier.model.model_cls,
             )
-
-            # convert sign score [0, 1] into actual sign {-1, 1}
-            sign_predictions[colname_sign][sign_predictions.columns[1]] = np.where(
-                sign_predictions[colname_sign][sign_predictions.columns[1]] < 0.5, -1, 1
+            table = hstack(
+                [table, altaz_predictions],
+                join_type="exact",
+                metadata_conflicts="ignore",
             )
-
-            disp_predictions = (
-                norm_predictions[colname_norm] * sign_predictions[colname_sign]
-            )
-
-            fov_lon = (
-                table[self.cog_x_column]
-                + disp_predictions * np.cos(table[self.delta_column].to(u.rad)) * u.deg
-            )
-            fov_lat = (
-                table[self.cog_y_column]
-                + disp_predictions * np.sin(table[self.delta_column].to(u.rad)) * u.deg
-            )
-
-            table[f"{prefix}_alt"], table[f"{prefix}_az"] = telescope_to_horizontal(
-                lon=fov_lon,
-                lat=fov_lat,
-                pointing_alt=pointing_altitude,
-                pointing_az=pointing_azimuth,
-            )
-
-            new_cols = [f"{prefix}_alt", f"{prefix}_az", f"{prefix}_is_valid"]
 
             write_table(
                 table[
                     ["obs_id", "event_id", "tel_id"]
-                    + new_cols
+                    + altaz_predictions.colnames
                     + norm_predictions.colnames
                     + sign_predictions.colnames
                 ],
