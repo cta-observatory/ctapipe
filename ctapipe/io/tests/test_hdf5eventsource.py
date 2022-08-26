@@ -185,5 +185,5 @@ def test_read_dl2(dl2_shower_geometry_file):
             assert tel_id in e.dl2.tel
             assert algorithm in e.dl2.tel[tel_id].impact
             impact = e.dl2.tel[tel_id].impact[algorithm]
-            assert impact.prefix == algorithm + "_tel"
+            assert impact.prefix == algorithm + "_tel_impact"
             assert impact.distance is not None

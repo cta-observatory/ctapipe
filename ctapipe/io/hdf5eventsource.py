@@ -62,7 +62,7 @@ DL2_CONTAINERS = {
 
 
 COMPATIBLE_DATA_MODEL_VERSIONS = [
-    "v4.0.0",
+    "v5.0.0",
 ]
 
 
@@ -446,7 +446,7 @@ class HDF5EventSource(EventSource):
                         key: HDF5TableReader(self.file_).read(
                             table._v_pathname,
                             containers=container,
-                            prefixes=(f"{algorithm}_tel",),
+                            prefixes=(f"{algorithm}_tel_{kind}",),
                         )
                         for key, table in algorithm_group._v_children.items()
                     }
