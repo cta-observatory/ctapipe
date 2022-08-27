@@ -82,8 +82,8 @@ class ApplyModels(Tool):
         ("i", "input"): "ApplyModels.input_url",
         "regressor": "ApplyModels.energy_regressor_path",
         "classifier": "ApplyModels.particle_classifier_path",
-        "disp_regressor": "ApplyModels.disp_regressor_path",
-        "sign_classifier": "ApplyModels.sign_classifier_path",
+        "disp-regressor": "ApplyModels.disp_regressor_path",
+        "sign-classifier": "ApplyModels.sign_classifier_path",
         ("o", "output"): "ApplyModels.output_path",
     }
 
@@ -171,7 +171,7 @@ class ApplyModels(Tool):
             self.sign_classifier = DispClassifier.read(
                 self.sign_classifier_path, self.loader.subarray, parent=self
             )
-            self.disp_convert = DispConverter()
+            self.disp_convert = DispConverter(parent=self)
             self.disp_combine = StereoCombiner.from_name(
                 self.stereo_combiner_type,
                 combine_property="direction",

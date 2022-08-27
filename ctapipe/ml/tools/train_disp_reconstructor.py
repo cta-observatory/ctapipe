@@ -35,8 +35,8 @@ class TrainDispReconstructor(Tool):
 
     aliases = {
         "input": "TableLoader.input_url",
-        "output_regressor": "TrainDispReconstructor.output_path_reg",
-        "output_classifier": "TrainDispReconstructor.output_path_clf",
+        "output-regressor": "TrainDispReconstructor.output_path_reg",
+        "output-classifier": "TrainDispReconstructor.output_path_clf",
     }
 
     classes = [TableLoader, Regressor, Classifier, CrossValidator]
