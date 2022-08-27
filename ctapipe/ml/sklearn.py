@@ -430,34 +430,20 @@ class DispRegressor(SKLearnRegressionReconstructor):
                     self.subarray.tel[tel_id],
                     table,
                 )
-                if event.dl2.tel[tel_id].disp[self.model.model_cls] is None:
-                    event.dl2.tel[tel_id].disp[self.model.model_cls] = DispContainer(
-                        norm=prediction[0], norm_is_valid=valid[0]
-                    )
-                else:
-                    event.dl2.tel[tel_id].disp[self.model.model_cls].norm = prediction[
-                        0
-                    ]
-                    event.dl2.tel[tel_id].disp[
-                        self.model.model_cls
-                    ].norm_is_valid = valid[0]
+                container = DispContainer(norm=prediction[0], norm_is_valid=valid[0])
             else:
-                if event.dl2.tel[tel_id].disp[self.model.model_cls] is None:
-                    event.dl2.tel[tel_id].disp[self.model.model_cls] = DispContainer(
-                        norm=np.nan, norm_is_valid=False
-                    )
-                else:
-                    event.dl2.tel[tel_id].disp[self.model.model_cls].norm = np.nan
-                    event.dl2.tel[tel_id].disp[
-                        self.model.model_cls
-                    ].norm_is_valid = False
+                container = DispContainer(
+                    norm=u.Quantity(np.nan, self.model.unit), norm_is_valid=False
+                )
+
+            event.dl2.tel[tel_id].disp[self.model.model_cls] = container
 
     def predict(self, key, table: Table) -> Table:
         """Predict on a table of events"""
         table = self.generate_features(table)
 
         n_rows = len(table)
-        norm = np.full(n_rows, np.nan)
+        norm = u.Quantity(np.full(n_rows, np.nan), self.model.unit, copy=False)
         is_valid = np.full(n_rows, False)
 
         mask = self.qualityquery.get_table_mask(table)
@@ -492,27 +478,11 @@ class DispClassifier(SKLearnClassficationReconstructor):
                 prediction, valid = self.model.predict_score(
                     self.subarray.tel[tel_id], table
                 )
-                if event.dl2.tel[tel_id].disp[self.model.model_cls] is None:
-                    event.dl2.tel[tel_id].disp[self.model.model_cls] = DispContainer(
-                        sign=prediction[0], sign_is_valid=valid[0]
-                    )
-                else:
-                    event.dl2.tel[tel_id].disp[self.model.model_cls].sign = prediction[
-                        0
-                    ]
-                    event.dl2.tel[tel_id].disp[
-                        self.model.model_cls
-                    ].sign_is_valid = valid[0]
+                container = DispContainer(sign=prediction[0], sign_is_valid=valid[0])
             else:
-                if event.dl2.tel[tel_id].disp[self.model.model_cls] is None:
-                    event.dl2.tel[tel_id].disp[self.model.model_cls] = DispContainer(
-                        sign=np.nan, sign_is_valid=False
-                    )
-                else:
-                    event.dl2.tel[tel_id].disp[self.model.model_cls].sign = np.nan
-                    event.dl2.tel[tel_id].disp[
-                        self.model.model_cls
-                    ].sign_is_valid = False
+                container = DispContainer(sign=np.nan, sign_is_valid=False)
+
+            event.dl2.tel[tel_id].disp[self.model.model_cls] = container
 
     def predict(self, key, table: Table) -> Table:
         """Predict on a table of events"""

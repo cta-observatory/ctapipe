@@ -839,12 +839,12 @@ class ParticleClassificationContainer(Container):
 
 class DispContainer(Container):
     """
-    Standard output of origin reconstruction algorithms using the disp method
+    Standard output of disp reconstruction algorithms for origin reconstruction
     """
 
     default_prefix = ""
 
-    norm = Field(nan, "reconstructed absolute value for disp")
+    norm = Field(nan * u.deg, "reconstructed absolute value for disp", unit=u.deg)
     sign = Field(nan, "reconstructed sign for disp")
     norm_is_valid = Field(False, "true if the norm prediction is valid")
     sign_is_valid = Field(False, "true if the sign prediction is valid")
