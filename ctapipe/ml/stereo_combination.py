@@ -17,6 +17,7 @@ from ..containers import (
     ArrayEventContainer,
     ParticleClassificationContainer,
     ReconstructedEnergyContainer,
+    ReconstructedGeometryContainer,
 )
 from .utils import add_defaults_and_meta
 
@@ -190,8 +191,53 @@ class StereoMeanCombiner(StereoCombiner):
         event.dl2.stereo.classification[self.algorithm[0]] = container
 
     def _combine_disp(self, event):
-        # TODO
-        pass
+        ids = []
+        alt_values = []
+        az_values = []
+        weights = []
+
+        prefix = self.algorithm[0] + "_" + self.algorithm[1]
+
+        for tel_id, dl2 in event.dl2.tel.items():
+            mono = dl2.geometry[prefix]
+            if mono.is_valid:
+                alt_values.append(mono.alt)
+                az_values.append(mono.az)
+                dl1 = event.dl1.tel[tel_id].parameters
+                weights.append(self._calculate_weights(dl1) if dl1 else 1)
+                ids.append(tel_id)
+
+        if len(alt_values) > 0:  # by construction len(alt_values) == len(az_values)
+            coord = SkyCoord(
+                alt=alt_values,
+                az=az_values,
+                frame=AltAz(),
+            )
+            mono_x, mono_y, mono_z = coord.cartesian.get_xyz()
+            stereo_x = np.average(mono_x, weights=weights)
+            stereo_y = np.average(mono_y, weights=weights)
+            stereo_z = np.average(mono_z, weights=weights)
+
+            cartesian = CartesianRepresentation(x=stereo_x, y=stereo_y, z=stereo_z)
+            mean_altaz = SkyCoord(
+                cartesian.represent_as(UnitSphericalRepresentation), frame=AltAz()
+            )
+            valid = True
+        else:
+            mean_altaz = SkyCoord(
+                alt=u.Quantity(np.nan, u.deg, copy=False),
+                az=u.Quantity(np.nan, u.deg, copy=False),
+                frame=AltAz(),
+            )
+            valid = False
+
+        event.dl2.stereo.geometry[prefix] = ReconstructedGeometryContainer(
+            alt=mean_altaz.alt.to(u.deg),
+            az=mean_altaz.az.to(u.deg),
+            telescopes=ids,
+            is_valid=valid,
+        )
+        event.dl2.stereo.geometry[prefix].prefix = prefix
 
     def __call__(self, event: ArrayEventContainer) -> None:
         """
@@ -202,8 +248,7 @@ class StereoMeanCombiner(StereoCombiner):
         elif self.combine_property == "classification":
             self._combine_classification(event)
         elif self.combine_property == "direction":
-            # TODO
-            raise NotImplementedError()
+            self._combine_disp(event)
         else:
             raise NotImplementedError(f"Cannot combine {self.combine_property}")
 
