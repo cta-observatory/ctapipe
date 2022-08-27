@@ -143,9 +143,9 @@ class SKLearnReconstructor(Reconstructor):
         """
         self._models[key] = self._new_model()
 
+        self.unit = table[self.target].unit
         X, valid = self._table_to_X(table)
         y = self._table_to_y(table, mask=valid)
-        self.unit = table[self.target].unit
         self._models[key].fit(X, y)
 
     def __getstate__(self):
