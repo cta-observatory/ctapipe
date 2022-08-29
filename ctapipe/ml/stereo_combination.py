@@ -59,7 +59,7 @@ def _weighted_mean_ufunc(tel_values, weights, n_array_events, indices):
 class StereoCombiner(Component):
     # TODO: Add quality query (after #1888)
     algorithm = List(Unicode()).tag(config=True)
-    combine_property = CaselessStrEnum(["energy", "classification", "direction"]).tag(
+    combine_property = CaselessStrEnum(["energy", "classification", "geometry"]).tag(
         config=True
     )
 
@@ -247,7 +247,7 @@ class StereoMeanCombiner(StereoCombiner):
             self._combine_energy(event)
         elif self.combine_property == "classification":
             self._combine_classification(event)
-        elif self.combine_property == "direction":
+        elif self.combine_property == "geometry":
             self._combine_disp(event)
         else:
             raise NotImplementedError(f"Cannot combine {self.combine_property}")
@@ -260,7 +260,7 @@ class StereoMeanCombiner(StereoCombiner):
         all telescope predictions of a shower are invalid.
         """
 
-        if self.combine_property == "direction":
+        if self.combine_property == "geometry":
             prefix = self.algorithm[0] + "_" + self.algorithm[1] + "_tel"
             prefix_save = self.algorithm[0] + "_" + self.algorithm[1]
         else:
@@ -338,7 +338,7 @@ class StereoMeanCombiner(StereoCombiner):
             stereo_table[f"{self.algorithm[0]}_is_valid"] = np.isfinite(stereo_energy)
             stereo_table[f"{self.algorithm[0]}_goodness_of_fit"] = np.nan
 
-        elif self.combine_property == "direction":
+        elif self.combine_property == "geometry":
             if len(valid_predictions) > 0:
                 coord = SkyCoord(
                     alt=valid_predictions[f"{prefix}_alt"],

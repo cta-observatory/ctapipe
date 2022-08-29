@@ -127,7 +127,7 @@ class ApplyModels(Tool):
 
         self.apply_regressor = self._setup_regressor()
         self.apply_classifier = self._setup_classifier()
-        self.apply_direction = self._setup_disp()
+        self.apply_geometry = self._setup_disp()
 
     def _setup_regressor(self):
         if self.energy_regressor_path is not None:
@@ -174,7 +174,7 @@ class ApplyModels(Tool):
             self.disp_convert = DispConverter(parent=self)
             self.disp_combine = StereoCombiner.from_name(
                 self.stereo_combiner_type,
-                combine_property="direction",
+                combine_property="geometry",
                 algorithm=[
                     self.disp_regressor.model_cls,
                     self.sign_classifier.model_cls,
@@ -196,7 +196,7 @@ class ApplyModels(Tool):
             mono_predictions = self._apply(self.classifier, "classification")
             self._combine(self.combine_classification, mono_predictions)
 
-        if self.apply_direction:
+        if self.apply_geometry:
             self.log.info("Apply disp reconstructors.")
 
             # Atm pointing information can only be accessed using EventSource
@@ -320,15 +320,25 @@ class ApplyModels(Tool):
                 metadata_conflicts="ignore",
             )
 
+            # tables should follow same structure as ctapipe-process
             write_table(
-                table[
-                    ["obs_id", "event_id", "tel_id"]
-                    + altaz_predictions.colnames
-                    + norm_predictions.colnames
-                    + sign_predictions.colnames
-                ],
+                table[["obs_id", "event_id", "tel_id"] + altaz_predictions.colnames],
                 self.loader.input_url,
-                f"/dl2/event/telescope/direction/{prefix}/tel_{tel_id:03d}",
+                f"/dl2/event/telescope/geometry/{prefix}/tel_{tel_id:03d}",
+                mode="a",
+                overwrite=self.overwrite,
+            )
+            write_table(
+                table[["obs_id", "event_id", "tel_id"] + norm_predictions.colnames],
+                self.loader.input_url,
+                f"/dl2/event/telescope/disp/{self.disp_regressor.model.model_cls}/tel_{tel_id:03d}",
+                mode="a",
+                overwrite=self.overwrite,
+            )
+            write_table(
+                table[["obs_id", "event_id", "tel_id"] + sign_predictions.colnames],
+                self.loader.input_url,
+                f"/dl2/event/telescope/disp/{self.sign_classifier.model.model_cls}/tel_{tel_id:03d}",
                 mode="a",
                 overwrite=self.overwrite,
             )
@@ -350,7 +360,7 @@ class ApplyModels(Tool):
             stereo_predictions[c.name] = np.array([trafo(r) for r in c])
             stereo_predictions[c.name].description = c.description
 
-        if combiner.combine_property == "direction":
+        if combiner.combine_property == "geometry":
             prefix = combiner.algorithm[0] + "_" + combiner.algorithm[1]
         else:
             prefix = combiner.algorithm[0]
