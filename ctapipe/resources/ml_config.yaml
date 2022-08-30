@@ -9,6 +9,8 @@ TrainEnergyRegressor:
   CrossValidator:
     n_cross_validations: 5
 
+  random_seed: 42
+
   EnergyRegressor:
     model_cls: ExtraTreesRegressor
     log_target: True
@@ -68,6 +70,8 @@ TrainParticleIdClassifier:
   CrossValidator:
     n_cross_validations: 5
 
+  random_seed: 42
+
   ParticleIdClassifier:
     model_cls: ExtraTreesClassifier
     model_config:
@@ -119,3 +123,96 @@ TrainParticleIdClassifier:
     FeatureGenerator:
       features:
         - ["area", "hillas_width * hillas_length"]
+
+    CrossValidator:
+      n_cross_validations: 5
+
+
+TrainDispReconstructor:
+
+  random_seed: 42
+
+  DispRegressor:
+    Regressor:
+      model_cls: ExtraTreesRegressor
+      model_config:
+        n_estimators: 10
+        max_depth: 10
+        n_jobs: -1
+
+      features:
+        - hillas_intensity
+        - hillas_length
+        - hillas_width
+        - hillas_r
+        - hillas_skewness
+        - timing_slope
+        - leakage_intensity_width_1
+        - leakage_intensity_width_2
+        - leakage_pixels_width_1
+        - leakage_pixels_width_2
+        - concentration_cog
+        - concentration_core
+        - morphology_n_pixels
+        - mirror_area
+        - HillasReconstructor_average_intensity
+        - HillasReconstructor_h_max
+        - area
+
+    QualityQuery:
+      quality_criteria:
+        - ["HillasValid", "HillasReconstructor_is_valid"]
+        - ["enough intensity", "hillas_intensity > 50"]
+        - ["Positive width", "hillas_width > 0"]
+        - ["enough pixels", "morphology_n_pixels > 3"]
+        - ["not clipped", "leakage_intensity_width_2 < 0.5"]
+
+    FeatureGenerator:
+      features:
+        - ["area", "hillas_width * hillas_length"]
+
+    CrossValidator:
+      n_cross_validations: 5
+
+
+  DispClassifier:
+    Classifier:
+      model_cls: ExtraTreesClassifier
+      model_config:
+        n_estimators: 10
+        max_depth: 10
+        n_jobs: -1
+
+      features:
+        - hillas_intensity
+        - hillas_length
+        - hillas_width
+        - hillas_r
+        - hillas_skewness
+        - timing_slope
+        - leakage_intensity_width_1
+        - leakage_intensity_width_2
+        - leakage_pixels_width_1
+        - leakage_pixels_width_2
+        - concentration_cog
+        - concentration_core
+        - morphology_n_pixels
+        - mirror_area
+        - HillasReconstructor_average_intensity
+        - HillasReconstructor_h_max
+        - area
+
+    QualityQuery:
+      quality_criteria:
+        - ["HillasValid", "HillasReconstructor_is_valid"]
+        - ["enough intensity", "hillas_intensity > 50"]
+        - ["Positive width", "hillas_width > 0"]
+        - ["enough pixels", "morphology_n_pixels > 3"]
+        - ["not clipped", "leakage_intensity_width_2 < 0.5"]
+
+    FeatureGenerator:
+      features:
+        - ["area", "hillas_width * hillas_length"]
+
+    CrossValidator:
+      n_cross_validations: 5

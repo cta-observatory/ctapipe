@@ -16,9 +16,17 @@ def test_train_particle_classifier(particle_classifier_path):
     ParticleIdClassifier.read(particle_classifier_path)
 
 
+def test_train_disp_reconstructor(disp_reconstructor_paths):
+    from ctapipe.ml import DispClassifier, DispRegressor
+
+    DispRegressor.read(disp_reconstructor_paths[0])
+    DispClassifier.read(disp_reconstructor_paths[1])
+
+
 def test_too_few_events(
     model_tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_file
 ):
+    from ctapipe.ml.tools.train_disp_reconstructor import TrainDispReconstructor
     from ctapipe.ml.tools.train_energy_regressor import TrainEnergyRegressor
     from ctapipe.ml.tools.train_particle_classifier import TrainParticleIdClassifier
 
@@ -54,8 +62,26 @@ def test_too_few_events(
             raises=True,
         )
 
+    tool = TrainDispReconstructor()
+    out_file_reg = model_tmp_path / "disp_regressor.pkl"
+    out_file_clf = model_tmp_path / "sign_classifier.pkl"
+
+    with pytest.raises(ValueError):
+        run_tool(
+            tool,
+            argv=[
+                f"--input={dl2_shower_geometry_file}",
+                f"--output-regressor={out_file_reg}",
+                f"--output-classifier={out_file_clf}",
+                f"--config={config}",
+                "--log-level=INFO",
+            ],
+            raises=True,
+        )
+
 
 def test_cross_validation_results(model_tmp_path):
+    from ctapipe.ml.tools.train_disp_reconstructor import TrainDispReconstructor
     from ctapipe.ml.tools.train_energy_regressor import TrainEnergyRegressor
     from ctapipe.ml.tools.train_particle_classifier import TrainParticleIdClassifier
 
@@ -94,3 +120,26 @@ def test_cross_validation_results(model_tmp_path):
     )
     assert ret == 0
     assert classifier_cv_out_file.exists()
+
+    tool = TrainDispReconstructor()
+    out_file_reg = model_tmp_path / "disp_regressor.pkl"
+    out_file_clf = model_tmp_path / "sign_classifier.pkl"
+    disp_cv_out_file_base = model_tmp_path / "disp_cv_results.h5"
+
+    disp_reg_cv_out_file = model_tmp_path / "disp_cv_results_regressor.h5"
+    disp_clf_cv_out_file = model_tmp_path / "disp_cv_results_classifier.h5"
+
+    ret = run_tool(
+        tool,
+        argv=[
+            "--input=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
+            f"--output-regressor={out_file_reg}",
+            f"--output-classifier={out_file_clf}",
+            f"--config={config}",
+            "--log-level=INFO",
+            f"--CrossValidator.output_path={disp_cv_out_file_base}",
+        ],
+    )
+    assert ret == 0
+    assert disp_reg_cv_out_file.exists()
+    assert disp_clf_cv_out_file.exists()

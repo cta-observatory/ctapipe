@@ -26,7 +26,7 @@ def test_process_apply_energy(
                 {
                     "type": "StereoMeanCombiner",
                     "combine_property": "energy",
-                    "algorithm": "ExtraTreesRegressor",
+                    "algorithm": ["ExtraTreesRegressor"],
                     "weights": "konrad",
                 }
             ],
@@ -55,7 +55,7 @@ def test_process_apply_classification(
 ):
     from ctapipe.tools.process import ProcessorTool
 
-    output = tmp_path / "gamma_prod5.dl2_energy.h5"
+    output = tmp_path / "gamma_prod5.dl2_classification.h5"
 
     config_path = tmp_path / "config.json"
 
@@ -71,7 +71,7 @@ def test_process_apply_classification(
                 {
                     "type": "StereoMeanCombiner",
                     "combine_property": "classification",
-                    "algorithm": "ExtraTreesClassifier",
+                    "algorithm": ["ExtraTreesClassifier"],
                 }
             ],
         }
@@ -96,3 +96,60 @@ def test_process_apply_classification(
         )
     )
     print(read_table(output, "/dl2/event/subarray/classification/ExtraTreesClassifier"))
+
+
+def test_process_apply_disp(
+    tmp_path, disp_reconstructor_paths, prod5_gamma_lapalma_simtel_path
+):
+    from ctapipe.tools.process import ProcessorTool
+
+    output = tmp_path / "gamma_prod5.dl2_disp.h5"
+
+    config_path = tmp_path / "config.json"
+
+    input_url = prod5_gamma_lapalma_simtel_path
+
+    allowed_tels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 19, 35]
+    config = {
+        "ProcessorTool": {
+            "EventSource": {
+                "allowed_tels": allowed_tels,
+            },
+            "stereo_combiner_configs": [
+                {
+                    "type": "StereoMeanCombiner",
+                    "combine_property": "geometry",
+                    "algorithm": ["ExtraTreesRegressor", "ExtraTreesClassifier"],
+                }
+            ],
+        }
+    }
+
+    with config_path.open("w") as f:
+        json.dump(config, f)
+
+    argv = [
+        f"--input={input_url}",
+        f"--output={output}",
+        "--write-images",
+        "--write-showers",
+        f"--disp-regressor={disp_reconstructor_paths[0]}",
+        f"--sign-classifier={disp_reconstructor_paths[1]}",
+        f"--config={config_path}",
+    ]
+    assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path, raises=True) == 0
+
+    print(read_table(output, "/dl2/event/telescope/disp/ExtraTreesRegressor/tel_004"))
+    print(read_table(output, "/dl2/event/telescope/disp/ExtraTreesClassifier/tel_004"))
+    print(
+        read_table(
+            output,
+            "/dl2/event/telescope/geometry/ExtraTreesRegressor_ExtraTreesClassifier/tel_004",
+        )
+    )
+    print(
+        read_table(
+            output,
+            "/dl2/event/subarray/geometry/ExtraTreesRegressor_ExtraTreesClassifier",
+        )
+    )
