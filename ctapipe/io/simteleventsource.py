@@ -332,8 +332,8 @@ def read_atmosphere_profile_from_simtel(
 
     if profiles:
         return profiles[0]
-    else:
-        return None
+
+    return None
 
 
 class SimTelEventSource(EventSource):

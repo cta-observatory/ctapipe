@@ -1,3 +1,5 @@
+""" tests of SimTelEventSource """
+# pylint: disable=import-outside-toplevel
 import copy
 from itertools import zip_longest
 from pathlib import Path
@@ -522,6 +524,9 @@ def test_simtel_no_metadata(monkeypatch):
 
 
 def test_load_atmosphere_from_simtel(prod5_gamma_simtel_path):
+    """
+    Load atmosphere from a SimTelEventSource
+    """
     from ctapipe.atmosphere import (
         FiveLayerAtmosphereDensityProfile,
         TableAtmosphereDensityProfile,

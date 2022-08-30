@@ -1,3 +1,7 @@
+"""
+Tests of ctapipe.atmosphere
+"""
+# pylint: disable=import-outside-toplevel
 import astropy.units as u
 import numpy as np
 import pytest
@@ -24,6 +28,9 @@ def get_simtel_profile_from_eventsource():
 
 
 def get_simtel_fivelayer_profile():
+    """
+    get a sample 3-layer profile
+    """
     from ctapipe.io.simteleventsource import read_atmosphere_profile_from_simtel
 
     return read_atmosphere_profile_from_simtel(SIMTEL_PATH, kind="fivelayer")
@@ -59,10 +66,10 @@ def test_exponential_model():
     """check exponential models"""
 
     density_model = atmo.ExponentialAtmosphereDensityProfile(
-        h0=10 * u.m, rho0=0.00125 * u.g / u.cm**3
+        scale_height=10 * u.m, scale_density=0.00125 * u.g / u.cm**3
     )
     assert np.isclose(density_model(1_000_000 * u.km), 0 * u.g / u.cm**3)
-    assert np.isclose(density_model(0 * u.km), density_model.rho0)
+    assert np.isclose(density_model(0 * u.km), density_model.scale_density)
 
 
 def test_table_model_interpolation(table_profile):
@@ -103,13 +110,13 @@ def test_against_reference():
 
     profile_5 = atmo.FiveLayerAtmosphereDensityProfile.from_array(fit_reference)
 
-    h = reference_table["Altitude_km"].to("km")
+    height = reference_table["Altitude_km"].to("km")
 
     np.testing.assert_allclose(
-        1.0 - profile_5(h) / reference_table["rho_5"], 0, atol=1e-5
+        1.0 - profile_5(height) / reference_table["rho_5"], 0, atol=1e-5
     )
     np.testing.assert_allclose(
-        1.0 - profile_5.line_of_sight_integral(h) / reference_table["thick_5"],
+        1.0 - profile_5.line_of_sight_integral(height) / reference_table["thick_5"],
         0,
         atol=1e-5,
     )

@@ -88,41 +88,41 @@ class AtmosphereDensityProfile:
         """
         import matplotlib.pyplot as plt
 
-        fig, ax = plt.subplots(1, 3, constrained_layout=True, figsize=(10, 3))
+        fig, axis = plt.subplots(1, 3, constrained_layout=True, figsize=(10, 3))
 
         fig.suptitle(self.__class__.__name__)
         height = np.linspace(1, 100, 500) * u.km
         density = self(height)
-        ax[0].set_xscale("linear")
-        ax[0].set_yscale("log")
-        ax[0].plot(height, density)
-        ax[0].set_xlabel(f"Height / {height.unit.to_string('latex')}")
-        ax[0].set_ylabel(f"Density / {density.unit.to_string('latex')}")
-        ax[0].grid(True)
+        axis[0].set_xscale("linear")
+        axis[0].set_yscale("log")
+        axis[0].plot(height, density)
+        axis[0].set_xlabel(f"Height / {height.unit.to_string('latex')}")
+        axis[0].set_ylabel(f"Density / {density.unit.to_string('latex')}")
+        axis[0].grid(True)
 
         distance = np.linspace(1, 100, 500) * u.km
         for zenith_angle in [0, 40, 50, 70] * u.deg:
             column_density = self.line_of_sight_integral(distance, zenith_angle)
-            ax[1].plot(distance, column_density, label=f"$\\Psi$={zenith_angle}")
+            axis[1].plot(distance, column_density, label=f"$\\Psi$={zenith_angle}")
 
-        ax[1].legend(loc="best")
-        ax[1].set_xlabel(f"Distance / {distance.unit.to_string('latex')}")
-        ax[1].set_ylabel(f"Column Density / {column_density.unit.to_string('latex')}")
-        ax[1].set_yscale("log")
-        ax[1].grid(True)
+        axis[1].legend(loc="best")
+        axis[1].set_xlabel(f"Distance / {distance.unit.to_string('latex')}")
+        axis[1].set_ylabel(f"Column Density / {column_density.unit.to_string('latex')}")
+        axis[1].set_yscale("log")
+        axis[1].grid(True)
 
         zenith_angle = np.linspace(0, 80, 20) * u.deg
         for distance in [0, 5, 10, 20] * u.km:
             column_density = self.line_of_sight_integral(distance, zenith_angle)
-            ax[2].plot(zenith_angle, column_density, label=f"Height={distance}")
+            axis[2].plot(zenith_angle, column_density, label=f"Height={distance}")
 
-        ax[2].legend(loc="best")
-        ax[2].set_xlabel(
+        axis[2].legend(loc="best")
+        axis[2].set_xlabel(
             f"Zenith Angle $\\Psi$ / {zenith_angle.unit.to_string('latex')}"
         )
-        ax[2].set_ylabel(f"Column Density / {column_density.unit.to_string('latex')}")
-        ax[2].set_yscale("log")
-        ax[2].grid(True)
+        axis[2].set_ylabel(f"Column Density / {column_density.unit.to_string('latex')}")
+        axis[2].set_yscale("log")
+        axis[2].grid(True)
 
         plt.show()
 
@@ -138,7 +138,7 @@ class AtmosphereDensityProfile:
 
         if tabtype == "ctapipe.atmosphere.TableAtmosphereDensityProfile":
             return TableAtmosphereDensityProfile(table)
-        elif tabtype == "ctapipe.atmosphere.FiveLayerAtmosphereDensityProfile":
+        if tabtype == "ctapipe.atmosphere.FiveLayerAtmosphereDensityProfile":
             return FiveLayerAtmosphereDensityProfile(table)
         else:
             raise TypeError(f"Unknown AtmosphereDensityProfile type: '{tabtype}'")
@@ -163,25 +163,27 @@ class ExponentialAtmosphereDensityProfile(AtmosphereDensityProfile):
 
     Attributes
     ----------
-    h0: u.Quantity["m"]
-        scale height
-    rho0: u.Quantity["g cm-3"]
-        scale density
+    scale_height: u.Quantity["m"]
+        scale height (h0)
+    scale_density: u.Quantity["g cm-3"]
+        scale density (rho0)
     """
 
-    h0: u.Quantity = 8 * u.km
-    rho0: u.Quantity = 0.00125 * u.g / (u.cm**3)
+    scale_height: u.Quantity = 8 * u.km
+    scale_density: u.Quantity = 0.00125 * u.g / (u.cm**3)
 
     @u.quantity_input(height=u.m)
     def __call__(self, height) -> u.Quantity:
-        return self.rho0 * np.exp(-height / self.h0)
+        return self.scale_density * np.exp(-height / self.scale_height)
 
     @u.quantity_input(height=u.m)
     def integral(
         self,
         height,
     ) -> u.Quantity:
-        return self.rho0 * self.h0 * np.exp(-height / self.h0)
+        return (
+            self.scale_density * self.scale_height * np.exp(-height / self.scale_height)
+        )
 
 
 class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
@@ -331,7 +333,7 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
         """construct from a 5x5 array as provided by eventio"""
 
         if metadata is None:
-            metadata = dict()
+            metadata = {}
 
         if array.shape != (5, 5):
             raise ValueError("expected ndarray with shape (5,5)")
