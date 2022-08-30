@@ -24,9 +24,8 @@ def horizontal_to_telescope(
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", MissingFrameAttributeWarning)
 
-        altaz = AltAz()
-        horizontal_coord = SkyCoord(alt=alt, az=az, frame=altaz)
-        pointing = SkyCoord(alt=pointing_alt, az=pointing_az, frame=altaz)
+        horizontal_coord = SkyCoord(alt=alt, az=az, frame=AltAz())
+        pointing = SkyCoord(alt=pointing_alt, az=pointing_az, frame=AltAz())
         tel_frame = TelescopeFrame(telescope_pointing=pointing)
 
         tel_coord = horizontal_coord.transform_to(tel_frame)
@@ -41,12 +40,11 @@ def telescope_to_horizontal(
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", MissingFrameAttributeWarning)
 
-        altaz = AltAz()
-        pointing = SkyCoord(alt=pointing_alt, az=pointing_az, frame=altaz)
+        pointing = SkyCoord(alt=pointing_alt, az=pointing_az, frame=AltAz())
         tel_coord = TelescopeFrame(
             fov_lon=lon, fov_lat=lat, telescope_pointing=pointing
         )
-        horizontal_coord = tel_coord.transform_to(altaz)
+        horizontal_coord = tel_coord.transform_to(AltAz())
 
     return horizontal_coord.alt.to(u.deg), horizontal_coord.az.to(u.deg)
 
@@ -86,8 +84,8 @@ class DispConverter(Component):
             alt, az = telescope_to_horizontal(
                 lon=fov_lon,
                 lat=fov_lat,
-                pointing_alt=event.pointing.array_altitude.to(u.deg),
-                pointing_az=event.pointing.array_azimuth.to(u.deg),
+                pointing_alt=event.pointing.tel[tel_id].altitude.to(u.deg),
+                pointing_az=event.pointing.tel[tel_id].azimuth.to(u.deg),
             )
 
             event.dl2.tel[tel_id].geometry[prefix] = ReconstructedGeometryContainer(
