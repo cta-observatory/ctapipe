@@ -33,7 +33,7 @@ class AtmosphereDensityProfile:
     """
 
     @abc.abstractmethod
-    def __call__(self, h: u.Quantity) -> u.Quantity:
+    def __call__(self, height: u.Quantity) -> u.Quantity:
         """
         Returns
         -------
@@ -43,7 +43,7 @@ class AtmosphereDensityProfile:
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def integral(self, h: u.Quantity, output_units=u.g / u.cm**2) -> u.Quantity:
+    def integral(self, height: u.Quantity) -> u.Quantity:
         r"""Integral of the profile along the height axis, i.e. the *atmospheric
         depth* :math:`X`.
 
@@ -172,17 +172,16 @@ class ExponentialAtmosphereDensityProfile(AtmosphereDensityProfile):
     h0: u.Quantity = 8 * u.km
     rho0: u.Quantity = 0.00125 * u.g / (u.cm**3)
 
-    @u.quantity_input(h=u.m)
-    def __call__(self, h) -> u.Quantity:
-        return self.rho0 * np.exp(-h / self.h0)
+    @u.quantity_input(height=u.m)
+    def __call__(self, height) -> u.Quantity:
+        return self.rho0 * np.exp(-height / self.h0)
 
-    @u.quantity_input(h=u.m)
+    @u.quantity_input(height=u.m)
     def integral(
         self,
-        h,
-        output_units=u.g / u.cm**2,
+        height,
     ) -> u.Quantity:
-        return self.rho0 * self.h0 * np.exp(-h / self.h0)
+        return self.rho0 * self.h0 * np.exp(-height / self.h0)
 
 
 class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
@@ -254,14 +253,16 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
         self.table.meta["TAB_TYPE"] = "ctapipe.atmosphere.TableAtmosphereDensityProfile"
         self.table.meta["TAB_VER"] = 1
 
-    @u.quantity_input(h=u.m)
-    def __call__(self, h) -> u.Quantity:
-        return u.Quantity(10 ** self._density_interp(h.to_value(u.km)), u.g / u.cm**3)
-
-    @u.quantity_input(h=u.m)
-    def integral(self, h) -> u.Quantity:
+    @u.quantity_input(height=u.m)
+    def __call__(self, height) -> u.Quantity:
         return u.Quantity(
-            10 ** self._col_density_interp(h.to_value(u.km)), u.g / u.cm**2
+            10 ** self._density_interp(height.to_value(u.km)), u.g / u.cm**3
+        )
+
+    @u.quantity_input(height=u.m)
+    def integral(self, height) -> u.Quantity:
+        return u.Quantity(
+            10 ** self._col_density_interp(height.to_value(u.km)), u.g / u.cm**2
         )
 
     def __repr__(self):
@@ -350,22 +351,22 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
         )
         return cls(table)
 
-    @u.quantity_input(h=u.m)
-    def __call__(self, h) -> u.Quantity:
-        which_func = np.digitize(h, self.table["height"]) - 1
+    @u.quantity_input(height=u.m)
+    def __call__(self, height) -> u.Quantity:
+        which_func = np.digitize(height, self.table["height"]) - 1
         condlist = [which_func == i for i in range(5)]
         return -1 * np.piecewise(
-            h,
+            height,
             condlist=condlist,
             funclist=self._d_funcs,
         ).to(u.g / u.cm**3)
 
-    @u.quantity_input(h=u.m)
-    def integral(self, h) -> u.Quantity:
-        which_func = np.digitize(h, self.table["height"]) - 1
+    @u.quantity_input(height=u.m)
+    def integral(self, height) -> u.Quantity:
+        which_func = np.digitize(height, self.table["height"]) - 1
         condlist = [which_func == i for i in range(5)]
         return np.piecewise(
-            x=h,
+            x=height,
             condlist=condlist,
             funclist=self._funcs,
         ).to(u.g / u.cm**2)
