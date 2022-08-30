@@ -44,24 +44,28 @@ class AtmosphereDensityProfile:
 
     @abc.abstractmethod
     def integral(self, h: u.Quantity, output_units=u.g / u.cm**2) -> u.Quantity:
-        """
-        Integral of the profile along the height axis
+        r"""Integral of the profile along the height axis, i.e. the *atmospheric
+        depth* :math:`X`.
+
+        .. math:: X(h) = \int_{h}^{\infty} \rho(h') dh'
 
         Returns
         -------
         u.Quantity["g/cm2"]:
             Integral of the density from height h to infinity
+
         """
         raise NotImplementedError()
 
     def line_of_sight_integral(
         self, distance: u.Quantity, zenith_angle=0 * u.deg, output_units=u.g / u.cm**2
     ):
-        """Line-of-sight integral from the shower distance to infinity, along
-        the direction specified by the zenith angle. The atmosphere here is
-        assumed to be Cartesian, the curvature of the Earth is not taken into account.
+        r"""Line-of-sight integral from the shower distance to infinity, along
+        the direction specified by the zenith angle. This is sometimes called
+        the *slant depth*. The atmosphere here is assumed to be Cartesian, the
+        curvature of the Earth is not taken into account.
 
-        .. math:: X(h', \\Psi) = \\int_{h'}^{\\infty} \\rho(h \\cos{\\Psi}) dh
+        .. math:: X(h, \Psi) = \int_{h}^{\infty} \rho(h' \cos{\Psi}) dh'
 
         Parameters
         ----------
@@ -71,6 +75,7 @@ class AtmosphereDensityProfile:
            zenith angle of observation
         output_units: u.Unit
            unit to output (must be convertible to g/cm2)
+
         """
 
         return (
@@ -131,9 +136,9 @@ class AtmosphereDensityProfile:
 
         tabtype = table.meta.get("TAB_TYPE")
 
-        if tabtype == "ctapipe.atmosphere.model.TableAtmosphereDensityProfile":
+        if tabtype == "ctapipe.atmosphere.TableAtmosphereDensityProfile":
             return TableAtmosphereDensityProfile(table)
-        elif tabtype == "ctapipe.atmosphere.model.FiveLayerAtmosphereDensityProfile":
+        elif tabtype == "ctapipe.atmosphere.FiveLayerAtmosphereDensityProfile":
             return FiveLayerAtmosphereDensityProfile(table)
         else:
             raise TypeError(f"Unknown AtmosphereDensityProfile type: '{tabtype}'")
@@ -246,9 +251,7 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
         )
 
         # ensure it can be read back
-        self.table.meta[
-            "TAB_TYPE"
-        ] = "ctapipe.atmosphere.model.TableAtmosphereDensityProfile"
+        self.table.meta["TAB_TYPE"] = "ctapipe.atmosphere.TableAtmosphereDensityProfile"
         self.table.meta["TAB_VER"] = 1
 
     @u.quantity_input(h=u.m)
@@ -342,7 +345,7 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
         table.meta.update(
             dict(
                 TAB_VER=1,
-                TAB_TYPE="ctapipe.atmosphere.model.FiveLayerAtmosphereDensityProfile",
+                TAB_TYPE="ctapipe.atmosphere.FiveLayerAtmosphereDensityProfile",
             )
         )
         return cls(table)

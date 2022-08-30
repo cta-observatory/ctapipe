@@ -2,7 +2,7 @@ import astropy.units as u
 import numpy as np
 import pytest
 
-from ctapipe.atmosphere import model
+import ctapipe.atmosphere as atmo
 from ctapipe.utils import get_dataset_path
 
 SIMTEL_PATH = get_dataset_path(
@@ -32,7 +32,7 @@ def get_simtel_fivelayer_profile():
 @pytest.mark.parametrize(
     "density_model",
     [
-        model.ExponentialAtmosphereDensityProfile(),
+        atmo.ExponentialAtmosphereDensityProfile(),
         get_simtel_profile_from_eventsource(),
         get_simtel_fivelayer_profile(),
     ],
@@ -58,7 +58,7 @@ def test_models(density_model):
 def test_exponential_model():
     """check exponential models"""
 
-    density_model = model.ExponentialAtmosphereDensityProfile(
+    density_model = atmo.ExponentialAtmosphereDensityProfile(
         h0=10 * u.m, rho0=0.00125 * u.g / u.cm**3
     )
     assert np.isclose(density_model(1_000_000 * u.km), 0 * u.g / u.cm**3)
@@ -101,7 +101,7 @@ def test_against_reference():
         ]
     )
 
-    profile_5 = model.FiveLayerAtmosphereDensityProfile.from_array(fit_reference)
+    profile_5 = atmo.FiveLayerAtmosphereDensityProfile.from_array(fit_reference)
 
     h = reference_table["Altitude_km"].to("km")
 

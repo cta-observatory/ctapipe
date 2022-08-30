@@ -286,7 +286,7 @@ def read_atmosphere_profile_from_simtel(
     if isinstance(simtelfile, (str, Path)):
         context_manager = SimTelFile(simtelfile)
         Provenance().add_input_file(
-            filename=simtelfile, role="ctapipe.atmosphere.model"
+            filename=simtelfile, role="ctapipe.atmosphere.AtmosphereDensityProfile"
         )
 
     else:
