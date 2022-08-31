@@ -86,6 +86,7 @@ class AtmosphereDensityProfile:
         """
         Draw quick plot of profile
         """
+        # pylint: disable=import-outside-toplevel
         import matplotlib.pyplot as plt
 
         fig, axis = plt.subplots(1, 3, constrained_layout=True, figsize=(10, 3))
@@ -140,8 +141,8 @@ class AtmosphereDensityProfile:
             return TableAtmosphereDensityProfile(table)
         if tabtype == "ctapipe.atmosphere.FiveLayerAtmosphereDensityProfile":
             return FiveLayerAtmosphereDensityProfile(table)
-        else:
-            raise TypeError(f"Unknown AtmosphereDensityProfile type: '{tabtype}'")
+
+        raise TypeError(f"Unknown AtmosphereDensityProfile type: '{tabtype}'")
 
 
 @dataclass
@@ -273,6 +274,10 @@ class TableAtmosphereDensityProfile(AtmosphereDensityProfile):
         )
 
 
+# Here we define some utility functions needed to build the piece-wise 5-layer
+# model.
+
+# pylint: disable=invalid-name,unused-argument
 def _exponential(h, a, b, c):
     """exponential atmosphere"""
     return a + b * np.exp(-h / c)
@@ -357,20 +362,25 @@ class FiveLayerAtmosphereDensityProfile(AtmosphereDensityProfile):
     def __call__(self, height) -> u.Quantity:
         which_func = np.digitize(height, self.table["height"]) - 1
         condlist = [which_func == i for i in range(5)]
-        return -1 * np.piecewise(
-            height,
-            condlist=condlist,
-            funclist=self._d_funcs,
+        return u.Quantity(
+            -1
+            * np.piecewise(
+                height,
+                condlist=condlist,
+                funclist=self._d_funcs,
+            )
         ).to(u.g / u.cm**3)
 
     @u.quantity_input(height=u.m)
     def integral(self, height) -> u.Quantity:
         which_func = np.digitize(height, self.table["height"]) - 1
         condlist = [which_func == i for i in range(5)]
-        return np.piecewise(
-            x=height,
-            condlist=condlist,
-            funclist=self._funcs,
+        return u.Quantity(
+            np.piecewise(
+                x=height,
+                condlist=condlist,
+                funclist=self._funcs,
+            )
         ).to(u.g / u.cm**2)
 
     def __repr__(self):

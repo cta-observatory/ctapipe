@@ -533,14 +533,14 @@ def test_load_atmosphere_from_simtel(prod5_gamma_simtel_path):
     )
 
     # old simtel files don't have the profile in them, so a null list should be returned
-    profile = read_atmosphere_profile_from_simtel(prod5_gamma_simtel_path, kind="auto")
+    profile = read_atmosphere_profile_from_simtel(prod5_gamma_simtel_path, kind="AUTO")
     assert isinstance(profile, TableAtmosphereDensityProfile)
 
-    profile = read_atmosphere_profile_from_simtel(prod5_gamma_simtel_path, kind="table")
+    profile = read_atmosphere_profile_from_simtel(prod5_gamma_simtel_path, kind="TABLE")
     assert isinstance(profile, TableAtmosphereDensityProfile)
 
     profile = read_atmosphere_profile_from_simtel(
-        prod5_gamma_simtel_path, kind="fivelayer"
+        prod5_gamma_simtel_path, kind="FIVELAYER"
     )
     assert isinstance(profile, FiveLayerAtmosphereDensityProfile)
 

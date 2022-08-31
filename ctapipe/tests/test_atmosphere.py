@@ -1,6 +1,3 @@
-"""
-Tests of ctapipe.atmosphere
-"""
 # pylint: disable=import-outside-toplevel
 import astropy.units as u
 import numpy as np
@@ -10,13 +7,9 @@ import ctapipe.atmosphere as atmo
 from ctapipe.utils import get_dataset_path
 
 SIMTEL_PATH = get_dataset_path(
-    "gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst"
+    "gamma_20deg_0deg_run2___cta-prod5-paranal_desert"
+    "-2147m-Paranal-dark_cone10-100evts.simtel.zst"
 )
-
-
-@pytest.fixture(scope="session")
-def table_profile():
-    return get_simtel_profile_from_eventsource()
 
 
 def get_simtel_profile_from_eventsource():
@@ -27,13 +20,24 @@ def get_simtel_profile_from_eventsource():
         return source.atmosphere_density_profile
 
 
+@pytest.fixture(scope="session", name="table_profile")
+def fixture_table_profile():
+    """a table profile for testing"""
+    return get_simtel_profile_from_eventsource()
+
+
 def get_simtel_fivelayer_profile():
     """
     get a sample 3-layer profile
     """
-    from ctapipe.io.simteleventsource import read_atmosphere_profile_from_simtel
+    from ctapipe.io.simteleventsource import (
+        AtmosphereProfileKind,
+        read_atmosphere_profile_from_simtel,
+    )
 
-    return read_atmosphere_profile_from_simtel(SIMTEL_PATH, kind="fivelayer")
+    return read_atmosphere_profile_from_simtel(
+        SIMTEL_PATH, kind=AtmosphereProfileKind.FIVELAYER
+    )
 
 
 @pytest.mark.parametrize(

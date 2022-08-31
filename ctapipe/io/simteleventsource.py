@@ -1,6 +1,7 @@
 import enum
 import warnings
 from contextlib import nullcontext
+from enum import Enum, auto, unique
 from gzip import GzipFile
 from io import BufferedReader
 from pathlib import Path
@@ -69,7 +70,12 @@ from ..reco.impact_distance import shower_impact_distance
 from .datalevels import DataLevel
 from .eventsource import EventSource
 
-__all__ = ["SimTelEventSource", "read_atmosphere_profile_from_simtel"]
+__all__ = [
+    "SimTelEventSource",
+    "read_atmosphere_profile_from_simtel",
+    "AtmosphereProfileKind",
+    "MirrorClass",
+]
 
 # Mapping of SimTelArray Calibration trigger types to EventType:
 # from simtelarray: type Dark (0), pedestal (1), in-lid LED (2) or laser/LED (3+) data.
@@ -261,8 +267,27 @@ def apply_simtel_r1_calibration(
     return r1_waveforms, selected_gain_channel
 
 
+@unique
+class AtmosphereProfileKind(Enum):
+    """
+    choice for which kind of atmosphere density profile to load if more than
+    one is present"""
+
+    #: Don't load a profile
+    NONE = auto()
+
+    #: Use a TableAtmosphereDensityProfile
+    TABLE = auto()
+
+    #: Use a FiveLayerAtmosphereDensityProfile
+    FIVELAYER = auto()
+
+    #: Try TABLE first, and if it doesn't exist, use FIVELAYER
+    AUTO = auto()
+
+
 def read_atmosphere_profile_from_simtel(
-    simtelfile: Union[str, Path, SimTelFile], kind="auto"
+    simtelfile: Union[str, Path, SimTelFile], kind=AtmosphereProfileKind.AUTO
 ) -> Optional[TableAtmosphereDensityProfile]:
     """Read an atmosphere profile from a SimTelArray file as an astropy Table
 
@@ -270,9 +295,9 @@ def read_atmosphere_profile_from_simtel(
     ----------
     simtelfile: str | SimTelFile
         filename of a SimTelArray file containing an atmosphere profile
-    kind: str
-        "table", "fivelayer", "auto" : which type of model to load. In auto
-        mode, table is tried first, and if it doesn't exist, fivelayer is used.
+    kind: AtmosphereProfileKind
+        which type of model to load. In AUTO mode, table is tried first,
+        and if it doesn't exist, fivelayer is used.
 
     Returns
     -------
@@ -282,6 +307,9 @@ def read_atmosphere_profile_from_simtel(
     """
 
     profiles = []
+
+    if kind == AtmosphereProfileKind.NONE:
+        return None
 
     if isinstance(simtelfile, (str, Path)):
         context_manager = SimTelFile(simtelfile)
@@ -309,7 +337,11 @@ def read_atmosphere_profile_from_simtel(
                 htoa=atmo["htoa"],  # what is this?,
             )
 
-            if kind == "table" or kind == "auto" and "altitude_km" in atmo:
+            if (
+                kind == AtmosphereProfileKind.TABLE
+                or kind == AtmosphereProfileKind.AUTO
+                and "altitude_km" in atmo
+            ):
                 table = Table(
                     dict(
                         height=atmo["altitude_km"] * u.km,
@@ -320,7 +352,10 @@ def read_atmosphere_profile_from_simtel(
                 )
                 profiles.append(TableAtmosphereDensityProfile(table=table))
 
-            elif kind == "fivelayer" and "five_layer_atmosphere" in atmo:
+            elif (
+                kind == AtmosphereProfileKind.FIVELAYER
+                and "five_layer_atmosphere" in atmo
+            ):
                 profiles.append(
                     FiveLayerAtmosphereDensityProfile.from_array(
                         atmo["five_layer_atmosphere"], metadata=metadata
@@ -410,6 +445,17 @@ class SimTelEventSource(EventSource):
         ),
     ).tag(config=True)
 
+    atmosphere_profile_choice = UseEnum(
+        AtmosphereProfileKind,
+        default_value=AtmosphereProfileKind.AUTO,
+        help=(
+            "Which type of atmosphere density profile to load "
+            "from the file, in case more than one exists.  If set "
+            "to AUTO, TABLE will be attempted first and if missing, "
+            "FIVELAYER will be loaded."
+        ),
+    ).tag(config=True)
+
     def __init__(self, input_url=Undefined, config=None, parent=None, **kwargs):
         """
         EventSource for simtelarray files using the pyeventio library.
@@ -454,7 +500,7 @@ class SimTelEventSource(EventSource):
         )
 
         self._atmosphere_density_profile = read_atmosphere_profile_from_simtel(
-            self.file_
+            self.file_, kind=self.atmosphere_profile_choice
         )
 
         self.log.debug(f"Using gain selector {self.gain_selector}")
