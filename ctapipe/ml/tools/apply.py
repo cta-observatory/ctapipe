@@ -302,6 +302,17 @@ class ApplyModels(Tool):
             )
 
             norm_predictions = self.disp_regressor.predict(tel, table)
+            # If the same feature is generated for both models, it would cause an error
+            table.remove_columns(
+                [
+                    c
+                    for c in table.colnames
+                    if np.logical_and(
+                        c in self.disp_regressor.generate_features._feature_names,
+                        c in self.sign_classifier.generate_features._feature_names,
+                    )
+                ]
+            )
             sign_predictions = self.sign_classifier.predict(tel, table)
             table = hstack(
                 [table, norm_predictions, sign_predictions],
