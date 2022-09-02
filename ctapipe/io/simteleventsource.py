@@ -295,7 +295,7 @@ def read_atmosphere_profile_from_simtel(
     ----------
     simtelfile: str | SimTelFile
         filename of a SimTelArray file containing an atmosphere profile
-    kind: AtmosphereProfileKind
+    kind: AtmosphereProfileKind | str
         which type of model to load. In AUTO mode, table is tried first,
         and if it doesn't exist, fivelayer is used.
 
@@ -305,6 +305,10 @@ def read_atmosphere_profile_from_simtel(
         Profile read from a table, with interpolation
 
     """
+    if not isinstance(kind, AtmosphereProfileKind):
+        raise TypeError(
+            "read_atmosphere_profile_from_simtel: kind should be a AtmosphereProfileKind"
+        )
 
     profiles = []
 
@@ -337,10 +341,9 @@ def read_atmosphere_profile_from_simtel(
                 htoa=atmo["htoa"],  # what is this?,
             )
 
-            if (
+            if "altitude_km" in atmo and (
                 kind == AtmosphereProfileKind.TABLE
                 or kind == AtmosphereProfileKind.AUTO
-                and "altitude_km" in atmo
             ):
                 table = Table(
                     dict(

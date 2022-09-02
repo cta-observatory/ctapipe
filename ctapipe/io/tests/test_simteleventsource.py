@@ -16,6 +16,7 @@ from ctapipe.instrument.camera.geometry import UnknownPixelShapeWarning
 from ctapipe.instrument.optics import ReflectorShape
 from ctapipe.io import DataLevel
 from ctapipe.io.simteleventsource import (
+    AtmosphereProfileKind,
     SimTelEventSource,
     apply_simtel_r1_calibration,
     read_atmosphere_profile_from_simtel,
@@ -533,14 +534,18 @@ def test_load_atmosphere_from_simtel(prod5_gamma_simtel_path):
     )
 
     # old simtel files don't have the profile in them, so a null list should be returned
-    profile = read_atmosphere_profile_from_simtel(prod5_gamma_simtel_path, kind="AUTO")
-    assert isinstance(profile, TableAtmosphereDensityProfile)
-
-    profile = read_atmosphere_profile_from_simtel(prod5_gamma_simtel_path, kind="TABLE")
+    profile = read_atmosphere_profile_from_simtel(
+        prod5_gamma_simtel_path, kind=AtmosphereProfileKind.AUTO
+    )
     assert isinstance(profile, TableAtmosphereDensityProfile)
 
     profile = read_atmosphere_profile_from_simtel(
-        prod5_gamma_simtel_path, kind="FIVELAYER"
+        prod5_gamma_simtel_path, kind=AtmosphereProfileKind.TABLE
+    )
+    assert isinstance(profile, TableAtmosphereDensityProfile)
+
+    profile = read_atmosphere_profile_from_simtel(
+        prod5_gamma_simtel_path, kind=AtmosphereProfileKind.FIVELAYER
     )
     assert isinstance(profile, FiveLayerAtmosphereDensityProfile)
 
