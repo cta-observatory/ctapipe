@@ -341,10 +341,10 @@ def read_atmosphere_profile_from_simtel(
                 htoa=atmo["htoa"],  # what is this?,
             )
 
-            if "altitude_km" in atmo and (
-                kind == AtmosphereProfileKind.TABLE
-                or kind == AtmosphereProfileKind.AUTO
-            ):
+            if "altitude_km" in atmo and kind in {
+                AtmosphereProfileKind.TABLE,
+                AtmosphereProfileKind.AUTO,
+            }:
                 table = Table(
                     dict(
                         height=atmo["altitude_km"] * u.km,

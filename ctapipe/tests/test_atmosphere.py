@@ -6,6 +6,11 @@ import pytest
 import ctapipe.atmosphere as atmo
 from ctapipe.utils import get_dataset_path
 
+"""
+Checks for the atmosphere module
+"""
+
+
 SIMTEL_PATH = get_dataset_path(
     "gamma_20deg_0deg_run2___cta-prod5-paranal_desert"
     "-2147m-Paranal-dark_cone10-100evts.simtel.zst"

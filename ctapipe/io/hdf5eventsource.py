@@ -275,7 +275,7 @@ class HDF5EventSource(EventSource):
         return get_hdf5_datalevels(self.file_)
 
     @lazyproperty
-    def atmosphere_density_profile(self):
+    def atmosphere_density_profile(self) -> AtmosphereDensityProfile:
         return read_atmosphere_density_profile(self.file_)
 
     @lazyproperty
