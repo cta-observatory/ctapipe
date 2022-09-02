@@ -1,4 +1,6 @@
 # pylint: disable=import-outside-toplevel
+from unittest.mock import patch
+
 import astropy.units as u
 import numpy as np
 import pytest
@@ -69,6 +71,9 @@ def test_models(density_model):
     assert np.isclose(
         density_model.integral(1 * u.km), density_model.integral(1000 * u.m)
     )
+
+    with patch("matplotlib.pyplot.show"):
+        density_model.peek()
 
 
 def test_exponential_model():
