@@ -357,32 +357,12 @@ class StereoMeanCombiner(StereoCombiner):
                     mono_z, weights, n_array_events, indices[valid]
                 )
 
-                cartesian = CartesianRepresentation(x=stereo_x, y=stereo_y, z=stereo_z)
+                mean_cartesian = CartesianRepresentation(
+                    x=stereo_x, y=stereo_y, z=stereo_z
+                )
                 mean_altaz = SkyCoord(
-                    cartesian.represent_as(UnitSphericalRepresentation), frame=AltAz()
-                )
-
-                mono_alt = valid_predictions[f"{prefix}_alt"].quantity.to_value(u.deg)
-                mono_az = valid_predictions[f"{prefix}_az"].quantity.to_value(u.deg)
-                variance_alt = _weighted_mean_ufunc(
-                    (
-                        mono_alt
-                        - np.repeat(mean_altaz.alt.to_value(u.deg), multiplicity)[valid]
-                    )
-                    ** 2,
-                    weights,
-                    n_array_events,
-                    indices[valid],
-                )
-                variance_az = _weighted_mean_ufunc(  # this neglects the circular boundary condition !
-                    (
-                        mono_az
-                        - np.repeat(mean_altaz.az.to_value(u.deg), multiplicity)[valid]
-                    )
-                    ** 2,
-                    weights,
-                    n_array_events,
-                    indices[valid],
+                    mean_cartesian.represent_as(UnitSphericalRepresentation),
+                    frame=AltAz(),
                 )
             else:
                 mean_altaz = SkyCoord(
@@ -390,18 +370,12 @@ class StereoMeanCombiner(StereoCombiner):
                     az=np.full(n_array_events, np.nan),
                     frame=AltAz(),
                 )
-                variance_alt = np.full(n_array_events, np.nan)
-                variance_az = np.full(n_array_events, np.nan)
 
             stereo_table[f"{prefix_save}_alt"] = mean_altaz.alt.to(u.deg)
-            stereo_table[f"{prefix_save}_alt_uncert"] = u.Quantity(
-                np.sqrt(variance_alt), u.deg, copy=False
-            )
+            stereo_table[f"{prefix_save}_alt_uncert"] = u.Quantity(np.nan, u.deg, copy=False)
 
             stereo_table[f"{prefix_save}_az"] = mean_altaz.az.to(u.deg)
-            stereo_table[f"{prefix_save}_az_uncert"] = u.Quantity(
-                np.sqrt(variance_az), u.deg, copy=False
-            )  # this is wrong because see above
+            stereo_table[f"{prefix_save}_az_uncert"] = u.Quantity(np.nan, u.deg, copy=False)
 
             stereo_table[f"{prefix_save}_is_valid"] = np.logical_and(
                 np.isfinite(stereo_table[f"{prefix_save}_alt"]),
