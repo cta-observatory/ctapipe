@@ -1,3 +1,7 @@
+"""
+Checks for the atmosphere module
+"""
+
 # pylint: disable=import-outside-toplevel
 from unittest.mock import patch
 
@@ -7,11 +11,6 @@ import pytest
 
 import ctapipe.atmosphere as atmo
 from ctapipe.utils import get_dataset_path
-
-"""
-Checks for the atmosphere module
-"""
-
 
 SIMTEL_PATH = get_dataset_path(
     "gamma_20deg_0deg_run2___cta-prod5-paranal_desert"
