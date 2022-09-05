@@ -842,7 +842,7 @@ class DispContainer(Container):
     Standard output of disp reconstruction algorithms for origin reconstruction
     """
 
-    default_prefix = ""
+    default_prefix = "disp"
 
     norm = Field(nan * u.deg, "reconstructed absolute value for disp", unit=u.deg)
     sign = Field(nan, "reconstructed sign for disp")
