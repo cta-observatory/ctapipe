@@ -97,7 +97,7 @@ class TrainDispReconstructor(Tool):
         self.log.info("Events read from input: %d", len(table))
 
         # Allow separate quality queries/ event lists for training the two models
-        # but dont load the events two times to shorten runtime
+        # but dont load the events twice to shorten runtime
         table_reg = self._get_reconstructor_table(table, self.regressor)
         table_clf = self._get_reconstructor_table(table, self.classifier)
 
