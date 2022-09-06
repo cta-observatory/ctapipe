@@ -9,7 +9,7 @@ import tables
 from astropy.table.operations import hstack, vstack
 from tqdm.auto import tqdm
 
-from ctapipe.coordinates.disp import DispConverter
+from ctapipe.coordinates.disp import MonoDispReconstructor
 from ctapipe.core.tool import Tool
 from ctapipe.core.traits import Bool, Path, create_class_enum_trait, flag
 from ctapipe.io import EventSource, TableLoader, write_table
@@ -171,7 +171,7 @@ class ApplyModels(Tool):
             self.sign_classifier = DispClassifier.read(
                 self.sign_classifier_path, self.loader.subarray, parent=self
             )
-            self.disp_convert = DispConverter(parent=self)
+            self.disp_convert = MonoDispReconstructor(parent=self)
             self.disp_combine = StereoCombiner.from_name(
                 self.stereo_combiner_type,
                 combine_property="geometry",

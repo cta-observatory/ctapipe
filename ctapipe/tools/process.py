@@ -7,7 +7,7 @@ import sys
 from tqdm.auto import tqdm
 
 from ..calib import CameraCalibrator, GainSelector
-from ..coordinates.disp import DispConverter
+from ..coordinates.disp import MonoDispReconstructor
 from ..core import QualityQuery, Tool
 from ..core.traits import Bool, Dict, List, Path, classes_with_traits, flag
 from ..image import ImageCleaner, ImageModifier, ImageProcessor
@@ -251,7 +251,7 @@ class ProcessorTool(Tool):
                 parent=self,
             )
         if self.disp_regressor is not None and self.sign_classifier is not None:
-            self.disp_converter = DispConverter(parent=self)
+            self.disp_converter = MonoDispReconstructor(parent=self)
 
         self.stereo_combiners = []
         for stereo_combiner in self.stereo_combiner_configs:

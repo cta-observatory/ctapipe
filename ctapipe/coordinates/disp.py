@@ -14,7 +14,11 @@ from ctapipe.coordinates import MissingFrameAttributeWarning, TelescopeFrame
 from ..containers import ArrayEventContainer, ReconstructedGeometryContainer
 from ..core import Component
 
-__all__ = ["horizontal_to_telescope", "telescope_to_horizontal", "DispConverter"]
+__all__ = [
+    "horizontal_to_telescope",
+    "telescope_to_horizontal",
+    "MonoDispReconstructor",
+]
 
 
 def horizontal_to_telescope(
@@ -49,7 +53,7 @@ def telescope_to_horizontal(
     return horizontal_coord.alt.to(u.deg), horizontal_coord.az.to(u.deg)
 
 
-class DispConverter(Component):
+class MonoDispReconstructor(Component):
     """Convert (norm, sign) predictions into (alt, az) predictions"""
 
     # This is a temporary solution for simulations using a single pointing position
