@@ -41,10 +41,7 @@ class QualityQuery(Component):
         self.criteria_names = [n for (n, _) in self.quality_criteria]
         self.expressions = [e for (_, e) in self.quality_criteria]
 
-        self.engine = ExpressionEngine(
-            parent=self,
-            expressions=self.quality_criteria,
-        )
+        self.engine = ExpressionEngine(self.quality_criteria)
         for _, expr in self.quality_criteria:
             if "lambda" in expr:
                 raise ValueError(
