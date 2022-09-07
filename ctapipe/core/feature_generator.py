@@ -31,7 +31,7 @@ class FeatureGenerator(Component):
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
-        self.engine = ExpressionEngine(parent=self, expressions=self.features)
+        self.engine = ExpressionEngine(expressions=self.features)
         self._feature_names = [name for name, _ in self.features]
 
     def __call__(self, table):
