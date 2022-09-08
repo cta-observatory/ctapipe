@@ -70,27 +70,37 @@ class MonoDispReconstructor(Component):
             sign = event.dl2.tel[tel_id].disp[classifier_cls].sign
             valid_sign = event.dl2.tel[tel_id].disp[classifier_cls].sign_is_valid
 
-            if valid_sign:
+            if valid_sign and valid_norm:
                 sign = -1 if sign < 0.5 else 1
 
-            disp = norm * sign
+                disp = norm * sign
 
-            fov_lon = event.dl1.tel[tel_id].parameters.hillas.fov_lon + disp * np.cos(
-                event.dl1.tel[tel_id].parameters.hillas.psi.to(u.rad)
-            )
-            fov_lat = event.dl1.tel[tel_id].parameters.hillas.fov_lat + disp * np.sin(
-                event.dl1.tel[tel_id].parameters.hillas.psi.to(u.rad)
-            )
-            alt, az = telescope_to_horizontal(
-                lon=fov_lon,
-                lat=fov_lat,
-                pointing_alt=event.pointing.tel[tel_id].altitude.to(u.deg),
-                pointing_az=event.pointing.tel[tel_id].azimuth.to(u.deg),
-            )
+                fov_lon = event.dl1.tel[
+                    tel_id
+                ].parameters.hillas.fov_lon + disp * np.cos(
+                    event.dl1.tel[tel_id].parameters.hillas.psi.to(u.rad)
+                )
+                fov_lat = event.dl1.tel[
+                    tel_id
+                ].parameters.hillas.fov_lat + disp * np.sin(
+                    event.dl1.tel[tel_id].parameters.hillas.psi.to(u.rad)
+                )
+                alt, az = telescope_to_horizontal(
+                    lon=fov_lon,
+                    lat=fov_lat,
+                    pointing_alt=event.pointing.tel[tel_id].altitude.to(u.deg),
+                    pointing_az=event.pointing.tel[tel_id].azimuth.to(u.deg),
+                )
 
-            event.dl2.tel[tel_id].geometry[prefix] = ReconstructedGeometryContainer(
-                alt=alt, az=az, is_valid=np.logical_and(valid_sign, valid_norm)
-            )
+                event.dl2.tel[tel_id].geometry[prefix] = ReconstructedGeometryContainer(
+                    alt=alt, az=az, is_valid=True
+                )
+            else:
+                event.dl2.tel[tel_id].geometry[prefix] = ReconstructedGeometryContainer(
+                    alt=u.Quantity(np.nan, u.deg, copy=False),
+                    az=u.Quantity(np.nan, u.deg, copy=False),
+                    is_valid=False,
+                )
 
     def predict(
         self,
