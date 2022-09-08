@@ -121,9 +121,9 @@ class Gaussian:
         vec_oc : u.Quantity[length]
             3d vector between optical center of telescope and barycenter of the shower
         vec_los : u.Quantity[length]
-            3d vector of the pixel of interest along the line of sight
+            Vector for each pixel along the line of sight as a 1d-quantity of shape (n_pixels)
         epsilon : u.Quantity[Angle]
-            Angle between pixel viewing direction and shower axis
+            Angle between the viewing direction and shower axis for each pixel as a 1d-quantity of shape (n_pixels)
         """
         ce = np.cos(epsilon)
         sig_L = self.length.to_value(u.m)
@@ -175,7 +175,7 @@ class Gaussian:
         Parameters
         ----------
         epsilon : u.Quantity[Angle]
-            Angle between pixel viewing direction and shower axis
+            Angle between viewing direction and shower axis for each pixel as a 1d-quantity of shape (n_pixels)
         """
         eta = 15e-3 * np.sqrt(np.cos(self.zenith.to_value(u.rad)))  # 15mrad
 

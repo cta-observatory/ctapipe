@@ -18,14 +18,14 @@ class Predictor:
 
         Parameters
         ----------
-        tel_positions : u.Quantity[length]
-            Position of the telescopes in the frame of the array
-        tel_pix_coords_altaz : u.Quantity[Angle]
-            Pointing of the pixels for each telescope in AltAz
-        tel_solid_angles : u.Quantity[Angle**2]
-            Solid angles of the pixels for each telescope
+        tel_positions : u.Quantity[length, ndim=2]
+            Telescope positions in the frame of the telescope array as a 2d-quantity of shape (n_telescopes, 3)
+        tel_pix_coords_altaz : u.Quantity[Angle, ndim=2]
+            AltAz coordinates of the pixels for each telescope as a 2d-quantity of shape (n_telescopes, n_pixels)
+        tel_solid_angles : u.Quantity[Angle**2, ndim=2]
+            Solid angles of the pixels for each telescope as a 2d-quantity of shape (n_telescopes, n_pixels)
         tel_mirror_area : u.Quantity[length**2]
-            Mirror area of each telescope
+            Mirror area of each telescope as a 1d-quantity of shape (n_telescopes)
         showermodel :
             Showermodel to generate images from
         """
@@ -57,11 +57,11 @@ class Predictor:
         area : u.Quantity[length**2]
             Area of the telescope mirror
         solid_angle : u.Quantity[Angle**2]
-            Solid angle for each pixel
+            Solid angle for each pixel as a 1d-quantity of shape (n_pixels)
         vec_oc : u.Quantity[length]
             Vector from optical center of telescope to barycenter of shower
         pix_coords_altaz : u.Quantity[Angle]
-            Pointing of the pixels in AltAz
+            Pointing of the pixels in AltAz as a 1d-quantity of shape (n_pixels)
         vec_pointing : u.Quantity[length]
             Unit vector of the telescope axis/pointing
         """
@@ -79,12 +79,12 @@ class Predictor:
         return vec
 
     def _vec_los(self, pix_altaz):
-        """Calculates unit vector for a pixel pointing/altaz coord along the line of sight.
+        """Calculates unit vector for each pixel pointing/altaz coord along the line of sight.
 
         Parameters
         ----------
         pix_altaz : u.Quantity[Angle]
-            Pointing/AltAz of the pixel along the line of sight
+            Pointing/AltAz of the pixel along the line of sight as a 1d-quantity of shape (n_pixels)
         """
         x, y, z = spherical_to_cartesian(1, lat=pix_altaz.alt, lon=pix_altaz.az)
         vec = np.stack((x, y, z), -1)
@@ -115,11 +115,11 @@ class Predictor:
         area : u.Quantity[length**2]
             Area of the mirror
         solid_angle : u.Quantity[Angle**2]
-            Solid angle of the pixel.
-        vec_oc : u.Quantity[lenght]
+            Solid angle of the pixels as 1d-quantity of shape (n_pixels)
+        vec_oc : u.Quantity[length]
             Vector from optical center of the telescope to barycenter of the shower
         pix_coords_altaz : u.Quantity[Angle]
-            Pointing of the pixel in AltAz
+            Pointing of the pixels in AltAz as a 1d-quantity of shape (n_pixels)
         vec_pointing : u.Quantity[lenght]
             Unit vector along the telescope axis
         """
