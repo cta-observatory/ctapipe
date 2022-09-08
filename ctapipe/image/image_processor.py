@@ -1,12 +1,16 @@
 """
 High level image processing  (ImageProcessor Component)
 """
+from copy import deepcopy
+
 import numpy as np
 
 from ctapipe.coordinates import TelescopeFrame
 
 from ..containers import (
     ArrayEventContainer,
+    CameraHillasParametersContainer,
+    CameraTimingParametersContainer,
     ImageParametersContainer,
     IntensityStatisticsContainer,
     PeakTimeStatisticsContainer,
@@ -36,7 +40,13 @@ DEFAULT_TRUE_IMAGE_PARAMETERS.intensity_statistics = IntensityStatisticsContaine
     kurtosis=np.float64(np.nan),
 )
 DEFAULT_TIMING_PARAMETERS = TimingParametersContainer()
+DEFAULT_TIMING_PARAMETERS_CAMFRAME = CameraTimingParametersContainer()
 DEFAULT_PEAKTIME_STATISTICS = PeakTimeStatisticsContainer()
+
+
+DEFAULT_IMAGE_PARAMETERS_CAMFRAME = deepcopy(DEFAULT_IMAGE_PARAMETERS)
+DEFAULT_IMAGE_PARAMETERS_CAMFRAME.hillas = CameraHillasParametersContainer()
+DEFAULT_IMAGE_PARAMETERS_CAMFRAME.timing = CameraTimingParametersContainer()
 
 
 class ImageQualityQuery(QualityQuery):
@@ -94,7 +104,10 @@ class ImageProcessor(TelescopeComponent):
         self.modify = ImageModifier(subarray=subarray, parent=self)
 
         self.check_image = ImageQualityQuery(parent=self)
+
+        self.default_image_container = DEFAULT_IMAGE_PARAMETERS_CAMFRAME
         if self.use_telescope_frame:
+            self.default_image_container = DEFAULT_IMAGE_PARAMETERS
             telescope_frame = TelescopeFrame()
             self.telescope_frame_geometries = {
                 tel_id: self.subarray.tel[tel_id].camera.geometry.transform_to(
@@ -169,7 +182,11 @@ class ImageProcessor(TelescopeComponent):
                     container_class=PeakTimeStatisticsContainer,
                 )
             else:
-                timing = DEFAULT_TIMING_PARAMETERS
+                if self.use_telescope_frame:
+                    timing = DEFAULT_TIMING_PARAMETERS
+                else:
+                    timing = DEFAULT_TIMING_PARAMETERS_CAMFRAME
+
                 peak_time_statistics = DEFAULT_PEAKTIME_STATISTICS
 
             return ImageParametersContainer(
@@ -213,6 +230,7 @@ class ImageProcessor(TelescopeComponent):
                 signal_pixels=dl1_camera.image_mask,
                 peak_time=dl1_camera.peak_time,
                 geometry=geometry,
+                default=self.default_image_container,
             )
 
             self.log.debug("params: %s", dl1_camera.parameters.as_dict(recursive=True))
