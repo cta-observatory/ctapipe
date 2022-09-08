@@ -56,10 +56,6 @@ def telescope_to_horizontal(
 class MonoDispReconstructor(Component):
     """Convert (norm, sign) predictions into (alt, az) predictions"""
 
-    # This is a temporary solution for simulations using a single pointing position
-    pointing_altitude = u.Quantity
-    pointing_azimuth = u.Quantity
-
     def __call__(
         self, event: ArrayEventContainer, regressor_cls, classifier_cls
     ) -> None:
@@ -96,8 +92,16 @@ class MonoDispReconstructor(Component):
                 alt=alt, az=az, is_valid=np.logical_and(valid_sign, valid_norm)
             )
 
-    def predict(self, table: Table, regressor_cls, classifier_cls) -> Table:
+    def predict(
+        self,
+        table: Table,
+        regressor_cls,
+        classifier_cls,
+        pointing_altitude,
+        pointing_azimuth,
+    ) -> Table:
         """Convert for a table of events"""
+        # Pointing information is a temporary solution for simulations using a single pointing position
         prefix = regressor_cls + "_" + classifier_cls
 
         # convert sign score [0, 1] into actual sign {-1, 1}
@@ -121,8 +125,8 @@ class MonoDispReconstructor(Component):
         alt, az = telescope_to_horizontal(
             lon=fov_lon,
             lat=fov_lat,
-            pointing_alt=self.pointing_altitude,
-            pointing_az=self.pointing_azimuth,
+            pointing_alt=pointing_altitude,
+            pointing_az=pointing_azimuth,
         )
 
         result = Table(

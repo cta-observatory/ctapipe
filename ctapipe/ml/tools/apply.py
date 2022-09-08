@@ -202,14 +202,10 @@ class ApplyModels(Tool):
             # Atm pointing information can only be accessed using EventSource
             # Pointing information will be added to HDF5 tables soon, see #1902
             for event in EventSource(self.input_url, max_events=1):
-                self.disp_convert.pointing_altitude = event.pointing.array_altitude.to(
-                    u.deg
-                )
-                self.disp_convert.pointing_azimuth = event.pointing.array_azimuth.to(
-                    u.deg
-                )
+                pointing_altitude = event.pointing.array_altitude.to(u.deg)
+                pointing_azimuth = event.pointing.array_azimuth.to(u.deg)
 
-            mono_predictions = self._apply_disp()
+            mono_predictions = self._apply_disp(pointing_altitude, pointing_azimuth)
             self._combine(self.disp_combine, mono_predictions)
 
     def _apply(self, reconstructor, parameter):
@@ -256,7 +252,7 @@ class ApplyModels(Tool):
 
         return vstack(tel_tables)
 
-    def _apply_disp(self):
+    def _apply_disp(self, pointing_altitude, pointing_azimuth):
         # Different prefix? Two algorithms -> How to combine them?
         prefix = (
             self.disp_regressor.model.model_cls
@@ -324,6 +320,8 @@ class ApplyModels(Tool):
                 table,
                 self.disp_regressor.model.model_cls,
                 self.sign_classifier.model.model_cls,
+                pointing_altitude,
+                pointing_azimuth,
             )
             table = hstack(
                 [table, altaz_predictions],
