@@ -9,7 +9,7 @@ class Predictor:
     def __init__(
         self,
         tel_positions,
-        tel_pointings,
+        tel_pix_coords_altaz,
         tel_solid_angles,
         tel_mirror_area,
         showermodel,
@@ -20,7 +20,7 @@ class Predictor:
         ----------
         tel_positions : u.Quantity[length]
             Position of the telescopes in the frame of the array
-        tel_pointings : u.Quantity[Angle]
+        tel_pix_coords_altaz : u.Quantity[Angle]
             Pointing of the pixels for each telescope in AltAz
         tel_solid_angles : u.Quantity[Angle**2]
             Solid angles of the pixels for each telescope
@@ -30,7 +30,7 @@ class Predictor:
             Showermodel to generate images from
         """
         self.tel_positions = tel_positions
-        self.tel_pointings = tel_pointings
+        self.tel_pix_coords_altaz = tel_pix_coords_altaz
         self.tel_solid_angles = tel_solid_angles
         self.tel_mirror_area = tel_mirror_area
         self.showermodel = showermodel
@@ -41,15 +41,15 @@ class Predictor:
         for tel_id, vec_oc in self._vec_oc.items():
             area = self.tel_mirror_area[tel_id]
             solid_angle = self.tel_solid_angles[tel_id]
-            pointing = self.tel_pointings[tel_id]
-            vec_axis = self._telescope_axis(pointing[0])
+            pix_coords_altaz = self.tel_pix_coords_altaz[tel_id]
+            vec_pointing = self._telescope_axis(pix_coords_altaz[0])
             imgs[tel_id] = self._generate_img(
-                area, solid_angle, vec_oc, pointing, vec_axis
+                area, solid_angle, vec_oc, pix_coords_altaz, vec_pointing
             )
 
         return imgs
 
-    def _generate_img(self, area, solid_angle, vec_oc, pointing, vec_axis):
+    def _generate_img(self, area, solid_angle, vec_oc, pix_coords_altaz, vec_pointing):
         """Generates one image of the shower for a given telescope.
 
         Parameters
@@ -60,15 +60,17 @@ class Predictor:
             Solid angle for each pixel
         vec_oc : u.Quantity[length]
             Vector from optical center of telescope to barycenter of shower
-        pointing : u.Quantity[Angle]
+        pix_coords_altaz : u.Quantity[Angle]
             Pointing of the pixels in AltAz
-        vec_axis : u.Quantity[length]
-            Unit vector of the telescope axis
+        vec_pointing : u.Quantity[length]
+            Unit vector of the telescope axis/pointing
         """
         pix_content = []
-        for pix_id, point in enumerate(pointing):
+        for pix_idx, pix_altaz in enumerate(pix_coords_altaz):
             pix_content.append(
-                self._photons(area, solid_angle[pix_id], vec_oc, point, vec_axis).value
+                self._photons(
+                    area, solid_angle[pix_idx], vec_oc, pix_altaz, vec_pointing
+                ).value
             )
 
         return np.array(pix_content)
@@ -81,15 +83,15 @@ class Predictor:
             vec[tel_id] = self.showermodel.barycenter - position
         return vec
 
-    def _vec_los(self, pix_pointing):
-        """Calculates unit vector for a pixel pointing along the line of sight.
+    def _vec_los(self, pix_altaz):
+        """Calculates unit vector for a pixel pointing/altaz coord along the line of sight.
 
         Parameters
         ----------
-        pix_pointing : u.Quantity[Angle]
-            Pointing of the pixel along the line of sight
+        pix_altaz : u.Quantity[Angle]
+            Pointing/AltAz of the pixel along the line of sight
         """
-        x, y, z = spherical_to_cartesian(1, lat=pix_pointing.alt, lon=pix_pointing.az)
+        x, y, z = spherical_to_cartesian(1, lat=pix_altaz.alt, lon=pix_altaz.az)
         vec = np.stack((x, y, z), -1)
         return vec * u.m
 
@@ -109,7 +111,7 @@ class Predictor:
             * u.m
         )
 
-    def _photons(self, area, solid_angle, vec_oc, pointing, vec_axis):
+    def _photons(self, area, solid_angle, vec_oc, pix_coords_altaz, vec_pointing):
         """Calculates the photons contained in a pixel of interest.
         See https://arxiv.org/pdf/astro-ph/0601373.pdf Equation (1).
 
@@ -121,18 +123,20 @@ class Predictor:
             Solid angle of the pixel.
         vec_oc : u.Quantity[lenght]
             Vector from optical center of the telescope to barycenter of the shower
-        pointing : u.Quantity[Angle]
+        pix_coords_altaz : u.Quantity[Angle]
             Pointing of the pixel in AltAz
-        vec_axis : u.Quantity[lenght]
+        vec_pointing : u.Quantity[lenght]
             Unit vector along the telescope axis
         """
-        vec_los = self._vec_los(pointing)
+        vec_los = self._vec_los(pix_coords_altaz)
         epsilon = np.arccos(
             np.dot(vec_los, self.showermodel.vec_shower_axis)
             / (norm(vec_los) * norm(self.showermodel.vec_shower_axis))
         ).to_value(u.rad)
 
-        theta = np.arccos(np.dot(vec_los, vec_axis) / (norm(vec_los) * norm(vec_axis)))
+        theta = np.arccos(
+            np.dot(vec_los, vec_pointing) / (norm(vec_los) * norm(vec_pointing))
+        )
 
         return (
             area

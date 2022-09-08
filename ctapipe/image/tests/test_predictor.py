@@ -29,7 +29,7 @@ def test_predictor(example_subarray):
 
     lsts = example_subarray.select_subarray([1, 2, 3, 4])
 
-    tel_pointings = {}
+    tel_pix_coords_altaz = {}
     tel_solid_angles = {}
     tel_mirror_area = {}
     for tel_id, tel in lsts.tel.items():
@@ -46,7 +46,7 @@ def test_predictor(example_subarray):
         cam_coords = SkyCoord(x=pix_x, y=pix_y, frame=camera_frame)
 
         cam_altaz = cam_coords.transform_to(AltAz())
-        tel_pointings[tel_id] = cam_altaz
+        tel_pix_coords_altaz[tel_id] = cam_altaz
 
         tel_solid_angles[tel_id] = geometry.transform_to(TelescopeFrame()).pix_area
 
@@ -54,7 +54,7 @@ def test_predictor(example_subarray):
 
     pred = predictor.Predictor(
         tel_positions=lsts.positions,
-        tel_pointings=tel_pointings,
+        tel_pix_coords_altaz=tel_pix_coords_altaz,
         tel_solid_angles=tel_solid_angles,
         tel_mirror_area=tel_mirror_area,
         showermodel=model,
