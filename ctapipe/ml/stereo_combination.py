@@ -161,8 +161,8 @@ class StereoMeanCombiner(StereoCombiner):
             energy_uncert=u.Quantity(std, u.TeV, copy=False),
             telescopes=ids,
             is_valid=valid,
+            prefix=self.algorithm[0],
         )
-        event.dl2.stereo.energy[self.algorithm[0]].prefix = self.algorithm[0]
 
     def _combine_classification(self, event):
         ids = []
@@ -185,9 +185,8 @@ class StereoMeanCombiner(StereoCombiner):
             valid = False
 
         container = ParticleClassificationContainer(
-            prediction=mean, telescopes=ids, is_valid=valid
+            prediction=mean, telescopes=ids, is_valid=valid, prefix=self.algorithm[0]
         )
-        container.prefix = self.algorithm[0]
         event.dl2.stereo.classification[self.algorithm[0]] = container
 
     def _combine_disp(self, event):
@@ -236,8 +235,8 @@ class StereoMeanCombiner(StereoCombiner):
             az=mean_altaz.az.to(u.deg),
             telescopes=ids,
             is_valid=valid,
+            prefix=prefix,
         )
-        event.dl2.stereo.geometry[prefix].prefix = prefix
 
     def __call__(self, event: ArrayEventContainer) -> None:
         """
