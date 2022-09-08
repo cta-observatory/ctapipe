@@ -31,7 +31,10 @@ class TrainDispReconstructor(Tool):
 
     n_events = Int(default_value=None, allow_none=True).tag(config=True)
     random_seed = Int(default_value=0).tag(config=True)
-    project_disp = Bool(default_value=False).tag(config=True)
+    project_disp = Bool(
+        default_value=False,
+        help="Project true source position on main shower axis for true |disp| calculation",
+    ).tag(config=True)
 
     aliases = {
         "input": "TableLoader.input_url",
