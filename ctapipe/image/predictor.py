@@ -65,15 +65,10 @@ class Predictor:
         vec_pointing : u.Quantity[length]
             Unit vector of the telescope axis/pointing
         """
-        pix_content = []
-        for pix_idx, pix_altaz in enumerate(pix_coords_altaz):
-            pix_content.append(
-                self._photons(
-                    area, solid_angle[pix_idx], vec_oc, pix_altaz, vec_pointing
-                ).value
-            )
-
-        return np.array(pix_content)
+        pix_content = self._photons(
+            area, solid_angle, vec_oc, pix_coords_altaz, vec_pointing
+        )
+        return pix_content
 
     @lazyproperty
     def _vec_oc(self):
@@ -130,12 +125,13 @@ class Predictor:
         """
         vec_los = self._vec_los(pix_coords_altaz)
         epsilon = np.arccos(
-            np.dot(vec_los, self.showermodel.vec_shower_axis)
-            / (norm(vec_los) * norm(self.showermodel.vec_shower_axis))
+            np.einsum("ni,i->n", vec_los, self.showermodel.vec_shower_axis)
+            / (norm(vec_los, axis=1) * norm(self.showermodel.vec_shower_axis))
         ).to_value(u.rad)
 
         theta = np.arccos(
-            np.dot(vec_los, vec_pointing) / (norm(vec_los) * norm(vec_pointing))
+            np.einsum("ni,i->n", vec_los, vec_pointing)
+            / (norm(vec_los, axis=1) * norm(vec_pointing))
         )
 
         return (

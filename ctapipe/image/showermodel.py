@@ -132,14 +132,19 @@ class Gaussian:
         sig_u_sq = sig_T**2 * ce**2 + sig_L**2 * (1 - ce**2)
         sig_D_sq = sig_L**2 - sig_T**2
 
-        B_p = np.dot(vec_oc, vec_los).to_value(u.m**2)
-        B_s = np.dot(vec_oc, self.vec_shower_axis).to_value(u.m**2)
-
-        delta_B_sq = np.dot(vec_oc, vec_oc).to_value(u.m**2) - B_p**2
-        C = 1 - self._freq(
-            -(sig_L**2 * B_p - sig_D_sq * ce * B_s)
-            / (np.sqrt(sig_u_sq) * sig_T * sig_L)
+        B_p = np.einsum("i,ni->n", vec_oc.to_value(u.m), vec_los.to_value(u.m))
+        B_s = np.einsum(
+            "i,i->", vec_oc.to_value(u.m), self.vec_shower_axis.to_value(u.m)
         )
+
+        delta_B_sq = (
+            np.einsum("i,i->", vec_oc.to_value(u.m), vec_oc.to_value(u.m)) - B_p**2
+        )
+        upper_bound = -(sig_L**2 * B_p - sig_D_sq * ce * B_s) / (
+            np.sqrt(sig_u_sq) * sig_T * sig_L
+        )
+
+        C = 1 - np.vectorize(self._freq)(upper_bound)
         constant = self.total_photons * C / (2 * np.pi * np.sqrt(sig_u_sq) * sig_T)
         return constant * np.exp(
             -0.5
@@ -175,7 +180,14 @@ class Gaussian:
         eta = 15e-3 * np.sqrt(np.cos(self.zenith.to_value(u.rad)))  # 15mrad
 
         normalization = 1 / (9 * np.pi * eta**2)
-        if epsilon < eta:
-            return normalization
-        else:
-            return normalization * eta / epsilon * np.exp(-(epsilon - eta) / (4 * eta))
+
+        proba = np.zeros_like(epsilon)
+        proba[epsilon < eta] = normalization
+        proba[epsilon >= eta] = (
+            normalization
+            * eta
+            / epsilon[epsilon >= eta]
+            * np.exp(-(epsilon[epsilon >= eta] - eta) / (4 * eta))
+        )
+
+        return proba

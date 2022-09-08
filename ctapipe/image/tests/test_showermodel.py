@@ -97,7 +97,11 @@ def test_emission():
 
     assert (
         approx(
-            quad(lambda x: 2 * np.pi * model.emission_probability(x) * x, 0, np.pi)[0],
+            quad(
+                lambda x: 2 * np.pi * model.emission_probability(np.array([x])) * x,
+                0,
+                np.pi,
+            )[0],
             1e-2,
         )
         == 1
