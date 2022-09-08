@@ -11,10 +11,6 @@ from ..preprocessing import check_valid_rows
 from ..sklearn import Classifier, Regressor
 
 
-def euclidean_distance(x1, y1, x2, y2):
-    return np.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
-
-
 class TrainDispReconstructor(Tool):
     """Train two ML models for origin reconstruction using the disp method"""
 
@@ -162,8 +158,9 @@ class TrainDispReconstructor(Tool):
         if self.project_disp:
             true_norm = np.abs(true_disp)
         else:
-            true_norm = euclidean_distance(
-                fov_lon, fov_lat, table["hillas_fov_lon"], table["hillas_fov_lat"]
+            true_norm = np.sqrt(
+                (fov_lon - table["hillas_fov_lon"]) ** 2
+                + (fov_lat - table["hillas_fov_lat"]) ** 2
             )
 
         return true_norm, true_sign
