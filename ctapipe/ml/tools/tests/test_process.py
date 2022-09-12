@@ -139,8 +139,18 @@ def test_process_apply_disp(
     ]
     assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path, raises=True) == 0
 
-    print(read_table(output, "/dl2/event/telescope/disp/ExtraTreesRegressor/tel_004"))
-    print(read_table(output, "/dl2/event/telescope/disp/ExtraTreesClassifier/tel_004"))
+    assert (
+        "ExtraTreesRegressor_norm"
+        in read_table(
+            output, "/dl2/event/telescope/disp/ExtraTreesRegressor/tel_004"
+        ).colnames
+    )
+    assert (
+        "ExtraTreesClassifier_sign"
+        in read_table(
+            output, "/dl2/event/telescope/disp/ExtraTreesClassifier/tel_004"
+        ).colnames
+    )
     print(
         read_table(
             output,
