@@ -22,7 +22,7 @@ def test_apply_energy_regressor(
         argv=[
             f"--input={input_path}",
             f"--output={output_path}",
-            f"--regressor={energy_regressor_path}",
+            f"--energy-regressor={energy_regressor_path}",
             "--ApplyModels.StereoMeanCombiner.weights=konrad",
         ],
         raises=True,
@@ -72,7 +72,7 @@ def test_apply_particle_classifier(
         argv=[
             f"--input={input_path}",
             f"--output={output_path}",
-            f"--classifier={particle_classifier_path}",
+            f"--particle-classifier={particle_classifier_path}",
             "--ApplyModels.StereoMeanCombiner.weights=konrad",
         ],
     )
@@ -173,8 +173,8 @@ def test_apply_all(
         argv=[
             f"--input={input_path}",
             f"--output={output_path}",
-            f"--classifier={particle_classifier_path}",
-            f"--regressor={energy_regressor_path}",
+            f"--particle-classifier={particle_classifier_path}",
+            f"--energy-regressor={energy_regressor_path}",
             f"--disp-regressor={disp_reconstructor_paths[0]}",
             f"--sign-classifier={disp_reconstructor_paths[1]}",
             "--ApplyModels.StereoMeanCombiner.weights=konrad",

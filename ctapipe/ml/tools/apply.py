@@ -80,8 +80,8 @@ class ApplyModels(Tool):
 
     aliases = {
         ("i", "input"): "ApplyModels.input_url",
-        "regressor": "ApplyModels.energy_regressor_path",
-        "classifier": "ApplyModels.particle_classifier_path",
+        "energy-regressor": "ApplyModels.energy_regressor_path",
+        "particle-classifier": "ApplyModels.particle_classifier_path",
         "disp-regressor": "ApplyModels.disp_regressor_path",
         "sign-classifier": "ApplyModels.sign_classifier_path",
         ("o", "output"): "ApplyModels.output_path",
