@@ -3,7 +3,7 @@ from abc import abstractmethod
 import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
 
-from ctapipe.containers import ArrayEventContainer, ReconstructedGeometryContainer
+from ctapipe.containers import ArrayEventContainer
 from ctapipe.core import Component, QualityQuery
 from ctapipe.core.traits import List
 
@@ -55,10 +55,10 @@ class Reconstructor(Component):
 
         Returns
         -------
-        `~ctapipe.containers.ReconstructedGeometryContainer`
+        None
+        Container are directly filled into the event structure
 
         """
-        return ReconstructedGeometryContainer()
 
     def _create_hillas_dict(self, event):
         hillas_dict = {

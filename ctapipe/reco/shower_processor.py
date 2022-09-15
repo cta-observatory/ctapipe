@@ -71,7 +71,7 @@ class ShowerProcessor(Component):
             Top-level container for all event information.
         """
         k = self.reconstructor_type
-        event.dl2.stereo.geometry[k] = self.reconstructor(event)
+        self.reconstructor(event)
 
         # compute and store the impact parameter for each reconstruction (for
         # now there is only one, but in the future this should be a loop over

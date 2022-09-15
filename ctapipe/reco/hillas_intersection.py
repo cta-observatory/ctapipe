@@ -98,10 +98,6 @@ class HillasIntersection(Reconstructor):
         ----------
         event: `ctapipe.containers.ArrayEventContainer`
             The event, needs to have dl1 parameters
-
-        Returns
-        -------
-        ReconstructedGeometryContainer
         """
 
         try:
@@ -118,7 +114,9 @@ class HillasIntersection(Reconstructor):
 
         telescope_pointings = self._get_telescope_pointings(event)
 
-        return self._predict(hillas_dict, array_pointing, telescope_pointings)
+        event.dl2.stereo.geometry[self.__class__.__name__] = self._predict(
+            hillas_dict, array_pointing, telescope_pointings
+        )
 
     def _predict(self, hillas_dict, array_pointing, telescopes_pointings=None):
         """

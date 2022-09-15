@@ -1,10 +1,11 @@
-from ctapipe.reco.hillas_intersection import HillasIntersection
 import astropy.units as u
-from numpy.testing import assert_allclose
 import numpy as np
 from astropy.coordinates import SkyCoord
-from ctapipe.coordinates import NominalFrame, AltAz, CameraFrame
+from numpy.testing import assert_allclose
+
 from ctapipe.containers import HillasParametersContainer
+from ctapipe.coordinates import AltAz, CameraFrame, NominalFrame
+from ctapipe.reco.hillas_intersection import HillasIntersection
 
 
 def test_intersect():
@@ -55,9 +56,7 @@ def test_intersection_xmax_reco(example_subarray):
     altaz = AltAz()
     zen_pointing = 10 * u.deg
 
-    array_direction = SkyCoord(
-        alt=90 * u.deg - zen_pointing, az=0 * u.deg, frame=altaz
-    )
+    array_direction = SkyCoord(alt=90 * u.deg - zen_pointing, az=0 * u.deg, frame=altaz)
     nom_frame = NominalFrame(origin=array_direction)
 
     source_sky_pos_reco = SkyCoord(
@@ -225,7 +224,8 @@ def test_reconstruction_works(subarray_and_event_gamma_off_axis_500_gev):
         alt=event.simulation.shower.alt, az=event.simulation.shower.az, frame=AltAz()
     )
 
-    result = reconstructor(event)
+    reconstructor(event)
+    result = event.dl2.stereo.geometry["HillasIntersection"]
     reco_coord = SkyCoord(alt=result.alt, az=result.az, frame=AltAz())
     assert reco_coord.separation(true_coord) < 0.1 * u.deg
 
@@ -244,5 +244,6 @@ def test_selected_subarray(subarray_and_event_gamma_off_axis_500_gev):
     subarray = subarray.select_subarray(allowed_tels)
 
     reconstructor = HillasIntersection(subarray)
-    result = reconstructor(event)
+    reconstructor(event)
+    result = event.dl2.stereo.geometry["HillasIntersection"]
     assert result.is_valid

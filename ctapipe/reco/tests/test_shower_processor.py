@@ -1,9 +1,10 @@
 """
 Tests for ShowerProcessor functionalities.
 """
-from numpy import isfinite
-import pytest
+from copy import deepcopy
 
+import pytest
+from numpy import isfinite
 from traitlets.config.loader import Config
 
 from ctapipe.calib import CameraCalibrator
@@ -11,7 +12,9 @@ from ctapipe.image import ImageProcessor
 from ctapipe.reco import ShowerProcessor
 
 
-@pytest.mark.parametrize("reconstructor_type", ["HillasReconstructor", "HillasIntersection"])
+@pytest.mark.parametrize(
+    "reconstructor_type", ["HillasReconstructor", "HillasIntersection"]
+)
 def test_shower_processor_geometry(example_event, example_subarray, reconstructor_type):
     """Ensure we get shower geometry when we input an event with parametrized images."""
 
@@ -24,16 +27,17 @@ def test_shower_processor_geometry(example_event, example_subarray, reconstructo
     )
 
     process_shower = ShowerProcessor(
-        subarray=example_subarray,
-        reconstructor_type=reconstructor_type
+        subarray=example_subarray, reconstructor_type=reconstructor_type
     )
 
     calibrate(example_event)
     process_images(example_event)
 
-    process_shower(example_event)
+    example_event_copy = deepcopy(example_event)
 
-    DL2a = example_event.dl2.stereo.geometry[reconstructor_type]
+    process_shower(example_event_copy)
+
+    DL2a = example_event_copy.dl2.stereo.geometry[reconstructor_type]
     print(DL2a)
     assert isfinite(DL2a.alt)
     assert isfinite(DL2a.az)
@@ -54,9 +58,10 @@ def test_shower_processor_geometry(example_event, example_subarray, reconstructo
         reconstructor_type=reconstructor_type,
     )
 
-    process_shower(example_event)
+    example_event_copy = deepcopy(example_event)
+    process_shower(example_event_copy)
 
-    DL2a = example_event.dl2.stereo.geometry[reconstructor_type]
+    DL2a = example_event_copy.dl2.stereo.geometry[reconstructor_type]
     print(DL2a)
     assert not isfinite(DL2a.alt)
     assert not isfinite(DL2a.az)
