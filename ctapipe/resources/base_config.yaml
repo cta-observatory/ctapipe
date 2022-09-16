@@ -93,9 +93,9 @@ ImageProcessor:
 # The ShowerProcessor performs the DL1 to DL2a (reconstructed shower geometry)
 # transition. It is run only if the parameter DataWriter.write_showers=True.
 ShowerProcessor:
-  # choose between HillasReconstructor and HillasIntersection (two
+  # choose between HillasReconstructor and HillasIntersection or both (two
   # implementations of the standard stereo line-intersection method)
-  reconstructor_type: HillasReconstructor
+  reconstructor_types: [HillasReconstructor, HillasIntersection]
 
   HillasReconstructor:
     # Choose which telescope events should be included in the reconstruction.

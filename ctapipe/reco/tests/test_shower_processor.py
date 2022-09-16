@@ -13,9 +13,16 @@ from ctapipe.reco import ShowerProcessor
 
 
 @pytest.mark.parametrize(
-    "reconstructor_type", ["HillasReconstructor", "HillasIntersection"]
+    "reconstructor_types",
+    [
+        ["HillasReconstructor"],
+        ["HillasIntersection"],
+        ["HillasReconstructor", "HillasIntersection"],
+    ],
 )
-def test_shower_processor_geometry(example_event, example_subarray, reconstructor_type):
+def test_shower_processor_geometry(
+    example_event, example_subarray, reconstructor_types
+):
     """Ensure we get shower geometry when we input an event with parametrized images."""
 
     calibrate = CameraCalibrator(subarray=example_subarray)
@@ -27,7 +34,7 @@ def test_shower_processor_geometry(example_event, example_subarray, reconstructo
     )
 
     process_shower = ShowerProcessor(
-        subarray=example_subarray, reconstructor_type=reconstructor_type
+        subarray=example_subarray, reconstructor_types=reconstructor_types
     )
 
     calibrate(example_event)
@@ -37,36 +44,39 @@ def test_shower_processor_geometry(example_event, example_subarray, reconstructo
 
     process_shower(example_event_copy)
 
-    DL2a = example_event_copy.dl2.stereo.geometry[reconstructor_type]
-    print(DL2a)
-    assert isfinite(DL2a.alt)
-    assert isfinite(DL2a.az)
-    assert isfinite(DL2a.core_x)
-    assert isfinite(DL2a.core_x)
-    assert isfinite(DL2a.core_y)
-    assert DL2a.is_valid
-    assert isfinite(DL2a.average_intensity)
+    for reco_type in reconstructor_types:
+        DL2a = example_event_copy.dl2.stereo.geometry[reco_type]
+        print(DL2a)
+        assert isfinite(DL2a.alt)
+        assert isfinite(DL2a.az)
+        assert isfinite(DL2a.core_x)
+        assert isfinite(DL2a.core_x)
+        assert isfinite(DL2a.core_y)
+        assert DL2a.is_valid
+        assert isfinite(DL2a.average_intensity)
 
     # Increase some quality cuts and check that we get defaults
-    config[reconstructor_type].StereoQualityQuery.quality_criteria = [
-        ("> 500 phes", "parameters.hillas.intensity > 500")
-    ]
+    for reco_type in reconstructor_types:
+        config[reco_type].StereoQualityQuery.quality_criteria = [
+            ("> 500 phes", "parameters.hillas.intensity > 500")
+        ]
 
     process_shower = ShowerProcessor(
         config=config,
         subarray=example_subarray,
-        reconstructor_type=reconstructor_type,
+        reconstructor_types=reconstructor_types,
     )
 
     example_event_copy = deepcopy(example_event)
     process_shower(example_event_copy)
 
-    DL2a = example_event_copy.dl2.stereo.geometry[reconstructor_type]
-    print(DL2a)
-    assert not isfinite(DL2a.alt)
-    assert not isfinite(DL2a.az)
-    assert not isfinite(DL2a.core_x)
-    assert not isfinite(DL2a.core_x)
-    assert not isfinite(DL2a.core_y)
-    assert not DL2a.is_valid
-    assert not isfinite(DL2a.average_intensity)
+    for reco_type in reconstructor_types:
+        DL2a = example_event_copy.dl2.stereo.geometry[reco_type]
+        print(DL2a)
+        assert not isfinite(DL2a.alt)
+        assert not isfinite(DL2a.az)
+        assert not isfinite(DL2a.core_x)
+        assert not isfinite(DL2a.core_x)
+        assert not isfinite(DL2a.core_y)
+        assert not DL2a.is_valid
+        assert not isfinite(DL2a.average_intensity)
