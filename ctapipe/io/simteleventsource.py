@@ -73,6 +73,27 @@ SIMTEL_TO_CTA_EVENT_TYPE = {
     -1: EventType.OTHER_CALIBRATION,
 }
 
+_half_pi = 0.5 * np.pi
+_half_pi_maxval = (1 + 1e-6) * _half_pi
+
+
+def _clip_altitude_if_close(altitude):
+    """
+    Round absolute values slightly larger than pi/2 in float64 to pi/2
+
+    These can come from simtel_array because float32(pi/2) > float64(pi/2)
+    and simtel using float32.
+
+    Astropy complains about these values, so we fix them here.
+    """
+    if altitude > _half_pi and altitude < _half_pi_maxval:
+        return _half_pi
+
+    if altitude < -_half_pi and altitude > -_half_pi_maxval:
+        return -_half_pi
+
+    return altitude
+
 
 @enum.unique
 class MirrorClass(enum.Enum):
@@ -700,9 +721,13 @@ class SimTelEventSource(EventSource):
 
         # take pointing corrected position if available
         if np.isnan(altitude_cor):
-            altitude = u.Quantity(altitude_raw, u.rad, copy=False)
+            altitude = u.Quantity(
+                _clip_altitude_if_close(altitude_raw), u.rad, copy=False
+            )
         else:
-            altitude = u.Quantity(altitude_cor, u.rad, copy=False)
+            altitude = u.Quantity(
+                _clip_altitude_if_close(altitude_cor), u.rad, copy=False
+            )
 
         return TelescopePointingContainer(azimuth=azimuth, altitude=altitude)
 
@@ -814,8 +839,8 @@ class SimTelEventSource(EventSource):
             detector_prog_id=mc_run_head["detector_prog_id"],
             n_showers=mc_run_head["n_showers"],
             shower_reuse=mc_run_head["n_use"],
-            max_alt=mc_run_head["alt_range"][1] * u.rad,
-            min_alt=mc_run_head["alt_range"][0] * u.rad,
+            max_alt=_clip_altitude_if_close(mc_run_head["alt_range"][1]) * u.rad,
+            min_alt=_clip_altitude_if_close(mc_run_head["alt_range"][0]) * u.rad,
             max_az=mc_run_head["az_range"][1] * u.rad,
             min_az=mc_run_head["az_range"][0] * u.rad,
             diffuse=mc_run_head["diffuse"],
@@ -878,9 +903,11 @@ class SimTelEventSource(EventSource):
         if mc_shower is None:
             return
 
+        alt = _clip_altitude_if_close(mc_shower["altitude"])
+
         return SimulatedShowerContainer(
             energy=u.Quantity(mc_shower["energy"], u.TeV),
-            alt=Angle(mc_shower["altitude"], u.rad),
+            alt=Angle(alt, u.rad),
             az=Angle(mc_shower["azimuth"], u.rad),
             core_x=u.Quantity(mc_event["xcore"], u.m),
             core_y=u.Quantity(mc_event["ycore"], u.m),
