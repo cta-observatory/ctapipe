@@ -31,7 +31,7 @@ class ShowerProcessor(Component):
             default_value="HillasReconstructor",
         ),
         default_value=["HillasReconstructor"],
-        help="The stereo geometry reconstructors to be used",
+        help=f"The stereo geometry reconstructors to be used. Choices are: {list(Reconstructor.non_abstract_subclasses().keys())}",
     ).tag(config=True)
 
     def __init__(
