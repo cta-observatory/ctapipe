@@ -82,9 +82,12 @@ class ShowerProcessor(Component):
             shower_geom=event.dl2.stereo.geometry[k], subarray=self.subarray
         )
 
+        default_prefix = TelescopeImpactParameterContainer.default_prefix
+        prefix = f"{self.reconstructor_type}_tel_{default_prefix}"
+
         for tel_id in event.trigger.tels_with_trigger:
             tel_index = self.subarray.tel_indices[tel_id]
             event.dl2.tel[tel_id].impact[k] = TelescopeImpactParameterContainer(
                 distance=impact_distances[tel_index],
-                prefix=f"{self.reconstructor_type}_tel",
+                prefix=prefix,
             )

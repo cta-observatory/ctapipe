@@ -193,7 +193,8 @@ def test_read_telescope_events_type(dl2_shower_geometry_file):
         expected_ids = subarray.get_tel_ids_for_type("MST_MST_FlashCam")
         assert set(table["tel_id"].data).issubset(expected_ids)
         assert "equivalent_focal_length" in table.colnames
-        assert "HillasReconstructor_tel_distance" in table.colnames
+        # regression test for #2051
+        assert "HillasReconstructor_tel_impact_distance" in table.colnames
 
 
 def test_read_telescope_events_by_type(dl2_shower_geometry_file):
