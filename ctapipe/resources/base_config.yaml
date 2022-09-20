@@ -95,7 +95,9 @@ ImageProcessor:
 ShowerProcessor:
   # choose between HillasReconstructor and HillasIntersection or both (two
   # implementations of the standard stereo line-intersection method)
-  reconstructor_types: [HillasReconstructor, HillasIntersection]
+  reconstructor_types:
+    - HillasReconstructor
+      #  - HillasIntersection
 
   HillasReconstructor:
     # Choose which telescope events should be included in the reconstruction.
