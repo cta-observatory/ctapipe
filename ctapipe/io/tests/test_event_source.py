@@ -16,7 +16,7 @@ def test_construct():
         EventSource()
 
 
-class DummyReader(EventSource):
+class DummyEventSource(EventSource):
     """
     Simple working EventSource
     """
@@ -54,13 +54,13 @@ class DummyReader(EventSource):
 
 def test_can_be_implemented():
     dataset = get_dataset_path(prod5_path)
-    test_reader = DummyReader(input_url=dataset)
+    test_reader = DummyEventSource(input_url=dataset)
     assert test_reader is not None
 
 
 def test_is_iterable():
     dataset = get_dataset_path(prod5_path)
-    test_reader = DummyReader(input_url=dataset)
+    test_reader = DummyEventSource(input_url=dataset)
     for _ in test_reader:
         pass
 
@@ -98,7 +98,7 @@ def test_from_config(tmp_path):
 
     config = Config({"EventSource": {"input_url": dataset}})
     reader = EventSource(config=config)
-    assert isinstance(reader, DummyReader)
+    assert isinstance(reader, DummyEventSource)
     assert reader.input_url == dataset
 
 
