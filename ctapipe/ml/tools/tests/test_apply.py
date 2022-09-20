@@ -107,7 +107,7 @@ def test_apply_particle_classifier(
 
 
 def test_apply_disp_reconstructor(
-    disp_reconstructor_paths,
+    disp_reconstructor_path,
     dl2_shower_geometry_file_lapalma,
     tmp_path,
 ):
@@ -121,8 +121,7 @@ def test_apply_disp_reconstructor(
         argv=[
             f"--input={input_path}",
             f"--output={output_path}",
-            f"--disp-regressor={disp_reconstructor_paths[0]}",
-            f"--sign-classifier={disp_reconstructor_paths[1]}",
+            f"--disp-models={disp_reconstructor_path}",
             "--ApplyModels.StereoMeanCombiner.weights=konrad",
         ],
     )
@@ -130,36 +129,35 @@ def test_apply_disp_reconstructor(
 
     loader = TableLoader(output_path, load_dl2=True)
     events = loader.read_subarray_events()
-    assert "ExtraTreesRegressor_ExtraTreesClassifier_alt" in events.colnames
-    assert "ExtraTreesRegressor_ExtraTreesClassifier_alt_uncert" in events.colnames
-    assert "ExtraTreesRegressor_ExtraTreesClassifier_az" in events.colnames
-    assert "ExtraTreesRegressor_ExtraTreesClassifier_az_uncert" in events.colnames
-    assert "ExtraTreesRegressor_ExtraTreesClassifier_is_valid" in events.colnames
-    assert "ExtraTreesRegressor_ExtraTreesClassifier_goodness_of_fit" in events.colnames
-    assert "ExtraTreesRegressor_ExtraTreesClassifier_tel_ids" in events.colnames
+    assert "disp_alt" in events.colnames
+    assert "disp_alt_uncert" in events.colnames
+    assert "disp_az" in events.colnames
+    assert "disp_az_uncert" in events.colnames
+    assert "disp_is_valid" in events.colnames
+    assert "disp_goodness_of_fit" in events.colnames
+    assert "disp_tel_ids" in events.colnames
 
     events = loader.read_telescope_events()
-    assert "ExtraTreesRegressor_ExtraTreesClassifier_alt" in events.colnames
-    assert "ExtraTreesRegressor_ExtraTreesClassifier_alt_uncert" in events.colnames
-    assert "ExtraTreesRegressor_ExtraTreesClassifier_az" in events.colnames
-    assert "ExtraTreesRegressor_ExtraTreesClassifier_az_uncert" in events.colnames
-    assert "ExtraTreesRegressor_ExtraTreesClassifier_is_valid" in events.colnames
-    assert "ExtraTreesRegressor_ExtraTreesClassifier_goodness_of_fit" in events.colnames
-    assert "ExtraTreesRegressor_ExtraTreesClassifier_tel_ids" in events.colnames
+    assert "disp_alt" in events.colnames
+    assert "disp_alt_uncert" in events.colnames
+    assert "disp_az" in events.colnames
+    assert "disp_az_uncert" in events.colnames
+    assert "disp_is_valid" in events.colnames
+    assert "disp_goodness_of_fit" in events.colnames
+    assert "disp_tel_ids" in events.colnames
 
-    assert "ExtraTreesRegressor_ExtraTreesClassifier_alt_mono" in events.colnames
-    assert "ExtraTreesRegressor_ExtraTreesClassifier_az_mono" in events.colnames
-    assert "ExtraTreesRegressor_ExtraTreesClassifier_is_valid_mono" in events.colnames
-    assert "ExtraTreesRegressor_norm" in events.colnames
-    assert "ExtraTreesRegressor_norm_is_valid" in events.colnames
-    assert "ExtraTreesClassifier_sign" in events.colnames
-    assert "ExtraTreesClassifier_sign_is_valid" in events.colnames
+    assert "disp_alt_mono" in events.colnames
+    assert "disp_az_mono" in events.colnames
+    assert "disp_is_valid_mono" in events.colnames
+    assert "disp_norm" in events.colnames
+    assert "disp_sign" in events.colnames
+    assert "disp_sign_score" in events.colnames
 
 
 def test_apply_all(
     energy_regressor_path,
     particle_classifier_path,
-    disp_reconstructor_paths,
+    disp_reconstructor_path,
     dl2_shower_geometry_file_lapalma,
     tmp_path,
 ):
@@ -175,8 +173,7 @@ def test_apply_all(
             f"--output={output_path}",
             f"--particle-classifier={particle_classifier_path}",
             f"--energy-regressor={energy_regressor_path}",
-            f"--disp-regressor={disp_reconstructor_paths[0]}",
-            f"--sign-classifier={disp_reconstructor_paths[1]}",
+            f"--disp-models={disp_reconstructor_path}",
             "--ApplyModels.StereoMeanCombiner.weights=konrad",
         ],
     )
@@ -187,11 +184,11 @@ def test_apply_all(
     events = loader.read_subarray_events()
     assert "ExtraTreesRegressor_energy" in events.colnames
     assert "ExtraTreesClassifier_prediction" in events.colnames
-    assert "ExtraTreesRegressor_ExtraTreesClassifier_alt" in events.colnames
-    assert "ExtraTreesRegressor_ExtraTreesClassifier_az" in events.colnames
+    assert "disp_alt" in events.colnames
+    assert "disp_az" in events.colnames
 
     events = loader.read_telescope_events()
     assert "ExtraTreesRegressor_energy" in events.colnames
     assert "ExtraTreesClassifier_prediction" in events.colnames
-    assert "ExtraTreesRegressor_ExtraTreesClassifier_alt" in events.colnames
-    assert "ExtraTreesRegressor_ExtraTreesClassifier_az" in events.colnames
+    assert "disp_alt" in events.colnames
+    assert "disp_az" in events.colnames

@@ -10,8 +10,7 @@ parameters to predict DL2 parameters per telescope.
 from .sklearn import (
     EnergyRegressor,
     ParticleIdClassifier,
-    DispRegressor,
-    DispClassifier,
+    DispReconstructor,
     SKLearnClassficationReconstructor,
     SKLearnReconstructor,
     SKLearnRegressionReconstructor,
@@ -21,8 +20,7 @@ from .stereo_combination import StereoCombiner, StereoMeanCombiner
 __all__ = [
     "EnergyRegressor",
     "ParticleIdClassifier",
-    "DispRegressor",
-    "DispClassifier",
+    "DispReconstructor",
     "SKLearnReconstructor",
     "SKLearnClassficationReconstructor",
     "SKLearnRegressionReconstructor",

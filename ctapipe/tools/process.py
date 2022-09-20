@@ -22,8 +22,7 @@ from ..io import (
 )
 from ..io.datawriter import DATA_MODEL_VERSION
 from ..ml import (
-    DispClassifier,
-    DispRegressor,
+    DispReconstructor,
     EnergyRegressor,
     ParticleIdClassifier,
     StereoCombiner,
@@ -87,20 +86,12 @@ class ProcessorTool(Tool):
         help="Path to a trained particle id classifier model (see ctapipe-ml-train-particle-classifier)",
     ).tag(config=True)
 
-    disp_regressor_path = Path(
+    disp_models_path = Path(
         default_value=None,
         allow_none=True,
         exists=True,
         directory_ok=False,
-        help="Path to a trained disp regressor model (see ctapipe-ml-train-disp-reconstructor)",
-    ).tag(config=True)
-
-    sign_classifier_path = Path(
-        default_value=None,
-        allow_none=True,
-        exists=True,
-        directory_ok=False,
-        help="Path to a trained sign classifier model (see ctapipe-ml-train-disp-reconstructor)",
+        help="Path to trained disp models (see ctapipe-ml-train-disp-reconstructor)",
     ).tag(config=True)
 
     force_recompute_dl2 = Bool(
@@ -116,9 +107,8 @@ class ProcessorTool(Tool):
         ("t", "allowed-tels"): "EventSource.allowed_tels",
         ("m", "max-events"): "EventSource.max_events",
         ("e", "energy-regressor"): "ProcessorTool.energy_regressor_path",
-        ("particle-classifier"): "ProcessorTool.particle_classifier_path",
-        "disp-regressor": "ProcessorTool.disp_regressor_path",
-        "sign-classifier": "ProcessorTool.sign_classifier_path",
+        ("p", "particle-classifier"): "ProcessorTool.particle_classifier_path",
+        ("d", "disp-models"): "ProcessorTool.disp_models_path",
         "image-cleaner-type": "ImageProcessor.image_cleaner_type",
     }
 
@@ -236,21 +226,13 @@ class ProcessorTool(Tool):
                 self.particle_classifier_path,
                 parent=self,
             )
-        self.disp_regressor = None
-        if self.disp_regressor_path is not None:
-            self.disp_regressor = DispRegressor.read(
-                self.disp_regressor_path,
+        self.disp_models = None
+        if self.disp_models_path is not None:
+            self.disp_models = DispReconstructor.read(
+                self.disp_models_path,
                 self.event_source.subarray,
                 parent=self,
             )
-        self.sign_classifier = None
-        if self.sign_classifier_path is not None:
-            self.sign_classifier = DispClassifier.read(
-                self.sign_classifier_path,
-                self.event_source.subarray,
-                parent=self,
-            )
-        if self.disp_regressor is not None and self.sign_classifier is not None:
             self.disp_converter = MonoDispReconstructor(parent=self)
 
         self.stereo_combiners = []
@@ -371,16 +353,9 @@ class ProcessorTool(Tool):
                     self.energy_regressor(event)
                 if self.particle_classifier is not None:
                     self.particle_classifier(event)
-                if self.disp_regressor is not None:
-                    self.disp_regressor(event)
-                if self.sign_classifier is not None:
-                    self.sign_classifier(event)
-                    if self.disp_regressor is not None:
-                        self.disp_converter(
-                            event,
-                            self.disp_regressor.model.model_cls,
-                            self.sign_classifier.model.model_cls,
-                        )
+                if self.disp_models is not None:
+                    self.disp_models(event)
+                    self.disp_converter(event)
 
             for combiner in self.stereo_combiners:
                 combiner(event)

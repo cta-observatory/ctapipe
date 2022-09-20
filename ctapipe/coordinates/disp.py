@@ -56,23 +56,16 @@ def telescope_to_horizontal(
 class MonoDispReconstructor(Component):
     """Convert (norm, sign) predictions into (alt, az) predictions"""
 
-    def __call__(
-        self, event: ArrayEventContainer, regressor_cls, classifier_cls
-    ) -> None:
+    def __call__(self, event: ArrayEventContainer) -> None:
         """Convert and fill in corresponding container"""
-        prefix = regressor_cls + "_" + classifier_cls
+        prefix = "disp"
 
         for tel_id in event.trigger.tels_with_trigger:
-            # Maybe NormContainer + SignContainer makes more sense
-            # As is: DispContainer always contains only sign or norm
-            norm = event.dl2.tel[tel_id].disp[regressor_cls].norm
-            valid_norm = event.dl2.tel[tel_id].disp[regressor_cls].norm_is_valid
-            sign = event.dl2.tel[tel_id].disp[classifier_cls].sign
-            valid_sign = event.dl2.tel[tel_id].disp[classifier_cls].sign_is_valid
+            norm = event.dl2.tel[tel_id].disp[prefix].norm
+            sign = event.dl2.tel[tel_id].disp[prefix].sign
+            valid = event.dl2.tel[tel_id].disp[prefix].is_valid
 
-            if valid_sign and valid_norm:
-                sign = -1 if sign < 0.5 else 1
-
+            if valid:
                 disp = norm * sign
 
                 fov_lon = event.dl1.tel[
@@ -92,38 +85,24 @@ class MonoDispReconstructor(Component):
                     pointing_az=event.pointing.tel[tel_id].azimuth.to(u.deg),
                 )
 
-                event.dl2.tel[tel_id].geometry[prefix] = ReconstructedGeometryContainer(
+                container = ReconstructedGeometryContainer(
                     alt=alt, az=az, is_valid=True
                 )
             else:
-                event.dl2.tel[tel_id].geometry[prefix] = ReconstructedGeometryContainer(
+                container = ReconstructedGeometryContainer(
                     alt=u.Quantity(np.nan, u.deg, copy=False),
                     az=u.Quantity(np.nan, u.deg, copy=False),
                     is_valid=False,
                 )
 
-    def predict(
-        self,
-        table: Table,
-        regressor_cls,
-        classifier_cls,
-        pointing_altitude,
-        pointing_azimuth,
-    ) -> Table:
+            event.dl2.tel[tel_id].geometry[prefix] = container
+
+    def predict(self, table: Table, pointing_altitude, pointing_azimuth) -> Table:
         """Convert for a table of events"""
         # Pointing information is a temporary solution for simulations using a single pointing position
-        prefix = regressor_cls + "_" + classifier_cls
+        prefix = "disp"
 
-        # convert sign score [0, 1] into actual sign {-1, 1}
-        valid_sign = table[f"{classifier_cls}_sign_is_valid"]
-
-        table[f"{classifier_cls}_sign"][valid_sign] = np.where(
-            table[f"{classifier_cls}_sign"][valid_sign] < 0.5, -1, 1
-        )
-
-        disp_predictions = (
-            table[f"{regressor_cls}_norm"] * table[f"{classifier_cls}_sign"]
-        )
+        disp_predictions = table[f"{prefix}_norm"] * table[f"{prefix}_sign"]
 
         fov_lon = table["hillas_fov_lon"] + disp_predictions * np.cos(
             table["hillas_psi"].to(u.rad)
@@ -143,10 +122,6 @@ class MonoDispReconstructor(Component):
             {
                 f"{prefix}_alt": alt,
                 f"{prefix}_az": az,
-                f"{prefix}_is_valid": np.logical_and(
-                    table[f"{regressor_cls}_norm_is_valid"],
-                    table[f"{classifier_cls}_sign_is_valid"],
-                ),
             }
         )
 

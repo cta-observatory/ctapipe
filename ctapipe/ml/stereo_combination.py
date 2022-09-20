@@ -58,7 +58,7 @@ def _weighted_mean_ufunc(tel_values, weights, n_array_events, indices):
 
 class StereoCombiner(Component):
     # TODO: Add quality query (after #1888)
-    algorithm = List(Unicode()).tag(config=True)
+    algorithm = Unicode().tag(config=True)
     combine_property = CaselessStrEnum(["energy", "classification", "geometry"]).tag(
         config=True
     )
@@ -127,7 +127,7 @@ class StereoMeanCombiner(StereoCombiner):
         weights = []
 
         for tel_id, dl2 in event.dl2.tel.items():
-            mono = dl2.energy[self.algorithm[0]]
+            mono = dl2.energy[self.algorithm]
             if mono.is_valid:
                 values.append(mono.energy.to_value(u.TeV))
                 if tel_id not in event.dl1.tel:
@@ -156,12 +156,12 @@ class StereoMeanCombiner(StereoCombiner):
             mean = std = np.nan
             valid = False
 
-        event.dl2.stereo.energy[self.algorithm[0]] = ReconstructedEnergyContainer(
+        event.dl2.stereo.energy[self.algorithm] = ReconstructedEnergyContainer(
             energy=u.Quantity(mean, u.TeV, copy=False),
             energy_uncert=u.Quantity(std, u.TeV, copy=False),
             telescopes=ids,
             is_valid=valid,
-            prefix=self.algorithm[0],
+            prefix=self.algorithm,
         )
 
     def _combine_classification(self, event):
@@ -170,7 +170,7 @@ class StereoMeanCombiner(StereoCombiner):
         weights = []
 
         for tel_id, dl2 in event.dl2.tel.items():
-            mono = dl2.classification[self.algorithm[0]]
+            mono = dl2.classification[self.algorithm]
             if mono.is_valid:
                 values.append(mono.prediction)
                 dl1 = event.dl1.tel[tel_id].parameters
@@ -185,9 +185,9 @@ class StereoMeanCombiner(StereoCombiner):
             valid = False
 
         container = ParticleClassificationContainer(
-            prediction=mean, telescopes=ids, is_valid=valid, prefix=self.algorithm[0]
+            prediction=mean, telescopes=ids, is_valid=valid, prefix=self.algorithm
         )
-        event.dl2.stereo.classification[self.algorithm[0]] = container
+        event.dl2.stereo.classification[self.algorithm] = container
 
     def _combine_disp(self, event):
         ids = []
@@ -195,10 +195,8 @@ class StereoMeanCombiner(StereoCombiner):
         az_values = []
         weights = []
 
-        prefix = self.algorithm[0] + "_" + self.algorithm[1]
-
         for tel_id, dl2 in event.dl2.tel.items():
-            mono = dl2.geometry[prefix]
+            mono = dl2.geometry[self.algorithm]
             if mono.is_valid:
                 alt_values.append(mono.alt)
                 az_values.append(mono.az)
@@ -230,12 +228,12 @@ class StereoMeanCombiner(StereoCombiner):
             )
             valid = False
 
-        event.dl2.stereo.geometry[prefix] = ReconstructedGeometryContainer(
+        event.dl2.stereo.geometry[self.algorithm] = ReconstructedGeometryContainer(
             alt=mean_altaz.alt.to(u.deg),
             az=mean_altaz.az.to(u.deg),
             telescopes=ids,
             is_valid=valid,
-            prefix=prefix,
+            prefix=self.algorithm,
         )
 
     def __call__(self, event: ArrayEventContainer) -> None:
@@ -259,13 +257,7 @@ class StereoMeanCombiner(StereoCombiner):
         all telescope predictions of a shower are invalid.
         """
 
-        if self.combine_property == "geometry":
-            prefix = self.algorithm[0] + "_" + self.algorithm[1] + "_tel"
-            prefix_save = self.algorithm[0] + "_" + self.algorithm[1]
-        else:
-            prefix = f"{self.algorithm[0]}_tel"
-            prefix_save = prefix
-
+        prefix = f"{self.algorithm}_tel"
         # TODO: Integrate table quality query once its done
         valid = mono_predictions[f"{prefix}_is_valid"]
         valid_predictions = mono_predictions[valid]
@@ -292,9 +284,9 @@ class StereoMeanCombiner(StereoCombiner):
             else:
                 stereo_predictions = np.full(n_array_events, np.nan)
 
-            stereo_table[f"{self.algorithm[0]}_prediction"] = stereo_predictions
-            stereo_table[f"{self.algorithm[0]}_is_valid"] = np.isfinite(stereo_predictions)
-            stereo_table[f"{self.algorithm[0]}_goodness_of_fit"] = np.nan
+            stereo_table[f"{self.algorithm}_prediction"] = stereo_predictions
+            stereo_table[f"{self.algorithm}_is_valid"] = np.isfinite(stereo_predictions)
+            stereo_table[f"{self.algorithm}_goodness_of_fit"] = np.nan
 
         elif self.combine_property == "energy":
             if len(valid_predictions) > 0:
@@ -327,15 +319,15 @@ class StereoMeanCombiner(StereoCombiner):
                 stereo_energy = np.full(n_array_events, np.nan)
                 std = np.full(n_array_events, np.nan)
 
-            stereo_table[f"{self.algorithm[0]}_energy"] = u.Quantity(
+            stereo_table[f"{self.algorithm}_energy"] = u.Quantity(
                 stereo_energy, u.TeV, copy=False
             )
 
             stereo_table[f"{self.algorithm}_energy_uncert"] = u.Quantity(
                 std, u.TeV, copy=False
             )
-            stereo_table[f"{self.algorithm[0]}_is_valid"] = np.isfinite(stereo_energy)
-            stereo_table[f"{self.algorithm[0]}_goodness_of_fit"] = np.nan
+            stereo_table[f"{self.algorithm}_is_valid"] = np.isfinite(stereo_energy)
+            stereo_table[f"{self.algorithm}_goodness_of_fit"] = np.nan
 
         elif self.combine_property == "geometry":
             if len(valid_predictions) > 0:
@@ -370,17 +362,17 @@ class StereoMeanCombiner(StereoCombiner):
                     frame=AltAz(),
                 )
 
-            stereo_table[f"{prefix_save}_alt"] = mean_altaz.alt.to(u.deg)
-            stereo_table[f"{prefix_save}_alt_uncert"] = u.Quantity(np.nan, u.deg, copy=False)
+            stereo_table[f"{self.algorithm}_alt"] = mean_altaz.alt.to(u.deg)
+            stereo_table[f"{self.algorithm}_alt_uncert"] = u.Quantity(np.nan, u.deg, copy=False)
 
-            stereo_table[f"{prefix_save}_az"] = mean_altaz.az.to(u.deg)
-            stereo_table[f"{prefix_save}_az_uncert"] = u.Quantity(np.nan, u.deg, copy=False)
+            stereo_table[f"{self.algorithm}_az"] = mean_altaz.az.to(u.deg)
+            stereo_table[f"{self.algorithm}_az_uncert"] = u.Quantity(np.nan, u.deg, copy=False)
 
-            stereo_table[f"{prefix_save}_is_valid"] = np.logical_and(
-                np.isfinite(stereo_table[f"{prefix_save}_alt"]),
-                np.isfinite(stereo_table[f"{prefix_save}_az"]),
+            stereo_table[f"{self.algorithm}_is_valid"] = np.logical_and(
+                np.isfinite(stereo_table[f"{self.algorithm}_alt"]),
+                np.isfinite(stereo_table[f"{self.algorithm}_az"]),
             )
-            stereo_table[f"{prefix_save}_goodness_of_fit"] = np.nan
+            stereo_table[f"{self.algorithm}_goodness_of_fit"] = np.nan
 
         else:
             raise NotImplementedError()
@@ -390,7 +382,7 @@ class StereoMeanCombiner(StereoCombiner):
         for index, tel_id in zip(indices[valid], valid_predictions["tel_id"]):
             tel_ids[index].append(tel_id)
 
-        stereo_table[f"{prefix_save}_telescopes"] = tel_ids
+        stereo_table[f"{self.algorithm}_telescopes"] = tel_ids
         add_defaults_and_meta(
             stereo_table, _containers[self.combine_property], self.algorithm[0]
         )

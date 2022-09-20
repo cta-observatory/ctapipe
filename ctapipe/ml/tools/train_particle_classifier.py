@@ -90,7 +90,9 @@ class TrainParticleIdClassifier(Tool):
         )
         self.rng = np.random.default_rng(self.random_seed)
         self.cross_validate = CrossValidator(
-            parent=self, model_component=self.classifier
+            parent=self,
+            model_component=self.classifier.model,
+            target=self.classifier.target,
         )
 
     def start(self):

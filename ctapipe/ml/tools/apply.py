@@ -15,7 +15,7 @@ from ctapipe.core.traits import Bool, Path, create_class_enum_trait, flag
 from ctapipe.io import EventSource, TableLoader, write_table
 from ctapipe.io.tableio import TelListToMaskTransform
 
-from ..sklearn import DispClassifier, DispRegressor, EnergyRegressor, ParticleIdClassifier
+from ..sklearn import DispReconstructor, EnergyRegressor, ParticleIdClassifier
 from ..stereo_combination import StereoCombiner
 
 
@@ -25,8 +25,9 @@ class ApplyModels(Tool):
     This tool predicts all events at once. To apply models in the
     regular event loop, set the appropriate options to ``ctapipe-process``.
 
-    Models need to be trained with `~ctapipe.ml.tools.TrainEnergyRegressor`
-    and `~ctapipe.ml.tools.TrainParticleIdClassifier`.
+    Models need to be trained with `~ctapipe.ml.tools.TrainEnergyRegressor`,
+    `~ctapipe.ml.tools.TrainParticleIdClassifier` and
+    `~ctapipe.ml.tools.TrainDispReconstructor`.
     """
 
     name = "ctapipe-ml-apply"
@@ -60,13 +61,7 @@ class ApplyModels(Tool):
         exists=True,
         directory_ok=False,
     ).tag(config=True)
-    disp_regressor_path = Path(
-        default_value=None,
-        allow_none=True,
-        exists=True,
-        directory_ok=False,
-    ).tag(config=True)
-    sign_classifier_path = Path(
+    disp_models_path = Path(
         default_value=None,
         allow_none=True,
         exists=True,
@@ -82,8 +77,7 @@ class ApplyModels(Tool):
         ("i", "input"): "ApplyModels.input_url",
         "energy-regressor": "ApplyModels.energy_regressor_path",
         "particle-classifier": "ApplyModels.particle_classifier_path",
-        "disp-regressor": "ApplyModels.disp_regressor_path",
-        "sign-classifier": "ApplyModels.sign_classifier_path",
+        "disp-models": "ApplyModels.disp_models_path",
         ("o", "output"): "ApplyModels.output_path",
     }
 
@@ -154,31 +148,22 @@ class ApplyModels(Tool):
             self.combine_classification = StereoCombiner.from_name(
                 self.stereo_combiner_type,
                 combine_property="classification",
-                algorithm=[self.classifier.model_cls],
+                algorithm=self.classifier.model_cls,
                 parent=self,
             )
             return True
         return False
 
     def _setup_disp(self):
-        if (
-            self.disp_regressor_path is not None
-            and self.sign_classifier_path is not None
-        ):
-            self.disp_regressor = DispRegressor.read(
-                self.disp_regressor_path, self.loader.subarray, parent=self
-            )
-            self.sign_classifier = DispClassifier.read(
-                self.sign_classifier_path, self.loader.subarray, parent=self
+        if self.disp_models_path is not None:
+            self.disp_models = DispReconstructor.read(
+                self.disp_models_path, self.loader.subarray, parent=self
             )
             self.disp_convert = MonoDispReconstructor(parent=self)
             self.disp_combine = StereoCombiner.from_name(
                 self.stereo_combiner_type,
                 combine_property="geometry",
-                algorithm=[
-                    self.disp_regressor.model_cls,
-                    self.sign_classifier.model_cls,
-                ],
+                algorithm="disp",
                 parent=self,
             )
             return True
@@ -253,24 +238,19 @@ class ApplyModels(Tool):
         return vstack(tel_tables)
 
     def _apply_disp(self, pointing_altitude, pointing_azimuth):
-        # Different prefix? Two algorithms -> How to combine them?
-        prefix = (
-            self.disp_regressor.model.model_cls
-            + "_"
-            + self.sign_classifier.model.model_cls
-        )
+        prefix = "disp"
 
         tables = []
 
         for tel_id, tel in tqdm(self.loader.subarray.tel.items()):
-            if tel not in self.disp_regressor.model.models:
+            if tel not in self.disp_models.norm_regressor.models:
                 self.log.warning(
                     "No disp regressor model for telescope type %s, skipping tel %d",
                     tel,
                     tel_id,
                 )
                 continue
-            if tel not in self.sign_classifier.model.models:
+            if tel not in self.disp_models.sign_classifier.models:
                 self.log.warning(
                     "No sign classifier model for telescope type %s, skipping tel %d",
                     tel,
@@ -283,43 +263,17 @@ class ApplyModels(Tool):
                 self.log.warning("No events for telescope %d", tel_id)
                 continue
 
-            table.remove_columns(
-                [
-                    c
-                    for c in table.colnames
-                    if c.startswith(
-                        (
-                            prefix,
-                            self.disp_regressor.model.model_cls + "_norm",
-                            self.sign_classifier.model.model_cls + "_sign",
-                        )
-                    )
-                ]
-            )
+            table.remove_columns([c for c in table.colnames if c.startswith(prefix)])
 
-            norm_predictions = self.disp_regressor.predict(tel, table)
-            # If the same feature is generated for both models, it would cause an error
-            table.remove_columns(
-                [
-                    c
-                    for c in table.colnames
-                    if np.logical_and(
-                        c in self.disp_regressor.generate_features._feature_names,
-                        c in self.sign_classifier.generate_features._feature_names,
-                    )
-                ]
-            )
-            sign_predictions = self.sign_classifier.predict(tel, table)
+            disp_predictions = self.disp_models.predict(tel, table)
             table = hstack(
-                [table, norm_predictions, sign_predictions],
+                [table, disp_predictions],
                 join_type="exact",
                 metadata_conflicts="ignore",
             )
 
             altaz_predictions = self.disp_convert.predict(
                 table,
-                self.disp_regressor.model.model_cls,
-                self.sign_classifier.model.model_cls,
                 pointing_altitude,
                 pointing_azimuth,
             )
@@ -338,16 +292,9 @@ class ApplyModels(Tool):
                 overwrite=self.overwrite,
             )
             write_table(
-                table[["obs_id", "event_id", "tel_id"] + norm_predictions.colnames],
+                table[["obs_id", "event_id", "tel_id"] + disp_predictions.colnames],
                 self.loader.input_url,
-                f"/dl2/event/telescope/disp/{self.disp_regressor.model.model_cls}/tel_{tel_id:03d}",
-                mode="a",
-                overwrite=self.overwrite,
-            )
-            write_table(
-                table[["obs_id", "event_id", "tel_id"] + sign_predictions.colnames],
-                self.loader.input_url,
-                f"/dl2/event/telescope/disp/{self.sign_classifier.model.model_cls}/tel_{tel_id:03d}",
+                f"/dl2/event/telescope/disp/{prefix}/tel_{tel_id:03d}",
                 mode="a",
                 overwrite=self.overwrite,
             )
@@ -369,15 +316,10 @@ class ApplyModels(Tool):
             stereo_predictions[c.name] = np.array([trafo(r) for r in c])
             stereo_predictions[c.name].description = c.description
 
-        if combiner.combine_property == "geometry":
-            prefix = combiner.algorithm[0] + "_" + combiner.algorithm[1]
-        else:
-            prefix = combiner.algorithm[0]
-
         write_table(
             stereo_predictions,
             self.loader.input_url,
-            f"/dl2/event/subarray/{combiner.combine_property}/{prefix}",
+            f"/dl2/event/subarray/{combiner.combine_property}/{combiner.algorithm}",
             mode="a",
             overwrite=self.overwrite,
         )

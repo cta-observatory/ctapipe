@@ -26,7 +26,7 @@ def test_process_apply_energy(
                 {
                     "type": "StereoMeanCombiner",
                     "combine_property": "energy",
-                    "algorithm": ["ExtraTreesRegressor"],
+                    "algorithm": "ExtraTreesRegressor",
                     "weights": "konrad",
                 }
             ],
@@ -71,7 +71,7 @@ def test_process_apply_classification(
                 {
                     "type": "StereoMeanCombiner",
                     "combine_property": "classification",
-                    "algorithm": ["ExtraTreesClassifier"],
+                    "algorithm": "ExtraTreesClassifier",
                 }
             ],
         }
@@ -99,7 +99,7 @@ def test_process_apply_classification(
 
 
 def test_process_apply_disp(
-    tmp_path, disp_reconstructor_paths, prod5_gamma_lapalma_simtel_path
+    tmp_path, disp_reconstructor_path, prod5_gamma_lapalma_simtel_path
 ):
     from ctapipe.tools.process import ProcessorTool
 
@@ -119,7 +119,7 @@ def test_process_apply_disp(
                 {
                     "type": "StereoMeanCombiner",
                     "combine_property": "geometry",
-                    "algorithm": ["ExtraTreesRegressor", "ExtraTreesClassifier"],
+                    "algorithm": "disp",
                 }
             ],
         }
@@ -133,20 +133,19 @@ def test_process_apply_disp(
         f"--output={output}",
         "--write-images",
         "--write-showers",
-        f"--disp-regressor={disp_reconstructor_paths[0]}",
-        f"--sign-classifier={disp_reconstructor_paths[1]}",
+        f"--disp-models={disp_reconstructor_path}",
         f"--config={config_path}",
     ]
     assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path, raises=True) == 0
 
     assert (
-        "ExtraTreesRegressor_norm"
+        "disp_norm"
         in read_table(
             output, "/dl2/event/telescope/disp/ExtraTreesRegressor/tel_004"
         ).colnames
     )
     assert (
-        "ExtraTreesClassifier_sign"
+        "disp_sign"
         in read_table(
             output, "/dl2/event/telescope/disp/ExtraTreesClassifier/tel_004"
         ).colnames

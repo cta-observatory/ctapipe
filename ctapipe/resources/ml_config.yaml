@@ -132,7 +132,7 @@ TrainDispReconstructor:
 
   random_seed: 42
 
-  DispRegressor:
+  DispReconstructor:
     Regressor:
       model_cls: ExtraTreesRegressor
       model_config:
@@ -159,23 +159,6 @@ TrainDispReconstructor:
         - HillasReconstructor_h_max
         - area
 
-    QualityQuery:
-      quality_criteria:
-        - ["HillasValid", "HillasReconstructor_is_valid"]
-        - ["enough intensity", "hillas_intensity > 50"]
-        - ["Positive width", "hillas_width > 0"]
-        - ["enough pixels", "morphology_n_pixels > 3"]
-        - ["not clipped", "leakage_intensity_width_2 < 0.5"]
-
-    FeatureGenerator:
-      features:
-        - ["area", "hillas_width * hillas_length"]
-
-    CrossValidator:
-      n_cross_validations: 5
-
-
-  DispClassifier:
     Classifier:
       model_cls: ExtraTreesClassifier
       model_config:

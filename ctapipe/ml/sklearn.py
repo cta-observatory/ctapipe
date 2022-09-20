@@ -33,8 +33,7 @@ __all__ = [
     "SKLearnClassficationReconstructor",
     "EnergyRegressor",
     "ParticleIdClassifier",
-    "DispRegressor",
-    "DispClassifier",
+    "DispReconstructor",
 ]
 
 
@@ -409,65 +408,97 @@ class ParticleIdClassifier(SKLearnClassficationReconstructor):
         return result
 
 
-class DispRegressor(SKLearnRegressionReconstructor):
-    """
-    Predict absolute value for disp origin reconstruction for each telescope
-    """
+class DispReconstructor(Reconstructor):
+    """Predict absolute value and sign for disp origin reconstruction for each telescope"""
 
-    target = "true_norm"
+    target_norm = "true_norm"
+    norm_regressor_cls = Regressor
+    norm_regressor = Instance(norm_regressor_cls, allow_none=True).tag(config=True)
 
-    def __call__(self, event: ArrayEventContainer) -> None:
-        """
-        Apply the quality query and model and fill the corresponding container
-        """
-        for tel_id in event.trigger.tels_with_trigger:
-            table = self._collect_features(event, tel_id)
-            table = self.generate_features(table)
-            mask = self.qualityquery.get_table_mask(table)
+    target_sign = "true_sign"
+    sign_classifier_cls = Classifier
+    sign_classifier = Instance(sign_classifier_cls, allow_none=True).tag(config=True)
 
-            if mask[0]:
-                prediction, valid = self.model.predict(
-                    self.subarray.tel[tel_id],
-                    table,
-                )
-                container = DispContainer(norm=prediction[0], norm_is_valid=valid[0])
-            else:
-                container = DispContainer(
-                    norm=u.Quantity(np.nan, self.model.unit), norm_is_valid=False
-                )
+    def __init__(self, subarray, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.subarray = subarray
+        self.qualityquery = QualityQuery(parent=self)
+        self.generate_features = FeatureGenerator(parent=self)
 
-            event.dl2.tel[tel_id].disp[self.model.model_cls] = container
+        if self.norm_regressor is None:
+            self.norm_regressor = self.norm_regressor_cls(
+                parent=self, target=self.target_norm
+            )
+        if self.sign_classifier is None:
+            self.sign_classifier = self.sign_classifier_cls(
+                parent=self, target=self.target_sign
+            )
 
-    def predict(self, key, table: Table) -> Table:
-        """Predict on a table of events"""
-        table = self.generate_features(table)
+    def write(self, path):
+        Provenance().add_output_file(path, role="ml-models")
+        with open(path, "wb") as f:
+            joblib.dump(
+                (
+                    self.norm_regressor,
+                    self.sign_classifier,
+                    self.qualityquery.quality_criteria,
+                    self.generate_features.features,
+                    self.subarray,
+                ),
+                f,
+                compress=True,
+            )
 
-        n_rows = len(table)
-        norm = u.Quantity(np.full(n_rows, np.nan), self.model.unit, copy=False)
-        is_valid = np.full(n_rows, False)
+    @classmethod
+    def read(cls, path, check_cls=True, **kwargs):
+        with open(path, "rb") as f:
+            (
+                norm_regressor,
+                sign_classifier,
+                quality_criteria,
+                gen_features,
+                subarray,
+            ) = joblib.load(f)
 
-        mask = self.qualityquery.get_table_mask(table)
-        norm[mask], is_valid[mask] = self.model.predict(key, table[mask])
+        if check_cls is True and norm_regressor.__class__ is not cls.norm_regressor_cls:
+            raise TypeError(
+                f"File did not contain an instance of {cls.norm_regressor_cls}, got {norm_regressor.__class}"
+            )
+        if (
+            check_cls is True
+            and sign_classifier.__class__ is not cls.sign_classifier_cls
+        ):
+            raise TypeError(
+                f"File did not contain an instance of {cls.sign_classifier_cls}, got {sign_classifier.__class}"
+            )
 
-        result = Table(
-            {
-                f"{self.model.model_cls}_norm": norm,
-                f"{self.model.model_cls}_norm_is_valid": is_valid,
-            }
+        Provenance().add_input_file(path, role="ml-models")
+        instance = cls(
+            subarray=subarray,
+            norm_regressor=norm_regressor,
+            sign_classifier=sign_classifier,
+            **kwargs,
         )
-        return result
+        instance.qualityquery = QualityQuery(
+            quality_criteria=quality_criteria, parent=instance
+        )
+        instance.generate_features = FeatureGenerator(
+            features=gen_features, parent=instance
+        )
+        return instance
 
-
-class DispClassifier(SKLearnClassficationReconstructor):
-    """
-    Predict sign for disp origin reconstruction for each telescope
-    """
-
-    target = "true_sign"
+    @lazyproperty
+    def instrument_table(self):
+        return self.subarray.to_table("joined")
 
     def __call__(self, event: ArrayEventContainer) -> None:
-        """
-        Apply the quality query and model and fill the corresponding container
+        """Event-wise prediction for the EventSource-Loop.
+
+        Fills the event.dl2.tel[tel_id].disp["disp"] container.
+
+        Parameters
+        ----------
+        event: ArrayEventContainer
         """
         for tel_id in event.trigger.tels_with_trigger:
             table = self._collect_features(event, tel_id)
@@ -475,33 +506,117 @@ class DispClassifier(SKLearnClassficationReconstructor):
             mask = self.qualityquery.get_table_mask(table)
 
             if mask[0]:
-                prediction, valid = self.model.predict_score(
+                norm, norm_valid = self.norm_regressor.predict(
                     self.subarray.tel[tel_id], table
                 )
-                container = DispContainer(sign=prediction[0], sign_is_valid=valid[0])
-            else:
-                container = DispContainer(sign=np.nan, sign_is_valid=False)
+                sign_score, sign_valid = self.sign_classifier.predict_score(
+                    self.subarray.tel[tel_id], table
+                )
+                # convert sign score form [0,1] to [-1,1]
+                sign_score = 2 * sign_score - 1
+                # get sign predictions (either -1 or 1)
+                if sign_valid:
+                    sign = -1.0 if sign_score[0] < 0 else 1.0
+                else:
+                    sign = np.nan
 
-            event.dl2.tel[tel_id].disp[self.model.model_cls] = container
+                container = DispContainer(
+                    norm=norm[0],
+                    sign=sign,
+                    sign_score=sign_score[0],
+                    is_valid=np.logical_and(norm_valid, sign_valid)[0],
+                )
+            else:
+                container = DispContainer(
+                    norm=u.Quantity(np.nan, self.norm_regressor.unit),
+                    sign=np.nan,
+                    sign_score=np.nan,
+                    is_valid=False,
+                )
+
+            event.dl2.tel[tel_id].disp["disp"] = container
 
     def predict(self, key, table: Table) -> Table:
-        """Predict on a table of events"""
+        """Predict on a table of events
+
+        Parameters
+        ----------
+        table : `~astropy.table.Table`
+            Table of features
+
+        Returns
+        -------
+        table : `~astropy.table.Table`
+            Table with predictions, matches the corresponding
+            container definition
+        """
         table = self.generate_features(table)
 
         n_rows = len(table)
-        sign = np.full(n_rows, np.nan)
-        is_valid = np.full(n_rows, False)
+        norm = u.Quantity(np.full(n_rows, np.nan), self.norm_regressor.unit, copy=False)
+        norm_valid = np.full(n_rows, False)
+        sign_score = np.full(n_rows, np.nan)
+        sign_valid = np.full(n_rows, False)
 
         mask = self.qualityquery.get_table_mask(table)
-        sign[mask], is_valid[mask] = self.model.predict_score(key, table[mask])
+        norm[mask], norm_valid[mask] = self.norm_regressor.predict(key, table[mask])
+        sign_score[mask], sign_valid[mask] = self.sign_classifier.predict_score(
+            key, table[mask]
+        )
+
+        # convert sign score form [0,1] to [-1,1]
+        sign_score = 2 * sign_score - 1
+        # get sign predictions (either 1 or -1)
+        sign = np.full(n_rows, np.nan)
+        sign[sign_valid] = np.where(sign_score[sign_valid] < 0, -1, 1)
 
         result = Table(
             {
-                f"{self.model.model_cls}_sign": sign,
-                f"{self.model.model_cls}_sign_is_valid": is_valid,
+                "disp_norm": norm,
+                "disp_sign": sign,
+                "disp_sign_score": sign_score,
+                "disp_is_valid": np.logical_and(norm_valid, sign_valid),
             }
         )
         return result
+
+    def _collect_features(self, event: ArrayEventContainer, tel_id: int) -> Table:
+        """Loop over all containers with features.
+
+        Parameters
+        ----------
+        event: ArrayEventContainer
+
+        Returns
+        -------
+        Table
+        """
+        features = dict()
+
+        features.update(
+            event.dl1.tel[tel_id].parameters.as_dict(
+                add_prefix=True,
+                recursive=True,
+                flatten=True,
+            )
+        )
+        features.update(
+            event.dl2.tel[tel_id].as_dict(
+                add_prefix=False,  # would duplicate prefix, as this is part of the name of the container
+                recursive=True,
+                flatten=True,
+            )
+        )
+        features.update(
+            event.dl2.stereo.as_dict(
+                add_prefix=False,  # see above
+                recursive=True,
+                flatten=True,
+            )
+        )
+        features.update(self.instrument_table.loc[tel_id])
+
+        return Table({k: [v] for k, v in features.items()})
 
 
 class CrossValidator(Component):

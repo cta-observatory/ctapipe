@@ -65,22 +65,20 @@ def particle_classifier_path(model_tmp_path):
 
 
 @pytest.fixture(scope="session")
-def disp_reconstructor_paths(model_tmp_path):
+def disp_reconstructor_path(model_tmp_path):
     from ctapipe.ml.tools.train_disp_reconstructor import TrainDispReconstructor
 
     tool = TrainDispReconstructor()
     config = resource_file("ml_config.yaml")
-    out_file_reg = model_tmp_path / "disp_regressor.pkl"
-    out_file_clf = model_tmp_path / "sign_classifier.pkl"
+    out_file = model_tmp_path / "disp_models.pkl"
     ret = run_tool(
         tool,
         argv=[
             "--input=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
-            f"--output-regressor={out_file_reg}",
-            f"--output-classifier={out_file_clf}",
+            f"--output={out_file}",
             f"--config={config}",
             "--log-level=INFO",
         ],
     )
     assert ret == 0
-    return out_file_reg, out_file_clf
+    return out_file

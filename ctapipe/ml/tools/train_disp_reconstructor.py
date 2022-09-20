@@ -6,7 +6,7 @@ from ctapipe.core import Tool
 from ctapipe.core.traits import Bool, Int, Path
 from ctapipe.io import EventSource, TableLoader
 
-from ..apply import CrossValidator, DispClassifier, DispRegressor
+from ..apply import CrossValidator, DispReconstructor
 from ..preprocessing import check_valid_rows
 from ..sklearn import Classifier, Regressor
 
@@ -17,13 +17,9 @@ class TrainDispReconstructor(Tool):
     name = "ctapipe-train-disp"
     description = __doc__
 
-    output_path_reg = Path(
-        default_value=None, allow_none=False, directory_ok=False
-    ).tag(config=True)
-
-    output_path_clf = Path(
-        default_value=None, allow_none=False, directory_ok=False
-    ).tag(config=True)
+    output_path = Path(default_value=None, allow_none=False, directory_ok=False).tag(
+        config=True
+    )
 
     n_events = Int(default_value=None, allow_none=True).tag(config=True)
     random_seed = Int(default_value=0).tag(config=True)
@@ -34,8 +30,7 @@ class TrainDispReconstructor(Tool):
 
     aliases = {
         "input": "TableLoader.input_url",
-        "output-regressor": "TrainDispReconstructor.output_path_reg",
-        "output-classifier": "TrainDispReconstructor.output_path_clf",
+        "output": "TrainDispReconstructor.output_path",
     }
 
     classes = [TableLoader, Regressor, Classifier, CrossValidator]
@@ -51,13 +46,16 @@ class TrainDispReconstructor(Tool):
             load_instrument=True,
         )
 
-        self.regressor = DispRegressor(self.loader.subarray, parent=self)
-        self.classifier = DispClassifier(self.loader.subarray, parent=self)
+        self.models = DispReconstructor(self.loader.subarray, parent=self)
         self.cross_validate_reg = CrossValidator(
-            parent=self, model_component=self.regressor
+            parent=self,
+            model_component=self.models.norm_regressor,
+            target=self.models.target_norm,
         )
         self.cross_validate_clf = CrossValidator(
-            parent=self, model_component=self.classifier
+            parent=self,
+            model_component=self.models.sign_classifier,
+            target=self.models.target_sign,
         )
         self.rng = np.random.default_rng(self.random_seed)
 
@@ -78,55 +76,44 @@ class TrainDispReconstructor(Tool):
         self.log.info("Training models for %d types", len(types))
         for tel_type in types:
             self.log.info("Loading events for %s", tel_type)
-            table_reg, table_clf = self._read_table(tel_type)
+            table = self._read_table(tel_type)
 
-            self.log.info("Train regressor on %s events", len(table_reg))
-            self.cross_validate_reg(tel_type, table_reg)
+            self.log.info("Train regressor on %s events", len(table))
+            self.cross_validate_reg(tel_type, table)
 
-            self.log.info("Train classifier on %s events", len(table_clf))
-            self.cross_validate_clf(tel_type, table_clf)
+            self.log.info("Train classifier on %s events", len(table))
+            self.cross_validate_clf(tel_type, table)
 
             self.log.info("Performing final fit for %s", tel_type)
-            self.regressor.model.fit(tel_type, table_reg)
-            self.classifier.model.fit(tel_type, table_clf)
+            self.models.norm_regressor.fit(tel_type, table)
+            self.models.sign_classifier.fit(tel_type, table)
             self.log.info("done")
 
     def _read_table(self, telescope_type):
         table = self.loader.read_telescope_events([telescope_type])
         self.log.info("Events read from input: %d", len(table))
 
-        # Allow separate quality queries/ event lists for training the two models
-        # but dont load the events twice to shorten runtime
-        table_reg = self._get_reconstructor_table(table, self.regressor)
-        table_clf = self._get_reconstructor_table(table, self.classifier)
-
-        return table_reg, table_clf
-
-    def _get_reconstructor_table(self, table, reconstructor):
-        mask = reconstructor.qualityquery.get_table_mask(table)
+        mask = self.models.qualityquery.get_table_mask(table)
         table = table[mask]
-        self.log.info(
-            "Events after applying quality query for %s: %d",
-            reconstructor.model.model_cls,
-            len(table),
-        )
+        self.log.info("Events after applying quality query: %d", len(table))
 
-        table = reconstructor.generate_features(table)
+        table = self.models.generate_features(table)
 
-        if reconstructor == self.regressor:
-            target_values, _ = self._get_true_disp(table)
-        else:
-            _, target_values = self._get_true_disp(table)
+        true_norm, true_sign = self._get_true_disp(table)
 
-        table = table[reconstructor.model.features]
+        # get a list of all features used for norm AND sign
+        feature_names_combined = self.models.norm_regressor.features
+        for feature in self.models.sign_classifier.features:
+            if feature not in feature_names_combined:
+                feature_names_combined.append(feature)
 
-        table[reconstructor.target] = target_values
+        table = table[feature_names_combined]
+        table[self.models.target_norm] = true_norm
+        table[self.models.target_sign] = true_sign
 
         valid = check_valid_rows(table)
         if np.any(~valid):
-            self.log.warning(
-                "Dropping non-predictable events for %s.", reconstructor.model.model_cls
-            )
+            self.log.warning("Dropping non-predicable events.")
             table = table[valid]
 
         if self.n_events is not None:
@@ -167,8 +154,7 @@ class TrainDispReconstructor(Tool):
 
     def finish(self):
         self.log.info("Writing output")
-        self.regressor.write(self.output_path_reg)
-        self.classifier.write(self.output_path_clf)
+        self.models.write(self.output_path)
         # write complete cv performance in two separate files, if at least one output path is given
         if (
             self.cross_validate_reg.output_path
