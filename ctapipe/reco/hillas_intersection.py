@@ -118,6 +118,8 @@ class HillasIntersection(Reconstructor):
             hillas_dict, array_pointing, telescope_pointings
         )
 
+        self._store_impact_parameter(event)
+
     def _predict(self, hillas_dict, array_pointing, telescopes_pointings=None):
         """
 

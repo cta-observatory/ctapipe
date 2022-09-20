@@ -214,6 +214,8 @@ class HillasReconstructor(Reconstructor):
             event, hillas_dict, array_pointing, telescope_pointings
         )
 
+        self._store_impact_parameter(event)
+
     def _predict(self, event, hillas_dict, array_pointing, telescopes_pointings):
         """
         The function you want to call for the reconstruction of the

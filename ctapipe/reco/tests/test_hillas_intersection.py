@@ -240,6 +240,9 @@ def test_selected_subarray(subarray_and_event_gamma_off_axis_500_gev):
     for tel_id in subarray.tel.keys():
         if tel_id not in allowed_tels:
             event.dl1.tel.pop(tel_id, None)
+            event.trigger.tels_with_trigger = event.trigger.tels_with_trigger[
+                event.trigger.tels_with_trigger != tel_id
+            ]
 
     subarray = subarray.select_subarray(allowed_tels)
 
