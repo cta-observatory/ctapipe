@@ -11,7 +11,8 @@ import tables
 
 from ctapipe.core import run_tool
 from ctapipe.instrument.subarray import SubarrayDescription
-from ctapipe.io import DataLevel, EventSource, read_table
+from ctapipe.io import read_table
+from ctapipe.io.tests.test_event_source import DummyEventSource
 from ctapipe.tools.process import ProcessorTool
 from ctapipe.tools.quickstart import CONFIGS_TO_WRITE, QuickStartTool
 from ctapipe.utils import get_dataset_path
@@ -151,43 +152,10 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
 def test_stage1_datalevels(tmp_path):
     """test the dl1 tool on a file not providing r1, dl0 or dl1a"""
 
-    class DummyEventSource(EventSource):
-        """for testing"""
-
-        @staticmethod
-        def is_compatible(file_path):
-            with open(file_path, "rb") as infile:
-                dummy = infile.read(5)
-                return dummy == b"dummy"
-
-        @property
-        def datalevels(self):
-            return (DataLevel.R0,)
-
-        @property
-        def is_simulation(self):
-            return True
-
-        @property
-        def scheduling_blocks(self):
-            return dict()
-
-        @property
-        def observation_blocks(self):
-            return dict()
-
-        @property
-        def subarray(self):
-            return None
-
-        def _generator(self):
-            return None
-
     dummy_file = tmp_path / "datalevels_dummy.h5"
     out_file = tmp_path / "datalevels_dummy_stage1_output.h5"
-    with open(dummy_file, "wb") as infile:
+    with dummy_file.open("wb") as infile:
         infile.write(b"dummy")
-        infile.flush()
 
     config = resource_file("stage1_config.json")
     tool = ProcessorTool()

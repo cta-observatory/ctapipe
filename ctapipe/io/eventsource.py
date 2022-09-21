@@ -70,11 +70,8 @@ class EventSource(Component):
     0
     1
 
-    **NOTE**: For effiency reasons, most sources only use a single ``ArrayEvent`` instance
-    and update it with new data on iteration, which might lead to surprising
-    behaviour if you want to access multiple events at the same time.
-    To keep an event and prevent its data from being overwritten with the next event's data,
-    perform a deepcopy: ``some_special_event = copy.deepcopy(event)``.
+    **NOTE**: EventSource implementations should not reuse the same ArrayEventContainer,
+    as these are mutable and may lead to errors when analyzing multiple events.
 
 
     Attributes
