@@ -1,10 +1,9 @@
-from abc import abstractmethod, ABC
+import warnings
+from abc import ABC, abstractmethod
 
 import pytest
-from traitlets import Float, TraitError, Int
+from traitlets import Float, Int, TraitError
 from traitlets.config.loader import Config
-import astropy.units as u
-import warnings
 
 from ctapipe.core import Component, Tool
 
@@ -389,15 +388,8 @@ def test_component_html_repr():
     assert len(html) > 10
 
 
-def test_telescope_component():
+def test_telescope_component(subarray_prod5_paranal):
     from ctapipe.core import TelescopeComponent
-    from ctapipe.instrument import SubarrayDescription, TelescopeDescription
-
-    subarray = SubarrayDescription(
-        "test",
-        tel_positions={1: [0, 0, 0] * u.m},
-        tel_descriptions={1: TelescopeDescription.from_name("LST", "LSTCam")},
-    )
 
     class Base(TelescopeComponent):
         pass
@@ -405,7 +397,7 @@ def test_telescope_component():
     class Sub(Base):
         pass
 
-    assert isinstance(Base.from_name("Sub", subarray=subarray), Sub)
+    assert isinstance(Base.from_name("Sub", subarray=subarray_prod5_paranal), Sub)
 
 
 def test_full_config():

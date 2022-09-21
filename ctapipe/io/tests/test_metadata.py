@@ -3,12 +3,13 @@ Test CTA Reference metadata functionality
 """
 
 import tables
-from ctapipe.io import metadata as meta
+
 from ctapipe.core.provenance import Provenance
+from ctapipe.io import metadata as meta
 
 
 def test_construct_and_write_metadata(tmp_path):
-    """ basic test of making a Reference object and writing it"""
+    """basic test of making a Reference object and writing it"""
 
     prov = Provenance()
     prov.start_activity("test")
@@ -23,7 +24,7 @@ def test_construct_and_write_metadata(tmp_path):
             description="An Amazing Product",
             creation_time="2020-10-11 15:23:31",
             data_category="Sim",
-            data_level=["DL1_IMAGES", "DL1_PARAMETERS"],
+            data_levels=["DL1_IMAGES", "DL1_PARAMETERS"],
             data_association="Subarray",
             data_model_name="Unofficial DL1",
             data_model_version="1.0",
@@ -43,6 +44,7 @@ def test_construct_and_write_metadata(tmp_path):
 
     ref_dict = reference.to_dict()
     assert ref_dict["CTA PRODUCT FORMAT"] == "hdf5"
+    assert ref_dict["CTA PRODUCT DATA LEVELS"] == "DL1_IMAGES,DL1_PARAMETERS"
 
     import uuid  # pylint: disable=import-outside-toplevel
 
@@ -69,26 +71,23 @@ def test_construct_and_write_metadata(tmp_path):
     import tables  # pylint: disable=import-outside-toplevel
 
     with tables.open_file(tmp_path / "test.h5", mode="w") as h5file:
-        h5file.create_group(where='/', name='node')
-        meta.write_to_hdf5(ref_dict, h5file, path='/node')
+        h5file.create_group(where="/", name="node")
+        meta.write_to_hdf5(ref_dict, h5file, path="/node")
 
 
 def test_read_metadata(tmp_path):
     # Testing one can read both a path as well as a PyTables file object
     filename = tmp_path / "test.h5"
-    metadata_in = {
-        'SOFTWARE': 'ctapipe',
-        'FOO': 'BAR'
-    }
-    metadata_path = '/node/subnode'
+    metadata_in = {"SOFTWARE": "ctapipe", "FOO": "BAR"}
+    metadata_path = "/node/subnode"
     with tables.open_file(filename, mode="w") as h5file:
-        h5file.create_group(where='/node', name='subnode', createparents=True)
+        h5file.create_group(where="/node", name="subnode", createparents=True)
         meta.write_to_hdf5(metadata_in, h5file, path=metadata_path)
 
     metadata_out = meta.read_metadata(filename, path=metadata_path)
     assert metadata_out == metadata_in
 
-    with tables.open_file(filename, 'r') as file:
+    with tables.open_file(filename, "r") as file:
         metadata_out = meta.read_metadata(file, path=metadata_path)
 
     assert metadata_out == metadata_in

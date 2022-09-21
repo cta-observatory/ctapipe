@@ -1,17 +1,23 @@
 """
 Handles reading of different event/waveform containing files
 """
+import warnings
 from abc import abstractmethod
-from traitlets.config.loader import LazyConfigValue
-from typing import Tuple, List, Generator
+from typing import Dict, Generator, List, Tuple
 
+from traitlets.config.loader import LazyConfigValue
+
+from ..containers import (
+    ArrayEventContainer,
+    ObservationBlockContainer,
+    SchedulingBlockContainer,
+    SimulationConfigContainer,
+)
+from ..core import Provenance, ToolConfigurationError
+from ..core.component import Component, find_config_in_hierarchy, non_abstract_children
+from ..core.traits import CInt, Int, Path, Set, TraitError, Undefined
 from ..instrument import SubarrayDescription
 from .datalevels import DataLevel
-from ..containers import ArrayEventContainer
-from ..core import ToolConfigurationError, Provenance
-from ..core.component import Component, non_abstract_children, find_config_in_hierarchy
-from ..core.traits import Path, Int, CInt, Set, Undefined
-
 
 __all__ = ["EventSource"]
 
@@ -36,7 +42,7 @@ class EventSource(Component):
     appropriate subclass if a compatible source is found for the given
     ``input_url``.
 
-    >>> EventSource(input_url="dataset://gamma_test_large.simtel.gz")
+    >>> EventSource(input_url="dataset://gamma_prod5.simtel.zst")
     <ctapipe.io.simteleventsource.SimTelEventSource ...>
 
     An ``EventSource`` can also be created through the configuration system,
@@ -45,7 +51,7 @@ class EventSource(Component):
     >>> self.source = EventSource(parent=self) # doctest: +SKIP
 
     To loop through the events in a file:
-    >>> source = EventSource(input_url="dataset://gamma_test_large.simtel.gz", max_events=2)
+    >>> source = EventSource(input_url="dataset://gamma_prod5.simtel.zst", max_events=2)
     >>> for event in source:
     ...     print(event.count)
     0
@@ -58,7 +64,7 @@ class EventSource(Component):
     It is encouraged to use ``EventSource`` in a context manager to ensure
     the correct cleanups are performed when you are finished with the source:
 
-    >>> with EventSource(input_url="dataset://gamma_test_large.simtel.gz", max_events=2) as source:
+    >>> with EventSource(input_url="dataset://gamma_prod5.simtel.zst", max_events=2) as source:
     ...    for event in source:
     ...        print(event.count)
     0
@@ -83,11 +89,7 @@ class EventSource(Component):
         generated events. If None, all available telescopes are used.
     """
 
-    input_url = Path(
-        directory_ok=False,
-        exists=True,
-        help="Path to the input file containing events.",
-    ).tag(config=True)
+    input_url = Path(help="Path to the input file containing events.").tag(config=True)
 
     max_events = Int(
         None,
@@ -209,10 +211,37 @@ class EventSource(Component):
         """
 
     @property
+    def simulation_config(self) -> Dict[int, SimulationConfigContainer]:
+        """The simulation configurations of all observations provided by the
+        EventSource, or None if the source does not provide simulated data
+
+        Returns
+        -------
+        Dict[int,ctapipe.containers.SimulationConfigContainer] | None
+        """
+        return None
+
+    @property
+    @abstractmethod
+    def observation_blocks(self) -> Dict[int, ObservationBlockContainer]:
+        """
+        Obtain the ObservationConfigurations from the EventSource, indexed by obs_id
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def scheduling_blocks(self) -> Dict[int, SchedulingBlockContainer]:
+        """
+        Obtain the ObservationConfigurations from the EventSource, indexed by obs_id
+        """
+        pass
+
+    @property
     @abstractmethod
     def is_simulation(self) -> bool:
         """
-        Weither the currently opened file is simulated
+        Whether the currently opened file is simulated
 
         Returns
         -------
@@ -243,7 +272,6 @@ class EventSource(Component):
         return any(dl in self.datalevels for dl in datalevels)
 
     @property
-    @abstractmethod
     def obs_ids(self) -> List[int]:
         """
         The observation ids of the runs located in the file
@@ -253,6 +281,7 @@ class EventSource(Component):
         -------
         list[int]
         """
+        return list(self.observation_blocks.keys())
 
     @abstractmethod
     def _generator(self) -> Generator[ArrayEventContainer, None, None]:
@@ -298,8 +327,18 @@ class EventSource(Component):
         available_classes = non_abstract_children(cls)
 
         for subcls in available_classes:
-            if subcls.is_compatible(input_url):
-                return subcls
+            try:
+                if subcls.is_compatible(input_url):
+                    return subcls
+            except Exception as e:
+                warnings.warn(f"{subcls.__name__}.is_compatible raised exception: {e}")
+
+        # provide a more helpful error for non-existing input_url
+        if not input_url.exists():
+            raise TraitError(
+                f"input_url {input_url} is not an existing file "
+                " and no EventSource implementation claimed compatibility"
+            )
 
         raise ValueError(
             "Cannot find compatible EventSource for \n"

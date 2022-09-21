@@ -62,10 +62,12 @@ class ArrayDisplay:
 
         self.frame = frame
         self.subarray = subarray
+        self.axes = axes or plt.gca()
 
         # get the telescope positions. If a new frame is set, this will
         # transform to the new frame.
-        self.tel_coords = subarray.tel_coords.transform_to(frame)
+        self.tel_coords = subarray.tel_coords.transform_to(frame).cartesian
+        self.unit = self.tel_coords.x.unit
 
         # set up colors per telescope type
         tel_types = [str(tel) for tel in subarray.tels.values()]
@@ -75,6 +77,10 @@ class ArrayDisplay:
                 np.sqrt(tel.optics.mirror_area.to("m2").value) * tel_scale
                 for tel in subarray.tel.values()
             ]
+
+            self.radii = radius
+        else:
+            self.radii = np.ones(len(tel_types)) * radius
 
         if title is None:
             title = subarray.name
@@ -114,17 +120,24 @@ class ArrayDisplay:
                     linewidth=0,
                 )
             )
-        plt.legend(handles=legend_elements)
+        self.axes.legend(handles=legend_elements)
 
+        self.add_radial_grid()
+
+        # create the plot
         self.tel_colors = tel_color
         self.autoupdate = autoupdate
         self.telescopes = PatchCollection(patches, match_original=True)
         self.telescopes.set_linewidth(2.0)
 
-        self.axes = axes or plt.gca()
         self.axes.add_collection(self.telescopes)
         self.axes.set_aspect(1.0)
         self.axes.set_title(title)
+        xunit = self.tel_coords.x.unit.to_string("latex")
+        yunit = self.tel_coords.y.unit.to_string("latex")
+        xname, yname, _ = frame.get_representation_component_names().keys()
+        self.axes.set_xlabel(f"{xname} [{xunit}] $\\rightarrow$")
+        self.axes.set_ylabel(f"{yname} [{yunit}] $\\rightarrow$")
         self._labels = []
         self._quiver = None
         self.axes.autoscale_view()
@@ -136,18 +149,56 @@ class ArrayDisplay:
 
     @values.setter
     def values(self, values):
-        """ set the telescope colors to display  """
+        """set the telescope colors to display"""
         self.telescopes.set_array(np.ma.masked_invalid(values))
         self._update()
 
-    def set_vector_uv(self, uu, vv, c=None, **kwargs):
-        """ sets the vector field U,V and color for all telescopes
+    def add_radial_grid(self, spacing=100 * u.m):
+        """add some dotted rings for distance estimation. The number of rings
+        is estimated automatically from the spacing and the array footprint.
 
         Parameters
         ----------
-        uu: array[num_tels]
+        spacing: Quantity
+            spacing between rings
+
+        """
+
+        n_circles = np.round(
+            (np.sqrt(self.subarray.footprint / np.pi) / spacing).to_value(""),
+            0,
+        )
+        circle_radii = np.arange(1, n_circles + 2, 1) * spacing.to_value(self.unit)
+        circle_patches = PatchCollection(
+            [
+                Circle(
+                    xy=(0, 0),
+                    radius=r,
+                    fill=False,
+                    fc="none",
+                    linestyle="dotted",
+                    color="gray",
+                    alpha=0.1,
+                    lw=1,
+                )
+                for r in circle_radii
+            ],
+            color="#eeeeee",
+            ls="dotted",
+            fc="none",
+            lw=3,
+        )
+
+        self.axes.add_collection(circle_patches)
+
+    def set_vector_uv(self, uu, vv, c=None, **kwargs):
+        """sets the vector field U,V and color for all telescopes
+
+        Parameters
+        ----------
+        uu: array[n_tels]
             x-component of direction vector
-        vv: array[num_tels]
+        vv: array[n_tels]
             y-component of direction vector
         c: color or list of colors
             vector color for each telescope (or one for all)
@@ -232,8 +283,8 @@ class ArrayDisplay:
         """
 
         # rot_angle_ellipse is psi parameter in HillasParametersContainer
-        rho = np.zeros(self.subarray.num_tels) * u.m
-        rot_angle_ellipse = np.zeros(self.subarray.num_tels) * u.deg
+        rho = np.zeros(self.subarray.n_tels) * u.m
+        rot_angle_ellipse = np.zeros(self.subarray.n_tels) * u.deg
 
         for tel_id, params in hillas_dict.items():
 
@@ -289,9 +340,17 @@ class ArrayDisplay:
     def add_labels(self):
         px = self.tel_coords.x.to_value("m")
         py = self.tel_coords.y.to_value("m")
-        for tel, x, y in zip(self.subarray.tels, px, py):
+        for tel, x, y, r in zip(self.subarray.tels, px, py, self.radii):
             name = str(tel)
-            lab = self.axes.text(x, y, name, fontsize=8, clip_on=True)
+            lab = self.axes.text(
+                x,
+                y - r * 1.8,
+                name,
+                fontsize=8,
+                clip_on=True,
+                horizontalalignment="center",
+                verticalalignment="top",
+            )
             self._labels.append(lab)
 
     def remove_labels(self):
@@ -300,7 +359,7 @@ class ArrayDisplay:
         self._labels = []
 
     def _update(self):
-        """ signal a redraw if necessary """
+        """signal a redraw if necessary"""
         if self.autoupdate:
             plt.draw()
 

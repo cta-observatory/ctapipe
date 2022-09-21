@@ -18,6 +18,8 @@ __all__ = [
     "mars_cleaning_1st_pass",
     "fact_image_cleaning",
     "apply_time_delta_cleaning",
+    "apply_time_average_cleaning",
+    "time_constrained_clean",
     "ImageCleaner",
     "TailcutsImageCleaner",
 ]
@@ -28,10 +30,11 @@ import numpy as np
 
 from ..core.component import TelescopeComponent
 from ..core.traits import (
+    BoolTelescopeParameter,
     FloatTelescopeParameter,
     IntTelescopeParameter,
-    BoolTelescopeParameter,
 )
+from .morphology import brightest_island, number_of_islands
 
 
 def tailcuts_clean(
@@ -238,6 +241,54 @@ def apply_time_delta_cleaning(
     return pixels_to_keep
 
 
+def apply_time_average_cleaning(
+    geom, mask, image, arrival_times, picture_thresh, time_limit
+):
+    """
+    Extract all pixels that arrived within a given timeframe
+    with respect to the time average of the pixels on the main island.
+
+    In order to avoid removing signal pixels of large impact-parameter events,
+    the time limit for bright pixels is doubled.
+
+    Parameters
+    ----------
+    geom: `ctapipe.instrument.CameraGeometry`
+        Camera geometry information
+    mask: array, boolean
+        boolean mask of *clean* pixels before time_delta_cleaning
+    image: array
+        pixel values
+    arrival_times: array
+        pixel timing information
+    picture_thresh: float
+        threshold above which time limit is extended twice its value
+    time_limit: int or float
+        arrival time limit w.r.t. the average time of the core pixels
+
+    Returns
+    -------
+
+    A boolean mask of *clean* pixels.
+    """
+    mask = mask.copy()
+    if np.count_nonzero(mask) > 0:
+
+        # use main island (maximum charge) for time average calculation
+        n_islands, island_labels = number_of_islands(geom, mask)
+        mask_main = brightest_island(n_islands, island_labels, image)
+        time_ave = np.average(arrival_times[mask_main], weights=image[mask_main] ** 2)
+
+        time_diffs = np.abs(arrival_times[mask] - time_ave)
+        time_limit_pixwise = np.where(
+            image < (2 * picture_thresh), time_limit, time_limit * 2
+        )[mask]
+
+        mask[mask] &= time_diffs < time_limit_pixwise
+
+    return mask
+
+
 def fact_image_cleaning(
     geom,
     image,
@@ -321,6 +372,92 @@ def fact_image_cleaning(
         geom, pixels_to_keep, arrival_times, min_number_neighbors, time_limit
     )
     return pixels_to_keep
+
+
+def time_constrained_clean(
+    geom,
+    image,
+    arrival_times,
+    picture_thresh=7,
+    boundary_thresh=5,
+    time_limit_core=4.5,
+    time_limit_boundary=1.5,
+    min_number_picture_neighbors=1,
+):
+    """
+    time constrained cleaning by MAGIC
+
+    Cleaning contains the following steps:
+    - Find core pixels (containing more photons than a picture threshold)
+    - Remove pixels with less than N neighbors
+    - Keep core pixels whose arrival times are within a time limit of the average time
+    - Find boundary pixels (containing more photons than a boundary threshold)
+    - Remove pixels with less than N neighbors arriving within a given timeframe
+
+    Parameters
+    ----------
+    geom: `ctapipe.instrument.CameraGeometry`
+        Camera geometry information
+    image: array
+        pixel values
+    arrival_times: array
+        pixel timing information
+    picture_threshold: float or array
+        threshold above which all pixels are retained
+    boundary_threshold: float or array
+        threshold above which pixels are retained if they have a neighbor
+        already above the picture_thresh
+    time_limit_core: int or float
+        arrival time limit of core pixels w.r.t the average time
+    time_limit_boundary: int or float
+        arrival time limit of boundary pixels w.r.t neighboring core pixels
+    min_number_neighbors: int
+        Threshold to determine if a pixel survives cleaning steps.
+        These steps include checks of neighbor arrival time and value
+
+    Returns
+    -------
+    A boolean mask of *clean* pixels.
+    """
+
+    # find core pixels that pass a picture threshold
+    pixels_above_picture = image >= picture_thresh
+
+    # require at least min_number_picture_neighbors
+    number_of_neighbors_above_picture = geom.neighbor_matrix_sparse.dot(
+        pixels_above_picture.view(np.byte)
+    )
+    pixels_in_picture = pixels_above_picture & (
+        number_of_neighbors_above_picture >= min_number_picture_neighbors
+    )
+
+    # keep core pixels whose arrival times are within a certain time limit of the average
+    mask_core = apply_time_average_cleaning(
+        geom, pixels_in_picture, image, arrival_times, picture_thresh, time_limit_core
+    )
+
+    # find boundary pixels that pass a boundary threshold
+    pixels_above_boundary = image >= boundary_thresh
+    pixels_with_picture_neighbors = geom.neighbor_matrix_sparse.dot(mask_core)
+    mask_boundary = (pixels_above_boundary & pixels_with_picture_neighbors) & np.invert(
+        mask_core
+    )
+
+    # keep boundary pixels whose arrival times are within a certain time limit of the neighboring core pixels
+    mask_boundary = mask_boundary.copy()
+
+    time_diffs = np.abs(arrival_times[mask_boundary, None] - arrival_times)
+    valid_neighbors = (
+        (time_diffs < time_limit_boundary)
+        & geom.neighbor_matrix[mask_boundary]
+        & mask_core
+    )
+    enough_neighbors = (
+        np.count_nonzero(valid_neighbors, axis=1) >= min_number_picture_neighbors
+    )
+    mask_boundary[mask_boundary] &= enough_neighbors
+
+    return mask_core | mask_boundary
 
 
 class ImageCleaner(TelescopeComponent):
@@ -430,7 +567,7 @@ class FACTImageCleaner(TailcutsImageCleaner):
     def __call__(
         self, tel_id: int, image: np.ndarray, arrival_times=None
     ) -> np.ndarray:
-        """ Apply FACT-style image cleaning. see ImageCleaner.__call__()"""
+        """Apply FACT-style image cleaning. see ImageCleaner.__call__()"""
         return fact_image_cleaning(
             geom=self.subarray.tel[tel_id].camera.geometry,
             image=image,
@@ -439,4 +576,37 @@ class FACTImageCleaner(TailcutsImageCleaner):
             boundary_threshold=self.boundary_threshold_pe.tel[tel_id],
             min_number_neighbors=self.min_picture_neighbors.tel[tel_id],
             time_limit=self.time_limit_ns.tel[tel_id],
+        )
+
+
+class TimeConstrainedImageCleaner(TailcutsImageCleaner):
+    """
+    MAGIC-like Image cleaner with timing information (See `ctapipe.image.time_constrained_clean`)
+    """
+
+    time_limit_core_ns = FloatTelescopeParameter(
+        default_value=4.5,
+        help="arrival time limit for neighboring " "core pixels, in ns",
+    ).tag(config=True)
+    time_limit_boundary_ns = FloatTelescopeParameter(
+        default_value=1.5,
+        help="arrival time limit for neighboring " "boundary pixels, in ns",
+    ).tag(config=True)
+
+    def __call__(
+        self, tel_id: int, image: np.ndarray, arrival_times=None
+    ) -> np.ndarray:
+        """
+        Apply MAGIC-like image cleaning with timing information. See `ImageCleaner.__call__()`
+        """
+
+        return time_constrained_clean(
+            self.subarray.tel[tel_id].camera.geometry,
+            image,
+            arrival_times=arrival_times,
+            picture_thresh=self.picture_threshold_pe.tel[tel_id],
+            boundary_thresh=self.boundary_threshold_pe.tel[tel_id],
+            min_number_picture_neighbors=self.min_picture_neighbors.tel[tel_id],
+            time_limit_core=self.time_limit_core_ns.tel[tel_id],
+            time_limit_boundary=self.time_limit_boundary_ns.tel[tel_id],
         )

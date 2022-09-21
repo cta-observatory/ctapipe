@@ -8,8 +8,7 @@
         "overwrite": false,
         "write_images": false,
         "write_parameters": false,
-        "write_stereo_shower": true,
-        "write_mono_shower": true,
+        "write_showers": true,
         "transform_image": true,
         "transform_peak_time": true
     },
@@ -35,8 +34,8 @@
         },
         "ImageQualityQuery": {
             "quality_criteria": [
-                ["enough_pixels", "lambda im: np.count_nonzero(im) > 2"],
-                ["enough_charge", "lambda im: im.sum() > 50"]
+                ["enough_pixels", "np.count_nonzero(image) > 2"],
+                ["enough_charge", "image.sum() > 50"]
             ]
         }
     },
@@ -45,9 +44,9 @@
         "HillasReconstructor": {
             "StereoQualityQuery": {
                 "quality_criteria": [
-                    ["enough intensity", "lambda p: p.hillas.intensity > 50"],
-                    ["Positive width", "lambda p: p.hillas.width.value > 0"],
-                    ["enough pixels", "lambda p: p.morphology.num_pixels > 3"]
+                    ["enough intensity", "parameters.hillas.intensity > 50"],
+                    ["Positive width", "parameters.hillas.width.value > 0"],
+                    ["enough pixels", "parameters.morphology.n_pixels > 3"]
                 ]
             }
         }

@@ -1,18 +1,15 @@
-import astropy.units as u
-from astropy.coordinates import SkyCoord, AltAz
+import matplotlib.pyplot as plt
+from astropy.coordinates import AltAz, SkyCoord
 
-from ctapipe.io import EventSource
 from ctapipe.calib import CameraCalibrator
+from ctapipe.image import hillas_parameters, leakage
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.morphology import number_of_islands
-from ctapipe.image import leakage, hillas_parameters
 from ctapipe.image.timing import timing_parameters
+from ctapipe.io import EventSource
 from ctapipe.reco import HillasReconstructor
 from ctapipe.utils.datasets import get_dataset_path
-
-import matplotlib.pyplot as plt
 from ctapipe.visualization import ArrayDisplay
-
 
 # unoptimized cleaning levels, copied from
 # https://github.com/tudo-astroparticlephysics/cta_preprocessing
@@ -47,7 +44,7 @@ for event in event_source:
         peakpos = dl1.peak_time
 
         # cleaning
-        boundary, picture, min_neighbors = cleaning_level[geom.camera_name]
+        boundary, picture, min_neighbors = cleaning_level[geom.name]
         clean = tailcuts_clean(
             geom,
             image,
@@ -74,11 +71,11 @@ for event in event_source:
 
         # store timegradients for plotting
         # ASTRI has no timing in PROD3b, so we use skewness instead
-        if geom.camera_name != "ASTRICam":
+        if geom.name != "ASTRICam":
             time_gradients[telescope_id] = timing_c.slope.value
         else:
             time_gradients[telescope_id] = hillas_c.skewness
-        print(geom.camera_name, time_gradients[telescope_id])
+        print(geom.name, time_gradients[telescope_id])
 
         # make sure each telescope get's an arrow
         if abs(time_gradients[telescope_id]) < 0.2:

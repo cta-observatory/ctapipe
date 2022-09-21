@@ -11,7 +11,7 @@ from ctapipe.utils import get_dataset_path
 
 
 def plot_peds(peds, pedvars):
-    """ make a quick plot of the pedestal values"""
+    """make a quick plot of the pedestal values"""
     pixid = np.arange(len(peds))
     plt.subplot(1, 2, 1)
     plt.scatter(pixid, peds)
@@ -41,12 +41,12 @@ if __name__ == "__main__":
     # loop over all events, all telescopes and all channels and call
     # the calc_peds function defined above to do some work:
     for event in EventSource(filename):
-        for telid in event.r0.tel.keys():
-            for chan in range(event.r0.tel[telid].waveform.shape[0]):
+        for tel_id in event.r0.tel.keys():
+            for chan in range(event.r0.tel[tel_id].waveform.shape[0]):
 
-                print(f"CT{telid} chan {chan}:")
+                print(f"CT{tel_id} chan {chan}:")
 
-                traces = event.r0.tel[telid].waveform[chan, ...]
+                traces = event.r0.tel[tel_id].waveform[chan, ...]
 
                 # skip telescopes without timeseries data
                 if traces.shape[1] == 1:

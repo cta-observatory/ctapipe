@@ -5,19 +5,23 @@ Functions to help adapt internal ctapipe data to astropy formats and conventions
 import os
 from contextlib import ExitStack
 
+import numpy as np
 import tables
 from astropy.table import Table, join
 from astropy.time import Time
-import numpy as np
 
-from .tableio import (
-    FixedPointColumnTransform,
-    QuantityColumnTransform,
-    TimeColumnTransform,
-    StringTransform,
+from .hdf5tableio import (
+    DEFAULT_FILTERS,
+    get_column_attrs,
+    get_column_transforms,
+    get_node_meta,
 )
-from .hdf5tableio import DEFAULT_FILTERS, get_hdf5_attr
-
+from .tableio import (
+    EnumColumnTransform,
+    QuantityColumnTransform,
+    StringTransform,
+    TimeColumnTransform,
+)
 
 __all__ = ["read_table", "join_allow_empty"]
 
@@ -76,6 +80,10 @@ def read_table(
         # methods
         path = os.path.join("/", path)
         table = h5file.get_node(path)
+        if not isinstance(table, tables.Table):
+            raise IOError(
+                f"Node {path} is a {table.__class__.__name__}, must be a Table"
+            )
         transforms, descriptions, meta = _parse_hdf5_attrs(table)
 
         if condition is None:
@@ -87,15 +95,33 @@ def read_table(
 
         astropy_table = table_cls(array, meta=meta, copy=False)
         for column, tr in transforms.items():
+            if column not in astropy_table.colnames:
+                continue
+
+            # keep enums as integers, much easier to deal with in tables
+            if isinstance(tr, EnumColumnTransform):
+                continue
+
             astropy_table[column] = tr.inverse(astropy_table[column])
 
         for column, desc in descriptions.items():
+            if column not in astropy_table.colnames:
+                continue
+
             astropy_table[column].description = desc
 
         return astropy_table
 
 
-def write_table(table, h5file, path, append=False, mode="a", filters=DEFAULT_FILTERS):
+def write_table(
+    table,
+    h5file,
+    path,
+    append=False,
+    overwrite=False,
+    mode="a",
+    filters=DEFAULT_FILTERS,
+):
     """Write a table to an HDF5 file
 
     This writes a table in the ctapipe format into ``h5file``.
@@ -113,24 +139,42 @@ def write_table(table, h5file, path, append=False, mode="a", filters=DEFAULT_FIL
         dataset path inside the ``h5file``
     append: bool
         Wether to try to append to or replace an existing table
+    overwrite: bool
+        If table is already in file and overwrite and append are false,
+        raise an error.
     mode: str
         If given a path for ``h5file``, it will be opened in this mode.
         See the docs of ``tables.open_file``.
     """
     copied = False
+    parent, table_name = os.path.split(path)
+
+    if append and overwrite:
+        raise ValueError("overwrite and append are mutually exclusive")
 
     with ExitStack() as stack:
         if not isinstance(h5file, tables.File):
             h5file = stack.enter_context(tables.open_file(h5file, mode=mode))
 
+        already_exists = path in h5file.root
+        if already_exists:
+            if overwrite and not append:
+                h5file.remove_node(parent, table_name)
+                already_exists = False
+
+            elif not overwrite and not append:
+                raise IOError(
+                    f"Table {path} already exists in output file, use append or overwrite"
+                )
+
         attrs = {}
-        for colname, column in table.columns.items():
+        for pos, (colname, column) in enumerate(table.columns.items()):
             if hasattr(column, "description") and column.description is not None:
-                attrs[f"{colname}_DESC"] = column.description
+                attrs[f"CTAFIELD_{pos}_DESC"] = column.description
 
             if isinstance(column, Time):
                 transform = TimeColumnTransform(scale="tai", format="mjd")
-                attrs.update(transform.get_meta(colname))
+                attrs.update(transform.get_meta(pos))
 
                 if copied is False:
                     table = table.copy()
@@ -147,19 +191,11 @@ def write_table(table, h5file, path, append=False, mode="a", filters=DEFAULT_FIL
 
                 table[colname] = np.array([s.encode("utf-8") for s in column])
                 transform = StringTransform(table[colname].dtype.itemsize)
-                attrs.update(transform.get_meta(colname))
+                attrs.update(transform.get_meta(pos))
 
             elif column.unit is not None:
                 transform = QuantityColumnTransform(column.unit)
-                attrs.update(transform.get_meta(colname))
-
-        parent, table_name = os.path.split(path)
-
-        already_exists = path in h5file.root
-
-        if already_exists and not append:
-            h5file.remove_node(parent, table_name)
-            already_exists = False
+                attrs.update(transform.get_meta(pos))
 
         if not already_exists:
             h5_table = h5file.create_table(
@@ -182,43 +218,13 @@ def write_table(table, h5file, path, append=False, mode="a", filters=DEFAULT_FIL
 
 
 def _parse_hdf5_attrs(table):
-    other_attrs = {}
-    column_descriptions = {}
-    column_transforms = {}
-    for attr in table.attrs._f_list():  # pylint: disable=W0212
-        if attr.endswith("_UNIT"):
-            colname = attr[:-5]
-            column_transforms[colname] = QuantityColumnTransform(unit=table.attrs[attr])
-        elif attr.endswith("_DESC"):
-            colname = attr[:-5]
-            column_descriptions[colname] = str(table.attrs[attr])
-        elif attr.endswith("_TIME_SCALE"):
-            colname, _, _ = attr.rpartition("_TIME_SCALE")
-            scale = table.attrs[attr].lower()
-            fmt = get_hdf5_attr(table.attrs, f"{colname}_TIME_FORMAT", "mjd").lower()
-            column_transforms[colname] = TimeColumnTransform(scale=scale, format=fmt)
-        elif attr.endswith("_TRANSFORM_SCALE"):
-            colname, _, _ = attr.rpartition("_TRANSFORM_SCALE")
-            column_transforms[colname] = FixedPointColumnTransform(
-                scale=table.attrs[attr],
-                offset=table.attrs[f"{colname}_TRANSFORM_OFFSET"],
-                source_dtype=table.attrs[f"{colname}_TRANSFORM_DTYPE"],
-                target_dtype=table.col(colname).dtype,
-            )
-        elif attr.endswith("_TRANSFORM"):
-            if table.attrs[attr] == "string":
-                colname, _, _ = attr.rpartition("_TRANSFORM")
-                column_transforms[colname] = StringTransform(
-                    table.attrs[f"{colname}_MAXLEN"]
-                )
-
-        else:
-            # need to convert to str() here so they are python strings, not
-            # numpy strings
-            value = table.attrs[attr]
-            other_attrs[attr] = str(value) if isinstance(value, np.str_) else value
-
-    return column_transforms, column_descriptions, other_attrs
+    column_attrs = get_column_attrs(table)
+    descriptions = {
+        col_name: attrs.get("DESC", "") for col_name, attrs in column_attrs.items()
+    }
+    transforms = get_column_transforms(column_attrs)
+    meta = get_node_meta(table)
+    return transforms, descriptions, meta
 
 
 def join_allow_empty(left, right, keys, join_type="left", **kwargs):

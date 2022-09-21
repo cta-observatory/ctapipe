@@ -14,21 +14,25 @@ TODO:
 - Tests Tests Tests!
 """
 import astropy.units as u
+from astropy.units.quantity import Quantity
 import numpy as np
 from astropy.coordinates import (
+    AltAz,
     BaseCoordinateFrame,
     CartesianRepresentation,
-    FunctionTransform,
     CoordinateAttribute,
-    AltAz,
+    FunctionTransform,
+    RepresentationMapping,
+    frame_transform_graph,
+    AffineTransform,
 )
-from astropy.coordinates import frame_transform_graph
 from numpy import cos, sin
 
 __all__ = [
     "GroundFrame",
     "TiltedGroundFrame",
     "project_to_ground",
+    "EastingNorthingFrame",
 ]
 
 
@@ -45,6 +49,25 @@ class GroundFrame(BaseCoordinateFrame):
     """
 
     default_representation = CartesianRepresentation
+
+
+class EastingNorthingFrame(BaseCoordinateFrame):
+    """GroundFrame but in standard Easting/Northing coordinates instead of
+    SimTel/Corsika conventions
+
+    Frame attributes: None
+
+    """
+
+    default_representation = CartesianRepresentation
+
+    frame_specific_representation_info = {
+        CartesianRepresentation: [
+            RepresentationMapping("x", "easting"),
+            RepresentationMapping("y", "northing"),
+            RepresentationMapping("z", "height"),
+        ]
+    }
 
 
 class TiltedGroundFrame(BaseCoordinateFrame):
@@ -200,3 +223,34 @@ def project_to_ground(tilt_system):
     y_projected = y_initial - trans[2][1] * z_initial / trans[2][2]
 
     return GroundFrame(x=x_projected * unit, y=y_projected * unit, z=0 * unit)
+
+
+@frame_transform_graph.transform(FunctionTransform, GroundFrame, GroundFrame)
+def ground_to_ground(ground_coords, ground_frame):
+    """Null transform for going from ground to ground, since there are no
+    attributes of the GroundSystem"""
+    return ground_coords
+
+
+# Matrices for transforming between GroundFrame and EastingNorthingFrame
+NO_OFFSET = CartesianRepresentation(Quantity([0, 0, 0], u.m))
+GROUND_TO_EASTNORTH = np.asarray([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
+
+
+@frame_transform_graph.transform(AffineTransform, GroundFrame, EastingNorthingFrame)
+def ground_to_easting_northing(ground_coords, eastnorth_frame):
+    """
+    convert GroundFrame points into eastings/northings for plotting purposes
+
+    """
+
+    return GROUND_TO_EASTNORTH, NO_OFFSET
+
+
+@frame_transform_graph.transform(AffineTransform, EastingNorthingFrame, GroundFrame)
+def easting_northing_to_ground(eastnorth_coords, ground_frame):
+    """
+    convert  eastings/northings back to GroundFrame
+
+    """
+    return GROUND_TO_EASTNORTH.T, NO_OFFSET

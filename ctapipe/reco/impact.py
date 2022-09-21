@@ -395,7 +395,7 @@ class ImPACTReconstructor(Component):
         # everything in the correct units when loading in the class
         # and ignore them from then on
 
-        zenith = (np.pi / 2) - self.array_direction.alt.to(u.rad).value
+        zenith = self.array_direction.zen.to_value(u.rad)
 
         # Geometrically calculate the depth of maximum given this test position
         x_max = self.get_shower_max(source_x, source_y, core_x, core_y, zenith)
@@ -693,7 +693,7 @@ class ImPACTReconstructor(Component):
         )
         tilt_x = tilted.x.to(u.m).value
         tilt_y = tilted.y.to(u.m).value
-        zenith = 90 * u.deg - self.array_direction.alt
+        zenith = self.array_direction.zen
 
         seeds = spread_line_seed(
             self.hillas_parameters,
@@ -716,7 +716,6 @@ class ImPACTReconstructor(Component):
         )
 
         # Create a container class for reconstructed shower
-        shower_result = ReconstructedGeometryContainer()
 
         # Convert the best fits direction and core to Horizon and ground systems and
         # copy to the shower container
@@ -727,7 +726,6 @@ class ImPACTReconstructor(Component):
         )
         horizon = nominal.transform_to(AltAz())
 
-        shower_result.alt, shower_result.az = horizon.alt, horizon.az
         tilted = TiltedGroundFrame(
             x=fit_params[2] * u.m,
             y=fit_params[3] * u.m,
@@ -736,36 +734,41 @@ class ImPACTReconstructor(Component):
         )
         ground = project_to_ground(tilted)
 
-        shower_result.core_x = ground.x
-        shower_result.core_y = ground.y
-
-        shower_result.is_valid = True
-
-        # Currently no errors not available to copy NaN
-        shower_result.alt_uncert = np.nan
-        shower_result.az_uncert = np.nan
-        shower_result.core_uncert = np.nan
-
-        # Copy reconstructed Xmax
-        shower_result.h_max = fit_params[5] * self.get_shower_max(
-            fit_params[0],
-            fit_params[1],
-            fit_params[2],
-            fit_params[3],
-            zenith.to(u.rad).value,
+        h_max = (
+            fit_params[5]
+            * np.cos(zenith)
+            * self.get_shower_max(
+                fit_params[0],
+                fit_params[1],
+                fit_params[2],
+                fit_params[3],
+                zenith.to(u.rad).value,
+            )
         )
 
-        shower_result.h_max *= np.cos(zenith)
-        shower_result.h_max_uncert = errors[5] * shower_result.h_max
-
-        shower_result.goodness_of_fit = like
+        shower_result = ReconstructedGeometryContainer(
+            alt=horizon.alt,
+            az=horizon.az,
+            core_x=ground.x,
+            core_y=ground.y,
+            is_valid=True,
+            alt_uncert=np.nan,
+            az_uncert=np.nan,
+            core_uncert=np.nan,
+            # Copy reconstructed hmax
+            h_max=h_max,
+            h_max_uncert=errors[5] * h_max,
+            goodness_of_fit=like,
+            prefix=self.__class__.__name__,
+        )
 
         # Create a container class for reconstructed energy
-        energy_result = ReconstructedEnergyContainer()
-        # Fill with results
-        energy_result.energy = fit_params[4] * u.TeV
-        energy_result.energy_uncert = errors[4] * u.TeV
-        energy_result.is_valid = True
+        energy_result = ReconstructedEnergyContainer(
+            prefix=self.__class__.__name__,
+            energy=fit_params[4] * u.TeV,
+            energy_uncert=errors[4] * u.TeV,
+            is_valid=True,
+        )
 
         return shower_result, energy_result
 

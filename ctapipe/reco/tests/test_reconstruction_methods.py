@@ -1,13 +1,11 @@
+import pytest
 from astropy import units as u
 
+from ctapipe.calib import CameraCalibrator
 from ctapipe.image import ImageProcessor
 from ctapipe.io import EventSource
-from ctapipe.reco import HillasReconstructor, HillasIntersection
-
+from ctapipe.reco import HillasIntersection, HillasReconstructor
 from ctapipe.utils import get_dataset_path
-from ctapipe.calib import CameraCalibrator
-
-import pytest
 
 
 @pytest.fixture
@@ -30,7 +28,7 @@ def test_reconstructors(reconstructors):
         "gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"
     )
 
-    source = EventSource(filename, max_events=10)
+    source = EventSource(filename, max_events=10, focal_length_choice="EQUIVALENT")
     subarray = source.subarray
     calib = CameraCalibrator(source.subarray)
     image_processor = ImageProcessor(source.subarray)

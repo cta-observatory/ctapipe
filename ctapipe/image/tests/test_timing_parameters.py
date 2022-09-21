@@ -1,11 +1,11 @@
-import numpy as np
 import astropy.units as u
+import numpy as np
 from numpy.testing import assert_allclose
-from ctapipe.instrument.camera import CameraGeometry
+
 from ctapipe.containers import CameraHillasParametersContainer
 
 
-def test_psi_0():
+def test_psi_0(prod5_lst):
     from ctapipe.image import timing_parameters
 
     """
@@ -16,7 +16,7 @@ def test_psi_0():
     intercept = 1.0
     deviation = 0.1
 
-    geom = CameraGeometry.from_name("LSTCam")
+    geom = prod5_lst.camera.geometry
     hillas = CameraHillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=0 * u.deg)
 
     random = np.random.default_rng(0)
@@ -37,7 +37,7 @@ def test_psi_0():
     assert_allclose(timing.deviation, deviation, rtol=1e-2)
 
 
-def test_psi_20():
+def test_psi_20(prod5_lst):
     from ctapipe.image import timing_parameters
 
     # Then try a different rotation angle
@@ -45,7 +45,7 @@ def test_psi_20():
     intercept = 1
     deviation = 0.1
 
-    geom = CameraGeometry.from_name("LSTCam")
+    geom = prod5_lst.camera.geometry
     psi = 20 * u.deg
     hillas = CameraHillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=psi)
 
@@ -69,14 +69,14 @@ def test_psi_20():
     assert_allclose(timing.deviation, deviation, rtol=1e-2)
 
 
-def test_ignore_negative():
+def test_ignore_negative(prod5_lst):
     from ctapipe.image import timing_parameters
 
     grad = 2.0
     intercept = 1.0
     deviation = 0.1
 
-    geom = CameraGeometry.from_name("LSTCam")
+    geom = prod5_lst.camera.geometry
     hillas = CameraHillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=0 * u.deg)
 
     random = np.random.default_rng(0)

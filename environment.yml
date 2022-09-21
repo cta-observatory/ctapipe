@@ -4,7 +4,7 @@ channels:
   - conda-forge
   - default
 dependencies:
-  - python=3.8
+  - python=3.9
   - pip
   - astropy=5
   - black
@@ -29,6 +29,7 @@ dependencies:
   - pytest
   - pytest-cov
   - pytest-runner
+  - pytest-astropy-header
   - pyyaml
   - scikit-learn
   - scipy
@@ -44,5 +45,5 @@ dependencies:
   - xz
   - zlib
   - zstandard
-  - eventio>=1.5.0
+  - eventio>=1.9.1
   - jinja2=3.0 # for sphinx 3.5, remove when updating to 4.x

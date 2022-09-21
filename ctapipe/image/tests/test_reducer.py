@@ -1,29 +1,30 @@
-import pytest
-import numpy as np
-from numpy.testing import assert_array_equal
 import astropy.units as u
+import numpy as np
+import pytest
+from numpy.testing import assert_array_equal
 from traitlets.config import Config
-from ctapipe.instrument import SubarrayDescription, TelescopeDescription
+
 from ctapipe.image.reducer import NullDataVolumeReducer, TailCutsDataVolumeReducer
+from ctapipe.instrument import SubarrayDescription
 
 
 @pytest.fixture(scope="module")
-def subarray_lst():
-    telid = 1
+def subarray_lst(prod3_lst):
+    tel_id = 1
     subarray = SubarrayDescription(
         "test array lst",
         tel_positions={1: np.zeros(3) * u.m, 2: np.ones(3) * u.m},
         tel_descriptions={
-            1: TelescopeDescription.from_name(optics_name="LST", camera_name="LSTCam"),
-            2: TelescopeDescription.from_name(optics_name="LST", camera_name="LSTCam"),
+            1: prod3_lst,
+            2: prod3_lst,
         },
     )
 
-    n_pixels = subarray.tel[telid].camera.geometry.n_pixels
+    n_pixels = subarray.tel[tel_id].camera.geometry.n_pixels
     n_samples = 30
     selected_gain_channel = np.zeros(n_pixels, dtype=np.int16)
 
-    return subarray, telid, selected_gain_channel, n_pixels, n_samples
+    return subarray, tel_id, selected_gain_channel, n_pixels, n_samples
 
 
 def test_null_data_volume_reducer(subarray_lst):
@@ -38,7 +39,7 @@ def test_null_data_volume_reducer(subarray_lst):
 
 
 def test_tailcuts_data_volume_reducer(subarray_lst):
-    subarray, telid, selected_gain_channel, n_pixels, n_samples = subarray_lst
+    subarray, tel_id, selected_gain_channel, n_pixels, n_samples = subarray_lst
 
     # create signal
     waveforms_signal = np.zeros((n_pixels, n_samples), dtype=np.float64)
@@ -81,7 +82,7 @@ def test_tailcuts_data_volume_reducer(subarray_lst):
     reducer = TailCutsDataVolumeReducer(config=reduction_param, subarray=subarray)
     reduced_waveforms = waveforms_signal.copy()
     reduced_waveforms_mask = reducer(
-        waveforms_signal, telid=telid, selected_gain_channel=selected_gain_channel
+        waveforms_signal, tel_id=tel_id, selected_gain_channel=selected_gain_channel
     )
     reduced_waveforms[~reduced_waveforms_mask] = 0
 

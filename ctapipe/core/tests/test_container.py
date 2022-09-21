@@ -11,34 +11,32 @@ def test_prefix():
         pass
 
     # make sure the default prefix is class name without container
-    assert AwesomeContainer.container_prefix == "awesome"
+    assert AwesomeContainer.default_prefix == "awesome"
     assert AwesomeContainer().prefix == "awesome"
 
     # make sure we can set the class level prefix at definition time
     class ReallyAwesomeContainer(Container):
-        container_prefix = "test"
+        default_prefix = "test"
 
-    assert ReallyAwesomeContainer.container_prefix == "test"
+    assert ReallyAwesomeContainer.default_prefix == "test"
     r = ReallyAwesomeContainer()
     assert r.prefix == "test"
 
-    ReallyAwesomeContainer.container_prefix = "test2"
-    # new instance should have the old prefix, old instance
-    # the one it was created with
+    # new instance should have the new prefix,
+    # old instance the one it was created with
+    ReallyAwesomeContainer.default_prefix = "test2"
     assert ReallyAwesomeContainer().prefix == "test2"
     assert r.prefix == "test"
-
-    # Make sure we can set the class level prefix at runtime
-    ReallyAwesomeContainer.container_prefix = "foo"
-    assert ReallyAwesomeContainer().prefix == "foo"
 
     # make sure we can assign instance level prefixes
     c1 = ReallyAwesomeContainer()
     c2 = ReallyAwesomeContainer()
+    c3 = ReallyAwesomeContainer(prefix="c3")
     c2.prefix = "c2"
 
-    assert c1.prefix == "foo"
+    assert c1.prefix == "test2"
     assert c2.prefix == "c2"
+    assert c3.prefix == "c3"
 
 
 def test_inheritance():
@@ -126,7 +124,7 @@ def test_child_containers():
 
     class ParentContainer(Container):
         x = Field(0, "some value")
-        child = Field(ChildContainer(), "a child")
+        child = Field(default_factory=ChildContainer, description="a child")
 
     cont = ParentContainer()
     assert cont.child.z == 1
@@ -138,7 +136,7 @@ def test_map_containers():
 
     class ParentContainer(Container):
         x = Field(0, "some value")
-        children = Field(Map(), "map of tel_id to child")
+        children = Field(default_factory=Map, description="map of tel_id to child")
 
     cont = ParentContainer()
     cont.children[10] = ChildContainer()
@@ -157,15 +155,36 @@ def test_container_as_dict():
 
     class ParentContainer(Container):
         x = Field(0, "some value")
-        child = Field(ChildContainer(), "a child")
+        child = Field(default_factory=ChildContainer, description="a child")
+
+    class GrandParentContainer(Container):
+        y = Field(2, "some other value")
+        child = Field(ParentContainer(), "child")
 
     cont = ParentContainer()
 
-    the_flat_dict = cont.as_dict(recursive=True, flatten=True)
-    the_dict = cont.as_dict(recursive=True, flatten=False)
+    assert cont.as_dict() == {"x": 0, "child": cont.child}
+    assert cont.as_dict(recursive=True) == {"x": 0, "child": {"z": 1}}
+    assert cont.as_dict(recursive=True, add_prefix=True) == {
+        "parent_x": 0,
+        "parent_child": {
+            "child_z": 1
+        }
+    }
 
-    assert "child_z" in the_flat_dict
-    assert "child" in the_dict and "z" in the_dict["child"]
+    assert cont.as_dict(recursive=True, flatten=True, add_prefix=False) == {
+        "x": 0,
+        "z": 1,
+    }
+
+    assert cont.as_dict(recursive=True, flatten=True, add_prefix=True) == {
+        "parent_x": 0,
+        "child_z": 1,
+    }
+
+    d = GrandParentContainer().as_dict(recursive=True, flatten=True, add_prefix=True)
+    assert d == {'parent_x': 0, 'child_z': 1, 'grandparent_y': 2}
+
 
 
 def test_container_brackets():
@@ -255,7 +274,7 @@ def test_field_validation():
 
 
 def test_container_validation():
-    """ check that we can validate all fields in a container"""
+    """check that we can validate all fields in a container"""
 
     class MyContainer(Container):
         x = Field(3.2, "test", unit="m")
@@ -264,4 +283,29 @@ def test_container_validation():
     with pytest.raises(FieldValidationError):
         MyContainer().validate()  # fails since 3.2 has no units
 
+    with pytest.raises(FieldValidationError):
+        MyContainer(x=10 * u.s).validate()  # seconds is not convertable to meters
+
     MyContainer(x=6.4 * u.m).validate()  # works
+
+
+def test_recursive_validation():
+    """
+    Check both sub-containers and Maps work with recursive validation
+    """
+
+    class ChildContainer(Container):
+        x = Field(3.2 * u.m, "test", unit="m")
+
+    class ParentContainer(Container):
+        cont = Field(None, "test sub", type=ChildContainer)
+        map = Field(Map(ChildContainer), "many children")
+
+    with pytest.raises(FieldValidationError):
+        ParentContainer(cont=ChildContainer(x=1 * u.s)).validate()
+
+    with pytest.raises(FieldValidationError):
+        cont = ParentContainer(cont=ChildContainer(x=1 * u.m))
+        cont.map[0] = ChildContainer(x=1 * u.m)
+        cont.map[1] = ChildContainer(x=1 * u.s)
+        cont.validate()

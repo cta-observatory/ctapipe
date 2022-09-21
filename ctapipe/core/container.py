@@ -1,17 +1,21 @@
-from collections import defaultdict
-from copy import deepcopy
-from pprint import pformat
-from textwrap import wrap
-import warnings
-import numpy as np
-from astropy.units import UnitConversionError, Quantity, Unit
-
 import logging
+import warnings
+from collections import defaultdict
+from functools import partial
+from inspect import isclass
+from pprint import pformat
+from textwrap import dedent, wrap
 
+import numpy as np
+from astropy.units import Quantity, Unit, UnitConversionError
 
 log = logging.getLogger(__name__)
 
 __all__ = ["Container", "Field", "FieldValidationError", "Map"]
+
+
+def _fqdn(obj):
+    return f"{obj.__module__}.{obj.__qualname__}"
 
 
 class FieldValidationError(ValueError):
@@ -24,27 +28,31 @@ class Field:
 
     Parameters
     ----------
-    default:
-        default value of the item (this will be set when the `Container`
-        is constructed, as well as when  ``Container.reset`` is called
-    description: str
+    default :
+        Default value of the item. This will be set when the `Container`
+        is constructed, as well as when  ``Container.reset`` is called.
+        This should only be used for immutable values. For mutable values,
+        use ``default_factory`` instead.
+    description : str
         Help text associated with the item
-    unit: str or astropy.units.core.UnitBase
+    unit : str or astropy.units.core.UnitBase
         unit to convert to when writing output, or None for no conversion
-    ucd: str
+    ucd : str
         universal content descriptor (see Virtual Observatory standards)
-    type: type
+    type : type
         expected type of value
-    dtype: str or np.dtype
+    dtype : str or np.dtype
         expected data type of the value, None to ignore in validation.
         Means value is expected to be a numpy array or astropy quantity
-    ndim: int or None
+    ndim : int or None
         expected dimensionality of the data, for arrays, None to ignore
-    allow_none:
+    allow_none : bool
         if the value of None is given to this Field, skip validation
-    max_len:
+    max_len : int
         if type is str, max_len is the maximum number of bytes of the utf-8
         encoded string to be used.
+    default_factory : Callable
+        A callable providing a fresh instance as default value.
     """
 
     def __init__(
@@ -58,9 +66,10 @@ class Field:
         ndim=None,
         allow_none=True,
         max_length=None,
+        default_factory=None,
     ):
-
         self.default = default
+        self.default_factory = default_factory
         self.description = description
         self.unit = Unit(unit) if unit is not None else None
         self.ucd = ucd
@@ -70,14 +79,51 @@ class Field:
         self.allow_none = allow_none
         self.max_length = max_length
 
+        if default_factory is not None and default is not None:
+            raise ValueError("Must only provide one of default or default_factory")
+
     def __repr__(self):
-        desc = f"{self.description}"
+        if self.default_factory is not None:
+            if isclass(self.default_factory):
+                default = _fqdn(self.default_factory)
+            elif isinstance(self.default_factory, partial):
+                # case for `partial(Map, Container)`
+                cls = _fqdn(self.default_factory.args[0])
+                if self.default_factory.func is Map:
+                    func = "Map"
+                else:
+                    func = repr(self.default_factory.func)
+                default = f"{func}({cls})"
+            else:
+                default = str(self.default_factory())
+        else:
+            default = str(self.default)
+        cmps = [f"Field(default={default}"]
+        if self.unit is not None:
+            cmps.append(f", unit={self.unit}")
+        if self.dtype is not None:
+            cmps.append(f", dtype={self.dtype}")
+        if self.ndim is not None:
+            cmps.append(f", ndim={self.ndim}")
+        if self.type is not None:
+            cmps.append(f", type={self.type.__name__}")
+        if self.allow_none is False:
+            cmps.append(", allow_none=False")
+        if self.max_length is not None:
+            cmps.append(f", max_length={self.max_length}")
+        cmps.append(")")
+        return "".join(cmps)
+
+    def __str__(self):
+        desc = f"{self.description} with default {self.default}"
         if self.unit is not None:
             desc += f" [{self.unit}]"
         if self.ndim is not None:
             desc += f" as a {self.ndim}-D array"
         if self.dtype is not None:
-            desc += f" with type {self.dtype}"
+            desc += f" with dtype {self.dtype}"
+        if self.type is not None:
+            desc += f" with type {self.type}"
 
         return desc
 
@@ -105,6 +151,20 @@ class Field:
             raise FieldValidationError(
                 f"{errorstr} Should be an instance of {self.type}"
             )
+
+        if isinstance(value, Container):
+            # recursively check sub-containers
+            value.validate()
+            return
+
+        if isinstance(value, Map):
+            for key, map_value in value.items():
+                if isinstance(map_value, Container):
+                    try:
+                        map_value.validate()
+                    except FieldValidationError as err:
+                        raise FieldValidationError(f"[{key}]: {err} ")
+            return
 
         if self.unit is not None:
             if not isinstance(value, Quantity):
@@ -143,12 +203,29 @@ class Field:
 
 
 class DeprecatedField(Field):
-    """ used to mark which fields may be removed in next version """
+    """used to mark which fields may be removed in next version"""
 
     def __init__(self, default, description="", unit=None, ucd=None, reason=""):
         super().__init__(default=default, description=description, unit=unit, ucd=ucd)
         warnings.warn(f"Field {self} is deprecated. {reason}", DeprecationWarning)
         self.reason = reason
+
+
+_doc_template = """{doc}
+
+Attributes
+----------
+{fields}
+meta : dict
+    dict of attached metadata
+prefix : str
+    Prefix attached to column names when saved to a table or file
+"""
+
+
+def _build_docstring(doc, fields):
+    fields = [f"{k} : {f!r}\n    {f.description}" for k, f in fields.items()]
+    return _doc_template.format(doc=dedent(doc), fields="\n".join(fields))
 
 
 class ContainerMeta(type):
@@ -177,11 +254,16 @@ class ContainerMeta(type):
         for k in field_names:
             dct["fields"][k] = dct.pop(k)
 
+        for field_name, field in dct["fields"].items():
+            field.name = field_name
+
+        dct["__doc__"] = _build_docstring(dct.get("__doc__", ""), dct["fields"])
+
         new_cls = type.__new__(cls, name, bases, dct)
 
         # if prefix was not set as a class variable, build a default one
-        if "container_prefix" not in dct:
-            new_cls.container_prefix = name.lower().replace("container", "")
+        if "default_prefix" not in dct:
+            new_cls.default_prefix = name.lower().replace("container", "")
 
         return new_cls
 
@@ -237,20 +319,21 @@ class Container(metaclass=ContainerMeta):
 
     """
 
-    def __init__(self, **fields):
+    def __init__(self, prefix=None, **fields):
         self.meta = {}
         # __slots__ cannot be provided with defaults
-        # via class variables, so we use a `container_prefix` class variable
+        # via class variables, so we use a `default_prefix` class variable
         # and an instance variable `prefix` in `__slots__`
-        self.prefix = self.container_prefix
+        self.prefix = prefix if prefix is not None else self.default_prefix
 
         for k in set(self.fields).difference(fields):
 
             # deepcopy of None is surprisingly slow
-            default = self.fields[k].default
-            if default is not None:
-                default = deepcopy(default)
-
+            field = self.fields[k]
+            if field.default_factory is not None:
+                default = field.default_factory()
+            else:
+                default = field.default
             setattr(self, k, default)
 
         for k, v in fields.items():
@@ -293,28 +376,21 @@ class Container(metaclass=ContainerMeta):
         """
         if not recursive:
             return dict(self.items(add_prefix=add_prefix))
-        else:
-            d = dict()
-            for key, val in self.items(add_prefix=add_prefix):
-                if isinstance(val, Container) or isinstance(val, Map):
-                    if flatten:
-                        d.update(
-                            {
-                                f"{key}_{k}": v
-                                for k, v in val.as_dict(
-                                    recursive, add_prefix=add_prefix
-                                ).items()
-                            }
-                        )
-                    else:
-                        d[key] = val.as_dict(
-                            recursive=recursive, flatten=flatten, add_prefix=add_prefix
-                        )
-                else:
-                    d[key] = val
-            return d
 
-    def reset(self, recursive=True):
+        d = dict()
+        for key, val in self.items(add_prefix=add_prefix):
+            if isinstance(val, (Container, Map)):
+                if flatten:
+                    d.update(val.as_dict(recursive, add_prefix=add_prefix, flatten=flatten))
+                else:
+                    d[key] = val.as_dict(
+                        recursive=recursive, flatten=flatten, add_prefix=add_prefix
+                    )
+            else:
+                d[key] = val
+        return d
+
+    def reset(self):
         """
         Reset all values back to their default values
 
@@ -324,12 +400,11 @@ class Container(metaclass=ContainerMeta):
             If true, also reset all sub-containers
         """
 
-        for name, value in self.fields.items():
-            if isinstance(value, Container):
-                if recursive:
-                    getattr(self, name).reset()
+        for name, field in self.fields.items():
+            if field.default_factory is not None:
+                setattr(self, name, field.default_factory())
             else:
-                setattr(self, name, deepcopy(self.fields[name].default))
+                setattr(self, name, field.default)
 
     def update(self, **values):
         """
@@ -350,7 +425,7 @@ class Container(metaclass=ContainerMeta):
                 extra = ".*"
             if isinstance(getattr(self, name), Map):
                 extra = "[*]"
-            desc = "{:>30s}: {}".format(name + extra, repr(item))
+            desc = "{:>30s}: {}".format(name + extra, str(item))
             lines = wrap(desc, 80, subsequent_indent=" " * 32)
             text.extend(lines)
         return "\n".join(text)
@@ -410,3 +485,10 @@ class Map(defaultdict):
         for val in self.values():
             if isinstance(val, Container):
                 val.reset(recursive=recursive)
+
+    def __repr__(self):
+        if isclass(self.default_factory):
+            default = _fqdn(self.default_factory)
+        else:
+            default = repr(self.default_factory)
+        return f"{self.__class__.__name__}({default}, {dict.__repr__(self)!s})"

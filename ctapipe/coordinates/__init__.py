@@ -1,16 +1,25 @@
 """
 Coordinates.
 """
+
+import numpy as np
+
 from astropy.coordinates import (
     AltAz,
     FunctionTransformWithFiniteDifference,
     CIRS,
     frame_transform_graph,
+    spherical_to_cartesian,
 )
 import warnings
 from .telescope_frame import TelescopeFrame
 from .nominal_frame import NominalFrame
-from .ground_frames import GroundFrame, TiltedGroundFrame, project_to_ground
+from .ground_frames import (
+    GroundFrame,
+    TiltedGroundFrame,
+    project_to_ground,
+    EastingNorthingFrame,
+)
 from .camera_frame import CameraFrame, EngineeringCameraFrame
 
 
@@ -21,8 +30,10 @@ __all__ = [
     "NominalFrame",
     "GroundFrame",
     "TiltedGroundFrame",
+    "EastingNorthingFrame",
     "MissingFrameAttributeWarning",
     "project_to_ground",
+    "altaz_to_righthanded_cartesian",
 ]
 
 
@@ -59,3 +70,19 @@ def altaz_to_altaz(from_coo, to_frame):
         return to_frame.realize_frame(from_coo.spherical)
 
     return from_coo.transform_to(CIRS(obstime=obstime)).transform_to(to_frame)
+
+
+def altaz_to_righthanded_cartesian(alt, az):
+    """Turns an alt/az coordinate into a 3d direction in a right-handed coordinate
+    system.  This is because azimuths are in a left-handed system.
+
+    See e.g: https://github.com/astropy/astropy/issues/5300
+
+    Parameters
+    ----------
+    alt: u.Quantity
+        altitude
+    az: u.Quantity
+        azimuth
+    """
+    return np.array(spherical_to_cartesian(r=1, lat=alt, lon=-az))

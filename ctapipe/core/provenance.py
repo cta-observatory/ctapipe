@@ -11,19 +11,18 @@ import os
 import platform
 import sys
 import uuid
+from collections import UserList
 from contextlib import contextmanager
 from importlib import import_module
 from os.path import abspath
+from pathlib import Path
 
 import pkg_resources
-
 import psutil
 from astropy.time import Time
 from pkg_resources import get_distribution
 
 import ctapipe
-from collections import UserList
-from pathlib import Path
 
 from .support import Singleton
 
@@ -54,7 +53,7 @@ def get_module_version(name):
     except AttributeError:
         try:
             return get_distribution(name).version
-        except:
+        except Exception:
             return "unknown"
     except ImportError:
         return "not installed"
@@ -78,7 +77,7 @@ class Provenance(metaclass=Singleton):
         self._finished_activities = []
 
     def start_activity(self, activity_name=sys.executable):
-        """ push activity onto the stack"""
+        """push activity onto the stack"""
         activity = _ActivityProvenance(activity_name)
         activity.start()
         self._activities.append(activity)
@@ -127,12 +126,12 @@ class Provenance(metaclass=Singleton):
         Parameters
         ----------
         config: dict
-            configuration paramters
+            configuration parameters
         """
         self.current_activity.register_config(config)
 
     def finish_activity(self, status="completed", activity_name=None):
-        """ end the current activity """
+        """end the current activity"""
         activity = self._activities.pop()
         if activity_name is not None and activity_name != activity.name:
             raise ValueError(
@@ -146,7 +145,7 @@ class Provenance(metaclass=Singleton):
 
     @contextmanager
     def activity(self, name):
-        """ context manager for activities """
+        """context manager for activities"""
         self.start_activity(name)
         yield
         self.finish_activity(name)
@@ -164,7 +163,7 @@ class Provenance(metaclass=Singleton):
 
     @property
     def provenance(self):
-        """ returns provenence for full list of activities """
+        """returns provenence for full list of activities"""
         return [x.provenance for x in self._finished_activities]
 
     def as_json(self, **kwargs):
@@ -172,7 +171,7 @@ class Provenance(metaclass=Singleton):
         may be included, e.g. ``indent=4``"""
 
         def set_default(obj):
-            """ handle sets (not part of JSON) by converting to list"""
+            """handle sets (not part of JSON) by converting to list"""
             if isinstance(obj, set):
                 return list(obj)
             if isinstance(obj, UserList):
@@ -191,7 +190,7 @@ class Provenance(metaclass=Singleton):
         return [x.name for x in self._finished_activities]
 
     def clear(self):
-        """ remove all tracked activities """
+        """remove all tracked activities"""
         self._activities = []
         self._finished_activities = []
 
@@ -251,11 +250,11 @@ class _ActivityProvenance:
         self._prov["output"].append(dict(url=url, role=role))
 
     def register_config(self, config):
-        """ add a dictionary of configuration parameters to this activity"""
+        """add a dictionary of configuration parameters to this activity"""
         self._prov["config"] = config
 
     def finish(self, status="completed"):
-        """ record final provenance information, normally called at shutdown."""
+        """record final provenance information, normally called at shutdown."""
         self._prov["stop"].update(_sample_cpu_and_memory())
 
         # record the duration (wall-clock) for this activity
@@ -314,7 +313,7 @@ def _get_system_provenance():
             system=platform.system(),
             release=platform.release(),
             libcver=platform.libc_ver(),
-            num_cpus=psutil.cpu_count(),
+            n_cpus=psutil.cpu_count(),
             boot_time=Time(psutil.boot_time(), format="unix").isot,
         ),
         python=dict(

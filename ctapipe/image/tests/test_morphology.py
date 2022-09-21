@@ -1,13 +1,13 @@
 import numpy as np
 from numpy.testing import assert_allclose
+
 from ctapipe.instrument import CameraGeometry
 
 
-def test_number_of_islands():
+def test_number_of_islands(prod3_lst):
     from ctapipe.image import number_of_islands
 
-    # test with LST geometry (1855 pixels)
-    geom = CameraGeometry.from_name("LSTCam")
+    geom = prod3_lst.camera.geometry
 
     # create 18 triggered pixels grouped to 5 clusters
     mask = np.zeros(geom.n_pixels).astype("bool")
@@ -60,7 +60,7 @@ def test_number_of_island_sizes():
 
 def test_largest_island():
     """Test selection of largest island in imagea with given cleaning masks."""
-    from ctapipe.image import number_of_islands, largest_island
+    from ctapipe.image import largest_island, number_of_islands
 
     # Create a simple rectangular camera made of 17 pixels
     camera = CameraGeometry.make_rectangular(17, 1)

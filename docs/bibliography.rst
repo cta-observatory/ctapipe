@@ -32,3 +32,7 @@ References
     Data Mining and Knowledge Discovery, 12, 29-45, DOI: 10.1007/s10618-005-0024-4
 
 .. [hillas_uncertainties] W. Wittek, "Image Parameters", MAGIC-TDAS internal note 02-03, (2002). 
+
+.. [cta_sb_ob] Oya et al, Scheduling Block Data Model Specification, CTA-SPE-COM-000000-0003, Issue 1, Rev. c
+
+.. [cta_r1event] CTA R1/Event Data Model Specification, version 1 revision C (2022).

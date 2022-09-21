@@ -10,8 +10,7 @@ organization = "YOUR-ORGANIZATION"
 overwrite = false
 write_images = true
 write_parameters = true
-write_stereo_shower = false
-write_mono_shower = false
+write_showers = false
 transform_image = true
 transform_peak_time = true
 
@@ -41,15 +40,15 @@ min_picture_neighbors = [ [ "type", "*", 2,],]
 [ImageProcessor.ImageQualityQuery]
 # These specify which images should be parameterized:
 quality_criteria = [
-    [ "enough_pixels", "lambda im: np.count_nonzero(im) > 2",],
-    [ "enough_charge", "lambda im: im.sum() > 50",]
+    [ "enough_pixels", "np.count_nonzero(image) > 2",],
+    [ "enough_charge", "image.sum() > 50",]
 ]
 
 [ShowerProcessor.ShowerQualityQuery]
 # These specify criteria for telescopes that should be included in stereo
 # reconstruction:
 quality_criteria = [
-    [ "enough intensity", "lambda p: p.hillas.intensity > 50",],
-    [ "Positive width", "lambda p: p.hillas.width.value > 0",],
-    [ "enough pixels", "lambda p: p.morphology.num_pixels > 3",],
+    [ "enough intensity", "parameters.hillas.intensity > 50",],
+    [ "Positive width", "parameters.hillas.width.value > 0",],
+    [ "enough pixels", "parameters.morphology.n_pixels > 3",],
 ]

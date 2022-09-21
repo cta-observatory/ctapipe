@@ -1,41 +1,44 @@
 """ Tests for TelescopeDescriptions """
 import pytest
 
-from ctapipe.instrument.camera import CameraDescription
-from ctapipe.instrument.optics import OpticsDescription
 from ctapipe.instrument.telescope import TelescopeDescription
 
 
-def test_hash():
+def test_repr(subarray_prod5_paranal):
+    expected = (
+        "TelescopeDescription(type='LST', optics_name='LST', camera_name='LSTCam')"
+    )
+    assert repr(subarray_prod5_paranal.tel[1]) == expected
 
-    types = ["LST", "MST", "SST"]
-    names = ["LST", "MST", "SST-1M"]
-    cameras = ["LSTCam", "FlashCam", "DigiCam"]
+    expected = (
+        "TelescopeDescription(type='MST', optics_name='MST', camera_name='FlashCam')"
+    )
+    assert repr(subarray_prod5_paranal.tel[5]) == expected
 
-    telescopes = []
-    for name, type, camera in zip(names, types, cameras):
-        for i in range(3):
-
-            telescopes.append(
-                TelescopeDescription(
-                    name=name,
-                    tel_type=type,
-                    optics=OpticsDescription.from_name(name),
-                    camera=CameraDescription.from_name(camera),
-                )
-            )
-
-    assert len(telescopes) == 9
-    assert len(set(telescopes)) == 3
+    expected = (
+        "TelescopeDescription(type='SST', optics_name='ASTRI', camera_name='CHEC')"
+    )
+    assert repr(subarray_prod5_paranal.tel[50]) == expected
 
 
-@pytest.mark.parametrize("optics_name", ["LST", "MST"])
-def test_telescope_from_name(optics_name, camera_geometry):
-    """ Check we can construct all telescopes from their names """
-    camera_name = camera_geometry.camera_name
+def test_str(subarray_prod5_paranal):
+    assert str(subarray_prod5_paranal.tel[1]) == "LST_LST_LSTCam"
+    assert str(subarray_prod5_paranal.tel[5]) == "MST_MST_FlashCam"
+    assert str(subarray_prod5_paranal.tel[50]) == "SST_ASTRI_CHEC"
+
+
+def test_hash(subarray_prod5_paranal):
+    assert len(subarray_prod5_paranal) == 180
+    assert len(set(subarray_prod5_paranal.tel.values())) == 4
+
+
+@pytest.mark.parametrize("camera_name", ["LSTCam", "FlashCam", "NectarCam", "CHEC"])
+@pytest.mark.parametrize("optics_name", ["LST", "MST", "ASTRI"])
+def test_telescope_from_name(optics_name, camera_name, svc_path):
+    """Check we can construct all telescopes from their names"""
     tel = TelescopeDescription.from_name(optics_name, camera_name)
+
     assert optics_name in str(tel)
     assert camera_name in str(tel)
     assert tel.camera.geometry.pix_x.shape[0] > 0
     assert tel.optics.equivalent_focal_length.to("m") > 0
-    assert tel.type in {"MST", "SST", "LST", "UNKNOWN"}

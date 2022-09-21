@@ -8,13 +8,12 @@ An HDF5 file is written with image MC and moment parameters
 """
 from tqdm.auto import tqdm
 
-from ctapipe.core import Tool
-from ctapipe.core.traits import Path, Unicode, Dict, Bool
-from ctapipe.io import EventSource, HDF5TableWriter
-
 from ctapipe.calib import CameraCalibrator
-from ctapipe.utils import get_dataset_path
+from ctapipe.core import Tool
+from ctapipe.core.traits import Bool, Dict, Path, Unicode
 from ctapipe.image import hillas_parameters, tailcuts_clean
+from ctapipe.io import EventSource, HDF5TableWriter
+from ctapipe.utils import get_dataset_path
 
 
 class SimpleEventWriter(Tool):
@@ -80,7 +79,7 @@ class SimpleEventWriter(Tool):
 
                 # Save Ids, MC infos and Hillas informations
                 self.writer.write(
-                    geom.camera_name, [event.r0, event.simulation.shower, params]
+                    geom.name, [event.r0, event.simulation.shower, params]
                 )
 
     def finish(self):

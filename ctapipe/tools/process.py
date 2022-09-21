@@ -3,18 +3,25 @@ Generate DL1 (a or b) output files in HDF5 format from {R0,R1,DL0} inputs.
 """
 # pylint: disable=W0201
 import sys
+
 from tqdm.auto import tqdm
 
 from ..calib import CameraCalibrator, GainSelector
 from ..core import QualityQuery, Tool
 from ..core.traits import Bool, classes_with_traits, flag
-from ..image import ImageCleaner, ImageProcessor, ImageModifier
+from ..image import ImageCleaner, ImageModifier, ImageProcessor
 from ..image.extractor import ImageExtractor
-from ..io import DataLevel, DataWriter, EventSource, SimTelEventSource, write_table
+from ..io import (
+    DataLevel,
+    DataWriter,
+    EventSource,
+    SimTelEventSource,
+    metadata,
+    write_table,
+)
 from ..io.datawriter import DATA_MODEL_VERSION
 from ..reco import ShowerProcessor
 from ..utils import EventTypeFilter
-
 
 COMPATIBLE_DATALEVELS = [
     DataLevel.R1,
@@ -111,16 +118,10 @@ class ProcessorTool(Tool):
             "don't store DL1/Event/Telescope parameters in output",
         ),
         **flag(
-            "write-stereo-shower",
-            "DataWriter.write_stereo_shower",
-            "store DL2/Event/Subarray parameters in output",
-            "don't DL2/Event/Subarray parameters in output",
-        ),
-        **flag(
-            "write-mono-shower",
-            "DataWriter.write_mono_shower",
-            "store DL2/Event/Telescope parameters in output",
-            "don't store DL2/Event/Telescope parameters in output",
+            "write-showers",
+            "DataWriter.write_showers",
+            "store DL2/Event parameters in output",
+            "don't DL2/Event parameters in output",
         ),
         **flag(
             "write-index-tables",
@@ -134,7 +135,14 @@ class ProcessorTool(Tool):
     }
 
     classes = (
-        [CameraCalibrator, DataWriter, ImageProcessor, ShowerProcessor]
+        [
+            CameraCalibrator,
+            DataWriter,
+            ImageProcessor,
+            ShowerProcessor,
+            metadata.Instrument,
+            metadata.Contact,
+        ]
         + classes_with_traits(EventSource)
         + classes_with_traits(ImageCleaner)
         + classes_with_traits(ImageExtractor)
@@ -184,10 +192,10 @@ class ProcessorTool(Tool):
 
     @property
     def should_compute_dl2(self):
-        """ returns true if we should compute DL2 info """
+        """returns true if we should compute DL2 info"""
         if self.force_recompute_dl2:
             return True
-        return self.write.write_stereo_shower or self.write.write_mono_shower
+        return self.write.write_showers
 
     @property
     def should_compute_dl1(self):
@@ -231,10 +239,11 @@ class ProcessorTool(Tool):
 
         if self.should_compute_dl2:
             reconstructor = self.process_shower.reconstructor
+            reconstructor_name = self.process_shower.reconstructor_type
             write_table(
                 reconstructor.check_parameters.to_table(functions=True),
                 self.write.output_path,
-                "/dl2/service/image_statistics",
+                f"/dl2/service/tel_event_statistics/{reconstructor_name}",
                 append=True,
             )
 
@@ -281,7 +290,7 @@ class ProcessorTool(Tool):
 
 
 def main():
-    """ run the tool"""
+    """run the tool"""
     tool = ProcessorTool()
     tool.run()
 

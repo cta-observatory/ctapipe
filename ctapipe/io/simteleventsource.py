@@ -1,11 +1,13 @@
+import enum
 import warnings
 from gzip import GzipFile
 from io import BufferedReader
 from pathlib import Path
+from typing import Dict
 
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import Angle
+from astropy.coordinates import Angle, EarthLocation
 from astropy.time import Time
 from eventio.file_types import is_eventio
 from eventio.simtel.simtelfile import SimTelFile
@@ -13,37 +15,51 @@ from eventio.simtel.simtelfile import SimTelFile
 from ..calib.camera.gainselection import GainSelector
 from ..containers import (
     ArrayEventContainer,
+    CoordinateFrameType,
+    EventIndexContainer,
     EventType,
-    SimulatedEventContainer,
-    SimulationConfigContainer,
+    ObservationBlockContainer,
+    ObservationBlockState,
+    ObservingMode,
+    PixelStatusContainer,
+    PointingContainer,
+    PointingMode,
+    R0CameraContainer,
+    R1CameraContainer,
+    SchedulingBlockContainer,
+    SchedulingBlockType,
     SimulatedCameraContainer,
+    SimulatedEventContainer,
     SimulatedShowerContainer,
+    SimulationConfigContainer,
+    TelescopeImpactParameterContainer,
     TelescopePointingContainer,
     TelescopeTriggerContainer,
+    TriggerContainer,
 )
 from ..coordinates import CameraFrame
-from ..core.traits import (
-    Bool,
-    Float,
-    CaselessStrEnum,
-    create_class_enum_trait,
-    Undefined,
-)
+from ..core import Map
+from ..core.traits import Bool, Float, Undefined, UseEnum, create_class_enum_trait
 from ..instrument import (
     CameraDescription,
     CameraGeometry,
     CameraReadout,
+    FocalLengthKind,
     OpticsDescription,
+    ReflectorShape,
     SubarrayDescription,
     TelescopeDescription,
 )
 from ..instrument.camera import UnknownPixelShapeWarning
-from ..instrument.guess import unknown_telescope, guess_telescope
+from ..instrument.guess import (
+    GuessingResult,
+    guess_telescope,
+    type_from_mirror_area,
+    unknown_telescope,
+)
+from ..reco.impact_distance import shower_impact_distance
 from .datalevels import DataLevel
 from .eventsource import EventSource
-
-X_MAX_UNIT = u.g / (u.cm**2)
-
 
 __all__ = ["SimTelEventSource"]
 
@@ -58,6 +74,16 @@ SIMTEL_TO_CTA_EVENT_TYPE = {
 }
 
 
+@enum.unique
+class MirrorClass(enum.Enum):
+    """Enum for the sim_telarray MIRROR_CLASS values"""
+
+    SINGLE_SEGMENTED_MIRROR = 0
+    SINGLE_SOLID_PARABOLIC_MIRROR = 1
+    DUAL_MIRROR = 2
+
+
+X_MAX_UNIT = u.g / (u.cm**2)
 NANOSECONDS_PER_DAY = (1 * u.day).to_value(u.ns)
 
 
@@ -68,8 +94,29 @@ def parse_simtel_time(simtel_time):
     )
 
 
-def build_camera(cam_settings, pixel_settings, telescope, frame):
-    pixel_shape = cam_settings["pixel_shape"][0]
+def _location_from_meta(global_meta):
+    """Extract reference location of subarray from metadata"""
+    lat = global_meta.get(b"*LATITUDE")
+    lon = global_meta.get(b"*LONGITUDE")
+    height = global_meta.get(b"ALTITUDE")
+
+    if lat is None or lon is None or height is None:
+        return None
+
+    return EarthLocation(
+        lon=float(lon) * u.deg,
+        lat=float(lat) * u.deg,
+        height=float(height) * u.m,
+    )
+
+
+def build_camera(simtel_telescope, telescope, frame):
+    """Create CameraDescription from eventio data structures"""
+    camera_settings = simtel_telescope["camera_settings"]
+    pixel_settings = simtel_telescope["pixel_settings"]
+    camera_organization = simtel_telescope["camera_organization"]
+
+    pixel_shape = camera_settings["pixel_shape"][0]
     try:
         pix_type, pix_rotation = CameraGeometry.simtel_shape_to_type(pixel_shape)
     except ValueError:
@@ -82,13 +129,13 @@ def build_camera(cam_settings, pixel_settings, telescope, frame):
 
     geometry = CameraGeometry(
         telescope.camera_name,
-        pix_id=np.arange(cam_settings["n_pixels"]),
-        pix_x=u.Quantity(cam_settings["pixel_x"], u.m),
-        pix_y=u.Quantity(cam_settings["pixel_y"], u.m),
-        pix_area=u.Quantity(cam_settings["pixel_area"], u.m**2),
+        pix_id=np.arange(camera_settings["n_pixels"]),
+        pix_x=u.Quantity(camera_settings["pixel_x"], u.m),
+        pix_y=u.Quantity(camera_settings["pixel_y"], u.m),
+        pix_area=u.Quantity(camera_settings["pixel_area"], u.m**2),
         pix_type=pix_type,
         pix_rotation=pix_rotation,
-        cam_rotation=-Angle(cam_settings["cam_rot"], u.rad),
+        cam_rotation=-Angle(camera_settings["cam_rot"], u.rad),
         apply_derotation=True,
         frame=frame,
     )
@@ -99,10 +146,53 @@ def build_camera(cam_settings, pixel_settings, telescope, frame):
         reference_pulse_sample_width=u.Quantity(
             pixel_settings["ref_step"], u.ns, dtype="float64"
         ),
+        n_channels=camera_organization["n_gains"],
+        n_pixels=camera_organization["n_pixels"],
+        n_samples=pixel_settings["sum_bins"],
     )
 
     return CameraDescription(
-        camera_name=telescope.camera_name, geometry=geometry, readout=readout
+        name=telescope.camera_name,
+        geometry=geometry,
+        readout=readout,
+    )
+
+
+def _telescope_from_meta(telescope_meta, mirror_area):
+    optics_name = telescope_meta.get(b"OPTICS_CONFIG_NAME")
+    camera_name = telescope_meta.get(b"CAMERA_CONFIG_NAME")
+    mirror_class = telescope_meta.get(b"MIRROR_CLASS")
+
+    if optics_name is None or camera_name is None or mirror_class is None:
+        return None
+
+    telescope_type = type_from_mirror_area(mirror_area)
+
+    mirror_class = MirrorClass(int(mirror_class))
+
+    reflector_shape = ReflectorShape.UNKNOWN
+    if mirror_class is MirrorClass.DUAL_MIRROR:
+        reflector_shape = ReflectorShape.SCHWARZSCHILD_COUDER
+    elif mirror_class is MirrorClass.SINGLE_SEGMENTED_MIRROR:
+        if int(telescope_meta.get(b"PARABOLIC_DISH", 0)) == 1:
+            reflector_shape = ReflectorShape.PARABOLIC
+        else:
+            reflector_shape = ReflectorShape.DAVIES_COTTON
+
+            shape_length = float(telescope_meta.get(b"DISH_SHAPE_Length", 0))
+            focal_length = float(telescope_meta.get(b"FOCAL_Length", 0))
+
+            if shape_length != focal_length:
+                reflector_shape = ReflectorShape.HYBRID
+
+    n_mirrors = 2 if mirror_class is MirrorClass.DUAL_MIRROR else 1
+
+    return GuessingResult(
+        type=telescope_type,
+        reflector_shape=reflector_shape,
+        name=optics_name.decode("utf-8"),
+        camera_name=camera_name.decode("utf-8"),
+        n_mirrors=n_mirrors,
     )
 
 
@@ -164,7 +254,32 @@ def apply_simtel_r1_calibration(
 
 
 class SimTelEventSource(EventSource):
-    """Read events from a SimTelArray data file (in EventIO format)."""
+    """
+    Read events from a SimTelArray data file (in EventIO format).
+
+    ctapipe makes use of the sim_telarray metadata system to fill some
+    information not directly accessible from the data inside the files itself.
+    Make sure you set this parameters in the simulation configuration to fully
+    make use of ctapipe. In future, ctapipe might require these metadata parameters.
+
+    This includes:
+
+    * Reference Point of the telescope coordinates. Make sure to include the
+        user-defined parameters ``LONGITUDE`` and ``LATITUDE`` with the geodetic
+        coordinates of the array reference point. Also make sure the ``ALTITUDE``
+        config parameter is included in the global metadata.
+
+    * Names of the optical structures and the cameras are read from
+        ``OPTICS_CONFIG_NAME`` and ``CAMERA_CONFIG_NAME``, make sure to include
+        these in the telescope meta.
+
+    * The ``MIRROR_CLASS`` should also be included in the telescope meta
+        to correctly setup coordinate transforms.
+
+    If these parameters are not included in the input data, ctapipe will
+    fallback guesses these based on avaible data and the list of known telescopes
+    for `ctapipe.instrument.guess_telescope`.
+    """
 
     skip_calibration_events = Bool(True, help="Skip calibration events").tag(
         config=True
@@ -178,16 +293,17 @@ class SimTelEventSource(EventSource):
         ),
     ).tag(config=True)
 
-    focal_length_choice = CaselessStrEnum(
-        ["nominal", "effective"],
-        default_value="nominal",
+    focal_length_choice = UseEnum(
+        FocalLengthKind,
+        default_value=FocalLengthKind.EFFECTIVE,
         help=(
-            "if both nominal and effective focal lengths are available in the "
-            "SimTelArray file, which one to use when constructing the "
-            "SubarrayDescription (which will be used in CameraFrame to TelescopeFrame "
-            "coordinate transforms. The 'nominal' focal length is the one used during "
-            "the simulation, the 'effective' focal length is computed using specialized "
-            "ray-tracing from a point light source"
+            "If both nominal and effective focal lengths are available in the"
+            " SimTelArray file, which one to use for the `CameraFrame` attached"
+            " to the `CameraGeometry` instances in the `SubarrayDescription`"
+            ", which will be used in CameraFrame to TelescopeFrame coordinate"
+            " transforms. The 'nominal' focal length is the one used during "
+            " the simulation, the 'effective' focal length is computed using specialized "
+            " ray-tracing from a point light source"
         ),
     ).tag(config=True)
 
@@ -243,6 +359,10 @@ class SimTelEventSource(EventSource):
         self._subarray_info = self.prepare_subarray_info(
             self.file_.telescope_descriptions, self.file_.header
         )
+        (
+            self._scheduling_blocks,
+            self._observation_blocks,
+        ) = self._fill_scheduling_and_observation_blocks()
         self._simulation_config = self._parse_simulation_header()
         self.start_pos = self.file_.tell()
 
@@ -266,13 +386,22 @@ class SimTelEventSource(EventSource):
         return (DataLevel.R0, DataLevel.R1)
 
     @property
-    def obs_ids(self):
-        # ToDo: This does not support merged simtel files!
-        return [self.file_.header["run"]]
+    def simulation_config(self) -> Dict[int, SimulationConfigContainer]:
+        return self._simulation_config
 
     @property
-    def simulation_config(self) -> SimulationConfigContainer:
-        return self._simulation_config
+    def observation_blocks(self) -> Dict[int, ObservationBlockContainer]:
+        """
+        Obtain the ObservationConfigurations from the EventSource, indexed by obs_id
+        """
+        return self._observation_blocks
+
+    @property
+    def scheduling_blocks(self) -> Dict[int, SchedulingBlockContainer]:
+        """
+        Obtain the ObservationConfigurations from the EventSource, indexed by obs_id
+        """
+        return self._scheduling_blocks
 
     @property
     def is_stream(self):
@@ -303,47 +432,74 @@ class SimTelEventSource(EventSource):
 
         for tel_id, telescope_description in telescope_descriptions.items():
             cam_settings = telescope_description["camera_settings"]
-            pixel_settings = telescope_description["pixel_settings"]
 
             n_pixels = cam_settings["n_pixels"]
-            focal_length = u.Quantity(cam_settings["focal_length"], u.m)
             mirror_area = u.Quantity(cam_settings["mirror_area"], u.m**2)
 
-            if self.focal_length_choice == "effective":
-                try:
-                    focal_length = u.Quantity(
-                        cam_settings["effective_focal_length"], u.m
-                    )
-                except KeyError as err:
-                    raise RuntimeError(
-                        f"the SimTelEventSource option 'focal_length_choice' was set to "
-                        f"{self.focal_length_choice}, but the effective focal length "
-                        f"was not present in the file. ({err})"
-                    )
+            equivalent_focal_length = u.Quantity(cam_settings["focal_length"], u.m)
+            effective_focal_length = u.Quantity(
+                cam_settings.get("effective_focal_length", np.nan), u.m
+            )
 
-            try:
-                telescope = guess_telescope(n_pixels, focal_length)
-            except ValueError:
-                telescope = unknown_telescope(mirror_area, n_pixels)
+            telescope = _telescope_from_meta(
+                self.file_.telescope_meta.get(tel_id, {}),
+                mirror_area,
+            )
+
+            if telescope is None:
+                try:
+                    telescope = guess_telescope(
+                        n_pixels,
+                        equivalent_focal_length,
+                        cam_settings["n_mirrors"],
+                    )
+                except ValueError:
+                    telescope = unknown_telescope(mirror_area, n_pixels)
+
+                # TODO: switch to warning or even an exception once
+                # we start relying on this.
+                self.log.info(
+                    "Could not determine telescope from sim_telarray metadata,"
+                    " guessing using builtin lookup-table: %d: %s",
+                    tel_id,
+                    telescope,
+                )
 
             optics = OpticsDescription(
                 name=telescope.name,
-                num_mirrors=telescope.n_mirrors,
-                equivalent_focal_length=focal_length,
+                size_type=telescope.type,
+                reflector_shape=telescope.reflector_shape,
+                n_mirrors=telescope.n_mirrors,
+                equivalent_focal_length=equivalent_focal_length,
+                effective_focal_length=effective_focal_length,
                 mirror_area=mirror_area,
-                num_mirror_tiles=cam_settings["n_mirrors"],
+                n_mirror_tiles=cam_settings["n_mirrors"],
             )
 
+            if self.focal_length_choice is FocalLengthKind.EFFECTIVE:
+                if np.isnan(effective_focal_length):
+                    raise RuntimeError(
+                        "`SimTelEventSource.focal_length_choice` was set to 'EFFECTIVE'"
+                        ", but the effective focal length was not present in the file."
+                        " Set `focal_length_choice='EQUIVALENT'` or make sure"
+                        " input files contain the effective focal length"
+                    )
+                focal_length = effective_focal_length
+            elif self.focal_length_choice is FocalLengthKind.EQUIVALENT:
+                focal_length = equivalent_focal_length
+            else:
+                raise ValueError(
+                    f"Invalid focal length choice: {self.focal_length_choice}"
+                )
+
             camera = build_camera(
-                cam_settings,
-                pixel_settings,
+                telescope_description,
                 telescope,
-                frame=CameraFrame(focal_length=optics.equivalent_focal_length),
+                frame=CameraFrame(focal_length=focal_length),
             )
 
             tel_descriptions[tel_id] = TelescopeDescription(
                 name=telescope.name,
-                tel_type=telescope.type,
                 optics=optics,
                 camera=camera,
             )
@@ -352,10 +508,12 @@ class SimTelEventSource(EventSource):
             self.telescope_indices_original[tel_id] = tel_idx
             tel_positions[tel_id] = header["tel_pos"][tel_idx] * u.m
 
+        name = self.file_.global_meta.get(b"ARRAY_CONFIG_NAME", b"MonteCarloArray")
         subarray = SubarrayDescription(
-            name="MonteCarloArray",
+            name=name.decode(),
             tel_positions=tel_positions,
             tel_descriptions=tel_descriptions,
+            reference_location=_location_from_meta(self.file_.global_meta),
         )
 
         self.n_telescopes_original = len(subarray)
@@ -367,7 +525,10 @@ class SimTelEventSource(EventSource):
 
     @staticmethod
     def is_compatible(file_path):
-        return is_eventio(Path(file_path).expanduser())
+        path = Path(file_path).expanduser()
+        if not path.is_file():
+            return False
+        return is_eventio(path)
 
     @property
     def subarray(self):
@@ -388,42 +549,53 @@ class SimTelEventSource(EventSource):
             warnings.warn(msg)
 
     def _generate_events(self):
-        data = ArrayEventContainer()
-        data.simulation = SimulatedEventContainer()
-        data.meta["origin"] = "hessio"
-        data.meta["input_url"] = self.input_url
-        data.meta["max_events"] = self.max_events
-
-        self._fill_array_pointing(data)
+        # for events without event_id, we use negative event_ids
+        pseudo_event_id = 0
 
         for counter, array_event in enumerate(self.file_):
-            # this should be done in a nicer way to not re-allocate the
-            # data each time (right now it's just deleted and garbage
-            # collected)
-            data.r0.tel.clear()
-            data.r1.tel.clear()
-            data.dl0.tel.clear()
-            data.dl1.tel.clear()
-            data.pointing.tel.clear()
-            data.simulation.tel.clear()
-            data.trigger.tel.clear()
 
-            event_id = array_event.get("event_id", -1)
+            event_id = array_event.get("event_id", 0)
+            if event_id == 0:
+                pseudo_event_id -= 1
+                event_id = pseudo_event_id
+
             obs_id = self.file_.header["run"]
-            data.count = counter
-            data.index.obs_id = obs_id
-            data.index.event_id = event_id
 
-            self._fill_trigger_info(data, array_event)
-            if data.trigger.event_type == EventType.SUBARRAY:
-                self._fill_simulated_event_information(data, array_event)
+            trigger = self._fill_trigger_info(array_event)
+            if trigger.event_type == EventType.SUBARRAY:
+                shower = self._fill_simulated_event_information(array_event)
+            else:
+                shower = None
+
+            data = ArrayEventContainer(
+                simulation=SimulatedEventContainer(shower=shower),
+                pointing=self._fill_array_pointing(),
+                index=EventIndexContainer(obs_id=obs_id, event_id=event_id),
+                count=counter,
+                trigger=trigger,
+            )
+            data.meta["origin"] = "hessio"
+            data.meta["input_url"] = self.input_url
+            data.meta["max_events"] = self.max_events
 
             telescope_events = array_event["telescope_events"]
             tracking_positions = array_event["tracking_positions"]
 
-            true_image_sums = array_event.get("photoelectron_sums", {}).get(
-                "n_pe", np.full(self.n_telescopes_original, np.nan)
-            )
+            photoelectron_sums = array_event.get("photoelectron_sums")
+            if photoelectron_sums is not None:
+                true_image_sums = photoelectron_sums.get(
+                    "n_pe", np.full(self.n_telescopes_original, np.nan)
+                )
+            else:
+                true_image_sums = np.full(self.n_telescopes_original, np.nan)
+
+            if data.simulation.shower is not None:
+                # compute impact distances of the shower to the telescopes
+                impact_distances = shower_impact_distance(
+                    shower_geom=data.simulation.shower, subarray=self.subarray
+                )
+            else:
+                impact_distances = np.full(len(self.subarray), np.nan) * u.m
 
             for tel_id, telescope_event in telescope_events.items():
                 adc_samples = telescope_event.get("adc_samples")
@@ -437,20 +609,33 @@ class SimTelEventSource(EventSource):
                     .get("photoelectrons", None)
                 )
 
-                data.simulation.tel[tel_id] = SimulatedCameraContainer(
-                    true_image_sum=true_image_sums[
-                        self.telescope_indices_original[tel_id]
-                    ],
-                    true_image=true_image,
-                )
+                if data.simulation is not None:
+                    if data.simulation.shower is not None:
+                        impact_container = TelescopeImpactParameterContainer(
+                            distance=impact_distances[
+                                self.subarray.tel_index_array[tel_id]
+                            ],
+                            distance_uncert=0 * u.m,
+                            prefix="true_impact",
+                        )
+                    else:
+                        impact_container = TelescopeImpactParameterContainer(
+                            prefix="true_impact",
+                        )
+
+                    data.simulation.tel[tel_id] = SimulatedCameraContainer(
+                        true_image_sum=true_image_sums[
+                            self.telescope_indices_original[tel_id]
+                        ],
+                        true_image=true_image,
+                        impact=impact_container,
+                    )
 
                 data.pointing.tel[tel_id] = self._fill_event_pointing(
                     tracking_positions[tel_id]
                 )
 
-                r0 = data.r0.tel[tel_id]
-                r1 = data.r1.tel[tel_id]
-                r0.waveform = adc_samples
+                data.r0.tel[tel_id] = R0CameraContainer(waveform=adc_samples)
 
                 cam_mon = array_event["camera_monitorings"][tel_id]
                 pedestal = cam_mon["pedestal"] / cam_mon["n_ped_slices"]
@@ -461,8 +646,9 @@ class SimTelEventSource(EventSource):
                 mon = data.mon.tel[tel_id]
                 mon.calibration.dc_to_pe = dc_to_pe
                 mon.calibration.pedestal_per_sample = pedestal
+                mon.pixel_status = self._get_pixels_status(tel_id)
 
-                r1.waveform, r1.selected_gain_channel = apply_simtel_r1_calibration(
+                r1_waveform, selected_gain_channel = apply_simtel_r1_calibration(
                     adc_samples,
                     pedestal,
                     dc_to_pe,
@@ -470,15 +656,34 @@ class SimTelEventSource(EventSource):
                     self.calib_scale,
                     self.calib_shift,
                 )
+                data.r1.tel[tel_id] = R1CameraContainer(
+                    waveform=r1_waveform,
+                    selected_gain_channel=selected_gain_channel,
+                )
 
                 # get time_shift from laser calibration
                 time_calib = array_event["laser_calibrations"][tel_id]["tm_calib"]
                 pix_index = np.arange(n_pixels)
 
                 dl1_calib = data.calibration.tel[tel_id].dl1
-                dl1_calib.time_shift = time_calib[r1.selected_gain_channel, pix_index]
+                dl1_calib.time_shift = time_calib[selected_gain_channel, pix_index]
 
             yield data
+
+    def _get_pixels_status(self, tel_id):
+        tel = self.file_.telescope_descriptions[tel_id]
+        n_pixels = tel["camera_organization"]["n_pixels"]
+        n_gains = tel["camera_organization"]["n_gains"]
+
+        disabled_ids = tel["disabled_pixels"]["HV_disabled"]
+        disabled_pixels = np.zeros((n_gains, n_pixels), dtype=bool)
+        disabled_pixels[:, disabled_ids] = True
+
+        return PixelStatusContainer(
+            hardware_failing_pixels=disabled_pixels,
+            pedestal_failing_pixels=disabled_pixels.copy(),
+            flatfield_failing_pixels=disabled_pixels.copy(),
+        )
 
     @staticmethod
     def _fill_event_pointing(tracking_position):
@@ -501,36 +706,39 @@ class SimTelEventSource(EventSource):
 
         return TelescopePointingContainer(azimuth=azimuth, altitude=altitude)
 
-    def _fill_trigger_info(self, data, array_event):
+    def _fill_trigger_info(self, array_event):
         trigger = array_event["trigger_information"]
 
         if array_event["type"] == "data":
-            data.trigger.event_type = EventType.SUBARRAY
+            event_type = EventType.SUBARRAY
 
         elif array_event["type"] == "calibration":
             # if using eventio >= 1.1.1, we can use the calibration_type
-            data.trigger.event_type = SIMTEL_TO_CTA_EVENT_TYPE.get(
+            event_type = SIMTEL_TO_CTA_EVENT_TYPE.get(
                 array_event.get("calibration_type", -1), EventType.OTHER_CALIBRATION
             )
 
         else:
-            data.trigger.event_type = EventType.UNKNOWN
+            event_type = EventType.UNKNOWN
 
-        data.trigger.tels_with_trigger = trigger["triggered_telescopes"]
         if self.allowed_tels:
-            data.trigger.tels_with_trigger = np.intersect1d(
-                data.trigger.tels_with_trigger,
+            tels_with_trigger = np.intersect1d(
+                trigger["triggered_telescopes"],
                 self.subarray.tel_ids,
                 assume_unique=True,
             )
-        central_time = parse_simtel_time(trigger["gps_time"])
-        data.trigger.time = central_time
+        else:
+            tels_with_trigger = trigger["triggered_telescopes"]
 
+        central_time = parse_simtel_time(trigger["gps_time"])
+
+        tel = Map(TelescopeTriggerContainer)
         for tel_id, time in zip(
             trigger["triggered_telescopes"], trigger["trigger_times"]
         ):
             if self.allowed_tels and tel_id not in self.allowed_tels:
                 continue
+
             # telescope time is relative to central trigger in ns
             time = Time(
                 central_time.jd1,
@@ -551,21 +759,31 @@ class SimTelEventSource(EventSource):
                     n_trigger_pixels = pixel_list["pixels"]
                     trigger_pixels = pixel_list["pixel_list"]
 
-            trigger = data.trigger.tel[tel_id] = TelescopeTriggerContainer(
+            tel[tel_id] = TelescopeTriggerContainer(
                 time=time,
                 n_trigger_pixels=n_trigger_pixels,
                 trigger_pixels=trigger_pixels,
             )
+        return TriggerContainer(
+            event_type=event_type,
+            time=central_time,
+            tels_with_trigger=tels_with_trigger,
+            tel=tel,
+        )
 
-    def _fill_array_pointing(self, data):
+    def _fill_array_pointing(self):
         if self.file_.header["tracking_mode"] == 0:
             az, alt = self.file_.header["direction"]
-            data.pointing.array_altitude = u.Quantity(alt, u.rad)
-            data.pointing.array_azimuth = u.Quantity(az, u.rad)
+            return PointingContainer(
+                array_altitude=u.Quantity(alt, u.rad),
+                array_azimuth=u.Quantity(az, u.rad),
+            )
         else:
             ra, dec = self.file_.header["direction"]
-            data.pointing.array_ra = u.Quantity(ra, u.rad)
-            data.pointing.array_dec = u.Quantity(dec, u.rad)
+            return PointingContainer(
+                array_ra=u.Quantity(ra, u.rad),
+                array_dec=u.Quantity(dec, u.rad),
+            )
 
     def _parse_simulation_header(self):
         """
@@ -594,7 +812,7 @@ class SimTelEventSource(EventSource):
             shower_prog_id=mc_run_head["shower_prog_id"],
             detector_prog_start=mc_run_head["detector_prog_start"],
             detector_prog_id=mc_run_head["detector_prog_id"],
-            num_showers=mc_run_head["n_showers"],
+            n_showers=mc_run_head["n_showers"],
             shower_reuse=mc_run_head["n_use"],
             max_alt=mc_run_head["alt_range"][1] * u.rad,
             min_alt=mc_run_head["alt_range"][0] * u.rad,
@@ -619,12 +837,48 @@ class SimTelEventSource(EventSource):
         )
         return {obs_id: simulation_config}
 
+    def _fill_scheduling_and_observation_blocks(self):
+        """fill scheduling and observation blocks must be run after the
+        simulation config is filled
+        """
+
+        az, alt = self.file_.header["direction"]
+        obs_id = self.file_.header["run"]
+
+        sb_dict = {
+            obs_id: SchedulingBlockContainer(
+                sb_id=np.uint64(obs_id),  # simulations have no SBs, use OB id
+                sb_type=SchedulingBlockType.OBSERVATION,
+                producer_id="simulation",
+                observing_mode=ObservingMode.UNKNOWN,
+                pointing_mode=PointingMode.DRIFT,
+            )
+        }
+
+        ob_dict = {
+            obs_id: ObservationBlockContainer(
+                obs_id=np.uint64(obs_id),
+                sb_id=np.uint64(obs_id),  # see comment above
+                producer_id="simulation",
+                state=ObservationBlockState.COMPLETED_SUCCEDED,
+                subarray_pointing_lat=alt * u.rad,
+                subarray_pointing_lon=az * u.rad,
+                subarray_pointing_frame=CoordinateFrameType.ALTAZ,
+                actual_start_time=Time(self.file_.header["time"], format="unix"),
+                scheduled_start_time=Time(self.file_.header["time"], format="unix"),
+            )
+        }
+
+        return sb_dict, ob_dict
+
     @staticmethod
-    def _fill_simulated_event_information(data, array_event):
+    def _fill_simulated_event_information(array_event):
         mc_event = array_event["mc_event"]
         mc_shower = array_event["mc_shower"]
+        if mc_shower is None:
+            return
 
-        data.simulation.shower = SimulatedShowerContainer(
+        return SimulatedShowerContainer(
             energy=u.Quantity(mc_shower["energy"], u.TeV),
             alt=Angle(mc_shower["altitude"], u.rad),
             az=Angle(mc_shower["azimuth"], u.rad),

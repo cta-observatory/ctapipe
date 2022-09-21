@@ -7,9 +7,8 @@ Hillas-style moment-based shower image parametrization.
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import Angle
-from astropy.units import Quantity
-from ..containers import CameraHillasParametersContainer, HillasParametersContainer
 
+from ..containers import CameraHillasParametersContainer, HillasParametersContainer
 
 HILLAS_ATOL = np.finfo(np.float64).eps
 
@@ -67,37 +66,18 @@ def hillas_parameters(geom, image):
     from
     https://github.com/fact-project/fact-tools
 
-    The image passed to this function can be in three forms:
-
-    >>> from ctapipe.image.hillas import hillas_parameters
-    >>> from ctapipe.image.tests.test_hillas import create_sample_image, compare_hillas
-    >>> geom, image, clean_mask = create_sample_image(psi='0d')
-    >>>
-    >>> # Fastest
-    >>> geom_selected = geom[clean_mask]
-    >>> image_selected = image[clean_mask]
-    >>> hillas_selected = hillas_parameters(geom_selected, image_selected)
-    >>>
-    >>> # Mid (1.45 times longer than fastest)
-    >>> image_zeros = image.copy()
-    >>> image_zeros[~clean_mask] = 0
-    >>> hillas_zeros = hillas_parameters(geom, image_zeros)
-    >>>
-    >>> # Slowest (1.51 times longer than fastest)
-    >>> image_masked = np.ma.masked_array(image, mask=~clean_mask)
-    >>> hillas_masked = hillas_parameters(geom, image_masked)
-    >>>
-    >>> compare_hillas(hillas_selected, hillas_zeros)
-    >>> compare_hillas(hillas_selected, hillas_masked)
+    The recommended form is to pass only the sliced geometry and image
+    for the pixels to be considered.
 
     Each method gives the same result, but vary in efficiency
 
     Parameters
     ----------
     geom: ctapipe.instrument.CameraGeometry
-        Camera geometry
+        Camera geometry, the cleaning mask should be applied to improve performance
     image : array_like
-        Charge in each pixel
+        Charge in each pixel, the cleaning mask should already be applied to
+        improve performance.
 
     Returns
     -------
@@ -105,12 +85,15 @@ def hillas_parameters(geom, image):
         container of hillas parametesr
     """
     unit = geom.pix_x.unit
-    pix_x = Quantity(np.asanyarray(geom.pix_x, dtype=np.float64)).value
-    pix_y = Quantity(np.asanyarray(geom.pix_y, dtype=np.float64)).value
+    pix_x = geom.pix_x.to_value(unit)
+    pix_y = geom.pix_y.to_value(unit)
     image = np.asanyarray(image, dtype=np.float64)
-    image = np.ma.filled(image, 0)
-    msg = "Image and pixel shape do not match"
-    assert pix_x.shape == pix_y.shape == image.shape, msg
+
+    if isinstance(image, np.ma.masked_array):
+        image = np.ma.filled(image, 0)
+
+    if not (pix_x.shape == pix_y.shape == image.shape):
+        raise ValueError("Image and pixel shape do not match")
 
     size = np.sum(image)
 
@@ -158,11 +141,11 @@ def hillas_parameters(geom, image):
         # calculate higher order moments along shower axes
         longitudinal = delta_x * np.cos(psi) + delta_y * np.sin(psi)
 
-        m3_long = np.average(longitudinal ** 3, weights=image)
-        skewness_long = m3_long / length ** 3
+        m3_long = np.average(longitudinal**3, weights=image)
+        skewness_long = m3_long / length**3
 
-        m4_long = np.average(longitudinal ** 4, weights=image)
-        kurtosis_long = m4_long / length ** 4
+        m4_long = np.average(longitudinal**4, weights=image)
+        kurtosis_long = m4_long / length**4
 
     # Compute of the Hillas parameters uncertainties.
     # Implementation described in [hillas_uncertainties]_ This is an internal MAGIC document
@@ -174,8 +157,8 @@ def hillas_parameters(geom, image):
     b = (1 - cos_2psi) / 2
     c = np.sin(2 * psi)
 
-    A = ((delta_x ** 2.0) - cov[0][0]) / size
-    B = ((delta_y ** 2.0) - cov[1][1]) / size
+    A = ((delta_x**2.0) - cov[0][0]) / size
+    B = ((delta_y**2.0) - cov[1][1]) / size
     C = ((delta_x * delta_y) - cov[0][1]) / size
 
     # Hillas's uncertainties

@@ -19,16 +19,20 @@ def test_chord_length():
     assert np.isclose(length, 0, atol=1e-15)
 
 
-def test_muon_efficiency_fit():
-    from ctapipe.instrument import TelescopeDescription, SubarrayDescription
-    from ctapipe.coordinates import TelescopeFrame, CameraFrame
+def test_muon_efficiency_fit(prod5_lst):
+    from ctapipe.coordinates import CameraFrame, TelescopeFrame
     from ctapipe.image.muon.intensity_fitter import (
-        image_prediction,
         MuonIntensityFitter,
+        image_prediction,
     )
+    from ctapipe.instrument import SubarrayDescription
 
-    telescope = TelescopeDescription.from_name("LST", "LSTCam")
-    subarray = SubarrayDescription("LSTMono", {0: [0, 0, 0] * u.m}, {0: telescope},)
+    telescope = prod5_lst
+    subarray = SubarrayDescription(
+        "LSTMono",
+        {0: [0, 0, 0] * u.m},
+        {0: telescope},
+    )
 
     center_x = 0.8 * u.deg
     center_y = 0.4 * u.deg
@@ -87,12 +91,16 @@ def test_muon_efficiency_fit():
     assert u.isclose(result.optical_efficiency, efficiency, rtol=0.05)
 
 
-def test_scts():
-    from ctapipe.instrument import TelescopeDescription, SubarrayDescription
+def test_scts(prod5_sst):
     from ctapipe.image.muon.intensity_fitter import MuonIntensityFitter
+    from ctapipe.instrument import SubarrayDescription
 
-    telescope = TelescopeDescription.from_name("SST-ASTRI", "CHEC")
-    subarray = SubarrayDescription("ssts", {0: [0, 0, 0] * u.m}, {0: telescope},)
+    telescope = prod5_sst
+    subarray = SubarrayDescription(
+        "ssts",
+        {0: [0, 0, 0] * u.m},
+        {0: telescope},
+    )
 
     fitter = MuonIntensityFitter(subarray=subarray)
     with pytest.raises(NotImplementedError):

@@ -4,23 +4,15 @@ Data Quality selection
 
 __all__ = ["QualityQuery", "QualityCriteriaError"]
 
-from collections.abc import Callable
-
-import astropy.units as u  # for use in selection functions
 import numpy as np  # for use in selection functions
 
 from .component import Component
-from .traits import List
-
-# the following are what are allowed to be used
-# in selection functions (passed to eval())
-ALLOWED_GLOBALS = {"u": u, "np": np}  # astropy units  # numpy
+from .expression_engine import ExpressionEngine
+from .traits import List, Tuple, Unicode
 
 
 class QualityCriteriaError(TypeError):
-    """ Signal a problem with a user-defined selection criteria function"""
-
-    pass
+    """Signal a problem with a user-defined selection criteria function"""
 
 
 class QualityQuery(Component):
@@ -33,52 +25,36 @@ class QualityQuery(Component):
     """
 
     quality_criteria = List(
+        Tuple(Unicode(), Unicode()),
         help=(
-            "list of tuples of ('<description', 'function string') to accept "
-            "(select) a given data value.  E.g. `[('mycut', 'lambda x: x > 3'),]. "
+            "list of tuples of ('<description', 'expression string') to accept "
+            "(select) a given data value.  E.g. `[('mycut', 'x > 3'),]. "
             "You may use `numpy` as `np` and `astropy.units` as `u`, but no other"
             " modules."
-        )
+        ),
     ).tag(config=True)
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
 
         # add a selection to count all entries and make it the first one
-        self.quality_criteria.insert(0, ("TOTAL", "lambda x: True"))
-        self.criteria_names = []
-        self.selection_function_strings = []
-        self._selectors = []
+        self.criteria_names = [n for (n, _) in self.quality_criteria]
+        self.expressions = [e for (_, e) in self.quality_criteria]
 
-        for name, func_str in self.quality_criteria:
-            try:  # generate real functions from the selection function strings
-                self.criteria_names.append(name)
-                self.selection_function_strings.append(func_str)
-
-                func = eval(func_str, ALLOWED_GLOBALS)
-                if not isinstance(func, Callable):
-                    raise QualityCriteriaError(
-                        f"Selection criterion '{name}' cannot be evaluated because "
-                        f" '{func_str}' is not a callable function"
-                    )
-                self._selectors.append(func)
-
-            except NameError as err:
-                # catch functions that cannot be defined. Note that this cannot check
-                # that the function can run, that only happens the first time it's
-                # called.
-                raise QualityCriteriaError(
-                    f"Couldn't evaluate selection function '{name}' -> '{func_str}' "
-                    f"because: {err}"
+        self.engine = ExpressionEngine(self.quality_criteria)
+        for _, expr in self.quality_criteria:
+            if "lambda" in expr:
+                raise ValueError(
+                    "As of ctapipe 0.16, do not give lambda expressions"
+                    " to QualityQuery. Directly give the expression."
+                    " E.g. instead of `lambda p: p.hillas.width.value > 0`"
+                    " use `parameters.hillas.width.value > 0`"
                 )
 
-        # arrays for recording overall statistics
-        self._counts = np.zeros(len(self._selectors), dtype=np.int64)
-        self._cumulative_counts = np.zeros(len(self._selectors), dtype=np.int64)
-
-    def __len__(self):
-        """ return number of events processed"""
-        return self._counts[0]
+        # arrays for recording overall statistics, add one for total count
+        n = len(self.quality_criteria) + 1
+        self._counts = np.zeros(n, dtype=np.int64)
+        self._cumulative_counts = np.zeros(n, dtype=np.int64)
 
     def to_table(self, functions=False):
         """
@@ -101,12 +77,12 @@ class QualityQuery(Component):
         from astropy.table import Table
 
         cols = {
-            "criteria": self.criteria_names,
+            "criteria": ["TOTAL"] + self.criteria_names,
             "counts": self._counts,
             "cumulative_counts": self._cumulative_counts,
         }
         if functions:
-            cols["func"] = self.selection_function_strings
+            cols["func"] = ["True"] + self.expressions
         return Table(cols)
 
     def _repr_html_(self):
@@ -115,23 +91,53 @@ class QualityQuery(Component):
 
     def __str__(self):
         """Print a formatted string representation of the entire table."""
-        return self.to_table().pprint_all(show_unit=True, show_dtype=True)
+        return str(self.to_table())
 
-    def __call__(self, value) -> np.ndarray:
+    def __call__(self, **kwargs) -> np.ndarray:
         """
         Test that value passes all cuts
 
         Parameters
         ----------
-        value:
-            the value to pass to each selection function
+        **kwargs:
+            Are passed as locals to evaluate the given expression
 
         Returns
         -------
         np.ndarray:
             array of booleans with results of each selection criterion in order
         """
-        result = np.array(list(map(lambda f: f(value), self._selectors)))
+        # add 1 for total
+        result = np.ones(len(self.quality_criteria) + 1, dtype=bool)
+
+        for i, res in enumerate(self.engine(kwargs), start=1):
+            result[i] = res
+
         self._counts += result.astype(int)
         self._cumulative_counts += result.cumprod()
         return result[1:]  # strip off TOTAL criterion, since redundant
+
+    def get_table_mask(self, table):
+        """
+        Get a boolean mask for the entries that pass the quality checks.
+
+        Parameters
+        ----------
+        table : `~astropy.table.Table`
+            Table with columns matching the expressions used in the
+            `QualityQuery.quality_criteria`.
+
+        Returns
+        -------
+        mask : np.ndarray[bool]
+            Boolean mask of valid entries.
+        """
+        n_criteria = len(self.quality_criteria) + 1
+        result = np.ones((n_criteria, len(table)), dtype=bool)
+
+        for i, res in enumerate(self.engine(table), start=1):
+            result[i] = res
+
+        self._counts += np.count_nonzero(result, axis=1)
+        self._cumulative_counts += np.count_nonzero(np.cumprod(result, axis=0), axis=1)
+        return np.all(result, axis=0)

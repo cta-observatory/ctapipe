@@ -28,11 +28,13 @@ logger = logging.getLogger(__name__)
 __all__ = ["get_dataset_path", "find_in_path", "find_all_matching_datasets"]
 
 
-DEFAULT_URL = "http://cccta-dataserver.in2p3.fr/data/ctapipe-extra/v0.3.3/"
+DEFAULT_URL = "http://cccta-dataserver.in2p3.fr/data/ctapipe-extra/v0.3.4/"
 
 
-def get_searchpath_dirs(searchpath=os.getenv("CTAPIPE_SVC_PATH"), url=DEFAULT_URL):
-    """ returns a list of dirs in specified searchpath"""
+def get_searchpath_dirs(searchpath=None, url=DEFAULT_URL):
+    """returns a list of dirs in specified searchpath"""
+    if searchpath is None:
+        searchpath = os.getenv("CTAPIPE_SVC_PATH")
 
     if searchpath == "" or searchpath is None:
         searchpaths = []
@@ -200,12 +202,19 @@ def try_filetypes(basename, role, file_types, url=DEFAULT_URL, **kwargs):
 
     path = None
 
-    # look first in cache so we don't have to try non-existing downloads
-    for ext, reader in file_types.items():
-        filename = basename + ext
-        cache_path = get_cache_path(os.path.join(DEFAULT_URL, filename))
-        if cache_path.exists():
-            path = cache_path
+    # look first in search pathes (includes cache)
+    # so we respect user provided paths and don't have to try non-existing downloads
+    search_paths = get_searchpath_dirs(url=url)
+    for search_path in search_paths:
+        for ext, reader in file_types.items():
+            filename = basename + ext
+            print(search_path, filename, (search_path / filename).exists())
+
+            if (search_path / filename).exists():
+                path = search_path / filename
+                break
+
+        if path is not None:
             break
 
     # no cache hit

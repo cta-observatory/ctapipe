@@ -25,4 +25,3 @@ the Tutorials section for more complete examples)
     Tools
     provenance
     table_writer_reader
-    containers_with_enums_and_table_writer

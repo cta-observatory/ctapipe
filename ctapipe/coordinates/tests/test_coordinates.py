@@ -3,8 +3,18 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 from astropy.time import Time
 from pytest import approx, raises
+from ctapipe.coordinates import altaz_to_righthanded_cartesian
 
 location = EarthLocation.of_site("Roque de los Muchachos")
+
+
+def test_altaz_to_righthanded_cartesian():
+    """
+    check the handedness of the transform
+    """
+
+    vec = altaz_to_righthanded_cartesian(alt=0 * u.deg, az=90 * u.deg)
+    assert np.allclose(vec, [0, -1, 0])
 
 
 def test_cam_to_nominal():
@@ -62,7 +72,7 @@ def test_telescope_separation():
     tel1 = SkyCoord(fov_lon=0 * u.deg, fov_lat=0 * u.deg, frame=telescope_frame)
     tel2 = SkyCoord(fov_lon=0 * u.deg, fov_lat=1 * u.deg, frame=telescope_frame)
 
-    assert tel1.separation(tel2) == u.Quantity(1, u.deg)
+    assert u.isclose(tel1.separation(tel2), 1 * u.deg)
 
 
 def test_separation_is_the_same():
@@ -257,6 +267,7 @@ def test_camera_focal_length_array():
 
 
 def test_ground_frame_roundtrip():
+    """test transform from sky to ground roundtrip"""
     from ctapipe.coordinates import GroundFrame, TiltedGroundFrame
 
     normal = SkyCoord(alt=70 * u.deg, az=0 * u.deg, frame=AltAz())
@@ -265,6 +276,25 @@ def test_ground_frame_roundtrip():
 
     back = tilted.transform_to(GroundFrame())
 
-    assert u.isclose(coord.x, back.x)
-    assert u.isclose(coord.y, back.y)
-    assert u.isclose(coord.z, back.z)
+    assert u.isclose(coord.x, back.x, atol=1e-12 * u.m)
+    assert u.isclose(coord.y, back.y, atol=1e-12 * u.m)
+    assert u.isclose(coord.z, back.z, atol=1e-12 * u.m)
+
+
+def test_ground_to_eastnorth_roundtrip():
+    """Check Ground to EastingNorthing and the round-trip"""
+    from ctapipe.coordinates import GroundFrame, EastingNorthingFrame
+
+    ground = SkyCoord(
+        x=[1, 2, 3] * u.m, y=[-2, 5, 2] * u.m, z=[1, -1, 2] * u.m, frame=GroundFrame()
+    )
+    eastnorth = ground.transform_to(EastingNorthingFrame())
+    ground2 = eastnorth.transform_to(GroundFrame())
+
+    assert u.isclose(eastnorth.easting, [2, -5, -2] * u.m).all()
+    assert u.isclose(eastnorth.northing, [1, 2, 3] * u.m).all()
+    assert u.isclose(eastnorth.height, [1, -1, 2] * u.m).all()
+
+    assert u.isclose(ground.x, ground2.x).all()
+    assert u.isclose(ground.y, ground2.y).all()
+    assert u.isclose(ground.z, ground2.z).all()

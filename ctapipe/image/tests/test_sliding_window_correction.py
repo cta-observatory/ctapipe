@@ -3,18 +3,18 @@ Test of sliding window extractor for LST camera pulse shape with
 the correction for the integration window completeness
 """
 
-import numpy as np
 import astropy.units as u
+import numpy as np
 from numpy.testing import assert_allclose
 from traitlets.config.loader import Config
+
 from ctapipe.containers import DL1CameraContainer
-
-from ctapipe.image.extractor import SlidingWindowMaxSum, ImageExtractor
+from ctapipe.image.extractor import ImageExtractor, SlidingWindowMaxSum
 from ctapipe.image.toymodel import WaveformModel
-from ctapipe.instrument import SubarrayDescription, TelescopeDescription
+from ctapipe.instrument import SubarrayDescription
 
 
-def test_sw_pulse_lst():
+def test_sw_pulse_lst(prod5_lst):
     """
     Test function of sliding window extractor for LST camera pulse shape with
     the correction for the integration window completeness
@@ -24,16 +24,14 @@ def test_sw_pulse_lst():
     subarray = SubarrayDescription(
         "LST1",
         tel_positions={1: np.zeros(3) * u.m},
-        tel_descriptions={
-            1: TelescopeDescription.from_name(optics_name="LST", camera_name="LSTCam")
-        },
+        tel_descriptions={1: prod5_lst},
     )
 
-    telid = list(subarray.tel.keys())[0]
+    tel_id = list(subarray.tel.keys())[0]
 
-    n_pixels = subarray.tel[telid].camera.geometry.n_pixels
+    n_pixels = subarray.tel[tel_id].camera.geometry.n_pixels
     n_samples = 40
-    readout = subarray.tel[telid].camera.readout
+    readout = subarray.tel[tel_id].camera.readout
 
     random = np.random.RandomState(1)
     min_charge = 100
@@ -54,7 +52,10 @@ def test_sw_pulse_lst():
         "SlidingWindowMaxSum", subarray=subarray, config=config
     )
 
-    dl1: DL1CameraContainer = extractor(waveform, telid, selected_gain_channel)
+    broken_pixels = np.zeros(n_pixels, dtype=bool)
+    dl1: DL1CameraContainer = extractor(
+        waveform, tel_id, selected_gain_channel, broken_pixels
+    )
     print(dl1.image / charge_true)
     assert_allclose(dl1.image, charge_true, rtol=0.02)
     assert dl1.is_valid

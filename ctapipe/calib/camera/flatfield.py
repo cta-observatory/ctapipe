@@ -6,10 +6,13 @@ from abc import abstractmethod
 
 import numpy as np
 from astropy import units as u
+
 from ctapipe.containers import DL1CameraContainer
 from ctapipe.core import Component
 from ctapipe.core.traits import Int, List, Unicode
 from ctapipe.image.extractor import ImageExtractor
+
+from .calibrator import _get_invalid_pixels
 
 __all__ = ["FlatFieldCalculator", "FlasherFlatFieldCalculator"]
 
@@ -115,18 +118,18 @@ class FlatFieldCalculator(Component):
 
 class FlasherFlatFieldCalculator(FlatFieldCalculator):
     """Calculates flat-field parameters from flasher data
-       based on the best algorithm described by S. Fegan in MST-CAM-TN-0060 (eq. 19)
-       Pixels are defined as outliers on the base of a cut on the pixel charge median
-       over the full sample distribution and the pixel signal time inside the
-       waveform time
+      based on the best algorithm described by S. Fegan in MST-CAM-TN-0060 (eq. 19)
+      Pixels are defined as outliers on the base of a cut on the pixel charge median
+      over the full sample distribution and the pixel signal time inside the
+      waveform time
 
 
-     Parameters
-     ----------
-     charge_cut_outliers : List[2]
-         Interval of accepted charge values (fraction with respect to camera median value)
-     time_cut_outliers : List[2]
-         Interval (in waveform samples) of accepted time values
+    Parameters
+    ----------
+    charge_cut_outliers : List[2]
+        Interval of accepted charge values (fraction with respect to camera median value)
+    time_cut_outliers : List[2]
+        Interval (in waveform samples) of accepted time values
 
     """
 
@@ -140,18 +143,18 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
 
     def __init__(self, **kwargs):
         """Calculates flat-field parameters from flasher data
-           based on the best algorithm described by S. Fegan in MST-CAM-TN-0060 (eq. 19)
-           Pixels are defined as outliers on the base of a cut on the pixel charge median
-           over the full sample distribution and the pixel signal time inside the
-           waveform time
+          based on the best algorithm described by S. Fegan in MST-CAM-TN-0060 (eq. 19)
+          Pixels are defined as outliers on the base of a cut on the pixel charge median
+          over the full sample distribution and the pixel signal time inside the
+          waveform time
 
 
-         Parameters:
-         ----------
-         charge_cut_outliers : List[2]
-             Interval of accepted charge values (fraction with respect to camera median value)
-         time_cut_outliers : List[2]
-             Interval (in waveform samples) of accepted time values
+        Parameters:
+        ----------
+        charge_cut_outliers : List[2]
+            Interval of accepted charge values (fraction with respect to camera median value)
+        time_cut_outliers : List[2]
+            Interval (in waveform samples) of accepted time values
 
         """
         super().__init__(**kwargs)
@@ -159,7 +162,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         self.log.info("Used events statistics : %d", self.sample_size)
 
         # members to keep state in calculate_relative_gain()
-        self.num_events_seen = 0
+        self.n_events_seen = 0
         self.time_start = None  # trigger time of first event in sample
         self.charge_medians = None  # med. charge in camera per event in sample
         self.charges = None  # charge per event in sample
@@ -181,31 +184,37 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
 
         waveforms = event.r1.tel[self.tel_id].waveform
         selected_gain_channel = event.r1.tel[self.tel_id].selected_gain_channel
-
+        broken_pixels = _get_invalid_pixels(
+            n_pixels=waveforms.shape[-2],
+            pixel_status=event.mon.tel[self.tel_id].pixel_status,
+            selected_gain_channel=selected_gain_channel,
+        )
         # Extract charge and time
         if self.extractor:
-            return self.extractor(waveforms, self.tel_id, selected_gain_channel)
+            return self.extractor(
+                waveforms, self.tel_id, selected_gain_channel, broken_pixels
+            )
         else:
             return DL1CameraContainer(image=0, peak_pos=0, is_valid=False)
 
     def calculate_relative_gain(self, event):
         """
-         calculate the flatfield statistical values
-         and fill mon.tel[tel_id].flatfield container
+        calculate the flatfield statistical values
+        and fill mon.tel[tel_id].flatfield container
 
-         Parameters
-         ----------
-         event : general event container
+        Parameters
+        ----------
+        event : general event container
 
-         """
+        """
 
         # initialize the np array at each cycle
         waveform = event.r1.tel[self.tel_id].waveform
         container = event.mon.tel[self.tel_id].flatfield
 
         # re-initialize counter
-        if self.num_events_seen == self.sample_size:
-            self.num_events_seen = 0
+        if self.n_events_seen == self.sample_size:
+            self.n_events_seen = 0
 
         # real data
         trigger_time = event.trigger.time
@@ -222,7 +231,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         else:  # patches for MC data
             pixel_mask = np.zeros(waveform.shape[1], dtype=bool)
 
-        if self.num_events_seen == 0:
+        if self.n_events_seen == 0:
             self.time_start = trigger_time
             self.setup_sample_buffers(waveform, self.sample_size)
 
@@ -235,13 +244,10 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
 
         self.collect_sample(dl1.image, pixel_mask, dl1.peak_time)
 
-        sample_age = trigger_time - self.time_start
+        sample_age = (trigger_time - self.time_start).to_value(u.s)
 
         # check if to create a calibration event
-        if (
-            sample_age > self.sample_duration
-            or self.num_events_seen == self.sample_size
-        ):
+        if sample_age > self.sample_duration or self.n_events_seen == self.sample_size:
             relative_gain_results = self.calculate_relative_gain_results(
                 self.charge_medians, self.charges, self.sample_masked_pixels
             )
@@ -253,7 +259,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
             )
 
             result = {
-                "n_events": self.num_events_seen,
+                "n_events": self.n_events_seen,
                 **relative_gain_results,
                 **time_results,
             }
@@ -287,16 +293,16 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         good_charge = np.ma.array(charge, mask=pixel_mask)
         charge_median = np.ma.median(good_charge, axis=1)
 
-        self.charges[self.num_events_seen] = charge
-        self.arrival_times[self.num_events_seen] = arrival_time
-        self.sample_masked_pixels[self.num_events_seen] = pixel_mask
-        self.charge_medians[self.num_events_seen] = charge_median
-        self.num_events_seen += 1
+        self.charges[self.n_events_seen] = charge
+        self.arrival_times[self.n_events_seen] = arrival_time
+        self.sample_masked_pixels[self.n_events_seen] = pixel_mask
+        self.charge_medians[self.n_events_seen] = charge_median
+        self.n_events_seen += 1
 
     def calculate_time_results(
         self, trace_time, masked_pixels_of_sample, time_start, trigger_time
     ):
-        """Calculate and return the time results """
+        """Calculate and return the time results"""
         masked_trace_time = np.ma.array(trace_time, mask=masked_pixels_of_sample)
 
         # median over the sample per pixel

@@ -1,8 +1,43 @@
+categories:
+  - title: "New features"
+    labels:
+      - "new functionality"
+      - "enhancement"
+  - title: "API Changes"
+    labels:
+      - "Breaking change"
+      - "API change"
+  - title: "Data Model Changes"
+    labels:
+      - "data model change"
+  - title: "Bug Fixes"
+    labels:
+      - "bug"
+      - "fix"
+  - title: "Refactoring and Optimization"
+    labels:
+      - "optimization"
+      - "refactoring"
+  - title: "Maintenance"
+    labels:
+      - "build"
+      - "documentation"
+      - "installation"
+      - "maintenance"
+change-template: "- $TITLE (#$NUMBER) @$AUTHOR"
+change-title-escapes: '\<*_&' # You can add # and @ to disable mentions, and add ` to disable code blocks.
 template: |
-  ## What's Changed since $PREVIOUS_TAG
 
-  $CHANGES
+  ## Summary
+
+  ...
 
   ## Contributors
 
   $CONTRIBUTORS
+
+  ## What has changed since $PREVIOUS_TAG
+
+  Pull-requests containing changes of multiple nature are repeated.
+
+  $CHANGES

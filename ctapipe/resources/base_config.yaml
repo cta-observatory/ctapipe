@@ -23,7 +23,7 @@ DataWriter:
   overwrite: false # do not overwrite existing files
   write_images: false # store DL1 images
   write_parameters: false # store DL1 parameters
-  write_stereo_shower: false # store DL2 stereo geometry
+  write_showers: false # store DL2 stereo geometry
   write_raw_waveforms: false # write R0 waveforms
   write_waveforms: false # write R1 waveforms
 
@@ -88,15 +88,15 @@ ImageProcessor:
 
   # Choose which images should be parameterized:
   ImageQualityQuery:
-    # quality critieria should be a list of pairs of [name,
-    # filter_function_string] The filter function should take a single value
-    # which is the image itself, a 1D np.array.
+    # quality critieria should be a list of pairs of [name, filter_expression]
+    # The filter expression should contain the variable `image` which is the
+    # image itself, a 1D np.array.
     quality_criteria:
-      - ["enough_pixels", "lambda im: np.count_nonzero(im) > 2"]
-      - ["enough_charge", "lambda im: im.sum() > 50"]
+      - ["enough_pixels", "np.count_nonzero(image) > 2"]
+      - ["enough_charge", "image.sum() > 50"]
 
 # The ShowerProcessor performs the DL1 to DL2a (reconstructed shower geometry)
-# transition. It is run only if the parameter DataWriter.write_stereo_shower=True.
+# transition. It is run only if the parameter DataWriter.write_showers=True.
 ShowerProcessor:
   # choose between HillasReconstructor and HillasIntersection (two
   # implementations of the standard stereo line-intersection method)
@@ -106,11 +106,11 @@ ShowerProcessor:
     # Choose which telescope events should be included in the reconstruction.
     StereoQualityQuery:
       # the quality criteria here should again be a list of [name,
-      # filter_function_string] pairs, with filter functions that take the set of
-      # image parameters, `p` (a `ctapipe.containers.ImageParametersContainer`), as
-      # an argument.
+      # filter_expression] pairs, filter_expression contains the variable
+      # `parameters` which is a `ctapipe.containers.ImageParametersContainer`
+      # for the current event
       quality_criteria:
-        - [enough intensity, "lambda p: p.hillas.intensity > 50"]
-        - [Positive width, "lambda p: p.hillas.width.value > 0"]
-        - [enough pixels, "lambda p: p.morphology.num_pixels > 3"]
-        - [not clipped, "lambda p: p.leakage.intensity_width_2 < 0.8"]
+        - [enough intensity, "parameters.hillas.intensity > 50"]
+        - [Positive width, "parameters.hillas.width.value > 0"]
+        - [enough pixels, "parameters.morphology.n_pixels > 3"]
+        - [not clipped, "parameters.leakage.intensity_width_2 < 0.8"]

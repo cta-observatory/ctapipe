@@ -1,13 +1,14 @@
-import os
-import logging
-import tempfile
-import pytest
 import json
-from traitlets import Float, TraitError, Dict, Int
-from traitlets.config import Config
+import logging
+import os
+import tempfile
 from pathlib import Path
 
-from .. import Tool, Component
+import pytest
+from traitlets import Dict, Float, Int, TraitError
+from traitlets.config import Config
+
+from .. import Component, Tool
 from ..tool import export_tool_config_to_commented_yaml, run_tool
 
 
@@ -33,7 +34,7 @@ def test_tool_simple():
 
 
 def test_tool_version():
-    """ check that the tool gets an automatic version string"""
+    """check that the tool gets an automatic version string"""
 
     class MyTool(Tool):
         description = "test"
@@ -44,7 +45,7 @@ def test_tool_version():
 
 
 def test_provenance_dir():
-    """ check that the tool gets the provenance dir"""
+    """check that the tool gets the provenance dir"""
 
     class MyTool(Tool):
         description = "test"
@@ -57,7 +58,7 @@ def test_provenance_dir():
 
 
 def test_provenance_log_help(tmpdir):
-    """ check that the tool does not write a provenance log if only the help was run"""
+    """check that the tool does not write a provenance log if only the help was run"""
     from ctapipe.core.tool import run_tool
 
     class MyTool(Tool):
@@ -72,8 +73,9 @@ def test_provenance_log_help(tmpdir):
 
 
 def test_export_config_to_yaml():
-    """ test that we can export a Tool's config to YAML"""
+    """test that we can export a Tool's config to YAML"""
     import yaml
+
     from ctapipe.tools.process import ProcessorTool
 
     tool = ProcessorTool()
@@ -87,7 +89,7 @@ def test_export_config_to_yaml():
 
 
 def test_tool_html_rep(tmp_path):
-    """ check that the HTML rep for Jupyter notebooks works"""
+    """check that the HTML rep for Jupyter notebooks works"""
 
     class MyTool(Tool):
         description = "test"
@@ -100,7 +102,7 @@ def test_tool_html_rep(tmp_path):
         val = Float(1.0, help="val").tag(config=True)
 
     class MyTool2(Tool):
-        """ A docstring description"""
+        """A docstring description"""
 
         userparam = Float(5.0, help="parameter").tag(config=True)
 
@@ -121,7 +123,7 @@ def test_tool_html_rep(tmp_path):
 
 
 def test_tool_current_config():
-    """ Check that we can get the full instance configuration """
+    """Check that we can get the full instance configuration"""
 
     class MyTool(Tool):
         description = "test"
@@ -137,7 +139,7 @@ def test_tool_current_config():
 
 
 def test_tool_current_config_subcomponents():
-    """ Check that we can get the full instance configuration """
+    """Check that we can get the full instance configuration"""
     from ctapipe.core.component import Component
 
     class SubComponent(Component):
@@ -172,7 +174,7 @@ def test_tool_current_config_subcomponents():
 
 
 def test_tool_exit_code():
-    """ Check that we can get the full instance configuration """
+    """Check that we can get the full instance configuration"""
 
     class MyTool(Tool):
 
@@ -340,3 +342,26 @@ def test_invalid_traits(tmp_path, caplog):
         json.dump({"MyTool": {"foo": 5}}, f)
 
     assert run_tool(MyTool(), [f"--config={config}"]) == 2
+
+
+def test_tool_raises():
+    class ToolGood(Tool):
+        name = "Good"
+        description = "This runs without an exception."
+
+        def start(self):
+            print("All good.")
+
+    class ToolBad(Tool):
+        name = "Bad"
+        description = "This tool raises an exception."
+
+        def start(self):
+            raise ValueError("1 does not equal 0.")
+
+    assert run_tool(ToolGood(), raises=True) == 0
+
+    assert run_tool(ToolBad(), raises=False) == 1
+
+    with pytest.raises(ValueError):
+        run_tool(ToolBad(), raises=True)

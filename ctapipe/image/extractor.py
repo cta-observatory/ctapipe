@@ -14,7 +14,7 @@ __all__ = [
     "TwoPassWindowSum",
     "extract_around_peak",
     "extract_sliding_window",
-    "neighbor_average_waveform",
+    "neighbor_average_maximum",
     "subtract_baseline",
     "integration_correction",
 ]
@@ -25,6 +25,10 @@ from functools import lru_cache
 from typing import Tuple
 
 import numpy as np
+from numba import float32, float64, guvectorize, int64, njit, prange
+from scipy.ndimage import convolve1d
+from traitlets import Bool, Int
+
 from ctapipe.containers import DL1CameraContainer
 from ctapipe.instrument import CameraDescription
 from ctapipe.core import TelescopeComponent
@@ -32,13 +36,13 @@ from ctapipe.core.traits import (
     BoolTelescopeParameter,
     FloatTelescopeParameter,
     IntTelescopeParameter,
+    create_class_enum_trait,
 )
-from numba import float32, float64, guvectorize, int64, njit, prange
-from scipy.ndimage import convolve1d
-from traitlets import Bool, Int
 
-from . import brightest_island, number_of_islands, tailcuts_clean
+from .cleaning import tailcuts_clean
 from .hillas import camera_to_shower_coordinates, hillas_parameters
+from .invalid_pixels import InvalidPixelHandler
+from .morphology import brightest_island, number_of_islands
 from .timing import timing_parameters
 
 
@@ -196,7 +200,9 @@ def extract_sliding_window(waveforms, width, sampling_rate_ghz, sum_, peak_time)
 
 
 @njit(cache=True)
-def neighbor_average_waveform(waveforms, neighbors_indices, neighbors_indptr, lwt):
+def neighbor_average_maximum(
+    waveforms, neighbors_indices, neighbors_indptr, local_weight, broken_pixels
+):
     """
     Obtain the average waveform built from the neighbors of each pixel
 
@@ -211,9 +217,12 @@ def neighbor_average_waveform(waveforms, neighbors_indices, neighbors_indptr, lw
     neighbors_indptr : ndarray
         indptr of a scipy csr sparse matrix of neighbors, i.e.
         ``ctapipe.instrument.CameraGeometry.neighbor_matrix_sparse.indptr``.
-    lwt: int
+    local_weight : int
         Weight of the local pixel (0: peak from neighbors only,
         1: local pixel counts as much as any neighbor)
+    broken_pixels : ndarray
+        Mask of broken pixels. Broken pixels are ignored in the sum over the
+        neighbors.
 
     Returns
     -------
@@ -227,21 +236,23 @@ def neighbor_average_waveform(waveforms, neighbors_indices, neighbors_indptr, lw
     indptr = neighbors_indptr
     indices = neighbors_indices
 
-    # initialize to waveforms weighted with lwt
+    # initialize to waveforms weighted with local_weight
     # so the value of the pixel itself is already taken into account
-    average = waveforms * lwt
+    peak_pos = np.empty(n_pixels, dtype=np.int64)
 
     for pixel in prange(n_pixels):
+        average = waveforms[pixel] * local_weight
         neighbors = indices[indptr[pixel] : indptr[pixel + 1]]
 
-        n = lwt
         for neighbor in neighbors:
-            average[pixel] += waveforms[neighbor]
-            n += 1
+            if broken_pixels[neighbor]:
+                continue
 
-        average[pixel] /= n
+            average += waveforms[neighbor]
 
-    return average
+        peak_pos[pixel] = np.argmax(average)
+
+    return peak_pos
 
 
 def subtract_baseline(waveforms, baseline_start, baseline_end):
@@ -365,12 +376,14 @@ class ImageExtractor(TelescopeComponent):
         super().__init__(subarray=subarray, config=config, parent=parent, **kwargs)
 
         self.sampling_rate_ghz = {
-            telid: telescope.camera.readout.sampling_rate.to_value("GHz")
-            for telid, telescope in subarray.tel.items()
+            tel_id: telescope.camera.readout.sampling_rate.to_value("GHz")
+            for tel_id, telescope in subarray.tel.items()
         }
 
     @abstractmethod
-    def __call__(self, waveforms, telid, selected_gain_channel) -> DL1CameraContainer:
+    def __call__(
+        self, waveforms, tel_id, selected_gain_channel, broken_pixels
+    ) -> DL1CameraContainer:
         """
         Call the relevant functions to fully extract the charge and time
         for the particular extractor.
@@ -380,7 +393,7 @@ class ImageExtractor(TelescopeComponent):
         waveforms : ndarray
             Waveforms stored in a numpy array of shape
             (n_pix, n_samples).
-        telid : int
+        tel_id : int
             The telescope id. Used to obtain to correct traitlet configuration
             and instrument properties
         selected_gain_channel : ndarray
@@ -400,9 +413,11 @@ class FullWaveformSum(ImageExtractor):
     Extractor that sums the entire waveform.
     """
 
-    def __call__(self, waveforms, telid, selected_gain_channel):
+    def __call__(
+        self, waveforms, tel_id, selected_gain_channel, broken_pixels
+    ) -> DL1CameraContainer:
         charge, peak_time = extract_around_peak(
-            waveforms, 0, waveforms.shape[-1], 0, self.sampling_rate_ghz[telid]
+            waveforms, 0, waveforms.shape[-1], 0, self.sampling_rate_ghz[tel_id]
         )
         return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
 
@@ -429,7 +444,7 @@ class FixedWindowSum(ImageExtractor):
     ).tag(config=True)
 
     @lru_cache(maxsize=128)
-    def _calculate_correction(self, telid):
+    def _calculate_correction(self, tel_id):
         """
         Calculate the correction for the extracted change such that the value
         returned would equal 1 for a noise-less unit pulse.
@@ -439,7 +454,7 @@ class FixedWindowSum(ImageExtractor):
 
         Parameters
         ----------
-        telid : int
+        tel_id : int
 
         Returns
         -------
@@ -448,25 +463,27 @@ class FixedWindowSum(ImageExtractor):
         Has size n_channels, as a different correction value might be required
         for different gain channels.
         """
-        readout = self.subarray.tel[telid].camera.readout
+        readout = self.subarray.tel[tel_id].camera.readout
         return integration_correction(
             readout.reference_pulse_shape,
             readout.reference_pulse_sample_width.to_value("ns"),
             (1 / readout.sampling_rate).to_value("ns"),
-            self.window_width.tel[telid],
-            self.window_shift.tel[telid],
+            self.window_width.tel[tel_id],
+            self.window_shift.tel[tel_id],
         )
 
-    def __call__(self, waveforms, telid, selected_gain_channel):
+    def __call__(
+        self, waveforms, tel_id, selected_gain_channel, broken_pixels
+    ) -> DL1CameraContainer:
         charge, peak_time = extract_around_peak(
             waveforms,
-            self.peak_index.tel[telid],
-            self.window_width.tel[telid],
-            self.window_shift.tel[telid],
-            self.sampling_rate_ghz[telid],
+            self.peak_index.tel[tel_id],
+            self.window_width.tel[tel_id],
+            self.window_shift.tel[tel_id],
+            self.sampling_rate_ghz[tel_id],
         )
-        if self.apply_integration_correction.tel[telid]:
-            charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
+        if self.apply_integration_correction.tel[tel_id]:
+            charge *= self._calculate_correction(tel_id=tel_id)[selected_gain_channel]
         return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
 
 
@@ -506,7 +523,7 @@ class GlobalPeakWindowSum(ImageExtractor):
     ).tag(config=True)
 
     @lru_cache(maxsize=128)
-    def _calculate_correction(self, telid):
+    def _calculate_correction(self, tel_id):
         """
         Calculate the correction for the extracted change such that the value
         returned would equal 1 for a noise-less unit pulse.
@@ -516,7 +533,7 @@ class GlobalPeakWindowSum(ImageExtractor):
 
         Parameters
         ----------
-        telid : int
+        tel_id : int
 
         Returns
         -------
@@ -525,22 +542,26 @@ class GlobalPeakWindowSum(ImageExtractor):
         Has size n_channels, as a different correction value might be required
         for different gain channels.
         """
-        readout = self.subarray.tel[telid].camera.readout
+        readout = self.subarray.tel[tel_id].camera.readout
         return integration_correction(
             readout.reference_pulse_shape,
             readout.reference_pulse_sample_width.to_value("ns"),
             (1 / readout.sampling_rate).to_value("ns"),
-            self.window_width.tel[telid],
-            self.window_shift.tel[telid],
+            self.window_width.tel[tel_id],
+            self.window_shift.tel[tel_id],
         )
 
-    def __call__(self, waveforms, telid, selected_gain_channel):
-        if self.pixel_fraction.tel[telid] == 1.0:
+    def __call__(
+        self, waveforms, tel_id, selected_gain_channel, broken_pixels
+    ) -> DL1CameraContainer:
+        if self.pixel_fraction.tel[tel_id] == 1.0:
             # average over pixels then argmax over samples
-            peak_index = waveforms.mean(axis=-2).argmax()
+            peak_index = waveforms[~broken_pixels].mean(axis=-2).argmax()
         else:
-            n_pixels = int(self.pixel_fraction.tel[telid] * waveforms.shape[-2])
-            brightest = np.argsort(waveforms.max(axis=-1))[..., -n_pixels:]
+            n_pixels = int(self.pixel_fraction.tel[tel_id] * waveforms.shape[-2])
+            brightest = np.argsort(waveforms.max(axis=-1))[~broken_pixels][
+                ..., -n_pixels:
+            ]
 
             # average over brightest pixels then argmax over samples
             peak_index = waveforms[brightest].mean(axis=-2).argmax()
@@ -548,12 +569,12 @@ class GlobalPeakWindowSum(ImageExtractor):
         charge, peak_time = extract_around_peak(
             waveforms,
             peak_index,
-            self.window_width.tel[telid],
-            self.window_shift.tel[telid],
-            self.sampling_rate_ghz[telid],
+            self.window_width.tel[tel_id],
+            self.window_shift.tel[tel_id],
+            self.sampling_rate_ghz[tel_id],
         )
-        if self.apply_integration_correction.tel[telid]:
-            charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
+        if self.apply_integration_correction.tel[tel_id]:
+            charge *= self._calculate_correction(tel_id=tel_id)[selected_gain_channel]
         return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
 
 
@@ -578,7 +599,7 @@ class LocalPeakWindowSum(ImageExtractor):
     ).tag(config=True)
 
     @lru_cache(maxsize=128)
-    def _calculate_correction(self, telid):
+    def _calculate_correction(self, tel_id):
         """
         Calculate the correction for the extracted change such that the value
         returned would equal 1 for a noise-less unit pulse.
@@ -588,7 +609,7 @@ class LocalPeakWindowSum(ImageExtractor):
 
         Parameters
         ----------
-        telid : int
+        tel_id : int
 
         Returns
         -------
@@ -597,26 +618,28 @@ class LocalPeakWindowSum(ImageExtractor):
         Has size n_channels, as a different correction value might be required
         for different gain channels.
         """
-        readout = self.subarray.tel[telid].camera.readout
+        readout = self.subarray.tel[tel_id].camera.readout
         return integration_correction(
             readout.reference_pulse_shape,
             readout.reference_pulse_sample_width.to_value("ns"),
             (1 / readout.sampling_rate).to_value("ns"),
-            self.window_width.tel[telid],
-            self.window_shift.tel[telid],
+            self.window_width.tel[tel_id],
+            self.window_shift.tel[tel_id],
         )
 
-    def __call__(self, waveforms, telid, selected_gain_channel):
+    def __call__(
+        self, waveforms, tel_id, selected_gain_channel, broken_pixels
+    ) -> DL1CameraContainer:
         peak_index = waveforms.argmax(axis=-1).astype(np.int64)
         charge, peak_time = extract_around_peak(
             waveforms,
             peak_index,
-            self.window_width.tel[telid],
-            self.window_shift.tel[telid],
-            self.sampling_rate_ghz[telid],
+            self.window_width.tel[tel_id],
+            self.window_shift.tel[tel_id],
+            self.sampling_rate_ghz[tel_id],
         )
-        if self.apply_integration_correction.tel[telid]:
-            charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
+        if self.apply_integration_correction.tel[tel_id]:
+            charge *= self._calculate_correction(tel_id=tel_id)[selected_gain_channel]
         return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
 
 
@@ -634,7 +657,7 @@ class SlidingWindowMaxSum(ImageExtractor):
     ).tag(config=True)
 
     @lru_cache(maxsize=128)
-    def _calculate_correction(self, telid):
+    def _calculate_correction(self, tel_id):
         """
         Calculate the correction for the extracted charge such that the value
         returned would equal 1 for a noise-less unit pulse.
@@ -647,7 +670,7 @@ class SlidingWindowMaxSum(ImageExtractor):
 
         Parameters
         ----------
-        telid : int
+        tel_id : int
 
         Returns
         -------
@@ -657,13 +680,13 @@ class SlidingWindowMaxSum(ImageExtractor):
         for different gain channels.
         """
 
-        readout = self.subarray.tel[telid].camera.readout
+        readout = self.subarray.tel[tel_id].camera.readout
 
         # compute the number of slices to integrate in the pulse template
         width_shape = int(
             round(
                 (
-                    self.window_width.tel[telid]
+                    self.window_width.tel[tel_id]
                     / readout.sampling_rate
                     / readout.reference_pulse_sample_width
                 )
@@ -686,12 +709,14 @@ class SlidingWindowMaxSum(ImageExtractor):
 
         return correction
 
-    def __call__(self, waveforms, telid, selected_gain_channel):
+    def __call__(
+        self, waveforms, tel_id, selected_gain_channel, broken_pixels
+    ) -> DL1CameraContainer:
         charge, peak_time = extract_sliding_window(
-            waveforms, self.window_width.tel[telid], self.sampling_rate_ghz[telid]
+            waveforms, self.window_width.tel[tel_id], self.sampling_rate_ghz[tel_id]
         )
-        if self.apply_integration_correction.tel[telid]:
-            charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
+        if self.apply_integration_correction.tel[tel_id]:
+            charge *= self._calculate_correction(tel_id=tel_id)[selected_gain_channel]
         return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
 
 
@@ -711,7 +736,7 @@ class NeighborPeakWindowSum(ImageExtractor):
         "from the peak_index (peak_index - shift)",
     ).tag(config=True)
 
-    lwt = IntTelescopeParameter(
+    local_weight = IntTelescopeParameter(
         default_value=0,
         help="Weight of the local pixel (0: peak from neighbors only, "
         "1: local pixel counts as much as any neighbor)",
@@ -722,7 +747,7 @@ class NeighborPeakWindowSum(ImageExtractor):
     ).tag(config=True)
 
     @lru_cache(maxsize=128)
-    def _calculate_correction(self, telid):
+    def _calculate_correction(self, tel_id):
         """
         Calculate the correction for the extracted change such that the value
         returned would equal 1 for a noise-less unit pulse.
@@ -732,7 +757,7 @@ class NeighborPeakWindowSum(ImageExtractor):
 
         Parameters
         ----------
-        telid : int
+        tel_id : int
 
         Returns
         -------
@@ -741,33 +766,35 @@ class NeighborPeakWindowSum(ImageExtractor):
         Has size n_channels, as a different correction value might be required
         for different gain channels.
         """
-        readout = self.subarray.tel[telid].camera.readout
+        readout = self.subarray.tel[tel_id].camera.readout
         return integration_correction(
             readout.reference_pulse_shape,
             readout.reference_pulse_sample_width.to_value("ns"),
             (1 / readout.sampling_rate).to_value("ns"),
-            self.window_width.tel[telid],
-            self.window_shift.tel[telid],
+            self.window_width.tel[tel_id],
+            self.window_shift.tel[tel_id],
         )
 
-    def __call__(self, waveforms, telid, selected_gain_channel):
-        neighbors = self.subarray.tel[telid].camera.geometry.neighbor_matrix_sparse
-        average_wfs = neighbor_average_waveform(
+    def __call__(
+        self, waveforms, tel_id, selected_gain_channel, broken_pixels
+    ) -> DL1CameraContainer:
+        neighbors = self.subarray.tel[tel_id].camera.geometry.neighbor_matrix_sparse
+        peak_index = neighbor_average_maximum(
             waveforms,
             neighbors_indices=neighbors.indices,
             neighbors_indptr=neighbors.indptr,
-            lwt=self.lwt.tel[telid],
+            local_weight=self.local_weight.tel[tel_id],
+            broken_pixels=broken_pixels,
         )
-        peak_index = average_wfs.argmax(axis=-1)
         charge, peak_time = extract_around_peak(
             waveforms,
             peak_index,
-            self.window_width.tel[telid],
-            self.window_shift.tel[telid],
-            self.sampling_rate_ghz[telid],
+            self.window_width.tel[tel_id],
+            self.window_shift.tel[tel_id],
+            self.sampling_rate_ghz[tel_id],
         )
-        if self.apply_integration_correction.tel[telid]:
-            charge *= self._calculate_correction(telid=telid)[selected_gain_channel]
+        if self.apply_integration_correction.tel[tel_id]:
+            charge *= self._calculate_correction(tel_id=tel_id)[selected_gain_channel]
         return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
 
 
@@ -782,11 +809,15 @@ class BaselineSubtractedNeighborPeakWindowSum(NeighborPeakWindowSum):
     )
     baseline_end = Int(10, help="End sample for baseline estimation").tag(config=True)
 
-    def __call__(self, waveforms, telid, selected_gain_channel):
+    def __call__(
+        self, waveforms, tel_id, selected_gain_channel, broken_pixels
+    ) -> DL1CameraContainer:
         baseline_corrected = subtract_baseline(
             waveforms, self.baseline_start, self.baseline_end
         )
-        return super().__call__(baseline_corrected, telid, selected_gain_channel)
+        return super().__call__(
+            baseline_corrected, tel_id, selected_gain_channel, broken_pixels
+        )
 
 
 class TwoPassWindowSum(ImageExtractor):
@@ -847,8 +878,25 @@ class TwoPassWindowSum(ImageExtractor):
         default_value=True, help="Apply the integration window correction"
     ).tag(config=True)
 
+    invalid_pixel_handler_type = create_class_enum_trait(
+        InvalidPixelHandler,
+        default_value="NeighborAverage",
+        help="Name of the InvalidPixelHandler to apply in the first pass.",
+        allow_none=True,
+    ).tag(config=True)
+
+    def __init__(self, subarray, **kwargs):
+        super().__init__(subarray=subarray, **kwargs)
+        self.invalid_pixel_handler = None
+        if self.invalid_pixel_handler_type is not None:
+            self.invalid_pixel_handler = InvalidPixelHandler.from_name(
+                self.invalid_pixel_handler_type,
+                self.subarray,
+                parent=self,
+            )
+
     @lru_cache(maxsize=4096)
-    def _calculate_correction(self, telid, width, shift):
+    def _calculate_correction(self, tel_id, width, shift):
         """Obtain the correction for the integration window specified for each
         pixel.
 
@@ -860,7 +908,7 @@ class TwoPassWindowSum(ImageExtractor):
 
         Parameters
         ----------
-        telid : int
+        tel_id : int
             Index of the telescope in use.
         width : int
             Width of the integration window in samples
@@ -873,7 +921,7 @@ class TwoPassWindowSum(ImageExtractor):
             Value of the pixel-wise gain-selected integration correction.
 
         """
-        readout = self.subarray.tel[telid].camera.readout
+        readout = self.subarray.tel[tel_id].camera.readout
         # Calculate correction of first pixel for both channels
         return integration_correction(
             readout.reference_pulse_shape,
@@ -884,7 +932,7 @@ class TwoPassWindowSum(ImageExtractor):
         )
 
     def _apply_first_pass(
-        self, waveforms, telid
+        self, waveforms, tel_id
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Execute step 1.
@@ -893,7 +941,7 @@ class TwoPassWindowSum(ImageExtractor):
         ----------
         waveforms : array of size (N_pixels, N_samples)
             DL0-level waveforms of one event.
-        telid : int
+        tel_id : int
             Index of the telescope.
 
         Returns
@@ -943,12 +991,12 @@ class TwoPassWindowSum(ImageExtractor):
             peak_index,
             window_width,
             window_shift,
-            self.sampling_rate_ghz[telid],
+            self.sampling_rate_ghz[tel_id],
         )
 
         # Get integration correction factors
-        if self.apply_integration_correction.tel[telid]:
-            correction = self._calculate_correction(telid, window_width, window_shift)
+        if self.apply_integration_correction.tel[tel_id]:
+            correction = self._calculate_correction(tel_id, window_width, window_shift)
         else:
             correction = np.ones(waveforms.shape[0])
 
@@ -957,11 +1005,12 @@ class TwoPassWindowSum(ImageExtractor):
     def _apply_second_pass(
         self,
         waveforms,
-        telid,
+        tel_id,
         selected_gain_channel,
         charge_1stpass_uncorrected,
         pulse_time_1stpass,
         correction,
+        broken_pixels,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Follow steps from 2 to 7.
@@ -970,7 +1019,7 @@ class TwoPassWindowSum(ImageExtractor):
         ----------
         waveforms : array of shape (N_pixels, N_samples)
             DL0-level waveforms of one event.
-        telid : int
+        tel_id : int
             Index of the telescope.
         selected_gain_channel: array of shape (N_channels, N_pixels)
             Array containing the index of the selected gain channel for each
@@ -1000,16 +1049,23 @@ class TwoPassWindowSum(ImageExtractor):
             True=second-pass succeeded, False=second-pass failed, first pass used
         """
         # STEP 2
-
         # Apply correction to 1st pass charges
         charge_1stpass = charge_1stpass_uncorrected * correction[selected_gain_channel]
 
+        camera_geometry = self.subarray.tel[tel_id].camera.geometry
+        if self.invalid_pixel_handler is not None:
+            charge_1stpass, pulse_time_1stpass = self.invalid_pixel_handler(
+                tel_id,
+                charge_1stpass,
+                pulse_time_1stpass,
+                broken_pixels,
+            )
+
         # Set thresholds for core-pixels depending on telescope
-        core_th = self.core_threshold.tel[telid]
+        core_th = self.core_threshold.tel[tel_id]
         # Boundary thresholds will be half of core thresholds.
 
         # Preliminary image cleaning with simple two-level tail-cut
-        camera_geometry = self.subarray.tel[telid].camera.geometry
         mask_clean = tailcuts_clean(
             camera_geometry,
             charge_1stpass,
@@ -1022,13 +1078,11 @@ class TwoPassWindowSum(ImageExtractor):
         # STEP 3
 
         # find all islands using this cleaning
-        num_islands, labels = number_of_islands(camera_geometry, mask_clean)
+        n_islands, labels = number_of_islands(camera_geometry, mask_clean)
 
-        if num_islands > 0:
+        if n_islands > 0:
             # ...find the brightest one
-            mask_brightest_island = brightest_island(
-                num_islands, labels, charge_1stpass
-            )
+            mask_brightest_island = brightest_island(n_islands, labels, charge_1stpass)
         else:
             mask_brightest_island = mask_clean
 
@@ -1083,7 +1137,7 @@ class TwoPassWindowSum(ImageExtractor):
         # int64 otherwise 'extract_around_peak' complains.
 
         predicted_peaks = np.rint(
-            predicted_pulse_times.value * self.sampling_rate_ghz[telid]
+            predicted_pulse_times.value * self.sampling_rate_ghz[tel_id]
         ).astype(np.int64)
 
         # Due to the fit these peak indexes can lead to an integration window
@@ -1158,22 +1212,22 @@ class TwoPassWindowSum(ImageExtractor):
             predicted_peaks,
             window_widths,
             window_shifts,
-            self.sampling_rate_ghz[telid],
+            self.sampling_rate_ghz[tel_id],
         )
 
-        if self.apply_integration_correction.tel[telid]:
+        if self.apply_integration_correction.tel[tel_id]:
             # Modify integration correction factors only for non-core pixels
             # now we compute 3 corrections for the default, before, and after cases:
             correction = self._calculate_correction(
-                telid, window_width_default, window_shift_default
+                tel_id, window_width_default, window_shift_default
             )[selected_gain_channel][mask_2nd_pass]
 
             correction_before = self._calculate_correction(
-                telid, window_width_before, window_shift_before
+                tel_id, window_width_before, window_shift_before
             )[selected_gain_channel][mask_2nd_pass]
 
             correction_after = self._calculate_correction(
-                telid, window_width_after, window_shift_after
+                tel_id, window_width_after, window_shift_after
             )[selected_gain_channel][mask_2nd_pass]
 
             correction[integration_before_readout] = correction_before[
@@ -1204,8 +1258,10 @@ class TwoPassWindowSum(ImageExtractor):
 
         return charge_2ndpass, pulse_time_2ndpass, True
 
-    def __call__(self, waveforms, telid, selected_gain_channel):
-        charge1, pulse_time1, correction1 = self._apply_first_pass(waveforms, telid)
+    def __call__(
+        self, waveforms, tel_id, selected_gain_channel, broken_pixels
+    ) -> DL1CameraContainer:
+        charge1, pulse_time1, correction1 = self._apply_first_pass(waveforms, tel_id)
 
         # FIXME: properly make sure that output is 32Bit instead of downcasting here
         if self.disable_second_pass:
@@ -1216,7 +1272,13 @@ class TwoPassWindowSum(ImageExtractor):
             )
 
         charge2, pulse_time2, is_valid = self._apply_second_pass(
-            waveforms, telid, selected_gain_channel, charge1, pulse_time1, correction1
+            waveforms,
+            tel_id,
+            selected_gain_channel,
+            charge1,
+            pulse_time1,
+            correction1,
+            broken_pixels,
         )
         # FIXME: properly make sure that output is 32Bit instead of downcasting here
         return DL1CameraContainer(

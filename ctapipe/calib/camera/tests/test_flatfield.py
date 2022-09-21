@@ -1,13 +1,16 @@
+from copy import deepcopy
+
+import astropy.units as u
 import numpy as np
 from astropy.time import Time
+from traitlets.config import Config
+
 from ctapipe.calib.camera.flatfield import FlasherFlatFieldCalculator
 from ctapipe.containers import ArrayEventContainer
-from traitlets.config.loader import Config
-import astropy.units as u
-from ctapipe.instrument import SubarrayDescription, TelescopeDescription
+from ctapipe.instrument import SubarrayDescription
 
 
-def test_flasherflatfieldcalculator():
+def test_flasherflatfieldcalculator(prod5_sst):
     """test of flasherFlatFieldCalculator"""
     tel_id = 0
     n_gain = 2
@@ -18,11 +21,7 @@ def test_flasherflatfieldcalculator():
     subarray = SubarrayDescription(
         "test array",
         tel_positions={0: np.zeros(3) * u.m},
-        tel_descriptions={
-            0: TelescopeDescription.from_name(
-                optics_name="SST-ASTRI", camera_name="CHEC"
-            )
-        },
+        tel_descriptions={0: deepcopy(prod5_sst)},
     )
     subarray.tel[0].camera.readout.reference_pulse_shape = np.ones((1, 2))
     subarray.tel[0].camera.readout.reference_pulse_sample_width = u.Quantity(1, u.ns)
@@ -53,13 +52,14 @@ def test_flasherflatfieldcalculator():
         (n_gain, n_pixels), dtype=bool
     )
     data.r1.tel[tel_id].waveform = np.zeros((n_gain, n_pixels, 40))
+    data.r1.tel[tel_id].selected_gain_channel = np.zeros(n_pixels, dtype=np.uint8)
 
     # flat-field signal put == delta function of height ff_level at sample 20
     data.r1.tel[tel_id].waveform[:, :, 20] = ff_level
     print(data.r1.tel[tel_id].waveform[0, 0, 20])
 
     # First test: good event
-    while ff_calculator.num_events_seen < n_events:
+    while ff_calculator.n_events_seen < n_events:
         if ff_calculator.calculate_relative_gain(data):
             assert data.mon.tel[tel_id].flatfield
 
@@ -75,7 +75,7 @@ def test_flasherflatfieldcalculator():
         :, failing_pixels_id
     ] = True
 
-    while ff_calculator.num_events_seen < n_events:
+    while ff_calculator.n_events_seen < n_events:
         if ff_calculator.calculate_relative_gain(data):
 
             # working pixel have good gain

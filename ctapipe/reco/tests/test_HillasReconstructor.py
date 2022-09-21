@@ -1,24 +1,25 @@
 from copy import deepcopy
-import numpy as np
-from astropy import units as u
-import pytest
 
+import numpy as np
+import pytest
+from astropy import units as u
+from astropy.coordinates import AltAz, SkyCoord
 from traitlets.config import Config
+
+from ctapipe.calib import CameraCalibrator
 from ctapipe.containers import HillasParametersContainer
 from ctapipe.image.image_processor import ImageProcessor
-from ctapipe.instrument import SubarrayDescription, TelescopeDescription
+from ctapipe.instrument import SubarrayDescription
 from ctapipe.io import SimTelEventSource
-from ctapipe.reco.hillas_reconstructor import HillasReconstructor, HillasPlane
+from ctapipe.reco.hillas_reconstructor import HillasPlane, HillasReconstructor
 from ctapipe.utils import get_dataset_path
-from astropy.coordinates import SkyCoord, AltAz
-from ctapipe.calib import CameraCalibrator
 
 
-def test_estimator_results():
+def test_estimator_results(prod5_sst):
     """
     creating some planes pointing in different directions (two
     north-south, two east-west) and that have a slight position errors (+-
-    0.1 m in one of the four cardinal directions """
+    0.1 m in one of the four cardinal directions"""
     horizon_frame = AltAz()
 
     p1 = SkyCoord(alt=43 * u.deg, az=45 * u.deg, frame=horizon_frame)
@@ -42,11 +43,7 @@ def test_estimator_results():
     subarray = SubarrayDescription(
         "test array",
         tel_positions={1: np.zeros(3) * u.m},
-        tel_descriptions={
-            1: TelescopeDescription.from_name(
-                optics_name="SST-ASTRI", camera_name="CHEC"
-            )
-        },
+        tel_descriptions={1: prod5_sst},
     )
 
     # creating the fit class and setting the the great circle member
@@ -63,7 +60,7 @@ def test_h_max_results(example_subarray):
     """
     creating some planes pointing in different directions (two
     north-south, two east-west) and that have a slight position errors (+-
-    0.1 m in one of the four cardinal directions """
+    0.1 m in one of the four cardinal directions"""
     horizon_frame = AltAz()
 
     p1 = SkyCoord(alt=0 * u.deg, az=45 * u.deg, frame=horizon_frame)
@@ -121,11 +118,13 @@ def test_invalid_events(subarray_and_event_gamma_off_axis_500_gev):
 
     # perform no quality cuts, so we can see if our additional checks on valid
     # input work
-    config = Config({
-        "StereoQualityQuery": {
-            "quality_criteria": [],
+    config = Config(
+        {
+            "StereoQualityQuery": {
+                "quality_criteria": [],
+            }
         }
-    })
+    )
     hillas_reconstructor = HillasReconstructor(subarray, config=config)
 
     calib(event)
@@ -192,26 +191,30 @@ def test_reconstruction_against_simulation(subarray_and_event_gamma_off_axis_500
     "filename",
     [
         "gamma_divergent_LaPalma_baseline_20Zd_180Az_prod3_test.simtel.gz",
-        "gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"
-    ]
+        "gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz",
+    ],
 )
 def test_CameraFrame_against_TelescopeFrame(filename):
 
-    input_file = get_dataset_path(
-        "gamma_divergent_LaPalma_baseline_20Zd_180Az_prod3_test.simtel.gz"
-    )
+    input_file = get_dataset_path(filename)
+    # "gamma_divergent_LaPalma_baseline_20Zd_180Az_prod3_test.simtel.gz"
+    # )
 
-    source = SimTelEventSource(input_file, max_events=10)
+    source = SimTelEventSource(
+        input_file, max_events=10, focal_length_choice="EQUIVALENT"
+    )
 
     # too few events survive for this test with the defautl quality criteria,
     # use less restrictive ones
-    config = Config({
-        "StereoQualityQuery": {
-            "quality_criteria": [
-                ("valid_width", "lambda p: p.hillas.width.value > 0"),
-            ]
+    config = Config(
+        {
+            "StereoQualityQuery": {
+                "quality_criteria": [
+                    ("valid_width", "parameters.hillas.width.value > 0"),
+                ]
+            }
         }
-    })
+    )
 
     calib = CameraCalibrator(subarray=source.subarray)
     reconstructor = HillasReconstructor(source.subarray, config=config)
@@ -247,10 +250,12 @@ def test_CameraFrame_against_TelescopeFrame(filename):
                 tel = getattr(result_telescope_frame, field)
 
                 if hasattr(cam, "unit"):
-                    assert u.isclose(cam, tel, rtol=1e-3, atol=1e-3 * tel.unit, equal_nan=True)
+                    assert u.isclose(
+                        cam, tel, rtol=1e-3, atol=1e-3 * tel.unit, equal_nan=True
+                    )
                 elif isinstance(cam, list):
                     assert cam == tel
                 else:
                     assert np.isclose(cam, tel, rtol=1e-3, atol=1e-3, equal_nan=True)
 
-    assert reconstructed_events > 0 # check that we reconstruct at least 1 event
+    assert reconstructed_events > 0  # check that we reconstruct at least 1 event

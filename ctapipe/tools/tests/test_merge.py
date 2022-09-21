@@ -1,14 +1,16 @@
-import tables
-import tempfile
 import shutil
-
-from ctapipe.core import run_tool
+import tempfile
+from io import StringIO
 from pathlib import Path
-from ctapipe.io.astropy_helpers import read_table
+
+import numpy as np
+import tables
 from astropy.table import vstack
 from astropy.utils.diff import report_diff_values
-from io import StringIO
 
+from ctapipe.core import run_tool
+from ctapipe.io import TableLoader
+from ctapipe.io.astropy_helpers import read_table
 from ctapipe.tools.process import ProcessorTool
 
 try:
@@ -97,17 +99,21 @@ def test_skip_images(tmp_path, dl1_file, dl1_proton_file):
         ],
         cwd=tmp_path,
     )
+    assert ret == 0
 
     with tables.open_file(output, "r") as f:
         assert "images" not in f.root.dl1.event.telescope
+        assert "images" in f.root.simulation.event.telescope
         assert "parameters" in f.root.dl1.event.telescope
 
-    assert ret == 0
+    t = read_table(output, "/simulation/event/telescope/images/tel_001")
+    assert "true_image" not in t.colnames
+    assert "true_image_sum" in t.colnames
 
 
 def test_allowed_tels(tmp_path, dl1_file, dl1_proton_file):
-    from ctapipe.tools.merge import MergeTool
     from ctapipe.instrument import SubarrayDescription
+    from ctapipe.tools.merge import MergeTool
 
     # create file to test 'allowed-tels' option
     output = tmp_path / "merged_allowed_tels.dl1.h5"
@@ -162,3 +168,25 @@ def test_dl2(tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_file):
     assert (
         identical
     ), f"Merged table not equal to individual tables. Diff:\n {diff.getvalue()}"
+
+    stats_key = "/dl2/service/tel_event_statistics/HillasReconstructor"
+    merged_stats = read_table(output, stats_key)
+    stats1 = read_table(dl2_shower_geometry_file, stats_key)
+    stats2 = read_table(dl2_proton_geometry_file, stats_key)
+
+    for col in ("counts", "cumulative_counts"):
+        assert np.all(merged_stats[col] == (stats1[col] + stats2[col]))
+
+    # test reading configurations as well:
+    obs = read_table(output, "/configuration/observation/observation_block")
+    sbs = read_table(output, "/configuration/observation/scheduling_block")
+
+    assert len(obs) == 2, "should have two OB entries"
+    assert len(sbs) == 2, "should have two SB entries"
+
+    # regression test for #2048
+    loader = TableLoader(output, load_dl2=True, load_simulated=True)
+    tel_events = loader.read_telescope_events()
+    assert "true_impact_distance" in tel_events.colnames
+    # regression test for #2051
+    assert "HillasReconstructor_tel_impact_distance" in tel_events.colnames

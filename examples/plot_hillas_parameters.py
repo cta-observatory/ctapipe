@@ -3,18 +3,18 @@
 Example of drawing a Camera using a toymodel shower image.
 """
 
-import matplotlib.pylab as plt
 import astropy.units as u
+import matplotlib.pylab as plt
 
-from ctapipe.image import toymodel, hillas_parameters, tailcuts_clean
-from ctapipe.instrument import CameraGeometry
+from ctapipe.image import hillas_parameters, tailcuts_clean, toymodel
+from ctapipe.instrument import SubarrayDescription
 from ctapipe.visualization import CameraDisplay
-
 
 if __name__ == "__main__":
 
     # Load the camera
-    geom = CameraGeometry.from_name("LSTCam")
+    subarray = SubarrayDescription.read("dataset://gamma_prod5.simtel.zst")
+    geom = subarray.tel[1].camera.geometry
     disp = CameraDisplay(geom)
     disp.add_colorbar()
 

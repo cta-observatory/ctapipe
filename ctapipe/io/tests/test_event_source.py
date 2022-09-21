@@ -1,10 +1,12 @@
 import pytest
-from ctapipe.utils import get_dataset_path
-from ctapipe.io import EventSource, SimTelEventSource, DataLevel
-from traitlets.config.loader import Config
 from traitlets import TraitError
+from traitlets.config.loader import Config
 
 from ctapipe.core import Component
+from ctapipe.io import DataLevel, EventSource, SimTelEventSource
+from ctapipe.utils import get_dataset_path
+
+prod5_path = "gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst"
 
 
 def test_construct():
@@ -34,8 +36,12 @@ class DummyReader(EventSource):
         return False
 
     @property
-    def obs_ids(self):
-        return [1]
+    def scheduling_blocks(self):
+        return dict()
+
+    @property
+    def observation_blocks(self):
+        return dict()
 
     @property
     def datalevels(self):
@@ -43,20 +49,20 @@ class DummyReader(EventSource):
 
 
 def test_can_be_implemented():
-    dataset = get_dataset_path("gamma_test_large.simtel.gz")
+    dataset = get_dataset_path(prod5_path)
     test_reader = DummyReader(input_url=dataset)
     assert test_reader is not None
 
 
 def test_is_iterable():
-    dataset = get_dataset_path("gamma_test_large.simtel.gz")
+    dataset = get_dataset_path(prod5_path)
     test_reader = DummyReader(input_url=dataset)
     for _ in test_reader:
         pass
 
 
 def test_function():
-    dataset = get_dataset_path("gamma_test_large.simtel.gz")
+    dataset = get_dataset_path(prod5_path)
     reader = EventSource(input_url=dataset)
     assert isinstance(reader, SimTelEventSource)
     assert reader.input_url == dataset
@@ -75,7 +81,7 @@ def test_function_nonexistant_file():
 
 
 def test_from_config():
-    dataset = get_dataset_path("gamma_test_large.simtel.gz")
+    dataset = get_dataset_path(prod5_path)
     config = Config({"EventSource": {"input_url": dataset}})
     reader = EventSource(config=config)
     assert isinstance(reader, SimTelEventSource)
@@ -83,7 +89,7 @@ def test_from_config():
 
 
 def test_from_config_parent():
-    dataset = get_dataset_path("gamma_test_large.simtel.gz")
+    dataset = get_dataset_path(prod5_path)
 
     class Parent(Component):
         def __init__(self, config=None, parent=None):
@@ -109,7 +115,7 @@ def test_from_config_parent():
 
 def test_from_config_default():
     old_default = EventSource.input_url.default_value
-    dataset = get_dataset_path("gamma_test_large.simtel.gz")
+    dataset = get_dataset_path(prod5_path)
     EventSource.input_url.default_value = dataset
     config = Config()
     reader = EventSource(config=config, parent=None)
@@ -119,7 +125,7 @@ def test_from_config_default():
 
 
 def test_from_config_invalid_type():
-    dataset = get_dataset_path("gamma_test_large.simtel.gz")
+    dataset = get_dataset_path(prod5_path)
     EventSource.input_url.default_value = dataset
     config = Config({"EventSource": {"input_url": 124}})
     with pytest.raises(TraitError):
@@ -127,10 +133,10 @@ def test_from_config_invalid_type():
 
 
 def test_event_source_input_url_config_override():
-    dataset1 = get_dataset_path("gamma_test_large.simtel.gz")
-    dataset2 = get_dataset_path(
+    dataset1 = get_dataset_path(
         "gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz"
     )
+    dataset2 = get_dataset_path(prod5_path)
 
     config = Config({"EventSource": {"input_url": dataset1}})
     reader = EventSource(input_url=dataset2, config=config)
@@ -141,13 +147,13 @@ def test_event_source_input_url_config_override():
 
 def test_max_events():
     max_events = 10
-    dataset = get_dataset_path("gamma_test_large.simtel.gz")
+    dataset = get_dataset_path(prod5_path)
     reader = EventSource(input_url=dataset, max_events=max_events)
     assert reader.max_events == max_events
 
 
 def test_max_events_from_config():
-    dataset = get_dataset_path("gamma_test_large.simtel.gz")
+    dataset = get_dataset_path(prod5_path)
     max_events = 10
     config = Config({"EventSource": {"input_url": dataset, "max_events": max_events}})
     reader = EventSource(config=config)
@@ -155,15 +161,15 @@ def test_max_events_from_config():
 
 
 def test_allowed_tels():
-    dataset = get_dataset_path("gamma_test_large.simtel.gz")
+    dataset = get_dataset_path(prod5_path)
     reader = EventSource(input_url=dataset)
     assert reader.allowed_tels is None
     reader = EventSource(input_url=dataset, allowed_tels={1, 3})
-    assert len(reader.allowed_tels) == 2
+    assert reader.allowed_tels == {1, 3}
 
 
 def test_allowed_tels_from_config():
-    dataset = get_dataset_path("gamma_test_large.simtel.gz")
+    dataset = get_dataset_path(prod5_path)
     config = Config({"EventSource": {"input_url": dataset, "allowed_tels": {1, 3}}})
     reader = EventSource(config=config, parent=None)
-    assert len(reader.allowed_tels) == 2
+    assert reader.allowed_tels == {1, 3}

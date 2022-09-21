@@ -1,15 +1,15 @@
-from astropy.coordinates import SkyCoord, AltAz
-import astropy.units as u
-from ctapipe.io import EventSource
-from ctapipe.image.cleaning import tailcuts_clean
-from ctapipe.calib import CameraCalibrator
-from ctapipe.utils.datasets import get_dataset_path
-import matplotlib.pyplot as plt
-import numpy as np
 import warnings
 
-from ctapipe.coordinates import CameraFrame, NominalFrame, MissingFrameAttributeWarning
+import astropy.units as u
+import matplotlib.pyplot as plt
+import numpy as np
+from astropy.coordinates import AltAz, SkyCoord
 
+from ctapipe.calib import CameraCalibrator
+from ctapipe.coordinates import CameraFrame, MissingFrameAttributeWarning, NominalFrame
+from ctapipe.image.cleaning import tailcuts_clean
+from ctapipe.io import EventSource
+from ctapipe.utils.datasets import get_dataset_path
 
 warnings.filterwarnings("ignore", category=MissingFrameAttributeWarning)
 
@@ -55,7 +55,7 @@ with EventSource(input_url=input_url) as source:
                 telescope_pointing=telescope_pointing, focal_length=focal_length
             )
 
-            boundary, picture, min_neighbors = cleaning_level[geom.camera_name]
+            boundary, picture, min_neighbors = cleaning_level[geom.name]
             clean = tailcuts_clean(
                 geom,
                 image,

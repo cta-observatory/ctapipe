@@ -54,7 +54,7 @@ jobs:
           fetch-depth: 0
 
       - name: cache test data
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/ctapipe
           key: ctapipe-test-data
@@ -115,20 +115,20 @@ jobs:
 
           ctapipe-info --version
 
-      - uses: codecov/codecov-action@v1
+      - uses: codecov/codecov-action@v2
         if: matrix.codecov
 
   docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
-          python-version: 3.8
+          python-version: "3.8"
 
       - name: Install doc dependencies
         run: |

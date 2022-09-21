@@ -4,31 +4,12 @@ FITS files that can be loaded independently (e.g. with
 CameraGeometry.from_table()).  The name of the output files are
 automatically generated.
 """
+import os
+import pathlib
 
-from collections import defaultdict
-
-from ctapipe.core import Tool, Provenance
-from ctapipe.core.traits import Unicode, Dict, Enum, Path
+from ctapipe.core import Provenance, Tool
+from ctapipe.core.traits import Enum, Path, Unicode
 from ctapipe.io import EventSource
-
-
-def get_camera_types(subarray):
-    """ return dict of camera names mapped to a list of tel_ids
-     that use that camera
-
-     Parameters
-     ----------
-     subarray: ctapipe.instrument.SubarrayDescription
-
-     """
-
-    cam_types = defaultdict(list)
-
-    for telid in subarray.tel:
-        geom = subarray.tel[telid].camera.geometry
-        cam_types[geom.camera_name].append(telid)
-
-    return cam_types
 
 
 class DumpInstrumentTool(Tool):
@@ -36,6 +17,13 @@ class DumpInstrumentTool(Tool):
     name = "ctapipe-dump-instrument"
 
     infile = Path(exists=True, help="input simtelarray file").tag(config=True)
+    outdir = Path(
+        file_ok=False,
+        directory_ok=True,
+        allow_none=True,
+        default_value=None,
+        help="Output directory. If not given, the current working directory will be used.",
+    ).tag(config=True)
     format = Enum(
         ["fits", "ecsv", "hdf5"],
         default_value="fits",
@@ -43,15 +31,21 @@ class DumpInstrumentTool(Tool):
         config=True,
     )
 
-    aliases = Dict(
-        dict(input="DumpInstrumentTool.infile", format="DumpInstrumentTool.format")
-    )
+    aliases = {
+        ("i", "input"): "DumpInstrumentTool.infile",
+        ("f", "format"): "DumpInstrumentTool.format",
+        ("o", "outdir"): "DumpInstrumentTool.outdir",
+    }
 
     def setup(self):
         with EventSource(self.infile) as source:
             self.subarray = source.subarray
 
     def start(self):
+        if self.outdir is None:
+            self.outdir = pathlib.Path(os.getcwd())
+        self.outdir.mkdir(exist_ok=True, parents=True)
+
         if self.format == "hdf5":
             self.subarray.to_hdf("subarray.h5")
         else:
@@ -64,7 +58,7 @@ class DumpInstrumentTool(Tool):
 
     @staticmethod
     def _get_file_format_info(format_name):
-        """ returns file extension + dict of required parameters for
+        """returns file extension + dict of required parameters for
         Table.write"""
         if format_name == "fits":
             return "fits.gz", dict()
@@ -74,24 +68,22 @@ class DumpInstrumentTool(Tool):
             raise NameError(f"format {format_name} not supported")
 
     def write_camera_definitions(self):
-        """ writes out camgeom and camreadout files for each camera"""
-        cam_types = get_camera_types(self.subarray)
+        """writes out camgeom and camreadout files for each camera"""
         self.subarray.info(printer=self.log.info)
-        for cam_name in cam_types:
+        for camera in self.subarray.camera_types:
             ext, args = self._get_file_format_info(self.format)
 
-            self.log.debug(f"writing {cam_name}")
-            tel_id = cam_types[cam_name].pop()
-            geom = self.subarray.tel[tel_id].camera.geometry
-            readout = self.subarray.tel[tel_id].camera.readout
+            self.log.debug("Writing camera %s", camera)
+            geom = camera.geometry
+            readout = camera.readout
 
             geom_table = geom.to_table()
             geom_table.meta["SOURCE"] = str(self.infile)
-            geom_filename = f"{cam_name}.camgeom.{ext}"
+            geom_filename = self.outdir / f"{camera.name}.camgeom.{ext}"
 
             readout_table = readout.to_table()
             readout_table.meta["SOURCE"] = str(self.infile)
-            readout_filename = f"{cam_name}.camreadout.{ext}"
+            readout_filename = self.outdir / f"{camera.name}.camreadout.{ext}"
 
             try:
                 geom_table.write(geom_filename, **args)
@@ -102,13 +94,13 @@ class DumpInstrumentTool(Tool):
                 self.log.warning("couldn't write camera definition because: %s", err)
 
     def write_optics_descriptions(self):
-        """ writes out optics files for each telescope type"""
+        """writes out optics files for each telescope type"""
         sub = self.subarray
         ext, args = self._get_file_format_info(self.format)
 
         tab = sub.to_table(kind="optics")
         tab.meta["SOURCE"] = str(self.infile)
-        filename = f"{sub.name}.optics.{ext}"
+        filename = self.outdir / f"{sub.name}.optics.{ext}"
         try:
             tab.write(filename, **args)
             Provenance().add_output_file(filename, "OpticsDescription")
@@ -122,7 +114,7 @@ class DumpInstrumentTool(Tool):
         ext, args = self._get_file_format_info(self.format)
         tab = sub.to_table(kind="subarray")
         tab.meta["SOURCE"] = str(self.infile)
-        filename = f"{sub.name}.subarray.{ext}"
+        filename = self.outdir / f"{sub.name}.subarray.{ext}"
         try:
             tab.write(filename, **args)
             Provenance().add_output_file(filename, "SubarrayDescription")

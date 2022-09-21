@@ -12,4 +12,4 @@
 DataWriter:
   write_images: true
   write_parameters: true
-  write_stereo_shower: false
+  write_showers: false

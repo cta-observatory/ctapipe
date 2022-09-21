@@ -4,10 +4,13 @@
 Test ctapipe-process on a few different use cases
 """
 
+import numpy as np
 import pandas as pd
 import pytest
 import tables
+
 from ctapipe.core import run_tool
+from ctapipe.instrument.subarray import SubarrayDescription
 from ctapipe.io import DataLevel, EventSource, read_table
 from ctapipe.tools.process import ProcessorTool
 from ctapipe.tools.quickstart import CONFIGS_TO_WRITE, QuickStartTool
@@ -63,8 +66,8 @@ def test_multiple_configs(dl1_image_file):
 
     # ensure the overwriting works (base config has this option disabled)
     assert (
-        tool.get_current_config()["ProcessorTool"]["DataWriter"]["write_stereo_shower"]
-        == True
+        tool.get_current_config()["ProcessorTool"]["DataWriter"]["write_showers"]
+        is True
     )
 
 
@@ -124,21 +127,25 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
     for feature in features:
         assert feature in dl1_features.columns
 
-    # DL1B file as input
-    assert (
-        run_tool(
-            ProcessorTool(),
-            argv=[
-                f"--config={config}",
-                f"--input={dl1_parameters_file}",
-                f"--output={tmp_path}/dl1b_from_dl1b.dl1.h5",
-                "--write-parameters",
-                "--overwrite",
-            ],
-            cwd=tmp_path,
-        )
-        == 1
+    true_impact = read_table(
+        dl1b_from_dl1a_file,
+        "/simulation/event/telescope/impact/tel_025",
     )
+    assert "true_impact_distance" in true_impact.colnames
+
+    # DL1B file as input
+    ret = run_tool(
+        ProcessorTool(),
+        argv=[
+            f"--config={config}",
+            f"--input={dl1_parameters_file}",
+            f"--output={tmp_path}/dl1b_from_dl1b.dl1.h5",
+            "--write-parameters",
+            "--overwrite",
+        ],
+        cwd=tmp_path,
+    )
+    assert ret == 1
 
 
 def test_stage1_datalevels(tmp_path):
@@ -162,8 +169,12 @@ def test_stage1_datalevels(tmp_path):
             return True
 
         @property
-        def obs_ids(self):
-            return [1]
+        def scheduling_blocks(self):
+            return dict()
+
+        @property
+        def observation_blocks(self):
+            return dict()
 
         @property
         def subarray(self):
@@ -209,9 +220,8 @@ def test_stage_2_from_simtel(tmp_path):
             ProcessorTool(),
             argv=[
                 f"--config={config}",
-                f"--input={GAMMA_TEST_LARGE}",
+                "--input=dataset://gamma_prod5.simtel.zst",
                 f"--output={output}",
-                "--max-events=5",
                 "--overwrite",
             ],
             cwd=tmp_path,
@@ -221,7 +231,16 @@ def test_stage_2_from_simtel(tmp_path):
 
     # check tables were written
     with tables.open_file(output, mode="r") as testfile:
-        assert testfile.root.dl2.event.subarray.geometry.HillasReconstructor
+        dl2 = read_table(
+            testfile,
+            "/dl2/event/subarray/geometry/HillasReconstructor",
+        )
+        subarray = SubarrayDescription.from_hdf(testfile)
+
+        # test tel_ids are included and transformed correctly
+        assert "HillasReconstructor_telescopes" in dl2.colnames
+        assert dl2["HillasReconstructor_telescopes"].dtype == np.bool_
+        assert dl2["HillasReconstructor_telescopes"].shape[1] == len(subarray)
 
 
 def test_stage_2_from_dl1_images(tmp_path, dl1_image_file):
@@ -288,6 +307,7 @@ def test_training_from_simtel(tmp_path):
                 f"--output={output}",
                 "--max-events=5",
                 "--overwrite",
+                "--SimTelEventSource.focal_length_choice=EQUIVALENT",
             ],
             cwd=tmp_path,
         )

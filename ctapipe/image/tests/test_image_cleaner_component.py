@@ -3,12 +3,12 @@ import pytest
 from traitlets.config import Config
 
 from ctapipe.image import ImageCleaner
-from ctapipe.instrument import TelescopeDescription, SubarrayDescription
+from ctapipe.instrument import SubarrayDescription
 
 
 @pytest.mark.parametrize("method", ImageCleaner.non_abstract_subclasses().keys())
-def test_image_cleaner(method):
-    """ Test that we can construct and use a component-based ImageCleaner"""
+def test_image_cleaner(method, prod5_mst_nectarcam):
+    """Test that we can construct and use a component-based ImageCleaner"""
 
     config = Config(
         {
@@ -28,14 +28,18 @@ def test_image_cleaner(method):
         }
     )
 
-    tel = TelescopeDescription.from_name("MST", "NectarCam")
     subarray = SubarrayDescription(
-        name="test", tel_positions={1: None}, tel_descriptions={1: tel}
+        name="test",
+        tel_positions={1: None},
+        tel_descriptions={1: prod5_mst_nectarcam},
     )
 
     clean = ImageCleaner.from_name(method, config=config, subarray=subarray)
 
-    image = np.zeros_like(tel.camera.geometry.pix_x.value, dtype=np.float64)
+    image = np.zeros_like(
+        prod5_mst_nectarcam.camera.geometry.pix_x.value,
+        dtype=np.float64,
+    )
     image[10:30] = 20.0
     image[31:40] = 8.0
     times = np.linspace(-5, 10, image.shape[0])
