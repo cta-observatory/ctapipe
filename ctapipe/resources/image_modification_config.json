@@ -61,7 +61,7 @@
         }
     },
     "ShowerProcessor": {
-        "reconstructor_types": ["HillasReconstructor", "HillasIntersection"],
+        "reconstructor_types": ["HillasReconstructor"],
         "HillasReconstructor": {
             "StereoQualityQuery": {
                 "quality_criteria": [
