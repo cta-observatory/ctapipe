@@ -131,24 +131,22 @@ class TrainDispReconstructor(Tool):
             pointing_alt=self.pointing_alt,
             pointing_az=self.pointing_az,
         )
-        # should all this be calculated using delta, cog_x, cog_y based on the true image?
 
         # numpy's trigonometric functions need radians
-        delta = table["hillas_psi"].to(u.rad)
+        psi = table["hillas_psi"].quantity.to_value(u.rad)
+        cog_lon = table["hillas_fov_lon"].quantity
+        cog_lat = table["hillas_fov_lat"].quantity
 
-        delta_x = fov_lon - table["hillas_fov_lon"]
-        delta_y = fov_lat - table["hillas_fov_lat"]
+        delta_lon = fov_lon - cog_lon
+        delta_lat = fov_lat - cog_lat
 
-        true_disp = np.cos(delta) * delta_x + np.sin(delta) * delta_y
+        true_disp = np.cos(psi) * delta_lon + np.sin(psi) * delta_lat
         true_sign = np.sign(true_disp)
 
         if self.project_disp:
             true_norm = np.abs(true_disp)
         else:
-            true_norm = np.sqrt(
-                (fov_lon - table["hillas_fov_lon"]) ** 2
-                + (fov_lat - table["hillas_fov_lat"]) ** 2
-            )
+            true_norm = np.sqrt((fov_lon - cog_lon) ** 2 + (fov_lat - cog_lat) ** 2)
 
         return true_norm, true_sign
 
