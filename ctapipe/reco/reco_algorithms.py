@@ -101,11 +101,13 @@ class Reconstructor(Component):
             shower_geom=event.dl2.stereo.geometry[self.__class__.__name__],
             subarray=self.subarray,
         )
+        default_prefix = TelescopeImpactParameterContainer.default_prefix
+        prefix = f"{self.__class__.__name__}_tel_{default_prefix}"
         for tel_id in event.trigger.tels_with_trigger:
             tel_index = self.subarray.tel_indices[tel_id]
             event.dl2.tel[tel_id].impact[
                 self.__class__.__name__
             ] = TelescopeImpactParameterContainer(
                 distance=impact_distances[tel_index],
-                prefix=f"{self.__class__.__name__}_tel",
+                prefix=prefix,
             )
