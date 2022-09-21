@@ -42,6 +42,47 @@ SUPPORTED_REGRESSORS = dict(all_estimators("regressor"))
 SUPPORTED_MODELS = {**SUPPORTED_CLASSIFIERS, **SUPPORTED_REGRESSORS}
 
 
+def _collect_features(
+    event: ArrayEventContainer, tel_id: int, instrument_table: Table
+) -> Table:
+        """Loop over all containers with features.
+
+        Parameters
+        ----------
+        event: ArrayEventContainer
+
+        Returns
+        -------
+        Table
+        """
+        features = {}
+
+        features.update(
+            event.dl1.tel[tel_id].parameters.as_dict(
+                add_prefix=True,
+                recursive=True,
+                flatten=True,
+            )
+        )
+        features.update(
+            event.dl2.tel[tel_id].as_dict(
+                add_prefix=False,  # would duplicate prefix, as this is part of the name of the container
+                recursive=True,
+                flatten=True,
+            )
+        )
+        features.update(
+            event.dl2.stereo.as_dict(
+                add_prefix=False,  # see above
+                recursive=True,
+                flatten=True,
+            )
+        )
+        features.update(instrument_table.loc[tel_id])
+
+        return Table({k: [v] for k, v in features.items()})
+
+
 class SKLearnReconstructor(Reconstructor):
     """Base Class for a Machine Learning Based Reconstructor.
 
@@ -412,12 +453,12 @@ class DispReconstructor(Reconstructor):
     """Predict absolute value and sign for disp origin reconstruction for each telescope"""
 
     target_norm = "true_norm"
-    norm_regressor_cls = Regressor
-    norm_regressor = Instance(norm_regressor_cls, allow_none=True).tag(config=True)
+    norm_regressor = Instance(Regressor, allow_none=True).tag(config=True)
 
     target_sign = "true_sign"
-    sign_classifier_cls = Classifier
-    sign_classifier = Instance(sign_classifier_cls, allow_none=True).tag(config=True)
+    sign_classifier = Instance(Classifier, allow_none=True).tag(config=True)
+
+    prefix = Unicode(default_value="disp", allow_none=False).tag(config=True)
 
     def __init__(self, subarray, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -426,13 +467,9 @@ class DispReconstructor(Reconstructor):
         self.generate_features = FeatureGenerator(parent=self)
 
         if self.norm_regressor is None:
-            self.norm_regressor = self.norm_regressor_cls(
-                parent=self, target=self.target_norm
-            )
+            self.norm_regressor = Regressor(parent=self, target=self.target_norm)
         if self.sign_classifier is None:
-            self.sign_classifier = self.sign_classifier_cls(
-                parent=self, target=self.target_sign
-            )
+            self.sign_classifier = Classifier(parent=self, target=self.target_sign)
 
     def write(self, path):
         Provenance().add_output_file(path, role="ml-models")
@@ -444,6 +481,7 @@ class DispReconstructor(Reconstructor):
                     self.qualityquery.quality_criteria,
                     self.generate_features.features,
                     self.subarray,
+                    self.prefix
                 ),
                 f,
                 compress=True,
@@ -458,18 +496,16 @@ class DispReconstructor(Reconstructor):
                 quality_criteria,
                 gen_features,
                 subarray,
+                prefix,
             ) = joblib.load(f)
 
-        if check_cls is True and norm_regressor.__class__ is not cls.norm_regressor_cls:
+        if check_cls is True and type(norm_regressor) is not Regressor:
             raise TypeError(
-                f"File did not contain an instance of {cls.norm_regressor_cls}, got {norm_regressor.__class}"
+                f"File did not contain an instance of {Regressor}, got {type(norm_regressor)}"
             )
-        if (
-            check_cls is True
-            and sign_classifier.__class__ is not cls.sign_classifier_cls
-        ):
+        if check_cls is True and type(sign_classifier) is not Classifier:
             raise TypeError(
-                f"File did not contain an instance of {cls.sign_classifier_cls}, got {sign_classifier.__class}"
+                f"File did not contain an instance of {Classifier}, got {type(sign_classifier)}"
             )
 
         Provenance().add_input_file(path, role="ml-models")
@@ -477,6 +513,7 @@ class DispReconstructor(Reconstructor):
             subarray=subarray,
             norm_regressor=norm_regressor,
             sign_classifier=sign_classifier,
+            prefix=prefix,
             **kwargs,
         )
         instance.qualityquery = QualityQuery(
@@ -494,14 +531,14 @@ class DispReconstructor(Reconstructor):
     def __call__(self, event: ArrayEventContainer) -> None:
         """Event-wise prediction for the EventSource-Loop.
 
-        Fills the event.dl2.tel[tel_id].disp["disp"] container.
+        Fills the event.dl2.tel[tel_id].disp[prefix] container.
 
         Parameters
         ----------
         event: ArrayEventContainer
         """
         for tel_id in event.trigger.tels_with_trigger:
-            table = self._collect_features(event, tel_id)
+            table = _collect_features(event, tel_id, self.instrument_table)
             table = self.generate_features(table)
             mask = self.qualityquery.get_table_mask(table)
 
@@ -534,7 +571,7 @@ class DispReconstructor(Reconstructor):
                     is_valid=False,
                 )
 
-            event.dl2.tel[tel_id].disp["disp"] = container
+            event.dl2.tel[tel_id].disp[self.prefix] = container
 
     def predict(self, key, table: Table) -> Table:
         """Predict on a table of events
@@ -572,51 +609,13 @@ class DispReconstructor(Reconstructor):
 
         result = Table(
             {
-                "disp_norm": norm,
-                "disp_sign": sign,
-                "disp_sign_score": sign_score,
-                "disp_is_valid": np.logical_and(norm_valid, sign_valid),
+                f"{self.prefix}_norm": norm,
+                f"{self.prefix}_sign": sign,
+                f"{self.prefix}_sign_score": sign_score,
+                f"{self.prefix}_is_valid": np.logical_and(norm_valid, sign_valid),
             }
         )
         return result
-
-    def _collect_features(self, event: ArrayEventContainer, tel_id: int) -> Table:
-        """Loop over all containers with features.
-
-        Parameters
-        ----------
-        event: ArrayEventContainer
-
-        Returns
-        -------
-        Table
-        """
-        features = dict()
-
-        features.update(
-            event.dl1.tel[tel_id].parameters.as_dict(
-                add_prefix=True,
-                recursive=True,
-                flatten=True,
-            )
-        )
-        features.update(
-            event.dl2.tel[tel_id].as_dict(
-                add_prefix=False,  # would duplicate prefix, as this is part of the name of the container
-                recursive=True,
-                flatten=True,
-            )
-        )
-        features.update(
-            event.dl2.stereo.as_dict(
-                add_prefix=False,  # see above
-                recursive=True,
-                flatten=True,
-            )
-        )
-        features.update(self.instrument_table.loc[tel_id])
-
-        return Table({k: [v] for k, v in features.items()})
 
 
 class CrossValidator(Component):

@@ -10,6 +10,7 @@ from astropy.coordinates import AltAz, SkyCoord
 from astropy.table import Table
 
 from ctapipe.coordinates import MissingFrameAttributeWarning, TelescopeFrame
+from ctapipe.core.traits import Unicode
 
 from ..containers import ArrayEventContainer, ReconstructedGeometryContainer
 from ..core import Component
@@ -56,14 +57,15 @@ def telescope_to_horizontal(
 class MonoDispReconstructor(Component):
     """Convert (norm, sign) predictions into (alt, az) predictions"""
 
+    prefix = Unicode(default_value="disp", allow_none=False).tag(config=True)
+
     def __call__(self, event: ArrayEventContainer) -> None:
         """Convert and fill in corresponding container"""
-        prefix = "disp"
 
         for tel_id in event.trigger.tels_with_trigger:
-            norm = event.dl2.tel[tel_id].disp[prefix].norm
-            sign = event.dl2.tel[tel_id].disp[prefix].sign
-            valid = event.dl2.tel[tel_id].disp[prefix].is_valid
+            norm = event.dl2.tel[tel_id].disp[self.prefix].norm
+            sign = event.dl2.tel[tel_id].disp[self.prefix].sign
+            valid = event.dl2.tel[tel_id].disp[self.prefix].is_valid
 
             if valid:
                 disp = norm * sign
@@ -95,14 +97,13 @@ class MonoDispReconstructor(Component):
                     is_valid=False,
                 )
 
-            event.dl2.tel[tel_id].geometry[prefix] = container
+            event.dl2.tel[tel_id].geometry[self.prefix] = container
 
     def predict(self, table: Table, pointing_altitude, pointing_azimuth) -> Table:
         """Convert for a table of events"""
         # Pointing information is a temporary solution for simulations using a single pointing position
-        prefix = "disp"
 
-        disp_predictions = table[f"{prefix}_norm"] * table[f"{prefix}_sign"]
+        disp_predictions = table[f"{self.prefix}_norm"] * table[f"{self.prefix}_sign"]
 
         fov_lon = table["hillas_fov_lon"] + disp_predictions * np.cos(
             table["hillas_psi"].to(u.rad)
@@ -120,8 +121,8 @@ class MonoDispReconstructor(Component):
 
         result = Table(
             {
-                f"{prefix}_alt": alt,
-                f"{prefix}_az": az,
+                f"{self.prefix}_alt": alt,
+                f"{self.prefix}_az": az,
             }
         )
 
