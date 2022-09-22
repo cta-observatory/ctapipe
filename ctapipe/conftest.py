@@ -296,6 +296,31 @@ def dl1_file(dl1_tmp_path, prod5_gamma_simtel_path):
 
 
 @pytest.fixture(scope="session")
+def dl1_camera_frame_file(dl1_tmp_path, prod5_gamma_simtel_path):
+    """
+    DL1 file containing both images and parameters from a gamma simulation set.
+    """
+    from ctapipe.core import run_tool
+    from ctapipe.tools.process import ProcessorTool
+
+    output = dl1_tmp_path / "gamma_camera_frame.dl1.h5"
+
+    # prevent running process multiple times in case of parallel tests
+    with FileLock(output.with_suffix(output.suffix + ".lock")):
+        if output.is_file():
+            return output
+
+        argv = [
+            f"--input={prod5_gamma_simtel_path}",
+            f"--output={output}",
+            "--camera-frame",
+            "--write-images",
+        ]
+        assert run_tool(ProcessorTool(), argv=argv, cwd=dl1_tmp_path) == 0
+        return output
+
+
+@pytest.fixture(scope="session")
 def dl2_only_file(dl2_tmp_path, prod5_gamma_simtel_path):
     """
     DL1 file containing both images and parameters from a gamma simulation set.
