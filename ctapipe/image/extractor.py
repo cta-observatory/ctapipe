@@ -1305,7 +1305,7 @@ def deconvolution_parameters(
 
     if camera_sample_width < ref_sample_width:
         raise ValueError(
-            f"ref_sample_width must be equal to or shorter than camera_sample_width, got ref_sample_width={ref_sample_width} and camera_sample_width={camera_sample_width}"
+            f"ref_sample_width (got {ref_sample_width}) must be equal to or shorter than camera_sample_width (got {camera_sample_width}); need a reference single p.e. pulse shape with finer sampling!"
         )
     avg_step = int(camera_sample_width / ref_sample_width + 0.5)
 
