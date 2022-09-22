@@ -846,7 +846,6 @@ class DispContainer(Container):
 
     norm = Field(nan * u.deg, "reconstructed absolute value for disp", unit=u.deg)
     sign = Field(nan, "reconstructed sign for disp")
-    sign_score = Field(nan, "confidence of sign classifier defined between [-1,1]")
     is_valid = Field(False, "true if the predictions are valid")
 
 

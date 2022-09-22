@@ -151,7 +151,6 @@ def test_apply_disp_reconstructor(
     assert "disp_is_valid_mono" in events.colnames
     assert "disp_norm" in events.colnames
     assert "disp_sign" in events.colnames
-    assert "disp_sign_score" in events.colnames
 
 
 def test_apply_all(

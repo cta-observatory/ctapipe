@@ -471,7 +471,7 @@ class DispReconstructor(Reconstructor):
         if self.sign_classifier is None:
             self.sign_classifier = Classifier(parent=self, target=self.target_sign)
 
-        self.sign_classifier.invalid_class = -2  # default: -1
+        self.sign_classifier.invalid_class = 0  # default: -1
 
     def write(self, path):
         Provenance().add_output_file(path, role="ml-models")
@@ -548,28 +548,18 @@ class DispReconstructor(Reconstructor):
                 norm, norm_valid = self.norm_regressor.predict(
                     self.subarray.tel[tel_id], table
                 )
-                sign_score, sign_valid = self.sign_classifier.predict_score(
+                sign, sign_valid = self.sign_classifier.predict(
                     self.subarray.tel[tel_id], table
                 )
-                # convert sign score form [0,1] to [-1,1]
-                sign_score = 2 * sign_score - 1
-                # get sign predictions (either -1 or 1)
-                if sign_valid:
-                    sign = -1.0 if sign_score[0] < 0 else 1.0
-                else:
-                    sign = np.nan
-
                 container = DispContainer(
                     norm=norm[0],
-                    sign=sign,
-                    sign_score=sign_score[0],
+                    sign=sign[0],
                     is_valid=np.logical_and(norm_valid, sign_valid)[0],
                 )
             else:
                 container = DispContainer(
                     norm=u.Quantity(np.nan, self.norm_regressor.unit),
-                    sign=np.nan,
-                    sign_score=np.nan,
+                    sign=self.sign_classifier.invalid_class,
                     is_valid=False,
                 )
 
@@ -594,26 +584,17 @@ class DispReconstructor(Reconstructor):
         n_rows = len(table)
         norm = u.Quantity(np.full(n_rows, np.nan), self.norm_regressor.unit, copy=False)
         norm_valid = np.full(n_rows, False)
-        sign_score = np.full(n_rows, np.nan)
+        sign = np.full(n_rows, self.sign_classifier.invalid_class, dtype=np.int8)
         sign_valid = np.full(n_rows, False)
 
         mask = self.qualityquery.get_table_mask(table)
         norm[mask], norm_valid[mask] = self.norm_regressor.predict(key, table[mask])
-        sign_score[mask], sign_valid[mask] = self.sign_classifier.predict_score(
-            key, table[mask]
-        )
-
-        # convert sign score form [0,1] to [-1,1]
-        sign_score = 2 * sign_score - 1
-        # get sign predictions (either 1 or -1)
-        sign = np.full(n_rows, np.nan)
-        sign[sign_valid] = np.where(sign_score[sign_valid] < 0, -1, 1)
+        sign[mask], sign_valid[mask] = self.sign_classifier.predict(key, table[mask])
 
         result = Table(
             {
                 f"{self.prefix}_norm": norm,
                 f"{self.prefix}_sign": sign,
-                f"{self.prefix}_sign_score": sign_score,
                 f"{self.prefix}_is_valid": np.logical_and(norm_valid, sign_valid),
             }
         )
