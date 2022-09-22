@@ -26,13 +26,12 @@ from functools import lru_cache
 from typing import Tuple
 
 import numpy as np
-from numba import float32, float64, guvectorize, int64, njit, prange
+from numba import float32, float64, guvectorize, int64, prange
 from scipy.ndimage import convolve1d
 from scipy.signal import filtfilt
 from traitlets import Bool, Int
 
 from ctapipe.containers import DL1CameraContainer
-from ctapipe.instrument import CameraDescription
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
     BoolTelescopeParameter,
@@ -40,6 +39,7 @@ from ctapipe.core.traits import (
     FloatTelescopeParameter,
     IntTelescopeParameter,
 )
+from ctapipe.instrument import CameraDescription
 
 from .cleaning import tailcuts_clean
 from .hillas import camera_to_shower_coordinates, hillas_parameters
@@ -1290,16 +1290,19 @@ class TwoPassWindowSum(ImageExtractor):
             is_valid=is_valid,
         )
 
+
 @lru_cache
-def deconvolution_parameters(camera: CameraDescription, upsampling: int, window_width: int, window_shift: int):
-    assert(upsampling > 0)
-    assert(window_width > 0)
+def deconvolution_parameters(
+    camera: CameraDescription, upsampling: int, window_width: int, window_shift: int
+):
+    assert upsampling > 0
+    assert window_width > 0
 
     ref_pulse_shapes = camera.readout.reference_pulse_shape
     ref_sample_width = camera.readout.reference_pulse_sample_width.to_value("ns")
     camera_sample_width = 1.0 / camera.readout.sampling_rate.to_value("GHz")
 
-    assert(camera_sample_width >= ref_sample_width)
+    assert camera_sample_width >= ref_sample_width
     avg_step = int(camera_sample_width / ref_sample_width + 0.5)
 
     pzs = []
@@ -1311,7 +1314,7 @@ def deconvolution_parameters(camera: CameraDescription, upsampling: int, window_
             if i_min < x.size and x[i_min] != 0:
                 phase_pzs.append(x[i_min + 1] / x[i_min])
 
-        assert(len(phase_pzs))
+        assert len(phase_pzs)
         pzs.append(np.mean(phase_pzs))
 
     gains, shifts = [], []
@@ -1325,22 +1328,25 @@ def deconvolution_parameters(camera: CameraDescription, upsampling: int, window_
             start = i_max - window_shift  # TODO should use extract_around_peak here
             stop = start + window_width
             if start >= 0 and stop <= y.size:
-                phase_shifts.append((i_max / upsampling * avg_step - ref_pulse_shape.argmax()) * ref_sample_width)
+                phase_shifts.append(
+                    (i_max / upsampling * avg_step - ref_pulse_shape.argmax())
+                    * ref_sample_width
+                )
                 phase_gains.append(y[start:stop].sum() / integral)
 
-        assert(len(phase_gains))
+        assert len(phase_gains)
         gains.append(np.mean(phase_gains))
         shifts.append(np.mean(phase_shifts))
 
     return pzs, gains, shifts
 
 
-def deconvolve(waveforms, bls, up : int, pz : float):
-    assert(len(waveforms.shape) == 2)
+def deconvolve(waveforms, bls, up: int, pz: float):
+    assert len(waveforms.shape) == 2
     bls = np.atleast_2d(bls).T
     y = waveforms - bls
-    y[:,1:] -= pz * y[:,:-1]
-    y[:,0] = 0
+    y[:, 1:] -= pz * y[:, :-1]
+    y[:, 0] = 0
     if up > 1:
         return filtfilt(np.ones(up), up, np.repeat(y, up, axis=-1))
     return y
@@ -1379,14 +1385,18 @@ class FlashCamExtractor(ImageExtractor):
             for tel_id, telescope in subarray.tel.items()
         }
 
-    def __call__(self, waveforms, tel_id, selected_gain_channel, broken_pixels) -> DL1CameraContainer:
+    def __call__(
+        self, waveforms, tel_id, selected_gain_channel, broken_pixels
+    ) -> DL1CameraContainer:
         upsampling = max(1, self.upsampling.tel[tel_id])
         window_width = max(1, self.window_width.tel[tel_id])
         window_shift = self.window_shift.tel[tel_id]
-        pzs, gains, shifts = deconvolution_parameters(self.subarray.tel[tel_id].camera, upsampling, window_width, window_shift)
+        pzs, gains, shifts = deconvolution_parameters(
+            self.subarray.tel[tel_id].camera, upsampling, window_width, window_shift
+        )
         pz, gain, shift = pzs[0], gains[0], shifts[0]
 
-        bls = waveforms[:,0]  # FIXME fetch from NSB estimates
+        bls = waveforms[:, 0]  # FIXME fetch from NSB estimates
         waveforms = deconvolve(waveforms, bls, upsampling, pz)
 
         # FIXME near-duplicate of neighbour peak sum for now
