@@ -11,6 +11,7 @@ from traitlets.traitlets import TraitError
 from ctapipe.core import non_abstract_children
 from ctapipe.image.extractor import (
     FixedWindowSum,
+    FlashCamExtractor,
     FullWaveformSum,
     ImageExtractor,
     NeighborPeakWindowSum,
@@ -24,10 +25,12 @@ from ctapipe.image.extractor import (
 )
 from ctapipe.image.toymodel import SkewedGaussian, WaveformModel, obtain_time_image
 from ctapipe.instrument import SubarrayDescription
+from ctapipe.io.eventsource import EventSource
 
 extractors = non_abstract_children(ImageExtractor)
 # FixedWindowSum has no peak finding and need to be set manually
 extractors.remove(FixedWindowSum)
+extractors.remove(FlashCamExtractor)
 
 
 @pytest.fixture(scope="module")
@@ -68,6 +71,16 @@ def subarray_1_LST(prod3_lst):
     return subarray
 
 
+@pytest.fixture(scope="module")
+def subarray_1_MST_FC(prod5_mst_flashcam):
+    subarray = SubarrayDescription(
+        "One MST with FlashCam",
+        tel_positions={1: np.zeros(3) * u.m},
+        tel_descriptions={1: prod5_mst_flashcam},
+    )
+    return subarray
+
+
 def get_test_toymodel(subarray, minCharge=100, maxCharge=1000):
     tel_id = list(subarray.tel.keys())[0]
     n_pixels = subarray.tel[tel_id].camera.geometry.n_pixels
@@ -90,6 +103,11 @@ def get_test_toymodel(subarray, minCharge=100, maxCharge=1000):
 @pytest.fixture(scope="module")
 def toymodel(subarray):
     return get_test_toymodel(subarray)
+
+
+@pytest.fixture(scope="module")
+def toymodel_1_MST_FC(subarray_1_MST_FC):
+    return get_test_toymodel(subarray_1_MST_FC)
 
 
 def test_extract_around_peak(toymodel):
@@ -619,8 +637,29 @@ def test_global_peak_window_sum_with_pixel_fraction(subarray):
     assert np.allclose(dl1.peak_time[bright_pixels], expected / sample_rate)
 
 
-def test_flashcam_extractor(tmp_path):
+def test_flashcam_extractor(toymodel_1_MST_FC):
+    (
+        waveforms,
+        subarray,
+        tel_id,
+        selected_gain_channel,
+        true_charge,
+        true_time,
+    ) = toymodel_1_MST_FC
+
+    assert(subarray.tel[1].camera.name == "FlashCam")
+    extractor = FlashCamExtractor(subarray=subarray)
+
+    # Test toymodel
+    broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
+    dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
+    assert_allclose(dl1.image, true_charge, rtol=0.1)
+    assert_allclose(dl1.peak_time, true_time, atol=2.5)  # FIXME could be much closer for large pulses...
+    assert dl1.is_valid == True
+
+    # Test prod5 simulations
     path = "gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst"
     source = EventSource(f"dataset://{path}")
     subarray = source.subarray
     print(subarray.get_tel_ids_for_type("MST_MST_FlashCam"))
+    # TODO Test!

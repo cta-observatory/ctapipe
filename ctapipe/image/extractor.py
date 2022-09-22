@@ -27,6 +27,7 @@ from typing import Tuple
 import numpy as np
 from numba import float32, float64, guvectorize, int64, njit, prange
 from scipy.ndimage import convolve1d
+from scipy.signal import filtfilt
 from traitlets import Bool, Int
 
 from ctapipe.containers import DL1CameraContainer
@@ -199,7 +200,8 @@ def extract_sliding_window(waveforms, width, sampling_rate_ghz, sum_, peak_time)
     peak_time[0] /= sampling_rate_ghz
 
 
-@njit(cache=True)
+# FIXME JIT has been disabled because it asserts when passing floating-point waveforms (e.g., FlashCamExtractor, at least on arm64)
+# @njit(cache=True)
 def neighbor_average_maximum(
     waveforms, neighbors_indices, neighbors_indptr, local_weight, broken_pixels
 ):
@@ -1287,18 +1289,127 @@ class TwoPassWindowSum(ImageExtractor):
             is_valid=is_valid,
         )
 
-
 @lru_cache
-def exponential_scale_from_pulse_shape(camera: CameraDescription):
-    pulse_shape = camera.readout.reference_pulse_shape
-    sample_width = camera.readout.reference_pulse_sample_width
+def deconvolution_parameters(camera: CameraDescription, upsampling: int, window_width: int, window_shift: int):
+    assert(upsampling > 0)
+    assert(window_width > 0)
+
+    ref_pulse_shapes = camera.readout.reference_pulse_shape
+    ref_sample_width = camera.readout.reference_pulse_sample_width.to_value("ns")
+    camera_sample_width = 1.0 / camera.readout.sampling_rate.to_value("GHz")
+
+    assert(camera_sample_width >= ref_sample_width)
+    avg_step = int(camera_sample_width / ref_sample_width + 0.5)
+
+    pzs = []
+    for ref_pulse_shape in ref_pulse_shapes:
+        phase_pzs = []
+        for phase in range(avg_step):
+            x = ref_pulse_shape[phase::avg_step]
+            i_min = np.argmin(np.diff(x)) + 1
+            if i_min < x.size and x[i_min] != 0:
+                phase_pzs.append(x[i_min + 1] / x[i_min])
+
+        assert(len(phase_pzs))
+        pzs.append(np.mean(phase_pzs))
+
+    gains, shifts = [], []
+    for pz, ref_pulse_shape in zip(pzs, ref_pulse_shapes):
+        integral = ref_pulse_shape.sum() * ref_sample_width / camera_sample_width
+        phase_gains, phase_shifts = [], []
+        for phase in range(avg_step):
+            x = ref_pulse_shape[phase::avg_step]
+            y = deconvolve(np.atleast_2d(x), 0.0, upsampling, pz)[0]
+            i_max = y.argmax()
+            start = i_max - window_shift  # TODO should use extract_around_peak here
+            stop = start + window_width
+            if start >= 0 and stop <= y.size:
+                phase_shifts.append((i_max / upsampling * avg_step - ref_pulse_shape.argmax()) * ref_sample_width)
+                phase_gains.append(y[start:stop].sum() / integral)
+
+        assert(len(phase_gains))
+        gains.append(np.mean(phase_gains))
+        shifts.append(np.mean(phase_shifts))
+
+    return pzs, gains, shifts
+
+
+def deconvolve(waveforms, bls, up : int, pz : float):
+    assert(len(waveforms.shape) == 2)
+    bls = np.atleast_2d(bls).T
+    y = waveforms - bls
+    y[:,1:] -= pz * y[:,:-1]
+    y[:,0] = 0
+    if up > 1:
+        return filtfilt(np.ones(up), up, np.repeat(y, up, axis=-1))
+    return y
 
 
 class FlashCamExtractor(ImageExtractor):
-    def __call__(self, waveforms, telid, selected_gain_channel) -> DL1CameraContainer:
+    upsampling = IntTelescopeParameter(
+        default_value=4, help="Define the upsampling factor for waveforms"
+    ).tag(config=True)
 
-        return DL1CameraContainer(
-            image=np.zeros(...),
-            peak_time=...,
-            is_valid=True,
+    window_width = IntTelescopeParameter(
+        default_value=4, help="Define the width of the integration window"
+    ).tag(config=True)
+
+    window_shift = IntTelescopeParameter(
+        default_value=2,
+        help="Define the shift of the integration window from the peak_index "
+        "(peak_index - shift)",
+    ).tag(config=True)
+
+    apply_integration_correction = BoolTelescopeParameter(
+        default_value=True, help="Apply the integration window correction"
+    ).tag(config=True)
+
+    local_weight = IntTelescopeParameter(
+        default_value=0,
+        help="Weight of the local pixel (0: peak from neighbors only, "
+        "1: local pixel counts as much as any neighbor)",
+    ).tag(config=True)
+
+    def __init__(self, subarray, **kwargs):
+        super().__init__(subarray=subarray, **kwargs)
+
+        self.sampling_rate_ghz = {
+            tel_id: telescope.camera.readout.sampling_rate.to_value("GHz")
+            for tel_id, telescope in subarray.tel.items()
+        }
+
+    def __call__(self, waveforms, tel_id, _, broken_pixels) -> DL1CameraContainer:
+        upsampling = max(1, self.upsampling.tel[tel_id])
+        window_width = max(1, self.window_width.tel[tel_id])
+        window_shift = self.window_shift.tel[tel_id]
+        pzs, gains, shifts = deconvolution_parameters(self.subarray.tel[tel_id].camera, upsampling, window_width, window_shift)
+        pz, gain, shift = pzs[0], gains[0], shifts[0]
+
+        bls = waveforms[:,0]  # FIXME fetch from NSB estimates
+        waveforms = deconvolve(waveforms, bls, upsampling, pz)
+
+        # FIXME near-duplicate of neighbour peak sum for now
+        neighbors = self.subarray.tel[tel_id].camera.geometry.neighbor_matrix_sparse
+        peak_index = neighbor_average_maximum(
+            waveforms,
+            neighbors_indices=neighbors.indices,
+            neighbors_indptr=neighbors.indptr,
+            local_weight=self.local_weight.tel[tel_id],
+            broken_pixels=broken_pixels,
         )
+
+        charge, peak_time = extract_around_peak(
+            waveforms,
+            peak_index,
+            window_width,
+            window_shift,
+            self.sampling_rate_ghz[tel_id] * upsampling,
+        )
+
+        if gain != 0:
+            charge /= gain
+
+        if shift != 0:
+            peak_time -= shift
+
+        return DL1CameraContainer(image=charge, peak_time=peak_time, is_valid=True)
