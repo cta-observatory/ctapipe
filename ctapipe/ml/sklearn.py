@@ -686,6 +686,7 @@ class CrossValidator(Component):
                             "norm_truth": truth_norm,
                             "sign_predictions": cv_prediction_sign,
                             "sign_truth": truth_sign,
+                            "true_energy": test["true_energy"],
                         }
                     )
                 )
@@ -701,6 +702,7 @@ class CrossValidator(Component):
                             "tel_type": [str(telescope_type)] * len(truth),
                             "predictions": cv_prediction,
                             "truth": truth,
+                            "true_energy": test["true_energy"],
                         }
                     )
                 )

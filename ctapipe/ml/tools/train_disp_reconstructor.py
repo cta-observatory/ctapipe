@@ -95,7 +95,9 @@ class TrainDispReconstructor(Tool):
             if feature not in feature_names_combined:
                 feature_names_combined.append(feature)
 
-        table = table[feature_names_combined]
+        # Add true energy for energy-dependent performance plots
+        columns = feature_names_combined + ["true_energy"]
+        table = table[columns]
         table[self.models.target_norm] = true_norm
         table[self.models.target_sign] = true_sign
 

@@ -125,7 +125,8 @@ class TrainParticleIdClassifier(Tool):
 
         table = self.classifier.generate_features(table)
 
-        columns = self.classifier.features + [self.classifier.target]
+        # Add true energy for energy-dependent performance plots
+        columns = self.classifier.features + [self.classifier.target] + ["true_energy"]
         table = table[columns]
 
         valid = check_valid_rows(table)
