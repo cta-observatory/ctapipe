@@ -367,10 +367,10 @@ class HDF5EventSource(EventSource):
                 }
 
         if DataLevel.DL1_PARAMETERS in self.datalevels:
+            hillas_cls = HillasParametersContainer
+            timing_cls = TimingParametersContainer
+
             if self._is_hillas_in_camera_frame():
-                hillas_cls = HillasParametersContainer
-                timing_cls = TimingParametersContainer
-            else:
                 hillas_cls = CameraHillasParametersContainer
                 timing_cls = CameraTimingParametersContainer
 
