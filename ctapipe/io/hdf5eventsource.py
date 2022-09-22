@@ -369,10 +369,14 @@ class HDF5EventSource(EventSource):
         if DataLevel.DL1_PARAMETERS in self.datalevels:
             hillas_cls = HillasParametersContainer
             timing_cls = TimingParametersContainer
+            hillas_prefix = "hillas"
+            timing_prefix = "timing"
 
             if self._is_hillas_in_camera_frame():
                 hillas_cls = CameraHillasParametersContainer
                 timing_cls = CameraTimingParametersContainer
+                hillas_prefix = "camera_frame_hillas"
+                timing_prefix = "camera_frame_timing"
 
             param_readers = {
                 table.name: self.reader.read(
@@ -387,8 +391,8 @@ class HDF5EventSource(EventSource):
                         PeakTimeStatisticsContainer,
                     ),
                     prefixes=[
-                        "hillas",
-                        "timing",
+                        hillas_prefix,
+                        timing_prefix,
                         "leakage",
                         "concentration",
                         "morphology",
@@ -410,7 +414,7 @@ class HDF5EventSource(EventSource):
                             IntensityStatisticsContainer,
                         ],
                         prefixes=[
-                            "true_hillas",
+                            f"true_{hillas_prefix}",
                             "true_leakage",
                             "true_concentration",
                             "true_morphology",
