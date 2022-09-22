@@ -1294,14 +1294,19 @@ class TwoPassWindowSum(ImageExtractor):
 def deconvolution_parameters(
     camera: CameraDescription, upsampling: int, window_width: int, window_shift: int
 ):
-    assert upsampling > 0
-    assert window_width > 0
+    if upsampling < 1:
+        raise ValueError(f"upsampling must be > 0, got {upsampling}")
+    if window_width < 1:
+        raise ValueError(f"window_width must be > 0, got {window_width}")
 
     ref_pulse_shapes = camera.readout.reference_pulse_shape
     ref_sample_width = camera.readout.reference_pulse_sample_width.to_value("ns")
     camera_sample_width = 1.0 / camera.readout.sampling_rate.to_value("GHz")
 
-    assert camera_sample_width >= ref_sample_width
+    if camera_sample_width < ref_sample_width:
+        raise ValueError(
+            f"ref_sample_width must be equal to or shorter than camera_sample_width, got ref_sample_width={ref_sample_width} and camera_sample_width={camera_sample_width}"
+        )
     avg_step = int(camera_sample_width / ref_sample_width + 0.5)
 
     pzs = []
@@ -1313,7 +1318,10 @@ def deconvolution_parameters(
             if i_min < x.size and x[i_min] != 0:
                 phase_pzs.append(x[i_min + 1] / x[i_min])
 
-        assert len(phase_pzs)
+        if len(phase_pzs) == 0:
+            raise ValueError(
+                "ref_pulse_shape is malformed - cannot find deconvolution scale"
+            )
         pzs.append(np.mean(phase_pzs))
 
     gains, shifts = [], []
@@ -1333,7 +1341,10 @@ def deconvolution_parameters(
                 )
                 phase_gains.append(y[start:stop].sum() / integral)
 
-        assert len(phase_gains)
+        if len(phase_gains) == 0:
+            raise ValueError(
+                "ref_pulse_shape is malformed - peak is not well contained"
+            )
         gains.append(np.mean(phase_gains))
         shifts.append(np.mean(phase_shifts))
 
@@ -1341,7 +1352,7 @@ def deconvolution_parameters(
 
 
 def deconvolve(waveforms, bls, up: int, pz: float):
-    assert len(waveforms.shape) == 2
+    waveforms = np.atleast_2d(waveforms)
     bls = np.atleast_2d(bls).T
     y = waveforms - bls
     y[:, 1:] -= pz * y[:, :-1]
