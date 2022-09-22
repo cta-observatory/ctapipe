@@ -26,7 +26,7 @@ from functools import lru_cache
 from typing import Tuple
 
 import numpy as np
-from numba import float32, float64, guvectorize, int64, prange
+from numba import float32, float64, guvectorize, int64, njit, prange
 from scipy.ndimage import convolve1d
 from scipy.signal import filtfilt
 from traitlets import Bool, Int
@@ -201,8 +201,7 @@ def extract_sliding_window(waveforms, width, sampling_rate_ghz, sum_, peak_time)
     peak_time[0] /= sampling_rate_ghz
 
 
-# FIXME JIT has been disabled because it asserts when passing floating-point waveforms (e.g., FlashCamExtractor, at least on arm64)
-# @njit(cache=True)
+@njit(cache=True)
 def neighbor_average_maximum(
     waveforms, neighbors_indices, neighbors_indptr, local_weight, broken_pixels
 ):
