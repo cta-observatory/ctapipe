@@ -1395,15 +1395,24 @@ class FlashCamExtractor(ImageExtractor):
             for tel_id, telescope in subarray.tel.items()
         }
 
+        self.deconvolution_pars = {
+            tel_id: deconvolution_parameters(
+                tel.camera,
+                self.upsampling.tel[tel_id],
+                self.window_width.tel[tel_id],
+                self.window_shift.tel[tel_id],
+            )
+            for tel_id, tel in subarray.tel.items()
+        }
+
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> DL1CameraContainer:
-        upsampling = max(1, self.upsampling.tel[tel_id])
-        window_width = max(1, self.window_width.tel[tel_id])
+        upsampling = self.upsampling.tel[tel_id]
+        window_width = self.window_width.tel[tel_id]
         window_shift = self.window_shift.tel[tel_id]
-        pzs, gains, shifts = deconvolution_parameters(
-            self.subarray.tel[tel_id].camera, upsampling, window_width, window_shift
-        )
+
+        pzs, gains, shifts = self.deconvolution_pars[tel_id]
         pz, gain, shift = pzs[0], gains[0], shifts[0]
 
         bls = waveforms[:, 0]  # FIXME fetch from NSB estimates
