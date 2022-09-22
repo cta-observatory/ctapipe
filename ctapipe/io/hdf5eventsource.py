@@ -62,6 +62,7 @@ DL2_CONTAINERS = {
 
 
 COMPATIBLE_DATA_MODEL_VERSIONS = [
+    "v4.0.0",
     "v5.0.0",
 ]
 
@@ -170,9 +171,9 @@ class HDF5EventSource(EventSource):
             self._scheduling_block,
             self._observation_block,
         ) = self._parse_sb_and_ob_configs()
-        self.datamodel_version = self.file_.root._v_attrs[
-            "CTA PRODUCT DATA MODEL VERSION"
-        ]
+
+        version = self.file_.root._v_attrs["CTA PRODUCT DATA MODEL VERSION"]
+        self.datamodel_version = tuple(map(int, version.lstrip("v").split(".")))
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
@@ -446,7 +447,6 @@ class HDF5EventSource(EventSource):
                         key: HDF5TableReader(self.file_).read(
                             table._v_pathname,
                             containers=container,
-                            prefixes=(f"{algorithm}_tel_{kind}",),
                         )
                         for key, table in algorithm_group._v_children.items()
                     }
@@ -612,6 +612,11 @@ class HDF5EventSource(EventSource):
                     c = getattr(data.dl2.tel[tel_id], kind)
                     for algorithm, readers in algorithms.items():
                         c[algorithm] = next(readers[key])
+
+                        # change prefix to new data model
+                        if kind == "impact" and self.datamodel_version == (4, 0, 0):
+                            prefix = f"{algorithm}_tel_{c[algorithm].default_prefix}"
+                            c[algorithm].prefix = prefix
 
             for kind, readers in dl2_readers.items():
                 c = getattr(data.dl2.stereo, kind)
