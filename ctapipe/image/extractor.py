@@ -4,6 +4,7 @@ Charge extraction algorithms to reduce the image to one value per pixel
 
 __all__ = [
     "ImageExtractor",
+    "FlashCamExtractor",
     "FullWaveformSum",
     "FixedWindowSum",
     "GlobalPeakWindowSum",
@@ -1377,7 +1378,7 @@ class FlashCamExtractor(ImageExtractor):
             for tel_id, telescope in subarray.tel.items()
         }
 
-    def __call__(self, waveforms, tel_id, _, broken_pixels) -> DL1CameraContainer:
+    def __call__(self, waveforms, tel_id, selected_gain_channel, broken_pixels) -> DL1CameraContainer:
         upsampling = max(1, self.upsampling.tel[tel_id])
         window_width = max(1, self.window_width.tel[tel_id])
         window_shift = self.window_shift.tel[tel_id]
