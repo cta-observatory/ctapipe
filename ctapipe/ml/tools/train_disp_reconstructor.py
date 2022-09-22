@@ -47,16 +47,7 @@ class TrainDispReconstructor(Tool):
         )
 
         self.models = DispReconstructor(self.loader.subarray, parent=self)
-        self.cross_validate_reg = CrossValidator(
-            parent=self,
-            model_component=self.models.norm_regressor,
-            target=self.models.target_norm,
-        )
-        self.cross_validate_clf = CrossValidator(
-            parent=self,
-            model_component=self.models.sign_classifier,
-            target=self.models.target_sign,
-        )
+        self.cross_validate = CrossValidator(parent=self, model_component=self.models)
         self.rng = np.random.default_rng(self.random_seed)
 
     def start(self):
@@ -78,11 +69,8 @@ class TrainDispReconstructor(Tool):
             self.log.info("Loading events for %s", tel_type)
             table = self._read_table(tel_type)
 
-            self.log.info("Train regressor on %s events", len(table))
-            self.cross_validate_reg(tel_type, table)
-
-            self.log.info("Train classifier on %s events", len(table))
-            self.cross_validate_clf(tel_type, table)
+            self.log.info("Train models on %s events", len(table))
+            self.cross_validate(tel_type, table)
 
             self.log.info("Performing final fit for %s", tel_type)
             self.models.norm_regressor.fit(tel_type, table)
@@ -148,41 +136,13 @@ class TrainDispReconstructor(Tool):
         else:
             true_norm = np.sqrt((fov_lon - cog_lon) ** 2 + (fov_lat - cog_lat) ** 2)
 
-        return true_norm, true_sign
+        return true_norm, true_sign.astype(np.int8)
 
     def finish(self):
         self.log.info("Writing output")
         self.models.write(self.output_path)
-        # write complete cv performance in two separate files, if at least one output path is given
-        if (
-            self.cross_validate_reg.output_path
-            and self.cross_validate_clf.output_path
-            and (
-                self.cross_validate_reg.output_path
-                != self.cross_validate_clf.output_path
-            )
-        ):
-            self.cross_validate_reg.write()
-            self.cross_validate_clf.write()
-        elif self.cross_validate_reg.output_path or self.cross_validate_clf.output_path:
-            if (
-                self.cross_validate_reg.output_path
-                and not self.cross_validate_clf.output_path
-            ):
-                outpath = self.cross_validate_reg.output_path
-            else:  # covers only clf output path given and same output path for both
-                outpath = self.cross_validate_clf.output_path
-
-            self.cross_validate_reg.output_path = outpath.parent / (
-                outpath.stem + "_regressor" + outpath.suffix
-            )
-            self.cross_validate_clf.output_path = outpath.parent / (
-                outpath.stem + "_classifier" + outpath.suffix
-            )
-
-            self.cross_validate_reg.write()
-            self.cross_validate_clf.write()
-
+        if self.cross_validate.output_path:
+            self.cross_validate.write()
         self.loader.close()
 
 

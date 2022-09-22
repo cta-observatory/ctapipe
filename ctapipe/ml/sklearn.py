@@ -9,7 +9,7 @@ import joblib
 import numpy as np
 from astropy.table import QTable, Table, vstack
 from astropy.utils.decorators import lazyproperty
-from sklearn.metrics import r2_score, roc_auc_score
+from sklearn.metrics import accuracy_score, r2_score, roc_auc_score
 from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.utils import all_estimators
 from tqdm import tqdm
@@ -471,6 +471,8 @@ class DispReconstructor(Reconstructor):
         if self.sign_classifier is None:
             self.sign_classifier = Classifier(parent=self, target=self.target_sign)
 
+        self.sign_classifier.invalid_class = -2  # default: -1
+
     def write(self, path):
         Provenance().add_output_file(path, role="ml-models")
         with open(path, "wb") as f:
@@ -642,6 +644,9 @@ class CrossValidator(Component):
         elif isinstance(self.model_component, SKLearnRegressionReconstructor):
             self.cross_validate = self._cross_validate_regressor
             self.split_data = KFold
+        elif isinstance(self.model_component, DispReconstructor):
+            self.cross_validate = self._cross_validate_disp
+            self.split_data = StratifiedKFold
         else:
             raise KeyError(
                 "Unsupported Model of type %s supplied", self.model_component
@@ -667,7 +672,11 @@ class CrossValidator(Component):
             random_state=self.rng.integers(0, 2**31 - 1),
         )
 
-        cv_it = kfold.split(table, table[self.model_component.target])
+        if isinstance(self.model_component, DispReconstructor):
+            cv_it = kfold.split(table, table[self.model_component.target_sign])
+        else:
+            cv_it = kfold.split(table, table[self.model_component.target])
+
         for fold, (train_indices, test_indices) in enumerate(
             tqdm(
                 cv_it,
@@ -677,19 +686,43 @@ class CrossValidator(Component):
         ):
             train = table[train_indices]
             test = table[test_indices]
-            cv_prediction, truth, metrics = self.cross_validate(
-                telescope_type, train, test
-            )
-            predictions.append(
-                Table(
-                    {
-                        "cv_fold": np.full(len(truth), fold, dtype=np.uint8),
-                        "tel_type": [str(telescope_type)] * len(truth),
-                        "predictions": cv_prediction,
-                        "truth": truth,
-                    }
+
+            if isinstance(self.model_component, DispReconstructor):
+                (
+                    cv_prediction_norm,
+                    cv_prediction_sign,
+                    truth_norm,
+                    truth_sign,
+                    metrics,
+                ) = self.cross_validate(telescope_type, train, test)
+
+                predictions.append(
+                    Table(
+                        {
+                            "cv_fold": np.full(len(truth), fold, dtype=np.uint8),
+                            "tel_type": [str(telescope_type)] * len(truth_norm),
+                            "norm_predictions": cv_prediction_norm,
+                            "norm_truth": truth_norm,
+                            "sign_predictions": cv_prediction_sign,
+                            "sign_truth": truth_sign,
+                        }
+                    )
                 )
-            )
+
+            else:
+                cv_prediction, truth, metrics = self.cross_validate(
+                    telescope_type, train, test
+                )
+                predictions.append(
+                    Table(
+                        {
+                            "cv_fold": np.full(len(truth), fold, dtype=np.uint8),
+                            "tel_type": [str(telescope_type)] * len(truth),
+                            "predictions": cv_prediction,
+                            "truth": truth,
+                        }
+                    )
+                )
 
             for metric, value in metrics.items():
                 scores[metric].append(value)
@@ -724,6 +757,28 @@ class CrossValidator(Component):
         )
         roc_auc = roc_auc_score(truth, prediction)
         return prediction, truth, {"ROC AUC": roc_auc}
+
+    def _cross_validate_disp(self, telescope_type, train, test):
+        norm_reg = self.model_component.norm_regressor
+        sign_clf = self.model_component.sign_classifier
+        norm_reg.fit(telescope_type, train)
+        sign_clf.fit(telescope_type, train)
+
+        norm_prediction, _ = norm_reg.predict(telescope_type, test)
+        norm_truth = test[self.model_component.target_norm]
+        r2 = r2_score(norm_truth, norm_prediction)
+
+        sign_prediction, _ = sign_clf.predict(telescope_type, test)
+        sign_truth = test[self.model_component.target_sign]
+        accuracy = accuracy_score(sign_truth, sign_prediction)
+
+        return (
+            norm_prediction,
+            sign_prediction,
+            norm_truth,
+            sign_truth,
+            {"R^2": r2, "accuracy": accuracy},
+        )
 
     def write(self):
         Provenance().add_output_file(self.output_path, role="ml-cross-validation")

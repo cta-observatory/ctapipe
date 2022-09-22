@@ -120,10 +120,7 @@ def test_cross_validation_results(model_tmp_path):
 
     tool = TrainDispReconstructor()
     out_file = model_tmp_path / "disp_models.pkl"
-    disp_cv_out_file_base = model_tmp_path / "disp_cv_results.h5"
-
-    disp_cv_out_file_reg = model_tmp_path / "disp_cv_results_regressor.h5"
-    disp_cv_out_file_clf = model_tmp_path / "disp_cv_results_classifier.h5"
+    disp_cv_out_file = model_tmp_path / "disp_cv_results.h5"
 
     ret = run_tool(
         tool,
@@ -132,9 +129,8 @@ def test_cross_validation_results(model_tmp_path):
             f"--output={out_file}",
             f"--config={config}",
             "--log-level=INFO",
-            f"--CrossValidator.output_path={disp_cv_out_file_base}",
+            f"--CrossValidator.output_path={disp_cv_out_file}",
         ],
     )
     assert ret == 0
-    assert disp_cv_out_file_reg.exists()
-    assert disp_cv_out_file_clf.exists()
+    assert disp_cv_out_file.exists()

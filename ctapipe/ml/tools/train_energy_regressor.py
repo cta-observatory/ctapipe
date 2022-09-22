@@ -56,9 +56,7 @@ class TrainEnergyRegressor(Tool):
 
         self.regressor = EnergyRegressor(self.loader.subarray, parent=self)
         self.cross_validate = CrossValidator(
-            parent=self,
-            model_component=self.regressor.model,
-            target=self.regressor.target,
+            parent=self, model_component=self.regressor
         )
         self.rng = np.random.default_rng(self.random_seed)
 
