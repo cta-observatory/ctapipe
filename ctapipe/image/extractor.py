@@ -1317,7 +1317,7 @@ def deconvolution_parameters(
         Pole-zero parameter for each channel to be passed to `deconvolve(...)`.
     gain_losses : list of floats
         Gain loss of each channel that needs to be corrected after deconvolution.
-    time_shift_nsec : list of floats
+    time_shifts_nsec : list of floats
         Timing shift of each channel that needs to be corrected after deconvolution.
     """
     if upsampling < 1:
@@ -1326,14 +1326,14 @@ def deconvolution_parameters(
         raise ValueError(f"window_width must be > 0, got {window_width}")
 
     ref_pulse_shapes = camera.readout.reference_pulse_shape
-    ref_sample_width = camera.readout.reference_pulse_sample_width.to_value("ns")
-    camera_sample_width = 1.0 / camera.readout.sampling_rate.to_value("GHz")
+    ref_sample_width_nsec = camera.readout.reference_pulse_sample_width.to_value("ns")
+    camera_sample_width_nsec = 1.0 / camera.readout.sampling_rate.to_value("GHz")
 
-    if camera_sample_width < ref_sample_width:
+    if camera_sample_width_nsec < ref_sample_width_nsec:
         raise ValueError(
-            f"ref_sample_width (got {ref_sample_width}) must be equal to or shorter than camera_sample_width (got {camera_sample_width}); need a reference single p.e. pulse shape with finer sampling!"
+            f"Reference pulse sampling time (got {ref_sample_width_nsec} ns) must be equal to or shorter than the camera sampling time (got {camera_sample_width_nsec} ns); need a reference single p.e. pulse shape with finer sampling!"
         )
-    avg_step = int(camera_sample_width / ref_sample_width + 0.5)
+    avg_step = int(camera_sample_width_nsec / ref_sample_width_nsec + 0.5)
 
     pzs = []  # avg. pole-zero deconvolution parameters
     for ref_pulse_shape in ref_pulse_shapes:
@@ -1352,7 +1352,9 @@ def deconvolution_parameters(
 
     gains, shifts = [], []  # avg. gains and timing shifts of the deconvolved pulses
     for pz, ref_pulse_shape in zip(pzs, ref_pulse_shapes):
-        integral = ref_pulse_shape.sum() * ref_sample_width / camera_sample_width
+        integral = (
+            ref_pulse_shape.sum() * ref_sample_width_nsec / camera_sample_width_nsec
+        )
         phase_gains, phase_shifts = [], []
         for phase in range(avg_step):
             x = ref_pulse_shape[phase::avg_step]
@@ -1363,7 +1365,7 @@ def deconvolution_parameters(
             if start >= 0 and stop <= y.size:
                 phase_shifts.append(
                     (i_max / upsampling * avg_step - ref_pulse_shape.argmax())
-                    * ref_sample_width
+                    * ref_sample_width_nsec
                 )
                 phase_gains.append(y[start:stop].sum() / integral)
 
