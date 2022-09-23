@@ -6,23 +6,23 @@ We are just not creating a metaclass and a factory but directly building the
 corresponding class.
 """
 import astropy.units as u
-from astropy.coordinates.matrix_utilities import (
-    rotation_matrix,
-    matrix_product,
-    matrix_transpose,
-)
 from astropy.coordinates import (
-    frame_transform_graph,
-    FunctionTransform,
-    DynamicMatrixTransform,
-    UnitSphericalRepresentation,
+    AltAz,
+    Angle,
     BaseCoordinateFrame,
     CoordinateAttribute,
-    TimeAttribute,
+    DynamicMatrixTransform,
     EarthLocationAttribute,
+    FunctionTransform,
     RepresentationMapping,
-    Angle,
-    AltAz,
+    TimeAttribute,
+    UnitSphericalRepresentation,
+    frame_transform_graph,
+)
+from astropy.coordinates.matrix_utilities import (
+    matrix_product,
+    matrix_transpose,
+    rotation_matrix,
 )
 
 __all__ = ["NominalFrame"]
@@ -73,31 +73,31 @@ class NominalFrame(BaseCoordinateFrame):
 
 
 @frame_transform_graph.transform(FunctionTransform, NominalFrame, NominalFrame)
-def skyoffset_to_skyoffset(from_telescope_coord, to_telescope_frame):
+def nominal_to_nominal(from_nominal_coord, to_nominal_frame):
     """Transform between two skyoffset frames."""
 
-    intermediate_from = from_telescope_coord.transform_to(from_telescope_coord.origin)
-    intermediate_to = intermediate_from.transform_to(to_telescope_frame.origin)
-    return intermediate_to.transform_to(to_telescope_frame)
+    intermediate_from = from_nominal_coord.transform_to(from_nominal_coord.origin)
+    intermediate_to = intermediate_from.transform_to(to_nominal_frame.origin)
+    return intermediate_to.transform_to(to_nominal_frame)
 
 
 @frame_transform_graph.transform(DynamicMatrixTransform, AltAz, NominalFrame)
-def reference_to_skyoffset(reference_frame, telescope_frame):
+def altaz_to_nominal(altaz_coord, nominal_frame):
     """Convert a reference coordinate to an sky offset frame."""
 
     # Define rotation matrices along the position angle vector, and
     # relative to the origin.
-    origin = telescope_frame.origin.spherical
+    origin = nominal_frame.origin.represent_as(UnitSphericalRepresentation)
     mat1 = rotation_matrix(-origin.lat, "y")
     mat2 = rotation_matrix(origin.lon, "z")
     return matrix_product(mat1, mat2)
 
 
 @frame_transform_graph.transform(DynamicMatrixTransform, NominalFrame, AltAz)
-def skyoffset_to_reference(skyoffset_coord, reference_frame):
+def nominal_to_altaz(nominal_coord, altaz_frame):
     """Convert an sky offset frame coordinate to the reference frame"""
 
     # use the forward transform, but just invert it
-    mat = reference_to_skyoffset(reference_frame, skyoffset_coord)
+    mat = altaz_to_nominal(altaz_frame, nominal_coord)
     # transpose is the inverse because mat is a rotation matrix
     return matrix_transpose(mat)
