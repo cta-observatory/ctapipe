@@ -23,9 +23,10 @@ __all__ = [
 
 from abc import abstractmethod
 from functools import lru_cache
-from typing import Tuple
+from typing import List, Tuple
 
 import numpy as np
+import numpy.typing as npt
 from numba import float32, float64, guvectorize, int64, njit, prange
 from scipy.ndimage import convolve1d
 from scipy.signal import filtfilt
@@ -1293,7 +1294,32 @@ class TwoPassWindowSum(ImageExtractor):
 @lru_cache
 def deconvolution_parameters(
     camera: CameraDescription, upsampling: int, window_width: int, window_shift: int
-):
+) -> Tuple[List[float], List[float], List[float]]:
+    """
+    Estimates deconvolution and recalibration parameters from the camera's reference
+    single-p.e. pulse shape for the given configuration of FlashCamExtractor.
+
+    Parameters
+    ----------
+    camera : CameraDescription
+        Description of the target camera.
+    upsampling : int
+        Upsampling factor (>= 1); see also `deconvolve(...)`.
+    window_width : int
+        Integration window width (>= 1); see also `extract_around_peak(...)`.
+    window_shift : int
+        Shift of the integration window relative to the peak; see also
+        `extract_around_peak(...)`.
+
+    Returns
+    -------
+    pole_zeros : list of floats
+        Pole-zero parameter for each channel to be passed to `deconvolve(...)`.
+    gain_losses : list of floats
+        Gain loss of each channel that needs to be corrected after deconvolution.
+    time_shift_nsec : list of floats
+        Timing shift of each channel that needs to be corrected after deconvolution.
+    """
     if upsampling < 1:
         raise ValueError(f"upsampling must be > 0, got {upsampling}")
     if window_width < 1:
@@ -1309,7 +1335,7 @@ def deconvolution_parameters(
         )
     avg_step = int(camera_sample_width / ref_sample_width + 0.5)
 
-    pzs = []
+    pzs = []  # avg. pole-zero deconvolution parameters
     for ref_pulse_shape in ref_pulse_shapes:
         phase_pzs = []
         for phase in range(avg_step):
@@ -1320,11 +1346,11 @@ def deconvolution_parameters(
 
         if len(phase_pzs) == 0:
             raise ValueError(
-                "ref_pulse_shape is malformed - cannot find deconvolution scale"
+                "ref_pulse_shape is malformed - cannot find deconvolution parameter"
             )
         pzs.append(np.mean(phase_pzs))
 
-    gains, shifts = [], []
+    gains, shifts = [], []  # avg. gains and timing shifts of the deconvolved pulses
     for pz, ref_pulse_shape in zip(pzs, ref_pulse_shapes):
         integral = ref_pulse_shape.sum() * ref_sample_width / camera_sample_width
         phase_gains, phase_shifts = [], []
@@ -1351,15 +1377,44 @@ def deconvolution_parameters(
     return pzs, gains, shifts
 
 
-def deconvolve(waveforms, bls, up: int, pz: float):
-    waveforms = np.atleast_2d(waveforms)
-    bls = np.atleast_2d(bls).T
-    y = waveforms - bls
-    y[:, 1:] -= pz * y[:, :-1]
-    y[:, 0] = 0
-    if up > 1:
-        return filtfilt(np.ones(up), up, np.repeat(y, up, axis=-1))
-    return y
+def deconvolve(
+    waveforms: npt.ArrayLike,
+    baselines: npt.ArrayLike,
+    upsampling: int,
+    pole_zero: float,
+) -> np.ndarray:
+    """
+    Applies pole-zero deconvolution and upsampling to pixel waveforms.
+
+    Parameters
+    ----------
+    waveforms : ndarray
+        Waveforms stored in a numpy array.
+        Shape: (n_pix, n_samples)
+    baselines : ndarray or float
+        Baseline estimates for each pixel.
+        Shape: (n_pix, ) or scalar
+    upsampling : int
+        Upsampling factor to use (>= 1); the input waveforms are resampled at upsampling times their original sampling rate.
+    pole_zero : float
+        Deconvolution factor obtained from `deconvolution_parameters(...)` applied to the reference single p.e. pulse shape.
+
+    Returns
+    -------
+    deconvolved_waveforms : ndarray
+        Deconvolved and upsampled waveforms stored in a numpy array.
+        Shape: (n_pix, upsampling * n_samples)
+    """
+    deconvolved_waveforms = np.atleast_2d(waveforms) - np.atleast_2d(baselines).T
+    deconvolved_waveforms[:, 1:] -= pole_zero * deconvolved_waveforms[:, :-1]
+    deconvolved_waveforms[:, 0] = 0
+    if upsampling > 1:
+        return filtfilt(
+            np.ones(upsampling),
+            upsampling,
+            np.repeat(deconvolved_waveforms, upsampling, axis=-1),
+        )
+    return deconvolved_waveforms
 
 
 class FlashCamExtractor(ImageExtractor):
