@@ -1384,7 +1384,9 @@ def deconvolve(
     pole_zero: float,
 ) -> np.ndarray:
     """
-    Applies pole-zero deconvolution and upsampling to pixel waveforms.
+    Applies pole-zero deconvolution and upsampling to pixel waveforms. Use
+    `deconvolution_parameters(...)` to estimate the required `pole_zero` parameter
+    for the specific camera model.
 
     Parameters
     ----------
@@ -1392,12 +1394,14 @@ def deconvolve(
         Waveforms stored in a numpy array.
         Shape: (n_pix, n_samples)
     baselines : ndarray or float
-        Baseline estimates for each pixel.
+        Baseline estimates for each pixel that are subtracted from the waveforms
+        before deconvolution.
         Shape: (n_pix, ) or scalar
     upsampling : int
-        Upsampling factor to use (>= 1); the input waveforms are resampled at upsampling times their original sampling rate.
+        Upsampling factor to use (>= 1); if > 1, the input waveforms are resampled
+        at upsampling times their original sampling rate.
     pole_zero : float
-        Deconvolution factor obtained from `deconvolution_parameters(...)` applied to the reference single p.e. pulse shape.
+        Deconvolution parameter obtained from `deconvolution_parameters(...)`.
 
     Returns
     -------
