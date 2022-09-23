@@ -175,7 +175,8 @@ def test_reconstruction_against_simulation_camera_frame(
     # Get shower geometry
     calib(event)
     image_processor(event)
-    result = reconstructor(event)
+    reconstructor(event)
+    result = event.dl2.stereo.geometry[reconstructor.__class__.__name__]
 
     # get the reconstructed coordinates in the sky
     reco_coord = SkyCoord(alt=result.alt, az=result.az, frame=AltAz())

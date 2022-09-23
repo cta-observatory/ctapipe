@@ -8,7 +8,7 @@ from itertools import combinations
 
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import AltAz, SkyCoord, cartesian_to_spherical
+from astropy.coordinates import AltAz, Longitude, SkyCoord, cartesian_to_spherical
 
 from ctapipe.containers import (
     CameraHillasParametersContainer,
@@ -190,9 +190,11 @@ class HillasReconstructor(Reconstructor):
         h_max = self.estimate_h_max(cog_cartesian, telescope_positions)
 
         # az is clockwise, lon counter-clockwise, make sure it stays in [0, 2pi)
-        az = u.Quantity(_two_pi - lon.to_value(u.rad), u.rad)
+        az = Longitude(-lon)
 
-        event.dl2.stereo.geometry[self.__class__.__name__] = ReconstructedGeometryContainer(
+        event.dl2.stereo.geometry[
+            self.__class__.__name__
+        ] = ReconstructedGeometryContainer(
             alt=lat,
             az=az,
             core_x=core_pos_ground.x,
