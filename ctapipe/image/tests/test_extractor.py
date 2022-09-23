@@ -637,7 +637,8 @@ def test_global_peak_window_sum_with_pixel_fraction(subarray):
     assert np.allclose(dl1.peak_time[bright_pixels], expected / sample_rate)
 
 
-def test_flashcam_extractor(toymodel_1_MST_FC):
+def test_flashcam_extractor(toymodel_1_MST_FC, prod5_gamma_simtel_path):
+    # Test on toy model
     (
         waveforms,
         subarray,
@@ -646,20 +647,33 @@ def test_flashcam_extractor(toymodel_1_MST_FC):
         true_charge,
         true_time,
     ) = toymodel_1_MST_FC
-
-    assert(subarray.tel[1].camera.name == "FlashCam")
     extractor = FlashCamExtractor(subarray=subarray)
-
-    # Test toymodel
     broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
-    assert_allclose(dl1.image, true_charge, rtol=0.1)
-    assert_allclose(dl1.peak_time, true_time, atol=2.5)  # FIXME could be much closer for large pulses...
     assert dl1.is_valid == True
 
-    # Test prod5 simulations
-    path = "gamma_20deg_0deg_run2___cta-prod5-paranal_desert-2147m-Paranal-dark_cone10-100evts.simtel.zst"
-    source = EventSource(f"dataset://{path}")
-    subarray = source.subarray
-    print(subarray.get_tel_ids_for_type("MST_MST_FlashCam"))
-    # TODO Test!
+    # TODO Shrink tolerances after optimising the extractor parameters
+    assert_allclose(dl1.image, true_charge, rtol=0.2)
+    assert_allclose(dl1.peak_time, true_time, atol=2.5)
+
+    # Test on prod5 simulations
+    with EventSource(prod5_gamma_simtel_path) as source:
+        subarray = source.subarray
+        extractor = extractor = FlashCamExtractor(subarray)
+        for event in source:
+            for tel_id in subarray.get_tel_ids_for_type("MST_MST_FlashCam"):
+                true_charge = event.simulation.tel[tel_id].true_image
+                if true_charge is None:
+                    continue  # telescope did not trigger
+
+                waveforms = event.r1.tel[tel_id].waveform
+                selected_gain_channel = np.zeros(waveforms.shape[0], dtype=np.int64)
+                broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
+
+                dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
+                assert dl1.is_valid == True
+
+                bright_pixels = true_charge > 30
+                assert_allclose(
+                    dl1.image[bright_pixels], true_charge[bright_pixels], rtol=0.33
+                )
