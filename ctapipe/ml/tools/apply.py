@@ -9,7 +9,6 @@ import tables
 from astropy.table.operations import hstack, vstack
 from tqdm.auto import tqdm
 
-from ctapipe.coordinates.disp import MonoDispReconstructor
 from ctapipe.core.tool import Tool
 from ctapipe.core.traits import Bool, Path, create_class_enum_trait, flag
 from ctapipe.io import EventSource, TableLoader, write_table
@@ -159,11 +158,10 @@ class ApplyModels(Tool):
             self.disp_models = DispReconstructor.read(
                 self.disp_models_path, self.loader.subarray, parent=self
             )
-            self.disp_convert = MonoDispReconstructor(parent=self)
             self.disp_combine = StereoCombiner.from_name(
                 self.stereo_combiner_type,
                 combine_property="geometry",
-                algorithm="disp",
+                algorithm=self.disp_models.prefix,
                 parent=self,
             )
             return True
@@ -238,7 +236,7 @@ class ApplyModels(Tool):
         return vstack(tel_tables)
 
     def _apply_disp(self, pointing_altitude, pointing_azimuth):
-        prefix = "disp"
+        prefix = self.disp_models.prefix
 
         tables = []
 
@@ -265,25 +263,16 @@ class ApplyModels(Tool):
 
             table.remove_columns([c for c in table.colnames if c.startswith(prefix)])
 
-            disp_predictions = self.disp_models.predict(tel, table)
+            disp_predictions, altaz_predictions = self.disp_models.predict(
+                tel, table, pointing_altitude, pointing_azimuth
+            )
             table = hstack(
-                [table, disp_predictions],
+                [table, disp_predictions, altaz_predictions],
                 join_type="exact",
                 metadata_conflicts="ignore",
             )
 
-            altaz_predictions = self.disp_convert.predict(
-                table,
-                pointing_altitude,
-                pointing_azimuth,
-            )
-            table = hstack(
-                [table, altaz_predictions],
-                join_type="exact",
-                metadata_conflicts="ignore",
-            )
-
-            # tables should follow same structure as ctapipe-process
+            # tables should follow the event structure
             write_table(
                 table[["obs_id", "event_id", "tel_id"] + altaz_predictions.colnames],
                 self.loader.input_url,

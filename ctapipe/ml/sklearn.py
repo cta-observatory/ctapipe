@@ -19,9 +19,11 @@ from ..containers import (
     DispContainer,
     ParticleClassificationContainer,
     ReconstructedEnergyContainer,
+    ReconstructedGeometryContainer,
 )
+from ..coordinates.disp import telescope_to_horizontal
 from ..core import Component, FeatureGenerator, Provenance, QualityQuery
-from ..core.traits import Bool, Dict, Enum, Int, Integer, List, Path, Unicode
+from ..core.traits import Bool, Dict, Enum, Int, Integer, List, Path, Tuple, Unicode
 from ..io import write_table
 from ..reco import Reconstructor
 from .preprocessing import check_valid_rows, collect_features, table_to_float
@@ -533,7 +535,8 @@ class DispReconstructor(Reconstructor):
     def __call__(self, event: ArrayEventContainer) -> None:
         """Event-wise prediction for the EventSource-Loop.
 
-        Fills the event.dl2.tel[tel_id].disp[prefix] container.
+        Fills the event.dl2.tel[tel_id].disp[prefix] container
+        and event.dl2.tel[tel_id].geometry[prefix] container.
 
         Parameters
         ----------
@@ -551,21 +554,62 @@ class DispReconstructor(Reconstructor):
                 sign, sign_valid = self.sign_classifier.predict(
                     self.subarray.tel[tel_id], table
                 )
-                container = DispContainer(
+                valid = np.logical_and(norm_valid, sign_valid)[0]
+
+                disp_container = DispContainer(
                     norm=norm[0],
                     sign=sign[0],
-                    is_valid=np.logical_and(norm_valid, sign_valid)[0],
+                    is_valid=valid,
                 )
+
+                if valid:
+                    disp = norm * sign
+
+                    fov_lon = event.dl1.tel[
+                        tel_id
+                    ].parameters.hillas.fov_lon + disp * np.cos(
+                        event.dl1.tel[tel_id].parameters.hillas.psi.to(u.rad)
+                    )
+                    fov_lat = event.dl1.tel[
+                        tel_id
+                    ].parameters.hillas.fov_lat + disp * np.sin(
+                        event.dl1.tel[tel_id].parameters.hillas.psi.to(u.rad)
+                    )
+                    alt, az = telescope_to_horizontal(
+                        lon=fov_lon,
+                        lat=fov_lat,
+                        pointing_alt=event.pointing.tel[tel_id].altitude.to(u.deg),
+                        pointing_az=event.pointing.tel[tel_id].azimuth.to(u.deg),
+                    )
+
+                    altaz_container = ReconstructedGeometryContainer(
+                        alt=alt[0], az=az[0], is_valid=True
+                    )
+
+                else:
+                    altaz_container = ReconstructedGeometryContainer(
+                        alt=u.Quantity(np.nan, u.deg, copy=False),
+                        az=u.Quantity(np.nan, u.deg, copy=False),
+                        is_valid=False,
+                    )
             else:
-                container = DispContainer(
+                disp_container = DispContainer(
                     norm=u.Quantity(np.nan, self.norm_regressor.unit),
                     sign=self.sign_classifier.invalid_class,
                     is_valid=False,
                 )
+                altaz_container = ReconstructedGeometryContainer(
+                    alt=u.Quantity(np.nan, u.deg, copy=False),
+                    az=u.Quantity(np.nan, u.deg, copy=False),
+                    is_valid=False,
+                )
 
-            event.dl2.tel[tel_id].disp[self.prefix] = container
+            event.dl2.tel[tel_id].disp[self.prefix] = disp_container
+            event.dl2.tel[tel_id].geometry[self.prefix] = altaz_container
 
-    def predict(self, key, table: Table) -> Table:
+    def predict(
+        self, key, table: Table, pointing_altitude, pointing_azimuth
+    ) -> Tuple(Table, Table):
         """Predict on a table of events
 
         Parameters
@@ -575,10 +619,13 @@ class DispReconstructor(Reconstructor):
 
         Returns
         -------
-        table : `~astropy.table.Table`
-            Table with predictions, matches the corresponding
+        disp_table : `~astropy.table.Table`
+            Table with disp predictions, matches the corresponding
             container definition
+        altaz_table : `~astropy.table.Table`
+            Table with resulting predictions of horizontal coordinates
         """
+        # Pointing information is a temporary solution for simulations using a single pointing position
         table = self.generate_features(table)
 
         n_rows = len(table)
@@ -591,14 +638,34 @@ class DispReconstructor(Reconstructor):
         norm[mask], norm_valid[mask] = self.norm_regressor.predict(key, table[mask])
         sign[mask], sign_valid[mask] = self.sign_classifier.predict(key, table[mask])
 
-        result = Table(
+        disp_result = Table(
             {
                 f"{self.prefix}_norm": norm,
                 f"{self.prefix}_sign": sign,
                 f"{self.prefix}_is_valid": np.logical_and(norm_valid, sign_valid),
             }
         )
-        return result
+
+        disp = norm * sign
+
+        fov_lon = table["hillas_fov_lon"] + disp * np.cos(table["hillas_psi"].to(u.rad))
+        fov_lat = table["hillas_fov_lat"] + disp * np.sin(table["hillas_psi"].to(u.rad))
+
+        alt, az = telescope_to_horizontal(
+            lon=fov_lon,
+            lat=fov_lat,
+            pointing_alt=pointing_altitude,
+            pointing_az=pointing_azimuth,
+        )
+
+        altaz_result = Table(
+            {
+                f"{self.prefix}_alt": alt,
+                f"{self.prefix}_az": az,
+            }
+        )
+
+        return disp_result, altaz_result
 
 
 class CrossValidator(Component):

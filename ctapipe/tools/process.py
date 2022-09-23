@@ -7,7 +7,6 @@ import sys
 from tqdm.auto import tqdm
 
 from ..calib import CameraCalibrator, GainSelector
-from ..coordinates.disp import MonoDispReconstructor
 from ..core import QualityQuery, Tool
 from ..core.traits import Bool, Dict, List, Path, classes_with_traits, flag
 from ..image import ImageCleaner, ImageModifier, ImageProcessor
@@ -233,7 +232,6 @@ class ProcessorTool(Tool):
                 self.event_source.subarray,
                 parent=self,
             )
-            self.disp_converter = MonoDispReconstructor(parent=self)
 
         self.stereo_combiners = []
         for stereo_combiner in self.stereo_combiner_configs:
@@ -355,7 +353,6 @@ class ProcessorTool(Tool):
                     self.particle_classifier(event)
                 if self.disp_models is not None:
                     self.disp_models(event)
-                    self.disp_converter(event)
 
             for combiner in self.stereo_combiners:
                 combiner(event)
