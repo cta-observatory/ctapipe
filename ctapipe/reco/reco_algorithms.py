@@ -3,9 +3,11 @@ from abc import abstractmethod
 import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
 
-from ctapipe.containers import ArrayEventContainer, ReconstructedGeometryContainer
+from ctapipe.containers import ArrayEventContainer, TelescopeImpactParameterContainer
 from ctapipe.core import Component, QualityQuery
 from ctapipe.core.traits import List
+
+from .impact_distance import shower_impact_distance
 
 __all__ = ["Reconstructor", "TooFewTelescopesException", "InvalidWidthException"]
 
@@ -52,13 +54,12 @@ class Reconstructor(Component):
         ----------
         tels_dict : dict
             general dictionary containing all triggered telescopes data
-
         Returns
         -------
-        `~ctapipe.containers.ReconstructedGeometryContainer`
+        None
+        Container are directly filled into the event structure
 
         """
-        return ReconstructedGeometryContainer()
 
     def _create_hillas_dict(self, event):
         hillas_dict = {
@@ -93,3 +94,20 @@ class Reconstructor(Component):
             )
             for tel_id in event.dl1.tel.keys()
         }
+
+    def _store_impact_parameter(self, event):
+        """Compute and store the impact parameter for each reconstruction."""
+        impact_distances = shower_impact_distance(
+            shower_geom=event.dl2.stereo.geometry[self.__class__.__name__],
+            subarray=self.subarray,
+        )
+        default_prefix = TelescopeImpactParameterContainer.default_prefix
+        prefix = f"{self.__class__.__name__}_tel_{default_prefix}"
+        for tel_id in event.trigger.tels_with_trigger:
+            tel_index = self.subarray.tel_indices[tel_id]
+            event.dl2.tel[tel_id].impact[
+                self.__class__.__name__
+            ] = TelescopeImpactParameterContainer(
+                distance=impact_distances[tel_index],
+                prefix=prefix,
+            )

@@ -238,14 +238,17 @@ class ProcessorTool(Tool):
             )
 
         if self.should_compute_dl2:
-            reconstructor = self.process_shower.reconstructor
-            reconstructor_name = self.process_shower.reconstructor_type
-            write_table(
-                reconstructor.check_parameters.to_table(functions=True),
-                self.write.output_path,
-                f"/dl2/service/tel_event_statistics/{reconstructor_name}",
-                append=True,
-            )
+            reconstructors = self.process_shower.reconstructors
+            reconstructor_names = self.process_shower.reconstructor_types
+            for reconstructor_name, reconstructor in zip(
+                reconstructor_names, reconstructors
+            ):
+                write_table(
+                    reconstructor.check_parameters.to_table(functions=True),
+                    self.write.output_path,
+                    f"/dl2/service/tel_event_statistics/{reconstructor_name}",
+                    append=True,
+                )
 
     def start(self):
         """

@@ -210,7 +210,11 @@ class HillasReconstructor(Reconstructor):
             for tel_id in event.dl1.tel.keys()
         }
 
-        return self._predict(event, hillas_dict, array_pointing, telescope_pointings)
+        event.dl2.stereo.geometry[self.__class__.__name__] = self._predict(
+            event, hillas_dict, array_pointing, telescope_pointings
+        )
+
+        self._store_impact_parameter(event)
 
     def _predict(self, event, hillas_dict, array_pointing, telescopes_pointings):
         """

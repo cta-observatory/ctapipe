@@ -129,31 +129,36 @@ def test_invalid_events(subarray_and_event_gamma_off_axis_500_gev):
 
     calib(event)
     image_processor(event)
+    original_event = deepcopy(event)
 
-    result = hillas_reconstructor(event)
+    hillas_reconstructor(event)
+    result = event.dl2.stereo.geometry["HillasReconstructor"]
     assert result.is_valid
 
     # copy event container to modify it
-    invalid_event = deepcopy(event)
+    invalid_event = deepcopy(original_event)
 
     # overwrite all image parameters but the last one with dummy ones
     for tel_id in list(invalid_event.dl1.tel.keys())[:-1]:
         invalid_event.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer()
 
-    result = hillas_reconstructor(invalid_event)
+    hillas_reconstructor(invalid_event)
+    result = invalid_event.dl2.stereo.geometry["HillasReconstructor"]
     assert not result.is_valid
 
     tel_id = list(invalid_event.dl1.tel.keys())[-1]
     # Now use the original event, but overwrite the last width to 0
-    invalid_event = deepcopy(event)
+    invalid_event = deepcopy(original_event)
     invalid_event.dl1.tel[tel_id].parameters.hillas.width = 0 * u.m
-    result = hillas_reconstructor(invalid_event)
+    hillas_reconstructor(invalid_event)
+    result = invalid_event.dl2.stereo.geometry["HillasReconstructor"]
     assert not result.is_valid
 
     # Now use the original event, but overwrite the last width to NaN
-    invalid_event = deepcopy(event)
+    invalid_event = deepcopy(original_event)
     invalid_event.dl1.tel[tel_id].parameters.hillas.width = np.nan * u.m
-    result = hillas_reconstructor(invalid_event)
+    hillas_reconstructor(invalid_event)
+    result = invalid_event.dl2.stereo.geometry["HillasReconstructor"]
     assert not result.is_valid
 
 
@@ -174,7 +179,8 @@ def test_reconstruction_against_simulation(subarray_and_event_gamma_off_axis_500
     # Get shower geometry
     calib(event)
     image_processor(event)
-    result = reconstructor(event)
+    reconstructor(event)
+    result = event.dl2.stereo.geometry["HillasReconstructor"]
 
     # get the reconstructed coordinates in the sky
     reco_coord = SkyCoord(alt=result.alt, az=result.az, frame=AltAz())
@@ -238,8 +244,14 @@ def test_CameraFrame_against_TelescopeFrame(filename):
         image_processor_telescope_frame(event_telescope_frame)
         image_processor_camera_frame(event_camera_frame)
 
-        result_camera_frame = reconstructor(event_camera_frame)
-        result_telescope_frame = reconstructor(event_telescope_frame)
+        reconstructor(event_camera_frame)
+        result_camera_frame = event_camera_frame.dl2.stereo.geometry[
+            "HillasReconstructor"
+        ]
+        reconstructor(event_telescope_frame)
+        result_telescope_frame = event_telescope_frame.dl2.stereo.geometry[
+            "HillasReconstructor"
+        ]
 
         assert result_camera_frame.is_valid == result_telescope_frame.is_valid
 
