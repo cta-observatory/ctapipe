@@ -37,9 +37,6 @@ INVALID = ReconstructedGeometryContainer(
 )
 
 
-_two_pi = 2 * np.pi
-
-
 def angle(v1, v2):
     """computes the angle between two vectors
         assuming cartesian coordinates
