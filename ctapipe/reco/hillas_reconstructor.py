@@ -28,8 +28,6 @@ from ctapipe.reco.reco_algorithms import (
     TooFewTelescopesException,
 )
 
-
-
 __all__ = ["HillasReconstructor"]
 
 
@@ -37,6 +35,9 @@ INVALID = ReconstructedGeometryContainer(
     telescopes=[],
     prefix="HillasReconstructor",
 )
+
+
+_two_pi = 2 * np.pi
 
 
 def angle(v1, v2):
@@ -188,9 +189,12 @@ class HillasReconstructor(Reconstructor):
         # estimate max height of shower
         h_max = self.estimate_h_max(cog_cartesian, telescope_positions)
 
+        # az is clockwise, lon counter-clockwise, make sure it stays in [0, 2pi)
+        az = u.Quantity(_two_pi - lon.to_value(u.rad), u.rad)
+
         event.dl2.stereo.geometry[self.__class__.__name__] = ReconstructedGeometryContainer(
             alt=lat,
-            az=-lon,  # az is clockwise, lon counter-clockwise
+            az=az,
             core_x=core_pos_ground.x,
             core_y=core_pos_ground.y,
             core_tilted_x=core_pos_tilted.x,
