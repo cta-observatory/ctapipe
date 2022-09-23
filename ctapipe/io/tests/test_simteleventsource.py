@@ -5,7 +5,7 @@ from pathlib import Path
 import astropy.units as u
 import numpy as np
 import pytest
-from astropy.coordinates import Angle
+from astropy.coordinates import Angle, Latitude
 from astropy.time import Time
 from traitlets.config import Config
 
@@ -515,3 +515,33 @@ def test_simtel_no_metadata(monkeypatch):
 
         assert all([t.camera.name.startswith("UNKNOWN") for t in subarray.tel.values()])
         assert all([t.optics.name.startswith("UNKNOWN") for t in subarray.tel.values()])
+
+
+@pytest.mark.parametrize("sign", (-1, 1))
+def test_float32_pihalf(sign):
+    float32_pihalf = np.float32(sign * np.pi / 2)
+    tracking_position = {"azimuth_raw": 0, "altitude_raw": float32_pihalf}
+    pointing = SimTelEventSource._fill_event_pointing(tracking_position)
+    # check that we changed the value to float64 pi/2 to avoid astropy error
+    assert pointing.altitude.value == sign * np.pi / 2
+    # check we can create a Latitude:
+    Latitude(pointing.altitude.value, u.rad)
+
+    event = {
+        "mc_shower": {
+            "energy": 1.0,
+            "altitude": float32_pihalf,
+            "azimuth": 0.0,
+            "h_first_int": 20e3,
+            "xmax": 350,
+            "primary_id": 1,
+        },
+        "mc_event": {
+            "xcore": 0.0,
+            "ycore": 50.0,
+        },
+    }
+    shower = SimTelEventSource._fill_simulated_event_information(event)
+    assert shower.alt.value == sign * np.pi / 2
+    # check we cana create a Latitude:
+    Latitude(shower.alt.value, u.rad)
