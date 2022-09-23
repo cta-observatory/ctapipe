@@ -159,7 +159,7 @@ def test_reconstruction_against_simulation_telescope_frame(
 def test_reconstruction_against_simulation_camera_frame(
     subarray_and_event_gamma_off_axis_500_gev,
 ):
-    """Reconstruction is here done only in the TelescopeFrame,
+    """Reconstruction is here done only in the CameraFrame,
     since the previous tests test already for the compatibility between
     frames"""
 
