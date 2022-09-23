@@ -1364,12 +1364,12 @@ def deconvolve(waveforms, bls, up: int, pz: float):
 
 class FlashCamExtractor(ImageExtractor):
     upsampling = IntTelescopeParameter(
-        default_value=4, min=1, help="Define the upsampling factor for waveforms"
-    ).tag(config=True)
+        default_value=4, help="Define the upsampling factor for waveforms"
+    ).tag(config=True, min=1)
 
     window_width = IntTelescopeParameter(
-        default_value=4, min=1, help="Define the width of the integration window"
-    ).tag(config=True)
+        default_value=4, help="Define the width of the integration window"
+    ).tag(config=True, min=1)
 
     window_shift = IntTelescopeParameter(
         default_value=2,
