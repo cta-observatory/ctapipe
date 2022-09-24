@@ -1,10 +1,11 @@
 import astropy.units as u
-from ctapipe.coordinates import TelescopeFrame, CameraFrame
 from astropy.coordinates import AltAz, SkyCoord, cartesian_to_spherical
+
+from ctapipe.coordinates import CameraFrame, TelescopeFrame
 
 
 def test_predictor(example_subarray):
-    from ctapipe.image import showermodel, predictor
+    from ctapipe.image import predictor, showermodel
 
     # This is a shower straight from above
     total_photons = 1000
@@ -16,7 +17,7 @@ def test_predictor(example_subarray):
     width = 20 * u.meter
     length = 3000 * u.meter
 
-    model = showermodel.Gaussian(
+    model = showermodel.GaussianShowermodel(
         total_photons=total_photons,
         x=x,
         y=y,
@@ -52,7 +53,7 @@ def test_predictor(example_subarray):
 
         tel_mirror_area[tel_id] = tel.optics.mirror_area
 
-    pred = predictor.Predictor(
+    pred = predictor.ShowermodelPredictor(
         tel_positions=lsts.positions,
         tel_pix_coords_altaz=tel_pix_coords_altaz,
         tel_solid_angles=tel_solid_angles,

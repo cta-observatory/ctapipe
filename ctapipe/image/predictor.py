@@ -1,11 +1,11 @@
+import astropy.units as u
 import numpy as np
-from numpy.linalg import norm
 from astropy.coordinates import spherical_to_cartesian
 from astropy.utils.decorators import lazyproperty
-import astropy.units as u
+from numpy.linalg import norm
 
 
-class Predictor:
+class ShowermodelPredictor:
     def __init__(
         self,
         tel_positions,

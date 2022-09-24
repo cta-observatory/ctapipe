@@ -1,7 +1,7 @@
 import astropy.units as u
-from scipy.integrate import quad, dblquad
 import numpy as np
 from pytest import approx
+from scipy.integrate import dblquad, quad
 
 
 def test_gaussian():
@@ -17,7 +17,7 @@ def test_gaussian():
     width = 10 * u.meter
     length = 3000 * u.meter
 
-    model = showermodel.Gaussian(
+    model = showermodel.GaussianShowermodel(
         total_photons=total_photons,
         x=x,
         y=y,
@@ -84,7 +84,7 @@ def test_emission():
     width = 10 * u.meter
     length = 3000 * u.meter
 
-    model = showermodel.Gaussian(
+    model = showermodel.GaussianShowermodel(
         total_photons=total_photons,
         x=x,
         y=y,

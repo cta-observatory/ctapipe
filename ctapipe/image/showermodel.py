@@ -1,18 +1,17 @@
 import astropy.units as u
 import numpy as np
-from scipy.integrate import quad
-from scipy.stats import multivariate_normal
-from scipy.spatial.transform import Rotation as R
-from astropy.utils.decorators import lazyproperty
 from astropy.coordinates import spherical_to_cartesian
-
+from astropy.utils.decorators import lazyproperty
+from scipy.integrate import quad
+from scipy.spatial.transform import Rotation as R
+from scipy.stats import multivariate_normal
 
 __all__ = [
-    "Gaussian",
+    "GaussianShowermodel",
 ]
 
 
-class Gaussian:
+class GaussianShowermodel:
     @u.quantity_input(
         x=u.m,
         y=u.m,
