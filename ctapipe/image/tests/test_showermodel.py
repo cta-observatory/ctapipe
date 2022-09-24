@@ -5,7 +5,7 @@ from scipy.integrate import dblquad, quad
 
 
 def test_gaussian():
-    from ctapipe.image import showermodel
+    from ctapipe.image import GaussianShowermodel
 
     # This is a shower straight from (45deg,45deg)
     total_photons = 15000
@@ -17,7 +17,7 @@ def test_gaussian():
     width = 10 * u.meter
     length = 3000 * u.meter
 
-    model = showermodel.GaussianShowermodel(
+    model = GaussianShowermodel(
         total_photons=total_photons,
         x=x,
         y=y,
@@ -72,7 +72,7 @@ def test_gaussian():
 
 
 def test_emission():
-    from ctapipe.image import showermodel
+    from ctapipe.image import GaussianShowermodel
 
     # This is a shower straight from (45deg,45deg)
     total_photons = 15000
@@ -84,7 +84,7 @@ def test_emission():
     width = 10 * u.meter
     length = 3000 * u.meter
 
-    model = showermodel.GaussianShowermodel(
+    model = GaussianShowermodel(
         total_photons=total_photons,
         x=x,
         y=y,

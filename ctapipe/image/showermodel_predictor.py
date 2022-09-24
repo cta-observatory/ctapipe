@@ -4,6 +4,8 @@ from astropy.coordinates import spherical_to_cartesian
 from astropy.utils.decorators import lazyproperty
 from numpy.linalg import norm
 
+__all__ = ["ShowermodelPredictor"]
+
 
 class ShowermodelPredictor:
     def __init__(

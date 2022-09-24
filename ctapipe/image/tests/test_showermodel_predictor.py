@@ -5,7 +5,7 @@ from ctapipe.coordinates import CameraFrame, TelescopeFrame
 
 
 def test_predictor(example_subarray):
-    from ctapipe.image import predictor, showermodel
+    from ctapipe.image import GaussianShowermodel, ShowermodelPredictor
 
     # This is a shower straight from above
     total_photons = 1000
@@ -17,7 +17,7 @@ def test_predictor(example_subarray):
     width = 20 * u.meter
     length = 3000 * u.meter
 
-    model = showermodel.GaussianShowermodel(
+    model = GaussianShowermodel(
         total_photons=total_photons,
         x=x,
         y=y,
@@ -53,7 +53,7 @@ def test_predictor(example_subarray):
 
         tel_mirror_area[tel_id] = tel.optics.mirror_area
 
-    pred = predictor.ShowermodelPredictor(
+    pred = ShowermodelPredictor(
         tel_positions=lsts.positions,
         tel_pix_coords_altaz=tel_pix_coords_altaz,
         tel_solid_angles=tel_solid_angles,
