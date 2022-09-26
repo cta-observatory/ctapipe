@@ -212,16 +212,6 @@ class CameraReadout:
                 f" supported are: {cls.SUPPORTED_TAB_VERSIONS}."
             )
 
-        if not isinstance(url_or_table, Table):
-            tab = Table.read(url_or_table, **kwargs)
-
-        version = tab.meta.get("TAB_VER", "")
-        if version not in cls.SUPPORTED_TAB_VERSIONS:
-            raise IOError(
-                f"CameraReadout table has unsupported version: {version},"
-                f" supported are: {cls.SUPPORTED_TAB_VERSIONS}."
-            )
-
         name = tab.meta.get("CAM_ID", "Unknown")
         n_channels = tab.meta["NCHAN"]
         sampling_rate = u.Quantity(tab.meta["SAMPFREQ"], u.GHz)
