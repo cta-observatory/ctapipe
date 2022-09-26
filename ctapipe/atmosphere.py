@@ -138,11 +138,9 @@ class AtmosphereDensityProfile(abc.ABC):
         if "TAB_TYPE" not in table.meta:
             raise ValueError("expected a TAB_TYPE metadata field")
 
-        if (
-            "TAB_VER" not in table.meta
-            or table.meta["TAB_VER"] not in SUPPORTED_TABLE_VERSIONS
-        ):
-            raise ValueError("Table version not supported")
+        version = table.meta.get("TAB_VER", "")
+        if version not in SUPPORTED_TABLE_VERSIONS:
+            raise ValueError(f"Table version not supported: '{version}'")
 
         tabtype = table.meta.get("TAB_TYPE")
 
