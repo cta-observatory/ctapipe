@@ -188,6 +188,10 @@ class SKLearnReconstructor(Reconstructor):
 
 
 class SKLearnRegressionReconstructor(SKLearnReconstructor):
+    """
+    Base class for regression tasks
+    """
+
     model_cls = Enum(
         SUPPORTED_REGRESSORS.keys(),
         default_value=None,
@@ -240,6 +244,10 @@ class SKLearnRegressionReconstructor(SKLearnReconstructor):
 
 
 class SKLearnClassficationReconstructor(SKLearnReconstructor):
+    """
+    Base class for classification tasks
+    """
+
     model_cls = Enum(
         SUPPORTED_CLASSIFIERS.keys(),
         default_value=None,
@@ -363,11 +371,10 @@ class ParticleIdClassifier(SKLearnClassficationReconstructor):
 
     #: Name of the target table column for training
     target = "true_shower_primary_id"
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # gammas have true_shower_primary_id = 0
-        self.positive_class = 0
+    positive_class = Integer(
+        default_value=0,
+        help="Particle id (in simtel system) of the positive class. Default is 0 for gammas.",
+    ).tag(config=True)
 
     def __call__(self, event: ArrayEventContainer) -> None:
         for tel_id in event.trigger.tels_with_trigger:
