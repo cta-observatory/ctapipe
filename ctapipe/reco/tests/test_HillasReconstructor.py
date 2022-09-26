@@ -90,6 +90,8 @@ def test_invalid_events(subarray_and_event_gamma_off_axis_500_gev):
     original_event = deepcopy(event)
 
     hillas_reconstructor(event)
+    # test the container is actually there and not only created by Map
+    assert "HillasReconstructor" in event.dl2.stereo.geometry
     result = event.dl2.stereo.geometry["HillasReconstructor"]
     assert result.is_valid
 
@@ -101,6 +103,8 @@ def test_invalid_events(subarray_and_event_gamma_off_axis_500_gev):
         invalid_event.dl1.tel[tel_id].parameters.hillas = HillasParametersContainer()
 
     hillas_reconstructor(invalid_event)
+    # test the container is actually there and not only created by Map
+    assert "HillasReconstructor" in invalid_event.dl2.stereo.geometry
     result = invalid_event.dl2.stereo.geometry["HillasReconstructor"]
     assert not result.is_valid
 
@@ -109,6 +113,8 @@ def test_invalid_events(subarray_and_event_gamma_off_axis_500_gev):
     invalid_event = deepcopy(original_event)
     invalid_event.dl1.tel[tel_id].parameters.hillas.width = 0 * u.m
     hillas_reconstructor(invalid_event)
+    # test the container is actually there and not only created by Map
+    assert "HillasReconstructor" in invalid_event.dl2.stereo.geometry
     result = invalid_event.dl2.stereo.geometry["HillasReconstructor"]
     assert not result.is_valid
 
@@ -116,6 +122,8 @@ def test_invalid_events(subarray_and_event_gamma_off_axis_500_gev):
     invalid_event = deepcopy(original_event)
     invalid_event.dl1.tel[tel_id].parameters.hillas.width = np.nan * u.m
     hillas_reconstructor(invalid_event)
+    # test the container is actually there and not only created by Map
+    assert "HillasReconstructor" in invalid_event.dl2.stereo.geometry
     result = invalid_event.dl2.stereo.geometry["HillasReconstructor"]
     assert not result.is_valid
 
@@ -140,6 +148,8 @@ def test_reconstruction_against_simulation_telescope_frame(
     calib(event)
     image_processor(event)
     reconstructor(event)
+    # test the container is actually there and not only created by Map
+    assert "HillasReconstructor" in event.dl2.stereo.geometry
     result = event.dl2.stereo.geometry["HillasReconstructor"]
 
     # get the reconstructed coordinates in the sky

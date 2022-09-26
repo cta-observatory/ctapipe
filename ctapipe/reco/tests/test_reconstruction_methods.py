@@ -42,6 +42,8 @@ def test_reconstructors(reconstructors):
             reconstructor(event)
 
             name = ReconstructorType.__name__
+            # test the container is actually there and not only created by Map
+            assert name in event.dl2.stereo.geometry
             assert event.dl2.stereo.geometry[name].alt.unit.is_equivalent(u.deg)
             assert event.dl2.stereo.geometry[name].az.unit.is_equivalent(u.deg)
             assert event.dl2.stereo.geometry[name].core_x.unit.is_equivalent(u.m)
