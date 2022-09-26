@@ -31,8 +31,8 @@ from ctapipe.coordinates import (
 from ctapipe.core import traits
 from ctapipe.instrument import get_atmosphere_profile_functions
 from ctapipe.reco.reco_algorithms import (
+    GeometryReconstructor,
     InvalidWidthException,
-    Reconstructor,
     TooFewTelescopesException,
 )
 
@@ -45,7 +45,7 @@ INVALID = ReconstructedGeometryContainer(
 )
 
 
-class HillasIntersection(Reconstructor):
+class HillasIntersection(GeometryReconstructor):
     """
     This class is a simple re-implementation of Hillas parameter based event
     reconstruction. e.g. https://arxiv.org/abs/astro-ph/0607333
