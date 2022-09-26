@@ -9,6 +9,7 @@ from astropy.table import vstack
 from astropy.utils.diff import report_diff_values
 
 from ctapipe.core import run_tool
+from ctapipe.io import TableLoader
 from ctapipe.io.astropy_helpers import read_table
 from ctapipe.tools.process import ProcessorTool
 
@@ -182,3 +183,10 @@ def test_dl2(tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_file):
 
     assert len(obs) == 2, "should have two OB entries"
     assert len(sbs) == 2, "should have two SB entries"
+
+    # regression test for #2048
+    loader = TableLoader(output, load_dl2=True, load_simulated=True)
+    tel_events = loader.read_telescope_events()
+    assert "true_impact_distance" in tel_events.colnames
+    # regression test for #2051
+    assert "HillasReconstructor_tel_impact_distance" in tel_events.colnames

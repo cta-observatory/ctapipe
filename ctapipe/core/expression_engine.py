@@ -4,9 +4,6 @@ Expression Engine
 import astropy.units as u  # for use in selection functions
 import numpy as np  # for use in selection functions
 
-from .component import Component
-from .traits import List, Tuple, Unicode
-
 # the following are what are allowed to be used
 # in selection functions (passed to eval())
 ALLOWED_GLOBALS = {"u": u, "np": np}  # astropy units  # numpy
@@ -19,21 +16,14 @@ class ExpressionError(TypeError):
     """Signal a problem with a user-defined selection criteria function"""
 
 
-class ExpressionEngine(Component):
+class ExpressionEngine:
     """
     Compile expressions on init, evaluate on call.
     """
 
-    expressions = List(
-        Tuple(Unicode(), Unicode()),
-        help="List of 2-Tuples of Strings: ('name', 'expression').",
-    ).tag(config=True)
-
-    def __init__(self, config=None, parent=None, **kwargs):
-        super().__init__(config=config, parent=parent, **kwargs)
-
+    def __init__(self, expressions):
         self.compiled = []
-        for name, expression in self.expressions:
+        for name, expression in expressions:
             try:
                 self.compiled.append(compile(expression, __name__, mode="eval"))
             except Exception:

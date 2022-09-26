@@ -47,8 +47,10 @@ def _get_tel_index(event, tel_id):
 #   (meaning readers need to update scripts)
 # - increase the minor number if new columns or datasets are added
 # - increase the patch number if there is a small bugfix to the model.
-DATA_MODEL_VERSION = "v4.0.0"
+DATA_MODEL_VERSION = "v5.0.0"
 DATA_MODEL_CHANGE_HISTORY = """
+- v5.0.0: - Change DL2 telescope-wise container prefixes from {algorithm}_tel to {algorithm}_tel_{kind}.
+            As of now, this only changes 'tel_distance' to 'tel_impact_distance'
 - v4.0.0: - Changed how ctapipe-specific metadata is stored in hdf5 attributes.
             This breaks backwards and forwards compatibility for almost everything.
           - Container prefixes are now included for reconstruction algorithms
@@ -257,7 +259,6 @@ class DataWriter(Component):
         self._subarray: SubarrayDescription = event_source.subarray
 
         self._hdf5_filters = None
-        self._writer: HDF5TableWriter = None
 
         self._setup_output_path()
         self._setup_compression()
@@ -330,24 +331,23 @@ class DataWriter(Component):
         self.log.info("Finishing output")
         if not self._at_least_one_event:
             self.log.warning("No events have been written to the output file")
-        if self._writer:
-            if self.write_index_tables:
-                self._generate_indices()
 
-            write_reference_metadata_headers(
-                subarray=self._subarray,
-                obs_ids=self.event_source.obs_ids,
-                writer=self._writer,
-                is_simulation=self._is_simulation,
-                data_levels=self.datalevels,
-                contact_info=self.contact_info,
-                instrument_info=self.instrument_info,
-            )
+        if self.write_index_tables:
+            self._generate_indices()
 
-            self._write_context_metadata_headers()
+        write_reference_metadata_headers(
+            subarray=self._subarray,
+            obs_ids=self.event_source.obs_ids,
+            writer=self._writer,
+            is_simulation=self._is_simulation,
+            data_levels=self.datalevels,
+            contact_info=self.contact_info,
+            instrument_info=self.instrument_info,
+        )
 
-            self._writer.close()
-            self._writer = None
+        self._write_context_metadata_headers()
+
+        self._writer.close()
 
     @property
     def datalevels(self):

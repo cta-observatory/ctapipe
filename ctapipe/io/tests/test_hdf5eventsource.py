@@ -1,21 +1,30 @@
 import astropy.units as u
 import numpy as np
+import pytest
 
+from ctapipe.containers import (
+    CameraHillasParametersContainer,
+    CameraTimingParametersContainer,
+)
 from ctapipe.io import DataLevel, EventSource, HDF5EventSource
-from ctapipe.utils import get_dataset_path
 
 
-def test_is_compatible(dl1_file):
-    simtel_path = get_dataset_path("gamma_test_large.simtel.gz")
-    assert not HDF5EventSource.is_compatible(simtel_path)
-    assert HDF5EventSource.is_compatible(dl1_file)
-    with EventSource(input_url=dl1_file) as source:
+def test_is_not_compatible(prod5_gamma_simtel_path):
+    assert not HDF5EventSource.is_compatible(prod5_gamma_simtel_path)
+
+
+@pytest.mark.parametrize("compatible_file", ["dl1_file", "dl2_only_file"])
+def test_is_compatible(compatible_file, request):
+    file = request.getfixturevalue(compatible_file)
+    assert HDF5EventSource.is_compatible(file)
+    with EventSource(input_url=file) as source:
         assert isinstance(source, HDF5EventSource)
 
 
 def test_metadata(dl1_file):
     with HDF5EventSource(input_url=dl1_file) as source:
         assert source.is_simulation
+        assert source.datamodel_version == (5, 0, 0)
         assert set(source.datalevels) == {
             DataLevel.DL1_IMAGES,
             DataLevel.DL1_PARAMETERS,
@@ -181,5 +190,27 @@ def test_read_dl2(dl2_shower_geometry_file):
             assert tel_id in e.dl2.tel
             assert algorithm in e.dl2.tel[tel_id].impact
             impact = e.dl2.tel[tel_id].impact[algorithm]
-            assert impact.prefix == algorithm + "_tel"
+            assert impact.prefix == algorithm + "_tel_impact"
             assert impact.distance is not None
+
+
+def test_dl1_camera_frame(dl1_camera_frame_file):
+    with HDF5EventSource(dl1_camera_frame_file) as s:
+        tel_id = None
+        for e in s:
+            for tel_id, dl1 in e.dl1.tel.items():
+                assert isinstance(
+                    dl1.parameters.hillas, CameraHillasParametersContainer
+                )
+                assert isinstance(
+                    dl1.parameters.timing, CameraTimingParametersContainer
+                )
+                assert dl1.parameters.hillas.intensity is not None
+
+            for tel_id, sim in e.simulation.tel.items():
+                assert isinstance(
+                    sim.true_parameters.hillas, CameraHillasParametersContainer
+                )
+                assert sim.true_parameters.hillas.intensity is not None
+
+        assert tel_id is not None, "did not test any events"

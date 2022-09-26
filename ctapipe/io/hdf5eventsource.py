@@ -65,6 +65,7 @@ DL2_CONTAINERS = {
 
 COMPATIBLE_DATA_MODEL_VERSIONS = [
     "v4.0.0",
+    "v5.0.0",
 ]
 
 
@@ -199,9 +200,9 @@ class HDF5EventSource(EventSource):
             self._scheduling_block,
             self._observation_block,
         ) = self._parse_sb_and_ob_configs()
-        self.datamodel_version = self.file_.root._v_attrs[
-            "CTA PRODUCT DATA MODEL VERSION"
-        ]
+
+        version = self.file_.root._v_attrs["CTA PRODUCT DATA MODEL VERSION"]
+        self.datamodel_version = tuple(map(int, version.lstrip("v").split(".")))
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
@@ -244,7 +245,9 @@ class HDF5EventSource(EventSource):
 
             # we can now read both R1 and DL1
             datalevels = set(metadata["CTA PRODUCT DATA LEVELS"].split(","))
-            if not datalevels.intersection(("R1", "DL1_IMAGES", "DL1_PARAMETERS")):
+            if not datalevels.intersection(
+                ("R1", "DL1_IMAGES", "DL1_PARAMETERS", "DL2")
+            ):
                 return False
 
         return True
@@ -347,6 +350,18 @@ class HDF5EventSource(EventSource):
 
         return scheduling_blocks, observation_blocks
 
+    def _is_hillas_in_camera_frame(self):
+        parameters_group = self.file_.root.dl1.event.telescope.parameters
+        telescope_tables = parameters_group._v_children.values()
+
+        # in case of no parameters, it doesn't matter, we just return False
+        if len(telescope_tables) == 0:
+            return False
+
+        # check the first telescope table
+        one_telescope = parameters_group._v_children.values()[0]
+        return "camera_frame_hillas_intensity" in one_telescope.colnames
+
     def _generator(self):
         """
         Yield ArrayEventContainer to iterate through events.
@@ -385,13 +400,16 @@ class HDF5EventSource(EventSource):
                 }
 
         if DataLevel.DL1_PARAMETERS in self.datalevels:
-            # FIXME: check units or config, not version. We have a switch.
-            if self.datamodel_version >= "v2.1.0":
-                hillas_cls = HillasParametersContainer
-                timing_cls = TimingParametersContainer
-            else:
+            hillas_cls = HillasParametersContainer
+            timing_cls = TimingParametersContainer
+            hillas_prefix = "hillas"
+            timing_prefix = "timing"
+
+            if self._is_hillas_in_camera_frame():
                 hillas_cls = CameraHillasParametersContainer
                 timing_cls = CameraTimingParametersContainer
+                hillas_prefix = "camera_frame_hillas"
+                timing_prefix = "camera_frame_timing"
 
             param_readers = {
                 table.name: self.reader.read(
@@ -406,8 +424,8 @@ class HDF5EventSource(EventSource):
                         PeakTimeStatisticsContainer,
                     ),
                     prefixes=[
-                        "hillas",
-                        "timing",
+                        hillas_prefix,
+                        timing_prefix,
                         "leakage",
                         "concentration",
                         "morphology",
@@ -429,7 +447,7 @@ class HDF5EventSource(EventSource):
                             IntensityStatisticsContainer,
                         ],
                         prefixes=[
-                            "true_hillas",
+                            f"true_{hillas_prefix}",
                             "true_leakage",
                             "true_concentration",
                             "true_morphology",
@@ -477,7 +495,6 @@ class HDF5EventSource(EventSource):
                         key: HDF5TableReader(self.file_).read(
                             table._v_pathname,
                             containers=container,
-                            prefixes=(f"{algorithm}_tel",),
                         )
                         for key, table in algorithm_group._v_children.items()
                     }
@@ -643,6 +660,11 @@ class HDF5EventSource(EventSource):
                     c = getattr(data.dl2.tel[tel_id], kind)
                     for algorithm, readers in algorithms.items():
                         c[algorithm] = next(readers[key])
+
+                        # change prefix to new data model
+                        if kind == "impact" and self.datamodel_version == (4, 0, 0):
+                            prefix = f"{algorithm}_tel_{c[algorithm].default_prefix}"
+                            c[algorithm].prefix = prefix
 
             for kind, readers in dl2_readers.items():
                 c = getattr(data.dl2.stereo, kind)

@@ -2,6 +2,7 @@ import pytest
 from traitlets import TraitError
 from traitlets.config.loader import Config
 
+from ctapipe.containers import ArrayEventContainer
 from ctapipe.core import Component
 from ctapipe.io import DataLevel, EventSource, SimTelEventSource
 from ctapipe.utils import get_dataset_path
@@ -15,17 +16,20 @@ def test_construct():
         EventSource()
 
 
-class DummyReader(EventSource):
+class DummyEventSource(EventSource):
     """
     Simple working EventSource
     """
 
     def _generator(self):
-        return range(5)
+        for i in range(5):
+            yield ArrayEventContainer(count=i)
 
     @staticmethod
     def is_compatible(file_path):
-        return False
+        with open(file_path, "rb") as f:
+            marker = f.read(5)
+        return marker == b"dummy"
 
     @property
     def subarray(self):
@@ -50,13 +54,13 @@ class DummyReader(EventSource):
 
 def test_can_be_implemented():
     dataset = get_dataset_path(prod5_path)
-    test_reader = DummyReader(input_url=dataset)
+    test_reader = DummyEventSource(input_url=dataset)
     assert test_reader is not None
 
 
 def test_is_iterable():
     dataset = get_dataset_path(prod5_path)
-    test_reader = DummyReader(input_url=dataset)
+    test_reader = DummyEventSource(input_url=dataset)
     for _ in test_reader:
         pass
 
@@ -80,11 +84,21 @@ def test_function_nonexistant_file():
         EventSource(input_url=dataset)
 
 
-def test_from_config():
+def test_from_config(tmp_path):
     dataset = get_dataset_path(prod5_path)
     config = Config({"EventSource": {"input_url": dataset}})
     reader = EventSource(config=config)
     assert isinstance(reader, SimTelEventSource)
+    assert reader.input_url == dataset
+
+    # create dummy file
+    dataset = tmp_path / "test.dummy"
+    with dataset.open("wb") as f:
+        f.write(b"dummy")
+
+    config = Config({"EventSource": {"input_url": dataset}})
+    reader = EventSource(config=config)
+    assert isinstance(reader, DummyEventSource)
     assert reader.input_url == dataset
 
 

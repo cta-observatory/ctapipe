@@ -394,18 +394,36 @@ class SubarrayDescription:
 
     @lazyproperty
     def telescope_types(self) -> Tuple[TelescopeDescription]:
-        """list of telescope types in the array"""
-        return tuple({tel for tel in self.tel.values()})
+        """
+        Tuple of unique telescope types in the array
+
+        The entries are ordered by telescope name to be deterministic
+        but the order should not be relied on.
+        """
+        unique_types = set(self.tel.values())
+        return tuple(sorted(unique_types, key=lambda tel: tel.name))
 
     @lazyproperty
     def camera_types(self) -> Tuple[CameraDescription]:
-        """list of camera types in the array"""
-        return tuple({tel.camera for tel in self.tel.values()})
+        """
+        Tuple of unique camera types in the array
+
+        The entries are ordered by camera name to be deterministic
+        but the order should not be relied on.
+        """
+        unique_cameras = {tel.camera for tel in self.tel.values()}
+        return tuple(sorted(unique_cameras, key=lambda camera: camera.name))
 
     @lazyproperty
     def optics_types(self) -> Tuple[OpticsDescription]:
-        """list of optics types in the array"""
-        return tuple({tel.optics for tel in self.tel.values()})
+        """
+        Tuple of unique optics types in the array
+
+        The entries are ordered by optics name to be deterministic
+        but the order should not be relied on.
+        """
+        unique_optics = {tel.optics for tel in self.tel.values()}
+        return tuple(sorted(unique_optics, key=lambda optics: optics.name))
 
     def get_tel_ids_for_type(self, tel_type) -> Tuple[int]:
         """

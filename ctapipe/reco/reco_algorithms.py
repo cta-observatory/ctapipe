@@ -1,11 +1,14 @@
 from abc import abstractmethod
 
+import astropy.units as u
 import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
 
-from ctapipe.containers import ArrayEventContainer, ReconstructedGeometryContainer
+from ctapipe.containers import ArrayEventContainer, TelescopeImpactParameterContainer
 from ctapipe.core import Component, QualityQuery
 from ctapipe.core.traits import List
+
+from .impact_distance import shower_impact_distance
 
 __all__ = ["Reconstructor", "TooFewTelescopesException", "InvalidWidthException"]
 
@@ -45,20 +48,19 @@ class Reconstructor(Component):
 
     @abstractmethod
     def __call__(self, event: ArrayEventContainer):
-        """overwrite this method with your favourite direction reconstruction
-        algorithm
+        """
+        Perform stereo reconstruction on event.
+
+        This method must fill the result of the reconstruction into the
+        dl2 structure of the event.
 
         Parameters
         ----------
-        tels_dict : dict
-            general dictionary containing all triggered telescopes data
-
-        Returns
-        -------
-        `~ctapipe.containers.ReconstructedGeometryContainer`
-
+        event : `ctapipe.containers.ArrayEventContainer`
+            The event, needs to have dl1 parameters.
+            Will be filled with the corresponding dl2 containers,
+            reconstructed stereo geometry and telescope-wise impact position.
         """
-        return ReconstructedGeometryContainer()
 
     def _create_hillas_dict(self, event):
         hillas_dict = {
@@ -93,3 +95,27 @@ class Reconstructor(Component):
             )
             for tel_id in event.dl1.tel.keys()
         }
+
+    def _store_impact_parameter(self, event):
+        """Compute and store the impact parameter for each reconstruction."""
+        geometry = event.dl2.stereo.geometry[self.__class__.__name__]
+
+        if geometry.is_valid:
+            impact_distances = shower_impact_distance(
+                shower_geom=geometry,
+                subarray=self.subarray,
+            )
+        else:
+            n_tels = len(self.subarray)
+            impact_distances = u.Quantity(np.full(n_tels, np.nan), u.m)
+
+        default_prefix = TelescopeImpactParameterContainer.default_prefix
+        prefix = f"{self.__class__.__name__}_tel_{default_prefix}"
+        for tel_id in event.trigger.tels_with_trigger:
+            tel_index = self.subarray.tel_indices[tel_id]
+            event.dl2.tel[tel_id].impact[
+                self.__class__.__name__
+            ] = TelescopeImpactParameterContainer(
+                distance=impact_distances[tel_index],
+                prefix=prefix,
+            )

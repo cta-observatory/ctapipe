@@ -7,12 +7,11 @@ This processor will be able to process a shower/event in 3 steps:
 - estimation of classification (optional, currently unavailable)
 
 """
-from ..containers import ArrayEventContainer, TelescopeImpactParameterContainer
+from ..containers import ArrayEventContainer
 from ..core import Component
-from ..core.traits import create_class_enum_trait
+from ..core.traits import List, create_class_enum_trait
 from ..instrument import SubarrayDescription
 from . import Reconstructor
-from .impact_distance import shower_impact_distance
 
 
 class ShowerProcessor(Component):
@@ -25,11 +24,14 @@ class ShowerProcessor(Component):
     Input events must already contain dl1 parameters.
     """
 
-    reconstructor_type = create_class_enum_trait(
-        Reconstructor,
-        default_value="HillasReconstructor",
-        help="The stereo geometry reconstructor to be used",
-    )
+    reconstructor_types = List(
+        create_class_enum_trait(
+            Reconstructor,
+            default_value="HillasReconstructor",
+        ),
+        default_value=["HillasReconstructor"],
+        help=f"The stereo geometry reconstructors to be used. Choices are: {list(Reconstructor.non_abstract_subclasses().keys())}",
+    ).tag(config=True)
 
     def __init__(
         self, subarray: SubarrayDescription, config=None, parent=None, **kwargs
@@ -52,11 +54,14 @@ class ShowerProcessor(Component):
 
         super().__init__(config=config, parent=parent, **kwargs)
         self.subarray = subarray
-        self.reconstructor = Reconstructor.from_name(
-            self.reconstructor_type,
-            subarray=self.subarray,
-            parent=self,
-        )
+        self.reconstructors = [
+            Reconstructor.from_name(
+                reco_type,
+                subarray=self.subarray,
+                parent=self,
+            )
+            for reco_type in self.reconstructor_types
+        ]
 
     def __call__(self, event: ArrayEventContainer):
         """
@@ -70,21 +75,7 @@ class ShowerProcessor(Component):
         event : ctapipe.containers.ArrayEventContainer
             Top-level container for all event information.
         """
-        k = self.reconstructor_type
-        event.dl2.stereo.geometry[k] = self.reconstructor(event)
-
-        # compute and store the impact parameter for each reconstruction (for
-        # now there is only one, but in the future this should be a loop over
-        # reconstructors)
-
-        # for the stereo reconstructor:
-        impact_distances = shower_impact_distance(
-            shower_geom=event.dl2.stereo.geometry[k], subarray=self.subarray
-        )
-
-        for tel_id in event.trigger.tels_with_trigger:
-            tel_index = self.subarray.tel_indices[tel_id]
-            event.dl2.tel[tel_id].impact[k] = TelescopeImpactParameterContainer(
-                distance=impact_distances[tel_index],
-                prefix=f"{self.reconstructor_type}_tel",
-            )
+        for reco_type, reconstructor in zip(
+            self.reconstructor_types, self.reconstructors
+        ):
+            reconstructor(event)
