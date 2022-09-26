@@ -815,10 +815,17 @@ class DataWriter(Component):
 
         profile = self.event_source.atmosphere_density_profile
 
-        if profile and hasattr(profile, "table"):
-            write_table(
-                table=profile.table,
-                h5file=self._writer.h5file,
-                path=path,
-                append=False,
-            )
+        if profile:
+            if hasattr(profile, "table"):
+                write_table(
+                    table=profile.table,
+                    h5file=self._writer.h5file,
+                    path=path,
+                    append=False,
+                )
+            else:
+                self.logger.warning(
+                    f"The AtmosphereDensityProfile type '{profile.__class__.__name__}' "
+                    "is not serializable. No atmosphere profile will be stored in the "
+                    "output file"
+                )
