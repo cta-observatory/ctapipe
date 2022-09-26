@@ -40,8 +40,8 @@ SUPPORTED_MODELS = {**SUPPORTED_CLASSIFIERS, **SUPPORTED_REGRESSORS}
 class SKLearnReconstructor(Reconstructor):
     """Base Class for a Machine Learning Based Reconstructor.
 
-    Has a single `SKLearnModels` instance to train and apply one model
-    per telescope type for a specific reconstruction task.
+    Keeps a dictionary of sklearn models, the current tools are designed
+    to train one model per telescope type.
     """
 
     #: Name of the target column in training table
