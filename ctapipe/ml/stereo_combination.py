@@ -52,7 +52,7 @@ class StereoCombiner(Component):
         """
 
     @abstractmethod
-    def predict(self, mono_predictions: Table) -> Table:
+    def predict_table(self, mono_predictions: Table) -> Table:
         """
         Constructs stereo predictions from a table of
         telescope events.
@@ -170,7 +170,7 @@ class StereoMeanCombiner(StereoCombiner):
         else:
             raise NotImplementedError(f"Cannot combine {self.combine_property}")
 
-    def predict(self, mono_predictions: Table) -> Table:
+    def predict_table(self, mono_predictions: Table) -> Table:
         """
         Calculates the (array-)event-wise mean.
         Telescope events, that are nan, get discarded.

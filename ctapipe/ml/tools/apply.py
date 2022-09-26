@@ -10,8 +10,7 @@ from ctapipe.core.traits import Bool, Path, create_class_enum_trait, flag
 from ctapipe.io import TableLoader, write_table
 from ctapipe.io.tableio import TelListToMaskTransform
 
-from ..apply import EnergyRegressor, ParticleIdClassifier
-from ..sklearn import Classifier, Regressor
+from ..sklearn import EnergyRegressor, ParticleIdClassifier
 from ..stereo_combination import StereoCombiner
 
 
@@ -21,7 +20,7 @@ class Apply(Tool):
     Predict (gamma)-energy and/or particle id.
     """
 
-    name = "ctapipe-apply"
+    name = "ctapipe-ml-apply"
     description = __doc__
 
     overwrite = Bool(default_value=False).tag(config=True)
@@ -32,6 +31,7 @@ class Apply(Tool):
         directory_ok=False,
         exists=True,
     ).tag(config=True)
+
     output_path = Path(
         default_value=None,
         allow_none=False,
@@ -44,6 +44,7 @@ class Apply(Tool):
         exists=True,
         directory_ok=False,
     ).tag(config=True)
+
     particle_classifier_path = Path(
         default_value=None,
         allow_none=True,
@@ -78,8 +79,8 @@ class Apply(Tool):
 
     classes = [
         TableLoader,
-        Regressor,
-        Classifier,
+        EnergyRegressor,
+        ParticleIdClassifier,
         StereoCombiner,
     ]
 
@@ -106,13 +107,12 @@ class Apply(Tool):
         if self.energy_regressor_path is not None:
             self.regressor = EnergyRegressor.read(
                 self.energy_regressor_path,
-                self.loader.subarray,
                 parent=self,
             )
             self.regressor_combine = StereoCombiner.from_name(
                 self.stereo_combiner_type,
                 combine_property="energy",
-                algorithm=self.regressor.model.model_cls,
+                algorithm=self.regressor.model_cls,
                 parent=self,
             )
             return True
@@ -122,13 +122,12 @@ class Apply(Tool):
         if self.particle_classifier_path is not None:
             self.classifier = ParticleIdClassifier.read(
                 self.particle_classifier_path,
-                self.loader.subarray,
                 parent=self,
             )
             self.classifier_combine = StereoCombiner.from_name(
                 self.stereo_combiner_type,
                 combine_property="classification",
-                algorithm=self.classifier.model.model_cls,
+                algorithm=self.classifier.model_cls,
                 parent=self,
             )
             return True
@@ -146,12 +145,12 @@ class Apply(Tool):
             self._combine(self.classifier_combine, mono_predictions)
 
     def _apply(self, reconstructor, parameter):
-        prefix = reconstructor.model.model_cls
+        prefix = reconstructor.model_cls
 
         tables = []
 
         for tel_id, tel in tqdm(self.loader.subarray.tel.items()):
-            if tel not in reconstructor.model.models:
+            if tel not in reconstructor._models:
                 self.log.warning(
                     "No regressor model for telescope type %s, skipping tel %d",
                     tel,
@@ -166,7 +165,7 @@ class Apply(Tool):
 
             table.remove_columns([c for c in table.colnames if c.startswith(prefix)])
 
-            predictions = reconstructor.predict(tel, table)
+            predictions = reconstructor.predict_table(tel, table)
             table = hstack(
                 [table, predictions],
                 join_type="exact",
@@ -187,7 +186,7 @@ class Apply(Tool):
         return vstack(tables)
 
     def _combine(self, combiner, mono_predictions):
-        stereo_predictions = combiner.predict(mono_predictions)
+        stereo_predictions = combiner.predict_table(mono_predictions)
 
         trafo = TelListToMaskTransform(self.loader.subarray)
         for c in filter(

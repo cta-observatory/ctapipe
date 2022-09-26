@@ -3,10 +3,9 @@ import numpy as np
 from ctapipe.core import Tool
 from ctapipe.core.traits import Int, Path
 from ctapipe.io import TableLoader
-from ctapipe.ml.apply import CrossValidator, EnergyRegressor
 
+from ...ml.sklearn import CrossValidator, EnergyRegressor
 from ..preprocessing import check_valid_rows
-from ..sklearn import Regressor
 
 
 class TrainEnergyRegressor(Tool):
@@ -31,7 +30,7 @@ class TrainEnergyRegressor(Tool):
 
     classes = [
         TableLoader,
-        Regressor,
+        EnergyRegressor,
         CrossValidator,
     ]
 
@@ -65,7 +64,7 @@ class TrainEnergyRegressor(Tool):
             self.cross_validate(tel_type, table)
 
             self.log.info("Performing final fit for %s", tel_type)
-            self.regressor.model.fit(tel_type, table)
+            self.regressor.fit(tel_type, table)
             self.log.info("done")
 
     def _read_table(self, telescope_type):
@@ -78,7 +77,7 @@ class TrainEnergyRegressor(Tool):
 
         table = self.regressor.generate_features(table)
 
-        feature_names = self.regressor.model.features + [self.regressor.target]
+        feature_names = self.regressor.features + [self.regressor.target]
         table = table[feature_names]
 
         valid = check_valid_rows(table)

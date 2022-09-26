@@ -5,8 +5,8 @@ from ctapipe.core.tool import Tool, ToolConfigurationError
 from ctapipe.core.traits import Int, Path
 from ctapipe.io import TableLoader
 
-from ..apply import CrossValidator, ParticleIdClassifier
 from ..preprocessing import check_valid_rows
+from ..sklearn import CrossValidator, ParticleIdClassifier
 
 
 class TrainParticleIdClassifier(Tool):
@@ -103,7 +103,7 @@ class TrainParticleIdClassifier(Tool):
             self.cross_validate(tel_type, table)
 
             self.log.info("Performing final fit for %s", tel_type)
-            self.classifier.model.fit(tel_type, table)
+            self.classifier.fit(tel_type, table)
             self.log.info("done")
 
     def _read_table(self, telescope_type, loader, n_events=None):
@@ -116,7 +116,7 @@ class TrainParticleIdClassifier(Tool):
 
         table = self.classifier.generate_features(table)
 
-        columns = self.classifier.model.features + [self.classifier.target]
+        columns = self.classifier.features + [self.classifier.target]
         table = table[columns]
 
         valid = check_valid_rows(table)

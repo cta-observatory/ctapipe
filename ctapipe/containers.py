@@ -830,9 +830,6 @@ class ParticleClassificationContainer(Container):
 
     default_prefix = ""
 
-    # TODO: Do people agree on this? This is very MAGIC-like.
-    # TODO: Perhaps an integer classification to support different classes?
-    # TODO: include an error on the prediction?
     prediction = Field(
         nan,
         (

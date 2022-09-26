@@ -6,33 +6,34 @@
 # ======================================================================
 
 TrainEnergyRegressor:
+  CrossValidator:
+    n_cross_validations: 5
 
   EnergyRegressor:
-    Regressor:
-      model_cls: ExtraTreesRegressor
-      model_config:
-        n_estimators: 10
-        max_depth: 10
-        n_jobs: -1
+    model_cls: ExtraTreesRegressor
+    model_config:
+      n_estimators: 10
+      max_depth: 10
+      n_jobs: -1
 
-      features:
-        - hillas_intensity
-        - hillas_length
-        - hillas_width
-        - hillas_r
-        - hillas_skewness
-        - timing_slope
-        - leakage_intensity_width_1
-        - leakage_intensity_width_2
-        - leakage_pixels_width_1
-        - leakage_pixels_width_2
-        - concentration_cog
-        - concentration_core
-        - morphology_n_pixels
-        - mirror_area
-        - HillasReconstructor_average_intensity
-        - HillasReconstructor_h_max
-        - area
+    features:
+      - hillas_intensity
+      - hillas_length
+      - hillas_width
+      - hillas_r
+      - hillas_skewness
+      - timing_slope
+      - leakage_intensity_width_1
+      - leakage_intensity_width_2
+      - leakage_pixels_width_1
+      - leakage_pixels_width_2
+      - concentration_cog
+      - concentration_core
+      - morphology_n_pixels
+      - mirror_area
+      - HillasReconstructor_average_intensity
+      - HillasReconstructor_h_max
+      - area
 
     QualityQuery:
       quality_criteria:
@@ -45,39 +46,37 @@ TrainEnergyRegressor:
     FeatureGenerator:
       features:
         - ["area", "hillas_width * hillas_length"]
-
-    CrossValidator:
-      n_cross_validations: 5
 
 
 TrainParticleIdClassifier:
+  CrossValidator:
+    n_cross_validations: 5
 
   ParticleIdClassifier:
-    Classifier:
-      model_cls: ExtraTreesClassifier
-      model_config:
-        n_estimators: 10
-        max_depth: 10
-        n_jobs: -1
+    model_cls: ExtraTreesClassifier
+    model_config:
+      n_estimators: 10
+      max_depth: 10
+      n_jobs: -1
 
-      features:
-        - hillas_intensity
-        - hillas_length
-        - hillas_width
-        - hillas_r
-        - hillas_skewness
-        - timing_slope
-        - leakage_intensity_width_1
-        - leakage_intensity_width_2
-        - leakage_pixels_width_1
-        - leakage_pixels_width_2
-        - concentration_cog
-        - concentration_core
-        - morphology_n_pixels
-        - mirror_area
-        - HillasReconstructor_average_intensity
-        - HillasReconstructor_h_max
-        - area
+    features:
+      - hillas_intensity
+      - hillas_length
+      - hillas_width
+      - hillas_r
+      - hillas_skewness
+      - timing_slope
+      - leakage_intensity_width_1
+      - leakage_intensity_width_2
+      - leakage_pixels_width_1
+      - leakage_pixels_width_2
+      - concentration_cog
+      - concentration_core
+      - morphology_n_pixels
+      - mirror_area
+      - HillasReconstructor_average_intensity
+      - HillasReconstructor_h_max
+      - area
 
     QualityQuery:
       quality_criteria:
@@ -91,5 +90,3 @@ TrainParticleIdClassifier:
       features:
         - ["area", "hillas_width * hillas_length"]
 
-    CrossValidator:
-      n_cross_validations: 5
