@@ -9,7 +9,7 @@ import joblib
 import numpy as np
 from astropy.table import Table, vstack
 from astropy.utils.decorators import lazyproperty
-from sklearn import metrics
+from sklearn.metrics import r2_score, roc_auc_score
 from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.utils import all_estimators
 from tqdm import tqdm
@@ -128,7 +128,7 @@ class SKLearnReconstructor(Reconstructor):
         -------
         Table
         """
-        features = dict()
+        features = {}
 
         features.update(
             event.dl1.tel[tel_id].parameters.as_dict(
@@ -173,6 +173,9 @@ class SKLearnReconstructor(Reconstructor):
         return np.array(table[self.target][mask])
 
     def fit(self, key, table):
+        """
+        Create and fit a new model for ``key`` using the data in ``table``.
+        """
         self._models[key] = self._new_model()
 
         X, valid = self._table_to_X(table)
@@ -512,7 +515,7 @@ class CrossValidator(Component):
         regressor.fit(telescope_type, train)
         prediction, _ = regressor._predict(telescope_type, test)
         truth = test[regressor.target]
-        r2 = metrics.r2_score(truth, prediction)
+        r2 = r2_score(truth, prediction)
         return prediction, truth, {"R^2": r2}
 
     def _cross_validate_classification(self, telescope_type, train, test):
@@ -524,7 +527,7 @@ class CrossValidator(Component):
             1,
             0,
         )
-        roc_auc = metrics.roc_auc_score(truth, prediction)
+        roc_auc = roc_auc_score(truth, prediction)
         return prediction, truth, {"ROC AUC": roc_auc}
 
     def write(self):

@@ -1,3 +1,6 @@
+"""
+Tool to apply machine learning models in bulk (as opposed to event by event).
+"""
 import shutil
 
 import numpy as np
@@ -147,7 +150,7 @@ class Apply(Tool):
     def _apply(self, reconstructor, parameter):
         prefix = reconstructor.model_cls
 
-        tables = []
+        tel_tables = []
 
         desc = f"Applying {reconstructor.__class__.__name__}"
         unit = "telescope"
@@ -180,12 +183,12 @@ class Apply(Tool):
                 mode="a",
                 overwrite=self.overwrite,
             )
-            tables.append(table)
+            tel_tables.append(table)
 
-        if len(tables) == 0:
+        if len(tel_tables) == 0:
             raise ValueError("No predictions made for any telescope")
 
-        return vstack(tables)
+        return vstack(tel_tables)
 
     def _combine(self, combiner, mono_predictions):
         stereo_predictions = combiner.predict_table(mono_predictions)

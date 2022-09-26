@@ -5,12 +5,13 @@ learning algorithms like sklearn models.
 These functions are mainly taken from https://github.com/fact-project/aict-tools
 and adapted to work with astropy Tables instead of pandas dataframes
 """
+import logging
+
 import numpy as np
 from astropy.table import Table
 from numpy.lib.recfunctions import structured_to_unstructured
-import logging
 
-log = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
 
 __all__ = ["table_to_float", "check_valid_rows"]
@@ -23,7 +24,7 @@ def table_to_float(table: Table, dtype=np.float32) -> np.ndarray:
     return X
 
 
-def check_valid_rows(table: Table, warn=True, log=log) -> np.ndarray:
+def check_valid_rows(table: Table, warn=True, log=LOG) -> np.ndarray:
     """Check for nans, returning a mask of the rows not containing any nans"""
 
     nans = np.array([np.isnan(col) for col in table.columns.values()]).T
@@ -36,6 +37,6 @@ def check_valid_rows(table: Table, warn=True, log=log) -> np.ndarray:
                 f"{k}: {v}" for k, v in zip(table.colnames, nan_counts) if v > 0
             )
             log.warning("Data contains not-predictable events.")
-            log.warning(f"Number of nan-values in columns: {nan_counts_str}")
+            log.warning("Number of nan-values in columns: %s", nan_counts_str)
 
     return valid

@@ -1,3 +1,6 @@
+"""
+Test fixtures for the ml module
+"""
 import pytest
 
 from ctapipe.core import run_tool
