@@ -26,9 +26,9 @@ __all__ = [
     "FiveLayerAtmosphereDensityProfile",
 ]
 
-SUPPORTED_TABLE_VERSIONS = [
+SUPPORTED_TABLE_VERSIONS = {
     1,
-]
+}
 
 
 class AtmosphereDensityProfile(abc.ABC):
@@ -128,6 +128,7 @@ class AtmosphereDensityProfile(abc.ABC):
         axis[2].grid(True)
 
         plt.show()
+        return fig, axis
 
     @classmethod
     def from_table(cls, table: Table):
