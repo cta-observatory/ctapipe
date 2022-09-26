@@ -133,23 +133,23 @@ class HillasReconstructor(Reconstructor):
 
     def __call__(self, event):
         """
-        Perform the full shower geometry reconstruction on the input event.
+        Perform the full shower geometry reconstruction.
 
         Parameters
         ----------
-        event: `ctapipe.containers.ArrayEventContainer`
-            The event, needs to have dl1 parameters
-
-        Returns
-        -------
-        ReconstructedGeometryContainer
+        event : `~ctapipe.containers.ArrayEventContainer`
+            The event, needs to have dl1 parameters.
+            Will be filled with the corresponding dl2 containers,
+            reconstructed stereo geometry and telescope-wise impact position.
         """
         warnings.filterwarnings(action="ignore", category=MissingFrameAttributeWarning)
 
         try:
             hillas_dict = self._create_hillas_dict(event)
         except (TooFewTelescopesException, InvalidWidthException):
-            return INVALID
+            event.dl2.stereo.geometry[self.__class__.__name__] = INVALID
+            self._store_impact_parameter(event)
+            return
 
         # Here we perform some basic quality checks BEFORE applying reconstruction
         # This should be substituted by a DL1 QualityQuery specific to this

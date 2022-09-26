@@ -96,14 +96,18 @@ class HillasIntersection(Reconstructor):
 
         Parameters
         ----------
-        event: `ctapipe.containers.ArrayEventContainer`
-            The event, needs to have dl1 parameters
+        event : `~ctapipe.containers.ArrayEventContainer`
+            The event, needs to have dl1 parameters.
+            Will be filled with the corresponding dl2 containers,
+            reconstructed stereo geometry and telescope-wise impact position.
         """
 
         try:
             hillas_dict = self._create_hillas_dict(event)
         except (TooFewTelescopesException, InvalidWidthException):
-            return INVALID
+            event.dl2.stereo.geometry[self.__class__.__name__] = INVALID
+            self._store_impact_parameter(event)
+            return
 
         # Due to tracking the pointing of the array will never be a constant
         array_pointing = SkyCoord(

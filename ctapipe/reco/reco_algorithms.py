@@ -1,5 +1,6 @@
 from abc import abstractmethod
 
+import astropy.units as u
 import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
 
@@ -47,18 +48,18 @@ class Reconstructor(Component):
 
     @abstractmethod
     def __call__(self, event: ArrayEventContainer):
-        """overwrite this method with your favourite direction reconstruction
-        algorithm
+        """
+        Perform stereo reconstruction on event.
+
+        This method must fill the result of the reconstruction into the
+        dl2 structure of the event.
 
         Parameters
         ----------
-        tels_dict : dict
-            general dictionary containing all triggered telescopes data
-        Returns
-        -------
-        None
-        Container are directly filled into the event structure
-
+        event : `ctapipe.containers.ArrayEventContainer`
+            The event, needs to have dl1 parameters.
+            Will be filled with the corresponding dl2 containers,
+            reconstructed stereo geometry and telescope-wise impact position.
         """
 
     def _create_hillas_dict(self, event):
@@ -97,10 +98,17 @@ class Reconstructor(Component):
 
     def _store_impact_parameter(self, event):
         """Compute and store the impact parameter for each reconstruction."""
-        impact_distances = shower_impact_distance(
-            shower_geom=event.dl2.stereo.geometry[self.__class__.__name__],
-            subarray=self.subarray,
-        )
+        geometry = event.dl2.stereo.geometry[self.__class__.__name__]
+
+        if geometry.is_valid:
+            impact_distances = shower_impact_distance(
+                shower_geom=geometry,
+                subarray=self.subarray,
+            )
+        else:
+            n_tels = len(self.subarray)
+            impact_distances = u.Quantity(np.full(n_tels, np.nan), u.m)
+
         default_prefix = TelescopeImpactParameterContainer.default_prefix
         prefix = f"{self.__class__.__name__}_tel_{default_prefix}"
         for tel_id in event.trigger.tels_with_trigger:
