@@ -27,7 +27,7 @@ __all__ = [
 ]
 
 
-class AtmosphereDensityProfile:
+class AtmosphereDensityProfile(abc.ABC):
     """
     Base class for models of atmosphere density.
     """
