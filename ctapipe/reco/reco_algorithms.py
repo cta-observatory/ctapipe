@@ -48,18 +48,18 @@ class Reconstructor(Component):
 
     @abstractmethod
     def __call__(self, event: ArrayEventContainer):
-        """overwrite this method with your favourite direction reconstruction
-        algorithm
+        """
+        Perform stereo reconstruction on event.
+
+        This method must fill the result of the reconstruction into the
+        dl2 structure of the event.
 
         Parameters
         ----------
-        tels_dict : dict
-            general dictionary containing all triggered telescopes data
-        Returns
-        -------
-        None
-        Container are directly filled into the event structure
-
+        event : `ctapipe.containers.ArrayEventContainer`
+            The event, needs to have dl1 parameters.
+            Will be filled with the corresponding dl2 containers,
+            reconstructed stereo geometry and telescope-wise impact position.
         """
 
     def _create_hillas_dict(self, event):

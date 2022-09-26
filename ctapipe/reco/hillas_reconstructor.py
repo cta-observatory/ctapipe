@@ -133,16 +133,14 @@ class HillasReconstructor(Reconstructor):
 
     def __call__(self, event):
         """
-        Perform the full shower geometry reconstruction on the input event.
+        Perform the full shower geometry reconstruction.
 
         Parameters
         ----------
-        event: `ctapipe.containers.ArrayEventContainer`
-            The event, needs to have dl1 parameters
-
-        Returns
-        -------
-        ReconstructedGeometryContainer
+        event : `~ctapipe.containers.ArrayEventContainer`
+            The event, needs to have dl1 parameters.
+            Will be filled with the corresponding dl2 containers,
+            reconstructed stereo geometry and telescope-wise impact position.
         """
         warnings.filterwarnings(action="ignore", category=MissingFrameAttributeWarning)
 

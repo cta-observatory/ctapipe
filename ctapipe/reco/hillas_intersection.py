@@ -96,8 +96,10 @@ class HillasIntersection(Reconstructor):
 
         Parameters
         ----------
-        event: `ctapipe.containers.ArrayEventContainer`
-            The event, needs to have dl1 parameters
+        event : `~ctapipe.containers.ArrayEventContainer`
+            The event, needs to have dl1 parameters.
+            Will be filled with the corresponding dl2 containers,
+            reconstructed stereo geometry and telescope-wise impact position.
         """
 
         try:
