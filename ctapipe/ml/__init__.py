@@ -1,19 +1,18 @@
-from .apply import (
-    Reconstructor,
-    ClassificationReconstructor,
-    RegressionReconstructor,
+from .sklearn import (
     EnergyRegressor,
     ParticleIdClassifier,
+    SKLearnClassficationReconstructor,
+    SKLearnReconstructor,
+    SKLearnRegressionReconstructor,
 )
-
 from .stereo_combination import StereoCombiner, StereoMeanCombiner
 
 __all__ = [
-    "ClassificationReconstructor",
     "EnergyRegressor",
     "ParticleIdClassifier",
-    "Reconstructor",
-    "RegressionReconstructor",
+    "SKLearnReconstructor",
+    "SKLearnClassficationReconstructor",
+    "SKLearnRegressionReconstructor",
     "StereoMeanCombiner",
     "StereoCombiner",
 ]

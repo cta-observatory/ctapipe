@@ -1,27 +1,30 @@
+import astropy.units as u
 import numpy as np
 import pytest
 from astropy.table import Table
-import astropy.units as u
-from ctapipe.core import Component
-from ctapipe.ml.sklearn import Classifier, Regressor
 from numpy.testing import assert_array_equal
 from traitlets import TraitError
 from traitlets.config import Config
+
+from ctapipe.core import Component
+from ctapipe.ml.sklearn import EnergyRegressor, ParticleIdClassifier
 
 KEY = "LST_LST_LSTCam"
 
 
 def test_supported_regressors():
-    from ctapipe.ml.sklearn import SUPPORTED_REGRESSORS
     from sklearn.ensemble import RandomForestRegressor
+
+    from ctapipe.ml.sklearn import SUPPORTED_REGRESSORS
 
     assert "RandomForestRegressor" in SUPPORTED_REGRESSORS
     assert SUPPORTED_REGRESSORS["RandomForestRegressor"] is RandomForestRegressor
 
 
 def test_supported_classifiers():
-    from ctapipe.ml.sklearn import SUPPORTED_CLASSIFIERS
     from sklearn.ensemble import RandomForestClassifier
+
+    from ctapipe.ml.sklearn import SUPPORTED_CLASSIFIERS
 
     assert "RandomForestClassifier" in SUPPORTED_CLASSIFIERS
     assert SUPPORTED_CLASSIFIERS["RandomForestClassifier"] is RandomForestClassifier
@@ -55,46 +58,44 @@ def example_table():
         n_samples=100, n_features=5, n_informative=3, random_state=0
     )
     t = Table({f"X{i}": col for i, col in enumerate(X.T)})
-    t["energy"] = y * u.TeV
+    t["true_energy"] = y * u.TeV
     t["X0"][10] = np.nan
     t["X1"][30] = np.nan
 
     X, y = make_blobs(n_samples=100, n_features=3, centers=2, random_state=0)
     for i, col in enumerate(X.T, start=5):
         t[f"X{i}"] = col
-    t["particle"] = y
+    t["true_shower_primary_id"] = y
 
     return t
 
 
-def test_model_init():
-    from ctapipe.ml.sklearn import Classifier
+def test_model_init(example_subarray):
     from sklearn.ensemble import RandomForestClassifier
 
     # need to provide a model_cls
     with pytest.raises(TraitError):
-        Classifier()
+        ParticleIdClassifier(example_subarray)
 
     # cannot be a regressor
     with pytest.raises(TraitError):
-        Classifier(model_cls="RandomForestRegressor")
+        ParticleIdClassifier(example_subarray, model_cls="RandomForestRegressor")
 
     # should create class with sklearn defaults
-    c = Classifier(model_cls="RandomForestClassifier")
-    assert isinstance(c.new_model(), RandomForestClassifier)
+    c = ParticleIdClassifier(example_subarray, model_cls="RandomForestClassifier")
+    assert isinstance(c._new_model(), RandomForestClassifier)
 
     config = Config(
         {
-            "Classifier": {
+            "ParticleIdClassifier": {
                 "model_cls": "RandomForestClassifier",
                 "model_config": {"n_estimators": 20, "max_depth": 15},
             }
         }
     )
 
-    # should create class with sklearn defaults
-    c = Classifier(config=config)
-    clf = c.new_model()
+    c = ParticleIdClassifier(example_subarray, config=config)
+    clf = c._new_model()
     assert isinstance(clf, RandomForestClassifier)
     assert clf.n_estimators == 20
     assert clf.max_depth == 15
@@ -102,19 +103,20 @@ def test_model_init():
 
 @pytest.mark.parametrize("model_cls", ["LinearRegression", "RandomForestRegressor"])
 @pytest.mark.parametrize("log_target", (False, True))
-def test_regressor(model_cls, example_table, log_target):
-    from ctapipe.ml.sklearn import Regressor
-
-    regressor = Regressor(
+def test_regressor(model_cls, example_table, log_target, example_subarray):
+    regressor = EnergyRegressor(
+        example_subarray,
         model_cls=model_cls,
-        target="energy",
         features=[f"X{i}" for i in range(8)],
         log_target=log_target,
     )
 
     regressor.fit(KEY, example_table)
-    prediction, valid = regressor.predict(KEY, example_table)
+    table = regressor.predict_table(KEY, example_table)
+    prediction = table[f"{model_cls}_energy"].quantity
+    valid = table[f"{model_cls}_is_valid"]
     assert prediction.shape == (100,)
+    assert prediction.unit == u.TeV
     assert not valid[10]
     assert not valid[30]
     assert np.isfinite(prediction[valid]).all()
@@ -122,15 +124,15 @@ def test_regressor(model_cls, example_table, log_target):
 
 
 @pytest.mark.parametrize("model_cls", ["LinearRegression", "RandomForestRegressor"])
-def test_regressor_single_event(model_cls, example_table):
-    from ctapipe.ml.sklearn import Regressor
-
-    regressor = Regressor(
-        model_cls=model_cls, target="energy", features=[f"X{i}" for i in range(8)]
+def test_regressor_single_event(model_cls, example_table, example_subarray):
+    regressor = EnergyRegressor(
+        example_subarray, model_cls=model_cls, features=[f"X{i}" for i in range(8)]
     )
-
     regressor.fit(KEY, example_table)
-    prediction, valid = regressor.predict(KEY, example_table[[0]])
+
+    table = regressor.predict_table(KEY, example_table[[0]])
+    prediction = table[f"{model_cls}_energy"].quantity
+    valid = table[f"{model_cls}_is_valid"]
     assert prediction.unit == u.TeV
     assert prediction.shape == (1,)
 
@@ -139,42 +141,25 @@ def test_regressor_single_event(model_cls, example_table):
     for col in filter(lambda col: col.startswith("X"), invalid.colnames):
         invalid[col][:] = np.nan
 
-    prediction, valid = regressor.predict(KEY, invalid)
+    table = regressor.predict_table(KEY, invalid)
+    prediction = table[f"{model_cls}_energy"].quantity
+    valid = table[f"{model_cls}_is_valid"]
     assert prediction.shape == (1,)
     assert valid[0] == False
-
-
-def test_regressor_log_target(example_table):
-    from ctapipe.ml.sklearn import Regressor
-
-    regressor = Regressor(
-        model_cls="LinearRegression",
-        target="energy",
-        log_target=True,
-        features=[f"X{i}" for i in range(8)],
-    )
-
-    regressor.fit(KEY, example_table)
-    prediction, valid = regressor.predict(KEY, example_table)
-    assert prediction.shape == (100,)
-    assert np.isnan(prediction[10])
-    assert np.isnan(prediction[30])
-    assert not valid[10]
-    assert not valid[30]
 
 
 @pytest.mark.parametrize(
     "model_cls", ["KNeighborsClassifier", "RandomForestClassifier"]
 )
-def test_classifier(model_cls, example_table):
-    from ctapipe.ml.sklearn import Classifier
-
-    classifier = Classifier(
-        model_cls=model_cls, target="particle", features=[f"X{i}" for i in range(8)]
+def test_classifier(model_cls, example_table, example_subarray):
+    classifier = ParticleIdClassifier(
+        example_subarray,
+        model_cls=model_cls,
+        features=[f"X{i}" for i in range(8)],
     )
 
     classifier.fit(KEY, example_table)
-    prediction, valid = classifier.predict(KEY, example_table)
+    prediction, valid = classifier._predict(KEY, example_table)
     assert prediction.shape == (100,)
     assert_array_equal(np.unique(prediction), [-1, 0, 1])
     assert prediction[10] == -1
@@ -182,7 +167,7 @@ def test_classifier(model_cls, example_table):
     assert not valid[10]
     assert not valid[30]
 
-    score, valid = classifier.predict_score(KEY, example_table)
+    score, valid = classifier._predict_score(KEY, example_table)
     assert score.shape == (100,)
     assert np.isnan(score[10])
     assert np.isnan(score[30])
@@ -190,49 +175,35 @@ def test_classifier(model_cls, example_table):
     assert not valid[30]
 
     valid = np.isfinite(score)
-    assert_array_equal((score[valid] > 0.5).astype(int), prediction[valid])
+    assert_array_equal((score[valid] < 0.5).astype(int), prediction[valid])
+
+    result_table = classifier.predict_table(KEY, example_table)
+    score = result_table[f"{model_cls}_prediction"].quantity
+    valid = result_table[f"{model_cls}_is_valid"]
+    assert score.shape == (100,)
+    assert np.isnan(score[10])
+    assert np.isnan(score[30])
+    assert not valid[10]
+    assert not valid[30]
+
+    valid = np.isfinite(score)
+    assert_array_equal((score[valid] < 0.5).astype(int), prediction[valid])
 
 
-def test_io(example_table, tmp_path):
-    from ctapipe.ml.sklearn import Classifier, Regressor
+def test_io_with_parent(example_table, tmp_path, example_subarray):
+    class Parent(Component):
+        def __init__(self, config):
+            super().__init__(config=config)
+            self.classifier = ParticleIdClassifier(
+                parent=self,
+                subarray=example_subarray,
+            )
 
-    classifier = Classifier(
-        model_cls="RandomForestClassifier",
-        model_config=dict(n_estimators=5, max_depth=3),
-        target="particle",
-        features=[f"X{i}" for i in range(8)],
-    )
-
-    classifier.fit(KEY, example_table)
-    path = tmp_path / "classifier.pkl"
-
-    classifier.write(path)
-    loaded = Classifier.load(path)
-    assert loaded.features == classifier.features
-    assert len(loaded.models) == 1
-    assert KEY in loaded.models
-    assert_array_equal(
-        loaded.models[KEY].feature_importances_,
-        classifier.models[KEY].feature_importances_,
-    )
-
-    with pytest.raises(TypeError):
-        Regressor.load(path)
-
-
-class Parent(Component):
-    def __init__(self, config):
-        super().__init__(config=config)
-        self.classifier = Classifier(parent=self)
-
-
-def test_io_with_parent(example_table, tmp_path):
     config = Config(
         dict(
-            Classifier=dict(
+            ParticleIdClassifier=dict(
                 model_cls="RandomForestClassifier",
                 model_config=dict(n_estimators=5, max_depth=3),
-                target="particle",
                 features=[f"X{i}" for i in range(8)],
             )
         )
@@ -243,12 +214,12 @@ def test_io_with_parent(example_table, tmp_path):
     path = tmp_path / "classifier.pkl"
 
     parent.classifier.write(path)
-    loaded = Classifier.load(path)
+    loaded = ParticleIdClassifier.read(path)
     assert loaded.features == parent.classifier.features
     assert_array_equal(
-        loaded.models[KEY].feature_importances_,
-        parent.classifier.models[KEY].feature_importances_,
+        loaded._models[KEY].feature_importances_,
+        parent.classifier._models[KEY].feature_importances_,
     )
 
     with pytest.raises(TypeError):
-        Regressor.load(path)
+        EnergyRegressor.read(path)

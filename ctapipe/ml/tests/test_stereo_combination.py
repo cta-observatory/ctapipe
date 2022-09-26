@@ -1,15 +1,16 @@
-import pytest
-from astropy.table import Table
 import astropy.units as u
 import numpy as np
+import pytest
+from astropy.table import Table
 from numpy.testing import assert_array_equal
+
 from ctapipe.containers import (
+    ArrayEventContainer,
     HillasParametersContainer,
     ImageParametersContainer,
-    ReconstructedEnergyContainer,
     ParticleClassificationContainer,
-    ArrayEventContainer,
     ReconstructedContainer,
+    ReconstructedEnergyContainer,
 )
 from ctapipe.ml.stereo_combination import StereoMeanCombiner
 
@@ -57,7 +58,7 @@ def test_predict_mean_energy(weights, mono_table):
         combine_property="energy",
         weights=weights,
     )
-    stereo = combine.predict(mono_table)
+    stereo = combine.predict_table(mono_table)
     assert stereo.colnames == [
         "obs_id",
         "event_id",
@@ -83,7 +84,7 @@ def test_predict_mean_classification(mono_table):
         algorithm="classifier",
         combine_property="classification",
     )
-    stereo = combine.predict(mono_table)
+    stereo = combine.predict_table(mono_table)
     assert stereo.colnames == [
         "obs_id",
         "event_id",

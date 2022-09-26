@@ -203,14 +203,12 @@ class ProcessorTool(Tool):
         if self.energy_regressor_path is not None:
             self.energy_regressor = EnergyRegressor.read(
                 self.energy_regressor_path,
-                self.event_source.subarray,
                 parent=self,
             )
         self.particle_classifier = None
         if self.particle_classifier_path is not None:
             self.particle_classifier = ParticleIdClassifier.read(
                 self.particle_classifier_path,
-                self.event_source.subarray,
                 parent=self,
             )
 
