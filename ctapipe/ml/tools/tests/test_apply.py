@@ -29,13 +29,13 @@ def test_apply_energy_regressor(
     assert "ExtraTreesRegressor_energy" in events.colnames
     assert "ExtraTreesRegressor_energy_uncert" in events.colnames
     assert "ExtraTreesRegressor_is_valid" in events.colnames
-    assert "ExtraTreesRegressor_tel_ids" in events.colnames
+    assert "ExtraTreesRegressor_telescopes" in events.colnames
 
     events = loader.read_telescope_events()
     assert "ExtraTreesRegressor_energy" in events.colnames
     assert "ExtraTreesRegressor_energy_uncert" in events.colnames
     assert "ExtraTreesRegressor_is_valid" in events.colnames
-    assert "ExtraTreesRegressor_tel_ids" in events.colnames
+    assert "ExtraTreesRegressor_telescopes" in events.colnames
 
     assert "ExtraTreesRegressor_tel_energy" in events.colnames
     assert "ExtraTreesRegressor_tel_is_valid" in events.colnames
@@ -65,13 +65,13 @@ def test_apply_particle_classifier(
     loader = TableLoader(output_path, load_dl2=True)
     events = loader.read_subarray_events()
     assert "ExtraTreesClassifier_prediction" in events.colnames
-    assert "ExtraTreesClassifier_tel_ids" in events.colnames
+    assert "ExtraTreesClassifier_telescopes" in events.colnames
     assert "ExtraTreesClassifier_is_valid" in events.colnames
     assert "ExtraTreesClassifier_goodness_of_fit" in events.colnames
 
     events = loader.read_telescope_events()
     assert "ExtraTreesClassifier_prediction" in events.colnames
-    assert "ExtraTreesClassifier_tel_ids" in events.colnames
+    assert "ExtraTreesClassifier_telescopes" in events.colnames
     assert "ExtraTreesClassifier_is_valid" in events.colnames
     assert "ExtraTreesClassifier_goodness_of_fit" in events.colnames
 

@@ -29,8 +29,8 @@ def mono_table():
             "hillas_intensity": [1, 2, 0, 1, 5, 9],
             "hillas_width": [0.1, 0.2, 0.1, 0.1, 0.2, 0.1] * u.deg,
             "hillas_length": 3 * ([0.1, 0.2, 0.1, 0.1, 0.2, 0.1] * u.deg),
-            "dummy_energy": [1, 10, 4, 0.5, 0.7, 1] * u.TeV,
-            "dummy_is_valid": [
+            "dummy_tel_energy": [1, 10, 4, 0.5, 0.7, 1] * u.TeV,
+            "dummy_tel_is_valid": [
                 True,
                 True,
                 True,
@@ -38,8 +38,8 @@ def mono_table():
                 False,
                 False,
             ],
-            "classifier_prediction": [1, 0, 0.5, 0, 0.6, 1],
-            "classifier_is_valid": [
+            "classifier_tel_prediction": [1, 0, 0.5, 0, 0.6, 1],
+            "classifier_tel_is_valid": [
                 True,
                 True,
                 False,
@@ -66,7 +66,7 @@ def test_predict_mean_energy(weights, mono_table):
         "dummy_energy_uncert",
         "dummy_is_valid",
         "dummy_goodness_of_fit",
-        "dummy_tel_ids",
+        "dummy_telescopes",
     ]
     assert_array_equal(stereo["obs_id"], np.array([1, 1, 2]))
     assert_array_equal(stereo["event_id"], np.array([1, 2, 1]))
@@ -75,8 +75,8 @@ def test_predict_mean_energy(weights, mono_table):
     elif weights == "none":
         assert_array_equal(stereo["dummy_energy"], [5, 0.5, np.nan] * u.TeV)
 
-    assert_array_equal(stereo["dummy_tel_ids"][0], np.array([1, 2, 3]))
-    assert_array_equal(stereo["dummy_tel_ids"][1], 5)
+    assert_array_equal(stereo["dummy_telescopes"][0], np.array([1, 2, 3]))
+    assert_array_equal(stereo["dummy_telescopes"][1], 5)
 
 
 def test_predict_mean_classification(mono_table):
@@ -91,7 +91,7 @@ def test_predict_mean_classification(mono_table):
         "classifier_prediction",
         "classifier_is_valid",
         "classifier_goodness_of_fit",
-        "classifier_tel_ids",
+        "classifier_telescopes",
     ]
     assert_array_equal(stereo["obs_id"], np.array([1, 1, 2]))
     assert_array_equal(stereo["event_id"], np.array([1, 2, 1]))
@@ -99,7 +99,7 @@ def test_predict_mean_classification(mono_table):
         stereo["classifier_prediction"],
         [0.5, 0.3, 1],
     )
-    tel_ids = stereo["classifier_tel_ids"]
+    tel_ids = stereo["classifier_telescopes"]
     assert_array_equal(tel_ids[0], [1, 2])
     assert_array_equal(tel_ids[1], [5, 7])
     assert_array_equal(tel_ids[2], [1])
