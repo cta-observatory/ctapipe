@@ -469,7 +469,11 @@ class CrossValidator(Component):
 
         cv_it = kfold.split(table, table[self.model_component.target])
         for fold, (train_indices, test_indices) in enumerate(
-            tqdm(cv_it, total=self.n_cross_validations)
+            tqdm(
+                cv_it,
+                total=self.n_cross_validations,
+                desc=f"Cross Validation for {telescope_type}",
+            ),
         ):
             train = table[train_indices]
             test = table[test_indices]
