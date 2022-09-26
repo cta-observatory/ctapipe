@@ -17,7 +17,7 @@ def test_train_particle_classifier(particle_classifier_path):
 
 
 def test_too_few_events(
-    caplog, model_tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_file
+    model_tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_file
 ):
     from ctapipe.ml.tools.train_energy_regressor import TrainEnergyRegressor
     from ctapipe.ml.tools.train_particle_classifier import TrainParticleIdClassifier

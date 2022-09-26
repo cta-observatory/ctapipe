@@ -6,6 +6,7 @@ from ctapipe.core.expression_engine import ExpressionEngine, ExpressionError
 
 
 def test_failing_expression():
+    """Test for invalid syntax in expression"""
     expressions = [("syntax-error", "log(a")]
 
     with pytest.raises(ExpressionError) as err:
@@ -15,6 +16,7 @@ def test_failing_expression():
 
 
 def test_pickle():
+    """Test for ExpressionEngine can be pickled"""
     expressions = [("foo", "5 * x"), ("bar", "10 * y")]
     engine = ExpressionEngine(expressions=expressions)
     data = pickle.dumps(engine)
