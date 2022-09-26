@@ -26,6 +26,10 @@ __all__ = [
     "FiveLayerAtmosphereDensityProfile",
 ]
 
+SUPPORTED_TABLE_VERSIONS = [
+    1,
+]
+
 
 class AtmosphereDensityProfile(abc.ABC):
     """
@@ -40,7 +44,6 @@ class AtmosphereDensityProfile(abc.ABC):
         u.Quantity["g cm-3"]
             the density at height h
         """
-        raise NotImplementedError()
 
     @abc.abstractmethod
     def integral(self, height: u.Quantity) -> u.Quantity:
@@ -55,7 +58,6 @@ class AtmosphereDensityProfile(abc.ABC):
             Integral of the density from height h to infinity
 
         """
-        raise NotImplementedError()
 
     def line_of_sight_integral(
         self, distance: u.Quantity, zenith_angle=0 * u.deg, output_units=u.g / u.cm**2
@@ -134,6 +136,12 @@ class AtmosphereDensityProfile(abc.ABC):
 
         if "TAB_TYPE" not in table.meta:
             raise ValueError("expected a TAB_TYPE metadata field")
+
+        if (
+            "TAB_VER" not in table.meta
+            or table.meta["TAB_VER"] not in SUPPORTED_TABLE_VERSIONS
+        ):
+            raise ValueError("Table version not supported")
 
         tabtype = table.meta.get("TAB_TYPE")
 
