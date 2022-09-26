@@ -23,10 +23,11 @@ __all__ = [
 
 from abc import abstractmethod
 from functools import lru_cache
-from typing import List, Tuple
+from typing import Callable, List, Optional, Tuple
 
 import numpy as np
 import numpy.typing as npt
+import scipy.stats
 from numba import float32, float64, guvectorize, int64, njit, prange
 from scipy.ndimage import convolve1d
 from scipy.signal import filtfilt
@@ -1293,7 +1294,11 @@ class TwoPassWindowSum(ImageExtractor):
 
 @lru_cache
 def deconvolution_parameters(
-    camera: CameraDescription, upsampling: int, window_width: int, window_shift: int
+    camera: CameraDescription,
+    upsampling: int,
+    window_width: int,
+    window_shift: int,
+    time_profile_pdf: Optional[Callable[[npt.ArrayLike], npt.ArrayLike]] = None,
 ) -> Tuple[List[float], List[float], List[float]]:
     """
     Estimates deconvolution and recalibration parameters from the camera's reference
@@ -1310,6 +1315,11 @@ def deconvolution_parameters(
     window_shift : int
         Shift of the integration window relative to the peak; see also
         `extract_around_peak(...)`.
+    time_profile_pdf : callable or None
+        PDF of the assumed effective Cherenkov time profile to assume when
+        calculating the gain loss; takes nanoseconds as arguments and returns
+        probability density (with mode at ~0 ns); default: None (assume
+        instantaneous pulse).
 
     Returns
     -------
@@ -1352,6 +1362,13 @@ def deconvolution_parameters(
 
     gains, shifts = [], []  # avg. gains and timing shifts of the deconvolved pulses
     for pz, ref_pulse_shape in zip(pzs, ref_pulse_shapes):
+        if time_profile_pdf:  # convolve ref_pulse_shape with time profile PDF
+            t = (
+                np.arange(ref_pulse_shape.size) - ref_pulse_shape.size / 2
+            ) * ref_sample_width_nsec
+            time_profile = time_profile_pdf(t)
+            ref_pulse_shape = np.convolve(ref_pulse_shape, time_profile, "same")
+
         integral = (
             ref_pulse_shape.sum() * ref_sample_width_nsec / camera_sample_width_nsec
         )
@@ -1448,6 +1465,12 @@ class FlashCamExtractor(ImageExtractor):
         "1: local pixel counts as much as any neighbor)",
     ).tag(config=True)
 
+    effective_time_profile_std = FloatTelescopeParameter(
+        default_value=0.0,
+        help="Effective Cherenkov time profile std. dev. (in nanoseconds) to "
+        "assume for calculating the gain correction",
+    ).tag(config=True, min=0)
+
     def __init__(self, subarray, **kwargs):
         super().__init__(subarray=subarray, **kwargs)
 
@@ -1456,12 +1479,18 @@ class FlashCamExtractor(ImageExtractor):
             for tel_id, telescope in subarray.tel.items()
         }
 
+        def time_profile_pdf_gen(std_dev: float):
+            if std_dev == 0:
+                return None
+            return scipy.stats.norm(0.0, std_dev).pdf
+
         self.deconvolution_pars = {
             tel_id: deconvolution_parameters(
                 tel.camera,
                 self.upsampling.tel[tel_id],
                 self.window_width.tel[tel_id],
                 self.window_shift.tel[tel_id],
+                time_profile_pdf_gen(self.effective_time_profile_std.tel[tel_id]),
             )
             for tel_id, tel in subarray.tel.items()
         }
