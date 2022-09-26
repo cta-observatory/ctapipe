@@ -342,6 +342,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
                     is_valid=False,
                 )
 
+            container.prefix = f"{self.model_cls}_tel"
             event.dl2.tel[tel_id].energy[self.model_cls] = container
 
     def predict_table(self, key, table: Table) -> Table:
@@ -357,8 +358,8 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
 
         result = Table(
             {
-                f"{self.model_cls}_energy": energy,
-                f"{self.model_cls}_is_valid": is_valid,
+                f"{self.model_cls}_tel_energy": energy,
+                f"{self.model_cls}_tel_is_valid": is_valid,
             }
         )
         return result
@@ -397,6 +398,7 @@ class ParticleIdClassifier(SKLearnClassficationReconstructor):
                     prediction=np.nan, is_valid=False
                 )
 
+            container.prefix = f"{self.model_cls}_tel"
             event.dl2.tel[tel_id].classification[self.model_cls] = container
 
     def predict_table(self, key, table: Table) -> Table:
@@ -412,8 +414,8 @@ class ParticleIdClassifier(SKLearnClassficationReconstructor):
 
         result = Table(
             {
-                f"{self.model_cls}_prediction": score,
-                f"{self.model_cls}_is_valid": is_valid,
+                f"{self.model_cls}_tel_prediction": score,
+                f"{self.model_cls}_tel_is_valid": is_valid,
             }
         )
         return result

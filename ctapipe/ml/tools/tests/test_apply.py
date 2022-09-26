@@ -37,8 +37,8 @@ def test_apply_energy_regressor(
     assert "ExtraTreesRegressor_is_valid" in events.colnames
     assert "ExtraTreesRegressor_tel_ids" in events.colnames
 
-    assert "ExtraTreesRegressor_energy_mono" in events.colnames
-    assert "ExtraTreesRegressor_is_valid_mono" in events.colnames
+    assert "ExtraTreesRegressor_tel_energy" in events.colnames
+    assert "ExtraTreesRegressor_tel_is_valid" in events.colnames
 
 
 def test_apply_particle_classifier(
@@ -75,8 +75,8 @@ def test_apply_particle_classifier(
     assert "ExtraTreesClassifier_is_valid" in events.colnames
     assert "ExtraTreesClassifier_goodness_of_fit" in events.colnames
 
-    assert "ExtraTreesClassifier_prediction_mono" in events.colnames
-    assert "ExtraTreesClassifier_is_valid_mono" in events.colnames
+    assert "ExtraTreesClassifier_tel_prediction" in events.colnames
+    assert "ExtraTreesClassifier_tel_is_valid" in events.colnames
 
 
 def test_apply_both(

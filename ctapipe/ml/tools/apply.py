@@ -192,7 +192,7 @@ class Apply(Tool):
 
         trafo = TelListToMaskTransform(self.loader.subarray)
         for c in filter(
-            lambda c: c.name.endswith("tel_ids"),
+            lambda c: c.name.endswith("telescopes"),
             stereo_predictions.columns.values(),
         ):
             stereo_predictions[c.name] = np.array([trafo(r) for r in c])
