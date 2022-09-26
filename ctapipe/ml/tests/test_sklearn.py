@@ -113,8 +113,8 @@ def test_regressor(model_cls, example_table, log_target, example_subarray):
 
     regressor.fit(KEY, example_table)
     table = regressor.predict_table(KEY, example_table)
-    prediction = table[f"{model_cls}_energy"].quantity
-    valid = table[f"{model_cls}_is_valid"]
+    prediction = table[f"{model_cls}_tel_energy"].quantity
+    valid = table[f"{model_cls}_tel_is_valid"]
     assert prediction.shape == (100,)
     assert prediction.unit == u.TeV
     assert not valid[10]
@@ -131,8 +131,8 @@ def test_regressor_single_event(model_cls, example_table, example_subarray):
     regressor.fit(KEY, example_table)
 
     table = regressor.predict_table(KEY, example_table[[0]])
-    prediction = table[f"{model_cls}_energy"].quantity
-    valid = table[f"{model_cls}_is_valid"]
+    prediction = table[f"{model_cls}_tel_energy"].quantity
+    valid = table[f"{model_cls}_tel_is_valid"]
     assert prediction.unit == u.TeV
     assert prediction.shape == (1,)
 
@@ -142,8 +142,8 @@ def test_regressor_single_event(model_cls, example_table, example_subarray):
         invalid[col][:] = np.nan
 
     table = regressor.predict_table(KEY, invalid)
-    prediction = table[f"{model_cls}_energy"].quantity
-    valid = table[f"{model_cls}_is_valid"]
+    prediction = table[f"{model_cls}_tel_energy"].quantity
+    valid = table[f"{model_cls}_tel_is_valid"]
     assert prediction.shape == (1,)
     assert valid[0] == False
 
@@ -178,8 +178,8 @@ def test_classifier(model_cls, example_table, example_subarray):
     assert_array_equal((score[valid] < 0.5).astype(int), prediction[valid])
 
     result_table = classifier.predict_table(KEY, example_table)
-    score = result_table[f"{model_cls}_prediction"].quantity
-    valid = result_table[f"{model_cls}_is_valid"]
+    score = result_table[f"{model_cls}_tel_prediction"].quantity
+    valid = result_table[f"{model_cls}_tel_is_valid"]
     assert score.shape == (100,)
     assert np.isnan(score[10])
     assert np.isnan(score[30])
