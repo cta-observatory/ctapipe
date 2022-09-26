@@ -9,12 +9,15 @@ from traitlets.config.loader import Config
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.image import ImageProcessor
-from ctapipe.reco import Reconstructor, ShowerProcessor
+from ctapipe.reco import GeometryReconstructor, ShowerProcessor
 
 
 @pytest.mark.parametrize(
     "reconstructor_types",
-    [[reco_type] for reco_type in Reconstructor.non_abstract_subclasses().keys()]
+    [
+        [reco_type]
+        for reco_type in GeometryReconstructor.non_abstract_subclasses().keys()
+    ]
     + [["HillasReconstructor", "HillasIntersection"]],
 )
 def test_shower_processor_geometry(

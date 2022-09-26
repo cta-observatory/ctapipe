@@ -2,15 +2,15 @@
 
 # reconstructors must be imported before ShowerProcessor, so
 # they are available there
-from .reco_algorithms import Reconstructor
-from .hillas_reconstructor import HillasReconstructor
 from .hillas_intersection import HillasIntersection
-
-from .shower_processor import ShowerProcessor
+from .hillas_reconstructor import HillasReconstructor
 from .impact import ImPACTReconstructor
+from .reco_algorithms import GeometryReconstructor, Reconstructor
+from .shower_processor import ShowerProcessor
 
 __all__ = [
     "Reconstructor",
+    "GeometryReconstructor",
     "ShowerProcessor",
     "HillasReconstructor",
     "ImPACTReconstructor",

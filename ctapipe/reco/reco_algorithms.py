@@ -10,7 +10,12 @@ from ctapipe.core.traits import List
 
 from ..coordinates import shower_impact_distance
 
-__all__ = ["Reconstructor", "TooFewTelescopesException", "InvalidWidthException"]
+__all__ = [
+    "Reconstructor",
+    "GeometryReconstructor",
+    "TooFewTelescopesException",
+    "InvalidWidthException",
+]
 
 
 class TooFewTelescopesException(Exception):
@@ -37,7 +42,7 @@ class StereoQualityQuery(QualityQuery):
 
 class Reconstructor(Component):
     """
-    This is the base class from which all direction reconstruction
+    This is the base class from which all reconstruction
     algorithms should inherit from
     """
 
@@ -61,6 +66,16 @@ class Reconstructor(Component):
             Will be filled with the corresponding dl2 containers,
             reconstructed stereo geometry and telescope-wise impact position.
         """
+
+
+class GeometryReconstructor(Reconstructor):
+    """
+    Base class for algorithms predicting only the shower geometry
+    """
+
+    def __init__(self, subarray, **kwargs):
+        super().__init__(subarray, **kwargs)
+        self.check_parameters = StereoQualityQuery(parent=self)
 
     def _create_hillas_dict(self, event):
         hillas_dict = {
