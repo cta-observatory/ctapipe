@@ -178,7 +178,7 @@ class StereoMeanCombiner(StereoCombiner):
         all telescope predictions of a shower are invalid.
         """
 
-        prefix = self.algorithm
+        prefix = f"{self.algorithm}_tel"
         # TODO: Integrate table quality query once its done
         valid = mono_predictions[f"{prefix}_is_valid"]
         valid_predictions = mono_predictions[valid]
@@ -201,9 +201,9 @@ class StereoMeanCombiner(StereoCombiner):
             else:
                 stereo_predictions = np.full(n_array_events, np.nan)
 
-            stereo_table[f"{prefix}_prediction"] = stereo_predictions
-            stereo_table[f"{prefix}_is_valid"] = np.isfinite(stereo_predictions)
-            stereo_table[f"{prefix}_goodness_of_fit"] = np.nan
+            stereo_table[f"{self.algorithm}_prediction"] = stereo_predictions
+            stereo_table[f"{self.algorithm}_is_valid"] = np.isfinite(stereo_predictions)
+            stereo_table[f"{self.algorithm}_goodness_of_fit"] = np.nan
 
         elif self.combine_property == "energy":
             if len(valid_predictions) > 0:
@@ -227,15 +227,15 @@ class StereoMeanCombiner(StereoCombiner):
                 stereo_energy = np.full(n_array_events, np.nan)
                 variance = np.full(n_array_events, np.nan)
 
-            stereo_table[f"{prefix}_energy"] = u.Quantity(
+            stereo_table[f"{self.algorithm}_energy"] = u.Quantity(
                 stereo_energy, u.TeV, copy=False
             )
 
-            stereo_table[f"{prefix}_energy_uncert"] = u.Quantity(
+            stereo_table[f"{self.algorithm}_energy_uncert"] = u.Quantity(
                 np.sqrt(variance), u.TeV, copy=False
             )
-            stereo_table[f"{prefix}_is_valid"] = np.isfinite(stereo_energy)
-            stereo_table[f"{prefix}_goodness_of_fit"] = np.nan
+            stereo_table[f"{self.algorithm}_is_valid"] = np.isfinite(stereo_energy)
+            stereo_table[f"{self.algorithm}_goodness_of_fit"] = np.nan
 
         else:
             raise NotImplementedError()
@@ -245,6 +245,5 @@ class StereoMeanCombiner(StereoCombiner):
         for index, tel_id in zip(indices[valid], valid_predictions["tel_id"]):
             tel_ids[index].append(tel_id)
 
-        k = f"{prefix}_tel_ids"
-        stereo_table[k] = tel_ids
+        stereo_table[f"{self.algorithm}_telescopes"] = tel_ids
         return stereo_table
