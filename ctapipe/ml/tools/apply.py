@@ -149,7 +149,9 @@ class Apply(Tool):
 
         tables = []
 
-        for tel_id, tel in tqdm(self.loader.subarray.tel.items()):
+        desc = f"Applying {reconstructor.__class__.__name__}"
+        unit = "telescope"
+        for tel_id, tel in tqdm(self.loader.subarray.tel.items(), desc=desc, unit=unit):
             if tel not in reconstructor._models:
                 self.log.warning(
                     "No regressor model for telescope type %s, skipping tel %d",
