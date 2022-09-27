@@ -24,8 +24,11 @@ from ..calib.camera.gainselection import GainSelector
 from ..containers import (
     ArrayEventContainer,
     CoordinateFrameType,
+    DL1CameraCalibrationContainer,
+    EventCameraCalibrationContainer,
     EventIndexContainer,
     EventType,
+    MonitoringCameraContainer,
     ObservationBlockContainer,
     ObservationBlockState,
     ObservingMode,
@@ -805,10 +808,11 @@ class SimTelEventSource(EventSource):
 
                 # fill dc_to_pe and pedestal_per_sample info into monitoring
                 # container
-                mon = data.mon.tel[tel_id]
+                mon = MonitoringCameraContainer()
                 mon.calibration.dc_to_pe = dc_to_pe
                 mon.calibration.pedestal_per_sample = pedestal
                 mon.pixel_status = self._get_pixels_status(tel_id)
+                data.mon.tel[tel_id] = mon
 
                 r1_waveform, selected_gain_channel = apply_simtel_r1_calibration(
                     adc_samples,
@@ -827,8 +831,12 @@ class SimTelEventSource(EventSource):
                 time_calib = array_event["laser_calibrations"][tel_id]["tm_calib"]
                 pix_index = np.arange(n_pixels)
 
-                dl1_calib = data.calibration.tel[tel_id].dl1
-                dl1_calib.time_shift = time_calib[selected_gain_channel, pix_index]
+                calib = EventCameraCalibrationContainer(
+                    dl1=DL1CameraCalibrationContainer(
+                        time_shift=time_calib[selected_gain_channel, pix_index]
+                    )
+                )
+                data.calibration.tel[tel_id] = calib
 
             yield data
 

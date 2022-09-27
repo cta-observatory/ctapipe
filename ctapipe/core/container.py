@@ -1,6 +1,5 @@
 import logging
 import warnings
-from collections import defaultdict
 from functools import partial
 from inspect import isclass
 from pprint import pformat
@@ -391,10 +390,11 @@ class Container(metaclass=ContainerMeta):
         d = dict()
         for key, val in self.items(add_prefix=add_prefix):
             if isinstance(val, (Container, Map)):
+                val_dict = val.as_dict(**kwargs)
                 if flatten:
-                    d.update(val.as_dict(**kwargs))
+                    d.update(val_dict)
                 else:
-                    d[key] = val.as_dict(**kwargs)
+                    d[key] = val_dict
             else:
                 d[key] = val
         return d
@@ -459,15 +459,32 @@ class Container(metaclass=ContainerMeta):
                 )
 
 
-class Map(defaultdict):
-    """A dictionary of sub-containers that can be added to a Container. This
-    may be used e.g. to store a set of identical sub-Containers (e.g. indexed
+class Map(dict):
+    """A type-checked dictionary of sub-containers that can be added to a Container.
+
+    This may be used e.g. to store a set of identical sub-Containers (e.g. indexed
     by ``tel_id`` or algorithm name).
+
+    Type checks are perfomed on the values.
     """
+
+    def __init__(self, key_type, value_type, **kwargs):
+        super().__init__(self, **kwargs)
+        self.key_type = key_type
+        self.value_type = value_type
+
+    def __setitem__(self, key, value):
+        if not isinstance(key, self.key_type):
+            raise TypeError(f"Key must be an instance of {self.key_type}")
+
+        if not isinstance(value, self.value_type):
+            raise TypeError(f"Value must be an instance of {self.value_type}")
+
+        super().__setitem__(key, value)
 
     def as_dict(self, recursive=False, flatten=False, add_prefix=False, add_key=False):
         if not recursive:
-            return dict(self.items())
+            return dict(self)
         else:
             d = dict()
             for key, val in self.items():
@@ -496,8 +513,4 @@ class Map(defaultdict):
                 val.reset(recursive=recursive)
 
     def __repr__(self):
-        if isclass(self.default_factory):
-            default = _fqdn(self.default_factory)
-        else:
-            default = repr(self.default_factory)
-        return f"{self.__class__.__name__}({default}, {dict.__repr__(self)!s})"
+        return f"{self.__class__.__name__}[{self.key_type}, {self.value_type}]({dict.__repr__(self)!s})"

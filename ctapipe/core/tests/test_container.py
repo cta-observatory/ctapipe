@@ -138,17 +138,40 @@ def test_map_containers():
 
     class ParentContainer(Container):
         x = Field(0, "some value")
-        children = Field(default_factory=Map, description="map of tel_id to child")
+        int_map = Field(
+            default_factory=partial(Map, int, ChildContainer),
+            description="map of tel_id to child",
+        )
+
+        str_map = Field(
+            default_factory=partial(Map, str, ChildContainer),
+            description="map of key to child",
+        )
 
     cont = ParentContainer()
-    cont.children[10] = ChildContainer()
-    cont.children[5] = ChildContainer()
+    cont.int_map[10] = ChildContainer()
+    cont.int_map[5] = ChildContainer()
+    cont.str_map["foo"] = ChildContainer()
 
-    cont.children[5].z = 99
-    assert cont.children[5].z == 99
+    cont.int_map[5].z = 99
+    assert cont.int_map[5].z == 99
 
     cont.reset()
-    assert 5 not in cont.children
+    assert 5 not in cont.int_map
+
+    # test that the value type is checked
+    with pytest.raises(TypeError):
+        cont.int_map[10] = "foo"
+
+    with pytest.raises(TypeError):
+        cont.int_map[10] = 10
+
+    # check that the key type is checked
+    with pytest.raises(TypeError):
+        cont.int_map["foo"] = ChildContainer()
+
+    with pytest.raises(TypeError):
+        cont.str_map[10] = ChildContainer()
 
 
 def test_container_as_dict():
@@ -162,7 +185,7 @@ def test_container_as_dict():
     class GrandParentContainer(Container):
         y = Field(2, "some other value")
         child = Field(default_factory=ParentContainer, description="child")
-        map = Field(default_factory=partial(Map, ChildContainer))
+        map = Field(default_factory=partial(Map, str, ChildContainer))
 
     cont = ParentContainer()
 
@@ -305,7 +328,10 @@ def test_recursive_validation():
 
     class ParentContainer(Container):
         cont = Field(None, "test sub", type=ChildContainer)
-        map = Field(Map(ChildContainer), "many children")
+        map = Field(
+            default_factory=partial(Map, int, ChildContainer),
+            description="many children",
+        )
 
     with pytest.raises(FieldValidationError):
         ParentContainer(cont=ChildContainer(x=1 * u.s)).validate()

@@ -9,7 +9,7 @@ import astropy.units as u
 import numpy as np
 from numba import float32, float64, guvectorize, int64
 
-from ctapipe.containers import DL1CameraContainer
+from ctapipe.containers import DL0CameraContainer, DL1CameraContainer
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
     BoolTelescopeParameter,
@@ -153,8 +153,8 @@ class CameraCalibrator(TelescopeComponent):
                 parent=self,
             )
 
-    def _check_r1_empty(self, waveforms):
-        if waveforms is None:
+    def _check_r1_empty(self, tel_id, r1):
+        if tel_id not in r1.tel or r1.tel[tel_id].waveform is None:
             if not self._r1_empty_warn:
                 warnings.warn(
                     "Encountered an event with no R1 data. "
@@ -165,8 +165,8 @@ class CameraCalibrator(TelescopeComponent):
         else:
             return False
 
-    def _check_dl0_empty(self, waveforms):
-        if waveforms is None:
+    def _check_dl0_empty(self, tel_id, dl0):
+        if tel_id not in dl0.tel or dl0.tel[tel_id].waveform is None:
             if not self._dl0_empty_warn:
                 warnings.warn(
                     "Encountered an event with no DL0 data. "
@@ -178,10 +178,11 @@ class CameraCalibrator(TelescopeComponent):
             return False
 
     def _calibrate_dl0(self, event, tel_id):
+        if self._check_r1_empty(tel_id, event.r1):
+            return
+
         waveforms = event.r1.tel[tel_id].waveform
         selected_gain_channel = event.r1.tel[tel_id].selected_gain_channel
-        if self._check_r1_empty(waveforms):
-            return
 
         reduced_waveforms_mask = self.data_volume_reducer(
             waveforms, tel_id=tel_id, selected_gain_channel=selected_gain_channel
@@ -189,17 +190,20 @@ class CameraCalibrator(TelescopeComponent):
 
         waveforms_copy = waveforms.copy()
         waveforms_copy[~reduced_waveforms_mask] = 0
-        event.dl0.tel[tel_id].waveform = waveforms_copy
-        event.dl0.tel[tel_id].selected_gain_channel = selected_gain_channel
+        event.dl0.tel[tel_id] = DL0CameraContainer(
+            waveform=waveforms_copy,
+            selected_gain_channel=selected_gain_channel,
+        )
 
     def _calibrate_dl1(self, event, tel_id):
-        waveforms = event.dl0.tel[tel_id].waveform
-        if self._check_dl0_empty(waveforms):
+        if self._check_dl0_empty(tel_id, event.dl0):
             return
 
+        dl0 = event.dl0.tel[tel_id]
+        waveforms = dl0.waveform
         n_pixels, n_samples = waveforms.shape
 
-        selected_gain_channel = event.dl0.tel[tel_id].selected_gain_channel
+        selected_gain_channel = dl0.selected_gain_channel
         broken_pixels = _get_invalid_pixels(
             n_pixels,
             event.mon.tel[tel_id].pixel_status,
@@ -280,9 +284,7 @@ class CameraCalibrator(TelescopeComponent):
         event : container
             A `~ctapipe.containers.ArrayEventContainer` event container
         """
-        # TODO: How to handle different calibrations depending on tel_id?
-        tel = event.r1.tel or event.dl0.tel or event.dl1.tel
-        for tel_id in tel.keys():
+        for tel_id in event.trigger.tels_with_trigger:
             self._calibrate_dl0(event, tel_id)
             self._calibrate_dl1(event, tel_id)
 

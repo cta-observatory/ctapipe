@@ -7,12 +7,16 @@ from ctapipe.coordinates import TelescopeFrame
 
 def test_create_display_without_geometry(example_event, example_subarray):
     """Test we can create a display without giving the geometry to init"""
+    from ctapipe.calib import CameraCalibrator
     from ctapipe.visualization.bokeh import CameraDisplay
 
     # test we can create it without geometry, and then set all the stuff
     display = CameraDisplay()
 
-    tel_id = next(iter(example_event.r0.tel.keys()))
+    calib = CameraCalibrator(example_subarray)
+    calib(example_event)
+
+    tel_id = example_event.trigger.tels_with_trigger[0]
     display.geometry = example_subarray.tel[tel_id].camera.geometry
     display.image = example_event.dl1.tel[tel_id].image
 

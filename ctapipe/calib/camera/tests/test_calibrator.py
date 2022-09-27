@@ -10,7 +10,13 @@ from scipy.stats import norm
 from traitlets.config import Config
 
 from ctapipe.calib.camera.calibrator import CameraCalibrator
-from ctapipe.containers import ArrayEventContainer
+from ctapipe.containers import (
+    ArrayEventContainer,
+    DL0CameraContainer,
+    DL1CameraContainer,
+    EventCameraCalibrationContainer,
+    MonitoringCameraContainer,
+)
 from ctapipe.image.extractor import (
     FullWaveformSum,
     GlobalPeakWindowSum,
@@ -99,22 +105,27 @@ def test_config(example_subarray):
 
 def test_check_r1_empty(example_event, example_subarray):
     calibrator = CameraCalibrator(subarray=example_subarray)
-    tel_id = list(example_event.r0.tel)[0]
-    waveform = example_event.r1.tel[tel_id].waveform.copy()
-    with pytest.warns(UserWarning):
-        example_event.r1.tel[tel_id].waveform = None
-        calibrator._calibrate_dl0(example_event, tel_id)
-        assert example_event.dl0.tel[tel_id].waveform is None
+    tel_id = example_event.trigger.tels_with_trigger[0]
 
-    assert calibrator._check_r1_empty(None) is True
-    assert calibrator._check_r1_empty(waveform) is False
+    with pytest.warns(UserWarning):
+        del example_event.r1.tel[tel_id]
+        calibrator._calibrate_dl0(example_event, tel_id)
+        assert tel_id not in example_event.dl0.tel
 
     calibrator = CameraCalibrator(
         subarray=example_subarray,
         image_extractor=FullWaveformSum(subarray=example_subarray),
     )
+
+    # test with fresh array event container
     event = ArrayEventContainer()
-    event.dl0.tel[tel_id].waveform = np.full((2048, 128), 2)
+    event.trigger.tels_with_trigger = [tel_id]
+    event.dl0.tel[tel_id] = DL0CameraContainer(
+        waveform=np.full((2048, 128), 2),
+        selected_gain_channel=np.zeros(2048, dtype=np.uint8),
+    )
+    event.mon.tel[tel_id] = MonitoringCameraContainer()
+    event.calibration.tel[tel_id] = EventCameraCalibrationContainer()
     with pytest.warns(UserWarning):
         calibrator(event)
     assert (event.dl0.tel[tel_id].waveform == 2).all()
@@ -123,20 +134,22 @@ def test_check_r1_empty(example_event, example_subarray):
 
 def test_check_dl0_empty(example_event, example_subarray):
     calibrator = CameraCalibrator(subarray=example_subarray)
-    tel_id = list(example_event.r0.tel)[0]
+    tel_id = example_event.trigger.tels_with_trigger[0]
+
     calibrator._calibrate_dl0(example_event, tel_id)
-    waveform = example_event.dl0.tel[tel_id].waveform.copy()
     with pytest.warns(UserWarning):
         example_event.dl0.tel[tel_id].waveform = None
         calibrator._calibrate_dl1(example_event, tel_id)
-        assert example_event.dl1.tel[tel_id].image is None
-
-    assert calibrator._check_dl0_empty(None) is True
-    assert calibrator._check_dl0_empty(waveform) is False
+        assert tel_id not in example_event.dl1.tel
 
     calibrator = CameraCalibrator(subarray=example_subarray)
+
     event = ArrayEventContainer()
-    event.dl1.tel[tel_id].image = np.full(2048, 2)
+    event.trigger.tels_with_trigger = [tel_id]
+    event.dl1.tel[tel_id] = DL1CameraContainer(
+        image=np.full(2048, 2),
+    )
+
     with pytest.warns(UserWarning):
         calibrator(event)
     assert (event.dl1.tel[tel_id].image == 2).all()
@@ -178,10 +191,15 @@ def test_dl1_charge_calib(example_subarray):
     y += pedestal[:, np.newaxis]
 
     event = ArrayEventContainer()
-    tel_id = list(subarray.tel.keys())[0]
-    event.dl0.tel[tel_id].waveform = y
-    event.dl0.tel[tel_id].selected_gain_channel = np.zeros(len(y), dtype=int)
-    event.r1.tel[tel_id].selected_gain_channel = np.zeros(len(y), dtype=int)
+    tel_id = next(iter(subarray.tel.keys()))
+    event.trigger.tels_with_trigger = [tel_id]
+    event.mon.tel[tel_id] = MonitoringCameraContainer()
+    event.calibration.tel[tel_id] = EventCameraCalibrationContainer()
+    event.dl0.tel[tel_id] = DL0CameraContainer(
+        waveform=y,
+        selected_gain_channel=np.zeros(len(y), dtype=int),
+    )
+    # event.r1.tel[tel_id].selected_gain_channel = np.zeros(len(y), dtype=int)
 
     # Test default
     calibrator = CameraCalibrator(

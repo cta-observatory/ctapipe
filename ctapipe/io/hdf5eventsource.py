@@ -30,10 +30,12 @@ from ..containers import (
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
     SchedulingBlockContainer,
+    SimulatedCameraContainer,
     SimulatedEventContainer,
     SimulatedShowerContainer,
     SimulationConfigContainer,
     TelescopeImpactParameterContainer,
+    TelescopePointingContainer,
     TelescopeTriggerContainer,
     TelEventIndexContainer,
     TimingParametersContainer,
@@ -588,6 +590,8 @@ class HDF5EventSource(EventSource):
                 if self.allowed_tels and tel_id not in self.allowed_tels:
                     continue
 
+                data.simulation.tel[tel_id] = SimulatedCameraContainer()
+
                 if key in true_impact_readers:
                     data.simulation.tel[tel_id].impact = next(true_impact_readers[key])
 
@@ -729,11 +733,14 @@ class HDF5EventSource(EventSource):
 
             pointing_telescope = tel_pointing_table[closest_time_index]
             attrs = self._telescope_pointing_attrs(tel_id)
-            data.pointing.tel[tel_id].azimuth = u.Quantity(
-                pointing_telescope["azimuth"],
-                attrs["azimuth"]["UNIT"],
-            )
-            data.pointing.tel[tel_id].altitude = u.Quantity(
-                pointing_telescope["altitude"],
-                attrs["altitude"]["UNIT"],
+
+            data.pointing.tel[tel_id] = TelescopePointingContainer(
+                azimuth=u.Quantity(
+                    pointing_telescope["azimuth"],
+                    attrs["azimuth"]["UNIT"],
+                ),
+                altitude=u.Quantity(
+                    pointing_telescope["altitude"],
+                    attrs["altitude"]["UNIT"],
+                ),
             )
