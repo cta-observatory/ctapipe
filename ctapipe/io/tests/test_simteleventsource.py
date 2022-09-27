@@ -533,7 +533,6 @@ def test_load_atmosphere_from_simtel(prod5_gamma_simtel_path):
         TableAtmosphereDensityProfile,
     )
 
-    # old simtel files don't have the profile in them, so a null list should be returned
     profile = read_atmosphere_profile_from_simtel(
         prod5_gamma_simtel_path, kind=AtmosphereProfileKind.AUTO
     )
