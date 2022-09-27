@@ -17,13 +17,11 @@ class GaussianShowermodel:
         y=u.m,
         azimuth=u.deg,
         altitude=u.deg,
-        first_interaction=u.m,
+        h_max=u.m,
         width=u.m,
         length=u.m,
     )
-    def __init__(
-        self, total_photons, x, y, azimuth, altitude, first_interaction, width, length
-    ):
+    def __init__(self, total_photons, x, y, azimuth, altitude, h_max, width, length):
         """Create a 3D gaussian shower model for imaging.
         This is based on https://arxiv.org/pdf/astro-ph/0601373.pdf.
 
@@ -39,8 +37,8 @@ class GaussianShowermodel:
             azimuthal angle relative to the shower core
         altitude : u.Quantity[angle]
             altitude relative to the shower core
-        first_interaction : u.Quantity[length]
-            height of the first_interaction of the gamma above ground
+        h_max : u.Quantity[length]
+            height of the barycenter above ground
         width : u.Quantity[length]
             width of the shower
         length : u.Quantity[length]
@@ -52,7 +50,7 @@ class GaussianShowermodel:
         self.azimuth = azimuth
         self.altitude = altitude
         self.zenith = 90 * u.deg - altitude
-        self.first_interaction = first_interaction
+        self.h_max = h_max
         self.width = width
         self.length = length
 
@@ -83,33 +81,22 @@ class GaussianShowermodel:
     @lazyproperty
     def barycenter(self):
         """Calculates barycenter of the shower.
-        This is given by the vector defined by azimuth and zenith in spherical coords + vector pointing to the first_interaction
-        minus half length back to shower center.
+        This is given by vector pointing to the impact on ground + the vector of the shower with azimuth and zenith at h_max.
         """
         b = np.zeros(3) * u.m
         b[0] = (
-            self.first_interaction
+            self.h_max
             * np.cos(self.azimuth.to_value(u.rad))
             * np.tan(self.zenith.to_value(u.rad))
             + self.x
-            - self.length
-            / 2
-            * np.cos(self.azimuth.to_value(u.rad))
-            * np.sin(self.zenith.to_value(u.rad))
         )
         b[1] = (
-            self.first_interaction
+            self.h_max
             * np.sin(self.azimuth.to_value(u.rad))
             * np.tan(self.zenith.to_value(u.rad))
             + self.y
-            - self.length
-            / 2
-            * np.sin(self.azimuth.to_value(u.rad))
-            * np.sin(self.zenith.to_value(u.rad))
         )
-        b[2] = self.first_interaction - self.length / 2 * np.cos(
-            self.zenith.to_value(u.rad)
-        )
+        b[2] = self.h_max
         return b
 
     def photon_integral(self, vec_oc, vec_los, epsilon):

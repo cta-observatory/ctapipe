@@ -13,7 +13,7 @@ def test_predictor(example_subarray):
     y = 0 * u.meter
     azimuth = 0 * u.deg
     altitude = 90 * u.deg
-    first_interaction = 10000 * u.meter
+    h_max = 7000 * u.meter
     width = 20 * u.meter
     length = 3000 * u.meter
 
@@ -23,7 +23,7 @@ def test_predictor(example_subarray):
         y=y,
         azimuth=azimuth,
         altitude=altitude,
-        first_interaction=first_interaction,
+        h_max=h_max,
         width=width,
         length=length,
     )
