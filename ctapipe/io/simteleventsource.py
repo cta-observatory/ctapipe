@@ -358,7 +358,7 @@ def read_atmosphere_profile_from_simtel(
             metadata = dict(
                 observation_level=atmo["obslevel"] * u.cm,
                 atmosphere_id=atmo["id"],
-                atmosphere_name=atmo["name"],
+                atmosphere_name=atmo["name"].decode("utf-8"),
                 atmosphere_height=atmo["htoa"] * u.cm,
             )
 
