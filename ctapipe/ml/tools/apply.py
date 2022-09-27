@@ -157,7 +157,8 @@ class Apply(Tool):
         for tel_id, tel in tqdm(self.loader.subarray.tel.items(), desc=desc, unit=unit):
             if tel not in reconstructor._models:
                 self.log.warning(
-                    "No regressor model for telescope type %s, skipping tel %d",
+                    "No model in %s for telescope type %s, skipping tel %d",
+                    reconstructor,
                     tel,
                     tel_id,
                 )
