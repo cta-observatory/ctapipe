@@ -356,10 +356,10 @@ def read_atmosphere_profile_from_simtel(
         for atmo in simtel.atmospheric_profiles:
 
             metadata = dict(
-                obs_level=atmo["obslevel"] * u.cm,
-                atmo_id=atmo["id"],
-                atmo_name=atmo["name"],
-                htoa=atmo["htoa"],  # what is this?,
+                observation_level=atmo["obslevel"] * u.cm,
+                atmosphere_id=atmo["id"],
+                atmosphere_name=atmo["name"],
+                atmosphere_height=atmo["htoa"] * u.cm,
             )
 
             if "altitude_km" in atmo and kind in {
