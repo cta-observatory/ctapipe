@@ -112,23 +112,20 @@ class GaussianShowermodel:
             Angle between the viewing direction and shower axis for each pixel as a 1d-quantity of shape (n_pixels)
         """
         ce = np.cos(epsilon)
-        sig_L = self.length.to_value(u.m)
-        sig_T = self.width.to_value(u.m)
+        sig_L = self.length
+        sig_T = self.width
 
         sig_u_sq = sig_T**2 * ce**2 + sig_L**2 * (1 - ce**2)
         sig_D_sq = sig_L**2 - sig_T**2
 
-        B_p = np.einsum("i,ni->n", vec_oc.to_value(u.m), vec_los.to_value(u.m))
-        B_s = np.einsum(
-            "i,i->", vec_oc.to_value(u.m), self.vec_shower_axis.to_value(u.m)
-        )
+        B_p = np.einsum("i,ni->n", vec_oc, vec_los)
+        B_s = np.einsum("i,i->", vec_oc, self.vec_shower_axis)
 
-        delta_B_sq = (
-            np.einsum("i,i->", vec_oc.to_value(u.m), vec_oc.to_value(u.m)) - B_p**2
-        )
-        upper_bound = -(sig_L**2 * B_p - sig_D_sq * ce * B_s) / (
-            np.sqrt(sig_u_sq) * sig_T * sig_L
-        )
+        delta_B_sq = np.einsum("i,i->", vec_oc, vec_oc) - B_p**2
+        upper_bound = -(
+            (sig_L**2 * B_p - sig_D_sq * ce * B_s)
+            / (np.sqrt(sig_u_sq) * sig_T * sig_L)
+        ).to_value(u.dimensionless_unscaled)
 
         C = 1 - np.vectorize(self._freq)(upper_bound)
         constant = self.total_photons * C / (2 * np.pi * np.sqrt(sig_u_sq) * sig_T)
@@ -153,11 +150,10 @@ class GaussianShowermodel:
         """Calculates the unit vector of the shower axis."""
         x, y, z = spherical_to_cartesian(1, lat=self.altitude, lon=self.azimuth)
         vec = np.stack((x, y, z), -1)
-        return vec * u.m
+        return vec
 
     def emission_probability(self, epsilon):
         """Calculates the emission probability of a photon with angle epsilon to the shower axis. https://arxiv.org/pdf/astro-ph/0601373.pdf Assumption 2.2.2
-
         Parameters
         ----------
         epsilon : u.Quantity[Angle]
@@ -176,4 +172,4 @@ class GaussianShowermodel:
             * np.exp(-(epsilon[epsilon >= eta] - eta) / (4 * eta))
         )
 
-        return proba
+        return proba / u.sr

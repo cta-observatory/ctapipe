@@ -90,7 +90,7 @@ class ShowermodelPredictor:
         """
         x, y, z = spherical_to_cartesian(1, lat=pix_altaz.alt, lon=pix_altaz.az)
         vec = np.stack((x, y, z), -1)
-        return vec * u.m
+        return vec
 
     def _telescope_axis(self, tel_pointing):
         """Calculates the unit vector of the telescope axis.
@@ -100,12 +100,9 @@ class ShowermodelPredictor:
         tel_pointing : u.Quantity[Angle]
             Pointing of the telescope in AltAz
         """
-        return (
-            np.stack(
-                (spherical_to_cartesian(1, lat=tel_pointing.alt, lon=tel_pointing.az)),
-                -1,
-            )
-            * u.m
+        return np.stack(
+            (spherical_to_cartesian(1, lat=tel_pointing.alt, lon=tel_pointing.az)),
+            -1,
         )
 
     def _photons(self, area, solid_angle, vec_oc, pix_coords_altaz, vec_pointing):
@@ -142,4 +139,4 @@ class ShowermodelPredictor:
             * self.showermodel.emission_probability(epsilon)
             * np.cos(theta)
             * self.showermodel.photon_integral(vec_oc, vec_los, epsilon)
-        )
+        ).to_value(u.dimensionless_unscaled)
