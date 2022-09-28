@@ -7,6 +7,8 @@ from typing import Dict, Generator, List, Tuple
 
 from traitlets.config.loader import LazyConfigValue
 
+from ctapipe.atmosphere import AtmosphereDensityProfile
+
 from ..containers import (
     ArrayEventContainer,
     ObservationBlockContainer,
@@ -279,6 +281,20 @@ class EventSource(Component):
         list[int]
         """
         return list(self.observation_blocks.keys())
+
+    @property
+    def atmosphere_density_profile(self) -> AtmosphereDensityProfile:
+        """atmosphere density profile that can be integrated to
+        convert between h_max and X_max.  This should correspond
+        either to what was used in a simualtion, or a measurment
+        for use with observed data.
+
+        Returns
+        -------
+        AtmosphereDensityProfile:
+           profile to be used
+        """
+        return None
 
     @abstractmethod
     def _generator(self) -> Generator[ArrayEventContainer, None, None]:

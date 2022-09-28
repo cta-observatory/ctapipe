@@ -3,6 +3,7 @@ Functions to retrieve and interpolate atmosphere profiles.
 """
 import numpy as np
 from astropy.units import Quantity
+from astropy.utils.decorators import deprecated
 from scipy.interpolate import interp1d
 
 from ctapipe.utils import get_table_dataset
@@ -10,6 +11,9 @@ from ctapipe.utils import get_table_dataset
 __all__ = ["get_atmosphere_profile_table", "get_atmosphere_profile_functions"]
 
 
+@deprecated(
+    since="v0.16.0", message="use ctapipe.atmosphere profiles from EventSource instead"
+)
 def get_atmosphere_profile_table(atmosphere_name="paranal"):
     """
     Get an atmosphere profile table
@@ -30,6 +34,9 @@ def get_atmosphere_profile_table(atmosphere_name="paranal"):
     return table
 
 
+@deprecated(
+    since="v0.16.0", message="use ctapipe.atmosphere profiles from EventSource instead"
+)
 def get_atmosphere_profile_functions(atmosphere_name="paranal", with_units=True):
     """
     Gives atmospheric profile as a continuous function thickness(

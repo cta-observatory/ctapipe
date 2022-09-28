@@ -116,6 +116,7 @@ nitpick_ignore = [
     ("py:obj", "name"),
     ("py:class", "astropy.coordinates.baseframe.BaseCoordinateFrame"),
     ("py:class", "astropy.table.table.Table"),
+    ("py:class", "eventio.simtel.simtelfile.SimTelFile"),
 ]
 
 # The suffix(es) of source filenames.

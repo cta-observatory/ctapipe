@@ -23,6 +23,7 @@ from ..core.traits import Bool, CaselessStrEnum, Float, Int, Path, Unicode
 from ..instrument import SubarrayDescription
 from . import EventSource, HDF5TableWriter, TableWriter
 from . import metadata as meta
+from .astropy_helpers import write_table
 from .datalevels import DataLevel
 from .simteleventsource import SimTelEventSource
 from .tableio import FixedPointColumnTransform, TelListToMaskTransform
@@ -273,6 +274,9 @@ class DataWriter(Component):
         self._write_scheduling_and_observation_blocks()
         if self._is_simulation:
             self._write_simulation_configuration()
+            self._write_atmosphere_profile(
+                "/simulation/service/atmosphere_density_profile"
+            )
 
     def __enter__(self):
         return self
@@ -797,3 +801,31 @@ class DataWriter(Component):
             context_dict[key] = value
 
         meta.write_to_hdf5(context_dict, self._writer.h5file)
+
+    def _write_atmosphere_profile(self, path):
+        """
+        write atmosphere profiles if they are in a tabular format
+
+        Parameters
+        ----------
+        path: str
+            path in the HDF5 file where to place the profile
+
+        """
+
+        profile = self.event_source.atmosphere_density_profile
+
+        if profile:
+            if hasattr(profile, "table"):
+                write_table(
+                    table=profile.table,
+                    h5file=self._writer.h5file,
+                    path=path,
+                    append=False,
+                )
+            else:
+                self.logger.warning(
+                    f"The AtmosphereDensityProfile type '{profile.__class__.__name__}' "
+                    "is not serializable. No atmosphere profile will be stored in the "
+                    "output file"
+                )
