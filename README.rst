@@ -13,22 +13,6 @@ ctapipe |ci| |codacy| |coverage| |conda| |doilatest|
   :target: https://codecov.io/gh/cta-observatory/ctapipe
 .. |doilatest| image:: https://zenodo.org/badge/37927055.svg
   :target: https://zenodo.org/badge/latestdoi/37927055
-.. |doiv07| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.3372211.svg
-   :target: https://doi.org/10.5281/zenodo.3372211
-.. |doiv08| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.3837306.svg
-   :target: https://doi.org/10.5281/zenodo.3837306
-.. |doiv09| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4084989.svg
-   :target: https://doi.org/10.5281/zenodo.4084989
-.. |doiv010| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4581045.svg
-   :target: https://doi.org/10.5281/zenodo.4581045
-.. |doiv011| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.4746317.svg
-   :target: https://doi.org/10.5281/zenodo.4746317
-.. |doiv012| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.5720333.svg
-   :target: https://doi.org/10.5281/zenodo.5720333
-.. |doiv013| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.6425499.svg
-   :target: https://doi.org/10.5281/zenodo.6425499
-.. |doiv014| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.6460868.svg
-   :target: https://doi.org/10.5281/zenodo.6460868
 
 Low-level data processing pipeline software for
 `CTA <www.cta-observatory.org>`_ (the Cherenkov Telescope Array)
@@ -43,16 +27,30 @@ expert or developer!
 
 Citing this software
 --------------------
-If you use this software for a publication, please cite the proper version using the following DOIs:
 
-- v0.14.0 : |doiv014|
-- v0.13.0 : |doiv013|
-- v0.12.0 : |doiv012|
-- v0.11.0 : |doiv011|
-- v0.10.5 : |doiv010|
-- v0.9.1 : |doiv09|
-- v0.8.0 : |doiv08|
-- v0.7.0 : |doiv07|
+If you use this software for a publication, please cite the Zenodo Record
+for the specific version you are using and our latest publication.
+
+You can find all ctapipe Zenodo records here: `List of ctapipe Records on Zenodo <https://zenodo.org/search?q=conceptrecid:%223372210%22&sort=-version&all_versions=True>`_.
+
+There is also a Zenodo DOI always pointing to the latest version: |doilatest|
+
+At this point, our latest publication is the 2021 ICRS proceeding, which you can
+cite using this bibtex entry:
+
+.. code::
+
+  @inproceedings{ctapipe-icrc-2021,
+      author = {Nöthe, Maximilian  and  Kosack, Karl  and  Nickel, Lukas  and  Peresano, Michele},
+      title = {Prototype Open Event Reconstruction Pipeline for the Cherenkov Telescope Array},
+      doi = {10.22323/1.395.0744},
+      booktitle = {Proceedings, 37th International Cosmic Ray Conference},
+      year=2021,
+      volume={395},
+      number={744},
+      location={Berlin, Germany},
+    }
+
 
 Installation for Users
 ----------------------
@@ -66,12 +64,12 @@ environment (this is optional).
 The following command will set up a conda virtual environment, add the
 necessary package channels, and install ctapipe specified version and its dependencies::
 
-  CTAPIPE_VER=0.14.0
+  CTAPIPE_VER=0.17.0
   wget https://raw.githubusercontent.com/cta-observatory/ctapipe/v$CTAPIPE_VER/environment.yml
   conda env create -n cta -f environment.yml
   conda activate cta
   conda install -c conda-forge ctapipe=$CTAPIPE_VER
-  
+
 **Note**: this environment contains many useful packages that are not strictly requirements of ctapipe.
 To get only ctapipe and its direct dependencies, just do ``conda install -c conda-forge ctapipe[=<version>]`` in an environment
 of your choice. 
