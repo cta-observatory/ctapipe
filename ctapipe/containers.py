@@ -46,6 +46,7 @@ __all__ = [
     "ReconstructedEnergyContainer",
     "ReconstructedGeometryContainer",
     "SimulatedCameraContainer",
+    "SimulatedPixelMonitoring",
     "SimulatedShowerContainer",
     "SimulatedShowerDistribution",
     "SimulationConfigContainer",
@@ -570,6 +571,20 @@ class TelescopeImpactParameterContainer(Container):
     distance_uncert = Field(nan * u.m, "uncertainty in impact_parameter", unit=u.m)
 
 
+class SimulatedPixelMonitoring(Container):
+    """
+    True information about nsb rate, quantum efficiency, high voltage, current and amplification settings for each pixel and telescope.
+    """
+    nsb_rate = Field(np.int32(-1), "NSB rate in units of p.e. per ns."
+            )
+
+    qe_rel = Field(None, "Quantum efficiency of photon detectors."
+            )
+
+    hv_rel = Field(None, "High voltage.")
+    current = Field(None, "Current.")
+    fadc_amp_hg = Field(None, "FADC amplification.")
+
 class SimulatedShowerContainer(Container):
     default_prefix = "true"
     energy = Field(nan * u.TeV, "Simulated Energy", unit=u.TeV)
@@ -619,6 +634,10 @@ class SimulatedCameraContainer(Container):
         description="true impact parameter",
     )
 
+    service = Field(
+        default_factory = SimulatedPixelMonitoring,
+        description = "Simulated pixel monitoring.",
+    )
 
 class SimulatedEventContainer(Container):
     shower = Field(

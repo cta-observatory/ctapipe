@@ -29,6 +29,7 @@ from ..containers import (
     SchedulingBlockContainer,
     SchedulingBlockType,
     SimulatedCameraContainer,
+    SimulatedPixelMonitoring,
     SimulatedEventContainer,
     SimulatedShowerContainer,
     SimulationConfigContainer,
@@ -608,6 +609,32 @@ class SimTelEventSource(EventSource):
                     .get(tel_id - 1, {})
                     .get("photoelectrons", None)
                 )
+                nsb_rate = (
+                    array_event.get("pixel_monitorings", {})
+                    .get(tel_id, {})
+                    .get("nsb_rate", None)
+                        )        
+                qe_rel = (
+                    array_event.get("pixel_monitorings", {})
+                    .get(tel_id, {})
+                    .get("qe_rel", None)
+                        ) 
+                hv_rel = (
+                    array_event.get("pixel_monitorings", {})
+                    .get(tel_id, {})
+                    .get("hv_rel", None)
+                        ) 
+                current = (
+                    array_event.get("pixel_monitorings", {})
+                    .get(tel_id, {})
+                    .get("current", None)
+                        ) 
+                fadc_amp_hg = (
+                    array_event.get("pixel_monitorings", {})
+                    .get(tel_id, {})
+                    .get("fadc_amp_hg", None)
+                        ) 
+                
 
                 if data.simulation is not None:
                     if data.simulation.shower is not None:
@@ -622,6 +649,14 @@ class SimTelEventSource(EventSource):
                         impact_container = TelescopeImpactParameterContainer(
                             prefix="true_impact",
                         )
+                    print(array_event)
+                    service_container = SimulatedPixelMonitoring(
+                            nsb_rate=nsb_rate,
+                            qe_rel=qe_rel,
+                            hv_rel=hv_rel,
+                            current=current,
+                            fadc_amp_hg=fadc_amp_hg,
+                        )
 
                     data.simulation.tel[tel_id] = SimulatedCameraContainer(
                         true_image_sum=true_image_sums[
@@ -629,7 +664,9 @@ class SimTelEventSource(EventSource):
                         ],
                         true_image=true_image,
                         impact=impact_container,
+                        service=service_container,
                     )
+
 
                 data.pointing.tel[tel_id] = self._fill_event_pointing(
                     tracking_positions[tel_id]
