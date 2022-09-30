@@ -10,7 +10,13 @@ from ..sklearn import CrossValidator, ParticleIdClassifier
 
 
 class TrainParticleIdClassifier(Tool):
-    """Train a ML model for particle id classification."""
+    """
+    Tool to train a `~ctapipe.ml.ParticleIdClassifier` on dl2 data.
+
+    The tool first performs a cross validation to give an initial estimate
+    on the quality of the estimation and then finally trains one model
+    per telescope type on the full dataset.
+    """
 
     name = "ctapipe-train-classifier"
     description = __doc__

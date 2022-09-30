@@ -28,6 +28,8 @@ from .utils import add_defaults_and_meta
 
 __all__ = [
     "SKLearnReconstructor",
+    "SKLearnRegressionReconstructor",
+    "SKLearnClassficationReconstructor",
     "EnergyRegressor",
     "ParticleIdClassifier",
 ]
@@ -259,8 +261,18 @@ class SKLearnClassficationReconstructor(SKLearnReconstructor):
         help="Which scikit-learn regression model to use.",
     ).tag(config=True)
 
-    invalid_class = Integer(-1).tag(config=True)
-    positive_class = Integer(default_value=1).tag(config=True)
+    invalid_class = Integer(
+        default_value=-1, help="The label to fill in case no prediction could be made"
+    ).tag(config=True)
+
+    positive_class = Integer(
+        default_value=1,
+        help=(
+            "The label value of the positive class."
+            " ``prediction`` values close to 1.0 mean the event"
+            " belonged likely to this class."
+        ),
+    ).tag(config=True)
 
     def _predict(self, key, table):
         if key not in self._models:
@@ -382,6 +394,7 @@ class ParticleIdClassifier(SKLearnClassficationReconstructor):
 
     #: Name of the target table column for training
     target = "true_shower_primary_id"
+
     positive_class = Integer(
         default_value=0,
         help="Particle id (in simtel system) of the positive class. Default is 0 for gammas.",

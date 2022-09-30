@@ -9,7 +9,13 @@ from ..preprocessing import check_valid_rows
 
 
 class TrainEnergyRegressor(Tool):
-    """Train a ML model for energy regression."""
+    """
+    Tool to train a `~ctapipe.ml.EnergyRegressor` on dl2 data.
+
+    The tool first performs a cross validation to give an initial estimate
+    on the quality of the estimation and then finally trains one model
+    per telescope type on the full dataset.
+    """
 
     name = "ctapipe-train-regressor"
     description = __doc__
