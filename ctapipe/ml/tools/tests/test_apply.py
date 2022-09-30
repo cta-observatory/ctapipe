@@ -1,5 +1,10 @@
+from ctapipe.containers import (
+    EventIndexContainer,
+    ParticleClassificationContainer,
+    ReconstructedEnergyContainer,
+)
 from ctapipe.core import run_tool
-from ctapipe.io import TableLoader
+from ctapipe.io import TableLoader, read_table
 
 
 def test_apply_energy_regressor(
@@ -23,6 +28,15 @@ def test_apply_energy_regressor(
         raises=True,
     )
     assert ret == 0
+
+    table = read_table(output_path, "/dl2/event/subarray/energy/ExtraTreesRegressor")
+    for col in "obs_id", "event_id":
+        assert table[col].description == EventIndexContainer.fields[col].description
+
+    for name, field in ReconstructedEnergyContainer.fields.items():
+        colname = f"ExtraTreesRegressor_{name}"
+        assert colname in table.colnames
+        assert table[colname].description == field.description
 
     loader = TableLoader(output_path, load_dl2=True)
     events = loader.read_subarray_events()
@@ -61,6 +75,17 @@ def test_apply_particle_classifier(
         ],
     )
     assert ret == 0
+
+    table = read_table(
+        output_path, "/dl2/event/subarray/classification/ExtraTreesClassifier"
+    )
+    for col in "obs_id", "event_id":
+        assert table[col].description == EventIndexContainer.fields[col].description
+
+    for name, field in ParticleClassificationContainer.fields.items():
+        colname = f"ExtraTreesClassifier_{name}"
+        assert colname in table.colnames
+        assert table[colname].description == field.description
 
     loader = TableLoader(output_path, load_dl2=True)
     events = loader.read_subarray_events()

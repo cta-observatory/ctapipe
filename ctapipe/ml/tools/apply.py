@@ -200,6 +200,7 @@ class Apply(Tool):
             stereo_predictions.columns.values(),
         ):
             stereo_predictions[c.name] = np.array([trafo(r) for r in c])
+            stereo_predictions[c.name].description = c.description
 
         write_table(
             stereo_predictions,
