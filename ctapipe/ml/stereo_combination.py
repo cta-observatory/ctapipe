@@ -12,6 +12,12 @@ from ..containers import (
     ParticleClassificationContainer,
     ReconstructedEnergyContainer,
 )
+from .utils import add_defaults_and_meta
+
+_containers = {
+    "energy": ReconstructedEnergyContainer,
+    "classification": ParticleClassificationContainer,
+}
 
 
 def _calculate_ufunc_of_telescope_values(tel_data, n_array_events, indices, ufunc):
@@ -189,6 +195,10 @@ class StereoMeanCombiner(StereoCombiner):
             return_counts=True,
         )
         stereo_table = Table(array_events)
+        # copy metadata
+        for colname in ("obs_id", "event_id"):
+            stereo_table[colname].description = mono_predictions[colname].description
+
         n_array_events = len(array_events)
         weights = self._calculate_weights(valid_predictions)
 
@@ -236,7 +246,6 @@ class StereoMeanCombiner(StereoCombiner):
             )
             stereo_table[f"{self.algorithm}_is_valid"] = np.isfinite(stereo_energy)
             stereo_table[f"{self.algorithm}_goodness_of_fit"] = np.nan
-
         else:
             raise NotImplementedError()
 
@@ -246,4 +255,7 @@ class StereoMeanCombiner(StereoCombiner):
             tel_ids[index].append(tel_id)
 
         stereo_table[f"{self.algorithm}_telescopes"] = tel_ids
+        add_defaults_and_meta(
+            stereo_table, _containers[self.combine_property], self.algorithm
+        )
         return stereo_table

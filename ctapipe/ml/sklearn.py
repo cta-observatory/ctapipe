@@ -24,6 +24,7 @@ from ..core.traits import Bool, Dict, Enum, Int, Integer, List, Path, Unicode
 from ..io import write_table
 from ..reco import Reconstructor
 from .preprocessing import check_valid_rows, table_to_float
+from .utils import add_defaults_and_meta
 
 __all__ = [
     "SKLearnReconstructor",
@@ -365,6 +366,12 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
                 f"{self.model_cls}_tel_is_valid": is_valid,
             }
         )
+        add_defaults_and_meta(
+            result,
+            ReconstructedEnergyContainer,
+            prefix=self.model_cls,
+            stereo=False,
+        )
         return result
 
 
@@ -420,6 +427,9 @@ class ParticleIdClassifier(SKLearnClassficationReconstructor):
                 f"{self.model_cls}_tel_prediction": score,
                 f"{self.model_cls}_tel_is_valid": is_valid,
             }
+        )
+        add_defaults_and_meta(
+            result, ParticleClassificationContainer, prefix=self.model_cls, stereo=False
         )
         return result
 
