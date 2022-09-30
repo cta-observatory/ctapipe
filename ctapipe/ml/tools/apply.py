@@ -17,10 +17,14 @@ from ..sklearn import EnergyRegressor, ParticleIdClassifier
 from ..stereo_combination import StereoCombiner
 
 
-class Apply(Tool):
-    """Apply machine learning models on data.
+class ApplyModels(Tool):
+    """Apply machine learning models to data.
 
-    Predict (gamma)-energy and/or particle id.
+    This tool predicts all events at once. To apply models in the
+    regular event loop, set the appropriate options to ``ctapipe-process``.
+
+    Models need to be trained with `~ctapipe.ml.tools.TrainEnergyRegressor`
+    and `~ctapipe.ml.tools.TrainParticleIdClassifier`.
     """
 
     name = "ctapipe-ml-apply"
@@ -215,7 +219,7 @@ class Apply(Tool):
 
 
 def main():
-    Apply().run()
+    ApplyModels().run()
 
 
 if __name__ == "__main__":

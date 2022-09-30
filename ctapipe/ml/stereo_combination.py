@@ -19,6 +19,11 @@ _containers = {
     "classification": ParticleClassificationContainer,
 }
 
+__all__ = [
+    "StereoCombiner",
+    "StereoMeanCombiner",
+]
+
 
 def _calculate_ufunc_of_telescope_values(tel_data, n_array_events, indices, ufunc):
     combined_values = np.zeros(n_array_events)
