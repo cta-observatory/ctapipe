@@ -816,7 +816,7 @@ class SimTelEventSource(EventSource):
                         impact_container = TelescopeImpactParameterContainer(
                             prefix="true_impact",
                         )
-                    print(array_event)
+                    
                     service_container = SimulatedPixelMonitoring(
                             nsb_rate=nsb_rate,
                             qe_rel=qe_rel,

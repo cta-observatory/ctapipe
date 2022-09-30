@@ -583,16 +583,16 @@ class SimulatedPixelMonitoring(Container):
     """
     True information about nsb rate, quantum efficiency, high voltage, current and amplification settings for each pixel and telescope.
     """
-    nsb_rate = Field(np.int32(-1), "NSB rate in units of p.e. per ns."
+    nsb_rate = Field(np.int32(-1), "NSB rate in units of p.e. per ns"
             )
 
-    qe_rel = Field(None, "Quantum efficiency of photon detectors."
+    qe_rel = Field(None, "Quantum efficiency of photon detectors"
             )
 
-    hv_rel = Field(None, "High voltage.")
-    current = Field(None, "Current.")
-    fadc_amp_hg = Field(None, "FADC amplification, high gain.")
-    fadc_amp_lg = Field(None, "FADC amplification, low gain.")
+    hv_rel = Field(None, "High voltage")
+    current = Field(None, "Current")
+    fadc_amp_hg = Field(None, "FADC amplification, high gain")
+    fadc_amp_lg = Field(None, "FADC amplification, low gain")
 
 class SimulatedShowerContainer(Container):
     default_prefix = "true"
