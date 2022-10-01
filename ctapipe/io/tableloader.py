@@ -28,6 +28,7 @@ SHOWER_TABLE = "/simulation/event/subarray/shower"
 TRUE_IMAGES_GROUP = "/simulation/event/telescope/images"
 TRUE_PARAMETERS_GROUP = "/simulation/event/telescope/parameters"
 TRUE_IMPACT_GROUP = "/simulation/event/telescope/impact"
+SERVICE_GROUP = "/simulation/event/telescope/service"
 SIMULATION_CONFIG_TABLE = "/configuration/simulation/run"
 SHOWER_DISTRIBUTION_TABLE = "/simulation/service/shower_distribution"
 OBSERVATION_TABLE = "/configuration/observation/observation_block"
@@ -528,6 +529,15 @@ class TableLoader(Component):
                 stop=tel_stop,
             )
             table = _join_telescope_events(table, impacts)
+
+        if self.load_simulated and SERVICE_GROUP in self.h5file.root:
+            services = self._read_telescope_table(
+                SERVICE_GROUP,
+                tel_id,
+                start=start,
+                stop=stop,
+            )
+            table = _join_telescope_events(table, services)
 
         return table
 

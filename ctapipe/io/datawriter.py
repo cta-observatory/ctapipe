@@ -307,19 +307,27 @@ class DataWriter(Component):
             table_name="dl1/event/subarray/trigger",
             containers=[event.index, event.trigger],
         )
-        if event.simulation is not None and event.simulation.shower is not None:
-            self._writer.write(
-                table_name="simulation/event/subarray/shower",
-                containers=[event.index, event.simulation.shower],
-            )
-
+        if event.simulation is not None:
             for tel_id, sim in event.simulation.tel.items():
                 table_name = self.table_name(tel_id)
                 tel_index = _get_tel_index(event, tel_id)
                 self._writer.write(
-                    f"simulation/event/telescope/impact/{table_name}",
-                    [tel_index, sim.impact],
+                        f"simulation/event/telescope/service/{table_name}",
+                        [tel_index, sim.service],
                 )
+            if event.simulation.shower is not None:
+                self._writer.write(
+                    table_name="simulation/event/subarray/shower",
+                    containers=[event.index, event.simulation.shower],
+                )
+
+                for tel_id, sim in event.simulation.tel.items():
+                    table_name = self.table_name(tel_id)
+                    tel_index = _get_tel_index(event, tel_id)
+                    self._writer.write(
+                        f"simulation/event/telescope/impact/{table_name}",
+                        [tel_index, sim.impact],
+                    )
 
         if self.write_waveforms:
             self._write_r1_telescope_events(self._writer, event)

@@ -37,6 +37,7 @@ from ..containers import (
     SimulatedEventContainer,
     SimulatedShowerContainer,
     SimulationConfigContainer,
+    SimulatedPixelMonitoring,
     TelescopeImpactParameterContainer,
     TelescopeTriggerContainer,
     TelEventIndexContainer,
@@ -537,6 +538,7 @@ class HDF5EventSource(EventSource):
                     }
 
         true_impact_readers = {}
+        service_readers = {}
         if self.is_simulation:
             # simulated shower wide information
             mc_shower_reader = HDF5TableReader(self.file_).read(
@@ -553,6 +555,16 @@ class HDF5EventSource(EventSource):
                     )
                     for table in self.file_.root.simulation.event.telescope.impact
                 }
+            
+            if "service" in self.file_.root.simulation.event.telescope:
+                service_readers = {
+                      table.name: self.reader.read(
+                           f"/simulation/event/telescope/service/{table.name}",
+                           container=SimulatedPixelMonitoring,
+                           prefixes=["true_service"]
+                      )
+                      for table in self.file_.root.simulation.event.telescope.service
+                }        
 
         # Setup iterators for the array events
         events = HDF5TableReader(self.file_).read(
@@ -634,6 +646,9 @@ class HDF5EventSource(EventSource):
 
                 if key in true_impact_readers:
                     data.simulation.tel[tel_id].impact = next(true_impact_readers[key])
+
+                if key in service_readers:
+                    data.simulation.tel[tel_id].service = next(service_readers[key])
 
                 if DataLevel.R1 in self.datalevels:
                     data.r1.tel[tel_id] = next(waveform_readers[key])
@@ -742,6 +757,7 @@ class HDF5EventSource(EventSource):
             if self.allowed_tels and tel_id not in self.allowed_tels:
                 continue
 
+<<<<<<< HEAD
             tel_pointing_table = pointing_group[key]
             closest_time_index = tel_pointing_finder[key].closest(
                 data.trigger.tel[tel_id].time.mjd
@@ -757,3 +773,6 @@ class HDF5EventSource(EventSource):
                 pointing_telescope["altitude"],
                 attrs["altitude"]["UNIT"],
             )
+=======
+            tel_pointing_table = pointing_group[f"tel_{tel_id:03d}"]
+>>>>>>> cd2ee7d3 (changes made to include pixel monitoring information)

@@ -591,8 +591,7 @@ class SimulatedPixelMonitoring(Container):
 
     hv_rel = Field(None, "High voltage")
     current = Field(None, "Current")
-    fadc_amp_hg = Field(None, "FADC amplification, high gain")
-    fadc_amp_lg = Field(None, "FADC amplification, low gain")
+    fadc_amp_hg = Field(None, "FADC amplification.")
 
 class SimulatedShowerContainer(Container):
     default_prefix = "true"

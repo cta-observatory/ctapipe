@@ -796,11 +796,6 @@ class SimTelEventSource(EventSource):
                     .get(tel_id, {})
                     .get("fadc_amp_hg", None)
                         ) 
-                fadc_amp_lg = (
-                    array_event.get("pixel_monitorings", {})
-                    .get(tel_id, {})
-                    .get("fadc_amp_lg", None)
-                        )
                 
 
                 if data.simulation is not None:
@@ -823,7 +818,7 @@ class SimTelEventSource(EventSource):
                             hv_rel=hv_rel,
                             current=current,
                             fadc_amp_hg=fadc_amp_hg,
-                            fadc_amp_lg=fadc_amp_lg,
+                            prefix="true_service",
                         )
 
                     data.simulation.tel[tel_id] = SimulatedCameraContainer(
