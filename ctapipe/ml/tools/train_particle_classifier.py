@@ -1,7 +1,7 @@
 import numpy as np
 from astropy.table import vstack
 
-from ctapipe.core.tool import Tool, ToolConfigurationError
+from ctapipe.core.tool import Tool
 from ctapipe.core.traits import Int, Path
 from ctapipe.io import TableLoader
 
@@ -23,13 +23,13 @@ class TrainParticleIdClassifier(Tool):
 
     input_url_signal = Path(
         default_value=None,
-        allow_none=True,
+        allow_none=False,
         directory_ok=False,
     ).tag(config=True)
 
     input_url_background = Path(
         default_value=None,
-        allow_none=True,
+        allow_none=False,
         directory_ok=False,
     ).tag(config=True)
 
@@ -59,11 +59,6 @@ class TrainParticleIdClassifier(Tool):
         """
         Initialize components from config
         """
-        if self.input_url_signal is None:
-            raise ToolConfigurationError("Need to provide `input_signal_path`")
-
-        if self.input_url_background is None:
-            raise ToolConfigurationError("Need to provide `input_background_path`")
 
         self.signal_loader = TableLoader(
             parent=self,

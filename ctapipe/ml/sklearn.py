@@ -465,10 +465,10 @@ class CrossValidator(Component):
         self.rng = np.random.default_rng(self.rng_seed)
 
         if isinstance(self.model_component, SKLearnClassficationReconstructor):
-            self.calculate_metrics = self._cross_validate_classification
+            self.cross_validate = self._cross_validate_classification
             self.split_data = StratifiedKFold
         elif isinstance(self.model_component, SKLearnRegressionReconstructor):
-            self.calculate_metrics = self._cross_validate_regressor
+            self.cross_validate = self._cross_validate_regressor
             self.split_data = KFold
         else:
             raise KeyError(
@@ -505,7 +505,7 @@ class CrossValidator(Component):
         ):
             train = table[train_indices]
             test = table[test_indices]
-            cv_prediction, truth, metrics = self.calculate_metrics(
+            cv_prediction, truth, metrics = self.cross_validate(
                 telescope_type, train, test
             )
             predictions.append(
