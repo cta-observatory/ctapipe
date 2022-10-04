@@ -1471,6 +1471,16 @@ class FlashCamExtractor(ImageExtractor):
         "assume for calculating the gain correction",
     ).tag(config=True, min=0)
 
+    baseline_window_start = IntTelescopeParameter(
+        default_value=0,
+        help="Define the first sample to use for baseline estimation",
+    ).tag(config=True, min=0)
+
+    baseline_window_width = IntTelescopeParameter(
+        default_value=1,
+        help="Define the number of samples to use for baseline estimation",
+    ).tag(config=True, min=0)
+
     def __init__(self, subarray, **kwargs):
         super().__init__(subarray=subarray, **kwargs)
 
@@ -1499,13 +1509,23 @@ class FlashCamExtractor(ImageExtractor):
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> DL1CameraContainer:
         upsampling = self.upsampling.tel[tel_id]
-        window_width = self.window_width.tel[tel_id]
-        window_shift = self.window_shift.tel[tel_id]
+        baseline_window_start = self.baseline_window_start.tel[tel_id]
+        baseline_window_width = self.baseline_window_width.tel[tel_id]
+        integration_window_width = self.window_width.tel[tel_id]
+        integration_window_shift = self.window_shift.tel[tel_id]
 
         pzs, gains, shifts = self.deconvolution_pars[tel_id]
         pz, gain, shift = pzs[0], gains[0], shifts[0]
 
-        bls = waveforms[:, 0]  # FIXME fetch from NSB estimates
+        if (
+            baseline_window_width == 0
+        ):  # assume baseline has been subtracted properly in R1 pre-calibration step
+            bls = 0.0
+        else:
+            bls = waveforms[
+                :, baseline_window_start : baseline_window_start + baseline_window_width
+            ].mean(1)
+
         waveforms = deconvolve(waveforms, bls, upsampling, pz)
 
         # FIXME near-duplicate of neighbour peak sum for now
@@ -1521,8 +1541,8 @@ class FlashCamExtractor(ImageExtractor):
         charge, peak_time = extract_around_peak(
             waveforms,
             peak_index,
-            window_width,
-            window_shift,
+            integration_window_width,
+            integration_window_shift,
             self.sampling_rate_ghz[tel_id] * upsampling,
         )
 
