@@ -65,21 +65,21 @@ class ApplyModels(Tool):
     ).tag(config=True)
 
     aliases = {
-        ("i", "input"): "Apply.input_url",
-        "regressor": "Apply.energy_regressor_path",
-        "classifier": "Apply.particle_classifier_path",
-        ("o", "output"): "Apply.output_path",
+        ("i", "input"): "ApplyModels.input_url",
+        "regressor": "ApplyModels.energy_regressor_path",
+        "classifier": "ApplyModels.particle_classifier_path",
+        ("o", "output"): "ApplyModels.output_path",
     }
 
     flags = {
         **flag(
             "overwrite",
-            "Apply.overwrite",
+            "ApplyModels.overwrite",
             "Overwrite tables in output file if it exists",
             "Don't overwrite tables in output file if it exists",
         ),
         "f": (
-            {"Apply": {"overwrite": True}},
+            {"ApplyModels": {"overwrite": True}},
             "Overwrite output file if it exists",
         ),
     }
