@@ -47,6 +47,7 @@ class TrainParticleIdClassifier(Tool):
         ("s", "signal"): "TrainParticleIdClassifier.input_url_signal",
         ("b", "background"): "TrainParticleIdClassifier.input_url_background",
         ("o", "output"): "TrainParticleIdClassifier.output_path",
+        "cv-output": "CrossValidator.output_path",
     }
 
     classes = [
