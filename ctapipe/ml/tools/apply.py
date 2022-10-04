@@ -92,7 +92,9 @@ class ApplyModels(Tool):
     ]
 
     def setup(self):
-        """"""
+        """
+        Initialize components from config
+        """
         self.log.info("Copying to output destination.")
         shutil.copy(self.input_url, self.output_path)
 
@@ -141,6 +143,7 @@ class ApplyModels(Tool):
         return False
 
     def start(self):
+        """Apply models to input tables"""
         if self.apply_regressor:
             self.log.info("Apply regressor.")
             mono_predictions = self._apply(self.regressor, "energy")
@@ -215,6 +218,7 @@ class ApplyModels(Tool):
         )
 
     def finish(self):
+        """Close input file"""
         self.h5file.close()
 
 

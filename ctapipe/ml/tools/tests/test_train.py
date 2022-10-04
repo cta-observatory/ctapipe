@@ -26,7 +26,7 @@ def test_too_few_events(
     config = resource_file("ml_config.yaml")
     out_file = model_tmp_path / "energy.pkl"
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Too few events"):
         run_tool(
             tool,
             argv=[
@@ -41,7 +41,7 @@ def test_too_few_events(
     tool = TrainParticleIdClassifier()
     out_file = model_tmp_path / "particle_classifier.pkl"
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Too few events"):
         run_tool(
             tool,
             argv=[
@@ -70,8 +70,8 @@ def test_cross_validation_results(model_tmp_path):
             "--input=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
             f"--output={out_file}",
             f"--config={config}",
+            f"--cv-output={energy_cv_out_file}",
             "--log-level=INFO",
-            f"--CrossValidator.output_path={energy_cv_out_file}",
         ],
     )
     assert ret == 0
@@ -88,8 +88,8 @@ def test_cross_validation_results(model_tmp_path):
             "--background=dataset://proton_dl2_train_small.dl2.h5",
             f"--output={out_file}",
             f"--config={config}",
+            f"--cv-output={classifier_cv_out_file}",
             "--log-level=INFO",
-            f"--CrossValidator.output_path={classifier_cv_out_file}",
         ],
     )
     assert ret == 0

@@ -32,6 +32,7 @@ class TrainEnergyRegressor(Tool):
     aliases = {
         ("i", "input"): "TableLoader.input_url",
         ("o", "output"): "TrainEnergyRegressor.output_path",
+        "cv-output": "CrossValidator.output_path",
     }
 
     classes = [
@@ -41,7 +42,9 @@ class TrainEnergyRegressor(Tool):
     ]
 
     def setup(self):
-        """"""
+        """
+        Initialize components from config
+        """
         self.loader = TableLoader(
             parent=self,
             load_dl1_images=False,
@@ -58,6 +61,9 @@ class TrainEnergyRegressor(Tool):
         self.rng = np.random.default_rng(self.random_seed)
 
     def start(self):
+        """
+        Train models per telescope type using a cross-validation.
+        """
 
         types = self.loader.subarray.telescope_types
         self.log.info("Inputfile: %s", self.loader.input_url)
@@ -100,6 +106,9 @@ class TrainEnergyRegressor(Tool):
         return table
 
     def finish(self):
+        """
+        Write-out trained models and cross-validation results.
+        """
         self.log.info("Writing output")
         self.regressor.write(self.output_path)
         if self.cross_validate.output_path:

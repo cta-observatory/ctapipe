@@ -56,12 +56,14 @@ class TrainParticleIdClassifier(Tool):
     ]
 
     def setup(self):
-        """"""
+        """
+        Initialize components from config
+        """
         if self.input_url_signal is None:
             raise ToolConfigurationError("Need to provide `input_signal_path`")
 
         if self.input_url_background is None:
-            raise ToolConfigurationError("Need to provide `input_signal_path`")
+            raise ToolConfigurationError("Need to provide `input_background_path`")
 
         self.signal_loader = TableLoader(
             parent=self,
@@ -96,6 +98,9 @@ class TrainParticleIdClassifier(Tool):
         )
 
     def start(self):
+        """
+        Train models per telescope type using a cross-validation.
+        """
         # By construction both loaders have the same types defined
         types = self.signal_loader.subarray.telescope_types
 
@@ -150,6 +155,9 @@ class TrainParticleIdClassifier(Tool):
         return table
 
     def finish(self):
+        """
+        Write-out trained models and cross-validation results.
+        """
         self.log.info("Writing output")
         self.classifier.write(self.output_path)
         self.signal_loader.close()
