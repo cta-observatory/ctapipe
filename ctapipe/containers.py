@@ -826,10 +826,9 @@ class ParticleClassificationContainer(Container):
     prediction = Field(
         nan,
         (
-            "prediction of the classifier, defined between "
-            "[0,1], where values close to 1 are more "
-            "gamma-like, and values close to 0 more "
-            "hadron-like"
+            " prediction of the classifier, defined between [0,1]"
+            ", where values close to 1 are more mean that the positive class"
+            " (e.g. gamma in gamma-ray analysis) is more likely"
         ),
     )
     is_valid = Field(False, "true if classification parameters are valid")
