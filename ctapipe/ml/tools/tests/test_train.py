@@ -41,7 +41,7 @@ def test_too_few_events(
     tool = TrainParticleIdClassifier()
     out_file = model_tmp_path / "particle_classifier.pkl"
 
-    with pytest.raises(ValueError, match="Too few events"):
+    with pytest.raises(ValueError, match="Only one class"):
         run_tool(
             tool,
             argv=[
