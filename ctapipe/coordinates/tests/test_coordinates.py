@@ -1,8 +1,9 @@
-import numpy as np
 import astropy.units as u
-from astropy.coordinates import SkyCoord, EarthLocation, AltAz
+import numpy as np
+from astropy.coordinates import AltAz, EarthLocation, SkyCoord
 from astropy.time import Time
 from pytest import approx, raises
+
 from ctapipe.coordinates import altaz_to_righthanded_cartesian
 
 location = EarthLocation.of_site("Roque de los Muchachos")
@@ -283,7 +284,7 @@ def test_ground_frame_roundtrip():
 
 def test_ground_to_eastnorth_roundtrip():
     """Check Ground to EastingNorthing and the round-trip"""
-    from ctapipe.coordinates import GroundFrame, EastingNorthingFrame
+    from ctapipe.coordinates import EastingNorthingFrame, GroundFrame
 
     ground = SkyCoord(
         x=[1, 2, 3] * u.m, y=[-2, 5, 2] * u.m, z=[1, -1, 2] * u.m, frame=GroundFrame()
