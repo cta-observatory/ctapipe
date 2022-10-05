@@ -583,15 +583,15 @@ class SimulatedPixelMonitoring(Container):
     """
     True information about nsb rate, quantum efficiency, high voltage, current and amplification settings for each pixel and telescope.
     """
-    nsb_rate = Field(np.int32(-1), "NSB rate in units of p.e. per ns"
+    nsb_pe_rate = Field(np.int32(-1), "NSB pixel p.e. rate in units of p.e./ns"
             )
 
-    qe_rel = Field(None, "Quantum efficiency of photon detectors"
+    qe_rel = Field(None, "Quantum efficiency w.r.t nominal"
             )
 
-    hv_rel = Field(None, "High voltage")
-    current = Field(None, "Current")
-    fadc_amp_hg = Field(None, "FADC amplification.")
+    high_voltage = Field(None, "High voltage w.r.t. nominal")
+    current = Field(None, "Current at pixel")
+    fadc_amp = Field(None, "FADC amplitude per mean per p.e.")
 
 class SimulatedShowerContainer(Container):
     default_prefix = "true"
@@ -642,10 +642,6 @@ class SimulatedCameraContainer(Container):
         description="true impact parameter",
     )
 
-    service = Field(
-        default_factory = SimulatedPixelMonitoring,
-        description = "Simulated pixel monitoring.",
-    )
 
 class SimulatedEventContainer(Container):
     shower = Field(
@@ -738,6 +734,11 @@ class SimulationConfigContainer(Container):
     )
     corsika_high_E_detail = Field(
         nan, description="More details on high E interaction model (version etc.)"
+    )
+
+    tel = Field(
+        default_factory=partial(Map, SimulatedPixelMonitoring),
+        description="map of tel_id to SimulatedPixelMonitoring",
     )
 
 

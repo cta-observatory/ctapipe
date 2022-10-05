@@ -308,13 +308,6 @@ class DataWriter(Component):
             containers=[event.index, event.trigger],
         )
         if event.simulation is not None:
-            for tel_id, sim in event.simulation.tel.items():
-                table_name = self.table_name(tel_id)
-                tel_index = _get_tel_index(event, tel_id)
-                self._writer.write(
-                        f"simulation/event/telescope/service/{table_name}",
-                        [tel_index, sim.service],
-                )
             if event.simulation.shower is not None:
                 self._writer.write(
                     table_name="simulation/event/subarray/shower",

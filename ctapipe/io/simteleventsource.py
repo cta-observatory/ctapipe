@@ -507,6 +507,10 @@ class SimTelEventSource(EventSource):
             skip_calibration=self.skip_calibration_events,
             zcat=not self.back_seekable,
         )
+
+        self.event_iter = iter(self.file_)
+        self.first_event = next(self.event_iter)
+
         if self.back_seekable and self.is_stream:
             raise IOError("back seekable was required but not possible for inputfile")
 
@@ -716,7 +720,6 @@ class SimTelEventSource(EventSource):
         pseudo_event_id = 0
 
         for counter, array_event in enumerate(self.file_):
-
             event_id = array_event.get("event_id", 0)
             if event_id == 0:
                 pseudo_event_id -= 1
@@ -771,34 +774,10 @@ class SimTelEventSource(EventSource):
                     .get(tel_id - 1, {})
                     .get("photoelectrons", None)
                 )
-                nsb_rate = (
-                    array_event.get("pixel_monitorings", {})
-                    .get(tel_id, {})
-                    .get("nsb_rate", None)
-                        )        
-                qe_rel = (
-                    array_event.get("pixel_monitorings", {})
-                    .get(tel_id, {})
-                    .get("qe_rel", None)
-                        ) 
-                hv_rel = (
-                    array_event.get("pixel_monitorings", {})
-                    .get(tel_id, {})
-                    .get("hv_rel", None)
-                        ) 
-                current = (
-                    array_event.get("pixel_monitorings", {})
-                    .get(tel_id, {})
-                    .get("current", None)
-                        ) 
-                fadc_amp_hg = (
-                    array_event.get("pixel_monitorings", {})
-                    .get(tel_id, {})
-                    .get("fadc_amp_hg", None)
-                        ) 
-                
+
 
                 if data.simulation is not None:
+
                     if data.simulation.shower is not None:
                         impact_container = TelescopeImpactParameterContainer(
                             distance=impact_distances[
@@ -812,24 +791,14 @@ class SimTelEventSource(EventSource):
                             prefix="true_impact",
                         )
                     
-                    service_container = SimulatedPixelMonitoring(
-                            nsb_rate=nsb_rate,
-                            qe_rel=qe_rel,
-                            hv_rel=hv_rel,
-                            current=current,
-                            fadc_amp_hg=fadc_amp_hg,
-                            prefix="true_service",
-                        )
-
+                
                     data.simulation.tel[tel_id] = SimulatedCameraContainer(
                         true_image_sum=true_image_sums[
                             self.telescope_indices_original[tel_id]
                         ],
                         true_image=true_image,
                         impact=impact_container,
-                        service=service_container,
-                    )
-
+                    ) 
 
                 data.pointing.tel[tel_id] = self._fill_event_pointing(
                     tracking_positions[tel_id]
@@ -997,11 +966,13 @@ class SimTelEventSource(EventSource):
         point in time, this dictionary will always have
         length 1.
         """
+        
+
         assert len(self.obs_ids) == 1
         obs_id = self.obs_ids[0]
         # With only one run, we can take the first entry:
         mc_run_head = self.file_.mc_run_headers[-1]
-
+            
         simulation_config = SimulationConfigContainer(
             corsika_version=mc_run_head["shower_prog_vers"],
             simtel_version=mc_run_head["detector_prog_vers"],
@@ -1039,6 +1010,41 @@ class SimTelEventSource(EventSource):
             corsika_low_E_detail=mc_run_head["corsika_low_E_detail"],
             corsika_high_E_detail=mc_run_head["corsika_high_E_detail"],
         )
+
+        for tel_id in self.file_.pixel_monitorings.keys():
+            nsb_rate = (self.file_.pixel_monitorings.get(tel_id, {})
+                   .get("nsb_rate", None)
+                    )
+            qe_rel = (
+                    self.file_.pixel_monitorings
+                    .get(tel_id, {})
+                    .get("qe_rel", None)
+                        )
+            hv_rel = (
+                    self.file_.pixel_monitorings
+                    .get(tel_id, {})
+                    .get("hv_rel", None)
+                        )
+            current = (
+                    self.file_.pixel_monitorings
+                    .get(tel_id, {})
+                    .get("current", None)
+                        )
+            fadc_amp_hg = (
+                    self.file_.pixel_monitorings
+                    .get(tel_id, {})
+                    .get("fadc_amp_hg", None)
+                        )
+
+            service_container = SimulatedPixelMonitoring(
+                    nsb_pe_rate=nsb_rate,
+                    qe_rel=qe_rel,
+                    high_voltage=hv_rel,
+                    current=current,
+                    fadc_amp=fadc_amp_hg,
+                    )
+            simulation_config.tel[tel_id] = service_container 
+        
         return {obs_id: simulation_config}
 
     def _fill_scheduling_and_observation_blocks(self):
