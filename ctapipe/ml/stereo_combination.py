@@ -238,6 +238,10 @@ class StereoMeanCombiner(StereoCombiner):
                 mono_energies = valid_predictions[f"{prefix}_energy"].quantity.to_value(
                     u.TeV
                 )
+
+                if self.log_target:
+                    mono_energies = np.log(mono_energies)
+
                 stereo_energy = _weighted_mean_ufunc(
                     mono_energies,
                     weights,
@@ -251,16 +255,21 @@ class StereoMeanCombiner(StereoCombiner):
                     n_array_events,
                     indices[valid],
                 )
+                std = np.sqrt(variance)
+
+                if self.log_target:
+                    stereo_energy = np.exp(stereo_energy)
+                    std = np.exp(std)
             else:
                 stereo_energy = np.full(n_array_events, np.nan)
-                variance = np.full(n_array_events, np.nan)
+                std = np.full(n_array_events, np.nan)
 
             stereo_table[f"{self.algorithm}_energy"] = u.Quantity(
                 stereo_energy, u.TeV, copy=False
             )
 
             stereo_table[f"{self.algorithm}_energy_uncert"] = u.Quantity(
-                np.sqrt(variance), u.TeV, copy=False
+                std, u.TeV, copy=False
             )
             stereo_table[f"{self.algorithm}_is_valid"] = np.isfinite(stereo_energy)
             stereo_table[f"{self.algorithm}_goodness_of_fit"] = np.nan
