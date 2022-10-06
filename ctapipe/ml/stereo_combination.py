@@ -5,7 +5,7 @@ import numpy as np
 from astropy.table import Table
 
 from ctapipe.core import Component, Container
-from ctapipe.core.traits import CaselessStrEnum, Unicode
+from ctapipe.core.traits import Bool, CaselessStrEnum, Unicode
 
 from ..containers import (
     ArrayEventContainer,
@@ -81,6 +81,10 @@ class StereoMeanCombiner(StereoCombiner):
         default_value="none",
     ).tag(config=True)
 
+    log_target = Bool(False, help="If true, calculate exp(mean(log(values)))").tag(
+        config=True
+    )
+
     def _calculate_weights(self, data):
         """"""
 
@@ -129,8 +133,17 @@ class StereoMeanCombiner(StereoCombiner):
         if len(values) > 0:
             weights = np.array(weights, dtype=np.float64)
             weights /= weights.max()
+
+            if self.log_target:
+                values = np.log(values)
+
             mean = np.average(values, weights=weights)
             std = np.sqrt(np.cov(values, aweights=weights))
+
+            if self.log_target:
+                mean = np.exp(mean)
+                std = np.exp(std)
+
             valid = True
         else:
             mean = std = np.nan
