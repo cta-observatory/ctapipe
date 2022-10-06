@@ -114,14 +114,15 @@ class ApplyModels(Tool):
 
     def _setup_regressor(self):
         if self.energy_regressor_path is not None:
-            self.regressor = EnergyRegressor.read(
+            self.energy_regressor = EnergyRegressor.read(
                 self.energy_regressor_path,
                 parent=self,
             )
-            self.regressor_combine = StereoCombiner.from_name(
+            self.combine_energy = StereoCombiner.from_name(
                 self.stereo_combiner_type,
                 combine_property="energy",
-                algorithm=self.regressor.model_cls,
+                algorithm=self.energy_regressor.model_cls,
+                log_target=True,
                 parent=self,
             )
             return True
@@ -133,7 +134,7 @@ class ApplyModels(Tool):
                 self.particle_classifier_path,
                 parent=self,
             )
-            self.classifier_combine = StereoCombiner.from_name(
+            self.combine_classification = StereoCombiner.from_name(
                 self.stereo_combiner_type,
                 combine_property="classification",
                 algorithm=self.classifier.model_cls,
@@ -146,13 +147,13 @@ class ApplyModels(Tool):
         """Apply models to input tables"""
         if self.apply_regressor:
             self.log.info("Apply regressor.")
-            mono_predictions = self._apply(self.regressor, "energy")
-            self._combine(self.regressor_combine, mono_predictions)
+            mono_predictions = self._apply(self.energy_regressor, "energy")
+            self._combine(self.combine_energy, mono_predictions)
 
         if self.apply_classifier:
             self.log.info("Apply classifier.")
             mono_predictions = self._apply(self.classifier, "classification")
-            self._combine(self.classifier_combine, mono_predictions)
+            self._combine(self.combine_classification, mono_predictions)
 
     def _apply(self, reconstructor, parameter):
         prefix = reconstructor.model_cls
