@@ -47,7 +47,10 @@ __all__ = [
     "ReconstructedGeometryContainer",
     "DispContainer",
     "SimulatedCameraContainer",
-    "SimulatedPixelMonitoring",
+    "PixelMonitoringContainer",
+    "TelescopeSimulationConfigContainer",
+    "CameraMonitoringContainer",
+    "LaserCalibrationContainer",
     "SimulatedShowerContainer",
     "SimulatedShowerDistribution",
     "SimulationConfigContainer",
@@ -579,7 +582,7 @@ class TelescopeImpactParameterContainer(Container):
     distance_uncert = Field(nan * u.m, "uncertainty in impact_parameter", unit=u.m)
 
 
-class SimulatedPixelMonitoring(Container):
+class PixelMonitoringContainer(Container):
     """
     True information about nsb rate, quantum efficiency, high voltage, current and amplification settings for each pixel and telescope.
     """
@@ -592,6 +595,55 @@ class SimulatedPixelMonitoring(Container):
     high_voltage = Field(None, "High voltage w.r.t. nominal")
     current = Field(None, "Current at pixel")
     fadc_amp = Field(None, "FADC amplitude per mean per p.e.")
+
+class LaserCalibrationContainer(Container):
+    """
+    Laser calibartion information computed
+    """
+    calib = Field(None, "Calibration parameters")
+    max_int_frac = Field(None, "")
+    max_pixtm_frac = Field(None, "")
+    tm_calib = Field(None, "")
+    flat_fielding = Field(None, "")
+
+class CameraMonitoringContainer(Container):
+    """
+    Camera monitoring
+    """
+    monitor_id = Field(-1, "Monitoring id")
+    monitor_time = Field(None, "Monitoring time")
+    status_time = Field(None, "Status time")
+    trigger_time = Field(None, "trigger time")
+    trigger_rate = Field(None, "trigger rate")
+    sector_rate = Field(None, "Sector rate")
+    event_rate = Field(-1, "Event rate")
+    data_rate = Field(-1, "Data rate")
+    ped_noise_time = Field(None, "")
+    pedestal = Field(None, "")
+    noise = Field(None, "")
+    hv_temp_time = Field(None, "")
+    drawer_temp = Field(None, "")
+    camera_temp = Field(None, "")
+    hv_v_mon = Field(None, "")
+    hv_i_mon = Field(None, "")
+    hv_stat = Field(None, "")
+    dc_rate_time = Field(None, "")
+    set_daq_time = Field(None, "")
+
+class TelescopeSimulationConfigContainer(Container):
+    pixel_monitoring = Field(
+        default_factory=PixelMonitoringContainer,
+        description="True pixel monitoring information",
+    )
+    laser_calibration = Field(
+        default_factory = LaserCalibrationContainer,
+        description = "True laser calibration information",
+    )
+    camera_monitoring = Field(
+        default_factory = CameraMonitoringContainer,
+        description = "True camera monitoring information",
+    )
+
 
 class SimulatedShowerContainer(Container):
     default_prefix = "true"
@@ -737,8 +789,8 @@ class SimulationConfigContainer(Container):
     )
 
     tel = Field(
-        default_factory=partial(Map, SimulatedPixelMonitoring),
-        description="map of tel_id to SimulatedPixelMonitoring",
+        default_factory=partial(Map, TelescopeSimulationConfigContainer),
+        description="map of tel_id to TelescopeSimulationConfigContainer",
     )
 
 
