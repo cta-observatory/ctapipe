@@ -1481,6 +1481,12 @@ class FlashCamExtractor(ImageExtractor):
         help="Define the number of samples to use for baseline estimation",
     ).tag(config=True, min=0)
 
+    integral_based_windows = BoolTelescopeParameter(
+        default_value=False,
+        help="Whether to define the integration windows based on the neighbour averages"
+        "of the integrated waveforms",
+    ).tag(config=True)
+
     def __init__(self, subarray, **kwargs):
         super().__init__(subarray=subarray, **kwargs)
 
@@ -1528,10 +1534,17 @@ class FlashCamExtractor(ImageExtractor):
 
         waveforms = deconvolve(waveforms, bls, upsampling, pz)
 
+        if self.integral_based_windows.tel[tel_id]:
+            nn_waveforms = scipy.signal.convolve(
+                waveforms, np.ones((1, integration_window_width)), "same"
+            )
+        else:
+            nn_waveforms = waveforms
+
         # FIXME near-duplicate of neighbour peak sum for now
         neighbors = self.subarray.tel[tel_id].camera.geometry.neighbor_matrix_sparse
         peak_index = neighbor_average_maximum(
-            waveforms,
+            nn_waveforms,
             neighbors_indices=neighbors.indices,
             neighbors_indptr=neighbors.indptr,
             local_weight=self.local_weight.tel[tel_id],
