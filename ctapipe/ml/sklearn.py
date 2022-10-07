@@ -7,7 +7,7 @@ from collections import defaultdict
 import astropy.units as u
 import joblib
 import numpy as np
-from astropy.table import Table, vstack
+from astropy.table import QTable, Table, vstack
 from astropy.utils.decorators import lazyproperty
 from sklearn.metrics import r2_score, roc_auc_score
 from sklearn.model_selection import KFold, StratifiedKFold
@@ -23,7 +23,7 @@ from ..core import Component, FeatureGenerator, Provenance, QualityQuery
 from ..core.traits import Bool, Dict, Enum, Int, Integer, List, Path, Unicode
 from ..io import write_table
 from ..reco import Reconstructor
-from .preprocessing import check_valid_rows, table_to_float
+from .preprocessing import check_valid_rows, collect_features, table_to_float
 from .utils import add_defaults_and_meta
 
 __all__ = [
@@ -118,48 +118,7 @@ class SKLearnReconstructor(Reconstructor):
 
     @lazyproperty
     def instrument_table(self):
-        return self.subarray.to_table("joined")
-
-    def _collect_features(self, event: ArrayEventContainer, tel_id: int) -> Table:
-        """Loop over all containers with features.
-
-        Parameters
-        ----------
-        event: ArrayEventContainer
-
-        Returns
-        -------
-        Table
-        """
-        features = {}
-
-        features.update(
-            event.dl1.tel[tel_id].parameters.as_dict(
-                add_prefix=True,
-                recursive=True,
-                flatten=True,
-            )
-        )
-
-        features.update(
-            event.dl2.tel[tel_id].as_dict(
-                add_prefix=False,  # would duplicate prefix, as this is part of the name of the container
-                recursive=True,
-                flatten=True,
-            )
-        )
-
-        features.update(
-            event.dl2.stereo.as_dict(
-                add_prefix=False,  # see above
-                recursive=True,
-                flatten=True,
-            )
-        )
-
-        features.update(self.instrument_table.loc[tel_id])
-
-        return Table({k: [v] for k, v in features.items()})
+        return QTable(self.subarray.to_table("joined"))
 
     def _new_model(self):
         return SUPPORTED_MODELS[self.model_cls](**self.model_config)
@@ -338,7 +297,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
         Apply model for a single event and fill result into the event container
         """
         for tel_id in event.trigger.tels_with_trigger:
-            table = self._collect_features(event, tel_id)
+            table = collect_features(event, tel_id, self.instrument_table)
             table = self.generate_features(table)
 
             passes_quality_checks = self.qualityquery.get_table_mask(table)[0]
@@ -402,7 +361,7 @@ class ParticleIdClassifier(SKLearnClassficationReconstructor):
 
     def __call__(self, event: ArrayEventContainer) -> None:
         for tel_id in event.trigger.tels_with_trigger:
-            table = self._collect_features(event, tel_id)
+            table = collect_features(event, tel_id, self.instrument_table)
             table = self.generate_features(table)
             mask = self.qualityquery.get_table_mask(table)
 
