@@ -595,40 +595,41 @@ class PixelMonitoringContainer(Container):
     high_voltage = Field(None, "High voltage w.r.t. nominal")
     current = Field(None, "Current at pixel")
     fadc_amp = Field(None, "FADC amplitude per mean per p.e.")
+    gain = Field(None, "Assumed (PMT/common) gain w.r.t. nominal")
 
 class LaserCalibrationContainer(Container):
     """
     Laser calibartion information computed
     """
-    calib = Field(None, "Calibration parameters")
-    max_int_frac = Field(None, "")
-    max_pixtm_frac = Field(None, "")
-    tm_calib = Field(None, "")
-    flat_fielding = Field(None, "")
+    calib = Field(None, "ADC to laser/LED p.e.")
+    max_integ_frac = Field(None, "Maximum fraction of the signal which can be in the fixed integration window")
+    max_timing_frac = Field(None, "Maximum fraction of the signal which can be in the pixel timing integration")
+    tm_calib = Field(nan * u.ns, "Transit time calibration", unit=u.ns)
+    flat_fielding = Field(None, "Flat-field correction")
 
 class CameraMonitoringContainer(Container):
     """
     Camera monitoring
     """
-    monitor_id = Field(-1, "Monitoring id")
-    monitor_time = Field(None, "Monitoring time")
+    monitor_id = Field(-1, "Monitoring id incremented with each update")
+    monitor_time = Field(None, "Time when last monitoring data was sent")
     status_time = Field(None, "Status time")
-    trigger_time = Field(None, "trigger time")
-    trigger_rate = Field(None, "trigger rate")
-    sector_rate = Field(None, "Sector rate")
-    event_rate = Field(-1, "Event rate")
-    data_rate = Field(-1, "Data rate")
-    ped_noise_time = Field(None, "")
-    pedestal = Field(None, "")
-    noise = Field(None, "")
-    hv_temp_time = Field(None, "")
-    drawer_temp = Field(None, "")
-    camera_temp = Field(None, "")
-    hv_v_mon = Field(None, "")
-    hv_i_mon = Field(None, "")
-    hv_stat = Field(None, "")
-    dc_rate_time = Field(None, "")
-    set_daq_time = Field(None, "")
+    trigger_time = Field(None, "Time when last trigger monitor data was read")
+    trigger_rate = Field(None, "Camera average local trigger rate in Hz")
+    sector_rate = Field(None, "Sector trigger rate in Hz")
+    event_rate = Field(-1, "Average event rate in Hz")
+    data_rate = Field(-1, "Average rate of packed data in MB per sec")
+    ped_noise_time = Field(None, "Time when pedestals + noise were determined")
+    pedestal = Field(None, "Average pedestal on ADC sums")
+    noise = Field(None, "Average noise on ADC sums")
+    hv_temp_time = Field(None, "Time when high voltage, currents and temperature were all read out")
+    drawer_temp = Field(None, "Drawer temperature")
+    camera_temp = Field(None, "ADC values")
+    hv_voltage_monitor = Field(None, "ADC values of HV voltage monitor")
+    hv_current_monitor = Field(None, "ADC values of HV current monitor")
+    hv_stat = Field(None, "Set if HV switched off for pixel")
+    dc_rate_time = Field(None, "Time when DC current and pixels scalers were read")
+    set_daq_time = Field(None, "Time when DAQ parameters were set")
 
 class TelescopeSimulationConfigContainer(Container):
     pixel_monitoring = Field(
