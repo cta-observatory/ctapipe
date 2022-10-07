@@ -129,6 +129,7 @@ class GaussianShowermodel:
 
         C = 1 - np.vectorize(self._freq)(upper_bound)
         constant = self.total_photons * C / (2 * np.pi * np.sqrt(sig_u_sq) * sig_T)
+
         return constant * np.exp(
             -0.5
             * (
@@ -159,11 +160,11 @@ class GaussianShowermodel:
         epsilon : u.Quantity[Angle]
             Angle between viewing direction and shower axis for each pixel as a 1d-quantity of shape (n_pixels)
         """
-        eta = 15e-3 * np.sqrt(np.cos(self.zenith.to_value(u.rad)))  # 15mrad
+        eta = 15 * u.mrad * np.sqrt(np.cos(self.zenith.to_value(u.rad)))  # 15mrad
 
         normalization = 1 / (9 * np.pi * eta**2)
 
-        proba = np.zeros_like(epsilon)
+        proba = np.zeros(epsilon.shape) * normalization.unit
         proba[epsilon < eta] = normalization
         proba[epsilon >= eta] = (
             normalization
@@ -172,4 +173,4 @@ class GaussianShowermodel:
             * np.exp(-(epsilon[epsilon >= eta] - eta) / (4 * eta))
         )
 
-        return proba / u.sr
+        return proba

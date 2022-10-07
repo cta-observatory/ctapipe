@@ -1,8 +1,10 @@
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import spherical_to_cartesian
+from astropy.coordinates import SkyCoord, spherical_to_cartesian
 from astropy.utils.decorators import lazyproperty
 from numpy.linalg import norm
+
+from ctapipe.coordinates import EastingNorthingFrame, GroundFrame
 
 __all__ = ["ShowermodelPredictor"]
 
@@ -21,7 +23,7 @@ class ShowermodelPredictor:
         Parameters
         ----------
         tel_positions : u.Quantity[length, ndim=2]
-            Telescope positions in the frame of the telescope array as a 2d-quantity of shape (n_telescopes, 3)
+            Telescope positions in the GroundFrame of the telescope array as a 2d-quantity of shape (n_telescopes, 3)
         tel_pix_coords_altaz : u.Quantity[Angle, ndim=2]
             AltAz coordinates of the pixels for each telescope as a 2d-quantity of shape (n_telescopes, n_pixels)
         tel_solid_angles : u.Quantity[Angle**2, ndim=2]
@@ -77,7 +79,12 @@ class ShowermodelPredictor:
         """Calculates vector of optical center of each telescope to the barycenter of the shower."""
         vec = {}
         for tel_id, position in self.tel_positions.items():
-            vec[tel_id] = self.showermodel.barycenter - position
+            vec[tel_id] = (
+                self.showermodel.barycenter
+                + SkyCoord(*position, unit=u.m, frame=GroundFrame())
+                .transform_to(EastingNorthingFrame())
+                .cartesian.xyz
+            )
         return vec
 
     def _vec_los(self, pix_altaz):
@@ -100,10 +107,8 @@ class ShowermodelPredictor:
         tel_pointing : u.Quantity[Angle]
             Pointing of the telescope in AltAz
         """
-        return np.stack(
-            (spherical_to_cartesian(1, lat=tel_pointing.alt, lon=tel_pointing.az)),
-            -1,
-        )
+        x, y, z = spherical_to_cartesian(1, lat=tel_pointing.alt, lon=tel_pointing.az)
+        return np.stack((x, y, z), -1)
 
     def _photons(self, area, solid_angle, vec_oc, pix_coords_altaz, vec_pointing):
         """Calculates the photons contained in a pixel of interest.
@@ -124,19 +129,29 @@ class ShowermodelPredictor:
         """
         vec_los = self._vec_los(pix_coords_altaz)
         epsilon = np.arccos(
-            np.einsum("ni,i->n", vec_los, self.showermodel.vec_shower_axis)
-            / (norm(vec_los, axis=1) * norm(self.showermodel.vec_shower_axis))
-        ).to_value(u.rad)
-
-        theta = np.arccos(
-            np.einsum("ni,i->n", vec_los, vec_pointing)
-            / (norm(vec_los, axis=1) * norm(vec_pointing))
+            np.clip(
+                np.einsum("ni,i->n", vec_los, self.showermodel.vec_shower_axis)
+                / (norm(vec_los, axis=1) * norm(self.showermodel.vec_shower_axis)),
+                a_min=-1,
+                a_max=1,
+            )
         )
 
-        return (
+        theta = np.arccos(
+            np.clip(
+                np.einsum("ni,i->n", vec_los, vec_pointing)
+                / (norm(vec_los, axis=1) * norm(vec_pointing)),
+                a_min=-1,
+                a_max=1,
+            )
+        )
+
+        photons = (
             area
             * solid_angle
             * self.showermodel.emission_probability(epsilon)
             * np.cos(theta)
             * self.showermodel.photon_integral(vec_oc, vec_los, epsilon)
-        ).to_value(u.dimensionless_unscaled)
+        )
+
+        return (photons).to_value(u.dimensionless_unscaled)
