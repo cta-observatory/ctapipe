@@ -24,39 +24,40 @@ init:
 	@echo "'make init' is no longer needed"
 
 clean:
-	$(RM) -rf build docs/_build docs/api htmlcov
+	$(RM) -rf build docs/_build docs/api htmlcov ctapipe.egg-info dist
 	find . -name "*.pyc" -exec rm {} \;
 	find . -name "*.so" -exec rm {} \;
 	find . -name __pycache__ | xargs rm -fr
 
 test:
-	$(PYTHON) setup.py test
+	pytest
 
 doc:
-	cd docs && $(MAKE) html
+	cd docs && $(MAKE) html SPHINXOPTS="-W --keep-going -n --color -j auto"
 	@echo "------------------------------------------------"
 	@echo "Documentation is in: docs/_build/html/index.html"
 
 doc-publish:
 	ghp-import -n -p -m 'Update gh-pages docs' docs/_build/html
 
-conda:
-	python setup.py bdist_conda
-
 analyze:
 	@pylint ctapipe --ignored-classes=astropy.units
 
-pep8:
-	@pep8 --statistics
+flake8:
+	@flake8 ctapipe
 
 env:
 	conda env create -n cta-dev -f environment.yml
 	source activate cta-dev
 
+develop:
+	pip install -e .
+
+wheel:
+	python -m build --wheel
+
+sdist:
+	python -m build --sdist
+
 trailing-spaces:
 	find $(PROJECT) examples docs -name "*.py" -exec perl -pi -e 's/[ \t]*$$//' {} \;
-
-# any other command can be passed to setup.py
-%:
-	$(PYTHON) setup.py $@
-
