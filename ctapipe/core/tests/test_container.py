@@ -1,8 +1,10 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import warnings
+from functools import partial
 
 import numpy as np
 import pytest
+
 from astropy import units as u
 
 from ctapipe.core import Container, DeprecatedField, Field, FieldValidationError, Map
@@ -161,7 +163,8 @@ def test_container_as_dict():
 
     class GrandParentContainer(Container):
         y = Field(2, "some other value")
-        child = Field(ParentContainer(), "child")
+        child = Field(default_factory=ParentContainer, description="child")
+        map = Field(default_factory=partial(Map, ChildContainer))
 
     cont = ParentContainer()
 
@@ -182,8 +185,17 @@ def test_container_as_dict():
         "child_z": 1,
     }
 
-    d = GrandParentContainer().as_dict(recursive=True, flatten=True, add_prefix=True)
-    assert d == {"parent_x": 0, "child_z": 1, "grandparent_y": 2}
+    cont = GrandParentContainer()
+    cont.map["foo"] = ChildContainer(z=3)
+    cont.map["bar"] = ChildContainer(z=4)
+    d = cont.as_dict(recursive=True, flatten=True, add_prefix=True, add_key=True)
+    assert d == {
+        "parent_x": 0,
+        "child_z": 1,
+        "grandparent_y": 2,
+        "foo_child_z": 3,
+        "bar_child_z": 4,
+    }
 
 
 def test_container_brackets():
