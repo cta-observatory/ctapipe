@@ -122,6 +122,9 @@ def test_regressor(model_cls, example_table, log_target, example_subarray):
     assert np.isfinite(prediction[valid]).all()
     assert np.isnan(prediction[~valid]).all()
 
+    assert regressor.stereo_combiner.property == "energy"
+    assert regressor.stereo_combiner.prefix == model_cls
+
 
 @pytest.mark.parametrize("model_cls", ["LinearRegression", "RandomForestRegressor"])
 def test_regressor_single_event(model_cls, example_table, example_subarray):
@@ -214,7 +217,7 @@ def test_io_with_parent(example_table, tmp_path, example_subarray):
     path = tmp_path / "classifier.pkl"
 
     parent.classifier.write(path)
-    loaded = ParticleIdClassifier.read(path)
+    loaded = ParticleIdClassifier(load_path=path)
     assert loaded.features == parent.classifier.features
     assert_array_equal(
         loaded._models[KEY].feature_importances_,

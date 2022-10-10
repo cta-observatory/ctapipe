@@ -22,14 +22,15 @@ def test_process_apply_energy(
             "EventSource": {
                 "allowed_tels": allowed_tels,
             },
-            "stereo_combiner_configs": [
-                {
-                    "type": "StereoMeanCombiner",
-                    "combine_property": "energy",
-                    "algorithm": "ExtraTreesRegressor",
-                    "weights": "konrad",
-                }
-            ],
+            "ShowerProcessor": {
+                "reconstructor_types": [
+                    "HillasReconstructor",
+                    "EnergyRegressor",
+                ],
+                "EnergyRegressor": {
+                    "load_path": str(energy_regressor_path),
+                },
+            },
         }
     }
 
@@ -41,7 +42,6 @@ def test_process_apply_energy(
         f"--output={output}",
         "--write-images",
         "--write-showers",
-        f"--energy-regressor={energy_regressor_path}",
         f"--config={config_path}",
     ]
     assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path, raises=True) == 0
@@ -67,13 +67,12 @@ def test_process_apply_classification(
             "EventSource": {
                 "allowed_tels": allowed_tels,
             },
-            "stereo_combiner_configs": [
-                {
-                    "type": "StereoMeanCombiner",
-                    "combine_property": "classification",
-                    "algorithm": "ExtraTreesClassifier",
-                }
-            ],
+            "ShowerProcessor": {
+                "reconstructor_types": [
+                    "HillasReconstructor",
+                    "ParticleIdClassifier",
+                ]
+            },
         }
     }
 

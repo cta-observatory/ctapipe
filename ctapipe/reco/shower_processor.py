@@ -36,15 +36,15 @@ class ShowerProcessor(Component):
         """
         Parameters
         ----------
-        subarray: SubarrayDescription
+        subarray : SubarrayDescription
             Description of the subarray. Provides information about the
             camera which are useful in calibration. Also required for
             configuring the TelescopeParameter traitlets.
-        config: traitlets.loader.Config
+        config : traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
             This is mutually exclusive with passing a ``parent``.
-        parent: ctapipe.core.Component or ctapipe.core.Tool
+        parent : ctapipe.core.Component or ctapipe.core.Tool
             Parent of this component in the configuration hierarchy,
             this is mutually exclusive with passing ``config``
         """

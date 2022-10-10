@@ -20,7 +20,6 @@ from ..io import (
     write_table,
 )
 from ..io.datawriter import DATA_MODEL_VERSION
-from ..ml import EnergyRegressor, ParticleIdClassifier, StereoCombiner
 from ..reco import ShowerProcessor
 from ..utils import EventTypeFilter
 
@@ -92,8 +91,8 @@ class ProcessorTool(Tool):
         ("o", "output"): "DataWriter.output_path",
         ("t", "allowed-tels"): "EventSource.allowed_tels",
         ("m", "max-events"): "EventSource.max_events",
-        ("e", "energy-regressor"): "ProcessorTool.energy_regressor_path",
-        ("particle-classifier"): "ProcessorTool.particle_classifier_path",
+        "energy-regressor": "ShowerProcessor.EnergyRegressor.load_path",
+        "particle-classifier": "ShowerProcessor.ParticleIdClassifier.load_path",
         "image-cleaner-type": "ImageProcessor.image_cleaner_type",
     }
 
@@ -199,27 +198,6 @@ class ProcessorTool(Tool):
         self.write = DataWriter(event_source=self.event_source, parent=self)
         self.event_type_filter = EventTypeFilter(parent=self)
 
-        self.energy_regressor = None
-        if self.energy_regressor_path is not None:
-            self.energy_regressor = EnergyRegressor.read(
-                self.energy_regressor_path,
-                parent=self,
-            )
-        self.particle_classifier = None
-        if self.particle_classifier_path is not None:
-            self.particle_classifier = ParticleIdClassifier.read(
-                self.particle_classifier_path,
-                parent=self,
-            )
-
-        self.stereo_combiners = []
-        for stereo_combiner in self.stereo_combiner_configs:
-            cfg = stereo_combiner.copy()
-            name = cfg.pop("type", "StereoMeanCombiner")
-            self.stereo_combiners.append(
-                StereoCombiner.from_name(name, **cfg, parent=self)
-            )
-
         # warn if max_events prevents writing the histograms
         if (
             isinstance(self.event_source, SimTelEventSource)
@@ -258,7 +236,7 @@ class ProcessorTool(Tool):
     @property
     def should_calibrate(self):
         if self.force_recompute_dl1:
-            True
+            return True
 
         if (
             self.write.write_images
@@ -326,13 +304,6 @@ class ProcessorTool(Tool):
 
             if self.should_compute_dl2:
                 self.process_shower(event)
-                if self.energy_regressor is not None:
-                    self.energy_regressor(event)
-                if self.particle_classifier is not None:
-                    self.particle_classifier(event)
-
-            for combiner in self.stereo_combiners:
-                combiner(event)
 
             self.write(event)
 

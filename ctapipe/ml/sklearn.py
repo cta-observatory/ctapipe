@@ -20,10 +20,22 @@ from ..containers import (
     ReconstructedEnergyContainer,
 )
 from ..core import Component, FeatureGenerator, Provenance, QualityQuery
-from ..core.traits import Bool, Dict, Enum, Int, Integer, List, Path, Unicode
+from ..core.traits import (
+    Bool,
+    Dict,
+    Enum,
+    Int,
+    Integer,
+    List,
+    Path,
+    TraitError,
+    Unicode,
+    create_class_enum_trait,
+)
 from ..io import write_table
 from ..reco import Reconstructor
 from .preprocessing import check_valid_rows, collect_features, table_to_float
+from .stereo_combination import StereoCombiner
 from .utils import add_defaults_and_meta
 
 __all__ = [
@@ -45,27 +57,76 @@ class SKLearnReconstructor(Reconstructor):
 
     Keeps a dictionary of sklearn models, the current tools are designed
     to train one model per telescope type.
+
+    Models can either be instantiated normally, or they can load themselves
+    from a pickled file if the ``load_path`` traitlet is given.
     """
 
+    #: What particle property is being predicted, one of "energy", "direction", "classification"
+    property = None
     #: Name of the target column in training table
     target = None
+
     features = List(Unicode(), help="Features to use for this model").tag(config=True)
     model_config = Dict({}, help="kwargs for the sklearn model").tag(config=True)
-    model_cls = Enum(SUPPORTED_MODELS.keys(), default_value=None, allow_none=False).tag(
+    model_cls = Enum(SUPPORTED_MODELS.keys(), default_value=None, allow_none=True).tag(
         config=True
     )
 
-    def __init__(self, subarray, models=None, **kwargs):
-        super().__init__(subarray, **kwargs)
-        self.subarray = subarray
-        self.qualityquery = QualityQuery(parent=self)
-        self.generate_features = FeatureGenerator(parent=self)
+    stereo_combiner_cls = create_class_enum_trait(
+        StereoCombiner,
+        default_value="StereoMeanCombiner",
+        help="Which stereo combination method to use",
+    ).tag(config=True)
 
-        # to verify settings
-        self._new_model()
+    load_path = Path(
+        default_value=None,
+        allow_none=True,
+        help="If given, load serialized model from this path",
+    ).tag(config=True)
 
-        self._models = {} if models is None else models
-        self.unit = None
+    def __init__(self, subarray=None, models=None, **kwargs):
+        # Run the Component __init__ first to handle the configuration
+        # and make `self.load_path` available
+        Component.__init__(self, **kwargs)
+
+        if self.load_path is None:
+            if self.model_cls is None:
+                raise TraitError(
+                    "Must provide `model_cls` if not loading model from file"
+                )
+
+            if subarray is None:
+                raise TypeError(
+                    "__init__() missing 1 required positional argument: 'subarray'"
+                )
+
+            super().__init__(subarray, **kwargs)
+            self.subarray = subarray
+            self.qualityquery = QualityQuery(parent=self)
+            self.generate_features = FeatureGenerator(parent=self)
+
+            # to verify settings
+            self._new_model()
+
+            self._models = {} if models is None else models
+            self.unit = None
+            self.stereo_combiner = StereoCombiner.from_name(
+                self.stereo_combiner_cls,
+                prefix=self.model_cls,
+                property=self.property,
+                parent=self,
+            )
+        else:
+            loaded = self.read(self.load_path)
+            if (
+                subarray is not None
+                and loaded.subarray.telescope_types != subarray.telescope_types
+            ):
+                self.log.warning(
+                    "Supplied subarray has different telescopes than subarray loaded from file"
+                )
+            self.__dict__.update(loaded.__dict__)
 
     @abstractmethod
     def __call__(self, event: ArrayEventContainer) -> None:
@@ -160,7 +221,7 @@ class SKLearnRegressionReconstructor(SKLearnReconstructor):
     model_cls = Enum(
         SUPPORTED_REGRESSORS.keys(),
         default_value=None,
-        allow_none=False,
+        allow_none=True,
         help="Which scikit-learn regression model to use.",
     ).tag(config=True)
 
@@ -216,7 +277,7 @@ class SKLearnClassficationReconstructor(SKLearnReconstructor):
     model_cls = Enum(
         SUPPORTED_CLASSIFIERS.keys(),
         default_value=None,
-        allow_none=False,
+        allow_none=True,
         help="Which scikit-learn regression model to use.",
     ).tag(config=True)
 
@@ -291,6 +352,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
 
     #: Name of the target table column for training
     target = "true_energy"
+    property = "energy"
 
     def __call__(self, event: ArrayEventContainer) -> None:
         """
@@ -319,6 +381,8 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
 
             container.prefix = f"{self.model_cls}_tel"
             event.dl2.tel[tel_id].energy[self.model_cls] = container
+
+        self.stereo_combiner(event)
 
     def predict_table(self, key, table: Table) -> Table:
         """Predict on a table of events"""
@@ -353,6 +417,7 @@ class ParticleIdClassifier(SKLearnClassficationReconstructor):
 
     #: Name of the target table column for training
     target = "true_shower_primary_id"
+    property = "classification"
 
     positive_class = Integer(
         default_value=0,
@@ -382,6 +447,8 @@ class ParticleIdClassifier(SKLearnClassficationReconstructor):
 
             container.prefix = f"{self.model_cls}_tel"
             event.dl2.tel[tel_id].classification[self.model_cls] = container
+
+        self.stereo_combiner(event)
 
     def predict_table(self, key, table: Table) -> Table:
         """Predict on a table of events"""
