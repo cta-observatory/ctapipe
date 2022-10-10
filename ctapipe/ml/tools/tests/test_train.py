@@ -129,7 +129,7 @@ def test_cross_validation_results(model_tmp_path):
             f"--output={out_file}",
             f"--config={config}",
             "--log-level=INFO",
-            f"--CrossValidator.output_path={disp_cv_out_file}",
+            f"--cv-output={disp_cv_out_file}",
         ],
     )
     assert ret == 0

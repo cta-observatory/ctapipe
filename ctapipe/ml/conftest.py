@@ -43,13 +43,13 @@ def particle_classifier_path(model_tmp_path):
     from ctapipe.ml.tools.train_particle_classifier import TrainParticleIdClassifier
 
     out_file = model_tmp_path / "particle_classifier.pkl"
+
     with FileLock(out_file.with_suffix(out_file.suffix + ".lock")):
         if out_file.is_file():
             return out_file
 
         tool = TrainParticleIdClassifier()
         config = resource_file("ml_config.yaml")
-
         ret = run_tool(
             tool,
             argv=[
@@ -68,17 +68,22 @@ def particle_classifier_path(model_tmp_path):
 def disp_reconstructor_path(model_tmp_path):
     from ctapipe.ml.tools.train_disp_reconstructor import TrainDispReconstructor
 
-    tool = TrainDispReconstructor()
-    config = resource_file("ml_config.yaml")
     out_file = model_tmp_path / "disp_models.pkl"
-    ret = run_tool(
-        tool,
-        argv=[
-            "--input=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
-            f"--output={out_file}",
-            f"--config={config}",
-            "--log-level=INFO",
-        ],
-    )
-    assert ret == 0
-    return out_file
+
+    with FileLock(out_file.with_suffix(out_file.suffix + ".lock")):
+        if out_file.is_file():
+            return out_file
+
+        tool = TrainDispReconstructor()
+        config = resource_file("ml_config.yaml")
+        ret = run_tool(
+            tool,
+            argv=[
+                "--input=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
+                f"--output={out_file}",
+                f"--config={config}",
+                "--log-level=INFO",
+            ],
+        )
+        assert ret == 0
+        return out_file

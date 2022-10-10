@@ -24,6 +24,7 @@ from .utils import add_defaults_and_meta
 _containers = {
     "energy": ReconstructedEnergyContainer,
     "classification": ParticleClassificationContainer,
+    "geometry": ReconstructedGeometryContainer,
 }
 
 __all__ = [
@@ -363,10 +364,14 @@ class StereoMeanCombiner(StereoCombiner):
                 )
 
             stereo_table[f"{self.algorithm}_alt"] = mean_altaz.alt.to(u.deg)
-            stereo_table[f"{self.algorithm}_alt_uncert"] = u.Quantity(np.nan, u.deg, copy=False)
+            stereo_table[f"{self.algorithm}_alt_uncert"] = u.Quantity(
+                np.nan, u.deg, copy=False
+            )
 
             stereo_table[f"{self.algorithm}_az"] = mean_altaz.az.to(u.deg)
-            stereo_table[f"{self.algorithm}_az_uncert"] = u.Quantity(np.nan, u.deg, copy=False)
+            stereo_table[f"{self.algorithm}_az_uncert"] = u.Quantity(
+                np.nan, u.deg, copy=False
+            )
 
             stereo_table[f"{self.algorithm}_is_valid"] = np.logical_and(
                 np.isfinite(stereo_table[f"{self.algorithm}_alt"]),

@@ -135,7 +135,7 @@ def test_apply_disp_reconstructor(
     assert "disp_az_uncert" in events.colnames
     assert "disp_is_valid" in events.colnames
     assert "disp_goodness_of_fit" in events.colnames
-    assert "disp_tel_ids" in events.colnames
+    assert "disp_telescopes" in events.colnames
 
     events = loader.read_telescope_events()
     assert "disp_alt" in events.colnames
@@ -144,13 +144,13 @@ def test_apply_disp_reconstructor(
     assert "disp_az_uncert" in events.colnames
     assert "disp_is_valid" in events.colnames
     assert "disp_goodness_of_fit" in events.colnames
-    assert "disp_tel_ids" in events.colnames
+    assert "disp_telescopes" in events.colnames
 
-    assert "disp_alt_mono" in events.colnames
-    assert "disp_az_mono" in events.colnames
-    assert "disp_is_valid_mono" in events.colnames
-    assert "disp_norm" in events.colnames
-    assert "disp_sign" in events.colnames
+    assert "disp_tel_alt" in events.colnames
+    assert "disp_tel_az" in events.colnames
+    assert "disp_tel_is_valid" in events.colnames
+    assert "disp_tel_norm" in events.colnames
+    assert "disp_tel_sign" in events.colnames
 
 
 def test_apply_all(

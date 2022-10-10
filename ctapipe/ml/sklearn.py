@@ -47,42 +47,42 @@ SUPPORTED_MODELS = {**SUPPORTED_CLASSIFIERS, **SUPPORTED_REGRESSORS}
 def _collect_features(
     event: ArrayEventContainer, tel_id: int, instrument_table: Table
 ) -> Table:
-        """Loop over all containers with features.
+    """Loop over all containers with features.
 
-        Parameters
-        ----------
-        event: ArrayEventContainer
+    Parameters
+    ----------
+    event: ArrayEventContainer
 
-        Returns
-        -------
-        Table
-        """
-        features = {}
+    Returns
+    -------
+    Table
+    """
+    features = {}
 
-        features.update(
-            event.dl1.tel[tel_id].parameters.as_dict(
-                add_prefix=True,
-                recursive=True,
-                flatten=True,
-            )
+    features.update(
+        event.dl1.tel[tel_id].parameters.as_dict(
+            add_prefix=True,
+            recursive=True,
+            flatten=True,
         )
-        features.update(
-            event.dl2.tel[tel_id].as_dict(
-                add_prefix=False,  # would duplicate prefix, as this is part of the name of the container
-                recursive=True,
-                flatten=True,
-            )
+    )
+    features.update(
+        event.dl2.tel[tel_id].as_dict(
+            add_prefix=False,  # would duplicate prefix, as this is part of the name of the container
+            recursive=True,
+            flatten=True,
         )
-        features.update(
-            event.dl2.stereo.as_dict(
-                add_prefix=False,  # see above
-                recursive=True,
-                flatten=True,
-            )
+    )
+    features.update(
+        event.dl2.stereo.as_dict(
+            add_prefix=False,  # see above
+            recursive=True,
+            flatten=True,
         )
-        features.update(instrument_table.loc[tel_id])
+    )
+    features.update(instrument_table.loc[tel_id])
 
-        return Table({k: [v] for k, v in features.items()})
+    return Table({k: [v] for k, v in features.items()})
 
 
 class SKLearnReconstructor(Reconstructor):
@@ -452,85 +452,143 @@ class ParticleIdClassifier(SKLearnClassficationReconstructor):
 
 
 class DispReconstructor(Reconstructor):
-    """Predict absolute value and sign for disp origin reconstruction for each telescope"""
-
-    target_norm = "true_norm"
-    norm_regressor = Instance(Regressor, allow_none=True).tag(config=True)
-
-    target_sign = "true_sign"
-    sign_classifier = Instance(Classifier, allow_none=True).tag(config=True)
+    """
+    Predict absolute value and sign for disp origin reconstruction for each telescope.
+    """
 
     prefix = Unicode(default_value="disp", allow_none=False).tag(config=True)
+    features = List(Unicode(), help="Features to use for both models").tag(config=True)
 
-    def __init__(self, subarray, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    norm_target = "true_norm"
+    norm_config = Dict({}, help="kwargs for the sklearn regressor").tag(config=True)
+    norm_cls = Enum(
+        SUPPORTED_REGRESSORS.keys(),
+        default_value=None,
+        allow_none=False,
+        help="Which scikit-learn regression model to use.",
+    ).tag(config=True)
+    norm_log_target = Bool(
+        default_value=False,
+        help="If True, the norm model is trained to predict the natural logarithm.",
+    ).tag(config=True)
+
+    sign_target = "true_sign"
+    sign_config = Dict({}, help="kwargs for the sklearn classifier").tag(config=True)
+    sign_cls = Enum(
+        SUPPORTED_CLASSIFIERS.keys(),
+        default_value=None,
+        allow_none=False,
+        help="Which scikit-learn classification model to use.",
+    ).tag(config=True)
+    sign_invalid_class = Integer(
+        default_value=0,
+        help="The label to fill in case no sign prediction could be made",
+    ).tag(config=True)
+
+    def __init__(self, subarray, norm_models=None, sign_models=None, **kwargs):
+        super().__init__(subarray, **kwargs)
         self.subarray = subarray
         self.qualityquery = QualityQuery(parent=self)
         self.generate_features = FeatureGenerator(parent=self)
 
-        if self.norm_regressor is None:
-            self.norm_regressor = Regressor(parent=self, target=self.target_norm)
-        if self.sign_classifier is None:
-            self.sign_classifier = Classifier(parent=self, target=self.target_sign)
+        # to verify settings
+        self._new_models()
 
-        self.sign_classifier.invalid_class = 0  # default: -1
+        self._norm_models = {} if norm_models is None else norm_models
+        self._sign_models = {} if sign_models is None else sign_models
+        self.norm_unit = None
+
+    def _new_models(self):
+        norm_regressor = SUPPORTED_REGRESSORS[self.norm_cls](**self.norm_config)
+        sign_classifier = SUPPORTED_CLASSIFIERS[self.sign_cls](**self.sign_config)
+        return norm_regressor, sign_classifier
+
+    def _table_to_X(self, table):
+        feature_table = table[self.features]
+        valid = check_valid_rows(feature_table, log=self.log)
+        X = table_to_float(feature_table[valid])
+        return X, valid
+
+    def _table_to_y(self, table, mask=None):
+        if self.norm_unit is not None:
+            norm_y = table[mask][self.norm_target].quantity.to_value(self.norm_unit)
+        else:
+            norm_y = np.array(table[self.norm_target][mask])
+
+        if self.norm_log_target:
+            if np.any(norm_y <= 0):
+                raise ValueError("norm_y contains negative values, cannot apply log")
+            norm_y = np.log(norm_y)
+
+        sign_y = np.array(table[self.sign_target][mask])
+        return norm_y, sign_y
+
+    def fit(self, key, table):
+        """
+        Create and fit new models for ``key`` using the data in ``table``.
+        """
+        self._norm_models[key], self._sign_models[key] = self._new_models()
+
+        self.norm_unit = table[self.norm_target].unit
+        X, valid = self._table_to_X(table)
+        norm_y, sign_y = self._table_to_y(table, mask=valid)
+        self._norm_models[key].fit(X, norm_y)
+        self._sign_models[key].fit(X, sign_y)
 
     def write(self, path):
         Provenance().add_output_file(path, role="ml-models")
         with open(path, "wb") as f:
-            joblib.dump(
-                (
-                    self.norm_regressor,
-                    self.sign_classifier,
-                    self.qualityquery.quality_criteria,
-                    self.generate_features.features,
-                    self.subarray,
-                    self.prefix
-                ),
-                f,
-                compress=True,
-            )
+            joblib.dump(self, f, compress=True)
 
     @classmethod
-    def read(cls, path, check_cls=True, **kwargs):
+    def read(cls, path, **kwargs):
         with open(path, "rb") as f:
-            (
-                norm_regressor,
-                sign_classifier,
-                quality_criteria,
-                gen_features,
-                subarray,
-                prefix,
-            ) = joblib.load(f)
+            instance = joblib.load(f)
 
-        if check_cls is True and type(norm_regressor) is not Regressor:
+        for attr, value in kwargs.items():
+            setattr(instance, attr, value)
+
+        if not isinstance(instance, cls):
             raise TypeError(
-                f"File did not contain an instance of {Regressor}, got {type(norm_regressor)}"
-            )
-        if check_cls is True and type(sign_classifier) is not Classifier:
-            raise TypeError(
-                f"File did not contain an instance of {Classifier}, got {type(sign_classifier)}"
+                f"{path} did not contain an instance of {cls}, got {instance}"
             )
 
         Provenance().add_input_file(path, role="ml-models")
-        instance = cls(
-            subarray=subarray,
-            norm_regressor=norm_regressor,
-            sign_classifier=sign_classifier,
-            prefix=prefix,
-            **kwargs,
-        )
-        instance.qualityquery = QualityQuery(
-            quality_criteria=quality_criteria, parent=instance
-        )
-        instance.generate_features = FeatureGenerator(
-            features=gen_features, parent=instance
-        )
         return instance
 
     @lazyproperty
     def instrument_table(self):
         return self.subarray.to_table("joined")
+
+    def _predict(self, key, table):
+        if key not in self._norm_models:
+            raise KeyError(
+                f"No regressor available for key {key},"
+                f" available regressors: {self._norm_models.keys()}"
+            )
+        if key not in self._sign_models:
+            raise KeyError(
+                f"No classifier available for key {key},"
+                f" available classifiers: {self._sign_models.keys()}"
+            )
+        X, valid = self._table_to_X(table)
+        norm_prediction = np.full(len(table), np.nan)
+        sign_prediction = np.full(len(table), self.sign_invalid_class, dtype=np.int8)
+
+        if np.any(valid):
+            valid_norms = self._norm_models[key].predict(X)
+
+            if self.norm_log_target:
+                norm_prediction[valid] = np.exp(valid_norms)
+            else:
+                norm_prediction[valid] = valid_norms
+
+            sign_prediction[valid] = self._sign_models[key].predict(X)
+
+        if self.norm_unit is not None:
+            norm_prediction = u.Quantity(norm_prediction, self.norm_unit, copy=False)
+
+        return norm_prediction, sign_prediction, valid
 
     def __call__(self, event: ArrayEventContainer) -> None:
         """Event-wise prediction for the EventSource-Loop.
@@ -545,21 +603,15 @@ class DispReconstructor(Reconstructor):
         for tel_id in event.trigger.tels_with_trigger:
             table = _collect_features(event, tel_id, self.instrument_table)
             table = self.generate_features(table)
-            mask = self.qualityquery.get_table_mask(table)
 
-            if mask[0]:
-                norm, norm_valid = self.norm_regressor.predict(
-                    self.subarray.tel[tel_id], table
-                )
-                sign, sign_valid = self.sign_classifier.predict(
-                    self.subarray.tel[tel_id], table
-                )
-                valid = np.logical_and(norm_valid, sign_valid)[0]
+            passes_quality_checks = self.qualityquery.get_table_mask(table)[0]
 
+            if passes_quality_checks:
+                norm, sign, valid = self._predict(self.subarray.tel[tel_id], table)
                 disp_container = DispContainer(
                     norm=norm[0],
                     sign=sign[0],
-                    is_valid=valid,
+                    is_valid=valid[0],
                 )
 
                 if valid:
@@ -594,8 +646,8 @@ class DispReconstructor(Reconstructor):
                     )
             else:
                 disp_container = DispContainer(
-                    norm=u.Quantity(np.nan, self.norm_regressor.unit),
-                    sign=self.sign_classifier.invalid_class,
+                    norm=u.Quantity(np.nan, self.norm_unit),
+                    sign=self.sign_invalid_class,
                     is_valid=False,
                 )
                 altaz_container = ReconstructedGeometryContainer(
@@ -604,10 +656,12 @@ class DispReconstructor(Reconstructor):
                     is_valid=False,
                 )
 
+            disp_container.prefix = f"{self.prefix}_tel"
+            altaz_container.prefix = f"{self.prefix}_tel"
             event.dl2.tel[tel_id].disp[self.prefix] = disp_container
             event.dl2.tel[tel_id].geometry[self.prefix] = altaz_container
 
-    def predict(
+    def predict_table(
         self, key, table: Table, pointing_altitude, pointing_azimuth
     ) -> Tuple(Table, Table):
         """Predict on a table of events
@@ -629,21 +683,25 @@ class DispReconstructor(Reconstructor):
         table = self.generate_features(table)
 
         n_rows = len(table)
-        norm = u.Quantity(np.full(n_rows, np.nan), self.norm_regressor.unit, copy=False)
-        norm_valid = np.full(n_rows, False)
-        sign = np.full(n_rows, self.sign_classifier.invalid_class, dtype=np.int8)
-        sign_valid = np.full(n_rows, False)
+        norm = u.Quantity(np.full(n_rows, np.nan), self.norm_unit, copy=False)
+        sign = np.full(n_rows, self.sign_invalid_class, dtype=np.int8)
+        is_valid = np.full(n_rows, False)
 
-        mask = self.qualityquery.get_table_mask(table)
-        norm[mask], norm_valid[mask] = self.norm_regressor.predict(key, table[mask])
-        sign[mask], sign_valid[mask] = self.sign_classifier.predict(key, table[mask])
+        valid = self.qualityquery.get_table_mask(table)
+        norm[valid], sign[valid], is_valid[valid] = self._predict(key, table[valid])
 
         disp_result = Table(
             {
-                f"{self.prefix}_norm": norm,
-                f"{self.prefix}_sign": sign,
-                f"{self.prefix}_is_valid": np.logical_and(norm_valid, sign_valid),
+                f"{self.prefix}_tel_norm": norm,
+                f"{self.prefix}_tel_sign": sign,
+                f"{self.prefix}_tel_is_valid": is_valid,
             }
+        )
+        add_defaults_and_meta(
+            disp_result,
+            DispContainer,
+            prefix=self.prefix,
+            stereo=False,
         )
 
         disp = norm * sign
@@ -660,12 +718,25 @@ class DispReconstructor(Reconstructor):
 
         altaz_result = Table(
             {
-                f"{self.prefix}_alt": alt,
-                f"{self.prefix}_az": az,
+                f"{self.prefix}_tel_alt": alt,
+                f"{self.prefix}_tel_az": az,
+                f"{self.prefix}_tel_is_valid": is_valid,
             }
+        )
+        add_defaults_and_meta(
+            altaz_result,
+            ReconstructedGeometryContainer,
+            prefix=self.prefix,
+            stereo=False,
         )
 
         return disp_result, altaz_result
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["_trait_values"]["parent"] = None
+        state["_trait_notifiers"] = {}
+        return state
 
 
 class CrossValidator(Component):
@@ -721,7 +792,7 @@ class CrossValidator(Component):
         )
 
         if isinstance(self.model_component, DispReconstructor):
-            cv_it = kfold.split(table, table[self.model_component.target_sign])
+            cv_it = kfold.split(table, table[self.model_component.sign_target])
         else:
             cv_it = kfold.split(table, table[self.model_component.target])
 
@@ -747,7 +818,7 @@ class CrossValidator(Component):
                 predictions.append(
                     Table(
                         {
-                            "cv_fold": np.full(len(truth), fold, dtype=np.uint8),
+                            "cv_fold": np.full(len(truth_norm), fold, dtype=np.uint8),
                             "tel_type": [str(telescope_type)] * len(truth_norm),
                             "norm_predictions": cv_prediction_norm,
                             "norm_truth": truth_norm,
@@ -809,17 +880,13 @@ class CrossValidator(Component):
         return prediction, truth, {"ROC AUC": roc_auc}
 
     def _cross_validate_disp(self, telescope_type, train, test):
-        norm_reg = self.model_component.norm_regressor
-        sign_clf = self.model_component.sign_classifier
-        norm_reg.fit(telescope_type, train)
-        sign_clf.fit(telescope_type, train)
+        models = self.model_component
+        models.fit(telescope_type, train)
 
-        norm_prediction, _ = norm_reg.predict(telescope_type, test)
-        norm_truth = test[self.model_component.target_norm]
+        norm_prediction, sign_prediction, _ = models._predict(telescope_type, test)
+        norm_truth = test[models.norm_target]
+        sign_truth = test[models.sign_target]
         r2 = r2_score(norm_truth, norm_prediction)
-
-        sign_prediction, _ = sign_clf.predict(telescope_type, test)
-        sign_truth = test[self.model_component.target_sign]
         accuracy = accuracy_score(sign_truth, sign_prediction)
 
         return (

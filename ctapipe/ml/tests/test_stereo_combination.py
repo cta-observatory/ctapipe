@@ -48,9 +48,9 @@ def mono_table():
                 True,
                 True,
             ],
-            "disp_alt": [58.5, 58, 62.5, 72, 74.5, 81] * u.deg,
-            "disp_az": [12.5, 15, 13, 21, 20, 14.5] * u.deg,
-            "disp_is_valid": [
+            "disp_tel_alt": [58.5, 58, 62.5, 72, 74.5, 81] * u.deg,
+            "disp_tel_az": [12.5, 15, 13, 21, 20, 14.5] * u.deg,
+            "disp_tel_is_valid": [
                 True,
                 False,
                 True,
@@ -121,7 +121,7 @@ def test_predict_mean_disp(mono_table):
         algorithm="disp",
         combine_property="geometry",
     )
-    stereo = combine.predict(mono_table)
+    stereo = combine.predict_table(mono_table)
     assert stereo.colnames == [
         "obs_id",
         "event_id",
@@ -131,7 +131,7 @@ def test_predict_mean_disp(mono_table):
         "disp_az_uncert",
         "disp_is_valid",
         "disp_goodness_of_fit",
-        "disp_tel_ids",
+        "disp_telescopes",
     ]
     assert_array_equal(stereo["obs_id"], np.array([1, 1, 2]))
     assert_array_equal(stereo["event_id"], np.array([1, 2, 1]))
@@ -145,7 +145,7 @@ def test_predict_mean_disp(mono_table):
         [12.7345693, 20.5362510, 14.5] * u.deg,
         atol=1e-7,
     )
-    tel_ids = stereo["disp_tel_ids"]
+    tel_ids = stereo["disp_telescopes"]
     assert_array_equal(tel_ids[0], [1, 3])
     assert_array_equal(tel_ids[1], [5, 7])
     assert_array_equal(tel_ids[2], [1])

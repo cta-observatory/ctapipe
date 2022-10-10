@@ -229,7 +229,6 @@ class ProcessorTool(Tool):
         if self.disp_models_path is not None:
             self.disp_models = DispReconstructor.read(
                 self.disp_models_path,
-                self.event_source.subarray,
                 parent=self,
             )
 

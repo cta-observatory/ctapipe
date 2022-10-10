@@ -156,7 +156,8 @@ class ApplyModels(Tool):
     def _setup_disp(self):
         if self.disp_models_path is not None:
             self.disp_models = DispReconstructor.read(
-                self.disp_models_path, self.loader.subarray, parent=self
+                self.disp_models_path,
+                parent=self,
             )
             self.disp_combine = StereoCombiner.from_name(
                 self.stereo_combiner_type,
@@ -240,17 +241,19 @@ class ApplyModels(Tool):
 
         tables = []
 
-        for tel_id, tel in tqdm(self.loader.subarray.tel.items()):
-            if tel not in self.disp_models.norm_regressor.models:
+        desc = "Applying disp models"
+        unit = "telescope"
+        for tel_id, tel in tqdm(self.loader.subarray.tel.items(), desc=desc, unit=unit):
+            if tel not in self.disp_models._norm_models:
                 self.log.warning(
-                    "No disp regressor model for telescope type %s, skipping tel %d",
+                    "No disp regressor for telescope type %s, skipping tel %d",
                     tel,
                     tel_id,
                 )
                 continue
-            if tel not in self.disp_models.sign_classifier.models:
+            if tel not in self.disp_models._sign_models:
                 self.log.warning(
-                    "No sign classifier model for telescope type %s, skipping tel %d",
+                    "No sign classifier for telescope type %s, skipping tel %d",
                     tel,
                     tel_id,
                 )
@@ -263,16 +266,22 @@ class ApplyModels(Tool):
 
             table.remove_columns([c for c in table.colnames if c.startswith(prefix)])
 
-            disp_predictions, altaz_predictions = self.disp_models.predict(
+            disp_predictions, altaz_predictions = self.disp_models.predict_table(
                 tel, table, pointing_altitude, pointing_azimuth
             )
             table = hstack(
-                [table, disp_predictions, altaz_predictions],
+                [
+                    table,
+                    altaz_predictions,
+                    disp_predictions[
+                        f"{prefix}_tel_norm", f"{prefix}_tel_sign"
+                    ],  # Avoid duplication of "disp_tel_is_valid" column
+                ],
                 join_type="exact",
                 metadata_conflicts="ignore",
             )
 
-            # tables should follow the event structure
+            # tables should follow the container structure
             write_table(
                 table[["obs_id", "event_id", "tel_id"] + altaz_predictions.colnames],
                 self.loader.input_url,

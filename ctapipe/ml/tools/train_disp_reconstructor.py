@@ -6,13 +6,20 @@ from ctapipe.core import Tool
 from ctapipe.core.traits import Bool, Int, Path
 from ctapipe.io import EventSource, TableLoader
 
-from ..apply import CrossValidator, DispReconstructor
 from ..preprocessing import check_valid_rows
-from ..sklearn import Classifier, Regressor
+from ..sklearn import CrossValidator, DispReconstructor
 
 
 class TrainDispReconstructor(Tool):
     """Train two ML models for origin reconstruction using the disp method"""
+
+    """
+    Tool to train a `~ctapipe.ml.DispReconstructor` on dl2 data.
+
+    The tool first performs a cross validation to give an initial estimate
+    on the quality of the estimation and then finally trains two models
+    (|disp| and sign(disp)) per telescope type on the full dataset.
+    """
 
     name = "ctapipe-train-disp"
     description = __doc__
@@ -23,20 +30,24 @@ class TrainDispReconstructor(Tool):
 
     n_events = Int(default_value=None, allow_none=True).tag(config=True)
     random_seed = Int(default_value=0).tag(config=True)
+
     project_disp = Bool(
         default_value=False,
         help="Project true source position on main shower axis for true |disp| calculation",
     ).tag(config=True)
 
     aliases = {
-        "input": "TableLoader.input_url",
-        "output": "TrainDispReconstructor.output_path",
+        ("i", "input"): "TableLoader.input_url",
+        ("o", "output"): "TrainDispReconstructor.output_path",
+        "cv-output": "CrossValidator.output_path",
     }
 
-    classes = [TableLoader, Regressor, Classifier, CrossValidator]
+    classes = [TableLoader, DispReconstructor, CrossValidator]
 
     def setup(self):
-        """"""
+        """
+        Initialize components from config.
+        """
         self.loader = TableLoader(
             parent=self,
             load_dl1_images=False,
@@ -51,7 +62,10 @@ class TrainDispReconstructor(Tool):
         self.rng = np.random.default_rng(self.random_seed)
 
     def start(self):
-        """"""
+        """
+        Train models per telescope type using a cross-validation.
+        """
+
         types = self.loader.subarray.telescope_types
         self.log.info("Inputfile: %s", self.loader.input_url)
 
@@ -73,8 +87,7 @@ class TrainDispReconstructor(Tool):
             self.cross_validate(tel_type, table)
 
             self.log.info("Performing final fit for %s", tel_type)
-            self.models.norm_regressor.fit(tel_type, table)
-            self.models.sign_classifier.fit(tel_type, table)
+            self.models.fit(tel_type, table)
             self.log.info("done")
 
     def _read_table(self, telescope_type):
@@ -89,17 +102,10 @@ class TrainDispReconstructor(Tool):
 
         true_norm, true_sign = self._get_true_disp(table)
 
-        # get a list of all features used for norm AND sign
-        feature_names_combined = self.models.norm_regressor.features
-        for feature in self.models.sign_classifier.features:
-            if feature not in feature_names_combined:
-                feature_names_combined.append(feature)
-
         # Add true energy for energy-dependent performance plots
-        columns = feature_names_combined + ["true_energy"]
-        table = table[columns]
-        table[self.models.target_norm] = true_norm
-        table[self.models.target_sign] = true_sign
+        table = table[self.models.features + ["true_energy"]]
+        table[self.models.norm_target] = true_norm
+        table[self.models.sign_target] = true_sign
 
         valid = check_valid_rows(table)
         if np.any(~valid):
@@ -141,6 +147,9 @@ class TrainDispReconstructor(Tool):
         return true_norm, true_sign.astype(np.int8)
 
     def finish(self):
+        """
+        Write-out trained models and cross-validation results.
+        """
         self.log.info("Writing output")
         self.models.write(self.output_path)
         if self.cross_validate.output_path:
