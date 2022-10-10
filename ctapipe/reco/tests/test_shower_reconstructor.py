@@ -1,7 +1,7 @@
 from ctapipe.calib import CameraCalibrator
 from ctapipe.image.image_processor import ImageProcessor
 from ctapipe.reco import HillasReconstructor
-from ctapipe.reco.shower_reconstructor import ShowerReconstructor
+from ctapipe.reco.shower_reconstructor import Model3DReconstuctor
 
 
 def test_reconstruction(subarray_and_event_gamma_off_axis_500_gev):
@@ -10,11 +10,11 @@ def test_reconstruction(subarray_and_event_gamma_off_axis_500_gev):
     calib = CameraCalibrator(subarray)
     image_processor = ImageProcessor(subarray)
     reconstructor = HillasReconstructor(subarray)
-    shower_reconstructor = ShowerReconstructor(subarray)
+    model3d_reconstructor = Model3DReconstuctor(subarray)
 
     calib(event)
     image_processor(event)
     reconstructor(event)
-    shower_reconstructor(event)
+    model3d_reconstructor(event)
 
-    assert shower_reconstructor.__class__.__name__ in event.dl2.stereo.geometry
+    assert model3d_reconstructor.__class__.__name__ in event.dl2.stereo.geometry

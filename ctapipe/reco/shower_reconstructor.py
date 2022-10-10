@@ -14,7 +14,7 @@ from ctapipe.image import (
 from ctapipe.reco import Reconstructor
 
 
-class ShowerReconstructor(Reconstructor):
+class Model3DReconstuctor(Reconstructor):
     geometry_seed = Unicode(default_value="HillasReconstructor").tag(config=True)
 
     def __init__(self, subarray, **kwargs):
