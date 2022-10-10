@@ -159,7 +159,7 @@ class ApplyModels(Tool):
                 self.disp_models_path,
                 parent=self,
             )
-            self.disp_combine = StereoCombiner.from_name(
+            self.combine_disp = StereoCombiner.from_name(
                 self.stereo_combiner_type,
                 combine_property="geometry",
                 algorithm=self.disp_models.prefix,
@@ -190,7 +190,7 @@ class ApplyModels(Tool):
                 pointing_azimuth = event.pointing.array_azimuth.to(u.deg)
 
             mono_predictions = self._apply_disp(pointing_altitude, pointing_azimuth)
-            self._combine(self.disp_combine, mono_predictions)
+            self._combine(self.combine_disp, mono_predictions)
 
     def _apply(self, reconstructor, parameter):
         prefix = reconstructor.model_cls

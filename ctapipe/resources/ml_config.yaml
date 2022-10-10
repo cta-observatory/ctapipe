@@ -137,6 +137,7 @@ TrainDispReconstructor:
 
   DispReconstructor:
     norm_cls: ExtraTreesRegressor
+    norm_log_target: True
     norm_config:
       n_estimators: 10
       max_depth: 10
@@ -150,21 +151,35 @@ TrainDispReconstructor:
 
     features:
       - hillas_intensity
+      - hillas_r
       - hillas_length
       - hillas_width
-      - hillas_r
       - hillas_skewness
+      - hillas_kurtosis
       - timing_slope
+      - timing_deviation
       - leakage_intensity_width_1
       - leakage_intensity_width_2
       - leakage_pixels_width_1
       - leakage_pixels_width_2
       - concentration_cog
       - concentration_core
+      - morphology_n_islands
+      - morphology_n_large_islands
+      - morphology_n_medium_islands
       - morphology_n_pixels
-      - mirror_area
+      - morphology_n_small_islands
+      - HillasReconstructor_tel_impact_distance
       - HillasReconstructor_average_intensity
       - HillasReconstructor_h_max
+      - peak_time_std
+      - peak_time_skewness
+      - peak_time_kurtosis
+      - intensity_max
+      - intensity_mean
+      - intensity_std
+      - intensity_skewness
+      - intensity_kurtosis
       - area
 
     QualityQuery:
