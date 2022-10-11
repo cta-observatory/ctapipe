@@ -134,6 +134,15 @@ def test_true_parameters(dl1_file):
         assert "true_hillas_intensity" in table.colnames
 
 
+def test_observation_info(dl1_file):
+    """Test joining observation info onto telescope events"""
+    from ctapipe.io.tableloader import TableLoader
+
+    with TableLoader(dl1_file, load_observation_info=True) as table_loader:
+        table = table_loader.read_telescope_events()
+        assert "subarray_pointing_lat" in table.colnames
+
+
 def test_read_subarray_events(dl2_shower_geometry_file):
     """Test reading subarray events"""
     from ctapipe.io.tableloader import TableLoader
