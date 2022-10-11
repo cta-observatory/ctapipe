@@ -13,6 +13,8 @@ from ..core.traits import ComponentNameList
 from ..instrument import SubarrayDescription
 from . import Reconstructor
 
+from ..ml.sklearn import EnergyRegressor, ParticleIdClassifier  # noqa isort: skip
+
 
 class ShowerProcessor(Component):
     """
