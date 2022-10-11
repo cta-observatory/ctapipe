@@ -45,7 +45,7 @@ from ..containers import (
     TelescopeTriggerContainer,
     TriggerContainer,
 )
-from ..coordinates import CameraFrame
+from ..coordinates import CameraFrame, shower_impact_distance
 from ..core import Map
 from ..core.provenance import Provenance
 from ..core.traits import Bool, Float, Undefined, UseEnum, create_class_enum_trait
@@ -66,7 +66,6 @@ from ..instrument.guess import (
     type_from_mirror_area,
     unknown_telescope,
 )
-from ..reco.impact_distance import shower_impact_distance
 from .datalevels import DataLevel
 from .eventsource import EventSource
 
