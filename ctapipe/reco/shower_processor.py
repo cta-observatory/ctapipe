@@ -11,9 +11,10 @@ from ..containers import ArrayEventContainer
 from ..core import Component
 from ..core.traits import ComponentNameList
 from ..instrument import SubarrayDescription
-
-from ..ml.sklearn import EnergyRegressor, ParticleIdClassifier  # noqa isort: skip
 from . import Reconstructor
+
+# needed to make ml reconstructors visible as subclasses of Reconstructor
+from .. import ml  # noqa isort: skip
 
 
 class ShowerProcessor(Component):
