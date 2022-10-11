@@ -127,6 +127,7 @@ class SKLearnReconstructor(Reconstructor):
                     "Supplied subarray has different telescopes than subarray loaded from file"
                 )
             self.__dict__.update(loaded.__dict__)
+            self.subarray = subarray
 
     @abstractmethod
     def __call__(self, event: ArrayEventContainer) -> None:

@@ -6,9 +6,11 @@ import sys
 
 from tqdm.auto import tqdm
 
+from ctapipe.reco.reco_algorithms import Reconstructor
+
 from ..calib import CameraCalibrator, GainSelector
 from ..core import QualityQuery, Tool
-from ..core.traits import Bool, Dict, List, Path, classes_with_traits, flag
+from ..core.traits import Bool, Dict, List, classes_with_traits, flag
 from ..image import ImageCleaner, ImageModifier, ImageProcessor
 from ..image.extractor import ImageExtractor
 from ..io import (
@@ -61,22 +63,6 @@ class ProcessorTool(Tool):
     force_recompute_dl1 = Bool(
         help="Enforce dl1 recomputation even if already present in the input file",
         default_value=False,
-    ).tag(config=True)
-
-    energy_regressor_path = Path(
-        default_value=None,
-        allow_none=True,
-        exists=True,
-        directory_ok=False,
-        help="Path to a trained energy regression model (see ctapipe-ml-train-energy-regressor)",
-    ).tag(config=True)
-
-    particle_classifier_path = Path(
-        default_value=None,
-        allow_none=True,
-        exists=True,
-        directory_ok=False,
-        help="Path to a trained particle id classifier model (see ctapipe-ml-train-particle-classifier)",
     ).tag(config=True)
 
     force_recompute_dl2 = Bool(
@@ -192,10 +178,33 @@ class ProcessorTool(Tool):
         self.process_images = ImageProcessor(
             subarray=self.event_source.subarray, parent=self
         )
+
         self.process_shower = ShowerProcessor(
             subarray=self.event_source.subarray, parent=self
         )
+
         self.write = DataWriter(event_source=self.event_source, parent=self)
+
+        # add ml reco classes if model paths were supplied via cli and not already configured
+        reco_aliases = {
+            "--energy-regressor": "EnergyRegressor",
+            "--particle-classifier": "ParticleIdClassifier",
+        }
+        for alias, name in reco_aliases.items():
+            has_alias = any(arg.startswith(alias) for arg in self.argv)
+            if has_alias and name not in self.process_shower.reconstructor_types:
+                self.log.info(
+                    "Adding %s to ShowerProcesser because path was given on cli", name
+                )
+                reconstructor = Reconstructor.from_name(
+                    name,
+                    parent=self.process_shower,
+                    subarray=self.event_source.subarray,
+                )
+                self.process_shower.reconstructors.append(reconstructor)
+                self.process_shower.reconstructor_types.append(name)
+                self.write.write_showers = True
+
         self.event_type_filter = EventTypeFilter(parent=self)
 
         # warn if max_events prevents writing the histograms
@@ -216,11 +225,7 @@ class ProcessorTool(Tool):
         if self.force_recompute_dl2:
             return True
 
-        return (
-            self.write.write_showers
-            or self.energy_regressor_path
-            or self.particle_classifier_path
-        )
+        return self.write.write_showers
 
     @property
     def should_compute_dl1(self):

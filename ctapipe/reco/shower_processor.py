@@ -11,9 +11,9 @@ from ..containers import ArrayEventContainer
 from ..core import Component
 from ..core.traits import ComponentNameList
 from ..instrument import SubarrayDescription
-from . import Reconstructor
 
 from ..ml.sklearn import EnergyRegressor, ParticleIdClassifier  # noqa isort: skip
+from . import Reconstructor
 
 
 class ShowerProcessor(Component):
@@ -74,7 +74,5 @@ class ShowerProcessor(Component):
         event : ctapipe.containers.ArrayEventContainer
             Top-level container for all event information.
         """
-        for reco_type, reconstructor in zip(
-            self.reconstructor_types, self.reconstructors
-        ):
+        for reconstructor in self.reconstructors:
             reconstructor(event)
