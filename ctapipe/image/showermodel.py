@@ -2,9 +2,8 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import spherical_to_cartesian
 from astropy.utils.decorators import lazyproperty
-from scipy.integrate import quad
 from scipy.spatial.transform import Rotation as R
-from scipy.stats import multivariate_normal
+from scipy.stats import multivariate_normal, norm
 
 __all__ = [
     "GaussianShowermodel",
@@ -84,18 +83,8 @@ class GaussianShowermodel:
         This is given by vector pointing to the impact on ground + the vector of the shower with azimuth and zenith at h_max.
         """
         b = np.zeros(3) * u.m
-        b[0] = (
-            self.h_max
-            * np.cos(self.azimuth.to_value(u.rad))
-            * np.tan(self.zenith.to_value(u.rad))
-            + self.x
-        )
-        b[1] = (
-            self.h_max
-            * np.sin(self.azimuth.to_value(u.rad))
-            * np.tan(self.zenith.to_value(u.rad))
-            + self.y
-        )
+        b[0] = self.h_max * np.cos(self.azimuth) * np.tan(self.zenith) + self.x
+        b[1] = self.h_max * np.sin(self.azimuth) * np.tan(self.zenith) + self.y
         b[2] = self.h_max
         return b
 
@@ -127,7 +116,7 @@ class GaussianShowermodel:
             / (np.sqrt(sig_u_sq) * sig_T * sig_L)
         ).to_value(u.dimensionless_unscaled)
 
-        C = 1 - np.vectorize(self._freq)(upper_bound)
+        C = norm.sf(upper_bound)
         constant = self.total_photons * C / (2 * np.pi * np.sqrt(sig_u_sq) * sig_T)
 
         return constant * np.exp(
@@ -136,14 +125,6 @@ class GaussianShowermodel:
                 delta_B_sq / sig_T**2
                 - sig_D_sq / (sig_T**2 * sig_u_sq) * (ce * B_p - B_s) ** 2
             )
-        )
-
-    def _freq(self, x):
-        """Helper function."""
-        return (
-            1
-            / np.sqrt(2 * np.pi)
-            * quad(lambda t: np.exp(-(t**2) / 2), -np.inf, x)[0]
         )
 
     @lazyproperty
@@ -160,7 +141,7 @@ class GaussianShowermodel:
         epsilon : u.Quantity[Angle]
             Angle between viewing direction and shower axis for each pixel as a 1d-quantity of shape (n_pixels)
         """
-        eta = 15 * u.mrad * np.sqrt(np.cos(self.zenith.to_value(u.rad)))  # 15mrad
+        eta = 15 * u.mrad * np.sqrt(np.cos(self.zenith))
 
         normalization = 1 / (9 * np.pi * eta**2)
 

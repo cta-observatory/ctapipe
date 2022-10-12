@@ -24,8 +24,6 @@ class Model3DReconstuctor(Reconstructor):
         if self.geometry_seed not in event.dl2.stereo.geometry:
             raise ValueError()
 
-        self.event = event  # ugly, only for _likelihood
-
         # get all telescope properties that we need for the ShowermodelPredictor
         tel_positions = {}
         tel_solid_angles = {}
@@ -39,6 +37,10 @@ class Model3DReconstuctor(Reconstructor):
         self.tel_positions = tel_positions
         self.tel_solid_angles = tel_solid_angles
         self.tel_mirror_area = tel_mirror_area
+        self.tel_pix_coords_altaz = self._tel_pix_coords_altaz(event)
+
+        # for likelihood
+        self.DL1CamContainers = event.dl1.tel.items()
 
         shower_parameters, errors = self._fit(event)
 
@@ -95,10 +97,9 @@ class Model3DReconstuctor(Reconstructor):
             length * u.m,
         )
 
-        tel_pix_coords_altaz = self._tel_pix_coords_altaz(self.event)
         predictor = ShowermodelPredictor(
             self.tel_positions,
-            tel_pix_coords_altaz,
+            self.tel_pix_coords_altaz,
             self.tel_solid_angles,
             self.tel_mirror_area,
             showermodel=model,
@@ -107,14 +108,14 @@ class Model3DReconstuctor(Reconstructor):
         prediction = predictor.generate_images()
 
         log_likelihood = 0
-        for tel_id, DL1CamContainer in self.event.dl1.tel.items():
+        for tel_id, DL1CamContainer in self.DL1CamContainers:
             log_likelihood += np.sum(
                 neg_log_likelihood_approx(
                     DL1CamContainer.image, prediction[tel_id], 0.5, 2.8
                 )
             )
 
-        return log_likelihood / len(self.event.dl1.tel)
+        return log_likelihood / len(self.DL1CamContainers)
 
     def _seeds(self, event):
         # get seeds from seed reconstructors 'HillasReconstructor'
