@@ -11,7 +11,7 @@ from ctapipe.image import (
     ShowermodelPredictor,
     neg_log_likelihood_approx,
 )
-from ctapipe.reco import Reconstructor
+from ctapipe.reco.reco_algorithms import Reconstructor
 
 
 class Model3DGeometryReconstuctor(Reconstructor):

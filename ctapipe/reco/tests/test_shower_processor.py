@@ -54,7 +54,7 @@ def test_shower_processor_geometry(
         assert isfinite(DL2a.core_x)
         assert isfinite(DL2a.core_y)
         assert DL2a.is_valid
-        assert isfinite(DL2a.average_intensity)
+        assert isfinite(DL2a.average_intensity) or isfinite(DL2a.total_photons)
 
     # Increase some quality cuts and check that we get defaults
     for reco_type in reconstructor_types:
