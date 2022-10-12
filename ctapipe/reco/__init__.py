@@ -9,6 +9,7 @@ from .reconstructor import GeometryReconstructor, Reconstructor
 from .shower_processor import ShowerProcessor
 from .sklearn import CrossValidator, EnergyRegressor, ParticleClassifier
 from .stereo_combination import StereoCombiner, StereoMeanCombiner
+from .shower_reconstructor import Model3DGeometryReconstuctor
 
 __all__ = [
     "Reconstructor",
@@ -22,4 +23,5 @@ __all__ = [
     "StereoCombiner",
     "StereoMeanCombiner",
     "CrossValidator",
+    "Model3DGeometryReconstuctor",
 ]
