@@ -14,7 +14,9 @@ from ..instrument import SubarrayDescription
 from . import Reconstructor
 
 # needed to make ml reconstructors visible as subclasses of Reconstructor
-from .. import ml  # noqa isort: skip
+from .. import ml  # isort: skip
+
+assert ml  # for pyflakes
 
 
 class ShowerProcessor(Component):
