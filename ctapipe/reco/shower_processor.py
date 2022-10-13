@@ -1,11 +1,5 @@
 """
 High level processing of showers.
-
-This processor will be able to process a shower/event in 3 steps:
-- shower geometry
-- estimation of energy (optional, currently unavailable)
-- estimation of classification (optional, currently unavailable)
-
 """
 from ..containers import ArrayEventContainer
 from ..core import Component
@@ -14,9 +8,7 @@ from ..instrument import SubarrayDescription
 from . import Reconstructor
 
 # needed to make ml reconstructors visible as subclasses of Reconstructor
-from .. import ml  # isort: skip
-
-assert ml  # for pyflakes
+from .. import ml  # noqa isort: skip
 
 
 class ShowerProcessor(Component):
@@ -26,13 +18,28 @@ class ShowerProcessor(Component):
     This is mainly needed, so that the type of reconstructor can be chosen
     via the configuration system.
 
-    Input events must already contain dl1 parameters.
+    This processor can apply multiple `~ctapipe.reco.Reconstructor` subclasses to
+    array events in the event loop.
+
+    This currently includes geometry reconstruction via `~ctapipe.reco.HillasReconstructor`
+    or `~ctapipe.reco.HillasIntersection` and machine learning based reconstruction
+    of energy and particle type via the reconstructor classes in `~ctapipe.ml`.
+
+    Events must already contain the required inputs. These are dl1 parameters
+    for the geometry reconstruction and any feature used by the machine learning
+    reconstructors. This may include previously made dl2 predictions, in which
+    case the order of ``reconstructor_types`` is important.
     """
 
     reconstructor_types = ComponentNameList(
         Reconstructor,
         default_value=["HillasReconstructor"],
-        help="The stereo reconstructors to be used",
+        help=(
+            "The stereo reconstructors to be used."
+            " The reconstructors are applied in the order given,"
+            " which is important if e.g. the `~ctapipe.ml.ParticleIdClassifier`"
+            " uses the output of the `~ctapipe.ml.EnergyRegressor` as input."
+        ),
     ).tag(config=True)
 
     def __init__(
