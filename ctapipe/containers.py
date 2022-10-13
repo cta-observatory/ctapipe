@@ -69,11 +69,13 @@ NAN_TIME = Time(0, format="mjd", scale="tai")
 
 #: Used for unsigned integer obs_id or sb_id default values:
 UNKNOWN_ID = np.uint64(np.iinfo(np.uint64).max)
+#: Used for unsigned integer tel_id default value
+UNKNOWN_TEL_ID = np.uint16(np.iinfo(np.uint16).max)
 
 
 obs_id_field = partial(Field, UNKNOWN_ID, description="Observation Block ID")
 event_id_field = partial(Field, UNKNOWN_ID, description="Array Event ID")
-tel_id_field = partial(Field, UNKNOWN_ID, description="Telescope ID")
+tel_id_field = partial(Field, UNKNOWN_TEL_ID, description="Telescope ID")
 
 
 class SchedulingBlockType(enum.Enum):
