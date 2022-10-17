@@ -1446,11 +1446,11 @@ class FlashCamExtractor(ImageExtractor):
     ).tag(config=True, min=1)
 
     window_width = IntTelescopeParameter(
-        default_value=4, help="Define the width of the integration window"
+        default_value=7, help="Define the width of the integration window"
     ).tag(config=True, min=1)
 
     window_shift = IntTelescopeParameter(
-        default_value=2,
+        default_value=3,
         help="Define the shift of the integration window from the peak_index "
         "(peak_index - shift)",
     ).tag(config=True)
@@ -1466,25 +1466,15 @@ class FlashCamExtractor(ImageExtractor):
     ).tag(config=True)
 
     effective_time_profile_std = FloatTelescopeParameter(
-        default_value=0.0,
+        default_value=2.0,
         help="Effective Cherenkov time profile std. dev. (in nanoseconds) to "
         "assume for calculating the gain correction",
     ).tag(config=True, min=0)
 
-    baseline_window_start = IntTelescopeParameter(
-        default_value=0,
-        help="Define the first sample to use for baseline estimation",
-    ).tag(config=True, min=0)
-
-    baseline_window_width = IntTelescopeParameter(
-        default_value=1,
-        help="Define the number of samples to use for baseline estimation",
-    ).tag(config=True, min=0)
-
-    integral_based_windows = BoolTelescopeParameter(
-        default_value=False,
-        help="Whether to define the integration windows based on the neighbour averages"
-        "of the integrated waveforms",
+    neighbour_sum_clipping = FloatTelescopeParameter(
+        default_value=5.0,
+        help="(Soft) clipping level of a pixel's contribution to a neighbour sum "
+        "(set to 0 or inf to disable clipping)",
     ).tag(config=True)
 
     def __init__(self, subarray, **kwargs):
@@ -1511,35 +1501,28 @@ class FlashCamExtractor(ImageExtractor):
             for tel_id, tel in subarray.tel.items()
         }
 
+    @staticmethod
+    def clip(x, lo=0.0, hi=np.inf):
+        """Applies soft clipping to ±1 and then hard clipping to (lo, hi)."""
+        return np.clip(x / (1.0 + np.abs(x)), lo, hi)
+
     def __call__(
         self, waveforms, tel_id, selected_gain_channel, broken_pixels
     ) -> DL1CameraContainer:
         upsampling = self.upsampling.tel[tel_id]
-        baseline_window_start = self.baseline_window_start.tel[tel_id]
-        baseline_window_width = self.baseline_window_width.tel[tel_id]
         integration_window_width = self.window_width.tel[tel_id]
         integration_window_shift = self.window_shift.tel[tel_id]
+        neighbour_sum_clipping = self.neighbour_sum_clipping.tel[tel_id]
 
         pzs, gains, shifts = self.deconvolution_pars[tel_id]
         pz, gain, shift = pzs[0], gains[0], shifts[0]
 
-        if (
-            baseline_window_width == 0
-        ):  # assume baseline has been subtracted properly in R1 pre-calibration step
-            bls = 0.0
-        else:
-            bls = waveforms[
-                :, baseline_window_start : baseline_window_start + baseline_window_width
-            ].mean(1)
+        waveforms = deconvolve(waveforms, 0.0, upsampling, pz)
 
-        waveforms = deconvolve(waveforms, bls, upsampling, pz)
-
-        if self.integral_based_windows.tel[tel_id]:
-            nn_waveforms = scipy.signal.convolve(
-                waveforms, np.ones((1, integration_window_width)), "same"
-            )
-        else:
+        if neighbour_sum_clipping == 0.0 or np.isinf(neighbour_sum_clipping):
             nn_waveforms = waveforms
+        else:
+            nn_waveforms = self.clip(waveforms / neighbour_sum_clipping)
 
         # FIXME near-duplicate of neighbour peak sum for now
         neighbors = self.subarray.tel[tel_id].camera.geometry.neighbor_matrix_sparse
