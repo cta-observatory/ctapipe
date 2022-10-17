@@ -42,10 +42,6 @@ CameraCalibrator:
     - ['type', '*', 'NeighborPeakWindowSum']
     - ['type', '*FlashCam', 'FlashCamExtractor']
 
-FlashCamExtractor:
-  baseline_window_width: 0
-  effective_time_profile_std: 2.0
-
 # The ImageProcessor performs the DL1a-> DL1b (image parameters) transition. It
 # is run only if the parameters `DataWriter.write_image_parameters=True` and the
 # parameters don't already exist in the input file (or if the user forces them
