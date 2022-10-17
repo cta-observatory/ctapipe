@@ -658,14 +658,13 @@ def test_flashcam_extractor(toymodel_1_MST_FC, prod5_gamma_simtel_path):
     dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
     assert dl1.is_valid == True
 
-    # TODO Shrink tolerances after optimising the extractor parameters
-    assert_allclose(dl1.image, true_charge, rtol=0.2)
+    assert_allclose(dl1.image, true_charge, rtol=0.15)
     assert_allclose(dl1.peak_time, true_time, atol=2.5)
 
     # Test on prod5 simulations
     with EventSource(prod5_gamma_simtel_path) as source:
         subarray = source.subarray
-        extractor = extractor = FlashCamExtractor(subarray)
+        extractor = FlashCamExtractor(subarray)
         for event in source:
             for tel_id in subarray.get_tel_ids_for_type("MST_MST_FlashCam"):
                 true_charge = event.simulation.tel[tel_id].true_image
@@ -674,12 +673,14 @@ def test_flashcam_extractor(toymodel_1_MST_FC, prod5_gamma_simtel_path):
 
                 waveforms = event.r1.tel[tel_id].waveform
                 selected_gain_channel = np.zeros(waveforms.shape[0], dtype=np.int64)
-                broken_pixels = np.zeros(waveforms.shape[0], dtype=bool)
+                broken_pixels = event.mon.tel[
+                    tel_id
+                ].pixel_status.hardware_failing_pixels[0]
 
                 dl1 = extractor(waveforms, tel_id, selected_gain_channel, broken_pixels)
                 assert dl1.is_valid == True
 
-                bright_pixels = true_charge > 30
+                bright_pixels = (true_charge > 30) * ~broken_pixels
                 assert_allclose(
-                    dl1.image[bright_pixels], true_charge[bright_pixels], rtol=0.33
+                    dl1.image[bright_pixels], true_charge[bright_pixels], rtol=0.35
                 )
