@@ -8,7 +8,7 @@ from ctapipe.containers import ArrayEventContainer, TelescopeImpactParameterCont
 from ctapipe.core import Component, QualityQuery
 from ctapipe.core.traits import List
 
-from .impact_distance import shower_impact_distance
+from ..coordinates import shower_impact_distance
 
 __all__ = ["Reconstructor", "TooFewTelescopesException", "InvalidWidthException"]
 
