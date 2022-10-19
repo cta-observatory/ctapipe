@@ -589,7 +589,7 @@ class SimulatedShowerContainer(Container):
         nan * u.g / (u.cm**2), "Simulated Xmax value", unit=u.g / (u.cm**2)
     )
     shower_primary_id = Field(
-        -1,
+        np.int16(np.iinfo(np.int16).max),
         "Simulated shower primary ID 0 (gamma), 1(e-),"
         "2(mu-), 100*A+Z for nucleons and nuclei,"
         "negative for antimatter.",
