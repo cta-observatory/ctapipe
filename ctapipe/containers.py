@@ -69,6 +69,13 @@ NAN_TIME = Time(0, format="mjd", scale="tai")
 
 #: Used for unsigned integer obs_id or sb_id default values:
 UNKNOWN_ID = np.uint64(np.iinfo(np.uint64).max)
+#: Used for unsigned integer tel_id default value
+UNKNOWN_TEL_ID = np.uint16(np.iinfo(np.uint16).max)
+
+
+obs_id_field = partial(Field, UNKNOWN_ID, description="Observation Block ID")
+event_id_field = partial(Field, UNKNOWN_ID, description="Array Event ID")
+tel_id_field = partial(Field, UNKNOWN_TEL_ID, description="Telescope ID")
 
 
 class SchedulingBlockType(enum.Enum):
@@ -161,8 +168,8 @@ class EventIndexContainer(Container):
     """index columns to include in event lists, common to all data levels"""
 
     default_prefix = ""  # don't want to prefix these
-    obs_id = Field(0, "observation identifier")
-    event_id = Field(0, "event identifier")
+    obs_id = obs_id_field()
+    event_id = event_id_field()
 
 
 class TelEventIndexContainer(Container):
@@ -172,9 +179,9 @@ class TelEventIndexContainer(Container):
     """
 
     default_prefix = ""  # don't want to prefix these
-    obs_id = Field(0, "observation identifier")
-    event_id = Field(0, "event identifier")
-    tel_id = Field(0, "telescope identifier")
+    obs_id = obs_id_field()
+    event_id = event_id_field()
+    tel_id = tel_id_field()
 
 
 class BaseHillasParametersContainer(Container):
@@ -582,7 +589,7 @@ class SimulatedShowerContainer(Container):
         nan * u.g / (u.cm**2), "Simulated Xmax value", unit=u.g / (u.cm**2)
     )
     shower_primary_id = Field(
-        -1,
+        np.int16(np.iinfo(np.int16).max),
         "Simulated shower primary ID 0 (gamma), 1(e-),"
         "2(mu-), 100*A+Z for nucleons and nuclei,"
         "negative for antimatter.",
@@ -1158,7 +1165,7 @@ class SimulatedShowerDistribution(Container):
 
     default_prefix = ""
 
-    obs_id = Field(-1, description="links to which events this corresponds to")
+    obs_id = obs_id_field()
     hist_id = Field(-1, description="Histogram ID")
     n_entries = Field(-1, description="Number of entries in the histogram")
     bins_energy = Field(
@@ -1243,7 +1250,7 @@ class ObservationBlockContainer(Container):
     """Stores information about the observation"""
 
     default_prefix = ""
-    obs_id = Field(UNKNOWN_ID, "Observation Block ID", type=np.uint64)
+    obs_id = obs_id_field()
     sb_id = Field(UNKNOWN_ID, "ID of the parent SchedulingBlock", type=np.uint64)
     producer_id = Field(
         "unknown",
