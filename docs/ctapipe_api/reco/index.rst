@@ -28,6 +28,15 @@ combines them geometrically to estimate the true shower direction.
 
 The implementation is in the `~ctapipe.reco.HillasReconstructor` class.
 
+Machine-Learning-Based Reconstruction
+-------------------------------------
+
+This module also provides `~ctapipe.reco.Reconstructor` implementations using
+machine learning algorithms.
+
+At the moment, these are based on algorithms from ``scikit-learn`` and
+make use of DL1b and DL2 information.
+
 Template-Based Stereo Reconstruction
 ------------------------------------
 
@@ -37,18 +46,27 @@ The implementation is in the `~ctapipe.reco.ImPACTReconstructor` class.
 
 
 .. toctree::
-    ImPACT
+
+  ImPACT
+  sklearn
+  stereo_combination
+  tools/index
+
 
 Reference/API
 =============
 
 .. automodapi:: ctapipe.reco
     :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.reco.reconstructor
+    :no-inheritance-diagram:
+
 .. automodapi:: ctapipe.reco.hillas_intersection
     :no-inheritance-diagram:
+
 .. automodapi:: ctapipe.reco.hillas_reconstructor
     :no-inheritance-diagram:
+
 .. automodapi:: ctapipe.reco.impact
-    :no-inheritance-diagram:
-.. automodapi:: ctapipe.reco.reco_algorithms
     :no-inheritance-diagram:

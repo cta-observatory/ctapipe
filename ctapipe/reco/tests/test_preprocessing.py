@@ -5,7 +5,7 @@ from numpy.testing import assert_array_equal
 
 
 def test_table_to_float32():
-    from ctapipe.ml.preprocessing import table_to_float
+    from ctapipe.reco.preprocessing import table_to_float
 
     t = Table({"a": [1.0, 1e50, np.inf, -np.inf, np.nan], "b": [1, 2, 3, 4, 5]})
 
@@ -21,7 +21,7 @@ def test_table_to_float32():
 
 
 def test_table_to_float32_units():
-    from ctapipe.ml.preprocessing import table_to_float
+    from ctapipe.reco.preprocessing import table_to_float
 
     t = Table(
         {"a": [1.0, 1e50, np.inf, -np.inf, np.nan] * u.m, "b": [1, 2, 3, 4, 5] * u.deg}
@@ -39,7 +39,7 @@ def test_table_to_float32_units():
 
 
 def test_table_to_float64():
-    from ctapipe.ml.preprocessing import table_to_float
+    from ctapipe.reco.preprocessing import table_to_float
 
     t = Table({"a": [1.0, 1e50, np.inf, -np.inf, np.nan], "b": [1, 2, 3, 4, 5]})
 
@@ -56,7 +56,7 @@ def test_table_to_float64():
 
 
 def test_check_valid_rows():
-    from ctapipe.ml.preprocessing import check_valid_rows
+    from ctapipe.reco.preprocessing import check_valid_rows
 
     t = Table({"a": [1.0, 2, np.inf, np.nan, np.nan], "b": [1, np.inf, 3, 4, 5]})
 
@@ -67,8 +67,8 @@ def test_check_valid_rows():
 def test_collect_features(example_event, example_subarray):
     from ctapipe.calib import CameraCalibrator
     from ctapipe.image import ImageProcessor
-    from ctapipe.ml.preprocessing import collect_features
     from ctapipe.reco import ShowerProcessor
+    from ctapipe.reco.preprocessing import collect_features
 
     event = example_event
     subarray = example_subarray

@@ -15,7 +15,7 @@ def model_tmp_path(tmp_path_factory):
 
 @pytest.fixture(scope="session")
 def energy_regressor_path(model_tmp_path):
-    from ctapipe.ml.tools.train_energy_regressor import TrainEnergyRegressor
+    from ctapipe.reco.tools.train_energy_regressor import TrainEnergyRegressor
 
     out_file = model_tmp_path / "energy.pkl"
 
@@ -40,7 +40,7 @@ def energy_regressor_path(model_tmp_path):
 
 @pytest.fixture(scope="session")
 def particle_classifier_path(model_tmp_path):
-    from ctapipe.ml.tools.train_particle_classifier import TrainParticleIdClassifier
+    from ctapipe.reco.tools.train_particle_classifier import TrainParticleIdClassifier
 
     out_file = model_tmp_path / "particle_classifier.pkl"
     with FileLock(out_file.with_suffix(out_file.suffix + ".lock")):

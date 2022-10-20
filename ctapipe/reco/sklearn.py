@@ -33,8 +33,8 @@ from ..core.traits import (
     create_class_enum_trait,
 )
 from ..io import write_table
-from ..reco import Reconstructor
 from .preprocessing import check_valid_rows, collect_features, table_to_float
+from .reconstructor import Reconstructor
 from .stereo_combination import StereoCombiner
 from .utils import add_defaults_and_meta
 

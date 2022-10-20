@@ -12,7 +12,7 @@ from ctapipe.containers import (
     ReconstructedContainer,
     ReconstructedEnergyContainer,
 )
-from ctapipe.ml.stereo_combination import StereoMeanCombiner
+from ctapipe.reco.stereo_combination import StereoMeanCombiner
 
 
 @pytest.fixture(scope="module")

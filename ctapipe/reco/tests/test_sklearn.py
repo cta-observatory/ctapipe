@@ -7,7 +7,7 @@ from traitlets import TraitError
 from traitlets.config import Config
 
 from ctapipe.core import Component
-from ctapipe.ml.sklearn import EnergyRegressor, ParticleIdClassifier
+from ctapipe.reco import EnergyRegressor, ParticleIdClassifier
 
 KEY = "LST_LST_LSTCam"
 
@@ -15,7 +15,7 @@ KEY = "LST_LST_LSTCam"
 def test_supported_regressors():
     from sklearn.ensemble import RandomForestRegressor
 
-    from ctapipe.ml.sklearn import SUPPORTED_REGRESSORS
+    from ctapipe.reco.sklearn import SUPPORTED_REGRESSORS
 
     assert "RandomForestRegressor" in SUPPORTED_REGRESSORS
     assert SUPPORTED_REGRESSORS["RandomForestRegressor"] is RandomForestRegressor
@@ -24,7 +24,7 @@ def test_supported_regressors():
 def test_supported_classifiers():
     from sklearn.ensemble import RandomForestClassifier
 
-    from ctapipe.ml.sklearn import SUPPORTED_CLASSIFIERS
+    from ctapipe.reco.sklearn import SUPPORTED_CLASSIFIERS
 
     assert "RandomForestClassifier" in SUPPORTED_CLASSIFIERS
     assert SUPPORTED_CLASSIFIERS["RandomForestClassifier"] is RandomForestClassifier

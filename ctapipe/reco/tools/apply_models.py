@@ -23,8 +23,8 @@ class ApplyModels(Tool):
     This tool predicts all events at once. To apply models in the
     regular event loop, set the appropriate options to ``ctapipe-process``.
 
-    Models need to be trained with `~ctapipe.ml.tools.TrainEnergyRegressor`
-    and `~ctapipe.ml.tools.TrainParticleIdClassifier`.
+    Models need to be trained with `~ctapipe.reco.tools.TrainEnergyRegressor`
+    and `~ctapipe.reco.tools.TrainParticleIdClassifier`.
     """
 
     name = "ctapipe-ml-apply"

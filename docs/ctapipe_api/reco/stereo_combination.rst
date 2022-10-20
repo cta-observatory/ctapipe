@@ -1,10 +1,10 @@
-.. _ml_stereo_combination:
+.. _reco_stereo_combination:
 
 ==================
 Stereo Combination
 ==================
 
-.. currentmodule:: ctapipe.ml.sklearn
+.. currentmodule:: ctapipe.reco.sklearn
 
 Introduction
 ============
@@ -16,5 +16,5 @@ into an array-wide single prediction.
 Reference/API
 =============
 
-.. automodapi:: ctapipe.ml.stereo_combination
+.. automodapi:: ctapipe.reco.stereo_combination
     :no-inheritance-diagram:

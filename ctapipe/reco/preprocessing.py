@@ -11,7 +11,7 @@ import numpy as np
 from astropy.table import QTable, Table
 from numpy.lib.recfunctions import structured_to_unstructured
 
-from ctapipe.containers import ArrayEventContainer
+from ..containers import ArrayEventContainer
 
 LOG = logging.getLogger(__name__)
 

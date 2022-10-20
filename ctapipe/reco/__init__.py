@@ -5,8 +5,10 @@
 from .hillas_intersection import HillasIntersection
 from .hillas_reconstructor import HillasReconstructor
 from .impact import ImPACTReconstructor
-from .reco_algorithms import GeometryReconstructor, Reconstructor
+from .reconstructor import GeometryReconstructor, Reconstructor
 from .shower_processor import ShowerProcessor
+from .sklearn import EnergyRegressor, ParticleIdClassifier
+from .stereo_combination import StereoCombiner, StereoMeanCombiner
 
 __all__ = [
     "Reconstructor",
@@ -15,4 +17,8 @@ __all__ = [
     "HillasReconstructor",
     "ImPACTReconstructor",
     "HillasIntersection",
+    "EnergyRegressor",
+    "ParticleIdClassifier",
+    "StereoCombiner",
+    "StereoMeanCombiner",
 ]

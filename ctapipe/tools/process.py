@@ -6,8 +6,6 @@ import sys
 
 from tqdm.auto import tqdm
 
-from ctapipe.reco.reco_algorithms import Reconstructor
-
 from ..calib import CameraCalibrator, GainSelector
 from ..core import QualityQuery, Tool
 from ..core.traits import Bool, Dict, List, classes_with_traits, flag
@@ -22,7 +20,7 @@ from ..io import (
     write_table,
 )
 from ..io.datawriter import DATA_MODEL_VERSION
-from ..reco import ShowerProcessor
+from ..reco import Reconstructor, ShowerProcessor
 from ..utils import EventTypeFilter
 
 COMPATIBLE_DATALEVELS = [
@@ -156,6 +154,7 @@ class ProcessorTool(Tool):
         + classes_with_traits(QualityQuery)
         + classes_with_traits(ImageModifier)
         + classes_with_traits(EventTypeFilter)
+        + classes_with_traits(Reconstructor)
     )
 
     def setup(self):

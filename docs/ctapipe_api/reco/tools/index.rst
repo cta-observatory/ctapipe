@@ -1,10 +1,10 @@
-.. _ml_tools:
+.. _reco_tools:
 
 ============================================
-Machine Learning Tools (`~ctapipe.ml.tools`)
+Reconstruction Tools (`~ctapipe.reco.tools`)
 ============================================
 
-.. currentmodule:: ctapipe.ml.tools
+.. currentmodule:: ctapipe.reco.tools
 
 Introduction
 ============
@@ -15,5 +15,5 @@ This module provides tools to train and apply machine learning models.
 Reference/API
 =============
 
-.. automodapi:: ctapipe.ml.tools
+.. automodapi:: ctapipe.reco.tools
     :no-inheritance-diagram:

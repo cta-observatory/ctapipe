@@ -15,12 +15,12 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
 
-from ctapipe.containers import (
+from ..containers import (
     CameraHillasParametersContainer,
     HillasParametersContainer,
     ReconstructedGeometryContainer,
 )
-from ctapipe.coordinates import (
+from ..coordinates import (
     CameraFrame,
     MissingFrameAttributeWarning,
     NominalFrame,
@@ -28,9 +28,9 @@ from ctapipe.coordinates import (
     TiltedGroundFrame,
     project_to_ground,
 )
-from ctapipe.core import traits
-from ctapipe.instrument import get_atmosphere_profile_functions
-from ctapipe.reco.reco_algorithms import (
+from ..core import traits
+from ..instrument import get_atmosphere_profile_functions
+from .reconstructor import (
     GeometryReconstructor,
     InvalidWidthException,
     TooFewTelescopesException,

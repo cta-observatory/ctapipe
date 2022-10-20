@@ -4,13 +4,13 @@ from ctapipe.core import Tool
 from ctapipe.core.traits import Int, Path
 from ctapipe.io import TableLoader
 
-from ...ml.sklearn import CrossValidator, EnergyRegressor
 from ..preprocessing import check_valid_rows
+from ..sklearn import CrossValidator, EnergyRegressor
 
 
 class TrainEnergyRegressor(Tool):
     """
-    Tool to train a `~ctapipe.ml.EnergyRegressor` on dl2 data.
+    Tool to train a `~ctapipe.reco.EnergyRegressor` on dl2 data.
 
     The tool first performs a cross validation to give an initial estimate
     on the quality of the estimation and then finally trains one model

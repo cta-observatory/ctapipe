@@ -11,7 +11,7 @@ from ..sklearn import CrossValidator, ParticleIdClassifier
 
 class TrainParticleIdClassifier(Tool):
     """
-    Tool to train a `~ctapipe.ml.ParticleIdClassifier` on dl2 data.
+    Tool to train a `~ctapipe.reco.ParticleIdClassifier` on dl2 data.
 
     The tool first performs a cross validation to give an initial estimate
     on the quality of the estimation and then finally trains one model

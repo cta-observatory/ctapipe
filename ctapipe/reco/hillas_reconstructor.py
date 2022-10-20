@@ -10,11 +10,8 @@ import numpy as np
 from astropy import units as u
 from astropy.coordinates import AltAz, Longitude, SkyCoord, cartesian_to_spherical
 
-from ctapipe.containers import (
-    CameraHillasParametersContainer,
-    ReconstructedGeometryContainer,
-)
-from ctapipe.coordinates import (
+from ..containers import CameraHillasParametersContainer, ReconstructedGeometryContainer
+from ..coordinates import (
     CameraFrame,
     MissingFrameAttributeWarning,
     TelescopeFrame,
@@ -22,7 +19,7 @@ from ctapipe.coordinates import (
     altaz_to_righthanded_cartesian,
     project_to_ground,
 )
-from ctapipe.reco.reco_algorithms import (
+from .reconstructor import (
     GeometryReconstructor,
     InvalidWidthException,
     TooFewTelescopesException,
