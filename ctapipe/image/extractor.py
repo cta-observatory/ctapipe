@@ -33,9 +33,9 @@ from ctapipe.containers import DL1CameraContainer
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
     BoolTelescopeParameter,
+    ComponentName,
     FloatTelescopeParameter,
     IntTelescopeParameter,
-    create_class_enum_trait,
 )
 
 from .cleaning import tailcuts_clean
@@ -877,7 +877,7 @@ class TwoPassWindowSum(ImageExtractor):
         default_value=True, help="Apply the integration window correction"
     ).tag(config=True)
 
-    invalid_pixel_handler_type = create_class_enum_trait(
+    invalid_pixel_handler_type = ComponentName(
         InvalidPixelHandler,
         default_value="NeighborAverage",
         help="Name of the InvalidPixelHandler to apply in the first pass.",

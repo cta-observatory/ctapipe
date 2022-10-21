@@ -1,9 +1,12 @@
 import os
 import pathlib
 import tempfile
+from abc import ABCMeta, abstractmethod
 from unittest import mock
 
 import pytest
+from traitlets import CaselessStrEnum, HasTraits, Int
+
 from ctapipe.core import Component, TelescopeComponent
 from ctapipe.core.traits import (
     AstroTime,
@@ -21,7 +24,6 @@ from ctapipe.core.traits import (
 )
 from ctapipe.image import ImageExtractor
 from ctapipe.utils.datasets import DEFAULT_URL, get_dataset_path
-from traitlets import CaselessStrEnum, HasTraits, Int
 
 
 @pytest.fixture(scope="module")
@@ -74,7 +76,7 @@ def test_path_allow_none_true(tmp_path):
 
 
 def test_path_exists():
-    """ require existence of path """
+    """require existence of path"""
 
     class C1(Component):
         thepath = Path(exists=False)
@@ -120,7 +122,7 @@ def test_bytes():
 
 
 def test_path_directory_ok():
-    """ test path is a directory """
+    """test path is a directory"""
 
     class C(Component):
         thepath = Path(exists=True, directory_ok=False)
@@ -139,7 +141,7 @@ def test_path_directory_ok():
 
 
 def test_path_file_ok():
-    """ check that the file is there and not a directory, etc"""
+    """check that the file is there and not a directory, etc"""
 
     class C(Component):
         thepath = Path(exists=True, file_ok=False)
@@ -200,7 +202,7 @@ def test_path_envvars():
 
 
 def test_enum_trait_default_is_right():
-    """ check default value of enum trait """
+    """check default value of enum trait"""
     from ctapipe.core.traits import create_class_enum_trait
 
     with pytest.raises(ValueError):
@@ -208,7 +210,7 @@ def test_enum_trait_default_is_right():
 
 
 def test_enum_trait():
-    """ check that enum traits are constructable from a complex class """
+    """check that enum traits are constructable from a complex class"""
     from ctapipe.core.traits import create_class_enum_trait
 
     trait = create_class_enum_trait(
@@ -218,7 +220,7 @@ def test_enum_trait():
 
 
 def test_enum_classes_with_traits():
-    """ test that we can get a list of classes that have traits """
+    """test that we can get a list of classes that have traits"""
     list_of_classes = classes_with_traits(ImageExtractor)
     assert list_of_classes  # should not be empty
 
@@ -248,15 +250,15 @@ def test_classes_with_traits():
 
 
 def test_has_traits():
-    """ test the has_traits func """
+    """test the has_traits func"""
 
     class WithoutTraits(HasTraits):
-        """ a traits class that has no traits """
+        """a traits class that has no traits"""
 
         pass
 
     class WithATrait(HasTraits):
-        """ a traits class that has a trait """
+        """a traits class that has a trait"""
 
         my_trait = Int()
 
@@ -290,7 +292,7 @@ def test_telescope_parameter_lookup(mock_subarray):
 
 
 def test_telescope_parameter_patterns(mock_subarray):
-    """ Test validation of TelescopeParameters"""
+    """Test validation of TelescopeParameters"""
 
     with pytest.raises(TypeError):
         TelescopeParameter(trait=int)
@@ -583,3 +585,54 @@ def test_time_none():
     c = NoNone()
     with pytest.raises(TraitError):
         c.time = None
+
+
+def test_component_name():
+    from ctapipe.core.traits import ComponentName
+
+    class Base(Component, metaclass=ABCMeta):
+        @abstractmethod
+        def stuff(self):
+            pass
+
+    class Foo(Base):
+        def stuff(self):
+            pass
+
+    class Baz(Component):
+        def stuff(self):
+            pass
+
+    class MyComponent(Component):
+        base_name = ComponentName(
+            Base,
+            default_value="Foo",
+            help="A Base instance to do stuff",
+        ).tag(config=True)
+
+    # this is here so we test that also classes defined after the traitlet
+    # is created work
+    class Bar(Base):
+        def stuff(self):
+            pass
+
+    comp = MyComponent()
+    assert comp.base_name == "Foo"
+
+    comp = MyComponent(base_name="Bar")
+    assert comp.base_name == "Bar"
+
+    with pytest.raises(TraitError):
+        # Base is abstract
+        MyComponent(base_name="Base")
+
+    with pytest.raises(TraitError):
+        # not a subclass of Base
+        MyComponent(base_name="Baz")
+
+    with pytest.raises(TraitError):
+        # not a class at all
+        MyComponent(base_name="slakndklas")
+
+    expected = "A Base instance to do stuff. Possible values: ['Foo', 'Bar']"
+    assert MyComponent.base_name.help == expected

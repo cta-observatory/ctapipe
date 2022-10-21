@@ -14,7 +14,7 @@ import traitlets.config
 from astropy.time import Time
 from traitlets import Undefined
 
-from .component import non_abstract_children
+from .component import Component, non_abstract_children
 
 __all__ = [
     # Implemented here
@@ -224,6 +224,41 @@ def create_class_enum_trait(base_class, default_value, help=None, allow_none=Fal
         help=help,
         allow_none=allow_none,
     ).tag(config=True)
+
+
+class ComponentName(Unicode):
+    """A trait that is the name of a Component class"""
+
+    def __init__(self, cls, **kwargs):
+        if not issubclass(cls, Component):
+            raise TypeError(f"cls must be a Component, got {cls}")
+
+        self.cls = cls
+        super().__init__(**kwargs)
+        if "help" not in kwargs:
+            self.help = f"The name of a {cls.__name__} implementation"
+
+    @property
+    def help(self):
+        children = list(self.cls.non_abstract_subclasses())
+        return f"{self._help}. Possible values: {children}"
+
+    @help.setter
+    def help(self, value):
+        self._help = value
+
+    @property
+    def info_text(self):
+        return f"Any of {list(self.cls.non_abstract_subclasses())}"
+
+    def validate(self, obj, value):
+        if self.allow_none and value is None:
+            return None
+
+        if value in self.cls.non_abstract_subclasses():
+            return value
+
+        self.error(obj, value)
 
 
 def classes_with_traits(base_class):

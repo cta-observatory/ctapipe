@@ -9,7 +9,7 @@ This processor will be able to process a shower/event in 3 steps:
 """
 from ..containers import ArrayEventContainer
 from ..core import Component
-from ..core.traits import List, create_class_enum_trait
+from ..core.traits import ComponentName, List
 from ..instrument import SubarrayDescription
 from . import Reconstructor
 
@@ -25,12 +25,12 @@ class ShowerProcessor(Component):
     """
 
     reconstructor_types = List(
-        create_class_enum_trait(
+        ComponentName(
             Reconstructor,
             default_value="HillasReconstructor",
         ),
         default_value=["HillasReconstructor"],
-        help=f"The stereo geometry reconstructors to be used. Choices are: {list(Reconstructor.non_abstract_subclasses().keys())}",
+        help="The stereo geometry reconstructors to be used.",
     ).tag(config=True)
 
     def __init__(
