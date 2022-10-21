@@ -834,7 +834,7 @@ class ParticleClassificationContainer(Container):
         nan,
         (
             " prediction of the classifier, defined between [0,1]"
-            ", where values close to 1 are more mean that the positive class"
+            ", where values close to 1 mean that the positive class"
             " (e.g. gamma in gamma-ray analysis) is more likely"
         ),
     )
