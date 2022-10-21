@@ -7,6 +7,10 @@ from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, ParticleClassifier
 from ctapipe.reco.preprocessing import check_valid_rows
 
+__all__ = [
+    "TrainParticleClassifier",
+]
+
 
 class TrainParticleClassifier(Tool):
     """

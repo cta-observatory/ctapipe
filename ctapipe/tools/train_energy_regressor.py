@@ -6,6 +6,10 @@ from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, EnergyRegressor
 from ctapipe.reco.preprocessing import check_valid_rows
 
+__all__ = [
+    "TrainEnergyRegressor",
+]
+
 
 class TrainEnergyRegressor(Tool):
     """

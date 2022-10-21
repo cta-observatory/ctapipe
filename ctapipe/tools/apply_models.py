@@ -14,6 +14,10 @@ from ctapipe.io import TableLoader, write_table
 from ctapipe.io.tableio import TelListToMaskTransform
 from ctapipe.reco import EnergyRegressor, ParticleClassifier, StereoCombiner
 
+__all__ = [
+    "ApplyModels",
+]
+
 
 class ApplyModels(Tool):
     """Apply machine learning models to data.
