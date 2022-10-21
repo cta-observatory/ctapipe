@@ -8,6 +8,7 @@ from typing import Dict, Generator, List, Tuple
 from traitlets.config.loader import LazyConfigValue
 
 from ctapipe.atmosphere import AtmosphereDensityProfile
+from ctapipe.core.plugins import detect_and_import_io_plugins
 
 from ..containers import (
     ArrayEventContainer,
@@ -112,6 +113,8 @@ class EventSource(Component):
         Returns a compatible subclass for given input url, either
         directly or via config / parent
         """
+        detect_and_import_io_plugins()
+
         # needed to break recursion, as __new__ of subclass will also
         # call this method
         if cls is not EventSource:
