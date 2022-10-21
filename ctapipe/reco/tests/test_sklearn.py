@@ -7,7 +7,7 @@ from traitlets import TraitError
 from traitlets.config import Config
 
 from ctapipe.core import Component
-from ctapipe.reco import EnergyRegressor, ParticleIdClassifier
+from ctapipe.reco import EnergyRegressor, ParticleClassifier
 
 KEY = "LST_LST_LSTCam"
 
@@ -75,26 +75,26 @@ def test_model_init(example_subarray):
 
     # need to provide a model_cls
     with pytest.raises(TraitError):
-        ParticleIdClassifier(example_subarray)
+        ParticleClassifier(example_subarray)
 
     # cannot be a regressor
     with pytest.raises(TraitError):
-        ParticleIdClassifier(example_subarray, model_cls="RandomForestRegressor")
+        ParticleClassifier(example_subarray, model_cls="RandomForestRegressor")
 
     # should create class with sklearn defaults
-    c = ParticleIdClassifier(example_subarray, model_cls="RandomForestClassifier")
+    c = ParticleClassifier(example_subarray, model_cls="RandomForestClassifier")
     assert isinstance(c._new_model(), RandomForestClassifier)
 
     config = Config(
         {
-            "ParticleIdClassifier": {
+            "ParticleClassifier": {
                 "model_cls": "RandomForestClassifier",
                 "model_config": {"n_estimators": 20, "max_depth": 15},
             }
         }
     )
 
-    c = ParticleIdClassifier(example_subarray, config=config)
+    c = ParticleClassifier(example_subarray, config=config)
     clf = c._new_model()
     assert isinstance(clf, RandomForestClassifier)
     assert clf.n_estimators == 20
@@ -155,7 +155,7 @@ def test_regressor_single_event(model_cls, example_table, example_subarray):
     "model_cls", ["KNeighborsClassifier", "RandomForestClassifier"]
 )
 def test_classifier(model_cls, example_table, example_subarray):
-    classifier = ParticleIdClassifier(
+    classifier = ParticleClassifier(
         example_subarray,
         model_cls=model_cls,
         features=[f"X{i}" for i in range(8)],
@@ -197,14 +197,14 @@ def test_io_with_parent(example_table, tmp_path, example_subarray):
     class Parent(Component):
         def __init__(self, config):
             super().__init__(config=config)
-            self.classifier = ParticleIdClassifier(
+            self.classifier = ParticleClassifier(
                 parent=self,
                 subarray=example_subarray,
             )
 
     config = Config(
         dict(
-            ParticleIdClassifier=dict(
+            ParticleClassifier=dict(
                 model_cls="RandomForestClassifier",
                 model_config=dict(n_estimators=5, max_depth=3),
                 features=[f"X{i}" for i in range(8)],
@@ -217,7 +217,7 @@ def test_io_with_parent(example_table, tmp_path, example_subarray):
     path = tmp_path / "classifier.pkl"
 
     parent.classifier.write(path)
-    loaded = ParticleIdClassifier(load_path=path)
+    loaded = ParticleClassifier(load_path=path)
     assert loaded.features == parent.classifier.features
     assert_array_equal(
         loaded._models[KEY].feature_importances_,

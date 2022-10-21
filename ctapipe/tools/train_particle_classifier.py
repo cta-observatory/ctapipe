@@ -4,14 +4,13 @@ from astropy.table import vstack
 from ctapipe.core.tool import Tool
 from ctapipe.core.traits import Int, Path
 from ctapipe.io import TableLoader
+from ctapipe.reco import CrossValidator, ParticleClassifier
+from ctapipe.reco.preprocessing import check_valid_rows
 
-from ..preprocessing import check_valid_rows
-from ..sklearn import CrossValidator, ParticleIdClassifier
 
-
-class TrainParticleIdClassifier(Tool):
+class TrainParticleClassifier(Tool):
     """
-    Tool to train a `~ctapipe.reco.ParticleIdClassifier` on dl2 data.
+    Tool to train a `~ctapipe.reco.ParticleClassifier` on dl2 data.
 
     The tool first performs a cross validation to give an initial estimate
     on the quality of the estimation and then finally trains one model
@@ -44,15 +43,15 @@ class TrainParticleIdClassifier(Tool):
     random_seed = Int(default_value=0).tag(config=True)
 
     aliases = {
-        ("s", "signal"): "TrainParticleIdClassifier.input_url_signal",
-        ("b", "background"): "TrainParticleIdClassifier.input_url_background",
-        ("o", "output"): "TrainParticleIdClassifier.output_path",
+        ("s", "signal"): "TrainParticleClassifier.input_url_signal",
+        ("b", "background"): "TrainParticleClassifier.input_url_background",
+        ("o", "output"): "TrainParticleClassifier.output_path",
         "cv-output": "CrossValidator.output_path",
     }
 
     classes = [
         TableLoader,
-        ParticleIdClassifier,
+        ParticleClassifier,
         CrossValidator,
     ]
 
@@ -84,7 +83,7 @@ class TrainParticleIdClassifier(Tool):
         if self.signal_loader.subarray != self.background_loader.subarray:
             raise ValueError("Signal and background subarrays do not match")
 
-        self.classifier = ParticleIdClassifier(
+        self.classifier = ParticleClassifier(
             subarray=self.signal_loader.subarray,
             parent=self,
         )
@@ -163,7 +162,7 @@ class TrainParticleIdClassifier(Tool):
 
 
 def main():
-    TrainParticleIdClassifier().run()
+    TrainParticleClassifier().run()
 
 
 if __name__ == "__main__":

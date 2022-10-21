@@ -43,7 +43,7 @@ __all__ = [
     "SKLearnRegressionReconstructor",
     "SKLearnClassficationReconstructor",
     "EnergyRegressor",
-    "ParticleIdClassifier",
+    "ParticleClassifier",
 ]
 
 
@@ -411,7 +411,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
         return result
 
 
-class ParticleIdClassifier(SKLearnClassficationReconstructor):
+class ParticleClassifier(SKLearnClassficationReconstructor):
     """
     Predict dl2 particle classification
     """
@@ -475,12 +475,16 @@ class ParticleIdClassifier(SKLearnClassficationReconstructor):
 
 
 class CrossValidator(Component):
+    """Class to train sklearn based reconstructors in a cross validation"""
+
     n_cross_validations = Int(5).tag(config=True)
+
     output_path = Path(
         default_value=None,
         allow_none=True,
         directory_ok=False,
     ).tag(config=True)
+
     rng_seed = Int(default_value=1337, help="Seed for the random number generator").tag(
         config=True
     )

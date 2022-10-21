@@ -12,7 +12,7 @@ def test_apply_energy_regressor(
     dl2_shower_geometry_file_lapalma,
     tmp_path,
 ):
-    from ctapipe.reco.tools.apply_models import ApplyModels
+    from ctapipe.tools.apply_models import ApplyModels
 
     input_path = dl2_shower_geometry_file_lapalma
     output_path = tmp_path / "energy.dl2.h5"
@@ -60,7 +60,7 @@ def test_apply_particle_classifier(
     dl2_shower_geometry_file_lapalma,
     tmp_path,
 ):
-    from ctapipe.reco.tools.apply_models import ApplyModels
+    from ctapipe.tools.apply_models import ApplyModels
 
     input_path = dl2_shower_geometry_file_lapalma
     output_path = tmp_path / "particle.dl2.h5"
@@ -110,7 +110,7 @@ def test_apply_both(
     dl2_shower_geometry_file_lapalma,
     tmp_path,
 ):
-    from ctapipe.reco.tools.apply_models import ApplyModels
+    from ctapipe.tools.apply_models import ApplyModels
 
     input_path = dl2_shower_geometry_file_lapalma
     output_path = tmp_path / "particle-and-energy.dl2.h5"

@@ -47,10 +47,9 @@ The implementation is in the `~ctapipe.reco.ImPACTReconstructor` class.
 
 .. toctree::
 
-  ImPACT
   sklearn
   stereo_combination
-  tools/index
+  ImPACT
 
 
 Reference/API

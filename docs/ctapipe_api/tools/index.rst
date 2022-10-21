@@ -86,3 +86,12 @@ Reference/API
 
 .. automodapi:: ctapipe.tools.process
     :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.tools.train_energy_regressor
+    :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.tools.train_particle_classifier
+    :no-inheritance-diagram:
+
+.. automodapi:: ctapipe.tools.apply_models
+    :no-inheritance-diagram:

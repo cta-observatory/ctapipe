@@ -12,9 +12,7 @@ from ctapipe.core.tool import Tool
 from ctapipe.core.traits import Bool, Path, flag
 from ctapipe.io import TableLoader, write_table
 from ctapipe.io.tableio import TelListToMaskTransform
-
-from ..sklearn import EnergyRegressor, ParticleIdClassifier
-from ..stereo_combination import StereoCombiner
+from ctapipe.reco import EnergyRegressor, ParticleClassifier, StereoCombiner
 
 
 class ApplyModels(Tool):
@@ -23,8 +21,10 @@ class ApplyModels(Tool):
     This tool predicts all events at once. To apply models in the
     regular event loop, set the appropriate options to ``ctapipe-process``.
 
-    Models need to be trained with `~ctapipe.reco.tools.TrainEnergyRegressor`
-    and `~ctapipe.reco.tools.TrainParticleIdClassifier`.
+    Models need to be trained with
+    `~ctapipe.tools.train_energy_regressor.TrainEnergyRegressor`
+    and
+    `~ctapipe.tools.train_particle_classifier.TrainParticleClassifier`.
     """
 
     name = "ctapipe-ml-apply"
@@ -82,7 +82,7 @@ class ApplyModels(Tool):
     classes = [
         TableLoader,
         EnergyRegressor,
-        ParticleIdClassifier,
+        ParticleClassifier,
         StereoCombiner,
     ]
 
@@ -118,7 +118,7 @@ class ApplyModels(Tool):
 
     def _setup_classifier(self):
         if self.particle_classifier_path is not None:
-            self.classifier = ParticleIdClassifier.read(
+            self.classifier = ParticleClassifier.read(
                 self.particle_classifier_path,
                 parent=self,
             )

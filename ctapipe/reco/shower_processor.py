@@ -33,7 +33,7 @@ class ShowerProcessor(Component):
         help=(
             "The stereo reconstructors to be used."
             " The reconstructors are applied in the order given,"
-            " which is important if e.g. the `~ctapipe.reco.ParticleIdClassifier`"
+            " which is important if e.g. the `~ctapipe.reco.ParticleClassifier`"
             " uses the output of the `~ctapipe.reco.EnergyRegressor` as input."
         ),
     ).tag(config=True)

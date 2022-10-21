@@ -11,16 +11,16 @@ def test_train_energy_regressor(energy_regressor_path):
 
 
 def test_train_particle_classifier(particle_classifier_path):
-    from ctapipe.reco import ParticleIdClassifier
+    from ctapipe.reco import ParticleClassifier
 
-    ParticleIdClassifier.read(particle_classifier_path)
+    ParticleClassifier.read(particle_classifier_path)
 
 
 def test_too_few_events(
     model_tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_file
 ):
-    from ctapipe.reco.tools.train_energy_regressor import TrainEnergyRegressor
-    from ctapipe.reco.tools.train_particle_classifier import TrainParticleIdClassifier
+    from ctapipe.tools.train_energy_regressor import TrainEnergyRegressor
+    from ctapipe.tools.train_particle_classifier import TrainParticleClassifier
 
     tool = TrainEnergyRegressor()
     config = resource_file("ml_config.yaml")
@@ -38,7 +38,7 @@ def test_too_few_events(
             raises=True,
         )
 
-    tool = TrainParticleIdClassifier()
+    tool = TrainParticleClassifier()
     out_file = model_tmp_path / "particle_classifier.pkl"
 
     with pytest.raises(ValueError, match="Only one class"):
@@ -56,8 +56,8 @@ def test_too_few_events(
 
 
 def test_cross_validation_results(model_tmp_path):
-    from ctapipe.reco.tools.train_energy_regressor import TrainEnergyRegressor
-    from ctapipe.reco.tools.train_particle_classifier import TrainParticleIdClassifier
+    from ctapipe.tools.train_energy_regressor import TrainEnergyRegressor
+    from ctapipe.tools.train_particle_classifier import TrainParticleClassifier
 
     tool = TrainEnergyRegressor()
     config = resource_file("ml_config.yaml")
@@ -77,7 +77,7 @@ def test_cross_validation_results(model_tmp_path):
     assert ret == 0
     assert energy_cv_out_file.exists()
 
-    tool = TrainParticleIdClassifier()
+    tool = TrainParticleClassifier()
     out_file = model_tmp_path / "particle_classifier_.pkl"
     classifier_cv_out_file = model_tmp_path / "classifier_cv_results.h5"
 

@@ -70,7 +70,7 @@ def test_process_apply_classification(
             "ShowerProcessor": {
                 "reconstructor_types": [
                     "HillasReconstructor",
-                    "ParticleIdClassifier",
+                    "ParticleClassifier",
                 ]
             },
         }

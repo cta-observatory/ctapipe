@@ -68,11 +68,11 @@ TrainEnergyRegressor:
         - ["area", "hillas_width * hillas_length"]
 
 
-TrainParticleIdClassifier:
+TrainParticleClassifier:
   CrossValidator:
     n_cross_validations: 5
 
-  ParticleIdClassifier:
+  ParticleClassifier:
     model_cls: ExtraTreesClassifier
     model_config:
       n_estimators: 10

@@ -3,9 +3,8 @@ import numpy as np
 from ctapipe.core import Tool
 from ctapipe.core.traits import Int, Path
 from ctapipe.io import TableLoader
-
-from ..preprocessing import check_valid_rows
-from ..sklearn import CrossValidator, EnergyRegressor
+from ctapipe.reco import CrossValidator, EnergyRegressor
+from ctapipe.reco.preprocessing import check_valid_rows
 
 
 class TrainEnergyRegressor(Tool):

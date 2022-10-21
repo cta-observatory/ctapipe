@@ -76,7 +76,7 @@ class ProcessorTool(Tool):
         ("t", "allowed-tels"): "EventSource.allowed_tels",
         ("m", "max-events"): "EventSource.max_events",
         "energy-regressor": "ShowerProcessor.EnergyRegressor.load_path",
-        "particle-classifier": "ShowerProcessor.ParticleIdClassifier.load_path",
+        "particle-classifier": "ShowerProcessor.ParticleClassifier.load_path",
         "image-cleaner-type": "ImageProcessor.image_cleaner_type",
     }
 
@@ -187,7 +187,7 @@ class ProcessorTool(Tool):
         # add ml reco classes if model paths were supplied via cli and not already configured
         reco_aliases = {
             "--energy-regressor": "EnergyRegressor",
-            "--particle-classifier": "ParticleIdClassifier",
+            "--particle-classifier": "ParticleClassifier",
         }
         for alias, name in reco_aliases.items():
             has_alias = any(arg.startswith(alias) for arg in self.argv)

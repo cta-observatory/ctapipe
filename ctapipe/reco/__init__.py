@@ -6,7 +6,7 @@ from .hillas_intersection import HillasIntersection
 from .hillas_reconstructor import HillasReconstructor
 from .impact import ImPACTReconstructor
 from .reconstructor import GeometryReconstructor, Reconstructor
-from .sklearn import EnergyRegressor, ParticleIdClassifier
+from .sklearn import EnergyRegressor, ParticleClassifier, CrossValidator
 from .stereo_combination import StereoCombiner, StereoMeanCombiner
 
 # has to go last so that Reconstructors are all defiend
@@ -20,7 +20,8 @@ __all__ = [
     "ImPACTReconstructor",
     "HillasIntersection",
     "EnergyRegressor",
-    "ParticleIdClassifier",
+    "ParticleClassifier",
     "StereoCombiner",
     "StereoMeanCombiner",
+    "CrossValidator",
 ]
