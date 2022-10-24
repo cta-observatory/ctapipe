@@ -28,11 +28,23 @@ class Model3DGeometryReconstuctor(Reconstructor):
         tel_positions = {}
         tel_solid_angles = {}
         tel_mirror_area = {}
+        tel_spe_widths = {}
+        tel_pedestial_widths = {}
         for tel_id in event.dl1.tel.keys():
             tel_positions[tel_id] = self.subarray.positions[tel_id]
             geometry = self.subarray.tel[tel_id].camera.geometry
             tel_solid_angles[tel_id] = geometry.transform_to(TelescopeFrame()).pix_area
             tel_mirror_area[tel_id] = self.subarray.tel[tel_id].optics.mirror_area
+            tel_spe_widths[tel_id] = (
+                spe
+                if (spe := event.mon.tel[tel_id].flatfield.charge_std) is not None
+                else 0.5
+            )
+            tel_pedestial_widths[tel_id] = (
+                ped
+                if (ped := event.mon.tel[tel_id].pedestal.charge_std) is not None
+                else 2.8
+            )
 
         self.tel_positions = tel_positions
         self.tel_solid_angles = tel_solid_angles
