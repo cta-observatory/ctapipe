@@ -53,6 +53,13 @@ class Model3DGeometryReconstuctor(Reconstructor):
         self.tel_mirror_area = tel_mirror_area
         self.tel_pix_coords_altaz = self._tel_pix_coords_altaz(event)
 
+        self.predictor = ShowermodelPredictor(
+            self.tel_positions,
+            self.tel_pix_coords_altaz,
+            self.tel_solid_angles,
+            self.tel_mirror_area,
+        )
+
         shower_parameters, errors = self._fit(event)
 
         event.dl2.stereo.geometry[
@@ -99,6 +106,9 @@ class Model3DGeometryReconstuctor(Reconstructor):
 
         minimizer.errordef = Minuit.LIKELIHOOD
         minimizer.migrad()
+        from IPython import embed
+
+        embed()
         fit = minimizer.values
         fit_errors = minimizer.errors
 
@@ -128,15 +138,8 @@ class Model3DGeometryReconstuctor(Reconstructor):
             length * u.m,
         )
 
-        predictor = ShowermodelPredictor(
-            self.tel_positions,
-            self.tel_pix_coords_altaz,
-            self.tel_solid_angles,
-            self.tel_mirror_area,
-            showermodel=model,
-        )
-
-        prediction = predictor.generate_images()
+        self.predictor.showermodel = model
+        prediction = self.predictor.generate_images()
 
         log_likelihood = 0
         for tel_id, dl1 in dl1_cam_container:

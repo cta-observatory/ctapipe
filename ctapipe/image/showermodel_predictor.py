@@ -1,7 +1,6 @@
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import SkyCoord, spherical_to_cartesian
-from astropy.utils.decorators import lazyproperty
 from numpy.linalg import norm
 
 from ctapipe.coordinates import EastingNorthingFrame, GroundFrame
@@ -16,7 +15,7 @@ class ShowermodelPredictor:
         tel_pix_coords_altaz,
         tel_solid_angles,
         tel_mirror_area,
-        showermodel,
+        showermodel=None,
     ):
         """Creates images of a given showermodel for a set of telescopes given some telescope parameters.
 
@@ -30,8 +29,8 @@ class ShowermodelPredictor:
             Solid angles of the pixels for each telescope as a 2d-quantity of shape (n_telescopes, n_pixels)
         tel_mirror_area : u.Quantity[length**2]
             Mirror area of each telescope as a 1d-quantity of shape (n_telescopes)
-        showermodel :
-            Showermodel to generate images from
+        showermodel: optional, e.g. GaussianShowermodel
+            Model description of shower properties
         """
         self.tel_positions = tel_positions
         self.tel_pix_coords_altaz = tel_pix_coords_altaz
@@ -74,7 +73,7 @@ class ShowermodelPredictor:
         )
         return pix_content
 
-    @lazyproperty
+    @property
     def _vec_oc(self):
         """Calculates vector of optical center of each telescope to the barycenter of the shower."""
         vec = {}
