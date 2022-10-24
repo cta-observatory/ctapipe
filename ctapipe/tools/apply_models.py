@@ -33,6 +33,13 @@ class ApplyModels(Tool):
 
     name = "ctapipe-ml-apply"
     description = __doc__
+    examples = """
+    ctapipe-train-energy-regressor \
+        --input gamma.dl2.h5 \
+        --energy-regressor energy_regressor.pkl \
+        --particle-classifier particle-classifier.pkl \
+        --ouput gamma_applied.dl2.h5
+    """
 
     overwrite = Bool(default_value=False).tag(config=True)
 
@@ -41,12 +48,14 @@ class ApplyModels(Tool):
         allow_none=False,
         directory_ok=False,
         exists=True,
+        help="Input dl1b/dl2 file",
     ).tag(config=True)
 
     output_path = Path(
         default_value=None,
         allow_none=False,
         directory_ok=False,
+        help="Output file",
     ).tag(config=True)
 
     energy_regressor_path = Path(
@@ -54,6 +63,7 @@ class ApplyModels(Tool):
         allow_none=True,
         exists=True,
         directory_ok=False,
+        help="Input path for the trained EnergyRegressor",
     ).tag(config=True)
 
     particle_classifier_path = Path(
@@ -61,12 +71,13 @@ class ApplyModels(Tool):
         allow_none=True,
         exists=True,
         directory_ok=False,
+        help="Input path for the trained ParticleClassifier",
     ).tag(config=True)
 
     aliases = {
         ("i", "input"): "ApplyModels.input_url",
-        "regressor": "ApplyModels.energy_regressor_path",
-        "classifier": "ApplyModels.particle_classifier_path",
+        "energy-regressor": "ApplyModels.energy_regressor_path",
+        "particle-classifier": "ApplyModels.particle_classifier_path",
         ("o", "output"): "ApplyModels.output_path",
     }
 
@@ -179,7 +190,7 @@ class ApplyModels(Tool):
             )
             write_table(
                 table[["obs_id", "event_id", "tel_id"] + predictions.colnames],
-                self.loader.input_url,
+                self.output_path,
                 f"/dl2/event/telescope/{parameter}/{prefix}/tel_{tel_id:03d}",
                 mode="a",
                 overwrite=self.overwrite,
@@ -204,7 +215,7 @@ class ApplyModels(Tool):
 
         write_table(
             stereo_predictions,
-            self.loader.input_url,
+            self.output_path,
             f"/dl2/event/subarray/{combiner.property}/{combiner.prefix}",
             mode="a",
             overwrite=self.overwrite,

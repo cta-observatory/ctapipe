@@ -24,31 +24,61 @@ class TrainParticleClassifier(Tool):
     name = "ctapipe-train-classifier"
     description = __doc__
 
+    examples = """
+    ctapipe-train-particle-classifier \
+        -c ml_config.yaml \
+        --signal gamma.dl2.h5 \
+        --background proton.dl2.h5 \
+        -o particle_classifier.pkl
+    """
+
     input_url_signal = Path(
         default_value=None,
         allow_none=False,
         directory_ok=False,
+        help="Input dl1b/dl2 file for the signal class.",
     ).tag(config=True)
 
     input_url_background = Path(
         default_value=None,
         allow_none=False,
         directory_ok=False,
+        help="Input dl1b/dl2 file for the background class.",
     ).tag(config=True)
 
     output_path = Path(
         default_value=None,
         allow_none=False,
         directory_ok=False,
+        help="Output file for the trained reconstructor.",
     ).tag(config=True)
 
-    n_signal = Int(default_value=None, allow_none=True).tag(config=True)
-    n_background = Int(default_value=None, allow_none=True).tag(config=True)
-    random_seed = Int(default_value=0).tag(config=True)
+    n_signal = Int(
+        default_value=None,
+        allow_none=True,
+        help=(
+            "Number of signal events to be used for training."
+            " If not given, all available events will be used"
+        ),
+    ).tag(config=True)
+
+    n_background = Int(
+        default_value=None,
+        allow_none=True,
+        help=(
+            "Number of background events to be used for training."
+            " If not given, all available events will be used"
+        ),
+    ).tag(config=True)
+
+    random_seed = Int(
+        default_value=0,
+        help="Random number seed for sampling and the cross validation splitting",
+    ).tag(config=True)
 
     aliases = {
-        ("s", "signal"): "TrainParticleClassifier.input_url_signal",
-        ("b", "background"): "TrainParticleClassifier.input_url_background",
+        "signal": "TrainParticleClassifier.input_url_signal",
+        "background": "TrainParticleClassifier.input_url_background",
         ("o", "output"): "TrainParticleClassifier.output_path",
         "cv-output": "CrossValidator.output_path",
     }
@@ -98,7 +128,7 @@ class TrainParticleClassifier(Tool):
 
     def start(self):
         """
-        Train models per telescope type using a cross-validation.
+        Train models per telescope type.
         """
         # By construction both loaders have the same types defined
         types = self.signal_loader.subarray.telescope_types

@@ -147,6 +147,9 @@ class SKLearnReconstructor(Reconstructor):
 
         Parameters
         ----------
+        key : Hashable
+            Key of the model. Currently always a `~ctapipe.instrument.TelescopeDescription`
+            as we train models per telescope type.
         table : `~astropy.table.Table`
             Table of features
 
@@ -186,14 +189,22 @@ class SKLearnReconstructor(Reconstructor):
         return SUPPORTED_MODELS[self.model_cls](**self.model_config)
 
     def _table_to_X(self, table):
+        """
+        Extract features as numpy ndarray to be given to sklearn from input table
+        """
         feature_table = table[self.features]
         valid = check_valid_rows(feature_table, log=self.log)
         X = table_to_float(feature_table[valid])
         return X, valid
 
     def _table_to_y(self, table, mask=None):
+        """
+        Extract target values as numpy array from input table
+        """
+        # make sure we use the unit that was used during training
         if self.unit is not None:
             return table[mask][self.target].quantity.to_value(self.unit)
+
         return np.array(table[self.target][mask])
 
     def fit(self, key, table):
@@ -289,7 +300,7 @@ class SKLearnClassficationReconstructor(SKLearnReconstructor):
     positive_class = Integer(
         default_value=1,
         help=(
-            "The label value of the positive class."
+            "The label value of the positive class in case of binary classification."
             " ``prediction`` values close to 1.0 mean the event"
             " belonged likely to this class."
         ),
@@ -363,6 +374,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
             table = collect_features(event, tel_id, self.instrument_table)
             table = self.generate_features(table)
 
+            # get_table_mask returns a table with a single row
             passes_quality_checks = self.qualityquery.get_table_mask(table)[0]
 
             if passes_quality_checks:
@@ -429,9 +441,9 @@ class ParticleClassifier(SKLearnClassficationReconstructor):
         for tel_id in event.trigger.tels_with_trigger:
             table = collect_features(event, tel_id, self.instrument_table)
             table = self.generate_features(table)
-            mask = self.qualityquery.get_table_mask(table)
+            passes_quality_checks = self.qualityquery.get_table_mask(table)[0]
 
-            if mask[0]:
+            if passes_quality_checks:
                 prediction, valid = self._predict_score(
                     self.subarray.tel[tel_id],
                     table,
@@ -459,8 +471,8 @@ class ParticleClassifier(SKLearnClassficationReconstructor):
         score = np.full(n_rows, np.nan)
         is_valid = np.full(n_rows, False)
 
-        mask = self.qualityquery.get_table_mask(table)
-        score[mask], is_valid[mask] = self._predict_score(key, table[mask])
+        valid = self.qualityquery.get_table_mask(table)
+        score[valid], is_valid[valid] = self._predict_score(key, table[valid])
 
         result = Table(
             {

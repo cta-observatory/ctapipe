@@ -23,8 +23,9 @@ class ShowerProcessor(Component):
 
     Events must already contain the required inputs. These are dl1 parameters
     for the geometry reconstruction and any feature used by the machine learning
-    reconstructors. This may include previously made dl2 predictions, in which
-    case the order of ``reconstructor_types`` is important.
+    reconstructors, be it directly as model input or as input to the feature generation.
+    This may include previously made dl2 predictions,
+    in which case the order of ``reconstructor_types`` is important.
     """
 
     reconstructor_types = ComponentNameList(

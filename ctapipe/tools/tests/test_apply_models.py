@@ -1,3 +1,5 @@
+import numpy as np
+
 from ctapipe.containers import (
     EventIndexContainer,
     ParticleClassificationContainer,
@@ -22,8 +24,8 @@ def test_apply_energy_regressor(
         argv=[
             f"--input={input_path}",
             f"--output={output_path}",
-            f"--regressor={energy_regressor_path}",
-            "--Apply.StereoMeanCombiner.weights=konrad",
+            f"--energy-regressor={energy_regressor_path}",
+            "--StereoMeanCombiner.weights=konrad",
         ],
         raises=True,
     )
@@ -40,19 +42,23 @@ def test_apply_energy_regressor(
 
     loader = TableLoader(output_path, load_dl2=True)
     events = loader.read_subarray_events()
-    assert "ExtraTreesRegressor_energy" in events.colnames
-    assert "ExtraTreesRegressor_energy_uncert" in events.colnames
-    assert "ExtraTreesRegressor_is_valid" in events.colnames
-    assert "ExtraTreesRegressor_telescopes" in events.colnames
+
+    prefix = "ExtraTreesRegressor"
+    assert f"{prefix}_energy" in events.colnames
+    assert f"{prefix}_energy_uncert" in events.colnames
+    assert f"{prefix}_is_valid" in events.colnames
+    assert f"{prefix}_telescopes" in events.colnames
+    assert np.any(events[f"{prefix}_is_valid"])
+    assert np.all(np.isfinite(events[f"{prefix}_energy"][events[f"{prefix}_is_valid"]]))
 
     events = loader.read_telescope_events()
-    assert "ExtraTreesRegressor_energy" in events.colnames
-    assert "ExtraTreesRegressor_energy_uncert" in events.colnames
-    assert "ExtraTreesRegressor_is_valid" in events.colnames
-    assert "ExtraTreesRegressor_telescopes" in events.colnames
+    assert f"{prefix}_energy" in events.colnames
+    assert f"{prefix}_energy_uncert" in events.colnames
+    assert f"{prefix}_is_valid" in events.colnames
+    assert f"{prefix}_telescopes" in events.colnames
 
-    assert "ExtraTreesRegressor_tel_energy" in events.colnames
-    assert "ExtraTreesRegressor_tel_is_valid" in events.colnames
+    assert f"{prefix}_tel_energy" in events.colnames
+    assert f"{prefix}_tel_is_valid" in events.colnames
 
 
 def test_apply_particle_classifier(
@@ -70,8 +76,8 @@ def test_apply_particle_classifier(
         argv=[
             f"--input={input_path}",
             f"--output={output_path}",
-            f"--classifier={particle_classifier_path}",
-            "--Apply.StereoMeanCombiner.weights=konrad",
+            f"--particle-classifier={particle_classifier_path}",
+            "--StereoMeanCombiner.weights=konrad",
         ],
     )
     assert ret == 0
@@ -120,9 +126,9 @@ def test_apply_both(
         argv=[
             f"--input={input_path}",
             f"--output={output_path}",
-            f"--classifier={particle_classifier_path}",
-            f"--regressor={energy_regressor_path}",
-            "--Apply.StereoMeanCombiner.weights=konrad",
+            f"--particle-classifier={particle_classifier_path}",
+            f"--energy-regressor={energy_regressor_path}",
+            "--StereoMeanCombiner.weights=konrad",
         ],
     )
     assert ret == 0

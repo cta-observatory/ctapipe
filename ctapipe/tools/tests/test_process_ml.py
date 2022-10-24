@@ -46,8 +46,12 @@ def test_process_apply_energy(
     ]
     assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path, raises=True) == 0
 
-    print(read_table(output, "/dl2/event/telescope/energy/ExtraTreesRegressor/tel_004"))
-    print(read_table(output, "/dl2/event/subarray/energy/ExtraTreesRegressor"))
+    events = read_table(output, "/dl2/event/subarray/energy/ExtraTreesRegressor")
+    tel_events = read_table(
+        output, "/dl2/event/telescope/energy/ExtraTreesRegressor/tel_004"
+    )
+    assert len(events) > 0
+    assert len(tel_events) > 0
 
 
 def test_process_apply_classification(

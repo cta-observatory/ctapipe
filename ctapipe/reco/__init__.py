@@ -6,10 +6,10 @@ from .hillas_intersection import HillasIntersection
 from .hillas_reconstructor import HillasReconstructor
 from .impact import ImPACTReconstructor
 from .reconstructor import GeometryReconstructor, Reconstructor
-from .sklearn import EnergyRegressor, ParticleClassifier, CrossValidator
+from .sklearn import CrossValidator, EnergyRegressor, ParticleClassifier
 from .stereo_combination import StereoCombiner, StereoMeanCombiner
 
-# has to go last so that Reconstructors are all defiend
+# has to go last so that Reconstructors are all defined
 from .shower_processor import ShowerProcessor  # isort:skip
 
 __all__ = [

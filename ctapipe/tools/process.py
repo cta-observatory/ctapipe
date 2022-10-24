@@ -8,7 +8,7 @@ from tqdm.auto import tqdm
 
 from ..calib import CameraCalibrator, GainSelector
 from ..core import QualityQuery, Tool
-from ..core.traits import Bool, Dict, List, classes_with_traits, flag
+from ..core.traits import Bool, classes_with_traits, flag
 from ..image import ImageCleaner, ImageModifier, ImageProcessor
 from ..image.extractor import ImageExtractor
 from ..io import (
@@ -67,8 +67,6 @@ class ProcessorTool(Tool):
         help="Enforce dl2 recomputation even if already present in the input file",
         default_value=False,
     ).tag(config=True)
-
-    stereo_combiner_configs = List(Dict()).tag(config=True)
 
     aliases = {
         ("i", "input"): "EventSource.input_url",

@@ -23,14 +23,32 @@ class TrainEnergyRegressor(Tool):
     name = "ctapipe-train-regressor"
     description = __doc__
 
+    examples = """
+    ctapipe-train-energy-regressor \
+        --config ml_config.yaml \
+        --input gamma.dl2.h5 \
+        --ouput energy_regressor.pkl
+    """
+
     output_path = Path(
         default_value=None,
         allow_none=False,
         directory_ok=False,
+        help="Ouput path for the trained reconstructor.",
     ).tag(config=True)
 
-    n_events = Int(default_value=None, allow_none=True).tag(config=True)
-    random_seed = Int(default_value=0).tag(config=True)
+    n_events = Int(
+        default_value=None,
+        allow_none=True,
+        help=(
+            "Number of events for training the model."
+            " If not give, all available events will be used."
+        ),
+    ).tag(config=True)
+
+    random_seed = Int(
+        default_value=0, help="Random seed for sampling and cross validation"
+    ).tag(config=True)
 
     aliases = {
         ("i", "input"): "TableLoader.input_url",
@@ -65,7 +83,7 @@ class TrainEnergyRegressor(Tool):
 
     def start(self):
         """
-        Train models per telescope type using a cross-validation.
+        Train models per telescope type.
         """
 
         types = self.loader.subarray.telescope_types
