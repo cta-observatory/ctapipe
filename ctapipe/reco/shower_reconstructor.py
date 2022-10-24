@@ -3,7 +3,7 @@ import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
 from iminuit import Minuit
 
-from ctapipe.containers import ReconstructedGeometryContainer
+from ctapipe.containers import Model3DReconstructedGeometryContainer
 from ctapipe.coordinates import CameraFrame, TelescopeFrame
 from ctapipe.core.traits import Unicode
 from ctapipe.image import (
@@ -46,7 +46,7 @@ class Model3DGeometryReconstuctor(Reconstructor):
 
         event.dl2.stereo.geometry[
             self.__class__.__name__
-        ] = ReconstructedGeometryContainer(
+        ] = Model3DReconstructedGeometryContainer(
             total_photons=shower_parameters["total_photons"],
             total_photons_uncert=errors["total_photons"],
             core_x=shower_parameters["x"],

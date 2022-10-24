@@ -45,6 +45,7 @@ __all__ = [
     "ReconstructedContainer",
     "ReconstructedEnergyContainer",
     "ReconstructedGeometryContainer",
+    "Model3DReconstructedGeometryContainer",
     "SimulatedCameraContainer",
     "SimulatedShowerContainer",
     "SimulatedShowerDistribution",
@@ -802,6 +803,15 @@ class ReconstructedGeometryContainer(Container):
     average_intensity = Field(
         nan, "average intensity of the intensities used for reconstruction"
     )
+    goodness_of_fit = Field(nan, "measure of algorithm success (if fit)")
+    telescopes = Field(None, "Telescopes used if stereo, or None if Mono")
+
+
+class Model3DReconstructedGeometryContainer(ReconstructedGeometryContainer):
+    """
+    Output geometry container of Model3DGeometryReconstuctor
+    """
+
     total_photons = Field(nan, "reconstructed number of total photons in the shower")
     total_photons_uncert = Field(
         nan, "uncertainty of reconstructed number of total photons in the shower"
@@ -814,8 +824,6 @@ class ReconstructedGeometryContainer(Container):
     length_uncert = Field(
         nan * u.m, "uncertainty of reconstructed length of the shower", unit=u.m
     )
-    goodness_of_fit = Field(nan, "measure of algorithm success (if fit)")
-    telescopes = Field(None, "Telescopes used if stereo, or None if Mono")
 
 
 class ReconstructedEnergyContainer(Container):
