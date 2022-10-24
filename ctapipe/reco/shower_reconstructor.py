@@ -1,3 +1,5 @@
+from functools import partial
+
 import astropy.units as u
 import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
@@ -51,9 +53,6 @@ class Model3DGeometryReconstuctor(Reconstructor):
         self.tel_mirror_area = tel_mirror_area
         self.tel_pix_coords_altaz = self._tel_pix_coords_altaz(event)
 
-        # for likelihood
-        self.DL1CamContainers = event.dl1.tel.items()
-
         shower_parameters, errors = self._fit(event)
 
         event.dl2.stereo.geometry[
@@ -81,10 +80,13 @@ class Model3DGeometryReconstuctor(Reconstructor):
         )
 
     def _fit(self, event):
-        # just call iminiut with likelihood and some seeds
-        # may also need limits
         seeds = self._seeds(event)
-        minimizer = Minuit(self._likelihood, **seeds)
+
+        minimizer = Minuit(
+            partial(self._likelihood, dl1_cam_container=event.dl1.tel.items()),
+            **seeds,
+            name=seeds.keys(),
+        )
 
         minimizer.limits["total_photons"] = [0, None]
         minimizer.limits["x"] = [None, None]
@@ -102,7 +104,18 @@ class Model3DGeometryReconstuctor(Reconstructor):
 
         return fit, fit_errors
 
-    def _likelihood(self, total_photons, x, y, azimuth, altitude, h_max, width, length):
+    def _likelihood(
+        self,
+        total_photons,
+        x,
+        y,
+        azimuth,
+        altitude,
+        h_max,
+        width,
+        length,
+        dl1_cam_container,
+    ):
 
         model = GaussianShowermodel(
             total_photons,
@@ -126,14 +139,12 @@ class Model3DGeometryReconstuctor(Reconstructor):
         prediction = predictor.generate_images()
 
         log_likelihood = 0
-        for tel_id, DL1CamContainer in self.DL1CamContainers:
+        for tel_id, dl1 in dl1_cam_container:
             log_likelihood += np.sum(
-                neg_log_likelihood_approx(
-                    DL1CamContainer.image, prediction[tel_id], 0.5, 2.8
-                )
+                neg_log_likelihood_approx(dl1.image, prediction[tel_id], 0.5, 2.8)
             )
 
-        return log_likelihood / len(self.DL1CamContainers)
+        return log_likelihood / len(dl1_cam_container)
 
     def _seeds(self, event):
         # get seeds from seed reconstructors 'HillasReconstructor'
