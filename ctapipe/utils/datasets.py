@@ -208,7 +208,6 @@ def try_filetypes(basename, role, file_types, url=DEFAULT_URL, **kwargs):
     for search_path in search_paths:
         for ext, reader in file_types.items():
             filename = basename + ext
-            print(search_path, filename, (search_path / filename).exists())
 
             if (search_path / filename).exists():
                 path = search_path / filename
