@@ -47,6 +47,10 @@ jobs:
             extra-args: ["codecov"]
 
           - os: ubuntu-latest
+            python-version: "3.11"
+            install-method: pip
+
+          - os: ubuntu-latest
             python-version: "3.10"
             install-method: pip
 
