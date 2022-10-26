@@ -139,7 +139,7 @@ jobs:
           python -c 'import ctapipe; print(ctapipe.__version__)'
 
       - name: Build docs
-        run: make doc SPHINXOPTS="-W --keep-going -n --color -j auto"
+        run: make doc
 
       - name: Deploy to gihub pages
         # only run on push to master
