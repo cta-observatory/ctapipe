@@ -2,7 +2,7 @@ import numpy as np
 from astropy.table import vstack
 
 from ctapipe.core.tool import Tool
-from ctapipe.core.traits import Int, Path
+from ctapipe.core.traits import Bool, Int, Path, flag
 from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, ParticleClassifier
 from ctapipe.reco.preprocessing import check_valid_rows
@@ -71,10 +71,21 @@ class TrainParticleClassifier(Tool):
         ),
     ).tag(config=True)
 
+    overwrite = Bool(help="overwrite existing output files").tag(config=True)
+
     random_seed = Int(
         default_value=0,
         help="Random number seed for sampling and the cross validation splitting",
     ).tag(config=True)
+
+    flags = {
+        **flag(
+            "overwrite",
+            "TrainEnergyRegressor.overwrite",
+            "Overwrite output existing output files",
+            "Don't overwrite existing output files",
+        ),
+    }
 
     aliases = {
         "signal": "TrainParticleClassifier.input_url_signal",
@@ -188,11 +199,11 @@ class TrainParticleClassifier(Tool):
         Write-out trained models and cross-validation results.
         """
         self.log.info("Writing output")
-        self.classifier.write(self.output_path)
+        self.classifier.write(self.output_path, overwrite=self.overwrite)
         self.signal_loader.close()
         self.background_loader.close()
         if self.cross_validate.output_path:
-            self.cross_validate.write()
+            self.cross_validate.write(overwrite=self.overwrite)
 
 
 def main():

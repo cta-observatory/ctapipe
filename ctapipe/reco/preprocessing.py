@@ -16,7 +16,11 @@ from ..containers import ArrayEventContainer
 LOG = logging.getLogger(__name__)
 
 
-__all__ = ["table_to_float", "check_valid_rows"]
+__all__ = [
+    "check_valid_rows",
+    "collect_features",
+    "table_to_float",
+]
 
 
 def table_to_float(table: Table, dtype=np.float32) -> np.ndarray:

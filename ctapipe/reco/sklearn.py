@@ -1,6 +1,7 @@
 """
 Component Wrappers around sklearn models
 """
+import pathlib
 from abc import abstractmethod
 from collections import defaultdict
 
@@ -44,6 +45,7 @@ __all__ = [
     "SKLearnClassficationReconstructor",
     "EnergyRegressor",
     "ParticleClassifier",
+    "CrossValidator",
 ]
 
 
@@ -160,9 +162,14 @@ class SKLearnReconstructor(Reconstructor):
             container definition(s)
         """
 
-    def write(self, path):
-        Provenance().add_output_file(path, role="ml-models")
-        with open(path, "wb") as f:
+    def write(self, path, overwrite=False):
+        path = pathlib.Path(path)
+
+        if path.exists() and not overwrite:
+            raise IOError(f"Path {path} exists and overwrite=False")
+
+        with path.open("wb") as f:
+            Provenance().add_output_file(path, role="ml-models")
             joblib.dump(self, f, compress=True)
 
     @classmethod
@@ -214,8 +221,8 @@ class SKLearnReconstructor(Reconstructor):
         self._models[key] = self._new_model()
 
         X, valid = self._table_to_X(table)
-        y = self._table_to_y(table, mask=valid)
         self.unit = table[self.target].unit
+        y = self._table_to_y(table, mask=valid)
         self._models[key].fit(X, y)
 
     def __getstate__(self):
@@ -556,7 +563,7 @@ class CrossValidator(Component):
                     {
                         "cv_fold": np.full(len(truth), fold, dtype=np.uint8),
                         "tel_type": [str(telescope_type)] * len(truth),
-                        "predictions": cv_prediction,
+                        "prediction": cv_prediction,
                         "truth": truth,
                     }
                 )
@@ -596,7 +603,12 @@ class CrossValidator(Component):
         roc_auc = roc_auc_score(truth, prediction)
         return prediction, truth, {"ROC AUC": roc_auc}
 
-    def write(self):
+    def write(self, overwrite=False):
+        if self.output_path.exists() and not overwrite:
+            raise IOError(f"Path {self.output_path} exists and overwrite=False")
+
         Provenance().add_output_file(self.output_path, role="ml-cross-validation")
         for tel_type, results in self.cv_predictions.items():
-            write_table(results, self.output_path, f"cv_predictions_{tel_type}")
+            write_table(
+                results, self.output_path, f"cv_predictions_{tel_type}", overwrite=True
+            )
