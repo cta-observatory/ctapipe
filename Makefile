@@ -43,7 +43,7 @@ doc-publish:
 analyze:
 	@pylint ctapipe --ignored-classes=astropy.units
 
-flake8:
+lint:
 	@flake8 ctapipe
 
 env:
