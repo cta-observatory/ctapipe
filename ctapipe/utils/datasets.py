@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     "get_dataset_path", "find_in_path", "find_all_matching_datasets",
-    "get_default_url",
+    "get_default_url", "DEFAULT_URL"
 ]
 
 
