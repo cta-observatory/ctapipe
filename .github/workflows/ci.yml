@@ -133,7 +133,7 @@ jobs:
           sudo apt update --yes && sudo apt install --yes git build-essential pandoc graphviz
           pip install -U pip towncrier
           pip install -e .[docs]
-          pip install test_plugin
+          pip install ./test_plugin
           git describe --tags
           python -c 'import ctapipe; print(ctapipe.__version__)'
 
