@@ -31,6 +31,7 @@ __all__ = [
 ]
 
 
+#: default base URL for downloading datasets
 DEFAULT_URL = "http://cccta-dataserver.in2p3.fr/data/ctapipe-test-data/v1.1.0/"
 
 
