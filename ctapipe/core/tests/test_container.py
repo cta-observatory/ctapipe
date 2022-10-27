@@ -1,9 +1,11 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-import pytest
-from ctapipe.core import Container, Field, Map, DeprecatedField, FieldValidationError
-import numpy as np
 import warnings
+
+import numpy as np
+import pytest
 from astropy import units as u
+
+from ctapipe.core import Container, DeprecatedField, Field, FieldValidationError, Map
 
 
 def test_prefix():
@@ -167,9 +169,7 @@ def test_container_as_dict():
     assert cont.as_dict(recursive=True) == {"x": 0, "child": {"z": 1}}
     assert cont.as_dict(recursive=True, add_prefix=True) == {
         "parent_x": 0,
-        "parent_child": {
-            "child_z": 1
-        }
+        "parent_child": {"child_z": 1},
     }
 
     assert cont.as_dict(recursive=True, flatten=True, add_prefix=False) == {
@@ -183,8 +183,7 @@ def test_container_as_dict():
     }
 
     d = GrandParentContainer().as_dict(recursive=True, flatten=True, add_prefix=True)
-    assert d == {'parent_x': 0, 'child_z': 1, 'grandparent_y': 2}
-
+    assert d == {"parent_x": 0, "child_z": 1, "grandparent_y": 2}
 
 
 def test_container_brackets():

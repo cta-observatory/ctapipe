@@ -42,7 +42,7 @@ base config plus one additional configuration using:
 
 ```
 ctapipe-process --config base_config.yaml --config <CONFIG> --input <EVENTS FILE> --output <OUTPUT FILE>
-``` 
+```
 
 Where <CONFIG> is one of the non-base configs above, <EVENTS FILE> is any
 ctapipe-readable event file at a lower or equal data level to the one requested
