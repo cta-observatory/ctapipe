@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 __all__ = ["get_dataset_path", "find_in_path", "find_all_matching_datasets"]
 
 
-DEFAULT_URL = "http://cccta-dataserver.in2p3.fr/data/ctapipe-extra/v0.3.4/"
+DEFAULT_URL = "http://cccta-dataserver.in2p3.fr/data/ctapipe-test-data/v1.1.0/"
 
 
 def get_searchpath_dirs(searchpath=None, url=DEFAULT_URL):
