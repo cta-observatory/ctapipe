@@ -25,14 +25,28 @@ from ..core import Provenance
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["get_dataset_path", "find_in_path", "find_all_matching_datasets"]
+__all__ = [
+    "get_dataset_path", "find_in_path", "find_all_matching_datasets",
+    "get_default_url",
+]
 
 
 DEFAULT_URL = "http://cccta-dataserver.in2p3.fr/data/ctapipe-test-data/v1.1.0/"
 
 
-def get_searchpath_dirs(searchpath=None, url=DEFAULT_URL):
+def get_default_url():
+    """Get the default download url for datasets
+
+    First tries to look-up CTAPIPE_DATASET_URL and then falls back to `DEFAULT_URL`
+    """
+    return os.getenv("CTAPIPE_DATASET_URL", DEFAULT_URL)
+
+
+def get_searchpath_dirs(searchpath=None, url=None):
     """returns a list of dirs in specified searchpath"""
+    if url is None:
+        url = get_default_url()
+
     if searchpath is None:
         searchpath = os.getenv("CTAPIPE_SVC_PATH")
 
@@ -45,7 +59,7 @@ def get_searchpath_dirs(searchpath=None, url=DEFAULT_URL):
 
 
 def find_all_matching_datasets(
-    pattern, searchpath=None, regexp_group=None, url=DEFAULT_URL
+    pattern, searchpath=None, regexp_group=None, url=None,
 ):
     """
     Returns a list of resource names (or substrings) matching the given
@@ -68,6 +82,9 @@ def find_all_matching_datasets(
     list(str):
        resources names, use get_dataset_path() to retrieve the full filename
     """
+    if url is None:
+        url = get_default_url()
+
     results = set()
 
     if searchpath is None:
@@ -98,7 +115,7 @@ def find_all_matching_datasets(
     return list(results)
 
 
-def find_in_path(filename, searchpath, url=DEFAULT_URL):
+def find_in_path(filename, searchpath, url=None):
     """
     Search in searchpath for filename, returning full path.
 
@@ -114,6 +131,8 @@ def find_in_path(filename, searchpath, url=DEFAULT_URL):
     full path to file if found, None otherwise
 
     """
+    if url is None:
+        url = get_default_url()
 
     for directory in get_searchpath_dirs(searchpath, url=url):
         path = directory / filename
@@ -123,7 +142,7 @@ def find_in_path(filename, searchpath, url=DEFAULT_URL):
     return None
 
 
-def get_dataset_path(filename, url=DEFAULT_URL):
+def get_dataset_path(filename, url=None):
     """
     Returns the full file path to an auxiliary dataset needed by
     ctapipe, given the dataset's full name (filename with no directory).
@@ -143,6 +162,8 @@ def get_dataset_path(filename, url=DEFAULT_URL):
     string with full path to the given dataset
     """
     searchpath = os.getenv("CTAPIPE_SVC_PATH")
+    if url is None:
+        url = get_default_url()
 
     if searchpath:
         filepath = find_in_path(filename=filename, searchpath=searchpath, url=url)
@@ -172,7 +193,7 @@ def get_dataset_path(filename, url=DEFAULT_URL):
     )
 
 
-def try_filetypes(basename, role, file_types, url=DEFAULT_URL, **kwargs):
+def try_filetypes(basename, role, file_types, url=None, **kwargs):
     """
     Get the contents of dataset as an `astropy.table.Table` object from
     different file types if available.
@@ -199,7 +220,8 @@ def try_filetypes(basename, role, file_types, url=DEFAULT_URL, **kwargs):
         type entry.
 
     """
-
+    if url is None:
+        url = get_default_url()
     path = None
 
     # look first in search pathes (includes cache)
