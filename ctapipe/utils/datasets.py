@@ -38,7 +38,8 @@ DEFAULT_URL = "http://cccta-dataserver.in2p3.fr/data/ctapipe-test-data/v1.1.0/"
 def get_default_url():
     """Get the default download url for datasets
 
-    First tries to look-up CTAPIPE_DATASET_URL and then falls back to `DEFAULT_URL`
+    First tries to look-up CTAPIPE_DATASET_URL and then falls
+    back to ``DEFAULT_URL``
     """
     return os.getenv("CTAPIPE_DATASET_URL", DEFAULT_URL)
 
