@@ -588,7 +588,7 @@ def test_time_none():
 
 
 def test_component_name():
-    from ctapipe.core.traits import ComponentName
+    from ctapipe.core.traits import ComponentName, ComponentNameList
 
     class Base(Component, metaclass=ABCMeta):
         @abstractmethod
@@ -608,6 +608,13 @@ def test_component_name():
             Base,
             default_value="Foo",
             help="A Base instance to do stuff",
+        ).tag(config=True)
+
+    class MyListComponent(Component):
+        base_names = ComponentNameList(
+            Base,
+            default_value=None,
+            allow_none=True,
         ).tag(config=True)
 
     # this is here so we test that also classes defined after the traitlet
@@ -636,3 +643,15 @@ def test_component_name():
 
     expected = "A Base instance to do stuff. Possible values: ['Foo', 'Bar']"
     assert MyComponent.base_name.help == expected
+
+    comp = MyListComponent()
+    assert comp.base_names is None
+
+    comp = MyListComponent(base_names=["Foo", "Bar"])
+    assert comp.base_names == ["Foo", "Bar"]
+
+    with pytest.raises(TraitError):
+        MyListComponent(base_names=["Foo", "Baz"])
+
+    expected = "A list of Base subclass names. Possible values: ['Foo', 'Bar']"
+    assert MyListComponent.base_names.help == expected

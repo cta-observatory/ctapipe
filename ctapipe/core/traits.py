@@ -236,7 +236,7 @@ class ComponentName(Unicode):
         self.cls = cls
         super().__init__(**kwargs)
         if "help" not in kwargs:
-            self.help = f"The name of a {cls.__name__} implementation"
+            self.help = f"The name of a {cls.__name__} subclass"
 
     @property
     def help(self):
@@ -259,6 +259,34 @@ class ComponentName(Unicode):
             return value
 
         self.error(obj, value)
+
+
+class ComponentNameList(List):
+    """A trait that is a list of Component classes"""
+
+    def __init__(self, cls, **kwargs):
+        if not issubclass(cls, Component):
+            raise TypeError(f"cls must be a Component, got {cls}")
+
+        self.cls = cls
+        trait = ComponentName(cls)
+        super().__init__(trait=trait, **kwargs)
+
+        if "help" not in kwargs:
+            self.help = f"A list of {cls.__name__} subclass names"
+
+    @property
+    def help(self):
+        children = list(self.cls.non_abstract_subclasses())
+        return f"{self._help}. Possible values: {children}"
+
+    @help.setter
+    def help(self, value):
+        self._help = value
+
+    @property
+    def info_text(self):
+        return f"A list of {list(self.cls.non_abstract_subclasses())}"
 
 
 def classes_with_traits(base_class):

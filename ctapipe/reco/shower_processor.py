@@ -9,7 +9,7 @@ This processor will be able to process a shower/event in 3 steps:
 """
 from ..containers import ArrayEventContainer
 from ..core import Component
-from ..core.traits import ComponentName, List
+from ..core.traits import ComponentNameList
 from ..instrument import SubarrayDescription
 from . import Reconstructor
 
@@ -24,13 +24,10 @@ class ShowerProcessor(Component):
     Input events must already contain dl1 parameters.
     """
 
-    reconstructor_types = List(
-        ComponentName(
-            Reconstructor,
-            default_value="HillasReconstructor",
-        ),
+    reconstructor_types = ComponentNameList(
+        Reconstructor,
         default_value=["HillasReconstructor"],
-        help="The stereo geometry reconstructors to be used.",
+        help="The stereo reconstructors to be used",
     ).tag(config=True)
 
     def __init__(
