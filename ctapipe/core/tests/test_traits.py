@@ -610,12 +610,29 @@ def test_component_name():
             help="A Base instance to do stuff",
         ).tag(config=True)
 
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            self.base = Base.from_name(self.base_name, parent=self)
+            self.base.stuff()
+
     class MyListComponent(Component):
         base_names = ComponentNameList(
             Base,
             default_value=None,
             allow_none=True,
         ).tag(config=True)
+
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            self.bases = []
+
+            if self.base_names is not None:
+                self.bases = [
+                    Base.from_name(name, parent=self) for name in self.base_names
+                ]
+
+            for base in self.bases:
+                base.stuff()
 
     # this is here so we test that also classes defined after the traitlet
     # is created work
