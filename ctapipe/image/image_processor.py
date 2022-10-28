@@ -17,7 +17,7 @@ from ..containers import (
     TimingParametersContainer,
 )
 from ..core import QualityQuery, TelescopeComponent
-from ..core.traits import Bool, BoolTelescopeParameter, List, create_class_enum_trait
+from ..core.traits import Bool, BoolTelescopeParameter, ComponentName, List
 from ..instrument import SubarrayDescription
 from .cleaning import ImageCleaner
 from .concentration import concentration_parameters
@@ -64,9 +64,9 @@ class ImageProcessor(TelescopeComponent):
     Should be run after CameraCalibrator to produce all DL1 information.
     """
 
-    image_cleaner_type = create_class_enum_trait(
-        base_class=ImageCleaner, default_value="TailcutsImageCleaner"
-    )
+    image_cleaner_type = ComponentName(
+        ImageCleaner, default_value="TailcutsImageCleaner"
+    ).tag(config=True)
 
     use_telescope_frame = Bool(
         default_value=True,

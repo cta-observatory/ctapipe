@@ -48,7 +48,7 @@ from ..containers import (
 from ..coordinates import CameraFrame, shower_impact_distance
 from ..core import Map
 from ..core.provenance import Provenance
-from ..core.traits import Bool, Float, Undefined, UseEnum, create_class_enum_trait
+from ..core.traits import Bool, ComponentName, Float, Undefined, UseEnum
 from ..instrument import (
     CameraDescription,
     CameraGeometry,
@@ -448,8 +448,8 @@ class SimTelEventSource(EventSource):
         ),
     ).tag(config=True)
 
-    gain_selector_type = create_class_enum_trait(
-        base_class=GainSelector, default_value="ThresholdGainSelector"
+    gain_selector_type = ComponentName(
+        GainSelector, default_value="ThresholdGainSelector"
     ).tag(config=True)
 
     calib_scale = Float(

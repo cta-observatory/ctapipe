@@ -9,9 +9,9 @@ from ctapipe.containers import DL1CameraContainer
 from ctapipe.core import TelescopeComponent
 from ctapipe.core.traits import (
     BoolTelescopeParameter,
+    ComponentName,
     IntTelescopeParameter,
     TelescopeParameter,
-    create_class_enum_trait,
 )
 from ctapipe.image import TailcutsImageCleaner
 from ctapipe.image.cleaning import dilate
@@ -124,9 +124,7 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
     """
 
     image_extractor_type = TelescopeParameter(
-        trait=create_class_enum_trait(
-            ImageExtractor, default_value="NeighborPeakWindowSum"
-        ),
+        trait=ComponentName(ImageExtractor, default_value="NeighborPeakWindowSum"),
         default_value="NeighborPeakWindowSum",
         help="Name of the ImageExtractor subclass to be used.",
     ).tag(config=True)
