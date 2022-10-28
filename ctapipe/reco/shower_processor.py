@@ -7,6 +7,7 @@ from ..core.traits import ComponentNameList
 from ..instrument import SubarrayDescription
 from .reconstructor import Reconstructor
 
+
 class ShowerProcessor(Component):
     """
     Run the stereo event reconstruction on the input events.
