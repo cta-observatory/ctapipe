@@ -500,6 +500,7 @@ class TelescopeParameter(List):
         """
         Create a new TelescopeParameter
         """
+        self._help = ""
 
         if not isinstance(trait, TraitType):
             raise TypeError("trait must be a TraitType instance")
@@ -508,7 +509,19 @@ class TelescopeParameter(List):
         if default_value != Undefined:
             default_value = self.validate(self, default_value)
 
+        if "help" not in kwargs:
+            self.help = "A TelescopeParameter"
+
         super().__init__(default_value=default_value, **kwargs)
+
+    @property
+    def help(self):
+        sep = "." if not self._help.endswith(".") else ""
+        return f"{self._help}{sep} {self._trait.help}"
+
+    @help.setter
+    def help(self, value):
+        self._help = value
 
     def from_string(self, s):
         val = super().from_string(s)
