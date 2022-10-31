@@ -56,7 +56,7 @@ def download_file(url, path, auth=None, chunk_size=10240, progress=False):
                 for chunk in r.iter_content(chunk_size=chunk_size):
                     f.write(chunk)
                     pbar.update(len(chunk))
-        except BaseException:  # we really want to catch everythin here
+        except BaseException:  # we really want to catch everything here
             # cleanup part file if something goes wrong
             if part_file is not None and part_file.is_file():
                 part_file.unlink()
