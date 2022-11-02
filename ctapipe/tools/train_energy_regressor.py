@@ -13,14 +13,14 @@ __all__ = [
 
 class TrainEnergyRegressor(Tool):
     """
-    Tool to train a `~ctapipe.reco.EnergyRegressor` on dl2 data.
+    Tool to train a `~ctapipe.reco.EnergyRegressor` on dl1b/dl2 data.
 
     The tool first performs a cross validation to give an initial estimate
     on the quality of the estimation and then finally trains one model
     per telescope type on the full dataset.
     """
 
-    name = "ctapipe-train-regressor"
+    name = "ctapipe-train-energy-regressor"
     description = __doc__
 
     examples = """

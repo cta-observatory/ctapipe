@@ -21,7 +21,7 @@ class TrainParticleClassifier(Tool):
     per telescope type on the full dataset.
     """
 
-    name = "ctapipe-train-classifier"
+    name = "ctapipe-train-particle-classifier"
     description = __doc__
 
     examples = """
