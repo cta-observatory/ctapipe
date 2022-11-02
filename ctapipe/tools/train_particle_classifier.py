@@ -14,7 +14,7 @@ __all__ = [
 
 class TrainParticleClassifier(Tool):
     """
-    Tool to train a `~ctapipe.reco.ParticleClassifier` on dl2 data.
+    Tool to train a `~ctapipe.reco.ParticleClassifier` on dl1b/dl2 data.
 
     The tool first performs a cross validation to give an initial estimate
     on the quality of the estimation and then finally trains one model
