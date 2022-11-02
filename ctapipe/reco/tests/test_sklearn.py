@@ -104,11 +104,15 @@ def test_model_init(example_subarray):
 @pytest.mark.parametrize("model_cls", ["LinearRegression", "RandomForestRegressor"])
 @pytest.mark.parametrize("log_target", (False, True))
 def test_regressor(model_cls, example_table, log_target, example_subarray):
+    config = Config()
+    config.EnergyRegressor.QualityQuery.quality_criteria = []
+
     regressor = EnergyRegressor(
         example_subarray,
         model_cls=model_cls,
         features=[f"X{i}" for i in range(8)],
         log_target=log_target,
+        config=config,
     )
 
     regressor.fit(KEY, example_table)
@@ -128,8 +132,14 @@ def test_regressor(model_cls, example_table, log_target, example_subarray):
 
 @pytest.mark.parametrize("model_cls", ["LinearRegression", "RandomForestRegressor"])
 def test_regressor_single_event(model_cls, example_table, example_subarray):
+    config = Config()
+    config.EnergyRegressor.QualityQuery.quality_criteria = []
+
     regressor = EnergyRegressor(
-        example_subarray, model_cls=model_cls, features=[f"X{i}" for i in range(8)]
+        example_subarray,
+        model_cls=model_cls,
+        features=[f"X{i}" for i in range(8)],
+        config=config,
     )
     regressor.fit(KEY, example_table)
 
@@ -155,10 +165,14 @@ def test_regressor_single_event(model_cls, example_table, example_subarray):
     "model_cls", ["KNeighborsClassifier", "RandomForestClassifier"]
 )
 def test_classifier(model_cls, example_table, example_subarray):
+    config = Config()
+    config.ParticleClassifier.QualityQuery.quality_criteria = []
+
     classifier = ParticleClassifier(
         example_subarray,
         model_cls=model_cls,
         features=[f"X{i}" for i in range(8)],
+        config=config,
     )
 
     classifier.fit(KEY, example_table)

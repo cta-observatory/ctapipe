@@ -20,7 +20,7 @@ from ..containers import (
     ParticleClassificationContainer,
     ReconstructedEnergyContainer,
 )
-from ..core import Component, FeatureGenerator, Provenance
+from ..core import Component, FeatureGenerator, Provenance, QualityQuery
 from ..core.traits import (
     Bool,
     ComponentName,
@@ -52,6 +52,20 @@ __all__ = [
 SUPPORTED_CLASSIFIERS = dict(all_estimators("classifier"))
 SUPPORTED_REGRESSORS = dict(all_estimators("regressor"))
 SUPPORTED_MODELS = {**SUPPORTED_CLASSIFIERS, **SUPPORTED_REGRESSORS}
+
+
+class MLQualityQuery(QualityQuery):
+    """Quality criteria for machine learning models with different defaults"""
+
+    quality_criteria = List(
+        default_value=[
+            ("> 50 phe", "hillas_intensity > 50"),
+            ("Positive width", "hillas_width > 0"),
+            ("> 3 pixels", "morphology_n_pixels > 3"),
+            ("valid stereo reco", "HillasReconstructor_is_valid"),
+        ],
+        help=QualityQuery.quality_criteria.help,
+    ).tag(config=True)
 
 
 class SKLearnReconstructor(Reconstructor):
@@ -106,6 +120,7 @@ class SKLearnReconstructor(Reconstructor):
             super().__init__(subarray, **kwargs)
             self.subarray = subarray
             self.generate_features = FeatureGenerator(parent=self)
+            self.quality_query = MLQualityQuery(parent=self)
 
             # to verify settings
             self._new_model()

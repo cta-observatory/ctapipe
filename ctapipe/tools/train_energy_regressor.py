@@ -115,7 +115,7 @@ class TrainEnergyRegressor(Tool):
         table = self.loader.read_telescope_events([telescope_type])
 
         self.log.info("Events read from input: %d", len(table))
-        mask = self.regressor.qualityquery.get_table_mask(table)
+        mask = self.regressor.quality_query.get_table_mask(table)
         table = table[mask]
         self.log.info("Events after applying quality query: %d", len(table))
 
