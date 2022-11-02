@@ -165,7 +165,7 @@ class TrainParticleClassifier(Tool):
         table = table[mask]
         self.log.info("Events after applying quality query: %d", len(table))
 
-        table = self.classifier.generate_features(table)
+        table = self.classifier.feature_generator(table)
 
         columns = self.classifier.features + [self.classifier.target]
         table = table[columns]

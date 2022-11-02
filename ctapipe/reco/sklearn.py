@@ -119,7 +119,7 @@ class SKLearnReconstructor(Reconstructor):
 
             super().__init__(subarray, **kwargs)
             self.subarray = subarray
-            self.generate_features = FeatureGenerator(parent=self)
+            self.feature_generator = FeatureGenerator(parent=self)
             self.quality_query = MLQualityQuery(parent=self)
 
             # to verify settings
@@ -393,7 +393,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
         """
         for tel_id in event.trigger.tels_with_trigger:
             table = collect_features(event, tel_id, self.instrument_table)
-            table = self.generate_features(table)
+            table = self.feature_generator(table)
 
             # get_table_mask returns a table with a single row
             passes_quality_checks = self.quality_query.get_table_mask(table)[0]
@@ -420,7 +420,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
 
     def predict_table(self, key, table: Table) -> Table:
         """Predict on a table of events"""
-        table = self.generate_features(table)
+        table = self.feature_generator(table)
 
         n_rows = len(table)
         energy = u.Quantity(np.full(n_rows, np.nan), self.unit, copy=False)
@@ -461,7 +461,7 @@ class ParticleClassifier(SKLearnClassficationReconstructor):
     def __call__(self, event: ArrayEventContainer) -> None:
         for tel_id in event.trigger.tels_with_trigger:
             table = collect_features(event, tel_id, self.instrument_table)
-            table = self.generate_features(table)
+            table = self.feature_generator(table)
             passes_quality_checks = self.quality_query.get_table_mask(table)[0]
 
             if passes_quality_checks:
@@ -486,7 +486,7 @@ class ParticleClassifier(SKLearnClassficationReconstructor):
 
     def predict_table(self, key, table: Table) -> Table:
         """Predict on a table of events"""
-        table = self.generate_features(table)
+        table = self.feature_generator(table)
 
         n_rows = len(table)
         score = np.full(n_rows, np.nan)
