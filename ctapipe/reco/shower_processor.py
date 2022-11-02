@@ -72,10 +72,7 @@ class ShowerProcessor(Component):
 
     def __call__(self, event: ArrayEventContainer):
         """
-        Perform the full shower geometry reconstruction on the input event.
-
-        Afterwards, optionally perform energy estimation and/or particle
-        classification (currently these two operations are not yet supported).
+        Apply all configured stereo reconstructors to the given event.
 
         Parameters
         ----------
