@@ -23,6 +23,7 @@ from ..containers import (
 from ..core import Component, FeatureGenerator, Provenance, QualityQuery
 from ..core.traits import (
     Bool,
+    ComponentName,
     Dict,
     Enum,
     Int,
@@ -31,7 +32,6 @@ from ..core.traits import (
     Path,
     TraitError,
     Unicode,
-    create_class_enum_trait,
 )
 from ..io import write_table
 from .preprocessing import check_valid_rows, collect_features, table_to_float
@@ -75,7 +75,7 @@ class SKLearnReconstructor(Reconstructor):
         config=True
     )
 
-    stereo_combiner_cls = create_class_enum_trait(
+    stereo_combiner_cls = ComponentName(
         StereoCombiner,
         default_value="StereoMeanCombiner",
         help="Which stereo combination method to use",
