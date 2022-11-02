@@ -64,7 +64,7 @@ class SKLearnReconstructor(Reconstructor):
     from a pickled file if the ``load_path`` traitlet is given.
     """
 
-    #: What particle property is being predicted, one of "energy", "direction", "classification"
+    #: What particle property is being predicted, one of "energy", "geometry", "classification"
     property = None
     #: Name of the target column in training table
     target: str = None

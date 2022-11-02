@@ -64,9 +64,10 @@ class StereoCombiner(Component):
         default_value="",
         help="Prefix to be added to the output container / column names",
     ).tag(config=True)
+
     property = CaselessStrEnum(
-        ["energy", "classification", "direction"],
-        help="Whic property is being combined",
+        ["energy", "classification", "geometry"],
+        help="Which property is being combined",
     ).tag(config=True)
 
     @abstractmethod
