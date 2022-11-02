@@ -25,10 +25,10 @@ class TrainParticleClassifier(Tool):
     description = __doc__
 
     examples = """
-    ctapipe-train-particle-classifier \
-        -c ml_config.yaml \
-        --signal gamma.dl2.h5 \
-        --background proton.dl2.h5 \
+    ctapipe-train-particle-classifier \\
+        -c ml_config.yaml \\
+        --signal gamma.dl2.h5 \\
+        --background proton.dl2.h5 \\
         -o particle_classifier.pkl
     """
 

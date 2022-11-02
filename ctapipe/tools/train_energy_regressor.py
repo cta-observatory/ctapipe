@@ -24,9 +24,9 @@ class TrainEnergyRegressor(Tool):
     description = __doc__
 
     examples = """
-    ctapipe-train-energy-regressor \
-        --config ml_config.yaml \
-        --input gamma.dl2.h5 \
+    ctapipe-train-energy-regressor \\
+        --config ml_config.yaml \\
+        --input gamma.dl2.h5 \\
         --ouput energy_regressor.pkl
     """
 

@@ -31,13 +31,13 @@ class ApplyModels(Tool):
     `~ctapipe.tools.train_particle_classifier.TrainParticleClassifier`.
     """
 
-    name = "ctapipe-ml-apply"
+    name = "ctapipe-apply-models"
     description = __doc__
     examples = """
-    ctapipe-train-energy-regressor \
-        --input gamma.dl2.h5 \
-        --energy-regressor energy_regressor.pkl \
-        --particle-classifier particle-classifier.pkl \
+    ctapipe-apply-models \\
+        --input gamma.dl2.h5 \\
+        --energy-regressor energy_regressor.pkl \\
+        --particle-classifier particle-classifier.pkl \\
         --ouput gamma_applied.dl2.h5
     """
 
