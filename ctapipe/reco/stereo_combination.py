@@ -99,6 +99,15 @@ class StereoMeanCombiner(StereoCombiner):
         help="If true, calculate exp(mean(log(values)))",
     ).tag(config=True)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.property not in {"energy", "classification"}:
+            raise NotImplementedError(
+                f"Cannot combine {self.property}."
+                "Implemented are: energy, classification"
+            )
+
     def _calculate_weights(self, data):
         """"""
 
@@ -202,10 +211,9 @@ class StereoMeanCombiner(StereoCombiner):
         """
         if self.property == "energy":
             self._combine_energy(event)
+
         elif self.property == "classification":
             self._combine_classification(event)
-        else:
-            raise NotImplementedError(f"Cannot combine {self.property}")
 
     def predict_table(self, mono_predictions: Table) -> Table:
         """
