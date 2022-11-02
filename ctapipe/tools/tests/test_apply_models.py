@@ -31,19 +31,19 @@ def test_apply_energy_regressor(
     )
     assert ret == 0
 
-    table = read_table(output_path, "/dl2/event/subarray/energy/ExtraTreesRegressor")
+    prefix = "ExtraTreesRegressor"
+    table = read_table(output_path, f"/dl2/event/subarray/energy/{prefix}")
     for col in "obs_id", "event_id":
         assert table[col].description == EventIndexContainer.fields[col].description
 
     for name, field in ReconstructedEnergyContainer.fields.items():
-        colname = f"ExtraTreesRegressor_{name}"
+        colname = f"{prefix}_{name}"
         assert colname in table.colnames
         assert table[colname].description == field.description
 
     loader = TableLoader(output_path, load_dl2=True)
     events = loader.read_subarray_events()
 
-    prefix = "ExtraTreesRegressor"
     assert f"{prefix}_energy" in events.colnames
     assert f"{prefix}_energy_uncert" in events.colnames
     assert f"{prefix}_is_valid" in events.colnames
@@ -82,9 +82,8 @@ def test_apply_particle_classifier(
     )
     assert ret == 0
 
-    table = read_table(
-        output_path, "/dl2/event/subarray/classification/ExtraTreesClassifier"
-    )
+    prefix = "ExtraTreesClassifier"
+    table = read_table(output_path, f"/dl2/event/subarray/classification/{prefix}")
     for col in "obs_id", "event_id":
         assert table[col].description == EventIndexContainer.fields[col].description
 
@@ -95,19 +94,19 @@ def test_apply_particle_classifier(
 
     loader = TableLoader(output_path, load_dl2=True)
     events = loader.read_subarray_events()
-    assert "ExtraTreesClassifier_prediction" in events.colnames
-    assert "ExtraTreesClassifier_telescopes" in events.colnames
-    assert "ExtraTreesClassifier_is_valid" in events.colnames
-    assert "ExtraTreesClassifier_goodness_of_fit" in events.colnames
+    assert f"{prefix}_prediction" in events.colnames
+    assert f"{prefix}_telescopes" in events.colnames
+    assert f"{prefix}_is_valid" in events.colnames
+    assert f"{prefix}_goodness_of_fit" in events.colnames
 
     events = loader.read_telescope_events()
-    assert "ExtraTreesClassifier_prediction" in events.colnames
-    assert "ExtraTreesClassifier_telescopes" in events.colnames
-    assert "ExtraTreesClassifier_is_valid" in events.colnames
-    assert "ExtraTreesClassifier_goodness_of_fit" in events.colnames
+    assert f"{prefix}_prediction" in events.colnames
+    assert f"{prefix}_telescopes" in events.colnames
+    assert f"{prefix}_is_valid" in events.colnames
+    assert f"{prefix}_goodness_of_fit" in events.colnames
 
-    assert "ExtraTreesClassifier_tel_prediction" in events.colnames
-    assert "ExtraTreesClassifier_tel_is_valid" in events.colnames
+    assert f"{prefix}_tel_prediction" in events.colnames
+    assert f"{prefix}_tel_is_valid" in events.colnames
 
 
 def test_apply_both(
