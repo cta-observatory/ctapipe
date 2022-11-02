@@ -20,7 +20,7 @@ from ..containers import (
     ParticleClassificationContainer,
     ReconstructedEnergyContainer,
 )
-from ..core import Component, FeatureGenerator, Provenance, QualityQuery
+from ..core import Component, FeatureGenerator, Provenance
 from ..core.traits import (
     Bool,
     ComponentName,
@@ -105,7 +105,6 @@ class SKLearnReconstructor(Reconstructor):
 
             super().__init__(subarray, **kwargs)
             self.subarray = subarray
-            self.qualityquery = QualityQuery(parent=self)
             self.generate_features = FeatureGenerator(parent=self)
 
             # to verify settings
@@ -382,7 +381,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
             table = self.generate_features(table)
 
             # get_table_mask returns a table with a single row
-            passes_quality_checks = self.qualityquery.get_table_mask(table)[0]
+            passes_quality_checks = self.quality_query.get_table_mask(table)[0]
 
             if passes_quality_checks:
                 prediction, valid = self._predict(
@@ -412,7 +411,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
         energy = u.Quantity(np.full(n_rows, np.nan), self.unit, copy=False)
         is_valid = np.full(n_rows, False)
 
-        valid = self.qualityquery.get_table_mask(table)
+        valid = self.quality_query.get_table_mask(table)
         energy[valid], is_valid[valid] = self._predict(key, table[valid])
 
         result = Table(
@@ -448,7 +447,7 @@ class ParticleClassifier(SKLearnClassficationReconstructor):
         for tel_id in event.trigger.tels_with_trigger:
             table = collect_features(event, tel_id, self.instrument_table)
             table = self.generate_features(table)
-            passes_quality_checks = self.qualityquery.get_table_mask(table)[0]
+            passes_quality_checks = self.quality_query.get_table_mask(table)[0]
 
             if passes_quality_checks:
                 prediction, valid = self._predict_score(
@@ -478,7 +477,7 @@ class ParticleClassifier(SKLearnClassficationReconstructor):
         score = np.full(n_rows, np.nan)
         is_valid = np.full(n_rows, False)
 
-        valid = self.qualityquery.get_table_mask(table)
+        valid = self.quality_query.get_table_mask(table)
         score[valid], is_valid[valid] = self._predict_score(key, table[valid])
 
         result = Table(

@@ -271,7 +271,7 @@ class ProcessorTool(Tool):
                 reconstructor_names, reconstructors
             ):
                 write_table(
-                    reconstructor.check_parameters.to_table(functions=True),
+                    reconstructor.quality_query.to_table(functions=True),
                     self.write.output_path,
                     f"/dl2/service/tel_event_statistics/{reconstructor_name}",
                     append=True,

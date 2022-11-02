@@ -5,7 +5,7 @@ import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
 
 from ctapipe.containers import ArrayEventContainer, TelescopeImpactParameterContainer
-from ctapipe.core import Component, QualityQuery
+from ctapipe.core import QualityQuery, TelescopeComponent
 from ctapipe.core.traits import List
 
 from ..coordinates import shower_impact_distance
@@ -40,16 +40,15 @@ class StereoQualityQuery(QualityQuery):
     ).tag(config=True)
 
 
-class Reconstructor(Component):
+class Reconstructor(TelescopeComponent):
     """
     This is the base class from which all reconstruction
     algorithms should inherit from
     """
 
     def __init__(self, subarray, **kwargs):
-        super().__init__(**kwargs)
-        self.subarray = subarray
-        self.check_parameters = StereoQualityQuery(parent=self)
+        super().__init__(subarray=subarray, **kwargs)
+        self.quality_query = StereoQualityQuery(parent=self)
 
     @abstractmethod
     def __call__(self, event: ArrayEventContainer):
@@ -73,15 +72,11 @@ class GeometryReconstructor(Reconstructor):
     Base class for algorithms predicting only the shower geometry
     """
 
-    def __init__(self, subarray, **kwargs):
-        super().__init__(subarray, **kwargs)
-        self.check_parameters = StereoQualityQuery(parent=self)
-
     def _create_hillas_dict(self, event):
         hillas_dict = {
             tel_id: dl1.parameters.hillas
             for tel_id, dl1 in event.dl1.tel.items()
-            if all(self.check_parameters(parameters=dl1.parameters))
+            if all(self.quality_query(parameters=dl1.parameters))
         }
 
         if len(hillas_dict) < 2:
