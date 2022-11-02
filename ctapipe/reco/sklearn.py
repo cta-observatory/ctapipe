@@ -67,7 +67,7 @@ class SKLearnReconstructor(Reconstructor):
     #: What particle property is being predicted, one of "energy", "direction", "classification"
     property = None
     #: Name of the target column in training table
-    target = None
+    target: str = None
 
     features = List(Unicode(), help="Features to use for this model").tag(config=True)
     model_config = Dict({}, help="kwargs for the sklearn model").tag(config=True)

@@ -25,23 +25,31 @@ __all__ = [
 ]
 
 
-def _calculate_ufunc_of_telescope_values(tel_data, n_array_events, indices, ufunc):
+def _grouped_add(tel_data, n_array_events, indices):
+    """
+    Calculate the group-wise sum for each array event over the
+    corresponding telescope events. ``indices`` is an array
+    that gives the index of the subarray event for each telescope event,
+    returned by
+    ``np.unique(tel_events[["obs_id", "event_id"]], return_inverse=True)``
+    """
     combined_values = np.zeros(n_array_events)
-    ufunc.at(combined_values, indices, tel_data)
+    np.add.at(combined_values, indices, tel_data)
     return combined_values
 
 
 def _weighted_mean_ufunc(tel_values, weights, n_array_events, indices):
     # avoid numerical problems by very large or small weights
     weights = weights / weights.max()
-    sum_prediction = _calculate_ufunc_of_telescope_values(
+    sum_prediction = _grouped_add(
         tel_values * weights,
         n_array_events,
         indices,
-        np.add,
     )
-    sum_of_weights = _calculate_ufunc_of_telescope_values(
-        weights, n_array_events, indices, np.add
+    sum_of_weights = _grouped_add(
+        weights,
+        n_array_events,
+        indices,
     )
     mean = np.full(n_array_events, np.nan)
     valid = sum_of_weights > 0
