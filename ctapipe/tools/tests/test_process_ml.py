@@ -1,5 +1,7 @@
 import json
 
+import numpy as np
+
 from ctapipe.core import run_tool
 from ctapipe.io import read_table
 
@@ -93,9 +95,18 @@ def test_process_apply_classification(
     ]
     assert run_tool(ProcessorTool(), argv=argv, cwd=tmp_path, raises=True) == 0
 
-    print(
-        read_table(
-            output, "/dl2/event/telescope/classification/ExtraTreesClassifier/tel_004"
-        )
+    tel_events = read_table(
+        output, "/dl2/event/telescope/classification/ExtraTreesClassifier/tel_004"
     )
-    print(read_table(output, "/dl2/event/subarray/classification/ExtraTreesClassifier"))
+    assert "ExtraTreesClassifier_tel_is_valid" in tel_events.colnames
+    assert "ExtraTreesClassifier_tel_prediction" in tel_events.colnames
+
+    events = read_table(
+        output, "/dl2/event/subarray/classification/ExtraTreesClassifier"
+    )
+    trigger = read_table(output, "/dl1/event/subarray/trigger")
+    assert len(events) == len(trigger)
+    assert "ExtraTreesClassifier_is_valid" in events.colnames
+    assert "ExtraTreesClassifier_prediction" in events.colnames
+    np.testing.assert_array_equal(events["obs_id"], trigger["obs_id"])
+    np.testing.assert_array_equal(events["event_id"], trigger["event_id"])
