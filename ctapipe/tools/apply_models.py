@@ -38,7 +38,7 @@ class ApplyModels(Tool):
         --input gamma.dl2.h5 \\
         --energy-regressor energy_regressor.pkl \\
         --particle-classifier particle-classifier.pkl \\
-        --ouput gamma_applied.dl2.h5
+        --output gamma_applied.dl2.h5
     """
 
     overwrite = Bool(default_value=False).tag(config=True)

@@ -2,7 +2,7 @@ import numpy as np
 from astropy.table import vstack
 
 from ctapipe.core.tool import Tool
-from ctapipe.core.traits import Bool, Int, Path, flag
+from ctapipe.core.traits import Bool, Int, Path, TraitError, flag
 from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, ParticleClassifier
 from ctapipe.reco.preprocessing import check_valid_rows
@@ -50,7 +50,10 @@ class TrainParticleClassifier(Tool):
         default_value=None,
         allow_none=False,
         directory_ok=False,
-        help="Output file for the trained reconstructor.",
+        help=(
+            "Output file for the trained reconstructor."
+            " At the moment, pickle is the only supported format.",
+        ),
     ).tag(config=True)
 
     n_signal = Int(
@@ -136,6 +139,17 @@ class TrainParticleClassifier(Tool):
         self.cross_validate = CrossValidator(
             parent=self, model_component=self.classifier
         )
+
+        if self.output_path.suffix != ".pkl":
+            self.log.warning(
+                "Expected .pkl extension for output_path, got %s",
+                self.output_path.suffix,
+            )
+
+        if self.output_path.exists() and not self.overwrite:
+            raise TraitError(
+                f"output_path '{self.output_path}' exists and overwrite=False"
+            )
 
     def start(self):
         """

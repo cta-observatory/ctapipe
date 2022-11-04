@@ -516,6 +516,12 @@ class CrossValidator(Component):
         default_value=None,
         allow_none=True,
         directory_ok=False,
+        help=(
+            "Output path for the cross validation results."
+            " This is a hdf5 file containing labels and predictions for"
+            " the events used in the cross validation which can be used to"
+            " create performance plots."
+        ),
     ).tag(config=True)
 
     rng_seed = Int(default_value=1337, help="Seed for the random number generator").tag(
