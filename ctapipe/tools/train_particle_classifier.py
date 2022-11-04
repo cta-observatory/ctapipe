@@ -26,7 +26,7 @@ class TrainParticleClassifier(Tool):
 
     examples = """
     ctapipe-train-particle-classifier \\
-        -c ml_config.yaml \\
+        -c train_particle_classifier.yaml \\
         --signal gamma.dl2.h5 \\
         --background proton.dl2.h5 \\
         -o particle_classifier.pkl

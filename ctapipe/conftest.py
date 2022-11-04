@@ -490,7 +490,7 @@ def energy_regressor_path(model_tmp_path):
             return out_file
 
         tool = TrainEnergyRegressor()
-        config = resource_file("ml_config.yaml")
+        config = resource_file("train_energy_regressor.yaml")
         ret = run_tool(
             tool,
             argv=[
@@ -514,7 +514,7 @@ def particle_classifier_path(model_tmp_path):
             return out_file
 
         tool = TrainParticleClassifier()
-        config = resource_file("ml_config.yaml")
+        config = resource_file("train_particle_classifier.yaml")
 
         ret = run_tool(
             tool,

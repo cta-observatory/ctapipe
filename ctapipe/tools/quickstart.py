@@ -19,7 +19,8 @@ CONFIGS_TO_WRITE = [
     "stage1_config.yaml",
     "stage2_config.yaml",
     "ml_preprocessing_config.yaml",
-    "ml_config.yaml",
+    "train_energy_regressor.yaml",
+    "train_particle_classifier.yaml",
 ]
 
 README_TEXT = f"""
@@ -58,12 +59,13 @@ Details about all configuration options can be found by running:
 ctapipe-process --help-all
 ```
 
-## ctapipe-ml-* configs
+## ctapipe-train-energy-regressor / ctapipe-train-particle-classifier configs
 
 Included here are also base configurations for training machine learning (ML)
 models for energy regression and gamma/hadron separation.
 
-- `ml_config.yaml`: configuration of regressor and classifier models
+- `train_energy_regressor.yaml`: configuration of energy regression model
+- `train_particle_classifier.yaml`: configuration of particle classification model
 
 
 This file was generated using ctapipe version {VERSION}
