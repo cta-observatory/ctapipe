@@ -398,7 +398,6 @@ class DataWriter(Component):
             self.write_images,
             self.write_showers,
             self.write_waveforms,
-            self.write_parameters,
         ]
         if not any(writable_things):
             raise ToolConfigurationError(

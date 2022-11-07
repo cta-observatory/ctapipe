@@ -18,23 +18,28 @@ CONFIGS_TO_WRITE = [
     "base_config.yaml",
     "stage1_config.yaml",
     "stage2_config.yaml",
-    "training_config.yaml",
+    "ml_preprocessing_config.yaml",
+    "train_energy_regressor.yaml",
+    "train_particle_classifier.yaml",
 ]
 
 README_TEXT = f"""
-ctapipe working directory
--------------------------
+# ctapipe working directory
+
+
+## ctapipe-process configs
+
 
 This working directory contains some example configuration files that are useful
 for processing data with `ctapipe-process`. These include:
 
-- base_config.yaml: standard configuration options, to be included always
+- `base_config.yaml`: standard configuration options, to be included always
 
 In addition several sub-configurations to be included after base_config.yaml
 
-- stage1_config.yaml: generate DL1 data from lower data levels
-- stage2_config.yaml: generate DL2 shower geometry from DL1 or lower levels
-- training_config.yaml: generate both DL1 parameter and DL2 shower geometry
+- `stage1_config.yaml`: generate DL1 data from lower data levels
+- `stage2_config.yaml`: generate DL2 shower geometry from DL1 or lower levels
+- `ml_preprocessing_config.yaml`: generate both DL1 parameter and DL2 shower geometry
       data, useful for training ML algorithms
 
 You can modify these to change the output, and run ctapipe by including both the
@@ -53,6 +58,15 @@ Details about all configuration options can be found by running:
 ```
 ctapipe-process --help-all
 ```
+
+## ctapipe-train-energy-regressor / ctapipe-train-particle-classifier configs
+
+Included here are also base configurations for training machine learning (ML)
+models for energy regression and gamma/hadron separation.
+
+- `train_energy_regressor.yaml`: configuration of energy regression model
+- `train_particle_classifier.yaml`: configuration of particle classification model
+
 
 This file was generated using ctapipe version {VERSION}
 """

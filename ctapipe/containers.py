@@ -830,16 +830,12 @@ class ParticleClassificationContainer(Container):
 
     default_prefix = ""
 
-    # TODO: Do people agree on this? This is very MAGIC-like.
-    # TODO: Perhaps an integer classification to support different classes?
-    # TODO: include an error on the prediction?
     prediction = Field(
         nan,
         (
-            "prediction of the classifier, defined between "
-            "[0,1], where values close to 0 are more "
-            "gamma-like, and values close to 1 more "
-            "hadron-like"
+            " prediction of the classifier, defined between [0,1]"
+            ", where values close to 1 mean that the positive class"
+            " (e.g. gamma in gamma-ray analysis) is more likely"
         ),
     )
     is_valid = Field(False, "true if classification parameters are valid")

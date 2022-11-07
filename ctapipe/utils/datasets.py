@@ -20,6 +20,11 @@ try:
 except ImportError:
     has_resources = False
 
+try:
+    from importlib.resources import files
+except ImportError:
+    from importlib_resources import files
+
 
 from ..core import Provenance
 
@@ -323,3 +328,8 @@ def get_structured_dataset(basename, role="resource", **kwargs):
     # table.read()
     structured_types = {".yaml": load_yaml, ".yml": load_yaml, ".json": load_json}
     return try_filetypes(basename, role, structured_types, **kwargs)
+
+
+def resource_file(filename):
+    """Get the absoulte path of ctapipe resource files."""
+    return files("ctapipe").joinpath("resources", filename)

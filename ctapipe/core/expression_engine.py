@@ -22,14 +22,19 @@ class ExpressionEngine:
     """
 
     def __init__(self, expressions):
+        self.expressions = expressions
+        self._compile()
+
+    def _compile(self):
         self.compiled = []
-        for name, expression in expressions:
+        for name, expression in self.expressions:
             try:
                 self.compiled.append(compile(expression, __name__, mode="eval"))
-            except Exception:
+            except Exception as err:
                 raise ExpressionError(
-                    f"Error compiling expression '{expression}' for {name}"
-                )
+                    f"Error compiling expression '{expression}' for {name}\n"
+                    f"{type(err).__name__}: {err}"
+                ) from err
 
     def __call__(self, locals):
         for expr in self.compiled:
@@ -38,4 +43,15 @@ class ExpressionEngine:
             except NameError as err:
                 raise ExpressionError(f"Error evaluating expression '{expr}': {err}")
             except Exception as err:
-                raise ExpressionError(f"Error evaluating expression '{expr}'") from err
+                raise ExpressionError(
+                    f"Error evaluating expression '{expr}': {err}"
+                ) from err
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state["compiled"]
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__ = state
+        self._compile()

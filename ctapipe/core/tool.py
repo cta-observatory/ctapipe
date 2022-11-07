@@ -296,26 +296,35 @@ class Tool(Application):
 
     @abstractmethod
     def setup(self):
-        """set up the tool (override in subclass). Here the user should
-        construct all ``Components`` and open files, etc."""
-        pass
+        """Set up the tool.
+
+        This method runs after the configuration and command line options
+        have been parsed.
+
+        Here the tool should construct all ``Components``, open files, etc.
+        """
 
     @abstractmethod
     def start(self):
-        """main body of tool (override in subclass). This is  automatically
-        called after `Tool.initialize` when the `Tool.run` is called.
         """
-        pass
+        Main function of the tool.
+
+        This is automatically called after `Tool.initialize` when `Tool.run` is called.
+        """
 
     @abstractmethod
     def finish(self):
-        """finish up (override in subclass). This is called automatically
-        after `Tool.start` when `Tool.run` is called."""
+        """
+        Finish up.
+
+        This is called automatically after `Tool.start` when `Tool.run` is called.
+        """
         self.log.info("Goodbye")
 
     def run(self, argv=None, raises=False):
-        """Run the tool. This automatically calls `initialize()`,
-        `start()` and `finish()`
+        """Run the tool.
+
+        This automatically calls `Tool.initialize`, `Tool.start` and `Tool.finish`
 
         Parameters
         ----------

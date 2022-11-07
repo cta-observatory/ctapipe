@@ -2,17 +2,24 @@
 
 # reconstructors must be imported before ShowerProcessor, so
 # they are available there
-from .reco_algorithms import Reconstructor
-from .hillas_reconstructor import HillasReconstructor
 from .hillas_intersection import HillasIntersection
-
-from .shower_processor import ShowerProcessor
+from .hillas_reconstructor import HillasReconstructor
 from .impact import ImPACTReconstructor
+from .reconstructor import GeometryReconstructor, Reconstructor
+from .shower_processor import ShowerProcessor
+from .sklearn import CrossValidator, EnergyRegressor, ParticleClassifier
+from .stereo_combination import StereoCombiner, StereoMeanCombiner
 
 __all__ = [
     "Reconstructor",
+    "GeometryReconstructor",
     "ShowerProcessor",
     "HillasReconstructor",
     "ImPACTReconstructor",
     "HillasIntersection",
+    "EnergyRegressor",
+    "ParticleClassifier",
+    "StereoCombiner",
+    "StereoMeanCombiner",
+    "CrossValidator",
 ]
