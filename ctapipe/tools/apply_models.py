@@ -119,47 +119,37 @@ class ApplyModels(Tool):
             load_instrument=True,
         )
 
-        self.apply_regressor = self._setup_regressor()
-        self.apply_classifier = self._setup_classifier()
+        self._reconstructors = []
 
-    def _setup_regressor(self):
         if self.energy_regressor_path is not None:
-            self.energy_regressor = EnergyRegressor.read(
-                self.energy_regressor_path,
-                parent=self,
+            self._reconstructors.append(
+                EnergyRegressor.read(
+                    self.energy_regressor_path,
+                    parent=self,
+                )
             )
-            return True
-        return False
-
-    def _setup_classifier(self):
         if self.particle_classifier_path is not None:
-            self.classifier = ParticleClassifier.read(
-                self.particle_classifier_path,
-                parent=self,
+            self._reconstructors.append(
+                ParticleClassifier.read(
+                    self.particle_classifier_path,
+                    parent=self,
+                )
             )
-            return True
-        return False
 
     def start(self):
         """Apply models to input tables"""
-        if self.apply_regressor:
-            self.log.info("Applying regressor to telescope events")
-            mono_predictions = self._apply(self.energy_regressor, "energy")
+        for reconstructor in self._reconstructors:
+            self.log.info("Applying %s to telescope events", reconstructor)
+            mono_predictions = self._apply(reconstructor)
             self.log.info(
-                "Combining telescope-wise energy predictions to array event prediction"
+                "Combining telescope-wise predictions of %s to array event prediction",
+                reconstructor,
             )
-            self._combine(self.energy_regressor.stereo_combiner, mono_predictions)
+            self._combine(reconstructor.stereo_combiner, mono_predictions)
 
-        if self.apply_classifier:
-            self.log.info("Applying classifier to telescope events")
-            mono_predictions = self._apply(self.classifier, "classification")
-            self.log.info(
-                "Combining telescope-wise particle id predictions to array event prediction"
-            )
-            self._combine(self.classifier.stereo_combiner, mono_predictions)
-
-    def _apply(self, reconstructor, parameter):
+    def _apply(self, reconstructor):
         prefix = reconstructor.model_cls
+        property = reconstructor.property
 
         tel_tables = []
 
@@ -191,7 +181,7 @@ class ApplyModels(Tool):
             write_table(
                 table[["obs_id", "event_id", "tel_id"] + predictions.colnames],
                 self.output_path,
-                f"/dl2/event/telescope/{parameter}/{prefix}/tel_{tel_id:03d}",
+                f"/dl2/event/telescope/{property}/{prefix}/tel_{tel_id:03d}",
                 mode="a",
                 overwrite=self.overwrite,
             )
