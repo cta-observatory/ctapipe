@@ -1,9 +1,13 @@
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import SkyCoord, spherical_to_cartesian
+from astropy.coordinates import SkyCoord
 from numpy.linalg import norm
 
-from ctapipe.coordinates import EastingNorthingFrame, GroundFrame
+from ctapipe.coordinates import (
+    EastingNorthingFrame,
+    GroundFrame,
+    altaz_to_righthanded_cartesian,
+)
 
 __all__ = ["ShowermodelPredictor"]
 
@@ -91,8 +95,7 @@ class ShowermodelPredictor:
         pix_altaz : u.Quantity[Angle]
             Pointing/AltAz of the pixel along the line of sight as a 1d-quantity of shape (n_pixels)
         """
-        x, y, z = spherical_to_cartesian(1, lat=pix_altaz.alt, lon=pix_altaz.az)
-        vec = np.stack((x, y, z), -1)
+        vec = altaz_to_righthanded_cartesian(alt=pix_altaz.alt, az=-pix_altaz.az)
         return vec
 
     def _telescope_axis(self, tel_pointing):
@@ -103,8 +106,8 @@ class ShowermodelPredictor:
         tel_pointing : u.Quantity[Angle]
             Pointing of the telescope in AltAz
         """
-        x, y, z = spherical_to_cartesian(1, lat=tel_pointing.alt, lon=tel_pointing.az)
-        return np.stack((x, y, z), -1)
+        vec = altaz_to_righthanded_cartesian(alt=tel_pointing.alt, az=-tel_pointing.az)
+        return vec
 
     def _photons(self, area, solid_angle, vec_oc, pix_coords_altaz, vec_pointing):
         """Calculates the photons contained in a pixel of interest.
@@ -149,5 +152,5 @@ class ShowermodelPredictor:
             * np.cos(theta)
             * self.showermodel.photon_integral(vec_oc, vec_los, epsilon)
         )
-
-        return (photons).to_value(u.dimensionless_unscaled)
+        # print(self.showermodel.photon_integral(vec_oc, vec_los, epsilon).unit)
+        return photons

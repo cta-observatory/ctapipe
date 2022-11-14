@@ -35,7 +35,9 @@ class Model3DGeometryReconstuctor(Reconstructor):
         for tel_id in event.dl1.tel.keys():
             tel_positions[tel_id] = self.subarray.positions[tel_id].to_value(u.m)
             geometry = self.subarray.tel[tel_id].camera.geometry
-            tel_solid_angles[tel_id] = geometry.transform_to(TelescopeFrame()).pix_area
+            tel_solid_angles[tel_id] = geometry.transform_to(
+                TelescopeFrame()
+            ).pix_area.to_value(u.rad**2)
             tel_mirror_area[tel_id] = self.subarray.tel[
                 tel_id
             ].optics.mirror_area.to_value(u.m**2)
@@ -133,8 +135,8 @@ class Model3DGeometryReconstuctor(Reconstructor):
             total_photons,
             x,
             y,
-            azimuth * u.deg,
-            altitude * u.deg,
+            azimuth,
+            altitude,
             h_max,
             width,
             length,

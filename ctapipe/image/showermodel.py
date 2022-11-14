@@ -1,9 +1,10 @@
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import spherical_to_cartesian
 from astropy.utils.decorators import lazyproperty
 from scipy.spatial.transform import Rotation as R
 from scipy.stats import multivariate_normal, norm
+
+from ctapipe.coordinates import altaz_to_righthanded_cartesian
 
 __all__ = [
     "GaussianShowermodel",
@@ -11,10 +12,6 @@ __all__ = [
 
 
 class GaussianShowermodel:
-    @u.quantity_input(
-        azimuth=u.deg,
-        altitude=u.deg,
-    )
     def __init__(self, total_photons, x, y, azimuth, altitude, h_max, width, length):
         """Create a 3D gaussian shower model for imaging.
         This is based on https://arxiv.org/pdf/astro-ph/0601373.pdf.
@@ -41,9 +38,9 @@ class GaussianShowermodel:
         self.total_photons = total_photons
         self.x = x
         self.y = y
-        self.azimuth = azimuth
-        self.altitude = altitude
-        self.zenith = 90 * u.deg - altitude
+        self.azimuth = np.deg2rad(azimuth)
+        self.altitude = np.deg2rad(altitude)
+        self.zenith = np.pi / 2 - self.altitude
         self.h_max = h_max
         self.width = width
         self.length = length
@@ -109,7 +106,7 @@ class GaussianShowermodel:
         upper_bound = -(
             (sig_L**2 * B_p - sig_D_sq * ce * B_s)
             / (np.sqrt(sig_u_sq) * sig_T * sig_L)
-        ).to_value(u.dimensionless_unscaled)
+        )
 
         C = norm.sf(upper_bound)
         constant = self.total_photons * C / (2 * np.pi * np.sqrt(sig_u_sq) * sig_T)
@@ -125,8 +122,7 @@ class GaussianShowermodel:
     @lazyproperty
     def vec_shower_axis(self):
         """Calculates the unit vector of the shower axis."""
-        x, y, z = spherical_to_cartesian(1, lat=self.altitude, lon=self.azimuth)
-        vec = np.stack((x, y, z), -1)
+        vec = altaz_to_righthanded_cartesian(alt=self.altitude, az=-self.azimuth)
         return vec
 
     def emission_probability(self, epsilon):
@@ -136,11 +132,11 @@ class GaussianShowermodel:
         epsilon : u.Quantity[Angle]
             Angle between viewing direction and shower axis for each pixel as a 1d-quantity of shape (n_pixels)
         """
-        eta = 15 * u.mrad * np.sqrt(np.cos(self.zenith))
+        eta = 15 * 1e-3 * np.sqrt(np.cos(self.zenith))  # 1e-3 = mrad
 
         normalization = 1 / (9 * np.pi * eta**2)
 
-        proba = np.zeros(epsilon.shape) * normalization.unit
+        proba = np.zeros(epsilon.shape)
         proba[epsilon < eta] = normalization
         proba[epsilon >= eta] = (
             normalization
