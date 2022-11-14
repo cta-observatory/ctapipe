@@ -56,6 +56,8 @@ class Model3DGeometryReconstuctor(Reconstructor):
         self.tel_solid_angles = tel_solid_angles
         self.tel_mirror_area = tel_mirror_area
         self.tel_pix_coords_altaz = self._tel_pix_coords_altaz(event)
+        self.tel_spe_widths = tel_spe_widths
+        self.tel_pedestial_widths = tel_pedestial_widths
 
         self.predictor = ShowermodelPredictor(
             self.tel_positions,
@@ -148,7 +150,12 @@ class Model3DGeometryReconstuctor(Reconstructor):
         log_likelihood = 0
         for tel_id, dl1 in dl1_cam_container:
             log_likelihood += np.sum(
-                neg_log_likelihood_approx(dl1.image, prediction[tel_id], 0.5, 2.8)
+                neg_log_likelihood_approx(
+                    dl1.image,
+                    prediction[tel_id],
+                    self.tel_spe_widths[tel_id],
+                    self.tel_pedestial_widths[tel_id],
+                )
             )
 
         return log_likelihood / len(dl1_cam_container)

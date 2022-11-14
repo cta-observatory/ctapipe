@@ -136,13 +136,8 @@ class GaussianShowermodel:
 
         normalization = 1 / (9 * np.pi * eta**2)
 
-        proba = np.zeros(epsilon.shape)
-        proba[epsilon < eta] = normalization
-        proba[epsilon >= eta] = (
-            normalization
-            * eta
-            / epsilon[epsilon >= eta]
-            * np.exp(-(epsilon[epsilon >= eta] - eta) / (4 * eta))
-        )
+        proba = normalization * np.ones(epsilon.shape)
+        mask = epsilon >= eta
+        proba[mask] *= eta / epsilon[mask] * np.exp(-(epsilon[mask] - eta) / (4 * eta))
 
         return proba
