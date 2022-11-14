@@ -33,10 +33,12 @@ class Model3DGeometryReconstuctor(Reconstructor):
         tel_spe_widths = {}
         tel_pedestial_widths = {}
         for tel_id in event.dl1.tel.keys():
-            tel_positions[tel_id] = self.subarray.positions[tel_id]
+            tel_positions[tel_id] = self.subarray.positions[tel_id].to_value(u.m)
             geometry = self.subarray.tel[tel_id].camera.geometry
             tel_solid_angles[tel_id] = geometry.transform_to(TelescopeFrame()).pix_area
-            tel_mirror_area[tel_id] = self.subarray.tel[tel_id].optics.mirror_area
+            tel_mirror_area[tel_id] = self.subarray.tel[
+                tel_id
+            ].optics.mirror_area.to_value(u.m**2)
             tel_spe_widths[tel_id] = (
                 spe
                 if (spe := event.mon.tel[tel_id].flatfield.charge_std) is not None
@@ -129,13 +131,13 @@ class Model3DGeometryReconstuctor(Reconstructor):
 
         model = GaussianShowermodel(
             total_photons,
-            x * u.m,
-            y * u.m,
+            x,
+            y,
             azimuth * u.deg,
             altitude * u.deg,
-            h_max * u.m,
-            width * u.m,
-            length * u.m,
+            h_max,
+            width,
+            length,
         )
 
         self.predictor.showermodel = model

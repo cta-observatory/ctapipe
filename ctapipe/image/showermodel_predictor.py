@@ -78,12 +78,9 @@ class ShowermodelPredictor:
         """Calculates vector of optical center of each telescope to the barycenter of the shower."""
         vec = {}
         for tel_id, position in self.tel_positions.items():
-            vec[tel_id] = (
-                self.showermodel.barycenter
-                + SkyCoord(*position, unit=u.m, frame=GroundFrame())
-                .transform_to(EastingNorthingFrame())
-                .cartesian.xyz
-            )
+            vec[tel_id] = self.showermodel.barycenter + SkyCoord(
+                *position, unit=u.m, frame=GroundFrame()
+            ).transform_to(EastingNorthingFrame()).cartesian.xyz.to_value(u.m)
         return vec
 
     def _vec_los(self, pix_altaz):

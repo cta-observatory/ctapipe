@@ -12,13 +12,8 @@ __all__ = [
 
 class GaussianShowermodel:
     @u.quantity_input(
-        x=u.m,
-        y=u.m,
         azimuth=u.deg,
         altitude=u.deg,
-        h_max=u.m,
-        width=u.m,
-        length=u.m,
     )
     def __init__(self, total_photons, x, y, azimuth, altitude, h_max, width, length):
         """Create a 3D gaussian shower model for imaging.
@@ -82,7 +77,7 @@ class GaussianShowermodel:
         """Calculates barycenter of the shower.
         This is given by vector pointing to the impact on ground + the vector of the shower with azimuth and zenith at h_max.
         """
-        b = np.zeros(3) * u.m
+        b = np.zeros(3)
         b[0] = self.h_max * np.cos(self.azimuth) * np.tan(self.zenith) + self.x
         b[1] = self.h_max * np.sin(self.azimuth) * np.tan(self.zenith) + self.y
         b[2] = self.h_max
