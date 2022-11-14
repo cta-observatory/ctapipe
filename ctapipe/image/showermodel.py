@@ -99,10 +99,10 @@ class GaussianShowermodel:
         sig_u_sq = sig_T**2 * ce**2 + sig_L**2 * (1 - ce**2)
         sig_D_sq = sig_L**2 - sig_T**2
 
-        B_p = np.einsum("i,ni->n", vec_oc, vec_los)
-        B_s = np.einsum("i,i->", vec_oc, self.vec_shower_axis)
+        B_p = vec_los @ vec_oc
+        B_s = np.dot(vec_oc, self.vec_shower_axis)
 
-        delta_B_sq = np.einsum("i,i->", vec_oc, vec_oc) - B_p**2
+        delta_B_sq = np.dot(vec_oc, vec_oc) - B_p**2
         upper_bound = -(
             (sig_L**2 * B_p - sig_D_sq * ce * B_s)
             / (np.sqrt(sig_u_sq) * sig_T * sig_L)

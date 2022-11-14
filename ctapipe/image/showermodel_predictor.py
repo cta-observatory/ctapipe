@@ -1,5 +1,4 @@
 import numpy as np
-from numpy.linalg import norm
 
 from ctapipe.coordinates import altaz_to_righthanded_cartesian
 
@@ -125,8 +124,7 @@ class ShowermodelPredictor:
         vec_los = self._vec_los(pix_coords_altaz)
         epsilon = np.arccos(
             np.clip(
-                np.einsum("ni,i->n", vec_los, self.showermodel.vec_shower_axis)
-                / (norm(vec_los, axis=1) * norm(self.showermodel.vec_shower_axis)),
+                vec_los @ self.showermodel.vec_shower_axis,
                 a_min=-1,
                 a_max=1,
             )
@@ -134,8 +132,7 @@ class ShowermodelPredictor:
 
         theta = np.arccos(
             np.clip(
-                np.einsum("ni,i->n", vec_los, vec_pointing)
-                / (norm(vec_los, axis=1) * norm(vec_pointing)),
+                vec_los @ vec_pointing,
                 a_min=-1,
                 a_max=1,
             )
