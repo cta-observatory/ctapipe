@@ -1,13 +1,7 @@
-import astropy.units as u
 import numpy as np
-from astropy.coordinates import SkyCoord
 from numpy.linalg import norm
 
-from ctapipe.coordinates import (
-    EastingNorthingFrame,
-    GroundFrame,
-    altaz_to_righthanded_cartesian,
-)
+from ctapipe.coordinates import altaz_to_righthanded_cartesian
 
 __all__ = ["ShowermodelPredictor"]
 
@@ -82,9 +76,11 @@ class ShowermodelPredictor:
         """Calculates vector of optical center of each telescope to the barycenter of the shower."""
         vec = {}
         for tel_id, position in self.tel_positions.items():
-            vec[tel_id] = self.showermodel.barycenter + SkyCoord(
-                *position, unit=u.m, frame=GroundFrame()
-            ).transform_to(EastingNorthingFrame()).cartesian.xyz.to_value(u.m)
+            vec[tel_id] = self.showermodel.barycenter + [
+                -position[1],
+                position[0],
+                position[2],
+            ]  # Corsika (y,-x,z)-> (x,y,z)
         return vec
 
     def _vec_los(self, pix_altaz):

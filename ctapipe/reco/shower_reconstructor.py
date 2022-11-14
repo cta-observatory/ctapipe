@@ -110,9 +110,9 @@ class Model3DGeometryReconstuctor(Reconstructor):
 
         minimizer.errordef = Minuit.LIKELIHOOD
         minimizer.migrad()
-        from IPython import embed
+        # from IPython import embed
 
-        embed()
+        # embed()
         fit = minimizer.values
         fit_errors = minimizer.errors
 
