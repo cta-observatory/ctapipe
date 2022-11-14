@@ -91,7 +91,7 @@ class ShowermodelPredictor:
         pix_altaz : u.Quantity[Angle]
             Pointing/AltAz of the pixel along the line of sight as a 1d-quantity of shape (n_pixels)
         """
-        vec = altaz_to_righthanded_cartesian(alt=pix_altaz.alt, az=-pix_altaz.az)
+        vec = altaz_to_righthanded_cartesian(alt=pix_altaz[:, 0], az=-pix_altaz[:, 1])
         return vec
 
     def _telescope_axis(self, tel_pointing):
@@ -102,7 +102,7 @@ class ShowermodelPredictor:
         tel_pointing : u.Quantity[Angle]
             Pointing of the telescope in AltAz
         """
-        vec = altaz_to_righthanded_cartesian(alt=tel_pointing.alt, az=-tel_pointing.az)
+        vec = altaz_to_righthanded_cartesian(alt=tel_pointing[0], az=-tel_pointing[1])
         return vec
 
     def _photons(self, area, solid_angle, vec_oc, pix_coords_altaz, vec_pointing):
@@ -148,5 +148,5 @@ class ShowermodelPredictor:
             * np.cos(theta)
             * self.showermodel.photon_integral(vec_oc, vec_los, epsilon)
         )
-        # print(self.showermodel.photon_integral(vec_oc, vec_los, epsilon).unit)
+
         return photons

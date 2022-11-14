@@ -194,6 +194,8 @@ class Model3DGeometryReconstuctor(Reconstructor):
             cam_coords = SkyCoord(x=pix_x, y=pix_y, frame=camera_frame)
 
             cam_altaz = cam_coords.transform_to(AltAz())
-            tel_pix_coords_altaz[tel_id] = cam_altaz
+            tel_pix_coords_altaz[tel_id] = np.stack(
+                (cam_altaz.alt.to_value(u.rad), cam_altaz.az.to_value(u.rad)), -1
+            )
 
         return tel_pix_coords_altaz
