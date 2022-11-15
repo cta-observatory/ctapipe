@@ -1,6 +1,5 @@
 import numpy as np
-
-from ctapipe.coordinates import altaz_to_righthanded_cartesian
+from erfa.ufunc import s2p as spherical_to_cartesian
 
 __all__ = ["ShowermodelPredictor"]
 
@@ -90,7 +89,7 @@ class ShowermodelPredictor:
         pix_altaz : u.Quantity[Angle]
             Pointing/AltAz of the pixel along the line of sight as a 1d-quantity of shape (n_pixels)
         """
-        vec = altaz_to_righthanded_cartesian(alt=pix_altaz[:, 0], az=-pix_altaz[:, 1])
+        vec = spherical_to_cartesian(pix_altaz[:, 1], pix_altaz[:, 0], 1.0)
         return vec
 
     def _telescope_axis(self, tel_pointing):
@@ -101,7 +100,7 @@ class ShowermodelPredictor:
         tel_pointing : u.Quantity[Angle]
             Pointing of the telescope in AltAz
         """
-        vec = altaz_to_righthanded_cartesian(alt=tel_pointing[0], az=-tel_pointing[1])
+        vec = spherical_to_cartesian(tel_pointing[1], tel_pointing[0], 1.0)
         return vec
 
     def _photons(self, area, solid_angle, vec_oc, pix_coords_altaz, vec_pointing):

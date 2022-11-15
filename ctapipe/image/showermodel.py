@@ -1,10 +1,11 @@
 import astropy.units as u
 import numpy as np
 from astropy.utils.decorators import lazyproperty
+from erfa.ufunc import s2p as spherical_to_cartesian
 from scipy.spatial.transform import Rotation as R
-from scipy.stats import multivariate_normal, norm
+from scipy.stats import multivariate_normal
 
-from ctapipe.coordinates import altaz_to_righthanded_cartesian
+from ctapipe.utils.stats import survival_function
 
 __all__ = [
     "GaussianShowermodel",
@@ -108,7 +109,8 @@ class GaussianShowermodel:
             / (np.sqrt(sig_u_sq) * sig_T * sig_L)
         )
 
-        C = norm.sf(upper_bound)
+        # C = norm.sf(upper_bound)
+        C = survival_function(upper_bound)
         constant = self.total_photons * C / (2 * np.pi * np.sqrt(sig_u_sq) * sig_T)
 
         return constant * np.exp(
@@ -122,7 +124,7 @@ class GaussianShowermodel:
     @lazyproperty
     def vec_shower_axis(self):
         """Calculates the unit vector of the shower axis."""
-        vec = altaz_to_righthanded_cartesian(alt=self.altitude, az=-self.azimuth)
+        vec = spherical_to_cartesian(self.azimuth, self.altitude, 1.0)
         return vec
 
     def emission_probability(self, epsilon):
@@ -136,8 +138,11 @@ class GaussianShowermodel:
 
         normalization = 1 / (9 * np.pi * eta**2)
 
-        proba = normalization * np.ones(epsilon.shape)
+        proba = np.full(epsilon.shape, normalization)
         mask = epsilon >= eta
-        proba[mask] *= eta / epsilon[mask] * np.exp(-(epsilon[mask] - eta) / (4 * eta))
+        epsilon_masked = epsilon[mask]
+        proba[mask] *= (
+            eta / epsilon_masked * np.exp(-(epsilon_masked - eta) / (4 * eta))
+        )
 
         return proba
