@@ -98,10 +98,10 @@ def _get_shower_trans_matrix(azimuth, altitude, inverse=False):
 
     Parameters
     ----------
-    azimuth: u.Quantity[angle]
+    azimuth: float or ndarray
         Azimuth angle in radians of the tilted system used
-    zenith: u.Quantity[angle]
-        Zenith angle in radiuan of the tilted system used
+    altitude: float or ndarray
+        Altitude angle in radiuan of the tilted system used
 
     Returns
     -------
@@ -232,7 +232,7 @@ def project_to_ground(tilt_system):
 
     trans = _get_shower_trans_matrix(
         tilt_system.pointing_direction.az.to_value(u.rad),
-        np.pi / 2 - tilt_system.pointing_direction.alt.to_value(u.rad),
+        tilt_system.pointing_direction.alt.to_value(u.rad),
     )
 
     x_projected = x_initial - trans[2][0] * z_initial / trans[2][2]

@@ -249,7 +249,7 @@ def test_ground_to_tilt_many_to_many():
         TiltedGroundFrame(pointing_direction=pointing_direction)
     )
 
-    assert tilted.shape == (2,3)
+    assert tilted.shape == (2, 3)
 
 
 def test_camera_missing_focal_length():
@@ -300,7 +300,7 @@ def test_ground_to_tilt_many_to_many_roundtrip():
     tilted = ground[:, np.newaxis].transform_to(
         TiltedGroundFrame(pointing_direction=pointing_direction)
     )
-    back = tilted[:,0].transform_to(GroundFrame())
+    back = tilted[:, 0].transform_to(GroundFrame())
 
     assert u.isclose(ground.x, back.x, atol=1e-12 * u.m).all()
     assert u.isclose(ground.y, back.y, atol=1e-12 * u.m).all()
