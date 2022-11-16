@@ -1,6 +1,10 @@
 import numpy as np
 
-from ctapipe.containers import EventIndexContainer, ReconstructedEnergyContainer
+from ctapipe.containers import (
+    EventIndexContainer,
+    ParticleClassificationContainer,
+    ReconstructedEnergyContainer,
+)
 from ctapipe.core import run_tool
 from ctapipe.io import TableLoader, read_table
 
@@ -80,12 +84,30 @@ def test_apply_both(
     )
     assert ret == 0
 
-    loader = TableLoader(output_path, load_dl2=True)
+    prefix = "ExtraTreesClassifier"
+    table = read_table(output_path, f"/dl2/event/subarray/classification/{prefix}")
+    for col in "obs_id", "event_id":
+        assert table[col].description == EventIndexContainer.fields[col].description
 
+    for name, field in ParticleClassificationContainer.fields.items():
+        colname = f"ExtraTreesClassifier_{name}"
+        assert colname in table.colnames
+        assert table[colname].description == field.description
+
+    loader = TableLoader(output_path, load_dl2=True)
     events = loader.read_subarray_events()
-    assert "ExtraTreesRegressor_energy" in events.colnames
-    assert "ExtraTreesClassifier_prediction" in events.colnames
+    assert f"{prefix}_prediction" in events.colnames
+    assert f"{prefix}_telescopes" in events.colnames
+    assert f"{prefix}_is_valid" in events.colnames
+    assert f"{prefix}_goodness_of_fit" in events.colnames
 
     events = loader.read_telescope_events()
-    assert "ExtraTreesClassifier_prediction" in events.colnames
+    assert f"{prefix}_prediction" in events.colnames
+    assert f"{prefix}_telescopes" in events.colnames
+    assert f"{prefix}_is_valid" in events.colnames
+    assert f"{prefix}_goodness_of_fit" in events.colnames
+
+    assert f"{prefix}_tel_prediction" in events.colnames
+    assert f"{prefix}_tel_is_valid" in events.colnames
+
     assert "ExtraTreesRegressor_energy" in events.colnames
