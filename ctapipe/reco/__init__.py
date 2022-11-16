@@ -7,7 +7,7 @@ from .hillas_reconstructor import HillasReconstructor
 from .impact import ImPACTReconstructor
 from .reconstructor import GeometryReconstructor, Reconstructor
 from .shower_processor import ShowerProcessor
-from .shower_reconstructor import Model3DGeometryReconstuctor
+from .shower_reconstructor import Model3DGeometryReconstructor
 from .sklearn import CrossValidator, EnergyRegressor, ParticleClassifier
 from .stereo_combination import StereoCombiner, StereoMeanCombiner
 
@@ -24,5 +24,5 @@ __all__ = [
     "StereoCombiner",
     "StereoMeanCombiner",
     "CrossValidator",
-    "Model3DGeometryReconstuctor",
+    "Model3DGeometryReconstructor",
 ]

@@ -16,7 +16,7 @@ from ctapipe.image import (
 from ctapipe.reco.reco_algorithms import Reconstructor
 
 
-class Model3DGeometryReconstuctor(Reconstructor):
+class Model3DGeometryReconstructor(Reconstructor):
     geometry_seed = Unicode(default_value="HillasReconstructor").tag(config=True)
 
     def __init__(self, subarray, **kwargs):

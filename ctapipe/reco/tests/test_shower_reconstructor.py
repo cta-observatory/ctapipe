@@ -3,7 +3,7 @@ from numpy import isfinite
 from ctapipe.calib import CameraCalibrator
 from ctapipe.image.image_processor import ImageProcessor
 from ctapipe.reco import HillasReconstructor
-from ctapipe.reco.shower_reconstructor import Model3DGeometryReconstuctor
+from ctapipe.reco.shower_reconstructor import Model3DGeometryReconstructor
 
 
 def test_reconstruction(subarray_and_event_gamma_off_axis_500_gev):
@@ -12,7 +12,7 @@ def test_reconstruction(subarray_and_event_gamma_off_axis_500_gev):
     calib = CameraCalibrator(subarray)
     image_processor = ImageProcessor(subarray)
     reconstructor = HillasReconstructor(subarray)
-    model3d_reconstructor = Model3DGeometryReconstuctor(subarray)
+    model3d_reconstructor = Model3DGeometryReconstructor(subarray)
 
     calib(event)
     image_processor(event)
