@@ -23,7 +23,9 @@ class Model3DGeometryReconstructor(Reconstructor):
 
     def __call__(self, event):
         if self.geometry_seed not in event.dl2.stereo.geometry:
-            raise ValueError()
+            raise KeyError(
+                f"The geometry seed {self.geometry_seed} could not be provided. Run the reconstructors in the correct order."
+            )
 
         tel_spe_widths = {}
         tel_pedestial_widths = {}
