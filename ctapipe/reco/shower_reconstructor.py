@@ -13,6 +13,17 @@ from ctapipe.image import (
 )
 from ctapipe.reco.reco_algorithms import Reconstructor
 
+# taken from ImPACT PR for now
+ped_table = {
+    "LSTCam": 1.4,
+    "NectarCam": 1.3,
+    "FlashCam": 1.3,
+    "CHEC": 0.5,
+    "ASTRICam": 0.5,
+    "dummy": 0.01,
+    "UNKNOWN-960PX": 1.0,
+}
+
 
 class Model3DGeometryReconstructor(Reconstructor):
     geometry_seed = Unicode(default_value="HillasReconstructor").tag(config=True)
@@ -33,12 +44,12 @@ class Model3DGeometryReconstructor(Reconstructor):
             tel_spe_widths[tel_id] = (
                 spe
                 if (spe := event.mon.tel[tel_id].flatfield.charge_std) is not None
-                else 0.5
+                else ped_table[self.subarray.tel[tel_id].camera.name]
             )
             tel_pedestial_widths[tel_id] = (
                 ped
                 if (ped := event.mon.tel[tel_id].pedestal.charge_std) is not None
-                else 2.8
+                else 0.6  # taken from ImPACT PR for now
             )
 
         self.tel_spe_widths = tel_spe_widths
