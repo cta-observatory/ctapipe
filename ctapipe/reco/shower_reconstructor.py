@@ -20,12 +20,12 @@ class Model3DGeometryReconstructor(Reconstructor):
         help="GeometryReconstructor that is used as a seed for the likelihood fit",
     ).tag(config=True)
 
-    pedestal_width = FloatTelescopeParameter(
+    pedestal_charge_std = FloatTelescopeParameter(
         default_value=1.4,
         help="Pedestal charge std",
     ).tag(config=True)
 
-    spe_width = FloatTelescopeParameter(
+    flatfield_charge_std = FloatTelescopeParameter(
         default_value=0.6, help="Flatfield charge std"
     ).tag(config=True)
 
@@ -45,12 +45,12 @@ class Model3DGeometryReconstructor(Reconstructor):
             tel_spe_widths[tel_id] = (
                 spe
                 if (spe := event.mon.tel[tel_id].flatfield.charge_std) is not None
-                else self.spe_width.tel[tel_id]
+                else self.flatfield_charge_std.tel[tel_id]
             )
             tel_pedestal_widths[tel_id] = (
                 ped
                 if (ped := event.mon.tel[tel_id].pedestal.charge_std) is not None
-                else self.pedestal_width.tel[tel_id]
+                else self.pedestal_charge_std.tel[tel_id]
             )
 
         self.tel_spe_widths = tel_spe_widths
