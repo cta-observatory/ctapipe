@@ -21,12 +21,7 @@ class Model3DGeometryReconstructor(Reconstructor):
     ).tag(config=True)
 
     pedestal_width = FloatTelescopeParameter(
-        default_value=[
-            ["type", "LST_LST_LSTCam", 1.4],
-            ["type", "MST_MST_FlashCam", 1.3],
-            ["type", "MST_MST_NectarCam", 1.3],
-            ["type", "SST_ASTRI_CHEC", 0.5],
-        ],
+        default_value=1.4,
         help="Pedestal charge std",
     ).tag(config=True)
 
