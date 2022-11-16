@@ -112,11 +112,11 @@ class ApplyModels(Tool):
         self.loader = TableLoader(
             parent=self,
             h5file=self.h5file,
-            load_dl1_images=False,
             load_dl1_parameters=True,
             load_dl2=True,
-            load_simulated=True,
             load_instrument=True,
+            load_dl1_images=False,
+            load_simulated=False,
         )
 
         self._reconstructors = []
@@ -146,6 +146,9 @@ class ApplyModels(Tool):
                 reconstructor,
             )
             self._combine(reconstructor.stereo_combiner, mono_predictions)
+            self.h5file.close()
+            self.h5file = tables.open_file(self.output_path, mode="r+")
+            self.loader.h5file = self.h5file
 
     def _apply(self, reconstructor):
         prefix = reconstructor.model_cls
