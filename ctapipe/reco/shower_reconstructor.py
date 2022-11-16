@@ -2,11 +2,9 @@ from functools import partial
 
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import AltAz, SkyCoord
 from iminuit import Minuit
 
 from ctapipe.containers import Model3DReconstructedGeometryContainer
-from ctapipe.coordinates import CameraFrame, TelescopeFrame
 from ctapipe.core.traits import Unicode
 from ctapipe.image import (
     GaussianShowermodel,
@@ -21,26 +19,15 @@ class Model3DGeometryReconstructor(Reconstructor):
 
     def __init__(self, subarray, **kwargs):
         super().__init__(subarray=subarray, **kwargs)
+        self.predictor = ShowermodelPredictor(self.subarray)
 
     def __call__(self, event):
         if self.geometry_seed not in event.dl2.stereo.geometry:
             raise ValueError()
 
-        # get all telescope properties that we need for the ShowermodelPredictor
-        tel_positions = {}
-        tel_solid_angles = {}
-        tel_mirror_area = {}
         tel_spe_widths = {}
         tel_pedestial_widths = {}
         for tel_id in event.dl1.tel.keys():
-            tel_positions[tel_id] = self.subarray.positions[tel_id].to_value(u.m)
-            geometry = self.subarray.tel[tel_id].camera.geometry
-            tel_solid_angles[tel_id] = geometry.transform_to(
-                TelescopeFrame()
-            ).pix_area.to_value(u.rad**2)
-            tel_mirror_area[tel_id] = self.subarray.tel[
-                tel_id
-            ].optics.mirror_area.to_value(u.m**2)
             tel_spe_widths[tel_id] = (
                 spe
                 if (spe := event.mon.tel[tel_id].flatfield.charge_std) is not None
@@ -52,20 +39,10 @@ class Model3DGeometryReconstructor(Reconstructor):
                 else 2.8
             )
 
-        self.tel_positions = tel_positions
-        self.tel_solid_angles = tel_solid_angles
-        self.tel_mirror_area = tel_mirror_area
-        self.tel_pix_coords_altaz = self._tel_pix_coords_altaz(event)
         self.tel_spe_widths = tel_spe_widths
         self.tel_pedestial_widths = tel_pedestial_widths
 
-        self.predictor = ShowermodelPredictor(
-            self.tel_positions,
-            self.tel_pix_coords_altaz,
-            self.tel_solid_angles,
-            self.tel_mirror_area,
-        )
-
+        self.predictor.pointing(event)
         shower_parameters, errors = self._fit(event)
 
         event.dl2.stereo.geometry[
@@ -112,9 +89,7 @@ class Model3DGeometryReconstructor(Reconstructor):
 
         minimizer.errordef = Minuit.LIKELIHOOD
         minimizer.migrad()
-        # from IPython import embed
 
-        # embed()
         fit = minimizer.values
         fit_errors = minimizer.errors
 
@@ -182,27 +157,3 @@ class Model3DGeometryReconstructor(Reconstructor):
             "width": width.to_value(u.m),
             "length": length.to_value(u.m),
         }
-
-    def _tel_pix_coords_altaz(self, event):
-        tel_pix_coords_altaz = {}
-        for tel_id in event.dl1.tel.keys():
-            geometry = self.subarray.tel[tel_id].camera.geometry
-            # (x,y)->(y,x) since this is also in a NorthingEasting frame instead of EastingNorthing similar to tel_positions
-            pix_x = geometry.pix_y
-            pix_y = geometry.pix_x
-            focal_length = self.subarray.tel[tel_id].optics.equivalent_focal_length
-
-            pointing = event.pointing.tel[tel_id]
-            altaz = AltAz(az=pointing.azimuth, alt=pointing.altitude)
-            camera_frame = CameraFrame(
-                focal_length=focal_length, telescope_pointing=altaz
-            )
-
-            cam_coords = SkyCoord(x=pix_x, y=pix_y, frame=camera_frame)
-
-            cam_altaz = cam_coords.transform_to(AltAz())
-            tel_pix_coords_altaz[tel_id] = np.stack(
-                (cam_altaz.alt.to_value(u.rad), cam_altaz.az.to_value(u.rad)), -1
-            )
-
-        return tel_pix_coords_altaz

@@ -1,5 +1,9 @@
+import astropy.units as u
 import numpy as np
+from astropy.coordinates import AltAz, SkyCoord
 from erfa.ufunc import s2p as spherical_to_cartesian
+
+from ctapipe.coordinates import CameraFrame, TelescopeFrame
 
 __all__ = ["ShowermodelPredictor"]
 
@@ -7,32 +11,35 @@ __all__ = ["ShowermodelPredictor"]
 class ShowermodelPredictor:
     def __init__(
         self,
-        tel_positions,
-        tel_pix_coords_altaz,
-        tel_solid_angles,
-        tel_mirror_area,
+        subarray,
         showermodel=None,
     ):
         """Creates images of a given showermodel for a set of telescopes given some telescope parameters.
 
         Parameters
         ----------
-        tel_positions : u.Quantity[length, ndim=2]
-            Telescope positions in the GroundFrame of the telescope array as a 2d-quantity of shape (n_telescopes, 3)
-        tel_pix_coords_altaz : u.Quantity[Angle, ndim=2]
-            AltAz coordinates of the pixels for each telescope as a 2d-quantity of shape (n_telescopes, n_pixels)
-        tel_solid_angles : u.Quantity[Angle**2, ndim=2]
-            Solid angles of the pixels for each telescope as a 2d-quantity of shape (n_telescopes, n_pixels)
-        tel_mirror_area : u.Quantity[length**2]
-            Mirror area of each telescope as a 1d-quantity of shape (n_telescopes)
+        subarray: SubarrayDescription
         showermodel: optional, e.g. GaussianShowermodel
             Model description of shower properties
         """
+        tel_positions = {}
+        tel_solid_angles = {}
+        tel_mirror_area = {}
+        for tel_id in subarray.tel.keys():
+            tel_positions[tel_id] = subarray.positions[tel_id].to_value(u.m)
+            geometry = subarray.tel[tel_id].camera.geometry
+            tel_solid_angles[tel_id] = geometry.transform_to(
+                TelescopeFrame()
+            ).pix_area.to_value(u.rad**2)
+            tel_mirror_area[tel_id] = subarray.tel[tel_id].optics.mirror_area.to_value(
+                u.m**2
+            )
+
         self.tel_positions = tel_positions
-        self.tel_pix_coords_altaz = tel_pix_coords_altaz
         self.tel_solid_angles = tel_solid_angles
         self.tel_mirror_area = tel_mirror_area
         self.showermodel = showermodel
+        self.subarray = subarray
 
     def generate_images(self):
         """Predicts images for telescopes."""
@@ -146,3 +153,32 @@ class ShowermodelPredictor:
         )
 
         return photons
+
+    def pointing(self, event):
+        """Set the pointing of the pixels"""
+        self.tel_pix_coords_altaz = self._tel_pix_coords_altaz(event)
+
+    def _tel_pix_coords_altaz(self, event):
+        """Helper function calculating pixel pointing in AltAz"""
+        tel_pix_coords_altaz = {}
+        for tel_id in event.dl1.tel.keys():
+            geometry = self.subarray.tel[tel_id].camera.geometry
+            # (x,y)->(y,x) since this is also in a NorthingEasting frame instead of EastingNorthing similar to tel_positions
+            pix_x = geometry.pix_y
+            pix_y = geometry.pix_x
+            focal_length = self.subarray.tel[tel_id].optics.equivalent_focal_length
+
+            pointing = event.pointing.tel[tel_id]
+            altaz = AltAz(az=pointing.azimuth, alt=pointing.altitude)
+            camera_frame = CameraFrame(
+                focal_length=focal_length, telescope_pointing=altaz
+            )
+
+            cam_coords = SkyCoord(x=pix_x, y=pix_y, frame=camera_frame)
+
+            cam_altaz = cam_coords.transform_to(AltAz())
+            tel_pix_coords_altaz[tel_id] = np.stack(
+                (cam_altaz.alt.to_value(u.rad), cam_altaz.az.to_value(u.rad)), -1
+            )
+
+        return tel_pix_coords_altaz
