@@ -6,9 +6,10 @@ import os
 import pathlib
 from collections import UserList
 from fnmatch import fnmatch
-from typing import Optional
+from typing import Optional, Union
 from urllib.parse import urlparse
 
+import numpy as np
 import traitlets
 import traitlets.config
 from astropy.time import Time
@@ -388,14 +389,16 @@ class TelescopeParameterLookup:
         telescope_parameter_list : list
             List of tuples in the form `[(command, argument, value), ...]`
         """
-        # self._telescope_parameter_list = copy.deepcopy(telescope_parameter_list)
         self._telescope_parameter_list = copy.deepcopy(telescope_parameter_list)
         self._value_for_tel_id = None
+        self._value_for_type = None
         self._subarray = None
         self._subarray_global_value = None
+        self._subarray_global_value_set = False
         for param in telescope_parameter_list:
             if param[1] == "*":
                 self._subarray_global_value = param[2]
+                self._subarray_global_value_set = True
 
     def attach_subarray(self, subarray):
         """
@@ -410,6 +413,7 @@ class TelescopeParameterLookup:
         """
         self._subarray = subarray
         self._value_for_tel_id = {}
+        self._value_for_type = {}
         for command, arg, value in self._telescope_parameter_list:
             if command == "type":
                 matched_tel_types = [
@@ -423,6 +427,7 @@ class TelescopeParameterLookup:
                         arg,
                     )
                 for tel_type in matched_tel_types:
+                    self._value_for_type[tel_type] = value
                     for tel_id in subarray.get_tel_ids_for_type(tel_type):
                         self._value_for_tel_id[tel_id] = value
             elif command == "id":
@@ -430,29 +435,46 @@ class TelescopeParameterLookup:
             else:
                 raise ValueError(f"Unrecognized command: {command}")
 
-    def __getitem__(self, tel_id: Optional[int]):
+    def __getitem__(self, tel: Optional[Union[int, str]]):
         """
         Returns the resolved parameter for the given telescope id
         """
-        if tel_id is None:
-            if self._subarray_global_value is not None:
+        if tel is None:
+            if self._subarray_global_value_set:
                 return self._subarray_global_value
-            else:
-                raise KeyError("No subarray global value set for TelescopeParameter")
+
+            raise KeyError("No subarray global value set for TelescopeParameter")
+
         if self._value_for_tel_id is None:
             raise ValueError(
                 "TelescopeParameterLookup: No subarray attached, call "
                 "`attach_subarray` first before trying to access a value by tel_id"
             )
-        try:
-            return self._value_for_tel_id[tel_id]
-        except KeyError:
-            raise KeyError(
-                f"TelescopeParameterLookup: no "
-                f"parameter value was set for telescope with tel_id="
-                f"{tel_id}. Please set it explicitly, "
-                f"or by telescope type or '*'."
-            )
+
+        if isinstance(tel, (int, np.integer)):
+            try:
+                return self._value_for_tel_id[tel]
+            except KeyError:
+                raise KeyError(
+                    f"TelescopeParameterLookup: no "
+                    f"parameter value was set for telescope with tel_id="
+                    f"{tel}. Please set it explicitly, "
+                    f"or by telescope type or '*'."
+                )
+
+        if isinstance(tel, str):
+            try:
+                if self._subarray_global_value_set:
+                    return self._value_for_type.get(tel, self._subarray_global_value)
+                return self._value_for_type[tel]
+            except KeyError:
+                raise KeyError(
+                    f"TelescopeParameterLookup: no "
+                    f"parameter value was set for telescope type"
+                    f"{tel}. Please set explicitly or using '*'."
+                )
+
+        raise TypeError(f"Unsupported lookup type: {type(tel)}")
 
 
 class TelescopeParameter(List):

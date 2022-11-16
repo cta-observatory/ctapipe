@@ -291,6 +291,14 @@ def test_telescope_parameter_lookup(mock_subarray):
         telparam_list2[None]
 
 
+def test_telescope_parameter_lookup_by_type(mock_subarray):
+    lookup = TelescopeParameterLookup([("type", "*", 10), ("type", "LST*", 100)])
+
+    lookup.attach_subarray(mock_subarray)
+    assert lookup["LST_LST_LSTCam"] == 100
+    assert lookup["MST_MST_MSTCam"] == 10
+
+
 def test_telescope_parameter_patterns(mock_subarray):
     """Test validation of TelescopeParameters"""
 
