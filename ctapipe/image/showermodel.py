@@ -1,9 +1,6 @@
-import astropy.units as u
 import numpy as np
 from astropy.utils.decorators import lazyproperty
 from erfa.ufunc import s2p as spherical_to_cartesian
-from scipy.spatial.transform import Rotation as R
-from scipy.stats import multivariate_normal
 
 from ctapipe.utils.stats import survival_function
 
@@ -45,30 +42,6 @@ class GaussianShowermodel:
         self.h_max = h_max
         self.width = width
         self.length = length
-
-    def density(self, x, y, z):
-        """Evaluate 3D gaussian."""
-        return self.total_photons * self._gauss.pdf(np.array([x, y, z]))
-
-    @lazyproperty
-    def _gauss(self):
-        """Calculate 3d gaussian with barycenter as the mean and width and height in the covariance matrix."""
-        # Rotate covariance matrix
-        cov = np.zeros((3, 3)) * u.m
-        cov[0, 0] = self.width
-        cov[1, 1] = self.width
-        cov[2, 2] = self.length
-
-        r = R.from_rotvec(
-            [0, self.zenith.to_value(u.rad), self.azimuth.to_value(u.rad)]
-        )
-        cov = r.as_matrix().T @ cov @ r.as_matrix()
-
-        gauss = multivariate_normal(
-            mean=self.barycenter.to_value(u.m), cov=cov.to_value(u.m)
-        )
-
-        return gauss
 
     @lazyproperty
     def barycenter(self):
