@@ -37,7 +37,13 @@ optional_nodes = {
     "/simulation/event/telescope/impact",
     "/dl1/event/telescope/parameters",
     "/dl1/event/telescope/images",
+    "/dl2/event/telescope/geometry",
+    "/dl2/event/telescope/impact",
+    "/dl2/event/telescope/energy",
+    "/dl2/event/telescope/classification",
     "/dl2/event/subarray/geometry",
+    "/dl2/event/subarray/energy",
+    "/dl2/event/subarray/classification",
 }
 
 observation_configuration_nodes = {
@@ -73,6 +79,12 @@ simulation_images = {SIMULATED_IMAGE_GROUP}
 
 dl2_subarray_nodes = {"/dl2/event/subarray/geometry"}
 
+dl2_algorithm_tel_nodes = {
+    "/dl2/event/telescope/geometry",
+    "/dl2/event/telescope/impact",
+    "/dl2/event/telescope/energy",
+    "/dl2/event/telescope/classification",
+}
 
 all_nodes = (
     required_nodes
@@ -84,6 +96,7 @@ all_nodes = (
     | simulation_images
     | dl2_subarray_nodes
     | observation_configuration_nodes
+    | dl2_algorithm_tel_nodes
 )
 
 
@@ -407,6 +420,12 @@ class MergeTool(Tool):
                     else:
                         filter_columns = None
                     self._merge_tel_group(file, node, filter_columns=filter_columns)
+
+                # nodes with subgroups which have telescope (type) children
+                # here used for different DL2 algorithms
+                elif node_path in dl2_algorithm_tel_nodes:
+                    for _node in node._v_children.values():
+                        self._merge_tel_group(file, _node)
 
                 # groups of tables (e.g. dl2)
                 elif isinstance(node, tables.Group):

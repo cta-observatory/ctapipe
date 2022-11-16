@@ -9,7 +9,7 @@ class DataLevel(Enum):
     DL0 = auto()  # raw archived data in common format, with optional zero suppression
     DL1 = auto()  # processed data
     DL1_IMAGES = auto()  # processed data up to camera images
-    DL1_PARAMETERS = auto()  #  parameters derived from camera images
+    DL1_PARAMETERS = auto()  # parameters derived from camera images
     DL2 = auto()  # reconstructed data
     DL3 = auto()  # reduced reconstructed data
 

@@ -28,6 +28,7 @@ TRUE_PARAMETERS_GROUP = "/simulation/event/telescope/parameters"
 TRUE_IMPACT_GROUP = "/simulation/event/telescope/impact"
 SIMULATION_CONFIG_TABLE = "/configuration/simulation/run"
 SHOWER_DISTRIBUTION_TABLE = "/simulation/service/shower_distribution"
+OBSERVATION_TABLE = "/configuration/observation/observation_block"
 
 DL2_SUBARRAY_GROUP = "/dl2/event/subarray"
 DL2_TELESCOPE_GROUP = "/dl2/event/telescope"
@@ -162,6 +163,10 @@ class TableLoader(Component):
         False, help="join subarray instrument information to each event"
     ).tag(config=True)
 
+    load_observation_info = traits.Bool(
+        False, help="join observation information to each event"
+    ).tag(config=True)
+
     focal_length_choice = traits.UseEnum(
         FocalLengthKind,
         default_value=FocalLengthKind.EFFECTIVE,
@@ -278,6 +283,19 @@ class TableLoader(Component):
         """
         return read_table(self.h5file, SHOWER_DISTRIBUTION_TABLE)
 
+    def read_observation_information(self, start=None, stop=None):
+        """
+        Read the observation information
+        """
+        return read_table(self.h5file, OBSERVATION_TABLE, start=start, stop=stop)
+
+    def _join_observation_info(self, table, start=None, stop=None):
+        observation_table = self.read_observation_information(start=start, stop=stop)
+        table = join_allow_empty(
+            table, observation_table, keys="obs_id", join_type="left"
+        )
+        return table
+
     def read_subarray_events(self, start=None, stop=None, keep_order=True):
         """Read subarray-based event information.
 
@@ -308,6 +326,9 @@ class TableLoader(Component):
                             stop=stop,
                         )
                         table = _join_subarray_events(table, dl2)
+
+        if self.load_observation_info:
+            table = self._join_observation_info(table, start=start, stop=stop)
 
         if keep_order:
             self._sort_to_original_order(table)
@@ -429,7 +450,13 @@ class TableLoader(Component):
             keep_order=False,
         )
         table = join_allow_empty(
-            table, subarray_events, keys=SUBARRAY_EVENT_KEYS, join_type="left"
+            table,
+            subarray_events,
+            keys=SUBARRAY_EVENT_KEYS,
+            join_type="left",
+            # add suffix mono on duplicated columns, avoid underscore for stereo
+            table_names=["_mono", ""],
+            uniq_col_name="{col_name}{table_name}",
         )
         return table
 

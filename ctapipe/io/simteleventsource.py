@@ -1,17 +1,25 @@
 import enum
 import warnings
+from contextlib import nullcontext
+from enum import Enum, auto, unique
 from gzip import GzipFile
 from io import BufferedReader
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional, Union
 
 import numpy as np
 from astropy import units as u
 from astropy.coordinates import Angle, EarthLocation
+from astropy.table import Table
 from astropy.time import Time
 from eventio.file_types import is_eventio
 from eventio.simtel.simtelfile import SimTelFile
 
+from ..atmosphere import (
+    AtmosphereDensityProfile,
+    FiveLayerAtmosphereDensityProfile,
+    TableAtmosphereDensityProfile,
+)
 from ..calib.camera.gainselection import GainSelector
 from ..containers import (
     ArrayEventContainer,
@@ -37,9 +45,10 @@ from ..containers import (
     TelescopeTriggerContainer,
     TriggerContainer,
 )
-from ..coordinates import CameraFrame
+from ..coordinates import CameraFrame, shower_impact_distance
 from ..core import Map
-from ..core.traits import Bool, Float, Undefined, UseEnum, create_class_enum_trait
+from ..core.provenance import Provenance
+from ..core.traits import Bool, ComponentName, Float, Undefined, UseEnum
 from ..instrument import (
     CameraDescription,
     CameraGeometry,
@@ -57,11 +66,15 @@ from ..instrument.guess import (
     type_from_mirror_area,
     unknown_telescope,
 )
-from ..reco.impact_distance import shower_impact_distance
 from .datalevels import DataLevel
 from .eventsource import EventSource
 
-__all__ = ["SimTelEventSource"]
+__all__ = [
+    "SimTelEventSource",
+    "read_atmosphere_profile_from_simtel",
+    "AtmosphereProfileKind",
+    "MirrorClass",
+]
 
 # Mapping of SimTelArray Calibration trigger types to EventType:
 # from simtelarray: type Dark (0), pedestal (1), in-lid LED (2) or laser/LED (3+) data.
@@ -72,6 +85,27 @@ SIMTEL_TO_CTA_EVENT_TYPE = {
     3: EventType.FLATFIELD,
     -1: EventType.OTHER_CALIBRATION,
 }
+
+_half_pi = 0.5 * np.pi
+_half_pi_maxval = (1 + 1e-6) * _half_pi
+
+
+def _clip_altitude_if_close(altitude):
+    """
+    Round absolute values slightly larger than pi/2 in float64 to pi/2
+
+    These can come from simtel_array because float32(pi/2) > float64(pi/2)
+    and simtel using float32.
+
+    Astropy complains about these values, so we fix them here.
+    """
+    if altitude > _half_pi and altitude < _half_pi_maxval:
+        return _half_pi
+
+    if altitude < -_half_pi and altitude > -_half_pi_maxval:
+        return -_half_pi
+
+    return altitude
 
 
 @enum.unique
@@ -253,6 +287,113 @@ def apply_simtel_r1_calibration(
     return r1_waveforms, selected_gain_channel
 
 
+@unique
+class AtmosphereProfileKind(Enum):
+    """
+    choice for which kind of atmosphere density profile to load if more than
+    one is present"""
+
+    #: Don't load a profile
+    NONE = auto()
+
+    #: Use a TableAtmosphereDensityProfile
+    TABLE = auto()
+
+    #: Use a FiveLayerAtmosphereDensityProfile
+    FIVELAYER = auto()
+
+    #: Try TABLE first, and if it doesn't exist, use FIVELAYER
+    AUTO = auto()
+
+
+def read_atmosphere_profile_from_simtel(
+    simtelfile: Union[str, Path, SimTelFile], kind=AtmosphereProfileKind.AUTO
+) -> Optional[TableAtmosphereDensityProfile]:
+    """Read an atmosphere profile from a SimTelArray file as an astropy Table
+
+    Parameters
+    ----------
+    simtelfile: str | SimTelFile
+        filename of a SimTelArray file containing an atmosphere profile
+    kind: AtmosphereProfileKind | str
+        which type of model to load. In AUTO mode, table is tried first,
+        and if it doesn't exist, fivelayer is used.
+
+    Returns
+    -------
+    Optional[TableAtmosphereDensityProfile]:
+        Profile read from a table, with interpolation
+
+    """
+    if not isinstance(kind, AtmosphereProfileKind):
+        raise TypeError(
+            "read_atmosphere_profile_from_simtel: kind should be a AtmosphereProfileKind"
+        )
+
+    profiles = []
+
+    if kind == AtmosphereProfileKind.NONE:
+        return None
+
+    if isinstance(simtelfile, (str, Path)):
+        context_manager = SimTelFile(simtelfile)
+        Provenance().add_input_file(
+            filename=simtelfile, role="ctapipe.atmosphere.AtmosphereDensityProfile"
+        )
+
+    else:
+        context_manager = nullcontext(simtelfile)
+
+    with context_manager as simtel:
+
+        if (
+            not hasattr(simtel, "atmospheric_profiles")
+            or len(simtel.atmospheric_profiles) == 0
+        ):
+            return []
+
+        for atmo in simtel.atmospheric_profiles:
+
+            metadata = dict(
+                observation_level=atmo["obslevel"] * u.cm,
+                atmosphere_id=atmo["id"],
+                atmosphere_name=atmo["name"].decode("utf-8"),
+                atmosphere_height=atmo["htoa"] * u.cm,
+            )
+
+            if "altitude_km" in atmo and kind in {
+                AtmosphereProfileKind.TABLE,
+                AtmosphereProfileKind.AUTO,
+            }:
+                table = Table(
+                    dict(
+                        height=atmo["altitude_km"] * u.km,
+                        density=atmo["rho"] * u.g / u.cm**3,
+                        column_density=atmo["thickness"] * u.g / u.cm**2,
+                    ),
+                    meta=metadata,
+                )
+                profiles.append(TableAtmosphereDensityProfile(table=table))
+
+            elif (
+                kind == AtmosphereProfileKind.FIVELAYER
+                and "five_layer_atmosphere" in atmo
+            ):
+                profiles.append(
+                    FiveLayerAtmosphereDensityProfile.from_array(
+                        atmo["five_layer_atmosphere"], metadata=metadata
+                    )
+                )
+
+            else:
+                raise ValueError(f"Couldn't  load requested profile '{kind}'")
+
+    if profiles:
+        return profiles[0]
+
+    return None
+
+
 class SimTelEventSource(EventSource):
     """
     Read events from a SimTelArray data file (in EventIO format).
@@ -307,8 +448,8 @@ class SimTelEventSource(EventSource):
         ),
     ).tag(config=True)
 
-    gain_selector_type = create_class_enum_trait(
-        base_class=GainSelector, default_value="ThresholdGainSelector"
+    gain_selector_type = ComponentName(
+        GainSelector, default_value="ThresholdGainSelector"
     ).tag(config=True)
 
     calib_scale = Float(
@@ -324,6 +465,17 @@ class SimTelEventSource(EventSource):
         help=(
             "Factor to shift the R1 photoelectron samples. "
             "Can be used to simulate mis-calibration."
+        ),
+    ).tag(config=True)
+
+    atmosphere_profile_choice = UseEnum(
+        AtmosphereProfileKind,
+        default_value=AtmosphereProfileKind.AUTO,
+        help=(
+            "Which type of atmosphere density profile to load "
+            "from the file, in case more than one exists.  If set "
+            "to AUTO, TABLE will be attempted first and if missing, "
+            "FIVELAYER will be loaded."
         ),
     ).tag(config=True)
 
@@ -369,6 +521,11 @@ class SimTelEventSource(EventSource):
         self.gain_selector = GainSelector.from_name(
             self.gain_selector_type, parent=self
         )
+
+        self._atmosphere_density_profile = read_atmosphere_profile_from_simtel(
+            self.file_, kind=self.atmosphere_profile_choice
+        )
+
         self.log.debug(f"Using gain selector {self.gain_selector}")
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -388,6 +545,10 @@ class SimTelEventSource(EventSource):
     @property
     def simulation_config(self) -> Dict[int, SimulationConfigContainer]:
         return self._simulation_config
+
+    @property
+    def atmosphere_density_profile(self) -> AtmosphereDensityProfile:
+        return self._atmosphere_density_profile
 
     @property
     def observation_blocks(self) -> Dict[int, ObservationBlockContainer]:
@@ -700,9 +861,13 @@ class SimTelEventSource(EventSource):
 
         # take pointing corrected position if available
         if np.isnan(altitude_cor):
-            altitude = u.Quantity(altitude_raw, u.rad, copy=False)
+            altitude = u.Quantity(
+                _clip_altitude_if_close(altitude_raw), u.rad, copy=False
+            )
         else:
-            altitude = u.Quantity(altitude_cor, u.rad, copy=False)
+            altitude = u.Quantity(
+                _clip_altitude_if_close(altitude_cor), u.rad, copy=False
+            )
 
         return TelescopePointingContainer(azimuth=azimuth, altitude=altitude)
 
@@ -814,8 +979,8 @@ class SimTelEventSource(EventSource):
             detector_prog_id=mc_run_head["detector_prog_id"],
             n_showers=mc_run_head["n_showers"],
             shower_reuse=mc_run_head["n_use"],
-            max_alt=mc_run_head["alt_range"][1] * u.rad,
-            min_alt=mc_run_head["alt_range"][0] * u.rad,
+            max_alt=_clip_altitude_if_close(mc_run_head["alt_range"][1]) * u.rad,
+            min_alt=_clip_altitude_if_close(mc_run_head["alt_range"][0]) * u.rad,
             max_az=mc_run_head["az_range"][1] * u.rad,
             min_az=mc_run_head["az_range"][0] * u.rad,
             diffuse=mc_run_head["diffuse"],
@@ -878,9 +1043,11 @@ class SimTelEventSource(EventSource):
         if mc_shower is None:
             return
 
+        alt = _clip_altitude_if_close(mc_shower["altitude"])
+
         return SimulatedShowerContainer(
             energy=u.Quantity(mc_shower["energy"], u.TeV),
-            alt=Angle(mc_shower["altitude"], u.rad),
+            alt=Angle(alt, u.rad),
             az=Angle(mc_shower["azimuth"], u.rad),
             core_x=u.Quantity(mc_event["xcore"], u.m),
             core_y=u.Quantity(mc_event["ycore"], u.m),

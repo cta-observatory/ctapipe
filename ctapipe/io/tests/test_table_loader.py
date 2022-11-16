@@ -134,6 +134,15 @@ def test_true_parameters(dl1_file):
         assert "true_hillas_intensity" in table.colnames
 
 
+def test_observation_info(dl1_file):
+    """Test joining observation info onto telescope events"""
+    from ctapipe.io.tableloader import TableLoader
+
+    with TableLoader(dl1_file, load_observation_info=True) as table_loader:
+        table = table_loader.read_telescope_events()
+        assert "subarray_pointing_lat" in table.colnames
+
+
 def test_read_subarray_events(dl2_shower_geometry_file):
     """Test reading subarray events"""
     from ctapipe.io.tableloader import TableLoader
@@ -193,7 +202,8 @@ def test_read_telescope_events_type(dl2_shower_geometry_file):
         expected_ids = subarray.get_tel_ids_for_type("MST_MST_FlashCam")
         assert set(table["tel_id"].data).issubset(expected_ids)
         assert "equivalent_focal_length" in table.colnames
-        assert "HillasReconstructor_tel_distance" in table.colnames
+        # regression test for #2051
+        assert "HillasReconstructor_tel_impact_distance" in table.colnames
 
 
 def test_read_telescope_events_by_type(dl2_shower_geometry_file):

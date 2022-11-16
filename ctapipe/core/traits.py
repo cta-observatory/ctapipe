@@ -14,7 +14,7 @@ import traitlets.config
 from astropy.time import Time
 from traitlets import Undefined
 
-from .component import non_abstract_children
+from .component import Component, non_abstract_children
 
 __all__ = [
     # Implemented here
@@ -224,6 +224,69 @@ def create_class_enum_trait(base_class, default_value, help=None, allow_none=Fal
         help=help,
         allow_none=allow_none,
     ).tag(config=True)
+
+
+class ComponentName(Unicode):
+    """A trait that is the name of a Component class"""
+
+    def __init__(self, cls, **kwargs):
+        if not issubclass(cls, Component):
+            raise TypeError(f"cls must be a Component, got {cls}")
+
+        self.cls = cls
+        super().__init__(**kwargs)
+        if "help" not in kwargs:
+            self.help = f"The name of a {cls.__name__} subclass"
+
+    @property
+    def help(self):
+        children = list(self.cls.non_abstract_subclasses())
+        return f"{self._help}. Possible values: {children}"
+
+    @help.setter
+    def help(self, value):
+        self._help = value
+
+    @property
+    def info_text(self):
+        return f"Any of {list(self.cls.non_abstract_subclasses())}"
+
+    def validate(self, obj, value):
+        if self.allow_none and value is None:
+            return None
+
+        if value in self.cls.non_abstract_subclasses():
+            return value
+
+        self.error(obj, value)
+
+
+class ComponentNameList(List):
+    """A trait that is a list of Component classes"""
+
+    def __init__(self, cls, **kwargs):
+        if not issubclass(cls, Component):
+            raise TypeError(f"cls must be a Component, got {cls}")
+
+        self.cls = cls
+        trait = ComponentName(cls)
+        super().__init__(trait=trait, **kwargs)
+
+        if "help" not in kwargs:
+            self.help = f"A list of {cls.__name__} subclass names"
+
+    @property
+    def help(self):
+        children = list(self.cls.non_abstract_subclasses())
+        return f"{self._help}. Possible values: {children}"
+
+    @help.setter
+    def help(self, value):
+        self._help = value
+
+    @property
+    def info_text(self):
+        return f"A list of {list(self.cls.non_abstract_subclasses())}"
 
 
 def classes_with_traits(base_class):
@@ -437,6 +500,7 @@ class TelescopeParameter(List):
         """
         Create a new TelescopeParameter
         """
+        self._help = ""
 
         if not isinstance(trait, TraitType):
             raise TypeError("trait must be a TraitType instance")
@@ -445,7 +509,19 @@ class TelescopeParameter(List):
         if default_value != Undefined:
             default_value = self.validate(self, default_value)
 
+        if "help" not in kwargs:
+            self.help = "A TelescopeParameter"
+
         super().__init__(default_value=default_value, **kwargs)
+
+    @property
+    def help(self):
+        sep = "." if not self._help.endswith(".") else ""
+        return f"{self._help}{sep} {self._trait.help}"
+
+    @help.setter
+    def help(self, value):
+        self._help = value
 
     def from_string(self, s):
         val = super().from_string(s)

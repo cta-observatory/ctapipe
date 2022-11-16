@@ -20,7 +20,7 @@ from ..io import (
     write_table,
 )
 from ..io.datawriter import DATA_MODEL_VERSION
-from ..reco import ShowerProcessor
+from ..reco import Reconstructor, ShowerProcessor
 from ..utils import EventTypeFilter
 
 COMPATIBLE_DATALEVELS = [
@@ -73,6 +73,8 @@ class ProcessorTool(Tool):
         ("o", "output"): "DataWriter.output_path",
         ("t", "allowed-tels"): "EventSource.allowed_tels",
         ("m", "max-events"): "EventSource.max_events",
+        "energy-regressor": "ShowerProcessor.EnergyRegressor.load_path",
+        "particle-classifier": "ShowerProcessor.ParticleClassifier.load_path",
         "image-cleaner-type": "ImageProcessor.image_cleaner_type",
     }
 
@@ -150,6 +152,7 @@ class ProcessorTool(Tool):
         + classes_with_traits(QualityQuery)
         + classes_with_traits(ImageModifier)
         + classes_with_traits(EventTypeFilter)
+        + classes_with_traits(Reconstructor)
     )
 
     def setup(self):
@@ -172,10 +175,33 @@ class ProcessorTool(Tool):
         self.process_images = ImageProcessor(
             subarray=self.event_source.subarray, parent=self
         )
+
         self.process_shower = ShowerProcessor(
             subarray=self.event_source.subarray, parent=self
         )
+
         self.write = DataWriter(event_source=self.event_source, parent=self)
+
+        # add ml reco classes if model paths were supplied via cli and not already configured
+        reco_aliases = {
+            "--energy-regressor": "EnergyRegressor",
+            "--particle-classifier": "ParticleClassifier",
+        }
+        for alias, name in reco_aliases.items():
+            has_alias = any(arg.startswith(alias) for arg in self.argv)
+            if has_alias and name not in self.process_shower.reconstructor_types:
+                self.log.info(
+                    "Adding %s to ShowerProcesser because path was given on cli", name
+                )
+                reconstructor = Reconstructor.from_name(
+                    name,
+                    parent=self.process_shower,
+                    subarray=self.event_source.subarray,
+                )
+                self.process_shower.reconstructors.append(reconstructor)
+                self.process_shower.reconstructor_types.append(name)
+                self.write.write_showers = True
+
         self.event_type_filter = EventTypeFilter(parent=self)
 
         # warn if max_events prevents writing the histograms
@@ -195,6 +221,7 @@ class ProcessorTool(Tool):
         """returns true if we should compute DL2 info"""
         if self.force_recompute_dl2:
             return True
+
         return self.write.write_showers
 
     @property
@@ -211,7 +238,7 @@ class ProcessorTool(Tool):
     @property
     def should_calibrate(self):
         if self.force_recompute_dl1:
-            True
+            return True
 
         if (
             self.write.write_images
@@ -238,14 +265,17 @@ class ProcessorTool(Tool):
             )
 
         if self.should_compute_dl2:
-            reconstructor = self.process_shower.reconstructor
-            reconstructor_name = self.process_shower.reconstructor_type
-            write_table(
-                reconstructor.check_parameters.to_table(functions=True),
-                self.write.output_path,
-                f"/dl2/service/tel_event_statistics/{reconstructor_name}",
-                append=True,
-            )
+            reconstructors = self.process_shower.reconstructors
+            reconstructor_names = self.process_shower.reconstructor_types
+            for reconstructor_name, reconstructor in zip(
+                reconstructor_names, reconstructors
+            ):
+                write_table(
+                    reconstructor.quality_query.to_table(functions=True),
+                    self.write.output_path,
+                    f"/dl2/service/tel_event_statistics/{reconstructor_name}",
+                    append=True,
+                )
 
     def start(self):
         """

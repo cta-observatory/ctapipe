@@ -11,21 +11,13 @@ import tables
 
 from ctapipe.core import run_tool
 from ctapipe.instrument.subarray import SubarrayDescription
-from ctapipe.io import DataLevel, EventSource, read_table
+from ctapipe.io import read_table
+from ctapipe.io.tests.test_event_source import DummyEventSource
 from ctapipe.tools.process import ProcessorTool
 from ctapipe.tools.quickstart import CONFIGS_TO_WRITE, QuickStartTool
-from ctapipe.utils import get_dataset_path
-
-try:
-    from importlib.resources import files
-except ImportError:
-    from importlib_resources import files
+from ctapipe.utils import get_dataset_path, resource_file
 
 GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
-
-
-def resource_file(filename):
-    return files("ctapipe").joinpath("resources", filename)
 
 
 @pytest.mark.parametrize(
@@ -151,43 +143,10 @@ def test_stage_1_dl1(tmp_path, dl1_image_file, dl1_parameters_file):
 def test_stage1_datalevels(tmp_path):
     """test the dl1 tool on a file not providing r1, dl0 or dl1a"""
 
-    class DummyEventSource(EventSource):
-        """for testing"""
-
-        @staticmethod
-        def is_compatible(file_path):
-            with open(file_path, "rb") as infile:
-                dummy = infile.read(5)
-                return dummy == b"dummy"
-
-        @property
-        def datalevels(self):
-            return (DataLevel.R0,)
-
-        @property
-        def is_simulation(self):
-            return True
-
-        @property
-        def scheduling_blocks(self):
-            return dict()
-
-        @property
-        def observation_blocks(self):
-            return dict()
-
-        @property
-        def subarray(self):
-            return None
-
-        def _generator(self):
-            return None
-
     dummy_file = tmp_path / "datalevels_dummy.h5"
     out_file = tmp_path / "datalevels_dummy_stage1_output.h5"
-    with open(dummy_file, "wb") as infile:
+    with dummy_file.open("wb") as infile:
         infile.write(b"dummy")
-        infile.flush()
 
     config = resource_file("stage1_config.json")
     tool = ProcessorTool()
@@ -292,11 +251,11 @@ def test_stage_2_from_dl1_params(tmp_path, dl1_parameters_file):
         assert testfile.root.dl2.event.subarray.geometry.HillasReconstructor
 
 
-def test_training_from_simtel(tmp_path):
-    """check we can write both dl1 and dl2 info (e.g. for training input)"""
+def test_ml_preprocessing_from_simtel(tmp_path):
+    """check we can write both dl1 and dl2 info (e.g. for ml_preprocessing input)"""
 
-    config = resource_file("training_config.json")
-    output = tmp_path / "test_training.DL1DL2.h5"
+    config = resource_file("ml_preprocessing_config.json")
+    output = tmp_path / "test_ml_preprocessing.DL1DL2.h5"
 
     assert (
         run_tool(

@@ -7,6 +7,8 @@ from typing import Dict, Generator, List, Tuple
 
 from traitlets.config.loader import LazyConfigValue
 
+from ctapipe.atmosphere import AtmosphereDensityProfile
+
 from ..containers import (
     ArrayEventContainer,
     ObservationBlockContainer,
@@ -70,11 +72,8 @@ class EventSource(Component):
     0
     1
 
-    **NOTE**: For effiency reasons, most sources only use a single ``ArrayEvent`` instance
-    and update it with new data on iteration, which might lead to surprising
-    behaviour if you want to access multiple events at the same time.
-    To keep an event and prevent its data from being overwritten with the next event's data,
-    perform a deepcopy: ``some_special_event = copy.deepcopy(event)``.
+    **NOTE**: EventSource implementations should not reuse the same ArrayEventContainer,
+    as these are mutable and may lead to errors when analyzing multiple events.
 
 
     Attributes
@@ -282,6 +281,20 @@ class EventSource(Component):
         list[int]
         """
         return list(self.observation_blocks.keys())
+
+    @property
+    def atmosphere_density_profile(self) -> AtmosphereDensityProfile:
+        """atmosphere density profile that can be integrated to
+        convert between h_max and X_max.  This should correspond
+        either to what was used in a simualtion, or a measurment
+        for use with observed data.
+
+        Returns
+        -------
+        AtmosphereDensityProfile:
+           profile to be used
+        """
+        return None
 
     @abstractmethod
     def _generator(self) -> Generator[ArrayEventContainer, None, None]:

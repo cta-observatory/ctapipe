@@ -188,3 +188,5 @@ def test_dl2(tmp_path, dl2_shower_geometry_file, dl2_proton_geometry_file):
     loader = TableLoader(output, load_dl2=True, load_simulated=True)
     tel_events = loader.read_telescope_events()
     assert "true_impact_distance" in tel_events.colnames
+    # regression test for #2051
+    assert "HillasReconstructor_tel_impact_distance" in tel_events.colnames

@@ -27,7 +27,7 @@ What is ctapipe?
 * Code, feature requests, bug reports, pull requests: https://github.com/cta-observatory/ctapipe
 * Docs: https://cta-observatory.github.io/ctapipe/
 * License: BSD-3
-* Python 3.7 or later
+* Python: |python_requires|
 
 
 

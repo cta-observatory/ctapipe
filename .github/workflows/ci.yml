@@ -93,7 +93,7 @@ jobs:
       - name: Install dependencies
         run: |
           python --version
-          pip install codecov pytest-cov pyflakes pytest-xdist 'coverage!=6.3.0'
+          pip install codecov pytest-cov flake8 pytest-xdist 'coverage!=6.3.0'
           pip install .[all]
           pip freeze
 
@@ -101,7 +101,7 @@ jobs:
         # need to use a login shell for the conda setup to work
         shell: bash -leo pipefail {0}
         run: |
-          pyflakes ctapipe
+          flake8 ctapipe
 
       - name: Tests
         # need to use a login shell for the conda setup to work
@@ -139,7 +139,7 @@ jobs:
           python -c 'import ctapipe; print(ctapipe.__version__)'
 
       - name: Build docs
-        run: make doc SPHINXOPTS="-W --keep-going -n --color -j auto"
+        run: make doc
 
       - name: Deploy to gihub pages
         # only run on push to master

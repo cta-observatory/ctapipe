@@ -7,7 +7,7 @@ from ctapipe.core.expression_engine import ExpressionError
 from ctapipe.core.feature_generator import FeatureGenerator, FeatureGeneratorException
 
 
-def test_generate_features():
+def test_feature_generator():
     """Test if generating features works."""
     expressions = [
         ("log_intensity", "log10(intensity)"),

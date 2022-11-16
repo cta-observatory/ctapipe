@@ -149,20 +149,50 @@ def test_dump_instrument(tmp_path):
     from ctapipe.tools.dump_instrument import DumpInstrumentTool
 
     sys.argv = ["dump_instrument"]
-    tool = DumpInstrumentTool()
 
-    assert run_tool(tool, [f"--input={PROD5B_PATH}"], cwd=tmp_path) == 0
+    ret = run_tool(
+        DumpInstrumentTool(),
+        [f"--input={PROD5B_PATH}"],
+        cwd=tmp_path,
+        raises=True,
+    )
+    assert ret == 0
     assert (tmp_path / "FlashCam.camgeom.fits.gz").exists()
 
-    assert (
-        run_tool(tool, [f"--input={PROD5B_PATH}", "--format=ecsv"], cwd=tmp_path) == 0
+    ret = run_tool(
+        DumpInstrumentTool(),
+        [f"--input={PROD5B_PATH}", "--format=ecsv"],
+        cwd=tmp_path,
+        raises=True,
     )
-
+    assert ret == 0
     assert (tmp_path / "MonteCarloArray.optics.ecsv").exists()
 
-    assert (
-        run_tool(tool, [f"--input={PROD5B_PATH}", "--format=hdf5"], cwd=tmp_path) == 0
+    ret = run_tool(
+        DumpInstrumentTool(),
+        [f"--input={PROD5B_PATH}", "--format=hdf5"],
+        cwd=tmp_path,
+        raises=True,
     )
+    assert ret == 0
     assert (tmp_path / "subarray.h5").exists()
 
-    assert run_tool(tool, ["--help-all"], cwd=tmp_path) == 0
+    ret = run_tool(DumpInstrumentTool(), ["--help-all"], cwd=tmp_path, raises=True)
+    assert ret == 0
+
+    # test the tool uses options correctly
+    out = tmp_path / "foo"
+    out.mkdir()
+    ret = run_tool(
+        DumpInstrumentTool(),
+        [
+            f"--input={GAMMA_TEST_LARGE}",
+            "-o",
+            str(out),
+            "--SimTelEventSource.focal_length_choice=EQUIVALENT",
+        ],
+        cwd=tmp_path,
+        raises=True,
+    )
+    assert ret == 0
+    assert (out / "FlashCam.camgeom.fits.gz").exists()

@@ -31,12 +31,10 @@ from configparser import ConfigParser
 
 import ctapipe
 
-conf = ConfigParser()
-conf.read([os.path.join(os.path.dirname(__file__), "..", "setup.cfg")])
-setup_cfg = dict(conf.items("metadata"))
-# If your documentation needs a minimal Sphinx version, state it here.
-#
-needs_sphinx = "1.5"
+setup_cfg = ConfigParser()
+setup_cfg.read([os.path.join(os.path.dirname(__file__), "..", "setup.cfg")])
+setup_metadata = dict(setup_cfg.items("metadata"))
+setup_options = dict(setup_cfg.items("options"))
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -116,6 +114,7 @@ nitpick_ignore = [
     ("py:obj", "name"),
     ("py:class", "astropy.coordinates.baseframe.BaseCoordinateFrame"),
     ("py:class", "astropy.table.table.Table"),
+    ("py:class", "eventio.simtel.simtelfile.SimTelFile"),
 ]
 
 # The suffix(es) of source filenames.
@@ -134,11 +133,17 @@ suppress_warnings = ["ref.citation"]  # ignore citation not referenced warnings
 
 # General information about the project.
 
-project = setup_cfg["name"]
-author = setup_cfg["author"]
+project = setup_metadata["name"]
+author = setup_metadata["author"]
 copyright = "{}.  Last updated {}".format(
-    setup_cfg["author"], datetime.datetime.now().strftime("%d %b %Y %H:%M")
+    setup_metadata["author"], datetime.datetime.now().strftime("%d %b %Y %H:%M")
 )
+python_requires = setup_options["python_requires"]
+
+# make some variables available to each page
+rst_epilog = f"""
+.. |python_requires| replace:: {python_requires}
+"""
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
