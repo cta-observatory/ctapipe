@@ -1,0 +1,167 @@
+{
+    "creators": [
+        {
+            "name": "Raquel de los Reyes"
+        },
+        {
+            "name": "Wrijupan Bhattacharyya",
+            "orcid": "0000-0003-4751-0414"
+        },
+        {
+            "name": "Julien Lefaucheur"
+        },
+        {
+            "name": "Michele Mastropietro",
+            "affiliation": "Osservatorio Astronomico di Roma",
+            "orcid": "0000-0002-6324-5713"
+        },
+        {
+            "name": "yrenier"
+        },
+        {
+            "name": "Lab Saha",
+            "affiliation": "Universidad Complutense de Madrid",
+            "orcid": "0000-0002-3171-5039"
+        },
+        {
+            "name": "Rune Dominik",
+            "affiliation": "TU Dortmund University",
+            "orcid": "0000-0003-4168-7200"
+        },
+        {
+            "name": "Dominik Neise"
+        },
+        {
+            "name": "Gernot Maier",
+            "affiliation": "Deutsches Elektronen-Synchrotron DESY",
+            "orcid": "0000-0001-9868-4700"
+        },
+        {
+            "name": "Jean Jacquemier",
+            "affiliation": "EPHE-PSL",
+            "orcid": "0000-0001-6607-5521"
+        },
+        {
+            "name": "Kai Brügge"
+        },
+        {
+            "name": "Michele Peresano",
+            "affiliation": "INFN Sezione di Torino",
+            "orcid": "0000-0002-7537-7334"
+        },
+        {
+            "name": "Noah Biederbeck",
+            "affiliation": "TU Dortmund University",
+            "orcid": "0000-0003-3708-9785"
+        },
+        {
+            "name": "Maximilian Linhoff",
+            "affiliation": "TU Dortmund University",
+            "orcid": "0000-0001-7993-8189"
+        },
+        {
+            "name": "Konstantin Pfrang",
+            "affiliation": "DESY Zeuthen",
+            "orcid": "0000-0002-7990-7179"
+        },
+        {
+            "name": "Alison Mitchell",
+            "affiliation": "Friedrich-Alexander-Universität Erlangen-Nürnberg, Erlangen Centre for Astroparticle Physics",
+            "orcid": "0000-0003-3631-5648"
+        },
+        {
+            "name": "Julian Sitarek",
+            "affiliation": "University of Lodz",
+            "orcid": "0000-0002-1659-5374"
+        },
+        {
+            "name": "Thomas Vuillaume",
+            "orcid": "0000-0002-5686-2078"
+        },
+        {
+            "name": "francesco visconti"
+        },
+        {
+            "name": "Moritz Hütten"
+        },
+        {
+            "name": "Jason Watson",
+            "affiliation": "DESY Zeuthen",
+            "orcid": "0000-0003-4282-7463"
+        },
+        {
+            "name": "Samuel Timothy Spencer",
+            "affiliation": "Friedrich-Alexander-Universität Erlangen-Nürnberg",
+            "orcid": "0000-0001-5516-1205"
+        },
+        {
+            "name": "Anno Knierim"
+        },
+        {
+            "name": "Ruben Lopez-Coto"
+        },
+        {
+            "name": "Alice Donini",
+            "affiliation": "Istituto nazionale di astrofisica",
+            "orcid": "0000-0002-3066-724X"
+        },
+        {
+            "name": "satoshifukami0115"
+        },
+        {
+            "name": "Karl Kosack",
+            "affiliation": "CEA Saclay",
+            "orcid": "0000-0001-8424-3621"
+        },
+        {
+            "name": "Lukas Nickel",
+            "affiliation": "TU Dortmund",
+            "orcid": "0000-0001-7110-0533"
+        },
+        {
+            "name": "Cyril Alispach",
+            "orcid": "0000-0002-3791-1997"
+        },
+        {
+            "name": "Jérémie Decock"
+        },
+        {
+            "name": "thomasarmstrong"
+        },
+        {
+            "name": "Abelardo Moralejo",
+            "affiliation": "Instituto de Física de Altas Energías",
+            "orcid": "0000-0002-1344-9080"
+        },
+        {
+            "name": "Stefan Fröse",
+            "orcid": "0000-0003-1832-4129"
+        },
+        {
+            "name": "Jose Enrique Ruiz"
+        },
+        {
+            "name": "mgaug"
+        },
+        {
+            "name": "momorning"
+        },
+        {
+            "name": "orelgueta"
+        },
+        {
+            "name": "Franca Cassol",
+            "affiliation": "CNRS",
+            "orcid": "0000-0002-0372-1992"
+        },
+        {
+            "name": "LukasBeiske"
+        },
+        {
+            "name": "Christoph Deil",
+            "orcid": "0000-0002-4198-4005"
+        }
+    ],
+    "upload_type": "software",
+    "keywords": []
+}
