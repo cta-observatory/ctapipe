@@ -44,10 +44,10 @@ class ShowermodelPredictor:
     def generate_images(self):
         """Predicts images for telescopes."""
         imgs = {}
-        for tel_id, vec_oc in self._vec_oc.items():
+        for tel_id, pix_coords_altaz in self.tel_pix_coords_altaz.items():
             area = self.tel_mirror_area[tel_id]
             solid_angle = self.tel_solid_angles[tel_id]
-            pix_coords_altaz = self.tel_pix_coords_altaz[tel_id]
+            vec_oc = self._vec_oc[tel_id]
             vec_pointing = self._telescope_axis(pix_coords_altaz[0])
             imgs[tel_id] = self._generate_img(
                 area, solid_angle, vec_oc, pix_coords_altaz, vec_pointing
