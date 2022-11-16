@@ -5,28 +5,34 @@ import numpy as np
 from iminuit import Minuit
 
 from ctapipe.containers import Model3DReconstructedGeometryContainer
-from ctapipe.core.traits import Unicode
+from ctapipe.core.traits import FloatTelescopeParameter, Unicode
 from ctapipe.image import (
     GaussianShowermodel,
     ShowermodelPredictor,
     neg_log_likelihood_approx,
 )
-from ctapipe.reco.reco_algorithms import Reconstructor
-
-# taken from ImPACT PR for now
-ped_table = {
-    "LSTCam": 1.4,
-    "NectarCam": 1.3,
-    "FlashCam": 1.3,
-    "CHEC": 0.5,
-    "ASTRICam": 0.5,
-    "dummy": 0.01,
-    "UNKNOWN-960PX": 1.0,
-}
+from ctapipe.reco import Reconstructor
 
 
 class Model3DGeometryReconstructor(Reconstructor):
-    geometry_seed = Unicode(default_value="HillasReconstructor").tag(config=True)
+    geometry_seed = Unicode(
+        default_value="HillasReconstructor",
+        help="GeometryReconstructor that is used as a seed for the likelihood fit",
+    ).tag(config=True)
+
+    pedestal_width = FloatTelescopeParameter(
+        default_value=[
+            ["type", "LST_LST_LSTCam", 1.4],
+            ["type", "MST_MST_FlashCam", 1.3],
+            ["type", "MST_MST_NectarCam", 1.3],
+            ["type", "SST_ASTRI_CHEC", 0.5],
+        ],
+        help="Pedestal charge std",
+    ).tag(config=True)
+
+    spe_width = FloatTelescopeParameter(
+        default_value=0.6, help="Flatfield charge std"
+    ).tag(config=True)
 
     def __init__(self, subarray, **kwargs):
         super().__init__(subarray=subarray, **kwargs)
@@ -39,21 +45,21 @@ class Model3DGeometryReconstructor(Reconstructor):
             )
 
         tel_spe_widths = {}
-        tel_pedestial_widths = {}
+        tel_pedestal_widths = {}
         for tel_id in event.dl1.tel.keys():
             tel_spe_widths[tel_id] = (
                 spe
                 if (spe := event.mon.tel[tel_id].flatfield.charge_std) is not None
-                else ped_table[self.subarray.tel[tel_id].camera.name]
+                else self.spe_width.tel[tel_id]
             )
-            tel_pedestial_widths[tel_id] = (
+            tel_pedestal_widths[tel_id] = (
                 ped
                 if (ped := event.mon.tel[tel_id].pedestal.charge_std) is not None
-                else 0.6  # taken from ImPACT PR for now
+                else self.pedestal_width.tel[tel_id]
             )
 
         self.tel_spe_widths = tel_spe_widths
-        self.tel_pedestial_widths = tel_pedestial_widths
+        self.tel_pedestal_widths = tel_pedestal_widths
 
         self.predictor.pointing(event)
         shower_parameters, errors = self._fit(event)
@@ -142,7 +148,7 @@ class Model3DGeometryReconstructor(Reconstructor):
                     dl1.image,
                     prediction[tel_id],
                     self.tel_spe_widths[tel_id],
-                    self.tel_pedestial_widths[tel_id],
+                    self.tel_pedestal_widths[tel_id],
                 )
             )
 
