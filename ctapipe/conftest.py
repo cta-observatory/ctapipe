@@ -505,7 +505,8 @@ def energy_regressor_path(model_tmp_path):
 
 
 @pytest.fixture(scope="session")
-def particle_classifier_path(model_tmp_path):
+def particle_classifier_path(model_tmp_path, energy_regressor_path):
+    from ctapipe.tools.apply_models import ApplyModels
     from ctapipe.tools.train_particle_classifier import TrainParticleClassifier
 
     out_file = model_tmp_path / "particle_classifier.pkl"
@@ -513,14 +514,33 @@ def particle_classifier_path(model_tmp_path):
         if out_file.is_file():
             return out_file
 
-        tool = TrainParticleClassifier()
         config = resource_file("train_particle_classifier.yaml")
 
+        proton_train = model_tmp_path / "proton_train.dl2.h5"
+        gamma_train = model_tmp_path / "gamma_train.dl2.h5"
+
+        for inpath, outpath in zip(
+            [
+                "dataset://gamma_diffuse_dl2_train_small.dl2.h5",
+                "dataset://proton_dl2_train_small.dl2.h5",
+            ],
+            (proton_train, gamma_train),
+        ):
+            ret = run_tool(
+                ApplyModels(),
+                argv=[
+                    f"--input={inpath}",
+                    f"--output={outpath}",
+                    f"--energy-regressor={energy_regressor_path}",
+                ],
+            )
+            assert ret == 0
+
         ret = run_tool(
-            tool,
+            TrainParticleClassifier(),
             argv=[
-                "--signal=dataset://gamma_diffuse_dl2_train_small.dl2.h5",
-                "--background=dataset://proton_dl2_train_small.dl2.h5",
+                f"--signal={gamma_train}",
+                f"--background={proton_train}",
                 f"--output={out_file}",
                 f"--config={config}",
                 "--log-level=INFO",
