@@ -26,7 +26,6 @@ from astropy.coordinates import (
     frame_transform_graph,
 )
 from astropy.units.quantity import Quantity
-from numpy import cos, sin
 
 __all__ = [
     "GroundFrame",
@@ -91,7 +90,7 @@ class TiltedGroundFrame(BaseCoordinateFrame):
     pointing_direction = CoordinateAttribute(default=None, frame=AltAz)
 
 
-def get_shower_trans_matrix(azimuth, altitude):
+def _get_shower_trans_matrix(azimuth, altitude, inverse=False):
     """Get Transformation matrix for conversion from the ground system to
     the Tilted system and back again (This function is directly lifted
     from read_hess, probably could be streamlined using python
@@ -99,20 +98,19 @@ def get_shower_trans_matrix(azimuth, altitude):
 
     Parameters
     ----------
-    azimuth: float
-        Azimuth angle of the tilted system used
-    altitude: float
-        Altitude angle of the tilted system used
+    azimuth: float or ndarray
+        Azimuth angle in radians of the tilted system used
+    altitude: float or ndarray
+        Altitude angle in radiuan of the tilted system used
 
     Returns
     -------
     trans: 3x3 ndarray transformation matrix
     """
-
-    cos_z = sin(altitude)
-    sin_z = cos(altitude)
-    cos_az = cos(azimuth)
-    sin_az = sin(azimuth)
+    cos_z = np.sin(altitude)  # this is the same as np.cos(zenith) but faster
+    sin_z = np.cos(altitude)
+    cos_az = np.cos(azimuth)
+    sin_az = np.sin(azimuth)
 
     trans = np.array(
         [
@@ -123,7 +121,26 @@ def get_shower_trans_matrix(azimuth, altitude):
         dtype=np.float64,
     )
 
+    if inverse:
+        return np.swapaxes(trans, 0, 1)
+
     return trans
+
+
+def _get_xyz(coord):
+    """
+    Essentially the same as coord.cartesian.xyz, but much faster by
+    avoiding some astropy bottlenecks.
+    """
+    # this is a speed optimization. Much faster to use data if already a
+    # Cartesian object
+    if isinstance(coord.data, CartesianRepresentation):
+        cart = coord.data
+    else:
+        cart = coord.cartesian
+
+    # this is ~5x faster then cart.xyz
+    return u.Quantity([cart.x, cart.y, cart.z])
 
 
 @frame_transform_graph.transform(FunctionTransform, GroundFrame, TiltedGroundFrame)
@@ -142,18 +159,17 @@ def ground_to_tilted(ground_coord, tilted_frame):
     -------
     SkyCoordinate transformed to `tilted_frame` coordinates
     """
-    x_grd, y_grd, z_grd = ground_coord.cartesian.xyz
+    xyz_grd = _get_xyz(ground_coord)
 
+    # convert to rad first and substract. Faster than .zen
     altitude = tilted_frame.pointing_direction.alt.to_value(u.rad)
     azimuth = tilted_frame.pointing_direction.az.to_value(u.rad)
 
-    trans = get_shower_trans_matrix(azimuth, altitude)
+    rotation_matrix = _get_shower_trans_matrix(azimuth, altitude)
 
-    x_tilt = trans[0, 0] * x_grd + trans[0, 1] * y_grd + trans[0, 2] * z_grd
-    y_tilt = trans[1, 0] * x_grd + trans[1, 1] * y_grd + trans[1, 2] * z_grd
-    z_tilt = trans[2, 0] * x_grd + trans[2, 1] * y_grd + trans[2, 2] * z_grd
+    vec = np.einsum("ij...,j...->i...", rotation_matrix, xyz_grd)
 
-    representation = CartesianRepresentation(x_tilt, y_tilt, z_tilt)
+    representation = CartesianRepresentation(*vec)
 
     return tilted_frame.realize_frame(representation)
 
@@ -174,20 +190,19 @@ def tilted_to_ground(tilted_coord, ground_frame):
     -------
     GroundFrame coordinates
     """
-    x_tilt, y_tilt, z_tilt = tilted_coord.cartesian.xyz
+    xyz_tilt = _get_xyz(tilted_coord)
 
-    altitude = tilted_coord.pointing_direction.alt.to(u.rad)
-    azimuth = tilted_coord.pointing_direction.az.to(u.rad)
+    altitude = tilted_coord.pointing_direction.alt.to_value(u.rad)
+    azimuth = tilted_coord.pointing_direction.az.to_value(u.rad)
 
-    trans = get_shower_trans_matrix(azimuth, altitude)
+    rotation_matrix = _get_shower_trans_matrix(azimuth, altitude, inverse=True)
 
-    x_grd = trans[0][0] * x_tilt + trans[1][0] * y_tilt + trans[2][0] * z_tilt
-    y_grd = trans[0][1] * x_tilt + trans[1][1] * y_tilt + trans[2][1] * z_tilt
-    z_grd = trans[0][2] * x_tilt + trans[1][2] * y_tilt + trans[2][2] * z_tilt
+    vec = np.einsum("ij...,j...->i...", rotation_matrix, xyz_tilt)
 
-    representation = CartesianRepresentation(x_grd, y_grd, z_grd)
+    representation = CartesianRepresentation(*vec)
 
     grd = ground_frame.realize_frame(representation)
+
     return grd
 
 
@@ -215,9 +230,9 @@ def project_to_ground(tilt_system):
     y_initial = ground_system.y.value
     z_initial = ground_system.z.value
 
-    trans = get_shower_trans_matrix(
-        tilt_system.pointing_direction.az,
-        tilt_system.pointing_direction.alt,
+    trans = _get_shower_trans_matrix(
+        tilt_system.pointing_direction.az.to_value(u.rad),
+        tilt_system.pointing_direction.alt.to_value(u.rad),
     )
 
     x_projected = x_initial - trans[2][0] * z_initial / trans[2][2]

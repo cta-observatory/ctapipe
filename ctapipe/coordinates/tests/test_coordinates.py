@@ -237,15 +237,19 @@ def test_ground_to_tilt_many_to_one():
 def test_ground_to_tilt_many_to_many():
     from ctapipe.coordinates import GroundFrame, TiltedGroundFrame
 
-    # define ground coordinate
-    grd_coord = GroundFrame(x=[1, 1] * u.m, y=[2, 2] * u.m, z=[0, 0] * u.m)
+    ground = GroundFrame(x=[1, 2] * u.m, y=[2, 1] * u.m, z=[3, 3] * u.m)
     pointing_direction = SkyCoord(
-        alt=[90, 90, 90], az=[0, 0, 90], frame=AltAz(), unit=u.deg
+        alt=[90, 90, 90],
+        az=[0, 90, 180],
+        frame=AltAz(),
+        unit=u.deg,
     )
 
-    with raises(ValueError):
-        # there will be a shape mismatch in matrix multiplication
-        grd_coord.transform_to(TiltedGroundFrame(pointing_direction=pointing_direction))
+    tilted = ground[:, np.newaxis].transform_to(
+        TiltedGroundFrame(pointing_direction=pointing_direction)
+    )
+
+    assert tilted.shape == (2, 3)
 
 
 def test_camera_missing_focal_length():
@@ -280,6 +284,27 @@ def test_ground_frame_roundtrip():
     assert u.isclose(coord.x, back.x, atol=1e-12 * u.m)
     assert u.isclose(coord.y, back.y, atol=1e-12 * u.m)
     assert u.isclose(coord.z, back.z, atol=1e-12 * u.m)
+
+
+def test_ground_to_tilt_many_to_many_roundtrip():
+    from ctapipe.coordinates import GroundFrame, TiltedGroundFrame
+
+    ground = GroundFrame(x=[1, 2] * u.m, y=[2, 1] * u.m, z=[3, 3] * u.m)
+    pointing_direction = SkyCoord(
+        alt=[90, 90, 90],
+        az=[0, 0, 180],
+        frame=AltAz(),
+        unit=u.deg,
+    )
+
+    tilted = ground[:, np.newaxis].transform_to(
+        TiltedGroundFrame(pointing_direction=pointing_direction)
+    )
+    back = tilted[:, 0].transform_to(GroundFrame())
+
+    assert u.isclose(ground.x, back.x, atol=1e-12 * u.m).all()
+    assert u.isclose(ground.y, back.y, atol=1e-12 * u.m).all()
+    assert u.isclose(ground.z, back.z, atol=1e-12 * u.m).all()
 
 
 def test_ground_to_eastnorth_roundtrip():
