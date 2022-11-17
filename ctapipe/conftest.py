@@ -194,13 +194,13 @@ def prod3_astri(subarray_prod3_paranal):
 @pytest.fixture(scope="session")
 def dl1_tmp_path(tmp_path_factory):
     """Temporary directory for global dl1 test data"""
-    return tmp_path_factory.mktemp("dl1")
+    return tmp_path_factory.mktemp("dl1_")
 
 
 @pytest.fixture(scope="session")
 def dl2_tmp_path(tmp_path_factory):
     """Temporary directory for global dl2 test data"""
-    return tmp_path_factory.mktemp("dl2")
+    return tmp_path_factory.mktemp("dl2_")
 
 
 @pytest.fixture(scope="session")
@@ -505,8 +505,45 @@ def energy_regressor_path(model_tmp_path):
 
 
 @pytest.fixture(scope="session")
-def particle_classifier_path(model_tmp_path, energy_regressor_path):
+def gamma_train_clf(model_tmp_path, energy_regressor_path):
     from ctapipe.tools.apply_models import ApplyModels
+
+    inpath = "dataset://gamma_diffuse_dl2_train_small.dl2.h5"
+    outpath = model_tmp_path / "gamma_train_clf.dl2.h5"
+    run_tool(
+        ApplyModels(),
+        argv=[
+            f"--input={inpath}",
+            f"--output={outpath}",
+            f"--energy-regressor={energy_regressor_path}",
+        ],
+        raises=True,
+    )
+    return outpath
+
+
+@pytest.fixture(scope="session")
+def proton_train_clf(model_tmp_path, energy_regressor_path):
+    from ctapipe.tools.apply_models import ApplyModels
+
+    inpath = "dataset://proton_dl2_train_small.dl2.h5"
+    outpath = model_tmp_path / "proton_train_clf.dl2.h5"
+    run_tool(
+        ApplyModels(),
+        argv=[
+            f"--input={inpath}",
+            f"--output={outpath}",
+            f"--energy-regressor={energy_regressor_path}",
+        ],
+        raises=True,
+    )
+    return outpath
+
+
+@pytest.fixture(scope="session")
+def particle_classifier_path(
+    model_tmp_path, energy_regressor_path, gamma_train_clf, proton_train_clf
+):
     from ctapipe.tools.train_particle_classifier import TrainParticleClassifier
 
     out_file = model_tmp_path / "particle_classifier.pkl"
@@ -516,31 +553,11 @@ def particle_classifier_path(model_tmp_path, energy_regressor_path):
 
         config = resource_file("train_particle_classifier.yaml")
 
-        proton_train = model_tmp_path / "proton_train.dl2.h5"
-        gamma_train = model_tmp_path / "gamma_train.dl2.h5"
-
-        for inpath, outpath in zip(
-            [
-                "dataset://gamma_diffuse_dl2_train_small.dl2.h5",
-                "dataset://proton_dl2_train_small.dl2.h5",
-            ],
-            (proton_train, gamma_train),
-        ):
-            ret = run_tool(
-                ApplyModels(),
-                argv=[
-                    f"--input={inpath}",
-                    f"--output={outpath}",
-                    f"--energy-regressor={energy_regressor_path}",
-                ],
-            )
-            assert ret == 0
-
         ret = run_tool(
             TrainParticleClassifier(),
             argv=[
-                f"--signal={gamma_train}",
-                f"--background={proton_train}",
+                f"--signal={gamma_train_clf}",
+                f"--background={proton_train_clf}",
                 f"--output={out_file}",
                 f"--config={config}",
                 "--log-level=INFO",
