@@ -8,7 +8,7 @@ from typing import Dict
 
 import numpy as np
 import tables
-from astropy.table import Table, vstack
+from astropy.table import Table, hstack, vstack
 from astropy.utils.decorators import lazyproperty
 
 from ctapipe.instrument.optics import FocalLengthKind
@@ -111,6 +111,29 @@ def _join_telescope_events(table1, table2):
     else:
         how = "left"
     return join_allow_empty(table1, table2, TELESCOPE_EVENT_KEYS, how)
+
+
+def _merge_table_same_index(table1, table2, index_keys):
+    """Merge two tables assuming their primary keys are identical"""
+    if len(table1) != len(table2):
+        raise ValueError("Tables must have identical length")
+
+    if len(table1) == 0:
+        return table1
+
+    if not np.all(table1[index_keys] == table2[index_keys]):
+        raise ValueError("Tables primary keys ({index_keys}) do not match")
+
+    columns = [col for col in table2.columns if col not in index_keys]
+    return hstack((table1, table2[columns]), join_type="exact")
+
+
+def _merge_subarray_tables(table1, table2):
+    return _merge_table_same_index(table1, table2, ["obs_id", "event_id"])
+
+
+def _merge_telescope_tables(table1, table2):
+    return _merge_table_same_index(table1, table2, ["obs_id", "event_id", "tel_id"])
 
 
 class TableLoader(Component):
@@ -310,7 +333,7 @@ class TableLoader(Component):
 
         if self.load_simulated and SHOWER_TABLE in self.h5file:
             showers = read_table(self.h5file, SHOWER_TABLE, start=start, stop=stop)
-            table = _join_subarray_events(table, showers)
+            table = _merge_subarray_tables(table, showers)
 
         if self.load_dl2:
             if DL2_SUBARRAY_GROUP in self.h5file:
@@ -325,7 +348,7 @@ class TableLoader(Component):
                             start=start,
                             stop=stop,
                         )
-                        table = _join_subarray_events(table, dl2)
+                        table = _merge_subarray_tables(table, dl2)
 
         if self.load_observation_info:
             table = self._join_observation_info(table, start=start, stop=stop)
@@ -371,19 +394,21 @@ class TableLoader(Component):
         if tel_id is None:
             raise ValueError("Please, specify a telescope ID.")
 
-        table = _empty_telescope_events_table()
+        table = read_table(self.h5file, "/dl1/event/telescope/trigger")
+        table = table[table["tel_id"] == tel_id]
+        table = table[slice(start, stop)]
 
         if self.load_dl1_parameters:
             parameters = self._read_telescope_table(
                 PARAMETERS_GROUP, tel_id, start=start, stop=stop
             )
-            table = _join_telescope_events(table, parameters)
+            table = _merge_telescope_tables(table, parameters)
 
         if self.load_dl1_images:
             images = self._read_telescope_table(
                 IMAGES_GROUP, tel_id, start=start, stop=stop
             )
-            table = _join_telescope_events(table, images)
+            table = _merge_telescope_tables(table, images)
 
         if self.load_dl2:
             if DL2_TELESCOPE_GROUP in self.h5file:
@@ -397,13 +422,13 @@ class TableLoader(Component):
                         dl2 = self._read_telescope_table(
                             path, tel_id, start=start, stop=stop
                         )
-                        table = _join_telescope_events(table, dl2)
+                        table = _merge_telescope_tables(table, dl2)
 
         if self.load_true_images:
             true_images = self._read_telescope_table(
                 TRUE_IMAGES_GROUP, tel_id, start=start, stop=stop
             )
-            table = _join_telescope_events(table, true_images)
+            table = _merge_telescope_tables(table, true_images)
 
         if self.load_true_parameters:
             true_parameters = self._read_telescope_table(
