@@ -430,6 +430,9 @@ class TableLoader(Component):
                         dl2 = self._read_telescope_table(
                             path, tel_id, start=start, stop=stop
                         )
+                        if len(dl2) == 0:
+                            continue
+
                         table = _merge_telescope_tables(table, dl2)
 
         if self.load_true_images:
