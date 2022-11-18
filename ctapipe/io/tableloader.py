@@ -122,7 +122,7 @@ def _merge_table_same_index(table1, table2, index_keys):
         return table1
 
     if not np.all(table1[index_keys] == table2[index_keys]):
-        raise ValueError("Tables primary keys ({index_keys}) do not match")
+        raise ValueError(f"Tables primary keys ({index_keys}) do not match")
 
     columns = [col for col in table2.columns if col not in index_keys]
     return hstack((table1, table2[columns]), join_type="exact")
@@ -348,7 +348,10 @@ class TableLoader(Component):
                             start=start,
                             stop=stop,
                         )
-                        table = _merge_subarray_tables(table, dl2)
+                        try:
+                            table = _merge_subarray_tables(table, dl2)
+                        except ValueError:
+                            table = _join_subarray_events(table, dl2)
 
         if self.load_observation_info:
             table = self._join_observation_info(table, start=start, stop=stop)
