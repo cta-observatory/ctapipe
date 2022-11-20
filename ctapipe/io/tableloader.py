@@ -137,11 +137,11 @@ def _merge_table_same_index(table1, table2, index_keys, fallback_join_type="left
 
 
 def _merge_subarray_tables(table1, table2):
-    return _merge_table_same_index(table1, table2, ["obs_id", "event_id"])
+    return _merge_table_same_index(table1, table2, SUBARRAY_EVENT_KEYS)
 
 
 def _merge_telescope_tables(table1, table2):
-    return _merge_table_same_index(table1, table2, ["obs_id", "event_id", "tel_id"])
+    return _merge_table_same_index(table1, table2, TELESCOPE_EVENT_KEYS)
 
 
 class TableLoader(Component):
