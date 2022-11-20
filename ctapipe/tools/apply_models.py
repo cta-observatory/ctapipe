@@ -11,7 +11,9 @@ from tqdm.auto import tqdm
 from ctapipe.core.tool import Tool
 from ctapipe.core.traits import Bool, Path, flag
 from ctapipe.io import TableLoader, write_table
+from ctapipe.io.astropy_helpers import read_table
 from ctapipe.io.tableio import TelListToMaskTransform
+from ctapipe.io.tableloader import _join_subarray_events
 from ctapipe.reco import EnergyRegressor, ParticleClassifier, StereoCombiner
 
 __all__ = [
@@ -202,6 +204,15 @@ class ApplyModels(Tool):
         ):
             stereo_predictions[c.name] = np.array([trafo(r) for r in c])
             stereo_predictions[c.name].description = c.description
+
+        # to ensure events are stored in the correct order,
+        # we resort to trigger table order
+        trigger = read_table(self.h5file, "/dl1/event/subarray/trigger")[
+            ["obs_id", "event_id"]
+        ]
+        trigger["__sort_index__"] = np.arange(len(trigger))
+        stereo_predictions = _join_subarray_events(trigger, stereo_predictions)
+        stereo_predictions.sort("__sort_index__")
 
         write_table(
             stereo_predictions,
