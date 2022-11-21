@@ -60,6 +60,12 @@ def test_apply_energy_regressor(
     assert f"{prefix}_tel_energy" in events.colnames
     assert f"{prefix}_tel_is_valid" in events.colnames
 
+    from ctapipe.io.tests.test_table_loader import check_equal_array_event_order
+
+    trigger = read_table(output_path, "/dl1/event/subarray/trigger")
+    energy = read_table(output_path, "/dl2/event/subarray/energy/ExtraTreesRegressor")
+    check_equal_array_event_order(trigger, energy)
+
 
 def test_apply_particle_classifier(
     particle_classifier_path,
@@ -141,3 +147,11 @@ def test_apply_both(
     events = loader.read_telescope_events()
     assert "ExtraTreesClassifier_prediction" in events.colnames
     assert "ExtraTreesRegressor_energy" in events.colnames
+
+    from ctapipe.io.tests.test_table_loader import check_equal_array_event_order
+
+    trigger = read_table(output_path, "/dl1/event/subarray/trigger")
+    particle_clf = read_table(
+        output_path, "/dl2/event/subarray/classification/ExtraTreesClassifier"
+    )
+    check_equal_array_event_order(trigger, particle_clf)
