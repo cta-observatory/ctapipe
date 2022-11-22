@@ -799,8 +799,8 @@ class ReconstructedGeometryContainer(Container):
         nan, "average intensity of the intensities used for reconstruction"
     )
     goodness_of_fit = Field(nan, "measure of algorithm success (if fit)")
-    telescopes = Field(None, "Telescopes used if stereo, or None if Mono")
-    multiplicity = Field(-1, "Telescope multiplicity if stereo, or -1 if Mono")
+    telescopes = Field(None, "Telescopes used for reconstruction")
+    multiplicity = Field(0, "Telescope multiplicity")
 
 
 class ReconstructedEnergyContainer(Container):
@@ -821,8 +821,8 @@ class ReconstructedEnergyContainer(Container):
         ),
     )
     goodness_of_fit = Field(nan, "goodness of the algorithm fit")
-    telescopes = Field(None, "Telescopes used if stereo, or None if Mono")
-    multiplicity = Field(-1, "Telescope multiplicity if stereo, or -1 if Mono")
+    telescopes = Field(None, "Telescopes used for reconstruction")
+    multiplicity = Field(0, "Telescope multiplicity")
 
 
 class ParticleClassificationContainer(Container):
@@ -842,8 +842,8 @@ class ParticleClassificationContainer(Container):
     )
     is_valid = Field(False, "true if classification parameters are valid")
     goodness_of_fit = Field(nan, "goodness of the algorithm fit")
-    telescopes = Field(None, "Telescopes used if stereo, or None if Mono")
-    multiplicity = Field(-1, "Telescope multiplicity if stereo, or -1 if Mono")
+    telescopes = Field(None, "Telescopes used for reconstruction")
+    multiplicity = Field(0, "Telescope multiplicity")
 
 
 class ReconstructedContainer(Container):
