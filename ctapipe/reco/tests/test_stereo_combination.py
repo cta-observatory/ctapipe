@@ -67,6 +67,7 @@ def test_predict_mean_energy(weights, mono_table):
         "dummy_is_valid",
         "dummy_goodness_of_fit",
         "dummy_telescopes",
+        "dummy_multiplicity",
     ]
     assert_array_equal(stereo["obs_id"], np.array([1, 1, 2]))
     assert_array_equal(stereo["event_id"], np.array([1, 2, 1]))
@@ -92,6 +93,7 @@ def test_predict_mean_classification(mono_table):
         "classifier_is_valid",
         "classifier_goodness_of_fit",
         "classifier_telescopes",
+        "classifier_multiplicity",
     ]
     assert_array_equal(stereo["obs_id"], np.array([1, 1, 2]))
     assert_array_equal(stereo["event_id"], np.array([1, 2, 1]))

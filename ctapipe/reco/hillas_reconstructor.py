@@ -186,6 +186,7 @@ class HillasReconstructor(GeometryReconstructor):
         # az is clockwise, lon counter-clockwise, make sure it stays in [0, 2pi)
         az = Longitude(-lon)
 
+        telescopes = tel_ids.tolist()
         event.dl2.stereo.geometry[
             self.__class__.__name__
         ] = ReconstructedGeometryContainer(
@@ -195,7 +196,8 @@ class HillasReconstructor(GeometryReconstructor):
             core_y=core_pos_ground.y,
             core_tilted_x=core_pos_tilted.x,
             core_tilted_y=core_pos_tilted.y,
-            telescopes=tel_ids.tolist(),
+            telescopes=telescopes,
+            multiplicity=np.count_nonzero(telescopes),
             average_intensity=np.mean([h.intensity for h in hillas_dict.values()]),
             is_valid=True,
             alt_uncert=err_est_dir,

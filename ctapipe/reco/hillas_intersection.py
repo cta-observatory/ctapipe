@@ -246,7 +246,7 @@ class HillasIntersection(GeometryReconstructor):
         )
 
         src_error = np.sqrt(err_fov_lon**2 + err_fov_lat**2)
-
+        telescopes = [h for h in hillas_dict_mod.keys()]
         return ReconstructedGeometryContainer(
             alt=sky_pos.altaz.alt.to(u.rad),
             az=sky_pos.altaz.az.to(u.rad),
@@ -256,7 +256,8 @@ class HillasIntersection(GeometryReconstructor):
             core_tilted_y=u.Quantity(core_y, u.m),
             core_tilted_uncert_x=u.Quantity(core_err_x, u.m),
             core_tilted_uncert_y=u.Quantity(core_err_y, u.m),
-            telescopes=[h for h in hillas_dict_mod.keys()],
+            telescopes=telescopes,
+            multiplicity=np.count_nonzero(telescopes),
             average_intensity=np.mean([h.intensity for h in hillas_dict_mod.values()]),
             is_valid=True,
             alt_uncert=src_error.to(u.rad),

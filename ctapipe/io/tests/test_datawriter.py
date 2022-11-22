@@ -50,17 +50,20 @@ def generate_dummy_dl2(event):
             alt=72 * u.deg,
             az=121 * u.deg,
             telescopes=[1, 2, 4],
+            multiplicity=3,
             prefix=algo,
         )
 
         event.dl2.stereo.energy[algo] = ReconstructedEnergyContainer(
             energy=10 * u.TeV,
             telescopes=[1, 2, 4],
+            multiplicity=3,
             prefix=algo,
         )
         event.dl2.stereo.classification[algo] = ParticleClassificationContainer(
             prediction=0.9,
             telescopes=[1, 2, 4],
+            multiplicity=3,
             prefix=algo,
         )
 
