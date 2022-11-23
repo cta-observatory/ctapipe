@@ -86,8 +86,13 @@ class Model3DGeometryReconstructor(Reconstructor):
     def _fit(self, event):
         seeds = self._seeds(event)
 
+        images = {}
+        for tel_id in event.dl1.tel.keys():
+            image = event.dl1.tel[tel_id].image.copy()
+            images[tel_id] = image
+
         minimizer = Minuit(
-            partial(self._likelihood, dl1_cam_container=event.dl1.tel.items()),
+            partial(self._likelihood, images=images),
             **seeds,
             name=seeds.keys(),
         )
@@ -119,7 +124,7 @@ class Model3DGeometryReconstructor(Reconstructor):
         h_max,
         width,
         length,
-        dl1_cam_container,
+        images,
     ):
 
         model = GaussianShowermodel(
@@ -137,29 +142,47 @@ class Model3DGeometryReconstructor(Reconstructor):
         prediction = self.predictor.generate_images()
 
         log_likelihood = 0
-        for tel_id, dl1 in dl1_cam_container:
+        for tel_id, img in images.items():
             log_likelihood += np.sum(
                 neg_log_likelihood_approx(
-                    dl1.image,
+                    img,
                     prediction[tel_id],
                     self.tel_spe_widths[tel_id],
                     self.tel_pedestal_widths[tel_id],
                 )
             )
 
-        return log_likelihood / len(dl1_cam_container)
+        return log_likelihood / len(images)
 
     def _seeds(self, event):
         # get seeds from seed reconstructors 'HillasReconstructor'
         geometry_reconstructor = event.dl2.stereo.geometry[self.geometry_seed]
-        total_photons = 100 * geometry_reconstructor.average_intensity
-        az = geometry_reconstructor.az
-        alt = geometry_reconstructor.alt
-        x = geometry_reconstructor.core_x
-        y = geometry_reconstructor.core_y
+        total_photons = (
+            100 * average_intensity
+            if not np.isnan(
+                average_intensity := geometry_reconstructor.average_intensity
+            )
+            else 1e6
+        )
+        az = (
+            az
+            if not np.isnan(az := geometry_reconstructor.az)
+            else event.pointing.array_azimuth
+        )
+        alt = (
+            alt
+            if not np.isnan(alt := geometry_reconstructor.alt)
+            else event.pointing.array_altitude
+        )
+        x = x if not np.isnan(x := geometry_reconstructor.core_x) else 0 * u.m
+        y = y if not np.isnan(y := geometry_reconstructor.core_y) else 0 * u.m
         width = 20 * u.m
         length = 3000 * u.m
-        h_max = geometry_reconstructor.h_max
+        h_max = (
+            h_max
+            if not np.isnan(h_max := geometry_reconstructor.h_max)
+            else 10000 * u.m
+        )
 
         return {
             "total_photons": total_photons,
