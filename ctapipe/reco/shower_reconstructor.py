@@ -1,6 +1,7 @@
 from functools import partial
 
 import astropy.units as u
+import matplotlib.pyplot as plt
 import numpy as np
 from iminuit import Minuit
 
@@ -12,6 +13,7 @@ from ctapipe.image import (
     neg_log_likelihood_approx,
 )
 from ctapipe.reco import Reconstructor
+from ctapipe.visualization import CameraDisplay
 
 
 class Model3DGeometryReconstructor(Reconstructor):
@@ -194,3 +196,32 @@ class Model3DGeometryReconstructor(Reconstructor):
             "width": width.to_value(u.m),
             "length": length.to_value(u.m),
         }
+
+    def peek(self, event):
+        """Plotting function for generated images."""
+        generated_images = self.predictor.generate_images()
+
+        fig, axs = plt.subplots(
+            2,
+            len(generated_images),
+            squeeze=False,
+            figsize=(5 * len(generated_images), 10),
+        )
+        for idx, (tel_id, img) in zip(
+            range(len(generated_images)), generated_images.items()
+        ):
+            geometry = self.subarray.tel[tel_id].camera.geometry
+            disp_generate_image = CameraDisplay(
+                geometry, img, norm="lin", ax=axs[0, idx]
+            )
+            disp_generate_image.add_colorbar()
+            axs[0, idx].set_title(f"tel_{tel_id}", fontweight="semibold", size=14)
+            disp_dl1_image = CameraDisplay(
+                geometry,
+                event.dl1.tel[tel_id].image,
+                norm="lin",
+                ax=axs[1, idx],
+                title="DL1 Image",
+            )
+            disp_dl1_image.add_colorbar()
+        plt.show()
