@@ -3,7 +3,7 @@ import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
 from erfa.ufunc import s2p as spherical_to_cartesian
 
-from ctapipe.coordinates import CameraFrame, TelescopeFrame
+from ctapipe.coordinates import TelescopeFrame
 
 __all__ = ["ShowermodelPredictor"]
 
@@ -81,11 +81,7 @@ class ShowermodelPredictor:
         """Calculates vector of optical center of each telescope to the barycenter of the shower."""
         vec = {}
         for tel_id, position in self.tel_positions.items():
-            vec[tel_id] = self.showermodel.barycenter + [
-                -position[1],
-                position[0],
-                position[2],
-            ]  # Corsika (y,-x,z)-> (x,y,z)
+            vec[tel_id] = self.showermodel.barycenter - position
         return vec
 
     def _vec_los(self, pix_altaz):
@@ -162,23 +158,23 @@ class ShowermodelPredictor:
         """Helper function calculating pixel pointing in AltAz"""
         tel_pix_coords_altaz = {}
         for tel_id in event.dl1.tel.keys():
-            geometry = self.subarray.tel[tel_id].camera.geometry
-            # (x,y)->(y,x) since this is also in a NorthingEasting frame instead of EastingNorthing similar to tel_positions
-            pix_x = geometry.pix_y
-            pix_y = geometry.pix_x
-            focal_length = self.subarray.tel[tel_id].optics.equivalent_focal_length
+            camera_geometry = self.subarray.tel[tel_id].camera.geometry
 
             pointing = event.pointing.tel[tel_id]
             altaz = AltAz(az=pointing.azimuth, alt=pointing.altitude)
-            camera_frame = CameraFrame(
-                focal_length=focal_length, telescope_pointing=altaz
+            frame_with_pointing = camera_geometry.frame.replicate_without_data(
+                telescope_pointing=altaz
             )
 
-            cam_coords = SkyCoord(x=pix_x, y=pix_y, frame=camera_frame)
+            cam_coords = SkyCoord(
+                x=camera_geometry.pix_x,
+                y=camera_geometry.pix_y,
+                frame=frame_with_pointing,
+            )
 
             cam_altaz = cam_coords.transform_to(AltAz())
             tel_pix_coords_altaz[tel_id] = np.stack(
-                (cam_altaz.alt.to_value(u.rad), cam_altaz.az.to_value(u.rad)), -1
+                (cam_altaz.alt.to_value(u.rad), -cam_altaz.az.to_value(u.rad)), -1
             )
 
         return tel_pix_coords_altaz
