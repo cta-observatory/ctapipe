@@ -279,10 +279,11 @@ def test_chunked(dl2_shower_geometry_file):
         tel_event_it = table_loader.read_telescope_events_chunked(chunk_size)
         event_it = table_loader.read_subarray_events_chunked(chunk_size)
         by_type_it = table_loader.read_telescope_events_by_type_chunked(chunk_size)
+        by_id_it = table_loader.read_telescope_events_by_id_chunked(chunk_size)
 
-        iters = (event_it, tel_event_it, by_type_it)
+        iters = (event_it, tel_event_it, by_type_it, by_id_it)
 
-        for chunk, (events, tel_events, by_type) in enumerate(zip(*iters)):
+        for chunk, (events, tel_events, by_type, by_id) in enumerate(zip(*iters)):
             n_read += len(events)
             start = chunk * chunk_size
             stop = min(n_events, (chunk + 1) * chunk_size)
@@ -303,7 +304,29 @@ def test_chunked(dl2_shower_geometry_file):
             n_events_by_type = 0
             for table in by_type.values():
                 n_events_by_type += len(table)
+                assert set(zip(table["obs_id"], table["event_id"])).issubset(
+                    set(
+                        zip(
+                            trigger[start:stop]["obs_id"],
+                            trigger[start:stop]["event_id"],
+                        )
+                    )
+                )
+                assert not np.ma.is_masked(table["HillasReconstructor_is_valid"])
+            assert n_events_by_type == len(tel_events)
 
+            n_events_by_id = 0
+            for table in by_id.values():
+                n_events_by_id += len(table)
+                assert set(zip(table["obs_id"], table["event_id"])).issubset(
+                    set(
+                        zip(
+                            trigger[start:stop]["obs_id"],
+                            trigger[start:stop]["event_id"],
+                        )
+                    )
+                )
+                assert not np.ma.is_masked(table["HillasReconstructor_is_valid"])
             assert n_events_by_type == len(tel_events)
 
     assert n_read == n_events

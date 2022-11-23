@@ -26,6 +26,7 @@ def test_apply_energy_regressor(
             f"--output={output_path}",
             f"--energy-regressor={energy_regressor_path}",
             "--StereoMeanCombiner.weights=konrad",
+            "--chunk-size=5",  # small chunksize so we test multiple chunks for the test file
         ],
         raises=True,
     )
@@ -86,6 +87,7 @@ def test_apply_both(
             f"--energy-regressor={energy_regressor_path}",
             f"--particle-classifier={particle_classifier_path}",
             "--StereoMeanCombiner.weights=konrad",
+            "--chunk-size=5",  # small chunksize so we test multiple chunks for the test file
         ],
     )
     assert ret == 0
