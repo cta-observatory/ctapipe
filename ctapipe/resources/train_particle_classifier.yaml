@@ -47,6 +47,8 @@ TrainParticleClassifier:
       - intensity_skewness
       - intensity_kurtosis
       - area
+      - ExtraTreesRegressor_energy
+      - ExtraTreesRegressor_tel_energy
 
     QualityQuery:
       quality_criteria:

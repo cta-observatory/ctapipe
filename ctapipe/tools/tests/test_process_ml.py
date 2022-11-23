@@ -57,7 +57,10 @@ def test_process_apply_energy(
 
 
 def test_process_apply_classification(
-    tmp_path, particle_classifier_path, prod5_gamma_lapalma_simtel_path
+    tmp_path,
+    energy_regressor_path,
+    particle_classifier_path,
+    prod5_gamma_lapalma_simtel_path,
 ):
     from ctapipe.tools.process import ProcessorTool
 
@@ -76,6 +79,7 @@ def test_process_apply_classification(
             "ShowerProcessor": {
                 "reconstructor_types": [
                     "HillasReconstructor",
+                    "EnergyRegressor",
                     "ParticleClassifier",
                 ]
             },
@@ -90,6 +94,7 @@ def test_process_apply_classification(
         f"--output={output}",
         "--write-images",
         "--write-showers",
+        f"--energy-regressor={energy_regressor_path}",
         f"--particle-classifier={particle_classifier_path}",
         f"--config={config_path}",
     ]

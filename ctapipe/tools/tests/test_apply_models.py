@@ -67,7 +67,8 @@ def test_apply_energy_regressor(
     check_equal_array_event_order(trigger, energy)
 
 
-def test_apply_particle_classifier(
+def test_apply_both(
+    energy_regressor_path,
     particle_classifier_path,
     dl2_shower_geometry_file_lapalma,
     tmp_path,
@@ -75,13 +76,14 @@ def test_apply_particle_classifier(
     from ctapipe.tools.apply_models import ApplyModels
 
     input_path = dl2_shower_geometry_file_lapalma
-    output_path = tmp_path / "particle.dl2.h5"
+    output_path = tmp_path / "particle-and-energy.dl2.h5"
 
     ret = run_tool(
         ApplyModels(),
         argv=[
             f"--input={input_path}",
             f"--output={output_path}",
+            f"--energy-regressor={energy_regressor_path}",
             f"--particle-classifier={particle_classifier_path}",
             "--StereoMeanCombiner.weights=konrad",
         ],
@@ -114,38 +116,6 @@ def test_apply_particle_classifier(
     assert f"{prefix}_tel_prediction" in events.colnames
     assert f"{prefix}_tel_is_valid" in events.colnames
 
-
-def test_apply_both(
-    energy_regressor_path,
-    particle_classifier_path,
-    dl2_shower_geometry_file_lapalma,
-    tmp_path,
-):
-    from ctapipe.tools.apply_models import ApplyModels
-
-    input_path = dl2_shower_geometry_file_lapalma
-    output_path = tmp_path / "particle-and-energy.dl2.h5"
-
-    ret = run_tool(
-        ApplyModels(),
-        argv=[
-            f"--input={input_path}",
-            f"--output={output_path}",
-            f"--particle-classifier={particle_classifier_path}",
-            f"--energy-regressor={energy_regressor_path}",
-            "--StereoMeanCombiner.weights=konrad",
-        ],
-    )
-    assert ret == 0
-
-    loader = TableLoader(output_path, load_dl2=True)
-
-    events = loader.read_subarray_events()
-    assert "ExtraTreesRegressor_energy" in events.colnames
-    assert "ExtraTreesClassifier_prediction" in events.colnames
-
-    events = loader.read_telescope_events()
-    assert "ExtraTreesClassifier_prediction" in events.colnames
     assert "ExtraTreesRegressor_energy" in events.colnames
 
     from ctapipe.io.tests.test_table_loader import check_equal_array_event_order
