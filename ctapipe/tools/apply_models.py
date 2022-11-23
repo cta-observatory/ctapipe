@@ -146,6 +146,9 @@ class ApplyModels(Tool):
                 reconstructor,
             )
             self._combine(reconstructor.stereo_combiner, mono_predictions)
+            # FIXME: this is a not-so-nice solution for the issues that
+            # the table loader does not seem to see the newly written tables
+            # we close and reopen the file and then table loader loads also the new tables
             self.h5file.close()
             self.h5file = tables.open_file(self.output_path, mode="r+")
             self.loader.h5file = self.h5file
