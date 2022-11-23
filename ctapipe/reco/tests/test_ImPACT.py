@@ -6,6 +6,7 @@ from numpy.testing import assert_allclose
 
 from ctapipe.containers import (
     HillasParametersContainer,
+    ReconstructedGeometryContainer,
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
 )

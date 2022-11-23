@@ -389,6 +389,7 @@ class Tool(Application):
                 # remove handler to not impact performance with regex matching
                 self.log.removeHandler(self.trait_warning_handler)
 
+<<<<<<< HEAD
                 self.start()
                 self.finish()
                 self.log.info(f"Finished: {self.name}")
