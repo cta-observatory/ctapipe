@@ -219,6 +219,7 @@ class ApplyModels(Tool):
         trigger["__sort_index__"] = np.arange(len(trigger))
         stereo_predictions = _join_subarray_events(trigger, stereo_predictions)
         stereo_predictions.sort("__sort_index__")
+        del stereo_predictions["__sort_index__"]
 
         write_table(
             stereo_predictions,
