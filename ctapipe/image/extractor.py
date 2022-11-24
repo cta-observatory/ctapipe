@@ -351,6 +351,83 @@ def integration_correction(
     return correction
 
 
+def fwhm(waveforms, peak_index):   # = waveforms.max(axis=-1)):
+    """
+    This function calculates the FWHM of waveforms. As a default, the maximum of the pulse is found locally.
+
+    Parameters
+    ----------
+    waveforms : ndarray
+        Waveforms stored in a numpy array.
+        Shape: (n_pix, n_samples)
+
+    Returns
+    -------
+    fwhm : ndarray
+        Full width half maximum of a pulse.
+        Shape: (n_pix)
+    """
+    max_wv = peak_index
+
+    hm = (max_wv) / 2
+
+    fwhms = []
+    for i in prange(0, len(waveforms)):
+        xs = [x for x in range(0, len(waveforms[i])) if waveforms[i][x] > hm[i]]
+        fwhms.append(max(xs, default=0) - min(xs, default=0))
+
+    return fwhms
+
+
+def time_parameters(waveforms, upper_fract, lower_fract, peak_index):
+    """
+    This function calculates time-related parameters of the main pulse from the waveform.
+
+    Parameters
+    ----------
+    waveforms : ndarray
+        Waveforms stored in a numpy array.
+        Shape: (n_pix, n_samples)
+    peak_index: ndarray or int
+        Peak index for each pixel.
+    upper_fract: float
+        Upper fraction of the peak
+    lower_fract: float
+        Lower fraction of the peak
+
+    Returns
+    -------
+    fall_time : ndarray
+        Fall time of a pulse.
+        Shape: (n_pix)
+    rise_time : ndarray
+        Rise time of a pulse
+        Shape: (n_pix)
+    """
+
+    n_pixels = waveforms.shape[0]
+
+    upper_peak = upper_fract*waveforms[..., peak_index]
+    lower_peak = lower_fract*waveforms[..., peak_index]
+
+    peak_ampl = waveforms[..., peak_index]
+
+    rise_time = []
+    fall_time = []
+    for pixel in prange(n_pixels):
+        wv = waveforms[pixel]
+
+        rising = wv[wv < peak_ampl[pixel]]
+        falling = wv[wv > peak_ampl[pixel]]
+
+        wv_rise = np.where((rising > lower_peak[pixel]) & (rising < upper_peak[pixel]))[0]
+        wv_fall = np.where((falling > lower_peak[pixel]) & (falling < upper_peak[pixel]))[0]
+
+        rise_time.append(np.max(wv_rise) - np.min(wv_rise))
+        fall_time.append(np.max(wv_fall) - np.min(wv_fall))
+
+    return rise_time, fall_time
+
 class ImageExtractor(TelescopeComponent):
     def __init__(self, subarray, config=None, parent=None, **kwargs):
         """
