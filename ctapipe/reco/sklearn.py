@@ -10,16 +10,19 @@ import joblib
 import numpy as np
 from astropy.table import QTable, Table, vstack
 from astropy.utils.decorators import lazyproperty
-from sklearn.metrics import r2_score, roc_auc_score
+from sklearn.metrics import accuracy_score, r2_score, roc_auc_score
 from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.utils import all_estimators
 from tqdm import tqdm
 
 from ..containers import (
     ArrayEventContainer,
+    DispContainer,
     ParticleClassificationContainer,
     ReconstructedEnergyContainer,
+    ReconstructedGeometryContainer,
 )
+from ..coordinates.disp import telescope_to_horizontal
 from ..core import Component, FeatureGenerator, Provenance, QualityQuery
 from ..core.traits import (
     Bool,
@@ -31,6 +34,7 @@ from ..core.traits import (
     List,
     Path,
     TraitError,
+    Tuple,
     Unicode,
 )
 from ..io import write_table
@@ -42,9 +46,10 @@ from .utils import add_defaults_and_meta
 __all__ = [
     "SKLearnReconstructor",
     "SKLearnRegressionReconstructor",
-    "SKLearnClassficationReconstructor",
+    "SKLearnClassificationReconstructor",
     "EnergyRegressor",
     "ParticleClassifier",
+    "DispReconstructor",
     "CrossValidator",
 ]
 
@@ -314,7 +319,7 @@ class SKLearnRegressionReconstructor(SKLearnReconstructor):
         return y
 
 
-class SKLearnClassficationReconstructor(SKLearnReconstructor):
+class SKLearnClassificationReconstructor(SKLearnReconstructor):
     """
     Base class for classification tasks
     """
@@ -323,7 +328,7 @@ class SKLearnClassficationReconstructor(SKLearnReconstructor):
         SUPPORTED_CLASSIFIERS.keys(),
         default_value=None,
         allow_none=True,
-        help="Which scikit-learn regression model to use.",
+        help="Which scikit-learn classification model to use.",
     ).tag(config=True)
 
     invalid_class = Integer(
@@ -456,7 +461,7 @@ class EnergyRegressor(SKLearnRegressionReconstructor):
         return result
 
 
-class ParticleClassifier(SKLearnClassficationReconstructor):
+class ParticleClassifier(SKLearnClassificationReconstructor):
     """
     Predict dl2 particle classification
     """
@@ -519,6 +524,353 @@ class ParticleClassifier(SKLearnClassficationReconstructor):
         return result
 
 
+class DispReconstructor(Reconstructor):
+    """
+    Predict absolute value and sign for disp origin reconstruction for each telescope.
+    """
+
+    property = "geometry"
+    prefix = Unicode(default_value="disp", allow_none=False).tag(config=True)
+    features = List(Unicode(), help="Features to use for both models").tag(config=True)
+
+    norm_target = "true_norm"
+    norm_config = Dict({}, help="kwargs for the sklearn regressor").tag(config=True)
+    norm_cls = Enum(
+        SUPPORTED_REGRESSORS.keys(),
+        default_value=None,
+        allow_none=True,
+        help="Which scikit-learn regression model to use.",
+    ).tag(config=True)
+
+    norm_log_target = Bool(
+        default_value=False,
+        help="If True, the norm model is trained to predict the natural logarithm.",
+    ).tag(config=True)
+
+    sign_target = "true_sign"
+    sign_config = Dict({}, help="kwargs for the sklearn classifier").tag(config=True)
+    sign_cls = Enum(
+        SUPPORTED_CLASSIFIERS.keys(),
+        default_value=None,
+        allow_none=True,
+        help="Which scikit-learn classification model to use.",
+    ).tag(config=True)
+
+    sign_invalid_class = Integer(
+        default_value=0,
+        help="The label to fill in case no sign prediction could be made",
+    ).tag(config=True)
+
+    stereo_combiner_cls = ComponentName(
+        StereoCombiner,
+        default_value="StereoMeanCombiner",
+        help="Which stereo combination method to use",
+    ).tag(config=True)
+
+    load_path = Path(
+        default_value=None,
+        allow_none=True,
+        help="If given, load serialized model from this path",
+    ).tag(config=True)
+
+    def __init__(self, subarray, norm_models=None, sign_models=None, **kwargs):
+        # Run the Component __init__ first to handle the configuration
+        # and make `self.load_path` available
+        Component.__init__(self, **kwargs)
+
+        if self.load_path is None:
+            if self.norm_cls is None or self.sign_cls is None:
+                raise TraitError(
+                    "Must provide `norm_cls` and `sign_cls` if not loading form file"
+                )
+
+            if subarray is None:
+                raise TypeError(
+                    "__init__() missing 1 required positional argument: 'subarray'"
+                )
+
+            super().__init__(subarray, **kwargs)
+            self.subarray = subarray
+            self.quality_query = MLQualityQuery(parent=self)
+            self.feature_generator = FeatureGenerator(parent=self)
+
+            # to verify settings
+            self._new_models()
+
+            self._norm_models = {} if norm_models is None else norm_models
+            self._sign_models = {} if sign_models is None else sign_models
+            self.norm_unit = None
+            self.stereo_combiner = StereoCombiner.from_name(
+                self.stereo_combiner_cls,
+                prefix=self.prefix,
+                property=self.property,
+                parent=self,
+            )
+        else:
+            loaded = self.read(self.load_path)
+            if (
+                subarray is not None
+                and loaded.subarray.telescope_types != subarray.telescope_types
+            ):
+                self.log.warning(
+                    "Supplied subarray has different telescopes than subarray loaded form file"
+                )
+            self.__dict__.update(loaded.__dict__)
+            self.subarray = subarray
+
+    def _new_models(self):
+        norm_regressor = SUPPORTED_REGRESSORS[self.norm_cls](**self.norm_config)
+        sign_classifier = SUPPORTED_CLASSIFIERS[self.sign_cls](**self.sign_config)
+        return norm_regressor, sign_classifier
+
+    def _table_to_X(self, table):
+        """
+        Extract features as numpy ndarray to be given to sklearn from input table
+        """
+        feature_table = table[self.features]
+        valid = check_valid_rows(feature_table, log=self.log)
+        X = table_to_float(feature_table[valid])
+        return X, valid
+
+    def _table_to_y(self, table, mask=None):
+        """
+        Extract target values as numpy array from input table
+        """
+        # make sure we use the unit that was used during training
+        if self.norm_unit is not None:
+            norm_y = table[mask][self.norm_target].quantity.to_value(self.norm_unit)
+        else:
+            norm_y = np.array(table[self.norm_target][mask])
+
+        if self.norm_log_target:
+            if np.any(norm_y <= 0):
+                raise ValueError("norm_y contains negative values, cannot apply log")
+            norm_y = np.log(norm_y)
+
+        sign_y = np.array(table[self.sign_target][mask])
+        return norm_y, sign_y
+
+    def fit(self, key, table):
+        """
+        Create and fit new models for ``key`` using the data in ``table``.
+        """
+        self._norm_models[key], self._sign_models[key] = self._new_models()
+
+        X, valid = self._table_to_X(table)
+        self.norm_unit = table[self.norm_target].unit
+        norm_y, sign_y = self._table_to_y(table, mask=valid)
+        self._norm_models[key].fit(X, norm_y)
+        self._sign_models[key].fit(X, sign_y)
+
+    def write(self, path, overwrite=False):
+        path = pathlib.Path(path)
+
+        if path.exists() and not overwrite:
+            raise IOError(f"Path {path} exists and overwrite=False")
+
+        with path.open("wb") as f:
+            Provenance().add_output_file(path, role="ml-models")
+            joblib.dump(self, f, compress=True)
+
+    @classmethod
+    def read(cls, path, **kwargs):
+        with open(path, "rb") as f:
+            instance = joblib.load(f)
+
+        for attr, value in kwargs.items():
+            setattr(instance, attr, value)
+
+        if not isinstance(instance, cls):
+            raise TypeError(
+                f"{path} did not contain an instance of {cls}, got {instance}"
+            )
+
+        Provenance().add_input_file(path, role="ml-models")
+        return instance
+
+    @lazyproperty
+    def instrument_table(self):
+        return self.subarray.to_table("joined")
+
+    def _predict(self, key, table):
+        if key not in self._norm_models:
+            raise KeyError(
+                f"No regressor available for key {key},"
+                f" available regressors: {self._norm_models.keys()}"
+            )
+        if key not in self._sign_models:
+            raise KeyError(
+                f"No classifier available for key {key},"
+                f" available classifiers: {self._sign_models.keys()}"
+            )
+        X, valid = self._table_to_X(table)
+        norm_prediction = np.full(len(table), np.nan)
+        sign_prediction = np.full(len(table), self.sign_invalid_class, dtype=np.int8)
+
+        if np.any(valid):
+            valid_norms = self._norm_models[key].predict(X)
+
+            if self.norm_log_target:
+                norm_prediction[valid] = np.exp(valid_norms)
+            else:
+                norm_prediction[valid] = valid_norms
+
+            sign_prediction[valid] = self._sign_models[key].predict(X)
+
+        if self.norm_unit is not None:
+            norm_prediction = u.Quantity(norm_prediction, self.norm_unit, copy=False)
+
+        return norm_prediction, sign_prediction, valid
+
+    def __call__(self, event: ArrayEventContainer) -> None:
+        """Event-wise prediction for the EventSource-Loop.
+
+        Fills the event.dl2.tel[tel_id].disp[prefix] container
+        and event.dl2.tel[tel_id].geometry[prefix] container.
+
+        Parameters
+        ----------
+        event: ArrayEventContainer
+        """
+        for tel_id in event.trigger.tels_with_trigger:
+            table = collect_features(event, tel_id, self.instrument_table)
+            table = self.feature_generator(table)
+
+            passes_quality_checks = self.quality_query.get_table_mask(table)[0]
+
+            if passes_quality_checks:
+                norm, sign, valid = self._predict(self.subarray.tel[tel_id], table)
+                disp_container = DispContainer(
+                    norm=norm[0],
+                    sign=sign[0],
+                    parameters_is_valid=valid[0],
+                )
+
+                if valid:
+                    disp = norm * sign
+
+                    fov_lon = event.dl1.tel[
+                        tel_id
+                    ].parameters.hillas.fov_lon + disp * np.cos(
+                        event.dl1.tel[tel_id].parameters.hillas.psi.to(u.rad)
+                    )
+                    fov_lat = event.dl1.tel[
+                        tel_id
+                    ].parameters.hillas.fov_lat + disp * np.sin(
+                        event.dl1.tel[tel_id].parameters.hillas.psi.to(u.rad)
+                    )
+                    alt, az = telescope_to_horizontal(
+                        lon=fov_lon,
+                        lat=fov_lat,
+                        pointing_alt=event.pointing.tel[tel_id].altitude.to(u.deg),
+                        pointing_az=event.pointing.tel[tel_id].azimuth.to(u.deg),
+                    )
+
+                    altaz_container = ReconstructedGeometryContainer(
+                        alt=alt[0], az=az[0], is_valid=True
+                    )
+
+                else:
+                    altaz_container = ReconstructedGeometryContainer(
+                        alt=u.Quantity(np.nan, u.deg, copy=False),
+                        az=u.Quantity(np.nan, u.deg, copy=False),
+                        is_valid=False,
+                    )
+            else:
+                disp_container = DispContainer(
+                    norm=u.Quantity(np.nan, self.norm_unit),
+                    sign=self.sign_invalid_class,
+                    parameters_is_valid=False,
+                )
+                altaz_container = ReconstructedGeometryContainer(
+                    alt=u.Quantity(np.nan, u.deg, copy=False),
+                    az=u.Quantity(np.nan, u.deg, copy=False),
+                    is_valid=False,
+                )
+
+            disp_container.prefix = f"{self.prefix}_tel"
+            altaz_container.prefix = f"{self.prefix}_tel"
+            event.dl2.tel[tel_id].disp[self.prefix] = disp_container
+            event.dl2.tel[tel_id].geometry[self.prefix] = altaz_container
+
+        self.stereo_combiner(event)
+
+    def predict_table(self, key, table: Table) -> Tuple(Table, Table):
+        """Predict on a table of events
+
+        Parameters
+        ----------
+        table : `~astropy.table.Table`
+            Table of features
+
+        Returns
+        -------
+        disp_table : `~astropy.table.Table`
+            Table with disp predictions, matches the corresponding
+            container definition
+        altaz_table : `~astropy.table.Table`
+            Table with resulting predictions of horizontal coordinates
+        """
+        table = self.feature_generator(table)
+
+        n_rows = len(table)
+        norm = u.Quantity(np.full(n_rows, np.nan), self.norm_unit, copy=False)
+        sign = np.full(n_rows, self.sign_invalid_class, dtype=np.int8)
+        is_valid = np.full(n_rows, False)
+
+        valid = self.quality_query.get_table_mask(table)
+        norm[valid], sign[valid], is_valid[valid] = self._predict(key, table[valid])
+
+        disp_result = Table(
+            {
+                f"{self.prefix}_tel_norm": norm,
+                f"{self.prefix}_tel_sign": sign,
+                f"{self.prefix}_tel_parameters_is_valid": is_valid,
+            }
+        )
+        add_defaults_and_meta(
+            disp_result,
+            DispContainer,
+            prefix=self.prefix,
+            stereo=False,
+        )
+
+        disp = norm * sign
+
+        fov_lon = table["hillas_fov_lon"] + disp * np.cos(table["hillas_psi"].to(u.rad))
+        fov_lat = table["hillas_fov_lat"] + disp * np.sin(table["hillas_psi"].to(u.rad))
+
+        # For now: Assume parallel pointing for each run
+        alt, az = telescope_to_horizontal(
+            lon=fov_lon,
+            lat=fov_lat,
+            pointing_alt=table["subarray_pointing_lat"],
+            pointing_az=table["subarray_pointing_lon"],
+        )
+
+        altaz_result = Table(
+            {
+                f"{self.prefix}_tel_alt": alt,
+                f"{self.prefix}_tel_az": az,
+                f"{self.prefix}_tel_is_valid": is_valid,
+            }
+        )
+        add_defaults_and_meta(
+            altaz_result,
+            ReconstructedGeometryContainer,
+            prefix=self.prefix,
+            stereo=False,
+        )
+
+        return disp_result, altaz_result
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["_trait_values"]["parent"] = None
+        state["_trait_notifiers"] = {}
+        return state
+
+
 class CrossValidator(Component):
     """Class to train sklearn based reconstructors in a cross validation"""
 
@@ -546,12 +898,15 @@ class CrossValidator(Component):
         self.model_component = model_component
         self.rng = np.random.default_rng(self.rng_seed)
 
-        if isinstance(self.model_component, SKLearnClassficationReconstructor):
+        if isinstance(self.model_component, SKLearnClassificationReconstructor):
             self.cross_validate = self._cross_validate_classification
             self.split_data = StratifiedKFold
         elif isinstance(self.model_component, SKLearnRegressionReconstructor):
             self.cross_validate = self._cross_validate_regressor
             self.split_data = KFold
+        elif isinstance(self.model_component, DispReconstructor):
+            self.cross_validate = self._cross_validate_disp
+            self.split_data = StratifiedKFold
         else:
             raise KeyError(
                 "Unsupported Model of type %s supplied", self.model_component
@@ -577,7 +932,11 @@ class CrossValidator(Component):
             random_state=self.rng.integers(0, 2**31 - 1),
         )
 
-        cv_it = kfold.split(table, table[self.model_component.target])
+        if isinstance(self.model_component, DispReconstructor):
+            cv_it = kfold.split(table, table[self.model_component.sign_target])
+        else:
+            cv_it = kfold.split(table, table[self.model_component.target])
+
         for fold, (train_indices, test_indices) in enumerate(
             tqdm(
                 cv_it,
@@ -587,19 +946,43 @@ class CrossValidator(Component):
         ):
             train = table[train_indices]
             test = table[test_indices]
-            cv_prediction, truth, metrics = self.cross_validate(
-                telescope_type, train, test
-            )
-            predictions.append(
-                Table(
-                    {
-                        "cv_fold": np.full(len(truth), fold, dtype=np.uint8),
-                        "tel_type": [str(telescope_type)] * len(truth),
-                        "prediction": cv_prediction,
-                        "truth": truth,
-                    }
+
+            if isinstance(self.model_component, DispReconstructor):
+                (
+                    cv_prediction_norm,
+                    cv_prediction_sign,
+                    truth_norm,
+                    truth_sign,
+                    metrics,
+                ) = self.cross_validate(telescope_type, train, test)
+
+                predictions.append(
+                    Table(
+                        {
+                            "cv_fold": np.full(len(truth_norm), fold, dtype=np.uint8),
+                            "tel_type": [str(telescope_type)] * len(truth_norm),
+                            "norm_prediction": cv_prediction_norm,
+                            "norm_truth": truth_norm,
+                            "sign_prediction": cv_prediction_sign,
+                            "sign_truth": truth_sign,
+                            "true_energy": test["true_energy"],
+                        }
+                    )
                 )
-            )
+            else:
+                cv_prediction, truth, metrics = self.cross_validate(
+                    telescope_type, train, test
+                )
+                predictions.append(
+                    Table(
+                        {
+                            "cv_fold": np.full(len(truth), fold, dtype=np.uint8),
+                            "tel_type": [str(telescope_type)] * len(truth),
+                            "prediction": cv_prediction,
+                            "truth": truth,
+                        }
+                    )
+                )
 
             for metric, value in metrics.items():
                 scores[metric].append(value)
@@ -635,6 +1018,24 @@ class CrossValidator(Component):
         roc_auc = roc_auc_score(truth, prediction)
         return prediction, truth, {"ROC AUC": roc_auc}
 
+    def _cross_validate_disp(self, telescope_type, train, test):
+        models = self.model_component
+        models.fit(telescope_type, train)
+
+        norm_prediction, sign_prediction, _ = models._predict(telescope_type, test)
+        norm_truth = test[models.norm_target]
+        sign_truth = test[models.sign_target]
+        r2 = r2_score(norm_truth, norm_prediction)
+        accuracy = accuracy_score(sign_truth, sign_prediction)
+
+        return (
+            norm_prediction,
+            sign_prediction,
+            norm_truth,
+            sign_truth,
+            {"R^2": r2, "accuracy": accuracy},
+        )
+
     def write(self, overwrite=False):
         if self.output_path.exists() and not overwrite:
             raise IOError(f"Path {self.output_path} exists and overwrite=False")
@@ -642,5 +1043,5 @@ class CrossValidator(Component):
         Provenance().add_output_file(self.output_path, role="ml-cross-validation")
         for tel_type, results in self.cv_predictions.items():
             write_table(
-                results, self.output_path, f"cv_predictions_{tel_type}", overwrite=True
+                results, self.output_path, f"/cv_predictions_{tel_type}", overwrite=True
             )

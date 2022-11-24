@@ -45,6 +45,7 @@ __all__ = [
     "ReconstructedContainer",
     "ReconstructedEnergyContainer",
     "ReconstructedGeometryContainer",
+    "DispContainer",
     "SimulatedCameraContainer",
     "SimulatedShowerContainer",
     "SimulatedShowerDistribution",
@@ -754,6 +755,11 @@ class ReconstructedGeometryContainer(Container):
     alt_uncert = Field(nan * u.deg, "reconstructed altitude uncertainty", unit=u.deg)
     az = Field(nan * u.deg, "reconstructed azimuth", unit=u.deg)
     az_uncert = Field(nan * u.deg, "reconstructed azimuth uncertainty", unit=u.deg)
+    ang_distance_uncert = Field(
+        nan * u.deg,
+        "uncertainty radius of reconstructed altitude-azimuth position",
+        unit=u.deg,
+    )
     core_x = Field(
         nan * u.m, "reconstructed x coordinate of the core position", unit=u.m
     )
@@ -841,6 +847,19 @@ class ParticleClassificationContainer(Container):
     is_valid = Field(False, "true if classification parameters are valid")
     goodness_of_fit = Field(nan, "goodness of the algorithm fit")
     telescopes = Field(None, "Telescopes used if stereo, or None if Mono")
+
+
+class DispContainer(Container):
+    """
+    Standard output of disp reconstruction algorithms for origin reconstruction
+    """
+
+    default_prefix = "disp"
+
+    norm = Field(nan * u.deg, "reconstructed absolute value for disp", unit=u.deg)
+    sign = Field(nan, "reconstructed sign for disp")
+    # "parameters_is_valid" instead of "is_valid" to avoid duplication of "disp_is_valid" column
+    parameters_is_valid = Field(False, "true if the predictions are valid")
 
 
 class ReconstructedContainer(Container):

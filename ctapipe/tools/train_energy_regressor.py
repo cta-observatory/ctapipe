@@ -30,7 +30,7 @@ class TrainEnergyRegressor(Tool):
     ctapipe-train-energy-regressor \\
         --config train_energy_regressor.yaml \\
         --input gamma.dl2.h5 \\
-        --ouput energy_regressor.pkl
+        --output energy_regressor.pkl
     """
 
     output_path = Path(
