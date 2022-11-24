@@ -52,9 +52,9 @@ __all__ = [
 
 
 CONVERSIONS = {
-    Time: lambda t: t.utc.iso,
-    list: lambda l: ",".join([convert(elem) for elem in l]),
-    DataLevel: lambda d: d.name,
+    Time: lambda value: value.utc.iso,
+    list: lambda value: ",".join([convert(elem) for elem in value]),
+    DataLevel: lambda value: value.name,
 }
 
 
