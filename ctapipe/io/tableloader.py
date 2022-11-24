@@ -659,7 +659,7 @@ class TableLoader(Component):
 
     def read_telescope_events_by_type_chunked(self, chunk_size, *args, **kwargs):
         """
-        Iterate over chunks of telescope events.
+        Iterate over chunks of telescope events as dicts of telescope type to tables.
 
         Parameters
         ----------
@@ -691,7 +691,7 @@ class TableLoader(Component):
         Returns
         -------
         tables: dict(astropy.io.Table)
-            Dictionary of tables organized by telescope types
+            Dictionary of tables organized by telescope ids
             Table with primary index columns "obs_id", "event_id" and "tel_id".
         """
 
@@ -729,7 +729,7 @@ class TableLoader(Component):
 
     def read_telescope_events_by_id_chunked(self, chunk_size, *args, **kwargs):
         """
-        Iterate over chunks of telescope events.
+        Iterate over chunks of telescope events and return a dict of one table per telescope id.
 
         Parameters
         ----------
@@ -738,7 +738,7 @@ class TableLoader(Component):
             The telescope tables might be larger or smaller than chunk_size
             depending on the selected telescopes.
 
-        **kwargs are passed to `read_telescope_events`
+        *args, **kwargs are passed to `read_telescope_events_by_id`
         """
         return ChunkIterator(
             self.read_telescope_events_by_id,
