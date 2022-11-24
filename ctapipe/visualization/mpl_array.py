@@ -321,9 +321,8 @@ class ArrayDisplay:
             half of the length of the segments to be plotted (in meters)
         """
 
-        coords = self.tel_coords
         # transform to GroundFrame
-        positions_in_frame = SkyCoord(coords, frame=self.frame)
+        positions_in_frame = SkyCoord(self.tel_coords, frame=self.frame)
         coords = positions_in_frame.transform_to(GroundFrame())
         c = self.tel_colors
 
@@ -340,14 +339,18 @@ class ArrayDisplay:
             y = y_0 + np.sin(psi).value * r
 
             # transform back to desired frame
-            new_coords = (
+            line = (
                 SkyCoord(x, y, z=0, unit="m", frame=GroundFrame())
                 .transform_to(self.frame)
                 .cartesian
             )
 
-            self.axes.plot(new_coords.x, new_coords.y, color=c[idx], **kwargs)
-            self.axes.scatter(x_0, y_0, color=c[idx])
+            self.axes.plot(line.x, line.y, color=c[idx], **kwargs)
+            self.axes.scatter(
+                positions_in_frame[idx].cartesian.x.to_value(u.m),
+                positions_in_frame[idx].cartesian.y.to_value(u.m),
+                color=c[idx],
+            )
 
     def add_labels(self):
         px = self.tel_coords.x.to_value("m")
