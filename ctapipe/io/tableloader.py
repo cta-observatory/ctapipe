@@ -649,9 +649,9 @@ class TableLoader(Component):
         by_type = defaultdict(list)
         for tel_id in tel_ids:
             key = str(self.subarray.tel[tel_id])
-            by_type[key].append(
-                self._read_telescope_events_for_id(tel_id, start=start, stop=stop)
-            )
+            table = self._read_telescope_events_for_id(tel_id, start=start, stop=stop)
+            if len(table) > 0:
+                by_type[key].append(table)
 
         by_type = {k: vstack(ts) for k, ts in by_type.items()}
         for key in by_type.keys():
@@ -713,9 +713,9 @@ class TableLoader(Component):
         by_id = {}
         for tel_id in tel_ids:
             # no events for this telescope in range start/stop
-            by_id[tel_id] = self._read_telescope_events_for_id(
-                tel_id, start=start, stop=stop
-            )
+            table = self._read_telescope_events_for_id(tel_id, start=start, stop=stop)
+            if len(table) > 0:
+                by_id[tel_id] = table
 
         for tel_id in by_id.keys():
             by_id[tel_id] = self._join_subarray_info(
