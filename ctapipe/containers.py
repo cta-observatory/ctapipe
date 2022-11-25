@@ -894,6 +894,10 @@ class TelescopeReconstructedContainer(ReconstructedContainer):
         default_factory=partial(Map, TelescopeImpactParameterContainer),
         description="map of algorithm to impact parameter info",
     )
+    disp = Field(
+        default_factory=partial(Map, DispContainer),
+        description="map of algorithm to reconstructed disp parameters",
+    )
 
 
 class DL2Container(Container):
