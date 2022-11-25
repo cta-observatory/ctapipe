@@ -9,7 +9,7 @@ from astropy.table.operations import hstack, vstack
 from tqdm.auto import tqdm
 
 from ctapipe.core.tool import Tool
-from ctapipe.core.traits import Bool, Path, flag
+from ctapipe.core.traits import Bool, Integer, Path, flag
 from ctapipe.io import TableLoader, write_table
 from ctapipe.io.astropy_helpers import read_table
 from ctapipe.io.tableio import TelListToMaskTransform
@@ -76,11 +76,18 @@ class ApplyModels(Tool):
         help="Input path for the trained ParticleClassifier",
     ).tag(config=True)
 
+    chunk_size = Integer(
+        default_value=100000,
+        allow_none=True,
+        help="How many subarray events to load at once for making predictions.",
+    ).tag(config=True)
+
     aliases = {
         ("i", "input"): "ApplyModels.input_url",
         "energy-regressor": "ApplyModels.energy_regressor_path",
         "particle-classifier": "ApplyModels.particle_classifier_path",
         ("o", "output"): "ApplyModels.output_path",
+        "chunk-size": "ApplyModels.chunk_size",
     }
 
     flags = {
@@ -108,6 +115,9 @@ class ApplyModels(Tool):
         Initialize components from config
         """
         self.log.info("Copying to output destination.")
+        if self.output_path.exists() and not self.overwrite:
+            raise IOError(f"Output path {self.output_path} exists, but overwrite=False")
+
         shutil.copy(self.input_url, self.output_path)
 
         self.h5file = tables.open_file(self.output_path, mode="r+")
@@ -141,13 +151,8 @@ class ApplyModels(Tool):
     def start(self):
         """Apply models to input tables"""
         for reconstructor in self._reconstructors:
-            self.log.info("Applying %s to telescope events", reconstructor)
-            mono_predictions = self._apply(reconstructor)
-            self.log.info(
-                "Combining telescope-wise predictions of %s to array event prediction",
-                reconstructor,
-            )
-            self._combine(reconstructor.stereo_combiner, mono_predictions)
+            self.log.info("Applying %s", reconstructor)
+            self._apply(reconstructor)
             # FIXME: this is a not-so-nice solution for the issues that
             # the table loader does not seem to see the newly written tables
             # we close and reopen the file and then table loader loads also the new tables
@@ -159,48 +164,60 @@ class ApplyModels(Tool):
         prefix = reconstructor.model_cls
         property = reconstructor.property
 
-        tel_tables = []
-
         desc = f"Applying {reconstructor.__class__.__name__}"
-        unit = "telescope"
-        for tel_id, tel in tqdm(self.loader.subarray.tel.items(), desc=desc, unit=unit):
-            if tel not in reconstructor._models:
-                self.log.warning(
-                    "No model in %s for telescope type %s, skipping tel %d",
-                    reconstructor,
-                    tel,
-                    tel_id,
+        unit = "chunk"
+
+        chunk_iterator = self.loader.read_telescope_events_by_id_chunked(
+            self.chunk_size
+        )
+        for chunk in tqdm(chunk_iterator, desc=desc, unit=unit):
+            tel_tables = []
+
+            for tel_id, table in chunk.items():
+                tel = self.loader.subarray.tel[tel_id]
+
+                if tel not in reconstructor._models:
+                    self.log.warning(
+                        "No model in %s for telescope type %s, skipping tel %d",
+                        reconstructor,
+                        tel,
+                        tel_id,
+                    )
+                    continue
+
+                if len(table) == 0:
+                    self.log.warning("No events for telescope %d", tel_id)
+                    continue
+
+                table.remove_columns(
+                    [c for c in table.colnames if c.startswith(prefix)]
                 )
-                continue
 
-            table = self.loader.read_telescope_events([tel_id])
-            if len(table) == 0:
-                self.log.warning("No events for telescope %d", tel_id)
-                continue
+                predictions = reconstructor.predict_table(tel, table)
+                table = hstack(
+                    [table, predictions],
+                    join_type="exact",
+                    metadata_conflicts="ignore",
+                )
+                write_table(
+                    table[["obs_id", "event_id", "tel_id"] + predictions.colnames],
+                    self.output_path,
+                    f"/dl2/event/telescope/{property}/{prefix}/tel_{tel_id:03d}",
+                    append=True,
+                )
+                tel_tables.append(table)
 
-            table.remove_columns([c for c in table.colnames if c.startswith(prefix)])
+            if len(tel_tables) == 0:
+                raise ValueError("No predictions made for any telescope")
 
-            predictions = reconstructor.predict_table(tel, table)
-            table = hstack(
-                [table, predictions],
-                join_type="exact",
-                metadata_conflicts="ignore",
+            self._combine(
+                reconstructor.stereo_combiner,
+                vstack(tel_tables),
+                start=chunk_iterator.start,
+                stop=chunk_iterator.stop,
             )
-            write_table(
-                table[["obs_id", "event_id", "tel_id"] + predictions.colnames],
-                self.output_path,
-                f"/dl2/event/telescope/{property}/{prefix}/tel_{tel_id:03d}",
-                mode="a",
-                overwrite=self.overwrite,
-            )
-            tel_tables.append(table)
 
-        if len(tel_tables) == 0:
-            raise ValueError("No predictions made for any telescope")
-
-        return vstack(tel_tables)
-
-    def _combine(self, combiner, mono_predictions):
+    def _combine(self, combiner, mono_predictions, start=None, stop=None):
         stereo_predictions = combiner.predict_table(mono_predictions)
 
         trafo = TelListToMaskTransform(self.loader.subarray)
@@ -213,9 +230,9 @@ class ApplyModels(Tool):
 
         # to ensure events are stored in the correct order,
         # we resort to trigger table order
-        trigger = read_table(self.h5file, "/dl1/event/subarray/trigger")[
-            ["obs_id", "event_id"]
-        ]
+        trigger = read_table(
+            self.h5file, "/dl1/event/subarray/trigger", start=start, stop=stop
+        )[["obs_id", "event_id"]]
         trigger["__sort_index__"] = np.arange(len(trigger))
         stereo_predictions = _join_subarray_events(trigger, stereo_predictions)
         stereo_predictions.sort("__sort_index__")
@@ -225,8 +242,7 @@ class ApplyModels(Tool):
             stereo_predictions,
             self.output_path,
             f"/dl2/event/subarray/{combiner.property}/{combiner.prefix}",
-            mode="a",
-            overwrite=self.overwrite,
+            append=True,
         )
 
     def finish(self):
