@@ -296,14 +296,18 @@ def test_telescope_parameter_lookup_by_type(mock_subarray):
 
     lookup.attach_subarray(mock_subarray)
     assert lookup["LST_LST_LSTCam"] == 100
-    assert lookup["MST_MST_MSTCam"] == 10
+    assert lookup["MST_MST_NectarCam"] == 10
 
     # no global default
     lookup = TelescopeParameterLookup([("type", "LST*", 100)])
     lookup.attach_subarray(mock_subarray)
     assert lookup["LST_LST_LSTCam"] == 100
-    with pytest.raises(KeyError):
-        assert lookup["MST_MST_MSTCam"] == 10
+
+    with pytest.raises(KeyError, match="no parameter value"):
+        assert lookup["MST_MST_NectarCam"]
+
+    with pytest.raises(ValueError, match="Unknown telescope"):
+        assert lookup["Foo"]
 
 
 def test_telescope_parameter_patterns(mock_subarray):

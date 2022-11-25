@@ -394,6 +394,7 @@ class TelescopeParameterLookup:
         self._value_for_type = None
         self._subarray = None
         self._subarray_global_value = Undefined
+        self._type_strs = None
         for param in telescope_parameter_list:
             if param[1] == "*":
                 self._subarray_global_value = param[2]
@@ -412,18 +413,21 @@ class TelescopeParameterLookup:
         self._subarray = subarray
         self._value_for_tel_id = {}
         self._value_for_type = {}
+        self._type_strs = {str(tel) for tel in self._subarray.telescope_types}
         for command, arg, value in self._telescope_parameter_list:
             if command == "type":
                 matched_tel_types = [
                     str(t) for t in subarray.telescope_types if fnmatch(str(t), arg)
                 ]
                 logger.debug(f"argument '{arg}' matched: {matched_tel_types}")
+
                 if len(matched_tel_types) == 0:
                     logger.warning(
                         "TelescopeParameter type argument '%s' did not match "
                         "any known telescope types",
                         arg,
                     )
+
                 for tel_type in matched_tel_types:
                     self._value_for_type[tel_type] = value
                     for tel_id in subarray.get_tel_ids_for_type(tel_type):
@@ -460,16 +464,23 @@ class TelescopeParameterLookup:
                     f"or by telescope type or '*'."
                 )
 
+        from ctapipe.instrument import TelescopeDescription
+
+        if isinstance(tel, TelescopeDescription):
+            tel = str(tel)
+
         if isinstance(tel, str):
+            if tel not in self._type_strs:
+                raise ValueError(
+                    f"Unknown telescope type {tel}, known: {self._type_strs}"
+                )
             try:
-                if self._subarray_global_value is not Undefined:
-                    return self._value_for_type.get(tel, self._subarray_global_value)
                 return self._value_for_type[tel]
             except KeyError:
                 raise KeyError(
-                    f"TelescopeParameterLookup: no "
-                    f"parameter value was set for telescope type"
-                    f"{tel}. Please set explicitly or using '*'."
+                    "TelescopeParameterLookup: no "
+                    "parameter value was set for telescope type"
+                    f" '{tel}'. Please set explicitly or using '*'."
                 )
 
         raise TypeError(f"Unsupported lookup type: {type(tel)}")
