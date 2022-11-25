@@ -87,7 +87,7 @@ class TrainParticleClassifier(Tool):
     flags = {
         **flag(
             "overwrite",
-            "TrainEnergyRegressor.overwrite",
+            "TrainParticleClassifier.overwrite",
             "Overwrite output existing output files",
             "Don't overwrite existing output files",
         ),
