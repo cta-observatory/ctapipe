@@ -122,16 +122,15 @@ def test_predict_mean_disp(mono_table):
         property="geometry",
     )
     stereo = combine.predict_table(mono_table)
-    assert stereo.colnames == [
-        "obs_id",
-        "event_id",
-        "disp_alt",
-        "disp_az",
-        "disp_ang_distance_uncert",
-        "disp_is_valid",
-        "disp_goodness_of_fit",
-        "disp_telescopes",
-    ]
+
+    for name, field in ReconstructedGeometryContainer.fields.items():
+        colname = f"disp_{name}"
+        assert colname in stereo.colnames
+        assert stereo[colname].description == field.description
+
+    assert "obs_id" in stereo.colnames
+    assert "event_id" in stereo.colnames
+
     assert_array_equal(stereo["obs_id"], np.array([1, 1, 2]))
     assert_array_equal(stereo["event_id"], np.array([1, 2, 1]))
     assert_allclose(
