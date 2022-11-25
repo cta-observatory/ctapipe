@@ -406,8 +406,11 @@ class TableLoader(Component):
         if tel_id is None:
             raise ValueError("Please, specify a telescope ID.")
 
-        table = read_table(self.h5file, "/dl1/event/telescope/trigger")
-        table = table[table["tel_id"] == tel_id]
+        table = read_table(
+            self.h5file, "/dl1/event/telescope/trigger", condition=f"tel_id == {tel_id}"
+        )
+        # note: we cannot use start/stop from read_table, since we need to evaluate start/stop *after*
+        # condition and pytables does it the other way around.
         table = table[slice(start, stop)]
 
         if self.load_dl1_parameters:
