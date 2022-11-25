@@ -291,16 +291,20 @@ def test_telescope_parameter_lookup(mock_subarray):
         telparam_list2[None]
 
 
-def test_telescope_parameter_lookup_by_type(mock_subarray):
-    lookup = TelescopeParameterLookup([("type", "*", 10), ("type", "LST*", 100)])
+def test_telescope_parameter_lookup_by_type(subarray_prod5_paranal):
+    subarray = subarray_prod5_paranal.select_subarray([1, 2, 3, 4, 100, 101])
 
-    lookup.attach_subarray(mock_subarray)
+    lookup = TelescopeParameterLookup([("type", "*", 10), ("type", "LST*", 100)])
+    lookup.attach_subarray(subarray)
+
     assert lookup["LST_LST_LSTCam"] == 100
     assert lookup["MST_MST_NectarCam"] == 10
+    assert lookup[subarray.tel[1]] == 100
+    assert lookup[subarray.tel[100]] == 10
 
     # no global default
     lookup = TelescopeParameterLookup([("type", "LST*", 100)])
-    lookup.attach_subarray(mock_subarray)
+    lookup.attach_subarray(subarray)
     assert lookup["LST_LST_LSTCam"] == 100
 
     with pytest.raises(KeyError, match="no parameter value"):
@@ -308,6 +312,10 @@ def test_telescope_parameter_lookup_by_type(mock_subarray):
 
     with pytest.raises(ValueError, match="Unknown telescope"):
         assert lookup["Foo"]
+
+    with pytest.raises(ValueError, match="Unknown telescope"):
+        # sst
+        assert lookup[subarray_prod5_paranal.tel[30]]
 
 
 def test_telescope_parameter_patterns(mock_subarray):
