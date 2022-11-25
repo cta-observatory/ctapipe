@@ -394,9 +394,9 @@ class TableLoader(Component):
         tel_id: int
             Telescope identification number.
         start: int
-            First row to read
+            First subarray event index to read
         stop: int
-            Last row to read (non-inclusive)
+            Last subarray event index to read
 
         Returns
         -------
@@ -406,22 +406,37 @@ class TableLoader(Component):
         if tel_id is None:
             raise ValueError("Please, specify a telescope ID.")
 
+        # trigger is stored in a single table for all telescopes, we need to
+        # calculate the range to read from the stereo trigger info
+        trigger_start = trigger_stop = None
+        tel_start = tel_stop = None
+
+        if start is not None or stop is not None:
+            tel_start, tel_stop = self._get_tel_start_stop(tel_id, start, stop)
+
+        if start is not None:
+            trigger_start = self._n_total_telescope_events[start]
+
+        if stop is not None:
+            trigger_stop = self._n_total_telescope_events[stop]
+
         table = read_table(
-            self.h5file, "/dl1/event/telescope/trigger", condition=f"tel_id == {tel_id}"
+            self.h5file,
+            "/dl1/event/telescope/trigger",
+            condition=f"tel_id == {tel_id}",
+            start=trigger_start,
+            stop=trigger_stop,
         )
-        # note: we cannot use start/stop from read_table, since we need to evaluate start/stop *after*
-        # condition and pytables does it the other way around.
-        table = table[slice(start, stop)]
 
         if self.load_dl1_parameters:
             parameters = self._read_telescope_table(
-                PARAMETERS_GROUP, tel_id, start=start, stop=stop
+                PARAMETERS_GROUP, tel_id, start=tel_start, stop=tel_stop
             )
             table = _merge_telescope_tables(table, parameters)
 
         if self.load_dl1_images:
             images = self._read_telescope_table(
-                IMAGES_GROUP, tel_id, start=start, stop=stop
+                IMAGES_GROUP, tel_id, start=tel_start, stop=tel_stop
             )
             table = _merge_telescope_tables(table, images)
 
@@ -435,7 +450,7 @@ class TableLoader(Component):
                     for algorithm in group._v_children:
                         path = f"{group_path}/{algorithm}"
                         dl2 = self._read_telescope_table(
-                            path, tel_id, start=start, stop=stop
+                            path, tel_id, start=tel_start, stop=tel_stop
                         )
                         if len(dl2) == 0:
                             continue
@@ -444,13 +459,13 @@ class TableLoader(Component):
 
         if self.load_true_images:
             true_images = self._read_telescope_table(
-                TRUE_IMAGES_GROUP, tel_id, start=start, stop=stop
+                TRUE_IMAGES_GROUP, tel_id, start=tel_start, stop=tel_stop
             )
             table = _merge_telescope_tables(table, true_images)
 
         if self.load_true_parameters:
             true_parameters = self._read_telescope_table(
-                TRUE_PARAMETERS_GROUP, tel_id, start=start, stop=stop
+                TRUE_PARAMETERS_GROUP, tel_id, start=tel_start, stop=tel_stop
             )
             table = _join_telescope_events(table, true_parameters)
 
@@ -463,27 +478,18 @@ class TableLoader(Component):
             impacts = self._read_telescope_table(
                 TRUE_IMPACT_GROUP,
                 tel_id,
-                start=start,
-                stop=stop,
+                start=tel_start,
+                stop=tel_stop,
             )
             table = _join_telescope_events(table, impacts)
 
         return table
 
-    def _read_telescope_events_for_ids(self, tel_ids, tel_start=None, tel_stop=None):
-        tel_start = tel_start if tel_start is not None else [None] * len(tel_ids)
-        tel_stop = tel_stop if tel_stop is not None else [None] * len(tel_ids)
-
-        tables = []
-        for tel_id, start, stop in zip(tel_ids, tel_start, tel_stop):
-            # no events for this telescope in chunk
-            if start is not None and stop is not None and (stop - start) == 0:
-                continue
-
-            tables.append(
-                self._read_telescope_events_for_id(tel_id, start=start, stop=stop)
-            )
-
+    def _read_telescope_events_for_ids(self, tel_ids, start=None, stop=None):
+        tables = [
+            self._read_telescope_events_for_id(tel_id, start=start, stop=stop)
+            for tel_id in tel_ids
+        ]
         return vstack(tables)
 
     def _join_subarray_info(self, table, start=None, stop=None, subarray_events=None):
@@ -504,22 +510,19 @@ class TableLoader(Component):
         )
         return table
 
-    def _get_tel_start_stop(self, tel_ids, start, stop):
+    def _get_tel_start_stop(self, tel_id, start, stop):
         tel_start = None
         tel_stop = None
-        if start is not None or stop is not None:
+        index = self.subarray.tel_ids_to_indices(tel_id)[0]
 
-            indices = self.subarray.tel_ids_to_indices(tel_ids)
+        # find first/last row for each telescope
+        if start is not None:
+            tel_start = self._n_telescope_events[start, index]
 
-            # find first/last row for each telescope
-            if start is not None:
-                tel_start = self._n_telescope_events[start][indices]
-
-            if stop is not None:
-                if stop >= len(self._n_telescope_events):
-                    tel_stop = None
-                else:
-                    tel_stop = self._n_telescope_events[stop][indices]
+        if stop is None or stop >= len(self._n_telescope_events):
+            tel_stop = None
+        else:
+            tel_stop = self._n_telescope_events[stop, index]
 
         return tel_start, tel_stop
 
@@ -557,8 +560,7 @@ class TableLoader(Component):
         else:
             tel_ids = self.subarray.get_tel_ids(telescopes)
 
-        tel_start, tel_stop = self._get_tel_start_stop(tel_ids, start, stop)
-        table = self._read_telescope_events_for_ids(tel_ids, tel_start, tel_stop)
+        table = self._read_telescope_events_for_ids(tel_ids, start, stop)
         table = self._join_subarray_info(table, start=start, stop=stop)
 
         # sort back to order in the file
@@ -609,6 +611,14 @@ class TableLoader(Component):
         np.cumsum(tels_with_trigger, out=tels_with_trigger, axis=0)
         return tels_with_trigger
 
+    @lazyproperty
+    def _n_total_telescope_events(self):
+        """
+        Number of telescope events in the file for each telescope previous
+        to the nth subarray event.
+        """
+        return self._n_telescope_events.sum(axis=1)
+
     def read_telescope_events_by_type(
         self, telescopes=None, start=None, stop=None
     ) -> Dict[str, Table]:
@@ -636,16 +646,8 @@ class TableLoader(Component):
         )
         self._add_index_if_needed(subarray_events)
 
-        tel_start, tel_stop = self._get_tel_start_stop(tel_ids, start, stop)
-        tel_start = tel_start if tel_start is not None else [None] * len(tel_ids)
-        tel_stop = tel_stop if tel_stop is not None else [None] * len(tel_ids)
-
         by_type = defaultdict(list)
-        for tel_id, start, stop in zip(tel_ids, tel_start, tel_stop):
-            # no events for this telescope in range start/stop
-            if start is not None and stop is not None and (stop - start) == 0:
-                continue
-
+        for tel_id in tel_ids:
             key = str(self.subarray.tel[tel_id])
             by_type[key].append(
                 self._read_telescope_events_for_id(tel_id, start=start, stop=stop)
@@ -708,16 +710,9 @@ class TableLoader(Component):
         )
         self._add_index_if_needed(subarray_events)
 
-        tel_start, tel_stop = self._get_tel_start_stop(tel_ids, start, stop)
-        tel_start = tel_start if tel_start is not None else [None] * len(tel_ids)
-        tel_stop = tel_stop if tel_stop is not None else [None] * len(tel_ids)
-
         by_id = {}
-        for tel_id, start, stop in zip(tel_ids, tel_start, tel_stop):
+        for tel_id in tel_ids:
             # no events for this telescope in range start/stop
-            if start is not None and stop is not None and (stop - start) == 0:
-                continue
-
             by_id[tel_id] = self._read_telescope_events_for_id(
                 tel_id, start=start, stop=stop
             )
