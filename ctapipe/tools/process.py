@@ -11,6 +11,7 @@ from ..core import QualityQuery, Tool
 from ..core.traits import Bool, classes_with_traits, flag
 from ..image import ImageCleaner, ImageModifier, ImageProcessor
 from ..image.extractor import ImageExtractor
+from ..instrument import SoftwareTrigger
 from ..io import (
     DataLevel,
     DataWriter,
@@ -144,6 +145,7 @@ class ProcessorTool(Tool):
             ShowerProcessor,
             metadata.Instrument,
             metadata.Contact,
+            SoftwareTrigger,
         ]
         + classes_with_traits(EventSource)
         + classes_with_traits(ImageCleaner)
@@ -169,17 +171,11 @@ class ProcessorTool(Tool):
             )
             sys.exit(1)
 
-        self.calibrate = CameraCalibrator(
-            parent=self, subarray=self.event_source.subarray
-        )
-        self.process_images = ImageProcessor(
-            subarray=self.event_source.subarray, parent=self
-        )
-
-        self.process_shower = ShowerProcessor(
-            subarray=self.event_source.subarray, parent=self
-        )
-
+        subarray = self.event_source.subarray
+        self.software_trigger = SoftwareTrigger(parent=self, subarray=subarray)
+        self.calibrate = CameraCalibrator(parent=self, subarray=subarray)
+        self.process_images = ImageProcessor(subarray=subarray, parent=self)
+        self.process_shower = ShowerProcessor(subarray=subarray, parent=self)
         self.write = DataWriter(event_source=self.event_source, parent=self)
 
         # add ml reco classes if model paths were supplied via cli and not already configured
@@ -196,7 +192,7 @@ class ProcessorTool(Tool):
                 reconstructor = Reconstructor.from_name(
                     name,
                     parent=self.process_shower,
-                    subarray=self.event_source.subarray,
+                    subarray=subarray,
                 )
                 self.process_shower.reconstructors.append(reconstructor)
                 self.process_shower.reconstructor_types.append(name)
@@ -296,6 +292,12 @@ class ProcessorTool(Tool):
             self.log.debug("Processessing event_id=%s", event.index.event_id)
 
             if not self.event_type_filter(event):
+                continue
+
+            if not self.software_trigger(event):
+                self.log.debug(
+                    "Skipping event %i due to software trigger", event.index.event_id
+                )
                 continue
 
             if self.should_calibrate:
