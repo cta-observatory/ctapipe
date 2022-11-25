@@ -393,12 +393,10 @@ class TelescopeParameterLookup:
         self._value_for_tel_id = None
         self._value_for_type = None
         self._subarray = None
-        self._subarray_global_value = None
-        self._subarray_global_value_set = False
+        self._subarray_global_value = Undefined
         for param in telescope_parameter_list:
             if param[1] == "*":
                 self._subarray_global_value = param[2]
-                self._subarray_global_value_set = True
 
     def attach_subarray(self, subarray):
         """
@@ -440,7 +438,7 @@ class TelescopeParameterLookup:
         Returns the resolved parameter for the given telescope id
         """
         if tel is None:
-            if self._subarray_global_value_set:
+            if self._subarray_global_value is not Undefined:
                 return self._subarray_global_value
 
             raise KeyError("No subarray global value set for TelescopeParameter")
@@ -464,7 +462,7 @@ class TelescopeParameterLookup:
 
         if isinstance(tel, str):
             try:
-                if self._subarray_global_value_set:
+                if self._subarray_global_value is not Undefined:
                     return self._value_for_type.get(tel, self._subarray_global_value)
                 return self._value_for_type[tel]
             except KeyError:
