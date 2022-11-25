@@ -16,22 +16,22 @@ class GaussianShowermodel:
 
         Parameters
         ----------
-        total_photons : int
+        total_photons : float
             Number of cherenkov photons in shower
-        x : u.Quantity[length]
-            x coord of shower intersection on ground
-        y : u.Quantity[length]
-            y coord of shower intersection on ground
-        azimuth : u.Quantity[angle]
-            azimuthal angle relative to the shower core
-        altitude : u.Quantity[angle]
-            altitude relative to the shower core
-        h_max : u.Quantity[length]
-            height of the barycenter above ground
-        width : u.Quantity[length]
-            width of the shower
-        length : u.Quantity[length]
-            length of the shower
+        x : float
+            x coord of shower intersection on ground in meter
+        y : float
+            y coord of shower intersection on ground in meter
+        azimuth : float
+            azimuthal angle relative to the shower core in rad
+        altitude : float
+            altitude relative to the shower core in rad
+        h_max : float
+            height of the barycenter above ground in meter
+        width : float
+            width of the shower in meter
+        length : float
+            length of the shower in meter
         """
         self.total_photons = total_photons
         self.x = x
@@ -59,12 +59,12 @@ class GaussianShowermodel:
 
         Parameters
         ----------
-        vec_oc : u.Quantity[length]
+        vec_oc : ndarray
             3d vector between optical center of telescope and barycenter of the shower
-        vec_los : u.Quantity[length]
-            Vector for each pixel along the line of sight as a 1d-quantity of shape (n_pixels)
-        epsilon : u.Quantity[Angle]
-            Angle between the viewing direction and shower axis for each pixel as a 1d-quantity of shape (n_pixels)
+        vec_los : ndarray
+            Vector for each pixel along the line of sight as a 1d-array of shape (n_pixels)
+        epsilon : ndarray
+            Angle between the viewing direction and shower axis for each pixel as a 1d-array of shape (n_pixels)
         """
         ce = np.cos(epsilon)
         sig_L = self.length
@@ -82,7 +82,6 @@ class GaussianShowermodel:
             / (np.sqrt(sig_u_sq) * sig_T * sig_L)
         )
 
-        # C = norm.sf(upper_bound)
         C = survival_function(upper_bound)
         constant = self.total_photons * C / (2 * np.pi * np.sqrt(sig_u_sq) * sig_T)
 
@@ -104,8 +103,8 @@ class GaussianShowermodel:
         """Calculates the emission probability of a photon with angle epsilon to the shower axis. https://arxiv.org/pdf/astro-ph/0601373.pdf Assumption 2.2.2
         Parameters
         ----------
-        epsilon : u.Quantity[Angle]
-            Angle between viewing direction and shower axis for each pixel as a 1d-quantity of shape (n_pixels)
+        epsilon : ndarray
+            Angle between viewing direction and shower axis for each pixel as a 1d-array of shape (n_pixels)
         """
         eta = 15 * 1e-3 * np.sqrt(np.cos(self.zenith))  # 1e-3 = mrad
 

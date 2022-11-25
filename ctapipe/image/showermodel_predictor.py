@@ -60,15 +60,15 @@ class ShowermodelPredictor:
 
         Parameters
         ----------
-        area : u.Quantity[length**2]
+        area : float
             Area of the telescope mirror
-        solid_angle : u.Quantity[Angle**2]
-            Solid angle for each pixel as a 1d-quantity of shape (n_pixels)
-        vec_oc : u.Quantity[length]
+        solid_angle : ndarray
+            Solid angle for each pixel as a 1d-array of shape (n_pixels)
+        vec_oc : ndarray
             Vector from optical center of telescope to barycenter of shower
-        pix_coords_altaz : u.Quantity[Angle]
-            Pointing of the pixels in AltAz as a 1d-quantity of shape (n_pixels)
-        vec_pointing : u.Quantity[length]
+        pix_coords_altaz : ndarray
+            Pointing of the pixels in AltAz as a 1d-array of shape (n_pixels)
+        vec_pointing : ndarray
             Unit vector of the telescope axis/pointing
         """
         pix_content = self._photons(
@@ -89,8 +89,8 @@ class ShowermodelPredictor:
 
         Parameters
         ----------
-        pix_altaz : u.Quantity[Angle]
-            Pointing/AltAz of the pixel along the line of sight as a 1d-quantity of shape (n_pixels)
+        pix_altaz : ndarray
+            Pointing/AltAz of the pixel along the line of sight as a 1d-array of shape (n_pixels)
         """
         vec = spherical_to_cartesian(pix_altaz[:, 1], pix_altaz[:, 0], 1.0)
         return vec
@@ -100,8 +100,8 @@ class ShowermodelPredictor:
 
         Parameters
         ----------
-        tel_pointing : u.Quantity[Angle]
-            Pointing of the telescope in AltAz
+        tel_pointing : ndarray
+            Pointing of the telescope (alt, az)
         """
         vec = spherical_to_cartesian(tel_pointing[1], tel_pointing[0], 1.0)
         return vec
@@ -112,15 +112,15 @@ class ShowermodelPredictor:
 
         Parameters
         ----------
-        area : u.Quantity[length**2]
+        area : float
             Area of the mirror
-        solid_angle : u.Quantity[Angle**2]
-            Solid angle of the pixels as 1d-quantity of shape (n_pixels)
-        vec_oc : u.Quantity[length]
+        solid_angle : ndarray
+            Solid angle of the pixels as 1d-array of shape (n_pixels)
+        vec_oc : ndarray
             Vector from optical center of the telescope to barycenter of the shower
-        pix_coords_altaz : u.Quantity[Angle]
-            Pointing of the pixels in AltAz as a 1d-quantity of shape (n_pixels)
-        vec_pointing : u.Quantity[lenght]
+        pix_coords_altaz : ndarray
+            Pointing of the pixels as a 2d-array of shape (n_pixels, 2)
+        vec_pointing : ndarray
             Unit vector along the telescope axis
         """
         vec_los = self._vec_los(pix_coords_altaz)
@@ -155,7 +155,12 @@ class ShowermodelPredictor:
         self.tel_pix_coords_altaz = self._tel_pix_coords_altaz(event)
 
     def _tel_pix_coords_altaz(self, event):
-        """Helper function calculating pixel pointing in AltAz"""
+        """Helper function calculating pixel pointing in AltAz
+
+        Parameters
+        ----------
+        event : ArrayEventContainer
+        """
         tel_pix_coords_altaz = {}
         for tel_id in event.dl1.tel.keys():
             camera_geometry = self.subarray.tel[tel_id].camera.geometry

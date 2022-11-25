@@ -17,6 +17,12 @@ from ctapipe.visualization import CameraDisplay
 
 
 class Model3DGeometryReconstructor(Reconstructor):
+    """
+    class that reconstructs the direction of an atmospheric shower as well as specific shower parameters like length, width and number of total photons in the shower.
+    This reconstructor is based on this paper (https://arxiv.org/abs/astro-ph/0601373v1). It uses a 3D model, i.e. a 3-dimensional Gauss law with rotational symmetry.
+    The parameters of the model are fitted with a likelihood minimization via the camera images of each telescope on DL1 level.
+    """
+
     geometry_seed = Unicode(
         default_value="HillasReconstructor",
         help="GeometryReconstructor that is used as a seed for the likelihood fit",
@@ -36,9 +42,18 @@ class Model3DGeometryReconstructor(Reconstructor):
         self.predictor = ShowermodelPredictor(self.subarray)
 
     def __call__(self, event):
+        """
+        Perform full reconstruction of shower parameters.
+
+        Parameters
+        ----------
+        event : `ctapipe.containers.ArrayEventContainer`
+            event needs to have dl1 images.
+            event will be filled with dl2 stereo geometry container.
+        """
         if self.geometry_seed not in event.dl2.stereo.geometry:
             raise KeyError(
-                f"The geometry seed {self.geometry_seed} could not be provided. Run the reconstructors in the correct order."
+                f"The geometry seed {self.geometry_seed} could not be provided. Run {self.geometry_seed} before this reconstructors."
             )
 
         tel_spe_widths = {}
@@ -86,6 +101,13 @@ class Model3DGeometryReconstructor(Reconstructor):
         )
 
     def _fit(self, event):
+        """
+        Fitting function executing iminuit.migrad().
+
+        Parameters
+        ----------
+        event : `ctapipe.containers.ArrayEventContainer`
+        """
         seeds = self._seeds(event)
 
         images = {}
@@ -128,6 +150,30 @@ class Model3DGeometryReconstructor(Reconstructor):
         length,
         images,
     ):
+        """
+        Function calculating the likelihood for the current shower parameters by generating camera images from the showermodel and comparing them to the DL1 images.
+
+        Parameters
+        ----------
+        total_photons : float
+            number of photons in the shower
+        x : float
+            impact position x
+        y : float
+            impact position y
+        azimuth : float
+            azimuth of the shower origin in rad
+        altitude : float
+            altitude of the shower origin in rad
+        h_max : float
+            height of the shower maximum in meter
+        width : float
+            width of the shower maximum in meter
+        length : float
+            length of the shower in meter
+        images : ndarray
+            dl1 images from the ArrayEventContainer
+        """
 
         model = GaussianShowermodel(
             total_photons,
@@ -157,7 +203,13 @@ class Model3DGeometryReconstructor(Reconstructor):
         return log_likelihood / len(images)
 
     def _seeds(self, event):
-        # get seeds from seed reconstructors 'HillasReconstructor'
+        """
+        Helper function calculating seeds for the minimizer based on a previous reconstructor, which should provied a ReconstructedGeometryContainer.
+
+        Parameters
+        ----------
+        event : `ctapipe.containers.ArrayEventContainer`
+        """
         geometry_reconstructor = event.dl2.stereo.geometry[self.geometry_seed]
         total_photons = (
             100 * average_intensity
@@ -198,7 +250,14 @@ class Model3DGeometryReconstructor(Reconstructor):
         }
 
     def peek(self, event):
-        """Plotting function for generated images."""
+        """
+        Plotting function. Plots reconstructed images and dl1 images for the minimized shower model and the corresponding event.
+        Has to be called after the reconstructor call `reconstructor(event)`.
+
+        Parameters
+        ----------
+        event : `ctapipe.containers.ArrayEventContainer`
+        """
         generated_images = self.predictor.generate_images()
 
         fig, axs = plt.subplots(
