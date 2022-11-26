@@ -537,6 +537,7 @@ class TelescopeParameter(List):
             raise TypeError("trait must be a TraitType instance")
 
         self._trait = trait
+        self.allow_none = kwargs.get("allow_none", False)
         if default_value != Undefined:
             default_value = self.validate(self, default_value)
 
@@ -561,10 +562,16 @@ class TelescopeParameter(List):
             val = [("type", "*", self._trait.from_string(s))]
         return val
 
+    def _validate_entry(self, obj, value):
+        if value is None and self.allow_none is True:
+            return None
+        return self._trait.validate(obj, value)
+
     def validate(self, obj, value):
+
         # Support a single value for all (check and convert into a default value)
         if not isinstance(value, (list, List, UserList, TelescopePatternList)):
-            value = [("type", "*", self._trait.validate(obj, value))]
+            value = [("type", "*", self._validate_entry(obj, value))]
 
         # Check each value of list
         normalized_value = TelescopePatternList()
@@ -578,7 +585,7 @@ class TelescopeParameter(List):
                 )
 
             command, arg, val = pattern
-            val = self._trait.validate(obj, val)
+            val = self._validate_entry(obj, val)
 
             if not isinstance(command, str):
                 raise TraitError("command must be a string")
@@ -596,7 +603,7 @@ class TelescopeParameter(List):
                 except ValueError:
                     raise TraitError(f"Argument of 'id' should be an int (got '{arg}')")
 
-            val = self._trait.validate(obj, val)
+            val = self._validate_entry(obj, val)
             normalized_value.append((command, arg, val))
             normalized_value._lookup = TelescopeParameterLookup(normalized_value)
 
@@ -608,7 +615,7 @@ class TelescopeParameter(List):
     def set(self, obj, value):
         # Support a single value for all (check and convert into a default value)
         if not isinstance(value, (list, List, UserList, TelescopePatternList)):
-            value = [("type", "*", self._trait.validate(obj, value))]
+            value = [("type", "*", self._validate_entry(obj, value))]
 
         # Retain existing subarray description
         # when setting new value for TelescopeParameter
@@ -627,7 +634,7 @@ class FloatTelescopeParameter(TelescopeParameter):
     """a `~ctapipe.core.traits.TelescopeParameter` with Float trait type"""
 
     def __init__(self, **kwargs):
-        """Create a new IntTelescopeParameter"""
+        """Create a new FloatTelescopeParameter"""
         super().__init__(trait=Float(), **kwargs)
 
 
@@ -636,7 +643,7 @@ class IntTelescopeParameter(TelescopeParameter):
 
     def __init__(self, **kwargs):
         """Create a new IntTelescopeParameter"""
-        super().__init__(trait=Int(), **kwargs)
+        super().__init__(trait=Integer(), **kwargs)
 
 
 class BoolTelescopeParameter(TelescopeParameter):
