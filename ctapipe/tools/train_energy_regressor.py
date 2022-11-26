@@ -1,7 +1,7 @@
 import numpy as np
 
 from ctapipe.core import Tool
-from ctapipe.core.traits import Bool, Int, Path, TraitError, flag
+from ctapipe.core.traits import Bool, Int, IntTelescopeParameter, Path, TraitError, flag
 from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, EnergyRegressor
 from ctapipe.reco.preprocessing import check_valid_rows
@@ -40,12 +40,12 @@ class TrainEnergyRegressor(Tool):
         ),
     ).tag(config=True)
 
-    n_events = Int(
+    n_events = IntTelescopeParameter(
         default_value=None,
         allow_none=True,
         help=(
             "Number of events for training the model."
-            " If not give, all available events will be used."
+            " If not given, all available events will be used."
         ),
     ).tag(config=True)
 
@@ -67,6 +67,7 @@ class TrainEnergyRegressor(Tool):
     aliases = {
         ("i", "input"): "TableLoader.input_url",
         ("o", "output"): "TrainEnergyRegressor.output_path",
+        "n-events": "TrainEnergyRegressor.n_events",
         "cv-output": "CrossValidator.output_path",
     }
 
@@ -88,6 +89,7 @@ class TrainEnergyRegressor(Tool):
             load_simulated=True,
             load_instrument=True,
         )
+        self.n_events.attach_subarray(self.loader.subarray)
 
         self.regressor = EnergyRegressor(self.loader.subarray, parent=self)
         self.cross_validate = CrossValidator(
@@ -143,8 +145,8 @@ class TrainEnergyRegressor(Tool):
             self.log.warning("Dropping non-predictable events.")
             table = table[valid]
 
-        if self.n_events is not None:
-            n_events = min(self.n_events, len(table))
+        if self.n_events.tel[telescope_type] is not None:
+            n_events = min(self.n_events.tel[telescope_type], len(table))
             idx = self.rng.choice(len(table), n_events, replace=False)
             idx.sort()
             table = table[idx]
