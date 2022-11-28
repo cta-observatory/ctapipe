@@ -8,6 +8,7 @@ from scipy.stats import norm
 from traitlets.config.loader import Config
 from traitlets.traitlets import TraitError
 
+from ctapipe.coordinates import TelescopeFrame
 from ctapipe.core import non_abstract_children
 from ctapipe.image.extractor import (
     FixedWindowSum,
@@ -396,22 +397,22 @@ def test_Two_pass_window_sum_no_noise(subarray_1_LST):
     subarray = subarray_1_LST
 
     camera = subarray.tel[1].camera
-    geometry = camera.geometry
+    geometry = camera.geometry.transform_to(TelescopeFrame())
     readout = camera.readout
     sampling_rate = readout.sampling_rate.to_value("GHz")
     n_samples = 30  # LSTCam & NectarCam specific
     max_time_readout = (n_samples / sampling_rate) * u.ns
 
     # True image settings
-    x = 0.0 * u.m
-    y = 0.0 * u.m
-    length = 0.2 * u.m
-    width = 0.05 * u.m
+    x = 0.0 * u.deg
+    y = 0.0 * u.deg
+    length = 0.4 * u.deg
+    width = 0.1 * u.deg
     psi = 45.0 * u.deg
     skewness = 0.0
     # build the true time evolution in a way that
     # the whole image is about the readout window
-    time_gradient = u.Quantity(max_time_readout.value / length.value, u.ns / u.m)
+    time_gradient = u.Quantity(max_time_readout.value / length.value, u.ns / u.deg)
     time_intercept = u.Quantity(max_time_readout.value / 2, u.ns)
     intensity = 600
     nsb_level_pe = 0
