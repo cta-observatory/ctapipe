@@ -1,7 +1,6 @@
 from copy import deepcopy
 
 import numpy as np
-import pytest
 from astropy import units as u
 from astropy.coordinates import AltAz, SkyCoord
 from traitlets.config import Config
@@ -10,9 +9,7 @@ from ctapipe.calib import CameraCalibrator
 from ctapipe.containers import HillasParametersContainer
 from ctapipe.coordinates import GroundFrame, altaz_to_righthanded_cartesian
 from ctapipe.image.image_processor import ImageProcessor
-from ctapipe.io import SimTelEventSource
 from ctapipe.reco.hillas_reconstructor import HillasReconstructor
-from ctapipe.utils import get_dataset_path
 
 
 def test_estimator_results():
@@ -164,129 +161,6 @@ def test_reconstruction_against_simulation_telescope_frame(
 
     assert u.isclose(result.core_x, event.simulation.shower.core_x, atol=25 * u.m)
     assert u.isclose(result.core_y, event.simulation.shower.core_y, atol=25 * u.m)
-
-
-def test_reconstruction_against_simulation_camera_frame(
-    subarray_and_event_gamma_off_axis_500_gev,
-):
-    """Reconstruction is here done only in the CameraFrame,
-    since the previous tests test already for the compatibility between
-    frames"""
-
-    # 4-LST bright event already calibrated
-    # we'll clean it and parametrize it again in the TelescopeFrame
-    subarray, event = subarray_and_event_gamma_off_axis_500_gev
-
-    # define reconstructor
-    calib = CameraCalibrator(subarray)
-    image_processor = ImageProcessor(subarray, use_telescope_frame=False)
-    reconstructor = HillasReconstructor(subarray)
-
-    # Get shower geometry
-    calib(event)
-    image_processor(event)
-    reconstructor(event)
-    result = event.dl2.stereo.geometry[reconstructor.__class__.__name__]
-
-    # get the reconstructed coordinates in the sky
-    reco_coord = SkyCoord(alt=result.alt, az=result.az, frame=AltAz())
-    # get the simulated coordinates in the sky
-    true_coord = SkyCoord(
-        alt=event.simulation.shower.alt, az=event.simulation.shower.az, frame=AltAz()
-    )
-
-    # check that we are not more far than 0.1 degrees
-    assert reco_coord.separation(true_coord) < 0.1 * u.deg
-
-    assert u.isclose(result.core_x, event.simulation.shower.core_x, atol=25 * u.m)
-    assert u.isclose(result.core_y, event.simulation.shower.core_y, atol=25 * u.m)
-
-
-@pytest.mark.parametrize(
-    "filename",
-    [
-        "gamma_divergent_LaPalma_baseline_20Zd_180Az_prod3_test.simtel.gz",
-        "gamma_LaPalma_baseline_20Zd_180Az_prod3b_test.simtel.gz",
-    ],
-)
-def test_CameraFrame_against_TelescopeFrame(filename):
-
-    input_file = get_dataset_path(filename)
-    # "gamma_divergent_LaPalma_baseline_20Zd_180Az_prod3_test.simtel.gz"
-    # )
-
-    source = SimTelEventSource(
-        input_file, max_events=10, focal_length_choice="EQUIVALENT"
-    )
-
-    # too few events survive for this test with the defautl quality criteria,
-    # use less restrictive ones
-    config = Config(
-        {
-            "StereoQualityQuery": {
-                "quality_criteria": [
-                    ("valid_width", "parameters.hillas.width.value > 0"),
-                ]
-            }
-        }
-    )
-
-    calib = CameraCalibrator(subarray=source.subarray)
-    reconstructor = HillasReconstructor(source.subarray, config=config)
-    image_processor_camera_frame = ImageProcessor(
-        source.subarray, use_telescope_frame=False
-    )
-    image_processor_telescope_frame = ImageProcessor(
-        source.subarray, use_telescope_frame=True
-    )
-
-    reconstructed_events = 0
-
-    for event_telescope_frame in source:
-
-        calib(event_telescope_frame)
-        # make a copy of the calibrated event for the camera frame case
-        # later we clean and paramretrize the 2 events in the same way
-        # but in 2 different frames to check they return compatible results
-        event_camera_frame = deepcopy(event_telescope_frame)
-
-        image_processor_telescope_frame(event_telescope_frame)
-        image_processor_camera_frame(event_camera_frame)
-
-        reconstructor(event_camera_frame)
-        result_camera_frame = event_camera_frame.dl2.stereo.geometry[
-            "HillasReconstructor"
-        ]
-        reconstructor(event_telescope_frame)
-        result_telescope_frame = event_telescope_frame.dl2.stereo.geometry[
-            "HillasReconstructor"
-        ]
-
-        assert result_camera_frame.is_valid == result_telescope_frame.is_valid
-
-        if result_telescope_frame.is_valid:
-            reconstructed_events += 1
-
-            for field, cam in result_camera_frame.items():
-                tel = getattr(result_telescope_frame, field)
-
-                kwargs = dict(rtol=6e-3, equal_nan=True)
-
-                if hasattr(cam, "unit"):
-                    if cam.value == 0 or tel.value == 0:
-                        kwargs["atol"] = 1e-6 * cam.unit
-                    assert u.isclose(
-                        cam, tel, **kwargs
-                    ), f"attr {field} not matching, camera: {result_camera_frame!s} telescope: {result_telescope_frame!s}"
-                elif isinstance(cam, list):
-                    assert cam == tel
-                else:
-
-                    if cam == 0 or tel == 0:
-                        kwargs["atol"] = 1e-6
-                    assert np.isclose(cam, tel, **kwargs)
-
-    assert reconstructed_events > 0  # check that we reconstruct at least 1 event
 
 
 def test_angle():
