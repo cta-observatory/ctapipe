@@ -37,12 +37,7 @@ from ..core.traits import (
     Unicode,
 )
 from ..io import write_table
-from .preprocessing import (
-    check_valid_rows,
-    collect_features,
-    table_to_float,
-    telescope_to_horizontal,
-)
+from .preprocessing import collect_features, table_to_X, telescope_to_horizontal
 from .reconstructor import Reconstructor
 from .stereo_combination import StereoCombiner
 from .utils import add_defaults_and_meta
@@ -229,15 +224,6 @@ class SKLearnReconstructor(Reconstructor):
     def _new_model(self):
         return SUPPORTED_MODELS[self.model_cls](**self.model_config)
 
-    def _table_to_X(self, table):
-        """
-        Extract features as numpy ndarray to be given to sklearn from input table
-        """
-        feature_table = table[self.features]
-        valid = check_valid_rows(feature_table, log=self.log)
-        X = table_to_float(feature_table[valid])
-        return X, valid
-
     def _table_to_y(self, table, mask=None):
         """
         Extract target values as numpy array from input table
@@ -254,7 +240,7 @@ class SKLearnReconstructor(Reconstructor):
         """
         self._models[key] = self._new_model()
 
-        X, valid = self._table_to_X(table)
+        X, valid = table_to_X(table, self.features, self.log)
         self.unit = table[self.target].unit
         y = self._table_to_y(table, mask=valid)
         self._models[key].fit(X, y)
@@ -289,7 +275,7 @@ class SKLearnRegressionReconstructor(SKLearnReconstructor):
                 f"No model available for key {key},"
                 f" available models: {self._models.keys()}"
             )
-        X, valid = self._table_to_X(table)
+        X, valid = table_to_X(table, self.features, self.log)
         n_outputs = getattr(self._models[key], "n_outputs_", 1)
 
         if n_outputs > 1:
@@ -354,7 +340,7 @@ class SKLearnClassificationReconstructor(SKLearnReconstructor):
                 f" available models: {self._models.keys()}"
             )
 
-        X, valid = self._table_to_X(table)
+        X, valid = table_to_X(table, self.features, self.log)
         n_outputs = getattr(self._models[key], "n_outputs_", 1)
 
         if n_outputs > 1:
@@ -375,7 +361,7 @@ class SKLearnClassificationReconstructor(SKLearnReconstructor):
                 f" available models: {self._models.keys()}"
             )
 
-        X, valid = self._table_to_X(table)
+        X, valid = table_to_X(table, self.features, self.log)
 
         n_classes = getattr(self._models[key], "n_classes_", 2)
         n_rows = len(table)
@@ -625,15 +611,6 @@ class DispReconstructor(Reconstructor):
         sign_classifier = SUPPORTED_CLASSIFIERS[self.sign_cls](**self.sign_config)
         return norm_regressor, sign_classifier
 
-    def _table_to_X(self, table):
-        """
-        Extract features as numpy ndarray to be given to sklearn from input table
-        """
-        feature_table = table[self.features]
-        valid = check_valid_rows(feature_table, log=self.log)
-        X = table_to_float(feature_table[valid])
-        return X, valid
-
     def _table_to_y(self, table, mask=None):
         """
         Extract target values as numpy array from input table
@@ -658,7 +635,7 @@ class DispReconstructor(Reconstructor):
         """
         self._norm_models[key], self._sign_models[key] = self._new_models()
 
-        X, valid = self._table_to_X(table)
+        X, valid = table_to_X(table, self.features, self.log)
         self.norm_unit = table[self.norm_target].unit
         norm_y, sign_y = self._table_to_y(table, mask=valid)
         self._norm_models[key].fit(X, norm_y)
@@ -705,7 +682,7 @@ class DispReconstructor(Reconstructor):
                 f"No classifier available for key {key},"
                 f" available classifiers: {self._sign_models.keys()}"
             )
-        X, valid = self._table_to_X(table)
+        X, valid = table_to_X(table, self.features, self.log)
         norm_prediction = np.full(len(table), np.nan)
         sign_prediction = np.full(len(table), self.sign_invalid_class, dtype=np.int8)
 

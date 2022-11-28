@@ -25,6 +25,7 @@ __all__ = [
     "check_valid_rows",
     "collect_features",
     "table_to_float",
+    "table_to_X",
     "horizontal_to_telescope",
     "telescope_to_horizontal",
 ]
@@ -53,6 +54,16 @@ def check_valid_rows(table: Table, warn=True, log=LOG) -> np.ndarray:
             log.warning("Number of nan-values in columns: %s", nan_counts_str)
 
     return valid
+
+
+def table_to_X(table: Table, features: list, log):
+    """
+    Extract features as numpy ndarray to be given to sklearn from input table
+    """
+    feature_table = table[features]
+    valid = check_valid_rows(feature_table, log=log)
+    X = table_to_float(feature_table[valid])
+    return X, valid
 
 
 def collect_features(
