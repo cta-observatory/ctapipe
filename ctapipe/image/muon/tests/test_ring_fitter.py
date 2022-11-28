@@ -1,6 +1,7 @@
 import astropy.units as u
 import pytest
 
+from ctapipe.coordinates import TelescopeFrame
 from ctapipe.image import tailcuts_clean, toymodel
 from ctapipe.image.muon import MuonRingFitter
 
@@ -15,10 +16,10 @@ def test_MuonRingFitter_has_methods():
 def test_MuonRingFitter(method, prod5_mst_flashcam):
     """test MuonRingFitter"""
     # flashCam example
-    center_xs = 0.3 * u.m
-    center_ys = 0.6 * u.m
-    radius = 0.3 * u.m
-    width = 0.05 * u.m
+    center_xs = 0.3 * u.deg
+    center_ys = 0.6 * u.deg
+    radius = 0.5 * u.deg
+    width = 0.05 * u.deg
 
     muon_model = toymodel.RingGaussian(
         x=center_xs,
@@ -28,7 +29,7 @@ def test_MuonRingFitter(method, prod5_mst_flashcam):
     )
 
     # testing with flashcam
-    geom = prod5_mst_flashcam.camera.geometry
+    geom = prod5_mst_flashcam.camera.geometry.transform_to(TelescopeFrame())
     charge, _, _ = muon_model.generate_image(
         geom,
         intensity=1000,
