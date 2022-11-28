@@ -8,25 +8,32 @@ Examples:
 .. code-block:: python
 
     >>> from ctapipe.instrument import CameraGeometry
-    >>> geom = CameraGeometry.make_rectangular(20, 20)
+    >>> from ctapipe.coordinates import CameraFrame, TelescopeFrame
+    >>> from ctapipe.image.toymodel import Gaussian
+    >>> import astropy.units as u
+    >>> geom = CameraGeometry.make_rectangular(20, 20,)
+    >>> geom.frame = CameraFrame(focal_length=20*u.m)
+    >>> geom = geom.transform_to(TelescopeFrame())
     >>> showermodel = Gaussian(
-    ...    x=0.25 * u.m, y=0.0 * u.m,
-    ...    length=0.1 * u.m, width=0.02 * u.m,
-    ...    psi='40d'
+    ...     x=1.0 * u.deg, y=1.0 * u.deg,
+    ...     length=0.1 * u.deg, width=0.1 * u.deg,
+    ...     psi='40d'
     ... )
     >>> image, signal, noise = showermodel.generate_image(geom, intensity=1000)
     >>> print(image.shape)
     (400,)
 """
-import numpy as np
-from ctapipe.utils import linalg
-from ctapipe.image.hillas import camera_to_shower_coordinates
-import astropy.units as u
-from astropy.coordinates import Angle
-from scipy.stats import multivariate_normal, skewnorm, norm
-from scipy.ndimage import convolve1d
 from abc import ABCMeta, abstractmethod
+
+import astropy.units as u
+import numpy as np
+from astropy.coordinates import Angle
 from numpy.random import default_rng
+from scipy.ndimage import convolve1d
+from scipy.stats import multivariate_normal, norm, skewnorm
+
+from ctapipe.image.hillas import camera_to_shower_coordinates
+from ctapipe.utils import linalg
 
 __all__ = [
     "WaveformModel",
@@ -41,12 +48,12 @@ TOYMODEL_RNG = default_rng(0)
 
 
 @u.quantity_input(
-    x=u.m,
-    y=u.m,
-    centroid_x=u.m,
-    centroid_y=u.m,
+    x=u.deg,
+    y=u.deg,
+    centroid_x=u.deg,
+    centroid_y=u.deg,
     psi=u.deg,
-    time_gradient=u.ns / u.m,
+    time_gradient=u.ns / u.deg,
     time_intercept=u.ns,
 )
 def obtain_time_image(x, y, centroid_x, centroid_y, psi, time_gradient, time_intercept):
@@ -56,19 +63,19 @@ def obtain_time_image(x, y, centroid_x, centroid_y, psi, time_gradient, time_int
 
     Parameters
     ----------
-    x : u.Quantity[length]
+    x : u.Quantity[Angle]
         X camera coordinate to evaluate the time at.
         Usually the array of pixel X positions
-    y : u.Quantity[length]
+    y : u.Quantity[Angle]
         Y camera coordinate to evaluate the time at.
         Usually the array of pixel Y positions
-    centroid_x : u.Quantity[length]
+    centroid_x : u.Quantity[Angle]
         X camera coordinate for the centroid of the shower
-    centroid_y : u.Quantity[length]
+    centroid_y : u.Quantity[Angle]
         Y camera coordinate for the centroid of the shower
     psi : convertible to `astropy.coordinates.Angle`
         rotation angle about the centroid (0=x-axis)
-    time_gradient : u.Quantity[time/length]
+    time_gradient : u.Quantity[time/Angle]
         Rate at which the time changes with distance along the shower axis
     time_intercept : u.Quantity[time]
         Pulse time at the shower centroid
@@ -80,8 +87,8 @@ def obtain_time_image(x, y, centroid_x, centroid_y, psi, time_gradient, time_int
 
     """
     longitudinal, _ = camera_to_shower_coordinates(x, y, centroid_x, centroid_y, psi)
-    longitudinal_m = longitudinal.to_value(u.m)
-    time_gradient_ns_m = time_gradient.to_value(u.ns / u.m)
+    longitudinal_m = longitudinal.to_value(u.deg)
+    time_gradient_ns_m = time_gradient.to_value(u.ns / u.deg)
     time_intercept_ns = time_intercept.to_value(u.ns)
     return longitudinal_m * time_gradient_ns_m + time_intercept_ns
 
@@ -186,8 +193,7 @@ class ImageModel(metaclass=ABCMeta):
     @u.quantity_input(x=u.m, y=u.m)
     @abstractmethod
     def pdf(self, x, y):
-        """Probability density function.
-        """
+        """Probability density function."""
 
     def generate_image(self, camera, intensity=50, nsb_level_pe=20, rng=None):
         """Generate a randomized DL1 shower image.
@@ -244,17 +250,19 @@ class ImageModel(metaclass=ABCMeta):
 
 
 class Gaussian(ImageModel):
-    @u.quantity_input(x=u.m, y=u.m, length=u.m, width=u.m)
+    @u.quantity_input(x=u.deg, y=u.deg, length=u.deg, width=u.deg)
     def __init__(self, x, y, length, width, psi):
         """Create 2D Gaussian model for a shower image in a camera.
 
         Parameters
         ----------
-        centroid : u.Quantity[length, shape=(2, )]
-            position of the centroid of the shower in camera coordinates
-        width: u.Quantity[length]
+        x : u.Quantity[Angle]
+            x position of the centroid of the shower in telescope coordinates
+        y : u.Quantity[Angle]
+            y position of the centroid of the shower in telescope coordinates
+        width: u.Quantity[Angle]
             width of shower (minor axis)
-        length: u.Quantity[length]
+        length: u.Quantity[Angle]
             length of shower (major axis)
         psi : convertable to `astropy.coordinates.Angle`
             rotation angle about the centroid (0=x-axis)
@@ -270,26 +278,29 @@ class Gaussian(ImageModel):
         self.length = length
         self.psi = psi
 
-    @u.quantity_input(x=u.m, y=u.m)
+    @u.quantity_input(x=u.deg, y=u.deg)
     def pdf(self, x, y):
         """2d probability for photon electrons in the camera plane"""
         aligned_covariance = np.array(
-            [[self.length.to_value(u.m) ** 2, 0], [0, self.width.to_value(u.m) ** 2]]
+            [
+                [self.length.to_value(u.deg) ** 2, 0],
+                [0, self.width.to_value(u.deg) ** 2],
+            ]
         )
         # rotate by psi angle: C' = R C R+
         rotation = linalg.rotation_matrix_2d(self.psi)
         rotated_covariance = rotation @ aligned_covariance @ rotation.T
 
         return multivariate_normal(
-            mean=[self.x.to_value(u.m), self.y.to_value(u.m)], cov=rotated_covariance
-        ).pdf(np.column_stack([x.to_value(u.m), y.to_value(u.m)]))
+            mean=[self.x.to_value(u.deg), self.y.to_value(u.deg)],
+            cov=rotated_covariance,
+        ).pdf(np.column_stack([x.to_value(u.deg), y.to_value(u.deg)]))
 
 
 class SkewedGaussian(ImageModel):
-    """A shower image that has a skewness along the major axis.
-    """
+    """A shower image that has a skewness along the major axis."""
 
-    @u.quantity_input(x=u.m, y=u.m, length=u.m, width=u.m)
+    @u.quantity_input(x=u.deg, y=u.deg, length=u.deg, width=u.deg)
     def __init__(self, x, y, length, width, psi, skewness):
         """Create 2D skewed Gaussian model for a shower image in a camera.
         Skewness is only applied along the main shower axis.
@@ -299,11 +310,13 @@ class SkewedGaussian(ImageModel):
 
         Parameters
         ----------
-        centroid : u.Quantity[length, shape=(2, )]
-            position of the centroid of the shower in camera coordinates
-        width: u.Quantity[length]
+        x : u.Quantity[Angle]
+            x position of the centroid of the shower in telescope coordinates
+        y : u.Quantity[Angle]
+            y position of the centroid of the shower in telescope coordinates
+        width: u.Quantity[Angle]
             width of shower (minor axis)
-        length: u.Quantity[length]
+        length: u.Quantity[Angle]
             length of shower (major axis)
         psi : convertable to `astropy.coordinates.Angle`
             rotation angle about the centroid (0=x-axis)
@@ -327,22 +340,22 @@ class SkewedGaussian(ImageModel):
         delta = np.sign(self.skewness) * np.sqrt(
             (np.pi / 2 * skew23) / (skew23 + (0.5 * (4 - np.pi)) ** (2 / 3))
         )
-        a = delta / np.sqrt(1 - delta ** 2)
-        scale = self.length.to_value(u.m) / np.sqrt(1 - 2 * delta ** 2 / np.pi)
+        a = delta / np.sqrt(1 - delta**2)
+        scale = self.length.to_value(u.deg) / np.sqrt(1 - 2 * delta**2 / np.pi)
         loc = -scale * delta * np.sqrt(2 / np.pi)
 
         return a, loc, scale
 
-    @u.quantity_input(x=u.m, y=u.m)
+    @u.quantity_input(x=u.deg, y=u.deg)
     def pdf(self, x, y):
         """2d probability for photon electrons in the camera plane."""
-        mu = u.Quantity([self.x, self.y]).to_value(u.m)
+        mu = u.Quantity([self.x, self.y]).to_value(u.deg)
 
         rotation = linalg.rotation_matrix_2d(-Angle(self.psi))
-        pos = np.column_stack([x.to_value(u.m), y.to_value(u.m)])
+        pos = np.column_stack([x.to_value(u.deg), y.to_value(u.deg)])
         long, trans = rotation @ (pos - mu).T
 
-        trans_pdf = norm(loc=0, scale=self.width.to_value(u.m)).pdf(trans)
+        trans_pdf = norm(loc=0, scale=self.width.to_value(u.deg)).pdf(trans)
 
         a, loc, scale = self._moments_to_parameters()
 
@@ -355,17 +368,17 @@ class RingGaussian(ImageModel):
 
     """
 
-    @u.quantity_input(x=u.m, y=u.m, radius=u.m, sigma=u.m)
+    @u.quantity_input(x=u.deg, y=u.deg, radius=u.deg, sigma=u.deg)
     def __init__(self, x, y, radius, sigma):
         self.x = x
         self.y = y
         self.sigma = sigma
         self.radius = radius
 
-    @u.quantity_input(x=u.m, y=u.m)
+    @u.quantity_input(x=u.deg, y=u.deg)
     def pdf(self, x, y):
         """2d probability for photon electrons in the camera plane."""
 
         r = np.sqrt((x - self.x) ** 2 + (y - self.y) ** 2)
 
-        return norm(self.radius.to_value(u.m), self.sigma.to_value(u.m)).pdf(r)
+        return norm(self.radius.to_value(u.deg), self.sigma.to_value(u.deg)).pdf(r)

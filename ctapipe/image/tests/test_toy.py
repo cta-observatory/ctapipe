@@ -6,6 +6,7 @@ import pytest
 from pytest import approx
 from scipy.stats import norm, poisson, skewnorm
 
+from ctapipe.coordinates import TelescopeFrame
 from ctapipe.image.toymodel import WaveformModel, obtain_time_image
 
 
@@ -19,11 +20,11 @@ def test_intensity(seed, monkeypatch, prod5_lst):
     """
     from ctapipe.image import toymodel
 
-    geom = prod5_lst.camera.geometry
+    geom = prod5_lst.camera.geometry.transform_to(TelescopeFrame())
 
-    x, y = u.Quantity([0.2, 0.3], u.m)
-    width = 0.05 * u.m
-    length = 0.15 * u.m
+    x, y = u.Quantity([0.2, 0.3], u.deg)
+    width = 0.05 * u.deg
+    length = 0.15 * u.deg
     intensity = 200
     psi = "30d"
 
@@ -43,15 +44,19 @@ def test_intensity(seed, monkeypatch, prod5_lst):
         )
 
     # test if signal reproduces given cog values
-    assert np.average(geom.pix_x.to_value(u.m), weights=signal) == approx(0.2, rel=0.15)
-    assert np.average(geom.pix_y.to_value(u.m), weights=signal) == approx(0.3, rel=0.15)
+    assert np.average(geom.pix_x.to_value(u.deg), weights=signal) == approx(
+        0.2, rel=0.15
+    )
+    assert np.average(geom.pix_y.to_value(u.deg), weights=signal) == approx(
+        0.3, rel=0.15
+    )
 
     # test if signal reproduces given width/length values
     cov = np.cov(geom.pix_x.value, geom.pix_y.value, aweights=signal)
     eigvals, _ = np.linalg.eigh(cov)
 
-    assert np.sqrt(eigvals[0]) == approx(width.to_value(u.m), rel=0.15)
-    assert np.sqrt(eigvals[1]) == approx(length.to_value(u.m), rel=0.15)
+    assert np.sqrt(eigvals[0]) == approx(width.to_value(u.deg), rel=0.15)
+    assert np.sqrt(eigvals[1]) == approx(length.to_value(u.deg), rel=0.15)
 
     # test if total intensity is inside in 99 percent confidence interval
     assert poisson(intensity).ppf(0.05) <= signal.sum() <= poisson(intensity).ppf(0.95)
@@ -63,11 +68,11 @@ def test_skewed(prod5_lst):
     # test if the parameters we calculated for the skew normal
     # distribution produce the correct moments
     rng = np.random.default_rng(0)
-    geom = prod5_lst.camera.geometry
+    geom = prod5_lst.camera.geometry.transform_to(TelescopeFrame())
 
-    x, y = u.Quantity([0.2, 0.3], u.m)
-    width = 0.05 * u.m
-    length = 0.15 * u.m
+    x, y = u.Quantity([0.2, 0.3], u.deg)
+    width = 0.05 * u.deg
+    length = 0.15 * u.deg
     intensity = 50
     psi = "30d"
     skewness = 0.3
@@ -81,18 +86,18 @@ def test_skewed(prod5_lst):
     mean, var, skew = skewnorm(a=a, loc=loc, scale=scale).stats(moments="mvs")
 
     assert np.isclose(mean, 0)
-    assert np.isclose(var, length.to_value(u.m) ** 2)
+    assert np.isclose(var, length.to_value(u.deg) ** 2)
     assert np.isclose(skew, skewness)
 
 
 def test_compare(prod5_lst):
     from ctapipe.image.toymodel import Gaussian, SkewedGaussian
 
-    geom = prod5_lst.camera.geometry
+    geom = prod5_lst.camera.geometry.transform_to(TelescopeFrame())
 
-    x, y = u.Quantity([0.2, 0.3], u.m)
-    width = 0.05 * u.m
-    length = 0.15 * u.m
+    x, y = u.Quantity([0.2, 0.3], u.deg)
+    width = 0.05 * u.deg
+    length = 0.15 * u.deg
     intensity = 50
     psi = "30d"
 
@@ -106,13 +111,13 @@ def test_compare(prod5_lst):
 
 
 def test_obtain_time_image(prod5_sst):
-    geom = prod5_sst.camera.geometry
+    geom = prod5_sst.camera.geometry.transform_to(TelescopeFrame())
 
-    centroid_x = u.Quantity(0.05, u.m)
-    centroid_y = u.Quantity(0.05, u.m)
+    centroid_x = u.Quantity(1.0, u.deg)
+    centroid_y = u.Quantity(1.0, u.deg)
     psi = u.Quantity(70, u.deg)
 
-    time_gradient = u.Quantity(0, u.ns / u.m)
+    time_gradient = u.Quantity(0, u.ns / u.deg)
     time_intercept = u.Quantity(0, u.ns)
     time = obtain_time_image(
         geom.pix_x,
@@ -125,7 +130,7 @@ def test_obtain_time_image(prod5_sst):
     )
     np.testing.assert_allclose(time, 0)
 
-    time_gradient = u.Quantity(0, u.ns / u.m)
+    time_gradient = u.Quantity(0, u.ns / u.deg)
     time_intercept = u.Quantity(40, u.ns)
     time = obtain_time_image(
         geom.pix_x,
@@ -138,7 +143,7 @@ def test_obtain_time_image(prod5_sst):
     )
     np.testing.assert_allclose(time, 40)
 
-    time_gradient = u.Quantity(20, u.ns / u.m)
+    time_gradient = u.Quantity(0.5, u.ns / u.deg)
     time_intercept = u.Quantity(40, u.ns)
     time = obtain_time_image(
         geom.pix_x,
@@ -149,9 +154,9 @@ def test_obtain_time_image(prod5_sst):
         time_gradient,
         time_intercept,
     )
-    np.testing.assert_allclose(time.std(), 1.710435, rtol=0.1)
+    np.testing.assert_allclose(time.std(), 1.142689, rtol=0.1)
 
-    time_gradient = u.Quantity(20, u.ns / u.m)
+    time_gradient = u.Quantity(0.5, u.ns / u.deg)
     time_intercept = u.Quantity(40, u.ns)
     time = obtain_time_image(
         centroid_x,
@@ -169,7 +174,7 @@ def test_waveform_model(prod5_sst):
     from ctapipe.image.toymodel import Gaussian
 
     prod5_sst = deepcopy(prod5_sst)
-    geom = prod5_sst.camera.geometry
+    geom = prod5_sst.camera.geometry.transform_to(TelescopeFrame())
     readout = prod5_sst.camera.readout
 
     ref_duration = 67
@@ -184,12 +189,12 @@ def test_waveform_model(prod5_sst):
     )
     readout.sampling_rate = u.Quantity(2, u.GHz)
 
-    centroid_x = u.Quantity(0.05, u.m)
-    centroid_y = u.Quantity(0.05, u.m)
-    length = u.Quantity(0.03, u.m)
-    width = u.Quantity(0.008, u.m)
+    centroid_x = u.Quantity(0.05, u.deg)
+    centroid_y = u.Quantity(0.05, u.deg)
+    length = u.Quantity(0.03, u.deg)
+    width = u.Quantity(0.008, u.deg)
     psi = u.Quantity(70, u.deg)
-    time_gradient = u.Quantity(50, u.ns / u.m)
+    time_gradient = u.Quantity(50, u.ns / u.deg)
     time_intercept = u.Quantity(20, u.ns)
 
     _, charge, _ = Gaussian(
