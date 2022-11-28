@@ -15,7 +15,7 @@ from ctapipe.containers import (
     CameraHillasParametersContainer,
     HillasParametersContainer,
 )
-from ctapipe.coordinates.telescope_frame import TelescopeFrame
+from ctapipe.coordinates import TelescopeFrame
 from ctapipe.instrument import PixelShape, SubarrayDescription
 
 plt = pytest.importorskip("matplotlib.pyplot")
@@ -188,15 +188,11 @@ def test_array_display(prod5_mst_nectarcam):
     # ...with scalar color
     ad.set_vector_uv(np.array([1, 2, 3]) * u.m, np.array([1, 2, 3]) * u.m, c=3)
 
-    geom = prod5_mst_nectarcam.camera.geometry
+    geom = prod5_mst_nectarcam.camera.geometry.transform_to(TelescopeFrame())
     rot_angle = 20 * u.deg
-    hillas = CameraHillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=rot_angle)
-
-    # test using hillas params CameraFrame:
-    hillas_dict = {
-        1: CameraHillasParametersContainer(length=100.0 * u.m, psi=90 * u.deg),
-        2: CameraHillasParametersContainer(length=20000 * u.cm, psi="95deg"),
-    }
+    hillas = HillasParametersContainer(
+        fov_lon=0 * u.deg, fov_lat=0 * u.deg, psi=rot_angle
+    )
 
     grad = 2
     intercept = 1
@@ -212,14 +208,6 @@ def test_array_display(prod5_mst_nectarcam):
     core_dict = {
         tel_id: dl1.parameters.core.psi for tel_id, dl1 in event.dl1.tel.items()
     }
-    ad.set_vector_hillas(
-        hillas_dict=hillas_dict,
-        core_dict=core_dict,
-        length=500,
-        time_gradient=gradient_dict,
-        angle_offset=0 * u.deg,
-    )
-    ad.set_line_hillas(hillas_dict=hillas_dict, core_dict=core_dict, range=300)
 
     # test using hillas params for divergent pointing in telescopeframe:
     hillas_dict = {
