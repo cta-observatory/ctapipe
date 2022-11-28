@@ -136,7 +136,6 @@ class SKLearnReconstructor(Reconstructor):
                 self.prefix = self.model_cls
 
             super().__init__(subarray, **kwargs)
-            self.subarray = subarray
             self.feature_generator = FeatureGenerator(parent=self)
             self.quality_query = MLQualityQuery(parent=self)
 
@@ -577,7 +576,7 @@ class DispReconstructor(Reconstructor):
         help="If given, load serialized model from this path",
     ).tag(config=True)
 
-    def __init__(self, subarray, norm_models=None, sign_models=None, **kwargs):
+    def __init__(self, subarray=None, norm_models=None, sign_models=None, **kwargs):
         # Run the Component __init__ first to handle the configuration
         # and make `self.load_path` available
         Component.__init__(self, **kwargs)
@@ -585,7 +584,7 @@ class DispReconstructor(Reconstructor):
         if self.load_path is None:
             if self.norm_cls is None or self.sign_cls is None:
                 raise TraitError(
-                    "Must provide `norm_cls` and `sign_cls` if not loading form file"
+                    "Must provide `norm_cls` and `sign_cls` if not loading from file"
                 )
 
             if subarray is None:
@@ -594,7 +593,6 @@ class DispReconstructor(Reconstructor):
                 )
 
             super().__init__(subarray, **kwargs)
-            self.subarray = subarray
             self.quality_query = MLQualityQuery(parent=self)
             self.feature_generator = FeatureGenerator(parent=self)
 
@@ -617,7 +615,7 @@ class DispReconstructor(Reconstructor):
                 and loaded.subarray.telescope_types != subarray.telescope_types
             ):
                 self.log.warning(
-                    "Supplied subarray has different telescopes than subarray loaded form file"
+                    "Supplied subarray has different telescopes than subarray loaded from file"
                 )
             self.__dict__.update(loaded.__dict__)
             self.subarray = subarray
@@ -752,17 +750,11 @@ class DispReconstructor(Reconstructor):
 
                 if valid:
                     disp = norm * sign
+                    hillas = event.dl2.tel[tel_id].parameters.hillas
+                    psi = hillas.psi.to_value(u.rad)
 
-                    fov_lon = event.dl1.tel[
-                        tel_id
-                    ].parameters.hillas.fov_lon + disp * np.cos(
-                        event.dl1.tel[tel_id].parameters.hillas.psi.to(u.rad)
-                    )
-                    fov_lat = event.dl1.tel[
-                        tel_id
-                    ].parameters.hillas.fov_lat + disp * np.sin(
-                        event.dl1.tel[tel_id].parameters.hillas.psi.to(u.rad)
-                    )
+                    fov_lon = hillas.fov_lon + disp * np.cos(psi)
+                    fov_lat = hillas.fov_lat + disp * np.sin(psi)
                     alt, az = telescope_to_horizontal(
                         lon=fov_lon,
                         lat=fov_lat,
@@ -840,9 +832,10 @@ class DispReconstructor(Reconstructor):
         )
 
         disp = norm * sign
+        psi = table["hillas_psi"].quantity.to_value(u.rad)
 
-        fov_lon = table["hillas_fov_lon"] + disp * np.cos(table["hillas_psi"].to(u.rad))
-        fov_lat = table["hillas_fov_lat"] + disp * np.sin(table["hillas_psi"].to(u.rad))
+        fov_lon = table["hillas_fov_lon"] + disp * np.cos(psi)
+        fov_lat = table["hillas_fov_lat"] + disp * np.sin(psi)
 
         # For now: Assume parallel pointing for each run
         alt, az = telescope_to_horizontal(
