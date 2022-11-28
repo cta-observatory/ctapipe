@@ -131,10 +131,6 @@ class ProcessorTool(Tool):
             "DataWriter.write_index_tables",
             "generate PyTables index tables for the parameter and image datasets",
         ),
-        "camera-frame": (
-            {"ImageProcessor": {"use_telescope_frame": False}},
-            "Use camera frame for image parameters instead of telescope frame",
-        ),
     }
 
     classes = (
