@@ -8,7 +8,7 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import Angle
 
-from ..containers import CameraHillasParametersContainer, HillasParametersContainer
+from ..containers import HillasParametersContainer
 
 HILLAS_ATOL = np.finfo(np.float64).eps
 
@@ -73,7 +73,7 @@ def hillas_parameters(geom, image):
 
     Parameters
     ----------
-    geom: ctapipe.instrument.CameraGeometry
+    geom: ctapipe.instrument.CameraGeometry in TelescopeFrame
         Camera geometry, the cleaning mask should be applied to improve performance
     image : array_like
         Charge in each pixel, the cleaning mask should already be applied to
@@ -178,21 +178,6 @@ def hillas_parameters(geom, image):
             np.sum(((((b * A) + (a * B) + (-c * C))) ** 2.0) * image)
         ) / (2 * width)
 
-    if unit.is_equivalent(u.m):
-        return CameraHillasParametersContainer(
-            x=u.Quantity(cog_x, unit),
-            y=u.Quantity(cog_y, unit),
-            r=u.Quantity(cog_r, unit),
-            phi=Angle(cog_phi, unit=u.rad),
-            intensity=size,
-            length=u.Quantity(length, unit),
-            length_uncertainty=u.Quantity(length_uncertainty, unit),
-            width=u.Quantity(width, unit),
-            width_uncertainty=u.Quantity(width_uncertainty, unit),
-            psi=Angle(psi, unit=u.rad),
-            skewness=skewness_long,
-            kurtosis=kurtosis_long,
-        )
     return HillasParametersContainer(
         fov_lon=u.Quantity(cog_x, unit),
         fov_lat=u.Quantity(cog_y, unit),
