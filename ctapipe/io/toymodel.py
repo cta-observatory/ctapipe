@@ -8,6 +8,8 @@ from typing import Dict
 import astropy.units as u
 import numpy as np
 
+from ctapipe.coordinates import TelescopeFrame
+
 from ..containers import (
     ArrayEventContainer,
     DL1CameraContainer,
@@ -122,7 +124,7 @@ class ToyEventSource(EventSource, TelescopeComponent):
             if self.rng.uniform() >= self.trigger_probability.tel[tel_id]:
                 continue
 
-            cam = telescope.camera.geometry
+            cam = telescope.camera.geometry.transform_to(TelescopeFrame())
 
             # draw cog
             r_fraction = np.sqrt(self.rng.uniform(0, 0.9))
@@ -142,7 +144,7 @@ class ToyEventSource(EventSource, TelescopeComponent):
 
             psi = self.rng.uniform(0, 360)
             shower_area_ratio = (
-                2 * np.pi * width * length / cam.pix_area.mean().to_value(u.m**2)
+                2 * np.pi * width * length / cam.pix_area.mean().to_value(u.deg**2)
             )
             intensity = self.rng.poisson(50) * shower_area_ratio
             skewness = self.rng.uniform(
@@ -152,8 +154,8 @@ class ToyEventSource(EventSource, TelescopeComponent):
             model = toymodel.SkewedGaussian(
                 x=x,
                 y=y,
-                length=length * u.m,
-                width=width * u.m,
+                length=length * u.deg,
+                width=width * u.deg,
                 psi=f"{psi}d",
                 skewness=skewness,
             )
