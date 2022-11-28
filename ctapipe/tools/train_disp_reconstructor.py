@@ -1,12 +1,11 @@
 import astropy.units as u
 import numpy as np
 
-from ctapipe.coordinates.disp import horizontal_to_telescope
 from ctapipe.core import Tool
 from ctapipe.core.traits import Bool, Int, Path, TraitError, flag
 from ctapipe.io import TableLoader
 from ctapipe.reco import CrossValidator, DispReconstructor
-from ctapipe.reco.preprocessing import check_valid_rows
+from ctapipe.reco.preprocessing import check_valid_rows, horizontal_to_telescope
 
 
 class TrainDispReconstructor(Tool):

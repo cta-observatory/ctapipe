@@ -22,7 +22,6 @@ from ..containers import (
     ReconstructedEnergyContainer,
     ReconstructedGeometryContainer,
 )
-from ..coordinates.disp import telescope_to_horizontal
 from ..core import Component, FeatureGenerator, Provenance, QualityQuery
 from ..core.traits import (
     Bool,
@@ -38,7 +37,12 @@ from ..core.traits import (
     Unicode,
 )
 from ..io import write_table
-from .preprocessing import check_valid_rows, collect_features, table_to_float
+from .preprocessing import (
+    check_valid_rows,
+    collect_features,
+    table_to_float,
+    telescope_to_horizontal,
+)
 from .reconstructor import Reconstructor
 from .stereo_combination import StereoCombiner
 from .utils import add_defaults_and_meta
