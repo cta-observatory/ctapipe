@@ -10,7 +10,7 @@ import warnings
 
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import AltAz, SkyCoord
+from astropy.coordinates import AltAz
 from astropy.table import QTable, Table
 from numpy.lib.recfunctions import structured_to_unstructured
 
@@ -128,8 +128,8 @@ def horizontal_to_telescope(alt, az, pointing_alt, pointing_az):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", MissingFrameAttributeWarning)
 
-        horizontal_coord = SkyCoord(alt=alt, az=az, frame=AltAz())
-        pointing = SkyCoord(alt=pointing_alt, az=pointing_az, frame=AltAz())
+        horizontal_coord = AltAz(alt=alt, az=az)
+        pointing = AltAz(alt=pointing_alt, az=pointing_az)
         tel_frame = TelescopeFrame(telescope_pointing=pointing)
 
         tel_coord = horizontal_coord.transform_to(tel_frame)
@@ -143,7 +143,7 @@ def telescope_to_horizontal(lon, lat, pointing_alt, pointing_az):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", MissingFrameAttributeWarning)
 
-        pointing = SkyCoord(alt=pointing_alt, az=pointing_az, frame=AltAz())
+        pointing = AltAz(alt=pointing_alt, az=pointing_az)
         tel_coord = TelescopeFrame(
             fov_lon=lon, fov_lat=lat, telescope_pointing=pointing
         )

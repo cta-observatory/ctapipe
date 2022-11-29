@@ -2,12 +2,7 @@ from abc import abstractmethod
 
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import (
-    AltAz,
-    CartesianRepresentation,
-    SkyCoord,
-    SphericalRepresentation,
-)
+from astropy.coordinates import AltAz, CartesianRepresentation, SphericalRepresentation
 from astropy.table import Table
 
 from ctapipe.core import Component, Container
@@ -229,11 +224,7 @@ class StereoMeanCombiner(StereoCombiner):
                 ids.append(tel_id)
 
         if len(alt_values) > 0:  # by construction len(alt_values) == len(az_values)
-            coord = SkyCoord(
-                alt=alt_values,
-                az=az_values,
-                frame=AltAz(),
-            )
+            coord = AltAz(alt=alt_values, az=az_values)
             # https://en.wikipedia.org/wiki/Von_Mises%E2%80%93Fisher_distribution#Mean_direction
             mono_x, mono_y, mono_z = coord.cartesian.get_xyz()
             stereo_x = np.average(mono_x, weights=weights)
@@ -242,7 +233,7 @@ class StereoMeanCombiner(StereoCombiner):
 
             mean_cartesian = CartesianRepresentation(x=stereo_x, y=stereo_y, z=stereo_z)
             mean_spherical = mean_cartesian.represent_as(SphericalRepresentation)
-            mean_altaz = SkyCoord(mean_spherical, frame=AltAz())
+            mean_altaz = AltAz(mean_spherical)
 
             # https://en.wikipedia.org/wiki/Directional_statistics#Measures_of_location_and_spread
             r = mean_spherical.distance.to_value()
@@ -250,10 +241,9 @@ class StereoMeanCombiner(StereoCombiner):
 
             valid = True
         else:
-            mean_altaz = SkyCoord(
+            mean_altaz = AltAz(
                 alt=u.Quantity(np.nan, u.deg, copy=False),
                 az=u.Quantity(np.nan, u.deg, copy=False),
-                frame=AltAz(),
             )
             std = np.nan
             valid = False
@@ -362,10 +352,9 @@ class StereoMeanCombiner(StereoCombiner):
 
         elif self.property == "geometry":
             if len(valid_predictions) > 0:
-                coord = SkyCoord(
+                coord = AltAz(
                     alt=valid_predictions[f"{prefix}_alt"],
                     az=valid_predictions[f"{prefix}_az"],
-                    frame=AltAz(),
                 )
                 # https://en.wikipedia.org/wiki/Von_Mises%E2%80%93Fisher_distribution#Mean_direction
                 mono_x, mono_y, mono_z = coord.cartesian.get_xyz()
@@ -384,16 +373,15 @@ class StereoMeanCombiner(StereoCombiner):
                     x=stereo_x, y=stereo_y, z=stereo_z
                 )
                 mean_spherical = mean_cartesian.represent_as(SphericalRepresentation)
-                mean_altaz = SkyCoord(mean_spherical, frame=AltAz())
+                mean_altaz = AltAz(mean_spherical)
 
                 # https://en.wikipedia.org/wiki/Directional_statistics#Measures_of_location_and_spread
                 r = mean_spherical.distance.to_value()
                 std = np.sqrt(-2 * np.log(r))
             else:
-                mean_altaz = SkyCoord(
+                mean_altaz = AltAz(
                     alt=u.Quantity(np.full(n_array_events, np.nan), u.deg, copy=False),
                     az=u.Quantity(np.full(n_array_events, np.nan), u.deg, copy=False),
-                    frame=AltAz(),
                 )
                 std = np.full(n_array_events, np.nan)
 
