@@ -856,8 +856,7 @@ class DispContainer(Container):
 
     default_prefix = "disp_parameters"
 
-    norm = Field(nan * u.deg, "reconstructed absolute value for disp", unit=u.deg)
-    sign = Field(nan, "reconstructed sign for disp")
+    norm = Field(nan * u.deg, "reconstructed value for disp", unit=u.deg)
     is_valid = Field(False, "true if the predictions are valid")
 
 

@@ -107,7 +107,6 @@ class TrainDispReconstructor(Tool):
         """
         Train models per telescope type using a cross-validation.
         """
-
         types = self.loader.subarray.telescope_types
         self.log.info("Inputfile: %s", self.loader.input_url)
 

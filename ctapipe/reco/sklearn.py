@@ -545,11 +545,6 @@ class DispReconstructor(Reconstructor):
         help="Which scikit-learn classification model to use.",
     ).tag(config=True)
 
-    sign_invalid_class = Integer(
-        default_value=0,
-        help="The label to fill in case no sign prediction could be made",
-    ).tag(config=True)
-
     stereo_combiner_cls = ComponentName(
         StereoCombiner,
         default_value="StereoMeanCombiner",
@@ -684,7 +679,7 @@ class DispReconstructor(Reconstructor):
             )
         X, valid = table_to_X(table, self.features, self.log)
         norm_prediction = np.full(len(table), np.nan)
-        sign_prediction = np.full(len(table), self.sign_invalid_class, dtype=np.int8)
+        sign_prediction = np.full(len(table), 0, dtype=np.int8)
 
         if np.any(valid):
             valid_norms = self._norm_models[key].predict(X)
@@ -699,7 +694,7 @@ class DispReconstructor(Reconstructor):
         if self.norm_unit is not None:
             norm_prediction = u.Quantity(norm_prediction, self.norm_unit, copy=False)
 
-        return norm_prediction, sign_prediction, valid
+        return norm_prediction * sign_prediction, valid
 
     def __call__(self, event: ArrayEventContainer) -> None:
         """Event-wise prediction for the EventSource-Loop.
@@ -718,15 +713,13 @@ class DispReconstructor(Reconstructor):
             passes_quality_checks = self.quality_query.get_table_mask(table)[0]
 
             if passes_quality_checks:
-                norm, sign, valid = self._predict(self.subarray.tel[tel_id], table)
+                disp, valid = self._predict(self.subarray.tel[tel_id], table)
                 disp_container = DispContainer(
-                    norm=norm[0],
-                    sign=sign[0],
+                    norm=disp[0],
                     is_valid=valid[0],
                 )
 
                 if valid:
-                    disp = norm * sign
                     hillas = event.dl2.tel[tel_id].parameters.hillas
                     psi = hillas.psi.to_value(u.rad)
 
@@ -752,7 +745,6 @@ class DispReconstructor(Reconstructor):
             else:
                 disp_container = DispContainer(
                     norm=u.Quantity(np.nan, self.norm_unit),
-                    sign=self.sign_invalid_class,
                     is_valid=False,
                 )
                 altaz_container = ReconstructedGeometryContainer(
@@ -787,17 +779,15 @@ class DispReconstructor(Reconstructor):
         table = self.feature_generator(table)
 
         n_rows = len(table)
-        norm = u.Quantity(np.full(n_rows, np.nan), self.norm_unit, copy=False)
-        sign = np.full(n_rows, self.sign_invalid_class, dtype=np.int8)
+        disp = u.Quantity(np.full(n_rows, np.nan), self.norm_unit, copy=False)
         is_valid = np.full(n_rows, False)
 
         valid = self.quality_query.get_table_mask(table)
-        norm[valid], sign[valid], is_valid[valid] = self._predict(key, table[valid])
+        disp[valid], is_valid[valid] = self._predict(key, table[valid])
 
         disp_result = Table(
             {
-                f"{self.prefix}_parameters_tel_norm": norm,
-                f"{self.prefix}_parameters_tel_sign": sign,
+                f"{self.prefix}_parameters_tel_norm": disp,
                 f"{self.prefix}_parameters_tel_is_valid": is_valid,
             }
         )
@@ -808,9 +798,7 @@ class DispReconstructor(Reconstructor):
             stereo=False,
         )
 
-        disp = norm * sign
         psi = table["hillas_psi"].quantity.to_value(u.rad)
-
         fov_lon = table["hillas_fov_lon"] + disp * np.cos(psi)
         fov_lat = table["hillas_fov_lat"] + disp * np.sin(psi)
 
@@ -921,42 +909,20 @@ class CrossValidator(Component):
             train = table[train_indices]
             test = table[test_indices]
 
-            if isinstance(self.model_component, DispReconstructor):
-                (
-                    cv_prediction_norm,
-                    cv_prediction_sign,
-                    truth_norm,
-                    truth_sign,
-                    metrics,
-                ) = self.cross_validate(telescope_type, train, test)
-
-                predictions.append(
-                    Table(
-                        {
-                            "cv_fold": np.full(len(truth_norm), fold, dtype=np.uint8),
-                            "tel_type": [str(telescope_type)] * len(truth_norm),
-                            "norm_prediction": cv_prediction_norm,
-                            "norm_truth": truth_norm,
-                            "sign_prediction": cv_prediction_sign,
-                            "sign_truth": truth_sign,
-                            "true_energy": test["true_energy"],
-                        }
-                    )
+            cv_prediction, truth, metrics = self.cross_validate(
+                telescope_type, train, test
+            )
+            predictions.append(
+                Table(
+                    {
+                        "cv_fold": np.full(len(truth), fold, dtype=np.uint8),
+                        "tel_type": [str(telescope_type)] * len(truth),
+                        "prediction": cv_prediction,
+                        "truth": truth,
+                        "true_energy": test["true_energy"],
+                    }
                 )
-            else:
-                cv_prediction, truth, metrics = self.cross_validate(
-                    telescope_type, train, test
-                )
-                predictions.append(
-                    Table(
-                        {
-                            "cv_fold": np.full(len(truth), fold, dtype=np.uint8),
-                            "tel_type": [str(telescope_type)] * len(truth),
-                            "prediction": cv_prediction,
-                            "truth": truth,
-                        }
-                    )
-                )
+            )
 
             for metric, value in metrics.items():
                 scores[metric].append(value)
@@ -996,17 +962,14 @@ class CrossValidator(Component):
         models = self.model_component
         models.fit(telescope_type, train)
 
-        norm_prediction, sign_prediction, _ = models._predict(telescope_type, test)
+        prediction, _ = models._predict(telescope_type, test)
         norm_truth = test[models.norm_target]
         sign_truth = test[models.sign_target]
-        r2 = r2_score(norm_truth, norm_prediction)
-        accuracy = accuracy_score(sign_truth, sign_prediction)
-
+        r2 = r2_score(norm_truth, np.abs(prediction))
+        accuracy = accuracy_score(sign_truth, np.sign(prediction))
         return (
-            norm_prediction,
-            sign_prediction,
-            norm_truth,
-            sign_truth,
+            prediction,
+            norm_truth * sign_truth,
             {"R^2": r2, "accuracy": accuracy},
         )
 
