@@ -804,7 +804,7 @@ class DispReconstructor(Reconstructor):
         add_defaults_and_meta(
             disp_result,
             DispContainer,
-            prefix=self.prefix,
+            prefix=f"{self.prefix}_parameters",
             stereo=False,
         )
 
