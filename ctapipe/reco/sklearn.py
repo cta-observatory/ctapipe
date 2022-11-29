@@ -720,7 +720,7 @@ class DispReconstructor(Reconstructor):
                 )
 
                 if valid:
-                    hillas = event.dl2.tel[tel_id].parameters.hillas
+                    hillas = event.dl1.tel[tel_id].parameters.hillas
                     psi = hillas.psi.to_value(u.rad)
 
                     fov_lon = hillas.fov_lon + disp * np.cos(psi)
@@ -753,7 +753,7 @@ class DispReconstructor(Reconstructor):
                     is_valid=False,
                 )
 
-            disp_container.prefix = f"{self.prefix}_parameters_tel"
+            disp_container.prefix = f"{self.prefix}_parameter_tel"
             altaz_container.prefix = f"{self.prefix}_tel"
             event.dl2.tel[tel_id].disp[self.prefix] = disp_container
             event.dl2.tel[tel_id].geometry[self.prefix] = altaz_container
@@ -787,14 +787,14 @@ class DispReconstructor(Reconstructor):
 
         disp_result = Table(
             {
-                f"{self.prefix}_parameters_tel_norm": disp,
-                f"{self.prefix}_parameters_tel_is_valid": is_valid,
+                f"{self.prefix}_parameter_tel_norm": disp,
+                f"{self.prefix}_parameter_tel_is_valid": is_valid,
             }
         )
         add_defaults_and_meta(
             disp_result,
             DispContainer,
-            prefix=f"{self.prefix}_parameters",
+            prefix=f"{self.prefix}_parameter",
             stereo=False,
         )
 
